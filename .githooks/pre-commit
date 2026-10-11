@@ -37,7 +37,7 @@ fi
 # BSD stat (macOS) first, then GNU. GNU `stat -f` means "filesystem status": it
 # prints a report and exits non-zero, so a failed attempt's output is discarded.
 mtime() {
-    local out
+    local out args
     for args in "-f %m" "-c %Y"; do
         # shellcheck disable=SC2086
         if out=$(stat $args "$1" 2>/dev/null); then

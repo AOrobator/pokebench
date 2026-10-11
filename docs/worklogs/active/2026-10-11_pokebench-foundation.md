@@ -104,6 +104,7 @@ Mac Studio (all local)
   - `setup` sets `core.hooksPath .githooks`
   - Mutation sweep (exit-code keyed, files restored byte-identical): control green; red on each of: delete gate line, floor 90→50, gate reads another report, drop `--cov-branch`, drop pnpm coverage, unmeasured package, wrong hooksPath.
   - Operational: a vitest branches threshold of 101 makes `pnpm coverage` exit 1; restored → 0.
+  - COMMIT: `test(scaffold): wiring tests prove just coverage/setup reach the gates` (4343928). Gates: pytest 43, vitest 9, lint and build clean; Python coverage lines 98.65 / branches 95.83 / functions 100; TS 100.
 - [ ] Multi-model review loop until clean
 
 **M2 — Native emulator and game server**
@@ -166,7 +167,8 @@ Mac Studio (all local)
 | Milestone | Round | Principles | Claude-family | think_fast | think_swarm | Grok lane | GPT lane | Result |
 |---|---|---|---|---|---|---|---|---|
 | M1 | R1 (746a785..3f69d59, diff sha256 ec36e28b…89db) | 0 FAIL (P36, P8 rows corrected after review) | Claude CLI (default profile; `~/.claude-review` logged out): LGTM | BLOCKING (test seeds asset via hooksPath=/dev/null) | LGTM | Cursor unavailable (not logged in) → subagent fallback A (sonnet): LGTM; B (fable): LGTM | Codex isolated (gpt-6-astra): BLOCKING (Python coverage gate is aggregate; branches/functions not independently enforced) | fix batch R1 |
-| M1 | R2 fix delta (3f69d59..56d2cb2, sha256 12d23ec5…e7bd) | 0 FAIL (P36→N/A, P8, P41 rows) | Claude CLI: LGTM | BLOCKING (false positives, see synthesis) | BLOCKING (rejected; self-contradicting output) | fallback A (sonnet): LGTM; B (fable): pending | Codex: BLOCKING (function coverage inferred from a line proxy) | fix batch R2 |
+| M1 | R2 fix delta (3f69d59..56d2cb2, sha256 12d23ec5…e7bd) | 0 FAIL (P36→N/A, P8, P41 rows) | Claude CLI: LGTM | BLOCKING (false positives, see synthesis) | BLOCKING (rejected; self-contradicting output) | fallback A (sonnet): LGTM; B (fable): LGTM | Codex: BLOCKING (function coverage inferred from a line proxy) | fix batch R2 |
+| M1 | R3 (56d2cb2..4343928, sha256 ccef0ebf…9062) | 0 FAIL | Claude CLI: BLOCKING (worklog missing 2597b9c/4343928 records) | BLOCKING (rejected: one glob + one TOML read is not superlinear) | BLOCKING (rejected: exact-line pinning addresses brittleness; operator-directed tests are not scope expansion) | fallback A (sonnet): BLOCKING (6 mutation survivors: prefix-matched commands, vitest thresholds, omit, setup installs); B (fable): pending | Codex: LGTM | fix batch R3 |
 
 **M1 R2 synthesis.** Accepted:
 - Codex: functions with zero statements (e.g. docstring-only) are no longer counted. The line proxy is otherwise sound because `ruff format --check` rules out one-line `def` bodies.
@@ -177,10 +179,22 @@ Rejected:
 - think_fast: "`stat $args` breaks on spaces". `$1` is quoted, and the repo-with-spaces suite passes.
 - think_fast: "per-file floors". INV-6 sets per-stack floors, matching vitest's global thresholds, so per-file floors are scope expansion.
 
-Fix batch R2: RED `6c01cd7`; GREEN commit below.
+Fix batch R2: RED `6c01cd7`, GREEN `2597b9c`.
 - Gates: pytest 39, vitest 9, lint clean.
 - Coverage: Python lines 98.65, branches 95.83, functions 100.
 - Adversarial deletion: dropping the zero-statement skip, the empty-report check, or the floor validation turns 1/1/3 gate tests red.
+
+**M1 R3 synthesis.** Accepted:
+- Claude B1: the worklog records for 2597b9c and 4343928 were missing.
+- Fallback A: the wiring tests only matched command prefixes. They now pin the full `just --dry-run` output for `coverage` and `setup`, check that the gate reads pytest's report, evaluate the real vitest config with `node` (provider v8, all four thresholds = 90), and require that coverage `run` has exactly `source` + `branch` (no `omit`/`include`).
+- Mutation sweep (17 + control, exit-code keyed, files restored byte-identical): every mutation red, including `|| true` on the pytest/pnpm/gate lines, `-k zzz`, `--no-cov`, vitest thresholds lowered or removed, `omit`, and dropped setup installs.
+- Hardening (Claude, B): one `just` call per module via a fixture; dead `{"tests"}` filter removed; `local args`; CLAUDE.md lists `pokebench_gates` and marks M2 paths; principles rows P1/P8/P11/P26/P30/P45 refreshed.
+
+Fix batch R3 gates: pytest 44, vitest 9, lint and build clean.
+- Coverage: Python lines 98.65 / branches 95.83 / functions 100; TS 100.
+- `just coverage` was not re-run before 4343928 was recorded. Re-running it at the R3 fix head gave identical figures.
+
+Environment note: hook tests vary from 0.5 to 24 s per test under machine load (a concurrent local-inference-stack llvm-cov landing gate, load average about 10–12). A bare `stat` loop is unaffected; the cost is git process spawns.
 
 **Process note:** R1 and R2 both raised new blockers. Per multi-model-review, round 3 needs operator scope confirmation (ASK USER below).
 

@@ -8,9 +8,10 @@ A benchmark harness that measures how far local vision-language models get in Po
 
 - `packages/agent`: TypeScript agent on pi (`@mariozechner/pi-ai`, `@mariozechner/pi-agent-core`). Talks to the local-inference-stack gateway (`http://inference.example/v1`) and to the game server.
 - `env/`: Python environment.
-  - `pokebench_env` is our code: ROM resolution, server launcher, vendor check, typed client.
+  - `pokebench_env` is our code: ROM resolution, server launcher, vendor check, typed client (lands with M2).
+  - `pokebench_gates` owns the per-metric Python coverage gate.
   - `env/vendor/continual-harness` is the PokéAgent starter kit, a git submodule pinned and **unmodified**.
-- `scripts/build-mgba.sh`: native arm64 mGBA 0.10.5 build plus its Python binding.
+- `scripts/build-mgba.sh`: native arm64 mGBA 0.10.5 build plus its Python binding (lands with M2).
 
 Read the active worklog first: `WORKLOG.md` (a gitignored pointer) → `docs/worklogs/active/<date>_<slug>.md`.
 

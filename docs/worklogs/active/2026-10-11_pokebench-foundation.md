@@ -150,7 +150,11 @@ Mac Studio (all local)
   - Adversarial deletion: dropping the qwen thinking format, thinking-as-text, vision for every lane, `max_completion_tokens`, `developer` role, or the duplicate-id check turns 1/1/2/2/2/1 tests red; restored → 39 green
 - [x] Gates: vitest 39 passed; coverage statements 100 / branches 97.67 / functions 100 / lines 100; tsc + eslint clean; build clean. (`just test` pytest still errors on collection here: that is M2's RED, whose implementation lives uncommitted on main.)
 - [x] COMMIT: `feat(agent): local gateway provider for pi` (2bab6dd) (GREEN)
-- [ ] Live smoke (`just smoke-llm`): agent-core loop calls a `screenshot` tool against the running game server, the model describes the real frame, and a second tool call completes
+- [x] Live smoke (`just smoke-llm`): agent-core loop calls a `screenshot` tool against the running game server, the model describes the real frame, and a second tool call completes
+  - `packages/agent/src/smoke.ts` (entrypoint, vitest-excluded per INV-6): refuses to run if a server is already healthy on the port (M2 review hardening: no passing against a stale server — proven live on a stale main-worktree server), else spawns its own `python -m pokebench_env.launcher` (argv list, INV-2), waits on `/health`, runs `runAgentLoop` with `screenshot` + `state` tools (TypeBox-validated responses, INV-4), asserts: both tool results present and not errors, and ≥2 non-empty assistant texts, printed before asserting so failures are diagnosable. 420 s loop abort via `AbortController`.
+  - `just smoke-llm: build` → `node packages/agent/dist/smoke.js`.
+  - Attempt 1 failed as designed (stale server on :8000). Attempt 2: loop ended after the frame description without the second call — the loop terminates on any tool-call-free assistant message, so the description must ride in the *same* message as the second tool call; PROMPT rewritten to that protocol.
+  - GREEN: `tool calls: screenshot, state`; model: "green, foliage-filled screen with the words 'GAME REAK' in the center" (the GAME FREAK title screen, read honestly); `DONE TITLE_SEQUENCE` matching `/state`.
 - [ ] Multi-model review loop until clean
 - [ ] **STOP — report to operator before M4**
 
@@ -175,10 +179,12 @@ Mac Studio (all local)
 - [ ] Operator watches a live run in the viewer (M4+)
 
 ## Session Log
+- 2026-10-11 ~18:20–19:55 ET: merged main (M2 GREEN) into `m3-agent-provider` — clean. macOS TCC now blocks agent processes from `~/Downloads` (earlier smoke had access): ROM relocated by the operator to `~/.roms/pokemon-emerald.gba`, SHA-1 verified against `EMERALD_SHA1`, `.env` repointed in both worktrees. `just build-mgba` re-run for the worktree venv. All gates green post-merge (vitest 39, pytest 86, coverage ≥90 both stacks, vendor clean after smoke). Implemented and greened `just smoke-llm` (see M3). **Resume:** run the M3 multi-model review loop, then the pending M2 loop (`6294533..c6301e6`), then STOP-report before M4.
 - 2026-10-11 ~17:55 ET: usage limit reached during the M2 review round (one round, proportional to risk). Fallback reviewer (sonnet): LGTM, with hardening: smoke passes against a stale server already on the port; brew-missing message; http scheme check. Still pending: Claude CLI, think_fast, think_swarm, Codex (artifacts in the session scratchpad `review/m2/`) and fallback (fable). **Resume:** rerun the M2 review lanes on 6294533..c6301e6, then start M3. pi 0.73.1's openai-completions provider already reads llama.cpp `reasoning_content`.
 - 2026-10-11: Research + kickoff discussion. Spike: mGBA 0.10.5 binding builds natively (FFmpeg required, or the import fails on EReader symbols); Emerald ran at ~4,350 fps headless. ROM SHA-1 verified. Repo initialized (`746a785`). Worklog written; operator approved M1–M3.
 
 ## Surprises
+- pi-agent-core 0.73.1's loop terminates on the first assistant message without tool calls. Multi-step prompts must bundle any narration with the *next* tool call, or the loop exits mid-protocol. M5/M6 harness prompts must encode this.
 - mGBA's Python binding needs `USE_FFMPEG=ON`: with it off, `_pylib` references EReader symbols that are compiled out.
 - The starter kit's game server hardcodes the ROM at `Emerald-GBAdvance/rom.gba` relative to cwd, so a symlink is used (the path is git-ignored upstream).
 - Reviewer availability at kickoff: Codex logged in; Cursor CLI needs `agent login`; the `~/.claude-review` profile is logged out.

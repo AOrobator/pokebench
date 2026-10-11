@@ -45,3 +45,7 @@ serve:
 # Boots the real game server on the real ROM (127.0.0.1), presses A, reads state/screenshot/milestones.
 smoke:
     cd env && uv run python -m pokebench_env.smoke
+
+# Live LLM smoke: pi agent loop on the gateway, screenshot tool on the game server it spawns.
+smoke-llm: build
+    node packages/agent/dist/smoke.js

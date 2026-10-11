@@ -97,7 +97,13 @@ Mac Studio (all local)
 - [x] Gates: `just test` (vitest 8, pytest 14), `just lint` (tsc, eslint strictTypeChecked, ruff, ruff format, mypy strict: clean), `just build` clean, `just coverage` TS 100/100/100, Python 100% (only `__init__` so far)
 - [x] COMMIT: `feat(scaffold): repo tooling, hook, config` (3f69d59) (GREEN)
 - [ ] **ASK USER:** principles rubric. Keep inheriting local-inference-stack's `docs/agent-principles.md`, or will you author a PokeBench one? (Agents never author it.)
-- [ ] **ASK USER:** review round 3 on the R2 fix delta (multi-model-review requires operator scope confirmation after two rounds with new blockers)
+- [x] **ASK USER:** review round 3 on the R2 fix delta. Operator (2026-10-11): "u can run the review but keep in mind the production wiring test skill in local inference stack".
+- [x] Wiring tests (production-wiring-tests skill), `env/tests/tooling/test_gate_wiring.py`, drive `just --dry-run`:
+  - `coverage` runs pytest with `--cov --cov-branch`, then the gate on the same JSON report with `--min 90`, plus `pnpm -r coverage` → `vitest run --coverage`
+  - every Python package is in coverage `source` (derived from the `*/__init__.py` enumeration plus a pinned set)
+  - `setup` sets `core.hooksPath .githooks`
+  - Mutation sweep (exit-code keyed, files restored byte-identical): control green; red on each of: delete gate line, floor 90→50, gate reads another report, drop `--cov-branch`, drop pnpm coverage, unmeasured package, wrong hooksPath.
+  - Operational: a vitest branches threshold of 101 makes `pnpm coverage` exit 1; restored → 0.
 - [ ] Multi-model review loop until clean
 
 **M2 — Native emulator and game server**

@@ -3,10 +3,16 @@
 coverage.py's `fail_under` checks one aggregate number, which lets low branch
 coverage hide behind high line coverage and does not measure functions at all.
 This gate enforces lines, branches, and functions independently.
+
+coverage.py does not record function entry, so a function counts as covered
+when any of its body statements ran. Functions with no statements (for example
+docstring-only bodies) are not counted. One-line `def f(): ...` bodies would
+defeat the proxy; `ruff format --check` rules them out.
 """
 
 import argparse
 import json
+import math
 import sys
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
@@ -60,10 +66,14 @@ def evaluate(report: Mapping[str, object], minimum: float) -> CoverageResult:
                 continue
             function = _mapping(raw_function, f"function {function_name!r}")
             function_summary = _mapping(function.get("summary"), f"function {function_name!r}")
+            if _int(function_summary, "num_statements") == 0:
+                continue
             functions += 1
             if _int(function_summary, "covered_lines") > 0:
                 covered_functions += 1
 
+    if statements == 0:
+        raise CoverageReportError("report measured no statements; check coverage `source`")
     metrics = {
         "lines": _percent(covered_lines, statements),
         "branches": _percent(covered_branches, branches),
@@ -82,6 +92,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("report", type=Path)
     parser.add_argument("--min", type=float, default=90.0, dest="minimum")
     args = parser.parse_args(argv)
+    if math.isnan(args.minimum) or not 0.0 <= args.minimum <= 100.0:
+        print(f"coverage floor must be within [0, 100], got {args.minimum}", file=sys.stderr)
+        return 2
     try:
         report = _mapping(json.loads(args.report.read_text(encoding="utf-8")), "report")
         result = evaluate(report, args.minimum)

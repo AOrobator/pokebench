@@ -97,6 +97,7 @@ Mac Studio (all local)
 - [x] Gates: `just test` (vitest 8, pytest 14), `just lint` (tsc, eslint strictTypeChecked, ruff, ruff format, mypy strict: clean), `just build` clean, `just coverage` TS 100/100/100, Python 100% (only `__init__` so far)
 - [x] COMMIT: `feat(scaffold): repo tooling, hook, config` (3f69d59) (GREEN)
 - [ ] **ASK USER:** principles rubric. Keep inheriting local-inference-stack's `docs/agent-principles.md`, or will you author a PokeBench one? (Agents never author it.)
+- [ ] **ASK USER:** review round 3 on the R2 fix delta (multi-model-review requires operator scope confirmation after two rounds with new blockers)
 - [ ] Multi-model review loop until clean
 
 **M2 — Native emulator and game server**
@@ -169,6 +170,11 @@ Rejected:
 - think_swarm: "deletion test fails". The hook filters `ACMR`, and the test passes (34/34).
 - think_fast: "`stat $args` breaks on spaces". `$1` is quoted, and the repo-with-spaces suite passes.
 - think_fast: "per-file floors". INV-6 sets per-stack floors, matching vitest's global thresholds, so per-file floors are scope expansion.
+
+Fix batch R2: RED `6c01cd7`; GREEN commit below.
+- Gates: pytest 39, vitest 9, lint clean.
+- Coverage: Python lines 98.65, branches 95.83, functions 100.
+- Adversarial deletion: dropping the zero-statement skip, the empty-report check, or the floor validation turns 1/1/3 gate tests red.
 
 **Process note:** R1 and R2 both raised new blockers. Per multi-model-review, round 3 needs operator scope confirmation (ASK USER below).
 

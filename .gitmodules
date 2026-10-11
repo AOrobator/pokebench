@@ -1,0 +1,3 @@
+[submodule "env/vendor/continual-harness"]
+	path = env/vendor/continual-harness
+	url = https://github.com/sethkarten/continual-harness.git

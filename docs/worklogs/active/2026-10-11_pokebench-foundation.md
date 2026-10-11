@@ -112,12 +112,16 @@ Mac Studio (all local)
   - Deferred (hardening): exotic config that bypasses the wiring tests (`-`/`@` justfile prefixes, `set shell`, `PYTEST_ADDOPTS`, vitest include/exclude/enabled, pytest addopts/testpaths); zipped ROM extensions; tseslint `defineConfig`; mypy over tests; Linux portability of the GNU-stat shim.
 
 **M2 — Native emulator and game server**
-- [ ] Write tests (`env/tests`):
+- [x] Write tests (`env/tests/env`), plus a smoke orchestrator test (health wait, process exit, terminate):
   - ROM resolver: missing env → error; SHA-1 mismatch → error; match → symlink placed into the vendor ROM slot, idempotent, never a copy
   - launcher: exact argv for the server (port, `--no-ocr`, optional `--load-state`), `127.0.0.1` bind, hostile path characters (INV-2)
   - vendor check: pin mismatch or a dirty tree fails (INV-3)
   - typed client: `/health`, `/state`, `/screenshot`, `/action` parsed into dataclasses; malformed payload → error
-- [ ] COMMIT: `test(env): rom, launcher, vendor, client` (RED)
+- [x] COMMIT: `test(env): rom, launcher, vendor, client` (RED, this commit). Submodule added at pin bbab97a. Finding: the vendor `/action` queues unknown buttons (e.g. "NOPE") and reports success, so the client validates against a `Button` enum.
+- Design (from the 2026-10-11 spike):
+  - The vendor `main()` hardcodes `uvicorn.run(host="0.0.0.0")`. `pokebench_env.serve` wraps `uvicorn.run` to pin `127.0.0.1`, then calls the vendor `main()` unchanged.
+  - The ROM reaches the server through the git-ignored `Emerald-GBAdvance/rom.gba` symlink; the vendor tree stays clean.
+  - Measured runtime dependencies beyond the server's imports: opencv-python-headless, beautifulsoup4.
 - [ ] Add submodule `env/vendor/continual-harness` at pin; `scripts/build-mgba.sh` (0.10.5, FFmpeg on, pip `pkgconf`, installs the binding into the env venv); minimal env dependency set (not the starter kit's torch/bitsandbytes stack)
 - [ ] Implement `pokebench_env` (rom, launcher, vendor check, client)
 - [ ] Gates: pytest + coverage ≥90, ruff, mypy

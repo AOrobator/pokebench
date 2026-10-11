@@ -101,8 +101,8 @@ def test_metrics_aggregate_across_files() -> None:
     assert result.failures == ["branches 80.00% < 90.00%", "functions 50.00% < 90.00%"]
 
 
-def test_empty_denominators_count_as_fully_covered() -> None:
-    data = report({"a.py": file_entry(summary(0, 0), {})})
+def test_empty_branch_and_function_denominators_count_as_fully_covered() -> None:
+    data = report({"a.py": file_entry(summary(3, 3), {})})
     result = evaluate(data, minimum=90.0)
     assert (result.lines, result.branches, result.functions) == (100.0, 100.0, 100.0)
 
@@ -147,3 +147,29 @@ def test_main_reports_unreadable_input(tmp_path: Path, capsys: pytest.CaptureFix
     path.write_text("not json")
     assert main([str(path)]) == 2
     assert "coverage report" in capsys.readouterr().err
+
+
+def test_functions_without_statements_are_not_counted() -> None:
+    functions = {
+        "real": fully_covered_function(),
+        "docstring_only": {"summary": summary(0, 0)},
+    }
+    data = report({"a.py": file_entry(summary(10, 10), functions)})
+    assert evaluate(data, minimum=90.0).functions == 100.0
+
+
+def test_report_that_measured_nothing_fails() -> None:
+    with pytest.raises(CoverageReportError, match="measured no"):
+        evaluate(report({}), minimum=90.0)
+    with pytest.raises(CoverageReportError, match="measured no"):
+        evaluate(report({"a.py": file_entry(summary(0, 0), {})}), minimum=90.0)
+
+
+@pytest.mark.parametrize("floor", ["nan", "-1", "100.5"])
+def test_main_rejects_invalid_floor(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], floor: str
+) -> None:
+    path = tmp_path / "coverage.json"
+    path.write_text(json.dumps(report({"a.py": file_entry(summary(10, 10), {})})))
+    assert main([str(path), "--min", floor]) == 2
+    assert "floor" in capsys.readouterr().err

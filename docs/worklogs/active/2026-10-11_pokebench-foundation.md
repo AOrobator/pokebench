@@ -158,7 +158,19 @@ Mac Studio (all local)
 ## Multi-Model Review Log
 | Milestone | Round | Principles | Claude-family | think_fast | think_swarm | Grok lane | GPT lane | Result |
 |---|---|---|---|---|---|---|---|---|
-| M1 | R1 (746a785..3f69d59, diff sha256 ec36e28b…89db) | 0 FAIL (P36, P8 rows corrected after review) | Claude CLI (default profile; `~/.claude-review` logged out): LGTM | BLOCKING (test seeds asset via hooksPath=/dev/null) | LGTM | Cursor unavailable (not logged in) → subagent fallback A (sonnet): LGTM; B (fable): pending | Codex isolated (gpt-6-astra): BLOCKING (Python coverage gate is aggregate; branches/functions not independently enforced) | fix batch R1 |
+| M1 | R1 (746a785..3f69d59, diff sha256 ec36e28b…89db) | 0 FAIL (P36, P8 rows corrected after review) | Claude CLI (default profile; `~/.claude-review` logged out): LGTM | BLOCKING (test seeds asset via hooksPath=/dev/null) | LGTM | Cursor unavailable (not logged in) → subagent fallback A (sonnet): LGTM; B (fable): LGTM | Codex isolated (gpt-6-astra): BLOCKING (Python coverage gate is aggregate; branches/functions not independently enforced) | fix batch R1 |
+| M1 | R2 fix delta (3f69d59..56d2cb2, sha256 12d23ec5…e7bd) | 0 FAIL (P36→N/A, P8, P41 rows) | Claude CLI: LGTM | BLOCKING (false positives, see synthesis) | BLOCKING (rejected; self-contradicting output) | fallback A (sonnet): LGTM; B (fable): pending | Codex: BLOCKING (function coverage inferred from a line proxy) | fix batch R2 |
+
+**M1 R2 synthesis.** Accepted:
+- Codex: functions with zero statements (e.g. docstring-only) are no longer counted. The line proxy is otherwise sound because `ruff format --check` rules out one-line `def` bodies.
+- Fallback A hardening, both cheap and inside the gate: reject a NaN or out-of-range `--min`; fail a report that measured no statements (a vacuous pass).
+
+Rejected:
+- think_swarm: "deletion test fails". The hook filters `ACMR`, and the test passes (34/34).
+- think_fast: "`stat $args` breaks on spaces". `$1` is quoted, and the repo-with-spaces suite passes.
+- think_fast: "per-file floors". INV-6 sets per-stack floors, matching vitest's global thresholds, so per-file floors are scope expansion.
+
+**Process note:** R1 and R2 both raised new blockers. Per multi-model-review, round 3 needs operator scope confirmation (ASK USER below).
 
 **M1 R1 synthesis.** Accepted:
 - Codex: per-metric Python coverage gate (lines, branches and functions each ≥90).

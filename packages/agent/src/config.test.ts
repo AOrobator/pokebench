@@ -7,6 +7,7 @@ describe("loadConfig", () => {
       gatewayUrl: "http://inference.example/v1",
       model: "think-swarm",
       gameServerUrl: "http://127.0.0.1:8000",
+      visionModels: ["think-swarm"],
     });
   });
 
@@ -16,11 +17,13 @@ describe("loadConfig", () => {
         POKEBENCH_GATEWAY_URL: "http://127.0.0.1:8773/v1",
         POKEBENCH_MODEL: "think-pokebench",
         POKEBENCH_GAME_SERVER_URL: "http://127.0.0.1:9000",
+        POKEBENCH_VISION_MODELS: "think-pokebench",
       }),
     ).toEqual({
       gatewayUrl: "http://127.0.0.1:8773/v1",
       model: "think-pokebench",
       gameServerUrl: "http://127.0.0.1:9000",
+      visionModels: ["think-pokebench"],
     });
   });
 
@@ -55,4 +58,19 @@ describe("loadConfig", () => {
   it("rejects a whitespace-only model id", () => {
     expect(() => loadConfig({ POKEBENCH_MODEL: "   " })).toThrow(ConfigError);
   });
+
+  it("splits and trims a comma-separated vision lane list", () => {
+    expect(loadConfig({ POKEBENCH_VISION_MODELS: " think-swarm , think-longctx " }).visionModels).toEqual([
+      "think-swarm",
+      "think-longctx",
+    ]);
+  });
+
+  it.each(["think-swarm,,think-longctx", " , ", "think-swarm,"])(
+    "rejects a blank entry in POKEBENCH_VISION_MODELS=%j",
+    (value) => {
+      expect(() => loadConfig({ POKEBENCH_VISION_MODELS: value })).toThrow(ConfigError);
+      expect(() => loadConfig({ POKEBENCH_VISION_MODELS: value })).toThrow("POKEBENCH_VISION_MODELS");
+    },
+  );
 });

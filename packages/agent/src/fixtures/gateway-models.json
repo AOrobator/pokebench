@@ -1,0 +1,103 @@
+{
+    "object": "list",
+    "data": [
+        {
+            "id": "think-fast",
+            "object": "model",
+            "owned_by": "local-inference-stack",
+            "created": 1791755164,
+            "context_window": 65536,
+            "max_tokens": 16384,
+            "metadata": {
+                "tier": "think-fast",
+                "context_tokens": 65536,
+                "max_response_tokens": 16384,
+                "source": "live",
+                "upstream_model_id": "/models/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf",
+                "observed": {
+                    "train_context_tokens": 262144,
+                    "parameter_count": 35505251456,
+                    "size_bytes": 22652396032,
+                    "quantization": "Q4_K - Medium",
+                    "capabilities": [
+                        "completion",
+                        "multimodal"
+                    ]
+                }
+            }
+        },
+        {
+            "id": "think-swarm",
+            "object": "model",
+            "owned_by": "local-inference-stack",
+            "created": 1791755164,
+            "context_window": 65536,
+            "max_tokens": 16384,
+            "metadata": {
+                "tier": "think-swarm",
+                "context_tokens": 65536,
+                "max_response_tokens": 16384,
+                "source": "live",
+                "upstream_model_id": "think-swarm",
+                "observed": {
+                    "train_context_tokens": 262144,
+                    "parameter_count": 34660610688,
+                    "size_bytes": 21155768832,
+                    "quantization": "Q4_K - Medium",
+                    "capabilities": [
+                        "completion",
+                        "multimodal"
+                    ]
+                }
+            }
+        },
+        {
+            "id": "think-longctx",
+            "object": "model",
+            "owned_by": "local-inference-stack",
+            "created": 1791755164,
+            "context_window": 262144,
+            "max_tokens": 32768,
+            "metadata": {
+                "tier": "think-longctx",
+                "context_tokens": 262144,
+                "max_response_tokens": 32768,
+                "source": "live",
+                "upstream_model_id": "think-longctx-m1-256k",
+                "observed": {
+                    "train_context_tokens": 262144,
+                    "parameter_count": 34660610688,
+                    "size_bytes": 69365647872,
+                    "quantization": "BF16",
+                    "capabilities": [
+                        "completion",
+                        "multimodal"
+                    ]
+                }
+            }
+        },
+        {
+            "id": "think-faster",
+            "object": "model",
+            "owned_by": "local-inference-stack",
+            "created": 1791755164,
+            "context_window": 4096,
+            "max_tokens": 1024,
+            "metadata": {
+                "tier": "think-faster",
+                "context_tokens": 4096,
+                "max_response_tokens": 1024,
+                "source": "live",
+                "upstream_model_id": "qwen3-0.6b-think-faster",
+                "observed": {
+                    "train_context_tokens": 40960,
+                    "parameter_count": 751632384,
+                    "size_bytes": 798801920,
+                    "capabilities": [
+                        "completion"
+                    ]
+                }
+            }
+        }
+    ]
+}

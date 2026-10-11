@@ -130,12 +130,19 @@ Mac Studio (all local)
 - [ ] Visual check: `http://localhost:8000/stream` renders the live game in Chrome on the Mac (screenshot evidence)
 - [ ] Multi-model review loop until clean
 
-**M3 — pi ↔ local gateway**
-- [ ] Write tests (`packages/agent`):
+**M3 — pi ↔ local gateway** *(started in parallel with M2 on branch `m3-agent-provider`, worktree `../pokebench-m3`; the live smoke waits for M2)*
+- [x] Write tests (`packages/agent`):
   - discovery: `/v1/models` fixture → pi `Model` objects (contextWindow/maxTokens from payload, image input only for lanes configured as vision); unknown/malformed → typed error
   - a tool returning `ImageContent` is serialized for `openai-completions`
   - reasoning content across a tool-call turn is preserved (pi compat setting verified against the pi-ai source)
-- [ ] COMMIT: `test(agent): gateway discovery and multimodal tool round trip` (RED)
+  - `gateway.test.ts`: fixture is the live `/v1/models` payload captured 2026-10-11 (`src/fixtures/gateway-models.json`); malformed payloads, HTTP/JSON/network errors, a configured vision lane the gateway reports text-only → `GatewayDiscoveryError`
+  - `provider.test.ts`: a fake gateway (node `http`, SSE) driven by pi-agent-core `runAgentLoop`; asserts the second request's wire body (`image_url` data URL, `reasoning_content` replay, `chat_template_kwargs.preserve_thinking`, `system` role, `max_tokens`, no `store`/`reasoning_effort`), and that a non-vision lane never receives image bytes
+  - `config.test.ts`: `POKEBENCH_VISION_MODELS` (default `think-swarm`, comma list, blank entries rejected)
+- [ ] COMMIT: `test(agent): gateway discovery and multimodal tool round trip` (RED). vitest: gateway/provider files fail to import; config 4 failing / 9 passing
+- Design (from reading pi-ai 0.73.1 `providers/openai-completions.js` and the local stack Qwen chat template):
+  - pi replays a thinking block under the field it streamed from (`thinkingSignature = "reasoning_content"`), so llama.cpp gets `reasoning_content` back on the assistant message.
+  - pi moves tool-result images into a synthetic user message ("Attached image(s) from tool result:"). The Qwen template treats that as a new user query and drops earlier `reasoning_content` unless `preserve_thinking` is on. So the gateway compat uses `thinkingFormat: "qwen-chat-template"`, which sends `chat_template_kwargs: { enable_thinking, preserve_thinking: true }`. Whether the deployed template honors `preserve_thinking` is verified by `just smoke-llm`.
+  - Gateway compat: no `developer` role, no `store`, `max_tokens` field, no `reasoning_effort`.
 - [ ] Implement the provider + `@mariozechner/pi-ai`/`pi-agent-core` pinned exact (0.73.1 at time of writing)
 - [ ] Gates: vitest + coverage ≥90, tsc, eslint
 - [ ] COMMIT: `feat(agent): local gateway provider for pi` (GREEN)

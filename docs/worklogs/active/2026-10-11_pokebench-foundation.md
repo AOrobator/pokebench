@@ -149,7 +149,7 @@ Mac Studio (all local)
   - `src/config.ts`: `visionModels` from `POKEBENCH_VISION_MODELS`
   - Adversarial deletion: dropping the qwen thinking format, thinking-as-text, vision for every lane, `max_completion_tokens`, `developer` role, or the duplicate-id check turns 1/1/2/2/2/1 tests red; restored → 39 green
 - [x] Gates: vitest 39 passed; coverage statements 100 / branches 97.67 / functions 100 / lines 100; tsc + eslint clean; build clean. (`just test` pytest still errors on collection here: that is M2's RED, whose implementation lives uncommitted on main.)
-- [x] COMMIT: `feat(agent): local gateway provider for pi` (GREEN; SHA recorded in the next commit)
+- [x] COMMIT: `feat(agent): local gateway provider for pi` (2bab6dd) (GREEN)
 - [ ] Live smoke (`just smoke-llm`): agent-core loop calls a `screenshot` tool against the running game server, the model describes the real frame, and a second tool call completes
 - [ ] Multi-model review loop until clean
 - [ ] **STOP — report to operator before M4**

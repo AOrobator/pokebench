@@ -122,12 +122,12 @@ Mac Studio (all local)
   - The vendor `main()` hardcodes `uvicorn.run(host="0.0.0.0")`. `pokebench_env.serve` wraps `uvicorn.run` to pin `127.0.0.1`, then calls the vendor `main()` unchanged.
   - The ROM reaches the server through the git-ignored `Emerald-GBAdvance/rom.gba` symlink; the vendor tree stays clean.
   - Measured runtime dependencies beyond the server's imports: opencv-python-headless, beautifulsoup4.
-- [ ] Add submodule `env/vendor/continual-harness` at pin; `scripts/build-mgba.sh` (0.10.5, FFmpeg on, pip `pkgconf`, installs the binding into the env venv); minimal env dependency set (not the starter kit's torch/bitsandbytes stack)
-- [ ] Implement `pokebench_env` (rom, launcher, vendor check, client)
-- [ ] Gates: pytest + coverage ≥90, ruff, mypy
+- [x] Add submodule `env/vendor/continual-harness` at pin; `scripts/build-mgba.sh` (0.10.5, FFmpeg on, pip `pkgconf`, installs the binding into the env venv); minimal env dependency set (not the starter kit's torch/bitsandbytes stack)
+- [x] Implement `pokebench_env`: rom, vendor, launcher (prepare/spawn/launch), serve (localhost pin), client (typed, `Button` enum), smoke; `just build-mgba/verify-rom/verify-vendor/serve/smoke`; gitignored `.env` carries `POKEBENCH_ROM`
+- [x] Gates: pytest 86, vitest 9, lint and build clean; Python coverage 98.42 / 95.95 / 100; TS 100
 - [ ] COMMIT: `feat(env): native mGBA env and game server launcher` (GREEN)
-- [ ] Smoke (`just smoke`, needs the ROM): boot the server, press A, `/state` returns typed player state, `/screenshot` is 240×160 PNG, `/milestones` responds
-- [ ] Visual check: `http://localhost:8000/stream` renders the live game in Chrome on the Mac (screenshot evidence)
+- [x] Smoke: `just smoke` → `SmokeReport(location='TITLE_SEQUENCE', screenshot_bytes=508, milestones_completed=['GAME_RUNNING', 'PLAYER_NAME_SET'])`; server terminated; vendor clean before and after
+- [x] Visual check: `just serve` → Chrome at http://127.0.0.1:8000/stream shows the live game (NEW GAME menu) plus the starter kit's thinking/milestones/party/map panels
 - [ ] Multi-model review loop until clean
 
 **M3 — pi ↔ local gateway**
@@ -229,6 +229,9 @@ Gates: pytest 34, vitest 9, lint clean, build clean. Coverage: TypeScript 100/10
 Adversarial deletion: skipping the branches/functions/lines check fails 3/2/1 gate tests; restoring the old `stat … || stat …` fallback fails both GNU-shim tests. A speculative integer validation was removed after tests showed it unobservable (P29).
 
 Deferred (HARDENING): zipped ROM extensions (.zip/.7z) and .srm. Speculation not acted on: config trimming, credentials echoed in URL errors.
+
+- M2: `ruff format .` (run from env/) reformatted 107 vendor files before `vendor` was excluded. The submodule was restored with `git checkout -- .` and verified clean; ruff now has `extend-exclude = ["vendor"]`.
+- M2: the vendor server restores cached run data and checkpoint metrics from earlier runs by default (smoke reported `PLAYER_NAME_SET` without reaching it). Benchmark runs need isolation, likely `LOAD_CHECKPOINT_MODE=false` plus a per-run data dir; to settle in M5.
 
 ## Boy Scout Log
 

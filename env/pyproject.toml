@@ -3,9 +3,30 @@ name = "pokebench-env"
 version = "0.1.0"
 description = "PokeBench environment glue: ROM resolution, game server launcher, vendor check, typed client."
 requires-python = ">=3.11,<3.12"
-dependencies = []
+dependencies = [
+    # Game server runtime (continual-harness server/app.py imports, measured 2026-10-11).
+    "fastapi==0.143.0",
+    "uvicorn[standard]==0.54.0",
+    "pillow==12.3.0",
+    "numpy==2.4.6",
+    "opencv-python-headless==5.0.0.93",
+    "beautifulsoup4==4.15.0",
+    "requests==2.34.2",
+    "pydantic==2.14.1",
+    # mGBA Python binding runtime (built from source by scripts/build-mgba.sh).
+    "cffi==2.1.1",
+    "cached-property==2.0.1",
+]
 
 [dependency-groups]
+mgba-build = [
+    "pkgconf==2.5.1.post1",
+    "pip==25.2",
+    "setuptools==80.9.0",
+    "wheel==0.45.1",
+    "pytest-runner==6.0.1",
+    "pycparser==2.23",
+]
 dev = [
     "pytest==8.4.2",
     "pytest-cov==7.0.0",
@@ -22,6 +43,7 @@ packages = ["pokebench_env", "pokebench_gates"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+norecursedirs = ["vendor"]
 addopts = "-ra --strict-markers"
 
 [tool.coverage.run]
@@ -34,10 +56,11 @@ show_missing = true
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+extend-exclude = ["vendor"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "S", "ANN"]
-ignore = ["S101", "S603"]
+ignore = ["S101", "S603", "S607"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["ANN", "S"]
@@ -46,3 +69,10 @@ ignore = ["S101", "S603"]
 strict = true
 python_version = "3.11"
 packages = ["pokebench_env", "pokebench_gates"]
+
+[[tool.mypy.overrides]]
+module = ["server", "server.*"]
+ignore_missing_imports = true
+
+[tool.uv]
+default-groups = ["dev", "mgba-build"]

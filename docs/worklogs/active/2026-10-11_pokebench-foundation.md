@@ -95,7 +95,7 @@ Mac Studio (all local)
 - [x] Implement `.githooks/pre-commit`, `justfile` (`setup`, `test`, `coverage`, `lint`, `build`; `verify-rom`/`verify-vendor`/`build-mgba`/`smoke` land with M2, `dev` with M4), pnpm workspace + `packages/agent`, `env/` uv project (Python 3.11), coverage thresholds at 90
   - Adversarial deletion: disabling the asset guard → 8 hook tests red; disabling the freshness guard → 2 red; restored → 14 green
 - [x] Gates: `just test` (vitest 8, pytest 14), `just lint` (tsc, eslint strictTypeChecked, ruff, ruff format, mypy strict: clean), `just build` clean, `just coverage` TS 100/100/100, Python 100% (only `__init__` so far)
-- [ ] COMMIT: `feat(scaffold): repo tooling, hook, config` (GREEN)
+- [x] COMMIT: `feat(scaffold): repo tooling, hook, config` (3f69d59) (GREEN)
 - [ ] **ASK USER:** principles rubric. Keep inheriting local-inference-stack's `docs/agent-principles.md`, or will you author a PokeBench one? (Agents never author it.)
 - [ ] Multi-model review loop until clean
 
@@ -158,6 +158,22 @@ Mac Studio (all local)
 ## Multi-Model Review Log
 | Milestone | Round | Principles | Claude-family | think_fast | think_swarm | Grok lane | GPT lane | Result |
 |---|---|---|---|---|---|---|---|---|
+| M1 | R1 (746a785..3f69d59, diff sha256 ec36e28b…89db) | 0 FAIL (P36, P8 rows corrected after review) | Claude CLI (default profile; `~/.claude-review` logged out): LGTM | BLOCKING (test seeds asset via hooksPath=/dev/null) | LGTM | Cursor unavailable (not logged in) → subagent fallback A (sonnet): LGTM; B (fable): pending | Codex isolated (gpt-6-astra): BLOCKING (Python coverage gate is aggregate; branches/functions not independently enforced) | fix batch R1 |
+
+**M1 R1 synthesis.** Accepted:
+- Codex: per-metric Python coverage gate (lines, branches and functions each ≥90).
+- Claude and fallback reviewer A: the hook's `stat` fallback breaks under GNU stat; reproduced with a PATH shim.
+- think_fast: seed fixture assets before the hook is installed instead of disabling it.
+- Test gaps (Claude, A): rename into an asset name, first commit with a worklog, two worklogs where the freshest decides, https and game-server trailing slash, isolated global git config, `utime` instead of sleep.
+- Principles corrections (Claude): P36 (`~/Downloads` *is* privacy-protected by macOS TCC, the Transparency, Consent and Control framework; M1 reads nothing there → N/A; M2 must handle it), and P8 wording.
+- Doc drift (Claude): CLAUDE.md asset list and commands not yet available.
+
+Rejected as false positives:
+- think_swarm "hook test depends on the source repo": testing the real hook is the point.
+- think_swarm "unanchored regex": the pattern ends with `$`.
+- think_swarm "verify-vendor scope expansion": the skill says "once the submodule exists".
+
+Deferred (HARDENING): zipped ROM extensions (.zip/.7z) and .srm. Speculation not acted on: config trimming, credentials echoed in URL errors.
 
 ## Boy Scout Log
 

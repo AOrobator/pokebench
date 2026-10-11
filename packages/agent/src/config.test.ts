@@ -30,6 +30,15 @@ describe("loadConfig", () => {
     );
   });
 
+  it("accepts https and strips a trailing slash on the game server URL", () => {
+    const config = loadConfig({
+      POKEBENCH_GATEWAY_URL: "https://gateway.example/v1",
+      POKEBENCH_GAME_SERVER_URL: "http://127.0.0.1:8000/",
+    });
+    expect(config.gatewayUrl).toBe("https://gateway.example/v1");
+    expect(config.gameServerUrl).toBe("http://127.0.0.1:8000");
+  });
+
   it("treats empty strings as unset", () => {
     expect(loadConfig({ POKEBENCH_MODEL: "" }).model).toBe("think-swarm");
   });

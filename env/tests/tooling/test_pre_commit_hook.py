@@ -9,33 +9,45 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[3]
 HOOK = REPO_ROOT / ".githooks" / "pre-commit"
 ACTIVE_BODY = Path("docs/worklogs/active/2026-01-01_example.md")
+GIT_ENV = {**os.environ, "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
 
 
 def git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(["git", *args], cwd=repo, capture_output=True, text=True, check=False)
+    return subprocess.run(
+        ["git", *args], cwd=repo, env=GIT_ENV, capture_output=True, text=True, check=False
+    )
 
 
-@pytest.fixture
-def repo(tmp_path: Path) -> Path:
+def make_repo(tmp_path: Path, seed: dict[str, str] | None) -> Path:
+    """Create a repo whose seed commit (if any) predates the hook being installed."""
     assert HOOK.is_file(), f"missing hook at {HOOK}"
     root = tmp_path / "repo with spaces"
     root.mkdir()
     git(root, "init", "-q", "-b", "main")
     git(root, "config", "user.name", "test")
     git(root, "config", "user.email", "test@example.com")
+    if seed:
+        for name, content in seed.items():
+            target = root / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content)
+            assert git(root, "add", "-f", name).returncode == 0
+        assert git(root, "commit", "-q", "-m", "seed").returncode == 0
     hooks = root / ".githooks"
     hooks.mkdir()
     shutil.copy2(HOOK, hooks / "pre-commit")
     git(root, "config", "core.hooksPath", ".githooks")
-    (root / "README.md").write_text("seed\n")
-    git(root, "add", "README.md")
-    assert git(root, "commit", "-q", "-m", "seed").returncode == 0
     return root
 
 
-def age(path: Path, seconds: int) -> None:
-    past = time.time() - seconds
-    os.utime(path, (past, past))
+@pytest.fixture
+def repo(tmp_path: Path) -> Path:
+    return make_repo(tmp_path, {"README.md": "seed\n"})
+
+
+def shift_mtime(path: Path, seconds: int) -> None:
+    when = time.time() + seconds
+    os.utime(path, (when, when))
 
 
 def stage(repo: Path, name: str, content: str = "x\n") -> None:
@@ -60,7 +72,7 @@ def test_no_worklog_allows_ordinary_commit(repo: Path) -> None:
 
 def test_stale_active_body_blocks_commit(repo: Path) -> None:
     body = active_worklog(repo)
-    age(body, 3600)
+    shift_mtime(body, -3600)
     stage(repo, "a.txt")
     result = git(repo, "commit", "-q", "-m", "a")
     assert result.returncode != 0
@@ -69,9 +81,9 @@ def test_stale_active_body_blocks_commit(repo: Path) -> None:
 
 def test_touched_active_body_allows_commit(repo: Path) -> None:
     body = active_worklog(repo)
-    age(body, 3600)
-    time.sleep(1.1)
+    shift_mtime(body, -3600)
     body.write_text("# worklog\n- [x] updated\n")
+    shift_mtime(body, 5)
     stage(repo, "a.txt")
     result = git(repo, "commit", "-q", "-m", "a")
     assert result.returncode == 0, result.stderr
@@ -80,7 +92,7 @@ def test_touched_active_body_allows_commit(repo: Path) -> None:
 def test_stale_root_pointer_blocks_commit(repo: Path) -> None:
     pointer = repo / "WORKLOG.md"
     pointer.write_text("Active body: elsewhere\n")
-    age(pointer, 3600)
+    shift_mtime(pointer, -3600)
     stage(repo, "a.txt")
     result = git(repo, "commit", "-q", "-m", "a")
     assert result.returncode != 0
@@ -120,13 +132,74 @@ def test_similar_names_are_not_rejected(repo: Path) -> None:
     assert result.returncode == 0, result.stderr
 
 
-def test_deleting_a_tracked_asset_is_allowed(repo: Path) -> None:
-    stage(repo, "legacy.sav")
-    subprocess.run(
-        ["git", "-c", "core.hooksPath=/dev/null", "commit", "-q", "-m", "legacy"],
-        cwd=repo,
-        check=True,
-    )
+def test_deleting_a_tracked_asset_is_allowed(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, {"legacy.sav": "x\n"})
     assert git(repo, "rm", "-q", "legacy.sav").returncode == 0
     result = git(repo, "commit", "-q", "-m", "remove")
     assert result.returncode == 0, result.stderr
+
+
+def test_renaming_into_an_asset_name_is_rejected(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, {"notes.txt": "x\n"})
+    assert git(repo, "mv", "notes.txt", "rom.gba").returncode == 0
+    result = git(repo, "commit", "-q", "-m", "rename")
+    assert result.returncode != 0
+    assert "rom.gba" in result.stderr
+
+
+def test_first_commit_with_active_worklog_is_allowed(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, None)
+    active_worklog(repo)
+    stage(repo, "a.txt")
+    result = git(repo, "commit", "-q", "-m", "first")
+    assert result.returncode == 0, result.stderr
+
+
+def test_freshest_of_pointer_and_body_decides(repo: Path) -> None:
+    body = active_worklog(repo)
+    shift_mtime(body, -3600)
+    pointer = repo / "WORKLOG.md"
+    pointer.write_text("Active body: docs/worklogs/active/2026-01-01_example.md\n")
+    shift_mtime(pointer, 5)
+    stage(repo, "a.txt")
+    result = git(repo, "commit", "-q", "-m", "a")
+    assert result.returncode == 0, result.stderr
+
+
+GNU_STAT_SHIM = """#!/bin/bash
+# Mimic GNU coreutils: -f means "filesystem status" (prints a report, then fails on '%m').
+if [ "$1" = "-f" ]; then
+    echo "  File: \\"$3\\""
+    echo "    ID: 0        Namelen: 255     Type: apfs"
+    exit 1
+fi
+if [ "$1" = "-c" ] && [ "$2" = "%Y" ]; then
+    exec /usr/bin/stat -f %m "$3"
+fi
+exec /usr/bin/stat "$@"
+"""
+
+
+@pytest.mark.parametrize(("offset", "allowed"), [(5, True), (-3600, False)])
+def test_freshness_works_with_gnu_stat(
+    repo: Path, tmp_path: Path, offset: int, allowed: bool
+) -> None:
+    shim_dir = tmp_path / "gnubin"
+    shim_dir.mkdir()
+    shim = shim_dir / "stat"
+    shim.write_text(GNU_STAT_SHIM)
+    shim.chmod(0o755)
+    body = active_worklog(repo)
+    shift_mtime(body, offset)
+    stage(repo, "a.txt")
+    result = subprocess.run(
+        ["git", "commit", "-q", "-m", "a"],
+        cwd=repo,
+        env={**GIT_ENV, "PATH": f"{shim_dir}{os.pathsep}{os.environ['PATH']}"},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert (result.returncode == 0) is allowed, result.stderr
+    if not allowed:
+        assert "worklog" in result.stderr.lower()

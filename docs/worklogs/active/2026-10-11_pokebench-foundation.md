@@ -91,9 +91,10 @@ Mac Studio (all local)
   - Test: commit blocked when a `.gba`/`.sav` is staged, even with an updated worklog (INV-1)
   - Test: no active worklog means only the ROM rule applies
 - [x] Write tests: TS config module (`packages/agent/src/config.ts`): parses gateway URL and model id from env, rejects invalid URLs, applies defaults
-- [ ] COMMIT: `test(scaffold): hook and config tests` (RED)
-- [ ] Implement `.githooks/pre-commit`, `justfile` (`setup`, `dev`, `test`, `coverage`, `lint`, `build`, `verify-rom`, `verify-vendor`, `smoke`), pnpm workspace + `packages/agent`, `env/` uv project (Python 3.11), coverage thresholds at 90
-- [ ] Gates: `just test`, `just lint`, `just build`, `just coverage` (≥90 both stacks)
+- [x] COMMIT: `test(scaffold): hook and config tests` (d168b85) (RED). vitest: 1 file fails (no config module); pytest: 14 errors (no hook)
+- [x] Implement `.githooks/pre-commit`, `justfile` (`setup`, `test`, `coverage`, `lint`, `build`; `verify-rom`/`verify-vendor`/`build-mgba`/`smoke` land with M2, `dev` with M4), pnpm workspace + `packages/agent`, `env/` uv project (Python 3.11), coverage thresholds at 90
+  - Adversarial deletion: disabling the asset guard → 8 hook tests red; disabling the freshness guard → 2 red; restored → 14 green
+- [x] Gates: `just test` (vitest 8, pytest 14), `just lint` (tsc, eslint strictTypeChecked, ruff, ruff format, mypy strict: clean), `just build` clean, `just coverage` TS 100/100/100, Python 100% (only `__init__` so far)
 - [ ] COMMIT: `feat(scaffold): repo tooling, hook, config` (GREEN)
 - [ ] **ASK USER:** principles rubric. Keep inheriting local-inference-stack's `docs/agent-principles.md`, or will you author a PokeBench one? (Agents never author it.)
 - [ ] Multi-model review loop until clean

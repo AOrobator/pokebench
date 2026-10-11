@@ -12,9 +12,7 @@ ACTIVE_BODY = Path("docs/worklogs/active/2026-01-01_example.md")
 
 
 def git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        ["git", *args], cwd=repo, capture_output=True, text=True, check=False
-    )
+    return subprocess.run(["git", *args], cwd=repo, capture_output=True, text=True, check=False)
 
 
 @pytest.fixture

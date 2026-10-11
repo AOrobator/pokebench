@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# pre-commit: two guards.
+#
+# 1. Game assets (ROMs, battery saves, save states) are never committed. The
+#    Emerald ROM is copyrighted and operator-supplied.
+# 2. An active worklog must have been updated since the last commit. The
+#    worklog body lives under docs/worklogs/active/; the root WORKLOG.md is a
+#    gitignored pointer. Either counts as "the worklog" for freshness.
+#
+# --no-verify is forbidden. If a commit is unrelated to the active worklog,
+# archive the worklog first.
+
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+ASSET_PATTERN='\.(gba|gbc|gb|sav|ss[0-9]|state)$'
+
+blocked=()
+while IFS= read -r -d '' path; do
+    if printf '%s' "$path" | grep -Eiq "$ASSET_PATTERN"; then
+        blocked+=("$path")
+    fi
+done < <(git diff --cached --name-only -z --diff-filter=ACMR)
+
+if (( ${#blocked[@]} > 0 )); then
+    {
+        echo
+        echo "❌ pre-commit: refusing to commit game assets (ROM / save / save state):"
+        printf '   %s\n' "${blocked[@]}"
+        echo
+        echo "The ROM is referenced via POKEBENCH_ROM and never committed."
+        echo
+    } >&2
+    exit 1
+fi
+
+mtime() {
+    stat -f %m "$1" 2>/dev/null || stat -c %Y "$1"
+}
+
+worklogs=()
+[[ -f WORKLOG.md ]] && worklogs+=("WORKLOG.md")
+shopt -s nullglob
+for body in docs/worklogs/active/*.md; do
+    worklogs+=("$body")
+done
+shopt -u nullglob
+
+if (( ${#worklogs[@]} == 0 )); then
+    exit 0
+fi
+
+if ! HEAD_TS=$(git log -1 --format=%ct HEAD 2>/dev/null); then
+    exit 0
+fi
+
+newest=0
+for file in "${worklogs[@]}"; do
+    ts=$(mtime "$file")
+    (( ts > newest )) && newest=$ts
+done
+
+if (( newest <= HEAD_TS )); then
+    {
+        echo
+        echo "❌ pre-commit: the active worklog has not been updated since the last commit."
+        echo
+        echo "Update it now: check off items, record the previous SHA, test counts and gate status."
+        printf '   %s\n' "${worklogs[@]}"
+        echo
+    } >&2
+    exit 1
+fi
+exit 0

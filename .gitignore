@@ -1,0 +1,37 @@
+# Active worklog pointer (the body lives under docs/worklogs/active/)
+/WORKLOG.md
+
+# Game assets: the ROM is user-supplied and never committed
+*.gba
+*.gbc
+*.gb
+*.sav
+*.ss[0-9]
+*.state
+/roms/
+
+# Local configuration
+.env
+.env.*
+
+# Run output (screenshots, traces, save states)
+/runs/
+
+# Native mGBA build
+/.cache/
+
+# Node
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+
+.DS_Store

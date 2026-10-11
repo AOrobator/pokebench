@@ -122,12 +122,12 @@ Mac Studio (all local)
   - The vendor `main()` hardcodes `uvicorn.run(host="0.0.0.0")`. `pokebench_env.serve` wraps `uvicorn.run` to pin `127.0.0.1`, then calls the vendor `main()` unchanged.
   - The ROM reaches the server through the git-ignored `Emerald-GBAdvance/rom.gba` symlink; the vendor tree stays clean.
   - Measured runtime dependencies beyond the server's imports: opencv-python-headless, beautifulsoup4.
-- [ ] Add submodule `env/vendor/continual-harness` at pin; `scripts/build-mgba.sh` (0.10.5, FFmpeg on, pip `pkgconf`, installs the binding into the env venv); minimal env dependency set (not the starter kit's torch/bitsandbytes stack)
-- [ ] Implement `pokebench_env` (rom, launcher, vendor check, client)
-- [ ] Gates: pytest + coverage ≥90, ruff, mypy
-- [ ] COMMIT: `feat(env): native mGBA env and game server launcher` (GREEN)
-- [ ] Smoke (`just smoke`, needs the ROM): boot the server, press A, `/state` returns typed player state, `/screenshot` is 240×160 PNG, `/milestones` responds
-- [ ] Visual check: `http://localhost:8000/stream` renders the live game in Chrome on the Mac (screenshot evidence)
+- [x] Add submodule `env/vendor/continual-harness` at pin; `scripts/build-mgba.sh` (0.10.5, FFmpeg on, pip `pkgconf`, installs the binding into the env venv); minimal env dependency set (not the starter kit's torch/bitsandbytes stack)
+- [x] Implement `pokebench_env`: rom, vendor, launcher (prepare/spawn/launch), serve (localhost pin), client (typed, `Button` enum), smoke; `just build-mgba/verify-rom/verify-vendor/serve/smoke`; gitignored `.env` carries `POKEBENCH_ROM`
+- [x] Gates: pytest 86, vitest 9, lint and build clean; Python coverage 98.42 / 95.95 / 100; TS 100
+- [x] COMMIT: `feat(env): native mGBA env, localhost game server launcher, typed client, smoke` (c6301e6) (GREEN)
+- [x] Smoke: `just smoke` → `SmokeReport(location='TITLE_SEQUENCE', screenshot_bytes=508, milestones_completed=['GAME_RUNNING', 'PLAYER_NAME_SET'])`; server terminated; vendor clean before and after
+- [x] Visual check: `just serve` → Chrome at http://127.0.0.1:8000/stream shows the live game (NEW GAME menu) plus the starter kit's thinking/milestones/party/map panels
 - [ ] Multi-model review loop until clean
 
 **M3 — pi ↔ local gateway** *(started in parallel with M2 on branch `m3-agent-provider`, worktree `../pokebench-m3`; the live smoke waits for M2)*
@@ -175,6 +175,7 @@ Mac Studio (all local)
 - [ ] Operator watches a live run in the viewer (M4+)
 
 ## Session Log
+- 2026-10-11 ~17:55 ET: usage limit reached during the M2 review round (one round, proportional to risk). Fallback reviewer (sonnet): LGTM, with hardening: smoke passes against a stale server already on the port; brew-missing message; http scheme check. Still pending: Claude CLI, think_fast, think_swarm, Codex (artifacts in the session scratchpad `review/m2/`) and fallback (fable). **Resume:** rerun the M2 review lanes on 6294533..c6301e6, then start M3. pi 0.73.1's openai-completions provider already reads llama.cpp `reasoning_content`.
 - 2026-10-11: Research + kickoff discussion. Spike: mGBA 0.10.5 binding builds natively (FFmpeg required, or the import fails on EReader symbols); Emerald ran at ~4,350 fps headless. ROM SHA-1 verified. Repo initialized (`746a785`). Worklog written; operator approved M1–M3.
 
 ## Surprises
@@ -240,6 +241,9 @@ Gates: pytest 34, vitest 9, lint clean, build clean. Coverage: TypeScript 100/10
 Adversarial deletion: skipping the branches/functions/lines check fails 3/2/1 gate tests; restoring the old `stat … || stat …` fallback fails both GNU-shim tests. A speculative integer validation was removed after tests showed it unobservable (P29).
 
 Deferred (HARDENING): zipped ROM extensions (.zip/.7z) and .srm. Speculation not acted on: config trimming, credentials echoed in URL errors.
+
+- M2: `ruff format .` (run from env/) reformatted 107 vendor files before `vendor` was excluded. The submodule was restored with `git checkout -- .` and verified clean; ruff now has `extend-exclude = ["vendor"]`.
+- M2: the vendor server restores cached run data and checkpoint metrics from earlier runs by default (smoke reported `PLAYER_NAME_SET` without reaching it). Benchmark runs need isolation, likely `LOAD_CHECKPOINT_MODE=false` plus a per-run data dir; to settle in M5.
 
 ## Boy Scout Log
 

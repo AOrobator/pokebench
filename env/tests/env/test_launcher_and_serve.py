@@ -74,3 +74,47 @@ def test_run_pins_host_then_hands_argv_to_vendor_main() -> None:
     run(["--port", "8000", "--no-ocr"], uvicorn=uvicorn, vendor_main=vendor_main)
     assert seen["argv"] == ["server.app", "--port", "8000", "--no-ocr"]
     assert seen["uvicorn_kwargs"] == {"host": "127.0.0.1", "port": 8000}
+
+
+def test_spawn_runs_the_server_command_from_the_vendor_dir(tmp_path: Path) -> None:
+    from pokebench_env.launcher import spawn
+
+    calls: list[dict[str, object]] = []
+
+    def capturing_popen(argv: list[str], *, cwd: Path, env: dict[str, str]) -> str:
+        calls.append({"argv": argv, "cwd": cwd, "env": env})
+        return "process"
+
+    vendor = tmp_path / "vendor"
+    spec = ServerSpec(port=8000, no_ocr=True, load_state=None)
+    result = spawn(
+        spec,
+        python=Path("/venv/bin/python"),
+        vendor_dir=vendor,
+        base_env={"PATH": "/usr/bin", "PYTHONPATH": "/elsewhere"},
+        popen=capturing_popen,
+    )
+    assert result == "process"
+    assert calls == [
+        {
+            "argv": server_command(Path("/venv/bin/python"), spec),
+            "cwd": vendor,
+            "env": {"PATH": "/usr/bin", "PYTHONPATH": str(vendor)},
+        }
+    ]
+
+
+def test_prepare_checks_vendor_then_links_the_verified_rom(tmp_path: Path) -> None:
+    from pokebench_env import launcher
+
+    order: list[str] = []
+    vendor = tmp_path / "vendor"
+    rom = tmp_path / "rom.gba"
+    launcher.prepare(
+        {"POKEBENCH_ROM": str(rom)},
+        vendor_dir=vendor,
+        check=lambda path: order.append(f"check {path}"),
+        resolve=lambda env: (order.append(f"resolve {env['POKEBENCH_ROM']}"), rom)[1],
+        link=lambda found, path: (order.append(f"link {found} {path}"), path)[1],
+    )
+    assert order == [f"check {vendor}", f"resolve {rom}", f"link {rom} {vendor}"]

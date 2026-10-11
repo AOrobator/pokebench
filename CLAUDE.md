@@ -8,10 +8,10 @@ A benchmark harness that measures how far local vision-language models get in Po
 
 - `packages/agent`: TypeScript agent on pi (`@mariozechner/pi-ai`, `@mariozechner/pi-agent-core`). Talks to the local-inference-stack gateway (`http://inference.example/v1`) and to the game server.
 - `env/`: Python environment.
-  - `pokebench_env` is our code: ROM resolution, server launcher, vendor check, typed client (lands with M2).
+  - `pokebench_env` is our code: ROM resolution, server launcher, vendor check, typed client.
   - `pokebench_gates` owns the per-metric Python coverage gate.
   - `env/vendor/continual-harness` is the PokéAgent starter kit, a git submodule pinned and **unmodified**.
-- `scripts/build-mgba.sh`: native arm64 mGBA 0.10.5 build plus its Python binding (lands with M2).
+- `scripts/build-mgba.sh`: native arm64 mGBA 0.10.5 build plus its Python binding into env/.venv (Homebrew: cmake, ffmpeg, libpng).
 
 Read the active worklog first: `WORKLOG.md` (a gitignored pointer) → `docs/worklogs/active/<date>_<slug>.md`.
 
@@ -33,7 +33,9 @@ Read the active worklog first: `WORKLOG.md` (a gitignored pointer) → `docs/wor
 - **Concrete types:** no `any`. Validate JSON from the gateway and the game server into typed values.
 - **No hardcoded model SKUs.** Model ids come from gateway discovery and config.
 - **Argv lists only** for subprocesses. Paths are untrusted; the real ROM path contains spaces and parentheses.
-- Servers bind `127.0.0.1`.
+- Servers bind `127.0.0.1`. The vendor server hardcodes `0.0.0.0`; `pokebench_env.serve` pins the host without modifying vendor code.
+- Never run formatters or linters over `env/vendor/`. ruff excludes it; `just verify-vendor` catches drift.
+- Run `just smoke` / `just serve` from your interactive terminal: the ROM lives in `~/Downloads`, which macOS privacy (TCC) protects from background contexts.
 
 ## Commands
 
@@ -43,11 +45,11 @@ just test           # vitest + pytest
 just coverage       # both stacks, fail under 90
 just lint           # tsc --noEmit, eslint, ruff, mypy
 just build          # tsc build
-# Landing with M2:
-just verify-rom     # SHA-1 check of $POKEBENCH_ROM
+just build-mgba     # native mGBA + Python binding into env/.venv (once per clone)
+just verify-rom     # SHA-1 check of $POKEBENCH_ROM (set it in the gitignored .env)
 just verify-vendor  # submodule at pin, clean tree
-just build-mgba     # native mGBA + Python binding into env/.venv
-just smoke          # boots the real game server (needs ROM)
+just serve          # game server on 127.0.0.1:8000; watch at /stream
+just smoke          # boots the real game server on the real ROM and exercises it
 ```
 
 ## Git

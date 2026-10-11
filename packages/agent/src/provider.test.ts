@@ -66,7 +66,13 @@ let server: Server | undefined;
 afterEach(async () => {
   const current = server;
   server = undefined;
-  if (current) await new Promise<void>((resolve) => current.close(() => resolve()));
+  if (current) {
+    await new Promise<void>((resolve) => {
+      current.close(() => {
+        resolve();
+      });
+    });
+  }
 });
 
 async function startFakeGateway(): Promise<FakeGateway> {

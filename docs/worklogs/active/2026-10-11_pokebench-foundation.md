@@ -138,14 +138,18 @@ Mac Studio (all local)
   - `gateway.test.ts`: fixture is the live `/v1/models` payload captured 2026-10-11 (`src/fixtures/gateway-models.json`); malformed payloads, HTTP/JSON/network errors, a configured vision lane the gateway reports text-only → `GatewayDiscoveryError`
   - `provider.test.ts`: a fake gateway (node `http`, SSE) driven by pi-agent-core `runAgentLoop`; asserts the second request's wire body (`image_url` data URL, `reasoning_content` replay, `chat_template_kwargs.preserve_thinking`, `system` role, `max_tokens`, no `store`/`reasoning_effort`), and that a non-vision lane never receives image bytes
   - `config.test.ts`: `POKEBENCH_VISION_MODELS` (default `think-swarm`, comma list, blank entries rejected)
-- [ ] COMMIT: `test(agent): gateway discovery and multimodal tool round trip` (RED). vitest: gateway/provider files fail to import; config 4 failing / 9 passing
+- [x] COMMIT: `test(agent): gateway discovery and multimodal tool round trip` (54e812d) (RED). vitest: gateway/provider files fail to import; config 4 failing / 9 passing
 - Design (from reading pi-ai 0.73.1 `providers/openai-completions.js` and the local stack Qwen chat template):
   - pi replays a thinking block under the field it streamed from (`thinkingSignature = "reasoning_content"`), so llama.cpp gets `reasoning_content` back on the assistant message.
   - pi moves tool-result images into a synthetic user message ("Attached image(s) from tool result:"). The Qwen template treats that as a new user query and drops earlier `reasoning_content` unless `preserve_thinking` is on. So the gateway compat uses `thinkingFormat: "qwen-chat-template"`, which sends `chat_template_kwargs: { enable_thinking, preserve_thinking: true }`. Whether the deployed template honors `preserve_thinking` is verified by `just smoke-llm`.
   - Gateway compat: no `developer` role, no `store`, `max_tokens` field, no `reasoning_effort`.
-- [ ] Implement the provider + `@mariozechner/pi-ai`/`pi-agent-core` pinned exact (0.73.1 at time of writing)
-- [ ] Gates: vitest + coverage ≥90, tsc, eslint
-- [ ] COMMIT: `feat(agent): local gateway provider for pi` (GREEN)
+- [x] Implement the provider + `@mariozechner/pi-ai`/`pi-agent-core` pinned exact (0.73.1 at time of writing); `typebox` 1.3.36 pinned exact (the version pi-ai resolves)
+  - `src/gateway.ts`: `discoverModels` (TypeBox-validated `/v1/models` → pi `Model<"openai-completions">`), `selectModel`, `GATEWAY_COMPAT`
+  - `src/provider.ts`: `gatewayLoopConfig(model, thinking)` for pi-agent-core (placeholder API key, `maxTokens` from discovery, `reasoning` unless off)
+  - `src/config.ts`: `visionModels` from `POKEBENCH_VISION_MODELS`
+  - Adversarial deletion: dropping the qwen thinking format, thinking-as-text, vision for every lane, `max_completion_tokens`, `developer` role, or the duplicate-id check turns 1/1/2/2/2/1 tests red; restored → 39 green
+- [x] Gates: vitest 39 passed; coverage statements 100 / branches 97.67 / functions 100 / lines 100; tsc + eslint clean; build clean. (`just test` pytest still errors on collection here: that is M2's RED, whose implementation lives uncommitted on main.)
+- [x] COMMIT: `feat(agent): local gateway provider for pi` (GREEN; SHA recorded in the next commit)
 - [ ] Live smoke (`just smoke-llm`): agent-core loop calls a `screenshot` tool against the running game server, the model describes the real frame, and a second tool call completes
 - [ ] Multi-model review loop until clean
 - [ ] **STOP — report to operator before M4**

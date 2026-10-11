@@ -2,7 +2,7 @@
 
 **Archive Name:** `docs/worklogs/2026-10-11_pokebench-foundation.md`
 **Started:** 2026-10-11 (ET)
-**Current Milestone:** M1
+**Current Milestone:** M2
 **Phase:** implementation (M1–M3 approved to execute autonomously; M4–M6 operator-in-the-loop)
 
 ## Problem Statement
@@ -105,7 +105,11 @@ Mac Studio (all local)
   - Mutation sweep (exit-code keyed, files restored byte-identical): control green; red on each of: delete gate line, floor 90→50, gate reads another report, drop `--cov-branch`, drop pnpm coverage, unmeasured package, wrong hooksPath.
   - Operational: a vitest branches threshold of 101 makes `pnpm coverage` exit 1; restored → 0.
   - COMMIT: `test(scaffold): wiring tests prove just coverage/setup reach the gates` (4343928). Gates: pytest 43, vitest 9, lint and build clean; Python coverage lines 98.65 / branches 95.83 / functions 100; TS 100.
-- [ ] Multi-model review loop until clean
+- [x] Multi-model review loop. Closed after R4 (operator 2026-10-11: "is this just testing that you need to polish? doesnt seem like a good use of time").
+  - R4 verdicts: Claude LGTM, Codex LGTM, fallback A LGTM; think_fast and think_swarm blocked on false positives, rejected with evidence (one `node` call per package is linear; exact command pinning is deliberate).
+  - R3 fallback B's prose and record findings were fixed in the final commit, without a further round.
+  - R1 GREEN commit: `fix(scaffold): per-metric coverage gate, portable hook mtime, doc drift` (56d2cb2).
+  - Deferred (hardening): exotic config that bypasses the wiring tests (`-`/`@` justfile prefixes, `set shell`, `PYTEST_ADDOPTS`, vitest include/exclude/enabled, pytest addopts/testpaths); zipped ROM extensions; tseslint `defineConfig`; mypy over tests; Linux portability of the GNU-stat shim.
 
 **M2 — Native emulator and game server**
 - [ ] Write tests (`env/tests`):

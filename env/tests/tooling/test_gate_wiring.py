@@ -97,6 +97,7 @@ def test_every_python_package_is_measured_without_omissions() -> None:
     config = tomllib.loads((ENV_DIR / "pyproject.toml").read_text())
     run = config["tool"]["coverage"]["run"]
     assert run == {"source": run["source"], "branch": True}
+    assert config["tool"]["coverage"]["report"] == {"show_missing": True}
     packages = {path.parent.name for path in ENV_DIR.glob("*/__init__.py")}
     assert set(run["source"]) == packages
     assert {"pokebench_env", "pokebench_gates"} <= packages

@@ -34,8 +34,19 @@ if (( ${#blocked[@]} > 0 )); then
     exit 1
 fi
 
+# BSD stat (macOS) first, then GNU. GNU `stat -f` means "filesystem status": it
+# prints a report and exits non-zero, so a failed attempt's output is discarded.
 mtime() {
-    stat -f %m "$1" 2>/dev/null || stat -c %Y "$1"
+    local out
+    for args in "-f %m" "-c %Y"; do
+        # shellcheck disable=SC2086
+        if out=$(stat $args "$1" 2>/dev/null); then
+            printf '%s\n' "$out"
+            return 0
+        fi
+    done
+    echo "pre-commit: cannot read mtime of $1" >&2
+    return 1
 }
 
 worklogs=()
@@ -56,7 +67,7 @@ fi
 
 newest=0
 for file in "${worklogs[@]}"; do
-    ts=$(mtime "$file")
+    ts=$(mtime "$file") || exit 1
     (( ts > newest )) && newest=$ts
 done
 

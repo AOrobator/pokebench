@@ -17,7 +17,8 @@ test:
 # Coverage floor is 90% (project override of the global 95%; see CLAUDE.md).
 coverage:
     pnpm -r coverage
-    cd env && uv run pytest -q --cov --cov-branch --cov-report=term-missing --cov-fail-under=90
+    cd env && uv run pytest -q --cov --cov-branch --cov-report=term-missing --cov-report=json:.coverage.json
+    cd env && uv run python -m pokebench_gates.coverage_gate .coverage.json --min 90
 
 lint:
     pnpm -r lint

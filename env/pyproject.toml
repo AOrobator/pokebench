@@ -18,18 +18,17 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["pokebench_env"]
+packages = ["pokebench_env", "pokebench_gates"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra --strict-markers"
 
 [tool.coverage.run]
-source = ["pokebench_env"]
+source = ["pokebench_env", "pokebench_gates"]
 branch = true
 
 [tool.coverage.report]
-fail_under = 90
 show_missing = true
 
 [tool.ruff]
@@ -46,4 +45,4 @@ ignore = ["S101", "S603"]
 [tool.mypy]
 strict = true
 python_version = "3.11"
-packages = ["pokebench_env"]
+packages = ["pokebench_env", "pokebench_gates"]

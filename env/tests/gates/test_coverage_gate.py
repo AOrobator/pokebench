@@ -78,7 +78,11 @@ def test_line_deficit_fails_independently() -> None:
 
 def test_module_level_pseudo_function_is_not_counted() -> None:
     data = report(
-        {"a.py": file_entry(summary(1, 1), {"": {"summary": summary(1, 0)}, "f": fully_covered_function()})}
+        {
+            "a.py": file_entry(
+                summary(1, 1), {"": {"summary": summary(1, 0)}, "f": fully_covered_function()}
+            )
+        }
     )
     assert evaluate(data, minimum=90.0).functions == 100.0
 
@@ -131,7 +135,9 @@ def test_main_returns_zero_when_all_metrics_pass(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     path = tmp_path / "coverage.json"
-    path.write_text(json.dumps(report({"a.py": file_entry(summary(10, 10), {"f": fully_covered_function()})})))
+    path.write_text(
+        json.dumps(report({"a.py": file_entry(summary(10, 10), {"f": fully_covered_function()})}))
+    )
     assert main([str(path), "--min", "90"]) == 0
     assert "lines 100.00%" in capsys.readouterr().out
 

@@ -173,6 +173,15 @@ Rejected as false positives:
 - think_swarm "unanchored regex": the pattern ends with `$`.
 - think_swarm "verify-vendor scope expansion": the skill says "once the submodule exists".
 
+Fix batch R1: RED `d49b7b3`. GREEN adds:
+- `pokebench_gates.coverage_gate`, which enforces lines, branches and functions independently and replaces the aggregate `fail_under`
+- a hook `mtime()` that tries BSD then GNU stat and discards a failed attempt's output
+- CLAUDE.md drift fixes
+
+Gates: pytest 34, vitest 9, lint clean, build clean. Coverage: TypeScript 100/100/100; Python lines 98.48, branches 94.44, functions 100.
+
+Adversarial deletion: skipping the branches/functions/lines check fails 3/2/1 gate tests; restoring the old `stat … || stat …` fallback fails both GNU-shim tests. A speculative integer validation was removed after tests showed it unobservable (P29).
+
 Deferred (HARDENING): zipped ROM extensions (.zip/.7z) and .srm. Speculation not acted on: config trimming, credentials echoed in URL errors.
 
 ## Boy Scout Log

@@ -48,7 +48,7 @@ describe("StateMilestones", () => {
       ["GAME_RUNNING"],
       [],
       ["PLAYER_NAME_SET"],
-      ["INTRO_CUTSCENE_COMPLETE", "LITTLEROOT_TOWN"],
+      ["FIRST_TRUCK_EXIT", "INTRO_CUTSCENE_COMPLETE", "LITTLEROOT_TOWN"],
       ["PLAYER_HOUSE_ENTERED"],
       ["PLAYER_BEDROOM"],
       ["ROUTE_101", "STARTER_CHOSEN"],
@@ -63,28 +63,75 @@ describe("StateMilestones", () => {
   });
 
   it("stamps milestones with the poll time in seconds", async () => {
-    expect(await source([at(null)]).poll()).toEqual([{ name: "GAME_RUNNING", serverTimestamp: 2 }]);
+    expect(await source([at(null)]).poll()).toEqual([{ name: "GAME_RUNNING", serverTimestamp: 2, kind: "legacy", origin: "observed" }]);
   });
 
   it("lists the path to the first gym in order", () => {
     expect(MILESTONES.map((m) => m.name)).toEqual([
       "GAME_RUNNING",
+      "PLAYER_NAME_CONFIRMED",
       "PLAYER_NAME_SET",
+      "FIRST_TRUCK_EXIT",
       "INTRO_CUTSCENE_COMPLETE",
       "LITTLEROOT_TOWN",
       "PLAYER_HOUSE_ENTERED",
+      "MOM_CLOCK_INSTRUCTION",
       "PLAYER_BEDROOM",
+      "CLOCK_SET",
+      "MOM_RIVAL_INSTRUCTION",
+      "RIVAL_MET",
       "ROUTE_101",
       "STARTER_CHOSEN",
+      "BIRCH_RESCUE_COMPLETE",
+      "BIRCH_STARTER_HANDOFF_COMPLETE",
       "OLDALE_TOWN",
       "ROUTE_103",
+      "RIVAL_BATTLE_WON",
+      "RECEIVED_POKEDEX",
+      "STARTER_TUTORIAL_COMPLETE",
+      "RUNNING_SHOES_RECEIVED",
       "ROUTE_102",
       "PETALBURG_CITY",
+      "DAD_FIRST_MEETING",
+      "WALLY_TUTORIAL_COMPLETE",
       "ROUTE_104",
       "PETALBURG_WOODS",
+      "TEAM_AQUA_WOODS_EVENT_COMPLETE",
       "RUSTBORO_CITY",
       "RUSTBORO_CITY_GYM",
+      "RUSTBORO_GYM_COMPLETE",
       "STONE_BADGE",
+      "ROCK_TOMB_RECEIVED",
     ]);
   });
+});
+
+it("records story completion, not nearby places or premature rescue flags", async () => {
+  const states = source([
+    at("LITTLEROOT TOWN MAYS HOUSE 2F"),
+    at("ROUTE 101", { story: { name_confirmed:true, intro_stage:6, rival_stage:3, birch_lab_stage:0, petalburg_gym_stage:0, woods_stage:0, clock_set:true, rival_battle_won:false, pokedex_received:false, running_shoes_received:false, starter_tutorial_complete:false, rustboro_gym_complete:false, stone_badge:false, rock_tomb_received:false } }),
+  ]);
+  expect((await states.poll()).map((m) => m.name)).not.toContain("CLOCK_SET");
+  const reached = (await states.poll()).map((m) => m.name);
+  expect(reached).toContain("CLOCK_SET");
+  expect(reached).toContain("RIVAL_MET");
+  expect(reached).not.toContain("BIRCH_RESCUE_COMPLETE");
+});
+
+it("separates final name acceptance from gameplay start and requires a witnessed truck exit", () => {
+  const tracker = source([]);
+  const story = {name_confirmed:true, intro_stage:null, rival_stage:null, birch_lab_stage:null,petalburg_gym_stage:null,woods_stage:null,clock_set:null,rival_battle_won:null,pokedex_received:null,running_shoes_received:null,starter_tutorial_complete:null,rustboro_gym_complete:null,stone_badge:null,rock_tomb_received:null};
+  expect(tracker.observe(at(null, {story}), 10)).toEqual([
+    {name:"GAME_RUNNING",serverTimestamp:2,kind:"legacy",origin:"observed",evidence:[10]},
+    {name:"PLAYER_NAME_CONFIRMED",serverTimestamp:2,kind:"story",origin:"observed",evidence:[10]},
+  ]);
+  expect(tracker.observe(at("INSIDE OF TRUCK"), 11).map((m) => m.name)).toEqual(["PLAYER_NAME_SET"]);
+  const exit = tracker.observe(at("LITTLEROOT TOWN"), 12).find((m) => m.name === "FIRST_TRUCK_EXIT");
+  expect(exit?.evidence).toEqual([11,12]);
+  expect(tracker.observe(at("LITTLEROOT TOWN"), 13)).toEqual([]);
+  const resumed = source([]);
+  resumed.initialize("save_state");
+  const existing = resumed.observe(at("LITTLEROOT TOWN", {story:{...story,clock_set:true}}), 20);
+  expect(existing.map((m) => m.name)).not.toContain("FIRST_TRUCK_EXIT");
+  expect(existing.find((m) => m.name === "CLOCK_SET")).toMatchObject({origin:"present_at_start",evidence:[20]});
 });

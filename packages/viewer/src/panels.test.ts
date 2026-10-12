@@ -194,7 +194,7 @@ describe("splits", () => {
     const { summary, table } = splits(view(fullRun()), null, END);
     expect(summary).toBe("2 reached · no baseline");
     expect(table).toContain('<tr class="done"><td class="n">game running</td><td class="d"></td><td class="t">0:00:00</td></tr>');
-    expect(table).toContain('<td class="n">player name set</td><td class="d"></td><td class="t">0:00:03</td>');
+    expect(table).toContain('<td class="n">player name set (gameplay start)</td><td class="d"></td><td class="t">0:00:03</td>');
   });
 
   it("compares against a baseline: ahead, behind, next and to-do", () => {

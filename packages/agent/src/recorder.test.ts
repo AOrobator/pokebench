@@ -408,3 +408,25 @@ it("records objective deltas and sends the validated state to subscribers", asyn
   expect(seen.at(-1)).toMatchObject({ type: "objective_attempt", turn: 0 });
   expect(events(log).at(-2)).toMatchObject({ type: "state", position: STATE.position });
 });
+
+it("records milestones from the exact observation snapshot and its persisted evidence ID", async () => {
+  const { StateMilestones } = await import("./milestones.js");
+  const root = mkdtempSync(join(tmpdir(), "pokebench-story-rec-"));
+  const log = RunLog.create(root, "story-observation",()=>new Date("2026-10-12T00:00:00.000Z"));
+  let reads = 0;
+  const initial = {...STATE, started:false, name:null, location:null};
+  const detector = new StateMilestones({read:()=>{ throw new Error("detector must reuse recorded snapshot"); }},()=>2000);
+  const recorder = new RunRecorder({log, frames:new FrameStore(root), milestones:detector, gameState:{read:()=>{ reads++;return Promise.resolve(initial); }}, now:()=>2000});
+  await recorder.start(START_META);
+  await recorder.emit({type:"tool_execution_start",toolCallId:"observation",toolName:"observe",args:{}});
+  const snapshot = {...initial, story:{name_confirmed:true,intro_stage:null,rival_stage:null,birch_lab_stage:null,petalburg_gym_stage:null,woods_stage:null,clock_set:null,rival_battle_won:null,pokedex_received:null,running_shoes_received:null,starter_tutorial_complete:null,rustboro_gym_complete:null,stone_badge:null,rock_tomb_received:null}};
+  await recorder.emit({type:"tool_execution_end",toolCallId:"observation",toolName:"observe",isError:false,result:{content:[{type:"text",text:"Story: player name confirmed"}],details:{state:snapshot}}});
+  recorder.end("completed");
+  const logged = events(log);
+  const state = logged.find((e) => e.type === "state" && "story" in e && e.story?.name_confirmed === true);
+  expect(state).toMatchObject(snapshot);
+  const marks = logged.filter((e) => e.type === "milestone" && e.name === "PLAYER_NAME_CONFIRMED");
+  expect(marks).toEqual([{v:1,run:"story-observation",seq:(state?.seq ?? -10)+1,t:state?.t,type:"milestone",turn:0,name:"PLAYER_NAME_CONFIRMED",server_timestamp:2,kind:"story",origin:"observed",evidence:[state?.seq]}]);
+  expect(reads).toBe(1);
+  expect(logged.at(-1)).toMatchObject({furthest_milestone:"PLAYER_NAME_CONFIRMED"});
+});

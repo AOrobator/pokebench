@@ -962,6 +962,28 @@
         },
         "server_timestamp": {
           "type": "number"
+        },
+        "kind": {
+          "enum": [
+            "story",
+            "navigation",
+            "legacy"
+          ]
+        },
+        "origin": {
+          "enum": [
+            "observed",
+            "present_at_start"
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minItems": 1,
+          "maxItems": 2
         }
       },
       "additionalProperties": false
@@ -1293,6 +1315,185 @@
         },
         "screen": {
           "type": "string"
+        },
+        "story": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "name_confirmed",
+                "intro_stage",
+                "rival_stage",
+                "birch_lab_stage",
+                "petalburg_gym_stage",
+                "woods_stage",
+                "clock_set",
+                "rival_battle_won",
+                "pokedex_received",
+                "running_shoes_received",
+                "starter_tutorial_complete",
+                "rustboro_gym_complete",
+                "stone_badge",
+                "rock_tomb_received"
+              ],
+              "properties": {
+                "name_confirmed": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "intro_stage": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 7
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "rival_stage": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 4
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "birch_lab_stage": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 5
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "petalburg_gym_stage": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 8
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "woods_stage": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "clock_set": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "rival_battle_won": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "pokedex_received": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "running_shoes_received": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "starter_tutorial_complete": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "rustboro_gym_complete": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "stone_badge": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "rock_tomb_received": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "naming": {
           "anyOf": [

@@ -114,7 +114,12 @@ const ToolResult = event("tool_result", {
   frames: Type.Array(Type.Object({ path: Type.String({ pattern: "^frames/\\d{6}_\\d+\\.png$" }), sha1: Sha1 }, closed)),
 });
 
-const Milestone = event("milestone", { name: Type.String({ minLength: 1 }), server_timestamp: Type.Number() });
+const Milestone = event("milestone", {
+  name: Type.String({ minLength: 1 }), server_timestamp: Type.Number(),
+  kind: Type.Optional(Type.Enum(["story", "navigation", "legacy"])),
+  origin: Type.Optional(Type.Enum(["observed", "present_at_start"])),
+  evidence: Type.Optional(Type.Array(NonNegativeInt, {minItems:1,maxItems:2})),
+});
 
 const Retry = event("retry", { reason: Type.String(), attempt: Type.Integer({ minimum: 1 }), limit: Type.Integer({ minimum: 1 }) });
 
@@ -135,6 +140,22 @@ const FramesEvicted = event("frames_evicted", {
 export const StateBodySchema = Type.Object(
   {
     screen: Type.String(),
+    story: Type.Optional(Type.Union([Type.Object({
+      name_confirmed: Type.Union([Type.Boolean(), Type.Null()]),
+      intro_stage: Type.Union([Type.Integer({minimum:0,maximum:7}), Type.Null()]),
+      rival_stage: Type.Union([Type.Integer({minimum:0,maximum:4}), Type.Null()]),
+      birch_lab_stage: Type.Union([Type.Integer({minimum:0,maximum:5}), Type.Null()]),
+      petalburg_gym_stage: Type.Union([Type.Integer({minimum:0,maximum:8}), Type.Null()]),
+      woods_stage: Type.Union([Type.Integer({minimum:0,maximum:1}), Type.Null()]),
+      clock_set: Type.Union([Type.Boolean(), Type.Null()]),
+      rival_battle_won: Type.Union([Type.Boolean(), Type.Null()]),
+      pokedex_received: Type.Union([Type.Boolean(), Type.Null()]),
+      running_shoes_received: Type.Union([Type.Boolean(), Type.Null()]),
+      starter_tutorial_complete: Type.Union([Type.Boolean(), Type.Null()]),
+      rustboro_gym_complete: Type.Union([Type.Boolean(), Type.Null()]),
+      stone_badge: Type.Union([Type.Boolean(), Type.Null()]),
+      rock_tomb_received: Type.Union([Type.Boolean(), Type.Null()]),
+    }, closed), Type.Null()])),
     naming: Type.Optional(Type.Union([Type.Object({
       text: Type.String(), page: Type.Enum(["symbols", "uppercase", "lowercase"]),
       column: Type.Integer({ minimum: 0, maximum: 8 }), row: Type.Integer({ minimum: 0, maximum: 3 }),

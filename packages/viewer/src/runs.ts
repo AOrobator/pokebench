@@ -171,7 +171,7 @@ export function baselineOf(runsRoot: string, runId: string): Baseline {
     if (!result.ok) throw new BaselineError(`baseline ${runId} line ${String(result.line)}: ${result.problem}`);
     if (result.event.run !== runId) throw new BaselineError(`baseline ${runId} holds an event for run ${result.event.run}`);
     if (result.event.type === "state" && !("started" in result.event)) throw new BaselineError("baseline uses unverified historical vendor state");
-    if (result.event.type === "milestone") milestones.push({ name: result.event.name, offsetMs: Date.parse(result.event.t) - startMs });
+    if (result.event.type === "milestone" && result.event.origin !== "present_at_start") milestones.push({ name: result.event.name, offsetMs: Date.parse(result.event.t) - startMs });
   }
   return { run: runId, milestones };
 }

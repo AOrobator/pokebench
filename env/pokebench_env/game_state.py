@@ -15,6 +15,7 @@ from pokebench_env.game_screen import ReadMemory, read_screen
 from pokebench_env.gba_text import GBA_TEXT, decode_text
 from pokebench_env.live_map import MAP_OFFSET, read_local_map
 from pokebench_env.naming import NamingState, read_naming
+from pokebench_env.story import StoryState, read_story
 from pokebench_env.ui_state import Menu, read_dialog, read_menu
 from pokebench_env.world_context import WorldContext, read_world_context
 
@@ -81,6 +82,7 @@ class GameState:
     badges: tuple[str, ...] | None
     play_time: tuple[int, int, int] | None
     field_controls_locked: bool | None = None
+    story: StoryState | None = None
     local_map: str | None = None
     naming: NamingState | None = None
     world_context: WorldContext | None = None
@@ -150,6 +152,7 @@ def read_game_state(read: ReadMemory, maps: MapNames) -> GameState:
             None,
             None,
             None,
+            story=read_story(read, screen),
             naming=read_naming(read, decode_text) if screen.kind == "naming" else None,
             dialog=dialog,
             menu=menu,
@@ -171,6 +174,7 @@ def read_game_state(read: ReadMemory, maps: MapNames) -> GameState:
     return GameState(
         screen=screen.label,
         started=True,
+        story=read_story(read, screen, save1),
         name=decode_text(read(save2, 8)),
         location=maps.name(map_id) or f"unknown map {map_id}",
         map_id=map_id,

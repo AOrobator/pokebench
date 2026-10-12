@@ -28,6 +28,8 @@ def _menu(state: GameState) -> str:
 def format_readout(state: GameState) -> str:
     dialog = "none" if state.dialog is None else f'"{state.dialog}"'
     lines = [f"Screen: {state.screen}", f"Dialog: {dialog}", _menu(state)]
+    if state.story is not None:
+        lines.append(state.story.text())
     if state.naming is not None:
         lines.append(state.naming.readout())
     if not state.started or state.position is None:
@@ -64,6 +66,7 @@ def format_readout(state: GameState) -> str:
 def state_json(state: GameState) -> dict[str, object]:
     return {
         "screen": state.screen,
+        "story": None if state.story is None else state.story.json(),
         "naming": None if state.naming is None else state.naming.json(),
         "world_context": None if state.world_context is None else state.world_context.json(),
         "field_controls_locked": state.field_controls_locked,

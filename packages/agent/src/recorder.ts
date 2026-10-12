@@ -2,8 +2,8 @@ import type { AgentEvent, AgentMessage } from "@mariozechner/pi-agent-core";
 import type { AssistantMessage, AssistantMessageEvent, ImageContent, TextContent } from "@mariozechner/pi-ai";
 import type { BodyOf, Button, RunEndReason, RunEvent, EventBody } from "./events.js";
 import type { FrameRef, FrameStore } from "./frames.js";
-import type { GameStateSnapshot, StateSource } from "./game-state.js";
-import type { MilestoneSource } from "./milestones.js";
+import { parseGameState, type GameStateSnapshot, type StateSource } from "./game-state.js";
+import { MILESTONE_ORDER, type MilestoneSource, type SeenMilestone } from "./milestones.js";
 import type { RunLog } from "./run-log.js";
 
 export class RecorderError extends Error {
@@ -104,12 +104,15 @@ export class RunRecorder {
   }
   recordObjective(body: BodyOf<"objective_update"> | BodyOf<"objective_attempt">): void { this.append({ ...body, turn: this.turn }); }
   recordState(state: GameStateSnapshot): Extract<Extract<RunEvent, { type: "state" }>, { started: boolean }> {
-    return this.append({ type: "state", turn: this.turn, ...state }) as Extract<Extract<RunEvent, { type: "state" }>, { started: boolean }>;
+    const event = this.append({ type: "state", turn: this.turn, ...state }) as Extract<Extract<RunEvent, { type: "state" }>, { started: boolean }>;
+    if (this.milestones.observe !== undefined) this.recordMilestones(this.milestones.observe(state, event.seq));
+    return event;
   }
 
   async start(meta: RunStartMeta): Promise<void> {
     this.startedAt = this.now();
     this.append({ type: "run_start", turn: 0, ...meta });
+    this.milestones.initialize?.(meta.start_state.kind);
     await this.checkMilestones();
     this.frames.attach(this.log);
   }
@@ -194,6 +197,12 @@ export class RunRecorder {
     if (startedAt === undefined) throw new RecorderError(`tool result for ${id} without a recorded call`);
     this.toolStarts.delete(id);
     const payload = toolResultPayload(result);
+    // Reuse the state paired with the exact returned frame/text, including an
+    // observe-only turn and play runs with objective tracking disabled.
+    if ((name === "observe" || name === "press") && isRecord(result) && isRecord(result.details) && result.details.state !== undefined) {
+      try { this.recordState(parseGameState(result.details.state)); }
+      catch (error) { this.telemetryError("state", error); }
+    }
     const seq = this.log.nextSeq;
     const frames: FrameRef[] = [];
     for (const part of payload.content) {
@@ -235,6 +244,11 @@ export class RunRecorder {
 
   // The press has landed; a failed read here is logged, never a press failure.
   async afterPress(): Promise<void> {
+    if (this.milestones.observe !== undefined) {
+      try { this.recordState(await this.gameState.read()); }
+      catch (error) { this.telemetryError("state", error); }
+      return;
+    }
     try {
       await this.checkMilestones();
     } catch (error) {
@@ -257,13 +271,20 @@ export class RunRecorder {
   }
 
   async checkMilestones(): Promise<void> {
-    for (const milestone of await this.milestones.poll()) {
-      this.furthest = milestone.name;
-      this.append({
-        type: "milestone",
-        turn: this.turn,
-        name: milestone.name,
-        server_timestamp: milestone.serverTimestamp,
+    if (this.milestones.observe !== undefined) {
+      this.recordState(await this.gameState.read());
+      return;
+    }
+    this.recordMilestones(await this.milestones.poll());
+  }
+
+  private recordMilestones(milestones: readonly SeenMilestone[]): void {
+    for (const milestone of milestones) {
+      if (milestone.origin !== "present_at_start" && (this.furthest === null || MILESTONE_ORDER.indexOf(milestone.name) >= MILESTONE_ORDER.indexOf(this.furthest))) this.furthest = milestone.name;
+      this.append({ type: "milestone", turn: this.turn, name: milestone.name, server_timestamp: milestone.serverTimestamp,
+        ...(milestone.kind === undefined ? {} : {kind:milestone.kind}),
+        ...(milestone.origin === undefined ? {} : {origin:milestone.origin}),
+        ...(milestone.evidence === undefined ? {} : {evidence:[...milestone.evidence]}),
       });
     }
   }

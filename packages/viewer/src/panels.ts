@@ -134,7 +134,7 @@ export function counters(view: RunView): string {
   ]);
 }
 
-const splitName = (name: string): string => esc(name.replace(/_/g, " ").toLowerCase());
+const splitName = (name: string): string => esc(name.replace(/_/g, " ").toLowerCase()) + (name === "PLAYER_NAME_SET" ? " (gameplay start)" : "");
 
 function deltaSpan(seconds: number): string {
   return `<span class="${seconds <= 0 ? "d-ahead" : "d-behind"}">${signedDelta(seconds)}</span>`;
@@ -147,9 +147,9 @@ function splitRow(cls: string, name: string, delta: string, time: string): strin
 export function splits(view: RunView, baseline: Baseline | null, nowMs: number): { summary: string; table: string } {
   const startMs = view.startMs;
   if (startMs === null) return { summary: "no data", table: `<p>${NO_DATA}</p>` };
-  const reached = new Map(view.milestones.map((m) => [m.name, (m.ms - startMs) / 1000]));
+  const reached = new Map(view.milestones.filter((m) => m.origin !== "present_at_start").map((m) => [m.name, (m.ms - startMs) / 1000]));
   if (baseline === null) {
-    const rows = view.milestones.map((m) => splitRow("done", m.name, "", hms((m.ms - startMs) / 1000)));
+    const rows = view.milestones.map((m) => splitRow("done", m.name, "", m.origin === "present_at_start" ? "already present" : hms((m.ms - startMs) / 1000)));
     return { summary: `${String(view.milestones.length)} reached · no baseline`, table: `<table class="splits">${rows.join("")}</table>` };
   }
   const elapsed = wallSeconds(view, nowMs);
@@ -169,7 +169,7 @@ export function splits(view: RunView, baseline: Baseline | null, nowMs: number):
   }
   const known = new Set(baseline.milestones.map((m) => m.name));
   for (const m of view.milestones) {
-    if (!known.has(m.name)) rows.push(splitRow("done", m.name, "", hms((m.ms - startMs) / 1000)));
+    if (!known.has(m.name)) rows.push(splitRow("done", m.name, "", m.origin === "present_at_start" ? "already present" : hms((m.ms - startMs) / 1000)));
   }
   const vs = esc(baseline.run);
   const summary =
@@ -222,7 +222,7 @@ function rowBody(event: RunEvent): string | null {
       return `${chips} hold ${String(event.hold_frames)}f · release ${String(event.release_frames ?? 0)}f`;
     }
     case "milestone":
-      return `★ ${esc(event.name)}`;
+      return `★ ${esc(event.name)}${event.kind === undefined ? "" : ` · ${event.kind}`}${event.origin === "present_at_start" ? " · already present when run started" : ""}${event.evidence === undefined ? "" : ` · evidence ${event.evidence.map((seq) => `#${String(seq)}`).join(", ")}`}`;
     case "retry":
       return `✗ retry ${String(event.attempt)}/${String(event.limit)}: ${esc(event.reason)}`;
     case "telemetry_error":
@@ -258,11 +258,14 @@ export function brand(view: RunView): string {
 
 export function fieldContext(view: RunView): string {
   const context = view.state?.world_context;
-  if (context == null) return `<p>${NO_DATA}</p>`;
+  const story = view.state?.story;
+  const storyText = story == null ? "Story state: not recorded for this run." : "Story state (game memory):\n" + Object.entries(story).map(([field, value]) => `${field.replaceAll("_", " ")}: ${value === null ? "unknown" : value === true ? "yes" : value === false ? "no" : String(value)}`).join("\n");
+  const storyHtml = `<pre>${esc(storyText)}</pre>`;
+  if (context == null) return story == null ? `<p>${NO_DATA}</p>` : storyHtml;
   const objects = context.objects.map((o) => `${o.sprite_kind ?? "unknown sprite"} · map ${String(o.map_id[0])}/${String(o.map_id[1])} object ${String(o.local_id)} at (${String(o.x)},${String(o.y)})`).join("\n");
   const triggers = context.triggers.map((t) => `script tile (${String(t.x)},${String(t.y)}): condition ${t.condition_met === true ? "matches" : t.condition_met === false ? "does not match" : "unavailable"}`).join("\n");
   const dialogue = context.dialogue === null ? "Field-message text unavailable; the box may still be visible." : `Active message buffer (may include text not yet displayed):\n${context.dialogue}`;
-  return `<pre>${esc(objects)}\n${esc(triggers)}\n${esc(dialogue)}</pre>`;
+  return storyHtml + `<pre>${esc(objects)}\n${esc(triggers)}\n${esc(dialogue)}</pre>`;
 }
 
 export function objectivePanel(view: RunView): string {

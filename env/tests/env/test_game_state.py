@@ -13,6 +13,7 @@ from pokebench_env.game_state import (
     decode_text,
     read_game_state,
 )
+from pokebench_env.story import StoryState
 
 SB1, SB2 = 0x02025A18, 0x02024A6C
 OVERWORLD = (0x08085E05, 0x08085E5D)
@@ -89,6 +90,22 @@ def test_overworld_reports_every_field_from_the_save_blocks() -> None:
     state = read_game_state(game(OVERWORLD, party, badges=0b101).read, MAPS)
     assert state == GameState(
         screen="overworld",
+        story=StoryState(
+            name_confirmed=True,
+            intro_stage=0,
+            rival_stage=0,
+            birch_lab_stage=0,
+            petalburg_gym_stage=0,
+            woods_stage=0,
+            clock_set=False,
+            rival_battle_won=False,
+            pokedex_received=False,
+            running_shoes_received=False,
+            starter_tutorial_complete=False,
+            rustboro_gym_complete=False,
+            stone_badge=True,
+            rock_tomb_received=False,
+        ),
         started=True,
         name="MAY",
         location="LITTLEROOT TOWN",
@@ -115,6 +132,7 @@ def test_before_the_game_starts_no_save_field_is_reported() -> None:
     state = read_game_state(game(NAMING).read, MAPS)
     assert state == GameState(
         screen="naming",
+        story=StoryState(),
         started=False,
         name=None,
         location=None,

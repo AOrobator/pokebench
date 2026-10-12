@@ -51,7 +51,7 @@ describe("probe", () => {
       const presses = events.filter((e) => e.type === "button_press");
       expect(presses).toHaveLength(1);
       expect(presses[0]).toMatchObject({ buttons: ["UP"], hold_frames: 10, release_frames: 8 });
-      expect(events.filter((e) => e.type === "state")).toHaveLength(3);
+      expect(events.filter((e) => e.type === "state")).toHaveLength(6);
       expect(events.filter((e) => e.type === "state")).toEqual(expect.arrayContaining([expect.objectContaining({ field_controls_locked: true })]));
       expect(events.filter((e) => e.type === "tool_result").flatMap((e) => e.frames)).toHaveLength(3);
       const summary = summarize(events);

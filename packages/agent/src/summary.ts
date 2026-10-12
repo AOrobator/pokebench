@@ -48,7 +48,7 @@ export function summarize(events: readonly RunEvent[]): RunSummary {
   let toolErrors = 0;
   let tokens = { input: 0, output: 0 };
   for (const event of events) {
-    if (event.type === "milestone") milestones.push({ name: event.name, turn: event.turn, wallMs: since(event) });
+    if (event.type === "milestone" && event.origin !== "present_at_start") milestones.push({ name: event.name, turn: event.turn, wallMs: since(event) });
     else if (event.type === "button_press") presses += 1;
     else if (event.type === "retry") retries += 1;
     else if (event.type === "tool_result" && event.is_error) toolErrors += 1;

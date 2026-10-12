@@ -111,7 +111,7 @@ export class RunView {
   toolErrors = 0;
   compactions = 0;
   stuck: { now: number; max: number } | null = null;
-  readonly milestones: { name: string; ms: number; seq: number }[] = [];
+  readonly milestones: { name: string; ms: number; seq: number; kind?: "story" | "navigation" | "legacy"; origin?: "observed" | "present_at_start"; evidence?: readonly number[] }[] = [];
   readonly presses: Press[] = [];
   readonly thinkingSpans: Span[] = [];
   streaming = { thinking: "", text: "" };
@@ -174,7 +174,7 @@ export class RunView {
         });
         break;
       case "milestone":
-        this.milestones.push({ name: event.name, ms, seq: event.seq });
+        this.milestones.push({ name: event.name, ms, seq: event.seq, ...(event.kind === undefined ? {} : {kind:event.kind}), ...(event.origin === undefined ? {} : {origin:event.origin}), ...(event.evidence === undefined ? {} : {evidence:event.evidence}) });
         break;
       case "retry":
         this.retry = { count: (this.retry?.count ?? 0) + 1, attempt: event.attempt, limit: event.limit };

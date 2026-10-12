@@ -68,6 +68,7 @@ def test_open_dialog_and_menu_lead_the_readout() -> None:
 def test_state_json_is_plain_json() -> None:
     assert state_json(IN_GAME) == {
         "screen": "overworld",
+        "story": None,
         "naming": None,
         "world_context": None,
         "field_controls_locked": None,
@@ -90,6 +91,7 @@ def test_state_json_is_plain_json() -> None:
     }
     assert state_json(PRE_GAME) == {
         "screen": "naming",
+        "story": None,
         "naming": None,
         "world_context": None,
         "field_controls_locked": None,

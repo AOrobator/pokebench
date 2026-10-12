@@ -1,4 +1,4 @@
-import { appendFileSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -200,4 +200,24 @@ it("excludes resumed baseline progress from split catalogs", () => {
   log.add(1000,{type:"milestone",turn:0,name:"CLOCK_SET",server_timestamp:2,kind:"story",origin:"present_at_start",evidence:[1]});
   writeRun(runsRoot,"resumed",log);
   expect(baselineOf(runsRoot,"resumed")).toEqual({run:"resumed",milestones:[{name:"GAME_RUNNING",offsetMs:0}]});
+});
+
+it("keeps nickname-resume progress out of the actual recorder split catalog", async () => {
+  const {StateMilestones} = await import("../../agent/src/milestones.js");
+  const {RunRecorder} = await import("../../agent/src/recorder.js");
+  const {RunLog} = await import("../../agent/src/run-log.js");
+  const {FrameStore} = await import("../../agent/src/frames.js");
+  const {parseGameState} = await import("../../agent/src/game-state.js");
+  const {comparisonsOf} = await import("./runs.js");
+  const r=root();let clock=1000;
+  const field=parseGameState(JSON.parse(readFileSync(new URL("../../agent/test-support/existing-story.json",import.meta.url),"utf8")));
+  const nickname=parseGameState(JSON.parse(readFileSync(new URL("../../agent/test-support/nickname-story.json",import.meta.url),"utf8")));
+  const log=RunLog.create(r,"nickname-resume",()=>new Date(clock));
+  const recorder=new RunRecorder({log,frames:new FrameStore(r),gameState:{read:()=>Promise.resolve(nickname)},milestones:new StateMilestones({read:()=>Promise.resolve(nickname)},()=>clock),now:()=>clock});
+  await recorder.start({...START,harness_features:["ram-state-v1","story-state-v1","story-milestones-v2"],start_state:{kind:"save_state",path:"fixture",sha1:"0".repeat(40)}});
+  clock+=1000;recorder.recordState(field);recorder.end("completed");
+  expect(baselineOf(r,"nickname-resume")).toEqual({run:"nickname-resume",milestones:[{name:"GAME_RUNNING",offsetMs:0}]});
+  const current=new Log();current.add(2000,{...START,harness_features:["ram-state-v1"],start_state:{kind:"save_state",path:"fixture",sha1:"0".repeat(40)}});
+  writeRun(r,"current",current);
+  expect(comparisonsOf(r,"current")).toEqual({candidates:[],baseline:null,best:null});
 });

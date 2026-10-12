@@ -442,12 +442,14 @@ it("fails a declared story reader startup when the server still has the old pack
 });
 
 // Captured from independent native core probe_46d6; no inputs during this replay.
-it("does not earn resumed progress when the first observation is unreadable", async () => {
+it.each(["unknown", "naming"])("does not earn resumed progress from an unqualified %s screen", async (screen) => {
   const { StateMilestones } = await import("./milestones.js");
   const { parseGameState } = await import("./game-state.js");
   const { summarize } = await import("./summary.js");
   const positive = parseGameState(JSON.parse(readFileSync(new URL("../test-support/existing-story.json", import.meta.url), "utf8")));
-  const unknown = {...STATE, screen:"unknown", started:false, name:null, location:null, story:null};
+  const unknown = screen === "naming"
+    ? parseGameState(JSON.parse(readFileSync(new URL("../test-support/nickname-story.json",import.meta.url),"utf8")))
+    : {...STATE, screen, started:false, name:null, location:null, story:null};
   const root = mkdtempSync(join(tmpdir(), "pokebench-resumed-origin-"));
   let clock = 1000;
   const log = RunLog.create(root,"resumed-origin",()=>new Date(clock));

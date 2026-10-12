@@ -21,8 +21,10 @@ interface Milestone {
   readonly reached: (state: GameStateSnapshot) => boolean | null;
 }
 // Unknown observations cannot establish a negative baseline for a resumed run.
+// The naming callback is shared with Pokémon nicknames; only verified Birch
+// confirmation evidence establishes pregame ownership while that screen is open.
 const knownPregame = (s: GameStateSnapshot): boolean => !s.started && (
-  ["intro", "title", "main_menu", "birch_speech", "naming"].includes(s.screen)
+  ["intro", "title", "main_menu", "birch_speech"].includes(s.screen)
   || s.story?.name_confirmed != null
 );
 const place = (s: GameStateSnapshot, matches: (location: string) => boolean): boolean | null =>

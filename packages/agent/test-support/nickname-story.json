@@ -1,0 +1,42 @@
+{
+  "screen": "naming",
+  "story": {
+    "name_confirmed": null,
+    "intro_stage": null,
+    "rival_stage": null,
+    "birch_lab_stage": null,
+    "petalburg_gym_stage": null,
+    "woods_stage": null,
+    "clock_set": null,
+    "rival_battle_won": null,
+    "pokedex_received": null,
+    "running_shoes_received": null,
+    "starter_tutorial_complete": null,
+    "rustboro_gym_complete": null,
+    "stone_badge": null,
+    "rock_tomb_received": null
+  },
+  "naming": {
+    "text": "AB",
+    "page": "uppercase",
+    "column": 0,
+    "row": 0,
+    "key": "A",
+    "ready": true
+  },
+  "world_context": null,
+  "field_controls_locked": null,
+  "local_map": null,
+  "interaction_targets": null,
+  "started": false,
+  "name": null,
+  "location": null,
+  "map_id": null,
+  "position": null,
+  "facing": null,
+  "in_battle": false,
+  "party": [],
+  "money": null,
+  "badges": [],
+  "play_time_s": null
+}

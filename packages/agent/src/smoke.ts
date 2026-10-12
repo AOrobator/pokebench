@@ -156,7 +156,7 @@ async function main(): Promise<void> {
         const summary = checkSmoke(transcript);
         console.log(`tools: ${summary.toolCalls.join(", ")}`);
         for (const text of summary.texts) console.log(`model: ${text}`);
-        return "budget";
+        return "completed";
       } finally {
         clearTimeout(timer);
       }

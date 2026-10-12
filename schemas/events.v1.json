@@ -863,6 +863,7 @@
         },
         "reason": {
           "enum": [
+            "completed",
             "milestone",
             "budget",
             "stuck",

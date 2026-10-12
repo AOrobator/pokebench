@@ -16,7 +16,7 @@ export const BUTTONS = ["A", "B", "START", "SELECT", "UP", "DOWN", "LEFT", "RIGH
 export const ButtonSchema = Type.Enum(BUTTONS);
 export type Button = Static<typeof ButtonSchema>;
 
-export const RUN_END_REASONS = ["milestone", "budget", "stuck", "crash", "model_error", "operator_abort"] as const;
+export const RUN_END_REASONS = ["completed", "milestone", "budget", "stuck", "crash", "model_error", "operator_abort"] as const;
 const RunEndReason = Type.Enum(RUN_END_REASONS);
 export type RunEndReason = Static<typeof RunEndReason>;
 

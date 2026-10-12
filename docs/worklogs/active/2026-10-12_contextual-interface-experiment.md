@@ -38,11 +38,11 @@ M1 — Prepare a switchable documentation treatment.
 - [x] Required coverage/lint/build gates; principles/test-quality self-review in frozen review packet.
 
 M2 — Review and land.
-- [ ] Freeze packet, selected-roster review, synthesis and accepted fixes.
-- [ ] Commit/land exact green source and record deployment status.
+- [x] Freeze packet, selected-roster review, synthesis and accepted fixes.
+- [x] Commit/land exact green source and record deployment status.
 
 M3 — Run the experiment visibly and report.
-- [ ] Resolve run-count preference; discover live model identities and check owned ports/resources.
+- [x] Resolve run-count preference; discover live model identities and check owned ports/resources.
 - [ ] Launch isolated baseline/treatment runs with normal viewer logs; preserve exact prompts and run receipts.
 - [ ] Record naming/editor/final-confirmation timing, button calls, errors, tokens, latency, story progress, DNF and terminal reasons.
 - [ ] Report observed differences and sample limitations. No naming-skill or navigation implementation bundled.
@@ -66,6 +66,10 @@ Candidate has green gates and four performed/restored mutants. Freeze source com
 Round1 complete: fast/swarm/Grok LGTM, fresh Sol/Astra BLOCKING on the actual recorded run_start proof gap. Dedicated Claude-review namespace is logged out; alternate Cursor Claude has current quota failure, retained and replaced by the documented paired independent fallback with reduced vendor diversity. Production prompt/control semantics and baseline bytes were supported. Bounded fix is test-only: select exactly one recorded start, compare exact prompt/tools/features with the plan and loop, and hash the actual recorded baseline prompt. Two additional recorded-boundary mutants (valid wrong prompt and empty feature list in withRun) fail those exact consumer assertions and restore. Refresh TS gates and cumulative review before launch; no production scope growth.
 
 During runs, the tracked source/worklog remains fixed and clean so every arm records the same harness commit. Ongoing live worklog updates are in `runs/launch-receipts/interface-docs-experiment/progress.md`, linked to the manifest and original run IDs; after all terminal results, reconcile the tracked worklog and findings. This prevents documentation edits from making later trials appear to use a dirty harness.
+
+Final R2 selected roster unanimously returned literal LGTM at `398227cba7b769ec97df24f4dbe79152a67cad51`, cumulative diff SHA256 `b3c536524ca483cbbffe1d612cd93968514e2bef72fc52ca45723d9e99593e34`: fast, swarm, Grok, fresh Sol and fresh Astra. Reduced vendor diversity from the documented Claude availability fallback remains explicit. Main fast-forwarded to that exact source and rebuilt successfully. Recording-boundary proof fixes were test-only; no prompt change since R1. All877 tests and unchanged coverage/lint/type/format/build receipts retained. Final packets are in ignored `runs/launch-receipts/interface-docs-review-r1` and `interface-docs-review-r2`.
+
+The temporary managed worktree was archived after clean landing and verified Git-bundle custody. Only canonical main remains; canonical sequencer and shared Git configuration were preserved. Live workload preparation uses discovered registered model IDs, existing local Qwen endpoint and gateway Swarm lane. Qwen's idle runtime unloads between long idle periods; the one-shot supervisor explicitly warms the registered model when needed before normal agent launch, records that preparation separately, and never changes model presets or supplies gameplay actions. Each run uses isolated port8061/Qwen or8062/Swarm; one concurrent run per model endpoint. Supervisor/manifest/progress are ignored operator receipts, not new model-visible tools. Each arm's recorded prompt and feature declaration are checked after its terminal record. No measured run or improved result is claimed at this preparation checkpoint.
 
 ## Boy Scout Log
 

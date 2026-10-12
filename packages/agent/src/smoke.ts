@@ -94,7 +94,11 @@ function realHost(port: number): RunHost {
 
 async function main(): Promise<void> {
   const config = loadConfig(process.env);
-  const port = Number(new URL(config.gameServerUrl).port || "8000");
+  const configured = new URL(config.gameServerUrl);
+  if (configured.hostname !== "127.0.0.1") {
+    throw new Error(`POKEBENCH_GAME_SERVER_URL must be http://127.0.0.1:<port>; each run launches its own server (INV-7)`);
+  }
+  const port = Number(configured.port || "8000");
   const model = selectModel(
     await discoverModels({ gatewayUrl: config.gatewayUrl, visionModels: config.visionModels }),
     config.model,
@@ -122,7 +126,7 @@ async function main(): Promise<void> {
     },
     realHost(port),
     new FrameStore(RUNS_ROOT),
-    async (recorder) => {
+    async (recorder, gameServerUrl) => {
       const controller = new AbortController();
       const timer = setTimeout(() => {
         controller.abort();
@@ -135,14 +139,14 @@ async function main(): Promise<void> {
             systemPrompt: SYSTEM_PROMPT,
             messages: [],
             tools: [
-              screenshotTool(config.gameServerUrl),
-              pressTool(config.gameServerUrl, {
+              screenshotTool(gameServerUrl),
+              pressTool(gameServerUrl, {
                 beforePress: (id, buttons) => {
                   recorder.buttonPress(id, buttons);
                 },
                 afterPress: () => recorder.checkMilestones(),
               }),
-              stateTool(config.gameServerUrl),
+              stateTool(gameServerUrl),
             ],
           },
           { ...gatewayLoopConfig(model, "medium"), transformContext: recorder.transformContext },

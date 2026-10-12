@@ -19,6 +19,9 @@ export interface RecorderDeps {
 }
 
 const CHARS_PER_TOKEN = 4;
+// Any PNG serialized as base64 starts with this; tool text (e.g. the vendor
+// /state body) can embed whole frames, which belong in frames/, not the log.
+const INLINE_PNG = /iVBORw0KGgo[A-Za-z0-9+/]+={0,2}/g;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -157,7 +160,13 @@ export class RunRecorder {
       frames.push(ref);
       this.saved = { saved: this.saved.saved + 1, bytes: this.saved.bytes + Buffer.from(part.data, "base64").length };
     }
-    const text = payload.content.flatMap((part) => (part.type === "text" ? [part.text] : [])).join("\n");
+    const rawText = payload.content.flatMap((part) => (part.type === "text" ? [part.text] : [])).join("\n");
+    const text = rawText.replace(INLINE_PNG, (data) => {
+      const ref = this.frames.save(this.log, seq, frames.length, data);
+      frames.push(ref);
+      this.saved = { saved: this.saved.saved + 1, bytes: this.saved.bytes + Buffer.from(data, "base64").length };
+      return `<frame ${ref.path}>`;
+    });
     this.log.append({
       type: "tool_result",
       turn: this.turn,
@@ -168,6 +177,7 @@ export class RunRecorder {
       text,
       frames,
     });
+    this.frames.flush(this.log, this.turn);
   }
 
   buttonPress(toolCallId: string, buttons: readonly Button[]): void {

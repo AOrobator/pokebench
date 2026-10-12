@@ -27,9 +27,14 @@ interface StoredFrame {
 
 type Percent = 0 | 10 | 20 | 30 | 40 | 50 | 60 | 70 | 80 | 90 | 100;
 
+type Pending =
+  | { readonly kind: "usage"; readonly bytes: number; readonly percent: Percent }
+  | { readonly kind: "evicted"; readonly run: string; readonly files: number; readonly bytes: number };
+
 export class FrameStore {
   private lastPercent: Percent = 0;
   private tracked: number | undefined;
+  private pending: Pending[] = [];
 
   constructor(
     readonly runsRoot: string,
@@ -57,7 +62,8 @@ export class FrameStore {
       }
       for (const name of names.filter((n) => n.endsWith(".png")).sort()) {
         const path = join(dir, name);
-        found.push({ run, path, bytes: statSync(path).size });
+        const stat = statSync(path, { throwIfNoEntry: false });
+        if (stat !== undefined) found.push({ run, path, bytes: stat.size });
       }
     }
     return found;
@@ -71,8 +77,8 @@ export class FrameStore {
     return Math.min(100, Math.floor((bytes / this.capBytes) * 10) * 10) as Percent;
   }
 
-  private report(log: RunLog, bytes: number, percent: Percent): void {
-    log.append({ type: "disk_usage", turn: 0, bytes, cap_bytes: this.capBytes, percent });
+  private report(log: RunLog, turn: number, bytes: number, percent: Percent): void {
+    log.append({ type: "disk_usage", turn, bytes, cap_bytes: this.capBytes, percent });
     this.notify(`frames on disk: ${String(percent)}% of ${formatBytes(this.capBytes)} cap (${formatBytes(bytes)})`);
   }
 
@@ -90,9 +96,10 @@ export class FrameStore {
     const bytes = this.usage();
     this.tracked = bytes;
     this.lastPercent = this.percent(bytes);
-    this.report(log, bytes, this.lastPercent);
+    this.report(log, 0, bytes, this.lastPercent);
   }
 
+  /** Writes the frame. Disk reports are queued until `flush`, so the caller can log the frame's owner first. */
   save(log: RunLog, seq: number, index: number, pngBase64: string): FrameRef {
     const bytes = Buffer.from(pngBase64, "base64");
     const path = `frames/${String(seq).padStart(6, "0")}_${String(index)}.png`;
@@ -101,16 +108,34 @@ export class FrameStore {
     const sha1 = createHash("sha1").update(bytes).digest("hex");
     let usage = (this.tracked ?? this.usage()) + bytes.length;
     if (usage > this.capBytes) {
-      usage -= this.evict(usage - Math.floor(this.capBytes * EVICT_TO), log);
+      usage -= this.evict(usage - Math.floor(this.capBytes * EVICT_TO), log.runId, (entry) => {
+        this.pending.push({ kind: "evicted", ...entry });
+      });
     }
     this.tracked = usage;
     const percent = this.percent(usage);
-    if (percent > this.lastPercent) this.report(log, usage, percent);
+    if (percent > this.lastPercent) this.pending.push({ kind: "usage", bytes: usage, percent });
     this.lastPercent = percent;
     return { path, sha1 };
   }
 
-  private evict(needBytes: number, log?: RunLog): number {
+  flush(log: RunLog, turn: number): void {
+    const pending = this.pending;
+    this.pending = [];
+    for (const item of pending) {
+      if (item.kind === "usage") {
+        this.report(log, turn, item.bytes, item.percent);
+      } else {
+        log.append({ type: "frames_evicted", turn, from_run: item.run, files: item.files, bytes: item.bytes });
+      }
+    }
+  }
+
+  private evict(
+    needBytes: number,
+    byRunId: string | null,
+    record: (entry: { run: string; files: number; bytes: number }) => void = () => undefined,
+  ): number {
     const byRun = new Map<string, { files: number; bytes: number }>();
     let freed = 0;
     for (const frame of this.frames()) {
@@ -121,9 +146,9 @@ export class FrameStore {
       byRun.set(frame.run, { files: entry.files + 1, bytes: entry.bytes + frame.bytes });
     }
     for (const [run, entry] of byRun) {
-      log?.append({ type: "frames_evicted", turn: 0, from_run: run, ...entry });
-      const record = { t: easternTimestamp(new Date()), run, ...entry, by_run: log?.runId ?? null };
-      appendFileSync(join(this.runsRoot, "frames-evictions.jsonl"), `${JSON.stringify(record)}\n`);
+      record({ run, ...entry });
+      const ledger = { t: easternTimestamp(new Date()), run, ...entry, by_run: byRunId };
+      appendFileSync(join(this.runsRoot, "frames-evictions.jsonl"), `${JSON.stringify(ledger)}\n`);
     }
     return freed;
   }
@@ -136,7 +161,7 @@ export class FrameStore {
     const usage = before.reduce((sum, frame) => sum + frame.bytes, 0);
     const target = this.capBytes * targetFraction;
     if (usage <= target) return { files: 0, bytes: 0 };
-    const freed = this.evict(usage - target);
+    const freed = this.evict(usage - target, null);
     this.tracked = undefined;
     return { files: before.length - this.frames().length, bytes: freed };
   }

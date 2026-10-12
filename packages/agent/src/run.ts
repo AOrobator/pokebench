@@ -50,13 +50,15 @@ export async function withRun(
   plan: RunPlan,
   host: RunHost,
   frames: FrameStore,
-  body: (recorder: RunRecorder) => Promise<RunEndReason>,
+  body: (recorder: RunRecorder, gameServerUrl: string) => Promise<RunEndReason>,
 ): Promise<RunEndReason> {
   frames.assertCanStart();
   const url = `http://127.0.0.1:${String(plan.port)}`;
   if (await host.serverHealthy(url)) {
     throw new Error(`a game server is already running on ${url}; every run needs its own (INV-7)`);
   }
+  const harness = host.harness();
+  const vendorPin = host.vendorPin();
   const log = RunLog.create(plan.runsRoot, plan.runId);
   const server = await host.launchServer(log.runDir, plan.runId, plan.port);
   const recorder = new RunRecorder({ log, frames, milestones: host.milestones });
@@ -67,15 +69,15 @@ export async function withRun(
       sampling: plan.sampling,
       system_prompt: plan.systemPrompt,
       tools: [...plan.tools],
-      harness: host.harness(),
-      vendor_pin: host.vendorPin(),
+      harness,
+      vendor_pin: vendorPin,
       pi_version: plan.piVersion,
       start_state: plan.startState,
       harness_features: [...plan.harnessFeatures],
       budgets: plan.budgets,
       isolation: { server_dir: server.serverDir, run_data_id: plan.runId, load_checkpoint_mode: false, port: plan.port },
     });
-    reason = await body(recorder);
+    reason = await body(recorder, url);
     return reason;
   } finally {
     try {

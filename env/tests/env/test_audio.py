@@ -140,6 +140,27 @@ def test_native_callback_captures_only_on_core_frames_and_flushes_lifecycle(monk
     assert tape.segment(-1, 3).wav[44:] == struct.pack("<hh", 123, -456)
 
 
+def test_reset_during_capture_drops_retired_core_pcm():
+    audio = audio_module()
+    class ResetDuringRead(Emulator):
+        pass
+    tape = audio.AudioTape(capacity_frames=3)
+    audio.install_tap(ResetDuringRead, tape)
+    emu = ResetDuringRead()
+    emu.initialize()
+    retired = emu.core
+    read = retired.buffer.read
+    def interrupted_read(count):
+        values = read(count)
+        emu.initialize()
+        return values
+    retired.buffer.read = interrupted_read
+    retired.run_frame()
+    assert tape.segment(-1, 3).wav[44:] == b""
+    emu.core.run_frame()
+    assert tape.segment(-1, 3).wav[44:] == struct.pack("<hh", 123, -456)
+
+
 def test_audio_setup_failure_preserves_vendor_initialize_result(caplog):
     audio = audio_module()
     assert hasattr(audio, "install_tap"), "native audio callback missing"

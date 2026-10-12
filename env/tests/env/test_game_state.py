@@ -216,6 +216,10 @@ def test_live_player_coordinates_override_stale_save_coordinates():
 )
 def test_invalid_player_object_is_unavailable(address, body):
     m = game(OVERWORLD)
+    if address == 0x02037595:
+        # Populate the invalid slot with plausible flags so the slot-bound arm
+        # cannot be shadowed by an inactive-object check if its bound is wrong.
+        m.put(0x02037350 + 16 * 0x24, b"\x01\x00\x01")
     m.put(address, body)
     state = read_game_state(m.read, MAPS)
     assert not state.started and state.position is None and state.facing is None

@@ -90,8 +90,12 @@ def read_targets(read: ReadMemory, map_id: tuple[int, int]) -> tuple[Interaction
     coords = read(pointers[2], counts[2] * 16) if counts[2] else b""
     for i in range(counts[2]):
         x, y, elevation, _, _, script = struct.unpack_from("<hhBxHH2xI", coords, i * 16)
-        if _pointer(script):
+        if script == 0:
+            targets.append(InteractionTarget("weather_trigger", x, y, elevation, "step"))
+        elif _pointer(script):
             targets.append(InteractionTarget("coordinate_trigger", x, y, elevation, "step"))
+        else:
+            return None
     backgrounds = read(pointers[3], counts[3] * 12) if counts[3] else b""
     for i in range(counts[3]):
         x, y, elevation, kind, _ = struct.unpack_from("<HHBB2xI", backgrounds, i * 12)

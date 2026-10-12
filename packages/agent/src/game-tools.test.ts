@@ -271,3 +271,12 @@ it("press feedback compares verified before state with the returned frame's stat
   expect(calls).toEqual(["GET /pokebench/state", "POST /action", "GET /queue_status", "GET /pokebench/observation"]);
   expect(result.content[1]).toEqual({ type: "text", text: "pressed UP\nPress result: moved (1,2) -> (1,1)\n\nPosition: X=1, Y=1" });
 });
+
+it("validates target fields at the observation consumer while retaining older payloads", async () => {
+  const target = { kind: "background", x: 5, y: 1, elevation: 0, activation: "A", availability: "conditional", facing: null, local_id: null, destination: null };
+  const text = "background at (5,1); A; conditional";
+  const body = observationBody({ state: { ...IN_GAME, interaction_targets: [target] }, state_text: text });
+  const result = await observeTool(SERVER, serving(body)).execute("targets", {});
+  expect(result.content[1]).toEqual({ type: "text", text });
+  await expect(observeTool(SERVER, serving(observationBody({ state: { ...IN_GAME, interaction_targets: [{ ...target, x: "5" }] } }))).execute("invalid-target", {})).rejects.toThrow("malformed /pokebench/observation payload");
+});

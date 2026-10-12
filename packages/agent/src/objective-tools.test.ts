@@ -220,3 +220,25 @@ it("does not commit completion when refresh resolves after cancellation", async 
   await expect(tool.execute("race", { status: "completed", evidence: [before.seq], obstacle: "", next_decision: "Next", retry_reason: "" }, controller.signal)).rejects.toThrow(/abort/i);
   expect(own.snapshot()?.status).toBe("active");expect(updates).toHaveLength(count);
 });
+
+
+it.each(["state", "visual"] as const)("advertises compatible completion %s strings while enforcing the executor limit", async (kind) => {
+  const { tracker } = setup();
+  const set = objectiveTools(tracker).find((tool) => tool.name === "set_objective");
+  if (set === undefined) throw new Error("missing set_objective");
+  const wire = set.parameters;
+  expect(wire).toMatchObject({properties: {title: {maxLength: 2000}, completion: {anyOf: [
+    {properties: {value: {anyOf: [{type: "string"}, {type: "number"}, {type: "boolean"}]}}},
+    {properties: {description: {type: "string", minLength: 1}}}
+  ]}}});
+  expect(wire).not.toMatchObject({properties: {completion: {anyOf: kind === "state" ? [
+    {properties: {value: {anyOf: [{maxLength: 2000}, {}, {}]}}}, {}
+  ] : [{}, {properties: {description: {maxLength: 2000}}}]}}});
+  const json = JSON.stringify(wire);
+  expect(json).toContain("At most 2000 characters");
+  const completion = (length: number) => kind === "state" ? {kind, field: "location", value: "x".repeat(length)} : {kind, description: "x".repeat(length)};
+  await expect(set.execute("too-long", {...request, completion: completion(2001)})).rejects.toThrow("Invalid objective parameters");
+  expect(tracker.snapshot()).toBeNull();
+  await set.execute("boundary", {...request, completion: completion(2000)});
+  expect(tracker.snapshot()?.completion).toEqual(completion(2000));
+});

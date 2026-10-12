@@ -12,6 +12,17 @@ const PressArgs = Type.Object({ buttons: Type.Array(ButtonSchema, { minItems: 1,
 const closed = { additionalProperties: false } as const;
 const text = Type.String({ maxLength: 2000 });
 const SetArgs = Type.Object({ title: Type.String({ minLength: 1, maxLength: 2000 }), supports_goal: Type.String({ minLength: 1, maxLength: 2000 }), evidence: EvidenceSchema, completion: CompletionSchema, obstacle: text, next_decision: Type.String({ minLength: 1, maxLength: 2000 }) }, closed);
+// The deployed tool-grammar compiler rejects maxLength inside this union.
+// Keep the original SetArgs authoritative for execution; only advertise a
+// grammar-compatible copy, with the same limits explained to the model.
+const SetGrammarArgs = structuredClone(SetArgs);
+type GrammarText = typeof text & { maxLength?: number; description?: string };
+const stateText: GrammarText = SetGrammarArgs.properties.completion.anyOf[0].properties.value.anyOf[0];
+const visualText: GrammarText = SetGrammarArgs.properties.completion.anyOf[1].properties.description;
+stateText.description = `At most ${String(stateText.maxLength)} characters; validated by the harness.`;
+visualText.description = `At most ${String(visualText.maxLength)} characters; validated by the harness.`;
+delete stateText.maxLength;
+delete visualText.maxLength;
 const UpdateArgs = Type.Object({ status: ObjectiveStatusSchema, evidence: EvidenceSchema, obstacle: text, next_decision: Type.String({ minLength: 1, maxLength: 2000 }), retry_reason: text }, closed);
 const reply = (value: unknown): AgentToolResult<unknown> => ({ content: [{ type: "text", text: JSON.stringify(value) }], details: undefined });
 export const OBJECTIVE_PROMPT = `You also have get_objectives, set_objective and update_objective tools. The harness supplies the current objective, fixed overall goal, recent attempts and evidence sequence IDs before every turn. Set or revise objectives only from observed game evidence, explaining their alignment with the overall goal. Record obstacles and next decisions. Failed interaction attempts do not make a required task optional; reconsider the approach instead. Before pressing, have an active objective and next decision. Two matching failures warn; before a third matching attempt update the objective with a concrete retry_reason and evidence from the failed attempt or later. Never erase or ignore failed attempts. State-backed completion must match the latest observed state; screenshot/dialogue-only completion is reported_complete, not verified progress. Recheck the current objective against the overall goal whenever new game information arrives. Model memory is a hypothesis, not evidence.`;
@@ -19,7 +30,7 @@ export const OBJECTIVE_PROMPT = `You also have get_objectives, set_objective and
 export function objectiveTools(tracker: ObjectiveTracker, refreshCompletion?: (signal?: AbortSignal) => Promise<number>): AgentTool[] {
   return [
     { name: "get_objectives", label: "Read objectives", description: "Read the current objective, goal and full attempt history.", parameters: Type.Object({}, closed), execute: async (_id, _params, signal) => { await Promise.resolve(); signal?.throwIfAborted(); return reply({ goal: tracker.goal, objective: tracker.snapshot(), attempts: tracker.attempts }); } },
-    { name: "set_objective", label: "Set objective", description: "Create or revise an objective using actual observation/state sequence IDs; retain attempt history.", parameters: SetArgs, execute: async (_id, params, signal) => { await Promise.resolve(); signal?.throwIfAborted(); if (!Value.Check(SetArgs, params)) throw new Error("Invalid objective parameters"); return reply(tracker.set(params)); } },
+    { name: "set_objective", label: "Set objective", description: "Create or revise an objective using actual observation/state sequence IDs; retain attempt history.", parameters: SetGrammarArgs, execute: async (_id, params, signal) => { await Promise.resolve(); signal?.throwIfAborted(); if (!Value.Check(SetArgs, params)) throw new Error("Invalid objective parameters"); return reply(tracker.set(params)); } },
     { name: "update_objective", label: "Update objective", description: "Update obstacle, next decision or status with observed evidence. Completion is checked; retry_reason grants one reassessed attempt.", parameters: UpdateArgs, execute: async (_id, params, signal) => { await Promise.resolve(); signal?.throwIfAborted(); if (!Value.Check(UpdateArgs, params)) throw new Error("Invalid objective update");
       tracker.validateEvidence(params.evidence);
       if (params.status === "completed" && refreshCompletion !== undefined) {

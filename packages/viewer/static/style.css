@@ -24,6 +24,9 @@ body { background: #4a9fd8; color: #283038; overflow-x: hidden; }
 .bar .live-runs { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 8px; }
 .bar .live-runs[hidden] { display: none; }
 .bar .live-runs button { background: #d6ffe3; border-color: #388759; }
+.bar .live-runs button[aria-pressed="true"] { background: #ffd447; border-color: #fff0a0; color: #1e2c44; box-shadow: 0 0 0 2px #ffd447; }
+.bar .run-choice { display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; color: #ffd447; }
+.bar .run-choice select { border-color: #ffd447; min-width: 0; }
 .bar select[data-ui="run"] { max-width: min(100%, 600px); }
 
 /* layout */

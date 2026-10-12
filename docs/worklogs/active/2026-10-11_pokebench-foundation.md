@@ -2,7 +2,7 @@
 
 **Archive Name:** `docs/worklogs/2026-10-11_pokebench-foundation.md`
 **Started:** 2026-10-11 (ET)
-**Current Milestone:** M2
+**Current Milestone:** M3
 **Phase:** implementation (M1–M3 approved to execute autonomously; M4–M6 operator-in-the-loop)
 
 ## Problem Statement
@@ -144,7 +144,8 @@ Mac Studio (all local)
   - discovery: `/v1/models` fixture → pi `Model` objects (contextWindow/maxTokens from payload, image input only for lanes configured as vision); unknown/malformed → typed error
   - a tool returning `ImageContent` is serialized for `openai-completions`
   - reasoning content across a tool-call turn is preserved (pi compat setting verified against the pi-ai source)
-- [ ] COMMIT: `test(agent): gateway discovery and multimodal tool round trip` (RED)
+- Design notes (2026-10-11, from pi-ai 0.73.1 source and live gateway probes): vision comes from the gateway's own `metadata.observed.capabilities` (`multimodal`), not config. The compat is `thinkingFormat: qwen-chat-template` (the gateway honors `chat_template_kwargs.enable_thinking`; thinking on spends ~400 tokens even on a trivial prompt), `max_tokens`, system role, and no store/strict/reasoning_effort. pi replays `reasoning_content` by itself (the thinking block's signature is the source field name). Tool images reach the model as a follow-up user message with `image_url` data URLs. The wire tests run against a local fake OpenAI-compatible SSE server (`packages/agent/test-support/fake-gateway.ts`). `smoke.ts` uses `import.meta.main`, so no coverage exclude is added.
+- [x] COMMIT: `test(agent): gateway discovery and multimodal tool round trip` (RED). pi-ai and pi-agent-core pinned exact at 0.73.1.
 - [ ] Implement the provider + `@mariozechner/pi-ai`/`pi-agent-core` pinned exact (0.73.1 at time of writing)
 - [ ] Gates: vitest + coverage ≥90, tsc, eslint
 - [ ] COMMIT: `feat(agent): local gateway provider for pi` (GREEN)

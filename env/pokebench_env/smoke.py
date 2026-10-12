@@ -4,6 +4,7 @@ import os
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Protocol
 
 from pokebench_env.client import (
@@ -14,7 +15,8 @@ from pokebench_env.client import (
     Screenshot,
     http_transport,
 )
-from pokebench_env.launcher import VENDOR_DIR, ServerSpec, launch
+from pokebench_env.launcher import RUNS_DIR, VENDOR_DIR, ServerSpec, launch
+from pokebench_env.run_server import default_run_id
 from pokebench_env.vendor import check_vendor
 
 
@@ -81,7 +83,8 @@ def _healthy(client: SmokeClient) -> bool:
 
 def main() -> int:  # pragma: no cover - entrypoint, exercised by `just smoke`
     port = int(os.environ.get("POKEBENCH_SMOKE_PORT", "8765"))
-    process = launch(ServerSpec(port=port, no_ocr=True, load_state=None))
+    run_id = "smoke_" + default_run_id(datetime.now(UTC)).removeprefix("serve_")
+    process = launch(ServerSpec(port=port, no_ocr=True, load_state=None), RUNS_DIR / run_id, run_id)
     client = GameClient(http_transport(f"http://127.0.0.1:{port}"))
     report = run_smoke(client, process)
     print(f"smoke OK: {report}")

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from pokebench_env.rom import EMERALD_SHA1, RomError, link_into_vendor, resolve_rom
+from pokebench_env.rom import EMERALD_SHA1, RomError, resolve_rom
 
 
 @pytest.fixture
@@ -36,35 +36,3 @@ def test_wrong_hash_is_an_error(fake_rom: tuple[Path, str]) -> None:
 def test_matching_hash_resolves_to_absolute_path(fake_rom: tuple[Path, str]) -> None:
     rom, digest = fake_rom
     assert resolve_rom({"POKEBENCH_ROM": str(rom)}, expected_sha1=digest) == rom.resolve()
-
-
-def test_link_places_a_symlink_never_a_copy(tmp_path: Path, fake_rom: tuple[Path, str]) -> None:
-    rom, _ = fake_rom
-    vendor = tmp_path / "vendor"
-    (vendor / "Emerald-GBAdvance").mkdir(parents=True)
-    slot = link_into_vendor(rom, vendor)
-    assert slot == vendor / "Emerald-GBAdvance" / "rom.gba"
-    assert slot.is_symlink()
-    assert slot.readlink() == rom
-
-
-def test_link_is_idempotent_and_repoints_stale_links(
-    tmp_path: Path, fake_rom: tuple[Path, str]
-) -> None:
-    rom, _ = fake_rom
-    vendor = tmp_path / "vendor"
-    (vendor / "Emerald-GBAdvance").mkdir(parents=True)
-    slot = vendor / "Emerald-GBAdvance" / "rom.gba"
-    slot.symlink_to(tmp_path / "old.gba")
-    link_into_vendor(rom, vendor)
-    link_into_vendor(rom, vendor)
-    assert slot.readlink() == rom
-
-
-def test_link_refuses_to_replace_a_real_file(tmp_path: Path, fake_rom: tuple[Path, str]) -> None:
-    rom, _ = fake_rom
-    vendor = tmp_path / "vendor"
-    (vendor / "Emerald-GBAdvance").mkdir(parents=True)
-    (vendor / "Emerald-GBAdvance" / "rom.gba").write_bytes(b"someone's copy")
-    with pytest.raises(RomError, match="not a symlink"):
-        link_into_vendor(rom, vendor)

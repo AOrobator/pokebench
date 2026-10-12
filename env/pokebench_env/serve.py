@@ -3,7 +3,7 @@
 The vendor `server.app.main()` hardcodes `uvicorn.run(host="0.0.0.0")`, which
 would expose emulator control (save/load state, actions) on the LAN. Wrapping
 `uvicorn.run` keeps the vendor code unmodified. Must run with the vendor
-checkout as the working directory and on `sys.path`.
+checkout on `sys.path`; the working directory is the run's server dir (INV-7).
 """
 
 import sys
@@ -13,6 +13,7 @@ from typing import Protocol, cast
 from fastapi import FastAPI
 
 from pokebench_env.audio import EmulatorLike
+from pokebench_env.milestone_guard import install_milestone_guard
 from pokebench_env.view import install_spectator
 
 LOCALHOST = "127.0.0.1"
@@ -49,8 +50,9 @@ def run(
 def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
     import uvicorn
     from pokemon_env.emulator import EmeraldEmulator
-    from server import app  # vendor module, importable from the vendor cwd
+    from server import app  # vendor module, on PYTHONPATH
 
+    install_milestone_guard(EmeraldEmulator)
     run(
         sys.argv[1:],
         uvicorn=cast(UvicornLike, uvicorn),

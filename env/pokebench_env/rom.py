@@ -1,8 +1,8 @@
 """Locate and verify the operator-supplied Emerald ROM; expose it to the vendor server.
 
 The ROM is never copied. The vendor server reads `Emerald-GBAdvance/rom.gba`
-relative to its working directory, a path the vendor repo git-ignores, so a
-symlink there keeps the submodule pristine.
+relative to its working directory; each run's server directory holds a
+symlink there (see `run_server.prepare_server_dir`).
 """
 
 import hashlib
@@ -29,15 +29,3 @@ def resolve_rom(env: Mapping[str, str], expected_sha1: str = EMERALD_SHA1) -> Pa
     if digest != expected_sha1:
         raise RomError(f"ROM SHA-1 is {digest}, expected {expected_sha1}: {rom}")
     return rom
-
-
-def link_into_vendor(rom: Path, vendor_dir: Path) -> Path:
-    slot = vendor_dir / VENDOR_ROM_SLOT
-    if slot.is_symlink():
-        if slot.readlink() == rom:
-            return slot
-        slot.unlink()
-    elif slot.exists():
-        raise RomError(f"{slot} exists and is not a symlink; refusing to replace it")
-    slot.symlink_to(rom)
-    return slot

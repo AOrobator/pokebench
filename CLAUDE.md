@@ -26,7 +26,7 @@ Read the active worklog first: `WORKLOG.md` (a gitignored pointer) → `docs/wor
 
 - **The ROM never enters git.**
   - It is referenced only via `POKEBENCH_ROM`.
-  - It is symlinked into the vendor ROM slot, never copied.
+  - It is symlinked into each run's server dir (`runs/<id>/server/Emerald-GBAdvance/rom.gba`), never copied.
   - The pre-commit hook rejects staged `.gba/.gb/.gbc/.sav/.ssN/.state` files.
 - **Worklog update per commit** is enforced by `.githooks/pre-commit`. Run `just setup` once per clone. `--no-verify` is forbidden.
 - **RED → GREEN → multi-model review** per milestone. The review contract is `~/dev/local-inference-stack/.claude/skills/multi-model-review/SKILL.md`.
@@ -34,6 +34,7 @@ Read the active worklog first: `WORKLOG.md` (a gitignored pointer) → `docs/wor
 - **No hardcoded model SKUs.** Model ids come from gateway discovery and config.
 - **Argv lists only** for subprocesses. Paths are untrusted; the real ROM path contains spaces and parentheses.
 - Servers bind `127.0.0.1`. The vendor server hardcodes `0.0.0.0`; `pokebench_env.serve` pins the host without modifying vendor code.
+- **Every run is isolated (INV-7).** Each game server runs from its own `runs/<id>/server/` cwd with its own `RUN_DATA_ID` and `LOAD_CHECKPOINT_MODE=false`. Never point two runs at one server or one run dir.
 - Never run formatters or linters over `env/vendor/`. ruff excludes it; `just verify-vendor` catches drift.
 - The ROM lives at `~/.roms/pokemon-emerald.gba` (operator decision 2026-10-11), set as `POKEBENCH_ROM` in the gitignored `.env`. It is outside macOS TCC-protected folders, so background contexts can read it. Never point `POKEBENCH_ROM` back at `~/Downloads`.
 
@@ -48,7 +49,7 @@ just build          # tsc build
 just build-mgba     # native mGBA + Python binding into env/.venv (once per clone)
 just verify-rom     # SHA-1 check of $POKEBENCH_ROM (set it in the gitignored .env)
 just verify-vendor  # submodule at pin, clean tree
-just serve          # game server on 127.0.0.1:8000; watch at /stream
+just serve          # isolated game server (runs/serve_<time>/) on 127.0.0.1:8000; watch at /stream
 just smoke          # boots the real game server on the real ROM and exercises it
 ```
 

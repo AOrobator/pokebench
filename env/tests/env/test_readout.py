@@ -53,6 +53,7 @@ def test_pre_game_readout_reports_only_the_screen() -> None:
 def test_state_json_is_plain_json() -> None:
     assert state_json(IN_GAME) == {
         "screen": "overworld",
+        "naming": None,
         "field_controls_locked": None,
         "local_map": None,
         "started": True,
@@ -72,6 +73,7 @@ def test_state_json_is_plain_json() -> None:
     }
     assert state_json(PRE_GAME) == {
         "screen": "naming",
+        "naming": None,
         "field_controls_locked": None,
         "local_map": None,
         "started": False,

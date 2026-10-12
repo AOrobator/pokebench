@@ -18,6 +18,8 @@ def _play_seconds(state: GameState) -> int | None:
 
 def format_readout(state: GameState) -> str:
     lines = [f"Screen: {state.screen}"]
+    if state.naming is not None:
+        lines.append(state.naming.readout())
     if not state.started or state.position is None:
         return "\n".join([*lines, PRE_GAME_TEXT])
     x, y = state.position
@@ -47,6 +49,7 @@ def format_readout(state: GameState) -> str:
 def state_json(state: GameState) -> dict[str, object]:
     return {
         "screen": state.screen,
+        "naming": None if state.naming is None else state.naming.json(),
         "field_controls_locked": state.field_controls_locked,
         "local_map": state.local_map,
         "started": state.started,

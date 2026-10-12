@@ -83,3 +83,11 @@ it("preserves old vendor state events for historical replay", () => {
   const legacy = { ...ENVELOPE, type: "state", turn: 2, location: "LITTLEROOT TOWN", position: { x: 2, y: 3 }, facing: "down", mode: "overworld", in_battle: false, party: [], money: 3000, badges: [], play_time_s: 10 };
   expect(parseEvent(JSON.stringify(legacy))).toEqual(legacy);
 });
+
+it("validates naming editor state without requiring it in old logs", () => {
+  const body = { ...ENVELOPE, ...SAMPLES[11], naming: { text: "AB", page: "uppercase", column: 1, row: 0, key: "B", ready: true } };
+  expect(parseEvent(JSON.stringify(body))).toMatchObject({ naming: { key: "B" } });
+  for (const change of [{ column: 9 }, { row: -1 }, { page: "unknown" }, { ready: "yes" }]) {
+    expect(() => parseEvent(JSON.stringify({ ...body, naming: { ...body.naming, ...change } }))).toThrow(EventError);
+  }
+});

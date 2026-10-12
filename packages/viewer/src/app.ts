@@ -24,6 +24,10 @@ export type Mode = "loading" | "live" | "replay" | "idle";
 
 interface RunChoice {
   readonly id: string;
+  readonly ended?: boolean;
+  readonly started?: string | null;
+  readonly model?: string | null;
+  readonly problem?: string | null;
 }
 
 const LIVE_SCREEN_MS = 500;
@@ -35,7 +39,11 @@ function runChoices(value: unknown): RunChoice[] {
   if (!Array.isArray(value) || !value.every((run) => typeof run === "object" && run !== null && typeof (run as { id?: unknown }).id === "string")) {
     throw new Error("malformed /api/runs payload");
   }
-  return (value as { id: string }[]).map((run) => ({ id: run.id }));
+  return (value as RunChoice[]).slice().sort((a, b) => {
+    const liveA = a.ended === false && a.problem === null;
+    const liveB = b.ended === false && b.problem === null;
+    return Number(liveB) - Number(liveA) || (Date.parse(b.started ?? "") || 0) - (Date.parse(a.started ?? "") || 0);
+  });
 }
 
 function baselineOf(value: unknown): Baseline {
@@ -115,8 +123,20 @@ export class App {
   private listRuns(runs: RunChoice[]): void {
     this.runs = runs;
     const picker = this.picker("run");
-    picker.replaceChildren(...runs.map((run) => option(this.doc, run.id, run.id)));
+    picker.replaceChildren(...runs.map((run) => option(this.doc, run.id, `${run.ended === false && run.problem === null ? "LIVE · " : ""}${run.id}`)));
     if (this.runId !== null) picker.value = this.runId;
+    const live = runs.filter((run) => run.ended === false && run.problem === null);
+    const box = this.ui("live-runs");
+    box.hidden = live.length === 0;
+    box.replaceChildren();
+    for (const run of live) {
+      const button = this.doc.createElement("button");
+      button.textContent = `LIVE · ${run.model ?? run.id}`;
+      button.title = run.id;
+      button.dataset.run = run.id;
+      button.addEventListener("click", () => { this.select(run.id); });
+      box.append(button);
+    }
   }
 
   // Runs start after the page loads (a batch of measured runs); pick them up
@@ -131,7 +151,7 @@ export class App {
     }
     const wasNewest = this.runId !== null && this.runs[0]?.id === this.runId;
     this.listRuns(runs);
-    const newest = runs[0];
+    const newest = this.runs[0];
     if (newest === undefined || newest.id === this.runId) return;
     if (this.runId === null) {
       const wanted = /^#run=(.+)$/.exec(this.deps.hash)?.[1];
@@ -200,6 +220,8 @@ export class App {
     this.baseline = null;
     this.baselineRequest += 1;
     this.problems = [];
+    this.ui("problems").hidden = true;
+    this.ui("problems").textContent = "";
     this.logged = 0;
     this.liveFailedAt = null;
     this.ui("log").replaceChildren();
@@ -213,13 +235,16 @@ export class App {
     const stream = this.deps.openStream(`/api/runs/${encodeURIComponent(runId)}/events`);
     this.stream = stream;
     stream.addEventListener("ev", (message) => {
+      if (this.stream !== stream) return;
       this.receive(message.data);
     });
     stream.addEventListener("problem", (message) => {
+      if (this.stream !== stream) return;
       const detail = JSON.parse(message.data) as { line?: unknown; problem?: unknown };
       this.problem(`line ${String(detail.line)}: ${String(detail.problem)}`);
     });
     stream.addEventListener("caught_up", () => {
+      if (this.stream !== stream) return;
       if (this.view.end !== null) this.startReplay(false);
       else {
         this.mode = "live";
@@ -229,6 +254,7 @@ export class App {
     });
     stream.addEventListener("done", () => {
       stream.close();
+      if (this.stream !== stream) return;
       if (this.mode !== "replay") this.startReplay(true);
       this.render();
     });
@@ -256,9 +282,10 @@ export class App {
 
   private problem(text: string): void {
     this.problems.push(text);
+    if (this.problems.length > 100) this.problems.shift();
     const box = this.ui("problems");
     box.hidden = false;
-    box.textContent = this.problems.join(" · ");
+    box.textContent = this.problems.slice(-100).join("\n");
   }
 
   private startReplay(atEnd: boolean): void {

@@ -17,9 +17,10 @@ it("verifies the actual pre-game fields, not just a screen label", () => {
 
 it("checks the truck map identity, money and lock signal", () => {
   verifyTruck(truck);
+  verifyTruck({ ...truck, field_controls_locked: false });
   const missingLock = { ...truck }; delete missingLock.field_controls_locked;
   expect(() => { verifyTruck(missingLock); }).toThrow(/truck checkpoint/);
-  for (const change of [{ started: false }, { screen: "title" }, { location: "PETALBURG CITY" }, { map_id: [0, 40] as [number, number] }, { map_id: [25, 0] as [number, number] }, { party: IN_GAME.party }, { money: 0 }, { badges: ["STONE"] }, { name: "" }, { name: null }, { position: null }, { field_controls_locked: false }, { field_controls_locked: null }]) {
+  for (const change of [{ started: false }, { screen: "title" }, { location: "PETALBURG CITY" }, { map_id: [0, 40] as [number, number] }, { map_id: [25, 0] as [number, number] }, { party: IN_GAME.party }, { money: 0 }, { badges: ["STONE"] }, { name: "" }, { name: null }, { position: null }, { field_controls_locked: null }]) {
     expect(() => { verifyTruck({ ...truck, ...change }); }).toThrow(/truck checkpoint/);
   }
 });
@@ -44,4 +45,11 @@ it("fails at a tiny injected bound without a long live fixture", async () => {
   expect((await plan.next()).value).toEqual({ action: "observe" });
   expect((await plan.next()).value).toEqual({ action: "press", buttons: ["A"] });
   await expect(plan.next()).rejects.toThrow(/within 1 presses/);
+});
+
+it("records the screen actually reached while settling an intro animation", async () => {
+  const labels: string[] = [];
+  const plan = verifyIntro(source(pre("intro"), pre("title"), pre("main_menu"), pre("main_menu"), pre("birch_speech"), pre("birch_speech"), pre("naming"), pre("naming"), truck, truck), (label) => { labels.push(label); }, 6, () => Promise.resolve());
+  for await (const command of plan) expect(command.action).toBeTypeOf("string");
+  expect(labels).toEqual(["title", "main_menu", "birch_speech", "naming", "truck"]);
 });

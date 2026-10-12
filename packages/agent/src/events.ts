@@ -134,6 +134,11 @@ const FramesEvicted = event("frames_evicted", {
 export const StateBodySchema = Type.Object(
   {
     screen: Type.String(),
+    naming: Type.Optional(Type.Union([Type.Object({
+      text: Type.String(), page: Type.Enum(["symbols", "uppercase", "lowercase"]),
+      column: Type.Integer({ minimum: 0, maximum: 8 }), row: Type.Integer({ minimum: 0, maximum: 3 }),
+      key: Type.String(), ready: Type.Boolean(),
+    }, closed), Type.Null()])),
     local_map: Type.Optional(Type.Union([Type.String(), Type.Null()])),
     field_controls_locked: Type.Optional(Type.Union([Type.Boolean(), Type.Null()])),
     started: Type.Boolean(),

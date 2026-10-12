@@ -453,3 +453,42 @@ describe("boot", () => {
     await expect(boot(win)).rejects.toThrow("GET /api/runs returned HTTP 500");
   });
 });
+
+// Live discovery and error containment are operator-visible guarantees.
+describe("live discovery and diagnostics", () => {
+  it("keeps every live run visible while replaying a finished probe", async () => {
+    const runs = [runRow("probe_g4", true), runRow("active_model", false)];
+    const { streams } = await harness("#run=probe_g4", runs);
+    expect(ui("live-runs").hidden).toBe(false);
+    const button = ui("live-runs").querySelector("button");
+    expect(button?.dataset.run).toBe("active_model");
+    expect(ui("run").querySelector("option")?.textContent).toContain("LIVE");
+    button?.click();
+    expect(streams.at(-1)?.url).toBe("/api/runs/active_model/events");
+  });
+
+  it("bounds diagnostics and clears them on a run switch", async () => {
+    const { app, streams } = await harness();
+    const stream = must(streams[0]);
+    for (let line = 0; line < 250; line++) stream.send("problem", { line, problem: "bad state" });
+    expect(ui("problems").textContent.split("\n")).toHaveLength(100);
+    expect(ui("problems").textContent).toContain("line 249:");
+    expect(ui("problems").textContent).not.toContain("line 0:");
+    app.select(M4_ID);
+    expect(ui("problems").hidden).toBe(true);
+    expect(ui("problems").textContent).toBe("");
+  });
+});
+
+it("ignores queued callbacks from a stream closed by a run switch", async () => {
+  const { app, streams } = await harness();
+  const first = must(streams[0]);
+  app.select(M4_ID);
+  first.send("problem", { line: 20, problem: "stale error" });
+  first.send("caught_up", {});
+  first.send("done", {});
+  first.send("ev", fullRun().events[0]);
+  expect(ui("problems").hidden).toBe(true);
+  expect(app.mode).toBe("loading");
+  expect(app.view.start).toBeNull();
+});

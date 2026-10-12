@@ -45,6 +45,7 @@ export function trainerCard(view: RunView, nowMs: number): string {
       ["MAP", state === null ? NO_DATA : place(state)],
       ["MONEY", state === null ? NO_DATA : state.money === null ? NOT_STARTED : `₽${num(state.money)}`],
       ["TURN", String(view.turn)],
+      ...(state?.naming == null ? [] : [["NAME ENTRY", esc(state.naming.text || "(empty)")], ["CURSOR", esc(`${state.naming.page}: ${state.naming.key} (${String(state.naming.column)},${String(state.naming.row)})`)]] as [string, string][]),
       ["CONTROLS", state?.field_controls_locked === true ? "locked" : state?.field_controls_locked === false ? "available" : NO_DATA],
     ]) + `<div class="badges">${badges}</div>`
   );
@@ -71,7 +72,7 @@ export function party(view: RunView): string {
 
 function budgetBar(label: string, fraction: number, value: string): string {
   const clamped = Math.min(1, Math.max(0, fraction));
-  return `<div class="row"><span class="l">${label}</span><div class="bar"><i class="${level(clamped)}" style="width:${(clamped * 100).toFixed(0)}%"></i></div><span class="v">${value}</span></div>`;
+  return `<div class="row"><span class="l">${label}</span><div class="budget-track"><i class="${level(clamped)}" style="width:${(clamped * 100).toFixed(0)}%"></i></div><span class="v">${value}</span></div>`;
 }
 
 function budgetMissing(label: string, text: string): string {

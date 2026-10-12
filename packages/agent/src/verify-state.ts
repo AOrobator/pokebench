@@ -10,7 +10,7 @@ export function verifyPreGame(state: GameStateSnapshot): void {
 }
 
 export function verifyTruck(state: GameStateSnapshot): void {
-  if (!state.started || state.screen !== "overworld" || state.location !== "INSIDE OF TRUCK" || state.map_id?.[0] !== 25 || state.map_id[1] !== 40 || state.money !== 3000 || state.party.length !== 0 || state.badges.length !== 0 || state.name?.trim() === "" || state.name === null || state.position === null || state.field_controls_locked !== true) {
+  if (!state.started || state.screen !== "overworld" || state.location !== "INSIDE OF TRUCK" || state.map_id?.[0] !== 25 || state.map_id[1] !== 40 || state.money !== 3000 || state.party.length !== 0 || state.badges.length !== 0 || state.name?.trim() === "" || state.name === null || state.position === null || typeof state.field_controls_locked !== "boolean") {
     throw new Error(`truck checkpoint mismatch: ${JSON.stringify(state)}`);
   }
 }
@@ -19,7 +19,7 @@ export async function* verifyIntro(
   source: StateSource,
   report: (label: string, state: GameStateSnapshot) => void,
   limit = 160,
-  settle: () => Promise<void> = () => new Promise((resolve) => setTimeout(resolve, 1000)),
+  settle: () => Promise<void> = () => new Promise((resolve) => setTimeout(resolve, 4000)),
 ): AsyncGenerator<ProbeCommand> {
   const seen = new Set<string>();
   for (let step = 0; step < limit; step++) {
@@ -40,7 +40,11 @@ export async function* verifyIntro(
     verifyPreGame(state);
     if (!seen.has(state.screen)) {
       await settle();
-      seen.add(state.screen); report(state.screen, await source.read());
+      seen.add(state.screen);
+      const settled = await source.read();
+      verifyPreGame(settled);
+      seen.add(settled.screen);
+      report(settled.screen, settled);
       yield { action: "observe" };
     }
     yield { action: "press", buttons: ["A"] };

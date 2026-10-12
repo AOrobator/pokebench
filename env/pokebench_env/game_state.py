@@ -14,6 +14,7 @@ from pathlib import Path
 
 from pokebench_env.game_screen import ReadMemory, read_screen
 from pokebench_env.live_map import read_local_map
+from pokebench_env.naming import NamingState, read_naming
 
 SAVE_BLOCK_PTRS = 0x03005D8C
 PARTY_COUNT = 0x020244E9
@@ -102,6 +103,7 @@ class GameState:
     play_time: tuple[int, int, int] | None
     field_controls_locked: bool | None = None
     local_map: str | None = None
+    naming: NamingState | None = None
 
 
 def _u32(read: ReadMemory, address: int) -> int:
@@ -144,7 +146,19 @@ def read_game_state(read: ReadMemory, maps: MapNames) -> GameState:
     in_battle = bool(read(IN_BATTLE, 1)[0] & 0x02)
     if screen.kind in PRE_GAME:
         return GameState(
-            screen.label, False, None, None, None, None, None, in_battle, None, None, None, None
+            screen.label,
+            False,
+            None,
+            None,
+            None,
+            None,
+            None,
+            in_battle,
+            None,
+            None,
+            None,
+            None,
+            naming=read_naming(read, decode_text) if screen.kind == "naming" else None,
         )
     save1, save2 = struct.unpack("<II", read(SAVE_BLOCK_PTRS, 8))
     x, y, group, number = struct.unpack("<hhbb", read(save1, 6))

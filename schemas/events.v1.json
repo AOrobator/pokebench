@@ -989,6 +989,53 @@
         "screen": {
           "type": "string"
         },
+        "naming": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "text",
+                "page",
+                "column",
+                "row",
+                "key",
+                "ready"
+              ],
+              "properties": {
+                "text": {
+                  "type": "string"
+                },
+                "page": {
+                  "enum": [
+                    "symbols",
+                    "uppercase",
+                    "lowercase"
+                  ]
+                },
+                "column": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 8
+                },
+                "row": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3
+                },
+                "key": {
+                  "type": "string"
+                },
+                "ready": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "local_map": {
           "anyOf": [
             {

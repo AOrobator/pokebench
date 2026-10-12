@@ -333,3 +333,11 @@ it("shows the control lock and names manual probes honestly", () => {
   expect(trainerCard(v, BASE_MS)).toContain('<dt>CONTROLS</dt><dd>locked</dd>');
   expect(thinkingDialog(v, BASE_MS).head).toContain("MANUAL PROBE");
 });
+
+it("shows the current naming cursor and escapes entered text", () => {
+  const log = bare();
+  log.add(0, state({ naming: { text: "<AB>", page: "uppercase", column: 1, row: 0, key: "B", ready: true } }));
+  const html = trainerCard(view(log), BASE_MS);
+  expect(html).toContain("&lt;AB&gt;");
+  expect(html).toContain("uppercase: B (1,0)");
+});

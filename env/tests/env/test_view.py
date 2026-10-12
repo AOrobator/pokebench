@@ -111,7 +111,11 @@ def test_production_main_registers_view_pcm_and_browser_module_before_vendor_mai
     state_status, _, state_body = get(app, "/pokebench/state")
     assert state_status == 200
     assert json.loads(state_body)["screen"] == "naming"
-    assert memory_reads == [(0x030022C0, 0x030022C8), (0x030026F9, 0x030026FA)]
+    assert memory_reads == [
+        (0x030022C0, 0x030022C8),
+        (0x030026F9, 0x030026FA),
+        (0x02039F94, 0x02039F98),
+    ]
     assert calls == [{"host": "127.0.0.1", "port": 8129}]
     status, headers, wav = get(app, "/audio.wav", b"since=0&max_frames=2")
     assert status == 200

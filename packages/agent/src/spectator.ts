@@ -60,7 +60,9 @@ export class AudioFollower {
       if (!response.ok) throw new Error("Audio HTTP error");
       const bytes = await response.arrayBuffer();
       if (generation !== this.generation) return;
-      const cursor = Number(response.headers.get("X-Audio-Next"));
+      const header = response.headers.get("X-Audio-Next");
+      if (header === null || header.trim() === "") throw new Error("Missing audio cursor");
+      const cursor = Number(header);
       if (!Number.isSafeInteger(cursor) || cursor < 0 || bytes.byteLength < 44 || (bytes.byteLength - 44) % 4) {
         throw new Error("Invalid spectator audio");
       }

@@ -31,7 +31,7 @@ function wav(frames = 4800, epoch = 0, next = frames, skipped = 0): Response {
 }
 function setup() {
   const stops: ReturnType<typeof vi.fn>[] = [];
-  const play = vi.fn((_pcm: Int16Array, _rate: number) => {
+  const play = vi.fn<Dependencies["play"]>(() => {
     const stop = vi.fn(); stops.push(stop); return stop;
   });
   const fetch = vi.fn<Dependencies["fetch"]>();

@@ -216,6 +216,7 @@ Mac Studio (all local)
 - [ ] Operator watches a live run in the viewer (M4+)
 
 ## Session Log
+- M2.5 slice 3 GREEN: follower tests 5 passed; full `just test` vitest 61 / pytest 98; TS lint clean. RED fd7dfd3. COMMIT: `feat(view): client-local mute and bounded varispeed audio` (GREEN, this commit).
 - M2.5 slice 3 RED: client-local follower tests 5 failed (spectator module missing) / existing vitest 56 passed. Callback GREEN dca4dcb. Browser business logic lives in the already-covered TS package; `/view` uses its compiled browser-safe module, and `just serve` builds first. Explicit speed policy: at most one playing source, 100 ms latest-segment polling, varispeed follows PCM frames/wall time (pitch shifts), drop stale rather than queue. COMMIT: `test(view): mute lifecycle and bounded varispeed follower` (RED, this commit).
 - M2.5 slice 2 GREEN: callback/lifecycle tests 3 passed; full `just test`: vitest 56 / pytest 98; ruff/mypy clean. RED e256585. COMMIT: `feat(env): native frame callback captures spectator audio` (GREEN, this commit).
 - M2.5 slice 2 RED: native callback/lifecycle tests 2 failed (`native audio callback missing`), 1 passed. Native ROM timing probe: 180 callbacks / 180 run_frame calls, PCM available at callback (117–809 frames), callback thread matches frame owner. Slice 1 GREEN 06db9bb. COMMIT: `test(env): frame-owned audio callback and lifecycle isolation` (RED, this commit).

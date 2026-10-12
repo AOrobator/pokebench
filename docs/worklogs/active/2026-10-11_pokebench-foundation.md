@@ -210,6 +210,7 @@ Mac Studio (all local)
 - [ ] Operator watches a live run in the viewer (M4+)
 
 ## Session Log
+- M2.5 slice 2 RED: native callback/lifecycle tests 2 failed (`native audio callback missing`), 1 passed. Native ROM timing probe: 180 callbacks / 180 run_frame calls, PCM available at callback (117–809 frames), callback thread matches frame owner. Slice 1 GREEN 06db9bb. COMMIT: `test(env): frame-owned audio callback and lifecycle isolation` (RED, this commit).
 - M2.5 slice 1 GREEN: tape tests 1 passed; full `just test`: vitest 56 / pytest 96. RED d49e3a7; COMMIT: `feat(env): bounded stereo spectator tape` (GREEN, this commit).
 - M2.5 implementation slice 1: bounded stereo WAV tape RED; `pytest env/tests/env/test_audio.py -q` failed with `audio feature missing` (1 failed). COMMIT: `test(env): bounded spectator audio tape` (RED, this commit). Design refinement: use native frame callback attached after initialize, not a per-frame emulator method wrapper. Parent owns browser acceptance and multi-model review; no M4 work.
 - 2026-10-11 ~21:30 ET: **M3 landed on main.** Operator: "yes, land m3 and resolve conflicts and commit. u can kill the leftover server". main fast-forwarded 465b704 → a9f1dc5 (`m3-agent-provider`). The only conflict was another session's uncommitted M2.5 worklog block, which was set aside and re-applied unstaged. Gates on main: vitest 56, pytest 95; TS 100 / 97.36 / 100 / 100; Python 98.77 / 97.30 / 100; lint, build and verify-vendor clean. Killed the orphaned `pokebench_env.serve` on :8000 (pid 2876, PPID 1, from the pre-fix smoke).

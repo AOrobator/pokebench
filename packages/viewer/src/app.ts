@@ -339,6 +339,10 @@ export class App {
     const dialog = thinkingDialog(view, nowMs);
     this.ui("think-head").textContent = dialog.head;
     this.setHtml("think-body", dialog.body);
+    if (view.isThinking) {
+      const body = this.ui("think-body");
+      body.scrollTop = body.scrollHeight;
+    }
     this.setHtml("trainer", trainerCard(view, nowMs));
     this.setHtml("party", party(view));
     this.setHtml("budgets", budgets(view, nowMs));

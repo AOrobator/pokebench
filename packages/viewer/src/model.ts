@@ -104,6 +104,7 @@ export class RunView {
   readonly milestones: { name: string; ms: number; seq: number }[] = [];
   readonly presses: Press[] = [];
   readonly thinkingSpans: Span[] = [];
+  streaming = { thinking: "", text: "" };
   readonly toolSpans: ToolSpan[] = [];
   readonly errors: ErrorMark[] = [];
   private readonly openTools = new Map<string, ToolSpan>();
@@ -132,6 +133,10 @@ export class RunView {
         this.turnStartMs = ms;
         this.context = event.context;
         this.thinkingSpans.push({ startMs: ms, endMs: null });
+        this.streaming = { thinking: "", text: "" };
+        break;
+      case "assistant_delta":
+        this.streaming = { thinking: this.streaming.thinking + event.thinking, text: this.streaming.text + event.text };
         break;
       case "assistant":
         this.onAssistant(event, ms);

@@ -89,6 +89,10 @@ const Assistant = event("assistant", {
   error: Type.Optional(Type.String()),
 });
 
+// Reply text as it streams, batched by the recorder; the full reply still
+// lands in the turn's `assistant` event.
+const AssistantDelta = event("assistant_delta", { thinking: Type.String(), text: Type.String() });
+
 const ToolCall = event("tool_call", { id: Type.String(), name: Type.String(), args: Args });
 
 const Frames = Type.Integer({ minimum: 1, maximum: 255 });
@@ -180,6 +184,7 @@ export const RunEventSchema = Type.Union([
   State,
   Compaction,
   TelemetryError,
+  AssistantDelta,
 ]);
 
 export type RunEvent = Static<typeof RunEventSchema>;

@@ -146,7 +146,9 @@ describe("RunRecorder", () => {
     });
     recorder.end("budget");
 
-    const log_ = events(log);
+    const all = events(log);
+    expect(all.filter((event) => event.type === "assistant_delta")).toMatchObject([{ turn: 1, thinking: "", text: "x" }]);
+    const log_ = all.filter((event) => event.type !== "assistant_delta");
     expect(log_.map((event) => event.type)).toEqual([
       "run_start",
       "milestone",
@@ -185,9 +187,9 @@ describe("RunRecorder", () => {
     });
     const result = log_[9];
     expect(result?.type === "tool_result" ? result.frames.map((frame) => frame.path) : []).toEqual([
-      "frames/000009_0.png",
+      "frames/000010_0.png",
     ]);
-    expect(readFileSync(join(log.runDir, "frames", "000009_0.png"), "utf8")).toBe("png-bytes");
+    expect(readFileSync(join(log.runDir, "frames", "000010_0.png"), "utf8")).toBe("png-bytes");
     expect(log_[10]).toMatchObject({
       reason: "budget",
       furthest_milestone: "PLAYER_NAME_SET",

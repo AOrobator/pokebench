@@ -1,5 +1,5 @@
 import type { AgentEvent, AgentMessage } from "@mariozechner/pi-agent-core";
-import type { AssistantMessage, ImageContent, TextContent } from "@mariozechner/pi-ai";
+import type { AssistantMessage, AssistantMessageEvent, ImageContent, TextContent } from "@mariozechner/pi-ai";
 import type { BodyOf, Button, RunEndReason } from "./events.js";
 import type { FrameRef, FrameStore } from "./frames.js";
 import type { StateSource } from "./game-state.js";
@@ -26,6 +26,7 @@ export interface PressTiming {
 }
 
 const CHARS_PER_TOKEN = 4;
+const STREAM_FLUSH_MS = 250;
 // Any PNG serialized as base64 starts with this; tool text (e.g. the vendor
 // /state body) can embed whole frames, which belong in frames/, not the log.
 const INLINE_PNG = /iVBORw0KGgo[A-Za-z0-9+/]+={0,2}/g;
@@ -80,6 +81,7 @@ export class RunRecorder {
   private startedAt = 0;
   private requestAt = 0;
   private firstTokenAt: number | null = null;
+  private stream = { thinking: "", text: "", flushedAt: 0 };
   private readonly toolStarts = new Map<string, number>();
   private furthest: string | null = null;
   private tokens = { input: 0, output: 0 };
@@ -104,6 +106,7 @@ export class RunRecorder {
     this.turn += 1;
     this.requestAt = this.now();
     this.firstTokenAt = null;
+    this.stream = { thinking: "", text: "", flushedAt: this.requestAt };
     this.log.append({ type: "turn_start", turn: this.turn, context: contextSize(messages) });
     return Promise.resolve(messages);
   };
@@ -113,9 +116,13 @@ export class RunRecorder {
     switch (event.type) {
       case "message_update":
         this.firstTokenAt ??= this.now();
+        this.streamDelta(event.assistantMessageEvent);
         break;
       case "message_end":
-        if (event.message.role === "assistant") this.recordAssistant(event.message);
+        if (event.message.role === "assistant") {
+          this.flushStream();
+          this.recordAssistant(event.message);
+        }
         break;
       case "tool_execution_start":
         this.recordToolCall(event.toolCallId, event.toolName, event.args);
@@ -127,6 +134,20 @@ export class RunRecorder {
         break;
     }
   };
+
+  private streamDelta(update: AssistantMessageEvent): void {
+    if (update.type === "thinking_delta") this.stream.thinking += update.delta;
+    else if (update.type === "text_delta") this.stream.text += update.delta;
+    else return;
+    if (this.now() - this.stream.flushedAt >= STREAM_FLUSH_MS) this.flushStream();
+  }
+
+  private flushStream(): void {
+    const { thinking, text } = this.stream;
+    this.stream = { thinking: "", text: "", flushedAt: this.now() };
+    if (thinking === "" && text === "") return;
+    this.log.append({ type: "assistant_delta", turn: this.turn, thinking, text });
+  }
 
   private recordAssistant(message: AssistantMessage): void {
     const done = this.now();

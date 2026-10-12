@@ -60,6 +60,7 @@ svg.gba { width: 100%; height: auto; display: block; overflow: visible; filter: 
 /* thinking dialog */
 .dialog .live-thought { font-size: 10px; line-height: 2.1; min-height: 64px; max-height: 220px; overflow: auto; white-space: pre-wrap; word-break: break-word; }
 .cursor { display: inline-block; width: 7px; height: 1em; background: currentColor; vertical-align: -2px; animation: blink 1s steps(1) infinite; margin-left: 2px; }
+.reply { display: block; margin-top: 6px; font-weight: 600; }
 @keyframes blink { 50% { opacity: 0; } }
 
 /* open PokéNav */

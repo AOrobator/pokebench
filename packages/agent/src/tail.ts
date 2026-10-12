@@ -73,6 +73,8 @@ function body(event: RunEvent): [string, string] {
     }
     case "telemetry_error":
       return ["TELEMETRY", `${event.source} read failed: ${event.message}`];
+    case "assistant_delta":
+      return ["STREAM", [event.thinking === "" ? "" : `think: ${clip(event.thinking)}`, event.text === "" ? "" : `say: ${clip(event.text)}`].filter((part) => part !== "").join(" ")];
     case "compaction":
       return ["COMPACT", `context ${String(event.from_tokens)} → ${String(event.to_tokens)} tokens`];
     case "run_end":
@@ -141,7 +143,7 @@ export async function tailRun(argv: readonly string[], runsRoot: string, print: 
   await followEvents(
     eventsPathFor(runsRoot, runId),
     (event) => {
-      print(formatEvent(event));
+      if (event.type !== "assistant_delta") print(formatEvent(event));
       if (event.type === "run_end") controller.abort();
     },
     { signal: controller.signal },

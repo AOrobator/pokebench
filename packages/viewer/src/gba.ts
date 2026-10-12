@@ -91,7 +91,7 @@ export function gbaSvg(): string {
   </g>
   <text class="lbl sm" x="110" y="234" transform="rotate(-18 110 234)">SELECT</text>
   <text class="lbl sm" x="110" y="266" transform="rotate(-18 110 266)">START</text>
-  <text class="lbl shoulder-letter" x="127" y="31">L</text><text class="lbl shoulder-letter" x="553" y="31">R</text>
+  <text class="lbl shoulder-letter" x="90" y="45" transform="rotate(-28 90 42)">L</text><text class="lbl shoulder-letter" x="590" y="45" transform="rotate(28 590 42)">R</text>
   <g class="grill">${GRILL}</g>
 </svg>`;
 }

@@ -71,7 +71,7 @@ python_version = "3.11"
 packages = ["pokebench_env", "pokebench_gates"]
 
 [[tool.mypy.overrides]]
-module = ["server", "server.*", "pokemon_env", "pokemon_env.*"]
+module = ["server", "server.*", "pokemon_env", "pokemon_env.*", "utils", "utils.*"]
 ignore_missing_imports = true
 
 [tool.uv]

@@ -14,6 +14,7 @@ from fastapi import FastAPI
 
 from pokebench_env.audio import EmulatorLike
 from pokebench_env.milestone_guard import install_milestone_guard
+from pokebench_env.observation import Formatter, StateFn, install_observation
 from pokebench_env.view import install_spectator
 
 LOCALHOST = "127.0.0.1"
@@ -39,9 +40,12 @@ def run(
     vendor_main: Callable[[], None],
     *,
     spectator: tuple[FastAPI, type[EmulatorLike]] | None = None,
+    observation: tuple[FastAPI, StateFn, Formatter] | None = None,
 ) -> None:
     if spectator is not None:
         install_spectator(*spectator)
+    if observation is not None:
+        install_observation(*observation)
     pin_localhost(uvicorn)
     sys.argv = ["server.app", *argv]
     vendor_main()
@@ -51,6 +55,7 @@ def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
     import uvicorn
     from pokemon_env.emulator import EmeraldEmulator
     from server import app  # vendor module, on PYTHONPATH
+    from utils.state_formatter import format_state_for_llm
 
     install_milestone_guard(EmeraldEmulator)
     run(
@@ -58,6 +63,7 @@ def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
         uvicorn=cast(UvicornLike, uvicorn),
         vendor_main=app.main,
         spectator=(app.app, cast(type[EmulatorLike], EmeraldEmulator)),
+        observation=(app.app, app.get_comprehensive_state, format_state_for_llm),
     )
 
 

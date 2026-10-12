@@ -50,7 +50,9 @@ class AudioTape:
             raise ValueError("max_frames must be positive")
         with self._lock:
             oldest = self._end - len(self._pcm) // FRAME_BYTES
-            requested = self._end - min(max_frames, self.capacity_frames) if since < 0 else since
+            requested = (
+                max(0, self._end - min(max_frames, self.capacity_frames)) if since < 0 else since
+            )
             start = min(self._end, max(oldest, self._end - max_frames, requested))
             pcm = bytes(self._pcm[(start - oldest) * FRAME_BYTES :])
             end, epoch = self._end, self._epoch

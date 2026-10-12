@@ -72,7 +72,7 @@ export function summarize(events: readonly RunEvent[]): RunSummary {
     ...counts,
     reason: "incomplete",
     furthest: milestones.at(-1)?.name ?? null,
-    turns: Math.max(...events.map((event) => event.turn)),
+    turns: events.reduce((most, event) => Math.max(most, event.turn), 0),
     wallMs: since(last),
     tokens,
   };

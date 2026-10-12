@@ -1,7 +1,15 @@
-import type { AgentMessage } from "@mariozechner/pi-agent-core";
-import type { AssistantMessage, ToolResultMessage } from "@mariozechner/pi-ai";
+import type { AgentMessage, AgentTool, StreamFn } from "@mariozechner/pi-agent-core";
+import {
+  createAssistantMessageEventStream,
+  type AssistantMessage,
+  type Message,
+  type Model,
+  type ToolResultMessage,
+} from "@mariozechner/pi-ai";
+import { Type } from "typebox";
 import { describe, expect, it } from "vitest";
-import { Governor, NUDGE, OMITTED_FRAME, play, slideWindow, type Loop } from "./harness.js";
+import { pressTool } from "./game-tools.js";
+import { Governor, NUDGE, OMITTED_FRAME, piLoop, play, slideWindow, type Loop } from "./harness.js";
 
 const usage = {
   input: 0,
@@ -275,5 +283,151 @@ describe("play", () => {
     const { g } = governor();
     const loop = scriptedLoop([() => [reply([])]], []);
     await expect(play(TASK, g, loop)).rejects.toThrow(/without a stop reason/);
+  });
+});
+
+const MODEL: Model<"openai-completions"> = {
+  id: "lane",
+  name: "lane",
+  api: "openai-completions",
+  provider: "local-gateway",
+  baseUrl: "http://127.0.0.1:1/v1",
+  reasoning: false,
+  input: ["text", "image"],
+  cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+  contextWindow: 1000,
+  maxTokens: 100,
+};
+
+function pressReply(...batches: string[][]): AssistantMessage {
+  return {
+    ...reply([]),
+    content: batches.map((buttons, i) => ({
+      type: "toolCall" as const,
+      id: `p${String(i)}`,
+      name: "press",
+      arguments: { buttons },
+    })),
+    stopReason: "toolUse",
+  };
+}
+
+function scriptedModel(replies: AssistantMessage[], seen: Message[][]): StreamFn {
+  return (_model, context) => {
+    seen.push([...context.messages]);
+    const message = replies.shift();
+    if (message === undefined) throw new Error("model script exhausted");
+    const stream = createAssistantMessageEventStream();
+    if (message.stopReason === "error" || message.stopReason === "aborted") {
+      stream.push({ type: "error", reason: message.stopReason, error: message });
+    } else {
+      stream.push({ type: "done", reason: message.stopReason, message });
+    }
+    return stream;
+  };
+}
+
+const FakePressArgs = Type.Object({ buttons: Type.Array(Type.String()) });
+
+function fakePress(onPress: (buttons: readonly string[]) => void): AgentTool<typeof FakePressArgs> {
+  return {
+    name: "press",
+    label: "Press",
+    description: "press",
+    parameters: FakePressArgs,
+    execute: (_id, params) => {
+      onPress(params.buttons);
+      return Promise.resolve({ content: [{ type: "text", text: "ok" }], details: undefined });
+    },
+  };
+}
+
+function realLoop(g: Governor, tools: AgentTool<typeof FakePressArgs>[] | AgentTool[], replies: AssistantMessage[], seen: Message[][], signal: AbortSignal) {
+  return piLoop({
+    systemPrompt: "play",
+    tools,
+    base: { model: MODEL, convertToLlm: (messages) => messages as Message[] },
+    governor: g,
+    transformContext: (messages) => Promise.resolve(messages),
+    emit: () => undefined,
+    signal,
+    streamFn: scriptedModel(replies, seen),
+  });
+}
+
+describe("piLoop on the pinned pi-agent-core loop", () => {
+  it("nudges after a text-only reply and keeps playing", async () => {
+    const controller = new AbortController();
+    const { g, retries } = governor({ maxTurns: 3 });
+    const seen: Message[][] = [];
+    const presses: string[] = [];
+    const loop = realLoop(
+      g,
+      [fakePress((b) => presses.push(b.join()))],
+      [reply([]), pressReply(["A"]), pressReply(["B"])],
+      seen,
+      controller.signal,
+    );
+    expect(await play(TASK, g, loop)).toBe("budget");
+    expect(presses).toEqual(["A", "B"]);
+    expect(seen[1]?.at(-1)).toMatchObject({ role: "user", content: NUDGE });
+    expect(retries).toEqual([{ reason: "text-only reply", attempt: 1, limit: 3 }]);
+  });
+
+  it("drops an errored reply, logs a retry and resumes from the last good message", async () => {
+    const controller = new AbortController();
+    const { g, retries } = governor({ maxTurns: 3 });
+    const seen: Message[][] = [];
+    const loop = realLoop(
+      g,
+      [fakePress(() => undefined)],
+      [pressReply(["A"]), reply([], "error", "HTTP 502"), pressReply(["B"])],
+      seen,
+      controller.signal,
+    );
+    expect(await play(TASK, g, loop)).toBe("budget");
+    expect(retries).toEqual([{ reason: "model error: HTTP 502", attempt: 1, limit: 3 }]);
+    expect(seen[2]?.at(-1)?.role).toBe("toolResult");
+    expect(seen[2]?.some((m) => m.role === "assistant" && m.stopReason === "error")).toBe(false);
+  });
+
+  it("ends model_error after three consecutive failures", async () => {
+    const controller = new AbortController();
+    const { g } = governor();
+    const loop = realLoop(
+      g,
+      [fakePress(() => undefined)],
+      [reply([]), reply([], "error", "HTTP 500"), reply([])],
+      [],
+      controller.signal,
+    );
+    expect(await play(TASK, g, loop)).toBe("model_error");
+  });
+
+  it("presses nothing more once the run is stopped mid-batch", async () => {
+    const controller = new AbortController();
+    const { g } = governor();
+    g.abort = (reason) => {
+      g.stopReason ??= reason;
+      controller.abort();
+    };
+    const posts: string[] = [];
+    const fetchFn: typeof fetch = (input, init) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+      if (url.endsWith("/action")) {
+        posts.push(typeof init?.body === "string" ? init.body : "");
+        g.abort("budget");
+      }
+      return Promise.resolve(new Response(JSON.stringify({ status: "success", queue_empty: true })));
+    };
+    const tool = pressTool(
+      "http://127.0.0.1:1",
+      { beforePress: () => undefined, afterPress: () => Promise.resolve() },
+      fetchFn,
+      { sleep: () => Promise.resolve(), now: () => 0 },
+    );
+    const loop = realLoop(g, [tool], [pressReply(["A"], ["B"])], [], controller.signal);
+    expect(await play(TASK, g, loop)).toBe("budget");
+    expect(posts).toEqual([JSON.stringify({ buttons: ["A"] })]);
   });
 });

@@ -1,4 +1,12 @@
-import type { AgentMessage } from "@mariozechner/pi-agent-core";
+import {
+  runAgentLoop,
+  runAgentLoopContinue,
+  type AgentEvent,
+  type AgentLoopConfig,
+  type AgentMessage,
+  type AgentTool,
+  type StreamFn,
+} from "@mariozechner/pi-agent-core";
 import type { AssistantMessage, ToolResultMessage } from "@mariozechner/pi-ai";
 import type { RunEndReason } from "./events.js";
 
@@ -116,6 +124,33 @@ function firstText(result: ToolResultMessage | undefined): string {
 export interface Loop {
   start(prompts: AgentMessage[], messages: AgentMessage[]): Promise<AgentMessage[]>;
   resume(messages: AgentMessage[]): Promise<AgentMessage[]>;
+}
+
+export interface PiLoopOptions {
+  readonly systemPrompt: string;
+  readonly tools: AgentTool[];
+  readonly base: AgentLoopConfig;
+  readonly governor: Governor;
+  readonly transformContext: (messages: AgentMessage[]) => Promise<AgentMessage[]>;
+  readonly emit: (event: AgentEvent) => Promise<void> | void;
+  readonly signal: AbortSignal;
+  readonly streamFn?: StreamFn;
+}
+
+export function piLoop(options: PiLoopOptions): Loop {
+  const { systemPrompt, tools, governor, emit, signal, streamFn } = options;
+  const config: AgentLoopConfig = {
+    ...options.base,
+    toolExecution: "sequential",
+    transformContext: (messages) => options.transformContext(slideWindow(messages)),
+    shouldStopAfterTurn: ({ message, toolResults }) => governor.afterTurn(message, toolResults),
+    getFollowUpMessages: governor.followUps,
+  };
+  return {
+    start: (prompts, messages) =>
+      runAgentLoop(prompts, { systemPrompt, messages, tools }, config, emit, signal, streamFn),
+    resume: (messages) => runAgentLoopContinue({ systemPrompt, messages, tools }, config, emit, signal, streamFn),
+  };
 }
 
 export async function play(task: AgentMessage, governor: Governor, loop: Loop): Promise<RunEndReason> {

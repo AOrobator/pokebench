@@ -11,13 +11,13 @@ import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { runAgentLoop, runAgentLoopContinue, type AgentLoopConfig, type AgentMessage } from "@mariozechner/pi-agent-core";
+import { runAgentLoop, type AgentMessage } from "@mariozechner/pi-agent-core";
 import { loadConfig } from "./config.js";
 import { checkSmoke, observeTool, pressTool, serverHealthy } from "./game-tools.js";
 import { discoverModels, selectModel, type GatewayModel } from "./gateway.js";
 import { FrameStore } from "./frames.js";
 import { MilestoneWatcher } from "./milestones.js";
-import { Governor, play, slideWindow, type Limits, type Loop } from "./harness.js";
+import { Governor, piLoop, play, type Limits } from "./harness.js";
 import { gatewayLoopConfig } from "./provider.js";
 import type { RunRecorder } from "./recorder.js";
 import { harnessInfo, newRunId, withRun, type RunHost, type ServerHandle } from "./run.js";
@@ -241,21 +241,15 @@ async function playAgent(): Promise<void> {
         governor.abort("operator_abort");
       };
       process.once("SIGINT", interrupt);
-      const tools = [observeTool(gameServerUrl), pressTool(gameServerUrl, pressHooks(recorder))];
-      const config: AgentLoopConfig = {
-        ...gatewayLoopConfig(model, PLAY_THINKING),
-        maxTokens,
-        toolExecution: "sequential",
-        transformContext: (messages) => recorder.transformContext(slideWindow(messages)),
-        shouldStopAfterTurn: ({ message, toolResults }) => governor.afterTurn(message, toolResults),
-        getFollowUpMessages: governor.followUps,
-      };
-      const loop: Loop = {
-        start: (prompts, messages) =>
-          runAgentLoop(prompts, { systemPrompt: PLAY_SYSTEM_PROMPT, messages, tools }, config, recorder.emit, controller.signal),
-        resume: (messages) =>
-          runAgentLoopContinue({ systemPrompt: PLAY_SYSTEM_PROMPT, messages, tools }, config, recorder.emit, controller.signal),
-      };
+      const loop = piLoop({
+        systemPrompt: PLAY_SYSTEM_PROMPT,
+        tools: [observeTool(gameServerUrl), pressTool(gameServerUrl, pressHooks(recorder))],
+        base: { ...gatewayLoopConfig(model, PLAY_THINKING), maxTokens },
+        governor,
+        transformContext: recorder.transformContext,
+        emit: recorder.emit,
+        signal: controller.signal,
+      });
       try {
         const task: AgentMessage = { role: "user", content: PLAY_TASK, timestamp: Date.now() };
         return await play(task, governor, loop);

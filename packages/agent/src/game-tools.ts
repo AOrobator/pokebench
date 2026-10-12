@@ -22,8 +22,13 @@ export class SmokeError extends Error {
   override readonly name = "SmokeError";
 }
 
-async function getJson(url: string, fetchFn: typeof fetch, timeoutMs = 15_000): Promise<unknown> {
-  const response = await fetchFn(url, { signal: AbortSignal.timeout(timeoutMs) });
+function deadline(timeoutMs: number, signal?: AbortSignal): AbortSignal {
+  const timeout = AbortSignal.timeout(timeoutMs);
+  return signal === undefined ? timeout : AbortSignal.any([timeout, signal]);
+}
+
+async function getJson(url: string, fetchFn: typeof fetch, timeoutMs = 15_000, signal?: AbortSignal): Promise<unknown> {
+  const response = await fetchFn(url, { signal: deadline(timeoutMs, signal) });
   if (!response.ok) throw new Error(`GET ${url} returned HTTP ${String(response.status)}`);
   return (await response.json()) as unknown;
 }
@@ -51,8 +56,13 @@ function checkFrame(base64: string): void {
 
 type ObservationContent = [ImageContent, TextContent];
 
-async function observation(gameServerUrl: string, fetchFn: typeof fetch, prefix = ""): Promise<ObservationContent> {
-  const body = await getJson(`${gameServerUrl}/pokebench/observation`, fetchFn);
+async function observation(
+  gameServerUrl: string,
+  fetchFn: typeof fetch,
+  signal: AbortSignal | undefined,
+  prefix = "",
+): Promise<ObservationContent> {
+  const body = await getJson(`${gameServerUrl}/pokebench/observation`, fetchFn, 15_000, signal);
   if (!Value.Check(ObservationSchema, body)) throw new Error("malformed /pokebench/observation payload");
   checkFrame(body.screenshot_base64);
   return [
@@ -67,7 +77,10 @@ export function observeTool(gameServerUrl: string, fetchFn: typeof fetch = fetch
     label: "Observe",
     description: "See the current game screen and the game state read from memory (location, party, map).",
     parameters: NoArgs,
-    execute: async () => ({ content: await observation(gameServerUrl, fetchFn), details: undefined }),
+    execute: async (_toolCallId, _params, signal) => ({
+      content: await observation(gameServerUrl, fetchFn, signal),
+      details: undefined,
+    }),
   };
 }
 
@@ -87,13 +100,19 @@ const QUEUE_TIMEOUT_MS = 20_000;
 // observation reflects the last press, not a state read mid-queue.
 const STATE_CACHE_SETTLE_MS = 150;
 
-export async function waitForQueue(gameServerUrl: string, fetchFn: typeof fetch, clock: Clock): Promise<void> {
-  const deadline = clock.now() + QUEUE_TIMEOUT_MS;
+export async function waitForQueue(
+  gameServerUrl: string,
+  fetchFn: typeof fetch,
+  clock: Clock,
+  signal?: AbortSignal,
+): Promise<void> {
+  const giveUpAt = clock.now() + QUEUE_TIMEOUT_MS;
   for (;;) {
-    const body = await getJson(`${gameServerUrl}/queue_status`, fetchFn);
+    signal?.throwIfAborted();
+    const body = await getJson(`${gameServerUrl}/queue_status`, fetchFn, 15_000, signal);
     if (!Value.Check(QueueSchema, body)) throw new Error("malformed /queue_status payload");
     if (body.queue_empty) return;
-    if (clock.now() >= deadline) throw new Error(`action queue did not drain within ${String(QUEUE_TIMEOUT_MS)} ms`);
+    if (clock.now() >= giveUpAt) throw new Error(`action queue did not drain within ${String(QUEUE_TIMEOUT_MS)} ms`);
     await clock.sleep(QUEUE_POLL_MS);
   }
 }
@@ -157,24 +176,26 @@ export function pressTool(
     description:
       "Press Game Boy Advance buttons in order (up to 8), then see the resulting screen and game state.",
     parameters: PressArgs,
-    execute: async (toolCallId, params) => {
+    execute: async (toolCallId, params, signal) => {
+      // A stopped run (budget, operator abort) must not press anything further.
+      signal?.throwIfAborted();
       hooks.beforePress(toolCallId, params.buttons);
       const url = `${gameServerUrl}/action`;
       const response = await fetchFn(url, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ buttons: params.buttons }),
-        signal: AbortSignal.timeout(15_000),
+        signal: deadline(15_000, signal),
       });
       const body: unknown = await response.json();
       if (!response.ok || !Value.Check(ActionSchema, body) || body.status !== "success") {
         const detail = Value.Check(ActionSchema, body) ? (body.message ?? body.status) : `HTTP ${String(response.status)}`;
         throw new Error(`POST ${url} failed: ${detail}`);
       }
-      await waitForQueue(gameServerUrl, fetchFn, clock);
+      await waitForQueue(gameServerUrl, fetchFn, clock, signal);
       await clock.sleep(STATE_CACHE_SETTLE_MS);
       await hooks.afterPress();
-      const content = await observation(gameServerUrl, fetchFn, `pressed ${params.buttons.join(", ")}\n\n`);
+      const content = await observation(gameServerUrl, fetchFn, signal, `pressed ${params.buttons.join(", ")}\n\n`);
       return { content, details: undefined };
     },
   };

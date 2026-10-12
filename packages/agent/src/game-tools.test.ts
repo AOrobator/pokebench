@@ -222,6 +222,21 @@ describe("pressTool", () => {
     ]);
   });
 
+  it("presses nothing when the run is already stopped", async () => {
+    const calls: string[] = [];
+    const tool = pressTool(SERVER, noHooks, routes({ "/action": { status: "success" } }, calls), instant);
+    await expect(tool.execute("c", { buttons: ["A"] }, AbortSignal.abort())).rejects.toThrow();
+    expect(calls).toEqual([]);
+  });
+
+  it("stops waiting for the queue once the run is stopped", async () => {
+    const controller = new AbortController();
+    const calls: string[] = [];
+    const fetchFn = routes({ "/queue_status": () => (controller.abort(), { queue_empty: false }) }, calls);
+    await expect(waitForQueue(SERVER, fetchFn, instant, controller.signal)).rejects.toThrow();
+    expect(calls).toEqual(["GET /queue_status"]);
+  });
+
   it("fails when the server does not report success", async () => {
     const tool = pressTool(SERVER, noHooks, routes({ "/action": { status: "error", message: "queue full" } }), instant);
     await expect(tool.execute("c", { buttons: ["A"] })).rejects.toThrow(/queue full/);

@@ -14,6 +14,13 @@ def pcm(*values):
     return b"".join(struct.pack("<hh", value, -value) for value in values)
 
 
+def test_live_reader_does_not_report_nonexistent_frames_as_skipped():
+    tape = audio_module().AudioTape(capacity_frames=3)
+    assert tape.segment(since=-1, max_frames=2).skipped == 0
+    tape.append(pcm(7))
+    assert tape.segment(since=-1, max_frames=2).skipped == 0
+
+
 def test_tape_serves_bounded_latest_stereo_wav_to_independent_readers():
     audio = audio_module()
     tape = audio.AudioTape(capacity_frames=3)

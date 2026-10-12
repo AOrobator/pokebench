@@ -58,6 +58,18 @@ describe("trainerCard", () => {
   });
 });
 
+describe("trainerCard before the game starts", () => {
+  it("shows the screen instead of a map and no save values", () => {
+    const log = bare();
+    log.add(10, state({ screen: "naming", started: false, name: null, location: null, map_id: null, position: null, facing: null, party: [], money: null, badges: [], play_time_s: null }));
+    const html = trainerCard(view(log), BASE_MS + 1000);
+    expect(html).toContain("<dt>MAP</dt><dd>naming (not started)</dd>");
+    expect(html).toContain("<dt>MONEY</dt><dd>not started</dd>");
+    expect(html).toContain("<dt>PLAY</dt><dd>not started</dd>");
+    expect(counters(view(log))).toContain("<dt>LOCATION</dt><dd>naming (not started)</dd>");
+  });
+});
+
 describe("party", () => {
   it("draws HP bars coloured by remaining HP", () => {
     const log = bare();
@@ -216,6 +228,24 @@ describe("thinkingDialog", () => {
     const dialog = thinkingDialog(view(log), BASE_MS + 4200);
     expect(dialog.head).toBe("AGENT is thinking… 3.2s");
     expect(dialog.body).toBe('<span class="cursor"></span>');
+  });
+
+  it("streams the thinking and reply text as deltas arrive", () => {
+    const log = bare();
+    log.add(1000, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 1 } });
+    log.add(1500, { type: "assistant_delta", turn: 1, thinking: "Look <at>", text: "" });
+    log.add(1800, { type: "assistant_delta", turn: 1, thinking: " the screen.", text: "Go" });
+    const dialog = thinkingDialog(view(log), BASE_MS + 2000);
+    expect(dialog.head).toBe("AGENT is thinking… 1.0s");
+    expect(dialog.body).toBe('Look &lt;at&gt; the screen.<span class="reply">Go</span><span class="cursor"></span>');
+  });
+
+  it("starts each turn's stream empty", () => {
+    const log = bare();
+    log.add(1000, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 1 } });
+    log.add(1500, { type: "assistant_delta", turn: 1, thinking: "old", text: "" });
+    log.add(1600, { type: "turn_start", turn: 2, context: { messages: 1, images: 0, est_tokens: 1 } });
+    expect(thinkingDialog(view(log), BASE_MS + 2000).body).toBe('<span class="cursor"></span>');
   });
 
   it("shows the last full thinking block once the reply lands", () => {

@@ -64,15 +64,18 @@ function body(event: RunEvent): [string, string] {
     case "frames_evicted":
       return ["EVICTED", `${String(event.files)} frames (${formatBytes(event.bytes)}) from ${event.from_run}`];
     case "state": {
-      const at = event.position === null ? "" : ` (${String(event.position.x)},${String(event.position.y)})`;
+      if (!event.started || event.position === null) return ["STATE", `${event.screen}, game not started`];
+      const at = ` (${String(event.position.x)},${String(event.position.y)})`;
       const party = event.party.length === 0 ? "none" : event.party.map((mon) => `${mon.species} L${String(mon.level)} ${String(mon.hp)}/${String(mon.max_hp)}`).join(" ");
       return [
         "STATE",
-        `${event.location}${at} ${event.mode}, party ${party}, ₽${String(event.money)}, ${String(event.badges.length)} badges, play ${clock(event.play_time_s)}`,
+        `${event.location ?? "?"}${at} ${event.screen}, party ${party}, ₽${String(event.money ?? 0)}, ${String(event.badges.length)} badges, play ${clock(event.play_time_s ?? 0)}`,
       ];
     }
     case "telemetry_error":
       return ["TELEMETRY", `${event.source} read failed: ${event.message}`];
+    case "assistant_delta":
+      return ["STREAM", [event.thinking === "" ? "" : `think: ${clip(event.thinking)}`, event.text === "" ? "" : `say: ${clip(event.text)}`].filter((part) => part !== "").join(" ")];
     case "compaction":
       return ["COMPACT", `context ${String(event.from_tokens)} → ${String(event.to_tokens)} tokens`];
     case "run_end":
@@ -141,7 +144,7 @@ export async function tailRun(argv: readonly string[], runsRoot: string, print: 
   await followEvents(
     eventsPathFor(runsRoot, runId),
     (event) => {
-      print(formatEvent(event));
+      if (event.type !== "assistant_delta") print(formatEvent(event));
       if (event.type === "run_end") controller.abort();
     },
     { signal: controller.signal },

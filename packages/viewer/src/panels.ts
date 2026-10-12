@@ -24,6 +24,12 @@ function kv(rows: readonly (readonly [string, string, boolean?])[]): string {
   return `<dl class="kv">${rows.map(([k, v, warn]) => `<dt>${k}</dt><dd${warn === true ? ' class="warn"' : ""}>${v}</dd>`).join("")}</dl>`;
 }
 
+const NOT_STARTED = "not started";
+
+function place(state: { location: string | null; screen: string }): string {
+  return state.location === null ? `${esc(state.screen)} (${NOT_STARTED})` : esc(state.location);
+}
+
 export function trainerCard(view: RunView, nowMs: number): string {
   if (view.start === null) return `<p>${NO_DATA}</p>`;
   const state = view.state;
@@ -34,9 +40,9 @@ export function trainerCard(view: RunView, nowMs: number): string {
   return (
     kv([
       ["TIME", hms(wallSeconds(view, nowMs))],
-      ["PLAY", state === null ? NO_DATA : hms(state.play_time_s)],
-      ["MAP", state === null ? NO_DATA : esc(state.location)],
-      ["MONEY", state === null ? NO_DATA : `₽${num(state.money)}`],
+      ["PLAY", state === null ? NO_DATA : state.play_time_s === null ? NOT_STARTED : hms(state.play_time_s)],
+      ["MAP", state === null ? NO_DATA : place(state)],
+      ["MONEY", state === null ? NO_DATA : state.money === null ? NOT_STARTED : `₽${num(state.money)}`],
       ["TURN", String(view.turn)],
     ]) + `<div class="badges">${badges}</div>`
   );
@@ -116,7 +122,7 @@ export function counters(view: RunView): string {
     ["TOKENS", num(view.tokens.input + view.tokens.output)],
     ["TOK/S", view.lastTps === null ? NO_DATA : view.lastTps.toFixed(1)],
     ["LATENCY", latency],
-    ["LOCATION", view.state === null ? NO_DATA : esc(view.state.location)],
+    ["LOCATION", view.state === null ? NO_DATA : place(view.state)],
     ["INVALID CALLS", String(view.retry?.count ?? 0)],
     ["TOOL ERRORS", String(view.toolErrors), view.toolErrors > 0],
     ["COMPACTIONS", String(view.compactions)],
@@ -173,7 +179,12 @@ export function splits(view: RunView, baseline: Baseline | null, nowMs: number):
 export function thinkingDialog(view: RunView, nowMs: number): { head: string; body: string } {
   if (view.start === null) return { head: "NO RUN", body: NO_DATA };
   if (view.isThinking && view.turnStartMs !== null) {
-    return { head: `AGENT is thinking… ${((nowMs - view.turnStartMs) / 1000).toFixed(1)}s`, body: '<span class="cursor"></span>' };
+    const { thinking, text } = view.streaming;
+    const reply = text === "" ? "" : `<span class="reply">${esc(text)}</span>`;
+    return {
+      head: `AGENT is thinking… ${((nowMs - view.turnStartMs) / 1000).toFixed(1)}s`,
+      body: `${esc(thinking)}${reply}<span class="cursor"></span>`,
+    };
   }
   const thought = view.lastThought;
   if (thought === null) return { head: view.end === null ? "AGENT is waiting…" : `RUN ENDED · ${view.end.reason}`, body: NO_DATA };

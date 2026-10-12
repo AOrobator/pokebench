@@ -89,6 +89,10 @@ const Assistant = event("assistant", {
   error: Type.Optional(Type.String()),
 });
 
+// Reply text as it streams, batched by the recorder; the full reply still
+// lands in the turn's `assistant` event.
+const AssistantDelta = event("assistant_delta", { thinking: Type.String(), text: Type.String() });
+
 const ToolCall = event("tool_call", { id: Type.String(), name: Type.String(), args: Args });
 
 const Frames = Type.Integer({ minimum: 1, maximum: 255 });
@@ -125,12 +129,17 @@ const FramesEvicted = event("frames_evicted", {
   bytes: NonNegativeInt,
 });
 
+// PokeBench's own RAM reader (env/pokebench_env/game_state.py). Save-block
+// fields are null before the game starts: they hold defaults, not the player's state.
 export const StateBodySchema = Type.Object(
   {
-    location: Type.String(),
+    screen: Type.String(),
+    started: Type.Boolean(),
+    name: Type.Union([Type.String(), Type.Null()]),
+    location: Type.Union([Type.String(), Type.Null()]),
+    map_id: Type.Union([Type.Tuple([Type.Integer(), Type.Integer()]), Type.Null()]),
     position: Type.Union([Type.Object({ x: Type.Integer(), y: Type.Integer() }, closed), Type.Null()]),
     facing: Type.Union([Type.String(), Type.Null()]),
-    mode: Type.String(),
     in_battle: Type.Boolean(),
     party: Type.Array(
       Type.Object(
@@ -138,9 +147,9 @@ export const StateBodySchema = Type.Object(
         closed,
       ),
     ),
-    money: NonNegativeInt,
+    money: Type.Union([NonNegativeInt, Type.Null()]),
     badges: Type.Array(Type.String()),
-    play_time_s: NonNegativeInt,
+    play_time_s: Type.Union([NonNegativeInt, Type.Null()]),
   },
   closed,
 );
@@ -180,6 +189,7 @@ export const RunEventSchema = Type.Union([
   State,
   Compaction,
   TelemetryError,
+  AssistantDelta,
 ]);
 
 export type RunEvent = Static<typeof RunEventSchema>;

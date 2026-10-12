@@ -1,42 +1,90 @@
-import { describe, expect, it, vi } from "vitest";
-import { MilestoneError, MilestoneWatcher } from "./milestones.js";
+import { describe, expect, it } from "vitest";
+import type { GameStateSnapshot } from "./game-state.js";
+import { MILESTONES, StateMilestones } from "./milestones.js";
 
-function serving(...bodies: unknown[]): typeof fetch {
-  const fn = vi.fn<typeof fetch>();
-  for (const body of bodies) fn.mockResolvedValueOnce(new Response(JSON.stringify(body)));
-  return fn;
+const BASE: GameStateSnapshot = {
+  screen: "intro",
+  started: false,
+  name: null,
+  location: null,
+  map_id: null,
+  position: null,
+  facing: null,
+  in_battle: false,
+  party: [],
+  money: null,
+  badges: [],
+  play_time_s: null,
+};
+
+function at(location: string | null, extra: Partial<GameStateSnapshot> = {}): GameStateSnapshot {
+  return location === null
+    ? { ...BASE, ...extra }
+    : { ...BASE, screen: "overworld", started: true, name: "MAY", location, money: 3000, play_time_s: 1, ...extra };
 }
 
-const entry = (name: string, completed: boolean, timestamp?: number) =>
-  timestamp === undefined ? { id: 1, name, completed } : { id: 1, name, completed, timestamp };
+function source(states: GameStateSnapshot[]) {
+  let now = 1000;
+  const milestones = new StateMilestones({ read: () => Promise.resolve(states.shift() ?? BASE) }, () => (now += 1000));
+  return milestones;
+}
 
-describe("MilestoneWatcher", () => {
-  it("reports each completion once, ordered by the server's timestamp", async () => {
-    const fetchFn = serving(
-      { milestones: [entry("PLAYER_NAME_SET", true, 20), entry("GAME_RUNNING", true, 10), entry("LITTLEROOT", false)] },
-      { milestones: [entry("PLAYER_NAME_SET", true, 20), entry("GAME_RUNNING", true, 10), entry("LITTLEROOT", true, 30)] },
-      { milestones: [entry("LITTLEROOT", true, 30)] },
-    );
-    const watcher = new MilestoneWatcher("http://127.0.0.1:8000", fetchFn);
-    expect(await watcher.poll()).toEqual([
-      { name: "GAME_RUNNING", serverTimestamp: 10 },
-      { name: "PLAYER_NAME_SET", serverTimestamp: 20 },
+describe("StateMilestones", () => {
+  it("derives each milestone once, in order, from RAM-read state only", async () => {
+    const milestones = source([
+      at(null),
+      at(null, { screen: "naming" }),
+      at("INSIDE OF TRUCK"),
+      at("LITTLEROOT TOWN"),
+      at("LITTLEROOT TOWN MAYS HOUSE 1F"),
+      at("LITTLEROOT TOWN MAYS HOUSE 2F"),
+      at("ROUTE 101", { party: [{ species: "TORCHIC", level: 5, hp: 20, max_hp: 20 }] }),
+      at("RUSTBORO CITY GYM", { badges: ["STONE"] }),
+      at("ROUTE 101"),
     ]);
-    expect(await watcher.poll()).toEqual([{ name: "LITTLEROOT", serverTimestamp: 30 }]);
-    expect(await watcher.poll()).toEqual([]);
-    expect(fetchFn).toHaveBeenCalledWith("http://127.0.0.1:8000/milestones", expect.anything());
+    const names: string[][] = [];
+    for (let i = 0; i < 9; i += 1) names.push((await milestones.poll()).map((m) => m.name));
+    expect(names).toEqual([
+      ["GAME_RUNNING"],
+      [],
+      ["PLAYER_NAME_SET"],
+      ["INTRO_CUTSCENE_COMPLETE", "LITTLEROOT_TOWN"],
+      ["PLAYER_HOUSE_ENTERED"],
+      ["PLAYER_BEDROOM"],
+      ["ROUTE_101", "STARTER_CHOSEN"],
+      ["RUSTBORO_CITY_GYM", "STONE_BADGE"],
+      [],
+    ]);
   });
 
-  it.each([
-    ["no milestones list", {}],
-    ["a nameless entry", { milestones: [{ completed: true, timestamp: 1 }] }],
-    ["a completed entry without a timestamp", { milestones: [entry("GAME_RUNNING", true)] }],
-  ])("rejects %s", async (_label, body) => {
-    await expect(new MilestoneWatcher("http://x", serving(body)).poll()).rejects.toThrow(MilestoneError);
+  it("does not count the default name at the naming screen as a set name", async () => {
+    const milestones = source([at(null, { screen: "naming", name: null })]);
+    expect((await milestones.poll()).map((m) => m.name)).toEqual(["GAME_RUNNING"]);
   });
 
-  it("names the HTTP status on failure", async () => {
-    const fetchFn = vi.fn<typeof fetch>().mockResolvedValue(new Response("down", { status: 503 }));
-    await expect(new MilestoneWatcher("http://x", fetchFn).poll()).rejects.toThrow(/503/);
+  it("stamps milestones with the poll time in seconds", async () => {
+    expect(await source([at(null)]).poll()).toEqual([{ name: "GAME_RUNNING", serverTimestamp: 2 }]);
+  });
+
+  it("lists the path to the first gym in order", () => {
+    expect(MILESTONES.map((m) => m.name)).toEqual([
+      "GAME_RUNNING",
+      "PLAYER_NAME_SET",
+      "INTRO_CUTSCENE_COMPLETE",
+      "LITTLEROOT_TOWN",
+      "PLAYER_HOUSE_ENTERED",
+      "PLAYER_BEDROOM",
+      "ROUTE_101",
+      "STARTER_CHOSEN",
+      "OLDALE_TOWN",
+      "ROUTE_103",
+      "ROUTE_102",
+      "PETALBURG_CITY",
+      "ROUTE_104",
+      "PETALBURG_WOODS",
+      "RUSTBORO_CITY",
+      "RUSTBORO_CITY_GYM",
+      "STONE_BADGE",
+    ]);
   });
 });

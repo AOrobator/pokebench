@@ -1,3 +1,4 @@
+import type { GameStateSnapshot } from "../src/game-state.js";
 import type { EventBody } from "../src/events.js";
 import type { RunStartMeta } from "../src/recorder.js";
 
@@ -60,10 +61,13 @@ export const SAMPLES: readonly EventBody[] = [
   {
     type: "state",
     turn: 1,
+    screen: "overworld",
+    started: true,
+    name: "MAY",
     location: "LITTLEROOT TOWN",
+    map_id: [0, 9],
     position: { x: 5, y: 8 },
-    facing: null,
-    mode: "overworld",
+    facing: "down",
     in_battle: false,
     party: [{ species: "TORCHIC", level: 5, hp: 18, max_hp: 20 }],
     money: 3000,
@@ -73,6 +77,7 @@ export const SAMPLES: readonly EventBody[] = [
   { type: "compaction", turn: 1, from_tokens: 30_000, to_tokens: 4_000 },
   { type: "button_press", turn: 1, tool_call_id: "call_2", buttons: ["UP", "A"], hold_frames: 10, release_frames: 8 },
   { type: "telemetry_error", turn: 1, source: "state", message: "GET http://127.0.0.1:8000/state returned HTTP 503" },
+  { type: "assistant_delta", turn: 1, thinking: "Look at the\nscreen", text: "" },
 ];
 
 export function sample(index: number): EventBody {
@@ -80,3 +85,18 @@ export function sample(index: number): EventBody {
   if (body === undefined) throw new Error(`no sample ${String(index)}`);
   return body;
 }
+
+export const IN_GAME: GameStateSnapshot = {
+  screen: "overworld",
+  started: true,
+  name: "MAY",
+  location: "LITTLEROOT TOWN",
+  map_id: [0, 9],
+  position: { x: 7, y: 9 },
+  facing: "right",
+  in_battle: false,
+  party: [{ species: "TORCHIC", level: 5, hp: 18, max_hp: 20 }],
+  money: 3000,
+  badges: ["STONE"],
+  play_time_s: 3723,
+};

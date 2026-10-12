@@ -3,6 +3,7 @@ export interface PokebenchConfig {
   readonly model: string;
   readonly gameServerUrl: string;
   readonly visionModels: readonly string[];
+  readonly endpointFile: string | null;
 }
 
 export class ConfigError extends Error {
@@ -16,6 +17,7 @@ const DEFAULTS: PokebenchConfig = {
   model: "think-swarm",
   gameServerUrl: "http://127.0.0.1:8000",
   visionModels: [],
+  endpointFile: null,
 };
 
 function read(env: Env, key: string): string | undefined {
@@ -57,5 +59,6 @@ export function loadConfig(env: Env): PokebenchConfig {
     model,
     gameServerUrl: httpUrl(env, "POKEBENCH_GAME_SERVER_URL", DEFAULTS.gameServerUrl),
     visionModels: idList(env, "POKEBENCH_VISION_MODELS", DEFAULTS.visionModels),
+    endpointFile: read(env, "POKEBENCH_ENDPOINT_FILE") ?? DEFAULTS.endpointFile,
   };
 }

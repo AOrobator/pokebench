@@ -1,0 +1,68 @@
+"""The model's text readout and the typed JSON state, both from `GameState`."""
+
+from pokebench_env.game_state import GameState
+
+PRE_GAME_TEXT = "Game not started: no save data (player, location, party) exists yet."
+
+
+def _clock(seconds: int) -> str:
+    return f"{seconds // 3600}:{seconds // 60 % 60:02d}:{seconds % 60:02d}"
+
+
+def _play_seconds(state: GameState) -> int | None:
+    if state.play_time is None:
+        return None
+    hours, minutes, seconds = state.play_time
+    return hours * 3600 + minutes * 60 + seconds
+
+
+def _menu(state: GameState) -> str:
+    if state.menu is None:
+        return "Menu: none"
+    return (
+        f"Menu: open, option {state.menu.selected} of {state.menu.options} selected"
+        " (counting from the top)"
+    )
+
+
+def format_readout(state: GameState) -> str:
+    dialog = "none" if state.dialog is None else f'"{state.dialog}"'
+    lines = [f"Screen: {state.screen}", f"Dialog: {dialog}", _menu(state)]
+    if not state.started or state.position is None:
+        return "\n".join([*lines, PRE_GAME_TEXT])
+    x, y = state.position
+    facing = "" if state.facing is None else f", facing {state.facing}"
+    party = "; ".join(f"{m.species} Lv{m.level} HP {m.hp}/{m.max_hp}" for m in state.party or ())
+    lines += [
+        f"Player: {state.name}",
+        f"Location: {state.location}",
+        f"Position: X={x}, Y={y}{facing}",
+        f"Party: {party or 'none'}",
+        f"Money: ₽{state.money}",
+        f"Badges: {', '.join(state.badges or ()) or 'none'}",
+        f"In battle: {'yes' if state.in_battle else 'no'}",
+        f"Play time: {_clock(_play_seconds(state) or 0)}",
+    ]
+    return "\n".join(lines)
+
+
+def state_json(state: GameState) -> dict[str, object]:
+    return {
+        "screen": state.screen,
+        "started": state.started,
+        "name": state.name,
+        "location": state.location,
+        "map_id": None if state.map_id is None else list(state.map_id),
+        "position": None
+        if state.position is None
+        else {"x": state.position[0], "y": state.position[1]},
+        "facing": state.facing,
+        "in_battle": state.in_battle,
+        "party": [
+            {"species": m.species, "level": m.level, "hp": m.hp, "max_hp": m.max_hp}
+            for m in state.party or ()
+        ],
+        "money": state.money,
+        "badges": list(state.badges or ()),
+        "play_time_s": _play_seconds(state),
+    }

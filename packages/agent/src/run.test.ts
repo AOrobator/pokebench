@@ -51,15 +51,18 @@ function host(options: { staleServer?: boolean; launchFails?: boolean } = {}): F
     gameState: {
       read: () =>
         Promise.resolve({
-          location: "TITLE_SEQUENCE",
+          screen: "title",
+          started: false,
+          name: null,
+          location: null,
+          map_id: null,
           position: null,
           facing: null,
-          mode: "overworld",
           in_battle: false,
           party: [],
-          money: 0,
+          money: null,
           badges: [],
-          play_time_s: 0,
+          play_time_s: null,
         }),
     },
   };

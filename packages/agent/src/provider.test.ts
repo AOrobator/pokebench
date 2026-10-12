@@ -153,6 +153,14 @@ function imageUrls(request: WireRequest): string[] {
   );
 }
 
+describe("gatewayLoopConfig api key", () => {
+  it("uses the gateway's placeholder key unless a key is given", async () => {
+    const model = { provider: "p" } as unknown as Parameters<typeof gatewayLoopConfig>[0];
+    expect(await gatewayLoopConfig(model, "off").getApiKey?.("p")).toBe("local-stack");
+    expect(await gatewayLoopConfig(model, "off", "secret").getApiKey?.("p")).toBe("secret");
+  });
+});
+
 describe("gateway round trip through the agent loop", () => {
   it("sends a tool's screenshot to a vision lane as an image_url", async () => {
     const { gateway } = await runScreenshotTurn("think-swarm");

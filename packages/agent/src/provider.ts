@@ -8,12 +8,13 @@ const GATEWAY_API_KEY = "local-stack";
 export function gatewayLoopConfig(
   model: GatewayModel,
   thinking: ThinkingLevel | "off",
+  apiKey: string = GATEWAY_API_KEY,
 ): AgentLoopConfig {
   const base: AgentLoopConfig = {
     model,
     maxTokens: model.maxTokens,
     convertToLlm: (messages) => messages,
-    getApiKey: () => GATEWAY_API_KEY,
+    getApiKey: () => apiKey,
   };
   return thinking === "off" ? base : { ...base, reasoning: thinking };
 }

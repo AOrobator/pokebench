@@ -48,7 +48,11 @@ smoke:
 
 # Live LLM smoke: pi agent loop on the gateway, screenshot tool on the game server it spawns.
 smoke-llm: build
-    node packages/agent/dist/smoke.js
+    node packages/agent/dist/live.js smoke
+
+# M5 baseline agent: one isolated, recorded run from a fresh boot (300 turns / 60 min).
+run-agent: build
+    node packages/agent/dist/live.js play
 
 # Regenerate schemas/events.v1.json from the TypeBox source (a test fails when it is stale).
 schema: build
@@ -61,6 +65,10 @@ tail-run run_id: build
 # Frame storage: usage against the 500 MB cap (runs refuse to start above 75%).
 runs-disk: build
     node packages/agent/dist/runs-cli.js disk
+
+# PB2 table for every run (or the named ones); fails when a run has no run_end.
+runs-summary *run_ids: build
+    node packages/agent/dist/runs-cli.js summary {{run_ids}}
 
 # Delete the oldest frames until usage is at or below <percent> of the cap.
 runs-prune percent: build

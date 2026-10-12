@@ -17,6 +17,7 @@ describe("event schema", () => {
     expect([...types].sort()).toEqual(
       [
         "assistant",
+        "assistant_delta",
         "button_press",
         "compaction",
         "disk_usage",

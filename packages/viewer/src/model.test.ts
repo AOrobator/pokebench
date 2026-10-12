@@ -162,6 +162,7 @@ describe("isRunEvent", () => {
     const [first] = fullRun().events;
     expect(isRunEvent(first)).toBe(true);
     expect(isRunEvent({ ...first, type: "telemetry" })).toBe(false);
+    expect(isRunEvent({ ...first, type: "assistant_delta", thinking: "Look", text: "" })).toBe(true);
     expect(isRunEvent({ ...first, seq: "1" })).toBe(false);
     expect(isRunEvent(null)).toBe(false);
     expect(isRunEvent([])).toBe(false);

@@ -8,15 +8,22 @@ checkout on `sys.path`; the working directory is the run's server dir (INV-7).
 
 import sys
 from collections.abc import Callable, Sequence
+from pathlib import Path
 from typing import Protocol, cast
 
 from fastapi import FastAPI
 
 from pokebench_env.audio import EmulatorLike
-from pokebench_env.milestone_guard import install_milestone_guard
+from pokebench_env.game_screen import ReadMemory
+from pokebench_env.game_state import MapNames
+from pokebench_env.observation import ScreenshotFn, install_observation
 from pokebench_env.view import install_spectator
 
 LOCALHOST = "127.0.0.1"
+# pokeemerald's own map tables, shipped as data in the pinned vendor checkout.
+PORYMAP_MAPS = (
+    Path(__file__).resolve().parents[1] / "vendor/continual-harness/pokemon_env/porymap/data/maps"
+)
 
 
 class UvicornLike(Protocol):
@@ -39,9 +46,12 @@ def run(
     vendor_main: Callable[[], None],
     *,
     spectator: tuple[FastAPI, type[EmulatorLike]] | None = None,
+    observation: tuple[FastAPI, ScreenshotFn, ReadMemory, MapNames] | None = None,
 ) -> None:
     if spectator is not None:
         install_spectator(*spectator)
+    if observation is not None:
+        install_observation(*observation)
     pin_localhost(uvicorn)
     sys.argv = ["server.app", *argv]
     vendor_main()
@@ -52,12 +62,18 @@ def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
     from pokemon_env.emulator import EmeraldEmulator
     from server import app  # vendor module, on PYTHONPATH
 
-    install_milestone_guard(EmeraldEmulator)
     run(
         sys.argv[1:],
         uvicorn=cast(UvicornLike, uvicorn),
         vendor_main=app.main,
         spectator=(app.app, cast(type[EmulatorLike], EmeraldEmulator)),
+        observation=(
+            app.app,
+            app.get_screenshot,
+            # The vendor creates `env` at startup, after routes are installed.
+            lambda address, length: app.env.memory_reader._read_bytes(address, length),
+            MapNames.load(PORYMAP_MAPS),
+        ),
     )
 
 

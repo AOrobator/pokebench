@@ -134,3 +134,29 @@ def test_prepare_checks_vendor_then_builds_the_run_server_dir(tmp_path: Path) ->
     )
     assert server_dir == run_dir / "server"
     assert order == [f"check {vendor}", f"resolve {rom}", f"make {run_dir} {rom} {vendor}"]
+
+
+def test_run_installs_the_observation_route_before_vendor_main() -> None:
+    from fastapi import FastAPI
+
+    app = FastAPI()
+    uvicorn = types.SimpleNamespace(run=lambda *a, **k: None)
+    routes: list[list[str]] = []
+
+    from pydantic import BaseModel
+
+    from pokebench_env.game_state import MapNames
+
+    async def get_screenshot() -> BaseModel:
+        return BaseModel()
+
+    def vendor_main() -> None:
+        routes.append([getattr(r, "path", "") for r in app.routes])
+
+    run(
+        [],
+        uvicorn=uvicorn,
+        vendor_main=vendor_main,
+        observation=(app, get_screenshot, lambda a, n: bytes(n), MapNames({})),
+    )
+    assert "/pokebench/observation" in routes[0]

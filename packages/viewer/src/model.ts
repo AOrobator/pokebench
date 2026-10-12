@@ -44,22 +44,26 @@ export interface Thought {
   readonly latencyMs: number;
 }
 
-const EVENT_TYPES = new Set<string>([
-  "run_start",
-  "turn_start",
-  "assistant",
-  "tool_call",
-  "button_press",
-  "tool_result",
-  "milestone",
-  "retry",
-  "disk_usage",
-  "frames_evicted",
-  "run_end",
-  "state",
-  "compaction",
-  "telemetry_error",
-]);
+// One entry per schema event type: adding a type to the agent schema fails to
+// compile here until the viewer lists it.
+const KNOWN: Record<RunEvent["type"], true> = {
+  run_start: true,
+  turn_start: true,
+  assistant: true,
+  assistant_delta: true,
+  tool_call: true,
+  button_press: true,
+  tool_result: true,
+  milestone: true,
+  retry: true,
+  disk_usage: true,
+  frames_evicted: true,
+  run_end: true,
+  state: true,
+  compaction: true,
+  telemetry_error: true,
+};
+const EVENT_TYPES = new Set<string>(Object.keys(KNOWN));
 
 // The server validates every line against the TypeBox schema before sending
 // it; the browser re-checks the envelope it relies on.
@@ -104,6 +108,7 @@ export class RunView {
   readonly milestones: { name: string; ms: number; seq: number }[] = [];
   readonly presses: Press[] = [];
   readonly thinkingSpans: Span[] = [];
+  streaming = { thinking: "", text: "" };
   readonly toolSpans: ToolSpan[] = [];
   readonly errors: ErrorMark[] = [];
   private readonly openTools = new Map<string, ToolSpan>();
@@ -132,6 +137,10 @@ export class RunView {
         this.turnStartMs = ms;
         this.context = event.context;
         this.thinkingSpans.push({ startMs: ms, endMs: null });
+        this.streaming = { thinking: "", text: "" };
+        break;
+      case "assistant_delta":
+        this.streaming = { thinking: this.streaming.thinking + event.thinking, text: this.streaming.text + event.text };
         break;
       case "assistant":
         this.onAssistant(event, ms);

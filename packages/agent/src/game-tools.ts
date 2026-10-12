@@ -1,23 +1,21 @@
 import type { AgentMessage, AgentTool } from "@mariozechner/pi-agent-core";
-import type { AssistantMessage, TextContent, ToolResultMessage } from "@mariozechner/pi-ai";
+import type { AssistantMessage, ImageContent, TextContent, ToolResultMessage } from "@mariozechner/pi-ai";
 import { Type } from "typebox";
 import { Value } from "typebox/value";
-import { ButtonSchema, type Button } from "./events.js";
+import { ButtonSchema, StateBodySchema, type Button } from "./events.js";
 import type { PressTiming } from "./recorder.js";
 
 const NoArgs = Type.Object({});
 
 const HealthSchema = Type.Object({ status: Type.String() });
 
-const ScreenshotSchema = Type.Object({
+const ObservationSchema = Type.Object({
+  state_text: Type.String(),
   screenshot_base64: Type.String({ minLength: 1 }),
-  step_number: Type.Integer(),
+  state: StateBodySchema,
 });
 
-const StateSchema = Type.Object({
-  player: Type.Object({ location: Type.String() }),
-  step_number: Type.Integer(),
-});
+const QueueSchema = Type.Object({ queue_empty: Type.Boolean() });
 
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
@@ -25,8 +23,13 @@ export class SmokeError extends Error {
   override readonly name = "SmokeError";
 }
 
-async function getJson(url: string, fetchFn: typeof fetch, timeoutMs = 15_000): Promise<unknown> {
-  const response = await fetchFn(url, { signal: AbortSignal.timeout(timeoutMs) });
+function deadline(timeoutMs: number, signal?: AbortSignal): AbortSignal {
+  const timeout = AbortSignal.timeout(timeoutMs);
+  return signal === undefined ? timeout : AbortSignal.any([timeout, signal]);
+}
+
+async function getJson(url: string, fetchFn: typeof fetch, timeoutMs = 15_000, signal?: AbortSignal): Promise<unknown> {
+  const response = await fetchFn(url, { signal: deadline(timeoutMs, signal) });
   if (!response.ok) throw new Error(`GET ${url} returned HTTP ${String(response.status)}`);
   return (await response.json()) as unknown;
 }
@@ -44,48 +47,75 @@ function checkFrame(base64: string): void {
   const bytes = Buffer.from(base64, "base64");
   const isPng =
     bytes.length >= 24 && bytes.subarray(0, 8).equals(PNG_SIGNATURE) && bytes.toString("ascii", 12, 16) === "IHDR";
-  if (!isPng) throw new Error("/screenshot is not a PNG");
+  if (!isPng) throw new Error("observation frame is not a PNG");
   const width = bytes.readUInt32BE(16);
   const height = bytes.readUInt32BE(20);
   if (width !== 240 || height !== 160) {
-    throw new Error(`/screenshot is ${String(width)}x${String(height)}, expected 240x160`);
+    throw new Error(`observation frame is ${String(width)}x${String(height)}, expected 240x160`);
   }
 }
 
-export function screenshotTool(gameServerUrl: string, fetchFn: typeof fetch = fetch): AgentTool {
+type ObservationContent = [ImageContent, TextContent];
+
+async function observation(
+  gameServerUrl: string,
+  fetchFn: typeof fetch,
+  signal: AbortSignal | undefined,
+  prefix = "",
+): Promise<ObservationContent> {
+  const body = await getJson(`${gameServerUrl}/pokebench/observation`, fetchFn, 15_000, signal);
+  if (!Value.Check(ObservationSchema, body)) throw new Error("malformed /pokebench/observation payload");
+  checkFrame(body.screenshot_base64);
+  return [
+    { type: "image", data: body.screenshot_base64, mimeType: "image/png" },
+    { type: "text", text: `${prefix}${body.state_text}` },
+  ];
+}
+
+export function observeTool(gameServerUrl: string, fetchFn: typeof fetch = fetch): AgentTool {
   return {
-    name: "screenshot",
-    label: "Screenshot",
-    description: "Capture the current game frame as a PNG.",
+    name: "observe",
+    label: "Observe",
+    description: "See the current game screen and the game state read from memory (location, party, map).",
     parameters: NoArgs,
-    execute: async () => {
-      const body = await getJson(`${gameServerUrl}/screenshot`, fetchFn);
-      if (!Value.Check(ScreenshotSchema, body)) {
-        throw new Error("malformed /screenshot payload");
-      }
-      checkFrame(body.screenshot_base64);
-      return {
-        content: [{ type: "image", data: body.screenshot_base64, mimeType: "image/png" }],
-        details: undefined,
-      };
-    },
+    execute: async (_toolCallId, _params, signal) => ({
+      content: await observation(gameServerUrl, fetchFn, signal),
+      details: undefined,
+    }),
   };
 }
 
-export function stateTool(gameServerUrl: string, fetchFn: typeof fetch = fetch): AgentTool {
-  return {
-    name: "state",
-    label: "Game state",
-    description: "Read the parsed game state (location, position, badges, money).",
-    parameters: NoArgs,
-    execute: async () => {
-      const body = await getJson(`${gameServerUrl}/state`, fetchFn);
-      if (!Value.Check(StateSchema, body)) {
-        throw new Error("malformed /state payload");
-      }
-      return { content: [{ type: "text", text: JSON.stringify(body) }], details: undefined };
-    },
-  };
+export interface Clock {
+  sleep(ms: number): Promise<void>;
+  now(): number;
+}
+
+const realClock: Clock = {
+  sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  now: () => Date.now(),
+};
+
+const QUEUE_POLL_MS = 100;
+const QUEUE_TIMEOUT_MS = 20_000;
+// The vendor caches get_comprehensive_state for 100 ms; outwait it so the
+// observation reflects the last press, not a state read mid-queue.
+const STATE_CACHE_SETTLE_MS = 150;
+
+export async function waitForQueue(
+  gameServerUrl: string,
+  fetchFn: typeof fetch,
+  clock: Clock,
+  signal?: AbortSignal,
+): Promise<void> {
+  const giveUpAt = clock.now() + QUEUE_TIMEOUT_MS;
+  for (;;) {
+    signal?.throwIfAborted();
+    const body = await getJson(`${gameServerUrl}/queue_status`, fetchFn, 15_000, signal);
+    if (!Value.Check(QueueSchema, body)) throw new Error("malformed /queue_status payload");
+    if (body.queue_empty) return;
+    if (clock.now() >= giveUpAt) throw new Error(`action queue did not drain within ${String(QUEUE_TIMEOUT_MS)} ms`);
+    await clock.sleep(QUEUE_POLL_MS);
+  }
 }
 
 export interface SmokeSummary {
@@ -118,8 +148,8 @@ export function checkSmoke(transcript: readonly AgentMessage[]): SmokeSummary {
     throw new SmokeError(`tool calls failed: ${failed.map((r) => r.toolName).join(", ")}`);
   }
   const toolCalls = results.map((r) => r.toolName);
-  if (!toolCalls.includes("screenshot")) throw new SmokeError("screenshot tool was never called");
-  if (!toolCalls.includes("state")) throw new SmokeError("no second tool call: state was never called");
+  if (!toolCalls.includes("observe")) throw new SmokeError("observe tool was never called");
+  if (!toolCalls.includes("press")) throw new SmokeError("no second tool call: press was never called");
   if (texts.length < 2) {
     throw new SmokeError(`expected a frame description and a final reply, got: ${texts.join(" | ")}`);
   }
@@ -143,28 +173,35 @@ export function pressTool(
   gameServerUrl: string,
   hooks: PressHooks,
   fetchFn: typeof fetch = fetch,
+  clock: Clock = realClock,
 ): AgentTool<typeof PressArgs> {
   return {
     name: "press",
     label: "Press buttons",
-    description: "Press Game Boy Advance buttons in order, one per frame batch.",
+    description:
+      "Press Game Boy Advance buttons in order (up to 8), then see the resulting screen and game state.",
     parameters: PressArgs,
-    execute: async (toolCallId, params) => {
+    execute: async (toolCallId, params, signal) => {
+      // A stopped run (budget, operator abort) must not press anything further.
+      signal?.throwIfAborted();
       hooks.beforePress(toolCallId, params.buttons, PRESS_TIMING);
       const url = `${gameServerUrl}/action`;
       const response = await fetchFn(url, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ buttons: params.buttons, ...PRESS_TIMING }),
-        signal: AbortSignal.timeout(15_000),
+        signal: deadline(15_000, signal),
       });
       const body: unknown = await response.json();
       if (!response.ok || !Value.Check(ActionSchema, body) || body.status !== "success") {
         const detail = Value.Check(ActionSchema, body) ? (body.message ?? body.status) : `HTTP ${String(response.status)}`;
         throw new Error(`POST ${url} failed: ${detail}`);
       }
+      await waitForQueue(gameServerUrl, fetchFn, clock, signal);
+      await clock.sleep(STATE_CACHE_SETTLE_MS);
       await hooks.afterPress();
-      return { content: [{ type: "text", text: `pressed ${params.buttons.join(", ")}` }], details: undefined };
+      const content = await observation(gameServerUrl, fetchFn, signal, `pressed ${params.buttons.join(", ")}\n\n`);
+      return { content, details: undefined };
     },
   };
 }

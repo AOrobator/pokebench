@@ -1,6 +1,7 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import { describe, expect, it, vi } from "vitest";
-import { PRESS_TIMING, SmokeError, checkSmoke, pressTool, screenshotTool, serverHealthy, stateTool } from "./game-tools.js";
+import { IN_GAME } from "../test-support/events.js";
+import { PRESS_TIMING, SmokeError, checkSmoke, observeTool, pressTool, serverHealthy, waitForQueue } from "./game-tools.js";
 
 const SERVER = "http://127.0.0.1:8000";
 
@@ -20,7 +21,26 @@ function serving(body: unknown, status = 200): typeof fetch {
   );
 }
 
-const STATE = { player: { location: "LITTLEROOT TOWN" }, step_number: 4 };
+function observationBody(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return { state_text: "Current Location: LITTLEROOT TOWN", screenshot_base64: png(240, 160), state: IN_GAME, ...overrides };
+}
+
+type Route = (init: RequestInit | undefined) => unknown;
+
+function routes(table: Record<string, unknown>, calls: string[] = []): typeof fetch {
+  return vi.fn<typeof fetch>().mockImplementation((input, init) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    const path = url.slice(SERVER.length);
+    calls.push(`${init?.method ?? "GET"} ${path}`);
+    const entry = table[path];
+    if (entry === undefined) return Promise.resolve(new Response("{}", { status: 404 }));
+    const body: unknown = typeof entry === "function" ? (entry as Route)(init) : entry;
+    return Promise.resolve(new Response(JSON.stringify(body)));
+  });
+}
+
+const noHooks = { beforePress: () => undefined, afterPress: () => Promise.resolve() };
+const instant = { sleep: () => Promise.resolve(), now: () => 0 };
 
 describe("serverHealthy", () => {
   it("is true only for a healthy status", async () => {
@@ -35,35 +55,35 @@ describe("serverHealthy", () => {
   });
 });
 
-describe("screenshotTool", () => {
-  it("returns the 240x160 frame as image content", async () => {
-    const fetchFn = serving({ screenshot_base64: png(240, 160), step_number: 3 });
-    const result = await screenshotTool(SERVER, fetchFn).execute("call-1", {});
-    expect(fetchFn).toHaveBeenCalledWith(`${SERVER}/screenshot`, expect.anything());
-    expect(result.content).toEqual([{ type: "image", data: png(240, 160), mimeType: "image/png" }]);
+describe("observeTool", () => {
+  it("returns the 240x160 frame then the state text", async () => {
+    const fetchFn = serving(observationBody());
+    const result = await observeTool(SERVER, fetchFn).execute("call-1", {});
+    expect(fetchFn).toHaveBeenCalledWith(`${SERVER}/pokebench/observation`, expect.anything());
+    expect(result.content).toEqual([
+      { type: "image", data: png(240, 160), mimeType: "image/png" },
+      { type: "text", text: "Current Location: LITTLEROOT TOWN" },
+    ]);
+  });
+
+  it("rejects an observation whose state is not the RAM reader's shape", async () => {
+    const body = observationBody({ state: { ...IN_GAME, mode: "overworld" } });
+    await expect(observeTool(SERVER, serving(body)).execute("c", {})).rejects.toThrow(/observation/);
   });
 
   it.each([
-    ["a wrong-size frame", { screenshot_base64: png(100, 100), step_number: 1 }],
-    ["a non-PNG frame", { screenshot_base64: Buffer.from("GIF89a, padded to be long enough").toString("base64"), step_number: 1 }],
-    ["a missing frame", { step_number: 1 }],
+    ["a wrong-size frame", observationBody({ screenshot_base64: png(100, 100) })],
+    ["a non-PNG frame", observationBody({ screenshot_base64: Buffer.from("GIF89a, padded to be long enough").toString("base64") })],
+    ["a missing frame", observationBody({ screenshot_base64: undefined })],
+    ["missing state text", observationBody({ state_text: undefined })],
   ])("rejects %s", async (_label, body) => {
-    await expect(screenshotTool(SERVER, serving(body)).execute("call-1", {})).rejects.toThrow(/screenshot/);
+    await expect(observeTool(SERVER, serving(body)).execute("call-1", {})).rejects.toThrow(/observation/);
   });
 
   it("names the path on an HTTP error", async () => {
-    await expect(screenshotTool(SERVER, serving({}, 503)).execute("call-1", {})).rejects.toThrow(/\/screenshot.*503/);
-  });
-});
-
-describe("stateTool", () => {
-  it("returns the state as JSON text", async () => {
-    const result = await stateTool(SERVER, serving(STATE)).execute("call-2", {});
-    expect(result.content).toEqual([{ type: "text", text: JSON.stringify(STATE) }]);
-  });
-
-  it("rejects a malformed state", async () => {
-    await expect(stateTool(SERVER, serving({ player: {} })).execute("call-2", {})).rejects.toThrow(/state/);
+    await expect(observeTool(SERVER, serving({}, 503)).execute("call-1", {})).rejects.toThrow(
+      /\/pokebench\/observation.*503/,
+    );
   });
 });
 
@@ -94,72 +114,143 @@ function result(toolName: string, isError = false): AgentMessage {
 describe("checkSmoke", () => {
   it("summarizes a transcript that described a frame and called both tools", () => {
     const transcript = [
-      result("screenshot"),
+      result("observe"),
       assistant(" A title screen. "),
-      result("state"),
+      result("press"),
       assistant("DONE TITLE_SEQUENCE"),
     ];
     expect(checkSmoke(transcript)).toEqual({
-      toolCalls: ["screenshot", "state"],
+      toolCalls: ["observe", "press"],
       texts: ["A title screen.", "DONE TITLE_SEQUENCE"],
     });
   });
 
   it.each([
-    ["a failed tool", [result("screenshot"), result("state", true), assistant("a"), assistant("b")], /failed: state/],
-    ["no screenshot", [result("state"), assistant("a"), assistant("b")], /screenshot/],
-    ["no state call", [result("screenshot"), assistant("a"), assistant("b")], /state/],
+    ["a failed tool", [result("observe"), result("press", true), assistant("a"), assistant("b")], /failed: press/],
+    ["no observe", [result("press"), assistant("a"), assistant("b")], /observe/],
+    ["no press", [result("observe"), assistant("a"), assistant("b")], /press/],
     [
       "a terminal model error",
-      [result("screenshot"), assistant("a"), result("state"), assistant("b"), assistant("", "error")],
+      [result("observe"), assistant("a"), result("press"), assistant("b"), assistant("", "error")],
       /model turn ended: error/,
     ],
     [
       "an aborted model turn",
-      [result("screenshot"), assistant("a"), result("state"), assistant("b"), assistant("", "aborted")],
+      [result("observe"), assistant("a"), result("press"), assistant("b"), assistant("", "aborted")],
       /model turn ended: aborted/,
     ],
-    ["a single reply", [result("screenshot"), result("state"), assistant("a"), assistant("")], /frame description/],
+    ["a single reply", [result("observe"), result("press"), assistant("a"), assistant("")], /frame description/],
   ])("fails on %s", (_label, transcript, message) => {
     expect(() => checkSmoke(transcript)).toThrow(SmokeError);
     expect(() => checkSmoke(transcript)).toThrow(message);
   });
 });
 
-describe("pressTool", () => {
-  it("records the press before POSTing it, then checks milestones", async () => {
-    const order: string[] = [];
-    const fetchFn = vi.fn<typeof fetch>().mockImplementation((_url, init) => {
-      order.push(`POST ${typeof init?.body === "string" ? init.body : ""}`);
-      return Promise.resolve(new Response(JSON.stringify({ status: "success" })));
-    });
-    const tool = pressTool(SERVER, {
-      beforePress: (id, buttons, timing) => {
-        order.push(`before ${id} ${buttons.join(",")} ${String(timing.hold_frames)}/${String(timing.release_frames)}`);
-      },
-      afterPress: () => {
-        order.push("after");
+describe("waitForQueue", () => {
+  it("polls until the action queue drains", async () => {
+    let polls = 0;
+    const fetchFn = routes({ "/queue_status": () => ({ queue_empty: ++polls >= 3 }) });
+    const sleeps: number[] = [];
+    await waitForQueue(SERVER, fetchFn, {
+      sleep: (ms) => {
+        sleeps.push(ms);
         return Promise.resolve();
       },
-    }, fetchFn);
+      now: () => 0,
+    });
+    expect(polls).toBe(3);
+    expect(sleeps).toEqual([100, 100]);
+  });
+
+  it("gives up after the timeout", async () => {
+    let clock = 0;
+    const fetchFn = routes({ "/queue_status": { queue_empty: false } });
+    const wait = waitForQueue(SERVER, fetchFn, {
+      sleep: () => {
+        clock += 5_000;
+        return Promise.resolve();
+      },
+      now: () => clock,
+    });
+    await expect(wait).rejects.toThrow(/queue did not drain/);
+  });
+
+  it("rejects a malformed queue status", async () => {
+    await expect(waitForQueue(SERVER, routes({ "/queue_status": {} }), instant)).rejects.toThrow(/queue_status/);
+  });
+});
+
+describe("pressTool", () => {
+  it("records the press before POSTing it, waits for the queue, checks milestones, then observes", async () => {
+    const order: string[] = [];
+    const fetchFn = routes(
+      {
+        "/action": { status: "success" },
+        "/queue_status": { queue_empty: true },
+        "/pokebench/observation": observationBody(),
+      },
+      order,
+    );
+    const tool = pressTool(
+      SERVER,
+      {
+        beforePress: (id, buttons, timing) => {
+          order.push(`before ${id} ${buttons.join(",")} ${String(timing.hold_frames)}/${String(timing.release_frames)}`);
+        },
+        afterPress: () => {
+          order.push("after");
+          return Promise.resolve();
+        },
+      },
+      fetchFn,
+      instant,
+    );
     const result = await tool.execute("call-9", { buttons: ["UP", "A"] });
     expect(order).toEqual([
       "before call-9 UP,A 10/8",
-      'POST {"buttons":["UP","A"],"hold_frames":10,"release_frames":8}',
+      "POST /action",
+      "GET /queue_status",
       "after",
+      "GET /pokebench/observation",
+    ]);
+    expect(fetchFn).toHaveBeenCalledWith(
+      `${SERVER}/action`,
+      expect.objectContaining({ method: "POST", body: JSON.stringify({ buttons: ["UP", "A"], hold_frames: 10, release_frames: 8 }) }),
+    );
+    expect(result.content).toEqual([
+      { type: "image", data: png(240, 160), mimeType: "image/png" },
+      { type: "text", text: "pressed UP, A\n\nCurrent Location: LITTLEROOT TOWN" },
     ]);
     expect(PRESS_TIMING).toEqual({ hold_frames: 10, release_frames: 8 });
-    expect(fetchFn).toHaveBeenCalledWith(`${SERVER}/action`, expect.objectContaining({ method: "POST" }));
-    expect(result.content).toEqual([{ type: "text", text: "pressed UP, A" }]);
+  });
+
+  it("presses nothing when the run is already stopped", async () => {
+    const calls: string[] = [];
+    const tool = pressTool(SERVER, noHooks, routes({ "/action": { status: "success" } }, calls), instant);
+    await expect(tool.execute("c", { buttons: ["A"] }, AbortSignal.abort())).rejects.toThrow();
+    expect(calls).toEqual([]);
+  });
+
+  it("stops waiting for the queue once the run is stopped", async () => {
+    const controller = new AbortController();
+    const calls: string[] = [];
+    const fetchFn = routes({ "/queue_status": () => (controller.abort(), { queue_empty: false }) }, calls);
+    await expect(waitForQueue(SERVER, fetchFn, instant, controller.signal)).rejects.toThrow();
+    expect(calls).toEqual(["GET /queue_status"]);
   });
 
   it("fails when the server does not report success", async () => {
-    const tool = pressTool(SERVER, { beforePress: () => undefined, afterPress: () => Promise.resolve() }, serving({ status: "error", message: "queue full" }));
+    const tool = pressTool(SERVER, noHooks, routes({ "/action": { status: "error", message: "queue full" } }), instant);
     await expect(tool.execute("c", { buttons: ["A"] })).rejects.toThrow(/queue full/);
   });
 
+  it("names the HTTP status when the body is not an action reply", async () => {
+    const tool = pressTool(SERVER, noHooks, routes({}), instant);
+    await expect(tool.execute("c", { buttons: ["A"] })).rejects.toThrow(/HTTP 404/);
+  });
+
   it("declares a closed button enum and a bounded list", () => {
-    const tool = pressTool(SERVER, { beforePress: () => undefined, afterPress: () => Promise.resolve() });
+    const tool = pressTool(SERVER, noHooks);
     expect(JSON.stringify(tool.parameters)).toContain('"maxItems":8');
     expect(JSON.stringify(tool.parameters)).toContain('"SELECT"');
   });

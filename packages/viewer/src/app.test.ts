@@ -45,7 +45,7 @@ const RUNS = [
   { id: "2026-10-11T21-00-00_old", model: "think-swarm", started: "x", ended: true, reason: "budget", problem: null },
 ];
 
-async function harness(hash = ""): Promise<Harness> {
+async function harness(hash = "", runs: unknown[] = RUNS): Promise<Harness> {
   document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
   const streams: FakeStream[] = [];
   const fetched: string[] = [];
@@ -53,7 +53,7 @@ async function harness(hash = ""): Promise<Harness> {
   const deps: AppDeps = {
     fetchJson: (url) => {
       fetched.push(url);
-      if (url === "/api/runs") return Promise.resolve(RUNS);
+      if (url === "/api/runs") return runs.length === 1 && runs[0] === "fail" ? Promise.reject(new Error("offline")) : Promise.resolve([...runs]);
       if (url.endsWith("/milestones")) {
         return Promise.resolve({ run: "2026-10-11T21-00-00_old", milestones: [{ name: "GAME_RUNNING", offsetMs: 5 }, { name: "PLAYER_NAME_SET", offsetMs: 20_000 }] });
       }
@@ -341,6 +341,88 @@ describe("viewer app", () => {
   });
 });
 
+function runRow(id: string, ended: boolean): Record<string, unknown> {
+  return { id, model: "think-swarm", started: "x", ended, reason: ended ? "budget" : null, problem: null };
+}
+
+describe("run list refresh", () => {
+  beforeEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("opens the first run that appears on an idle page", async () => {
+    const runs: unknown[] = [];
+    const { app, streams } = await harness("#run=2026-10-11T23-30-00_next", runs);
+    expect(app.mode).toBe("idle");
+    await app.refreshRuns();
+    expect(streams).toEqual([]);
+    runs.push(runRow("2026-10-11T23-30-00_next", false));
+    await app.refreshRuns();
+    expect(streams.map((stream) => stream.url)).toEqual(["/api/runs/2026-10-11T23-30-00_next/events"]);
+    expect([...ui("run").querySelectorAll("option")].map((option) => option.value)).toEqual(["2026-10-11T23-30-00_next"]);
+  });
+
+  it("follows the next run once the newest run it was showing has ended", async () => {
+    const runs: unknown[] = [runRow(M4_ID, true)];
+    const { app, streams } = await harness("", runs);
+    const first = must(streams[0]);
+    feed(first, m4Run());
+    first.send("done", {});
+    runs.unshift(runRow("2026-10-11T23-30-00_next", false));
+    await app.refreshRuns();
+    expect(streams.map((stream) => stream.url)).toEqual([`/api/runs/${M4_ID}/events`, "/api/runs/2026-10-11T23-30-00_next/events"]);
+    expect((ui("run") as HTMLSelectElement).value).toBe("2026-10-11T23-30-00_next");
+  });
+
+  it("stays on a run that is still live, or on an older run being replayed", async () => {
+    const live: unknown[] = [runRow("2026-10-11T23-00-00_live", false)];
+    const watchingLive = await harness("", live);
+    live.unshift(runRow("2026-10-11T23-30-00_next", false));
+    await watchingLive.app.refreshRuns();
+    expect(watchingLive.streams).toHaveLength(1);
+    expect((ui("run") as HTMLSelectElement).value).toBe("2026-10-11T23-00-00_live");
+    expect([...ui("run").querySelectorAll("option")].map((option) => option.value)).toEqual([
+      "2026-10-11T23-30-00_next",
+      "2026-10-11T23-00-00_live",
+    ]);
+
+    const old: unknown[] = [runRow("2026-10-11T23-00-00_live", false), runRow(M4_ID, true)];
+    const replaying = await harness(`#run=${M4_ID}`, old);
+    const stream = must(replaying.streams[0]);
+    feed(stream, m4Run());
+    stream.send("done", {});
+    old.unshift(runRow("2026-10-11T23-30-00_next", false));
+    await replaying.app.refreshRuns();
+    expect(replaying.streams).toHaveLength(1);
+    expect((ui("run") as HTMLSelectElement).value).toBe(M4_ID);
+  });
+
+  it("keeps following when the next run is listed before the watched run ends", async () => {
+    const runs: unknown[] = [runRow("2026-10-11T23-00-00_live", false)];
+    const { app, streams } = await harness("", runs);
+    runs.unshift(runRow("2026-10-11T23-30-00_next", false));
+    await app.refreshRuns();
+    expect(streams).toHaveLength(1);
+    const first = must(streams[0]);
+    feed(first, m4Run());
+    first.send("done", {});
+    await app.refreshRuns();
+    expect(streams.map((stream) => stream.url)).toEqual([
+      "/api/runs/2026-10-11T23-00-00_live/events",
+      "/api/runs/2026-10-11T23-30-00_next/events",
+    ]);
+  });
+
+  it("reports a failed refresh without dropping the current run", async () => {
+    const runs: unknown[] = [runRow(M4_ID, true)];
+    const { app, streams } = await harness("", runs);
+    runs.splice(0, 1, "fail");
+    await app.refreshRuns();
+    expect(streams).toHaveLength(1);
+    expect(ui("problems").textContent).toContain("run list: Error: offline");
+  });
+});
+
 describe("boot", () => {
   it("wires the page to fetch, EventSource and a render interval", async () => {
     document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
@@ -365,9 +447,13 @@ describe("boot", () => {
     const app = await boot(win);
     expect(win.fetch).toHaveBeenCalledWith("/api/runs");
     expect(streams[0]?.url).toBe("/api/runs/2026-10-11T23-00-00_live/events");
-    expect(intervals).toHaveLength(1);
+    expect(intervals).toHaveLength(2);
     intervals[0]?.();
     expect(app.mode).toBe("loading");
+    intervals[1]?.();
+    await vi.waitFor(() => {
+      expect(win.fetch).toHaveBeenCalledTimes(2);
+    });
   });
 
   it("surfaces an HTTP error from the run list", async () => {

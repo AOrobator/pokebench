@@ -13,8 +13,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from pokebench_env.game_screen import ReadMemory, read_screen
-from pokebench_env.live_map import read_local_map
+from pokebench_env.live_map import MAP_OFFSET, read_local_map
 from pokebench_env.naming import NamingState, read_naming
+from pokebench_env.world import InteractionTarget, read_targets
 
 SAVE_BLOCK_PTRS = 0x03005D8C
 PARTY_COUNT = 0x020244E9
@@ -104,6 +105,7 @@ class GameState:
     field_controls_locked: bool | None = None
     local_map: str | None = None
     naming: NamingState | None = None
+    interaction_targets: tuple[InteractionTarget, ...] | None = None
 
 
 def _u32(read: ReadMemory, address: int) -> int:
@@ -161,11 +163,19 @@ def read_game_state(read: ReadMemory, maps: MapNames) -> GameState:
             naming=read_naming(read, decode_text) if screen.kind == "naming" else None,
         )
     save1, save2 = struct.unpack("<II", read(SAVE_BLOCK_PTRS, 8))
-    x, y, group, number = struct.unpack("<hhbb", read(save1, 6))
+    _, _, group, number = struct.unpack("<hhBB", read(save1, 6))
+    player_object = read(PLAYER_AVATAR + 5, 1)[0]
+    if player_object >= 16:
+        raise ValueError("player object unavailable")
+    body = read(OBJECT_EVENTS + 0x24 * player_object, 0x24)
+    if not body[0] & 1 or not body[2] & 1:
+        raise ValueError("player object uninitialized")
+    x, y = struct.unpack_from("<hh", body, 0x10)
+    x -= MAP_OFFSET
+    y -= MAP_OFFSET
     map_id = (group, number)
     hours, minutes, seconds = struct.unpack("<HBB", read(save2 + 0x0E, 4))
-    player_object = read(PLAYER_AVATAR + 5, 1)[0]
-    facing = read(OBJECT_EVENTS + 0x24 * player_object + 0x18, 1)[0] & 0x0F
+    facing = body[0x18] & 0x0F
     nearby = (
         read_local_map(read, (x, y), map_id)
         if screen.kind == "overworld" and not in_battle
@@ -185,6 +195,7 @@ def read_game_state(read: ReadMemory, maps: MapNames) -> GameState:
         badges=_badges(read, save1),
         play_time=(hours, minutes, seconds),
         local_map=None if nearby is None else nearby.text(),
+        interaction_targets=read_targets(read, map_id) if nearby is not None else None,
         field_controls_locked=bool(read(FIELD_CONTROLS_LOCK, 1)[0])
         if screen.kind == "overworld" and not in_battle
         else None,

@@ -1036,6 +1036,94 @@
             }
           ]
         },
+        "interaction_targets": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "kind",
+                  "x",
+                  "y",
+                  "elevation",
+                  "activation",
+                  "availability",
+                  "facing",
+                  "local_id",
+                  "destination"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string"
+                  },
+                  "x": {
+                    "type": "integer"
+                  },
+                  "y": {
+                    "type": "integer"
+                  },
+                  "elevation": {
+                    "type": "integer"
+                  },
+                  "activation": {
+                    "type": "string"
+                  },
+                  "availability": {
+                    "type": "string"
+                  },
+                  "facing": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "local_id": {
+                    "anyOf": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "destination": {
+                    "anyOf": [
+                      {
+                        "type": "array",
+                        "additionalItems": false,
+                        "items": [
+                          {
+                            "type": "integer"
+                          },
+                          {
+                            "type": "integer"
+                          },
+                          {
+                            "type": "integer"
+                          }
+                        ],
+                        "minItems": 3
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "local_map": {
           "anyOf": [
             {

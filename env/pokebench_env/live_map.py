@@ -61,7 +61,12 @@ class LocalMap:
         behaviors = sorted({tile.behavior for tile in self.tiles})
         return (
             f"Local map from live memory; top-left ({x},{y}), north is up:\n"
-            + "\n".join(self.rows)
+            + "     "
+            + " ".join(f"{x + i:3}" for i in range(len(self.rows[0])))
+            + "\n"
+            + "\n".join(
+                f"{y + i:4} " + " ".join(f"{c:>3}" for c in row) for i, row in enumerate(self.rows)
+            )
             + "\n@ player; N live object; W warp; # collision; g grass; ~ water;"
             + " . clear tile; ? outside current map."
             + "\nTerrain rules, elevation and objects can still block movement."

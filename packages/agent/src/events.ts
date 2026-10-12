@@ -139,6 +139,12 @@ export const StateBodySchema = Type.Object(
       column: Type.Integer({ minimum: 0, maximum: 8 }), row: Type.Integer({ minimum: 0, maximum: 3 }),
       key: Type.String(), ready: Type.Boolean(),
     }, closed), Type.Null()])),
+    interaction_targets: Type.Optional(Type.Union([Type.Array(Type.Object({
+      kind: Type.String(), x: Type.Integer(), y: Type.Integer(), elevation: Type.Integer(),
+      activation: Type.String(), availability: Type.String(), facing: Type.Union([Type.String(), Type.Null()]),
+      local_id: Type.Union([Type.Integer(), Type.Null()]),
+      destination: Type.Union([Type.Tuple([Type.Integer(), Type.Integer(), Type.Integer()]), Type.Null()]),
+    }, closed)), Type.Null()])),
     local_map: Type.Optional(Type.Union([Type.String(), Type.Null()])),
     field_controls_locked: Type.Optional(Type.Union([Type.Boolean(), Type.Null()])),
     started: Type.Boolean(),

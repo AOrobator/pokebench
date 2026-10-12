@@ -207,6 +207,7 @@ describe("pressTool", () => {
     );
     const result = await tool.execute("call-9", { buttons: ["UP", "A"] });
     expect(order).toEqual([
+      "GET /pokebench/state",
       "before call-9 UP,A 10/8",
       "POST /action",
       "GET /queue_status",
@@ -219,7 +220,7 @@ describe("pressTool", () => {
     );
     expect(result.content).toEqual([
       { type: "image", data: png(240, 160), mimeType: "image/png" },
-      { type: "text", text: "pressed UP, A\n\nCurrent Location: LITTLEROOT TOWN" },
+      { type: "text", text: "pressed UP, A\nPress result: unavailable (no verified before snapshot)\n\nCurrent Location: LITTLEROOT TOWN" },
     ]);
     expect(PRESS_TIMING).toEqual({ hold_frames: 10, release_frames: 8 });
   });
@@ -254,4 +255,19 @@ describe("pressTool", () => {
     expect(JSON.stringify(tool.parameters)).toContain('"maxItems":8');
     expect(JSON.stringify(tool.parameters)).toContain('"SELECT"');
   });
+});
+
+it("press feedback compares verified before state with the returned frame's state", async () => {
+  const before = { ...IN_GAME, screen: "overworld", field_controls_locked: false, position: { x: 1, y: 2 }, facing: "up" };
+  const after = { ...before, position: { x: 1, y: 1 } };
+  const calls: string[] = [];
+  const tool = pressTool(SERVER, noHooks, routes({
+    "/pokebench/state": before,
+    "/action": { status: "success" },
+    "/queue_status": { queue_empty: true },
+    "/pokebench/observation": observationBody({ state: after, state_text: "Position: X=1, Y=1" }),
+  }, calls), instant);
+  const result = await tool.execute("move", { buttons: ["UP"] });
+  expect(calls).toEqual(["GET /pokebench/state", "POST /action", "GET /queue_status", "GET /pokebench/observation"]);
+  expect(result.content[1]).toEqual({ type: "text", text: "pressed UP\nPress result: moved (1,2) -> (1,1)\n\nPosition: X=1, Y=1" });
 });

@@ -2,7 +2,7 @@
 
 **Archive Name:** `docs/worklogs/2026-10-11_pokebench-foundation.md`
 **Started:** 2026-10-11 (ET)
-**Current Milestone:** M4 done on branch `m4-run-event-log`; next M5 (awaiting the operator's harness checkpoint)
+**Current Milestone:** M5 (harness checkpoint approved; implementing on `m5-minimal-agent`)
 **Phase:** implementation (M1–M3 approved to execute autonomously; M4–M6 operator-in-the-loop)
 
 ## Problem Statement
@@ -234,8 +234,22 @@ Mac Studio (all local)
 - Finding (2026-10-11): `PLAYER_NAME_SET` at the title screen was **not** cross-run carryover. Milestones live in per-run cache dirs. It was an intermittent false positive in the vendor's own check (`pokemon_env/emulator.py`: any non-empty name read from RAM, other than "PLAYER"/"UNKNOWN", counts). It fired 0.09 s after boot in 1 of the 6 recorded boots. The earlier "restores cached run data" note was wrong. Real cross-run risks found: every server writes into the shared vendor cwd; run ids have one-second resolution (`run_YYYYMMDD_HHMMSS`), so two servers started in the same second share a directory; and there are root-level fallbacks (`./map_stitcher_data.json`, `.pokeagent_cache/maps`).
 
 **M5 — Minimal agent** *(operator-in-the-loop)*
-- [ ] **ASK USER:** harness checkpoint. agent-core vs coding-agent SDK; tool set; image pruning policy.
-- Outline: observe→act loop with state/map/screenshot/press/navigate tools on think-swarm, writing M4's event log; first measured run against the milestones.
+- [x] **ASK USER:** harness checkpoint (operator 2026-10-11 ~22:45 ET, all recommended options):
+  - Tools: **observe + press only**. `observe` returns the screenshot plus the formatted text state; `press(buttons ≤ 8)` presses, then returns the new frame + state (one round trip per action). No pathfinding, memory, objectives or walkthrough in the baseline (PB4/PB5; `harness_features: []`).
+  - Start: **fresh boot** (title → new game). Every milestone counts from zero.
+  - Context (PB6): **sliding window**. Always keep the system prompt + task; the last 3 screenshots stay images, and older ones become `<frame …>` refs; the last 20 turns stay verbatim, and older turns are dropped whole. No summarization (an M6 memory feature).
+  - Budget: **300 turns / 60 min** per run; 3 runs for PB3.
+  - Defaults stated without objection: pi-agent-core `runAgentLoop` (not the coding-agent SDK); observation text = the vendor's own `utils.state_formatter.format_state_for_llm` (~4.5k chars on an overworld save, vs 51 KB raw `/state`, of which 49 KB is map internals), served by a PokeBench-owned endpoint because the vendor's `/mcp/get_game_state` fails on a missing `google` module via its objectives/agent stack; PB8: 3 consecutive invalid tool calls or model errors → `model_error`; replies capped at 4,096 tokens.
+- Probe finding: the vendor's `/mcp/get_map_data` (≈1 KB ASCII grid + legend, warps, NPCs) works; the formatter's map NPCs come from `npc_source: static_reference` (porymap data), so hidden or moving NPCs can show at static spots (seen: a Vigoroth "N" on the player tile in the quick-start house). Recorded for the M5 failure-mode analysis.
+- M5 runs on branch `m5-minimal-agent` (worktree `../pokebench-m5`).
+- M5 tasks (each RED → GREEN):
+  - [ ] Python: PokeBench-owned `GET /pokebench/observation` → `{state_text, screenshot_base64, step}` via the vendor's `/state` handler + `format_state_for_llm`, registered by `serve` like the M2.5 routes
+  - [ ] TS: `observe` + `press` (press → auto-observe) tools on the owned server URL; TypeBox-validated
+  - [ ] TS: `pruneContext` (sliding window) in `transformContext`, recorded in `turn_start`
+  - [ ] TS: agent runner with budgets (turns, wall), PB8 bounds (consecutive invalid tool calls / model errors → `model_error`; text-only reply → bounded nudge), run_end reasons
+  - [ ] `just run-agent` (one isolated, recorded run) and `just runs-summary` (PB2 table from `events.jsonl` only: furthest milestone, stop reason, turns, wall, tokens, DNF)
+  - [ ] Gates + live: 3 measured runs from fresh boot, summary table, failure-mode notes
+  - [ ] One review round; **STOP — report to operator (M6 plan checkpoint)**
 
 **M5.5 — PokeBench viewer** *(operator-in-the-loop; after M5 so it is designed against real runs)*
 - [ ] **ASK USER:** design checkpoint. Layout, stack (served next to the game server like M2.5's `/view`, or a separate localhost app).

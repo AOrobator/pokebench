@@ -118,6 +118,7 @@ def test_production_main_registers_view_pcm_and_browser_module_before_vendor_mai
     assert memory_reads == [
         (0x030022C0, 0x030022C8),
         (0x030026F9, 0x030026FA),
+        (0x0203CD92, 0x0203CD96),
         (0x02039F94, 0x02039F98),
     ]
     assert calls == [{"host": "127.0.0.1", "port": 8129}]

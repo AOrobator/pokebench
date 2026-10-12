@@ -7,15 +7,18 @@ defaults (a random name, map 0/0) that are not the player's state.
 """
 
 import json
-import string
 import struct
 from dataclasses import dataclass
 from pathlib import Path
 
 from pokebench_env.game_screen import ReadMemory, read_screen
+from pokebench_env.gba_text import GBA_TEXT, decode_text
 from pokebench_env.live_map import read_local_map
 from pokebench_env.naming import NamingState, read_naming
+from pokebench_env.ui_state import Menu, read_dialog, read_menu
 from pokebench_env.world_context import WorldContext, read_world_context
+
+__all__ = ["GBA_TEXT", "GameState", "MapNames", "PartyMon", "decode_text", "read_game_state"]
 
 SAVE_BLOCK_PTRS = 0x03005D8C
 PARTY_COUNT = 0x020244E9
@@ -34,36 +37,6 @@ SUBSTRUCT_ORDERS = (
     "GAEM GAME GEAM GEMA GMAE GMEA AGEM AGME AEGM AEMG AMGE AMEG "
     "EGAM EGMA EAGM EAMG EMGA EMAG MGAE MGEA MAGE MAEG MEGA MEAG"
 ).split()
-
-GBA_TEXT: dict[int, str] = {
-    0x00: " ",
-    **{0xA1 + i: d for i, d in enumerate(string.digits)},
-    0xAB: "!",
-    0xAC: "?",
-    0xAD: ".",
-    0xAE: "-",
-    0xB0: "…",
-    0xB1: "“",
-    0xB2: "”",
-    0xB3: "‘",
-    0xB4: "'",
-    0xB5: "♂",
-    0xB6: "♀",
-    0xB8: ",",
-    0xBA: "/",
-    0xF0: ":",
-    **{0xBB + i: c for i, c in enumerate(string.ascii_uppercase)},
-    **{0xD5 + i: c for i, c in enumerate(string.ascii_lowercase)},
-}
-
-
-def decode_text(raw: bytes) -> str:
-    out = []
-    for byte in raw:
-        if byte == 0xFF:
-            break
-        out.append(GBA_TEXT.get(byte, "?"))
-    return "".join(out)
 
 
 class MapNames:
@@ -110,6 +83,8 @@ class GameState:
     local_map: str | None = None
     naming: NamingState | None = None
     world_context: WorldContext | None = None
+    dialog: str | None = None
+    menu: Menu | None = None
 
 
 def _u32(read: ReadMemory, address: int) -> int:
@@ -150,6 +125,7 @@ def _badges(read: ReadMemory, save1: int) -> tuple[str, ...]:
 def read_game_state(read: ReadMemory, maps: MapNames) -> GameState:
     screen = read_screen(read)
     in_battle = bool(read(IN_BATTLE, 1)[0] & 0x02)
+    dialog, menu = read_dialog(read, screen.kind), read_menu(read)
     player_object = 0
     field_initialized = False
     if screen.kind not in PRE_GAME:
@@ -173,6 +149,8 @@ def read_game_state(read: ReadMemory, maps: MapNames) -> GameState:
             None,
             None,
             naming=read_naming(read, decode_text) if screen.kind == "naming" else None,
+            dialog=dialog,
+            menu=menu,
         )
     save1, save2 = struct.unpack("<II", read(SAVE_BLOCK_PTRS, 8))
     x, y, group, number = struct.unpack("<hhbb", read(save1, 6))
@@ -197,6 +175,8 @@ def read_game_state(read: ReadMemory, maps: MapNames) -> GameState:
         money=_u32(read, save1 + 0x490) ^ _u32(read, save2 + 0xAC),
         badges=_badges(read, save1),
         play_time=(hours, minutes, seconds),
+        dialog=dialog,
+        menu=menu,
         local_map=None if nearby is None else nearby.text(),
         world_context=read_world_context(read, (x, y), map_id, save1, decode_text)
         if screen.kind == "overworld" and not in_battle

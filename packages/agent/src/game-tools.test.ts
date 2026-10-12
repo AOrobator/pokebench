@@ -280,3 +280,30 @@ it("validates target fields at the observation consumer while retaining older pa
   expect(result.content[1]).toEqual({ type: "text", text });
   await expect(observeTool(SERVER, serving(observationBody({ state: { ...IN_GAME, interaction_targets: [{ ...target, x: "5" }] } }))).execute("invalid-target", {})).rejects.toThrow("malformed /pokebench/observation payload");
 });
+
+const schemaTarget = { kind: "background", x: 5, y: 1, elevation: 0, activation: "A", availability: "conditional", facing: null, local_id: null, destination: null };
+it.each([
+  ["kind", false], ["x", "5"], ["y", "1"], ["elevation", "0"],
+  ["activation", false], ["availability", false], ["facing", 3], ["local_id", "2"],
+  ["destination", "map"], ["destination", [0, 9]], ["destination", [0, 9, 0, 1]],
+  ["destination", ["0", 9, 0]], ["destination", [0, "9", 0]], ["destination", [0, 9, "0"]],
+  ["x", 5.5], ["y", 1.5], ["elevation", 0.5], ["local_id", 2.5],
+  ["destination", [0.5, 9, 0]], ["destination", [0, 9.5, 0]], ["destination", [0, 9, 0.5]],
+  ["extra_field", true],
+])("rejects malformed target %s=%j at the observation caller", async (key, value) => {
+  const body = observationBody({ state: { ...IN_GAME, interaction_targets: [{ ...schemaTarget, [key]: value }] } });
+  await expect(observeTool(SERVER, serving(body)).execute("bad-target", {})).rejects.toThrow("malformed /pokebench/observation payload");
+});
+it("accepts each nullable target union's non-null member at the caller", async () => {
+  const targets = [schemaTarget, { ...schemaTarget, facing: "up" }, { ...schemaTarget, kind: "object", local_id: 2 }, { ...schemaTarget, kind: "warp", activation: "step", destination: [0, 9, 0] }];
+  const result = await observeTool(SERVER, serving(observationBody({ state: { ...IN_GAME, interaction_targets: targets } }))).execute("valid-targets", {});
+  expect(result.content[1]).toEqual({ type: "text", text: "Current Location: LITTLEROOT TOWN" });
+});
+
+it.each([null, []])("accepts the target inventory's empty/unavailable representations %j", async (interaction_targets) => {
+  const result = await observeTool(SERVER, serving(observationBody({ state: { ...IN_GAME, interaction_targets } }))).execute("inventory-shape", {});
+  expect(result.content[1]).toEqual({ type: "text", text: "Current Location: LITTLEROOT TOWN" });
+});
+it("rejects a non-array/non-null inventory at the consumer", async () => {
+  await expect(observeTool(SERVER, serving(observationBody({ state: { ...IN_GAME, interaction_targets: "unknown" } }))).execute("inventory-shape", {})).rejects.toThrow("malformed /pokebench/observation payload");
+});

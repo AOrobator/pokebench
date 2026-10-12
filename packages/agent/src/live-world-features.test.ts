@@ -5,7 +5,27 @@ import { afterEach, expect, it, vi } from "vitest";
 import { parseEvent, type RunEvent } from "./events.js";
 import type { RunHost, RunPlan } from "./run.js";
 
-const context = vi.hoisted(() => ({ root: "", resolve: undefined as ((event: RunEvent) => void) | undefined, reject: undefined as ((error: unknown) => void) | undefined }));
+const context = vi.hoisted(() => ({ root: "", memory: true, files: new Map<string, string[]>(), resolve: undefined as ((event: RunEvent) => void) | undefined, reject: undefined as ((error: unknown) => void) | undefined }));
+vi.mock("node:fs", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:fs")>();
+  return { ...actual,
+    mkdirSync: (...args: Parameters<typeof actual.mkdirSync>) => context.memory ? undefined : actual.mkdirSync(...args),
+    readdirSync: (...args: Parameters<typeof actual.readdirSync>) => context.memory ? [] : actual.readdirSync(...args),
+    appendFileSync: (...args: Parameters<typeof actual.appendFileSync>) => {
+      if (!context.memory) { actual.appendFileSync(...args); return; }
+      const path = String(args[0]); const chunks = context.files.get(path) ?? []; chunks.push(String(args[1])); context.files.set(path, chunks);
+    },
+    readFileSync: (...args: Parameters<typeof actual.readFileSync>) => {
+      if (!context.memory) return actual.readFileSync(...args);
+      if (args[0] instanceof URL && args[0].pathname.endsWith("/package.json")) {
+        return JSON.stringify({ dependencies: { "@mariozechner/pi-agent-core": "fixture-version" } });
+      }
+      const data = context.files.get(String(args[0]));
+      if (data === undefined) throw new Error(`missing test-owned memory file ${String(args[0])}`);
+      return data.join("");
+    },
+  };
+});
 vi.mock("./config.js", () => ({ loadConfig: () => ({ model: "fixture-vlm", gameServerUrl: "http://127.0.0.1:8123", gatewayUrl: "http://fixture.invalid/v1", visionModels: [], endpointFile: null }) }));
 vi.mock("./gateway.js", () => ({
   discoverModels: () => Promise.resolve([]),
@@ -36,10 +56,11 @@ vi.mock("./run.js", async (importOriginal) => {
     } catch (error) { context.reject?.(error); throw error; }
   } };
 });
-afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); if (context.root !== "") rmSync(context.root, { recursive: true, force: true }); });
-it.each(["smoke", "play", "probe", "verify-state"])("%s declares world advantages in the real run_start publisher", async (command) => {
+afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); if (!context.memory && context.root !== "") rmSync(context.root, { recursive: true, force: true }); context.files.clear(); });
+it.each([["smoke", true], ["play", true], ["probe", true], ["verify-state", true], ["smoke", false]] as const)("%s declares world advantages through publisher (memory=%s)", async (command, memory) => {
   vi.resetModules();
-  context.root = mkdtempSync(join(tmpdir(), "pokebench-world-features-"));
+  context.memory = memory; context.files.clear();
+  context.root = memory ? `/test-owned/world-features-${command}` : mkdtempSync(join(tmpdir(), "pokebench-world-features-"));
   const receipt = new Promise<RunEvent>((resolve, reject) => { context.resolve = resolve; context.reject = reject; });
   vi.stubGlobal("process", Object.assign(Object.create(process) as NodeJS.Process, { argv: [...process.argv.slice(0, 2), command] }));
   vi.spyOn(console, "log").mockImplementation(() => undefined);

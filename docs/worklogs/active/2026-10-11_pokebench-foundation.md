@@ -340,7 +340,7 @@ Corrected think-swarm 02-13-49...27c2 ended naturally at budget300, PLAYER_HOUSE
   - [x] G3 Readout + milestones: `/pokebench/observation` text is built from G1+G2 (screen first, then fields), replacing `format_state_for_llm`; no map yet. Early milestones (name set, intro done, Littleroot, house, bedroom, …) derived from the same reader; the vendor tracker no longer decides progress.
   - [x] G4 Ground truth gate (corrected native intro/truck probe726d plus manual live party calibration d9ab, frames488/507; exact text/typed state and 20/20 -> 17/20 HP matched pixels; no automated pixel-recognition claim): a live `just verify-state` script plays a fixed button script on the real ROM and asserts screen + fields at labelled checkpoints against screenshots (ROM-derived states/RAM never committed, INV-1); unit tests use synthetic byte layouts.
   - [x] G5 Live map (source/ROM layouts, house live object/warp proof and recorded d9ab town/house/route transitions; review/gates complete): ASCII grid from live map data (metatile behaviours, warps) with live object-event positions, replacing the porymap/static-NPC map.
-  - [ ] Re-run the baseline (think-swarm and Qwen3.8) on the accurate readout; **STOP — report to operator.**
+  - [x] Re-run the baseline (think-swarm and Qwen3.8) on the accurate readout (think budget300; Qwen operator-aborted at user request; both recorded DNFs, no improvement claim); **STOP — report to operator.**
 
 **M6 — Specialized harness → Roxanne** *(operator-in-the-loop)*
 - [ ] **ASK USER:** plan checkpoint after the M5 failure-mode analysis.
@@ -471,3 +471,6 @@ Deferred (HARDENING): zipped ROM extensions (.zip/.7z) and .srm. Speculation not
 
 ## Archive Milestone
 - [ ] **ASK USER:** ready to archive? Then move this body to the Archive Name and remove the root `WORKLOG.md` pointer.
+
+
+**Operator iteration-budget follow-up (2026-10-12):** user requested stopping the current Qwen run and reducing future runs from60 to30minutes. Qwen d9cc gracefully stopped with operator_abort and durable run_end; its original60minute run_start metadata remains unchanged. Future play defaults now use30 *60_000ms in the single PLAY_LIMITS value consumed by recorded budgets, Governor and wall timer; max300turns remains. No new model run launched. Final rerun outcomes are retained, not recast as completed-game successes. Lint/types and build passed (/tmp/pokebench-m57-budget-{lint,build}.log); shared metadata/Governor/timer consumers use the same updated limit. No behavioral test added for the reversible one-value config edit. Qwen ended188turns/3,257,322ms, PLAYER_BEDROOM, tokens391765input/55013output; game server8022 stopped. Normal landing remains owned by story-observation integration chat.

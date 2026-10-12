@@ -190,7 +190,7 @@ async function smoke(): Promise<void> {
   console.log(`smoke-llm OK: run ${runId} ended (${reason}); events in runs/${runId}/events.jsonl`);
 }
 
-const PLAY_LIMITS: Limits = { maxTurns: 300, maxWallMs: 60 * 60_000, failureLimit: 3 };
+const PLAY_LIMITS: Limits = { maxTurns: 300, maxWallMs: 30 * 60_000, failureLimit: 3 };
 const PLAY_MAX_TOKENS = 4096;
 const PLAY_THINKING = "medium";
 

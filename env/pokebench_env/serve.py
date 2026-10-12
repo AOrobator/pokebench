@@ -13,6 +13,7 @@ from typing import Protocol, cast
 from fastapi import FastAPI
 
 from pokebench_env.audio import EmulatorLike
+from pokebench_env.game_screen import ReadMemory
 from pokebench_env.milestone_guard import install_milestone_guard
 from pokebench_env.observation import Formatter, StateFn, install_observation
 from pokebench_env.view import install_spectator
@@ -40,7 +41,7 @@ def run(
     vendor_main: Callable[[], None],
     *,
     spectator: tuple[FastAPI, type[EmulatorLike]] | None = None,
-    observation: tuple[FastAPI, StateFn, Formatter] | None = None,
+    observation: tuple[FastAPI, StateFn, Formatter, ReadMemory] | None = None,
 ) -> None:
     if spectator is not None:
         install_spectator(*spectator)
@@ -63,7 +64,13 @@ def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
         uvicorn=cast(UvicornLike, uvicorn),
         vendor_main=app.main,
         spectator=(app.app, cast(type[EmulatorLike], EmeraldEmulator)),
-        observation=(app.app, app.get_comprehensive_state, format_state_for_llm),
+        observation=(
+            app.app,
+            app.get_comprehensive_state,
+            format_state_for_llm,
+            # The vendor creates `env` at startup, after routes are installed.
+            lambda address, length: app.env.memory_reader._read_bytes(address, length),
+        ),
     )
 
 

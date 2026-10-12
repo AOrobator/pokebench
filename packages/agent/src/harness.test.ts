@@ -1,4 +1,4 @@
-import type { AgentContext, AgentMessage } from "@mariozechner/pi-agent-core";
+import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { AssistantMessage, ToolResultMessage } from "@mariozechner/pi-ai";
 import { describe, expect, it } from "vitest";
 import { Governor, NUDGE, OMITTED_FRAME, play, slideWindow, type Loop } from "./harness.js";
@@ -183,31 +183,31 @@ describe("Governor", () => {
     expect(aborted).toEqual(["abort", "abort"]);
   });
 
-  it("nudges once after a text-only reply, and never after a stop", () => {
+  it("nudges once after a text-only reply, and never after a stop", async () => {
     const { g } = governor();
     g.afterTurn(reply([]), []);
-    expect(g.followUps()).toEqual([expect.objectContaining({ role: "user", content: NUDGE })]);
-    expect(g.followUps()).toEqual([]);
+    expect(await g.followUps()).toEqual([expect.objectContaining({ role: "user", content: NUDGE })]);
+    expect(await g.followUps()).toEqual([]);
     g.afterTurn(reply([]), []);
     g.abort("operator_abort");
-    expect(g.followUps()).toEqual([]);
+    expect(await g.followUps()).toEqual([]);
   });
 });
 
-function scriptedLoop(script: ((context: AgentContext) => AgentMessage[])[], calls: string[]): Loop {
-  const next = (context: AgentContext): AgentMessage[] => {
+function scriptedLoop(script: (() => AgentMessage[])[], calls: string[]): Loop {
+  const next = (): AgentMessage[] => {
     const step = script.shift();
     if (step === undefined) throw new Error("script exhausted");
-    return step(context);
+    return step();
   };
   return {
-    start: (prompts, context) => {
-      calls.push(`start ${String(context.messages.length)}`);
-      return Promise.resolve([...prompts, ...next(context)]);
+    start: (prompts, messages) => {
+      calls.push(`start ${String(messages.length)}`);
+      return Promise.resolve([...prompts, ...next()]);
     },
-    resume: (context) => {
-      calls.push(`resume ${String(context.messages.length)} last=${context.messages.at(-1)?.role ?? "none"}`);
-      return Promise.resolve(next(context));
+    resume: (messages) => {
+      calls.push(`resume ${String(messages.length)} last=${messages.at(-1)?.role ?? "none"}`);
+      return Promise.resolve(next());
     },
   };
 }

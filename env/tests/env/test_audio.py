@@ -194,6 +194,37 @@ def test_load_flush_drops_pending_native_pcm_captured_during_buffer_clear():
     assert tape.segment(-1, 3).wav[44:] == struct.pack("<hh", 123, -456)
 
 
+def test_default_tape_capacity_and_live_window_larger_than_tiny_capacity():
+    audio = audio_module()
+    assert audio.AudioTape().capacity_frames == 24000
+    tape = audio.AudioTape(capacity_frames=2)
+    tape.append(pcm(1, 2, 3))
+    segment = tape.segment(-1, 5)
+    assert segment.wav[44:] == pcm(2, 3)
+    assert segment.skipped == 0
+
+
+def test_native_clear_failure_still_invalidates_tape_and_preserves_load_result(caplog):
+    audio = audio_module()
+
+    class Loading(Emulator):
+        pass
+
+    tape = audio.AudioTape(capacity_frames=3)
+    audio.install_tap(Loading, tape)
+    emu = Loading()
+    emu.initialize()
+    emu.core.run_frame()
+
+    def broken_clear():
+        raise RuntimeError("native clear failed")
+
+    emu.core.buffer.clear = broken_clear
+    assert emu.load_state("saved") == "saved"
+    assert tape.segment(-1, 3).wav[44:] == b""
+    assert "Spectator audio flush failed" in caplog.text
+
+
 def test_audio_setup_failure_preserves_vendor_initialize_result(caplog):
     audio = audio_module()
     assert hasattr(audio, "install_tap"), "native audio callback missing"

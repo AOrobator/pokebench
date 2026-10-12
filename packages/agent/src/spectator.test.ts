@@ -1,23 +1,11 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { existsSync } from "node:fs";
+import { AudioFollower, type AudioDependencies } from "./spectator.js";
 
-interface Follower {
-  toggle(): Promise<void>;
-  muted: boolean;
+type Dependencies = AudioDependencies;
+function create(deps: Dependencies): AudioFollower {
+  return new AudioFollower(deps);
 }
-interface Dependencies {
-  unlock: () => Promise<void>;
-  fetch: (url: string, options: { signal: AbortSignal; cache: "no-store" }) => Promise<Response>;
-  play: (pcm: Int16Array, rate: number) => () => void;
-  status: (text: string) => void;
-}
-async function create(deps: Dependencies): Promise<Follower> {
-  expect(existsSync(new URL("spectator.ts", import.meta.url))).toBe(true);
-  const name = "./spectator.js";
-  const mod = await import(name) as { AudioFollower: new (deps: Dependencies) => Follower };
-  return new mod.AudioFollower(deps);
-}
-function wav(frames = 4800, epoch = 0, next = frames, skipped = 0): Response {
+function wav(frames = 4800, next = frames): Response {
   const data = new ArrayBuffer(44 + frames * 4);
   const view = new DataView(data);
   for (let i = 44; i < data.byteLength; i += 4) {
@@ -25,8 +13,7 @@ function wav(frames = 4800, epoch = 0, next = frames, skipped = 0): Response {
     view.setInt16(i + 2, -1234, true);
   }
   return new Response(data, { headers: {
-    "X-Audio-Next": String(next), "X-Audio-Epoch": String(epoch),
-    "X-Audio-Skipped": String(skipped),
+    "X-Audio-Next": String(next),
   } });
 }
 function setup() {
@@ -45,7 +32,7 @@ describe("spectator audio", () => {
   it("starts muted, unlocks on click, polls exact PCM and stops locally", async () => {
     vi.useFakeTimers();
     const { deps, stops } = setup();
-    const follower = await create(deps);
+    const follower = create(deps);
     expect(follower.muted).toBe(true);
     expect(deps.fetch).not.toHaveBeenCalled();
     await follower.toggle();
@@ -62,25 +49,25 @@ describe("spectator audio", () => {
   it("varispeed follows acceleration and replaces rather than queues sound", async () => {
     vi.useFakeTimers();
     const { deps, stops } = setup();
-    const follower = await create(deps);
+    const follower = create(deps);
     await follower.toggle();
-    deps.fetch.mockResolvedValueOnce(wav(9600, 0, 14400));
+    deps.fetch.mockResolvedValueOnce(wav(9600, 14400));
     await vi.advanceTimersByTimeAsync(100);
     expect(deps.play.mock.calls[1]?.[1]).toBe(2);
     expect(stops[0]).toHaveBeenCalledOnce();
     expect(deps.fetch.mock.calls[1]?.[0]).toContain("since=4800");
     await follower.toggle();
   });
-  it("flushes on epoch change and silent pause", async () => {
+  it("stops the previous source on an empty segment and resumes on new PCM", async () => {
     vi.useFakeTimers();
     const { deps, stops } = setup();
-    const follower = await create(deps);
+    const follower = create(deps);
     await follower.toggle();
-    deps.fetch.mockResolvedValueOnce(wav(0, 1, 4800));
+    deps.fetch.mockResolvedValueOnce(wav(0, 4800));
     await vi.advanceTimersByTimeAsync(100);
     expect(stops[0]).toHaveBeenCalledOnce();
     expect(deps.play).toHaveBeenCalledOnce();
-    deps.fetch.mockResolvedValueOnce(wav(2400, 1, 7200, 10));
+    deps.fetch.mockResolvedValueOnce(wav(2400, 7200));
     await vi.advanceTimersByTimeAsync(100);
     expect(deps.play.mock.calls[1]?.[1]).toBe(0.5);
     await follower.toggle();
@@ -92,7 +79,7 @@ describe("spectator audio", () => {
     if (header === null) response.headers.delete("X-Audio-Next");
     else response.headers.set("X-Audio-Next", header);
     deps.fetch.mockResolvedValueOnce(response);
-    const follower = await create(deps);
+    const follower = create(deps);
     await follower.toggle();
     expect(follower.muted).toBe(true);
     expect(deps.play).not.toHaveBeenCalled();
@@ -100,11 +87,44 @@ describe("spectator audio", () => {
     await vi.advanceTimersByTimeAsync(1000);
     expect(deps.fetch).toHaveBeenCalledOnce();
   });
+  it.each([
+    { name: "HTTP failure", status: 500, cursor: "1", bytes: 48 },
+    { name: "nonnumeric cursor", status: 200, cursor: "abc", bytes: 48 },
+    { name: "fractional cursor", status: 200, cursor: "1.5", bytes: 48 },
+    { name: "unsafe cursor", status: 200, cursor: "9007199254740992", bytes: 48 },
+    { name: "negative cursor", status: 200, cursor: "-5", bytes: 48 },
+    { name: "short body", status: 200, cursor: "1", bytes: 8 },
+    { name: "partial stereo frame", status: 200, cursor: "1", bytes: 46 },
+  ])("fails locally on $name, stopping playback and future polling", async (invalid) => {
+    vi.useFakeTimers();
+    const { deps, stops } = setup();
+    const follower = create(deps);
+    await follower.toggle();
+    deps.fetch.mockResolvedValueOnce(new Response(new ArrayBuffer(invalid.bytes), {
+      status: invalid.status, headers: { "X-Audio-Next": invalid.cursor },
+    }));
+    await vi.advanceTimersByTimeAsync(100);
+    expect(follower.muted).toBe(true);
+    expect(deps.play).toHaveBeenCalledOnce();
+    expect(stops[0]).toHaveBeenCalledOnce();
+    expect(deps.status).toHaveBeenLastCalledWith("Audio unavailable — click to retry");
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(deps.fetch).toHaveBeenCalledTimes(2);
+  });
+  it("floors playback rate for a tiny production-valid segment", async () => {
+    vi.useFakeTimers();
+    const { deps } = setup();
+    deps.fetch.mockResolvedValueOnce(wav(4));
+    const follower = create(deps);
+    await follower.toggle();
+    expect(deps.play.mock.calls[0]?.[1]).toBe(0.25);
+    await follower.toggle();
+  });
   it("disconnects to muted and retries only on a fresh click", async () => {
     vi.useFakeTimers();
     const { deps } = setup();
     deps.fetch.mockRejectedValueOnce(new Error("disconnected"));
-    const follower = await create(deps);
+    const follower = create(deps);
     await follower.toggle();
     expect(follower.muted).toBe(true);
     expect(deps.status).toHaveBeenLastCalledWith("Audio unavailable — click to retry");
@@ -119,7 +139,7 @@ describe("spectator audio", () => {
     const { deps } = setup();
     let resolve!: (response: Response) => void;
     deps.fetch.mockReturnValueOnce(new Promise<Response>((r) => { resolve = r; }));
-    const follower = await create(deps);
+    const follower = create(deps);
     const starting = follower.toggle();
     await Promise.resolve();
     await follower.toggle();

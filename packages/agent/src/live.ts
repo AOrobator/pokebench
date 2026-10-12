@@ -10,6 +10,7 @@ import { execFileSync, spawn } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
+import { objectiveHarness, OBJECTIVE_PROMPT } from "./objective-tools.js";
 import { verifyIntro } from "./verify-state.js";
 import { driveProbe, parseProbeCommand, type ProbeCommand } from "./probe.js";
 import { join, resolve } from "node:path";
@@ -196,7 +197,7 @@ const PLAY_THINKING = "medium";
 
 const PLAY_SYSTEM_PROMPT = `You are playing Pokémon Emerald on a Game Boy Advance emulator. Your goal is to make as much story progress as you can: start a new game, get your first Pokémon, and work toward defeating the first Gym Leader in Rustboro City.
 
-You act only through two tools:
+You act through game tools:
 - observe: shows the current screen and a text readout of the game state read from memory (location, coordinates, party, and an ASCII map of the surroundings).
 - press: presses up to 8 buttons in order (A, B, START, SELECT, UP, DOWN, LEFT, RIGHT), then shows the new screen and state.
 
@@ -206,12 +207,15 @@ Dialogue: use B to advance or dismiss ordinary dialogue. Prefer short batches, t
 
 In every reply, think briefly about what you see and what to do next, then call a tool. Replies without a tool call do nothing.`;
 
+const PLAY_GOAL = "Start a new game, obtain a starter, and work toward defeating the first Gym Leader in Rustboro City.";
 const PLAY_TASK = "The game has just booted. Begin playing.";
 
 async function playAgent(): Promise<void> {
   const { model, port, gatewayUrl, apiKey } = await live();
   const runId = newRunId(new Date(), model.id, () => randomBytes(2).toString("hex"));
   const maxTokens = Math.min(PLAY_MAX_TOKENS, model.maxTokens);
+  const trackObjectives = process.env["POKEBENCH_OBJECTIVES"] !== "0";
+  const systemPrompt = PLAY_SYSTEM_PROMPT + (trackObjectives ? `\n\n${OBJECTIVE_PROMPT}` : "");
   console.log(`run-agent: run ${runId}, model ${model.id} via ${gatewayUrl}`);
   console.log(`watch: just tail-run ${runId}   (frame: http://127.0.0.1:${String(port)}/view)`);
 
@@ -222,10 +226,10 @@ async function playAgent(): Promise<void> {
       port,
       model: { id: model.id, context_window: model.contextWindow, max_tokens: model.maxTokens, vision: true },
       sampling: { thinking_level: PLAY_THINKING, max_tokens: maxTokens },
-      systemPrompt: PLAY_SYSTEM_PROMPT,
-      tools: ["observe", "press"],
+      systemPrompt,
+      tools: ["observe", "press", ...(trackObjectives ? ["get_objectives", "set_objective", "update_objective"] : [])],
       startState: { kind: "boot" },
-      harnessFeatures: ["ram-state-v1", "live-map-v1", "field-control-lock", "naming-cursor-v1", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "world-targets-v1", "live-player-position-v1", "world-coordinate-grid-v1", "press-result-v1"],
+      harnessFeatures: ["ram-state-v1", "live-map-v1", "field-control-lock", "naming-cursor-v1", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "world-targets-v1", "live-player-position-v1", "world-coordinate-grid-v1", "press-result-v1", ...(trackObjectives ? ["objective-tracking-v1", "repeat-attempt-guard-v1"] : [])],
       budgets: { max_turns: PLAY_LIMITS.maxTurns, max_wall_ms: PLAY_LIMITS.maxWallMs },
       piVersion: piVersion(),
     },
@@ -252,12 +256,13 @@ async function playAgent(): Promise<void> {
         governor.abort("operator_abort");
       };
       process.once("SIGINT", interrupt);
+      const objectives = trackObjectives ? objectiveHarness(PLAY_GOAL, recorder, gameServerUrl) : null;
       const loop = piLoop({
-        systemPrompt: PLAY_SYSTEM_PROMPT,
-        tools: [observeTool(gameServerUrl), pressTool(gameServerUrl, pressHooks(recorder))],
+        systemPrompt,
+        tools: objectives?.tools ?? [observeTool(gameServerUrl), pressTool(gameServerUrl, pressHooks(recorder))],
         base: { ...gatewayLoopConfig(model, PLAY_THINKING, apiKey), maxTokens },
         governor,
-        transformContext: recorder.transformContext,
+        transformContext: objectives?.transformContext ?? recorder.transformContext,
         emit: recorder.emit,
         signal: controller.signal,
       });
@@ -294,7 +299,7 @@ async function probe(verify = false): Promise<void> {
       model: { id: "manual-probe", context_window: 0, max_tokens: 0, vision: false },
       sampling: { thinking_level: "none", max_tokens: 0 },
       systemPrompt: "Manual game-state validation probe; excluded from benchmark results.",
-      tools: ["observe", "press"], startState, harnessFeatures: ["observe", "press", "probe", "manual-control", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "world-targets-v1", "live-player-position-v1", "world-coordinate-grid-v1", "press-result-v1"],
+      tools: ["observe", "press"], startState, harnessFeatures: ["probe", "manual-control", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "world-targets-v1", "live-player-position-v1", "world-coordinate-grid-v1", "press-result-v1"],
       budgets: {}, piVersion: piVersion(),
     }, realHost(port, saved), new FrameStore(RUNS_ROOT), (recorder, url) => driveProbe(recorder, url, verify ? verifyIntro(new StateWatcher(url), (label, state) => { console.log(`CHECKPOINT ${label} ${JSON.stringify(state)}`); }) : commands()));
     console.log(`probe ended: ${reason}`);

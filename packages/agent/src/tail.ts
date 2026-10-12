@@ -17,6 +17,8 @@ function clock(seconds: number): string {
 
 function body(event: RunEvent): [string, string] {
   switch (event.type) {
+    case "objective_update": return ["objective", `${event.objective.status}: ${event.objective.title}`];
+    case "objective_attempt": return ["attempt", `${event.attempt.outcome}${event.attempt.warning === null ? "" : `: ${event.attempt.warning}`}`];
     case "run_start": {
       const start = event.start_state.kind === "boot" ? "boot" : event.start_state.path;
       const vision = event.model.vision ? " (vision)" : "";

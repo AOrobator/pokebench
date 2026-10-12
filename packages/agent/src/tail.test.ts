@@ -36,6 +36,8 @@ describe("formatEvent", () => {
       "21:40:05   t1 PRESS      UP A (hold 10f, release 8f)",
       "21:40:05   t1 TELEMETRY  state read failed: GET http://127.0.0.1:8000/state returned HTTP 503",
       "21:40:05   t1 STREAM     think: Look at the screen",
+      "21:40:05   t0 objective  active: Get starter",
+      "21:40:05   t1 attempt    no_change",
     ]);
   });
 

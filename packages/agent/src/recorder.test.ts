@@ -397,3 +397,14 @@ describe("RunRecorder frame retention", () => {
   });
 });
 
+
+it("records objective deltas and sends the validated state to subscribers", async () => {
+  const { recorder, log } = harness();
+  const seen: RunEvent[] = [];
+  recorder.subscribe((event) => { seen.push(event); });
+  await recorder.start(START_META);
+  const state = recorder.recordState(STATE);
+  recorder.recordObjective({ type: "objective_attempt", turn: 99, attempt: { id: "p1", objective_id: "o1", buttons: ["A"], before_seq: state.seq, after_seq: state.seq, outcome: "unavailable", failure_count: 0, warning: null, retry_justification: null } });
+  expect(seen.at(-1)).toMatchObject({ type: "objective_attempt", turn: 0 });
+  expect(events(log).at(-2)).toMatchObject({ type: "state", position: STATE.position });
+});

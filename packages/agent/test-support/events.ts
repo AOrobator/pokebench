@@ -78,6 +78,9 @@ export const SAMPLES: readonly EventBody[] = [
   { type: "button_press", turn: 1, tool_call_id: "call_2", buttons: ["UP", "A"], hold_frames: 10, release_frames: 8 },
   { type: "telemetry_error", turn: 1, source: "state", message: "GET http://127.0.0.1:8000/state returned HTTP 503" },
   { type: "assistant_delta", turn: 1, thinking: "Look at the\nscreen", text: "" },
+  { type: "objective_update", turn: 0, objective: { id: "o1", revision: 1, goal: "Reach gym", title: "Get starter", supports_goal: "Need a Pokémon", evidence: [1], completion: { kind: "state", field: "party_count", value: 1 }, obstacle: "", next_decision: "Observe", status: "active", completion_evidence: [] } },
+  { type: "objective_attempt", turn: 1, attempt: { id: "a1", objective_id: "o1", buttons: ["A"], before_seq: 1, after_seq: 2, outcome: "no_change", failure_count: 1, warning: null, retry_justification: null } },
+
 ];
 
 export function sample(index: number): EventBody {

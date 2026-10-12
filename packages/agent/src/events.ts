@@ -1,5 +1,6 @@
 import { Type, type Static, type TSchema } from "typebox";
 import { Value } from "typebox/value";
+import { ObjectiveSchema, makeAttemptSchema } from "./objective-schema.js";
 
 // v1.1 is additive (state, compaction, press timing), so the envelope stays 1
 // and every v1.0 log still validates.
@@ -206,7 +207,12 @@ const RunEnd = event("run_end", {
   frames: Type.Object({ saved: NonNegativeInt, bytes: NonNegativeInt }, closed),
 });
 
+const ObjectiveUpdate = event("objective_update", { objective: ObjectiveSchema });
+const ObjectiveAttempt = event("objective_attempt", { attempt: makeAttemptSchema(ButtonSchema) });
+
 export const RunEventSchema = Type.Union([
+  ObjectiveUpdate,
+  ObjectiveAttempt,
   RunStart,
   TurnStart,
   Assistant,

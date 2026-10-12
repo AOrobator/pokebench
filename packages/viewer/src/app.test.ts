@@ -542,3 +542,17 @@ it("renders field observations through the event stream and app", async () => {
   expect(panel.innerHTML).toContain("&lt;wild warning&gt;");
   expect(panel.querySelector("wild")).toBeNull();
 });
+
+
+it("shows streamed objective history live and reconstructs it when replay seeks", async () => {
+  const { app, streams } = await harness();const stream = must(streams[0]);const log = new Log();
+  log.add(0, START);
+  log.add(100, { type: "objective_update", turn: 1, objective: { id: "objective-1", revision: 1, goal: "Reach gym", title: "Set clock", supports_goal: "Observed instruction", evidence: [0], completion: { kind: "visual", description: "Clock confirms" }, obstacle: "Need facing", next_decision: "Face north", status: "active", completion_evidence: [] } });
+  log.add(200, { type: "objective_attempt", turn: 1, attempt: { id: "p1", objective_id: "objective-1", buttons: ["A"], before_seq: 0, after_seq: 1, outcome: "no_change", failure_count: 2, warning: "Reassess approach", retry_justification: null } });
+  feed(stream, log.events);
+  expect(app.mode).toBe("live");expect(ui("objective").textContent).toContain("Set clock");expect(ui("objective").textContent).toContain("Reassess approach");
+  const end = log.add(300, { type: "run_end", turn: 1, reason: "budget", furthest_milestone: null, turns: 1, wall_ms: 300, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } });
+  feed(stream, [end]);stream.send("done", {});expect(app.mode).toBe("replay");
+  app.clock?.seek(BASE_MS);app.tick(0);expect(ui("objective").textContent).toContain("No objective recorded");
+  app.clock?.seek(BASE_MS + 250);app.tick(0);expect(ui("objective").textContent).toContain("Set clock");expect(ui("objective").textContent).toContain("Attempt history (1)");expect(ui("objective").textContent).toContain("Reassess approach");
+});

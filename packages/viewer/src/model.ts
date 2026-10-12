@@ -48,6 +48,8 @@ export interface Thought {
 // One entry per schema event type: adding a type to the agent schema fails to
 // compile here until the viewer lists it.
 const KNOWN: Record<RunEvent["type"], true> = {
+  objective_update: true,
+  objective_attempt: true,
   run_start: true,
   turn_start: true,
   assistant: true,
@@ -97,6 +99,8 @@ export class RunView {
   frame: string | null = null;
   state: StateEvent | null = null;
   legacyState = false;
+  objective: Of<"objective_update">["objective"] | null = null;
+  readonly attempts: Of<"objective_attempt">["attempt"][] = [];
   context: Of<"turn_start">["context"] | null = null;
   disk: { bytes: number; cap_bytes: number; percent: number } | null = null;
   retry: { count: number; attempt: number; limit: number } | null = null;
@@ -131,6 +135,8 @@ export class RunView {
     this.lastMs = ms;
     this.turn = Math.max(this.turn, event.turn);
     switch (event.type) {
+      case "objective_update": this.objective = event.objective; break;
+      case "objective_attempt": this.attempts.push(event.attempt); break;
       case "run_start":
         this.start = event;
         this.startMs = ms;

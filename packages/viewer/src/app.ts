@@ -4,7 +4,7 @@ import type { RunEvent } from "@pokebench/agent/events";
 import { eventMs, hms } from "./format.js";
 import { gbaSvg, litButtons } from "./gba.js";
 import { RunView, isRunEvent } from "./model.js";
-import { actionRow, brand, budgets, counters, fieldContext, inspector, party, splits, thinkingDialog, trainerCard, type Baseline } from "./panels.js";
+import { actionRow, brand, budgets, counters, fieldContext, objectivePanel, inspector, party, splits, thinkingDialog, trainerCard, type Baseline } from "./panels.js";
 import { ReplayClock } from "./replay.js";
 import { lanesSvg } from "./timeline.js";
 
@@ -385,6 +385,7 @@ export class App {
     this.setHtml("trainer", trainerCard(view, nowMs));
     this.setHtml("field-context", fieldContext(view));
     this.setHtml("party", party(view));
+    this.setHtml("objective", objectivePanel(view));
     this.setHtml("budgets", budgets(view, nowMs));
     this.setHtml("counters", counters(view));
     const split = splits(view, this.baseline, nowMs);

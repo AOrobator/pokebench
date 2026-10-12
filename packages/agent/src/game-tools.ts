@@ -2,6 +2,7 @@ import type { AgentMessage, AgentTool } from "@mariozechner/pi-agent-core";
 import type { AssistantMessage, ImageContent, TextContent, ToolResultMessage } from "@mariozechner/pi-ai";
 import { Type } from "typebox";
 import { Value } from "typebox/value";
+import type { GameStateSnapshot } from "./game-state.js";
 import { ButtonSchema, StateBodySchema, type Button } from "./events.js";
 import { parseGameState, type GameStateSnapshot } from "./game-state.js";
 import { pressResult } from "./press-result.js";
@@ -64,14 +65,14 @@ async function observation(
   fetchFn: typeof fetch,
   signal: AbortSignal | undefined,
   prefix: string | ((state: GameStateSnapshot) => string) = "",
-): Promise<ObservationContent> {
+): Promise<{ content: ObservationContent; state: GameStateSnapshot }> {
   const body = await getJson(`${gameServerUrl}/pokebench/observation`, fetchFn, 15_000, signal);
   if (!Value.Check(ObservationSchema, body)) throw new Error("malformed /pokebench/observation payload");
   checkFrame(body.screenshot_base64);
-  return [
+  return { content: [
     { type: "image", data: body.screenshot_base64, mimeType: "image/png" },
     { type: "text", text: `${typeof prefix === "string" ? prefix : prefix(body.state)}${body.state_text}` },
-  ];
+  ], state: body.state };
 }
 
 export function observeTool(gameServerUrl: string, fetchFn: typeof fetch = fetch): AgentTool {
@@ -80,10 +81,10 @@ export function observeTool(gameServerUrl: string, fetchFn: typeof fetch = fetch
     label: "Observe",
     description: "See the current game screen and the game state read from memory (location, party, map).",
     parameters: NoArgs,
-    execute: async (_toolCallId, _params, signal) => ({
-      content: await observation(gameServerUrl, fetchFn, signal),
-      details: undefined,
-    }),
+    execute: async (_toolCallId, _params, signal) => {
+      const result = await observation(gameServerUrl, fetchFn, signal);
+      return { content: result.content, details: { state: result.state } };
+    },
   };
 }
 
@@ -211,7 +212,7 @@ export function pressTool(
       await clock.sleep(STATE_CACHE_SETTLE_MS);
       await hooks.afterPress();
       const content = await observation(gameServerUrl, fetchFn, signal, (after) => `pressed ${params.buttons.join(", ")}\nPress result: ${pressResult(before, after, params.buttons)}\n\n`);
-      return { content, details: undefined };
+      return { content: content.content, details: { state: content.state } };
     },
   };
 }

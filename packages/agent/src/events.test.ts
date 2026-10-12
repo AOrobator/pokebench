@@ -16,6 +16,8 @@ describe("event schema", () => {
     const types = new Set(SAMPLES.map((body) => body.type));
     expect([...types].sort()).toEqual(
       [
+        "objective_update",
+        "objective_attempt",
         "assistant",
         "assistant_delta",
         "button_press",

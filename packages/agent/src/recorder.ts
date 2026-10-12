@@ -1,8 +1,8 @@
 import type { AgentEvent, AgentMessage } from "@mariozechner/pi-agent-core";
 import type { AssistantMessage, AssistantMessageEvent, ImageContent, TextContent } from "@mariozechner/pi-ai";
-import type { BodyOf, Button, RunEndReason } from "./events.js";
+import type { BodyOf, Button, RunEndReason, RunEvent, EventBody } from "./events.js";
 import type { FrameRef, FrameStore } from "./frames.js";
-import type { StateSource } from "./game-state.js";
+import type { GameStateSnapshot, StateSource } from "./game-state.js";
 import type { MilestoneSource } from "./milestones.js";
 import type { RunLog } from "./run-log.js";
 
@@ -95,9 +95,21 @@ export class RunRecorder {
     this.now = deps.now ?? (() => performance.now());
   }
 
+  private readonly observers: ((event: RunEvent) => void)[] = [];
+  subscribe(observer: (event: RunEvent) => void): void { this.observers.push(observer); }
+  private append(body: EventBody): RunEvent {
+    const event = this.log.append(body);
+    for (const observer of this.observers) observer(event);
+    return event;
+  }
+  recordObjective(body: BodyOf<"objective_update"> | BodyOf<"objective_attempt">): void { this.append({ ...body, turn: this.turn }); }
+  recordState(state: GameStateSnapshot): Extract<Extract<RunEvent, { type: "state" }>, { started: boolean }> {
+    return this.append({ type: "state", turn: this.turn, ...state }) as Extract<Extract<RunEvent, { type: "state" }>, { started: boolean }>;
+  }
+
   async start(meta: RunStartMeta): Promise<void> {
     this.startedAt = this.now();
-    this.log.append({ type: "run_start", turn: 0, ...meta });
+    this.append({ type: "run_start", turn: 0, ...meta });
     await this.checkMilestones();
     this.frames.attach(this.log);
   }
@@ -107,7 +119,7 @@ export class RunRecorder {
     this.requestAt = this.now();
     this.firstTokenAt = null;
     this.stream = { thinking: "", text: "", flushedAt: this.requestAt };
-    this.log.append({ type: "turn_start", turn: this.turn, context: contextSize(messages) });
+    this.append({ type: "turn_start", turn: this.turn, context: contextSize(messages) });
     return Promise.resolve(messages);
   };
 
@@ -146,7 +158,7 @@ export class RunRecorder {
     const { thinking, text } = this.stream;
     this.stream = { thinking: "", text: "", flushedAt: this.now() };
     if (thinking === "" && text === "") return;
-    this.log.append({ type: "assistant_delta", turn: this.turn, thinking, text });
+    this.append({ type: "assistant_delta", turn: this.turn, thinking, text });
   }
 
   private recordAssistant(message: AssistantMessage): void {
@@ -157,7 +169,7 @@ export class RunRecorder {
       block.type === "toolCall" ? [{ id: block.id, name: block.name, args: block.arguments }] : [],
     );
     this.tokens = { input: this.tokens.input + message.usage.input, output: this.tokens.output + message.usage.output };
-    this.log.append({
+    this.append({
       type: "assistant",
       turn: this.turn,
       thinking,
@@ -174,7 +186,7 @@ export class RunRecorder {
   private recordToolCall(id: string, name: string, args: unknown): void {
     if (!isRecord(args)) throw new RecorderError(`tool ${name} called with non-object arguments`);
     this.toolStarts.set(id, this.now());
-    this.log.append({ type: "tool_call", turn: this.turn, id, name, args });
+    this.append({ type: "tool_call", turn: this.turn, id, name, args });
   }
 
   private recordToolResult(id: string, name: string, result: unknown, isError: boolean): void {
@@ -197,7 +209,7 @@ export class RunRecorder {
       this.saved = { saved: this.saved.saved + 1, bytes: this.saved.bytes + Buffer.from(data, "base64").length };
       return `<frame ${ref.path}>`;
     });
-    this.log.append({
+    this.append({
       type: "tool_result",
       turn: this.turn,
       id,
@@ -211,7 +223,7 @@ export class RunRecorder {
   }
 
   buttonPress(toolCallId: string, buttons: readonly Button[], timing: PressTiming): void {
-    this.log.append({
+    this.append({
       type: "button_press",
       turn: this.turn,
       tool_call_id: toolCallId,
@@ -229,7 +241,7 @@ export class RunRecorder {
       this.telemetryError("milestones", error);
     }
     try {
-      this.log.append({ type: "state", turn: this.turn, ...(await this.gameState.read()) });
+      this.append({ type: "state", turn: this.turn, ...(await this.gameState.read()) });
     } catch (error) {
       this.telemetryError("state", error);
     }
@@ -237,17 +249,17 @@ export class RunRecorder {
 
   private telemetryError(source: "milestones" | "state", error: unknown): void {
     const message = error instanceof Error ? error.message : String(error);
-    this.log.append({ type: "telemetry_error", turn: this.turn, source, message });
+    this.append({ type: "telemetry_error", turn: this.turn, source, message });
   }
 
   compaction(fromTokens: number, toTokens: number): void {
-    this.log.append({ type: "compaction", turn: this.turn, from_tokens: fromTokens, to_tokens: toTokens });
+    this.append({ type: "compaction", turn: this.turn, from_tokens: fromTokens, to_tokens: toTokens });
   }
 
   async checkMilestones(): Promise<void> {
     for (const milestone of await this.milestones.poll()) {
       this.furthest = milestone.name;
-      this.log.append({
+      this.append({
         type: "milestone",
         turn: this.turn,
         name: milestone.name,
@@ -257,11 +269,11 @@ export class RunRecorder {
   }
 
   retry(reason: string, attempt: number, limit: number): void {
-    this.log.append({ type: "retry", turn: this.turn, reason, attempt, limit });
+    this.append({ type: "retry", turn: this.turn, reason, attempt, limit });
   }
 
   end(reason: RunEndReason): void {
-    this.log.append({
+    this.append({
       type: "run_end",
       turn: this.turn,
       reason,

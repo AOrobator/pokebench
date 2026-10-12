@@ -31,6 +31,9 @@ describe("formatEvent", () => {
       "21:40:05   t1 DISK       frames at 10% of cap (50.0 MB)",
       "21:40:05   t1 EVICTED    3 frames (1.5 KB) from older-run",
       "21:40:05   t1 RUN END    budget, furthest GAME_RUNNING, 1 turns, 5.0s, 100→20 tok, 1 frames",
+      "21:40:05   t1 STATE      LITTLEROOT TOWN (5,8) overworld, party TORCHIC L5 18/20, ₽3000, 1 badges, play 0:12:34",
+      "21:40:05   t1 COMPACT    context 30000 → 4000 tokens",
+      "21:40:05   t1 PRESS      UP A (hold 10f, release 8f)",
     ]);
   });
 

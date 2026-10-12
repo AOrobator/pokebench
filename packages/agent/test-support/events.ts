@@ -57,6 +57,21 @@ export const SAMPLES: readonly EventBody[] = [
     tokens: { input: 100, output: 20 },
     frames: { saved: 1, bytes: 500 },
   },
+  {
+    type: "state",
+    turn: 1,
+    location: "LITTLEROOT TOWN",
+    position: { x: 5, y: 8 },
+    facing: null,
+    mode: "overworld",
+    in_battle: false,
+    party: [{ species: "TORCHIC", level: 5, hp: 18, max_hp: 20 }],
+    money: 3000,
+    badges: ["Stone"],
+    play_time_s: 754,
+  },
+  { type: "compaction", turn: 1, from_tokens: 30_000, to_tokens: 4_000 },
+  { type: "button_press", turn: 1, tool_call_id: "call_2", buttons: ["UP", "A"], hold_frames: 10, release_frames: 8 },
 ];
 
 export function sample(index: number): EventBody {

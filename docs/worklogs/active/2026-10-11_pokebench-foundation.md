@@ -244,6 +244,7 @@ Mac Studio (all local)
   - Context window: already in `run_start.model.context_window` (spec gap closed, no change).
 - M5.5 tasks (each RED → GREEN):
   - [ ] Schema v1.1 + recorder `state`/`compaction` + press hold/release, `schemas/events.v1.json` regenerated
+    - [x] COMMIT: `test(agent): schema v1.1 state/compaction/press timing, vendor /state parser, recorder afterPress` (RED, this commit). vitest: 9 failed / 162 passed (new samples rejected, `game-state.ts` missing, press body lacks timing, recorder lacks `afterPress`/`compaction`, tail lacks STATE/COMPACT). Fixture `src/fixtures/vendor-state-title.json` is the real `/state` body from run `…890b` with the screenshot truncated.
   - [ ] Viewer model (pure fold of events → panels), formatting, replay clock
   - [ ] Renderers (GBA SVG + lights, thinking dialog, PokéNav panels, swimlanes, action log, inspector) with explicit no-data states
   - [ ] Server: 127.0.0.1 bind, run list, SSE tail, frames, live-screen proxy; `just view [id]`

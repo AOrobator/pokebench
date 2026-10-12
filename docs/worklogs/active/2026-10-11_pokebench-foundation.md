@@ -189,13 +189,19 @@ Mac Studio (all local)
 - [x] Multi-model review loop: closed (one round plus a fix-delta check, per the proportional-review rule)
 - [x] **STOP — report to operator before M4** (2026-10-11 ~21:20 ET). The branch merges into main without conflicts; landing it is the operator's call.
 
-**M4 — Viewer (agent o11y)** *(operator-in-the-loop)*
-- [ ] **ASK USER:** design checkpoint. Layout, stack (web app on localhost), the event schema it consumes.
-- Outline: live frame, button-press timeline, streaming thinking, tool calls with arguments/results, milestone splits, tokens/latency per step. Replay of a past run from `runs/<id>/events.jsonl`.
+**M4 — Run event log (agent o11y foundation)** *(operator-in-the-loop; rescoped 2026-10-11, operator: "rewrite m4 that way, own viewer after m5")*
+- Context: the starter kit's `/stream` page already shows the live frame (websocket), a thinking panel fed by `POST /agent_step` (SSE, plain text, last 20 messages), recent actions, milestones, party, map and metrics. It has no structured tool calls, no per-step tokens or latency, and no replay, and it logs into the vendor `run_data/` (the cross-run bleed seen in M2). It can't be edited (INV-3).
+- Scope: the event schema (typed; turn start/end, thinking, tool call with arguments, tool result, button press, milestone from the game server, tokens and latency, terminal stop record per PB2) and a writer to `runs/<id>/events.jsonl`. Events are written before they are acted on (PB7). Run metadata: model id from discovery, sampling settings, harness commit, vendor pin, start state (PB3). The pi-agent-core event stream is the source.
+- [ ] **ASK USER (open, under discussion 2026-10-11):** also mirror events into the starter kit's `/stream` thinking panel (`POST /agent_step`) as a stopgap live view until the PokeBench viewer exists, or rely on `events.jsonl` plus a terminal tail until then?
+- [ ] **ASK USER:** schema checkpoint before RED.
 
 **M5 — Minimal agent** *(operator-in-the-loop)*
 - [ ] **ASK USER:** harness checkpoint. agent-core vs coding-agent SDK; tool set; image pruning policy.
-- Outline: observe→act loop with state/map/screenshot/press/navigate tools on think-swarm; persisted event log; first measured run against the milestones.
+- Outline: observe→act loop with state/map/screenshot/press/navigate tools on think-swarm, writing M4's event log; first measured run against the milestones.
+
+**M5.5 — PokeBench viewer** *(operator-in-the-loop; after M5 so it is designed against real runs)*
+- [ ] **ASK USER:** design checkpoint. Layout, stack (served next to the game server like M2.5's `/view`, or a separate localhost app).
+- Outline: reads only `runs/<id>/events.jsonl` (live tail and replay of past runs). Live frame, button-press timeline, thinking, tool calls with arguments and results, milestone splits, tokens and latency per step. It may embed the starter kit's frame/map/party panels instead of rebuilding them.
 
 **M6 — Specialized harness → Roxanne** *(operator-in-the-loop)*
 - [ ] **ASK USER:** plan checkpoint after the M5 failure-mode analysis.

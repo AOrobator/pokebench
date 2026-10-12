@@ -186,3 +186,15 @@ def test_the_vendored_map_groups_name_the_truck() -> None:
         / "vendor/continual-harness/pokemon_env/porymap/data/maps"
     )
     assert MapNames.load(root).name((25, 40)) == "INSIDE OF TRUCK"
+
+
+def test_dialog_and_menu_come_from_the_ui_reader() -> None:
+    from pokebench_env.ui_state import PRINTER0_ACTIVE, STRING_VAR4
+
+    memory = Memory()
+    memory.put(0x030022C0 + 4, struct.pack("<I", NAMING[1]))
+    memory.put(STRING_VAR4, text("Hi") + b"\xff")
+    memory.put(PRINTER0_ACTIVE, b"\x01")
+    state = read_game_state(memory.read, MapNames({}))
+    assert state.dialog == "Hi"
+    assert state.menu is None

@@ -9,7 +9,7 @@ import {
 import { Type } from "typebox";
 import { describe, expect, it } from "vitest";
 import { PRESS_TIMING, pressTool } from "./game-tools.js";
-import { Governor, NUDGE, OMITTED_FRAME, piLoop, play, slideWindow, type Loop } from "./harness.js";
+import { Governor, NUDGE, OMITTED_FRAME, keepCount, piLoop, play, slideWindow, type Loop, type Window } from "./harness.js";
 
 const usage = {
   input: 0,
@@ -57,45 +57,87 @@ function toolResult(images = 1, isError = false, text = "Location: X"): ToolResu
 
 const TASK: AgentMessage = { role: "user", content: "Play.", timestamp: 0 };
 
-function imageCount(messages: AgentMessage[]): number {
-  return messages
-    .flatMap((m) => (m.role === "toolResult" ? m.content : []))
-    .filter((part) => part.type === "image").length;
+describe("keepCount", () => {
+  it("keeps everything up to the max, then drops in whole chunks", () => {
+    const kept = [1, 6, 7, 8, 9, 10, 12, 13].map((n) => keepCount(n, { max: 6, chunk: 3 }));
+    expect(kept).toEqual([1, 6, 4, 5, 6, 4, 6, 4]);
+  });
+});
+
+function readout(location: string, pressed = "pressed A"): string {
+  return `${pressed}\n\n=== PLAYER INFO ===\nPosition: X=3, Y=4\nMoney: $0\n\n=== LOCATION INFO ===\nCurrent Location: ${location}\n${"map row\n".repeat(50)}`;
+}
+
+function turnsOf(n: number): AgentMessage[] {
+  return Array.from({ length: n }, (_, i) => [reply([`t${String(i)}`]), toolResult(1, false, readout(`TOWN ${String(i)}`))]).flat();
+}
+
+function resultTexts(messages: AgentMessage[]): string[] {
+  return messages.flatMap((m) => (m.role === "toolResult" ? [m.content.map((p) => (p.type === "text" ? p.text : "<img>")).join(" | ")] : []));
 }
 
 describe("slideWindow", () => {
+  const window: Window = { turns: { max: 20, chunk: 10 }, results: { max: 6, chunk: 3 } };
+
   it("keeps everything when under both limits", () => {
-    const messages = [TASK, reply(), toolResult(), reply(), toolResult()];
-    expect(slideWindow(messages, { turns: 20, images: 3 })).toEqual(messages);
+    const messages = [TASK, ...turnsOf(5)];
+    expect(slideWindow(messages, window)).toEqual(messages);
   });
 
   it("returns an empty context unchanged", () => {
-    expect(slideWindow([], { turns: 20, images: 3 })).toEqual([]);
+    expect(slideWindow([], window)).toEqual([]);
   });
 
-  it("drops whole old turns but always keeps the task", () => {
-    const turns = Array.from({ length: 5 }, (_, i) => [reply([`t${String(i)}`]), toolResult(0)]).flat();
-    const window = slideWindow([TASK, ...turns], { turns: 2, images: 3 });
-    expect(window[0]).toBe(TASK);
-    expect(window.slice(1)).toEqual(turns.slice(6));
-    expect(window[1]?.role).toBe("assistant");
+  it("collapses older tool results to a one-line summary and keeps recent ones whole", () => {
+    const out = slideWindow([TASK, ...turnsOf(7)], window);
+    const texts = resultTexts(out);
+    expect(texts.slice(0, 3)).toEqual([
+      `pressed A · TOWN 0 (X=3, Y=4) ${OMITTED_FRAME}`,
+      `pressed A · TOWN 1 (X=3, Y=4) ${OMITTED_FRAME}`,
+      `pressed A · TOWN 2 (X=3, Y=4) ${OMITTED_FRAME}`,
+    ]);
+    expect(texts.slice(3).every((text) => text.endsWith(" | <img>") && text.includes("map row"))).toBe(true);
   });
 
-  it("keeps only the newest screenshots as images and marks older ones", () => {
-    const messages = [TASK, reply(), toolResult(1), reply(), toolResult(2), reply(), toolResult(1)];
-    const window = slideWindow(messages, { turns: 20, images: 3 });
-    expect(imageCount(window)).toBe(3);
-    const first = window[2] as ToolResultMessage;
-    expect(first.content).toEqual([{ type: "text", text: "Location: X" }, { type: "text", text: OMITTED_FRAME }]);
-    const second = window[4] as ToolResultMessage;
-    expect(second.content.map((part) => part.type)).toEqual(["text", "image", "image"]);
-    expect(messages[2]).toEqual(toolResult(1));
+  it("summarizes an observe result and a result without a readout", () => {
+    const observed = toolResult(1, false, readout("ROUTE 101", "").trimStart());
+    const failed = toolResult(0, true, "POST /action failed: queue full");
+    const out = slideWindow([TASK, reply(), observed, reply(), failed, ...turnsOf(6)], window);
+    expect(resultTexts(out).slice(0, 2)).toEqual([
+      `observed · ROUTE 101 (X=3, Y=4) ${OMITTED_FRAME}`,
+      "POST /action failed: queue full",
+    ]);
+  });
+
+  it("leaves the start of the prompt unchanged between chunk boundaries (prompt cache)", () => {
+    const at = (n: number) => slideWindow([TASK, ...turnsOf(n)], window);
+    for (const n of [7, 8]) {
+      const before = at(n);
+      const after = at(n + 1);
+      expect(after.slice(0, before.length - 2)).toEqual(before.slice(0, before.length - 2));
+    }
+  });
+
+  it("drops whole old turns in chunks but always keeps the task", () => {
+    const sizes = [20, 21, 29, 30, 31].map((n) => slideWindow([TASK, ...turnsOf(n)], window).filter((m) => m.role === "assistant").length);
+    expect(sizes).toEqual([20, 11, 19, 20, 11]);
+    const out = slideWindow([TASK, ...turnsOf(21)], window);
+    expect(out[0]).toBe(TASK);
+    expect(out[1]?.role).toBe("assistant");
   });
 
   it("drops a nudge that precedes the oldest kept turn", () => {
     const nudge: AgentMessage = { role: "user", content: NUDGE, timestamp: 0 };
+    const small: Window = { turns: { max: 1, chunk: 1 }, results: { max: 6, chunk: 3 } };
     const messages = [TASK, reply(), toolResult(0), reply([]), nudge, reply(), toolResult(0)];
-    expect(slideWindow(messages, { turns: 1, images: 3 })).toEqual([TASK, reply(), toolResult(0)]);
+    expect(slideWindow(messages, small)).toEqual([TASK, reply(), toolResult(0)]);
+  });
+
+  it("does not mutate the full transcript", () => {
+    const messages = [TASK, ...turnsOf(8)];
+    const copy = structuredClone(messages);
+    slideWindow(messages, window);
+    expect(messages).toEqual(copy);
   });
 });
 

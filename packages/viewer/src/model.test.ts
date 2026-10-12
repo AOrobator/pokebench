@@ -107,6 +107,18 @@ describe("RunView", () => {
     expect(fold(log).errors[0]?.label).toBe("model error: unknown");
   });
 
+  it("closes open thinking and tool spans when the run ends mid-turn", () => {
+    const log = new Log();
+    log.add(0, START);
+    log.add(100, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 10 } });
+    log.add(200, { type: "tool_call", turn: 1, id: "c1", name: "press", args: {} });
+    log.add(900, { type: "run_end", turn: 1, reason: "crash", furthest_milestone: null, turns: 1, wall_ms: 900, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } });
+    const view = fold(log);
+    expect(view.isThinking).toBe(false);
+    expect(view.thinkingSpans).toEqual([{ startMs: BASE_MS + 100, endMs: BASE_MS + 900 }]);
+    expect(view.toolSpans).toEqual([{ startMs: BASE_MS + 200, endMs: BASE_MS + 900, name: "press", error: false }]);
+  });
+
   it("ignores an event it has already applied", () => {
     const log = fullRun();
     const view = fold(log);

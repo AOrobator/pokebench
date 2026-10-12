@@ -267,6 +267,37 @@ describe("viewer app", () => {
     expect(ui("splits-summary").innerHTML).toContain("no baseline");
   });
 
+  it("ignores a baseline response that arrives after the picker moved on", async () => {
+    document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
+    const pending: ((value: unknown) => void)[] = [];
+    const streams: FakeStream[] = [];
+    const app = await mountApp(document, {
+      fetchJson: (url) =>
+        url === "/api/runs"
+          ? Promise.resolve(RUNS)
+          : new Promise((resolve) => {
+              pending.push(resolve);
+            }),
+      openStream: (url) => {
+        const stream = new FakeStream(url);
+        streams.push(stream);
+        return stream;
+      },
+      now: () => BASE_MS,
+      hash: `#run=${M4_ID}`,
+    });
+    feed(must(streams[0]), fullRun().events);
+    const baseline = ui("baseline") as HTMLSelectElement;
+    baseline.value = "2026-10-11T21-00-00_old";
+    baseline.dispatchEvent(new Event("change"));
+    baseline.value = "";
+    baseline.dispatchEvent(new Event("change"));
+    must(pending[0])({ run: "2026-10-11T21-00-00_old", milestones: [{ name: "GAME_RUNNING", offsetMs: 5 }] });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    app.tick(0);
+    expect(ui("splits-summary").innerHTML).toContain("no baseline");
+  });
+
   it("switches runs from the picker and closes the old stream", async () => {
     const { streams } = await harness();
     feed(must(streams[0]), fullRun().events.slice(0, 4));

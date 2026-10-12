@@ -97,6 +97,20 @@ describe("baselineOf", () => {
     });
   });
 
+  it("refuses a baseline with an invalid line or another run's events", () => {
+    const runsRoot = root();
+    const path = writeRun(runsRoot, "torn", fullRun());
+    appendFileSync(path, "{broken\n");
+    expect(() => baselineOf(runsRoot, "torn")).toThrow(/line 15/);
+    const foreign = fullRun();
+    const runsRoot2 = root();
+    const dir = join(runsRoot2, "mixed");
+    mkdirSync(dir);
+    const lines = foreign.events.map((event) => JSON.stringify(event.type === "milestone" ? { ...event, run: "someone-else" } : { ...event, run: "mixed" }));
+    writeFileSync(join(dir, "events.jsonl"), `${lines.join("\n")}\n`);
+    expect(() => baselineOf(runsRoot2, "mixed")).toThrow(/someone-else/);
+  });
+
   it("fails for a run without a readable start", () => {
     const runsRoot = root();
     mkdirSync(join(runsRoot, "x"));

@@ -194,6 +194,10 @@ describe("viewer server", () => {
       ],
     });
     expect((await get(viewer, "/api/runs/missing/milestones")).status).toBe(404);
+    appendFileSync(join(runsRoot, "base", "events.jsonl"), "{broken\n");
+    const torn = await get(viewer, "/api/runs/base/milestones");
+    expect(torn.status).toBe(422);
+    expect(JSON.parse(torn.body.toString())).toMatchObject({ error: expect.stringContaining("line 15") as string });
   });
 
   it("proxies the live screen from the run's own game server while it runs", async () => {

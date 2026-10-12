@@ -16,6 +16,7 @@ import { loadConfig } from "./config.js";
 import { checkSmoke, observeTool, pressTool, serverHealthy } from "./game-tools.js";
 import { discoverModels, selectModel, type GatewayModel } from "./gateway.js";
 import { FrameStore } from "./frames.js";
+import { StateWatcher } from "./game-state.js";
 import { MilestoneWatcher } from "./milestones.js";
 import { Governor, piLoop, play, type Limits } from "./harness.js";
 import { gatewayLoopConfig } from "./provider.js";
@@ -92,6 +93,7 @@ function realHost(port: number): RunHost {
     harness: () => harnessInfo(git(REPO_ROOT)),
     vendorPin: () => git(VENDOR_DIR)(["rev-parse", "HEAD"]).trim(),
     milestones: new MilestoneWatcher(url),
+    gameState: new StateWatcher(url),
   };
 }
 
@@ -118,10 +120,10 @@ async function live(): Promise<Live> {
 
 function pressHooks(recorder: RunRecorder): Parameters<typeof pressTool>[1] {
   return {
-    beforePress: (id, buttons) => {
-      recorder.buttonPress(id, buttons);
+    beforePress: (id, buttons, timing) => {
+      recorder.buttonPress(id, buttons, timing);
     },
-    afterPress: () => recorder.checkMilestones(),
+    afterPress: () => recorder.afterPress(),
   };
 }
 

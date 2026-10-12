@@ -8,7 +8,7 @@ import {
 } from "@mariozechner/pi-ai";
 import { Type } from "typebox";
 import { describe, expect, it } from "vitest";
-import { pressTool } from "./game-tools.js";
+import { PRESS_TIMING, pressTool } from "./game-tools.js";
 import { Governor, NUDGE, OMITTED_FRAME, piLoop, play, slideWindow, type Loop } from "./harness.js";
 
 const usage = {
@@ -428,6 +428,6 @@ describe("piLoop on the pinned pi-agent-core loop", () => {
     );
     const loop = realLoop(g, [tool], [pressReply(["A"], ["B"])], [], controller.signal);
     expect(await play(TASK, g, loop)).toBe("budget");
-    expect(posts).toEqual([JSON.stringify({ buttons: ["A"] })]);
+    expect(posts).toEqual([JSON.stringify({ buttons: ["A"], ...PRESS_TIMING })]);
   });
 });

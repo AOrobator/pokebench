@@ -48,6 +48,20 @@ function host(options: { staleServer?: boolean; launchFails?: boolean } = {}): F
     harness: () => ({ commit: "0123456789abcdef0123456789abcdef01234567", dirty: true }),
     vendorPin: () => "bbab97ad73e460b7cd7c08527d10ced30cc03fbe",
     milestones: { poll: () => Promise.resolve([]) },
+    gameState: {
+      read: () =>
+        Promise.resolve({
+          location: "TITLE_SEQUENCE",
+          position: null,
+          facing: null,
+          mode: "overworld",
+          in_battle: false,
+          party: [],
+          money: 0,
+          badges: [],
+          play_time_s: 0,
+        }),
+    },
   };
 }
 

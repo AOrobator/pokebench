@@ -1,0 +1,103 @@
+{
+  "visual": {
+    "resolution": [
+      240,
+      160
+    ],
+    "screenshot_base64": "iVBORw0KGgoAAAANSUhEUgAAAPAAAACg"
+  },
+  "player": {
+    "position": {
+      "x": 0,
+      "y": 0
+    },
+    "location": "TITLE_SEQUENCE",
+    "name": "        ",
+    "inventory": null
+  },
+  "game": {
+    "money": 0,
+    "party": null,
+    "game_state": "overworld",
+    "is_in_battle": false,
+    "time": [
+      0,
+      0,
+      0
+    ],
+    "badges": [],
+    "items": [],
+    "item_count": 0,
+    "pokedex_caught": 0,
+    "pokedex_seen": 0,
+    "dialog_text": null,
+    "progress_context": {
+      "badges_obtained": 0,
+      "badge_names": [],
+      "party_size": 0,
+      "has_pokedex": false,
+      "is_champion": false,
+      "visited_locations": [],
+      "flags": {
+        "badge_01": false,
+        "badge_02": false,
+        "badge_03": false,
+        "badge_04": false,
+        "badge_05": false,
+        "badge_06": false,
+        "badge_07": false,
+        "badge_08": false,
+        "visited_littleroot": false,
+        "visited_oldale": false,
+        "visited_dewford": false,
+        "visited_lavaridge": false,
+        "visited_fallarbor": false,
+        "visited_verdanturf": false,
+        "visited_pacifidlog": false,
+        "visited_petalburg": false,
+        "visited_slateport": false,
+        "visited_mauville": false,
+        "visited_rustboro": false,
+        "visited_fortree": false,
+        "visited_lilycove": false,
+        "visited_mossdeep": false,
+        "visited_sootopolis": false,
+        "visited_ever_grande": false,
+        "is_champion": false,
+        "has_pokedex": false
+      }
+    },
+    "dialogue_detected": {
+      "has_dialogue": false,
+      "confidence": 0,
+      "reason": "enhanced pokeemerald detection with cache validation"
+    }
+  },
+  "map": {
+    "tiles": null,
+    "tile_names": null,
+    "metatile_behaviors": null,
+    "metatile_info": null,
+    "traversability": null,
+    "object_events": [],
+    "stitched_map_info": {
+      "available": false,
+      "reason": "Map stitcher not initialized"
+    }
+  },
+  "milestones": {
+    "GAME_RUNNING": {
+      "completed": true,
+      "timestamp": 1791771387.728048,
+      "first_completed": 1791771387.728048,
+      "split_time": 0,
+      "split_formatted": "00:00:00",
+      "total_time": 0,
+      "total_formatted": "00:00:00"
+    }
+  },
+  "location_connections": {},
+  "step_number": 1,
+  "status": "running",
+  "action_queue_length": 0
+}

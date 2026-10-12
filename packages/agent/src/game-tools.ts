@@ -3,6 +3,7 @@ import type { AssistantMessage, ImageContent, TextContent, ToolResultMessage } f
 import { Type } from "typebox";
 import { Value } from "typebox/value";
 import { ButtonSchema, type Button } from "./events.js";
+import type { PressTiming } from "./recorder.js";
 
 const NoArgs = Type.Object({});
 
@@ -159,8 +160,12 @@ const PressArgs = Type.Object({ buttons: Type.Array(ButtonSchema, { minItems: 1,
 
 const ActionSchema = Type.Object({ status: Type.String(), message: Type.Optional(Type.String()) });
 
+// The pinned vendor's "normal" preset (server/app.py SPEED_PRESETS), sent
+// explicitly so the log records what the server was asked to do.
+export const PRESS_TIMING: PressTiming = { hold_frames: 10, release_frames: 8 };
+
 export interface PressHooks {
-  beforePress(toolCallId: string, buttons: readonly Button[]): void;
+  beforePress(toolCallId: string, buttons: readonly Button[], timing: PressTiming): void;
   afterPress(): Promise<void>;
 }
 
@@ -179,12 +184,12 @@ export function pressTool(
     execute: async (toolCallId, params, signal) => {
       // A stopped run (budget, operator abort) must not press anything further.
       signal?.throwIfAborted();
-      hooks.beforePress(toolCallId, params.buttons);
+      hooks.beforePress(toolCallId, params.buttons, PRESS_TIMING);
       const url = `${gameServerUrl}/action`;
       const response = await fetchFn(url, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ buttons: params.buttons }),
+        body: JSON.stringify({ buttons: params.buttons, ...PRESS_TIMING }),
         signal: deadline(15_000, signal),
       });
       const body: unknown = await response.json();

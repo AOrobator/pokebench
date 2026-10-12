@@ -1,6 +1,8 @@
 import { Type, type Static, type TSchema } from "typebox";
 import { Value } from "typebox/value";
 
+// v1.1 is additive (state, compaction, press timing), so the envelope stays 1
+// and every v1.0 log still validates.
 export const SCHEMA_VERSION = 1;
 export const RUN_ID_PATTERN = "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$";
 const EASTERN_TIMESTAMP_PATTERN = "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$";
@@ -89,9 +91,13 @@ const Assistant = event("assistant", {
 
 const ToolCall = event("tool_call", { id: Type.String(), name: Type.String(), args: Args });
 
+const Frames = Type.Integer({ minimum: 1, maximum: 255 });
+
 const ButtonPress = event("button_press", {
   tool_call_id: Type.String(),
   buttons: Type.Array(ButtonSchema, { minItems: 1 }),
+  hold_frames: Type.Optional(Frames),
+  release_frames: Type.Optional(Frames),
 });
 
 const ToolResult = event("tool_result", {
@@ -119,6 +125,37 @@ const FramesEvicted = event("frames_evicted", {
   bytes: NonNegativeInt,
 });
 
+export const StateBodySchema = Type.Object(
+  {
+    location: Type.String(),
+    position: Type.Union([Type.Object({ x: Type.Integer(), y: Type.Integer() }, closed), Type.Null()]),
+    facing: Type.Union([Type.String(), Type.Null()]),
+    mode: Type.String(),
+    in_battle: Type.Boolean(),
+    party: Type.Array(
+      Type.Object(
+        { species: Type.String(), level: NonNegativeInt, hp: NonNegativeInt, max_hp: NonNegativeInt },
+        closed,
+      ),
+    ),
+    money: NonNegativeInt,
+    badges: Type.Array(Type.String()),
+    play_time_s: NonNegativeInt,
+  },
+  closed,
+);
+
+const State = event("state", StateBodySchema.properties);
+
+const Compaction = event("compaction", { from_tokens: NonNegativeInt, to_tokens: NonNegativeInt });
+
+// A post-press read that failed after the press landed (operator 2026-10-12:
+// the press still succeeds; the failure is logged, not shown to the model).
+const TelemetryError = event("telemetry_error", {
+  source: Type.Enum(["milestones", "state"] as const),
+  message: Type.String(),
+});
+
 const RunEnd = event("run_end", {
   reason: RunEndReason,
   furthest_milestone: Type.Union([Type.String(), Type.Null()]),
@@ -140,6 +177,9 @@ export const RunEventSchema = Type.Union([
   DiskUsage,
   FramesEvicted,
   RunEnd,
+  State,
+  Compaction,
+  TelemetryError,
 ]);
 
 export type RunEvent = Static<typeof RunEventSchema>;
@@ -173,7 +213,7 @@ export function eventsJsonSchema(): Record<string, unknown> {
   return {
     $schema: "https://json-schema.org/draft/2020-12/schema",
     $id: "https://pokebench.example/schemas/events.v1.json",
-    title: "PokeBench run event (v1)",
+    title: "PokeBench run event (v1.1)",
     description: "One line of runs/<id>/events.jsonl. Generated from packages/agent/src/events.ts; do not edit.",
     ...(JSON.parse(JSON.stringify(RunEventSchema)) as Record<string, unknown>),
   };

@@ -1,6 +1,6 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import { describe, expect, it, vi } from "vitest";
-import { SmokeError, checkSmoke, observeTool, pressTool, serverHealthy, waitForQueue } from "./game-tools.js";
+import { PRESS_TIMING, SmokeError, checkSmoke, observeTool, pressTool, serverHealthy, waitForQueue } from "./game-tools.js";
 
 const SERVER = "http://127.0.0.1:8000";
 
@@ -193,8 +193,8 @@ describe("pressTool", () => {
     const tool = pressTool(
       SERVER,
       {
-        beforePress: (id, buttons) => {
-          order.push(`before ${id} ${buttons.join(",")}`);
+        beforePress: (id, buttons, timing) => {
+          order.push(`before ${id} ${buttons.join(",")} ${String(timing.hold_frames)}/${String(timing.release_frames)}`);
         },
         afterPress: () => {
           order.push("after");
@@ -206,7 +206,7 @@ describe("pressTool", () => {
     );
     const result = await tool.execute("call-9", { buttons: ["UP", "A"] });
     expect(order).toEqual([
-      "before call-9 UP,A",
+      "before call-9 UP,A 10/8",
       "POST /action",
       "GET /queue_status",
       "after",
@@ -214,12 +214,13 @@ describe("pressTool", () => {
     ]);
     expect(fetchFn).toHaveBeenCalledWith(
       `${SERVER}/action`,
-      expect.objectContaining({ method: "POST", body: JSON.stringify({ buttons: ["UP", "A"] }) }),
+      expect.objectContaining({ method: "POST", body: JSON.stringify({ buttons: ["UP", "A"], hold_frames: 10, release_frames: 8 }) }),
     );
     expect(result.content).toEqual([
       { type: "image", data: png(240, 160), mimeType: "image/png" },
       { type: "text", text: "pressed UP, A\n\nCurrent Location: LITTLEROOT TOWN" },
     ]);
+    expect(PRESS_TIMING).toEqual({ hold_frames: 10, release_frames: 8 });
   });
 
   it("presses nothing when the run is already stopped", async () => {

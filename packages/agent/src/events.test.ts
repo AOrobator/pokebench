@@ -18,12 +18,15 @@ describe("event schema", () => {
       [
         "assistant",
         "button_press",
+        "compaction",
         "disk_usage",
         "frames_evicted",
         "milestone",
         "retry",
         "run_end",
         "run_start",
+        "state",
+        "telemetry_error",
         "tool_call",
         "tool_result",
         "turn_start",
@@ -41,6 +44,12 @@ describe("event schema", () => {
     ["an unknown button", { ...ENVELOPE, ...SAMPLES[4], buttons: ["NOPE"] }],
     ["a disk percent off the 10% grid", { ...ENVELOPE, ...SAMPLES[8], percent: 15 }],
     ["a path-escaping run id", { ...ENVELOPE, ...RUN_START, run: "../x" }],
+    ["a state with an inline screenshot", { ...ENVELOPE, ...SAMPLES[11], screenshot_base64: "iVBORw0KGgo" }],
+    ["a state party member without hp", { ...ENVELOPE, ...SAMPLES[11], party: [{ species: "TORCHIC", level: 5, max_hp: 20 }] }],
+    ["a state with negative money", { ...ENVELOPE, ...SAMPLES[11], money: -1 }],
+    ["a zero-frame hold", { ...ENVELOPE, ...SAMPLES[13], hold_frames: 0 }],
+    ["a telemetry error from an unknown source", { ...ENVELOPE, ...SAMPLES[14], source: "map" }],
+    ["a compaction with a negative size", { ...ENVELOPE, ...SAMPLES[12], to_tokens: -5 }],
   ])("rejects %s", (_label, value) => {
     expect(() => parseEvent(JSON.stringify(value))).toThrow(EventError);
   });
@@ -48,6 +57,14 @@ describe("event schema", () => {
   it("accepts completed as a run_end reason", () => {
     const line = JSON.stringify({ ...ENVELOPE, ...SAMPLES[10], reason: "completed" });
     expect(parseEvent(line)).toMatchObject({ type: "run_end", reason: "completed" });
+  });
+
+  it("still accepts an M4 (v1.0) button_press without hold/release frames", () => {
+    expect(parseEvent(JSON.stringify({ ...ENVELOPE, ...SAMPLES[4] }))).not.toHaveProperty("hold_frames");
+  });
+
+  it("titles the exported schema v1.1", () => {
+    expect(eventsJsonSchema().title).toBe("PokeBench run event (v1.1)");
   });
 
   it("rejects a line that is not JSON", () => {

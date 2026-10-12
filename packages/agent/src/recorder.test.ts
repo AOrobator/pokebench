@@ -7,10 +7,23 @@ import { RUN_START_META as START_META } from "../test-support/events.js";
 import { assistant, toolCall, userImage, userText } from "../test-support/pi.js";
 import { parseEvent, type RunEvent } from "./events.js";
 import { FrameStore } from "./frames.js";
+import type { GameStateSnapshot } from "./game-state.js";
 import type { SeenMilestone } from "./milestones.js";
 import { RecorderError, RunRecorder } from "./recorder.js";
 import { RunLog } from "./run-log.js";
 
+
+const STATE: GameStateSnapshot = {
+  location: "LITTLEROOT TOWN",
+  position: { x: 5, y: 8 },
+  facing: null,
+  mode: "overworld",
+  in_battle: false,
+  party: [],
+  money: 0,
+  badges: [],
+  play_time_s: 12,
+};
 
 function harness(milestoneBatches: SeenMilestone[][] = [], capBytes = 1_000_000): {
   recorder: RunRecorder;
@@ -26,6 +39,7 @@ function harness(milestoneBatches: SeenMilestone[][] = [], capBytes = 1_000_000)
     log,
     frames,
     milestones: { poll: () => Promise.resolve(batches.shift() ?? []) },
+    gameState: { read: () => Promise.resolve(STATE) },
     now: () => clock,
   });
   return {
@@ -75,8 +89,8 @@ describe("RunRecorder", () => {
     });
     await recorder.emit({ type: "message_end", message: reply });
     await recorder.emit({ type: "tool_execution_start", toolCallId: "call_1", toolName: "press", args: { buttons: ["A"] } });
-    recorder.buttonPress("call_1", ["A"]);
-    await recorder.checkMilestones();
+    recorder.buttonPress("call_1", ["A"], { hold_frames: 10, release_frames: 8 });
+    await recorder.afterPress();
     advance(140);
     await recorder.emit({
       type: "tool_execution_end",
@@ -103,6 +117,7 @@ describe("RunRecorder", () => {
       "tool_call",
       "button_press",
       "milestone",
+      "state",
       "tool_result",
       "run_end",
     ]);
@@ -119,21 +134,22 @@ describe("RunRecorder", () => {
       stop_reason: "toolUse",
     });
     expect(log_[5]).toMatchObject({ turn: 1, id: "call_1", name: "press", args: { buttons: ["A"] } });
-    expect(log_[6]).toMatchObject({ turn: 1, tool_call_id: "call_1", buttons: ["A"] });
+    expect(log_[6]).toMatchObject({ turn: 1, tool_call_id: "call_1", buttons: ["A"], hold_frames: 10, release_frames: 8 });
     expect(log_[7]).toMatchObject({ name: "PLAYER_NAME_SET", server_timestamp: 20 });
-    expect(log_[8]).toMatchObject({
+    expect(log_[8]).toMatchObject({ type: "state", turn: 1, ...STATE });
+    expect(log_[9]).toMatchObject({
       id: "call_1",
       name: "press",
       is_error: false,
       duration_ms: 140,
       text: "pressed",
     });
-    const result = log_[8];
+    const result = log_[9];
     expect(result?.type === "tool_result" ? result.frames.map((frame) => frame.path) : []).toEqual([
-      "frames/000008_0.png",
+      "frames/000009_0.png",
     ]);
-    expect(readFileSync(join(log.runDir, "frames", "000008_0.png"), "utf8")).toBe("png-bytes");
-    expect(log_[9]).toMatchObject({
+    expect(readFileSync(join(log.runDir, "frames", "000009_0.png"), "utf8")).toBe("png-bytes");
+    expect(log_[10]).toMatchObject({
       reason: "budget",
       furthest_milestone: "PLAYER_NAME_SET",
       turns: 1,
@@ -182,6 +198,62 @@ describe("RunRecorder", () => {
     await recorder.start(START_META);
     recorder.retry("invalid tool arguments", 1, 3);
     expect(events(log).at(-1)).toMatchObject({ type: "retry", reason: "invalid tool arguments", attempt: 1, limit: 3 });
+  });
+
+  it("records a context compaction", async () => {
+    const { recorder, log } = harness();
+    await recorder.start(START_META);
+    recorder.compaction(30_000, 4_000);
+    expect(events(log).at(-1)).toMatchObject({ type: "compaction", from_tokens: 30_000, to_tokens: 4_000 });
+  });
+
+  it("logs post-press telemetry failures as events instead of failing the press", async () => {
+    const runsRoot = mkdtempSync(join(tmpdir(), "pokebench-rec-"));
+    const log = RunLog.create(runsRoot, "2026-10-11T22-00-00_think-swarm_tttt");
+    let calls = 0;
+    const recorder = new RunRecorder({
+      log,
+      frames: new FrameStore(runsRoot, 1_000_000, () => undefined),
+      milestones: {
+        poll: () => {
+          calls += 1;
+          return calls === 1 ? Promise.resolve([]) : Promise.reject(new Error("milestones down"));
+        },
+      },
+      gameState: { read: () => Promise.reject(new Error("state down")) },
+    });
+    await recorder.start(START_META);
+    await expect(recorder.afterPress()).resolves.toBeUndefined();
+    expect(events(log).filter((event) => event.type === "telemetry_error")).toMatchObject([
+      { source: "milestones", message: "milestones down" },
+      { source: "state", message: "state down" },
+    ]);
+  });
+
+  it("checks milestones before reading state after a press", async () => {
+    const order: string[] = [];
+    const runsRoot = mkdtempSync(join(tmpdir(), "pokebench-rec-"));
+    const log = RunLog.create(runsRoot, "2026-10-11T22-00-00_think-swarm_ssss");
+    const recorder = new RunRecorder({
+      log,
+      frames: new FrameStore(runsRoot, 1_000_000, () => undefined),
+      milestones: {
+        poll: () => {
+          order.push("milestones");
+          return Promise.resolve([]);
+        },
+      },
+      gameState: {
+        read: () => {
+          order.push("state");
+          return Promise.resolve(STATE);
+        },
+      },
+    });
+    await recorder.start(START_META);
+    order.length = 0;
+    await recorder.afterPress();
+    expect(order).toEqual(["milestones", "state"]);
   });
 
   it("ignores events that carry nothing to record", async () => {

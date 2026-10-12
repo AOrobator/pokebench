@@ -28,6 +28,7 @@ interface RunChoice {
 
 const LIVE_SCREEN_MS = 500;
 const LIVE_RETRY_MS = 5_000;
+export const RUN_LIST_MS = 3_000;
 const MODE_TEXT: Record<Mode, string> = { loading: "LOADING", live: "LIVE", replay: "REPLAY", idle: "NO RUNS" };
 
 function runChoices(value: unknown): RunChoice[] {
@@ -99,9 +100,7 @@ export class App {
   async init(): Promise<void> {
     this.ui("gba").innerHTML = gbaSvg();
     this.wire();
-    this.runs = runChoices(await this.deps.fetchJson("/api/runs"));
-    const picker = this.picker("run");
-    picker.replaceChildren(...this.runs.map((run) => option(this.doc, run.id, run.id)));
+    this.listRuns(runChoices(await this.deps.fetchJson("/api/runs")));
     const wanted = /^#run=(.+)$/.exec(this.deps.hash)?.[1];
     const fromHash = wanted === undefined ? undefined : this.runs.find((run) => run.id === decodeURIComponent(wanted));
     const first = fromHash ?? this.runs[0];
@@ -111,6 +110,35 @@ export class App {
       return;
     }
     this.select(first.id);
+  }
+
+  private listRuns(runs: RunChoice[]): void {
+    this.runs = runs;
+    const picker = this.picker("run");
+    picker.replaceChildren(...runs.map((run) => option(this.doc, run.id, run.id)));
+    if (this.runId !== null) picker.value = this.runId;
+  }
+
+  // Runs start after the page loads (a batch of measured runs); pick them up
+  // without ever switching away from a run that is live or deliberately chosen.
+  async refreshRuns(): Promise<void> {
+    let runs: RunChoice[];
+    try {
+      runs = runChoices(await this.deps.fetchJson("/api/runs"));
+    } catch (error) {
+      this.problem(`run list: ${String(error)}`);
+      return;
+    }
+    const wasNewest = this.runId !== null && this.runs[0]?.id === this.runId;
+    this.listRuns(runs);
+    const newest = runs[0];
+    if (newest === undefined || newest.id === this.runId) return;
+    if (this.runId === null) {
+      const wanted = /^#run=(.+)$/.exec(this.deps.hash)?.[1];
+      this.select(runs.find((run) => wanted !== undefined && run.id === decodeURIComponent(wanted))?.id ?? newest.id);
+    } else if (wasNewest && this.view.end !== null) {
+      this.select(newest.id);
+    }
   }
 
   private wire(): void {
@@ -371,5 +399,8 @@ export async function boot(win: BootWindow): Promise<App> {
     app.tick(now - last);
     last = now;
   }, 100);
+  win.setInterval(() => {
+    void app.refreshRuns();
+  }, RUN_LIST_MS);
   return app;
 }

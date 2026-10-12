@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { join } from "node:path";
-import { RunsError, baselineOf, eventsPath, listRuns, liveScreenPort, readFrom, runDir } from "./runs.js";
+import { BaselineError, RunsError, baselineOf, eventsPath, listRuns, liveScreenPort, readFrom, runDir } from "./runs.js";
 
 export const HOST = "127.0.0.1";
 // Browser code the page may load; everything else in dist/ stays private.
@@ -173,7 +173,12 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
       return;
     }
     if (parts.length === 4 && leaf === "milestones") {
-      sendJson(res, 200, baselineOf(options.runsRoot, id));
+      try {
+        sendJson(res, 200, baselineOf(options.runsRoot, id));
+      } catch (error) {
+        if (!(error instanceof BaselineError)) throw error;
+        sendJson(res, 422, { error: error.message });
+      }
       return;
     }
     if (parts.length === 5 && leaf === "frames" && file !== undefined && FRAME_NAME.test(file)) {

@@ -176,7 +176,7 @@ export function thinkingDialog(view: RunView, nowMs: number): { head: string; bo
     return { head: `AGENT is thinking… ${((nowMs - view.turnStartMs) / 1000).toFixed(1)}s`, body: '<span class="cursor"></span>' };
   }
   const thought = view.lastThought;
-  if (thought === null) return { head: "AGENT is waiting…", body: NO_DATA };
+  if (thought === null) return { head: view.end === null ? "AGENT is waiting…" : `RUN ENDED · ${view.end.reason}`, body: NO_DATA };
   const head = `AGENT thought for ${(thought.latencyMs / 1000).toFixed(1)}s · turn ${String(thought.turn)}`;
   if (thought.thinking !== "") return { head, body: esc(thought.thinking) };
   return { head, body: `<span class="nodata">no thinking recorded</span> ${esc(thought.reply)}` };

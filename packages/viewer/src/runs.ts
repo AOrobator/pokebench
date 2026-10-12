@@ -8,6 +8,10 @@ export class RunsError extends Error {
   override readonly name = "RunsError";
 }
 
+export class BaselineError extends Error {
+  override readonly name = "BaselineError";
+}
+
 const RUN_ID = new RegExp(RUN_ID_PATTERN);
 const CHUNK = 64 * 1024;
 
@@ -160,9 +164,13 @@ function readStart(runsRoot: string, runId: string): RunEvent & { type: "run_sta
 export function baselineOf(runsRoot: string, runId: string): Baseline {
   const start = readStart(runsRoot, runId);
   const startMs = Date.parse(start.t);
-  const milestones = readFrom(eventsPath(runsRoot, runId), 0, 0).results.flatMap((result) =>
-    result.ok && result.event.type === "milestone" ? [{ name: result.event.name, offsetMs: Date.parse(result.event.t) - startMs }] : [],
-  );
+  const milestones: { name: string; offsetMs: number }[] = [];
+  // A comparison must rest on the baseline run's own, fully valid log (PB1).
+  for (const result of readFrom(eventsPath(runsRoot, runId), 0, 0).results) {
+    if (!result.ok) throw new BaselineError(`baseline ${runId} line ${String(result.line)}: ${result.problem}`);
+    if (result.event.run !== runId) throw new BaselineError(`baseline ${runId} holds an event for run ${result.event.run}`);
+    if (result.event.type === "milestone") milestones.push({ name: result.event.name, offsetMs: Date.parse(result.event.t) - startMs });
+  }
   return { run: runId, milestones };
 }
 

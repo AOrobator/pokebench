@@ -68,4 +68,4 @@ runs-prune percent: build
 
 # PokeBench viewer on 127.0.0.1:8790: live runs follow events.jsonl, finished runs replay from frames/.
 view run_id="": build
-    node packages/viewer/dist/cli.js {{run_id}}
+    node packages/viewer/dist/cli.js {{quote(run_id)}}

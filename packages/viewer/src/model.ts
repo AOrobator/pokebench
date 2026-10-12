@@ -173,6 +173,7 @@ export class RunView {
         break;
       case "run_end":
         this.end = event;
+        this.closeOpenSpans(ms);
         break;
       case "frames_evicted":
         break;
@@ -191,6 +192,13 @@ export class RunView {
     }
     this.latencies.push(event.latency_ms);
     this.lastTps = event.latency_ms > 0 ? event.usage.output / (event.latency_ms / 1000) : null;
+  }
+
+  private closeOpenSpans(ms: number): void {
+    const thinking = this.thinkingSpans.at(-1);
+    if (thinking?.endMs === null) thinking.endMs = ms;
+    for (const span of this.openTools.values()) span.endMs = ms;
+    this.openTools.clear();
   }
 
   private onToolResult(event: Of<"tool_result">, ms: number): void {

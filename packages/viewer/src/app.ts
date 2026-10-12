@@ -66,6 +66,7 @@ export class App {
   private runId: string | null = null;
   private stream: StreamLike | null = null;
   private baseline: Baseline | null = null;
+  private baselineRequest = 0;
   private problems: string[] = [];
   private logged = 0;
   private screenTick = 0;
@@ -145,14 +146,17 @@ export class App {
   }
 
   private async pickBaseline(runId: string): Promise<void> {
-    if (runId === "") {
-      this.baseline = null;
-      this.render();
-      return;
-    }
+    const request = ++this.baselineRequest;
+    this.baseline = null;
+    this.render();
+    if (runId === "") return;
     try {
-      this.baseline = baselineOf(await this.deps.fetchJson(`/api/runs/${encodeURIComponent(runId)}/milestones`));
+      const baseline = baselineOf(await this.deps.fetchJson(`/api/runs/${encodeURIComponent(runId)}/milestones`));
+      // A newer pick or a run switch supersedes this response.
+      if (request !== this.baselineRequest) return;
+      this.baseline = baseline;
     } catch (error) {
+      if (request !== this.baselineRequest) return;
       this.problem(`baseline ${runId}: ${String(error)}`);
     }
     this.render();
@@ -166,6 +170,7 @@ export class App {
     this.clock = null;
     this.mode = "loading";
     this.baseline = null;
+    this.baselineRequest += 1;
     this.problems = [];
     this.logged = 0;
     this.liveFailedAt = null;

@@ -135,7 +135,9 @@ Mac Studio (all local)
 - [x] COMMIT: `test(env): non-ASCII screenshot base64 is a ClientError` (R2 RED, e71848a)
 - [x] COMMIT: `fix(env): map every base64 decode failure to ClientError` (R2 GREEN, c7e4743). Gates: pytest 92, vitest 9, lint clean, Python coverage 98.77 / 97.22 / 100
 - [x] Fallback fable on f1d81f4..31fac2a: BLOCKING. Accepted: post-IDAT short chunks (tRNS 1 byte, iCCP empty) leak `struct.error`/`IndexError` from `load()`, and `DecompressionBombError` escapes `Image.open`. Its third finding was B1 (already fixed).
-- [x] COMMIT: `test(env): hostile PNG chunks and decompression bombs are ClientErrors` (R2b RED)
+- [x] COMMIT: `test(env): hostile PNG chunks and decompression bombs are ClientErrors` (R2b RED, e51b1f8)
+- [x] COMMIT: `fix(env): map every Pillow decode failure to ClientError, size-check before load` (R2b GREEN). Gates: pytest 95, ruff/mypy clean, Python coverage 98.77 / 97.30 / 100. Review closed per the proportional-review rule (memory: one round per milestone, fix real defects, defer polish): the fix-delta reviewers' findings are all fixed and pinned by tests. Deferred hardening: smoke vs a stale server on its port, `brew` check, transport scheme check.
+- [x] Multi-model review loop (M2): closed
 
 **M3 — pi ↔ local gateway**
 - [ ] Write tests (`packages/agent`):

@@ -10,7 +10,7 @@ from enum import StrEnum
 from io import BytesIO
 from typing import TypeVar
 
-from PIL import Image, UnidentifiedImageError
+from PIL import Image
 
 Transport = Callable[[str, str, object | None], object]
 
@@ -73,11 +73,15 @@ def _typed(value: object, kind: type[T], where: str) -> T:
 
 
 def _png_size(data: bytes) -> tuple[int, int]:
+    # Pillow's exception surface on hostile bytes is not enumerable (struct.error,
+    # IndexError, DecompressionBombError, ...), so every decode failure maps here.
     try:
         with Image.open(BytesIO(data), formats=["PNG"]) as image:
+            if image.size != (GBA_WIDTH, GBA_HEIGHT):
+                return image.size
             image.load()
             return image.size
-    except (UnidentifiedImageError, OSError, SyntaxError, ValueError) as exc:
+    except Exception as exc:  # noqa: BLE001
         raise ClientError(f"screenshot is not a decodable PNG: {exc}") from exc
 
 

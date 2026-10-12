@@ -104,8 +104,9 @@ def test_screenshot_without_decodable_image_data_is_rejected(payload: bytes) -> 
         GameClient(FakeTransport({("GET", "/screenshot"): body})).screenshot()
 
 
-def test_screenshot_with_invalid_base64_is_a_client_error() -> None:
-    body = {"screenshot_base64": "not base64!", "step_number": 1}
+@pytest.mark.parametrize("encoded", ["not base64!", "\u00e9"])
+def test_screenshot_with_invalid_base64_is_a_client_error(encoded: str) -> None:
+    body = {"screenshot_base64": encoded, "step_number": 1}
     with pytest.raises(ClientError, match="screenshot_base64"):
         GameClient(FakeTransport({("GET", "/screenshot"): body})).screenshot()
 

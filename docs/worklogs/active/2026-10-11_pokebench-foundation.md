@@ -130,7 +130,9 @@ Mac Studio (all local)
 - [x] Visual check: `just serve` → Chrome at http://127.0.0.1:8000/stream shows the live game (NEW GAME menu) plus the starter kit's thinking/milestones/party/map panels
 - [ ] Multi-model review loop until clean (R1 on 6294533..c6301e6: fallback sonnet LGTM; Codex BLOCKING, 2 accepted; think_fast/think_swarm rejected; see review log)
 - [x] COMMIT: `test(env): reject undecodable screenshots, bool timestamps, raw button names` (R1 RED, f4c9e20)
-- [x] COMMIT: `fix(env): decode screenshots with Pillow, reject bool timestamps and raw button names` (R1 GREEN). Gates: pytest 91, lint clean, Python coverage 98.77 / 97.22 / 100
+- [x] COMMIT: `fix(env): decode screenshots with Pillow, reject bool timestamps and raw button names` (R1 GREEN, 31fac2a). Gates: pytest 91, lint clean, Python coverage 98.77 / 97.22 / 100
+- [x] R1 fix-delta review (f1d81f4..31fac2a): Claude CLI BLOCKING (B1: non-ASCII base64 raises a plain `ValueError`, accepted); fallback fable pending
+- [x] COMMIT: `test(env): non-ASCII screenshot base64 is a ClientError` (R2 RED)
 
 **M3 — pi ↔ local gateway**
 - [ ] Write tests (`packages/agent`):

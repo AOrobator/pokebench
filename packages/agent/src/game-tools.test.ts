@@ -26,20 +26,33 @@ function observationBody(overrides: Record<string, unknown> = {}): Record<string
 
 type Route = (init: RequestInit | undefined) => unknown;
 
-function routes(table: Record<string, Route | unknown>, calls: string[] = []): typeof fetch {
+function routes(table: Record<string, unknown>, calls: string[] = []): typeof fetch {
   return vi.fn<typeof fetch>().mockImplementation((input, init) => {
     const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
     const path = url.slice(SERVER.length);
     calls.push(`${init?.method ?? "GET"} ${path}`);
     const entry = table[path];
     if (entry === undefined) return Promise.resolve(new Response("{}", { status: 404 }));
-    const body = typeof entry === "function" ? (entry as Route)(init) : entry;
+    const body: unknown = typeof entry === "function" ? (entry as Route)(init) : entry;
     return Promise.resolve(new Response(JSON.stringify(body)));
   });
 }
 
 const noHooks = { beforePress: () => undefined, afterPress: () => Promise.resolve() };
 const instant = { sleep: () => Promise.resolve(), now: () => 0 };
+
+describe("serverHealthy", () => {
+  it("is true only for a healthy status", async () => {
+    expect(await serverHealthy(SERVER, serving({ status: "healthy" }))).toBe(true);
+    expect(await serverHealthy(SERVER, serving({ status: "booting" }))).toBe(false);
+    expect(await serverHealthy(SERVER, serving({}, 500))).toBe(false);
+  });
+
+  it("is false when nothing is listening", async () => {
+    const refused = vi.fn<typeof fetch>().mockRejectedValue(new TypeError("fetch failed"));
+    expect(await serverHealthy(SERVER, refused)).toBe(false);
+  });
+});
 
 describe("observeTool", () => {
   it("returns the state text then the 240x160 frame", async () => {

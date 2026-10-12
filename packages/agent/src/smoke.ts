@@ -1,5 +1,5 @@
 // Live smoke: a real, recorded run. pi-agent-core on the local gateway
-// drives screenshot / press / state tools against an isolated game server
+// drives the observe / press tools against an isolated game server
 // (INV-7) on the real ROM, and every step lands in runs/<id>/events.jsonl.
 // Entrypoint: excluded from coverage per INV-6 and exercised by
 // `just smoke-llm`. Run logic lives in run.ts, recorder.ts and game-tools.ts.
@@ -11,7 +11,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runAgentLoop, type AgentMessage } from "@mariozechner/pi-agent-core";
 import { loadConfig } from "./config.js";
-import { checkSmoke, pressTool, screenshotTool, serverHealthy, stateTool } from "./game-tools.js";
+import { checkSmoke, observeTool, pressTool, serverHealthy } from "./game-tools.js";
 import { discoverModels, selectModel } from "./gateway.js";
 import { FrameStore } from "./frames.js";
 import { MilestoneWatcher } from "./milestones.js";
@@ -28,12 +28,11 @@ const SYSTEM_PROMPT = "You play Pokémon Emerald and report what you observe pre
 const PROMPT =
   "Complete this protocol in order. Do not skip a step, and never send a message that only " +
   "describes progress without the tool call it asks for.\n" +
-  "1. Call the screenshot tool.\n" +
+  "1. Call the observe tool.\n" +
   "2. In your next message, describe the frame you were shown in one short sentence and, " +
   'in that same message, call the press tool with buttons ["A"].\n' +
-  "3. Call the state tool.\n" +
-  "4. Reply DONE followed by the player location from the state result.\n" +
-  "The task is not finished until step 4.";
+  "3. Reply DONE followed by the current location from the press result.\n" +
+  "The task is not finished until step 3.";
 
 function git(cwd: string): (args: string[]) => string {
   return (args) => execFileSync("git", args, { cwd, encoding: "utf8" });
@@ -106,7 +105,7 @@ async function main(): Promise<void> {
   if (!model.input.includes("image")) throw new Error(`model ${config.model} is not a vision lane; the smoke needs one`);
 
   const runId = newRunId(new Date(), model.id, () => randomBytes(2).toString("hex"));
-  const tools = ["screenshot", "press", "state"];
+  const tools = ["observe", "press"];
   console.log(`live smoke: run ${runId}, model ${model.id} via ${config.gatewayUrl}`);
   console.log(`watch: just tail-run ${runId}   (frame: http://127.0.0.1:${String(port)}/stream)`);
 
@@ -139,14 +138,13 @@ async function main(): Promise<void> {
             systemPrompt: SYSTEM_PROMPT,
             messages: [],
             tools: [
-              screenshotTool(gameServerUrl),
+              observeTool(gameServerUrl),
               pressTool(gameServerUrl, {
                 beforePress: (id, buttons) => {
                   recorder.buttonPress(id, buttons);
                 },
                 afterPress: () => recorder.checkMilestones(),
               }),
-              stateTool(gameServerUrl),
             ],
           },
           { ...gatewayLoopConfig(model, "medium"), transformContext: recorder.transformContext },

@@ -67,8 +67,9 @@ def game(screen: tuple[int, int], party: list[bytes] | None = None, badges: int 
         SB1 + 0x1270 + (0x867 >> 3),
         bytes([badges << (0x867 & 7) & 0xFF, badges >> (8 - (0x867 & 7))]),
     )
+    m.put(0x02037350, bytes([1, 0, 1]))
+    m.put(0x02037350 + 0x10, struct.pack("<hh", 14, 16))
     m.put(0x02037590 + 5, bytes([0]))
-    m.put(0x02037350, b"\x01\x00\x01")
     m.put(0x02037350 + 0x18, bytes([0x44]))
     m.put(0x030026F9, bytes([0]))
     members = party or []
@@ -202,6 +203,27 @@ def test_field_controls_not_claimed_before_overworld() -> None:
     memory = game(NAMING)
     memory.put(0x03000F2C, b"\x01")
     assert read_game_state(memory.read, MAPS).field_controls_locked is None
+
+
+def test_live_player_coordinates_override_stale_save_coordinates():
+    m = game(OVERWORLD)
+    m.put(SB1, struct.pack("<hh", 100, 100))
+    m.put(0x02037350 + 0x10, struct.pack("<hh", 10, 11))
+    assert read_game_state(m.read, MAPS).position == (3, 4)
+
+
+@pytest.mark.parametrize(
+    "address,body", [(0x02037595, b"\x10"), (0x02037350, b"\0"), (0x02037352, b"\0")]
+)
+def test_invalid_player_object_is_unavailable(address, body):
+    m = game(OVERWORLD)
+    if address == 0x02037595:
+        # Populate the invalid slot with plausible flags so the slot-bound arm
+        # cannot be shadowed by an inactive-object check if its bound is wrong.
+        m.put(0x02037350 + 16 * 0x24, b"\x01\x00\x01")
+    m.put(address, body)
+    state = read_game_state(m.read, MAPS)
+    assert not state.started and state.position is None and state.facing is None
 
 
 def test_unknown_pregame_callback_does_not_expose_default_save_data() -> None:

@@ -128,3 +128,17 @@ def test_dynamic_warp_sentinel_is_not_reported_as_a_real_map() -> None:
     assert result is not None
     assert "(0,1) -> dynamic destination" in result.text()
     assert "map 127/127" not in result.text()
+
+
+def test_rendered_grid_labels_every_world_column_and_row_at_nonzero_origin():
+    result = read_local_map(loaded().read, (1, 1), (1, 0), 2)
+    assert result is not None
+    assert result.text().splitlines()[:7] == [
+        "Local map from live memory; top-left (-1,-1), north is up:",
+        "      -1   0   1   2   3",
+        "  -1   ?   ?   ?   ?   ?",
+        "   0   ?   g   #   N   .",
+        "   1   ?   W   @   ~   .",
+        "   2   ?   .   .   .   .",
+        "   3   ?   .   .   .   .",
+    ]

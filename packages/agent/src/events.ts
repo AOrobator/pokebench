@@ -144,6 +144,12 @@ export const StateBodySchema = Type.Object(
       triggers: Type.Array(Type.Object({x: Type.Integer(), y: Type.Integer(), elevation: NonNegativeInt, variable: NonNegativeInt, required_value: NonNegativeInt, current_value: Type.Union([NonNegativeInt, Type.Null()]), condition_met: Type.Union([Type.Boolean(), Type.Null()]), script_pointer: NonNegativeInt}, closed)),
       dialogue: Type.Union([Type.String(), Type.Null()]),
     }, closed), Type.Null()])),
+    interaction_targets: Type.Optional(Type.Union([Type.Array(Type.Object({
+      kind: Type.String(), x: Type.Integer(), y: Type.Integer(), elevation: Type.Integer(),
+      activation: Type.String(), availability: Type.String(), facing: Type.Union([Type.String(), Type.Null()]),
+      local_id: Type.Union([Type.Integer(), Type.Null()]),
+      destination: Type.Union([Type.Tuple([Type.Integer(), Type.Integer(), Type.Integer()]), Type.Null()]),
+    }, closed)), Type.Null()])),
     local_map: Type.Optional(Type.Union([Type.String(), Type.Null()])),
     field_controls_locked: Type.Optional(Type.Union([Type.Boolean(), Type.Null()])),
     started: Type.Boolean(),

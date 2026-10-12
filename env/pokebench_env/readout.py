@@ -55,6 +55,9 @@ def format_readout(state: GameState) -> str:
         lines.append(state.local_map)
     if state.world_context is not None:
         lines.append(state.world_context.text())
+    if state.interaction_targets is not None:
+        lines.append("Map interaction candidates (world coordinates; flags/scripts may gate use):")
+        lines.extend(t.text() for t in state.interaction_targets)
     return "\n".join(lines)
 
 
@@ -65,6 +68,9 @@ def state_json(state: GameState) -> dict[str, object]:
         "world_context": None if state.world_context is None else state.world_context.json(),
         "field_controls_locked": state.field_controls_locked,
         "local_map": state.local_map,
+        "interaction_targets": None
+        if state.interaction_targets is None
+        else [t.json() for t in state.interaction_targets],
         "started": state.started,
         "name": state.name,
         "location": state.location,

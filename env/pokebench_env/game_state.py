@@ -13,12 +13,13 @@ from pathlib import Path
 
 from pokebench_env.game_screen import ReadMemory, read_screen
 from pokebench_env.gba_text import GBA_TEXT, decode_text
-from pokebench_env.live_map import read_local_map
+from pokebench_env.live_map import MAP_OFFSET, read_local_map
 from pokebench_env.naming import NamingState, read_naming
 from pokebench_env.ui_state import Menu, read_dialog, read_menu
 from pokebench_env.world_context import WorldContext, read_world_context
 
 __all__ = ["GBA_TEXT", "GameState", "MapNames", "PartyMon", "decode_text", "read_game_state"]
+from pokebench_env.world import InteractionTarget, read_targets
 
 SAVE_BLOCK_PTRS = 0x03005D8C
 PARTY_COUNT = 0x020244E9
@@ -85,6 +86,7 @@ class GameState:
     world_context: WorldContext | None = None
     dialog: str | None = None
     menu: Menu | None = None
+    interaction_targets: tuple[InteractionTarget, ...] | None = None
 
 
 def _u32(read: ReadMemory, address: int) -> int:
@@ -153,10 +155,14 @@ def read_game_state(read: ReadMemory, maps: MapNames) -> GameState:
             menu=menu,
         )
     save1, save2 = struct.unpack("<II", read(SAVE_BLOCK_PTRS, 8))
-    x, y, group, number = struct.unpack("<hhbb", read(save1, 6))
+    _, _, group, number = struct.unpack("<hhBB", read(save1, 6))
+    body = read(OBJECT_EVENTS + 0x24 * player_object, 0x24)
+    x, y = struct.unpack_from("<hh", body, 0x10)
+    x -= MAP_OFFSET
+    y -= MAP_OFFSET
     map_id = (group, number)
     hours, minutes, seconds = struct.unpack("<HBB", read(save2 + 0x0E, 4))
-    facing = read(OBJECT_EVENTS + 0x24 * player_object + 0x18, 1)[0] & 0x0F
+    facing = body[0x18] & 0x0F
     nearby = (
         read_local_map(read, (x, y), map_id)
         if screen.kind == "overworld" and not in_battle
@@ -181,6 +187,7 @@ def read_game_state(read: ReadMemory, maps: MapNames) -> GameState:
         world_context=read_world_context(read, (x, y), map_id, save1, decode_text)
         if screen.kind == "overworld" and not in_battle
         else None,
+        interaction_targets=read_targets(read, map_id) if nearby is not None else None,
         field_controls_locked=bool(read(FIELD_CONTROLS_LOCK, 1)[0])
         if screen.kind == "overworld" and not in_battle
         else None,

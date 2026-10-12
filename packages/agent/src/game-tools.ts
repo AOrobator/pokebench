@@ -3,6 +3,8 @@ import type { AssistantMessage, ImageContent, TextContent, ToolResultMessage } f
 import { Type } from "typebox";
 import { Value } from "typebox/value";
 import { ButtonSchema, StateBodySchema, type Button } from "./events.js";
+import { parseGameState, type GameStateSnapshot } from "./game-state.js";
+import { pressResult } from "./press-result.js";
 import type { PressTiming } from "./recorder.js";
 
 const NoArgs = Type.Object({});
@@ -61,14 +63,14 @@ async function observation(
   gameServerUrl: string,
   fetchFn: typeof fetch,
   signal: AbortSignal | undefined,
-  prefix = "",
+  prefix: string | ((state: GameStateSnapshot) => string) = "",
 ): Promise<ObservationContent> {
   const body = await getJson(`${gameServerUrl}/pokebench/observation`, fetchFn, 15_000, signal);
   if (!Value.Check(ObservationSchema, body)) throw new Error("malformed /pokebench/observation payload");
   checkFrame(body.screenshot_base64);
   return [
     { type: "image", data: body.screenshot_base64, mimeType: "image/png" },
-    { type: "text", text: `${prefix}${body.state_text}` },
+    { type: "text", text: `${typeof prefix === "string" ? prefix : prefix(body.state)}${body.state_text}` },
   ];
 }
 
@@ -184,6 +186,14 @@ export function pressTool(
     execute: async (toolCallId, params, signal) => {
       // A stopped run (budget, operator abort) must not press anything further.
       signal?.throwIfAborted();
+      let before: GameStateSnapshot | undefined;
+      try {
+        before = parseGameState(await getJson(`${gameServerUrl}/pokebench/state`, fetchFn, 15_000, signal));
+      } catch {
+        // Preserve ordinary press operation for old/unavailable state servers;
+        // the feedback explicitly withholds a before/after classification.
+        signal?.throwIfAborted();
+      }
       hooks.beforePress(toolCallId, params.buttons, PRESS_TIMING);
       const url = `${gameServerUrl}/action`;
       const response = await fetchFn(url, {
@@ -200,7 +210,7 @@ export function pressTool(
       await waitForQueue(gameServerUrl, fetchFn, clock, signal);
       await clock.sleep(STATE_CACHE_SETTLE_MS);
       await hooks.afterPress();
-      const content = await observation(gameServerUrl, fetchFn, signal, `pressed ${params.buttons.join(", ")}\n\n`);
+      const content = await observation(gameServerUrl, fetchFn, signal, (after) => `pressed ${params.buttons.join(", ")}\nPress result: ${pressResult(before, after, params.buttons)}\n\n`);
       return { content, details: undefined };
     },
   };

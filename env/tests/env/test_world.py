@@ -293,3 +293,12 @@ def test_object_elevation_uses_current_nibble_not_previous_elevation():
     m.put(0x02037350 + 0x24 + 11, b"\xa3")
     targets = read_targets(m.read, (1, 0))
     assert [(t.local_id, t.elevation) for t in targets if t.kind == "object"] == [(2, 3)], targets
+
+
+def test_weather_then_invalid_script_withholds_the_entire_inventory():
+    m = events()
+    m.put(0x02002002, bytes([2]))
+    m.put(0x08002000, struct.pack("<hhBxHH2xI", 4, 4, 3, 0, 1, 0))
+    m.put(0x08002010, struct.pack("<hhBxHH2xI", 3, 4, 3, 0, 1, 0x01000000))
+    observed = read_targets(m.read, (1, 0))
+    assert observed is None, observed

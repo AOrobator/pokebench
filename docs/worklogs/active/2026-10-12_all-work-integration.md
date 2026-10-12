@@ -17,3 +17,5 @@ Combined Python checks caught two inherited fixtures that only positioned saved 
 All twelve story/warp metadata operand deletions RED through the replacement actual-entrypoint fixture; restored. Diff audit caught omitted warp parametrized tests during conflict resolution; restored original incoming tests before final frozen gates.
 
 Combined GREEN: agent338/viewer135/Python358; all coverage metrics >=90 (Python lines99.47 branches97.08 functions100). Lint passes. Twelve performed metadata mutations restored; no production growth beyond three existing authorized feature boundaries. Final build/ROM/vendor receipts retained under /tmp/pokebench-all-*.log. Frozen review packet follows.
+
+Added exact weather-first/invalid-script-second fixture for prior fast allegation; current production correctly withholds entire inventory. Explicit deterministic counterexample, not reviewer waiver. Native warp probe dacc records literal0x69 door and0x65 directional descriptions and map transition0/9→1/0; it is historical/incomplete and not exact-head completion evidence. Native all-world proof and source evidence remain separately qualified.

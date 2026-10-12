@@ -25,6 +25,8 @@ frame   189: ptr=0x2024a9c bytes=00…00 name='        ' PLAYER_NAME_SET=False
 
 **Impact.** Milestone splits are the benchmark's timing signal (PB1). A false `PLAYER_NAME_SET` at t≈0 corrupts that split for every model, nondeterministically.
 
+**Verified (2026-10-11 ~21:50 ET, real ROM, in-process, 600 boot frames each):** stock vendor check true on 12 of 600 frames (frames 0–11); with the guard, 0 of 600. Loading the starter kit's `quick_start_save.state` (player `JOHNNY`) still reports the milestone, so the guard does not suppress real names.
+
 **Fix (M4, no vendor edits).** A PokeBench-owned wrapper installed at server start replaces the `PLAYER_NAME_SET` branch of `EmeraldEmulator._check_milestone_condition`. The milestone is set only when the SaveBlock2 pointer is non-null and the name bytes at that pointer decode to a non-blank name. It reads memory directly instead of trusting the fallback string, which also stays correct if the player is literally named "Player". All other milestones pass through to the vendor unchanged. The patch point is verified at install time, so a vendor bump that moves it fails loudly. Tests cover the null pointer, blank bytes, a real name, and passthrough.
 
 ## F2. Server state that can cross runs (motivates INV-7)
@@ -44,3 +46,7 @@ frame   189: ptr=0x2024a9c bytes=00…00 name='        ' PLAYER_NAME_SET=False
 - `POST /action` accepts unknown button names (e.g. `"NOPE"`) and reports success. The PokeBench clients validate against a button enum.
 - The ROM path is hardcoded as `Emerald-GBAdvance/rom.gba` relative to cwd. It reaches the server through a symlink (gitignored upstream).
 - `EmeraldEmulator.initialize()` copies the ROM into a fresh temp dir on every boot, so mGBA never writes a `.sav` next to the ROM.
+
+## F4. Shutdown race prints `'NoneType' object has no attribute 'clear_keys'`
+
+On SIGTERM, `EmeraldEmulator.stop()` sets `self.core = None` while the headless game-loop thread can still be inside `run_frame_with_buttons`, whose next `self.core.clear_keys(...)` then fails. It is intermittent (2 of 3 smokes on 2026-10-11) and happens only after shutdown has begun, so run data is already finalized. It became visible once the launcher forwarded SIGTERM (before that, the server was orphaned instead of stopped). Impact: log noise only. No workaround planned.

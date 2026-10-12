@@ -1,8 +1,7 @@
-"""Owned agent observation: the vendor's own LLM text state plus the frame.
+"""Owned agent observation: the RAM-derived readout and state plus the frame.
 
-The vendor's `/mcp/get_game_state` pulls in its agent stack (and a `google`
-dependency); this route reuses only its `/state` handler and
-`utils.state_formatter.format_state_for_llm`, so vendor code stays pristine.
+Game state comes from PokeBench's own reader (game_state.py); the vendor
+supplies only the emulator and its plain screenshot. Vendor code stays pristine.
 """
 
 from collections.abc import Awaitable, Callable
@@ -10,31 +9,29 @@ from collections.abc import Awaitable, Callable
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-from pokebench_env.game_screen import ReadMemory, read_screen
+from pokebench_env.game_screen import ReadMemory
+from pokebench_env.game_state import MapNames, read_game_state
+from pokebench_env.readout import format_readout, state_json
 
-GameState = dict[str, object]
-StateFn = Callable[[], Awaitable[BaseModel]]
-Formatter = Callable[[GameState], str]
+ScreenshotFn = Callable[[], Awaitable[BaseModel]]
 
 
 def install_observation(
-    app: FastAPI, get_state: StateFn, formatter: Formatter, read_memory: ReadMemory
+    app: FastAPI, get_screenshot: ScreenshotFn, read_memory: ReadMemory, maps: MapNames
 ) -> None:
     @app.get("/pokebench/observation")
     async def observation() -> dict[str, object]:
-        state = (await get_state()).model_dump()
-        visual = state.get("visual")
-        screenshot = visual.get("screenshot_base64") if isinstance(visual, dict) else None
+        shot = (await get_screenshot()).model_dump()
+        screenshot = shot.get("screenshot_base64")
         if not isinstance(screenshot, str) or screenshot == "":
-            raise HTTPException(status_code=503, detail="no screenshot in game state")
+            raise HTTPException(status_code=503, detail="no screenshot available")
+        state = read_game_state(read_memory, maps)
         return {
-            "state_text": formatter(state),
+            "state_text": format_readout(state),
             "screenshot_base64": screenshot,
-            "step_number": state.get("step_number"),
-            "screen": _screen(read_memory),
+            "state": state_json(state),
         }
 
-
-def _screen(read_memory: ReadMemory) -> dict[str, object]:
-    screen = read_screen(read_memory)
-    return {"kind": screen.kind, "callback1": screen.callback1, "callback2": screen.callback2}
+    @app.get("/pokebench/state")
+    def state() -> dict[str, object]:
+        return state_json(read_game_state(read_memory, maps))

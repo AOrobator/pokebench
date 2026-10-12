@@ -3,6 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "exports": {
+    "./events": {
+      "types": "./src/events.ts",
+      "default": "./dist/events.js"
+    }
+  },
   "scripts": {
     "test": "vitest run",
     "coverage": "vitest run --coverage",

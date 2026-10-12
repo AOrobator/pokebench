@@ -1,0 +1,353 @@
+// @vitest-environment happy-dom
+import { readFileSync } from "node:fs";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { RunEvent } from "@pokebench/agent/events";
+import { BASE_MS, Log, START, fullRun, m4Run } from "../test-support/events.js";
+import { boot, mountApp, type App, type AppDeps, type StreamLike } from "./app.js";
+
+const PAGE = readFileSync(new URL("../static/index.html", import.meta.url), "utf8");
+const M4_ID = "2026-10-11T22-16-26_think-swarm_890b";
+
+class FakeStream implements StreamLike {
+  closed = false;
+  private readonly listeners = new Map<string, ((message: { data: string }) => void)[]>();
+
+  constructor(readonly url: string) {}
+
+  addEventListener(type: string, listener: (message: { data: string }) => void): void {
+    this.listeners.set(type, [...(this.listeners.get(type) ?? []), listener]);
+  }
+
+  close(): void {
+    this.closed = true;
+  }
+
+  send(type: string, data: unknown): void {
+    for (const listener of this.listeners.get(type) ?? []) listener({ data: JSON.stringify(data) });
+  }
+
+  sendRaw(type: string, data: string): void {
+    for (const listener of this.listeners.get(type) ?? []) listener({ data });
+  }
+}
+
+interface Harness {
+  readonly app: App;
+  readonly streams: FakeStream[];
+  readonly fetched: string[];
+  setNow(ms: number): void;
+}
+
+const RUNS = [
+  { id: "2026-10-11T23-00-00_live", model: "think-swarm", started: "x", ended: false, reason: null, problem: null },
+  { id: M4_ID, model: "think-swarm", started: "x", ended: true, reason: "budget", problem: null },
+  { id: "2026-10-11T21-00-00_old", model: "think-swarm", started: "x", ended: true, reason: "budget", problem: null },
+];
+
+async function harness(hash = ""): Promise<Harness> {
+  document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
+  const streams: FakeStream[] = [];
+  const fetched: string[] = [];
+  let now = BASE_MS;
+  const deps: AppDeps = {
+    fetchJson: (url) => {
+      fetched.push(url);
+      if (url === "/api/runs") return Promise.resolve(RUNS);
+      if (url.endsWith("/milestones")) {
+        return Promise.resolve({ run: "2026-10-11T21-00-00_old", milestones: [{ name: "GAME_RUNNING", offsetMs: 5 }, { name: "PLAYER_NAME_SET", offsetMs: 20_000 }] });
+      }
+      return Promise.reject(new Error(`unexpected ${url}`));
+    },
+    openStream: (url) => {
+      const stream = new FakeStream(url);
+      streams.push(stream);
+      return stream;
+    },
+    now: () => now,
+    hash,
+  };
+  const app = await mountApp(document, deps);
+  return {
+    app,
+    streams,
+    fetched,
+    setNow: (ms) => {
+      now = ms;
+    },
+  };
+}
+
+function ui(name: string): HTMLElement {
+  const element = document.querySelector<HTMLElement>(`[data-ui="${name}"]`);
+  if (element === null) throw new Error(`no [data-ui="${name}"]`);
+  return element;
+}
+
+// Events go out as the stream's own run, as the server would send them.
+function feed(stream: FakeStream, events: readonly RunEvent[], caughtUp = true): void {
+  const run = decodeURIComponent(stream.url.split("/")[3] ?? "");
+  for (const event of events) stream.send("ev", { ...event, run });
+  if (caughtUp) stream.send("caught_up", {});
+}
+
+describe("viewer app", () => {
+  beforeEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("lists runs and opens the run named in the hash", async () => {
+    const { streams } = await harness(`#run=${M4_ID}`);
+    const options = [...ui("run").querySelectorAll("option")].map((option) => option.value);
+    expect(options).toEqual(RUNS.map((run) => run.id));
+    expect((ui("run") as HTMLSelectElement).value).toBe(M4_ID);
+    expect(streams.map((stream) => stream.url)).toEqual([`/api/runs/${M4_ID}/events`]);
+    expect(ui("gba").querySelector('[data-btn="A"]')).not.toBeNull();
+  });
+
+  it("opens the newest run when the hash names none, and shows no data before events arrive", async () => {
+    const { streams } = await harness();
+    expect(streams[0]?.url).toBe("/api/runs/2026-10-11T23-00-00_live/events");
+    expect(ui("brand").textContent).toBe("POKéNAV · NO RUN");
+    expect(ui("party").innerHTML).toContain("no data");
+    expect(ui("mode").textContent).toBe("LOADING");
+  });
+
+  it("replays the recorded M4 run end to end", async () => {
+    const { app, streams } = await harness(`#run=${M4_ID}`);
+    const stream = streams[0]!;
+    const events = m4Run();
+    feed(stream, events);
+    stream.send("done", {});
+    expect(stream.closed).toBe(true);
+    expect(app.mode).toBe("replay");
+    expect(ui("mode").textContent).toBe("REPLAY");
+    expect(ui("brand").textContent).toBe(`POKéNAV · ${M4_ID}`);
+    expect(ui("play").textContent).toBe("❚❚");
+    expect(ui("counters").innerHTML).toContain("think-swarm");
+    expect(ui("think-head").textContent).toBe("AGENT is waiting…");
+
+    app.tick(2_000);
+    expect(ui("think-head").textContent).toMatch(/^AGENT (is thinking|thought for)/);
+    app.tick(10_000);
+    expect(ui("screen").getAttribute("href")).toBe(`/api/runs/${M4_ID}/frames/000015_0.png`);
+    expect(ui("log").querySelectorAll(".ev").length).toBeGreaterThan(5);
+    expect(ui("lanes").innerHTML).toContain("m-milestone");
+
+    app.tick(60_000);
+    expect(app.clock?.atEnd).toBe(true);
+    expect(ui("play").textContent).toBe("▶");
+    expect(ui("think-head").textContent).toBe("AGENT thought for 7.0s · turn 4");
+    expect(ui("trainer").innerHTML).toContain("<dt>TURN</dt><dd>4</dd>");
+    expect(ui("trainer").innerHTML).toContain("<dt>TIME</dt><dd>0:00:11</dd>");
+    expect(ui("party").innerHTML).toContain("no data");
+    expect(ui("clock").textContent).toBe("0:00:11 / 0:00:11");
+    expect((ui("scrub") as HTMLInputElement).value).toBe("1000");
+    expect(ui("log").querySelector('[data-seq="18"]')?.textContent).toContain("run ended: budget");
+  });
+
+  it("lights the GBA button while a press is held", async () => {
+    const { app, streams } = await harness(`#run=${M4_ID}`);
+    feed(streams[0]!, m4Run());
+    const press = m4Run().find((event) => event.type === "button_press")!;
+    app.clock?.pause();
+    app.clock?.seek(Date.parse(press.t) + 20);
+    app.tick(0);
+    expect(ui("gba").querySelector('[data-btn="A"]')?.classList.contains("lit")).toBe(true);
+    app.clock?.seek(Date.parse(press.t) + 1000);
+    app.tick(0);
+    expect(ui("gba").querySelector('[data-btn="A"]')?.classList.contains("lit")).toBe(false);
+  });
+
+  it("drives the replay from the controls and seeks backwards", async () => {
+    const { app, streams } = await harness(`#run=${M4_ID}`);
+    feed(streams[0]!, m4Run());
+    ui("play").click();
+    expect(app.clock?.playing).toBe(false);
+    const speed = ui("speed") as HTMLSelectElement;
+    speed.value = "16";
+    speed.dispatchEvent(new Event("change"));
+    expect(app.clock?.speed).toBe(16);
+    ui("play").click();
+    app.tick(1_000);
+    expect(ui("log").querySelectorAll(".ev").length).toBeGreaterThan(5);
+    const scrub = ui("scrub") as HTMLInputElement;
+    scrub.value = "0";
+    scrub.dispatchEvent(new Event("input"));
+    expect(app.clock?.fraction).toBe(0);
+    expect(ui("log").querySelectorAll(".ev").length).toBe(0);
+    expect(ui("screen").getAttribute("href")).toBe("");
+  });
+
+  it("opens a log row's raw event in the inspector", async () => {
+    const { app, streams } = await harness(`#run=${M4_ID}`);
+    feed(streams[0]!, m4Run());
+    app.tick(60_000);
+    const row = ui("log").querySelector<HTMLElement>('[data-seq="9"]')!;
+    row.click();
+    expect(ui("inspector").textContent).toContain('"type": "tool_call"');
+    expect(row.classList.contains("sel")).toBe(true);
+    ui("log").click();
+    expect(ui("inspector").textContent).toContain('"type": "tool_call"');
+  });
+
+  it("follows a live run with the live screen and the wall clock", async () => {
+    const { app, streams, setNow } = await harness();
+    const live = fullRun().events.slice(0, 4);
+    feed(streams[0]!, live);
+    expect(app.mode).toBe("live");
+    expect(ui("mode").textContent).toBe("LIVE");
+    expect((ui("play") as HTMLButtonElement).disabled).toBe(true);
+    setNow(BASE_MS + 3_500);
+    app.tick(500);
+    expect(ui("think-head").textContent).toBe("AGENT is thinking… 2.5s");
+    expect(ui("screen").getAttribute("href")).toMatch(/^\/api\/runs\/2026-10-11T23-00-00_live\/screen\?n=\d+$/);
+    expect(ui("screen-note").textContent).toBe("live");
+    const more = fullRun().events.slice(4, 10);
+    feed(streams[0]!, more, false);
+    app.tick(500);
+    expect(ui("trainer").innerHTML).toContain("LITTLEROOT TOWN");
+    expect(ui("clock").textContent).toBe("0:00:03");
+  });
+
+  it("falls back to the last recorded frame when the live screen fails", async () => {
+    const { app, streams, setNow } = await harness();
+    feed(streams[0]!, fullRun().events.slice(0, 10));
+    setNow(BASE_MS + 4_000);
+    app.tick(500);
+    ui("screen").dispatchEvent(new Event("error"));
+    app.tick(100);
+    expect(ui("screen").getAttribute("href")).toBe("/api/runs/2026-10-11T23-00-00_live/frames/000009_0.png");
+    expect(ui("screen-note").textContent).toBe("live screen unavailable · last frame");
+  });
+
+  it("switches to replay when a live run ends", async () => {
+    const { app, streams } = await harness();
+    feed(streams[0]!, fullRun().events.slice(0, 4));
+    feed(streams[0]!, fullRun().events.slice(4), false);
+    streams[0]!.send("done", {});
+    expect(app.mode).toBe("replay");
+    expect(app.clock?.atEnd).toBe(true);
+  });
+
+  it("shows invalid events and server problems instead of dropping them", async () => {
+    const { streams } = await harness();
+    const stream = streams[0]!;
+    stream.send("ev", { type: "nonsense" });
+    stream.sendRaw("ev", "{not json");
+    stream.send("problem", { line: 7, problem: "invalid event at /seq" });
+    const problems = ui("problems");
+    expect(problems.hidden).toBe(false);
+    expect(problems.textContent).toContain("line 7: invalid event at /seq");
+    expect(problems.textContent).toContain("not a run event");
+    expect(problems.textContent).toContain("unreadable stream message");
+  });
+
+  it("compares splits against a picked baseline run", async () => {
+    const { app, streams, fetched } = await harness(`#run=${M4_ID}`);
+    feed(streams[0]!, fullRun().events);
+    const baseline = ui("baseline") as HTMLSelectElement;
+    expect([...baseline.querySelectorAll("option")].map((option) => option.value)).toEqual([
+      "",
+      "2026-10-11T23-00-00_live",
+      "2026-10-11T21-00-00_old",
+    ]);
+    baseline.value = "2026-10-11T21-00-00_old";
+    baseline.dispatchEvent(new Event("change"));
+    await vi.waitFor(() => {
+      expect(fetched).toContain("/api/runs/2026-10-11T21-00-00_old/milestones");
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    app.tick(60_000);
+    expect(ui("splits").innerHTML).toContain("d-ahead");
+    expect(ui("splits-summary").innerHTML).toContain("all 2 baseline splits reached");
+    baseline.value = "";
+    baseline.dispatchEvent(new Event("change"));
+    app.tick(0);
+    expect(ui("splits-summary").innerHTML).toContain("no baseline");
+  });
+
+  it("switches runs from the picker and closes the old stream", async () => {
+    const { streams } = await harness();
+    feed(streams[0]!, fullRun().events.slice(0, 4));
+    const pick = ui("run") as HTMLSelectElement;
+    pick.value = M4_ID;
+    pick.dispatchEvent(new Event("change"));
+    expect(streams[0]?.closed).toBe(true);
+    expect(streams[1]?.url).toBe(`/api/runs/${M4_ID}/events`);
+    expect(ui("log").querySelectorAll(".ev").length).toBe(0);
+    expect(window.location.hash).toBe(`#run=${M4_ID}`);
+  });
+
+  it("says so when there are no runs", async () => {
+    document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
+    const app = await mountApp(document, {
+      fetchJson: () => Promise.resolve([]),
+      openStream: () => {
+        throw new Error("no stream expected");
+      },
+      now: () => BASE_MS,
+      hash: "",
+    });
+    expect(app.mode).toBe("idle");
+    expect(ui("mode").textContent).toBe("NO RUNS");
+  });
+
+  it("rejects a malformed run list", async () => {
+    document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
+    await expect(
+      mountApp(document, { fetchJson: () => Promise.resolve({ nope: 1 }), openStream: () => new FakeStream("x"), now: () => 0, hash: "" }),
+    ).rejects.toThrow("malformed /api/runs");
+  });
+
+  it("ignores events for a different run than the one selected", async () => {
+    const { app, streams } = await harness(`#run=${M4_ID}`);
+    const log = new Log();
+    log.add(0, START);
+    streams[0]!.send("ev", { ...log.events[0], run: "someone-else" });
+    expect(app.view.events).toHaveLength(0);
+    expect(ui("problems").textContent).toContain("event for run someone-else");
+  });
+});
+
+describe("boot", () => {
+  it("wires the page to fetch, EventSource and a render interval", async () => {
+    document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
+    const intervals: ((...args: unknown[]) => void)[] = [];
+    const streams: FakeStream[] = [];
+    const win = {
+      document,
+      location: { hash: "" },
+      fetch: vi.fn().mockResolvedValue(new Response(JSON.stringify(RUNS))),
+      EventSource: class extends FakeStream {
+        constructor(url: string) {
+          super(url);
+          streams.push(this);
+        }
+      },
+      setInterval: (fn: (...args: unknown[]) => void) => {
+        intervals.push(fn);
+        return 1;
+      },
+      performance: { now: () => 0 },
+    };
+    const app = await boot(win);
+    expect(win.fetch).toHaveBeenCalledWith("/api/runs");
+    expect(streams[0]?.url).toBe("/api/runs/2026-10-11T23-00-00_live/events");
+    expect(intervals).toHaveLength(1);
+    intervals[0]?.();
+    expect(app.mode).toBe("loading");
+  });
+
+  it("surfaces an HTTP error from the run list", async () => {
+    document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
+    const win = {
+      document,
+      location: { hash: "" },
+      fetch: vi.fn().mockResolvedValue(new Response("{}", { status: 500 })),
+      EventSource: FakeStream,
+      setInterval: () => 1,
+      performance: { now: () => 0 },
+    };
+    await expect(boot(win)).rejects.toThrow("GET /api/runs returned HTTP 500");
+  });
+});

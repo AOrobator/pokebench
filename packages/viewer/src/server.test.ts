@@ -1,0 +1,214 @@
+import { appendFileSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { createServer, request, type Server } from "node:http";
+import type { AddressInfo } from "node:net";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
+import { Log, START, fullRun } from "../test-support/events.js";
+import { BROWSER_MODULES, HOST, startViewer, type Viewer } from "./server.js";
+
+const PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+  "base64",
+);
+
+const open: { close(): Promise<void> }[] = [];
+
+afterEach(async () => {
+  while (open.length > 0) await open.pop()?.close();
+});
+
+interface Fixture {
+  readonly runsRoot: string;
+  readonly viewer: Viewer;
+}
+
+function writeRun(runsRoot: string, id: string, log: Log, port = 8011): string {
+  const dir = join(runsRoot, id);
+  mkdirSync(join(dir, "frames"), { recursive: true });
+  const lines = log.events.map((event) =>
+    JSON.stringify(
+      event.type === "run_start" ? { ...event, run: id, isolation: { ...event.isolation, port } } : { ...event, run: id },
+    ),
+  );
+  writeFileSync(join(dir, "events.jsonl"), `${lines.join("\n")}\n`);
+  return join(dir, "events.jsonl");
+}
+
+async function fixture(): Promise<Fixture> {
+  const base = mkdtempSync(join(tmpdir(), "pokebench-viewer-srv-"));
+  const runsRoot = join(base, "runs");
+  const staticDir = join(base, "static");
+  const appDir = join(base, "app");
+  mkdirSync(runsRoot);
+  mkdirSync(staticDir);
+  mkdirSync(appDir);
+  writeFileSync(join(staticDir, "index.html"), "<!doctype html><title>PokeBench viewer</title>");
+  writeFileSync(join(staticDir, "style.css"), "body{}");
+  writeFileSync(join(appDir, "model.js"), "export const x = 1;");
+  writeFileSync(join(appDir, "server.js"), "secret");
+  const viewer = await startViewer({ runsRoot, staticDir, appDir, port: 0, pollMs: 10 });
+  open.push(viewer);
+  return { runsRoot, viewer };
+}
+
+interface Reply {
+  readonly status: number;
+  readonly type: string;
+  readonly body: Buffer;
+}
+
+function get(viewer: Viewer, path: string, options: { host?: string; method?: string } = {}): Promise<Reply> {
+  return new Promise((resolve, reject) => {
+    const req = request(
+      { host: HOST, port: viewer.port, path, method: options.method ?? "GET", headers: { host: options.host ?? `${HOST}:${String(viewer.port)}` } },
+      (res) => {
+        const chunks: Buffer[] = [];
+        res.on("data", (chunk: Buffer) => chunks.push(chunk));
+        res.on("end", () => {
+          resolve({ status: res.statusCode ?? 0, type: String(res.headers["content-type"] ?? ""), body: Buffer.concat(chunks) });
+        });
+      },
+    );
+    req.on("error", reject);
+    req.end();
+  });
+}
+
+async function fakeGameServer(body: unknown, status = 200): Promise<number> {
+  const server: Server = createServer((_req, res) => {
+    res.writeHead(status, { "content-type": "application/json" });
+    res.end(JSON.stringify(body));
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  open.push({ close: () => new Promise<void>((resolve) => server.close(() => { resolve(); })) });
+  return (server.address() as AddressInfo).port;
+}
+
+async function closedPort(): Promise<number> {
+  const server = createServer();
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const { port } = server.address() as AddressInfo;
+  await new Promise<void>((resolve) => server.close(() => { resolve(); }));
+  return port;
+}
+
+describe("viewer server", () => {
+  it("binds 127.0.0.1 only", async () => {
+    const { viewer } = await fixture();
+    expect(HOST).toBe("127.0.0.1");
+    expect(viewer.address).toBe("127.0.0.1");
+    expect(viewer.url).toBe(`http://127.0.0.1:${String(viewer.port)}/`);
+  });
+
+  it("serves the page, the stylesheet and only the browser modules", async () => {
+    const { viewer } = await fixture();
+    const page = await get(viewer, "/");
+    expect(page.status).toBe(200);
+    expect(page.type).toContain("text/html");
+    expect((await get(viewer, "/style.css")).type).toContain("text/css");
+    const module = await get(viewer, "/app/model.js");
+    expect(module.type).toContain("text/javascript");
+    expect(module.body.toString()).toBe("export const x = 1;");
+    expect(BROWSER_MODULES).not.toContain("server");
+    expect((await get(viewer, "/app/server.js")).status).toBe(404);
+    expect((await get(viewer, "/app/..%2fserver.js")).status).toBe(404);
+    expect((await get(viewer, "/app/timeline.js")).status).toBe(404);
+    expect((await get(viewer, "/nope")).status).toBe(404);
+  });
+
+  it("refuses foreign Host headers and non-GET methods", async () => {
+    const { viewer } = await fixture();
+    expect((await get(viewer, "/", { host: "evil.example:80" })).status).toBe(403);
+    expect((await get(viewer, "/", { host: `localhost:${String(viewer.port)}` })).status).toBe(200);
+    expect((await get(viewer, "/", { method: "POST" })).status).toBe(405);
+  });
+
+  it("lists runs as JSON", async () => {
+    const { runsRoot, viewer } = await fixture();
+    writeRun(runsRoot, "2026-10-11T22-00-00_a", fullRun());
+    const reply = await get(viewer, "/api/runs");
+    expect(reply.type).toContain("application/json");
+    expect(JSON.parse(reply.body.toString())).toMatchObject([{ id: "2026-10-11T22-00-00_a", ended: true }]);
+  });
+
+  it("streams a finished run's events, then caught_up and done", async () => {
+    const { runsRoot, viewer } = await fixture();
+    writeRun(runsRoot, "done", fullRun());
+    const reply = await get(viewer, "/api/runs/done/events");
+    expect(reply.type).toContain("text/event-stream");
+    const text = reply.body.toString();
+    expect(text.match(/^event: ev$/gm)).toHaveLength(fullRun().events.length);
+    expect(text).toMatch(/event: caught_up\ndata: \{\}\n\n/);
+    expect(text.trimEnd().endsWith("event: done\ndata: {}")).toBe(true);
+  });
+
+  it("tails a live run until run_end and reports invalid lines", async () => {
+    const { runsRoot, viewer } = await fixture();
+    const live = new Log();
+    live.add(0, START);
+    const path = writeRun(runsRoot, "live", live);
+    const pending = get(viewer, "/api/runs/live/events");
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    appendFileSync(path, "{broken\n");
+    const end = fullRun().events.at(-1);
+    appendFileSync(path, `${JSON.stringify({ ...end, run: "live", seq: 1 })}\n`);
+    const text = (await pending).body.toString();
+    expect(text.indexOf("event: caught_up")).toBeLessThan(text.indexOf("event: problem"));
+    expect(text).toContain('"line":2');
+    expect(text.match(/^event: ev$/gm)).toHaveLength(2);
+    expect(text).toContain("event: done");
+  });
+
+  it("serves frames by safe name only", async () => {
+    const { runsRoot, viewer } = await fixture();
+    writeRun(runsRoot, "r", fullRun());
+    writeFileSync(join(runsRoot, "r", "frames", "000009_0.png"), PNG);
+    const frame = await get(viewer, "/api/runs/r/frames/000009_0.png");
+    expect(frame.type).toBe("image/png");
+    expect(frame.body.equals(PNG)).toBe(true);
+    expect((await get(viewer, "/api/runs/r/frames/000010_0.png")).status).toBe(404);
+    expect((await get(viewer, "/api/runs/r/frames/..%2fevents.jsonl")).status).toBe(404);
+    expect((await get(viewer, "/api/runs/..%2f..%2fetc/events")).status).toBe(404);
+  });
+
+  it("serves baseline milestones", async () => {
+    const { runsRoot, viewer } = await fixture();
+    writeRun(runsRoot, "base", fullRun());
+    const reply = await get(viewer, "/api/runs/base/milestones");
+    expect(JSON.parse(reply.body.toString())).toMatchObject({ run: "base", milestones: [{ name: "GAME_RUNNING", offsetMs: 10 }] });
+    expect((await get(viewer, "/api/runs/missing/milestones")).status).toBe(404);
+  });
+
+  it("proxies the live screen from the run's own game server while it runs", async () => {
+    const { runsRoot, viewer } = await fixture();
+    const port = await fakeGameServer({ screenshot_base64: PNG.toString("base64"), step_number: 3 });
+    const live = new Log();
+    live.add(0, START);
+    writeRun(runsRoot, "live", live, port);
+    const screen = await get(viewer, "/api/runs/live/screen");
+    expect(screen.status).toBe(200);
+    expect(screen.type).toBe("image/png");
+    expect(screen.body.equals(PNG)).toBe(true);
+  });
+
+  it("refuses the live screen for an ended run and reports an unreachable or malformed server", async () => {
+    const { runsRoot, viewer } = await fixture();
+    writeRun(runsRoot, "done", fullRun());
+    expect((await get(viewer, "/api/runs/done/screen")).status).toBe(409);
+    const live = new Log();
+    live.add(0, START);
+    writeRun(runsRoot, "down", live, await closedPort());
+    expect((await get(viewer, "/api/runs/down/screen")).status).toBe(502);
+    const bad = await fakeGameServer({ screenshot_base64: Buffer.from("not a png").toString("base64"), step_number: 1 });
+    writeRun(runsRoot, "bad", live, bad);
+    expect((await get(viewer, "/api/runs/bad/screen")).status).toBe(502);
+    const malformed = await fakeGameServer({ nope: true });
+    writeRun(runsRoot, "malformed", live, malformed);
+    expect((await get(viewer, "/api/runs/malformed/screen")).status).toBe(502);
+    const failing = await fakeGameServer({}, 500);
+    writeRun(runsRoot, "failing", live, failing);
+    expect((await get(viewer, "/api/runs/failing/screen")).status).toBe(502);
+    expect((await get(viewer, "/api/runs/missing/screen")).status).toBe(404);
+  });
+});

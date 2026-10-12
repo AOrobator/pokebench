@@ -1,6 +1,5 @@
-from pokebench_env.readout import format_readout, state_json
-
 from pokebench_env.game_state import GameState, PartyMon
+from pokebench_env.readout import format_readout, state_json
 from pokebench_env.ui_state import Menu
 
 IN_GAME = GameState(

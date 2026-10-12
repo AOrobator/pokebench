@@ -37,7 +37,9 @@ def test_observation_is_the_readout_the_frame_and_the_typed_state() -> None:
     status, _, body = get(app_with(good_shot), "/pokebench/observation")
     assert status == 200
     payload = json.loads(body)
-    assert payload["state_text"].startswith("Screen: naming\nGame not started")
+    assert payload["state_text"].startswith(
+        "Screen: naming\nDialog: none\nMenu: none\nGame not started"
+    )
     assert payload["screenshot_base64"] == "iVBORw0KGgo="
     assert payload["state"]["screen"] == "naming"
     assert payload["state"]["started"] is False

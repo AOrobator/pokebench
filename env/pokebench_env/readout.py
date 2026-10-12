@@ -16,8 +16,18 @@ def _play_seconds(state: GameState) -> int | None:
     return hours * 3600 + minutes * 60 + seconds
 
 
+def _menu(state: GameState) -> str:
+    if state.menu is None:
+        return "Menu: none"
+    return (
+        f"Menu: open, option {state.menu.selected} of {state.menu.options} selected"
+        " (counting from the top)"
+    )
+
+
 def format_readout(state: GameState) -> str:
-    lines = [f"Screen: {state.screen}"]
+    dialog = "none" if state.dialog is None else f'"{state.dialog}"'
+    lines = [f"Screen: {state.screen}", f"Dialog: {dialog}", _menu(state)]
     if not state.started or state.position is None:
         return "\n".join([*lines, PRE_GAME_TEXT])
     x, y = state.position

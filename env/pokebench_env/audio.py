@@ -32,10 +32,17 @@ class AudioTape:
         self._epoch = 0
         self._lock = threading.Lock()
 
-    def append(self, pcm: bytes) -> None:
+    @property
+    def epoch(self) -> int:
+        with self._lock:
+            return self._epoch
+
+    def append(self, pcm: bytes, *, epoch: int | None = None) -> None:
         if len(pcm) % FRAME_BYTES:
             raise ValueError("PCM must contain whole stereo frames")
         with self._lock:
+            if epoch is not None and epoch != self._epoch:
+                return
             self._end += len(pcm) // FRAME_BYTES
             self._pcm.extend(pcm[-self.capacity_frames * FRAME_BYTES :])
             del self._pcm[: max(0, len(self._pcm) - self.capacity_frames * FRAME_BYTES)]
@@ -109,13 +116,14 @@ def install_tap(emulator_class: type[EmulatorLike], tape: AudioTape) -> None:
 
             def capture() -> None:
                 nonlocal warned
+                epoch = tape.epoch
                 if current != generation:
                     return
                 try:
                     samples = array("h", buffer.read(buffer.available))
                     if sys.byteorder != "little":
                         samples.byteswap()
-                    tape.append(samples.tobytes())
+                    tape.append(samples.tobytes(), epoch=epoch)
                 except Exception:
                     if not warned:
                         logger.warning("Spectator audio capture failed", exc_info=True)

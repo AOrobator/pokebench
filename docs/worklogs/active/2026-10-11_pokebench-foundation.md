@@ -540,3 +540,6 @@ FinalintegrationClaudeacceptedgatefinding: lasttestprefixfixcreated103charlitera
 
 
 **Final integration coordination (2026-10-12):** operator explicitly requested every side patch land, followed by removal of all extra PokeBench worktrees. Story owner handed main back at c228e3e after reviewed e84c8bb fast-forward, preserving canonical sequencer and user-created skills. This continuation checkout reconciles that landed history; production changes come from the reviewed main, while canonical findings/worklog already retain the manual party and30-minute receipts. Root owns remaining dialogue/world/warp/objective/skill integration and cleanup. Recorded runs, checksums, reviews and a pre-integration Git bundle are preserved in ignored main/runs/integration-receipts/cleanup-2026-10-12 before any removal. World/warp/objective owners have not handed off yet; their worktrees are retained.
+
+
+**Source-reference skill preservation:** operator-created pokebench-game-state SKILL.md, pinned source reference index and relative .agents alias are added unchanged to version control under the final all-work landing authorization. Byte equality against the canonical untracked originals verified; source reference remains a separate checkout, no ROM or source clone is included. The alias resolves to the same repository skill. No new policy authored or runtime change.

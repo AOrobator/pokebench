@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PokeBench Viewer Round 3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Press+Start+2P&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ---------- shell ---------- */
+:root{--nav-bg:#0d1117;--nav-fg:#c9d1d9;--nav-active:#7cc8e8}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:#0d1117;color:#e6edf3;font-family:Inter,system-ui,sans-serif;overflow-x:hidden}
+nav.top{position:sticky;top:0;z-index:50;background:var(--nav-bg);border-bottom:1px solid #263040;padding:8px 16px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+nav.top .brand{font-weight:800;letter-spacing:.04em;color:#7cc8e8;margin-right:10px;font-size:14px}
+nav.top button{background:#161b22;color:var(--nav-fg);border:1px solid #2b3545;border-radius:999px;padding:5px 11px;font:500 12px Inter,sans-serif;cursor:pointer}
+nav.top button.on{background:#7cc8e8;color:#08202c;border-color:#7cc8e8;font-weight:700}
+nav.top .desc{flex-basis:100%;font-size:12.5px;color:#9aa7b4;padding-top:4px;line-height:1.4}
+nav.top .desc b{color:#e6edf3}
+.design{display:none;min-height:calc(100vh - 78px)}
+.design.active{display:block}
+.grid{display:grid;gap:12px;padding:12px 16px}
+@media (max-width:980px){
+  nav.top{position:static}
+  .design .grid{grid-template-columns:1fr !important;grid-template-areas:none !important;grid-template-rows:none !important}
+  .design .grid>*{grid-area:auto !important;grid-column:auto !important;grid-row:auto !important}
+}
+
+/* ---------- Glacier GBA ---------- */
+svg.gba{width:100%;height:auto;display:block;overflow:visible}
+.gba .shell{fill:#bfe3f2;fill-opacity:.9;stroke:#8fc3db;stroke-width:2}
+.gba .shellhi{fill:#ffffff;fill-opacity:.35}
+.gba .guts{stroke:#5e93ad;stroke-opacity:.35;fill:none;stroke-width:1.2}
+.gba .chip{fill:#43708a;fill-opacity:.28}
+.gba .bezel{fill:#33404d}
+.gba .bezel-in{fill:#1d252d}
+.gba .btn{fill:#e4edf2;stroke:#93b6c8;stroke-width:1.5;transition:fill .08s}
+.gba .dpad{fill:#d7e3ea;stroke:#93b6c8;stroke-width:1.5;transition:fill .08s}
+.gba .shoulder{fill:#cfe8f4;stroke:#8fc3db;stroke-width:2;transition:fill .08s}
+.gba .pill{fill:#c3d3dc;stroke:#93b6c8;stroke-width:1.2;transition:fill .08s}
+.gba .lbl{font:700 11px Inter,sans-serif;fill:#4f7d94;text-anchor:middle;pointer-events:none}
+.gba .lbl.sm{font-size:8px;letter-spacing:.08em}
+.gba .logo{font:800 10px Inter,sans-serif;letter-spacing:.32em;fill:#4f7d94;fill-opacity:.8;text-anchor:middle}
+.gba .led{fill:#5be37a}
+.gba .grill{fill:#5e93ad;fill-opacity:.45}
+.gba .lit{fill:#ffd447 !important;stroke:#d39a00 !important;filter:drop-shadow(0 0 7px rgba(255,200,40,.95))}
+canvas.scr{width:100%;height:100%;display:block;image-rendering:pixelated;background:#000}
+
+/* ---------- shared bits ---------- */
+.log{overflow:auto;font-size:12px;line-height:1.45}
+.ev{display:flex;gap:8px;padding:3px 6px;border-radius:4px;cursor:pointer;align-items:baseline}
+.ev:hover{background:rgba(127,127,127,.12)}
+.ev .seq{opacity:.5;font-family:'JetBrains Mono',monospace;font-size:11px;min-width:42px}
+.ev .tag{font-family:'JetBrains Mono',monospace;font-size:10.5px;padding:0 5px;border-radius:3px;background:rgba(127,127,127,.18);white-space:nowrap}
+.ev .body{flex:1;min-width:0;word-break:break-word}
+.ev-retry .tag,.ev-retry .body{color:#ff6b6b}
+.ev-milestone .tag{background:#f5c542;color:#2a1d00}
+.ev-milestone .body{color:#f5c542;font-weight:600}
+.ev-button_press .tag{background:rgba(255,212,71,.25)}
+.ev-tool_call .tag{background:rgba(124,200,232,.25)}
+.ev-compaction .tag{background:rgba(190,140,255,.3)}
+.ev-disk_usage .tag{background:rgba(255,150,80,.3)}
+.chipb{display:inline-block;font:700 11px 'JetBrains Mono',monospace;padding:2px 6px;border-radius:5px;background:#2b3545;color:#ffd447;margin:1px}
+.trail{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.trail .chipb:last-child{transform:scale(1.25);background:#ffd447 !important;color:#2a1d00 !important}
+.thinkcard{padding:8px 10px;border-radius:8px;margin-bottom:8px;background:rgba(127,127,127,.1);font-size:12.5px;line-height:1.5}
+.thinkcard .meta{font-size:10.5px;opacity:.6;font-family:'JetBrains Mono',monospace;margin-bottom:3px}
+.live-thought .cursor{display:inline-block;width:7px;height:1em;background:currentColor;vertical-align:-2px;animation:blink 1s steps(1) infinite;margin-left:2px}
+@keyframes blink{50%{opacity:0}}
+table.splits{width:100%;border-collapse:collapse;font-size:12px}
+table.splits td{padding:3px 6px;white-space:nowrap}
+table.splits td.n{overflow:hidden;text-overflow:ellipsis;max-width:180px}
+table.splits td.t,table.splits td.d{text-align:right;font-family:'JetBrains Mono',monospace}
+table.splits tr.done td.n{opacity:.85}
+table.splits tr.todo td{opacity:.38}
+table.splits tr.next td{opacity:1;background:rgba(124,200,232,.14)}
+.d-ahead{color:#4cd27a}.d-behind{color:#ff6b6b}
+.party .pm{display:grid;grid-template-columns:1fr auto;gap:2px 8px;margin-bottom:6px;font-size:12px}
+.hpbar{grid-column:1/-1;height:6px;border-radius:3px;background:rgba(127,127,127,.25);overflow:hidden}
+.hpbar i{display:block;height:100%;background:#4cd27a}
+.hpbar i.mid{background:#f5c542}.hpbar i.low{background:#ff6b6b}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:12px}
+.kv dt{opacity:.6}.kv dd{margin:0;font-family:'JetBrains Mono',monospace;text-align:right}
+canvas.chart,canvas.lanes,canvas.roll,canvas.scrub{width:100%;display:block}
+.heat{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.heat div{border-radius:6px;padding:8px 4px;text-align:center;font:700 11px 'JetBrains Mono',monospace;color:#fff}
+.heat div small{display:block;font-weight:400;opacity:.8}
+.eyewrap{position:relative}
+canvas.eye{width:100%;aspect-ratio:3/2;display:block;image-rendering:pixelated;background:#000}
+.inspector{font:11.5px/1.45 'JetBrains Mono',monospace;white-space:pre-wrap;word-break:break-word;overflow:auto}
+.meter{height:8px;border-radius:4px;background:rgba(127,127,127,.25);overflow:hidden}
+.meter i{display:block;height:100%;background:linear-gradient(90deg,#7cc8e8,#f5a142)}
+
+/* ================= PokeNav round 2 (shared) ================= */
+.pn{background:#4a9fd8 repeating-linear-gradient(45deg,rgba(255,255,255,.07) 0 12px,transparent 12px 24px);color:#283038;font-family:'Press Start 2P',monospace}
+.pn .grid{padding:18px;gap:14px}
+.pn .box{background:#f8f8f8;border:4px solid #3a6ea5;outline:3px solid #fff;outline-offset:-9px;border-radius:12px;padding:16px;font-size:9px;line-height:1.8;min-width:0;box-shadow:0 4px 0 #22476e}
+.pn .box.red{border-color:#d03a3a;box-shadow:0 4px 0 #8a2020}
+.pn h3{margin:0 0 8px;font-size:10px;color:#d03a3a;font-weight:400}
+.pn .stack{display:flex;flex-direction:column;gap:14px;min-width:0}
+.pn .gbaStage{display:flex;flex-direction:column;gap:12px;min-width:0}
+.pn .gbaStage svg.gba{filter:drop-shadow(0 26px 30px rgba(10,40,80,.35))}
+.pn .kv{font-size:8.5px;gap:4px 10px}.pn .kv dt{opacity:.7}.pn .kv dd{font-family:'Press Start 2P',monospace}
+.pn .party .pm{font-size:8.5px}
+.pn .hpbar{height:7px;border:2px solid #444;border-radius:4px;background:#fff}
+.pn .badges{display:flex;gap:6px;margin-top:8px}
+.pn .badges i{width:14px;height:14px;border-radius:50%;background:#ccc;border:2px solid #888}
+.pn .badges i.got{background:#b07a3c}
+.pn .chipb{font-family:'Press Start 2P',monospace;font-size:8px;background:#3a6ea5;color:#fff}
+.pn .dialog .live-thought{font-size:10px;line-height:2.1;min-height:64px}
+.pn .log{font-family:'Press Start 2P',monospace;font-size:8px;line-height:2}
+.pn .log .ev .seq,.pn .log .ev .tag{font-family:'Press Start 2P',monospace;font-size:7.5px}
+.pn .ev-milestone .body{color:#c48a00}
+.pn table.splits td{font-size:8px;padding:2px 4px}
+.pn table.splits td.t,.pn table.splits td.d{font-family:'Press Start 2P',monospace}
+/* collapsible splits */
+.pn details.splitsD{padding:0}
+.pn details.splitsD>summary{list-style:none;cursor:pointer;padding:14px 16px;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.pn details.splitsD>summary::-webkit-details-marker{display:none}
+.pn details.splitsD>summary .ttl{color:#d03a3a;font-size:10px}
+.pn details.splitsD>summary .ttl::before{content:'▶ ';font-size:8px}
+.pn details.splitsD[open]>summary .ttl::before{content:'▼ '}
+.pn details.splitsD>summary .nx{font-size:8px;opacity:.85}
+.pn details.splitsD select{font:8px 'Press Start 2P',monospace;padding:4px;border:2px solid #3a6ea5;border-radius:6px;background:#fff;color:#283038;margin-left:auto}
+.pn details.splitsD .wrap{padding:0 16px 14px;max-height:260px;overflow:auto}
+/* lanes */
+.pn .lanesBox{background:#1e2c44;border-color:#3a6ea5;outline-color:#4d6a96;color:#dfe8f5}
+.pn .lanesBox h3{color:#ffd447}
+.pn .lanesBox canvas{height:170px}
+/* LLM health */
+.pn .llmbars .row{display:grid;grid-template-columns:78px 1fr 96px;gap:8px;align-items:center;margin-bottom:8px}
+.pn .llmbars .row .l{font-size:7.5px;background:#d03a3a;color:#fff;padding:3px 5px;border-radius:4px;text-align:center}
+.pn .llmbars .row .v{font-size:8px;text-align:right}
+.pn .llmbars .bar{height:8px;border:2px solid #444;border-radius:4px;background:#fff;overflow:hidden}
+.pn .llmbars .bar i{display:block;height:100%;background:#4cd27a}
+.pn .llmbars .bar i.mid{background:#f5c542}.pn .llmbars .bar i.low{background:#ff6b6b}
+.pn .pills{display:flex;flex-wrap:wrap;gap:8px}
+.pn .pill2{background:#fff;border:3px solid #3a6ea5;border-radius:10px;padding:7px 10px;font-size:8px;line-height:1.6;min-width:110px}
+.pn .pill2 small{display:block;font-size:7px;color:#d03a3a}
+.pn .pill2.warn{border-color:#d03a3a}
+.pn .tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.pn .tabs button{font:8px 'Press Start 2P',monospace;padding:8px 9px;border-radius:8px;border:3px solid #3a6ea5;background:#fff;color:#283038;cursor:pointer}
+.pn .tabs button.on{background:#3a6ea5;color:#fff}
+.pn [data-pane]{display:none}.pn [data-pane].on{display:block}
+.pn .sum{display:grid;grid-template-columns:1fr;gap:5px}
+.pn .sum .r{display:grid;grid-template-columns:110px 1fr auto;gap:8px;align-items:center;font-size:8px}
+.pn .sum .r .k{background:#3a6ea5;color:#fff;border-radius:4px;padding:4px 6px}
+.pn .sum .r .k.alt{background:#d03a3a}
+
+/* ---------- R1 Center Stage ---------- */
+#r1 .grid{grid-template-columns:minmax(230px,300px) minmax(480px,1fr) minmax(260px,340px);grid-template-areas:"left gba right" "lanes lanes lanes" "log log splits";align-items:start}
+#r1 .left{grid-area:left}#r1 .gbaStage{grid-area:gba}#r1 .right{grid-area:right}
+#r1 .lanesBox{grid-area:lanes}#r1 .logB{grid-area:log}#r1 .logB .log{height:200px}#r1 .splitsB{grid-area:splits}
+
+/* ---------- R2 HUD Strip ---------- */
+#r2 .grid{grid-template-columns:minmax(230px,290px) minmax(480px,1fr) minmax(230px,290px);grid-template-areas:"hud hud hud" "card gba party" "lanes lanes lanes" "log log splits";align-items:start}
+#r2 .hud{grid-area:hud}#r2 .card{grid-area:card}#r2 .gbaStage{grid-area:gba}#r2 .partyB{grid-area:party}
+#r2 .lanesBox{grid-area:lanes}#r2 .logB{grid-area:log}#r2 .logB .log{height:200px}#r2 .splitsB{grid-area:splits}
+
+/* ---------- R3 HP Bars ---------- */
+#r3 .grid{grid-template-columns:minmax(240px,300px) minmax(480px,1fr) minmax(260px,320px);grid-template-areas:"left gba right" "lanes lanes lanes";align-items:start}
+#r3 .left{grid-area:left}#r3 .gbaStage{grid-area:gba}#r3 .right{grid-area:right}#r3 .lanesBox{grid-area:lanes}
+#r3 .left .log{height:230px}
+
+/* ---------- R4 PokeNav Device ---------- */
+#r4 .grid{grid-template-columns:minmax(520px,1.7fr) minmax(300px,1fr);grid-template-areas:"gba nav" "lanes lanes";align-items:start}
+#r4 .gbaStage{grid-area:gba}
+#r4 .navdev{grid-area:nav;background:#e04848;border:4px solid #8a2020;border-radius:22px;padding:14px;box-shadow:0 6px 0 #6a1818}
+#r4 .navdev .scrn{background:#f8f8f8;border:4px solid #283038;border-radius:12px;padding:14px;font-size:9px;line-height:1.8;min-height:420px}
+#r4 .navdev .scrn .log{height:360px}
+#r4 .navdev .brand{color:#fff;font-size:10px;margin:0 0 10px 4px}
+#r4 .navdev .mini{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:12px}
+#r4 .navdev .mini div{background:#fff;border-radius:8px;padding:6px;font-size:7.5px;line-height:1.7;text-align:center}
+#r4 .navdev .mini small{display:block;color:#d03a3a;font-size:6.5px}
+#r4 .lanesBox{grid-area:lanes}
+
+/* ---------- R5 Summary Screen ---------- */
+#r5 .grid{grid-template-columns:minmax(230px,290px) minmax(480px,1fr) minmax(280px,340px);grid-template-areas:"left gba right" "lanes lanes lanes" "log log splits";align-items:start}
+#r5 .left{grid-area:left}#r5 .gbaStage{grid-area:gba}#r5 .right{grid-area:right}
+#r5 .lanesBox{grid-area:lanes}#r5 .logB{grid-area:log}#r5 .logB .log{height:200px}#r5 .splitsB{grid-area:splits}
+#r5 .right .summaryHead{display:flex;justify-content:space-between;align-items:center;background:#3a6ea5;color:#fff;border-radius:6px;padding:8px;margin-bottom:10px;font-size:8.5px}
+.pn table.splits{table-layout:fixed}
+.pn table.splits td.n{max-width:none;overflow:hidden;text-overflow:ellipsis}
+.pn table.splits td.d{width:66px}.pn table.splits td.t{width:66px}
+/* ================= Round 3 ================= */
+.pn .llmmix .row{display:grid;grid-template-columns:78px 1fr 96px;gap:8px;align-items:center;margin-bottom:8px}
+.pn .llmmix .row .l{font-size:7.5px;background:#d03a3a;color:#fff;padding:3px 5px;border-radius:4px;text-align:center}
+.pn .llmmix .row .v{font-size:8px;text-align:right}
+.pn .llmmix .bar{height:8px;border:2px solid #444;border-radius:4px;background:#fff;overflow:hidden}
+.pn .llmmix .bar i{display:block;height:100%;background:#4cd27a}
+.pn .llmmix .bar i.mid{background:#f5c542}.pn .llmmix .bar i.low{background:#ff6b6b}
+.pn .llmmix hr{border:0;border-top:2px dashed #c9d3de;margin:10px 0}
+.pn .kv dd.warn{color:#d03a3a}
+.pn .logFull .log{height:230px}
+.pn .logFull .ev{padding:2px 6px}
+.pn .sub{font-size:8px;color:#3a6ea5;margin:10px 0 6px}
+/* battle boxes */
+.pn .bbox{background:#f8f8e8;border:3px solid #405040;border-radius:4px 14px 4px 14px;padding:8px 10px;margin-bottom:10px;box-shadow:3px 3px 0 #405040}
+.pn .bbox .top{display:flex;justify-content:space-between;font-size:8.5px}
+.pn .bbox .hp{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:7px}
+.pn .bbox .hp span{background:#e0a020;color:#fff;padding:1px 4px;border-radius:3px}
+.pn .bbox .hp .bar{flex:1;height:7px;border:2px solid #405040;border-radius:4px;background:#fff;overflow:hidden}
+.pn .bbox .hp .bar i{display:block;height:100%;background:#4cd27a}
+.pn .bbox .hp .bar i.mid{background:#f5c542}.pn .bbox .hp .bar i.low{background:#ff6b6b}
+.pn .bbox .num{text-align:right;font-size:8px;margin-top:4px}
+/* split strip */
+.pn .sstrip{display:flex;gap:8px;overflow-x:auto;padding:0 16px 14px}
+.pn .sstrip .s{flex:0 0 auto;background:#fff;border:3px solid #3a6ea5;border-radius:8px;padding:6px 8px;font-size:7.5px;line-height:1.7;min-width:112px}
+.pn .sstrip .s.todo{opacity:.4}.pn .sstrip .s.next{border-color:#d03a3a}
+/* open pokenav */
+.pn .navopen{background:#e04848;border:4px solid #8a2020;border-radius:22px;padding:12px;box-shadow:0 6px 0 #6a1818;display:grid;gap:10px}
+.pn .navopen .brand{color:#fff;font-size:10px;margin:2px 0 0 4px}
+.pn .navopen .scrn{background:#f8f8f8;border:4px solid #283038;border-radius:12px;padding:12px;font-size:9px;line-height:1.8}
+
+#s1 .grid{grid-template-columns:minmax(240px,300px) minmax(480px,1fr) minmax(280px,340px);grid-template-areas:"left gba right" "lanes lanes lanes" "log log log";align-items:start}
+#s2 .grid{grid-template-columns:minmax(240px,300px) minmax(480px,1fr) minmax(280px,340px);grid-template-areas:"left gba right" "strip strip strip" "lanes lanes lanes" "log log log";align-items:start}
+#s3 .grid{grid-template-columns:minmax(240px,300px) minmax(480px,1fr) minmax(280px,330px);grid-template-areas:"left gba right" "bud bud bud" "lanes lanes lanes" "log log log";align-items:start}
+#s3 .budB .budrow{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+#s3 .budB .budrow .row{grid-template-columns:78px 1fr 110px;margin:0}
+#s4 .grid{grid-template-columns:minmax(520px,1.5fr) minmax(340px,1fr);grid-template-areas:"gba nav" "lanes lanes" "log log";align-items:start}
+#s4 .navopen{grid-template-columns:1fr 1fr}
+#s4 .navopen .brand,#s4 .navopen .wide{grid-column:1/-1}
+#s5 .grid{grid-template-columns:minmax(240px,300px) minmax(480px,1fr) minmax(280px,330px);grid-template-areas:"left gba right" "lanes lanes lanes" "log log log";align-items:start}
+.pn .left{grid-area:left}.pn .gbaStage{grid-area:gba}.pn .right{grid-area:right}.pn .lanesBox{grid-area:lanes}.pn .logFull{grid-area:log}
+#s2 .stripB{grid-area:strip}
+#s3 .budB{grid-area:bud}
+#s4 .navopen{grid-area:nav}
+
+.pn .navopen .llmmix .row{grid-template-columns:64px 1fr 84px}
+@media (max-width:980px){.pn .navopen{grid-template-columns:1fr !important}#s3 .budB .budrow{grid-template-columns:1fr}}
+</style></head><body>
+<nav class="top" id="nav"><span class="brand">POKEBENCH VIEWER · ROUND 3 (HP BARS)</span><div class="desc" id="desc"></div></nav>
+<section class="design pn" id="s1" data-name="21. HP Bars Mixed" data-desc="<b>HP Bars Mixed.</b> Round 2's HP Bars with your changes: bars only for things with a limit (context window, frames disk, retry budget), plain numbers for the rest, the action log full width under the timeline, and splits folded under LLM health."><div class="grid"><div class="stack left"><div class="box"><h3>TRAINER CARD</h3><dl class="kv"><dt>TIME</dt><dd data-timer="wall"></dd><dt>PLAY</dt><dd data-timer="play"></dd><dt>MAP</dt><dd data-stat="loc"></dd><dt>MONEY</dt><dd data-stat="money"></dd><dt>TURN</dt><dd data-stat="turn"></dd><dt>STEPS</dt><dd data-stat="steps"></dd></dl><div class="badges" data-badges></div></div><div class="box"><h3>POKéMON</h3><div class="party" data-party></div></div></div><div class="gbaStage"><div data-gba></div><div class="box red dialog"><h3>AGENT is thinking… <span data-timer="think"></span></h3><div class="live-thought" data-live="thought"></div></div></div><div class="stack right"><div class="box"><h3>LLM HEALTH</h3><div class="llmmix" data-llmmix></div></div><details class="box splitsD "><summary><span class="ttl">SPLITS vs BASELINE</span><span class="nx">next <span data-stat="next"></span> <span data-stat="nextdelta"></span></span><select onclick="event.stopPropagation()"><option>best · run_20261011_2210</option><option>median of 3 · qwen3-vl</option><option>previous run</option></select></summary><div class="wrap" data-splits></div></details></div><div class="box lanesBox"><h3>TIMELINE · THINKING · TOOL CALLS · PRESSES · MILESTONES · ERRORS</h3><canvas class="lanes"></canvas></div><div class="box logFull"><h3>ACTION LOG</h3><div class="log" data-log="actions" data-fmt="rich"></div></div></div></section>
+<section class="design pn" id="s2" data-name="22. Split Strip" data-desc="<b>Split Strip.</b> Same layout, but the splits become a collapsible strip of milestone cards across the full width above the timeline, so the right column is all LLM health."><div class="grid"><div class="stack left"><div class="box"><h3>TRAINER CARD</h3><dl class="kv"><dt>TIME</dt><dd data-timer="wall"></dd><dt>PLAY</dt><dd data-timer="play"></dd><dt>MAP</dt><dd data-stat="loc"></dd><dt>MONEY</dt><dd data-stat="money"></dd><dt>TURN</dt><dd data-stat="turn"></dd><dt>STEPS</dt><dd data-stat="steps"></dd></dl><div class="badges" data-badges></div></div><div class="box"><h3>POKéMON</h3><div class="party" data-party></div></div></div><div class="gbaStage"><div data-gba></div><div class="box red dialog"><h3>AGENT is thinking… <span data-timer="think"></span></h3><div class="live-thought" data-live="thought"></div></div></div><div class="stack right"><div class="box"><h3>LLM HEALTH</h3><div class="llmmix" data-llmmix></div></div></div><details class="box splitsD stripB" open><summary><span class="ttl">SPLITS vs BASELINE</span><span class="nx">next <span data-stat="next"></span> <span data-stat="nextdelta"></span></span><select onclick="event.stopPropagation()"><option>best · run_20261011_2210</option><option>median of 3 · qwen3-vl</option><option>previous run</option></select></summary><div class="sstrip" data-sstrip></div></details><div class="box lanesBox"><h3>TIMELINE · THINKING · TOOL CALLS · PRESSES · MILESTONES · ERRORS</h3><canvas class="lanes"></canvas></div><div class="box logFull"><h3>ACTION LOG</h3><div class="log" data-log="actions" data-fmt="rich"></div></div></div></section>
+<section class="design pn" id="s3" data-name="23. Budget Row" data-desc="<b>Budget Row.</b> The three budgets (context, frames disk, retries) become one wide row of HP bars right under the GBA, where they are easiest to glance at. Counters and the folded splits sit in the right column."><div class="grid"><div class="stack left"><div class="box"><h3>TRAINER CARD</h3><dl class="kv"><dt>TIME</dt><dd data-timer="wall"></dd><dt>PLAY</dt><dd data-timer="play"></dd><dt>MAP</dt><dd data-stat="loc"></dd><dt>MONEY</dt><dd data-stat="money"></dd><dt>TURN</dt><dd data-stat="turn"></dd><dt>STEPS</dt><dd data-stat="steps"></dd></dl><div class="badges" data-badges></div></div><div class="box"><h3>POKéMON</h3><div class="party" data-party></div></div></div><div class="gbaStage"><div data-gba></div><div class="box red dialog"><h3>AGENT is thinking… <span data-timer="think"></span></h3><div class="live-thought" data-live="thought"></div></div></div><div class="stack right"><div class="box"><h3>COUNTERS</h3><div data-counters></div></div><details class="box splitsD "><summary><span class="ttl">SPLITS vs BASELINE</span><span class="nx">next <span data-stat="next"></span> <span data-stat="nextdelta"></span></span><select onclick="event.stopPropagation()"><option>best · run_20261011_2210</option><option>median of 3 · qwen3-vl</option><option>previous run</option></select></summary><div class="wrap" data-splits></div></details></div><div class="box budB"><h3>BUDGETS</h3><div class="llmmix budrow" data-budgets></div></div><div class="box lanesBox"><h3>TIMELINE · THINKING · TOOL CALLS · PRESSES · MILESTONES · ERRORS</h3><canvas class="lanes"></canvas></div><div class="box logFull"><h3>ACTION LOG</h3><div class="log" data-log="actions" data-fmt="rich"></div></div></div></section>
+<section class="design pn" id="s4" data-name="24. Open PokéNav" data-desc="<b>Open PokéNav.</b> The red PokéNav from round 2, but with every screen open at once and no tabs: trainer card, party, budgets, counters and splits are all visible next to the big GBA."><div class="grid"><div class="gbaStage"><div data-gba></div><div class="box red dialog"><h3>AGENT is thinking… <span data-timer="think"></span></h3><div class="live-thought" data-live="thought"></div></div></div><div class="navopen"><div class="brand">POKéNAV · RUN 0117</div><div class="scrn"><h3>TRAINER CARD</h3><dl class="kv"><dt>TIME</dt><dd data-timer="wall"></dd><dt>PLAY</dt><dd data-timer="play"></dd><dt>MAP</dt><dd data-stat="loc"></dd><dt>MONEY</dt><dd data-stat="money"></dd><dt>TURN</dt><dd data-stat="turn"></dd></dl><div class="badges" data-badges></div></div><div class="scrn"><h3>POKéMON</h3><div class="party" data-party></div></div><div class="scrn"><h3>BUDGETS</h3><div class="llmmix" data-budgets></div></div><div class="scrn"><h3>COUNTERS</h3><div data-counters></div></div><div class="scrn wide" style="padding:0;border-color:#283038"><details class="splitsD "><summary><span class="ttl">SPLITS vs BASELINE</span><span class="nx">next <span data-stat="next"></span> <span data-stat="nextdelta"></span></span><select onclick="event.stopPropagation()"><option>best · run_20261011_2210</option><option>median of 3 · qwen3-vl</option><option>previous run</option></select></summary><div class="wrap" data-splits></div></details></div></div><div class="box lanesBox"><h3>TIMELINE · THINKING · TOOL CALLS · PRESSES · MILESTONES · ERRORS</h3><canvas class="lanes"></canvas></div><div class="box logFull"><h3>ACTION LOG</h3><div class="log" data-log="actions" data-fmt="rich"></div></div></div></section>
+<section class="design pn" id="s5" data-name="25. Battle Boxes" data-desc="<b>Battle Boxes.</b> Each budget is drawn like an in-battle HP box (context, frames disk, retries), with the counters as a plain list under them. Splits fold under the boxes."><div class="grid"><div class="stack left"><div class="box"><h3>TRAINER CARD</h3><dl class="kv"><dt>TIME</dt><dd data-timer="wall"></dd><dt>PLAY</dt><dd data-timer="play"></dd><dt>MAP</dt><dd data-stat="loc"></dd><dt>MONEY</dt><dd data-stat="money"></dd><dt>TURN</dt><dd data-stat="turn"></dd><dt>STEPS</dt><dd data-stat="steps"></dd></dl><div class="badges" data-badges></div></div><div class="box"><h3>POKéMON</h3><div class="party" data-party></div></div></div><div class="gbaStage"><div data-gba></div><div class="box red dialog"><h3>AGENT is thinking… <span data-timer="think"></span></h3><div class="live-thought" data-live="thought"></div></div></div><div class="stack right"><div class="box"><h3>LLM HEALTH</h3><div data-battle></div><div class="sub">COUNTERS</div><div data-counters></div></div><details class="box splitsD "><summary><span class="ttl">SPLITS vs BASELINE</span><span class="nx">next <span data-stat="next"></span> <span data-stat="nextdelta"></span></span><select onclick="event.stopPropagation()"><option>best · run_20261011_2210</option><option>median of 3 · qwen3-vl</option><option>previous run</option></select></summary><div class="wrap" data-splits></div></details></div><div class="box lanesBox"><h3>TIMELINE · THINKING · TOOL CALLS · PRESSES · MILESTONES · ERRORS</h3><canvas class="lanes"></canvas></div><div class="box logFull"><h3>ACTION LOG</h3><div class="log" data-log="actions" data-fmt="rich"></div></div></div></section>
+<script>
+(()=>{
+'use strict';
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const ri=(a,b)=>Math.floor(rnd(a,b+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const hms=s=>{s=Math.max(0,Math.floor(s));const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return `${h}:${String(m).padStart(2,'0')}:${String(x).padStart(2,'0')}`};
+const BTNS=['UP','DOWN','LEFT','RIGHT','A','B','L','R','START','SELECT'];
+const BTN_COLOR={UP:'#7cc8e8',DOWN:'#7cc8e8',LEFT:'#7cc8e8',RIGHT:'#7cc8e8',A:'#ff6b6b',B:'#f5a142',L:'#b38cff',R:'#b38cff',START:'#4cd27a',SELECT:'#4cd27a'};
+const ARROW={UP:'↑',DOWN:'↓',LEFT:'←',RIGHT:'→'};
+
+/* ---------------- Glacier GBA SVG ---------------- */
+function gbaSVG(){return `
+<svg class="gba" viewBox="0 0 560 310" role="img" aria-label="Glacier Game Boy Advance">
+  <path data-btn="L" class="shoulder" d="M44 92 Q52 28 142 16 L176 16 L176 34 L120 40 Q76 48 62 96Z"/>
+  <path data-btn="R" class="shoulder" d="M516 92 Q508 28 418 16 L384 16 L384 34 L440 40 Q484 48 498 96Z"/>
+  <path class="shell" d="M140 26 H420 Q462 26 494 56 Q548 106 550 182 Q552 262 488 288 Q440 304 400 274 H160 Q120 304 72 288 Q8 262 10 182 Q12 106 66 56 Q98 26 140 26Z"/>
+  <path class="shellhi" d="M150 34 H410 Q450 34 478 58 Q430 50 400 52 H160 Q130 50 82 58 Q110 34 150 34Z"/>
+  <g class="guts"><path d="M40 210 H120 V250 H150"/><path d="M520 210 H440 V246 H410"/><path d="M60 130 Q90 120 110 140"/><path d="M500 130 Q470 118 455 135"/><circle cx="100" cy="262" r="6"/><circle cx="460" cy="262" r="6"/></g>
+  <rect class="chip" x="190" y="252" width="60" height="16" rx="2"/><rect class="chip" x="310" y="252" width="44" height="16" rx="2"/>
+  <rect class="bezel" x="150" y="44" width="260" height="196" rx="14"/>
+  <rect class="bezel-in" x="162" y="56" width="236" height="160" rx="4"/>
+  <circle class="led" cx="140" cy="100" r="4"/>
+  <foreignObject x="170" y="62" width="220" height="147"><canvas class="scr" width="240" height="160" xmlns="http://www.w3.org/1999/xhtml"></canvas></foreignObject>
+  <text class="logo" x="280" y="233">POKEBENCH</text>
+  <g>
+    <rect class="dpad" x="88" y="148" width="28" height="80" rx="4"/>
+    <rect class="dpad" x="62" y="174" width="80" height="28" rx="4"/>
+    <rect data-btn="UP" class="dpad" x="88" y="148" width="28" height="27" rx="4"/>
+    <rect data-btn="DOWN" class="dpad" x="88" y="201" width="28" height="27" rx="4"/>
+    <rect data-btn="LEFT" class="dpad" x="62" y="174" width="27" height="28" rx="4"/>
+    <rect data-btn="RIGHT" class="dpad" x="115" y="174" width="27" height="28" rx="4"/>
+    <circle cx="102" cy="188" r="7" fill="#c7d6de"/>
+  </g>
+  <circle data-btn="B" class="btn" cx="448" cy="196" r="21"/>
+  <circle data-btn="A" class="btn" cx="496" cy="166" r="21"/>
+  <text class="lbl" x="448" y="200">B</text><text class="lbl" x="496" y="170">A</text>
+  <rect data-btn="SELECT" class="pill" x="44" y="246" width="34" height="11" rx="5.5"/>
+  <rect data-btn="START" class="pill" x="44" y="268" width="34" height="11" rx="5.5"/>
+  <text class="lbl sm" x="104" y="255">SELECT</text><text class="lbl sm" x="100" y="277">START</text>
+  <text class="lbl sm" x="94" y="38">L</text><text class="lbl sm" x="466" y="38">R</text>
+  <g class="grill">${[0,1,2,3,4,5].map(i=>[0,1,2].map(j=>`<circle cx="${452+i*10-j*4}" cy="${236+j*11+i*2}" r="2.4"/>`).join('')).join('')}</g>
+</svg>`}
+$$('[data-gba]').forEach(el=>el.innerHTML=gbaSVG());
+
+/* ---------------- fake game ---------------- */
+const MAP=["TTTTTTT..TTTTTT","T.....G..GGG..T","T.GGG....GGG..T","T.GGG..S......T","T......PPPP...T","T..~~~.P..P.GGT","T..~~~.P..P.GGT","T......PPPP...T","TT...GG.......T","TTTTTT...TTTTTT"];
+const AREAS=['ROUTE 101','OLDALE TOWN','ROUTE 103','ROUTE 102','PETALBURG CITY','ROUTE 104'];
+const G={px:7,py:8,face:'UP',dialog:null,menu:false,area:0,anim:0,wild:0};
+const master=document.createElement('canvas');master.width=240;master.height=160;
+const mx=master.getContext('2d');
+const tile=(x,y)=>(y<0||y>9||x<0||x>14)?'T':MAP[y][x];
+const walk=t=>t==='.'||t==='G'||t==='P';
+function drawGame(ts){
+  const tints=[['#78c850','#3f9b3f'],['#88c070','#4a9a4a'],['#70c070','#2f8f50'],['#80c858','#469046'],['#90c878','#3e8a3e'],['#74c060','#358a35']][G.area%6];
+  for(let y=0;y<10;y++)for(let x=0;x<15;x++){
+    const t=MAP[y][x],X=x*16,Y=y*16;
+    mx.fillStyle=tints[0];mx.fillRect(X,Y,16,16);
+    if((x*7+y*3)%5===0){mx.fillStyle='rgba(255,255,255,.18)';mx.fillRect(X+4,Y+6,2,2);mx.fillRect(X+10,Y+11,2,2)}
+    if(t==='G'){mx.fillStyle=tints[1];mx.fillRect(X,Y,16,16);mx.fillStyle='#2a6e2a';for(let i=0;i<4;i++){mx.fillRect(X+2+i*4,Y+4+(i%2)*5,2,6)}}
+    if(t==='P'){mx.fillStyle='#d8c088';mx.fillRect(X,Y,16,16);mx.fillStyle='#c4a870';mx.fillRect(X+3,Y+5,2,2);mx.fillRect(X+11,Y+10,2,2)}
+    if(t==='~'){mx.fillStyle='#4890f8';mx.fillRect(X,Y,16,16);mx.fillStyle='#a8d0ff';const o=Math.floor(ts/400)%4;mx.fillRect(X+((o*3)%12),Y+5,5,2);mx.fillRect(X+((o*3+7)%12),Y+11,5,2)}
+    if(t==='T'){mx.fillStyle='#6a4a2a';mx.fillRect(X+6,Y+10,4,6);mx.fillStyle='#206020';mx.beginPath();mx.arc(X+8,Y+7,7,0,7);mx.fill();mx.fillStyle='#2f8030';mx.beginPath();mx.arc(X+6,Y+5,3,0,7);mx.fill()}
+    if(t==='S'){mx.fillStyle='#7a5228';mx.fillRect(X+7,Y+8,2,8);mx.fillStyle='#b98a50';mx.fillRect(X+2,Y+2,12,8);mx.fillStyle='#6a4520';mx.fillRect(X+4,Y+4,8,1);mx.fillRect(X+4,Y+7,6,1)}
+  }
+  // player
+  const X=G.px*16,Y=G.py*16,b=G.anim>0?-1:0;
+  mx.fillStyle='rgba(0,0,0,.25)';mx.fillRect(X+3,Y+13,10,3);
+  mx.fillStyle='#2050c0';mx.fillRect(X+4,Y+8+b,8,6);
+  mx.fillStyle='#f8d0a0';mx.fillRect(X+4,Y+3+b,8,6);
+  mx.fillStyle='#e03030';mx.fillRect(X+3,Y+1+b,10,3);
+  mx.fillStyle='#fff';mx.fillRect(X+3,Y+3+b,10,1);
+  mx.fillStyle='#000';
+  if(G.face==='DOWN'){mx.fillRect(X+5,Y+6+b,2,2);mx.fillRect(X+9,Y+6+b,2,2)}
+  if(G.face==='LEFT')mx.fillRect(X+4,Y+6+b,2,2);
+  if(G.face==='RIGHT')mx.fillRect(X+10,Y+6+b,2,2);
+  if(G.anim>0)G.anim--;
+  // area banner
+  if(G.banner&&ts-G.banner<1800){mx.fillStyle='#f8f0d8';mx.fillRect(0,0,110,20);mx.strokeStyle='#806040';mx.lineWidth=2;mx.strokeRect(1,1,108,18);mx.fillStyle='#403020';mx.font='bold 9px monospace';mx.fillText(AREAS[G.area%6],7,13)}
+  if(G.dialog){mx.fillStyle='#fff';mx.fillRect(4,118,232,38);mx.strokeStyle='#3060a0';mx.lineWidth=3;mx.strokeRect(5.5,119.5,229,35);mx.fillStyle='#303030';mx.font='bold 10px monospace';mx.fillText(G.dialog,14,136);if(Math.floor(ts/350)%2){mx.fillStyle='#d03030';mx.fillRect(218,144,6,4)}}
+  if(G.menu){mx.fillStyle='#fff';mx.fillRect(160,4,76,96);mx.strokeStyle='#3060a0';mx.lineWidth=3;mx.strokeRect(161.5,5.5,73,93);mx.fillStyle='#303030';mx.font='bold 9px monospace';['POKéDEX','POKéMON','BAG','POKéNAV','BRENDAN','SAVE','OPTION'].forEach((s,i)=>mx.fillText(s,176,20+i*12));mx.fillText('▶',166,32)}
+}
+function gamePress(b){
+  if(G.dialog){if(b==='A'||b==='B')G.dialog=null;return false}
+  if(G.menu){if(b==='B'||b==='START')G.menu=false;return false}
+  if(ARROW[b]){
+    G.face=b;const dx={LEFT:-1,RIGHT:1}[b]||0,dy={UP:-1,DOWN:1}[b]||0;const nx=G.px+dx,ny=G.py+dy;
+    if(ny<0&&(nx===7||nx===8)){G.area++;G.py=9;G.banner=performance.now();S.loc=AREAS[G.area%6];G.anim=4;return true}
+    if(ny>9&&(nx>=6&&nx<=8)){G.py=0;G.area=Math.max(0,G.area-1);G.banner=performance.now();S.loc=AREAS[G.area%6];G.anim=4;return true}
+    if(walk(tile(nx,ny))){G.px=nx;G.py=ny;G.anim=4;return true}
+    return false;
+  }
+  if(b==='A'){const dx={LEFT:-1,RIGHT:1}[G.face]||0,dy={UP:-1,DOWN:1}[G.face]||0;if(tile(G.px+dx,G.py+dy)==='S')G.dialog=`${AREAS[G.area%6]}  ↑ ${AREAS[(G.area+1)%6]}`;return false}
+  if(b==='START'){G.menu=true;return false}
+  return false;
+}
+
+/* ---------------- run state ---------------- */
+const MS=[['GAME_RUNNING',0],['PLAYER_NAME_SET',41],['INTRO_CUTSCENE_COMPLETE',190],['LITTLEROOT_TOWN',260],['PLAYER_HOUSE_ENTERED',305],['PLAYER_BEDROOM',340],['RIVAL_HOUSE',612],['ROUTE_101',905],['STARTER_CHOSEN',1180],['BIRCH_LAB_VISITED',1490],['OLDALE_TOWN',2210],['ROUTE_103',2900],['RECEIVED_POKEDEX',3420],['ROUTE_102',4010],['PETALBURG_CITY',4800],['DAD_FIRST_MEETING',5200],['ROUTE_104',5900],['PETALBURG_WOODS',6700],['RUSTBORO_CITY',7900],['RUSTBORO_GYM_ENTERED',8300],['STONE_BADGE',9100]];
+const factors=[1,1.3,1.1,1.25,1.2,1.3,1.4,1.35,1.5,1.45,1.6];
+const S={seq:0,turn:41,steps:212,tokens:1843210,retries:3,invalid:3,ctx:18400,compactions:1,stuck:0,maxStuck:4,repeats:0,
+  wall0:Date.now()-4324000,play0:58*60+12,thinking:false,think0:0,lastLat:7.4,thought:'',lastTps:31,
+  loc:'ROUTE 101',money:3120,badges:0,diskMB:212,
+  party:[{name:'TREECKO',lv:9,hp:21,max:27},{name:'POOCHYENA',lv:4,hp:15,max:15},{name:'WURMPLE',lv:3,hp:5,max:13}],
+  ms:MS.map(([id,base],i)=>({id,base,at:i<factors.length?Math.round(base*factors[i]):null})),
+  events:[],ctxSeries:[],latSeries:[],tokSeries:[],presses:[],spans:[],btnCount:{},lastMsWall:3536,eyeFrame:'—'};
+BTNS.forEach(b=>S.btnCount[b]=0);
+Object.assign(S.btnCount,{UP:96,DOWN:31,LEFT:44,RIGHT:52,A:118,B:27,START:9,SELECT:0,L:0,R:1});
+{let c=9000;for(let i=0;i<40;i++){c+=ri(250,700);let comp=false;if(c>26000){c=9200;comp=true}S.ctxSeries.push({v:c,comp});S.latSeries.push(rnd(3,13));S.tokSeries.push(ri(120,620))}S.ctx=c}
+const wallSec=()=>(Date.now()-S.wall0)/1000;
+
+const listeners=[];
+function emit(ev){ev.v=1;ev.run='run_20261012_0117';ev.seq=++S.seq+1800;ev.ts=Date.now();ev.turn=S.turn;
+  const d=new Date();ev.t=d.toISOString().replace('Z','-04:00');S.events.push(ev);if(S.events.length>600)S.events.shift();listeners.forEach(f=>f(ev))}
+
+/* ---------------- fake agent ---------------- */
+function decide(){
+  const loc=S.loc,next=nextMs();
+  if(G.dialog)return{buttons:['A'],thought:`A text box is open: "${G.dialog}". That confirms the exit north leads toward ${AREAS[(G.area+1)%6]}. Closing it with A.`};
+  if(G.menu)return{buttons:['B'],thought:`The start menu is open. TREECKO is at ${S.party[0].hp}/${S.party[0].max} HP, which is fine for now. Closing the menu with B.`};
+  if(S.stuck>=2)return{buttons:[G.px<=7?'RIGHT':'LEFT','UP'],thought:`My position hasn't changed for ${S.stuck} presses, so I'm probably walking into an obstacle. Sidestep, then try north again.`};
+  const ahead=tile(G.px,G.py-1);
+  if(ahead==='S'&&Math.random()<.6)return{buttons:['UP','A'],thought:`There is a sign directly above me. Facing it and pressing A should tell me where this route leads.`};
+  const r=Math.random();
+  if(r<.07)return{buttons:['START'],thought:`Before going deeper into the tall grass I want to check my party's HP. Opening the start menu.`};
+  if(r<.17){const d=pick(['LEFT','RIGHT','DOWN']);return{buttons:[d,d],thought:`The grass patch to the ${d.toLowerCase()} might hide an item ball. A quick detour of two tiles before heading north.`}}
+  if(ahead==='T'||ahead==='~'||ahead==='S'){const d=G.px<7?'RIGHT':'LEFT';return{buttons:[d,'UP','UP'],thought:`North is blocked by ${ahead==='~'?'water':ahead==='S'?'the sign':'a tree'}. Step ${d.toLowerCase()} and continue up toward the gap in the tree line.`}}
+  const n=ri(1,3);
+  return{buttons:Array(n).fill('UP'),thought:`I'm on ${loc} at (${G.px},${G.py}). The next goal is ${next?next.id:'done'}; the exit should be the gap in the trees at the top of the screen. Moving up ${n} tile${n>1?'s':''}.`};
+}
+function nextMs(){return S.ms.find(m=>m.at==null)}
+let SPD=0.06;const nap=ms=>sleep(ms*SPD);
+async function agentLoop(){
+  const warm=S.turn+10;
+  while(true){
+    S.turn++;if(S.turn>warm)SPD=1;
+    emit({type:'turn_start',context_tokens:S.ctx});
+    const plan=decide();
+    S.thinking=true;S.think0=performance.now();S.thought='';const spanStart=Date.now();
+    const words=plan.thought.split(' ');
+    await nap(rnd(500,1100));
+    for(const w of words){S.thought+=(S.thought?' ':'')+w;liveUpdate();await nap(rnd(45,120))}
+    S.thinking=false;const lat=(performance.now()-S.think0)/1000+rnd(0.5,2);S.lastLat=lat;
+    const outTok=ri(140,560),reasoning=Math.round(outTok*.7);S.lastTps=Math.round(outTok/lat);
+    S.spans.push({a:spanStart,b:Date.now()});if(S.spans.length>200)S.spans.shift();
+    S.tokens+=S.ctx+outTok;
+    emit({type:'assistant',thinking:plan.thought,usage:{input:S.ctx,output:outTok,reasoning},latency_s:+lat.toFixed(2)});
+    S.latSeries.push(lat);S.tokSeries.push(outTok);
+    if(Math.random()<.07){
+      S.retries++;S.invalid++;
+      emit({type:'tool_call',name:'press_buttons',args:{buttons:[pick(['NORTH','JUMP','RUN'])]}});
+      emit({type:'retry',attempt:1,max:3,error:'button not in enum [A,B,START,SELECT,UP,DOWN,LEFT,RIGHT,L,R,WAIT]'});
+      await nap(700);
+    }
+    if(Math.random()<.3){emit({type:'tool_call',name:'get_state',args:{}});await nap(150);emit({type:'tool_result',name:'get_state',ok:true,summary:`${S.loc} (${G.px},${G.py}) facing ${G.face}`})}
+    emit({type:'tool_call',name:'press_buttons',args:{buttons:plan.buttons}});
+    let moved=false;
+    for(const b of plan.buttons){
+      emit({type:'button_press',button:b,hold_frames:10,release_frames:8});
+      press(b);
+      const m=gamePress(b);if(ARROW[b]){if(m){S.stuck=0;moved=true}else{S.stuck++;S.maxStuck=Math.max(S.maxStuck,S.stuck)}}
+      S.steps++;
+      await nap(300);
+    }
+    await nap(120);
+    S.eyeFrame=`frames/${String(S.seq+1801).padStart(6,'0')}.png`;
+    emit({type:'tool_result',name:'press_buttons',ok:true,frame:S.eyeFrame});
+    copyEye();
+    S.diskMB+=0.06;
+    if(Math.floor((S.diskMB-0.06)/50)<Math.floor(S.diskMB/50))emit({type:'disk_usage',used_mb:Math.round(S.diskMB),cap_mb:500,pct:Math.floor(S.diskMB/5)});
+    if(Math.random()<.25){const p=S.party[0];p.hp=Math.max(3,p.hp-ri(2,6));if(p.hp<8)p.hp=p.max}
+    S.ctx+=ri(350,900);
+    if(S.ctx>26000){const from=S.ctx;S.ctx=ri(8800,10200);S.compactions++;emit({type:'compaction',from,to:S.ctx});S.ctxSeries.push({v:S.ctx,comp:true})}else S.ctxSeries.push({v:S.ctx});
+    if(S.turn%7===4){const m=nextMs();if(m){m.at=Math.round(wallSec());S.lastMsWall=m.at;emit({type:'milestone',id:m.id,source:'game_server'});if(m.id==='STONE_BADGE')S.badges=1}}
+    await nap(rnd(250,600));
+  }
+}
+
+/* ---------------- UI wiring ---------------- */
+function press(b){
+  $$(`.design.active .gba [data-btn="${b}"]`).forEach(e=>{e.classList.add('lit');setTimeout(()=>e.classList.remove('lit'),260)});
+  S.presses.push({b,t:Date.now()});if(S.presses.length>400)S.presses.shift();
+  S.btnCount[b]=(S.btnCount[b]||0)+1;
+  renderTrail();renderHeat();renderRepeat();
+}
+function copyEye(){
+  $$('canvas.eye').forEach(c=>{c.width=240;c.height=160;c.getContext('2d').drawImage(master,0,0)});
+  S.lastEye=document.createElement('canvas');S.lastEye.width=240;S.lastEye.height=160;S.lastEye.getContext('2d').drawImage(master,0,0);
+  setStat('eyeframe',S.eyeFrame);
+}
+function fmt(ev,style){
+  let body='';
+  switch(ev.type){
+    case'turn_start':body=`turn ${ev.turn} · context ${ev.context_tokens.toLocaleString()} tok`;break;
+    case'assistant':body=`${ev.usage.output} tok out · ${ev.latency_s}s · ${esc(ev.thinking.slice(0,70))}…`;break;
+    case'tool_call':body=`${ev.name}(${esc(JSON.stringify(ev.args))})`;break;
+    case'tool_result':body=ev.frame?`ok → ${ev.frame}`:`ok → ${esc(ev.summary||'')}`;break;
+    case'button_press':body=style==='term'?`${ev.button} hold=${ev.hold_frames}f release=${ev.release_frames}f`:`<span class="chipb">${ARROW[ev.button]||''}${ev.button}</span> hold ${ev.hold_frames}f`;break;
+    case'milestone':body=`★ ${ev.id}`;break;
+    case'retry':body=`✗ invalid tool call, retry ${ev.attempt}/${ev.max}: ${esc(ev.error)}`;break;
+    case'compaction':body=`context compacted ${ev.from.toLocaleString()} → ${ev.to.toLocaleString()}`;break;
+    case'disk_usage':body=`frames at ${ev.pct}% of ${ev.cap_mb} MB cap`;break;
+  }
+  if(style==='term'){const tm=new Date(ev.ts).toTimeString().slice(0,8);return `<div class="ev ev-${ev.type}" data-seq="${ev.seq}"><span class="seq">${tm}</span><span class="body"><b>${ev.type}</b> ${body}</span></div>`}
+  return `<div class="ev ev-${ev.type}" data-seq="${ev.seq}"><span class="seq">#${ev.seq}</span><span class="tag">${ev.type}</span><span class="body">${body}</span></div>`;
+}
+const ACTION_TYPES=new Set(['tool_call','tool_result','button_press','retry','milestone','compaction','disk_usage']);
+function appendLogs(ev){
+  $$('[data-log]').forEach(el=>{
+    const kind=el.dataset.log;let html=null;
+    if(kind==='all')html=fmt(ev,el.dataset.fmt);
+    else if(kind==='actions'&&ACTION_TYPES.has(ev.type))html=fmt(ev,el.dataset.fmt);
+    else if(kind==='thinking'&&ev.type==='assistant')html=`<div class="thinkcard"><div class="meta">turn ${ev.turn} · ${ev.usage.output} tok · ${ev.latency_s}s</div>${esc(ev.thinking)}</div>`;
+    if(!html)return;
+    const atBottom=el.scrollHeight-el.scrollTop-el.clientHeight<40;
+    if(kind==='thinking'){const live=el.querySelector('.thinkcard.livecard');(live||el).insertAdjacentHTML(live?'afterend':'afterbegin',html)}
+    else{el.insertAdjacentHTML('beforeend',html);if(atBottom)el.scrollTop=el.scrollHeight}
+    while(el.children.length>160)el.removeChild(kind==='thinking'?el.lastElementChild:el.firstElementChild);
+  });
+}
+// thinking logs get a live card on top
+$$('[data-log="thinking"]').forEach(el=>el.insertAdjacentHTML('afterbegin','<div class="thinkcard livecard"><div class="meta">live · <span data-timer="think"></span></div><div class="live-thought" data-live="thought"></div></div>'));
+
+/* transcript */
+let curTurn=null;
+function transcript(ev){
+  const box=document.querySelector('[data-transcript]');if(!box)return;
+  if(ev.type==='turn_start'){
+    curTurn=document.createElement('div');curTurn.className='turn';
+    curTurn.innerHTML=`<div class="hd"><span>turn ${ev.turn}</span><span>ctx ${ev.context_tokens.toLocaleString()}</span><span class="lt"></span></div><div class="th pending">thinking…</div><div class="acts"></div><canvas width="240" height="160"></canvas>`;
+    box.appendChild(curTurn);while(box.children.length>40)box.removeChild(box.firstElementChild);
+    box.scrollTop=box.scrollHeight;return;
+  }
+  if(!curTurn)return;
+  const acts=curTurn.querySelector('.acts');
+  if(ev.type==='assistant'){const th=curTurn.querySelector('.th');th.classList.remove('pending');th.textContent=ev.thinking;curTurn.querySelector('.lt').textContent=`${ev.usage.output} tok · ${ev.latency_s}s`}
+  if(ev.type==='tool_call')acts.insertAdjacentHTML('beforeend',`<div>→ ${ev.name}(${esc(JSON.stringify(ev.args))})</div>`);
+  if(ev.type==='button_press'){let row=acts.querySelector('.btns');if(!row){acts.insertAdjacentHTML('beforeend','<div class="btns"></div>');row=acts.querySelector('.btns')}row.insertAdjacentHTML('beforeend',`<span class="chipb">${ARROW[ev.button]||''}${ev.button}</span>`)}
+  if(ev.type==='retry')acts.insertAdjacentHTML('beforeend',`<div class="err">✗ ${esc(ev.error)} (retry ${ev.attempt}/${ev.max})</div>`);
+  if(ev.type==='tool_result'&&ev.frame){curTurn.querySelector('canvas').getContext('2d').drawImage(master,0,0)}
+  if(ev.type==='milestone')acts.insertAdjacentHTML('beforeend',`<div class="ms">★ milestone ${ev.id}</div>`);
+  box.scrollTop=box.scrollHeight;
+}
+
+/* inspector */
+document.addEventListener('click',e=>{
+  const row=e.target.closest('.ev[data-seq]');if(!row)return;
+  const ev=S.events.find(x=>x.seq==row.dataset.seq);if(!ev)return;
+  const {ts,...clean}=ev;
+  $$('[data-inspector]',row.closest('.design')).forEach(el=>el.textContent=JSON.stringify(clean,null,2));
+});
+
+function setStat(k,v){$$(`[data-stat="${k}"]`).forEach(e=>{if(e.textContent!==String(v))e.textContent=v})}
+function liveUpdate(){
+  $$('[data-live="thought"]').forEach(e=>{e.innerHTML=esc(S.thought||'…')+(S.thinking?'<span class="cursor"></span>':'')});
+}
+function renderTrail(){const last=S.presses.slice(-10);const html=last.map(p=>`<span class="chipb">${ARROW[p.b]||''}${ARROW[p.b]?'':p.b}</span>`).join('');$$('[data-trail]').forEach(e=>e.innerHTML=html)}
+function renderHeat(){
+  const max=Math.max(...BTNS.map(b=>S.btnCount[b]))||1;
+  const html=BTNS.map(b=>{const v=S.btnCount[b],a=.12+.88*(v/max);return `<div style="background:rgba(255,${Math.round(212-120*(v/max))},71,${a.toFixed(2)})">${b}<small>${v}</small></div>`}).join('');
+  $$('[data-heat]').forEach(e=>e.innerHTML=html);
+}
+function renderRepeat(){
+  const seq=S.presses.slice(-24).map(p=>p.b);let found=null;
+  for(let per=1;per<=4&&!found;per++){
+    let reps=1;const pat=seq.slice(-per);
+    for(let i=seq.length-2*per;i>=0;i-=per){if(seq.slice(i,i+per).join()===pat.join())reps++;else break}
+    if(reps>=3&&!(per===1&&pat[0]==='UP'&&S.stuck===0))found={pat,reps};
+  }
+  $$('[data-repeat]').forEach(e=>{e.className='repeat'+(found?' warn':'');e.textContent=found?`⚠ [${found.pat.join(' ')}] repeated ${found.reps}×`:'No repeating pattern in the last 24 presses.'});
+  $$('[data-stuckbar]').forEach(e=>{e.innerHTML=Array.from({length:10},(_,i)=>`<i class="${i<S.stuck?'on':''}"></i>`).join('')});
+}
+function renderSplits(){
+  const nxt=nextMs();const w=wallSec();
+  const rows=S.ms.map(m=>{
+    let t='—',d='',cls='todo';
+    if(m.at!=null){t=hms(m.at);const dd=m.at-m.base;d=`<span class="${dd<=0?'d-ahead':'d-behind'}">${dd<=0?'−':'+'}${hms(Math.abs(dd)).replace(/^0:/,'')}</span>`;cls='done'}
+    else if(m===nxt){t=hms(w);const dd=w-m.base;d=dd>0?`<span class="d-behind">+${hms(dd).replace(/^0:/,'')}</span>`:'';cls='next'}
+    return `<tr class="${cls}"><td class="n">${m.id.replace(/_/g,' ').toLowerCase()}</td><td class="d">${d}</td><td class="t">${t}</td></tr>`;
+  }).join('');
+  $$('[data-splits]').forEach(e=>{
+    const html=`<table class="splits">${rows}</table>`;e.innerHTML=html;
+    if(!e.dataset.scrolled){const r=e.querySelector('tr.next');const sc=e.closest('.wrap')||e;if(r&&sc.scrollHeight>sc.clientHeight){sc.scrollTop=r.offsetTop-sc.clientHeight/2;e.dataset.scrolled=1}}
+  });
+  if(nxt){setStat('next',nxt.id);const dd=w-nxt.base;$$('[data-stat="nextdelta"]').forEach(e=>{e.innerHTML=dd>0?`<span class="d-behind">+${hms(dd)} vs best</span>`:`<span class="d-ahead">−${hms(-dd)} vs best</span>`})}
+}
+function renderParty(){
+  const html=S.party.map(p=>{const f=p.hp/p.max;return `<div class="pm"><span>${p.name}</span><span>Lv${p.lv} · ${p.hp}/${p.max}</span><div class="hpbar"><i class="${f<.25?'low':f<.5?'mid':''}" style="width:${(f*100).toFixed(0)}%"></i></div></div>`}).join('');
+  $$('[data-party]').forEach(e=>e.innerHTML=html);
+}
+function renderState(){
+  const mode=G.dialog?'DIALOG':G.menu?'MENU':'OVERWORLD';
+  const html=`<dl class="kv"><dt>Location</dt><dd>${S.loc}</dd><dt>Position</dt><dd>(${G.px}, ${G.py}) ${G.face}</dd><dt>Mode</dt><dd>${mode}</dd><dt>Badges</dt><dd>${S.badges}/8</dd><dt>Money</dt><dd>₽${S.money.toLocaleString()}</dd></dl>`;
+  $$('[data-gstate]').forEach(e=>e.innerHTML=html);
+  $$('[data-badges]').forEach(e=>e.innerHTML=Array.from({length:8},(_,i)=>`<i class="${i<S.badges?'got':''}"></i>`).join(''));
+}
+function renderHealth(){
+  const html=`<dl class="kv"><dt>Retries</dt><dd>${S.retries}</dd><dt>Invalid tool calls</dt><dd>${S.invalid}</dd><dt>Stuck now</dt><dd>${S.stuck} presses</dd><dt>Longest stuck</dt><dd>${S.maxStuck} presses</dd><dt>Compactions</dt><dd>${S.compactions}</dd><dt>Frames disk</dt><dd>${Math.round(S.diskMB)} / 500 MB</dd></dl>`;
+  $$('[data-health]').forEach(e=>e.innerHTML=html);
+  const kv=`<dl class="kv"><dt>model</dt><dd>${MODEL}</dd><dt>turn</dt><dd>${S.turn}</dd><dt>steps</dt><dd>${S.steps}</dd><dt>wall</dt><dd>${hms(wallSec())}</dd><dt>tokens</dt><dd>${S.tokens.toLocaleString()}</dd><dt>ctx</dt><dd>${S.ctx.toLocaleString()}</dd><dt>tok/s</dt><dd>${S.lastTps}</dd><dt>loc</dt><dd>${S.loc}</dd></dl>`;
+  $$('[data-kvstats]').forEach(e=>e.innerHTML=kv);
+}
+
+const CTXMAX=32768,RETRY_BUDGET=20;
+function avgLat(){const a=S.latSeries.slice(-20);return a.reduce((x,y)=>x+y,0)/a.length}
+function lvl(f){return f>.8?'low':f>.55?'mid':''}
+function renderLLM(){
+  const ctxF=S.ctx/CTXMAX,disk=S.diskMB/5;
+  setStat('ctxpct',Math.round(ctxF*100)+'%');setStat('diskpct',Math.floor(disk)+'%');setStat('invalid',S.invalid);setStat('compactions',S.compactions);
+  setStat('tokshort',(S.tokens/1e6).toFixed(2)+'M');setStat('modelshort','qwen3-vl-32b');
+  const kv=`<dl class="kv"><dt>MODEL</dt><dd>qwen3-vl-32b</dd><dt>TOKENS</dt><dd>${S.tokens.toLocaleString()}</dd><dt>CONTEXT</dt><dd>${S.ctx.toLocaleString()} · ${Math.round(ctxF*100)}%</dd><dt>TOK/S</dt><dd>${S.lastTps}</dd><dt>LATENCY</dt><dd>${S.lastLat.toFixed(1)}s · avg ${avgLat().toFixed(1)}s</dd><dt>LOCATION</dt><dd>${S.loc}</dd><dt>FRAMES DISK</dt><dd>${Math.round(S.diskMB)}MB · ${Math.floor(disk)}%</dd><dt>INVALID CALLS</dt><dd>${S.invalid}</dd><dt>RETRIES</dt><dd>${S.retries}</dd><dt>COMPACTIONS</dt><dd>${S.compactions}</dd><dt>MODEL ERRORS</dt><dd>0</dd><dt>STUCK</dt><dd>${S.stuck} · max ${S.maxStuck}</dd></dl>`;
+  $$('[data-llm]').forEach(e=>e.innerHTML=kv);
+  const bar=(l,f,v)=>`<div class="row"><span class="l">${l}</span><div class="bar"><i class="${lvl(f)}" style="width:${Math.min(100,f*100).toFixed(0)}%"></i></div><span class="v">${v}</span></div>`;
+  const bars=bar('CONTEXT',ctxF,`${S.ctx.toLocaleString()} / 32k`)+bar('DISK',disk/100,`${Math.round(S.diskMB)} / 500MB`)+bar('RETRIES',S.retries/RETRY_BUDGET,`${S.retries} / ${RETRY_BUDGET}`)+bar('LATENCY',S.lastLat/20,`${S.lastLat.toFixed(1)}s`)+bar('TOK/S',1-Math.min(1,S.lastTps/120),`${S.lastTps}`)+bar('STUCK',S.stuck/10,`${S.stuck} presses`)
+    +`<dl class="kv" style="margin-top:10px"><dt>TOKENS</dt><dd>${S.tokens.toLocaleString()}</dd><dt>INVALID CALLS</dt><dd>${S.invalid}</dd><dt>COMPACTIONS</dt><dd>${S.compactions}</dd><dt>LOCATION</dt><dd>${S.loc}</dd></dl>`;
+  $$('[data-llmbars]').forEach(e=>e.innerHTML=bars);
+  const pill=(k,v,w)=>`<div class="pill2 ${w?'warn':''}"><small>${k}</small>${v}</div>`;
+  const pills=pill('TOKENS',S.tokens.toLocaleString())+pill('CONTEXT',`${S.ctx.toLocaleString()} · ${Math.round(ctxF*100)}%`,ctxF>.8)+pill('TOK/S',S.lastTps,S.lastTps<15)+pill('LATENCY',S.lastLat.toFixed(1)+'s',S.lastLat>15)+pill('LOCATION',S.loc)+pill('FRAMES DISK',`${Math.floor(disk)}% of 500MB`,disk>80)+pill('INVALID CALLS',S.invalid,false)+pill('RETRIES',S.retries,S.retries>=RETRY_BUDGET*.8)+pill('COMPACTIONS',S.compactions)+pill('STUCK',S.stuck,S.stuck>=3);
+  $$('[data-pills]').forEach(e=>e.innerHTML=pills);
+  const r=(k,v,alt)=>`<div class="r"><span class="k ${alt?'alt':''}">${k}</span><span></span><span>${v}</span></div>`;
+  const rb=(k,f,v)=>`<div class="r"><span class="k">${k}</span><div class="llmbars"><div class="bar"><i class="${lvl(f)}" style="width:${Math.min(100,f*100).toFixed(0)}%"></i></div></div><span>${v}</span></div>`;
+  const sum=r('TOKENS',S.tokens.toLocaleString())+rb('CONTEXT',ctxF,Math.round(ctxF*100)+'%')+r('TOK/S',S.lastTps)+r('LATENCY',S.lastLat.toFixed(1)+'s')+r('AVG LAT',avgLat().toFixed(1)+'s')+r('LOCATION',S.loc)+rb('DISK',disk/100,Math.floor(disk)+'%')+r('INVALID',S.invalid,true)+r('RETRIES',S.retries,true)+r('COMPACT',S.compactions,true)+r('MODEL ERR',0,true)+r('STUCK',`${S.stuck} / max ${S.maxStuck}`,true);
+  $$('[data-llmsum]').forEach(e=>e.innerHTML=sum);
+}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-tabs] button');if(!b)return;const root=b.closest('.scrn');$$('[data-tabs] button',root).forEach(x=>x.classList.toggle('on',x===b));$$('[data-pane]',root).forEach(p=>p.classList.toggle('on',p.dataset.pane===b.dataset.tab));});
+
+function renderMix(){
+  const ctxF=S.ctx/CTXMAX,disk=S.diskMB/500,rt=S.retries/RETRY_BUDGET;
+  const bar=(l,f,v)=>`<div class="row"><span class="l">${l}</span><div class="bar"><i class="${lvl(f)}" style="width:${Math.min(100,f*100).toFixed(0)}%"></i></div><span class="v">${v}</span></div>`;
+  const budgets=bar('CONTEXT',ctxF,`${(S.ctx/1000).toFixed(1)}k / 32k`)+bar('DISK',disk,`${Math.round(S.diskMB)} / 500MB`)+bar('RETRIES',rt,`${S.retries} / ${RETRY_BUDGET}`);
+  const w=(c,v)=>c?` class="warn"`:'';
+  const counters=`<dl class="kv"><dt>MODEL</dt><dd>qwen3-vl-32b</dd><dt>TOKENS</dt><dd>${S.tokens.toLocaleString()}</dd><dt>TOK/S</dt><dd${w(S.lastTps<15)}>${S.lastTps}</dd><dt>LATENCY</dt><dd${w(S.lastLat>15)}>${S.lastLat.toFixed(1)}s · ~${avgLat().toFixed(1)}s</dd><dt>LOCATION</dt><dd>${S.loc}</dd><dt>INVALID CALLS</dt><dd>${S.invalid}</dd><dt>COMPACTIONS</dt><dd>${S.compactions}</dd><dt>MODEL ERRORS</dt><dd>0</dd><dt>STUCK</dt><dd${w(S.stuck>=3)}>${S.stuck} · max ${S.maxStuck}</dd></dl>`;
+  $$('[data-budgets]').forEach(e=>e.innerHTML=budgets);
+  $$('[data-counters]').forEach(e=>e.innerHTML=counters);
+  $$('[data-llmmix]').forEach(e=>e.innerHTML=budgets+'<hr>'+counters);
+  const bb=(n,lv,f,num)=>`<div class="bbox"><div class="top"><span>${n}</span><span>${lv}</span></div><div class="hp"><span>${n==='CONTEXT'?'CTX':n==='RETRIES'?'RTY':'HDD'}</span><div class="bar"><i class="${lvl(f)}" style="width:${Math.min(100,f*100).toFixed(0)}%"></i></div></div><div class="num">${num}</div></div>`;
+  $$('[data-battle]').forEach(e=>e.innerHTML=bb('CONTEXT',Math.round(ctxF*100)+'%',ctxF,`${S.ctx.toLocaleString()} / 32,768`)+bb('FRAMES DISK',Math.floor(disk*100)+'%',disk,`${Math.round(S.diskMB)} / 500 MB`)+bb('RETRIES',Math.round(rt*100)+'%',rt,`${S.retries} / ${RETRY_BUDGET}`));
+  const nxt=S.ms.find(m=>m.at==null);
+  const strip=S.ms.map(m=>{let cls='todo',t='—',d='';if(m.at!=null){cls='done';t=hms(m.at);const dd=m.at-m.base;d=`<span class="${dd<=0?'d-ahead':'d-behind'}">${dd<=0?'−':'+'}${hms(Math.abs(dd))}</span>`}else if(m===nxt){cls='next';t=hms(wallSec());const dd=wallSec()-m.base;d=`<span class="d-behind">+${hms(dd)}</span>`}return `<div class="s ${cls}">${m.id.replace(/_/g,' ').toLowerCase()}<br>${t}<br>${d}</div>`}).join('');
+  $$('[data-sstrip]').forEach(e=>{e.innerHTML=strip;if(!e.dataset.sc){const n=e.querySelector('.next');if(n){e.scrollLeft=n.offsetLeft-e.clientWidth/2;e.dataset.sc=1}}});
+}
+
+const MODEL='qwen3-vl-32b (discovered)';
+function tick(){
+  const w=wallSec();
+  $$('[data-timer="wall"]').forEach(e=>e.textContent=hms(w));
+  $$('[data-timer="play"]').forEach(e=>e.textContent=hms(S.play0+w-4324));
+  $$('[data-timer="since"]').forEach(e=>e.textContent=hms(w-S.lastMsWall));
+  $$('[data-timer="think"]').forEach(e=>e.textContent=S.thinking?((performance.now()-S.think0)/1000).toFixed(1)+'s':`${S.lastLat.toFixed(1)}s (last)`);
+  setStat('model',MODEL);setStat('turn',S.turn);setStat('steps',S.steps);setStat('tokens',S.tokens.toLocaleString());
+  setStat('retries',S.retries);setStat('stuck',S.stuck);setStat('ctx',S.ctx.toLocaleString());setStat('tps',S.lastTps);
+  setStat('loc',S.loc);setStat('money','₽'+S.money.toLocaleString());setStat('disk',`${Math.round(S.diskMB)} MB · ${Math.floor(S.diskMB/5)}%`);
+  $$('[data-meter="disk"]').forEach(e=>e.style.width=(S.diskMB/5)+'%');
+  renderSplits();renderParty();renderState();renderHealth();renderLLM();renderMix();
+}
+
+/* ---------------- canvases ---------------- */
+function fit(c){const r=c.getBoundingClientRect();const d=devicePixelRatio||1;const w=Math.max(1,Math.round(r.width*d)),h=Math.max(1,Math.round(r.height*d));if(c.width!==w||c.height!==h){c.width=w;c.height=h}const x=c.getContext('2d');x.setTransform(d,0,0,d,0,0);x.clearRect(0,0,r.width,r.height);return[x,r.width,r.height]}
+function ink(c){const cs=getComputedStyle(c);return{line:cs.color,text:cs.getPropertyValue('color'),dim:'rgba(127,127,127,.35)'}}
+function drawChart(c){
+  const [x,w,h]=fit(c);if(w<10)return;const k=c.dataset.series,kind=c.dataset.kind||'line';
+  const src=k==='ctx'?S.ctxSeries:k==='lat'?S.latSeries:S.tokSeries;const data=src.slice(-50);
+  const vals=data.map(d=>typeof d==='object'?d.v:d);const max=Math.max(...vals)*1.1||1;
+  const col=ink(c).line;const pad=18;
+  x.strokeStyle='rgba(127,127,127,.2)';x.lineWidth=1;for(let i=0;i<=2;i++){const y=4+(h-pad-4)*i/2;x.beginPath();x.moveTo(30,y);x.lineTo(w,y);x.stroke()}
+  x.fillStyle='rgba(127,127,127,.9)';x.font='10px Inter,sans-serif';x.fillText(k==='lat'?max.toFixed(0)+'s':Math.round(max/1000)+'k',0,12);x.fillText('0',0,h-pad);
+  x.fillText(`turn ${S.turn-data.length+1}`,30,h-3);const lt=`turn ${S.turn}`;x.fillText(lt,w-x.measureText(lt).width,h-3);
+  const X=i=>30+(w-34)*(i/(Math.max(1,data.length-1))),Y=v=>4+(h-pad-4)*(1-v/max);
+  if(kind==='bar'){const bw=Math.max(2,(w-34)/data.length-2);x.fillStyle=col;vals.forEach((v,i)=>{x.fillRect(30+(w-34)*i/data.length,Y(v),bw,h-pad-Y(v))})}
+  else{
+    data.forEach((d,i)=>{if(d.comp){x.strokeStyle='rgba(190,140,255,.9)';x.setLineDash([4,3]);x.beginPath();x.moveTo(X(i),4);x.lineTo(X(i),h-pad);x.stroke();x.setLineDash([])}});
+    x.strokeStyle=col;x.lineWidth=2;x.beginPath();vals.forEach((v,i)=>i?x.lineTo(X(i),Y(v)):x.moveTo(X(i),Y(v)));x.stroke();
+    x.fillStyle=col;x.beginPath();x.arc(X(vals.length-1),Y(vals[vals.length-1]),3,0,7);x.fill();
+  }
+}
+function drawLanes(c){
+  const [x,w,h]=fit(c);const win=60000,t1=Date.now(),t0=t1-win,L=110;
+  const lanes=['thinking','tool calls','presses','milestones','errors'];const lh=(h-20)/lanes.length;
+  const X=t=>L+(w-L-8)*((t-t0)/win);
+  x.font='11px Inter,sans-serif';
+  lanes.forEach((n,i)=>{x.fillStyle=i%2?'rgba(255,255,255,.03)':'rgba(255,255,255,.06)';x.fillRect(0,i*lh,w,lh);x.fillStyle='#a5a8b8';x.fillText(n,8,i*lh+lh/2+4)});
+  x.fillStyle='#7cc8e8';S.spans.forEach(s=>{if(s.b<t0)return;x.fillRect(Math.max(L,X(s.a)),2+0*lh+lh*.2,X(s.b)-Math.max(L,X(s.a)),lh*.6)});
+  if(S.thinking){const a=t1-(performance.now()-S.think0);x.fillStyle='rgba(124,200,232,.55)';x.fillRect(Math.max(L,X(a)),lh*.2,X(t1)-Math.max(L,X(a)),lh*.6)}
+  S.events.forEach(ev=>{if(ev.ts<t0)return;const px=X(ev.ts);
+    if(ev.type==='tool_call'){x.fillStyle='#c6f0ff';x.fillRect(px-1,1*lh+lh*.2,3,lh*.6)}
+    if(ev.type==='button_press'){x.fillStyle=BTN_COLOR[ev.button];x.fillRect(px,2*lh+lh*.25,Math.max(3,X(ev.ts+300)-px-1),lh*.5)}
+    if(ev.type==='milestone'){x.fillStyle='#f5c542';x.beginPath();x.moveTo(px,3*lh+lh*.2);x.lineTo(px+6,3*lh+lh*.5);x.lineTo(px,3*lh+lh*.8);x.lineTo(px-6,3*lh+lh*.5);x.fill()}
+    if(ev.type==='retry'||ev.type==='compaction'){x.fillStyle=ev.type==='retry'?'#ff6b6b':'#be8cff';x.fillRect(px-2,4*lh+lh*.2,5,lh*.6)}
+  });
+  x.fillStyle='#a5a8b8';for(let s=0;s<=60;s+=10){const px=L+(w-L-8)*(s/60);x.fillRect(px,h-18,1,4);x.fillText(s===60?'now':`-${60-s}s`,px-8,h-3)}
+  x.fillStyle='#d23b3b';x.fillRect(w-9,0,2,h-20);
+}
+function drawRoll(c){
+  const [x,w,h]=fit(c);const win=30000,t1=Date.now(),t0=t1-win,L=60;const rh=(h-18)/BTNS.length;
+  x.font='11px JetBrains Mono,monospace';
+  BTNS.forEach((b,i)=>{x.fillStyle=i%2?'#161616':'#1d1d1d';x.fillRect(0,i*rh,w,rh);x.fillStyle=BTN_COLOR[b];x.fillText(b,6,i*rh+rh/2+4)});
+  const X=t=>L+(w-L)*((t-t0)/win);
+  S.presses.forEach(p=>{if(p.t<t0)return;const i=BTNS.indexOf(p.b);x.fillStyle=BTN_COLOR[p.b];const a=X(p.t),bb=X(p.t+167);x.fillRect(a,i*rh+3,Math.max(3,bb-a),rh-6);x.fillStyle='rgba(255,255,255,.15)';x.fillRect(bb,i*rh+rh/2-1,X(p.t+300)-bb,2)});
+  x.fillStyle='#777';for(let s=0;s<=30;s+=5){const px=L+(w-L)*(s/30);x.fillRect(px,h-16,1,4);x.fillText(s===30?'now':`-${30-s}s`,px-10,h-2)}
+}
+function drawScrub(c){
+  const [x,w,h]=fit(c);const total=wallSec();
+  x.fillStyle='rgba(124,200,232,.15)';x.fillRect(0,h/2-3,w,6);x.fillStyle='#7cc8e8';x.fillRect(0,h/2-3,w,6);
+  x.font='10px Inter,sans-serif';
+  S.ms.forEach(m=>{if(m.at==null)return;const px=w*m.at/total;x.fillStyle='#f5c542';x.fillRect(px-1,h/2-10,2,20)});
+  [700,1500,2600,3300,4000].forEach(s=>{const px=w*s/total;x.fillStyle='#ff6b6b';x.fillRect(px-1,h/2+5,3,8)});
+  x.fillStyle='#fff';x.beginPath();x.arc(w-6,h/2,6,0,7);x.fill();
+  x.fillStyle='rgba(220,230,240,.7)';x.fillText('0:00:00',0,h-1);const e=hms(total);x.fillText(e+' · ★ milestones · ▮ errors',w-x.measureText(e+' · ★ milestones · ▮ errors').width-14,h-1);
+}
+
+/* ---------------- loops ---------------- */
+function frame(ts){
+  drawGame(ts);
+  $$('.design.active canvas.scr').forEach(c=>{const x=c.getContext('2d');x.imageSmoothingEnabled=false;x.drawImage(master,0,0)});
+  $$('.design.active canvas.lanes').forEach(drawLanes);
+  $$('.design.active canvas.roll').forEach(drawRoll);
+  requestAnimationFrame(frame);
+}
+setInterval(()=>{tick();$$('.design.active canvas.chart').forEach(drawChart);$$('.design.active canvas.scrub').forEach(drawScrub)},500);
+listeners.push(appendLogs,transcript,ev=>{if(ev.type==='milestone')renderSplits();if(ev.type==='assistant')liveUpdate()});
+
+/* ---------------- nav ---------------- */
+const nav=document.getElementById('nav'),desc=document.getElementById('desc');
+const designs=$$('.design');
+designs.forEach((d,i)=>{const b=document.createElement('button');b.textContent=d.dataset.name;b.onclick=()=>show(i);nav.insertBefore(b,desc)});
+function show(i){designs.forEach((d,j)=>d.classList.toggle('active',i===j));$$('nav.top button').forEach((b,j)=>b.classList.toggle('on',i===j));desc.innerHTML=designs[i].dataset.desc+' <span style="opacity:.6">· keys 1–5 switch designs</span>';try{localStorage.setItem('pbv-design-r3',i)}catch(e){};tick();$$('.design.active canvas.chart').forEach(drawChart);if(S.lastEye)$$('canvas.eye').forEach(c=>{c.width=240;c.height=160;c.getContext('2d').drawImage(S.lastEye,0,0)})}
+document.addEventListener('keydown',e=>{if(e.target.closest('input,textarea'))return;const k='12345'.indexOf(e.key);if(k>=0&&k<designs.length)show(k)});
+let start=0;try{const v=parseInt(localStorage.getItem('pbv-design-r3'),10);if(v>=0&&v<designs.length)start=v}catch(e){}
+const qs=new URLSearchParams(location.search).get('d');if(qs)start=Math.min(designs.length-1,Math.max(0,parseInt(qs,10)-1));
+show(start);
+emit({type:'run_start',model:MODEL,harness_commit:'c6d830c',vendor_pin:'continual-harness@pinned',start_state:'route101.ss1',isolation:'INV-7'});
+renderTrail();renderHeat();renderRepeat();liveUpdate();
+requestAnimationFrame(frame);
+agentLoop();
+})();
+</script></body></html>

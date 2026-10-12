@@ -1,6 +1,6 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import { describe, expect, it, vi } from "vitest";
-import { SmokeError, checkSmoke, pressTool, screenshotTool, serverHealthy, stateTool } from "./game-tools.js";
+import { PRESS_TIMING, SmokeError, checkSmoke, pressTool, screenshotTool, serverHealthy, stateTool } from "./game-tools.js";
 
 const SERVER = "http://127.0.0.1:8000";
 
@@ -134,8 +134,8 @@ describe("pressTool", () => {
       return Promise.resolve(new Response(JSON.stringify({ status: "success" })));
     });
     const tool = pressTool(SERVER, {
-      beforePress: (id, buttons) => {
-        order.push(`before ${id} ${buttons.join(",")}`);
+      beforePress: (id, buttons, timing) => {
+        order.push(`before ${id} ${buttons.join(",")} ${String(timing.hold_frames)}/${String(timing.release_frames)}`);
       },
       afterPress: () => {
         order.push("after");
@@ -143,7 +143,12 @@ describe("pressTool", () => {
       },
     }, fetchFn);
     const result = await tool.execute("call-9", { buttons: ["UP", "A"] });
-    expect(order).toEqual(["before call-9 UP,A", 'POST {"buttons":["UP","A"]}', "after"]);
+    expect(order).toEqual([
+      "before call-9 UP,A 10/8",
+      'POST {"buttons":["UP","A"],"hold_frames":10,"release_frames":8}',
+      "after",
+    ]);
+    expect(PRESS_TIMING).toEqual({ hold_frames: 10, release_frames: 8 });
     expect(fetchFn).toHaveBeenCalledWith(`${SERVER}/action`, expect.objectContaining({ method: "POST" }));
     expect(result.content).toEqual([{ type: "text", text: "pressed UP, A" }]);
   });

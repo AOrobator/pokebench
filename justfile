@@ -65,3 +65,7 @@ runs-disk: build
 # Delete the oldest frames until usage is at or below <percent> of the cap.
 runs-prune percent: build
     node packages/agent/dist/runs-cli.js prune {{percent}}
+
+# PokeBench viewer on 127.0.0.1:8790: live runs follow events.jsonl, finished runs replay from frames/.
+view run_id="": build
+    node packages/viewer/dist/cli.js {{quote(run_id)}}

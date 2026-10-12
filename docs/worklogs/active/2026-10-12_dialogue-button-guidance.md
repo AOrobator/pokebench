@@ -11,3 +11,7 @@ Evidence: Qwen run 2026-10-12T02-15-39_Qwen3.8-Flash-Next-UD-IQ4_XS_d9cc turns16
 - [ ] Land the isolated patch after the gameplay runner reaches main; preserve the existing revert sequencer and untracked skill files.
 
 Review: one frozen round requested by operator. Full selected roster, no subagents; principles and receipt artifacts in /tmp/pokebench-dialogue-review. Only prompt and this worklog are included.
+
+Review closure: one unchanged candidate round, ce54868..4883337, SHA256 c937d2b3a5e00e13052997f2a8e2acf3d36f638a1ebb4111c294140c3583056c. Claude, Grok, GPT, think-fast and think-swarm all return valid terminal LGTM. Claude's background prose required same-packet completion repair; Swarm's menu-like objection contradicted the explicit menu warning and ordinary-dialogue handlers, resolved against text.c/scrcmd.c/std message source, then literal-verdict format repair. Invalid/initial receipts are retained, not approval-counted. No implementation change or new review round. Synthesis includes all PB1–PB13 and nine test-quality checks. Model compliance/improvement is unproven; no existing run mutated.
+
+Landing prerequisite: canonical main still9ac9325 has no packages/agent/src/live.ts or run-agent recipe. The separate story integration owns the gameplay runner's landing. Do not import that unlanded implementation solely for this prompt patch. Patch is committed and reviewed; await integration or operator-authorized handoff. Canonical sequencer and untracked skills remain untouched.

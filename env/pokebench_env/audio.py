@@ -138,12 +138,15 @@ def install_tap(emulator_class: type[EmulatorLike], tape: AudioTape) -> None:
         try:
             return load_state(self, *args, **kwargs)
         finally:
-            tape.clear()
             try:
                 if self.core is not None:
                     self.core.get_audio_channels().clear()
             except Exception:
                 logger.warning("Spectator audio flush failed", exc_info=True)
+            finally:
+                # Native clear may overlap a pending frame callback. Invalidate
+                # its tape publication after the drain, including on clear failure.
+                tape.clear()
 
     emulator_class.initialize = initialize_with_audio
     emulator_class.load_state = load_with_audio

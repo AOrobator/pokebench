@@ -60,13 +60,17 @@ export class AudioFollower {
       if (!response.ok) throw new Error("Audio HTTP error");
       const bytes = await response.arrayBuffer();
       if (generation !== this.generation) return;
-      const cursor = Number(response.headers.get("X-Audio-Next"));
+      const header = response.headers.get("X-Audio-Next");
+      if (!header?.trim()) throw new Error("Missing audio cursor");
+      const cursor = Number(header);
       if (!Number.isSafeInteger(cursor) || cursor < 0 || bytes.byteLength < 44 || (bytes.byteLength - 44) % 4) {
         throw new Error("Invalid spectator audio");
       }
       this.cursor = cursor;
       const now = performance.now();
-      const elapsed = Math.max(0.025, (now - this.last) / 1000);
+      // First sample uses 100 ms; later polls run 100 ms after the previous
+      // response. Monotonic performance.now() makes a second elapsed floor inert.
+      const elapsed = (now - this.last) / 1000;
       this.last = now;
       this.stop?.();
       this.stop = undefined;
@@ -74,7 +78,9 @@ export class AudioFollower {
         const view = new DataView(bytes);
         const pcm = new Int16Array((bytes.byteLength - 44) / 2);
         for (let i = 0; i < pcm.length; ++i) pcm[i] = view.getInt16(44 + i * 2, true);
-        const rate = Math.min(8, Math.max(0.25, pcm.length / 2 / 48000 / elapsed));
+        // The owned route caps each response at 12000 / 48000 = 0.25 s;
+        // with >=100 ms between responses, the raw rate is already <=2.5.
+        const rate = Math.max(0.25, pcm.length / 2 / 48000 / elapsed);
         this.stop = this.deps.play(pcm, rate);
       }
       this.timer = setTimeout(() => { void this.poll(generation); }, 100);

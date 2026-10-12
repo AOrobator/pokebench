@@ -4,8 +4,6 @@ from types import SimpleNamespace
 from fastapi import FastAPI
 from test_audio import Emulator, pcm
 
-from pokebench_env.serve import run
-
 
 def get(app, path, query=b""):
     messages = []
@@ -42,26 +40,52 @@ def get(app, path, query=b""):
     )
 
 
-def test_production_serve_registers_view_pcm_and_browser_module_before_vendor_main(tmp_path):
-    import inspect
+def test_production_main_registers_view_pcm_and_browser_module_before_vendor_main(
+    monkeypatch, tmp_path
+):
+    import sys
+    from pathlib import Path
 
-    assert "spectator" in inspect.signature(run).parameters, "spectator wiring missing"
+    from pokebench_env import view
+    from pokebench_env.serve import main
+
+    repo = Path(__file__).resolve().parents[3]
+    assert view.BROWSER_MODULE.relative_to(repo) == Path("packages/agent/dist/spectator.js")
+    module_path = tmp_path / "spectator.js"
+    module_path.write_text("export class AudioFollower {}")
+    monkeypatch.setattr(view, "BROWSER_MODULE", module_path)
+    monkeypatch.setattr(sys, "argv", ["server.app"])
     app = FastAPI()
 
     class LocalEmulator(Emulator):
-        pass
+        def _check_milestone_condition(
+            self, milestone_id: str, game_state: dict[str, object]
+        ) -> bool:
+            return True
 
     emu = LocalEmulator()
     calls = []
     uvicorn = SimpleNamespace(run=lambda *args, **kwargs: calls.append(kwargs))
 
-    def main():
+    def vendor_main():
         assert emu.initialize() == "initialized"
         emu.core.run_frame()
         uvicorn.run(app, host="0.0.0.0", port=8129)
 
-    run([], uvicorn, main, spectator=(app, LocalEmulator))
+    monkeypatch.setitem(sys.modules, "uvicorn", uvicorn)
+    monkeypatch.setitem(
+        sys.modules, "pokemon_env.emulator", SimpleNamespace(EmeraldEmulator=LocalEmulator)
+    )
+    monkeypatch.setitem(
+        sys.modules, "server", SimpleNamespace(app=SimpleNamespace(app=app, main=vendor_main))
+    )
+    main()
     assert calls == [{"host": "127.0.0.1", "port": 8129}]
+    assert getattr(LocalEmulator._check_milestone_condition, "__pokebench_milestone_guard__", False)
+    assert (
+        emu._check_milestone_condition("PLAYER_NAME_SET", {"player": {"name": "Player"}}) is False
+    )
+    assert emu._check_milestone_condition("LITTLEROOT_TOWN", {}) is True
     status, headers, wav = get(app, "/audio.wav", b"since=0&max_frames=2")
     assert status == 200
     assert wav[44:] == pcm(123)[:2] + (-456).to_bytes(2, "little", signed=True)
@@ -84,9 +108,21 @@ def test_production_serve_registers_view_pcm_and_browser_module_before_vendor_ma
     assert b"createBuffer" in html and b"playbackRate" in html
     assert b"visibilitychange" in html and b"pagehide" in html
     status, headers, module = get(app, "/spectator.js")
-    # A build is a prerequisite of serving; a missing build must fail explicitly.
-    assert status in (200, 503)
-    if status == 200:
-        assert b"export class AudioFollower" in module
-    else:
-        assert b"just build" in module
+    assert status == 200
+    assert headers[b"content-type"].startswith(b"text/javascript")
+    assert module == b"export class AudioFollower {}"
+
+
+def test_missing_browser_build_is_explicitly_unavailable(monkeypatch, tmp_path):
+    from pokebench_env import view
+
+    monkeypatch.setattr(view, "BROWSER_MODULE", tmp_path / "missing.js")
+    app = FastAPI()
+
+    class LocalEmulator(Emulator):
+        pass
+
+    view.install_spectator(app, LocalEmulator)
+    status, headers, module = get(app, "/spectator.js")
+    assert status == 503
+    assert b"just build" in module

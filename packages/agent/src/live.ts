@@ -19,6 +19,7 @@ import { FrameStore } from "./frames.js";
 import { StateWatcher } from "./game-state.js";
 import { MilestoneWatcher } from "./milestones.js";
 import { Governor, piLoop, play, type Limits } from "./harness.js";
+import { discoverLocal, readEndpoint } from "./local-endpoint.js";
 import { gatewayLoopConfig } from "./provider.js";
 import type { RunRecorder } from "./recorder.js";
 import { harnessInfo, newRunId, withRun, type RunHost, type ServerHandle } from "./run.js";
@@ -101,6 +102,7 @@ interface Live {
   readonly model: GatewayModel;
   readonly port: number;
   readonly gatewayUrl: string;
+  readonly apiKey: string | undefined;
 }
 
 async function live(): Promise<Live> {
@@ -110,12 +112,14 @@ async function live(): Promise<Live> {
     throw new Error(`POKEBENCH_GAME_SERVER_URL must be http://127.0.0.1:<port>; each run launches its own server (INV-7)`);
   }
   const port = Number(configured.port || "8000");
-  const model = selectModel(
-    await discoverModels({ gatewayUrl: config.gatewayUrl, visionModels: config.visionModels }),
-    config.model,
-  );
+  const local = config.endpointFile === null ? null : readEndpoint(config.endpointFile);
+  const models =
+    local === null
+      ? await discoverModels({ gatewayUrl: config.gatewayUrl, visionModels: config.visionModels })
+      : await discoverLocal(local);
+  const model = selectModel(models, config.model);
   if (!model.input.includes("image")) throw new Error(`model ${config.model} is not a vision lane; runs need one`);
-  return { model, port, gatewayUrl: config.gatewayUrl };
+  return { model, port, gatewayUrl: local?.baseUrl ?? config.gatewayUrl, apiKey: local?.apiKey };
 }
 
 function pressHooks(recorder: RunRecorder): Parameters<typeof pressTool>[1] {
@@ -128,7 +132,7 @@ function pressHooks(recorder: RunRecorder): Parameters<typeof pressTool>[1] {
 }
 
 async function smoke(): Promise<void> {
-  const { model, port, gatewayUrl } = await live();
+  const { model, port, gatewayUrl, apiKey } = await live();
   const runId = newRunId(new Date(), model.id, () => randomBytes(2).toString("hex"));
   const tools = ["observe", "press"];
   console.log(`live smoke: run ${runId}, model ${model.id} via ${gatewayUrl}`);
@@ -167,7 +171,7 @@ async function smoke(): Promise<void> {
               pressTool(gameServerUrl, pressHooks(recorder)),
             ],
           },
-          { ...gatewayLoopConfig(model, "medium"), transformContext: recorder.transformContext },
+          { ...gatewayLoopConfig(model, "medium", apiKey), transformContext: recorder.transformContext },
           recorder.emit,
           controller.signal,
         );
@@ -200,7 +204,7 @@ In every reply, think briefly about what you see and what to do next, then call 
 const PLAY_TASK = "The game has just booted. Begin playing.";
 
 async function playAgent(): Promise<void> {
-  const { model, port, gatewayUrl } = await live();
+  const { model, port, gatewayUrl, apiKey } = await live();
   const runId = newRunId(new Date(), model.id, () => randomBytes(2).toString("hex"));
   const maxTokens = Math.min(PLAY_MAX_TOKENS, model.maxTokens);
   console.log(`run-agent: run ${runId}, model ${model.id} via ${gatewayUrl}`);
@@ -246,7 +250,7 @@ async function playAgent(): Promise<void> {
       const loop = piLoop({
         systemPrompt: PLAY_SYSTEM_PROMPT,
         tools: [observeTool(gameServerUrl), pressTool(gameServerUrl, pressHooks(recorder))],
-        base: { ...gatewayLoopConfig(model, PLAY_THINKING), maxTokens },
+        base: { ...gatewayLoopConfig(model, PLAY_THINKING, apiKey), maxTokens },
         governor,
         transformContext: recorder.transformContext,
         emit: recorder.emit,

@@ -210,6 +210,7 @@ Mac Studio (all local)
 - [ ] Operator watches a live run in the viewer (M4+)
 
 ## Session Log
+- M2.5 slice 1 GREEN: tape tests 1 passed; full `just test`: vitest 56 / pytest 96. RED d49e3a7; COMMIT: `feat(env): bounded stereo spectator tape` (GREEN, this commit).
 - M2.5 implementation slice 1: bounded stereo WAV tape RED; `pytest env/tests/env/test_audio.py -q` failed with `audio feature missing` (1 failed). COMMIT: `test(env): bounded spectator audio tape` (RED, this commit). Design refinement: use native frame callback attached after initialize, not a per-frame emulator method wrapper. Parent owns browser acceptance and multi-model review; no M4 work.
 - 2026-10-11 ~21:30 ET: **M3 landed on main.** Operator: "yes, land m3 and resolve conflicts and commit. u can kill the leftover server". main fast-forwarded 465b704 → a9f1dc5 (`m3-agent-provider`). The only conflict was another session's uncommitted M2.5 worklog block, which was set aside and re-applied unstaged. Gates on main: vitest 56, pytest 95; TS 100 / 97.36 / 100 / 100; Python 98.77 / 97.30 / 100; lint, build and verify-vendor clean. Killed the orphaned `pokebench_env.serve` on :8000 (pid 2876, PPID 1, from the pre-fix smoke).
 - 2026-10-11 ~21:00 ET: merged main (M2 review fixes 31fac2a..33636ae, the duplicate-M3 revert) into `m3-agent-provider`; the only conflicts were in the worklog. Ported main's ideas (3a18c5f, 08e48e6). M3 multi-model review is next.

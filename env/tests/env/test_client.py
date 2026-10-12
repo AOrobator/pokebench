@@ -16,13 +16,24 @@ from pokebench_env.client import (
 
 
 def png(width: int, height: int) -> bytes:
-    def chunk(kind: bytes, data: bytes) -> bytes:
-        return (
-            struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
-        )
+    from io import BytesIO
 
+    from PIL import Image
+
+    buffer = BytesIO()
+    Image.new("RGB", (width, height), (40, 120, 200)).save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
+def header_only_png(width: int, height: int) -> bytes:
     ihdr = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
-    return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + chunk(b"IEND", b"")
+    chunk = (
+        struct.pack(">I", len(ihdr))
+        + b"IHDR"
+        + ihdr
+        + struct.pack(">I", zlib.crc32(b"IHDR" + ihdr))
+    )
+    return b"\x89PNG\r\n\x1a\n" + chunk
 
 
 class FakeTransport:
@@ -80,6 +91,19 @@ def test_screenshot_with_wrong_dimensions_or_not_png_is_rejected() -> None:
         GameClient(FakeTransport({("GET", "/screenshot"): junk})).screenshot()
 
 
+@pytest.mark.parametrize(
+    "payload",
+    [
+        header_only_png(240, 160),
+        b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00",
+    ],
+)
+def test_screenshot_without_decodable_image_data_is_rejected(payload: bytes) -> None:
+    body = {"screenshot_base64": base64.b64encode(payload).decode(), "step_number": 1}
+    with pytest.raises(ClientError, match="screenshot"):
+        GameClient(FakeTransport({("GET", "/screenshot"): body})).screenshot()
+
+
 def test_press_sends_validated_buttons_and_checks_success() -> None:
     transport = FakeTransport({("POST", "/action"): {"status": "success", "actions_queued": 2}})
     GameClient(transport).press([Button.A, Button.UP])
@@ -87,8 +111,10 @@ def test_press_sends_validated_buttons_and_checks_success() -> None:
 
 
 def test_press_rejects_names_the_server_would_silently_accept() -> None:
-    with pytest.raises(ValueError):
-        GameClient(FakeTransport({})).press([Button("NOPE")])
+    transport = FakeTransport({})
+    with pytest.raises(ClientError, match="NOPE"):
+        GameClient(transport).press(["NOPE"])  # type: ignore[list-item]
+    assert transport.requests == []
 
 
 def test_press_requires_at_least_one_button() -> None:
@@ -116,6 +142,13 @@ def test_milestones_are_typed() -> None:
         Milestone(name="GAME_RUNNING", completed=True, timestamp=1.5),
         Milestone(name="LITTLEROOT_TOWN", completed=False, timestamp=None),
     ]
+
+
+@pytest.mark.parametrize("flag", [True, False])
+def test_boolean_milestone_timestamps_are_rejected(flag: bool) -> None:
+    payload = {"milestones": [{"name": "GAME_RUNNING", "completed": True, "timestamp": flag}]}
+    with pytest.raises(ClientError, match="timestamp"):
+        GameClient(FakeTransport({("GET", "/milestones"): payload})).milestones()
 
 
 def test_healthy_requires_healthy_status() -> None:

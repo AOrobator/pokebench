@@ -128,7 +128,8 @@ Mac Studio (all local)
 - [x] COMMIT: `feat(env): native mGBA env, localhost game server launcher, typed client, smoke` (c6301e6) (GREEN)
 - [x] Smoke: `just smoke` → `SmokeReport(location='TITLE_SEQUENCE', screenshot_bytes=508, milestones_completed=['GAME_RUNNING', 'PLAYER_NAME_SET'])`; server terminated; vendor clean before and after
 - [x] Visual check: `just serve` → Chrome at http://127.0.0.1:8000/stream shows the live game (NEW GAME menu) plus the starter kit's thinking/milestones/party/map panels
-- [ ] Multi-model review loop until clean
+- [ ] Multi-model review loop until clean (R1 on 6294533..c6301e6: fallback sonnet LGTM; Codex BLOCKING, 2 accepted; think_fast/think_swarm rejected; see review log)
+- [x] COMMIT: `test(env): reject undecodable screenshots, bool timestamps, raw button names` (R1 RED)
 
 **M3 — pi ↔ local gateway**
 - [ ] Write tests (`packages/agent`):

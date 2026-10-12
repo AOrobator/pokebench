@@ -271,6 +271,7 @@ Mac Studio (all local)
   - [x] **ASK USER** answered (operator, 2026-10-12 ~03:06 ET, relayed by the coordinator): when the post-press milestone check or `/state` read fails after `/action` succeeded, the press tool **succeeds** and the failure is logged as an event; it is not returned to the model. "Land it": the operator tried `just view` and approved merging m5.5-viewer (which contains M4) into main. Pushing needs separate approval.
     - Schema v1.1 gains `telemetry_error` (`source`: `milestones` | `state`, `message`), additive.
     - COMMIT: `test(agent,viewer): post-press telemetry failures are logged events, not press failures` (RED, this commit). vitest agent: 3 failed / 182 passed; viewer: 2 failed / 111 passed.
+    - COMMIT: `feat(agent,viewer): log post-press telemetry failures, keep the landed press successful` (GREEN, this commit). `telemetry_error` is in the schema (regenerated), `RunRecorder.afterPress` catches each read, the tail prints a TELEMETRY line, and the viewer adds an errors-lane mark and a red action row. Gates: vitest agent 185 + viewer 113, pytest 124; lint, build and verify-vendor clean; coverage agent 97.90 / 90.50 / 97.05 / 98.65, viewer 97.25 / 93.28 / 98.00 / 98.07, Python 98.31 / 95.92 / 100.
   - [x] **STOP:** the viewer replays the recorded M4 run end to end; screenshot to the operator (`runs/viewer-replay-m4-890b.jpg`)
 
 **M6 — Specialized harness → Roxanne** *(operator-in-the-loop)*

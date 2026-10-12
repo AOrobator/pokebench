@@ -33,7 +33,7 @@ export interface ToolSpan extends Span {
 
 export interface ErrorMark {
   readonly ms: number;
-  readonly kind: "retry" | "model" | "tool" | "compaction";
+  readonly kind: "retry" | "model" | "tool" | "compaction" | "telemetry";
   readonly label: string;
 }
 
@@ -58,6 +58,7 @@ const EVENT_TYPES = new Set<string>([
   "run_end",
   "state",
   "compaction",
+  "telemetry_error",
 ]);
 
 // The server validates every line against the TypeBox schema before sending
@@ -170,6 +171,9 @@ export class RunView {
       case "compaction":
         this.compactions += 1;
         this.errors.push({ ms, kind: "compaction", label: `compacted ${num(event.from_tokens)} → ${num(event.to_tokens)}` });
+        break;
+      case "telemetry_error":
+        this.errors.push({ ms, kind: "telemetry", label: `${event.source} read failed: ${event.message}` });
         break;
       case "run_end":
         this.end = event;

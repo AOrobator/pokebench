@@ -200,9 +200,23 @@ export class RunRecorder {
     });
   }
 
+  // The press has landed; a failed read here is logged, never a press failure.
   async afterPress(): Promise<void> {
-    await this.checkMilestones();
-    this.log.append({ type: "state", turn: this.turn, ...(await this.gameState.read()) });
+    try {
+      await this.checkMilestones();
+    } catch (error) {
+      this.telemetryError("milestones", error);
+    }
+    try {
+      this.log.append({ type: "state", turn: this.turn, ...(await this.gameState.read()) });
+    } catch (error) {
+      this.telemetryError("state", error);
+    }
+  }
+
+  private telemetryError(source: "milestones" | "state", error: unknown): void {
+    const message = error instanceof Error ? error.message : String(error);
+    this.log.append({ type: "telemetry_error", turn: this.turn, source, message });
   }
 
   compaction(fromTokens: number, toTokens: number): void {

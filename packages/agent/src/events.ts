@@ -149,6 +149,13 @@ const State = event("state", StateBodySchema.properties);
 
 const Compaction = event("compaction", { from_tokens: NonNegativeInt, to_tokens: NonNegativeInt });
 
+// A post-press read that failed after the press landed (operator 2026-10-12:
+// the press still succeeds; the failure is logged, not shown to the model).
+const TelemetryError = event("telemetry_error", {
+  source: Type.Enum(["milestones", "state"] as const),
+  message: Type.String(),
+});
+
 const RunEnd = event("run_end", {
   reason: RunEndReason,
   furthest_milestone: Type.Union([Type.String(), Type.Null()]),
@@ -172,6 +179,7 @@ export const RunEventSchema = Type.Union([
   RunEnd,
   State,
   Compaction,
+  TelemetryError,
 ]);
 
 export type RunEvent = Static<typeof RunEventSchema>;

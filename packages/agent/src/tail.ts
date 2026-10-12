@@ -71,6 +71,8 @@ function body(event: RunEvent): [string, string] {
         `${event.location}${at} ${event.mode}, party ${party}, ₽${String(event.money)}, ${String(event.badges.length)} badges, play ${clock(event.play_time_s)}`,
       ];
     }
+    case "telemetry_error":
+      return ["TELEMETRY", `${event.source} read failed: ${event.message}`];
     case "compaction":
       return ["COMPACT", `context ${String(event.from_tokens)} → ${String(event.to_tokens)} tokens`];
     case "run_end":

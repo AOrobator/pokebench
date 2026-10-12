@@ -202,6 +202,8 @@ You act only through two tools:
 
 Controls: A confirms, talks and interacts; B cancels and backs out; START opens the menu; each D-pad press moves one tile, and a press in a new direction may only turn you to face it.
 
+Dialogue: use B to advance or dismiss ordinary dialogue. Prefer short batches, then observe. Once field controls are available, stop dismissing and move away. Extra A presses can restart an NPC conversation. Use A to initiate interactions or confirm selections; B may cancel menus and confirmation prompts.
+
 In every reply, think briefly about what you see and what to do next, then call a tool. Replies without a tool call do nothing.`;
 
 const PLAY_TASK = "The game has just booted. Begin playing.";

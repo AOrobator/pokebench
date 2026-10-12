@@ -1,7 +1,7 @@
 import { createAssistantMessageEventStream, type AssistantMessage, type Message, type Model } from "@mariozechner/pi-ai";
 import type { AgentMessage, StreamFn } from "@mariozechner/pi-agent-core";
 import { Governor, piLoop } from "./harness.js";
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { objectiveGameTools, objectiveTools, objectiveHarness } from "./objective-tools.js";
 import { ObjectiveTracker } from "./objectives.js";
 import { IN_GAME } from "../test-support/events.js";
@@ -179,4 +179,44 @@ it("supplies the current objective to the pinned model loop after history prunin
   expect(seen[0]?.at(-1)).toMatchObject({ role: "user" });
   expect(JSON.stringify(seen[0]?.at(-1))).toContain("HARNESS OBJECTIVE RECORD");
   expect(JSON.stringify(seen[0]?.at(-1))).toContain("Get starter");
+});
+
+
+it("retains the state-owner timeout while the run remains live", async () => {
+  for (const operation of ["press", "update_objective"]) {
+    const controller = new AbortController();const deadline = new AbortController();
+    const timeout = vi.spyOn(AbortSignal, "timeout").mockReturnValue(deadline.signal);
+    try {
+      const { recorder, events } = setup();const captured: { signal: AbortSignal | null } = { signal: null };
+      const fetchFn: typeof fetch = (_input, options) => {
+        captured.signal = options?.signal ?? null;
+        deadline.abort(new DOMException("state deadline expired", "TimeoutError"));
+        if (captured.signal?.aborted) { const reason: unknown = captured.signal.reason;return Promise.reject(reason instanceof Error ? reason : new Error(String(reason))); }
+        return Promise.resolve(new Response(JSON.stringify(game)));
+      };
+      const harness = objectiveHarness("Reach gym", recorder, "http://fixture.invalid", fetchFn);
+      const state = recorder.recordState(game);const set = harness.tools.find((tool) => tool.name === "set_objective");const tool = harness.tools.find((item) => item.name === operation);
+      if (!set || !tool) throw new Error("missing operation");
+      await set.execute("s", { ...request, evidence: [state.seq] });
+      await expect(tool.execute("deadline", operation === "press" ? { buttons: ["A"] } : { status: "completed", evidence: [state.seq], obstacle: "", next_decision: "Next", retry_reason: "" }, controller.signal), operation).rejects.toThrow(/deadline/i);
+      expect(timeout, operation).toHaveBeenLastCalledWith(15_000);
+      expect(controller.signal.aborted, operation).toBe(false);
+      expect(captured.signal?.aborted, operation).toBe(true);
+      expect(events.filter((event) => event.type === "objective_attempt"), operation).toEqual([]);
+    } finally { timeout.mockRestore(); }
+  }
+});
+
+it("does not commit completion when refresh resolves after cancellation", async () => {
+  const { recorder } = setup();const controller = new AbortController();const updates: unknown[] = [];
+  const own = new ObjectiveTracker("Reach gym", (body) => { updates.push(body); });
+  const before = recorder.recordState(game);own.observe(before);own.set({ ...request, evidence: [before.seq], completion: { kind: "state", field: "party_count", value: 1 } });
+  const count = updates.length;
+  const tool = objectiveTools(own, () => {
+    const fresh = recorder.recordState({ ...game, party: IN_GAME.party });own.observe(fresh);
+    controller.abort();return Promise.resolve(fresh.seq);
+  }).find((item) => item.name === "update_objective");
+  if (!tool) throw new Error("missing update");
+  await expect(tool.execute("race", { status: "completed", evidence: [before.seq], obstacle: "", next_decision: "Next", retry_reason: "" }, controller.signal)).rejects.toThrow(/abort/i);
+  expect(own.snapshot()?.status).toBe("active");expect(updates).toHaveLength(count);
 });

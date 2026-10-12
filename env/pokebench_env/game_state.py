@@ -15,6 +15,7 @@ from pathlib import Path
 from pokebench_env.game_screen import ReadMemory, read_screen
 from pokebench_env.live_map import read_local_map
 from pokebench_env.naming import NamingState, read_naming
+from pokebench_env.world_context import WorldContext, read_world_context
 
 SAVE_BLOCK_PTRS = 0x03005D8C
 PARTY_COUNT = 0x020244E9
@@ -50,6 +51,7 @@ GBA_TEXT: dict[int, str] = {
     0xB6: "♀",
     0xB8: ",",
     0xBA: "/",
+    0xF0: ":",
     **{0xBB + i: c for i, c in enumerate(string.ascii_uppercase)},
     **{0xD5 + i: c for i, c in enumerate(string.ascii_lowercase)},
 }
@@ -107,6 +109,7 @@ class GameState:
     field_controls_locked: bool | None = None
     local_map: str | None = None
     naming: NamingState | None = None
+    world_context: WorldContext | None = None
 
 
 def _u32(read: ReadMemory, address: int) -> int:
@@ -195,6 +198,9 @@ def read_game_state(read: ReadMemory, maps: MapNames) -> GameState:
         badges=_badges(read, save1),
         play_time=(hours, minutes, seconds),
         local_map=None if nearby is None else nearby.text(),
+        world_context=read_world_context(read, (x, y), map_id, save1, decode_text)
+        if screen.kind == "overworld" and not in_battle
+        else None,
         field_controls_locked=bool(read(FIELD_CONTROLS_LOCK, 1)[0])
         if screen.kind == "overworld" and not in_battle
         else None,

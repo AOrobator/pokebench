@@ -91,3 +91,9 @@ it("validates naming editor state without requiring it in old logs", () => {
     expect(() => parseEvent(JSON.stringify({ ...body, naming: { ...body.naming, ...change } }))).toThrow(EventError);
   }
 });
+
+it("carries typed field context and rejects malformed trigger conditions", () => {
+  const body = { ...ENVELOPE, ...SAMPLES[11], world_context: { objects: [], triggers: [{x:10,y:1,elevation:3,variable:0x4050,required_value:0,current_value:0,condition_met:true,script_pointer:0x08100000}], dialogue:null } };
+  expect(parseEvent(JSON.stringify(body))).toMatchObject({world_context:{triggers:[{condition_met:true}]}});
+  expect(() => parseEvent(JSON.stringify({...body,world_context:{...body.world_context,dialogue:1}}))).toThrow(EventError);
+});

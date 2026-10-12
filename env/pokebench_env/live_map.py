@@ -63,7 +63,7 @@ class LocalMap:
             f"Local map from live memory; top-left ({x},{y}), north is up:\n"
             + "\n".join(self.rows)
             + "\n@ player; N live object; W warp; # collision; g grass; ~ water;"
-            + " . clear tile; ? outside current map."
+            + " . clear terrain (may have script triggers); ? outside current map."
             + "\nTerrain rules, elevation and objects can still block movement."
             + f"\nLive objects: {objects}\nWarps: {warps}"
             + "\nMetatile behaviors present: "

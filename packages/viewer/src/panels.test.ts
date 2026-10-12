@@ -7,6 +7,7 @@ import {
   brand,
   budgets,
   counters,
+  fieldContext,
   inspector,
   party,
   splits,
@@ -340,4 +341,13 @@ it("shows the current naming cursor and escapes entered text", () => {
   const html = trainerCard(view(log), BASE_MS);
   expect(html).toContain("&lt;AB&gt;");
   expect(html).toContain("uppercase: B (1,0)");
+});
+
+it("renders field facts without guessing names and escapes dialogue", () => {
+  const log=bare();
+  log.add(0,state({world_context:{objects:[{local_id:1,map_id:[0,9],graphics_id:6,sprite_kind:"TWIN",x:7,y:2}],triggers:[{x:10,y:1,elevation:3,variable:0x4050,required_value:0,current_value:0,condition_met:true,script_pointer:0x08010000}],dialogue:"<warning>"}}));
+  expect(fieldContext(view(log))).toContain("TWIN");
+  expect(fieldContext(view(log))).toContain("condition matches");
+  expect(fieldContext(view(log))).toContain("&lt;warning&gt;");
+  expect(fieldContext(view(bare()))).toContain("no data");
 });

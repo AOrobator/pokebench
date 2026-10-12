@@ -43,6 +43,8 @@ def format_readout(state: GameState) -> str:
         )
     if state.local_map is not None:
         lines.append(state.local_map)
+    if state.world_context is not None:
+        lines.append(state.world_context.text())
     return "\n".join(lines)
 
 
@@ -50,6 +52,7 @@ def state_json(state: GameState) -> dict[str, object]:
     return {
         "screen": state.screen,
         "naming": None if state.naming is None else state.naming.json(),
+        "world_context": None if state.world_context is None else state.world_context.json(),
         "field_controls_locked": state.field_controls_locked,
         "local_map": state.local_map,
         "started": state.started,

@@ -37,23 +37,35 @@ body { background: #4a9fd8; color: #283038; overflow-x: hidden; }
 h3 { margin: 0 0 8px; font-size: 10px; color: #d03a3a; font-weight: 400; }
 .nodata { color: #8a96a3; font-style: italic; }
 
-/* Glacier GBA */
-svg.gba { width: 100%; height: auto; display: block; overflow: visible; filter: drop-shadow(0 26px 30px rgba(10, 40, 80, .35)); }
-.gba .shell { fill: #bfe3f2; fill-opacity: .9; stroke: #8fc3db; stroke-width: 2; }
-.gba .shellhi { fill: #fff; fill-opacity: .35; }
-.gba .guts { stroke: #5e93ad; stroke-opacity: .35; fill: none; stroke-width: 1.2; }
-.gba .chip { fill: #43708a; fill-opacity: .28; }
-.gba .bezel { fill: #33404d; }
-.gba .bezel-in { fill: #1d252d; }
-.gba .btn { fill: #e4edf2; stroke: #93b6c8; stroke-width: 1.5; transition: fill .08s; }
-.gba .dpad { fill: #d7e3ea; stroke: #93b6c8; stroke-width: 1.5; transition: fill .08s; }
-.gba .shoulder { fill: #cfe8f4; stroke: #8fc3db; stroke-width: 2; }
-.gba .pill { fill: #c3d3dc; stroke: #93b6c8; stroke-width: 1.2; transition: fill .08s; }
-.gba .lbl { font: 700 11px Inter, sans-serif; fill: #4f7d94; text-anchor: middle; pointer-events: none; }
-.gba .lbl.sm { font-size: 8px; letter-spacing: .08em; }
-.gba .logo { font: 800 10px Inter, sans-serif; letter-spacing: .32em; fill: #4f7d94; fill-opacity: .8; text-anchor: middle; }
-.gba .led { fill: #5be37a; }
-.gba .grill { fill: #5e93ad; fill-opacity: .45; }
+/* Glacier GBA: layered shell, inset lens and molded controls. */
+svg.gba { width: 100%; height: auto; display: block; overflow: visible; filter: drop-shadow(0 16px 12px rgba(10, 40, 80, .28)); }
+.gba .shell { fill: url(#gba-shell); stroke: #b3d9e8; stroke-width: 1.5; }
+.gba .shell-edge { fill: url(#gba-edge); stroke: #628ba7; stroke-width: 1.5; }
+.gba .shell-highlight { fill: none; stroke: #effbff; stroke-width: 3; opacity: .7; stroke-linecap: round; }
+.gba .shell-seam { fill: none; stroke: #608ca8; stroke-width: 1.2; opacity: .45; }
+.gba .guts { stroke: #517f9b; opacity: .2; fill: none; stroke-width: 1.5; }
+.gba .chip { fill: #507c97; opacity: .18; }
+.gba .bezel-seat { fill: #6f93a8; stroke: #dff5ff; stroke-width: 1.5; }
+.gba .bezel { fill: url(#gba-lens); stroke: #242d3a; stroke-width: 1; }
+.gba .bezel-in { fill: #151c24; stroke: #626575; stroke-width: .8; }
+.gba .lens-highlight { fill: none; stroke: #a1a4b4; opacity: .35; stroke-width: 1; }
+.gba .control-well { fill: #6994ae; fill-opacity: .24; stroke: #e0f1f8; stroke-opacity: .5; stroke-width: 1.5; }
+.gba .control-shadow { fill: #5b728e; stroke: #7994ab; stroke-width: 2; }
+.gba .btn, .gba .dpad, .gba .pill { fill: url(#gba-button); stroke: #8994ab; stroke-width: 1.2; }
+.gba .btn, .gba .pill, .gba .shoulder, .gba .dpad-hit { transition: fill .08s; }
+.gba .dpad-hit { fill: transparent; stroke: none; }
+.gba .dpad-center { fill: #aab3c4; stroke: #dce0e9; stroke-width: 1; pointer-events: none; }
+.gba .dpad-marks { fill: none; stroke: #8d99ae; stroke-width: 1.8; stroke-linejoin: round; pointer-events: none; }
+.gba .shoulder { fill: url(#gba-shoulder); stroke: #7f9cb5; stroke-width: 1.5; }
+.gba .lbl { font: 700 11px Inter, sans-serif; fill: #53758f; text-anchor: middle; pointer-events: none; }
+.gba .lbl.sm { font-size: 7px; letter-spacing: .1em; }
+.gba .lbl.power { font-size: 5.5px; }
+.gba .button-letter { font-size: 16px; fill: #7f889d; paint-order: stroke; stroke: #eef0f5; stroke-width: .5; }
+.gba .shoulder-letter { font-size: 9px; fill: #8296ad; }
+.gba .console-logo { font: italic 800 15px Arial, sans-serif; letter-spacing: -.7px; fill: #c1c7d8; text-anchor: middle; }
+.gba .led-seat { fill: #789986; }
+.gba .led { fill: url(#gba-glow); }
+.gba .grill { fill: #527792; stroke: #d7e9f2; stroke-width: .6; }
 .gba .lit { fill: #ffd447 !important; stroke: #d39a00 !important; filter: drop-shadow(0 0 7px rgba(255, 200, 40, .95)); }
 .screen-note { font-size: 7.5px; color: #fff; text-align: center; margin-top: -6px; opacity: .85; }
 

@@ -5,6 +5,12 @@
 **Current Milestone:** M5.5 viewer landed on main (operator 2026-10-12, "land it"); M5 awaits the operator's harness checkpoint
 **Phase:** implementation (M1–M3 approved to execute autonomously; M4–M6 operator-in-the-loop)
 
+## Viewer illustration refinement — 2026-10-12
+
+Operator follow-ups: replace the bezel GAME BOY ADVANCE lettering with POKE BENCH using the same italic logo styling; remove the small POKEBENCH text above the screen; tuck the shoulder buttons into the shell after operator feedback that they appeared to hang off.
+
+Operator requested a preview of a better Glacier Game Boy Advance after inspecting the existing viewer. Scope: SVG illustration and its styles; preserve replay wiring, frame display, and all button highlights. Draw a flatter shell with molded controls, layered translucent plastic, recessed lens, and a true 3:2 screen. This is a visual iteration for operator review, not a new harness milestone. Validation: all 113 existing viewer tests passed; viewer lint and build passed. Browser inspection at 127.0.0.1:8792 confirmed the new shell, recorded frame rendering, and replay seeking at the narrow panel width. Preview left open for operator feedback. Operator approved commit and landing. Final viewer coverage: 113 tests passed; statements 97.25%, branches 93.28%, functions 98%, lines 98.07%; lint/build passed. Logo mutation to WRONG LOGO failed the existing SVG assertion and was restored. Multi-model landing review pending on the frozen candidate.
+
 ## Problem Statement
 
 Can a local vision-language model, given a specialized harness, play Pokémon Emerald, reach the first gym (Roxanne) quickly, and eventually beat the game? Published results (PokéAgent Challenge, arXiv 2603.15563; Continual Harness, arXiv 2605.09998) cover only frontier proprietary models and RL/distillation systems. No open model has a published Emerald result. Two lessons from that work: harness architecture matters more than model size, and coding-CLI harnesses lose coherence over thousands of steps.

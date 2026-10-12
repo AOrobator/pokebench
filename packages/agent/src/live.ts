@@ -10,6 +10,8 @@ import { execFileSync, spawn } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
+import { ObjectiveTracker } from "./objectives.js";
+import { objectiveTools, objectiveGameTools, OBJECTIVE_PROMPT } from "./objective-tools.js";
 import { verifyIntro } from "./verify-state.js";
 import { driveProbe, parseProbeCommand, type ProbeCommand } from "./probe.js";
 import { join, resolve } from "node:path";
@@ -196,7 +198,7 @@ const PLAY_THINKING = "medium";
 
 const PLAY_SYSTEM_PROMPT = `You are playing Pokémon Emerald on a Game Boy Advance emulator. Your goal is to make as much story progress as you can: start a new game, get your first Pokémon, and work toward defeating the first Gym Leader in Rustboro City.
 
-You act only through two tools:
+You act through game tools:
 - observe: shows the current screen and a text readout of the game state read from memory (location, coordinates, party, and an ASCII map of the surroundings).
 - press: presses up to 8 buttons in order (A, B, START, SELECT, UP, DOWN, LEFT, RIGHT), then shows the new screen and state.
 
@@ -204,12 +206,15 @@ Controls: A confirms, talks and interacts; B cancels and backs out; START opens 
 
 In every reply, think briefly about what you see and what to do next, then call a tool. Replies without a tool call do nothing.`;
 
+const PLAY_GOAL = "Start a new game, obtain a starter, and work toward defeating the first Gym Leader in Rustboro City.";
 const PLAY_TASK = "The game has just booted. Begin playing.";
 
 async function playAgent(): Promise<void> {
   const { model, port, gatewayUrl, apiKey } = await live();
   const runId = newRunId(new Date(), model.id, () => randomBytes(2).toString("hex"));
   const maxTokens = Math.min(PLAY_MAX_TOKENS, model.maxTokens);
+  const trackObjectives = process.env["POKEBENCH_OBJECTIVES"] !== "0";
+  const systemPrompt = PLAY_SYSTEM_PROMPT + (trackObjectives ? `\n\n${OBJECTIVE_PROMPT}` : "");
   console.log(`run-agent: run ${runId}, model ${model.id} via ${gatewayUrl}`);
   console.log(`watch: just tail-run ${runId}   (frame: http://127.0.0.1:${String(port)}/view)`);
 
@@ -220,10 +225,10 @@ async function playAgent(): Promise<void> {
       port,
       model: { id: model.id, context_window: model.contextWindow, max_tokens: model.maxTokens, vision: true },
       sampling: { thinking_level: PLAY_THINKING, max_tokens: maxTokens },
-      systemPrompt: PLAY_SYSTEM_PROMPT,
-      tools: ["observe", "press"],
+      systemPrompt,
+      tools: ["observe", "press", ...(trackObjectives ? ["get_objectives", "set_objective", "update_objective"] : [])],
       startState: { kind: "boot" },
-      harnessFeatures: ["ram-state-v1", "live-map-v1", "field-control-lock", "naming-cursor-v1"],
+      harnessFeatures: ["ram-state-v1", "live-map-v1", "field-control-lock", "naming-cursor-v1", ...(trackObjectives ? ["objective-tracking-v1", "repeat-attempt-guard-v1"] : [])],
       budgets: { max_turns: PLAY_LIMITS.maxTurns, max_wall_ms: PLAY_LIMITS.maxWallMs },
       piVersion: piVersion(),
     },
@@ -250,12 +255,15 @@ async function playAgent(): Promise<void> {
         governor.abort("operator_abort");
       };
       process.once("SIGINT", interrupt);
+      const tracker = new ObjectiveTracker(PLAY_GOAL, (body) => { recorder.recordObjective(body); });
+      recorder.subscribe((event) => { tracker.observe(event); });
+      const gameTools = trackObjectives ? objectiveGameTools(tracker, recorder, gameServerUrl) : [observeTool(gameServerUrl), pressTool(gameServerUrl, pressHooks(recorder))];
       const loop = piLoop({
-        systemPrompt: PLAY_SYSTEM_PROMPT,
-        tools: [observeTool(gameServerUrl), pressTool(gameServerUrl, pressHooks(recorder))],
+        systemPrompt,
+        tools: [...gameTools, ...(trackObjectives ? objectiveTools(tracker, async () => recorder.recordState(await new StateWatcher(gameServerUrl).read()).seq) : [])],
         base: { ...gatewayLoopConfig(model, PLAY_THINKING, apiKey), maxTokens },
         governor,
-        transformContext: recorder.transformContext,
+        transformContext: (messages) => recorder.transformContext(trackObjectives ? tracker.context(messages) : messages),
         emit: recorder.emit,
         signal: controller.signal,
       });

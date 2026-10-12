@@ -13,6 +13,311 @@
         "t",
         "turn",
         "type",
+        "objective"
+      ],
+      "properties": {
+        "v": {
+          "type": "number",
+          "const": 1
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type": {
+          "type": "string",
+          "const": "objective_update"
+        },
+        "objective": {
+          "type": "object",
+          "required": [
+            "id",
+            "revision",
+            "goal",
+            "title",
+            "supports_goal",
+            "evidence",
+            "completion",
+            "obstacle",
+            "next_decision",
+            "status",
+            "completion_evidence"
+          ],
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "revision": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "goal": {
+              "type": "string",
+              "maxLength": 2000
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            },
+            "supports_goal": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            },
+            "evidence": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "minItems": 1,
+              "maxItems": 16,
+              "uniqueItems": true
+            },
+            "completion": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "required": [
+                    "kind",
+                    "field",
+                    "value"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "state"
+                    },
+                    "field": {
+                      "enum": [
+                        "screen",
+                        "started",
+                        "name",
+                        "location",
+                        "money",
+                        "in_battle",
+                        "party_count",
+                        "badge"
+                      ]
+                    },
+                    "value": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "maxLength": 2000
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "boolean"
+                        }
+                      ]
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "kind",
+                    "description"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "visual"
+                    },
+                    "description": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 2000
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "obstacle": {
+              "type": "string",
+              "maxLength": 2000
+            },
+            "next_decision": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            },
+            "status": {
+              "enum": [
+                "active",
+                "blocked",
+                "completed",
+                "reported_complete"
+              ]
+            },
+            "completion_evidence": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "maxItems": 16
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "run",
+        "seq",
+        "t",
+        "turn",
+        "type",
+        "attempt"
+      ],
+      "properties": {
+        "v": {
+          "type": "number",
+          "const": 1
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type": {
+          "type": "string",
+          "const": "objective_attempt"
+        },
+        "attempt": {
+          "type": "object",
+          "required": [
+            "id",
+            "objective_id",
+            "buttons",
+            "before_seq",
+            "after_seq",
+            "outcome",
+            "failure_count",
+            "warning",
+            "retry_justification"
+          ],
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "objective_id": {
+              "type": "string"
+            },
+            "buttons": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "A",
+                  "B",
+                  "START",
+                  "SELECT",
+                  "UP",
+                  "DOWN",
+                  "LEFT",
+                  "RIGHT"
+                ]
+              },
+              "minItems": 1,
+              "maxItems": 8
+            },
+            "before_seq": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "after_seq": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "outcome": {
+              "enum": [
+                "moved",
+                "turned",
+                "progress",
+                "no_change",
+                "unavailable"
+              ]
+            },
+            "failure_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "warning": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "retry_justification": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "run",
+        "seq",
+        "t",
+        "turn",
+        "type",
         "model",
         "sampling",
         "system_prompt",

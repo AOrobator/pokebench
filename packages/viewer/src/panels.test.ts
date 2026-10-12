@@ -3,6 +3,7 @@ import { BASE_MS, Log, RUN, START, assistant, fullRun, must, state } from "../te
 import { RunView, foldUntil } from "./model.js";
 import {
   NO_DATA,
+  objectivePanel,
   actionRow,
   brand,
   budgets,
@@ -340,4 +341,22 @@ it("shows the current naming cursor and escapes entered text", () => {
   const html = trainerCard(view(log), BASE_MS);
   expect(html).toContain("&lt;AB&gt;");
   expect(html).toContain("uppercase: B (1,0)");
+});
+
+it("shows evidence, decisions and complete attempt history without treating reports as verified", () => {
+  const log = bare();
+  log.add(1, { type: "objective_update", turn: 0, objective: { id: "o1", revision: 1, goal: "Reach gym", title: "<Set clock>", supports_goal: "Opening sequence", evidence: [1], completion: { kind: "visual", description: "Clock closes" }, obstacle: "Can't interact", next_decision: "Check facing", status: "reported_complete", completion_evidence: [2] } });
+  log.add(2, { type: "objective_attempt", turn: 1, attempt: { id: "p1", objective_id: "o1", buttons: ["A"], before_seq: 1, after_seq: 2, outcome: "no_change", failure_count: 2, warning: "Reassess <now>", retry_justification: "Changed facing" } });
+  const html = objectivePanel(view(log));
+  expect(html).toContain("&lt;Set clock&gt;");
+  expect(html).toContain("reported complete");
+  expect(html).toContain("Check facing");
+  expect(html).toContain("visual report");
+  expect(html).toContain("2 matching failures");
+  expect(html).toContain("Changed facing");
+  expect(html).toContain("#1→#2");
+  log.add(3, { type: "objective_update", turn: 2, objective: { id: "o2", revision: 1, goal: "Reach gym", title: "Starter", supports_goal: "Battle", evidence: [3], completion: { kind: "state", field: "party_count", value: 1 }, obstacle: "", next_decision: "Observe", status: "active", completion_evidence: [] } });
+  expect(objectivePanel(view(log))).toContain("party_count = 1");
+  expect(objectivePanel(view(log))).toContain("none recorded");
+  expect(objectivePanel(view(log))).toContain("not completed");
 });

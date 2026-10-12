@@ -206,6 +206,8 @@ function chip(button: string): string {
 
 function rowBody(event: RunEvent): string | null {
   switch (event.type) {
+    case "objective_update": return `${esc(event.objective.status)}: ${esc(event.objective.title)}`;
+    case "objective_attempt": return `${esc(event.attempt.buttons.join(", "))}: ${esc(event.attempt.outcome)}${event.attempt.warning === null ? "" : ` · ${esc(event.attempt.warning)}`}`;
     case "tool_call":
       return `${esc(event.name)}(${esc(JSON.stringify(event.args))})`;
     case "tool_result": {
@@ -252,4 +254,17 @@ export function inspector(event: RunEvent | undefined): string {
 
 export function brand(view: RunView): string {
   return `POKéNAV · ${view.start?.run ?? "NO RUN"}`;
+}
+
+export function objectivePanel(view: RunView): string {
+  const objective = view.objective;
+  if (objective === null) return '<p class="nodata">No objective recorded for this run.</p>';
+  const history = view.attempts.map((attempt) => `<li>${esc(attempt.buttons.join(", "))}: ${esc(attempt.outcome)} · evidence #${String(attempt.before_seq)}→#${attempt.after_seq === null ? "unavailable" : String(attempt.after_seq)}${attempt.failure_count > 1 ? ` · ${String(attempt.failure_count)} matching failures` : ""}${attempt.warning === null ? "" : `<br>${esc(attempt.warning)}`}${attempt.retry_justification === null ? "" : `<br>Reassessment: ${esc(attempt.retry_justification)}`}</li>`).join("");
+  return `<p><strong>${esc(objective.title)}</strong> · ${esc(objective.status.replaceAll("_", " "))}</p>` + kv([
+    ["GOAL", esc(objective.goal)], ["SUPPORTS", esc(objective.supports_goal)],
+    ["EVIDENCE", objective.evidence.map((seq) => `#${String(seq)}`).join(", ")],
+    ["COMPLETION", esc(objective.completion.kind === "state" ? `${objective.completion.field} = ${String(objective.completion.value)}` : `${objective.completion.description} (visual report)`)],
+    ["OBSTACLE", esc(objective.obstacle || "none recorded")], ["NEXT DECISION", esc(objective.next_decision)],
+    ["COMPLETION EVIDENCE", objective.completion_evidence.map((seq) => `#${String(seq)}`).join(", ") || "not completed"],
+  ]) + `<details><summary>Attempt history (${String(view.attempts.length)})</summary><ol class="attempts">${history}</ol></details>`;
 }

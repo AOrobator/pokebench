@@ -8,7 +8,12 @@ describe("loadConfig", () => {
       model: "think-swarm",
       gameServerUrl: "http://127.0.0.1:8000",
       visionModels: [],
+      endpointFile: null,
     });
+  });
+
+  it("reads a local endpoint file path", () => {
+    expect(loadConfig({ POKEBENCH_ENDPOINT_FILE: "/home/x/server.json" }).endpointFile).toBe("/home/x/server.json");
   });
 
   it("reads overrides from the environment", () => {
@@ -24,6 +29,7 @@ describe("loadConfig", () => {
       model: "think-pokebench",
       gameServerUrl: "http://127.0.0.1:9000",
       visionModels: ["think-pokebench"],
+      endpointFile: null,
     });
   });
 

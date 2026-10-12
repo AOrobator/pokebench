@@ -91,12 +91,36 @@ def test_screenshot_with_wrong_dimensions_or_not_png_is_rejected() -> None:
         GameClient(FakeTransport({("GET", "/screenshot"): junk})).screenshot()
 
 
+def chunk(kind: bytes, data: bytes) -> bytes:
+    return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
+
+
+def png_with_chunk_before_iend(kind: bytes, data: bytes) -> bytes:
+    image = png(240, 160)
+    iend = image.rindex(b"IEND") - 4
+    return image[:iend] + chunk(kind, data) + image[iend:]
+
+
+def bomb_png() -> bytes:
+    ihdr = struct.pack(">IIBBBBB", 20000, 20000, 8, 2, 0, 0, 0)
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", ihdr)
+        + chunk(b"IDAT", zlib.compress(b"\x00" * 10))
+        + chunk(b"IEND", b"")
+    )
+
+
 @pytest.mark.parametrize(
     "payload",
     [
+        png_with_chunk_before_iend(b"tRNS", b"\x00"),
+        png_with_chunk_before_iend(b"iCCP", b""),
+        bomb_png(),
         header_only_png(240, 160),
         b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00",
     ],
+    ids=["short-tRNS", "empty-iCCP", "bomb", "header-only", "short-IHDR"],
 )
 def test_screenshot_without_decodable_image_data_is_rejected(payload: bytes) -> None:
     body = {"screenshot_base64": base64.b64encode(payload).decode(), "step_number": 1}

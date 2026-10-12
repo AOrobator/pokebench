@@ -133,7 +133,9 @@ Mac Studio (all local)
 - [x] COMMIT: `fix(env): decode screenshots with Pillow, reject bool timestamps and raw button names` (R1 GREEN, 31fac2a). Gates: pytest 91, lint clean, Python coverage 98.77 / 97.22 / 100
 - [x] R1 fix-delta review (f1d81f4..31fac2a): Claude CLI BLOCKING (B1: non-ASCII base64 raises a plain `ValueError`, accepted); fallback fable pending
 - [x] COMMIT: `test(env): non-ASCII screenshot base64 is a ClientError` (R2 RED, e71848a)
-- [x] COMMIT: `fix(env): map every base64 decode failure to ClientError` (R2 GREEN). Gates: pytest 92, vitest 9, lint clean, Python coverage 98.77 / 97.22 / 100
+- [x] COMMIT: `fix(env): map every base64 decode failure to ClientError` (R2 GREEN, c7e4743). Gates: pytest 92, vitest 9, lint clean, Python coverage 98.77 / 97.22 / 100
+- [x] Fallback fable on f1d81f4..31fac2a: BLOCKING. Accepted: post-IDAT short chunks (tRNS 1 byte, iCCP empty) leak `struct.error`/`IndexError` from `load()`, and `DecompressionBombError` escapes `Image.open`. Its third finding was B1 (already fixed).
+- [x] COMMIT: `test(env): hostile PNG chunks and decompression bombs are ClientErrors` (R2b RED)
 
 **M3 — pi ↔ local gateway**
 - [ ] Write tests (`packages/agent`):

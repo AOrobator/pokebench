@@ -1,7 +1,6 @@
 """Typed client for the continual-harness game server."""
 
 import base64
-import binascii
 import json
 import urllib.error
 import urllib.request
@@ -111,7 +110,7 @@ class GameClient:
         encoded = _typed(body.get("screenshot_base64"), str, "/screenshot.screenshot_base64")
         try:
             data = base64.b64decode(encoded, validate=True)
-        except binascii.Error as exc:
+        except ValueError as exc:
             raise ClientError(f"/screenshot.screenshot_base64: {exc}") from exc
         width, height = _png_size(data)
         if (width, height) != (GBA_WIDTH, GBA_HEIGHT):

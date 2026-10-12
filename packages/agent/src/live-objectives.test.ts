@@ -75,6 +75,7 @@ it.each([[undefined, undefined], [undefined, "0"], ["0", undefined], ["0", "0"]]
   expect(owner.context.includes("HARNESS OBJECTIVE RECORD")).toBe(enabled);
   const documented = interfaceFlag !== "0";
   expect(start.harness_features.includes("contextual-interface-docs-v1")).toBe(documented);
+  expect(start.harness_features.includes("new-game-created-v1")).toBe(true);
   expect(loop.systemPrompt.includes("Buttons are contextual")).toBe(documented);
   expect(loop.systemPrompt.includes("not phone-style cycling groups")).toBe(documented);
   expect(loop.systemPrompt.includes("START moves the cursor to OK")).toBe(documented);

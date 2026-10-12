@@ -464,3 +464,25 @@ it.each(["unknown", "naming"])("does not earn resumed progress from an unqualifi
   for (const mark of marks) expect(mark).toMatchObject({origin:"present_at_start",evidence:[observed.seq]});
   expect(summarize(logged)).toMatchObject({presses:0,furthest:"GAME_RUNNING",milestones:[{name:"GAME_RUNNING",turn:0,wallMs:0}]});
 });
+
+
+it("persists the new-game split once from the recorded Birch snapshot", async () => {
+  const { StateMilestones } = await import("./milestones.js");
+  const root = mkdtempSync(join(tmpdir(), "pokebench-new-game-rec-"));
+  const log = RunLog.create(root, "new-game-observation", () => new Date("2026-10-12T00:00:00.000Z"));
+  const initial: GameStateSnapshot = { ...STATE, screen: "main_menu", started: false, name: null, location: null };
+  const detector = new StateMilestones({ read: () => { throw new Error("must reuse recorded snapshot"); } }, () => 2000);
+  const recorder = new RunRecorder({ log, frames: new FrameStore(root), milestones: detector, gameState: { read: () => Promise.resolve(initial) }, now: () => 2000 });
+  await recorder.start({ ...START_META, harness_features: ["new-game-created-v1"] });
+  const snapshot: GameStateSnapshot = { ...initial, screen: "birch_speech" };
+  await recorder.emit({ type: "tool_execution_start", toolCallId: "new-game", toolName: "press", args: { buttons: ["A"] } });
+  await recorder.emit({ type: "tool_execution_end", toolCallId: "new-game", toolName: "press", result: { content: [{ type: "text", text: "Birch introduction" }], details: { state: snapshot } }, isError: false });
+  recorder.recordState(snapshot);
+  recorder.end("operator_abort");
+  const logged = events(log);
+  const birch = logged.filter(e => e.type === "state" && "screen" in e && e.screen === "birch_speech")[0];
+  expect(birch?.type).toBe("state");
+  const marks = logged.filter(e => e.type === "milestone" && e.name === "NEW_GAME_CREATED");
+  expect(marks).toEqual([{ v: 1, run: "new-game-observation", seq: (birch?.seq ?? -10) + 1, t: birch?.t, type: "milestone", turn: 0, name: "NEW_GAME_CREATED", server_timestamp: 2, kind: "story", origin: "observed", evidence: [birch?.seq] }]);
+  expect(logged.at(-1)).toMatchObject({ type: "run_end", furthest_milestone: "NEW_GAME_CREATED" });
+});

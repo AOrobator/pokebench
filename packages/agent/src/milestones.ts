@@ -52,6 +52,9 @@ const clockSet = (s: GameStateSnapshot): boolean | null => {
 // Flags and stage meanings are traced in docs/findings/story-milestones.md.
 export const MILESTONES: readonly Milestone[] = [
   { name: "GAME_RUNNING", kind: "legacy", reached: () => true },
+  // Birch owns the introduction after accepting NEW GAME. A shared naming
+  // callback or a resumed overworld is not evidence of this in-run transition.
+  { name: "NEW_GAME_CREATED", kind: "story", reached: (s) => s.screen === "birch_speech" ? true : ["intro", "title", "main_menu"].includes(s.screen) ? false : null },
   { name: "PLAYER_NAME_CONFIRMED", kind: "story", reached: flag("name_confirmed") },
   { name: "PLAYER_NAME_SET", kind: "legacy", reached: (s) => s.started ? s.name !== null ? true : null : knownPregame(s) ? false : null },
   { name: "FIRST_TRUCK_EXIT", kind: "story", reached: (s) => place(s, (location) => location !== "INSIDE OF TRUCK") },

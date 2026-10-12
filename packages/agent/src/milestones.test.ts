@@ -69,6 +69,7 @@ describe("StateMilestones", () => {
   it("lists the path to the first gym in order", () => {
     expect(MILESTONES.map((m) => m.name)).toEqual([
       "GAME_RUNNING",
+      "NEW_GAME_CREATED",
       "PLAYER_NAME_CONFIRMED",
       "PLAYER_NAME_SET",
       "FIRST_TRUCK_EXIT",
@@ -211,4 +212,35 @@ it("retains witnessed negatives across unknown reads and earns naming-save start
   tracker.observe(at("INSIDE OF TRUCK",{story:{...unknown,clock_set:false}}),6);
   tracker.observe(at("INSIDE OF TRUCK",{story:unknown}),7);
   expect(tracker.observe(at("INSIDE OF TRUCK",{story:{...unknown,clock_set:true}}),8)).toEqual([{name:"CLOCK_SET",kind:"story",origin:"observed",serverTimestamp:2,evidence:[8]}]);
+});
+
+
+describe("new game creation split", () => {
+  it("waits for verified Birch introduction, emits once, and cites the observation", () => {
+    const tracker = new StateMilestones({ read: () => Promise.resolve(BASE) }, () => 2000);
+    tracker.initialize("boot");
+    for (const screen of ["intro", "title", "main_menu", "unknown", "naming"] as const) {
+      expect(tracker.observe(at(null, { screen }), 1).filter(m => m.name === "NEW_GAME_CREATED")).toEqual([]);
+    }
+    expect(tracker.observe(at(null, { screen: "birch_speech" }), 7)).toEqual([
+      { name: "NEW_GAME_CREATED", kind: "story", origin: "observed", serverTimestamp: 2, evidence: [7] },
+    ]);
+    expect(tracker.observe(at(null, { screen: "birch_speech" }), 8)).toEqual([]);
+  });
+  it("does not infer creation from a resumed overworld or nickname editor", () => {
+    const tracker = new StateMilestones({ read: () => Promise.resolve(BASE) });
+    tracker.initialize("save_state");
+    expect(tracker.observe(at("ROUTE 101"), 1).some(m => m.name === "NEW_GAME_CREATED")).toBe(false);
+    expect(tracker.observe(at(null, { screen: "naming" }), 2).some(m => m.name === "NEW_GAME_CREATED")).toBe(false);
+  });
+});
+
+
+it("marks an intro already active in a loaded state as present rather than a timed split", () => {
+  const tracker = new StateMilestones({ read: () => Promise.resolve(BASE) }, () => 2000);
+  tracker.initialize("save_state");
+  const result = tracker.observe(at(null, { screen: "birch_speech" }), 1);
+  expect(result.filter(m => m.name === "NEW_GAME_CREATED")).toEqual([
+    { name: "NEW_GAME_CREATED", kind: "story", origin: "present_at_start", serverTimestamp: 2, evidence: [1] },
+  ]);
 });

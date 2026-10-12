@@ -387,3 +387,21 @@ it("shows game-owned story values and milestone evidence without inventing old o
   expect(comparison.table).not.toContain("d-ahead");
   expect(comparison.table).not.toContain("d-behind");
 });
+
+
+it("shows creation before name confirmation with recorded baseline and best deltas", () => {
+  const log = new Log();
+  log.add(0, { ...START, harness_features: ["new-game-created-v1"] });
+  log.add(1, { type: "milestone", turn: 0, name: "GAME_RUNNING", server_timestamp: 0 });
+  const pending = splits(view(log), null, BASE_MS + 12000).table;
+  expect(pending).toContain('<td class="n">new game created</td><td class="t">0:00:12…</td>');
+  log.add(5000, { type: "milestone", turn: 1, name: "NEW_GAME_CREATED", server_timestamp: 5, kind: "story", origin: "observed", evidence: [1] });
+  const baseline: Baseline = { run: "baseline", milestones: [{ name: "NEW_GAME_CREATED", offsetMs: 8000 }] };
+  const best: Baseline = { run: "best", milestones: [{ name: "NEW_GAME_CREATED", offsetMs: 3000 }] };
+  const html = splits(view(log), baseline, BASE_MS + 12000, best).table;
+  expect(html).toContain('<td class="n">new game created</td><td class="t">0:00:05</td>');
+  expect(html).toContain('0:00:08<br><span class="d-ahead">−0:03</span>');
+  expect(html).toContain('0:00:03<br><span class="d-behind">+0:02</span>');
+  expect(html.indexOf('new game created')).toBeLessThan(html.indexOf('player name confirmed'));
+  expect(splits(view(bare()), null, BASE_MS + 12000).table).toContain('<td class="n">new game created</td><td class="t">not<br>recorded</td>');
+});

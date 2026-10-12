@@ -20,7 +20,7 @@ Untrusted arguments remain schema-validated; no new subprocess, dependency, netw
 
 ## Milestones
 **M1 — Typed completion and recovery diagnostics**
-- [ ] RED tests and commit
+- [x] RED tests and commit
 - [ ] Implementation and GREEN commit
 - [ ] Full tests, lint, build and coverage >=90% each stack
 - [ ] Performed/restored mutation checks
@@ -44,3 +44,7 @@ No unrelated changes.
 
 ## Archive Milestone
 - [ ] ASK USER: archive this worklog after closeout.
+
+RED commit a11f9f6: three reproduced failures, 27 existing focused tests pass. Dependency setup initially lacked package links; isolated offline install corrected it without touching canonical dependencies.
+
+GREEN preparation: 363agent +147viewer +378unchangedPython tests =888; TS coverage98.67/93.02/98.28/99.15 and viewer97.47/91.45/98.42/98.36 (statements/branches/functions/lines), Python99.34lines/96.77branches/100functions. Lint/types/format/build pass. Ten individually performed/restored mutants cover shared type guard, set boundary, advertised schema, value diagnostic, absent state, stale evidence, visual kind, and each of three new evidence fields; focused suite restores GREEN. Original historical event schema stays unchanged; current inputs reject wrong primitive types without coercion.

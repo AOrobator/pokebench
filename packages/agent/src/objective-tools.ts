@@ -2,7 +2,7 @@ import type { AgentMessage, AgentTool, AgentToolResult } from "@mariozechner/pi-
 import { Type } from "typebox";
 import { Value } from "typebox/value";
 import { ButtonSchema } from "./events.js";
-import { CompletionSchema, EvidenceSchema, ObjectiveStatusSchema } from "./objective-schema.js";
+import { CompletionInputSchema, CompletionSchema, EvidenceSchema, ObjectiveStatusSchema } from "./objective-schema.js";
 import { ObjectiveTracker } from "./objectives.js";
 import { observeTool, pressTool } from "./game-tools.js";
 import { parseGameState, StateWatcher } from "./game-state.js";
@@ -15,10 +15,10 @@ const SetArgs = Type.Object({ title: Type.String({ minLength: 1, maxLength: 2000
 // The deployed tool-grammar compiler rejects maxLength inside this union.
 // Keep the original SetArgs authoritative for execution; only advertise a
 // grammar-compatible copy, with the same limits explained to the model.
-const SetGrammarArgs = structuredClone(SetArgs);
+const SetGrammarArgs = structuredClone(Type.Object({ ...SetArgs.properties, completion: CompletionInputSchema }, closed));
 type GrammarText = typeof text & { maxLength?: number; description?: string };
-const stateText: GrammarText = SetGrammarArgs.properties.completion.anyOf[0].properties.value.anyOf[0];
-const visualText: GrammarText = SetGrammarArgs.properties.completion.anyOf[1].properties.description;
+const stateText: GrammarText = SetGrammarArgs.properties.completion.anyOf[0].properties.value;
+const visualText: GrammarText = SetGrammarArgs.properties.completion.anyOf[3].properties.description;
 stateText.description = `At most ${String(stateText.maxLength)} characters; validated by the harness.`;
 visualText.description = `At most ${String(visualText.maxLength)} characters; validated by the harness.`;
 delete stateText.maxLength;

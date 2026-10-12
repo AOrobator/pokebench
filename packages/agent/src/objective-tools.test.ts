@@ -1,3 +1,4 @@
+import { Value } from "typebox/value";
 import { createAssistantMessageEventStream, type AssistantMessage, type Message, type Model } from "@mariozechner/pi-ai";
 import type { AgentMessage, StreamFn } from "@mariozechner/pi-agent-core";
 import { Governor, piLoop } from "./harness.js";
@@ -228,12 +229,13 @@ it.each(["state", "visual"] as const)("advertises compatible completion %s strin
   if (set === undefined) throw new Error("missing set_objective");
   const wire = set.parameters;
   expect(wire).toMatchObject({properties: {title: {maxLength: 2000}, completion: {anyOf: [
-    {properties: {value: {anyOf: [{type: "string"}, {type: "number"}, {type: "boolean"}]}}},
+    {properties: {value: {type: "string"}}},
+    {properties: {value: {type: "boolean"}}},
+    {properties: {value: {type: "number"}}},
     {properties: {description: {type: "string", minLength: 1}}}
   ]}}});
-  expect(wire).not.toMatchObject({properties: {completion: {anyOf: kind === "state" ? [
-    {properties: {value: {anyOf: [{maxLength: 2000}, {}, {}]}}}, {}
-  ] : [{}, {properties: {description: {maxLength: 2000}}}]}}});
+  expect(JSON.stringify(wire)).not.toContain('"value":{"maxLength"');
+  expect(JSON.stringify(wire)).not.toContain('"description":{"maxLength"');
   const json = JSON.stringify(wire);
   expect(json).toContain("At most 2000 characters");
   const completion = (length: number) => kind === "state" ? {kind, field: "location", value: "x".repeat(length)} : {kind, description: "x".repeat(length)};
@@ -262,4 +264,15 @@ it("rejects mismatched completion types before recording and recovers with boole
   await set.execute("valid", { ...request, completion: { kind: "state", field: "started", value: true } });
   await update.execute("complete", { status: "completed", evidence: [0], obstacle: "", next_decision: "Exit truck", retry_reason: "" });
   expect(tracker.snapshot()).toMatchObject({ status: "completed", completion: { field: "started", value: true }, completion_evidence: [0, 1] });
+});
+
+
+it("advertises field-specific types to the actual model-facing schema", () => {
+  const { tracker } = setup();
+  const set = objectiveTools(tracker).find((tool) => tool.name === "set_objective");
+  if (set === undefined) throw new Error("missing set");
+  for (const [field, good, bad] of [["started", true, "true"], ["in_battle", false, 0], ["money", 3000, "3000"], ["party_count", 1, true], ["screen", "overworld", false], ["name", "ABC", 123], ["location", "INSIDE OF TRUCK", false], ["badge", "STONE", 1]] as const) {
+    expect(Value.Check(set.parameters, { ...request, completion: { kind: "state", field, value: good } }), field).toBe(true);
+    expect(Value.Check(set.parameters, { ...request, completion: { kind: "state", field, value: bad } }), field).toBe(false);
+  }
 });

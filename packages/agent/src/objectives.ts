@@ -1,3 +1,4 @@
+import { validateCompletionType } from "./objective-schema.js";
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { BodyOf, Button, RunEvent } from "./events.js";
 import type { GameStateSnapshot } from "./game-state.js";
@@ -44,6 +45,7 @@ export class ObjectiveTracker {
     if (refs.length === 0 || refs.some((seq) => !this.evidence.has(seq))) throw new Error("Cite actual state/observation evidence sequence IDs from this run.");
   }
   set(request: SetObjective): ObjectiveRecord {
+    validateCompletionType(request.completion);
     this.validateEvidence(request.evidence);
     const revise = this.current !== null && (this.current.status === "active" || this.current.status === "blocked");
     this.current = { ...request, id: revise ? this.current?.id ?? "" : `objective-${String(++this.objectiveCount)}`, revision: revise ? (this.current?.revision ?? 0) + 1 : 1, goal: this.goal, status: "active", completion_evidence: [] };
@@ -56,9 +58,15 @@ export class ObjectiveTracker {
     this.validateEvidence(request.evidence);
     if (request.status === "completed") {
       const completion = this.current.completion;
-      if (completion.kind !== "state" || this.latest === null || !request.evidence.includes(this.latest.seq) || !this.matches(completion, this.latest)) throw new Error("Completion is not verified by the latest game state. Cite matching state evidence or use reported_complete for visual evidence.");
+      if (completion.kind !== "state") throw new Error("Completion is not verified: this objective uses visual evidence. Use reported_complete for a visual condition.");
+      if (this.latest === null) throw new Error("Completion is not verified: no current game state is available. Use observe, then cite its state evidence.");
+      if (!request.evidence.includes(this.latest.seq)) throw new Error(`Completion is not verified: cite latest state #${String(this.latest.seq)}; supplied evidence is ${JSON.stringify(request.evidence)}. Use observe and cite the current state.`);
+      if (!this.matches(completion, this.latest)) {
+        const observed = completion.field === "party_count" ? this.latest.party.length : completion.field === "badge" ? this.latest.badges : this.latest[completion.field];
+        throw new Error(`Completion is not verified: field "${completion.field}" expected ${JSON.stringify(completion.value)} (${typeof completion.value}), observed ${JSON.stringify(observed)} (${observed === null ? "null" : Array.isArray(observed) ? "array" : typeof observed}) at state #${String(this.latest.seq)}. Observe until it matches, or revise the condition with set_objective; do not use reported_complete for a state condition.`);
+      }
     }
-    if (request.status === "reported_complete" && this.current.completion.kind !== "visual") throw new Error("State-backed completion must be checked, not reported around the check.");
+    if (request.status === "reported_complete" && this.current.completion.kind !== "visual") throw new Error("State-backed completion must be checked, not reported around the check. Use completed with matching state evidence, or revise the condition with set_objective.");
     if (request.retry_reason.trim() !== "") {
       const last = this.attempts.at(-1);
       if (last === undefined || !request.evidence.some((seq) => seq >= (last.after_seq ?? last.before_seq))) throw new Error("Reassess using evidence from the failed attempt or later.");
@@ -96,7 +104,7 @@ export class ObjectiveTracker {
     return record;
   }
   context(messages: AgentMessage[], now = Date.now()): AgentMessage[] {
-    const recent = [...this.evidence.values()].slice(-6).map((e) => ({ seq: e.seq, type: e.type, facts: e.type === "state" && "started" in e ? { screen: e.screen, name: e.name, location: e.location, position: e.position, facing: e.facing, field_controls_locked: e.field_controls_locked, party: e.party, money: e.money, badges: e.badges, naming: e.naming } : e.type === "tool_result" ? e.text.slice(0, 1500) : "" }));
+    const recent = [...this.evidence.values()].slice(-6).map((e) => ({ seq: e.seq, type: e.type, facts: e.type === "state" && "started" in e ? { screen: e.screen, started: e.started, in_battle: e.in_battle, party_count: e.party.length, name: e.name, location: e.location, position: e.position, facing: e.facing, field_controls_locked: e.field_controls_locked, party: e.party, money: e.money, badges: e.badges, naming: e.naming } : e.type === "tool_result" ? e.text.slice(0, 1500) : "" }));
     const content = `HARNESS OBJECTIVE RECORD\n${JSON.stringify({ goal: this.goal, objective: this.current, recent_attempts: this.attempts.slice(-8), available_evidence: recent })}\nGame evidence outranks remembered walkthroughs. Failure changes the approach, not whether an objective is required. Check the objective against the goal before acting. Use objective tools when evidence, obstacles, or decisions change.`;
     return [...messages, { role: "user", content, timestamp: now }];
   }

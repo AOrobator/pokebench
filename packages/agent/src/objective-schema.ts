@@ -7,6 +7,20 @@ export const CompletionSchema = Type.Union([
   Type.Object({ kind: Type.Literal("state"), field: Type.Enum(["screen", "started", "name", "location", "money", "in_battle", "party_count", "badge"]), value: Type.Union([text, Type.Number(), Type.Boolean()]) }, closed),
   Type.Object({ kind: Type.Literal("visual"), description: Type.String({ minLength: 1, maxLength: 2000 }) }, closed),
 ]);
+const stringFields = ["screen", "name", "location", "badge"] as const;
+const booleanFields = ["started", "in_battle"] as const;
+const numberFields = ["money", "party_count"] as const;
+export const CompletionInputSchema = Type.Union([
+  Type.Object({ kind: Type.Literal("state"), field: Type.Enum(stringFields), value: text }, closed),
+  Type.Object({ kind: Type.Literal("state"), field: Type.Enum(booleanFields), value: Type.Boolean() }, closed),
+  Type.Object({ kind: Type.Literal("state"), field: Type.Enum(numberFields), value: Type.Number() }, closed),
+  CompletionSchema.anyOf[1],
+]);
+export function validateCompletionType(completion: Completion): void {
+  if (completion.kind !== "state") return;
+  const expected = stringFields.some((field) => field === completion.field) ? "string" : booleanFields.some((field) => field === completion.field) ? "boolean" : "number";
+  if (typeof completion.value !== expected) throw new Error(`Completion field "${completion.field}" requires ${expected}; received ${JSON.stringify(completion.value)} (${typeof completion.value}). Revise set_objective with a ${expected} value; values are not coerced.`);
+}
 export const ObjectiveStatusSchema = Type.Enum(["active", "blocked", "completed", "reported_complete"]);
 export const ObjectiveSchema = Type.Object({
   id: Type.String(), revision: Type.Integer({ minimum: 1 }), goal: text, title: Type.String({ minLength: 1, maxLength: 2000 }),

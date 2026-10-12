@@ -173,9 +173,9 @@ it("explains a value mismatch and exposes all scalar completion facts", () => {
   tracker.set({ ...request, completion: { kind: "state", field: "started", value: false } });
   expect(() => tracker.update({ status: "completed", evidence: [1], obstacle: "", next_decision: "Next", retry_reason: "" })).toThrow('Completion is not verified: field "started" expected false (boolean), observed true (boolean) at state #1. Observe until it matches, or revise the condition with set_objective; do not use reported_complete for a state condition.');
   const content = tracker.context([], 123)[0];
-  expect(JSON.stringify(content?.role === "user" ? content.content : "")).toContain('\"started\":true');
-  expect(JSON.stringify(content?.role === "user" ? content.content : "")).toContain('\"in_battle\":false');
-  expect(JSON.stringify(content?.role === "user" ? content.content : "")).toContain('\"party_count\":0');
+  expect((content?.role === "user" ? content.content : "")).toContain('"started":true');
+  expect((content?.role === "user" ? content.content : "")).toContain('"in_battle":false');
+  expect((content?.role === "user" ? content.content : "")).toContain('"party_count":0');
 });
 
 it("rejects a bad revision without replacing the existing objective", () => {
@@ -184,4 +184,21 @@ it("rejects a bad revision without replacing the existing objective", () => {
   expect(() => tracker.set({ ...request, completion: { kind: "state", field: "started", value: "true" } })).toThrow(/requires boolean/);
   expect(tracker.snapshot()).toEqual(before);
   expect(recorded).toHaveLength(1);
+});
+
+
+it("keeps historical string boolean objective events readable", () => {
+  const event = checkEvent({ ...envelope, seq: 24, type: "objective_update", objective: { ...request, id: "objective-1", revision: 1, goal: "Reach gym", status: "active", completion_evidence: [], completion: { kind: "state", field: "started", value: "true" } } });
+  expect(event).toMatchObject({ objective: { completion: { field: "started", value: "true" } } });
+});
+
+it("diagnoses stale and absent state evidence separately", () => {
+  const { tracker } = setup();tracker.set(request);tracker.observe(state(2));
+  const update = { status: "completed" as const, evidence: [1], obstacle: "", next_decision: "Next", retry_reason: "" };
+  expect(() => tracker.update(update)).toThrow('Completion is not verified: cite latest state #2; supplied evidence is [1]. Use observe and cite the current state.');
+  const empty = new ObjectiveTracker("Reach gym", () => undefined);
+  empty.observe({ ...envelope, seq: 1, type: "tool_result", id: "observe", name: "observe", is_error: false, duration_ms: 1, text: "Observed", frames: [] });empty.set(request);
+  expect(() => empty.update(update)).toThrow('Completion is not verified: no current game state is available. Use observe, then cite its state evidence.');
+  tracker.set({ ...request, completion: { kind: "visual", description: "Screen confirms" } });
+  expect(() => tracker.update({ ...update, evidence: [2] })).toThrow('Completion is not verified: this objective uses visual evidence. Use reported_complete for a visual condition.');
 });

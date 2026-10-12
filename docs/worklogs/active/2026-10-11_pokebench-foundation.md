@@ -2,7 +2,7 @@
 
 **Archive Name:** `docs/worklogs/2026-10-11_pokebench-foundation.md`
 **Started:** 2026-10-11 (ET)
-**Current Milestone:** M2
+**Current Milestone:** M3
 **Phase:** implementation (M1–M3 approved to execute autonomously; M4–M6 operator-in-the-loop)
 
 ## Problem Statement
@@ -49,7 +49,7 @@ Mac Studio (all local)
 
 ### INV-1: The ROM never enters git
 **Invariant:** No `.gba`/`.gb`/`.gbc`/save file is ever staged. The ROM is referenced only through `POKEBENCH_ROM` and never copied into the repo.
-**Rationale:** The ROM is copyrighted and operator-supplied (`~/Downloads/...`).
+**Rationale:** The ROM is copyrighted and operator-supplied. It lives at `~/.roms/pokemon-emerald.gba` (moved from `~/Downloads` 2026-10-11, operator decision; SHA-1 re-verified).
 **Test Strategy:** a hook test stages a `.gba` in a temp repo and the commit is rejected; `.gitignore` covers the extensions; a ROM-resolver test proves no copy is made, only a symlink.
 
 ### INV-2: Shell out safely
@@ -96,7 +96,7 @@ Mac Studio (all local)
   - Adversarial deletion: disabling the asset guard → 8 hook tests red; disabling the freshness guard → 2 red; restored → 14 green
 - [x] Gates: `just test` (vitest 8, pytest 14), `just lint` (tsc, eslint strictTypeChecked, ruff, ruff format, mypy strict: clean), `just build` clean, `just coverage` TS 100/100/100, Python 100% (only `__init__` so far)
 - [x] COMMIT: `feat(scaffold): repo tooling, hook, config` (3f69d59) (GREEN)
-- [ ] **ASK USER:** principles rubric. Keep inheriting local-inference-stack's `docs/agent-principles.md`, or will you author a PokeBench one? (Agents never author it.)
+- [x] **ASK USER:** principles rubric. Operator (2026-10-11): a separate, minimal PokeBench file inspired by local-inference-stack, tailored to this task. Agent drafted it at the operator's request; operator reviewed and approved → `docs/agent-principles.md` (PB1–PB13). CLAUDE.md and `execute-worklog` now score it.
 - [x] **ASK USER:** review round 3 on the R2 fix delta. Operator (2026-10-11): "u can run the review but keep in mind the production wiring test skill in local inference stack".
 - [x] Wiring tests (production-wiring-tests skill), `env/tests/tooling/test_gate_wiring.py`, drive `just --dry-run`:
   - `coverage` runs pytest with `--cov --cov-branch`, then the gate on the same JSON report with `--min 90`, plus `pnpm -r coverage` → `vitest run --coverage`
@@ -128,9 +128,18 @@ Mac Studio (all local)
 - [x] COMMIT: `feat(env): native mGBA env, localhost game server launcher, typed client, smoke` (c6301e6) (GREEN)
 - [x] Smoke: `just smoke` → `SmokeReport(location='TITLE_SEQUENCE', screenshot_bytes=508, milestones_completed=['GAME_RUNNING', 'PLAYER_NAME_SET'])`; server terminated; vendor clean before and after
 - [x] Visual check: `just serve` → Chrome at http://127.0.0.1:8000/stream shows the live game (NEW GAME menu) plus the starter kit's thinking/milestones/party/map panels
-- [ ] Multi-model review loop until clean
+- [ ] Multi-model review loop until clean (R1 on 6294533..c6301e6: fallback sonnet LGTM; Codex BLOCKING, 2 accepted; think_fast/think_swarm rejected; see review log)
+- [x] COMMIT: `test(env): reject undecodable screenshots, bool timestamps, raw button names` (R1 RED, f4c9e20)
+- [x] COMMIT: `fix(env): decode screenshots with Pillow, reject bool timestamps and raw button names` (R1 GREEN, 31fac2a). Gates: pytest 91, lint clean, Python coverage 98.77 / 97.22 / 100
+- [x] R1 fix-delta review (f1d81f4..31fac2a): Claude CLI BLOCKING (B1: non-ASCII base64 raises a plain `ValueError`, accepted); fallback fable pending
+- [x] COMMIT: `test(env): non-ASCII screenshot base64 is a ClientError` (R2 RED, e71848a)
+- [x] COMMIT: `fix(env): map every base64 decode failure to ClientError` (R2 GREEN, c7e4743). Gates: pytest 92, vitest 9, lint clean, Python coverage 98.77 / 97.22 / 100
+- [x] Fallback fable on f1d81f4..31fac2a: BLOCKING. Accepted: post-IDAT short chunks (tRNS 1 byte, iCCP empty) leak `struct.error`/`IndexError` from `load()`, and `DecompressionBombError` escapes `Image.open`. Its third finding was B1 (already fixed).
+- [x] COMMIT: `test(env): hostile PNG chunks and decompression bombs are ClientErrors` (R2b RED, e51b1f8)
+- [x] COMMIT: `fix(env): map every Pillow decode failure to ClientError, size-check before load` (R2b GREEN). Gates: pytest 95, ruff/mypy clean, Python coverage 98.77 / 97.30 / 100. Review closed per the proportional-review rule (memory: one round per milestone, fix real defects, defer polish): the fix-delta reviewers' findings are all fixed and pinned by tests. Deferred hardening: smoke vs a stale server on its port, `brew` check, transport scheme check.
+- [x] Multi-model review loop (M2): closed
 
-**M3 — pi ↔ local gateway** *(started in parallel with M2 on branch `m3-agent-provider`, worktree `../pokebench-m3`; the live smoke waits for M2)*
+**M3 — pi ↔ local gateway** *(M3 of record: branch `m3-agent-provider`, worktree `../pokebench-m3`; built in parallel with M2. Main's duplicate M3 was reverted in 465b704.)*
 - [x] Write tests (`packages/agent`):
   - discovery: `/v1/models` fixture → pi `Model` objects (contextWindow/maxTokens from payload, image input only for lanes configured as vision); unknown/malformed → typed error
   - a tool returning `ImageContent` is serialized for `openai-completions`
@@ -187,6 +196,10 @@ Mac Studio (all local)
 - [ ] Operator watches a live run in the viewer (M4+)
 
 ## Session Log
+- 2026-10-11 ~21:00 ET: merged main (M2 review fixes 31fac2a..33636ae, the duplicate-M3 revert) into `m3-agent-provider`; the only conflicts were in the worklog. Ported main's ideas (3a18c5f, 08e48e6). M3 multi-model review is next.
+- 2026-10-11 ~20:35 ET: Duplicate M3 resolved. M2 review closed on main (33636ae). The resumed main session built a second M3 on main (f514521, 4685b85) before noticing branch `m3-agent-provider` already had M3 GREEN plus a passing live `smoke-llm`. Operator: "u can revert and keep the fuller m3". Main's duplicate is reverted; the branch is M3 of record. Idea to port to the branch: read vision from the gateway's `metadata.observed.capabilities` instead of `POKEBENCH_VISION_MODELS`. Gateway probe facts (live, 2026-10-11): the gateway honors `chat_template_kwargs.enable_thinking`, accepts both `max_tokens` and `max_completion_tokens` and the `developer` role, and thinking on spends ~400 tokens on a trivial prompt.
+- 2026-10-11 ~20:30 ET: COMMIT: `docs: adopt PokeBench principles rubric, move ROM home to ~/.roms` (principles file, CLAUDE.md, README, execute-worklog, this worklog's INV-1/ASK USER/session-log lines; M2.5 audio entries left uncommitted for their own milestone).
+- 2026-10-11 ~17:50 ET: operator moved the ROM home: copied to `~/.roms/pokemon-emerald.gba` (SHA-1 `f3ae0881…7b7` matches; the `~/Downloads` original is left in place), `.env` `POKEBENCH_ROM` points there, CLAUDE.md/README updated. Principles: `docs/agent-principles.md` approved and adopted as the rubric.
 - 2026-10-11 ~18:20–19:55 ET: merged main (M2 GREEN) into `m3-agent-provider` — clean. macOS TCC now blocks agent processes from `~/Downloads` (earlier smoke had access): ROM relocated by the operator to `~/.roms/pokemon-emerald.gba`, SHA-1 verified against `EMERALD_SHA1`, `.env` repointed in both worktrees. `just build-mgba` re-run for the worktree venv. All gates green post-merge (vitest 39, pytest 86, coverage ≥90 both stacks, vendor clean after smoke). Implemented and greened `just smoke-llm` (see M3). **Resume:** run the M3 multi-model review loop, then the pending M2 loop (`6294533..c6301e6`), then STOP-report before M4.
 - 2026-10-11 ~17:55 ET: usage limit reached during the M2 review round (one round, proportional to risk). Fallback reviewer (sonnet): LGTM, with hardening: smoke passes against a stale server already on the port; brew-missing message; http scheme check. Still pending: Claude CLI, think_fast, think_swarm, Codex (artifacts in the session scratchpad `review/m2/`) and fallback (fable). **Resume:** rerun the M2 review lanes on 6294533..c6301e6, then start M3. pi 0.73.1's openai-completions provider already reads llama.cpp `reasoning_content`.
 - 2026-10-11: Research + kickoff discussion. Spike: mGBA 0.10.5 binding builds natively (FFmpeg required, or the import fails on EReader symbols); Emerald ran at ~4,350 fps headless. ROM SHA-1 verified. Repo initialized (`746a785`). Worklog written; operator approved M1–M3.
@@ -203,6 +216,16 @@ Mac Studio (all local)
 | M1 | R1 (746a785..3f69d59, diff sha256 ec36e28b…89db) | 0 FAIL (P36, P8 rows corrected after review) | Claude CLI (default profile; `~/.claude-review` logged out): LGTM | BLOCKING (test seeds asset via hooksPath=/dev/null) | LGTM | Cursor unavailable (not logged in) → subagent fallback A (sonnet): LGTM; B (fable): LGTM | Codex isolated (gpt-6-astra): BLOCKING (Python coverage gate is aggregate; branches/functions not independently enforced) | fix batch R1 |
 | M1 | R2 fix delta (3f69d59..56d2cb2, sha256 12d23ec5…e7bd) | 0 FAIL (P36→N/A, P8, P41 rows) | Claude CLI: LGTM | BLOCKING (false positives, see synthesis) | BLOCKING (rejected; self-contradicting output) | fallback A (sonnet): LGTM; B (fable): LGTM | Codex: BLOCKING (function coverage inferred from a line proxy) | fix batch R2 |
 | M1 | R3 (56d2cb2..4343928, sha256 ccef0ebf…9062) | 0 FAIL | Claude CLI: BLOCKING (worklog missing 2597b9c/4343928 records) | BLOCKING (rejected: one glob + one TOML read is not superlinear) | BLOCKING (rejected: exact-line pinning addresses brittleness; operator-directed tests are not scope expansion) | fallback A (sonnet): BLOCKING (6 mutation survivors: prefix-matched commands, vitest thresholds, omit, setup installs); B (fable): pending | Codex: LGTM | fix batch R3 |
+| M2 | R1 (6294533..c6301e6) | 0 FAIL | Claude CLI: FAILED (rc=1, empty stderr), re-run on the fix delta | BLOCKING (rejected) | BLOCKING (rejected) | fallback A (sonnet): LGTM; B (fable): cut off by usage limit | Codex: BLOCKING (2 accepted) | fix batch R1 |
+
+**M2 R1 synthesis.** Accepted (Codex):
+- `_png_size` read only the IHDR header, so a header-only PNG passed and a short IHDR leaked `struct.error`. Screenshots are now decoded with Pillow, and failures raise `ClientError`.
+- A boolean milestone timestamp became `1.0`. Booleans are now rejected.
+- Hardening: the raw-name button test now goes through `GameClient.press` and asserts that no request was sent. Invalid base64 raises `ClientError`.
+
+Rejected (think_fast/think_swarm): "monkeypatching uvicorn mutates global state" (intended, and pinned by the `run()` test); "`prepare` has two responsibilities" (check and link are a single precondition); "smoke is not a unit test" (it is the end-to-end gate, and its orchestrator is unit-tested); "unneeded dependencies" (opencv and bs4 were measured as required by server imports).
+
+Deferred (fallback sonnet hardening): smoke would pass against a stale server already on port 8765; build-mgba gives no message when `brew` is missing; `http_transport` has no scheme check.
 
 **M1 R2 synthesis.** Accepted:
 - Codex: functions with zero statements (e.g. docstring-only) are no longer counted. The line proxy is otherwise sound because `ruff format --check` rules out one-line `def` bodies.

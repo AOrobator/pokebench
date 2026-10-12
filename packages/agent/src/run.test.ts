@@ -231,7 +231,7 @@ describe("withRun ownership and metadata", () => {
 
 describe("live feature declarations reach recorded run_start", () => {
   const source = ts.createSourceFile("live.ts", readFileSync(join(import.meta.dirname, "live.ts"), "utf8"), ts.ScriptTarget.Latest, true);
-  it.each(["smoke", "playAgent", "probe"])("declares observation extras from the actual %s plan", async (mode) => {
+  function declaredFeatures(mode: string): string[] {
     const functions = source.statements.filter((node): node is ts.FunctionDeclaration => ts.isFunctionDeclaration(node) && node.name?.text === mode);
     expect(functions).toHaveLength(1);
     const featureLists: string[][] = [];
@@ -254,8 +254,16 @@ describe("live feature declarations reach recorded run_start", () => {
     visit(functions[0] ?? source);
     expect(featureLists).toHaveLength(1);
     const features = featureLists[0] ?? [];
+    return features;
+  }
+
+  it.each(["smoke", "playAgent", "probe"])("declares observation extras from the actual %s plan", (mode) => {
     const extras = ["live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1"];
-    expect(features.filter((feature) => extras.includes(feature))).toEqual(extras);
+    expect(declaredFeatures(mode).filter((feature) => extras.includes(feature))).toEqual(extras);
+  });
+
+  it("records the declared live features through the real persistence adapter", async () => {
+    const features = declaredFeatures("probe");
     const runsRoot = root();
     const actual = { ...plan(runsRoot), harnessFeatures: features };
     await withRun(actual, host(), new FrameStore(runsRoot, 1000, () => undefined), () => Promise.resolve("completed"));

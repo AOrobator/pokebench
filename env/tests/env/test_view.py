@@ -76,10 +76,24 @@ def test_production_main_registers_view_pcm_and_browser_module_before_vendor_mai
     monkeypatch.setitem(
         sys.modules, "pokemon_env.emulator", SimpleNamespace(EmeraldEmulator=LocalEmulator)
     )
+
+    async def get_comprehensive_state():
+        raise AssertionError("not called at startup")
+
     monkeypatch.setitem(
-        sys.modules, "server", SimpleNamespace(app=SimpleNamespace(app=app, main=vendor_main))
+        sys.modules,
+        "server",
+        SimpleNamespace(
+            app=SimpleNamespace(
+                app=app, main=vendor_main, get_comprehensive_state=get_comprehensive_state
+            )
+        ),
+    )
+    monkeypatch.setitem(
+        sys.modules, "utils.state_formatter", SimpleNamespace(format_state_for_llm=str)
     )
     main()
+    assert "/pokebench/observation" in [getattr(r, "path", "") for r in app.routes]
     assert calls == [{"host": "127.0.0.1", "port": 8129}]
     assert getattr(LocalEmulator._check_milestone_condition, "__pokebench_milestone_guard__", False)
     assert (

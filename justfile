@@ -48,7 +48,11 @@ smoke:
 
 # Live LLM smoke: pi agent loop on the gateway, screenshot tool on the game server it spawns.
 smoke-llm: build
-    node packages/agent/dist/smoke.js
+    node packages/agent/dist/live.js smoke
+
+# M5 baseline agent: one isolated, recorded run from a fresh boot (300 turns / 60 min).
+run-agent: build
+    node packages/agent/dist/live.js play
 
 # Regenerate schemas/events.v1.json from the TypeBox source (a test fails when it is stale).
 schema: build

@@ -49,15 +49,15 @@ function checkFrame(base64: string): void {
   }
 }
 
-type ObservationContent = [TextContent, ImageContent];
+type ObservationContent = [ImageContent, TextContent];
 
 async function observation(gameServerUrl: string, fetchFn: typeof fetch, prefix = ""): Promise<ObservationContent> {
   const body = await getJson(`${gameServerUrl}/pokebench/observation`, fetchFn);
   if (!Value.Check(ObservationSchema, body)) throw new Error("malformed /pokebench/observation payload");
   checkFrame(body.screenshot_base64);
   return [
-    { type: "text", text: `${prefix}${body.state_text}` },
     { type: "image", data: body.screenshot_base64, mimeType: "image/png" },
+    { type: "text", text: `${prefix}${body.state_text}` },
   ];
 }
 

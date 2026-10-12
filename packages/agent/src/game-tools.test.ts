@@ -55,13 +55,13 @@ describe("serverHealthy", () => {
 });
 
 describe("observeTool", () => {
-  it("returns the state text then the 240x160 frame", async () => {
+  it("returns the 240x160 frame then the state text", async () => {
     const fetchFn = serving(observationBody());
     const result = await observeTool(SERVER, fetchFn).execute("call-1", {});
     expect(fetchFn).toHaveBeenCalledWith(`${SERVER}/pokebench/observation`, expect.anything());
     expect(result.content).toEqual([
-      { type: "text", text: "Current Location: LITTLEROOT TOWN" },
       { type: "image", data: png(240, 160), mimeType: "image/png" },
+      { type: "text", text: "Current Location: LITTLEROOT TOWN" },
     ]);
   });
 
@@ -217,8 +217,8 @@ describe("pressTool", () => {
       expect.objectContaining({ method: "POST", body: JSON.stringify({ buttons: ["UP", "A"] }) }),
     );
     expect(result.content).toEqual([
-      { type: "text", text: "pressed UP, A\n\nCurrent Location: LITTLEROOT TOWN" },
       { type: "image", data: png(240, 160), mimeType: "image/png" },
+      { type: "text", text: "pressed UP, A\n\nCurrent Location: LITTLEROOT TOWN" },
     ]);
   });
 

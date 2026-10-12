@@ -6,8 +6,8 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       include: ["src/**/*.ts"],
-      // smoke.ts is an entrypoint (INV-6), exercised by `just smoke-llm`.
-      exclude: ["src/**/*.test.ts", "src/smoke.ts"],
+      // live.ts is the one live entrypoint (INV-6), exercised by `just smoke-llm` and `just run-agent`.
+      exclude: ["src/**/*.test.ts", "src/live.ts"],
       thresholds: { lines: 90, branches: 90, functions: 90, statements: 90 },
     },
   },

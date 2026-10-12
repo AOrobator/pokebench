@@ -481,3 +481,5 @@ Deferred (HARDENING): zipped ROM extensions (.zip/.7z) and .srm. Speculation not
 
 ## Archive Milestone
 - [ ] **ASK USER:** ready to archive? Then move this body to the Archive Name and remove the root `WORKLOG.md` pointer.
+
+Objective R2 additional RED: whitespace-only retry explanation incorrectly grants reassessment; dedicated third-attempt assertion fails with “expected [Function] to throw an error” (/tmp/pokebench-objectives-blank-retry-red.log). Test committed before normalizing this existing guard; no new owner/capability. The duplicate after-controls unavailable operand is removed because the preceding fingerprint-equality condition already equates before/after controls. Validated fixture shapes now enter the event schema; exact header timestamps use the existing replay clock epoch.

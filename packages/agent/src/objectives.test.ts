@@ -1,10 +1,14 @@
 import { expect, it } from "vitest";
 import { ObjectiveTracker } from "./objectives.js";
 import { IN_GAME } from "../test-support/events.js";
-import type { RunEvent } from "./events.js";
+import { checkEvent, type RunEvent } from "./events.js";
 
 const envelope = { v: 1 as const, run: "objective_probe", t: "2026-10-12T02:00:00.000-04:00", turn: 1 };
-const state = (seq: number, change = {}): Extract<Extract<RunEvent, { type: "state" }>, { started: boolean }> => ({ ...envelope, seq, type: "state", ...IN_GAME, field_controls_locked: false, party: [], ...change });
+const state = (seq: number, change = {}): Extract<Extract<RunEvent, { type: "state" }>, { started: boolean }> => {
+  const event = checkEvent({ ...envelope, seq, type: "state", ...IN_GAME, field_controls_locked: false, party: [], ...change });
+  if (event.type !== "state" || !("started" in event)) throw new Error("invalid state fixture");
+  return event;
+};
 const setup = () => {
   const recorded: unknown[] = [];
   const tracker = new ObjectiveTracker("Reach the first gym", (event) => { recorded.push(event); });
@@ -123,7 +127,7 @@ it("isolates absent current state from valid observation evidence", () => {
 });
 
 it("permits a changed action or material state after matching failures", () => {
-  for (const change of [{ map_id: [0, 101] }, { position: { x: 9, y: 8 } }, { facing: "up" }, { field_controls_locked: true }, { naming: { text: "A", page: "uppercase", row: 0, column: 0, key: "A", ready: true } }, { local_map: "Changed live target coordinates" }]) {
+  for (const change of [{ screen: "unknown (callback2 0x08134C9D)" }, { map_id: [0, 101] }, { position: { x: 9, y: 8 } }, { facing: "up" }, { field_controls_locked: true }, { local_map: "Changed live target coordinates" }]) {
     const { tracker } = setup(); tracker.set(request);
     tracker.attempt("p1", ["A"], state(1), state(2));tracker.attempt("p2", ["A"], state(2), state(3));
     expect(() => { tracker.checkPress(["A"], state(4, change)); }, JSON.stringify(change)).not.toThrow();
@@ -139,4 +143,26 @@ it("isolates conservative unavailable-input outcomes", () => {
   expect(tracker.attempt("turn", ["LEFT"], state(1), state(2, { facing: "left" })).outcome).toBe("turned");
   expect(tracker.attempt("x", ["RIGHT"], state(2), state(3, { position: { x: 9, y: 8 } })).outcome).toBe("moved");
   expect(tracker.attempt("y", ["DOWN"], state(3), state(4, { position: { x: 5, y: 9 } })).outcome).toBe("moved");
+});
+
+
+it("records a naming editor change as progress instead of failed movement", () => {
+  const { tracker } = setup();tracker.set(request);
+  const editing = { screen: "naming", started: false, name: null, location: null, map_id: null, position: null, facing: null, money: null, play_time_s: null, local_map: null, field_controls_locked: null, naming: { text: "A", page: "uppercase", column: 0, row: 0, key: "A", ready: true } };
+  expect(tracker.attempt("edit", ["A"], state(1, editing), state(2, { ...editing, naming: { ...editing.naming, text: "AA" } })).outcome).toBe("progress");
+});
+
+
+it("requires actual evidence and ignores elapsed time for repeated-failure matching", () => {
+  const { tracker } = setup();
+  expect(() => tracker.set({ ...request, evidence: [] })).toThrow(/Cite actual state/);
+  tracker.set(request);tracker.attempt("p1", ["A"], state(1), state(2));tracker.attempt("p2", ["A"], state(2), state(3));
+  expect(() => { tracker.checkPress(["A"], state(4, { play_time_s: 999 })); }).toThrow(/Two matching attempts/);
+});
+
+
+it("does not treat a blank retry explanation as reassessment", () => {
+  const { tracker } = setup();tracker.set(request);tracker.attempt("p1", ["A"], state(1), state(2));tracker.attempt("p2", ["A"], state(2), state(3));
+  tracker.update({ status: "active", evidence: [3], obstacle: "No change", next_decision: "Repeat", retry_reason: "   " });
+  expect(() => { tracker.checkPress(["A"], state(4)); }).toThrow(/Two matching attempts/);
 });

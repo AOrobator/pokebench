@@ -243,7 +243,7 @@ Mac Studio (all local)
 - Probe finding: the vendor's `/mcp/get_map_data` (≈1 KB ASCII grid + legend, warps, NPCs) works; the formatter's map NPCs come from `npc_source: static_reference` (porymap data), so hidden or moving NPCs can show at static spots (seen: a Vigoroth "N" on the player tile in the quick-start house). Recorded for the M5 failure-mode analysis.
 - M5 runs on branch `m5-minimal-agent` (worktree `../pokebench-m5`).
 - M5 tasks (each RED → GREEN):
-  - [ ] Python: PokeBench-owned `GET /pokebench/observation` → `{state_text, screenshot_base64, step}` via the vendor's `/state` handler + `format_state_for_llm`, registered by `serve` like the M2.5 routes
+  - [ ] Python: PokeBench-owned `GET /pokebench/observation` (RED: `test_observation.py` + serve wiring test) → `{state_text, screenshot_base64, step}` via the vendor's `/state` handler + `format_state_for_llm`, registered by `serve` like the M2.5 routes
   - [ ] TS: `observe` + `press` (press → auto-observe) tools on the owned server URL; TypeBox-validated
   - [ ] TS: `pruneContext` (sliding window) in `transformContext`, recorded in `turn_start`
   - [ ] TS: agent runner with budgets (turns, wall), PB8 bounds (consecutive invalid tool calls / model errors → `model_error`; text-only reply → bounded nudge), run_end reasons

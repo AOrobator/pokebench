@@ -145,7 +145,9 @@ def test_run_installs_the_observation_route_before_vendor_main() -> None:
 
     from pydantic import BaseModel
 
-    async def get_state() -> BaseModel:
+    from pokebench_env.game_state import MapNames
+
+    async def get_screenshot() -> BaseModel:
         return BaseModel()
 
     def vendor_main() -> None:
@@ -155,6 +157,6 @@ def test_run_installs_the_observation_route_before_vendor_main() -> None:
         [],
         uvicorn=uvicorn,
         vendor_main=vendor_main,
-        observation=(app, get_state, lambda s: "", lambda a, n: bytes(n)),
+        observation=(app, get_screenshot, lambda a, n: bytes(n), MapNames({})),
     )
     assert "/pokebench/observation" in routes[0]

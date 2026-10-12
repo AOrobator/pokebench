@@ -24,7 +24,7 @@ def test_in_game_readout_lists_every_field() -> None:
     assert format_readout(IN_GAME) == (
         "Screen: overworld\n"
         "Dialog: none\n"
-        "Menu: none\n"
+        "Menu: unavailable (active owner not verified)\n"
         "Player: MAY\n"
         "Location: LITTLEROOT TOWN\n"
         "Position: X=7, Y=9, facing right\n"
@@ -49,7 +49,7 @@ def test_empty_party_badges_unknown_facing_and_battle() -> None:
 
 def test_pre_game_readout_reports_only_the_screen() -> None:
     assert format_readout(PRE_GAME) == (
-        "Screen: naming\nDialog: none\nMenu: none\n"
+        "Screen: naming\nDialog: none\nMenu: unavailable (active owner not verified)\n"
         "Game not started: no save data (player, location, party) exists yet."
     )
 
@@ -61,7 +61,7 @@ def test_open_dialog_and_menu_lead_the_readout() -> None:
     assert format_readout(state).splitlines()[:3] == [
         "Screen: naming",
         'Dialog: "So it\'s A?"',
-        "Menu: open, option 2 of 2 selected (counting from the top)",
+        "Unverified menu buffer: cursor 2 of 2; active menu owner unavailable",
     ]
 
 

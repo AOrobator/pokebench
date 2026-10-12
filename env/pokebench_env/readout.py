@@ -18,10 +18,10 @@ def _play_seconds(state: GameState) -> int | None:
 
 def _menu(state: GameState) -> str:
     if state.menu is None:
-        return "Menu: none"
+        return "Menu: unavailable (active owner not verified)"
     return (
-        f"Menu: open, option {state.menu.selected} of {state.menu.options} selected"
-        " (counting from the top)"
+        f"Unverified menu buffer: cursor {state.menu.selected} of {state.menu.options}"
+        "; active menu owner unavailable"
     )
 
 

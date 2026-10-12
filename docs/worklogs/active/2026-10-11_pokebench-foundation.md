@@ -2,7 +2,7 @@
 
 **Archive Name:** `docs/worklogs/2026-10-11_pokebench-foundation.md`
 **Started:** 2026-10-11 (ET)
-**Current Milestone:** M4 (awaiting the operator's design checkpoint)
+**Current Milestone:** M4 done on branch `m4-run-event-log`; next M5 (awaiting the operator's harness checkpoint)
 **Phase:** implementation (M1–M3 approved to execute autonomously; M4–M6 operator-in-the-loop)
 
 ## Problem Statement
@@ -225,7 +225,8 @@ Mac Studio (all local)
     - Deferred: smoke's run_end reason `budget` for a completed protocol (entrypoint; no `completed` reason in the approved enum); "oldest" = run-id order (DST fall-back hour, undated serve_/smoke_ dirs, which hold no frames); temp dirs in tests. PB8 evidence reworded: event support exists, the bounded-retry policy is M5.
   - [x] COMMIT: `test(agent): owned server URL, metadata before launch, inline PNG retention, frame seq naming, vanished frames` (R1 RED, f44011f)
   - [x] COMMIT: `fix(agent): one owned server URL per run, metadata before launch, inline PNGs to frames, seq-true frame names` (R1 GREEN). `withRun` hands the body the owned `127.0.0.1:<port>` URL and reads harness/vendor metadata before creating the run dir; smoke rejects a non-127.0.0.1 server URL; the recorder moves `iVBORw0KGgo…` base64 found in tool text into frames and leaves `<frame frames/…>`; `FrameStore.save` queues disk/eviction reports until `flush(log, turn)` after the `tool_result`; a frame that vanishes mid-scan is skipped. Gates: vitest 159, pytest 122; TS 97.74 / 91.47 / 96.82 / 98.55; Python 98.31 / 95.92 / 100. Live: run `2026-10-11T22-16-26_think-swarm_890b`, 0 inline PNGs in `events.jsonl`, the state frame was saved as `frames/000015_0.png`, no server left on :8011.
-  - [ ] Gates + one review round; **STOP — report before M5**
+  - [x] Fix-delta re-check (4ff4b6d..fde40b1): Codex LGTM. Probes covered both metadata-failure paths, owned-URL delivery, mixed image/text extraction, threshold reporting, eviction, and frame-owner seq; removing extraction or flush broke them, and restoring fixed them. Deferred hardening: add recorder-level mixed-frame and eviction-order regression tests; PB10 evidence wording (`smoke.ts` stays an excluded entrypoint, unchanged since M3).
+  - [x] Gates + one review round: closed (R1 GREEN fde40b1). **STOP — report before M5** (2026-10-11 ~22:20 ET).
 - Finding (2026-10-11): `PLAYER_NAME_SET` at the title screen was **not** cross-run carryover. Milestones live in per-run cache dirs. It was an intermittent false positive in the vendor's own check (`pokemon_env/emulator.py`: any non-empty name read from RAM, other than "PLAYER"/"UNKNOWN", counts). It fired 0.09 s after boot in 1 of the 6 recorded boots. The earlier "restores cached run data" note was wrong. Real cross-run risks found: every server writes into the shared vendor cwd; run ids have one-second resolution (`run_YYYYMMDD_HHMMSS`), so two servers started in the same second share a directory; and there are root-level fallbacks (`./map_stitcher_data.json`, `.pokeagent_cache/maps`).
 
 **M5 — Minimal agent** *(operator-in-the-loop)*

@@ -92,25 +92,34 @@ describe("discoverModels", () => {
     });
   });
 
-  it("grants image input only to lanes configured as vision", async () => {
+  it("takes vision from the capabilities the gateway reports", async () => {
     const models = await discoverModels({
       gatewayUrl: GATEWAY,
-      visionModels: ["think-swarm"],
+      visionModels: [],
       fetch: vi.fn<typeof fetch>().mockResolvedValue(jsonResponse(FIXTURE)),
     });
-    expect(selectModel(models, "think-fast").input).toEqual(["text"]);
-    expect(selectModel(models, "think-longctx").input).toEqual(["text"]);
+    expect(selectModel(models, "think-swarm").input).toEqual(["text", "image"]);
+    expect(selectModel(models, "think-fast").input).toEqual(["text", "image"]);
+    expect(selectModel(models, "think-longctx").input).toEqual(["text", "image"]);
     expect(selectModel(models, "think-faster").input).toEqual(["text"]);
   });
 
-  it("rejects a vision lane the gateway reports as text-only", async () => {
-    const result = discoverModels({
+  it("lets the gateway's report override config", async () => {
+    const models = await discoverModels({
       gatewayUrl: GATEWAY,
       visionModels: ["think-faster"],
       fetch: vi.fn<typeof fetch>().mockResolvedValue(jsonResponse(FIXTURE)),
     });
-    await expect(result).rejects.toThrow(GatewayDiscoveryError);
-    await expect(result).rejects.toThrow("think-faster");
+    expect(selectModel(models, "think-faster").input).toEqual(["text"]);
+  });
+
+  it("keeps a lane with unknown capabilities text-only unless configured", async () => {
+    const models = await discoverModels({
+      gatewayUrl: GATEWAY,
+      visionModels: [],
+      fetch: vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({ data: [lane()] })),
+    });
+    expect(selectModel(models, "think-swarm").input).toEqual(["text"]);
   });
 
   it("trusts config for a vision lane with unknown capabilities", async () => {

@@ -155,6 +155,10 @@ Mac Studio (all local)
   - `just smoke-llm: build` → `node packages/agent/dist/smoke.js`.
   - Attempt 1 failed as designed (stale server on :8000). Attempt 2: loop ended after the frame description without the second call — the loop terminates on any tool-call-free assistant message, so the description must ride in the *same* message as the second tool call; PROMPT rewritten to that protocol.
   - GREEN: `tool calls: screenshot, state`; model: "green, foliage-filled screen with the words 'GAME REAK' in the center" (the GAME FREAK title screen, read honestly); `DONE TITLE_SEQUENCE` matching `/state`.
+- Port from main's duplicate M3 (operator 2026-10-11: "u can keep the worthwhile ideas from your implementation"; main's copy was reverted in 465b704):
+  - Vision comes from the gateway's reported capabilities (`multimodal`). `POKEBENCH_VISION_MODELS` only fills in for lanes that report nothing, and its default is now empty. Before this, think-fast and think-longctx (multimodal per the gateway) ran text-only.
+  - Tools, frame validation (PNG, 240x160) and the pass/fail check move out of the coverage-excluded `smoke.ts` into a covered `game-tools.ts`. Only process spawning and the loop wiring stay in the entrypoint.
+- [x] COMMIT: `test(agent): gateway-reported vision, covered game tools and smoke check` (port RED)
 - [ ] Multi-model review loop until clean
 - [ ] **STOP — report to operator before M4**
 

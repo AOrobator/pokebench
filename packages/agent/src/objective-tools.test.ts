@@ -128,13 +128,14 @@ it("composes recorder evidence, game guarding, completion refresh and context in
 
 it("cancels in-flight pre-press and completion state reads without sending a game action", async () => {
   for (const operation of ["press", "update_objective"]) {
-    const { recorder, events } = setup();const requestStarted = Promise.withResolvers<void>();const response = Promise.withResolvers<Response>();
+    const { recorder, events } = setup();const requestStarted = Promise.withResolvers<boolean>();const response = Promise.withResolvers<Response>();
     const captured: { signal: AbortSignal | null } = { signal: null };let posts = 0;
     const fetchFn: typeof fetch = (_input, options) => {
       captured.signal = options?.signal ?? null;
-      captured.signal?.addEventListener("abort", () => response.reject(captured.signal?.reason), { once: true });
-      if (String(_input).endsWith("/action")) posts++;
-      requestStarted.resolve();return response.promise;
+      captured.signal?.addEventListener("abort", () => { response.reject(captured.signal?.reason); }, { once: true });
+      const url = typeof _input === "string" ? _input : _input instanceof URL ? _input.href : _input.url;
+      if (url.endsWith("/action")) posts++;
+      requestStarted.resolve(true);return response.promise;
     };
     const harness = objectiveHarness("Reach gym", recorder, "http://127.0.0.1:8812", fetchFn);
     const state = recorder.recordState(game);const set = harness.tools.find((tool) => tool.name === "set_objective");const tool = harness.tools.find((item) => item.name === operation);
@@ -142,8 +143,10 @@ it("cancels in-flight pre-press and completion state reads without sending a gam
     await set.execute("s", { ...request, evidence: [state.seq] });
     const controller = new AbortController();
     const pending = tool.execute("operation", operation === "press" ? { buttons: ["A"] } : { status: "completed", evidence: [state.seq], obstacle: "", next_decision: "Next", retry_reason: "" }, controller.signal);
+    const started = await Promise.race([requestStarted.promise, pending.then(() => false, () => false)]);
+    expect(started, `${operation} must reach the live state request`).toBe(true);
     const rejection = expect(pending).rejects.toThrow(/abort/i);
-    await requestStarted.promise;controller.abort();
+    controller.abort();
     const cancelled = captured.signal?.aborted;
     response.resolve(new Response(JSON.stringify(game)));
     await rejection;
@@ -167,7 +170,7 @@ it("supplies the current objective to the pinned model loop after history prunin
     messages.push({ role: "toolResult", toolCallId: `old-${String(i)}`, toolName: "get_objectives", content: [{ type: "text", text: "historical objective" }], isError: false, timestamp: 0 });
   }
   const controller = new AbortController();
-  const governor = new Governor({ limits: { maxTurns: 1, maxWallMs: 1000, failureLimit: 3 }, retry: () => undefined, abort: () => controller.abort(), now: () => 0 });
+  const governor = new Governor({ limits: { maxTurns: 1, maxWallMs: 1000, failureLimit: 3 }, retry: () => undefined, abort: () => { controller.abort(); }, now: () => 0 });
   const streamFn: StreamFn = (_model, context) => { seen.push([...context.messages]);const stream = createAssistantMessageEventStream();stream.push({ type: "done", reason: "toolUse", message: response });return stream; };
   const loop = piLoop({ systemPrompt: "Play", tools: assembly.tools, base: { model, convertToLlm: (messages) => messages as Message[] }, governor, transformContext: assembly.transformContext, emit: () => undefined, signal: controller.signal, streamFn });
   await loop.resume(messages);

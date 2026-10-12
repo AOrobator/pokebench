@@ -22,7 +22,7 @@ function outcome(before: GameStateSnapshot, after: GameStateSnapshot): Objective
   if (before.map_id !== null && after.map_id !== null && (String(before.map_id) !== String(after.map_id) || before.position?.x !== after.position?.x || before.position?.y !== after.position?.y)) return "moved";
   if (before.facing !== null && after.facing !== null && before.facing !== after.facing) return "turned";
   if (fingerprint(before) !== fingerprint(after)) return "progress";
-  if (before.screen !== "overworld" || before.position === null || before.field_controls_locked !== false || after.field_controls_locked !== false) return "unavailable";
+  if (before.screen !== "overworld" || before.position === null || before.field_controls_locked !== false) return "unavailable";
   return "no_change";
 }
 export class ObjectiveTracker {
@@ -59,7 +59,7 @@ export class ObjectiveTracker {
       if (completion.kind !== "state" || this.latest === null || !request.evidence.includes(this.latest.seq) || !this.matches(completion, this.latest)) throw new Error("Completion is not verified by the latest game state. Cite matching state evidence or use reported_complete for visual evidence.");
     }
     if (request.status === "reported_complete" && this.current.completion.kind !== "visual") throw new Error("State-backed completion must be checked, not reported around the check.");
-    if (request.retry_reason !== "") {
+    if (request.retry_reason.trim() !== "") {
       const last = this.attempts.at(-1);
       if (last === undefined || !request.evidence.some((seq) => seq >= (last.after_seq ?? last.before_seq))) throw new Error("Reassess using evidence from the failed attempt or later.");
       this.retry = { reason: request.retry_reason };

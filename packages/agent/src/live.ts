@@ -10,8 +10,7 @@ import { execFileSync, spawn } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
-import { ObjectiveTracker } from "./objectives.js";
-import { objectiveTools, objectiveGameTools, OBJECTIVE_PROMPT } from "./objective-tools.js";
+import { objectiveHarness, OBJECTIVE_PROMPT } from "./objective-tools.js";
 import { verifyIntro } from "./verify-state.js";
 import { driveProbe, parseProbeCommand, type ProbeCommand } from "./probe.js";
 import { join, resolve } from "node:path";
@@ -255,15 +254,13 @@ async function playAgent(): Promise<void> {
         governor.abort("operator_abort");
       };
       process.once("SIGINT", interrupt);
-      const tracker = new ObjectiveTracker(PLAY_GOAL, (body) => { recorder.recordObjective(body); });
-      recorder.subscribe((event) => { tracker.observe(event); });
-      const gameTools = trackObjectives ? objectiveGameTools(tracker, recorder, gameServerUrl) : [observeTool(gameServerUrl), pressTool(gameServerUrl, pressHooks(recorder))];
+      const objectives = trackObjectives ? objectiveHarness(PLAY_GOAL, recorder, gameServerUrl) : null;
       const loop = piLoop({
         systemPrompt,
-        tools: [...gameTools, ...(trackObjectives ? objectiveTools(tracker, async () => recorder.recordState(await new StateWatcher(gameServerUrl).read()).seq) : [])],
+        tools: objectives?.tools ?? [observeTool(gameServerUrl), pressTool(gameServerUrl, pressHooks(recorder))],
         base: { ...gatewayLoopConfig(model, PLAY_THINKING, apiKey), maxTokens },
         governor,
-        transformContext: (messages) => recorder.transformContext(trackObjectives ? tracker.context(messages) : messages),
+        transformContext: objectives?.transformContext ?? recorder.transformContext,
         emit: recorder.emit,
         signal: controller.signal,
       });

@@ -503,6 +503,6 @@ it("shows streamed objective history live and reconstructs it when replay seeks"
   expect(app.mode).toBe("live");expect(ui("objective").textContent).toContain("Set clock");expect(ui("objective").textContent).toContain("Reassess approach");
   const end = log.add(300, { type: "run_end", turn: 1, reason: "budget", furthest_milestone: null, turns: 1, wall_ms: 300, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } });
   feed(stream, [end]);stream.send("done", {});expect(app.mode).toBe("replay");
-  app.clock?.seek(0);app.tick(0);expect(ui("objective").textContent).toContain("No objective recorded");
-  app.clock?.seek(250);app.tick(0);expect(ui("objective").textContent).toContain("Set clock");expect(ui("objective").textContent).toContain("Attempt history (1)");expect(ui("objective").textContent).toContain("Reassess approach");
+  app.clock?.seek(BASE_MS);app.tick(0);expect(ui("objective").textContent).toContain("No objective recorded");
+  app.clock?.seek(BASE_MS + 250);app.tick(0);expect(ui("objective").textContent).toContain("Set clock");expect(ui("objective").textContent).toContain("Attempt history (1)");expect(ui("objective").textContent).toContain("Reassess approach");
 });

@@ -247,7 +247,7 @@ export class RunView {
     }
     // Older logs already recorded this coherent RAM script variable. Preserve
     // source-state sequence and first observation time; never rewrite the log.
-    if (event.started && event.world_context?.triggers.some((t) => t.variable === 0x4092 && (t.current_value === 6 || t.current_value === 7)) && !this.milestones.some((m) => m.name === "CLOCK_SET")) {
+    if (event.story === undefined && event.started && event.world_context?.triggers.some((t) => t.variable === 0x4092 && (t.current_value === 6 || t.current_value === 7)) && !this.milestones.some((m) => m.name === "CLOCK_SET")) {
       this.milestones.push({ name: "CLOCK_SET", ms: eventMs(event), seq: event.seq, derived: true });
     }
     const previous = this.state;

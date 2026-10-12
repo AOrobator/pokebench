@@ -148,7 +148,10 @@ export function splits(view: RunView, baseline: Baseline | null, nowMs: number, 
   const bases = reference(baseline), bests = reference(best);
   const names = new Set<string>([...MILESTONE_ORDER, ...reached.keys(), ...bases.keys(), ...bests.keys()]);
   const elapsed = wallSeconds(view, nowMs);
-  const next = [...names].find((name) => !reached.has(name));
+  const newStory = new Set(["PLAYER_NAME_CONFIRMED", "FIRST_TRUCK_EXIT", "MOM_CLOCK_INSTRUCTION", "MOM_RIVAL_INSTRUCTION", "RIVAL_MET", "BIRCH_RESCUE_COMPLETE", "BIRCH_STARTER_HANDOFF_COMPLETE", "RIVAL_BATTLE_WON", "RECEIVED_POKEDEX", "STARTER_TUTORIAL_COMPLETE", "RUNNING_SHOES_RECEIVED", "DAD_FIRST_MEETING", "WALLY_TUTORIAL_COMPLETE", "TEAM_AQUA_WOODS_EVENT_COMPLETE", "RUSTBORO_GYM_COMPLETE", "ROCK_TOMB_RECEIVED"]);
+  const supported = (name: string) => !newStory.has(name) || view.start?.harness_features.includes("story-milestones-v2") === true || reached.has(name);
+  const present = new Set(view.milestones.filter((m) => m.origin === "present_at_start").map((m) => m.name));
+  const next = [...names].find((name) => supported(name) && !reached.has(name) && !present.has(name));
   const cell = (name: string, at: number | undefined, refs: ReturnType<typeof reference>) => {
     const target = refs.get(name);
     if (target === undefined) return '<td class="d nodata">—</td>';
@@ -160,11 +163,11 @@ export function splits(view: RunView, baseline: Baseline | null, nowMs: number, 
     const at = reached.get(name);
     const current = view.milestones.find((m) => m.name === name);
     const cls = at !== undefined ? "done" : name === next ? "next" : "todo";
-    const time = at !== undefined ? hms(at) : view.end === null && cls === "next" ? `${hms(elapsed)}…` : "—";
+    const time = present.has(name) ? "already<br>present" : !supported(name) ? "not<br>recorded" : at !== undefined ? hms(at) : view.end === null && cls === "next" ? `${hms(elapsed)}…` : "—";
     const note = current?.derived === true ? ' title="First recorded RAM observation (upper bound)"' : "";
     return `<tr class="${cls}"><td class="n">${splitName(name)}${current?.derived === true ? "*" : ""}</td><td class="t"${note}>${time}</td>${cell(name, at, bases)}${cell(name, at, bests)}</tr>`;
   });
-  const summary = `${String(view.milestones.length)} reached${next === undefined ? "" : ` · next ${splitName(next)}`} · ${baseline === null ? "no baseline" : "vs baseline"}${best === null ? "" : " + best"}`;
+  const summary = `${String(view.milestones.filter((m) => m.origin !== "present_at_start").length)} reached${next === undefined ? "" : ` · next ${splitName(next)}`} · ${baseline === null ? "no baseline" : "vs baseline"}${best === null ? "" : " + best"}`;
   const labels = `<p class="comparison-note">Baseline: ${baseline === null ? "none eligible" : esc(baseline.run)}<br>Best historical run: ${best === null ? "none eligible" : esc(best.run)}<br>Same start; harness versions may differ. Best = furthest progress, then fastest to that point. — = not recorded/reached; no delta until reached. * = clock confirmed by recorded RAM state, time is an upper bound.</p>`;
   return { summary, table: `${labels}<table class="splits"><thead><tr><th>Milestone</th><th>Current</th><th>Baseline<br>time / Δ</th><th>Best<br>time / Δ</th></tr></thead><tbody>${rows.join("")}</tbody></table>` };
 }

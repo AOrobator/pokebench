@@ -150,3 +150,36 @@ it("counts a confirmed clock from the existing intro script variable, once", asy
     expect((await source([s]).poll()).map((m) => m.name)).not.toContain("CLOCK_SET");
   }
 });
+
+it("records each verified story predicate, withholds unknown/pre-event values and deduplicates", () => {
+  const story = {name_confirmed:false,intro_stage:0,rival_stage:0,birch_lab_stage:0,petalburg_gym_stage:0,woods_stage:0,clock_set:false,rival_battle_won:false,pokedex_received:false,running_shoes_received:false,starter_tutorial_complete:false,rustboro_gym_complete:false,stone_badge:false,rock_tomb_received:false};
+  const cases: readonly [Partial<typeof story>, readonly string[]][] = [
+    [{name_confirmed:true},["PLAYER_NAME_CONFIRMED"]],
+    [{intro_stage:4},["MOM_CLOCK_INSTRUCTION"]],
+    [{clock_set:true},["CLOCK_SET"]],
+    [{intro_stage:7},["MOM_CLOCK_INSTRUCTION","MOM_RIVAL_INSTRUCTION"]],
+    [{rival_stage:3},["RIVAL_MET"]],
+    [{birch_lab_stage:2},["BIRCH_RESCUE_COMPLETE"]],
+    [{birch_lab_stage:3},["BIRCH_RESCUE_COMPLETE","BIRCH_STARTER_HANDOFF_COMPLETE"]],
+    [{rival_battle_won:true},["RIVAL_BATTLE_WON"]],
+    [{pokedex_received:true},["RECEIVED_POKEDEX"]],
+    [{starter_tutorial_complete:true},["STARTER_TUTORIAL_COMPLETE"]],
+    [{running_shoes_received:true},["RUNNING_SHOES_RECEIVED"]],
+    [{petalburg_gym_stage:1},["DAD_FIRST_MEETING"]],
+    [{petalburg_gym_stage:2},["DAD_FIRST_MEETING","WALLY_TUTORIAL_COMPLETE"]],
+    [{woods_stage:1},["TEAM_AQUA_WOODS_EVENT_COMPLETE"]],
+    [{rustboro_gym_complete:true},["RUSTBORO_GYM_COMPLETE"]],
+    [{rock_tomb_received:true},["ROCK_TOMB_RECEIVED"]],
+  ];
+  for (const [change,expected] of cases) {
+    const tracker = source([]);
+    tracker.observe(at("ROUTE 101",{story}),1);
+    expect(tracker.observe(at("ROUTE 101",{story:{...story,...change}}),2).map((m)=>m.name)).toEqual(expected);
+    expect(tracker.observe(at("ROUTE 101",{story:{...story,...change}}),3)).toEqual([]);
+  }
+  const modern = source([]);
+  const trigger = {x:1,y:1,elevation:0,variable:0x4092,current_value:6,required_value:5,condition_met:false,script_pointer:0x08000000};
+  expect(modern.observe(at("ROUTE 101",{story,world_context:{objects:[],triggers:[trigger],dialogue:null}}),1).map((m)=>m.name)).not.toContain("CLOCK_SET");
+  const nonField = source([]);
+  expect(nonField.observe(at(null,{story:{...story,clock_set:true,rival_battle_won:true,pokedex_received:true,running_shoes_received:true,starter_tutorial_complete:true,rustboro_gym_complete:true,rock_tomb_received:true}}),1).map((m)=>m.name)).toEqual(["GAME_RUNNING"]);
+});

@@ -52,12 +52,20 @@ class StoryState:
         completed = []
         if self.name_confirmed is True:
             completed.append("player name confirmed")
+        if self.intro_stage in (4, 5, 6, 7):
+            completed.append("Mom clock instruction received")
         if self.clock_set is True:
             completed.append("clock set")
+        if self.intro_stage == 7:
+            completed.append("Mom rival instruction received")
         if self.rival_stage in (3, 4):
             completed.append("rival met")
         if self.birch_lab_stage in (2, 3, 4, 5):
             completed.append("Birch rescue complete")
+        if self.birch_lab_stage in (3, 4, 5):
+            completed.append("Birch starter handoff complete")
+        if self.petalburg_gym_stage in (1, 2, 3, 4, 5, 6, 7, 8):
+            completed.append("Norman first meeting complete")
         for field, label in (
             (self.rival_battle_won, "Route 103 rival battle won"),
             (self.pokedex_received, "Pokédex received"),
@@ -90,7 +98,7 @@ def read_story(read: ReadMemory, screen: Screen, save1: int | None = None) -> St
             functions = {
                 int.from_bytes(tasks[i : i + 4], "little")
                 for i in range(0, len(tasks), 0x28)
-                if tasks[i + 4]
+                if tasks[i + 4] == 1
             }
             if functions & NAME_CONFIRMED_TASKS:
                 confirmed = True

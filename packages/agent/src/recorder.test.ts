@@ -430,3 +430,13 @@ it("records milestones from the exact observation snapshot and its persisted evi
   expect(reads).toBe(1);
   expect(logged.at(-1)).toMatchObject({furthest_milestone:"PLAYER_NAME_CONFIRMED"});
 });
+
+it("fails a declared story reader startup when the server still has the old package", async () => {
+  const {StateMilestones} = await import("./milestones.js");
+  const root = mkdtempSync(join(tmpdir(),"pokebench-reader-contract-"));
+  const log = RunLog.create(root,"reader-mismatch");
+  const recorder = new RunRecorder({log,frames:new FrameStore(root),milestones:new StateMilestones({read:()=>Promise.resolve(STATE)}),gameState:{read:()=>Promise.resolve(STATE)}});
+  await expect(recorder.start({...START_META,harness_features:["story-state-v1"]})).rejects.toThrow("game server returned no story state");
+  recorder.end("crash");
+  expect(events(log).map((e)=>e.type)).toEqual(["run_start","run_end"]);
+});

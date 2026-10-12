@@ -83,7 +83,12 @@ export async function withRun(
     return reason;
   } finally {
     try {
-      if (log.nextSeq > 0 && !log.ended) recorder.end(reason);
+      if (log.nextSeq > 0 && !log.ended) {
+        // A script can commit progress after the last tool's captured frame.
+        // Take one final snapshot before teardown; no inputs or polling loop.
+        await recorder.afterPress();
+        recorder.end(reason);
+      }
     } finally {
       await server.stop();
     }

@@ -574,8 +574,8 @@ it("automatically renders current vs baseline and best without touching the pick
   expect((ui("baseline") as HTMLSelectElement).value).toBe("previous");
   expect(ui("splits").textContent).toContain("Baseline: previous");
   expect(ui("splits").textContent).toContain("Best historical run: best");
-  const row = [...ui("splits").querySelectorAll("tr")].find((r) => r.firstElementChild?.textContent === "player name set");
-  expect([...must(row).querySelectorAll("td")].map((td) => td.textContent)).toEqual(["player name set", "0:00:03", "0:00:05−0:01", "0:00:02+0:01"]);
+  const row = [...ui("splits").querySelectorAll("tr")].find((r) => r.firstElementChild?.textContent === "player name set (gameplay start)");
+  expect([...must(row).querySelectorAll("td")].map((td) => td.textContent)).toEqual(["player name set (gameplay start)", "0:00:03", "0:00:05−0:01", "0:00:02+0:01"]);
 });
 
 it("does not apply comparisons from a superseded run selection", async () => {

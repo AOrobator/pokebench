@@ -368,3 +368,22 @@ it("shows evidence, decisions and complete attempt history without treating repo
   expect(objectivePanel(view(log))).toContain("none recorded");
   expect(objectivePanel(view(log))).toContain("not completed");
 });
+
+it("shows game-owned story values and milestone evidence without inventing old observations", () => {
+  const log = new Log();
+  log.add(0, START);
+  log.add(100, state({story:{name_confirmed:true,intro_stage:6,rival_stage:0,birch_lab_stage:null,petalburg_gym_stage:0,woods_stage:0,clock_set:true,rival_battle_won:false,pokedex_received:false,running_shoes_received:false,starter_tutorial_complete:false,rustboro_gym_complete:false,stone_badge:false,rock_tomb_received:false}}));
+  const stateEvent = log.events.at(-1);
+  if (stateEvent === undefined) throw new Error("fixture state");
+  const mark = log.add(200, {type:"milestone",turn:1,name:"CLOCK_SET",server_timestamp:1,kind:"story",origin:"present_at_start",evidence:[stateEvent.seq]});
+  const v = view(log);
+  expect(fieldContext(v)).toContain("clock set: yes");
+  expect(fieldContext(v)).toContain("rival battle won: no");
+  expect(fieldContext(v)).toContain("birch lab stage: unknown");
+  expect(actionRow(mark)).toContain("already present when run started");
+  expect(actionRow(mark)).toContain("evidence #1");
+  const comparison = splits(v,{run:"reference",milestones:[{name:"CLOCK_SET",offsetMs:1000}]},BASE_MS+300);
+  expect(comparison.table).toContain("already<br>present");
+  expect(comparison.table).not.toContain("d-ahead");
+  expect(comparison.table).not.toContain("d-behind");
+});

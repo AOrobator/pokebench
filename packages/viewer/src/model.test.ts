@@ -217,3 +217,18 @@ it("recovers confirmed clock from recorded RAM, preserving first evidence and re
     expect(view.milestones).toEqual([]);
   }
 });
+
+it("does not use historical clock recovery over modern story evidence", () => {
+  const log = new Log();
+  log.add(0, START);
+  log.add(1000, state({story:null,world_context:{objects:[],dialogue:null,triggers:[{x:1,y:1,elevation:0,variable:0x4092,current_value:6,required_value:5,condition_met:false,script_pointer:0x08000000}]}}));
+  const mark = log.add(1001,{type:"milestone",turn:1,name:"CLOCK_SET",server_timestamp:2,kind:"story",origin:"present_at_start",evidence:[1]});
+  const v = foldUntil(log.events,BASE_MS+2000);
+  expect(v.milestones).toEqual([{name:"CLOCK_SET",ms:BASE_MS+1001,seq:mark.seq,kind:"story",origin:"present_at_start",evidence:[1]}]);
+});
+
+it("the split ordering matches the production milestone owner", async () => {
+  const {MILESTONE_ORDER: recorded} = await import("../../agent/src/milestones.js");
+  const {MILESTONE_ORDER: displayed} = await import("./model.js");
+  expect([...displayed]).toEqual(recorded);
+});

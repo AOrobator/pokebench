@@ -84,6 +84,7 @@ export class RunRecorder {
   private stream = { thinking: "", text: "", flushedAt: 0 };
   private readonly toolStarts = new Map<string, number>();
   private furthest: string | null = null;
+  private storyRequired = false;
   private tokens = { input: 0, output: 0 };
   private saved = { saved: 0, bytes: 0 };
 
@@ -104,6 +105,7 @@ export class RunRecorder {
   }
   recordObjective(body: BodyOf<"objective_update"> | BodyOf<"objective_attempt">): void { this.append({ ...body, turn: this.turn }); }
   recordState(state: GameStateSnapshot): Extract<Extract<RunEvent, { type: "state" }>, { started: boolean }> {
+    if (this.storyRequired && state.story === undefined) throw new RecorderError("Declared story-state-v1 but the game server returned no story state; check the Python reader deployment.");
     const event = this.append({ type: "state", turn: this.turn, ...state }) as Extract<Extract<RunEvent, { type: "state" }>, { started: boolean }>;
     if (this.milestones.observe !== undefined) this.recordMilestones(this.milestones.observe(state, event.seq));
     return event;
@@ -111,6 +113,7 @@ export class RunRecorder {
 
   async start(meta: RunStartMeta): Promise<void> {
     this.startedAt = this.now();
+    this.storyRequired = meta.harness_features.includes("story-state-v1");
     this.append({ type: "run_start", turn: 0, ...meta });
     this.milestones.initialize?.(meta.start_state.kind);
     await this.checkMilestones();

@@ -1,5 +1,7 @@
 import struct
 
+import pytest
+
 from pokebench_env.game_state import read_game_state
 from pokebench_env.readout import format_readout, state_json
 from tests.env.test_game_state import MAPS, NAMING, OVERWORLD, SB1, game
@@ -59,8 +61,6 @@ def test_name_confirmation_requires_the_post_yes_task_and_active_owner() -> None
 
 
 def test_invalid_variable_pointer_or_short_memory_stays_unavailable() -> None:
-    import pytest
-
     from pokebench_env.game_screen import read_screen
     from pokebench_env.story import read_story
 
@@ -71,3 +71,48 @@ def test_invalid_variable_pointer_or_short_memory_stays_unavailable() -> None:
     assert read_story(m.read, read_screen(m.read), 0).clock_set is None
     with pytest.raises(ValueError, match="short story read"):
         read_story(lambda _a, _n: b"", read_screen(m.read), SB1)
+
+
+@pytest.mark.parametrize(
+    ("field", "flag"),
+    [
+        ("clock_set", 0x51),
+        ("rival_battle_won", 0x82),
+        ("pokedex_received", 0x8E4),
+        ("running_shoes_received", 0x112),
+        ("starter_tutorial_complete", 0x74),
+        ("rustboro_gym_complete", 0x4F0),
+        ("stone_badge", 0x867),
+        ("rock_tomb_received", 0xA5),
+    ],
+)
+def test_each_flag_bit_is_independently_grounded(field: str, flag: int) -> None:
+    from pokebench_env.story import FLAG_FIELDS
+
+    m = game(OVERWORLD)
+    m.put(SB1 + 0x1270 + (flag >> 3), bytes([1 << (flag & 7)]))
+    body = state_json(read_game_state(m.read, MAPS))["story"]
+    assert {key: body[key] for key in FLAG_FIELDS} == {key: key == field for key in FLAG_FIELDS}
+
+
+@pytest.mark.parametrize(
+    ("field", "variable", "value"),
+    [
+        ("intro_stage", 0x4092, 6),
+        ("rival_stage", 0x408D, 3),
+        ("birch_lab_stage", 0x4084, 2),
+        ("petalburg_gym_stage", 0x4085, 2),
+        ("woods_stage", 0x4098, 1),
+    ],
+)
+def test_each_story_variable_is_independently_grounded(
+    field: str, variable: int, value: int
+) -> None:
+    from pokebench_env.story import VAR_FIELDS
+
+    m = game(OVERWORLD)
+    m.put(SB1 + 0x139C + 2 * (variable - 0x4000), struct.pack("<H", value))
+    body = state_json(read_game_state(m.read, MAPS))["story"]
+    assert {key: body[key] for key in VAR_FIELDS} == {
+        key: value if key == field else 0 for key in VAR_FIELDS
+    }

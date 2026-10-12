@@ -70,6 +70,7 @@ export class StateMilestones implements MilestoneSource {
   private sawTruck = false;
   private resumed = false;
   private savedStateSeen = false;
+  private snapshotSeen = false;
 
   constructor(private readonly state: StateSource, private readonly now: () => number = () => Date.now()) {}
   initialize(start: "boot" | "save_state"): void { this.resumed = start === "save_state"; }
@@ -81,12 +82,14 @@ export class StateMilestones implements MilestoneSource {
       this.truckSeq ??= seq ?? null;
     }
     const initial = this.resumed && state.started && !this.savedStateSeen;
+    const initialName = this.resumed && !this.snapshotSeen;
+    this.snapshotSeen = true;
     if (state.started) this.savedStateSeen = true;
     const fresh = MILESTONES.filter((m) => !this.seen.has(m.name) && m.reached(state) && (m.name !== "FIRST_TRUCK_EXIT" || this.sawTruck));
     for (const m of fresh) this.seen.add(m.name);
     return fresh.map((m) => ({
       name: m.name, serverTimestamp, kind: m.kind,
-      origin: initial && m.name !== "GAME_RUNNING" ? "present_at_start" : "observed",
+      origin: (m.name === "PLAYER_NAME_CONFIRMED" ? initialName : initial && m.name !== "GAME_RUNNING") ? "present_at_start" : "observed",
       ...(seq === undefined ? {} : { evidence: m.name === "FIRST_TRUCK_EXIT" && this.truckSeq !== null ? [this.truckSeq, seq] : [seq] }),
     }));
   }

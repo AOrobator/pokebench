@@ -225,3 +225,24 @@ describe("withRun ownership and metadata", () => {
     expect(existsSync(join(runsRoot, "2026-10-11T22-00-00_think-swarm_aaaa"))).toBe(false);
   });
 });
+
+it("captures a script's final milestone after the last tool and before server teardown", async () => {
+  const {StateMilestones} = await import("./milestones.js");
+  const r = root();
+  const base = {screen:"overworld",started:true,name:"A",location:"LITTLEROOT TOWN BRENDANS HOUSE 2F",map_id:[1,1] as [number,number],position:{x:5,y:2},facing:"up",in_battle:false,party:[],money:3000,badges:[],play_time_s:1};
+  const story = {name_confirmed:true,intro_stage:5,rival_stage:0,birch_lab_stage:0,petalburg_gym_stage:0,woods_stage:0,clock_set:false,rival_battle_won:false,pokedex_received:false,running_shoes_received:false,starter_tutorial_complete:false,rustboro_gym_complete:false,stone_badge:false,rock_tomb_received:false};
+  let complete = false;
+  let reads = 0;
+  const source = {read:()=>{ reads++;return Promise.resolve({...base,story:{...story,intro_stage:complete?6:5,clock_set:complete}}); }};
+  const h = host();
+  const owned = {...h,milestones:new StateMilestones(source,()=>1000),gameState:source};
+  await withRun({...plan(r),harnessFeatures:["story-state-v1","story-milestones-v2"]},owned,new FrameStore(r),()=>{ complete=true;return Promise.resolve("budget"); });
+  const logged=events(r,plan(r).runId);
+  const clock=logged.filter((e)=>e.type==="milestone" && e.name==="CLOCK_SET");
+  expect(clock).toHaveLength(1);
+  expect(clock[0]).toMatchObject({kind:"story",origin:"observed"});
+  const ending=logged.at(-1);
+  expect(ending).toMatchObject({type:"run_end",furthest_milestone:"CLOCK_SET"});
+  expect(reads).toBe(2);
+  expect(h.calls.at(-1)).toBe("stop");
+});

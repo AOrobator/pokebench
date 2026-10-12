@@ -87,6 +87,8 @@ function samePlace(a: StateEvent, b: StateEvent): boolean {
   return a.location === b.location && a.position?.x === b.position?.x && a.position?.y === b.position?.y;
 }
 
+export const MILESTONE_ORDER = ["GAME_RUNNING", "PLAYER_NAME_CONFIRMED", "PLAYER_NAME_SET", "FIRST_TRUCK_EXIT", "INTRO_CUTSCENE_COMPLETE", "LITTLEROOT_TOWN", "PLAYER_HOUSE_ENTERED", "MOM_CLOCK_INSTRUCTION", "PLAYER_BEDROOM", "CLOCK_SET", "MOM_RIVAL_INSTRUCTION", "RIVAL_MET", "ROUTE_101", "STARTER_CHOSEN", "BIRCH_RESCUE_COMPLETE", "BIRCH_STARTER_HANDOFF_COMPLETE", "OLDALE_TOWN", "ROUTE_103", "RIVAL_BATTLE_WON", "RECEIVED_POKEDEX", "STARTER_TUTORIAL_COMPLETE", "RUNNING_SHOES_RECEIVED", "ROUTE_102", "PETALBURG_CITY", "DAD_FIRST_MEETING", "WALLY_TUTORIAL_COMPLETE", "ROUTE_104", "PETALBURG_WOODS", "TEAM_AQUA_WOODS_EVENT_COMPLETE", "RUSTBORO_CITY", "RUSTBORO_CITY_GYM", "RUSTBORO_GYM_COMPLETE", "STONE_BADGE", "ROCK_TOMB_RECEIVED"] as const;
+
 export class RunView {
   readonly events: RunEvent[] = [];
   start: RunStartEvent | null = null;
@@ -111,7 +113,7 @@ export class RunView {
   toolErrors = 0;
   compactions = 0;
   stuck: { now: number; max: number } | null = null;
-  readonly milestones: { name: string; ms: number; seq: number; kind?: "story" | "navigation" | "legacy"; origin?: "observed" | "present_at_start"; evidence?: readonly number[] }[] = [];
+  readonly milestones: { name: string; ms: number; seq: number; derived?: boolean; kind?: "story" | "navigation" | "legacy"; origin?: "observed" | "present_at_start"; evidence?: readonly number[] }[] = [];
   readonly presses: Press[] = [];
   readonly thinkingSpans: Span[] = [];
   streaming = { thinking: "", text: "" };
@@ -174,7 +176,7 @@ export class RunView {
         });
         break;
       case "milestone":
-        this.milestones.push({ name: event.name, ms, seq: event.seq, ...(event.kind === undefined ? {} : {kind:event.kind}), ...(event.origin === undefined ? {} : {origin:event.origin}), ...(event.evidence === undefined ? {} : {evidence:event.evidence}) });
+        if (!this.milestones.some((m) => m.name === event.name)) this.milestones.push({ name: event.name, ms, seq: event.seq, ...(event.kind === undefined ? {} : {kind:event.kind}), ...(event.origin === undefined ? {} : {origin:event.origin}), ...(event.evidence === undefined ? {} : {evidence:event.evidence}) });
         break;
       case "retry":
         this.retry = { count: (this.retry?.count ?? 0) + 1, attempt: event.attempt, limit: event.limit };
@@ -242,6 +244,11 @@ export class RunView {
     if (!("started" in event)) {
       this.legacyState = true;
       return;
+    }
+    // Older logs already recorded this coherent RAM script variable. Preserve
+    // source-state sequence and first observation time; never rewrite the log.
+    if (event.started && event.world_context?.triggers.some((t) => t.variable === 0x4092 && (t.current_value === 6 || t.current_value === 7)) && !this.milestones.some((m) => m.name === "CLOCK_SET")) {
+      this.milestones.push({ name: "CLOCK_SET", ms: eventMs(event), seq: event.seq, derived: true });
     }
     const previous = this.state;
     this.state = event;

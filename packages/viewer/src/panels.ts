@@ -2,7 +2,7 @@
 // folded event log; a panel without its data says so instead of guessing.
 import type { RunEvent } from "@pokebench/agent/events";
 import { esc, hms, num, signedDelta } from "./format.js";
-import { ASSUMED_TIMING, type RunView } from "./model.js";
+import { ASSUMED_TIMING, MILESTONE_ORDER, type RunView } from "./model.js";
 
 export const NO_DATA = '<span class="nodata">no data</span>';
 
@@ -12,7 +12,7 @@ const ARROW: Readonly<Record<string, string>> = { UP: "↑", DOWN: "↓", LEFT: 
 
 export interface Baseline {
   readonly run: string;
-  readonly milestones: readonly { readonly name: string; readonly offsetMs: number }[];
+  readonly milestones: readonly { readonly name: string; readonly offsetMs: number; readonly derived?: boolean }[];
 }
 
 function wallSeconds(view: RunView, nowMs: number): number {
@@ -140,43 +140,33 @@ function deltaSpan(seconds: number): string {
   return `<span class="${seconds <= 0 ? "d-ahead" : "d-behind"}">${signedDelta(seconds)}</span>`;
 }
 
-function splitRow(cls: string, name: string, delta: string, time: string): string {
-  return `<tr class="${cls}"><td class="n">${splitName(name)}</td><td class="d">${delta}</td><td class="t">${time}</td></tr>`;
-}
-
-export function splits(view: RunView, baseline: Baseline | null, nowMs: number): { summary: string; table: string } {
+export function splits(view: RunView, baseline: Baseline | null, nowMs: number, best: Baseline | null = null): { summary: string; table: string } {
   const startMs = view.startMs;
   if (startMs === null) return { summary: "no data", table: `<p>${NO_DATA}</p>` };
   const reached = new Map(view.milestones.filter((m) => m.origin !== "present_at_start").map((m) => [m.name, (m.ms - startMs) / 1000]));
-  if (baseline === null) {
-    const rows = view.milestones.map((m) => splitRow("done", m.name, "", m.origin === "present_at_start" ? "already present" : hms((m.ms - startMs) / 1000)));
-    return { summary: `${String(view.milestones.length)} reached · no baseline`, table: `<table class="splits">${rows.join("")}</table>` };
-  }
+  const reference = (run: Baseline | null) => new Map(run?.milestones.map((m) => [m.name, m]) ?? []);
+  const bases = reference(baseline), bests = reference(best);
+  const names = new Set<string>([...MILESTONE_ORDER, ...reached.keys(), ...bases.keys(), ...bests.keys()]);
   const elapsed = wallSeconds(view, nowMs);
-  const rows: string[] = [];
-  let next: { name: string; behind: number } | null = null;
-  for (const target of baseline.milestones) {
-    const base = target.offsetMs / 1000;
-    const at = reached.get(target.name);
-    if (at !== undefined) {
-      rows.push(splitRow("done", target.name, deltaSpan(at - base), hms(at)));
-    } else if (next === null) {
-      next = { name: target.name, behind: elapsed - base };
-      rows.push(splitRow("next", target.name, next.behind > 0 ? deltaSpan(next.behind) : "", hms(elapsed)));
-    } else {
-      rows.push(splitRow("todo", target.name, "", hms(base)));
-    }
-  }
-  const known = new Set(baseline.milestones.map((m) => m.name));
-  for (const m of view.milestones) {
-    if (!known.has(m.name)) rows.push(splitRow("done", m.name, "", m.origin === "present_at_start" ? "already present" : hms((m.ms - startMs) / 1000)));
-  }
-  const vs = esc(baseline.run);
-  const summary =
-    next === null
-      ? `all ${String(baseline.milestones.length)} baseline splits reached`
-      : `next ${splitName(next.name)} ${next.behind > 0 ? `${deltaSpan(next.behind)} ` : ""}vs ${vs}`;
-  return { summary, table: `<table class="splits">${rows.join("")}</table>` };
+  const next = [...names].find((name) => !reached.has(name));
+  const cell = (name: string, at: number | undefined, refs: ReturnType<typeof reference>) => {
+    const target = refs.get(name);
+    if (target === undefined) return '<td class="d nodata">—</td>';
+    const time = target.offsetMs / 1000;
+    const note = target.derived === true ? "First recorded RAM observation (upper bound)" : "Recorded milestone";
+    return `<td class="d" title="${note}">${hms(time)}${at === undefined ? "" : `<br>${deltaSpan(at - time)}`}</td>`;
+  };
+  const rows = [...names].map((name) => {
+    const at = reached.get(name);
+    const current = view.milestones.find((m) => m.name === name);
+    const cls = at !== undefined ? "done" : name === next ? "next" : "todo";
+    const time = at !== undefined ? hms(at) : view.end === null && cls === "next" ? `${hms(elapsed)}…` : "—";
+    const note = current?.derived === true ? ' title="First recorded RAM observation (upper bound)"' : "";
+    return `<tr class="${cls}"><td class="n">${splitName(name)}${current?.derived === true ? "*" : ""}</td><td class="t"${note}>${time}</td>${cell(name, at, bases)}${cell(name, at, bests)}</tr>`;
+  });
+  const summary = `${String(view.milestones.length)} reached${next === undefined ? "" : ` · next ${splitName(next)}`} · ${baseline === null ? "no baseline" : "vs baseline"}${best === null ? "" : " + best"}`;
+  const labels = `<p class="comparison-note">Baseline: ${baseline === null ? "none eligible" : esc(baseline.run)}<br>Best historical run: ${best === null ? "none eligible" : esc(best.run)}<br>Same start; harness versions may differ. Best = furthest progress, then fastest to that point. — = not recorded/reached; no delta until reached. * = clock confirmed by recorded RAM state, time is an upper bound.</p>`;
+  return { summary, table: `${labels}<table class="splits"><thead><tr><th>Milestone</th><th>Current</th><th>Baseline<br>time / Δ</th><th>Best<br>time / Δ</th></tr></thead><tbody>${rows.join("")}</tbody></table>` };
 }
 
 export function thinkingDialog(view: RunView, nowMs: number): { head: string; body: string } {

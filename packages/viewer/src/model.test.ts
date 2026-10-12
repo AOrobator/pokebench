@@ -193,3 +193,27 @@ it("manual probes do not claim model thinking or context usage", () => {
   expect(fold(log).isThinking).toBe(false);
   expect(fold(log).context).toBeNull();
 });
+
+it("recovers confirmed clock from recorded RAM, preserving first evidence and replay boundary", () => {
+  const log = new Log();
+  log.add(0, START);
+  const trigger = (variable: number, current_value: number | null) => ({ x: 1, y: 1, elevation: 0, variable, required_value: 5, current_value, condition_met: false, script_pointer: 0x08000000 });
+  log.add(1000, state({ world_context: { objects: [], triggers: [trigger(0x4092, 5)], dialogue: null } }));
+  log.add(2000, state({ world_context: { objects: [], triggers: [trigger(0x4092, 6)], dialogue: null } }));
+  log.add(3000, { type: "milestone", turn: 1, name: "CLOCK_SET", server_timestamp: 3 });
+  log.add(4000, state({ world_context: { objects: [], triggers: [trigger(0x4092, 7)], dialogue: null } }));
+  expect(foldUntil(log.events, BASE_MS + 1999).milestones).toEqual([]);
+  expect(foldUntil(log.events, BASE_MS + 5000).milestones).toEqual([{ name: "CLOCK_SET", ms: BASE_MS + 2000, seq: 2, derived: true }]);
+  const late = new Log();
+  late.add(0, START);
+  late.add(1000, state({ world_context: { objects: [], triggers: [trigger(0x4092, 7)], dialogue: null } }));
+  expect(foldUntil(late.events, BASE_MS + 1000).milestones).toEqual([{ name: "CLOCK_SET", ms: BASE_MS + 1000, seq: 1, derived: true }]);
+  for (const [variable, current_value, started] of [[0x4091, 6, true], [0x4092, null, true], [0x4092, 8, true], [0x4092, 6, false]] as const) {
+    const view = new RunView();
+    const wrong = new Log();
+    wrong.add(0, START);
+    wrong.add(1000, state({ started, world_context: { objects: [], triggers: [trigger(variable, current_value)], dialogue: null } }));
+    wrong.events.forEach((e) => { view.apply(e); });
+    expect(view.milestones).toEqual([]);
+  }
+});

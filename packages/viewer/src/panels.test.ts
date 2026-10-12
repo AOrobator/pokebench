@@ -190,25 +190,23 @@ describe("splits", () => {
     ],
   };
 
-  it("lists this run's milestones with times when there is no baseline", () => {
+  it("lists current and missing milestones without inventing comparisons", () => {
     const { summary, table } = splits(view(fullRun()), null, END);
-    expect(summary).toBe("2 reached · no baseline");
-    expect(table).toContain('<tr class="done"><td class="n">game running</td><td class="d"></td><td class="t">0:00:00</td></tr>');
-    expect(table).toContain('<td class="n">player name set (gameplay start)</td><td class="d"></td><td class="t">0:00:03</td>');
+    expect(summary).toBe("2 reached · next intro cutscene complete · no baseline");
+    expect(table).toContain('<td class="n">player name set (gameplay start)</td><td class="t">0:00:03</td>');
+    expect(table).toContain('<td class="n">clock set</td><td class="t">—</td>');
+    expect(table).not.toContain("d-ahead");
   });
 
-  it("compares against a baseline: ahead, behind, next and to-do", () => {
-    const { summary, table } = splits(foldUntil(fullRun().events, BASE_MS + 7000), baseline, BASE_MS + 7000);
-    expect(table).toContain('<td class="d"><span class="d-ahead">−0:01</span></td>');
-    expect(table).toContain('<tr class="next"><td class="n">littleroot town</td><td class="d"><span class="d-behind">+0:01</span></td><td class="t">0:00:07</td></tr>');
-    expect(table).toContain('<tr class="todo"><td class="n">route 101</td><td class="d"></td><td class="t">0:00:09</td></tr>');
-    expect(summary).toBe('next littleroot town <span class="d-behind">+0:01</span> vs best-run');
-  });
-
-  it("has no delta on the next split before the baseline reached it, and reports a finished baseline", () => {
-    expect(splits(foldUntil(fullRun().events, BASE_MS + 5500), baseline, BASE_MS + 5500).summary).toBe("next littleroot town vs best-run");
-    const done: Baseline = { run: "b", milestones: [{ name: "GAME_RUNNING", offsetMs: 0 }] };
-    expect(splits(view(fullRun()), done, END).summary).toBe("all 1 baseline splits reached");
+  it("shows both real reference times and exact signed deltas after achievement only", () => {
+    const best: Baseline = { run: "record", milestones: [{name:"PLAYER_NAME_SET", offsetMs:2000}] };
+    const { summary, table } = splits(foldUntil(fullRun().events, BASE_MS + 7000), baseline, BASE_MS + 7000, best);
+    expect(table).toContain('0:00:05<br><span class="d-ahead">−0:01</span>');
+    expect(table).toContain('0:00:02<br><span class="d-behind">+0:01</span>');
+    expect(table).toContain('<tr class="next"><td class="n">intro cutscene complete</td><td class="t">0:00:07…</td>');
+    expect(table).toContain('<tr class="todo"><td class="n">route 101</td><td class="t">—</td><td class="d" title="Recorded milestone">0:00:09</td>');
+    expect(summary).toBe("2 reached · next intro cutscene complete · vs baseline + best");
+    expect(table).toContain("Best historical run: record");
   });
 
   it("marks a reached milestone slower than the baseline as behind, and keeps extra ones", () => {

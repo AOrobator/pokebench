@@ -36,7 +36,7 @@ export const MILESTONES: readonly Milestone[] = [
   { name: "PLAYER_HOUSE_ENTERED", kind: "navigation", reached: (s) => s.started && /^LITTLEROOT TOWN (BRENDANS|MAYS) HOUSE 1F$/.test(s.location ?? "") },
   { name: "MOM_CLOCK_INSTRUCTION", kind: "story", reached: stage("intro_stage", [4, 5, 6, 7]) },
   { name: "PLAYER_BEDROOM", kind: "navigation", reached: (s) => s.started && /^LITTLEROOT TOWN (BRENDANS|MAYS) HOUSE 2F$/.test(s.location ?? "") },
-  { name: "CLOCK_SET", kind: "story", reached: flag("clock_set") },
+  { name: "CLOCK_SET", kind: "story", reached: (s) => flag("clock_set")(s) || (s.story === undefined && s.started && (s.world_context?.triggers.some((t) => t.variable === 0x4092 && (t.current_value === 6 || t.current_value === 7)) ?? false)) },
   { name: "MOM_RIVAL_INSTRUCTION", kind: "story", reached: stage("intro_stage", [7]) },
   { name: "RIVAL_MET", kind: "story", reached: stage("rival_stage", [3, 4]) },
   { name: "ROUTE_101", kind: "navigation", reached: at("ROUTE 101") },

@@ -181,3 +181,31 @@ describe("withRun when run_start cannot be written", () => {
   });
 });
 
+describe("withRun ownership and metadata", () => {
+  it("hands the body the URL of the server it launched, and nothing else", async () => {
+    const runsRoot = root();
+    const seen: string[] = [];
+    await withRun(plan(runsRoot), host(), new FrameStore(runsRoot, 1000, () => undefined), (_recorder, gameServerUrl) => {
+      seen.push(gameServerUrl);
+      return Promise.resolve("budget");
+    });
+    expect(seen).toEqual(["http://127.0.0.1:8123"]);
+  });
+
+  it("reads harness metadata before launching, so a failure launches nothing", async () => {
+    const runsRoot = root();
+    const fake = host();
+    const broken: RunHost = {
+      ...fake,
+      vendorPin: () => {
+        throw new Error("vendor checkout missing");
+      },
+    };
+    await expect(
+      withRun(plan(runsRoot), broken, new FrameStore(runsRoot, 1000, () => undefined), () => Promise.resolve("budget")),
+    ).rejects.toThrow("vendor checkout missing");
+    expect(fake.calls.filter((call) => call.startsWith("launch"))).toEqual([]);
+    expect(existsSync(join(runsRoot, "2026-10-11T22-00-00_think-swarm_aaaa"))).toBe(false);
+  });
+});
+

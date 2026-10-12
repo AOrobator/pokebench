@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -30,6 +30,12 @@ function startedLog(runsRoot: string, runId = "2026-10-11T22-00-00_think-swarm_c
   const log = RunLog.create(runsRoot, runId);
   log.append(RUN_START);
   return log;
+}
+
+function saveAndFlush(store: FrameStore, log: RunLog, seq: number, data: string): ReturnType<FrameStore["save"]> {
+  const ref = store.save(log, seq, 0, data);
+  store.flush(log, 1);
+  return ref;
 }
 
 function events(log: RunLog): RunEvent[] {
@@ -85,7 +91,7 @@ describe("FrameStore", () => {
     const { runsRoot, store } = setup();
     const log = startedLog(runsRoot);
     store.attach(log);
-    const ref = store.save(log, 7, 0, b64(10));
+    const ref = saveAndFlush(store, log, 7, b64(10));
     expect(ref.path).toBe("frames/000007_0.png");
     expect(ref.sha1).toMatch(/^[0-9a-f]{40}$/);
     expect(readFileSync(join(log.runDir, ref.path))).toEqual(Buffer.alloc(10, 7));
@@ -96,10 +102,10 @@ describe("FrameStore", () => {
     const { runsRoot, notices, store } = setup();
     const log = startedLog(runsRoot);
     store.attach(log);
-    store.save(log, 1, 0, b64(50));
-    store.save(log, 2, 0, b64(60));
-    store.save(log, 3, 0, b64(10));
-    store.save(log, 4, 0, b64(200));
+    saveAndFlush(store, log, 1, b64(50));
+    saveAndFlush(store, log, 2, b64(60));
+    saveAndFlush(store, log, 3, b64(10));
+    saveAndFlush(store, log, 4, b64(200));
     const percents = events(log).flatMap((event) => (event.type === "disk_usage" ? [event.percent] : []));
     expect(percents).toEqual([0, 10, 30]);
     expect(notices.slice(1)).toEqual([
@@ -115,7 +121,7 @@ describe("FrameStore", () => {
     const old = oldFrame(runsRoot, "2026-10-05T10-00-00_b", "000001_0.png", 300);
     const log = startedLog(runsRoot);
     store.attach(log);
-    store.save(log, 5, 0, b64(250));
+    saveAndFlush(store, log, 5, b64(250));
     expect(existsSync(oldest)).toBe(false);
     expect(existsSync(older)).toBe(true);
     expect(existsSync(old)).toBe(true);
@@ -133,8 +139,8 @@ describe("FrameStore", () => {
     const { runsRoot, store } = setup();
     const log = startedLog(runsRoot);
     store.attach(log);
-    const first = store.save(log, 1, 0, b64(600));
-    store.save(log, 2, 0, b64(600));
+    const first = saveAndFlush(store, log, 1, b64(600));
+    saveAndFlush(store, log, 2, b64(600));
     expect(existsSync(join(log.runDir, first.path))).toBe(false);
     expect(store.usage()).toBe(600);
   });
@@ -171,3 +177,13 @@ describe("FrameStore edge cases", () => {
     expect(store.prune(0.5)).toEqual({ files: 0, bytes: 0 });
   });
 });
+
+describe("FrameStore under concurrent deletion", () => {
+  it("skips a frame that disappears mid-scan", () => {
+    const { runsRoot, store } = setup();
+    oldFrame(runsRoot, "a", "000001_0.png", 10);
+    symlinkSync(join(runsRoot, "a", "frames", "gone.png"), join(runsRoot, "a", "frames", "000002_0.png"));
+    expect(store.usage()).toBe(10);
+  });
+});
+

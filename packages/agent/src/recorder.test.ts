@@ -12,14 +12,14 @@ import { RecorderError, RunRecorder } from "./recorder.js";
 import { RunLog } from "./run-log.js";
 
 
-function harness(milestoneBatches: SeenMilestone[][] = []): {
+function harness(milestoneBatches: SeenMilestone[][] = [], capBytes = 1_000_000): {
   recorder: RunRecorder;
   log: RunLog;
   advance: (ms: number) => void;
 } {
   const runsRoot = mkdtempSync(join(tmpdir(), "pokebench-rec-"));
   const log = RunLog.create(runsRoot, "2026-10-11T22-00-00_think-swarm_rrrr");
-  const frames = new FrameStore(runsRoot, 1_000_000, () => undefined);
+  const frames = new FrameStore(runsRoot, capBytes, () => undefined);
   let clock = 1000;
   const batches = [...milestoneBatches];
   const recorder = new RunRecorder({
@@ -233,3 +233,51 @@ describe("RunRecorder tool results", () => {
     ).rejects.toThrow(/content list/);
   });
 });
+
+const PNG_B64 = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(100, 1)]).toString("base64");
+
+describe("RunRecorder frame retention", () => {
+  it("moves PNG base64 found in tool text into frames and leaves only a reference", async () => {
+    const { recorder, log } = harness();
+    await recorder.start(START_META);
+    await recorder.transformContext([userText("go")]);
+    await recorder.emit({ type: "tool_execution_start", toolCallId: "s", toolName: "state", args: {} });
+    const body = JSON.stringify({ visual: { screenshot_base64: PNG_B64 }, player: { location: "LITTLEROOT" } });
+    await recorder.emit({
+      type: "tool_execution_end",
+      toolCallId: "s",
+      toolName: "state",
+      result: { content: [{ type: "text", text: body }], details: {} },
+      isError: false,
+    });
+    const result = events(log).find((event) => event.type === "tool_result");
+    expect(result?.type).toBe("tool_result");
+    if (result?.type !== "tool_result") return;
+    expect(result.text).not.toContain(PNG_B64.slice(0, 40));
+    expect(result.text).toContain(`<frame ${result.frames[0]?.path ?? "missing"}>`);
+    expect(result.text).toContain("LITTLEROOT");
+    expect(result.frames).toHaveLength(1);
+    expect(readFileSync(join(log.runDir, result.frames[0]?.path ?? "")).equals(Buffer.from(PNG_B64, "base64"))).toBe(true);
+  });
+
+  it("names frames after their tool_result's seq even when disk reports fire", async () => {
+    const { recorder, log } = harness([], 1000);
+    await recorder.start(START_META);
+    await recorder.transformContext([userText("go")]);
+    await recorder.emit({ type: "tool_execution_start", toolCallId: "c", toolName: "screenshot", args: {} });
+    await recorder.emit({
+      type: "tool_execution_end",
+      toolCallId: "c",
+      toolName: "screenshot",
+      result: { content: [{ type: "image", data: Buffer.alloc(110, 2).toString("base64"), mimeType: "image/png" }], details: {} },
+      isError: false,
+    });
+    const all = events(log);
+    const resultIndex = all.findIndex((event) => event.type === "tool_result");
+    const result = all[resultIndex];
+    if (result?.type !== "tool_result") throw new Error("no tool_result");
+    expect(result.frames[0]?.path).toBe(`frames/${String(result.seq).padStart(6, "0")}_0.png`);
+    expect(all[resultIndex + 1]).toMatchObject({ type: "disk_usage", percent: 10, turn: 1 });
+  });
+});
+

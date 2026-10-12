@@ -2,7 +2,7 @@
 
 **Archive Name:** `docs/worklogs/2026-10-11_pokebench-foundation.md`
 **Started:** 2026-10-11 (ET)
-**Current Milestone:** M3
+**Current Milestone:** M4 (awaiting the operator's design checkpoint)
 **Phase:** implementation (M1–M3 approved to execute autonomously; M4–M6 operator-in-the-loop)
 
 ## Problem Statement
@@ -200,6 +200,7 @@ Mac Studio (all local)
 - [ ] Operator watches a live run in the viewer (M4+)
 
 ## Session Log
+- 2026-10-11 ~21:30 ET: **M3 landed on main.** Operator: "yes, land m3 and resolve conflicts and commit. u can kill the leftover server". main fast-forwarded 465b704 → a9f1dc5 (`m3-agent-provider`). The only conflict was another session's uncommitted M2.5 worklog block, which was set aside and re-applied unstaged. Gates on main: vitest 56, pytest 95; TS 100 / 97.36 / 100 / 100; Python 98.77 / 97.30 / 100; lint, build and verify-vendor clean. Killed the orphaned `pokebench_env.serve` on :8000 (pid 2876, PPID 1, from the pre-fix smoke).
 - 2026-10-11 ~21:00 ET: merged main (M2 review fixes 31fac2a..33636ae, the duplicate-M3 revert) into `m3-agent-provider`; the only conflicts were in the worklog. Ported main's ideas (3a18c5f, 08e48e6). M3 multi-model review is next.
 - 2026-10-11 ~20:35 ET: Duplicate M3 resolved. M2 review closed on main (33636ae). The resumed main session built a second M3 on main (f514521, 4685b85) before noticing branch `m3-agent-provider` already had M3 GREEN plus a passing live `smoke-llm`. Operator: "u can revert and keep the fuller m3". Main's duplicate is reverted; the branch is M3 of record. Idea to port to the branch: read vision from the gateway's `metadata.observed.capabilities` instead of `POKEBENCH_VISION_MODELS`. Gateway probe facts (live, 2026-10-11): the gateway honors `chat_template_kwargs.enable_thinking`, accepts both `max_tokens` and `max_completion_tokens` and the `developer` role, and thinking on spends ~400 tokens on a trivial prompt.
 - 2026-10-11 ~20:30 ET: COMMIT: `docs: adopt PokeBench principles rubric, move ROM home to ~/.roms` (principles file, CLAUDE.md, README, execute-worklog, this worklog's INV-1/ASK USER/session-log lines; M2.5 audio entries left uncommitted for their own milestone).

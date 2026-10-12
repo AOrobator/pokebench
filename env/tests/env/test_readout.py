@@ -1,5 +1,6 @@
 from pokebench_env.game_state import GameState, PartyMon
 from pokebench_env.readout import format_readout, state_json
+from pokebench_env.ui_state import Menu
 
 IN_GAME = GameState(
     screen="overworld",
@@ -22,6 +23,8 @@ PRE_GAME = GameState("naming", False, None, None, None, None, None, False, None,
 def test_in_game_readout_lists_every_field() -> None:
     assert format_readout(IN_GAME) == (
         "Screen: overworld\n"
+        "Dialog: none\n"
+        "Menu: unavailable (active owner not verified)\n"
         "Player: MAY\n"
         "Location: LITTLEROOT TOWN\n"
         "Position: X=7, Y=9, facing right\n"
@@ -46,14 +49,27 @@ def test_empty_party_badges_unknown_facing_and_battle() -> None:
 
 def test_pre_game_readout_reports_only_the_screen() -> None:
     assert format_readout(PRE_GAME) == (
-        "Screen: naming\nGame not started: no save data (player, location, party) exists yet."
+        "Screen: naming\nDialog: none\nMenu: unavailable (active owner not verified)\n"
+        "Game not started: no save data (player, location, party) exists yet."
     )
+
+
+def test_open_dialog_and_menu_lead_the_readout() -> None:
+    state = GameState(
+        **{**PRE_GAME.__dict__, "dialog": "So it's A?", "menu": Menu(selected=2, options=2)}
+    )
+    assert format_readout(state).splitlines()[:3] == [
+        "Screen: naming",
+        'Dialog: "So it\'s A?"',
+        "Unverified menu buffer: cursor 2 of 2; active menu owner unavailable",
+    ]
 
 
 def test_state_json_is_plain_json() -> None:
     assert state_json(IN_GAME) == {
         "screen": "overworld",
         "naming": None,
+        "world_context": None,
         "field_controls_locked": None,
         "local_map": None,
         "started": True,
@@ -74,6 +90,7 @@ def test_state_json_is_plain_json() -> None:
     assert state_json(PRE_GAME) == {
         "screen": "naming",
         "naming": None,
+        "world_context": None,
         "field_controls_locked": None,
         "local_map": None,
         "started": False,

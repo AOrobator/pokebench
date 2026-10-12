@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { RunEvent } from "@pokebench/agent/events";
-import { BASE_MS, Log, START, fullRun, m4Run, must } from "../test-support/events.js";
+import { BASE_MS, Log, START, fullRun, m4Run, must, state } from "../test-support/events.js";
 import { boot, mountApp, type App, type AppDeps, type StreamLike } from "./app.js";
 
 const PAGE = readFileSync(join(import.meta.dirname, "../static/index.html"), "utf8");
@@ -397,6 +397,22 @@ describe("run list refresh", () => {
     expect((ui("run") as HTMLSelectElement).value).toBe(M4_ID);
   });
 
+  it("keeps following when the next run is listed before the watched run ends", async () => {
+    const runs: unknown[] = [runRow("2026-10-11T23-00-00_live", false)];
+    const { app, streams } = await harness("", runs);
+    runs.unshift(runRow("2026-10-11T23-30-00_next", false));
+    await app.refreshRuns();
+    expect(streams).toHaveLength(1);
+    const first = must(streams[0]);
+    feed(first, m4Run());
+    first.send("done", {});
+    await app.refreshRuns();
+    expect(streams.map((stream) => stream.url)).toEqual([
+      "/api/runs/2026-10-11T23-00-00_live/events",
+      "/api/runs/2026-10-11T23-30-00_next/events",
+    ]);
+  });
+
   it("reports a failed refresh without dropping the current run", async () => {
     const runs: unknown[] = [runRow(M4_ID, true)];
     const { app, streams } = await harness("", runs);
@@ -506,4 +522,23 @@ it("marks only the selected live run and retains the mark after discovery refres
   app.select(M4_ID);
   expect(selected()).toEqual([]);
   expect((ui("run") as HTMLSelectElement).value).toBe(M4_ID);
+});
+
+
+it("renders field observations through the event stream and app", async () => {
+  const { streams } = await harness();
+  const log = new Log();
+  log.add(0, START);
+  log.add(1, state({world_context: {
+    objects: [{local_id: 1, map_id: [0, 9], graphics_id: 6, sprite_kind: "TWIN", x: 7, y: 2}],
+    triggers: [{x: 10, y: 1, elevation: 0, variable: 0x4050, required_value: 0, current_value: 0, condition_met: true, script_pointer: 0x08011000}],
+    dialogue: "<wild warning>",
+  }}));
+  feed(must(streams[0]), log.events);
+  const panel = ui("field-context");
+  expect(panel.textContent).toContain("TWIN · map 0/9 object 1 at (7,2)");
+  expect(panel.textContent).toContain("script tile (10,1): condition matches");
+  expect(panel.textContent).toContain("<wild warning>");
+  expect(panel.innerHTML).toContain("&lt;wild warning&gt;");
+  expect(panel.querySelector("wild")).toBeNull();
 });

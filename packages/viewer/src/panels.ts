@@ -253,3 +253,12 @@ export function inspector(event: RunEvent | undefined): string {
 export function brand(view: RunView): string {
   return `POKéNAV · ${view.start?.run ?? "NO RUN"}`;
 }
+
+export function fieldContext(view: RunView): string {
+  const context = view.state?.world_context;
+  if (context == null) return `<p>${NO_DATA}</p>`;
+  const objects = context.objects.map((o) => `${o.sprite_kind ?? "unknown sprite"} · map ${String(o.map_id[0])}/${String(o.map_id[1])} object ${String(o.local_id)} at (${String(o.x)},${String(o.y)})`).join("\n");
+  const triggers = context.triggers.map((t) => `script tile (${String(t.x)},${String(t.y)}): condition ${t.condition_met === true ? "matches" : t.condition_met === false ? "does not match" : "unavailable"}`).join("\n");
+  const dialogue = context.dialogue === null ? "Field-message text unavailable; the box may still be visible." : `Active message buffer (may include text not yet displayed):\n${context.dialogue}`;
+  return `<pre>${esc(objects)}\n${esc(triggers)}\n${esc(dialogue)}</pre>`;
+}

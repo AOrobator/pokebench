@@ -16,8 +16,18 @@ def _play_seconds(state: GameState) -> int | None:
     return hours * 3600 + minutes * 60 + seconds
 
 
+def _menu(state: GameState) -> str:
+    if state.menu is None:
+        return "Menu: unavailable (active owner not verified)"
+    return (
+        f"Unverified menu buffer: cursor {state.menu.selected} of {state.menu.options}"
+        "; active menu owner unavailable"
+    )
+
+
 def format_readout(state: GameState) -> str:
-    lines = [f"Screen: {state.screen}"]
+    dialog = "none" if state.dialog is None else f'"{state.dialog}"'
+    lines = [f"Screen: {state.screen}", f"Dialog: {dialog}", _menu(state)]
     if state.naming is not None:
         lines.append(state.naming.readout())
     if not state.started or state.position is None:
@@ -43,6 +53,8 @@ def format_readout(state: GameState) -> str:
         )
     if state.local_map is not None:
         lines.append(state.local_map)
+    if state.world_context is not None:
+        lines.append(state.world_context.text())
     return "\n".join(lines)
 
 
@@ -50,6 +62,7 @@ def state_json(state: GameState) -> dict[str, object]:
     return {
         "screen": state.screen,
         "naming": None if state.naming is None else state.naming.json(),
+        "world_context": None if state.world_context is None else state.world_context.json(),
         "field_controls_locked": state.field_controls_locked,
         "local_map": state.local_map,
         "started": state.started,

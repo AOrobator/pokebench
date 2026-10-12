@@ -37,7 +37,10 @@ def test_observation_is_the_readout_the_frame_and_the_typed_state() -> None:
     status, _, body = get(app_with(good_shot), "/pokebench/observation")
     assert status == 200
     payload = json.loads(body)
-    assert payload["state_text"].startswith("Screen: naming\nGame not started")
+    assert payload["state_text"].startswith(
+        "Screen: naming\nDialog: none\n"
+        "Menu: unavailable (active owner not verified)\nGame not started"
+    )
     assert payload["screenshot_base64"] == "iVBORw0KGgo="
     assert payload["state"]["screen"] == "naming"
     assert payload["state"]["started"] is False
@@ -84,7 +87,7 @@ def test_entire_ram_read_uses_the_existing_frame_memory_lock(path: str) -> None:
     install_observation(app, good_shot, locked_read, MapNames({}), lock)
     status, _, body = get(app, path)
     assert status == 200, body
-    assert calls == [0x030022C0, 0x030026F9, 0x02039F94]
+    assert calls == [0x030022C0, 0x030026F9, 0x0203CD92, 0x02039F94]
     assert not lock.locked()
 
 

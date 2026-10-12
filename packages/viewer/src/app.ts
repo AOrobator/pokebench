@@ -4,7 +4,7 @@ import type { RunEvent } from "@pokebench/agent/events";
 import { eventMs, hms } from "./format.js";
 import { gbaSvg, litButtons } from "./gba.js";
 import { RunView, isRunEvent } from "./model.js";
-import { actionRow, brand, budgets, counters, inspector, party, splits, thinkingDialog, trainerCard, type Baseline } from "./panels.js";
+import { actionRow, brand, budgets, counters, fieldContext, inspector, party, splits, thinkingDialog, trainerCard, type Baseline } from "./panels.js";
 import { ReplayClock } from "./replay.js";
 import { lanesSvg } from "./timeline.js";
 
@@ -72,6 +72,8 @@ export class App {
   view = new RunView();
   private shown = new RunView();
   private runs: RunChoice[] = [];
+  // Set when the newest run is opened; a later refresh may list a newer one first.
+  private following = false;
   private runId: string | null = null;
   private stream: StreamLike | null = null;
   private baseline: Baseline | null = null;
@@ -158,14 +160,13 @@ export class App {
       this.problem(`run list: ${String(error)}`);
       return;
     }
-    const wasNewest = this.runId !== null && this.runs[0]?.id === this.runId;
     this.listRuns(runs);
     const newest = this.runs[0];
     if (newest === undefined || newest.id === this.runId) return;
     if (this.runId === null) {
       const wanted = /^#run=(.+)$/.exec(this.deps.hash)?.[1];
       this.select(runs.find((run) => wanted !== undefined && run.id === decodeURIComponent(wanted))?.id ?? newest.id);
-    } else if (wasNewest && this.view.end !== null) {
+    } else if (this.following && this.view.end !== null) {
       this.select(newest.id);
     }
   }
@@ -222,6 +223,7 @@ export class App {
   select(runId: string): void {
     this.stream?.close();
     this.runId = runId;
+    this.following = this.runs[0]?.id === runId;
     this.view = new RunView();
     this.shown = this.view;
     this.clock = null;
@@ -381,6 +383,7 @@ export class App {
       body.scrollTop = body.scrollHeight;
     }
     this.setHtml("trainer", trainerCard(view, nowMs));
+    this.setHtml("field-context", fieldContext(view));
     this.setHtml("party", party(view));
     this.setHtml("budgets", budgets(view, nowMs));
     this.setHtml("counters", counters(view));

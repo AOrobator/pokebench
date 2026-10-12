@@ -1036,6 +1036,150 @@
             }
           ]
         },
+        "world_context": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "objects",
+                "triggers",
+                "dialogue"
+              ],
+              "properties": {
+                "objects": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "local_id",
+                      "map_id",
+                      "graphics_id",
+                      "sprite_kind",
+                      "x",
+                      "y"
+                    ],
+                    "properties": {
+                      "local_id": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "map_id": {
+                        "type": "array",
+                        "additionalItems": false,
+                        "items": [
+                          {
+                            "type": "integer"
+                          },
+                          {
+                            "type": "integer"
+                          }
+                        ],
+                        "minItems": 2
+                      },
+                      "graphics_id": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "sprite_kind": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "x": {
+                        "type": "integer"
+                      },
+                      "y": {
+                        "type": "integer"
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "triggers": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "x",
+                      "y",
+                      "elevation",
+                      "variable",
+                      "required_value",
+                      "current_value",
+                      "condition_met",
+                      "script_pointer"
+                    ],
+                    "properties": {
+                      "x": {
+                        "type": "integer"
+                      },
+                      "y": {
+                        "type": "integer"
+                      },
+                      "elevation": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "variable": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "required_value": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "current_value": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "condition_met": {
+                        "anyOf": [
+                          {
+                            "type": "boolean"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "script_pointer": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "dialogue": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "local_map": {
           "anyOf": [
             {

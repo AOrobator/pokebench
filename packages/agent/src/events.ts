@@ -139,6 +139,11 @@ export const StateBodySchema = Type.Object(
       column: Type.Integer({ minimum: 0, maximum: 8 }), row: Type.Integer({ minimum: 0, maximum: 3 }),
       key: Type.String(), ready: Type.Boolean(),
     }, closed), Type.Null()])),
+    world_context: Type.Optional(Type.Union([Type.Object({
+      objects: Type.Array(Type.Object({local_id: NonNegativeInt, map_id: Type.Tuple([Type.Integer(), Type.Integer()]), graphics_id: NonNegativeInt, sprite_kind: Type.Union([Type.String(), Type.Null()]), x: Type.Integer(), y: Type.Integer()}, closed)),
+      triggers: Type.Array(Type.Object({x: Type.Integer(), y: Type.Integer(), elevation: NonNegativeInt, variable: NonNegativeInt, required_value: NonNegativeInt, current_value: Type.Union([NonNegativeInt, Type.Null()]), condition_met: Type.Union([Type.Boolean(), Type.Null()]), script_pointer: NonNegativeInt}, closed)),
+      dialogue: Type.Union([Type.String(), Type.Null()]),
+    }, closed), Type.Null()])),
     local_map: Type.Optional(Type.Union([Type.String(), Type.Null()])),
     field_controls_locked: Type.Optional(Type.Union([Type.Boolean(), Type.Null()])),
     started: Type.Boolean(),

@@ -76,6 +76,11 @@ Mac Studio (all local)
 **Invariant:** Lines, branches and functions are each ≥90% for TS app code (vitest v8) and Python app code (pytest-cov), checked at every milestone.
 **Exclusions:** entrypoints, tests, the unmodified vendor submodule, and the native build script (exercised by the smoke gate).
 
+### INV-7: Every run is isolated
+**Invariant:** A run never reads or writes state belonging to another run: no shared cache, map, milestone, metrics, log or save files, and no reuse of another run's game server. *(operator 2026-10-11: "each run should be it's own thing that's an invariant. i dont want u crossing wires ever. that will mess up comparisons and benchmarks.")*
+**Why:** cross-run state silently corrupts comparisons and benchmarks (PB3).
+**Enforcement (M4):** each run gets its own game server process with its own working directory under `runs/<id>/` (the vendor writes `.pokeagent_cache/`, `run_data/`, `llm_logs/`, `backups/` and root-level fallbacks relative to cwd), `RUN_DATA_ID=<run id>`, and `LOAD_CHECKPOINT_MODE=false`. Tests prove that two runs, including two started in the same second, share no written path, and that the vendor checkout is unchanged after a run.
+
 ## Security Review
 
 - **Threat 1, a malicious ROM path or filename leads to command injection.** Mitigation: INV-2, with no shell strings.
@@ -194,7 +199,9 @@ Mac Studio (all local)
 - Context: the starter kit's `/stream` page already shows the live frame (websocket), a thinking panel fed by `POST /agent_step` (SSE, plain text, last 20 messages), recent actions, milestones, party, map and metrics. It has no structured tool calls, no per-step tokens or latency, and no replay, and it logs into the vendor `run_data/` (the cross-run bleed seen in M2). It can't be edited (INV-3).
 - Scope: the event schema (typed; turn start/end, thinking, tool call with arguments, tool result, button press, milestone from the game server, tokens and latency, terminal stop record per PB2) and a writer to `runs/<id>/events.jsonl`. Events are written before they are acted on (PB7). Run metadata: model id from discovery, sampling settings, harness commit, vendor pin, start state (PB3). The pi-agent-core event stream is the source.
 - [x] **ASK USER:** mirror into the starter kit's `/stream` thinking panel? Operator 2026-10-11: "agreed, skip it". There is no integration. During M5, runs are watched via `/stream` (frame, map, party, milestones) plus a formatted terminal tail of `events.jsonl`. If that proves too painful, pull M5.5 forward rather than pipe into their page.
-- [ ] **ASK USER:** schema checkpoint before RED.
+- [x] **ASK USER:** schema checkpoint. Operator 2026-10-11 approved the draft: thinking stored as a full block per assistant message; every screenshot saved as `frames/<seq>.png` under a 500 MB disk cap on frames; `/milestones` checked after every button press; no per-turn prompt dump (the system prompt goes in `run_start`); run isolation is an invariant (INV-7) and is recorded in `run_start`. Envelope `{v, run, seq, t (Eastern, with offset), turn, type}`. Types: run_start, turn_start (context size), assistant, tool_call (before execution), button_press (before `/action`), tool_result (frame refs, never inline bytes), milestone (game server only), retry, run_end (always; reason ∈ milestone/budget/stuck/crash/model_error/operator_abort). TypeBox is the source, exported to `schemas/events.v1.json`.
+- [ ] **ASK USER:** the frame cap's scope and its behavior at the limit.
+- Finding (2026-10-11): `PLAYER_NAME_SET` at the title screen was **not** cross-run carryover. Milestones live in per-run cache dirs. It was an intermittent false positive in the vendor's own check (`pokemon_env/emulator.py`: any non-empty name read from RAM, other than "PLAYER"/"UNKNOWN", counts). It fired 0.09 s after boot in 1 of the 6 recorded boots. The earlier "restores cached run data" note was wrong. Real cross-run risks found: every server writes into the shared vendor cwd; run ids have one-second resolution (`run_YYYYMMDD_HHMMSS`), so two servers started in the same second share a directory; and there are root-level fallbacks (`./map_stitcher_data.json`, `.pokeagent_cache/maps`).
 
 **M5 — Minimal agent** *(operator-in-the-loop)*
 - [ ] **ASK USER:** harness checkpoint. agent-core vs coding-agent SDK; tool set; image pruning policy.

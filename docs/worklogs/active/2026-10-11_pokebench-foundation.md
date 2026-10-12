@@ -49,7 +49,7 @@ Mac Studio (all local)
 
 ### INV-1: The ROM never enters git
 **Invariant:** No `.gba`/`.gb`/`.gbc`/save file is ever staged. The ROM is referenced only through `POKEBENCH_ROM` and never copied into the repo.
-**Rationale:** The ROM is copyrighted and operator-supplied (`~/Downloads/...`).
+**Rationale:** The ROM is copyrighted and operator-supplied. It lives at `~/.roms/pokemon-emerald.gba` (moved from `~/Downloads` 2026-10-11, operator decision; SHA-1 re-verified).
 **Test Strategy:** a hook test stages a `.gba` in a temp repo and the commit is rejected; `.gitignore` covers the extensions; a ROM-resolver test proves no copy is made, only a symlink.
 
 ### INV-2: Shell out safely
@@ -96,7 +96,7 @@ Mac Studio (all local)
   - Adversarial deletion: disabling the asset guard → 8 hook tests red; disabling the freshness guard → 2 red; restored → 14 green
 - [x] Gates: `just test` (vitest 8, pytest 14), `just lint` (tsc, eslint strictTypeChecked, ruff, ruff format, mypy strict: clean), `just build` clean, `just coverage` TS 100/100/100, Python 100% (only `__init__` so far)
 - [x] COMMIT: `feat(scaffold): repo tooling, hook, config` (3f69d59) (GREEN)
-- [ ] **ASK USER:** principles rubric. Keep inheriting local-inference-stack's `docs/agent-principles.md`, or will you author a PokeBench one? (Agents never author it.)
+- [x] **ASK USER:** principles rubric. Operator (2026-10-11): a separate, minimal PokeBench file inspired by local-inference-stack, tailored to this task. Agent drafted it at the operator's request; operator reviewed and approved → `docs/agent-principles.md` (PB1–PB13). CLAUDE.md and `execute-worklog` now score it.
 - [x] **ASK USER:** review round 3 on the R2 fix delta. Operator (2026-10-11): "u can run the review but keep in mind the production wiring test skill in local inference stack".
 - [x] Wiring tests (production-wiring-tests skill), `env/tests/tooling/test_gate_wiring.py`, drive `just --dry-run`:
   - `coverage` runs pytest with `--cov --cov-branch`, then the gate on the same JSON report with `--min 90`, plus `pnpm -r coverage` → `vitest run --coverage`
@@ -174,6 +174,8 @@ Mac Studio (all local)
 - [ ] Operator watches a live run in the viewer (M4+)
 
 ## Session Log
+- 2026-10-11 ~20:30 ET: COMMIT: `docs: adopt PokeBench principles rubric, move ROM home to ~/.roms` (principles file, CLAUDE.md, README, execute-worklog, this worklog's INV-1/ASK USER/session-log lines; M2.5 audio entries left uncommitted for their own milestone).
+- 2026-10-11 ~17:50 ET: operator moved the ROM home: copied to `~/.roms/pokemon-emerald.gba` (SHA-1 `f3ae0881…7b7` matches; the `~/Downloads` original is left in place), `.env` `POKEBENCH_ROM` points there, CLAUDE.md/README updated. Principles: `docs/agent-principles.md` approved and adopted as the rubric.
 - 2026-10-11 ~17:55 ET: usage limit reached during the M2 review round (one round, proportional to risk). Fallback reviewer (sonnet): LGTM, with hardening: smoke passes against a stale server already on the port; brew-missing message; http scheme check. Still pending: Claude CLI, think_fast, think_swarm, Codex (artifacts in the session scratchpad `review/m2/`) and fallback (fable). **Resume:** rerun the M2 review lanes on 6294533..c6301e6, then start M3. pi 0.73.1's openai-completions provider already reads llama.cpp `reasoning_content`.
 - 2026-10-11: Research + kickoff discussion. Spike: mGBA 0.10.5 binding builds natively (FFmpeg required, or the import fails on EReader symbols); Emerald ran at ~4,350 fps headless. ROM SHA-1 verified. Repo initialized (`746a785`). Worklog written; operator approved M1–M3.
 

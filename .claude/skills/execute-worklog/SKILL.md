@@ -28,7 +28,7 @@ For each remaining milestone:
 
 The contract is `~/dev/local-inference-stack/.claude/skills/multi-model-review/SKILL.md`. Its reference commands are in `reference/reviewer-invocation.md`.
 
-1. Principles self-review against `~/dev/local-inference-stack/docs/agent-principles.md`. Score every ID; zero FAIL rows.
+1. Principles self-review against `docs/agent-principles.md`. Score every ID; zero FAIL rows.
 2. Seal the frozen packet: `git diff --binary BASE HEAD`, its SHA-256, the frozen boundary file, and the principles file.
 3. Claude-family lane: Claude CLI (`CLAUDE_CONFIG_DIR=~/.claude-review`, `--permission-mode plan`), or Cursor Claude.
 4. `think_fast` + `think_swarm` endpoints in parallel. Discover the model id from `/v1/models` and send `chat_template_kwargs.enable_thinking=false`.

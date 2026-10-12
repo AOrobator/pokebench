@@ -19,7 +19,7 @@ Read the active worklog first: `WORKLOG.md` (a gitignored pointer) → `docs/wor
 
 - **Coverage floor is 90%**, enforced independently for lines, branches and functions in TS (vitest thresholds) and Python (`pokebench_gates.coverage_gate`) app code. This is an operator decision (2026-10-11). The floor is 90, not 95; never lower it further or widen excludes to pass.
 - **Vendored env:** `env/vendor/continual-harness` is excluded from coverage only while it is the pinned SHA with a clean tree (`just verify-vendor`). Changing its behavior means writing pokebench-owned, covered code. A fork brings it into coverage.
-- **Principles rubric:** the principles self-review scores `~/dev/local-inference-stack/docs/agent-principles.md` until the operator authors a PokeBench file. Agents never author principles.
+- **Principles rubric:** the principles self-review scores `docs/agent-principles.md` (PB1–PB13, operator-approved 2026-10-11). Agents may propose additions; only the operator approves them.
 - **Deploy:** none. This is a local research tool. Milestones stop for operator review where the worklog says so.
 
 ## Non-negotiables
@@ -35,7 +35,7 @@ Read the active worklog first: `WORKLOG.md` (a gitignored pointer) → `docs/wor
 - **Argv lists only** for subprocesses. Paths are untrusted; the real ROM path contains spaces and parentheses.
 - Servers bind `127.0.0.1`. The vendor server hardcodes `0.0.0.0`; `pokebench_env.serve` pins the host without modifying vendor code.
 - Never run formatters or linters over `env/vendor/`. ruff excludes it; `just verify-vendor` catches drift.
-- Run `just smoke` / `just serve` from your interactive terminal: the ROM lives in `~/Downloads`, which macOS privacy (TCC) protects from background contexts.
+- The ROM lives at `~/.roms/pokemon-emerald.gba` (operator decision 2026-10-11), set as `POKEBENCH_ROM` in the gitignored `.env`. It is outside macOS TCC-protected folders, so background contexts can read it. Never point `POKEBENCH_ROM` back at `~/Downloads`.
 
 ## Commands
 

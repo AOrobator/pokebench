@@ -85,7 +85,12 @@ def test_production_main_registers_view_pcm_and_browser_module_before_vendor_mai
         "server",
         SimpleNamespace(
             app=SimpleNamespace(
-                app=app, main=vendor_main, get_comprehensive_state=get_comprehensive_state
+                app=app,
+                main=vendor_main,
+                get_comprehensive_state=get_comprehensive_state,
+                env=SimpleNamespace(
+                    memory_reader=SimpleNamespace(_read_bytes=lambda a, n: bytes(n))
+                ),
             )
         ),
     )

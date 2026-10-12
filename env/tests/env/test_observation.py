@@ -20,9 +20,12 @@ def state(screenshot: object = "iVBORw0KGgo=") -> VendorState:
     )
 
 
+OVERWORLD = (0x08085E05).to_bytes(4, "little") + (0x08085E5D).to_bytes(4, "little")
+
+
 def app_with(get_state, formatter=lambda s: f"text for {s['player']['location']}") -> FastAPI:
     app = FastAPI()
-    install_observation(app, get_state, formatter)
+    install_observation(app, get_state, formatter, lambda address, length: OVERWORLD)
     return app
 
 
@@ -42,6 +45,7 @@ def test_observation_returns_formatted_text_and_frame() -> None:
         "state_text": "Location: LITTLEROOT TOWN",
         "screenshot_base64": "iVBORw0KGgo=",
         "step_number": 12,
+        "screen": {"kind": "overworld", "callback1": 0x08085E05, "callback2": 0x08085E5D},
     }
     assert seen == [state().model_dump()]
 

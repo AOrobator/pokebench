@@ -151,5 +151,10 @@ def test_run_installs_the_observation_route_before_vendor_main() -> None:
     def vendor_main() -> None:
         routes.append([getattr(r, "path", "") for r in app.routes])
 
-    run([], uvicorn=uvicorn, vendor_main=vendor_main, observation=(app, get_state, lambda s: ""))
+    run(
+        [],
+        uvicorn=uvicorn,
+        vendor_main=vendor_main,
+        observation=(app, get_state, lambda s: "", lambda a, n: bytes(n)),
+    )
     assert "/pokebench/observation" in routes[0]

@@ -210,6 +210,7 @@ Mac Studio (all local)
 - [ ] Operator watches a live run in the viewer (M4+)
 
 ## Session Log
+- M2.5 slice 2 GREEN: callback/lifecycle tests 3 passed; full `just test`: vitest 56 / pytest 98; ruff/mypy clean. RED e256585. COMMIT: `feat(env): native frame callback captures spectator audio` (GREEN, this commit).
 - M2.5 slice 2 RED: native callback/lifecycle tests 2 failed (`native audio callback missing`), 1 passed. Native ROM timing probe: 180 callbacks / 180 run_frame calls, PCM available at callback (117–809 frames), callback thread matches frame owner. Slice 1 GREEN 06db9bb. COMMIT: `test(env): frame-owned audio callback and lifecycle isolation` (RED, this commit).
 - M2.5 slice 1 GREEN: tape tests 1 passed; full `just test`: vitest 56 / pytest 96. RED d49e3a7; COMMIT: `feat(env): bounded stereo spectator tape` (GREEN, this commit).
 - M2.5 implementation slice 1: bounded stereo WAV tape RED; `pytest env/tests/env/test_audio.py -q` failed with `audio feature missing` (1 failed). COMMIT: `test(env): bounded spectator audio tape` (RED, this commit). Design refinement: use native frame callback attached after initialize, not a per-frame emulator method wrapper. Parent owns browser acceptance and multi-model review; no M4 work.

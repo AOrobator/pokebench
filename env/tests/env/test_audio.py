@@ -1,15 +1,11 @@
 import importlib
 import importlib.util
-from types import SimpleNamespace
-
-import pytest
 import io
 import struct
 import wave
 
 
 def audio_module():
-    from pokebench_env import __path__
     assert importlib.util.find_spec("pokebench_env.audio") is not None, "audio feature missing"
     return importlib.import_module("pokebench_env.audio")
 
@@ -35,11 +31,11 @@ def test_tape_serves_bounded_latest_stereo_wav_to_independent_readers():
     assert tape.segment(since=999, max_frames=2).next_frame == 5
     assert tape.segment(since=5, max_frames=2).wav[44:] == b""
     assert len(tape.segment(since=0, max_frames=99).wav) == 44 + 3 * 4
-    with __import__('pytest').raises(ValueError):
+    with __import__("pytest").raises(ValueError):
         tape.append(b"bad")
-    with __import__('pytest').raises(ValueError):
+    with __import__("pytest").raises(ValueError):
         audio.AudioTape(capacity_frames=0)
-    with __import__('pytest').raises(ValueError):
+    with __import__("pytest").raises(ValueError):
         tape.segment(since=0, max_frames=0)
     tape.clear()
     cleared = tape.segment(since=0, max_frames=2)
@@ -107,8 +103,10 @@ class Emulator:
 def test_native_callback_captures_only_on_core_frames_and_flushes_lifecycle(monkeypatch):
     audio = audio_module()
     assert hasattr(audio, "install_tap"), "native audio callback missing"
+
     class OwnedEmulator(Emulator):
         pass
+
     tape = audio.AudioTape(capacity_frames=3)
     audio.install_tap(OwnedEmulator, tape)
     emu = OwnedEmulator()
@@ -138,9 +136,11 @@ def test_native_callback_captures_only_on_core_frames_and_flushes_lifecycle(monk
 def test_audio_setup_failure_preserves_vendor_initialize_result(caplog):
     audio = audio_module()
     assert hasattr(audio, "install_tap"), "native audio callback missing"
+
     class NoCore(Emulator):
         def initialize(self):
             return 42
+
     audio.install_tap(NoCore, audio.AudioTape())
     assert NoCore().initialize() == 42
     assert "audio" in caplog.text.lower()

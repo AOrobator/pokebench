@@ -2,7 +2,7 @@
 
 **Archive Name:** `docs/worklogs/2026-10-11_pokebench-foundation.md`
 **Started:** 2026-10-11 (ET)
-**Current Milestone:** M4 done on branch `m4-run-event-log`; next M5 (awaiting the operator's harness checkpoint)
+**Current Milestone:** M5.5 viewer on branch `m5.5-viewer` (worktree `../pokebench-viewer`, from `m4-run-event-log`), pulled ahead of M5; M5 still awaits the operator's harness checkpoint
 **Phase:** implementation (M1–M3 approved to execute autonomously; M4–M6 operator-in-the-loop)
 
 ## Problem Statement
@@ -233,9 +233,23 @@ Mac Studio (all local)
 - [ ] **ASK USER:** harness checkpoint. agent-core vs coding-agent SDK; tool set; image pruning policy.
 - Outline: observe→act loop with state/map/screenshot/press/navigate tools on think-swarm, writing M4's event log; first measured run against the milestones.
 
-**M5.5 — PokeBench viewer** *(operator-in-the-loop; after M5 so it is designed against real runs)*
-- [ ] **ASK USER:** design checkpoint. Layout, stack (served next to the game server like M2.5's `/view`, or a separate localhost app).
-- Outline: reads only `runs/<id>/events.jsonl` (live tail and replay of past runs). Live frame, button-press timeline, thinking, tool calls with arguments and results, milestone splits, tokens and latency per step. It may embed the starter kit's frame/map/party panels instead of rebuilding them.
+**M5.5 — PokeBench viewer** *(operator-in-the-loop; pulled ahead of M5 at the operator's request, 2026-10-12: "the visuals can help inform the events we need")*
+- [x] **ASK USER:** design checkpoint. Operator sign-off 2026-10-12: **Open PokéNav** (design 24 of `docs/design/viewer/viewer-designs-round3.html`, open with `?d=4`). Spec: `docs/design/viewer/viewer-spec.md`. Layout: big Glacier GBA (buttons light while held, live screen inside) with the thinking dialog under it; the open red PokéNav beside it (trainer card, party, budgets as bars only where there is a cap, plain counters, collapsible splits with a baseline-run picker); full-width 60 s swimlane timeline; full-width action log whose rows open the raw event.
+- Stack (coordinator default, pending the operator's card pick; switch if told otherwise): new workspace package `packages/viewer`, TypeScript. A small Node server bound to `127.0.0.1` (bind tested like the launcher argv) lists `runs/`, streams `runs/<id>/events.jsonl` over SSE (validated line by line with the agent's TypeBox schema), serves `frames/`, and proxies the live screen from the run's own game server (`127.0.0.1:<run_start.isolation.port>`) while the run has no `run_end`. Browser UI: plain TS + SVG, no framework, tested with vitest (happy-dom for the DOM glue) at the 90% floor. `just view [id]`.
+- PB7: the viewer reads only `events.jsonl` and `frames/`; the live picture is the one exception. Panels whose data the log lacks render an explicit "no data" state, never placeholder values.
+- **Schema proposal (v1 → v1.1, additive; envelope `v` stays 1, so every M4 log still validates):**
+  - `state` (new type), written after every `button_press`, right after the milestone check: `location`, `position` (`{x, y}` or null), `facing` (null: the pinned vendor comments facing out as unreliable, `memory_reader.py`), `mode` (vendor `game.game_state`), `in_battle`, `party` (`species`, `level`, `hp`, `max_hp`), `money`, `badges` (names), `play_time_s`. Parsed `/state` only; `visual.screenshot_base64` is never read into the event.
+  - `button_press.hold_frames` / `release_frames` (optional fields): the press tool now sends the vendor's `normal` preset explicitly (hold 10, release 8; identical to the server default, so behavior is unchanged) and records it. The viewer assumes 10/8 for M4 logs and says so.
+  - `compaction` (new type): `from_tokens`, `to_tokens`. Schema plus a recorder method only; M5 emits it when it compacts.
+  - Context window: already in `run_start.model.context_window` (spec gap closed, no change).
+- M5.5 tasks (each RED → GREEN):
+  - [ ] Schema v1.1 + recorder `state`/`compaction` + press hold/release, `schemas/events.v1.json` regenerated
+  - [ ] Viewer model (pure fold of events → panels), formatting, replay clock
+  - [ ] Renderers (GBA SVG + lights, thinking dialog, PokéNav panels, swimlanes, action log, inspector) with explicit no-data states
+  - [ ] Server: 127.0.0.1 bind, run list, SSE tail, frames, live-screen proxy; `just view [id]`
+  - [ ] Browser app glue (happy-dom tests)
+  - [ ] Gates: `just test`, `just lint`, `just build`, `just coverage` (≥90 per metric, both stacks); one proportional review round
+  - [ ] **STOP:** the viewer replays the recorded M4 run end to end; screenshot to the operator
 
 **M6 — Specialized harness → Roxanne** *(operator-in-the-loop)*
 - [ ] **ASK USER:** plan checkpoint after the M5 failure-mode analysis.

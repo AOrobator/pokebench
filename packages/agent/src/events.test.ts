@@ -45,6 +45,11 @@ describe("event schema", () => {
     expect(() => parseEvent(JSON.stringify(value))).toThrow(EventError);
   });
 
+  it("accepts completed as a run_end reason", () => {
+    const line = JSON.stringify({ ...ENVELOPE, ...SAMPLES[10], reason: "completed" });
+    expect(parseEvent(line)).toMatchObject({ type: "run_end", reason: "completed" });
+  });
+
   it("rejects a line that is not JSON", () => {
     expect(() => parseEvent("{not json")).toThrow(EventError);
   });

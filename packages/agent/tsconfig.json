@@ -11,7 +11,8 @@
     "isolatedModules": true,
     "skipLibCheck": true,
     "types": ["node"],
-    "noEmit": true
+    "outDir": "dist",
+    "rootDir": "src"
   },
-  "include": ["src", "test-support"]
+  "include": ["src"]
 }

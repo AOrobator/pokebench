@@ -139,16 +139,15 @@ Mac Studio (all local)
 - [x] COMMIT: `fix(env): map every Pillow decode failure to ClientError, size-check before load` (R2b GREEN). Gates: pytest 95, ruff/mypy clean, Python coverage 98.77 / 97.30 / 100. Review closed per the proportional-review rule (memory: one round per milestone, fix real defects, defer polish): the fix-delta reviewers' findings are all fixed and pinned by tests. Deferred hardening: smoke vs a stale server on its port, `brew` check, transport scheme check.
 - [x] Multi-model review loop (M2): closed
 
-**M3 — pi ↔ local gateway**
+**M3 — pi ↔ local gateway** *(M3 of record: branch `m3-agent-provider`, worktree `../pokebench-m3`; its worklog carries M3 progress. Main's checkboxes update when it lands.)*
 - [ ] Write tests (`packages/agent`):
   - discovery: `/v1/models` fixture → pi `Model` objects (contextWindow/maxTokens from payload, image input only for lanes configured as vision); unknown/malformed → typed error
   - a tool returning `ImageContent` is serialized for `openai-completions`
   - reasoning content across a tool-call turn is preserved (pi compat setting verified against the pi-ai source)
-- Design notes (2026-10-11, from pi-ai 0.73.1 source and live gateway probes): vision comes from the gateway's own `metadata.observed.capabilities` (`multimodal`), not config. The compat is `thinkingFormat: qwen-chat-template` (the gateway honors `chat_template_kwargs.enable_thinking`; thinking on spends ~400 tokens even on a trivial prompt), `max_tokens`, system role, and no store/strict/reasoning_effort. pi replays `reasoning_content` by itself (the thinking block's signature is the source field name). Tool images reach the model as a follow-up user message with `image_url` data URLs. The wire tests run against a local fake OpenAI-compatible SSE server (`packages/agent/test-support/fake-gateway.ts`). `smoke.ts` uses `import.meta.main`, so no coverage exclude is added.
-- [x] COMMIT: `test(agent): gateway discovery and multimodal tool round trip` (RED, f514521). pi-ai and pi-agent-core pinned exact at 0.73.1.
-- [x] Implement `gateway.ts` (discovery → pi `Model`), `game.ts` (typed TS game client), `tools.ts` (`screenshot` → `ImageContent`, `get_state`), `smoke.ts` (agent-core loop + `main`); `just smoke-llm`. Finding: pi 0.73.1's qwen-chat-template also sends `preserve_thinking: true`, which is pinned in the wire test.
-- [x] Gates: vitest 49, pytest 95; tsc, eslint, ruff, mypy, build clean; TS coverage 97.9 lines / 94.94 branches / 95.12 functions; Python 98.77 / 97.30 / 100
-- [x] COMMIT: `feat(agent): local gateway provider for pi` (GREEN)
+- [ ] COMMIT: `test(agent): gateway discovery and multimodal tool round trip` (RED)
+- [ ] Implement the provider + `@mariozechner/pi-ai`/`pi-agent-core` pinned exact (0.73.1 at time of writing)
+- [ ] Gates: vitest + coverage ≥90, tsc, eslint
+- [ ] COMMIT: `feat(agent): local gateway provider for pi` (GREEN)
 - [ ] Live smoke (`just smoke-llm`): agent-core loop calls a `screenshot` tool against the running game server, the model describes the real frame, and a second tool call completes
 - [ ] Multi-model review loop until clean
 - [ ] **STOP — report to operator before M4**
@@ -174,6 +173,7 @@ Mac Studio (all local)
 - [ ] Operator watches a live run in the viewer (M4+)
 
 ## Session Log
+- 2026-10-11 ~20:35 ET: Duplicate M3 resolved. M2 review closed on main (33636ae). The resumed main session built a second M3 on main (f514521, 4685b85) before noticing branch `m3-agent-provider` already had M3 GREEN plus a passing live `smoke-llm`. Operator: "u can revert and keep the fuller m3". Main's duplicate is reverted; the branch is M3 of record. Idea to port to the branch: read vision from the gateway's `metadata.observed.capabilities` instead of `POKEBENCH_VISION_MODELS`. Gateway probe facts (live, 2026-10-11): the gateway honors `chat_template_kwargs.enable_thinking`, accepts both `max_tokens` and `max_completion_tokens` and the `developer` role, and thinking on spends ~400 tokens on a trivial prompt.
 - 2026-10-11 ~20:30 ET: COMMIT: `docs: adopt PokeBench principles rubric, move ROM home to ~/.roms` (principles file, CLAUDE.md, README, execute-worklog, this worklog's INV-1/ASK USER/session-log lines; M2.5 audio entries left uncommitted for their own milestone).
 - 2026-10-11 ~17:50 ET: operator moved the ROM home: copied to `~/.roms/pokemon-emerald.gba` (SHA-1 `f3ae0881…7b7` matches; the `~/Downloads` original is left in place), `.env` `POKEBENCH_ROM` points there, CLAUDE.md/README updated. Principles: `docs/agent-principles.md` approved and adopted as the rubric.
 - 2026-10-11 ~17:55 ET: usage limit reached during the M2 review round (one round, proportional to risk). Fallback reviewer (sonnet): LGTM, with hardening: smoke passes against a stale server already on the port; brew-missing message; http scheme check. Still pending: Claude CLI, think_fast, think_swarm, Codex (artifacts in the session scratchpad `review/m2/`) and fallback (fable). **Resume:** rerun the M2 review lanes on 6294533..c6301e6, then start M3. pi 0.73.1's openai-completions provider already reads llama.cpp `reasoning_content`.

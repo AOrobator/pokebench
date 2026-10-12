@@ -243,8 +243,9 @@ Mac Studio (all local)
   - `compaction` (new type): `from_tokens`, `to_tokens`. Schema plus a recorder method only; M5 emits it when it compacts.
   - Context window: already in `run_start.model.context_window` (spec gap closed, no change).
 - M5.5 tasks (each RED → GREEN):
-  - [ ] Schema v1.1 + recorder `state`/`compaction` + press hold/release, `schemas/events.v1.json` regenerated
+  - [x] Schema v1.1 + recorder `state`/`compaction` + press hold/release, `schemas/events.v1.json` regenerated
     - [x] COMMIT: `test(agent): schema v1.1 state/compaction/press timing, vendor /state parser, recorder afterPress` (RED, this commit). vitest: 9 failed / 162 passed (new samples rejected, `game-state.ts` missing, press body lacks timing, recorder lacks `afterPress`/`compaction`, tail lacks STATE/COMPACT). Fixture `src/fixtures/vendor-state-title.json` is the real `/state` body from run `…890b` with the screenshot truncated.
+    - [x] COMMIT: `feat(agent): schema v1.1 state/compaction events, press hold/release, vendor /state parser` (GREEN, this commit). `events.ts` (`StateBodySchema`, `state`, `compaction`, optional `hold_frames`/`release_frames` 1–255, title v1.1, envelope stays 1); `game-state.ts` (`parseGameState`: TypeBox subset of the vendor body, `player.party` then `game.party`, h/m/s → seconds, facing null, screenshot never read; `StateWatcher`); `RunRecorder.afterPress` (milestones, then state) and `compaction`; `pressTool` sends `PRESS_TIMING` (10/8) and hands it to `beforePress`; `RunHost.gameState`; tail STATE/COMPACT lines; smoke wiring. Gates (agent): vitest 182; TS 97.87 / 90.71 / 97.03 / 98.63; tsc + eslint clean.
   - [ ] Viewer model (pure fold of events → panels), formatting, replay clock
   - [ ] Renderers (GBA SVG + lights, thinking dialog, PokéNav panels, swimlanes, action log, inspector) with explicit no-data states
   - [ ] Server: 127.0.0.1 bind, run list, SSE tail, frames, live-screen proxy; `just view [id]`

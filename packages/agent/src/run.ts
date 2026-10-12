@@ -1,5 +1,6 @@
 import type { BodyOf, RunEndReason } from "./events.js";
 import type { FrameStore } from "./frames.js";
+import type { StateSource } from "./game-state.js";
 import type { MilestoneSource } from "./milestones.js";
 import { RunRecorder } from "./recorder.js";
 import { RunLog, easternTimestamp } from "./run-log.js";
@@ -31,6 +32,7 @@ export interface RunHost {
   harness(): RunStart["harness"];
   vendorPin(): string;
   readonly milestones: MilestoneSource;
+  readonly gameState: StateSource;
 }
 
 export function newRunId(now: Date, modelId: string, random: () => string): string {
@@ -61,7 +63,7 @@ export async function withRun(
   const vendorPin = host.vendorPin();
   const log = RunLog.create(plan.runsRoot, plan.runId);
   const server = await host.launchServer(log.runDir, plan.runId, plan.port);
-  const recorder = new RunRecorder({ log, frames, milestones: host.milestones });
+  const recorder = new RunRecorder({ log, frames, milestones: host.milestones, gameState: host.gameState });
   let reason: RunEndReason = "crash";
   try {
     await recorder.start({

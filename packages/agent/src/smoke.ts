@@ -14,6 +14,7 @@ import { loadConfig } from "./config.js";
 import { checkSmoke, pressTool, screenshotTool, serverHealthy, stateTool } from "./game-tools.js";
 import { discoverModels, selectModel } from "./gateway.js";
 import { FrameStore } from "./frames.js";
+import { StateWatcher } from "./game-state.js";
 import { MilestoneWatcher } from "./milestones.js";
 import { gatewayLoopConfig } from "./provider.js";
 import { harnessInfo, newRunId, withRun, type RunHost, type ServerHandle } from "./run.js";
@@ -89,6 +90,7 @@ function realHost(port: number): RunHost {
     harness: () => harnessInfo(git(REPO_ROOT)),
     vendorPin: () => git(VENDOR_DIR)(["rev-parse", "HEAD"]).trim(),
     milestones: new MilestoneWatcher(url),
+    gameState: new StateWatcher(url),
   };
 }
 
@@ -141,10 +143,10 @@ async function main(): Promise<void> {
             tools: [
               screenshotTool(gameServerUrl),
               pressTool(gameServerUrl, {
-                beforePress: (id, buttons) => {
-                  recorder.buttonPress(id, buttons);
+                beforePress: (id, buttons, timing) => {
+                  recorder.buttonPress(id, buttons, timing);
                 },
-                afterPress: () => recorder.checkMilestones(),
+                afterPress: () => recorder.afterPress(),
               }),
               stateTool(gameServerUrl),
             ],

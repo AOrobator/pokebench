@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://pokebench.example/schemas/events.v1.json",
-  "title": "PokeBench run event (v1)",
+  "title": "PokeBench run event (v1.1)",
   "description": "One line of runs/<id>/events.jsonl. Generated from packages/agent/src/events.ts; do not edit.",
   "anyOf": [
     {
@@ -519,6 +519,16 @@
             ]
           },
           "minItems": 1
+        },
+        "hold_frames": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 255
+        },
+        "release_frames": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 255
         }
       },
       "additionalProperties": false
@@ -924,6 +934,187 @@
             }
           },
           "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "run",
+        "seq",
+        "t",
+        "turn",
+        "type",
+        "location",
+        "position",
+        "facing",
+        "mode",
+        "in_battle",
+        "party",
+        "money",
+        "badges",
+        "play_time_s"
+      ],
+      "properties": {
+        "v": {
+          "type": "number",
+          "const": 1
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type": {
+          "type": "string",
+          "const": "state"
+        },
+        "location": {
+          "type": "string"
+        },
+        "position": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "x",
+                "y"
+              ],
+              "properties": {
+                "x": {
+                  "type": "integer"
+                },
+                "y": {
+                  "type": "integer"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "facing": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "mode": {
+          "type": "string"
+        },
+        "in_battle": {
+          "type": "boolean"
+        },
+        "party": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "species",
+              "level",
+              "hp",
+              "max_hp"
+            ],
+            "properties": {
+              "species": {
+                "type": "string"
+              },
+              "level": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "hp": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "max_hp": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "money": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "badges": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "play_time_s": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "run",
+        "seq",
+        "t",
+        "turn",
+        "type",
+        "from_tokens",
+        "to_tokens"
+      ],
+      "properties": {
+        "v": {
+          "type": "number",
+          "const": 1
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type": {
+          "type": "string",
+          "const": "compaction"
+        },
+        "from_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "to_tokens": {
+          "type": "integer",
+          "minimum": 0
         }
       },
       "additionalProperties": false

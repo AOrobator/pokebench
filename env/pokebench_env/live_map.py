@@ -29,6 +29,26 @@ def _u32(read: ReadMemory, address: int) -> int:
     return int.from_bytes(read(address, 4), "little")
 
 
+def _warp_trigger(behavior: int | None) -> str:
+    # pokeemerald field_control_avatar.c and metatile_behavior.c, revision731ad5b.
+    directions = {
+        0x62: "RIGHT",
+        0x63: "LEFT",
+        0x64: "UP",
+        0x65: "DOWN",
+        0x1B: "UP",
+        0x1C: "DOWN",
+        0x6D: "DOWN",
+    }
+    if behavior in directions:
+        return f"directional exit: stand on tile, then press {directions[behavior]}"
+    if behavior == 0x69:
+        return "door: approach from below and press UP toward door"
+    if behavior in {0x0E, 0x0F, 0x29, 0x60, 0x61, 0x67, 0x68, 0x6A, 0x6B, 0x6C, 0x6E}:
+        return "step onto tile"
+    return "activation unknown"
+
+
 @dataclass(frozen=True)
 class MapTile:
     x: int
@@ -49,11 +69,15 @@ class LocalMap:
     def text(self) -> str:
         x, y = self.origin
         objects = ", ".join(f"id {i} at ({a},{b})" for i, a, b in self.objects) or "none nearby"
+        behaviors_at = {(tile.x, tile.y): tile.behavior for tile in self.tiles}
         warps = (
             ", ".join(
-                f"({a},{b}) -> dynamic destination"
-                if (g, n) == (127, 127)
-                else f"({a},{b}) -> map {g}/{n}"
+                (
+                    f"({a},{b}) -> dynamic destination"
+                    if (g, n) == (127, 127)
+                    else f"({a},{b}) -> map {g}/{n}"
+                )
+                + f" [{_warp_trigger(behaviors_at.get((a, b)))}]"
                 for a, b, g, n in self.warps
             )
             or "none nearby"
@@ -62,10 +86,14 @@ class LocalMap:
         return (
             f"Local map from live memory; top-left ({x},{y}), north is up:\n"
             + "\n".join(self.rows)
-            + "\n@ player; N live object; W warp; # collision; g grass; ~ water;"
+            + "\n@ player; N live object; W warp location (see activation below);"
+            + " # collision; g grass; ~ water;"
             + " . clear terrain (may have script triggers); ? outside current map."
             + "\nTerrain rules, elevation and objects can still block movement."
             + f"\nLive objects: {objects}\nWarps: {warps}"
+            + "\nWarp destinations are map group/number IDs, not warp indexes. Activation also"
+            + " requires matching elevation and available field controls; W alone does not"
+            + " guarantee a transition. After a transition, check the new map and position."
             + "\nMetatile behaviors present: "
             + ", ".join(f"0x{value:02X}" for value in behaviors)
         )

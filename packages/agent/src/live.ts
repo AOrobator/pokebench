@@ -151,7 +151,7 @@ async function smoke(): Promise<void> {
       systemPrompt: SYSTEM_PROMPT,
       tools,
       startState: { kind: "boot" },
-      harnessFeatures: ["ram-state-v1", "live-map-v1", "field-control-lock", "naming-cursor-v1", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1"],
+      harnessFeatures: ["ram-state-v1", "live-map-v1", "field-control-lock", "naming-cursor-v1", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "warp-activation-guidance-v1"],
       budgets: { max_wall_ms: LOOP_TIMEOUT_MS },
       piVersion: piVersion(),
     },
@@ -202,6 +202,8 @@ You act only through two tools:
 
 Controls: A confirms, talks and interacts; B cancels and backs out; START opens the menu; each D-pad press moves one tile, and a press in a new direction may only turn you to face it.
 
+Warps: W marks a transition location, not a universal step-on trigger. Follow its activation description in the state readout: directional exits require standing on the tile and pressing the indicated direction; doors require walking toward them; step-on warps activate by entering the tile. A is not a universal warp button. If activation is unknown, use the screen and small controlled attempts rather than assuming every W works alike. Near a transition, use short button sequences and check the new map and position before continuing; remaining buttons may act on the destination map. If field controls are locked, resolve the dialog, menu or script before trying to walk.
+
 In every reply, think briefly about what you see and what to do next, then call a tool. Replies without a tool call do nothing.`;
 
 const PLAY_TASK = "The game has just booted. Begin playing.";
@@ -223,7 +225,7 @@ async function playAgent(): Promise<void> {
       systemPrompt: PLAY_SYSTEM_PROMPT,
       tools: ["observe", "press"],
       startState: { kind: "boot" },
-      harnessFeatures: ["ram-state-v1", "live-map-v1", "field-control-lock", "naming-cursor-v1", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1"],
+      harnessFeatures: ["ram-state-v1", "live-map-v1", "field-control-lock", "naming-cursor-v1", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "warp-activation-guidance-v1"],
       budgets: { max_turns: PLAY_LIMITS.maxTurns, max_wall_ms: PLAY_LIMITS.maxWallMs },
       piVersion: piVersion(),
     },
@@ -292,7 +294,7 @@ async function probe(verify = false): Promise<void> {
       model: { id: "manual-probe", context_window: 0, max_tokens: 0, vision: false },
       sampling: { thinking_level: "none", max_tokens: 0 },
       systemPrompt: "Manual game-state validation probe; excluded from benchmark results.",
-      tools: ["observe", "press"], startState, harnessFeatures: ["probe", "manual-control", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1"],
+      tools: ["observe", "press"], startState, harnessFeatures: ["probe", "manual-control", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "warp-activation-guidance-v1"],
       budgets: {}, piVersion: piVersion(),
     }, realHost(port, saved), new FrameStore(RUNS_ROOT), (recorder, url) => driveProbe(recorder, url, verify ? verifyIntro(new StateWatcher(url), (label, state) => { console.log(`CHECKPOINT ${label} ${JSON.stringify(state)}`); }) : commands()));
     console.log(`probe ended: ${reason}`);

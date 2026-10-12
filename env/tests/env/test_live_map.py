@@ -165,3 +165,11 @@ def test_warp_trigger_uses_live_tile_behavior(behavior: int, expected: str) -> N
     changed = read_local_map(m.read, (1, 1), (1, 0), radius=1)
     assert changed is not None
     assert "[directional exit: stand on tile, then press DOWN]" in changed.text(), changed.text()
+
+
+def test_warp_without_loaded_tile_does_not_guess_activation() -> None:
+    m = loaded()
+    m.put(0x02009000, struct.pack("<hhBBBB", 0, 5, 0, 0, 9, 0))
+    result = read_local_map(m.read, (1, 4), (1, 0), radius=1)
+    assert result is not None
+    assert "(0,5) -> map 0/9 [activation unknown]" in result.text(), result.text()

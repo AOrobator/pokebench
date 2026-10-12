@@ -10,6 +10,11 @@ import sys
 from collections.abc import Callable, Sequence
 from typing import Protocol, cast
 
+from fastapi import FastAPI
+
+from pokebench_env.audio import EmulatorLike
+from pokebench_env.view import install_spectator
+
 LOCALHOST = "127.0.0.1"
 
 
@@ -27,7 +32,15 @@ def pin_localhost(uvicorn: UvicornLike) -> None:
     uvicorn.run = run_on_localhost
 
 
-def run(argv: Sequence[str], uvicorn: UvicornLike, vendor_main: Callable[[], None]) -> None:
+def run(
+    argv: Sequence[str],
+    uvicorn: UvicornLike,
+    vendor_main: Callable[[], None],
+    *,
+    spectator: tuple[FastAPI, type[EmulatorLike]] | None = None,
+) -> None:
+    if spectator is not None:
+        install_spectator(*spectator)
     pin_localhost(uvicorn)
     sys.argv = ["server.app", *argv]
     vendor_main()
@@ -35,9 +48,15 @@ def run(argv: Sequence[str], uvicorn: UvicornLike, vendor_main: Callable[[], Non
 
 def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
     import uvicorn
+    from pokemon_env.emulator import EmeraldEmulator
     from server import app  # vendor module, importable from the vendor cwd
 
-    run(sys.argv[1:], uvicorn=cast(UvicornLike, uvicorn), vendor_main=app.main)
+    run(
+        sys.argv[1:],
+        uvicorn=cast(UvicornLike, uvicorn),
+        vendor_main=app.main,
+        spectator=(app.app, cast(type[EmulatorLike], EmeraldEmulator)),
+    )
 
 
 if __name__ == "__main__":  # pragma: no cover

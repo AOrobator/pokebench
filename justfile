@@ -38,8 +38,8 @@ verify-rom:
 verify-vendor:
     cd env && uv run python -c 'from pokebench_env.launcher import VENDOR_DIR; from pokebench_env.vendor import check_vendor; check_vendor(VENDOR_DIR); print("vendor OK:", VENDOR_DIR)'
 
-# Game server in the foreground; watch it at http://127.0.0.1:8000/stream.
-serve:
+# Game server in the foreground; /view adds local audio + window-fit /stream.
+serve: build
     cd env && uv run python -m pokebench_env.launcher
 
 # Boots the real game server on the real ROM (127.0.0.1), presses A, reads state/screenshot/milestones.

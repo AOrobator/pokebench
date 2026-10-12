@@ -38,7 +38,8 @@ def test_observation_is_the_readout_the_frame_and_the_typed_state() -> None:
     assert status == 200
     payload = json.loads(body)
     assert payload["state_text"].startswith(
-        "Screen: naming\nDialog: none\nMenu: unavailable (active owner not verified)\nGame not started"
+        "Screen: naming\nDialog: none\n"
+        "Menu: unavailable (active owner not verified)\nGame not started"
     )
     assert payload["screenshot_base64"] == "iVBORw0KGgo="
     assert payload["state"]["screen"] == "naming"

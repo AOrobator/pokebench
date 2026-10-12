@@ -150,7 +150,7 @@ def read_world_context(
             matches = True if var == 0 else None if value is None else value == wanted
             triggers.append(ScriptTrigger(tx, ty, elevation, var, wanted, value, matches, script))
     dialogue = None
-    if read(FIELD_MESSAGE_MODE, 1)[0] in (1, 2):
+    if read(FIELD_MESSAGE_MODE, 1)[0] in (2, 3):  # NORMAL / AUTO_SCROLL; 1 is unused.
         raw = read(STRING_VAR4, 1000)
         if 0xFF in raw:
             raw = raw[: raw.index(0xFF)]

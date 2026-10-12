@@ -46,7 +46,7 @@ def test_script_tile_condition_changes_with_live_save_variable() -> None:
 
 def test_dialogue_buffer_is_gated_by_the_active_field_message_owner() -> None:
     m = world()
-    m.put(0x020375BC, b"\x01")
+    m.put(0x020375BC, b"\x02")
     m.put(0x02021FC4, text("Wild POKEMON!") + b"\xff")
     assert (
         read_world_context(m.read, (10, 2), (0, 9), SAVE, decode_text).dialogue == "Wild POKEMON!"
@@ -111,7 +111,7 @@ def test_multiline_text_unknown_modes_and_controls_fail_unavailable() -> None:
     assert read_world_context(m.read, (10, 2), (0, 9), SAVE, decode_text).dialogue is None
     m.put(0x02021FC4, bytes(1000))
     assert read_world_context(m.read, (10, 2), (0, 9), SAVE, decode_text).dialogue is None
-    m.put(0x020375BC, b"\x03")
+    m.put(0x020375BC, b"\x01")
     assert read_world_context(m.read, (10, 2), (0, 9), SAVE, decode_text).dialogue is None
 
 
@@ -145,3 +145,13 @@ def test_production_state_reader_delivers_context_to_model_and_json() -> None:
     encoded = state_json(state)["world_context"]
     assert encoded == state.world_context.json(), encoded
     assert state.world_context.triggers[0].condition_met is False, state.world_context
+
+
+def test_autoscroll_mode_owns_valid_message_buffer() -> None:
+    m = world()
+    m.put(0x020375BC, b"\x03")
+    m.put(0x02021FC4, text("Wild POKEMON!") + b"\xff")
+    c = read_world_context(m.read, (10, 2), (0, 9), SAVE, decode_text)
+    assert c.dialogue == "Wild POKEMON!", c
+    m.put(0x020375BC, b"\x01")
+    assert read_world_context(m.read, (10, 2), (0, 9), SAVE, decode_text).dialogue is None

@@ -1,10 +1,12 @@
 import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { afterEach, expect, it, vi } from "vitest";
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { PiLoopOptions } from "./harness.js";
 import type { RunHost, RunPlan } from "./run.js";
 import type { RunRecorder } from "./recorder.js";
 import { parseEvent, type RunEvent } from "./events.js";
+import { OBJECTIVE_PROMPT } from "./objective-tools.js";
 
 const owner = vi.hoisted(() => ({ files: new Map<string, string[]>(), loop: null as PiLoopOptions | null, context: "", resolve: undefined as ((plan: RunPlan) => void) | undefined, reject: undefined as ((error: unknown) => void) | undefined }));
 vi.mock("node:fs", async (load) => {
@@ -45,10 +47,11 @@ vi.mock("./run.js", async (load) => {
 });
 function currentLoop(): PiLoopOptions | null { return owner.loop; }
 afterEach(() => { vi.unstubAllGlobals();vi.unstubAllEnvs();vi.restoreAllMocks();owner.files.clear();owner.loop = null; });
-it.each([undefined, "0"])("actual play entrypoint agrees on tools, context, prompt and metadata (flag=%s)", async (flag) => {
+it.each([[undefined, undefined], [undefined, "0"], ["0", undefined], ["0", "0"]])("actual play entrypoint agrees on tools, context, prompt and metadata (objectives=%s, interface=%s)", async (flag, interfaceFlag) => {
   vi.resetModules();owner.files.clear();owner.loop = null;
   const done = new Promise<RunPlan>((resolve, reject) => { owner.resolve = resolve;owner.reject = reject; });
   vi.stubEnv("POKEBENCH_OBJECTIVES", flag);
+  vi.stubEnv("POKEBENCH_INTERFACE_DOCS", interfaceFlag);
   vi.stubGlobal("process", Object.assign(Object.create(process) as NodeJS.Process, { argv: [...process.argv.slice(0, 2), "play"] }));
   vi.spyOn(console, "log").mockImplementation(() => undefined);
   await import("./live.js");const plan = await done;const loop = currentLoop();
@@ -61,4 +64,14 @@ it.each([undefined, "0"])("actual play entrypoint agrees on tools, context, prom
   expect(plan.harnessFeatures.includes("repeat-attempt-guard-v1")).toBe(enabled);
   expect(loop.systemPrompt).toBe(plan.systemPrompt);
   expect(owner.context.includes("HARNESS OBJECTIVE RECORD")).toBe(enabled);
+  const documented = interfaceFlag !== "0";
+  expect(plan.harnessFeatures.includes("contextual-interface-docs-v1")).toBe(documented);
+  expect(loop.systemPrompt.includes("Buttons are contextual")).toBe(documented);
+  expect(loop.systemPrompt.includes("not phone-style cycling groups")).toBe(documented);
+  expect(loop.systemPrompt.includes("START moves the cursor to OK")).toBe(documented);
+  expect(loop.systemPrompt.includes("editor text is not a confirmed trainer name")).toBe(documented);
+  if (!documented) {
+    const prompt = enabled ? plan.systemPrompt.slice(0, -(OBJECTIVE_PROMPT.length + 2)) : plan.systemPrompt;
+    expect(createHash("sha256").update(prompt).digest("hex")).toBe("39af4e89110a2513733b420995fcff01c93b17f3e34dcffa11a7cbcc2f32d7e8");
+  }
 });

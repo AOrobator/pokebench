@@ -212,12 +212,41 @@ In every reply, think briefly about what you see and what to do next, then call 
 const PLAY_GOAL = "Start a new game, obtain a starter, and work toward defeating the first Gym Leader in Rustboro City.";
 const PLAY_TASK = "The game has just booted. Begin playing.";
 
+// Documentation treatment only: retain the pre-experiment prompt verbatim above.
+const CONTEXTUAL_CONTROLS = `Buttons are contextual: their meaning depends on the current screen, selected control, and whether input is ready. Screen-specific instructions below override general controls. START does not always open a menu.
+
+Overworld: A talks or interacts with what you face; B can dismiss ordinary dialogue; START opens the menu only when field controls permit it. D-pad input attempts movement and may only turn you on the first press. When controls are locked, direction presses cannot walk. In menus and confirmation questions, directions change the highlighted option, A chooses that option, and B may cancel. Never assume the highlighted option is YES.
+
+State and interface documentation: use the latest screenshot and readout together. A selected key is the key under the cursor now, not the name buffer or a group of possible letters. Unknown/unavailable state does not establish that a menu is closed or that input is accepted. Readouts of the name being edited, selected key, keyboard page, and readiness describe the current editor; editor text is not a confirmed trainer name.
+
+Naming editor (player name or Pokémon nickname): each letter is an individual key, not phone-style cycling groups. A on a character appends exactly that character; repeated A appends repeated characters rather than cycling letters. B deletes the last character. SELECT or A on PAGE changes the keyboard page. START moves the cursor to OK; it does not open a menu or submit the name. A on OK finishes editing. A on BACK deletes. Directions move the cursor through keys; edges wrap and the side-button column has three rows, so check the returned selected key rather than assuming a rectangular cursor path. If input is transitioning, observe again before interpreting a press as accepted.
+
+Naming layout, zero-based rows and columns: uppercase and lowercase have eight character columns (0-7), plus side buttons at column 8: PAGE row 0, BACK row 1, OK row 2. Uppercase rows, with SPACE explicitly shown:
+row 0: A B C D E F SPACE .
+row 1: G H I J K L SPACE ,
+row 2: M N O P Q R S SPACE
+row 3: T U V W X Y Z SPACE
+Lowercase uses the same positions with lowercase letters. Symbols have six character columns (0-5), plus PAGE/BACK/OK at column 6:
+row 0: 0 1 2 3 4 SPACE
+row 1: 5 6 7 8 9 SPACE
+row 2: ! ? ♂ ♀ / -
+row 3: … “ ” ‘ ' SPACE
+When the editor fills its allowed length, it may move the cursor to OK automatically; inspect the selected key and text. After player-name editing, Birch asks a separate confirmation question. Inspect that screen and its actual selected option; editor OK alone is not final player-name acceptance. Pokémon nicknaming can use the same keyboard, so the naming screen alone does not prove which name is being edited.
+
+Clock interface: LEFT/RIGHT adjust the clock hands; A opens a confirmation question. The question can initially select NO; repeated A is not evidence of acceptance. Check the visible highlighted option, use directions to change it if needed, and use A to choose it; B returns to adjustment. Confirm completion from the subsequent game state rather than the press alone.`;
+
+const DOCUMENTED_PLAY_SYSTEM_PROMPT = PLAY_SYSTEM_PROMPT.replace(
+  "Controls: A confirms, talks and interacts; B cancels and backs out; START opens the menu; each D-pad press moves one tile, and a press in a new direction may only turn you to face it.",
+  CONTEXTUAL_CONTROLS,
+);
+
 async function playAgent(): Promise<void> {
   const { model, port, gatewayUrl, apiKey } = await live();
   const runId = newRunId(new Date(), model.id, () => randomBytes(2).toString("hex"));
   const maxTokens = Math.min(PLAY_MAX_TOKENS, model.maxTokens);
   const trackObjectives = process.env["POKEBENCH_OBJECTIVES"] !== "0";
-  const systemPrompt = PLAY_SYSTEM_PROMPT + (trackObjectives ? `\n\n${OBJECTIVE_PROMPT}` : "");
+  const documentInterface = process.env["POKEBENCH_INTERFACE_DOCS"] !== "0";
+  const systemPrompt = (documentInterface ? DOCUMENTED_PLAY_SYSTEM_PROMPT : PLAY_SYSTEM_PROMPT) + (trackObjectives ? `\n\n${OBJECTIVE_PROMPT}` : "");
   console.log(`run-agent: run ${runId}, model ${model.id} via ${gatewayUrl}`);
   console.log(`watch: just tail-run ${runId}   (frame: http://127.0.0.1:${String(port)}/view)`);
 
@@ -231,7 +260,7 @@ async function playAgent(): Promise<void> {
       systemPrompt,
       tools: ["observe", "press", ...(trackObjectives ? ["get_objectives", "set_objective", "update_objective"] : [])],
       startState: { kind: "boot" },
-      harnessFeatures: ["ram-state-v1", "live-map-v1", "field-control-lock", "naming-cursor-v1", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "world-targets-v1", "live-player-position-v1", "world-coordinate-grid-v1", "press-result-v1", "warp-activation-guidance-v1", "clock-milestone-v1", "story-state-v1", "story-milestones-v2", ...(trackObjectives ? ["objective-tracking-v1", "repeat-attempt-guard-v1"] : [])],
+      harnessFeatures: ["ram-state-v1", "live-map-v1", "field-control-lock", "naming-cursor-v1", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "world-targets-v1", "live-player-position-v1", "world-coordinate-grid-v1", "press-result-v1", "warp-activation-guidance-v1", "clock-milestone-v1", "story-state-v1", "story-milestones-v2", ...(documentInterface ? ["contextual-interface-docs-v1"] : []), ...(trackObjectives ? ["objective-tracking-v1", "repeat-attempt-guard-v1"] : [])],
       budgets: { max_turns: PLAY_LIMITS.maxTurns, max_wall_ms: PLAY_LIMITS.maxWallMs },
       piVersion: piVersion(),
     },

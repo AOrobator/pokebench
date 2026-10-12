@@ -128,3 +128,40 @@ def test_dynamic_warp_sentinel_is_not_reported_as_a_real_map() -> None:
     assert result is not None
     assert "(0,1) -> dynamic destination" in result.text()
     assert "map 127/127" not in result.text()
+
+
+@pytest.mark.parametrize(
+    "behavior,expected",
+    [
+        (0x62, "directional exit: stand on tile, then press RIGHT"),
+        (0x63, "directional exit: stand on tile, then press LEFT"),
+        (0x64, "directional exit: stand on tile, then press UP"),
+        (0x65, "directional exit: stand on tile, then press DOWN"),
+        (0x1B, "directional exit: stand on tile, then press UP"),
+        (0x1C, "directional exit: stand on tile, then press DOWN"),
+        (0x6D, "directional exit: stand on tile, then press DOWN"),
+        (0x69, "door: approach from below and press UP toward door"),
+        (0x60, "step onto tile"),
+        (0x61, "step onto tile"),
+        (0x6A, "step onto tile"),
+        (0x6B, "step onto tile"),
+        (0x6C, "step onto tile"),
+        (0x6E, "step onto tile"),
+        (0x0E, "step onto tile"),
+        (0x0F, "step onto tile"),
+        (0x29, "step onto tile"),
+        (0x67, "step onto tile"),
+        (0x68, "step onto tile"),
+        (0x00, "activation unknown"),
+    ],
+)
+def test_warp_trigger_uses_live_tile_behavior(behavior: int, expected: str) -> None:
+    m = loaded()
+    m.put(0x02007000, struct.pack("<H", behavior))
+    result = read_local_map(m.read, (1, 1), (1, 0), radius=1)
+    assert result is not None
+    assert f"(0,1) -> map 0/9 [{expected}]" in result.text(), result.text()
+    m.put(0x02007000, struct.pack("<H", 0x65))
+    changed = read_local_map(m.read, (1, 1), (1, 0), radius=1)
+    assert changed is not None
+    assert "[directional exit: stand on tile, then press DOWN]" in changed.text(), changed.text()

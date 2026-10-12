@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
   GATEWAY_MODELS,
+  must,
   TINY_PNG_BASE64,
   startFakeGateway,
   textTurn,
@@ -61,13 +62,13 @@ describe("runLlmSmoke against an OpenAI-compatible gateway", () => {
   it("sends the tool's frame to the model as an image and replays reasoning_content", async () => {
     gateway = await startFakeGateway({ models: GATEWAY_MODELS, turns: HAPPY_TURNS });
     await runLlmSmoke({ gatewayUrl: gateway.url, modelId: "think-swarm", game });
-    const second = gateway.requests[1]!.body;
+    const second = must(gateway.requests[1]).body;
     const sent = messages(second);
-    expect(sent[0]!.role).toBe("system");
+    expect(must(sent[0]).role).toBe("system");
     const assistant = sent.find((message) => message.role === "assistant");
     expect(assistant?.reasoning_content).toBe("I should look at the screen first.");
     expect(sent.some((message) => message.role === "user" && hasImage(message, TINY_PNG_BASE64))).toBe(true);
-    expect(second.chat_template_kwargs).toEqual({ enable_thinking: true });
+    expect(second.chat_template_kwargs).toEqual({ enable_thinking: true, preserve_thinking: true });
     expect(second.max_tokens).toEqual(expect.any(Number));
     expect(second).not.toHaveProperty("store");
     expect(second.model).toBe("think-swarm");
@@ -76,7 +77,7 @@ describe("runLlmSmoke against an OpenAI-compatible gateway", () => {
   it("turns thinking off when asked", async () => {
     gateway = await startFakeGateway({ models: GATEWAY_MODELS, turns: HAPPY_TURNS });
     await runLlmSmoke({ gatewayUrl: gateway.url, modelId: "think-swarm", game, thinkingLevel: "off" });
-    expect(gateway.requests[0]!.body.chat_template_kwargs).toEqual({ enable_thinking: false });
+    expect(must(gateway.requests[0]).body.chat_template_kwargs).toEqual({ enable_thinking: false, preserve_thinking: true });
   });
 
   it("refuses a lane without vision", async () => {

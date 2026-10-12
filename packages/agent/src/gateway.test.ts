@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { GATEWAY_MODELS, startFakeGateway, type FakeGateway } from "../test-support/fake-gateway.js";
+import { GATEWAY_MODELS, must, startFakeGateway, type FakeGateway } from "../test-support/fake-gateway.js";
 import { GatewayError, discoverLanes, parseLanes, selectLane, toPiModel } from "./gateway.js";
 
 describe("parseLanes", () => {
@@ -27,9 +27,11 @@ describe("parseLanes", () => {
 
 describe("toPiModel", () => {
   const [swarm, faster] = parseLanes(GATEWAY_MODELS);
+  const vision = must(swarm);
+  const textOnly = must(faster);
 
   it("maps a vision lane onto an openai-completions model tuned for the llama.cpp gateway", () => {
-    const model = toPiModel(swarm!, "http://inference.example/v1");
+    const model = toPiModel(vision, "http://inference.example/v1");
     expect(model).toMatchObject({
       id: "think-swarm",
       name: "think-swarm",
@@ -53,7 +55,7 @@ describe("toPiModel", () => {
   });
 
   it("gives a text-only lane no image input", () => {
-    expect(toPiModel(faster!, "http://inference.example/v1").input).toEqual(["text"]);
+    expect(toPiModel(textOnly, "http://inference.example/v1").input).toEqual(["text"]);
   });
 });
 

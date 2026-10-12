@@ -91,8 +91,8 @@ export async function startFakeGateway(options: FakeGatewayOptions): Promise<Fak
         const chunks = options.turns?.[turn];
         turn += 1;
         if (chunks === undefined) {
-          response.writeHead(500);
-          response.end("no scripted turn");
+          response.writeHead(400, { "Content-Type": "application/json" });
+          response.end(JSON.stringify({ error: { message: "no scripted turn" } }));
           return;
         }
         sse(response, chunks);
@@ -109,9 +109,22 @@ export async function startFakeGateway(options: FakeGatewayOptions): Promise<Fak
     requests,
     close: () =>
       new Promise<void>((resolve, reject) => {
-        server.close((error) => (error ? reject(error) : resolve()));
+        server.close((error) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve();
+          }
+        });
       }),
   };
+}
+
+export function must<T>(value: T | undefined): T {
+  if (value === undefined) {
+    throw new Error("expected a value");
+  }
+  return value;
 }
 
 export const GATEWAY_MODELS = {

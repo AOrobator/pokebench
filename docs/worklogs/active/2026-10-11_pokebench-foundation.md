@@ -145,10 +145,10 @@ Mac Studio (all local)
   - a tool returning `ImageContent` is serialized for `openai-completions`
   - reasoning content across a tool-call turn is preserved (pi compat setting verified against the pi-ai source)
 - Design notes (2026-10-11, from pi-ai 0.73.1 source and live gateway probes): vision comes from the gateway's own `metadata.observed.capabilities` (`multimodal`), not config. The compat is `thinkingFormat: qwen-chat-template` (the gateway honors `chat_template_kwargs.enable_thinking`; thinking on spends ~400 tokens even on a trivial prompt), `max_tokens`, system role, and no store/strict/reasoning_effort. pi replays `reasoning_content` by itself (the thinking block's signature is the source field name). Tool images reach the model as a follow-up user message with `image_url` data URLs. The wire tests run against a local fake OpenAI-compatible SSE server (`packages/agent/test-support/fake-gateway.ts`). `smoke.ts` uses `import.meta.main`, so no coverage exclude is added.
-- [x] COMMIT: `test(agent): gateway discovery and multimodal tool round trip` (RED). pi-ai and pi-agent-core pinned exact at 0.73.1.
-- [ ] Implement the provider + `@mariozechner/pi-ai`/`pi-agent-core` pinned exact (0.73.1 at time of writing)
-- [ ] Gates: vitest + coverage ≥90, tsc, eslint
-- [ ] COMMIT: `feat(agent): local gateway provider for pi` (GREEN)
+- [x] COMMIT: `test(agent): gateway discovery and multimodal tool round trip` (RED, f514521). pi-ai and pi-agent-core pinned exact at 0.73.1.
+- [x] Implement `gateway.ts` (discovery → pi `Model`), `game.ts` (typed TS game client), `tools.ts` (`screenshot` → `ImageContent`, `get_state`), `smoke.ts` (agent-core loop + `main`); `just smoke-llm`. Finding: pi 0.73.1's qwen-chat-template also sends `preserve_thinking: true`, which is pinned in the wire test.
+- [x] Gates: vitest 49, pytest 95; tsc, eslint, ruff, mypy, build clean; TS coverage 97.9 lines / 94.94 branches / 95.12 functions; Python 98.77 / 97.30 / 100
+- [x] COMMIT: `feat(agent): local gateway provider for pi` (GREEN)
 - [ ] Live smoke (`just smoke-llm`): agent-core loop calls a `screenshot` tool against the running game server, the model describes the real frame, and a second tool call completes
 - [ ] Multi-model review loop until clean
 - [ ] **STOP — report to operator before M4**

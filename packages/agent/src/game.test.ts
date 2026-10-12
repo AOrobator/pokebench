@@ -14,8 +14,8 @@ function png(width: number, height: number): string {
 function fakeFetch(routes: Record<string, unknown>, status = 200): { fetch: Fetch; urls: string[] } {
   const urls: string[] = [];
   const fetch: Fetch = (url) => {
-    urls.push(String(url));
-    const path = new URL(String(url)).pathname;
+    urls.push(url);
+    const path = new URL(url).pathname;
     return Promise.resolve(new Response(JSON.stringify(routes[path] ?? null), { status }));
   };
   return { fetch, urls };

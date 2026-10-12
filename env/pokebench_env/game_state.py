@@ -43,6 +43,9 @@ GBA_TEXT: dict[int, str] = {
     0xAD: ".",
     0xAE: "-",
     0xB0: "…",
+    0xB1: "“",
+    0xB2: "”",
+    0xB3: "‘",
     0xB4: "'",
     0xB5: "♂",
     0xB6: "♀",
@@ -146,7 +149,15 @@ def _badges(read: ReadMemory, save1: int) -> tuple[str, ...]:
 def read_game_state(read: ReadMemory, maps: MapNames) -> GameState:
     screen = read_screen(read)
     in_battle = bool(read(IN_BATTLE, 1)[0] & 0x02)
-    if screen.kind in PRE_GAME:
+    player_object = 0
+    field_initialized = False
+    if screen.kind not in PRE_GAME:
+        player_object = read(PLAYER_AVATAR + 5, 1)[0]
+        player_flags = (
+            read(OBJECT_EVENTS + 0x24 * player_object, 3) if player_object < 16 else bytes(3)
+        )
+        field_initialized = bool(player_flags[0] & 1 and player_flags[2] & 1)
+    if screen.kind in PRE_GAME or not field_initialized:
         return GameState(
             screen.label,
             False,
@@ -164,12 +175,7 @@ def read_game_state(read: ReadMemory, maps: MapNames) -> GameState:
         )
     save1, save2 = struct.unpack("<II", read(SAVE_BLOCK_PTRS, 8))
     _, _, group, number = struct.unpack("<hhBB", read(save1, 6))
-    player_object = read(PLAYER_AVATAR + 5, 1)[0]
-    if player_object >= 16:
-        raise ValueError("player object unavailable")
     body = read(OBJECT_EVENTS + 0x24 * player_object, 0x24)
-    if not body[0] & 1 or not body[2] & 1:
-        raise ValueError("player object uninitialized")
     x, y = struct.unpack_from("<hh", body, 0x10)
     x -= MAP_OFFSET
     y -= MAP_OFFSET

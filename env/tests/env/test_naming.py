@@ -78,3 +78,11 @@ def test_transition_is_reported_and_editor_name_is_not_save_data() -> None:
     assert "transitioning; wait and observe" in format_readout(state)
     assert "Name being edited" in format_readout(state)
     assert "Naming input: ready" in NamingState("", "symbols", 0, 0, "0", True).readout()
+
+
+def test_every_selectable_character_round_trips_through_the_game_decoder() -> None:
+    from pokebench_env.naming import KEYBOARDS
+
+    for page in KEYBOARDS:
+        for row in page:
+            assert decode_text(text(row) + b"\xff") == row

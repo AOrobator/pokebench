@@ -147,7 +147,7 @@ def test_run_installs_the_observation_route_before_vendor_main() -> None:
 
     from pokebench_env.game_state import MapNames
 
-    async def get_screenshot() -> BaseModel:
+    def get_screenshot() -> BaseModel:
         return BaseModel()
 
     def vendor_main() -> None:

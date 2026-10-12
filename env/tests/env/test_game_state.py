@@ -217,5 +217,14 @@ def test_live_player_coordinates_override_stale_save_coordinates():
 def test_invalid_player_object_is_unavailable(address, body):
     m = game(OVERWORLD)
     m.put(address, body)
-    with pytest.raises(ValueError, match="player object"):
-        read_game_state(m.read, MAPS)
+    state = read_game_state(m.read, MAPS)
+    assert not state.started and state.position is None and state.facing is None
+
+
+def test_unknown_pregame_callback_does_not_expose_default_save_data() -> None:
+    m = game((0, 0x0803CAFE))
+    m.put(0x02037350, bytes(3))
+    s = read_game_state(m.read, MAPS)
+    assert not s.started and s.name is None and s.location is None
+    m.put(0x02037590 + 5, b"\xff")
+    assert not read_game_state(m.read, MAPS).started

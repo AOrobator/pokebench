@@ -108,3 +108,35 @@ it("checks badges, scalar conditions and unique objective identities", () => {
   tracker.update({ status: "blocked", evidence: [1], obstacle: "Cannot move", next_decision: "Observe", retry_reason: "" });
   expect(() => { tracker.checkPress(["A"], IN_GAME); }).toThrow(/active objective/);
 });
+
+
+it("rejects a whitespace-only next decision even with an active objective", () => {
+  const { tracker } = setup(); tracker.set({ ...request, next_decision: "   " });
+  expect(() => { tracker.checkPress(["A"], state(1)); }).toThrow("Set an active objective and next decision before pressing.");
+});
+
+it("isolates absent current state from valid observation evidence", () => {
+  const tracker = new ObjectiveTracker("Reach gym", () => undefined);
+  tracker.observe({ ...envelope, seq: 1, type: "tool_result", id: "observe", name: "observe", is_error: false, duration_ms: 1, text: "Observed game", frames: [] });
+  tracker.set(request);
+  expect(() => tracker.update({ status: "completed", evidence: [1], obstacle: "", next_decision: "Next", retry_reason: "" })).toThrow(/Completion is not verified/);
+});
+
+it("permits a changed action or material state after matching failures", () => {
+  for (const change of [{ map_id: [0, 101] }, { position: { x: 9, y: 8 } }, { facing: "up" }, { field_controls_locked: true }, { naming: { text: "A", page: "uppercase", row: 0, column: 0, key: "A", ready: true } }, { local_map: "Changed live target coordinates" }]) {
+    const { tracker } = setup(); tracker.set(request);
+    tracker.attempt("p1", ["A"], state(1), state(2));tracker.attempt("p2", ["A"], state(2), state(3));
+    expect(() => { tracker.checkPress(["A"], state(4, change)); }, JSON.stringify(change)).not.toThrow();
+  }
+});
+
+it("isolates conservative unavailable-input outcomes", () => {
+  for (const change of [{ screen: "unknown" }, { position: null }, { field_controls_locked: true }, { field_controls_locked: null }]) {
+    const { tracker } = setup();tracker.set(request);
+    expect(tracker.attempt("p", ["A"], state(1, change), state(2, change)).outcome, JSON.stringify(change)).toBe("unavailable");
+  }
+  const { tracker } = setup(); tracker.set(request);
+  expect(tracker.attempt("turn", ["LEFT"], state(1), state(2, { facing: "left" })).outcome).toBe("turned");
+  expect(tracker.attempt("x", ["RIGHT"], state(2), state(3, { position: { x: 9, y: 8 } })).outcome).toBe("moved");
+  expect(tracker.attempt("y", ["DOWN"], state(3), state(4, { position: { x: 5, y: 9 } })).outcome).toBe("moved");
+});

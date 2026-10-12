@@ -1,8 +1,11 @@
+import { createAssistantMessageEventStream, type AssistantMessage, type Message, type Model } from "@mariozechner/pi-ai";
+import type { AgentMessage, StreamFn } from "@mariozechner/pi-agent-core";
+import { Governor, piLoop } from "./harness.js";
 import { expect, it } from "vitest";
-import { objectiveGameTools, objectiveTools } from "./objective-tools.js";
+import { objectiveGameTools, objectiveTools, objectiveHarness } from "./objective-tools.js";
 import { ObjectiveTracker } from "./objectives.js";
 import { IN_GAME } from "../test-support/events.js";
-import type { RunEvent } from "./events.js";
+import type { BodyOf, RunEvent } from "./events.js";
 import type { GameStateSnapshot } from "./game-state.js";
 
 type StateEvent = Extract<Extract<RunEvent, { type: "state" }>, { started: boolean }>;
@@ -12,9 +15,13 @@ const request = { title: "Get starter", supports_goal: "Reach gym", evidence: [0
 function setup() {
   let seq = 0;
   const events: RunEvent[] = [];
+  const observers: ((event: RunEvent) => void)[] = [];
   const tracker = new ObjectiveTracker("Reach gym", () => undefined);
   const recorder = {
-    recordState: (state: GameStateSnapshot): StateEvent => { const e = { ...envelope, seq: seq++, type: "state" as const, ...state }; events.push(e); tracker.observe(e); return e; },
+    recordState: (state: GameStateSnapshot): StateEvent => { const e = { ...envelope, seq: seq++, type: "state" as const, ...state }; events.push(e); tracker.observe(e); for (const observer of observers) observer(e); return e; },
+    subscribe: (observer: (event: RunEvent) => void) => { observers.push(observer); },
+    recordObjective: (body: BodyOf<"objective_update"> | BodyOf<"objective_attempt">) => { const event = { ...envelope, seq: seq++, ...body };events.push(event);for (const observer of observers) observer(event); },
+    transformContext: (messages: import("@mariozechner/pi-agent-core").AgentMessage[]) => Promise.resolve(messages),
     buttonPress: () => undefined,
     afterPress: () => Promise.resolve(),
   };
@@ -95,4 +102,78 @@ it("records unavailable outcomes when a submitted press fails", async () => {
   if (press === undefined) throw new Error("missing press");
   await expect(press.execute("p", { buttons: ["A"] })).rejects.toThrow(/POST/);
   expect(tracker.attempts.at(-1)).toMatchObject({ after_seq: null, outcome: "unavailable", failure_count: 0 });
+});
+
+
+it("composes recorder evidence, game guarding, completion refresh and context in the production owner", async () => {
+  const { recorder, events } = setup();const server = serving();
+  const harness = objectiveHarness("Reach gym", recorder, "http://127.0.0.1:8812", server.fetchFn);
+  expect(harness.tools.map((tool) => tool.name)).toEqual(["observe", "press", "get_objectives", "set_objective", "update_objective"]);
+  const [observe, press, get, set, update] = harness.tools;
+  if (!observe || !press || !get || !set || !update) throw new Error("missing composition");
+  await observe.execute("o", {});const state = events.at(-1);if (!state) throw new Error("missing observed state");
+  await set.execute("s", { ...request, evidence: [state.seq] });
+  expect(events.at(-1)?.type).toBe("objective_update");
+  await press.execute("p1", { buttons: ["A"] });await press.execute("p2", { buttons: ["A"] });
+  await expect(press.execute("p3", { buttons: ["A"] })).rejects.toThrow(/Reassess/);
+  expect(server.actions()).toBe(2);
+  expect(events.filter((event) => event.type === "objective_attempt")).toHaveLength(2);
+  const successful = recorder.recordState({ ...game, party: IN_GAME.party });
+  await expect(update.execute("u", { status: "completed", evidence: [successful.seq], obstacle: "", next_decision: "Next", retry_reason: "" })).rejects.toThrow(/Completion/);
+  const context = await harness.transformContext([]);
+  expect(JSON.stringify(context.at(-1))).toContain("HARNESS OBJECTIVE RECORD");
+  expect(JSON.stringify(context.at(-1))).toContain("Get starter");
+  expect(JSON.stringify(await get.execute("g", {}))).toContain("no_change");
+});
+
+it("cancels in-flight pre-press and completion state reads without sending a game action", async () => {
+  for (const operation of ["press", "update_objective"]) {
+    const { recorder, events } = setup();const requestStarted = Promise.withResolvers<void>();const response = Promise.withResolvers<Response>();
+    const captured: { signal: AbortSignal | null } = { signal: null };let posts = 0;
+    const fetchFn: typeof fetch = (_input, options) => {
+      captured.signal = options?.signal ?? null;
+      captured.signal?.addEventListener("abort", () => response.reject(captured.signal?.reason), { once: true });
+      if (String(_input).endsWith("/action")) posts++;
+      requestStarted.resolve();return response.promise;
+    };
+    const harness = objectiveHarness("Reach gym", recorder, "http://127.0.0.1:8812", fetchFn);
+    const state = recorder.recordState(game);const set = harness.tools.find((tool) => tool.name === "set_objective");const tool = harness.tools.find((item) => item.name === operation);
+    if (!set || !tool) throw new Error("missing operation");
+    await set.execute("s", { ...request, evidence: [state.seq] });
+    const controller = new AbortController();
+    const pending = tool.execute("operation", operation === "press" ? { buttons: ["A"] } : { status: "completed", evidence: [state.seq], obstacle: "", next_decision: "Next", retry_reason: "" }, controller.signal);
+    const rejection = expect(pending).rejects.toThrow(/abort/i);
+    await requestStarted.promise;controller.abort();
+    const cancelled = captured.signal?.aborted;
+    response.resolve(new Response(JSON.stringify(game)));
+    await rejection;
+    expect(cancelled, operation).toBe(true);expect(posts, operation).toBe(0);
+    expect(events.filter((event) => event.type === "objective_attempt"), operation).toEqual([]);
+  }
+});
+
+
+it("supplies the current objective to the pinned model loop after history pruning", async () => {
+  const { recorder } = setup();const server = serving();const assembly = objectiveHarness("Reach gym", recorder, "http://127.0.0.1:8812", server.fetchFn);
+  const state = recorder.recordState(game);const set = assembly.tools.find((tool) => tool.name === "set_objective");if (!set) throw new Error("missing setter");
+  await set.execute("s", { ...request, evidence: [state.seq] });
+  const seen: Message[][] = [];
+  const usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } };
+  const model: Model<"openai-completions"> = { id: "test-lane", name: "test-lane", api: "openai-completions", provider: "test", baseUrl: "http://127.0.0.1:1/v1", reasoning: false, input: ["text"], contextWindow: 1000, maxTokens: 100, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } };
+  const response: AssistantMessage = { role: "assistant", content: [{ type: "toolCall", id: "current", name: "get_objectives", arguments: {} }], api: "openai-completions", provider: "test", model: "test-lane", usage, stopReason: "toolUse", timestamp: 0 };
+  const messages: AgentMessage[] = [{ role: "user", content: "Play", timestamp: 0 }];
+  for (let i = 0; i < 21; i++) {
+    messages.push({ ...response, content: [{ type: "text", text: `old-${String(i)}` }, { type: "toolCall", id: `old-${String(i)}`, name: "get_objectives", arguments: {} }] });
+    messages.push({ role: "toolResult", toolCallId: `old-${String(i)}`, toolName: "get_objectives", content: [{ type: "text", text: "historical objective" }], isError: false, timestamp: 0 });
+  }
+  const controller = new AbortController();
+  const governor = new Governor({ limits: { maxTurns: 1, maxWallMs: 1000, failureLimit: 3 }, retry: () => undefined, abort: () => controller.abort(), now: () => 0 });
+  const streamFn: StreamFn = (_model, context) => { seen.push([...context.messages]);const stream = createAssistantMessageEventStream();stream.push({ type: "done", reason: "toolUse", message: response });return stream; };
+  const loop = piLoop({ systemPrompt: "Play", tools: assembly.tools, base: { model, convertToLlm: (messages) => messages as Message[] }, governor, transformContext: assembly.transformContext, emit: () => undefined, signal: controller.signal, streamFn });
+  await loop.resume(messages);
+  expect(seen).toHaveLength(1);
+  expect(JSON.stringify(seen[0])).not.toContain('"text":"old-0"');
+  expect(seen[0]?.at(-1)).toMatchObject({ role: "user" });
+  expect(JSON.stringify(seen[0]?.at(-1))).toContain("HARNESS OBJECTIVE RECORD");
+  expect(JSON.stringify(seen[0]?.at(-1))).toContain("Get starter");
 });

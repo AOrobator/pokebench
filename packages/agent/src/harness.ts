@@ -10,43 +10,56 @@ import {
 import type { AssistantMessage, ToolResultMessage } from "@mariozechner/pi-ai";
 import type { RunEndReason } from "./events.js";
 
-export interface Window {
-  readonly turns: number;
-  readonly images: number;
+export interface Chunked {
+  readonly max: number;
+  readonly chunk: number;
 }
 
-export const WINDOW: Window = { turns: 20, images: 3 };
+export interface Window {
+  readonly turns: Chunked;
+  readonly results: Chunked;
+}
+
+// Boundaries move in whole chunks so the start of the prompt stays identical
+// for several turns and the inference server can reuse its prompt cache.
+export const WINDOW: Window = { turns: { max: 20, chunk: 10 }, results: { max: 6, chunk: 3 } };
 export const OMITTED_FRAME = "[older screenshot omitted]";
 export const NUDGE = "Keep playing: call observe or press. Only tool calls advance the game.";
 
-function withoutImages(message: ToolResultMessage, keep: number): ToolResultMessage {
-  let kept = 0;
-  const content = [...message.content]
-    .reverse()
-    .map((part) => {
-      if (part.type !== "image") return part;
-      kept += 1;
-      return kept <= keep ? part : { type: "text" as const, text: OMITTED_FRAME };
-    })
-    .reverse();
-  return { ...message, content };
+export function keepCount(n: number, { max, chunk }: Chunked): number {
+  if (n <= max) return n;
+  const base = max - chunk;
+  return base + ((n - base - 1) % chunk) + 1;
+}
+
+function summary(text: string): string {
+  const location = /^Current Location: (.+)$/m.exec(text)?.[1];
+  const position = /^Position: (.+)$/m.exec(text)?.[1];
+  const [first = ""] = text.split("\n");
+  if (location === undefined) return first.slice(0, 200);
+  const action = first.startsWith("pressed ") ? first : "observed";
+  return `${action} · ${location}${position === undefined ? "" : ` (${position})`}`;
+}
+
+function collapsed(message: ToolResultMessage): ToolResultMessage {
+  const text = message.content.flatMap((part) => (part.type === "text" ? [part.text] : [])).join("\n");
+  const hadImage = message.content.some((part) => part.type === "image");
+  return { ...message, content: [{ type: "text", text: hadImage ? `${summary(text)} ${OMITTED_FRAME}` : summary(text) }] };
 }
 
 export function slideWindow(messages: AgentMessage[], window: Window = WINDOW): AgentMessage[] {
   const [task, ...rest] = messages;
   if (task === undefined) return messages;
-  const starts = rest.flatMap((message, i) => (message.role === "assistant" ? [i] : []));
-  const from = starts.length > window.turns ? (starts[starts.length - window.turns] ?? 0) : 0;
-  const kept = rest.slice(from);
-  let images = 0;
-  for (let i = kept.length - 1; i >= 0; i -= 1) {
-    const message = kept[i];
-    if (message?.role !== "toolResult") continue;
-    const count = message.content.filter((part) => part.type === "image").length;
-    if (images + count > window.images) kept[i] = withoutImages(message, Math.max(0, window.images - images));
-    images += count;
-  }
-  return [task, ...kept];
+  const results = rest.filter((message) => message.role === "toolResult").length;
+  let collapse = results - keepCount(results, window.results);
+  const shown = rest.map((message) => {
+    if (message.role !== "toolResult" || collapse <= 0) return message;
+    collapse -= 1;
+    return collapsed(message);
+  });
+  const starts = shown.flatMap((message, i) => (message.role === "assistant" ? [i] : []));
+  const from = starts[starts.length - keepCount(starts.length, window.turns)] ?? 0;
+  return [task, ...shown.slice(from)];
 }
 
 export interface Limits {

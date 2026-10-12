@@ -8,7 +8,7 @@ import type { RunRecorder } from "./recorder.js";
 import { parseEvent, type RunEvent } from "./events.js";
 import { OBJECTIVE_PROMPT } from "./objective-tools.js";
 
-const owner = vi.hoisted(() => ({ files: new Map<string, string[]>(), loop: null as PiLoopOptions | null, context: "", resolve: undefined as ((plan: RunPlan) => void) | undefined, reject: undefined as ((error: unknown) => void) | undefined }));
+const owner = vi.hoisted(() => ({ files: new Map<string, string[]>(), loop: null as PiLoopOptions | null, start: null as Extract<RunEvent, { type: "run_start" }> | null, context: "", resolve: undefined as ((plan: RunPlan) => void) | undefined, reject: undefined as ((error: unknown) => void) | undefined }));
 vi.mock("node:fs", async (load) => {
   const actual = await load<typeof import("node:fs")>();
   return { ...actual, mkdirSync: () => undefined, readdirSync: () => [],
@@ -40,13 +40,19 @@ vi.mock("./run.js", async (load) => {
       const root = "/test-owned/objective-entrypoint";
       const result = await actual.withRun({ ...plan, runsRoot: root }, host, new FrameStore(root, 1000, () => undefined), body);
       const events = readFileSync(`${root}/${plan.runId}/events.jsonl`, "utf8").trim().split("\n").map((line) => parseEvent(line));
+      const starts = events.filter((event: RunEvent) => event.type === "run_start");
+      expect(starts).toHaveLength(1);
+      const start = starts[0];
+      if (!start) throw new Error("missing recorded run_start in test-owned log");
+      expect({ prompt: start.system_prompt, tools: start.tools, features: start.harness_features }).toEqual({ prompt: plan.systemPrompt, tools: plan.tools, features: plan.harnessFeatures });
+      owner.start = start;
       expect(events.filter((event: RunEvent) => event.type === "run_end")).toHaveLength(1);
       owner.resolve?.(plan);return result;
     } catch (error) { owner.reject?.(error);throw error; }
   } };
 });
 function currentLoop(): PiLoopOptions | null { return owner.loop; }
-afterEach(() => { vi.unstubAllGlobals();vi.unstubAllEnvs();vi.restoreAllMocks();owner.files.clear();owner.loop = null; });
+afterEach(() => { vi.unstubAllGlobals();vi.unstubAllEnvs();vi.restoreAllMocks();owner.files.clear();owner.loop = null;owner.start = null; });
 it.each([[undefined, undefined], [undefined, "0"], ["0", undefined], ["0", "0"]])("actual play entrypoint agrees on tools, context, prompt and metadata (objectives=%s, interface=%s)", async (flag, interfaceFlag) => {
   vi.resetModules();owner.files.clear();owner.loop = null;
   const done = new Promise<RunPlan>((resolve, reject) => { owner.resolve = resolve;owner.reject = reject; });
@@ -56,22 +62,25 @@ it.each([[undefined, undefined], [undefined, "0"], ["0", undefined], ["0", "0"]]
   vi.spyOn(console, "log").mockImplementation(() => undefined);
   await import("./live.js");const plan = await done;const loop = currentLoop();
   if (!loop) throw new Error("entrypoint did not create model loop");
+  const start = owner.start;
+  if (!start) throw new Error("entrypoint did not record run_start");
   const enabled = flag !== "0";
   const tools = ["observe", "press", ...(enabled ? ["get_objectives", "set_objective", "update_objective"] : [])];
   expect(loop.tools.map((tool) => tool.name)).toEqual(tools);expect(plan.tools).toEqual(tools);
   expect(plan.systemPrompt.includes("Model memory is a hypothesis")).toBe(enabled);
   expect(plan.harnessFeatures.includes("objective-tracking-v1")).toBe(enabled);
   expect(plan.harnessFeatures.includes("repeat-attempt-guard-v1")).toBe(enabled);
-  expect(loop.systemPrompt).toBe(plan.systemPrompt);
+  expect(loop.systemPrompt).toBe(start.system_prompt);
+  expect(loop.tools.map((tool) => tool.name)).toEqual(start.tools);
   expect(owner.context.includes("HARNESS OBJECTIVE RECORD")).toBe(enabled);
   const documented = interfaceFlag !== "0";
-  expect(plan.harnessFeatures.includes("contextual-interface-docs-v1")).toBe(documented);
+  expect(start.harness_features.includes("contextual-interface-docs-v1")).toBe(documented);
   expect(loop.systemPrompt.includes("Buttons are contextual")).toBe(documented);
   expect(loop.systemPrompt.includes("not phone-style cycling groups")).toBe(documented);
   expect(loop.systemPrompt.includes("START moves the cursor to OK")).toBe(documented);
   expect(loop.systemPrompt.includes("editor text is not a confirmed trainer name")).toBe(documented);
   if (!documented) {
-    const prompt = enabled ? plan.systemPrompt.slice(0, -(OBJECTIVE_PROMPT.length + 2)) : plan.systemPrompt;
+    const prompt = enabled ? start.system_prompt.slice(0, -(OBJECTIVE_PROMPT.length + 2)) : start.system_prompt;
     expect(createHash("sha256").update(prompt).digest("hex")).toBe("39af4e89110a2513733b420995fcff01c93b17f3e34dcffa11a7cbcc2f32d7e8");
   }
 });

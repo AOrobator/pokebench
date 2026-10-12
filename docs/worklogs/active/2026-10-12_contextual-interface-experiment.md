@@ -63,6 +63,10 @@ None yet.
 
 Candidate has green gates and four performed/restored mutants. Freeze source commit, full prompt and source control references for selected-roster review. No independent review or landing claimed yet. Python source is unchanged and its full suite ran from canonical main with the identical reader revision; no shared editable-venv relink was performed.
 
+Round1 complete: fast/swarm/Grok LGTM, fresh Sol/Astra BLOCKING on the actual recorded run_start proof gap. Dedicated Claude-review namespace is logged out; alternate Cursor Claude has current quota failure, retained and replaced by the documented paired independent fallback with reduced vendor diversity. Production prompt/control semantics and baseline bytes were supported. Bounded fix is test-only: select exactly one recorded start, compare exact prompt/tools/features with the plan and loop, and hash the actual recorded baseline prompt. Two additional recorded-boundary mutants (valid wrong prompt and empty feature list in withRun) fail those exact consumer assertions and restore. Refresh TS gates and cumulative review before launch; no production scope growth.
+
+During runs, the tracked source/worklog remains fixed and clean so every arm records the same harness commit. Ongoing live worklog updates are in `runs/launch-receipts/interface-docs-experiment/progress.md`, linked to the manifest and original run IDs; after all terminal results, reconcile the tracked worklog and findings. This prevents documentation edits from making later trials appear to use a dirty harness.
+
 ## Boy Scout Log
 
 No unrelated changes planned.

@@ -74,6 +74,7 @@ describe("StateMilestones", () => {
       "LITTLEROOT_TOWN",
       "PLAYER_HOUSE_ENTERED",
       "PLAYER_BEDROOM",
+      "CLOCK_SET",
       "ROUTE_101",
       "STARTER_CHOSEN",
       "OLDALE_TOWN",
@@ -87,4 +88,19 @@ describe("StateMilestones", () => {
       "STONE_BADGE",
     ]);
   });
+});
+
+it("counts a confirmed clock from the existing intro script variable, once", async () => {
+  const trigger = (variable: number, current_value: number | null) => ({ x: 1, y: 1, elevation: 0, variable, required_value: 5, current_value, condition_met: false, script_pointer: 0x08000000 });
+  const states = [at("LITTLEROOT TOWN MAYS HOUSE 2F"), ...[5, 6, 7].map((value) => at("LITTLEROOT TOWN MAYS HOUSE 2F", { world_context: { objects: [], triggers: [trigger(0x4092, value)], dialogue: null } }))];
+  expect((await source([at("LITTLEROOT TOWN", { world_context: { objects: [], triggers: [trigger(0x4092, 7)], dialogue: null } })]).poll()).map((m) => m.name)).toContain("CLOCK_SET");
+  const tracker = source(states);
+  expect((await tracker.poll()).map((m) => m.name)).not.toContain("CLOCK_SET");
+  expect(await tracker.poll()).toEqual([]);
+  expect((await tracker.poll()).map((m) => m.name)).toEqual(["CLOCK_SET"]);
+  expect(await tracker.poll()).toEqual([]);
+  for (const [variable, value, started] of [[0x4091, 6, true], [0x4092, null, true], [0x4092, 8, true], [0x4092, 6, false]] as const) {
+    const s = at("LITTLEROOT TOWN", { started, world_context: { objects: [], triggers: [trigger(variable, value)], dialogue: null } });
+    expect((await source([s]).poll()).map((m) => m.name)).not.toContain("CLOCK_SET");
+  }
 });

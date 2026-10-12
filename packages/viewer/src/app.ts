@@ -78,6 +78,8 @@ export class App {
   private stream: StreamLike | null = null;
   private baseline: Baseline | null = null;
   private baselineRequest = 0;
+  private best: Baseline | null = null;
+  private comparisonRequest = 0;
   private problems: string[] = [];
   private logged = 0;
   private screenTick = 0;
@@ -220,6 +222,30 @@ export class App {
     this.render();
   }
 
+  private async loadComparisons(runId: string): Promise<void> {
+    const request = ++this.comparisonRequest;
+    const baselineRequest = this.baselineRequest;
+    try {
+      const value = await this.deps.fetchJson(`/api/runs/${encodeURIComponent(runId)}/comparisons`);
+      const record = value as { candidates?: unknown; baseline?: unknown; best?: unknown };
+      if (!Array.isArray(record.candidates)) throw new Error("malformed comparisons");
+      const candidates = record.candidates.map(baselineOf);
+      const baseline = record.baseline === null ? null : baselineOf(record.baseline);
+      const best = record.best === null ? null : baselineOf(record.best);
+      if (request !== this.comparisonRequest) return;
+      this.best = best;
+      // Do not override a baseline the user chose while this request was pending.
+      if (baselineRequest === this.baselineRequest) {
+        this.baseline = baseline;
+        this.picker("baseline").replaceChildren(option(this.doc, "", "none"), ...candidates.map((c) => option(this.doc, c.run, c.run)));
+        this.picker("baseline").value = baseline?.run ?? "";
+      }
+      this.render();
+    } catch (error) {
+      if (request === this.comparisonRequest) this.problem(`comparisons: ${String(error)}`);
+    }
+  }
+
   select(runId: string): void {
     this.stream?.close();
     this.runId = runId;
@@ -229,6 +255,7 @@ export class App {
     this.clock = null;
     this.mode = "loading";
     this.baseline = null;
+    this.best = null;
     this.baselineRequest += 1;
     this.problems = [];
     this.ui("problems").hidden = true;
@@ -244,6 +271,7 @@ export class App {
       ...this.runs.filter((run) => run.id !== runId).map((run) => option(this.doc, run.id, run.id)),
     );
     this.doc.location.hash = `run=${encodeURIComponent(runId)}`;
+    void this.loadComparisons(runId);
     const stream = this.deps.openStream(`/api/runs/${encodeURIComponent(runId)}/events`);
     this.stream = stream;
     stream.addEventListener("ev", (message) => {
@@ -388,7 +416,7 @@ export class App {
     this.setHtml("objective", objectivePanel(view));
     this.setHtml("budgets", budgets(view, nowMs));
     this.setHtml("counters", counters(view));
-    const split = splits(view, this.baseline, nowMs);
+    const split = splits(view, this.baseline, nowMs, this.best);
     this.setHtml("splits-summary", split.summary);
     this.setHtml("splits", split.table);
     this.setHtml("lanes", lanesSvg(view, nowMs));

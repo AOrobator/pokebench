@@ -25,6 +25,8 @@ export const MILESTONES: readonly Milestone[] = [
   { name: "LITTLEROOT_TOWN", reached: at("LITTLEROOT TOWN") },
   { name: "PLAYER_HOUSE_ENTERED", reached: (s) => /^LITTLEROOT TOWN (BRENDANS|MAYS) HOUSE 1F$/.test(s.location ?? "") },
   { name: "PLAYER_BEDROOM", reached: (s) => /^LITTLEROOT TOWN (BRENDANS|MAYS) HOUSE 2F$/.test(s.location ?? "") },
+  // Intro state6 follows confirmed clock;7 follows Mom. Missing trigger is unknown.
+  { name: "CLOCK_SET", reached: (s) => s.started && (s.world_context?.triggers.some((t) => t.variable === 0x4092 && (t.current_value === 6 || t.current_value === 7)) ?? false) },
   { name: "ROUTE_101", reached: at("ROUTE 101") },
   { name: "STARTER_CHOSEN", reached: (s) => s.party.length > 0 },
   { name: "OLDALE_TOWN", reached: at("OLDALE TOWN") },

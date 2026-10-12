@@ -54,6 +54,7 @@ async function harness(hash = "", runs: unknown[] = RUNS): Promise<Harness> {
     fetchJson: (url) => {
       fetched.push(url);
       if (url === "/api/runs") return runs.length === 1 && runs[0] === "fail" ? Promise.reject(new Error("offline")) : Promise.resolve([...runs]);
+      if (url.endsWith("/comparisons")) return Promise.resolve({ candidates: [{run: "2026-10-11T21-00-00_old", milestones: []}], baseline: null, best: null });
       if (url.endsWith("/milestones")) {
         return Promise.resolve({ run: "2026-10-11T21-00-00_old", milestones: [{ name: "GAME_RUNNING", offsetMs: 5 }, { name: "PLAYER_NAME_SET", offsetMs: 20_000 }] });
       }
@@ -249,7 +250,6 @@ describe("viewer app", () => {
     const baseline = ui("baseline") as HTMLSelectElement;
     expect([...baseline.querySelectorAll("option")].map((option) => option.value)).toEqual([
       "",
-      "2026-10-11T23-00-00_live",
       "2026-10-11T21-00-00_old",
     ]);
     baseline.value = "2026-10-11T21-00-00_old";
@@ -260,7 +260,7 @@ describe("viewer app", () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     app.tick(60_000);
     expect(ui("splits").innerHTML).toContain("d-ahead");
-    expect(ui("splits-summary").innerHTML).toContain("all 2 baseline splits reached");
+    expect(ui("splits-summary").innerHTML).toContain("vs baseline");
     baseline.value = "";
     baseline.dispatchEvent(new Event("change"));
     app.tick(0);
@@ -292,7 +292,7 @@ describe("viewer app", () => {
     baseline.dispatchEvent(new Event("change"));
     baseline.value = "";
     baseline.dispatchEvent(new Event("change"));
-    must(pending[0])({ run: "2026-10-11T21-00-00_old", milestones: [{ name: "GAME_RUNNING", offsetMs: 5 }] });
+    must(pending[1])({ run: "2026-10-11T21-00-00_old", milestones: [{ name: "GAME_RUNNING", offsetMs: 5 }] });
     await new Promise((resolve) => setTimeout(resolve, 0));
     app.tick(0);
     expect(ui("splits-summary").innerHTML).toContain("no baseline");
@@ -452,7 +452,7 @@ describe("boot", () => {
     expect(app.mode).toBe("loading");
     intervals[1]?.();
     await vi.waitFor(() => {
-      expect(win.fetch).toHaveBeenCalledTimes(2);
+      expect(win.fetch).toHaveBeenCalledTimes(3);
     });
   });
 
@@ -555,4 +555,40 @@ it("shows streamed objective history live and reconstructs it when replay seeks"
   feed(stream, [end]);stream.send("done", {});expect(app.mode).toBe("replay");
   app.clock?.seek(BASE_MS);app.tick(0);expect(ui("objective").textContent).toContain("No objective recorded");
   app.clock?.seek(BASE_MS + 250);app.tick(0);expect(ui("objective").textContent).toContain("Set clock");expect(ui("objective").textContent).toContain("Attempt history (1)");expect(ui("objective").textContent).toContain("Reassess approach");
+});
+
+it("automatically renders current vs baseline and best without touching the picker", async () => {
+  document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
+  const streams: FakeStream[] = [];
+  const reference = { run: "previous", milestones: [{name:"PLAYER_NAME_SET", offsetMs:5000}] };
+  const best = { run: "best", milestones: [{name:"PLAYER_NAME_SET", offsetMs:2000}] };
+  const app = await mountApp(document, {
+    fetchJson: (url) => Promise.resolve(url === "/api/runs" ? RUNS : { candidates:[reference,best], baseline:reference, best }),
+    openStream: (url) => { const s = new FakeStream(url); streams.push(s); return s; },
+    now: () => BASE_MS + 6000,
+    hash:"",
+  });
+  feed(must(streams[0]), fullRun().events);
+  app.clock?.seek(BASE_MS + 6000);
+  app.tick(0);
+  expect((ui("baseline") as HTMLSelectElement).value).toBe("previous");
+  expect(ui("splits").textContent).toContain("Baseline: previous");
+  expect(ui("splits").textContent).toContain("Best historical run: best");
+  const row = [...ui("splits").querySelectorAll("tr")].find((r) => r.firstElementChild?.textContent === "player name set");
+  expect([...must(row).querySelectorAll("td")].map((td) => td.textContent)).toEqual(["player name set", "0:00:03", "0:00:05−0:01", "0:00:02+0:01"]);
+});
+
+it("does not apply comparisons from a superseded run selection", async () => {
+  document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
+  const pending: ((value: unknown) => void)[] = [];
+  const app = await mountApp(document, {
+    fetchJson: (url) => url === "/api/runs" ? Promise.resolve(RUNS) : new Promise((resolve) => pending.push(resolve)),
+    openStream: (url) => new FakeStream(url), now:()=>BASE_MS, hash:"",
+  });
+  app.select(M4_ID);
+  must(pending[1])({candidates:[],baseline:null,best:null});
+  must(pending[0])({candidates:[{run:"stale",milestones:[]}],baseline:{run:"stale",milestones:[]},best:{run:"stale",milestones:[]}});
+  await Promise.resolve();
+  expect((ui("baseline") as HTMLSelectElement).value).toBe("");
+  expect(ui("splits").textContent).not.toContain("stale");
 });

@@ -139,3 +139,44 @@ it("rejects manual probes and legacy vendor states as benchmark baselines", () =
   writeRun(runsRoot, "legacy", legacy);
   expect(() => baselineOf(runsRoot, "legacy")).toThrow(/unverified historical/);
 });
+
+it("selects previous same-model baseline and deepest then fastest best, from valid completed same-start runs", async () => {
+  const { comparisonsOf } = await import("./runs.js");
+  const r = root();
+  const logged = (offset: number, names: string[], model = "think-swarm", start_state = START.start_state) => {
+    const log = new Log();
+    log.add(offset, { ...START, model: { ...START.model, id: model }, start_state });
+    log.add(offset + 1, { type: "milestone", turn: 0, name: "GAME_RUNNING", server_timestamp: 1 });
+    names.forEach((name, i) => log.add(offset + (i + 1) * 1000, { type: "milestone", turn: 1, name, server_timestamp: 2 }));
+    const end = fullRun().events.at(-1);
+    if (end?.type !== "run_end") throw new Error("fixture end");
+    log.add(offset + 10000, { type: end.type, turn: end.turn, reason: end.reason, furthest_milestone: end.furthest_milestone, turns: end.turns, wall_ms: end.wall_ms, tokens: end.tokens, frames: end.frames });
+    return log;
+  };
+  writeRun(r, "current", logged(50000, ["PLAYER_NAME_SET"]));
+  writeRun(r, "previous", logged(30000, ["PLAYER_NAME_SET"]));
+  writeRun(r, "deepest", logged(0, ["PLAYER_NAME_SET", "PLAYER_BEDROOM"]));
+  writeRun(r, "other-model", logged(40000, ["PLAYER_NAME_SET"], "other"));
+  writeRun(r, "wrong-start", logged(45000, ["STONE_BADGE"], "think-swarm", {kind:"save_state",path:"a",sha1:"a".repeat(40)}));
+  writeRun(r, "probe", logged(46000, ["STONE_BADGE"]));
+  const probePath = join(r, "probe", "events.jsonl");
+  const fs = await import("node:fs");
+  const probeRows = fs.readFileSync(probePath, "utf8").split("\n").filter(Boolean).map((line) => JSON.parse(line) as Record<string, unknown>);
+  const first = probeRows[0];
+  if (first === undefined) throw new Error("fixture start");
+  first.harness_features = ["probe"];
+  fs.writeFileSync(probePath, probeRows.map((row) => JSON.stringify(row)).join("\n") + "\n");
+  writeRun(r, "live", liveLog());
+  const slower = logged(10000, ["PLAYER_NAME_SET", "PLAYER_BEDROOM"]);
+  const milestone = slower.events.find((e) => e.type === "milestone" && e.name === "PLAYER_BEDROOM");
+  if (milestone === undefined) throw new Error("fixture split");
+  const slowerPath = writeRun(r, "slower-deep", slower);
+  fs.writeFileSync(slowerPath, fs.readFileSync(slowerPath, "utf8").replace(milestone.t, "2026-10-11T22:00:19.000-04:00"));
+  const corruptPath = writeRun(r, "corrupt", logged(47000, ["STONE_BADGE"]));
+  appendFileSync(corruptPath, "invalid\n");
+  writeRun(r, "unknown", logged(47000, ["SOME_UNVERIFIED_PROGRESS"]));
+  const result = comparisonsOf(r, "current");
+  expect(result.baseline?.run).toBe("previous");
+  expect(result.best?.run).toBe("deepest");
+  expect(result.candidates.map((c) => c.run).sort()).toEqual(["deepest", "other-model", "previous", "slower-deep"]);
+});

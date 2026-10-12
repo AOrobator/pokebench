@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { join } from "node:path";
-import { BaselineError, RunsError, baselineOf, eventsPath, listRuns, liveScreenPort, readFrom, runDir } from "./runs.js";
+import { BaselineError, RunsError, baselineOf, comparisonsOf, eventsPath, listRuns, liveScreenPort, readFrom, runDir } from "./runs.js";
 
 export const HOST = "127.0.0.1";
 // Browser code the page may load; everything else in dist/ stays private.
@@ -170,6 +170,10 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
       const path = eventsPath(options.runsRoot, id);
       if (!existsSync(path)) throw new RunsError(`run ${id} has no events.jsonl`);
       streamEvents(req, res, path, options.pollMs ?? 250);
+      return;
+    }
+    if (parts.length === 4 && leaf === "comparisons") {
+      sendJson(res, 200, comparisonsOf(options.runsRoot, id));
       return;
     }
     if (parts.length === 4 && leaf === "milestones") {

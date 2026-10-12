@@ -87,6 +87,8 @@ function samePlace(a: StateEvent, b: StateEvent): boolean {
   return a.location === b.location && a.position?.x === b.position?.x && a.position?.y === b.position?.y;
 }
 
+export const MILESTONE_ORDER = ["GAME_RUNNING", "PLAYER_NAME_SET", "INTRO_CUTSCENE_COMPLETE", "LITTLEROOT_TOWN", "PLAYER_HOUSE_ENTERED", "PLAYER_BEDROOM", "CLOCK_SET", "ROUTE_101", "STARTER_CHOSEN", "OLDALE_TOWN", "ROUTE_103", "ROUTE_102", "PETALBURG_CITY", "ROUTE_104", "PETALBURG_WOODS", "RUSTBORO_CITY", "RUSTBORO_CITY_GYM", "STONE_BADGE"] as const;
+
 export class RunView {
   readonly events: RunEvent[] = [];
   start: RunStartEvent | null = null;
@@ -111,7 +113,7 @@ export class RunView {
   toolErrors = 0;
   compactions = 0;
   stuck: { now: number; max: number } | null = null;
-  readonly milestones: { name: string; ms: number; seq: number }[] = [];
+  readonly milestones: { name: string; ms: number; seq: number; derived?: boolean }[] = [];
   readonly presses: Press[] = [];
   readonly thinkingSpans: Span[] = [];
   streaming = { thinking: "", text: "" };
@@ -174,7 +176,7 @@ export class RunView {
         });
         break;
       case "milestone":
-        this.milestones.push({ name: event.name, ms, seq: event.seq });
+        if (!this.milestones.some((m) => m.name === event.name)) this.milestones.push({ name: event.name, ms, seq: event.seq });
         break;
       case "retry":
         this.retry = { count: (this.retry?.count ?? 0) + 1, attempt: event.attempt, limit: event.limit };
@@ -242,6 +244,11 @@ export class RunView {
     if (!("started" in event)) {
       this.legacyState = true;
       return;
+    }
+    // Older logs already recorded this coherent RAM script variable. Preserve
+    // source-state sequence and first observation time; never rewrite the log.
+    if (event.started && event.world_context?.triggers.some((t) => t.variable === 0x4092 && (t.current_value === 6 || t.current_value === 7)) && !this.milestones.some((m) => m.name === "CLOCK_SET")) {
+      this.milestones.push({ name: "CLOCK_SET", ms: eventMs(event), seq: event.seq, derived: true });
     }
     const previous = this.state;
     this.state = event;

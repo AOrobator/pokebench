@@ -3,6 +3,7 @@ import { closeSync, existsSync, fstatSync, openSync, readSync, readdirSync } fro
 import { join } from "node:path";
 import { RUN_ID_PATTERN, parseEvent, type RunEvent } from "@pokebench/agent/events";
 import type { Baseline } from "./panels.js";
+import { RunView, MILESTONE_ORDER } from "./model.js";
 
 export class RunsError extends Error {
   override readonly name = "RunsError";
@@ -165,15 +166,15 @@ export function baselineOf(runsRoot: string, runId: string): Baseline {
   const start = readStart(runsRoot, runId);
   if (start.harness_features.includes("probe")) throw new BaselineError("probe sessions cannot be benchmark baselines");
   const startMs = Date.parse(start.t);
-  const milestones: { name: string; offsetMs: number }[] = [];
+  const view = new RunView();
   // A comparison must rest on the baseline run's own, fully valid log (PB1).
   for (const result of readFrom(eventsPath(runsRoot, runId), 0, 0).results) {
     if (!result.ok) throw new BaselineError(`baseline ${runId} line ${String(result.line)}: ${result.problem}`);
     if (result.event.run !== runId) throw new BaselineError(`baseline ${runId} holds an event for run ${result.event.run}`);
     if (result.event.type === "state" && !("started" in result.event)) throw new BaselineError("baseline uses unverified historical vendor state");
-    if (result.event.type === "milestone") milestones.push({ name: result.event.name, offsetMs: Date.parse(result.event.t) - startMs });
+    view.apply(result.event);
   }
-  return { run: runId, milestones };
+  return { run: runId, milestones: view.milestones.map((m) => ({ name: m.name, offsetMs: m.ms - startMs, ...(m.derived === true ? { derived: true } : {}) })) };
 }
 
 // The live picture is the one thing the viewer reads outside the log: the
@@ -181,4 +182,51 @@ export function baselineOf(runsRoot: string, runId: string): Baseline {
 export function liveScreenPort(runsRoot: string, runId: string): number | null {
   const start = readStart(runsRoot, runId);
   return summarize(runsRoot, runId).ended ? null : start.isolation.port;
+}
+
+export interface ComparisonRun extends Baseline {
+  readonly model: string;
+  readonly started: string;
+  readonly harness: string;
+  readonly features: readonly string[];
+}
+
+export interface Comparisons {
+  readonly candidates: readonly ComparisonRun[];
+  readonly baseline: ComparisonRun | null;
+  readonly best: ComparisonRun | null;
+}
+
+function sameStart(a: ReturnType<typeof readStart>, b: ReturnType<typeof readStart>): boolean {
+  return a.start_state.kind === "boot" ? b.start_state.kind === "boot" : b.start_state.kind === "save_state" && a.start_state.sha1 === b.start_state.sha1;
+}
+
+// Once per selection, not per animation tick: validate each candidate's log.
+// DNFs remain eligible for partial splits; probes and unverified logs do not.
+export function comparisonsOf(runsRoot: string, runId: string): Comparisons {
+  const current = readStart(runsRoot, runId);
+  const candidates: ComparisonRun[] = [];
+  if (current.harness_features.includes("probe")) return { candidates, baseline: null, best: null };
+  for (const summary of listRuns(runsRoot)) {
+    if (summary.id === runId || !summary.ended || summary.problem !== null) continue;
+    try {
+      const start = readStart(runsRoot, summary.id);
+      if (!sameStart(current, start)) continue;
+      const baseline = baselineOf(runsRoot, summary.id);
+      if (!baseline.milestones.some((m) => MILESTONE_ORDER.indexOf(m.name as typeof MILESTONE_ORDER[number]) > 0)) continue;
+      candidates.push({ ...baseline, model: start.model.id, started: start.t, harness: start.harness.commit, features: start.harness_features });
+    } catch (error) {
+      if (!(error instanceof BaselineError || error instanceof RunsError)) throw error;
+    }
+  }
+  candidates.sort((a, b) => Date.parse(b.started) - Date.parse(a.started) || a.run.localeCompare(b.run));
+  const previous = candidates.filter((c) => Date.parse(c.started) < Date.parse(current.t));
+  const baseline = previous.find((c) => c.model === current.model.id) ?? previous[0] ?? null;
+  const score = (run: ComparisonRun) => {
+    const deepest = run.milestones.reduce((depth, m) => Math.max(depth, MILESTONE_ORDER.indexOf(m.name as typeof MILESTONE_ORDER[number])), -1);
+    const time = run.milestones.find((m) => m.name === MILESTONE_ORDER[deepest])?.offsetMs ?? Infinity;
+    return { deepest, time };
+  };
+  const best = candidates.slice().sort((a, b) => score(b).deepest - score(a).deepest || score(a).time - score(b).time || a.run.localeCompare(b.run))[0] ?? null;
+  return { candidates, baseline, best };
 }

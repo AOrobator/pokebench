@@ -232,3 +232,15 @@ describe("viewer server", () => {
     expect((await get(viewer, "/api/runs/missing/screen")).status).toBe(404);
   });
 });
+
+it("serves validated comparisons for the selected start, excluding self", async () => {
+  const { runsRoot, viewer } = await fixture();
+  writeRun(runsRoot, "selected", fullRun());
+  writeRun(runsRoot, "reference", fullRun());
+  const reply = await get(viewer, "/api/runs/selected/comparisons");
+  expect(reply.status).toBe(200);
+  const result = JSON.parse(reply.body.toString()) as { candidates: {run:string}[]; best:{run:string}; baseline:unknown };
+  expect(result.candidates.map((c) => c.run)).toEqual(["reference"]);
+  expect(result.best.run).toBe("reference");
+  expect(result.baseline).toBeNull(); // equal start timestamp, no previous run
+});

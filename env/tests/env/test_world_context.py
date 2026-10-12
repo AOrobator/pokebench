@@ -122,3 +122,26 @@ def test_map_scoped_id_one_can_be_mom_in_another_map() -> None:
     m.put(0x02037350 + 10, b"\x01")
     c = read_world_context(m.read, (7, 2), (1, 0), SAVE, decode_text)
     assert c.objects[0].sprite_kind == "MOM" and c.objects[0].local_id == 1
+
+
+def test_production_state_reader_delivers_context_to_model_and_json() -> None:
+    from pokebench_env.game_state import read_game_state
+    from pokebench_env.readout import format_readout, state_json
+    from tests.env.test_game_state import MAPS, OVERWORLD, SB1, game
+
+    m = game(OVERWORLD)
+    context = world()
+    context.put(COORDS + 2, struct.pack("<h", 2))
+    m.cells.update(context.cells)
+    m.put(0x02037350, bytes(16 * 0x24))
+    m.put(0x02037350, b"\x01\x00\x01")
+    m.put(0x02037350 + 0x18, b"\x44")
+    m.put(0x02037350 + 0x24, context.read(0x02037350, 0x24))
+    m.put(SB1 + 0x139C + (0x4050 - 0x4000) * 2, struct.pack("<H", 1))
+    state = read_game_state(m.read, MAPS)
+    assert state.world_context is not None, state
+    assert state.world_context.objects[0].sprite_kind == "TWIN", state.world_context
+    assert "sprite TWIN (graphics 6) at (7,2)" in format_readout(state), format_readout(state)
+    encoded = state_json(state)["world_context"]
+    assert encoded == state.world_context.json(), encoded
+    assert state.world_context.triggers[0].condition_met is False, state.world_context

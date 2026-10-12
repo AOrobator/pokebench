@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PokeBench Viewer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Press+Start+2P&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+<script type="module" src="/app/main.js"></script>
+</head>
+<body>
+<div class="pn">
+<header class="bar">
+  <span class="logo">POKEBENCH VIEWER</span>
+  <select data-ui="run" aria-label="Run"></select>
+  <span class="mode" data-ui="mode">LOADING</span>
+  <button type="button" data-ui="play" aria-label="Play or pause the replay" disabled>▶</button>
+  <select data-ui="speed" aria-label="Replay speed">
+    <option value="1">1×</option><option value="4">4×</option><option value="16">16×</option><option value="64">64×</option>
+  </select>
+  <input type="range" data-ui="scrub" min="0" max="1000" value="0" aria-label="Replay position" disabled>
+  <span class="clock" data-ui="clock"></span>
+  <div class="problems" data-ui="problems" hidden></div>
+</header>
+<main class="grid">
+  <section class="gbaStage">
+    <div data-ui="gba"></div>
+    <div class="screen-note" data-ui="screen-note"></div>
+    <div class="box red dialog">
+      <h3 data-ui="think-head">NO RUN</h3>
+      <div class="live-thought" data-ui="think-body"></div>
+    </div>
+  </section>
+  <section class="navopen">
+    <div class="brand" data-ui="brand">POKéNAV</div>
+    <div class="scrn"><h3>TRAINER CARD</h3><div data-ui="trainer"></div></div>
+    <div class="scrn"><h3>POKéMON</h3><div data-ui="party"></div></div>
+    <div class="scrn"><h3>BUDGETS</h3><div data-ui="budgets"></div></div>
+    <div class="scrn"><h3>COUNTERS</h3><div data-ui="counters"></div></div>
+    <div class="scrn wide splitsBox">
+      <details class="splitsD">
+        <summary><span class="ttl">SPLITS vs BASELINE</span><span class="nx" data-ui="splits-summary"></span></summary>
+        <div class="wrap">
+          <label class="pick">baseline <select data-ui="baseline" aria-label="Baseline run"></select></label>
+          <div data-ui="splits"></div>
+        </div>
+      </details>
+    </div>
+  </section>
+  <section class="box lanesBox">
+    <h3>TIMELINE · THINKING · TOOL CALLS · PRESSES · MILESTONES · ERRORS</h3>
+    <div data-ui="lanes"></div>
+  </section>
+  <section class="box logFull">
+    <h3>ACTION LOG</h3>
+    <div class="logcols">
+      <div class="log" data-ui="log"></div>
+      <div class="inspector" data-ui="inspector"></div>
+    </div>
+  </section>
+</main>
+</div>
+</body>
+</html>

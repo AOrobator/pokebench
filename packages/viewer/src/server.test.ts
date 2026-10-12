@@ -1,4 +1,4 @@
-import { appendFileSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer, request, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
@@ -66,7 +66,7 @@ function get(viewer: Viewer, path: string, options: { host?: string; method?: st
         const chunks: Buffer[] = [];
         res.on("data", (chunk: Buffer) => chunks.push(chunk));
         res.on("end", () => {
-          resolve({ status: res.statusCode ?? 0, type: String(res.headers["content-type"] ?? ""), body: Buffer.concat(chunks) });
+          resolve({ status: res.statusCode ?? 0, type: res.headers["content-type"] ?? "", body: Buffer.concat(chunks) });
         });
       },
     );
@@ -92,6 +92,16 @@ async function closedPort(): Promise<number> {
   await new Promise<void>((resolve) => server.close(() => { resolve(); }));
   return port;
 }
+
+describe("browser modules", () => {
+  it("import nothing at runtime but each other (the page has no bundler)", () => {
+    for (const name of BROWSER_MODULES) {
+      const source = readFileSync(new URL(`./${name}.ts`, import.meta.url), "utf8");
+      const runtimeImports = [...source.matchAll(/^import (?!type )[^;]*?from "([^"]+)";/gm)].map((match) => match[1]);
+      for (const specifier of runtimeImports) expect(specifier, `${name}.ts imports ${String(specifier)}`).toMatch(/^\.\/[a-z]+\.js$/);
+    }
+  });
+});
 
 describe("viewer server", () => {
   it("binds 127.0.0.1 only", async () => {
@@ -176,7 +186,13 @@ describe("viewer server", () => {
     const { runsRoot, viewer } = await fixture();
     writeRun(runsRoot, "base", fullRun());
     const reply = await get(viewer, "/api/runs/base/milestones");
-    expect(JSON.parse(reply.body.toString())).toMatchObject({ run: "base", milestones: [{ name: "GAME_RUNNING", offsetMs: 10 }] });
+    expect(JSON.parse(reply.body.toString())).toEqual({
+      run: "base",
+      milestones: [
+        { name: "GAME_RUNNING", offsetMs: 10 },
+        { name: "PLAYER_NAME_SET", offsetMs: 3100 },
+      ],
+    });
     expect((await get(viewer, "/api/runs/missing/milestones")).status).toBe(404);
   });
 

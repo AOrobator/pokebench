@@ -16,7 +16,7 @@ describe("RunView", () => {
     expect(view.end?.reason).toBe("budget");
     expect(view.turn).toBe(2);
     expect(view.isThinking).toBe(false);
-    expect(view.lastThought).toEqual({ turn: 2, text: "Again.", latencyMs: 4000 });
+    expect(view.lastThought).toEqual({ turn: 2, thinking: "Again.", reply: "", latencyMs: 4000 });
     expect(view.frame).toBe("frames/000009_0.png");
     expect(view.tokens).toEqual({ input: 1200, output: 400 });
     expect(view.latencies).toEqual([2000, 4000]);

@@ -1,11 +1,12 @@
 // @vitest-environment happy-dom
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { RunEvent } from "@pokebench/agent/events";
-import { BASE_MS, Log, START, fullRun, m4Run } from "../test-support/events.js";
+import { BASE_MS, Log, START, fullRun, m4Run, must } from "../test-support/events.js";
 import { boot, mountApp, type App, type AppDeps, type StreamLike } from "./app.js";
 
-const PAGE = readFileSync(new URL("../static/index.html", import.meta.url), "utf8");
+const PAGE = readFileSync(join(import.meta.dirname, "../static/index.html"), "utf8");
 const M4_ID = "2026-10-11T22-16-26_think-swarm_890b";
 
 class FakeStream implements StreamLike {
@@ -35,7 +36,7 @@ interface Harness {
   readonly app: App;
   readonly streams: FakeStream[];
   readonly fetched: string[];
-  setNow(ms: number): void;
+  readonly setNow: (ms: number) => void;
 }
 
 const RUNS = [
@@ -114,7 +115,7 @@ describe("viewer app", () => {
 
   it("replays the recorded M4 run end to end", async () => {
     const { app, streams } = await harness(`#run=${M4_ID}`);
-    const stream = streams[0]!;
+    const stream = must(streams[0]);
     const events = m4Run();
     feed(stream, events);
     stream.send("done", {});
@@ -147,8 +148,8 @@ describe("viewer app", () => {
 
   it("lights the GBA button while a press is held", async () => {
     const { app, streams } = await harness(`#run=${M4_ID}`);
-    feed(streams[0]!, m4Run());
-    const press = m4Run().find((event) => event.type === "button_press")!;
+    feed(must(streams[0]), m4Run());
+    const press = must(m4Run().find((event) => event.type === "button_press"));
     app.clock?.pause();
     app.clock?.seek(Date.parse(press.t) + 20);
     app.tick(0);
@@ -160,7 +161,7 @@ describe("viewer app", () => {
 
   it("drives the replay from the controls and seeks backwards", async () => {
     const { app, streams } = await harness(`#run=${M4_ID}`);
-    feed(streams[0]!, m4Run());
+    feed(must(streams[0]), m4Run());
     ui("play").click();
     expect(app.clock?.playing).toBe(false);
     const speed = ui("speed") as HTMLSelectElement;
@@ -180,9 +181,9 @@ describe("viewer app", () => {
 
   it("opens a log row's raw event in the inspector", async () => {
     const { app, streams } = await harness(`#run=${M4_ID}`);
-    feed(streams[0]!, m4Run());
+    feed(must(streams[0]), m4Run());
     app.tick(60_000);
-    const row = ui("log").querySelector<HTMLElement>('[data-seq="9"]')!;
+    const row = must(ui("log").querySelector<HTMLElement>('[data-seq="9"]'));
     row.click();
     expect(ui("inspector").textContent).toContain('"type": "tool_call"');
     expect(row.classList.contains("sel")).toBe(true);
@@ -193,7 +194,7 @@ describe("viewer app", () => {
   it("follows a live run with the live screen and the wall clock", async () => {
     const { app, streams, setNow } = await harness();
     const live = fullRun().events.slice(0, 4);
-    feed(streams[0]!, live);
+    feed(must(streams[0]), live);
     expect(app.mode).toBe("live");
     expect(ui("mode").textContent).toBe("LIVE");
     expect((ui("play") as HTMLButtonElement).disabled).toBe(true);
@@ -203,7 +204,7 @@ describe("viewer app", () => {
     expect(ui("screen").getAttribute("href")).toMatch(/^\/api\/runs\/2026-10-11T23-00-00_live\/screen\?n=\d+$/);
     expect(ui("screen-note").textContent).toBe("live");
     const more = fullRun().events.slice(4, 10);
-    feed(streams[0]!, more, false);
+    feed(must(streams[0]), more, false);
     app.tick(500);
     expect(ui("trainer").innerHTML).toContain("LITTLEROOT TOWN");
     expect(ui("clock").textContent).toBe("0:00:03");
@@ -211,7 +212,7 @@ describe("viewer app", () => {
 
   it("falls back to the last recorded frame when the live screen fails", async () => {
     const { app, streams, setNow } = await harness();
-    feed(streams[0]!, fullRun().events.slice(0, 10));
+    feed(must(streams[0]), fullRun().events.slice(0, 10));
     setNow(BASE_MS + 4_000);
     app.tick(500);
     ui("screen").dispatchEvent(new Event("error"));
@@ -222,16 +223,16 @@ describe("viewer app", () => {
 
   it("switches to replay when a live run ends", async () => {
     const { app, streams } = await harness();
-    feed(streams[0]!, fullRun().events.slice(0, 4));
-    feed(streams[0]!, fullRun().events.slice(4), false);
-    streams[0]!.send("done", {});
+    feed(must(streams[0]), fullRun().events.slice(0, 4));
+    feed(must(streams[0]), fullRun().events.slice(4), false);
+    must(streams[0]).send("done", {});
     expect(app.mode).toBe("replay");
     expect(app.clock?.atEnd).toBe(true);
   });
 
   it("shows invalid events and server problems instead of dropping them", async () => {
     const { streams } = await harness();
-    const stream = streams[0]!;
+    const stream = must(streams[0]);
     stream.send("ev", { type: "nonsense" });
     stream.sendRaw("ev", "{not json");
     stream.send("problem", { line: 7, problem: "invalid event at /seq" });
@@ -244,7 +245,7 @@ describe("viewer app", () => {
 
   it("compares splits against a picked baseline run", async () => {
     const { app, streams, fetched } = await harness(`#run=${M4_ID}`);
-    feed(streams[0]!, fullRun().events);
+    feed(must(streams[0]), fullRun().events);
     const baseline = ui("baseline") as HTMLSelectElement;
     expect([...baseline.querySelectorAll("option")].map((option) => option.value)).toEqual([
       "",
@@ -268,7 +269,7 @@ describe("viewer app", () => {
 
   it("switches runs from the picker and closes the old stream", async () => {
     const { streams } = await harness();
-    feed(streams[0]!, fullRun().events.slice(0, 4));
+    feed(must(streams[0]), fullRun().events.slice(0, 4));
     const pick = ui("run") as HTMLSelectElement;
     pick.value = M4_ID;
     pick.dispatchEvent(new Event("change"));
@@ -303,7 +304,7 @@ describe("viewer app", () => {
     const { app, streams } = await harness(`#run=${M4_ID}`);
     const log = new Log();
     log.add(0, START);
-    streams[0]!.send("ev", { ...log.events[0], run: "someone-else" });
+    must(streams[0]).send("ev", { ...log.events[0], run: "someone-else" });
     expect(app.view.events).toHaveLength(0);
     expect(ui("problems").textContent).toContain("event for run someone-else");
   });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { BASE_MS, Log, RUN, START, assistant, fullRun, state } from "../test-support/events.js";
-import { RunView } from "./model.js";
+import { BASE_MS, Log, RUN, START, assistant, fullRun, must, state } from "../test-support/events.js";
+import { RunView, foldUntil } from "./model.js";
 import {
   NO_DATA,
   actionRow,
@@ -184,7 +184,7 @@ describe("splits", () => {
   });
 
   it("compares against a baseline: ahead, behind, next and to-do", () => {
-    const { summary, table } = splits(view(fullRun()), baseline, BASE_MS + 7000);
+    const { summary, table } = splits(foldUntil(fullRun().events, BASE_MS + 7000), baseline, BASE_MS + 7000);
     expect(table).toContain('<td class="d"><span class="d-ahead">−0:01</span></td>');
     expect(table).toContain('<tr class="next"><td class="n">littleroot town</td><td class="d"><span class="d-behind">+0:01</span></td><td class="t">0:00:07</td></tr>');
     expect(table).toContain('<tr class="todo"><td class="n">route 101</td><td class="d"></td><td class="t">0:00:09</td></tr>');
@@ -192,7 +192,7 @@ describe("splits", () => {
   });
 
   it("has no delta on the next split before the baseline reached it, and reports a finished baseline", () => {
-    expect(splits(view(fullRun()), baseline, BASE_MS + 5500).summary).toBe("next littleroot town vs best-run");
+    expect(splits(foldUntil(fullRun().events, BASE_MS + 5500), baseline, BASE_MS + 5500).summary).toBe("next littleroot town vs best-run");
     const done: Baseline = { run: "b", milestones: [{ name: "GAME_RUNNING", offsetMs: 0 }] };
     expect(splits(view(fullRun()), done, END).summary).toBe("all 1 baseline splits reached");
   });
@@ -238,7 +238,7 @@ describe("thinkingDialog", () => {
 
 describe("actionRow", () => {
   const events = fullRun().events;
-  const row = (seq: number): string => actionRow(events[seq] ?? events[0]!) ?? "";
+  const row = (seq: number): string => actionRow(must(events[seq])) ?? "";
 
   it("formats tool calls, results, presses, milestones, retries and the run end", () => {
     expect(row(5)).toBe(
@@ -253,7 +253,7 @@ describe("actionRow", () => {
   });
 
   it("leaves turn, assistant, state and run_start events to their panels", () => {
-    for (const seq of [0, 3, 4, 8]) expect(actionRow(events[seq]!)).toBeNull();
+    for (const seq of [0, 3, 4, 8]) expect(actionRow(must(events[seq]))).toBeNull();
   });
 
   it("formats an untimed press, a failed tool, a compaction, an eviction and an unfinished run", () => {
@@ -275,7 +275,7 @@ describe("actionRow", () => {
 
 describe("inspector and brand", () => {
   it("shows the raw event, escaped", () => {
-    const event = fullRun().events[7]!;
+    const event = must(fullRun().events[7]);
     expect(inspector(event)).toBe(`<pre>${JSON.stringify(event, null, 2).replace(/"/g, "&quot;")}</pre>`);
     expect(inspector(undefined)).toBe('<p class="nodata">click a log row to see its raw event</p>');
   });

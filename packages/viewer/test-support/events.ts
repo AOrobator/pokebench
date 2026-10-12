@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import type { RunEvent } from "@pokebench/agent/events";
 
 export const RUN = "2026-10-11T22-00-00_think-swarm_test";
@@ -22,7 +23,7 @@ export class Log {
   }
 }
 
-export const START: Body = {
+export const START: Extract<Body, { type: "run_start" }> = {
   type: "run_start",
   turn: 0,
   model: { id: "think-swarm", context_window: 10_000, max_tokens: 4096, vision: true },
@@ -109,8 +110,14 @@ export function fullRun(): Log {
 }
 
 export function m4Run(): RunEvent[] {
-  return readFileSync(new URL("../src/fixtures/m4-run.jsonl", import.meta.url), "utf8")
+  // import.meta.dirname stays a file path under happy-dom, unlike import.meta.url.
+  return readFileSync(join(import.meta.dirname, "../src/fixtures/m4-run.jsonl"), "utf8")
     .trim()
     .split("\n")
     .map((line) => JSON.parse(line) as RunEvent);
+}
+
+export function must<T>(value: T | null | undefined, what = "value"): T {
+  if (value === null || value === undefined) throw new Error(`missing ${what}`);
+  return value;
 }

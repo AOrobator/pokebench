@@ -61,7 +61,7 @@ def decode_message(raw: bytes) -> str:
             continue
         out.append(LINE_BREAKS.get(byte) or MESSAGE_TEXT.get(byte, "?"))
         i += 1
-    return "".join(out).strip()
+    return "".join(out).strip(" |")
 
 
 def _window_drawn(read: ReadMemory, window_id: int) -> bool:

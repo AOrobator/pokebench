@@ -45,6 +45,9 @@ class TestDecodeMessage:
         raw = text("Hi!") + b"\xfe" + text("Bye.") + b"\xfb" + text("Next") + b"\xfa" + text("page")
         assert decode_message(raw) == "Hi! Bye. | Next page"
 
+    def test_a_message_ending_on_a_page_break_has_no_trailing_bar(self) -> None:
+        assert decode_message(text("Bye.") + b"\xfb") == "Bye."
+
     def test_stops_at_the_terminator(self) -> None:
         assert decode_message(text("Yes") + b"\xff" + text("junk")) == "Yes"
 

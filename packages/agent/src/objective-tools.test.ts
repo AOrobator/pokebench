@@ -234,8 +234,9 @@ it.each(["state", "visual"] as const)("advertises compatible completion %s strin
     {properties: {value: {type: "number"}}},
     {properties: {description: {type: "string", minLength: 1}}}
   ]}}});
-  expect(JSON.stringify(wire)).not.toContain('"value":{"maxLength"');
-  expect(JSON.stringify(wire)).not.toContain('"description":{"maxLength"');
+  const completionSchema = (wire as { properties: { completion: { anyOf: { properties: { value?: { maxLength?: number }; description?: { maxLength?: number } } }[] } } }).properties.completion;
+  expect(completionSchema.anyOf[0]?.properties.value).not.toHaveProperty("maxLength");
+  expect(completionSchema.anyOf[3]?.properties.description).not.toHaveProperty("maxLength");
   const json = JSON.stringify(wire);
   expect(json).toContain("At most 2000 characters");
   const completion = (length: number) => kind === "state" ? {kind, field: "location", value: "x".repeat(length)} : {kind, description: "x".repeat(length)};
@@ -275,4 +276,56 @@ it("advertises field-specific types to the actual model-facing schema", () => {
     expect(Value.Check(set.parameters, { ...request, completion: { kind: "state", field, value: good } }), field).toBe(true);
     expect(Value.Check(set.parameters, { ...request, completion: { kind: "state", field, value: bad } }), field).toBe(false);
   }
+});
+
+it.each([
+  ["started", "true", "boolean"], ["in_battle", 1, "boolean"],
+  ["money", true, "number"], ["party_count", "1", "number"],
+  ["screen", true, "string"], ["name", 1, "string"],
+  ["location", false, "string"], ["badge", 1, "string"],
+] as const)("rejects raw %s types through the pinned agent loop before coercion", async (field, value, expected) => {
+  const { recorder, events } = setup(); const server = serving();
+  const assembly = objectiveHarness("Reach gym", recorder, "http://127.0.0.1:8812", server.fetchFn);
+  const state = recorder.recordState(game);
+  const usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } };
+  const model: Model<"openai-completions"> = { id: "test-lane", name: "test-lane", api: "openai-completions", provider: "test", baseUrl: "http://127.0.0.1:1/v1", reasoning: false, input: ["text"], contextWindow: 1000, maxTokens: 100, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } };
+  const response: AssistantMessage = { role: "assistant", content: [{ type: "toolCall", id: "raw", name: "set_objective", arguments: { ...request, evidence: [state.seq], completion: { kind: "state", field, value } } }], api: "openai-completions", provider: "test", model: "test-lane", usage, stopReason: "toolUse", timestamp: 0 };
+  const controller = new AbortController();
+  const governor = new Governor({ limits: { maxTurns: 1, maxWallMs: 1000, failureLimit: 3 }, retry: () => undefined, abort: () => { controller.abort(); }, now: () => 0 });
+  const streamFn: StreamFn = () => { const stream = createAssistantMessageEventStream();stream.push({ type: "done", reason: "toolUse", message: response });return stream; };
+  const results: AgentMessage[] = [];
+  const loop = piLoop({ systemPrompt: "Play", tools: assembly.tools, base: { model, convertToLlm: (messages) => messages as Message[] }, governor, transformContext: assembly.transformContext, emit: (event) => { if (event.type === "message_end" && event.message.role === "toolResult") results.push(event.message); }, signal: controller.signal, streamFn });
+  await loop.start([{ role: "user", content: "Play", timestamp: 0 }], []);
+  expect(events.filter((event) => event.type === "objective_update"), field).toEqual([]);
+  expect(results, field).toHaveLength(1);
+  expect(results[0], field).toMatchObject({ role: "toolResult", isError: true, content: [{ type: "text", text: `Completion field "${field}" requires ${expected}; received ${JSON.stringify(value)} (${typeof value}). Revise set_objective with a ${expected} value; values are not coerced.` }] });
+  const context = (await assembly.transformContext([])).at(-1);
+  expect(context?.role === "user" ? context.content : "", field).toContain('"objective":null');
+});
+
+it("recovers from a raw type error through the actual model loop", async () => {
+  const { recorder, events } = setup(); const server = serving();
+  const assembly = objectiveHarness("Reach gym", recorder, "http://127.0.0.1:8812", server.fetchFn);
+  const state = recorder.recordState(game);
+  const usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } };
+  const model: Model<"openai-completions"> = { id: "test-lane", name: "test-lane", api: "openai-completions", provider: "test", baseUrl: "http://127.0.0.1:1/v1", reasoning: false, input: ["text"], contextWindow: 1000, maxTokens: 100, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } };
+  const response: AssistantMessage = { role: "assistant", content: [{ type: "toolCall", id: "raw", name: "set_objective", arguments: { ...request, evidence: [state.seq], completion: { kind: "state", field: "started", value: "true" } } }], api: "openai-completions", provider: "test", model: "test-lane", usage, stopReason: "toolUse", timestamp: 0 };
+  const controller = new AbortController();
+  const governor = new Governor({ limits: { maxTurns: 3, maxWallMs: 1000, failureLimit: 3 }, retry: () => undefined, abort: () => { controller.abort(); }, now: () => 0 });
+  const responses: AssistantMessage[] = [response,
+    { ...response, content: [{ type: "toolCall", id: "correct", name: "set_objective", arguments: { ...request, evidence: [state.seq], completion: { kind: "state", field: "started", value: true } } }] },
+    { ...response, content: [{ type: "toolCall", id: "complete", name: "update_objective", arguments: { status: "completed", evidence: [state.seq], obstacle: "", next_decision: "Exit truck", retry_reason: "" } }] },
+  ];
+  let index = 0;
+  const streamFn: StreamFn = () => { const message = responses[index++];if (message === undefined) throw new Error("unexpected extra model call");const stream = createAssistantMessageEventStream();stream.push({ type: "done", reason: "toolUse", message });return stream; };
+  const results: AgentMessage[] = [];
+  const loop = piLoop({ systemPrompt: "Play", tools: assembly.tools, base: { model, convertToLlm: (messages) => messages as Message[] }, governor, transformContext: assembly.transformContext, emit: (event) => { if (event.type === "message_end" && event.message.role === "toolResult") results.push(event.message); }, signal: controller.signal, streamFn });
+  await loop.start([{ role: "user", content: "Play", timestamp: 0 }], []);
+  expect(results).toHaveLength(3);
+  expect(results.map((result) => result.role === "toolResult" ? result.isError : null)).toEqual([true, false, false]);
+  expect(results[0]).toMatchObject({ content: [{ type: "text", text: 'Completion field "started" requires boolean; received "true" (string). Revise set_objective with a boolean value; values are not coerced.' }] });
+  const updates = events.filter((event) => event.type === "objective_update");
+  expect(updates).toHaveLength(2);
+  expect(updates.map((event) => event.objective.status)).toEqual(["active", "completed"]);
+  expect(updates[1]?.objective).toMatchObject({ completion: { field: "started", value: true }, completion_evidence: [state.seq, 3] });
 });

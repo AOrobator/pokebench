@@ -85,6 +85,21 @@ describe("spectator audio", () => {
     expect(deps.play.mock.calls[1]?.[1]).toBe(0.5);
     await follower.toggle();
   });
+  it.each([null, "", "   "])("rejects an absent or blank cursor %j before playback", async (header) => {
+    vi.useFakeTimers();
+    const { deps } = setup();
+    const response = wav();
+    if (header === null) response.headers.delete("X-Audio-Next");
+    else response.headers.set("X-Audio-Next", header);
+    deps.fetch.mockResolvedValueOnce(response);
+    const follower = await create(deps);
+    await follower.toggle();
+    expect(follower.muted).toBe(true);
+    expect(deps.play).not.toHaveBeenCalled();
+    expect(deps.status).toHaveBeenLastCalledWith("Audio unavailable — click to retry");
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(deps.fetch).toHaveBeenCalledOnce();
+  });
   it("disconnects to muted and retries only on a fresh click", async () => {
     vi.useFakeTimers();
     const { deps } = setup();

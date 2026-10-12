@@ -145,7 +145,7 @@ it("selects previous same-model baseline and deepest then fastest best, from val
   const r = root();
   const logged = (offset: number, names: string[], model = "think-swarm", start_state = START.start_state) => {
     const log = new Log();
-    log.add(offset, { ...START, model: { ...START.model, id: model }, start_state });
+    log.add(offset, { ...START, harness_features: ["ram-state-v1"], model: { ...START.model, id: model }, start_state });
     log.add(offset + 1, { type: "milestone", turn: 0, name: "GAME_RUNNING", server_timestamp: 1 });
     names.forEach((name, i) => log.add(offset + (i + 1) * 1000, { type: "milestone", turn: 1, name, server_timestamp: 2 }));
     const end = fullRun().events.at(-1);
@@ -179,4 +179,14 @@ it("selects previous same-model baseline and deepest then fastest best, from val
   expect(result.baseline?.run).toBe("previous");
   expect(result.best?.run).toBe("deepest");
   expect(result.candidates.map((c) => c.run).sort()).toEqual(["deepest", "other-model", "previous", "slower-deep"]);
+});
+
+
+it("rejects progress-only historical logs with no RAM-state provenance", () => {
+  const r = root();
+  const log = fullRun();
+  const statesRemoved = new Log();
+  log.events.filter((e) => e.type !== "state").forEach((e) => { statesRemoved.events.push(e); });
+  writeRun(r, "unverified", statesRemoved);
+  expect(() => baselineOf(r, "unverified")).toThrow(/RAM-state provenance/);
 });

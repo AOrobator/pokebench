@@ -174,6 +174,7 @@ export function baselineOf(runsRoot: string, runId: string): Baseline {
     if (result.event.type === "state" && !("started" in result.event)) throw new BaselineError("baseline uses unverified historical vendor state");
     view.apply(result.event);
   }
+  if (view.state === null && !start.harness_features.includes("ram-state-v1")) throw new BaselineError("baseline has no verified RAM-state provenance");
   return { run: runId, milestones: view.milestones.map((m) => ({ name: m.name, offsetMs: m.ms - startMs, ...(m.derived === true ? { derived: true } : {}) })) };
 }
 

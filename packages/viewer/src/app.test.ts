@@ -581,14 +581,41 @@ it("automatically renders current vs baseline and best without touching the pick
 it("does not apply comparisons from a superseded run selection", async () => {
   document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
   const pending: ((value: unknown) => void)[] = [];
+  const streams: FakeStream[] = [];
   const app = await mountApp(document, {
     fetchJson: (url) => url === "/api/runs" ? Promise.resolve(RUNS) : new Promise((resolve) => pending.push(resolve)),
-    openStream: (url) => new FakeStream(url), now:()=>BASE_MS, hash:"",
+    openStream: (url) => { const stream = new FakeStream(url); streams.push(stream); return stream; }, now:()=>BASE_MS, hash:"",
   });
   app.select(M4_ID);
+  feed(must(streams[1]), fullRun().events);
   must(pending[1])({candidates:[],baseline:null,best:null});
   must(pending[0])({candidates:[{run:"stale",milestones:[]}],baseline:{run:"stale",milestones:[]},best:{run:"stale",milestones:[]}});
   await Promise.resolve();
+  app.clock?.seek(BASE_MS + 6000);
+  app.tick(0);
   expect((ui("baseline") as HTMLSelectElement).value).toBe("");
+  expect(ui("splits").textContent).toContain("Best historical run: none eligible");
   expect(ui("splits").textContent).not.toContain("stale");
+});
+
+it("keeps a user baseline choice while automatic comparisons are pending, and still loads best", async () => {
+  document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
+  const pending: ((value:unknown)=>void)[] = [];
+  const streams: FakeStream[] = [];
+  const app = await mountApp(document, {
+    fetchJson:(url)=>url === "/api/runs" ? Promise.resolve(RUNS) : new Promise((resolve)=>pending.push(resolve)),
+    openStream:(url)=>{const s=new FakeStream(url);streams.push(s);return s;},now:()=>BASE_MS,hash:"",
+  });
+  feed(must(streams[0]),fullRun().events);
+  const picker=ui("baseline") as HTMLSelectElement;
+  picker.value="2026-10-11T21-00-00_old";
+  picker.dispatchEvent(new Event("change"));
+  must(pending[1])({run:"2026-10-11T21-00-00_old",milestones:[{name:"PLAYER_NAME_SET",offsetMs:5000}]});
+  must(pending[0])({candidates:[{run:"automatic",milestones:[]}],baseline:{run:"automatic",milestones:[]},best:{run:"best",milestones:[{name:"PLAYER_NAME_SET",offsetMs:2000}]}});
+  await Promise.resolve();
+  app.clock?.seek(BASE_MS+6000);
+  app.tick(0);
+  expect(picker.value).toBe("2026-10-11T21-00-00_old");
+  expect(ui("splits").textContent).toContain("Baseline: 2026-10-11T21-00-00_old");
+  expect(ui("splits").textContent).toContain("Best historical run: best");
 });

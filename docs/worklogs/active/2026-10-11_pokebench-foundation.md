@@ -175,8 +175,9 @@ Mac Studio (all local)
 - [x] M3 review R1 (465b704..98a89f3, packet sha256 b9f143c3…802b; principles PB1–PB13: 0 FAIL): Claude CLI LGTM; Codex BLOCKING, accepted: `checkSmoke` ignores an assistant turn that ended in `error`/`aborted`, so a failed final turn after two good texts passed (reproduced with the pinned `runAgentLoop`). think_fast BLOCKING, rejected: claims `controller.signal` is mispositioned, but pi-agent-core 0.73.1's `runAgentLoop(prompts, context, config, emit, signal?, streamFn?)` takes it 5th, as passed. think_swarm BLOCKING, rejected: claims gateway `multimodal` is dropped when `visionModels` is empty, which the test "takes vision from the capabilities the gateway reports" disproves. Its other items are scope/hardening/speculation.
 - [x] COMMIT: `test(agent): smoke check rejects errored or aborted model turns` (R1 RED, 5ad6e14)
 - [x] COMMIT: `fix(agent): smoke check fails on errored or aborted model turns` (R1 GREEN). Gates: vitest 56; TS coverage 100 / 97.36 / 100 / 100; tsc/eslint/build clean
-- [ ] Multi-model review loop until clean
-- [ ] **STOP — report to operator before M4**
+- [x] COMMIT: R1 GREEN is 1a68a3d. Fix-delta re-check (98a89f3..1a68a3d): Codex LGTM (24 adversarial probes; removing the guard breaks them and restoring it fixes them). Deferred hardening: regression cases for nonterminal failures and `errorMessage` formatting.
+- [x] Multi-model review loop: closed (one round plus a fix-delta check, per the proportional-review rule)
+- [x] **STOP — report to operator before M4** (2026-10-11 ~21:20 ET). The branch merges into main without conflicts; landing it is the operator's call.
 
 **M4 — Viewer (agent o11y)** *(operator-in-the-loop)*
 - [ ] **ASK USER:** design checkpoint. Layout, stack (web app on localhost), the event schema it consumes.

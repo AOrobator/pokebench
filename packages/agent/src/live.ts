@@ -17,7 +17,7 @@ import { checkSmoke, observeTool, pressTool, serverHealthy } from "./game-tools.
 import { discoverModels, selectModel, type GatewayModel } from "./gateway.js";
 import { FrameStore } from "./frames.js";
 import { StateWatcher } from "./game-state.js";
-import { MilestoneWatcher } from "./milestones.js";
+import { StateMilestones } from "./milestones.js";
 import { Governor, piLoop, play, type Limits } from "./harness.js";
 import { discoverLocal, readEndpoint } from "./local-endpoint.js";
 import { gatewayLoopConfig } from "./provider.js";
@@ -93,7 +93,7 @@ function realHost(port: number): RunHost {
     },
     harness: () => harnessInfo(git(REPO_ROOT)),
     vendorPin: () => git(VENDOR_DIR)(["rev-parse", "HEAD"]).trim(),
-    milestones: new MilestoneWatcher(url),
+    milestones: new StateMilestones(new StateWatcher(url)),
     gameState: new StateWatcher(url),
   };
 }

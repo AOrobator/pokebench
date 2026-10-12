@@ -1,5 +1,6 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import { describe, expect, it, vi } from "vitest";
+import { IN_GAME } from "../test-support/events.js";
 import { PRESS_TIMING, SmokeError, checkSmoke, observeTool, pressTool, serverHealthy, waitForQueue } from "./game-tools.js";
 
 const SERVER = "http://127.0.0.1:8000";
@@ -21,7 +22,7 @@ function serving(body: unknown, status = 200): typeof fetch {
 }
 
 function observationBody(overrides: Record<string, unknown> = {}): Record<string, unknown> {
-  return { state_text: "Current Location: LITTLEROOT TOWN", screenshot_base64: png(240, 160), step_number: 4, ...overrides };
+  return { state_text: "Current Location: LITTLEROOT TOWN", screenshot_base64: png(240, 160), state: IN_GAME, ...overrides };
 }
 
 type Route = (init: RequestInit | undefined) => unknown;
@@ -65,9 +66,9 @@ describe("observeTool", () => {
     ]);
   });
 
-  it("accepts a null step number", async () => {
-    const result = await observeTool(SERVER, serving(observationBody({ step_number: null }))).execute("c", {});
-    expect(result.content).toHaveLength(2);
+  it("rejects an observation whose state is not the RAM reader's shape", async () => {
+    const body = observationBody({ state: { ...IN_GAME, mode: "overworld" } });
+    await expect(observeTool(SERVER, serving(body)).execute("c", {})).rejects.toThrow(/observation/);
   });
 
   it.each([

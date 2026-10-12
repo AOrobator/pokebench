@@ -1,22 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
+import { IN_GAME } from "../test-support/events.js";
 import { GameStateError, StateWatcher, parseGameState, type GameStateSnapshot } from "./game-state.js";
 
 const SERVER = "http://127.0.0.1:8000";
 
-export const IN_GAME: GameStateSnapshot = {
-  screen: "overworld",
-  started: true,
-  name: "MAY",
-  location: "LITTLEROOT TOWN",
-  map_id: [0, 9],
-  position: { x: 7, y: 9 },
-  facing: "right",
-  in_battle: false,
-  party: [{ species: "TORCHIC", level: 5, hp: 18, max_hp: 20 }],
-  money: 3000,
-  badges: ["STONE"],
-  play_time_s: 3723,
-};
 
 const PRE_GAME: GameStateSnapshot = {
   screen: "naming",

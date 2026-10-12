@@ -1,9 +1,4 @@
-import { Type } from "typebox";
-import { Value } from "typebox/value";
-
-export class MilestoneError extends Error {
-  override readonly name = "MilestoneError";
-}
+import type { GameStateSnapshot, StateSource } from "./game-state.js";
 
 export interface SeenMilestone {
   readonly name: string;
@@ -14,39 +9,48 @@ export interface MilestoneSource {
   poll(): Promise<SeenMilestone[]>;
 }
 
-const Payload = Type.Object({
-  milestones: Type.Array(
-    Type.Object({
-      name: Type.String({ minLength: 1 }),
-      completed: Type.Boolean(),
-      timestamp: Type.Optional(Type.Union([Type.Number(), Type.Null()])),
-    }),
-  ),
-});
+interface Milestone {
+  readonly name: string;
+  readonly reached: (state: GameStateSnapshot) => boolean;
+}
 
-export class MilestoneWatcher implements MilestoneSource {
+const at = (location: string) => (state: GameStateSnapshot) => state.location === location;
+
+// Derived only from PokeBench's RAM reader. The name counts as set once the
+// game has started: before that the save block holds the game's default name.
+export const MILESTONES: readonly Milestone[] = [
+  { name: "GAME_RUNNING", reached: () => true },
+  { name: "PLAYER_NAME_SET", reached: (s) => s.started && s.name !== null },
+  { name: "INTRO_CUTSCENE_COMPLETE", reached: (s) => s.started && s.location !== "INSIDE OF TRUCK" },
+  { name: "LITTLEROOT_TOWN", reached: at("LITTLEROOT TOWN") },
+  { name: "PLAYER_HOUSE_ENTERED", reached: (s) => /^LITTLEROOT TOWN (BRENDANS|MAYS) HOUSE 1F$/.test(s.location ?? "") },
+  { name: "PLAYER_BEDROOM", reached: (s) => /^LITTLEROOT TOWN (BRENDANS|MAYS) HOUSE 2F$/.test(s.location ?? "") },
+  { name: "ROUTE_101", reached: at("ROUTE 101") },
+  { name: "STARTER_CHOSEN", reached: (s) => s.party.length > 0 },
+  { name: "OLDALE_TOWN", reached: at("OLDALE TOWN") },
+  { name: "ROUTE_103", reached: at("ROUTE 103") },
+  { name: "ROUTE_102", reached: at("ROUTE 102") },
+  { name: "PETALBURG_CITY", reached: at("PETALBURG CITY") },
+  { name: "ROUTE_104", reached: at("ROUTE 104") },
+  { name: "PETALBURG_WOODS", reached: at("PETALBURG WOODS") },
+  { name: "RUSTBORO_CITY", reached: at("RUSTBORO CITY") },
+  { name: "RUSTBORO_CITY_GYM", reached: at("RUSTBORO CITY GYM") },
+  { name: "STONE_BADGE", reached: (s) => s.badges.includes("STONE") },
+];
+
+export class StateMilestones implements MilestoneSource {
   private readonly seen = new Set<string>();
 
   constructor(
-    private readonly gameServerUrl: string,
-    private readonly fetchFn: typeof fetch = fetch,
+    private readonly state: StateSource,
+    private readonly now: () => number = () => Date.now(),
   ) {}
 
   async poll(): Promise<SeenMilestone[]> {
-    const url = `${this.gameServerUrl}/milestones`;
-    const response = await this.fetchFn(url, { signal: AbortSignal.timeout(15_000) });
-    if (!response.ok) throw new MilestoneError(`GET ${url} returned HTTP ${String(response.status)}`);
-    const body: unknown = await response.json();
-    if (!Value.Check(Payload, body)) throw new MilestoneError(`malformed ${url} payload`);
-    const fresh: SeenMilestone[] = [];
-    for (const entry of body.milestones) {
-      if (!entry.completed || this.seen.has(entry.name)) continue;
-      if (typeof entry.timestamp !== "number") {
-        throw new MilestoneError(`${url}: completed milestone ${entry.name} has no timestamp`);
-      }
-      fresh.push({ name: entry.name, serverTimestamp: entry.timestamp });
-    }
-    for (const milestone of fresh) this.seen.add(milestone.name);
-    return fresh.sort((a, b) => a.serverTimestamp - b.serverTimestamp);
+    const state = await this.state.read();
+    const serverTimestamp = this.now() / 1000;
+    const fresh = MILESTONES.filter((m) => !this.seen.has(m.name) && m.reached(state));
+    for (const m of fresh) this.seen.add(m.name);
+    return fresh.map((m) => ({ name: m.name, serverTimestamp }));
   }
 }

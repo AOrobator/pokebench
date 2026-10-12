@@ -14,10 +14,13 @@ import { RunLog } from "./run-log.js";
 
 
 const STATE: GameStateSnapshot = {
+  screen: "overworld",
+  started: true,
+  name: "MAY",
   location: "LITTLEROOT TOWN",
+  map_id: [0, 9],
   position: { x: 5, y: 8 },
-  facing: null,
-  mode: "overworld",
+  facing: "down",
   in_battle: false,
   party: [],
   money: 0,

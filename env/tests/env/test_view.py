@@ -58,10 +58,7 @@ def test_production_main_registers_view_pcm_and_browser_module_before_vendor_mai
     app = FastAPI()
 
     class LocalEmulator(Emulator):
-        def _check_milestone_condition(
-            self, milestone_id: str, game_state: dict[str, object]
-        ) -> bool:
-            return True
+        pass
 
     emu = LocalEmulator()
     calls = []
@@ -97,11 +94,6 @@ def test_production_main_registers_view_pcm_and_browser_module_before_vendor_mai
     main()
     assert "/pokebench/observation" in [getattr(r, "path", "") for r in app.routes]
     assert calls == [{"host": "127.0.0.1", "port": 8129}]
-    assert getattr(LocalEmulator._check_milestone_condition, "__pokebench_milestone_guard__", False)
-    assert (
-        emu._check_milestone_condition("PLAYER_NAME_SET", {"player": {"name": "Player"}}) is False
-    )
-    assert emu._check_milestone_condition("LITTLEROOT_TOWN", {}) is True
     status, headers, wav = get(app, "/audio.wav", b"since=0&max_frames=2")
     assert status == 200
     assert wav[44:] == pcm(123)[:2] + (-456).to_bytes(2, "little", signed=True)

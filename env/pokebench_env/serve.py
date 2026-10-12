@@ -16,7 +16,6 @@ from fastapi import FastAPI
 from pokebench_env.audio import EmulatorLike
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import MapNames
-from pokebench_env.milestone_guard import install_milestone_guard
 from pokebench_env.observation import ScreenshotFn, install_observation
 from pokebench_env.view import install_spectator
 
@@ -63,7 +62,6 @@ def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
     from pokemon_env.emulator import EmeraldEmulator
     from server import app  # vendor module, on PYTHONPATH
 
-    install_milestone_guard(EmeraldEmulator)
     run(
         sys.argv[1:],
         uvicorn=cast(UvicornLike, uvicorn),

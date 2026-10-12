@@ -93,6 +93,26 @@ describe("formatEvent variants", () => {
   });
 });
 
+describe("formatEvent state before the game starts", () => {
+  it("says the game has not started instead of printing save fields", () => {
+    const pre = {
+      ...event(11),
+      screen: "naming",
+      started: false,
+      name: null,
+      location: null,
+      map_id: null,
+      position: null,
+      facing: null,
+      party: [],
+      money: null,
+      badges: [],
+      play_time_s: null,
+    } as RunEvent;
+    expect(formatEvent(pre)).toBe("21:40:05   t1 STATE      naming, game not started");
+  });
+});
+
 describe("tailRun", () => {
   it("prints formatted events until run_end", async () => {
     const runsRoot = mkdtempSync(join(tmpdir(), "pokebench-tailrun-"));

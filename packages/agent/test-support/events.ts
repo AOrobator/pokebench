@@ -1,3 +1,4 @@
+import type { GameStateSnapshot } from "../src/game-state.js";
 import type { EventBody } from "../src/events.js";
 import type { RunStartMeta } from "../src/recorder.js";
 
@@ -60,10 +61,13 @@ export const SAMPLES: readonly EventBody[] = [
   {
     type: "state",
     turn: 1,
+    screen: "overworld",
+    started: true,
+    name: "MAY",
     location: "LITTLEROOT TOWN",
+    map_id: [0, 9],
     position: { x: 5, y: 8 },
-    facing: null,
-    mode: "overworld",
+    facing: "down",
     in_battle: false,
     party: [{ species: "TORCHIC", level: 5, hp: 18, max_hp: 20 }],
     money: 3000,
@@ -81,3 +85,18 @@ export function sample(index: number): EventBody {
   if (body === undefined) throw new Error(`no sample ${String(index)}`);
   return body;
 }
+
+export const IN_GAME: GameStateSnapshot = {
+  screen: "overworld",
+  started: true,
+  name: "MAY",
+  location: "LITTLEROOT TOWN",
+  map_id: [0, 9],
+  position: { x: 7, y: 9 },
+  facing: "right",
+  in_battle: false,
+  party: [{ species: "TORCHIC", level: 5, hp: 18, max_hp: 20 }],
+  money: 3000,
+  badges: ["STONE"],
+  play_time_s: 3723,
+};

@@ -58,6 +58,18 @@ describe("trainerCard", () => {
   });
 });
 
+describe("trainerCard before the game starts", () => {
+  it("shows the screen instead of a map and no save values", () => {
+    const log = bare();
+    log.add(10, state({ screen: "naming", started: false, name: null, location: null, map_id: null, position: null, facing: null, party: [], money: null, badges: [], play_time_s: null }));
+    const html = trainerCard(view(log), BASE_MS + 1000);
+    expect(html).toContain("<dt>MAP</dt><dd>naming (not started)</dd>");
+    expect(html).toContain("<dt>MONEY</dt><dd>not started</dd>");
+    expect(html).toContain("<dt>PLAY</dt><dd>not started</dd>");
+    expect(counters(view(log))).toContain("<dt>LOCATION</dt><dd>naming (not started)</dd>");
+  });
+});
+
 describe("party", () => {
   it("draws HP bars coloured by remaining HP", () => {
     const log = bare();

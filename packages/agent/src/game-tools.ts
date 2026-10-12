@@ -2,7 +2,7 @@ import type { AgentMessage, AgentTool } from "@mariozechner/pi-agent-core";
 import type { AssistantMessage, ImageContent, TextContent, ToolResultMessage } from "@mariozechner/pi-ai";
 import { Type } from "typebox";
 import { Value } from "typebox/value";
-import { ButtonSchema, type Button } from "./events.js";
+import { ButtonSchema, StateBodySchema, type Button } from "./events.js";
 import type { PressTiming } from "./recorder.js";
 
 const NoArgs = Type.Object({});
@@ -12,7 +12,7 @@ const HealthSchema = Type.Object({ status: Type.String() });
 const ObservationSchema = Type.Object({
   state_text: Type.String(),
   screenshot_base64: Type.String({ minLength: 1 }),
-  step_number: Type.Union([Type.Integer(), Type.Null()]),
+  state: StateBodySchema,
 });
 
 const QueueSchema = Type.Object({ queue_empty: Type.Boolean() });

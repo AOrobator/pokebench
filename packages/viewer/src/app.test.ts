@@ -275,7 +275,7 @@ describe("viewer app", () => {
       fetchJson: (url) =>
         url === "/api/runs"
           ? Promise.resolve(RUNS)
-          : new Promise((resolve) => {
+          : url.endsWith("/comparisons") ? Promise.resolve({ candidates:[{run:"2026-10-11T21-00-00_old",milestones:[]}],baseline:null,best:null }) : new Promise((resolve) => {
               pending.push(resolve);
             }),
       openStream: (url) => {
@@ -292,7 +292,7 @@ describe("viewer app", () => {
     baseline.dispatchEvent(new Event("change"));
     baseline.value = "";
     baseline.dispatchEvent(new Event("change"));
-    must(pending[1])({ run: "2026-10-11T21-00-00_old", milestones: [{ name: "GAME_RUNNING", offsetMs: 5 }] });
+    must(pending[0])({ run: "2026-10-11T21-00-00_old", milestones: [{ name: "GAME_RUNNING", offsetMs: 5 }] });
     await new Promise((resolve) => setTimeout(resolve, 0));
     app.tick(0);
     expect(ui("splits-summary").innerHTML).toContain("no baseline");
@@ -598,7 +598,7 @@ it("does not apply comparisons from a superseded run selection", async () => {
   expect(ui("splits").textContent).not.toContain("stale");
 });
 
-it("keeps a user baseline choice while automatic comparisons are pending, and still loads best", async () => {
+it("offers only eligible references and preserves none while comparisons are pending", async () => {
   document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
   const pending: ((value:unknown)=>void)[] = [];
   const streams: FakeStream[] = [];
@@ -608,14 +608,15 @@ it("keeps a user baseline choice while automatic comparisons are pending, and st
   });
   feed(must(streams[0]),fullRun().events);
   const picker=ui("baseline") as HTMLSelectElement;
-  picker.value="2026-10-11T21-00-00_old";
+  expect([...picker.options].map((o)=>o.value)).toEqual([""]);
+  picker.value="";
   picker.dispatchEvent(new Event("change"));
-  must(pending[1])({run:"2026-10-11T21-00-00_old",milestones:[{name:"PLAYER_NAME_SET",offsetMs:5000}]});
   must(pending[0])({candidates:[{run:"automatic",milestones:[]}],baseline:{run:"automatic",milestones:[]},best:{run:"best",milestones:[{name:"PLAYER_NAME_SET",offsetMs:2000}]}});
   await Promise.resolve();
   app.clock?.seek(BASE_MS+6000);
   app.tick(0);
-  expect(picker.value).toBe("2026-10-11T21-00-00_old");
-  expect(ui("splits").textContent).toContain("Baseline: 2026-10-11T21-00-00_old");
+  expect(picker.value).toBe("");
+  expect([...picker.options].map((o)=>o.value)).toEqual(["", "automatic"]);
+  expect(ui("splits").textContent).toContain("Baseline: none eligible");
   expect(ui("splits").textContent).toContain("Best historical run: best");
 });

@@ -234,12 +234,11 @@ export class App {
       const best = record.best === null ? null : baselineOf(record.best);
       if (request !== this.comparisonRequest) return;
       this.best = best;
-      // Do not override a baseline the user chose while this request was pending.
-      if (baselineRequest === this.baselineRequest) {
-        this.baseline = baseline;
-        this.picker("baseline").replaceChildren(option(this.doc, "", "none"), ...candidates.map((c) => option(this.doc, c.run, c.run)));
-        this.picker("baseline").value = baseline?.run ?? "";
-      }
+      // Populate only validated references, even when the user disabled the
+      // automatic default while loading. Never expose unchecked run choices.
+      this.picker("baseline").replaceChildren(option(this.doc, "", "none"), ...candidates.map((c) => option(this.doc, c.run, c.run)));
+      if (baselineRequest === this.baselineRequest) this.baseline = baseline;
+      this.picker("baseline").value = this.baseline?.run ?? "";
       this.render();
     } catch (error) {
       if (request === this.comparisonRequest) this.problem(`comparisons: ${String(error)}`);
@@ -266,10 +265,8 @@ export class App {
     this.setHtml("inspector", inspector(undefined));
     this.picker("run").value = runId;
     this.markSelectedRun();
-    this.picker("baseline").replaceChildren(
-      option(this.doc, "", "none"),
-      ...this.runs.filter((run) => run.id !== runId).map((run) => option(this.doc, run.id, run.id)),
-    );
+    // References are eligible only after the owned server validates their logs.
+    this.picker("baseline").replaceChildren(option(this.doc, "", "none"));
     this.doc.location.hash = `run=${encodeURIComponent(runId)}`;
     void this.loadComparisons(runId);
     const stream = this.deps.openStream(`/api/runs/${encodeURIComponent(runId)}/events`);

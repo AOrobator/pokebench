@@ -67,7 +67,7 @@ describe("stateTool", () => {
   });
 });
 
-function assistant(text: string): AgentMessage {
+function assistant(text: string, stopReason: "stop" | "error" | "aborted" = "stop"): AgentMessage {
   return {
     role: "assistant",
     content: text === "" ? [] : [{ type: "text", text }],
@@ -82,7 +82,7 @@ function assistant(text: string): AgentMessage {
       totalTokens: 0,
       cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
     },
-    stopReason: "stop",
+    stopReason,
     timestamp: 0,
   };
 }
@@ -109,6 +109,16 @@ describe("checkSmoke", () => {
     ["a failed tool", [result("screenshot"), result("state", true), assistant("a"), assistant("b")], /failed: state/],
     ["no screenshot", [result("state"), assistant("a"), assistant("b")], /screenshot/],
     ["no state call", [result("screenshot"), assistant("a"), assistant("b")], /state/],
+    [
+      "a terminal model error",
+      [result("screenshot"), assistant("a"), result("state"), assistant("b"), assistant("", "error")],
+      /model turn ended: error/,
+    ],
+    [
+      "an aborted model turn",
+      [result("screenshot"), assistant("a"), result("state"), assistant("b"), assistant("", "aborted")],
+      /model turn ended: aborted/,
+    ],
     ["a single reply", [result("screenshot"), result("state"), assistant("a"), assistant("")], /frame description/],
   ])("fails on %s", (_label, transcript, message) => {
     expect(() => checkSmoke(transcript)).toThrow(SmokeError);

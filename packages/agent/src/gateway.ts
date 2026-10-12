@@ -77,12 +77,8 @@ export function parseModelsPayload(payload: unknown): GatewayLane[] {
   return lanes;
 }
 
-function toPiModel(lane: GatewayLane, gatewayUrl: string, vision: boolean): GatewayModel {
-  if (vision && lane.capabilities !== undefined && !lane.capabilities.includes("multimodal")) {
-    throw new GatewayDiscoveryError(
-      `lane ${lane.id} is configured for vision but the gateway reports capabilities [${lane.capabilities.join(", ")}]`,
-    );
-  }
+function toPiModel(lane: GatewayLane, gatewayUrl: string, configuredVision: boolean): GatewayModel {
+  const vision = lane.capabilities?.includes("multimodal") ?? configuredVision;
   return {
     id: lane.id,
     name: lane.id,

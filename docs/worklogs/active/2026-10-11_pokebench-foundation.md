@@ -158,7 +158,11 @@ Mac Studio (all local)
 - Port from main's duplicate M3 (operator 2026-10-11: "u can keep the worthwhile ideas from your implementation"; main's copy was reverted in 465b704):
   - Vision comes from the gateway's reported capabilities (`multimodal`). `POKEBENCH_VISION_MODELS` only fills in for lanes that report nothing, and its default is now empty. Before this, think-fast and think-longctx (multimodal per the gateway) ran text-only.
   - Tools, frame validation (PNG, 240x160) and the pass/fail check move out of the coverage-excluded `smoke.ts` into a covered `game-tools.ts`. Only process spawning and the loop wiring stay in the entrypoint.
-- [x] COMMIT: `test(agent): gateway-reported vision, covered game tools and smoke check` (port RED)
+- [x] COMMIT: `test(agent): gateway-reported vision, covered game tools and smoke check` (port RED, 3a18c5f)
+- [x] Implement: `gateway.ts` vision precedence, `game-tools.ts` (`serverHealthy`, `screenshotTool` with PNG/240x160 check, `stateTool`, `checkSmoke`), `smoke.ts` down to 125 lines of wiring. Bug found live: `smoke.ts` sent SIGTERM only to the launcher, which doesn't forward it, so every smoke orphaned its `pokebench_env.serve` child (PPID 1, still holding the port and stdout). The fix spawns the launcher in its own process group and signals the group. Follow-up for M5's run supervisor: the launcher itself should handle SIGTERM.
+- [x] Gates: vitest 54; TS coverage 100 statements / 98.55 branches / 100 functions / 100 lines; tsc, eslint, build clean
+- [x] Live smoke (2026-10-11 ~20:55 ET, own server on :8011, vision from the gateway's report with `POKEBENCH_VISION_MODELS` unset): `tool: screenshot` → "The current frame is completely black." (early boot) → `tool: state` → `DONE TITLE_SEQUENCE`; `smoke-llm OK`; no server left on :8011
+- [x] COMMIT: `feat(agent): vision from gateway capabilities, covered game tools, no orphaned server` (port GREEN)
 - [ ] Multi-model review loop until clean
 - [ ] **STOP — report to operator before M4**
 

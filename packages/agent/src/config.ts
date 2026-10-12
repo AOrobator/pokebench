@@ -15,7 +15,7 @@ const DEFAULTS: PokebenchConfig = {
   gatewayUrl: "http://inference.example/v1",
   model: "think-swarm",
   gameServerUrl: "http://127.0.0.1:8000",
-  visionModels: ["think-swarm"],
+  visionModels: [],
 };
 
 function read(env: Env, key: string): string | undefined {

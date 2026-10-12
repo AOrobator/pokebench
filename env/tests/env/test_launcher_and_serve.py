@@ -76,7 +76,7 @@ def test_run_pins_host_then_hands_argv_to_vendor_main() -> None:
     assert seen["uvicorn_kwargs"] == {"host": "127.0.0.1", "port": 8000}
 
 
-def test_spawn_runs_the_server_command_from_the_vendor_dir(tmp_path: Path) -> None:
+def test_spawn_runs_the_server_from_the_run_server_dir(tmp_path: Path) -> None:
     from pokebench_env.launcher import spawn
 
     calls: list[dict[str, object]] = []
@@ -86,11 +86,15 @@ def test_spawn_runs_the_server_command_from_the_vendor_dir(tmp_path: Path) -> No
         return "process"
 
     vendor = tmp_path / "vendor"
+    server_dir = tmp_path / "runs" / "r1" / "server"
     spec = ServerSpec(port=8000, no_ocr=True, load_state=None)
     result = spawn(
         spec,
         python=Path("/venv/bin/python"),
         vendor_dir=vendor,
+        server_dir=server_dir,
+        run_id="r1",
+        pycache_dir=tmp_path / "pycache",
         base_env={"PATH": "/usr/bin", "PYTHONPATH": "/elsewhere"},
         popen=capturing_popen,
     )
@@ -98,23 +102,35 @@ def test_spawn_runs_the_server_command_from_the_vendor_dir(tmp_path: Path) -> No
     assert calls == [
         {
             "argv": server_command(Path("/venv/bin/python"), spec),
-            "cwd": vendor,
-            "env": {"PATH": "/usr/bin", "PYTHONPATH": str(vendor)},
+            "cwd": server_dir,
+            "env": {
+                "PATH": "/usr/bin",
+                "PYTHONPATH": str(vendor),
+                "RUN_DATA_ID": "r1",
+                "LOAD_CHECKPOINT_MODE": "false",
+                "PYTHONPYCACHEPREFIX": str(tmp_path / "pycache"),
+            },
         }
     ]
 
 
-def test_prepare_checks_vendor_then_links_the_verified_rom(tmp_path: Path) -> None:
+def test_prepare_checks_vendor_then_builds_the_run_server_dir(tmp_path: Path) -> None:
     from pokebench_env import launcher
 
     order: list[str] = []
     vendor = tmp_path / "vendor"
     rom = tmp_path / "rom.gba"
-    launcher.prepare(
+    run_dir = tmp_path / "runs" / "r1"
+    server_dir = launcher.prepare(
         {"POKEBENCH_ROM": str(rom)},
+        run_dir=run_dir,
         vendor_dir=vendor,
         check=lambda path: order.append(f"check {path}"),
         resolve=lambda env: (order.append(f"resolve {env['POKEBENCH_ROM']}"), rom)[1],
-        link=lambda found, path: (order.append(f"link {found} {path}"), path)[1],
+        make_server_dir=lambda run, found, ven: (
+            order.append(f"make {run} {found} {ven}"),
+            run / "server",
+        )[1],
     )
-    assert order == [f"check {vendor}", f"resolve {rom}", f"link {rom} {vendor}"]
+    assert server_dir == run_dir / "server"
+    assert order == [f"check {vendor}", f"resolve {rom}", f"make {run_dir} {rom} {vendor}"]

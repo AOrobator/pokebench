@@ -17,14 +17,15 @@ The emulator's RAM is correct; the vendor's interpretation is not.
 
 ## Screens from `gMain.callback2` (US Emerald, gMain at 0x030022C0)
 
-Labelled 2026-10-12 by pressing A from boot on an isolated server and saving a screenshot at every change.
+Corrected 2026-10-12 after ROM disassembly and active-task/frame probes. The first callback-only labels from Claude were one phase ahead; prior runs retain their original data and are not retroactively corrected.
 
 | callback2 | Screen |
 |---|---|
 | 0x0816CEAD | copyright / intro movie |
-| 0x0816CC01 | title screen |
-| 0x080AA7A5, 0x080AAB2D | main menu |
-| 0x0802F6B1 | Birch's speech (before and after naming) |
+| 0x0816CC01 | intro movie (`MainCB2_Intro`) |
+| 0x080AA7A5, 0x080AAB2D | title init / title main |
+| 0x0802F6B1 | shared main-menu program: active root task distinguishes menu vs Birch |
+| 0x08031679 | Birch return from naming init |
 | 0x080E2E05, 0x080E4F59 | naming keyboard |
 | 0x08085E5D (callback1 0x08085E05) | overworld |
 
@@ -47,3 +48,13 @@ The continuation snapshot probe accepted and recorded presses but did not dismis
 The previous readout only named the screen. The editing buffer and cursor are now read from RAM, separately from the confirmed trainer name. `sNamingScreen` is at 0x02039F94; its text is at +0x1800, state at +0x1E10, page at +0x1E22, cursor sprite id at +0x1E23. Cursor coordinates are gSprites (0x02020630) + sprite id × 0x44 + 0x2E (signed data[0], data[1]). These offsets were matched to ROM instructions in NamingScreen_Init and the source layout. Unallocated pointers, inactive sprites or invalid page/coordinates return unavailable; phase 2 means input ready. Side buttons occupy the page's column count (8 letters / 6 symbols), rows 0 PAGE, 1 BACK, 2 OK. Text, page and selected key were checked in recorded probe `2026-10-12T01-36-53_probe_8884`: entered B and cursor (1,0), lower b after SELECT, symbol 1 after SELECT, and OK (6,2) after START.
 
 Primary layout/behavior sources: [naming_screen.c](https://github.com/pret/pokeemerald/blob/master/src/naming_screen.c), [sprite.h](https://github.com/pret/pokeemerald/blob/master/include/sprite.h). The symbol/letter arrays describe the keyboard, not a scripted naming policy. No save data is synthesized.
+
+### Coherent observations and corrected screen proof
+
+Primary source checkout verified clean at `731ad5bfd6e6f265508d0efcca0ba42f9dcf5881` (`/Users/user/dev/pokeemerald`). ROM calls at 0x0816CC00 match MainCB2_Intro (tasks/animation plus any-key skip); 0x080AA7A4/0x080AAB2C match title init/MainCB2. CB2_MainMenu at 0x0802F6B0 drives both menu and Birch tasks. Active gTasks records (0x03005E00, 16 × 0x28, function +0, active +4) disambiguate: root menu functions precede Task_NewGameBirchSpeech_Init at 0x080307B0; recorded Birch roots include 0x080308B1 (WaitToShowBirch), 0x08030929, 0x080309CD, 0x08030A2D, 0x08030BCD, 0x08030E09, 0x08030E39, 0x08031015 and 0x08031041. Unlabelled phases remain unknown. The source clarifies behavior; addresses were checked against ROM literals/instructions and the recorded probe.
+
+Fresh recorded `2026-10-12T02-01-19_probe_726d` now pairs native frames and RAM under the same existing memory lock. Frames 5/9 show copyright/GameFreak intro; 18 title logo; 32 NEW GAME/OPTION menu; 46 Birch fading in; 240 gender speech; 264 naming; 449 player inside truck with AAAAAAA, (25,40), ₽3000. This manual QA ties the corrected programs to the captured images (phase/fades remain visible); the command asserts fields and preserves these frames rather than claiming automated pixel recognition. Cached vendor screenshots are no longer used for model observations. A transition regression and exact production native-PNG/u8 adapter test require the one lock.
+
+Unknown callbacks no longer prove gameplay started: an active player object must have initialized in gObjectEvents, in addition to excluding known pregame phases. This prevents Options/unlabelled pregame callbacks from exposing default SaveBlocks. Curly quote bytes B1/B2/B3 now round-trip with all selectable naming characters. Probe continuation paths are resolved before hashing and process cwd changes; `runs/screen-naming.state` was loaded with its resolved path in probe `2026-10-12T02-01-18_probe_30a1`.
+
+Endpoint-review species allegations were checked against `src/pokemon.c::GetSubstruct` in the clean source checkout: it selects the order using `personality % 24`, and decrypts words with personality XOR OT ID. The current growth-offset table matches the source; the proposed alternative was not accepted. Live nonempty-party proof is still pending.

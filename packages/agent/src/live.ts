@@ -12,7 +12,7 @@ import { readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { verifyIntro } from "./verify-state.js";
 import { driveProbe, parseProbeCommand, type ProbeCommand } from "./probe.js";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runAgentLoop, type AgentMessage } from "@mariozechner/pi-agent-core";
 import { loadConfig } from "./config.js";
@@ -274,7 +274,7 @@ async function playAgent(): Promise<void> {
 async function probe(verify = false): Promise<void> {
   const port = Number(process.env["POKEBENCH_PROBE_PORT"] ?? "8032");
   if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error("invalid probe port");
-  const saved = process.argv[3] || undefined;
+  const saved = process.argv[3] ? resolve(process.argv[3]) : undefined;
   const startState = saved === undefined
     ? { kind: "boot" as const }
     : { kind: "save_state" as const, path: saved, sha1: createHash("sha1").update(readFileSync(saved)).digest("hex") };

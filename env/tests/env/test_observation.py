@@ -29,7 +29,7 @@ def app_with(get_screenshot) -> FastAPI:
     return app
 
 
-async def good_shot() -> Shot:
+def good_shot() -> Shot:
     return Shot()
 
 
@@ -51,7 +51,7 @@ def test_state_route_returns_the_typed_state_without_a_frame() -> None:
 
 @pytest.mark.parametrize("screenshot", [None, "", 7])
 def test_observation_without_a_frame_is_unavailable(screenshot: object) -> None:
-    async def bad_shot() -> Shot:
+    def bad_shot() -> Shot:
         return Shot(screenshot_base64=screenshot)
 
     status, _, body = get(app_with(bad_shot), "/pokebench/observation")
@@ -60,7 +60,7 @@ def test_observation_without_a_frame_is_unavailable(screenshot: object) -> None:
 
 
 def test_observation_passes_vendor_http_errors_through() -> None:
-    async def failing() -> Shot:
+    def failing() -> Shot:
         raise HTTPException(status_code=400, detail="Emulator not initialized")
 
     status, _, body = get(app_with(failing), "/pokebench/observation")
@@ -96,3 +96,38 @@ def test_ram_read_failure_is_not_converted_to_zero_filled_state() -> None:
     install_observation(app, good_shot, broken_read, MapNames({}))
     with pytest.raises(RuntimeError, match="native memory unavailable"):
         get(app, "/pokebench/state")
+
+
+def test_frame_and_ram_share_one_lock_during_a_transition() -> None:
+    import threading
+
+    lock = threading.Lock()
+    frame = {"version": "naming"}
+
+    def screenshot() -> Shot:
+        if not lock.locked():
+            frame["version"] = "next frame"
+        assert lock.locked()
+        return Shot(screenshot_base64=frame["version"])
+
+    def read(address: int, length: int) -> bytes:
+        assert lock.locked()
+        assert frame["version"] == "naming"
+        return memory(address, length)
+
+    app = FastAPI()
+    install_observation(app, screenshot, read, MapNames({}), lock)
+    status, _, body = get(app, "/pokebench/observation")
+    assert status == 200
+    payload = json.loads(body)
+    assert payload["screenshot_base64"] == payload["state"]["screen"] == "naming"
+    assert not lock.locked()
+
+
+def test_native_frame_adapter_without_video_is_unavailable() -> None:
+    from types import SimpleNamespace
+
+    from pokebench_env.serve import native_screenshot
+
+    with pytest.raises(HTTPException, match="no screenshot available"):
+        native_screenshot(SimpleNamespace(get_screenshot=lambda: None))

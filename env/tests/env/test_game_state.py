@@ -67,6 +67,7 @@ def game(screen: tuple[int, int], party: list[bytes] | None = None, badges: int 
         bytes([badges << (0x867 & 7) & 0xFF, badges >> (8 - (0x867 & 7))]),
     )
     m.put(0x02037590 + 5, bytes([0]))
+    m.put(0x02037350, b"\x01\x00\x01")
     m.put(0x02037350 + 0x18, bytes([0x44]))
     m.put(0x030026F9, bytes([0]))
     members = party or []
@@ -200,3 +201,12 @@ def test_field_controls_not_claimed_before_overworld() -> None:
     memory = game(NAMING)
     memory.put(0x03000F2C, b"\x01")
     assert read_game_state(memory.read, MAPS).field_controls_locked is None
+
+
+def test_unknown_pregame_callback_does_not_expose_default_save_data() -> None:
+    m = game((0, 0x0803CAFE))
+    m.put(0x02037350, bytes(3))
+    s = read_game_state(m.read, MAPS)
+    assert not s.started and s.name is None and s.location is None
+    m.put(0x02037590 + 5, b"\xff")
+    assert not read_game_state(m.read, MAPS).started

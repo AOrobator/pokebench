@@ -58,7 +58,11 @@ def test_production_main_registers_view_pcm_and_browser_module_before_vendor_mai
     app = FastAPI()
 
     class LocalEmulator(Emulator):
-        pass
+        def get_screenshot(self):
+            from PIL import Image
+
+            assert memory_lock.locked(), "native frame escaped snapshot lock"
+            return Image.new("RGB", (240, 160), (22, 33, 44))
 
     emu = LocalEmulator()
     import struct
@@ -117,6 +121,17 @@ def test_production_main_registers_view_pcm_and_browser_module_before_vendor_mai
         (0x02039F94, 0x02039F98),
     ]
     assert calls == [{"host": "127.0.0.1", "port": 8129}]
+    observation_status, _, observation_body = get(app, "/pokebench/observation")
+    assert observation_status == 200
+    import base64
+    from io import BytesIO
+
+    from PIL import Image
+
+    payload = json.loads(observation_body)
+    assert payload["state"]["screen"] == "naming"
+    image = Image.open(BytesIO(base64.b64decode(payload["screenshot_base64"])))
+    assert image.size == (240, 160) and image.getpixel((0, 0)) == (22, 33, 44)
     status, headers, wav = get(app, "/audio.wav", b"since=0&max_frames=2")
     assert status == 200
     assert wav[44:] == pcm(123)[:2] + (-456).to_bytes(2, "little", signed=True)

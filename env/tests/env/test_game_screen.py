@@ -17,10 +17,10 @@ def memory(callback1: int, callback2: int):
     ("callback2", "kind"),
     [
         (0x0816CEAD, "intro"),
-        (0x0816CC01, "title"),
-        (0x080AA7A5, "main_menu"),
-        (0x080AAB2D, "main_menu"),
-        (0x0802F6B1, "birch_speech"),
+        (0x0816CC01, "intro"),
+        (0x080AA7A5, "title"),
+        (0x080AAB2D, "title"),
+        (0x08031679, "birch_speech"),
         (0x080E2E05, "naming"),
         (0x080E4F59, "naming"),
         (0x08085E5D, "overworld"),
@@ -43,9 +43,37 @@ def test_an_unmapped_callback_is_reported_not_guessed() -> None:
 
 def test_gmain_is_the_us_emerald_address() -> None:
     assert GMAIN == 0x030022C0
-    assert len(SCREENS) == 8
+    assert len(SCREENS) == 9
 
 
 def test_a_short_read_is_an_error() -> None:
     with pytest.raises(ValueError, match="gMain"):
         read_screen(lambda address, length: b"\x00" * 4)
+
+
+@pytest.mark.parametrize(
+    ("function", "active", "kind"),
+    [
+        (0x0803024D, 1, "main_menu"),
+        (0x080308B1, 1, "birch_speech"),
+        (0x080308B1, 0, "unknown"),
+        (0x08039999, 1, "unknown"),
+    ],
+)
+def test_shared_main_menu_callback_is_classified_by_its_active_task(
+    function: int, active: int, kind: str
+) -> None:
+    import struct
+
+    from pokebench_env.game_screen import TASKS
+
+    tasks = bytearray(16 * 0x28)
+    struct.pack_into("<IB", tasks, 3 * 0x28, function, active)
+
+    def read(address: int, length: int) -> bytes:
+        return struct.pack("<II", 0, 0x0802F6B1) if address == GMAIN else bytes(tasks)
+
+    assert read_screen(read).kind == kind
+    with pytest.raises(ValueError, match="gTasks"):
+        read_screen(lambda a, n: struct.pack("<II", 0, 0x0802F6B1) if a == GMAIN else bytes(3))
+    assert TASKS == 0x03005E00

@@ -6,13 +6,17 @@ would expose emulator control (save/load state, actions) on the LAN. Wrapping
 checkout on `sys.path`; the working directory is the run's server dir (INV-7).
 """
 
+import base64
 import sys
 from collections.abc import Callable, Sequence
 from contextlib import AbstractContextManager
+from io import BytesIO
 from pathlib import Path
 from typing import Protocol, cast
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from PIL.Image import Image
+from pydantic import BaseModel
 
 from pokebench_env.audio import EmulatorLike
 from pokebench_env.game_screen import ReadMemory
@@ -25,6 +29,23 @@ LOCALHOST = "127.0.0.1"
 PORYMAP_MAPS = (
     Path(__file__).resolve().parents[1] / "vendor/continual-harness/pokemon_env/porymap/data/maps"
 )
+
+
+class FrameSource(Protocol):
+    def get_screenshot(self) -> Image | None: ...
+
+
+class NativeScreenshot(BaseModel):
+    screenshot_base64: str
+
+
+def native_screenshot(emulator: FrameSource) -> NativeScreenshot:
+    image = emulator.get_screenshot()
+    if image is None:
+        raise HTTPException(status_code=503, detail="no screenshot available")
+    buffer = BytesIO()
+    image.save(buffer, format="PNG")
+    return NativeScreenshot(screenshot_base64=base64.b64encode(buffer.getvalue()).decode("ascii"))
 
 
 class UvicornLike(Protocol):
@@ -72,7 +93,7 @@ def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
         spectator=(app.app, cast(type[EmulatorLike], EmeraldEmulator)),
         observation=(
             app.app,
-            app.get_screenshot,
+            lambda: native_screenshot(cast(FrameSource, app.env)),
             # The vendor creates `env` at startup, after routes are installed.
             lambda address, length: bytes(app.env.core.memory.u8[address : address + length]),
             MapNames.load(PORYMAP_MAPS),

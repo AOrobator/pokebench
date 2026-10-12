@@ -1,0 +1,131 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { parseEvent, type RunEndReason, type RunEvent } from "./events.js";
+
+export interface MilestoneReach {
+  readonly name: string;
+  readonly turn: number;
+  readonly wallMs: number;
+}
+
+export interface RunSummary {
+  readonly run: string;
+  readonly model: string;
+  readonly reason: RunEndReason | "incomplete";
+  readonly furthest: string | null;
+  readonly turns: number;
+  readonly wallMs: number;
+  readonly tokens: { readonly input: number; readonly output: number };
+  readonly presses: number;
+  readonly retries: number;
+  readonly toolErrors: number;
+  readonly milestones: readonly MilestoneReach[];
+}
+
+export function readRun(runDir: string): RunEvent[] {
+  const path = join(runDir, "events.jsonl");
+  return readFileSync(path, "utf8")
+    .split("\n")
+    .flatMap((line, index) => {
+      if (line.trim() === "") return [];
+      try {
+        return [parseEvent(line)];
+      } catch (error) {
+        throw new Error(`${path}:${String(index + 1)}: ${String(error)}`, { cause: error });
+      }
+    });
+}
+
+export function summarize(events: readonly RunEvent[]): RunSummary {
+  const start = events[0];
+  if (start?.type !== "run_start") throw new Error("event log does not begin with run_start");
+  const startedAt = Date.parse(start.t);
+  const since = (event: RunEvent): number => Date.parse(event.t) - startedAt;
+  const milestones: MilestoneReach[] = [];
+  let presses = 0;
+  let retries = 0;
+  let toolErrors = 0;
+  let tokens = { input: 0, output: 0 };
+  for (const event of events) {
+    if (event.type === "milestone") milestones.push({ name: event.name, turn: event.turn, wallMs: since(event) });
+    else if (event.type === "button_press") presses += 1;
+    else if (event.type === "retry") retries += 1;
+    else if (event.type === "tool_result" && event.is_error) toolErrors += 1;
+    else if (event.type === "assistant") {
+      tokens = { input: tokens.input + event.usage.input, output: tokens.output + event.usage.output };
+    }
+  }
+  const counts = { run: start.run, model: start.model.id, presses, retries, toolErrors, milestones };
+  const end = events.find((event) => event.type === "run_end");
+  if (end !== undefined) {
+    return {
+      ...counts,
+      reason: end.reason,
+      furthest: end.furthest_milestone,
+      turns: end.turns,
+      wallMs: end.wall_ms,
+      tokens: end.tokens,
+    };
+  }
+  const last = events[events.length - 1] ?? start;
+  return {
+    ...counts,
+    reason: "incomplete",
+    furthest: milestones.at(-1)?.name ?? null,
+    turns: Math.max(...events.map((event) => event.turn)),
+    wallMs: since(last),
+    tokens,
+  };
+}
+
+function clock(ms: number): string {
+  const seconds = Math.round(ms / 1000);
+  return `${String(Math.floor(seconds / 60))}m${String(seconds % 60).padStart(2, "0")}s`;
+}
+
+function median(values: readonly number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 1 ? (sorted[mid] ?? 0) : ((sorted[mid - 1] ?? 0) + (sorted[mid] ?? 0)) / 2;
+}
+
+function table(rows: readonly string[][]): string[] {
+  const widths = rows[0]?.map((_, column) => Math.max(...rows.map((row) => row[column]?.length ?? 0))) ?? [];
+  return rows.map((row) =>
+    row
+      .map((cell, column) => cell.padEnd(widths[column] ?? 0))
+      .join("  ")
+      .trimEnd(),
+  );
+}
+
+export function summaryLines(summaries: readonly RunSummary[]): string[] {
+  const header = ["run", "model", "reason", "furthest", "turns", "wall", "tokens in→out", "presses", "retries", "tool errors"];
+  const rows = summaries.map((s) => [
+    s.run,
+    s.model,
+    s.reason,
+    s.furthest ?? "-",
+    String(s.turns),
+    clock(s.wallMs),
+    `${String(s.tokens.input)}→${String(s.tokens.output)}`,
+    String(s.presses),
+    String(s.retries),
+    String(s.toolErrors),
+  ]);
+  const incomplete = summaries.filter((s) => s.reason === "incomplete").length;
+  const lines = [
+    ...table([header, ...rows]),
+    "",
+    `${String(summaries.length)} runs: ${String(incomplete)} incomplete${incomplete > 0 ? " (no run_end: live, or lost — PB2)" : ""}`,
+  ];
+  const names = [...new Set(summaries.flatMap((s) => s.milestones.map((m) => m.name)))];
+  for (const name of names) {
+    const reaches = summaries.flatMap((s) => s.milestones.filter((m) => m.name === name).slice(0, 1));
+    lines.push(
+      `${name.padEnd(18)}reached ${String(reaches.length)}/${String(summaries.length)}  ` +
+        `median turn ${String(median(reaches.map((m) => m.turn)))}  median wall ${clock(median(reaches.map((m) => m.wallMs)))}`,
+    );
+  }
+  return lines;
+}

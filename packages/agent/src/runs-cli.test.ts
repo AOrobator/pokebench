@@ -106,7 +106,8 @@ describe("runsCli summary", () => {
   it("reports when there is nothing to summarize", () => {
     const out: string[] = [];
     expect(runsCli(["summary"], runsWith([]), 1000, (line) => out.push(line))).toBe(0);
-    expect(out).toEqual(["no runs with an event log"]);
+    expect(runsCli(["summary"], join(runsWith([]), "absent"), 1000, (line) => out.push(line))).toBe(0);
+    expect(out).toEqual(["no runs with an event log", "no runs with an event log"]);
   });
 });
 

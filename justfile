@@ -62,6 +62,10 @@ tail-run run_id: build
 runs-disk: build
     node packages/agent/dist/runs-cli.js disk
 
+# PB2 table for every run (or the named ones); fails when a run has no run_end.
+runs-summary *run_ids: build
+    node packages/agent/dist/runs-cli.js summary {{run_ids}}
+
 # Delete the oldest frames until usage is at or below <percent> of the cap.
 runs-prune percent: build
     node packages/agent/dist/runs-cli.js prune {{percent}}

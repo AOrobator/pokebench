@@ -5,7 +5,9 @@ import { describe, expect, it } from "vitest";
 import type { EventBody, RunEvent } from "./events.js";
 import { readRun, summarize, summaryLines, type RunSummary } from "./summary.js";
 
-const START: EventBody = {
+type Body = EventBody extends infer E ? (E extends EventBody ? Omit<E, "turn"> : never) : never;
+
+const START: Body = {
   type: "run_start",
   model: { id: "think-swarm", context_window: 131072, max_tokens: 4096, vision: true },
   sampling: { thinking_level: "medium", max_tokens: 4096 },
@@ -24,11 +26,11 @@ function stamp(seconds: number): string {
   return `2026-10-11T23:${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}.000-04:00`;
 }
 
-function events(run: string, bodies: [number, number, EventBody][]): RunEvent[] {
-  return bodies.map(([seconds, turn, body], seq) => ({ v: 1, run, seq, t: stamp(seconds), ...body, turn }) as RunEvent);
+function events(run: string, bodies: [number, number, Body][]): RunEvent[] {
+  return bodies.map(([seconds, turn, body], seq) => ({ v: 1, run, seq, t: stamp(seconds), ...body, turn }));
 }
 
-function assistant(input: number, output: number): EventBody {
+function assistant(input: number, output: number): Body {
   return {
     type: "assistant",
     thinking: "",
@@ -41,9 +43,9 @@ function assistant(input: number, output: number): EventBody {
   };
 }
 
-const press: EventBody = { type: "button_press", tool_call_id: "c", buttons: ["A"] };
-const retry: EventBody = { type: "retry", reason: "text-only reply", attempt: 1, limit: 3 };
-const toolError: EventBody = {
+const press: Body = { type: "button_press", tool_call_id: "c", buttons: ["A"] };
+const retry: Body = { type: "retry", reason: "text-only reply", attempt: 1, limit: 3 };
+const toolError: Body = {
   type: "tool_result",
   id: "c",
   name: "press",
@@ -53,7 +55,7 @@ const toolError: EventBody = {
   frames: [],
 };
 
-function milestone(name: string): EventBody {
+function milestone(name: string): Body {
   return { type: "milestone", name, server_timestamp: 1 };
 }
 

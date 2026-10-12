@@ -192,7 +192,7 @@ Mac Studio (all local)
 **M4 — Run event log (agent o11y foundation)** *(operator-in-the-loop; rescoped 2026-10-11, operator: "rewrite m4 that way, own viewer after m5")*
 - Context: the starter kit's `/stream` page already shows the live frame (websocket), a thinking panel fed by `POST /agent_step` (SSE, plain text, last 20 messages), recent actions, milestones, party, map and metrics. It has no structured tool calls, no per-step tokens or latency, and no replay, and it logs into the vendor `run_data/` (the cross-run bleed seen in M2). It can't be edited (INV-3).
 - Scope: the event schema (typed; turn start/end, thinking, tool call with arguments, tool result, button press, milestone from the game server, tokens and latency, terminal stop record per PB2) and a writer to `runs/<id>/events.jsonl`. Events are written before they are acted on (PB7). Run metadata: model id from discovery, sampling settings, harness commit, vendor pin, start state (PB3). The pi-agent-core event stream is the source.
-- [ ] **ASK USER (open, under discussion 2026-10-11):** also mirror events into the starter kit's `/stream` thinking panel (`POST /agent_step`) as a stopgap live view until the PokeBench viewer exists, or rely on `events.jsonl` plus a terminal tail until then?
+- [x] **ASK USER:** mirror into the starter kit's `/stream` thinking panel? Operator 2026-10-11: "agreed, skip it". There is no integration. During M5, runs are watched via `/stream` (frame, map, party, milestones) plus a formatted terminal tail of `events.jsonl`. If that proves too painful, pull M5.5 forward rather than pipe into their page.
 - [ ] **ASK USER:** schema checkpoint before RED.
 
 **M5 — Minimal agent** *(operator-in-the-loop)*

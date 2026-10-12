@@ -129,7 +129,8 @@ Mac Studio (all local)
 - [x] Smoke: `just smoke` → `SmokeReport(location='TITLE_SEQUENCE', screenshot_bytes=508, milestones_completed=['GAME_RUNNING', 'PLAYER_NAME_SET'])`; server terminated; vendor clean before and after
 - [x] Visual check: `just serve` → Chrome at http://127.0.0.1:8000/stream shows the live game (NEW GAME menu) plus the starter kit's thinking/milestones/party/map panels
 - [ ] Multi-model review loop until clean (R1 on 6294533..c6301e6: fallback sonnet LGTM; Codex BLOCKING, 2 accepted; think_fast/think_swarm rejected; see review log)
-- [x] COMMIT: `test(env): reject undecodable screenshots, bool timestamps, raw button names` (R1 RED)
+- [x] COMMIT: `test(env): reject undecodable screenshots, bool timestamps, raw button names` (R1 RED, f4c9e20)
+- [x] COMMIT: `fix(env): decode screenshots with Pillow, reject bool timestamps and raw button names` (R1 GREEN). Gates: pytest 91, lint clean, Python coverage 98.77 / 97.22 / 100
 
 **M3 — pi ↔ local gateway**
 - [ ] Write tests (`packages/agent`):
@@ -179,6 +180,16 @@ Mac Studio (all local)
 | M1 | R1 (746a785..3f69d59, diff sha256 ec36e28b…89db) | 0 FAIL (P36, P8 rows corrected after review) | Claude CLI (default profile; `~/.claude-review` logged out): LGTM | BLOCKING (test seeds asset via hooksPath=/dev/null) | LGTM | Cursor unavailable (not logged in) → subagent fallback A (sonnet): LGTM; B (fable): LGTM | Codex isolated (gpt-6-astra): BLOCKING (Python coverage gate is aggregate; branches/functions not independently enforced) | fix batch R1 |
 | M1 | R2 fix delta (3f69d59..56d2cb2, sha256 12d23ec5…e7bd) | 0 FAIL (P36→N/A, P8, P41 rows) | Claude CLI: LGTM | BLOCKING (false positives, see synthesis) | BLOCKING (rejected; self-contradicting output) | fallback A (sonnet): LGTM; B (fable): LGTM | Codex: BLOCKING (function coverage inferred from a line proxy) | fix batch R2 |
 | M1 | R3 (56d2cb2..4343928, sha256 ccef0ebf…9062) | 0 FAIL | Claude CLI: BLOCKING (worklog missing 2597b9c/4343928 records) | BLOCKING (rejected: one glob + one TOML read is not superlinear) | BLOCKING (rejected: exact-line pinning addresses brittleness; operator-directed tests are not scope expansion) | fallback A (sonnet): BLOCKING (6 mutation survivors: prefix-matched commands, vitest thresholds, omit, setup installs); B (fable): pending | Codex: LGTM | fix batch R3 |
+| M2 | R1 (6294533..c6301e6) | 0 FAIL | Claude CLI: FAILED (rc=1, empty stderr), re-run on the fix delta | BLOCKING (rejected) | BLOCKING (rejected) | fallback A (sonnet): LGTM; B (fable): cut off by usage limit | Codex: BLOCKING (2 accepted) | fix batch R1 |
+
+**M2 R1 synthesis.** Accepted (Codex):
+- `_png_size` read only the IHDR header, so a header-only PNG passed and a short IHDR leaked `struct.error`. Screenshots are now decoded with Pillow, and failures raise `ClientError`.
+- A boolean milestone timestamp became `1.0`. Booleans are now rejected.
+- Hardening: the raw-name button test now goes through `GameClient.press` and asserts that no request was sent. Invalid base64 raises `ClientError`.
+
+Rejected (think_fast/think_swarm): "monkeypatching uvicorn mutates global state" (intended, and pinned by the `run()` test); "`prepare` has two responsibilities" (check and link are a single precondition); "smoke is not a unit test" (it is the end-to-end gate, and its orchestrator is unit-tested); "unneeded dependencies" (opencv and bs4 were measured as required by server imports).
+
+Deferred (fallback sonnet hardening): smoke would pass against a stale server already on port 8765; build-mgba gives no message when `brew` is missing; `http_transport` has no scheme check.
 
 **M1 R2 synthesis.** Accepted:
 - Codex: functions with zero statements (e.g. docstring-only) are no longer counted. The line proxy is otherwise sound because `ruff format --check` rules out one-line `def` bodies.

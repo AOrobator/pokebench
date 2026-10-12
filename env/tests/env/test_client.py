@@ -104,6 +104,12 @@ def test_screenshot_without_decodable_image_data_is_rejected(payload: bytes) -> 
         GameClient(FakeTransport({("GET", "/screenshot"): body})).screenshot()
 
 
+def test_screenshot_with_invalid_base64_is_a_client_error() -> None:
+    body = {"screenshot_base64": "not base64!", "step_number": 1}
+    with pytest.raises(ClientError, match="screenshot_base64"):
+        GameClient(FakeTransport({("GET", "/screenshot"): body})).screenshot()
+
+
 def test_press_sends_validated_buttons_and_checks_success() -> None:
     transport = FakeTransport({("POST", "/action"): {"status": "success", "actions_queued": 2}})
     GameClient(transport).press([Button.A, Button.UP])

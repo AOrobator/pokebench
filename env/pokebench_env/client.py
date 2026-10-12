@@ -1,18 +1,20 @@
 """Typed client for the continual-harness game server."""
 
 import base64
+import binascii
 import json
-import struct
 import urllib.error
 import urllib.request
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
+from io import BytesIO
 from typing import TypeVar
+
+from PIL import Image, UnidentifiedImageError
 
 Transport = Callable[[str, str, object | None], object]
 
-PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 GBA_WIDTH, GBA_HEIGHT = 240, 160
 
 T = TypeVar("T")
@@ -72,10 +74,12 @@ def _typed(value: object, kind: type[T], where: str) -> T:
 
 
 def _png_size(data: bytes) -> tuple[int, int]:
-    if not data.startswith(PNG_SIGNATURE) or data[12:16] != b"IHDR":
-        raise ClientError("screenshot is not a PNG")
-    width, height = struct.unpack(">II", data[16:24])
-    return width, height
+    try:
+        with Image.open(BytesIO(data), formats=["PNG"]) as image:
+            image.load()
+            return image.size
+    except (UnidentifiedImageError, OSError, SyntaxError, ValueError) as exc:
+        raise ClientError(f"screenshot is not a decodable PNG: {exc}") from exc
 
 
 class GameClient:
@@ -105,7 +109,10 @@ class GameClient:
     def screenshot(self) -> Screenshot:
         body = _obj(self._transport("GET", "/screenshot", None), "/screenshot")
         encoded = _typed(body.get("screenshot_base64"), str, "/screenshot.screenshot_base64")
-        data = base64.b64decode(encoded, validate=True)
+        try:
+            data = base64.b64decode(encoded, validate=True)
+        except binascii.Error as exc:
+            raise ClientError(f"/screenshot.screenshot_base64: {exc}") from exc
         width, height = _png_size(data)
         if (width, height) != (GBA_WIDTH, GBA_HEIGHT):
             raise ClientError(f"screenshot is {width}x{height}, expected 240x160")
@@ -115,7 +122,10 @@ class GameClient:
     def press(self, buttons: Sequence[Button]) -> None:
         if not buttons:
             raise ClientError("press needs at least one button")
-        names = [Button(button).value for button in buttons]
+        try:
+            names = [Button(button).value for button in buttons]
+        except ValueError as exc:
+            raise ClientError(f"press: {exc}") from exc
         body = _obj(self._transport("POST", "/action", {"buttons": names}), "/action")
         if body.get("status") != "success":
             raise ClientError(f"/action failed: {body.get('message', body)}")
@@ -127,7 +137,9 @@ class GameClient:
         for index, raw in enumerate(entries):
             entry = _obj(raw, f"/milestones[{index}]")
             timestamp = entry.get("timestamp")
-            if timestamp is not None and not isinstance(timestamp, int | float):
+            if timestamp is not None and (
+                isinstance(timestamp, bool) or not isinstance(timestamp, int | float)
+            ):
                 raise ClientError(f"/milestones[{index}].timestamp: got {timestamp!r}")
             result.append(
                 Milestone(

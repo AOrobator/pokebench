@@ -134,3 +134,22 @@ def test_native_frame_adapter_without_video_is_unavailable() -> None:
 
     with pytest.raises(HTTPException, match="no screenshot available"):
         native_screenshot(SimpleNamespace(get_screenshot=lambda: None))
+
+
+def test_live_warp_activation_reaches_model_text_and_recorded_state() -> None:
+    from test_game_state import MAPS, OVERWORLD, SB1, game
+    from test_live_map import loaded
+
+    m = loaded()
+    m.cells.update(game(OVERWORLD).cells)
+    m.put(SB1, struct.pack("<hhbb", 1, 1, 0, 9))
+    m.put(0x02007000, struct.pack("<H", 0x65))
+    app = FastAPI()
+    install_observation(app, good_shot, m.read, MAPS)
+    status, _, body = get(app, "/pokebench/observation")
+    assert status == 200, body
+    payload = json.loads(body)
+    expected = "(0,1) -> map 0/9 [directional exit: stand on tile, then press DOWN]"
+    assert expected in payload["state_text"], payload
+    assert expected in payload["state"]["local_map"], payload
+    assert payload["state"]["local_map"] in payload["state_text"], payload

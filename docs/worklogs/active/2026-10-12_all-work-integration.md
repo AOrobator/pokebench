@@ -7,3 +7,5 @@ Canonical main starts clean at 2c0a242. Integrate only in owned m5b checkout; pr
 World merge prepared: retain both story context and interaction targets in reader, readout, schema and metadata. Generated schema is rebuilt from TypeBox, not manually reconciled. Review and tests pending; no landing claimed.
 
 Objective integration retains objective tools and post-observation typed state alongside evidence-qualified press feedback, both viewer panels and their replay tests. Existing corrected Birch task fixture retained. Probe feature declaration corrected to omit tool names inadvertently captured during initial conflict resolution. Gates/review remain pending.
+
+Warp integration retains coordinate labels and activation explanations together, preserves dialogue guidance and conditional objective metadata. Source enum counterexample retained at /tmp/pokebench-warp-source-enum-proof.txt; original reviewer table allegation must be revisited, not waived. Initial build caught duplicate type import from auto-merge; removed duplicate.

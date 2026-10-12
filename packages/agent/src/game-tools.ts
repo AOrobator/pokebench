@@ -2,7 +2,6 @@ import type { AgentMessage, AgentTool } from "@mariozechner/pi-agent-core";
 import type { AssistantMessage, ImageContent, TextContent, ToolResultMessage } from "@mariozechner/pi-ai";
 import { Type } from "typebox";
 import { Value } from "typebox/value";
-import type { GameStateSnapshot } from "./game-state.js";
 import { ButtonSchema, StateBodySchema, type Button } from "./events.js";
 import { parseGameState, type GameStateSnapshot } from "./game-state.js";
 import { pressResult } from "./press-result.js";

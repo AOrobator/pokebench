@@ -135,6 +135,7 @@ def test_production_state_reader_delivers_context_to_model_and_json() -> None:
     m.cells.update(context.cells)
     m.put(0x02037350, bytes(16 * 0x24))
     m.put(0x02037350, b"\x01\x00\x01")
+    m.put(0x02037350 + 0x10, struct.pack("<hh", 17, 9))
     m.put(0x02037350 + 0x18, b"\x44")
     m.put(0x02037350 + 0x24, context.read(0x02037350, 0x24))
     m.put(SB1 + 0x139C + (0x4050 - 0x4000) * 2, struct.pack("<H", 1))

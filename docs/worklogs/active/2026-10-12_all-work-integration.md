@@ -9,3 +9,11 @@ World merge prepared: retain both story context and interaction targets in reade
 Objective integration retains objective tools and post-observation typed state alongside evidence-qualified press feedback, both viewer panels and their replay tests. Existing corrected Birch task fixture retained. Probe feature declaration corrected to omit tool names inadvertently captured during initial conflict resolution. Gates/review remain pending.
 
 Warp integration retains coordinate labels and activation explanations together, preserves dialogue guidance and conditional objective metadata. Source enum counterexample retained at /tmp/pokebench-warp-source-enum-proof.txt; original reviewer table allegation must be revisited, not waived. Initial build caught duplicate type import from auto-merge; removed duplicate.
+
+Initial combined coverage RED at static-only AST feature fixture; replace duplicate AST suite with existing actual-entrypoint world fixture assertions for story and warp features. Four pure startup cases plus one real adapter now exercise all observation features through recorded run_start, with conditional objective behavior covered by actual default/ablation root tests. No production metadata workaround. Initial lint RED at merged long legend; split adjacent literal.
+
+Combined Python checks caught two inherited fixtures that only positioned saved coordinates or cleared live-player coordinates. Updated test-owned ObjectEvent currentCoords to the intended positions, preserving live-position production owner. Restored full gates pending.
+
+All twelve story/warp metadata operand deletions RED through the replacement actual-entrypoint fixture; restored. Diff audit caught omitted warp parametrized tests during conflict resolution; restored original incoming tests before final frozen gates.
+
+Combined GREEN: agent338/viewer135/Python358; all coverage metrics >=90 (Python lines99.47 branches97.08 functions100). Lint passes. Twelve performed metadata mutations restored; no production growth beyond three existing authorized feature boundaries. Final build/ROM/vendor receipts retained under /tmp/pokebench-all-*.log. Frozen review packet follows.

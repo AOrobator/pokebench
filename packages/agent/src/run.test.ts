@@ -2,7 +2,6 @@ import { existsSync, mkdtempSync, readFileSync, writeFileSync, mkdirSync } from 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import ts from "typescript";
 import { parseEvent, type RunEvent } from "./events.js";
 import { FrameStore } from "./frames.js";
 import { harnessInfo, newRunId, withRun, type RunHost, type RunPlan } from "./run.js";
@@ -224,51 +223,5 @@ describe("withRun ownership and metadata", () => {
     ).rejects.toThrow("vendor checkout missing");
     expect(fake.calls.filter((call) => call.startsWith("launch"))).toEqual([]);
     expect(existsSync(join(runsRoot, "2026-10-11T22-00-00_think-swarm_aaaa"))).toBe(false);
-  });
-});
-
-
-
-describe("live feature declarations reach recorded run_start", () => {
-  const source = ts.createSourceFile("live.ts", readFileSync(join(import.meta.dirname, "live.ts"), "utf8"), ts.ScriptTarget.Latest, true);
-  function declaredFeatures(mode: string): string[] {
-    const functions = source.statements.filter((node): node is ts.FunctionDeclaration => ts.isFunctionDeclaration(node) && node.name?.text === mode);
-    expect(functions).toHaveLength(1);
-    const featureLists: string[][] = [];
-    function visit(node: ts.Node): void {
-      if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "withRun") {
-        const actualPlan = node.arguments[0];
-        if (actualPlan !== undefined && ts.isObjectLiteralExpression(actualPlan)) {
-          for (const property of actualPlan.properties) {
-            if (ts.isPropertyAssignment(property) && ts.isIdentifier(property.name) && property.name.text === "harnessFeatures" && ts.isArrayLiteralExpression(property.initializer)) {
-              featureLists.push(property.initializer.elements.map((element) => {
-                if (!ts.isStringLiteral(element)) throw new Error("feature declaration must remain a literal in the excluded entrypoint");
-                return element.text;
-              }));
-            }
-          }
-        }
-      }
-      ts.forEachChild(node, visit);
-    }
-    visit(functions[0] ?? source);
-    expect(featureLists).toHaveLength(1);
-    const features = featureLists[0] ?? [];
-    return features;
-  }
-
-  it.each(["smoke", "playAgent", "probe"])("declares observation extras from the actual %s plan", (mode) => {
-    const extras = ["live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1"];
-    expect(declaredFeatures(mode).filter((feature) => extras.includes(feature))).toEqual(extras);
-  });
-
-  it("records the declared live features through the real persistence adapter", async () => {
-    const features = declaredFeatures("probe");
-    const runsRoot = root();
-    const actual = { ...plan(runsRoot), harnessFeatures: features };
-    await withRun(actual, host(), new FrameStore(runsRoot, 1000, () => undefined), () => Promise.resolve("completed"));
-    const starts = events(runsRoot, actual.runId).filter((event) => event.type === "run_start");
-    expect(starts).toHaveLength(1);
-    expect(starts[0]?.harness_features).toEqual(features);
   });
 });

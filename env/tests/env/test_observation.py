@@ -143,6 +143,7 @@ def test_live_warp_activation_reaches_model_text_and_recorded_state() -> None:
     m = loaded()
     m.cells.update(game(OVERWORLD).cells)
     m.put(SB1, struct.pack("<hhbb", 1, 1, 0, 9))
+    m.put(0x02037350 + 0x10, struct.pack("<hh", 8, 8))
     m.put(0x02007000, struct.pack("<H", 0x65))
     app = FastAPI()
     install_observation(app, good_shot, m.read, MAPS)

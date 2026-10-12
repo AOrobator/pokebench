@@ -68,5 +68,6 @@ it.each([["smoke", true], ["play", true], ["probe", true], ["verify-state", true
   const start = await receipt;
   if (start.type !== "run_start") throw new Error("unexpected startup event");
   const declared = start.harness_features.filter((f) => f.startsWith("world-") || f === "live-player-position-v1" || f === "press-result-v1");
+  expect(start.harness_features.filter((f) => ["live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "warp-activation-guidance-v1"].includes(f))).toEqual(["live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "warp-activation-guidance-v1"]);
   expect(declared).toEqual(["world-targets-v1", "live-player-position-v1", "world-coordinate-grid-v1", "press-result-v1"]);
 });

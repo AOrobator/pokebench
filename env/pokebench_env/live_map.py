@@ -91,7 +91,8 @@ class LocalMap:
             + "\n".join(
                 f"{y + i:4} " + " ".join(f"{c:>3}" for c in row) for i, row in enumerate(self.rows)
             )
-            + "\n@ player; N live object; W warp location (see activation below); # collision; g grass; ~ water;"
+            + "\n@ player; N live object; W warp location (see activation below);"
+            + " # collision; g grass; ~ water;"
             + " . clear terrain (may have script triggers); ? outside current map."
             + "\nTerrain rules, elevation and objects can still block movement."
             + f"\nLive objects: {objects}\nWarps: {warps}"

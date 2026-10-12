@@ -78,3 +78,8 @@ describe("event schema", () => {
     expect(JSON.parse(renderEventsJsonSchema())).toEqual(eventsJsonSchema());
   });
 });
+
+it("preserves old vendor state events for historical replay", () => {
+  const legacy = { ...ENVELOPE, type: "state", turn: 2, location: "LITTLEROOT TOWN", position: { x: 2, y: 3 }, facing: "down", mode: "overworld", in_battle: false, party: [], money: 3000, badges: [], play_time_s: 10 };
+  expect(parseEvent(JSON.stringify(legacy))).toEqual(legacy);
+});

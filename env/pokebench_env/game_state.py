@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from pokebench_env.game_screen import ReadMemory, read_screen
+from pokebench_env.live_map import read_local_map
 
 SAVE_BLOCK_PTRS = 0x03005D8C
 PARTY_COUNT = 0x020244E9
@@ -20,6 +21,7 @@ PARTY = 0x020244EC
 PLAYER_AVATAR = 0x02037590
 OBJECT_EVENTS = 0x02037350
 IN_BATTLE = 0x030026F9
+FIELD_CONTROLS_LOCK = 0x03000F2C
 SPECIES_NAMES = 0x083185C8
 
 PRE_GAME = frozenset({"intro", "title", "main_menu", "birch_speech", "naming"})
@@ -98,6 +100,8 @@ class GameState:
     money: int | None
     badges: tuple[str, ...] | None
     play_time: tuple[int, int, int] | None
+    field_controls_locked: bool | None = None
+    local_map: str | None = None
 
 
 def _u32(read: ReadMemory, address: int) -> int:
@@ -148,6 +152,11 @@ def read_game_state(read: ReadMemory, maps: MapNames) -> GameState:
     hours, minutes, seconds = struct.unpack("<HBB", read(save2 + 0x0E, 4))
     player_object = read(PLAYER_AVATAR + 5, 1)[0]
     facing = read(OBJECT_EVENTS + 0x24 * player_object + 0x18, 1)[0] & 0x0F
+    nearby = (
+        read_local_map(read, (x, y), map_id)
+        if screen.kind == "overworld" and not in_battle
+        else None
+    )
     return GameState(
         screen=screen.label,
         started=True,
@@ -161,4 +170,8 @@ def read_game_state(read: ReadMemory, maps: MapNames) -> GameState:
         money=_u32(read, save1 + 0x490) ^ _u32(read, save2 + 0xAC),
         badges=_badges(read, save1),
         play_time=(hours, minutes, seconds),
+        local_map=None if nearby is None else nearby.text(),
+        field_controls_locked=bool(read(FIELD_CONTROLS_LOCK, 1)[0])
+        if screen.kind == "overworld" and not in_battle
+        else None,
     )

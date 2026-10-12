@@ -989,6 +989,26 @@
         "screen": {
           "type": "string"
         },
+        "local_map": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "field_controls_locked": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "started": {
           "type": "boolean"
         },
@@ -1125,6 +1145,139 @@
               "type": "null"
             }
           ]
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "run",
+        "seq",
+        "t",
+        "turn",
+        "type",
+        "location",
+        "position",
+        "facing",
+        "mode",
+        "in_battle",
+        "party",
+        "money",
+        "badges",
+        "play_time_s"
+      ],
+      "properties": {
+        "v": {
+          "type": "number",
+          "const": 1
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type": {
+          "type": "string",
+          "const": "state"
+        },
+        "location": {
+          "type": "string"
+        },
+        "position": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "x",
+                "y"
+              ],
+              "properties": {
+                "x": {
+                  "type": "integer"
+                },
+                "y": {
+                  "type": "integer"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "facing": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "mode": {
+          "type": "string"
+        },
+        "in_battle": {
+          "type": "boolean"
+        },
+        "party": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "species",
+              "level",
+              "hp",
+              "max_hp"
+            ],
+            "properties": {
+              "species": {
+                "type": "string"
+              },
+              "level": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "hp": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "max_hp": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "money": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "badges": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "play_time_s": {
+          "type": "integer",
+          "minimum": 0
         }
       },
       "additionalProperties": false

@@ -7,8 +7,11 @@
 // game-tools.ts and harness.ts.
 
 import { execFileSync, spawn } from "node:child_process";
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { createInterface } from "node:readline";
+import { verifyIntro } from "./verify-state.js";
+import { driveProbe, parseProbeCommand, type ProbeCommand } from "./probe.js";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runAgentLoop, type AgentMessage } from "@mariozechner/pi-agent-core";
@@ -60,7 +63,7 @@ async function waitForHealthy(url: string): Promise<void> {
   throw new Error(`game server not healthy within ${String(HEALTH_TIMEOUT_MS)} ms`);
 }
 
-function realHost(port: number): RunHost {
+function realHost(port: number, loadState?: string): RunHost {
   const url = `http://127.0.0.1:${String(port)}`;
   return {
     serverHealthy,
@@ -71,7 +74,7 @@ function realHost(port: number): RunHost {
       const python = join(REPO_ROOT, "env", ".venv", "bin", "python");
       const child = spawn(
         python,
-        ["-m", "pokebench_env.launcher", "--run-dir", runDir, "--run-id", runId, "--port", String(serverPort)],
+        ["-m", "pokebench_env.launcher", "--run-dir", runDir, "--run-id", runId, "--port", String(serverPort), ...(loadState === undefined ? [] : ["--load-state", loadState])],
         { cwd: join(REPO_ROOT, "env"), stdio: ["ignore", "ignore", "inherit"], detached: true },
       );
       const exited = new Promise<void>((resolve) => {
@@ -148,7 +151,7 @@ async function smoke(): Promise<void> {
       systemPrompt: SYSTEM_PROMPT,
       tools,
       startState: { kind: "boot" },
-      harnessFeatures: [],
+      harnessFeatures: ["ram-state-v1", "live-map-v1", "field-control-lock"],
       budgets: { max_wall_ms: LOOP_TIMEOUT_MS },
       piVersion: piVersion(),
     },
@@ -220,7 +223,7 @@ async function playAgent(): Promise<void> {
       systemPrompt: PLAY_SYSTEM_PROMPT,
       tools: ["observe", "press"],
       startState: { kind: "boot" },
-      harnessFeatures: [],
+      harnessFeatures: ["ram-state-v1", "live-map-v1", "field-control-lock"],
       budgets: { max_turns: PLAY_LIMITS.maxTurns, max_wall_ms: PLAY_LIMITS.maxWallMs },
       piVersion: piVersion(),
     },
@@ -268,10 +271,38 @@ async function playAgent(): Promise<void> {
   console.log(`run-agent: run ${runId} ended (${reason}); summary: just runs-summary ${runId}`);
 }
 
+async function probe(verify = false): Promise<void> {
+  const port = Number(process.env["POKEBENCH_PROBE_PORT"] ?? "8032");
+  if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error("invalid probe port");
+  const saved = process.argv[3] || undefined;
+  const startState = saved === undefined
+    ? { kind: "boot" as const }
+    : { kind: "save_state" as const, path: saved, sha1: createHash("sha1").update(readFileSync(saved)).digest("hex") };
+  const runId = newRunId(new Date(), "probe", () => randomBytes(2).toString("hex"));
+  console.log(`probe: ${runId} — http://127.0.0.1:8791/#run=${runId}`);
+  const lines = createInterface({ input: process.stdin });
+  async function* commands(): AsyncGenerator<ProbeCommand> {
+    for await (const line of lines) {
+      if (line.trim() !== "") yield parseProbeCommand(line);
+    }
+  }
+  try {
+    const reason = await withRun({
+      runsRoot: RUNS_ROOT, runId, port,
+      model: { id: "manual-probe", context_window: 0, max_tokens: 0, vision: false },
+      sampling: { thinking_level: "none", max_tokens: 0 },
+      systemPrompt: "Manual game-state validation probe; excluded from benchmark results.",
+      tools: ["observe", "press"], startState, harnessFeatures: ["probe", "manual-control"],
+      budgets: {}, piVersion: piVersion(),
+    }, realHost(port, saved), new FrameStore(RUNS_ROOT), (recorder, url) => driveProbe(recorder, url, verify ? verifyIntro(new StateWatcher(url), (label, state) => { console.log(`CHECKPOINT ${label} ${JSON.stringify(state)}`); }) : commands()));
+    console.log(`probe ended: ${reason}`);
+  } finally { lines.close(); }
+}
+
 const command = process.argv[2];
-const entry = command === "smoke" ? smoke : command === "play" ? playAgent : null;
+const entry = command === "smoke" ? smoke : command === "play" ? playAgent : command === "probe" ? () => probe() : command === "verify-state" ? () => probe(true) : null;
 if (entry === null) {
-  console.error("usage: live.js smoke | live.js play");
+  console.error("usage: live.js smoke | live.js play | live.js probe [save-state]");
   process.exitCode = 2;
 } else {
   entry().catch((error: unknown) => {

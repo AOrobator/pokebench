@@ -163,12 +163,14 @@ function readStart(runsRoot: string, runId: string): RunEvent & { type: "run_sta
 
 export function baselineOf(runsRoot: string, runId: string): Baseline {
   const start = readStart(runsRoot, runId);
+  if (start.harness_features.includes("probe")) throw new BaselineError("probe sessions cannot be benchmark baselines");
   const startMs = Date.parse(start.t);
   const milestones: { name: string; offsetMs: number }[] = [];
   // A comparison must rest on the baseline run's own, fully valid log (PB1).
   for (const result of readFrom(eventsPath(runsRoot, runId), 0, 0).results) {
     if (!result.ok) throw new BaselineError(`baseline ${runId} line ${String(result.line)}: ${result.problem}`);
     if (result.event.run !== runId) throw new BaselineError(`baseline ${runId} holds an event for run ${result.event.run}`);
+    if (result.event.type === "state" && !("started" in result.event)) throw new BaselineError("baseline uses unverified historical vendor state");
     if (result.event.type === "milestone") milestones.push({ name: result.event.name, offsetMs: Date.parse(result.event.t) - startMs });
   }
   return { run: runId, milestones };

@@ -325,3 +325,11 @@ describe("inspector and brand", () => {
     expect(brand(new RunView())).toBe("POKéNAV · NO RUN");
   });
 });
+
+it("shows the control lock and names manual probes honestly", () => {
+  const log = new Log(); log.add(0, { ...START, harness_features: ["probe"] });
+  log.add(1, state({ field_controls_locked: true }));
+  const v = new RunView(); for (const e of log.events) v.apply(e);
+  expect(trainerCard(v, BASE_MS)).toContain('<dt>CONTROLS</dt><dd>locked</dd>');
+  expect(thinkingDialog(v, BASE_MS).head).toContain("MANUAL PROBE");
+});

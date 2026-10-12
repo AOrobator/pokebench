@@ -33,12 +33,22 @@ def format_readout(state: GameState) -> str:
         f"In battle: {'yes' if state.in_battle else 'no'}",
         f"Play time: {_clock(_play_seconds(state) or 0)}",
     ]
+    if state.field_controls_locked is not None:
+        lines.append(
+            "Field controls: locked (dialog, menu, or script; direction presses cannot move)"
+            if state.field_controls_locked
+            else "Field controls: available (terrain and objects can still block a direction)"
+        )
+    if state.local_map is not None:
+        lines.append(state.local_map)
     return "\n".join(lines)
 
 
 def state_json(state: GameState) -> dict[str, object]:
     return {
         "screen": state.screen,
+        "field_controls_locked": state.field_controls_locked,
+        "local_map": state.local_map,
         "started": state.started,
         "name": state.name,
         "location": state.location,

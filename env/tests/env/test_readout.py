@@ -1,6 +1,5 @@
-from pokebench_env.readout import format_readout, state_json
-
 from pokebench_env.game_state import GameState, PartyMon
+from pokebench_env.readout import format_readout, state_json
 
 IN_GAME = GameState(
     screen="overworld",
@@ -54,6 +53,8 @@ def test_pre_game_readout_reports_only_the_screen() -> None:
 def test_state_json_is_plain_json() -> None:
     assert state_json(IN_GAME) == {
         "screen": "overworld",
+        "field_controls_locked": None,
+        "local_map": None,
         "started": True,
         "name": "MAY",
         "location": "LITTLEROOT TOWN",
@@ -71,6 +72,8 @@ def test_state_json_is_plain_json() -> None:
     }
     assert state_json(PRE_GAME) == {
         "screen": "naming",
+        "field_controls_locked": None,
+        "local_map": None,
         "started": False,
         "name": None,
         "location": None,
@@ -83,3 +86,24 @@ def test_state_json_is_plain_json() -> None:
         "badges": [],
         "play_time_s": None,
     }
+
+
+def test_locked_controls_warn_that_directions_cannot_move() -> None:
+    state = GameState(**{**IN_GAME.__dict__, "field_controls_locked": True})
+    assert (
+        "Field controls: locked (dialog, menu, or script; direction presses cannot move)"
+        in format_readout(state)
+    )
+    assert state_json(state)["field_controls_locked"] is True
+
+
+def test_available_controls_still_allow_for_collision() -> None:
+    state = GameState(**{**IN_GAME.__dict__, "field_controls_locked": False})
+    assert "terrain and objects can still block a direction" in format_readout(state)
+    assert state_json(state)["field_controls_locked"] is False
+
+
+def test_live_map_is_in_the_model_readout_and_state_json() -> None:
+    state = GameState(**{**IN_GAME.__dict__, "local_map": "Local map from live memory:\n.@N"})
+    assert format_readout(state).endswith("Local map from live memory:\n.@N")
+    assert state_json(state)["local_map"] == state.local_map

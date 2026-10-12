@@ -38,12 +38,14 @@ export function trainerCard(view: RunView, nowMs: number): string {
       ? NO_DATA
       : Array.from({ length: BADGES }, (_, i) => `<i class="${i < state.badges.length ? "got" : ""}" title="${esc(state.badges[i] ?? "")}"></i>`).join("");
   return (
+    (view.legacyState ? '<p class="nodata">Historical vendor readout; accurate state unavailable for this run.</p>' : "") +
     kv([
       ["TIME", hms(wallSeconds(view, nowMs))],
       ["PLAY", state === null ? NO_DATA : state.play_time_s === null ? NOT_STARTED : hms(state.play_time_s)],
       ["MAP", state === null ? NO_DATA : place(state)],
       ["MONEY", state === null ? NO_DATA : state.money === null ? NOT_STARTED : `₽${num(state.money)}`],
       ["TURN", String(view.turn)],
+      ["CONTROLS", state?.field_controls_locked === true ? "locked" : state?.field_controls_locked === false ? "available" : NO_DATA],
     ]) + `<div class="badges">${badges}</div>`
   );
 }
@@ -178,6 +180,10 @@ export function splits(view: RunView, baseline: Baseline | null, nowMs: number):
 
 export function thinkingDialog(view: RunView, nowMs: number): { head: string; body: string } {
   if (view.start === null) return { head: "NO RUN", body: NO_DATA };
+  if (view.start.harness_features.includes("probe")) {
+    const last = view.events.findLast((event) => event.type === "tool_result");
+    return { head: `MANUAL PROBE · step ${String(view.turn)}`, body: last?.type === "tool_result" ? esc(last.text) : NO_DATA };
+  }
   if (view.isThinking && view.turnStartMs !== null) {
     const { thinking, text } = view.streaming;
     const reply = text === "" ? "" : `<span class="reply">${esc(text)}</span>`;

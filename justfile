@@ -77,3 +77,12 @@ runs-prune percent: build
 # PokeBench viewer on 127.0.0.1:8790: live runs follow events.jsonl, finished runs replay from frames/.
 view run_id="": build
     node packages/viewer/dist/cli.js {{quote(run_id)}}
+
+# Manual validation probes are recorded like runs, excluded from benchmark results.
+# stdin accepts {"action":"observe"}, {"action":"press","buttons":["A"]}, {"action":"end"}.
+probe saved="": build
+    node packages/agent/dist/live.js probe {{quote(saved)}}
+
+# Fresh-ROM state gate, recorded in the viewer as a non-benchmark probe.
+verify-state: build
+    node packages/agent/dist/live.js verify-state

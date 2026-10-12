@@ -129,3 +129,13 @@ describe("liveScreenPort", () => {
     expect(() => liveScreenPort(runsRoot, "missing")).toThrow(RunsError);
   });
 });
+
+it("rejects manual probes and legacy vendor states as benchmark baselines", () => {
+  const runsRoot = root();
+  const probe = new Log(); probe.add(0, { ...START, harness_features: ["probe"] });
+  writeRun(runsRoot, "probe", probe);
+  expect(() => baselineOf(runsRoot, "probe")).toThrow(/probe sessions/);
+  const legacy = liveLog(); legacy.add(1, { type: "state", turn: 1, mode: "overworld", location: "PETALBURG CITY", position: null, facing: null, in_battle: false, party: [], money: 3000, badges: [], play_time_s: 0 });
+  writeRun(runsRoot, "legacy", legacy);
+  expect(() => baselineOf(runsRoot, "legacy")).toThrow(/unverified historical/);
+});

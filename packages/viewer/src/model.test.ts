@@ -168,3 +168,28 @@ describe("isRunEvent", () => {
     expect(isRunEvent([])).toBe(false);
   });
 });
+
+it("keeps legacy vendor state in the log without treating it as accurate RAM state", () => {
+  const log = new Log(); log.add(0, START);
+  const legacy = log.add(1, { type: "state", turn: 1, mode: "overworld", location: "PETALBURG CITY", position: { x: 0, y: 0 }, facing: null, in_battle: false, party: [], money: 3000, badges: [], play_time_s: 0 });
+  const v = fold(log);
+  expect(v.events.at(-1)).toEqual(legacy);
+  expect(v.state).toBeNull();
+  expect(v.legacyState).toBe(true);
+});
+
+it("does not count scripted control locks or pre-game null coordinates as navigation stalls", () => {
+  const log = new Log(); log.add(0, START);
+  log.add(1, state({ started: false, position: null }));
+  log.add(2, state({ started: false, position: null }));
+  log.add(3, state({ field_controls_locked: true }));
+  log.add(4, state({ field_controls_locked: true }));
+  expect(fold(log).stuck).toEqual({ now: 0, max: 0 });
+});
+
+it("manual probes do not claim model thinking or context usage", () => {
+  const log = new Log(); log.add(0, { ...START, harness_features: ["probe"] });
+  log.add(1, { type: "turn_start", turn: 1, context: { messages: 0, images: 0, est_tokens: 0 } });
+  expect(fold(log).isThinking).toBe(false);
+  expect(fold(log).context).toBeNull();
+});

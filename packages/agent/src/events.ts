@@ -134,6 +134,8 @@ const FramesEvicted = event("frames_evicted", {
 export const StateBodySchema = Type.Object(
   {
     screen: Type.String(),
+    local_map: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+    field_controls_locked: Type.Optional(Type.Union([Type.Boolean(), Type.Null()])),
     started: Type.Boolean(),
     name: Type.Union([Type.String(), Type.Null()]),
     location: Type.Union([Type.String(), Type.Null()]),
@@ -155,6 +157,20 @@ export const StateBodySchema = Type.Object(
 );
 
 const State = event("state", StateBodySchema.properties);
+
+// Read-only historical compatibility: old vendor-derived state stays identifiable
+// by its mode field and is never promoted to the authoritative RAM readout.
+const LegacyState = event("state", {
+  location: Type.String(),
+  position: StateBodySchema.properties.position,
+  facing: StateBodySchema.properties.facing,
+  mode: Type.String(),
+  in_battle: Type.Boolean(),
+  party: StateBodySchema.properties.party,
+  money: NonNegativeInt,
+  badges: StateBodySchema.properties.badges,
+  play_time_s: NonNegativeInt,
+});
 
 const Compaction = event("compaction", { from_tokens: NonNegativeInt, to_tokens: NonNegativeInt });
 
@@ -187,6 +203,7 @@ export const RunEventSchema = Type.Union([
   FramesEvicted,
   RunEnd,
   State,
+  LegacyState,
   Compaction,
   TelemetryError,
   AssistantDelta,

@@ -66,3 +66,33 @@ def test_observation_passes_vendor_http_errors_through() -> None:
     status, _, body = get(app_with(failing), "/pokebench/observation")
     assert status == 400
     assert json.loads(body) == {"detail": "Emulator not initialized"}
+
+
+@pytest.mark.parametrize("path", ["/pokebench/state", "/pokebench/observation"])
+def test_entire_ram_read_uses_the_existing_frame_memory_lock(path: str) -> None:
+    import threading
+
+    lock = threading.Lock()
+    calls = []
+
+    def locked_read(address: int, length: int) -> bytes:
+        assert lock.locked(), "RAM read raced with the frame owner"
+        calls.append(address)
+        return memory(address, length)
+
+    app = FastAPI()
+    install_observation(app, good_shot, locked_read, MapNames({}), lock)
+    status, _, body = get(app, path)
+    assert status == 200, body
+    assert calls == [0x030022C0, 0x030026F9]
+    assert not lock.locked()
+
+
+def test_ram_read_failure_is_not_converted_to_zero_filled_state() -> None:
+    def broken_read(address: int, length: int) -> bytes:
+        raise RuntimeError("native memory unavailable")
+
+    app = FastAPI()
+    install_observation(app, good_shot, broken_read, MapNames({}))
+    with pytest.raises(RuntimeError, match="native memory unavailable"):
+        get(app, "/pokebench/state")

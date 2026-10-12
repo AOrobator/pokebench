@@ -18,7 +18,7 @@ describe("gbaSvg", () => {
       expect(svg).toContain(`data-btn="${button}"`);
     }
     expect(svg).toContain('data-screen=""');
-    expect(svg).toContain("POKEBENCH");
+    expect(svg).toContain("POKE BENCH");
   });
 });
 

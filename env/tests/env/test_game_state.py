@@ -97,6 +97,7 @@ def test_overworld_reports_every_field_from_the_save_blocks() -> None:
         money=3000,
         badges=("STONE", "DYNAMO"),
         play_time=(1, 2, 3),
+        field_controls_locked=False,
     )
 
 
@@ -186,3 +187,16 @@ def test_the_vendored_map_groups_name_the_truck() -> None:
         / "vendor/continual-harness/pokemon_env/porymap/data/maps"
     )
     assert MapNames.load(root).name((25, 40)) == "INSIDE OF TRUCK"
+
+
+@pytest.mark.parametrize("locked", [False, True])
+def test_field_controls_lock_comes_from_script_flag(locked: bool) -> None:
+    memory = game(OVERWORLD)
+    memory.put(0x03000F2C, bytes([int(locked)]))
+    assert read_game_state(memory.read, MAPS).field_controls_locked is locked
+
+
+def test_field_controls_not_claimed_before_overworld() -> None:
+    memory = game(NAMING)
+    memory.put(0x03000F2C, b"\x01")
+    assert read_game_state(memory.read, MAPS).field_controls_locked is None

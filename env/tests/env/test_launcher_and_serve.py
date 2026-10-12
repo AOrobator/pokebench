@@ -160,3 +160,42 @@ def test_run_installs_the_observation_route_before_vendor_main() -> None:
         observation=(app, get_screenshot, lambda a, n: bytes(n), MapNames({})),
     )
     assert "/pokebench/observation" in routes[0]
+
+
+def test_launcher_cli_forwards_load_state_exactly(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from pokebench_env import launcher
+
+    seen = []
+
+    class Process:
+        def wait(self) -> int:
+            return 0
+
+        def terminate(self) -> None:
+            pass
+
+    def launch(spec: ServerSpec, run_dir: Path, run_id: str) -> Process:
+        seen.append((spec, run_dir, run_id))
+        return Process()
+
+    saved = tmp_path / "continuation with spaces.state"
+    monkeypatch.setattr(launcher, "launch", launch)
+    monkeypatch.setattr(launcher, "forward_sigterm", lambda _: None)
+    assert (
+        launcher.main(
+            [
+                "--run-dir",
+                str(tmp_path),
+                "--run-id",
+                "probe-test",
+                "--port",
+                "8032",
+                "--load-state",
+                str(saved),
+            ]
+        )
+        == 0
+    )
+    assert seen == [(ServerSpec(port=8032, no_ocr=True, load_state=saved), tmp_path, "probe-test")]

@@ -94,13 +94,16 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - entrypoint
     parser = argparse.ArgumentParser(description="Launch an isolated game server for one run.")
     parser.add_argument("--run-dir", type=Path)
     parser.add_argument("--run-id")
+    parser.add_argument("--load-state", type=Path)
     parser.add_argument(
         "--port", type=int, default=int(os.environ.get("POKEBENCH_GAME_PORT", "8000"))
     )
     args = parser.parse_args(argv)
     run_id = validate_run_id(args.run_id or default_run_id(datetime.now(UTC)))
     run_dir = args.run_dir or RUNS_DIR / run_id
-    process = launch(ServerSpec(port=args.port, no_ocr=True, load_state=None), run_dir, run_id)
+    process = launch(
+        ServerSpec(port=args.port, no_ocr=True, load_state=args.load_state), run_dir, run_id
+    )
     forward_sigterm(process)
     print(
         f"game server ({run_id}): http://127.0.0.1:{args.port}/stream (Ctrl-C to stop)", flush=True

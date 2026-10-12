@@ -64,6 +64,7 @@ function body(event: RunEvent): [string, string] {
     case "frames_evicted":
       return ["EVICTED", `${String(event.files)} frames (${formatBytes(event.bytes)}) from ${event.from_run}`];
     case "state": {
+      if (!("started" in event)) return ["STATE", "historical vendor state (unverified)"];
       if (!event.started || event.position === null) return ["STATE", `${event.screen}, game not started`];
       const at = ` (${String(event.position.x)},${String(event.position.y)})`;
       const party = event.party.length === 0 ? "none" : event.party.map((mon) => `${mon.species} L${String(mon.level)} ${String(mon.hp)}/${String(mon.max_hp)}`).join(" ");

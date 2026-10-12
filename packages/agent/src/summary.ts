@@ -10,6 +10,7 @@ export interface MilestoneReach {
 
 export interface RunSummary {
   readonly run: string;
+  readonly probe?: boolean;
   readonly model: string;
   readonly reason: RunEndReason | "incomplete";
   readonly furthest: string | null;
@@ -55,7 +56,7 @@ export function summarize(events: readonly RunEvent[]): RunSummary {
       tokens = { input: tokens.input + event.usage.input, output: tokens.output + event.usage.output };
     }
   }
-  const counts = { run: start.run, model: start.model.id, presses, retries, toolErrors, milestones };
+  const counts = { ...(start.harness_features.includes("probe") ? { probe: true } : {}), run: start.run, model: start.model.id, presses, retries, toolErrors, milestones };
   const end = events.find((event) => event.type === "run_end");
   if (end !== undefined) {
     return {
@@ -99,7 +100,9 @@ function table(rows: readonly string[][]): string[] {
   );
 }
 
-export function summaryLines(summaries: readonly RunSummary[]): string[] {
+export function summaryLines(input: readonly RunSummary[]): string[] {
+  const probes = input.filter((s) => s.probe === true).length;
+  const summaries = input.filter((s) => s.probe !== true);
   const header = ["run", "model", "reason", "furthest", "turns", "wall", "tokens in→out", "presses", "retries", "tool errors"];
   const rows = summaries.map((s) => [
     s.run,
@@ -119,6 +122,7 @@ export function summaryLines(summaries: readonly RunSummary[]): string[] {
     "",
     `${String(summaries.length)} runs: ${String(incomplete)} incomplete${incomplete > 0 ? " (no run_end: live, or lost — PB2)" : ""}`,
   ];
+  if (probes > 0) lines.push(`${String(probes)} probe sessions excluded from benchmark results`);
   const names = [...new Set(summaries.flatMap((s) => s.milestones.map((m) => m.name)))];
   for (const name of names) {
     const reaches = summaries.flatMap((s) => s.milestones.filter((m) => m.name === name).slice(0, 1));

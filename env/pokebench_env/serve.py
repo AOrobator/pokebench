@@ -8,6 +8,7 @@ checkout on `sys.path`; the working directory is the run's server dir (INV-7).
 
 import sys
 from collections.abc import Callable, Sequence
+from contextlib import AbstractContextManager
 from pathlib import Path
 from typing import Protocol, cast
 
@@ -46,7 +47,9 @@ def run(
     vendor_main: Callable[[], None],
     *,
     spectator: tuple[FastAPI, type[EmulatorLike]] | None = None,
-    observation: tuple[FastAPI, ScreenshotFn, ReadMemory, MapNames] | None = None,
+    observation: tuple[FastAPI, ScreenshotFn, ReadMemory, MapNames]
+    | tuple[FastAPI, ScreenshotFn, ReadMemory, MapNames, AbstractContextManager[object]]
+    | None = None,
 ) -> None:
     if spectator is not None:
         install_spectator(*spectator)
@@ -71,8 +74,9 @@ def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
             app.app,
             app.get_screenshot,
             # The vendor creates `env` at startup, after routes are installed.
-            lambda address, length: app.env.memory_reader._read_bytes(address, length),
+            lambda address, length: bytes(app.env.core.memory.u8[address : address + length]),
             MapNames.load(PORYMAP_MAPS),
+            app.memory_lock,
         ),
     )
 

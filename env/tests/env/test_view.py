@@ -61,11 +61,25 @@ def test_production_main_registers_view_pcm_and_browser_module_before_vendor_mai
         pass
 
     emu = LocalEmulator()
+    import struct
+    import threading
+
+    memory_lock = threading.Lock()
+    memory_reads = []
+    raw = {0x030022C0 + i: b for i, b in enumerate(struct.pack("<II", 0, 0x080E4F59))}
+
+    class ByteView:
+        def __getitem__(self, span):
+            assert memory_lock.locked(), "production state read escaped the frame lock"
+            memory_reads.append((span.start, span.stop))
+            return [raw.get(i, 0) for i in range(span.start, span.stop)]
+
     calls = []
     uvicorn = SimpleNamespace(run=lambda *args, **kwargs: calls.append(kwargs))
 
     def vendor_main():
         assert emu.initialize() == "initialized"
+        emu.core.memory = SimpleNamespace(u8=ByteView())
         emu.core.run_frame()
         uvicorn.run(app, host="0.0.0.0", port=8129)
 
@@ -85,14 +99,19 @@ def test_production_main_registers_view_pcm_and_browser_module_before_vendor_mai
                 app=app,
                 main=vendor_main,
                 get_screenshot=get_screenshot,
-                env=SimpleNamespace(
-                    memory_reader=SimpleNamespace(_read_bytes=lambda a, n: bytes(n))
-                ),
+                env=emu,
+                memory_lock=memory_lock,
             )
         ),
     )
     main()
     assert "/pokebench/observation" in [getattr(r, "path", "") for r in app.routes]
+    import json
+
+    state_status, _, state_body = get(app, "/pokebench/state")
+    assert state_status == 200
+    assert json.loads(state_body)["screen"] == "naming"
+    assert memory_reads == [(0x030022C0, 0x030022C8), (0x030026F9, 0x030026FA)]
     assert calls == [{"host": "127.0.0.1", "port": 8129}]
     status, headers, wav = get(app, "/audio.wav", b"since=0&max_frames=2")
     assert status == 200

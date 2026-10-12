@@ -6,7 +6,8 @@ import { eventMs, num } from "./format.js";
 type Of<T extends RunEvent["type"]> = Extract<RunEvent, { type: T }>;
 export type RunStartEvent = Of<"run_start">;
 export type RunEndEvent = Of<"run_end">;
-export type StateEvent = Of<"state">;
+type AnyStateEvent = Of<"state">;
+export type StateEvent = Extract<AnyStateEvent, { started: boolean }>;
 export type Button = Of<"button_press">["buttons"][number];
 
 // The pinned vendor's "normal" preset; M4 logs predate recorded timing.
@@ -95,6 +96,7 @@ export class RunView {
   lastThought: Thought | null = null;
   frame: string | null = null;
   state: StateEvent | null = null;
+  legacyState = false;
   context: Of<"turn_start">["context"] | null = null;
   disk: { bytes: number; cap_bytes: number; percent: number } | null = null;
   retry: { count: number; attempt: number; limit: number } | null = null;
@@ -135,6 +137,7 @@ export class RunView {
         break;
       case "turn_start":
         this.turnStartMs = ms;
+        if (this.start?.harness_features.includes("probe")) break;
         this.context = event.context;
         this.thinkingSpans.push({ startMs: ms, endMs: null });
         this.streaming = { thinking: "", text: "" };
@@ -229,10 +232,14 @@ export class RunView {
     }
   }
 
-  private onState(event: StateEvent): void {
+  private onState(event: AnyStateEvent): void {
+    if (!("started" in event)) {
+      this.legacyState = true;
+      return;
+    }
     const previous = this.state;
     this.state = event;
-    const now = previous !== null && samePlace(previous, event) ? (this.stuck?.now ?? 0) + 1 : 0;
+    const now = event.started && event.position !== null && event.field_controls_locked !== true && previous !== null && samePlace(previous, event) ? (this.stuck?.now ?? 0) + 1 : 0;
     this.stuck = { now, max: Math.max(now, this.stuck?.max ?? 0) };
   }
 }

@@ -29,3 +29,15 @@ Labelled 2026-10-12 by pressing A from boot on an isolated server and saving a s
 | 0x08085E5D (callback1 0x08085E05) | overworld |
 
 Values not in this table are reported as `unknown (callback2 0x…)` and added once labelled.
+
+## M5.7 continuation: controls and live map (2026-10-12)
+
+The labelled Claude snapshots were recovered from `scratchpad/snap` in the prior session. The byte at `0x03000F2C` is 0 in all five `free` snapshots and 1 in all four `dlg` snapshots plus `menu1`. `pret/pokeemerald/src/script.c` defines `sLockFieldControls` and its lock/unlock/query functions. A read-only ROM inspection through the server found the matching Thumb operations at `0x08098E54` (store 1), `0x08098E60` (store 0), and `0x08098E6C` (load byte), each referencing `0x03000F2C`. This ties the observed byte to the source control lock; no memory was modified. It is reported only in overworld, outside battle, and is not a claim that a particular direction is unobstructed.
+
+Live map structures: `gMapHeader` at `0x02037318`; `gBackupMapLayout` at `0x03005DC0` contained width 26, height 23 and live buffer `0x02032318` in Brendan's 11×9 house. Source layouts in `include/global.fieldmap.h`, constants in `include/fieldmap.h`, and `src/fieldmap.c` confirm 7-cell padding, backup dimensions +15/+14, 10-bit metatile IDs, 2-bit collision, primary/secondary attribute tables split at 512, and object current coordinates +7. Active objects from `0x02037350` matched the screen: player (9,7), Mom (9,8), moving objects (3,3) and (4,5). Live warp records gave exit (8,8)/(9,8) to map 0/9 and stairs (8,2) to map 1/1. Out-of-map cells are unknown, not invented floor; NPC positions are live, not template positions.
+
+Primary sources: https://github.com/pret/pokeemerald/blob/master/src/script.c ; https://github.com/pret/pokeemerald/blob/master/include/global.fieldmap.h ; https://github.com/pret/pokeemerald/blob/master/include/fieldmap.h ; https://github.com/pret/pokeemerald/blob/master/src/fieldmap.c . These are layout references; exact US addresses were checked live against the pinned ROM.
+
+Fresh-boot gate `2026-10-12T00-59-33_probe_130f` completed all required intro checkpoints and first overworld truck: confirmed name AAAAAAA, map (25,40), position (2,2), ₽3000, empty party/badges, controls locked. Frame-by-frame evidence lives in that run's events/frames, outside git. This verifies the scripted intro and empty-party state; live nonempty party verification is still required before a full party-accuracy claim.
+
+The continuation snapshot probe accepted and recorded presses but did not dismiss Mom's dialog. This remains a snapshot-resume observation, not proof of fresh-boot failure; the fresh-boot gate progressed normally. Probe-tagged logs are excluded from benchmark aggregates and rejected as baseline comparisons. Historical vendor state logs remain readable but are labelled unverified and withheld from the accurate trainer card.

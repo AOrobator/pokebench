@@ -1,6 +1,6 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import { describe, expect, it, vi } from "vitest";
-import { SmokeError, checkSmoke, screenshotTool, serverHealthy, stateTool } from "./game-tools.js";
+import { SmokeError, checkSmoke, pressTool, screenshotTool, serverHealthy, stateTool } from "./game-tools.js";
 
 const SERVER = "http://127.0.0.1:8000";
 
@@ -123,5 +123,39 @@ describe("checkSmoke", () => {
   ])("fails on %s", (_label, transcript, message) => {
     expect(() => checkSmoke(transcript)).toThrow(SmokeError);
     expect(() => checkSmoke(transcript)).toThrow(message);
+  });
+});
+
+describe("pressTool", () => {
+  it("records the press before POSTing it, then checks milestones", async () => {
+    const order: string[] = [];
+    const fetchFn = vi.fn<typeof fetch>().mockImplementation((_url, init) => {
+      order.push(`POST ${String(init?.body)}`);
+      return Promise.resolve(new Response(JSON.stringify({ status: "success" })));
+    });
+    const tool = pressTool(SERVER, {
+      beforePress: (id, buttons) => {
+        order.push(`before ${id} ${buttons.join(",")}`);
+      },
+      afterPress: () => {
+        order.push("after");
+        return Promise.resolve();
+      },
+    }, fetchFn);
+    const result = await tool.execute("call-9", { buttons: ["UP", "A"] });
+    expect(order).toEqual(["before call-9 UP,A", 'POST {"buttons":["UP","A"]}', "after"]);
+    expect(fetchFn).toHaveBeenCalledWith(`${SERVER}/action`, expect.objectContaining({ method: "POST" }));
+    expect(result.content).toEqual([{ type: "text", text: "pressed UP, A" }]);
+  });
+
+  it("fails when the server does not report success", async () => {
+    const tool = pressTool(SERVER, { beforePress: () => undefined, afterPress: () => Promise.resolve() }, serving({ status: "error", message: "queue full" }));
+    await expect(tool.execute("c", { buttons: ["A"] })).rejects.toThrow(/queue full/);
+  });
+
+  it("declares a closed button enum and a bounded list", () => {
+    const tool = pressTool(SERVER, { beforePress: () => undefined, afterPress: () => Promise.resolve() });
+    expect(JSON.stringify(tool.parameters)).toContain('"maxItems":8');
+    expect(JSON.stringify(tool.parameters)).toContain('"SELECT"');
   });
 });

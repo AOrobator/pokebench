@@ -1,0 +1,222 @@
+import { mkdtempSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import type { AgentEvent } from "@mariozechner/pi-agent-core";
+import { describe, expect, it } from "vitest";
+import { RUN_START } from "../test-support/events.js";
+import { assistant, toolCall, userImage, userText } from "../test-support/pi.js";
+import { parseEvent, type RunEvent } from "./events.js";
+import { FrameStore } from "./frames.js";
+import type { SeenMilestone } from "./milestones.js";
+import { RecorderError, RunRecorder } from "./recorder.js";
+import { RunLog } from "./run-log.js";
+
+const { type: _type, turn: _turn, ...START_META } = RUN_START as Extract<typeof RUN_START, { type: "run_start" }>;
+
+function harness(milestoneBatches: SeenMilestone[][] = []): {
+  recorder: RunRecorder;
+  log: RunLog;
+  advance: (ms: number) => void;
+} {
+  const runsRoot = mkdtempSync(join(tmpdir(), "pokebench-rec-"));
+  const log = RunLog.create(runsRoot, "2026-10-11T22-00-00_think-swarm_rrrr");
+  const frames = new FrameStore(runsRoot, 1_000_000, () => undefined);
+  let clock = 1000;
+  const batches = [...milestoneBatches];
+  const recorder = new RunRecorder({
+    log,
+    frames,
+    milestones: { poll: () => Promise.resolve(batches.shift() ?? []) },
+    now: () => clock,
+  });
+  return {
+    recorder,
+    log,
+    advance: (ms) => {
+      clock += ms;
+    },
+  };
+}
+
+function events(log: RunLog): RunEvent[] {
+  return readFileSync(log.eventsPath, "utf8")
+    .trim()
+    .split("\n")
+    .map((line) => parseEvent(line));
+}
+
+function update(): AgentEvent {
+  const partial = assistant({ text: "" });
+  return {
+    type: "message_update",
+    message: partial,
+    assistantMessageEvent: { type: "text_delta", contentIndex: 0, delta: "x", partial },
+  };
+}
+
+describe("RunRecorder", () => {
+  it("records a full turn: context, assistant, tool call, press, milestone, frame result", async () => {
+    const { recorder, log, advance } = harness([
+      [{ name: "GAME_RUNNING", serverTimestamp: 10 }],
+      [{ name: "PLAYER_NAME_SET", serverTimestamp: 20 }],
+    ]);
+    await recorder.start(START_META);
+    await recorder.emit({ type: "message_end", message: userText("x".repeat(48)) });
+    expect(await recorder.transformContext([userText("x".repeat(48)), userImage()])).toHaveLength(2);
+    advance(120);
+    await recorder.emit(update());
+    advance(780);
+    const reply = assistant({
+      thinking: "Press A.",
+      text: "Pressing.",
+      toolCalls: [toolCall("call_1", "press", { buttons: ["A"] })],
+      stopReason: "toolUse",
+      input: 100,
+      output: 20,
+    });
+    await recorder.emit({ type: "message_end", message: reply });
+    await recorder.emit({ type: "tool_execution_start", toolCallId: "call_1", toolName: "press", args: { buttons: ["A"] } });
+    recorder.buttonPress("call_1", ["A"]);
+    await recorder.checkMilestones();
+    advance(140);
+    await recorder.emit({
+      type: "tool_execution_end",
+      toolCallId: "call_1",
+      toolName: "press",
+      result: {
+        content: [
+          { type: "text", text: "pressed" },
+          { type: "image", data: Buffer.from("png-bytes").toString("base64"), mimeType: "image/png" },
+        ],
+        details: undefined,
+      },
+      isError: false,
+    });
+    recorder.end("budget");
+
+    const log_ = events(log);
+    expect(log_.map((event) => event.type)).toEqual([
+      "run_start",
+      "milestone",
+      "disk_usage",
+      "turn_start",
+      "assistant",
+      "tool_call",
+      "button_press",
+      "milestone",
+      "tool_result",
+      "run_end",
+    ]);
+    expect(log_[1]).toMatchObject({ turn: 0, name: "GAME_RUNNING", server_timestamp: 10 });
+    expect(log_[3]).toMatchObject({ turn: 1, context: { messages: 2, images: 1, est_tokens: 14 } });
+    expect(log_[4]).toMatchObject({
+      turn: 1,
+      thinking: "Press A.",
+      text: "Pressing.",
+      tool_calls: [{ id: "call_1", name: "press", args: { buttons: ["A"] } }],
+      usage: { input: 100, output: 20, cache_read: 3 },
+      latency_ms: 900,
+      ttft_ms: 120,
+      stop_reason: "toolUse",
+    });
+    expect(log_[5]).toMatchObject({ turn: 1, id: "call_1", name: "press", args: { buttons: ["A"] } });
+    expect(log_[6]).toMatchObject({ turn: 1, tool_call_id: "call_1", buttons: ["A"] });
+    expect(log_[7]).toMatchObject({ name: "PLAYER_NAME_SET", server_timestamp: 20 });
+    expect(log_[8]).toMatchObject({
+      id: "call_1",
+      name: "press",
+      is_error: false,
+      duration_ms: 140,
+      text: "pressed",
+      frames: [{ path: "frames/000008_0.png", sha1: expect.stringMatching(/^[0-9a-f]{40}$/) }],
+    });
+    expect(readFileSync(join(log.runDir, "frames", "000008_0.png"), "utf8")).toBe("png-bytes");
+    expect(log_[9]).toMatchObject({
+      reason: "budget",
+      furthest_milestone: "PLAYER_NAME_SET",
+      turns: 1,
+      wall_ms: 1040,
+      tokens: { input: 100, output: 20 },
+      frames: { saved: 1, bytes: 9 },
+    });
+  });
+
+  it("records a model error and a failed tool", async () => {
+    const { recorder, log } = harness();
+    await recorder.start(START_META);
+    await recorder.transformContext([userText("go")]);
+    await recorder.emit({
+      type: "message_end",
+      message: assistant({ stopReason: "error", errorMessage: "HTTP 500" }),
+    });
+    await recorder.emit({ type: "tool_execution_start", toolCallId: "c", toolName: "state", args: {} });
+    await recorder.emit({
+      type: "tool_execution_end",
+      toolCallId: "c",
+      toolName: "state",
+      result: { content: [{ type: "text", text: "malformed /state payload" }], details: {} },
+      isError: true,
+    });
+    recorder.end("model_error");
+    const log_ = events(log);
+    expect(log_.find((event) => event.type === "assistant")).toMatchObject({
+      stop_reason: "error",
+      error: "HTTP 500",
+      ttft_ms: null,
+      thinking: "",
+      text: "",
+      tool_calls: [],
+    });
+    expect(log_.find((event) => event.type === "tool_result")).toMatchObject({
+      is_error: true,
+      text: "malformed /state payload",
+      frames: [],
+    });
+    expect(log_.at(-1)).toMatchObject({ reason: "model_error", furthest_milestone: null });
+  });
+
+  it("records bounded retries", async () => {
+    const { recorder, log } = harness();
+    await recorder.start(START_META);
+    recorder.retry("invalid tool arguments", 1, 3);
+    expect(events(log).at(-1)).toMatchObject({ type: "retry", reason: "invalid tool arguments", attempt: 1, limit: 3 });
+  });
+
+  it("ignores events that carry nothing to record", async () => {
+    const { recorder, log } = harness();
+    await recorder.start(START_META);
+    for (const event of [
+      { type: "agent_start" },
+      { type: "turn_start" },
+      { type: "message_start", message: userText("hi") },
+      { type: "turn_end", message: assistant(), toolResults: [] },
+      { type: "agent_end", messages: [] },
+      { type: "tool_execution_update", toolCallId: "c", toolName: "x", args: {}, partialResult: {} },
+    ] satisfies AgentEvent[]) {
+      await recorder.emit(event);
+    }
+    expect(events(log).map((event) => event.type)).toEqual(["run_start", "disk_usage"]);
+  });
+
+  it("rejects a tool result for a call it never saw start", async () => {
+    const { recorder } = harness();
+    await recorder.start(START_META);
+    await expect(
+      recorder.emit({
+        type: "tool_execution_end",
+        toolCallId: "ghost",
+        toolName: "x",
+        result: { content: [], details: {} },
+        isError: false,
+      }),
+    ).rejects.toThrow(RecorderError);
+  });
+
+  it("rejects non-object tool arguments", async () => {
+    const { recorder } = harness();
+    await recorder.start(START_META);
+    await expect(
+      recorder.emit({ type: "tool_execution_start", toolCallId: "c", toolName: "x", args: "A" }),
+    ).rejects.toThrow(RecorderError);
+  });
+});

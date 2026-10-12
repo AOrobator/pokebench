@@ -166,3 +166,22 @@ it("does not treat a blank retry explanation as reassessment", () => {
   tracker.update({ status: "active", evidence: [3], obstacle: "No change", next_decision: "Repeat", retry_reason: "   " });
   expect(() => { tracker.checkPress(["A"], state(4)); }).toThrow(/Two matching attempts/);
 });
+
+
+it("explains a value mismatch and exposes all scalar completion facts", () => {
+  const { tracker } = setup();
+  tracker.set({ ...request, completion: { kind: "state", field: "started", value: false } });
+  expect(() => tracker.update({ status: "completed", evidence: [1], obstacle: "", next_decision: "Next", retry_reason: "" })).toThrow('Completion is not verified: field "started" expected false (boolean), observed true (boolean) at state #1. Observe until it matches, or revise the condition with set_objective; do not use reported_complete for a state condition.');
+  const content = tracker.context([], 123)[0];
+  expect(JSON.stringify(content?.role === "user" ? content.content : "")).toContain('\"started\":true');
+  expect(JSON.stringify(content?.role === "user" ? content.content : "")).toContain('\"in_battle\":false');
+  expect(JSON.stringify(content?.role === "user" ? content.content : "")).toContain('\"party_count\":0');
+});
+
+it("rejects a bad revision without replacing the existing objective", () => {
+  const { tracker, recorded } = setup();tracker.set(request);
+  const before = tracker.snapshot();
+  expect(() => tracker.set({ ...request, completion: { kind: "state", field: "started", value: "true" } })).toThrow(/requires boolean/);
+  expect(tracker.snapshot()).toEqual(before);
+  expect(recorded).toHaveLength(1);
+});

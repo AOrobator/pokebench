@@ -242,3 +242,24 @@ it.each(["state", "visual"] as const)("advertises compatible completion %s strin
   await set.execute("boundary", {...request, completion: completion(2000)});
   expect(tracker.snapshot()?.completion).toEqual(completion(2000));
 });
+
+
+it("rejects mismatched completion types before recording and recovers with boolean true", async () => {
+  const { tracker, recorder } = setup();
+  const tools = objectiveTools(tracker, () => Promise.resolve(recorder.recordState(game).seq));
+  const set = tools.find((t) => t.name === "set_objective");
+  const update = tools.find((t) => t.name === "update_objective");
+  if (set === undefined || update === undefined) throw new Error("missing objective tools");
+  for (const [field, value, expected] of [
+    ["started", "true", "boolean"], ["in_battle", 1, "boolean"],
+    ["party_count", "1", "number"], ["money", true, "number"],
+    ["screen", true, "string"], ["name", 1, "string"],
+    ["location", false, "string"], ["badge", 1, "string"],
+  ] as const) {
+    await expect(set.execute("bad", { ...request, completion: { kind: "state", field, value } }), field).rejects.toThrow(`Completion field "${field}" requires ${expected}; received ${JSON.stringify(value)} (${typeof value}). Revise set_objective with a ${expected} value; values are not coerced.`);
+    expect(tracker.snapshot(), field).toBeNull();
+  }
+  await set.execute("valid", { ...request, completion: { kind: "state", field: "started", value: true } });
+  await update.execute("complete", { status: "completed", evidence: [0], obstacle: "", next_decision: "Exit truck", retry_reason: "" });
+  expect(tracker.snapshot()).toMatchObject({ status: "completed", completion: { field: "started", value: true }, completion_evidence: [0, 1] });
+});

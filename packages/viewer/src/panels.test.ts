@@ -269,6 +269,7 @@ describe("actionRow", () => {
     log.add(2, { type: "tool_result", turn: 0, id: "c", name: "state", is_error: true, duration_ms: 3, text: "boom", frames: [] });
     log.add(3, { type: "compaction", turn: 0, from_tokens: 9000, to_tokens: 1000 });
     log.add(4, { type: "frames_evicted", turn: 0, from_run: "old", files: 3, bytes: 1500 });
+    log.add(4.5, { type: "telemetry_error", turn: 0, source: "milestones", message: "down" });
     log.add(5, { type: "run_end", turn: 0, reason: "crash", furthest_milestone: null, turns: 0, wall_ms: 5, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } });
     const rows = log.events.slice(1).map((event) => actionRow(event) ?? "");
     expect(rows[0]).toContain("START</span> timing not logged (assumed hold 10f · release 8f)");
@@ -276,7 +277,9 @@ describe("actionRow", () => {
     expect(rows[1]).toContain("ev-error");
     expect(rows[2]).toContain("context compacted 9,000 → 1,000 tokens");
     expect(rows[3]).toContain("evicted 3 frames (1.5 KB) from old");
-    expect(rows[4]).toContain("run ended: crash · furthest none · 0 turns");
+    expect(rows[4]).toContain("✗ milestones read failed: down");
+    expect(rows[4]).toContain("ev-error");
+    expect(rows[5]).toContain("run ended: crash · furthest none · 0 turns");
   });
 });
 

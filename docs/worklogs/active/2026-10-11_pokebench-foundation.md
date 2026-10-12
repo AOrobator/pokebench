@@ -267,7 +267,10 @@ Mac Studio (all local)
     - Fix-delta re-check (63e9aab..b6bda05, sha256 of the diff excluding the worklog): Codex LGTM. Findings 2, 3 and 4 are resolved and tested, and the quoting is correct. Deferred hardening: dedicated tests for a run switch and for two baseline responses arriving in reverse order. Review closed under the proportional-review rule (one round plus a fix-delta check).
     - Deferred hardening (Claude): a crashed run with no `run_end` keeps proxying its old port, which a newer run may now own; `run_end` detection uses a 64 KB tail; SSE backpressure is unhandled (think_fast note).
   - [x] Coordinator note (02:57Z): the operator approved splitting the server and the UI across two subagents. It arrived after both were built, reviewed and green, so I did not split.
-  - [ ] **STOP:** report to the operator, with the replay screenshot and the open ASK USER (`/state` failure policy after a landed press). No push, merge or PR.
+  - [x] **STOP:** reported to the operator (replay screenshot, the open `/state` question).
+  - [x] **ASK USER** answered (operator, 2026-10-12 ~03:06 ET, relayed by the coordinator): when the post-press milestone check or `/state` read fails after `/action` succeeded, the press tool **succeeds** and the failure is logged as an event; it is not returned to the model. "Land it": the operator tried `just view` and approved merging m5.5-viewer (which contains M4) into main. Pushing needs separate approval.
+    - Schema v1.1 gains `telemetry_error` (`source`: `milestones` | `state`, `message`), additive.
+    - COMMIT: `test(agent,viewer): post-press telemetry failures are logged events, not press failures` (RED, this commit). vitest agent: 3 failed / 182 passed; viewer: 2 failed / 111 passed.
   - [x] **STOP:** the viewer replays the recorded M4 run end to end; screenshot to the operator (`runs/viewer-replay-m4-890b.jpg`)
 
 **M6 — Specialized harness → Roxanne** *(operator-in-the-loop)*

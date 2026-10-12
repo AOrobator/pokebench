@@ -26,6 +26,7 @@ describe("event schema", () => {
         "run_end",
         "run_start",
         "state",
+        "telemetry_error",
         "tool_call",
         "tool_result",
         "turn_start",
@@ -47,6 +48,7 @@ describe("event schema", () => {
     ["a state party member without hp", { ...ENVELOPE, ...SAMPLES[11], party: [{ species: "TORCHIC", level: 5, max_hp: 20 }] }],
     ["a state with negative money", { ...ENVELOPE, ...SAMPLES[11], money: -1 }],
     ["a zero-frame hold", { ...ENVELOPE, ...SAMPLES[13], hold_frames: 0 }],
+    ["a telemetry error from an unknown source", { ...ENVELOPE, ...SAMPLES[14], source: "map" }],
     ["a compaction with a negative size", { ...ENVELOPE, ...SAMPLES[12], to_tokens: -5 }],
   ])("rejects %s", (_label, value) => {
     expect(() => parseEvent(JSON.stringify(value))).toThrow(EventError);

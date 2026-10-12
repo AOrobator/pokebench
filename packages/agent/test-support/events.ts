@@ -72,6 +72,7 @@ export const SAMPLES: readonly EventBody[] = [
   },
   { type: "compaction", turn: 1, from_tokens: 30_000, to_tokens: 4_000 },
   { type: "button_press", turn: 1, tool_call_id: "call_2", buttons: ["UP", "A"], hold_frames: 10, release_frames: 8 },
+  { type: "telemetry_error", turn: 1, source: "state", message: "GET http://127.0.0.1:8000/state returned HTTP 503" },
 ];
 
 export function sample(index: number): EventBody {

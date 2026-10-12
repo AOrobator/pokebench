@@ -34,6 +34,7 @@ describe("formatEvent", () => {
       "21:40:05   t1 STATE      LITTLEROOT TOWN (5,8) overworld, party TORCHIC L5 18/20, ₽3000, 1 badges, play 0:12:34",
       "21:40:05   t1 COMPACT    context 30000 → 4000 tokens",
       "21:40:05   t1 PRESS      UP A (hold 10f, release 8f)",
+      "21:40:05   t1 TELEMETRY  state read failed: GET http://127.0.0.1:8000/state returned HTTP 503",
     ]);
   });
 

@@ -207,6 +207,29 @@ describe("RunRecorder", () => {
     expect(events(log).at(-1)).toMatchObject({ type: "compaction", from_tokens: 30_000, to_tokens: 4_000 });
   });
 
+  it("logs post-press telemetry failures as events instead of failing the press", async () => {
+    const runsRoot = mkdtempSync(join(tmpdir(), "pokebench-rec-"));
+    const log = RunLog.create(runsRoot, "2026-10-11T22-00-00_think-swarm_tttt");
+    let calls = 0;
+    const recorder = new RunRecorder({
+      log,
+      frames: new FrameStore(runsRoot, 1_000_000, () => undefined),
+      milestones: {
+        poll: () => {
+          calls += 1;
+          return calls === 1 ? Promise.resolve([]) : Promise.reject(new Error("milestones down"));
+        },
+      },
+      gameState: { read: () => Promise.reject(new Error("state down")) },
+    });
+    await recorder.start(START_META);
+    await expect(recorder.afterPress()).resolves.toBeUndefined();
+    expect(events(log).filter((event) => event.type === "telemetry_error")).toMatchObject([
+      { source: "milestones", message: "milestones down" },
+      { source: "state", message: "state down" },
+    ]);
+  });
+
   it("checks milestones before reading state after a press", async () => {
     const order: string[] = [];
     const runsRoot = mkdtempSync(join(tmpdir(), "pokebench-rec-"));

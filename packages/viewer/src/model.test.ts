@@ -100,6 +100,13 @@ describe("RunView", () => {
     expect(view.toolSpans).toEqual([{ startMs: BASE_MS + 2, endMs: BASE_MS + 3, name: "state", error: true }]);
   });
 
+  it("marks telemetry failures in the errors lane", () => {
+    const log = new Log();
+    log.add(0, START);
+    log.add(7, { type: "telemetry_error", turn: 1, source: "state", message: "HTTP 503" });
+    expect(fold(log).errors).toEqual([{ ms: BASE_MS + 7, kind: "telemetry", label: "state read failed: HTTP 503" }]);
+  });
+
   it("labels a model error without a message", () => {
     const log = new Log();
     log.add(0, START);

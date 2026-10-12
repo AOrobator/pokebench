@@ -2,13 +2,22 @@ import json
 
 import pytest
 from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 from test_view import get
 
 from pokebench_env.observation import install_observation
 
 
-def state(screenshot: object = "iVBORw0KGgo=") -> dict[str, object]:
-    return {"player": {"location": "LITTLEROOT TOWN"}, "visual": {"screenshot_base64": screenshot}}
+class VendorState(BaseModel):
+    player: dict[str, object]
+    visual: dict[str, object] = {}
+    step_number: int = 12
+
+
+def state(screenshot: object = "iVBORw0KGgo=") -> VendorState:
+    return VendorState(
+        player={"location": "LITTLEROOT TOWN"}, visual={"screenshot_base64": screenshot}
+    )
 
 
 def app_with(get_state, formatter=lambda s: f"text for {s['player']['location']}") -> FastAPI:
@@ -20,7 +29,7 @@ def app_with(get_state, formatter=lambda s: f"text for {s['player']['location']}
 def test_observation_returns_formatted_text_and_frame() -> None:
     seen: list[dict[str, object]] = []
 
-    async def get_state() -> dict[str, object]:
+    async def get_state() -> VendorState:
         return state()
 
     def formatter(s: dict[str, object]) -> str:
@@ -32,13 +41,14 @@ def test_observation_returns_formatted_text_and_frame() -> None:
     assert json.loads(body) == {
         "state_text": "Location: LITTLEROOT TOWN",
         "screenshot_base64": "iVBORw0KGgo=",
+        "step_number": 12,
     }
-    assert seen == [state()]
+    assert seen == [state().model_dump()]
 
 
 @pytest.mark.parametrize("screenshot", [None, "", 7])
 def test_observation_without_a_frame_is_unavailable(screenshot: object) -> None:
-    async def get_state() -> dict[str, object]:
+    async def get_state() -> VendorState:
         return state(screenshot)
 
     status, _, body = get(app_with(get_state), "/pokebench/observation")
@@ -47,15 +57,15 @@ def test_observation_without_a_frame_is_unavailable(screenshot: object) -> None:
 
 
 def test_observation_without_visual_section_is_unavailable() -> None:
-    async def get_state() -> dict[str, object]:
-        return {"player": {"location": "X"}}
+    async def get_state() -> VendorState:
+        return VendorState(player={"location": "X"})
 
     status, _, _ = get(app_with(get_state), "/pokebench/observation")
     assert status == 503
 
 
 def test_observation_passes_vendor_http_errors_through() -> None:
-    async def get_state() -> dict[str, object]:
+    async def get_state() -> VendorState:
         raise HTTPException(status_code=400, detail="Emulator not initialized")
 
     status, _, body = get(app_with(get_state), "/pokebench/observation")

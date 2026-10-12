@@ -143,8 +143,10 @@ def test_run_installs_the_observation_route_before_vendor_main() -> None:
     uvicorn = types.SimpleNamespace(run=lambda *a, **k: None)
     routes: list[list[str]] = []
 
-    async def get_state() -> dict[str, object]:
-        return {}
+    from pydantic import BaseModel
+
+    async def get_state() -> BaseModel:
+        return BaseModel()
 
     def vendor_main() -> None:
         routes.append([getattr(r, "path", "") for r in app.routes])

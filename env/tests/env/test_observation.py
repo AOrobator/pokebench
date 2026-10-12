@@ -136,7 +136,15 @@ def test_native_frame_adapter_without_video_is_unavailable() -> None:
         native_screenshot(SimpleNamespace(get_screenshot=lambda: None))
 
 
-def test_live_warp_activation_reaches_model_text_and_recorded_state() -> None:
+@pytest.mark.parametrize(
+    "behavior,guidance",
+    [
+        (0x65, "directional exit: stand on tile, then press DOWN"),
+        (0x69, "door: approach from below and press UP toward door"),
+        (0x00, "activation unknown"),
+    ],
+)
+def test_live_warp_activation_reaches_model_text_and_recorded_state(behavior, guidance) -> None:
     from test_game_state import MAPS, OVERWORLD, SB1, game
     from test_live_map import loaded
 
@@ -144,13 +152,22 @@ def test_live_warp_activation_reaches_model_text_and_recorded_state() -> None:
     m.cells.update(game(OVERWORLD).cells)
     m.put(SB1, struct.pack("<hhbb", 1, 1, 0, 9))
     m.put(0x02037350 + 0x10, struct.pack("<hh", 8, 8))
-    m.put(0x02007000, struct.pack("<H", 0x65))
+    m.put(0x02007000, struct.pack("<H", behavior))
     app = FastAPI()
     install_observation(app, good_shot, m.read, MAPS)
     status, _, body = get(app, "/pokebench/observation")
     assert status == 200, body
     payload = json.loads(body)
-    expected = "(0,1) -> map 0/9 [directional exit: stand on tile, then press DOWN]"
+    expected = f"(0,1) -> map 0/9 [{guidance}]"
     assert expected in payload["state_text"], payload
     assert expected in payload["state"]["local_map"], payload
     assert payload["state"]["local_map"] in payload["state_text"], payload
+    qualification = "movement; activation depends on metatile (see local map)"
+    warps = [
+        target for target in payload["state"]["interaction_targets"] if target["kind"] == "warp"
+    ]
+    assert len(warps) == 1, warps
+    assert warps[0]["activation"] == qualification, warps
+    assert f"warp at (0,1), elevation 0; {qualification}; conditional" in payload["state_text"], (
+        payload
+    )

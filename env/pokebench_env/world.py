@@ -85,7 +85,14 @@ def read_targets(read: ReadMemory, map_id: tuple[int, int]) -> tuple[Interaction
     for i in range(counts[1]):
         x, y, elevation, warp, number, group = struct.unpack_from("<hhBBBB", warps, i * 8)
         targets.append(
-            InteractionTarget("warp", x, y, elevation, "step", destination=(group, number, warp))
+            InteractionTarget(
+                "warp",
+                x,
+                y,
+                elevation,
+                "movement; activation depends on metatile (see local map)",
+                destination=(group, number, warp),
+            )
         )
     coords = read(pointers[2], counts[2] * 16) if counts[2] else b""
     for i in range(counts[2]):

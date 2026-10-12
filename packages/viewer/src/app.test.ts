@@ -492,3 +492,18 @@ it("ignores queued callbacks from a stream closed by a run switch", async () => 
   expect(app.mode).toBe("loading");
   expect(app.view.start).toBeNull();
 });
+
+it("marks only the selected live run and retains the mark after discovery refresh", async () => {
+  const runs = [runRow("first_live", false), runRow("second_live", false), runRow(M4_ID, true)];
+  const { app } = await harness("#run=first_live", runs);
+  const selected = () => [...ui("live-runs").querySelectorAll('button[aria-pressed="true"]')].map((button) => (button as HTMLButtonElement).dataset.run);
+  expect(selected()).toEqual(["first_live"]);
+  expect(ui("live-runs").textContent).toContain("WATCHING");
+  (ui("live-runs").querySelector('[data-run="second_live"]') as HTMLButtonElement).click();
+  expect(selected()).toEqual(["second_live"]);
+  await app.refreshRuns();
+  expect(selected()).toEqual(["second_live"]);
+  app.select(M4_ID);
+  expect(selected()).toEqual([]);
+  expect((ui("run") as HTMLSelectElement).value).toBe(M4_ID);
+});

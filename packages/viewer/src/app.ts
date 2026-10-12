@@ -131,11 +131,20 @@ export class App {
     box.replaceChildren();
     for (const run of live) {
       const button = this.doc.createElement("button");
-      button.textContent = `LIVE · ${run.model ?? run.id}`;
+      button.dataset.label = run.model ?? run.id;
       button.title = run.id;
       button.dataset.run = run.id;
       button.addEventListener("click", () => { this.select(run.id); });
       box.append(button);
+    }
+    this.markSelectedRun();
+  }
+
+  private markSelectedRun(): void {
+    for (const button of this.ui("live-runs").querySelectorAll<HTMLButtonElement>("button")) {
+      const selected = button.dataset.run === this.runId;
+      button.setAttribute("aria-pressed", String(selected));
+      button.textContent = `${selected ? "WATCHING" : "LIVE"} · ${button.dataset.label ?? ""}`;
     }
   }
 
@@ -227,6 +236,7 @@ export class App {
     this.ui("log").replaceChildren();
     this.setHtml("inspector", inspector(undefined));
     this.picker("run").value = runId;
+    this.markSelectedRun();
     this.picker("baseline").replaceChildren(
       option(this.doc, "", "none"),
       ...this.runs.filter((run) => run.id !== runId).map((run) => option(this.doc, run.id, run.id)),

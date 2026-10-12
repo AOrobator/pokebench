@@ -397,6 +397,22 @@ describe("run list refresh", () => {
     expect((ui("run") as HTMLSelectElement).value).toBe(M4_ID);
   });
 
+  it("keeps following when the next run is listed before the watched run ends", async () => {
+    const runs: unknown[] = [runRow("2026-10-11T23-00-00_live", false)];
+    const { app, streams } = await harness("", runs);
+    runs.unshift(runRow("2026-10-11T23-30-00_next", false));
+    await app.refreshRuns();
+    expect(streams).toHaveLength(1);
+    const first = must(streams[0]);
+    feed(first, m4Run());
+    first.send("done", {});
+    await app.refreshRuns();
+    expect(streams.map((stream) => stream.url)).toEqual([
+      "/api/runs/2026-10-11T23-00-00_live/events",
+      "/api/runs/2026-10-11T23-30-00_next/events",
+    ]);
+  });
+
   it("reports a failed refresh without dropping the current run", async () => {
     const runs: unknown[] = [runRow(M4_ID, true)];
     const { app, streams } = await harness("", runs);

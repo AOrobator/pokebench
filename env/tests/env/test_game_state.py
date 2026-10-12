@@ -17,6 +17,7 @@ from pokebench_env.game_state import (
 SB1, SB2 = 0x02025A18, 0x02024A6C
 OVERWORLD = (0x08085E05, 0x08085E5D)
 NAMING = (0x0, 0x080E4F59)
+BIRCH_SPEECH = 0x0802F6B1
 ORDERS = (
     "GAEM GAME GEAM GEMA GMAE GMEA AGEM AGME AEGM AEMG AMGE AMEG "
     "EGAM EGMA EAGM EAMG EMGA EMAG MGAE MGEA MAGE MAEG MEGA MEAG"
@@ -210,3 +211,17 @@ def test_unknown_pregame_callback_does_not_expose_default_save_data() -> None:
     assert not s.started and s.name is None and s.location is None
     m.put(0x02037590 + 5, b"\xff")
     assert not read_game_state(m.read, MAPS).started
+
+
+def test_dialog_and_menu_come_from_the_ui_reader() -> None:
+    from pokebench_env.ui_state import STRING_VAR4, WINDOWS
+
+    memory = Memory()
+    memory.put(0x030022C0 + 4, struct.pack("<I", BIRCH_SPEECH))
+    memory.put(0x03005E00, struct.pack("<I", 0x080307B1) + b"\x01")
+    memory.put(STRING_VAR4, text("Hi") + b"\xff")
+    memory.put(WINDOWS, struct.pack("<BBBBBBHI", 0, 2, 15, 27, 4, 15, 1, 0x02002000))
+    memory.put(0x02002000, b"\x11\x1f")
+    state = read_game_state(memory.read, MapNames({}))
+    assert state.dialog == "Hi"
+    assert state.menu is None

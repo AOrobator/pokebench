@@ -85,4 +85,13 @@ describe("discoverLocal", () => {
     const refused = vi.fn<typeof fetch>().mockRejectedValue(new TypeError("fetch failed"));
     await expect(discoverLocal(endpoint, refused)).rejects.toThrow(/GET http:\/\/127.0.0.1:18434\/v1\/models failed/);
   });
+
+  it("keeps the key out of the error when fetch rejects the header that carries it", async () => {
+    const bad = { baseUrl: "http://127.0.0.1:1/v1", apiKey: "test-secret\nvalue" };
+    const error: unknown = await discoverLocal(bad).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(LocalEndpointError);
+    const shown = `${String(error)} ${String((error as Error).cause)}`;
+    expect(shown).not.toContain("test-secret");
+    expect(String(error)).toMatch(/GET http:\/\/127.0.0.1:1\/v1\/models failed: TypeError/);
+  });
 });

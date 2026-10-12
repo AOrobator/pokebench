@@ -173,7 +173,8 @@ Mac Studio (all local)
 - [x] Live smoke (2026-10-11 ~20:55 ET, own server on :8011, vision from the gateway's report with `POKEBENCH_VISION_MODELS` unset): `tool: screenshot` → "The current frame is completely black." (early boot) → `tool: state` → `DONE TITLE_SEQUENCE`; `smoke-llm OK`; no server left on :8011
 - [x] COMMIT: `feat(agent): vision from gateway capabilities, covered game tools, no orphaned server` (port GREEN)
 - [x] M3 review R1 (465b704..98a89f3, packet sha256 b9f143c3…802b; principles PB1–PB13: 0 FAIL): Claude CLI LGTM; Codex BLOCKING, accepted: `checkSmoke` ignores an assistant turn that ended in `error`/`aborted`, so a failed final turn after two good texts passed (reproduced with the pinned `runAgentLoop`). think_fast BLOCKING, rejected: claims `controller.signal` is mispositioned, but pi-agent-core 0.73.1's `runAgentLoop(prompts, context, config, emit, signal?, streamFn?)` takes it 5th, as passed. think_swarm BLOCKING, rejected: claims gateway `multimodal` is dropped when `visionModels` is empty, which the test "takes vision from the capabilities the gateway reports" disproves. Its other items are scope/hardening/speculation.
-- [x] COMMIT: `test(agent): smoke check rejects errored or aborted model turns` (R1 RED)
+- [x] COMMIT: `test(agent): smoke check rejects errored or aborted model turns` (R1 RED, 5ad6e14)
+- [x] COMMIT: `fix(agent): smoke check fails on errored or aborted model turns` (R1 GREEN). Gates: vitest 56; TS coverage 100 / 97.36 / 100 / 100; tsc/eslint/build clean
 - [ ] Multi-model review loop until clean
 - [ ] **STOP — report to operator before M4**
 

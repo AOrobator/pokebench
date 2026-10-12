@@ -103,6 +103,12 @@ function toolResults(transcript: readonly AgentMessage[]): ToolResultMessage[] {
 }
 
 export function checkSmoke(transcript: readonly AgentMessage[]): SmokeSummary {
+  const ended = transcript.find(
+    (m): m is AssistantMessage => m.role === "assistant" && (m.stopReason === "error" || m.stopReason === "aborted"),
+  );
+  if (ended !== undefined) {
+    throw new SmokeError(`model turn ended: ${ended.stopReason}${ended.errorMessage ? ` (${ended.errorMessage})` : ""}`);
+  }
   const results = toolResults(transcript);
   const texts = assistantTexts(transcript);
   const failed = results.filter((r) => r.isError);

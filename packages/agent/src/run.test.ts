@@ -168,3 +168,16 @@ describe("withRun", () => {
     expect(existsSync(join(runsRoot, "2026-10-11T22-00-00_think-swarm_aaaa", "events.jsonl"))).toBe(false);
   });
 });
+
+describe("withRun when run_start cannot be written", () => {
+  it("surfaces the original error and still stops the server", async () => {
+    const runsRoot = root();
+    const fake = host();
+    const failing: RunHost = { ...fake, milestones: { poll: () => Promise.reject(new Error("milestones down")) } };
+    await expect(
+      withRun(plan(runsRoot), failing, new FrameStore(runsRoot, 1000, () => undefined), () => Promise.resolve("budget")),
+    ).rejects.toThrow("milestones down");
+    expect(fake.calls.at(-1)).toBe("stop");
+  });
+});
+

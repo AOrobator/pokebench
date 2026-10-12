@@ -1,8 +1,8 @@
-import { mkdtempSync, readFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { RUN_START, SAMPLES } from "../test-support/events.js";
+import { RUN_START, sample } from "../test-support/events.js";
 import { parseEvent } from "./events.js";
 import { RunLog, RunLogError, easternTimestamp } from "./run-log.js";
 
@@ -35,7 +35,7 @@ describe("RunLog", () => {
     const log = RunLog.create(runsRoot, "2026-10-11T21-40-05_think-swarm_a1b2", FIXED);
     expect(log.runDir).toBe(join(runsRoot, "2026-10-11T21-40-05_think-swarm_a1b2"));
     const first = log.append(RUN_START);
-    const second = log.append(SAMPLES[1]!);
+    const second = log.append(sample(1));
     expect(first).toMatchObject({ v: 1, seq: 0, t: "2026-10-11T21:40:05.123-04:00", type: "run_start" });
     expect(second.seq).toBe(1);
     expect(lines(log)).toEqual([first, second]);
@@ -60,7 +60,7 @@ describe("RunLog", () => {
 
   it("requires run_start first", () => {
     const log = RunLog.create(root(), "r1", FIXED);
-    expect(() => log.append(SAMPLES[1]!)).toThrow(/run_start/);
+    expect(() => log.append(sample(1))).toThrow(/run_start/);
   });
 
   it("allows only one run_start", () => {
@@ -72,7 +72,7 @@ describe("RunLog", () => {
   it("rejects an invalid event without consuming a seq or writing", () => {
     const log = RunLog.create(root(), "r1", FIXED);
     log.append(RUN_START);
-    const bad = { ...SAMPLES[4]!, buttons: ["NOPE"] } as unknown as typeof RUN_START;
+    const bad = { ...sample(4), buttons: ["NOPE"] } as unknown as typeof RUN_START;
     expect(() => log.append(bad)).toThrow(RunLogError);
     expect(log.nextSeq).toBe(1);
     expect(lines(log)).toHaveLength(1);
@@ -81,8 +81,20 @@ describe("RunLog", () => {
   it("closes after run_end", () => {
     const log = RunLog.create(root(), "r1", FIXED);
     log.append(RUN_START);
-    log.append(SAMPLES[10]!);
+    log.append(sample(10));
     expect(log.ended).toBe(true);
-    expect(() => log.append(SAMPLES[1]!)).toThrow(/ended/);
+    expect(() => log.append(sample(1))).toThrow(/ended/);
+  });
+});
+
+describe("RunLog filesystem errors", () => {
+  it("surfaces errors other than an existing run directory", () => {
+    const runsRoot = root();
+    chmodSync(runsRoot, 0o500);
+    try {
+      expect(() => RunLog.create(runsRoot, "r1", FIXED)).toThrow(/EACCES/);
+    } finally {
+      chmodSync(runsRoot, 0o700);
+    }
   });
 });

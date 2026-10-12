@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { AgentEvent } from "@mariozechner/pi-agent-core";
 import { describe, expect, it } from "vitest";
-import { RUN_START } from "../test-support/events.js";
+import { RUN_START_META as START_META } from "../test-support/events.js";
 import { assistant, toolCall, userImage, userText } from "../test-support/pi.js";
 import { parseEvent, type RunEvent } from "./events.js";
 import { FrameStore } from "./frames.js";
@@ -11,7 +11,6 @@ import type { SeenMilestone } from "./milestones.js";
 import { RecorderError, RunRecorder } from "./recorder.js";
 import { RunLog } from "./run-log.js";
 
-const { type: _type, turn: _turn, ...START_META } = RUN_START as Extract<typeof RUN_START, { type: "run_start" }>;
 
 function harness(milestoneBatches: SeenMilestone[][] = []): {
   recorder: RunRecorder;
@@ -128,8 +127,11 @@ describe("RunRecorder", () => {
       is_error: false,
       duration_ms: 140,
       text: "pressed",
-      frames: [{ path: "frames/000008_0.png", sha1: expect.stringMatching(/^[0-9a-f]{40}$/) }],
     });
+    const result = log_[8];
+    expect(result?.type === "tool_result" ? result.frames.map((frame) => frame.path) : []).toEqual([
+      "frames/000008_0.png",
+    ]);
     expect(readFileSync(join(log.runDir, "frames", "000008_0.png"), "utf8")).toBe("png-bytes");
     expect(log_[9]).toMatchObject({
       reason: "budget",
@@ -218,5 +220,16 @@ describe("RunRecorder", () => {
     await expect(
       recorder.emit({ type: "tool_execution_start", toolCallId: "c", toolName: "x", args: "A" }),
     ).rejects.toThrow(RecorderError);
+  });
+});
+
+describe("RunRecorder tool results", () => {
+  it("rejects a tool result without a content list", async () => {
+    const { recorder } = harness();
+    await recorder.start(START_META);
+    await recorder.emit({ type: "tool_execution_start", toolCallId: "c", toolName: "x", args: {} });
+    await expect(
+      recorder.emit({ type: "tool_execution_end", toolCallId: "c", toolName: "x", result: "oops", isError: false }),
+    ).rejects.toThrow(/content list/);
   });
 });

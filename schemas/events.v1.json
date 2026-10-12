@@ -1,0 +1,932 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pokebench.example/schemas/events.v1.json",
+  "title": "PokeBench run event (v1)",
+  "description": "One line of runs/<id>/events.jsonl. Generated from packages/agent/src/events.ts; do not edit.",
+  "anyOf": [
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "run",
+        "seq",
+        "t",
+        "turn",
+        "type",
+        "model",
+        "sampling",
+        "system_prompt",
+        "tools",
+        "harness",
+        "vendor_pin",
+        "pi_version",
+        "start_state",
+        "harness_features",
+        "budgets",
+        "isolation"
+      ],
+      "properties": {
+        "v": {
+          "type": "number",
+          "const": 1
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type": {
+          "type": "string",
+          "const": "run_start"
+        },
+        "model": {
+          "type": "object",
+          "required": [
+            "id",
+            "context_window",
+            "max_tokens",
+            "vision"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "context_window": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "max_tokens": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "vision": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "sampling": {
+          "type": "object",
+          "required": [
+            "thinking_level",
+            "max_tokens"
+          ],
+          "properties": {
+            "thinking_level": {
+              "type": "string"
+            },
+            "max_tokens": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        },
+        "system_prompt": {
+          "type": "string"
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "harness": {
+          "type": "object",
+          "required": [
+            "commit",
+            "dirty"
+          ],
+          "properties": {
+            "commit": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "dirty": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "vendor_pin": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "pi_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "start_state": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "kind"
+              ],
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "boot"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "kind",
+                "path",
+                "sha1"
+              ],
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "save_state"
+                },
+                "path": {
+                  "type": "string"
+                },
+                "sha1": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{40}$"
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "harness_features": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "budgets": {
+          "type": "object",
+          "properties": {
+            "max_turns": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "max_tokens": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "max_wall_ms": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        },
+        "isolation": {
+          "type": "object",
+          "required": [
+            "server_dir",
+            "run_data_id",
+            "load_checkpoint_mode",
+            "port"
+          ],
+          "properties": {
+            "server_dir": {
+              "type": "string"
+            },
+            "run_data_id": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+            },
+            "load_checkpoint_mode": {
+              "type": "boolean",
+              "const": false
+            },
+            "port": {
+              "type": "integer",
+              "minimum": 1024,
+              "maximum": 65535
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "run",
+        "seq",
+        "t",
+        "turn",
+        "type",
+        "context"
+      ],
+      "properties": {
+        "v": {
+          "type": "number",
+          "const": 1
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type": {
+          "type": "string",
+          "const": "turn_start"
+        },
+        "context": {
+          "type": "object",
+          "required": [
+            "messages",
+            "images",
+            "est_tokens"
+          ],
+          "properties": {
+            "messages": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "images": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "est_tokens": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "run",
+        "seq",
+        "t",
+        "turn",
+        "type",
+        "thinking",
+        "text",
+        "tool_calls",
+        "usage",
+        "latency_ms",
+        "ttft_ms",
+        "stop_reason"
+      ],
+      "properties": {
+        "v": {
+          "type": "number",
+          "const": 1
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type": {
+          "type": "string",
+          "const": "assistant"
+        },
+        "thinking": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "tool_calls": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "name",
+              "args"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "args": {
+                "type": "object",
+                "patternProperties": {
+                  "^.*$": {}
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "usage": {
+          "type": "object",
+          "required": [
+            "input",
+            "output",
+            "cache_read"
+          ],
+          "properties": {
+            "input": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "output": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cache_read": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        },
+        "latency_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ttft_ms": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stop_reason": {
+          "enum": [
+            "stop",
+            "length",
+            "toolUse",
+            "error",
+            "aborted"
+          ]
+        },
+        "error": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "run",
+        "seq",
+        "t",
+        "turn",
+        "type",
+        "id",
+        "name",
+        "args"
+      ],
+      "properties": {
+        "v": {
+          "type": "number",
+          "const": 1
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type": {
+          "type": "string",
+          "const": "tool_call"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "args": {
+          "type": "object",
+          "patternProperties": {
+            "^.*$": {}
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "run",
+        "seq",
+        "t",
+        "turn",
+        "type",
+        "tool_call_id",
+        "buttons"
+      ],
+      "properties": {
+        "v": {
+          "type": "number",
+          "const": 1
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type": {
+          "type": "string",
+          "const": "button_press"
+        },
+        "tool_call_id": {
+          "type": "string"
+        },
+        "buttons": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "A",
+              "B",
+              "START",
+              "SELECT",
+              "UP",
+              "DOWN",
+              "LEFT",
+              "RIGHT"
+            ]
+          },
+          "minItems": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "run",
+        "seq",
+        "t",
+        "turn",
+        "type",
+        "id",
+        "name",
+        "is_error",
+        "duration_ms",
+        "text",
+        "frames"
+      ],
+      "properties": {
+        "v": {
+          "type": "number",
+          "const": 1
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type": {
+          "type": "string",
+          "const": "tool_result"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "is_error": {
+          "type": "boolean"
+        },
+        "duration_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "text": {
+          "type": "string"
+        },
+        "frames": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "path",
+              "sha1"
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "pattern": "^frames/\\d{6}_\\d+\\.png$"
+              },
+              "sha1": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "run",
+        "seq",
+        "t",
+        "turn",
+        "type",
+        "name",
+        "server_timestamp"
+      ],
+      "properties": {
+        "v": {
+          "type": "number",
+          "const": 1
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type": {
+          "type": "string",
+          "const": "milestone"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "server_timestamp": {
+          "type": "number"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "run",
+        "seq",
+        "t",
+        "turn",
+        "type",
+        "reason",
+        "attempt",
+        "limit"
+      ],
+      "properties": {
+        "v": {
+          "type": "number",
+          "const": 1
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type": {
+          "type": "string",
+          "const": "retry"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "run",
+        "seq",
+        "t",
+        "turn",
+        "type",
+        "bytes",
+        "cap_bytes",
+        "percent"
+      ],
+      "properties": {
+        "v": {
+          "type": "number",
+          "const": 1
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type": {
+          "type": "string",
+          "const": "disk_usage"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cap_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "percent": {
+          "enum": [
+            0,
+            10,
+            20,
+            30,
+            40,
+            50,
+            60,
+            70,
+            80,
+            90,
+            100
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "run",
+        "seq",
+        "t",
+        "turn",
+        "type",
+        "from_run",
+        "files",
+        "bytes"
+      ],
+      "properties": {
+        "v": {
+          "type": "number",
+          "const": 1
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type": {
+          "type": "string",
+          "const": "frames_evicted"
+        },
+        "from_run": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "files": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "run",
+        "seq",
+        "t",
+        "turn",
+        "type",
+        "reason",
+        "furthest_milestone",
+        "turns",
+        "wall_ms",
+        "tokens",
+        "frames"
+      ],
+      "properties": {
+        "v": {
+          "type": "number",
+          "const": 1
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type": {
+          "type": "string",
+          "const": "run_end"
+        },
+        "reason": {
+          "enum": [
+            "milestone",
+            "budget",
+            "stuck",
+            "crash",
+            "model_error",
+            "operator_abort"
+          ]
+        },
+        "furthest_milestone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "turns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "wall_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "tokens": {
+          "type": "object",
+          "required": [
+            "input",
+            "output"
+          ],
+          "properties": {
+            "input": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "output": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        },
+        "frames": {
+          "type": "object",
+          "required": [
+            "saved",
+            "bytes"
+          ],
+          "properties": {
+            "saved": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  ]
+}

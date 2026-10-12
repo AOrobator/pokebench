@@ -2,6 +2,7 @@ import type { AgentMessage, AgentTool } from "@mariozechner/pi-agent-core";
 import type { AssistantMessage, TextContent, ToolResultMessage } from "@mariozechner/pi-ai";
 import { Type } from "typebox";
 import { Value } from "typebox/value";
+import { ButtonSchema, type Button } from "./events.js";
 
 const NoArgs = Type.Object({});
 
@@ -123,3 +124,43 @@ export function checkSmoke(transcript: readonly AgentMessage[]): SmokeSummary {
   }
   return { toolCalls, texts };
 }
+
+const PressArgs = Type.Object({ buttons: Type.Array(ButtonSchema, { minItems: 1, maxItems: 8 }) });
+
+const ActionSchema = Type.Object({ status: Type.String(), message: Type.Optional(Type.String()) });
+
+export interface PressHooks {
+  beforePress(toolCallId: string, buttons: readonly Button[]): void;
+  afterPress(): Promise<void>;
+}
+
+export function pressTool(
+  gameServerUrl: string,
+  hooks: PressHooks,
+  fetchFn: typeof fetch = fetch,
+): AgentTool<typeof PressArgs> {
+  return {
+    name: "press",
+    label: "Press buttons",
+    description: "Press Game Boy Advance buttons in order, one per frame batch.",
+    parameters: PressArgs,
+    execute: async (toolCallId, params) => {
+      hooks.beforePress(toolCallId, params.buttons);
+      const url = `${gameServerUrl}/action`;
+      const response = await fetchFn(url, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ buttons: params.buttons }),
+        signal: AbortSignal.timeout(15_000),
+      });
+      const body: unknown = await response.json();
+      if (!response.ok || !Value.Check(ActionSchema, body) || body.status !== "success") {
+        const detail = Value.Check(ActionSchema, body) ? (body.message ?? body.status) : `HTTP ${String(response.status)}`;
+        throw new Error(`POST ${url} failed: ${detail}`);
+      }
+      await hooks.afterPress();
+      return { content: [{ type: "text", text: `pressed ${params.buttons.join(", ")}` }], details: undefined };
+    },
+  };
+}
+

@@ -130,7 +130,7 @@ describe("pressTool", () => {
   it("records the press before POSTing it, then checks milestones", async () => {
     const order: string[] = [];
     const fetchFn = vi.fn<typeof fetch>().mockImplementation((_url, init) => {
-      order.push(`POST ${String(init?.body)}`);
+      order.push(`POST ${typeof init?.body === "string" ? init.body : ""}`);
       return Promise.resolve(new Response(JSON.stringify({ status: "success" })));
     });
     const tool = pressTool(SERVER, {

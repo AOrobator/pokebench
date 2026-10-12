@@ -1,15 +1,15 @@
-import { appendFileSync, mkdtempSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { SAMPLES } from "../test-support/events.js";
+import { SAMPLES, sample } from "../test-support/events.js";
 import type { RunEvent } from "./events.js";
-import { followEvents, formatEvent } from "./tail.js";
+import { followEvents, formatEvent, tailRun } from "./tail.js";
 
 const ENVELOPE = { v: 1 as const, run: "r1", t: "2026-10-11T21:40:05.123-04:00" };
 
 function event(index: number, seq = index): RunEvent {
-  return { ...ENVELOPE, seq, ...SAMPLES[index]! } as RunEvent;
+  return { ...ENVELOPE, seq, ...sample(index) };
 }
 
 describe("formatEvent", () => {
@@ -61,5 +61,47 @@ describe("followEvents", () => {
     appendFileSync(path, `${half.slice(10)}\n${JSON.stringify(event(10, 2))}\n`);
     await done;
     expect(seen).toEqual([0, 1, 2]);
+  });
+});
+
+describe("formatEvent variants", () => {
+  it("renders a save-state start, a text-only lane, spoken text, a missing ttft and several frames", () => {
+    const start = {
+      ...event(0),
+      model: { id: "think-faster", context_window: 4096, max_tokens: 1024, vision: false },
+      start_state: { kind: "save_state", path: "states/route101.state", sha1: "a".repeat(40) },
+    } as RunEvent;
+    expect(formatEvent(start)).toContain("think-faster thinking=medium");
+    expect(formatEvent(start)).toContain("start=states/route101.state");
+    const spoken = { ...event(2), thinking: "", text: "Hello there.", ttft_ms: null, tool_calls: [] } as RunEvent;
+    expect(formatEvent(spoken)).toContain("(ttft -)");
+    expect(formatEvent(spoken)).toContain("say: Hello there.");
+    expect(formatEvent(spoken)).not.toContain("think:");
+    const frames = { ...event(5), frames: [...(event(5) as { frames: unknown[] }).frames, { path: "frames/000006_1.png", sha1: "b".repeat(40) }] } as RunEvent;
+    expect(formatEvent(frames)).toContain("[2 frames]");
+    const noFrames = { ...event(5), frames: [] } as RunEvent;
+    expect(formatEvent(noFrames)).toMatch(/: ok$/);
+    const unknownError = { ...event(2), stop_reason: "error" } as RunEvent;
+    expect(formatEvent(unknownError)).toContain("[error: unknown]");
+    const nowhere = { ...event(10), furthest_milestone: null } as RunEvent;
+    expect(formatEvent(nowhere)).toContain("furthest none");
+  });
+});
+
+describe("tailRun", () => {
+  it("prints formatted events until run_end", async () => {
+    const runsRoot = mkdtempSync(join(tmpdir(), "pokebench-tailrun-"));
+    mkdirSync(join(runsRoot, "r1"));
+    writeFileSync(join(runsRoot, "r1", "events.jsonl"), `${JSON.stringify(event(0))}\n${JSON.stringify(event(10, 1))}\n`);
+    const lines: string[] = [];
+    expect(await tailRun(["r1"], runsRoot, (line) => lines.push(line))).toBe(0);
+    expect(lines).toHaveLength(2);
+    expect(lines[1]).toContain("RUN END");
+  });
+
+  it.each([[[]], [["a", "b"]]])("rejects arguments %j", async (argv) => {
+    const lines: string[] = [];
+    expect(await tailRun(argv, "/nowhere", (line) => lines.push(line))).toBe(2);
+    expect(lines).toEqual(["usage: tail-run <run id>"]);
   });
 });

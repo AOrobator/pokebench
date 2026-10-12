@@ -86,7 +86,8 @@ describe("FrameStore", () => {
     const log = startedLog(runsRoot);
     store.attach(log);
     const ref = store.save(log, 7, 0, b64(10));
-    expect(ref).toEqual({ path: "frames/000007_0.png", sha1: expect.stringMatching(/^[0-9a-f]{40}$/) });
+    expect(ref.path).toBe("frames/000007_0.png");
+    expect(ref.sha1).toMatch(/^[0-9a-f]{40}$/);
     expect(readFileSync(join(log.runDir, ref.path))).toEqual(Buffer.alloc(10, 7));
     expect(store.usage()).toBe(10);
   });
@@ -99,8 +100,8 @@ describe("FrameStore", () => {
     store.save(log, 2, 0, b64(60));
     store.save(log, 3, 0, b64(10));
     store.save(log, 4, 0, b64(200));
-    const usage = events(log).filter((event) => event.type === "disk_usage");
-    expect(usage.map((event) => (event.type === "disk_usage" ? event.percent : -1))).toEqual([0, 10, 30]);
+    const percents = events(log).flatMap((event) => (event.type === "disk_usage" ? [event.percent] : []));
+    expect(percents).toEqual([0, 10, 30]);
     expect(notices.slice(1)).toEqual([
       "frames on disk: 10% of 1000 B cap (110 B)",
       "frames on disk: 30% of 1000 B cap (320 B)",
@@ -120,7 +121,7 @@ describe("FrameStore", () => {
     expect(existsSync(old)).toBe(true);
     expect(store.usage()).toBe(850);
     expect(events(log).filter((event) => event.type === "frames_evicted")).toEqual([
-      expect.objectContaining({ run: "2026-10-01T10-00-00_a", files: 1, bytes: 300 }),
+      expect.objectContaining({ from_run: "2026-10-01T10-00-00_a", files: 1, bytes: 300 }),
     ]);
     const ledger = readFileSync(join(runsRoot, "frames-evictions.jsonl"), "utf8").trim().split("\n");
     expect(ledger.map((line) => JSON.parse(line) as unknown)).toEqual([
@@ -149,5 +150,24 @@ describe("FrameStore", () => {
 
   it("rejects a prune target outside 0..1", () => {
     expect(() => setup().store.prune(1.5)).toThrow(RangeError);
+  });
+});
+
+describe("FrameStore edge cases", () => {
+  it("treats a missing runs directory as empty", () => {
+    expect(new FrameStore(join(tmpdir(), "pokebench-missing-dir-xyz"), CAP, () => undefined).usage()).toBe(0);
+  });
+
+  it("skips runs without a frames directory", () => {
+    const { runsRoot, store } = setup();
+    mkdirSync(join(runsRoot, "no-frames"));
+    oldFrame(runsRoot, "with-frames", "000001_0.png", 10);
+    expect(store.usage()).toBe(10);
+  });
+
+  it("prunes nothing when already under the target", () => {
+    const { runsRoot, store } = setup();
+    oldFrame(runsRoot, "a", "000001_0.png", 100);
+    expect(store.prune(0.5)).toEqual({ files: 0, bytes: 0 });
   });
 });

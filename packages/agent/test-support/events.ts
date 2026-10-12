@@ -1,8 +1,7 @@
 import type { EventBody } from "../src/events.js";
+import type { RunStartMeta } from "../src/recorder.js";
 
-export const RUN_START: EventBody = {
-  type: "run_start",
-  turn: 0,
+export const RUN_START_META: RunStartMeta = {
   model: { id: "think-swarm", context_window: 65536, max_tokens: 16384, vision: true },
   sampling: { thinking_level: "medium", max_tokens: 16384 },
   system_prompt: "You play Pokémon Emerald.",
@@ -15,6 +14,8 @@ export const RUN_START: EventBody = {
   budgets: { max_turns: 100, max_wall_ms: 3_600_000 },
   isolation: { server_dir: "runs/r/server", run_data_id: "r", load_checkpoint_mode: false, port: 8000 },
 };
+
+export const RUN_START: EventBody = { type: "run_start", turn: 0, ...RUN_START_META };
 
 export const SAMPLES: readonly EventBody[] = [
   RUN_START,
@@ -45,7 +46,7 @@ export const SAMPLES: readonly EventBody[] = [
   { type: "milestone", turn: 1, name: "GAME_RUNNING", server_timestamp: 1791765012.4 },
   { type: "retry", turn: 1, reason: "invalid tool arguments", attempt: 1, limit: 3 },
   { type: "disk_usage", turn: 1, bytes: 52_428_800, cap_bytes: 524_288_000, percent: 10 },
-  { type: "frames_evicted", turn: 1, run: "older-run", files: 3, bytes: 1500 },
+  { type: "frames_evicted", turn: 1, from_run: "older-run", files: 3, bytes: 1500 },
   {
     type: "run_end",
     turn: 1,
@@ -57,3 +58,9 @@ export const SAMPLES: readonly EventBody[] = [
     frames: { saved: 1, bytes: 500 },
   },
 ];
+
+export function sample(index: number): EventBody {
+  const body = SAMPLES[index];
+  if (body === undefined) throw new Error(`no sample ${String(index)}`);
+  return body;
+}

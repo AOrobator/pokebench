@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { runsCli } from "./runs-cli.js";
+import { RUNS_ROOT, main, runsCli } from "./runs-cli.js";
 
 function runsWith(bytes: number[]): string {
   const runsRoot = mkdtempSync(join(tmpdir(), "pokebench-cli-"));
@@ -31,5 +31,14 @@ describe("runsCli", () => {
     const out: string[] = [];
     expect(runsCli(argv, runsWith([]), 1000, (line) => out.push(line))).toBe(2);
     expect(out[0]).toMatch(/usage: runs-cli/);
+  });
+});
+
+describe("runs-cli main", () => {
+  it("uses the repo runs/ directory and the 500 MB cap", () => {
+    const out: string[] = [];
+    expect(main(["disk"], (line) => out.push(line))).toBe(0);
+    expect(out[0]).toMatch(/of 500\.0 MB cap/);
+    expect(RUNS_ROOT).toMatch(/\/runs\/$/);
   });
 });

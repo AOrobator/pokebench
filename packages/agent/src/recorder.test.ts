@@ -440,3 +440,25 @@ it("fails a declared story reader startup when the server still has the old pack
   recorder.end("crash");
   expect(events(log).map((e)=>e.type)).toEqual(["run_start","run_end"]);
 });
+
+// Captured from independent native core probe_46d6; no inputs during this replay.
+it("does not earn resumed progress when the first observation is unreadable", async () => {
+  const { StateMilestones } = await import("./milestones.js");
+  const { parseGameState } = await import("./game-state.js");
+  const { summarize } = await import("./summary.js");
+  const positive = parseGameState(JSON.parse(readFileSync(new URL("../test-support/existing-story.json", import.meta.url), "utf8")));
+  const unknown = {...STATE, screen:"unknown", started:false, name:null, location:null, story:null};
+  const root = mkdtempSync(join(tmpdir(), "pokebench-resumed-origin-"));
+  let clock = 1000;
+  const log = RunLog.create(root,"resumed-origin",()=>new Date(clock));
+  const recorder = new RunRecorder({log,frames:new FrameStore(root),milestones:new StateMilestones({read:()=>Promise.resolve(unknown)},()=>clock),gameState:{read:()=>Promise.resolve(unknown)},now:()=>clock});
+  await recorder.start({...START_META,start_state:{kind:"save_state",path:"immutable-probe-fixture.state",sha1:"0".repeat(40)}});
+  clock += 1000;
+  const observed = recorder.recordState(positive);
+  recorder.end("completed");
+  const logged = events(log);
+  const marks = logged.filter((e)=>e.type==="milestone").filter((e)=>e.name!=="GAME_RUNNING");
+  expect(marks.map((e)=>e.name)).toEqual(["PLAYER_NAME_CONFIRMED","PLAYER_NAME_SET","INTRO_CUTSCENE_COMPLETE","MOM_CLOCK_INSTRUCTION","PLAYER_BEDROOM","CLOCK_SET","MOM_RIVAL_INSTRUCTION","RIVAL_MET","STARTER_CHOSEN","BIRCH_RESCUE_COMPLETE","BIRCH_STARTER_HANDOFF_COMPLETE"]);
+  for (const mark of marks) expect(mark).toMatchObject({origin:"present_at_start",evidence:[observed.seq]});
+  expect(summarize(logged)).toMatchObject({presses:0,furthest:"GAME_RUNNING",milestones:[{name:"GAME_RUNNING",turn:0,wallMs:0}]});
+});

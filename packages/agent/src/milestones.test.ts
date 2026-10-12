@@ -183,3 +183,32 @@ it("records each verified story predicate, withholds unknown/pre-event values an
   const nonField = source([]);
   expect(nonField.observe(at(null,{story:{...story,clock_set:true,rival_battle_won:true,pokedex_received:true,running_shoes_received:true,starter_tutorial_complete:true,rustboro_gym_complete:true,rock_tomb_received:true}}),1).map((m)=>m.name)).toEqual(["GAME_RUNNING"]);
 });
+
+it("keeps unknown resumed baselines unresolved per predicate until readable", () => {
+  const story = {name_confirmed:null,intro_stage:null,rival_stage:null,birch_lab_stage:null,petalburg_gym_stage:null,woods_stage:null,clock_set:null,rival_battle_won:null,pokedex_received:null,running_shoes_received:null,starter_tutorial_complete:null,rustboro_gym_complete:null,stone_badge:null,rock_tomb_received:null};
+  const resume = source([]);resume.initialize("save_state");
+  resume.observe(at(null,{screen:"unknown",story}),1);
+  resume.observe(at("LITTLEROOT TOWN",{story}),2);
+  const positive=resume.observe(at("LITTLEROOT TOWN",{story:{...story,name_confirmed:true,clock_set:true,intro_stage:6,rival_stage:3,birch_lab_stage:2}}),3);
+  expect(positive.filter((m)=>m.kind==="story").map((m)=>[m.name,m.origin])).toEqual([
+    ["PLAYER_NAME_CONFIRMED","present_at_start"],["MOM_CLOCK_INSTRUCTION","present_at_start"],["CLOCK_SET","present_at_start"],["RIVAL_MET","present_at_start"],["BIRCH_RESCUE_COMPLETE","present_at_start"],
+  ]);
+  const witnessed=source([]);witnessed.initialize("save_state");
+  witnessed.observe(at(null,{screen:"unknown",story}),1);
+  witnessed.observe(at("LITTLEROOT TOWN",{story:{...story,clock_set:false,intro_stage:0}}),2);
+  const earned=witnessed.observe(at("LITTLEROOT TOWN",{story:{...story,clock_set:true,intro_stage:6}}),3);
+  expect(earned.filter((m)=>m.kind==="story").map((m)=>[m.name,m.origin])).toEqual([["MOM_CLOCK_INSTRUCTION","observed"],["CLOCK_SET","observed"]]);
+});
+
+it("retains witnessed negatives across unknown reads and earns naming-save startup", () => {
+  const tracker=new StateMilestones({read:()=>Promise.resolve(BASE)},()=>2000);tracker.initialize("save_state");
+  const unknown={name_confirmed:null,intro_stage:null,rival_stage:null,birch_lab_stage:null,petalburg_gym_stage:null,woods_stage:null,clock_set:null,rival_battle_won:null,pokedex_received:null,running_shoes_received:null,starter_tutorial_complete:null,rustboro_gym_complete:null,stone_badge:null,rock_tomb_received:null};
+  tracker.observe(at(null,{screen:"unknown",story:unknown}),1);
+  tracker.observe(at(null,{screen:"naming",story:{...unknown,name_confirmed:false}}),2);
+  tracker.observe(at(null,{screen:"unknown",story:unknown}),3);
+  expect(tracker.observe(at(null,{story:{...unknown,name_confirmed:true}}),4)).toEqual([{name:"PLAYER_NAME_CONFIRMED",kind:"story",origin:"observed",serverTimestamp:2,evidence:[4]}]);
+  expect(tracker.observe(at("INSIDE OF TRUCK",{story:{...unknown,name_confirmed:true}}),5)).toEqual([{name:"PLAYER_NAME_SET",kind:"legacy",origin:"observed",serverTimestamp:2,evidence:[5]}]);
+  tracker.observe(at("INSIDE OF TRUCK",{story:{...unknown,clock_set:false}}),6);
+  tracker.observe(at("INSIDE OF TRUCK",{story:unknown}),7);
+  expect(tracker.observe(at("INSIDE OF TRUCK",{story:{...unknown,clock_set:true}}),8)).toEqual([{name:"CLOCK_SET",kind:"story",origin:"observed",serverTimestamp:2,evidence:[8]}]);
+});

@@ -67,6 +67,45 @@ function update(): AgentEvent {
   };
 }
 
+function delta(kind: "thinking_delta" | "text_delta" | "toolcall_delta", text: string): AgentEvent {
+  const partial = assistant({ text: "" });
+  return { type: "message_update", message: partial, assistantMessageEvent: { type: kind, contentIndex: 0, delta: text, partial } };
+}
+
+describe("RunRecorder streaming", () => {
+  it("writes thinking and text as batched deltas while the reply streams, then the full reply", async () => {
+    const { recorder, log, advance } = harness();
+    await recorder.start(START_META);
+    await recorder.transformContext([userText("go")]);
+    advance(100);
+    await recorder.emit(delta("thinking_delta", "Look"));
+    advance(100);
+    await recorder.emit(delta("thinking_delta", " at"));
+    advance(60);
+    await recorder.emit(delta("thinking_delta", " it."));
+    await recorder.emit(delta("toolcall_delta", '{"buttons"'));
+    advance(10);
+    await recorder.emit(delta("text_delta", "Go"));
+    await recorder.emit({ type: "message_end", message: assistant({ thinking: "Look at it.", text: "Go" }) });
+    const streamed = events(log).filter((e) => e.type === "assistant_delta" || e.type === "assistant");
+    expect(streamed.map((e) => (e.type === "assistant_delta" ? [e.type, e.thinking, e.text] : [e.type]))).toEqual([
+      ["assistant_delta", "Look at it.", ""],
+      ["assistant_delta", "", "Go"],
+      ["assistant"],
+    ]);
+  });
+
+  it("drops an unflushed tail from a turn that never finished, without leaking it into the next turn", async () => {
+    const { recorder, log } = harness();
+    await recorder.start(START_META);
+    await recorder.transformContext([userText("go")]);
+    await recorder.emit(delta("thinking_delta", "half a thou"));
+    await recorder.transformContext([userText("go")]);
+    await recorder.emit({ type: "message_end", message: assistant({ thinking: "fresh", text: "" }) });
+    expect(events(log).filter((e) => e.type === "assistant_delta")).toEqual([]);
+  });
+});
+
 describe("RunRecorder", () => {
   it("records a full turn: context, assistant, tool call, press, milestone, frame result", async () => {
     const { recorder, log, advance } = harness([

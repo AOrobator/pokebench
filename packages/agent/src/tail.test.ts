@@ -35,6 +35,7 @@ describe("formatEvent", () => {
       "21:40:05   t1 COMPACT    context 30000 → 4000 tokens",
       "21:40:05   t1 PRESS      UP A (hold 10f, release 8f)",
       "21:40:05   t1 TELEMETRY  state read failed: GET http://127.0.0.1:8000/state returned HTTP 503",
+      "21:40:05   t1 STREAM     think: Look at the screen",
     ]);
   });
 
@@ -96,7 +97,11 @@ describe("tailRun", () => {
   it("prints formatted events until run_end", async () => {
     const runsRoot = mkdtempSync(join(tmpdir(), "pokebench-tailrun-"));
     mkdirSync(join(runsRoot, "r1"));
-    writeFileSync(join(runsRoot, "r1", "events.jsonl"), `${JSON.stringify(event(0))}\n${JSON.stringify(event(10, 1))}\n`);
+    const delta = { ...event(15, 1) };
+    writeFileSync(
+      join(runsRoot, "r1", "events.jsonl"),
+      `${JSON.stringify(event(0))}\n${JSON.stringify(delta)}\n${JSON.stringify(event(10, 2))}\n`,
+    );
     const lines: string[] = [];
     expect(await tailRun(["r1"], runsRoot, (line) => lines.push(line))).toBe(0);
     expect(lines).toHaveLength(2);

@@ -218,6 +218,24 @@ describe("thinkingDialog", () => {
     expect(dialog.body).toBe('<span class="cursor"></span>');
   });
 
+  it("streams the thinking and reply text as deltas arrive", () => {
+    const log = bare();
+    log.add(1000, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 1 } });
+    log.add(1500, { type: "assistant_delta", turn: 1, thinking: "Look <at>", text: "" });
+    log.add(1800, { type: "assistant_delta", turn: 1, thinking: " the screen.", text: "Go" });
+    const dialog = thinkingDialog(view(log), BASE_MS + 2000);
+    expect(dialog.head).toBe("AGENT is thinking… 1.0s");
+    expect(dialog.body).toBe('Look &lt;at&gt; the screen.<span class="reply">Go</span><span class="cursor"></span>');
+  });
+
+  it("starts each turn's stream empty", () => {
+    const log = bare();
+    log.add(1000, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 1 } });
+    log.add(1500, { type: "assistant_delta", turn: 1, thinking: "old", text: "" });
+    log.add(1600, { type: "turn_start", turn: 2, context: { messages: 1, images: 0, est_tokens: 1 } });
+    expect(thinkingDialog(view(log), BASE_MS + 2000).body).toBe('<span class="cursor"></span>');
+  });
+
   it("shows the last full thinking block once the reply lands", () => {
     const dialog = thinkingDialog(view(fullRun()), END);
     expect(dialog.head).toBe("AGENT thought for 4.0s · turn 2");

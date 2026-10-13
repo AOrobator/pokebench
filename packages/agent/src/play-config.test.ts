@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { expect, it } from "vitest";
 import { ALL_ON, type FeatureSet, type SwitchableFeature } from "./features.js";
-import { CONTEXTUAL_CONTROLS, PLAY_SYSTEM_PROMPT, playGoal, playSystemPrompt, playTools } from "./play-config.js";
+import { CONTEXTUAL_CONTROLS, PLAY_SYSTEM_PROMPT, objectiveSwitches, playGoal, playSystemPrompt, playTools } from "./play-config.js";
 import { OBJECTIVE_PROMPT, objectivePrompt } from "./objective-tools.js";
 
 const sha = (text: string): string => createHash("sha256").update(text).digest("hex");
@@ -47,4 +47,9 @@ it("names the goal and the tools for the selected switches", () => {
   expect(playGoal("RIVAL_MET")).toBe("Reach the native game milestone RIVAL MET.");
   expect(playTools(ALL_ON)).toEqual(["observe", "press", "get_objectives", "set_objective", "update_objective"]);
   expect(playTools(off("objective-tracking-v1"))).toEqual(["observe", "press"]);
+});
+
+it("hides objective-record facts whose observation switch is off", () => {
+  expect(objectiveSwitches(ALL_ON)).toEqual({ repeatGuard: true, nativeCompletion: true, hiddenFacts: [] });
+  expect(objectiveSwitches(off("live-player-position-v1", "naming-cursor-v1", "field-control-lock", "repeat-attempt-guard-v1"))).toEqual({ repeatGuard: false, nativeCompletion: true, hiddenFacts: ["position", "facing", "naming", "field_controls_locked"] });
 });

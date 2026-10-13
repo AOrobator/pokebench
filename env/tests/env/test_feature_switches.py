@@ -1,8 +1,10 @@
 """Per-feature observation switches: each one removes only its own model text."""
 
 import json
+import re
 import struct
 from dataclasses import replace
+from pathlib import Path
 
 import pytest
 from fastapi import FastAPI
@@ -11,7 +13,7 @@ from test_view import get
 from pokebench_env.game_state import GameState, read_game_state
 from pokebench_env.naming import NamingState
 from pokebench_env.observation import install_observation
-from pokebench_env.readout import SERVER_FEATURES, features_off_from_env, format_readout, state_json
+from pokebench_env.readout import SERVER_FEATURES, features_off_from_env, format_readout
 from tests.env.test_game_state import MAPS, OVERWORLD, SB1, game
 from tests.env.test_live_map import loaded
 from tests.env.test_world_context import COORDS, world
@@ -151,9 +153,26 @@ def test_field_lock_story_and_naming_lines_switch_off() -> None:
     ) == NAMING.readout().split("\n")
 
 
-def test_measurement_json_is_unchanged_by_switches() -> None:
-    state = map_state()
-    assert state_json(state)["local_map"] == (state.nearby.text() if state.nearby else None)
+def test_measurement_json_is_identical_with_every_switch_off(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payloads = []
+    for off in ("", ",".join(SERVER_FEATURES)):
+        monkeypatch.setenv("POKEBENCH_FEATURES_OFF", off)
+        app = FastAPI()
+        install_observation(app, lambda: _Shot(), map_memory().read, MAPS)
+        status, _, body = get(app, "/pokebench/observation")
+        assert status == 200, body
+        payloads.append(json.loads(body))
+    assert payloads[0]["state"] == payloads[1]["state"]
+    assert payloads[0]["state_text"] != "" and payloads[1]["state_text"] == ""
+
+
+def test_server_feature_list_matches_the_agent_registry() -> None:
+    source = (Path(__file__).resolve().parents[3] / "packages/agent/src/features.ts").read_text()
+    block = source.split("export const SERVER_FEATURES: readonly SwitchableFeature[] = [", 1)[1]
+    block = block.split("];", 1)[0]
+    assert tuple(re.findall(r'"([a-z0-9-]+)"', block)) == SERVER_FEATURES
 
 
 def test_env_list_is_validated() -> None:

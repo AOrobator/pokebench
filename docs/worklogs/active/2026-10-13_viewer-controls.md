@@ -65,7 +65,7 @@ Approval basis: the operator approved the design and asked to build and land it;
 - [x] COMMIT: `test(features): require real per-feature switches with default parity (RED)` (d4f573f): agent 4 failing tests + 3 failing files (594 run), python collection error, implementation hidden
 - [x] Implement registry (`features.ts`), prompt/tools (`play-config.ts`, constants moved byte for byte from live.ts), preset v2 (+`parsePlayPresetV1` for frozen comparison manifests, `presetFlags` keeps the run_start evaluation contract), objective/press switches, env readout switches (`POKEBENCH_FEATURES_OFF`, `GameState.nearby` for re-rendering)
 - [x] Gates: tests agent 618 / viewer 170 / python 437 pass; lint, build, verify-vendor OK; coverage agent 98.97L/94.18B/98.44F, viewer 98.55/91.24/98.59, python 99.40/97.27/100
-- [ ] COMMIT: `feat(features): ...` (GREEN)
+- [x] COMMIT: `feat(features): make every harness feature a real switch with default parity` (9f4303f) (GREEN)
 - [x] Guard deletion/restoration receipts: 17/17 mutated red, restored green (`runs/launch-receipts/viewer-controls/m1-guards/01..17`)
 - [ ] Multi-model review loop until clean
 
@@ -121,7 +121,12 @@ Done when: all milestones green with reviews LGTM, landed on local main (if the 
 
 ## Multi-Model Review Log
 
-(none yet)
+**M1 round 1** (packet 86804d6..9f4303f, diff sha256 60d3acb3…795bd; receipts `runs/launch-receipts/viewer-controls/m1-review/`)
+- Roster availability: Claude CLI `~/.claude-review` not logged in (operator login needed); Cursor Claude Opus 5 and Sonnet 5 quota-exhausted until 2026-10-17 (receipts `claude-opus-quota.*`, `claude_sonnet.*`); Cursor GPT-5.6 Sol quota-exhausted → GPT lane via isolated Codex CLI `gpt-5.6-sol` (standing harness switch). Claude-family lane replaced by the standing subagent fallback: two fresh read-only subagents (opus, sonnet). Reduced vendor diversity recorded: the Claude family is served only by in-session subagents this round.
+- Verdicts: Claude-fallback A BLOCKING, Claude-fallback B BLOCKING, Codex GPT BLOCKING, Grok 4.5 LGTM, think_fast BLOCKING (invalid format: bold verdict), think_swarm incomplete (finish_reason length, no verdict).
+- Accepted (fixed in one batch): (1) objective record repeated RAM facts past observation switches (A, B): `objective-tracking-v1` now needs `ram-state-v1`; position/facing, naming and field-lock facts are hidden from the record when their switch is off; press-result copy now says objective attempts still label moved/turned/no change. (2) native-completion-off copy left in `set_objective` description, `supports_goal` and the completed-claim error (Codex, A, B, Grok). (3) active-UI description now states the pre-existing server behaviour (off also removes interface state from recorded state and the loop guard; kept for comparability with earlier runs under the same id) (Codex). (4) measurement test could not fail → now compares observation `state` with all 12 server switches off vs none (A, Grok). (5) duplicated server feature list → cross-stack test pins Python to `features.ts` (think_fast, Grok, B). (6) live-map copy notes the prompt still mentions a map (A, B).
+- Rejected: think_fast "superlinear fixture" (fixtures are tiny in-memory maps built once per test) and "`LocalMap.text()` signature is scope expansion" (the switch must render the map differently; boundary includes readout switches).
+- Fix-batch guard receipts 18–24 red then green.
 
 ## Boy Scout Log
 

@@ -365,3 +365,22 @@ it("forwards the guard, completion and press-result switches through the product
   const defaults = objectiveHarness("Reach gym", recorder, "http://127.0.0.1:8812", server.fetchFn);
   expect(defaults.tools[4]?.description).toContain("Native milestone completion is automatic");
 });
+
+it("leaves hidden facts out of the objective record and states model-reported completion everywhere when native completion is off", async () => {
+  const { recorder, events } = setup();const server = serving();
+  const harness = objectiveHarness("Reach gym", recorder, "http://127.0.0.1:8812", server.fetchFn, { repeatGuard: true, nativeCompletion: false, pressResult: true, hiddenFacts: ["position", "facing", "naming", "field_controls_locked"] });
+  const [observe, , , set, update] = harness.tools;
+  if (!observe || !set || !update) throw new Error("missing composition");
+  expect(set.description).not.toMatch(/verification are fixed by the harness/);
+  await observe.execute("o", {});const state = events.at(-1);if (!state) throw new Error("missing observed state");
+  const record = JSON.parse(JSON.stringify(await set.execute("s", { ...request, evidence: [state.seq], completion: { kind: "milestone", name: "CLOCK_SET" } }))) as { content: { text: string }[] };
+  expect(record.content[0]?.text).toContain("report completion with evidence");
+  await expect(update.execute("u", { status: "completed", evidence: [state.seq], obstacle: "", next_decision: "Next", retry_reason: "" })).rejects.toThrow(/Report it with reported_complete/);
+  const context = JSON.stringify((await harness.transformContext([])).at(-1));
+  expect(context).toContain("\\\"location\\\"");
+  for (const key of ["position", "facing", "naming", "field_controls_locked"]) expect(context).not.toContain(`\\"${key}\\"`);
+  const defaults = objectiveHarness("Reach gym", recorder, "http://127.0.0.1:8812", server.fetchFn);
+  await defaults.tools[0]?.execute("o2", {});
+  const shown = JSON.stringify((await defaults.transformContext([])).at(-1));
+  for (const key of ["position", "facing", "field_controls_locked"]) expect(shown).toContain(`\\"${key}\\"`);
+});

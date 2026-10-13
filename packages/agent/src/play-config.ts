@@ -2,7 +2,7 @@
 // what the model is told. The prompt constants moved here byte for byte from
 // live.ts; every feature switched on reproduces the earlier prompt exactly.
 import type { Limits } from "./harness.js";
-import { objectivePrompt } from "./objective-tools.js";
+import { objectivePrompt, type ObjectiveSwitches } from "./objective-tools.js";
 import type { FeatureSet } from "./features.js";
 
 export const PLAY_LIMITS: Limits = { maxTurns: 300, maxWallMs: 30 * 60_000, failureLimit: 3 };
@@ -71,8 +71,21 @@ export function playSystemPrompt(features: FeatureSet, target: string | null): s
   if (!features["ram-state-v1"]) prompt = prompt.replace(OBSERVE_LINE, OBSERVE_SCREEN_ONLY).replace(PRESS_LINE, PRESS_SCREEN_ONLY);
   if (!features["warp-activation-guidance-v1"]) prompt = prompt.replace(WARP_PARAGRAPH, "");
   return features["objective-tracking-v1"]
-    ? `${prompt}\n\n${objectivePrompt({ repeatGuard: features["repeat-attempt-guard-v1"], nativeCompletion: features["native-objective-completion-v1"] })}`
+    ? `${prompt}\n\n${objectivePrompt(objectiveSwitches(features))}`
     : prompt;
+}
+
+// The objective record repeats state facts; it hides those whose switch is off.
+export function objectiveSwitches(features: FeatureSet): Required<ObjectiveSwitches> {
+  return {
+    repeatGuard: features["repeat-attempt-guard-v1"],
+    nativeCompletion: features["native-objective-completion-v1"],
+    hiddenFacts: [
+      ...(features["live-player-position-v1"] ? [] : (["position", "facing"] as const)),
+      ...(features["naming-cursor-v1"] ? [] : (["naming"] as const)),
+      ...(features["field-control-lock"] ? [] : (["field_controls_locked"] as const)),
+    ],
+  };
 }
 
 export function playTools(features: FeatureSet): string[] {

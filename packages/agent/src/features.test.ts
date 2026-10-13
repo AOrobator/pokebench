@@ -44,3 +44,7 @@ it("hands the game server only its own observation switches", () => {
   expect(serverFeatureEnv(off("active-ui-ownership-v1", "deterministic-loop-guard-v1", "press-result-v1"))).toEqual({ POKEBENCH_ACTIVE_UI: "0", POKEBENCH_FEATURES_OFF: "" });
   expect(serverFeatureEnv(off("story-state-v1", "live-map-v1", "warp-activation-guidance-v1"))).toEqual({ POKEBENCH_ACTIVE_UI: "1", POKEBENCH_FEATURES_OFF: "live-map-v1,story-state-v1,warp-activation-guidance-v1" });
 });
+
+it("keeps the objective record from outliving the RAM readout", () => {
+  expect(dependencyProblems(off("ram-state-v1", "live-map-v1", "live-player-position-v1", "world-coordinate-grid-v1", "live-object-sprites-v1", "world-targets-v1", "active-field-message-buffer-v1", "naming-cursor-v1", "story-state-v1", "coordinate-script-conditions-v1", "active-ui-ownership-v1", "press-result-v1", "field-control-lock", "warp-activation-guidance-v1"))).toEqual(["objective-tracking-v1 needs ram-state-v1"]);
+});

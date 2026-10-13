@@ -13,7 +13,7 @@ import { readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { objectiveHarness } from "./objective-tools.js";
 import { playHarnessFeatures, serverFeatureEnv } from "./features.js";
-import { PLAY_LIMITS, PLAY_MAX_TOKENS, PLAY_TASK, PLAY_THINKING, playGoal, playSystemPrompt, playTools } from "./play-config.js";
+import { PLAY_LIMITS, PLAY_MAX_TOKENS, PLAY_TASK, PLAY_THINKING, objectiveSwitches, playGoal, playSystemPrompt, playTools } from "./play-config.js";
 import { verifyIntro } from "./verify-state.js";
 import { driveProbe, parseProbeCommand, type ProbeCommand } from "./probe.js";
 import { join, resolve } from "node:path";
@@ -270,7 +270,7 @@ async function playAgent(): Promise<void> {
         governor.abort("operator_abort");
       };
       process.once("SIGINT", interrupt);
-      const objectives = features["objective-tracking-v1"] ? objectiveHarness(goal, recorder, gameServerUrl, fetch, { repeatGuard: features["repeat-attempt-guard-v1"], nativeCompletion: features["native-objective-completion-v1"], pressResult: features["press-result-v1"] }) : null;
+      const objectives = features["objective-tracking-v1"] ? objectiveHarness(goal, recorder, gameServerUrl, fetch, { ...objectiveSwitches(features), pressResult: features["press-result-v1"] }) : null;
       const loop = piLoop({
         systemPrompt,
         loopDetector,

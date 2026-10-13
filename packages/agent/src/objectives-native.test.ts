@@ -1,9 +1,12 @@
 import { expect, it } from "vitest";
 import { ObjectiveTracker } from "./objectives.js";
 import { checkEvent, type RunEvent } from "./events.js";
+import { readFileSync } from "node:fs";
+import { parseGameState } from "./game-state.js";
 import { IN_GAME } from "../test-support/events.js";
 const envelope = { v: 1, run: "native_probe", t: "2026-10-12T02:00:00.000-04:00", turn: 1 };
-const state = (seq: number, clock: boolean): RunEvent => checkEvent({ ...envelope, seq, type: "state", ...IN_GAME, story: { ...IN_GAME.story, clock_set: clock } });
+const story = parseGameState(JSON.parse(readFileSync(new URL("../test-support/existing-story.json", import.meta.url), "utf8"))).story;
+const state = (seq: number, clock: boolean): RunEvent => checkEvent({ ...envelope, seq, type: "state", ...IN_GAME, story: { ...story, clock_set: clock } });
 const request = { title: "Set clock", supports_goal: "Progress", evidence: [1], completion: { kind: "milestone" as const, name: "CLOCK_SET" as const }, obstacle: "", next_decision: "Observe clock" };
 const milestone = (seq: number, evidence: number[], origin = "observed", kind = "story"): RunEvent => checkEvent({ ...envelope, seq, type: "milestone", name: "CLOCK_SET", kind, origin, server_timestamp: 1, evidence });
 it("automatically completes the canonical clock task from native evidence, never room arrival", () => {

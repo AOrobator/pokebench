@@ -20,7 +20,7 @@ Read-only game evidence; no game memory writes. Validate closed tool contracts, 
 
 ## Milestones
 **M1 — Contracts and verification**
-- [ ] RED tests and commit
+- [x] RED tests and commit: a6075cf; fixture corrected in follow-up, three substantive assertion failures established.
 - [ ] GREEN implementation and commit
 - [ ] Full tests, lint, build and independent 90% coverage gates
 - [ ] Real pinned pi and recording/replay integration, deletion/restoration mutations
@@ -30,7 +30,7 @@ Read-only game evidence; no game memory writes. Validate closed tool contracts, 
 Deliver reviewed commit and receipts to root. Existing experiment remains frozen and endpoints untouched until released. Root integrates and lands; only then exploratory runs.
 
 ## Session Log
-- 2026-10-12: Read-only inspection completed; worklog created before implementation. User's explicit request authorizes start gate. Proposed local plans use reported_complete and native milestones use completed; awaiting root contract alignment while writing tests.
+- 2026-10-12: Read-only inspection completed; worklog created before implementation. User's explicit request authorizes start gate. Proposed local plans use reported_complete and native milestones use completed; root confirmed provisional reported_complete for local plans; completed only native catalog proof. Historical events retain their original semantics.
 
 ## Surprises
 - Milestone event kinds are story/navigation/legacy, not native. Trust requires game-owned catalog semantics and state evidence, not a nonexistent native discriminator.
@@ -43,3 +43,5 @@ None.
 
 ## Archive Milestone
 - [ ] ASK USER: archive after landing.
+
+- RED fixture first lacked full StoryState fields; repaired using existing valid recorded fixture before accepting substantive RED proof.

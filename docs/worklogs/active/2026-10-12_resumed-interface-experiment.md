@@ -22,8 +22,8 @@ Normal argv launcher, configured external ROM reference and symlink only. Creden
 **M1 — Resume current matched cohort**
 - [x] Operator approval and worklog before launch
 - [x] Current reviewed production build,897gates/selected-roster LGTM retained
-- [ ] Discover endpoints, launch12normaltrials and verify viewer/live provenance
-- [ ] Validate terminal logs, report observed results and reconcile worklog
+- [x] Discover endpoints, launch12normaltrials and verify viewer/live provenance
+- [x] Validate terminal logs, report observed results and reconcile worklog
 
 ## Closing the Loop
 Tracked worklog and source freeze before launches. During runs update ignored runs/launch-receipts/interface-docs-resumed/progress.md and observer-notes.md so later trials stay clean and samecommit. Reconcile here after terminal outcomes. User instruction authorizes12plannedtrials under previously approved protocol. No new naming skill/navigation/retry policy.
@@ -32,7 +32,7 @@ Tracked worklog and source freeze before launches. During runs update ignored ru
 2026-10-12: both requested registered models available;8061/8062free, viewer8791listening. Qwen auto-unloaded; existing supervisor warms registered model before measured start and records warmup separately. Reviewed productionf63d7a5, closeoutc4e3cdb. Newcohort required after NEW_GAME_CREATED and type/error fixes; old5d0f/0893 remain original failed/aborted observations, not current controls.
 
 ## Surprises
-None in newcohort yet. Prior type trap fixed and independentlytested; resumption makes no efficacy claim.
+All12trials reached30minute budget; no starters or gyms. Qwen clock2/3baseline versus1/3treatment; Swarm truck1/3baseline versus2/3treatment, clock0botharms. Swarm metadata loop95calls was initially misread as one long inference because state turn40 remained stale while agentadvanced136; correction retained. Post-name confirmation cancellation, weak objectivecondition and misidentifiedstairs are separate evidence-backed failure classes. Viewer8791process vanished; exactcauseunknown, detachedrecoveryverified200. Usercurrentlyviews separate8793viewer-game-stream preview; preserve its uncommittedchanges for coordinatedreview/landing.
 
 ## Multi-Model Review Log
 No production/prompt changes in resumption. Reuse reviewedf63d7a5, allfive selectedLGTM with documented Claude availability fallback;897tests/gates in objective-types-review. New documentation/one-shot scheduling receipts do not add model-visible helpers.
@@ -42,3 +42,5 @@ No unrelated changes.
 
 ## Archive Milestone
 - [ ] ASK USER: archive worklog after closeout.
+
+2026-10-12 CLOSEOUT: actualmanifestcomplete at20:03Eastern,12ended/unique start+end/type-validated logs. Source40262a0 clean and allwithin-model metadata signatures unchanged. No intervention/rerun; rawcohortretained. Findings docs/findings/2026-10-12_resumed-interface-experiment.md and ignoredmanifest/analysis/promptcaptures. Userauthorized threeparallel fixes: deterministicloopguards (loop_detection), activeconfirmation/unknownstate diagnostics+repo skill (confirmation_state), nativeobjectivecompletion (native_completion). Eachisolatedworklog createdbeforeimplementation; rootcoordinatesreviewed integration. Objectlabels/navigation and roundtripoptimization remaindiscussiononly. Bothmodels selectedfor exploratorypost-integrationrun, not another12trialcohort.

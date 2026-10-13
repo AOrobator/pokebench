@@ -137,24 +137,6 @@ export class App {
     this.render();
   }
 
-  key(event: { key: string; type: string; repeat?: boolean; target: EventTarget | null }): boolean {
-    const target = event.target as HTMLElement | null;
-    if (target !== null && ["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName)) return false;
-    const key = event.key.toLowerCase();
-    if (event.type === "keyup") {
-      if (key === "x") this.releaseAbort();
-      return key === "x";
-    }
-    if (event.repeat === true && key !== "x") return false;
-    const state = this.view.control.state;
-    if (key === "p") void this.control(state === "paused" || state === "pause_pending" ? "resume" : "pause");
-    else if (key === "s") void this.control(state === "stop_pending" ? "cancel_stop" : "stop");
-    else if (key === "x") this.pressAbort();
-    else if (key === "b" || key === "escape") { this.overlayClosed = true; this.render(); }
-    else return false;
-    return true;
-  }
-
   private ui(name: string): HTMLElement {
     const element = this.doc.querySelector<HTMLElement>(`[data-ui="${name}"]`);
     if (element === null) throw new Error(`page is missing [data-ui="${name}"]`);
@@ -242,6 +224,11 @@ export class App {
   private wire(): void {
     const controls = this.ui("run-controls");
     controls.addEventListener("click", (event) => {
+      if ((event.target as HTMLElement).closest("[data-dismiss-overlay]") !== null) {
+        this.overlayClosed = true;
+        this.render();
+        return;
+      }
       const action = (event.target as HTMLElement).closest<HTMLElement>("[data-control]")?.dataset.control;
       if (action !== undefined && action !== "abort") void this.control(action as ControlAction);
     });
@@ -249,8 +236,7 @@ export class App {
       if ((event.target as HTMLElement).closest("[data-control=abort]") !== null) this.pressAbort();
     });
     for (const type of ["pointerup", "pointerleave", "pointercancel"]) controls.addEventListener(type, () => { if (this.holdStart !== null) this.releaseAbort(); });
-    for (const type of ["keydown", "keyup"]) this.doc.addEventListener(type, (event) => { if (this.key(event as KeyboardEvent)) event.preventDefault(); });
-    // A hold that loses focus never sees its keyup; never let it complete an abort.
+    // Losing focus cancels a pointer hold before it can complete an abort.
     this.doc.addEventListener("visibilitychange", () => { if (this.holdStart !== null) this.releaseAbort(); });
     this.doc.defaultView?.addEventListener("blur", () => { if (this.holdStart !== null) this.releaseAbort(); });
     for (const button of this.doc.querySelectorAll<HTMLButtonElement>("[data-page]")) {

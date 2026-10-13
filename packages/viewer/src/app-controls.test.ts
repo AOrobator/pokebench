@@ -55,13 +55,16 @@ async function mount(history: unknown = {}, refuse = false, gameUp = true) {
   return { app, writes, send, setNow: (ms: number) => { now = ms; } };
 }
 const ui = (name: string): HTMLElement => { const e = document.querySelector<HTMLElement>(`[data-ui="${name}"]`); if (e === null) throw new Error(name); return e; };
+const clickControl = (action: string): void => { const button = ui("run-controls").querySelector<HTMLButtonElement>(`[data-control="${action}"]`); if (button === null) throw new Error(action); button.click(); };
+const abortPointer = (type: string): void => { ui("run-controls").querySelector('[data-control="abort"]')?.dispatchEvent(new Event(type, { bubbles: true })); };
+const closeOverlay = (): void => { ui("run-controls").querySelector<HTMLButtonElement>('[data-dismiss-overlay]')?.click(); };
 const key = (type: "keydown" | "keyup", k: string, target: EventTarget = document.body): void => { target.dispatchEvent(new KeyboardEvent(type, { key: k, bubbles: true })); };
 
 describe("run controls on the page", () => {
-  it("sends pause, resume, stop and cancel-stop from the keys and shows the matching overlay", async () => {
+  it("sends pause, resume, stop and cancel-stop from the buttons and shows the matching overlay", async () => {
     const { app, writes, send } = await mount();
     expect(ui("mode").textContent).toBe("RUNNING");
-    key("keydown", "p");
+    clickControl("pause");
     await vi.waitFor(() => { expect(writes.at(-1)).toEqual(["POST", `/api/runs/${RUN}/control`, { action: "pause" }]); });
     send(1_000, { type: "operator_control", turn: 1, action: "pause", status: "pending", request: 1 });
     send(2_000, { type: "operator_control", turn: 1, action: "pause", status: "applied", request: 1, emulator_frozen: true });
@@ -69,10 +72,10 @@ describe("run controls on the page", () => {
     expect(ui("mode").textContent).toBe("PAUSED");
     expect(document.querySelector('[data-ui="screen-overlay"]')?.textContent).toContain("⏸ PAUSED");
     expect(ui("run-controls").textContent).toContain("RESUME");
-    key("keydown", "p");
+    clickControl("resume");
     await vi.waitFor(() => { expect(writes.at(-1)?.[2]).toEqual({ action: "resume" }); });
     send(3_000, { type: "operator_control", turn: 1, action: "resume", status: "applied", request: 2, paused_ms: 1_000 });
-    key("keydown", "s");
+    clickControl("stop");
     await vi.waitFor(() => { expect(writes.at(-1)?.[2]).toEqual({ action: "stop" }); });
     send(3_500, { type: "operator_control", turn: 1, action: "stop", status: "pending", request: 3 });
     app.tick(0);
@@ -86,29 +89,29 @@ describe("run controls on the page", () => {
     expect(writes).toHaveLength(before);
   });
 
-  it("aborts only after X is held, and releasing cancels", async () => {
+  it("aborts only after the button is held, and releasing cancels", async () => {
     const { app, writes, setNow } = await mount();
-    key("keydown", "x");
+    abortPointer("pointerdown");
     app.tick(0);
     expect(document.querySelector('[data-ui="screen-overlay"]')?.textContent).toContain("✖ ABORT RUN?");
     setNow(BASE_MS + 5_000 + 1_000);
     app.tick(0);
-    key("keyup", "x");
+    abortPointer("pointerup");
     app.tick(0);
     expect(document.querySelector('[data-ui="screen-overlay"]')?.textContent).toBe("");
     expect(writes.filter(([, url]) => url.endsWith("/control"))).toEqual([]);
-    key("keydown", "x");
+    abortPointer("pointerdown");
     setNow(BASE_MS + 5_000 + 1_000 + 1_600);
     app.tick(0);
     await vi.waitFor(() => { expect(writes.at(-1)).toEqual(["POST", `/api/runs/${RUN}/control`, { action: "abort" }]); });
   });
 
-  it("shows the run ended overlay once, closable with B", async () => {
+  it("shows the run ended overlay once, closable with its button", async () => {
     const { app, send } = await mount();
     send(9_000, { type: "run_end", turn: 1, reason: "operator_stop", furthest_milestone: null, turns: 1, wall_ms: 9_000, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } });
     app.tick(0);
     expect(document.querySelector('[data-ui="screen-overlay"]')?.textContent).toContain("■ RUN ENDED");
-    key("keydown", "b");
+    closeOverlay();
     expect(document.querySelector('[data-ui="screen-overlay"]')?.textContent).toBe("");
   });
 });
@@ -181,39 +184,44 @@ describe("control input edge cases", () => {
     app.tick(0);
     expect(document.querySelector('[data-ui="screen-overlay"]')?.textContent).toContain("✖ ABORTED");
     expect(ui("mode").textContent).toBe("ABORTED");
-    key("keydown", "x");
+    abortPointer("pointerdown");
     setNow(BASE_MS + 60_000);
     app.tick(0);
-    key("keydown", "Escape");
+    closeOverlay();
     expect(document.querySelector('[data-ui="screen-overlay"]')?.textContent).toBe("");
     expect(writes).toEqual([]);
   });
 
   it("reports a refused control request", async () => {
     const { app } = await mount({}, true);
-    key("keydown", "s");
+    clickControl("stop");
     await vi.waitFor(() => { expect(ui("problems").textContent).toContain("stop: Error: run is not live"); });
     expect(app.view.control.state).toBe("running");
   });
 });
 
-it("leaves the control keys to form fields that have focus", async () => {
-  const { writes } = await mount();
+it("does not bind viewer controls to keyboard shortcuts", async () => {
+  const { app, writes, setNow } = await mount();
   key("keydown", "p", ui("next-max-turns"));
   key("keydown", "s", ui("next-model"));
   await Promise.resolve();
   expect(writes).toEqual([]);
-  key("keydown", "p");
-  await vi.waitFor(() => { expect(writes).toEqual([["POST", `/api/runs/${RUN}/control`, { action: "pause" }]]); });
+  for (const k of ["p", "s", "x", "b", "Escape"]) key("keydown", k);
+  setNow(BASE_MS + 60_000);
+  app.tick(0);
+  for (const k of ["p", "s", "x", "b", "Escape"]) key("keyup", k);
+  await Promise.resolve();
+  expect(writes).toEqual([]);
+  expect(ui("screen-overlay").textContent).toBe("");
 });
 
 it("drops a held abort when the window loses focus", async () => {
   const { app, writes, setNow } = await mount();
-  key("keydown", "x");
+  abortPointer("pointerdown");
   window.dispatchEvent(new Event("blur"));
   setNow(BASE_MS + 60_000);
   app.tick(0);
-  key("keydown", "x");
+  abortPointer("pointerdown");
   document.dispatchEvent(new Event("visibilitychange"));
   app.tick(0);
   await Promise.resolve();
@@ -225,7 +233,7 @@ it("sends STOP while a pause is still pending", async () => {
   const { app, writes, send } = await mount();
   send(1_000, { type: "operator_control", turn: 1, action: "pause", status: "pending", request: 1 });
   app.tick(0);
-  key("keydown", "s");
+  clickControl("stop");
   await vi.waitFor(() => { expect(writes.at(-1)?.[2]).toEqual({ action: "stop" }); });
   send(1_500, { type: "operator_control", turn: 1, action: "stop", status: "pending", request: 2 });
   app.tick(0);

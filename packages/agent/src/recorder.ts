@@ -1,5 +1,6 @@
 import type { AgentEvent, AgentMessage } from "@mariozechner/pi-agent-core";
 import type { AssistantMessage, AssistantMessageEvent, ImageContent, TextContent } from "@mariozechner/pi-ai";
+import type { TargetProof } from "./target-stop.js";
 import type { LoopNotice } from "./loop-detection.js";
 import type { BodyOf, Button, RunEndReason, RunEvent, EventBody } from "./events.js";
 import type { FrameRef, FrameStore } from "./frames.js";
@@ -80,12 +81,15 @@ export class RunRecorder {
   private readonly now: () => number;
   private turn = 0;
   private startedAt = 0;
+  elapsedMs():number {return this.now()-this.startedAt;}
   private requestAt = 0;
   private firstTokenAt: number | null = null;
   private stream = { thinking: "", text: "", flushedAt: 0 };
   private readonly toolStarts = new Map<string, number>();
   private furthest: string | null = null;
   private storyRequired = false;
+  private targetProof:TargetProof|null=null;
+  setTargetProof(proof:TargetProof):void {this.targetProof={...proof,state_evidence:[...proof.state_evidence]};}
   private tokens = { input: 0, output: 0 };
   private saved = { saved: 0, bytes: 0 };
 
@@ -305,6 +309,7 @@ export class RunRecorder {
       type: "run_end",
       turn: this.turn,
       reason,
+      ...(reason==="milestone"&&this.targetProof!==null?{target_proof:{...this.targetProof,state_evidence:[...this.targetProof.state_evidence]}}:{}),
       furthest_milestone: this.furthest,
       turns: this.turn,
       wall_ms: Math.round(this.now() - this.startedAt),

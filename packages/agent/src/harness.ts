@@ -75,6 +75,7 @@ export interface GovernorDeps {
   retry(reason: string, attempt: number, limit: number): void;
   abort(): void;
   readonly now: () => number;
+  readonly startedAt?:number;
 }
 
 export class Governor {
@@ -85,10 +86,11 @@ export class Governor {
   stopReason: RunEndReason | null = null;
 
   constructor(private readonly deps: GovernorDeps) {
-    this.startedAt = deps.now();
+    this.startedAt = deps.startedAt??deps.now();
   }
 
   readonly afterTurn = (message: AssistantMessage, toolResults: readonly ToolResultMessage[]): boolean => {
+    if(this.stopReason!==null)return true;
     const calls = message.content.filter((part) => part.type === "toolCall").length;
     this.nudgeDue = calls === 0;
     const invalid = toolResults.length > 0 && toolResults.every((result) => result.isError);
@@ -100,13 +102,17 @@ export class Governor {
   };
 
   modelError(message: AssistantMessage): boolean {
+    if(this.stopReason!==null)return true;
     this.fail(`model error: ${message.errorMessage ?? message.stopReason}`);
     return this.countTurn();
   }
 
   readonly followUps = (): Promise<AgentMessage[]> => Promise.resolve(this.nudge());
 
+  stop(reason: RunEndReason):void {this.stopReason??=reason;}
+
   abort(reason: RunEndReason): void {
+    if(this.stopReason==="milestone")return;
     this.stopReason ??= reason;
     this.deps.abort();
   }
@@ -175,6 +181,7 @@ export function piLoop(options: PiLoopOptions): Loop {
     },
     beforeToolCall: async (context, signal) => {
       if (options.loopDetector?.stopped) return {block:true,reason:"Loop guard stopped the run; no further tool execution."};
+      if(governor.stopReason!==null)return {block:true,reason:`Run stopped: ${governor.stopReason}; no further tool execution.`};
       return options.base.beforeToolCall?.(context,signal);
     },
     shouldStopAfterTurn: ({ message, toolResults }) => governor.afterTurn(message, toolResults),

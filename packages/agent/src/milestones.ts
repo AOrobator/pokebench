@@ -1,3 +1,4 @@
+import type { RunEvent } from "./events.js";
 import type { GameStateSnapshot, StateSource } from "./game-state.js";
 
 export type MilestoneKind = "story" | "navigation" | "legacy";
@@ -121,4 +122,11 @@ export class StateMilestones implements MilestoneSource {
     }));
   }
   async poll(): Promise<SeenMilestone[]> { return this.observe(await this.state.read()); }
+}
+
+// Shared native evidence qualification for objective completion and run targets.
+export function qualifiedNativeMilestone(event:Extract<RunEvent,{type:"milestone"}>,states:readonly (RunEvent|undefined)[]):boolean {
+ const definition=MILESTONES.find(item=>item.name===event.name);
+ const last=states.at(-1);
+ return definition!==undefined&&definition.kind!=="legacy"&&event.kind===definition.kind&&event.origin!==undefined&&states.length>0&&states.every(state=>state?.type==="state"&&"started" in state&&state.run===event.run&&state.seq<event.seq)&&last?.type==="state"&&"started" in last&&definition.reached(last)===true&&(event.name!=="FIRST_TRUCK_EXIT"||(states.length===2&&states[0]?.type==="state"&&"location" in states[0]&&states[0].location==="INSIDE OF TRUCK"));
 }

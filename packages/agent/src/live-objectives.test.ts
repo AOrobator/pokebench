@@ -6,9 +6,11 @@ import type { PiLoopOptions } from "./harness.js";
 import type { RunHost, RunPlan } from "./run.js";
 import type { RunRecorder } from "./recorder.js";
 import { parseEvent, type RunEvent } from "./events.js";
+import {NAME_CONFIRMED} from "../test-support/events.js";
+import {assistant} from "../test-support/pi.js";
 import { OBJECTIVE_PROMPT } from "./objective-tools.js";
 
-const owner = vi.hoisted(() => ({ files: new Map<string, string[]>(), loop: null as PiLoopOptions | null, start: null as Extract<RunEvent, { type: "run_start" }> | null, context: "", resolve: undefined as ((plan: RunPlan) => void) | undefined, reject: undefined as ((error: unknown) => void) | undefined }));
+const owner = vi.hoisted(() => ({ files: new Map<string, string[]>(), loop: null as PiLoopOptions | null, start: null as Extract<RunEvent, { type: "run_start" }> | null, context: "", clock:null as (()=>number)|null, resolve: undefined as ((plan: RunPlan) => void) | undefined, reject: undefined as ((error: unknown) => void) | undefined }));
 vi.mock("node:fs", async (load) => {
   const actual = await load<typeof import("node:fs")>();
   return { ...actual, mkdirSync: () => undefined, readdirSync: () => [],
@@ -21,6 +23,7 @@ vi.mock("node:fs", async (load) => {
     },
   };
 });
+vi.mock("./recorder.js",async(load)=>{const actual=await load<typeof import("./recorder.js")>();return {...actual,RunRecorder:class extends actual.RunRecorder {override elapsedMs():number{return owner.clock?.()??super.elapsedMs();}}};});
 vi.mock("./config.js", () => ({ loadConfig: () => ({ model: "fixture-vlm", gameServerUrl: "http://127.0.0.1:8123", gatewayUrl: "http://fixture.invalid/v1", visionModels: [], endpointFile: null }) }));
 vi.mock("./gateway.js", () => ({ discoverModels: () => Promise.resolve([]), selectModel: () => ({ id: "fixture-vlm", input: ["text", "image"], contextWindow: 1000, maxTokens: 100 }) }));
 vi.mock("./harness.js", async (load) => {
@@ -34,7 +37,7 @@ vi.mock("./run.js", async (load) => {
       serverHealthy: () => Promise.resolve(false), launchServer: (dir) => Promise.resolve({ serverDir: `${dir}/server`, stop: () => Promise.resolve() }),
       harness: () => ({ commit: "1".repeat(40), dirty: false }), vendorPin: () => "bbab97ad73e460b7cd7c08527d10ced30cc03fbe",
       milestones: { poll: () => Promise.resolve([]) },
-      gameState: { read: () => Promise.resolve({ screen: "title", started: false, name: null, location: null, map_id: null, position: null, facing: null, in_battle: false, party: [], money: null, badges: [], play_time_s: null }) },
+      gameState: { read: () => Promise.resolve({ screen: "title", started: false, name: null, location: null, map_id: null, position: null, facing: null, in_battle: false, party: [], money: null, badges: [], play_time_s: null,story:{...NAME_CONFIRMED.story,name_confirmed:false} }) },
     };
     try {
       const root = "/test-owned/objective-entrypoint";
@@ -52,7 +55,7 @@ vi.mock("./run.js", async (load) => {
   } };
 });
 function currentLoop(): PiLoopOptions | null { return owner.loop; }
-afterEach(() => { vi.unstubAllGlobals();vi.unstubAllEnvs();vi.restoreAllMocks();owner.files.clear();owner.loop = null;owner.start = null; });
+afterEach(() => { vi.unstubAllGlobals();vi.unstubAllEnvs();vi.restoreAllMocks();owner.files.clear();owner.loop = null;owner.start = null;owner.clock=null; });
 it.each([[undefined, undefined, undefined], [undefined, "0", "0"], ["0", undefined, "1"], ["0", "0", "0"]])("actual play entrypoint agrees on tools, context, prompt and metadata (objectives=%s, interface=%s)", async (flag, interfaceFlag, activeUiFlag) => {
   vi.resetModules();owner.files.clear();owner.loop = null;
   const done = new Promise<RunPlan>((resolve, reject) => { owner.resolve = resolve;owner.reject = reject; });
@@ -103,13 +106,15 @@ it.each([undefined,"0","1"])("actual probe producer declares active UI exposure 
   vi.doUnmock("./probe.js");
 });
 
-it("actual play honors explicit preset limits, flags, sampling and assigned run id", async () => {
+it.each([0,15000,600000])("actual play honors run-start anchored preset limits, flags, sampling and assigned run id (capture=%s)", async (initialCapture) => {
   vi.resetModules();owner.files.clear();owner.loop=null;
   const preset={version:1,id:"name-control",target:"PLAYER_NAME_CONFIRMED",limits:{maxTurns:300,maxWallMs:600000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:100},flags:{loopGuard:false,activeUi:false,interfaceDocs:true,objectives:true}};
   owner.files.set("/test-owned/preset.json",[JSON.stringify(preset)]);
   vi.stubEnv("POKEBENCH_PLAY_PRESET","/test-owned/preset.json");vi.stubEnv("POKEBENCH_RUN_ID","assigned-name-control");
   vi.stubEnv("POKEBENCH_LOOP_GUARD","1");vi.stubEnv("POKEBENCH_ACTIVE_UI","1");
   const timers=vi.spyOn(globalThis,"setTimeout");
+  let now=initialCapture;vi.spyOn(Date,"now").mockImplementation(()=>now);
+  owner.clock=()=>now;
   const done=new Promise<RunPlan>((resolve,reject)=>{owner.resolve=resolve;owner.reject=reject;});
   vi.stubGlobal("process",Object.assign(Object.create(process) as NodeJS.Process,{argv:[...process.argv.slice(0,2),"play"]}));
   vi.spyOn(console,"log").mockImplementation(()=>undefined);
@@ -117,6 +122,8 @@ it("actual play honors explicit preset limits, flags, sampling and assigned run 
   expect(plan.runId).toBe("assigned-name-control");expect(plan.budgets).toEqual({max_turns:300,max_wall_ms:600000});
   expect(plan.sampling).toEqual({thinking_level:"medium",max_tokens:100});
   expect(owner.start).toMatchObject({evaluation:{preset_id:"name-control",target:"PLAYER_NAME_CONFIRMED",failure_limit:3,flags:preset.flags}});
-  expect(timers.mock.calls.some((call)=>call[1]===600000)).toBe(true);
-  expect(plan.harnessFeatures).not.toContain("deterministic-loop-guard-v1");expect(plan.harnessFeatures).not.toContain("active-ui-ownership-v1");
+  if(initialCapture>=600000){expect(currentLoop()).toBeNull();expect(timers.mock.calls).toHaveLength(0);const ends=[...owner.files.entries()].filter(([path])=>path.endsWith("/events.jsonl")).flatMap(([,chunks])=>chunks.join("").trim().split("\n").map(parseEvent)).filter(event=>event.type==="run_end");expect(ends).toHaveLength(1);expect(ends[0]).toMatchObject({reason:"budget"});return;}
+  expect(timers.mock.calls.map((call)=>call[1])).toContain(600000-initialCapture);
+  expect(plan.harnessFeatures).toContain("native-target-stop-v1");expect(currentLoop()?.systemPrompt).toContain("Reach the native game milestone PLAYER NAME CONFIRMED");expect(currentLoop()?.systemPrompt).not.toContain("Your goal is to make as much story progress");expect(plan.harnessFeatures).not.toContain("deterministic-loop-guard-v1");expect(plan.harnessFeatures).not.toContain("active-ui-ownership-v1");
+  const loop=currentLoop();if(loop===null)throw new Error("missing actual preset governor");now=600000;const stopped=loop.governor.afterTurn(assistant({toolCalls:[{type:"toolCall",id:"fixture",name:"observe",arguments:{}}]}),[]);expect({stopped,reason:loop.governor.stopReason}).toEqual({stopped:true,reason:"budget"});
 });

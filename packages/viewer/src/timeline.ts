@@ -1,4 +1,4 @@
-import { esc } from "./format.js";
+import { esc, eventMs } from "./format.js";
 import { FRAME_MS } from "./gba.js";
 import type { RunView } from "./model.js";
 
@@ -57,6 +57,10 @@ export function lanesSvg(view: RunView, nowMs: number): string {
   for (const mark of view.errors) {
     if (mark.ms < t0 || mark.ms > nowMs) continue;
     parts.push(bar(`m-error k-${mark.kind}`, 4, x(mark.ms) - 2, x(mark.ms) + 3, mark.label));
+  }
+  if(view.end?.target_proof!==undefined){
+    const ms=eventMs(view.end);const proof=view.end.target_proof;
+    if(ms>=t0&&ms<=nowMs)parts.push(bar("m-milestone",3,x(ms)-2,x(ms)+3,`native target ${proof.name} · milestone #${String(proof.milestone_seq)} · state evidence ${proof.state_evidence.map(seq=>`#${String(seq)}`).join(", ")}`));
   }
   for (let s = 0; s <= 60; s += 10) {
     const px = LABEL + (W - LABEL - 8) * (s / 60);

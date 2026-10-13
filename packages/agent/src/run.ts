@@ -19,6 +19,7 @@ export interface RunPlan {
   readonly harnessFeatures: readonly string[];
   readonly budgets: RunStart["budgets"];
   readonly piVersion: string;
+  readonly evaluation?:RunStart["evaluation"];
 }
 
 export interface ServerHandle {
@@ -67,6 +68,7 @@ export async function withRun(
   let reason: RunEndReason = "crash";
   try {
     await recorder.start({
+      ...(plan.evaluation===undefined?{}:{evaluation:plan.evaluation}),
       model: plan.model,
       sampling: plan.sampling,
       system_prompt: plan.systemPrompt,

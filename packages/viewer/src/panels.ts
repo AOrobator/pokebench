@@ -232,7 +232,7 @@ function rowBody(event: RunEvent, view?: RunView): string | null {
     case "frames_evicted":
       return `evicted ${String(event.files)} frames (${(event.bytes / 1024).toFixed(1)} KB) from ${esc(event.from_run)}`;
     case "run_end":
-      return `run ended: ${event.reason} · furthest ${esc(event.furthest_milestone ?? "none")} · ${String(event.turns)} turns`;
+      return `run ended: ${event.reason}${event.target_proof===undefined?"":` · native target ${esc(event.target_proof.name)} · milestone #${String(event.target_proof.milestone_seq)} · state evidence ${event.target_proof.state_evidence.map(seq=>`#${String(seq)}`).join(", ")}`} · furthest ${esc(event.furthest_milestone ?? "none")} · ${String(event.turns)} turns`;
     default:
       return null;
   }

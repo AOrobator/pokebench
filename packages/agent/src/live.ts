@@ -22,6 +22,9 @@ import { checkSmoke, observeTool, pressTool, serverHealthy } from "./game-tools.
 import { discoverModels, selectModel, type GatewayModel } from "./gateway.js";
 import { FrameStore } from "./frames.js";
 import { StateWatcher } from "./game-state.js";
+import {parsePlayPreset} from "./play-preset.js";
+import {NativeTargetStop} from "./target-stop.js";
+import {RUN_ID_PATTERN} from "./events.js";
 import { StateMilestones } from "./milestones.js";
 import { readLoopMode } from "./loop-detection.js";
 import { attachLoopGuard, Governor, piLoop, play, type Limits } from "./harness.js";
@@ -66,7 +69,7 @@ async function waitForHealthy(url: string): Promise<void> {
   throw new Error(`game server not healthy within ${String(HEALTH_TIMEOUT_MS)} ms`);
 }
 
-function realHost(port: number, loadState?: string): RunHost {
+function realHost(port: number, loadState?: string, env:NodeJS.ProcessEnv=process.env): RunHost {
   const url = `http://127.0.0.1:${String(port)}`;
   return {
     serverHealthy,
@@ -78,7 +81,7 @@ function realHost(port: number, loadState?: string): RunHost {
       const child = spawn(
         python,
         ["-m", "pokebench_env.launcher", "--run-dir", runDir, "--run-id", runId, "--port", String(serverPort), ...(loadState === undefined ? [] : ["--load-state", loadState])],
-        { cwd: join(REPO_ROOT, "env"), stdio: ["ignore", "ignore", "inherit"], detached: true },
+        { env, cwd: join(REPO_ROOT, "env"), stdio: ["ignore", "ignore", "inherit"], detached: true },
       );
       const exited = new Promise<void>((resolve) => {
         child.once("exit", () => {
@@ -243,14 +246,26 @@ const DOCUMENTED_PLAY_SYSTEM_PROMPT = PLAY_SYSTEM_PROMPT.replace(
 );
 
 async function playAgent(): Promise<void> {
+  const presetPath=process.env["POKEBENCH_PLAY_PRESET"];
+  const preset=presetPath===undefined?null:parsePlayPreset(JSON.parse(readFileSync(presetPath,"utf8")) as unknown);
+  const assigned=process.env["POKEBENCH_RUN_ID"];
+  if(assigned!==undefined&&!new RegExp(RUN_ID_PATTERN).test(assigned))throw new Error("POKEBENCH_RUN_ID is invalid");
+  const limits=preset?.limits??PLAY_LIMITS;
+  const flags=preset?.flags??{loopGuard:process.env["POKEBENCH_LOOP_GUARD"]!=="0",activeUi:activeUiFeatures().length>0,interfaceDocs:process.env["POKEBENCH_INTERFACE_DOCS"]!=="0",objectives:process.env["POKEBENCH_OBJECTIVES"]!=="0"};
+  const serverEnv={...process.env,POKEBENCH_ACTIVE_UI:flags.activeUi?"1":"0"};
   const { model, port, gatewayUrl, apiKey } = await live();
-  const runId = newRunId(new Date(), model.id, () => randomBytes(2).toString("hex"));
-  const maxTokens = Math.min(PLAY_MAX_TOKENS, model.maxTokens);
-  const loopMode = readLoopMode();
-  const detectLoops = loopMode === "enforced";
-  const trackObjectives = process.env["POKEBENCH_OBJECTIVES"] !== "0";
-  const documentInterface = process.env["POKEBENCH_INTERFACE_DOCS"] !== "0";
-  const systemPrompt = (documentInterface ? DOCUMENTED_PLAY_SYSTEM_PROMPT : PLAY_SYSTEM_PROMPT) + (trackObjectives ? `\n\n${OBJECTIVE_PROMPT}` : "");
+  if(preset!==null&&preset.sampling.maxTokens>model.maxTokens)throw new Error("Play preset maxTokens exceeds the discovered model limit");
+  const runId=assigned??newRunId(new Date(),model.id,()=>randomBytes(2).toString("hex"));
+  const maxTokens=preset?.sampling.maxTokens??Math.min(PLAY_MAX_TOKENS,model.maxTokens);
+  const thinking=preset?.sampling.thinkingLevel??PLAY_THINKING;
+  const detectLoops=flags.loopGuard;
+  const loopMode=preset===null?readLoopMode(process.env):detectLoops?"enforced":"diagnostic";
+  const trackObjectives=flags.objectives,documentInterface=flags.interfaceDocs;
+  const target=preset?.target??null;
+  const goal=target===null?PLAY_GOAL:`Reach the native game milestone ${target.replaceAll("_"," ")}.`;
+  const selectedPrompt=documentInterface?DOCUMENTED_PLAY_SYSTEM_PROMPT:PLAY_SYSTEM_PROMPT;
+  const goalPrompt=target===null?selectedPrompt:selectedPrompt.replace("Your goal is to make as much story progress as you can: start a new game, get your first Pokémon, and work toward defeating the first Gym Leader in Rustboro City.",`Your goal is: ${goal}`);
+  const systemPrompt=goalPrompt+(trackObjectives?`\n\n${OBJECTIVE_PROMPT}`:"");
   console.log(`run-agent: run ${runId}, model ${model.id} via ${gatewayUrl}`);
   console.log(`watch: just tail-run ${runId}   (frame: http://127.0.0.1:${String(port)}/view)`);
 
@@ -260,21 +275,22 @@ async function playAgent(): Promise<void> {
       runId,
       port,
       model: { id: model.id, context_window: model.contextWindow, max_tokens: model.maxTokens, vision: true },
-      sampling: { thinking_level: PLAY_THINKING, max_tokens: maxTokens },
+      sampling: { thinking_level: thinking, max_tokens: maxTokens },
+      ...(preset===null?{}:{evaluation:{preset_id:preset.id,target:preset.target,failure_limit:limits.failureLimit,flags}}),
       systemPrompt,
       tools: ["observe", "press", ...(trackObjectives ? ["get_objectives", "set_objective", "update_objective"] : [])],
       startState: { kind: "boot" },
-      harnessFeatures: ["ram-state-v1", "live-map-v1", "field-control-lock", "naming-cursor-v1", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "world-targets-v1", "live-player-position-v1", "world-coordinate-grid-v1", "press-result-v1", "warp-activation-guidance-v1", "clock-milestone-v1", "story-state-v1", ...activeUiFeatures(), "story-milestones-v2", "new-game-created-v1", "deterministic-loop-diagnostics-v1", "deterministic-loop-policy-v1:p6:o3:a3:c3:r2:recovery6", ...(detectLoops ? ["deterministic-loop-guard-v1"] : []), ...(documentInterface ? ["contextual-interface-docs-v1"] : []), ...(trackObjectives ? ["objective-tracking-v1", "repeat-attempt-guard-v1", "native-objective-completion-v1"] : [])],
+      harnessFeatures: ["ram-state-v1", "live-map-v1", "field-control-lock", "naming-cursor-v1", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "world-targets-v1", "live-player-position-v1", "world-coordinate-grid-v1", "press-result-v1", "warp-activation-guidance-v1", "clock-milestone-v1", "story-state-v1", ...activeUiFeatures(serverEnv), "story-milestones-v2", "new-game-created-v1", ...(target===null?[]:["native-target-stop-v1"]), "deterministic-loop-diagnostics-v1", "deterministic-loop-policy-v1:p6:o3:a3:c3:r2:recovery6", ...(detectLoops ? ["deterministic-loop-guard-v1"] : []), ...(documentInterface ? ["contextual-interface-docs-v1"] : []), ...(trackObjectives ? ["objective-tracking-v1", "repeat-attempt-guard-v1", "native-objective-completion-v1"] : [])],
 
-      budgets: { max_turns: PLAY_LIMITS.maxTurns, max_wall_ms: PLAY_LIMITS.maxWallMs },
+      budgets: { max_turns: limits.maxTurns, max_wall_ms: limits.maxWallMs },
       piVersion: piVersion(),
     },
-    realHost(port),
+    realHost(port,undefined,serverEnv),
     new FrameStore(RUNS_ROOT),
     async (recorder, gameServerUrl) => {
       const controller = new AbortController();
       const governor = new Governor({
-        limits: PLAY_LIMITS,
+        limits,
         retry: (why, attempt, limit) => {
           recorder.retry(why, attempt, limit);
           console.log(`retry ${String(attempt)}/${String(limit)}: ${why}`);
@@ -282,30 +298,36 @@ async function playAgent(): Promise<void> {
         abort: () => {
           controller.abort();
         },
-        now: () => Date.now(),
+        now: preset===null?()=>Date.now():()=>recorder.elapsedMs(),
+        ...(preset===null?{}:{startedAt:0}),
       });
+      if(preset!==null&&recorder.elapsedMs()>=limits.maxWallMs){governor.abort("budget");return "budget";}
       const loopDetector = attachLoopGuard(recorder, governor, undefined, loopMode);
+      if(target!==null){
+        const stop=new NativeTargetStop(runId,target,proof=>{if(governor.stopReason!==null)return;recorder.setTargetProof(proof);governor.stop("milestone");});
+        recorder.subscribe(event=>{stop.observe(event);});
+      }
       const wall = setTimeout(() => {
         governor.abort("budget");
-      }, PLAY_LIMITS.maxWallMs);
+      }, preset===null?limits.maxWallMs:Math.max(0,limits.maxWallMs-recorder.elapsedMs()));
       const interrupt = (): void => {
         console.log("operator abort: finishing the run record");
         governor.abort("operator_abort");
       };
       process.once("SIGINT", interrupt);
-      const objectives = trackObjectives ? objectiveHarness(PLAY_GOAL, recorder, gameServerUrl) : null;
+      const objectives = trackObjectives ? objectiveHarness(goal, recorder, gameServerUrl) : null;
       const loop = piLoop({
         systemPrompt,
         loopDetector,
         tools: objectives?.tools ?? [observeTool(gameServerUrl), pressTool(gameServerUrl, pressHooks(recorder))],
-        base: { ...gatewayLoopConfig(model, PLAY_THINKING, apiKey), maxTokens },
+        base: { ...gatewayLoopConfig(model, thinking, apiKey), maxTokens },
         governor,
         transformContext: objectives?.transformContext ?? recorder.transformContext,
         emit: recorder.emit,
         signal: controller.signal,
       });
       try {
-        const task: AgentMessage = { role: "user", content: PLAY_TASK, timestamp: Date.now() };
+        const task: AgentMessage = { role: "user", content: target===null?PLAY_TASK:`The game has just booted. ${goal}`, timestamp: Date.now() };
         return await play(task, governor, loop);
       } finally {
         clearTimeout(wall);

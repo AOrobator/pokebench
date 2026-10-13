@@ -486,3 +486,9 @@ it("persists the new-game split once from the recorded Birch snapshot", async ()
   expect(marks).toEqual([{ v: 1, run: "new-game-observation", seq: (birch?.seq ?? -10) + 1, t: birch?.t, type: "milestone", turn: 0, name: "NEW_GAME_CREATED", server_timestamp: 2, kind: "story", origin: "observed", evidence: [birch?.seq] }]);
   expect(logged.at(-1)).toMatchObject({ type: "run_end", furthest_milestone: "NEW_GAME_CREATED" });
 });
+
+it("elapsedMs uses the run-start monotonic anchor including initial capture",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"recorder-elapsed-"));const log=RunLog.create(root,"elapsed");let now=1000;
+ const recorder=new RunRecorder({log,frames:new FrameStore(root),milestones:{poll:()=>{now=16000;return Promise.resolve([]);}},gameState:{read:()=>Promise.resolve(STATE)},now:()=>now});
+ await recorder.start(START_META);expect(recorder.elapsedMs()).toBe(15000);now=601000;expect(recorder.elapsedMs()).toBe(600000);
+});

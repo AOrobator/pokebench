@@ -50,9 +50,17 @@ smoke:
 smoke-llm: build
     node packages/agent/dist/live.js smoke
 
-# M5 baseline agent: one isolated, recorded run from a fresh boot (300 turns / 60 min).
+# Ordinary play: one isolated, recorded fresh-boot run (300 turns / 30 min).
 run-agent: build
     node packages/agent/dist/live.js play
+
+# Freeze a comparison manifest without starting gameplay; qualification is checked at execution.
+prepare-comparison manifest: build
+    node packages/agent/dist/serial-comparison-cli.js prepare {{quote(manifest)}}
+
+# Execute an already frozen, qualified comparison serially; preserve every launched outcome.
+run-comparison manifest: build
+    node packages/agent/dist/serial-comparison-cli.js execute {{quote(manifest)}}
 
 # Regenerate schemas/events.v1.json from the TypeBox source (a test fails when it is stale).
 schema: build

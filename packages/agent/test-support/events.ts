@@ -105,7 +105,7 @@ export const IN_GAME: GameStateSnapshot = {
 };
 
 // Full pregame story readout: Birch's accepted-name flag, not editor text.
-export const NAME_CONFIRMED: GameStateSnapshot = {
+export const NAME_CONFIRMED = {
   screen:"birch_speech",started:false,name:null,location:null,map_id:null,position:null,facing:null,in_battle:false,party:[],money:null,badges:[],play_time_s:null,
   story:{name_confirmed:true,intro_stage:null,rival_stage:null,birch_lab_stage:null,petalburg_gym_stage:null,woods_stage:null,clock_set:null,rival_battle_won:null,pokedex_received:null,running_shoes_received:null,starter_tutorial_complete:null,rustboro_gym_complete:null,stone_badge:null,rock_tomb_received:null},
-};
+} satisfies GameStateSnapshot;

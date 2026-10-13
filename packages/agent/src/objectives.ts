@@ -1,5 +1,5 @@
 import { NATIVE_OBJECTIVES, validateCompletionType } from "./objective-schema.js";
-import { MILESTONES } from "./milestones.js";
+import { qualifiedNativeMilestone } from "./milestones.js";
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { BodyOf, Button, RunEvent } from "./events.js";
 import type { GameStateSnapshot } from "./game-state.js";
@@ -45,11 +45,9 @@ export class ObjectiveTracker {
     if (event.type === "state" && "started" in event) { this.latest = event; this.evidence.set(event.seq, event); }
     else if (event.type === "tool_result" && !event.is_error && (event.name === "observe" || event.name === "press")) this.evidence.set(event.seq, event);
     else if (event.type === "milestone") {
-      const definition = MILESTONES.find(m => m.name === event.name);
       const refs = event.evidence ?? [];
       const states = refs.map(seq => this.evidence.get(seq));
-      const last = states.at(-1);
-      if (definition !== undefined && definition.kind !== "legacy" && event.kind === definition.kind && event.origin !== undefined && refs.length > 0 && states.every(e => e?.type === "state" && "started" in e && e.seq < event.seq) && last?.type === "state" && "started" in last && definition.reached(last) === true && (event.name !== "FIRST_TRUCK_EXIT" || (states.length === 2 && states[0]?.type === "state" && "location" in states[0] && states[0].location === "INSIDE OF TRUCK"))) {
+      if (qualifiedNativeMilestone(event, states)) {
         if (!this.native.has(event.name)) this.native.set(event.name, event);
         this.evidence.set(event.seq, event);
         this.completeNative();

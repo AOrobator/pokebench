@@ -12,7 +12,7 @@ One isolated preparation checkout. Implement strict explicit play presets, recor
 ## Invariants
 - INV-1: Canonical main sequencer bytes remain unchanged; reviewed fast-forward landing only, clean vendor and external symlink-only ROM.
 - INV-2: Stop only on qualified same-run observed native target evidence, never model claims, present-at-start, foreign/legacy/unknown data. Preserve current tool frame/result and block subsequent tools after success. Existing terminal reasons are not rewritten by teardown observations.
-- INV-3: Effective target, caps, failure limit, sampling, flags and preset identity are validated and recorded; explicit 600000ms reaches actual timer/Governor. Default ordinary play remains 30 minutes.
+- INV-3: Effective target, caps, failure limit, sampling, flags and preset identity are validated and recorded; 600000ms cap is recorded and enforced from run start; the timer uses the remaining budget after initial capture. Default ordinary play remains 30 minutes.
 - INV-4: Manifest has four trials per arm per model, counterbalanced order, globally one measured child, fresh isolated run IDs. Frozen source/preset/environment mismatches and uncertain launched outcomes fail closed; never silently replace or rerun a failure.
 - INV-5: All target-stop details are durable and visible in timeline/history/details/replay. Common instrumentation remains in both arms and reporting compares common contracts while allowing only declared enforcement difference.
 - INV-6: No new measured run until this preparation is reviewed, landed, cleanup complete and actual serving/resource/image/tool qualification is recorded. Preparation/calibration is not an efficacy result.
@@ -22,11 +22,11 @@ No credentials in argv/logs/manifest. Endpoint files are private runtime inputs.
 
 ## Milestones
 **M1 — Native termination and explicit presets**
-- [ ] RED strict preset/qualification/real pi batch stopping/recorded metadata and viewer tests
-- [ ] GREEN implementation, semantic delete/restore proof and focused native adapter proof
+- [x] RED strict preset/qualification/real pi batch stopping/recorded metadata and viewer tests
+- [x] GREEN implementation and semantic delete/restore proof; offline current-source native adapter/browser proof next
 **M2 — Serial comparison preparation**
-- [ ] RED frozen manifest/order/one child/outcome retention/source and receipt mismatch tests
-- [ ] GREEN supervisor, immutable presets and append-only launch ledger; dry preparation only
+- [x] RED frozen manifest/order/one child/outcome retention/source and receipt mismatch tests
+- [x] GREEN supervisor, immutable presets and append-only launch ledger; no trials launched
 **M3 — Review, landing and launch qualification**
 - [ ] Full test/coverage/lint/build/schema/vendor gates; all floors90
 - [ ] Frozen boundary, all PB1–13 and nine quality checks; mandatory independent literal LGTM roster
@@ -58,3 +58,13 @@ M2 RED: new serial-comparison test contract fails at missing-module import, expl
 COMMIT: `test(comparison): define frozen serial naming cohort` (`bf39dd2`), capability RED committed before new supervisor implementation. No trials or service changes.
 
 M1 RED: actual existing live entrypoint fails assignedrunID vs randomID (7previouscasespass); mounted viewer schema rejects new evaluation/target-proof fields (38previouscasespass). New preset/target helper imports are capability RED, not semantic mutation. Native target fixtures now schema-validated fullstory; tests include latestfalse/olderpositive, foreign/present/legacy/unknown rejection and actualpinnedpi completecurrenttool/frame/nolaterpress. Additional timer/terminalrace coverage and delete/restore proof remain GREEN.
+
+COMMIT: `test(target): require native naming stop and explicit play presets` (`b259eb7`), actual live/viewer RED plus schema-shaped capability contracts committed before implementation. Read-only provenance hashed9artifactfiles totaling186939167712bytes, no artifacts changed whilehashing. Runtime audit found privateQwenendpointdrift18434→56339 andcurrentGETmodels failure; priorPID29296 absent. BothThinknativehealth/propsavailable, currenthostfree84% andswap124.38MiB are snapshotonly, noimage/toolqualification claim. No lifecycle/inference/game changes.
+
+M2 focused GREEN43tests, realfilesystem/exclusivelease/argvchild/output/ledger tests and9performedguarddeletions restored; no games/modelinference. Parentaudit required closedtypedledger, semanticpresetkeyordering, exactreceiptconfiguration/gateway binding, actualchildpreset/cap/flag evidence and safe failurecodes; these are in originalM2contract, notadjacentgrowth. CLIentrywiring proof added before finalfreeze. M1 focused71agent/170viewer and15operandmutations restored; parentrequestedpresetwallcap anchored to recordedstartmonotonicelapsed so initialstatecapturecounts. Initialgates precedeanchorfollowup and are not finalclaims. UserstartedNousResearchHermes; readonlycurrentendpoint18434 returnedURLError at02:38:39Z, awaitingactualrestorationproof; no lifecycleactions.
+
+ParentPython GREEN422tests andindependent90floor lines99.39/branches97.14/functions100, sourceunchanged/privateuvvenv. M2CLIactualadapter3tests+argvdeletionRED/restored brings46focus and10M2mutations. M1nativewallanchor/typedreportmetadata andlate-native-after-cap reporting correctness followups are originalINV2/3/5 contract, notadjacentgrowth. CurrentQwenrouter restored under userexplicit recoveryauthorization: durableowner71981/router71984/18434 actualauthenticatedmodels200, presetSHAf36f82e6 unchanged/max1/bothprofilesunloaded. Noidle-sweeper/backgroundrefit; policyadaptation explicitlyrecorded, watchdogownerpersists. No inferenceortrials; privatekey-bearingnormalHermeslogs retained0600 andnotcopiedtoordinaryreceipts.
+
+Surprise/procedure repair: M1initialsame-run deletion passed becauseanotherguardmaskedthedeletedoperand. Ownercorrected completeforeignpairtest andobtainedvalidRED/restoration, butreusedlogfilename overwrotefirstpassing transcript. Firstattempt explicitlyUNPROVEN/rawlost (tool/session noteonly), not falselyretained;28latervalidmutations remainqualified. Perfeature-worklog surpriseprocedure instruction, agent-observability workflow nowrequiresuniqueattemptreceipts andexplicitlost/overwrittenproof disclosure. Documentationonly/no gameplaybehavior.
+
+Combined GREEN1162tests (570agent+170viewer+422Python); stableTSbuild/lint/coverage agent98.92lines93.94branches98.36functions, viewer98.55/91.24/98.59, Python99.39/97.14/100. All90floors. Parentvendorbbab97a pristine andexternalROMhashverified; diffwhitespaceclean. M1 28validsemanticmutations andM2 10restoredmutationproofs withrealFS/child/CLI seams, originalfailedoperandattemptlostdisclosed. Reviewedpreparecommands added; stale60mincommentcorrectedtoactual30min. Frozen combined source commit next; current-source offline native adapter/servedviewer proof andrequired independent reviews remain beforelanding. Qwenloadedhealthy77109/62377 b11370, bothpresetsunchanged/otherprofileunloaded; observedfree85→48%/swapunchanged, actualcoldpeaknotcontinuouslysampled—qualificationpendinginference/quiet-hostchecks, no model request.

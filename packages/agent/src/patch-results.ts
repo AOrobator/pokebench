@@ -37,8 +37,10 @@ function distribution(values: number[]): Distribution | null {
   const mid = Math.floor(sorted.length / 2);
   return { median: sorted.length % 2 === 1 ? (sorted[mid] ?? 0) : ((sorted[mid - 1] ?? 0) + (sorted[mid] ?? 0)) / 2, min: (sorted[0] ?? 0), max: (sorted.at(-1) ?? 0), count: values.length };
 }
+const EVALUATION_FEATURES={loopGuard:"deterministic-loop-guard-v1",activeUi:"active-ui-ownership-v1",interfaceDocs:"contextual-interface-docs-v1",objectives:"objective-tracking-v1"} as const;
 function signature(e: Extract<RunEvent, { type: "run_start" }>, feature: string): string {
-  return canonical({ model: e.model, sampling: e.sampling, tools: e.tools, harness: e.harness, vendor: e.vendor_pin, pi: e.pi_version,
+  const evaluation=e.evaluation===undefined?undefined:{target:e.evaluation.target,failure_limit:e.evaluation.failure_limit,flags:Object.fromEntries(Object.entries(e.evaluation.flags).filter(([flag])=>EVALUATION_FEATURES[flag as keyof typeof EVALUATION_FEATURES]!==feature))};
+  return canonical({ evaluation, model: e.model, sampling: e.sampling, tools: e.tools, harness: e.harness, vendor: e.vendor_pin, pi: e.pi_version,
     start: e.start_state.kind === "boot" ? e.start_state : { kind: e.start_state.kind, sha1: e.start_state.sha1 },
     budgets: e.budgets, features: e.harness_features.filter((f) => f !== feature).sort() });
 }
@@ -102,9 +104,12 @@ function assess(trial: PatchTrial, arm: TrialResult["arm"], target: string, prob
   const elapsed = marker === undefined ? null : Date.parse(marker.t) - Date.parse(start.t);
   const invalidTime = elapsed !== null && (!Number.isFinite(elapsed) || elapsed < 0 || elapsed > summary.wallMs);
   if (invalidTime) problems.push(`${run}: invalid target timing`);
-  const qualified = marker !== undefined && !present && !invalidTime;
+  const pastCap=elapsed!==null&&start.evaluation!==undefined&&start.budgets.max_wall_ms!==undefined&&elapsed>start.budgets.max_wall_ms;
+  const terminal=es.at(-1);
+  if(pastCap&&terminal?.type==="run_end"&&terminal.reason==="milestone"&&terminal.target_proof?.name===target)problems.push(`${run}: target stop exceeds evaluation wall cap`);
+  const qualified = marker !== undefined && !present && !invalidTime && !pastCap;
   return { arm, run, outcome: present ? "present_at_start" : unqualified || invalidTime ? "unqualified" : summary.reason === "incomplete" ? "incomplete" : qualified ? "reached" : "not_reached",
-    reason: summary.reason, elapsedMs: qualified ? elapsed : null, targetTurn: qualified ? marker.turn : null, evidence: qualified ? [...(marker.evidence ?? []), marker.seq] : [],
+    reason: summary.reason, elapsedMs: qualified ? elapsed : null, targetTurn: qualified ? marker.turn : null, evidence: (qualified||pastCap)&&marker!==undefined ? [...(marker.evidence ?? []), marker.seq] : [],
     tokens: { ...summary.tokens }, turns: summary.turns, issues, coverage };
 }
 function armResult(preset: string, trials: TrialResult[]): ArmResult {
@@ -134,6 +139,12 @@ export function comparePatchResults(input: PatchComparison): PatchResult {
       const first = trial.events[0]; if (first?.type !== "run_start") throw new Error("Patch trial must begin with run_start");
       if (seen.has(first.run)) problems.push(`${first.run}: duplicate trial`); seen.add(first.run);
       if (Object.entries(config.flags).some(([flag, enabled]) => first.harness_features.includes(flag) !== enabled)) problems.push(`${first.run}: flags disagree with recorded features`);
+      if(first.evaluation!==undefined){
+        if(first.budgets.max_wall_ms===undefined||first.budgets.max_wall_ms<=0)problems.push(`${first.run}: missing positive evaluation wall cap`);
+        if(first.evaluation.target!==input.target)problems.push(`${first.run}: evaluation target disagrees with comparison target`);
+        for(const [flag,feature] of Object.entries(EVALUATION_FEATURES))if(first.evaluation.flags[flag as keyof typeof EVALUATION_FEATURES]!==first.harness_features.includes(feature))problems.push(`${first.run}: evaluation ${flag} disagrees with recorded feature ${feature}`);
+        if(first.evaluation.target!==null&&!first.harness_features.includes("native-target-stop-v1"))problems.push(`${first.run}: missing native target stop feature`);
+      }
       const sig = signature(first, input.changedFeature);
       if (common !== undefined && sig !== common) problems.push(`${first.run}: incompatible run provenance`); common ??= sig;
       if (environment !== undefined && trial.environment.fingerprint !== environment) problems.push(`${first.run}: incompatible environment provenance`); environment ??= trial.environment.fingerprint;
@@ -170,7 +181,7 @@ export function comparePatchResults(input: PatchComparison): PatchResult {
   const bug = trials.some((t) => t.issues.some((i) => i.kind === "harness_bug" && i.invalidatesComparison));
   return { patchId: input.patchId, target: input.target, eligible, verdict, recommendation: bug ? "repair_and_rerun" : verdict === "regress" ? "discard" : verdict === "improve" ? input.stage === "confirmation" ? "keep" : "confirm" : "retain",
     incumbent, candidate, timeChangePercent, configuration: { changedFeature: input.changedFeature, incumbentFlags: { ...input.incumbent.flags }, candidateFlags: { ...input.candidate.flags }, ...(declaration === undefined ? {} : { allowedPromptChange: { ...declaration } }) }, problems: [...new Set(problems)], trials,
-    limitations: ["Four per arm does not establish statistical confidence.", "Times are among native target completers; missing splits remain explicit.", "Not reached means no qualified recorded completion, not an inference about unseen game state.", "Environment identity is an externally supplied receipt, not independently verified here.", "Prompt audit receipt content is reviewed externally; exact observed hashes are checked here.", "Recommendation does not execute promotion or rollback; downstream qualification is separate."] };
+    limitations: ["Four per arm does not establish statistical confidence.", "Times are among native target completers; missing splits remain explicit.", "Evaluation target observations after the wall cap are censored; positive coverage and native event evidence remain visible.", "Not reached means no qualified recorded completion, not an inference about unseen game state.", "Environment identity is an externally supplied receipt, not independently verified here.", "Prompt audit receipt content is reviewed externally; exact observed hashes are checked here.", "Recommendation does not execute promotion or rollback; downstream qualification is separate."] };
 }
 
 

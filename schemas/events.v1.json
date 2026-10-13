@@ -674,6 +674,61 @@
           "type": "string",
           "const": "run_start"
         },
+        "evaluation": {
+          "type": "object",
+          "required": [
+            "preset_id",
+            "target",
+            "failure_limit",
+            "flags"
+          ],
+          "properties": {
+            "preset_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "target": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "failure_limit": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "flags": {
+              "type": "object",
+              "required": [
+                "loopGuard",
+                "activeUi",
+                "interfaceDocs",
+                "objectives"
+              ],
+              "properties": {
+                "loopGuard": {
+                  "type": "boolean"
+                },
+                "activeUi": {
+                  "type": "boolean"
+                },
+                "interfaceDocs": {
+                  "type": "boolean"
+                },
+                "objectives": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
         "model": {
           "type": "object",
           "required": [
@@ -1520,6 +1575,34 @@
         "type": {
           "type": "string",
           "const": "run_end"
+        },
+        "target_proof": {
+          "type": "object",
+          "required": [
+            "name",
+            "milestone_seq",
+            "state_evidence"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "milestone_seq": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "state_evidence": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "minItems": 1,
+              "maxItems": 2
+            }
+          },
+          "additionalProperties": false
         },
         "reason": {
           "enum": [

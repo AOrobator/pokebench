@@ -40,7 +40,10 @@ function event<T extends string, P extends Record<string, TSchema>>(type: T, pay
 const closed = { additionalProperties: false } as const;
 const Args = Type.Record(Type.String(), Type.Unknown());
 
+const Evaluation = Type.Object({preset_id:Type.String({minLength:1}),target:Type.Union([Type.String({minLength:1}),Type.Null()]),failure_limit:Type.Integer({minimum:1}),flags:Type.Object({loopGuard:Type.Boolean(),activeUi:Type.Boolean(),interfaceDocs:Type.Boolean(),objectives:Type.Boolean()},closed)},closed);
+const TargetProof = Type.Object({name:Type.String({minLength:1}),milestone_seq:NonNegativeInt,state_evidence:Type.Array(NonNegativeInt,{minItems:1,maxItems:2})},closed);
 const RunStart = event("run_start", {
+  evaluation:Type.Optional(Evaluation),
   model: Type.Object(
     { id: Type.String({ minLength: 1 }), context_window: NonNegativeInt, max_tokens: NonNegativeInt, vision: Type.Boolean() },
     closed,
@@ -238,6 +241,7 @@ const TelemetryError = event("telemetry_error", {
 });
 
 const RunEnd = event("run_end", {
+  target_proof:Type.Optional(TargetProof),
   reason: RunEndReason,
   furthest_milestone: Type.Union([Type.String(), Type.Null()]),
   turns: NonNegativeInt,

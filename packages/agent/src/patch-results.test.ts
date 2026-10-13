@@ -177,3 +177,34 @@ describe("passive patch comparison", () => {
   });
 
 });
+
+function evaluationInput(changedFeature="deterministic-loop-guard-v1"):PatchComparison{
+ const p=input();p.changedFeature=changedFeature;
+ for(const arm of ["incumbent","candidate"] as const){p[arm].flags={[changedFeature]:arm==="candidate"};for(const trial of p[arm].trials){const start=trial.events[0];if(start?.type!=="run_start")throw new Error("fixture");const flags={loopGuard:changedFeature==="deterministic-loop-guard-v1"&&arm==="candidate",activeUi:true,interfaceDocs:true,objectives:true};start.evaluation={preset_id:`${arm}-trial-${trial.events[0]?.run??""}`,target:p.target,failure_limit:3,flags};start.harness_features=["active-ui-ownership-v1","contextual-interface-docs-v1","objective-tracking-v1","native-target-stop-v1",...(arm==="candidate"?[changedFeature]:[])];}}
+ return p;
+}
+it("compares evaluation contracts while ignoring preset identity and only the declared loop flag",()=>{const p=evaluationInput();expect(comparePatchResults(p).eligible).toBe(true);});
+it.each(["target","failure","activeUi","interfaceDocs","objectives","loopOtherFactor"])("rejects differing evaluation %s",mode=>{const p=evaluationInput(mode==="loopOtherFactor"?"action-bias-v1":undefined);const start=first(p).events[0];if(start?.type!=="run_start"||start.evaluation===undefined)throw new Error("fixture");if(mode==="target")start.evaluation.target="CLOCK_SET";else if(mode==="failure")start.evaluation.failure_limit=4;else{const key=mode==="loopOtherFactor"?"loopGuard":mode;if(key!=="loopGuard"&&key!=="activeUi"&&key!=="interfaceDocs"&&key!=="objectives")throw new Error("fixture key");start.evaluation.flags[key]=!start.evaluation.flags[key];const feature={loopGuard:"deterministic-loop-guard-v1",activeUi:"active-ui-ownership-v1",interfaceDocs:"contextual-interface-docs-v1",objectives:"objective-tracking-v1"}[key];start.harness_features=start.evaluation.flags[key]?[...start.harness_features,feature]:start.harness_features.filter(value=>value!==feature);}expect(comparePatchResults(p).eligible).toBe(false);});
+it.each(["loopGuard","activeUi","interfaceDocs","objectives"] as const)("rejects recorded evaluation %s contradicting actual features",key=>{const p=evaluationInput();for(const arm of ["incumbent","candidate"] as const)for(const trial of p[arm].trials){const start=trial.events[0];if(start?.type!=="run_start"||start.evaluation===undefined)throw new Error("fixture");start.evaluation.flags[key]=!start.evaluation.flags[key];}expect(comparePatchResults(p).eligible).toBe(false);});
+it("requires comparison target to match the common evaluation target",()=>{const p=evaluationInput();for(const arm of ["incumbent","candidate"] as const)for(const trial of p[arm].trials){const start=trial.events[0];if(start?.type!=="run_start"||start.evaluation===undefined)throw new Error("fixture");start.evaluation.target="CLOCK_SET";}expect(comparePatchResults(p).eligible).toBe(false);});
+
+it("requires native target instrumentation in evaluation records",()=>{const p=evaluationInput();for(const arm of ["incumbent","candidate"] as const)for(const trial of p[arm].trials){const start=trial.events[0];if(start?.type!=="run_start")throw new Error("fixture");start.harness_features=start.harness_features.filter(feature=>feature!=="native-target-stop-v1");}expect(comparePatchResults(p).eligible).toBe(false);});
+it.each(["activeUi","interfaceDocs","objectives"] as const)("ignores only declared evaluation factor %s",key=>{const features={activeUi:"active-ui-ownership-v1",interfaceDocs:"contextual-interface-docs-v1",objectives:"objective-tracking-v1"};const p=evaluationInput(features[key]);for(const arm of ["incumbent","candidate"] as const)for(const trial of p[arm].trials){const start=trial.events[0];if(start?.type!=="run_start"||start.evaluation===undefined)throw new Error("fixture");start.evaluation.flags[key]=arm==="candidate";if(arm==="incumbent")start.harness_features=start.harness_features.filter(feature=>feature!==features[key]);}expect(comparePatchResults(p).eligible).toBe(true);});
+
+it.each([[599999,true],[600000,true],[600001,false]] as const)("grades evaluation target at %sms against the recorded cap",(at,reached)=>{
+ const p=evaluationInput();for(const arm of ["incumbent","candidate"] as const)for(const trial of p[arm].trials){const start=trial.events[0];if(start?.type!=="run_start")throw new Error("fixture");start.budgets.max_wall_ms=600000;}
+ const es=first(p).events;for(const event of es)if(event.type==="state"||event.type==="milestone")event.t=time(at);const end=es.at(-1);if(end?.type!=="run_end")throw new Error("fixture");end.t=time(601000);end.wall_ms=601000;end.reason=reached?"model_error":"budget";
+ const result=comparePatchResults(p);expect(result.eligible).toBe(true);expect(result.trials.find(trial=>trial.run==="new-0")).toMatchObject({outcome:reached?"reached":"not_reached",elapsedMs:reached?at:null,evidence:[1,2],coverage:{positive:1,negative:0,unknown:0}});expect(result.recommendation).not.toBe("repair_and_rerun");
+});
+it("rejects a target-stop completion claim whose native evidence is past the evaluation cap",()=>{
+ const p=evaluationInput();for(const arm of ["incumbent","candidate"] as const)for(const trial of p[arm].trials){const start=trial.events[0];if(start?.type!=="run_start")throw new Error("fixture");start.budgets.max_wall_ms=600000;}
+ const es=first(p).events;for(const event of es)if(event.type==="state"||event.type==="milestone")event.t=time(600001);const end=es.at(-1);if(end?.type!=="run_end")throw new Error("fixture");end.t=time(601000);end.wall_ms=601000;end.target_proof={name:target,milestone_seq:2,state_evidence:[1]};
+ const result=comparePatchResults(p);expect(result.eligible).toBe(false);expect(result.problems.join(" ")).toContain("target stop exceeds evaluation wall cap");
+});
+
+it("keeps historical no-evaluation grading unchanged and rejects missing evaluation caps",()=>{
+ const old=input();for(const arm of ["incumbent","candidate"] as const)for(const trial of old[arm].trials){const start=trial.events[0];if(start?.type!=="run_start")throw new Error("fixture");start.budgets.max_wall_ms=100;}
+ expect(comparePatchResults(old).eligible).toBe(true);expect(comparePatchResults(old).candidate.reached).toBe(4);
+ const current=evaluationInput();for(const arm of ["incumbent","candidate"] as const)for(const trial of current[arm].trials){const start=trial.events[0];if(start?.type!=="run_start")throw new Error("fixture");delete start.budgets.max_wall_ms;}
+ expect(comparePatchResults(current).eligible).toBe(false);
+});

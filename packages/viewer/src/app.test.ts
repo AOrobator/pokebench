@@ -2,6 +2,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import {NAME_CONFIRMED} from "../../agent/test-support/events.js";
 import { parseEvent, type RunEvent } from "@pokebench/agent/events";
 import { BASE_MS, Log, START, fullRun, m4Run, must, state } from "../test-support/events.js";
 import { boot, mountApp, type App, type AppDeps, type StreamLike } from "./app.js";
@@ -720,4 +721,13 @@ it("keeps passive would-stop truthful on both Activity History and timeline",asy
  for(const [index,phase] of (["would_warn","would_stop","would_recover"] as const).entries())log.add(1000+index*1000,{type:"loop_guard",turn:1,kind:"planning",mode:"diagnostic",phase,message:"Counterfactual <threshold>",calls:12,evidence:[1]});
  setNow(BASE_MS+3000);feed(must(streams[0]),log.events.map(e=>parseEvent(JSON.stringify(e))));
  expect(ui("lanes").textContent).toContain("diagnostic: would stop");expect(ui("log").textContent).toContain("diagnostic: would stop");expect(ui("log").querySelectorAll(".ev-error")).toHaveLength(0);expect(ui("inspector").textContent).not.toContain("run ended: stuck");expect(app.mode).toBe("live");
+});
+
+it("shows explicit evaluation target/cap and native terminal proof in history and timeline", async()=>{
+ const {streams}=await harness();const log=new Log();
+ const start=log.add(0,START);const observed=log.add(500,state(NAME_CONFIRMED));const milestone=log.add(600,{type:"milestone",turn:1,name:"PLAYER_NAME_CONFIRMED",kind:"story",origin:"observed",server_timestamp:0,evidence:[observed.seq]});const end=fullRun().events.findLast(event=>event.type==="run_end");if(end===undefined)throw new Error("missing terminal fixture");
+ const events=[{...start,evaluation:{preset_id:"name-control",target:"PLAYER_NAME_CONFIRMED",failure_limit:3,flags:{loopGuard:false,activeUi:true,interfaceDocs:true,objectives:true}},budgets:{max_turns:300,max_wall_ms:600000}},observed,milestone,{...end,seq:3,t:milestone.t,reason:"milestone",target_proof:{name:"PLAYER_NAME_CONFIRMED",milestone_seq:milestone.seq,state_evidence:[observed.seq]}}].map(event=>parseEvent(JSON.stringify(event)));
+ feed(must(streams[0]),events,false);must(streams[0]).send("done",{});
+ expect(ui("log").textContent).toContain("native target PLAYER_NAME_CONFIRMED");expect(ui("lanes").textContent).toContain("native target PLAYER_NAME_CONFIRMED");
+ expect(ui("run-details").textContent).toContain('"preset_id": "name-control"');expect(ui("budgets").textContent).toContain("0:10:00");
 });

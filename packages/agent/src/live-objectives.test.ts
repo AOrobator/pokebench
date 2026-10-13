@@ -102,3 +102,21 @@ it.each([undefined,"0","1"])("actual probe producer declares active UI exposure 
   expect(owner.start?.harness_features).toEqual(plan.harnessFeatures);
   vi.doUnmock("./probe.js");
 });
+
+it("actual play honors explicit preset limits, flags, sampling and assigned run id", async () => {
+  vi.resetModules();owner.files.clear();owner.loop=null;
+  const preset={version:1,id:"name-control",target:"PLAYER_NAME_CONFIRMED",limits:{maxTurns:300,maxWallMs:600000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:100},flags:{loopGuard:false,activeUi:false,interfaceDocs:true,objectives:true}};
+  owner.files.set("/test-owned/preset.json",[JSON.stringify(preset)]);
+  vi.stubEnv("POKEBENCH_PLAY_PRESET","/test-owned/preset.json");vi.stubEnv("POKEBENCH_RUN_ID","assigned-name-control");
+  vi.stubEnv("POKEBENCH_LOOP_GUARD","1");vi.stubEnv("POKEBENCH_ACTIVE_UI","1");
+  const timers=vi.spyOn(globalThis,"setTimeout");
+  const done=new Promise<RunPlan>((resolve,reject)=>{owner.resolve=resolve;owner.reject=reject;});
+  vi.stubGlobal("process",Object.assign(Object.create(process) as NodeJS.Process,{argv:[...process.argv.slice(0,2),"play"]}));
+  vi.spyOn(console,"log").mockImplementation(()=>undefined);
+  await import("./live.js");const plan=await done;
+  expect(plan.runId).toBe("assigned-name-control");expect(plan.budgets).toEqual({max_turns:300,max_wall_ms:600000});
+  expect(plan.sampling).toEqual({thinking_level:"medium",max_tokens:100});
+  expect(owner.start).toMatchObject({evaluation:{preset_id:"name-control",target:"PLAYER_NAME_CONFIRMED",failure_limit:3,flags:preset.flags}});
+  expect(timers.mock.calls.some((call)=>call[1]===600000)).toBe(true);
+  expect(plan.harnessFeatures).not.toContain("deterministic-loop-guard-v1");expect(plan.harnessFeatures).not.toContain("active-ui-ownership-v1");
+});

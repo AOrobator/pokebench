@@ -54,3 +54,7 @@ No unrelated edits. Old Justfile comment says60min despite30min actual default; 
 COMMIT: `docs(worklog): prepare serial native naming comparison` (`3286f14`), user-approved matrix/caps/criteria/hill-climb scope recorded before implementation. Two owners assigned disjoint native/preset/viewer and new supervisor files; parent controls commits/integration, no measured games.
 
 M2 RED: new serial-comparison test contract fails at missing-module import, explicitly capability RED rather than semantic deletion proof. Cases pin24counterbalanced assignments, source/order/identity/credential/criteria validation, serialnormalplay launch seam, failure retention, uncertainresume/source drift/exclusive lock. Operand mutation and actual filesystem/tinychild proof remain GREEN requirements.
+
+COMMIT: `test(comparison): define frozen serial naming cohort` (`bf39dd2`), capability RED committed before new supervisor implementation. No trials or service changes.
+
+M1 RED: actual existing live entrypoint fails assignedrunID vs randomID (7previouscasespass); mounted viewer schema rejects new evaluation/target-proof fields (38previouscasespass). New preset/target helper imports are capability RED, not semantic mutation. Native target fixtures now schema-validated fullstory; tests include latestfalse/olderpositive, foreign/present/legacy/unknown rejection and actualpinnedpi completecurrenttool/frame/nolaterpress. Additional timer/terminalrace coverage and delete/restore proof remain GREEN.

@@ -116,3 +116,107 @@ def test_each_story_variable_is_independently_grounded(
     assert {key: body[key] for key in VAR_FIELDS} == {
         key: value if key == field else 0 for key in VAR_FIELDS
     }
+
+
+# Exact US-ROM roots from the qualified main_menu.c graph. These precede the
+# separate YES acceptance; a screen label or a populated name is insufficient.
+PRE_CONFIRMATION_ROOTS = [
+    ("Init", 0x080307B1),
+    ("WaitToShowBirch", 0x080308B1),
+    ("WaitForSpriteFadeInWelcome", 0x08030929),
+    ("ThisIsAPokemon", 0x080309CD),
+    ("MainSpeech", 0x08030A2D),
+    ("AndYouAre", 0x08030BCD),
+    ("StartBirchLotadPlatformFade", 0x08030C19),
+    ("SlidePlatformAway", 0x08030C91),
+    ("StartPlayerFadeIn", 0x08030CD5),
+    ("WaitForPlayerFadeIn", 0x08030D85),
+    ("BoyOrGirl", 0x08030DC9),
+    ("WaitToShowGenderMenu", 0x08030E09),
+    ("ChooseGender", 0x08030E39),
+    ("SlideOutOldGenderSprite", 0x08030ED5),
+    ("SlideInNewGenderSprite", 0x08030F7D),
+    ("WhatsYourName", 0x08030FD5),
+    ("WaitForWhatsYourNameToPrint", 0x08031015),
+    ("WaitPressBeforeNameChoice", 0x08031041),
+    ("StartNamingScreen", 0x08031091),
+    ("ReturnFromNamingScreenShowTextbox", 0x0803261D),
+    ("SoItsPlayerName", 0x08031105),
+    ("CreateNameYesNo", 0x08031145),
+    ("ProcessNameYesNoMenu", 0x08031189),
+]
+
+
+@pytest.mark.parametrize(
+    ("root", "function"), PRE_CONFIRMATION_ROOTS, ids=[name for name, _ in PRE_CONFIRMATION_ROOTS]
+)
+def test_pre_confirmation_root_reaches_native_json_and_readout(root: str, function: int) -> None:
+    m = game((0, 0x0802F6B1))
+    m.put(0x03005E00, struct.pack("<IB", function, 1))
+    state = read_game_state(m.read, MAPS)
+    body = state_json(state)
+    assert body["story"]["name_confirmed"] is False, (root, body)
+    assert all(value is None for key, value in body["story"].items() if key != "name_confirmed")
+    assert body["screen"] == "birch_speech" and body["started"] is False, body
+    assert body["name"] is None and body["position"] is None, body
+    assert "Story: no completion confirmed" in format_readout(state)
+
+
+@pytest.mark.parametrize(
+    ("callback", "function", "active"),
+    [
+        (0x0816CC01, 0x08030A2D, 1),  # Intro alone cannot certify a new-game choice.
+        (0x080AA7A5, 0x08030A2D, 1),  # Title with stale task bytes.
+        (0x080E2E05, 0x08030A2D, 1),  # Shared naming initializer.
+        (0x080E4F59, 0x08030A2D, 1),  # Player/Pokemon/box naming share this program.
+        (0x0802F6B1, 0x08030A2D, 0),  # Inactive root cannot establish ownership.
+        (0x0802F6B1, 0x08030A2D, 2),  # Invalid active flag is not TRUE.
+        (0x0802F6B1, 0x08030B15, 1),  # Pokeball helper is not a Birch root.
+        (0x0802F6B1, 0x08030A2F, 1),  # Neighboring address is not a named task.
+    ],
+)
+def test_pre_confirmation_requires_exact_active_root_and_callback(
+    callback: int, function: int, active: int
+) -> None:
+    from pokebench_env.game_screen import Screen
+    from pokebench_env.story import read_story
+
+    m = game((0, callback))
+    m.put(0x03005E00, struct.pack("<IB", function, active))
+    observed = read_story(m.read, Screen("birch_speech", 0, callback))
+    assert observed.name_confirmed is None, (hex(callback), hex(function), active, observed)
+
+
+def test_return_from_player_naming_has_negative_evidence_under_its_own_callback() -> None:
+    m = game((0, 0x08031679))
+    m.put(0x03005E00, struct.pack("<IB", 0x0803261D, 1))
+    body = state_json(read_game_state(m.read, MAPS))
+    assert body["story"]["name_confirmed"] is False, body
+
+
+@pytest.mark.parametrize(
+    ("function", "expected"),
+    [
+        (0x08031221, True),
+        (0x08031259, True),
+        (0x0803133D, True),
+        (0x080313E5, True),
+        (0x080314C5, True),
+        (0x08031581, None),
+        (0x080315BD, None),
+        (0x08031631, None),
+    ],
+)
+def test_post_yes_roots_never_become_negative(function: int, expected: bool | None) -> None:
+    m = game((0, 0x0802F6B1))
+    m.put(0x03005E00, struct.pack("<IB", function, 1))
+    body = state_json(read_game_state(m.read, MAPS))
+    assert body["story"]["name_confirmed"] is expected, (hex(function), body)
+
+
+def test_existing_positive_owner_keeps_precedence_over_negative_candidate() -> None:
+    m = game((0, 0x0802F6B1))
+    m.put(0x03005E00, struct.pack("<IB", 0x08030A2D, 1))
+    m.put(0x03005E00 + 0x28, struct.pack("<IB", 0x08031221, 1))
+    body = state_json(read_game_state(m.read, MAPS))
+    assert body["story"]["name_confirmed"] is True, body

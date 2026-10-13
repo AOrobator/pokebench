@@ -294,7 +294,7 @@ async function playAgent(): Promise<void> {
         transformContext: objectives?.transformContext ?? recorder.transformContext,
         emit: recorder.emit,
         signal: controller.signal,
-        gate: () => runControl.gate(),
+        gate: (signal) => runControl.gate(signal),
       });
       try {
         const task: AgentMessage = { role: "user", content: target===null?PLAY_TASK:`The game has just booted. ${goal}`, timestamp: Date.now() };

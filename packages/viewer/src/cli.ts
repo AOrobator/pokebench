@@ -4,7 +4,7 @@ import { RUN_ID_PATTERN } from "@pokebench/agent/events";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { RunQueue, randomSuffix, spawnLaunch } from "./next-run.js";
+import { RunQueue, healthProbe, randomSuffix, spawnLaunch } from "./next-run.js";
 import { startViewer, type Viewer, type ViewerOptions } from "./server.js";
 
 export const DEFAULT_PORT = 8790;
@@ -73,7 +73,7 @@ export interface MainDeps {
 
 export async function main(argv: readonly string[], deps: MainDeps): Promise<Viewer> {
   const args = parseArgs(argv, deps.repoRunsRoot, deps.defaultEndpoint);
-  const queue = new RunQueue({ runsRoot: args.runsRoot, liveJs: deps.liveJs, endpointFile: args.endpointFile, gamePort: QUEUE_GAME_PORT, now: () => new Date(), random: randomSuffix, launch: (spec) => spawnLaunch(spec) });
+  const queue = new RunQueue({ runsRoot: args.runsRoot, liveJs: deps.liveJs, endpointFile: args.endpointFile, gamePort: QUEUE_GAME_PORT, healthy: healthProbe(), now: () => new Date(), random: randomSuffix, launch: (spec) => spawnLaunch(spec) });
   const viewer = await deps.start({ runsRoot: args.runsRoot, staticDir: deps.staticDir, appDir: deps.appDir, port: args.port, endpointFile: args.endpointFile, queue });
   deps.print(`PokeBench viewer: ${viewUrl(viewer.url, args.runId)}`);
   deps.print(`runs: ${args.runsRoot} (Ctrl-C to stop)`);

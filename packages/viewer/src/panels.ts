@@ -203,8 +203,8 @@ function chip(button: string): string {
 const CONTROL_ICON = { pause: "⏸", resume: "▶", stop: "■", cancel_stop: "↺", abort: "✖" } as const;
 function controlRow(event: Extract<RunEvent, { type: "operator_control" }>): string {
   const name = event.action.replace("_", " ");
-  const status = event.status === "pending" ? "requested" : event.status;
-  const detail = event.status === "pending"
+  const status = event.status === "pending" ? "requested" : event.status === "failed" ? "FAILED" : event.status;
+  const detail = event.status === "failed" ? " · emulator still frozen; the run stays paused" : event.status === "pending"
     ? event.action === "stop" ? " · ends after the current turn" : " · holds before the next model call"
     : `${event.paused_ms === undefined ? "" : ` · paused ${String(Math.round(event.paused_ms / 1000))}s`}${event.emulator_frozen === undefined ? "" : event.emulator_frozen ? " · emulator frozen" : " · emulator NOT frozen"}`;
   return `${CONTROL_ICON[event.action]} ${name} ${status}${detail} · request ${String(event.request)}`;
@@ -253,7 +253,7 @@ function rowBody(event: RunEvent, view?: RunView): string | null {
 export function actionRow(event: RunEvent, view?: RunView): string | null {
   const body = rowBody(event, view);
   if (body === null) return null;
-  const error = (event.type === "tool_result" && event.is_error) || event.type === "retry" || (event.type === "loop_guard" && event.phase !== "recovered" && !("mode" in event && event.mode === "diagnostic")) || event.type === "telemetry_error" || (event.type === "operator_control" && event.emulator_frozen === false) ? " ev-error" : "";
+  const error = (event.type === "tool_result" && event.is_error) || event.type === "retry" || (event.type === "loop_guard" && event.phase !== "recovered" && !("mode" in event && event.mode === "diagnostic")) || event.type === "telemetry_error" || (event.type === "operator_control" && (event.emulator_frozen === false || event.status === "failed")) ? " ev-error" : "";
   return `<div class="ev ev-${event.type}${error}" data-seq="${String(event.seq)}"><span class="seq">#${String(event.seq)}</span><span class="tag">${event.type}</span><span class="body">${body}</span></div>`;
 }
 

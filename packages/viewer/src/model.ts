@@ -100,7 +100,7 @@ export class ControlView {
   readonly pauses: { startMs: number; endMs: number | null }[] = [];
 
   apply(event: Of<"operator_control">, ms: number): void {
-    if (event.status === "ignored") return;
+    if (event.status === "ignored" || event.status === "failed") return;
     if (event.status === "pending") {
       this.state = event.action === "pause" ? "pause_pending" : "stop_pending";
       return;

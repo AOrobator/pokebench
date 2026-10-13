@@ -55,7 +55,8 @@
           "enum": [
             "pending",
             "applied",
-            "ignored"
+            "ignored",
+            "failed"
           ]
         },
         "request": {

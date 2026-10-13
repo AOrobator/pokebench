@@ -6,7 +6,11 @@ import { afterEach, describe, expect, it } from "vitest";
 import { ALL_ON } from "@pokebench/agent/features";
 import { Log, START } from "../test-support/events.js";
 import { DEFAULT_NEXT_RUN, RunQueue } from "./next-run.js";
+import { connect } from "node:net";
 import { HOST, startViewer, type Viewer, type ViewerOptions } from "./server.js";
+
+// The fixture run's game server (port 8011 in START) answers /health.
+const gameUp: typeof fetch = (input) => Promise.resolve(new Response("{}", { status: typeof input === "string" && input === "http://127.0.0.1:8011/health" ? 200 : 404 }));
 
 const open: Viewer[] = [];
 afterEach(async () => { while (open.length > 0) await open.pop()?.close(); });
@@ -41,10 +45,12 @@ function liveRun(runsRoot: string, id: string): void {
 
 describe("write routes", () => {
   it("accept only same-origin JSON within the size bound", async () => {
-    const { viewer: v, runsRoot } = await viewer();
+    const { viewer: v, runsRoot } = await viewer({ fetchFn: gameUp });
     liveRun(runsRoot, "live");
     expect((await call(v, "POST", "/api/runs/live/control", { action: "pause" }, { origin: "http://evil.example" })).status).toBe(403);
     expect((await call(v, "POST", "/api/runs/live/control", { action: "pause" }, { origin: "" })).status).toBe(403);
+    expect((await call(v, "POST", "/api/runs/live/control", { action: "pause" }, { origin: `http://localhost:${String(v.port)}` })).status).toBe(403);
+    expect((await call(v, "POST", "/api/runs/live/control", { action: "pause" }, { host: `localhost:${String(v.port)}`, origin: `http://localhost:${String(v.port)}` })).status).toBe(200);
     expect((await call(v, "POST", "/api/runs/live/control", "action=pause", { "content-type": "application/x-www-form-urlencoded" })).status).toBe(415);
     expect((await call(v, "POST", "/api/runs/live/control", "{nope")).status).toBe(400);
     expect((await call(v, "POST", "/api/runs/live/control", "x".repeat(70 * 1024))).status).toBe(413);
@@ -53,7 +59,7 @@ describe("write routes", () => {
   });
 
   it("append typed control requests for live runs only", async () => {
-    const { viewer: v, runsRoot } = await viewer({ now: () => new Date() });
+    const { viewer: v, runsRoot } = await viewer({ now: () => new Date(), fetchFn: gameUp });
     liveRun(runsRoot, "live");
     expect(await call(v, "POST", "/api/runs/live/control", { action: "pause" })).toEqual({ status: 200, json: { request: 1 } });
     expect(await call(v, "POST", "/api/runs/live/control", { action: "stop" })).toEqual({ status: 200, json: { request: 2 } });
@@ -81,7 +87,7 @@ describe("next run", () => {
 
   it("queues through the run queue and reports its status", async () => {
     const base = mkdtempSync(join(tmpdir(), "viewer-queue-"));
-    const queue = new RunQueue({ runsRoot: join(base, "runs"), liveJs: "/x/live.js", endpointFile: "/x/endpoint.json", gamePort: 8076, now: () => new Date("2026-10-13T16:00:00.000Z"), random: () => "cd34", launch: () => new Promise(() => undefined) });
+    const queue = new RunQueue({ runsRoot: join(base, "runs"), liveJs: "/x/live.js", endpointFile: "/x/endpoint.json", gamePort: 8076, healthy: () => Promise.resolve(false), now: () => new Date("2026-10-13T16:00:00.000Z"), random: () => "cd34", launch: () => new Promise(() => undefined) });
     const { viewer: v } = await viewer({ queue, runsRoot: join(base, "runs") });
     const queued = await call(v, "POST", "/api/next-run/queue", { ...DEFAULT_NEXT_RUN, model: "Qwen" });
     expect(queued).toEqual({ status: 200, json: { queue: { state: "queued", runId: "2026-10-13T12-00-00_Qwen_cd34", waitingFor: "checking" } } });
@@ -119,5 +125,29 @@ describe("local-only assets", () => {
     expect(font.csp).not.toMatch(/https?:/);
     expect(font.csp).toContain("font-src 'self'");
     expect((await call(v, "GET", "/fonts/other.woff2")).status).toBe(404);
+  });
+});
+
+
+describe("write failures", () => {
+  it("answers 500 for a failing write and keeps serving", async () => {
+    const { viewer: v, runsRoot } = await viewer();
+    writeFileSync(join(runsRoot, ".viewer"), "not a directory");
+    const failed = await call(v, "PUT", "/api/next-run", { ...DEFAULT_NEXT_RUN });
+    expect(failed.status).toBe(500);
+    expect(JSON.stringify(failed.json)).toContain("error");
+    expect((await call(v, "GET", "/api/features")).status).toBe(200);
+  });
+
+  it("survives a client that disconnects mid-body", async () => {
+    const { viewer: v } = await viewer();
+    await new Promise<void>((resolve) => {
+      const socket = connect(v.port, HOST, () => {
+        socket.write(`POST /api/next-run/queue HTTP/1.1\r\nHost: ${HOST}:${String(v.port)}\r\nOrigin: http://${HOST}:${String(v.port)}\r\nContent-Type: application/json\r\nContent-Length: 5000\r\n\r\n{"model":`);
+        setTimeout(() => { socket.destroy(); resolve(); }, 50);
+      });
+    });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect((await call(v, "GET", "/api/features")).status).toBe(200);
   });
 });

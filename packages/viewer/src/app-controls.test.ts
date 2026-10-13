@@ -206,3 +206,28 @@ it("leaves the control keys to form fields that have focus", async () => {
   key("keydown", "p");
   await vi.waitFor(() => { expect(writes).toEqual([["POST", `/api/runs/${RUN}/control`, { action: "pause" }]]); });
 });
+
+it("drops a held abort when the window loses focus", async () => {
+  const { app, writes, setNow } = await mount();
+  key("keydown", "x");
+  window.dispatchEvent(new Event("blur"));
+  setNow(BASE_MS + 60_000);
+  app.tick(0);
+  key("keydown", "x");
+  document.dispatchEvent(new Event("visibilitychange"));
+  app.tick(0);
+  await Promise.resolve();
+  expect(writes).toEqual([]);
+  expect(document.querySelector('[data-ui="screen-overlay"]')?.textContent).toBe("");
+});
+
+it("sends STOP while a pause is still pending", async () => {
+  const { app, writes, send } = await mount();
+  send(1_000, { type: "operator_control", turn: 1, action: "pause", status: "pending", request: 1 });
+  app.tick(0);
+  key("keydown", "s");
+  await vi.waitFor(() => { expect(writes.at(-1)?.[2]).toEqual({ action: "stop" }); });
+  send(1_500, { type: "operator_control", turn: 1, action: "stop", status: "pending", request: 2 });
+  app.tick(0);
+  expect(ui("mode").textContent).toBe("STOPPING");
+});

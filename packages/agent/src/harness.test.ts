@@ -502,7 +502,7 @@ describe("operator control on the governor and the pinned loop", () => {
       systemPrompt: "play", tools: [fakePress((b) => { presses.push(b.join()); script(live, presses); })],
       base: { model: MODEL, convertToLlm: (messages) => messages as Message[] }, governor: g,
       transformContext: (messages) => Promise.resolve(messages), emit: () => undefined, signal: controller.signal,
-      streamFn: scriptedModel(replies, seen), gate: () => live.gate(),
+      streamFn: scriptedModel(replies, seen), gate: (signal) => live.gate(signal),
     });
     return { result: play(TASK, g, loop), seen, presses, control: live };
   }
@@ -528,5 +528,27 @@ describe("operator control on the governor and the pinned loop", () => {
     expect(await run.result).toBe("operator_stop");
     expect(run.seen).toHaveLength(1);
     expect(run.presses).toEqual(["A"]);
+  });
+});
+
+describe("operator abort while paused on the pinned loop", () => {
+  it("ends with the governor's reason when the run is aborted (Ctrl-C) while held at the gate", async () => {
+    const controller = new AbortController();
+    const seen: Message[][] = [];
+    let control: RunControl | null = null;
+    const g = new Governor({ limits: { maxTurns: 10, maxWallMs: 3_600_000, failureLimit: 3 }, retry: () => undefined, abort: () => { controller.abort(); }, now: () => 0, takeStop: () => control?.takeStop() ?? false });
+    const live = new RunControl({ record: () => undefined, freeze: () => Promise.resolve(), end: (reason) => { g.abort(reason); }, now: () => 0 });
+    control = live;
+    const loop = piLoop({
+      systemPrompt: "play", tools: [fakePress(() => { live.apply({ v: 1, seq: 1, at: "2026-10-13T15:00:00.000Z", action: "pause" }); })],
+      base: { model: MODEL, convertToLlm: (messages) => messages as Message[] }, governor: g,
+      transformContext: (messages) => Promise.resolve(messages), emit: () => undefined, signal: controller.signal,
+      streamFn: scriptedModel([pressReply(["A"]), pressReply(["B"])], seen), gate: (signal) => live.gate(signal),
+    });
+    const result = play(TASK, g, loop);
+    await vi.waitFor(() => { expect(live.holding).toBe(true); });
+    g.abort("operator_abort");
+    expect(await result).toBe("operator_abort");
+    expect(seen).toHaveLength(1);
   });
 });

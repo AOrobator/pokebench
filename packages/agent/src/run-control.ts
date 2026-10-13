@@ -89,6 +89,9 @@ export class RunControl {
   private pauseRequest = 0;
   private stopRequest = 0;
   private stopApplied = false;
+  private resuming = false;
+  // Set once the emulator freeze has been answered; the pause interval (for the
+  // budget and for the recorded "pause applied" event) starts there.
   private pausedSince: number | null = null;
   private pausedTotal = 0;
   private release: (() => void) | null = null;
@@ -97,6 +100,11 @@ export class RunControl {
 
   get state(): ControlState {
     return this.current;
+  }
+
+  // True while paused time is being counted.
+  get holding(): boolean {
+    return this.pausedSince !== null;
   }
 
   pausedMs(): number {
@@ -125,17 +133,14 @@ export class RunControl {
         this.deps.record({ action, status: "applied", request: seq });
         return;
       }
-      if (this.current !== "paused") { ignore(); return; }
-      const paused = this.closePause();
-      this.current = "running";
-      void this.deps.freeze(false).catch(() => undefined);
-      this.deps.record({ action, status: "applied", request: seq, paused_ms: paused });
-      this.wake();
+      if (this.current !== "paused" || this.resuming) { ignore(); return; }
+      this.resume(seq);
       return;
     }
     if (action === "stop") {
       if (this.current === "paused") { this.finish("operator_stop", action, seq); return; }
-      if (this.current !== "running") { ignore(); return; }
+      // A stop while a pause is still pending replaces the pause: end after this turn.
+      if (this.current !== "running" && this.current !== "pause_pending") { ignore(); return; }
       this.current = "stop_pending";
       this.stopRequest = seq;
       this.deps.record({ action, status: "pending", request: seq });
@@ -144,6 +149,26 @@ export class RunControl {
     if (this.current !== "stop_pending") { ignore(); return; }
     this.current = "running";
     this.deps.record({ action, status: "applied", request: seq });
+  }
+
+  // Resume only once the emulator is running again; a failed unfreeze keeps the
+  // run paused and is recorded.
+  private resume(seq: number): void {
+    this.resuming = true;
+    void this.deps.freeze(false).then(
+      () => {
+        this.resuming = false;
+        if (this.current !== "paused") return;
+        const paused = this.closePause();
+        this.current = "running";
+        this.deps.record({ action: "resume", status: "applied", request: seq, paused_ms: paused });
+        this.wake();
+      },
+      () => {
+        this.resuming = false;
+        if (this.current === "paused") this.deps.record({ action: "resume", status: "failed", request: seq, emulator_frozen: true });
+      },
+    );
   }
 
   // The governor asks at each turn end whether an operator stop is due.
@@ -157,11 +182,11 @@ export class RunControl {
   }
 
   // Awaited before every model call: a pending pause takes hold here, after the
-  // previous turn's tool calls have finished.
-  async gate(): Promise<void> {
+  // previous turn's tool calls have finished. The run's abort signal (Ctrl-C,
+  // budget) also releases it.
+  async gate(signal?: AbortSignal): Promise<void> {
     if (this.current !== "pause_pending") return;
     this.current = "paused";
-    this.pausedSince = this.deps.now();
     this.notify();
     let frozen = true;
     try {
@@ -169,10 +194,14 @@ export class RunControl {
     } catch {
       frozen = false;
     }
-    if (this.stillPaused()) {
-      this.deps.record({ action: "pause", status: "applied", request: this.pauseRequest, emulator_frozen: frozen });
-      await new Promise<void>((resolve) => { this.release = resolve; });
-    }
+    if (!this.stillPaused() || signal?.aborted === true) return;
+    this.pausedSince = this.deps.now();
+    this.deps.record({ action: "pause", status: "applied", request: this.pauseRequest, emulator_frozen: frozen });
+    this.notify();
+    await new Promise<void>((resolve) => {
+      this.release = resolve;
+      signal?.addEventListener("abort", () => { this.closePause(); this.current = "ended"; this.wake(); }, { once: true });
+    });
   }
 
   // A stop or abort can arrive while the freeze request is in flight.
@@ -181,10 +210,10 @@ export class RunControl {
   }
 
   private finish(reason: "operator_stop" | "operator_abort", action: ControlAction, seq: number): void {
-    const wasPaused = this.current === "paused";
-    const paused = wasPaused ? this.closePause() : 0;
+    const wasPaused = this.pausedSince !== null;
+    const paused = this.closePause();
     this.current = "ended";
-    this.deps.record(wasPaused || action === "abort" ? { action, status: "applied", request: seq, paused_ms: paused } : { action, status: "applied", request: seq });
+    this.deps.record(wasPaused ? { action, status: "applied", request: seq, paused_ms: paused } : { action, status: "applied", request: seq });
     this.deps.end(reason);
     this.wake();
   }
@@ -217,7 +246,7 @@ export class BudgetTimer {
 
   private arm(): void {
     this.clear();
-    if (this.control.state === "paused" || this.control.state === "ended") return;
+    if (this.control.holding || this.control.state === "ended") return;
     this.timer = setTimeout(this.expire, Math.max(0, this.limitMs - (this.elapsed() - this.control.pausedMs())));
   }
 

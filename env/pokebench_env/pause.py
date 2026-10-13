@@ -1,8 +1,9 @@
 """Operator pause: hold the vendor frame loop between frames.
 
 The vendor game loop calls its module-level `step_environment` once per frame.
-Wrapping that name (vendor code unmodified) lets an operator pause freeze the
-emulator, its in-game clock and play time, while HTTP routes stay available.
+Wrapping that name (vendor code unmodified) lets an operator pause stop frame
+emulation, so play time and the screen hold, while HTTP routes stay available.
+The cartridge real-time clock follows host time and is not paused.
 """
 
 import threading

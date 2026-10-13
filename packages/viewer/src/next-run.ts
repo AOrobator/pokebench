@@ -4,7 +4,7 @@
 // appended to its runs/<id>/control.jsonl, which the agent polls.
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { appendFileSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Type, type Static } from "typebox";
 import { Value } from "typebox/value";
@@ -13,7 +13,7 @@ import { FeatureSetSchema, parsePlayPreset, type PlayPresetV2 } from "@pokebench
 import { controlLine, type ControlAction } from "@pokebench/agent/run-control";
 import { newRunId } from "@pokebench/agent/run";
 import { RUN_ID_PATTERN } from "@pokebench/agent/events";
-import { listRuns } from "./runs.js";
+import { listRuns, readStart } from "./runs.js";
 
 const positive = Type.Integer({ minimum: 1 });
 export const NextRunSchema = Type.Object({
@@ -27,8 +27,19 @@ export type NextRun = Static<typeof NextRunSchema>;
 
 export const DEFAULT_NEXT_RUN: NextRun = { model: "", thinking: "medium", maxTurns: 300, maxWallMs: 30 * 60_000, failureLimit: 3, maxTokens: 4096, target: null, features: { ...ALL_ON } };
 export const LEASE = ".naming-gameplay.lock";
-// A run without run_end whose log changed this recently is treated as live.
-export const LIVE_WINDOW_MS = 120_000;
+// Whether a run's own game server answers on 127.0.0.1:<port>.
+export type HealthProbe = (port: number) => Promise<boolean>;
+
+export function healthProbe(fetchFn: typeof fetch = fetch): HealthProbe {
+  return async (port) => {
+    try {
+      const response = await fetchFn(`http://127.0.0.1:${String(port)}/health`, { signal: AbortSignal.timeout(2_000) });
+      return response.ok;
+    } catch {
+      return false;
+    }
+  };
+}
 
 export class NextRunError extends Error {
   override readonly name = "NextRunError";
@@ -71,12 +82,22 @@ export function presetFor(draft: NextRun, runId: string): PlayPresetV2 {
   return preset;
 }
 
-export function liveRuns(runsRoot: string, nowMs: number): string[] {
-  return listRuns(runsRoot).filter((run) => !run.ended && run.problem === null && nowMs - statSync(join(runsRoot, run.id, "events.jsonl")).mtimeMs < LIVE_WINDOW_MS).map((run) => run.id);
+// A run is live while it has no run_end and its own game server is up: a long
+// model call or an operator pause writes nothing, so log age says nothing.
+export async function liveRuns(runsRoot: string, healthy: HealthProbe): Promise<string[]> {
+  const candidates = listRuns(runsRoot).filter((run) => !run.ended && run.problem === null);
+  const live = await Promise.all(candidates.map(async (run) => {
+    try {
+      return await healthy(readStart(runsRoot, run.id).isolation.port);
+    } catch {
+      return false;
+    }
+  }));
+  return candidates.filter((_, i) => live[i] === true).map((run) => run.id);
 }
 
-export function appendControl(runsRoot: string, runId: string, action: ControlAction, now: Date, nowMs = now.getTime()): number {
-  if (!new RegExp(RUN_ID_PATTERN).test(runId) || !liveRuns(runsRoot, nowMs).includes(runId)) throw new NextRunError(`run ${runId} is not live`);
+export async function appendControl(runsRoot: string, runId: string, action: ControlAction, now: Date, healthy: HealthProbe): Promise<number> {
+  if (!new RegExp(RUN_ID_PATTERN).test(runId) || !(await liveRuns(runsRoot, healthy)).includes(runId)) throw new NextRunError(`run ${runId} is not live`);
   const path = join(runsRoot, runId, "control.jsonl");
   const seq = existsSync(path) ? readFileSync(path, "utf8").split("\n").filter((line) => line !== "").length + 1 : 1;
   appendFileSync(path, `${controlLine(seq, action, now.toISOString())}\n`);
@@ -89,6 +110,7 @@ export interface QueueHost {
   readonly liveJs: string;
   readonly endpointFile: string | null;
   readonly gamePort: number;
+  healthy: HealthProbe;
   now(): Date;
   random(): string;
   launch(spec: LaunchSpec): Promise<number | null>;
@@ -133,7 +155,7 @@ export class RunQueue {
     if (this.queued === null || this.current.state !== "queued") return;
     const { runsRoot } = this.host;
     const lease = join(runsRoot, LEASE);
-    const live = liveRuns(runsRoot, this.host.now().getTime());
+    const live = await liveRuns(runsRoot, (port) => this.host.healthy(port));
     const waitingFor = existsSync(lease) ? "the gameplay lease (a benchmark cohort is running)" : live.length > 0 ? `live run ${live[0] ?? ""}` : null;
     if (waitingFor !== null) {
       this.current = { ...this.current, waitingFor };
@@ -175,7 +197,18 @@ export function spawnLaunch(spec: LaunchSpec, node = process.execPath): Promise<
   const inherited = { ...process.env };
   delete inherited["POKEBENCH_PLAY_PRESET"];
   return new Promise((resolve, reject) => {
-    const child = spawn(node, [...spec.argv], { env: { ...inherited, ...spec.env }, stdio: ["ignore", openSync(spec.stdout, "wx", 0o600), openSync(spec.stderr, "wx", 0o600)] });
+    const out = openSync(spec.stdout, "wx", 0o600);
+    let err: number;
+    try {
+      err = openSync(spec.stderr, "wx", 0o600);
+    } catch (error) {
+      closeSync(out);
+      throw error;
+    }
+    // The child holds its own copies; the parent closes its descriptors.
+    const child = spawn(node, [...spec.argv], { env: { ...inherited, ...spec.env }, stdio: ["ignore", out, err] });
+    closeSync(out);
+    closeSync(err);
     child.once("error", reject);
     child.once("exit", (code) => { resolve(code); });
   });

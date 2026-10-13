@@ -7,13 +7,13 @@ import { Log, START } from "../test-support/events.js";
 import { configOf, featureHistory, type RunConfig } from "./history.js";
 
 const off = (...ids: SwitchableFeature[]): FeatureSet => ({ ...ALL_ON, ...Object.fromEntries(ids.map((id) => [id, false])) });
-const DRAFT: RunConfig = { model: "qwen", thinking: "medium", maxTokens: 4096, maxTurns: 300, maxWallMs: 1_800_000, target: null, features: ALL_ON };
+const DRAFT: RunConfig = { model: "qwen", thinking: "medium", maxTokens: 4096, maxTurns: 300, maxWallMs: 1_800_000, failureLimit: 3, target: null, features: ALL_ON };
 
-interface Spec { features?: FeatureSet; model?: string; thinking?: string; reason?: string; milestones?: [string, number][]; pauses?: [number, number][]; ended?: boolean; harness?: string[]; boot?: boolean }
+interface Spec { failureLimit?: number; features?: FeatureSet; model?: string; thinking?: string; reason?: string; milestones?: [string, number][]; pauses?: [number, number][]; ended?: boolean; harness?: string[]; boot?: boolean }
 function run(root: string, id: string, spec: Spec): void {
   const log = new Log();
   const features = spec.features ?? ALL_ON;
-  log.add(0, { ...START, model: { ...START.model, id: spec.model ?? "qwen" }, sampling: { thinking_level: spec.thinking ?? "medium", max_tokens: 4096 }, budgets: { max_turns: 300, max_wall_ms: 1_800_000 }, harness_features: spec.harness ?? playHarnessFeatures(features, null), ...(spec.boot === false ? { start_state: { kind: "save_state", path: "/x.ss1", sha1: "0".repeat(40) } } : {}) });
+  log.add(0, { ...START, model: { ...START.model, id: spec.model ?? "qwen" }, sampling: { thinking_level: spec.thinking ?? "medium", max_tokens: 4096 }, budgets: { max_turns: 300, max_wall_ms: 1_800_000 }, harness_features: spec.harness ?? playHarnessFeatures(features, null), ...(spec.boot === false ? { start_state: { kind: "save_state", path: "/x.ss1", sha1: "0".repeat(40) } } : {}), ...(spec.failureLimit === undefined ? {} : { evaluation: { preset_id: "p", target: null, failure_limit: spec.failureLimit, flags: { loopGuard: true, activeUi: true, interfaceDocs: true, objectives: true } } }) });
   let request = 1;
   for (const [from, to] of spec.pauses ?? []) {
     log.add(from, { type: "operator_control", turn: 1, action: "pause", status: "applied", request: request++, emulator_frozen: true });
@@ -32,7 +32,7 @@ describe("strict per-feature history", () => {
     const log = new Log();
     const start = log.add(0, { ...START, model: { ...START.model, id: "qwen" }, harness_features: playHarnessFeatures(off("story-state-v1"), "RIVAL_MET"), evaluation: { preset_id: "p", target: "RIVAL_MET", failure_limit: 3, flags: { loopGuard: true, activeUi: true, interfaceDocs: true, objectives: true } } });
     if (start.type !== "run_start") throw new Error("fixture");
-    expect(configOf(start)).toEqual({ model: "qwen", thinking: "medium", maxTokens: 4096, maxTurns: 10, maxWallMs: 60_000, target: "RIVAL_MET", features: off("story-state-v1") });
+    expect(configOf(start)).toEqual({ model: "qwen", thinking: "medium", maxTokens: 4096, maxTurns: 10, maxWallMs: 60_000, failureLimit: 3, target: "RIVAL_MET", features: off("story-state-v1") });
     expect(configOf({ ...start, harness_features: [...start.harness_features, "something-new-v9"] })).toBeNull();
     expect(configOf({ ...start, harness_features: ["probe", ...start.harness_features] })).toBeNull();
   });
@@ -51,6 +51,7 @@ describe("strict per-feature history", () => {
     sorted(root, "aborted", { features: off("story-state-v1"), reason: "operator_abort", milestones: [["NEW_GAME_CREATED", 1]] });
     sorted(root, "live", { features: off("story-state-v1"), ended: false, milestones: [["NEW_GAME_CREATED", 1]] });
     sorted(root, "saved-start", { features: off("story-state-v1"), boot: false, milestones: [["NEW_GAME_CREATED", 1]] });
+    sorted(root, "other-failure-limit", { features: off("story-state-v1"), failureLimit: 10, milestones: [["NEW_GAME_CREATED", 1]] });
     const history = featureHistory(root, DRAFT);
     expect(history["story-state-v1"]).toEqual({
       on: { runs: 3, reached: { NEW_GAME_CREATED: 3, CLOCK_SET: 2 }, medianMs: { NEW_GAME_CREATED: 40_000, CLOCK_SET: 500_000 } },

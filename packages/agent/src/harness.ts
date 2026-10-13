@@ -172,7 +172,7 @@ export interface PiLoopOptions {
   readonly streamFn?: StreamFn;
   readonly loopDetector?: LoopDetector | undefined;
   // Awaited before every model call (operator pause).
-  readonly gate?: () => Promise<void>;
+  readonly gate?: (signal?: AbortSignal) => Promise<void>;
 }
 
 function abortedReply(model: Model<Api>): AssistantMessage {
@@ -198,8 +198,8 @@ export function piLoop(options: PiLoopOptions): Loop {
   const config: AgentLoopConfig = {
     ...options.base,
     toolExecution: "sequential",
-    transformContext: async (messages) => {
-      await options.gate?.();
+    transformContext: async (messages, loopSignal) => {
+      await options.gate?.(loopSignal ?? signal);
       const warning = options.loopDetector?.context();
       const context = slideWindow(messages);
       if (warning) context.push({role:"user",content:warning,timestamp:Date.now()});

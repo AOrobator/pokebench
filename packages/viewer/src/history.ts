@@ -11,6 +11,8 @@ export interface RunConfig {
   readonly maxTokens: number;
   readonly maxTurns: number | null;
   readonly maxWallMs: number | null;
+  // Runs without a preset used the play default of 3.
+  readonly failureLimit: number;
   readonly target: string | null;
   readonly features: FeatureSet;
 }
@@ -35,11 +37,11 @@ export function configOf(start: Start): RunConfig | null {
   const features = featuresOf(start.harness_features);
   const target = start.evaluation?.target ?? null;
   if (JSON.stringify(playHarnessFeatures(features, target)) !== JSON.stringify(start.harness_features)) return null;
-  return { model: start.model.id, thinking: start.sampling.thinking_level, maxTokens: start.sampling.max_tokens, maxTurns: start.budgets.max_turns ?? null, maxWallMs: start.budgets.max_wall_ms ?? null, target, features };
+  return { model: start.model.id, thinking: start.sampling.thinking_level, maxTokens: start.sampling.max_tokens, maxTurns: start.budgets.max_turns ?? null, maxWallMs: start.budgets.max_wall_ms ?? null, failureLimit: start.evaluation?.failure_limit ?? 3, target, features };
 }
 
 function sameExcept(a: RunConfig, b: RunConfig, feature: SwitchableFeature): boolean {
-  return a.model === b.model && a.thinking === b.thinking && a.maxTokens === b.maxTokens && a.maxTurns === b.maxTurns && a.maxWallMs === b.maxWallMs && a.target === b.target &&
+  return a.model === b.model && a.thinking === b.thinking && a.maxTokens === b.maxTokens && a.maxTurns === b.maxTurns && a.maxWallMs === b.maxWallMs && a.failureLimit === b.failureLimit && a.target === b.target &&
     SWITCHABLE_FEATURES.every((id) => id === feature || a.features[id] === b.features[id]);
 }
 

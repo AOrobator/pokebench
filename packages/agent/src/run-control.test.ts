@@ -76,7 +76,7 @@ describe("pause", () => {
 
   it("records a pause whose emulator freeze failed instead of pretending", async () => {
     const records: ControlBody[] = [];
-    const control = new RunControl({ record: (b) => { records.push(b); }, freeze: () => Promise.reject(new Error("down")), end: () => undefined, now: () => 0 });
+    const control = new RunControl({ record: (b) => { records.push(b); }, freeze: (paused) => paused ? Promise.reject(new Error("down")) : Promise.resolve(), end: () => undefined, now: () => 0 });
     control.apply(req(1, "pause"));
     const gate = control.gate();
     await vi.waitFor(() => { expect(records.at(-1)).toEqual({ action: "pause", status: "applied", request: 1, emulator_frozen: false }); });
@@ -148,11 +148,13 @@ describe("budget timer", () => {
       vi.advanceTimersByTime(4_000); elapsed = 4_000;
       h.control.apply(req(1, "pause"));
       void h.control.gate();
-      await Promise.resolve();
-      expect(h.control.state).toBe("paused");
+      for (let i = 0; i < 5; i += 1) await Promise.resolve();
+      expect(h.control.holding).toBe(true);
       h.advance(60_000); elapsed += 60_000; vi.advanceTimersByTime(60_000);
       expect(expired).not.toHaveBeenCalled();
       h.control.apply(req(2, "resume"));
+      for (let i = 0; i < 5; i += 1) await Promise.resolve();
+      expect(h.control.state).toBe("running");
       vi.advanceTimersByTime(5_999); elapsed += 5_999;
       expect(expired).not.toHaveBeenCalled();
       vi.advanceTimersByTime(1);
@@ -183,5 +185,88 @@ describe("game server and control file wiring", () => {
       appendFileSync(path, controlLine(1, "stop", "2026-10-13T15:00:00.000Z") + "\n");
       await vi.waitFor(() => { expect(h.control.state).toBe("stop_pending"); });
     } finally { stop(); }
+  });
+});
+
+describe("review round 1 behaviours", () => {
+  it("turns a stop during a pending pause into a stop at the end of this turn", async () => {
+    const h = harness();
+    h.control.apply(req(1, "pause"));
+    h.control.apply(req(2, "stop"));
+    expect(h.control.state).toBe("stop_pending");
+    await h.control.gate();
+    expect(h.frozen).toEqual([]);
+    expect(h.control.takeStop()).toBe(true);
+    expect(h.records.map((r) => [r.action, r.status])).toEqual([["pause", "pending"], ["stop", "pending"], ["stop", "applied"]]);
+  });
+
+  it("keeps the run paused and records a failed resume when the emulator does not unfreeze", async () => {
+    const records: ControlBody[] = [];
+    let unfreeze = false;
+    const control = new RunControl({ record: (b) => { records.push(b); }, freeze: (paused) => paused || unfreeze ? Promise.resolve() : Promise.reject(new Error("down")), end: () => undefined, now: () => 0 });
+    control.apply(req(1, "pause"));
+    let released = false;
+    const gate = control.gate().then(() => { released = true; });
+    await vi.waitFor(() => { expect(control.holding).toBe(true); });
+    control.apply(req(2, "resume"));
+    await vi.waitFor(() => { expect(records.at(-1)).toEqual({ action: "resume", status: "failed", request: 2, emulator_frozen: true }); });
+    expect(released).toBe(false);
+    expect(control.state).toBe("paused");
+    unfreeze = true;
+    control.apply(req(3, "resume"));
+    await gate;
+    expect(records.at(-1)).toMatchObject({ action: "resume", status: "applied", request: 3 });
+  });
+
+  it("ignores a second resume while the first is still unfreezing", async () => {
+    const h = harness();
+    h.control.apply(req(1, "pause"));
+    const gate = h.control.gate();
+    await vi.waitFor(() => { expect(h.control.holding).toBe(true); });
+    h.control.apply(req(2, "resume"));
+    h.control.apply(req(3, "resume"));
+    await gate;
+    expect(h.records.filter((r) => r.action === "resume").map((r) => [r.request, r.status])).toEqual([[3, "ignored"], [2, "applied"]]);
+  });
+
+  it("starts counting paused time once the emulator freeze has been answered", async () => {
+    let now = 0;
+    let answer: () => void = () => undefined;
+    const records: ControlBody[] = [];
+    const control = new RunControl({ record: (b) => { records.push(b); }, freeze: (paused) => paused ? new Promise((resolve) => { answer = resolve; }) : Promise.resolve(), end: () => undefined, now: () => now });
+    control.apply(req(1, "pause"));
+    const gate = control.gate();
+    now = 5_000;
+    expect(control.pausedMs()).toBe(0);
+    answer();
+    await vi.waitFor(() => { expect(control.holding).toBe(true); });
+    now = 8_000;
+    control.apply(req(2, "resume"));
+    await gate;
+    expect(records.at(-1)).toEqual({ action: "resume", status: "applied", request: 2, paused_ms: 3_000 });
+  });
+
+  it("is released by the run's abort signal while paused", async () => {
+    const h = harness();
+    const controller = new AbortController();
+    h.control.apply(req(1, "pause"));
+    const gate = h.control.gate(controller.signal);
+    await vi.waitFor(() => { expect(h.control.holding).toBe(true); });
+    h.advance(1_000);
+    controller.abort();
+    await gate;
+    expect(h.control.state).toBe("ended");
+    expect(h.control.pausedMs()).toBe(1_000);
+    const late = harness();
+    late.control.apply(req(1, "pause"));
+    const aborted = new AbortController(); aborted.abort();
+    await late.control.gate(aborted.signal);
+    expect(late.records.map((r) => r.status)).toEqual(["pending"]);
+  });
+
+  it("records no paused time for an abort or stop that was never paused", () => {
+    const h = harness();
+    h.control.apply(req(1, "abort"));
+    expect(h.records).toEqual([{ action: "abort", status: "applied", request: 1 }]);
   });
 });

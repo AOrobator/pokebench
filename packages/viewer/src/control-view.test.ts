@@ -73,3 +73,15 @@ it("closes an open pause when the run ends without an operator event", () => {
   expect(view.control.pauses).toEqual([{ startMs: BASE_MS + 1_000, endMs: BASE_MS + 4_000 }]);
   expect(view.control.pausedMs(BASE_MS + 60_000)).toBe(3_000);
 });
+
+it("keeps a run paused and flags a failed resume", () => {
+  const log = new Log();
+  log.add(0, START);
+  log.add(1_000, { type: "operator_control", turn: 1, action: "pause", status: "applied", request: 1, emulator_frozen: true });
+  const failed = log.add(2_000, { type: "operator_control", turn: 1, action: "resume", status: "failed", request: 2, emulator_frozen: true });
+  const view = fold(log);
+  expect(view.control.state).toBe("paused");
+  const row = actionRow(failed, view);
+  expect(row).toContain("resume FAILED · emulator still frozen; the run stays paused");
+  expect(row).toContain("ev-error");
+});

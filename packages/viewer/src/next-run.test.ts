@@ -1,20 +1,22 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, utimesSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { ALL_ON } from "@pokebench/agent/features";
 import { Log, START } from "../test-support/events.js";
-import { DEFAULT_NEXT_RUN, LEASE, NextRunError, RunQueue, appendControl, liveRuns, presetFor, readDraft, spawnLaunch, writeDraft, type LaunchSpec, type QueueHost } from "./next-run.js";
+import { DEFAULT_NEXT_RUN, LEASE, NextRunError, RunQueue, appendControl, healthProbe, liveRuns, presetFor, readDraft, spawnLaunch, writeDraft, type LaunchSpec, type QueueHost } from "./next-run.js";
 
 const NOW = new Date("2026-10-13T16:00:00.000Z");
 function root(): string { return mkdtempSync(join(tmpdir(), "next-run-")); }
-function liveRun(runsRoot: string, id: string, ended = false, ageMs = 0): void {
-  const log = new Log(); log.add(0, START);
-  if (ended) log.add(1, { type: "run_end", turn: 0, reason: "budget", furthest_milestone: null, turns: 0, wall_ms: 1, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } });
+// Game servers that answer /health in these tests.
+const UP = new Set([9001, 9003]);
+const healthy = (port: number): Promise<boolean> => Promise.resolve(UP.has(port));
+function liveRun(runsRoot: string, id: string, ended = false, port = 9001, tail: "none" | "paused" = "none"): void {
+  const log = new Log(); log.add(0, { ...START, isolation: { ...START.isolation, port } });
+  if (tail === "paused") log.add(1, { type: "operator_control", turn: 0, action: "pause", status: "applied", request: 1, emulator_frozen: true });
+  if (ended) log.add(2, { type: "run_end", turn: 0, reason: "budget", furthest_milestone: null, turns: 0, wall_ms: 1, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } });
   mkdirSync(join(runsRoot, id), { recursive: true });
-  const path = join(runsRoot, id, "events.jsonl");
-  writeFileSync(path, log.events.map((e) => JSON.stringify({ ...e, run: id })).join("\n") + "\n");
-  const t = (NOW.getTime() - ageMs) / 1000; utimesSync(path, t, t);
+  writeFileSync(join(runsRoot, id, "events.jsonl"), log.events.map((e) => JSON.stringify({ ...e, run: id })).join("\n") + "\n");
 }
 const draft = { ...DEFAULT_NEXT_RUN, model: "Qwen3.8-Flash" };
 
@@ -36,23 +38,36 @@ describe("next-run draft", () => {
 });
 
 describe("operator control requests", () => {
-  it("appends numbered requests only for a live run", () => {
+  it("appends numbered requests only while the run's own game server is up, however long its log has been silent", async () => {
     const runsRoot = root();
     liveRun(runsRoot, "live-run");
+    liveRun(runsRoot, "paused-run", false, 9003, "paused");
     liveRun(runsRoot, "ended-run", true);
-    liveRun(runsRoot, "stale-run", false, 10 * 60_000);
-    expect(liveRuns(runsRoot, NOW.getTime())).toEqual(["live-run"]);
-    expect(appendControl(runsRoot, "live-run", "pause", NOW)).toBe(1);
-    expect(appendControl(runsRoot, "live-run", "resume", NOW)).toBe(2);
+    liveRun(runsRoot, "dead-run", false, 9002);
+    expect(await liveRuns(runsRoot, healthy)).toEqual(["paused-run", "live-run"]);
+    expect(await appendControl(runsRoot, "live-run", "pause", NOW, healthy)).toBe(1);
+    expect(await appendControl(runsRoot, "live-run", "resume", NOW, healthy)).toBe(2);
+    expect(await appendControl(runsRoot, "paused-run", "resume", NOW, healthy)).toBe(1);
     expect(readFileSync(join(runsRoot, "live-run", "control.jsonl"), "utf8")).toBe('{"v":1,"seq":1,"at":"2026-10-13T16:00:00.000Z","action":"pause"}\n{"v":1,"seq":2,"at":"2026-10-13T16:00:00.000Z","action":"resume"}\n');
-    for (const id of ["ended-run", "stale-run", "missing", "../escape"]) expect(() => appendControl(runsRoot, id, "stop", NOW)).toThrow(/not live/);
+    for (const id of ["ended-run", "dead-run", "missing", "../escape"]) await expect(appendControl(runsRoot, id, "stop", NOW, healthy)).rejects.toThrow(/not live/);
+    mkdirSync(join(runsRoot, "unreadable"));
+    writeFileSync(join(runsRoot, "unreadable", "events.jsonl"), "");
+    expect(await liveRuns(runsRoot, () => Promise.reject(new Error("probe failed")))).toEqual([]);
+  });
+
+  it("asks the run's game server for /health on loopback", async () => {
+    const seen: string[] = [];
+    const probe = healthProbe((input) => { seen.push(typeof input === "string" ? input : ""); return Promise.resolve(new Response("{}", { status: seen.length === 1 ? 200 : 503 })); });
+    expect([await probe(9001), await probe(9002)]).toEqual([true, false]);
+    expect(seen).toEqual(["http://127.0.0.1:9001/health", "http://127.0.0.1:9002/health"]);
+    expect(await healthProbe(() => Promise.reject(new Error("refused")))(9003)).toBe(false);
   });
 });
 
 function host(runsRoot: string, endpointFile: string | null = "/tmp/endpoint.json") {
   const launches: LaunchSpec[] = [];
   let finish: (code: number | null) => void = () => undefined;
-  const h: QueueHost = { runsRoot, liveJs: "/repo/packages/agent/dist/live.js", endpointFile, gamePort: 8076, now: () => NOW, random: () => "ab12",
+  const h: QueueHost = { runsRoot, liveJs: "/repo/packages/agent/dist/live.js", endpointFile, gamePort: 8076, healthy, now: () => NOW, random: () => "ab12",
     launch: (spec) => { launches.push(spec); expect(existsSync(join(runsRoot, LEASE, "owner.json"))).toBe(true); return new Promise((resolve) => { finish = resolve; }); } };
   return { h, launches, finish: (code: number | null) => { finish(code); } };
 }
@@ -73,8 +88,7 @@ describe("run queue", () => {
     expect(() => queue.enqueue(draft)).not.toThrow();
     const { rmSync } = await import("node:fs"); rmSync(join(runsRoot, LEASE), { recursive: true });
     const running = queue.tick();
-    await Promise.resolve();
-    expect(queue.status()).toEqual({ state: "running", runId: "2026-10-13T12-00-00_Qwen3.8-Flash_ab12" });
+    await vi.waitFor(() => { expect(queue.status()).toEqual({ state: "running", runId: "2026-10-13T12-00-00_Qwen3.8-Flash_ab12" }); });
     expect(() => queue.enqueue(draft)).toThrow(/already launching or running/);
     expect(launches).toHaveLength(1);
     const [spec] = launches;
@@ -89,11 +103,11 @@ describe("run queue", () => {
 
   it("reports a failed launch and still releases the lease", async () => {
     const runsRoot = root();
-    const { h, finish } = host(runsRoot);
+    const { h, finish, launches } = host(runsRoot);
     const queue = new RunQueue(h);
     queue.enqueue(draft);
     const running = queue.tick();
-    await Promise.resolve();
+    await vi.waitFor(() => { expect(launches).toHaveLength(1); });
     finish(1);
     await running;
     const status = queue.status();
@@ -125,7 +139,7 @@ describe("run queue edge cases", () => {
   it("records a launch killed by a signal and a launch that throws, releasing the lease each time", async () => {
     for (const outcome of ["signal", "throw"] as const) {
       const runsRoot = root();
-      const queue = new RunQueue({ runsRoot, liveJs: "/l.js", endpointFile: "/e.json", gamePort: 8076, now: () => NOW, random: () => "ee55", launch: () => outcome === "signal" ? Promise.resolve(null) : Promise.reject(new Error("spawn failed")) });
+      const queue = new RunQueue({ runsRoot, liveJs: "/l.js", endpointFile: "/e.json", gamePort: 8076, healthy, now: () => NOW, random: () => "ee55", launch: () => outcome === "signal" ? Promise.resolve(null) : Promise.reject(new Error("spawn failed")) });
       queue.enqueue(draft);
       await queue.tick();
       const status = queue.status();

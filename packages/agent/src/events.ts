@@ -254,7 +254,7 @@ const RunEnd = event("run_end", {
 export const CONTROL_ACTIONS = ["pause", "resume", "stop", "cancel_stop", "abort"] as const;
 const OperatorControl = event("operator_control", {
   action: Type.Enum(CONTROL_ACTIONS),
-  status: Type.Enum(["pending", "applied", "ignored"] as const),
+  status: Type.Enum(["pending", "applied", "ignored", "failed"] as const),
   request: Type.Integer({ minimum: 1 }),
   paused_ms: Type.Optional(NonNegativeInt),
   emulator_frozen: Type.Optional(Type.Boolean()),

@@ -241,6 +241,9 @@ export class App {
     });
     for (const type of ["pointerup", "pointerleave", "pointercancel"]) controls.addEventListener(type, () => { if (this.holdStart !== null) this.releaseAbort(); });
     for (const type of ["keydown", "keyup"]) this.doc.addEventListener(type, (event) => { if (this.key(event as KeyboardEvent)) event.preventDefault(); });
+    // A hold that loses focus never sees its keyup; never let it complete an abort.
+    this.doc.addEventListener("visibilitychange", () => { if (this.holdStart !== null) this.releaseAbort(); });
+    this.doc.defaultView?.addEventListener("blur", () => { if (this.holdStart !== null) this.releaseAbort(); });
     for (const button of this.doc.querySelectorAll<HTMLButtonElement>("[data-page]")) {
       button.addEventListener("click", () => { this.showPage(button.dataset.page ?? "trainer"); });
     }

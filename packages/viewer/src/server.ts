@@ -9,7 +9,7 @@ import { CONTROL_ACTIONS } from "@pokebench/agent/events";
 import { BaselineError, RunsError, baselineOf, comparisonsOf, eventsPath, listRuns, liveScreenPort, readFrom, runDir } from "./runs.js";
 import { featureHistory } from "./history.js";
 import { localModels } from "./models.js";
-import { NextRunError, appendControl, readDraft, writeDraft, type RunQueue } from "./next-run.js";
+import { NextRunError, appendControl, healthProbe, readDraft, writeDraft, type RunQueue } from "./next-run.js";
 import { MILESTONE_ORDER } from "./model.js";
 
 export const HOST = "127.0.0.1";
@@ -53,9 +53,9 @@ class RequestError extends Error {
 }
 
 // Writes come only from this page: same origin, JSON body, bounded size.
-async function jsonBody(req: IncomingMessage, port: number): Promise<unknown> {
-  const origin = req.headers.origin;
-  if (origin !== `http://${HOST}:${String(port)}` && origin !== `http://localhost:${String(port)}`) throw new RequestError(403, "writes are accepted only from the viewer page");
+async function jsonBody(req: IncomingMessage): Promise<unknown> {
+  // The page's origin is exactly the host it was served from (already allowlisted).
+  if (req.headers.origin !== `http://${req.headers.host ?? ""}`) throw new RequestError(403, "writes are accepted only from the viewer page");
   if (req.headers["content-type"]?.split(";")[0]?.trim() !== "application/json") throw new RequestError(415, "send application/json");
   const chunks: Buffer[] = [];
   let size = 0;
@@ -76,10 +76,10 @@ async function write(req: IncomingMessage, res: ServerResponse, options: ViewerO
   const [, second, id, leaf] = parts;
   const now = options.now?.() ?? new Date();
   try {
-    const body = await jsonBody(req, port);
+    const body = await jsonBody(req);
     if (req.method === "POST" && parts.length === 4 && second === "runs" && id !== undefined && leaf === "control") {
       if (!Value.Check(ControlBodySchema, body)) throw new RequestError(400, "action must be pause, resume, stop, cancel_stop or abort");
-      sendJson(res, 200, { request: appendControl(options.runsRoot, id, body.action, now) });
+      sendJson(res, 200, { request: await appendControl(options.runsRoot, id, body.action, now, healthProbe(options.fetchFn ?? fetch)) });
       return;
     }
     if (req.method === "PUT" && parts.length === 2 && second === "next-run") {
@@ -221,7 +221,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     return;
   }
   if (parts.length === 3 && head === "api" && second === "features" && id === "history") {
-    sendJson(res, 200, featureHistory(options.runsRoot, (({ model, thinking, maxTokens, maxTurns, maxWallMs, target, features }) => ({ model, thinking, maxTokens, maxTurns, maxWallMs, target, features }))(readDraft(options.runsRoot))));
+    sendJson(res, 200, featureHistory(options.runsRoot, (({ model, thinking, maxTokens, maxTurns, maxWallMs, failureLimit, target, features }) => ({ model, thinking, maxTokens, maxTurns, maxWallMs, failureLimit, target, features }))(readDraft(options.runsRoot))));
     return;
   }
   if (parts.length === 2 && head === "api" && second === "next-run") {
@@ -308,8 +308,13 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
 
 export async function startViewer(options: ViewerOptions): Promise<Viewer> {
   let port = 0;
+  // A failing request (a client that disconnects mid-body, a file error) must
+  // never take the viewer and its queue down.
   const server = createServer((req, res) => {
-    void route(req, res, options, port);
+    route(req, res, options, port).catch((error: unknown) => {
+      if (res.headersSent || res.destroyed) res.destroy();
+      else sendJson(res, 500, { error: error instanceof Error ? error.message : String(error) });
+    });
   });
   const queue = options.queue;
   const ticker = queue === undefined ? null : setInterval(() => { void queue.tick(); }, 1_000);

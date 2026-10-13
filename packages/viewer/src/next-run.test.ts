@@ -206,3 +206,11 @@ describe("queue ticks that overlap", () => {
     expect(launches).toEqual([]);
   });
 });
+
+it("refuses a control request for a run that ended while its server was probed", async () => {
+  const runsRoot = root();
+  liveRun(runsRoot, "ending", false, 9001);
+  const probe = async (port: number): Promise<boolean> => { liveRun(runsRoot, "ending", true, 9001); return healthy(port); };
+  await expect(appendControl(runsRoot, "ending", "stop", NOW, probe)).rejects.toThrow(/not live/);
+  expect(existsSync(join(runsRoot, "ending", "control.jsonl"))).toBe(false);
+});

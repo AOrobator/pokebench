@@ -95,7 +95,8 @@ async function write(req: IncomingMessage, res: ServerResponse, options: ViewerO
       const draft = writeDraft(options.runsRoot, body);
       if (options.endpointFile === undefined || options.endpointFile === null) throw new NextRunError("the viewer was started without a local model endpoint file");
       const served = await localModels(options.endpointFile, options.fetchFn ?? fetch);
-      if (!served.some((m) => m.id === draft.model && m.vision)) throw new NextRunError(`model ${draft.model} is not a vision model served by the local router`);
+      // The play run accepts only loaded vision models with a known context size.
+      if (!served.some((m) => m.id === draft.model && m.vision && m.status === "loaded" && m.contextWindow !== null)) throw new NextRunError(`model ${draft.model} is not a loaded vision model on the local router`);
       sendJson(res, 200, { queue: options.queue.enqueue(draft) });
       return;
     }

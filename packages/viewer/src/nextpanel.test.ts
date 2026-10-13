@@ -106,3 +106,22 @@ describe("next-run panel", () => {
     expect(p.draft).toMatchObject({ model: "think-swarm", target: "RIVAL_MET", failureLimit: 5, maxTurns: 300, maxWallMs: 1_800_000, features: { "press-result-v1": false, "story-state-v1": true } });
   });
 });
+
+it("locks the next-run settings while a queued run waits, and unlocks on cancel", async () => {
+  const { panel: p } = panel({ ...ok, "/api/models": { models: [{ id: "Qwen", status: "loaded", vision: true, contextWindow: 262144 }] } }, (_m, url, body) => Promise.resolve(url === "/api/next-run/queue" ? { queue: { state: "queued", runId: "r", waitingFor: "live run x" } } : url === "/api/next-run/cancel" ? { queue: { state: "idle" } } : { draft: body, queue: { state: "idle" } }));
+  await p.load();
+  p.toggle("story-state-v1", false);
+  await vi.waitFor(() => { expect(p.draft?.features["story-state-v1"]).toBe(false); });
+  const model = ui("next-model") as HTMLSelectElement;
+  model.value = "Qwen"; model.dispatchEvent(new Event("change"));
+  await vi.waitFor(() => { expect(p.draft?.model).toBe("Qwen"); });
+  await p.queueRun();
+  expect((ui("next-max-turns") as HTMLInputElement).disabled).toBe(true);
+  expect((ui("next-copy") as HTMLButtonElement).disabled).toBe(true);
+  expect((ui("next-queue") as HTMLButtonElement).disabled).toBe(true);
+  expect(ui("switchboard").querySelectorAll("input[data-feature]:not([disabled])")).toHaveLength(0);
+  expect(ui("next-note").textContent).toContain("Cancel it to edit");
+  await p.cancel();
+  expect((ui("next-max-turns") as HTMLInputElement).disabled).toBe(false);
+  expect(ui("switchboard").querySelectorAll("input[data-feature]:not([disabled])").length).toBeGreaterThan(10);
+});

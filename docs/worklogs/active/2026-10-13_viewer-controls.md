@@ -157,6 +157,20 @@ Done when: all milestones green with reviews LGTM, landed on local main (if the 
 - Fix gates: agent 648, viewer 233, python 441 pass; coverage agent 98.9/93.91/98.37, viewer 98.4/91.66/96.93, python 99.41/97.30/100. Guard receipts `m23-fix2-guards/01..08`: 7 red then green; 02 unexpectedly passed (the operand was redundant because cancel always clears the entry) — retained, and the redundant operand was removed instead of adding a contrived test.
 - Process: two complete M2+M3 rounds with new blockers → operator scope confirmation needed before round 3 (requested together with M1 round 3).
 
+- COMMIT: `fix(viewer): single-flight queue, router-only models and unresponsive runs` (ec5ca80).
+
+**Operator decisions (2026-10-13T16:17Z):** "go round 3, take the lease, dont use local reviews cuz they're noisy, then land your work". think_fast/think_swarm are waived by the operator for the remaining rounds (not a self-issued waiver). The roster for rounds 3+ is Codex GPT, Grok and the two Claude-family fallback subagents.
+
+**M5 real-emulator proof** (under the gameplay lease, no model calls; lease released after each): `runs/launch-receipts/viewer-controls/pause-proof/proof.json` (ec5ca80 tree) and `proof-r4.json` (round-4 tree with the park barrier). Both report: running frames change; frames frozen while paused; a START pressed while paused stays queued; it drains after resume and frames change again; a malformed pause body gets 422.
+
+**Landing preparation:** main had advanced to 5300d02 (story fixes landed by another session). The branch was rebased in a separate worktree (`../viewer-controls-land`, branch `viewer-controls-land`) with a plain `git rebase 5300d02` (no conflicts; an earlier attempt that passed a hooks override was discarded and redone plainly; rebase does not run commit hooks). Gates on the rebased tree initially failed `tsc --noEmit` in the viewer: after the round-3 guard run I removed a redundant queue-state check, which broke the type narrowing of the waiting status; I had run eslint and tests but not the full lint recipe, so the round-3 proof's "gates green" claim was wrong for ec5ca80. Fixed in the round-4 batch.
+
+**M1 round 3** (811fb45..3fd8b80, sha256 6c6847af…f2152; `m1-review-r3/`): Grok LGTM, Codex LGTM, Claude-fallback A BLOCKING (field lock still distinguishable through objective attempt labels), Claude-fallback B BLOCKING (RAM-off description false while interface docs mention readouts). Both reviewers offered copy fixes; accepted as copy: the ram-state, field-control-lock and position descriptions now state the remaining channels (interface docs mention readouts; attempts while locked are labelled unavailable; the prompt's tool summary mentions coordinates; the repeat guard warns on returning to a tile).
+
+**M2+M3 round 3** (a719d19..ec5ca80, sha256 d6b6890c…ebd6d; `m23-review-r3/`): Claude-fallback A LGTM, Claude-fallback B LGTM, Grok BLOCKING, Codex BLOCKING. Accepted: a resume held during the freeze vanished from the log if the run ended first (Grok) → recorded as ignored; the pause was confirmed before the in-flight frame finished (Codex) → the endpoint confirms only once the frame loop is parked (503 if it does not park); a control could be accepted for a run that ended during the probe (Codex) → re-checked after the probe; editing the draft after queueing did not change the queued run (Codex) → settings and switches are locked while a run is queued (cancel to edit); the queue accepted unloaded or context-less router models the play run rejects (Codex) → only loaded vision models with a context size.
+
+**Round-4 batch** (on `viewer-controls-land`): the fixes above plus the tsc fix. Gates: agent 649, viewer 235, python 483 pass; lint, build, verify-vendor OK; coverage agent 98.9/93.96/98.37, viewer 98.4/91.7/96.93, python 99.41/97.33/100. Guard receipts `r4-guards/01..06` red then green. Round 4 review waits for operator confirmation (requested).
+
 ## Boy Scout Log
 
 (none yet)

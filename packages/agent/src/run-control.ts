@@ -199,6 +199,7 @@ export class RunControl {
       frozen = false;
     }
     if (signal?.aborted === true) {
+      this.dropDeferredResume();
       this.current = "ended";
       return;
     }
@@ -224,13 +225,19 @@ export class RunControl {
   }
 
   private finish(reason: "operator_stop" | "operator_abort", action: ControlAction, seq: number): void {
-    this.deferredResume = null;
+    this.dropDeferredResume();
     const wasPaused = this.pausedSince !== null;
     const paused = this.closePause();
     this.current = "ended";
     this.deps.record(wasPaused ? { action, status: "applied", request: seq, paused_ms: paused } : { action, status: "applied", request: seq });
     this.deps.end(reason);
     this.wake();
+  }
+
+  // A resume held during the freeze that never applies is still recorded.
+  private dropDeferredResume(): void {
+    if (this.deferredResume !== null) this.deps.record({ action: "resume", status: "ignored", request: this.deferredResume });
+    this.deferredResume = null;
   }
 
   private closePause(): number {

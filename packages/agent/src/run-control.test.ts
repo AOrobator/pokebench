@@ -310,3 +310,26 @@ describe("review round 2 behaviours", () => {
     expect(control.state).toBe("ended");
   });
 });
+
+describe("review round 3 behaviours", () => {
+  it("records a resume held during the freeze as ignored when the run ends first", async () => {
+    let answer: () => void = () => undefined;
+    const records: ControlBody[] = [];
+    const control = new RunControl({ record: (b) => { records.push(b); }, freeze: (paused) => paused ? new Promise((resolve) => { answer = resolve; }) : Promise.resolve(), end: () => undefined, now: () => 0 });
+    control.apply(req(1, "pause"));
+    const gate = control.gate();
+    control.apply(req(2, "resume"));
+    control.apply(req(3, "stop"));
+    answer();
+    await gate;
+    expect(records.map((r) => [r.action, r.status, r.request])).toEqual([["pause", "pending", 1], ["resume", "ignored", 2], ["stop", "applied", 3]]);
+    const aborted = new AbortController();
+    const signalled: ControlBody[] = [];
+    const other = new RunControl({ record: (b) => { signalled.push(b); }, freeze: () => { aborted.abort(); return Promise.resolve(); }, end: () => undefined, now: () => 0 });
+    other.apply(req(1, "pause"));
+    const held = other.gate(aborted.signal);
+    other.apply(req(2, "resume"));
+    await held;
+    expect(signalled.map((r) => [r.action, r.status, r.request])).toEqual([["pause", "pending", 1], ["resume", "ignored", 2]]);
+  });
+});

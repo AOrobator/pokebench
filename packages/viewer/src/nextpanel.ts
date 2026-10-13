@@ -254,10 +254,15 @@ export class NextRunPanel {
     const targets = `<option value=""${draft.target === null ? " selected" : ""}>NONE (play to budget)</option>${TARGETS.map((t) => `<option value="${t}"${t === draft.target ? " selected" : ""}>${t}</option>`).join("")}`;
     if (target.innerHTML !== targets) target.innerHTML = targets;
     target.value = draft.target ?? "";
-    this.setHtml("switchboard", switchboard({ features: this.registry, draft, live: this.live, history: this.history, expanded: this.expanded }));
+    const locked = this.queue.state === "queued" || this.queue.state === "launching";
+    this.setHtml("switchboard", switchboard({ features: this.registry, draft, live: this.live, history: this.history, expanded: this.expanded, locked }));
+    // The queued run launches with the settings it was queued with: editing is
+    // locked until it is cancelled or has launched.
+    for (const input of this.doc.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLButtonElement>('.next-left input, .next-left select, .next-left [data-level], [data-ui="next-copy"], [data-ui="next-reset"]')) input.disabled = locked;
+    if (locked) this.setHtml("next-note", "<span>The queued run will use these settings. Cancel it to edit the next run.</span>");
     this.ui("next-queue-status").innerHTML = queueText(this.queue);
     const queueButton = this.ui("next-queue") as HTMLButtonElement;
-    queueButton.disabled = draft.model === "" || this.queue.state === "launching" || this.queue.state === "running";
+    queueButton.disabled = draft.model === "" || this.queue.state === "queued" || this.queue.state === "launching" || this.queue.state === "running";
     queueButton.textContent = this.live === null ? "▶ START NEXT RUN" : "▶ START WHEN LIVE RUN ENDS";
     this.ui("next-cancel").hidden = this.queue.state !== "queued";
   }

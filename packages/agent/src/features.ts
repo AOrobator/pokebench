@@ -60,11 +60,11 @@ function measured(id: MeasurementFeature, title: string, description: string): F
 
 export const FEATURES: readonly FeatureInfo[] = [
   on("ram-state-v1", "observation", "RAM GAME-STATE READOUT", null,
-    "Reads the game's memory every observation and adds a text readout beside the screenshot: screen, on-screen dialog, menu, player name, location, party, money, badges, battle and play time. Off: observe and press return only the screenshot, and the system prompt and tool descriptions no longer promise a readout."),
+    "Reads the game's memory every observation and adds a text readout beside the screenshot: screen, on-screen dialog, menu, player name, location, party, money, badges, battle and play time. Off: observe and press return only the screenshot, and the system prompt's tool lines and the tool descriptions no longer promise a readout; interface docs, if on, still mention readouts."),
   on("live-map-v1", "observation", "LIVE MAP", RAM,
     "Draws the tiles within 7 steps of the player from live memory as a text grid (@ player, N object, W warp, # collision, g grass, ~ water) with nearby objects and warp destinations. Off: no map; the model judges walkable space from the screenshot. The system prompt's tool summary still mentions a map."),
   on("live-player-position-v1", "observation", "PLAYER POSITION", RAM,
-    "Adds the player's X,Y tile and facing, read from the live player object rather than the save block, which only updates on warps. Off: the Position line is dropped, and press results and the objective record leave coordinates and facing out; the map, if on, still marks the player with @ on its coordinate grid."),
+    "Adds the player's X,Y tile and facing, read from the live player object rather than the save block, which only updates on warps. Off: the Position line is dropped, and press results and the objective record leave coordinates and facing out; the map, if on, still marks the player with @ on its coordinate grid, the system prompt's tool summary still mentions coordinates, and the repeat-attempt guard still warns on returning to the same tile."),
   on("world-coordinate-grid-v1", "observation", "COORDINATE GRID", "live-map-v1",
     "Labels the map's rows and columns with the world coordinates that positions and targets use, so 'door at 5,1' can be found on the grid. Off: map rows are printed unlabeled."),
   on("live-object-sprites-v1", "observation", "NPCS + OBJECTS", RAM,
@@ -86,7 +86,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("press-result-v1", "guidance", "PRESS RESULTS", RAM,
     "After each press, adds one line comparing the game state before and after: moved, turned, changed map or screen, interface changed, controls locked, or blocked. Off: the model compares screenshots itself, though objective tracking, if on, still labels each attempt moved, turned, progress, no change or unavailable."),
   on("field-control-lock", "guidance", "FIELD CONTROL LOCK", RAM,
-    "Says whether a dialog, menu or script has locked field controls, so direction presses cannot walk. Off: the line is dropped, press results no longer say locked, and the objective record leaves it out; a blocked press looks like walking into a wall."),
+    "Says whether a dialog, menu or script has locked field controls, so direction presses cannot walk. Off: the line is dropped, press results no longer say locked, and the objective record's evidence leaves it out; a blocked press looks like walking into a wall. Objective tracking, if on, still labels a press made while locked as unavailable rather than no change."),
   on("warp-activation-guidance-v1", "guidance", "WARP GUIDANCE", "live-map-v1",
     "Annotates each nearby warp with how it activates (step on, directional exit, door) from its tile behavior, and adds a paragraph on warps to the system prompt. Off: warps are listed without activation and the paragraph is removed."),
   on("deterministic-loop-guard-v1", "guard", "LOOP GUARD", null,

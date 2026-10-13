@@ -50,20 +50,48 @@ def server_module() -> tuple[types.SimpleNamespace, list[list[str]]]:
     return module, stepped
 
 
-def test_pause_holds_the_next_frame_until_resume() -> None:
+def frame_loop(module: types.SimpleNamespace, stop: threading.Event) -> threading.Thread:
+    def run() -> None:
+        while not stop.is_set():
+            module.step_environment([])
+
+    thread = threading.Thread(target=run, daemon=True)
+    thread.start()
+    return thread
+
+
+def test_pause_is_confirmed_only_once_the_frame_loop_is_parked() -> None:
     app = FastAPI()
     module, stepped = server_module()
     install_pause(app, module)
-    module.step_environment(["A"])
-    assert stepped == [["A"]]
-    assert post(app, "/pokebench/pause", b'{"paused": true}') == (200, b'{"paused":true}')
+    stop = threading.Event()
+    loop = frame_loop(module, stop)
+    try:
+        assert post(app, "/pokebench/pause", b'{"paused": true}') == (200, b'{"paused":true}')
+        frozen = len(stepped)
+        loop.join(0.2)
+        assert len(stepped) == frozen
+        assert post(app, "/pokebench/pause", b'{"paused": false}') == (200, b'{"paused":false}')
+        loop.join(0.1)
+        assert len(stepped) > frozen
+    finally:
+        stop.set()
+        loop.join(2)
+
+
+def test_pause_without_a_running_frame_loop_is_not_confirmed() -> None:
+    app = FastAPI()
+    module, stepped = server_module()
+    install_pause(app, module, park_timeout_s=0.05)
+    status, body = post(app, "/pokebench/pause", b'{"paused": true}')
+    assert status == 503 and b"did not park" in body
     worker = threading.Thread(target=module.step_environment, args=([],))
     worker.start()
     worker.join(0.2)
-    assert worker.is_alive() and stepped == [["A"]]
+    assert worker.is_alive() and stepped == []
     assert post(app, "/pokebench/pause", b'{"paused": false}') == (200, b'{"paused":false}')
     worker.join(2)
-    assert not worker.is_alive() and stepped == [["A"], []]
+    assert not worker.is_alive() and stepped == [[]]
 
 
 def test_pause_requests_are_typed() -> None:

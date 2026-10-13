@@ -98,6 +98,8 @@ export async function liveRuns(runsRoot: string, healthy: HealthProbe): Promise<
 
 export async function appendControl(runsRoot: string, runId: string, action: ControlAction, now: Date, healthy: HealthProbe): Promise<number> {
   if (!new RegExp(RUN_ID_PATTERN).test(runId) || !(await liveRuns(runsRoot, healthy)).includes(runId)) throw new NextRunError(`run ${runId} is not live`);
+  // The run may have ended while its game server was being probed.
+  if (listRuns(runsRoot).find((run) => run.id === runId)?.ended !== false) throw new NextRunError(`run ${runId} is not live`);
   const path = join(runsRoot, runId, "control.jsonl");
   const seq = existsSync(path) ? readFileSync(path, "utf8").split("\n").filter((line) => line !== "").length + 1 : 1;
   appendFileSync(path, `${controlLine(seq, action, now.toISOString())}\n`);
@@ -173,7 +175,7 @@ export class RunQueue {
     if (queued === null) return;
     const waitingFor = existsSync(lease) ? "the gameplay lease (a benchmark cohort is running)" : live.length > 0 ? `live run ${live[0] ?? ""}` : null;
     if (waitingFor !== null) {
-      this.current = { ...this.current, waitingFor };
+      this.current = { state: "queued", runId: queued.runId, waitingFor };
       return;
     }
     const { runId, draft } = queued;

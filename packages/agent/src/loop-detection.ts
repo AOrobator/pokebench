@@ -1,0 +1,313 @@
+import type { RunEvent } from "./events.js";
+import type { GameStateSnapshot } from "./game-state.js";
+
+export const LOOP_POLICY = {
+  planning: 6,
+  observation: 3,
+  ineffective: 3,
+  cycleRepeats: 3,
+  rejection: 2,
+  recovery: 6,
+} as const;
+export type LoopKind =
+  | "planning"
+  | "observation"
+  | "ineffective"
+  | "cycle"
+  | "rejection";
+export interface LoopNotice {
+  readonly kind: LoopKind;
+  readonly phase: "warning" | "recovered" | "stop";
+  readonly message: string;
+  readonly calls: number;
+  readonly evidence: readonly number[];
+}
+export interface CompletedCall {
+  readonly name: string;
+  readonly args: Record<string, unknown>;
+  readonly isError: boolean;
+  readonly text: string;
+  readonly state?: GameStateSnapshot | undefined;
+  readonly beforeState?: GameStateSnapshot | undefined;
+  readonly seq?: number;
+}
+export type LoopPolicy = { readonly [K in keyof typeof LOOP_POLICY]: number };
+const PLANNING = new Set([
+  "get_objectives",
+  "set_objective",
+  "update_objective",
+]);
+const MESSAGES: Record<LoopKind, string> = {
+  planning:
+    "Repeated objective calls without game interaction. Writing a next_decision does not execute buttons. Observe if uncertain, then use press when ready.",
+  observation:
+    "Repeated observations contain no new reliable game information. Reassess whether an interaction is needed; unchanged observations are not recovery.",
+  ineffective:
+    "Repeated equivalent single-button attempts produced equivalent states. Reassess the observed interface and try an evidence-supported alternative.",
+  cycle:
+    "A short state/action pattern is repeating without new game information. Reassess the objective and change the approach using observed evidence.",
+  rejection:
+    "The same tool rejection recurred after correction. Fix the reported argument or evidence problem before trying again.",
+};
+
+// Only surfaces with observable interaction state can establish equivalence.
+// Battle/clock/generic menus and locked fields lack cursor/phase evidence today.
+export function semanticState(state: GameStateSnapshot): string | null {
+  if (state.in_battle) return null;
+  if (state.screen === "naming" && state.naming?.ready === true)
+    return stable({ screen: state.screen, naming: state.naming });
+  if (
+    state.screen !== "overworld" ||
+    !state.started ||
+    state.map_id === null ||
+    state.position === null ||
+    state.facing === null ||
+    state.field_controls_locked !== false
+  )
+    return null;
+  return stable({
+    screen: state.screen,
+    map: state.map_id,
+    position: state.position,
+    facing: state.facing,
+    name: state.name,
+    party: state.party,
+    money: state.money,
+    badges: state.badges,
+    story: state.story ?? null,
+    dialogue: state.world_context?.dialogue ?? null,
+  });
+}
+
+function stable(value: unknown): string {
+  return JSON.stringify(value, (_key: string, item: unknown): unknown => {
+    if (item !== null && typeof item === "object" && !Array.isArray(item)) {
+      const record = item as Record<string, unknown>;
+      return Object.fromEntries(
+        Object.keys(record)
+          .sort()
+          .map((key) => [key, record[key]]),
+      );
+    }
+    return item;
+  });
+}
+
+function rejectionKey(call: CompletedCall): string | null {
+  if (
+    !call.isError ||
+    /HTTP\s+\d|fetch failed|ECONN|timed? ?out|queue|aborted|network|malformed \/pokebench|observation frame|Game tool did not return|POST .+ failed/i.test(
+      call.text,
+    )
+  )
+    return null;
+  // Evidence sequence numbers are volatile; actual expected/observed values stay.
+  return `${call.name}:${call.text.replace(/(?:state\s*)?#\d+|state(?: sequence)?\s+\d+/gi, "state#").slice(0, 2000)}`;
+}
+
+export class LoopDetector {
+  stopped = false;
+  private planning = 0;
+  private observations = 0;
+  private ineffective = { key: "", count: 0 };
+  private readonly rejections = new Map<string, number>();
+  private previous: string | null = null;
+  private readonly history: string[] = [];
+  private readonly visited: string[] = [];
+  private completed = 0;
+  private episode: {
+    kind: LoopKind;
+    exposed: boolean;
+    recovery: number;
+    evidence: number[];
+  } | null = null;
+  private latest: GameStateSnapshot | undefined;
+  private latestSeq = -1;
+  private readonly calls = new Map<
+    string,
+    {
+      args: Record<string, unknown>;
+      seq: number;
+      before?: GameStateSnapshot | undefined;
+      beforeSeq?: number | undefined;
+    }
+  >();
+
+  constructor(
+    private readonly notify: (notice: LoopNotice) => void,
+    private readonly policy: LoopPolicy = LOOP_POLICY,
+  ) {}
+
+  observe(event: RunEvent): void {
+    if (event.type === "state") {
+      this.latestSeq = event.seq;
+      if ("started" in event) this.latest = event;
+      else this.latest = undefined;
+    } else if (event.type === "telemetry_error" && event.source === "state")
+      this.latest = undefined;
+    else if (event.type === "tool_call")
+      this.calls.set(event.id, { args: event.args, seq: event.seq });
+    else if (event.type === "button_press") {
+      const pending = this.calls.get(event.tool_call_id);
+      if (pending !== undefined) {
+        pending.before =
+          event.before_state_seq === this.latestSeq ? this.latest : undefined;
+        pending.beforeSeq = event.before_state_seq;
+      }
+    } else if (event.type === "tool_result") {
+      const pending = this.calls.get(event.id);
+      this.calls.delete(event.id);
+      this.complete({
+        name: event.name,
+        args: pending?.args ?? {},
+        isError: event.is_error,
+        text: event.text,
+        seq: event.seq,
+        beforeState: pending?.before,
+        state:
+          pending !== undefined &&
+          this.latestSeq >
+            (event.name === "press"
+              ? (pending.beforeSeq ?? Infinity)
+              : pending.seq) &&
+          (event.name === "press" || event.name === "observe")
+            ? this.latest
+            : undefined,
+      });
+    }
+  }
+
+  context(): string | null {
+    if (this.episode === null) return null;
+    this.episode.exposed = true;
+    return `LOOP GUARD (${this.episode.kind}): ${MESSAGES[this.episode.kind]} Recovery is bounded; objective wording and new evidence IDs alone do not establish progress.`;
+  }
+
+  complete(call: CompletedCall): void {
+    if (this.stopped) return;
+    this.completed++;
+    const seq = call.seq ?? this.completed;
+    const rejection = rejectionKey(call);
+    if (call.isError && rejection === null) return;
+    if (this.episode?.exposed) this.episode.recovery++;
+    const fingerprint =
+      call.state === undefined ? null : semanticState(call.state);
+    const game =
+      !call.isError && (call.name === "press" || call.name === "observe");
+    const changed =
+      game && fingerprint !== null && fingerprint !== this.previous;
+    const novel = changed && !this.visited.includes(fingerprint);
+    if (
+      novel ||
+      (game && call.name === "press" && this.episode?.kind === "planning")
+    )
+      this.recover(seq, novel);
+    let hit: LoopKind | null = null;
+    if (!call.isError && PLANNING.has(call.name)) {
+      this.planning++;
+      if (this.planning >= this.policy.planning) hit = "planning";
+    }
+    if (game) {
+      if (call.name === "press" || changed) this.planning = 0;
+      if (call.name === "observe") {
+        this.observations =
+          fingerprint !== null && fingerprint === this.previous
+            ? this.observations + 1
+            : 0;
+        if (this.observations >= this.policy.observation) hit ??= "observation";
+      } else {
+        this.observations = 0;
+        const buttons = call.args["buttons"];
+        const single =
+          Array.isArray(buttons) &&
+          buttons.length === 1 &&
+          typeof buttons[0] === "string";
+        const before =
+          call.beforeState === undefined
+            ? null
+            : semanticState(call.beforeState);
+        const key =
+          single && fingerprint !== null && fingerprint === before
+            ? `${fingerprint}:${String(buttons[0])}`
+            : "";
+        this.ineffective =
+          key !== "" && key === this.ineffective.key
+            ? { key, count: this.ineffective.count + 1 }
+            : { key, count: key === "" ? 0 : 1 };
+        if (this.ineffective.count >= this.policy.ineffective)
+          hit ??= "ineffective";
+        if (single && fingerprint !== null && before !== null) {
+          this.history.push(JSON.stringify([before, buttons[0], fingerprint]));
+          if (this.history.length > 12) this.history.shift();
+          if (this.cycle()) hit ??= "cycle";
+        } else this.history.length = 0;
+      }
+      this.previous = fingerprint;
+      if (fingerprint !== null) {
+        this.visited.push(fingerprint);
+        if (this.visited.length > 16) this.visited.shift();
+      }
+    }
+    if (rejection !== null) {
+      const count = (this.rejections.get(rejection) ?? 0) + 1;
+      this.rejections.set(rejection, count);
+      if (this.rejections.size > 16)
+        this.rejections.delete(this.rejections.keys().next().value ?? "");
+      if (count >= this.policy.rejection) hit ??= "rejection";
+    } else if (!call.isError && !PLANNING.has(call.name))
+      this.rejections.clear();
+    if (
+      this.episode?.exposed &&
+      this.episode.recovery >= this.policy.recovery
+    ) {
+      this.stopped = true;
+      this.notice("stop", seq);
+      return;
+    }
+    if (hit === null) return;
+    if (this.episode === null) {
+      this.episode = {
+        kind: hit,
+        exposed: false,
+        recovery: 0,
+        evidence: [seq],
+      };
+      this.notice("warning", seq);
+    }
+  }
+
+  private cycle(): boolean {
+    for (let size = 2; size <= 4; size++) {
+      const length = size * this.policy.cycleRepeats;
+      if (this.history.length < length) continue;
+      const tail = this.history.slice(-length);
+      if (new Set(tail.slice(0, size)).size < 2) continue;
+      if (tail.every((item, i) => item === tail[i % size])) return true;
+    }
+    return false;
+  }
+  private recover(seq: number, novel: boolean): void {
+    if (this.episode !== null) this.notice("recovered", seq);
+    this.episode = null;
+    if (novel) {
+      this.rejections.clear();
+      this.ineffective = { key: "", count: 0 };
+    }
+  }
+  private notice(phase: LoopNotice["phase"], seq: number): void {
+    const episode = this.episode;
+    if (episode === null) return;
+    this.notify({
+      kind: episode.kind,
+      phase,
+      message:
+        phase === "stop"
+          ? `${MESSAGES[episode.kind]} Bounded recovery ended without verified recovery; unknown readouts do not prove progress.`
+          : MESSAGES[episode.kind],
+      calls: this.completed,
+      evidence: [...episode.evidence, seq].filter(
+        (value, index, all) => all.indexOf(value) === index,
+      ),
+    });
+  }
+}

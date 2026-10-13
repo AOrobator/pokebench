@@ -34,7 +34,7 @@ export interface ToolSpan extends Span {
 
 export interface ErrorMark {
   readonly ms: number;
-  readonly kind: "retry" | "model" | "tool" | "compaction" | "telemetry";
+  readonly kind: "retry" | "model" | "tool" | "compaction" | "telemetry" | "loop";
   readonly label: string;
 }
 
@@ -48,6 +48,7 @@ export interface Thought {
 // One entry per schema event type: adding a type to the agent schema fails to
 // compile here until the viewer lists it.
 const KNOWN: Record<RunEvent["type"], true> = {
+  loop_guard: true,
   objective_update: true,
   objective_attempt: true,
   run_start: true,
@@ -177,6 +178,9 @@ export class RunView {
         break;
       case "milestone":
         if (!this.milestones.some((m) => m.name === event.name)) this.milestones.push({ name: event.name, ms, seq: event.seq, ...(event.kind === undefined ? {} : {kind:event.kind}), ...(event.origin === undefined ? {} : {origin:event.origin}), ...(event.evidence === undefined ? {} : {evidence:event.evidence}) });
+        break;
+      case "loop_guard":
+        this.errors.push({ms,kind:"loop",label:`loop ${event.kind} ${event.phase}: ${event.message}`});
         break;
       case "retry":
         this.retry = { count: (this.retry?.count ?? 0) + 1, attempt: event.attempt, limit: event.limit };

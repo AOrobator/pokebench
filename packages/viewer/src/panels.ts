@@ -216,6 +216,8 @@ function rowBody(event: RunEvent): string | null {
     }
     case "milestone":
       return `★ ${esc(event.name)}${event.kind === undefined ? "" : ` · ${event.kind}`}${event.origin === "present_at_start" ? " · already present when run started" : ""}${event.evidence === undefined ? "" : ` · evidence ${event.evidence.map((seq) => `#${String(seq)}`).join(", ")}`}`;
+    case "loop_guard":
+      return `Loop ${esc(event.kind)} ${esc(event.phase)}: ${esc(event.message)} · evidence ${event.evidence.map(seq=>`#${String(seq)}`).join(", ")}`;
     case "retry":
       return `✗ retry ${String(event.attempt)}/${String(event.limit)}: ${esc(event.reason)}`;
     case "telemetry_error":
@@ -236,7 +238,7 @@ function rowBody(event: RunEvent): string | null {
 export function actionRow(event: RunEvent): string | null {
   const body = rowBody(event);
   if (body === null) return null;
-  const error = (event.type === "tool_result" && event.is_error) || event.type === "retry" || event.type === "telemetry_error" ? " ev-error" : "";
+  const error = (event.type === "tool_result" && event.is_error) || event.type === "retry" || event.type === "loop_guard" || event.type === "telemetry_error" ? " ev-error" : "";
   return `<div class="ev ev-${event.type}${error}" data-seq="${String(event.seq)}"><span class="seq">#${String(event.seq)}</span><span class="tag">${event.type}</span><span class="body">${body}</span></div>`;
 }
 

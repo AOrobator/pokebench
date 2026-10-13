@@ -261,13 +261,15 @@ it("press feedback compares verified before state with the returned frame's stat
   const before = { ...IN_GAME, screen: "overworld", field_controls_locked: false, position: { x: 1, y: 2 }, facing: "up" };
   const after = { ...before, position: { x: 1, y: 1 } };
   const calls: string[] = [];
-  const tool = pressTool(SERVER, noHooks, routes({
+  const beforeHook = vi.fn<Parameters<typeof pressTool>[1]["beforePress"]>();
+  const tool = pressTool(SERVER, {...noHooks,beforePress:beforeHook}, routes({
     "/pokebench/state": before,
     "/action": { status: "success" },
     "/queue_status": { queue_empty: true },
     "/pokebench/observation": observationBody({ state: after, state_text: "Position: X=1, Y=1" }),
   }, calls), instant);
   const result = await tool.execute("move", { buttons: ["UP"] });
+  expect(beforeHook).toHaveBeenCalledExactlyOnceWith("move",["UP"],PRESS_TIMING,before);
   expect(calls).toEqual(["GET /pokebench/state", "POST /action", "GET /queue_status", "GET /pokebench/observation"]);
   expect(result.content[1]).toEqual({ type: "text", text: "pressed UP\nPress result: moved (1,2) -> (1,1)\n\nPosition: X=1, Y=1" });
 });

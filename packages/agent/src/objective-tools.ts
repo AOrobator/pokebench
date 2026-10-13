@@ -62,7 +62,7 @@ function resultState(result: AgentToolResult<unknown>) {
 export function objectiveGameTools(tracker: ObjectiveTracker, recorder: Pick<RunRecorder, "recordState" | "buttonPress" | "afterPress">, url: string, fetchFn: typeof fetch = fetch): AgentTool[] {
   const observe = observeTool(url, fetchFn);
   const submissions = { count: 0 };
-  const press = pressTool(url, { beforePress: (id, buttons, timing) => { submissions.count += 1; recorder.buttonPress(id, buttons, timing); }, afterPress: () => recorder.afterPress() }, fetchFn);
+  const press = pressTool(url, { beforePress: (id, buttons, timing, before) => { submissions.count += 1; recorder.buttonPress(id, buttons, timing, before); }, afterPress: () => recorder.afterPress() }, fetchFn);
   return [
     { ...observe, execute: async (id, params, signal, update) => {
       const result = await observe.execute(id, params, signal, update);

@@ -100,6 +100,7 @@ const Frames = Type.Integer({ minimum: 1, maximum: 255 });
 
 const ButtonPress = event("button_press", {
   tool_call_id: Type.String(),
+  before_state_seq: Type.Optional(NonNegativeInt),
   buttons: Type.Array(ButtonSchema, { minItems: 1 }),
   hold_frames: Type.Optional(Frames),
   release_frames: Type.Optional(Frames),
@@ -119,6 +120,13 @@ const Milestone = event("milestone", {
   kind: Type.Optional(Type.Enum(["story", "navigation", "legacy"])),
   origin: Type.Optional(Type.Enum(["observed", "present_at_start"])),
   evidence: Type.Optional(Type.Array(NonNegativeInt, {minItems:1,maxItems:2})),
+});
+
+const LoopGuard = event("loop_guard", {
+  kind: Type.Enum(["planning", "observation", "ineffective", "cycle", "rejection"] as const),
+  phase: Type.Enum(["warning", "recovered", "stop"] as const),
+  message: Type.String(), calls: NonNegativeInt,
+  evidence: Type.Array(NonNegativeInt, {minItems:1,maxItems:2}),
 });
 
 const Retry = event("retry", { reason: Type.String(), attempt: Type.Integer({ minimum: 1 }), limit: Type.Integer({ minimum: 1 }) });
@@ -232,6 +240,7 @@ const ObjectiveUpdate = event("objective_update", { objective: ObjectiveSchema }
 const ObjectiveAttempt = event("objective_attempt", { attempt: makeAttemptSchema(ButtonSchema) });
 
 export const RunEventSchema = Type.Union([
+  LoopGuard,
   ObjectiveUpdate,
   ObjectiveAttempt,
   RunStart,

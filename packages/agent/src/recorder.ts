@@ -89,6 +89,8 @@ export class RunRecorder {
   private furthest: string | null = null;
   private storyRequired = false;
   private humanSamplingFrame:number|undefined;
+  private humanScreenshotMs:number|undefined;
+  private humanScreenshotNextAt:number|null=null;
   private targetProof:TargetProof|null=null;
   setTargetProof(proof:TargetProof):void {this.targetProof={...proof,state_evidence:[...proof.state_evidence]};}
   private tokens = { input: 0, output: 0 };
@@ -121,6 +123,7 @@ export class RunRecorder {
 
   async start(meta: RunStartMeta, captureState = true): Promise<void> {
     this.startedAt = this.now();
+    this.humanScreenshotMs=meta.controller?.screenshot_ms;
     this.storyRequired = meta.harness_features.includes("story-state-v1");
     this.append({ type: "run_start", turn: 0, ...meta });
     this.milestones.initialize?.(meta.start_state.kind);
@@ -289,13 +292,21 @@ export class RunRecorder {
     this.append({type:"human_input",turn:0,...body});
   }
 
-  recordHumanSample(frame:number, paused:boolean, pngBase64:string, state:GameStateSnapshot):void {
+  recordHumanSample(frame:number, paused:boolean, pngBase64:string, state:GameStateSnapshot,forceScreenshot=false):void {
     this.humanSamplingFrame=frame;
     try{this.recordState(state);}finally{this.humanSamplingFrame=undefined;}
+    const sampledAt=this.now();
+    const interval=this.humanScreenshotMs;
+    const due=interval===undefined||this.humanScreenshotNextAt===null||sampledAt>=this.humanScreenshotNextAt;
+    if(!due&&!forceScreenshot)return;
     const screenshot=this.frames.save(this.log,this.log.nextSeq,0,pngBase64);
     this.append({type:"human_sample",turn:0,frame,paused,screenshot});
     this.saved={saved:this.saved.saved+1,bytes:this.saved.bytes+Buffer.from(pngBase64,"base64").length};
     this.frames.flush(this.log,0);
+    if(interval!==undefined&&due){
+      const previous=this.humanScreenshotNextAt;
+      this.humanScreenshotNextAt=previous===null?sampledAt+interval:previous+(Math.floor((sampledAt-previous)/interval)+1)*interval;
+    }
   }
 
   async checkMilestones(): Promise<void> {

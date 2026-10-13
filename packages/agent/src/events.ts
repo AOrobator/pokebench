@@ -47,7 +47,7 @@ const Evaluation = Type.Object({preset_id:Type.String({minLength:1}),target:Type
 const TargetProof = Type.Object({name:Type.String({minLength:1}),milestone_seq:NonNegativeInt,state_evidence:Type.Array(NonNegativeInt,{minItems:1,maxItems:2})},closed);
 const RunStart = event("run_start", {
   rom_sha1: Type.Optional(Sha1),
-  controller: Type.Optional(Type.Object({ kind: Type.Literal("human"), name: Type.String({minLength:1}), rom_sha1: Sha1, input_policy: Type.Literal("frame-held-v1"), sample_ms: Type.Literal(100), nominal_fps: Type.Literal(59.7275) }, closed)),
+  controller: Type.Optional(Type.Object({ kind: Type.Literal("human"), name: Type.String({minLength:1}), rom_sha1: Sha1, input_policy: Type.Literal("frame-held-v1"), sample_ms: Type.Literal(100), screenshot_ms: Type.Optional(Type.Literal(500)), nominal_fps: Type.Literal(59.7275) }, closed)),
   evaluation:Type.Optional(Evaluation),
   model: Type.Object(
     { id: Type.String({ minLength: 1 }), context_window: NonNegativeInt, max_tokens: NonNegativeInt, vision: Type.Boolean() },

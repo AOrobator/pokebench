@@ -112,3 +112,32 @@ it('keeps nested human frames invisible to a legacy model writer using the base 
  const legacyModelWriter=new FrameStore(r,100,()=>{});const log=RunLog.create(r,'model-new');legacyModelWriter.save(log,0,0,Buffer.alloc(20).toString('base64'));
  expect(readFileSync(humanFrame)).toHaveLength(90);expect(legacyModelWriter.usage()).toBe(20);expect(new FrameStore(humanRoot,100,()=>{}).usage()).toBe(90);
 });
+it('keeps RAM and milestones on every poll while screenshots follow a 500ms grid with a forced final shot',async()=>{
+ const {StateMilestones}=await import('./milestones.js');const r=root();const log=RunLog.create(r,'human-cadence');let clock=0;
+ const recorder=new RunRecorder({log,frames:new FrameStore(r),milestones:new StateMilestones({read:()=>Promise.resolve(state)}),gameState:{read:()=>Promise.resolve(state)},now:()=>clock});
+ const controller={kind:'human' as const,name:'Operator',rom_sha1:'a'.repeat(40),input_policy:'frame-held-v1' as const,sample_ms:100 as const,nominal_fps:59.7275 as const,screenshot_ms:500 as const};
+ await recorder.start({...RUN_START_META,controller},false);
+ const times=[0,100,499,500,950,1001,1700,1999,2000];
+ for(const [index,ms] of times.entries()){clock=ms;recorder.recordHumanSample(index*6,false,png,index===0?state:{...state,screen:'birch_speech'});}
+ clock=2050;recorder.recordHumanSample(54,true,png,state,true);
+ clock=2400;recorder.recordHumanSample(60,false,png,state);
+ clock=2500;recorder.recordHumanSample(66,false,png,state);
+ recorder.end('operator_stop');
+ const events=readFileSync(log.eventsPath,'utf8').trim().split('\n').map(parseEvent);
+ expect(events.filter(event=>event.type==='state')).toHaveLength(12);
+ expect(events.filter(event=>event.type==='human_sample').map(event=>event.frame)).toEqual([0,18,30,36,48,54,66]);
+ expect(events.find(event=>event.type==='milestone'&&event.name==='NEW_GAME_CREATED')).toMatchObject({emulator_frame:6,emulator_frame_kind:'sample_upper_bound'});
+ expect(events.at(-1)).toMatchObject({type:'run_end',frames:{saved:7,bytes:56}});
+});
+it('retains legacy human screenshot-per-poll semantics when cadence metadata is absent',async()=>{
+ const r=root();const log=RunLog.create(r,'human-legacy');let clock=0;const recorder=new RunRecorder({log,frames:new FrameStore(r),milestones:{poll:()=>Promise.resolve([])},gameState:{read:()=>Promise.resolve(state)},now:()=>clock});
+ await recorder.start({...RUN_START_META,controller:{kind:'human',name:'Operator',rom_sha1:'a'.repeat(40),input_policy:'frame-held-v1',sample_ms:100,nominal_fps:59.7275}},false);
+ for(const ms of [0,100,200]){clock=ms;recorder.recordHumanSample(ms,false,png,state);}recorder.end('operator_stop');
+ const events=readFileSync(log.eventsPath,'utf8').trim().split('\n').map(parseEvent);expect(events.filter(event=>event.type==='human_sample')).toHaveLength(3);expect(events.at(-1)).toMatchObject({frames:{saved:3,bytes:24}});
+});
+it('skips missed screenshot intervals without producing a catch-up burst',async()=>{
+ const r=root();const log=RunLog.create(r,'human-delayed');let clock=0;const recorder=new RunRecorder({log,frames:new FrameStore(r),milestones:{poll:()=>Promise.resolve([])},gameState:{read:()=>Promise.resolve(state)},now:()=>clock});
+ await recorder.start({...RUN_START_META,controller:{kind:'human',name:'Operator',rom_sha1:'a'.repeat(40),input_policy:'frame-held-v1',sample_ms:100,nominal_fps:59.7275,screenshot_ms:500}},false);
+ for(const [index,ms] of [0,2001,2001,2001,2400,2500].entries()){clock=ms;recorder.recordHumanSample(index,false,png,state);}
+ const events=readFileSync(log.eventsPath,'utf8').trim().split('\n').map(parseEvent);expect(events.filter(event=>event.type==='state')).toHaveLength(6);expect(events.filter(event=>event.type==='human_sample').map(event=>event.frame)).toEqual([0,1,5]);
+});

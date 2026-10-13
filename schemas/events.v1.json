@@ -778,6 +778,10 @@
               "type": "number",
               "const": 100
             },
+            "screenshot_ms": {
+              "type": "number",
+              "const": 500
+            },
             "nominal_fps": {
               "type": "number",
               "const": 59.7275

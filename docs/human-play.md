@@ -49,3 +49,7 @@ The recorder continuously captures parsed RAM-derived state alongside screenshot
 This is sampled decoded state, not a full raw-RAM dump or a state snapshot on every emulator frame. The sampler waits100ms between completed observations; processing/storage add time. Existing native human checks observed median intervals176–198ms (about5–6 samples per second). Applied input intervals retain actual frame counts independently. Confirmed Pause freezes the game; Resume restores sampling, and Finish captures/drains the final frozen sample before shutdown.
 
 Malformed state, missing required story state, transport failures or recording failures stop the recording with a crash outcome instead of silently substituting plausible state. State, sample, input, milestone and terminal records are kept in `events.jsonl`; screenshots stay in `frames/` for replay and later analysis.
+
+## Human screenshot cadence
+
+New human runs save screenshots on a500ms schedule (target two per second), declared as `controller.screenshot_ms:500`. RAM/state/input-journal polling retains its existing100ms wait plus processing time, so state/milestone analysis does not depend on the reduced screenshot schedule. The first screenshot and final frozen Finish screenshot are always saved. A delayed poll skips missed screenshot intervals instead of writing a catch-up burst. Existing human recordings and agent screenshot behavior remain unchanged. The Play screen's live display is independent of durable screenshot sampling.

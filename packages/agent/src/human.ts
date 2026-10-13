@@ -7,7 +7,7 @@ import { HUMAN_BUTTONS, type HumanButton, type RunEndReason, type BodyOf } from 
 import { parseGameState, type GameStateSnapshot } from "./game-state.js";
 import type { RunPlan } from './run.js';
 export function humanPlan(runsRoot:string,runId:string,port:number,romSha1:string):RunPlan {
- return {runsRoot,runId,port,controller:{kind:'human',name:'Operator',rom_sha1:romSha1,input_policy:'frame-held-v1',sample_ms:100,nominal_fps:59.7275},model:{id:'Human · Operator',context_window:0,max_tokens:0,vision:false},sampling:{thinking_level:'none',max_tokens:0},systemPrompt:'Human playthrough; no model inference.',tools:[],startState:{kind:'boot'},harnessFeatures:['human-play-v1','human-audio-1x-v1','ram-state-v1','story-state-v1','story-milestones-v2','clock-milestone-v1','new-game-created-v1'],budgets:{},piVersion:'not-used'};
+ return {runsRoot,runId,port,controller:{kind:'human',name:'Operator',rom_sha1:romSha1,input_policy:'frame-held-v1',sample_ms:100,screenshot_ms:500,nominal_fps:59.7275},model:{id:'Human · Operator',context_window:0,max_tokens:0,vision:false},sampling:{thinking_level:'none',max_tokens:0},systemPrompt:'Human playthrough; no model inference.',tools:[],startState:{kind:'boot'},harnessFeatures:['human-play-v1','human-audio-1x-v1','ram-state-v1','story-state-v1','story-milestones-v2','clock-milestone-v1','new-game-created-v1'],budgets:{},piVersion:'not-used'};
 }
 export function humanLease(runsRoot:string,runId:string):()=>void {
  mkdirSync(runsRoot,{recursive:true}); const path=join(runsRoot,'.human-gameplay.lock');
@@ -35,7 +35,7 @@ export async function driveHuman(recorder:Pick<RunRecorder,"recordControl"|"chec
  const result:{reason:RunEndReason;error:unknown}={reason:"operator_abort",error:null};
  const file=new ControlFile(path);
  if(internalToken!==undefined&&(recorder.recordHumanInput===undefined||recorder.recordHumanSample===undefined))throw Error("Human recording methods are required");
- const sample=internalToken===undefined?()=>recorder.checkMilestones():humanSampler(recorder as HumanRecording,url,internalToken,fetchFn);
+ const sample:(forceScreenshot?:boolean)=>Promise<void>=internalToken===undefined?()=>recorder.checkMilestones():humanSampler(recorder as HumanRecording,url,internalToken,fetchFn);
  let pauseRequest=0;let resumeRequest=0;
  const requests=():ReturnType<ControlFile["poll"]>=>{
   const pending=file.poll();
@@ -57,7 +57,7 @@ export async function driveHuman(recorder:Pick<RunRecorder,"recordControl"|"chec
  try{
   await humanLoop({stopped:()=>abort.signal.aborted,boundary:async()=>{poll();await control.gate(abort.signal);if(control.takeStop()){result.reason="operator_stop";abort.abort();}},sample,wait:()=>new Promise(resolve=>setTimeout(resolve,100))});
   if(result.error!==null)throw result.error instanceof Error ? result.error : new Error("human control polling failed",{cause:result.error});
-  if(internalToken!==undefined){await freezeGame(url,true,fetchFn);await sample();}
+  if(internalToken!==undefined){await freezeGame(url,true,fetchFn);await sample(true);}
   return result.reason;
  }catch(error){
   if(internalToken!==undefined)await freezeGame(url,true,fetchFn).catch(()=>{});
@@ -69,15 +69,15 @@ export async function driveHuman(recorder:Pick<RunRecorder,"recordControl"|"chec
 type HumanSegment=Omit<BodyOf<"human_input">,"type"|"turn">;
 export interface HumanRecording {
  recordHumanInput(body:HumanSegment):void;
- recordHumanSample(frame:number,paused:boolean,pngBase64:string,state:GameStateSnapshot):void;
+ recordHumanSample(frame:number,paused:boolean,pngBase64:string,state:GameStateSnapshot,forceScreenshot?:boolean):void;
 }
 function object(value:unknown):value is Record<string,unknown>{return typeof value==="object"&&value!==null&&!Array.isArray(value);}
 function integer(value:unknown):value is number{return typeof value==="number"&&Number.isSafeInteger(value)&&value>=0;}
 
 /** The server only prunes on the NEXT request carrying a durably committed cursor. */
-export function humanSampler(recorder:HumanRecording,url:string,token:string,fetchFn:typeof fetch=fetch):()=>Promise<void> {
+export function humanSampler(recorder:HumanRecording,url:string,token:string,fetchFn:typeof fetch=fetch):(forceScreenshot?:boolean)=>Promise<void> {
  let cursor=0;let frame=-1;let wall=-1;
- return async()=>{
+ return async(forceScreenshot=false)=>{
   const response=await fetchFn(`${url}/pokebench/human/snapshot?after=${String(cursor)}`,{headers:{"x-human-token":token},signal:AbortSignal.timeout(5000)});
   if(!response.ok)throw Error(`Human snapshot failed (${String(response.status)})`);
   const payload:unknown=await response.json();
@@ -95,7 +95,7 @@ export function humanSampler(recorder:HumanRecording,url:string,token:string,fet
   }
   if(payload.last_id!==next||Math.max(0,nextFrame)!==payload.frame)throw Error("Human journal cursor does not cover snapshot");
   for(const segment of segments)recorder.recordHumanInput(segment);
-  recorder.recordHumanSample(payload.frame,payload.paused,observation.screenshot_base64,state);
+  recorder.recordHumanSample(payload.frame,payload.paused,observation.screenshot_base64,state,forceScreenshot);
   cursor=next;frame=payload.frame;wall=nextWall;
  };
 }

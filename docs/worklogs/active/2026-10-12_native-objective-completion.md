@@ -48,3 +48,5 @@ None.
 
 - GREEN scope: local plans remain type/value/freshness checked but are provisional reported_complete; only existing native catalog predicates supply completed status and immutable origin/sequence proof. Canonical native titles override model prose. Gym arrival, victory and badge remain separate; objective completion never invokes run ending. Root integration adds named feature declaration under objectives ablation in live.ts (concurrent loop owner).
 - Receipts: runs/launch-receipts/native-objective-completion; first Python attempt 376/378 failed because submodule was uninitialized in new worktree; pinned submodule initialized without changes, full 378 green.
+
+- Parent requests before-review completion of PB4 producer metadata: native-objective-completion-v1 declared by actual play entrypoint only when objective layer enabled; probe/smoke have no objective layer so must not advertise. Existing live-objectives test exercises actual withRun→recorder→parsed run_start under all four objective/interface ablations. This producer wiring is now in branch scope; root resolves shared live.ts edits transparently.

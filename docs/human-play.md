@@ -8,7 +8,7 @@ just run-human
 
 Open the printed `/play#run=…` link on the usual viewer (port 8791). If needed, start the built viewer separately with `node packages/viewer/dist/cli.js --port 8791 --runs runs`. Human Play is separate from the model inspection screen. Game speed and sound playback are fixed at 1×, including dialogue.
 
-Click the game screen to enable controls and sound. Browser audio needs that first click. The screen shows when controls are active. Splits stay beside the game on desktop; the existing timeline below it stays visible and shows presses and milestones. Narrow windows place splits below the game. Use the sound button to turn sound off/on.
+Click the game screen to enable controls and sound. Browser audio needs that first click. The screen shows when controls are active. Splits stay beside the game on desktop; the existing timeline below it stays visible and shows presses and milestones. Narrow windows stack the game, timeline, then splits. Use the sound button to turn sound off/on.
 
 | Key | Game button |
 | --- | --- |

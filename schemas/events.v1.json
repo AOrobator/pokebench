@@ -416,6 +416,9 @@
                         "MOM_CLOCK_INSTRUCTION",
                         "CLOCK_SET",
                         "MOM_RIVAL_INSTRUCTION",
+                        "PLAYER_HOUSE_EXITED_AFTER_CLOCK",
+                        "RIVAL_HOUSE_ENTERED",
+                        "RIVAL_BEDROOM_REACHED",
                         "RIVAL_MET",
                         "STARTER_CHOSEN",
                         "BIRCH_RESCUE_COMPLETE",
@@ -551,7 +554,7 @@
                     "minimum": 0
                   },
                   "minItems": 1,
-                  "maxItems": 2
+                  "maxItems": 3
                 }
               },
               "additionalProperties": false
@@ -1430,7 +1433,7 @@
             "minimum": 0
           },
           "minItems": 1,
-          "maxItems": 2
+          "maxItems": 3
         }
       },
       "additionalProperties": false
@@ -1668,7 +1671,7 @@
                 "minimum": 0
               },
               "minItems": 1,
-              "maxItems": 2
+              "maxItems": 3
             }
           },
           "additionalProperties": false

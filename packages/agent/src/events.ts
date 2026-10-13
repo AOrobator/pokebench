@@ -41,7 +41,7 @@ const closed = { additionalProperties: false } as const;
 const Args = Type.Record(Type.String(), Type.Unknown());
 
 const Evaluation = Type.Object({preset_id:Type.String({minLength:1}),target:Type.Union([Type.String({minLength:1}),Type.Null()]),failure_limit:Type.Integer({minimum:1}),flags:Type.Object({loopGuard:Type.Boolean(),activeUi:Type.Boolean(),interfaceDocs:Type.Boolean(),objectives:Type.Boolean()},closed)},closed);
-const TargetProof = Type.Object({name:Type.String({minLength:1}),milestone_seq:NonNegativeInt,state_evidence:Type.Array(NonNegativeInt,{minItems:1,maxItems:2})},closed);
+const TargetProof = Type.Object({name:Type.String({minLength:1}),milestone_seq:NonNegativeInt,state_evidence:Type.Array(NonNegativeInt,{minItems:1,maxItems:3})},closed);
 const RunStart = event("run_start", {
   evaluation:Type.Optional(Evaluation),
   model: Type.Object(
@@ -122,7 +122,7 @@ const Milestone = event("milestone", {
   name: Type.String({ minLength: 1 }), server_timestamp: Type.Number(),
   kind: Type.Optional(Type.Enum(["story", "navigation", "legacy"])),
   origin: Type.Optional(Type.Enum(["observed", "present_at_start"])),
-  evidence: Type.Optional(Type.Array(NonNegativeInt, {minItems:1,maxItems:2})),
+  evidence: Type.Optional(Type.Array(NonNegativeInt, {minItems:1,maxItems:3})),
 });
 
 const LoopFields = {

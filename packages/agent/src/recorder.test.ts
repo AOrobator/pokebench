@@ -460,7 +460,7 @@ it.each(["unknown", "naming"])("does not earn resumed progress from an unqualifi
   recorder.end("completed");
   const logged = events(log);
   const marks = logged.filter((e)=>e.type==="milestone").filter((e)=>e.name!=="GAME_RUNNING");
-  expect(marks.map((e)=>e.name)).toEqual(["PLAYER_NAME_CONFIRMED","PLAYER_NAME_SET","INTRO_CUTSCENE_COMPLETE","MOM_CLOCK_INSTRUCTION","PLAYER_BEDROOM","CLOCK_SET","MOM_RIVAL_INSTRUCTION","RIVAL_MET","STARTER_CHOSEN","BIRCH_RESCUE_COMPLETE","BIRCH_STARTER_HANDOFF_COMPLETE"]);
+  expect(marks.map((e)=>e.name)).toEqual(["PLAYER_NAME_CONFIRMED","PLAYER_NAME_SET","INTRO_CUTSCENE_COMPLETE","MOM_CLOCK_INSTRUCTION","PLAYER_BEDROOM","CLOCK_SET","MOM_RIVAL_INSTRUCTION","RIVAL_BEDROOM_REACHED","RIVAL_MET","STARTER_CHOSEN","BIRCH_RESCUE_COMPLETE","BIRCH_STARTER_HANDOFF_COMPLETE"]);
   for (const mark of marks) expect(mark).toMatchObject({origin:"present_at_start",evidence:[observed.seq]});
   expect(summarize(logged)).toMatchObject({presses:0,furthest:"GAME_RUNNING",milestones:[{name:"GAME_RUNNING",turn:0,wallMs:0}]});
 });
@@ -491,4 +491,20 @@ it("elapsedMs uses the run-start monotonic anchor including initial capture",asy
  const root=mkdtempSync(join(tmpdir(),"recorder-elapsed-"));const log=RunLog.create(root,"elapsed");let now=1000;
  const recorder=new RunRecorder({log,frames:new FrameStore(root),milestones:{poll:()=>{now=16000;return Promise.resolve([]);}},gameState:{read:()=>Promise.resolve(STATE)},now:()=>now});
  await recorder.start(START_META);expect(recorder.elapsedMs()).toBe(15000);now=601000;expect(recorder.elapsedMs()).toBe(600000);
+});
+
+it("records and qualifies post-clock home-exit evidence from observed snapshots",async()=>{
+ const {StateMilestones,qualifiedNativeMilestone}=await import("./milestones.js");
+ const root=mkdtempSync(join(tmpdir(),"recorder-post-clock-"));const log=RunLog.create(root,"post-clock");
+ const story={name_confirmed:true,intro_stage:5,rival_stage:0,birch_lab_stage:0,petalburg_gym_stage:0,woods_stage:0,clock_set:false,rival_battle_won:false,pokedex_received:false,running_shoes_received:false,starter_tutorial_complete:false,rustboro_gym_complete:false,stone_badge:false,rock_tomb_received:false};
+ const initial:GameStateSnapshot={...STATE,screen:"overworld",started:true,location:"LITTLEROOT TOWN BRENDANS HOUSE 2F",story};
+ const recorder=new RunRecorder({log,frames:new FrameStore(root),milestones:new StateMilestones({read:()=>Promise.resolve(initial)}),gameState:{read:()=>Promise.resolve(initial)}});
+ await recorder.start({...START_META,harness_features:["post-clock-navigation-milestones-v1"]});
+ recorder.recordState({...initial,location:"LITTLEROOT TOWN BRENDANS HOUSE 1F",story:{...story,intro_stage:7,clock_set:true}});
+ recorder.recordState({...initial,location:"LITTLEROOT TOWN",story:{...story,intro_stage:7,clock_set:true}});
+ recorder.end("budget");const logged=events(log);const mark=logged.find(e=>e.type==="milestone"&&e.name==="PLAYER_HOUSE_EXITED_AFTER_CLOCK");
+ if(mark?.type!=="milestone")throw new Error("missing native milestone");
+ expect(mark).toMatchObject({kind:"navigation",origin:"observed"});expect(mark.evidence).toHaveLength(3);
+ expect(qualifiedNativeMilestone(mark,(mark.evidence??[]).map(seq=>logged.find(e=>e.seq===seq)))).toBe(true);
+ expect(logged.at(-1)).toMatchObject({type:"run_end",reason:"budget"});
 });

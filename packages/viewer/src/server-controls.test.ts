@@ -74,7 +74,7 @@ describe("next run", () => {
     const { viewer: v } = await viewer();
     const features = await call(v, "GET", "/api/features");
     expect(features.status).toBe(200);
-    expect((features.json as { features: { id: string }[] }).features).toHaveLength(25);
+    expect((features.json as { features: { id: string }[] }).features).toHaveLength(26);
     expect(await call(v, "GET", "/api/next-run")).toEqual({ status: 200, json: { draft: DEFAULT_NEXT_RUN, queue: { state: "idle" } } });
     const draft = { ...DEFAULT_NEXT_RUN, model: "Qwen", features: { ...ALL_ON, "story-state-v1": false } };
     expect(await call(v, "PUT", "/api/next-run", draft)).toEqual({ status: 200, json: { draft, queue: { state: "idle" } } });

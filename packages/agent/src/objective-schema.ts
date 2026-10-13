@@ -5,7 +5,7 @@ const text = Type.String({ maxLength: 2000 });
 export const EvidenceSchema = Type.Array(Type.Integer({ minimum: 0 }), { minItems: 1, maxItems: 16, uniqueItems: true });
 export const NATIVE_OBJECTIVES = {
  NEW_GAME_CREATED: "Create a new game", PLAYER_NAME_CONFIRMED: "Confirm the player name", FIRST_TRUCK_EXIT: "Exit the opening truck",
- MOM_CLOCK_INSTRUCTION: "Receive Mom's clock instruction", CLOCK_SET: "Set the clock", MOM_RIVAL_INSTRUCTION: "Receive Mom's rival instruction", RIVAL_MET: "Meet the rival",
+ MOM_CLOCK_INSTRUCTION: "Receive Mom's clock instruction", CLOCK_SET: "Set the clock", MOM_RIVAL_INSTRUCTION: "Receive Mom's rival instruction", PLAYER_HOUSE_EXITED_AFTER_CLOCK: "Leave home after setting the clock", RIVAL_HOUSE_ENTERED: "Enter the rival house", RIVAL_BEDROOM_REACHED: "Reach the rival bedroom", RIVAL_MET: "Meet the rival",
  STARTER_CHOSEN: "Receive a starter", BIRCH_RESCUE_COMPLETE: "Rescue Birch", BIRCH_STARTER_HANDOFF_COMPLETE: "Complete Birch's starter handoff", RIVAL_BATTLE_WON: "Win the first rival battle",
  RECEIVED_POKEDEX: "Receive the Pokedex", STARTER_TUTORIAL_COMPLETE: "Complete the starter tutorial", RUNNING_SHOES_RECEIVED: "Receive running shoes", DAD_FIRST_MEETING: "Meet Dad", WALLY_TUTORIAL_COMPLETE: "Complete Wally's tutorial", TEAM_AQUA_WOODS_EVENT_COMPLETE: "Complete the woods encounter",
  RUSTBORO_GYM_COMPLETE: "Defeat the Rustboro Gym", STONE_BADGE: "Receive the Stone Badge", ROCK_TOMB_RECEIVED: "Receive Rock Tomb",
@@ -37,7 +37,7 @@ export const ObjectiveSchema = Type.Object({
   id: Type.String(), revision: Type.Integer({ minimum: 1 }), goal: text, title: Type.String({ minLength: 1, maxLength: 2000 }),
   supports_goal: Type.String({ minLength: 1, maxLength: 2000 }), evidence: EvidenceSchema, completion: CompletionSchema,
   obstacle: text, next_decision: Type.String({ minLength: 1, maxLength: 2000 }), status: ObjectiveStatusSchema,
-  verification: Type.Optional(Type.Object({ origin: Type.Enum(["observed", "present_at_start"]), milestone_seq: Type.Integer({ minimum: 0 }), state_evidence: Type.Array(Type.Integer({ minimum: 0 }), { minItems: 1, maxItems: 2 }) }, closed)),
+  verification: Type.Optional(Type.Object({ origin: Type.Enum(["observed", "present_at_start"]), milestone_seq: Type.Integer({ minimum: 0 }), state_evidence: Type.Array(Type.Integer({ minimum: 0 }), { minItems: 1, maxItems: 3 }) }, closed)),
   completion_evidence: Type.Array(Type.Integer({ minimum: 0 }), { maxItems: 16 }),
 }, closed);
 export function makeAttemptSchema(buttonSchema: typeof ButtonSchema) { return Type.Object({

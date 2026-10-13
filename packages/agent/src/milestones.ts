@@ -50,6 +50,30 @@ const clockSet = (s: GameStateSnapshot): boolean | null => {
   return value == null || value < 0 || value > 7 ? null : value === 6 || value === 7;
 };
 
+const house = (location: string | null, floor: "1F" | "2F"): string | null => {
+  const match = location?.match(new RegExp(`^LITTLEROOT TOWN (BRENDANS|MAYS) HOUSE ${floor}$`));
+  return match?.[1] ?? null;
+};
+const stableRoute = (s: GameStateSnapshot): boolean => savedWorld(s) && s.screen !== "unknown";
+export const postClockHomeWitness = (s: GameStateSnapshot): string | null =>
+  stableRoute(s) && s.story?.clock_set === false && [4, 5].includes(s.story.intro_stage ?? -1)
+    ? house(s.location, "1F") ?? house(s.location, "2F") : null;
+const routeProof = (name: string, states: readonly GameStateSnapshot[]): boolean => {
+  const first = states[0];
+  const last = states.at(-1);
+  if (first === undefined || last === undefined) return false;
+  const home = postClockHomeWitness(first);
+  if (name === "PLAYER_HOUSE_EXITED_AFTER_CLOCK") {
+    const previous = states[1];
+    return states.length === 3 && home !== null && previous !== undefined && stableRoute(previous)
+      && house(previous.location, "1F") === home && clockSet(previous) === true
+      && stableRoute(last) && last.location === "LITTLEROOT TOWN" && clockSet(last) === true;
+  }
+  return states.length === 2 && home !== null && stableRoute(last) && clockSet(last) === true
+    && house(last.location, "1F") !== null && house(last.location, "1F") !== home;
+};
+const routeNames = new Set(["PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED"]);
+
 // Legacy names retain their old meaning; exact confirmation/exit have new IDs.
 // Flags and stage meanings are traced in docs/findings/story-milestones.md.
 export const MILESTONES: readonly Milestone[] = [
@@ -67,6 +91,9 @@ export const MILESTONES: readonly Milestone[] = [
   { name: "PLAYER_BEDROOM", kind: "navigation", reached: (s) => place(s, (location) => /^LITTLEROOT TOWN (BRENDANS|MAYS) HOUSE 2F$/.test(location)) },
   { name: "CLOCK_SET", kind: "story", reached: clockSet },
   { name: "MOM_RIVAL_INSTRUCTION", kind: "story", reached: stage("intro_stage", [7]) },
+  { name: "PLAYER_HOUSE_EXITED_AFTER_CLOCK", kind: "navigation", reached: (s) => clockSet(s) === true ? at("LITTLEROOT TOWN")(s) : null },
+  { name: "RIVAL_HOUSE_ENTERED", kind: "navigation", reached: (s) => clockSet(s) === true ? place(s, (location) => house(location, "1F") !== null) : null },
+  { name: "RIVAL_BEDROOM_REACHED", kind: "navigation", reached: (s) => stableRoute(s) ? stage("rival_stage", [2, 3, 4])(s) : null },
   { name: "RIVAL_MET", kind: "story", reached: stage("rival_stage", [3, 4]) },
   { name: "ROUTE_101", kind: "navigation", reached: at("ROUTE 101") },
   { name: "STARTER_CHOSEN", kind: "story", reached: (s) => savedWorld(s) ? s.party.length > 0 : null },
@@ -95,6 +122,8 @@ export const MILESTONE_ORDER = MILESTONES.map((m) => m.name);
 
 export class StateMilestones implements MilestoneSource {
   private readonly seen = new Set<string>();
+  private home: { readonly state: GameStateSnapshot; readonly seq: number } | null = null;
+  private previous: { readonly state: GameStateSnapshot; readonly seq: number } | null = null;
   private truckSeq: number | null = null;
   private sawTruck = false;
   private resumed = false;
@@ -109,17 +138,24 @@ export class StateMilestones implements MilestoneSource {
       this.sawTruck = true;
       this.truckSeq ??= seq ?? null;
     }
+    if (seq !== undefined && this.home === null && postClockHomeWitness(state) !== null) this.home = { state, seq };
+    const routeEvidence = new Map<string, number[]>();
+    if (seq !== undefined && this.home !== null) {
+      if (routeProof("RIVAL_HOUSE_ENTERED", [this.home.state, state])) routeEvidence.set("RIVAL_HOUSE_ENTERED", [this.home.seq, seq]);
+      if (this.previous !== null && routeProof("PLAYER_HOUSE_EXITED_AFTER_CLOCK", [this.home.state, this.previous.state, state])) routeEvidence.set("PLAYER_HOUSE_EXITED_AFTER_CLOCK", [this.home.seq, this.previous.seq, seq]);
+    }
     const fresh = MILESTONES.filter((m) => {
       if (this.seen.has(m.name)) return false;
       const reached = m.reached(state);
       if (reached === false) this.negativeBaseline.add(m.name);
-      return reached === true && (m.name !== "FIRST_TRUCK_EXIT" || this.sawTruck);
+      return reached === true && (!routeNames.has(m.name) || routeEvidence.has(m.name)) && (m.name !== "FIRST_TRUCK_EXIT" || this.sawTruck);
     });
+    if (seq !== undefined && savedWorld(state) && state.location !== null) this.previous = { state, seq };
     for (const m of fresh) this.seen.add(m.name);
     return fresh.map((m) => ({
       name: m.name, serverTimestamp, kind: m.kind,
-      origin: this.resumed && m.name !== "GAME_RUNNING" && !this.negativeBaseline.has(m.name) ? "present_at_start" : "observed",
-      ...(seq === undefined ? {} : { evidence: m.name === "FIRST_TRUCK_EXIT" && this.truckSeq !== null ? [this.truckSeq, seq] : [seq] }),
+      origin: !routeNames.has(m.name) && this.resumed && m.name !== "GAME_RUNNING" && !this.negativeBaseline.has(m.name) ? "present_at_start" : "observed",
+      ...(seq === undefined ? {} : { evidence: routeEvidence.get(m.name) ?? (m.name === "FIRST_TRUCK_EXIT" && this.truckSeq !== null ? [this.truckSeq, seq] : [seq]) }),
     }));
   }
   async poll(): Promise<SeenMilestone[]> { return this.observe(await this.state.read()); }
@@ -129,5 +165,5 @@ export class StateMilestones implements MilestoneSource {
 export function qualifiedNativeMilestone(event:Extract<RunEvent,{type:"milestone"}>,states:readonly (RunEvent|undefined)[]):boolean {
  const definition=MILESTONES.find(item=>item.name===event.name);
  const last=states.at(-1);
- return definition!==undefined&&definition.kind!=="legacy"&&event.kind===definition.kind&&event.origin!==undefined&&states.length>0&&states.every(state=>state?.type==="state"&&"started" in state&&state.run===event.run&&state.seq<event.seq)&&last?.type==="state"&&"started" in last&&definition.reached(last)===true&&(event.name!=="FIRST_TRUCK_EXIT"||(states.length===2&&states[0]?.type==="state"&&"location" in states[0]&&"started" in states[0]&&states[0].screen!=="field_transition"&&states[0].location==="INSIDE OF TRUCK"));
+ return definition!==undefined&&definition.kind!=="legacy"&&event.kind===definition.kind&&event.origin!==undefined&&states.length>0&&states.every(state=>state?.type==="state"&&"started" in state&&state.run===event.run&&state.seq<event.seq)&&last?.type==="state"&&"started" in last&&definition.reached(last)===true&&(!routeNames.has(event.name)||(event.origin==="observed"&&event.evidence?.length===states.length&&states.every((state,index)=>event.evidence?.[index]===state?.seq)&&states.every((state,index)=>index===0||(state !== undefined && state.seq > (states[index-1]?.seq ?? Infinity)))&&routeProof(event.name,states.filter((state):state is Extract<RunEvent,{type:"state"}> & GameStateSnapshot=>state?.type==="state"&&"started" in state))))&&(event.name!=="FIRST_TRUCK_EXIT"||(states.length===2&&states[0]?.type==="state"&&"location" in states[0]&&"started" in states[0]&&states[0].screen!=="field_transition"&&states[0].location==="INSIDE OF TRUCK"));
 }

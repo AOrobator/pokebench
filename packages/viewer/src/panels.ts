@@ -152,7 +152,7 @@ export function splits(view: RunView, baseline: Baseline | null, nowMs: number, 
   const names = new Set<string>([...MILESTONE_ORDER, ...reached.keys(), ...bases.keys(), ...bests.keys()]);
   const elapsed = wallSeconds(view, nowMs);
   const newStory = new Set(["PLAYER_NAME_CONFIRMED", "FIRST_TRUCK_EXIT", "MOM_CLOCK_INSTRUCTION", "MOM_RIVAL_INSTRUCTION", "RIVAL_MET", "BIRCH_RESCUE_COMPLETE", "BIRCH_STARTER_HANDOFF_COMPLETE", "RIVAL_BATTLE_WON", "RECEIVED_POKEDEX", "STARTER_TUTORIAL_COMPLETE", "RUNNING_SHOES_RECEIVED", "DAD_FIRST_MEETING", "WALLY_TUTORIAL_COMPLETE", "TEAM_AQUA_WOODS_EVENT_COMPLETE", "RUSTBORO_GYM_COMPLETE", "ROCK_TOMB_RECEIVED"]);
-  const supported = (name: string) => name === "NEW_GAME_CREATED" ? view.start?.harness_features.includes("new-game-created-v1") === true || reached.has(name) : !newStory.has(name) || view.start?.harness_features.includes("story-milestones-v2") === true || reached.has(name);
+  const supported = (name: string) => ["PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_BEDROOM_REACHED"].includes(name) ? view.start?.harness_features.includes("post-clock-navigation-milestones-v1") === true || reached.has(name) : name === "NEW_GAME_CREATED" ? view.start?.harness_features.includes("new-game-created-v1") === true || reached.has(name) : !newStory.has(name) || view.start?.harness_features.includes("story-milestones-v2") === true || reached.has(name);
   const present = new Set(view.milestones.filter((m) => m.origin === "present_at_start").map((m) => m.name));
   const next = [...names].find((name) => supported(name) && !reached.has(name) && !present.has(name));
   const cell = (name: string, at: number | undefined, refs: ReturnType<typeof reference>) => {

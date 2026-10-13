@@ -465,3 +465,13 @@ it("renders verified confirmation selection and unsupported diagnostic", () => {
 it("renders passive would-stop as a diagnostic rather than execution error",()=>{
  const log=bare();const event=log.add(100,{type:"loop_guard",turn:1,kind:"planning",mode:"diagnostic",phase:"would_stop",message:"No action <yet>",calls:12,evidence:[1]});const html=actionRow(event);expect(html).toContain("diagnostic: would stop");expect(html).not.toContain("ev-error");expect(html).toContain("No action &lt;yet&gt;");
 });
+
+it("shows the three post-clock splits and labels unsupported historical runs",()=>{
+ const log=new Log();log.add(0,{...START,harness_features:["post-clock-navigation-milestones-v1"]});
+ const names=["PLAYER_HOUSE_EXITED_AFTER_CLOCK","RIVAL_HOUSE_ENTERED","RIVAL_BEDROOM_REACHED"];
+ for(const [index,name] of names.entries()){const mark=log.add(1000*(index+1),{type:"milestone",turn:index,name,server_timestamp:index+1,kind:"navigation",origin:"observed",evidence:[1]});expect(actionRow(mark)).toContain(`${name} · navigation · evidence #1`);}
+ const html=splits(view(log),null,BASE_MS+5000).table;
+ for(const [index,name] of names.entries())expect(html).toContain(`<td class="n">${name.toLowerCase().replaceAll("_"," ")}</td><td class="t">0:00:0${String(index+1)}</td>`);
+ const old=splits(view(bare()),null,BASE_MS+5000).table;
+ expect(old).toContain('<td class="n">rival house entered</td><td class="t">not<br>recorded</td>');
+});

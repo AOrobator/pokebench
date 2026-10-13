@@ -227,3 +227,21 @@ table.splits td.d, table.splits td.t { width: 18.66%; }
 @media(max-width:700px) { .watch-deck { height:auto; grid-template-rows:auto auto auto; min-height:0; } .objective-strip { min-height:64px; } .game-stream { grid-template-columns:1fr; } .game-stream .gbaStage { height:280px; } .thinking-stream { height:340px; } .directory-pages { grid-template-columns:120px minmax(0,1fr); } .page-directory button { font-size:6px; } .inspection-nav { height:650px; } .page-content .logcols { grid-template-columns:1fr; height:auto; } .page-content .log,.page-content .inspector { height:360px; } }
 /* Clear the former two-column grid's named areas in the watch deck. */
 .watch-deck > .lanesBox,.game-stream > .gbaStage { grid-area:auto; }
+
+/* Compact numbered history; selection opens the complete recorded content. */
+.log .ev { align-items: flex-start; padding-top: 5px; padding-bottom: 5px; }
+.log .ev .body { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; white-space: pre-line; line-height: 1.55; max-height: 3.1em; }
+.event-heading { color: #345779; font-weight: 700; border-bottom: 1px solid #bdd3e8; padding-bottom: 8px; margin-bottom: 10px; }
+.event-content { font: 12px/1.65 'JetBrains Mono', ui-monospace, monospace; margin-bottom: 16px; overflow-wrap: anywhere; }
+.event-content h3,.event-content h4,.event-content h5,.event-content h6 { font-family: inherit; font-size: 13px; line-height: 1.5; color: #345779; margin: 12px 0 6px; }
+.event-content p { margin: 5px 0 10px; }
+.event-content ul,.event-content ol { padding-left: 22px; }
+.event-content blockquote { border-left: 3px solid #7baed7; padding-left: 10px; margin: 10px 0; color: #49647e; }
+.event-content a { color: #185a91; text-decoration: underline; }
+.event-content :not(pre)>code { background: #eef3f8; border-radius: 3px; padding: 1px 4px; }
+.inspector .syntax-json,.inspector .code-block { font: 11px/1.55 'JetBrains Mono', ui-monospace, monospace; margin: 6px 0 12px; padding: 10px; background: #f4f7fb; border: 1px solid #d6e2ee; border-radius: 6px; tab-size: 2; }
+.json-key { color: #225999; font-weight: 600; }
+.json-string { color: #267444; }
+.json-number { color: #9b4d18; }
+.json-literal { color: #8153a0; }
+.raw-event summary { cursor: pointer; color: #345779; padding: 5px 0; }

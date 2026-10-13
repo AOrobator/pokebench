@@ -2,6 +2,7 @@
 // folded event log; a panel without its data says so instead of guessing.
 import type { RunEvent } from "@pokebench/agent/events";
 import { esc, hms, num, signedDelta } from "./format.js";
+import { dataHtml, jsonHtml, richText } from "./inspectformat.js";
 import { ASSUMED_TIMING, MILESTONE_ORDER, type RunView } from "./model.js";
 
 export const NO_DATA = '<span class="nodata">no data</span>';
@@ -245,7 +246,15 @@ export function actionRow(event: RunEvent, view?: RunView): string | null {
 
 export function inspector(event: RunEvent | undefined): string {
   if (event === undefined) return '<p class="nodata">click a log row to see its raw event</p>';
-  return `<pre>${esc(JSON.stringify(event, null, 2))}</pre>`;
+  const record = event as unknown as Record<string, unknown>;
+  const sections = ["thinking", "text", "message", "reason", "system_prompt"].flatMap((key) => {
+    const value = record[key];
+    return typeof value === "string" && value.trim() !== ""
+      ? [`<section class="event-content"><h4>${esc(key.replaceAll("_", " "))}</h4>${richText(value)}</section>`]
+      : [];
+  });
+  const data = ["args", "objective", "attempt"].flatMap((key) => record[key] === undefined ? [] : [`<section class="event-content"><h4>${esc(key)}</h4>${dataHtml(record[key])}</section>`]);
+  return `<header class="event-heading">#${String(event.seq)} · ${esc(event.type)} · turn ${String(event.turn)}</header>${sections.join("")}${data.join("")}<details class="raw-event"${sections.length + data.length === 0 ? " open" : ""}><summary>Raw event JSON</summary>${jsonHtml(event)}</details>`;
 }
 
 export function brand(view: RunView): string {

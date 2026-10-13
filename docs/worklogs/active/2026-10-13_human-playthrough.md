@@ -31,7 +31,7 @@ The operator requested a human screen separate from the viewer with a minimal UI
 - Large game screen centered in the main play area, with compact splits always visible beside it on desktop. On narrow screens, preserve readability by placing splits immediately below the game.
 - Splits show milestone and this run's time; show a baseline delta only when a comparable reference is selected. Baseline selection can remain in the inspection viewer rather than add a settings panel to Play.
 - Reuse the existing agent timeline below the game, always visible. Omit the thinking, tool calls and errors lanes from the human Play screen. Retain the other applicable lanes and existing timeline behavior; do not build a separate simplified timeline. Errors still remain in durable recordings and actionable input/recording failures remain visible in the minimal status area.
-- Small top bar: elapsed time, recording status, Pause/Resume and Finish buttons. Finish ends and preserves the run; it does not discard it. Clear input/recording failures appear where needed.
+- Small top bar: elapsed time, recording status, sound toggle, Pause/Resume and Finish buttons. Finish ends and preserves the run; it does not discard it. Clear input/recording failures appear where needed.
 - Compact key legend beneath the game, with “click game to enable controls” / “controls active” focus status.
 - No model settings, thinking panel, feature switchboard, benchmark controls or extra statistics panels on Play. The existing viewer remains available for inspecting live/recorded human runs and comparisons.
 
@@ -45,7 +45,7 @@ Initial acceptance target: a recorded opening segment, followed by the operator'
 
 ## Architecture
 
-1. **Human run lifecycle.** Add an explicit human controller/run identity rather than relabel a `manual-probe` as a benchmark run. Launch through the owned run lifecycle with its own run directory, server cwd, server port and start-state provenance. Record human identity, ROM hash, vendor pin, harness revision, measurement features, start state and input/timing policy. Human launch makes no model calls. Coordinate with the existing launch queue and gameplay lease so a human server cannot accidentally drive a model server or collide with an active benchmark.
+1. **Human run lifecycle.** Add an explicit human controller/run identity rather than relabel a `manual-probe` as a benchmark run. Launch through the owned run lifecycle with its own run directory, server cwd, server port and start-state provenance. Record human identity, ROM hash, vendor pin, harness revision, measurement features, start state and input/timing policy. Human launch makes no model calls; human servers use a separate human lease and may coexist with an isolated model server under the operator's execution amendment. Coordinate with the existing launch queue and gameplay lease so a human server cannot accidentally drive a model server or collide with an active benchmark.
 2. **Keyboard surface.** Add a dedicated minimal Play page separate from the viewer, with a focusable game surface, compact mapping legend and input-focus status. Splits stay beside the game and the existing agent timeline stays visible below it, with thinking, tool calls and errors lanes omitted, per the operator design decisions above. Interpret physical keys consistently using browser key codes. Ignore repeat keydowns, serialize validated button-set transitions and support release independently of render/update cadence. Losing focus, hiding the page, disconnecting, pausing or ending releases all held buttons; reconnect never silently resumes an old hold. A new focus requires new input. Model-mode run controls remain on-screen buttons; no viewer keyboard shortcuts.
 3. **Server-owned inputs.** The browser submits bounded, typed input transitions for the selected live human run. The server checks human ownership, input session and ordering, then applies them through a pokebench-owned emulator adapter. The applied emulator input and frame count are authoritative; browser key timing alone is not proof of application. A bounded heartbeat/watchdog releases buttons when a client disappears. A stale request from a former run/tab/session must never control a newer run.
 4. **Continuous gameplay and recording.** Verify the pinned stepping server's behavior before choosing the adapter. Human play needs game advancement between inputs, including battles/dialogue and time while no button is held. The existing press API may require an owned stepping/input loop; do not assume long press requests permit prompt release. Preserve input order and actual applied durations without overlapping emulator writers. Record accepted/applied/rejected inputs, state observations, frames and terminal outcome through the durable event log. Keep vendor source unmodified.
@@ -84,36 +84,36 @@ All servers bind 127.0.0.1. New writes retain existing Host/Origin, JSON content
 
 **M1 — Human run contract and isolated launch**
 - [ ] Verify pinned emulator stepping/input semantics and current schema, clocks, lease and queue owners; record adapter decision and measurement cadence.
-- [ ] Write tests: explicit human kind/provenance, no model calls, isolated server, start-state identity, lease conflicts, terminal lifecycle and historical schema compatibility.
+- [x] Write tests: explicit human kind/provenance, no model calls, isolated server, start-state identity, lease conflicts, terminal lifecycle and historical schema compatibility.
 - [ ] COMMIT: `test(human): define isolated human run lifecycle` (RED).
-- [ ] Implement human launch and typed metadata/lifecycle, including orderly stop and failure cleanup.
+- [x] Implement human launch and typed metadata/lifecycle, including orderly stop and failure cleanup.
 - [ ] Gates: test counts, lint, build, coverage ≥90% per required metric in both stacks; vendor clean.
 - [ ] COMMIT: `feat(human): launch recorded human game sessions` (GREEN).
 - [ ] Isolated real-server launch/stop proof with no inference request.
 - [ ] Performed guard-removal receipts; multi-model review until clean.
 
 **M2 — Responsive keyboard input and safe release**
-- [ ] Write tests: exact mapping, combinations, repeat suppression, keyup, editable targets, focus loss, visibility/disconnect watchdog, stale sequence/session, input rejection, pause/stop, S/P/X shortcut conflicts.
+- [x] Write tests: exact mapping, combinations, repeat suppression, keyup, editable targets, focus loss, visibility/disconnect watchdog, stale sequence/session, input rejection, pause/stop, S/P/X shortcut conflicts.
 - [ ] COMMIT: `test(human-input): require keyboard ownership and bounded releases` (RED).
-- [ ] Implement the separate minimal Play page, focused human controls, input transport, owned emulator adapter and server-side release watchdog. Keep splits beside the game and the timeline below; do not embed the viewer settings UI.
+- [x] Implement the separate minimal Play page, focused human controls, input transport, owned emulator adapter and server-side release watchdog. Keep splits beside the game and the timeline below; do not embed the viewer settings UI.
 - [ ] Gates: test counts, lint, build, coverage ≥90%; vendor clean.
 - [ ] COMMIT: `feat(human-input): wire keyboard controls to isolated gameplay` (GREEN).
 - [ ] Real browser/emulator proof: held direction, O/P, Start/Select, L/R, simultaneous input, idle advancement and release after blur/disconnect. Show no S/P/X operator action.
 - [ ] Performed guard-removal receipts; multi-model review until clean.
 
 **M3 — Durable recording, milestone splits and replay**
-- [ ] Write tests: applied input/frame evidence, state polling without input, milestone deduplication/present-at-start, three clock semantics, pause gaps, failed state reads, recorder failure and terminal outcome, live/replay parity.
+- [x] Write tests: applied input/frame evidence, state polling without input, milestone deduplication/present-at-start, three clock semantics, pause gaps, failed state reads, recorder failure and terminal outcome, live/replay parity.
 - [ ] COMMIT: `test(human-recording): require inputs clocks milestones and replay` (RED).
-- [ ] Implement recorder integration, frame/state cadence, compact adjacent splits and the existing always-visible agent timeline on Play, omitting thinking/tool calls/errors lanes; retain full human live/replay inspection in the separate viewer.
+- [x] Implement recorder integration, frame/state cadence, compact adjacent splits and the existing always-visible agent timeline on Play, omitting thinking/tool calls/errors lanes; retain full human live/replay inspection in the separate viewer.
 - [ ] Gates: test counts, lint, build, coverage ≥90%; vendor clean.
 - [ ] COMMIT: `feat(human-recording): preserve human inputs and milestone splits` (GREEN).
 - [ ] Short emulator smoke: save log/frames, stop server, replay matching inputs and milestone evidence. Smoke is labeled as validation, not the operator's baseline.
 - [ ] Performed guard-removal receipts; agent-observability trace and multi-model review until clean.
 
 **M4 — Human baseline selection and trustworthy comparisons**
-- [ ] Write tests: finished valid same-start human reference, explicit identity, no probe/incomplete/start-mismatch eligibility, pause-aware splits, clock availability/uncertainty, no human contamination of model history or automatic incumbent choice.
+- [x] Write tests: finished valid same-start human reference, explicit identity, no probe/incomplete/start-mismatch eligibility, pause-aware splits, clock availability/uncertainty, no human contamination of model history or automatic incumbent choice.
 - [ ] COMMIT: `test(human-baseline): require explicit comparable human references` (RED).
-- [ ] Implement human reference selection, labels and split deltas; unavailable metrics remain unavailable.
+- [x] Implement human reference selection, labels and split deltas; unavailable metrics remain unavailable.
 - [ ] Gates: test counts, lint, build, coverage ≥90%; vendor clean.
 - [ ] COMMIT: `feat(human-baseline): compare model splits with human playthroughs` (GREEN).
 - [ ] Real viewer proof against recorded human smoke and existing model logs; no new model benchmark run required.
@@ -131,6 +131,13 @@ All servers bind 127.0.0.1. New writes retain existing Host/Origin, JSON content
 Wiring is complete only when launch, keyboard inputs, safe releases, recording, milestones, clocks, replay and explicit human-reference selection work together with gates/review and live evidence. The human baseline is a separate completion state requiring the operator's actual recorded run. Keep smoke artifacts, tests, review, landing, viewer restart and operator playthrough distinct.
 
 ## Session Log
+
+- Parallel execution authorized by the operator (“if u can split this work into subagents to reduce clock time, do so”). Independent implementation owners: human_ui (Play/keyboard/timeline/audio), human_recording (applied journal/recorder/frame protection/replay), human_baselines (catalog/history/summary/patch-arm isolation). Root owns Python frame adapter, coherent observation/transport/audio proxy, launch wiring and integration.
+- The operator added “i want to play at 1x with the sound on”. Implemented fixed59.7275 frame cadence including dialogue, shared audio capture/follower with fixed playbackRate1, trusted game-click audio unlock, and sound mute on pause/end/focus loss. Sound button allows re-enabling without extra settings panels.
+- M2/M3/M4 implementation/tests prepared under the approved continue-wiring amendment. Focused evidence: UI63 tests plus AudioFollower17; recorder59 agent+21 model tests; baseline31 viewer+53 agent; Python38 focused tests; server-human7 and cumulative UI/timeline27 integration tests. Full frozen gates remain pending; no green review/landing claim.
+- Native validation probe `2026-10-13T17-35-53_human_8302` used own game server8040 and preview8798 (8795 was occupied; no existing service replaced), with no model calls. Browser game click showed Controls active and Sound on1×; native Start/A and mapped direction inputs recorded. Desktop1280px layout has game x24..834, splits x936..1256, shared two-lane timeline below y726. Narrow layout inspected separately. Rapid matrix exposed pending16 saturation; raised bounded queue64 and tested all20 transitions, retaining overload release and stale-request dropping. Expected SSE close after Finish falsely showed connection error; terminal cleanup regression fixed. Probe ended with operator_stop, zero tokens, final frozen sample, 7764 applied frames and740 saved frames. This is validation, not the operator's baseline.
+- Guard receipts `/tmp/pokebench-human-guards`: 10 initial performed guards went RED/restored; original06 timeline filter passed because fixture had no hidden markers, retained as insufficient evidence. Added production-shaped hidden-agent markers fixture and fresh06b RED/restored; input-burst and acknowledgment guards also performed. Literal receipts and final restore gates retained.
+- External M1 source review transport: Claude CLI loggedIn:false; Cursor Claude Opus and GPT quota failures retained; Grok4.7high-fast timed out360s without a terminal verdict. None counted green. Local model lanes waived by the operator. Final cumulative roster must use available external reviewers plus standing-authorized fresh read-only Sol/Astra fallback for exhausted portions, with reduced vendor diversity stated.
 
 - M1 source checkpoint: explicit human metadata, L/R schema support, covered idle/control driver, crash launch receipt, own canonical human lease and correct Python source isolation. Agent 662/viewer235 tests passed before M2; focused final M1 61 tests pass, build and vendor checks pass. Full Python run passed 497 tests but its final coverage scan included newly prepared M2 sources, so that coverage result is not a frozen M1 gate. M1 cumulative gates/review remain pending under the operator's continue-wiring amendment. Final source/gates/review will be frozen before landing; no milestone falsely marked complete.
 - M2 RED: preserved missing-module failures for human-keyboard and human-controller tests. Initial route-test collection failed for an unavailable httpx2 testclient dependency; removed that dependency and retained the failure receipt. Will test owned HTTP routes via the existing ASGI test approach. M2 implementation is being prepared while proof/review of M1 remains pending, explicitly authorized above.
@@ -152,6 +159,8 @@ Wiring is complete only when launch, keyboard inputs, safe releases, recording, 
 - 2026-10-13: Created this worklog from the operator's request and exact key mapping. Read repository rules, principles, feature-worklog skill, current viewer-control design and relevant input/recorder paths. Main was clean at discovery. No implementation edits, server launches, benchmark runs or baseline claims. Updated the root pointer from the naming-comparison worklog to this worklog; existing worklog bodies remain intact.
 
 ## Surprises
+
+- Python copied-hook tests took several minutes in this worktree; initial coverage output was also invalidated by concurrent source preparation. Preserve receipts and run final gates on a frozen tree instead of treating partial counts as final proof.
 
 - Existing S/P/X run shortcuts directly conflict with human Down/B/Start. Operator explicitly requested removing viewer shortcuts globally; this is a correction to the initial plan.
 - `live.ts` manual probe is explicitly excluded from benchmark results; it cannot simply serve as the human baseline identity.

@@ -221,3 +221,105 @@ it("keeps nickname-resume progress out of the actual recorder split catalog", as
   writeRun(r,"current",current);
   expect(comparisonsOf(r,"current")).toEqual({candidates:[],baseline:null,best:null});
 });
+
+const HUMAN = { kind: "human", name: "Operator", rom_sha1: "c".repeat(40), input_policy: "frame-held-v1", sample_ms: 100, nominal_fps: 59.7275 } as const;
+function humanLog(offset = 0, finished = true, reason: "operator_stop" | "operator_abort" | "crash" = "operator_stop"): Log {
+  const log = new Log();
+  log.add(offset, { ...START, controller: HUMAN, model: { ...START.model, id: "Human · Operator" }, tools: [], harness_features: ["ram-state-v1"] });
+  log.add(offset + 100, { type: "milestone", turn: 0, name: "PLAYER_NAME_CONFIRMED", server_timestamp: 100, kind: "story", origin: "observed" });
+  if (finished) log.add(offset + 200, { type: "run_end", turn: 0, reason, furthest_milestone: "PLAYER_NAME_CONFIRMED", turns: 0, wall_ms: 200, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } });
+  return log;
+}
+
+it("offers finished comparable humans explicitly, never as automatic model best or baseline", async () => {
+  const { comparisonsOf } = await import("./runs.js");
+  const r = root();
+  writeRun(r, "current", humanLog(1000, false));
+  writeRun(r, "human", humanLog());
+  const result = comparisonsOf(r, "current");
+  expect(result.candidates).toHaveLength(1);
+  expect(result.candidates[0]).toMatchObject({ run: "human", model: "Human · Operator", controller: { kind: "human", name: "Operator" } });
+  expect(result.baseline).toBeNull();
+  expect(result.best).toBeNull();
+});
+
+it("excludes incomplete and aborted human references, preserving crash DNF partial splits", () => {
+  const r = root();
+  writeRun(r, "live-human", humanLog(0, false));
+  writeRun(r, "abort-human", humanLog(0, true, "operator_abort"));
+  writeRun(r, "crash-human", humanLog(0, true, "crash"));
+  expect(() => baselineOf(r, "live-human")).toThrow(/finished human/);
+  expect(() => baselineOf(r, "abort-human")).toThrow(/aborted human/);
+  expect(baselineOf(r, "crash-human").milestones).toEqual([{ name: "PLAYER_NAME_CONFIRMED", offsetMs: 100 }]);
+});
+
+it("matches human references by start and known ROM, rejects probes and invalid log interiors", async () => {
+  const { comparisonsOf } = await import("./runs.js");
+  const r = root(); writeRun(r, "current", humanLog(1000, false));
+  const changeStart = (patch: object) => { const log = humanLog(); const first = log.events[0]; if (first?.type !== "run_start") throw new Error("fixture"); log.events[0] = { ...first, ...patch }; return log; };
+  writeRun(r, "wrong-rom", changeStart({ controller: { ...HUMAN, rom_sha1: "d".repeat(40) } }));
+  writeRun(r, "wrong-start", changeStart({ start_state: { kind: "save_state", path: "save", sha1: "e".repeat(40) } }));
+  writeRun(r, "probe", changeStart({ harness_features: ["ram-state-v1", "probe"] }));
+  const path = writeRun(r, "invalid", humanLog());
+  writeFileSync(path, readFileSync(path, "utf8").replace('\n', '\ninvalid\n'));
+  expect(comparisonsOf(r, "current")).toEqual({ candidates: [], baseline: null, best: null });
+});
+
+it("keeps a mixed model catalog automatic picks model-only, qualifying legacy ROM proof", async () => {
+  const { comparisonsOf } = await import("./runs.js");
+  const r = root();
+  const model = new Log(); model.add(1000, { ...START, harness_features: ["ram-state-v1"] });
+  writeRun(r, "current-model", model);
+  writeRun(r, "model-reference", fullRun());
+  writeRun(r, "human-fast", humanLog());
+  const result = comparisonsOf(r, "current-model");
+  expect(result.candidates.map(c => c.run).sort()).toEqual(["human-fast", "model-reference"]);
+  expect(result.candidates.find(c => c.run === "human-fast")).toMatchObject({ romIdentity: "unverified" });
+  expect(result.baseline?.run).toBe("model-reference");
+  expect(result.best?.run).toBe("model-reference");
+  const first = model.events[0]; if (first?.type !== "run_start") throw new Error("fixture");
+  model.events[0] = { ...first, rom_sha1: "d".repeat(40) };
+  writeRun(r, "current-model", model);
+  expect(comparisonsOf(r, "current-model").candidates.map(c => c.run)).toEqual(["model-reference"]);
+});
+
+it("rejects matching-start human references with a different vendor pin", async () => {
+  const { comparisonsOf } = await import("./runs.js"); const r = root();
+  writeRun(r, "current", humanLog(1000, false)); const candidate = humanLog();
+  const first = candidate.events[0]; if (first?.type !== "run_start") throw new Error("fixture");
+  candidate.events[0] = { ...first, vendor_pin: "d".repeat(40) };
+  writeRun(r, "different-vendor", candidate);
+  expect(comparisonsOf(r, "current").candidates).toEqual([]);
+});
+
+it("uses active pause-adjusted human splits and omits progress present at the start", () => {
+  const r = root(); const log = new Log();
+  log.add(0, { ...START, controller: HUMAN, harness_features: ["ram-state-v1"] });
+  log.add(0, { type: "milestone", turn: 0, name: "NEW_GAME_CREATED", server_timestamp: 0, kind: "story", origin: "present_at_start" });
+  log.add(10, { type: "operator_control", turn: 0, action: "pause", status: "applied", request: 1, emulator_frozen: true });
+  log.add(50, { type: "operator_control", turn: 0, action: "resume", status: "applied", request: 2, paused_ms: 40 });
+  log.add(100, { type: "milestone", turn: 0, name: "CLOCK_SET", server_timestamp: 100, kind: "story", origin: "observed" });
+  log.add(200, { type: "run_end", turn: 0, reason: "operator_stop", furthest_milestone: "CLOCK_SET", turns: 0, wall_ms: 200, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } });
+  writeRun(r, "paused", log);
+  expect(baselineOf(r, "paused").milestones).toEqual([{ name: "CLOCK_SET", offsetMs: 60 }]);
+});
+
+it("rejects human logs with duplicated starts, sequence gaps, or duplicated terminal receipts", () => {
+  const r = root();
+  for (const mode of ["duplicate-start", "sequence-gap", "duplicate-end"] as const) {
+    const log = humanLog();
+    const first = log.events[0], last = log.events.at(-1);
+    if (first === undefined || last === undefined) throw new Error("fixture");
+    if (mode === "duplicate-start") log.events.splice(1, 0, { ...first, seq: 1 });
+    if (mode === "sequence-gap") log.events[0] = { ...first, seq: 9 };
+    if (mode === "duplicate-end") log.events.push({ ...last, seq: log.events.length });
+    writeRun(r, mode, log);
+    expect(() => baselineOf(r, mode)).toThrow(/human event order/);
+  }
+});
+
+it("requires the human terminal receipt to be a durable complete line", () => {
+  const r = root(); const path = writeRun(r, "truncated", humanLog());
+  writeFileSync(path, readFileSync(path, "utf8").trimEnd());
+  expect(() => baselineOf(r, "truncated")).toThrow(/finished human/);
+});

@@ -253,3 +253,10 @@ describe("qualification edge boundaries",()=>{
   }
  });
 });
+
+
+it("rejects a human controller spoofing the planned model id at the actual child outcome boundary", async () => {
+  const m = await diskFixture();
+  const command = await tinyCommand(m, code => code.replace("model:{", "controller:{kind:'human',name:'Operator',rom_sha1:'" + "c".repeat(40) + "',input_policy:'frame-held-v1',sample_ms:100,nominal_fps:59.7275},model:{"));
+  await expect(filesystemComparisonHost(m).launch(command)).rejects.toThrow("event_invalid");
+});

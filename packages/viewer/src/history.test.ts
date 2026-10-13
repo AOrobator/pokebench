@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -95,4 +95,24 @@ describe("history edge cases", () => {
     if (start.type !== "run_start") throw new Error("fixture");
     expect(configOf(start)).toMatchObject({ maxTurns: null, maxWallMs: null, target: null });
   });
+});
+
+it("rejects human controller identity even when model and feature settings match a model arm", () => {
+  const start = new Log().add(0, { ...START, harness_features: playHarnessFeatures(ALL_ON, null), controller: { kind: "human", name: "Operator", rom_sha1: "c".repeat(40), input_policy: "frame-held-v1", sample_ms: 100, nominal_fps: 59.7275 } });
+  if (start.type !== "run_start") throw new Error("fixture");
+  expect(configOf(start)).toBeNull();
+});
+
+it("keeps human runs out of aggregate feature-history arms even when their model name is spoofed", () => {
+  const root = mkdtempSync(join(tmpdir(), "history-human-"));
+  run(root, "model-on", { milestones: [["CLOCK_SET", 100]] });
+  run(root, "model-off", { features: off("story-state-v1"), milestones: [] });
+  run(root, "human-on", { milestones: [["CLOCK_SET", 1]] });
+  const path = join(root, "human-on", "events.jsonl");
+  // Identity is controller-owned: a model-like name/config cannot make a human a patch arm.
+  const lines = readFileSync(path, "utf8").split("\n").filter(Boolean);
+  const first = JSON.parse(lines[0] ?? "") as Record<string, unknown>;
+  lines[0] = JSON.stringify({ ...first, controller: { kind: "human", name: "Operator", rom_sha1: "c".repeat(40), input_policy: "frame-held-v1", sample_ms: 100, nominal_fps: 59.7275 } });
+  writeFileSync(path, lines.join("\n") + "\n");
+  expect(featureHistory(root, DRAFT)["story-state-v1"]).toEqual({ on: { runs: 1, reached: { CLOCK_SET: 1 }, medianMs: { CLOCK_SET: 100 } }, off: { runs: 1, reached: {}, medianMs: {} } });
 });

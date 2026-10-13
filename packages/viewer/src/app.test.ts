@@ -751,3 +751,8 @@ it("shows explicit evaluation target/cap and native terminal proof in history an
  expect(ui("log").textContent).toContain("native target PLAYER_NAME_CONFIRMED");expect(ui("lanes").textContent).toContain("native target PLAYER_NAME_CONFIRMED");
  expect(ui("run-details").textContent).toContain('"preset_id": "name-control"');expect(ui("budgets").textContent).toContain("0:10:00");
 });
+it('labels human comparison candidates with unverified ROM provenance',async()=>{
+ document.body.innerHTML=PAGE.slice(PAGE.indexOf('<body>')+6,PAGE.indexOf('</body>'));
+ const app=await mountApp(document,{fetchJson:url=>nextRunReply(url) ?? Promise.resolve(url==='/api/runs'?RUNS:{candidates:[{run:'human-unknown',milestones:[],controller:{kind:'human',name:'Operator'},romIdentity:'unverified'},{run:'human-verified',milestones:[],controller:{kind:'human',name:'Operator'},romIdentity:'verified'}],baseline:null,best:null}),sendJson:noWrites,openStream:url=>new FakeStream(url),now:()=>BASE_MS,hash:''});
+ await Promise.resolve();expect(ui('baseline').textContent).toContain('human-unknown (ROM unverified)');expect(ui('baseline').textContent).toContain('human-verified');expect(ui('baseline').textContent).not.toContain('human-verified (ROM unverified)');app.tick(0);
+});

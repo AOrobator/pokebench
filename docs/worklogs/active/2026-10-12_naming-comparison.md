@@ -50,3 +50,7 @@ No unrelated edits. Old Justfile comment says60min despite30min actual default; 
 
 ## Archive Milestone
 - [ ] ASK USER: archive after closeout.
+
+COMMIT: `docs(worklog): prepare serial native naming comparison` (`3286f14`), user-approved matrix/caps/criteria/hill-climb scope recorded before implementation. Two owners assigned disjoint native/preset/viewer and new supervisor files; parent controls commits/integration, no measured games.
+
+M2 RED: new serial-comparison test contract fails at missing-module import, explicitly capability RED rather than semantic deletion proof. Cases pin24counterbalanced assignments, source/order/identity/credential/criteria validation, serialnormalplay launch seam, failure retention, uncertainresume/source drift/exclusive lock. Operand mutation and actual filesystem/tinychild proof remain GREEN requirements.

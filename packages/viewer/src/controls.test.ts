@@ -1,0 +1,144 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+import { ALL_ON, FEATURES } from "@pokebench/agent/features";
+import { BASE_MS, Log, START } from "../test-support/events.js";
+import { availableActions, controlBar, differenceCount, overlay, overlayKind, queueText, runSeconds, sideStats, splitStrip, stateLabel, switchboard, type NextRunDraft } from "./controls.js";
+import { RunView } from "./model.js";
+
+function view(build: (log: Log) => void = () => undefined): RunView {
+  const log = new Log(); log.add(0, START); build(log);
+  const v = new RunView(); for (const e of log.events) v.apply(e); return v;
+}
+const control = (action: "pause" | "resume" | "stop" | "cancel_stop" | "abort", status: "pending" | "applied", extra = {}) => ({ type: "operator_control" as const, turn: 3, action, status, request: 1, ...extra });
+const draft: NextRunDraft = { model: "Qwen", thinking: "medium", maxTurns: 300, maxWallMs: 1_800_000, failureLimit: 3, maxTokens: 4096, target: null, features: { ...ALL_ON } };
+
+describe("run controls", () => {
+  it("offers only the controls that apply to the recorded state", () => {
+    expect([...availableActions(view(), true)]).toEqual(["pause", "stop", "abort"]);
+    expect([...availableActions(view(), false)]).toEqual([]);
+    expect([...availableActions(view((l) => l.add(1, control("pause", "pending"))), true)]).toEqual(["resume", "stop", "abort"]);
+    expect([...availableActions(view((l) => { l.add(1, control("pause", "pending")); l.add(2, control("pause", "applied", { emulator_frozen: true })); }), true)]).toEqual(["resume", "stop", "abort"]);
+    expect([...availableActions(view((l) => l.add(1, control("stop", "pending"))), true)]).toEqual(["cancel_stop", "abort"]);
+    expect([...availableActions(view((l) => l.add(1, { type: "run_end", turn: 1, reason: "operator_stop", furthest_milestone: null, turns: 1, wall_ms: 1, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } })), true)]).toEqual([]);
+  });
+
+  it("renders PAUSE/STOP/ABORT in the bar, swapping to RESUME and CANCEL STOP", () => {
+    const bar = controlBar(view(), true, null);
+    expect(bar).toContain('data-control="pause"');
+    expect(bar).toContain("hold X");
+    expect(bar).not.toContain("disabled");
+    expect(controlBar(view((l) => l.add(1, control("stop", "pending"))), true, null)).toContain("↺ CANCEL STOP");
+    expect(controlBar(view((l) => l.add(1, control("pause", "pending"))), true, 0.5)).toContain("--hold:50%");
+    expect(controlBar(view(), false, null).match(/disabled/g)).toHaveLength(3);
+  });
+
+  it("labels the run state and counts run time without pauses", () => {
+    const paused = view((l) => { l.add(1_000, control("pause", "applied", { emulator_frozen: true })); });
+    expect(stateLabel(paused, true)).toEqual({ cls: "paused", text: "PAUSED" });
+    expect(stateLabel(view(), false)).toEqual({ cls: "idle", text: "REPLAY" });
+    expect(runSeconds(paused, BASE_MS + 9_000)).toBe(1);
+    expect(runSeconds(new RunView(), BASE_MS)).toBe(0);
+  });
+
+  it("puts an overlay on the game screen for each control", () => {
+    const now = BASE_MS + 5_000;
+    expect(overlayKind(view(), true, false, false)).toBeNull();
+    expect(overlay(null, view(), now)).toBe("");
+    const pausing = view((l) => l.add(1, control("pause", "pending")));
+    expect(overlay(overlayKind(pausing, true, false, false), pausing, now)).toContain("⏸ PAUSING");
+    const paused = view((l) => l.add(1, control("pause", "applied", { emulator_frozen: false })));
+    const pausedOverlay = overlay(overlayKind(paused, true, false, false), paused, now);
+    expect(pausedOverlay).toContain("⏸ PAUSED");
+    expect(pausedOverlay).toContain("emulator NOT frozen");
+    const stopping = view((l) => l.add(1, control("stop", "pending")));
+    expect(overlay(overlayKind(stopping, true, false, false), stopping, now)).toContain("■ STOPPING");
+    expect(overlay(overlayKind(view(), true, true, false), view(), now, 0.5)).toContain('width="78"');
+    const ended = view((l) => l.add(1, { type: "run_end", turn: 1, reason: "operator_stop", furthest_milestone: null, turns: 1, wall_ms: 1, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } }));
+    expect(overlay(overlayKind(ended, true, false, false), ended, now)).toContain("■ RUN ENDED");
+    expect(overlayKind(ended, true, false, true)).toBeNull();
+    expect(overlayKind(ended, false, false, false)).toBeNull();
+    const aborted = view((l) => l.add(1, { type: "run_end", turn: 1, reason: "operator_abort", furthest_milestone: null, turns: 1, wall_ms: 1, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } }));
+    expect(overlay(overlayKind(aborted, true, false, false), aborted, now)).toContain("✖ ABORTED");
+  });
+});
+
+describe("live side panel", () => {
+  it("shows turn, time, failures and context against their caps", () => {
+    const v = view((l) => { l.add(1_000, { type: "turn_start", turn: 2, context: { messages: 3, images: 1, est_tokens: 6_000 } }); });
+    const html = sideStats(v, BASE_MS + 30_000);
+    expect(html).toContain("TURN<b>2</b>of 10");
+    expect(html).toContain("TIME<b>0:00:30</b>of 0:01:00");
+    expect(html).toContain("FAILURES<b>0</b>of 3");
+    expect(html).toContain("CONTEXT<b>6k</b>of 10k");
+  });
+
+  it("lists splits this run against the best run, pauses excluded", () => {
+    const v = view((l) => {
+      l.add(1_000, control("pause", "applied", { emulator_frozen: true }));
+      l.add(6_000, control("resume", "applied", { paused_ms: 5_000 }));
+      l.add(10_000, { type: "milestone", turn: 1, name: "NEW_GAME_CREATED", server_timestamp: 1, kind: "story", origin: "observed" });
+    });
+    const html = splitStrip(v, { run: "best", milestones: [{ name: "NEW_GAME_CREATED", offsetMs: 7_000 }] });
+    expect(html).toContain('<span class="done">NEW GAME ✔</span>');
+    expect(html).toContain('<span class="next">NAMED</span>');
+    expect(html).toContain('<span class="t">0:00:05</span><span class="d g">−0:00:02</span>');
+    expect(splitStrip(v, null)).toContain("no comparable best run yet");
+  });
+});
+
+describe("switchboard", () => {
+  it("renders every group, switch, description, dependency and the locked measurement rows", () => {
+    const html = switchboard({ features: FEATURES, draft, live: null, history: {}, expanded: new Set() });
+    for (const f of FEATURES) expect(html).toContain(f.id);
+    expect(html).toContain("10/10 ON");
+    expect(html).toContain("needs live-map-v1");
+    expect(html).toContain("MEASUREMENT · ALWAYS ON");
+    expect(html.match(/No matching runs yet/g)).toHaveLength(19);
+    expect(html.match(/🔒/g)).toHaveLength(5);
+  });
+
+  it("flags switches that differ from the live run", () => {
+    const live = new Set(FEATURES.filter((f) => f.id !== "story-state-v1").map((f) => f.id));
+    const html = switchboard({ features: FEATURES, draft, live, history: {}, expanded: new Set() });
+    expect(html.match(/DIFFERS FROM LIVE RUN/g)).toHaveLength(1);
+    expect(differenceCount(FEATURES, draft, live)).toBe(1);
+    expect(differenceCount(FEATURES, draft, null)).toBe(0);
+  });
+
+  it("shows paired on/off bars and, expanded, reach and median splits", () => {
+    const history = { "story-state-v1": { on: { runs: 4, reached: { NEW_GAME_CREATED: 4, CLOCK_SET: 3 }, medianMs: { NEW_GAME_CREATED: 41_000, CLOCK_SET: 580_000 } }, off: { runs: 4, reached: { NEW_GAME_CREATED: 4, CLOCK_SET: 1 }, medianMs: { NEW_GAME_CREATED: 43_000, CLOCK_SET: 1_265_000 } } } };
+    const collapsed = switchboard({ features: FEATURES, draft: { ...draft, features: { ...ALL_ON, "story-state-v1": false } }, live: null, history, expanded: new Set() });
+    expect(collapsed).toContain("<b>3·1</b>CLOCK");
+    expect(collapsed).toContain("runs with it ON (4)");
+    expect(collapsed).toContain("▶ MILESTONES + SPLITS");
+    expect(collapsed).not.toContain("etab");
+    const open = switchboard({ features: FEATURES, draft, live: null, history, expanded: new Set(["story-state-v1"]) });
+    expect(open).toContain('<td>CLOCK</td><td class="g">3/4</td><td class="">1/4</td><td>0:09:40</td><td>0:21:05</td>');
+    expect(open).toContain('<td>RT 101</td><td class="">0/4</td><td class="">0/4</td><td class="na">—</td><td class="na">—</td>');
+  });
+
+  it("disables a switch whose dependency is off", () => {
+    const html = switchboard({ features: FEATURES, draft: { ...draft, features: { ...ALL_ON, "live-map-v1": false, "world-coordinate-grid-v1": false, "warp-activation-guidance-v1": false } }, live: null, history: {}, expanded: new Set() });
+    expect(html).toMatch(/data-feature="world-coordinate-grid-v1" disabled/);
+    expect(html).not.toMatch(/data-feature="live-map-v1"[^>]*disabled/);
+  });
+
+  it("describes the queue", () => {
+    expect(queueText({ state: "idle" })).toContain("waits for the live one");
+    expect(queueText({ state: "queued", runId: "r", waitingFor: "live run x" })).toBe("Queued r · waiting for live run x.");
+    expect(queueText({ state: "running", runId: "r" })).toBe("Running r.");
+    expect(queueText({ state: "launching", runId: "r" })).toBe("Launching r.");
+    expect(queueText({ state: "failed", runId: "r", error: "boom" })).toBe("Launch failed: boom");
+  });
+});
+
+describe("local-only page", () => {
+  it("references no off-host URL in the page or its stylesheet", () => {
+    for (const file of ["index.html", "style.css"]) {
+      const text = readFileSync(join(import.meta.dirname, "../static", file), "utf8");
+      expect(text.match(/https?:\/\/[^\s"')]+/g) ?? []).toEqual([]);
+      expect(text).not.toContain("//fonts.");
+    }
+  });
+});

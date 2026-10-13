@@ -8,6 +8,16 @@ import { BASE_MS, Log, START, fullRun, m4Run, must, state } from "../test-suppor
 import { boot, mountApp, type App, type AppDeps, type StreamLike } from "./app.js";
 
 const PAGE = readFileSync(join(import.meta.dirname, "../static/index.html"), "utf8");
+// The ★ NEXT RUN page loads these on mount; tests of the watch view answer them.
+const NEXT_RUN_DRAFT = { model: "", thinking: "medium", maxTurns: 300, maxWallMs: 1_800_000, failureLimit: 3, maxTokens: 4096, target: null, features: {} };
+function nextRunReply(url: string): Promise<unknown> | null {
+  if (url === "/api/features") return Promise.resolve({ features: [], milestones: [] });
+  if (url === "/api/next-run") return Promise.resolve({ draft: NEXT_RUN_DRAFT, queue: { state: "idle" } });
+  if (url === "/api/models") return Promise.resolve({ models: [] });
+  if (url === "/api/features/history") return Promise.resolve({});
+  return null;
+}
+const noWrites = (): Promise<unknown> => Promise.reject(new Error("unexpected write"));
 const M4_ID = "2026-10-11T22-16-26_think-swarm_890b";
 
 class FakeStream implements StreamLike {
@@ -53,6 +63,8 @@ async function harness(hash = "", runs: unknown[] = RUNS): Promise<Harness> {
   let now = BASE_MS;
   const deps: AppDeps = {
     fetchJson: (url) => {
+      const next = nextRunReply(url);
+      if (next !== null) return next;
       fetched.push(url);
       if (url === "/api/runs") return runs.length === 1 && runs[0] === "fail" ? Promise.reject(new Error("offline")) : Promise.resolve([...runs]);
       if (url.endsWith("/comparisons")) return Promise.resolve({ candidates: [{run: "2026-10-11T21-00-00_old", milestones: []}], baseline: null, best: null });
@@ -61,6 +73,7 @@ async function harness(hash = "", runs: unknown[] = RUNS): Promise<Harness> {
       }
       return Promise.reject(new Error(`unexpected ${url}`));
     },
+    sendJson: noWrites,
     openStream: (url) => {
       const stream = new FakeStream(url);
       streams.push(stream);
@@ -237,7 +250,7 @@ describe("viewer app", () => {
     const live = fullRun().events.slice(0, 4);
     feed(must(streams[0]), live);
     expect(app.mode).toBe("live");
-    expect(ui("mode").textContent).toBe("LIVE");
+    expect(ui("mode").textContent).toBe("RUNNING");
     expect((ui("play") as HTMLButtonElement).disabled).toBe(true);
     setNow(BASE_MS + 3_500);
     app.tick(500);
@@ -248,7 +261,7 @@ describe("viewer app", () => {
     feed(must(streams[0]), more, false);
     app.tick(500);
     expect(ui("trainer").innerHTML).toContain("LITTLEROOT TOWN");
-    expect(ui("clock").textContent).toBe("0:00:03");
+    expect(ui("clock").textContent).toBe("T1 · 0:00:03 / 0:01:00");
   });
 
   it("falls back to the last recorded frame when the live screen fails", async () => {
@@ -318,6 +331,7 @@ describe("viewer app", () => {
           : url.endsWith("/comparisons") ? Promise.resolve({ candidates:[{run:"2026-10-11T21-00-00_old",milestones:[]}],baseline:null,best:null }) : new Promise((resolve) => {
               pending.push(resolve);
             }),
+      sendJson: noWrites,
       openStream: (url) => {
         const stream = new FakeStream(url);
         streams.push(stream);
@@ -354,6 +368,7 @@ describe("viewer app", () => {
     document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
     const app = await mountApp(document, {
       fetchJson: () => Promise.resolve([]),
+      sendJson: noWrites,
       openStream: () => {
         throw new Error("no stream expected");
       },
@@ -367,7 +382,7 @@ describe("viewer app", () => {
   it("rejects a malformed run list", async () => {
     document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
     await expect(
-      mountApp(document, { fetchJson: () => Promise.resolve({ nope: 1 }), openStream: () => new FakeStream("x"), now: () => 0, hash: "" }),
+      mountApp(document, { fetchJson: (url) => nextRunReply(url) ?? Promise.resolve({ nope: 1 }), sendJson: noWrites, openStream: () => new FakeStream("x"), now: () => 0, hash: "" }),
     ).rejects.toThrow("malformed /api/runs");
   });
 
@@ -471,7 +486,7 @@ describe("boot", () => {
     const win = {
       document,
       location: { hash: "" },
-      fetch: vi.fn().mockResolvedValue(new Response(JSON.stringify(RUNS))),
+      fetch: vi.fn((url: string) => (nextRunReply(url) ?? Promise.resolve(RUNS)).then((body) => new Response(JSON.stringify(body)))),
       EventSource: class extends FakeStream {
         constructor(url: string) {
           super(url);
@@ -490,9 +505,11 @@ describe("boot", () => {
     expect(intervals).toHaveLength(2);
     intervals[0]?.();
     expect(app.mode).toBe("loading");
+    await vi.waitFor(() => { expect(app.next.draft).not.toBeNull(); });
     intervals[1]?.();
     await vi.waitFor(() => {
-      expect(win.fetch).toHaveBeenCalledTimes(3);
+      expect(win.fetch.mock.calls.filter(([url]) => url === "/api/runs")).toHaveLength(2);
+      expect(win.fetch.mock.calls.filter(([url]) => url === "/api/next-run")).toHaveLength(2);
     });
   });
 
@@ -603,7 +620,8 @@ it("automatically renders current vs baseline and best without touching the pick
   const reference = { run: "previous", milestones: [{name:"PLAYER_NAME_SET", offsetMs:5000}] };
   const best = { run: "best", milestones: [{name:"PLAYER_NAME_SET", offsetMs:2000}] };
   const app = await mountApp(document, {
-    fetchJson: (url) => Promise.resolve(url === "/api/runs" ? RUNS : { candidates:[reference,best], baseline:reference, best }),
+    fetchJson: (url) => nextRunReply(url) ?? Promise.resolve(url === "/api/runs" ? RUNS : { candidates:[reference,best], baseline:reference, best }),
+    sendJson: noWrites,
     openStream: (url) => { const s = new FakeStream(url); streams.push(s); return s; },
     now: () => BASE_MS + 6000,
     hash:"",
@@ -623,7 +641,8 @@ it("does not apply comparisons from a superseded run selection", async () => {
   const pending: ((value: unknown) => void)[] = [];
   const streams: FakeStream[] = [];
   const app = await mountApp(document, {
-    fetchJson: (url) => url === "/api/runs" ? Promise.resolve(RUNS) : new Promise((resolve) => pending.push(resolve)),
+    fetchJson: (url) => nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : new Promise((resolve) => pending.push(resolve))),
+    sendJson: noWrites,
     openStream: (url) => { const stream = new FakeStream(url); streams.push(stream); return stream; }, now:()=>BASE_MS, hash:"",
   });
   app.select(M4_ID);
@@ -643,7 +662,8 @@ it("offers only eligible references and preserves none while comparisons are pen
   const pending: ((value:unknown)=>void)[] = [];
   const streams: FakeStream[] = [];
   const app = await mountApp(document, {
-    fetchJson:(url)=>url === "/api/runs" ? Promise.resolve(RUNS) : new Promise((resolve)=>pending.push(resolve)),
+    fetchJson:(url)=>nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : new Promise((resolve)=>pending.push(resolve))),
+    sendJson: noWrites,
     openStream:(url)=>{const s=new FakeStream(url);streams.push(s);return s;},now:()=>BASE_MS,hash:"",
   });
   feed(must(streams[0]),fullRun().events);

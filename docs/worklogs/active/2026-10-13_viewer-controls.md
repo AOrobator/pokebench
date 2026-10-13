@@ -82,8 +82,8 @@ Approval basis: the operator approved the design and asked to build and land it;
 Plan amendment (2026-10-13, implementer): M3 and M4 land as one milestone, **M3 — Viewer server and UI**, because the control API, queue and switchboard share `server.ts`, `app.ts` and `style.css`; splitting them into separate RED/GREEN pairs would require committing half-wired files. Scope is unchanged. Work for M2–M3 was built in a second worktree (`../viewer-controls-m2`, branch `viewer-controls-next` from 3fd8b80) while M1 round 3 waits for the operator's confirmation, so the M1 review packet stays frozen.
 
 **M3 — Viewer server: control API, models, strict history, next-run queue**
-- [ ] Write tests: Origin/content-type/live-only control; local-only model listing (no gateway); strict pairing incl. near misses and empty state; draft persistence; queue waits for live run and lease, writes v2 preset, argv launch
-- [ ] COMMIT: `test(viewer-server): ...` (RED)
+- [x] Write tests (server + UI, per the plan amendment): Origin/content-type/size/live-only control; local-only model listing (no gateway, key never sent to the page); strict pairing incl. near misses, aborted/live/saved-start exclusions, paused time and empty state; draft persistence and dependency rejection; queue waits for live run and lease, writes a v2 preset, argv launch, lease released on every outcome; top-bar controls and keys (P, S, hold X, release cancels, B closes); overlays; side panel; switchboard (groups, descriptions, needs, differs-from-live, bars, expandable table, empty state, locked measurement rows); page and stylesheet carry no off-host URL
+- [x] COMMIT: `test(viewer): require run controls, strict history and the next-run switchboard (RED)` — RED observed: 8 viewer test files fail to import, 2 app tests fail
 - [ ] Implement
 - [ ] Gates
 - [ ] COMMIT: `feat(viewer-server): ...` (GREEN)

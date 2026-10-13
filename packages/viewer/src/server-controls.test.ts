@@ -1,0 +1,103 @@
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { request } from "node:http";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
+import { ALL_ON } from "@pokebench/agent/features";
+import { Log, START } from "../test-support/events.js";
+import { DEFAULT_NEXT_RUN, RunQueue } from "./next-run.js";
+import { HOST, startViewer, type Viewer, type ViewerOptions } from "./server.js";
+
+const open: Viewer[] = [];
+afterEach(async () => { while (open.length > 0) await open.pop()?.close(); });
+
+async function viewer(extra: Partial<ViewerOptions> = {}): Promise<{ viewer: Viewer; runsRoot: string }> {
+  const base = mkdtempSync(join(tmpdir(), "viewer-controls-"));
+  const runsRoot = join(base, "runs");
+  mkdirSync(runsRoot);
+  const v = await startViewer({ runsRoot, staticDir: base, appDir: base, port: 0, ...extra });
+  open.push(v);
+  return { viewer: v, runsRoot };
+}
+
+function call(v: Viewer, method: string, path: string, body?: unknown, headers: Record<string, string> = {}): Promise<{ status: number; json: unknown }> {
+  const origin = `http://${HOST}:${String(v.port)}`;
+  return new Promise((resolve, reject) => {
+    const req = request({ host: HOST, port: v.port, path, method, headers: { host: `${HOST}:${String(v.port)}`, origin, "content-type": "application/json", ...headers } }, (res) => {
+      const chunks: Buffer[] = [];
+      res.on("data", (c: Buffer) => chunks.push(c));
+      res.on("end", () => { resolve({ status: res.statusCode ?? 0, json: JSON.parse(Buffer.concat(chunks).toString("utf8") || "null") as unknown }); });
+    });
+    req.on("error", reject);
+    req.end(body === undefined ? undefined : typeof body === "string" ? body : JSON.stringify(body));
+  });
+}
+
+function liveRun(runsRoot: string, id: string): void {
+  const log = new Log(); log.add(0, START);
+  mkdirSync(join(runsRoot, id), { recursive: true });
+  writeFileSync(join(runsRoot, id, "events.jsonl"), log.events.map((e) => JSON.stringify({ ...e, run: id })).join("\n") + "\n");
+}
+
+describe("write routes", () => {
+  it("accept only same-origin JSON within the size bound", async () => {
+    const { viewer: v, runsRoot } = await viewer();
+    liveRun(runsRoot, "live");
+    expect((await call(v, "POST", "/api/runs/live/control", { action: "pause" }, { origin: "http://evil.example" })).status).toBe(403);
+    expect((await call(v, "POST", "/api/runs/live/control", { action: "pause" }, { origin: "" })).status).toBe(403);
+    expect((await call(v, "POST", "/api/runs/live/control", "action=pause", { "content-type": "application/x-www-form-urlencoded" })).status).toBe(415);
+    expect((await call(v, "POST", "/api/runs/live/control", "{nope")).status).toBe(400);
+    expect((await call(v, "POST", "/api/runs/live/control", "x".repeat(70 * 1024))).status).toBe(413);
+    expect((await call(v, "DELETE", "/api/runs/live/control")).status).toBe(405);
+    expect((await call(v, "POST", "/api/runs/live/explode", {})).status).toBe(404);
+  });
+
+  it("append typed control requests for live runs only", async () => {
+    const { viewer: v, runsRoot } = await viewer({ now: () => new Date() });
+    liveRun(runsRoot, "live");
+    expect(await call(v, "POST", "/api/runs/live/control", { action: "pause" })).toEqual({ status: 200, json: { request: 1 } });
+    expect(await call(v, "POST", "/api/runs/live/control", { action: "stop" })).toEqual({ status: 200, json: { request: 2 } });
+    expect(readFileSync(join(runsRoot, "live", "control.jsonl"), "utf8").split("\n").filter(Boolean).map((l) => (JSON.parse(l) as { action: string }).action)).toEqual(["pause", "stop"]);
+    expect((await call(v, "POST", "/api/runs/live/control", { action: "explode" })).status).toBe(400);
+    expect((await call(v, "POST", "/api/runs/nope/control", { action: "pause" })).status).toBe(409);
+  });
+});
+
+describe("next run", () => {
+  it("serves the feature registry, saves the draft and reports strict history for it", async () => {
+    const { viewer: v } = await viewer();
+    const features = await call(v, "GET", "/api/features");
+    expect(features.status).toBe(200);
+    expect((features.json as { features: { id: string }[] }).features).toHaveLength(24);
+    expect(await call(v, "GET", "/api/next-run")).toEqual({ status: 200, json: { draft: DEFAULT_NEXT_RUN, queue: { state: "idle" } } });
+    const draft = { ...DEFAULT_NEXT_RUN, model: "Qwen", features: { ...ALL_ON, "story-state-v1": false } };
+    expect(await call(v, "PUT", "/api/next-run", draft)).toEqual({ status: 200, json: { draft, queue: { state: "idle" } } });
+    expect((await call(v, "PUT", "/api/next-run", { ...draft, features: { ...ALL_ON, "ram-state-v1": false } })).status).toBe(409);
+    const history = await call(v, "GET", "/api/features/history");
+    expect(history.status).toBe(200);
+    expect(Object.values(history.json as Record<string, unknown>).every((h) => h === null)).toBe(true);
+    expect((await call(v, "POST", "/api/next-run/queue", draft)).status).toBe(503);
+  });
+
+  it("queues through the run queue and reports its status", async () => {
+    const base = mkdtempSync(join(tmpdir(), "viewer-queue-"));
+    const queue = new RunQueue({ runsRoot: join(base, "runs"), liveJs: "/x/live.js", endpointFile: "/x/endpoint.json", gamePort: 8076, now: () => new Date("2026-10-13T16:00:00.000Z"), random: () => "cd34", launch: () => new Promise(() => undefined) });
+    const { viewer: v } = await viewer({ queue, runsRoot: join(base, "runs") });
+    const queued = await call(v, "POST", "/api/next-run/queue", { ...DEFAULT_NEXT_RUN, model: "Qwen" });
+    expect(queued).toEqual({ status: 200, json: { queue: { state: "queued", runId: "2026-10-13T12-00-00_Qwen_cd34", waitingFor: "checking" } } });
+    expect(await call(v, "POST", "/api/next-run/cancel", {})).toEqual({ status: 200, json: { queue: { state: "idle" } } });
+    expect((await call(v, "POST", "/api/next-run/cancel", {})).status).toBe(409);
+  });
+
+  it("lists local router models and never the gateway", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "endpoint-"));
+    writeFileSync(join(dir, "endpoint.json"), JSON.stringify({ base_url: "http://127.0.0.1:18434/v1", api_key: "k" }));
+    const fetchFn: typeof fetch = (input) => { const url = typeof input === "string" ? input : ""; return Promise.resolve(new Response(url === "http://127.0.0.1:18434/v1/models" ? JSON.stringify({ data: [{ id: "Qwen", status: { value: "loaded", args: ["--mmproj", "m"] } }] }) : "{}", { status: url.endsWith("/models") ? 200 : 404 })); };
+    const { viewer: withModels } = await viewer({ endpointFile: join(dir, "endpoint.json"), fetchFn });
+    expect(await call(withModels, "GET", "/api/models")).toEqual({ status: 200, json: { models: [{ id: "Qwen", status: "loaded", vision: true, contextWindow: null }] } });
+    const { viewer: without } = await viewer();
+    expect((await call(without, "GET", "/api/models")).status).toBe(503);
+    const { viewer: broken } = await viewer({ endpointFile: join(dir, "missing.json") });
+    expect((await call(broken, "GET", "/api/models")).status).toBe(502);
+  });
+});

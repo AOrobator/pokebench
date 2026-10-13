@@ -41,3 +41,11 @@ POKEBENCH_RUNS_ROOT=/Users/user/dev/pokebench/runs POKEBENCH_HUMAN_START_PAUSED=
 ```
 
 Use port8798 for the printed Play path during this isolated preview. Finishing stops that session; starting a new session creates a new recording.
+
+## RAM and game-state recording
+
+The recorder continuously captures parsed RAM-derived state alongside screenshots and emulator frame numbers during active play, including idle time without button presses. Each snapshot uses the same coherent memory/screenshot reader as agent runs. Saved state includes screen and active UI, naming, map/location/position/facing, field-control lock, battle status, party species/level/HP, money, badges, play time and native story flags. Fields that the game has not initialized remain unavailable. Native milestones cite the saved state sequence and sampled frame; their frame is an upper bound on the transition, not an exact transition frame.
+
+This is sampled decoded state, not a full raw-RAM dump or a state snapshot on every emulator frame. The sampler waits100ms between completed observations; processing/storage add time. Existing native human checks observed median intervals176–198ms (about5–6 samples per second). Applied input intervals retain actual frame counts independently. Confirmed Pause freezes the game; Resume restores sampling, and Finish captures/drains the final frozen sample before shutdown.
+
+Malformed state, missing required story state, transport failures or recording failures stop the recording with a crash outcome instead of silently substituting plausible state. State, sample, input, milestone and terminal records are kept in `events.jsonl`; screenshots stay in `frames/` for replay and later analysis.

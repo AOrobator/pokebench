@@ -1,17 +1,17 @@
 import {existsSync,mkdtempSync,mkdirSync,readFileSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {afterEach,expect,it} from 'vitest';
+import {afterEach,expect,it,vi} from 'vitest';
 import {Log,START} from '../test-support/events.js';
 import {startViewer,type Viewer} from './server.js';
 const RUN='human-test';
 const viewers:Viewer[]=[];afterEach(async()=>{for(const v of viewers.splice(0))await v.close();});
-async function fixture(fetchFn:typeof fetch,kind:'human'|'model'='human',ended=false){
+async function fixture(fetchFn:typeof fetch,kind:'human'|'model'='human',ended=false,restartHuman?: (id:string)=>Promise<string>){
  const r=mkdtempSync(join(tmpdir(),'server-human-'));const dir=kind==='human'?join(r,'human',RUN):join(r,RUN);mkdirSync(dir,{recursive:true});
  const log=new Log();log.add(0,{...START,...(kind==='human'?{controller:{kind:'human',name:'Operator',rom_sha1:'a'.repeat(40),input_policy:'frame-held-v1',sample_ms:100,nominal_fps:59.7275}}:{})});
  if(ended)log.add(1000,{type:'run_end',turn:0,reason:'operator_stop',furthest_milestone:null,turns:0,wall_ms:1000,tokens:{input:0,output:0},frames:{saved:0,bytes:0}});
  writeFileSync(join(dir,'events.jsonl'),log.events.map(e=>JSON.stringify({...e,run:RUN})).join('\n')+'\n');writeFileSync(join(dir,'human-token'),'secret');
- const viewer=await startViewer({runsRoot:r,staticDir:join(import.meta.dirname,'../static'),appDir:join(import.meta.dirname,'../dist'),port:0,fetchFn});viewers.push(viewer);return Object.assign(viewer,{runsRoot:r,runDir:dir});
+ const viewer=await startViewer({runsRoot:r,staticDir:join(import.meta.dirname,'../static'),appDir:join(import.meta.dirname,'../dist'),port:0,fetchFn,...(restartHuman===undefined?{}:{restartHuman})});viewers.push(viewer);return Object.assign(viewer,{runsRoot:r,runDir:dir});
 }
 async function post(v:Viewer,op:string,body:unknown,origin=v.url.slice(0,-1)){
  return fetch(`${v.url}api/runs/${RUN}/human/${op}`,{method:'POST',headers:{'content-type':'application/json',origin},body:JSON.stringify(body)});
@@ -64,4 +64,16 @@ it('writes all human controls through the nested launch layout and the driver co
  const {driveHuman}=await import('../../agent/src/human.js');const receipts:unknown[]=[];
  expect(await driveHuman({recordControl:body=>{receipts.push(body);},checkMilestones:()=>Promise.resolve()},'http://test',path,new AbortController().signal,()=>Promise.resolve(Response.json({paused:false})))).toBe('operator_stop');
  expect(receipts).toMatchObject([{action:'pause',status:'pending',request:1},{action:'resume',status:'applied',request:2},{action:'stop',status:'pending',request:3},{action:'stop',status:'applied',request:3}]);
+});
+
+it('restarts a human through the owned callback with an empty same-origin body',async()=>{
+ const restart=vi.fn<(id:string)=>Promise<string>>().mockResolvedValue('fresh-human');const v=await fixture(()=>Promise.reject(Error('no emulator proxy')),'human',true,restart);
+ const response=await post(v,'restart',{});expect(response.status).toBe(200);expect(await response.json()).toEqual({run_id:'fresh-human'});expect(restart).toHaveBeenCalledWith(RUN);
+ for(const body of [{port:9999},{run_id:'other'},null,[]])expect((await post(v,'restart',body)).status).toBe(400);
+ expect((await post(v,'restart',{},'http://evil.example')).status).toBe(403);expect(restart).toHaveBeenCalledTimes(1);
+});
+it('rejects model restart before invoking the callback and reports unavailable or failed restarts',async()=>{
+ const restart=vi.fn<(id:string)=>Promise<string>>().mockResolvedValue('fresh');const model=await fixture(()=>Promise.reject(Error('no proxy')),'model',false,restart);expect((await post(model,'restart',{})).status).toBe(409);expect(restart).not.toHaveBeenCalled();
+ const disabled=await fixture(()=>Promise.reject(Error('no proxy')));expect((await post(disabled,'restart',{})).status).toBe(503);
+ const {NextRunError}=await import('./next-run.js');const failed=await fixture(()=>Promise.reject(Error('no proxy')),'human',false,()=>Promise.reject(new NextRunError('new human launch failed')));expect((await post(failed,'restart',{})).status).toBe(409);
 });

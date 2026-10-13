@@ -3,14 +3,18 @@ import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { ControlFile, RunControl, freezeGame } from "./run-control.js";
 import type { RunRecorder } from "./recorder.js";
-import { HUMAN_BUTTONS, type HumanButton, type RunEndReason, type BodyOf } from "./events.js";
+import { HUMAN_BUTTONS, RUN_ID_PATTERN, type HumanButton, type RunEndReason, type BodyOf } from "./events.js";
 import { parseGameState, type GameStateSnapshot } from "./game-state.js";
-import type { RunPlan } from './run.js';
+import { HUMAN_GAMEPLAY_LEASE_NAME, newRunId, type RunPlan } from './run.js';
+export function humanRunId(assigned:string|undefined,now:Date,random:()=>string):string {
+ if(assigned!==undefined){if(!new RegExp(RUN_ID_PATTERN).test(assigned))throw new Error('invalid human run id');return assigned;}
+ return newRunId(now,'human',random);
+}
 export function humanPlan(runsRoot:string,runId:string,port:number,romSha1:string):RunPlan {
  return {runsRoot,runId,port,controller:{kind:'human',name:'Operator',rom_sha1:romSha1,input_policy:'frame-held-v1',sample_ms:100,screenshot_ms:500,nominal_fps:59.7275},model:{id:'Human · Operator',context_window:0,max_tokens:0,vision:false},sampling:{thinking_level:'none',max_tokens:0},systemPrompt:'Human playthrough; no model inference.',tools:[],startState:{kind:'boot'},harnessFeatures:['human-play-v1','human-audio-1x-v1','ram-state-v1','story-state-v1','story-milestones-v2','clock-milestone-v1','new-game-created-v1'],budgets:{},piVersion:'not-used'};
 }
 export function humanLease(runsRoot:string,runId:string):()=>void {
- mkdirSync(runsRoot,{recursive:true}); const path=join(runsRoot,'.human-gameplay.lock');
+ mkdirSync(runsRoot,{recursive:true}); const path=join(runsRoot,HUMAN_GAMEPLAY_LEASE_NAME);
  mkdirSync(path);
  try {writeFileSync(join(path,'owner.json'),JSON.stringify({pid:process.pid,owner:'human-play',run:runId}),{flag:'wx'});} catch(error){rmSync(path,{recursive:true});throw error;}
  let released=false;return ()=>{if(!released){released=true;rmSync(path,{recursive:true});}};

@@ -9,7 +9,7 @@
 import { execFileSync, spawn } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import { activeUiFeatures } from "./ui-feature.js";
-import { humanPlan, humanLease, driveHuman } from "./human.js";
+import { humanPlan, humanLease, humanRunId, driveHuman } from "./human.js";
 import { writeFileSync, readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { objectiveHarness } from "./objective-tools.js";
@@ -35,7 +35,7 @@ import { attachLoopGuard, Governor, piLoop, play } from "./harness.js";
 import { discoverLocal, readEndpoint } from "./local-endpoint.js";
 import { gatewayLoopConfig } from "./provider.js";
 import type { RunRecorder } from "./recorder.js";
-import { harnessInfo, newRunId, withRun, type RunHost, type ServerHandle } from "./run.js";
+import { harnessInfo, humanLeasePath, newRunId, withRun, type RunHost, type ServerHandle } from "./run.js";
 
 const HEALTH_TIMEOUT_MS = 180_000;
 const LOOP_TIMEOUT_MS = 420_000;
@@ -355,9 +355,8 @@ async function playHuman(): Promise<void> {
   const rom = process.env["POKEBENCH_ROM"];
   if (rom === undefined) throw new Error("POKEBENCH_ROM is required");
   const runsRoot = join(process.env["POKEBENCH_RUNS_ROOT"] ?? RUNS_ROOT,"human");
-  const runId = newRunId(new Date(), "human", () => randomBytes(2).toString("hex"));
-  const coordinationRoot = dirname(resolve(REPO_ROOT,git(REPO_ROOT)(["rev-parse","--git-common-dir"]).trim()));
-  const release = humanLease(join(coordinationRoot,"runs"), runId);
+  const runId = humanRunId(process.env["POKEBENCH_HUMAN_RUN_ID"], new Date(), () => randomBytes(2).toString("hex"));
+  const release = humanLease(dirname(humanLeasePath(REPO_ROOT,git(REPO_ROOT)(["rev-parse","--git-common-dir"]).trim())), runId);
   const token = randomBytes(32).toString("hex");
   const runDir = join(runsRoot, runId);
   const abort = new AbortController();

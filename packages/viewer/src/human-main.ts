@@ -20,10 +20,13 @@ export function createHumanAudio(Owner:typeof AudioFollower,runId:string,status:
 }
 const id=decodeURIComponent(location.hash.replace(/^#run=/,''));
 async function json(url:string,body?:unknown):Promise<unknown> {
- const response=await fetch(url,{...(body===undefined?{}:{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}),signal:AbortSignal.timeout(3000)});
+ const response=await fetch(url,{...(body===undefined?{}:{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}),signal:AbortSignal.timeout(url.endsWith('/human/restart')?30000:3000)});
  const result:unknown=await response.json();if(!response.ok)throw Error(typeof result==='object'&&result!==null&&'error' in result?String(result.error):`HTTP ${String(response.status)}`);return result;
 }
-const deps:HumanPlayDeps={fetchJson:url=>json(url),sendJson:(url,body)=>json(url,body),openStream:url=>new EventSource(url),now:()=>Date.now(),session:()=>crypto.randomUUID()};
+export function openHumanRun(runId:string,navigate:(url:string)=>void=url=>{location.assign(url);}):void {
+ const id=encodeURIComponent(runId);navigate(`/play?run=${id}#run=${id}`);
+}
+const deps:HumanPlayDeps={openRun:openHumanRun,fetchJson:url=>json(url),sendJson:(url,body)=>json(url,body),openStream:url=>new EventSource(url),now:()=>Date.now(),session:()=>crypto.randomUUID()};
 const play=new HumanPlay(document,id,deps);
 export async function connectHumanAudio(deps:HumanPlayDeps,doc:Document,runId:string,load:(url:string)=>Promise<unknown>):Promise<void> {
  try {

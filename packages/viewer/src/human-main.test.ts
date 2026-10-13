@@ -43,3 +43,8 @@ it('loads the shared audio owner and reports unavailable modules without blockin
  for(const module of [null,{}, {AudioFollower:3}]){await connectHumanAudio(deps,document,'human',()=>Promise.resolve(module));expect(document.querySelector('[data-play="sound"]')?.textContent).toBe('Sound unavailable');}
  document.body.innerHTML='';await connectHumanAudio(deps,document,'human',()=>Promise.resolve({AudioFollower}));deps.audio?.mute();await connectHumanAudio(deps,document,'human',()=>Promise.reject(Error('missing')));
 });
+
+it('navigates to a new document when opening a replacement run',async()=>{
+ const {openHumanRun}=await import('./human-main.js');const navigate=vi.fn<(url:string)=>void>();openHumanRun('replacement-human-run',navigate);expect(navigate).toHaveBeenCalledWith('/play?run=replacement-human-run#run=replacement-human-run');expect(deps.openRun).toBe(openHumanRun);
+ const assign=vi.spyOn(window.location,'assign').mockImplementation(()=>{});openHumanRun('default-navigation');expect(assign).toHaveBeenCalledWith('/play?run=default-navigation#run=default-navigation');assign.mockRestore();
+});

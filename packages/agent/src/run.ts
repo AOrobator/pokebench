@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { RUN_ID_PATTERN } from "./events.js";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import type { BodyOf, RunEndReason } from "./events.js";
 import type { FrameStore } from "./frames.js";
 import type { StateSource } from "./game-state.js";
@@ -9,6 +9,11 @@ import { RunRecorder } from "./recorder.js";
 import { RunLog, easternTimestamp } from "./run-log.js";
 
 type RunStart = BodyOf<"run_start">;
+
+export const HUMAN_GAMEPLAY_LEASE_NAME = ".human-gameplay.lock";
+export function humanLeasePath(repoRoot: string, commonDir: string): string {
+  return join(dirname(resolve(repoRoot, commonDir)), "runs", HUMAN_GAMEPLAY_LEASE_NAME);
+}
 
 export interface RunPlan {
   readonly runsRoot: string;

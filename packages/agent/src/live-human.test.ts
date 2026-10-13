@@ -1,0 +1,42 @@
+import {afterEach,beforeEach,expect,it,vi} from 'vitest';
+import type {RunPlan} from './run.js';
+const context=vi.hoisted(()=>({plans:[] as RunPlan[],leases:[] as {root:string;run:string}[],paths:[] as {repo:string;common:string}[],release:vi.fn(),git:vi.fn(),write:vi.fn(),errors:vi.fn()}));
+vi.mock('node:child_process',()=>({execFileSync:(file:string,args:string[])=>{
+ context.git(file,args);if(file!=='git'||args.join(' ')!=='rev-parse --git-common-dir')throw Error('unexpected process command');return '/test-owned/canonical/.git\n';
+},spawn:()=>{throw Error('test forbids launching a service');}}));
+vi.mock('node:fs',async(importOriginal)=>{
+ const actual=await importOriginal<typeof import('node:fs')>();return {...actual,
+ readFileSync:(path:unknown)=>{if(path==='/test-owned/fixture.rom')return Buffer.from('test ROM');throw Error('test forbids file reads');},
+ writeFileSync:context.write,
+ };
+});
+vi.mock('./config.js',()=>({loadConfig:()=>{throw Error('human entrypoint must not load model configuration');}}));
+vi.mock('./human.js',async(importOriginal)=>{
+ const actual=await importOriginal<typeof import('./human.js')>();return {...actual,humanLease:(root:string,run:string)=>{context.leases.push({root,run});return context.release;}};
+});
+vi.mock('./run.js',async(importOriginal)=>{
+ const actual=await importOriginal<typeof import('./run.js')>();return {...actual,
+ humanLeasePath:(repo:string,common:string)=>{context.paths.push({repo,common});return actual.humanLeasePath(repo,common);},
+ withRun:(plan:RunPlan)=>{context.plans.push(plan);return Promise.resolve();},
+ };
+});
+let fakeProcess:NodeJS.Process;
+beforeEach(()=>{
+ vi.resetModules();context.plans=[];context.leases=[];context.paths=[];context.release.mockClear();context.git.mockClear();context.write.mockClear();context.errors.mockClear();
+ const env:NodeJS.ProcessEnv={...process.env,POKEBENCH_ROM:'/test-owned/fixture.rom',POKEBENCH_RUNS_ROOT:'/test-owned/runs',POKEBENCH_HUMAN_PORT:'8140'};delete env['POKEBENCH_HUMAN_RUN_ID'];
+ fakeProcess=Object.assign(Object.create(process) as NodeJS.Process,{argv:[...process.argv.slice(0,2),'human'],env,on:vi.fn(),off:vi.fn(),exitCode:undefined});vi.stubGlobal('process',fakeProcess);vi.spyOn(console,'error').mockImplementation(context.errors);vi.spyOn(console,'log').mockImplementation(()=>{});
+});
+afterEach(()=>{vi.unstubAllGlobals();vi.restoreAllMocks();});
+it('uses the assigned human identity and the canonical git-common-dir lease owner',async()=>{
+ fakeProcess.env['POKEBENCH_HUMAN_RUN_ID']='assigned-human-run';await import('./live.js');await vi.waitFor(()=>{expect(context.release).toHaveBeenCalledOnce();});
+ expect(context.plans).toHaveLength(1);expect(context.plans[0]).toMatchObject({runId:'assigned-human-run',runsRoot:'/test-owned/runs/human',port:8140,controller:{kind:'human'},startState:{kind:'boot'}});
+ expect(context.paths).toHaveLength(1);expect(context.paths[0]?.common).toBe('/test-owned/canonical/.git');expect(context.leases).toEqual([{root:'/test-owned/canonical/runs',run:'assigned-human-run'}]);expect(context.git).toHaveBeenCalledWith('git',['rev-parse','--git-common-dir']);expect(context.write).not.toHaveBeenCalled();expect(context.errors).not.toHaveBeenCalled();
+});
+it('generates a human identity when no assigned identity is present',async()=>{
+ await import('./live.js');await vi.waitFor(()=>{expect(context.release).toHaveBeenCalledOnce();});expect(context.plans).toHaveLength(1);
+ const run=context.plans[0]?.runId;expect(run).toMatch(/^\d{4}-\d{2}-\d{2}T[\d-]+_human_[0-9a-f]{4}$/);expect(context.leases[0]?.run).toBe(run);expect(context.errors).not.toHaveBeenCalled();
+});
+it.each(['../invalid','','bad/name','a'.repeat(129)])('rejects invalid assigned identity %j before any lease or lifecycle',async(run)=>{
+ fakeProcess.env['POKEBENCH_HUMAN_RUN_ID']=run;await import('./live.js');await vi.waitFor(()=>{expect(context.errors).toHaveBeenCalledWith('human FAILED: Error: invalid human run id');});
+ expect(context.plans).toEqual([]);expect(context.leases).toEqual([]);expect(context.paths).toEqual([]);expect(context.git).not.toHaveBeenCalled();expect(context.release).not.toHaveBeenCalled();expect(context.write).not.toHaveBeenCalled();expect(fakeProcess.exitCode).toBe(1);
+});

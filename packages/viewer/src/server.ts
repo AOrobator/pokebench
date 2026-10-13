@@ -41,6 +41,7 @@ export interface ViewerOptions {
   readonly endpointFile?: string | null;
   readonly queue?: RunQueue;
   readonly now?: () => Date;
+  readonly restartHuman?: (runId: string) => Promise<string>;
 }
 
 const MAX_BODY = 64 * 1024;
@@ -84,6 +85,13 @@ async function write(req: IncomingMessage, res: ServerResponse, options: ViewerO
       if (!Value.Check(ControlBodySchema, body)) throw new RequestError(400, "action must be pause, resume, stop, cancel_stop or abort");
       sendJson(res, 200, { request: await appendControl(options.runsRoot, id, body.action, now, healthProbe(options.fetchFn ?? fetch)) });
       return;
+    }
+    if(req.method==="POST" && parts.length===5 && second==="runs" && id!==undefined && leaf==="human" && parts[4]==="restart") {
+      if(!Value.Check(Type.Object({},{additionalProperties:false}),body))throw new RequestError(400,"restart body must be empty");
+      const start=readStart(options.runsRoot,id);
+      if(start.controller?.kind!=="human")throw new RequestError(409,"restart requires a human run");
+      if(options.restartHuman===undefined)throw new RequestError(503,"human restart is unavailable");
+      sendJson(res,200,{run_id:await options.restartHuman(id)});return;
     }
     if(req.method==="POST" && parts.length===5 && second==="runs" && id!==undefined && leaf==="human" && (parts[4]==="claim"||parts[4]==="input")) {
       const operation=parts[4];

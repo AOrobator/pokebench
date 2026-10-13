@@ -18,8 +18,9 @@ class Stream implements StreamLike {
 function ui(name:string):HTMLElement {const el=document.querySelector<HTMLElement>(`[data-play="${name}"]`);if(el===null)throw Error(name);return el;}
 async function harness(reply:unknown=start()) {
  let now=BASE_MS;let session=0;const stream=new Stream();const send=vi.fn<(url:string,body:unknown)=>Promise<unknown>>().mockResolvedValue({});
- const play=new HumanPlay(document,RUN,{fetchJson:()=>Promise.resolve(reply),sendJson:send,openStream:()=>stream,now:()=>now,session:()=>`session-${String(++session)}`});
- await play.start();return {play,stream,send,advance:(ms:number)=>{now+=ms;play.tick();}};
+ const openRun=vi.fn<(runId:string)=>void>();
+ const play=new HumanPlay(document,RUN,{openRun,fetchJson:()=>Promise.resolve(reply),sendJson:send,openStream:()=>stream,now:()=>now,session:()=>`session-${String(++session)}`});
+ await play.start();return {play,stream,send,openRun,advance:(ms:number)=>{now+=ms;play.tick();}};
 }
 const settle=async()=>{for(let i=0;i<600;i++)await Promise.resolve();};
 function key(code:string,type='keydown'):KeyboardEvent {const event=new KeyboardEvent(type,{code,bubbles:true,cancelable:true});ui('surface').dispatchEvent(event);return event;}
@@ -113,4 +114,21 @@ it('toggles sound off and on from the focused game for pointer and keyboard focu
 });
 it.each([['crash','Recording failed'],['model_error','Recording failed'],['operator_abort','Recording aborted'],['operator_stop','Recording finished']] as const)('surfaces terminal reason %s',async(reason,label)=>{
  const {play,stream}=await harness();const log=new Log();log.add(0,START);stream.send(log.add(2000,{type:'run_end',turn:0,reason,turns:0,wall_ms:2000,furthest_milestone:null,tokens:{input:0,output:0},frames:{saved:0,bytes:0}}));expect(ui('status').textContent).toBe(label);expect(ui('focus').textContent).toBe('Controls disabled');stream.error?.();expect(ui('status').textContent).toBe(label);expect(ui('problem').textContent).toBe('');play.close();
+});
+
+it('starts over only after releasing current controls and deduplicates clicks',async()=>{
+ const {play,send,stream,openRun}=await harness();ui('surface').focus();await settle();let release:()=>void=()=>{};send.mockImplementationOnce(()=>new Promise(resolve=>{release=()=>{resolve({});};}));send.mockResolvedValueOnce({run_id:'new-human-run'});
+ ui('restart').click();ui('restart').click();await settle();expect(ui('status').textContent).toBe('Starting new game');expect((ui('restart') as HTMLButtonElement).disabled).toBe(true);expect((ui('pause') as HTMLButtonElement).disabled).toBe(true);expect(key('KeyO').defaultPrevented).toBe(false);expect(send.mock.calls.at(-1)?.[1]).toMatchObject({release:true});expect(send.mock.calls.some(([url])=>url.endsWith('/human/restart'))).toBe(false);
+ release();await settle();expect(send.mock.calls.at(-1)).toEqual([`/api/runs/${RUN}/human/restart`,{}]);expect(send.mock.calls.filter(([url])=>url.endsWith('/human/restart'))).toHaveLength(1);expect(openRun).toHaveBeenCalledWith('new-human-run');expect(stream.closed).toBe(true);const count=send.mock.calls.length;ui('surface').click();await settle();expect(send).toHaveBeenCalledTimes(count);play.close();
+});
+it('offers Start over from a finished run and surfaces errors with retry',async()=>{
+ const {play,send,stream,openRun}=await harness();const log=new Log();log.add(0,START);stream.send(log.add(2000,{type:'run_end',turn:0,reason:'operator_stop',turns:0,wall_ms:2000,furthest_milestone:null,tokens:{input:0,output:0},frames:{saved:0,bytes:0}}));expect((ui('restart') as HTMLButtonElement).disabled).toBe(false);send.mockRejectedValueOnce(Error('server busy'));ui('restart').click();await settle();expect(ui('problem').textContent).toBe('server busy');expect((ui('restart') as HTMLButtonElement).disabled).toBe(false);expect(openRun).not.toHaveBeenCalled();send.mockResolvedValueOnce({run_id:'retry-human-run'});ui('restart').click();await settle();expect(openRun).toHaveBeenCalledWith('retry-human-run');play.close();
+});
+it.each([{},null,{run_id:RUN},{run_id:'../wrong'},{run_id:'safe',extra:true},{run_id:3}])('rejects malformed replacement identity %j',async(reply)=>{
+ const {play,send,openRun}=await harness();send.mockResolvedValueOnce(reply);ui('restart').click();await settle();expect(openRun).not.toHaveBeenCalled();expect(ui('problem').textContent).toBe('Invalid new run identity');expect((ui('restart') as HTMLButtonElement).disabled).toBe(false);play.close();
+});
+
+it('starts over from pause and waits for an in-flight claim to release before restart',async()=>{
+ const {play,stream,send,openRun}=await harness();let claimed:()=>void=()=>{};send.mockImplementationOnce(()=>new Promise(resolve=>{claimed=()=>{resolve({});};}));ui('surface').focus();await settle();send.mockResolvedValueOnce({});send.mockResolvedValueOnce({run_id:'claimed-replacement'});ui('restart').click();await settle();expect(send).toHaveBeenCalledTimes(1);claimed();await settle();expect(send.mock.calls[1]?.[1]).toMatchObject({release:true});expect(send.mock.calls[2]).toEqual([`/api/runs/${RUN}/human/restart`,{}]);expect(openRun).toHaveBeenCalledWith('claimed-replacement');play.close();
+ const paused=await harness();const log=new Log();log.add(0,START);paused.stream.send(log.add(100,{type:'operator_control',turn:0,action:'pause',status:'applied',request:1,emulator_frozen:true}));paused.send.mockResolvedValueOnce({run_id:'paused-replacement'});ui('restart').click();await settle();expect(paused.openRun).toHaveBeenCalledWith('paused-replacement');expect(paused.send.mock.calls).toEqual([[`/api/runs/${RUN}/human/restart`,{}]]);paused.play.close();expect(stream.closed).toBe(true);
 });

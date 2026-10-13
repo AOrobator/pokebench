@@ -1,7 +1,7 @@
 // Browser glue: picks a run, follows its event stream, and renders the Open
 // PokéNav layout either live (wall clock) or as a replay (cursor clock).
 import type { RunEvent } from "@pokebench/agent/events";
-import { eventMs, hms } from "./format.js";
+import { esc, eventMs, hms } from "./format.js";
 import { gbaSvg, litButtons } from "./gba.js";
 import { RunView, isRunEvent } from "./model.js";
 import { actionRow, brand, budgets, counters, fieldContext, objectivePanel, inspector, party, splits, thinkingDialog, trainerCard, type Baseline } from "./panels.js";
@@ -74,6 +74,7 @@ export class App {
   private runs: RunChoice[] = [];
   // Set when the newest run is opened; a later refresh may list a newer one first.
   private following = false;
+  private followThinking = true;
   private runId: string | null = null;
   private stream: StreamLike | null = null;
   private baseline: Baseline | null = null;
@@ -174,6 +175,23 @@ export class App {
   }
 
   private wire(): void {
+    for (const button of this.doc.querySelectorAll<HTMLButtonElement>("[data-page]")) {
+      button.addEventListener("click", () => { this.showPage(button.dataset.page ?? "trainer"); });
+    }
+    this.ui("objective-link").addEventListener("click", () => {
+      this.showPage("objectives");
+      this.doc.querySelector(".inspection-nav")?.scrollIntoView({ block: "start", behavior: "smooth" });
+    });
+    this.ui("think-body").addEventListener("scroll", () => {
+      const body = this.ui("think-body");
+      this.followThinking = body.scrollHeight - body.scrollTop - body.clientHeight < 40;
+      this.ui("follow-thinking").setAttribute("aria-pressed", String(this.followThinking));
+    });
+    this.ui("follow-thinking").addEventListener("click", () => {
+      this.followThinking = !this.followThinking;
+      this.ui("follow-thinking").setAttribute("aria-pressed", String(this.followThinking));
+      if (this.followThinking) this.ui("think-body").scrollTop = this.ui("think-body").scrollHeight;
+    });
     this.picker("run").addEventListener("change", (event) => {
       this.select((event.target as HTMLSelectElement).value);
     });
@@ -203,6 +221,11 @@ export class App {
     this.ui("screen").addEventListener("error", () => {
       if (this.mode === "live") this.liveFailedAt = this.deps.now();
     });
+  }
+
+  private showPage(name: string): void {
+    for (const panel of this.doc.querySelectorAll<HTMLElement>("[data-nav-page]")) panel.hidden = panel.dataset.navPage !== name;
+    for (const button of this.doc.querySelectorAll<HTMLButtonElement>("[data-page]")) button.setAttribute("aria-pressed", String(button.dataset.page === name));
   }
 
   private async pickBaseline(runId: string): Promise<void> {
@@ -260,6 +283,8 @@ export class App {
     this.ui("problems").hidden = true;
     this.ui("problems").textContent = "";
     this.logged = 0;
+    this.followThinking = true;
+    this.ui("follow-thinking").setAttribute("aria-pressed", "true");
     this.liveFailedAt = null;
     this.ui("log").replaceChildren();
     this.setHtml("inspector", inspector(undefined));
@@ -403,7 +428,7 @@ export class App {
     const dialog = thinkingDialog(view, nowMs);
     this.ui("think-head").textContent = dialog.head;
     this.setHtml("think-body", dialog.body);
-    if (view.isThinking) {
+    if (this.followThinking) {
       const body = this.ui("think-body");
       body.scrollTop = body.scrollHeight;
     }
@@ -411,6 +436,11 @@ export class App {
     this.setHtml("field-context", fieldContext(view));
     this.setHtml("party", party(view));
     this.setHtml("objective", objectivePanel(view));
+    const objective = view.objective;
+    this.setHtml("objective-summary", objective === null ? '<span class="nodata">no objective recorded</span>' : `<span class="objective-status">${esc(objective.status)}</span> ${esc(objective.title)}`);
+    this.setHtml("run-details", `<details><summary>RUN METADATA · PROMPT · TOOLS · BUDGETS</summary><pre>${esc(JSON.stringify(view.start, null, 2))}</pre></details><details><summary>LATEST RECORDED STATE</summary><pre>${esc(JSON.stringify(view.state, null, 2))}</pre></details><details><summary>TERMINAL EVENT</summary><pre>${esc(JSON.stringify(view.end, null, 2))}</pre></details>`);
+    const barHeight = this.doc.querySelector(".bar")?.getBoundingClientRect().height ?? 0;
+    this.doc.documentElement.style.setProperty("--viewer-bar-height", `${String(barHeight || 110)}px`);
     this.setHtml("budgets", budgets(view, nowMs));
     this.setHtml("counters", counters(view));
     const split = splits(view, this.baseline, nowMs, this.best);

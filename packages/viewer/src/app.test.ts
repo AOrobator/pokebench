@@ -97,6 +97,45 @@ describe("viewer app", () => {
     document.body.innerHTML = "";
   });
 
+  it("changes inspection pages without resetting the stream, replay or baseline", async () => {
+    const { app, streams } = await harness(`#run=${M4_ID}`);
+    feed(must(streams[0]), fullRun().events);
+    app.tick(4000);
+    const clock = app.clock;
+    const position = clock?.positionMs;
+    const button = must(document.querySelector<HTMLButtonElement>('[data-page="stats"]'));
+    button.click();
+    expect(document.querySelector<HTMLElement>('[data-nav-page="stats"]')?.hidden).toBe(false);
+    expect(document.querySelector<HTMLElement>('[data-nav-page="trainer"]')?.hidden).toBe(true);
+    expect(button.getAttribute("aria-pressed")).toBe("true");
+    expect(app.clock).toBe(clock);
+    expect(app.clock?.positionMs).toBe(position);
+    expect(streams).toHaveLength(1);
+    ui("objective-link").click();
+    expect(document.querySelector<HTMLElement>('[data-nav-page="objectives"]')?.hidden).toBe(false);
+  });
+
+  it("lets the reader pause follow while streaming and explicitly resume", async () => {
+    const { app, streams } = await harness();
+    const stream = must(streams[0]);
+    const log = new Log();
+    log.add(0, START);
+    log.add(1000, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 10 } });
+    log.add(1100, { type: "assistant_delta", turn: 1, thinking: "Long trace.", text: "" });
+    feed(stream, log.events);
+    const body = ui("think-body");
+    Object.defineProperty(body, "scrollHeight", { value: 1000, configurable: true });
+    Object.defineProperty(body, "clientHeight", { value: 300, configurable: true });
+    body.scrollTop = 100;
+    body.dispatchEvent(new Event("scroll"));
+    app.tick(100);
+    expect(body.scrollTop).toBe(100);
+    expect(ui("follow-thinking").getAttribute("aria-pressed")).toBe("false");
+    ui("follow-thinking").click();
+    expect(body.scrollTop).toBe(1000);
+    expect(ui("follow-thinking").getAttribute("aria-pressed")).toBe("true");
+  });
+
   it("lists runs and opens the run named in the hash", async () => {
     const { streams } = await harness(`#run=${M4_ID}`);
     const options = [...ui("run").querySelectorAll("option")].map((option) => option.value);

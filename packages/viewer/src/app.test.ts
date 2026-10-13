@@ -695,3 +695,22 @@ it("qualifies completion in the watch objective strip", async () => {
   expect(ui("objective-summary").textContent).toContain("reported complete (provisional local plan)");
   expect(app.mode).toBe("live");
 });
+
+it("clears a future stop inspection when replay rewinds its history", async () => {
+  const { app, streams } = await harness();
+  const log=new Log(); log.add(0,START);
+  const stop=log.add(1000,{type:"loop_guard",turn:3,kind:"planning",phase:"stop",message:"Bounded recovery ended",calls:14,evidence:[28,43]});
+  const end=fullRun().events.findLast((event)=>event.type==="run_end");
+  if (end === undefined) throw new Error("missing terminal fixture");
+  const events=[log.events[0],{...stop,seq:44},{...end,seq:48,t:stop.t}].map((event)=>parseEvent(JSON.stringify(event)));
+  feed(must(streams[0]),events,false); must(streams[0]).send("done",{});
+  const row=ui("log").querySelector<HTMLElement>('[data-seq="44"]');
+  if(row===null)throw new Error("missing replay stop"); row.click();
+  expect(ui("inspector").textContent).toContain('"seq": 44');
+  const scrub=ui("scrub") as HTMLInputElement; scrub.value="0";scrub.dispatchEvent(new Event("input"));
+  expect(ui("lanes").textContent).not.toContain("Planning stall stop");
+  expect(ui("log").querySelector('[data-seq="44"]')).toBeNull();
+  expect(ui("inspector").textContent).not.toContain('"seq": 44');
+  expect(ui("inspector").textContent).toContain("click a log row");
+  expect(app.clock?.fraction).toBe(0);
+});

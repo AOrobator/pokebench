@@ -172,3 +172,144 @@ describe("selectModel", () => {
     expect(() => selectModel(models, "think-pokebench")).toThrow("think-swarm");
   });
 });
+
+// fleet_catalog.rs emits unavailable capacity without registry fallback.
+function unavailable(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    id: "stopped",
+    object: "model",
+    owned_by: "local-inference-stack",
+    created: 0,
+    context_window: null,
+    max_tokens: null,
+    metadata: {
+      source: "unavailable",
+      context_tokens: null,
+      max_response_tokens: null,
+    },
+    ...overrides,
+  };
+}
+
+describe("explicit fleet availability through discovery and selection", () => {
+  it.each([true, false])(
+    "discovers the healthy requested lane with an unavailable neighbor (offline first=%s)",
+    async (offlineFirst) => {
+      const live = lane({
+        id: "healthy",
+        metadata: {
+          source: "live",
+          observed: { capabilities: ["multimodal"] },
+        },
+      });
+      const offline = unavailable();
+      const models = await discoverModels({
+        gatewayUrl: GATEWAY,
+        visionModels: [],
+        fetch: vi
+          .fn<typeof fetch>()
+          .mockResolvedValue(
+            jsonResponse({
+              data: offlineFirst ? [offline, live] : [live, offline],
+            }),
+          ),
+      });
+      expect(models.map((model) => model.id)).toEqual(["healthy"]);
+      const selected = selectModel(models, "healthy");
+      expect({
+        id: selected.id,
+        contextWindow: selected.contextWindow,
+        maxTokens: selected.maxTokens,
+        input: selected.input,
+      }).toEqual({
+        id: "healthy",
+        contextWindow: 65536,
+        maxTokens: 16384,
+        input: ["text", "image"],
+      });
+      expect(() => selectModel(models, "stopped")).toThrow(
+        /stopped.*not served.*healthy/,
+      );
+    },
+  );
+
+  it("returns no usable models when every row is explicitly unavailable, without fallback", async () => {
+    const models = await discoverModels({
+      gatewayUrl: GATEWAY,
+      visionModels: ["stopped"],
+      fetch: vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(jsonResponse({ data: [unavailable()] })),
+    });
+    expect(models).toEqual([]);
+    expect(() => selectModel(models, "stopped")).toThrow(/stopped.*not served/);
+  });
+
+  it.each<[string, Record<string, unknown>]>([
+    ["null capacity without provenance", unavailable({ metadata: {} })],
+    [
+      "null capacity declared live",
+      unavailable({ metadata: { source: "live" } }),
+    ],
+    ["unknown source marker", unavailable({ metadata: { source: "cached" } })],
+    ["mixed null and live capacity", unavailable({ max_tokens: 100 })],
+    [
+      "positive capacities declared unavailable",
+      lane({ id: "stopped", metadata: { source: "unavailable" } }),
+    ],
+    [
+      "malformed live neighbor",
+      lane({ id: "malformed", context_window: "65536" }),
+    ],
+    [
+      "unavailable row with malformed capabilities",
+      unavailable({
+        metadata: {
+          source: "unavailable",
+          context_tokens: null,
+          max_response_tokens: null,
+          observed: { capabilities: [1] },
+        },
+      }),
+    ],
+  ])(
+    "refuses %s instead of silently filtering malformed rows",
+    async (_label, bad) => {
+      const result = discoverModels({
+        gatewayUrl: GATEWAY,
+        visionModels: [],
+        fetch: vi
+          .fn<typeof fetch>()
+          .mockResolvedValue(
+            jsonResponse({ data: [lane({ id: "healthy" }), bad] }),
+          ),
+      });
+      await expect(result).rejects.toThrow(GatewayDiscoveryError);
+    },
+  );
+
+  it.each(["live-offline", "offline-live", "offline-offline"])(
+    "rejects duplicate identity across %s rows",
+    async (kind) => {
+      const live = lane({ id: "shared" });
+      const offline = unavailable({ id: "shared" });
+      const data =
+        kind === "live-offline"
+          ? [live, offline]
+          : kind === "offline-live"
+            ? [offline, live]
+            : [offline, offline];
+      await expect(
+        discoverModels({
+          gatewayUrl: GATEWAY,
+          visionModels: [],
+          fetch: vi
+            .fn<typeof fetch>()
+            .mockResolvedValue(jsonResponse({ data })),
+        }),
+      ).rejects.toThrow("duplicate lane id shared");
+    },
+  );
+});

@@ -377,6 +377,8 @@ export class App {
 
   private advanceShown(positionMs: number): void {
     if (this.shown.lastMs !== null && positionMs < this.shown.lastMs) {
+      // Rewinding removes the selected row; discard its now-future raw event.
+      this.setHtml("inspector", inspector(undefined));
       this.shown = new RunView();
       this.ui("log").replaceChildren();
       this.logged = 0;

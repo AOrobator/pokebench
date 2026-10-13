@@ -178,11 +178,19 @@ Done when: all milestones green with reviews LGTM, landed on local main (if the 
 - Fixture correction: `live-objectives.test.ts` mocked `readFileSync` throwing a plain Error for unknown files; the real API throws `ENOENT`, which `ControlFile` treats as no requests yet. The mock now sets `code: "ENOENT"` (it surfaced because the gate now reads the control file synchronously).
 - Gates: agent 652, viewer 235, python 484 pass; lint, build OK; coverage agent 98.91/93.97/98.37, viewer 98.41/91.8/96.93, python 99.42/97.33/100.
 - Guard receipts `r5-guards`: 01 red then green; 02 lost (the mutated run hung on a non-daemon thread and was killed; receipt incomplete — the runner now has a 240 s timeout and the test threads are daemons) → fresh attempt 02b red then green; 03 unexpectedly passed (with fresh-park confirmation a woken frame can only run before the new pause is confirmed; the `while` is kept as the standard condition-variable guard against spurious wakeups); 04 unexpectedly passed (the turn-end stop check already polls before later gates) → added a test for a pause appended before the first model call, fresh attempt 04b red then green; 05–09 red then green.
-- Round 5 review waits for operator confirmation.
+- COMMIT: `fix(control): fresh-park pause latch, boundary polling and server-owned queue lock` (619d96a).
+- **Operator decision (2026-10-13T17:28Z): "just land it".** The round-5 review of the 619d96a fix batch was not run; the operator waived it. That batch is landed with gates and guard receipts only (recorded here, not presented as reviewed). Review state at landing: M1 LGTM from Grok and Codex in round 3 (Claude-fallback copy findings fixed in round 4 and approved by both Claude-fallback reviewers in round 4); M2+M3 LGTM from both Claude-fallback reviewers in rounds 3 and 4; Grok and Codex round-4 blockers fixed in 619d96a without re-review.
 
 ## Boy Scout Log
 
 (none yet)
+
+## Landing
+
+- [x] Confirmed no cohort executing and `runs/.naming-gameplay.lock` absent (2026-10-13T17:29Z); main clean at 5300d02.
+- [x] Operator decision on the frozen naming manifests' HEAD binding: the corrected cohort had stopped after _05 (launcher_error); operator directed landing ("then land your work", "just land it").
+- [x] Fast-forward `viewer-controls-land` onto local main (no push; no remote). Rebuilt from main.
+- [x] Worktrees removed recoverably: branches `viewer-controls`, `viewer-controls-next` and `viewer-controls-land` retained; all receipts were written to canonical `runs/launch-receipts/viewer-controls/`; submodules deinitialised (clean) before removal.
 
 ## Archive Milestone (user-gated)
 

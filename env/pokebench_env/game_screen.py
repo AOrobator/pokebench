@@ -41,6 +41,7 @@ SCREENS: dict[int, str] = {
     0x080E4F59: "naming",
     0x08085E5D: "overworld",
     0x08085FFD: "field_transition",
+    0x080860F5: "field_transition",  # CB2_ReturnToFieldLocal, clock exit.
     0x08085FCD: "field_transition",
     0x08137201: "field_transition",
     0x08134C9D: "clock",

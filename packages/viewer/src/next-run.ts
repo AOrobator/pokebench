@@ -333,10 +333,20 @@ export class HumanRestarts {
       const spec:LaunchSpec={runId,argv:[this.host.liveJs,'human'],env:{POKEBENCH_HUMAN_RUN_ID:runId,POKEBENCH_RUNS_ROOT:runsRoot,POKEBENCH_HUMAN_START_PAUSED:'true',POKEBENCH_HUMAN_VALIDATION:String(start.harness_features.includes('probe')),POKEBENCH_HUMAN_PORT:String(start.isolation.port)},stdout:join(receipts,`${runId}.stdout.log`),stderr:join(receipts,`${runId}.stderr.log`)};
       try{void this.host.launch(spec).then(code=>{markChildFailure(`human launch exited ${String(code)}; see ${spec.stderr}`);},(error:unknown)=>{markChildFailure(`human launch failed: ${String(error)}; see ${spec.stderr}`);});}catch(error){markChildFailure(`human launch failed: ${String(error)}; see ${spec.stderr}`);}
     }
+    const observedFailure=():string|null=>{
+      if(childFailure!==null)return childFailure;
+      const current=readReceipt();
+      return current.runId===receipt.runId&&current.state==='failed'?(current.error??'human restart failed'):null;
+    };
     try{
-      await this.ready(receipt.runId,start.isolation.port,deadline,()=>childFailure);
+      await this.ready(receipt.runId,start.isolation.port,deadline,observedFailure);
+      const failed=observedFailure();if(failed!==null)throw new NextRunError(failed);
       receipt={...receipt,state:'ready'};save();return receipt.runId;
-    }catch(error){const timeout=error instanceof NextRunError&&error.message.includes('restart timeout:');receipt={...receipt,state:timeout?'launching':'failed',error:String(error)};save();throw error;}
+    }catch(error){
+      const current=readReceipt();
+      if(current.runId===receipt.runId&&current.state==='failed')throw new NextRunError(current.error??'human restart failed');
+      const timeout=error instanceof NextRunError&&error.message.includes('restart timeout:');receipt={...receipt,state:timeout?'launching':'failed',error:String(error)};save();throw error;
+    }
   }
 
   private async ready(runId:string,port:number,deadline:number,failure:()=>string|null=()=>null):Promise<void> {

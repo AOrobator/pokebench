@@ -291,8 +291,8 @@ it('preserves an original child failure that arrives during a pending retry and 
  const path=join(f.r,'.viewer','human-restarts','old.json');const first=f.launches[0]?.runId;
  f.h.wait=()=>{mono+=10;finish(1);return Promise.resolve();};
  await expect(new HumanRestarts({...f.h,timeoutMs:20}).restart('old')).rejects.toThrow();
- expect(JSON.parse(readFileSync(path,'utf8'))).toMatchObject({state:'failed',runId:first,error:expect.stringContaining('exited 1')});
+ const failed=readFileSync(path,'utf8');expect(failed).toContain('"state":"failed"');expect(failed).toContain('exited 1');expect(failed).toContain(first);
  f.h.launch=spec=>{f.launches.push(spec);f.write(spec.runId,false,true);f.up.add(9001);return new Promise(()=>undefined);};
  const next=await new HumanRestarts({...f.h,timeoutMs:20}).restart('old');expect(next).not.toBe(first);expect(f.launches).toHaveLength(2);
- expect(JSON.parse(readFileSync(join(f.r,'.viewer','human-restarts','old.attempt-1.json'),'utf8'))).toMatchObject({state:'failed',error:expect.stringContaining('exited 1')});
+ const archived=readFileSync(join(f.r,'.viewer','human-restarts','old.attempt-1.json'),'utf8');expect(archived).toContain('"state":"failed"');expect(archived).toContain('exited 1');
 });

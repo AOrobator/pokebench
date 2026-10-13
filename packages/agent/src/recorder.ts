@@ -118,12 +118,12 @@ export class RunRecorder {
     return event;
   }
 
-  async start(meta: RunStartMeta): Promise<void> {
+  async start(meta: RunStartMeta, captureState = true): Promise<void> {
     this.startedAt = this.now();
     this.storyRequired = meta.harness_features.includes("story-state-v1");
     this.append({ type: "run_start", turn: 0, ...meta });
     this.milestones.initialize?.(meta.start_state.kind);
-    await this.checkMilestones();
+    if (captureState) await this.checkMilestones();
     this.frames.attach(this.log);
   }
 

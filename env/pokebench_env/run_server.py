@@ -6,6 +6,7 @@ Each run therefore gets a fresh working directory holding only the two paths
 the vendor reads relative to cwd, its own run id, and checkpoint restore off.
 """
 
+import os
 import re
 import signal
 from collections.abc import Callable, Mapping
@@ -52,7 +53,7 @@ def server_env(
 ) -> dict[str, str]:
     return {
         **base_env,
-        "PYTHONPATH": str(vendor_dir),
+        "PYTHONPATH": os.pathsep.join((str(vendor_dir), str(Path(__file__).resolve().parents[1]))),
         "RUN_DATA_ID": validate_run_id(run_id),
         "LOAD_CHECKPOINT_MODE": "false",
         "PYTHONPYCACHEPREFIX": str(pycache_dir),

@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, it } from 'vitest';
@@ -12,17 +12,36 @@ it('records explicit human identity and exact measurement policy without model t
  expect(plan.controller).toEqual({kind:'human',name:'Operator',rom_sha1:'a'.repeat(40),input_policy:'frame-held-v1',sample_ms:100,nominal_fps:59.7275});
  expect(plan.tools).toEqual([]); expect(plan.model.max_tokens).toBe(0); expect(plan.harnessFeatures).not.toContain('probe');
 });
-it('takes the shared lease exclusively and cleans up only its own acquisition', () => {
+it('takes the human lease exclusively and cleans up only its own acquisition', () => {
  const r=root(); const release=humanLease(r,'human-test');
  expect(()=>humanLease(r,'other')).toThrow();
- expect(JSON.parse(readFileSync(join(r,'.naming-gameplay.lock','owner.json'),'utf8'))).toMatchObject({run:'human-test'});
- release(); release(); expect(existsSync(join(r,'.naming-gameplay.lock'))).toBe(false);
+ expect(JSON.parse(readFileSync(join(r,'.human-gameplay.lock','owner.json'),'utf8'))).toMatchObject({run:'human-test'});
+ release(); release(); expect(existsSync(join(r,'.human-gameplay.lock'))).toBe(false);
 });
 it('preserves a terminal crash receipt when human server launch fails', async () => {
  const r=root(); const plan=humanPlan(r,'human-test',8040,'a'.repeat(40));
- const host:RunHost={ serverHealthy:async()=>false,launchServer:async()=>{throw Error('failed launch');},harness:()=>({commit:'a'.repeat(40),dirty:false}),vendorPin:()=> 'b'.repeat(40),milestones:{poll:async()=>[]},gameState:{read:async()=>{throw Error('not started');}}};
- await expect(withRun(plan,host,new FrameStore(r),async()=> 'operator_stop')).rejects.toThrow('failed launch');
+ const host:RunHost={ serverHealthy:()=>Promise.resolve(false),launchServer:()=>Promise.reject(Error('failed launch')),harness:()=>({commit:'a'.repeat(40),dirty:false}),vendorPin:()=> 'b'.repeat(40),milestones:{poll:()=>Promise.resolve([])},gameState:{read:()=>Promise.reject(Error('not started'))}};
+ await expect(withRun(plan,host,new FrameStore(r),()=> Promise.resolve("operator_stop"))).rejects.toThrow('failed launch');
  const events=readFileSync(join(r,'human-test','events.jsonl'),'utf8').trim().split('\n').map(parseEvent);
  expect(events[0]).toMatchObject({type:'run_start',controller:{kind:'human'}});
  expect(events.at(-1)).toMatchObject({type:'run_end',reason:'crash'});
+});
+it('samples idle human play but stops before sampling after a terminal boundary', async()=>{
+ const {humanLoop}=await import('./human.js');let samples=0,boundaries=0,waits=0;let stopped=false;
+ await humanLoop({stopped:()=>stopped,sample:()=>{samples++;return Promise.resolve();},boundary:()=>{boundaries++;if(boundaries===3)stopped=true;return Promise.resolve();},wait:()=>{waits++;return Promise.resolve();}});
+ expect([samples,boundaries,waits]).toEqual([2,3,2]);
+ await humanLoop({stopped:()=>true,sample:()=>Promise.reject(Error("unexpected")),boundary:()=>Promise.resolve(),wait:()=>Promise.resolve()});
+});
+
+it('finishes on the recorded stop request without making another observation',async()=>{
+ const {driveHuman}=await import('./human.js');const path=join(root(),'control.jsonl');
+ writeFileSync(path,JSON.stringify({v:1,seq:1,at:new Date().toISOString(),action:'stop'})+'\n');
+ const recorded:unknown[]=[];let samples=0;
+ expect(await driveHuman({recordControl:body=>{recorded.push(body);},checkMilestones:()=>{samples++;return Promise.resolve();}},'http://127.0.0.1:8040',path,new AbortController().signal)).toBe('operator_stop');
+ expect(samples).toBe(0);expect(recorded).toContainEqual({action:'stop',status:'applied',request:1});
+});
+it('handles abort and rejects malformed control records without hanging',async()=>{
+ const {driveHuman}=await import('./human.js');const recorder={recordControl:()=>{},checkMilestones:()=>Promise.resolve()};const path=join(root(),'control.jsonl');
+ const aborted=new AbortController();aborted.abort();expect(await driveHuman(recorder,'http://127.0.0.1:8040',path,aborted.signal)).toBe('operator_abort');
+ writeFileSync(path,'bad\n');await expect(driveHuman(recorder,'http://127.0.0.1:8040',path,new AbortController().signal)).rejects.toThrow('invalid control');
 });

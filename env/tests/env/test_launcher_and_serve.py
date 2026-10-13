@@ -1,3 +1,4 @@
+import os
 import types
 from pathlib import Path
 
@@ -105,7 +106,9 @@ def test_spawn_runs_the_server_from_the_run_server_dir(tmp_path: Path) -> None:
             "cwd": server_dir,
             "env": {
                 "PATH": "/usr/bin",
-                "PYTHONPATH": str(vendor),
+                "PYTHONPATH": os.pathsep.join(
+                    (str(vendor), str(Path(__file__).resolve().parents[2]))
+                ),
                 "RUN_DATA_ID": "r1",
                 "LOAD_CHECKPOINT_MODE": "false",
                 "PYTHONPYCACHEPREFIX": str(tmp_path / "pycache"),

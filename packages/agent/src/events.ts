@@ -15,7 +15,7 @@ export class EventError extends Error {
 const NonNegativeInt = Type.Integer({ minimum: 0 });
 const Sha1 = Type.String({ pattern: "^[0-9a-f]{40}$" });
 
-export const BUTTONS = ["A", "B", "START", "SELECT", "UP", "DOWN", "LEFT", "RIGHT"] as const;
+export const BUTTONS = ["A", "B", "START", "SELECT", "UP", "DOWN", "LEFT", "RIGHT", "L", "R"] as const;
 export const ButtonSchema = Type.Enum(BUTTONS);
 export type Button = Static<typeof ButtonSchema>;
 
@@ -43,6 +43,7 @@ const Args = Type.Record(Type.String(), Type.Unknown());
 const Evaluation = Type.Object({preset_id:Type.String({minLength:1}),target:Type.Union([Type.String({minLength:1}),Type.Null()]),failure_limit:Type.Integer({minimum:1}),flags:Type.Object({loopGuard:Type.Boolean(),activeUi:Type.Boolean(),interfaceDocs:Type.Boolean(),objectives:Type.Boolean()},closed)},closed);
 const TargetProof = Type.Object({name:Type.String({minLength:1}),milestone_seq:NonNegativeInt,state_evidence:Type.Array(NonNegativeInt,{minItems:1,maxItems:2})},closed);
 const RunStart = event("run_start", {
+  controller: Type.Optional(Type.Object({ kind: Type.Literal("human"), name: Type.String({minLength:1}), rom_sha1: Sha1, input_policy: Type.Literal("frame-held-v1"), sample_ms: Type.Literal(100), nominal_fps: Type.Literal(59.7275) }, closed)),
   evaluation:Type.Optional(Evaluation),
   model: Type.Object(
     { id: Type.String({ minLength: 1 }), context_window: NonNegativeInt, max_tokens: NonNegativeInt, vision: Type.Boolean() },

@@ -9,14 +9,15 @@
 import { execFileSync, spawn } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import { activeUiFeatures } from "./ui-feature.js";
-import { readFileSync } from "node:fs";
+import { humanPlan, humanLease, driveHuman } from "./human.js";
+import { writeFileSync, readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { objectiveHarness } from "./objective-tools.js";
 import { playHarnessFeatures, serverFeatureEnv } from "./features.js";
 import { PLAY_LIMITS, PLAY_MAX_TOKENS, PLAY_TASK, PLAY_THINKING, objectiveSwitches, playGoal, playSystemPrompt, playTools, toolSwitches } from "./play-config.js";
 import { verifyIntro } from "./verify-state.js";
 import { driveProbe, parseProbeCommand, type ProbeCommand } from "./probe.js";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runAgentLoop, type AgentMessage } from "@mariozechner/pi-agent-core";
 import { loadConfig } from "./config.js";
@@ -339,8 +340,32 @@ async function probe(verify = false): Promise<void> {
   } finally { lines.close(); }
 }
 
+async function playHuman(): Promise<void> {
+  const port = Number(process.env["POKEBENCH_HUMAN_PORT"] ?? "8040");
+  if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error("invalid human port");
+  const rom = process.env["POKEBENCH_ROM"];
+  if (rom === undefined) throw new Error("POKEBENCH_ROM is required");
+  const runsRoot = process.env["POKEBENCH_RUNS_ROOT"] ?? RUNS_ROOT;
+  const runId = newRunId(new Date(), "human", () => randomBytes(2).toString("hex"));
+  const coordinationRoot = dirname(resolve(REPO_ROOT,git(REPO_ROOT)(["rev-parse","--git-common-dir"]).trim()));
+  const release = humanLease(join(coordinationRoot,"runs"), runId);
+  const token = randomBytes(32).toString("hex");
+  const runDir = join(runsRoot, runId);
+  const abort = new AbortController();
+  const onSignal = (): void => { abort.abort(); };
+  process.on("SIGINT",onSignal); process.on("SIGTERM",onSignal);
+  try {
+    const plan = humanPlan(runsRoot,runId,port,createHash("sha1").update(readFileSync(rom)).digest("hex"));
+    const host=realHost(port,undefined,{...process.env,POKEBENCH_HUMAN_TOKEN:token});
+    await withRun(plan,{...host,launchServer:async(dir,id,p)=>{writeFileSync(join(dir,"human-token"),token,{mode:0o600,flag:"wx"});return host.launchServer(dir,id,p);}},new FrameStore(runsRoot),async(recorder,url)=>{
+      console.log(`Human play: http://127.0.0.1:8791/play#run=${runId}`);
+      return driveHuman(recorder,url,join(runDir,"control.jsonl"),abort.signal);
+    });
+  } finally { process.off("SIGINT",onSignal);process.off("SIGTERM",onSignal);release(); }
+}
+
 const command = process.argv[2];
-const entry = command === "smoke" ? smoke : command === "play" ? playAgent : command === "probe" ? () => probe() : command === "verify-state" ? () => probe(true) : null;
+const entry = command === "smoke" ? smoke : command === "human" ? playHuman : command === "play" ? playAgent : command === "probe" ? () => probe() : command === "verify-state" ? () => probe(true) : null;
 if (entry === null) {
   console.error("usage: live.js smoke | live.js play | live.js probe [save-state]");
   process.exitCode = 2;

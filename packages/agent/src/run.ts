@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import type { BodyOf, RunEndReason } from "./events.js";
 import type { FrameStore } from "./frames.js";
 import type { StateSource } from "./game-state.js";
@@ -20,6 +21,7 @@ export interface RunPlan {
   readonly budgets: RunStart["budgets"];
   readonly piVersion: string;
   readonly evaluation?:RunStart["evaluation"];
+  readonly controller?:RunStart["controller"];
 }
 
 export interface ServerHandle {
@@ -63,11 +65,13 @@ export async function withRun(
   const harness = host.harness();
   const vendorPin = host.vendorPin();
   const log = RunLog.create(plan.runsRoot, plan.runId);
-  const server = await host.launchServer(log.runDir, plan.runId, plan.port);
+  let server: ServerHandle | undefined;
+  if (plan.controller === undefined) server = await host.launchServer(log.runDir, plan.runId, plan.port);
   const recorder = new RunRecorder({ log, frames, milestones: host.milestones, gameState: host.gameState });
   let reason: RunEndReason = "crash";
   try {
     await recorder.start({
+      ...(plan.controller === undefined ? {} : {controller: plan.controller}),
       ...(plan.evaluation===undefined?{}:{evaluation:plan.evaluation}),
       model: plan.model,
       sampling: plan.sampling,
@@ -79,8 +83,12 @@ export async function withRun(
       start_state: plan.startState,
       harness_features: [...plan.harnessFeatures],
       budgets: plan.budgets,
-      isolation: { server_dir: server.serverDir, run_data_id: plan.runId, load_checkpoint_mode: false, port: plan.port },
-    });
+      isolation: { server_dir: server?.serverDir ?? join(log.runDir, "server"), run_data_id: plan.runId, load_checkpoint_mode: false, port: plan.port },
+    }, plan.controller === undefined);
+    if (plan.controller !== undefined) {
+      server = await host.launchServer(log.runDir, plan.runId, plan.port);
+      await recorder.checkMilestones();
+    }
     reason = await body(recorder, url);
     return reason;
   } finally {
@@ -88,11 +96,11 @@ export async function withRun(
       if (log.nextSeq > 0 && !log.ended) {
         // A script can commit progress after the last tool's captured frame.
         // Take one final snapshot before teardown; no inputs or polling loop.
-        await recorder.afterPress();
+        if (server !== undefined) await recorder.afterPress();
         recorder.end(reason);
       }
     } finally {
-      await server.stop();
+      await server?.stop();
     }
   }
 }

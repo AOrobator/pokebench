@@ -637,7 +637,9 @@
                   "UP",
                   "DOWN",
                   "LEFT",
-                  "RIGHT"
+                  "RIGHT",
+                  "L",
+                  "R"
                 ]
               },
               "minItems": 1,
@@ -742,6 +744,44 @@
         "type": {
           "type": "string",
           "const": "run_start"
+        },
+        "controller": {
+          "type": "object",
+          "required": [
+            "kind",
+            "name",
+            "rom_sha1",
+            "input_policy",
+            "sample_ms",
+            "nominal_fps"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "human"
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "rom_sha1": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "input_policy": {
+              "type": "string",
+              "const": "frame-held-v1"
+            },
+            "sample_ms": {
+              "type": "number",
+              "const": 100
+            },
+            "nominal_fps": {
+              "type": "number",
+              "const": 59.7275
+            }
+          },
+          "additionalProperties": false
         },
         "evaluation": {
           "type": "object",
@@ -1267,7 +1307,9 @@
               "UP",
               "DOWN",
               "LEFT",
-              "RIGHT"
+              "RIGHT",
+              "L",
+              "R"
             ]
           },
           "minItems": 1

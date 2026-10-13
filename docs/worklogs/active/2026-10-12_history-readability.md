@@ -46,3 +46,5 @@ None.
 RED:149existingtests pass; inspector exactraw-detail assertion fails asintended, newformat moduleabsent suiteimportRED. Noimplementationeditsyet.
 
 COMMIT: `test(viewer): specify readable event inspection` (`1233f1b`) RED. GREEN:159viewer tests, viewerlint/types, fullTSbuild; coverage98.53lines90.93branches98.54functions97.67statements. RawJSONroundtrip, escapedHTML/unsafeURLs, newline/Markdown/nestedstring/fencedJSON validated. Two semanticrender mutations assertionRED restored; browserCSSboundremoved row1302measured260.367px vsrestored24.797px (2x12.4lineheight). Screenshot externalvisualizationpathhistory-readability.png; isolated8797 source only, original8793 untouched. Mandatoryreview/parentcumulativegates notclaimed; no subagents used under side boundary.
+
+COMMIT: `feat(viewer): compact history and format full event details` (`c8e8cd7`) GREEN; sourcefrozen. Servedstyle/app/panels/inspectformatbytes matchedbuiltfiles; raworiginaleventandfullcontent preserved. Preview8797 is anisolateddeliverable, notproduction8793. Parentreview/landing remainspending; no contact/subagentactivity under sideboundary.

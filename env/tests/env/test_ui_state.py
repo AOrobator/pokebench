@@ -333,3 +333,17 @@ def test_clock_motion_between_ticks_does_not_claim_confirmation_input_ready() ->
     memory.put(TASKS, struct.pack("<IB", 0x08134CE9, 1))
     memory.put(TASKS + 8, struct.pack("<h", 1))
     assert read_active_ui(memory.read, Screen("clock", 0, 0x08134C9D)).ready is False
+
+
+@pytest.mark.parametrize("owner", [0x08030C91, 0x08030CD5, 0x08030D85])
+def test_observed_birch_sprite_transitions_have_owned_not_ready_phase(owner: int) -> None:
+    from pokebench_env.game_screen import GMAIN, TASKS, read_screen
+    from pokebench_env.ui_state import read_active_ui
+
+    memory = Memory()
+    memory.put(GMAIN, struct.pack("<II", 0, 0x0802F6B1))
+    memory.put(TASKS, struct.pack("<IB", owner, 1))
+    screen = read_screen(memory.read)
+    assert screen.kind == "birch_speech"
+    ui = read_active_ui(memory.read, screen)
+    assert ui.phase == "birch_transition" and ui.ready is False and ui.diagnostic is None

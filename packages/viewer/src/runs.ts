@@ -131,7 +131,7 @@ function summarize(runsRoot: string, id: string): RunSummary {
   const ended = end?.ok === true && end.event.type === "run_end" ? end.event : null;
   return {
     id,
-    model: start.event.model.id,
+    model: start.event.controller?.kind === "human" ? `Human · ${start.event.controller.name}` : start.event.model.id,
     started: start.event.t,
     ended: ended !== null,
     reason: ended?.reason ?? null,
@@ -167,12 +167,24 @@ export function baselineOf(runsRoot: string, runId: string): Baseline {
   if (start.harness_features.includes("probe")) throw new BaselineError("probe sessions cannot be benchmark baselines");
   const startMs = Date.parse(start.t);
   const view = new RunView();
+  let expectedSeq = 0;
+  let humanEnded = false;
   // A comparison must rest on the baseline run's own, fully valid log (PB1).
   for (const result of readFrom(eventsPath(runsRoot, runId), 0, 0).results) {
     if (!result.ok) throw new BaselineError(`baseline ${runId} line ${String(result.line)}: ${result.problem}`);
     if (result.event.run !== runId) throw new BaselineError(`baseline ${runId} holds an event for run ${result.event.run}`);
     if (result.event.type === "state" && !("started" in result.event)) throw new BaselineError("baseline uses unverified historical vendor state");
+    if (start.controller?.kind === "human") {
+      if (result.event.seq !== expectedSeq || humanEnded || (expectedSeq > 0 && result.event.type === "run_start")) throw new BaselineError("invalid human event order");
+      humanEnded = result.event.type === "run_end";
+      expectedSeq += 1;
+    }
     view.apply(result.event);
+  }
+  if (start.controller?.kind === "human") {
+    const terminal = summarize(runsRoot, runId);
+    if (!humanEnded || !terminal.ended) throw new BaselineError("baseline requires a finished human run");
+    if (terminal.reason === "operator_abort") throw new BaselineError("aborted human sessions cannot be benchmark baselines");
   }
   if (view.state === null && !start.harness_features.includes("ram-state-v1")) throw new BaselineError("baseline has no verified RAM-state provenance");
   // Operator pauses are not run time: splits exclude paused time before each milestone.
@@ -192,6 +204,8 @@ export interface ComparisonRun extends Baseline {
   readonly started: string;
   readonly harness: string;
   readonly features: readonly string[];
+  readonly controller?: { readonly kind: "human"; readonly name: string };
+  readonly romIdentity?: "verified" | "unverified";
 }
 
 export interface Comparisons {
@@ -215,21 +229,26 @@ export function comparisonsOf(runsRoot: string, runId: string): Comparisons {
     try {
       const start = readStart(runsRoot, summary.id);
       if (!sameStart(current, start)) continue;
+      const humanPair = current.controller?.kind === "human" || start.controller?.kind === "human";
+      const currentRom = current.controller?.rom_sha1 ?? current.rom_sha1;
+      const candidateRom = start.controller?.rom_sha1 ?? start.rom_sha1;
+      if (humanPair && (current.vendor_pin !== start.vendor_pin || (currentRom !== undefined && candidateRom !== undefined && currentRom !== candidateRom))) continue;
       const baseline = baselineOf(runsRoot, summary.id);
       if (!baseline.milestones.some((m) => MILESTONE_ORDER.indexOf(m.name as typeof MILESTONE_ORDER[number]) > 0)) continue;
-      candidates.push({ ...baseline, model: start.model.id, started: start.t, harness: start.harness.commit, features: start.harness_features });
+      candidates.push({ ...baseline, model: start.controller?.kind === "human" ? `Human · ${start.controller.name}` : start.model.id, started: start.t, harness: start.harness.commit, features: start.harness_features, ...(start.controller?.kind === "human" ? { controller: { kind: "human" as const, name: start.controller.name } } : {}), ...(humanPair ? { romIdentity: currentRom !== undefined && candidateRom !== undefined ? "verified" as const : "unverified" as const } : {}) });
     } catch (error) {
       if (!(error instanceof BaselineError || error instanceof RunsError)) throw error;
     }
   }
   candidates.sort((a, b) => Date.parse(b.started) - Date.parse(a.started) || a.run.localeCompare(b.run));
-  const previous = candidates.filter((c) => Date.parse(c.started) < Date.parse(current.t));
+  const models = candidates.filter((c) => c.controller?.kind !== "human");
+  const previous = models.filter((c) => Date.parse(c.started) < Date.parse(current.t));
   const baseline = previous.find((c) => c.model === current.model.id) ?? previous[0] ?? null;
   const score = (run: ComparisonRun) => {
     const deepest = run.milestones.reduce((depth, m) => Math.max(depth, MILESTONE_ORDER.indexOf(m.name as typeof MILESTONE_ORDER[number])), -1);
     const time = run.milestones.find((m) => m.name === MILESTONE_ORDER[deepest])?.offsetMs ?? Infinity;
     return { deepest, time };
   };
-  const best = candidates.slice().sort((a, b) => score(b).deepest - score(a).deepest || score(a).time - score(b).time || a.run.localeCompare(b.run))[0] ?? null;
+  const best = models.slice().sort((a, b) => score(b).deepest - score(a).deepest || score(a).time - score(b).time || a.run.localeCompare(b.run))[0] ?? null;
   return { candidates, baseline, best };
 }

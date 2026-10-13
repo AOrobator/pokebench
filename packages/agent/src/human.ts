@@ -3,10 +3,11 @@ import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { ControlFile, RunControl, freezeGame } from "./run-control.js";
 import type { RunRecorder } from "./recorder.js";
-import type { RunEndReason } from "./events.js";
+import { BUTTONS, type Button, type RunEndReason, type BodyOf } from "./events.js";
+import { parseGameState, type GameStateSnapshot } from "./game-state.js";
 import type { RunPlan } from './run.js';
 export function humanPlan(runsRoot:string,runId:string,port:number,romSha1:string):RunPlan {
- return {runsRoot,runId,port,controller:{kind:'human',name:'Operator',rom_sha1:romSha1,input_policy:'frame-held-v1',sample_ms:100,nominal_fps:59.7275},model:{id:'Human · Operator',context_window:0,max_tokens:0,vision:false},sampling:{thinking_level:'none',max_tokens:0},systemPrompt:'Human playthrough; no model inference.',tools:[],startState:{kind:'boot'},harnessFeatures:['human-play-v1','ram-state-v1','story-state-v1','story-milestones-v2','clock-milestone-v1','new-game-created-v1'],budgets:{},piVersion:'not-used'};
+ return {runsRoot,runId,port,controller:{kind:'human',name:'Operator',rom_sha1:romSha1,input_policy:'frame-held-v1',sample_ms:100,nominal_fps:59.7275},model:{id:'Human · Operator',context_window:0,max_tokens:0,vision:false},sampling:{thinking_level:'none',max_tokens:0},systemPrompt:'Human playthrough; no model inference.',tools:[],startState:{kind:'boot'},harnessFeatures:['human-play-v1','human-audio-1x-v1','ram-state-v1','story-state-v1','story-milestones-v2','clock-milestone-v1','new-game-created-v1'],budgets:{},piVersion:'not-used'};
 }
 export function humanLease(runsRoot:string,runId:string):()=>void {
  mkdirSync(runsRoot,{recursive:true}); const path=join(runsRoot,'.human-gameplay.lock');
@@ -28,17 +29,58 @@ export async function humanLoop(deps:HumanLoop):Promise<void> {
  }
 }
 
-export async function driveHuman(recorder:Pick<RunRecorder,"recordControl"|"checkMilestones">,url:string,path:string,signal:AbortSignal,fetchFn:typeof fetch=fetch):Promise<RunEndReason> {
+export async function driveHuman(recorder:Pick<RunRecorder,"recordControl"|"checkMilestones"> & Partial<HumanRecording>,url:string,path:string,signal:AbortSignal,fetchFn:typeof fetch=fetch,internalToken?:string):Promise<RunEndReason> {
  const abort=new AbortController();const onAbort=():void=>{abort.abort();};
  signal.addEventListener("abort",onAbort,{once:true});if(signal.aborted)abort.abort();
  const result:{reason:RunEndReason;error:unknown}={reason:"operator_abort",error:null};
  const file=new ControlFile(path);
+ if(internalToken!==undefined&&(recorder.recordHumanInput===undefined||recorder.recordHumanSample===undefined))throw Error("Human recording methods are required");
+ const sample=internalToken===undefined?()=>recorder.checkMilestones():humanSampler(recorder as HumanRecording,url,internalToken,fetchFn);
  const control=new RunControl({record:body=>{recorder.recordControl(body);},freeze:paused=>freezeGame(url,paused,fetchFn),end:reason=>{result.reason=reason;abort.abort();},now:()=>Date.now(),poll:()=>file.poll()});
  const poll=():void=>{try{for(const request of file.poll())control.apply(request);if(file.problems.length>0)throw Error(file.problems.join("; "));}catch(error){result.error=error;abort.abort();}};
  const timer=setInterval(poll,100);
  try{
-  await humanLoop({stopped:()=>abort.signal.aborted,boundary:async()=>{poll();await control.gate(abort.signal);if(control.takeStop()){result.reason="operator_stop";abort.abort();}},sample:()=>recorder.checkMilestones(),wait:()=>new Promise(resolve=>setTimeout(resolve,100))});
+  await humanLoop({stopped:()=>abort.signal.aborted,boundary:async()=>{poll();await control.gate(abort.signal);if(control.takeStop()){result.reason="operator_stop";abort.abort();}},sample,wait:()=>new Promise(resolve=>setTimeout(resolve,100))});
   if(result.error!==null)throw result.error instanceof Error ? result.error : new Error("human control polling failed",{cause:result.error});
+  if(internalToken!==undefined){await freezeGame(url,true,fetchFn);await sample();}
   return result.reason;
+ }catch(error){
+  if(internalToken!==undefined)await freezeGame(url,true,fetchFn).catch(()=>{});
+  throw error;
  }finally{clearInterval(timer);signal.removeEventListener("abort",onAbort);}
+}
+
+
+type HumanSegment=Omit<BodyOf<"human_input">,"type"|"turn">;
+export interface HumanRecording {
+ recordHumanInput(body:HumanSegment):void;
+ recordHumanSample(frame:number,paused:boolean,pngBase64:string,state:GameStateSnapshot):void;
+}
+function object(value:unknown):value is Record<string,unknown>{return typeof value==="object"&&value!==null&&!Array.isArray(value);}
+function integer(value:unknown):value is number{return typeof value==="number"&&Number.isSafeInteger(value)&&value>=0;}
+
+/** The server only prunes on the NEXT request carrying a durably committed cursor. */
+export function humanSampler(recorder:HumanRecording,url:string,token:string,fetchFn:typeof fetch=fetch):()=>Promise<void> {
+ let cursor=0;let frame=-1;let wall=-1;
+ return async()=>{
+  const response=await fetchFn(`${url}/pokebench/human/snapshot?after=${String(cursor)}`,{headers:{"x-human-token":token},signal:AbortSignal.timeout(5000)});
+  if(!response.ok)throw Error(`Human snapshot failed (${String(response.status)})`);
+  const payload:unknown=await response.json();
+  if(!object(payload)||!integer(payload.frame)||payload.frame<frame||typeof payload.paused!=="boolean"||typeof payload.failed!=="boolean"||!integer(payload.last_id)||!Array.isArray(payload.segments)||!object(payload.observation))throw Error("Invalid or regressing human snapshot");
+  if(payload.failed)throw Error("Human input controller failed; recording stopped");
+  const observation=payload.observation;
+  if(typeof observation.screenshot_base64!=="string"||!/^iVBORw0KGgo[A-Za-z0-9+/]*={0,2}$/.test(observation.screenshot_base64))throw Error("Human snapshot has no valid PNG");
+  const state=parseGameState(observation.state);
+  let next=cursor;let nextFrame=frame;let nextWall=wall;
+  const segments:HumanSegment[]=[];
+  for(const raw of payload.segments){
+   if(!object(raw)||!integer(raw.id)||raw.id!==next+1||!integer(raw.start_frame)||!integer(raw.end_frame)||raw.end_frame<=raw.start_frame||raw.end_frame>payload.frame||raw.start_frame!==Math.max(0,nextFrame)||!integer(raw.start_ms)||!integer(raw.end_ms)||raw.end_ms<raw.start_ms||raw.start_ms<nextWall||!integer(raw.request_seq)||typeof raw.session!=="string"||raw.session.length===0||!Array.isArray(raw.buttons)||!raw.buttons.every((button:unknown)=>typeof button==="string"&&(BUTTONS as readonly string[]).includes(button))||new Set(raw.buttons).size!==raw.buttons.length)throw Error("Invalid human input journal interval");
+   const segment:HumanSegment={id:raw.id,start_frame:raw.start_frame,end_frame:raw.end_frame,start_ms:raw.start_ms,end_ms:raw.end_ms,buttons:raw.buttons as Button[],request_seq:raw.request_seq,session:raw.session};
+   segments.push(segment);next=raw.id;nextFrame=raw.end_frame;nextWall=raw.end_ms;
+  }
+  if(payload.last_id!==next||Math.max(0,nextFrame)!==payload.frame)throw Error("Human journal cursor does not cover snapshot");
+  for(const segment of segments)recorder.recordHumanInput(segment);
+  recorder.recordHumanSample(payload.frame,payload.paused,observation.screenshot_base64,state);
+  cursor=next;frame=payload.frame;wall=nextWall;
+ };
 }

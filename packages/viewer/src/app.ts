@@ -51,6 +51,11 @@ function runChoices(value: unknown): RunChoice[] {
   });
 }
 
+function comparisonLabel(run: string, value: unknown): string {
+  const record = value as { controller?: { kind?: unknown }; romIdentity?: unknown };
+  return record.controller?.kind === "human" && record.romIdentity === "unverified" ? `${run} (ROM unverified)` : run;
+}
+
 function baselineOf(value: unknown): Baseline {
   const record = value as { run?: unknown; milestones?: unknown };
   const milestones = record.milestones;
@@ -316,14 +321,15 @@ export class App {
       const value = await this.deps.fetchJson(`/api/runs/${encodeURIComponent(runId)}/comparisons`);
       const record = value as { candidates?: unknown; baseline?: unknown; best?: unknown };
       if (!Array.isArray(record.candidates)) throw new Error("malformed comparisons");
-      const candidates = record.candidates.map(baselineOf);
+      const rawCandidates: unknown[] = record.candidates;
+      const candidates = rawCandidates.map(baselineOf);
       const baseline = record.baseline === null ? null : baselineOf(record.baseline);
       const best = record.best === null ? null : baselineOf(record.best);
       if (request !== this.comparisonRequest) return;
       this.best = best;
       // Populate only validated references, even when the user disabled the
       // automatic default while loading. Never expose unchecked run choices.
-      this.picker("baseline").replaceChildren(option(this.doc, "", "none"), ...candidates.map((c) => option(this.doc, c.run, c.run)));
+      this.picker("baseline").replaceChildren(option(this.doc, "", "none"), ...candidates.map((c, i) => option(this.doc, c.run, comparisonLabel(c.run, rawCandidates[i]))));
       if (baselineRequest === this.baselineRequest) this.baseline = baseline;
       this.picker("baseline").value = this.baseline?.run ?? "";
       this.render();

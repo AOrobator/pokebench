@@ -27,6 +27,10 @@
     "./run": {
       "types": "./src/run.ts",
       "default": "./dist/run.js"
+    },
+    "./spectator": {
+      "types": "./src/spectator.ts",
+      "default": "./dist/spectator.js"
     }
   },
   "scripts": {

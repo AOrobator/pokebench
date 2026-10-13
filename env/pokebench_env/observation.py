@@ -25,7 +25,7 @@ def install_observation(
     read_memory: ReadMemory,
     maps: MapNames,
     memory_lock: AbstractContextManager[object] | None = None,
-) -> None:
+) -> Callable[[], dict[str, object]]:
     enabled = active_ui_enabled_from_env(os.environ)
     off = features_off_from_env(os.environ)
 
@@ -52,3 +52,5 @@ def install_observation(
     @app.get("/pokebench/state")
     def state() -> dict[str, object]:
         return state_json(snapshot())
+
+    return observation

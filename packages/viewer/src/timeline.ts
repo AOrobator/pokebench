@@ -18,11 +18,16 @@ function bar(cls: string, lane: number, a: number, b: number, title: string, fil
 }
 
 // Swimlanes over the 60 s before `nowMs` (wall clock live, the cursor in replay).
-export function lanesSvg(view: RunView, nowMs: number): string {
+export function lanesSvg(view: RunView, nowMs: number, visible: readonly (typeof LANES[number])[] = LANES): string {
+  const H=20+LANE*visible.length;
+  const draw=(cls:string,lane:number,a:number,b:number,title:string,fill=0.6):string=>{
+    const name=LANES[lane];const slot=name===undefined?-1:visible.indexOf(name);
+    return slot<0?"":bar(cls,slot,a,b,title,fill);
+  };
   const t0 = nowMs - WINDOW_MS;
   const x = (ms: number): number => LABEL + (W - LABEL - 8) * ((Math.max(ms, t0) - t0) / WINDOW_MS);
   const parts: string[] = [];
-  LANES.forEach((name, i) => {
+  visible.forEach((name, i) => {
     parts.push(`<rect class="lane${i % 2 === 0 ? "" : " alt"}" x="0" y="${f(i * LANE)}" width="${String(W)}" height="${f(LANE)}"/>`);
     parts.push(`<text class="lab" x="8" y="${f(i * LANE + LANE / 2 + 4)}">${name}</text>`);
   });
@@ -36,37 +41,40 @@ export function lanesSvg(view: RunView, nowMs: number): string {
     const end = span.endMs ?? nowMs;
     if (end < t0 || span.startMs > nowMs) continue;
     const seconds = ((end - span.startMs) / 1000).toFixed(1);
-    parts.push(bar(span.endMs === null ? "m-think open" : "m-think", 0, x(span.startMs), x(end), `thinking ${seconds}s`));
+    parts.push(draw(span.endMs === null ? "m-think open" : "m-think", 0, x(span.startMs), x(end), `thinking ${seconds}s`));
   }
   for (const span of view.toolSpans) {
     const end = span.endMs ?? nowMs;
     if (end < t0 || span.startMs > nowMs) continue;
-    parts.push(bar(span.error ? "m-tool err" : "m-tool", 1, x(span.startMs), x(end), span.name));
+    parts.push(draw(span.error ? "m-tool err" : "m-tool", 1, x(span.startMs), x(end), span.name));
   }
   for (const press of view.presses) {
     const step = (press.hold + press.release) * FRAME_MS;
     press.buttons.forEach((button, i) => {
-      const start = press.ms + i * step;
-      if (start + step < t0 || start > nowMs) return;
+      const start = press.endMs === undefined ? press.ms + i * step : press.ms;
+      const end = press.endMs ?? start + step;
+      if (end < t0 || start > nowMs) return;
       const title = `${button} hold ${String(press.hold)}f${press.assumed ? " (assumed)" : ""}`;
-      parts.push(bar(`m-press b-${button}`, 2, x(start), x(start + step), title, 0.5));
+      parts.push(draw(`m-press b-${button}`, 2, x(start), x(end), title, 0.5));
     });
   }
   for (const milestone of view.milestones) {
     if (milestone.ms < t0 || milestone.ms > nowMs) continue;
     const cx = x(milestone.ms);
-    const cy = 3 * LANE + LANE / 2;
+    const lane=visible.indexOf("milestones");
+    if(lane<0)continue;
+    const cy = lane * LANE + LANE / 2;
     parts.push(
       `<path class="m-milestone" d="M${f(cx)} ${f(cy - 9)}L${f(cx + 7)} ${f(cy)}L${f(cx)} ${f(cy + 9)}L${f(cx - 7)} ${f(cy)}Z"><title>${esc(milestone.name)}</title></path>`,
     );
   }
   for (const mark of view.errors) {
     if (mark.ms < t0 || mark.ms > nowMs) continue;
-    parts.push(bar(`m-error k-${mark.kind}`, 4, x(mark.ms) - 2, x(mark.ms) + 3, mark.label));
+    parts.push(draw(`m-error k-${mark.kind}`, 4, x(mark.ms) - 2, x(mark.ms) + 3, mark.label));
   }
   if(view.end?.target_proof!==undefined){
     const ms=eventMs(view.end);const proof=view.end.target_proof;
-    if(ms>=t0&&ms<=nowMs)parts.push(bar("m-milestone",3,x(ms)-2,x(ms)+3,`native target ${proof.name} · milestone #${String(proof.milestone_seq)} · state evidence ${proof.state_evidence.map(seq=>`#${String(seq)}`).join(", ")}`));
+    if(ms>=t0&&ms<=nowMs)parts.push(draw("m-milestone",3,x(ms)-2,x(ms)+3,`native target ${proof.name} · milestone #${String(proof.milestone_seq)} · state evidence ${proof.state_evidence.map(seq=>`#${String(seq)}`).join(", ")}`));
   }
   for (let s = 0; s <= 60; s += 10) {
     const px = LABEL + (W - LABEL - 8) * (s / 60);

@@ -20,6 +20,9 @@ export interface Press {
   readonly hold: number;
   readonly release: number;
   readonly assumed: boolean;
+  readonly endMs?:number;
+  readonly startFrame?:number;
+  readonly endFrame?:number;
 }
 
 export interface Span {
@@ -58,6 +61,8 @@ const KNOWN: Record<RunEvent["type"], true> = {
   assistant_delta: true,
   tool_call: true,
   button_press: true,
+  human_input:true,
+  human_sample:true,
   tool_result: true,
   milestone: true,
   retry: true,
@@ -140,6 +145,7 @@ export class RunView {
   turnStartMs: number | null = null;
   lastThought: Thought | null = null;
   frame: string | null = null;
+  humanFrame: number | null = null;
   state: StateEvent | null = null;
   legacyState = false;
   objective: Of<"objective_update">["objective"] | null = null;
@@ -154,7 +160,7 @@ export class RunView {
   toolErrors = 0;
   compactions = 0;
   stuck: { now: number; max: number } | null = null;
-  readonly milestones: { name: string; ms: number; seq: number; derived?: boolean; kind?: "story" | "navigation" | "legacy"; origin?: "observed" | "present_at_start"; evidence?: readonly number[] }[] = [];
+  readonly milestones: { name: string; ms: number; seq: number; derived?: boolean; kind?: "story" | "navigation" | "legacy"; origin?: "observed" | "present_at_start"; evidence?: readonly number[]; emulatorFrame?:number }[] = [];
   readonly presses: Press[] = [];
   readonly thinkingSpans: Span[] = [];
   streaming = { thinking: "", text: "" };
@@ -217,6 +223,12 @@ export class RunView {
       case "tool_result":
         this.onToolResult(event, ms);
         break;
+      case "human_sample":
+        this.frame=event.screenshot.path; this.humanFrame=event.frame;
+        break;
+      case "human_input":
+        if(event.buttons.length>0) this.presses.push({seq:event.seq,ms:event.start_ms,endMs:event.end_ms,buttons:event.buttons,hold:event.end_frame-event.start_frame,release:0,assumed:false,startFrame:event.start_frame,endFrame:event.end_frame});
+        break;
       case "button_press":
         this.presses.push({
           seq: event.seq,
@@ -228,7 +240,7 @@ export class RunView {
         });
         break;
       case "milestone":
-        if (!this.milestones.some((m) => m.name === event.name)) this.milestones.push({ name: event.name, ms, seq: event.seq, ...(event.kind === undefined ? {} : {kind:event.kind}), ...(event.origin === undefined ? {} : {origin:event.origin}), ...(event.evidence === undefined ? {} : {evidence:event.evidence}) });
+        if (!this.milestones.some((m) => m.name === event.name)) this.milestones.push({ name: event.name, ms, seq: event.seq, ...(event.emulator_frame===undefined?{}:{emulatorFrame:event.emulator_frame}), ...(event.kind === undefined ? {} : {kind:event.kind}), ...(event.origin === undefined ? {} : {origin:event.origin}), ...(event.evidence === undefined ? {} : {evidence:event.evidence}) });
         break;
       case "loop_guard":
         this.errors.push({ms,kind:"loop",label:this.loopLabel(event)});

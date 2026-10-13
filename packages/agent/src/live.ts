@@ -27,7 +27,7 @@ import { FrameStore } from "./frames.js";
 import { StateWatcher } from "./game-state.js";
 import {flagFeatures,parsePlayPreset,presetFeatures,presetFlags} from "./play-preset.js";
 import {NativeTargetStop} from "./target-stop.js";
-import { BudgetTimer, ControlFile, RunControl, freezeGame, watchControl } from "./run-control.js";
+import { BudgetTimer, ControlFile, RunControl, freezeGame, watchControl, controlLine } from "./run-control.js";
 import {RUN_ID_PATTERN} from "./events.js";
 import { StateMilestones } from "./milestones.js";
 import { readLoopMode } from "./loop-detection.js";
@@ -153,6 +153,7 @@ async function smoke(): Promise<void> {
 
   const reason = await withRun(
     {
+      romSha1:romSha1(),
       runsRoot: RUNS_ROOT,
       runId,
       port,
@@ -223,6 +224,7 @@ async function playAgent(): Promise<void> {
 
   const reason = await withRun(
     {
+      romSha1:romSha1(),
       runsRoot: RUNS_ROOT,
       runId,
       port,
@@ -329,6 +331,7 @@ async function probe(verify = false): Promise<void> {
   }
   try {
     const reason = await withRun({
+      romSha1:romSha1(),
       runsRoot: RUNS_ROOT, runId, port,
       model: { id: "manual-probe", context_window: 0, max_tokens: 0, vision: false },
       sampling: { thinking_level: "none", max_tokens: 0 },
@@ -338,6 +341,12 @@ async function probe(verify = false): Promise<void> {
     }, realHost(port, saved), new FrameStore(RUNS_ROOT), (recorder, url) => driveProbe(recorder, url, verify ? verifyIntro(new StateWatcher(url), (label, state) => { console.log(`CHECKPOINT ${label} ${JSON.stringify(state)}`); }) : commands()));
     console.log(`probe ended: ${reason}`);
   } finally { lines.close(); }
+}
+
+function romSha1():string {
+  const rom=process.env["POKEBENCH_ROM"];
+  if(rom===undefined)throw new Error("POKEBENCH_ROM is required");
+  return createHash("sha1").update(readFileSync(rom)).digest("hex");
 }
 
 async function playHuman(): Promise<void> {
@@ -355,11 +364,12 @@ async function playHuman(): Promise<void> {
   const onSignal = (): void => { abort.abort(); };
   process.on("SIGINT",onSignal); process.on("SIGTERM",onSignal);
   try {
-    const plan = humanPlan(runsRoot,runId,port,createHash("sha1").update(readFileSync(rom)).digest("hex"));
+    const basePlan = humanPlan(runsRoot,runId,port,romSha1());
+    const plan = {...basePlan,romSha1:romSha1(),harnessFeatures:[...basePlan.harnessFeatures,...(process.env["POKEBENCH_HUMAN_VALIDATION"]==="true"?["probe"]:[])]};
     const host=realHost(port,undefined,{...process.env,POKEBENCH_HUMAN_TOKEN:token});
-    await withRun(plan,{...host,launchServer:async(dir,id,p)=>{writeFileSync(join(dir,"human-token"),token,{mode:0o600,flag:"wx"});return host.launchServer(dir,id,p);}},new FrameStore(runsRoot),async(recorder,url)=>{
+    await withRun(plan,{...host,launchServer:async(dir,id,p)=>{writeFileSync(join(dir,"human-token"),token,{mode:0o600,flag:"wx"});if(process.env["POKEBENCH_HUMAN_START_PAUSED"]==="true")writeFileSync(join(dir,"control.jsonl"),controlLine(1,"pause",new Date().toISOString())+"\n",{flag:"wx"});return host.launchServer(dir,id,p);}},new FrameStore(runsRoot),async(recorder,url)=>{
       console.log(`Human play: http://127.0.0.1:8791/play#run=${runId}`);
-      return driveHuman(recorder,url,join(runDir,"control.jsonl"),abort.signal);
+      return driveHuman(recorder,url,join(runDir,"control.jsonl"),abort.signal,fetch,token);
     });
   } finally { process.off("SIGINT",onSignal);process.off("SIGTERM",onSignal);release(); }
 }

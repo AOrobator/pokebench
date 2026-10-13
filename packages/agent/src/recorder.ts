@@ -88,6 +88,7 @@ export class RunRecorder {
   private readonly toolStarts = new Map<string, number>();
   private furthest: string | null = null;
   private storyRequired = false;
+  private humanSamplingFrame:number|undefined;
   private targetProof:TargetProof|null=null;
   setTargetProof(proof:TargetProof):void {this.targetProof={...proof,state_evidence:[...proof.state_evidence]};}
   private tokens = { input: 0, output: 0 };
@@ -124,6 +125,7 @@ export class RunRecorder {
     this.append({ type: "run_start", turn: 0, ...meta });
     this.milestones.initialize?.(meta.start_state.kind);
     if (captureState) await this.checkMilestones();
+    if (meta.controller?.kind === "human") this.frames.protectActiveRuns();
     this.frames.attach(this.log);
   }
 
@@ -282,6 +284,20 @@ export class RunRecorder {
     this.append({ type: "compaction", turn: this.turn, from_tokens: fromTokens, to_tokens: toTokens });
   }
 
+  recordHumanInput(body: Omit<BodyOf<"human_input">,"type"|"turn">): void {
+    if (body.end_frame <= body.start_frame || body.end_ms < body.start_ms) throw new RecorderError("invalid human input interval");
+    this.append({type:"human_input",turn:0,...body});
+  }
+
+  recordHumanSample(frame:number, paused:boolean, pngBase64:string, state:GameStateSnapshot):void {
+    this.humanSamplingFrame=frame;
+    try{this.recordState(state);}finally{this.humanSamplingFrame=undefined;}
+    const screenshot=this.frames.save(this.log,this.log.nextSeq,0,pngBase64);
+    this.append({type:"human_sample",turn:0,frame,paused,screenshot});
+    this.saved={saved:this.saved.saved+1,bytes:this.saved.bytes+Buffer.from(pngBase64,"base64").length};
+    this.frames.flush(this.log,0);
+  }
+
   async checkMilestones(): Promise<void> {
     if (this.milestones.observe !== undefined) {
       this.recordState(await this.gameState.read());
@@ -293,7 +309,7 @@ export class RunRecorder {
   private recordMilestones(milestones: readonly SeenMilestone[]): void {
     for (const milestone of milestones) {
       if (milestone.origin !== "present_at_start" && (this.furthest === null || MILESTONE_ORDER.indexOf(milestone.name) >= MILESTONE_ORDER.indexOf(this.furthest))) this.furthest = milestone.name;
-      this.append({ type: "milestone", turn: this.turn, name: milestone.name, server_timestamp: milestone.serverTimestamp,
+      this.append({ type: "milestone", turn: this.turn, ...(this.humanSamplingFrame===undefined?{}:{emulator_frame:this.humanSamplingFrame,emulator_frame_kind:"sample_upper_bound"}), name: milestone.name, server_timestamp: milestone.serverTimestamp,
         ...(milestone.kind === undefined ? {} : {kind:milestone.kind}),
         ...(milestone.origin === undefined ? {} : {origin:milestone.origin}),
         ...(milestone.evidence === undefined ? {} : {evidence:[...milestone.evidence]}),

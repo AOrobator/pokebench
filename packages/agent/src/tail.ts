@@ -46,6 +46,8 @@ function body(event: RunEvent): [string, string] {
     }
     case "tool_call":
       return ["CALL", `${event.name} ${clip(JSON.stringify(event.args), 80)}`];
+    case "human_input": return ["HUMAN", `${event.buttons.join(" ") || "idle"} · frames ${String(event.start_frame)}–${String(event.end_frame)}`];
+    case "human_sample": return ["SAMPLE", `frame ${String(event.frame)} · emulated ${String(Math.round(event.frame/59.7275*1000))}ms`];
     case "button_press": {
       const timing =
         event.hold_frames === undefined

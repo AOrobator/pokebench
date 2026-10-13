@@ -11,6 +11,7 @@ export interface MilestoneReach {
 export interface RunSummary {
   readonly run: string;
   readonly probe?: boolean;
+  readonly human?: boolean;
   readonly model: string;
   readonly reason: RunEndReason | "incomplete";
   readonly furthest: string | null;
@@ -56,7 +57,7 @@ export function summarize(events: readonly RunEvent[]): RunSummary {
       tokens = { input: tokens.input + event.usage.input, output: tokens.output + event.usage.output };
     }
   }
-  const counts = { ...(start.harness_features.includes("probe") ? { probe: true } : {}), run: start.run, model: start.model.id, presses, retries, toolErrors, milestones };
+  const counts = { ...(start.controller?.kind === "human" ? { human: true } : {}), ...(start.harness_features.includes("probe") ? { probe: true } : {}), run: start.run, model: start.controller?.kind === "human" ? `Human · ${start.controller.name}` : start.model.id, presses, retries, toolErrors, milestones };
   const end = events.find((event) => event.type === "run_end");
   if (end !== undefined) {
     return {
@@ -102,7 +103,8 @@ function table(rows: readonly string[][]): string[] {
 
 export function summaryLines(input: readonly RunSummary[]): string[] {
   const probes = input.filter((s) => s.probe === true).length;
-  const summaries = input.filter((s) => s.probe !== true);
+  const humans = input.filter((s) => s.probe !== true && s.human === true);
+  const summaries = input.filter((s) => s.probe !== true && s.human !== true);
   const header = ["run", "model", "reason", "furthest", "turns", "wall", "tokens in→out", "presses", "retries", "tool errors"];
   const rows = summaries.map((s) => [
     s.run,
@@ -130,6 +132,9 @@ export function summaryLines(input: readonly RunSummary[]): string[] {
       `${name.padEnd(18)}reached ${String(reaches.length)}/${String(summaries.length)}  ` +
         `median turn ${String(median(reaches.map((m) => m.turn)))}  median wall ${clock(median(reaches.map((m) => m.wallMs)))}`,
     );
+  }
+  if (humans.length > 0) {
+    lines.push("", "Human sessions", ...table([["run", "controller", "reason", "furthest", "wall"], ...humans.map((s) => [s.run, s.model, s.reason, s.furthest ?? "-", clock(s.wallMs)])]), `${String(humans.length)} human sessions excluded from model benchmark results`);
   }
   return lines;
 }

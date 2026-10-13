@@ -132,6 +132,8 @@ Wiring is complete only when launch, keyboard inputs, safe releases, recording, 
 
 ## Session Log
 
+- Contract test commit16a50e0 captures the parallel RED/GREEN evidence; implementation source now frozen for cumulative gates and review. Human server supports validation-only tagging and start-paused operator delivery. Launch instructions are in `docs/human-play.md`.
+
 - Parallel execution authorized by the operator (“if u can split this work into subagents to reduce clock time, do so”). Independent implementation owners: human_ui (Play/keyboard/timeline/audio), human_recording (applied journal/recorder/frame protection/replay), human_baselines (catalog/history/summary/patch-arm isolation). Root owns Python frame adapter, coherent observation/transport/audio proxy, launch wiring and integration.
 - The operator added “i want to play at 1x with the sound on”. Implemented fixed59.7275 frame cadence including dialogue, shared audio capture/follower with fixed playbackRate1, trusted game-click audio unlock, and sound mute on pause/end/focus loss. Sound button allows re-enabling without extra settings panels.
 - M2/M3/M4 implementation/tests prepared under the approved continue-wiring amendment. Focused evidence: UI63 tests plus AudioFollower17; recorder59 agent+21 model tests; baseline31 viewer+53 agent; Python38 focused tests; server-human7 and cumulative UI/timeline27 integration tests. Full frozen gates remain pending; no green review/landing claim.

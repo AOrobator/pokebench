@@ -22,6 +22,7 @@ export interface RunPlan {
   readonly piVersion: string;
   readonly evaluation?:RunStart["evaluation"];
   readonly controller?:RunStart["controller"];
+  readonly romSha1?:string;
 }
 
 export interface ServerHandle {
@@ -71,6 +72,7 @@ export async function withRun(
   let reason: RunEndReason = "crash";
   try {
     await recorder.start({
+      ...(plan.romSha1 === undefined ? {} : {rom_sha1:plan.romSha1}),
       ...(plan.controller === undefined ? {} : {controller: plan.controller}),
       ...(plan.evaluation===undefined?{}:{evaluation:plan.evaluation}),
       model: plan.model,

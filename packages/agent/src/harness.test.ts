@@ -7,7 +7,8 @@ import {
   type ToolResultMessage,
 } from "@mariozechner/pi-ai";
 import { Type } from "typebox";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { RunControl } from "./run-control.js";
 import { PRESS_TIMING, pressTool } from "./game-tools.js";
 import { Governor, NUDGE, OMITTED_FRAME, keepCount, piLoop, play, slideWindow, type Loop, type Window } from "./harness.js";
 
@@ -471,5 +472,61 @@ describe("piLoop on the pinned pi-agent-core loop", () => {
     const loop = realLoop(g, [tool], [pressReply(["A"], ["B"])], [], controller.signal);
     expect(await play(TASK, g, loop)).toBe("budget");
     expect(posts).toEqual([JSON.stringify({ buttons: ["A"], ...PRESS_TIMING })]);
+  });
+});
+
+describe("operator control on the governor and the pinned loop", () => {
+  it("ends with operator_stop at the turn end the control releases, and excludes paused time from the wall cap", () => {
+    let stop = false; let paused = 0; const clock = { t: 0 };
+    const g = new Governor({ limits: { maxTurns: 300, maxWallMs: 10_000, failureLimit: 3 }, retry: () => undefined, abort: () => undefined, now: () => clock.t, takeStop: () => stop, pausedMs: () => paused });
+    clock.t = 12_000; paused = 3_000;
+    expect(g.afterTurn(reply(), [toolResult()])).toBe(false);
+    clock.t = 13_001;
+    expect(g.afterTurn(reply(), [toolResult()])).toBe(true);
+    expect(g.stopReason).toBe("budget");
+    const h = new Governor({ limits: { maxTurns: 300, maxWallMs: 10_000, failureLimit: 3 }, retry: () => undefined, abort: () => undefined, now: () => 0, takeStop: () => stop });
+    expect(h.afterTurn(reply(), [toolResult()])).toBe(false);
+    stop = true;
+    expect(h.afterTurn(reply(), [toolResult()])).toBe(true);
+    expect(h.stopReason).toBe("operator_stop");
+  });
+
+  function controlled(script: (control: RunControl, presses: string[]) => void, replies: AssistantMessage[]) {
+    const controller = new AbortController();
+    const seen: Message[][] = []; const presses: string[] = [];
+    let control: RunControl | null = null;
+    const g = new Governor({ limits: { maxTurns: 10, maxWallMs: 3_600_000, failureLimit: 3 }, retry: () => undefined, abort: () => { controller.abort(); }, now: () => 0, takeStop: () => control?.takeStop() ?? false });
+    control = new RunControl({ record: () => undefined, freeze: () => Promise.resolve(), end: (reason) => { g.abort(reason); }, now: () => 0 });
+    const live = control;
+    const loop = piLoop({
+      systemPrompt: "play", tools: [fakePress((b) => { presses.push(b.join()); script(live, presses); })],
+      base: { model: MODEL, convertToLlm: (messages) => messages as Message[] }, governor: g,
+      transformContext: (messages) => Promise.resolve(messages), emit: () => undefined, signal: controller.signal,
+      streamFn: scriptedModel(replies, seen), gate: () => live.gate(),
+    });
+    return { result: play(TASK, g, loop), seen, presses, control: live };
+  }
+  const at = "2026-10-13T15:00:00.000Z";
+
+  it("holds the next model call while paused and stops after the in-flight turn's presses", async () => {
+    const run = controlled((control, presses) => {
+      if (presses.length === 1) control.apply({ v: 1, seq: 1, at, action: "pause" });
+      if (presses.length === 2) control.apply({ v: 1, seq: 3, at, action: "stop" });
+    }, [pressReply(["A"]), pressReply(["B"]), pressReply(["C"])]);
+    await vi.waitFor(() => { expect(run.control.state).toBe("paused"); });
+    expect(run.seen).toHaveLength(1);
+    run.control.apply({ v: 1, seq: 2, at, action: "resume" });
+    expect(await run.result).toBe("operator_stop");
+    expect(run.presses).toEqual(["A", "B"]);
+    expect(run.seen).toHaveLength(2);
+  });
+
+  it("ends a paused run without another model request", async () => {
+    const run = controlled((control) => { control.apply({ v: 1, seq: 1, at, action: "pause" }); }, [pressReply(["A"]), pressReply(["B"])]);
+    await vi.waitFor(() => { expect(run.control.state).toBe("paused"); });
+    run.control.apply({ v: 1, seq: 2, at, action: "stop" });
+    expect(await run.result).toBe("operator_stop");
+    expect(run.seen).toHaveLength(1);
+    expect(run.presses).toEqual(["A"]);
   });
 });

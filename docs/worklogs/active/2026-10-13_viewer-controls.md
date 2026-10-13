@@ -70,13 +70,15 @@ Approval basis: the operator approved the design and asked to build and land it;
 - [ ] Multi-model review loop until clean
 
 **M2 — Run control in the agent and game server (pause / stop / cancel / abort)**
-- [ ] Write tests: control file parsing; pause at turn boundary with no model call; resume; stop → `operator_stop` after current turn; cancel stop; abort immediate; paused time excluded from wall budget and rescheduled timer; game-server pause wrapper holds the frame loop; events schema regenerated
-- [ ] COMMIT: `test(control): ...` (RED)
+- [x] Write tests: control file parsing; pause at turn boundary with no model call; resume; stop → `operator_stop` after current turn; cancel stop; abort immediate; paused time excluded from wall budget and rescheduled timer; game-server pause wrapper holds the frame loop; viewer fold (control state, paused gap on timeline, Activity History rows)
+- [x] COMMIT: `test(control): require pause, stop and abort through the control file (RED)` — RED observed: agent harness/run-control test files fail to import, viewer control-view 3 failing, python collection error
 - [ ] Implement `RunControl`, governor pause accounting, `operator_stop`, `operator_control` events, env pause endpoints, `just schema`
 - [ ] Gates
 - [ ] COMMIT: `feat(control): ...` (GREEN)
 - [ ] agent-observability trace: event → timeline/Activity History/replay
 - [ ] Multi-model review loop until clean
+
+Plan amendment (2026-10-13, implementer): M3 and M4 land as one milestone, **M3 — Viewer server and UI**, because the control API, queue and switchboard share `server.ts`, `app.ts` and `style.css`; splitting them into separate RED/GREEN pairs would require committing half-wired files. Scope is unchanged. Work for M2–M3 was built in a second worktree (`../viewer-controls-m2`, branch `viewer-controls-next` from 3fd8b80) while M1 round 3 waits for the operator's confirmation, so the M1 review packet stays frozen.
 
 **M3 — Viewer server: control API, models, strict history, next-run queue**
 - [ ] Write tests: Origin/content-type/live-only control; local-only model listing (no gateway); strict pairing incl. near misses and empty state; draft persistence; queue waits for live run and lease, writes v2 preset, argv launch
@@ -111,6 +113,8 @@ Approval basis: the operator approved the design and asked to build and land it;
 Done when: all milestones green with reviews LGTM, landed on local main (if the operator chooses), viewer rebuilt from main proves the surfaces, and the worklog records commit hashes, test/coverage numbers and review outcomes. Archive only with operator approval.
 
 ## Session Log
+
+- 2026-10-13: two complete M1 review rounds produced new blockers; operator scope confirmation requested via the coordinator before round 3 (fix prepared as 3fd8b80). M2/M3 continue on `viewer-controls-next`.
 
 - 2026-10-13 14:40Z: discovery. No cohort process running; `runs/.naming-gameplay.lock` absent; the cohort ledger stopped after `_02` (launcher_error). Both naming manifests bind `sourceCommit 0632fc0` with repoRoot = canonical checkout. Worktree `../pokebench-worktrees/viewer-controls` on branch `viewer-controls` from `0632fc0`.
 

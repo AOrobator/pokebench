@@ -105,11 +105,13 @@ def test_production_main_registers_view_pcm_and_browser_module_before_vendor_mai
                 get_screenshot=get_screenshot,
                 env=emu,
                 memory_lock=memory_lock,
+                step_environment=lambda actions: None,
             )
         ),
     )
     main()
     assert "/pokebench/observation" in [getattr(r, "path", "") for r in app.routes]
+    assert "/pokebench/pause" in [getattr(r, "path", "") for r in app.routes]
     import json
 
     state_status, _, state_body = get(app, "/pokebench/state")

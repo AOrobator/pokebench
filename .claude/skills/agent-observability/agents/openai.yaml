@@ -1,0 +1,6 @@
+interface:
+  display_name: "Agent Observability"
+  short_description: "Trace harness diagnostics from producer to viewer"
+  default_prompt: "Use $agent-observability to verify this PokeBench diagnostic reaches the model, live viewer and replay."
+policy:
+  allow_implicit_invocation: true

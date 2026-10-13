@@ -197,7 +197,7 @@ function chip(button: string): string {
   return `<span class="chipb">${ARROW[button] ?? ""}${button}</span>`;
 }
 
-function rowBody(event: RunEvent): string | null {
+function rowBody(event: RunEvent, view?: RunView): string | null {
   switch (event.type) {
     case "assistant": return `${event.thinking === "" ? "response" : "thinking"} · turn ${String(event.turn)}: ${esc((event.thinking || event.text || "no text recorded").slice(0, 200))}`;
     case "objective_update": return `${esc(event.objective.status)}: ${esc(event.objective.title)}`;
@@ -218,7 +218,7 @@ function rowBody(event: RunEvent): string | null {
     case "milestone":
       return `★ ${esc(event.name)}${event.kind === undefined ? "" : ` · ${event.kind}`}${event.origin === "present_at_start" ? " · already present when run started" : ""}${event.evidence === undefined ? "" : ` · evidence ${event.evidence.map((seq) => `#${String(seq)}`).join(", ")}`}`;
     case "loop_guard":
-      return `Loop ${esc(event.kind)} ${esc(event.phase)}: ${esc(event.message)} · evidence ${event.evidence.map(seq=>`#${String(seq)}`).join(", ")}`;
+      return view === undefined ? `Loop ${esc(event.kind)} ${esc(event.phase)}: ${esc(event.message)} · evidence ${event.evidence.map(seq=>`#${String(seq)}`).join(", ")}` : esc(view.loopLabel(event));
     case "retry":
       return `✗ retry ${String(event.attempt)}/${String(event.limit)}: ${esc(event.reason)}`;
     case "telemetry_error":
@@ -236,10 +236,10 @@ function rowBody(event: RunEvent): string | null {
   }
 }
 
-export function actionRow(event: RunEvent): string | null {
-  const body = rowBody(event);
+export function actionRow(event: RunEvent, view?: RunView): string | null {
+  const body = rowBody(event, view);
   if (body === null) return null;
-  const error = (event.type === "tool_result" && event.is_error) || event.type === "retry" || event.type === "loop_guard" || event.type === "telemetry_error" ? " ev-error" : "";
+  const error = (event.type === "tool_result" && event.is_error) || event.type === "retry" || (event.type === "loop_guard" && event.phase !== "recovered") || event.type === "telemetry_error" ? " ev-error" : "";
   return `<div class="ev ev-${event.type}${error}" data-seq="${String(event.seq)}"><span class="seq">#${String(event.seq)}</span><span class="tag">${event.type}</span><span class="body">${body}</span></div>`;
 }
 
@@ -264,11 +264,16 @@ export function fieldContext(view: RunView): string {
   return storyHtml + `<pre>${esc(objects)}\n${esc(triggers)}\n${esc(dialogue)}</pre>`;
 }
 
+export function objectiveStatus(objective: NonNullable<RunView["objective"]>): string {
+  if (objective.status === "completed") return objective.verification === undefined ? "historical completion (not native verified)" : `game verified (${objective.verification.origin.replaceAll("_", " ")})`;
+  return objective.status === "reported_complete" ? "reported complete (provisional local plan)" : objective.status;
+}
+
 export function objectivePanel(view: RunView): string {
   const objective = view.objective;
   if (objective === null) return '<p class="nodata">No objective recorded for this run.</p>';
   const history = view.attempts.map((attempt) => `<li>${esc(attempt.buttons.join(", "))}: ${esc(attempt.outcome)} · evidence #${String(attempt.before_seq)}→#${attempt.after_seq === null ? "unavailable" : String(attempt.after_seq)}${attempt.failure_count > 1 ? ` · ${String(attempt.failure_count)} matching failures` : ""}${attempt.warning === null ? "" : `<br>${esc(attempt.warning)}`}${attempt.retry_justification === null ? "" : `<br>Reassessment: ${esc(attempt.retry_justification)}`}</li>`).join("");
-  return `<p><strong>${esc(objective.title)}</strong> · ${esc((objective.status === "completed" ? objective.verification === undefined ? "historical completion (not native verified)" : `game verified (${objective.verification.origin.replaceAll("_", " ")})` : objective.status === "reported_complete" ? "reported complete (provisional local plan)" : objective.status))}</p>` + kv([
+  return `<p><strong>${esc(objective.title)}</strong> · ${esc(objectiveStatus(objective))}</p>` + kv([
     ["GOAL", esc(objective.goal)], ["SUPPORTS", esc(objective.supports_goal)],
     ["EVIDENCE", objective.evidence.map((seq) => `#${String(seq)}`).join(", ")],
     ["COMPLETION", esc(objective.completion.kind === "milestone" ? `Native milestone ${objective.completion.name}` : objective.completion.kind === "state" ? `${objective.completion.field} = ${String(objective.completion.value)}` : `${objective.completion.description} (visual report)`)],

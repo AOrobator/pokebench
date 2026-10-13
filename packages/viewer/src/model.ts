@@ -1,7 +1,7 @@
 // A run's events folded into what the panels show. Shared by the browser and
 // tests; it imports only types from the agent's schema.
 import type { RunEvent } from "@pokebench/agent/events";
-import { eventMs, num } from "./format.js";
+import { eventMs, hms, num } from "./format.js";
 
 type Of<T extends RunEvent["type"]> = Extract<RunEvent, { type: T }>;
 export type RunStartEvent = Of<"run_start">;
@@ -130,6 +130,13 @@ export class RunView {
     return this.events.find((event) => event.seq === seq);
   }
 
+  loopLabel(event: Of<"loop_guard">): string {
+    const kinds = { planning: "Planning stall", observation: "Observation stall", ineffective: "Ineffective action", cycle: "Short cycle", rejection: "Repeated rejection" } as const;
+    const tool = this.events.findLast((item) => item.seq < event.seq && item.type === "tool_call");
+    const elapsed = this.startMs === null ? "elapsed unavailable" : hms((eventMs(event) - this.startMs) / 1000);
+    return `${kinds[event.kind]} ${event.phase} · #${String(event.seq)} · turn ${String(event.turn)} · ${elapsed} · ${String(event.calls)} completed calls · preceding tool ${tool?.type === "tool_call" ? tool.name : "not recorded"}: ${event.message} · evidence ${event.evidence.map((seq) => `#${String(seq)}`).join(", ")}`;
+  }
+
   apply(event: RunEvent): void {
     const last = this.events.at(-1);
     if (last !== undefined && event.seq <= last.seq) return;
@@ -180,7 +187,7 @@ export class RunView {
         if (!this.milestones.some((m) => m.name === event.name)) this.milestones.push({ name: event.name, ms, seq: event.seq, ...(event.kind === undefined ? {} : {kind:event.kind}), ...(event.origin === undefined ? {} : {origin:event.origin}), ...(event.evidence === undefined ? {} : {evidence:event.evidence}) });
         break;
       case "loop_guard":
-        this.errors.push({ms,kind:"loop",label:`loop ${event.kind} ${event.phase}: ${event.message}`});
+        this.errors.push({ms,kind:"loop",label:this.loopLabel(event)});
         break;
       case "retry":
         this.retry = { count: (this.retry?.count ?? 0) + 1, attempt: event.attempt, limit: event.limit };

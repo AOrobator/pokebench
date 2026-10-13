@@ -2,7 +2,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { RunEvent } from "@pokebench/agent/events";
+import { parseEvent, type RunEvent } from "@pokebench/agent/events";
 import { BASE_MS, Log, START, fullRun, m4Run, must, state } from "../test-support/events.js";
 import { boot, mountApp, type App, type AppDeps, type StreamLike } from "./app.js";
 
@@ -667,15 +667,17 @@ it("shows parsed loop phases with attribution on timeline and Activity History",
   for (const [index,phase] of (["warning","recovered","stop"] as const).entries()) {
     log.add(1000+index*1000,{type:"loop_guard",turn:1,kind:"planning",phase,message:"Six plans <without> action",calls:6,evidence:[1]});
   }
-  setNow(BASE_MS+3000); feed(must(streams[0]),log.events);
+  setNow(BASE_MS+3000); feed(must(streams[0]),log.events.map((event) => parseEvent(JSON.stringify(event))));
   for (const label of ["Planning stall warning","Planning stall recovered","Planning stall stop"]) {
     expect(ui("lanes").innerHTML).toContain(label);
     expect(ui("log").textContent).toContain(label);
   }
-  for (const fragment of ["update_objective", "6 calls", "turn 1", "#1", "0:00:03", "Six plans <without> action"]) {
+  for (const fragment of ["update_objective", "6 completed calls", "turn 1", "#1", "0:00:03", "Six plans <without> action"]) {
     expect(ui("lanes").textContent).toContain(fragment);
     expect(ui("log").textContent).toContain(fragment);
   }
+  expect(ui("lanes").querySelectorAll('[role="img"][aria-label^="Planning stall"]')).toHaveLength(3);
+  expect(ui("log").querySelector('[data-seq="3"]')?.classList.contains("ev-error")).toBe(false);
   const stop = ui("log").querySelector<HTMLElement>('[data-seq="4"]');
   if (stop === null) throw new Error("missing stop history row");
   stop.click(); expect(ui("inspector").textContent).toContain('"phase": "stop"');

@@ -4,7 +4,7 @@ import type { RunEvent } from "@pokebench/agent/events";
 import { esc, eventMs, hms } from "./format.js";
 import { gbaSvg, litButtons } from "./gba.js";
 import { RunView, isRunEvent } from "./model.js";
-import { actionRow, brand, budgets, counters, fieldContext, objectivePanel, inspector, party, splits, thinkingDialog, trainerCard, type Baseline } from "./panels.js";
+import { actionRow, brand, budgets, counters, fieldContext, objectivePanel, objectiveStatus, inspector, party, splits, thinkingDialog, trainerCard, type Baseline } from "./panels.js";
 import { ReplayClock } from "./replay.js";
 import { lanesSvg } from "./timeline.js";
 
@@ -394,7 +394,7 @@ export class App {
     const atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
     const rows: string[] = [];
     for (const event of this.shown.events.slice(this.logged)) {
-      const row = actionRow(event);
+      const row = actionRow(event, this.shown);
       if (row !== null) rows.push(row);
     }
     this.logged = this.shown.events.length;
@@ -437,7 +437,7 @@ export class App {
     this.setHtml("party", party(view));
     this.setHtml("objective", objectivePanel(view));
     const objective = view.objective;
-    this.setHtml("objective-summary", objective === null ? '<span class="nodata">no objective recorded</span>' : `<span class="objective-status">${esc(objective.status)}</span> ${esc(objective.title)}`);
+    this.setHtml("objective-summary", objective === null ? '<span class="nodata">no objective recorded</span>' : `<span class="objective-status">${esc(objectiveStatus(objective))}</span> ${esc(objective.title)}`);
     this.setHtml("run-details", `<details><summary>RUN METADATA · PROMPT · TOOLS · BUDGETS</summary><pre>${esc(JSON.stringify(view.start, null, 2))}</pre></details><details><summary>LATEST RECORDED STATE</summary><pre>${esc(JSON.stringify(view.state, null, 2))}</pre></details><details><summary>TERMINAL EVENT</summary><pre>${esc(JSON.stringify(view.end, null, 2))}</pre></details>`);
     const barHeight = this.doc.querySelector(".bar")?.getBoundingClientRect().height ?? 0;
     this.doc.documentElement.style.setProperty("--viewer-bar-height", `${String(barHeight || 110)}px`);

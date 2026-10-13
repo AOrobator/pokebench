@@ -14,7 +14,7 @@ const f = (n: number): string => n.toFixed(1);
 
 function bar(cls: string, lane: number, a: number, b: number, title: string, fill = 0.6): string {
   const top = lane * LANE + (LANE * (1 - fill)) / 2;
-  return `<rect class="${cls}" x="${f(a)}" y="${f(top)}" width="${f(Math.max(3, b - a))}" height="${f(LANE * fill)}"><title>${esc(title)}</title></rect>`;
+  return `<rect class="${cls}" role="img" aria-label="${esc(title)}" x="${f(a)}" y="${f(top)}" width="${f(Math.max(3, b - a))}" height="${f(LANE * fill)}"><title>${esc(title)}</title></rect>`;
 }
 
 // Swimlanes over the 60 s before `nowMs` (wall clock live, the cursor in replay).

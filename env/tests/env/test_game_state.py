@@ -129,9 +129,18 @@ def test_every_substructure_order_decrypts(personality: int) -> None:
 
 
 def test_before_the_game_starts_no_save_field_is_reported() -> None:
+    from pokebench_env.ui_state import ActiveUi
+
     state = read_game_state(game(NAMING).read, MAPS)
     assert state == GameState(
         screen="naming",
+        active_ui=ActiveUi(
+            "unsupported",
+            None,
+            None,
+            "Observe and report this coverage error",
+            "callback2 0x080E4F59; naming buffer or cursor invalid; pointer 0x00000000",
+        ),
         story=StoryState(),
         started=False,
         name=None,

@@ -256,11 +256,12 @@ class TestActiveBirchUi:
         assert not read_active_ui(memory.read, Screen("birch_speech", 0, 0x0802F6B1)).ready
 
 
-def test_source_matched_map_loader_is_explicitly_not_ready() -> None:
+@pytest.mark.parametrize("callback", [0x08085FFD, 0x080860F5])
+def test_source_matched_map_loader_is_explicitly_not_ready(callback: int) -> None:
     from pokebench_env.game_screen import Screen
     from pokebench_env.ui_state import read_active_ui
 
-    ui = read_active_ui(Memory().read, Screen("field_transition", 0, 0x08085FFD))
+    ui = read_active_ui(Memory().read, Screen("field_transition", 0, callback))
     assert ui.phase == "field_transition" and ui.ready is False and ui.diagnostic is None
 
 

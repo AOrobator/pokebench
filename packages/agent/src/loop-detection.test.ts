@@ -6,6 +6,7 @@ import {
   type CompletedCall,
 } from "./loop-detection.js";
 import type { GameStateSnapshot } from "./game-state.js";
+import type { RunEvent } from "./events.js";
 
 const field = (x = 0): GameStateSnapshot => ({
   screen: "overworld",
@@ -53,6 +54,51 @@ const fixture = () => {
 };
 
 describe("deterministic loop detection", () => {
+  it("recovers from a qualified native story transition even while UI is unavailable", () => {
+    const { detector, events } = fixture();
+    const before: GameStateSnapshot = {
+      ...field(), screen: "unknown (transition)", field_controls_locked: null,
+      story: { name_confirmed: true, intro_stage: 5, rival_stage: 0, birch_lab_stage: 0,
+        petalburg_gym_stage: 0, woods_stage: 0, clock_set: false,
+        rival_battle_won: false, pokedex_received: false, running_shoes_received: false,
+        starter_tutorial_complete: false, rustboro_gym_complete: false, stone_badge: false,
+        rock_tomb_received: false },
+    };
+    const state = (seq: number, body: GameStateSnapshot, run = "native_loop"): RunEvent => ({
+      ...body, v: 1, run, seq, t: "2026-10-12T20:00:00-04:00", type: "state", turn: 1,
+    });
+    detector.observe(state(1, before));
+    detector.complete(call("get_objectives")); detector.complete(call("get_objectives"));
+    detector.context();
+    const accepted = { ...before, story: { ...before.story!, clock_set: true } };
+    detector.observe(state(2, accepted, "foreign_run"));
+    expect(events.filter(e => e.phase === "recovered")).toHaveLength(0);
+    detector.observe(state(3, accepted));
+    expect(events.filter(e => e.phase === "recovered")).toHaveLength(1);
+    detector.complete(call("observe", accepted)); detector.complete(call("observe", accepted));
+    expect(detector.stopped).toBe(false);
+    // The same true flag and new sequence IDs do not create another recovery.
+    detector.complete(call("get_objectives")); detector.complete(call("get_objectives"));
+    detector.context(); detector.observe(state(4, accepted));
+    expect(events.filter(e => e.phase === "recovered")).toHaveLength(1);
+  });
+
+  it("does not turn missing story data into proof of recovery", () => {
+    const { detector, events } = fixture();
+    const state = (seq: number, clock: boolean | null): RunEvent => ({
+      ...field(), v: 1, run: "native_loop", seq, t: "2026-10-12T20:00:00-04:00",
+      type: "state", turn: 1, screen: "unknown (transition)",
+      story: { name_confirmed: null, intro_stage: null, rival_stage: null, birch_lab_stage: null,
+        petalburg_gym_stage: null, woods_stage: null, clock_set: clock,
+        rival_battle_won: null, pokedex_received: null, running_shoes_received: null,
+        starter_tutorial_complete: null, rustboro_gym_complete: null, stone_badge: null,
+        rock_tomb_received: null },
+    });
+    detector.observe(state(1, null));
+    detector.complete(call("get_objectives")); detector.complete(call("get_objectives")); detector.context();
+    detector.observe(state(2, true));
+    expect(events.filter(e => e.phase === "recovered")).toHaveLength(0);
+  });
   it("pins production thresholds", () => {
     expect(LOOP_POLICY).toEqual({
       planning: 6,

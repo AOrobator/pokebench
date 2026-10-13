@@ -31,6 +31,8 @@ interface RunChoice {
   readonly started?: string | null;
   readonly model?: string | null;
   readonly problem?: string | null;
+  // The server's answer to "is its game server up?"; absent from older servers.
+  readonly live?: boolean;
 }
 
 const LIVE_SCREEN_MS = 500;
@@ -104,7 +106,12 @@ export class App {
   }
 
   private get live(): boolean {
-    return this.mode === "live" && this.view.end === null;
+    return this.mode === "live" && this.view.end === null && this.runs.find((run) => run.id === this.runId)?.live !== false;
+  }
+
+  // An unended run whose game server no longer answers: not controllable.
+  private get unresponsive(): boolean {
+    return this.mode === "live" && this.view.end === null && this.runs.find((run) => run.id === this.runId)?.live === false;
   }
 
   async control(action: ControlAction): Promise<void> {
@@ -503,7 +510,7 @@ export class App {
     const view = this.shown;
     const live = this.live;
     if (live) this.wasLive = true;
-    const label = live || view.end !== null ? stateLabel(view, live) : { cls: this.mode, text: MODE_TEXT[this.mode] };
+    const label = this.unresponsive ? { cls: "ended", text: "NOT RESPONDING" } : live || view.end !== null ? stateLabel(view, live) : { cls: this.mode, text: MODE_TEXT[this.mode] };
     const mode = this.ui("mode");
     mode.textContent = label.text;
     mode.className = `mode ${label.cls}`;

@@ -147,6 +147,16 @@ Done when: all milestones green with reviews LGTM, landed on local main (if the 
 - Deferred (hardening, recorded): an ended-from-pause run records one aborted assistant turn for the call it never made (labelled truthfully); agent-side scoring outside the viewer still counts paused time in stopped runs' wall clock (frozen comparison code is out of scope).
 - Fix gates: agent 645, viewer 229, python 441 pass; coverage agent 98.89/93.94/98.36, viewer 98.38/91.6/97.13, python 99.41/97.30/100. Guard receipts `m23-fix1-guards/01..11` red then green.
 
+- COMMIT: `fix(control): keep paused and silent runs controllable and the viewer resilient` (a719d19).
+
+**M2+M3 round 2** (packet 528528f..a719d19, sha256 48a82fe6…5171; `m23-review-r2/`)
+- Verdicts: Claude-fallback A BLOCKING, B BLOCKING, Grok BLOCKING, Codex BLOCKING. think_fast/think_swarm still BLOCKED by the cohort lease.
+- Accepted: the round-1 liveness fix made `RunQueue.tick` await probes, so an overlapping timer tick or a cancel during a probe could dereference a null entry and crash the viewer with the lease held (A, B, Grok — a regression of round 1) → single-flight tick, entry re-read after probes, `.catch` on the timer; resume during an in-flight freeze could leave the emulator frozen while the agent ran (Codex, A) → the resume is held and applied right after the freeze is answered; the queue accepted models the router did not serve (Codex) → only vision models the local router lists can be queued; dead unended runs still showed enabled controls (Codex) → `/api/runs` reports `live` from the game-server health probe and the page shows NOT RESPONDING with controls off; hardening (A): the pause's abort listener is detached on release, and an abort during the freeze ends the control state.
+- Rejected: concurrent control requests sharing a sequence number (Codex) — within one viewer process the count read and the append run in one synchronous block after the await, so they cannot interleave; separate viewer processes appending to one run are outside the design.
+- Deferred to M5 (not waived): end-to-end pause on the real emulator and a recorded replay gap (Codex) — needs the gameplay lease, held by the running cohort.
+- Fix gates: agent 648, viewer 233, python 441 pass; coverage agent 98.9/93.91/98.37, viewer 98.4/91.66/96.93, python 99.41/97.30/100. Guard receipts `m23-fix2-guards/01..08`: 7 red then green; 02 unexpectedly passed (the operand was redundant because cancel always clears the entry) — retained, and the redundant operand was removed instead of adding a contrived test.
+- Process: two complete M2+M3 rounds with new blockers → operator scope confirmation needed before round 3 (requested together with M1 round 3).
+
 ## Boy Scout Log
 
 (none yet)

@@ -85,14 +85,31 @@ describe("next run", () => {
     expect((await call(v, "POST", "/api/next-run/queue", draft)).status).toBe(503);
   });
 
-  it("queues through the run queue and reports its status", async () => {
+  it("queues only vision models the local router serves, and reports queue status", async () => {
     const base = mkdtempSync(join(tmpdir(), "viewer-queue-"));
-    const queue = new RunQueue({ runsRoot: join(base, "runs"), liveJs: "/x/live.js", endpointFile: "/x/endpoint.json", gamePort: 8076, healthy: () => Promise.resolve(false), now: () => new Date("2026-10-13T16:00:00.000Z"), random: () => "cd34", launch: () => new Promise(() => undefined) });
-    const { viewer: v } = await viewer({ queue, runsRoot: join(base, "runs") });
+    writeFileSync(join(base, "endpoint.json"), JSON.stringify({ base_url: "http://127.0.0.1:18434/v1", api_key: "k" }));
+    const router: typeof fetch = (input) => Promise.resolve(new Response(JSON.stringify({ data: [{ id: "Qwen", status: { value: "loaded", args: ["--mmproj", "m"] } }, { id: "TextOnly", status: { value: "loaded", args: [] } }] }), { status: input === "http://127.0.0.1:18434/v1/models" ? 200 : 404 }));
+    const queue = new RunQueue({ runsRoot: join(base, "runs"), liveJs: "/x/live.js", endpointFile: join(base, "endpoint.json"), gamePort: 8076, healthy: () => Promise.resolve(false), now: () => new Date("2026-10-13T16:00:00.000Z"), random: () => "cd34", launch: () => new Promise(() => undefined) });
+    const { viewer: v } = await viewer({ queue, runsRoot: join(base, "runs"), endpointFile: join(base, "endpoint.json"), fetchFn: router });
+    const unknown = await call(v, "POST", "/api/next-run/queue", { ...DEFAULT_NEXT_RUN, model: "invented" });
+    expect(unknown.status).toBe(409);
+    expect(JSON.stringify(unknown.json)).toContain("not a vision model served by the local router");
+    expect((await call(v, "POST", "/api/next-run/queue", { ...DEFAULT_NEXT_RUN, model: "TextOnly" })).status).toBe(409);
     const queued = await call(v, "POST", "/api/next-run/queue", { ...DEFAULT_NEXT_RUN, model: "Qwen" });
     expect(queued).toEqual({ status: 200, json: { queue: { state: "queued", runId: "2026-10-13T12-00-00_Qwen_cd34", waitingFor: "checking" } } });
     expect(await call(v, "POST", "/api/next-run/cancel", {})).toEqual({ status: 200, json: { queue: { state: "idle" } } });
     expect((await call(v, "POST", "/api/next-run/cancel", {})).status).toBe(409);
+    const { viewer: noEndpoint } = await viewer({ queue, runsRoot: join(base, "runs") });
+    expect((await call(noEndpoint, "POST", "/api/next-run/queue", { ...DEFAULT_NEXT_RUN, model: "Qwen" })).status).toBe(409);
+  });
+
+  it("marks each run live only while its game server answers", async () => {
+    const { viewer: v, runsRoot } = await viewer({ fetchFn: gameUp });
+    liveRun(runsRoot, "up");
+    const listed = await call(v, "GET", "/api/runs");
+    expect((listed.json as { id: string; live: boolean }[]).map((r) => [r.id, r.live])).toEqual([["up", true]]);
+    const { viewer: down } = await viewer({ runsRoot, fetchFn: () => Promise.reject(new Error("refused")) });
+    expect((((await call(down, "GET", "/api/runs")).json) as { live: boolean }[])[0]?.live).toBe(false);
   });
 
   it("lists local router models and never the gateway", async () => {

@@ -163,3 +163,46 @@ describe("run queue edge cases", () => {
     expect(existsSync(join(runsRoot, LEASE))).toBe(false);
   });
 });
+
+
+describe("queue ticks that overlap", () => {
+  function slowHost(runsRoot: string) {
+    const probes: ((up: boolean) => void)[] = [];
+    const launches: string[] = [];
+    const h: QueueHost = { runsRoot, liveJs: "/l.js", endpointFile: "/e.json", gamePort: 8076, now: () => NOW, random: () => "ff00",
+      healthy: () => new Promise((resolve) => { probes.push(resolve); }),
+      launch: (spec) => { launches.push(spec.runId); return Promise.resolve(0); } };
+    return { h, probes, launches };
+  }
+
+  it("launches once when a timer tick arrives while the previous one is probing", async () => {
+    const runsRoot = root();
+    liveRun(runsRoot, "slow-run", false, 9009);
+    const { h, probes, launches } = slowHost(runsRoot);
+    const queue = new RunQueue(h);
+    queue.enqueue(draft);
+    const first = queue.tick();
+    const second = queue.tick();
+    await vi.waitFor(() => { expect(probes).toHaveLength(1); });
+    probes[0]?.(false);
+    await Promise.all([first, second]);
+    expect(launches).toEqual(["2026-10-13T12-00-00_Qwen3.8-Flash_ff00"]);
+    expect(queue.status()).toEqual({ state: "idle" });
+    expect(existsSync(join(runsRoot, LEASE))).toBe(false);
+  });
+
+  it("does nothing when the queued run is cancelled during a probe", async () => {
+    const runsRoot = root();
+    liveRun(runsRoot, "slow-run", false, 9009);
+    const { h, probes, launches } = slowHost(runsRoot);
+    const queue = new RunQueue(h);
+    queue.enqueue(draft);
+    const tick = queue.tick();
+    await vi.waitFor(() => { expect(probes).toHaveLength(1); });
+    queue.cancel();
+    probes[0]?.(true);
+    await tick;
+    expect(queue.status()).toEqual({ state: "idle" });
+    expect(launches).toEqual([]);
+  });
+});

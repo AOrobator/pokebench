@@ -9,7 +9,7 @@ import { CONTROL_ACTIONS } from "@pokebench/agent/events";
 import { BaselineError, RunsError, baselineOf, comparisonsOf, eventsPath, listRuns, liveScreenPort, readFrom, runDir } from "./runs.js";
 import { featureHistory } from "./history.js";
 import { localModels } from "./models.js";
-import { NextRunError, appendControl, healthProbe, readDraft, writeDraft, type RunQueue } from "./next-run.js";
+import { NextRunError, appendControl, healthProbe, liveRuns, readDraft, writeDraft, type RunQueue } from "./next-run.js";
 import { MILESTONE_ORDER } from "./model.js";
 
 export const HOST = "127.0.0.1";
@@ -88,7 +88,15 @@ async function write(req: IncomingMessage, res: ServerResponse, options: ViewerO
     }
     if (req.method === "POST" && parts.length === 3 && second === "next-run" && (id === "queue" || id === "cancel")) {
       if (options.queue === undefined) throw new RequestError(503, "this viewer has no run queue");
-      sendJson(res, 200, { queue: id === "queue" ? options.queue.enqueue(writeDraft(options.runsRoot, body)) : options.queue.cancel() });
+      if (id === "cancel") {
+        sendJson(res, 200, { queue: options.queue.cancel() });
+        return;
+      }
+      const draft = writeDraft(options.runsRoot, body);
+      if (options.endpointFile === undefined || options.endpointFile === null) throw new NextRunError("the viewer was started without a local model endpoint file");
+      const served = await localModels(options.endpointFile, options.fetchFn ?? fetch);
+      if (!served.some((m) => m.id === draft.model && m.vision)) throw new NextRunError(`model ${draft.model} is not a vision model served by the local router`);
+      sendJson(res, 200, { queue: options.queue.enqueue(draft) });
       return;
     }
     throw new RequestError(404, "not found");
@@ -261,7 +269,8 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     return;
   }
   if (parts.length === 2) {
-    sendJson(res, 200, listRuns(options.runsRoot));
+    const live = new Set(await liveRuns(options.runsRoot, healthProbe(options.fetchFn ?? fetch)));
+    sendJson(res, 200, listRuns(options.runsRoot).map((run) => ({ ...run, live: live.has(run.id) })));
     return;
   }
   try {
@@ -317,7 +326,7 @@ export async function startViewer(options: ViewerOptions): Promise<Viewer> {
     });
   });
   const queue = options.queue;
-  const ticker = queue === undefined ? null : setInterval(() => { void queue.tick(); }, 1_000);
+  const ticker = queue === undefined ? null : setInterval(() => { queue.tick().catch(() => undefined); }, 1_000);
   await new Promise<void>((resolve, reject) => {
     server.once("error", reject);
     server.listen(options.port, HOST, resolve);

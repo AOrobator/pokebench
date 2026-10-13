@@ -90,6 +90,9 @@ export class RunControl {
   private stopRequest = 0;
   private stopApplied = false;
   private resuming = false;
+  // A resume that arrives while the freeze request is still out.
+  private deferredResume: number | null = null;
+  private detach: (() => void) | null = null;
   // Set once the emulator freeze has been answered; the pause interval (for the
   // budget and for the recorded "pause applied" event) starts there.
   private pausedSince: number | null = null;
@@ -133,7 +136,8 @@ export class RunControl {
         this.deps.record({ action, status: "applied", request: seq });
         return;
       }
-      if (this.current !== "paused" || this.resuming) { ignore(); return; }
+      if (this.current !== "paused" || this.resuming || this.deferredResume !== null) { ignore(); return; }
+      if (this.pausedSince === null) { this.deferredResume = seq; return; }
       this.resume(seq);
       return;
     }
@@ -194,14 +198,24 @@ export class RunControl {
     } catch {
       frozen = false;
     }
-    if (!this.stillPaused() || signal?.aborted === true) return;
+    if (signal?.aborted === true) {
+      this.current = "ended";
+      return;
+    }
+    if (!this.stillPaused()) return;
     this.pausedSince = this.deps.now();
     this.deps.record({ action: "pause", status: "applied", request: this.pauseRequest, emulator_frozen: frozen });
     this.notify();
-    await new Promise<void>((resolve) => {
+    const held = new Promise<void>((resolve) => {
       this.release = resolve;
-      signal?.addEventListener("abort", () => { this.closePause(); this.current = "ended"; this.wake(); }, { once: true });
+      const onAbort = (): void => { this.closePause(); this.current = "ended"; this.wake(); };
+      signal?.addEventListener("abort", onAbort, { once: true });
+      this.detach = () => { signal?.removeEventListener("abort", onAbort); };
     });
+    const deferred = this.deferredResume;
+    this.deferredResume = null;
+    if (deferred !== null) this.resume(deferred);
+    await held;
   }
 
   // A stop or abort can arrive while the freeze request is in flight.
@@ -210,6 +224,7 @@ export class RunControl {
   }
 
   private finish(reason: "operator_stop" | "operator_abort", action: ControlAction, seq: number): void {
+    this.deferredResume = null;
     const wasPaused = this.pausedSince !== null;
     const paused = this.closePause();
     this.current = "ended";
@@ -226,6 +241,8 @@ export class RunControl {
   }
 
   private wake(): void {
+    this.detach?.();
+    this.detach = null;
     this.release?.();
     this.release = null;
     this.notify();

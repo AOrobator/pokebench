@@ -17,7 +17,7 @@ class Stream implements StreamLike {
   send(type: string, data: unknown): void { for (const l of this.listeners.get(type) ?? []) l({ data: JSON.stringify(data) }); }
 }
 
-async function mount(history: unknown = {}, refuse = false) {
+async function mount(history: unknown = {}, refuse = false, gameUp = true) {
   document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
   const writes: [string, string, unknown][] = [];
   const streams: Stream[] = [];
@@ -25,7 +25,7 @@ async function mount(history: unknown = {}, refuse = false) {
   let draft: unknown = DRAFT;
   const app: App = await mountApp(document, {
     fetchJson: (url) => {
-      if (url === "/api/runs") return Promise.resolve([{ id: RUN, model: "Qwen", started: "x", ended: false, reason: null, problem: null }]);
+      if (url === "/api/runs") return Promise.resolve([{ id: RUN, model: "Qwen", started: "x", ended: false, reason: null, problem: null, live: gameUp }]);
       if (url === "/api/features") return Promise.resolve({ features: FEATURES, milestones: [] });
       if (url === "/api/next-run") return Promise.resolve({ draft, queue: { state: "idle" } });
       if (url === "/api/models") return Promise.resolve({ models: [{ id: "Qwen", status: "loaded", vision: true, contextWindow: 262144 }] });
@@ -230,4 +230,14 @@ it("sends STOP while a pause is still pending", async () => {
   send(1_500, { type: "operator_control", turn: 1, action: "stop", status: "pending", request: 2 });
   app.tick(0);
   expect(ui("mode").textContent).toBe("STOPPING");
+});
+
+
+it("shows an unended run whose game server is gone as not responding, with controls off", async () => {
+  const { writes } = await mount({}, false, false);
+  expect(ui("mode").textContent).toBe("NOT RESPONDING");
+  expect(ui("run-controls").querySelectorAll("button:not([disabled])")).toHaveLength(0);
+  key("keydown", "p");
+  await Promise.resolve();
+  expect(writes).toEqual([]);
 });

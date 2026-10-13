@@ -124,6 +124,7 @@ export type QueueStatus =
 
 export class RunQueue {
   private queued: { runId: string; draft: NextRun } | null = null;
+  private ticking = false;
   private current: QueueStatus = { state: "idle" };
   constructor(private readonly host: QueueHost) {}
 
@@ -151,17 +152,31 @@ export class RunQueue {
   }
 
   // Launch the queued run once no run is live and no cohort holds the lease.
+  // One tick at a time: health probes are awaited, so a timer tick or a cancel
+  // can arrive meanwhile. The queued entry is re-read after the probes.
   async tick(): Promise<void> {
-    if (this.queued === null || this.current.state !== "queued") return;
+    if (this.ticking || this.queued === null || this.current.state !== "queued") return;
+    this.ticking = true;
+    try {
+      await this.step();
+    } finally {
+      this.ticking = false;
+    }
+  }
+
+  private async step(): Promise<void> {
     const { runsRoot } = this.host;
     const lease = join(runsRoot, LEASE);
     const live = await liveRuns(runsRoot, (port) => this.host.healthy(port));
+    const queued = this.queued;
+    // A cancel during the probes clears the queued entry.
+    if (queued === null) return;
     const waitingFor = existsSync(lease) ? "the gameplay lease (a benchmark cohort is running)" : live.length > 0 ? `live run ${live[0] ?? ""}` : null;
     if (waitingFor !== null) {
       this.current = { ...this.current, waitingFor };
       return;
     }
-    const { runId, draft } = this.queued;
+    const { runId, draft } = queued;
     this.queued = null;
     try {
       mkdirSync(lease);

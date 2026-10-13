@@ -270,3 +270,43 @@ describe("review round 1 behaviours", () => {
     expect(h.records).toEqual([{ action: "abort", status: "applied", request: 1 }]);
   });
 });
+
+
+describe("review round 2 behaviours", () => {
+  it("applies a resume that arrives while the freeze is still in flight once the freeze is answered", async () => {
+    let answer: () => void = () => undefined;
+    const frozen: boolean[] = [];
+    const records: ControlBody[] = [];
+    const control = new RunControl({ record: (b) => { records.push(b); }, freeze: (paused) => { frozen.push(paused); return paused ? new Promise((resolve) => { answer = resolve; }) : Promise.resolve(); }, end: () => undefined, now: () => 0 });
+    control.apply(req(1, "pause"));
+    const gate = control.gate();
+    control.apply(req(2, "resume"));
+    control.apply(req(3, "resume"));
+    expect(frozen).toEqual([true]);
+    answer();
+    await gate;
+    expect(frozen).toEqual([true, false]);
+    expect(control.state).toBe("running");
+    expect(records.map((r) => [r.action, r.status, r.request])).toEqual([["pause", "pending", 1], ["resume", "ignored", 3], ["pause", "applied", 1], ["resume", "applied", 2]]);
+  });
+
+  it("detaches from the run's abort signal once a pause is released", async () => {
+    const h = harness();
+    const controller = new AbortController();
+    h.control.apply(req(1, "pause"));
+    const gate = h.control.gate(controller.signal);
+    await vi.waitFor(() => { expect(h.control.holding).toBe(true); });
+    h.control.apply(req(2, "resume"));
+    await gate;
+    controller.abort();
+    expect(h.control.state).toBe("running");
+  });
+
+  it("ends, rather than stays paused, when the run is aborted during the freeze", async () => {
+    const controller = new AbortController();
+    const control = new RunControl({ record: () => undefined, freeze: () => { controller.abort(); return Promise.resolve(); }, end: () => undefined, now: () => 0 });
+    control.apply(req(1, "pause"));
+    await control.gate(controller.signal);
+    expect(control.state).toBe("ended");
+  });
+});

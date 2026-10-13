@@ -411,3 +411,21 @@ it("infrastructure errors neither trigger a loop nor spend an existing recovery 
   expect(detector.stopped).toBe(false);
   expect(events).toEqual([{ kind: "planning", phase: "warning" }]);
 });
+
+const qualifiedUi=(phase="name_confirmation",selected:string|null="YES",value:string|null=null)=>({...field(),screen:"unknown (owned UI)",field_controls_locked:null,active_ui:{phase,selected,ready:true,controls:"documentation",diagnostic:null,value}});
+it("projects qualified UI selected state but excludes controls prose",()=>{
+  expect(semanticState(qualifiedUi())).not.toBe(null);
+  expect(semanticState(qualifiedUi())).not.toBe(semanticState(qualifiedUi("name_confirmation","NO")));
+  expect(semanticState(qualifiedUi())).toBe(semanticState({...qualifiedUi(),active_ui:{...qualifiedUi().active_ui,controls:"new wording"}}));
+  expect(semanticState(qualifiedUi("gender_selection","BOY"))).not.toBe(semanticState(qualifiedUi("gender_selection","GIRL")));
+  expect(semanticState(qualifiedUi("clock_adjustment",null,"10:00 AM"))).not.toBe(semanticState(qualifiedUi("clock_adjustment",null,"10:01 AM")));
+});
+it.each([
+  {ready:false},{ready:null},{diagnostic:"unknown owner"},{selected:null},{selected:"UNKNOWN"},{phase:"unqualified_menu"},
+])("withholds incomplete or diagnostic UI projection %j",overrides=>{
+  const ui=qualifiedUi();expect(semanticState({...ui,active_ui:{...ui.active_ui,...overrides}})).toBe(null);
+});
+it("detects ineffective qualified confirmation actions but permits new selection",()=>{
+  const {detector,events}=fixture();detector.complete(call("press",qualifiedUi(),["UP"]));detector.complete(call("press",qualifiedUi(),["UP"]));expect(events.at(-1)).toEqual({kind:"ineffective",phase:"warning"});detector.context();
+  detector.complete({...call("press",qualifiedUi("name_confirmation","NO"),["DOWN"]),beforeState:qualifiedUi()});expect(events.at(-1)).toEqual({kind:"ineffective",phase:"recovered"});expect(detector.stopped).toBe(false);
+});

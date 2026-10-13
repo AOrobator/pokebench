@@ -196,3 +196,13 @@ describe("control input edge cases", () => {
     expect(app.view.control.state).toBe("running");
   });
 });
+
+it("leaves the control keys to form fields that have focus", async () => {
+  const { writes } = await mount();
+  key("keydown", "p", ui("next-max-turns"));
+  key("keydown", "s", ui("next-model"));
+  await Promise.resolve();
+  expect(writes).toEqual([]);
+  key("keydown", "p");
+  await vi.waitFor(() => { expect(writes).toEqual([["POST", `/api/runs/${RUN}/control`, { action: "pause" }]]); });
+});

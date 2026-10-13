@@ -7,6 +7,26 @@
     "./events": {
       "types": "./src/events.ts",
       "default": "./dist/events.js"
+    },
+    "./features": {
+      "types": "./src/features.ts",
+      "default": "./dist/features.js"
+    },
+    "./play-preset": {
+      "types": "./src/play-preset.ts",
+      "default": "./dist/play-preset.js"
+    },
+    "./run-control": {
+      "types": "./src/run-control.ts",
+      "default": "./dist/run-control.js"
+    },
+    "./local-endpoint": {
+      "types": "./src/local-endpoint.ts",
+      "default": "./dist/local-endpoint.js"
+    },
+    "./run": {
+      "types": "./src/run.ts",
+      "default": "./dist/run.js"
     }
   },
   "scripts": {

@@ -2,14 +2,23 @@ import { existsSync, readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { join } from "node:path";
+import { Type } from "typebox";
+import { Value } from "typebox/value";
+import { FEATURES } from "@pokebench/agent/features";
+import { CONTROL_ACTIONS } from "@pokebench/agent/events";
 import { BaselineError, RunsError, baselineOf, comparisonsOf, eventsPath, listRuns, liveScreenPort, readFrom, runDir } from "./runs.js";
+import { featureHistory } from "./history.js";
+import { localModels } from "./models.js";
+import { NextRunError, appendControl, readDraft, writeDraft, type RunQueue } from "./next-run.js";
+import { MILESTONE_ORDER } from "./model.js";
 
 export const HOST = "127.0.0.1";
 // Browser code the page may load; everything else in dist/ stays private.
-export const BROWSER_MODULES = ["main", "app", "model", "format", "inspectformat", "timeline", "panels", "gba", "replay"] as const;
+export const BROWSER_MODULES = ["main", "app", "model", "format", "inspectformat", "timeline", "panels", "gba", "replay", "controls", "nextpanel"] as const;
 
 const MODULE_NAME = new RegExp(`^(${BROWSER_MODULES.join("|")})\\.js$`);
 const FRAME_NAME = /^\d{6}_\d+\.png$/;
+const FONT_NAME = /^(press-start-2p|inter|jetbrains-mono)\.woff2$/;
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const SCREEN_TIMEOUT_MS = 3_000;
 
@@ -17,8 +26,8 @@ const SECURITY_HEADERS = {
   "cache-control": "no-store",
   "x-content-type-options": "nosniff",
   "content-security-policy":
-    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
-    "font-src https://fonts.gstatic.com; img-src 'self'; connect-src 'self'",
+    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
+    "font-src 'self'; img-src 'self'; connect-src 'self'",
 };
 
 export interface ViewerOptions {
@@ -28,6 +37,66 @@ export interface ViewerOptions {
   readonly port: number;
   readonly pollMs?: number;
   readonly fetchFn?: typeof fetch;
+  // Next-run controls: the local router's endpoint file and the run queue.
+  readonly endpointFile?: string | null;
+  readonly queue?: RunQueue;
+  readonly now?: () => Date;
+}
+
+const MAX_BODY = 64 * 1024;
+const ControlBodySchema = Type.Object({ action: Type.Enum(CONTROL_ACTIONS) }, { additionalProperties: false });
+
+class RequestError extends Error {
+  constructor(readonly status: number, message: string) {
+    super(message);
+  }
+}
+
+// Writes come only from this page: same origin, JSON body, bounded size.
+async function jsonBody(req: IncomingMessage, port: number): Promise<unknown> {
+  const origin = req.headers.origin;
+  if (origin !== `http://${HOST}:${String(port)}` && origin !== `http://localhost:${String(port)}`) throw new RequestError(403, "writes are accepted only from the viewer page");
+  if (req.headers["content-type"]?.split(";")[0]?.trim() !== "application/json") throw new RequestError(415, "send application/json");
+  const chunks: Buffer[] = [];
+  let size = 0;
+  for await (const chunk of req) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk));
+    size += buffer.length;
+    if (size > MAX_BODY) throw new RequestError(413, "request body too large");
+    chunks.push(buffer);
+  }
+  try {
+    return JSON.parse(Buffer.concat(chunks).toString("utf8")) as unknown;
+  } catch {
+    throw new RequestError(400, "request body is not JSON");
+  }
+}
+
+async function write(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, parts: string[]): Promise<void> {
+  const [, second, id, leaf] = parts;
+  const now = options.now?.() ?? new Date();
+  try {
+    const body = await jsonBody(req, port);
+    if (req.method === "POST" && parts.length === 4 && second === "runs" && id !== undefined && leaf === "control") {
+      if (!Value.Check(ControlBodySchema, body)) throw new RequestError(400, "action must be pause, resume, stop, cancel_stop or abort");
+      sendJson(res, 200, { request: appendControl(options.runsRoot, id, body.action, now) });
+      return;
+    }
+    if (req.method === "PUT" && parts.length === 2 && second === "next-run") {
+      sendJson(res, 200, { draft: writeDraft(options.runsRoot, body), queue: options.queue?.status() ?? { state: "idle" } });
+      return;
+    }
+    if (req.method === "POST" && parts.length === 3 && second === "next-run" && (id === "queue" || id === "cancel")) {
+      if (options.queue === undefined) throw new RequestError(503, "this viewer has no run queue");
+      sendJson(res, 200, { queue: id === "queue" ? options.queue.enqueue(writeDraft(options.runsRoot, body)) : options.queue.cancel() });
+      return;
+    }
+    throw new RequestError(404, "not found");
+  } catch (error) {
+    if (error instanceof RequestError) sendJson(res, error.status, { error: error.message });
+    else if (error instanceof NextRunError) sendJson(res, 409, { error: error.message });
+    else throw error;
+  }
 }
 
 export interface Viewer {
@@ -133,22 +202,54 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     sendJson(res, 403, { error: "the viewer only answers 127.0.0.1" });
     return;
   }
-  if (req.method !== "GET") {
-    sendJson(res, 405, { error: "GET only" });
-    return;
-  }
   const parts = segments(req.url ?? "/");
   if (parts === null) {
     sendJson(res, 404, { error: "not found" });
     return;
   }
+  if ((req.method === "POST" || req.method === "PUT") && parts[0] === "api") {
+    await write(req, res, options, port, parts);
+    return;
+  }
+  if (req.method !== "GET") {
+    sendJson(res, 405, { error: "GET, or POST/PUT to /api" });
+    return;
+  }
   const [head, second, id, leaf, file] = parts;
+  if (parts.length === 2 && head === "api" && second === "features") {
+    sendJson(res, 200, { features: FEATURES, milestones: MILESTONE_ORDER });
+    return;
+  }
+  if (parts.length === 3 && head === "api" && second === "features" && id === "history") {
+    sendJson(res, 200, featureHistory(options.runsRoot, (({ model, thinking, maxTokens, maxTurns, maxWallMs, target, features }) => ({ model, thinking, maxTokens, maxTurns, maxWallMs, target, features }))(readDraft(options.runsRoot))));
+    return;
+  }
+  if (parts.length === 2 && head === "api" && second === "next-run") {
+    sendJson(res, 200, { draft: readDraft(options.runsRoot), queue: options.queue?.status() ?? { state: "idle" } });
+    return;
+  }
+  if (parts.length === 2 && head === "api" && second === "models") {
+    if (options.endpointFile === undefined || options.endpointFile === null) {
+      sendJson(res, 503, { error: "the viewer was started without a local model endpoint file" });
+      return;
+    }
+    try {
+      sendJson(res, 200, { models: await localModels(options.endpointFile, options.fetchFn ?? fetch) });
+    } catch (error) {
+      sendJson(res, 502, { error: error instanceof Error ? error.message : String(error) });
+    }
+    return;
+  }
   if (parts.length === 1 && head === "") {
     sendFile(res, join(options.staticDir, "index.html"), "text/html; charset=utf-8");
     return;
   }
   if (parts.length === 1 && head === "style.css") {
     sendFile(res, join(options.staticDir, "style.css"), "text/css; charset=utf-8");
+    return;
+  }
+  if (parts.length === 2 && head === "fonts" && second !== undefined && FONT_NAME.test(second)) {
+    sendFile(res, join(options.staticDir, "fonts", second), "font/woff2");
     return;
   }
   if (parts.length === 2 && head === "app" && second !== undefined && MODULE_NAME.test(second)) {
@@ -210,6 +311,8 @@ export async function startViewer(options: ViewerOptions): Promise<Viewer> {
   const server = createServer((req, res) => {
     void route(req, res, options, port);
   });
+  const queue = options.queue;
+  const ticker = queue === undefined ? null : setInterval(() => { void queue.tick(); }, 1_000);
   await new Promise<void>((resolve, reject) => {
     server.once("error", reject);
     server.listen(options.port, HOST, resolve);
@@ -223,6 +326,7 @@ export async function startViewer(options: ViewerOptions): Promise<Viewer> {
     url: `http://${HOST}:${String(port)}/`,
     close: () =>
       new Promise<void>((resolve) => {
+        if (ticker !== null) clearInterval(ticker);
         server.closeAllConnections();
         server.close(() => {
           resolve();

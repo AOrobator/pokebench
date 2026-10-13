@@ -7,6 +7,8 @@ import { RunView, isRunEvent } from "./model.js";
 import { actionRow, brand, budgets, counters, fieldContext, objectivePanel, objectiveStatus, inspector, party, splits, thinkingDialog, trainerCard, type Baseline } from "./panels.js";
 import { ReplayClock } from "./replay.js";
 import { lanesSvg } from "./timeline.js";
+import { ABORT_HOLD_MS, availableActions, controlBar, overlay, overlayKind, runSeconds, sideStats, splitStrip, stateLabel, type ControlAction } from "./controls.js";
+import { NextRunPanel } from "./nextpanel.js";
 
 export interface StreamLike {
   addEventListener(type: string, listener: (message: { data: string }) => void): void;
@@ -15,6 +17,7 @@ export interface StreamLike {
 
 export interface AppDeps {
   fetchJson(url: string): Promise<unknown>;
+  sendJson(method: "POST" | "PUT", url: string, body: unknown): Promise<unknown>;
   openStream(url: string): StreamLike;
   now(): number;
   readonly hash: string;
@@ -87,11 +90,63 @@ export class App {
   private sinceScreen = 0;
   private liveFailedAt: number | null = null;
   private readonly html = new Map<HTMLElement, string>();
+  // Hold-to-confirm abort: when X (or the button) went down; null when released.
+  private holdStart: number | null = null;
+  private overlayClosed = false;
+  private wasLive = false;
+  readonly next: NextRunPanel;
 
   constructor(
     private readonly doc: Document,
     private readonly deps: AppDeps,
-  ) {}
+  ) {
+    this.next = new NextRunPanel(doc, { fetchJson: (url) => deps.fetchJson(url), sendJson: (method, url, body) => deps.sendJson(method, url, body), problem: (text) => { this.problem(text); } });
+  }
+
+  private get live(): boolean {
+    return this.mode === "live" && this.view.end === null;
+  }
+
+  async control(action: ControlAction): Promise<void> {
+    if (this.runId === null || !availableActions(this.view, this.live).has(action)) return;
+    try {
+      await this.deps.sendJson("POST", `/api/runs/${encodeURIComponent(this.runId)}/control`, { action });
+    } catch (error) {
+      this.problem(`${action.replace("_", " ")}: ${String(error)}`);
+    }
+  }
+
+  private holdFraction(): number | null {
+    return this.holdStart === null ? null : Math.min(1, (this.deps.now() - this.holdStart) / ABORT_HOLD_MS);
+  }
+
+  pressAbort(): void {
+    if (this.holdStart === null && availableActions(this.view, this.live).has("abort")) this.holdStart = this.deps.now();
+    this.render();
+  }
+
+  releaseAbort(): void {
+    this.holdStart = null;
+    this.render();
+  }
+
+  key(event: { key: string; type: string; repeat?: boolean; target: EventTarget | null }): boolean {
+    const target = event.target as HTMLElement | null;
+    if (target !== null && ["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName)) return false;
+    const key = event.key.toLowerCase();
+    if (event.type === "keyup") {
+      if (key === "x") this.releaseAbort();
+      return key === "x";
+    }
+    if (event.repeat === true && key !== "x") return false;
+    const state = this.view.control.state;
+    if (key === "p") void this.control(state === "paused" || state === "pause_pending" ? "resume" : "pause");
+    else if (key === "s") void this.control(state === "stop_pending" ? "cancel_stop" : "stop");
+    else if (key === "x") this.pressAbort();
+    else if (key === "b" || key === "escape") { this.overlayClosed = true; this.render(); }
+    else return false;
+    return true;
+  }
 
   private ui(name: string): HTMLElement {
     const element = this.doc.querySelector<HTMLElement>(`[data-ui="${name}"]`);
@@ -113,6 +168,7 @@ export class App {
   async init(): Promise<void> {
     this.ui("gba").innerHTML = gbaSvg();
     this.wire();
+    void this.next.load();
     this.listRuns(runChoices(await this.deps.fetchJson("/api/runs")));
     const wanted = /^#run=(.+)$/.exec(this.deps.hash)?.[1];
     const fromHash = wanted === undefined ? undefined : this.runs.find((run) => run.id === decodeURIComponent(wanted));
@@ -175,6 +231,16 @@ export class App {
   }
 
   private wire(): void {
+    const controls = this.ui("run-controls");
+    controls.addEventListener("click", (event) => {
+      const action = (event.target as HTMLElement).closest<HTMLElement>("[data-control]")?.dataset.control;
+      if (action !== undefined && action !== "abort") void this.control(action as ControlAction);
+    });
+    controls.addEventListener("pointerdown", (event) => {
+      if ((event.target as HTMLElement).closest("[data-control=abort]") !== null) this.pressAbort();
+    });
+    for (const type of ["pointerup", "pointerleave", "pointercancel"]) controls.addEventListener(type, () => { if (this.holdStart !== null) this.releaseAbort(); });
+    for (const type of ["keydown", "keyup"]) this.doc.addEventListener(type, (event) => { if (this.key(event as KeyboardEvent)) event.preventDefault(); });
     for (const button of this.doc.querySelectorAll<HTMLButtonElement>("[data-page]")) {
       button.addEventListener("click", () => { this.showPage(button.dataset.page ?? "trainer"); });
     }
@@ -284,6 +350,9 @@ export class App {
     this.ui("problems").textContent = "";
     this.logged = 0;
     this.followThinking = true;
+    this.holdStart = null;
+    this.overlayClosed = false;
+    this.wasLive = false;
     this.ui("follow-thinking").setAttribute("aria-pressed", "true");
     this.liveFailedAt = null;
     this.ui("log").replaceChildren();
@@ -367,6 +436,10 @@ export class App {
 
   tick(realMs: number): void {
     this.clock?.tick(realMs);
+    if (this.holdStart !== null && (this.holdFraction() ?? 0) >= 1) {
+      this.holdStart = null;
+      void this.control("abort");
+    }
     this.sinceScreen += realMs;
     if (this.sinceScreen >= LIVE_SCREEN_MS) {
       this.sinceScreen = 0;
@@ -425,7 +498,25 @@ export class App {
     const nowMs = this.mode === "replay" && clock !== null ? clock.positionMs : this.deps.now();
     if (this.mode === "replay") this.advanceShown(nowMs);
     const view = this.shown;
-    this.ui("mode").textContent = MODE_TEXT[this.mode];
+    const live = this.live;
+    if (live) this.wasLive = true;
+    const label = live || view.end !== null ? stateLabel(view, live) : { cls: this.mode, text: MODE_TEXT[this.mode] };
+    const mode = this.ui("mode");
+    mode.textContent = label.text;
+    mode.className = `mode ${label.cls}`;
+    this.setHtml("run-controls", controlBar(view, live, this.holdFraction()));
+    const kind = overlayKind(view, live || (this.wasLive && view.end !== null), this.holdStart !== null, this.overlayClosed);
+    const layer = this.doc.querySelector<SVGElement>('[data-ui="screen-overlay"]');
+    if (layer !== null) {
+      const markup = overlay(kind, view, nowMs, this.holdFraction() ?? 0);
+      if (this.html.get(layer as unknown as HTMLElement) !== markup) {
+        this.html.set(layer as unknown as HTMLElement, markup);
+        layer.innerHTML = markup;
+      }
+    }
+    this.setHtml("stats", sideStats(view, nowMs));
+    this.setHtml("split-strip", splitStrip(view, this.best));
+    this.next.setLive(live ? view : null);
     this.ui("brand").textContent = brand(view);
     const dialog = thinkingDialog(view, nowMs);
     this.ui("think-head").textContent = dialog.head;
@@ -464,7 +555,8 @@ export class App {
       scrub.value = String(Math.round(clock.fraction * 1000));
       this.ui("clock").textContent = `${hms((clock.positionMs - clock.startMs) / 1000)} / ${hms((clock.endMs - clock.startMs) / 1000)}`;
     } else {
-      this.ui("clock").textContent = view.startMs === null ? "" : hms((nowMs - view.startMs) / 1000);
+      const cap = view.start?.budgets.max_wall_ms;
+      this.ui("clock").textContent = view.startMs === null ? "" : `T${String(view.turn)} · ${hms(runSeconds(view, nowMs))}${cap === undefined ? "" : ` / ${hms(cap / 1000)}`}`;
     }
   }
 }
@@ -478,7 +570,7 @@ export async function mountApp(doc: Document, deps: AppDeps): Promise<App> {
 export interface BootWindow {
   readonly document: Document;
   readonly location: { readonly hash: string };
-  fetch(url: string): Promise<Response>;
+  fetch(url: string, init?: RequestInit): Promise<Response>;
   readonly EventSource: new (url: string) => StreamLike;
   setInterval(handler: () => void, ms: number): unknown;
   readonly performance: { now(): number };
@@ -490,6 +582,12 @@ export async function boot(win: BootWindow): Promise<App> {
       const response = await win.fetch(url);
       if (!response.ok) throw new Error(`GET ${url} returned HTTP ${String(response.status)}`);
       return (await response.json()) as unknown;
+    },
+    sendJson: async (method, url, body) => {
+      const response = await win.fetch(url, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+      const reply: unknown = await response.json();
+      if (!response.ok) throw new Error(typeof reply === "object" && reply !== null && "error" in reply ? String(reply.error) : `${method} ${url} returned HTTP ${String(response.status)}`);
+      return reply;
     },
     openStream: (url) => new win.EventSource(url),
     now: () => Date.now(),
@@ -503,6 +601,7 @@ export async function boot(win: BootWindow): Promise<App> {
   }, 100);
   win.setInterval(() => {
     void app.refreshRuns();
+    void app.next.poll();
   }, RUN_LIST_MS);
   return app;
 }

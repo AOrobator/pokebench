@@ -101,3 +101,23 @@ describe("next run", () => {
     expect((await call(broken, "GET", "/api/models")).status).toBe(502);
   });
 });
+
+describe("local-only assets", () => {
+  it("serves the vendored fonts and a CSP that allows no other origin", async () => {
+    const { viewer: v } = await viewer({ staticDir: join(import.meta.dirname, "../static") });
+    const font = await new Promise<{ status: number; type: string; csp: string; size: number }>((resolve, reject) => {
+      const req = request({ host: HOST, port: v.port, path: "/fonts/press-start-2p.woff2", headers: { host: `${HOST}:${String(v.port)}` } }, (res) => {
+        const chunks: Buffer[] = [];
+        res.on("data", (c: Buffer) => chunks.push(c));
+        res.on("end", () => { resolve({ status: res.statusCode ?? 0, type: res.headers["content-type"] ?? "", csp: String(res.headers["content-security-policy"]), size: Buffer.concat(chunks).length }); });
+      });
+      req.on("error", reject); req.end();
+    });
+    expect(font.status).toBe(200);
+    expect(font.type).toBe("font/woff2");
+    expect(font.size).toBeGreaterThan(1000);
+    expect(font.csp).not.toMatch(/https?:/);
+    expect(font.csp).toContain("font-src 'self'");
+    expect((await call(v, "GET", "/fonts/other.woff2")).status).toBe(404);
+  });
+});

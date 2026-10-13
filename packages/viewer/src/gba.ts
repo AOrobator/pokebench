@@ -60,6 +60,7 @@ export function gbaSvg(): string {
   <rect class="bezel-in" x="190" y="70" width="300" height="204" rx="3"/>
   <rect x="196" y="76" width="288" height="192" fill="#080e12"/>
   <image data-ui="screen" data-screen="" x="196" y="76" width="288" height="192" href="" preserveAspectRatio="xMidYMid meet" style="image-rendering:pixelated"/>
+  <svg data-ui="screen-overlay" x="196" y="76" width="288" height="192" viewBox="0 0 288 192" overflow="hidden"></svg>
   <text class="console-logo" x="340" y="290">POKE BENCH</text>
   <circle class="led-seat" cx="533" cy="91" r="5.8"/>
   <circle class="led" cx="533" cy="90" r="3.7"/>

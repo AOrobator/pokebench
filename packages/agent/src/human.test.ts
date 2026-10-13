@@ -54,3 +54,10 @@ it('forces the final human screenshot through the sampler after freezing on Fini
  expect(await driveHuman(recording,'http://test',path,new AbortController().signal,fetcher,'secret')).toBe('operator_stop');
  expect(recorded).toEqual([[0,true,'iVBORw0KGgo=',state,true]]);
 });
+
+it('binds a restart launch to its assigned fresh human id without sampling a new suffix',async()=>{
+ const {humanRunId}=await import('./human.js');let randomCalls=0;const random=()=>{randomCalls++;return 'abcd';};
+ expect(humanRunId('human-assigned',new Date('2026-10-13T23:00:00Z'),random)).toBe('human-assigned');expect(randomCalls).toBe(0);
+ expect(humanRunId(undefined,new Date('2026-10-13T23:00:00Z'),random)).toMatch(/_human_abcd$/);expect(randomCalls).toBe(1);
+ for(const id of ['', '../escape', 'a'.repeat(129)])expect(()=>humanRunId(id,new Date(),random)).toThrow('invalid human run id');
+});

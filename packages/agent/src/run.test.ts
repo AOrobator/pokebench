@@ -249,3 +249,11 @@ it("captures a script's final milestone after the last tool and before server te
 it('resolves nested human records while rejecting duplicate ownership and traversal',async()=>{
  const {locateRunDir}=await import('./run.js');const r=root();mkdirSync(join(r,'human','human-id'),{recursive:true});expect(locateRunDir(r,'human-id')).toBe(join(r,'human','human-id'));expect(()=>locateRunDir(r,'../escape')).toThrow('not a run id');mkdirSync(join(r,'human-id'));expect(()=>locateRunDir(r,'human-id')).toThrow('ambiguous');
 });
+
+it('derives the canonical human lease from Git common-dir for primary and linked checkouts',async()=>{
+ const {humanLeasePath,HUMAN_GAMEPLAY_LEASE_NAME}=await import('./run.js');
+ expect(HUMAN_GAMEPLAY_LEASE_NAME).toBe('.human-gameplay.lock');
+ expect(humanLeasePath('/test-owned/repo','.git')).toBe('/test-owned/repo/runs/.human-gameplay.lock');
+ expect(humanLeasePath('/test-owned/worktree','/test-owned/repo/.git')).toBe('/test-owned/repo/runs/.human-gameplay.lock');
+ expect(humanLeasePath('/test-owned/worktree','../repo/.git')).toBe('/test-owned/repo/runs/.human-gameplay.lock');
+});

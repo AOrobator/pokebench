@@ -238,8 +238,7 @@ it.each(["observation", "ineffective", "cycle", "rejection"] as const)(
               { hold_frames: 10, release_frames: 8 },
               before,
             );
-            if (kind === "cycle")
-              current = field(1 - (current.position.x));
+            if (kind === "cycle") current = field(1 - current.position.x);
           }
           return Promise.resolve({
             content: [{ type: "text" as const, text: "ok" }],
@@ -343,3 +342,124 @@ it.each(["observation", "ineffective", "cycle", "rejection"] as const)(
     }
   },
 );
+
+it("recovers through recorder native state despite unknown UI in the pinned consumer", async () => {
+  const root = mkdtempSync(join(tmpdir(), "pokebench-native-recovery-"));
+  try {
+    const native = (clock: boolean) => ({
+      ...unknownState,
+      started: true,
+      story: {
+        name_confirmed: true,
+        intro_stage: 5,
+        rival_stage: 0,
+        birch_lab_stage: 0,
+        petalburg_gym_stage: 0,
+        woods_stage: 0,
+        clock_set: clock,
+        rival_battle_won: false,
+        pokedex_received: false,
+        running_shoes_received: false,
+        starter_tutorial_complete: false,
+        rustboro_gym_complete: false,
+        stone_badge: false,
+        rock_tomb_received: false,
+      },
+    });
+    const log = RunLog.create(root, "native-recovery");
+    const recorder = new RunRecorder({
+      log,
+      frames: new FrameStore(root),
+      milestones: { poll: () => Promise.resolve([]) },
+      gameState: { read: () => Promise.resolve(native(false)) },
+    });
+    await recorder.start(RUN_START_META);
+    const controller = new AbortController();
+    const governor = new Governor({
+      limits: { maxTurns: 2, maxWallMs: 10000, failureLimit: 3 },
+      now: () => 0,
+      retry: () => {},
+      abort: () => {
+        controller.abort();
+      },
+    });
+    const detector = attachLoopGuard(recorder, governor, {
+      ...LOOP_POLICY,
+      planning: 2,
+      recovery: 2,
+    });
+    let observes = 0;
+    const tools: AgentTool[] = ["observe", "get_objectives"].map((name) => ({
+      name,
+      label: name,
+      description: name,
+      parameters: Type.Object({}),
+      execute: () =>
+        Promise.resolve({
+          content: [{ type: "text" as const, text: "ok" }],
+          details:
+            name === "observe"
+              ? { state: native(++observes === 2) }
+              : undefined,
+        }),
+    }));
+    const script = [
+      assistant({
+        toolCalls: [
+          toolCall("before", "observe", {}),
+          toolCall("plan1", "get_objectives", {}),
+          toolCall("plan2", "get_objectives", {}),
+        ],
+        stopReason: "toolUse",
+      }),
+      assistant({
+        toolCalls: [
+          toolCall("after", "observe", {}),
+          toolCall("new-plan", "get_objectives", {}),
+        ],
+        stopReason: "toolUse",
+      }),
+    ];
+    const seen: Message[][] = [];
+    const streamFn: StreamFn = (_m, context) => {
+      seen.push([...context.messages]);
+      const message = script.shift();
+      if (message === undefined)
+        throw new Error("unexpected native recovery request");
+      const stream = createAssistantMessageEventStream();
+      stream.push({ type: "done", reason: "toolUse", message });
+      return stream;
+    };
+    const loop = piLoop({
+      systemPrompt: "play",
+      tools,
+      base: { model: MODEL, convertToLlm: (messages) => messages as Message[] },
+      governor,
+      loopDetector: detector,
+      transformContext: recorder.transformContext,
+      emit: recorder.emit,
+      signal: controller.signal,
+      streamFn,
+    });
+    expect(await play(userText("play"), governor, loop)).toBe("budget");
+    expect(detector.stopped).toBe(false);
+    expect(controller.signal.aborted).toBe(false);
+    expect(seen[1]?.at(-1)?.content).toContain("LOOP GUARD (planning)");
+    recorder.end("budget");
+    const events = readFileSync(log.eventsPath, "utf8")
+      .trim()
+      .split("\n")
+      .map(parseEvent);
+    expect(
+      events
+        .filter((e) => e.type === "loop_guard")
+        .map((e) => [e.kind, e.phase]),
+    ).toEqual([
+      ["planning", "warning"],
+      ["planning", "recovered"],
+    ]);
+    expect(events.at(-1)).toMatchObject({ type: "run_end", reason: "budget" });
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

@@ -1,4 +1,5 @@
 import type { RunEvent } from "./events.js";
+import { MILESTONES } from "./milestones.js";
 import type { GameStateSnapshot } from "./game-state.js";
 
 export const LOOP_POLICY = {
@@ -51,9 +52,37 @@ const MESSAGES: Record<LoopKind, string> = {
 };
 
 // Only surfaces with observable interaction state can establish equivalence.
-// Battle/clock/generic menus and locked fields lack cursor/phase evidence today.
+// Unknown menus, battle phases and locked fields still withhold equivalence.
+// The active UI owner supplies qualified name/gender/clock phase data.
 export function semanticState(state: GameStateSnapshot): string | null {
   if (state.in_battle) return null;
+  const ui = state.active_ui;
+  if (ui != null) {
+    if (ui.diagnostic !== null || ui.ready !== true) return null;
+    const selected =
+      ui.phase === "gender_selection"
+        ? ["BOY", "GIRL"]
+        : ["name_confirmation", "clock_confirmation"].includes(ui.phase)
+          ? ["YES", "NO"]
+          : [];
+    const clockValue =
+      ui.value != null &&
+      /^(?:[1-9]|1[0-2]):[0-5][0-9] (?:AM|PM)$/.test(ui.value);
+    const validChoice =
+      ui.selected !== null &&
+      selected.includes(ui.selected) &&
+      (ui.phase !== "clock_confirmation" || clockValue);
+    const validClock =
+      ui.phase === "clock_adjustment" && ui.selected === null && clockValue;
+    if (validChoice || validClock)
+      return stable({
+        phase: ui.phase,
+        selected: ui.selected,
+        ready: ui.ready,
+        value: ui.phase.startsWith("clock_") ? ui.value : null,
+      });
+    return null;
+  }
   if (state.screen === "naming" && state.naming?.ready === true)
     return stable({ screen: state.screen, naming: state.naming });
   if (
@@ -121,6 +150,11 @@ export class LoopDetector {
     recovery: number;
     evidence: number[];
   } | null = null;
+  private run: string | null = null;
+  private eventSeq = -1;
+  private nativeState: GameStateSnapshot | undefined;
+  private readonly nativeValues = new Map<string, boolean | null>();
+  private readonly achieved = new Set<string>();
   private latest: GameStateSnapshot | undefined;
   private latestSeq = -1;
   private readonly calls = new Map<
@@ -139,10 +173,19 @@ export class LoopDetector {
   ) {}
 
   observe(event: RunEvent): void {
+    this.run ??= event.run;
+    if (event.run !== this.run || event.seq <= this.eventSeq) return;
+    this.eventSeq = event.seq;
     if (event.type === "state") {
       this.latestSeq = event.seq;
-      if ("started" in event) this.latest = event;
-      else this.latest = undefined;
+      if ("started" in event) {
+        this.nativeProgress(event, event.seq);
+        this.latest = event;
+      } else {
+        this.latest = undefined;
+        this.nativeValues.clear();
+        this.nativeState = undefined;
+      }
     } else if (event.type === "telemetry_error" && event.source === "state")
       this.latest = undefined;
     else if (event.type === "tool_call")
@@ -274,6 +317,32 @@ export class LoopDetector {
       };
       this.notice("warning", seq);
     }
+  }
+
+  private nativeProgress(state: GameStateSnapshot, seq: number): void {
+    let advanced = false;
+    for (const milestone of MILESTONES) {
+      if (milestone.kind !== "story") continue;
+      const current = milestone.reached(state);
+      const previous = this.nativeValues.get(milestone.name);
+      if (current === true && !this.achieved.has(milestone.name)) {
+        const truck =
+          milestone.name !== "FIRST_TRUCK_EXIT" ||
+          (this.nativeState?.started === true &&
+            this.nativeState.location === "INSIDE OF TRUCK");
+        if (previous === false && truck) advanced = true;
+        this.achieved.add(milestone.name);
+      }
+      this.nativeValues.set(milestone.name, current);
+    }
+    this.nativeState = state;
+    if (!advanced || this.stopped) return;
+    this.recover(seq, true);
+    this.planning = 0;
+    this.observations = 0;
+    this.previous = null;
+    this.history.length = 0;
+    this.visited.length = 0;
   }
 
   private cycle(): boolean {

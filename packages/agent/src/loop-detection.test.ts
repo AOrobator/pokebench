@@ -57,47 +57,96 @@ describe("deterministic loop detection", () => {
   it("recovers from a qualified native story transition even while UI is unavailable", () => {
     const { detector, events } = fixture();
     const before: GameStateSnapshot = {
-      ...field(), screen: "unknown (transition)", field_controls_locked: null,
-      story: { name_confirmed: true, intro_stage: 5, rival_stage: 0, birch_lab_stage: 0,
-        petalburg_gym_stage: 0, woods_stage: 0, clock_set: false,
-        rival_battle_won: false, pokedex_received: false, running_shoes_received: false,
-        starter_tutorial_complete: false, rustboro_gym_complete: false, stone_badge: false,
-        rock_tomb_received: false },
+      ...field(),
+      screen: "unknown (transition)",
+      field_controls_locked: null,
+      story: {
+        name_confirmed: true,
+        intro_stage: 5,
+        rival_stage: 0,
+        birch_lab_stage: 0,
+        petalburg_gym_stage: 0,
+        woods_stage: 0,
+        clock_set: false,
+        rival_battle_won: false,
+        pokedex_received: false,
+        running_shoes_received: false,
+        starter_tutorial_complete: false,
+        rustboro_gym_complete: false,
+        stone_badge: false,
+        rock_tomb_received: false,
+      },
     };
-    const state = (seq: number, body: GameStateSnapshot, run = "native_loop"): RunEvent => ({
-      ...body, v: 1, run, seq, t: "2026-10-12T20:00:00-04:00", type: "state", turn: 1,
+    const state = (
+      seq: number,
+      body: GameStateSnapshot,
+      run = "native_loop",
+    ): RunEvent => ({
+      ...body,
+      v: 1,
+      run,
+      seq,
+      t: "2026-10-12T20:00:00-04:00",
+      type: "state",
+      turn: 1,
     });
     detector.observe(state(1, before));
-    detector.complete(call("get_objectives")); detector.complete(call("get_objectives"));
+    detector.complete(call("get_objectives"));
+    detector.complete(call("get_objectives"));
     detector.context();
-    const accepted = { ...before, story: { ...before.story!, clock_set: true } };
+    const story = before.story;
+    if (story == null)
+      throw new Error("Native recovery fixture requires story evidence");
+    const accepted = { ...before, story: { ...story, clock_set: true } };
     detector.observe(state(2, accepted, "foreign_run"));
-    expect(events.filter(e => e.phase === "recovered")).toHaveLength(0);
+    expect(events.filter((e) => e.phase === "recovered")).toHaveLength(0);
     detector.observe(state(3, accepted));
-    expect(events.filter(e => e.phase === "recovered")).toHaveLength(1);
-    detector.complete(call("observe", accepted)); detector.complete(call("observe", accepted));
+    expect(events.filter((e) => e.phase === "recovered")).toHaveLength(1);
+    detector.complete(call("observe", accepted));
+    detector.complete(call("observe", accepted));
     expect(detector.stopped).toBe(false);
     // The same true flag and new sequence IDs do not create another recovery.
-    detector.complete(call("get_objectives")); detector.complete(call("get_objectives"));
-    detector.context(); detector.observe(state(4, accepted));
-    expect(events.filter(e => e.phase === "recovered")).toHaveLength(1);
+    detector.complete(call("get_objectives"));
+    detector.complete(call("get_objectives"));
+    detector.context();
+    detector.observe(state(4, accepted));
+    expect(events.filter((e) => e.phase === "recovered")).toHaveLength(1);
   });
 
   it("does not turn missing story data into proof of recovery", () => {
     const { detector, events } = fixture();
     const state = (seq: number, clock: boolean | null): RunEvent => ({
-      ...field(), v: 1, run: "native_loop", seq, t: "2026-10-12T20:00:00-04:00",
-      type: "state", turn: 1, screen: "unknown (transition)",
-      story: { name_confirmed: null, intro_stage: null, rival_stage: null, birch_lab_stage: null,
-        petalburg_gym_stage: null, woods_stage: null, clock_set: clock,
-        rival_battle_won: null, pokedex_received: null, running_shoes_received: null,
-        starter_tutorial_complete: null, rustboro_gym_complete: null, stone_badge: null,
-        rock_tomb_received: null },
+      ...field(),
+      v: 1,
+      run: "native_loop",
+      seq,
+      t: "2026-10-12T20:00:00-04:00",
+      type: "state",
+      turn: 1,
+      screen: "unknown (transition)",
+      story: {
+        name_confirmed: null,
+        intro_stage: null,
+        rival_stage: null,
+        birch_lab_stage: null,
+        petalburg_gym_stage: null,
+        woods_stage: null,
+        clock_set: clock,
+        rival_battle_won: null,
+        pokedex_received: null,
+        running_shoes_received: null,
+        starter_tutorial_complete: null,
+        rustboro_gym_complete: null,
+        stone_badge: null,
+        rock_tomb_received: null,
+      },
     });
     detector.observe(state(1, null));
-    detector.complete(call("get_objectives")); detector.complete(call("get_objectives")); detector.context();
+    detector.complete(call("get_objectives"));
+    detector.complete(call("get_objectives"));
+    detector.context();
     detector.observe(state(2, true));
-    expect(events.filter(e => e.phase === "recovered")).toHaveLength(0);
+    expect(events.filter((e) => e.phase === "recovered")).toHaveLength(0);
   });
 
   it("pins production thresholds", () => {
@@ -412,20 +461,212 @@ it("infrastructure errors neither trigger a loop nor spend an existing recovery 
   expect(events).toEqual([{ kind: "planning", phase: "warning" }]);
 });
 
-const qualifiedUi=(phase="name_confirmation",selected:string|null="YES",value:string|null=null)=>({...field(),screen:"unknown (owned UI)",field_controls_locked:null,active_ui:{phase,selected,ready:true,controls:"documentation",diagnostic:null,value}});
-it("projects qualified UI selected state but excludes controls prose",()=>{
+const qualifiedUi = (
+  phase = "name_confirmation",
+  selected: string | null = "YES",
+  value: string | null = null,
+) => ({
+  ...field(),
+  screen: "unknown (owned UI)",
+  field_controls_locked: null,
+  active_ui: {
+    phase,
+    selected,
+    ready: true,
+    controls: "documentation",
+    diagnostic: null,
+    value,
+  },
+});
+it("projects qualified UI selected state but excludes controls prose", () => {
   expect(semanticState(qualifiedUi())).not.toBe(null);
-  expect(semanticState(qualifiedUi())).not.toBe(semanticState(qualifiedUi("name_confirmation","NO")));
-  expect(semanticState(qualifiedUi())).toBe(semanticState({...qualifiedUi(),active_ui:{...qualifiedUi().active_ui,controls:"new wording"}}));
-  expect(semanticState(qualifiedUi("gender_selection","BOY"))).not.toBe(semanticState(qualifiedUi("gender_selection","GIRL")));
-  expect(semanticState(qualifiedUi("clock_adjustment",null,"10:00 AM"))).not.toBe(semanticState(qualifiedUi("clock_adjustment",null,"10:01 AM")));
+  expect(semanticState(qualifiedUi())).not.toBe(
+    semanticState(qualifiedUi("name_confirmation", "NO")),
+  );
+  expect(semanticState(qualifiedUi())).toBe(
+    semanticState({
+      ...qualifiedUi(),
+      active_ui: { ...qualifiedUi().active_ui, controls: "new wording" },
+    }),
+  );
+  expect(semanticState(qualifiedUi("gender_selection", "BOY"))).not.toBe(
+    semanticState(qualifiedUi("gender_selection", "GIRL")),
+  );
+  expect(
+    semanticState(qualifiedUi("clock_adjustment", null, "10:00 AM")),
+  ).not.toBe(semanticState(qualifiedUi("clock_adjustment", null, "10:01 AM")));
 });
 it.each([
-  {ready:false},{ready:null},{diagnostic:"unknown owner"},{selected:null},{selected:"UNKNOWN"},{phase:"unqualified_menu"},
-])("withholds incomplete or diagnostic UI projection %j",overrides=>{
-  const ui=qualifiedUi();expect(semanticState({...ui,active_ui:{...ui.active_ui,...overrides}})).toBe(null);
+  { ready: false },
+  { ready: null },
+  { diagnostic: "unknown owner" },
+  { selected: null },
+  { selected: "UNKNOWN" },
+  { phase: "unqualified_menu" },
+])("withholds incomplete or diagnostic UI projection %j", (overrides) => {
+  const ui = qualifiedUi();
+  expect(
+    semanticState({ ...ui, active_ui: { ...ui.active_ui, ...overrides } }),
+  ).toBe(null);
 });
-it("detects ineffective qualified confirmation actions but permits new selection",()=>{
-  const {detector,events}=fixture();detector.complete(call("press",qualifiedUi(),["UP"]));detector.complete(call("press",qualifiedUi(),["UP"]));expect(events.at(-1)).toEqual({kind:"ineffective",phase:"warning"});detector.context();
-  detector.complete({...call("press",qualifiedUi("name_confirmation","NO"),["DOWN"]),beforeState:qualifiedUi()});expect(events.at(-1)).toEqual({kind:"ineffective",phase:"recovered"});expect(detector.stopped).toBe(false);
+it("detects ineffective qualified confirmation actions but permits new selection", () => {
+  const { detector, events } = fixture();
+  detector.complete(call("press", qualifiedUi(), ["UP"]));
+  detector.complete(call("press", qualifiedUi(), ["UP"]));
+  expect(events.at(-1)).toEqual({ kind: "ineffective", phase: "warning" });
+  detector.context();
+  detector.complete({
+    ...call("press", qualifiedUi("name_confirmation", "NO"), ["DOWN"]),
+    beforeState: qualifiedUi(),
+  });
+  expect(events.at(-1)).toEqual({ kind: "ineffective", phase: "recovered" });
+  expect(detector.stopped).toBe(false);
+});
+
+it.each([null, "", "13:00 AM", "10:60 AM", "10:00 unknown"])(
+  "withholds unqualified clock values %j",
+  (value) => {
+    expect(semanticState(qualifiedUi("clock_adjustment", null, value))).toBe(
+      null,
+    );
+    expect(semanticState(qualifiedUi("clock_confirmation", "YES", value))).toBe(
+      null,
+    );
+  },
+);
+it("compares qualified clock choice and ignores unrelated UI value prose", () => {
+  expect(
+    semanticState(qualifiedUi("clock_confirmation", "YES", "10:00 AM")),
+  ).not.toBe(null);
+  expect(
+    semanticState(qualifiedUi("clock_confirmation", "YES", "10:00 AM")),
+  ).not.toBe(
+    semanticState(qualifiedUi("clock_confirmation", "NO", "10:00 AM")),
+  );
+  expect(
+    semanticState(qualifiedUi("name_confirmation", "YES", "unrelated")),
+  ).toBe(semanticState(qualifiedUi()));
+});
+it("does not let foreign run events or stale sequences alter detector ownership", () => {
+  const { detector, events } = fixture();
+  const log = (
+    run: string,
+    seq: number,
+    type: "tool_call" | "tool_result",
+  ): RunEvent =>
+    type === "tool_call"
+      ? {
+          v: 1,
+          run,
+          seq,
+          t: "2026-10-12T20:00:00-04:00",
+          type,
+          turn: 1,
+          id: String(seq),
+          name: "get_objectives",
+          args: {},
+        }
+      : {
+          v: 1,
+          run,
+          seq,
+          t: "2026-10-12T20:00:00-04:00",
+          type,
+          turn: 1,
+          id: String(seq - 1),
+          name: "get_objectives",
+          text: "ok",
+          frames: [],
+          duration_ms: 0,
+          is_error: false,
+        };
+  detector.observe(log("owner", 0, "tool_call"));
+  detector.observe(log("owner", 1, "tool_result"));
+  for (let i = 2; i < 10; i++)
+    detector.observe(
+      log("foreign", i, i % 2 === 0 ? "tool_call" : "tool_result"),
+    );
+  detector.observe(log("owner", 1, "tool_result"));
+  expect(events).toEqual([]);
+  detector.observe(log("owner", 2, "tool_call"));
+  detector.observe(log("owner", 3, "tool_result"));
+  expect(events).toEqual([{ kind: "planning", phase: "warning" }]);
+});
+
+const storyState = (clock: boolean | null): GameStateSnapshot => ({
+  ...field(),
+  screen: "unknown (transition)",
+  story: {
+    name_confirmed: null,
+    intro_stage: null,
+    rival_stage: null,
+    birch_lab_stage: null,
+    petalburg_gym_stage: null,
+    woods_stage: null,
+    clock_set: clock,
+    rival_battle_won: null,
+    pokedex_received: null,
+    running_shoes_received: null,
+    starter_tutorial_complete: null,
+    rustboro_gym_complete: null,
+    stone_badge: null,
+    rock_tomb_received: null,
+  },
+});
+const nativeEvent = (seq: number, state: GameStateSnapshot): RunEvent => ({
+  v: 1,
+  run: "qualified_native",
+  seq,
+  t: "2026-10-12T20:00:00-04:00",
+  type: "state",
+  turn: 1,
+  ...state,
+});
+it("does not count a repeated native achievement or stale flag as recovery", () => {
+  const { detector, events } = fixture();
+  detector.observe(nativeEvent(1, storyState(false)));
+  detector.complete(call("get_objectives"));
+  detector.complete(call("get_objectives"));
+  detector.context();
+  detector.observe(nativeEvent(2, storyState(true)));
+  expect(events.filter((e) => e.phase === "recovered")).toHaveLength(1);
+  detector.complete(call("get_objectives"));
+  detector.complete(call("get_objectives"));
+  detector.context();
+  detector.observe(nativeEvent(1, storyState(false)));
+  detector.observe(nativeEvent(3, storyState(false)));
+  detector.observe(nativeEvent(4, storyState(true)));
+  expect(events.filter((e) => e.phase === "recovered")).toHaveLength(1);
+});
+it("does not infer truck exit without an observed truck baseline", () => {
+  const { detector, events } = fixture();
+  detector.observe(
+    nativeEvent(1, {
+      ...storyState(null),
+      started: false,
+      screen: "intro",
+      location: null,
+    }),
+  );
+  detector.complete(call("get_objectives"));
+  detector.complete(call("get_objectives"));
+  detector.context();
+  detector.observe(
+    nativeEvent(2, {
+      ...storyState(null),
+      location: "LITTLEROOT TOWN BRENDANS HOUSE 1F",
+    }),
+  );
+  expect(events.filter((e) => e.phase === "recovered")).toHaveLength(0);
+  const valid = fixture();
+  valid.detector.observe(
+    nativeEvent(1, { ...storyState(null), location: "INSIDE OF TRUCK" }),
+  );
+  valid.detector.complete(call("get_objectives"));
+  valid.detector.complete(call("get_objectives"));
+  valid.detector.context();
+  valid.detector.observe(
+    nativeEvent(2, { ...storyState(null), location: "LITTLEROOT TOWN" }),
+  );
+  expect(valid.events.filter((e) => e.phase === "recovered")).toHaveLength(1);
 });

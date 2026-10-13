@@ -9,7 +9,7 @@ import { parseEvent } from './events.js';
 const root = () => mkdtempSync(join(tmpdir(), 'human-'));
 it('records explicit human identity and exact measurement policy without model tools', () => {
  const plan = humanPlan(root(), 'human-test', 8040, 'a'.repeat(40));
- expect(plan.controller).toEqual({kind:'human',name:'Operator',rom_sha1:'a'.repeat(40),input_policy:'frame-held-v1',sample_ms:100,nominal_fps:59.7275});
+ expect(plan.controller).toEqual({kind:'human',name:'Operator',rom_sha1:'a'.repeat(40),input_policy:'frame-held-v1',sample_ms:100,screenshot_ms:500,nominal_fps:59.7275});
  expect(plan.tools).toEqual([]); expect(plan.model.max_tokens).toBe(0); expect(plan.harnessFeatures).not.toContain('probe');
 });
 it('takes the human lease exclusively and cleans up only its own acquisition', () => {
@@ -44,4 +44,13 @@ it('handles abort and rejects malformed control records without hanging',async()
  const {driveHuman}=await import('./human.js');const recorder={recordControl:()=>{},checkMilestones:()=>Promise.resolve()};const path=join(root(),'control.jsonl');
  const aborted=new AbortController();aborted.abort();expect(await driveHuman(recorder,'http://127.0.0.1:8040',path,aborted.signal)).toBe('operator_abort');
  writeFileSync(path,'bad\n');await expect(driveHuman(recorder,'http://127.0.0.1:8040',path,new AbortController().signal)).rejects.toThrow('invalid control');
+});
+
+it('forces the final human screenshot through the sampler after freezing on Finish',async()=>{
+ const {driveHuman}=await import('./human.js');const path=join(root(),'control.jsonl');writeFileSync(path,JSON.stringify({v:1,seq:1,at:new Date().toISOString(),action:'stop'})+'\n');const recorded:unknown[]=[];
+ const state={screen:'title',started:false,name:null,location:null,map_id:null,position:null,facing:null,in_battle:false,party:[],money:null,badges:[],play_time_s:null};
+ const fetcher:typeof fetch=(request)=>Promise.resolve(Response.json(String(request).endsWith('/pause')?{paused:true}:{frame:0,paused:true,failed:false,last_id:0,segments:[],observation:{state,screenshot_base64:'iVBORw0KGgo='}}));
+ const recording={recordControl:()=>{},checkMilestones:()=>Promise.resolve(),recordHumanInput:()=>{},recordHumanSample:(...args:unknown[])=>{recorded.push(args);}};
+ expect(await driveHuman(recording,'http://test',path,new AbortController().signal,fetcher,'secret')).toBe('operator_stop');
+ expect(recorded).toEqual([[0,true,'iVBORw0KGgo=',state,true]]);
 });

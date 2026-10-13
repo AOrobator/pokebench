@@ -1,0 +1,1357 @@
+{
+  "136171318": {
+    "name": "Battle Tent Sign",
+    "script": "SlateportCity_EventScript_BattleTentSign",
+    "signature": "10483618654bd1f656b428a34074afc7b697d6cd448cb1fdea3d426356238a99"
+  },
+  "136171327": {
+    "name": "Sterns Shipyard Sign",
+    "script": "SlateportCity_EventScript_SternsShipyardSign",
+    "signature": "15b8eb180e4600fc8c20ac44597f4e94a5b096baf4f22d6320201d4fdf7dcdab"
+  },
+  "136171376": {
+    "name": "Pokemon Fan Club Sign",
+    "script": "SlateportCity_EventScript_PokemonFanClubSign",
+    "signature": "b9a93827a7245b20cf0649521cffafe068fcd5176b22d6f481cac97feea3e6b4"
+  },
+  "136171385": {
+    "name": "Oceanic Museum Sign",
+    "script": "SlateportCity_EventScript_OceanicMuseumSign",
+    "signature": "11d8faffabcf0e514ef617e9322a98f712e89a5e5543f2c3f10a0e855770fa04"
+  },
+  "136171394": {
+    "name": "City Sign",
+    "script": "SlateportCity_EventScript_CitySign",
+    "signature": "e1a5b1b3ead93172412621ce812e1742b23a7da960d87539b0b371c44247abf6"
+  },
+  "136171403": {
+    "name": "Market Sign",
+    "script": "SlateportCity_EventScript_MarketSign",
+    "signature": "9115a37a681b3219933f0e3d340322b4090fa2139deab946af09ef3466cb7554"
+  },
+  "136171412": {
+    "name": "Harbor Sign",
+    "script": "SlateportCity_EventScript_HarborSign",
+    "signature": "96fc0e022c35d4c1a3daca7c9f247bb0789bc3c852eef19251fda886e59ed2d1"
+  },
+  "136171442": {
+    "name": "Name Raters House Sign",
+    "script": "SlateportCity_EventScript_NameRatersHouseSign",
+    "signature": "86b1033e00384057041e20554e1060a87ef56ee52b21f1c60c4fbe2adaaad507"
+  },
+  "136173123": {
+    "name": "Berry Crush Rankings Sign",
+    "script": "SlateportCity_EventScript_BerryCrushRankingsSign",
+    "signature": "6f1bb481f28559805820b2eee0a04ec028fd09a87198e85f68cc8baccbb6631b"
+  },
+  "136180695": {
+    "name": "City Sign",
+    "script": "MauvilleCity_EventScript_CitySign",
+    "signature": "40df0546e2e8d6b124f42585d59def8bd453187ba2b5fed7845d94d79c7caa17"
+  },
+  "136180704": {
+    "name": "Gym Sign",
+    "script": "MauvilleCity_EventScript_GymSign",
+    "signature": "2ce7535e65748dca1506da9e4dbaf2c51a36b850d99637440c6ad07abe31fc20"
+  },
+  "136180713": {
+    "name": "Bike Shop Sign",
+    "script": "MauvilleCity_EventScript_BikeShopSign",
+    "signature": "a71b557a335321fd525432ec28882d8895b0bc2eea783b6942072ff82859cc5e"
+  },
+  "136180722": {
+    "name": "Game Corner Sign",
+    "script": "MauvilleCity_EventScript_GameCornerSign",
+    "signature": "21460b4cbb8f0645136801f1347ed44a4af85fa2dd9149ce9cd17b3df2c54de8"
+  },
+  "136186083": {
+    "name": "Tunnel Sign",
+    "script": "RustboroCity_EventScript_TunnelSign",
+    "signature": "211bbc2006a80d21140c158d227b8d87fd00b3360db8f1a41b3ab786b4a663ff"
+  },
+  "136186092": {
+    "name": "Devon Corp Sign",
+    "script": "RustboroCity_EventScript_DevonCorpSign",
+    "signature": "50c7935ad9782738ccc77d9f4882372ffce2959740bf97cee78138f8fdca2a52"
+  },
+  "136186101": {
+    "name": "Gym Sign",
+    "script": "RustboroCity_EventScript_GymSign",
+    "signature": "ada4ae664c9e77229d7df93828c4cb64ac3a3068ee9b7db58e3b9cbe1de6a37d"
+  },
+  "136186119": {
+    "name": "City Sign",
+    "script": "RustboroCity_EventScript_CitySign",
+    "signature": "799643fb7c5a85d28715e7eedd0050387cbde3278c1ad367f2840a1594c449b1"
+  },
+  "136186128": {
+    "name": "Trainers School Sign",
+    "script": "RustboroCity_EventScript_TrainersSchoolSign",
+    "signature": "bf4678e2fd4b0a9a25726d0d32db6e4c4ee80bf7f3277d1db66b40c502d81805"
+  },
+  "136186137": {
+    "name": "Cutters House Sign",
+    "script": "RustboroCity_EventScript_CuttersHouseSign",
+    "signature": "d37f35d8b4a0912a69afb6a455beb3d5ee0bd126de59218a99f9ef83cf8c89a3"
+  },
+  "136193538": {
+    "name": "City Sign",
+    "script": "FortreeCity_EventScript_CitySign",
+    "signature": "28e1590c16147007d20031d79fad8c25191312e5295656ae55e13892a6a5ee9f"
+  },
+  "136193547": {
+    "name": "Gym Sign",
+    "script": "FortreeCity_EventScript_GymSign",
+    "signature": "ef725a120c50f73442531e41c0b72d8578a482dd8db5192d6ea67ab04aa23b8e"
+  },
+  "136203028": {
+    "name": "White Rock",
+    "script": "MossdeepCity_EventScript_WhiteRock",
+    "signature": "4218d52979ba150f7e5d90919a71532d502751eedb2b4653697ddd173adce2a8"
+  },
+  "136203037": {
+    "name": "Gym Sign",
+    "script": "MossdeepCity_EventScript_GymSign",
+    "signature": "fecb866c207087020849a7c7aea89d9dd2d1af651893a1544bf19180d4019b88"
+  },
+  "136203046": {
+    "name": "City Sign",
+    "script": "MossdeepCity_EventScript_CitySign",
+    "signature": "cb7d36c5616fef83619434588291b6d446eb1c1cb6fbeff64346946fd6a6e246"
+  },
+  "136203055": {
+    "name": "Space Center Sign",
+    "script": "MossdeepCity_EventScript_SpaceCenterSign",
+    "signature": "3576f6738db4894d98769c7ecb58222658447238e0dd57a2a53df3793cdc6250"
+  },
+  "136208715": {
+    "name": "Gym Sign",
+    "script": "SootopolisCity_EventScript_GymSign",
+    "signature": "39da74f7425434ab9628ce617aeedc2cda85c33123656cac4746c9987e8fb293"
+  },
+  "136208724": {
+    "name": "City Sign",
+    "script": "SootopolisCity_EventScript_CitySign",
+    "signature": "616ef358f1efbbb992f31c0fd92e8269c278c302c32dd0777cd73fa3dbed6f99"
+  },
+  "136215851": {
+    "name": "Victory Road Sign",
+    "script": "EverGrandeCity_EventScript_VictoryRoadSign",
+    "signature": "1cb4a3e12f452e0de20a40b97b3c35f46db0c11c44f0c114e6e9e4f6f614d56d"
+  },
+  "136215860": {
+    "name": "City Sign",
+    "script": "EverGrandeCity_EventScript_CitySign",
+    "signature": "762842b0b9469a58dc62e0f87d5380fb81ae3bda73e108b52ec631c1d5459446"
+  },
+  "136215869": {
+    "name": "Pokemon League Sign",
+    "script": "EverGrandeCity_EventScript_PokemonLeagueSign",
+    "signature": "7f65d9f98481111e53c663213687aad04efb1175a28ce87abc687144d39e3c3b"
+  },
+  "136216913": {
+    "name": "Town Sign",
+    "script": "LittlerootTown_EventScript_TownSign",
+    "signature": "96a94de660af073c7cc05552d92d0c3321bd555853a3f64b19a71455057b9f57"
+  },
+  "136216922": {
+    "name": "Birchs Lab Sign",
+    "script": "LittlerootTown_EventScript_BirchsLabSign",
+    "signature": "3fe3116a4dd2faa026dee8e7b9981e25cbe1c12e13ed5aaec5341c7f2af62234"
+  },
+  "136216931": {
+    "name": "Brendans House Sign",
+    "script": "LittlerootTown_EventScript_BrendansHouseSign",
+    "signature": "9a0288c43901c2597db6e2b378b1fdb9bef09e2b4a70f4cb9e2a3026643cff3c"
+  },
+  "136216975": {
+    "name": "Mays House Sign",
+    "script": "LittlerootTown_EventScript_MaysHouseSign",
+    "signature": "030b5f266aa087165ae46b35e4ba1a65db8160eac474f8a57e71abb83cf242ac"
+  },
+  "136220394": {
+    "name": "Town Sign",
+    "script": "OldaleTown_EventScript_TownSign",
+    "signature": "bad73d6697ef500bd2fd7f3a429e63e1254ee0bf9d5e6705ef936b4e374fd50c"
+  },
+  "136222138": {
+    "name": "Town Sign",
+    "script": "DewfordTown_EventScript_TownSign",
+    "signature": "e2648ceaa2f6bb80687253d8e2368e8e373b4fa833ac7746dc8ac1318c1abde7"
+  },
+  "136222147": {
+    "name": "Gym Sign",
+    "script": "DewfordTown_EventScript_GymSign",
+    "signature": "cd8022f846d9e6017873fc0117f4414b071d9ce96e45b36adf62141d642ff35f"
+  },
+  "136222156": {
+    "name": "Hall Sign",
+    "script": "DewfordTown_EventScript_HallSign",
+    "signature": "dc83861b8ac09a0d5fac85024196ec615a55e8308801d91c767f07c621683b63"
+  },
+  "136230361": {
+    "name": "Town Sign",
+    "script": "VerdanturfTown_EventScript_TownSign",
+    "signature": "997ad3be72fb77b578aa5ca4e5397bd86c020823851f22d69e1b4853d145ea0e"
+  },
+  "136230370": {
+    "name": "Wandas House Sign",
+    "script": "VerdanturfTown_EventScript_WandasHouseSign",
+    "signature": "c25e2235348de2d13c16f80209adbe473211a69ccba1f6b6d3a40ec7f21793c8"
+  },
+  "136230379": {
+    "name": "Battle Tent Sign",
+    "script": "VerdanturfTown_EventScript_BattleTentSign",
+    "signature": "39a1112296468da7fdbe8a37f577617f708216997c120533143e40ec1339396e"
+  },
+  "136230388": {
+    "name": "Rusturf Tunnel Sign",
+    "script": "VerdanturfTown_EventScript_RusturfTunnelSign",
+    "signature": "6c72cebb06104f596f95508420f878a07cde42295e138244888f2ab43fe53d02"
+  },
+  "136231646": {
+    "name": "Town Sign",
+    "script": "PacifidlogTown_EventScript_TownSign",
+    "signature": "599b7cf6b699380f572d04b5c77e7fc6602996017b90e60752e2ce9ca1ad5b90"
+  },
+  "136233194": {
+    "name": "Route Sign Oldale",
+    "script": "Route102_EventScript_RouteSignOldale",
+    "signature": "94aa232523f927e2e1f5cd98df31109d93b87df9b1875c8a3c427abe9d5e5dae"
+  },
+  "136233203": {
+    "name": "Route Sign Petalburg",
+    "script": "Route102_EventScript_RouteSignPetalburg",
+    "signature": "6f282f1e92e13273e939a0ada215929ad9a5e6cabf9d4437b5f5fd34463d127c"
+  },
+  "136257094": {
+    "name": "Mt Chimney Cable Car Sign",
+    "script": "Route112_EventScript_MtChimneyCableCarSign",
+    "signature": "f05e8cea19384165fde30dcde278594c221c5c0a2f0a92af7f89b4b344e8ab57"
+  },
+  "136257103": {
+    "name": "Mt Chimney Sign",
+    "script": "Route112_EventScript_MtChimneySign",
+    "signature": "2f1564e3b66fa96fac72f2299d1a952aa94fcff1cffb3952bfcbb3e235c7f588"
+  },
+  "136257112": {
+    "name": "Route Sign Lavaridge",
+    "script": "Route112_EventScript_RouteSignLavaridge",
+    "signature": "0b3d19be83df73b9a6be44eb69a0a7018722c9acb24af1a52fef0a61cd37632f"
+  },
+  "136275324": {
+    "name": "Hunters House Sign",
+    "script": "Route124_EventScript_HuntersHouseSign",
+    "signature": "b614f7bb25f5937144ece37f5ae5dc39e88b2795daa856e6565147293687bc3f"
+  },
+  "136283661": {
+    "name": "PC",
+    "script": "LittlerootTown_BrendansHouse_2F_EventScript_PC",
+    "signature": "b5efe777c06aaf46a5ef1bfdac4ac3b4f3f0ba8153d5f70d2af1b44a2d3df77c"
+  },
+  "136283734": {
+    "name": "Notebook",
+    "script": "PlayersHouse_2F_EventScript_Notebook",
+    "signature": "ff17b5ec5f8fdf58e049c77bd3597bf504912f39c571ca0297f1751be2c1c6ac"
+  },
+  "136283743": {
+    "name": "GameCube",
+    "script": "PlayersHouse_2F_EventScript_GameCube",
+    "signature": "aea1e68b650b276fc4a9a29defd96c121321aebef89ff82957d9fffa26729f88"
+  },
+  "136287571": {
+    "name": "PC",
+    "script": "LittlerootTown_MaysHouse_2F_EventScript_PC",
+    "signature": "5c98303f051fcde78c0d6a632ae6bcbc4ff82ab5f7b38c656afa7dabe6b2ff3f"
+  },
+  "136291299": {
+    "name": "Machine",
+    "script": "LittlerootTown_ProfessorBirchsLab_EventScript_Machine",
+    "signature": "adab5d9ade8ce41a3a33356ed1fb84d3038ad1986d1fbf1d93c1701c22180a0c"
+  },
+  "136291515": {
+    "name": "PC",
+    "script": "LittlerootTown_ProfessorBirchsLab_EventScript_PC",
+    "signature": "c621480032c6fd371c7de492087597415061fe00c784e8c56fda53305f4e0d48"
+  },
+  "136291524": {
+    "name": "Bookshelf",
+    "script": "LittlerootTown_ProfessorBirchsLab_EventScript_Bookshelf",
+    "signature": "8c937ebddc724ba74664c26979691fa567de25bd019f7e9f463b2d933c1c3a5b"
+  },
+  "136291533": {
+    "name": "Book",
+    "script": "LittlerootTown_ProfessorBirchsLab_EventScript_Book",
+    "signature": "cac79f66d5d76b66cf85593a6e2757c38f627e8d73ebca4f609e59d853271dd2"
+  },
+  "136300962": {
+    "name": "Left Gym Statue",
+    "script": "DewfordTown_Gym_EventScript_LeftGymStatue",
+    "signature": "d6d9e51a997e7fe0f72d6f196229b91c9c84c6c0d8b0b6542633409f9b3911df"
+  },
+  "136300978": {
+    "name": "Right Gym Statue",
+    "script": "DewfordTown_Gym_EventScript_RightGymStatue",
+    "signature": "d6d9e51a997e7fe0f72d6f196229b91c9c84c6c0d8b0b6542633409f9b3911df"
+  },
+  "136304016": {
+    "name": "Bookshelf",
+    "script": "DewfordTown_Hall_EventScript_Bookshelf",
+    "signature": "2d8eb61804a52fbd28105ae74210c9004604e6438e823910984a9e93cdf32665"
+  },
+  "136304032": {
+    "name": "Painting",
+    "script": "DewfordTown_Hall_EventScript_Painting",
+    "signature": "d4e7f1b2520274a8fada9ada9e62434405be7731b5c8b2a6d11d794023357465"
+  },
+  "136309131": {
+    "name": "Left Gym Statue",
+    "script": "LavaridgeTown_Gym_1F_EventScript_LeftGymStatue",
+    "signature": "6485deea03ceaae8d5f8ad66297fefb8939a175d0f1a613e9b538736b2d02284"
+  },
+  "136309147": {
+    "name": "Right Gym Statue",
+    "script": "LavaridgeTown_Gym_1F_EventScript_RightGymStatue",
+    "signature": "6485deea03ceaae8d5f8ad66297fefb8939a175d0f1a613e9b538736b2d02284"
+  },
+  "136335671": {
+    "name": "Speed Room Door",
+    "script": "PetalburgCity_Gym_EventScript_SpeedRoomDoor",
+    "signature": "4774e2cd7fc1fbeefa1a288950aa15fd9cf71e899f996e58b0baaf2a56737c50"
+  },
+  "136335751": {
+    "name": "Accuracy Room Door",
+    "script": "PetalburgCity_Gym_EventScript_AccuracyRoomDoor",
+    "signature": "494eb3a0d871edff00222a534b021d7ec6d59e76cdcd1cf80d793547e1b19ec9"
+  },
+  "136335804": {
+    "name": "Confusion Room Door",
+    "script": "PetalburgCity_Gym_EventScript_ConfusionRoomDoor",
+    "signature": "cb122a3d57d8835c3d49aca5d30dda2ea44f15d6ace043846af4d0a65d29d75d"
+  },
+  "136335855": {
+    "name": "Left Defense Room Door",
+    "script": "PetalburgCity_Gym_EventScript_LeftDefenseRoomDoor",
+    "signature": "39d6fc18eefb230c64a2196966c460ad54620439f9cdf0ea2ac55b7e4b4bc954"
+  },
+  "136335906": {
+    "name": "Right Defense Room Door",
+    "script": "PetalburgCity_Gym_EventScript_RightDefenseRoomDoor",
+    "signature": "74d660f175fad48c368a216bdf86a48bb16053fbf85e5c5e933dcc39ae54774c"
+  },
+  "136335957": {
+    "name": "Recovery Room Door",
+    "script": "PetalburgCity_Gym_EventScript_RecoveryRoomDoor",
+    "signature": "ee1720d6541267747898b44b442bb085aff613bd610ba58ac39fd02ee6d31374"
+  },
+  "136336008": {
+    "name": "Left Strength Room Door",
+    "script": "PetalburgCity_Gym_EventScript_LeftStrengthRoomDoor",
+    "signature": "88388614dbd285f456442f11f452fb921c4d18adc66f90157d0c440128466445"
+  },
+  "136336059": {
+    "name": "Right Strength Room Door",
+    "script": "PetalburgCity_Gym_EventScript_RightStrengthRoomDoor",
+    "signature": "1e5ad802aab06665b4268b50e216d82dec7b466175a24ebb4211b340da552d3f"
+  },
+  "136336110": {
+    "name": "Left OHKORoom Door",
+    "script": "PetalburgCity_Gym_EventScript_LeftOHKORoomDoor",
+    "signature": "ee1e1c02951141ecddbc661e2295e746a46de245be46acf8a199d533e1da4675"
+  },
+  "136336161": {
+    "name": "Right OHKORoom Door",
+    "script": "PetalburgCity_Gym_EventScript_RightOHKORoomDoor",
+    "signature": "67af867b8d0a4bd1fb7650da5619f0f3063d0f9db2e87e110fbb5c8fe74ab827"
+  },
+  "136336212": {
+    "name": "Left Gym Leaders Room Door",
+    "script": "PetalburgCity_Gym_EventScript_LeftGymLeadersRoomDoor",
+    "signature": "9c131c648131012e2278d1213bae89d6c69acc5e31cf79bc5dbc01ec33e7c494"
+  },
+  "136336263": {
+    "name": "Right Gym Leaders Room Door",
+    "script": "PetalburgCity_Gym_EventScript_RightGymLeadersRoomDoor",
+    "signature": "bd565160a24e0351e6a65c42ef8af7eaa34f118b57f2311256c5ab1001e6f417"
+  },
+  "136337262": {
+    "name": "Left Gym Statue",
+    "script": "PetalburgCity_Gym_EventScript_LeftGymStatue",
+    "signature": "634b36c5aa393c623cd5f3fcd1b67c6b49a7127d9602874bf02f618cc11487df"
+  },
+  "136337278": {
+    "name": "Right Gym Statue",
+    "script": "PetalburgCity_Gym_EventScript_RightGymStatue",
+    "signature": "634b36c5aa393c623cd5f3fcd1b67c6b49a7127d9602874bf02f618cc11487df"
+  },
+  "136359555": {
+    "name": "Whirlpool Experiment",
+    "script": "SlateportCity_OceanicMuseum_1F_EventScript_WhirlpoolExperiment",
+    "signature": "00a9c03e7ce189f613cb0dbb7bd5e101376494126d0c1e33c5ba01ec5b07737b"
+  },
+  "136359564": {
+    "name": "Waterfall Experiment",
+    "script": "SlateportCity_OceanicMuseum_1F_EventScript_WaterfallExperiment",
+    "signature": "8e9d2485e29480013f0e628d91a7dceff893712907294fbaca388350a5fab9e7"
+  },
+  "136359573": {
+    "name": "Ocean Soil Display",
+    "script": "SlateportCity_OceanicMuseum_1F_EventScript_OceanSoilDisplay",
+    "signature": "b08dbc99b82b036858cf97107ce3b541a478ba89862f3a55b469ec278e8b6fc2"
+  },
+  "136359582": {
+    "name": "Beach Sand Display",
+    "script": "SlateportCity_OceanicMuseum_1F_EventScript_BeachSandDisplay",
+    "signature": "95672062289e7379094d11eb36c1c9f2d99d827e34bebacf588135b5191d2900"
+  },
+  "136359591": {
+    "name": "Oceanic Minifact1",
+    "script": "SlateportCity_OceanicMuseum_1F_EventScript_OceanicMinifact1",
+    "signature": "17fdd5edcd3823061c97d9c80d4e668f50f392abb97c2957897412cd24619a54"
+  },
+  "136359600": {
+    "name": "Oceanic Minifact2",
+    "script": "SlateportCity_OceanicMuseum_1F_EventScript_OceanicMinifact2",
+    "signature": "ae16104e70259cdedc1deaabfe0f8da4c0a861f311a625351ad142f9b4d0a140"
+  },
+  "136359609": {
+    "name": "Oceanic Minifact3",
+    "script": "SlateportCity_OceanicMuseum_1F_EventScript_OceanicMinifact3",
+    "signature": "f4b96a41ce99962b2a533972f189239026673a1f8bdd560096f956111ae62909"
+  },
+  "136359618": {
+    "name": "Fossil Display",
+    "script": "SlateportCity_OceanicMuseum_1F_EventScript_FossilDisplay",
+    "signature": "5cc1d21eab2d4a195fe75e346a036fda61f6badad21b2d8b9d219590440f77a0"
+  },
+  "136359627": {
+    "name": "Depth Measuring Machine",
+    "script": "SlateportCity_OceanicMuseum_1F_EventScript_DepthMeasuringMachine",
+    "signature": "7af4eebe7b17b3be9e90cfd8e96de3c7bc7606c1b1864c7ca7c3366de4ec8b76"
+  },
+  "136363274": {
+    "name": "Water Quality Sample1",
+    "script": "SlateportCity_OceanicMuseum_2F_EventScript_WaterQualitySample1",
+    "signature": "e47c8d441879da31914e5d3bc5e5cad4ff1c97445109c6ab1eae04568bdba48b"
+  },
+  "136363283": {
+    "name": "Water Quality Sample2",
+    "script": "SlateportCity_OceanicMuseum_2F_EventScript_WaterQualitySample2",
+    "signature": "8551ca02c4ad553971ab2cb22d403f5f5f8cf9e4d4cc8218c9524117049999f0"
+  },
+  "136363292": {
+    "name": "Pressure Experiment",
+    "script": "SlateportCity_OceanicMuseum_2F_EventScript_PressureExperiment",
+    "signature": "5a7aff4ad067edbc8437cab2d040b9bf5d14002fe1b8b6d0696f8c03cb6ebdca"
+  },
+  "136363301": {
+    "name": "Hoenn Model",
+    "script": "SlateportCity_OceanicMuseum_2F_EventScript_HoennModel",
+    "signature": "cc727e092197614213ff86039d4c4d801b4a52248cc59b678bd0432548def97b"
+  },
+  "136363310": {
+    "name": "Deep Seawater Display",
+    "script": "SlateportCity_OceanicMuseum_2F_EventScript_DeepSeawaterDisplay",
+    "signature": "505a755dc605413799eda319c064c863c940e3b8418e8a5b436156da4780cf7d"
+  },
+  "136363319": {
+    "name": "Surface Seawater Display",
+    "script": "SlateportCity_OceanicMuseum_2F_EventScript_SurfaceSeawaterDisplay",
+    "signature": "26610cf9ba1b717a75e386bc2a82e8cbc8fe34a5e5441fced30c2aa4396d45f8"
+  },
+  "136363328": {
+    "name": "SSTidal Replica",
+    "script": "SlateportCity_OceanicMuseum_2F_EventScript_SSTidalReplica",
+    "signature": "b2b08008f6debe52c6ab88577ca0f1f9a17630221c68e463afb9451dbdf3fbec"
+  },
+  "136363337": {
+    "name": "Submarine Replica",
+    "script": "SlateportCity_OceanicMuseum_2F_EventScript_SubmarineReplica",
+    "signature": "692b89e7e787eadc163946d3a7114e53266250cb113d9e0c11df766bde48e84c"
+  },
+  "136363346": {
+    "name": "Submersible Replica",
+    "script": "SlateportCity_OceanicMuseum_2F_EventScript_SubmersibleReplica",
+    "signature": "2e5417ff12922c4125490f52c81c7848a55a74b2f05d63521e680e8cbd9e5539"
+  },
+  "136363355": {
+    "name": "SSAnne Replica",
+    "script": "SlateportCity_OceanicMuseum_2F_EventScript_SSAnneReplica",
+    "signature": "8e90bb02cd4a631474bb7226aa013d7033cc17c23d80ee7c35c7f6a5e4f0f903"
+  },
+  "136372555": {
+    "name": "Left Gym Statue",
+    "script": "MauvilleCity_Gym_EventScript_LeftGymStatue",
+    "signature": "2ec88e86bda7bedb964b0e162dc5098718c3b20989926762a2ea3509a2bd0b2a"
+  },
+  "136372571": {
+    "name": "Right Gym Statue",
+    "script": "MauvilleCity_Gym_EventScript_RightGymStatue",
+    "signature": "2ec88e86bda7bedb964b0e162dc5098718c3b20989926762a2ea3509a2bd0b2a"
+  },
+  "136375610": {
+    "name": "Mach Bike Handbook",
+    "script": "MauvilleCity_BikeShop_EventScript_MachBikeHandbook",
+    "signature": "8895a3ca042edc5c47ec3fdcfc9858e56b2912b3da28963aab87ce5c1afb6a07"
+  },
+  "136375726": {
+    "name": "Acro Bike Handbook",
+    "script": "MauvilleCity_BikeShop_EventScript_AcroBikeHandbook",
+    "signature": "afc7b73698acb6b97f7f9a82ce5866ca17b3b15d641ca02b7b25753f274a818f"
+  },
+  "136381142": {
+    "name": "Slot Machine0",
+    "script": "MauvilleCity_GameCorner_EventScript_SlotMachine0",
+    "signature": "d0f667d8eed4c52207e0404c61b3c03248e37579201c10e30fd7b5cf213c8414"
+  },
+  "136381174": {
+    "name": "Slot Machine1",
+    "script": "MauvilleCity_GameCorner_EventScript_SlotMachine1",
+    "signature": "d0f667d8eed4c52207e0404c61b3c03248e37579201c10e30fd7b5cf213c8414"
+  },
+  "136381206": {
+    "name": "Slot Machine2",
+    "script": "MauvilleCity_GameCorner_EventScript_SlotMachine2",
+    "signature": "d0f667d8eed4c52207e0404c61b3c03248e37579201c10e30fd7b5cf213c8414"
+  },
+  "136381238": {
+    "name": "Slot Machine3",
+    "script": "MauvilleCity_GameCorner_EventScript_SlotMachine3",
+    "signature": "d0f667d8eed4c52207e0404c61b3c03248e37579201c10e30fd7b5cf213c8414"
+  },
+  "136381270": {
+    "name": "Slot Machine4",
+    "script": "MauvilleCity_GameCorner_EventScript_SlotMachine4",
+    "signature": "d0f667d8eed4c52207e0404c61b3c03248e37579201c10e30fd7b5cf213c8414"
+  },
+  "136381302": {
+    "name": "Slot Machine5",
+    "script": "MauvilleCity_GameCorner_EventScript_SlotMachine5",
+    "signature": "d0f667d8eed4c52207e0404c61b3c03248e37579201c10e30fd7b5cf213c8414"
+  },
+  "136381334": {
+    "name": "Slot Machine6",
+    "script": "MauvilleCity_GameCorner_EventScript_SlotMachine6",
+    "signature": "d0f667d8eed4c52207e0404c61b3c03248e37579201c10e30fd7b5cf213c8414"
+  },
+  "136381366": {
+    "name": "Slot Machine7",
+    "script": "MauvilleCity_GameCorner_EventScript_SlotMachine7",
+    "signature": "d0f667d8eed4c52207e0404c61b3c03248e37579201c10e30fd7b5cf213c8414"
+  },
+  "136381398": {
+    "name": "Slot Machine8",
+    "script": "MauvilleCity_GameCorner_EventScript_SlotMachine8",
+    "signature": "d0f667d8eed4c52207e0404c61b3c03248e37579201c10e30fd7b5cf213c8414"
+  },
+  "136381430": {
+    "name": "Slot Machine9",
+    "script": "MauvilleCity_GameCorner_EventScript_SlotMachine9",
+    "signature": "d0f667d8eed4c52207e0404c61b3c03248e37579201c10e30fd7b5cf213c8414"
+  },
+  "136381462": {
+    "name": "Slot Machine10",
+    "script": "MauvilleCity_GameCorner_EventScript_SlotMachine10",
+    "signature": "d0f667d8eed4c52207e0404c61b3c03248e37579201c10e30fd7b5cf213c8414"
+  },
+  "136381494": {
+    "name": "Slot Machine11",
+    "script": "MauvilleCity_GameCorner_EventScript_SlotMachine11",
+    "signature": "d0f667d8eed4c52207e0404c61b3c03248e37579201c10e30fd7b5cf213c8414"
+  },
+  "136385289": {
+    "name": "Rocks Metal Display",
+    "script": "RustboroCity_DevonCorp_1F_EventScript_RocksMetalDisplay",
+    "signature": "ba6d1717a1bc230d94ef217f2df09eed13b08affc6f06d289ffbb8bef46f1d06"
+  },
+  "136385298": {
+    "name": "Products Display",
+    "script": "RustboroCity_DevonCorp_1F_EventScript_ProductsDisplay",
+    "signature": "713a07027adb9b8f63a5692cb05356bb1b201aa6e74a9fd52447456a3f9afbad"
+  },
+  "136390144": {
+    "name": "Rare Rocks Display",
+    "script": "RustboroCity_DevonCorp_3F_EventScript_RareRocksDisplay",
+    "signature": "53b1baeb3bbc90dea01de772a6b617816a3cab7034a734bbb63126462ef83b3e"
+  },
+  "136392775": {
+    "name": "Left Gym Statue",
+    "script": "RustboroCity_Gym_EventScript_LeftGymStatue",
+    "signature": "caf6e9547dfff687155f2984fdde5b92bff273addc837e734b840d112232f259"
+  },
+  "136392791": {
+    "name": "Right Gym Statue",
+    "script": "RustboroCity_Gym_EventScript_RightGymStatue",
+    "signature": "caf6e9547dfff687155f2984fdde5b92bff273addc837e734b840d112232f259"
+  },
+  "136396457": {
+    "name": "Blackboard",
+    "script": "RustboroCity_PokemonSchool_EventScript_Blackboard",
+    "signature": "348c33b952ef5f991e6723cb3e1897658b5fac4bc115b9733119706b49b52f25"
+  },
+  "136396684": {
+    "name": "Student Notebook",
+    "script": "RustboroCity_PokemonSchool_EventScript_StudentNotebook",
+    "signature": "773a987271a8e34174cc59a9afed96e10518f9b6382846da61cb3180d817d292"
+  },
+  "136406865": {
+    "name": "Left Gym Statue",
+    "script": "FortreeCity_Gym_EventScript_LeftGymStatue",
+    "signature": "a3129ae336986f16d412bd25bd1497b1a054cf609731ad1a2e388fe52eb72641"
+  },
+  "136406881": {
+    "name": "Right Gym Statue",
+    "script": "FortreeCity_Gym_EventScript_RightGymStatue",
+    "signature": "a3129ae336986f16d412bd25bd1497b1a054cf609731ad1a2e388fe52eb72641"
+  },
+  "136416676": {
+    "name": "Old Painting",
+    "script": "LilycoveCity_LilycoveMuseum_1F_EventScript_OldPainting",
+    "signature": "1f584f3409aa932e9634322c05c3388e20bb44a4aa7ec42ff52a953cd233e515"
+  },
+  "136416685": {
+    "name": "Fantasy Painting",
+    "script": "LilycoveCity_LilycoveMuseum_1F_EventScript_FantasyPainting",
+    "signature": "d9bbb1f715c0936857a3871dd95c071772b3d9463fafe47908c376dd47298c62"
+  },
+  "136416694": {
+    "name": "Woman Painting",
+    "script": "LilycoveCity_LilycoveMuseum_1F_EventScript_WomanPainting",
+    "signature": "3df76db5795e634d48205de2ed6c437830ab8725e23adbdc5e5cbdc191098960"
+  },
+  "136416703": {
+    "name": "Legendary Pokemon Painting",
+    "script": "LilycoveCity_LilycoveMuseum_1F_EventScript_LegendaryPokemonPainting",
+    "signature": "3726edaea548d015a87759f5595c9ec5e4e1be103d998d07ad284fc7fa7c8a89"
+  },
+  "136416712": {
+    "name": "Grass Pokemon Painting",
+    "script": "LilycoveCity_LilycoveMuseum_1F_EventScript_GrassPokemonPainting",
+    "signature": "9460d19e29c4deac3972e9f497a4c5cd7392241b7c6582bfc6efb1996e597e38"
+  },
+  "136416721": {
+    "name": "Berry Painting",
+    "script": "LilycoveCity_LilycoveMuseum_1F_EventScript_BerryPainting",
+    "signature": "b0368f86dea0da7b5d6f0671ee3dd4390595dbacf40469e31dc353ffeb1f623c"
+  },
+  "136416730": {
+    "name": "Bird Sculpture",
+    "script": "LilycoveCity_LilycoveMuseum_EventScript_BirdSculpture",
+    "signature": "f6cccde571d06bffa944372792c83d050cea898cb3d13dc6969ae53f69018cc1"
+  },
+  "136416739": {
+    "name": "Poke Ball Sculpture",
+    "script": "LilycoveCity_LilycoveMuseum_1F_EventScript_PokeBallSculpture",
+    "signature": "628a8acd796d4c15f713e70b816eebe8d6e373ebff00c60e32b543b4d58e1cb4"
+  },
+  "136416748": {
+    "name": "Stone Tablet",
+    "script": "LilycoveCity_LilycoveMuseum_1F_EventScript_StoneTablet",
+    "signature": "0b109a4b670a82c1dca4eab93662e9fe79253840241a9e7f49db78d08c53f27d"
+  },
+  "136419627": {
+    "name": "Cute Painting",
+    "script": "LilycoveCity_LilycoveMuseum_2F_EventScript_CutePainting",
+    "signature": "9a10717285bf58bc0127fe0d1aa22a1f6f19876505c3f7954ebb091d351e9399"
+  },
+  "136419646": {
+    "name": "Tough Painting",
+    "script": "LilycoveCity_LilycoveMuseum_2F_EventScript_ToughPainting",
+    "signature": "4536e144c828b6d99cb959650923468d91be5a1087be44c90276042d9d386668"
+  },
+  "136419665": {
+    "name": "Cool Painting",
+    "script": "LilycoveCity_LilycoveMuseum_2F_EventScript_CoolPainting",
+    "signature": "d7637b1ca2f686ee7ea11310f663763363d732c2e6a430535fa821e232aae51f"
+  },
+  "136419684": {
+    "name": "Beauty Painting",
+    "script": "LilycoveCity_LilycoveMuseum_2F_EventScript_BeautyPainting",
+    "signature": "a835636103808ae9694a419fd0f008257cfa51a0922145713fb1b1c92b6ae979"
+  },
+  "136419703": {
+    "name": "Smart Painting",
+    "script": "LilycoveCity_LilycoveMuseum_2F_EventScript_SmartPainting",
+    "signature": "14a27dc1d1630ccf2af6954a02d9ebf5749b9ce9a435366cefe4d892289d491c"
+  },
+  "136423230": {
+    "name": "Contest Winner1",
+    "script": "LilycoveCity_ContestLobby_EventScript_ContestWinner1",
+    "signature": "c63359ff36e7fb2114468db0ef5a3d7cb7c54fb0755a1c68e8d13d2941964c95"
+  },
+  "136423237": {
+    "name": "Contest Winner2",
+    "script": "LilycoveCity_ContestLobby_EventScript_ContestWinner2",
+    "signature": "e3228d0513f1e1f0b55929a190d9c6943e96fa21c57f78449ece959b7768f52d"
+  },
+  "136423244": {
+    "name": "Contest Winner3",
+    "script": "LilycoveCity_ContestLobby_EventScript_ContestWinner3",
+    "signature": "184772ffc07fca3506413063dca5bf6cc07a955f3b914830f7a9ecc1715abf4c"
+  },
+  "136423251": {
+    "name": "Contest Winner4",
+    "script": "LilycoveCity_ContestLobby_EventScript_ContestWinner4",
+    "signature": "72d91681f1a56356bcee49d9988e657c822656331aa912693385fce52c8263dd"
+  },
+  "136423258": {
+    "name": "Contest Winner5",
+    "script": "LilycoveCity_ContestLobby_EventScript_ContestWinner5",
+    "signature": "fba433adbeb706be11afdf1df09825050939d1ab9d7e9906cde946fa66d932cf"
+  },
+  "136423265": {
+    "name": "Contest Winner6",
+    "script": "LilycoveCity_ContestLobby_EventScript_ContestWinner6",
+    "signature": "f7c5129cfad78d6d7d31ab27ffc51bb354d7a333ed30c755e46491bc5f8059c4"
+  },
+  "136423290": {
+    "name": "Berry Blender Speed Records",
+    "script": "LilycoveCity_ContestLobby_EventScript_BerryBlenderSpeedRecords",
+    "signature": "fd3f511d66098d6472af57e18696243a1de58d8658d35957ab1028d22c7661c1"
+  },
+  "136423300": {
+    "name": "Link Contest Results",
+    "script": "LilycoveCity_ContestLobby_EventScript_LinkContestResults",
+    "signature": "399a3ebd89bb66c0db983b292dc22a16626f32580fee8690e31c3769db565458"
+  },
+  "136427315": {
+    "name": "Beauty Stage Sign",
+    "script": "LilycoveCity_ContestHall_EventScript_BeautyStageSign",
+    "signature": "37c4b5c1442eefc106c8aa029cef00dc09393af2dc735833cfe5b9d863e06e83"
+  },
+  "136427324": {
+    "name": "Cute Stage Sign",
+    "script": "LilycoveCity_ContestHall_EventScript_CuteStageSign",
+    "signature": "9921f182abfd9e160753bbe027a8df8031c0a29d7e0ff7b49b42a5df793a0d5b"
+  },
+  "136427333": {
+    "name": "Smart Stage Sign",
+    "script": "LilycoveCity_ContestHall_EventScript_SmartStageSign",
+    "signature": "a636685975f77eeda12b0eb2df69716a496264495c234ef5f797509b79eb2c87"
+  },
+  "136443997": {
+    "name": "Floor Names Sign",
+    "script": "LilycoveCity_DepartmentStore_1F_EventScript_FloorNamesSign",
+    "signature": "5e361028766bc5c17754d04239948727fdcc55ed0bd226810221953abfd0687b"
+  },
+  "136446613": {
+    "name": "Vending Machine",
+    "script": "LilycoveCity_DepartmentStoreRooftop_EventScript_VendingMachine",
+    "signature": "231277362a391be6ae200c33e9c796e3ce31eafe4f06b7ced43f22b9bf37c1ad"
+  },
+  "136449075": {
+    "name": "Left Gym Statue",
+    "script": "MossdeepCity_Gym_EventScript_LeftGymStatue",
+    "signature": "da9862123e08a7947e032a0867c9598dbcce80213d34036f721aeeff3d2c0d75"
+  },
+  "136449091": {
+    "name": "Right Gym Statue",
+    "script": "MossdeepCity_Gym_EventScript_RightGymStatue",
+    "signature": "da9862123e08a7947e032a0867c9598dbcce80213d34036f721aeeff3d2c0d75"
+  },
+  "136456457": {
+    "name": "Rock Display",
+    "script": "MossdeepCity_StevensHouse_EventScript_RockDisplay",
+    "signature": "0e12323f2164c9bfae35d12fe8971d4882ac8c073983e50256d79ddef5674985"
+  },
+  "136465245": {
+    "name": "Door",
+    "script": "RS_MysteryEventsHouse_EventScript_Door",
+    "signature": "b0839afa5d981553295be1428bd03e13ec6e6295ce4eb53de67d61a370f83868"
+  },
+  "136466527": {
+    "name": "Left Gym Statue",
+    "script": "SootopolisCity_Gym_1F_EventScript_LeftGymStatue",
+    "signature": "0631476e706143e1c968ffc51bbe6d846ea336ef9188c09d71925d23a14ccc04"
+  },
+  "136466543": {
+    "name": "Right Gym Statue",
+    "script": "SootopolisCity_Gym_1F_EventScript_RightGymStatue",
+    "signature": "0631476e706143e1c968ffc51bbe6d846ea336ef9188c09d71925d23a14ccc04"
+  },
+  "136475469": {
+    "name": "Seedot Size Record",
+    "script": "SootopolisCity_LotadAndSeedotHouse_EventScript_SeedotSizeRecord",
+    "signature": "4d77129f2df7a949fef7cc36f1625870e3b75c2e55d7801863fc0b9406818f77"
+  },
+  "136475483": {
+    "name": "Lotad Size Record",
+    "script": "SootopolisCity_LotadAndSeedotHouse_EventScript_LotadSizeRecord",
+    "signature": "c2bc2018a079692c07ca140fa2cd25d303376667134da856a2406d39b934f6a7"
+  },
+  "136490355": {
+    "name": "Rock Display",
+    "script": "Route114_FossilManiacsHouse_EventScript_RockDisplay",
+    "signature": "d980ef367a11474323a8db988b5675d5a5a265e35b7f85c368f8b3d73d25598c"
+  },
+  "136490364": {
+    "name": "Bookshelf",
+    "script": "Route114_FossilManiacsHouse_EventScript_Bookshelf",
+    "signature": "0d3947477c8ace079280484321bdc7f3884a874a5f11eb5454221e9285149304"
+  },
+  "136491785": {
+    "name": "Notebook",
+    "script": "Route114_LanettesHouse_EventScript_Notebook",
+    "signature": "c0e014462beffa258c525330324a465d00817c832f11612edbc0120277418609"
+  },
+  "136491845": {
+    "name": "PC",
+    "script": "Route114_LanettesHouse_EventScript_PC",
+    "signature": "139a36a696e994a3e5239e3f341c2cfef0349f96e7f0591771dfbe6187f2cd2d"
+  },
+  "136507620": {
+    "name": "Meteorite Machine",
+    "script": "MtChimney_EventScript_MeteoriteMachine",
+    "signature": "ba536d52dd22334141b8493ed0113c81ab028c9542242172a68667c56bf46747"
+  },
+  "136507713": {
+    "name": "Route Sign",
+    "script": "MtChimney_EventScript_RouteSign",
+    "signature": "5c0647f20e5b64180ec80d77ca6261150cd0b029df61bf9b837e797418df5d83"
+  },
+  "136540090": {
+    "name": "Shoal Shell1",
+    "script": "ShoalCave_LowTideInnerRoom_EventScript_ShoalShell1",
+    "signature": "2200b9807f1c9b1ea452b7dbe6e45a0779e0aae083a16cbb689584bdae266919"
+  },
+  "136540150": {
+    "name": "Shoal Shell2",
+    "script": "ShoalCave_LowTideInnerRoom_EventScript_ShoalShell2",
+    "signature": "409c6cc8650bba259173ca4275c6b7028ae32e78bde7759947ce0950508b8b7f"
+  },
+  "136540200": {
+    "name": "Shoal Shell3",
+    "script": "ShoalCave_LowTideInnerRoom_EventScript_ShoalShell3",
+    "signature": "55e5f25c14d399a49680b8f38f724f583e5bea941df8161536caf322a4364cb6"
+  },
+  "136540250": {
+    "name": "Shoal Shell4",
+    "script": "ShoalCave_LowTideInnerRoom_EventScript_ShoalShell4",
+    "signature": "3243f266ab9888f1279c33391c9c414d4d37352ef9f40775b733abeb4f7534db"
+  },
+  "136540300": {
+    "name": "Shoal Salt1",
+    "script": "ShoalCave_LowTideInnerRoom_EventScript_ShoalSalt1",
+    "signature": "70b5f4c2c93a6928db99b2b6d6a92dc3e11e9a59f3cc5c9e0f20134b11139fcf"
+  },
+  "136540360": {
+    "name": "Shoal Salt2",
+    "script": "ShoalCave_LowTideInnerRoom_EventScript_ShoalSalt2",
+    "signature": "528a3cfd0242874f3360b480274dfe6ae7dae51b263513180a361062cf241359"
+  },
+  "136540442": {
+    "name": "Shoal Salt3",
+    "script": "ShoalCave_LowTideStairsRoom_EventScript_ShoalSalt3",
+    "signature": "c955ff2c040071fb2b44a76d419643c3a3afeb8bf9f59a4faa26321b6db0eec2"
+  },
+  "136540534": {
+    "name": "Shoal Salt4",
+    "script": "ShoalCave_LowTideLowerRoom_EventScript_ShoalSalt4",
+    "signature": "a967b02ac1ee58c1745f7e46450cf2f0b9fe98cf10c585bd5217a69656cc2bfe"
+  },
+  "136542095": {
+    "name": "Generator",
+    "script": "NewMauville_Inside_EventScript_Generator",
+    "signature": "dfbb185fb2ac0c61596ecfa7cac83ab100fcb8a2e9f6cbf036ff13d8be1294b1"
+  },
+  "136543688": {
+    "name": "Storage Room Door",
+    "script": "AbandonedShip_Corridors_B1F_EventScript_StorageRoomDoor",
+    "signature": "bc83f317ccd3559eb4792848c38a8d4f7cbdcbaacb5208964aec2bd642907408"
+  },
+  "136546841": {
+    "name": "Room1Door",
+    "script": "AbandonedShip_HiddenFloorCorridors_EventScript_Room1Door",
+    "signature": "51286341e8113498653c42baf6113a8e7a4534ffe6cb1686f12c55902c9abaae"
+  },
+  "136546896": {
+    "name": "Room2Door",
+    "script": "AbandonedShip_HiddenFloorCorridors_EventScript_Room2Door",
+    "signature": "a29cc2b208a6006b00c7c045a7e549da329a2267c922d0bd4efba95e843c224a"
+  },
+  "136546951": {
+    "name": "Room4Door",
+    "script": "AbandonedShip_HiddenFloorCorridors_EventScript_Room4Door",
+    "signature": "86be8f7628f9b87dcd527d58bca289015058125296c953eed06c0e23f674c019"
+  },
+  "136547006": {
+    "name": "Room6Door",
+    "script": "AbandonedShip_HiddenFloorCorridors_EventScript_Room6Door",
+    "signature": "c4095c1a3972d8d76edc43dc76e1a07f6f1a8fc24b4e0270dd9f9d0dbefd5177"
+  },
+  "136548604": {
+    "name": "Braille",
+    "script": "Underwater_SealedChamber_EventScript_Braille",
+    "signature": "e8527525e0a8a4cc66b8114fab70724b4f23a356262c144bcf826eb613500a12"
+  },
+  "136548716": {
+    "name": "Braille ABC",
+    "script": "SealedChamber_OuterRoom_EventScript_BrailleABC",
+    "signature": "af00438ff94bb39a5db452606fd198df4fa9811632f1b9214600f199a77bf9b9"
+  },
+  "136548726": {
+    "name": "Braille GHI",
+    "script": "SealedChamber_OuterRoom_EventScript_BrailleGHI",
+    "signature": "2888d68e845be1116b5289e9ee678647ffe4f17a9a1e1e918f776695e3c2738c"
+  },
+  "136548736": {
+    "name": "Braille MNO",
+    "script": "SealedChamber_OuterRoom_EventScript_BrailleMNO",
+    "signature": "515428233293419d60a1ac20f43342aed2b9b57da347efa5084e4c0b6e5110ee"
+  },
+  "136548746": {
+    "name": "Braille TUV",
+    "script": "SealedChamber_OuterRoom_EventScript_BrailleTUV",
+    "signature": "5afd8121a51b4b690c34fbf9b9c8c1b3d81a7ff6ef26765fc0e51d8db8c7c62a"
+  },
+  "136548756": {
+    "name": "Braille DEF",
+    "script": "SealedChamber_OuterRoom_EventScript_BrailleDEF",
+    "signature": "8632dabce811e267a17f6fdcd68e1a7ff145da1af0ff007383ec0c359fefa2f5"
+  },
+  "136548766": {
+    "name": "Braille JKL",
+    "script": "SealedChamber_OuterRoom_EventScript_BrailleJKL",
+    "signature": "7830fb07fce2a7c9bc6d4d02045fa6b4955f60b4f3fd021328383ebb2575d9b4"
+  },
+  "136548776": {
+    "name": "Braille PQRS",
+    "script": "SealedChamber_OuterRoom_EventScript_BraillePQRS",
+    "signature": "082d01f538b54071becfaa7784bfee22e3f671d3499394fde20a08e76f152f6b"
+  },
+  "136548786": {
+    "name": "Braille Period",
+    "script": "SealedChamber_OuterRoom_EventScript_BraillePeriod",
+    "signature": "bf0dd96a9803f324f5bafec8739244e7d45341fa5a4505a677d25588f4dca718"
+  },
+  "136548796": {
+    "name": "Braille WXYZ",
+    "script": "SealedChamber_OuterRoom_EventScript_BrailleWXYZ",
+    "signature": "b7d494a8fd8fd60b53cc18e531d3e94ad3cd0cc24e8722b05c50733969916d5c"
+  },
+  "136548806": {
+    "name": "Braille Comma",
+    "script": "SealedChamber_OuterRoom_EventScript_BrailleComma",
+    "signature": "9c6a5f627ecdb74be0fa1d5856360f4ddf0bc62f7a66b227a0c49e75deecf042"
+  },
+  "136548816": {
+    "name": "Inner Room Entrance Wall",
+    "script": "SealedChamber_OuterRoom_EventScript_InnerRoomEntranceWall",
+    "signature": "7be6ac44aea5fd4fec556155a33d96f71b901131c12fddf988f10277b202b7e7"
+  },
+  "136548845": {
+    "name": "Braille Dig Here",
+    "script": "SealedChamber_OuterRoom_EventScript_BrailleDigHere",
+    "signature": "95fbeb57a7db8d197641902ccaba4f876a54c66a2a5ba8252e95afc72e4b31aa"
+  },
+  "136548856": {
+    "name": "Braille Back Wall",
+    "script": "SealedChamber_InnerRoom_EventScript_BrailleBackWall",
+    "signature": "9caa04cdf7effcc403939c8924c4bfdc32885fdb6e0c7537b7447b90f73bdbb0"
+  },
+  "136548949": {
+    "name": "Braille Story Part1",
+    "script": "SealedChamber_InnerRoom_EventScript_BrailleStoryPart1",
+    "signature": "0505282b1989e2b41b1d50f729eb4b1915865cd78c31dd0c0478c5b5fdcda722"
+  },
+  "136548959": {
+    "name": "Braille Story Part2",
+    "script": "SealedChamber_InnerRoom_EventScript_BrailleStoryPart2",
+    "signature": "9488918200fd923f39db9daa20ca7852c3236f387f4836a5728994ed9a15dcbd"
+  },
+  "136548969": {
+    "name": "Braille Story Part3",
+    "script": "SealedChamber_InnerRoom_EventScript_BrailleStoryPart3",
+    "signature": "0dd3aae94d98b80f5520be46e042e212cace3dfbde70e755193d4f989252cb01"
+  },
+  "136548979": {
+    "name": "Braille Story Part4",
+    "script": "SealedChamber_InnerRoom_EventScript_BrailleStoryPart4",
+    "signature": "39f28db40aa5abaf4baed7dd5da74832c1f615af0ac5ce2a53f0516e746a085d"
+  },
+  "136548989": {
+    "name": "Braille Story Part5",
+    "script": "SealedChamber_InnerRoom_EventScript_BrailleStoryPart5",
+    "signature": "e5389e362d0638c26ff52ee292451d411914dc15f3b9db7e3cddbc9c813bd3b0"
+  },
+  "136548999": {
+    "name": "Braille Story Part6",
+    "script": "SealedChamber_InnerRoom_EventScript_BrailleStoryPart6",
+    "signature": "de39931bfdb1607612eff137ecc53a6e75f5285cc643cd905f0afb69047e136c"
+  },
+  "136560492": {
+    "name": "Moving Box",
+    "script": "InsideOfTruck_EventScript_MovingBox",
+    "signature": "47bd43c0a8beb403b008f2b6555e0439518b65803d845773cc6fc960a89bc1fb"
+  },
+  "136560885": {
+    "name": "Cabin1Sign",
+    "script": "SSTidalCorridor_EventScript_Cabin1Sign",
+    "signature": "fa537a23e10953c737150fa02f3d521e0a4c1fa7ebfb8dee3093a0cfe2d03660"
+  },
+  "136560894": {
+    "name": "Cabin2Sign",
+    "script": "SSTidalCorridor_EventScript_Cabin2Sign",
+    "signature": "e38217f8530da6382dc088ff33fe1cdd87a9abb32700993ec88f8716dcf82737"
+  },
+  "136560903": {
+    "name": "Cabin3Sign",
+    "script": "SSTidalCorridor_EventScript_Cabin3Sign",
+    "signature": "95071da08bbe232ed73cd444e0134bd27c97601b180be00365b25b9988456bdf"
+  },
+  "136560912": {
+    "name": "Cabin4Sign",
+    "script": "SSTidalCorridor_EventScript_Cabin4Sign",
+    "signature": "e68139ab85cd8f1b333c2ece725f176b3fde00156db904a1ef104d752798194d"
+  },
+  "136561021": {
+    "name": "Porthole",
+    "script": "SSTidalCorridor_EventScript_Porthole",
+    "signature": "ca4b1614cf21ce3d6714728a9a6f0c989b6340fa3673e38ddb05e0cbf6c45407"
+  },
+  "136563251": {
+    "name": "Bed",
+    "script": "SSTidalRooms_EventScript_Bed",
+    "signature": "0b5ce0963cac9719a78b5c710cb2316074f73cf5d2f580950174d548d13517c0"
+  },
+  "136565360": {
+    "name": "Rest House Sign",
+    "script": "SafariZone_Southwest_EventScript_RestHouseSign",
+    "signature": "1617e21a9bee6f2bc92716a3af57090119859bf29af0d9f7677fafd46e45e4af"
+  },
+  "136565986": {
+    "name": "Battle Dome Sign",
+    "script": "BattleFrontier_OutsideWest_EventScript_BattleDomeSign",
+    "signature": "6ea2fbde12bd7f03287294027a1702dbb5528b400b9bc276ac5918ecc2b8bdf4"
+  },
+  "136565995": {
+    "name": "Battle Factory Sign",
+    "script": "BattleFrontier_OutsideWest_EventScript_BattleFactorySign",
+    "signature": "589f6da12df84bcb4ba97b1492d6cd3959093d51cae83022910e877291c3f8e8"
+  },
+  "136566004": {
+    "name": "Battle Pike Sign",
+    "script": "BattleFrontier_OutsideWest_EventScript_BattlePikeSign",
+    "signature": "5a148820f5399c4179afd4e801c3c7de6264fba46f8f75f14bfdbe5e247498db"
+  },
+  "136572871": {
+    "name": "Show Singles Results",
+    "script": "BattleFrontier_BattleTowerLobby_EventScript_ShowSinglesResults",
+    "signature": "62dee80abc90d8e0afe99f07ed832950d600c248e67d3da3576b7bc8674f4b1b"
+  },
+  "136572896": {
+    "name": "Show Doubles Results",
+    "script": "BattleFrontier_BattleTowerLobby_EventScript_ShowDoublesResults",
+    "signature": "94c01be4f4e3b1af5fb36f1547408b13ccdfe7601f64c1e0ef538796bff15736"
+  },
+  "136572921": {
+    "name": "Show Multis Results",
+    "script": "BattleFrontier_BattleTowerLobby_EventScript_ShowMultisResults",
+    "signature": "031fe73a3968442ad80408514a71432d1f925cb941a3ebec4ffb694e5d1fbbd7"
+  },
+  "136572946": {
+    "name": "Show Link Multis Results",
+    "script": "BattleFrontier_BattleTowerLobby_EventScript_ShowLinkMultisResults",
+    "signature": "bc2bb55fb4cf2567dc78e28b537607d825dcb490da69793492db8cc4d51731bf"
+  },
+  "136574142": {
+    "name": "Rules Board",
+    "script": "BattleFrontier_BattleTowerLobby_EventScript_RulesBoard",
+    "signature": "66ec437d03099dd44ffa19265f80b364e290e6b8d2911fa5c38c05887d38db92"
+  },
+  "136587836": {
+    "name": "Sign",
+    "script": "SouthernIsland_Exterior_EventScript_Sign",
+    "signature": "58379fa1af88ec1d60739e5b9b8698bf1b659e63caa7cc011140f41f37ed490f"
+  },
+  "136587972": {
+    "name": "Try Lati Encounter",
+    "script": "SouthernIsland_Interior_EventScript_TryLatiEncounter",
+    "signature": "24cdaa17ba31ef67ebedd16589667d1a79fbfbb4b3d8839af899a7020e937c7f"
+  },
+  "136588355": {
+    "name": "Battle Tower Sign",
+    "script": "BattleFrontier_OutsideEast_EventScript_BattleTowerSign",
+    "signature": "a2160c6b5d953b28aad789d99bd525adcd8fb470d918479facf64d5009ecba49"
+  },
+  "136588364": {
+    "name": "Battle Palace Sign",
+    "script": "BattleFrontier_OutsideEast_EventScript_BattlePalaceSign",
+    "signature": "613295144eb6e553553e4f04d5eebf9c4849ee0f457a34889a7099cf2f8fd461"
+  },
+  "136588373": {
+    "name": "Battle Arena Sign",
+    "script": "BattleFrontier_OutsideEast_EventScript_BattleArenaSign",
+    "signature": "a91640ae8486b5546b410c1b993c5f1f8b24e9fd5c0ff8466b1e8cddff3a2d6f"
+  },
+  "136588382": {
+    "name": "Battle Pyramid Sign",
+    "script": "BattleFrontier_OutsideEast_EventScript_BattlePyramidSign",
+    "signature": "90f46111ed49180e26668341f91f32e7ee6fe8e0c73eefee52ac6c430907e0c9"
+  },
+  "136588750": {
+    "name": "Ranking Hall Sign",
+    "script": "BattleFrontier_OutsideEast_EventScript_RankingHallSign",
+    "signature": "de4b9b3c857199d6d928021665ae370344467ce7001da7c39983f38e1a50138e"
+  },
+  "136588759": {
+    "name": "Exchange Corner Sign",
+    "script": "BattleFrontier_OutsideEast_EventScript_ExchangeCornerSign",
+    "signature": "c1cfbb61635e944ead5b8bb1bbabcc57f68459cfe7401a7a8b70cec9c63ec75d"
+  },
+  "136617298": {
+    "name": "Show Singles Results",
+    "script": "BattleFrontier_BattleDomeLobby_EventScript_ShowSinglesResults",
+    "signature": "6f71f61d73f4381614b51f5b299598584a885336af8e12f68ed61eae49a0f05f"
+  },
+  "136617323": {
+    "name": "Show Doubles Results",
+    "script": "BattleFrontier_BattleDomeLobby_EventScript_ShowDoublesResults",
+    "signature": "bc5679412eab631a3851d51a5b5361e344899e8696b0cc4c996a99076780a01e"
+  },
+  "136617348": {
+    "name": "Show Prev Tourney Tree",
+    "script": "BattleFrontier_BattleDomeLobby_EventScript_ShowPrevTourneyTree",
+    "signature": "3e91b136749bb089794c25de80605dbd9e2d4958aea98ca185e95989c4778a8c"
+  },
+  "136617524": {
+    "name": "Rules Board",
+    "script": "BattleFrontier_BattleDomeLobby_EventScript_RulesBoard",
+    "signature": "a0a5ded2f07e98cce9fa010d1a383f9ac99ddd05ac0a0d5eda7a90523e63bde5"
+  },
+  "136633424": {
+    "name": "Show Singles Results",
+    "script": "BattleFrontier_BattlePalaceLobby_EventScript_ShowSinglesResults",
+    "signature": "16ac198c0c5c9f41d1be87ced36dbd8ab36cf4f4613381bf67e76b5586a0b6f2"
+  },
+  "136633449": {
+    "name": "Show Doubles Results",
+    "script": "BattleFrontier_BattlePalaceLobby_EventScript_ShowDoublesResults",
+    "signature": "9ba7e4358e527a7e7f092290412933311dd250fb93e3c6b611f558e6031c966b"
+  },
+  "136633510": {
+    "name": "Rules Board",
+    "script": "BattleFrontier_BattlePalaceLobby_EventScript_RulesBoard",
+    "signature": "38f5af3c5f3f91c76acadda349f5c3e51215d44401ba97337b0ffab3d8394554"
+  },
+  "136645954": {
+    "name": "Show Results",
+    "script": "BattleFrontier_BattlePyramidLobby_EventScript_ShowResults",
+    "signature": "c7f2f7d301f6bc5dbcc1c5cbd624ebd11d8d5892dde8208323bc1ef9310a12ac"
+  },
+  "136646293": {
+    "name": "Rules Board",
+    "script": "BattleFrontier_BattlePyramidLobby_EventScript_RulesBoard",
+    "signature": "0bed56413a62a9c99e5521d706115ec1ed705992238699f07fc03b6069fa02e9"
+  },
+  "136667282": {
+    "name": "Show Results",
+    "script": "BattleFrontier_BattleArenaLobby_EventScript_ShowResults",
+    "signature": "f420c23fc9f737086ab6e4ac0bb7708460412c0e2ff8d4984e01b783bd6852dd"
+  },
+  "136667338": {
+    "name": "Rules Board",
+    "script": "BattleFrontier_BattleArenaLobby_EventScript_RulesBoard",
+    "signature": "522debffa2d4206d5a7c4eac3cfe4b76bd044095f26c9bde36ab6e3987b7a503"
+  },
+  "136677345": {
+    "name": "Show Singles Results",
+    "script": "BattleFrontier_BattleFactoryLobby_EventScript_ShowSinglesResults",
+    "signature": "081c8b2aa616eaa31b9a47152cc795971064808aa94a5596f479675a34aed108"
+  },
+  "136677370": {
+    "name": "Show Doubles Results",
+    "script": "BattleFrontier_BattleFactoryLobby_EventScript_ShowDoublesResults",
+    "signature": "0fa7e2af2329b60866de86e3d8b160aa4f042c4b52fcc52a226b390a1f784126"
+  },
+  "136677433": {
+    "name": "Rules Board",
+    "script": "BattleFrontier_BattleFactoryLobby_EventScript_RulesBoard",
+    "signature": "8ad96d01fa593552426c8ba26f7365f2e92d452efd735a33e9ab8a311628ca6d"
+  },
+  "136690304": {
+    "name": "Show Results",
+    "script": "BattleFrontier_BattlePikeLobby_EventScript_ShowResults",
+    "signature": "5cc4878f70b242497776575b200aa84136aad6b56b11c599c8bf6fc1a8550c81"
+  },
+  "136690374": {
+    "name": "Rules Board",
+    "script": "BattleFrontier_BattlePikeLobby_EventScript_RulesBoard",
+    "signature": "d8d948c5582a48da7e157e383ba5ab12e5a48baaf03560b6fbb0977ee31fbbae"
+  },
+  "136701098": {
+    "name": "Tower Singles Records",
+    "script": "BattleFrontier_RankingHall_EventScript_TowerSinglesRecords",
+    "signature": "b5fe9cb06e1840cc532cb67823a76ed6c3644c5db7ae0f40500a001d15f63dc7"
+  },
+  "136701110": {
+    "name": "Tower Doubles Records",
+    "script": "BattleFrontier_RankingHall_EventScript_TowerDoublesRecords",
+    "signature": "390f48896d3ea685ce3b9da91bd9c336e48cc2018601f7960cdb79c8f25ba0a1"
+  },
+  "136701122": {
+    "name": "Tower Multis Records",
+    "script": "BattleFrontier_RankingHall_EventScript_TowerMultisRecords",
+    "signature": "508276e5121c826b9e84e1dfd3e7edde5593d76188effc303f5186f1d3f6c186"
+  },
+  "136701134": {
+    "name": "Tower Link Records",
+    "script": "BattleFrontier_RankingHall_EventScript_TowerLinkRecords",
+    "signature": "a6976a14688beac8d31d7e66766dcaab80dcc8d820a910da6efbce30862eddae"
+  },
+  "136701146": {
+    "name": "Arena Records",
+    "script": "BattleFrontier_RankingHall_EventScript_ArenaRecords",
+    "signature": "7c91ab22a7b740177e848ff4dc67d7dbec78cbdb6782534bdf338139d2a40b4d"
+  },
+  "136701158": {
+    "name": "Palace Records",
+    "script": "BattleFrontier_RankingHall_EventScript_PalaceRecords",
+    "signature": "5caec30ae165cebfdcf85c35ab6f50d184a45f467255e104907c04ec1ba655eb"
+  },
+  "136701170": {
+    "name": "Factory Records",
+    "script": "BattleFrontier_RankingHall_EventScript_FactoryRecords",
+    "signature": "615c9a3f7386965d16f6865667d39dc4d168c6e975c7ecc4f180f8f96b154482"
+  },
+  "136701182": {
+    "name": "Dome Records",
+    "script": "BattleFrontier_RankingHall_EventScript_DomeRecords",
+    "signature": "874d8a3b15e7e44d4cb4f570c64b61b3cc7a70faa1ede3dd3542f7657baa7ee4"
+  },
+  "136701194": {
+    "name": "Pike Records",
+    "script": "BattleFrontier_RankingHall_EventScript_PikeRecords",
+    "signature": "7da8f618426a2e604e7f7534186a0823252a298d30c3a8ab7503e58dd417bee0"
+  },
+  "136701206": {
+    "name": "Pyramid Records",
+    "script": "BattleFrontier_RankingHall_EventScript_PyramidRecords",
+    "signature": "a2ad7e3873aa26b0b2c273ea19f81d4d69c44c87193636057a3c571c4ca20cb9"
+  },
+  "136701240": {
+    "name": "Dome Pike Factory Records Sign",
+    "script": "BattleFrontier_RankingHall_EventScript_DomePikeFactoryRecordsSign",
+    "signature": "f6836e4fa9e32745331c1be9cfe752fc150114454240ad8ede7b58ada15bffdf"
+  },
+  "136701249": {
+    "name": "Palace Arena Pyramid Records SIgn",
+    "script": "BattleFrontier_RankingHall_EventScript_PalaceArenaPyramidRecordsSIgn",
+    "signature": "fcb4f43fcb31bc848c27ff1f6af44ec529b606615ed6ecab3a6369e8283b6218"
+  },
+  "136740081": {
+    "name": "Sign",
+    "script": "FarawayIsland_Entrance_EventScript_Sign",
+    "signature": "15d01a33eb2e19ce77a50bf198b64c9c6dacbed5b91bee59094849861e3d17a2"
+  },
+  "136741768": {
+    "name": "Records",
+    "script": "TrainerHill_Entrance_EventScript_Records",
+    "signature": "0cfa8a77168ab0ed79d117aba11a9ec4041534580a29ddc1ae541b0442c00755"
+  },
+  "136749267": {
+    "name": "Door",
+    "script": "Route110_TrickHouseEntrance_EventScript_Door",
+    "signature": "a1c8b108abe399cc4f591f6db2bb276a7ed339088df9ff8c41b9a0e2b8ddfa95"
+  },
+  "136755499": {
+    "name": "Scroll",
+    "script": "Route110_TrickHousePuzzle1_EventScript_Scroll",
+    "signature": "3d5a34bba4c9dfc467aadcd517e51206ae80602da636b90a8558483ff952502b"
+  },
+  "136756160": {
+    "name": "Scroll",
+    "script": "Route110_TrickHousePuzzle2_EventScript_Scroll",
+    "signature": "b73901c7fc8ca3d29e070ffa64bf25a5a5c347c1abe5fab50d5a6bf9c7cdd303"
+  },
+  "136758695": {
+    "name": "Scroll",
+    "script": "Route110_TrickHousePuzzle3_EventScript_Scroll",
+    "signature": "8f305ff14009816c8a3372b22ffa6e988709ed017c250c9e4453c4a916e3ac63"
+  },
+  "136759393": {
+    "name": "Scroll",
+    "script": "Route110_TrickHousePuzzle4_EventScript_Scroll",
+    "signature": "d48e1dfb355fca75f3c187df3613e968fd4d9289bfe2b16e47984346ab0e08b0"
+  },
+  "136760085": {
+    "name": "Scroll",
+    "script": "Route110_TrickHousePuzzle5_EventScript_Scroll",
+    "signature": "f52033bf15f76d65018f7add09e54ed0643219645a4242e9a5d850001d23e45a"
+  },
+  "136764868": {
+    "name": "Scroll",
+    "script": "Route110_TrickHousePuzzle6_EventScript_Scroll",
+    "signature": "a7c732ae9be2a95b2ccbdb8295a8669fb5f094656bf2da512eb907c229c57bc6"
+  },
+  "136767490": {
+    "name": "Scroll",
+    "script": "Route110_TrickHousePuzzle8_EventScript_Scroll",
+    "signature": "f75f83643926ab65aea825ebb99cd2839996d5dde7df91b50a16363126c28212"
+  },
+  "136772376": {
+    "name": "Bed",
+    "script": "Route119_WeatherInstitute_1F_EventScript_Bed",
+    "signature": "2a2c140a1d8730a79fd4294d4c8b3da89e66ef719f5b2f65af0a8f0f18ba285d"
+  },
+  "136781418": {
+    "name": "Show Pokemart Sign",
+    "script": "Common_EventScript_ShowPokemartSign",
+    "signature": "fc8a6eb073c2cf14f6eee757cd8fcea8ec331da64f375a5ed7ae1f765313542e"
+  },
+  "136781427": {
+    "name": "Show Pokemon Center Sign",
+    "script": "Common_EventScript_ShowPokemonCenterSign",
+    "signature": "ef08c1deec7bcdb81a740ca4687ba4f46929c493d1bd9a32c9fdecdc1b823ff5"
+  },
+  "136806038": {
+    "name": "Pokemon Jump Records",
+    "script": "MossdeepCity_GameCorner_1F_EventScript_PokemonJumpRecords",
+    "signature": "14eb8511698c22672b102d76ccd398530db1bc1b63e81ec955d633adfe2dfe2b"
+  },
+  "136806045": {
+    "name": "Dodrio Berry Picking Records",
+    "script": "MossdeepCity_GameCorner_1F_EventScript_DodrioBerryPickingRecords",
+    "signature": "78adbb797db57daa3fc0de0924b804fb548ca4dfff184bd3e1bf4e1eae653c92"
+  },
+  "136914817": {
+    "name": "Wall clock",
+    "script": "LittlerootTown_BrendansHouse_2F_EventScript_WallClock",
+    "signature": "136309e1580e009063bdbd717c9dc85769a2acad6b7da73c06c837f3f0bb8ff4"
+  },
+  "136914829": {
+    "name": "Wall clock",
+    "script": "LittlerootTown_MaysHouse_2F_EventScript_WallClock",
+    "signature": "21d998fe674b926d0df7aef9971669e073b9624f239819441a9d921ec84ea38b"
+  },
+  "136920126": {
+    "name": "Berry Blender1",
+    "script": "BerryBlender_EventScript_BerryBlender1",
+    "signature": "669458375a519e847a33152bceddbd64f442dd6b7cc73381ed323e0ca0947412"
+  },
+  "136920397": {
+    "name": "Berry Blender2",
+    "script": "BerryBlender_EventScript_BerryBlender2",
+    "signature": "23588a79989ba12e9af273ef1efd5fc2553adb2a1e074e62b8ed2384eb0f67b4"
+  },
+  "136920606": {
+    "name": "Berry Blender3",
+    "script": "BerryBlender_EventScript_BerryBlender3",
+    "signature": "f39170a80b1ec34cb70725ac84f1aec3c6ca8cfafb43e027eec6ad7bd22f792e"
+  },
+  "136921173": {
+    "name": "Berry Blender Link",
+    "script": "BerryBlender_EventScript_BerryBlenderLink",
+    "signature": "1f9c838ae28f07e3b4c88869323bac0b54f4a0f60f10e571213a6e71f2d7713e"
+  },
+  "136993457": {
+    "name": "Table1",
+    "script": "Roulette_EventScript_Table1",
+    "signature": "816180158475b6ac9c36a213ca1dcc7624ca1fd53eb357a896ae2b2722c75d4e"
+  },
+  "136993503": {
+    "name": "Table2",
+    "script": "Roulette_EventScript_Table2",
+    "signature": "816180158475b6ac9c36a213ca1dcc7624ca1fd53eb357a896ae2b2722c75d4e"
+  }
+}

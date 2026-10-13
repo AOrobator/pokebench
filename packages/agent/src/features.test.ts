@@ -8,7 +8,7 @@ const off = (...ids: (typeof SWITCHABLE_FEATURES)[number][]): FeatureSet => ({ .
 it("describes every switchable and measurement feature exactly once", () => {
   expect(FEATURES.map((f) => f.id).sort()).toEqual([...SWITCHABLE_FEATURES, ...MEASUREMENT_FEATURES].sort());
   expect(FEATURES.filter((f) => f.switchable).map((f) => f.id)).toEqual([...SWITCHABLE_FEATURES]);
-  expect(FEATURES.filter((f) => f.group === "observation")).toHaveLength(10);
+  expect(FEATURES.filter((f) => f.group === "observation")).toHaveLength(11);
   expect(FEATURES.filter((f) => f.group === "guidance")).toHaveLength(5);
   expect(FEATURES.filter((f) => f.group === "guard")).toHaveLength(4);
   for (const f of FEATURES) {
@@ -20,14 +20,14 @@ it("describes every switchable and measurement feature exactly once", () => {
 });
 
 it("reproduces the pre-registry run_start feature list when everything is on", () => {
-  expect(playHarnessFeatures(ALL_ON, null)).toEqual(LEGACY_DEFAULT);
-  expect(playHarnessFeatures(ALL_ON, "PLAYER_NAME_CONFIRMED")).toEqual([...LEGACY_DEFAULT.slice(0, 17), "native-target-stop-v1", ...LEGACY_DEFAULT.slice(17)]);
+  expect(playHarnessFeatures(off("named-interactions-v1"), null)).toEqual(LEGACY_DEFAULT);
+  expect(playHarnessFeatures(off("named-interactions-v1"), "PLAYER_NAME_CONFIRMED")).toEqual([...LEGACY_DEFAULT.slice(0, 17), "native-target-stop-v1", ...LEGACY_DEFAULT.slice(17)]);
 });
 
 it("drops exactly the switched-off id and round-trips through recorded features", () => {
   for (const id of SWITCHABLE_FEATURES) {
     const list = playHarnessFeatures(off(id), null);
-    expect(LEGACY_DEFAULT.filter((item) => !list.includes(item))).toEqual([id]);
+    expect(playHarnessFeatures(ALL_ON,null).filter((item) => !list.includes(item))).toEqual([id]);
     expect(featuresOf(list)).toEqual(off(id));
   }
 });
@@ -46,5 +46,12 @@ it("hands the game server only its own observation switches", () => {
 });
 
 it("keeps the objective record from outliving the RAM readout", () => {
-  expect(dependencyProblems(off("ram-state-v1", "live-map-v1", "live-player-position-v1", "world-coordinate-grid-v1", "live-object-sprites-v1", "world-targets-v1", "active-field-message-buffer-v1", "naming-cursor-v1", "story-state-v1", "coordinate-script-conditions-v1", "active-ui-ownership-v1", "press-result-v1", "field-control-lock", "warp-activation-guidance-v1"))).toEqual(["objective-tracking-v1 needs ram-state-v1"]);
+  expect(dependencyProblems(off("named-interactions-v1", "ram-state-v1", "live-map-v1", "live-player-position-v1", "world-coordinate-grid-v1", "live-object-sprites-v1", "world-targets-v1", "active-field-message-buffer-v1", "naming-cursor-v1", "story-state-v1", "coordinate-script-conditions-v1", "active-ui-ownership-v1", "press-result-v1", "field-control-lock", "warp-activation-guidance-v1"))).toEqual(["objective-tracking-v1 needs ram-state-v1"]);
+});
+
+it("records and delivers the independently switchable interaction-name treatment",()=>{
+ expect(playHarnessFeatures(ALL_ON,null)).toContain("named-interactions-v1");
+ expect(playHarnessFeatures(off("named-interactions-v1"),null)).not.toContain("named-interactions-v1");
+ expect(serverFeatureEnv(off("named-interactions-v1")).POKEBENCH_FEATURES_OFF).toBe("named-interactions-v1");
+ expect(dependencyProblems(off("world-targets-v1"))).toContain("named-interactions-v1 needs world-targets-v1");
 });

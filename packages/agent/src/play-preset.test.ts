@@ -14,9 +14,9 @@ it("accepts a v2 preset with every switch explicit and exposes its feature set",
 });
 it("maps v1 flags onto the full switch set, objectives covering its three guards",()=>{
   const features=presetFeatures(parsePlayPreset(preset));
-  expect(features).toEqual({...ALL_ON,"deterministic-loop-guard-v1":false});
+  expect(features).toEqual({...ALL_ON,"named-interactions-v1":false,"deterministic-loop-guard-v1":false});
   const noObjectives=presetFeatures(parsePlayPreset({...preset,flags:{...preset.flags,objectives:false,activeUi:false}}));
-  expect(noObjectives).toEqual({...ALL_ON,"deterministic-loop-guard-v1":false,"active-ui-ownership-v1":false,"objective-tracking-v1":false,"repeat-attempt-guard-v1":false,"native-objective-completion-v1":false});
+  expect(noObjectives).toEqual({...ALL_ON,"named-interactions-v1":false,"deterministic-loop-guard-v1":false,"active-ui-ownership-v1":false,"objective-tracking-v1":false,"repeat-attempt-guard-v1":false,"native-objective-completion-v1":false});
   expect(presetFlags(parsePlayPreset(preset))).toEqual(preset.flags);
 });
 it.each([
@@ -25,3 +25,11 @@ it.each([
   [{...v2,features:{...v2.features,"ram-state-v1":undefined}},/preset/],
   [{...v2,flags:preset.flags},/preset/],
 ])("rejects v2 presets with missing, unknown or unmet switches",(value,message)=>{expect(()=>parsePlayPreset(value)).toThrow(message);});
+
+it("defaults absent historical v2 named interactions OFF and records explicit treatment",()=>{
+ const {"named-interactions-v1":omitted,...old}=v2.features;
+ expect(omitted).toBe(true);
+ expect(presetFeatures(parsePlayPreset({...v2,features:old}))["named-interactions-v1"]).toBe(false);
+ expect(presetFeatures(parsePlayPreset(v2))["named-interactions-v1"]).toBe(true);
+ expect(()=>parsePlayPreset({...v2,features:{...old,"named-interactions-v1":"true"}})).toThrow(/preset/);
+});

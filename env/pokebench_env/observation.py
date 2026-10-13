@@ -42,7 +42,9 @@ def install_observation(
         if not isinstance(screenshot, str) or screenshot == "":
             raise HTTPException(status_code=503, detail="no screenshot available")
         return {
-            "state_text": format_readout(state, off),
+            "state_text": format_readout(
+                state, off, named_interactions="named-interactions-v1" not in off
+            ),
             "screenshot_base64": screenshot,
             "state": state_json(state),
         }

@@ -188,6 +188,7 @@ export const StateBodySchema = Type.Object(
       dialogue: Type.Union([Type.String(), Type.Null()]),
     }, closed), Type.Null()])),
     interaction_targets: Type.Optional(Type.Union([Type.Array(Type.Object({
+      name: Type.Optional(Type.Union([Type.String(), Type.Null()])),
       kind: Type.String(), x: Type.Integer(), y: Type.Integer(), elevation: Type.Integer(),
       activation: Type.String(), availability: Type.String(), facing: Type.Union([Type.String(), Type.Null()]),
       local_id: Type.Union([Type.Integer(), Type.Null()]),

@@ -285,7 +285,7 @@ it("validates target fields at the observation consumer while retaining older pa
 
 const schemaTarget = { kind: "background", x: 5, y: 1, elevation: 0, activation: "A", availability: "conditional", facing: null, local_id: null, destination: null };
 it.each([
-  ["kind", false], ["x", "5"], ["y", "1"], ["elevation", "0"],
+  ["name", 3], ["kind", false], ["x", "5"], ["y", "1"], ["elevation", "0"],
   ["activation", false], ["availability", false], ["facing", 3], ["local_id", "2"],
   ["destination", "map"], ["destination", [0, 9]], ["destination", [0, 9, 0, 1]],
   ["destination", ["0", 9, 0]], ["destination", [0, "9", 0]], ["destination", [0, 9, "0"]],
@@ -338,4 +338,11 @@ it("leaves hidden position and lock facts out of press results, and drops the re
   expect(pressTool(SERVER, noHooks, undefined, undefined, screenOnly).description).toBe("Press Game Boy Advance buttons in order (up to 8), then see the resulting screen.");
   expect(observeTool(SERVER).description).toBe("See the current game screen and the game state read from memory (location, party, map).");
   expect(pressTool(SERVER, noHooks).description).toBe("Press Game Boy Advance buttons in order (up to 8), then see the resulting screen and game state.");
+});
+
+it("delivers verified named interaction text with typed names through the real observe tool",async()=>{
+ const text="Wall clock at (5,1), elevation 0; A; conditional";
+ const body=observationBody({state:{...IN_GAME,interaction_targets:[{...schemaTarget,name:"Wall clock"},{...schemaTarget,name:null}]},state_text:text});
+ const result=await observeTool(SERVER,serving(body)).execute("named",{});
+ expect(result.content[1]).toEqual({type:"text",text});
 });

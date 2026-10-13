@@ -8,8 +8,8 @@ import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSyn
 import { join } from "node:path";
 import { Type, type Static } from "typebox";
 import { Value } from "typebox/value";
-import { ALL_ON, dependencyProblems } from "@pokebench/agent/features";
-import { FeatureSetSchema, parsePlayPreset, type PlayPresetV2 } from "@pokebench/agent/play-preset";
+import { ALL_ON, dependencyProblems, type FeatureSet } from "@pokebench/agent/features";
+import { normalizeFeatures, FeatureSetSchema, parsePlayPreset, type PlayPresetV2 } from "@pokebench/agent/play-preset";
 import { controlLine, type ControlAction } from "@pokebench/agent/run-control";
 import { newRunId } from "@pokebench/agent/run";
 import { RUN_ID_PATTERN } from "@pokebench/agent/events";
@@ -23,9 +23,9 @@ export const NextRunSchema = Type.Object({
   target: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
   features: FeatureSetSchema,
 }, { additionalProperties: false });
-export type NextRun = Static<typeof NextRunSchema>;
+export type NextRun = Omit<Static<typeof NextRunSchema>, "features"> & {features:FeatureSet};
 
-export const DEFAULT_NEXT_RUN: NextRun = { model: "", thinking: "medium", maxTurns: 300, maxWallMs: 30 * 60_000, failureLimit: 3, maxTokens: 4096, target: null, features: { ...ALL_ON } };
+export const DEFAULT_NEXT_RUN: NextRun = { model: "", thinking: "medium", maxTurns: 300, maxWallMs: 30 * 60_000, failureLimit: 3, maxTokens: 4096, target: null, features: { ...ALL_ON, "named-interactions-v1": false } };
 export const LEASE = ".naming-gameplay.lock";
 // Whether a run's own game server answers on 127.0.0.1:<port>.
 export type HealthProbe = (port: number) => Promise<boolean>;
@@ -52,9 +52,10 @@ export function parseNextRun(value: unknown): NextRun {
     const [first] = Value.Errors(NextRunSchema, value);
     throw new NextRunError(`invalid next run: ${first?.instancePath ?? ""} ${first?.message ?? "schema mismatch"}`);
   }
-  const problems = dependencyProblems(value.features);
+  const normalized={...value,features:normalizeFeatures(value.features)};
+  const problems = dependencyProblems(normalized.features);
   if (problems.length > 0) throw new NextRunError(`invalid next run: ${problems.join("; ")}`);
-  return value;
+  return normalized;
 }
 
 export function readDraft(runsRoot: string): NextRun {

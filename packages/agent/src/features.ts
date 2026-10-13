@@ -12,6 +12,7 @@ export const SWITCHABLE_FEATURES = [
   "world-coordinate-grid-v1",
   "live-object-sprites-v1",
   "world-targets-v1",
+  "named-interactions-v1",
   "active-field-message-buffer-v1",
   "naming-cursor-v1",
   "story-state-v1",
@@ -71,6 +72,8 @@ export const FEATURES: readonly FeatureInfo[] = [
     "Lists people and objects within 7 tiles at their live positions, with each one's sprite kind (a graphic, not a name). Off: the list is dropped; the map's N marks stay if the map is on."),
   on("world-targets-v1", "observation", "WORLD TARGETS", RAM,
     "Lists every interaction candidate on the current map from its event data: objects, warps, signs and step triggers, each with where it is and whether you press A or step on it. Off: the model discovers interactions by trying."),
+  on("named-interactions-v1", "observation", "NAMED INTERACTIONS", "world-targets-v1",
+    "Names verified background scripts, live object sprite kinds and metatile interactions beside their current positions. Unresolved identities remain explicit. Off: original generic interaction labels."),
   on("active-field-message-buffer-v1", "observation", "DIALOGUE AS TEXT", RAM,
     "Copies the game's active field-message buffer into the readout. It can include pages not yet shown on screen. Off: the buffer is dropped; the readout's short Dialog line for the visible box stays."),
   on("naming-cursor-v1", "observation", "NAMING CURSOR", RAM,
@@ -127,7 +130,7 @@ export function dependencyProblems(features: FeatureSet): string[] {
 // Observation switches the game server applies to its readout.
 export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "ram-state-v1", "live-map-v1", "live-player-position-v1", "world-coordinate-grid-v1", "live-object-sprites-v1",
-  "world-targets-v1", "active-field-message-buffer-v1", "naming-cursor-v1", "story-state-v1",
+  "world-targets-v1", "named-interactions-v1", "active-field-message-buffer-v1", "naming-cursor-v1", "story-state-v1",
   "coordinate-script-conditions-v1", "field-control-lock", "warp-activation-guidance-v1",
 ];
 
@@ -146,7 +149,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
   return [
     ...when("ram-state-v1"), ...when("live-map-v1"), ...when("field-control-lock"), ...when("naming-cursor-v1"),
     ...when("live-object-sprites-v1"), ...when("coordinate-script-conditions-v1"), ...when("active-field-message-buffer-v1"),
-    ...when("world-targets-v1"), ...when("live-player-position-v1"), ...when("world-coordinate-grid-v1"),
+    ...when("world-targets-v1"), ...when("named-interactions-v1"), ...when("live-player-position-v1"), ...when("world-coordinate-grid-v1"),
     ...when("press-result-v1"), ...when("warp-activation-guidance-v1"), "clock-milestone-v1", ...when("story-state-v1"),
     ...when("active-ui-ownership-v1"), "story-milestones-v2", "new-game-created-v1",
     ...(target === null ? [] : ["native-target-stop-v1"]), "deterministic-loop-diagnostics-v1", LOOP_POLICY_FEATURE,

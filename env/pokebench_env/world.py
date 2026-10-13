@@ -8,6 +8,7 @@ import struct
 from dataclasses import asdict, dataclass
 
 from pokebench_env.game_screen import ReadMemory
+from pokebench_env.interaction_names import script_name
 from pokebench_env.live_map import (
     BACKUP_LAYOUT,
     MAP_HEADER,
@@ -16,6 +17,7 @@ from pokebench_env.live_map import (
     OBJECT_EVENTS,
     _pointer,
 )
+from pokebench_env.world_context import GRAPHICS
 
 
 @dataclass(frozen=True)
@@ -29,11 +31,12 @@ class InteractionTarget:
     facing: str | None = None
     local_id: int | None = None
     destination: tuple[int, int, int] | None = None
+    name: str | None = None
 
     def json(self) -> dict[str, object]:
         return asdict(self)
 
-    def text(self) -> str:
+    def text(self, *, named: bool = False) -> str:
         facing = "" if self.facing is None else f", face {self.facing}"
         identity = "" if self.local_id is None else f" id {self.local_id}"
         destination = ""
@@ -44,8 +47,9 @@ class InteractionTarget:
                 if (group, number) == (127, 127)
                 else f"; destination map {group}/{number} warp {warp}"
             )
+        label = self.kind if not named else (self.name or f"{self.kind} (identity unavailable)")
         return (
-            f"{self.kind}{identity} at ({self.x},{self.y}), elevation {self.elevation}; "
+            f"{label}{identity} at ({self.x},{self.y}), elevation {self.elevation}; "
             f"{self.activation}{facing}; {self.availability}{destination}"
         )
 
@@ -78,7 +82,13 @@ def read_targets(read: ReadMemory, map_id: tuple[int, int]) -> tuple[Interaction
         x, y = struct.unpack_from("<hh", body, 16)
         targets.append(
             InteractionTarget(
-                "object", x - MAP_OFFSET, y - MAP_OFFSET, body[11] & 15, "A", local_id=body[8]
+                "object",
+                x - MAP_OFFSET,
+                y - MAP_OFFSET,
+                body[11] & 15,
+                "A",
+                local_id=body[8],
+                name=GRAPHICS.get(body[5]),
             )
         )
     warps = read(pointers[1], counts[1] * 8) if counts[1] else b""
@@ -92,6 +102,9 @@ def read_targets(read: ReadMemory, map_id: tuple[int, int]) -> tuple[Interaction
                 elevation,
                 "movement; activation depends on metatile (see local map)",
                 destination=(group, number, warp),
+                name=f"Warp to map {group}/{number}"
+                if (group, number) != (127, 127)
+                else "Dynamic warp",
             )
         )
     coords = read(pointers[2], counts[2] * 16) if counts[2] else b""
@@ -105,7 +118,7 @@ def read_targets(read: ReadMemory, map_id: tuple[int, int]) -> tuple[Interaction
             return None
     backgrounds = read(pointers[3], counts[3] * 12) if counts[3] else b""
     for i in range(counts[3]):
-        x, y, elevation, kind, _ = struct.unpack_from("<HHBB2xI", backgrounds, i * 12)
+        x, y, elevation, kind, script = struct.unpack_from("<HHBB2xI", backgrounds, i * 12)
         label = (
             "background"
             if kind <= 4
@@ -116,7 +129,17 @@ def read_targets(read: ReadMemory, map_id: tuple[int, int]) -> tuple[Interaction
             else "background_unknown"
         )
         facing = {1: "up", 2: "down", 3: "right", 4: "left", 8: "up"}.get(kind)
-        targets.append(InteractionTarget(label, x, y, elevation, "A", facing=facing))
+        targets.append(
+            InteractionTarget(
+                label,
+                x,
+                y,
+                elevation,
+                "A",
+                facing=facing,
+                name=script_name(read, script) if kind <= 4 else None,
+            )
+        )
     terrain = read_metatile_targets(read)
     return None if terrain is None else tuple(targets) + terrain
 
@@ -182,6 +205,14 @@ def read_metatile_targets(read: ReadMemory) -> tuple[InteractionTarget, ...] | N
                     else None
                 )
                 result.append(
-                    InteractionTarget("metatile_" + label, x, y, block >> 12, "A", facing=facing)
+                    InteractionTarget(
+                        "metatile_" + label,
+                        x,
+                        y,
+                        block >> 12,
+                        "A",
+                        facing=facing,
+                        name=label.replace("_", " "),
+                    )
                 )
     return tuple(result)

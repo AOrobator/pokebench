@@ -15,6 +15,7 @@ SERVER_FEATURES = (
     "world-coordinate-grid-v1",
     "live-object-sprites-v1",
     "world-targets-v1",
+    "named-interactions-v1",
     "active-field-message-buffer-v1",
     "naming-cursor-v1",
     "story-state-v1",
@@ -25,7 +26,7 @@ SERVER_FEATURES = (
 
 
 def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
-    raw = env.get("POKEBENCH_FEATURES_OFF", "")
+    raw = env.get("POKEBENCH_FEATURES_OFF", "named-interactions-v1")
     if raw == "":
         return frozenset()
     ids = raw.split(",")
@@ -59,7 +60,9 @@ def _menu(state: GameState) -> str:
     )
 
 
-def format_readout(state: GameState, off: frozenset[str] = frozenset()) -> str:
+def format_readout(
+    state: GameState, off: frozenset[str] = frozenset(), *, named_interactions: bool = False
+) -> str:
     if "ram-state-v1" in off:
         return ""
     dialog = "none" if state.dialog is None else f'"{state.dialog}"'
@@ -110,7 +113,10 @@ def format_readout(state: GameState, off: frozenset[str] = frozenset()) -> str:
             lines.append(context)
     if state.interaction_targets is not None and "world-targets-v1" not in off:
         lines.append("Map interaction candidates (world coordinates; flags/scripts may gate use):")
-        lines.extend(t.text() for t in state.interaction_targets)
+        lines.extend(
+            t.text(named=named_interactions and "named-interactions-v1" not in off)
+            for t in state.interaction_targets
+        )
     return "\n".join(lines)
 
 

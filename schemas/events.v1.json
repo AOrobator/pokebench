@@ -2246,6 +2246,16 @@
                   "destination"
                 ],
                 "properties": {
+                  "name": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
                   "kind": {
                     "type": "string"
                   },

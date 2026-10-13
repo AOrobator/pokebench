@@ -24,7 +24,7 @@ Read-only RAM through existing frame lock; no save manipulation/RAM writes. ROM 
 - [x] RED tests and commit a46216e
 - [x] Implement known confirmation/gender/clock/transition ownership and diagnostics
 - [x] GREEN gates: tests, lint, build, coverage all metrics >=90
-- [ ] Live coherent RAM/frame/model-text proof; mutations
+- [x] Live coherent RAM/frame/model-text proof; mutations
 - [ ] Multi-model review until LGTM; reviewed landing coordinated by parent
 **M2 — Repair skill**
 - [x] Extend existing skill with diagnostic capture and repair workflow
@@ -39,7 +39,9 @@ Parent coordinates integration and archived worktree. Canonical source frozen402
 Principles document draft header stale versus CLAUDE explicit operator approval; preserve rather than editing operator-owned principles.
 
 ## Multi-Model Review Log
-Pending.
+Frozen source4c9f48cabe0269833bd34da7500294c060adb76a; base40262a0d86bd5430e10db1df5e8ae502f41d6a06, exact binary diff SHA2565a8d780e6502d2b1bcb4c7e5ad683b1ac2b7ed25e9661d542cde266e09f70565. Fast (Qwen3.6-35B-A3B-UD-Q4_K_M) and Think Swarm independently emit literal VERDICT: LGTM; exact pre/post identity receipts retained. Initial duplicated-source packet rejected at98k tokens>65k; adjusted transport retains entire immutable all-files diff and complete decoder/consumer files. No source edits or findings evasion.
+
+Dedicated Claude auth loggedInfalse; current Cursor discovery failed twice with [unavailable]Error. Actual read-only Cursor Claude/Grok/GPT requests using retained same-day discovered IDs each timed out after120seconds, no authored verdict, status INCOMPLETE. Supervisor receipts retain truncated exceptions; original wrapper failed to capture separate timeout channels, explicitly recorded rather than inventing output. Parent allocates fresh independent Sol/Astra fallback on final cumulative integration. Component has two available external LGTMs; full independent roster and landing still PENDING. Reduced vendor diversity must be reported.
 
 ## Boy Scout Log
 None.
@@ -74,3 +76,5 @@ Ablation+diagnostic proofGREEN:381agent +148viewer +420Python=949tests, build/li
 2026-10-12 Final ON ablation replay b13d exposed a real clock-exit coverage gap: callback2 0x080860F5 at state196/197/201/203 before CLOCK_SET208. Parent requests precise repair before final review. Source overworld.c1638 CB2_ReturnToFieldLocal calls ReturnToFieldLocal(&gMain.state), then SetFieldVBlankCallback/CB2_Overworld; exact US ROM0x080860F4 calls0x08086638, success0x08086380 and SetMainCallback2 with literal0x08085E5D; caller CB2_ReturnToField0x080860C8 stores0x080860F5 on local branch. Add only qualified callback to field_transition; native normal-input replay and final gates required. Intro/title/main-menu task-level selection and zero bootstrap remain explicitly unqualified, no all-UI claim.
 
 Ablation limitation: ACTIVE_UI=0 skips active decoder, suppressing rich task/pointer diagnostics in durable state events (legacy unknown callback screen remains). Proposed upcoming protocol: passive bounded diagnostics decoded/logged/viewable regardless UI-context switch, isolated from model context at actual provider/tool-result seam, separate declared feature. No broader flag/event implementation in this frozen scope.
+
+Final source4c9f48c fullGREEN:381agent+148viewer+422Python=951, all coverage90floors, build/lint/format/mypy. Native ON final cleanbde9:72states/24UI, zero diagnostics, CLOCK_SET202, completed. Actual state161/tool162 and pairedframe000162 show YES/10AM. OFF cleanfbc32f4:activefeaturetagabsent, allUI null, no Interface/coverageerror text, CLOCK_SET197; exposuregate function bytes unchanged atfinal4c9. NO/B/YES/GIRL native9805 exactdecoderfunction byte-identical throughfinalSHA, semantic-binding.json retains hash. All known observed confirmation/clock paths qualified, not wholeEmerald. Remaining intro/title/main-menu task-level context and bootstrap0 explicit; off passive diagnostics proposal recorded separately. Parentowns cumulative final reviews, main landing and worktree cleanup after receipt preservation.

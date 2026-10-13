@@ -293,3 +293,14 @@ def test_real_state_reader_propagates_owned_confirmation_without_save_defaults()
     assert state_json(result)["active_ui"]["selected"] == "NO"
     assert "Menu: name_confirmation; selected NO" in format_readout(result)
     assert result.story.name_confirmed is False
+
+
+def test_active_ui_reader_ablation_withholds_phase_selection_and_diagnostic() -> None:
+    from pokebench_env.readout import format_readout, state_json
+
+    state = read_game_state(game(NAMING).read, MAPS, active_ui_enabled=False)
+    assert state.active_ui is None and state_json(state)["active_ui"] is None
+    assert "STATE COVERAGE ERROR" not in format_readout(
+        state
+    ) and "Interface:" not in format_readout(state)
+    assert state.screen == "naming" and state.name is None

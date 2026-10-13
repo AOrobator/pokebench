@@ -412,4 +412,11 @@ it("renders verified confirmation selection and unsupported diagnostic", () => {
   log.add(0, state({ active_ui: {phase:"name_confirmation",selected:"NO",ready:true,controls:"B declines",diagnostic:null} }));
   expect(trainerCard(view(log), BASE_MS)).toContain("name_confirmation");
   expect(trainerCard(view(log), BASE_MS)).toContain("NO");
+  log.add(1,state({active_ui:{phase:"unsupported",selected:null,ready:null,controls:"Observe",diagnostic:"<callback>"}}));
+  expect(trainerCard(view(log),BASE_MS+1)).toContain("STATE COVERAGE ERROR");
+  expect(trainerCard(view(log),BASE_MS+1)).toContain("&lt;callback&gt;");
+  expect(trainerCard(view(log),BASE_MS+1)).toContain("unavailable");
+  log.add(2,state({active_ui:{phase:"clock_adjustment",selected:null,ready:false,controls:"LEFT/RIGHT",diagnostic:null,value:"10:00 AM"}}));
+  expect(trainerCard(view(log),BASE_MS+2)).toContain("10:00 AM");
+  expect(trainerCard(view(log),BASE_MS+2)).toContain("not ready");
 });

@@ -127,11 +127,13 @@ def _badges(read: ReadMemory, save1: int) -> tuple[str, ...]:
     return tuple(badge for i, badge in enumerate(BADGES) if bits >> i & 1)
 
 
-def read_game_state(read: ReadMemory, maps: MapNames) -> GameState:
+def read_game_state(
+    read: ReadMemory, maps: MapNames, *, active_ui_enabled: bool = True
+) -> GameState:
     screen = read_screen(read)
     in_battle = bool(read(IN_BATTLE, 1)[0] & 0x02)
     dialog, menu = read_dialog(read, screen.kind), read_menu(read)
-    active_ui = read_active_ui(read, screen)
+    active_ui = read_active_ui(read, screen) if active_ui_enabled else None
     player_object = 0
     field_initialized = False
     if screen.kind not in PRE_GAME:

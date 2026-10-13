@@ -299,7 +299,7 @@ def test_clock_confirmation_selected_value(cursor: int, selected: str) -> None:
 
 
 @pytest.mark.parametrize(
-    "fault", ["missing", "conflict", "hours", "minutes", "period", "menu", "short"]
+    "fault", ["missing", "conflict", "hours", "minutes", "period", "menu", "menu_options", "short"]
 )
 def test_clock_invalid_owner_or_data_stays_unavailable(fault: str) -> None:
     from pokebench_env.game_screen import TASKS, Screen
@@ -317,12 +317,21 @@ def test_clock_invalid_owner_or_data_stays_unavailable(fault: str) -> None:
         memory.put(TASKS + 14, struct.pack("<h", 60))
     if fault == "period":
         memory.put(TASKS + 18, struct.pack("<h", 2))
+    if fault == "menu_options":
+        menu(memory, 0, 2, 2)
+        window(memory, 2, 0, 5, 4, True)
     if fault == "short":
         with pytest.raises(ValueError, match="short clock"):
             read_active_ui(lambda a, n: b"", Screen("clock", 0, 0x08134C9D))
     else:
         ui = read_active_ui(memory.read, Screen("clock", 0, 0x08134C9D))
         assert ui.ready is None and ui.diagnostic
+        if fault in ("missing", "conflict"):
+            assert ui.phase == "unsupported"
+        if fault in ("hours", "minutes", "period"):
+            assert ui.diagnostic == "invalid clock task hours/minutes/period"
+        if fault in ("menu", "menu_options"):
+            assert ui.diagnostic == "invalid or undrawn clock confirmation menu"
 
 
 def test_clock_motion_between_ticks_does_not_claim_confirmation_input_ready() -> None:
@@ -368,3 +377,29 @@ def test_initialized_naming_readiness_uses_existing_owned_cursor_decoder() -> No
     assert read_active_ui(keyboard(phase=2).read, screen) is None
     ui = read_active_ui(keyboard(phase=1).read, screen)
     assert ui.phase == "naming_transition" and ui.ready is False
+
+
+@pytest.mark.parametrize(("flag", "enabled"), [(None, True), ("1", True), ("0", False)])
+def test_active_ui_exposure_flag_defaults_on_and_accepts_explicit_ablation(flag, enabled) -> None:
+    from pokebench_env.ui_state import active_ui_enabled_from_env
+
+    assert (
+        active_ui_enabled_from_env({} if flag is None else {"POKEBENCH_ACTIVE_UI": flag}) is enabled
+    )
+
+
+def test_invalid_active_ui_exposure_flag_is_not_silently_coerced() -> None:
+    from pokebench_env.ui_state import active_ui_enabled_from_env
+
+    with pytest.raises(ValueError, match="POKEBENCH_ACTIVE_UI must be 0 or 1"):
+        active_ui_enabled_from_env({"POKEBENCH_ACTIVE_UI": "false"})
+
+
+def test_unknown_clock_task_is_logged_as_actionable_coverage_error() -> None:
+    from pokebench_env.game_screen import TASKS, Screen
+    from pokebench_env.ui_state import read_active_ui
+
+    memory = Memory()
+    memory.put(TASKS, struct.pack("<IB", 0x08139999, 1))
+    ui = read_active_ui(memory.read, Screen("clock", 0, 0x08134C9D))
+    assert ui.phase == "unsupported" and "0x08139999" in ui.diagnostic

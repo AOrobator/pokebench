@@ -9,6 +9,7 @@ removed (bg 0xFF) when it frees it.
 """
 
 import struct
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 from pokebench_env.game_screen import ReadMemory, Screen
@@ -271,7 +272,12 @@ def read_clock_ui(read: ReadMemory) -> ActiveUi:
             None,
             None,
             "Observe and report this coverage error",
-            "clock callback 0x08134C9D; active clock owner unavailable",
+            "clock callback 0x08134C9D; active clock owner unavailable; active tasks "
+            + ",".join(
+                f"0x{int.from_bytes(tasks[i : i + 4], 'little'):08X}"
+                for i in range(0, len(tasks), 0x28)
+                if tasks[i + 4] == 1
+            ),
         )
     index = owners[0]
     phase = CLOCK_PHASES[int.from_bytes(tasks[index : index + 4], "little")]
@@ -314,3 +320,10 @@ def read_clock_ui(read: ReadMemory) -> ActiveUi:
         else "Clock transition; selection input is not active"
     )
     return ActiveUi(phase, None, ready, controls, value=value)
+
+
+def active_ui_enabled_from_env(env: Mapping[str, str]) -> bool:
+    flag = env.get("POKEBENCH_ACTIVE_UI")
+    if flag not in (None, "0", "1"):
+        raise ValueError("POKEBENCH_ACTIVE_UI must be 0 or 1")
+    return flag != "0"

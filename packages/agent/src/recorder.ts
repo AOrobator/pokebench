@@ -209,7 +209,7 @@ export class RunRecorder {
     const payload = toolResultPayload(result);
     // Reuse the state paired with the exact returned frame/text, including an
     // observe-only turn and play runs with objective tracking disabled.
-    if ((name === "observe" || name === "press") && isRecord(result) && isRecord(result.details) && result.details.state !== undefined) {
+    if ((name === "observe" || name === "press" || name === "navigate_to") && isRecord(result) && isRecord(result.details) && result.details.state !== undefined) {
       try { this.recordState(parseGameState(result.details.state)); }
       catch (error) { this.telemetryError("state", error); }
     }

@@ -68,6 +68,7 @@ export function playGoal(target: string | null): string {
 
 export function playSystemPrompt(features: FeatureSet, target: string | null): string {
   let prompt = features["contextual-interface-docs-v1"] ? DOCUMENTED_PLAY_SYSTEM_PROMPT : PLAY_SYSTEM_PROMPT;
+  if (features["bounded-navigation-v1"]) prompt += "\n\n- navigate_to: supply x, y and the current map_id from the Navigation map_id readout. Walks toward a coordinate on the current map using bounded A* on known local tiles. Farther targets within verified map bounds use a reachable local frontier, with up to eight ordinary button attempts. Choose the destination from observed evidence. This tool does not pick story objectives, press A, surf or solve ledges. It stops on blocked movement, locks or map changes. Inspect its returned state; reaching a directional-exit tile may still require its indicated button.";
   if (target !== null) prompt = prompt.replace(GOAL_SENTENCE, `Your goal is: ${playGoal(target)}`);
   if (!features["ram-state-v1"]) prompt = prompt.replace(OBSERVE_LINE, OBSERVE_SCREEN_ONLY).replace(PRESS_LINE, PRESS_SCREEN_ONLY);
   if (!features["warp-activation-guidance-v1"]) prompt = prompt.replace(WARP_PARAGRAPH, "");
@@ -94,5 +95,5 @@ export function toolSwitches(features: FeatureSet): ToolSwitches {
 }
 
 export function playTools(features: FeatureSet): string[] {
-  return ["observe", "press", ...(features["objective-tracking-v1"] ? ["get_objectives", "set_objective", "update_objective"] : [])];
+  return ["observe", "press", ...(features["objective-tracking-v1"] ? ["get_objectives", "set_objective", "update_objective"] : []), ...(features["bounded-navigation-v1"] ? ["navigate_to"] : [])];
 }

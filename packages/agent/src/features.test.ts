@@ -8,8 +8,8 @@ const off = (...ids: (typeof SWITCHABLE_FEATURES)[number][]): FeatureSet => ({ .
 it("describes every switchable and measurement feature exactly once", () => {
   expect(FEATURES.map((f) => f.id).sort()).toEqual([...SWITCHABLE_FEATURES, ...MEASUREMENT_FEATURES].sort());
   expect(FEATURES.filter((f) => f.switchable).map((f) => f.id)).toEqual([...SWITCHABLE_FEATURES]);
-  expect(FEATURES.filter((f) => f.group === "observation")).toHaveLength(11);
-  expect(FEATURES.filter((f) => f.group === "guidance")).toHaveLength(5);
+  expect(FEATURES.filter((f) => f.group === "observation")).toHaveLength(12);
+  expect(FEATURES.filter((f) => f.group === "guidance")).toHaveLength(6);
   expect(FEATURES.filter((f) => f.group === "guard")).toHaveLength(4);
   for (const f of FEATURES) {
     expect(f.title).not.toBe("");
@@ -20,8 +20,8 @@ it("describes every switchable and measurement feature exactly once", () => {
 });
 
 it("reproduces the pre-registry run_start feature list when everything is on", () => {
-  expect(playHarnessFeatures(off("named-interactions-v1"), null)).toEqual(LEGACY_DEFAULT);
-  expect(playHarnessFeatures(off("named-interactions-v1"), "PLAYER_NAME_CONFIRMED")).toEqual([...LEGACY_DEFAULT.slice(0, 18), "native-target-stop-v1", ...LEGACY_DEFAULT.slice(18)]);
+  expect(playHarnessFeatures(off("named-interactions-v1","world-destinations-v1","bounded-navigation-v1"), null)).toEqual(LEGACY_DEFAULT);
+  expect(playHarnessFeatures(off("named-interactions-v1","world-destinations-v1","bounded-navigation-v1"), "PLAYER_NAME_CONFIRMED")).toEqual([...LEGACY_DEFAULT.slice(0, 18), "native-target-stop-v1", ...LEGACY_DEFAULT.slice(18)]);
 });
 
 it("drops exactly the switched-off id and round-trips through recorded features", () => {
@@ -34,7 +34,7 @@ it("drops exactly the switched-off id and round-trips through recorded features"
 
 it("reports every unmet dependency", () => {
   expect(dependencyProblems(ALL_ON)).toEqual([]);
-  expect(dependencyProblems(off("live-map-v1"))).toEqual(["world-coordinate-grid-v1 needs live-map-v1", "warp-activation-guidance-v1 needs live-map-v1"]);
+  expect(dependencyProblems(off("live-map-v1"))).toEqual(["world-coordinate-grid-v1 needs live-map-v1", "bounded-navigation-v1 needs live-map-v1", "warp-activation-guidance-v1 needs live-map-v1"]);
   expect(dependencyProblems(off("objective-tracking-v1"))).toEqual(["repeat-attempt-guard-v1 needs objective-tracking-v1", "native-objective-completion-v1 needs objective-tracking-v1"]);
   expect(dependencyProblems(off("objective-tracking-v1", "repeat-attempt-guard-v1", "native-objective-completion-v1"))).toEqual([]);
 });
@@ -46,7 +46,7 @@ it("hands the game server only its own observation switches", () => {
 });
 
 it("keeps the objective record from outliving the RAM readout", () => {
-  expect(dependencyProblems(off("named-interactions-v1", "ram-state-v1", "live-map-v1", "live-player-position-v1", "world-coordinate-grid-v1", "live-object-sprites-v1", "world-targets-v1", "active-field-message-buffer-v1", "naming-cursor-v1", "story-state-v1", "coordinate-script-conditions-v1", "active-ui-ownership-v1", "press-result-v1", "field-control-lock", "warp-activation-guidance-v1"))).toEqual(["objective-tracking-v1 needs ram-state-v1"]);
+  expect(dependencyProblems(off("named-interactions-v1", "world-destinations-v1", "bounded-navigation-v1", "ram-state-v1", "live-map-v1", "live-player-position-v1", "world-coordinate-grid-v1", "live-object-sprites-v1", "world-targets-v1", "active-field-message-buffer-v1", "naming-cursor-v1", "story-state-v1", "coordinate-script-conditions-v1", "active-ui-ownership-v1", "press-result-v1", "field-control-lock", "warp-activation-guidance-v1"))).toEqual(["objective-tracking-v1 needs ram-state-v1"]);
 });
 
 it("records and delivers the independently switchable interaction-name treatment",()=>{

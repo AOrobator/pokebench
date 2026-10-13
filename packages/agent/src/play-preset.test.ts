@@ -14,9 +14,9 @@ it("accepts a v2 preset with every switch explicit and exposes its feature set",
 });
 it("maps v1 flags onto the full switch set, objectives covering its three guards",()=>{
   const features=presetFeatures(parsePlayPreset(preset));
-  expect(features).toEqual({...ALL_ON,"named-interactions-v1":false,"deterministic-loop-guard-v1":false});
+  expect(features).toEqual({...ALL_ON,"named-interactions-v1":false,"world-destinations-v1":false,"bounded-navigation-v1":false,"deterministic-loop-guard-v1":false});
   const noObjectives=presetFeatures(parsePlayPreset({...preset,flags:{...preset.flags,objectives:false,activeUi:false}}));
-  expect(noObjectives).toEqual({...ALL_ON,"named-interactions-v1":false,"deterministic-loop-guard-v1":false,"active-ui-ownership-v1":false,"objective-tracking-v1":false,"repeat-attempt-guard-v1":false,"native-objective-completion-v1":false});
+  expect(noObjectives).toEqual({...ALL_ON,"named-interactions-v1":false,"world-destinations-v1":false,"bounded-navigation-v1":false,"deterministic-loop-guard-v1":false,"active-ui-ownership-v1":false,"objective-tracking-v1":false,"repeat-attempt-guard-v1":false,"native-objective-completion-v1":false});
   expect(presetFlags(parsePlayPreset(preset))).toEqual(preset.flags);
 });
 it.each([

@@ -2329,6 +2329,182 @@
             }
           ]
         },
+        "navigation_grid": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "elevation",
+                "tiles",
+                "objects",
+                "warps"
+              ],
+              "properties": {
+                "elevation": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 15
+                },
+                "tiles": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "x",
+                      "y",
+                      "collision",
+                      "behavior",
+                      "elevation"
+                    ],
+                    "properties": {
+                      "x": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "y": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "collision": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 3
+                      },
+                      "behavior": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 255
+                      },
+                      "elevation": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 15
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "minItems": 1,
+                  "maxItems": 225
+                },
+                "objects": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "x",
+                      "y"
+                    ],
+                    "properties": {
+                      "x": {
+                        "type": "integer"
+                      },
+                      "y": {
+                        "type": "integer"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "maxItems": 16
+                },
+                "warps": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "x",
+                      "y"
+                    ],
+                    "properties": {
+                      "x": {
+                        "type": "integer"
+                      },
+                      "y": {
+                        "type": "integer"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "maxItems": 255
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "topology": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "width",
+                "height",
+                "connections"
+              ],
+              "properties": {
+                "width": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "height": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "connections": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "direction",
+                      "offset",
+                      "destination",
+                      "destination_name"
+                    ],
+                    "properties": {
+                      "direction": {
+                        "enum": [
+                          "NORTH",
+                          "SOUTH",
+                          "EAST",
+                          "WEST",
+                          "DIVE",
+                          "EMERGE"
+                        ]
+                      },
+                      "offset": {
+                        "type": "integer"
+                      },
+                      "destination": {
+                        "type": "array",
+                        "additionalItems": false,
+                        "items": [
+                          {
+                            "type": "integer"
+                          },
+                          {
+                            "type": "integer"
+                          }
+                        ],
+                        "minItems": 2
+                      },
+                      "destination_name": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "maxItems": 16
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "local_map": {
           "anyOf": [
             {

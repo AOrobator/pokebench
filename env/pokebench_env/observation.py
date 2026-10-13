@@ -43,7 +43,11 @@ def install_observation(
             raise HTTPException(status_code=503, detail="no screenshot available")
         return {
             "state_text": format_readout(
-                state, off, named_interactions="named-interactions-v1" not in off
+                state,
+                off,
+                named_interactions="named-interactions-v1" not in off,
+                world_destinations="world-destinations-v1" not in off,
+                bounded_navigation="bounded-navigation-v1" not in off,
             ),
             "screenshot_base64": screenshot,
             "state": state_json(state),

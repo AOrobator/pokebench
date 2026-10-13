@@ -9,7 +9,7 @@ export class GameStateError extends Error {
 export type GameStateSnapshot = Static<typeof StateBodySchema>;
 
 export interface StateSource {
-  read(): Promise<GameStateSnapshot>;
+  read(signal?:AbortSignal): Promise<GameStateSnapshot>;
 }
 
 export function parseGameState(body: unknown): GameStateSnapshot {
@@ -28,9 +28,9 @@ export class StateWatcher implements StateSource {
     private readonly fetchFn: typeof fetch = fetch,
   ) {}
 
-  async read(): Promise<GameStateSnapshot> {
+  async read(signal?:AbortSignal): Promise<GameStateSnapshot> {
     const url = `${this.gameServerUrl}/pokebench/state`;
-    const response = await this.fetchFn(url, { signal: AbortSignal.timeout(15_000) });
+    const response = await this.fetchFn(url, { signal: signal===undefined ? AbortSignal.timeout(15_000) : AbortSignal.any([signal,AbortSignal.timeout(15_000)]) });
     if (!response.ok) throw new GameStateError(`GET ${url} returned HTTP ${String(response.status)}`);
     return parseGameState(await response.json());
   }

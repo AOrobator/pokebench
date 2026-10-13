@@ -670,3 +670,17 @@ it("does not infer truck exit without an observed truck baseline", () => {
   );
   expect(valid.events.filter((e) => e.phase === "recovered")).toHaveLength(1);
 });
+
+
+it("counts repeated ineffective navigation targets and recovers on real movement",()=>{
+ const {detector,events}=fixture();const nav=(before:GameStateSnapshot,after:GameStateSnapshot):CompletedCall=>({name:"navigate_to",args:{x:5,y:0,map_id:[0,0]},isError:false,text:"Navigation",beforeState:before,state:after});
+ detector.complete(nav(field(),field()));detector.complete(nav(field(),field()));expect(events.at(-1)).toMatchObject({kind:"ineffective",phase:"warning"});
+ detector.context();detector.complete(nav(field(),field(1)));expect(events.at(-1)).toMatchObject({kind:"ineffective",phase:"recovered"});
+});
+
+
+it("an arrived/no-action navigation call cannot clear an exposed planning stall",()=>{
+ const {detector,events}=fixture();detector.complete(call("observe",field()));detector.complete(call("get_objectives"));detector.complete(call("get_objectives"));detector.context();
+ detector.complete({name:"navigate_to",args:{x:0,y:0,map_id:[0,0]},isError:false,text:"arrived;0 attempts",state:field(),beforeState:field(),acted:false});
+ expect(events).toEqual([{kind:"planning",phase:"warning"}]);
+});

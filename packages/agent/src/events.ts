@@ -194,6 +194,13 @@ export const StateBodySchema = Type.Object(
       local_id: Type.Union([Type.Integer(), Type.Null()]),
       destination: Type.Union([Type.Tuple([Type.Integer(), Type.Integer(), Type.Integer()]), Type.Null()]),
     }, closed)), Type.Null()])),
+    navigation_grid: Type.Optional(Type.Union([Type.Object({elevation:Type.Integer({minimum:0,maximum:15}),
+      tiles:Type.Array(Type.Object({x:Type.Integer({minimum:0}),y:Type.Integer({minimum:0}),collision:Type.Integer({minimum:0,maximum:3}),behavior:Type.Integer({minimum:0,maximum:255}),elevation:Type.Integer({minimum:0,maximum:15})},closed),{minItems:1,maxItems:225}),
+      objects:Type.Array(Type.Object({x:Type.Integer(),y:Type.Integer()},closed),{maxItems:16}),warps:Type.Array(Type.Object({x:Type.Integer(),y:Type.Integer()},closed),{maxItems:255})},closed),Type.Null()])),
+    topology: Type.Optional(Type.Union([Type.Object({
+      width: Type.Integer({minimum:1}), height: Type.Integer({minimum:1}),
+      connections: Type.Array(Type.Object({direction:Type.Enum(["NORTH","SOUTH","EAST","WEST","DIVE","EMERGE"]), offset:Type.Integer(), destination:Type.Tuple([Type.Integer(),Type.Integer()]),destination_name:Type.String()},closed),{maxItems:16}),
+    },closed),Type.Null()])),
     local_map: Type.Optional(Type.Union([Type.String(), Type.Null()])),
     field_controls_locked: Type.Optional(Type.Union([Type.Boolean(), Type.Null()])),
     started: Type.Boolean(),

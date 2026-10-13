@@ -5,7 +5,7 @@ import { ButtonSchema } from "./events.js";
 import { CompletionInputSchema, CompletionSchema, NATIVE_OBJECTIVES, EvidenceSchema, ObjectiveStatusSchema, validateCompletionType } from "./objective-schema.js";
 import { ALL_OBJECTIVE_SWITCHES, ObjectiveTracker, type ObjectiveSwitches } from "./objectives.js";
 export { ALL_OBJECTIVE_SWITCHES, type ObjectiveSwitches };
-import { ALL_TOOL_SWITCHES, observeTool, pressTool, type ToolSwitches } from "./game-tools.js";
+import { ALL_TOOL_SWITCHES, observeTool, pressTool, type ToolSwitches, type BeforePressCheck, type CheckedPressTool } from "./game-tools.js";
 import { parseGameState, StateWatcher } from "./game-state.js";
 import type { RunRecorder } from "./recorder.js";
 
@@ -76,20 +76,14 @@ export function objectiveGameTools(tracker: ObjectiveTracker, recorder: Pick<Run
   const observe = observeTool(url, fetchFn, switches);
   const submissions = { count: 0 };
   const press = pressTool(url, { beforePress: (id, buttons, timing, before) => { submissions.count += 1; recorder.buttonPress(id, buttons, timing, before); }, afterPress: () => recorder.afterPress() }, fetchFn, undefined, switches);
-  return [
-    { ...observe, execute: async (id, params, signal, update) => {
-      const result = await observe.execute(id, params, signal, update);
-      recorder.recordState(resultState(result));
-      return result;
-    } },
-    { ...press, execute: async (id, params, signal, update) => {
+  const perform=async(id:string,params:Parameters<CheckedPressTool["execute"]>[1],signal?:AbortSignal,update?:Parameters<CheckedPressTool["execute"]>[3],check?:BeforePressCheck)=>{
       signal?.throwIfAborted();
       if (!Value.Check(PressArgs, params)) throw new Error("Invalid press parameters");
       const before = recorder.recordState(await readState(url, fetchFn, signal));
       tracker.checkPress(params.buttons, before);
       const submittedBefore = submissions.count;
       try {
-        const result = await press.execute(id, params, signal, update);
+        const result = await (check===undefined ? press.execute(id, params, signal, update) : press.executeChecked(id, params,check,signal,update));
         const after = recorder.recordState(resultState(result));
         const attempt = tracker.attempt(id, params.buttons, before, after);
         if (attempt.warning !== null) result.content.push({ type: "text", text: attempt.warning });
@@ -98,7 +92,15 @@ export function objectiveGameTools(tracker: ObjectiveTracker, recorder: Pick<Run
         if (submissions.count > submittedBefore) tracker.attempt(id, params.buttons, before, null);
         throw error;
       }
+  };
+  const guarded:CheckedPressTool={...press,execute:perform,executeChecked:(id,params,check,signal,update)=>perform(id,params,signal,update,check)};
+  return [
+    { ...observe, execute: async (id, params, signal, update) => {
+      const result = await observe.execute(id, params, signal, update);
+      recorder.recordState(resultState(result));
+      return result;
     } },
+    guarded,
   ];
 }
 

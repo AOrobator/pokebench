@@ -25,6 +25,7 @@ import { discoverModels, selectModel, type GatewayModel } from "./gateway.js";
 import { FrameStore } from "./frames.js";
 import { StateWatcher } from "./game-state.js";
 import {flagFeatures,parsePlayPreset,presetFeatures,presetFlags} from "./play-preset.js";
+import {withNavigation} from "./navigation.js";
 import {NativeTargetStop} from "./target-stop.js";
 import { BudgetTimer, ControlFile, RunControl, freezeGame, watchControl } from "./run-control.js";
 import {RUN_ID_PATTERN} from "./events.js";
@@ -287,10 +288,12 @@ async function playAgent(): Promise<void> {
       };
       process.once("SIGINT", interrupt);
       const objectives = features["objective-tracking-v1"] ? objectiveHarness(goal, recorder, gameServerUrl, fetch, { ...objectiveSwitches(features), ...toolSwitches(features) }) : null;
+      const baseTools=objectives?.tools ?? [observeTool(gameServerUrl, fetch, toolSwitches(features)), pressTool(gameServerUrl, pressHooks(recorder), fetch, undefined, toolSwitches(features))];
+      const tools=withNavigation(baseTools,features,new StateWatcher(gameServerUrl),signal=>runControl.gate(signal));
       const loop = piLoop({
         systemPrompt,
         loopDetector,
-        tools: objectives?.tools ?? [observeTool(gameServerUrl, fetch, toolSwitches(features)), pressTool(gameServerUrl, pressHooks(recorder), fetch, undefined, toolSwitches(features))],
+        tools,
         base: { ...gatewayLoopConfig(model, thinking, apiKey), maxTokens },
         governor,
         transformContext: objectives?.transformContext ?? recorder.transformContext,

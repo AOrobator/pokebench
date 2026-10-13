@@ -278,8 +278,10 @@ export function fieldContext(view: RunView): string {
   const context = view.state?.world_context;
   const story = view.state?.story;
   const storyText = story == null ? "Story state: not recorded for this run." : "Story state (game memory):\n" + Object.entries(story).map(([field, value]) => `${field.replaceAll("_", " ")}: ${value === null ? "unknown" : value === true ? "yes" : value === false ? "no" : String(value)}`).join("\n");
-  const storyHtml = `<pre>${esc(storyText)}</pre>`;
-  if (context == null) return story == null ? `<p>${NO_DATA}</p>` : storyHtml;
+  const topology=view.state?.topology;
+  const topologyText=topology==null ? "" : `Map bounds: X=0..${String(topology.width-1)}, Y=0..${String(topology.height-1)}\n${topology.connections.map(c=>`${c.direction} → ${c.destination_name}; offset ${String(c.offset)}`).join("\n")}\nMap connections are conditional; terrain and story state may block passage.`;
+  const storyHtml = `<pre>${esc(storyText)}</pre>` + (topologyText===""?"":`<pre>${esc(topologyText)}</pre>`);
+  if (context == null) return story == null && topology == null ? `<p>${NO_DATA}</p>` : storyHtml;
   const objects = context.objects.map((o) => `${o.sprite_kind ?? "unknown sprite"} · map ${String(o.map_id[0])}/${String(o.map_id[1])} object ${String(o.local_id)} at (${String(o.x)},${String(o.y)})`).join("\n");
   const triggers = context.triggers.map((t) => `script tile (${String(t.x)},${String(t.y)}): condition ${t.condition_met === true ? "matches" : t.condition_met === false ? "does not match" : "unavailable"}`).join("\n");
   const dialogue = context.dialogue === null ? "Field-message text unavailable; the box may still be visible." : `Active message buffer (may include text not yet displayed):\n${context.dialogue}`;

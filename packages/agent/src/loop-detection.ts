@@ -47,6 +47,7 @@ export interface CompletedCall {
   readonly text: string;
   readonly state?: GameStateSnapshot | undefined;
   readonly beforeState?: GameStateSnapshot | undefined;
+  readonly acted?: boolean | undefined;
   readonly seq?: number;
 }
 export type LoopPolicy = { readonly [K in keyof typeof LOOP_POLICY]: number };
@@ -163,6 +164,7 @@ export class LoopDetector {
   private completed = 0;
   private episode: {
     kind: LoopKind;
+    message: string;
     exposed: boolean;
     recovery: number;
     threshold: boolean;
@@ -182,6 +184,8 @@ export class LoopDetector {
       seq: number;
       before?: GameStateSnapshot | undefined;
       beforeSeq?: number | undefined;
+      navigation?: boolean;
+      pressed?: boolean;
     }
   >();
 
@@ -210,10 +214,11 @@ export class LoopDetector {
     } else if (event.type === "telemetry_error" && event.source === "state")
       this.latest = undefined;
     else if (event.type === "tool_call")
-      this.calls.set(event.id, { args: event.args, seq: event.seq });
+      this.calls.set(event.id, { args: event.args, seq: event.seq, ...(event.name === "navigate_to" ? {navigation:true,before:this.latest,beforeSeq:this.latestSeq} : {}) });
     else if (event.type === "button_press") {
       const pending = this.calls.get(event.tool_call_id);
-      if (pending !== undefined) {
+      if (pending !== undefined && (!pending.navigation || !pending.pressed)) {
+        pending.pressed = true;
         pending.before =
           event.before_state_seq === this.latestSeq ? this.latest : undefined;
         pending.beforeSeq = event.before_state_seq;
@@ -228,13 +233,14 @@ export class LoopDetector {
         text: event.text,
         seq: event.seq,
         beforeState: pending?.before,
+        acted: pending?.pressed===true,
         state:
           pending !== undefined &&
           this.latestSeq >
-            (event.name === "press"
+            ((event.name === "press" || event.name === "navigate_to")
               ? (pending.beforeSeq ?? Infinity)
               : pending.seq) &&
-          (event.name === "press" || event.name === "observe")
+          (event.name === "press" || event.name === "navigate_to" || event.name === "observe")
             ? this.latest
             : undefined,
       });
@@ -244,7 +250,7 @@ export class LoopDetector {
   context(): string | null {
     if (this.mode === "diagnostic" || this.episode === null) return null;
     this.episode.exposed = true;
-    return `LOOP GUARD (${this.episode.kind}): ${MESSAGES[this.episode.kind]} Recovery is bounded; objective wording and new evidence IDs alone do not establish progress.`;
+    return `LOOP GUARD (${this.episode.kind}): ${this.episode.message} Recovery is bounded; objective wording and new evidence IDs alone do not establish progress.`;
   }
 
   complete(call: CompletedCall): void {
@@ -257,13 +263,13 @@ export class LoopDetector {
     const fingerprint =
       call.state === undefined ? null : semanticState(call.state);
     const game =
-      !call.isError && (call.name === "press" || call.name === "observe");
+      !call.isError && (call.name === "press" || call.name === "navigate_to" || call.name === "observe");
     const changed =
       game && fingerprint !== null && fingerprint !== this.previous;
     const novel = changed && !this.visited.includes(fingerprint);
     if (
       novel ||
-      (game && call.name === "press" && this.episode?.kind === "planning")
+      (game && (call.name === "press" || (call.name === "navigate_to" && call.acted===true)) && this.episode?.kind === "planning")
     )
       this.recover(seq, novel);
     let hit: LoopKind | null = null;
@@ -282,6 +288,7 @@ export class LoopDetector {
       } else {
         this.observations = 0;
         const buttons = call.args["buttons"];
+        const navigation = call.name === "navigate_to";
         const single =
           Array.isArray(buttons) &&
           buttons.length === 1 &&
@@ -291,8 +298,8 @@ export class LoopDetector {
             ? null
             : semanticState(call.beforeState);
         const key =
-          single && fingerprint !== null && fingerprint === before
-            ? `${fingerprint}:${String(buttons[0])}`
+          (single || navigation) && fingerprint !== null && fingerprint === before
+            ? `${fingerprint}:${navigation ? JSON.stringify([call.args["map_id"],call.args["x"],call.args["y"]]) : String(Array.isArray(buttons) ? buttons[0] : undefined)}`
             : "";
         this.ineffective =
           key !== "" && key === this.ineffective.key
@@ -300,8 +307,8 @@ export class LoopDetector {
             : { key, count: key === "" ? 0 : 1 };
         if (this.ineffective.count >= this.policy.ineffective)
           hit ??= "ineffective";
-        if (single && fingerprint !== null && before !== null) {
-          this.history.push(JSON.stringify([before, buttons[0], fingerprint]));
+        if ((single || navigation) && fingerprint !== null && before !== null) {
+          this.history.push(JSON.stringify([before, navigation ? [call.args["map_id"],call.args["x"],call.args["y"]] : Array.isArray(buttons) ? buttons[0] : null, fingerprint]));
           if (this.history.length > 12) this.history.shift();
           if (this.cycle()) hit ??= "cycle";
         } else this.history.length = 0;
@@ -334,6 +341,7 @@ export class LoopDetector {
     if (this.episode === null) {
       this.episode = {
         kind: hit,
+        message: hit === "ineffective" && call.name === "navigate_to" ? "Repeated navigation attempts to the same target produced equivalent states. Inspect the destination and obstacle before trying again." : MESSAGES[hit],
         exposed: false,
         recovery: 0,
         threshold: false,
@@ -394,8 +402,8 @@ export class LoopDetector {
       kind: episode.kind,
       message:
         phase === "stop"
-          ? `${MESSAGES[episode.kind]} Bounded recovery ended without verified recovery; unknown readouts do not prove progress.`
-          : MESSAGES[episode.kind],
+          ? `${episode.message} Bounded recovery ended without verified recovery; unknown readouts do not prove progress.`
+          : episode.message,
       calls: this.completed,
       evidence: [...episode.evidence, seq].filter(
         (value, index, all) => all.indexOf(value) === index,

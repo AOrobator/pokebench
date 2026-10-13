@@ -58,3 +58,9 @@ it("validates owned interface state and preserves historical absence", () => {
   expect(() => parseGameState({...PRE_GAME,active_ui:{...active_ui,diagnostic:12}})).toThrow(/active_ui/);
   expect(parseGameState(PRE_GAME).active_ui).toBeUndefined();
 });
+
+it("propagates parent cancellation into a state read deadline",async()=>{
+ let request:AbortSignal|null|undefined;
+ const fetchFn:typeof fetch=(_input,init)=>{request=init?.signal;return Promise.resolve(new Response(JSON.stringify(IN_GAME)));};
+ const stop=new AbortController();await new StateWatcher("http://127.0.0.1",fetchFn).read(stop.signal);stop.abort();expect(request?.aborted).toBe(true);
+});

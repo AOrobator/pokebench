@@ -56,6 +56,7 @@ class MapTile:
     metatile: int
     collision: int
     behavior: int
+    elevation: int = 0
 
 
 @dataclass(frozen=True)
@@ -189,7 +190,7 @@ def read_local_map(
                     )
                     & 0xFF
                 )
-            tiles.append(MapTile(cx, cy, metatile, collision, cache[metatile]))
+            tiles.append(MapTile(cx, cy, metatile, collision, cache[metatile], (block >> 12) & 15))
             row.append(
                 "@"
                 if (cx, cy) == position

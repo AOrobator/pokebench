@@ -187,3 +187,11 @@ def test_warp_without_loaded_tile_does_not_guess_activation() -> None:
     result = read_local_map(m.read, (1, 4), (1, 0), radius=1)
     assert result is not None
     assert "(0,5) -> map 0/9 [activation unknown]" in result.text(), result.text()
+
+
+def test_tile_elevation_is_from_the_live_block_high_nibble():
+    m = loaded()
+    tile(m, 0, 0, 0x3000)
+    local = read_local_map(m.read, (1, 1), (1, 0), 1)
+    assert local is not None
+    assert next(t.elevation for t in local.tiles if (t.x, t.y) == (0, 0)) == 3

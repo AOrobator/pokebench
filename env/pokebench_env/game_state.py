@@ -16,6 +16,7 @@ from pokebench_env.gba_text import GBA_TEXT, decode_text
 from pokebench_env.live_map import MAP_OFFSET, LocalMap, read_local_map
 from pokebench_env.naming import NamingState, read_naming
 from pokebench_env.story import StoryState, read_story
+from pokebench_env.topology import Topology, read_topology
 from pokebench_env.ui_state import ActiveUi, Menu, read_active_ui, read_dialog, read_menu
 from pokebench_env.world_context import WorldContext, read_world_context
 
@@ -91,6 +92,9 @@ class GameState:
     active_ui: ActiveUi | None = None
     interaction_targets: tuple[InteractionTarget, ...] | None = None
     nearby: LocalMap | None = None
+    topology: Topology | None = None
+    player_elevation: int = 0
+    destination_names: tuple[tuple[int, int, str], ...] = ()
 
 
 def _u32(read: ReadMemory, address: int) -> int:
@@ -185,6 +189,7 @@ def read_game_state(
         if screen.kind == "overworld" and not in_battle
         else None
     )
+    targets = read_targets(read, map_id) if nearby is not None else None
     return GameState(
         screen=screen.label,
         started=True,
@@ -204,10 +209,22 @@ def read_game_state(
         active_ui=active_ui,
         local_map=None if nearby is None else nearby.text(),
         nearby=nearby,
+        player_elevation=body[0x0B] & 15,
+        topology=read_topology(read, maps) if nearby is not None else None,
+        destination_names=tuple(
+            (
+                t.destination[0],
+                t.destination[1],
+                maps.name(t.destination[:2])
+                or f"unknown map {t.destination[0]}/{t.destination[1]}",
+            )
+            for t in targets or ()
+            if t.destination is not None and t.destination[:2] != (127, 127)
+        ),
         world_context=read_world_context(read, (x, y), map_id, save1, decode_text)
         if screen.kind == "overworld" and not in_battle
         else None,
-        interaction_targets=read_targets(read, map_id) if nearby is not None else None,
+        interaction_targets=targets,
         field_controls_locked=bool(read(FIELD_CONTROLS_LOCK, 1)[0])
         if screen.kind == "overworld" and not in_battle
         else None,

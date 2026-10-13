@@ -4,7 +4,7 @@ import type { AgentMessage, StreamFn } from "@mariozechner/pi-agent-core";
 import { Governor, piLoop } from "./harness.js";
 import { expect, it, vi } from "vitest";
 import { objectiveGameTools, objectiveTools, objectiveHarness } from "./objective-tools.js";
-import { ALL_TOOL_SWITCHES } from "./game-tools.js";
+import { isCheckedPress, ALL_TOOL_SWITCHES } from "./game-tools.js";
 import { ObjectiveTracker } from "./objectives.js";
 import { IN_GAME } from "../test-support/events.js";
 import type { BodyOf, RunEvent } from "./events.js";
@@ -387,3 +387,17 @@ it("leaves hidden facts out of the objective record and states model-reported co
   const shown = JSON.stringify((await defaults.transformContext([])).at(-1));
   for (const key of ["position", "facing", "field_controls_locked"]) expect(shown).toContain(`\\"${key}\\"`);
 });
+
+ it("checked navigation presses retain objective and repeated-attempt guards", async () => {
+  const {tracker, recorder}=setup();const server=serving();
+  const press=objectiveGameTools(tracker,recorder,"http://127.0.0.1:8812",server.fetchFn).find(t=>t.name==="press");
+  if(press===undefined||!isCheckedPress(press))throw new Error("Missing checked press");
+  let checks=0;const check=()=>{checks++;};
+  await expect(press.executeChecked("nav0",{buttons:["RIGHT"]},check)).rejects.toThrow(/objective/);
+  expect(checks).toBe(0);expect(server.actions()).toBe(0);
+  tracker.set({...request,completion:{kind:"state",field:"party_count",value:1}});
+  await press.executeChecked("nav1",{buttons:["RIGHT"]},check);
+  await press.executeChecked("nav2",{buttons:["RIGHT"]},check);
+  await expect(press.executeChecked("nav3",{buttons:["RIGHT"]},check)).rejects.toThrow(/Reassess/);
+  expect(checks).toBe(2);expect(server.actions()).toBe(2);expect(tracker.attempts).toHaveLength(2);
+ });

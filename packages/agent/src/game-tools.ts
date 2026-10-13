@@ -1,6 +1,6 @@
-import type { AgentMessage, AgentTool } from "@mariozechner/pi-agent-core";
+import type { AgentMessage, AgentTool, AgentToolResult } from "@mariozechner/pi-agent-core";
 import type { AssistantMessage, ImageContent, TextContent, ToolResultMessage } from "@mariozechner/pi-ai";
-import { Type } from "typebox";
+import { Type, type Static } from "typebox";
 import { Value } from "typebox/value";
 import { ButtonSchema, StateBodySchema, type Button } from "./events.js";
 import { parseGameState, type GameStateSnapshot } from "./game-state.js";
@@ -175,31 +175,32 @@ export interface PressHooks {
   afterPress(): Promise<void>;
 }
 
+export type BeforePressCheck=(before:GameStateSnapshot|undefined)=>void;
+export type CheckedPressTool=AgentTool<typeof PressArgs> & {
+ readonly executeChecked:(id:string,params:Static<typeof PressArgs>,check:BeforePressCheck,signal?:AbortSignal,update?:Parameters<AgentTool<typeof PressArgs>["execute"]>[3])=>Promise<AgentToolResult<{state:GameStateSnapshot|undefined}>>;
+};
+export function isCheckedPress(tool:AgentTool):tool is CheckedPressTool {return "executeChecked" in tool&&typeof tool.executeChecked==="function";}
+
 export function pressTool(
   gameServerUrl: string,
   hooks: PressHooks,
   fetchFn: typeof fetch = fetch,
   clock: Clock = realClock,
   switches: ToolSwitches = ALL_TOOL_SWITCHES,
-): AgentTool<typeof PressArgs> {
-  return {
-    name: "press",
-    label: "Press buttons",
-    description: switches.readout
-      ? "Press Game Boy Advance buttons in order (up to 8), then see the resulting screen and game state."
-      : "Press Game Boy Advance buttons in order (up to 8), then see the resulting screen.",
-    parameters: PressArgs,
-    execute: async (toolCallId, params, signal) => {
+): CheckedPressTool {
+  const execute=async(toolCallId:string,params:Static<typeof PressArgs>,signal?:AbortSignal,_update?:Parameters<AgentTool<typeof PressArgs>["execute"]>[3],check?:BeforePressCheck):Promise<AgentToolResult<{state:GameStateSnapshot|undefined}>>=>{
       // A stopped run (budget, operator abort) must not press anything further.
       signal?.throwIfAborted();
       let before: GameStateSnapshot | undefined;
       try {
         before = parseGameState(await getJson(`${gameServerUrl}/pokebench/state`, fetchFn, 15_000, signal));
-      } catch {
+      } catch (error) {
         // Preserve ordinary press operation for old/unavailable state servers;
         // the feedback explicitly withholds a before/after classification.
         signal?.throwIfAborted();
+        if(check!==undefined)throw error;
       }
+      check?.(before);
       hooks.beforePress(toolCallId, params.buttons, PRESS_TIMING, before);
       const url = `${gameServerUrl}/action`;
       const response = await fetchFn(url, {
@@ -218,7 +219,16 @@ export function pressTool(
       await hooks.afterPress();
       const content = await observation(gameServerUrl, fetchFn, signal, (after) => `pressed ${params.buttons.join(", ")}\n${switches.pressResult ? `Press result: ${pressResult(before, after, params.buttons, switches)}\n` : ""}\n`);
       return { content: content.content, details: { state: content.state } };
-    },
+  };
+  return {
+    name: "press",
+    label: "Press buttons",
+    description: switches.readout
+      ? "Press Game Boy Advance buttons in order (up to 8), then see the resulting screen and game state."
+      : "Press Game Boy Advance buttons in order (up to 8), then see the resulting screen.",
+    parameters: PressArgs,
+    execute,
+    executeChecked:(id,params,check,signal,update)=>execute(id,params,signal,update,check),
   };
 }
 

@@ -16,6 +16,8 @@ SERVER_FEATURES = (
     "live-object-sprites-v1",
     "world-targets-v1",
     "named-interactions-v1",
+    "world-destinations-v1",
+    "bounded-navigation-v1",
     "active-field-message-buffer-v1",
     "naming-cursor-v1",
     "story-state-v1",
@@ -26,7 +28,10 @@ SERVER_FEATURES = (
 
 
 def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
-    raw = env.get("POKEBENCH_FEATURES_OFF", "named-interactions-v1")
+    raw = env.get(
+        "POKEBENCH_FEATURES_OFF",
+        "named-interactions-v1,world-destinations-v1,bounded-navigation-v1",
+    )
     if raw == "":
         return frozenset()
     ids = raw.split(",")
@@ -61,7 +66,12 @@ def _menu(state: GameState) -> str:
 
 
 def format_readout(
-    state: GameState, off: frozenset[str] = frozenset(), *, named_interactions: bool = False
+    state: GameState,
+    off: frozenset[str] = frozenset(),
+    *,
+    named_interactions: bool = False,
+    world_destinations: bool = False,
+    bounded_navigation: bool = False,
 ) -> str:
     if "ram-state-v1" in off:
         return ""
@@ -129,6 +139,23 @@ def format_readout(
             t.text(named=named_interactions and "named-interactions-v1" not in off)
             for t in state.interaction_targets
         )
+    if bounded_navigation and "bounded-navigation-v1" not in off and state.map_id is not None:
+        lines.append(f"Navigation map_id: [{state.map_id[0]},{state.map_id[1]}] (current map only)")
+    if world_destinations and "world-destinations-v1" not in off:
+        lines.append(
+            "Map topology: unavailable" if state.topology is None else state.topology.text()
+        )
+        if state.interaction_targets is not None:
+            names = {(g, n): name for g, n, name in state.destination_names}
+            for target in state.interaction_targets:
+                if target.destination is not None:
+                    g, n, _ = target.destination
+                    name = (
+                        "dynamic destination"
+                        if (g, n) == (127, 127)
+                        else names.get((g, n), f"unknown map {g}/{n}")
+                    )
+                    lines.append(f"Warp destination at ({target.x},{target.y}): {name}")
     return "\n".join(lines)
 
 
@@ -141,6 +168,24 @@ def state_json(state: GameState) -> dict[str, object]:
         "world_context": None if state.world_context is None else state.world_context.json(),
         "field_controls_locked": state.field_controls_locked,
         "local_map": state.local_map,
+        "topology": None if state.topology is None else state.topology.json(),
+        "navigation_grid": None
+        if state.nearby is None or not state.nearby.tiles
+        else {
+            "elevation": state.player_elevation,
+            "tiles": [
+                {
+                    "x": t.x,
+                    "y": t.y,
+                    "collision": t.collision,
+                    "behavior": t.behavior,
+                    "elevation": t.elevation,
+                }
+                for t in state.nearby.tiles
+            ],
+            "objects": [{"x": x, "y": y} for _, x, y in state.nearby.objects],
+            "warps": [{"x": x, "y": y} for x, y, _, _ in state.nearby.warps],
+        },
         "interaction_targets": None
         if state.interaction_targets is None
         else [t.json() for t in state.interaction_targets],

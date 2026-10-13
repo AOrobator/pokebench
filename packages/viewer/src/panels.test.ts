@@ -466,6 +466,13 @@ it("renders passive would-stop as a diagnostic rather than execution error",()=>
  const log=bare();const event=log.add(100,{type:"loop_guard",turn:1,kind:"planning",mode:"diagnostic",phase:"would_stop",message:"No action <yet>",calls:12,evidence:[1]});const html=actionRow(event);expect(html).toContain("diagnostic: would stop");expect(html).not.toContain("ev-error");expect(html).toContain("No action &lt;yet&gt;");
 });
 
+
+it("shows recorded named topology even when story or field message data is unavailable",()=>{
+ const log=new Log(); const v=new RunView();v.apply(log.add(0,state({story:null,world_context:null,topology:{width:20,height:20,connections:[{direction:"NORTH",offset:-3,destination:[0,16],destination_name:"ROUTE 101 <verified>"}]}})));
+ expect(fieldContext(v)).toContain("Map bounds: X=0..19, Y=0..19");
+ expect(fieldContext(v)).toContain("NORTH → ROUTE 101 &lt;verified&gt;; offset -3");
+});
+
 it("shows the three post-clock splits and labels unsupported historical runs",()=>{
  const log=new Log();log.add(0,{...START,harness_features:["post-clock-navigation-milestones-v1"]});
  const names=["PLAYER_HOUSE_EXITED_AFTER_CLOCK","RIVAL_HOUSE_ENTERED","RIVAL_BEDROOM_REACHED"];

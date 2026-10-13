@@ -282,3 +282,17 @@ it('persists a late child exit after startup timeout and permits retry only once
  await expect(new HumanRestarts({...f.h,timeoutMs:20}).restart('old')).rejects.toThrow(/timeout/);finish(1);await Promise.resolve();expect(readFileSync(join(f.r,'.viewer','human-restarts','old.json'),'utf8')).toContain('failed');
  f.up.add(9001);await expect(new HumanRestarts({...f.h,timeoutMs:20}).restart('old')).rejects.toThrow(/draining/);expect(f.launches).toHaveLength(1);
 });
+
+it('preserves an original child failure that arrives during a pending retry and allows a drained fresh attempt',async()=>{
+ const f=restartFixture(true);let mono=0,finish:(code:number)=>void=()=>undefined;
+ f.h.monotonic=()=>mono;f.h.wait=()=>{mono+=10;return Promise.resolve();};
+ f.h.launch=spec=>{f.launches.push(spec);return new Promise(resolve=>{finish=resolve;});};
+ await expect(new HumanRestarts({...f.h,timeoutMs:20}).restart('old')).rejects.toThrow(/timeout/);
+ const path=join(f.r,'.viewer','human-restarts','old.json');const first=f.launches[0]?.runId;
+ f.h.wait=()=>{mono+=10;finish(1);return Promise.resolve();};
+ await expect(new HumanRestarts({...f.h,timeoutMs:20}).restart('old')).rejects.toThrow();
+ expect(JSON.parse(readFileSync(path,'utf8'))).toMatchObject({state:'failed',runId:first,error:expect.stringContaining('exited 1')});
+ f.h.launch=spec=>{f.launches.push(spec);f.write(spec.runId,false,true);f.up.add(9001);return new Promise(()=>undefined);};
+ const next=await new HumanRestarts({...f.h,timeoutMs:20}).restart('old');expect(next).not.toBe(first);expect(f.launches).toHaveLength(2);
+ expect(JSON.parse(readFileSync(join(f.r,'.viewer','human-restarts','old.attempt-1.json'),'utf8'))).toMatchObject({state:'failed',error:expect.stringContaining('exited 1')});
+});

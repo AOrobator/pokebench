@@ -40,8 +40,10 @@ def test_observation_is_the_readout_the_frame_and_the_typed_state() -> None:
     assert payload["state_text"].startswith(
         "Screen: naming\nDialog: none\n"
         "Menu: unavailable (active owner not verified)\n"
-        "Story: no completion confirmed\nGame not started"
+        "Interface: unsupported; input unavailable"
     )
+    assert "STATE COVERAGE ERROR: callback2 0x080E4F59" in payload["state_text"]
+    assert "Game not started" in payload["state_text"]
     assert payload["screenshot_base64"] == "iVBORw0KGgo="
     assert payload["state"]["screen"] == "naming"
     assert payload["state"]["started"] is False
@@ -88,7 +90,7 @@ def test_entire_ram_read_uses_the_existing_frame_memory_lock(path: str) -> None:
     install_observation(app, good_shot, locked_read, MapNames({}), lock)
     status, _, body = get(app, path)
     assert status == 200, body
-    assert calls == [0x030022C0, 0x030026F9, 0x0203CD92, 0x02039F94]
+    assert calls == [0x030022C0, 0x030026F9, 0x0203CD92, 0x02039F94, 0x02039F94, 0x02039F94]
     assert not lock.locked()
 
 
@@ -172,3 +174,16 @@ def test_live_warp_activation_reaches_model_text_and_recorded_state(behavior, gu
     assert f"warp at (0,1), elevation 0; {qualification}; conditional" in payload["state_text"], (
         payload
     )
+
+
+def test_active_ui_off_hides_typed_state_and_model_text(monkeypatch) -> None:
+    monkeypatch.setenv("POKEBENCH_ACTIVE_UI", "0")
+    status, _, body = get(app_with(good_shot), "/pokebench/observation")
+    payload = json.loads(body)
+    assert status == 200 and payload["state"]["active_ui"] is None
+    assert (
+        "Interface:" not in payload["state_text"]
+        and "STATE COVERAGE ERROR" not in payload["state_text"]
+    )
+    status, _, body = get(app_with(good_shot), "/pokebench/state")
+    assert status == 200 and json.loads(body)["active_ui"] is None

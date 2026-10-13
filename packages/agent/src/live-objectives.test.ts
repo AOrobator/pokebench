@@ -53,11 +53,12 @@ vi.mock("./run.js", async (load) => {
 });
 function currentLoop(): PiLoopOptions | null { return owner.loop; }
 afterEach(() => { vi.unstubAllGlobals();vi.unstubAllEnvs();vi.restoreAllMocks();owner.files.clear();owner.loop = null;owner.start = null; });
-it.each([[undefined, undefined], [undefined, "0"], ["0", undefined], ["0", "0"]])("actual play entrypoint agrees on tools, context, prompt and metadata (objectives=%s, interface=%s)", async (flag, interfaceFlag) => {
+it.each([[undefined, undefined, undefined], [undefined, "0", "0"], ["0", undefined, "1"], ["0", "0", "0"]])("actual play entrypoint agrees on tools, context, prompt and metadata (objectives=%s, interface=%s)", async (flag, interfaceFlag, activeUiFlag) => {
   vi.resetModules();owner.files.clear();owner.loop = null;
   const done = new Promise<RunPlan>((resolve, reject) => { owner.resolve = resolve;owner.reject = reject; });
   vi.stubEnv("POKEBENCH_OBJECTIVES", flag);
   vi.stubEnv("POKEBENCH_INTERFACE_DOCS", interfaceFlag);
+  vi.stubEnv("POKEBENCH_ACTIVE_UI", activeUiFlag);
   vi.stubGlobal("process", Object.assign(Object.create(process) as NodeJS.Process, { argv: [...process.argv.slice(0, 2), "play"] }));
   vi.spyOn(console, "log").mockImplementation(() => undefined);
   await import("./live.js");const plan = await done;const loop = currentLoop();
@@ -77,6 +78,7 @@ it.each([[undefined, undefined], [undefined, "0"], ["0", undefined], ["0", "0"]]
   expect(start.harness_features.includes("contextual-interface-docs-v1")).toBe(documented);
   expect(start.harness_features.includes("new-game-created-v1")).toBe(true);
   expect(start.harness_features.includes("native-objective-completion-v1")).toBe(enabled);
+  expect(start.harness_features.includes("active-ui-ownership-v1")).toBe(activeUiFlag !== "0");
   expect(loop.systemPrompt.includes("Buttons are contextual")).toBe(documented);
   expect(loop.systemPrompt.includes("not phone-style cycling groups")).toBe(documented);
   expect(loop.systemPrompt.includes("START moves the cursor to OK")).toBe(documented);
@@ -85,4 +87,18 @@ it.each([[undefined, undefined], [undefined, "0"], ["0", undefined], ["0", "0"]]
     const prompt = enabled ? start.system_prompt.slice(0, -(OBJECTIVE_PROMPT.length + 2)) : start.system_prompt;
     expect(createHash("sha256").update(prompt).digest("hex")).toBe("39af4e89110a2513733b420995fcff01c93b17f3e34dcffa11a7cbcc2f32d7e8");
   }
+});
+
+
+it.each([undefined,"0","1"])("actual probe producer declares active UI exposure for %s", async (flag) => {
+  vi.resetModules();owner.files.clear();
+  const done=new Promise<RunPlan>((resolve,reject)=>{owner.resolve=resolve;owner.reject=reject;});
+  vi.stubEnv("POKEBENCH_ACTIVE_UI",flag);
+  vi.stubGlobal("process",Object.assign(Object.create(process) as NodeJS.Process,{argv:[...process.argv.slice(0,2),"probe"]}));
+  vi.spyOn(console,"log").mockImplementation(()=>undefined);
+  vi.doMock("./probe.js",()=>({driveProbe:()=>Promise.resolve("completed"),parseProbeCommand:()=>({action:"end"}),verifyIntro:()=>undefined}));
+  await import("./live.js");const plan=await done;
+  expect(plan.harnessFeatures.includes("active-ui-ownership-v1")).toBe(flag!=="0");
+  expect(owner.start?.harness_features).toEqual(plan.harnessFeatures);
+  vi.doUnmock("./probe.js");
 });

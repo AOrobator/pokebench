@@ -41,3 +41,15 @@ it("isolates before and after locks and readiness guards", () => {
   expect(pressResult({ ...field, in_battle: true }, field, ["UP"])).toBe(unready);
   expect(pressResult(field, { ...field, in_battle: true }, ["UP"])).toBe(unready);
 });
+
+it("reports qualified naming and confirmation changes without requiring world coordinates", () => {
+  const base = {...IN_GAME,started:false,position:null,map_id:null};
+  const yes = {...base,active_ui:{phase:"name_confirmation",selected:"YES",ready:true,controls:"UP/DOWN",diagnostic:null}};
+  const no = {...yes,active_ui:{...yes.active_ui,selected:"NO"}};
+  expect(pressResult(yes,no,["DOWN"])).toContain("interface changed");
+  expect(pressResult(no,no,["A"])).toContain("interface unchanged");
+  const naming = {...base,naming:{text:"A",page:"uppercase" as const,column:0,row:0,key:"A",ready:true}};
+  expect(pressResult(naming,{...naming,naming:{...naming.naming,text:"AA"}},["A"])).toContain("interface changed");
+  const unknown = {...no,active_ui:{...no.active_ui,diagnostic:"unknown owner",ready:null}};
+  expect(pressResult(unknown,unknown,["A"])).toContain("state coverage error");
+});

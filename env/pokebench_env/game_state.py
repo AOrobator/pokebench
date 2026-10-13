@@ -16,7 +16,7 @@ from pokebench_env.gba_text import GBA_TEXT, decode_text
 from pokebench_env.live_map import MAP_OFFSET, read_local_map
 from pokebench_env.naming import NamingState, read_naming
 from pokebench_env.story import StoryState, read_story
-from pokebench_env.ui_state import Menu, read_dialog, read_menu
+from pokebench_env.ui_state import ActiveUi, Menu, read_active_ui, read_dialog, read_menu
 from pokebench_env.world_context import WorldContext, read_world_context
 
 __all__ = ["GBA_TEXT", "GameState", "MapNames", "PartyMon", "decode_text", "read_game_state"]
@@ -88,6 +88,7 @@ class GameState:
     world_context: WorldContext | None = None
     dialog: str | None = None
     menu: Menu | None = None
+    active_ui: ActiveUi | None = None
     interaction_targets: tuple[InteractionTarget, ...] | None = None
 
 
@@ -126,10 +127,13 @@ def _badges(read: ReadMemory, save1: int) -> tuple[str, ...]:
     return tuple(badge for i, badge in enumerate(BADGES) if bits >> i & 1)
 
 
-def read_game_state(read: ReadMemory, maps: MapNames) -> GameState:
+def read_game_state(
+    read: ReadMemory, maps: MapNames, *, active_ui_enabled: bool = True
+) -> GameState:
     screen = read_screen(read)
     in_battle = bool(read(IN_BATTLE, 1)[0] & 0x02)
     dialog, menu = read_dialog(read, screen.kind), read_menu(read)
+    active_ui = read_active_ui(read, screen) if active_ui_enabled else None
     player_object = 0
     field_initialized = False
     if screen.kind not in PRE_GAME:
@@ -153,9 +157,10 @@ def read_game_state(read: ReadMemory, maps: MapNames) -> GameState:
             None,
             None,
             story=read_story(read, screen),
-            naming=read_naming(read, decode_text) if screen.kind == "naming" else None,
+            naming=read_naming(read, decode_text) if screen.callback2 == 0x080E4F59 else None,
             dialog=dialog,
             menu=menu,
+            active_ui=active_ui,
         )
     save1, save2 = struct.unpack("<II", read(SAVE_BLOCK_PTRS, 8))
     _, _, group, number = struct.unpack("<hhBB", read(save1, 6))
@@ -187,6 +192,7 @@ def read_game_state(read: ReadMemory, maps: MapNames) -> GameState:
         play_time=(hours, minutes, seconds),
         dialog=dialog,
         menu=menu,
+        active_ui=active_ui,
         local_map=None if nearby is None else nearby.text(),
         world_context=read_world_context(read, (x, y), map_id, save1, decode_text)
         if screen.kind == "overworld" and not in_battle

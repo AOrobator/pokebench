@@ -40,6 +40,10 @@ SCREENS: dict[int, str] = {
     0x080E2E05: "naming",
     0x080E4F59: "naming",
     0x08085E5D: "overworld",
+    0x08085FFD: "field_transition",
+    0x08085FCD: "field_transition",
+    0x08137201: "field_transition",
+    0x08134C9D: "clock",
 }
 
 
@@ -72,7 +76,9 @@ def read_screen(read: ReadMemory) -> Screen:
             for i in range(0, len(tasks), 0x28)
             if tasks[i + 4]
         }
-        if functions & BIRCH_TASKS:
+        from pokebench_env.ui_state import BIRCH_PHASES
+
+        if functions & (BIRCH_TASKS | BIRCH_PHASES.keys()):
             kind = "birch_speech"
         elif any(0x0802F6B1 <= fn < 0x080307B1 for fn in functions):
             kind = "main_menu"

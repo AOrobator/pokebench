@@ -24,6 +24,7 @@ def memory(callback1: int, callback2: int):
         (0x080E2E05, "naming"),
         (0x080E4F59, "naming"),
         (0x08085E5D, "overworld"),
+        (0x08085FFD, "field_transition"),
     ],
 )
 def test_known_callbacks_name_the_screen(callback2: int, kind: str) -> None:
@@ -43,7 +44,7 @@ def test_an_unmapped_callback_is_reported_not_guessed() -> None:
 
 def test_gmain_is_the_us_emerald_address() -> None:
     assert GMAIN == 0x030022C0
-    assert len(SCREENS) == 9
+    assert len(SCREENS) == 13
 
 
 def test_a_short_read_is_an_error() -> None:

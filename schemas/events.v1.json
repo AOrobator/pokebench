@@ -1475,6 +1475,72 @@
         "screen": {
           "type": "string"
         },
+        "active_ui": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "phase",
+                "selected",
+                "ready",
+                "controls",
+                "diagnostic"
+              ],
+              "properties": {
+                "phase": {
+                  "type": "string"
+                },
+                "selected": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "ready": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "controls": {
+                  "type": "string"
+                },
+                "diagnostic": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "story": {
           "anyOf": [
             {

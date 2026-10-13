@@ -50,3 +50,11 @@ describe("StateWatcher", () => {
     await expect(new StateWatcher(SERVER, fetchFn).read()).rejects.toThrow(/\/pokebench\/state returned HTTP 503/);
   });
 });
+
+it("validates owned interface state and preserves historical absence", () => {
+  const active_ui = {phase:"name_confirmation",selected:"NO",ready:true,controls:"B declines",diagnostic:null};
+  expect(parseGameState({...PRE_GAME,active_ui}).active_ui).toEqual(active_ui);
+  expect(() => parseGameState({...PRE_GAME,active_ui:{...active_ui,ready:"true"}})).toThrow(/active_ui/);
+  expect(() => parseGameState({...PRE_GAME,active_ui:{...active_ui,diagnostic:12}})).toThrow(/active_ui/);
+  expect(parseGameState(PRE_GAME).active_ui).toBeUndefined();
+});

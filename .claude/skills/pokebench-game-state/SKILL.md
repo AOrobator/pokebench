@@ -29,3 +29,9 @@ Use a separate, recorded probe with ordinary run metadata, tool results, and fra
 Check at least the relevant selection change, confirmation/cancel path, and a transition/uninitialized state. Compare the frame, decoded RAM, typed state, **and the exact observation text the model receives**. For an editor, verify its buffer and cursor independently; for a menu, verify more than the default option. Synthetic tests should exercise the production reader and propagation path, with a wrong offset or cursor mapping demonstrably failing. Synthetic layouts alone are not live ROM proof.
 
 Record source symbols/revision, ROM identity, verified addresses/offsets, run/frame evidence, and remaining uncertainty in the repository's findings/worklog. Follow its existing gates and review requirements for implementation. This skill supplies source-grounding guidance; it does not authorize landing, new navigation solvers, RAM writes, or save manipulation.
+
+## Unsupported-state repair workflow
+
+A recorded `active_ui.diagnostic` / `STATE COVERAGE ERROR`, unknown callback, unknown selection owner or unsupported text character is a state-coverage defect, not permission to guess. When investigating a run, collect the event seq, turn, paired frame, callback/task facts and exact model observation. Group repeated diagnostics by owner so animation frames do not create duplicate work. Use the source-grounding procedure above to establish ownership, readiness and live selected values, then add regression tests, coherent native proof, typed propagation and reviewed repair. Keep unresolved owners in the worklog with their concrete evidence; never close the defect by relabeling it overworld or defaulting a cursor.
+
+This workflow is for coding agents maintaining the harness. A benchmark-playing model must not edit its own harness or receive an automatically injected walkthrough. Land changes between measured cohorts and declare new readouts in harness metadata.

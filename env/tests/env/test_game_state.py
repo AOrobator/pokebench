@@ -129,9 +129,18 @@ def test_every_substructure_order_decrypts(personality: int) -> None:
 
 
 def test_before_the_game_starts_no_save_field_is_reported() -> None:
+    from pokebench_env.ui_state import ActiveUi
+
     state = read_game_state(game(NAMING).read, MAPS)
     assert state == GameState(
         screen="naming",
+        active_ui=ActiveUi(
+            "unsupported",
+            None,
+            None,
+            "Observe and report this coverage error",
+            "callback2 0x080E4F59; naming buffer or cursor invalid; pointer 0x00000000",
+        ),
         story=StoryState(),
         started=False,
         name=None,
@@ -265,3 +274,33 @@ def test_dialog_and_menu_come_from_the_ui_reader() -> None:
     state = read_game_state(memory.read, MapNames({}))
     assert state.dialog == "Hi"
     assert state.menu is None
+
+
+def test_real_state_reader_propagates_owned_confirmation_without_save_defaults() -> None:
+    from pokebench_env.game_screen import TASKS
+    from pokebench_env.readout import format_readout, state_json
+    from pokebench_env.ui_state import MENU, WINDOWS
+
+    memory = game((0, BIRCH_SPEECH))
+    memory.put(TASKS, struct.pack("<IB", 0x08031189, 1))
+    memory.put(MENU + 2, struct.pack("<bbbB", 1, 0, 1, 1))
+    pixels = 0x02004000
+    memory.put(WINDOWS + 12, struct.pack("<BBBBBBHI", 0, 22, 1, 6, 4, 15, 0x139, pixels))
+    memory.put(pixels, b"\x11" * 767 + b"\x12")
+    result = read_game_state(memory.read, MAPS)
+    assert result.screen == "birch_speech" and not result.started and result.name is None
+    assert result.active_ui.selected == "NO" and result.active_ui.ready
+    assert state_json(result)["active_ui"]["selected"] == "NO"
+    assert "Menu: name_confirmation; selected NO" in format_readout(result)
+    assert result.story.name_confirmed is False
+
+
+def test_active_ui_reader_ablation_withholds_phase_selection_and_diagnostic() -> None:
+    from pokebench_env.readout import format_readout, state_json
+
+    state = read_game_state(game(NAMING).read, MAPS, active_ui_enabled=False)
+    assert state.active_ui is None and state_json(state)["active_ui"] is None
+    assert "STATE COVERAGE ERROR" not in format_readout(
+        state
+    ) and "Interface:" not in format_readout(state)
+    assert state.screen == "naming" and state.name is None

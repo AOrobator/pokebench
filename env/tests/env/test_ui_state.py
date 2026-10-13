@@ -163,7 +163,7 @@ class TestReadMenu:
 class TestActiveBirchUi:
     @pytest.mark.parametrize(("cursor", "selected"), [(0, "YES"), (1, "NO")])
     def test_name_confirmation_reads_owned_selection(self, cursor: int, selected: str) -> None:
-        from pokebench_env.game_screen import Screen, TASKS
+        from pokebench_env.game_screen import TASKS, Screen
         from pokebench_env.ui_state import read_active_ui
 
         memory = Memory()
@@ -177,7 +177,7 @@ class TestActiveBirchUi:
         assert "B declines" in ui.controls
 
     def test_printing_phase_does_not_reuse_stale_yes_no_menu(self) -> None:
-        from pokebench_env.game_screen import Screen, TASKS
+        from pokebench_env.game_screen import TASKS, Screen
         from pokebench_env.ui_state import read_active_ui
 
         memory = Memory()
@@ -190,7 +190,7 @@ class TestActiveBirchUi:
 
     @pytest.mark.parametrize(("cursor", "selected"), [(0, "BOY"), (1, "GIRL")])
     def test_gender_selection_is_owned(self, cursor: int, selected: str) -> None:
-        from pokebench_env.game_screen import Screen, TASKS
+        from pokebench_env.game_screen import TASKS, Screen
         from pokebench_env.ui_state import read_active_ui
 
         memory = Memory()
@@ -201,7 +201,7 @@ class TestActiveBirchUi:
         assert ui.phase == "gender_selection" and ui.selected == selected and ui.ready
 
     def test_unknown_owner_has_bounded_diagnostic_not_guessed_cursor(self) -> None:
-        from pokebench_env.game_screen import Screen, TASKS
+        from pokebench_env.game_screen import TASKS, Screen
         from pokebench_env.ui_state import read_active_ui
 
         memory = Memory()
@@ -209,3 +209,127 @@ class TestActiveBirchUi:
         ui = read_active_ui(memory.read, Screen("unknown", 0, 0x0802F6B1))
         assert ui.phase == "unsupported" and ui.ready is None and ui.selected is None
         assert "0x08039999" in ui.diagnostic and "0x0802F6B1" in ui.diagnostic
+
+    def test_unrelated_screen_and_known_intro_have_no_invented_menu(self) -> None:
+        from pokebench_env.game_screen import Screen
+        from pokebench_env.ui_state import read_active_ui
+
+        assert read_active_ui(Memory().read, Screen("naming", 0, 0x080E2E05)) is None
+        assert read_active_ui(Memory().read, Screen("birch_speech", 0, 0x0802F6B1)) is None
+
+    def test_invalid_owned_menu_is_a_coverage_error(self) -> None:
+        from pokebench_env.game_screen import TASKS, Screen
+        from pokebench_env.ui_state import read_active_ui
+
+        memory = Memory()
+        memory.put(TASKS, struct.pack("<IB", 0x08031189, 1))
+        ui = read_active_ui(memory.read, Screen("birch_speech", 0, 0x0802F6B1))
+        assert ui.ready is None and ui.selected is None and "invalid" in ui.diagnostic
+        menu(memory, 0, 2, 1)
+        window(memory, 1, 0, 6, 4, True)
+        assert read_active_ui(memory.read, Screen("birch_speech", 0, 0x0802F6B1)).ready is None
+
+    def test_conflicting_owners_and_short_reads_are_not_trusted(self) -> None:
+        from pokebench_env.game_screen import TASKS, Screen
+        from pokebench_env.ui_state import read_active_ui
+
+        memory = Memory()
+        memory.put(TASKS, struct.pack("<IB", 0x08031189, 1))
+        memory.put(TASKS + 0x28, struct.pack("<IB", 0x08030E39, 1))
+        assert (
+            read_active_ui(memory.read, Screen("birch_speech", 0, 0x0802F6B1)).phase
+            == "unsupported"
+        )
+        with pytest.raises(ValueError, match="short active UI"):
+            read_active_ui(lambda a, n: b"", Screen("unknown", 0, 0))
+
+    def test_prompt_readiness_is_distinct_from_transition(self) -> None:
+        from pokebench_env.game_screen import TASKS, Screen
+        from pokebench_env.ui_state import read_active_ui
+
+        memory = Memory()
+        memory.put(TASKS, struct.pack("<IB", 0x08031041, 1))
+        ui = read_active_ui(memory.read, Screen("birch_speech", 0, 0x0802F6B1))
+        assert ui.ready and "A or B" in ui.controls
+        assert "input ready" in ui.text()
+        memory.put(TASKS, struct.pack("<IB", 0x0803261D, 1))
+        assert not read_active_ui(memory.read, Screen("birch_speech", 0, 0x0802F6B1)).ready
+
+
+def test_source_matched_map_loader_is_explicitly_not_ready() -> None:
+    from pokebench_env.game_screen import Screen
+    from pokebench_env.ui_state import read_active_ui
+
+    ui = read_active_ui(Memory().read, Screen("field_transition", 0, 0x08085FFD))
+    assert ui.phase == "field_transition" and ui.ready is False and ui.diagnostic is None
+
+
+@pytest.mark.parametrize(
+    ("fn", "phase", "ready"),
+    [
+        (0x08134CE9, "clock_adjustment", True),
+        (0x08134CB9, "clock_transition", False),
+        (0x08134F41, "clock_view", True),
+    ],
+)
+def test_clock_owner_value_and_readiness(fn: int, phase: str, ready: bool) -> None:
+    from pokebench_env.game_screen import TASKS, Screen
+    from pokebench_env.ui_state import read_active_ui
+
+    memory = Memory()
+    memory.put(TASKS, struct.pack("<IB", fn, 1))
+    memory.put(TASKS + 12, struct.pack("<hh", 13, 42))
+    memory.put(TASKS + 18, struct.pack("<h", 1))
+    ui = read_active_ui(memory.read, Screen("clock", 0, 0x08134C9D))
+    assert ui.phase == phase and ui.ready == ready and ui.value == "1:42 PM"
+
+
+@pytest.mark.parametrize(("cursor", "selected"), [(0, "YES"), (1, "NO")])
+def test_clock_confirmation_selected_value(cursor: int, selected: str) -> None:
+    from pokebench_env.game_screen import TASKS, Screen
+    from pokebench_env.ui_state import read_active_ui
+
+    memory = Memory()
+    memory.put(TASKS, struct.pack("<IB", 0x08134E31, 1))
+    menu(memory, cursor, 1, 2)
+    window(memory, 2, 0, 5, 4, True)
+    ui = read_active_ui(memory.read, Screen("clock", 0, 0x08134C9D))
+    assert ui.selected == selected and ui.ready and ui.value == "12:00 AM"
+    assert "value 12:00 AM" in ui.text()
+
+
+@pytest.mark.parametrize(
+    "fault", ["missing", "conflict", "hours", "minutes", "period", "menu", "short"]
+)
+def test_clock_invalid_owner_or_data_stays_unavailable(fault: str) -> None:
+    from pokebench_env.game_screen import TASKS, Screen
+    from pokebench_env.ui_state import read_active_ui
+
+    memory = Memory()
+    memory.put(TASKS, struct.pack("<IB", 0x08134E31, 1))
+    if fault == "missing":
+        memory.put(TASKS, b"\0" * 5)
+    if fault == "conflict":
+        memory.put(TASKS + 0x28, struct.pack("<IB", 0x08134CE9, 1))
+    if fault == "hours":
+        memory.put(TASKS + 12, struct.pack("<h", 24))
+    if fault == "minutes":
+        memory.put(TASKS + 14, struct.pack("<h", 60))
+    if fault == "period":
+        memory.put(TASKS + 18, struct.pack("<h", 2))
+    if fault == "short":
+        with pytest.raises(ValueError, match="short clock"):
+            read_active_ui(lambda a, n: b"", Screen("clock", 0, 0x08134C9D))
+    else:
+        ui = read_active_ui(memory.read, Screen("clock", 0, 0x08134C9D))
+        assert ui.ready is None and ui.diagnostic
+
+
+def test_clock_motion_between_ticks_does_not_claim_confirmation_input_ready() -> None:
+    from pokebench_env.game_screen import TASKS, Screen
+    from pokebench_env.ui_state import read_active_ui
+
+    memory = Memory()
+    memory.put(TASKS, struct.pack("<IB", 0x08134CE9, 1))
+    memory.put(TASKS + 8, struct.pack("<h", 1))
+    assert read_active_ui(memory.read, Screen("clock", 0, 0x08134C9D)).ready is False

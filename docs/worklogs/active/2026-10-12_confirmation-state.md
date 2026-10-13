@@ -21,13 +21,13 @@ Read-only RAM through existing frame lock; no save manipulation/RAM writes. ROM 
 
 ## Milestones
 **M1 — State ownership and propagation**
-- [ ] RED tests and commit
-- [ ] Implement known confirmation/gender/transition ownership and diagnostics
-- [ ] GREEN gates: tests, lint, build, coverage all metrics >=90
+- [x] RED tests and commit a46216e
+- [x] Implement known confirmation/gender/clock/transition ownership and diagnostics
+- [x] GREEN gates: tests, lint, build, coverage all metrics >=90
 - [ ] Live coherent RAM/frame/model-text proof; mutations
 - [ ] Multi-model review until LGTM; reviewed landing coordinated by parent
 **M2 — Repair skill**
-- [ ] Extend existing skill with diagnostic capture and repair workflow
+- [x] Extend existing skill with diagnostic capture and repair workflow
 
 ## Closing the Loop
 Parent coordinates integration and archived worktree. Canonical source frozen40262a0 during cohort; no measured endpoint changes.
@@ -48,3 +48,11 @@ None.
 - [ ] ASK USER: archive after closeout.
 
 RED: six active-owner/selection/printing/diagnostic tests fail at absent production read_active_ui;22 existing tests pass. ROM read-only disassembly confirms ChooseGender0x08030E39→Menu_GetCursorPos0x08198560, CreateNameYesNo0x08031145→ProcessNameYesNo0x08031189, return textbox0x0803261D→SoItsPlayerName0x08031105, NO/B→BoyOrGirl0x08030DC9.
+
+2026-10-12 implementation checkpoint: active_ui carries phase, selected option, readiness, contextual controls, value and coverage diagnostic through Python JSON/model text, TypeBox and viewer. Live metadata declares active-ui-ownership-v1. Explicit map-load transitions qualify all three observed map callbacks using source/ROM call targets and stored literals. ClockCB2 0x08134C9D invokes RunTasks/AnimateSprites/BuildOam/ScheduledBG/PaletteFade matching wallclock.c; task pointers0x08134CE9/4DC5/4E31/4EA5/4EE9 match adjustment/ask/confirm/confirmed/exit and typed clock task data[2]/[3]/[5]. A is not ready between minute-angle ticks. Generic unknown callback/task families produce state coverage errors; no claim of full-game UI exhaustiveness.
+
+Native isolated prototype afd5 at8044 (feature tagged) proves BOY/GIRL, editor text/cursor, nameYES/NO and NO/B return to gender without native name milestone; YES eventually emits native PLAYER_NAME_CONFIRMED. Candidate continued evolving during this prototype; final frozen source/clock probe and original-event compatibility must still bind proof before review. Initial7acc completed with no new readout feature and retained as setup diagnostic; a3a1 refused8044ownedcollision before run_start, not a benchmark trial. Cold nativeOpenCV imports took roughly90seconds then completed; no privacy/runtime workaround. Native mGBA binding only symlinked from stable main runtime. Vendorouterpin clean; recursiveinit encountered upstream nested gitmodule withouturl, outervendor data available and unchanged.
+
+Four assertion-killing mutations qualified: reverseYESNO mapping, omitconfirmation owner, allow stale printing menu, remove two-optionvalidation. All restore original reader. Readout consistency addition: press-result summarizes qualified naming/UI netchanges rather than worldposition unavailable; explicitly avoids per-frame acceptance claims, and coverageerror cannot establishchangedUI.
+
+GREEN pre-freeze gates: agent374 +viewer148 +Python405 tests pass; build/lint/format/mypy clean. Coverage run404Python tests (one additional readout assertion added after coverage import, no source change) passesall90floors: agent98.68/93.17/98.29/99.16;viewer97.47/90.93/98.42/98.36;Python99.38lines/97.06branches/100functions. Native clock-source hashes captured before9020 probe, owntruck snapshot declared save_state SHA1 in native run_start; no measured-run gameplay. Commit freezes candidate source; review/live qualification remain unchecked until evidence completed.

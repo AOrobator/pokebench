@@ -45,6 +45,7 @@ export function trainerCard(view: RunView, nowMs: number): string {
       ["MAP", state === null ? NO_DATA : place(state)],
       ["MONEY", state === null ? NO_DATA : state.money === null ? NOT_STARTED : `₽${num(state.money)}`],
       ["TURN", String(view.turn)],
+      ...(state?.active_ui == null ? [] : [["INTERFACE", esc(state.active_ui.phase)], ...(state.active_ui.value == null ? [] : [["VALUE", esc(state.active_ui.value)]]), ["SELECTION", esc(state.active_ui.selected ?? "unavailable")], ["INPUT", state.active_ui.ready === null ? "unavailable" : state.active_ui.ready ? "ready" : "not ready"], ...(state.active_ui.diagnostic === null ? [] : [["STATE COVERAGE ERROR", esc(state.active_ui.diagnostic)]])] as [string, string][]),
       ...(state?.naming == null ? [] : [["NAME ENTRY", esc(state.naming.text || "(empty)")], ["CURSOR", esc(`${state.naming.page}: ${state.naming.key} (${String(state.naming.column)},${String(state.naming.row)})`)]] as [string, string][]),
       ["CONTROLS", state?.field_controls_locked === true ? "locked" : state?.field_controls_locked === false ? "available" : NO_DATA],
     ]) + `<div class="badges">${badges}</div>`

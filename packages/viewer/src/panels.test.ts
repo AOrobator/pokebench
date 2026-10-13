@@ -405,3 +405,11 @@ it("shows creation before name confirmation with recorded baseline and best delt
   expect(html.indexOf('new game created')).toBeLessThan(html.indexOf('player name confirmed'));
   expect(splits(view(bare()), null, BASE_MS + 12000).table).toContain('<td class="n">new game created</td><td class="t">not<br>recorded</td>');
 });
+
+
+it("renders verified confirmation selection and unsupported diagnostic", () => {
+  const log = bare();
+  log.add(0, state({ active_ui: {phase:"name_confirmation",selected:"NO",ready:true,controls:"B declines",diagnostic:null} }));
+  expect(trainerCard(view(log), BASE_MS)).toContain("name_confirmation");
+  expect(trainerCard(view(log), BASE_MS)).toContain("NO");
+});

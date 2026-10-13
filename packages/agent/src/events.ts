@@ -140,6 +140,12 @@ const FramesEvicted = event("frames_evicted", {
 export const StateBodySchema = Type.Object(
   {
     screen: Type.String(),
+    active_ui: Type.Optional(Type.Union([Type.Object({
+      phase: Type.String(), selected: Type.Union([Type.String(),Type.Null()]),
+      ready: Type.Union([Type.Boolean(),Type.Null()]), controls: Type.String(),
+      diagnostic: Type.Union([Type.String(),Type.Null()]),
+      value: Type.Optional(Type.Union([Type.String(),Type.Null()])),
+    },closed),Type.Null()])),
     story: Type.Optional(Type.Union([Type.Object({
       name_confirmed: Type.Union([Type.Boolean(), Type.Null()]),
       intro_stage: Type.Union([Type.Integer({minimum:0,maximum:7}), Type.Null()]),

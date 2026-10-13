@@ -1,10 +1,25 @@
 import type { Button } from "./events.js";
 import type { GameStateSnapshot } from "./game-state.js";
 
+
+function interfaceProjection(state: GameStateSnapshot): string | undefined {
+  if (state.naming != null) return JSON.stringify(["naming",state.naming.text,state.naming.page,state.naming.column,state.naming.row,state.naming.key,state.naming.ready]);
+  const ui=state.active_ui;
+  if (ui == null || ui.diagnostic !== null || ui.ready === null) return undefined;
+  return JSON.stringify([ui.phase,ui.selected,ui.ready,ui.value ?? null]);
+}
+
 // Endpoint snapshots prove net changes. They cannot prove every frame accepted
 // input or that a temporary script lock did not occur between the snapshots.
 export function pressResult(before: GameStateSnapshot | undefined, after: GameStateSnapshot, buttons: readonly Button[]): string {
   if (before === undefined) return "unavailable (no verified before snapshot)";
+  if (before.active_ui?.diagnostic != null || after.active_ui?.diagnostic != null) return "unavailable (state coverage error; no verified interface outcome)";
+  const beforeUi=interfaceProjection(before), afterUi=interfaceProjection(after);
+  if (beforeUi !== undefined || afterUi !== undefined) {
+    if (beforeUi !== afterUi) return "interface changed (phase, selection, value, or readiness changed; input acceptance per frame unproven)";
+    return "interface unchanged (no net phase, selection, value, or readiness change; intermediate effects unknown)";
+  }
+
   if (!before.started || !after.started || before.position === null || after.position === null ||
       before.map_id === null || after.map_id === null) return "unavailable/transitioning (world position unavailable)";
   if (before.map_id[0] !== after.map_id[0] || before.map_id[1] !== after.map_id[1] || before.screen !== after.screen) {

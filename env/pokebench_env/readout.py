@@ -17,6 +17,8 @@ def _play_seconds(state: GameState) -> int | None:
 
 
 def _menu(state: GameState) -> str:
+    if state.active_ui is not None and state.active_ui.selected is not None:
+        return f"Menu: {state.active_ui.phase}; selected {state.active_ui.selected}"
     if state.menu is None:
         return "Menu: unavailable (active owner not verified)"
     return (
@@ -28,6 +30,8 @@ def _menu(state: GameState) -> str:
 def format_readout(state: GameState) -> str:
     dialog = "none" if state.dialog is None else f'"{state.dialog}"'
     lines = [f"Screen: {state.screen}", f"Dialog: {dialog}", _menu(state)]
+    if state.active_ui is not None:
+        lines.append(state.active_ui.text())
     if state.story is not None:
         lines.append(state.story.text())
     if state.naming is not None:
@@ -66,6 +70,7 @@ def format_readout(state: GameState) -> str:
 def state_json(state: GameState) -> dict[str, object]:
     return {
         "screen": state.screen,
+        "active_ui": None if state.active_ui is None else state.active_ui.json(),
         "story": None if state.story is None else state.story.json(),
         "naming": None if state.naming is None else state.naming.json(),
         "world_context": None if state.world_context is None else state.world_context.json(),

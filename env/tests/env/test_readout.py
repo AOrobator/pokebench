@@ -68,6 +68,7 @@ def test_open_dialog_and_menu_lead_the_readout() -> None:
 def test_state_json_is_plain_json() -> None:
     assert state_json(IN_GAME) == {
         "screen": "overworld",
+        "active_ui": None,
         "story": None,
         "naming": None,
         "world_context": None,
@@ -91,6 +92,7 @@ def test_state_json_is_plain_json() -> None:
     }
     assert state_json(PRE_GAME) == {
         "screen": "naming",
+        "active_ui": None,
         "story": None,
         "naming": None,
         "world_context": None,
@@ -130,3 +132,28 @@ def test_live_map_is_in_the_model_readout_and_state_json() -> None:
     state = GameState(**{**IN_GAME.__dict__, "local_map": "Local map from live memory:\n.@N"})
     assert format_readout(state).endswith("Local map from live memory:\n.@N")
     assert state_json(state)["local_map"] == state.local_map
+
+
+def test_active_ui_is_in_exact_model_text_and_json() -> None:
+    from dataclasses import replace
+
+    from pokebench_env.ui_state import ActiveUi
+
+    ui = ActiveUi("name_confirmation", "NO", True, "UP/DOWN selects; B declines")
+    state = replace(IN_GAME, active_ui=ui)
+    assert "Interface: name_confirmation; input ready; selected NO" in format_readout(state)
+    assert state_json(state)["active_ui"] == ui.json()
+    diagnostic = replace(
+        state, active_ui=ActiveUi("unsupported", None, None, "Observe", "callback2 0x08039999")
+    )
+    assert "STATE COVERAGE ERROR: callback2 0x08039999" in format_readout(diagnostic)
+
+
+def test_verified_menu_does_not_call_its_owner_unavailable() -> None:
+    from dataclasses import replace
+
+    from pokebench_env.ui_state import ActiveUi
+
+    state = replace(PRE_GAME, active_ui=ActiveUi("name_confirmation", "YES", True, "A accepts"))
+    assert "Menu: name_confirmation; selected YES" in format_readout(state)
+    assert "active owner unavailable" not in format_readout(state)

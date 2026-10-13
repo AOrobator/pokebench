@@ -220,7 +220,7 @@ function rowBody(event: RunEvent, view?: RunView): string | null {
     case "milestone":
       return `★ ${esc(event.name)}${event.kind === undefined ? "" : ` · ${event.kind}`}${event.origin === "present_at_start" ? " · already present when run started" : ""}${event.evidence === undefined ? "" : ` · evidence ${event.evidence.map((seq) => `#${String(seq)}`).join(", ")}`}`;
     case "loop_guard":
-      return view === undefined ? `Loop ${esc(event.kind)} ${esc(event.phase)}: ${esc(event.message)} · evidence ${event.evidence.map(seq=>`#${String(seq)}`).join(", ")}` : esc(view.loopLabel(event));
+      return view === undefined ? `Loop ${esc(event.kind)} ${esc("mode" in event && event.mode === "diagnostic" ? `diagnostic: ${event.phase.replace("_", " ")}` : event.phase)}: ${esc(event.message)} · evidence ${event.evidence.map(seq=>`#${String(seq)}`).join(", ")}` : esc(view.loopLabel(event));
     case "retry":
       return `✗ retry ${String(event.attempt)}/${String(event.limit)}: ${esc(event.reason)}`;
     case "telemetry_error":
@@ -241,7 +241,7 @@ function rowBody(event: RunEvent, view?: RunView): string | null {
 export function actionRow(event: RunEvent, view?: RunView): string | null {
   const body = rowBody(event, view);
   if (body === null) return null;
-  const error = (event.type === "tool_result" && event.is_error) || event.type === "retry" || (event.type === "loop_guard" && event.phase !== "recovered") || event.type === "telemetry_error" ? " ev-error" : "";
+  const error = (event.type === "tool_result" && event.is_error) || event.type === "retry" || (event.type === "loop_guard" && event.phase !== "recovered" && !("mode" in event && event.mode === "diagnostic")) || event.type === "telemetry_error" ? " ev-error" : "";
   return `<div class="ev ev-${event.type}${error}" data-seq="${String(event.seq)}"><span class="seq">#${String(event.seq)}</span><span class="tag">${event.type}</span><span class="body">${body}</span></div>`;
 }
 

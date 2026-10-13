@@ -237,5 +237,10 @@ it("replays loop warnings, recovery and stuck termination without conflating ret
   const log=new Log();log.add(0,START);
   for(const phase of ["warning","recovered","stop"] as const)log.add(100,{type:"loop_guard",turn:1,kind:"planning",phase,message:"No action <yet>",calls:6,evidence:[1,2]});
   const view=new RunView();for(const event of log.events)view.apply(event);
-  expect(view.errors.map(e=>[e.kind,e.label])).toEqual(["warning","recovered","stop"].map((phase,index)=>["loop",`Planning stall ${phase} · #${String(index+1)} · turn 1 · 0:00:00 · 6 completed calls · preceding tool not recorded: No action <yet> · evidence #1, #2`]));expect(view.retry).toBe(null);
+  expect(view.errors.map(e=>[e.kind,e.label])).toEqual(["warning","recovered","stop"].map((phase,index)=>["loop",`Planning stall ${phase} · #${String(index+1)} · turn 1 · 0:00:00 · 6 completed calls · preceding tool not recorded: No action <yet> · evidence #1, #2 · historical mode unrecorded`]));expect(view.retry).toBe(null);
+});
+
+it("labels passive thresholds without inventing run termination",()=>{
+ const log=new Log();log.add(0,START);const event=log.add(100,{type:"loop_guard",turn:1,kind:"planning",mode:"diagnostic",phase:"would_stop",message:"threshold",calls:12,evidence:[1]});const view=fold(log);
+ expect(view.loopLabel(event as Extract<typeof event,{type:"loop_guard"}>)).toContain("diagnostic: would stop");expect(view.end).toBe(null);expect(view.retry).toBe(null);
 });

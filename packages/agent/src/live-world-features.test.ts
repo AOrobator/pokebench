@@ -77,5 +77,5 @@ it.each([true,false])("play publishes loop-guard ablation (enabled=%s)",async(en
   const receipt=new Promise<RunEvent>((resolve,reject)=>{context.resolve=resolve;context.reject=reject;});
   vi.stubGlobal("process",Object.assign(Object.create(process) as NodeJS.Process,{argv:[...process.argv.slice(0,2),"play"],env:{...process.env,POKEBENCH_LOOP_GUARD:enabled?"1":"0"}}));
   vi.spyOn(console,"log").mockImplementation(()=>undefined);await import("./live.js");const start=await receipt;
-  if(start.type!=="run_start")throw new Error("unexpected startup event");expect(start.harness_features.filter(f=>f.startsWith("deterministic-loop-guard"))).toEqual(enabled?["deterministic-loop-guard-v1"]:[]);
+  if(start.type!=="run_start")throw new Error("unexpected startup event");expect(start.harness_features.filter(f=>f.startsWith("deterministic-loop-diagnostics")||f.startsWith("deterministic-loop-policy"))).toEqual(["deterministic-loop-diagnostics-v1","deterministic-loop-policy-v1:p6:o3:a3:c3:r2:recovery6"]);expect(start.harness_features.filter(f=>f.startsWith("deterministic-loop-guard"))).toEqual(enabled?["deterministic-loop-guard-v1"]:[]);
 });

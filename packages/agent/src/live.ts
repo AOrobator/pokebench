@@ -23,6 +23,7 @@ import { discoverModels, selectModel, type GatewayModel } from "./gateway.js";
 import { FrameStore } from "./frames.js";
 import { StateWatcher } from "./game-state.js";
 import { StateMilestones } from "./milestones.js";
+import { readLoopMode } from "./loop-detection.js";
 import { attachLoopGuard, Governor, piLoop, play, type Limits } from "./harness.js";
 import { discoverLocal, readEndpoint } from "./local-endpoint.js";
 import { gatewayLoopConfig } from "./provider.js";
@@ -245,7 +246,8 @@ async function playAgent(): Promise<void> {
   const { model, port, gatewayUrl, apiKey } = await live();
   const runId = newRunId(new Date(), model.id, () => randomBytes(2).toString("hex"));
   const maxTokens = Math.min(PLAY_MAX_TOKENS, model.maxTokens);
-  const detectLoops = process.env["POKEBENCH_LOOP_GUARD"] !== "0";
+  const loopMode = readLoopMode();
+  const detectLoops = loopMode === "enforced";
   const trackObjectives = process.env["POKEBENCH_OBJECTIVES"] !== "0";
   const documentInterface = process.env["POKEBENCH_INTERFACE_DOCS"] !== "0";
   const systemPrompt = (documentInterface ? DOCUMENTED_PLAY_SYSTEM_PROMPT : PLAY_SYSTEM_PROMPT) + (trackObjectives ? `\n\n${OBJECTIVE_PROMPT}` : "");
@@ -262,7 +264,7 @@ async function playAgent(): Promise<void> {
       systemPrompt,
       tools: ["observe", "press", ...(trackObjectives ? ["get_objectives", "set_objective", "update_objective"] : [])],
       startState: { kind: "boot" },
-      harnessFeatures: ["ram-state-v1", "live-map-v1", "field-control-lock", "naming-cursor-v1", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "world-targets-v1", "live-player-position-v1", "world-coordinate-grid-v1", "press-result-v1", "warp-activation-guidance-v1", "clock-milestone-v1", "story-state-v1", ...activeUiFeatures(), "story-milestones-v2", "new-game-created-v1", ...(detectLoops ? ["deterministic-loop-guard-v1"] : []), ...(documentInterface ? ["contextual-interface-docs-v1"] : []), ...(trackObjectives ? ["objective-tracking-v1", "repeat-attempt-guard-v1", "native-objective-completion-v1"] : [])],
+      harnessFeatures: ["ram-state-v1", "live-map-v1", "field-control-lock", "naming-cursor-v1", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "world-targets-v1", "live-player-position-v1", "world-coordinate-grid-v1", "press-result-v1", "warp-activation-guidance-v1", "clock-milestone-v1", "story-state-v1", ...activeUiFeatures(), "story-milestones-v2", "new-game-created-v1", "deterministic-loop-diagnostics-v1", "deterministic-loop-policy-v1:p6:o3:a3:c3:r2:recovery6", ...(detectLoops ? ["deterministic-loop-guard-v1"] : []), ...(documentInterface ? ["contextual-interface-docs-v1"] : []), ...(trackObjectives ? ["objective-tracking-v1", "repeat-attempt-guard-v1", "native-objective-completion-v1"] : [])],
 
       budgets: { max_turns: PLAY_LIMITS.maxTurns, max_wall_ms: PLAY_LIMITS.maxWallMs },
       piVersion: piVersion(),
@@ -282,7 +284,7 @@ async function playAgent(): Promise<void> {
         },
         now: () => Date.now(),
       });
-      const loopDetector = detectLoops ? attachLoopGuard(recorder, governor) : undefined;
+      const loopDetector = attachLoopGuard(recorder, governor, undefined, loopMode);
       const wall = setTimeout(() => {
         governor.abort("budget");
       }, PLAY_LIMITS.maxWallMs);

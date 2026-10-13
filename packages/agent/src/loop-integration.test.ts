@@ -463,3 +463,138 @@ it("recovers through recorder native state despite unknown UI in the pinned cons
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+it.each(["diagnostic", "enforced"] as const)(
+  "%s mode controls only model intervention through the pinned loop",
+  async (mode) => {
+    const root = mkdtempSync(join(tmpdir(), "pokebench-loop-mode-"));
+    try {
+      const log = RunLog.create(root, "mode-proof");
+      const recorder = new RunRecorder({
+        log,
+        frames: new FrameStore(root),
+        milestones: { poll: () => Promise.resolve([]) },
+        gameState: { read: () => Promise.resolve(unknownState) },
+      });
+      await recorder.start(RUN_START_META);
+      const controller = new AbortController(),
+        retries: string[] = [];
+      const governor = new Governor({
+        limits: { maxTurns: 2, maxWallMs: 10000, failureLimit: 3 },
+        now: () => 0,
+        retry: (r) => {
+          retries.push(r);
+        },
+        abort: () => {
+          controller.abort();
+        },
+      });
+      const detector = attachLoopGuard(
+        recorder,
+        governor,
+        { ...LOOP_POLICY, planning: 2, recovery: 2 },
+        mode,
+      );
+      const executed: string[] = [];
+      const tools: AgentTool[] = ["get_objectives", "press"].map((name) => ({
+        name,
+        label: name,
+        description: name,
+        parameters: Type.Object({}),
+        execute: () => {
+          executed.push(name);
+          return Promise.resolve({
+            content: [{ type: "text" as const, text: "unchanged tool result" }],
+            details: undefined,
+          });
+        },
+      }));
+      const script = [
+        assistant({
+          toolCalls: [
+            toolCall("a", "get_objectives", {}),
+            toolCall("b", "get_objectives", {}),
+          ],
+          stopReason: "toolUse",
+        }),
+        assistant({
+          toolCalls: [
+            toolCall("c", "get_objectives", {}),
+            toolCall("d", "get_objectives", {}),
+            toolCall("trailing", "press", {}),
+          ],
+          stopReason: "toolUse",
+        }),
+      ];
+      const seen: Message[][] = [];
+      const streamFn: StreamFn = (_m, c) => {
+        seen.push([...c.messages]);
+        const message = script.shift();
+        if (message === undefined) throw new Error("unexpected mode request");
+        const stream = createAssistantMessageEventStream();
+        stream.push({ type: "done", reason: "toolUse", message });
+        return stream;
+      };
+      const loop = piLoop({
+        systemPrompt: "play",
+        tools,
+        base: { model: MODEL, convertToLlm: (m) => m as Message[] },
+        governor,
+        loopDetector: detector,
+        transformContext: recorder.transformContext,
+        emit: recorder.emit,
+        signal: controller.signal,
+        streamFn,
+      });
+      const reason = await play(userText("play"), governor, loop);
+      recorder.end(reason);
+      expect(reason).toBe(mode === "diagnostic" ? "budget" : "stuck");
+      expect(executed).toEqual(
+        mode === "diagnostic"
+          ? [
+              "get_objectives",
+              "get_objectives",
+              "get_objectives",
+              "get_objectives",
+              "press",
+            ]
+          : [
+              "get_objectives",
+              "get_objectives",
+              "get_objectives",
+              "get_objectives",
+            ],
+      );
+      expect(retries).toEqual([]);
+      expect(controller.signal.aborted).toBe(mode === "enforced");
+      const warning = seen[1]?.some(
+        (m) =>
+          m.role === "user" &&
+          typeof m.content === "string" &&
+          m.content.includes("LOOP GUARD"),
+      );
+      expect(warning).toBe(mode === "enforced");
+      const events = readFileSync(log.eventsPath, "utf8")
+        .trim()
+        .split("\n")
+        .map(parseEvent);
+      const notices = events.filter((e) => e.type === "loop_guard");
+      expect(notices.map((e) => e.phase)).toEqual(
+        mode === "diagnostic"
+          ? ["would_warn", "would_stop", "would_recover"]
+          : ["warning", "stop"],
+      );
+      expect(notices.every((e) => "mode" in e && e.mode === mode)).toBe(true);
+      if (mode === "diagnostic")
+        expect(
+          events
+            .filter((e) => e.type === "tool_result")
+            .map((e) => [e.is_error, e.text]),
+        ).toEqual(
+          Array.from({ length: 5 }, () => [false, "unchanged tool result"]),
+        );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  },
+);

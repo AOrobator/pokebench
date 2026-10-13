@@ -122,12 +122,16 @@ const Milestone = event("milestone", {
   evidence: Type.Optional(Type.Array(NonNegativeInt, {minItems:1,maxItems:2})),
 });
 
-const LoopGuard = event("loop_guard", {
+const LoopFields = {
   kind: Type.Enum(["planning", "observation", "ineffective", "cycle", "rejection"] as const),
-  phase: Type.Enum(["warning", "recovered", "stop"] as const),
   message: Type.String(), calls: NonNegativeInt,
   evidence: Type.Array(NonNegativeInt, {minItems:1,maxItems:2}),
-});
+};
+const LoopGuard = Type.Union([
+  event("loop_guard", {...LoopFields, phase:Type.Enum(["warning","recovered","stop"] as const)}),
+  event("loop_guard", {...LoopFields, mode:Type.Literal("enforced"), phase:Type.Enum(["warning","recovered","stop"] as const)}),
+  event("loop_guard", {...LoopFields, mode:Type.Literal("diagnostic"), phase:Type.Enum(["would_warn","would_recover","would_stop"] as const)}),
+]);
 
 const Retry = event("retry", { reason: Type.String(), attempt: Type.Integer({ minimum: 1 }), limit: Type.Integer({ minimum: 1 }) });
 

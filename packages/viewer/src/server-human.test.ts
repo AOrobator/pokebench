@@ -56,7 +56,7 @@ it('writes all human controls through the nested launch layout and the driver co
  const v=await fixture(()=>Promise.resolve(Response.json({ok:true})));
  for(const [index,action] of ['pause','resume','stop'].entries()){
   const response=await fetch(`${v.url}api/runs/${RUN}/control`,{method:'POST',headers:{'content-type':'application/json',origin:v.url.slice(0,-1)},body:JSON.stringify({action})});
-  expect({status:response.status,body:await response.json()}).toEqual({status:200,body:{request:index+1}});
+  const body:unknown=await response.json();expect({status:response.status,body}).toEqual({status:200,body:{request:index+1}});
  }
  const path=join(v.runDir,'control.jsonl');
  expect(readFileSync(path,'utf8').trim().split('\n').map(line=>JSON.parse(line) as unknown)).toMatchObject([{seq:1,action:'pause'},{seq:2,action:'resume'},{seq:3,action:'stop'}]);

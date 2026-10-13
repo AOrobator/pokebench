@@ -255,3 +255,13 @@ it("folds human simultaneous intervals and saved samples for replay without infe
  expect(view.thinkingSpans).toEqual([]);expect(view.toolSpans).toEqual([]);
  expect(foldUntil(log.events,BASE_MS+250).frame).toBe(null);expect(foldUntil(log.events,BASE_MS+315).frame).toBe(view.frame);
 });
+it('keeps a human hold immediately after resume outside the recorded pause interval',()=>{
+ const log=new Log();log.add(0,START);
+ log.add(2000,{type:'operator_control',turn:0,action:'pause',status:'applied',request:1,emulator_frozen:true});
+ log.add(32000,{type:'operator_control',turn:0,action:'resume',status:'applied',request:2,paused_ms:30000});
+ log.add(32020,{type:'human_input',turn:0,id:2,start_frame:1,end_frame:2,buttons:['A'],start_ms:BASE_MS+32000,end_ms:BASE_MS+32020,request_seq:1,session:'after-pause'});
+ const view=fold(log);const hold=view.presses[0];expect(hold).toMatchObject({ms:BASE_MS+32000,endMs:BASE_MS+32020,hold:1});
+ expect(view.control.pausedBefore(hold?.ms??0)).toBe(30000);
+ expect(view.control.pausedBefore(hold?.endMs??0)).toBe(30000);
+ expect((hold?.endMs??0)-(hold?.ms??0)).toBe(20);
+});

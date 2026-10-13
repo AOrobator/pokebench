@@ -50,6 +50,8 @@ function assess(trial: PatchTrial, arm: TrialResult["arm"], target: string, prob
   const start = es[0];
   if (start?.type !== "run_start") throw new Error("Patch trial must begin with run_start");
   const run = start.run;
+  const human = start.controller?.kind === "human";
+  if (human) problems.push(`${run}: human session is not a benchmark trial`);
   if (es.some((e, i) => e.run !== run || (i > 0 && e.seq <= (es[i - 1]?.seq ?? -1))) || es.filter((e) => e.type === "run_start").length !== 1 || es.filter((e) => e.type === "run_end").length > 1) problems.push(`${run}: invalid event identity/order`);
   const ended = es.findIndex((e) => e.type === "run_end");
   if (ended >= 0 && ended !== es.length - 1) problems.push(`${run}: events after terminal`);
@@ -107,9 +109,9 @@ function assess(trial: PatchTrial, arm: TrialResult["arm"], target: string, prob
   const pastCap=elapsed!==null&&start.evaluation!==undefined&&start.budgets.max_wall_ms!==undefined&&elapsed>start.budgets.max_wall_ms;
   const terminal=es.at(-1);
   if(pastCap&&terminal?.type==="run_end"&&terminal.reason==="milestone"&&terminal.target_proof?.name===target)problems.push(`${run}: target stop exceeds evaluation wall cap`);
-  const qualified = marker !== undefined && !present && !invalidTime && !pastCap;
-  return { arm, run, outcome: present ? "present_at_start" : unqualified || invalidTime ? "unqualified" : summary.reason === "incomplete" ? "incomplete" : qualified ? "reached" : "not_reached",
-    reason: summary.reason, elapsedMs: qualified ? elapsed : null, targetTurn: qualified ? marker.turn : null, evidence: (qualified||pastCap)&&marker!==undefined ? [...(marker.evidence ?? []), marker.seq] : [],
+  const qualified = !human && marker !== undefined && !present && !invalidTime && !pastCap;
+  return { arm, run, outcome: human ? "unqualified" : present ? "present_at_start" : unqualified || invalidTime ? "unqualified" : summary.reason === "incomplete" ? "incomplete" : qualified ? "reached" : "not_reached",
+    reason: summary.reason, elapsedMs: qualified ? elapsed : null, targetTurn: qualified ? marker.turn : null, evidence: !human&&(qualified||pastCap)&&marker!==undefined ? [...(marker.evidence ?? []), marker.seq] : [],
     tokens: { ...summary.tokens }, turns: summary.turns, issues, coverage };
 }
 function armResult(preset: string, trials: TrialResult[]): ArmResult {

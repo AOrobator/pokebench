@@ -102,7 +102,11 @@ class HumanController:
             self.paused = paused
 
     def _close_segment(self) -> None:
+        boundary_ms = round(time.time() * 1000)
         if self.segment_start == self.frames:
+            # No applied frames own this interval; reset the next hold boundary,
+            # including pause/resume before any idle frame has been stepped.
+            self.segment_ms = boundary_ms
             return
         if len(self.segments) >= self.max_segments:
             self.failed = True
@@ -117,13 +121,13 @@ class HumanController:
                 "end_frame": self.frames,
                 "buttons": list(self.buttons),
                 "start_ms": self.segment_ms,
-                "end_ms": round(time.time() * 1000),
+                "end_ms": boundary_ms,
                 "request_seq": self.source_seq,
                 "session": self.source_session,
             }
         )
         self.segment_start = self.frames
-        self.segment_ms = round(time.time() * 1000)
+        self.segment_ms = boundary_ms
 
     def frame(self, step: Callable[[list[str]], None] = lambda _: None) -> list[str]:
         with self.lock:

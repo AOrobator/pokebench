@@ -240,3 +240,35 @@ def test_pause_releases_human_input_before_park_and_resumes_with_fresh_session()
         loop.stop.set()
         post(api, "/pokebench/pause", b'{"paused":false}')
         loop.thread.join(2)
+
+
+def test_zero_frame_pause_boundary_cannot_extend_next_hold_across_pause(monkeypatch):
+    from pokebench_env import human as module
+
+    wall = [1.0]
+    monkeypatch.setattr(module.time, "time", lambda: wall[0])
+    controller = HumanController(clock=lambda: 0.0)
+    controller.frame()
+    before = controller.snapshot(0)
+    assert before["segments"][0]["start_ms"] == 1000
+    wall[0] = 2.0
+    controller.set_paused(True)
+    wall[0] = 32.0
+    controller.set_paused(False)
+    controller.claim("after-pause")
+    controller.input("after-pause", 1, ["A"])
+    controller.frame()
+    wall[0] = 32.02
+    after = controller.snapshot(1)
+    assert after["segments"] == [
+        {
+            "id": 2,
+            "start_frame": 1,
+            "end_frame": 2,
+            "buttons": ["A"],
+            "start_ms": 32000,
+            "end_ms": 32020,
+            "request_seq": 1,
+            "session": "after-pause",
+        }
+    ]

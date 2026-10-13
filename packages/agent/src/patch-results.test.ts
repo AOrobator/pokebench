@@ -208,3 +208,34 @@ it("keeps historical no-evaluation grading unchanged and rejects missing evaluat
  const current=evaluationInput();for(const arm of ["incumbent","candidate"] as const)for(const trial of current[arm].trials){const start=trial.events[0];if(start?.type!=="run_start")throw new Error("fixture");delete start.budgets.max_wall_ms;}
  expect(comparePatchResults(current).eligible).toBe(false);
 });
+
+it.each(["incumbent", "candidate"] as const)("excludes a human controller spoofing model provenance from the %s patch arm", arm => {
+  const p = input();
+  const trial = p[arm].trials[0];
+  const start = trial?.events[0];
+  if (trial === undefined || start?.type !== "run_start") throw new Error("fixture");
+  // Keep the same model, sampling, features and native milestone proof: controller identity owns eligibility.
+  start.controller = { kind: "human", name: "Operator", rom_sha1: "c".repeat(40), input_policy: "frame-held-v1", sample_ms: 100, nominal_fps: 59.7275 };
+  const result = comparePatchResults(p);
+  expect(result.eligible).toBe(false);
+  expect(result.problems).toContain(`${start.run}: human session is not a benchmark trial`);
+  expect(result[arm]).toMatchObject({ launched: 4, reached: 3, elapsedMs: { count: 3 }, targetTurns: { count: 3 } });
+  expect(result.trials.find(t => t.run === start.run)).toMatchObject({ outcome: "unqualified", elapsedMs: null, targetTurn: null, evidence: [] });
+  expect(result.trials).toHaveLength(8);
+  expect(result.recommendation).toBe("retain");
+});
+
+it("retains human trial diagnostics without producing model arm timing distributions", () => {
+  const p = input();
+  for (const arm of [p.incumbent, p.candidate]) for (const trial of arm.trials) {
+    const start = trial.events[0];
+    if (start?.type !== "run_start") throw new Error("fixture");
+    start.controller = { kind: "human", name: "Operator", rom_sha1: "c".repeat(40), input_policy: "frame-held-v1", sample_ms: 100, nominal_fps: 59.7275 };
+  }
+  const result = comparePatchResults(p);
+  expect(result.eligible).toBe(false);
+  expect(result.incumbent).toMatchObject({ launched: 4, reached: 0, elapsedMs: null, targetTurns: null });
+  expect(result.candidate).toMatchObject({ launched: 4, reached: 0, elapsedMs: null, targetTurns: null });
+  expect(result.timeChangePercent).toBeNull();
+  expect(result.trials.every(t => t.outcome === "unqualified" && t.coverage.positive === 1)).toBe(true);
+});

@@ -13,7 +13,7 @@ import { normalizeFeatures, FeatureSetSchema, parsePlayPreset, type PlayPresetV2
 import { controlLine, type ControlAction } from "@pokebench/agent/run-control";
 import { newRunId } from "@pokebench/agent/run";
 import { RUN_ID_PATTERN } from "@pokebench/agent/events";
-import { listRuns, readStart } from "./runs.js";
+import { listRuns, readStart, runDir } from "./runs.js";
 
 const positive = Type.Integer({ minimum: 1 });
 export const NextRunSchema = Type.Object({
@@ -101,7 +101,7 @@ export async function appendControl(runsRoot: string, runId: string, action: Con
   if (!new RegExp(RUN_ID_PATTERN).test(runId) || !(await liveRuns(runsRoot, healthy)).includes(runId)) throw new NextRunError(`run ${runId} is not live`);
   // The run may have ended while its game server was being probed.
   if (listRuns(runsRoot).find((run) => run.id === runId)?.ended !== false) throw new NextRunError(`run ${runId} is not live`);
-  const path = join(runsRoot, runId, "control.jsonl");
+  const path = join(runDir(runsRoot, runId), "control.jsonl");
   const seq = existsSync(path) ? readFileSync(path, "utf8").split("\n").filter((line) => line !== "").length + 1 : 1;
   appendFileSync(path, `${controlLine(seq, action, now.toISOString())}\n`);
   return seq;

@@ -20,9 +20,9 @@ No external scripts, HTML execution, new dependencies or CSS injection. Escape a
 
 ## Milestones
 **M1 — Readable previews and detail**
-- [ ] RED behavior tests
-- [ ] Rendering/CSS and GREEN viewer gates/build/coverage
-- [ ] Browser proof isolated preview
+- [x] RED behavior tests
+- [x] Rendering/CSS and GREEN viewer gates/build/coverage
+- [x] Browser proof isolated preview
 - [ ] Parent-compatible patch handoff; not claim landed/reviewed
 
 ## Closing the Loop
@@ -44,3 +44,5 @@ None.
 - [ ] ASK USER: archive after handoff.
 
 RED:149existingtests pass; inspector exactraw-detail assertion fails asintended, newformat moduleabsent suiteimportRED. Noimplementationeditsyet.
+
+COMMIT: `test(viewer): specify readable event inspection` (`1233f1b`) RED. GREEN:159viewer tests, viewerlint/types, fullTSbuild; coverage98.53lines90.93branches98.54functions97.67statements. RawJSONroundtrip, escapedHTML/unsafeURLs, newline/Markdown/nestedstring/fencedJSON validated. Two semanticrender mutations assertionRED restored; browserCSSboundremoved row1302measured260.367px vsrestored24.797px (2x12.4lineheight). Screenshot externalvisualizationpathhistory-readability.png; isolated8797 source only, original8793 untouched. Mandatoryreview/parentcumulativegates notclaimed; no subagents used under side boundary.

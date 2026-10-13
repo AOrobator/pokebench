@@ -333,6 +333,14 @@ describe("inspector and brand", () => {
     expect(inspector(undefined)).toBe('<p class="nodata">click a log row to see its raw event</p>');
   });
 
+  it("decodes Markdown and newlines inside structured tool arguments", () => {
+    const log = bare(); const event = log.add(1, {type: "tool_call", turn: 1, id: "readable", name: "set_objective", args: {next_decision: "**Observe** first\nThen act"}});
+    const document = new Window().document; document.body.innerHTML = inspector(event);
+    expect(document.querySelector(".decoded-field strong")?.textContent).toBe("Observe");
+    expect(document.querySelector(".decoded-field br")).not.toBeNull();
+    expect(document.querySelector(".raw-event pre")?.textContent).toBe(JSON.stringify(event,null,2));
+  });
+
   it("names the run on the PokéNav", () => {
     expect(brand(view(fullRun()))).toBe(`POKéNAV · ${RUN}`);
     expect(brand(new RunView())).toBe("POKéNAV · NO RUN");

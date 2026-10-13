@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Window } from "happy-dom";
-import { jsonHtml, richText } from "./inspect-format.js";
+import { jsonHtml, richText } from "./inspectformat.js";
 
 const dom = (html: string) => { const document = new Window().document; document.body.innerHTML = html; return document; };
 describe("readable event content", () => {
@@ -36,7 +36,28 @@ describe("readable event content", () => {
   });
   it("formats JSON payloads and preserves invalid JSON as ordinary text", () => {
     expect(dom(richText('{"items":[1,false]}')).querySelector(".json-number")?.textContent).toBe("1");
+    const nested = dom(richText(JSON.stringify({result: {message: "**First**\nSecond"}})));
+    expect(nested.querySelector(".decoded-field strong")?.textContent).toBe("First");
+    expect(nested.querySelector(".decoded-field br")).not.toBeNull();
     expect(dom(richText('{broken')).body.textContent).toBe("{broken");
     expect(dom(richText("   ")).body.textContent).toBe("");
   });
+  it("preserves ordered lists and transitions between prose and list kinds", () => {
+    const page = dom(richText("intro\n1. first\n2. second\n- third\nclosing\n> "));
+    expect(page.querySelectorAll("ol li")).toHaveLength(2);
+    expect(page.querySelectorAll("ul li")).toHaveLength(1);
+    expect(page.querySelectorAll("p")[1]?.textContent).toBe("closing");
+  });
+  it("keeps incomplete JSON fences and unterminated fences readable", () => {
+    expect(dom(richText("```json\n{incomplete\n```" )).querySelector("pre")?.textContent).toBe("{incomplete");
+    expect(dom(richText("```\nlast line" )).querySelector("pre")?.textContent).toBe("last line");
+    expect(dom(richText("```text\n```" )).querySelector("pre")?.textContent).toBe("");
+  });
+  it("renders multiple safe inline forms and deep decoded array strings", () => {
+    const page = dom(richText(JSON.stringify({items: ["plain", {detail: "# Heading\nText"}], n: null})));
+    expect(page.querySelector(".decoded-field h4")?.textContent).toBe("items.1.detail");
+    expect(page.querySelector(".decoded-field h3")?.textContent).toBe("Heading");
+    expect(dom(richText("prefix `code` and **strong** then *italic* suffix")).querySelector("code")?.textContent).toBe("code");
+  });
+
 });

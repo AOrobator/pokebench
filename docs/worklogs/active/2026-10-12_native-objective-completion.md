@@ -50,3 +50,5 @@ None.
 - Receipts: runs/launch-receipts/native-objective-completion; first Python attempt 376/378 failed because submodule was uninitialized in new worktree; pinned submodule initialized without changes, full 378 green.
 
 - Parent requests before-review completion of PB4 producer metadata: native-objective-completion-v1 declared by actual play entrypoint only when objective layer enabled; probe/smoke have no objective layer so must not advertise. Existing live-objectives test exercises actual withRun→recorder→parsed run_start under all four objective/interface ablations. This producer wiring is now in branch scope; root resolves shared live.ts edits transparently.
+
+- Metadata RED 90e4165: actual run_start flags missing in two enabled objective arms. GREEN literal flag added to play producer only; metadata deletion produced same two assertion failures, restored four passes. Full TS coverage/tests, lint/types/build rerun after restoration; Python unchanged previous 378 tests and coverage gates green. Frozen producer behavior now included in branch review packet.

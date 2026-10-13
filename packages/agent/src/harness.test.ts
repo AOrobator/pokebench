@@ -8,7 +8,10 @@ import {
 } from "@mariozechner/pi-ai";
 import { Type } from "typebox";
 import { describe, expect, it, vi } from "vitest";
-import { RunControl } from "./run-control.js";
+import { appendFileSync, mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { ControlFile, RunControl, controlLine } from "./run-control.js";
 import { PRESS_TIMING, pressTool } from "./game-tools.js";
 import { Governor, NUDGE, OMITTED_FRAME, keepCount, piLoop, play, slideWindow, type Loop, type Window } from "./harness.js";
 
@@ -550,5 +553,62 @@ describe("operator abort while paused on the pinned loop", () => {
     g.abort("operator_abort");
     expect(await result).toBe("operator_abort");
     expect(seen).toHaveLength(1);
+  });
+});
+
+describe("control-file requests at the turn boundary", () => {
+  function fileControlled(action: "pause" | "stop") {
+    const path = join(mkdtempSync(join(tmpdir(), "control-")), "control.jsonl");
+    const file = new ControlFile(path);
+    const controller = new AbortController();
+    const seen: Message[][] = [];
+    let control: RunControl | null = null;
+    const g = new Governor({ limits: { maxTurns: 10, maxWallMs: 3_600_000, failureLimit: 3 }, retry: () => undefined, abort: () => { controller.abort(); }, now: () => 0, takeStop: () => control?.takeStop() ?? false });
+    const live = new RunControl({ record: () => undefined, freeze: () => Promise.resolve(), end: (reason) => { g.abort(reason); }, now: () => 0, poll: () => file.poll() });
+    control = live;
+    // The request lands during the first turn's press, before any poll interval fires.
+    const loop = piLoop({
+      systemPrompt: "play", tools: [fakePress(() => { appendFileSync(path, `${controlLine(1, action, "2026-10-13T15:00:00.000Z")}\n`); })],
+      base: { model: MODEL, convertToLlm: (messages) => messages as Message[] }, governor: g,
+      transformContext: (messages) => Promise.resolve(messages), emit: () => undefined, signal: controller.signal,
+      streamFn: scriptedModel([pressReply(["A"]), pressReply(["B"]), pressReply(["C"])], seen), gate: (signal) => live.gate(signal),
+    });
+    return { result: play(TASK, g, loop), seen, live, abort: () => { g.abort("operator_abort"); } };
+  }
+
+  it("holds before the next model call for a pause appended during the turn", async () => {
+    const run = fileControlled("pause");
+    await vi.waitFor(() => { expect(run.live.holding).toBe(true); });
+    expect(run.seen).toHaveLength(1);
+    run.abort();
+    expect(await run.result).toBe("operator_abort");
+    expect(run.seen).toHaveLength(1);
+  });
+
+  it("holds before the very first model call for a pause appended before the run starts", async () => {
+    const path = join(mkdtempSync(join(tmpdir(), "control-")), "control.jsonl");
+    appendFileSync(path, `${controlLine(1, "pause", "2026-10-13T15:00:00.000Z")}\n`);
+    const file = new ControlFile(path);
+    const controller = new AbortController();
+    const seen: Message[][] = [];
+    const g = new Governor({ limits: { maxTurns: 10, maxWallMs: 3_600_000, failureLimit: 3 }, retry: () => undefined, abort: () => { controller.abort(); }, now: () => 0 });
+    const live = new RunControl({ record: () => undefined, freeze: () => Promise.resolve(), end: (reason) => { g.abort(reason); }, now: () => 0, poll: () => file.poll() });
+    const loop = piLoop({
+      systemPrompt: "play", tools: [fakePress(() => undefined)], base: { model: MODEL, convertToLlm: (messages) => messages as Message[] }, governor: g,
+      transformContext: (messages) => Promise.resolve(messages), emit: () => undefined, signal: controller.signal,
+      streamFn: scriptedModel([pressReply(["A"])], seen), gate: (signal) => live.gate(signal),
+    });
+    const result = play(TASK, g, loop);
+    await vi.waitFor(() => { expect(live.holding).toBe(true); });
+    expect(seen).toHaveLength(0);
+    g.abort("operator_abort");
+    expect(await result).toBe("operator_abort");
+    expect(seen).toHaveLength(0);
+  });
+
+  it("ends after the turn for a stop appended during the turn", async () => {
+    const run = fileControlled("stop");
+    expect(await run.result).toBe("operator_stop");
+    expect(run.seen).toHaveLength(1);
   });
 });

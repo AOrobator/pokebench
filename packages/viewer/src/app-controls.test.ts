@@ -236,6 +236,8 @@ it("sends STOP while a pause is still pending", async () => {
 it("shows an unended run whose game server is gone as not responding, with controls off", async () => {
   const { writes } = await mount({}, false, false);
   expect(ui("mode").textContent).toBe("NOT RESPONDING");
+  expect((ui("run") as HTMLSelectElement).options[0]?.textContent).toBe(`NOT RESPONDING · ${RUN}`);
+  expect(ui("live-runs").hidden).toBe(true);
   expect(ui("run-controls").querySelectorAll("button:not([disabled])")).toHaveLength(0);
   key("keydown", "p");
   await Promise.resolve();

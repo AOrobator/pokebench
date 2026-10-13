@@ -95,8 +95,15 @@ describe("next run", () => {
     expect(unknown.status).toBe(409);
     expect(JSON.stringify(unknown.json)).toContain("not a loaded vision model on the local router");
     for (const model of ["TextOnly", "Asleep", "NoContext"]) expect((await call(v, "POST", "/api/next-run/queue", { ...DEFAULT_NEXT_RUN, model })).status).toBe(409);
+    expect((await call(v, "POST", "/api/next-run/queue", { ...DEFAULT_NEXT_RUN, model: "Qwen", maxTokens: 300_000 })).status).toBe(409);
     const queued = await call(v, "POST", "/api/next-run/queue", { ...DEFAULT_NEXT_RUN, model: "Qwen" });
     expect(queued).toEqual({ status: 200, json: { queue: { state: "queued", runId: "2026-10-13T12-00-00_Qwen_cd34", waitingFor: "checking" } } });
+    // While queued the server owns the lock: no draft edits and no re-queue.
+    const edit = await call(v, "PUT", "/api/next-run", { ...DEFAULT_NEXT_RUN, model: "Qwen", maxTurns: 5 });
+    expect(edit.status).toBe(409);
+    expect(JSON.stringify(edit.json)).toContain("cancel it to edit");
+    expect((await call(v, "POST", "/api/next-run/queue", { ...DEFAULT_NEXT_RUN, model: "Qwen" })).status).toBe(409);
+    expect((await call(v, "GET", "/api/next-run")).json).toMatchObject({ draft: { maxTurns: 300 } });
     expect(await call(v, "POST", "/api/next-run/cancel", {})).toEqual({ status: 200, json: { queue: { state: "idle" } } });
     expect((await call(v, "POST", "/api/next-run/cancel", {})).status).toBe(409);
     const { viewer: noEndpoint } = await viewer({ queue, runsRoot: join(base, "runs") });

@@ -85,7 +85,7 @@ describe("run queue", () => {
     mkdirSync(join(runsRoot, LEASE));
     await queue.tick();
     expect(queue.status()).toMatchObject({ state: "queued", waitingFor: "the gameplay lease (a benchmark cohort is running)" });
-    expect(() => queue.enqueue(draft)).not.toThrow();
+    expect(() => queue.enqueue(draft)).toThrow(/already queued; cancel it first/);
     const { rmSync } = await import("node:fs"); rmSync(join(runsRoot, LEASE), { recursive: true });
     const running = queue.tick();
     await vi.waitFor(() => { expect(queue.status()).toEqual({ state: "running", runId: "2026-10-13T12-00-00_Qwen3.8-Flash_ab12" }); });

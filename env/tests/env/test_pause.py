@@ -3,6 +3,7 @@
 import asyncio
 import json
 import threading
+import time
 import types
 
 from fastapi import FastAPI
@@ -50,46 +51,92 @@ def server_module() -> tuple[types.SimpleNamespace, list[list[str]]]:
     return module, stepped
 
 
-def frame_loop(module: types.SimpleNamespace, stop: threading.Event) -> threading.Thread:
-    def run() -> None:
-        while not stop.is_set():
-            module.step_environment([])
+class FrameLoop:
+    """A paced stand-in for the vendor game loop that counts frames."""
 
-    thread = threading.Thread(target=run, daemon=True)
-    thread.start()
-    return thread
+    def __init__(self, module: types.SimpleNamespace) -> None:
+        self.frames = 0
+        self.stop = threading.Event()
+        self.module = module
+        self.thread = threading.Thread(target=self.run, daemon=True)
+
+    def run(self) -> None:
+        while not self.stop.is_set() and self.frames < 100_000:
+            self.module.step_environment([])
+            self.frames += 1
+            time.sleep(0.001)
+
+    def __enter__(self) -> "FrameLoop":
+        self.thread.start()
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        self.stop.set()
 
 
 def test_pause_is_confirmed_only_once_the_frame_loop_is_parked() -> None:
     app = FastAPI()
-    module, stepped = server_module()
+    module = types.SimpleNamespace(step_environment=lambda actions: None)
     install_pause(app, module)
-    stop = threading.Event()
-    loop = frame_loop(module, stop)
-    try:
+    with FrameLoop(module) as loop:
+        time.sleep(0.05)
         assert post(app, "/pokebench/pause", b'{"paused": true}') == (200, b'{"paused":true}')
-        frozen = len(stepped)
-        loop.join(0.2)
-        assert len(stepped) == frozen
+        frozen = loop.frames
+        time.sleep(0.1)
+        assert loop.frames == frozen
+        # Resume and pause again at once: confirmation needs a fresh park.
         assert post(app, "/pokebench/pause", b'{"paused": false}') == (200, b'{"paused":false}')
-        loop.join(0.1)
-        assert len(stepped) > frozen
-    finally:
-        stop.set()
-        loop.join(2)
+        assert post(app, "/pokebench/pause", b'{"paused": true}') == (200, b'{"paused":true}')
+        again = loop.frames
+        time.sleep(0.1)
+        assert loop.frames == again
+        assert post(app, "/pokebench/pause", b'{"paused": false}') == (200, b'{"paused":false}')
+        time.sleep(0.05)
+        assert loop.frames > again
+        loop.stop.set()
+        post(app, "/pokebench/pause", b'{"paused": false}')
+        loop.thread.join(2)
 
 
-def test_pause_without_a_running_frame_loop_is_not_confirmed() -> None:
+def test_pause_waits_for_the_frame_in_progress() -> None:
+    app = FastAPI()
+    in_frame = threading.Event()
+    release = threading.Event()
+
+    def slow_step(actions: list[str]) -> None:
+        in_frame.set()
+        release.wait(2)
+
+    module = types.SimpleNamespace(step_environment=slow_step)
+    install_pause(app, module)
+    worker = threading.Thread(
+        target=lambda: [module.step_environment([]) for _ in range(2)], daemon=True
+    )
+    worker.start()
+    assert in_frame.wait(2)
+    answer: list[tuple[int, bytes]] = []
+    pauser = threading.Thread(
+        target=lambda: answer.append(post(app, "/pokebench/pause", b'{"paused": true}'))
+    )
+    pauser.start()
+    pauser.join(0.2)
+    assert pauser.is_alive() and answer == []
+    release.set()
+    pauser.join(2)
+    assert answer == [(200, b'{"paused":true}')]
+    post(app, "/pokebench/pause", b'{"paused": false}')
+    worker.join(2)
+    assert not worker.is_alive()
+
+
+def test_an_unconfirmed_pause_is_rolled_back() -> None:
     app = FastAPI()
     module, stepped = server_module()
     install_pause(app, module, park_timeout_s=0.05)
     status, body = post(app, "/pokebench/pause", b'{"paused": true}')
     assert status == 503 and b"did not park" in body
-    worker = threading.Thread(target=module.step_environment, args=([],))
+    worker = threading.Thread(target=module.step_environment, args=([],), daemon=True)
     worker.start()
-    worker.join(0.2)
-    assert worker.is_alive() and stepped == []
-    assert post(app, "/pokebench/pause", b'{"paused": false}') == (200, b'{"paused":false}')
     worker.join(2)
     assert not worker.is_alive() and stepped == [[]]
 

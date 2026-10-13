@@ -29,28 +29,35 @@ class PauseRequest(BaseModel):
 def install_pause(
     api: FastAPI, server: SteppingServer, park_timeout_s: float = PARK_TIMEOUT_S
 ) -> None:
-    running = threading.Event()
-    running.set()
-    parked = threading.Event()
+    latch = threading.Condition()
+    state = {"paused": False, "parked": False}
     step = server.step_environment
 
     def paused_step(actions: list[str]) -> None:
-        if not running.is_set():
-            parked.set()
-            running.wait()
-            parked.clear()
+        with latch:
+            while state["paused"]:
+                state["parked"] = True
+                latch.notify_all()
+                latch.wait()
+            state["parked"] = False
         step(actions)
 
     server.step_environment = paused_step
 
-    # A pause is confirmed only once the frame loop is parked before its next
-    # frame, so the frame in progress has finished.
+    # A pause is confirmed only once the frame loop has parked for this request,
+    # so the frame in progress has finished. A pause that cannot be confirmed is
+    # rolled back, so the emulator never freezes behind a failed request.
     @api.post("/pokebench/pause")
     def pause(request: PauseRequest) -> dict[str, bool]:
-        if not request.paused:
-            running.set()
-            return {"paused": False}
-        running.clear()
-        if not parked.wait(park_timeout_s):
-            raise HTTPException(status_code=503, detail="frame loop did not park")
-        return {"paused": True}
+        with latch:
+            if not request.paused:
+                state["paused"] = False
+                latch.notify_all()
+                return {"paused": False}
+            state["paused"] = True
+            state["parked"] = False
+            if not latch.wait_for(lambda: state["parked"], park_timeout_s):
+                state["paused"] = False
+                latch.notify_all()
+                raise HTTPException(status_code=503, detail="frame loop did not park")
+            return {"paused": True}

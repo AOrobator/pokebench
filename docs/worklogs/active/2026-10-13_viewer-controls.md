@@ -171,6 +171,15 @@ Done when: all milestones green with reviews LGTM, landed on local main (if the 
 
 **Round-4 batch** (on `viewer-controls-land`): the fixes above plus the tsc fix. Gates: agent 649, viewer 235, python 483 pass; lint, build, verify-vendor OK; coverage agent 98.9/93.96/98.37, viewer 98.4/91.7/96.93, python 99.41/97.33/100. Guard receipts `r4-guards/01..06` red then green. Round 4 review waits for operator confirmation (requested).
 
+- COMMIT: `fix(control): record held resumes, confirm parked pauses and lock queued settings` (bc8b891).
+
+**Round 4** (operator "go" 2026-10-13T16:34Z; packet 4b9d42f..bc8b891, sha256 b995a53d…59cd; `r4-review/`): Claude-fallback A LGTM, Claude-fallback B LGTM, Grok BLOCKING, Codex BLOCKING.
+- Accepted: the park barrier could confirm on a stale `parked` signal after resume and left the loop latched after a 503 (Grok, Codex; A as hardening) → one condition-variable latch: each pause request resets the park flag and needs a fresh park, an unconfirmed pause is rolled back before the 503, a woken frame re-checks; control requests appended just before a turn boundary could miss the 250 ms poll and allow one more model call (Codex) → `RunControl` polls the control file synchronously at every gate and every turn-end stop check (`poll` dep, live.ts wires the same `ControlFile`); the pause test's frame loop busy-spun and grew a list (Codex) → paced, bounded counter fixture with daemon threads; the queue lock existed only in the page (Codex) → the server refuses draft edits and re-queueing while a run is queued or launching; hardening: max tokens checked against the chosen model's context at queue time; the run picker labels dead unended runs NOT RESPONDING and no longer lists them as live.
+- Fixture correction: `live-objectives.test.ts` mocked `readFileSync` throwing a plain Error for unknown files; the real API throws `ENOENT`, which `ControlFile` treats as no requests yet. The mock now sets `code: "ENOENT"` (it surfaced because the gate now reads the control file synchronously).
+- Gates: agent 652, viewer 235, python 484 pass; lint, build OK; coverage agent 98.91/93.97/98.37, viewer 98.41/91.8/96.93, python 99.42/97.33/100.
+- Guard receipts `r5-guards`: 01 red then green; 02 lost (the mutated run hung on a non-daemon thread and was killed; receipt incomplete — the runner now has a 240 s timeout and the test threads are daemons) → fresh attempt 02b red then green; 03 unexpectedly passed (with fresh-park confirmation a woken frame can only run before the new pause is confirmed; the `while` is kept as the standard condition-variable guard against spurious wakeups); 04 unexpectedly passed (the turn-end stop check already polls before later gates) → added a test for a pause appended before the first model call, fresh attempt 04b red then green; 05–09 red then green.
+- Round 5 review waits for operator confirmation.
+
 ## Boy Scout Log
 
 (none yet)

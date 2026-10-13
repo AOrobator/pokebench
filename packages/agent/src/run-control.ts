@@ -80,6 +80,9 @@ export interface RunControlDeps {
   freeze(paused: boolean): Promise<void>;
   end(reason: "operator_stop" | "operator_abort"): void;
   now(): number;
+  // Reads requests appended since the last poll, so a request that landed
+  // just before a turn boundary is applied at that boundary.
+  poll?(): readonly ControlRequest[];
 }
 
 export type ControlState = "running" | "pause_pending" | "paused" | "stop_pending" | "ended";
@@ -176,7 +179,12 @@ export class RunControl {
   }
 
   // The governor asks at each turn end whether an operator stop is due.
+  private catchUp(): void {
+    for (const request of this.deps.poll?.() ?? []) this.apply(request);
+  }
+
   takeStop(): boolean {
+    this.catchUp();
     if (this.stopApplied) return true;
     if (this.current !== "stop_pending") return false;
     this.stopApplied = true;
@@ -189,6 +197,7 @@ export class RunControl {
   // previous turn's tool calls have finished. The run's abort signal (Ctrl-C,
   // budget) also releases it.
   async gate(signal?: AbortSignal): Promise<void> {
+    this.catchUp();
     if (this.current !== "pause_pending") return;
     this.current = "paused";
     this.notify();

@@ -136,6 +136,7 @@ export class RunQueue {
 
   enqueue(value: unknown): QueueStatus {
     if (this.host.endpointFile === null) throw new NextRunError("the viewer was started without a local model endpoint file");
+    if (this.current.state === "queued") throw new NextRunError("a run is already queued; cancel it first");
     if (this.current.state === "launching" || this.current.state === "running") throw new NextRunError("a queued run is already launching or running");
     const draft = parseNextRun(value);
     if (draft.model === "") throw new NextRunError("choose a model for the next run");

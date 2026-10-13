@@ -19,7 +19,7 @@ vi.mock("node:fs", async (load) => {
     },
     readFileSync: (path: Parameters<typeof actual.readFileSync>[0]) => {
       if (path instanceof URL && path.pathname.endsWith("/package.json")) return JSON.stringify({ dependencies: { "@mariozechner/pi-agent-core": "fixture-version" } });
-      const chunks = owner.files.get(String(path));if (!chunks) throw new Error(`unknown test-owned file ${String(path)}`);return chunks.join("");
+      const chunks = owner.files.get(String(path));if (!chunks) throw Object.assign(new Error(`unknown test-owned file ${String(path)}`), { code: "ENOENT" });return chunks.join("");
     },
   };
 });

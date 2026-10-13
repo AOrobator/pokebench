@@ -82,7 +82,10 @@ async function write(req: IncomingMessage, res: ServerResponse, options: ViewerO
       sendJson(res, 200, { request: await appendControl(options.runsRoot, id, body.action, now, healthProbe(options.fetchFn ?? fetch)) });
       return;
     }
+    // The queued run launches with the draft it was queued with: no edits until cancelled.
+    const queuedNow = options.queue?.status().state;
     if (req.method === "PUT" && parts.length === 2 && second === "next-run") {
+      if (queuedNow === "queued" || queuedNow === "launching") throw new NextRunError("a run is queued; cancel it to edit the next run");
       sendJson(res, 200, { draft: writeDraft(options.runsRoot, body), queue: options.queue?.status() ?? { state: "idle" } });
       return;
     }
@@ -92,11 +95,14 @@ async function write(req: IncomingMessage, res: ServerResponse, options: ViewerO
         sendJson(res, 200, { queue: options.queue.cancel() });
         return;
       }
+      if (queuedNow === "queued" || queuedNow === "launching") throw new NextRunError("a run is already queued; cancel it first");
       const draft = writeDraft(options.runsRoot, body);
       if (options.endpointFile === undefined || options.endpointFile === null) throw new NextRunError("the viewer was started without a local model endpoint file");
       const served = await localModels(options.endpointFile, options.fetchFn ?? fetch);
       // The play run accepts only loaded vision models with a known context size.
-      if (!served.some((m) => m.id === draft.model && m.vision && m.status === "loaded" && m.contextWindow !== null)) throw new NextRunError(`model ${draft.model} is not a loaded vision model on the local router`);
+      const model = served.find((m) => m.id === draft.model && m.vision && m.status === "loaded" && m.contextWindow !== null);
+      if (model === undefined) throw new NextRunError(`model ${draft.model} is not a loaded vision model on the local router`);
+      if (model.contextWindow !== null && draft.maxTokens > model.contextWindow) throw new NextRunError(`max tokens ${String(draft.maxTokens)} exceeds ${draft.model}'s context of ${String(model.contextWindow)}`);
       sendJson(res, 200, { queue: options.queue.enqueue(draft) });
       return;
     }

@@ -256,7 +256,9 @@ async function playAgent(): Promise<void> {
         takeStop: () => control?.takeStop() ?? false,
         pausedMs: () => control?.pausedMs() ?? 0,
       });
+      const controlFile = new ControlFile(join(RUNS_ROOT, runId, "control.jsonl"));
       const runControl = new RunControl({
+        poll: () => controlFile.poll(),
         record: (body) => { recorder.recordControl(body); },
         freeze: (paused) => freezeGame(gameServerUrl, paused),
         end: (reason) => { governor.abort(reason); },
@@ -278,7 +280,7 @@ async function playAgent(): Promise<void> {
       const wall = new BudgetTimer(runControl, limits.maxWallMs, () => elapsed() - (preset===null?startedAt:0), () => {
         governor.abort("budget");
       });
-      const stopWatching = watchControl(new ControlFile(join(RUNS_ROOT, runId, "control.jsonl")), runControl);
+      const stopWatching = watchControl(controlFile, runControl);
       const interrupt = (): void => {
         console.log("operator abort: finishing the run record");
         governor.abort("operator_abort");

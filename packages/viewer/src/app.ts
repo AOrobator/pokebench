@@ -45,8 +45,8 @@ function runChoices(value: unknown): RunChoice[] {
     throw new Error("malformed /api/runs payload");
   }
   return (value as RunChoice[]).slice().sort((a, b) => {
-    const liveA = a.ended === false && a.problem === null;
-    const liveB = b.ended === false && b.problem === null;
+    const liveA = a.ended === false && a.problem === null && a.live !== false;
+    const liveB = b.ended === false && b.problem === null && b.live !== false;
     return Number(liveB) - Number(liveA) || (Date.parse(b.started ?? "") || 0) - (Date.parse(a.started ?? "") || 0);
   });
 }
@@ -191,9 +191,11 @@ export class App {
   private listRuns(runs: RunChoice[]): void {
     this.runs = runs;
     const picker = this.picker("run");
-    picker.replaceChildren(...runs.map((run) => option(this.doc, run.id, `${run.ended === false && run.problem === null ? "LIVE · " : ""}${run.id}`)));
+    // Unended runs whose game server no longer answers are not live.
+    const isLive = (run: RunChoice): boolean => run.ended === false && run.problem === null && run.live !== false;
+    picker.replaceChildren(...runs.map((run) => option(this.doc, run.id, `${isLive(run) ? "LIVE · " : run.ended === false && run.problem === null ? "NOT RESPONDING · " : ""}${run.id}`)));
     if (this.runId !== null) picker.value = this.runId;
-    const live = runs.filter((run) => run.ended === false && run.problem === null);
+    const live = runs.filter(isLive);
     const box = this.ui("live-runs");
     box.hidden = live.length === 0;
     box.replaceChildren();

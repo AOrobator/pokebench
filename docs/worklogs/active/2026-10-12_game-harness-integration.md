@@ -79,3 +79,7 @@ Cumulative qualifiedPython420passed, coveragefloor90gatepassed, vendorpristine; 
 COMMIT: fixturequalification (`e93317b` then `5ccb237`), no productionbehavior changed; fullcumulativelint passed. Protocol doc-only8cf832e merges into reviewcandidate; all canonicaldraftcontent retained, actualfutureflags/presets/runner stillunimplemented andnotclaimed.
 
 User-requested recurring observability workflow: add repository CLAUDE.md routing for diagnostic/intervention edits to discoveredagent-observabilityskill, so future agents get explicitprojectinstruction inaddition to skilldescription/link. Documentation-only; no extra gameplayassistance or automaticruntimeeditingauthorization. Finalcumulative reviewcoversrouting.
+
+COMMIT: protocol docs merge81bbcb9 and observability routingeecad8d; independentprotocol auditpending, no preset/config/flagregistry claimed. Confirmation4c9f48c finalnativeclock72states24UIzero diagnosticsCLOCK_SET202, OFF32f4noactiveUIfeature/text andCLOCK_SET197; sourceidentity/ablation proofqualified, endpoint reviewsrunning. Exactobservedclockreturn repair mergesnext, root finalreview required.
+
+COMMIT: clockreturn mergee74c36d focused76pass. Loop native/UI recovery frozenGREENf741aa4 bringsqualifiedsame-run knownfalse→true once-onlymilestone recovery plus readyownedUIprojection;427agent149viewer378unchangedPythonallgates12newmutations. Merge now, actualfinalrootgates/review covercombined source. Passive/enforcement separation is prospectivefollowup notclaimedcurrentlyavailable, no measuredrunlaunched.

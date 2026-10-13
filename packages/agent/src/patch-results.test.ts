@@ -149,7 +149,7 @@ describe("passive patch comparison", () => {
     const p = input(); const es = first(p).events; const old = es.find((e) => e.type === "state"); if (old === undefined) throw new Error("fixture");
     es.splice(2, 0, { ...old, seq: 2, location: "INSIDE OF TRUCK" }); for (const e of es.slice(3)) e.seq++;
     const marker = es.find((e) => e.type === "milestone"); if (marker?.type !== "milestone") throw new Error("fixture"); marker.evidence = [1, 2];
-    const r = comparePatchResults(p); expect(r.candidate.reached).toBe(3); expect(r.eligible).toBe(false);
+    const r = comparePatchResults(p); expect(r.candidate.reached).toBe(3); expect(r.eligible).toBe(false); expect(r.problems.join(" ")).toContain("expected true, observed false at state #2");
   });
   it("does not reuse latest truck state as an earlier exit baseline", () => {
     const p = input(); p.target = "FIRST_TRUCK_EXIT";
@@ -160,7 +160,20 @@ describe("passive patch comparison", () => {
   });
   it("rejects an unrelated cross-arm prompt change", () => {
     const p = input(); for (const t of p.candidate.trials) { const e = t.events[0]; if (e?.type !== "run_start") throw new Error("fixture"); e.system_prompt = "Unrelated behavior change"; }
-    const r = comparePatchResults(p); expect(r.eligible).toBe(false); expect(r.problems.join(" ")).toContain("undeclared cross-arm prompt");
+    const r = comparePatchResults(p); expect(r.eligible).toBe(false); expect(r.problems.join(" ")).toContain("Undeclared cross-arm prompt");
+  });
+
+  it("accepts only an explicit audited prompt pair tied to this changed factor", () => {
+    const p = input(); const incumbent = p.incumbent.trials[0]?.events[0]; if (incumbent?.type !== "run_start") throw new Error("fixture");
+    const candidatePrompt = "Declared action-bias wording";
+    for (const t of p.candidate.trials) { const e = t.events[0]; if (e?.type !== "run_start") throw new Error("fixture"); e.system_prompt = candidatePrompt; }
+    p.allowedPromptChange = { changedFeature: p.changedFeature, incumbentSha256: createHash("sha256").update(incumbent.system_prompt).digest("hex"), candidateSha256: createHash("sha256").update(candidatePrompt).digest("hex"), auditReceipt: "predeclared-prompt-pair.json" };
+    const r = comparePatchResults(p); expect(r.eligible).toBe(true); expect(r.configuration.allowedPromptChange).toEqual(p.allowedPromptChange); expect(renderPatchResults(r)).toContain("predeclared-prompt-pair.json");
+    p.allowedPromptChange.changedFeature = "unrelated-factor"; expect(comparePatchResults(p).eligible).toBe(false);
+    p.allowedPromptChange.changedFeature = p.changedFeature; p.allowedPromptChange.auditReceipt = ""; expect(comparePatchResults(p).eligible).toBe(false);
+    p.allowedPromptChange.auditReceipt = "receipt.json"; p.allowedPromptChange.incumbentSha256 = "invalid"; expect(comparePatchResults(p).eligible).toBe(false);
+    p.allowedPromptChange.incumbentSha256 = "e".repeat(64); expect(comparePatchResults(p).problems.join(" ")).toContain("audited hash");
+    p.allowedPromptChange.incumbentSha256 = createHash("sha256").update(incumbent.system_prompt).digest("hex"); p.allowedPromptChange.candidateSha256 = "f".repeat(64); expect(comparePatchResults(p).problems.join(" ")).toContain("audited hash");
   });
 
 });

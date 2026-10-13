@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { RunEvent } from "./events.js";
 import { MILESTONES } from "./milestones.js";
 import { summarize } from "./summary.js";
@@ -5,9 +6,10 @@ import { summarize } from "./summary.js";
 export interface TrialIssue { kind: "harness_bug" | "infrastructure"; message: string; evidence: number[]; invalidatesComparison: boolean }
 export interface PatchTrial { events: RunEvent[]; environment: { fingerprint: string; receipt: string }; issues: TrialIssue[] }
 export interface PatchArm { preset: string; flags: Record<string, boolean>; trials: PatchTrial[] }
+export interface AllowedPromptChange { changedFeature: string; incumbentSha256: string; candidateSha256: string; auditReceipt: string }
 export interface PatchComparison {
   patchId: string; target: string; changedFeature: string; stage: "screening" | "confirmation";
-  speedMarginPercent: number; completionTolerance: number; incumbent: PatchArm; candidate: PatchArm;
+  speedMarginPercent: number; completionTolerance: number; incumbent: PatchArm; candidate: PatchArm; allowedPromptChange?: AllowedPromptChange;
 }
 export interface Distribution { median: number; min: number; max: number; count: number }
 export interface TrialResult {
@@ -21,7 +23,7 @@ export interface PatchResult {
   recommendation: "confirm" | "keep" | "discard" | "retain" | "repair_and_rerun";
   incumbent: ArmResult; candidate: ArmResult; timeChangePercent: number | null;
   problems: string[]; trials: TrialResult[]; limitations: string[];
-  configuration: { changedFeature: string; incumbentFlags: Record<string, boolean>; candidateFlags: Record<string, boolean> };
+  configuration: { changedFeature: string; incumbentFlags: Record<string, boolean>; candidateFlags: Record<string, boolean>; allowedPromptChange?: AllowedPromptChange };
 }
 
 function canonical(value: unknown): string {
@@ -58,9 +60,19 @@ function assess(trial: PatchTrial, arm: TrialResult["arm"], target: string, prob
   const bySeq = new Map(es.map((e) => [e.seq, e]));
   const markers = es.filter((e): e is Extract<RunEvent, { type: "milestone" }> => e.type === "milestone" && e.name === target);
   const present = markers.some((e) => e.origin === "present_at_start");
-  const marker = markers.find((e) => e.origin === "observed" && e.kind === definition.kind && e.evidence !== undefined && e.evidence.length > 0 && e.evidence.every((seq) => seq < e.seq && bySeq.get(seq)?.run === run && bySeq.get(seq)?.type === "state") && es.filter((s) => s.type === "state" && s.seq < e.seq).at(-1)?.seq === e.evidence.at(-1) && (target !== "FIRST_TRUCK_EXIT" || e.evidence.some((seq) => { const before = bySeq.get(seq); return before?.type === "state" && "started" in before && before.location === "INSIDE OF TRUCK"; })) && e.evidence.some((seq) => {
-    const state = bySeq.get(seq); return state?.type === "state" && "started" in state && definition.reached(state) === true;
-  }));
+  const marker = markers.find((e) => {
+    const refs = e.evidence;
+    if (e.origin !== "observed" || e.kind !== definition.kind || refs === undefined || refs.length === 0) return false;
+    const lastSeq = refs.at(-1);
+    const last = lastSeq === undefined ? undefined : bySeq.get(lastSeq);
+    const latestRecorded = es.filter((state) => state.type === "state" && state.seq < e.seq).at(-1);
+    if (last?.type !== "state" || !("started" in last) || last.seq !== latestRecorded?.seq || definition.reached(last) !== true) return false;
+    if (!refs.every((seq) => seq < e.seq && bySeq.get(seq)?.run === run && bySeq.get(seq)?.type === "state")) return false;
+    return target !== "FIRST_TRUCK_EXIT" || refs.some((seq) => {
+      const before = bySeq.get(seq);
+      return before?.type === "state" && "started" in before && before.seq < last.seq && before.location === "INSIDE OF TRUCK";
+    });
+  });
   const summary = summarize(es);
   const observed = es.flatMap((e) => e.type === "state" && "started" in e ? [definition.reached(e)] : []);
   const coverage = { positive: observed.filter((v) => v === true).length, negative: observed.filter((v) => v === false).length, unknown: observed.filter((v) => v === null).length };
@@ -72,7 +84,17 @@ function assess(trial: PatchTrial, arm: TrialResult["arm"], target: string, prob
   const unqualified = (markers.length > 0 && marker === undefined && !present) || missingMarker || neverQualified;
   if (neverQualified) problems.push(`${run}: target state never qualified`);
   if (present) problems.push(`${run}: target already present at start`);
-  if (unqualified) problems.push(`${run}: unqualified native target evidence`);
+  if (unqualified) {
+    problems.push(`${run}: unqualified native target evidence`);
+    for (const claim of markers) {
+      const seq = claim.evidence?.at(-1);
+      const state = seq === undefined ? undefined : bySeq.get(seq);
+      if (state?.type === "state" && "started" in state) {
+        const value = definition.reached(state);
+        if (value !== true) problems.push(`${run}: latest target proof expected true, observed ${String(value)} at state #${String(state.seq)} (milestone #${String(claim.seq)})`);
+      }
+    }
+  }
   for (const issue of issues) {
     if (issue.evidence.length === 0 || issue.evidence.some((seq) => !bySeq.has(seq))) problems.push(`${run}: issue lacks recorded evidence`);
     if (issue.invalidatesComparison) problems.push(`${run}: ${issue.kind === "harness_bug" ? "harness bug" : "infrastructure"}: ${issue.message}`);
@@ -103,6 +125,7 @@ export function comparePatchResults(input: PatchComparison): PatchResult {
   const seen = new Set<string>();
   let common: string | undefined;
   let environment: string | undefined;
+  const armPrompts: Partial<Record<TrialResult["arm"], string>> = {};
   for (const arm of ["incumbent", "candidate"] as const) {
     const config = input[arm];
     if (config.trials.length !== 4) problems.push(`${arm}: expected four trials, got ${String(config.trials.length)}`);
@@ -115,8 +138,20 @@ export function comparePatchResults(input: PatchComparison): PatchResult {
       if (common !== undefined && sig !== common) problems.push(`${first.run}: incompatible run provenance`); common ??= sig;
       if (environment !== undefined && trial.environment.fingerprint !== environment) problems.push(`${first.run}: incompatible environment provenance`); environment ??= trial.environment.fingerprint;
       if (prompt !== undefined && first.system_prompt !== prompt) problems.push(`${first.run}: prompt changed within arm`); prompt ??= first.system_prompt;
+      armPrompts[arm] ??= first.system_prompt;
+      const declaration = input.allowedPromptChange;
+      if (declaration !== undefined) {
+        const expectedHash = arm === "incumbent" ? declaration.incumbentSha256 : declaration.candidateSha256;
+        if (createHash("sha256").update(first.system_prompt).digest("hex") !== expectedHash) problems.push(`${first.run}: prompt differs from audited hash`);
+      }
       trials.push(assess(trial, arm, input.target, problems));
     }
+  }
+  const declaration = input.allowedPromptChange;
+  if (declaration === undefined) {
+    if (armPrompts.incumbent !== undefined && armPrompts.candidate !== undefined && armPrompts.incumbent !== armPrompts.candidate) problems.push("Undeclared cross-arm prompt difference; provide an audited prompt-change contract");
+  } else if (declaration.changedFeature !== input.changedFeature || !/^[a-f0-9]{64}$/.test(declaration.incumbentSha256) || !/^[a-f0-9]{64}$/.test(declaration.candidateSha256) || declaration.auditReceipt.trim() === "") {
+    problems.push("Invalid audited prompt-change contract: changed feature, SHA256 pair and receipt required");
   }
   const incumbent = armResult(input.incumbent.preset, trials.filter((t) => t.arm === "incumbent"));
   const candidate = armResult(input.candidate.preset, trials.filter((t) => t.arm === "candidate"));
@@ -134,8 +169,8 @@ export function comparePatchResults(input: PatchComparison): PatchResult {
   }
   const bug = trials.some((t) => t.issues.some((i) => i.kind === "harness_bug" && i.invalidatesComparison));
   return { patchId: input.patchId, target: input.target, eligible, verdict, recommendation: bug ? "repair_and_rerun" : verdict === "regress" ? "discard" : verdict === "improve" ? input.stage === "confirmation" ? "keep" : "confirm" : "retain",
-    incumbent, candidate, timeChangePercent, configuration: { changedFeature: input.changedFeature, incumbentFlags: { ...input.incumbent.flags }, candidateFlags: { ...input.candidate.flags } }, problems: [...new Set(problems)], trials,
-    limitations: ["Four per arm does not establish statistical confidence.", "Times are among native target completers; missing splits remain explicit.", "Not reached means no qualified recorded completion, not an inference about unseen game state.", "Environment identity is an externally supplied receipt, not independently verified here.", "Recommendation does not execute promotion or rollback; downstream qualification is separate."] };
+    incumbent, candidate, timeChangePercent, configuration: { changedFeature: input.changedFeature, incumbentFlags: { ...input.incumbent.flags }, candidateFlags: { ...input.candidate.flags }, ...(declaration === undefined ? {} : { allowedPromptChange: { ...declaration } }) }, problems: [...new Set(problems)], trials,
+    limitations: ["Four per arm does not establish statistical confidence.", "Times are among native target completers; missing splits remain explicit.", "Not reached means no qualified recorded completion, not an inference about unseen game state.", "Environment identity is an externally supplied receipt, not independently verified here.", "Prompt audit receipt content is reviewed externally; exact observed hashes are checked here.", "Recommendation does not execute promotion or rollback; downstream qualification is separate."] };
 }
 
 
@@ -150,6 +185,7 @@ export function renderPatchResults(report: PatchResult): string {
     ...(["incumbent", "candidate"] as const).map((arm) => { const r = report[arm]; return `| ${arm}: ${cell(r.preset)} | ${String(r.reached)}/${String(r.launched)} | ${String(r.incomplete)} | ${duration(r.elapsedMs)} |`; }),
     "", `Changed feature: ${cell(report.configuration.changedFeature)}.`,
     `Incumbent flags: ${cell(canonical(report.configuration.incumbentFlags))}.`, `Candidate flags: ${cell(canonical(report.configuration.candidateFlags))}.`,
+    ...(report.configuration.allowedPromptChange === undefined ? ["Cross-arm prompts must be identical; no change declared."] : [`Audited prompt change: ${cell(report.configuration.allowedPromptChange.changedFeature)}; incumbent SHA256 ${cell(report.configuration.allowedPromptChange.incumbentSha256)}; candidate SHA256 ${cell(report.configuration.allowedPromptChange.candidateSha256)}; receipt ${cell(report.configuration.allowedPromptChange.auditReceipt)}.`]),
     "", "## Evidence and failures", "",
     ...report.trials.map((t) => `- ${cell(t.run)} (${t.arm}): ${t.outcome}; stop ${cell(t.reason)}; ${String(t.turns)} total turns; input/output tokens ${String(t.tokens.input)}/${String(t.tokens.output)}; target evidence [${t.evidence.join(", ")}]; target-state coverage +${String(t.coverage.positive)}/-${String(t.coverage.negative)}/unknown ${String(t.coverage.unknown)}.${t.issues.map((i) => ` ${i.kind === "harness_bug" ? "HARNESS BUG" : "Infrastructure"}: ${cell(i.message)} [${i.evidence.join(", ")}].`).join("")}`),
     "", "## Qualification limits", "", ...[...report.problems, ...report.limitations].map((p) => `- ${cell(p)}`),

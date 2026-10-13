@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { Window } from "happy-dom";
 import { BASE_MS, Log, RUN, START, assistant, fullRun, must, state } from "../test-support/events.js";
 import { RunView, foldUntil } from "./model.js";
 import {
@@ -326,7 +327,9 @@ describe("actionRow", () => {
 describe("inspector and brand", () => {
   it("shows the raw event, escaped", () => {
     const event = must(fullRun().events[7]);
-    expect(inspector(event)).toBe(`<pre>${JSON.stringify(event, null, 2).replace(/"/g, "&quot;")}</pre>`);
+    const document = new Window().document; document.body.innerHTML = inspector(event);
+    expect(document.querySelector(".raw-event pre")?.textContent).toBe(JSON.stringify(event, null, 2));
+    expect(document.querySelector(".json-key")).not.toBeNull();
     expect(inspector(undefined)).toBe('<p class="nodata">click a log row to see its raw event</p>');
   });
 

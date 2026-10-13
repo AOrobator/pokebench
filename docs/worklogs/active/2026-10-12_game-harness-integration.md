@@ -1,7 +1,7 @@
 # Game harness and viewer integration
 
 ## Problem Statement
-The operator authorized independent agents to implement/review/land five deterministic loop detectors, active confirmation/selection state with logged unsupported-state diagnostics and repair skill, native milestone objective completion, and the approved Game+Stream viewer redesign. After integrated review/landing, launch one exploratory fresh run each for Think Swarm and Qwen3.8, visible in the viewer. Original12-trial experiment completed at clean40262a0; report16c8939 is doc-only and separate. Object interaction labels/navigation and reducing model round trips remain discussion-only.
+The operator authorized independent agents to implement/review/land five deterministic loop detectors, active confirmation/selection state with logged unsupported-state diagnostics and repair skill, native milestone objective completion, and the approved Game+Stream viewer redesign. After integrated review/landing, prepare four-per-arm comparisons; The operator replaced the exploratory pair with comparison preparation on this turn. Freeze model matrix/native target/equal caps before launch. Original12-trial experiment completed at clean40262a0; report16c8939 is doc-only and separate. Object interaction labels/navigation and reducing model round trips remain discussion-only.
 
 ## Skills Loaded
 PokeBench feature-worklog, game-state and story-milestones owner workflows; mandatory multi-model-review contract and PB1–PB13 principles. Source qualification belongs to read-only matching pokeemerald/ROM and coherent recorded proof, not guessed RAM fields.
@@ -19,7 +19,7 @@ Integrate frozen isolated owner branches on16c8939 in a dedicated integration ch
 - INV-7: new both-model runs only after final reviewed clean landing/build; normalCLI freshboot30min/300turn, feature metadata accurate, one active permodel, liveviewer and originalcohort separate.
 
 ## Security Review
-No ROM copied/staged, no modelcredentials inargv/output, no vendor modification, no privatechainofthought grading, no source edits during measured newruns. Recorded source/schema/proof hashes bind receipts. Saved manual probe fixtures ignored and labeled, never borrowed measuredsessions.
+No ROM staged; loop owner disclosed a temporary accidental regular ROM copy during receipt/server copying and removed it immediately (public disclosure retained). Final preservation explicitly excludes regular ROM files. no modelcredentials inargv/output, no vendor modification, no privatechainofthought grading, no source edits during measured newruns. Recorded source/schema/proof hashes bind receipts. Saved manual probe fixtures ignored and labeled, never borrowed measuredsessions.
 
 ## Milestones
 **M1 — Owner qualification**
@@ -29,10 +29,10 @@ No ROM copied/staged, no modelcredentials inargv/output, no vendor modification,
 - [ ] Resolve approved shared surfaces and coherent active UI loop projection
 - [ ] Full test/lint/build/coverage/vendor, meaningful integration mutations and realpi/backend/native/viewer proof
 - [ ] Freeze cumulative identity/boundary/principles and allselectedroster literalLGTM
-**M3 — Landing and exploratory runs**
+**M3 — Landing and four-per-arm preparation**
 - [ ] Clean reviewed artifact integrated canonical; sequencer/source/build receipts
 - [ ] Viewer service uses merged source; preserve userpreview then safe worktree snapshot/cleanup
-- [ ] Fresh one-run/model pair launched visibly; terminal validation/report no efficacy claim fromN1
+- [ ] Prepare qualified passive/enforced split and frozen single-factor presets; model matrix/target/caps declared before four-per-arm launch
 
 ## Closing the Loop
 Owner branches remain not-landed until full selected reviews. Root owns canonicalintegration and archived cleanup; no remote/PR. Source404variants not pooled with original402experiment. Worklog first before integration edits; user approval persists, no extra implementation approval needed.
@@ -85,3 +85,13 @@ COMMIT: protocol docs merge81bbcb9 and observability routingeecad8d; independent
 COMMIT: clockreturn mergee74c36d focused76pass. Loop native/UI recovery frozenGREENf741aa4 bringsqualifiedsame-run knownfalse→true once-onlymilestone recovery plus readyownedUIprojection;427agent149viewer378unchangedPythonallgates12newmutations. Merge now, actualfinalrootgates/review covercombined source. Passive/enforcement separation is prospectivefollowup notclaimedcurrentlyavailable, no measuredrunlaunched.
 
 COMMIT: native/UIloop recovery merge3022e77, conflicts were equivalentrootREDtestformat/import; retainownerformattedtests and removedduplicateRunEventimport. Focused53passed. Cumulative GREEN1032tests (444agent+166viewer+422Python), justcoverage/justlint/build/schema/vendorallpassed, floorsagentlines98.82branches93.73functions98.43/viewer98.54/91.14/98.57/Python99.39/97.14/100. Protocol docs/routingread-onlyaudit literalLGTM withreceipt; finalcumulative selectedrosterpending. Preparing freshnativeadapter+servedviewerproof at frozen source beforelanding.
+
+Frozen c4f22f4 nativeadapterproof clean withwarning29stop44blocked46stuck48; modelnextcontextwarningchecked, viewer8798bothsurfaces/raw+rewindbrowserproof,11servedassetsbyteequal. AvailableFast/Swarm agent andenvironment/viewer/skillsbatches literalLGTM; fullartifact88813tokens exceeds65536, retainedfailedcontextreceipts and partitionmanifest withoutomittingfiles. Newuser-authorizedsidechatpassivereporter3181771 arrivedbeforefinalfullroster; addonlynewofflinecomparisonmodule/tests/contracts/worklog, re-freeze finalcombinedartifact withno originalsourcechanges. No CLI/runner/preset/UIwiring inferred. Currentpartialreviews notfinalapprovalofaddedmodule.
+
+Side passive report merge3181771 into root;31focusedtests and cumulative1063tests475agent166viewer422Python/coverage/lint/buildallpass. Rootself-review found in-contractgrading risk: markerqualifies ANYpositiveevidencestate instead oflatestreferencedstate; requestedownerREDlatestnegative/olderpositive +strictlatestpredicate andoperandmutation beforefinalreview. Cross-arm promptdifferencequalification requestedminimaldeclared inputcontract, no arbitraryfeature-nameinfer. These are reporterqualification defects/risks, not warningUI regressions; no finalPB1PASS/source landing untilrepaired.
+
+User steering: Prepare four per arm first, explicitly no exploratorypair now. Loopowner resumespassive/enforced split in isolatedcodex/loop-passive; currentlanding excludesunqualifiedfollowup. New sidehandoff addsThinkLongCtx qualification and serialglobalplay, exactmodelmatrix/earlynative target+caps questionspendinghuman; do notsilentlyexpand24vs16runs or inferweightunloadauthorization. ReporterR2RED34collected3assertionfailures andGREEN35/gates/mutations now7374b2e; strictlatestpositive+earliertruckbaseline and explicitallowedPromptChangebindfeature/hashpair/auditreceipt. Mergeapprovedrepair thenfinalsourcefreeze/gates/review.
+
+Humanconfirmed firstcomparison ALLTHREE(Qwen3.8,ThinkSwarm,ThinkLongCtx), fourtrials/arm/model=24total, globallyserial; targetacceptedPLAYER_NAME_CONFIRMED, equal10minute wallcaps. Matrix/capsnotinferred; no newmeasuredgameyet. PassiveownerGREEN7c53 +actualcaller test58f37ef, correctednativePythoncount422receipt gives1071componenttests; samepolicy/commondiagnostics typedwould_* vsenforcedphases, nofeedback/block/abortpassive realpi+bothnativeproof qualified. Mergefollowupnowbeforefinalcumulativefreeze so firstcomparisoncanuseactualcommoninstrumentation, notpreviousflag0diagnosticsabsence.
+
+2026-10-13 landing coordinator owns final source, reviews, landing, viewer relocation and recoverable cleanup. Canonical authorized drafts saved byte-for-byte under landing-final/canonical-authored; main sequencer and cleanup audit hashes match preflight. Head905a3dc includes report7374 and passive58f37; authorized LongCtx notes preserved around the reviewed documentation-owner insertion. Full cumulative gate/review pending. No new runs during closeout.

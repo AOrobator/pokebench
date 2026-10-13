@@ -261,7 +261,7 @@ async function playAgent(): Promise<void> {
       systemPrompt,
       tools: ["observe", "press", ...(trackObjectives ? ["get_objectives", "set_objective", "update_objective"] : [])],
       startState: { kind: "boot" },
-      harnessFeatures: ["ram-state-v1", "live-map-v1", "field-control-lock", "naming-cursor-v1", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "world-targets-v1", "live-player-position-v1", "world-coordinate-grid-v1", "press-result-v1", "warp-activation-guidance-v1", "clock-milestone-v1", "story-state-v1", "story-milestones-v2", "new-game-created-v1", ...(detectLoops ? ["deterministic-loop-guard-v1"] : []), ...(documentInterface ? ["contextual-interface-docs-v1"] : []), ...(trackObjectives ? ["objective-tracking-v1", "repeat-attempt-guard-v1"] : [])],
+      harnessFeatures: ["ram-state-v1", "live-map-v1", "field-control-lock", "naming-cursor-v1", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "world-targets-v1", "live-player-position-v1", "world-coordinate-grid-v1", "press-result-v1", "warp-activation-guidance-v1", "clock-milestone-v1", "story-state-v1", "story-milestones-v2", "new-game-created-v1", ...(detectLoops ? ["deterministic-loop-guard-v1"] : []), ...(documentInterface ? ["contextual-interface-docs-v1"] : []), ...(trackObjectives ? ["objective-tracking-v1", "repeat-attempt-guard-v1", "native-objective-completion-v1"] : [])],
       budgets: { max_turns: PLAY_LIMITS.maxTurns, max_wall_ms: PLAY_LIMITS.maxWallMs },
       piVersion: piVersion(),
     },

@@ -28,7 +28,7 @@ it("requires observed evidence and an objective before pressing", () => {
 it("checks completion and keeps prior attempts when revised", () => {
   const { tracker } = setup(); tracker.set(request);
   tracker.attempt("press-1", ["A"], state(1), state(2));
-  expect(() => tracker.update({ status: "completed", evidence: [1], obstacle: "", next_decision: "Move on", retry_reason: "" })).toThrow(/Completion/);
+  expect(() => tracker.update({ status: "reported_complete", evidence: [1], obstacle: "", next_decision: "Move on", retry_reason: "" })).toThrow(/Completion/);
   tracker.set({ ...request, title: "Find Birch" });
   expect(tracker.attempts).toHaveLength(1);
   expect(tracker.snapshot()?.revision).toBe(2);
@@ -53,14 +53,14 @@ it("does not count locked input or editor animation as failure", () => {
 it("verifies positive completion from fresh state and rejects stale or visual claims", () => {
   const { tracker } = setup(); tracker.set(request);
   tracker.observe(state(4, { party: IN_GAME.party }));
-  const update = { status: "completed" as const, evidence: [4], obstacle: "", next_decision: "Leave town", retry_reason: "" };
+  const update = { status: "reported_complete" as const, evidence: [4], obstacle: "", next_decision: "Leave town", retry_reason: "" };
   expect(() => tracker.update({ ...update, evidence: [1] })).toThrow(/Completion/);
   expect(tracker.update(update).completion_evidence).toEqual([4]);
   tracker.set({ ...request, completion: { kind: "visual", description: "Clock confirmation closes" } });
-  expect(() => tracker.update(update)).toThrow(/Completion/);
+  expect(tracker.update(update).status).toBe("reported_complete");
   expect(tracker.update({ ...update, status: "reported_complete" }).status).toBe("reported_complete");
   tracker.set(request);
-  expect(() => tracker.update({ ...update, status: "reported_complete" })).toThrow(/State-backed/);
+  expect(tracker.update({ ...update, status: "reported_complete" }).status).toBe("reported_complete");
 });
 
 it("requires grounded reassessment and consumes it after one attempt", () => {
@@ -103,7 +103,7 @@ it("checks badges, scalar conditions and unique objective identities", () => {
   expect(() => tracker.attempt("x", ["A"], state(1), state(2))).toThrow(/No objective/);
   for (const condition of [{ kind: "state" as const, field: "badge" as const, value: "STONE" }, { kind: "state" as const, field: "location" as const, value: IN_GAME.location ?? "" }, { kind: "state" as const, field: "started" as const, value: true }]) {
     tracker.set({ ...request, completion: condition });
-    tracker.update({ status: "completed", evidence: [1], obstacle: "", next_decision: "Next goal", retry_reason: "" });
+    tracker.update({ status: "reported_complete", evidence: [1], obstacle: "", next_decision: "Next goal", retry_reason: "" });
   }
   tracker.set({ ...request, completion: { kind: "visual", description: "Visible message" } });
   const first = tracker.snapshot()?.id;
@@ -123,7 +123,7 @@ it("isolates absent current state from valid observation evidence", () => {
   const tracker = new ObjectiveTracker("Reach gym", () => undefined);
   tracker.observe({ ...envelope, seq: 1, type: "tool_result", id: "observe", name: "observe", is_error: false, duration_ms: 1, text: "Observed game", frames: [] });
   tracker.set(request);
-  expect(() => tracker.update({ status: "completed", evidence: [1], obstacle: "", next_decision: "Next", retry_reason: "" })).toThrow(/Completion is not verified/);
+  expect(() => tracker.update({ status: "reported_complete", evidence: [1], obstacle: "", next_decision: "Next", retry_reason: "" })).toThrow(/Completion is not verified/);
 });
 
 it("permits a changed action or material state after matching failures", () => {
@@ -171,7 +171,7 @@ it("does not treat a blank retry explanation as reassessment", () => {
 it("explains a value mismatch and exposes all scalar completion facts", () => {
   const { tracker } = setup();
   tracker.set({ ...request, completion: { kind: "state", field: "started", value: false } });
-  expect(() => tracker.update({ status: "completed", evidence: [1], obstacle: "", next_decision: "Next", retry_reason: "" })).toThrow('Completion is not verified: field "started" expected false (boolean), observed true (boolean) at state #1. Observe until it matches, or revise the condition with set_objective; do not use reported_complete for a state condition.');
+  expect(() => tracker.update({ status: "reported_complete", evidence: [1], obstacle: "", next_decision: "Next", retry_reason: "" })).toThrow('Completion is not verified: field "started" expected false (boolean), observed true (boolean) at state #1. Observe until it matches, or revise the condition with set_objective; a matching local condition is provisional reported_complete, never verified story progress.');
   const content = tracker.context([], 123)[0];
   expect((content?.role === "user" ? content.content : "")).toContain('"started":true');
   expect((content?.role === "user" ? content.content : "")).toContain('"in_battle":false');
@@ -194,11 +194,11 @@ it("keeps historical string boolean objective events readable", () => {
 
 it("diagnoses stale and absent state evidence separately", () => {
   const { tracker } = setup();tracker.set(request);tracker.observe(state(2));
-  const update = { status: "completed" as const, evidence: [1], obstacle: "", next_decision: "Next", retry_reason: "" };
+  const update = { status: "reported_complete" as const, evidence: [1], obstacle: "", next_decision: "Next", retry_reason: "" };
   expect(() => tracker.update(update)).toThrow('Completion is not verified: cite latest state #2; supplied evidence is [1]. Use observe and cite the current state.');
   const empty = new ObjectiveTracker("Reach gym", () => undefined);
   empty.observe({ ...envelope, seq: 1, type: "tool_result", id: "observe", name: "observe", is_error: false, duration_ms: 1, text: "Observed", frames: [] });empty.set(request);
   expect(() => empty.update(update)).toThrow('Completion is not verified: no current game state is available. Use observe, then cite its state evidence.');
   tracker.set({ ...request, completion: { kind: "visual", description: "Screen confirms" } });
-  expect(() => tracker.update({ ...update, evidence: [2] })).toThrow('Completion is not verified: this objective uses visual evidence. Use reported_complete for a visual condition.');
+  expect(tracker.update({ ...update, evidence: [2] }).status).toBe("reported_complete");
 });

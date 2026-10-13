@@ -410,3 +410,19 @@ it("shows escaped loop evidence in the action log",()=>{
   const log=bare();const event=log.add(100,{type:"loop_guard",turn:1,kind:"cycle",phase:"warning",message:"Reassess <now>",calls:9,evidence:[4,7]});
   const html=actionRow(event);expect(html).toContain("Loop cycle warning");expect(html).toContain("Reassess &lt;now&gt;");expect(html).toContain("#4, #7");expect(html).toContain("ev-error");
 });
+
+it("distinguishes native proof, provisional claims and historical completion", () => {
+ const log=bare();
+ const objective={id:"native",revision:1,goal:"Reach gym",title:"Set the clock",supports_goal:"Native story task",evidence:[1],completion:{kind:"milestone" as const,name:"CLOCK_SET" as const},obstacle:"",next_decision:"Observe",status:"completed" as const,completion_evidence:[2,1],verification:{origin:"present_at_start" as const,milestone_seq:2,state_evidence:[1]}};
+ log.add(3,{type:"objective_update",turn:0,objective});
+ expect(objectivePanel(view(log))).toContain("game verified (present at start)");
+ expect(objectivePanel(view(log))).toContain("Native milestone CLOCK_SET");
+ log.add(4,{type:"objective_update",turn:0,objective:{...objective,verification:{...objective.verification,origin:"observed"}}});
+ expect(objectivePanel(view(log))).toContain("game verified (observed)");
+ const {verification:proof,...historical}=objective;
+ expect(proof.state_evidence).toEqual([1]);
+ log.add(5,{type:"objective_update",turn:0,objective:{...historical,completion:{kind:"state",field:"started",value:true}}});
+ expect(objectivePanel(view(log))).toContain("historical completion (not native verified)");
+ log.add(6,{type:"objective_update",turn:0,objective:{...historical,status:"reported_complete",completion:{kind:"state",field:"started",value:true}}});
+ expect(objectivePanel(view(log))).toContain("provisional local plan");
+});

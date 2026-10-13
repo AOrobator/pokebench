@@ -87,7 +87,7 @@ it("refreshes completion evidence and rejects a cached successful condition", as
   tracker.set({ ...request, completion: { kind: "state", field: "party_count", value: 1 } });
   const tools = objectiveTools(tracker, () => Promise.resolve(recorder.recordState(game).seq));
   const update = tools.find((t) => t.name === "update_objective"); if (update === undefined) throw new Error("missing update");
-  await expect(update.execute("u", { status: "completed", evidence: [1], obstacle: "", next_decision: "Next", retry_reason: "" })).rejects.toThrow(/Completion/);
+  await expect(update.execute("u", { status: "reported_complete", evidence: [1], obstacle: "", next_decision: "Next", retry_reason: "" })).rejects.toThrow(/Completion/);
   expect(tracker.snapshot()?.status).toBe("active");
 });
 
@@ -120,7 +120,7 @@ it("composes recorder evidence, game guarding, completion refresh and context in
   expect(server.actions()).toBe(2);
   expect(events.filter((event) => event.type === "objective_attempt")).toHaveLength(2);
   const successful = recorder.recordState({ ...game, party: IN_GAME.party });
-  await expect(update.execute("u", { status: "completed", evidence: [successful.seq], obstacle: "", next_decision: "Next", retry_reason: "" })).rejects.toThrow(/Completion/);
+  await expect(update.execute("u", { status: "reported_complete", evidence: [successful.seq], obstacle: "", next_decision: "Next", retry_reason: "" })).rejects.toThrow(/Completion/);
   const context = await harness.transformContext([]);
   expect(JSON.stringify(context.at(-1))).toContain("HARNESS OBJECTIVE RECORD");
   expect(JSON.stringify(context.at(-1))).toContain("Get starter");
@@ -143,7 +143,7 @@ it("cancels in-flight pre-press and completion state reads without sending a gam
     if (!set || !tool) throw new Error("missing operation");
     await set.execute("s", { ...request, evidence: [state.seq] });
     const controller = new AbortController();
-    const pending = tool.execute("operation", operation === "press" ? { buttons: ["A"] } : { status: "completed", evidence: [state.seq], obstacle: "", next_decision: "Next", retry_reason: "" }, controller.signal);
+    const pending = tool.execute("operation", operation === "press" ? { buttons: ["A"] } : { status: "reported_complete", evidence: [state.seq], obstacle: "", next_decision: "Next", retry_reason: "" }, controller.signal);
     const started = await Promise.race([requestStarted.promise, pending.then(() => false, () => false)]);
     expect(started, `${operation} must reach the live state request`).toBe(true);
     const rejection = expect(pending).rejects.toThrow(/abort/i);
@@ -199,7 +199,7 @@ it("retains the state-owner timeout while the run remains live", async () => {
       const state = recorder.recordState(game);const set = harness.tools.find((tool) => tool.name === "set_objective");const tool = harness.tools.find((item) => item.name === operation);
       if (!set || !tool) throw new Error("missing operation");
       await set.execute("s", { ...request, evidence: [state.seq] });
-      await expect(tool.execute("deadline", operation === "press" ? { buttons: ["A"] } : { status: "completed", evidence: [state.seq], obstacle: "", next_decision: "Next", retry_reason: "" }, controller.signal), operation).rejects.toThrow(/deadline/i);
+      await expect(tool.execute("deadline", operation === "press" ? { buttons: ["A"] } : { status: "reported_complete", evidence: [state.seq], obstacle: "", next_decision: "Next", retry_reason: "" }, controller.signal), operation).rejects.toThrow(/deadline/i);
       expect(timeout, operation).toHaveBeenLastCalledWith(15_000);
       expect(controller.signal.aborted, operation).toBe(false);
       expect(captured.signal?.aborted, operation).toBe(true);
@@ -218,7 +218,7 @@ it("does not commit completion when refresh resolves after cancellation", async 
     controller.abort();return Promise.resolve(fresh.seq);
   }).find((item) => item.name === "update_objective");
   if (!tool) throw new Error("missing update");
-  await expect(tool.execute("race", { status: "completed", evidence: [before.seq], obstacle: "", next_decision: "Next", retry_reason: "" }, controller.signal)).rejects.toThrow(/abort/i);
+  await expect(tool.execute("race", { status: "reported_complete", evidence: [before.seq], obstacle: "", next_decision: "Next", retry_reason: "" }, controller.signal)).rejects.toThrow(/abort/i);
   expect(own.snapshot()?.status).toBe("active");expect(updates).toHaveLength(count);
 });
 
@@ -232,7 +232,8 @@ it.each(["state", "visual"] as const)("advertises compatible completion %s strin
     {properties: {value: {type: "string"}}},
     {properties: {value: {type: "boolean"}}},
     {properties: {value: {type: "number"}}},
-    {properties: {description: {type: "string", minLength: 1}}}
+    {properties: {description: {type: "string", minLength: 1}}},
+    {properties: {kind: {const: "milestone"}}}
   ]}}});
   const completionSchema = (wire as { properties: { completion: { anyOf: { properties: { value?: { maxLength?: number }; description?: { maxLength?: number } } }[] } } }).properties.completion;
   expect(completionSchema.anyOf[0]?.properties.value).not.toHaveProperty("maxLength");
@@ -263,8 +264,8 @@ it("rejects mismatched completion types before recording and recovers with boole
     expect(tracker.snapshot(), field).toBeNull();
   }
   await set.execute("valid", { ...request, completion: { kind: "state", field: "started", value: true } });
-  await update.execute("complete", { status: "completed", evidence: [0], obstacle: "", next_decision: "Exit truck", retry_reason: "" });
-  expect(tracker.snapshot()).toMatchObject({ status: "completed", completion: { field: "started", value: true }, completion_evidence: [0, 1] });
+  await update.execute("complete", { status: "reported_complete", evidence: [0], obstacle: "", next_decision: "Exit truck", retry_reason: "" });
+  expect(tracker.snapshot()).toMatchObject({ status: "reported_complete", completion: { field: "started", value: true }, completion_evidence: [0, 1] });
 });
 
 
@@ -314,7 +315,7 @@ it("recovers from a raw type error through the actual model loop", async () => {
   const governor = new Governor({ limits: { maxTurns: 3, maxWallMs: 1000, failureLimit: 3 }, retry: () => undefined, abort: () => { controller.abort(); }, now: () => 0 });
   const responses: AssistantMessage[] = [response,
     { ...response, content: [{ type: "toolCall", id: "correct", name: "set_objective", arguments: { ...request, evidence: [state.seq], completion: { kind: "state", field: "started", value: true } } }] },
-    { ...response, content: [{ type: "toolCall", id: "complete", name: "update_objective", arguments: { status: "completed", evidence: [state.seq], obstacle: "", next_decision: "Exit truck", retry_reason: "" } }] },
+    { ...response, content: [{ type: "toolCall", id: "complete", name: "update_objective", arguments: { status: "reported_complete", evidence: [state.seq], obstacle: "", next_decision: "Exit truck", retry_reason: "" } }] },
   ];
   let index = 0;
   const streamFn: StreamFn = () => { const message = responses[index++];if (message === undefined) throw new Error("unexpected extra model call");const stream = createAssistantMessageEventStream();stream.push({ type: "done", reason: "toolUse", message });return stream; };
@@ -326,6 +327,23 @@ it("recovers from a raw type error through the actual model loop", async () => {
   expect(results[0]).toMatchObject({ content: [{ type: "text", text: 'Completion field "started" requires boolean; received "true" (string). Revise set_objective with a boolean value; values are not coerced.' }] });
   const updates = events.filter((event) => event.type === "objective_update");
   expect(updates).toHaveLength(2);
-  expect(updates.map((event) => event.objective.status)).toEqual(["active", "completed"]);
+  expect(updates.map((event) => event.objective.status)).toEqual(["active", "reported_complete"]);
   expect(updates[1]?.objective).toMatchObject({ completion: { field: "started", value: true }, completion_evidence: [state.seq, 3] });
+});
+
+it("accepts the native catalog through pinned pi without allowing model-written task meaning", async () => {
+ const {tracker,events}=setup();
+ const nativeSet=objectiveTools(tracker).find(t=>t.name==="set_objective");if(nativeSet===undefined)throw new Error("missing set");
+ await expect(nativeSet.execute("bad",{...request,completion:{kind:"milestone",name:"CLOCK_OPENED"}})).rejects.toThrow("Invalid objective parameters");
+ const usage={input:0,output:0,cacheRead:0,cacheWrite:0,totalTokens:0,cost:{input:0,output:0,cacheRead:0,cacheWrite:0,total:0}};
+ const model:Model<"openai-completions">={id:"test-lane",name:"test-lane",api:"openai-completions",provider:"test",baseUrl:"http://127.0.0.1:1/v1",reasoning:false,input:["text"],contextWindow:1000,maxTokens:100,cost:{input:0,output:0,cacheRead:0,cacheWrite:0}};
+ const response:AssistantMessage={role:"assistant",content:[{type:"toolCall",id:"native",name:"set_objective",arguments:{...request,title:"Clock complete by entering bedroom",completion:{kind:"milestone",name:"CLOCK_SET"}}}],api:"openai-completions",provider:"test",model:"test-lane",usage,stopReason:"toolUse",timestamp:0};
+ const controller=new AbortController();const governor=new Governor({limits:{maxTurns:1,maxWallMs:1000,failureLimit:3},retry:()=>undefined,abort:()=>{controller.abort();},now:()=>0});
+ const streamFn:StreamFn=()=>{const stream=createAssistantMessageEventStream();stream.push({type:"done",reason:"toolUse",message:response});return stream;};
+ const results:AgentMessage[]=[];
+ const loop=piLoop({systemPrompt:"Play",tools:objectiveTools(tracker),base:{model,convertToLlm:messages=>messages as Message[]},governor,transformContext:messages=>Promise.resolve(messages),emit:event=>{if(event.type==="message_end" && event.message.role==="toolResult")results.push(event.message);},signal:controller.signal,streamFn});
+ await loop.start([{role:"user",content:"Play",timestamp:0}],[]);
+ expect(results).toHaveLength(1);expect(results[0]).toMatchObject({role:"toolResult",isError:false});
+ expect(tracker.snapshot()).toMatchObject({title:"Set the clock",status:"active",completion:{kind:"milestone",name:"CLOCK_SET"}});
+ expect(events.filter(e=>e.type==="run_end")).toEqual([]);
 });

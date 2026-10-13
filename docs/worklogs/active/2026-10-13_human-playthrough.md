@@ -132,6 +132,8 @@ Wiring is complete only when launch, keyboard inputs, safe releases, recording, 
 
 ## Session Log
 
+- M1 RED: human contract tests require explicit identity/policy, exclusive shared lease and crash receipts on failed human launch; missing human module is the observed failure. Preliminary shortcut/planning commit 96e2067. Pinned emulator clears buttons after each frame and supports combinations; vendor default is 80 fps with 4x dialogue acceleration. Human adapter must fix nominal cadence at 59.7275 fps and disable dialogue acceleration for human servers only, while recording actual applied frame counts.
+
 - 2026-10-13 execution started in isolated `codex/human-playthrough` checkout at `/Users/user/.codex/worktrees/human-playthrough/pokebench`, base 059cc7c. Carried only this worklog and the previously authorized shortcut correction. Loaded execution, observability, game-state and multi-model review contracts. Vendor frame loop continuously steps one frame, including idle; queued agent presses are sequential and unsuitable for simultaneous responsive human holds. Human adapter will override only the owned isolated human frame-loop inputs, at nominal GBA cadence; RAM observers/milestone definitions stay shared.
 
 - 2026-10-13 timeline correction: The operator specified “the timeline shouldn't be collapsed we should reuse the same one we have for the agent, but we don't need the thinking, tool calls, or errors lanes”. This supersedes the earlier expandable/collapsed proposal. Updated the UI decisions, architecture, invariant and recording milestone: shared existing timeline, always visible, with only those three lanes omitted on Play; durable evidence and actionable status remain intact.

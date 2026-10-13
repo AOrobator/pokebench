@@ -297,13 +297,13 @@ export class RunRecorder {
     try{this.recordState(state);}finally{this.humanSamplingFrame=undefined;}
     const sampledAt=this.now();
     const interval=this.humanScreenshotMs;
-    const due=interval===undefined||this.humanScreenshotNextAt===null||sampledAt>=this.humanScreenshotNextAt;
+    const due=this.humanScreenshotNextAt===null?true:sampledAt>=this.humanScreenshotNextAt;
     if(!due&&!forceScreenshot)return;
     const screenshot=this.frames.save(this.log,this.log.nextSeq,0,pngBase64);
     this.append({type:"human_sample",turn:0,frame,paused,screenshot});
     this.saved={saved:this.saved.saved+1,bytes:this.saved.bytes+Buffer.from(pngBase64,"base64").length};
     this.frames.flush(this.log,0);
-    if(interval!==undefined&&due){
+    if(interval!==undefined){
       const previous=this.humanScreenshotNextAt;
       this.humanScreenshotNextAt=previous===null?sampledAt+interval:previous+(Math.floor((sampledAt-previous)/interval)+1)*interval;
     }

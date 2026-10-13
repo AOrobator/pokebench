@@ -49,7 +49,7 @@ it('handles abort and rejects malformed control records without hanging',async()
 it('forces the final human screenshot through the sampler after freezing on Finish',async()=>{
  const {driveHuman}=await import('./human.js');const path=join(root(),'control.jsonl');writeFileSync(path,JSON.stringify({v:1,seq:1,at:new Date().toISOString(),action:'stop'})+'\n');const recorded:unknown[]=[];
  const state={screen:'title',started:false,name:null,location:null,map_id:null,position:null,facing:null,in_battle:false,party:[],money:null,badges:[],play_time_s:null};
- const fetcher:typeof fetch=(request)=>Promise.resolve(Response.json(String(request).endsWith('/pause')?{paused:true}:{frame:0,paused:true,failed:false,last_id:0,segments:[],observation:{state,screenshot_base64:'iVBORw0KGgo='}}));
+ const fetcher:typeof fetch=(request)=>Promise.resolve(Response.json((request instanceof Request?request.url:typeof request==='string'?request:request.href).endsWith('/pause')?{paused:true}:{frame:0,paused:true,failed:false,last_id:0,segments:[],observation:{state,screenshot_base64:'iVBORw0KGgo='}}));
  const recording={recordControl:()=>{},checkMilestones:()=>Promise.resolve(),recordHumanInput:()=>{},recordHumanSample:(...args:unknown[])=>{recorded.push(args);}};
  expect(await driveHuman(recording,'http://test',path,new AbortController().signal,fetcher,'secret')).toBe('operator_stop');
  expect(recorded).toEqual([[0,true,'iVBORw0KGgo=',state,true]]);

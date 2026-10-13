@@ -93,6 +93,56 @@
                   "type": "object",
                   "required": [
                     "kind",
+                    "name"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "milestone"
+                    },
+                    "name": {
+                      "enum": [
+                        "NEW_GAME_CREATED",
+                        "PLAYER_NAME_CONFIRMED",
+                        "FIRST_TRUCK_EXIT",
+                        "MOM_CLOCK_INSTRUCTION",
+                        "CLOCK_SET",
+                        "MOM_RIVAL_INSTRUCTION",
+                        "RIVAL_MET",
+                        "STARTER_CHOSEN",
+                        "BIRCH_RESCUE_COMPLETE",
+                        "BIRCH_STARTER_HANDOFF_COMPLETE",
+                        "RIVAL_BATTLE_WON",
+                        "RECEIVED_POKEDEX",
+                        "STARTER_TUTORIAL_COMPLETE",
+                        "RUNNING_SHOES_RECEIVED",
+                        "DAD_FIRST_MEETING",
+                        "WALLY_TUTORIAL_COMPLETE",
+                        "TEAM_AQUA_WOODS_EVENT_COMPLETE",
+                        "RUSTBORO_GYM_COMPLETE",
+                        "STONE_BADGE",
+                        "ROCK_TOMB_RECEIVED",
+                        "LITTLEROOT_TOWN",
+                        "PLAYER_HOUSE_ENTERED",
+                        "PLAYER_BEDROOM",
+                        "ROUTE_101",
+                        "OLDALE_TOWN",
+                        "ROUTE_103",
+                        "ROUTE_102",
+                        "PETALBURG_CITY",
+                        "ROUTE_104",
+                        "PETALBURG_WOODS",
+                        "RUSTBORO_CITY",
+                        "RUSTBORO_CITY_GYM"
+                      ]
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "kind",
                     "field",
                     "value"
                   ],
@@ -167,6 +217,36 @@
                 "completed",
                 "reported_complete"
               ]
+            },
+            "verification": {
+              "type": "object",
+              "required": [
+                "origin",
+                "milestone_seq",
+                "state_evidence"
+              ],
+              "properties": {
+                "origin": {
+                  "enum": [
+                    "observed",
+                    "present_at_start"
+                  ]
+                },
+                "milestone_seq": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "state_evidence": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "minItems": 1,
+                  "maxItems": 2
+                }
+              },
+              "additionalProperties": false
             },
             "completion_evidence": {
               "type": "array",

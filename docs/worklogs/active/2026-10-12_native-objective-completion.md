@@ -21,9 +21,9 @@ Read-only game evidence; no game memory writes. Validate closed tool contracts, 
 ## Milestones
 **M1 — Contracts and verification**
 - [x] RED tests and commit: a6075cf; fixture corrected in follow-up, three substantive assertion failures established.
-- [ ] GREEN implementation and commit
-- [ ] Full tests, lint, build and independent 90% coverage gates
-- [ ] Real pinned pi and recording/replay integration, deletion/restoration mutations
+- [x] GREEN implementation and commit (SHA recorded in review identity receipt after commit)
+- [x] Full tests: 380 agent + 148 viewer + 378 Python = 906. Types/lint/build/ruff/mypy green; coverage agent 98.71/93.39/98.32/99.17, viewer 97.47/91.54/98.42/98.36 (statements/branches/functions/lines), Python 99.34 lines/96.77 branches/100 functions.
+- [x] Real pinned pi native catalog acceptance and raw type regression tests; production recorder/native predicate subscription serialization/reparse; actual Qwen dfd2 native clock #1758/state #1757 replay, unchanged originals. Eight semantic deletion/replacement mutations produced AssertionError and restored green. Actual registered Qwen backend accepted native and scalar union via pinned pi, exactly one valid typed tool call each.
 - [ ] Multi-model review until clean; root coordinates canonical landing
 
 ## Closing the Loop
@@ -45,3 +45,6 @@ None.
 - [ ] ASK USER: archive after landing.
 
 - RED fixture first lacked full StoryState fields; repaired using existing valid recorded fixture before accepting substantive RED proof.
+
+- GREEN scope: local plans remain type/value/freshness checked but are provisional reported_complete; only existing native catalog predicates supply completed status and immutable origin/sequence proof. Canonical native titles override model prose. Gym arrival, victory and badge remain separate; objective completion never invokes run ending. Root integration adds named feature declaration under objectives ablation in live.ts (concurrent loop owner).
+- Receipts: runs/launch-receipts/native-objective-completion; first Python attempt 376/378 failed because submodule was uninitialized in new worktree; pinned submodule initialized without changes, full 378 green.

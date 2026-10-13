@@ -1,4 +1,5 @@
-import { validateCompletionType } from "./objective-schema.js";
+import { NATIVE_OBJECTIVES, validateCompletionType } from "./objective-schema.js";
+import { MILESTONES } from "./milestones.js";
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { BodyOf, Button, RunEvent } from "./events.js";
 import type { GameStateSnapshot } from "./game-state.js";
@@ -30,6 +31,8 @@ export class ObjectiveTracker {
   private current: ObjectiveRecord | null = null;
   private readonly evidence = new Map<number, RunEvent>();
   private latest: StateEvent | null = null;
+  private run: string | null = null;
+  private readonly native = new Map<string, Extract<RunEvent, { type: "milestone" }>>();
   private readonly failures = new Map<string, number>();
   private retry: { reason: string } | null = null;
   private objectiveCount = 0;
@@ -37,8 +40,21 @@ export class ObjectiveTracker {
   private readonly positions: string[] = [];
   constructor(readonly goal: string, private readonly write: Write) {}
   observe(event: RunEvent): void {
+    this.run ??= event.run;
+    if (event.run !== this.run) return;
     if (event.type === "state" && "started" in event) { this.latest = event; this.evidence.set(event.seq, event); }
     else if (event.type === "tool_result" && !event.is_error && (event.name === "observe" || event.name === "press")) this.evidence.set(event.seq, event);
+    else if (event.type === "milestone") {
+      const definition = MILESTONES.find(m => m.name === event.name);
+      const refs = event.evidence ?? [];
+      const states = refs.map(seq => this.evidence.get(seq));
+      const last = states.at(-1);
+      if (definition !== undefined && definition.kind !== "legacy" && event.kind === definition.kind && event.origin !== undefined && refs.length > 0 && states.every(e => e?.type === "state" && "started" in e && e.seq < event.seq) && last?.type === "state" && "started" in last && definition.reached(last) === true && (event.name !== "FIRST_TRUCK_EXIT" || (states.length === 2 && states[0]?.type === "state" && "location" in states[0] && states[0].location === "INSIDE OF TRUCK"))) {
+        if (!this.native.has(event.name)) this.native.set(event.name, event);
+        this.evidence.set(event.seq, event);
+        this.completeNative();
+      }
+    }
   }
   snapshot(): ObjectiveRecord | null { return this.current; }
   validateEvidence(refs: number[]): void {
@@ -49,24 +65,39 @@ export class ObjectiveTracker {
     this.validateEvidence(request.evidence);
     const revise = this.current !== null && (this.current.status === "active" || this.current.status === "blocked");
     this.current = { ...request, id: revise ? this.current?.id ?? "" : `objective-${String(++this.objectiveCount)}`, revision: revise ? (this.current?.revision ?? 0) + 1 : 1, goal: this.goal, status: "active", completion_evidence: [] };
+    if (request.completion.kind === "milestone") {
+      this.current.title = NATIVE_OBJECTIVES[request.completion.name];
+      this.current.supports_goal = "Harness-owned game milestone; completion requires recorded game evidence.";
+    }
     this.retry = null;
     this.write({ type: "objective_update", turn: 0, objective: this.current });
+    this.completeNative();
     return this.current;
+  }
+  private completeNative(): void {
+    if (this.current?.completion.kind !== "milestone" || this.current.status === "completed") return;
+    const proof = this.native.get(this.current.completion.name);
+    if (proof === undefined || proof.origin === undefined || proof.evidence === undefined) return;
+    this.current = { ...this.current, revision: this.current.revision + 1, status: "completed", completion_evidence: [proof.seq, ...proof.evidence], verification: { origin: proof.origin, milestone_seq: proof.seq, state_evidence: [...proof.evidence] } };
+    this.write({ type: "objective_update", turn: proof.turn, objective: this.current });
   }
   update(request: UpdateObjective): ObjectiveRecord {
     if (this.current === null) throw new Error("Set an objective first.");
     this.validateEvidence(request.evidence);
-    if (request.status === "completed") {
+    if (this.current.completion.kind === "milestone") {
+      if (request.status === "reported_complete") throw new Error("Native milestones cannot be reported around the game check; observe until native evidence is recorded.");
+      if (request.status === "completed" && this.current.status !== "completed") throw new Error(`Completion is not verified: native milestone ${this.current.completion.name} has not been recorded. Observe; the harness completes it automatically.`);
+      if (this.current.status === "completed") return this.current;
+    } else if (request.status === "completed") throw new Error("Completion is not verified: only a native milestone can use completed. Local state or visual plans use provisional reported_complete.");
+    if (request.status === "reported_complete" && this.current.completion.kind === "state") {
       const completion = this.current.completion;
-      if (completion.kind !== "state") throw new Error("Completion is not verified: this objective uses visual evidence. Use reported_complete for a visual condition.");
       if (this.latest === null) throw new Error("Completion is not verified: no current game state is available. Use observe, then cite its state evidence.");
       if (!request.evidence.includes(this.latest.seq)) throw new Error(`Completion is not verified: cite latest state #${String(this.latest.seq)}; supplied evidence is ${JSON.stringify(request.evidence)}. Use observe and cite the current state.`);
       if (!this.matches(completion, this.latest)) {
         const observed = completion.field === "party_count" ? this.latest.party.length : completion.field === "badge" ? this.latest.badges : this.latest[completion.field];
-        throw new Error(`Completion is not verified: field "${completion.field}" expected ${JSON.stringify(completion.value)} (${typeof completion.value}), observed ${JSON.stringify(observed)} (${observed === null ? "null" : Array.isArray(observed) ? "array" : typeof observed}) at state #${String(this.latest.seq)}. Observe until it matches, or revise the condition with set_objective; do not use reported_complete for a state condition.`);
+        throw new Error(`Completion is not verified: field "${completion.field}" expected ${JSON.stringify(completion.value)} (${typeof completion.value}), observed ${JSON.stringify(observed)} (${observed === null ? "null" : Array.isArray(observed) ? "array" : typeof observed}) at state #${String(this.latest.seq)}. Observe until it matches, or revise the condition with set_objective; a matching local condition is provisional reported_complete, never verified story progress.`);
       }
     }
-    if (request.status === "reported_complete" && this.current.completion.kind !== "visual") throw new Error("State-backed completion must be checked, not reported around the check. Use completed with matching state evidence, or revise the condition with set_objective.");
     if (request.retry_reason.trim() !== "") {
       const last = this.attempts.at(-1);
       if (last === undefined || !request.evidence.some((seq) => seq >= (last.after_seq ?? last.before_seq))) throw new Error("Reassess using evidence from the failed attempt or later.");
@@ -105,7 +136,7 @@ export class ObjectiveTracker {
   }
   context(messages: AgentMessage[], now = Date.now()): AgentMessage[] {
     const recent = [...this.evidence.values()].slice(-6).map((e) => ({ seq: e.seq, type: e.type, facts: e.type === "state" && "started" in e ? { screen: e.screen, started: e.started, in_battle: e.in_battle, party_count: e.party.length, name: e.name, location: e.location, position: e.position, facing: e.facing, field_controls_locked: e.field_controls_locked, party: e.party, money: e.money, badges: e.badges, naming: e.naming } : e.type === "tool_result" ? e.text.slice(0, 1500) : "" }));
-    const content = `HARNESS OBJECTIVE RECORD\n${JSON.stringify({ goal: this.goal, objective: this.current, recent_attempts: this.attempts.slice(-8), available_evidence: recent })}\nGame evidence outranks remembered walkthroughs. Failure changes the approach, not whether an objective is required. Check the objective against the goal before acting. Use objective tools when evidence, obstacles, or decisions change.`;
+    const content = `HARNESS OBJECTIVE RECORD\n${JSON.stringify({ goal: this.goal, objective: this.current, native_catalog: NATIVE_OBJECTIVES, recorded_native_milestones: [...this.native.values()].map(e => ({ name: e.name, seq: e.seq, origin: e.origin, evidence: e.evidence })), recent_attempts: this.attempts.slice(-8), available_evidence: recent })}\nOnly native milestone objectives are verified complete; local reported_complete plans are provisional and do not grade the run. Native tasks complete automatically; choose the next grounded task. Game evidence outranks remembered walkthroughs. Failure changes the approach, not whether an objective is required. Check the objective against the goal before acting. Use objective tools when evidence, obstacles, or decisions change.`;
     return [...messages, { role: "user", content, timestamp: now }];
   }
 }

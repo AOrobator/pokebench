@@ -405,3 +405,19 @@ it("shows creation before name confirmation with recorded baseline and best delt
   expect(html.indexOf('new game created')).toBeLessThan(html.indexOf('player name confirmed'));
   expect(splits(view(bare()), null, BASE_MS + 12000).table).toContain('<td class="n">new game created</td><td class="t">not<br>recorded</td>');
 });
+
+it("distinguishes native proof, provisional claims and historical completion", () => {
+ const log=bare();
+ const objective={id:"native",revision:1,goal:"Reach gym",title:"Set the clock",supports_goal:"Native story task",evidence:[1],completion:{kind:"milestone" as const,name:"CLOCK_SET" as const},obstacle:"",next_decision:"Observe",status:"completed" as const,completion_evidence:[2,1],verification:{origin:"present_at_start" as const,milestone_seq:2,state_evidence:[1]}};
+ log.add(3,{type:"objective_update",turn:0,objective});
+ expect(objectivePanel(view(log))).toContain("game verified (present at start)");
+ expect(objectivePanel(view(log))).toContain("Native milestone CLOCK_SET");
+ log.add(4,{type:"objective_update",turn:0,objective:{...objective,verification:{...objective.verification,origin:"observed"}}});
+ expect(objectivePanel(view(log))).toContain("game verified (observed)");
+ const {verification:proof,...historical}=objective;
+ expect(proof.state_evidence).toEqual([1]);
+ log.add(5,{type:"objective_update",turn:0,objective:{...historical,completion:{kind:"state",field:"started",value:true}}});
+ expect(objectivePanel(view(log))).toContain("historical completion (not native verified)");
+ log.add(6,{type:"objective_update",turn:0,objective:{...historical,status:"reported_complete",completion:{kind:"state",field:"started",value:true}}});
+ expect(objectivePanel(view(log))).toContain("provisional local plan");
+});

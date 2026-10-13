@@ -75,3 +75,7 @@ COMMIT: `merge: integrate qualified active interface state` (`3a1bdab`), schema 
 Cumulative coverage currently425agentpass/1 intentionalnative-recoveryRED; no cumulativegreen claim. RootRED fixture lint caught forbiddennon-nullassertion, replacedexplicitfixturequalification (no behavioralpatch). Confirmation frozenprobe found clockreturn080860F5 coveragegap; owner asked to sourcequalify observedcurrentclockpath before finalfreeze, intro/title/menu fullselection stillseparateloggedcoverage.
 
 Cumulative qualifiedPython420passed, coveragefloor90gatepassed, vendorpristine; rootfixture requires story non-null aswellas defined, lint rerunpending. Confirmationownerobservedclock-returngap repaired exactCB2_ReturnToFieldLocal source/ROM080860F5 (candidate4c9f48c), newgates/proof/reviews running; no unsupportedstatehidden. Sidechatdesign docs/skillclean8cf832e scopedno runtime, independentreview pending.
+
+COMMIT: fixturequalification (`e93317b` then `5ccb237`), no productionbehavior changed; fullcumulativelint passed. Protocol doc-only8cf832e merges into reviewcandidate; all canonicaldraftcontent retained, actualfutureflags/presets/runner stillunimplemented andnotclaimed.
+
+User-requested recurring observability workflow: add repository CLAUDE.md routing for diagnostic/intervention edits to discoveredagent-observabilityskill, so future agents get explicitprojectinstruction inaddition to skilldescription/link. Documentation-only; no extra gameplayassistance or automaticruntimeeditingauthorization. Finalcumulative reviewcoversrouting.

@@ -15,6 +15,8 @@ A benchmark harness that measures how far local vision-language models get in Po
 
 Read the active worklog first: `WORKLOG.md` (a gitignored pointer) → `docs/worklogs/active/<date>_<slug>.md`.
 
+When adding or changing agent diagnostics, loop guards, recovery feedback or completion evidence, use `.claude/skills/agent-observability/SKILL.md` to verify recorded events, model delivery where relevant, timeline, Activity History and replay.
+
 ## Project overrides of the global rules
 
 - **Coverage floor is 90%**, enforced independently for lines, branches and functions in TS (vitest thresholds) and Python (`pokebench_gates.coverage_gate`) app code. This is an operator decision (2026-10-11). The floor is 90, not 95; never lower it further or widen excludes to pass.

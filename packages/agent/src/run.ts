@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { RUN_ID_PATTERN } from "./events.js";
 import { join } from "node:path";
 import type { BodyOf, RunEndReason } from "./events.js";
 import type { FrameStore } from "./frames.js";
@@ -105,4 +107,12 @@ export async function withRun(
       await server?.stop();
     }
   }
+}
+
+// Human recordings live below a separate physical root, while inspection shares ids.
+export function locateRunDir(runsRoot:string,runId:string):string {
+  if(!new RegExp(RUN_ID_PATTERN).test(runId))throw new Error(`not a run id: ${JSON.stringify(runId)}`);
+  const model=join(runsRoot,runId),human=join(runsRoot,"human",runId);
+  if(existsSync(model)&&existsSync(human))throw new Error(`ambiguous run id: ${runId}`);
+  return existsSync(human)?human:model;
 }

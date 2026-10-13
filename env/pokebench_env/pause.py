@@ -59,6 +59,8 @@ def install_pause(
                 state["paused"] = False
                 latch.notify_all()
                 return {"paused": False}
+            if state["paused"] and state["parked"]:
+                return {"paused": True}
             state["paused"] = True
             state["parked"] = False
             if not latch.wait_for(lambda: state["parked"], park_timeout_s):

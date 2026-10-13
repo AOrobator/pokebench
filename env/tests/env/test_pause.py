@@ -176,3 +176,18 @@ def test_serve_installs_pause_before_vendor_main() -> None:
         pause=(app, module),
     )
     assert seen == [True]
+
+
+def test_repeated_pause_is_idempotent_and_never_resumes_parked_frames() -> None:
+    app = FastAPI()
+    module, _ = server_module()
+    install_pause(app, module, park_timeout_s=0.05)
+    with FrameLoop(module) as loop:
+        assert post(app, "/pokebench/pause", b'{"paused": true}')[0] == 200
+        frozen = loop.frames
+        assert post(app, "/pokebench/pause", b'{"paused": true}') == (200, b'{"paused":true}')
+        time.sleep(0.02)
+        assert loop.frames == frozen
+        loop.stop.set()
+        post(app, "/pokebench/pause", b'{"paused": false}')
+        loop.thread.join(2)

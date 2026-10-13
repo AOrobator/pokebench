@@ -82,3 +82,33 @@ it('stops the emulator when sampling fails and retains the recording failure',as
  const {driveHuman}=await import('./human.js');const calls:string[]=[];const fetcher:typeof fetch=(request)=>{const url=request instanceof Request?request.url:String(request);calls.push(url);return Promise.resolve(Response.json(url.endsWith('/pause')?{paused:true}:snapshot({failed:true})));};
  await expect(driveHuman({recordControl:()=>{},checkMilestones:()=>Promise.resolve(),recordHumanInput:()=>{},recordHumanSample:()=>{}},'http://test',join(root(),'control.jsonl'),new AbortController().signal,fetcher,'secret')).rejects.toThrow('recording stopped');expect(calls.at(-1)).toBe('http://test/pokebench/pause');
 });
+it('rejects an unconfirmed human freeze without recording or excluding a paused interval',async()=>{
+ const {driveHuman}=await import('./human.js');const path=join(root(),'control.jsonl');writeFileSync(path,JSON.stringify({v:1,seq:1,at:new Date().toISOString(),action:'pause'})+'\n');const recorded:unknown[]=[];let samples=0;
+ const started=Date.now();await expect(driveHuman({recordControl:body=>{recorded.push(body);},checkMilestones:()=>{samples++;return Promise.resolve();}},'http://test',path,new AbortController().signal,()=>Promise.resolve(new Response('unavailable',{status:503})))).rejects.toThrow('HTTP 503');
+ expect(Date.now()-started).toBeLessThan(1000);expect(samples).toBe(0);
+ expect(recorded).toEqual([{action:'pause',status:'pending',request:1},{action:'pause',status:'failed',request:1}]);
+});
+it('writes terminal crash for a rejected freeze with no applied pause receipt',async()=>{
+ const {driveHuman,humanPlan}=await import('./human.js');const {withRun}=await import('./run.js');
+ const r=root();const plan={...humanPlan(r,'human-test',8040,'a'.repeat(40)),harnessFeatures:[]};
+ const host={serverHealthy:()=>Promise.resolve(false),launchServer:(dir:string)=>{writeFileSync(join(dir,'control.jsonl'),JSON.stringify({v:1,seq:1,at:new Date().toISOString(),action:'pause'})+'\n');return Promise.resolve({serverDir:join(dir,'server'),stop:()=>Promise.resolve()});},harness:()=>({commit:'a'.repeat(40),dirty:false}),vendorPin:()=> 'b'.repeat(40),milestones:{poll:()=>Promise.resolve([])},gameState:{read:()=>Promise.resolve(state)}};
+ await expect(withRun(plan,host,new FrameStore(r),recorder=>driveHuman(recorder,'http://test',join(r,'human-test','control.jsonl'),new AbortController().signal,()=>Promise.resolve(new Response('unavailable',{status:503})),'secret'))).rejects.toThrow('HTTP 503');
+ const events=readFileSync(join(r,'human-test','events.jsonl'),'utf8').trim().split('\n').map(parseEvent);
+ expect(events.at(-1)).toMatchObject({type:'run_end',reason:'crash'});expect(events.filter(event=>event.type==='operator_control'&&event.action==='pause')).toMatchObject([{status:'pending'},{status:'failed'}]);
+});
+it('keeps L/R human-only without expanding model or probe action schemas',async()=>{
+ const {Value}=await import('typebox/value');const {pressTool}=await import('./game-tools.js');const {parseProbeCommand}=await import('./probe.js');const {BUTTONS,HUMAN_BUTTONS}=await import('./events.js');
+ const tool=pressTool('http://test',{beforePress:()=>{},afterPress:()=>Promise.resolve()});
+ expect(BUTTONS).toHaveLength(8);expect(HUMAN_BUTTONS).toHaveLength(10);
+ expect(Value.Check(tool.parameters,{buttons:['A','UP']})).toBe(true);
+ for(const button of ['L','R']){expect(Value.Check(tool.parameters,{buttons:[button]})).toBe(false);expect(()=>parseProbeCommand(JSON.stringify({action:'press',buttons:[button]}))).toThrow();}
+ const sample=humanSampler({recordHumanInput:body=>{expect(body.buttons).toEqual(['L','R']);},recordHumanSample:()=>{}},'http://test','secret',()=>Promise.resolve(Response.json(snapshot({segments:[{...segment,buttons:['L','R']}]}))));
+ await sample();
+ expect(parseEvent(JSON.stringify({v:1,run:'human-test',seq:1,t:'2026-10-13T14:00:00.000-04:00',turn:0,type:'human_input',...segment,buttons:['L','R']}))).toMatchObject({type:'human_input',buttons:['L','R']});
+});
+it('keeps nested human frames invisible to a legacy model writer using the base root',()=>{
+ const r=root();const humanRoot=join(r,'human');mkdirSync(join(humanRoot,'human-run','frames'),{recursive:true});const humanFrame=join(humanRoot,'human-run','frames','000001_0.png');writeFileSync(humanFrame,Buffer.alloc(90));writeFileSync(join(humanRoot,'human-run','events.jsonl'),'{"type":"run_start"}\n');
+ mkdirSync(join(r,'completed-model','frames'),{recursive:true});writeFileSync(join(r,'completed-model','frames','000001_0.png'),Buffer.alloc(90));
+ const legacyModelWriter=new FrameStore(r,100,()=>{});const log=RunLog.create(r,'model-new');legacyModelWriter.save(log,0,0,Buffer.alloc(20).toString('base64'));
+ expect(readFileSync(humanFrame)).toHaveLength(90);expect(legacyModelWriter.usage()).toBe(20);expect(new FrameStore(humanRoot,100,()=>{}).usage()).toBe(90);
+});

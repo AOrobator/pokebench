@@ -323,3 +323,32 @@ it("requires the human terminal receipt to be a durable complete line", () => {
   writeFileSync(path, readFileSync(path, "utf8").trimEnd());
   expect(() => baselineOf(r, "truncated")).toThrow(/finished human/);
 });
+
+it("catalogs isolated nested human recordings beside model runs and resolves their replay frames", async () => {
+  const { comparisonsOf, readStart } = await import("./runs.js");
+  const r = root();
+  writeRun(r, "model", fullRun());
+  writeRun(join(r, "human"), "human-recording", humanLog());
+  const current = new Log(); current.add(1000, { ...START, harness_features: ["ram-state-v1"] });
+  writeRun(r, "current", current);
+  const humanDir = join(r, "human", "human-recording"); mkdirSync(join(humanDir, "frames"));
+  writeFileSync(join(humanDir, "frames", "000001_1.png"), "human frame fixture");
+  expect(listRuns(r).map(s => s.id)).toEqual(["model", "human-recording", "current"]);
+  expect(runDir(r, "human-recording")).toBe(humanDir);
+  expect(readFileSync(join(runDir(r, "human-recording"), "frames", "000001_1.png"), "utf8")).toBe("human frame fixture");
+  expect(readStart(r, "human-recording")).toMatchObject({ controller: { kind: "human", name: "Operator" } });
+  expect(baselineOf(r, "human-recording").milestones).toEqual([{ name: "PLAYER_NAME_CONFIRMED", offsetMs: 100 }]);
+  expect(comparisonsOf(r, "current").candidates.map(c => c.run).sort()).toEqual(["human-recording", "model"]);
+});
+
+it("surfaces malformed nested human logs and duplicate ids without selecting ambiguous storage", () => {
+  const r = root(); writeRun(r, "duplicate", fullRun()); writeRun(join(r, "human"), "duplicate", humanLog());
+  mkdirSync(join(r, "human", "malformed")); writeFileSync(join(r, "human", "malformed", "events.jsonl"), "not JSON\n");
+  const catalog = listRuns(r);
+  expect(catalog).toHaveLength(2);
+  expect(catalog.find(s => s.id === "duplicate")).toMatchObject({ model: null, ended: false, problem: expect.any(String) as string });
+  expect(catalog.find(s => s.id === "malformed")?.problem).toContain("not JSON");
+  expect(() => runDir(r, "duplicate")).toThrow(RunsError);
+  expect(() => baselineOf(r, "duplicate")).toThrow(RunsError);
+  expect(() => runDir(r, "../human/duplicate")).toThrow(RunsError);
+});

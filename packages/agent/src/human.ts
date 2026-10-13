@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { ControlFile, RunControl, freezeGame } from "./run-control.js";
 import type { RunRecorder } from "./recorder.js";
-import { BUTTONS, type Button, type RunEndReason, type BodyOf } from "./events.js";
+import { HUMAN_BUTTONS, type HumanButton, type RunEndReason, type BodyOf } from "./events.js";
 import { parseGameState, type GameStateSnapshot } from "./game-state.js";
 import type { RunPlan } from './run.js';
 export function humanPlan(runsRoot:string,runId:string,port:number,romSha1:string):RunPlan {
@@ -36,8 +36,23 @@ export async function driveHuman(recorder:Pick<RunRecorder,"recordControl"|"chec
  const file=new ControlFile(path);
  if(internalToken!==undefined&&(recorder.recordHumanInput===undefined||recorder.recordHumanSample===undefined))throw Error("Human recording methods are required");
  const sample=internalToken===undefined?()=>recorder.checkMilestones():humanSampler(recorder as HumanRecording,url,internalToken,fetchFn);
- const control=new RunControl({record:body=>{recorder.recordControl(body);},freeze:paused=>freezeGame(url,paused,fetchFn),end:reason=>{result.reason=reason;abort.abort();},now:()=>Date.now(),poll:()=>file.poll()});
- const poll=():void=>{try{for(const request of file.poll())control.apply(request);if(file.problems.length>0)throw Error(file.problems.join("; "));}catch(error){result.error=error;abort.abort();}};
+ let pauseRequest=0;let resumeRequest=0;
+ const requests=():ReturnType<ControlFile["poll"]>=>{
+  const pending=file.poll();
+  for(const request of pending){if(request.action==="pause")pauseRequest=request.seq;if(request.action==="resume")resumeRequest=request.seq;}
+  return pending;
+ };
+ // Human time excludes a pause only after the real emulator confirms its freeze.
+ // Abort before RunControl.gate can turn a rejected freeze into an applied pause.
+ const freeze=async(paused:boolean):Promise<void>=>{
+  try{await freezeGame(url,paused,fetchFn);}catch(error){
+   result.error=error;abort.abort();
+   recorder.recordControl({action:paused?"pause":"resume",status:"failed",request:paused?pauseRequest:resumeRequest});
+   throw error;
+  }
+ };
+ const control=new RunControl({record:body=>{recorder.recordControl(body);},freeze,end:reason=>{result.reason=reason;abort.abort();},now:()=>Date.now(),poll:requests});
+ const poll=():void=>{try{for(const request of requests())control.apply(request);if(file.problems.length>0)throw Error(file.problems.join("; "));}catch(error){result.error=error;abort.abort();}};
  const timer=setInterval(poll,100);
  try{
   await humanLoop({stopped:()=>abort.signal.aborted,boundary:async()=>{poll();await control.gate(abort.signal);if(control.takeStop()){result.reason="operator_stop";abort.abort();}},sample,wait:()=>new Promise(resolve=>setTimeout(resolve,100))});
@@ -74,8 +89,8 @@ export function humanSampler(recorder:HumanRecording,url:string,token:string,fet
   let next=cursor;let nextFrame=frame;let nextWall=wall;
   const segments:HumanSegment[]=[];
   for(const raw of payload.segments){
-   if(!object(raw)||!integer(raw.id)||raw.id!==next+1||!integer(raw.start_frame)||!integer(raw.end_frame)||raw.end_frame<=raw.start_frame||raw.end_frame>payload.frame||raw.start_frame!==Math.max(0,nextFrame)||!integer(raw.start_ms)||!integer(raw.end_ms)||raw.end_ms<raw.start_ms||raw.start_ms<nextWall||!integer(raw.request_seq)||typeof raw.session!=="string"||raw.session.length===0||!Array.isArray(raw.buttons)||!raw.buttons.every((button:unknown)=>typeof button==="string"&&(BUTTONS as readonly string[]).includes(button))||new Set(raw.buttons).size!==raw.buttons.length)throw Error("Invalid human input journal interval");
-   const segment:HumanSegment={id:raw.id,start_frame:raw.start_frame,end_frame:raw.end_frame,start_ms:raw.start_ms,end_ms:raw.end_ms,buttons:raw.buttons as Button[],request_seq:raw.request_seq,session:raw.session};
+   if(!object(raw)||!integer(raw.id)||raw.id!==next+1||!integer(raw.start_frame)||!integer(raw.end_frame)||raw.end_frame<=raw.start_frame||raw.end_frame>payload.frame||raw.start_frame!==Math.max(0,nextFrame)||!integer(raw.start_ms)||!integer(raw.end_ms)||raw.end_ms<raw.start_ms||raw.start_ms<nextWall||!integer(raw.request_seq)||typeof raw.session!=="string"||raw.session.length===0||!Array.isArray(raw.buttons)||!raw.buttons.every((button:unknown)=>typeof button==="string"&&(HUMAN_BUTTONS as readonly string[]).includes(button))||new Set(raw.buttons).size!==raw.buttons.length)throw Error("Invalid human input journal interval");
+   const segment:HumanSegment={id:raw.id,start_frame:raw.start_frame,end_frame:raw.end_frame,start_ms:raw.start_ms,end_ms:raw.end_ms,buttons:raw.buttons as HumanButton[],request_seq:raw.request_seq,session:raw.session};
    segments.push(segment);next=raw.id;nextFrame=raw.end_frame;nextWall=raw.end_ms;
   }
   if(payload.last_id!==next||Math.max(0,nextFrame)!==payload.frame)throw Error("Human journal cursor does not cover snapshot");

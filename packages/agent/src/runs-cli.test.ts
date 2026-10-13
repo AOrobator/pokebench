@@ -34,12 +34,13 @@ describe("runsCli", () => {
   });
 });
 
-function runWithEvents(runsRoot: string, run: string, ended: boolean): void {
+function runWithEvents(runsRoot: string, run: string, ended: boolean, human = false): void {
   const header = { v: 1, run, seq: 0, t: "2026-10-11T23:00:00.000-04:00", turn: 0 };
   const lines = [
     {
       ...header,
       type: "run_start",
+      ...(human ? { controller: { kind: "human", name: "Operator", rom_sha1: "c".repeat(40), input_policy: "frame-held-v1", sample_ms: 100, nominal_fps: 59.7275 } } : {}),
       model: { id: "m", context_window: 1, max_tokens: 1, vision: true },
       sampling: { thinking_level: "off", max_tokens: 1 },
       system_prompt: "",
@@ -118,4 +119,39 @@ describe("runs-cli main", () => {
     expect(out[0]).toMatch(/of 500\.0 MB cap/);
     expect(RUNS_ROOT).toMatch(/\/runs\/$/);
   });
+});
+
+
+it("discovers isolated nested human recordings while keeping their summary separate from model counts", () => {
+  const root = runsWith([]);
+  runWithEvents(root, "model", true);
+  runWithEvents(join(root, "human"), "andrew", true, true);
+  const out: string[] = [];
+  expect(runsCli(["summary"], root, 1000, line => out.push(line))).toBe(0);
+  expect(out).toContain("1 runs: 0 incomplete");
+  expect(out).toContain("1 human sessions excluded from model benchmark results");
+  expect(out.filter(line => line.startsWith("andrew"))).toHaveLength(1);
+  expect(out.join("\n")).toContain("Human · Operator");
+  const selected: string[] = [];
+  expect(runsCli(["summary", "andrew"], root, 1000, line => selected.push(line))).toBe(0);
+  expect(selected.some(line => line.startsWith("model"))).toBe(false);
+  expect(selected).toContain("0 runs: 0 incomplete");
+  expect(selected).toContain("1 human sessions excluded from model benchmark results");
+});
+
+it("retains nested human incomplete outcomes without counting them as model runs", () => {
+  const root = runsWith([]); runWithEvents(join(root, "human"), "unfinished-human", false, true);
+  const out: string[] = [];
+  expect(runsCli(["summary", "unfinished-human"], root, 1000, line => out.push(line))).toBe(1);
+  expect(out.join("\n")).toMatch(/unfinished-human.*Human · Operator.*incomplete/);
+  expect(out).toContain("0 runs: 0 incomplete");
+});
+
+it.each([[["summary"]], [["summary", "duplicate"]]])("safely rejects ambiguous duplicate model/human ids for %j", argv => {
+  const root = runsWith([]);
+  runWithEvents(root, "duplicate", true);
+  runWithEvents(join(root, "human"), "duplicate", true, true);
+  const out: string[] = [];
+  expect(runsCli(argv, root, 1000, line => out.push(line))).toBe(2);
+  expect(out).toEqual(["ambiguous run id: duplicate"]);
 });

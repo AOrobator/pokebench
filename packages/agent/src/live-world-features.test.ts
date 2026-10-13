@@ -1,7 +1,7 @@
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, expect, it, vi } from "vitest";
+import { beforeEach, afterEach, expect, it, vi } from "vitest";
 import { parseEvent, type RunEvent } from "./events.js";
 import type { RunHost, RunPlan } from "./run.js";
 
@@ -16,6 +16,7 @@ vi.mock("node:fs", async (importOriginal) => {
       const path = String(args[0]); const chunks = context.files.get(path) ?? []; chunks.push(String(args[1])); context.files.set(path, chunks);
     },
     readFileSync: (...args: Parameters<typeof actual.readFileSync>) => {
+      if(String(args[0])==="/test-owned/rom-fixture.bin")return Buffer.from("test-owned ROM bytes");
       if (!context.memory) return actual.readFileSync(...args);
       if (args[0] instanceof URL && args[0].pathname.endsWith("/package.json")) {
         return JSON.stringify({ dependencies: { "@mariozechner/pi-agent-core": "fixture-version" } });
@@ -64,7 +65,7 @@ vi.mock("./harness.js",async(importOriginal)=>{
   return {start:()=>{options.governor.abort("completed");return Promise.resolve([]);},resume:()=>Promise.resolve([])};
  }};
 });
-afterEach(() => { context.captureRuntime=false;context.runtimeModes=[];vi.unstubAllGlobals(); vi.restoreAllMocks(); if (!context.memory && context.root !== "") rmSync(context.root, { recursive: true, force: true }); context.files.clear(); });
+afterEach(() => { context.captureRuntime=false;context.runtimeModes=[];vi.unstubAllGlobals();vi.unstubAllEnvs(); vi.restoreAllMocks(); if (!context.memory && context.root !== "") rmSync(context.root, { recursive: true, force: true }); context.files.clear(); });
 it.each([["smoke", true], ["play", true], ["probe", true], ["verify-state", true], ["smoke", false]] as const)("%s declares world advantages through publisher (memory=%s)", async (command, memory) => {
   vi.resetModules();
   context.memory = memory; context.files.clear();
@@ -87,3 +88,5 @@ it.each([true,false])("play publishes loop-guard ablation (enabled=%s)",async(en
   vi.spyOn(console,"log").mockImplementation(()=>undefined);await import("./live.js");const start=await receipt;
   if(start.type!=="run_start")throw new Error("unexpected startup event");expect(context.runtimeModes).toEqual([enabled?"enforced":"diagnostic"]);expect(start.harness_features.filter(f=>f.startsWith("deterministic-loop-diagnostics")||f.startsWith("deterministic-loop-policy"))).toEqual(["deterministic-loop-diagnostics-v1","deterministic-loop-policy-v1:p6:o3:a3:c3:r2:recovery6"]);expect(start.harness_features.filter(f=>f.startsWith("deterministic-loop-guard"))).toEqual(enabled?["deterministic-loop-guard-v1"]:[]);
 });
+
+beforeEach(()=>{vi.stubEnv("POKEBENCH_ROM","/test-owned/rom-fixture.bin");});

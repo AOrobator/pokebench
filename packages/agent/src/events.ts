@@ -15,9 +15,12 @@ export class EventError extends Error {
 const NonNegativeInt = Type.Integer({ minimum: 0 });
 const Sha1 = Type.String({ pattern: "^[0-9a-f]{40}$" });
 
-export const BUTTONS = ["A", "B", "START", "SELECT", "UP", "DOWN", "LEFT", "RIGHT", "L", "R"] as const;
+export const BUTTONS = ["A", "B", "START", "SELECT", "UP", "DOWN", "LEFT", "RIGHT"] as const;
 export const ButtonSchema = Type.Enum(BUTTONS);
 export type Button = Static<typeof ButtonSchema>;
+export const HUMAN_BUTTONS = [...BUTTONS, "L", "R"] as const;
+export const HumanButtonSchema = Type.Enum(HUMAN_BUTTONS);
+export type HumanButton = Static<typeof HumanButtonSchema>;
 
 export const RUN_END_REASONS = ["completed", "milestone", "budget", "stuck", "crash", "model_error", "operator_abort", "operator_stop"] as const;
 const RunEndReason = Type.Enum(RUN_END_REASONS);
@@ -113,7 +116,7 @@ const ButtonPress = event("button_press", {
 
 const HumanInput = event("human_input", {
   id: Type.Integer({minimum:1}), start_frame: NonNegativeInt, end_frame: NonNegativeInt,
-  buttons: Type.Array(ButtonSchema, {uniqueItems:true}), start_ms: NonNegativeInt, end_ms: NonNegativeInt,
+  buttons: Type.Array(HumanButtonSchema, {uniqueItems:true}), start_ms: NonNegativeInt, end_ms: NonNegativeInt,
   request_seq: NonNegativeInt, session: Type.String({minLength:1}),
 });
 const HumanSample = event("human_sample", {

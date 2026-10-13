@@ -637,9 +637,7 @@
                   "UP",
                   "DOWN",
                   "LEFT",
-                  "RIGHT",
-                  "L",
-                  "R"
+                  "RIGHT"
                 ]
               },
               "minItems": 1,
@@ -1311,9 +1309,7 @@
               "UP",
               "DOWN",
               "LEFT",
-              "RIGHT",
-              "L",
-              "R"
+              "RIGHT"
             ]
           },
           "minItems": 1

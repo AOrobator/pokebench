@@ -354,7 +354,7 @@ async function playHuman(): Promise<void> {
   if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error("invalid human port");
   const rom = process.env["POKEBENCH_ROM"];
   if (rom === undefined) throw new Error("POKEBENCH_ROM is required");
-  const runsRoot = process.env["POKEBENCH_RUNS_ROOT"] ?? RUNS_ROOT;
+  const runsRoot = join(process.env["POKEBENCH_RUNS_ROOT"] ?? RUNS_ROOT,"human");
   const runId = newRunId(new Date(), "human", () => randomBytes(2).toString("hex"));
   const coordinationRoot = dirname(resolve(REPO_ROOT,git(REPO_ROOT)(["rev-parse","--git-common-dir"]).trim()));
   const release = humanLease(join(coordinationRoot,"runs"), runId);

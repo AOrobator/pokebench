@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { afterEach, expect, it, vi } from "vitest";
+import { beforeEach, afterEach, expect, it, vi } from "vitest";
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { PiLoopOptions } from "./harness.js";
 import type { RunHost, RunPlan } from "./run.js";
@@ -18,6 +18,7 @@ vi.mock("node:fs", async (load) => {
       const key = String(path);const chunks = owner.files.get(key) ?? [];chunks.push(String(data));owner.files.set(key, chunks);
     },
     readFileSync: (path: Parameters<typeof actual.readFileSync>[0]) => {
+      if(String(path)==="/test-owned/rom-fixture.bin")return Buffer.from("test-owned ROM bytes");
       if (path instanceof URL && path.pathname.endsWith("/package.json")) return JSON.stringify({ dependencies: { "@mariozechner/pi-agent-core": "fixture-version" } });
       const chunks = owner.files.get(String(path));if (!chunks) throw Object.assign(new Error(`unknown test-owned file ${String(path)}`), { code: "ENOENT" });return chunks.join("");
     },
@@ -48,6 +49,7 @@ vi.mock("./run.js", async (load) => {
       const start = starts[0];
       if (!start) throw new Error("missing recorded run_start in test-owned log");
       expect({ prompt: start.system_prompt, tools: start.tools, features: start.harness_features }).toEqual({ prompt: plan.systemPrompt, tools: plan.tools, features: plan.harnessFeatures });
+      expect(start.rom_sha1).toBe(createHash("sha1").update("test-owned ROM bytes").digest("hex"));
       owner.start = start;
       expect(events.filter((event: RunEvent) => event.type === "run_end")).toHaveLength(1);
       owner.resolve?.(plan);return result;
@@ -127,3 +129,5 @@ it.each([0,15000,600000])("actual play honors run-start anchored preset limits, 
   expect(plan.harnessFeatures).toContain("native-target-stop-v1");expect(currentLoop()?.systemPrompt).toContain("Reach the native game milestone PLAYER NAME CONFIRMED");expect(currentLoop()?.systemPrompt).not.toContain("Your goal is to make as much story progress");expect(plan.harnessFeatures).not.toContain("deterministic-loop-guard-v1");expect(plan.harnessFeatures).not.toContain("active-ui-ownership-v1");
   const loop=currentLoop();if(loop===null)throw new Error("missing actual preset governor");now=600000;const stopped=loop.governor.afterTurn(assistant({toolCalls:[{type:"toolCall",id:"fixture",name:"observe",arguments:{}}]}),[]);expect({stopped,reason:loop.governor.stopReason}).toEqual({stopped:true,reason:"budget"});
 });
+
+beforeEach(()=>{vi.stubEnv("POKEBENCH_ROM","/test-owned/rom-fixture.bin");});

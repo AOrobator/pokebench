@@ -246,3 +246,6 @@ it("captures a script's final milestone after the last tool and before server te
   expect(reads).toBe(2);
   expect(h.calls.at(-1)).toBe("stop");
 });
+it('resolves nested human records while rejecting duplicate ownership and traversal',async()=>{
+ const {locateRunDir}=await import('./run.js');const r=root();mkdirSync(join(r,'human','human-id'),{recursive:true});expect(locateRunDir(r,'human-id')).toBe(join(r,'human','human-id'));expect(()=>locateRunDir(r,'../escape')).toThrow('not a run id');mkdirSync(join(r,'human-id'));expect(()=>locateRunDir(r,'human-id')).toThrow('ambiguous');
+});

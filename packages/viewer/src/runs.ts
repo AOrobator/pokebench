@@ -2,6 +2,7 @@
 import { closeSync, existsSync, fstatSync, openSync, readSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { RUN_ID_PATTERN, parseEvent, type RunEvent } from "@pokebench/agent/events";
+import { locateRunDir } from "@pokebench/agent/run";
 import type { Baseline } from "./panels.js";
 import { RunView, MILESTONE_ORDER } from "./model.js";
 
@@ -37,7 +38,11 @@ export interface ReadResult {
 
 export function runDir(runsRoot: string, runId: string): string {
   if (!RUN_ID.test(runId)) throw new RunsError(`not a run id: ${JSON.stringify(runId)}`);
-  return join(runsRoot, runId);
+  try {
+    return locateRunDir(runsRoot, runId);
+  } catch (error) {
+    throw new RunsError(error instanceof Error ? error.message : String(error));
+  }
 }
 
 export function eventsPath(runsRoot: string, runId: string): string {
@@ -140,17 +145,22 @@ function summarize(runsRoot: string, id: string): RunSummary {
 }
 
 export function listRuns(runsRoot: string): RunSummary[] {
-  let entries: string[];
-  try {
-    entries = readdirSync(runsRoot);
-  } catch {
-    return [];
-  }
-  return entries
-    .filter((id) => RUN_ID.test(id) && existsSync(join(runsRoot, id, "events.jsonl")))
-    .sort()
-    .reverse()
-    .map((id) => summarize(runsRoot, id));
+  const entriesAt = (root: string): string[] => {
+    try {
+      return readdirSync(root).filter((id) => RUN_ID.test(id) && existsSync(join(root, id, "events.jsonl")));
+    } catch {
+      return [];
+    }
+  };
+  const entries = new Set([...entriesAt(runsRoot), ...entriesAt(join(runsRoot, "human"))]);
+  return [...entries].sort().reverse().map((id) => {
+    try {
+      return summarize(runsRoot, id);
+    } catch (error) {
+      if (!(error instanceof RunsError)) throw error;
+      return { id, model: null, started: null, ended: false, reason: null, problem: error.message };
+    }
+  });
 }
 
 export function readStart(runsRoot: string, runId: string): RunEvent & { type: "run_start" } {

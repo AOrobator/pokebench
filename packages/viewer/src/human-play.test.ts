@@ -99,3 +99,18 @@ it('keeps a terminal recording clean when an in-flight input fails after Finish'
  const {play,stream,send}=await harness();ui('surface').focus();await settle();let fail:(error:Error)=>void=()=>{};send.mockImplementationOnce(()=>new Promise((_resolve,reject)=>{fail=reject;}));key('KeyO');await settle();
  const log=new Log();log.add(0,START);stream.send(log.add(2000,{type:'run_end',turn:0,reason:'operator_stop',turns:0,wall_ms:2000,furthest_milestone:null,tokens:{input:0,output:0},frames:{saved:0,bytes:0}}));fail(Error('run ended'));await settle();stream.error?.();play.close();await settle();expect(ui('problem').textContent).toBe('');expect(ui('status').textContent).toBe('Recording finished');expect(send.mock.calls.filter(([url])=>url.endsWith('/human/input'))).toHaveLength(1);
 });
+
+it('toggles sound off and on from the focused game for pointer and keyboard focus paths',async()=>{
+ const stream=new Stream();let muted=true;const toggles=vi.fn<()=>Promise<void>>(()=>{muted=!muted;return Promise.resolve();});const mute=vi.fn(()=>{muted=true;});const audio={get muted(){return muted;},toggle:toggles,mute};
+ const play=new HumanPlay(document,RUN,{audio,fetchJson:()=>Promise.resolve(start()),sendJson:()=>Promise.resolve({}),openStream:()=>stream,now:()=>BASE_MS,session:()=>"audio-session"});await play.start();
+ ui('surface').click();await settle();expect(muted).toBe(false);expect(document.activeElement).toBe(ui('surface'));
+ // Both pointer clicks and Tab activation focus the sound button before click.
+ ui('sound').focus();expect(mute).not.toHaveBeenCalled();ui('sound').click();await settle();expect(muted).toBe(true);expect(toggles).toHaveBeenCalledTimes(2);
+ ui('surface').click();await settle();expect(ui('focus').textContent).toBe('Controls active');expect(muted).toBe(true);expect(toggles).toHaveBeenCalledTimes(2);
+ ui('sound').focus();ui('sound').click();await settle();expect(muted).toBe(false);expect(toggles).toHaveBeenCalledTimes(3);
+ ui('surface').focus();await settle();ui('sound').focus();expect(muted).toBe(false);ui('sound').click();expect(muted).toBe(true);
+ play.close();
+});
+it.each([['crash','Recording failed'],['model_error','Recording failed'],['operator_abort','Recording aborted'],['operator_stop','Recording finished']] as const)('surfaces terminal reason %s',async(reason,label)=>{
+ const {play,stream}=await harness();const log=new Log();log.add(0,START);stream.send(log.add(2000,{type:'run_end',turn:0,reason,turns:0,wall_ms:2000,furthest_milestone:null,tokens:{input:0,output:0},frames:{saved:0,bytes:0}}));expect(ui('status').textContent).toBe(label);expect(ui('focus').textContent).toBe('Controls disabled');stream.error?.();expect(ui('status').textContent).toBe(label);expect(ui('problem').textContent).toBe('');play.close();
+});

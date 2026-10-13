@@ -29,6 +29,7 @@ export class HumanPlay {
  private closed=false;
  private readonly listeners=new AbortController();
  private heartbeatAt=0;
+ private mutedByUser=false;
  constructor(private readonly doc:Document,readonly runId:string,private readonly deps:HumanPlayDeps) {
   this.keys=new HumanKeyboard(buttons=>{this.input(buttons);});
  }
@@ -56,17 +57,19 @@ export class HumanPlay {
   const surface=this.ui('surface');
   surface.addEventListener('focus',()=>{void this.claim();},{signal:this.listeners.signal});
   surface.addEventListener('click',()=>{surface.focus();void this.claim();this.sound();},{signal:this.listeners.signal});
-  surface.addEventListener('blur',()=>{this.suspend();},{signal:this.listeners.signal});
+  surface.addEventListener('blur',event=>{this.suspend(event.relatedTarget!==this.ui('sound'));},{signal:this.listeners.signal});
   surface.addEventListener('keydown',event=>{const key=event;if(this.keys.key(key.code,true))key.preventDefault();},{signal:this.listeners.signal});
   surface.addEventListener('keyup',event=>{const key=event;if(this.keys.key(key.code,false))key.preventDefault();},{signal:this.listeners.signal});
   this.doc.addEventListener('visibilitychange',()=>{if(this.doc.hidden)this.suspend();},{signal:this.listeners.signal});
   this.doc.defaultView?.addEventListener('blur',()=>{this.suspend();},{signal:this.listeners.signal});
-  this.ui('sound').addEventListener('click',()=>{this.sound();},{signal:this.listeners.signal});
+  this.ui('sound').addEventListener('click',()=>{
+   if(this.controlsReady()&&this.deps.audio!==undefined){this.mutedByUser=!this.deps.audio.muted;void this.deps.audio.toggle();}
+  },{signal:this.listeners.signal});
   this.ui('pause').addEventListener('click',()=>{void this.control(this.view.control.state==='paused'?'resume':'pause');},{signal:this.listeners.signal});
   this.ui('finish').addEventListener('click',()=>{void this.control('stop');},{signal:this.listeners.signal});
   this.render();
  }
- private sound():void {if(this.controlsReady()&&this.deps.audio?.muted===true)void this.deps.audio.toggle();}
+ private sound():void {if(!this.mutedByUser&&this.controlsReady()&&this.deps.audio?.muted===true)void this.deps.audio.toggle();}
  private unavailable():boolean {return this.closed||this.suspended;}
  private controlsReady():boolean {return this.view.start!==null&&this.view.end===null&&this.view.control.state==='running';}
  private async claim():Promise<void> {
@@ -77,7 +80,7 @@ export class HumanPlay {
    if(this.unavailable())return;
    await this.deps.sendJson(`/api/runs/${encodeURIComponent(this.runId)}/human/claim`,{session});
    this.session=session;this.seq=0;
-   if(this.unavailable()||!this.controlsReady()||this.doc.activeElement!==this.ui('surface')){this.suspend();return;}
+   if(this.unavailable()||!this.controlsReady()||this.doc.activeElement!==this.ui('surface')){this.suspend(this.doc.activeElement!==this.ui('sound'));return;}
    this.keys.focus(true);this.heartbeatAt=this.deps.now();this.error='';
   }catch(error){this.fail(error);}finally{this.claiming=false;this.render();}
  }
@@ -91,8 +94,8 @@ export class HumanPlay {
    await this.deps.sendJson(`/api/runs/${encodeURIComponent(this.runId)}/human/input`,{session,seq,buttons});
   }).catch((error:unknown)=>{this.fail(error);}).finally(()=>{this.pending--;});
  }
- suspend():void {
-  this.deps.audio?.mute();
+ suspend(muteAudio=true):void {
+  if(muteAudio)this.deps.audio?.mute();
   this.suspended=true;const session=this.session;const seq=++this.seq;this.session=null;this.keys.focus(false);
   if(session!==null&&this.view.end===null)this.writes=this.writes.then(async()=>{
    await this.deps.sendJson(`/api/runs/${encodeURIComponent(this.runId)}/human/input`,{session,seq,buttons:[],release:true});
@@ -120,8 +123,8 @@ export class HumanPlay {
  render():void {
   const ended=this.view.end!==null;const ready=this.view.start!==null&&!ended;
   this.ui('time').textContent=hms(runSeconds(this.view,this.deps.now()));
-  this.ui('status').textContent=this.error!==''?'Recording/input needs attention':ended?'Recording finished':ready?(this.view.control.state==='paused'?'Recording · paused':'Recording'): 'Connecting';
-  this.ui('focus').textContent=this.session===null?'Click game to enable controls':'Controls active';
+  this.ui('status').textContent=this.error!==''?'Recording/input needs attention':ended?(this.view.end?.reason==='operator_abort'?'Recording aborted':this.view.end?.reason==='crash'||this.view.end?.reason==='model_error'?'Recording failed':'Recording finished'):ready?(this.view.control.state==='paused'?'Recording · paused':'Recording'): 'Connecting';
+  this.ui('focus').textContent=ended?'Controls disabled':this.session===null?'Click game to enable controls':'Controls active';
   this.ui('problem').textContent=this.error;
   if(ended&&this.view.frame!==null)(this.ui('screen') as HTMLImageElement).src=`/api/runs/${encodeURIComponent(this.runId)}/${this.view.frame}`;
   (this.ui('pause') as HTMLButtonElement).disabled=!ready;

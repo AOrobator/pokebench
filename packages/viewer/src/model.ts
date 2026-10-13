@@ -8,7 +8,7 @@ export type RunStartEvent = Of<"run_start">;
 export type RunEndEvent = Of<"run_end">;
 type AnyStateEvent = Of<"state">;
 export type StateEvent = Extract<AnyStateEvent, { started: boolean }>;
-export type Button = Of<"button_press">["buttons"][number];
+export type Button = Of<"button_press">["buttons"][number] | Of<"human_input">["buttons"][number];
 
 // The pinned vendor's "normal" preset; M4 logs predate recorded timing.
 export const ASSUMED_TIMING = { hold_frames: 10, release_frames: 8 } as const;

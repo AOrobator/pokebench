@@ -8,7 +8,35 @@ SAVE_FLAGS = 0x1270
 SAVE_VARS = 0x139C
 # Exact post-YES Birch tasks, not a broad address range or a copied editor name.
 NAME_CONFIRMED_TASKS = frozenset({0x08031221, 0x08031259, 0x0803133D, 0x080313E5, 0x080314C5})
-NAME_CONFIRMATION_TASK = 0x08031189
+# Exact new-game roots before accepting the player's name, including NO/B retries.
+# See findings/story-milestones.md and the qualified-task-graph native receipt.
+NAME_UNCONFIRMED_TASKS = frozenset(
+    {
+        0x080307B1,
+        0x080308B1,
+        0x08030929,
+        0x080309CD,
+        0x08030A2D,
+        0x08030BCD,
+        0x08030C19,
+        0x08030C91,
+        0x08030CD5,
+        0x08030D85,
+        0x08030DC9,
+        0x08030E09,
+        0x08030E39,
+        0x08030ED5,
+        0x08030F7D,
+        0x08030FD5,
+        0x08031015,
+        0x08031041,
+        0x08031091,
+        0x0803261D,
+        0x08031105,
+        0x08031145,
+        0x08031189,
+    }
+)
 FLAG_FIELDS = {
     "clock_set": 0x51,
     "rival_battle_won": 0x82,
@@ -102,7 +130,7 @@ def read_story(read: ReadMemory, screen: Screen, save1: int | None = None) -> St
             }
             if functions & NAME_CONFIRMED_TASKS:
                 confirmed = True
-            elif NAME_CONFIRMATION_TASK in functions:
+            elif functions & NAME_UNCONFIRMED_TASKS:
                 confirmed = False
         return StoryState(name_confirmed=confirmed)
     if not 0x02000000 <= save1 <= 0x02040000 - 0x159C or save1 % 4:

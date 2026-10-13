@@ -659,3 +659,37 @@ it("offers only eligible references and preserves none while comparisons are pen
   expect(ui("splits").textContent).toContain("Baseline: none eligible");
   expect(ui("splits").textContent).toContain("Best historical run: best");
 });
+
+it("shows parsed loop phases with attribution on timeline and Activity History", async () => {
+  const { app, streams, setNow } = await harness();
+  const log = new Log(); log.add(0, START);
+  log.add(100, {type:"tool_call",turn:1,id:"plan-1",name:"update_objective",args:{}});
+  for (const [index,phase] of (["warning","recovered","stop"] as const).entries()) {
+    log.add(1000+index*1000,{type:"loop_guard",turn:1,kind:"planning",phase,message:"Six plans <without> action",calls:6,evidence:[1]});
+  }
+  setNow(BASE_MS+3000); feed(must(streams[0]),log.events);
+  for (const label of ["Planning stall warning","Planning stall recovered","Planning stall stop"]) {
+    expect(ui("lanes").innerHTML).toContain(label);
+    expect(ui("log").textContent).toContain(label);
+  }
+  for (const fragment of ["update_objective", "6 calls", "turn 1", "#1", "0:00:03", "Six plans <without> action"]) {
+    expect(ui("lanes").textContent).toContain(fragment);
+    expect(ui("log").textContent).toContain(fragment);
+  }
+  const stop = ui("log").querySelector<HTMLElement>('[data-seq="4"]');
+  if (stop === null) throw new Error("missing stop history row");
+  stop.click(); expect(ui("inspector").textContent).toContain('"phase": "stop"');
+  expect(app.mode).toBe("live");
+});
+
+it("qualifies completion in the watch objective strip", async () => {
+  const { app, streams } = await harness(); const log=new Log(); log.add(0,START);
+  const objective={id:"native",revision:1,goal:"Reach gym",title:"Set clock",supports_goal:"Opening",evidence:[0],completion:{kind:"milestone" as const,name:"CLOCK_SET" as const},obstacle:"",next_decision:"Observe",status:"completed" as const,completion_evidence:[0]};
+  log.add(1,{type:"objective_update",turn:0,objective}); feed(must(streams[0]),log.events);
+  expect(ui("objective-summary").textContent).toContain("historical completion (not native verified)");
+  feed(must(streams[0]),[log.add(2,{type:"objective_update",turn:0,objective:{...objective,verification:{origin:"observed",milestone_seq:0,state_evidence:[0]}}})]);
+  expect(ui("objective-summary").textContent).toContain("game verified (observed)");
+  feed(must(streams[0]),[log.add(3,{type:"objective_update",turn:0,objective:{...objective,status:"reported_complete"}})]);
+  expect(ui("objective-summary").textContent).toContain("reported complete (provisional local plan)");
+  expect(app.mode).toBe("live");
+});

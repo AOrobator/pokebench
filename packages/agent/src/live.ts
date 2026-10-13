@@ -304,7 +304,12 @@ async function playAgent(): Promise<void> {
       if(preset!==null&&recorder.elapsedMs()>=limits.maxWallMs){governor.abort("budget");return "budget";}
       const loopDetector = attachLoopGuard(recorder, governor, undefined, loopMode);
       if(target!==null){
-        const stop=new NativeTargetStop(runId,target,proof=>{if(governor.stopReason!==null)return;recorder.setTargetProof(proof);governor.stop("milestone");});
+        const stop=new NativeTargetStop(runId,target,proof=>{
+          if(governor.stopReason!==null)return;
+          if(preset!==null&&recorder.elapsedMs()>limits.maxWallMs){governor.abort("budget");return;}
+          recorder.setTargetProof(proof);
+          governor.stop("milestone");
+        });
         recorder.subscribe(event=>{stop.observe(event);});
       }
       const wall = setTimeout(() => {

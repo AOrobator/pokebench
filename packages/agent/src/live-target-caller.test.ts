@@ -199,7 +199,7 @@ it.each([
       version: 1,
       id: "caller",
       target: "PLAYER_NAME_CONFIRMED",
-      limits: { maxTurns: 300, maxWallMs: 600000, failureLimit: 3 },
+      limits: { maxTurns: 3, maxWallMs: 600000, failureLimit: 3 },
       sampling: { thinkingLevel: "medium", maxTokens: 100 },
       flags: {
         loopGuard: false,

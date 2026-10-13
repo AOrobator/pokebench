@@ -24,11 +24,11 @@ No ROM staged; loop owner disclosed a temporary accidental regular ROM copy duri
 ## Milestones
 **M1 — Owner qualification**
 - [x] Original12trials terminal and tracked report16c8939
-- [ ] Four frozen GREEN packets and recorded gate/native proof/review availability
+- [x] Four frozen GREEN packets and recorded gate/native proof/review availability
 **M2 — Cumulative integration**
-- [ ] Resolve approved shared surfaces and coherent active UI loop projection
-- [ ] Full test/lint/build/coverage/vendor, meaningful integration mutations and realpi/backend/native/viewer proof
-- [ ] Freeze cumulative identity/boundary/principles and allselectedroster literalLGTM
+- [x] Resolve approved shared surfaces and coherent active UI loop projection
+- [x] Full test/lint/build/coverage/vendor, meaningful integration mutations and realpi/backend/native/viewer proof
+- [x] Freeze cumulative identity/boundary/principles and allselectedroster literalLGTM
 **M3 — Landing and four-per-arm preparation**
 - [ ] Clean reviewed artifact integrated canonical; sequencer/source/build receipts
 - [ ] Viewer service uses merged source; preserve userpreview then safe worktree snapshot/cleanup
@@ -95,3 +95,5 @@ User steering: Prepare four per arm first, explicitly no exploratorypair now. Lo
 Humanconfirmed firstcomparison ALLTHREE(Qwen3.8,ThinkSwarm,ThinkLongCtx), fourtrials/arm/model=24total, globallyserial; targetacceptedPLAYER_NAME_CONFIRMED, equal10minute wallcaps. Matrix/capsnotinferred; no newmeasuredgameyet. PassiveownerGREEN7c53 +actualcaller test58f37ef, correctednativePythoncount422receipt gives1071componenttests; samepolicy/commondiagnostics typedwould_* vsenforcedphases, nofeedback/block/abortpassive realpi+bothnativeproof qualified. Mergefollowupnowbeforefinalcumulativefreeze so firstcomparisoncanuseactualcommoninstrumentation, notpreviousflag0diagnosticsabsence.
 
 2026-10-13 landing coordinator owns final source, reviews, landing, viewer relocation and recoverable cleanup. Canonical authorized drafts saved byte-for-byte under landing-final/canonical-authored; main sequencer and cleanup audit hashes match preflight. Head905a3dc includes report7374 and passive58f37; authorized LongCtx notes preserved around the reviewed documentation-owner insertion. Full cumulative gate/review pending. No new runs during closeout.
+
+COMMIT f138710: complete authored coordination/LongCtx preparation notes, preserving canonical originals byte-for-byte in landing-final/canonical-authored. Final cumulative gates1075(484agent169viewer422Python), all90floors/lint/build/schema/vendorPASS. Source f138710 binarydiff e3933e5eb08ec24507bd0902b5cdb7ffc33f63f72ba00d12566880f0aa05c7a1: Fast9/Swarm9 literalLGTM, fresh isolated no-history gpt-6.1-sol and gpt-6-astra FULL67file artifact bothliteralLGTM. DedicatedClaudeauthfalse, freshCursorClaude/GPTquota andGrok120stimeout receipts retained; authorizedfallback reducesvendor diversity. Bothfreshreviewers challenged combinedpromptauditmutation: new exactfrozen Gitarchive snapshot separatelydeleted receiptoperand(line173RED) andfeatureoperand(line172RED), thenrestored35GREEN; snapshotremoved, candidate unchanged. SHAformatguards redundant with exactobservedhashmatching, no independentbarrier claim. FullPB1–13 zeroFAIL(PB6N/A) and all9testqualitychecks synthesized in canonical runs/launch-receipts/landing-final/synthesis.md. Round1finalcombinedgreen; no scopegrowth or measuredbenefitclaim. This closing documentationdelta willreceive selectedroster boundedreview. Actualcanonicallanding/freshbuild/servedbytes/browserproof/recoverablecleanup remain next with explicit finaloperationalreceipt; no newrun orworklogarchive.

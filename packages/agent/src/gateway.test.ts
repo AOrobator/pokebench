@@ -264,6 +264,20 @@ describe("explicit fleet availability through discovery and selection", () => {
   });
 
   it.each<[string, Record<string, unknown>]>([
+    ["empty unavailable identity", unavailable({ id: "" })],
+    ...([null, "not-an-object", { capabilities: "multimodal" }] as const).map(
+      (observed): [string, Record<string, unknown>] => [
+        `malformed unavailable observation ${JSON.stringify(observed)}`,
+        unavailable({
+          metadata: {
+            source: "unavailable",
+            context_tokens: null,
+            max_response_tokens: null,
+            observed,
+          },
+        }),
+      ],
+    ),
     [
       "null capacity without provenance",
       unavailable({

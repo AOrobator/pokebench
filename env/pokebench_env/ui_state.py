@@ -149,6 +149,35 @@ BIRCH_PHASES = {
 def read_active_ui(read: ReadMemory, screen: "Screen") -> ActiveUi | None:
     from pokebench_env.game_screen import TASKS
 
+    if screen.callback2 == 0x080E2E05:
+        return ActiveUi(
+            "naming_transition",
+            None,
+            False,
+            "Naming editor initializing; selection input is not active",
+        )
+    if screen.callback2 == 0x080E4F59:
+        from pokebench_env.gba_text import decode_text
+        from pokebench_env.naming import NAMING_POINTER, read_naming
+
+        naming = read_naming(read, decode_text)
+        if naming is None:
+            pointer = int.from_bytes(read(NAMING_POINTER, 4), "little")
+            return ActiveUi(
+                "unsupported",
+                None,
+                None,
+                "Observe and report this coverage error",
+                f"callback2 0x080E4F59; naming buffer or cursor invalid; pointer 0x{pointer:08X}",
+            )
+        if not naming.ready:
+            return ActiveUi(
+                "naming_transition",
+                None,
+                False,
+                "Naming editor transition; selection input is not active",
+            )
+        return None
     if screen.kind == "field_transition":
         return ActiveUi(
             "field_transition", None, False, "Map load in progress; field input is not active"

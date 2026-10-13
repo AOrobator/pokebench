@@ -214,7 +214,7 @@ class TestActiveBirchUi:
         from pokebench_env.game_screen import Screen
         from pokebench_env.ui_state import read_active_ui
 
-        assert read_active_ui(Memory().read, Screen("naming", 0, 0x080E2E05)) is None
+        assert read_active_ui(Memory().read, Screen("title", 0, 0x080AA7A5)) is None
         assert read_active_ui(Memory().read, Screen("birch_speech", 0, 0x0802F6B1)) is None
 
     def test_invalid_owned_menu_is_a_coverage_error(self) -> None:
@@ -347,3 +347,24 @@ def test_observed_birch_sprite_transitions_have_owned_not_ready_phase(owner: int
     assert screen.kind == "birch_speech"
     ui = read_active_ui(memory.read, screen)
     assert ui.phase == "birch_transition" and ui.ready is False and ui.diagnostic is None
+
+
+def test_naming_initialization_is_explicitly_not_ready_without_invented_cursor() -> None:
+    from pokebench_env.game_screen import Screen
+    from pokebench_env.ui_state import read_active_ui
+
+    ui = read_active_ui(Memory().read, Screen("naming", 0, 0x080E2E05))
+    assert ui.phase == "naming_transition" and ui.ready is False and ui.diagnostic is None
+    ui = read_active_ui(Memory().read, Screen("naming", 0, 0x080E4F59))
+    assert ui.phase == "unsupported" and ui.ready is None and "pointer 0x00000000" in ui.diagnostic
+
+
+def test_initialized_naming_readiness_uses_existing_owned_cursor_decoder() -> None:
+    from pokebench_env.game_screen import Screen
+    from pokebench_env.ui_state import read_active_ui
+    from tests.env.test_naming import keyboard
+
+    screen = Screen("naming", 0, 0x080E4F59)
+    assert read_active_ui(keyboard(phase=2).read, screen) is None
+    ui = read_active_ui(keyboard(phase=1).read, screen)
+    assert ui.phase == "naming_transition" and ui.ready is False

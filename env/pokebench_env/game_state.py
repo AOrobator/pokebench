@@ -155,7 +155,7 @@ def read_game_state(read: ReadMemory, maps: MapNames) -> GameState:
             None,
             None,
             story=read_story(read, screen),
-            naming=read_naming(read, decode_text) if screen.kind == "naming" else None,
+            naming=read_naming(read, decode_text) if screen.callback2 == 0x080E4F59 else None,
             dialog=dialog,
             menu=menu,
             active_ui=active_ui,

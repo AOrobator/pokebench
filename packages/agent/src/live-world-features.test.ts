@@ -5,7 +5,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import { parseEvent, type RunEvent } from "./events.js";
 import type { RunHost, RunPlan } from "./run.js";
 
-const context = vi.hoisted(() => ({ root: "", memory: true, files: new Map<string, string[]>(), resolve: undefined as ((event: RunEvent) => void) | undefined, reject: undefined as ((error: unknown) => void) | undefined }));
+const context = vi.hoisted(() => ({ root: "", memory: true, captureRuntime:false, runtimeModes:[] as string[], files: new Map<string, string[]>(), resolve: undefined as ((event: RunEvent) => void) | undefined, reject: undefined as ((error: unknown) => void) | undefined }));
 vi.mock("node:fs", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:fs")>();
   return { ...actual,
@@ -35,7 +35,7 @@ vi.mock("node:readline", () => ({ createInterface: () => ({ close: () => undefin
 vi.mock("./run.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./run.js")>();
   const { FrameStore } = await import("./frames.js");
-  return { ...actual, withRun: async (plan: RunPlan) => {
+  return { ...actual, withRun: async (plan: RunPlan, _host:RunHost, _frames:unknown, body:Parameters<typeof actual.withRun>[3]) => {
     const fake: RunHost = {
       serverHealthy: () => Promise.resolve(false),
       launchServer: (dir) => Promise.resolve({ serverDir: join(dir, "server"), stop: () => Promise.resolve() }),
@@ -45,7 +45,7 @@ vi.mock("./run.js", async (importOriginal) => {
       gameState: { read: () => Promise.resolve({ screen: "title", started: false, name: null, location: null, map_id: null, position: null, facing: null, in_battle: false, party: [], money: null, badges: [], play_time_s: null }) },
     };
     try {
-      const result = await actual.withRun({ ...plan, runsRoot: context.root }, fake, new FrameStore(context.root, 1000, () => undefined), () => Promise.resolve("completed"));
+      const result = await actual.withRun({ ...plan, runsRoot: context.root }, fake, new FrameStore(context.root, 1000, () => undefined), context.captureRuntime ? body : () => Promise.resolve("completed"));
       const events = readFileSync(join(context.root, plan.runId, "events.jsonl"), "utf8").trim().split("\n").map((line) => parseEvent(line));
       const starts = events.filter((event) => event.type === "run_start");
       expect(starts).toHaveLength(1);
@@ -56,7 +56,15 @@ vi.mock("./run.js", async (importOriginal) => {
     } catch (error) { context.reject?.(error); throw error; }
   } };
 });
-afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); if (!context.memory && context.root !== "") rmSync(context.root, { recursive: true, force: true }); context.files.clear(); });
+vi.mock("./harness.js",async(importOriginal)=>{
+ const actual=await importOriginal<typeof import("./harness.js")>();
+ return {...actual,piLoop:(options:Parameters<typeof actual.piLoop>[0])=>{
+  if(!context.captureRuntime)return actual.piLoop(options);
+  context.runtimeModes.push(options.loopDetector?.mode??"missing detector");
+  return {start:()=>{options.governor.abort("completed");return Promise.resolve([]);},resume:()=>Promise.resolve([])};
+ }};
+});
+afterEach(() => { context.captureRuntime=false;context.runtimeModes=[];vi.unstubAllGlobals(); vi.restoreAllMocks(); if (!context.memory && context.root !== "") rmSync(context.root, { recursive: true, force: true }); context.files.clear(); });
 it.each([["smoke", true], ["play", true], ["probe", true], ["verify-state", true], ["smoke", false]] as const)("%s declares world advantages through publisher (memory=%s)", async (command, memory) => {
   vi.resetModules();
   context.memory = memory; context.files.clear();
@@ -73,9 +81,9 @@ it.each([["smoke", true], ["play", true], ["probe", true], ["verify-state", true
 });
 
 it.each([true,false])("play publishes loop-guard ablation (enabled=%s)",async(enabled)=>{
-  vi.resetModules();context.memory=true;context.files.clear();context.root=`/test-owned/loop-publisher-${String(enabled)}`;
+  vi.resetModules();context.captureRuntime=true;context.runtimeModes=[];context.memory=true;context.files.clear();context.root=`/test-owned/loop-publisher-${String(enabled)}`;
   const receipt=new Promise<RunEvent>((resolve,reject)=>{context.resolve=resolve;context.reject=reject;});
   vi.stubGlobal("process",Object.assign(Object.create(process) as NodeJS.Process,{argv:[...process.argv.slice(0,2),"play"],env:{...process.env,POKEBENCH_LOOP_GUARD:enabled?"1":"0"}}));
   vi.spyOn(console,"log").mockImplementation(()=>undefined);await import("./live.js");const start=await receipt;
-  if(start.type!=="run_start")throw new Error("unexpected startup event");expect(start.harness_features.filter(f=>f.startsWith("deterministic-loop-diagnostics")||f.startsWith("deterministic-loop-policy"))).toEqual(["deterministic-loop-diagnostics-v1","deterministic-loop-policy-v1:p6:o3:a3:c3:r2:recovery6"]);expect(start.harness_features.filter(f=>f.startsWith("deterministic-loop-guard"))).toEqual(enabled?["deterministic-loop-guard-v1"]:[]);
+  if(start.type!=="run_start")throw new Error("unexpected startup event");expect(context.runtimeModes).toEqual([enabled?"enforced":"diagnostic"]);expect(start.harness_features.filter(f=>f.startsWith("deterministic-loop-diagnostics")||f.startsWith("deterministic-loop-policy"))).toEqual(["deterministic-loop-diagnostics-v1","deterministic-loop-policy-v1:p6:o3:a3:c3:r2:recovery6"]);expect(start.harness_features.filter(f=>f.startsWith("deterministic-loop-guard"))).toEqual(enabled?["deterministic-loop-guard-v1"]:[]);
 });

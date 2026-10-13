@@ -1,5 +1,6 @@
 import type { AgentEvent, AgentMessage } from "@mariozechner/pi-agent-core";
 import type { AssistantMessage, AssistantMessageEvent, ImageContent, TextContent } from "@mariozechner/pi-ai";
+import type { LoopNotice } from "./loop-detection.js";
 import type { BodyOf, Button, RunEndReason, RunEvent, EventBody } from "./events.js";
 import type { FrameRef, FrameStore } from "./frames.js";
 import { parseGameState, type GameStateSnapshot, type StateSource } from "./game-state.js";
@@ -103,7 +104,7 @@ export class RunRecorder {
     for (const observer of this.observers) observer(event);
     return event;
   }
-  recordLoopGuard(body: Omit<BodyOf<"loop_guard">, "type" | "turn">): void { this.append({type:"loop_guard",turn:this.turn,...body,evidence:[...body.evidence]}); }
+  recordLoopGuard(body: LoopNotice): void { this.append({type:"loop_guard",turn:this.turn,...body,evidence:[...body.evidence]}); }
   recordObjective(body: BodyOf<"objective_update"> | BodyOf<"objective_attempt">): void { this.append({ ...body, turn: this.turn }); }
   recordState(state: GameStateSnapshot): Extract<Extract<RunEvent, { type: "state" }>, { started: boolean }> {
     if (this.storyRequired && state.story === undefined) throw new RecorderError("Declared story-state-v1 but the game server returned no story state; check the Python reader deployment.");

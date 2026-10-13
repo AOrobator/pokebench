@@ -16,13 +16,30 @@ export type LoopKind =
   | "ineffective"
   | "cycle"
   | "rejection";
-export interface LoopNotice {
+export type LoopMode = "enforced" | "diagnostic";
+export function readLoopMode(env: NodeJS.ProcessEnv = process.env): LoopMode {
+  const flag = env["POKEBENCH_LOOP_GUARD"];
+  if (flag !== undefined && flag !== "0" && flag !== "1")
+    throw new Error("POKEBENCH_LOOP_GUARD must be 0 or 1");
+  return flag === "0" ? "diagnostic" : "enforced";
+}
+interface NoticeFields {
   readonly kind: LoopKind;
-  readonly phase: "warning" | "recovered" | "stop";
   readonly message: string;
   readonly calls: number;
   readonly evidence: readonly number[];
 }
+export type LoopNotice = NoticeFields &
+  (
+    | {
+        readonly mode: "enforced";
+        readonly phase: "warning" | "recovered" | "stop";
+      }
+    | {
+        readonly mode: "diagnostic";
+        readonly phase: "would_warn" | "would_recover" | "would_stop";
+      }
+  );
 export interface CompletedCall {
   readonly name: string;
   readonly args: Record<string, unknown>;
@@ -148,6 +165,7 @@ export class LoopDetector {
     kind: LoopKind;
     exposed: boolean;
     recovery: number;
+    threshold: boolean;
     evidence: number[];
   } | null = null;
   private run: string | null = null;
@@ -170,12 +188,15 @@ export class LoopDetector {
   constructor(
     private readonly notify: (notice: LoopNotice) => void,
     private readonly policy: LoopPolicy = LOOP_POLICY,
+    readonly mode: LoopMode = "enforced",
   ) {}
 
   observe(event: RunEvent): void {
     this.run ??= event.run;
     if (event.run !== this.run || event.seq <= this.eventSeq) return;
     this.eventSeq = event.seq;
+    if (event.type === "turn_start" && this.episode !== null)
+      this.episode.exposed = true;
     if (event.type === "state") {
       this.latestSeq = event.seq;
       if ("started" in event) {
@@ -221,7 +242,7 @@ export class LoopDetector {
   }
 
   context(): string | null {
-    if (this.episode === null) return null;
+    if (this.mode === "diagnostic" || this.episode === null) return null;
     this.episode.exposed = true;
     return `LOOP GUARD (${this.episode.kind}): ${MESSAGES[this.episode.kind]} Recovery is bounded; objective wording and new evidence IDs alone do not establish progress.`;
   }
@@ -301,9 +322,11 @@ export class LoopDetector {
       this.rejections.clear();
     if (
       this.episode?.exposed &&
-      this.episode.recovery >= this.policy.recovery
+      this.episode.recovery >= this.policy.recovery &&
+      !this.episode.threshold
     ) {
-      this.stopped = true;
+      this.stopped = this.mode === "enforced";
+      this.episode.threshold = true;
       this.notice("stop", seq);
       return;
     }
@@ -313,6 +336,7 @@ export class LoopDetector {
         kind: hit,
         exposed: false,
         recovery: 0,
+        threshold: false,
         evidence: [seq],
       };
       this.notice("warning", seq);
@@ -363,12 +387,11 @@ export class LoopDetector {
       this.ineffective = { key: "", count: 0 };
     }
   }
-  private notice(phase: LoopNotice["phase"], seq: number): void {
+  private notice(phase: "warning" | "recovered" | "stop", seq: number): void {
     const episode = this.episode;
     if (episode === null) return;
-    this.notify({
+    const fields = {
       kind: episode.kind,
-      phase,
       message:
         phase === "stop"
           ? `${MESSAGES[episode.kind]} Bounded recovery ended without verified recovery; unknown readouts do not prove progress.`
@@ -377,6 +400,18 @@ export class LoopDetector {
       evidence: [...episode.evidence, seq].filter(
         (value, index, all) => all.indexOf(value) === index,
       ),
-    });
+    };
+    if (this.mode === "diagnostic")
+      this.notify({
+        ...fields,
+        mode: "diagnostic",
+        phase:
+          phase === "warning"
+            ? "would_warn"
+            : phase === "stop"
+              ? "would_stop"
+              : "would_recover",
+      });
+    else this.notify({ ...fields, mode: "enforced", phase });
   }
 }

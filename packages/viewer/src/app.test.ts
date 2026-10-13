@@ -714,3 +714,10 @@ it("clears a future stop inspection when replay rewinds its history", async () =
   expect(ui("inspector").textContent).toContain("click a log row");
   expect(app.clock?.fraction).toBe(0);
 });
+
+it("keeps passive would-stop truthful on both Activity History and timeline",async()=>{
+ const {app,streams,setNow}=await harness();const log=new Log();log.add(0,START);log.add(100,{type:"tool_call",turn:1,id:"plan",name:"get_objectives",args:{}});
+ for(const [index,phase] of (["would_warn","would_stop","would_recover"] as const).entries())log.add(1000+index*1000,{type:"loop_guard",turn:1,kind:"planning",mode:"diagnostic",phase,message:"Counterfactual <threshold>",calls:12,evidence:[1]});
+ setNow(BASE_MS+3000);feed(must(streams[0]),log.events.map(e=>parseEvent(JSON.stringify(e))));
+ expect(ui("lanes").textContent).toContain("diagnostic: would stop");expect(ui("log").textContent).toContain("diagnostic: would stop");expect(ui("log").querySelectorAll(".ev-error")).toHaveLength(0);expect(ui("inspector").textContent).not.toContain("run ended: stuck");expect(app.mode).toBe("live");
+});

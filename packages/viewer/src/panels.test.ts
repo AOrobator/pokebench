@@ -461,3 +461,7 @@ it("renders verified confirmation selection and unsupported diagnostic", () => {
   expect(trainerCard(view(log),BASE_MS+2)).toContain("10:00 AM");
   expect(trainerCard(view(log),BASE_MS+2)).toContain("not ready");
 });
+
+it("renders passive would-stop as a diagnostic rather than execution error",()=>{
+ const log=bare();const event=log.add(100,{type:"loop_guard",turn:1,kind:"planning",mode:"diagnostic",phase:"would_stop",message:"No action <yet>",calls:12,evidence:[1]});const html=actionRow(event);expect(html).toContain("diagnostic: would stop");expect(html).not.toContain("ev-error");expect(html).toContain("No action &lt;yet&gt;");
+});

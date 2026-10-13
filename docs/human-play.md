@@ -32,3 +32,12 @@ For operator validation, `POKEBENCH_HUMAN_VALIDATION=true just run-human` tags t
 While the existing model cohort remains active, the reviewed human code is served from `/Users/user/.codex/worktrees/human-playthrough/pokebench` on viewer port8798 and human game port8040. The preview viewer reads the usual `/Users/user/dev/pokebench/runs` catalog, including its separate `human/` recordings. Existing model viewers and canonical source/builds are preserved. Use the supplied ready Play link on8798; the printed8791 link is the usual default for after integration. The ready run starts paused so waiting is excluded. Press Resume, click the game, wait for Controls active, then play; first game click enables sound at1×.
 
 The branch is `codex/human-playthrough`. Source integration is pending while changing canonical source/builds could invalidate later trials in the active cohort. This is a ready isolated runtime, not a claim of canonical landing or a completed the operator baseline.
+
+To start another session on the current isolated preview, run:
+
+```sh
+cd /Users/user/.codex/worktrees/human-playthrough/pokebench
+POKEBENCH_RUNS_ROOT=/Users/user/dev/pokebench/runs POKEBENCH_HUMAN_START_PAUSED=true just run-human
+```
+
+Use port8798 for the printed Play path during this isolated preview. Finishing stops that session; starting a new session creates a new recording.

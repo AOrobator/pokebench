@@ -27,6 +27,8 @@ function outcome(before: GameStateSnapshot, after: GameStateSnapshot): Objective
   if (before.screen !== "overworld" || before.position === null || before.field_controls_locked !== false) return "unavailable";
   return "no_change";
 }
+export interface ObjectiveSwitches { readonly repeatGuard: boolean; readonly nativeCompletion: boolean }
+export const ALL_OBJECTIVE_SWITCHES: ObjectiveSwitches = { repeatGuard: true, nativeCompletion: true };
 export class ObjectiveTracker {
   private current: ObjectiveRecord | null = null;
   private readonly evidence = new Map<number, RunEvent>();
@@ -38,7 +40,7 @@ export class ObjectiveTracker {
   private objectiveCount = 0;
   readonly attempts: ObjectiveAttempt[] = [];
   private readonly positions: string[] = [];
-  constructor(readonly goal: string, private readonly write: Write) {}
+  constructor(readonly goal: string, private readonly write: Write, private readonly switches: ObjectiveSwitches = ALL_OBJECTIVE_SWITCHES) {}
   observe(event: RunEvent): void {
     this.run ??= event.run;
     if (event.run !== this.run) return;
@@ -47,7 +49,7 @@ export class ObjectiveTracker {
     else if (event.type === "milestone") {
       const refs = event.evidence ?? [];
       const states = refs.map(seq => this.evidence.get(seq));
-      if (qualifiedNativeMilestone(event, states)) {
+      if (this.switches.nativeCompletion && qualifiedNativeMilestone(event, states)) {
         if (!this.native.has(event.name)) this.native.set(event.name, event);
         this.evidence.set(event.seq, event);
         this.completeNative();
@@ -83,7 +85,7 @@ export class ObjectiveTracker {
     if (this.current === null) throw new Error("Set an objective first.");
     this.validateEvidence(request.evidence);
     if (this.current.completion.kind === "milestone") {
-      if (request.status === "reported_complete") throw new Error("Native milestones cannot be reported around the game check; observe until native evidence is recorded.");
+      if (request.status === "reported_complete" && this.switches.nativeCompletion) throw new Error("Native milestones cannot be reported around the game check; observe until native evidence is recorded.");
       if (request.status === "completed" && this.current.status !== "completed") throw new Error(`Completion is not verified: native milestone ${this.current.completion.name} has not been recorded. Observe; the harness completes it automatically.`);
       if (this.current.status === "completed") return this.current;
     } else if (request.status === "completed") throw new Error("Completion is not verified: only a native milestone can use completed. Local state or visual plans use provisional reported_complete.");
@@ -112,7 +114,7 @@ export class ObjectiveTracker {
   }
   checkPress(buttons: readonly Button[], state: GameStateSnapshot): void {
     if (this.current === null || this.current.status !== "active" || this.current.next_decision.trim() === "") throw new Error("Set an active objective and next decision before pressing.");
-    if ((this.failures.get(signature(buttons, state)) ?? 0) >= 2 && this.retry === null) throw new Error("Two matching attempts made no observed progress. Reassess with update_objective and cited evidence before a third matching attempt.");
+    if (this.switches.repeatGuard && (this.failures.get(signature(buttons, state)) ?? 0) >= 2 && this.retry === null) throw new Error("Two matching attempts made no observed progress. Reassess with update_objective and cited evidence before a third matching attempt.");
   }
   attempt(id: string, buttons: readonly Button[], before: StateEvent, after: StateEvent | null): ObjectiveAttempt {
     if (this.current === null) throw new Error("No objective for this attempt.");
@@ -121,8 +123,8 @@ export class ObjectiveTracker {
     const key = signature(buttons, stateOf(before));
     const count = result === "no_change" ? (this.failures.get(key) ?? 0) + 1 : 0;
     if (result === "no_change") this.failures.set(key, count);
-    let warning: string | null = count >= 2 ? "Two or more matching failures; reassessment required before repeating." : null;
-    if (result === "moved" && after !== null && after.position !== null) {
+    let warning: string | null = this.switches.repeatGuard && count >= 2 ? "Two or more matching failures; reassessment required before repeating." : null;
+    if (this.switches.repeatGuard && result === "moved" && after !== null && after.position !== null) {
       const position = `${String(after.map_id)}:${String(after.position.x)},${String(after.position.y)}`;
       this.positions.push(position);
       if (this.positions.slice(-8).filter((p) => p === position).length >= 3) warning = "Repeated return to the same position: possible navigation cycle; reassess the objective and approach.";
@@ -134,7 +136,7 @@ export class ObjectiveTracker {
   }
   context(messages: AgentMessage[], now = Date.now()): AgentMessage[] {
     const recent = [...this.evidence.values()].slice(-6).map((e) => ({ seq: e.seq, type: e.type, facts: e.type === "state" && "started" in e ? { screen: e.screen, started: e.started, in_battle: e.in_battle, party_count: e.party.length, name: e.name, location: e.location, position: e.position, facing: e.facing, field_controls_locked: e.field_controls_locked, party: e.party, money: e.money, badges: e.badges, naming: e.naming } : e.type === "tool_result" ? e.text.slice(0, 1500) : "" }));
-    const content = `HARNESS OBJECTIVE RECORD\n${JSON.stringify({ goal: this.goal, objective: this.current, native_catalog: NATIVE_OBJECTIVES, recorded_native_milestones: [...this.native.values()].map(e => ({ name: e.name, seq: e.seq, origin: e.origin, evidence: e.evidence })), recent_attempts: this.attempts.slice(-8), available_evidence: recent })}\nOnly native milestone objectives are verified complete; local reported_complete plans are provisional and do not grade the run. Native tasks complete automatically; choose the next grounded task. Game evidence outranks remembered walkthroughs. Failure changes the approach, not whether an objective is required. Check the objective against the goal before acting. Use objective tools when evidence, obstacles, or decisions change.`;
+    const content = `HARNESS OBJECTIVE RECORD\n${JSON.stringify({ goal: this.goal, objective: this.current, native_catalog: NATIVE_OBJECTIVES, ...(this.switches.nativeCompletion ? { recorded_native_milestones: [...this.native.values()].map(e => ({ name: e.name, seq: e.seq, origin: e.origin, evidence: e.evidence })) } : {}), recent_attempts: this.attempts.slice(-8), available_evidence: recent })}\n${this.switches.nativeCompletion ? "Only native milestone objectives are verified complete; local reported_complete plans are provisional and do not grade the run. Native tasks complete automatically; choose the next grounded task." : "Objectives are never completed automatically; report completion with evidence and choose the next grounded task."} Game evidence outranks remembered walkthroughs. Failure changes the approach, not whether an objective is required. Check the objective against the goal before acting. Use objective tools when evidence, obstacles, or decisions change.`;
     return [...messages, { role: "user", content, timestamp: now }];
   }
 }

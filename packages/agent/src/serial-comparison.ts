@@ -6,7 +6,7 @@ import { Type, type Static } from "typebox";
 import { Value } from "typebox/value";
 import { parseEvent, RUN_END_REASONS } from "./events.js";
 import { MILESTONES } from "./milestones.js";
-import { parsePlayPreset } from "./play-preset.js";
+import { parsePlayPresetV1 as parsePlayPreset } from "./play-preset.js";
 
 const closed = { additionalProperties:false };
 const text=Type.String({minLength:1});

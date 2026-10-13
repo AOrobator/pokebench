@@ -3,7 +3,8 @@ import { Type } from "typebox";
 import { Value } from "typebox/value";
 import { ButtonSchema } from "./events.js";
 import { CompletionInputSchema, CompletionSchema, NATIVE_OBJECTIVES, EvidenceSchema, ObjectiveStatusSchema, validateCompletionType } from "./objective-schema.js";
-import { ObjectiveTracker } from "./objectives.js";
+import { ALL_OBJECTIVE_SWITCHES, ObjectiveTracker, type ObjectiveSwitches } from "./objectives.js";
+export { ALL_OBJECTIVE_SWITCHES, type ObjectiveSwitches };
 import { observeTool, pressTool } from "./game-tools.js";
 import { parseGameState, StateWatcher } from "./game-state.js";
 import type { RunRecorder } from "./recorder.js";
@@ -25,7 +26,19 @@ delete stateText.maxLength;
 delete visualText.maxLength;
 const UpdateArgs = Type.Object({ status: ObjectiveStatusSchema, evidence: EvidenceSchema, obstacle: text, next_decision: Type.String({ minLength: 1, maxLength: 2000 }), retry_reason: text }, closed);
 const reply = (value: unknown): AgentToolResult<unknown> => ({ content: [{ type: "text", text: JSON.stringify(value) }], details: undefined });
-export const OBJECTIVE_PROMPT = `You also have get_objectives, set_objective and update_objective tools. The harness supplies the current objective, fixed overall goal, recent attempts and evidence sequence IDs before every turn. Set or revise objectives only from observed game evidence, explaining their alignment with the overall goal. Record obstacles and next decisions. Failed interaction attempts do not make a required task optional; reconsider the approach instead. Before pressing, have an active objective and next decision. Two matching failures warn; before a third matching attempt update the objective with a concrete retry_reason and evidence from the failed attempt or later. Never erase or ignore failed attempts. For story/navigation tasks select completion kind milestone and a name from the harness catalog. The harness fixes the task meaning and automatically completes it from native game evidence; completed is reserved for those milestones. Scalar state and visual conditions are local provisional plans, using reported_complete; neither grades story progress. Matching a room location cannot complete setting its clock. Native completion does not end the benchmark or replace its fixed overall goal. Recheck the current objective against the overall goal whenever new game information arrives. Model memory is a hypothesis, not evidence.`;
+const OBJECTIVE_PROMPT_TEXT = `You also have get_objectives, set_objective and update_objective tools. The harness supplies the current objective, fixed overall goal, recent attempts and evidence sequence IDs before every turn. Set or revise objectives only from observed game evidence, explaining their alignment with the overall goal. Record obstacles and next decisions. Failed interaction attempts do not make a required task optional; reconsider the approach instead. Before pressing, have an active objective and next decision. Two matching failures warn; before a third matching attempt update the objective with a concrete retry_reason and evidence from the failed attempt or later. Never erase or ignore failed attempts. For story/navigation tasks select completion kind milestone and a name from the harness catalog. The harness fixes the task meaning and automatically completes it from native game evidence; completed is reserved for those milestones. Scalar state and visual conditions are local provisional plans, using reported_complete; neither grades story progress. Matching a room location cannot complete setting its clock. Native completion does not end the benchmark or replace its fixed overall goal. Recheck the current objective against the overall goal whenever new game information arrives. Model memory is a hypothesis, not evidence.`;
+
+const REPEAT_RULE = " Two matching failures warn; before a third matching attempt update the objective with a concrete retry_reason and evidence from the failed attempt or later.";
+const NATIVE_RULE = " For story/navigation tasks select completion kind milestone and a name from the harness catalog. The harness fixes the task meaning and automatically completes it from native game evidence; completed is reserved for those milestones.";
+const NATIVE_GOAL_RULE = " Native completion does not end the benchmark or replace its fixed overall goal.";
+const NO_NATIVE_RULE = " Nothing completes automatically: when an objective is done, update it with status reported_complete and the evidence.";
+export function objectivePrompt(switches: ObjectiveSwitches): string {
+  let prompt = OBJECTIVE_PROMPT_TEXT;
+  if (!switches.repeatGuard) prompt = prompt.replace(REPEAT_RULE, "");
+  if (!switches.nativeCompletion) prompt = prompt.replace(NATIVE_RULE, NO_NATIVE_RULE).replace(NATIVE_GOAL_RULE, "");
+  return prompt;
+}
+export const OBJECTIVE_PROMPT = objectivePrompt(ALL_OBJECTIVE_SWITCHES);
 
 function prepareObjective(args: unknown) {
   if (!Value.Check(SetArgs, args)) throw new Error("Invalid objective parameters");
@@ -33,11 +46,11 @@ function prepareObjective(args: unknown) {
   return args;
 }
 
-export function objectiveTools(tracker: ObjectiveTracker, refreshCompletion?: (signal?: AbortSignal) => Promise<number>): AgentTool[] {
+export function objectiveTools(tracker: ObjectiveTracker, refreshCompletion?: (signal?: AbortSignal) => Promise<number>, nativeCompletion = true): AgentTool[] {
   return [
     { name: "get_objectives", label: "Read objectives", description: "Read the current objective, goal and full attempt history.", parameters: Type.Object({}, closed), execute: async (_id, _params, signal) => { await Promise.resolve(); signal?.throwIfAborted(); return reply({ goal: tracker.goal, native_catalog: NATIVE_OBJECTIVES, objective: tracker.snapshot(), attempts: tracker.attempts }); } },
     { name: "set_objective", label: "Set objective", description: "Select a harness-owned native milestone task or propose a provisional local plan using actual evidence sequence IDs. Native titles and verification are fixed by the harness; retain attempt history.", parameters: SetGrammarArgs, prepareArguments: prepareObjective, execute: async (_id, params, signal) => { await Promise.resolve(); signal?.throwIfAborted(); return reply(tracker.set(prepareObjective(params))); } },
-    { name: "update_objective", label: "Update objective", description: "Update obstacle, next decision or local provisional status with observed evidence. Native milestone completion is automatic; completed cannot be claimed for local plans. retry_reason grants one reassessed attempt.", parameters: UpdateArgs, execute: async (_id, params, signal) => { await Promise.resolve(); signal?.throwIfAborted(); if (!Value.Check(UpdateArgs, params)) throw new Error("Invalid objective update");
+    { name: "update_objective", label: "Update objective", description: nativeCompletion ? "Update obstacle, next decision or local provisional status with observed evidence. Native milestone completion is automatic; completed cannot be claimed for local plans. retry_reason grants one reassessed attempt." : "Update obstacle, next decision or provisional status with observed evidence; use reported_complete when an objective is done. retry_reason grants one reassessed attempt.", parameters: UpdateArgs, execute: async (_id, params, signal) => { await Promise.resolve(); signal?.throwIfAborted(); if (!Value.Check(UpdateArgs, params)) throw new Error("Invalid objective update");
       tracker.validateEvidence(params.evidence);
       if ((params.status === "completed" || params.status === "reported_complete") && refreshCompletion !== undefined) {
         const seq = await refreshCompletion(signal);
@@ -59,10 +72,10 @@ function resultState(result: AgentToolResult<unknown>) {
   if (typeof details !== "object" || details === null || !("state" in details)) throw new Error("Game tool did not return coherent state details");
   return parseGameState(details.state);
 }
-export function objectiveGameTools(tracker: ObjectiveTracker, recorder: Pick<RunRecorder, "recordState" | "buttonPress" | "afterPress">, url: string, fetchFn: typeof fetch = fetch): AgentTool[] {
+export function objectiveGameTools(tracker: ObjectiveTracker, recorder: Pick<RunRecorder, "recordState" | "buttonPress" | "afterPress">, url: string, fetchFn: typeof fetch = fetch, pressResult = true): AgentTool[] {
   const observe = observeTool(url, fetchFn);
   const submissions = { count: 0 };
-  const press = pressTool(url, { beforePress: (id, buttons, timing, before) => { submissions.count += 1; recorder.buttonPress(id, buttons, timing, before); }, afterPress: () => recorder.afterPress() }, fetchFn);
+  const press = pressTool(url, { beforePress: (id, buttons, timing, before) => { submissions.count += 1; recorder.buttonPress(id, buttons, timing, before); }, afterPress: () => recorder.afterPress() }, fetchFn, undefined, { pressResult });
   return [
     { ...observe, execute: async (id, params, signal, update) => {
       const result = await observe.execute(id, params, signal, update);
@@ -91,11 +104,12 @@ export function objectiveGameTools(tracker: ObjectiveTracker, recorder: Pick<Run
 
 type ObjectiveRecorder = Pick<RunRecorder, "recordState" | "buttonPress" | "afterPress" | "subscribe" | "recordObjective" | "transformContext">;
 
-export function objectiveHarness(goal: string, recorder: ObjectiveRecorder, url: string, fetchFn: typeof fetch = fetch) {
-  const tracker = new ObjectiveTracker(goal, (body) => { recorder.recordObjective(body); });
+export interface ObjectiveHarnessSwitches extends ObjectiveSwitches { readonly pressResult: boolean }
+export function objectiveHarness(goal: string, recorder: ObjectiveRecorder, url: string, fetchFn: typeof fetch = fetch, switches: ObjectiveHarnessSwitches = { ...ALL_OBJECTIVE_SWITCHES, pressResult: true }) {
+  const tracker = new ObjectiveTracker(goal, (body) => { recorder.recordObjective(body); }, switches);
   recorder.subscribe((event) => { tracker.observe(event); });
   return {
-    tools: [...objectiveGameTools(tracker, recorder, url, fetchFn), ...objectiveTools(tracker, async (signal) => recorder.recordState(await readState(url, fetchFn, signal)).seq)],
+    tools: [...objectiveGameTools(tracker, recorder, url, fetchFn, switches.pressResult), ...objectiveTools(tracker, async (signal) => recorder.recordState(await readState(url, fetchFn, signal)).seq, switches.nativeCompletion)],
     transformContext: (messages: AgentMessage[]) => recorder.transformContext(tracker.context(messages)),
   };
 }

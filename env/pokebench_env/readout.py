@@ -1,6 +1,38 @@
-"""The model's text readout and the typed JSON state, both from `GameState`."""
+"""The model's text readout and the typed JSON state, both from `GameState`.
+
+Observation switches (harness feature ids, set per run) remove their own text
+from the readout only; the typed JSON state used for measurement is unchanged.
+"""
+
+from collections.abc import Mapping
 
 from pokebench_env.game_state import GameState
+
+SERVER_FEATURES = (
+    "ram-state-v1",
+    "live-map-v1",
+    "live-player-position-v1",
+    "world-coordinate-grid-v1",
+    "live-object-sprites-v1",
+    "world-targets-v1",
+    "active-field-message-buffer-v1",
+    "naming-cursor-v1",
+    "story-state-v1",
+    "coordinate-script-conditions-v1",
+    "field-control-lock",
+    "warp-activation-guidance-v1",
+)
+
+
+def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
+    raw = env.get("POKEBENCH_FEATURES_OFF", "")
+    if raw == "":
+        return frozenset()
+    ids = raw.split(",")
+    if any(item not in SERVER_FEATURES for item in ids):
+        raise ValueError(f"POKEBENCH_FEATURES_OFF names an unknown observation feature: {raw!r}")
+    return frozenset(ids)
+
 
 PRE_GAME_TEXT = "Game not started: no save data (player, location, party) exists yet."
 
@@ -27,41 +59,56 @@ def _menu(state: GameState) -> str:
     )
 
 
-def format_readout(state: GameState) -> str:
+def format_readout(state: GameState, off: frozenset[str] = frozenset()) -> str:
+    if "ram-state-v1" in off:
+        return ""
     dialog = "none" if state.dialog is None else f'"{state.dialog}"'
     lines = [f"Screen: {state.screen}", f"Dialog: {dialog}", _menu(state)]
     if state.active_ui is not None:
         lines.append(state.active_ui.text())
-    if state.story is not None:
+    if state.story is not None and "story-state-v1" not in off:
         lines.append(state.story.text())
-    if state.naming is not None:
+    if state.naming is not None and "naming-cursor-v1" not in off:
         lines.append(state.naming.readout())
     if not state.started or state.position is None:
         return "\n".join([*lines, PRE_GAME_TEXT])
     x, y = state.position
     facing = "" if state.facing is None else f", facing {state.facing}"
     party = "; ".join(f"{m.species} Lv{m.level} HP {m.hp}/{m.max_hp}" for m in state.party or ())
+    lines += [f"Player: {state.name}", f"Location: {state.location}"]
+    if "live-player-position-v1" not in off:
+        lines.append(f"Position: X={x}, Y={y}{facing}")
     lines += [
-        f"Player: {state.name}",
-        f"Location: {state.location}",
-        f"Position: X={x}, Y={y}{facing}",
         f"Party: {party or 'none'}",
         f"Money: ₽{state.money}",
         f"Badges: {', '.join(state.badges or ()) or 'none'}",
         f"In battle: {'yes' if state.in_battle else 'no'}",
         f"Play time: {_clock(_play_seconds(state) or 0)}",
     ]
-    if state.field_controls_locked is not None:
+    if state.field_controls_locked is not None and "field-control-lock" not in off:
         lines.append(
             "Field controls: locked (dialog, menu, or script; direction presses cannot move)"
             if state.field_controls_locked
             else "Field controls: available (terrain and objects can still block a direction)"
         )
-    if state.local_map is not None:
-        lines.append(state.local_map)
+    if state.local_map is not None and "live-map-v1" not in off:
+        lines.append(
+            state.nearby.text(
+                grid="world-coordinate-grid-v1" not in off,
+                warp_guidance="warp-activation-guidance-v1" not in off,
+            )
+            if state.nearby is not None
+            else state.local_map
+        )
     if state.world_context is not None:
-        lines.append(state.world_context.text())
-    if state.interaction_targets is not None:
+        context = state.world_context.text(
+            objects="live-object-sprites-v1" not in off,
+            triggers="coordinate-script-conditions-v1" not in off,
+            dialogue="active-field-message-buffer-v1" not in off,
+        )
+        if context != "":
+            lines.append(context)
+    if state.interaction_targets is not None and "world-targets-v1" not in off:
         lines.append("Map interaction candidates (world coordinates; flags/scripts may gate use):")
         lines.extend(t.text() for t in state.interaction_targets)
     return "\n".join(lines)

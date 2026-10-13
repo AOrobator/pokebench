@@ -75,9 +75,9 @@ def test_map_off_drops_the_whole_grid_block() -> None:
 
 def test_position_off_drops_only_the_position_line() -> None:
     state = map_state()
-    assert dropped(format_readout(state), format_readout(state, frozenset({"live-player-position-v1"}))) == [
-        "Position: X=1, Y=1, facing down"
-    ]
+    assert dropped(
+        format_readout(state), format_readout(state, frozenset({"live-player-position-v1"}))
+    ) == ["Position: X=1, Y=1, facing right"]
 
 
 def test_grid_off_prints_unlabeled_rows() -> None:
@@ -125,7 +125,11 @@ def test_world_context_parts_switch_independently(feature: str, first: str, kept
 def test_world_context_disappears_when_all_three_parts_are_off() -> None:
     state = context_state()
     off = frozenset(
-        {"live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1"}
+        {
+            "live-object-sprites-v1",
+            "coordinate-script-conditions-v1",
+            "active-field-message-buffer-v1",
+        }
     )
     assert state.world_context is not None
     assert state.world_context.text() not in format_readout(state, off)
@@ -139,8 +143,12 @@ def test_field_lock_story_and_naming_lines_switch_off() -> None:
         "Field controls: locked (dialog, menu, or script; direction presses cannot move)"
     ]
     assert state.story is not None
-    assert dropped(full, format_readout(state, frozenset({"story-state-v1"}))) == state.story.text().split("\n")
-    assert dropped(full, format_readout(state, frozenset({"naming-cursor-v1"}))) == NAMING.readout().split("\n")
+    assert dropped(
+        full, format_readout(state, frozenset({"story-state-v1"}))
+    ) == state.story.text().split("\n")
+    assert dropped(
+        full, format_readout(state, frozenset({"naming-cursor-v1"}))
+    ) == NAMING.readout().split("\n")
 
 
 def test_measurement_json_is_unchanged_by_switches() -> None:
@@ -151,9 +159,9 @@ def test_measurement_json_is_unchanged_by_switches() -> None:
 def test_env_list_is_validated() -> None:
     assert features_off_from_env({}) == frozenset()
     assert features_off_from_env({"POKEBENCH_FEATURES_OFF": ""}) == frozenset()
-    assert features_off_from_env({"POKEBENCH_FEATURES_OFF": "live-map-v1,story-state-v1"}) == frozenset(
-        {"live-map-v1", "story-state-v1"}
-    )
+    assert features_off_from_env(
+        {"POKEBENCH_FEATURES_OFF": "live-map-v1,story-state-v1"}
+    ) == frozenset({"live-map-v1", "story-state-v1"})
     for bad in ("invented-v1", "live-map-v1,,story-state-v1", "deterministic-loop-guard-v1"):
         with pytest.raises(ValueError, match="POKEBENCH_FEATURES_OFF"):
             features_off_from_env({"POKEBENCH_FEATURES_OFF": bad})

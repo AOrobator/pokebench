@@ -176,6 +176,7 @@ export function pressTool(
   hooks: PressHooks,
   fetchFn: typeof fetch = fetch,
   clock: Clock = realClock,
+  options: { readonly pressResult: boolean } = { pressResult: true },
 ): AgentTool<typeof PressArgs> {
   return {
     name: "press",
@@ -210,7 +211,7 @@ export function pressTool(
       await waitForQueue(gameServerUrl, fetchFn, clock, signal);
       await clock.sleep(STATE_CACHE_SETTLE_MS);
       await hooks.afterPress();
-      const content = await observation(gameServerUrl, fetchFn, signal, (after) => `pressed ${params.buttons.join(", ")}\nPress result: ${pressResult(before, after, params.buttons)}\n\n`);
+      const content = await observation(gameServerUrl, fetchFn, signal, (after) => `pressed ${params.buttons.join(", ")}\n${options.pressResult ? `Press result: ${pressResult(before, after, params.buttons)}\n` : ""}\n`);
       return { content: content.content, details: { state: content.state } };
     },
   };

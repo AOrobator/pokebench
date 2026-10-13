@@ -11,7 +11,9 @@ import { createHash, randomBytes } from "node:crypto";
 import { activeUiFeatures } from "./ui-feature.js";
 import { readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
-import { objectiveHarness, OBJECTIVE_PROMPT } from "./objective-tools.js";
+import { objectiveHarness } from "./objective-tools.js";
+import { playHarnessFeatures, serverFeatureEnv } from "./features.js";
+import { PLAY_LIMITS, PLAY_MAX_TOKENS, PLAY_TASK, PLAY_THINKING, playGoal, playSystemPrompt, playTools } from "./play-config.js";
 import { verifyIntro } from "./verify-state.js";
 import { driveProbe, parseProbeCommand, type ProbeCommand } from "./probe.js";
 import { join, resolve } from "node:path";
@@ -22,12 +24,12 @@ import { checkSmoke, observeTool, pressTool, serverHealthy } from "./game-tools.
 import { discoverModels, selectModel, type GatewayModel } from "./gateway.js";
 import { FrameStore } from "./frames.js";
 import { StateWatcher } from "./game-state.js";
-import {parsePlayPreset} from "./play-preset.js";
+import {flagFeatures,parsePlayPreset,presetFeatures,presetFlags} from "./play-preset.js";
 import {NativeTargetStop} from "./target-stop.js";
 import {RUN_ID_PATTERN} from "./events.js";
 import { StateMilestones } from "./milestones.js";
 import { readLoopMode } from "./loop-detection.js";
-import { attachLoopGuard, Governor, piLoop, play, type Limits } from "./harness.js";
+import { attachLoopGuard, Governor, piLoop, play } from "./harness.js";
 import { discoverLocal, readEndpoint } from "./local-endpoint.js";
 import { gatewayLoopConfig } from "./provider.js";
 import type { RunRecorder } from "./recorder.js";
@@ -196,54 +198,6 @@ async function smoke(): Promise<void> {
   console.log(`smoke-llm OK: run ${runId} ended (${reason}); events in runs/${runId}/events.jsonl`);
 }
 
-const PLAY_LIMITS: Limits = { maxTurns: 300, maxWallMs: 30 * 60_000, failureLimit: 3 };
-const PLAY_MAX_TOKENS = 4096;
-const PLAY_THINKING = "medium";
-
-const PLAY_SYSTEM_PROMPT = `You are playing Pokémon Emerald on a Game Boy Advance emulator. Your goal is to make as much story progress as you can: start a new game, get your first Pokémon, and work toward defeating the first Gym Leader in Rustboro City.
-
-You act through game tools:
-- observe: shows the current screen and a text readout of the game state read from memory (location, coordinates, party, and an ASCII map of the surroundings).
-- press: presses up to 8 buttons in order (A, B, START, SELECT, UP, DOWN, LEFT, RIGHT), then shows the new screen and state.
-
-Controls: A confirms, talks and interacts; B cancels and backs out; START opens the menu; each D-pad press moves one tile, and a press in a new direction may only turn you to face it.
-
-Dialogue: use B to advance or dismiss ordinary dialogue. Prefer short batches, then observe. Once field controls are available, stop dismissing and move away. Extra A presses can restart an NPC conversation. Use A to initiate interactions or confirm selections; B may cancel menus and confirmation prompts.
-
-Warps: W marks a transition location, not a universal step-on trigger. Follow its activation description in the state readout: directional exits require standing on the tile and pressing the indicated direction; doors require walking toward them; step-on warps activate by entering the tile. A is not a universal warp button. If activation is unknown, use the screen and small controlled attempts rather than assuming every W works alike. Near a transition, use short button sequences and check the new map and position before continuing; remaining buttons may act on the destination map. If field controls are locked, resolve the dialog, menu or script before trying to walk.
-
-In every reply, think briefly about what you see and what to do next, then call a tool. Replies without a tool call do nothing.`;
-
-const PLAY_GOAL = "Start a new game, obtain a starter, and work toward defeating the first Gym Leader in Rustboro City.";
-const PLAY_TASK = "The game has just booted. Begin playing.";
-
-// Documentation treatment only: retain the pre-experiment prompt verbatim above.
-const CONTEXTUAL_CONTROLS = `Buttons are contextual: their meaning depends on the current screen, selected control, and whether input is ready. Screen-specific instructions below override general controls. START does not always open a menu.
-
-Overworld: A talks or interacts with what you face; B can dismiss ordinary dialogue; START opens the menu only when field controls permit it. D-pad input attempts movement and may only turn you on the first press. When controls are locked, direction presses cannot walk. In menus and confirmation questions, directions change the highlighted option, A chooses that option, and B may cancel. Never assume the highlighted option is YES.
-
-State and interface documentation: use the latest screenshot and readout together. A selected key is the key under the cursor now, not the name buffer or a group of possible letters. Unknown/unavailable state does not establish that a menu is closed or that input is accepted. Readouts of the name being edited, selected key, keyboard page, and readiness describe the current editor; editor text is not a confirmed trainer name.
-
-Naming editor (player name or Pokémon nickname): each letter is an individual key, not phone-style cycling groups. A on a character appends exactly that character; repeated A appends repeated characters rather than cycling letters. B deletes the last character. SELECT or A on PAGE changes the keyboard page. START moves the cursor to OK; it does not open a menu or submit the name. A on OK finishes editing. A on BACK deletes. Directions move the cursor through keys; edges wrap and the side-button column has three rows, so check the returned selected key rather than assuming a rectangular cursor path. If input is transitioning, observe again before interpreting a press as accepted.
-
-Naming layout, zero-based rows and columns: uppercase and lowercase have eight character columns (0-7), plus side buttons at column 8: PAGE row 0, BACK row 1, OK row 2. Uppercase rows, with SPACE explicitly shown:
-row 0: A B C D E F SPACE .
-row 1: G H I J K L SPACE ,
-row 2: M N O P Q R S SPACE
-row 3: T U V W X Y Z SPACE
-Lowercase uses the same positions with lowercase letters. Symbols have six character columns (0-5), plus PAGE/BACK/OK at column 6:
-row 0: 0 1 2 3 4 SPACE
-row 1: 5 6 7 8 9 SPACE
-row 2: ! ? ♂ ♀ / -
-row 3: … “ ” ‘ ' SPACE
-When the editor fills its allowed length, it may move the cursor to OK automatically; inspect the selected key and text. After player-name editing, Birch asks a separate confirmation question. Inspect that screen and its actual selected option; editor OK alone is not final player-name acceptance. Pokémon nicknaming can use the same keyboard, so the naming screen alone does not prove which name is being edited.
-
-Clock interface: LEFT/RIGHT adjust the clock hands; A opens a confirmation question. The question can initially select NO; repeated A is not evidence of acceptance. Check the visible highlighted option, use directions to change it if needed, and use A to choose it; B returns to adjustment. Confirm completion from the subsequent game state rather than the press alone.`;
-
-const DOCUMENTED_PLAY_SYSTEM_PROMPT = PLAY_SYSTEM_PROMPT.replace(
-  "Controls: A confirms, talks and interacts; B cancels and backs out; START opens the menu; each D-pad press moves one tile, and a press in a new direction may only turn you to face it.",
-  CONTEXTUAL_CONTROLS,
-);
 
 async function playAgent(): Promise<void> {
   const presetPath=process.env["POKEBENCH_PLAY_PRESET"];
@@ -251,21 +205,17 @@ async function playAgent(): Promise<void> {
   const assigned=process.env["POKEBENCH_RUN_ID"];
   if(assigned!==undefined&&!new RegExp(RUN_ID_PATTERN).test(assigned))throw new Error("POKEBENCH_RUN_ID is invalid");
   const limits=preset?.limits??PLAY_LIMITS;
-  const flags=preset?.flags??{loopGuard:process.env["POKEBENCH_LOOP_GUARD"]!=="0",activeUi:activeUiFeatures().length>0,interfaceDocs:process.env["POKEBENCH_INTERFACE_DOCS"]!=="0",objectives:process.env["POKEBENCH_OBJECTIVES"]!=="0"};
-  const serverEnv={...process.env,POKEBENCH_ACTIVE_UI:flags.activeUi?"1":"0"};
+  const features=preset===null?flagFeatures({loopGuard:readLoopMode(process.env)==="enforced",activeUi:activeUiFeatures().length>0,interfaceDocs:process.env["POKEBENCH_INTERFACE_DOCS"]!=="0",objectives:process.env["POKEBENCH_OBJECTIVES"]!=="0"}):presetFeatures(preset);
+  const serverEnv={...process.env,...serverFeatureEnv(features)};
   const { model, port, gatewayUrl, apiKey } = await live();
   if(preset!==null&&preset.sampling.maxTokens>model.maxTokens)throw new Error("Play preset maxTokens exceeds the discovered model limit");
   const runId=assigned??newRunId(new Date(),model.id,()=>randomBytes(2).toString("hex"));
   const maxTokens=preset?.sampling.maxTokens??Math.min(PLAY_MAX_TOKENS,model.maxTokens);
   const thinking=preset?.sampling.thinkingLevel??PLAY_THINKING;
-  const detectLoops=flags.loopGuard;
-  const loopMode=preset===null?readLoopMode(process.env):detectLoops?"enforced":"diagnostic";
-  const trackObjectives=flags.objectives,documentInterface=flags.interfaceDocs;
+  const loopMode=features["deterministic-loop-guard-v1"]?"enforced":"diagnostic";
   const target=preset?.target??null;
-  const goal=target===null?PLAY_GOAL:`Reach the native game milestone ${target.replaceAll("_"," ")}.`;
-  const selectedPrompt=documentInterface?DOCUMENTED_PLAY_SYSTEM_PROMPT:PLAY_SYSTEM_PROMPT;
-  const goalPrompt=target===null?selectedPrompt:selectedPrompt.replace("Your goal is to make as much story progress as you can: start a new game, get your first Pokémon, and work toward defeating the first Gym Leader in Rustboro City.",`Your goal is: ${goal}`);
-  const systemPrompt=goalPrompt+(trackObjectives?`\n\n${OBJECTIVE_PROMPT}`:"");
+  const goal=playGoal(target);
+  const systemPrompt=playSystemPrompt(features,target);
   console.log(`run-agent: run ${runId}, model ${model.id} via ${gatewayUrl}`);
   console.log(`watch: just tail-run ${runId}   (frame: http://127.0.0.1:${String(port)}/view)`);
 
@@ -276,11 +226,11 @@ async function playAgent(): Promise<void> {
       port,
       model: { id: model.id, context_window: model.contextWindow, max_tokens: model.maxTokens, vision: true },
       sampling: { thinking_level: thinking, max_tokens: maxTokens },
-      ...(preset===null?{}:{evaluation:{preset_id:preset.id,target:preset.target,failure_limit:limits.failureLimit,flags}}),
+      ...(preset===null?{}:{evaluation:{preset_id:preset.id,target:preset.target,failure_limit:limits.failureLimit,flags:presetFlags(preset)}}),
       systemPrompt,
-      tools: ["observe", "press", ...(trackObjectives ? ["get_objectives", "set_objective", "update_objective"] : [])],
+      tools: playTools(features),
       startState: { kind: "boot" },
-      harnessFeatures: ["ram-state-v1", "live-map-v1", "field-control-lock", "naming-cursor-v1", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "world-targets-v1", "live-player-position-v1", "world-coordinate-grid-v1", "press-result-v1", "warp-activation-guidance-v1", "clock-milestone-v1", "story-state-v1", ...activeUiFeatures(serverEnv), "story-milestones-v2", "new-game-created-v1", ...(target===null?[]:["native-target-stop-v1"]), "deterministic-loop-diagnostics-v1", "deterministic-loop-policy-v1:p6:o3:a3:c3:r2:recovery6", ...(detectLoops ? ["deterministic-loop-guard-v1"] : []), ...(documentInterface ? ["contextual-interface-docs-v1"] : []), ...(trackObjectives ? ["objective-tracking-v1", "repeat-attempt-guard-v1", "native-objective-completion-v1"] : [])],
+      harnessFeatures: playHarnessFeatures(features,target),
 
       budgets: { max_turns: limits.maxTurns, max_wall_ms: limits.maxWallMs },
       piVersion: piVersion(),
@@ -320,11 +270,11 @@ async function playAgent(): Promise<void> {
         governor.abort("operator_abort");
       };
       process.once("SIGINT", interrupt);
-      const objectives = trackObjectives ? objectiveHarness(goal, recorder, gameServerUrl) : null;
+      const objectives = features["objective-tracking-v1"] ? objectiveHarness(goal, recorder, gameServerUrl, fetch, { repeatGuard: features["repeat-attempt-guard-v1"], nativeCompletion: features["native-objective-completion-v1"], pressResult: features["press-result-v1"] }) : null;
       const loop = piLoop({
         systemPrompt,
         loopDetector,
-        tools: objectives?.tools ?? [observeTool(gameServerUrl), pressTool(gameServerUrl, pressHooks(recorder))],
+        tools: objectives?.tools ?? [observeTool(gameServerUrl), pressTool(gameServerUrl, pressHooks(recorder), fetch, undefined, { pressResult: features["press-result-v1"] })],
         base: { ...gatewayLoopConfig(model, thinking, apiKey), maxTokens },
         governor,
         transformContext: objectives?.transformContext ?? recorder.transformContext,

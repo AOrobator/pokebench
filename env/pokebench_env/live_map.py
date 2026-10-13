@@ -66,7 +66,7 @@ class LocalMap:
     objects: tuple[tuple[int, int, int], ...]
     warps: tuple[tuple[int, int, int, int], ...]
 
-    def text(self) -> str:
+    def text(self, *, grid: bool = True, warp_guidance: bool = True) -> str:
         x, y = self.origin
         objects = ", ".join(f"id {i} at ({a},{b})" for i, a, b in self.objects) or "none nearby"
         behaviors_at = {(tile.x, tile.y): tile.behavior for tile in self.tiles}
@@ -77,28 +77,41 @@ class LocalMap:
                     if (g, n) == (127, 127)
                     else f"({a},{b}) -> map {g}/{n}"
                 )
-                + f" [{_warp_trigger(behaviors_at.get((a, b)))}]"
+                + (f" [{_warp_trigger(behaviors_at.get((a, b)))}]" if warp_guidance else "")
                 for a, b, g, n in self.warps
             )
             or "none nearby"
         )
         behaviors = sorted({tile.behavior for tile in self.tiles})
-        return (
-            f"Local map from live memory; top-left ({x},{y}), north is up:\n"
-            + "     "
+        rows = (
+            "     "
             + " ".join(f"{x + i:3}" for i in range(len(self.rows[0])))
             + "\n"
             + "\n".join(
                 f"{y + i:4} " + " ".join(f"{c:>3}" for c in row) for i, row in enumerate(self.rows)
             )
-            + "\n@ player; N live object; W warp location (see activation below);"
+            if grid
+            else "\n".join(self.rows)
+        )
+        return (
+            f"Local map from live memory; top-left ({x},{y}), north is up:\n"
+            + rows
+            + (
+                "\n@ player; N live object; W warp location (see activation below);"
+                if warp_guidance
+                else "\n@ player; N live object; W warp;"
+            )
             + " # collision; g grass; ~ water;"
             + " . clear terrain (may have script triggers); ? outside current map."
             + "\nTerrain rules, elevation and objects can still block movement."
             + f"\nLive objects: {objects}\nWarps: {warps}"
-            + "\nWarp destinations are map group/number IDs, not warp indexes. Activation also"
-            + " requires matching elevation and available field controls; W alone does not"
-            + " guarantee a transition. After a transition, check the new map and position."
+            + (
+                "\nWarp destinations are map group/number IDs, not warp indexes. Activation also"
+                " requires matching elevation and available field controls; W alone does not"
+                " guarantee a transition. After a transition, check the new map and position."
+                if warp_guidance
+                else ""
+            )
             + "\nMetatile behaviors present: "
             + ", ".join(f"0x{value:02X}" for value in behaviors)
         )

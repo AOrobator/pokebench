@@ -13,7 +13,7 @@ from pathlib import Path
 
 from pokebench_env.game_screen import ReadMemory, read_screen
 from pokebench_env.gba_text import GBA_TEXT, decode_text
-from pokebench_env.live_map import MAP_OFFSET, read_local_map
+from pokebench_env.live_map import MAP_OFFSET, LocalMap, read_local_map
 from pokebench_env.naming import NamingState, read_naming
 from pokebench_env.story import StoryState, read_story
 from pokebench_env.ui_state import ActiveUi, Menu, read_active_ui, read_dialog, read_menu
@@ -90,6 +90,7 @@ class GameState:
     menu: Menu | None = None
     active_ui: ActiveUi | None = None
     interaction_targets: tuple[InteractionTarget, ...] | None = None
+    nearby: LocalMap | None = None
 
 
 def _u32(read: ReadMemory, address: int) -> int:
@@ -194,6 +195,7 @@ def read_game_state(
         menu=menu,
         active_ui=active_ui,
         local_map=None if nearby is None else nearby.text(),
+        nearby=nearby,
         world_context=read_world_context(read, (x, y), map_id, save1, decode_text)
         if screen.kind == "overworld" and not in_battle
         else None,

@@ -13,7 +13,7 @@ from pydantic import BaseModel
 
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import GameState, MapNames, read_game_state
-from pokebench_env.readout import format_readout, state_json
+from pokebench_env.readout import features_off_from_env, format_readout, state_json
 from pokebench_env.ui_state import active_ui_enabled_from_env
 
 ScreenshotFn = Callable[[], BaseModel]
@@ -27,6 +27,7 @@ def install_observation(
     memory_lock: AbstractContextManager[object] | None = None,
 ) -> None:
     enabled = active_ui_enabled_from_env(os.environ)
+    off = features_off_from_env(os.environ)
 
     def snapshot() -> GameState:
         with memory_lock if memory_lock is not None else nullcontext():
@@ -41,7 +42,7 @@ def install_observation(
         if not isinstance(screenshot, str) or screenshot == "":
             raise HTTPException(status_code=503, detail="no screenshot available")
         return {
-            "state_text": format_readout(state),
+            "state_text": format_readout(state, off),
             "screenshot_base64": screenshot,
             "state": state_json(state),
         }

@@ -66,40 +66,45 @@ class WorldContext:
     def json(self) -> dict[str, object]:
         return asdict(self)
 
-    def text(self) -> str:
-        lines = [
-            "Field objects (ids are map-local, not globally unique; "
-            "sprite kinds are not personal names):"
-        ]
-        for o in self.objects:
+    def text(self, *, objects: bool = True, triggers: bool = True, dialogue: bool = True) -> str:
+        lines = []
+        if objects:
             lines.append(
-                f"- map {o.map_id[0]}/{o.map_id[1]} object {o.local_id}: "
-                f"sprite {o.sprite_kind or 'unknown'} "
-                f"(graphics {o.graphics_id}) at ({o.x},{o.y})"
+                "Field objects (ids are map-local, not globally unique; "
+                "sprite kinds are not personal names):"
             )
-        lines.append("Nearby script-trigger tiles (a clear terrain tile can still run a script):")
-        for t in self.triggers:
-            status = (
-                "matches"
-                if t.condition_met is True
-                else "does not match"
-                if t.condition_met is False
-                else "unavailable"
-            )
+            for o in self.objects:
+                lines.append(
+                    f"- map {o.map_id[0]}/{o.map_id[1]} object {o.local_id}: "
+                    f"sprite {o.sprite_kind or 'unknown'} "
+                    f"(graphics {o.graphics_id}) at ({o.x},{o.y})"
+                )
+        if triggers:
             lines.append(
-                f"- ({t.x},{t.y}), elevation {t.elevation}: variable "
-                f"0x{t.variable:04X}={t.current_value}, needs {t.required_value}; "
-                f"condition {status}; script 0x{t.script_pointer:08X}"
+                "Nearby script-trigger tiles (a clear terrain tile can still run a script):"
             )
-        lines.append(
-            "Trigger elevation must also match the player on entry (0 matches any elevation)."
-        )
-        if self.dialogue is not None:
+            for t in self.triggers:
+                status = (
+                    "matches"
+                    if t.condition_met is True
+                    else "does not match"
+                    if t.condition_met is False
+                    else "unavailable"
+                )
+                lines.append(
+                    f"- ({t.x},{t.y}), elevation {t.elevation}: variable "
+                    f"0x{t.variable:04X}={t.current_value}, needs {t.required_value}; "
+                    f"condition {status}; script 0x{t.script_pointer:08X}"
+                )
+            lines.append(
+                "Trigger elevation must also match the player on entry (0 matches any elevation)."
+            )
+        if dialogue and self.dialogue is not None:
             lines.append(
                 "Active field-message buffer (can include pages not yet displayed):\n"
                 + self.dialogue
             )
-        else:
+        elif dialogue:
             lines.append(
                 "Field-message text: unavailable; do not infer that the dialogue box is closed."
             )

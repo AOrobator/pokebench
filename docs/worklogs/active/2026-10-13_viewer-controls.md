@@ -62,11 +62,11 @@ Approval basis: the operator approved the design and asked to build and land it;
   - Corrections vs mockup 11/22 copy: NPCS + OBJECTS needs ram-state (world_context is independent of the grid), not live-map; DIALOGUE AS TEXT is the field-message buffer (can include undisplayed pages) and the separate short `Dialog:` line stays; PLAYER POSITION off drops only the Position line (map still marks @); STORY FLAGS lists completed story steps, not raw flags; WORLD TARGETS are map event candidates (objects, warps, signs, step triggers); LOOP GUARD also covers repeated tool rejections and ends the run as `stuck`; REPEAT-ATTEMPT GUARD blocks the third identical no-change press and warns on position cycles; ACTIVE UI off also degrades the Menu line; RAM readout off also rewrites the observe/press lines of the system prompt; PRESS RESULTS declared `needs ram-state-v1`.
   - Off semantics: observation switches remove only their own readout text on the game server (`POKEBENCH_FEATURES_OFF`); `state_json` (measurement, milestones, viewer) is unchanged. Prompt golden hashes at 0632fc0: all-on 9acbcc60…, all-on+PLAYER_NAME_CONFIRMED f2f0dd35…, docs-off c9ea0a80…, objectives-off 5ea89164…, OBJECTIVE_PROMPT 33c0b2a9….
 - [x] Write tests: registry completeness vs `live.ts` ids; v2 preset parse + dependency rejection; v1 normalization; default parity goldens (INV-VC1); per-feature off removes only its output (readout, prompt, tools, harness_features); env `POKEBENCH_FEATURES_OFF` validation
-- [ ] COMMIT: `test(features): ...` (RED)
-- [ ] Implement registry, preset v2, `live.ts` wiring, env readout switches
-- [ ] Gates: `just test`, `just lint`, `just build`, `just coverage` (≥90 both stacks), `just verify-vendor`
+- [x] COMMIT: `test(features): require real per-feature switches with default parity (RED)` (d4f573f): agent 4 failing tests + 3 failing files (594 run), python collection error, implementation hidden
+- [x] Implement registry (`features.ts`), prompt/tools (`play-config.ts`, constants moved byte for byte from live.ts), preset v2 (+`parsePlayPresetV1` for frozen comparison manifests, `presetFlags` keeps the run_start evaluation contract), objective/press switches, env readout switches (`POKEBENCH_FEATURES_OFF`, `GameState.nearby` for re-rendering)
+- [x] Gates: tests agent 618 / viewer 170 / python 437 pass; lint, build, verify-vendor OK; coverage agent 98.97L/94.18B/98.44F, viewer 98.55/91.24/98.59, python 99.40/97.27/100
 - [ ] COMMIT: `feat(features): ...` (GREEN)
-- [ ] Guard deletion/restoration receipts
+- [x] Guard deletion/restoration receipts: 17/17 mutated red, restored green (`runs/launch-receipts/viewer-controls/m1-guards/01..17`)
 - [ ] Multi-model review loop until clean
 
 **M2 — Run control in the agent and game server (pause / stop / cancel / abort)**

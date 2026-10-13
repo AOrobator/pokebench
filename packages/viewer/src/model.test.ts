@@ -232,3 +232,10 @@ it("the split ordering matches the production milestone owner", async () => {
   const {MILESTONE_ORDER: displayed} = await import("./model.js");
   expect([...displayed]).toEqual(recorded);
 });
+
+it("replays loop warnings, recovery and stuck termination without conflating retries",()=>{
+  const log=new Log();log.add(0,START);
+  for(const phase of ["warning","recovered","stop"] as const)log.add(100,{type:"loop_guard",turn:1,kind:"planning",phase,message:"No action <yet>",calls:6,evidence:[1,2]});
+  const view=new RunView();for(const event of log.events)view.apply(event);
+  expect(view.errors.map(e=>[e.kind,e.label])).toEqual([["loop","loop planning warning: No action <yet>"],["loop","loop planning recovered: No action <yet>"],["loop","loop planning stop: No action <yet>"]]);expect(view.retry).toBe(null);
+});

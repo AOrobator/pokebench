@@ -405,3 +405,8 @@ it("shows creation before name confirmation with recorded baseline and best delt
   expect(html.indexOf('new game created')).toBeLessThan(html.indexOf('player name confirmed'));
   expect(splits(view(bare()), null, BASE_MS + 12000).table).toContain('<td class="n">new game created</td><td class="t">not<br>recorded</td>');
 });
+
+it("shows escaped loop evidence in the action log",()=>{
+  const log=bare();const event=log.add(100,{type:"loop_guard",turn:1,kind:"cycle",phase:"warning",message:"Reassess <now>",calls:9,evidence:[4,7]});
+  const html=actionRow(event);expect(html).toContain("Loop cycle warning");expect(html).toContain("Reassess &lt;now&gt;");expect(html).toContain("#4, #7");expect(html).toContain("ev-error");
+});

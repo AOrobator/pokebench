@@ -59,6 +59,7 @@ function body(event: RunEvent): [string, string] {
     }
     case "milestone":
       return ["MILESTONE", event.name];
+    case "loop_guard": return ["LOOP", `${event.kind} ${event.phase}: ${event.message}`];
     case "retry":
       return ["RETRY", `${String(event.attempt)}/${String(event.limit)} ${event.reason}`];
     case "disk_usage":

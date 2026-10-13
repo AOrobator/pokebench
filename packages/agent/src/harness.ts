@@ -8,6 +8,8 @@ import {
   type StreamFn,
 } from "@mariozechner/pi-agent-core";
 import type { AssistantMessage, ToolResultMessage } from "@mariozechner/pi-ai";
+import { LoopDetector, type LoopPolicy } from "./loop-detection.js";
+import type { RunRecorder } from "./recorder.js";
 import type { RunEndReason } from "./events.js";
 
 export interface Chunked {
@@ -134,6 +136,15 @@ function firstText(result: ToolResultMessage | undefined): string {
   return part?.type === "text" ? part.text : "";
 }
 
+export function attachLoopGuard(recorder: Pick<RunRecorder, "subscribe" | "recordLoopGuard">, governor: Governor, policy?: LoopPolicy): LoopDetector {
+  const detector = new LoopDetector((notice) => {
+    recorder.recordLoopGuard({...notice,evidence:[...notice.evidence]});
+    if (notice.phase === "stop") governor.abort("stuck");
+  }, policy);
+  recorder.subscribe((event) => { detector.observe(event); });
+  return detector;
+}
+
 export interface Loop {
   start(prompts: AgentMessage[], messages: AgentMessage[]): Promise<AgentMessage[]>;
   resume(messages: AgentMessage[]): Promise<AgentMessage[]>;
@@ -148,6 +159,7 @@ export interface PiLoopOptions {
   readonly emit: (event: AgentEvent) => Promise<void> | void;
   readonly signal: AbortSignal;
   readonly streamFn?: StreamFn;
+  readonly loopDetector?: LoopDetector | undefined;
 }
 
 export function piLoop(options: PiLoopOptions): Loop {
@@ -155,7 +167,16 @@ export function piLoop(options: PiLoopOptions): Loop {
   const config: AgentLoopConfig = {
     ...options.base,
     toolExecution: "sequential",
-    transformContext: (messages) => options.transformContext(slideWindow(messages)),
+    transformContext: (messages) => {
+      const warning = options.loopDetector?.context();
+      const context = slideWindow(messages);
+      if (warning) context.push({role:"user",content:warning,timestamp:Date.now()});
+      return options.transformContext(context);
+    },
+    beforeToolCall: async (context, signal) => {
+      if (options.loopDetector?.stopped) return {block:true,reason:"Loop guard stopped the run; no further tool execution."};
+      return options.base.beforeToolCall?.(context,signal);
+    },
     shouldStopAfterTurn: ({ message, toolResults }) => governor.afterTurn(message, toolResults),
     getFollowUpMessages: governor.followUps,
   };

@@ -167,7 +167,7 @@ const ActionSchema = Type.Object({ status: Type.String(), message: Type.Optional
 export const PRESS_TIMING: PressTiming = { hold_frames: 10, release_frames: 8 };
 
 export interface PressHooks {
-  beforePress(toolCallId: string, buttons: readonly Button[], timing: PressTiming): void;
+  beforePress(toolCallId: string, buttons: readonly Button[], timing: PressTiming, before?: GameStateSnapshot): void;
   afterPress(): Promise<void>;
 }
 
@@ -194,7 +194,7 @@ export function pressTool(
         // the feedback explicitly withholds a before/after classification.
         signal?.throwIfAborted();
       }
-      hooks.beforePress(toolCallId, params.buttons, PRESS_TIMING);
+      hooks.beforePress(toolCallId, params.buttons, PRESS_TIMING, before);
       const url = `${gameServerUrl}/action`;
       const response = await fetchFn(url, {
         method: "POST",

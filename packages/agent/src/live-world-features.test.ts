@@ -71,3 +71,11 @@ it.each([["smoke", true], ["play", true], ["probe", true], ["verify-state", true
   expect(start.harness_features.filter((f) => ["live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "warp-activation-guidance-v1"].includes(f))).toEqual(["live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "warp-activation-guidance-v1"]);
   expect(declared).toEqual(["world-targets-v1", "live-player-position-v1", "world-coordinate-grid-v1", "press-result-v1"]);
 });
+
+it.each([true,false])("play publishes loop-guard ablation (enabled=%s)",async(enabled)=>{
+  vi.resetModules();context.memory=true;context.files.clear();context.root=`/test-owned/loop-publisher-${String(enabled)}`;
+  const receipt=new Promise<RunEvent>((resolve,reject)=>{context.resolve=resolve;context.reject=reject;});
+  vi.stubGlobal("process",Object.assign(Object.create(process) as NodeJS.Process,{argv:[...process.argv.slice(0,2),"play"],env:{...process.env,POKEBENCH_LOOP_GUARD:enabled?"1":"0"}}));
+  vi.spyOn(console,"log").mockImplementation(()=>undefined);await import("./live.js");const start=await receipt;
+  if(start.type!=="run_start")throw new Error("unexpected startup event");expect(start.harness_features.filter(f=>f.startsWith("deterministic-loop-guard"))).toEqual(enabled?["deterministic-loop-guard-v1"]:[]);
+});

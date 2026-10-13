@@ -103,6 +103,7 @@ export class RunRecorder {
     for (const observer of this.observers) observer(event);
     return event;
   }
+  recordLoopGuard(body: Omit<BodyOf<"loop_guard">, "type" | "turn">): void { this.append({type:"loop_guard",turn:this.turn,...body,evidence:[...body.evidence]}); }
   recordObjective(body: BodyOf<"objective_update"> | BodyOf<"objective_attempt">): void { this.append({ ...body, turn: this.turn }); }
   recordState(state: GameStateSnapshot): Extract<Extract<RunEvent, { type: "state" }>, { started: boolean }> {
     if (this.storyRequired && state.story === undefined) throw new RecorderError("Declared story-state-v1 but the game server returned no story state; check the Python reader deployment.");
@@ -234,11 +235,13 @@ export class RunRecorder {
     this.frames.flush(this.log, this.turn);
   }
 
-  buttonPress(toolCallId: string, buttons: readonly Button[], timing: PressTiming): void {
+  buttonPress(toolCallId: string, buttons: readonly Button[], timing: PressTiming, before?: GameStateSnapshot): void {
+    const beforeSeq=before===undefined?undefined:this.recordState(before).seq;
     this.append({
       type: "button_press",
       turn: this.turn,
       tool_call_id: toolCallId,
+      ...(beforeSeq===undefined?{}:{before_state_seq:beforeSeq}),
       buttons: [...buttons],
       hold_frames: timing.hold_frames,
       release_frames: timing.release_frames,

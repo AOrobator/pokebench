@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { Log, START, fullRun } from "../test-support/events.js";
 import { BROWSER_MODULES, HOST, startViewer, type Viewer } from "./server.js";
+import { parseWorkbench } from "./workbench-data.js";
 
 const PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
@@ -98,7 +99,7 @@ describe("browser modules", () => {
     for (const name of BROWSER_MODULES) {
       const source = readFileSync(new URL(`./${name}.ts`, import.meta.url), "utf8");
       const runtimeImports = [...source.matchAll(/^import (?!type )[^;]*?from "([^"]+)";/gm)].map((match) => match[1]);
-      for (const specifier of runtimeImports) expect(specifier, `${name}.ts imports ${String(specifier)}`).toMatch(/^\.\/[a-z]+\.js$/);
+      for (const specifier of runtimeImports) expect(BROWSER_MODULES.some(allowed => specifier === `./${allowed}.js`), `${name}.ts imports ${String(specifier)}`).toBe(true);
     }
   });
 });
@@ -243,4 +244,12 @@ it("serves validated comparisons for the selected start, excluding self", async 
   expect(result.candidates.map((c) => c.run)).toEqual(["reference"]);
   expect(result.best.run).toBe("reference");
   expect(result.baseline).toBeNull(); // equal start timestamp, no previous run
+});
+
+it("serves read-only workbench data from actual recorded runs, without prompts or arbitrary paths", async () => {
+  const { runsRoot, viewer } = await fixture(); writeRun(runsRoot, "recorded", fullRun());
+  const reply = await get(viewer, "/api/workbench"); expect(reply.status).toBe(200);
+  const data = parseWorkbench(JSON.parse(reply.body.toString()) as unknown);
+  expect(data.runs[0]?.id).toBe("recorded"); expect(data.runs[0]?.config?.source).toBe(START.harness.commit); expect(reply.body.toString()).not.toContain('"system_prompt"');
+  expect((await get(viewer, "/api/workbench/../secrets")).status).not.toBe(200);
 });

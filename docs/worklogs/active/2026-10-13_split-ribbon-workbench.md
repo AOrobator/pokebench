@@ -42,3 +42,11 @@ Existing overlay spacing patch preserved; no unrelated refactor.
 
 ## Archive Milestone
 - [ ] ASK USER: archive this worklog after completion.
+
+## Handoff checkpoint (2026-10-13)
+Operator redirected this chat to Think Fast gameplay and requested UI handoff to the side chat. Source implementation is checkpointed, not landed or independently reviewed. Viewer coverage passed (96.45 statements, 90.12 branches, 95.75 functions, 98.05 lines); agent 652 tests, viewer/agent lint and recursive build passed. Receipts are in runs/workbench-proof. Actual snapshot contains 108 runs, 20 main-cohort trials, withheld 21–24, zero problems/live runs. Preview remains on http://127.0.0.1:8796/comparisons.
+
+Remaining: independent mutation/deletion/restoration receipts, external reviewer packet and principles scoring, responsive live screenshot/served hashes, landing and deployment. Local models are reserved for benchmarking and must not receive review requests. Known review targets: statSync archival race; integer validation at DTO boundary; stale current-run card on refresh failure; legacy null target label; fractional median turn/token display; PID-only coordinator identity. Preserve canonical main, the stale sequencer, all prior benchmark artifacts and this active worktree. Do not archive until source lands and preview no longer depends on it.
+
+## Landing continuation (2026-10-14)
+Operator explicitly requested a subagent to finish landing this approved existing screen. Isolated integration branch codex/stats-workbench-landing starts d2a4976; preserves original f4d75fe preview checkpoint. Cherry-picked RED84c3e85 and implementation with current spectator exports/human routes/current close controls preserved. No model services, gameplay or8793 restart authorized to this agent. Original incomplete proof is not counted as green. Completing aggregate/current build gates, adversarial render proofs, independent review and parent-coordinated landing. Frontier follow-on side chat holds until integration ready.

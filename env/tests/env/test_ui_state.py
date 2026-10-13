@@ -335,7 +335,7 @@ def test_clock_motion_between_ticks_does_not_claim_confirmation_input_ready() ->
     assert read_active_ui(memory.read, Screen("clock", 0, 0x08134C9D)).ready is False
 
 
-@pytest.mark.parametrize("owner", [0x08030C91, 0x08030CD5, 0x08030D85])
+@pytest.mark.parametrize("owner", [0x08030C19, 0x08030C91, 0x08030CD5, 0x08030D85])
 def test_observed_birch_sprite_transitions_have_owned_not_ready_phase(owner: int) -> None:
     from pokebench_env.game_screen import GMAIN, TASKS, read_screen
     from pokebench_env.ui_state import read_active_ui

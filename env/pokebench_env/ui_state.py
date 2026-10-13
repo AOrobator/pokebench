@@ -118,6 +118,7 @@ class ActiveUi:
 
 # Verified US ROM task pointers and main_menu.c ownership, not address ranges.
 BIRCH_PHASES = {
+    0x08030C19: "birch_transition",
     0x08030C91: "birch_transition",
     0x08030CD5: "birch_transition",
     0x08030D85: "birch_transition",

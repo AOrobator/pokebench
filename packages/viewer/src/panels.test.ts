@@ -289,8 +289,18 @@ describe("actionRow", () => {
     expect(row(2)).toContain("frames at 10% of the 500 MB cap");
   });
 
-  it("leaves turn, assistant, state and run_start events to their panels", () => {
-    for (const seq of [0, 3, 4, 8]) expect(actionRow(must(events[seq]))).toBeNull();
+  it("keeps completed thinking in activity history and full text in the inspector", () => {
+    const log = bare();
+    const event = log.add(1, assistant({ thinking: "Reason <carefully> " + "detail ".repeat(100), text: "Reply" }));
+    expect(actionRow(event)).toContain("thinking");
+    expect(actionRow(event)).toContain("&lt;carefully&gt;");
+    expect(inspector(event)).toContain("detail ".repeat(100));
+    const reply = log.add(2, assistant({ thinking: "", text: "Response only" }));
+    expect(actionRow(reply)).toContain("Response only");
+  });
+
+  it("leaves turn, state and run_start events to their panels", () => {
+    for (const seq of [0, 3, 8]) expect(actionRow(must(events[seq]))).toBeNull();
   });
 
   it("formats an untimed press, a failed tool, a compaction, an eviction and an unfinished run", () => {

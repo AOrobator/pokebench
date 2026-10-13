@@ -199,6 +199,7 @@ function chip(button: string): string {
 
 function rowBody(event: RunEvent): string | null {
   switch (event.type) {
+    case "assistant": return `${event.thinking === "" ? "response" : "thinking"} · turn ${String(event.turn)}: ${esc((event.thinking || event.text || "no text recorded").slice(0, 200))}`;
     case "objective_update": return `${esc(event.objective.status)}: ${esc(event.objective.title)}`;
     case "objective_attempt": return `${esc(event.attempt.buttons.join(", "))}: ${esc(event.attempt.outcome)}${event.attempt.warning === null ? "" : ` · ${esc(event.attempt.warning)}`}`;
     case "tool_call":

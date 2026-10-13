@@ -24,44 +24,16 @@
   <div class="live-runs" data-ui="live-runs" aria-label="Live runs" hidden></div>
   <div class="problems" data-ui="problems" hidden></div>
 </header>
-<main class="grid">
-  <section class="gbaStage">
-    <div data-ui="gba"></div>
-    <div class="screen-note" data-ui="screen-note"></div>
-    <details class="box field-context"><summary>FIELD STATE</summary><div data-ui="field-context"></div></details>
-    <div class="box red dialog">
-      <h3 data-ui="think-head">NO RUN</h3>
-      <div class="live-thought" data-ui="think-body"></div>
+<main class="watch-layout">
+  <section class="watch-deck" aria-label="Watch the run">
+    <section class="box red objective-strip"><div><h3>CURRENT OBJECTIVE</h3><div data-ui="objective-summary"></div></div><button type="button" data-ui="objective-link">EVIDENCE ↗</button></section>
+    <div class="game-stream">
+      <section class="gbaStage" aria-label="Game"><div data-ui="gba"></div><div class="screen-note" data-ui="screen-note"></div></section>
+      <section class="box red dialog thinking-stream" aria-label="Thinking stream"><div class="thinking-header"><h3 data-ui="think-head">NO RUN</h3><button type="button" data-ui="follow-thinking" aria-pressed="true">FOLLOW LATEST</button></div><div class="live-thought" data-ui="think-body" tabindex="0" role="region" aria-label="Agent thinking"></div></section>
     </div>
+    <section class="box lanesBox"><h3>TIMELINE · THINKING · TOOL CALLS · PRESSES · MILESTONES · ERRORS</h3><div data-ui="lanes"></div></section>
   </section>
-  <section class="navopen">
-    <div class="brand" data-ui="brand">POKéNAV</div>
-    <div class="scrn"><h3>TRAINER CARD</h3><div data-ui="trainer"></div></div>
-    <div class="scrn"><h3>POKéMON</h3><div data-ui="party"></div></div>
-    <div class="scrn"><h3>BUDGETS</h3><div data-ui="budgets"></div></div>
-    <div class="scrn"><h3>COUNTERS</h3><div data-ui="counters"></div></div>
-    <div class="scrn objective-card"><h3>CURRENT OBJECTIVE</h3><div data-ui="objective"></div></div>
-    <div class="scrn wide splitsBox">
-      <details class="splitsD" open>
-        <summary><span class="ttl">SPLITS · BASELINE · BEST</span><span class="nx" data-ui="splits-summary"></span></summary>
-        <div class="wrap">
-          <label class="pick">baseline <select data-ui="baseline" aria-label="Baseline run"></select></label>
-          <div data-ui="splits"></div>
-        </div>
-      </details>
-    </div>
-  </section>
-  <section class="box lanesBox">
-    <h3>TIMELINE · THINKING · TOOL CALLS · PRESSES · MILESTONES · ERRORS</h3>
-    <div data-ui="lanes"></div>
-  </section>
-  <section class="box logFull">
-    <h3>ACTION LOG</h3>
-    <div class="logcols">
-      <div class="log" data-ui="log"></div>
-      <div class="inspector" data-ui="inspector"></div>
-    </div>
-  </section>
+  <section class="navopen inspection-nav" aria-label="Inspect the run"><div class="brand" data-ui="brand">POKéNAV</div><div class="directory-pages"><nav class="page-directory" aria-label="PokéNav pages"><button type="button" data-page="trainer" aria-controls="page-trainer" aria-pressed="true">TRAINER CARD</button><button type="button" data-page="party" aria-controls="page-party" aria-pressed="false">POKéMON PARTY</button><button type="button" data-page="stats" aria-controls="page-stats" aria-pressed="false">LLM STATS</button><button type="button" data-page="objectives" aria-controls="page-objectives" aria-pressed="false">OBJECTIVES + EVIDENCE</button><button type="button" data-page="splits" aria-controls="page-splits" aria-pressed="false">SPLITS · BASELINE · BEST</button><button type="button" data-page="field" aria-controls="page-field" aria-pressed="false">FIELD STATE</button><button type="button" data-page="activity" aria-controls="page-activity" aria-pressed="false">ACTIVITY HISTORY</button><button type="button" data-page="run" aria-controls="page-run" aria-pressed="false">RUN DETAILS</button></nav><section class="scrn nav-page" id="page-trainer" data-nav-page="trainer" ><h3>TRAINER CARD</h3><div class="page-content"><div data-ui="trainer"></div></div></section><section class="scrn nav-page" id="page-party" data-nav-page="party" hidden><h3>POKéMON PARTY</h3><div class="page-content"><div data-ui="party"></div></div></section><section class="scrn nav-page" id="page-stats" data-nav-page="stats" hidden><h3>LLM STATS</h3><div class="page-content"><h3>COUNTERS</h3><div data-ui="counters"></div><h3>BUDGETS</h3><div data-ui="budgets"></div></div></section><section class="scrn nav-page" id="page-objectives" data-nav-page="objectives" hidden><h3>OBJECTIVES + EVIDENCE</h3><div class="page-content"><div data-ui="objective"></div></div></section><section class="scrn nav-page" id="page-splits" data-nav-page="splits" hidden><h3>SPLITS · BASELINE · BEST</h3><div class="page-content"><p data-ui="splits-summary"></p><label class="pick">baseline <select data-ui="baseline" aria-label="Baseline run"></select></label><div data-ui="splits"></div></div></section><section class="scrn nav-page" id="page-field" data-nav-page="field" hidden><h3>FIELD STATE</h3><div class="page-content"><div data-ui="field-context"></div></div></section><section class="scrn nav-page" id="page-activity" data-nav-page="activity" hidden><h3>ACTIVITY HISTORY</h3><div class="page-content"><p class="history-note">Thinking, responses, actions, results and errors. Select a row for its complete recorded event.</p><div class="logcols"><div class="log" data-ui="log"></div><div class="inspector" data-ui="inspector"></div></div></div></section><section class="scrn nav-page" id="page-run" data-nav-page="run" hidden><h3>RUN DETAILS</h3><div class="page-content"><div data-ui="run-details"></div></div></section></div></section>
 </main>
 </div>
 </body>

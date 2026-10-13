@@ -309,3 +309,15 @@ it.each([null, []])("accepts the target inventory's empty/unavailable representa
 it("rejects a non-array/non-null inventory at the consumer", async () => {
   await expect(observeTool(SERVER, serving(observationBody({ state: { ...IN_GAME, interaction_targets: "unknown" } }))).execute("inventory-shape", {})).rejects.toThrow("malformed /pokebench/observation payload");
 });
+
+it("omits the press-result line when that switch is off", async () => {
+  const before = { ...IN_GAME, screen: "overworld", field_controls_locked: false, position: { x: 1, y: 2 }, facing: "up" };
+  const tool = pressTool(SERVER, noHooks, routes({
+    "/pokebench/state": before,
+    "/action": { status: "success" },
+    "/queue_status": { queue_empty: true },
+    "/pokebench/observation": observationBody({ state: { ...before, position: { x: 1, y: 1 } }, state_text: "Position: X=1, Y=1" }),
+  }), instant, { pressResult: false });
+  const result = await tool.execute("move", { buttons: ["UP"] });
+  expect(result.content[1]).toEqual({ type: "text", text: "pressed UP\n\nPosition: X=1, Y=1" });
+});

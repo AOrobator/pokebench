@@ -58,8 +58,10 @@ Approval basis: the operator approved the design and asked to build and land it;
 ## Milestones
 
 **M1 — Feature registry and real per-feature switches (agent + env)**
-- [ ] Verify each of the 19 + 5 descriptions against the code (readout lines, prompt, tools, guards); record corrections here
-- [ ] Write tests: registry completeness vs `live.ts` ids; v2 preset parse + dependency rejection; v1 normalization; default parity goldens (INV-VC1); per-feature off removes only its output (readout, prompt, tools, harness_features); env `POKEBENCH_FEATURES_OFF` validation
+- [x] Verify each of the 19 + 5 descriptions against the code (readout lines, prompt, tools, guards); record corrections here
+  - Corrections vs mockup 11/22 copy: NPCS + OBJECTS needs ram-state (world_context is independent of the grid), not live-map; DIALOGUE AS TEXT is the field-message buffer (can include undisplayed pages) and the separate short `Dialog:` line stays; PLAYER POSITION off drops only the Position line (map still marks @); STORY FLAGS lists completed story steps, not raw flags; WORLD TARGETS are map event candidates (objects, warps, signs, step triggers); LOOP GUARD also covers repeated tool rejections and ends the run as `stuck`; REPEAT-ATTEMPT GUARD blocks the third identical no-change press and warns on position cycles; ACTIVE UI off also degrades the Menu line; RAM readout off also rewrites the observe/press lines of the system prompt; PRESS RESULTS declared `needs ram-state-v1`.
+  - Off semantics: observation switches remove only their own readout text on the game server (`POKEBENCH_FEATURES_OFF`); `state_json` (measurement, milestones, viewer) is unchanged. Prompt golden hashes at 0632fc0: all-on 9acbcc60…, all-on+PLAYER_NAME_CONFIRMED f2f0dd35…, docs-off c9ea0a80…, objectives-off 5ea89164…, OBJECTIVE_PROMPT 33c0b2a9….
+- [x] Write tests: registry completeness vs `live.ts` ids; v2 preset parse + dependency rejection; v1 normalization; default parity goldens (INV-VC1); per-feature off removes only its output (readout, prompt, tools, harness_features); env `POKEBENCH_FEATURES_OFF` validation
 - [ ] COMMIT: `test(features): ...` (RED)
 - [ ] Implement registry, preset v2, `live.ts` wiring, env readout switches
 - [ ] Gates: `just test`, `just lint`, `just build`, `just coverage` (≥90 both stacks), `just verify-vendor`

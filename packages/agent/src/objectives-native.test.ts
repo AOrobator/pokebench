@@ -87,3 +87,14 @@ it("records and parses automatic native completion through the production harnes
  expect(completed[0]?.type==="objective_update" ? completed[0].objective.completion_evidence : []).toEqual([native?.seq,...(native?.type==="milestone" ? native.evidence ?? [] : [])]);
  expect(events.at(-1)).toMatchObject({type:"run_end",reason:"operator_abort"});
 });
+it("with native completion off, never completes from game evidence and lets the model report it", () => {
+ const records: unknown[] = []; const tracker = new ObjectiveTracker("Reach gym", e => { records.push(e); }, { repeatGuard: true, nativeCompletion: false });
+ tracker.observe(state(1, false)); tracker.set(request);
+ tracker.observe(state(2, true)); tracker.observe(milestone(3, [2]));
+ expect(tracker.snapshot()?.status).toBe("active");
+ const update = { status: "reported_complete" as const, evidence: [2], obstacle: "", next_decision: "Leave", retry_reason: "" };
+ expect(tracker.update(update)).toMatchObject({ status: "reported_complete", completion_evidence: [2] });
+ expect(() => tracker.update({ ...update, status: "completed" })).toThrow(/Completion is not verified/);
+ expect(JSON.stringify(tracker.context([], 1))).not.toContain("Native tasks complete automatically");
+ expect(JSON.stringify(tracker.context([], 1))).not.toContain("recorded_native_milestones");
+});

@@ -202,3 +202,14 @@ it("diagnoses stale and absent state evidence separately", () => {
   tracker.set({ ...request, completion: { kind: "visual", description: "Screen confirms" } });
   expect(tracker.update({ ...update, evidence: [2] }).status).toBe("reported_complete");
 });
+
+it("with the repeat-attempt guard off, records attempts without warnings or blocks", () => {
+  const recorded: unknown[] = [];
+  const tracker = new ObjectiveTracker("Reach the first gym", (event) => { recorded.push(event); }, { repeatGuard: false, nativeCompletion: true });
+  tracker.observe(state(1)); tracker.set(request);
+  for (const id of ["p1", "p2", "p3"]) tracker.attempt(id, ["A"], state(1), state(2));
+  expect(tracker.attempts.map((a) => [a.outcome, a.failure_count, a.warning])).toEqual([["no_change", 1, null], ["no_change", 2, null], ["no_change", 3, null]]);
+  expect(() => { tracker.checkPress(["A"], { ...IN_GAME, party: [], field_controls_locked: false }); }).not.toThrow();
+  for (const [id, x] of [["m1", 1], ["m2", 2], ["m3", 1], ["m4", 2], ["m5", 1]] as const) tracker.attempt(id, ["UP"], state(5, { position: { x: x === 1 ? 2 : 1, y: 1 } }), state(6, { position: { x, y: 1 } }));
+  expect(tracker.attempts.every((a) => a.warning === null)).toBe(true);
+});

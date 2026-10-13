@@ -1,0 +1,46 @@
+import { expect, it } from "vitest";
+import { ALL_ON, FEATURES, MEASUREMENT_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, featuresOf, playHarnessFeatures, serverFeatureEnv, type FeatureSet } from "./features.js";
+
+// Literal run_start lists written by live.ts at 0632fc0 with every flag on.
+const LEGACY_DEFAULT = ["ram-state-v1", "live-map-v1", "field-control-lock", "naming-cursor-v1", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "world-targets-v1", "live-player-position-v1", "world-coordinate-grid-v1", "press-result-v1", "warp-activation-guidance-v1", "clock-milestone-v1", "story-state-v1", "active-ui-ownership-v1", "story-milestones-v2", "new-game-created-v1", "deterministic-loop-diagnostics-v1", "deterministic-loop-policy-v1:p6:o3:a3:c3:r2:recovery6", "deterministic-loop-guard-v1", "contextual-interface-docs-v1", "objective-tracking-v1", "repeat-attempt-guard-v1", "native-objective-completion-v1"];
+const off = (...ids: (typeof SWITCHABLE_FEATURES)[number][]): FeatureSet => ({ ...ALL_ON, ...Object.fromEntries(ids.map((id) => [id, false])) });
+
+it("describes every switchable and measurement feature exactly once", () => {
+  expect(FEATURES.map((f) => f.id).sort()).toEqual([...SWITCHABLE_FEATURES, ...MEASUREMENT_FEATURES].sort());
+  expect(FEATURES.filter((f) => f.switchable).map((f) => f.id)).toEqual([...SWITCHABLE_FEATURES]);
+  expect(FEATURES.filter((f) => f.group === "observation")).toHaveLength(10);
+  expect(FEATURES.filter((f) => f.group === "guidance")).toHaveLength(5);
+  expect(FEATURES.filter((f) => f.group === "guard")).toHaveLength(4);
+  for (const f of FEATURES) {
+    expect(f.title).not.toBe("");
+    if (f.switchable) expect(f.description).toMatch(/ Off: /);
+    if (f.needs !== null) expect(SWITCHABLE_FEATURES).toContain(f.needs);
+  }
+  expect(() => featureInfo("invented" as "ram-state-v1")).toThrow(/unknown feature/);
+});
+
+it("reproduces the pre-registry run_start feature list when everything is on", () => {
+  expect(playHarnessFeatures(ALL_ON, null)).toEqual(LEGACY_DEFAULT);
+  expect(playHarnessFeatures(ALL_ON, "PLAYER_NAME_CONFIRMED")).toEqual([...LEGACY_DEFAULT.slice(0, 17), "native-target-stop-v1", ...LEGACY_DEFAULT.slice(17)]);
+});
+
+it("drops exactly the switched-off id and round-trips through recorded features", () => {
+  for (const id of SWITCHABLE_FEATURES) {
+    const list = playHarnessFeatures(off(id), null);
+    expect(LEGACY_DEFAULT.filter((item) => !list.includes(item))).toEqual([id]);
+    expect(featuresOf(list)).toEqual(off(id));
+  }
+});
+
+it("reports every unmet dependency", () => {
+  expect(dependencyProblems(ALL_ON)).toEqual([]);
+  expect(dependencyProblems(off("live-map-v1"))).toEqual(["world-coordinate-grid-v1 needs live-map-v1", "warp-activation-guidance-v1 needs live-map-v1"]);
+  expect(dependencyProblems(off("objective-tracking-v1"))).toEqual(["repeat-attempt-guard-v1 needs objective-tracking-v1", "native-objective-completion-v1 needs objective-tracking-v1"]);
+  expect(dependencyProblems(off("objective-tracking-v1", "repeat-attempt-guard-v1", "native-objective-completion-v1"))).toEqual([]);
+});
+
+it("hands the game server only its own observation switches", () => {
+  expect(serverFeatureEnv(ALL_ON)).toEqual({ POKEBENCH_ACTIVE_UI: "1", POKEBENCH_FEATURES_OFF: "" });
+  expect(serverFeatureEnv(off("active-ui-ownership-v1", "deterministic-loop-guard-v1", "press-result-v1"))).toEqual({ POKEBENCH_ACTIVE_UI: "0", POKEBENCH_FEATURES_OFF: "" });
+  expect(serverFeatureEnv(off("story-state-v1", "live-map-v1", "warp-activation-guidance-v1"))).toEqual({ POKEBENCH_ACTIVE_UI: "1", POKEBENCH_FEATURES_OFF: "live-map-v1,story-state-v1,warp-activation-guidance-v1" });
+});

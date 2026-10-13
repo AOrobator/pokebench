@@ -347,3 +347,21 @@ it("accepts the native catalog through pinned pi without allowing model-written 
  expect(tracker.snapshot()).toMatchObject({title:"Set the clock",status:"active",completion:{kind:"milestone",name:"CLOCK_SET"}});
  expect(events.filter(e=>e.type==="run_end")).toEqual([]);
 });
+
+it("forwards the guard, completion and press-result switches through the production owner", async () => {
+  const { recorder, events } = setup();const server = serving();
+  const harness = objectiveHarness("Reach gym", recorder, "http://127.0.0.1:8812", server.fetchFn, { repeatGuard: false, nativeCompletion: false, pressResult: false });
+  const [observe, press, , set, update] = harness.tools;
+  if (!observe || !press || !set || !update) throw new Error("missing composition");
+  expect(update.description).not.toContain("Native milestone completion is automatic");
+  await observe.execute("o", {});const state = events.at(-1);if (!state) throw new Error("missing observed state");
+  await set.execute("s", { ...request, evidence: [state.seq] });
+  for (const id of ["p1", "p2", "p3"]) {
+    const result = await press.execute(id, { buttons: ["A"] });
+    expect(JSON.stringify(result.content)).not.toContain("Press result");
+    expect(JSON.stringify(result.content)).not.toContain("reassessment");
+  }
+  expect(server.actions()).toBe(3);
+  const defaults = objectiveHarness("Reach gym", recorder, "http://127.0.0.1:8812", server.fetchFn);
+  expect(defaults.tools[4]?.description).toContain("Native milestone completion is automatic");
+});

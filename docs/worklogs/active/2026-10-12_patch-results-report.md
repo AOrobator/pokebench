@@ -24,9 +24,9 @@ Pure deterministic computation over typed validated records, no credentials/ROM/
 - [x] Notify main coordinator/propose exclusive new-module ownership
 - [x] Main reservation: exclusive new passive reporting module/tests/artifact confirmed by main chat
 - [x] Initial RED: suite cannot import absent production module (0collected); this is scaffolding RED, not claimed detector mutation evidence
-- [ ] Implementpureengine/reportartifact
-- [ ] Meaningfulmutationfailures
-- [ ] Tests/lint/build/coverage/vendor gates
+- [x] Implementpureengine/reportartifact and explicitcontract
+- [x] Eight guard deletions yielded assertion failures with31testscollected; exactsource restored
+- [x] Gates:403agent147viewer378Python=928; workspaceTS lint/build, Pythonruff/format/mypy/vendor, all90floorsgreen
 - [ ] Independentreview and main handoff of exactreviewedartifact
 
 ## Closing the Loop
@@ -50,3 +50,7 @@ No unrelated changes.
 Contract checkpoint: featureID boolean preset vectors match actual run_start harness_features; runtime/ROM environmentidentity requires explicit immutable receipt because current metadata lacks these fields. Newpuremodule only; no livecaller/CLI integration. Userauthorization covers this bounded work; main notifiedagain and canredirectifanotherownerexists.
 
 Main reservation received: no sharedregistry/runner/UI/runtime edits; exposeexplicitmanifest/preset contract, retainN3historical vsN4future, distinguishunqualified vsfailure. Initialtestcommand failedmissinglocalpackage dependency link; linkedexistingignorednode_modules thenredconfirmedmissingpatch-results module. No depsinstalledorversionschanged.
+
+Implementation checkpoint: mainreserved scope,31focused behavior cases green (after correcting fixtureimport/type and requiredterminalframes). Typedpurecompare+Markdownrender, nativeproof/coverage, explicitflags/receipt contract atdocs/designs/patch-results-contract.md. Agentwholecoverage previously396cases/98.17statements92.33branches98.18functions99.21lines; latest31casesneedfinalrerun. WorkspaceTS lint/build previouslygreen. Prettiernotinstalled; no dependencyadded, repositoryeslint/tscgates used. REDcommit57042f9 (initialmoduleabsenceonly); no claim ofmutationproofyet.
+
+GREEN checkpoint: 31focusedcases; full928tests (403agent+147viewer+378Python). Agent98.68statements93.20branches98.53functions99.22lines; newmodule98.80/93.89/100/100; viewer97.47/91.45/98.42/98.36; Python99.34lines96.77branches100functions. InitialPythoncheck had2fails because vendorworktreeuninitialized; pinnedsubmoduleinitializedclean thenall378passed. No Python/vendorbehaviorchanged. HistoricaltypedQwenN3replayCLOCK_SET2baseline/1candidate correctlyineligible(incompleteprotocol+explicitmissingexternalenvironmentreceipt), verdictinconclusive/retain. Evidencefiles inignoredruns/launch-receipts/patch-results-report. PrinciplesPB1–13read/scoredzeroFAIL; no independentreviewyet.

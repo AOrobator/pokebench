@@ -153,7 +153,7 @@ export function listRuns(runsRoot: string): RunSummary[] {
     .map((id) => summarize(runsRoot, id));
 }
 
-function readStart(runsRoot: string, runId: string): RunEvent & { type: "run_start" } {
+export function readStart(runsRoot: string, runId: string): RunEvent & { type: "run_start" } {
   const path = eventsPath(runsRoot, runId);
   if (!existsSync(path)) throw new RunsError(`run ${runId} has no events.jsonl`);
   const first = firstLine(path);
@@ -175,7 +175,9 @@ export function baselineOf(runsRoot: string, runId: string): Baseline {
     view.apply(result.event);
   }
   if (view.state === null && !start.harness_features.includes("ram-state-v1")) throw new BaselineError("baseline has no verified RAM-state provenance");
-  return { run: runId, milestones: view.milestones.filter((m) => m.origin !== "present_at_start").map((m) => ({ name: m.name, offsetMs: m.ms - startMs, ...(m.derived === true ? { derived: true } : {}) })) };
+  // Operator pauses are not run time: splits exclude paused time before each milestone.
+  const pausedBefore = (ms: number): number => view.control.pauses.reduce((sum, p) => sum + Math.max(0, Math.min(ms, p.endMs ?? ms) - p.startMs), 0);
+  return { run: runId, milestones: view.milestones.filter((m) => m.origin !== "present_at_start").map((m) => ({ name: m.name, offsetMs: m.ms - startMs - pausedBefore(m.ms), ...(m.derived === true ? { derived: true } : {}) })) };
 }
 
 // The live picture is the one thing the viewer reads outside the log: the

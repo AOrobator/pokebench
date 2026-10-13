@@ -138,6 +138,7 @@ svg.lanes { width: 100%; height: 170px; display: block; }
 .lanes .m-tool { fill: #c6f0ff; }
 .lanes .m-tool.err { fill: #ff6b6b; }
 .lanes .m-milestone { fill: #f5c542; }
+.lanes .m-paused { fill: #ffd447; opacity: .28; }
 .lanes .k-retry, .lanes .k-model, .lanes .k-tool, .lanes .k-telemetry { fill: #ff6b6b; }
 .lanes .k-compaction { fill: #be8cff; }
 .lanes .b-UP, .lanes .b-DOWN, .lanes .b-LEFT, .lanes .b-RIGHT { fill: #7cc8e8; }

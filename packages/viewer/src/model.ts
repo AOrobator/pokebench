@@ -48,6 +48,7 @@ export interface Thought {
 // One entry per schema event type: adding a type to the agent schema fails to
 // compile here until the viewer lists it.
 const KNOWN: Record<RunEvent["type"], true> = {
+  operator_control: true,
   loop_guard: true,
   objective_update: true,
   objective_attempt: true,
@@ -90,6 +91,45 @@ function samePlace(a: StateEvent, b: StateEvent): boolean {
 
 export const MILESTONE_ORDER = ["GAME_RUNNING", "NEW_GAME_CREATED", "PLAYER_NAME_CONFIRMED", "PLAYER_NAME_SET", "FIRST_TRUCK_EXIT", "INTRO_CUTSCENE_COMPLETE", "LITTLEROOT_TOWN", "PLAYER_HOUSE_ENTERED", "MOM_CLOCK_INSTRUCTION", "PLAYER_BEDROOM", "CLOCK_SET", "MOM_RIVAL_INSTRUCTION", "RIVAL_MET", "ROUTE_101", "STARTER_CHOSEN", "BIRCH_RESCUE_COMPLETE", "BIRCH_STARTER_HANDOFF_COMPLETE", "OLDALE_TOWN", "ROUTE_103", "RIVAL_BATTLE_WON", "RECEIVED_POKEDEX", "STARTER_TUTORIAL_COMPLETE", "RUNNING_SHOES_RECEIVED", "ROUTE_102", "PETALBURG_CITY", "DAD_FIRST_MEETING", "WALLY_TUTORIAL_COMPLETE", "ROUTE_104", "PETALBURG_WOODS", "TEAM_AQUA_WOODS_EVENT_COMPLETE", "RUSTBORO_CITY", "RUSTBORO_CITY_GYM", "RUSTBORO_GYM_COMPLETE", "STONE_BADGE", "ROCK_TOMB_RECEIVED"] as const;
 
+export type ControlState = "running" | "pause_pending" | "paused" | "stop_pending" | "ended";
+
+// Operator control as recorded by the agent (operator_control events).
+export class ControlView {
+  state: ControlState = "running";
+  emulatorFrozen: boolean | null = null;
+  readonly pauses: { startMs: number; endMs: number | null }[] = [];
+
+  apply(event: Of<"operator_control">, ms: number): void {
+    if (event.status === "ignored") return;
+    if (event.status === "pending") {
+      this.state = event.action === "pause" ? "pause_pending" : "stop_pending";
+      return;
+    }
+    if (event.action === "pause") {
+      this.state = "paused";
+      this.emulatorFrozen = event.emulator_frozen ?? null;
+      this.pauses.push({ startMs: ms, endMs: null });
+      return;
+    }
+    this.close(ms);
+    this.state = event.action === "resume" || event.action === "cancel_stop" ? "running" : "ended";
+  }
+
+  close(ms: number): void {
+    const open = this.pauses.at(-1);
+    if (open !== undefined && open.endMs === null) open.endMs = ms;
+  }
+
+  pausedMs(nowMs: number): number {
+    return this.pausedBefore(nowMs);
+  }
+
+  // Paused time before `ms` (an open pause counts up to `ms`).
+  pausedBefore(ms: number): number {
+    return this.pauses.reduce((sum, pause) => sum + Math.max(0, Math.min(ms, pause.endMs ?? ms) - pause.startMs), 0);
+  }
+}
+
 export class RunView {
   readonly events: RunEvent[] = [];
   start: RunStartEvent | null = null;
@@ -120,6 +160,7 @@ export class RunView {
   streaming = { thinking: "", text: "" };
   readonly toolSpans: ToolSpan[] = [];
   readonly errors: ErrorMark[] = [];
+  readonly control = new ControlView();
   private readonly openTools = new Map<string, ToolSpan>();
 
   get isThinking(): boolean {
@@ -147,6 +188,7 @@ export class RunView {
     this.lastMs = ms;
     this.turn = Math.max(this.turn, event.turn);
     switch (event.type) {
+      case "operator_control": this.control.apply(event, ms); break;
       case "objective_update": this.objective = event.objective; break;
       case "objective_attempt": this.attempts.push(event.attempt); break;
       case "run_start":
@@ -211,6 +253,8 @@ export class RunView {
       case "run_end":
         this.end = event;
         this.closeOpenSpans(ms);
+        this.control.close(ms);
+        this.control.state = "ended";
         break;
       case "frames_evicted":
         break;

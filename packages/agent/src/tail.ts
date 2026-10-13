@@ -17,6 +17,7 @@ function clock(seconds: number): string {
 
 function body(event: RunEvent): [string, string] {
   switch (event.type) {
+    case "operator_control": return ["OPERATOR", `${event.action.replace("_", " ")} ${event.status}${event.paused_ms === undefined ? "" : ` after ${String(Math.round(event.paused_ms / 1000))}s paused`}${event.emulator_frozen === false ? " (emulator NOT frozen)" : ""}`];
     case "objective_update": return ["objective", `${event.objective.status}: ${event.objective.title}`];
     case "objective_attempt": return ["attempt", `${event.attempt.outcome}${event.attempt.warning === null ? "" : `: ${event.attempt.warning}`}`];
     case "run_start": {

@@ -108,6 +108,7 @@ export class RunRecorder {
     for (const observer of this.observers) observer(event);
     return event;
   }
+  recordControl(body: Omit<BodyOf<"operator_control">, "type" | "turn">): void { this.append({ type: "operator_control", turn: this.turn, ...body }); }
   recordLoopGuard(body: LoopNotice): void { this.append({type:"loop_guard",turn:this.turn,...body,evidence:[...body.evidence]}); }
   recordObjective(body: BodyOf<"objective_update"> | BodyOf<"objective_attempt">): void { this.append({ ...body, turn: this.turn }); }
   recordState(state: GameStateSnapshot): Extract<Extract<RunEvent, { type: "state" }>, { started: boolean }> {

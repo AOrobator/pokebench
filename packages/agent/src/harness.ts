@@ -7,7 +7,7 @@ import {
   type AgentTool,
   type StreamFn,
 } from "@mariozechner/pi-agent-core";
-import type { AssistantMessage, ToolResultMessage } from "@mariozechner/pi-ai";
+import { createAssistantMessageEventStream, streamSimple, type Api, type AssistantMessage, type Model, type ToolResultMessage } from "@mariozechner/pi-ai";
 import { LoopDetector, type LoopPolicy, type LoopMode } from "./loop-detection.js";
 import type { RunRecorder } from "./recorder.js";
 import type { RunEndReason } from "./events.js";
@@ -76,6 +76,9 @@ export interface GovernorDeps {
   abort(): void;
   readonly now: () => number;
   readonly startedAt?:number;
+  // Operator control: a stop due at this turn end, and time spent paused.
+  readonly takeStop?: () => boolean;
+  readonly pausedMs?: () => number;
 }
 
 export class Governor {
@@ -132,7 +135,9 @@ export class Governor {
   private countTurn(): boolean {
     this.turns += 1;
     const { maxTurns, maxWallMs } = this.deps.limits;
-    if (this.turns >= maxTurns || this.deps.now() - this.startedAt >= maxWallMs) this.stopReason ??= "budget";
+    if (this.deps.takeStop?.() === true) this.stopReason ??= "operator_stop";
+    const active = this.deps.now() - this.startedAt - (this.deps.pausedMs?.() ?? 0);
+    if (this.turns >= maxTurns || active >= maxWallMs) this.stopReason ??= "budget";
     return this.stopReason !== null;
   }
 }
@@ -166,14 +171,35 @@ export interface PiLoopOptions {
   readonly signal: AbortSignal;
   readonly streamFn?: StreamFn;
   readonly loopDetector?: LoopDetector | undefined;
+  // Awaited before every model call (operator pause).
+  readonly gate?: () => Promise<void>;
+}
+
+function abortedReply(model: Model<Api>): AssistantMessage {
+  return { role: "assistant", content: [], api: model.api, provider: model.provider, model: model.id, usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } }, stopReason: "aborted", errorMessage: "Run ended before this model call", timestamp: Date.now() };
+}
+
+// A run that ended while held at the gate must not reach the model.
+function streamFn(inner: StreamFn | undefined): StreamFn {
+  return (model, context, options) => {
+    if (options?.signal?.aborted === true) {
+      const stream = createAssistantMessageEventStream();
+      const message = abortedReply(model);
+      stream.push({ type: "error", reason: "aborted", error: message });
+      return stream;
+    }
+    return (inner ?? streamSimple)(model, context, options);
+  };
 }
 
 export function piLoop(options: PiLoopOptions): Loop {
-  const { systemPrompt, tools, governor, emit, signal, streamFn } = options;
+  const { systemPrompt, tools, governor, emit, signal } = options;
+  const model = streamFn(options.streamFn);
   const config: AgentLoopConfig = {
     ...options.base,
     toolExecution: "sequential",
-    transformContext: (messages) => {
+    transformContext: async (messages) => {
+      await options.gate?.();
       const warning = options.loopDetector?.context();
       const context = slideWindow(messages);
       if (warning) context.push({role:"user",content:warning,timestamp:Date.now()});
@@ -189,8 +215,8 @@ export function piLoop(options: PiLoopOptions): Loop {
   };
   return {
     start: (prompts, messages) =>
-      runAgentLoop(prompts, { systemPrompt, messages, tools }, config, emit, signal, streamFn),
-    resume: (messages) => runAgentLoopContinue({ systemPrompt, messages, tools }, config, emit, signal, streamFn),
+      runAgentLoop(prompts, { systemPrompt, messages, tools }, config, emit, signal, model),
+    resume: (messages) => runAgentLoopContinue({ systemPrompt, messages, tools }, config, emit, signal, model),
   };
 }
 

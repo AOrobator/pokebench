@@ -22,6 +22,7 @@ from pokebench_env.audio import EmulatorLike
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import MapNames
 from pokebench_env.observation import ScreenshotFn, install_observation
+from pokebench_env.pause import SteppingServer, install_pause
 from pokebench_env.view import install_spectator
 
 LOCALHOST = "127.0.0.1"
@@ -71,7 +72,10 @@ def run(
     observation: tuple[FastAPI, ScreenshotFn, ReadMemory, MapNames]
     | tuple[FastAPI, ScreenshotFn, ReadMemory, MapNames, AbstractContextManager[object]]
     | None = None,
+    pause: tuple[FastAPI, SteppingServer] | None = None,
 ) -> None:
+    if pause is not None:
+        install_pause(*pause)
     if spectator is not None:
         install_spectator(*spectator)
     if observation is not None:
@@ -99,6 +103,7 @@ def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
             MapNames.load(PORYMAP_MAPS),
             app.memory_lock,
         ),
+        pause=(app.app, cast(SteppingServer, app)),
     )
 
 

@@ -63,3 +63,13 @@ describe("operator control in the run view", () => {
     expect(actionRow(unfrozen.add(3, { type: "operator_control", turn: 0, action: "cancel_stop", status: "ignored", request: 3 }))).toContain("cancel stop ignored");
   });
 });
+
+it("closes an open pause when the run ends without an operator event", () => {
+  const log = new Log();
+  log.add(0, START);
+  log.add(1_000, { type: "operator_control", turn: 1, action: "pause", status: "applied", request: 1, emulator_frozen: true });
+  log.add(4_000, { type: "run_end", turn: 1, reason: "crash", furthest_milestone: null, turns: 1, wall_ms: 4_000, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } });
+  const view = fold(log);
+  expect(view.control.pauses).toEqual([{ startMs: BASE_MS + 1_000, endMs: BASE_MS + 4_000 }]);
+  expect(view.control.pausedMs(BASE_MS + 60_000)).toBe(3_000);
+});

@@ -26,6 +26,12 @@ export function lanesSvg(view: RunView, nowMs: number): string {
     parts.push(`<rect class="lane${i % 2 === 0 ? "" : " alt"}" x="0" y="${f(i * LANE)}" width="${String(W)}" height="${f(LANE)}"/>`);
     parts.push(`<text class="lab" x="8" y="${f(i * LANE + LANE / 2 + 4)}">${name}</text>`);
   });
+  for (const pause of view.control.pauses) {
+    const end = pause.endMs ?? nowMs;
+    if (end < t0 || pause.startMs > nowMs) continue;
+    const a = x(pause.startMs), b = x(end);
+    parts.push(`<rect class="m-paused" x="${f(a)}" y="0" width="${f(Math.max(3, b - a))}" height="${f(H - 20)}"><title>paused ${String(Math.round((end - pause.startMs) / 1000))}s (operator)</title></rect>`);
+  }
   for (const span of view.thinkingSpans) {
     const end = span.endMs ?? nowMs;
     if (end < t0 || span.startMs > nowMs) continue;

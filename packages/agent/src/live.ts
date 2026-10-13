@@ -26,6 +26,7 @@ import { FrameStore } from "./frames.js";
 import { StateWatcher } from "./game-state.js";
 import {flagFeatures,parsePlayPreset,presetFeatures,presetFlags} from "./play-preset.js";
 import {NativeTargetStop} from "./target-stop.js";
+import { BudgetTimer, ControlFile, RunControl, freezeGame, watchControl } from "./run-control.js";
 import {RUN_ID_PATTERN} from "./events.js";
 import { StateMilestones } from "./milestones.js";
 import { readLoopMode } from "./loop-detection.js";
@@ -239,6 +240,8 @@ async function playAgent(): Promise<void> {
     new FrameStore(RUNS_ROOT),
     async (recorder, gameServerUrl) => {
       const controller = new AbortController();
+      const elapsed = preset===null?(()=>Date.now()):()=>recorder.elapsedMs();
+      let control: RunControl | null = null;
       const governor = new Governor({
         limits,
         retry: (why, attempt, limit) => {
@@ -248,23 +251,34 @@ async function playAgent(): Promise<void> {
         abort: () => {
           controller.abort();
         },
-        now: preset===null?()=>Date.now():()=>recorder.elapsedMs(),
+        now: elapsed,
         ...(preset===null?{}:{startedAt:0}),
+        takeStop: () => control?.takeStop() ?? false,
+        pausedMs: () => control?.pausedMs() ?? 0,
       });
+      const runControl = new RunControl({
+        record: (body) => { recorder.recordControl(body); },
+        freeze: (paused) => freezeGame(gameServerUrl, paused),
+        end: (reason) => { governor.abort(reason); },
+        now: () => Date.now(),
+      });
+      control = runControl;
       if(preset!==null&&recorder.elapsedMs()>=limits.maxWallMs){governor.abort("budget");return "budget";}
       const loopDetector = attachLoopGuard(recorder, governor, undefined, loopMode);
       if(target!==null){
         const stop=new NativeTargetStop(runId,target,proof=>{
           if(governor.stopReason!==null)return;
-          if(preset!==null&&recorder.elapsedMs()>limits.maxWallMs){governor.abort("budget");return;}
+          if(preset!==null&&recorder.elapsedMs()-runControl.pausedMs()>limits.maxWallMs){governor.abort("budget");return;}
           recorder.setTargetProof(proof);
           governor.stop("milestone");
         });
         recorder.subscribe(event=>{stop.observe(event);});
       }
-      const wall = setTimeout(() => {
+      const startedAt = elapsed();
+      const wall = new BudgetTimer(runControl, limits.maxWallMs, () => elapsed() - (preset===null?startedAt:0), () => {
         governor.abort("budget");
-      }, preset===null?limits.maxWallMs:Math.max(0,limits.maxWallMs-recorder.elapsedMs()));
+      });
+      const stopWatching = watchControl(new ControlFile(join(RUNS_ROOT, runId, "control.jsonl")), runControl);
       const interrupt = (): void => {
         console.log("operator abort: finishing the run record");
         governor.abort("operator_abort");
@@ -280,12 +294,14 @@ async function playAgent(): Promise<void> {
         transformContext: objectives?.transformContext ?? recorder.transformContext,
         emit: recorder.emit,
         signal: controller.signal,
+        gate: () => runControl.gate(),
       });
       try {
         const task: AgentMessage = { role: "user", content: target===null?PLAY_TASK:`The game has just booted. ${goal}`, timestamp: Date.now() };
         return await play(task, governor, loop);
       } finally {
-        clearTimeout(wall);
+        wall.clear();
+        stopWatching();
         process.off("SIGINT", interrupt);
       }
     },

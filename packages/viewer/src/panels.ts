@@ -16,9 +16,10 @@ export interface Baseline {
   readonly milestones: readonly { readonly name: string; readonly offsetMs: number; readonly derived?: boolean }[];
 }
 
+// Run time against the time cap: operator pauses are excluded.
 function wallSeconds(view: RunView, nowMs: number): number {
-  if (view.end !== null) return view.end.wall_ms / 1000;
-  return (nowMs - (view.startMs ?? nowMs)) / 1000;
+  if (view.end !== null) return (view.end.wall_ms - view.control.pausedBefore(view.lastMs ?? nowMs)) / 1000;
+  return (nowMs - (view.startMs ?? nowMs) - view.control.pausedBefore(nowMs)) / 1000;
 }
 
 function kv(rows: readonly (readonly [string, string, boolean?])[]): string {
@@ -145,7 +146,7 @@ function deltaSpan(seconds: number): string {
 export function splits(view: RunView, baseline: Baseline | null, nowMs: number, best: Baseline | null = null): { summary: string; table: string } {
   const startMs = view.startMs;
   if (startMs === null) return { summary: "no data", table: `<p>${NO_DATA}</p>` };
-  const reached = new Map(view.milestones.filter((m) => m.origin !== "present_at_start").map((m) => [m.name, (m.ms - startMs) / 1000]));
+  const reached = new Map(view.milestones.filter((m) => m.origin !== "present_at_start").map((m) => [m.name, (m.ms - startMs - view.control.pausedBefore(m.ms)) / 1000]));
   const reference = (run: Baseline | null) => new Map(run?.milestones.map((m) => [m.name, m]) ?? []);
   const bases = reference(baseline), bests = reference(best);
   const names = new Set<string>([...MILESTONE_ORDER, ...reached.keys(), ...bases.keys(), ...bests.keys()]);
@@ -199,9 +200,20 @@ function chip(button: string): string {
   return `<span class="chipb">${ARROW[button] ?? ""}${button}</span>`;
 }
 
+const CONTROL_ICON = { pause: "⏸", resume: "▶", stop: "■", cancel_stop: "↺", abort: "✖" } as const;
+function controlRow(event: Extract<RunEvent, { type: "operator_control" }>): string {
+  const name = event.action.replace("_", " ");
+  const status = event.status === "pending" ? "requested" : event.status;
+  const detail = event.status === "pending"
+    ? event.action === "stop" ? " · ends after the current turn" : " · holds before the next model call"
+    : `${event.paused_ms === undefined ? "" : ` · paused ${String(Math.round(event.paused_ms / 1000))}s`}${event.emulator_frozen === undefined ? "" : event.emulator_frozen ? " · emulator frozen" : " · emulator NOT frozen"}`;
+  return `${CONTROL_ICON[event.action]} ${name} ${status}${detail} · request ${String(event.request)}`;
+}
+
 function rowBody(event: RunEvent, view?: RunView): string | null {
   switch (event.type) {
     case "assistant": return `${event.thinking === "" ? "response" : "thinking"} · turn ${String(event.turn)}: ${esc((event.thinking || event.text || "no text recorded").slice(0, 200))}`;
+    case "operator_control": return controlRow(event);
     case "objective_update": return `${esc(event.objective.status)}: ${esc(event.objective.title)}`;
     case "objective_attempt": return `${esc(event.attempt.buttons.join(", "))}: ${esc(event.attempt.outcome)}${event.attempt.warning === null ? "" : ` · ${esc(event.attempt.warning)}`}`;
     case "tool_call":
@@ -241,7 +253,7 @@ function rowBody(event: RunEvent, view?: RunView): string | null {
 export function actionRow(event: RunEvent, view?: RunView): string | null {
   const body = rowBody(event, view);
   if (body === null) return null;
-  const error = (event.type === "tool_result" && event.is_error) || event.type === "retry" || (event.type === "loop_guard" && event.phase !== "recovered" && !("mode" in event && event.mode === "diagnostic")) || event.type === "telemetry_error" ? " ev-error" : "";
+  const error = (event.type === "tool_result" && event.is_error) || event.type === "retry" || (event.type === "loop_guard" && event.phase !== "recovered" && !("mode" in event && event.mode === "diagnostic")) || event.type === "telemetry_error" || (event.type === "operator_control" && event.emulator_frozen === false) ? " ev-error" : "";
   return `<div class="ev ev-${event.type}${error}" data-seq="${String(event.seq)}"><span class="seq">#${String(event.seq)}</span><span class="tag">${event.type}</span><span class="body">${body}</span></div>`;
 }
 

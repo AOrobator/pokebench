@@ -19,7 +19,7 @@ export const BUTTONS = ["A", "B", "START", "SELECT", "UP", "DOWN", "LEFT", "RIGH
 export const ButtonSchema = Type.Enum(BUTTONS);
 export type Button = Static<typeof ButtonSchema>;
 
-export const RUN_END_REASONS = ["completed", "milestone", "budget", "stuck", "crash", "model_error", "operator_abort"] as const;
+export const RUN_END_REASONS = ["completed", "milestone", "budget", "stuck", "crash", "model_error", "operator_abort", "operator_stop"] as const;
 const RunEndReason = Type.Enum(RUN_END_REASONS);
 export type RunEndReason = Static<typeof RunEndReason>;
 
@@ -250,10 +250,21 @@ const RunEnd = event("run_end", {
   frames: Type.Object({ saved: NonNegativeInt, bytes: NonNegativeInt }, closed),
 });
 
+// Operator run control from runs/<id>/control.jsonl (see run-control.ts).
+export const CONTROL_ACTIONS = ["pause", "resume", "stop", "cancel_stop", "abort"] as const;
+const OperatorControl = event("operator_control", {
+  action: Type.Enum(CONTROL_ACTIONS),
+  status: Type.Enum(["pending", "applied", "ignored"] as const),
+  request: Type.Integer({ minimum: 1 }),
+  paused_ms: Type.Optional(NonNegativeInt),
+  emulator_frozen: Type.Optional(Type.Boolean()),
+});
+
 const ObjectiveUpdate = event("objective_update", { objective: ObjectiveSchema });
 const ObjectiveAttempt = event("objective_attempt", { attempt: makeAttemptSchema(ButtonSchema) });
 
 export const RunEventSchema = Type.Union([
+  OperatorControl,
   LoopGuard,
   ObjectiveUpdate,
   ObjectiveAttempt,

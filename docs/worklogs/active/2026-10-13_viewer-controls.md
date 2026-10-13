@@ -72,9 +72,10 @@ Approval basis: the operator approved the design and asked to build and land it;
 **M2 — Run control in the agent and game server (pause / stop / cancel / abort)**
 - [x] Write tests: control file parsing; pause at turn boundary with no model call; resume; stop → `operator_stop` after current turn; cancel stop; abort immediate; paused time excluded from wall budget and rescheduled timer; game-server pause wrapper holds the frame loop; viewer fold (control state, paused gap on timeline, Activity History rows)
 - [x] COMMIT: `test(control): require pause, stop and abort through the control file (RED)` — RED observed: agent harness/run-control test files fail to import, viewer control-view 3 failing, python collection error
-- [ ] Implement `RunControl`, governor pause accounting, `operator_stop`, `operator_control` events, env pause endpoints, `just schema`
-- [ ] Gates
-- [ ] COMMIT: `feat(control): ...` (GREEN)
+- [x] Implement `RunControl` (control file poller, state machine, gate, `BudgetTimer`), governor `takeStop`/`pausedMs`, `piLoop` gate plus no-model-call guard once the run has ended, `operator_stop`, `operator_control` events (`just schema`), env `/pokebench/pause` latch wrapping the vendor `step_environment` (vendor untouched), live.ts wiring, viewer fold (`ControlView`, paused gap on the timeline, Activity History rows, splits/time cap excluding paused time), `just tail-run` rows
+- [x] Gates: agent 638, viewer 174, python 441 pass; lint/build OK; coverage agent 98.89/93.81/98.35, viewer 98.6/91.13/98.19, python 99.41/97.30/100
+- [x] Guard receipts `m2-guards/01..14`: 13 of 14 red then green; 13 unexpectedly passed (the stop event already closed the pause) and is retained; a crash-while-paused test was added and fresh attempt 13b went red then green
+- [x] COMMIT: `feat(control): pause, stop and abort live runs from the control file` (GREEN)
 - [ ] agent-observability trace: event → timeline/Activity History/replay
 - [ ] Multi-model review loop until clean
 

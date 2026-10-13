@@ -244,3 +244,18 @@ it("marks an intro already active in a loaded state as present rather than a tim
     { name: "NEW_GAME_CREATED", kind: "story", origin: "present_at_start", serverTimestamp: 2, evidence: [1] },
   ]);
 });
+
+it("rejects transient positive save fields and accepts the stable native completion",async()=>{
+ const falseFields={name_confirmed:true,clock_set:true,rival_battle_won:true,intro_stage:0,rival_stage:0,birch_lab_stage:0,petalburg_gym_stage:0,woods_stage:0,pokedex_received:false,running_shoes_received:false,starter_tutorial_complete:false,rustboro_gym_complete:false,stone_badge:false,rock_tomb_received:false};
+ const bad=at("PETALBURG CITY",{screen:"field_transition",position:{x:8,y:2},story:falseFields,party:[{species:"TORCHIC",level:5,hp:20,max_hp:20}],badges:["STONE"]});
+ for(const name of ["CLOCK_SET","RIVAL_BATTLE_WON","PETALBURG_CITY","STARTER_CHOSEN","STONE_BADGE","PLAYER_NAME_CONFIRMED","PLAYER_NAME_SET"]){expect(MILESTONES.find(m=>m.name===name)?.reached(bad)).toBeNull();}
+ const good={...bad,screen:"overworld",location:"LITTLEROOT TOWN BRENDANS HOUSE 2F",map_id:[1,1] as [number,number],story:{...falseFields,intro_stage:6}};
+ expect(MILESTONES.find(m=>m.name==="CLOCK_SET")?.reached(good)).toBe(true);
+ const tracker=source([bad,good]);expect(await tracker.poll()).not.toContainEqual(expect.objectContaining({name:"CLOCK_SET"}));expect(await tracker.poll()).toContainEqual(expect.objectContaining({name:"CLOCK_SET"}));
+});
+
+
+it("does not treat a loading truck observation as an exit witness",async()=>{
+ const tracker=source([at("INSIDE OF TRUCK",{screen:"field_transition"}),at("LITTLEROOT TOWN")]);
+ await tracker.poll();expect((await tracker.poll()).map(m=>m.name)).not.toContain("FIRST_TRUCK_EXIT");
+});

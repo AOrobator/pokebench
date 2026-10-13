@@ -1,5 +1,6 @@
 import {expect,it} from "vitest";
 import {parseEvent,type RunEvent} from "./events.js";
+import {qualifiedNativeMilestone} from "./milestones.js";
 import {NativeTargetStop} from "./target-stop.js";
 import {NAME_CONFIRMED} from "../test-support/events.js";
 const RUN="target-test";
@@ -31,4 +32,24 @@ it("rejects a complete foreign proof and superseded positive evidence",()=>{
  const target=new NativeTargetStop(RUN,"PLAYER_NAME_CONFIRMED",()=>{throw new Error("foreign or stale success");});
  target.observe({...state,run:"foreign"});target.observe({...mark,run:"foreign"});expect(target.proof).toBeNull();
  target.observe(state);target.observe({...state,seq:12});target.observe({...mark,seq:13});expect(target.proof).toBeNull();
+});
+
+
+it("rejects transient clock evidence through the native target and replay qualifier",()=>{
+ const target=new NativeTargetStop(RUN,"CLOCK_SET",()=>undefined);
+ const bad=parseEvent(JSON.stringify({...state,screen:"field_transition",started:true,location:"PETALBURG CITY",map_id:[0,0],story:{...NAME_CONFIRMED.story,clock_set:true,intro_stage:0,rival_battle_won:true}}));
+ const clock={...mark,name:"CLOCK_SET"};
+ target.observe(bad);target.observe(clock);expect(target.proof).toBeNull();
+ expect(qualifiedNativeMilestone(clock,[bad])).toBe(false);
+ const good=parseEvent(JSON.stringify({...bad,seq:12,screen:"overworld",location:"LITTLEROOT TOWN BRENDANS HOUSE 2F",map_id:[1,1],story:{...NAME_CONFIRMED.story,clock_set:true,intro_stage:6}}));
+ const real={...clock,seq:13,evidence:[12]};
+ target.observe(good);target.observe(real);expect(target.proof).toEqual({name:"CLOCK_SET",milestone_seq:13,state_evidence:[12]});
+ expect(qualifiedNativeMilestone(real,[good])).toBe(true);
+});
+
+
+it("rejects a transition as the recorded truck witness",()=>{
+ const truck=parseEvent(JSON.stringify({...state,seq:20,screen:"field_transition",started:true,name:"MAY",location:"INSIDE OF TRUCK"}));
+ const exit=parseEvent(JSON.stringify({...truck,seq:21,screen:"overworld",location:"LITTLEROOT TOWN"}));
+ expect(qualifiedNativeMilestone({...mark,seq:22,name:"FIRST_TRUCK_EXIT",evidence:[20,21]},[truck,exit])).toBe(false);
 });

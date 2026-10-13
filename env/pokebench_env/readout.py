@@ -73,8 +73,20 @@ def format_readout(
         lines.append(state.story.text())
     if state.naming is not None and "naming-cursor-v1" not in off:
         lines.append(state.naming.readout())
-    if not state.started or state.position is None:
+    if state.screen == "field_transition":
+        return "\n".join(
+            [
+                *lines,
+                "Map loading: save-backed world state unavailable "
+                "until field initialization finishes.",
+            ]
+        )
+    if not state.started:
         return "\n".join([*lines, PRE_GAME_TEXT])
+    if state.position is None:
+        return "\n".join(
+            [*lines, "Save-backed world state unavailable: save data is not initialized or valid."]
+        )
     x, y = state.position
     facing = "" if state.facing is None else f", facing {state.facing}"
     party = "; ".join(f"{m.species} Lv{m.level} HP {m.hp}/{m.max_hp}" for m in state.party or ())

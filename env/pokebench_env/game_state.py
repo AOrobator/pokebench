@@ -143,10 +143,19 @@ def read_game_state(
             read(OBJECT_EVENTS + 0x24 * player_object, 3) if player_object < 16 else bytes(3)
         )
         field_initialized = bool(player_flags[0] & 1 and player_flags[2] & 1)
-    if screen.kind in PRE_GAME or not field_initialized:
+    save1, save2 = (0, 0)
+    if screen.kind not in PRE_GAME and screen.kind != "field_transition" and field_initialized:
+        save1, save2 = struct.unpack("<II", read(SAVE_BLOCK_PTRS, 8))
+    valid_saves = (
+        0x02000000 <= save1 <= 0x02040000 - 0x159C
+        and save1 % 4 == 0
+        and 0x02000000 <= save2 <= 0x02040000 - 0xB0
+        and save2 % 4 == 0
+    )
+    if screen.kind in PRE_GAME or not field_initialized or not valid_saves:
         return GameState(
             screen.label,
-            False,
+            field_initialized and screen.kind not in PRE_GAME,
             None,
             None,
             None,
@@ -157,13 +166,12 @@ def read_game_state(
             None,
             None,
             None,
-            story=read_story(read, screen),
+            story=read_story(read, screen) if screen.kind in PRE_GAME else StoryState(),
             naming=read_naming(read, decode_text) if screen.callback2 == 0x080E4F59 else None,
             dialog=dialog,
             menu=menu,
             active_ui=active_ui,
         )
-    save1, save2 = struct.unpack("<II", read(SAVE_BLOCK_PTRS, 8))
     _, _, group, number = struct.unpack("<hhBB", read(save1, 6))
     body = read(OBJECT_EVENTS + 0x24 * player_object, 0x24)
     x, y = struct.unpack_from("<hh", body, 0x10)

@@ -119,6 +119,8 @@ def _exact(read: ReadMemory, address: int, length: int) -> bytes:
 
 
 def read_story(read: ReadMemory, screen: Screen, save1: int | None = None) -> StoryState:
+    if screen.kind == "field_transition":
+        return StoryState()
     if save1 is None:
         confirmed: bool | None = None
         if screen.callback2 in (0x0802F6B1, 0x08031679):

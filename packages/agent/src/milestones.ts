@@ -28,23 +28,24 @@ const knownPregame = (s: GameStateSnapshot): boolean => !s.started && (
   ["intro", "title", "main_menu", "birch_speech"].includes(s.screen)
   || s.story?.name_confirmed != null
 );
+const savedWorld = (s:GameStateSnapshot):boolean => s.started && s.screen!=="field_transition";
 const place = (s: GameStateSnapshot, matches: (location: string) => boolean): boolean | null =>
-  s.started && s.location !== null ? matches(s.location) : knownPregame(s) ? false : null;
+  s.screen === "field_transition" ? null : s.started && s.location !== null ? matches(s.location) : knownPregame(s) ? false : null;
 const at = (location: string) => (s: GameStateSnapshot) => place(s, (current) => current === location);
 const flag = (field:
   | "name_confirmed" | "clock_set" | "rival_battle_won" | "pokedex_received"
   | "running_shoes_received" | "starter_tutorial_complete" | "rustboro_gym_complete"
   | "rock_tomb_received"
 ) => (s: GameStateSnapshot): boolean | null =>
-  (field === "name_confirmed" || s.started) ? (s.story?.[field] ?? null) : null;
+  s.screen === "field_transition" ? null : (field === "name_confirmed" || savedWorld(s)) ? (s.story?.[field] ?? null) : null;
 const stage = (field:
   | "intro_stage" | "rival_stage" | "birch_lab_stage" | "petalburg_gym_stage" | "woods_stage",
   values: readonly number[],
 ) => (s: GameStateSnapshot): boolean | null =>
-  s.started && s.story?.[field] != null ? values.includes(s.story[field]) : null;
+  savedWorld(s) && s.story?.[field] != null ? values.includes(s.story[field]) : null;
 const clockSet = (s: GameStateSnapshot): boolean | null => {
   if (s.story !== undefined) return flag("clock_set")(s);
-  if (!s.started) return null;
+  if (!savedWorld(s)) return null;
   const value = s.world_context?.triggers.find((t) => t.variable === 0x4092)?.current_value;
   return value == null || value < 0 || value > 7 ? null : value === 6 || value === 7;
 };
@@ -57,7 +58,7 @@ export const MILESTONES: readonly Milestone[] = [
   // callback or a resumed overworld is not evidence of this in-run transition.
   { name: "NEW_GAME_CREATED", kind: "story", reached: (s) => s.screen === "birch_speech" ? true : ["intro", "title", "main_menu"].includes(s.screen) ? false : null },
   { name: "PLAYER_NAME_CONFIRMED", kind: "story", reached: flag("name_confirmed") },
-  { name: "PLAYER_NAME_SET", kind: "legacy", reached: (s) => s.started ? s.name !== null ? true : null : knownPregame(s) ? false : null },
+  { name: "PLAYER_NAME_SET", kind: "legacy", reached: (s) => s.screen === "field_transition" ? null : s.started ? s.name !== null ? true : null : knownPregame(s) ? false : null },
   { name: "FIRST_TRUCK_EXIT", kind: "story", reached: (s) => place(s, (location) => location !== "INSIDE OF TRUCK") },
   { name: "INTRO_CUTSCENE_COMPLETE", kind: "legacy", reached: (s) => place(s, (location) => location !== "INSIDE OF TRUCK") },
   { name: "LITTLEROOT_TOWN", kind: "navigation", reached: at("LITTLEROOT TOWN") },
@@ -68,7 +69,7 @@ export const MILESTONES: readonly Milestone[] = [
   { name: "MOM_RIVAL_INSTRUCTION", kind: "story", reached: stage("intro_stage", [7]) },
   { name: "RIVAL_MET", kind: "story", reached: stage("rival_stage", [3, 4]) },
   { name: "ROUTE_101", kind: "navigation", reached: at("ROUTE 101") },
-  { name: "STARTER_CHOSEN", kind: "story", reached: (s) => s.started ? s.party.length > 0 : null },
+  { name: "STARTER_CHOSEN", kind: "story", reached: (s) => savedWorld(s) ? s.party.length > 0 : null },
   { name: "BIRCH_RESCUE_COMPLETE", kind: "story", reached: stage("birch_lab_stage", [2, 3, 4, 5]) },
   { name: "BIRCH_STARTER_HANDOFF_COMPLETE", kind: "story", reached: stage("birch_lab_stage", [3, 4, 5]) },
   { name: "OLDALE_TOWN", kind: "navigation", reached: at("OLDALE TOWN") },
@@ -87,7 +88,7 @@ export const MILESTONES: readonly Milestone[] = [
   { name: "RUSTBORO_CITY", kind: "navigation", reached: at("RUSTBORO CITY") },
   { name: "RUSTBORO_CITY_GYM", kind: "navigation", reached: at("RUSTBORO CITY GYM") },
   { name: "RUSTBORO_GYM_COMPLETE", kind: "story", reached: flag("rustboro_gym_complete") },
-  { name: "STONE_BADGE", kind: "story", reached: (s) => s.started ? s.badges.includes("STONE") : null },
+  { name: "STONE_BADGE", kind: "story", reached: (s) => savedWorld(s) ? s.badges.includes("STONE") : null },
   { name: "ROCK_TOMB_RECEIVED", kind: "story", reached: flag("rock_tomb_received") },
 ];
 export const MILESTONE_ORDER = MILESTONES.map((m) => m.name);
@@ -104,7 +105,7 @@ export class StateMilestones implements MilestoneSource {
 
   observe(state: GameStateSnapshot, seq?: number): SeenMilestone[] {
     const serverTimestamp = this.now() / 1000;
-    if (state.started && state.location === "INSIDE OF TRUCK") {
+    if (savedWorld(state) && state.location === "INSIDE OF TRUCK") {
       this.sawTruck = true;
       this.truckSeq ??= seq ?? null;
     }
@@ -128,5 +129,5 @@ export class StateMilestones implements MilestoneSource {
 export function qualifiedNativeMilestone(event:Extract<RunEvent,{type:"milestone"}>,states:readonly (RunEvent|undefined)[]):boolean {
  const definition=MILESTONES.find(item=>item.name===event.name);
  const last=states.at(-1);
- return definition!==undefined&&definition.kind!=="legacy"&&event.kind===definition.kind&&event.origin!==undefined&&states.length>0&&states.every(state=>state?.type==="state"&&"started" in state&&state.run===event.run&&state.seq<event.seq)&&last?.type==="state"&&"started" in last&&definition.reached(last)===true&&(event.name!=="FIRST_TRUCK_EXIT"||(states.length===2&&states[0]?.type==="state"&&"location" in states[0]&&states[0].location==="INSIDE OF TRUCK"));
+ return definition!==undefined&&definition.kind!=="legacy"&&event.kind===definition.kind&&event.origin!==undefined&&states.length>0&&states.every(state=>state?.type==="state"&&"started" in state&&state.run===event.run&&state.seq<event.seq)&&last?.type==="state"&&"started" in last&&definition.reached(last)===true&&(event.name!=="FIRST_TRUCK_EXIT"||(states.length===2&&states[0]?.type==="state"&&"location" in states[0]&&"started" in states[0]&&states[0].screen!=="field_transition"&&states[0].location==="INSIDE OF TRUCK"));
 }

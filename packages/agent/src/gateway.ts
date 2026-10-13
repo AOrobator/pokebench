@@ -31,24 +31,45 @@ export class GatewayDiscoveryError extends Error {
 
 const PositiveInt = Type.Integer({ minimum: 1 });
 
+const ObservedSchema = Type.Optional(
+  Type.Object({ capabilities: Type.Optional(Type.Array(Type.String())) }),
+);
 const LaneSchema = Type.Object({
   id: Type.String({ minLength: 1 }),
   context_window: PositiveInt,
   max_tokens: PositiveInt,
   metadata: Type.Optional(
     Type.Object({
-      observed: Type.Optional(
-        Type.Object({ capabilities: Type.Optional(Type.Array(Type.String())) }),
-      ),
+      source: Type.Optional(Type.Unknown()),
+      observed: ObservedSchema,
     }),
   ),
 });
 
-const PayloadSchema = Type.Object({ data: Type.Array(LaneSchema, { minItems: 1 }) });
+// The fleet advertises unavailable capacity explicitly, never registry defaults.
+const UnavailableLaneSchema = Type.Object({
+  id: Type.String({ minLength: 1 }),
+  context_window: Type.Null(),
+  max_tokens: Type.Null(),
+  metadata: Type.Object({
+    source: Type.Literal("unavailable"),
+    context_tokens: Type.Null(),
+    max_response_tokens: Type.Null(),
+    observed: ObservedSchema,
+  }),
+});
+const PayloadSchema = Type.Object({
+  data: Type.Array(Type.Union([LaneSchema, UnavailableLaneSchema]), { minItems: 1 }),
+});
 
 type LanePayload = Static<typeof LaneSchema>;
 
 function toLane(raw: LanePayload): GatewayLane {
+  if (raw.metadata?.source === "unavailable") {
+    throw new GatewayDiscoveryError(
+      `lane ${raw.id}: unavailable provenance contradicts positive capacity`,
+    );
+  }
   if (raw.max_tokens > raw.context_window) {
     throw new GatewayDiscoveryError(
       `lane ${raw.id}: max_tokens ${String(raw.max_tokens)} exceeds context_window ${String(raw.context_window)}`,
@@ -68,13 +89,14 @@ export function parseModelsPayload(payload: unknown): GatewayLane[] {
     const where = first ? `${first.instancePath || "/"}: ${first.message}` : "invalid";
     throw new GatewayDiscoveryError(`malformed /v1/models payload at ${where}`);
   }
-  const lanes = payload.data.map(toLane);
   const seen = new Set<string>();
-  for (const lane of lanes) {
+  for (const lane of payload.data) {
     if (seen.has(lane.id)) throw new GatewayDiscoveryError(`duplicate lane id ${lane.id}`);
     seen.add(lane.id);
   }
-  return lanes;
+  return payload.data
+    .filter((lane): lane is LanePayload => lane.context_window !== null)
+    .map(toLane);
 }
 
 function toPiModel(lane: GatewayLane, gatewayUrl: string, configuredVision: boolean): GatewayModel {
@@ -127,7 +149,7 @@ export async function discoverModels(options: DiscoveryOptions): Promise<Gateway
 export function selectModel(models: readonly GatewayModel[], id: string): GatewayModel {
   const model = models.find((m) => m.id === id);
   if (model === undefined) {
-    const available = models.map((m) => m.id).join(", ");
+    const available = models.map((m) => m.id).join(", ") || "none";
     throw new GatewayDiscoveryError(`model ${id} is not served by the gateway (available: ${available})`);
   }
   return model;

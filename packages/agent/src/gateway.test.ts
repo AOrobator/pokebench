@@ -208,13 +208,11 @@ describe("explicit fleet availability through discovery and selection", () => {
       const models = await discoverModels({
         gatewayUrl: GATEWAY,
         visionModels: [],
-        fetch: vi
-          .fn<typeof fetch>()
-          .mockResolvedValue(
-            jsonResponse({
-              data: offlineFirst ? [offline, live] : [live, offline],
-            }),
-          ),
+        fetch: vi.fn<typeof fetch>().mockResolvedValue(
+          jsonResponse({
+            data: offlineFirst ? [offline, live] : [live, offline],
+          }),
+        ),
       });
       expect(models.map((model) => model.id)).toEqual(["healthy"]);
       const selected = selectModel(models, "healthy");
@@ -235,6 +233,24 @@ describe("explicit fleet availability through discovery and selection", () => {
     },
   );
 
+  it.each(["cached", { owner: "external" }, 7])(
+    "preserves healthy opaque source metadata %j",
+    async (source) => {
+      const models = await discoverModels({
+        gatewayUrl: GATEWAY,
+        visionModels: [],
+        fetch: vi
+          .fn<typeof fetch>()
+          .mockResolvedValue(
+            jsonResponse({
+              data: [lane({ metadata: { source } }), unavailable()],
+            }),
+          ),
+      });
+      expect(selectModel(models, "think-swarm").contextWindow).toBe(65536);
+    },
+  );
+
   it("returns no usable models when every row is explicitly unavailable, without fallback", async () => {
     const models = await discoverModels({
       gatewayUrl: GATEWAY,
@@ -248,13 +264,58 @@ describe("explicit fleet availability through discovery and selection", () => {
   });
 
   it.each<[string, Record<string, unknown>]>([
-    ["null capacity without provenance", unavailable({ metadata: {} })],
+    [
+      "null capacity without provenance",
+      unavailable({
+        metadata: {
+          context_tokens: null,
+          max_response_tokens: null,
+        },
+      }),
+    ],
     [
       "null capacity declared live",
       unavailable({ metadata: { source: "live" } }),
     ],
-    ["unknown source marker", unavailable({ metadata: { source: "cached" } })],
+    [
+      "unknown source marker",
+      unavailable({
+        metadata: {
+          source: "cached",
+          context_tokens: null,
+          max_response_tokens: null,
+        },
+      }),
+    ],
     ["mixed null and live capacity", unavailable({ max_tokens: 100 })],
+    [
+      "positive context on unavailable row",
+      unavailable({ context_window: 65536 }),
+    ],
+    ...(["context_tokens", "max_response_tokens"] as const).flatMap((key) => [
+      [
+        `positive unavailable metadata ${key}`,
+        unavailable({
+          metadata: {
+            source: "unavailable",
+            context_tokens: null,
+            max_response_tokens: null,
+            [key]: 100,
+          },
+        }),
+      ] as [string, Record<string, unknown>],
+      [
+        `missing unavailable metadata ${key}`,
+        unavailable({
+          metadata: {
+            source: "unavailable",
+            ...(key === "context_tokens"
+              ? { max_response_tokens: null }
+              : { context_tokens: null }),
+          },
+        }),
+      ] as [string, Record<string, unknown>],
+    ]),
     [
       "positive capacities declared unavailable",
       lane({ id: "stopped", metadata: { source: "unavailable" } }),
@@ -287,6 +348,11 @@ describe("explicit fleet availability through discovery and selection", () => {
           ),
       });
       await expect(result).rejects.toThrow(GatewayDiscoveryError);
+      await expect(result).rejects.toThrow(
+        _label === "positive capacities declared unavailable"
+          ? "unavailable provenance contradicts positive capacity"
+          : "malformed /v1/models payload",
+      );
     },
   );
 

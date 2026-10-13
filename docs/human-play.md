@@ -6,7 +6,7 @@ Start an isolated recorded human server:
 just run-human
 ```
 
-Open the printed `/play#run=…` link on the usual viewer (port 8791). If needed, start the viewer separately with `just view --port 8791`. Human Play is separate from the model inspection screen. Game speed and sound playback are fixed at 1×, including dialogue.
+Open the printed `/play#run=…` link on the usual viewer (port 8791). If needed, start the built viewer separately with `node packages/viewer/dist/cli.js --port 8791 --runs runs`. Human Play is separate from the model inspection screen. Game speed and sound playback are fixed at 1×, including dialogue.
 
 Click the game screen to enable controls and sound. Browser audio needs that first click. The screen shows when controls are active. Splits stay beside the game on desktop; the existing timeline below it stays visible and shows presses and milestones. Narrow windows place splits below the game. Use the sound button to turn sound off/on.
 
@@ -26,3 +26,9 @@ A finished valid human run from the same starting state is explicitly selectable
 The human server has its own port, input credential, physical frame-storage root (`runs/human/`), run directory and human lease. Both roots are visible in the viewer; a model recorder, including an already-running older cohort, cannot scan or evict nested human frames. It may run beside a model cohort on another server, without making inference calls. Human frame cleanup protects active model recordings; reaching the storage cap stops recording rather than evicting active evidence.
 
 For operator validation, `POKEBENCH_HUMAN_VALIDATION=true just run-human` tags the recording as a probe so it cannot become a benchmark reference. `POKEBENCH_HUMAN_START_PAUSED=true just run-human` starts paused after launch; resume when ready. Server/run roots can be selected through `POKEBENCH_HUMAN_PORT` and `POKEBENCH_RUNS_ROOT` for an isolated preview.
+
+## Current isolated preview
+
+While the existing model cohort remains active, the reviewed human code is served from `/Users/user/.codex/worktrees/human-playthrough/pokebench` on viewer port8798 and human game port8040. The preview viewer reads the usual `/Users/user/dev/pokebench/runs` catalog, including its separate `human/` recordings. Existing model viewers and canonical source/builds are preserved. Use the supplied ready Play link on8798; the printed8791 link is the usual default for after integration. The ready run starts paused so waiting is excluded. Press Resume, click the game, wait for Controls active, then play; first game click enables sound at1×.
+
+The branch is `codex/human-playthrough`. Source integration is pending while changing canonical source/builds could invalidate later trials in the active cohort. This is a ready isolated runtime, not a claim of canonical landing or a completed the operator baseline.

@@ -83,45 +83,45 @@ All servers bind 127.0.0.1. New writes retain existing Host/Origin, JSON content
 
 
 **M1 — Human run contract and isolated launch**
-- [ ] Verify pinned emulator stepping/input semantics and current schema, clocks, lease and queue owners; record adapter decision and measurement cadence.
+- [x] Verify pinned emulator stepping/input semantics and current schema, clocks, lease and queue owners; record adapter decision and measurement cadence.
 - [x] Write tests: explicit human kind/provenance, no model calls, isolated server, start-state identity, lease conflicts, terminal lifecycle and historical schema compatibility.
 - [ ] COMMIT: `test(human): define isolated human run lifecycle` (RED).
 - [x] Implement human launch and typed metadata/lifecycle, including orderly stop and failure cleanup.
-- [ ] Gates: test counts, lint, build, coverage ≥90% per required metric in both stacks; vendor clean.
+- [x] Cumulative gates on89e13f4: all suites, lint/build, each coverage metric ≥90%, vendor clean; per-milestone sequencing deferred by operator amendment.
 - [ ] COMMIT: `feat(human): launch recorded human game sessions` (GREEN).
-- [ ] Isolated real-server launch/stop proof with no inference request.
-- [ ] Performed guard-removal receipts; multi-model review until clean.
+- [x] Isolated real-server launch/stop proof with no inference request: validation8302/ebdb/37d0; zero inference tokens/tools, native terminal receipts.
+- [x] Performed guard-removal receipts; cumulative R3 source review clean (Sol/Astra/Grok), reduced fallback vendor diversity/transport limits retained.
 
 **M2 — Responsive keyboard input and safe release**
 - [x] Write tests: exact mapping, combinations, repeat suppression, keyup, editable targets, focus loss, visibility/disconnect watchdog, stale sequence/session, input rejection, pause/stop, S/P/X shortcut conflicts.
 - [ ] COMMIT: `test(human-input): require keyboard ownership and bounded releases` (RED).
 - [x] Implement the separate minimal Play page, focused human controls, input transport, owned emulator adapter and server-side release watchdog. Keep splits beside the game and the timeline below; do not embed the viewer settings UI.
-- [ ] Gates: test counts, lint, build, coverage ≥90%; vendor clean.
+- [x] Cumulative89e13f4 gates: all suites, lint/build, coverage ≥90%; vendor clean.
 - [ ] COMMIT: `feat(human-input): wire keyboard controls to isolated gameplay` (GREEN).
-- [ ] Real browser/emulator proof: held direction, O/P, Start/Select, L/R, simultaneous input, idle advancement and release after blur/disconnect. Show no S/P/X operator action.
-- [ ] Performed guard-removal receipts; multi-model review until clean.
+- [x] Native browser/emulator37d0 records all ten keys and idle frames; focused tests/earlier native proof cover holds/combinations/watchdog/blur/reconnect. No S/P/X operator shortcut remains. Native FPS59.712 over36.274s and nonzero PCM verified; no full-game soak claim.
+- [x] Performed guard-removal receipts; cumulative R3 source review clean (Sol/Astra/Grok), reduced fallback vendor diversity/transport limits retained.
 
 **M3 — Durable recording, milestone splits and replay**
 - [x] Write tests: applied input/frame evidence, state polling without input, milestone deduplication/present-at-start, three clock semantics, pause gaps, failed state reads, recorder failure and terminal outcome, live/replay parity.
 - [ ] COMMIT: `test(human-recording): require inputs clocks milestones and replay` (RED).
 - [x] Implement recorder integration, frame/state cadence, compact adjacent splits and the existing always-visible agent timeline on Play, omitting thinking/tool calls/errors lanes; retain full human live/replay inspection in the separate viewer.
-- [ ] Gates: test counts, lint, build, coverage ≥90%; vendor clean.
+- [x] Cumulative89e13f4 gates: all suites, lint/build, coverage ≥90%; vendor clean.
 - [ ] COMMIT: `feat(human-recording): preserve human inputs and milestone splits` (GREEN).
-- [ ] Short emulator smoke: save log/frames, stop server, replay matching inputs and milestone evidence. Smoke is labeled as validation, not the operator's baseline.
-- [ ] Performed guard-removal receipts; agent-observability trace and multi-model review until clean.
+- [x] Validation37d0 saved346 frames with operator_stop/final paused sample, then replayed via shared viewer after server stopped; saved frame HTTP SHA1 matches log. Validation excluded from baseline candidates; no the operator baseline claim.
+- [x] Applied journal → durable native state/milestone/sample → viewer replay traced; performed guard RED/restored receipts and clean cumulative R3 review.
 
 **M4 — Human baseline selection and trustworthy comparisons**
 - [x] Write tests: finished valid same-start human reference, explicit identity, no probe/incomplete/start-mismatch eligibility, pause-aware splits, clock availability/uncertainty, no human contamination of model history or automatic incumbent choice.
 - [ ] COMMIT: `test(human-baseline): require explicit comparable human references` (RED).
 - [x] Implement human reference selection, labels and split deltas; unavailable metrics remain unavailable.
-- [ ] Gates: test counts, lint, build, coverage ≥90%; vendor clean.
+- [x] Cumulative89e13f4 gates: all suites, lint/build, coverage ≥90%; vendor clean.
 - [ ] COMMIT: `feat(human-baseline): compare model splits with human playthroughs` (GREEN).
-- [ ] Real viewer proof against recorded human smoke and existing model logs; no new model benchmark run required.
-- [ ] Performed guard-removal receipts; multi-model review until clean.
+- [x] Shared preview catalog shows nested human validation alongside existing model logs, correctly excludes probe from baseline candidates; actual eligible the operator reference remains operator acceptance pending. No model run launched.
+- [x] Performed guard-removal receipts; cumulative R3 source review clean (Sol/Astra/Grok), reduced fallback vendor diversity/transport limits retained.
 
 **M5 — Ready for the operator's playthrough and closeout**
-- [ ] Final cumulative gates/review and real-browser keyboard/input/replay evidence on the final candidate.
-- [ ] Record concrete launch instructions, viewer location, keys, focus/release behavior, pause/stop controls, start state and output locations.
+- [x] Final cumulative89e13f4 gates/review and native keyboard/audio/pause/finish/replay evidence complete; see final synthesis below.
+- [x] Concrete launch/key/focus/release/pause/finish/start/output guide in docs/human-play.md; isolated preview8798/server8040, canonical runs/human storage.
 - [ ] Record landing/rebuild/restart evidence separately from tests/review; preserve other active work and runs.
 - [ ] the operator plays the acceptance run; verify its terminal receipt, milestone splits, replay and eligible human reference. This remains pending until the operator actually plays; do not invent a human baseline from automated input.
 - [ ] Update worklog with limitations, sample count, observed outcome and receipts.
@@ -196,3 +196,13 @@ None.
 - Test-quality synthesis: nested HTTP fixture now matches real human launch topology, verifies all numbered controls in the resolved file, then production human driver consumes them. Clock injection reproduces exact post-pause bounds and viewer fold duration. Each patch arm and all-human distributions tested with test-owned identities. Fresh control/timestamp and scorer guard RED/restored receipts retained. Assertions carry responses; bounds tiny/bounded; globals restored; no retries/skips/exclude changes. Concurrency mechanism retains real latch tests under concurrent gate/build load. No new growing persistence fixture loop.
 - R1 was an incomplete selected-roster round (external Grok prose after verdict); R2 is the first contract-complete blocker-producing roster attempt, with Grok identity-verification limitation separately retained. R3 is the re-review of this bounded accepted batch; no new infrastructure scope. Final full gates, native proof and review remain pending until their receipts complete. Earlier native probe ebdb stays validation-only, paused; it is not the operator's baseline.
 - fdd1e96 records the bounded R2 fix batch. New control test initially expected an extra pending Resume receipt; production owner correctly records Resume applied immediately, so expectation corrected to its four exact receipts. Scoped lint then caught an untyped response.json diagnostic; retained failure, assigned unknown explicitly. Fresh control tests21 passed before cumulative gates. Worklog freshness hook rejected the isolated diagnostic-type commit until this entry was added; no hook bypass.
+
+
+### R3 final synthesis and operator-ready delivery
+
+- Source89e13f47c601ece7d7edec95e3cdfd5400cb5574, cumulative diff SHA2567f899ea35fb731e3f0daaf9f03658e7b84c16656a0a1ae5288bfa627bce9ec7c. Clean frozen full gates: agent696 (lines98.86/branches93.81/functions97.54), viewer284 (98.52/91.86/97.10), Python506 (99.24/96.71/100). Lint/build/vendor clean. Source stayed frozen during gates/review/native proofs.
+- R3 reviewer roster: fresh human_r3_sol (gpt-6.1-sol), fresh human_r3_astra (gpt-6-astra), retained external CursorGrok4.5. All final reviewer-authored text ends exactly VERDICT: LGTM. Sol/Astra independently verified HEAD/digest before/after; source tree clean. Grok initial360s transport timed out; same-context read-only resume completed review via plan tool (not qualifying final text), followed by Ask-mode final-text resume exit0/literal LGTM. All transport/plan/final receipts retained under /tmp/pokebench-human-r3-review. Its shell digest recomputation was unavailable; matching packet/owner inspection and root identity verification qualified separately, not represented as independent recomputation. Claude/GPT harness outages previously exhausted, local lanes operator-waived; reduced vendor diversity honest.
+- Principles PB1–PB13: no FAIL. Consensus R1/R2 defects fixed; R3 no new blocker/contradiction/scope requirement. Nine test-quality dimensions examined by both independent reviewers, focused independent checks Sol157agent105viewer14Python; Astra104agent85viewer14Python. All accepted fixes checked at consumers and mutations. Hardening follow-up: twice-per-save retained-frame scans measured7–9ms@1k,74–85.5ms@10k,142–154.6ms@20k; retired sessions grow. No input loss/contract failure demonstrated, no full-game soak certification. Journal sample_upper_bound evidence/nominal100ms interval remain explicit.
+- Native final89e13f4 validation37d0: own8040 server, canonical nested human storage, shared-catalog preview8798; no cohort source/service restart. Recorded all ten keys; observed59.712fps over36.274s; audio.wav48044 bytes with23994 nonzero PCM samples; Sound on→off→game refocus stilloff→on verified. Pause/Resume/Finish applied receipts native; final paused Finish operator_stop, zero tokens,346 screenshots/3608800bytes. Stopped8040, viewer REPLAY renders saved frame reference without problems and HTTP SHA1 matches journal. Receipt /tmp/pokebench-human-r3-native-receipt.json; screenshot /tmp/pokebench-human-play-desktop.png. The earlier failed paused-Finish proof remains preserved, not erased.
+- Operator reported regular agent timeline appeared regressed. Investigated without changing it: same actual agent run89c1 produces byte-identical old/new default timeline output at3228 event checkpoints; served8791/8793/8798 CSS hashes identical; browser8798 shows five original lanes,170px height,1000×170 viewBox and60sec range. Receipt /tmp/pokebench-human-agent-timeline-parity.json and screenshot /tmp/pokebench-agent-timeline-desktop.png. Initially open inspection tab was human validation37d0, with no model thinking/tool events. Asked which visible behavior differs; no specific regression reproduced yet. Human filter remains only on Play; do not infer user concern resolved from green unit tests.
+- Canonical main advanced independently to259340b documentation during this work; current named-interactions-think-fast-full-n4 cohort pid12548 still owns canonical naming lease. Preserve its source/builds/services and initial unrelated dirty work. Human branch source is reviewed/ready and its own preview delivered; canonical landing/rebuild remain pending until they cannot change cohort provenance. No false landing/deployment claim. Actual the operator playthrough/baseline and archive remain operator-gated. Guide corrected an invalid just view flag invocation to the existing explicit viewer CLI; this closeout changes documentation only.

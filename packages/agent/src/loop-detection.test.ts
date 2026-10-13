@@ -71,7 +71,7 @@ describe("deterministic loop detection", () => {
     detector.complete(call("get_objectives")); detector.complete(call("get_objectives"));
     detector.context();
     const story = before.story;
-    if (story === undefined) throw new Error("Native recovery fixture requires story evidence");
+    if (story === undefined || story === null) throw new Error("Native recovery fixture requires story evidence");
     const accepted = { ...before, story: { ...story, clock_set: true } };
     detector.observe(state(2, accepted, "foreign_run"));
     expect(events.filter(e => e.phase === "recovered")).toHaveLength(0);

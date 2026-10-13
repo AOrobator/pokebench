@@ -5,6 +5,10 @@ import { Value } from "typebox/value";
 import { ButtonSchema, StateBodySchema, type Button } from "./events.js";
 import { parseGameState, type GameStateSnapshot } from "./game-state.js";
 import { pressResult } from "./press-result.js";
+
+// Which model-visible parts of the observe/press results this run shows.
+export interface ToolSwitches { readonly readout: boolean; readonly pressResult: boolean; readonly position: boolean; readonly fieldLock: boolean }
+export const ALL_TOOL_SWITCHES: ToolSwitches = { readout: true, pressResult: true, position: true, fieldLock: true };
 import type { PressTiming } from "./recorder.js";
 
 const NoArgs = Type.Object({});
@@ -74,11 +78,11 @@ async function observation(
   ], state: body.state };
 }
 
-export function observeTool(gameServerUrl: string, fetchFn: typeof fetch = fetch): AgentTool {
+export function observeTool(gameServerUrl: string, fetchFn: typeof fetch = fetch, switches: ToolSwitches = ALL_TOOL_SWITCHES): AgentTool {
   return {
     name: "observe",
     label: "Observe",
-    description: "See the current game screen and the game state read from memory (location, party, map).",
+    description: switches.readout ? "See the current game screen and the game state read from memory (location, party, map)." : "See the current game screen.",
     parameters: NoArgs,
     execute: async (_toolCallId, _params, signal) => {
       const result = await observation(gameServerUrl, fetchFn, signal);
@@ -176,13 +180,14 @@ export function pressTool(
   hooks: PressHooks,
   fetchFn: typeof fetch = fetch,
   clock: Clock = realClock,
-  options: { readonly pressResult: boolean } = { pressResult: true },
+  switches: ToolSwitches = ALL_TOOL_SWITCHES,
 ): AgentTool<typeof PressArgs> {
   return {
     name: "press",
     label: "Press buttons",
-    description:
-      "Press Game Boy Advance buttons in order (up to 8), then see the resulting screen and game state.",
+    description: switches.readout
+      ? "Press Game Boy Advance buttons in order (up to 8), then see the resulting screen and game state."
+      : "Press Game Boy Advance buttons in order (up to 8), then see the resulting screen.",
     parameters: PressArgs,
     execute: async (toolCallId, params, signal) => {
       // A stopped run (budget, operator abort) must not press anything further.
@@ -211,7 +216,7 @@ export function pressTool(
       await waitForQueue(gameServerUrl, fetchFn, clock, signal);
       await clock.sleep(STATE_CACHE_SETTLE_MS);
       await hooks.afterPress();
-      const content = await observation(gameServerUrl, fetchFn, signal, (after) => `pressed ${params.buttons.join(", ")}\n${options.pressResult ? `Press result: ${pressResult(before, after, params.buttons)}\n` : ""}\n`);
+      const content = await observation(gameServerUrl, fetchFn, signal, (after) => `pressed ${params.buttons.join(", ")}\n${switches.pressResult ? `Press result: ${pressResult(before, after, params.buttons, switches)}\n` : ""}\n`);
       return { content: content.content, details: { state: content.state } };
     },
   };

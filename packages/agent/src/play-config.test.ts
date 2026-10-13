@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { expect, it } from "vitest";
 import { ALL_ON, type FeatureSet, type SwitchableFeature } from "./features.js";
-import { CONTEXTUAL_CONTROLS, PLAY_SYSTEM_PROMPT, objectiveSwitches, playGoal, playSystemPrompt, playTools } from "./play-config.js";
+import { CONTEXTUAL_CONTROLS, PLAY_SYSTEM_PROMPT, objectiveSwitches, playGoal, playSystemPrompt, playTools, toolSwitches } from "./play-config.js";
 import { OBJECTIVE_PROMPT, objectivePrompt } from "./objective-tools.js";
 
 const sha = (text: string): string => createHash("sha256").update(text).digest("hex");
@@ -52,4 +52,9 @@ it("names the goal and the tools for the selected switches", () => {
 it("hides objective-record facts whose observation switch is off", () => {
   expect(objectiveSwitches(ALL_ON)).toEqual({ repeatGuard: true, nativeCompletion: true, hiddenFacts: [] });
   expect(objectiveSwitches(off("live-player-position-v1", "naming-cursor-v1", "field-control-lock", "repeat-attempt-guard-v1"))).toEqual({ repeatGuard: false, nativeCompletion: true, hiddenFacts: ["position", "facing", "naming", "field_controls_locked"] });
+});
+
+it("maps observation switches onto the observe/press results", () => {
+  expect(toolSwitches(ALL_ON)).toEqual({ readout: true, pressResult: true, position: true, fieldLock: true });
+  expect(toolSwitches(off("ram-state-v1", "press-result-v1", "live-player-position-v1", "field-control-lock"))).toEqual({ readout: false, pressResult: false, position: false, fieldLock: false });
 });

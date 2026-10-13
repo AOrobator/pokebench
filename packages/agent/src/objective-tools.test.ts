@@ -4,6 +4,7 @@ import type { AgentMessage, StreamFn } from "@mariozechner/pi-agent-core";
 import { Governor, piLoop } from "./harness.js";
 import { expect, it, vi } from "vitest";
 import { objectiveGameTools, objectiveTools, objectiveHarness } from "./objective-tools.js";
+import { ALL_TOOL_SWITCHES } from "./game-tools.js";
 import { ObjectiveTracker } from "./objectives.js";
 import { IN_GAME } from "../test-support/events.js";
 import type { BodyOf, RunEvent } from "./events.js";
@@ -350,7 +351,7 @@ it("accepts the native catalog through pinned pi without allowing model-written 
 
 it("forwards the guard, completion and press-result switches through the production owner", async () => {
   const { recorder, events } = setup();const server = serving();
-  const harness = objectiveHarness("Reach gym", recorder, "http://127.0.0.1:8812", server.fetchFn, { repeatGuard: false, nativeCompletion: false, pressResult: false });
+  const harness = objectiveHarness("Reach gym", recorder, "http://127.0.0.1:8812", server.fetchFn, { repeatGuard: false, nativeCompletion: false, ...ALL_TOOL_SWITCHES, pressResult: false });
   const [observe, press, , set, update] = harness.tools;
   if (!observe || !press || !set || !update) throw new Error("missing composition");
   expect(update.description).not.toContain("Native milestone completion is automatic");
@@ -364,11 +365,13 @@ it("forwards the guard, completion and press-result switches through the product
   expect(server.actions()).toBe(3);
   const defaults = objectiveHarness("Reach gym", recorder, "http://127.0.0.1:8812", server.fetchFn);
   expect(defaults.tools[4]?.description).toContain("Native milestone completion is automatic");
+  const screenOnly = objectiveHarness("Reach gym", recorder, "http://127.0.0.1:8812", server.fetchFn, { repeatGuard: true, nativeCompletion: true, ...ALL_TOOL_SWITCHES, readout: false });
+  expect(screenOnly.tools.map((tool) => tool.description).slice(0, 2)).toEqual(["See the current game screen.", "Press Game Boy Advance buttons in order (up to 8), then see the resulting screen."]);
 });
 
 it("leaves hidden facts out of the objective record and states model-reported completion everywhere when native completion is off", async () => {
   const { recorder, events } = setup();const server = serving();
-  const harness = objectiveHarness("Reach gym", recorder, "http://127.0.0.1:8812", server.fetchFn, { repeatGuard: true, nativeCompletion: false, pressResult: true, hiddenFacts: ["position", "facing", "naming", "field_controls_locked"] });
+  const harness = objectiveHarness("Reach gym", recorder, "http://127.0.0.1:8812", server.fetchFn, { repeatGuard: true, nativeCompletion: false, ...ALL_TOOL_SWITCHES, hiddenFacts: ["position", "facing", "naming", "field_controls_locked"] });
   const [observe, , , set, update] = harness.tools;
   if (!observe || !set || !update) throw new Error("missing composition");
   expect(set.description).not.toMatch(/verification are fixed by the harness/);

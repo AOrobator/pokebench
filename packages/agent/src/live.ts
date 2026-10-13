@@ -13,7 +13,7 @@ import { readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { objectiveHarness } from "./objective-tools.js";
 import { playHarnessFeatures, serverFeatureEnv } from "./features.js";
-import { PLAY_LIMITS, PLAY_MAX_TOKENS, PLAY_TASK, PLAY_THINKING, objectiveSwitches, playGoal, playSystemPrompt, playTools } from "./play-config.js";
+import { PLAY_LIMITS, PLAY_MAX_TOKENS, PLAY_TASK, PLAY_THINKING, objectiveSwitches, playGoal, playSystemPrompt, playTools, toolSwitches } from "./play-config.js";
 import { verifyIntro } from "./verify-state.js";
 import { driveProbe, parseProbeCommand, type ProbeCommand } from "./probe.js";
 import { join, resolve } from "node:path";
@@ -270,11 +270,11 @@ async function playAgent(): Promise<void> {
         governor.abort("operator_abort");
       };
       process.once("SIGINT", interrupt);
-      const objectives = features["objective-tracking-v1"] ? objectiveHarness(goal, recorder, gameServerUrl, fetch, { ...objectiveSwitches(features), pressResult: features["press-result-v1"] }) : null;
+      const objectives = features["objective-tracking-v1"] ? objectiveHarness(goal, recorder, gameServerUrl, fetch, { ...objectiveSwitches(features), ...toolSwitches(features) }) : null;
       const loop = piLoop({
         systemPrompt,
         loopDetector,
-        tools: objectives?.tools ?? [observeTool(gameServerUrl), pressTool(gameServerUrl, pressHooks(recorder), fetch, undefined, { pressResult: features["press-result-v1"] })],
+        tools: objectives?.tools ?? [observeTool(gameServerUrl, fetch, toolSwitches(features)), pressTool(gameServerUrl, pressHooks(recorder), fetch, undefined, toolSwitches(features))],
         base: { ...gatewayLoopConfig(model, thinking, apiKey), maxTokens },
         governor,
         transformContext: objectives?.transformContext ?? recorder.transformContext,

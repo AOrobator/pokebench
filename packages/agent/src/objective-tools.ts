@@ -5,7 +5,7 @@ import { ButtonSchema } from "./events.js";
 import { CompletionInputSchema, CompletionSchema, NATIVE_OBJECTIVES, EvidenceSchema, ObjectiveStatusSchema, validateCompletionType } from "./objective-schema.js";
 import { ALL_OBJECTIVE_SWITCHES, ObjectiveTracker, type ObjectiveSwitches } from "./objectives.js";
 export { ALL_OBJECTIVE_SWITCHES, type ObjectiveSwitches };
-import { observeTool, pressTool } from "./game-tools.js";
+import { ALL_TOOL_SWITCHES, observeTool, pressTool, type ToolSwitches } from "./game-tools.js";
 import { parseGameState, StateWatcher } from "./game-state.js";
 import type { RunRecorder } from "./recorder.js";
 
@@ -72,10 +72,10 @@ function resultState(result: AgentToolResult<unknown>) {
   if (typeof details !== "object" || details === null || !("state" in details)) throw new Error("Game tool did not return coherent state details");
   return parseGameState(details.state);
 }
-export function objectiveGameTools(tracker: ObjectiveTracker, recorder: Pick<RunRecorder, "recordState" | "buttonPress" | "afterPress">, url: string, fetchFn: typeof fetch = fetch, pressResult = true): AgentTool[] {
-  const observe = observeTool(url, fetchFn);
+export function objectiveGameTools(tracker: ObjectiveTracker, recorder: Pick<RunRecorder, "recordState" | "buttonPress" | "afterPress">, url: string, fetchFn: typeof fetch = fetch, switches: ToolSwitches = ALL_TOOL_SWITCHES): AgentTool[] {
+  const observe = observeTool(url, fetchFn, switches);
   const submissions = { count: 0 };
-  const press = pressTool(url, { beforePress: (id, buttons, timing, before) => { submissions.count += 1; recorder.buttonPress(id, buttons, timing, before); }, afterPress: () => recorder.afterPress() }, fetchFn, undefined, { pressResult });
+  const press = pressTool(url, { beforePress: (id, buttons, timing, before) => { submissions.count += 1; recorder.buttonPress(id, buttons, timing, before); }, afterPress: () => recorder.afterPress() }, fetchFn, undefined, switches);
   return [
     { ...observe, execute: async (id, params, signal, update) => {
       const result = await observe.execute(id, params, signal, update);
@@ -104,12 +104,12 @@ export function objectiveGameTools(tracker: ObjectiveTracker, recorder: Pick<Run
 
 type ObjectiveRecorder = Pick<RunRecorder, "recordState" | "buttonPress" | "afterPress" | "subscribe" | "recordObjective" | "transformContext">;
 
-export interface ObjectiveHarnessSwitches extends ObjectiveSwitches { readonly pressResult: boolean }
-export function objectiveHarness(goal: string, recorder: ObjectiveRecorder, url: string, fetchFn: typeof fetch = fetch, switches: ObjectiveHarnessSwitches = { ...ALL_OBJECTIVE_SWITCHES, pressResult: true }) {
+export interface ObjectiveHarnessSwitches extends ObjectiveSwitches, ToolSwitches {}
+export function objectiveHarness(goal: string, recorder: ObjectiveRecorder, url: string, fetchFn: typeof fetch = fetch, switches: ObjectiveHarnessSwitches = { ...ALL_OBJECTIVE_SWITCHES, ...ALL_TOOL_SWITCHES }) {
   const tracker = new ObjectiveTracker(goal, (body) => { recorder.recordObjective(body); }, switches);
   recorder.subscribe((event) => { tracker.observe(event); });
   return {
-    tools: [...objectiveGameTools(tracker, recorder, url, fetchFn, switches.pressResult), ...objectiveTools(tracker, async (signal) => recorder.recordState(await readState(url, fetchFn, signal)).seq, switches.nativeCompletion)],
+    tools: [...objectiveGameTools(tracker, recorder, url, fetchFn, switches), ...objectiveTools(tracker, async (signal) => recorder.recordState(await readState(url, fetchFn, signal)).seq, switches.nativeCompletion)],
     transformContext: (messages: AgentMessage[]) => recorder.transformContext(tracker.context(messages)),
   };
 }

@@ -1,7 +1,7 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import { describe, expect, it, vi } from "vitest";
 import { IN_GAME } from "../test-support/events.js";
-import { PRESS_TIMING, SmokeError, checkSmoke, observeTool, pressTool, serverHealthy, waitForQueue } from "./game-tools.js";
+import { ALL_TOOL_SWITCHES, PRESS_TIMING, SmokeError, checkSmoke, observeTool, pressTool, serverHealthy, waitForQueue } from "./game-tools.js";
 
 const SERVER = "http://127.0.0.1:8000";
 
@@ -317,7 +317,25 @@ it("omits the press-result line when that switch is off", async () => {
     "/action": { status: "success" },
     "/queue_status": { queue_empty: true },
     "/pokebench/observation": observationBody({ state: { ...before, position: { x: 1, y: 1 } }, state_text: "Position: X=1, Y=1" }),
-  }), instant, { pressResult: false });
+  }), instant, { ...ALL_TOOL_SWITCHES, pressResult: false });
   const result = await tool.execute("move", { buttons: ["UP"] });
   expect(result.content[1]).toEqual({ type: "text", text: "pressed UP\n\nPosition: X=1, Y=1" });
+});
+
+it("leaves hidden position and lock facts out of press results, and drops the readout promise when RAM is off", async () => {
+  const before = { ...IN_GAME, screen: "overworld", field_controls_locked: false, position: { x: 1, y: 2 }, facing: "up" };
+  const press = (after: object, switches: typeof ALL_TOOL_SWITCHES) => pressTool(SERVER, noHooks, routes({
+    "/pokebench/state": before, "/action": { status: "success" }, "/queue_status": { queue_empty: true },
+    "/pokebench/observation": observationBody({ state: after, state_text: "" }),
+  }), instant, switches).execute("p", { buttons: ["UP"] });
+  const noPosition = { ...ALL_TOOL_SWITCHES, position: false };
+  expect((await press({ ...before, position: { x: 1, y: 1 } }, noPosition)).content[1]).toEqual({ type: "text", text: "pressed UP\nPress result: moved\n\n" });
+  expect((await press({ ...before, facing: "left" }, noPosition)).content[1]).toEqual({ type: "text", text: "pressed UP\nPress result: turned; no net movement\n\n" });
+  expect((await press({ ...before, field_controls_locked: true }, { ...ALL_TOOL_SWITCHES, fieldLock: false })).content[1]).toEqual({ type: "text", text: "pressed UP\nPress result: no movement or turn observed (cause not reported)\n\n" });
+  expect((await press({ ...before, field_controls_locked: true }, ALL_TOOL_SWITCHES)).content[1]).toEqual({ type: "text", text: "pressed UP\nPress result: locked (field controls locked in a snapshot; no net movement)\n\n" });
+  const screenOnly = { ...ALL_TOOL_SWITCHES, readout: false };
+  expect(observeTool(SERVER, undefined, screenOnly).description).toBe("See the current game screen.");
+  expect(pressTool(SERVER, noHooks, undefined, undefined, screenOnly).description).toBe("Press Game Boy Advance buttons in order (up to 8), then see the resulting screen.");
+  expect(observeTool(SERVER).description).toBe("See the current game screen and the game state read from memory (location, party, map).");
+  expect(pressTool(SERVER, noHooks).description).toBe("Press Game Boy Advance buttons in order (up to 8), then see the resulting screen and game state.");
 });

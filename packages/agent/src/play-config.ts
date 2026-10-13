@@ -4,6 +4,7 @@
 import type { Limits } from "./harness.js";
 import { objectivePrompt, type ObjectiveSwitches } from "./objective-tools.js";
 import type { FeatureSet } from "./features.js";
+import type { ToolSwitches } from "./game-tools.js";
 
 export const PLAY_LIMITS: Limits = { maxTurns: 300, maxWallMs: 30 * 60_000, failureLimit: 3 };
 export const PLAY_MAX_TOKENS = 4096;
@@ -86,6 +87,10 @@ export function objectiveSwitches(features: FeatureSet): Required<ObjectiveSwitc
       ...(features["field-control-lock"] ? [] : (["field_controls_locked"] as const)),
     ],
   };
+}
+
+export function toolSwitches(features: FeatureSet): ToolSwitches {
+  return { readout: features["ram-state-v1"], pressResult: features["press-result-v1"], position: features["live-player-position-v1"], fieldLock: features["field-control-lock"] };
 }
 
 export function playTools(features: FeatureSet): string[] {

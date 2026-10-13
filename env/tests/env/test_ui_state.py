@@ -158,3 +158,54 @@ class TestReadMenu:
         menu(memory, cursor=5, maximum=4, window=1)
         window(memory, 1, bg=0, width=7, height=12, drawn=True)
         assert read_menu(memory.read) is None
+
+
+class TestActiveBirchUi:
+    @pytest.mark.parametrize(("cursor", "selected"), [(0, "YES"), (1, "NO")])
+    def test_name_confirmation_reads_owned_selection(self, cursor: int, selected: str) -> None:
+        from pokebench_env.game_screen import Screen, TASKS
+        from pokebench_env.ui_state import read_active_ui
+
+        memory = Memory()
+        memory.put(TASKS + 2 * 0x28, struct.pack("<IB", 0x08031189, 1))
+        menu(memory, cursor, 1, 1)
+        window(memory, 1, 0, 6, 4, True)
+        ui = read_active_ui(memory.read, Screen("birch_speech", 0, 0x0802F6B1))
+        assert ui.phase == "name_confirmation"
+        assert ui.selected == selected
+        assert ui.ready is True
+        assert "B declines" in ui.controls
+
+    def test_printing_phase_does_not_reuse_stale_yes_no_menu(self) -> None:
+        from pokebench_env.game_screen import Screen, TASKS
+        from pokebench_env.ui_state import read_active_ui
+
+        memory = Memory()
+        memory.put(TASKS, struct.pack("<IB", 0x08031145, 1))
+        menu(memory, 0, 1, 1)
+        window(memory, 1, 0, 6, 4, True)
+        ui = read_active_ui(memory.read, Screen("birch_speech", 0, 0x0802F6B1))
+        assert ui.phase == "name_confirmation_printing"
+        assert ui.ready is False and ui.selected is None
+
+    @pytest.mark.parametrize(("cursor", "selected"), [(0, "BOY"), (1, "GIRL")])
+    def test_gender_selection_is_owned(self, cursor: int, selected: str) -> None:
+        from pokebench_env.game_screen import Screen, TASKS
+        from pokebench_env.ui_state import read_active_ui
+
+        memory = Memory()
+        memory.put(TASKS, struct.pack("<IB", 0x08030E39, 1))
+        menu(memory, cursor, 1, 1)
+        window(memory, 1, 0, 6, 4, True)
+        ui = read_active_ui(memory.read, Screen("birch_speech", 0, 0x0802F6B1))
+        assert ui.phase == "gender_selection" and ui.selected == selected and ui.ready
+
+    def test_unknown_owner_has_bounded_diagnostic_not_guessed_cursor(self) -> None:
+        from pokebench_env.game_screen import Screen, TASKS
+        from pokebench_env.ui_state import read_active_ui
+
+        memory = Memory()
+        memory.put(TASKS, struct.pack("<IB", 0x08039999, 1))
+        ui = read_active_ui(memory.read, Screen("unknown", 0, 0x0802F6B1))
+        assert ui.phase == "unsupported" and ui.ready is None and ui.selected is None
+        assert "0x08039999" in ui.diagnostic and "0x0802F6B1" in ui.diagnostic

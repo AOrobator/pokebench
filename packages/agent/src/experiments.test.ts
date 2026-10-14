@@ -57,7 +57,7 @@ it("is ready only when enough of the latest comparable runs reach the activation
  const comparable=[run("r1",[]),run("r2",["FIRST_TRUCK_EXIT"]),run("r3",["FIRST_TRUCK_EXIT"],{"full-map-navigation-v1":true}),run("r4",["FIRST_TRUCK_EXIT"]),run("r5",["FIRST_TRUCK_EXIT"])];
  expect(readinessOf(e,comparable)).toEqual({ready:true,basis:"comparable",milestone:"FIRST_TRUCK_EXIT",window:4,minReached:3,reached:4,considered:["r2","r3","r4","r5"]});
  expect(readinessOf(e,comparable.slice(0,4))).toMatchObject({ready:true,reached:3,considered:["r1","r2","r3","r4"]});
- expect(readinessOf(e,[run("o1",["FIRST_TRUCK_EXIT"],{"live-map-v1":false,"world-coordinate-grid-v1":false}),...comparable.slice(0,3)])).toMatchObject({ready:false,basis:"recent",reached:3,considered:["o1","r1","r2","r3"]});
+ expect(readinessOf(e,[run("o1",["FIRST_TRUCK_EXIT"],{"live-map-v1":false,"world-coordinate-grid-v1":false}),...comparable.slice(0,3)])).toMatchObject({ready:true,basis:"recent",reached:3,considered:["o1","r1","r2","r3"]});
  expect(readinessOf(e,comparable.slice(0,3))).toMatchObject({ready:false,basis:"recent",reached:2,considered:["r1","r2","r3"]});
  expect(readinessOf(e,[])).toMatchObject({ready:false,reached:0,considered:[]});
 });
@@ -97,7 +97,18 @@ it("derives one status from the definition, approval, ledger, runner and readine
  expect(deriveStatus({experiment:experiment({queuePosition:undefined}),approval:null,ledger:[],runner:null,readiness:notReady}).reason).toMatch(/not ready: 0 of the last 4 comparable runs reached FIRST_TRUCK_EXIT \(needs 3\)/);
  expect(deriveStatus({experiment:experiment({queuePosition:undefined}),approval:null,ledger:[],runner:null,readiness:ready}).reason).toMatch(/ready to queue/);
  expect(status({readiness:notReady})).toBe("not-ready");
+ expect(deriveStatus({experiment:e,approval:null,ledger:[],runner:null,readiness:{...notReady,basis:"recent",considered:["x"]}}).reason).toBe("not ready: 0 of the last 1 runs of any configuration reached FIRST_TRUCK_EXIT (needs 3 of 4; too few runs match the incumbent)");
  expect(status({approval:null})).toBe("draft");
  expect(status({})).toBe("approved");
  expect(status({runner:{experiment:"other",trial:0}})).toBe("approved");
+});
+
+it("every tracked experiment definition parses and has a unique id and queue position",async()=>{
+ const {readdirSync,readFileSync}=await import("node:fs");
+ const dir=new URL("../../../experiments/",import.meta.url);
+ const parsed=readdirSync(dir).filter(f=>f.endsWith(".json")).map(f=>({file:f,e:parseExperiment(JSON.parse(readFileSync(new URL(f,dir),"utf8")))}));
+ expect(parsed.length).toBeGreaterThan(0);
+ for(const {file,e} of parsed)expect(file).toBe(`${e.id}.json`);
+ const positions=parsed.flatMap(({e})=>e.queuePosition===undefined?[]:[e.queuePosition]);
+ expect(new Set(positions).size).toBe(positions.length);
 });

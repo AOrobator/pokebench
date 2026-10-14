@@ -72,6 +72,7 @@ Argv-only spawns (`node`, `git`), checkout paths treated as untrusted (resolved,
 
 **M1 — Definitions and derived status**
 - [x] RED `packages/agent/src/experiments.test.ts` (module missing). Field renamed `reachMilestone` → `activationMilestone` to match the readiness rule main added in 2c73b02 (3 of the last 4 qualifying incumbent runs; verdicts in `docs/experiments/readiness.md`). Status now includes `pending` (no queue position: merged switch not queued yet) and `not-ready`.
+- [x] RED 2: viewer `experiment-store.test.ts` (read side: queue vs pending split, approvals, ledgers, runner position, readiness.md rows, arm summaries with median turns and reached per 1k turns, recorded-run source) and the seed-parse test.
 - [ ] Tests: schema, candidate derivation, INV-Q1, approval hash and stale detection, status derivation from ledger, seed files parse.
 - [ ] COMMIT RED / implement `experiments.ts` + `experiments/*.json` seeds / gates / COMMIT GREEN / review.
 

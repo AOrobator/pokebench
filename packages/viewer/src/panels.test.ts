@@ -555,6 +555,8 @@ it("renders feature cards with descriptions, truthful badges and local explainer
  const cards=doc.querySelectorAll(".config-feature");expect(cards.length).toBeGreaterThanOrEqual(4);expect(doc.querySelector('[data-feature="constructor"] a')).toBeNull();
  const memory=must(doc.querySelector('[data-feature="navigation-evidence-memory-v1"]'));expect(memory.textContent).toContain("ON");expect(memory.textContent).toContain("Keeps observed rooms <only>.");expect(memory.querySelector("only")).toBeNull();expect(memory.querySelector("a")?.getAttribute("href")).toBe("/explainers/navigation-evidence-memory-v1.html");
  expect(doc.querySelector('[data-feature="objective-tracking-v1"]')?.textContent).toContain("OFF");expect(doc.querySelector('[data-feature="ledge-hops-v1"]')?.textContent).toContain("NOT RECORDED");expect(doc.querySelector("input,select,button,textarea,form")).toBeNull();
+ const floorDoc=new Window().document;floorDoc.body.innerHTML=harnessConfig(view(log),[{id:"walkable-floor-v1",title:"WALKABLE FLOOR",description:"Walks sand.",group:"guidance",switchable:true,needs:null}]);
+ const floor=must(floorDoc.querySelector('[data-feature="walkable-floor-v1"]'));expect(floor.textContent).toContain("NOT RECORDED");expect(floor.querySelector("a")?.getAttribute("href")).toBe("/explainers/walkable-floor-v1.html");
 });
 
 it("documents only recorded tools with input/output contracts and safe unknown fallback",()=>{

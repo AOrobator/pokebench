@@ -106,6 +106,37 @@ it("forwards deliberate walking to the ordinary press without creating a separat
  expect(seen).toEqual([{buttons:["DOWN"],walking:true}]);
 });
 
+// pokeemerald 731ad5b metatile_behaviors.h values. The readout draws all of these as '.'.
+const corridor=(behavior:number)=>({...field,navigation_grid:{elevation:3,tiles:[tile(0,0),tile(1,0,0,behavior),tile(2,0)],objects:[],warps:[]}});
+it("walks the ordinary floor the game lets the player walk: sand, cave, mountain top, puddles and bridges",()=>{
+ for(const behavior of [0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c,0x16,0x17,0x1a,0x1b,0x21,0x24,0x25,0x28,0x2b,0x70,0x71,0x72,0x73,0x74,0x78,0x7a,0x7f,0xa0,0xb5,0xbd,0xc2,0xc4])
+  expect(planNavigation(corridor(behavior),{x:2,y:0},{floor:true}),behavior.toString(16)).toEqual(["RIGHT","RIGHT"]);
+});
+it("crosses a Route 104 style beach of sand to the far side",()=>{
+ const sand=(x:number,y:number)=>tile(x,y,0,0x21);
+ const beach={...field,navigation_grid:{elevation:3,tiles:[tile(0,0),sand(1,0),sand(2,0),sand(1,1),tile(2,1,1)],objects:[],warps:[]}};
+ expect(planNavigation(beach,{x:2,y:0},{floor:true})).toEqual(["RIGHT","RIGHT"]);
+ expect(planNavigation(beach,{x:2,y:0})).toBeNull();
+});
+it("keeps refusing tiles the game refuses or moves the player off on foot",()=>{
+ const refused=[0x10,0x11,0x12,0x13,0x14,0x15,0x19,0x22,0x2a,0x50,0x51,0x52,0x53,0x6c,0x6d,0x6f,
+  0x20,0x26,0x27,0x40,0x41,0x42,0x43,0x44,0x45,0x46,0x47,0x48,0xd0,0xd2,0xbb,0xbc,
+  0x0d,0x0e,0x0f,0x29,0x66,
+  0x30,0x31,0x32,0x33,0x34,0x35,0x36,0x37,0xbe,0xc0,0xc1,
+  0x38,0x39,0x3a,0x3b,0x3c,0x3d,0x3e,0x3f,
+  0xd1,0xd3,0xd4,0xd5,0xd6,
+  0xf0,0xfe,0xff];
+ for(const behavior of refused)expect(planNavigation(corridor(behavior),{x:2,y:0},{floor:true}),behavior.toString(16)).toBeNull();
+});
+it("keeps the legacy walkable list with walkable floor off",()=>{
+ for(const behavior of [0x06,0x08,0x0c,0x16,0x17,0x21,0x70,0xb5])expect(planNavigation(corridor(behavior),{x:2,y:0}),behavior.toString(16)).toBeNull();
+ for(const behavior of [0x00,0x02,0x03,0x6c,0x6d])expect(planNavigation(corridor(behavior),{x:2,y:0}),behavior.toString(16)).toEqual(["RIGHT","RIGHT"]);
+});
+it("hops a ledge down onto sand",()=>{
+ const beach=ledgeField(0x3b,{tiles:[tile(1,0),tile(1,1,1,0x3b),tile(1,2,0,0x21)]});
+ expect(planNavigation(beach,{x:1,y:2},{ledges:true,floor:true})).toEqual(["DOWN"]);
+ expect(planNavigation(beach,{x:1,y:2},{ledges:true})).toBeNull();
+});
 type Cell={collision?:number;behavior?:number;elevation?:number};
 const mapGrid=(width:number,height:number,cell:(x:number,y:number)=>Cell,extra:{objects?:{x:number;y:number}[];warps?:{x:number;y:number}[]}={}):NonNullable<GameStateSnapshot["map_grid"]>=>({width,height,elevation:3,
  rows:Array.from({length:height},(_,y)=>Array.from({length:width},(_,x)=>{const c=cell(x,y);return (((c.collision??0)<<12)|((c.elevation??3)<<8)|(c.behavior??0)).toString(16).padStart(4,"0");}).join("")),
@@ -132,6 +163,13 @@ it("full-map planning keeps the local rules: collision, objects, water, layers, 
  const door=mapGrid(1,2,(_x,y)=>y===0?{collision:1,behavior:0x69,elevation:0}:{},{warps:[{x:0,y:0}]});
  expect(planNavigation(fullField(door,{x:0,y:1}),{x:0,y:0},{mode:"full"})).toEqual(["UP"]);
  expect(planNavigation(fullField(open),{x:5,y:0},{mode:"full"})).toBeNull();
+});
+
+it("full-map planning walks sand and cave floor and still refuses surfable water",()=>{
+ const shore=fullField(mapGrid(4,1,x=>x===1?{behavior:0x21}:x===2?{behavior:0x08}:{}));
+ expect(planNavigation(shore,{x:3,y:0},{mode:"full",floor:true})).toEqual(["RIGHT","RIGHT","RIGHT"]);
+ expect(planNavigation(shore,{x:3,y:0},{mode:"full"})).toBeNull();
+ expect(planNavigation(fullField(mapGrid(3,1,x=>x===1?{behavior:0x51}:{})),{x:2,y:0},{mode:"full",floor:true})).toBeNull();
 });
 
 it("full-map planning rejects missing or malformed whole-map geometry",()=>{
@@ -476,4 +514,13 @@ it("gives the counter hint on the whole map and stays quiet on malformed local g
  expect(await hint(state,true)).toContain("target is behind a counter; walk to (2,2), face UP toward the counter at (2,1) and press A to talk across it");
  const duplicated={...field,navigation_grid:{...grid,tiles:[...grid.tiles,tile(0,0)],objects:[{x:2,y:0}]}};
  const text=await hint(duplicated,false);expect(text).toContain("no supported local path");expect(text).not.toContain("counter");
+});
+
+it("walks floor through navigate_to only with walkable floor on, and says so",async()=>{
+ const beach={...field,navigation_grid:{elevation:3,tiles:[tile(0,0),tile(1,0,0,0x21)],objects:[],warps:[]}};
+ const run=async(floor:boolean)=>{let current=beach;const buttons:string[][]=[];
+  const tool=navigationTool({floor,read:()=>Promise.resolve(current),press:(_id,params)=>{buttons.push([...params.buttons]);current={...beach,position:{x:1,y:0}};return Promise.resolve(result(current));},observe:()=>Promise.resolve(result(current))});
+  await tool.execute("nav",{x:1,y:0,map_id:[0,9]});return {buttons,description:tool.description};};
+ const on=await run(true);expect(on.buttons).toEqual([["RIGHT"]]);expect(on.description).toContain("walks sand, cave and other floor the game allows");
+ const off=await run(false);expect(off.buttons).toEqual([]);expect(off.description).not.toContain("sand");
 });

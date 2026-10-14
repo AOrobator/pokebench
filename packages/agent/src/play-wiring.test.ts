@@ -6,11 +6,11 @@ import {parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {playTools} from "./play-config.js";
 import {checkEvent,type RunEvent} from "./events.js";
 
-const NEW=["game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1","instruction-ledger-v1"] as const;
+const NEW=["game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1","instruction-ledger-v1","next-milestone-hint-v1"] as const;
 const OFF:FeatureSet={...ALL_ON,"navigation-evidence-memory-v1":false,...Object.fromEntries(NEW.map(id=>[id,false]))};
 function recorder(){
  const subscribers:((e:RunEvent)=>void)[]=[];const delivered:string[]=[];
- return {subscribers,delivered,api:{subscribe:(fn:(e:RunEvent)=>void)=>{subscribers.push(fn);},recordNavigationContext:()=>{delivered.push("navigation");},recordLedgerContext:()=>{delivered.push("ledger");}}};
+ return {subscribers,delivered,api:{subscribe:(fn:(e:RunEvent)=>void)=>{subscribers.push(fn);},recordNavigationContext:()=>{delivered.push("navigation");},recordLedgerContext:()=>{delivered.push("ledger");},recordMilestoneHint:()=>{delivered.push("hint");}}};
 }
 const base=(messages:AgentMessage[])=>Promise.resolve(messages);
 
@@ -24,7 +24,7 @@ it("adds no tool, subscriber or context when every memory switch is off",async()
 it("wires each switch's tool, matching the recorded tool list, and chains both pinned contexts",async()=>{
  const on={...OFF,"navigation-evidence-memory-v1":true,"dialogue-log-v1":true,"instruction-ledger-v1":true};
  const r=recorder();const wired=contextTools(on,r.api,base);
- expect(wired.tools.map(t=>t.name)).toEqual(playTools(on).filter(name=>["remember_destination","recall_dialogue","note_contradiction"].includes(name)));
+ expect(wired.tools.map(t=>t.name)).toEqual(playTools(on).filter(name=>["remember_destination","recall_dialogue","note_contradiction","get_next_milestone"].includes(name)));
  const out=await wired.transformContext([]);
  expect(r.delivered).toEqual(["ledger","navigation"]);
  expect(out.map(m=>JSON.stringify(m)).join()).toContain("INSTRUCTION LEDGER");

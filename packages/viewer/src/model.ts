@@ -65,6 +65,7 @@ const KNOWN: Record<RunEvent["type"], true> = {
   button_press: true,
   navigation_context:true,
   ledger_context:true,
+  milestone_hint:true,
   decision_input:true,
   wait_input:true,
   human_input:true,

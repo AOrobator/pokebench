@@ -315,3 +315,10 @@ COMMIT: `feat: supervisor gives only deterministic facts: recent dialogue and la
   earned saying what is next. RED: milestone-hint.test.ts (ladder order from the human run, next
   computation incl. present-at-start, one message per new milestone, delivery + milestone_hint
   event, registry/prompt/tool/state-only).
+COMMIT: `test(agent): RED for next-milestone-hint-v1` (3701b26)
+- GREEN: milestone-hint.ts (28-step main-path ladder in human-run order, NextMilestoneHint, tool
+  get_next_milestone, pinned MILESTONE REACHED message recorded as milestone_hint), switch
+  next-milestone-hint-v1 (guidance, HINT ARM, default OFF, rejected in state-only), prompt line,
+  play-wiring, viewer action row / timeline / tool reference, explainer
+  docs/explainers/next-milestone-hint-v1.html. Agent 1025/1025, viewer 563/563, tsc/eslint clean.
+  Merging to main does not affect the running 2×2 (frozen worktree build).

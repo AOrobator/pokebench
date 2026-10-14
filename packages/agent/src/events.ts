@@ -131,6 +131,7 @@ const HumanSample = event("human_sample", {
 });
 
 const NavigationContext = event("navigation_context", {text:Type.String({maxLength:6500}),evidence:Type.Array(NonNegativeInt,{maxItems:36,uniqueItems:true})});
+const MilestoneHintContext = event("milestone_hint", {text:Type.String({maxLength:1000}),milestone:Type.String({minLength:1})});
 const LedgerContext = event("ledger_context", {text:Type.String({maxLength:4000}),evidence:Type.Array(NonNegativeInt,{maxItems:64,uniqueItems:true})});
 
 const ToolResult = event("tool_result", {
@@ -440,6 +441,7 @@ export const RunEventSchema = Type.Union([
   ButtonPress,
   NavigationContext,
   LedgerContext,
+  MilestoneHintContext,
   DecisionInput,
   WaitInput,
   HumanInput,

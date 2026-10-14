@@ -226,6 +226,7 @@ function rowBody(event: RunEvent, view?: RunView): string | null {
       return `${event.is_error ? "ERROR" : "ok"} ${String(event.duration_ms)}ms → ${esc(event.text.slice(0, 200))}${frames}`;
     }
     case "navigation_context":return `Navigation memory delivered · ${String(event.evidence.length)} retained references · ${esc(event.text.slice(0,200))}`;
+    case "milestone_hint":return `Milestone hint sent to the model · ${esc(event.text)}`;
     case "ledger_context":return `Instruction ledger delivered · ${String(event.evidence.length)} references · ${esc(event.text.slice(0,200))}`;
     case "decision_input":return `snapshot for decision ${String(event.decision_turn)} · state #${String(event.state_seq)} · ${esc(event.text.slice(0,200))}`;
     case "wait_input":return `WAIT ${String(event.duration_ms)} ms (host time) · action ${esc(event.tool_call_id)}`;
@@ -339,6 +340,7 @@ const TOOL_REFERENCE: Readonly<Record<string, readonly [description:string, inpu
  press: ["Press Game Boy Advance buttons in order, then inspect the result. Buttons are contextual to the current screen.", "buttons: required array of 1–8 values: A, B, START, SELECT, UP, DOWN, LEFT, RIGHT. walking: optional boolean; true suppresses automatic running. Interface safety may submit only the first requested button.", "A fresh screenshot and observation text, submitted-button acknowledgement, and optional before/after feedback. State is retained in tool details. Invalid requests or server failures return errors.", '{"buttons":["RIGHT"],"walking":true}'],
  navigate_to: ["Walk toward a model-chosen coordinate on the current map using A*. It does not press A or choose a destination.", "x, y: required nonnegative integers. map_id: required [group, number], each integer 0–255, matching the current map. walking: optional boolean. Local mode allows up to 8 button attempts; whole-map mode and terrain support depend on enabled features.", "Navigation status and button-attempt count, final observation/screenshot, and details containing state plus navigation {status, commands, target}. May stop before arrival on a lock, blocked movement or map change.", '{"x":5,"y":1,"map_id":[1,2]}'],
  note_contradiction: ["Record that the game differed from what the model expected. It is pinned in the instruction ledger and changes nothing in the game.", "expected: required, 1–200 characters. observed: required, 1–300 characters. evidence: 1–4 event numbers the model was shown (delivered states or dialogue).", "A confirmation line. Unknown evidence or empty text is rejected; the ledger keeps the newest 8 contradictions.", '{"expected":"The person here would be the professor","observed":"The object at 10,8 is SCIENTIST_1","evidence":[4803]}'],
+ get_next_milestone: ["HINT ARM: name the next main story milestone the game has not recorded yet. Presses nothing.", "No inputs.", "The next milestone in plain words and how many of the main-path milestones to the first badge are done.", '{}'],
  recall_dialogue: ["Search every dialogue page the model was shown this run. Reads past observations only; presses nothing.", "contains: optional words, up to 80 characters, case-insensitive. room: optional location-name text, up to 80 characters. last: optional integer 1–20, default 8.", "Quoted pages, newest first, each with event number, turn, location, position and the faced character when the readout named one. Replies stay under 6,000 characters and say how many pages matched, were shown and were omitted.", '{"contains":"neighbor","last":5}'],
  remember_destination: ["Retain a destination hypothesis across context pruning. This does not select a route or prove completion.", "destination: required string, 1–300 characters. evidence: required array of 1–4 distinct nonnegative event IDs known to the navigation ledger.", "Text acknowledgement: Retained MODEL HYPOTHESIS: followed by the destination. Unknown or unsuitable evidence is rejected.", '{"destination":"Inspect the observed doorway","evidence":[42]}'],
  get_objectives: ["Read the fixed goal, current objective and full attempt history.", "None. Send an empty object {}.", "JSON text containing goal, native_catalog, objective and attempts. The objective can be null when none is set.", '{}'],
@@ -365,6 +367,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "dialogue-log-v1":"dialogue-log-v1.html",
  "loop-guard-supervisor-v1":"loop-guard-supervisor-v1.html",
  "instruction-ledger-v1":"instruction-ledger-v1.html",
+ "next-milestone-hint-v1":"next-milestone-hint-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

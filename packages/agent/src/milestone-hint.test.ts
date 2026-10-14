@@ -50,7 +50,7 @@ it("says when every main-path milestone is done",async()=>{
  expect(await text(h)).toContain("every main story milestone in this list is done");
 });
 
-it("delivers the queued message once, records it, and passes context through otherwise",async()=>{
+it("records each milestone message once and keeps the latest pinned in context",async()=>{
  const subscribers:((e:RunEvent)=>void)[]=[];const recorded:{text:string;milestone:string}[]=[];
  const recorder={subscribe:(fn:(e:RunEvent)=>void)=>{subscribers.push(fn);},recordMilestoneHint:(body:{text:string;milestone:string})=>{recorded.push(body);}};
  expect(nextMilestoneHint({...ALL_ON,"next-milestone-hint-v1":false},recorder,m=>Promise.resolve(m))).toBeNull();
@@ -63,7 +63,8 @@ it("delivers the queued message once, records it, and passes context through oth
  expect(JSON.stringify(out.at(-1))).toContain("MILESTONE REACHED");
  expect(recorded).toHaveLength(1);expect(recorded[0]?.milestone).toBe("NEW_GAME_CREATED");
  expect(()=>checkEvent({v:1,run:"r",t:"2026-10-14T12:00:00.000-04:00",turn:1,seq:9,type:"milestone_hint",...recorded[0]})).not.toThrow();
- expect(await wired.transformContext([])).toEqual([]);
+ expect(JSON.stringify((await wired.transformContext([])).at(-1))).toContain("MILESTONE REACHED");
+ expect(recorded).toHaveLength(1);
 });
 
 it("registers a separate hint switch with its tool, prompt line and state-only exclusion",()=>{

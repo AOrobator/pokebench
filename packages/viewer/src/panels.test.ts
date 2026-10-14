@@ -621,3 +621,12 @@ it("labels a supervisor loop event as a message sent to the model, with its full
  expect(row).toContain("supervisor message sent to the model");
  expect(row).toContain("SUPERVISOR: You are currently looping.");
 });
+
+it("shows milestone hints as messages sent to the model and documents get_next_milestone",()=>{
+ const log=bare();const event=log.add(100,{type:"milestone_hint",turn:2,text:"MILESTONE REACHED: You set the clock. Next milestone: Go back downstairs and listen to Mom.",milestone:"CLOCK_SET"});
+ expect(actionRow(event,view(log))).toContain("Milestone hint sent to the model");
+ const tools=new Log();tools.add(0,{...START,tools:["observe","get_next_milestone"]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(tools));
+ expect(doc.querySelector('[data-tool="get_next_milestone"]')?.textContent).toContain("HINT ARM");
+ expect(FEATURE_EXPLAINERS["next-milestone-hint-v1"]).toBe("next-milestone-hint-v1.html");
+});

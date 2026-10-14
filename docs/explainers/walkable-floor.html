@@ -1308,9 +1308,9 @@ tr:last-child td{border-bottom:0}code{font:13px ui-monospace,Menlo,monospace}
 
 <h2>Status</h2>
 <div class="card"><table>
-<tr><td>Branch</td><td><code>claude/walkable-floor</code> in <code>/private/tmp/pokebench-walkable-floor</code>, latest main merged (includes ledge hops).</td></tr>
-<tr><td>Tests</td><td class="ok">agent 900/900, viewer 419/419, lint clean, coverage above the 90% floor</td></tr>
-<tr><td>Real-RAM replay</td><td class="ok">Your human run: 12,515 targets drawn as <code>.</code>; reachable went from 5,092 to 7,280. 2,188 newly reachable, 0 lost.</td></tr>
+<tr><td>Branch</td><td><code>claude/walkable-floor</code> in <code>/private/tmp/pokebench-walkable-floor</code>, latest main merged (ledge hops, one-way tiles, full-map navigation).</td></tr>
+<tr><td>Tests</td><td class="ok">agent 939/939, viewer 493/493, lint clean, coverage above the 90% floor</td></tr>
+<tr><td>Real-RAM replay</td><td class="ok">Your human run: 12,515 targets drawn as <code>.</code>; reachable went from 5,206 to 7,508 on the merged branch. 2,302 newly reachable, 0 lost.</td></tr>
 <tr><td>Switch</td><td>None. It is a correctness fix to <code>bounded-navigation-v1</code>, so runs with that switch on now walk on sand and cave floor.</td></tr>
 <tr><td>Review</td><td>Round 1 caught the jump/spin mat values (0xBB/0xBC) and undefined bytes ≥ 0xF0. Round 2: Claude and Grok LGTM; Codex caught the breakable door (0xBE). All fixed, and the refused set now matches a script that derives it from the game source.</td></tr><tr><td>Not done</td><td class="todo">Merge to main (needs your OK); no measured runs.</td></tr>
 </table></div>

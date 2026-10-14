@@ -77,3 +77,4 @@ pret/pokeemerald 731ad5b:
   consistent with UNWALKABLE. Added full-map test (sand and cave walkable, current 0x51 refused).
   agent 939/939, viewer 493/493, lint clean, navigation.ts 94.56/93.68/100/100, derive.py diff empty.
   Replay on the merged head: 12,515 targets, reachable 5,206 → 7,508, 2,302 newly reachable, 0 lost.
+- Explainer refreshed with merged-head numbers.

@@ -59,3 +59,9 @@ just smoke          # boots the real game server on the real ROM and exercises i
 ## Git
 
 The commit author for this repo is `aorobator <orobator.andrew@gmail.com>`, set in the local git config.
+
+The repo is local only (operator decision 2026-10-14). It has no remote. Never push, never open pull requests, never add a remote. Work on a branch in its own worktree; landing means a local merge into `main` after the operator approves it.
+
+## Explainers
+
+Every new feature or switch gets an explainer page with diagrams. Use `.claude/skills/feature-explainer/SKILL.md`. Explainers stay local: no claude.ai artifacts or hosted preview links.

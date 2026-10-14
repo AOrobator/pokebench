@@ -196,3 +196,6 @@ Shared-refresh proof: six parallel real API requests share one snapshot timestam
 
 ## Watch follow-up landing authorization
 The operator explicitly requested landing. Preparing isolated clean candidate from33d5931 with current canonical44390a4; preserve separate owned-worktree frontier.ts edits and three unrelated canonical worklogs. One merge conflict consists of adjacent independent viewer tests; retain both selected-configuration test and deferred-history startup test. No production conflict. Visual approval granted for this follow-up; deterministic and independent review gates still required.
+
+
+ReviewR1 RED: both independent Sol/Astra reproduced stale history under save-vs-pending history. Added deterministic real delegated-control regression with old-first/new-first/stale-error response order. Three cases fail on missing second history request. Required snapshot pending/expiry/recovery/isolation operand mutation evidence will be completed in cumulative fix. Frozen landing candidate remains4bd108e while this fix is prepared separately.

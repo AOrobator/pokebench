@@ -73,8 +73,9 @@ Argv-only spawns (`node`, `git`), checkout paths treated as untrusted (resolved,
 **M1 — Definitions and derived status**
 - [x] RED `packages/agent/src/experiments.test.ts` (module missing). Field renamed `reachMilestone` → `activationMilestone` to match the readiness rule main added in 2c73b02 (3 of the last 4 qualifying incumbent runs; verdicts in `docs/experiments/readiness.md`). Status now includes `pending` (no queue position: merged switch not queued yet) and `not-ready`.
 - [x] RED 2: viewer `experiment-store.test.ts` (read side: queue vs pending split, approvals, ledgers, runner position, readiness.md rows, arm summaries with median turns and reached per 1k turns, recorded-run source) and the seed-parse test.
-- [ ] Tests: schema, candidate derivation, INV-Q1, approval hash and stale detection, status derivation from ledger, seed files parse.
-- [ ] COMMIT RED / implement `experiments.ts` + `experiments/*.json` seeds / gates / COMMIT GREEN / review.
+- [x] GREEN: `packages/agent/src/experiments.ts` (schema, arms, ABBA order, hash excluding queue position and notes, readiness with comparable/recent basis, ledger, trial progress, status) and `packages/viewer/src/experiment-store.ts` (snapshot, readiness.md rows, recorded-run source with caching). Seeds: queue 1 full-map-navigation, 2 elevation-transitions, 3 one-way-tiles; pending ledge-hops, counter-talk. Incumbent: the A* cohort preset plus ledge hops, one-way tiles and elevation ON, full-map and counter talk OFF; primary milestone RIVAL_HOUSE_ENTERED (the current frontier; RIVAL_MET is rarely reached).
+- [x] Real data (read-only): the three queued entries are ready on recent runs (basis: recent, because no run matches the new incumbent yet); counter-talk and ledge-hops are not ready (0 of 4 reached OLDALE_TOWN / ROUTE_101), which agrees with docs/experiments/readiness.md. First snapshot over 124+ runs took ~10 s; M3 must cache.
+- [x] Gates: agent 954 (97.22/93.45/98.01; experiments.ts 98.1 lines), viewer 498 (95.78/90.41/95.57), lint clean. Python unchanged since M0 (1847 passed).
 
 **M2 — Runner and CLI**
 - [ ] Tests with a fake host: INV-Q2..Q6, ABBA order, budget stop, dry run, grading into result.json via `comparePatchResults`.

@@ -553,7 +553,7 @@ code{font:13px ui-monospace,Menlo,monospace;overflow-wrap:anywhere}.vs>*{min-wid
 <g class="node"><rect x="695" y="20" width="160" height="74" rx="10"/><text x="775" y="46" class="nt">"walk to (7,4),</text><text x="775" y="64" class="nt">face UP ... press A"</text><text x="775" y="82" class="ns">0 presses</text></g>
 <g class="node"><rect x="695" y="160" width="160" height="74" rx="10"/><text x="775" y="186" class="nt">generic counter hint</text><text x="775" y="204" class="ns">no coordinates</text><text x="775" y="222" class="ns">0 presses</text></g>
 </svg></div>
-<p class="cap">A stand tile is named only if it is a known tile that <code>planNavigation</code> itself would reach. That excludes walls, water, a person standing there, a different elevation and tiles outside the 15×15 window. A goal with no counter involved keeps the old "no supported local path" message.</p></div>
+<p class="cap">A stand tile is named only if it is a known tile that <code>planNavigation</code> itself would reach. That excludes walls, water, a person standing there, a different elevation and tiles outside the 15×15 window. A goal with no counter involved keeps the old "no supported path" message. The same check runs on the 15×15 window or, with whole-map navigation on, on the whole current map.</p></div>
 <div class="card" style="margin-top:14px"><table>
 <tr><th>Goal</th><th>Result text (recorded or tested)</th></tr>
 <tr><td>Nurse (7,2)</td><td><code>target is behind a counter; walk to (7,4), face UP toward the counter at (7,3) and press A to talk across it</code></td></tr>
@@ -590,10 +590,10 @@ code{font:13px ui-monospace,Menlo,monospace;overflow-wrap:anywhere}.vs>*{min-wid
 
 <h2>Status</h2>
 <div class="card"><table>
-<tr><td>Branch</td><td><code>claude/counter-tiles</code> (local worktree), merged with current <code>main</code> including ledge hops, one-way tiles and elevation transitions</td></tr>
+<tr><td>Branch</td><td><code>claude/counter-tiles</code> (local worktree), merged with current <code>main</code> including ledge hops, one-way tiles, elevation transitions and whole-map navigation</td></tr>
 <tr><td>Checks</td><td><span class="ok">Passing:</span> vitest (agent and viewer), pytest, coverage floor 90 on both stacks, tsc/eslint/ruff/mypy, vendor pin.</td></tr>
-<tr><td>Live proof</td><td>Recorded run on the real ROM from <code>torchic.state</code>: Route 101 → Oldale Town → Pokémon Center 1F. Event log shows the hint with 0 button presses, then the route and the nurse's greeting.</td></tr>
-<tr><td>Review</td><td>Round 1: Claude and Grok LGTM; Codex blocked on four points, all fixed. Round 2: Claude, Codex and Grok LGTM.</td></tr>
+<tr><td>Live proof</td><td>Recorded run on the real ROM from <code>torchic.state</code>: Route 101 → Oldale Town → Pokémon Center 1F. Event log shows the hint with 0 button presses, then the route and the nurse's greeting. The latest probe ran with whole-map navigation on: the whole-map readout row 3 reads <code>....###=##....</code>.</td></tr>
+<tr><td>Review</td><td>Round 1: Claude and Grok LGTM; Codex blocked on four points, all fixed. Round 2: Claude, Codex and Grok LGTM. Round 3 (after the whole-map merge) pending at time of writing.</td></tr>
 <tr><td>Viewer</td><td>The PokeNav configuration card links here (READ EXPLAINER).</td></tr>
 <tr><td>Not done</td><td>No measured runs. This changes what the model sees; whether it helps is a patch evaluation question.</td></tr>
 </table></div>

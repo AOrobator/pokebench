@@ -61,6 +61,8 @@ export interface ExperimentView {
 export interface QueueSnapshot {
   readonly queue: readonly ExperimentView[];
   readonly pending: readonly ExperimentView[];
+  // Finished or discarded: on neither list.
+  readonly closed: readonly ExperimentView[];
   readonly runner: RunnerPosition | null;
   readonly problems: readonly string[];
 }
@@ -196,9 +198,11 @@ export function queueSnapshot(paths: QueuePaths, source: RunSource, alive: (pid:
     if (other !== undefined) problems.push(`${v.id}: queue position ${String(v.queuePosition)} is also used by ${other}`);
     positions.set(v.queuePosition, v.id);
   }
+  const closed = (v: ExperimentView): boolean => v.state === "done" || v.state === "discarded";
   return {
-    queue: views.filter((v) => v.queuePosition !== null).sort((a, b) => (a.queuePosition ?? 0) - (b.queuePosition ?? 0) || a.id.localeCompare(b.id)),
-    pending: views.filter((v) => v.queuePosition === null),
+    queue: views.filter((v) => v.queuePosition !== null && !closed(v)).sort((a, b) => (a.queuePosition ?? 0) - (b.queuePosition ?? 0) || a.id.localeCompare(b.id)),
+    pending: views.filter((v) => v.queuePosition === null && !closed(v)),
+    closed: views.filter(closed),
     runner,
     problems,
   };

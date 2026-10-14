@@ -22,7 +22,8 @@ export const ExperimentSchema=Type.Object({
  primaryMilestone:Type.String({minLength:1}),
  // Absent: a pending experiment, registered but not in the queue.
  queuePosition:Type.Optional(positive),
- source:Type.Object({checkout:Type.String({minLength:1}),commit:Type.String({pattern:"^[0-9a-f]{40}$"})},closed),
+ // Trials run from the main checkout, which must be at this commit with a clean tree and a fresh build.
+ source:Type.Object({checkout:Type.Literal("main"),commit:Type.String({pattern:"^[0-9a-f]{40}$"})},closed),
  incumbent:PlayPresetV2Schema,
  trialsPerArm:Type.Integer({minimum:4,maximum:8}),
  modelLane:Type.String({minLength:1}),
@@ -30,6 +31,8 @@ export const ExperimentSchema=Type.Object({
  criteria:Type.Object({completionTolerance:Type.Integer({minimum:0}),speedMarginPercent:Type.Number({minimum:0})},closed),
  readiness:Type.Object({window:positive,minReached:positive},closed),
  blocked:Type.Optional(Type.String({minLength:1})),
+ // Set when the operator drops the experiment; it then leaves both the queue and the pending list.
+ discarded:Type.Optional(Type.String({minLength:1})),
  notes:Type.Optional(Type.String()),
 },closed);
 export type Experiment=Omit<Static<typeof ExperimentSchema>,"incumbent"|"changedFeature"> & {readonly changedFeature:SwitchableFeature;readonly incumbent:PlayPresetV2};
@@ -90,7 +93,7 @@ export function readinessOf(experiment:Experiment,runs:readonly ReadinessRun[]):
  return {ready:latest.length===window&&reached>=minReached,basis,milestone,window,minReached,reached,considered:latest.map(r=>r.id)};
 }
 
-const LaunchSchema=Type.Object({type:Type.Literal("launch"),trial:Type.Integer({minimum:0}),arm:Type.Enum(["incumbent","candidate"] as const),run:Type.String({minLength:1}),at:Type.String()},closed);
+const LaunchSchema=Type.Object({type:Type.Literal("launch"),trial:Type.Integer({minimum:0}),arm:Type.Enum(["incumbent","candidate"] as const),run:Type.String({minLength:1}),at:Type.String(),model:Type.Optional(Type.String({minLength:1})),environment:Type.Optional(Type.String({pattern:"^[0-9a-f]{64}$"}))},closed);
 const OutcomeSchema=Type.Object({type:Type.Literal("outcome"),trial:Type.Integer({minimum:0}),arm:Type.Enum(["incumbent","candidate"] as const),run:Type.String({minLength:1}),at:Type.String(),reason:Type.String()},closed);
 const ErrorSchema=Type.Object({type:Type.Literal("launcher_error"),trial:Type.Integer({minimum:0}),arm:Type.Enum(["incumbent","candidate"] as const),run:Type.String({minLength:1}),at:Type.String(),message:Type.String()},closed);
 export const LedgerEntrySchema=Type.Union([LaunchSchema,OutcomeSchema,ErrorSchema]);
@@ -121,7 +124,7 @@ export function trialProgress(experiment:Experiment,ledger:readonly LedgerEntry[
  });
 }
 
-export type ExperimentState="pending"|"blocked"|"not-ready"|"draft"|"stale"|"approved"|"running"|"held"|"done";
+export type ExperimentState="discarded"|"pending"|"blocked"|"not-ready"|"draft"|"stale"|"approved"|"running"|"held"|"done";
 export interface ExperimentStatus {readonly state:ExperimentState;readonly reason:string;readonly trials:readonly TrialProgress[];readonly completed:number}
 export interface StatusInput {readonly experiment:Experiment;readonly approval:Approval|null;readonly ledger:readonly LedgerEntry[];readonly runner:RunnerPosition|null;readonly readiness:Readiness}
 
@@ -134,6 +137,7 @@ export function readinessText(r:Readiness):string {
 export function deriveStatus({experiment,approval,ledger,runner,readiness}:StatusInput):ExperimentStatus {
  const trials=trialProgress(experiment,ledger,runner),completed=trials.filter(t=>t.state==="done").length,total=String(trials.length);
  const at=(state:ExperimentState,reason:string):ExperimentStatus=>({state,reason,trials,completed});
+ if(experiment.discarded!==undefined)return at("discarded",experiment.discarded);
  if(experiment.blocked!==undefined)return at("blocked",experiment.blocked);
  if(completed===trials.length)return at("done",`all ${total} trials finished`);
  if(runner?.experiment===experiment.id)return at("running",`trial ${String(runner.trial+1)} of ${total} running`);

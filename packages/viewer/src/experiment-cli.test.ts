@@ -117,7 +117,7 @@ describe("production host", () => {
 
   it("discovers only a vision lane and fingerprints its serving metadata", async () => {
     const reply = (status: number, body: unknown): typeof fetch => (input) => {
-      expect(String(input)).toBe(`${GATEWAY}/models`);
+      expect(typeof input === "string" ? input : input instanceof URL ? input.href : input.url).toBe(`${GATEWAY}/models`);
       return Promise.resolve(new Response(JSON.stringify(body), { status }));
     };
     const make = (fetchFn: typeof fetch) => productionHost({ root: "/", runsRoot: "/", git: () => "", fetchFn, node: process.execPath, env: {}, log: () => undefined });

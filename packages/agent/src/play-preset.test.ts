@@ -14,9 +14,9 @@ it("accepts a v2 preset with every switch explicit and exposes its feature set",
 });
 it("maps v1 flags onto the full switch set, objectives covering its three guards",()=>{
   const features=presetFeatures(parsePlayPreset(preset));
-  expect(features).toEqual({...ALL_ON,"navigation-evidence-memory-v1":false,"field-dialogue-phase-v1":false,"dialogue-safe-batches-v1":false,"interaction-loop-detection-v1":false,"automatic-running-v1":false,"expanded-menu-battle-information-v1":false,"state-only-decisions-v1":false,"named-interactions-v1":false,"world-destinations-v1":false,"bounded-navigation-v1":false,"ledge-hops-v1":false,"one-way-tiles-v1":false,"full-map-navigation-v1":false,"deterministic-loop-guard-v1":false});
+  expect(features).toEqual({...ALL_ON,"navigation-evidence-memory-v1":false,"field-dialogue-phase-v1":false,"dialogue-safe-batches-v1":false,"interaction-loop-detection-v1":false,"automatic-running-v1":false,"expanded-menu-battle-information-v1":false,"state-only-decisions-v1":false,"named-interactions-v1":false,"world-destinations-v1":false,"bounded-navigation-v1":false,"ledge-hops-v1":false,"one-way-tiles-v1":false,"full-map-navigation-v1":false,"counter-talk-v1":false,"deterministic-loop-guard-v1":false});
   const noObjectives=presetFeatures(parsePlayPreset({...preset,flags:{...preset.flags,objectives:false,activeUi:false}}));
-  expect(noObjectives).toEqual({...ALL_ON,"navigation-evidence-memory-v1":false,"field-dialogue-phase-v1":false,"dialogue-safe-batches-v1":false,"interaction-loop-detection-v1":false,"automatic-running-v1":false,"expanded-menu-battle-information-v1":false,"state-only-decisions-v1":false,"named-interactions-v1":false,"world-destinations-v1":false,"bounded-navigation-v1":false,"ledge-hops-v1":false,"one-way-tiles-v1":false,"full-map-navigation-v1":false,"deterministic-loop-guard-v1":false,"active-ui-ownership-v1":false,"objective-tracking-v1":false,"repeat-attempt-guard-v1":false,"native-objective-completion-v1":false});
+  expect(noObjectives).toEqual({...ALL_ON,"navigation-evidence-memory-v1":false,"field-dialogue-phase-v1":false,"dialogue-safe-batches-v1":false,"interaction-loop-detection-v1":false,"automatic-running-v1":false,"expanded-menu-battle-information-v1":false,"state-only-decisions-v1":false,"named-interactions-v1":false,"world-destinations-v1":false,"bounded-navigation-v1":false,"ledge-hops-v1":false,"one-way-tiles-v1":false,"full-map-navigation-v1":false,"counter-talk-v1":false,"deterministic-loop-guard-v1":false,"active-ui-ownership-v1":false,"objective-tracking-v1":false,"repeat-attempt-guard-v1":false,"native-objective-completion-v1":false});
   expect(presetFlags(parsePlayPreset(preset))).toEqual(preset.flags);
 });
 it.each([
@@ -62,4 +62,12 @@ it("defaults absent historical one-way tiles OFF so frozen presets keep edge wal
 
 it("rejects navigation memory when the RAM umbrella would suppress all ordinary observations",()=>{
  expect(()=>parsePlayPreset({...v2,features:{...v2.features,"ram-state-v1":false}})).toThrow(/navigation-evidence-memory-v1 needs ram-state-v1/);
+});
+
+it("defaults absent historical counter talk OFF so frozen presets keep counters as walls",()=>{
+ const {"counter-talk-v1":omitted,...old}=v2.features;
+ expect(omitted).toBe(true);
+ expect(presetFeatures(parsePlayPreset({...v2,features:old}))["counter-talk-v1"]).toBe(false);
+ expect(presetFeatures(parsePlayPreset(v2))["counter-talk-v1"]).toBe(true);
+ expect(presetFeatures(parsePlayPreset(preset))["counter-talk-v1"]).toBe(false);
 });

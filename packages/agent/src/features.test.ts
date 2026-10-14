@@ -84,3 +84,12 @@ it("records counter talk as a server-side map treatment that needs the live map"
  expect(playHarnessFeatures(ALL_ON,null)).toContain("counter-talk-v1");
  expect(serverFeatureEnv(off("counter-talk-v1")).POKEBENCH_FEATURES_OFF).toBe("counter-talk-v1");
 });
+
+it("records walkable floor as an agent-side navigate_to treatment that needs bounded navigation",()=>{
+ expect(featureInfo("walkable-floor-v1")).toMatchObject({group:"guidance",needs:"bounded-navigation-v1",switchable:true});
+ expect(featureInfo("walkable-floor-v1").description).toMatch(/sand/);
+ expect(playHarnessFeatures(ALL_ON,null)).toContain("walkable-floor-v1");
+ expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("");
+ expect(serverFeatureEnv(off("walkable-floor-v1")).POKEBENCH_FEATURES_OFF).toBe("");
+ expect(dependencyProblems(off("bounded-navigation-v1"))).toContain("walkable-floor-v1 needs bounded-navigation-v1");
+});

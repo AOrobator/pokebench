@@ -71,3 +71,11 @@ it("defaults absent historical counter talk OFF so frozen presets keep counters 
  expect(presetFeatures(parsePlayPreset(v2))["counter-talk-v1"]).toBe(true);
  expect(presetFeatures(parsePlayPreset(preset))["counter-talk-v1"]).toBe(false);
 });
+
+it("defaults absent historical walkable floor OFF so frozen presets keep the legacy walkable list",()=>{
+ const {"walkable-floor-v1":omitted,...old}=v2.features;
+ expect(omitted).toBe(true);
+ expect(presetFeatures(parsePlayPreset({...v2,features:old}))["walkable-floor-v1"]).toBe(false);
+ expect(presetFeatures(parsePlayPreset(v2))["walkable-floor-v1"]).toBe(true);
+ expect(presetFeatures(parsePlayPreset(preset))["walkable-floor-v1"]).toBe(false);
+});

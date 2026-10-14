@@ -78,3 +78,6 @@ pret/pokeemerald 731ad5b:
   agent 939/939, viewer 493/493, lint clean, navigation.ts 94.56/93.68/100/100, derive.py diff empty.
   Replay on the merged head: 12,515 targets, reachable 5,206 → 7,508, 2,302 newly reachable, 0 lost.
 - Explainer refreshed with merged-head numbers.
+- Operator rule relayed 2026-10-14 20:19Z: every behavior change gets its own switch. Adding walkable-floor-v1
+  (needs bounded-navigation-v1, agent-only, frozen presets OFF, drafts ON). RED: tests for option, tool
+  wiring, registry and preset defaults.

@@ -50,3 +50,23 @@ Performed mutation receipts: removed cache-hit comparison (unchanged reads and H
 | PB13 | PASS | Worklog, test/gate and mutation receipts retained; review and live replacement remain explicit closeout steps. |
 
 Review roster note: the serving navigation worklog forbids local model review lanes while its measured cohort runs. Preserve that owner constraint; use external vendor reviewers and standing fresh independent fallback rather than making inference calls on the benchmark endpoints. `/models` discovery only was read-only and made no inference call. Dedicated Claude CLI has no login; Cursor Claude already returned account usage-limit failure in this conversation. Availability receipts remain in `/tmp/pokebench-dpad-review.stderr`; attempt the remaining external vendor harness and retain reduced diversity if unavailable.
+
+## Review synthesis
+
+GREEN main commit `fabcdbe`; serving variant `4fb2db6` (navigation-compatible snapshot). Frozen source/test packets: main `080f669777d1d1eb6f259a9683d63c7d29fdc42f2cddfe2669773988a8c95620`, live `b9fdf7c3e411b86b65e16f41cbd78f095bbd8caa25a92fd58f0657c5d3801a90`. Neither packet changed during review.
+
+Selected reviewers: Cursor Grok (`cursor-grok-4.5-high`, exit0, empty stderr, final literal `VERDICT: LGTM`); independent read-only Sol (`/root/cache_review_sol`, gpt-6.1-sol) and Astra (`/root/cache_review_astra`, gpt-6-astra) fallback/GPT roster, both literal `VERDICT: LGTM`. Claude profile unavailable and Cursor Claude usage-limited as recorded; local benchmark endpoints excluded under serving-worklog policy. Reduced vendor diversity and explicit omission of local endpoint reviews; no normal five-lane claim.
+
+Sol initially returned BLOCKING for missing performed eviction/ownership proof; Astra also requested explicit caller-wiring receipts. Performed these on an isolated copy of the frozen source and tests, without modifying either review checkout: disabling LRU eviction fails `expected0 >0`; module-shared reader fails fresh-server `expected6 tobe8` reads; comparison caller bypass fails `expected8 tobe6` reads; history and milestone bypasses each fail `readSync` zero-call assertion with2reads. Logs: `/tmp/viewer-cache-adversarial-{eviction,server-owner,comparisons-wire,history-wire,milestones-wire}.log`. Restored all five; `/tmp/viewer-cache-adversarial-restored.log` passes10/10. Sol and Astra independently inspected the added receipts and approved the unchanged packets. No code fixes, contradictions, owner growth or scope expansion; evidence-only round two terminates.
+
+All nine test-quality checks covered: real filesystem and HTTP caller seams; performed operand/wiring deletions; mocks restored by afterEach; unique owned roots/exact responses; sequential awaited HTTP and independent server ownership with cleanup; no sleeps/retries/skips in tests; Vitest payload diffs/read counts; fixtures at most three14-event logs with one file write per fixture and no growing-prefix validation; injected2-entry cap, separately pinned256default. Every PB row remains scored with zeroFAIL. No missing merge evidence for the authorized in-memory caching contract; cold validation remains a named limitation.
+
+## Running viewer receipt
+
+Controlled real-catalog timings: cold20009ms, warm40ms and35ms, identical78107-byte response and SHA-256 `98af04fc01529a4abac1bdb95a604a7994cf89e5e433d3473e576b221724b520`.
+
+Updated the actual8793 viewer from PID38672 to PID8188 using the isolated build. Its launch script preserves the existing navigation CLI, agent launch path, run root and endpoint; only viewer modules/static files come from the serving snapshot. No agent or emulator restart: PID87596/87609 retained, game8070 `/health`200 before/after. Cache warmed once; immediate reconnect contention gave1770/138ms, subsequent stable real-server requests44/35/36ms, all200 and78107bytes. Startup/timings/PID receipts in serving worktree `runs/launch-receipts/viewer-comparison-cache/`.
+
+Refreshed the user's existing Chrome tab at8793 and verified RUNNING, advancing T392 clock, live screen URL, empty problems and visible game frame. Corrected RIGHT SVG vertex is served and present in DOM. Screenshot: `/Users/user/.codex/visualizations/2026/10/14/00000000-0000-4000-8000-ef312cb524d7/viewer-cache-live.png`.
+
+Complete: cached repeat refreshes, automatic file invalidation, bounded isolated cache, gates, review and running-viewer proof. First validation after server restart remains cold; no persistent cache or nonblocking cold scan claim. Unrelated worklog changes from other work remain untouched.

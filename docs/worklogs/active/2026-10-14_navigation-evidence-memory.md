@@ -33,3 +33,4 @@ Primary frontier RIVAL_MET; downstream starter/gym tracked without milestone sto
 
 - Read repository/global rules, current pointer/human worklog, PB1–13, patch-evaluation, observability and game-state skills. Source uses recorder events, existing context transform and existing viewer timeline/activity owners; no new environment decoder or game solver.
 - Worktree `/Users/user/.codex/worktrees/navigation-evidence-memory/pokebench`, branch `codex/navigation-evidence-memory`; canonical runs symlink only. Main WIP untouched. Offline TypeScript dependencies installed.
+- M1 RED: added production-shaped event tests for persistent observed instructions, actual target/outcome linkage, evidence-validated model hypotheses, ablated-field privacy and bounded histories. Expected first failure: module absent. Optional `remember_destination` adds an explicitly declared model hypothesis only; it does not choose a route or enforce the next action.

@@ -67,8 +67,8 @@ export function party(view: RunView): string {
   if (view.state.party.length === 0) return '<p class="nodata">no Pokémon yet</p>';
   return `<div class="party">${view.state.party
     .map((mon) => {
-      const fraction = mon.max_hp === 0 ? 0 : mon.hp / mon.max_hp;
-      return `<div class="pm"><span>${esc(mon.species)}</span><span>Lv${String(mon.level)} · ${String(mon.hp)}/${String(mon.max_hp)}</span><div class="hpbar"><i class="${hpLevel(fraction)}" style="width:${(fraction * 100).toFixed(0)}%"></i></div></div>`;
+      const fraction = mon.max_hp == null || mon.hp == null || mon.max_hp === 0 ? 0 : mon.hp / mon.max_hp;
+      return `<div class="pm"><span>${esc(mon.species ?? "Unknown Pokémon · harness bug")}</span><span>Lv${String(mon.level)} · ${String(mon.hp)}/${String(mon.max_hp)}</span><div class="hpbar"><i class="${hpLevel(fraction)}" style="width:${(fraction * 100).toFixed(0)}%"></i></div></div>`;
     })
     .join("")}</div>`;
 }
@@ -153,7 +153,8 @@ export function splits(view: RunView, baseline: Baseline | null, nowMs: number, 
   const elapsed = wallSeconds(view, nowMs);
   const newStory = new Set(["PLAYER_NAME_CONFIRMED", "FIRST_TRUCK_EXIT", "MOM_CLOCK_INSTRUCTION", "MOM_RIVAL_INSTRUCTION", "RIVAL_MET", "BIRCH_RESCUE_COMPLETE", "BIRCH_STARTER_HANDOFF_COMPLETE", "RIVAL_BATTLE_WON", "RECEIVED_POKEDEX", "STARTER_TUTORIAL_COMPLETE", "RUNNING_SHOES_RECEIVED", "DAD_FIRST_MEETING", "WALLY_TUTORIAL_COMPLETE", "TEAM_AQUA_WOODS_EVENT_COMPLETE", "RUSTBORO_GYM_COMPLETE", "ROCK_TOMB_RECEIVED"]);
   const nativeProgress = (name:string) => name.startsWith("ROUTE_102_TRAINER_") || name.startsWith("ROUTE_104_TRAINER_") || ["ROXANNE_DEFEATED","FIRST_POKEMON_CAUGHT","FIRST_POKECENTER_HEAL","FIRST_EVOLUTION"].includes(name);
-  const supported = (name: string) => nativeProgress(name) ? view.start?.harness_features.includes("native-progress-activity-v1") === true || reached.has(name) : name.startsWith("RUSTBORO_GYM_TRAINER_") ? view.start?.harness_features.includes("rustboro-gym-trainer-milestones-v1") === true || reached.has(name) : ["PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_BEDROOM_REACHED"].includes(name) ? view.start?.harness_features.includes("post-clock-navigation-milestones-v1") === true || reached.has(name) : name === "NEW_GAME_CREATED" ? view.start?.harness_features.includes("new-game-created-v1") === true || reached.has(name) : !newStory.has(name) || view.start?.harness_features.includes("story-milestones-v2") === true || reached.has(name);
+  const remainingNative = (name:string) => name.startsWith("PETALBURG_WOODS_TRAINER_") || name.startsWith("ROUTE_116_TRAINER_") || ["ROUTE_115", "ROUTE_116", "RUSTURF_TUNNEL"].includes(name);
+  const supported = (name: string) => remainingNative(name) ? view.start?.harness_features.includes("remaining-native-milestones-v1") === true || reached.has(name) : nativeProgress(name) ? view.start?.harness_features.includes("native-progress-activity-v1") === true || reached.has(name) : name.startsWith("RUSTBORO_GYM_TRAINER_") ? view.start?.harness_features.includes("rustboro-gym-trainer-milestones-v1") === true || reached.has(name) : ["PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_BEDROOM_REACHED"].includes(name) ? view.start?.harness_features.includes("post-clock-navigation-milestones-v1") === true || reached.has(name) : name === "NEW_GAME_CREATED" ? view.start?.harness_features.includes("new-game-created-v1") === true || reached.has(name) : !newStory.has(name) || view.start?.harness_features.includes("story-milestones-v2") === true || reached.has(name);
   const present = new Set(view.milestones.filter((m) => m.origin === "present_at_start").map((m) => m.name));
   const next = [...names].find((name) => supported(name) && !reached.has(name) && !present.has(name));
   const cell = (name: string, at: number | undefined, refs: ReturnType<typeof reference>) => {
@@ -232,6 +233,12 @@ function rowBody(event: RunEvent, view?: RunView): string | null {
       }
       return `${chips} hold ${String(event.hold_frames)}f · release ${String(event.release_frames ?? 0)}f`;
     }
+    case "battle_choice": {
+      const move=event.move;const target=event.target;
+      const choice=move?.name??(event.action==="switch"?`switch to party slot ${String((event.switch_party_slot??0)+1)}`:event.action==="item"?`item #${String(event.item_id)}`:event.action);
+      return `Battle ${String(event.battle)} · turn ${String(event.battle_turn)} · ${"species" in event.actor?`${esc(event.actor.species)} Lv${String(event.actor.level)}`:"Trainer"} chose ${esc(choice)}${target===null?"":` → ${esc(target.species)} Lv${String(target.level)}`}${move===null?"":` · PP ${String(move.pp)}`} · ${esc(event.origin)} · committed frame ${String(event.frame)} · execution unobserved`;
+    }
+    case "native_action": return `${esc(event.kind.replaceAll("_"," "))} · ${esc(JSON.stringify(event.details))} · frame ${String(event.frame)} (first observed)`;
     case "activity": {
       const pokemon=event.pokemon;
       const detail=pokemon===undefined?"":` · ${esc(pokemon.species)} Lv${String(pokemon.from_level)}→${String(pokemon.to_level)}`;
@@ -293,7 +300,9 @@ export function fieldContext(view: RunView): string {
   const objects = context.objects.map((o) => `${o.sprite_kind ?? "unknown sprite"} · map ${String(o.map_id[0])}/${String(o.map_id[1])} object ${String(o.local_id)} at (${String(o.x)},${String(o.y)})`).join("\n");
   const triggers = context.triggers.map((t) => `script tile (${String(t.x)},${String(t.y)}): condition ${t.condition_met === true ? "matches" : t.condition_met === false ? "does not match" : "unavailable"}`).join("\n");
   const dialogue = context.dialogue === null ? "Field-message text unavailable; the box may still be visible." : `Active message buffer (may include text not yet displayed):\n${context.dialogue}`;
-  return storyHtml + `<pre>${esc(objects)}\n${esc(triggers)}\n${esc(dialogue)}</pre>`;
+  const diagnostic=context.message_diagnostic === undefined ? "" : `\nSTATE COVERAGE ERROR: ${context.message_diagnostic}`;
+  const message=context.message == null ? "" : `\nField-message phase: ${context.message.phase}; buffer cursor ${String(context.message.cursor)}; advance input ${context.message.ready ? "ready" : "not ready"}`;
+  return storyHtml + `<pre>${esc(objects)}\n${esc(triggers)}\n${esc(dialogue)}${esc(message)}${esc(diagnostic)}</pre>`;
 }
 
 export function objectiveStatus(objective: NonNullable<RunView["objective"]>): string {

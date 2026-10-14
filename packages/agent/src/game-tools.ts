@@ -7,8 +7,8 @@ import { parseGameState, type GameStateSnapshot } from "./game-state.js";
 import { pressResult } from "./press-result.js";
 
 // Which model-visible parts of the observe/press results this run shows.
-export interface ToolSwitches { readonly readout: boolean; readonly pressResult: boolean; readonly position: boolean; readonly fieldLock: boolean }
-export const ALL_TOOL_SWITCHES: ToolSwitches = { readout: true, pressResult: true, position: true, fieldLock: true };
+export interface ToolSwitches { readonly readout: boolean; readonly pressResult: boolean; readonly position: boolean; readonly fieldLock: boolean; readonly safeInterfaces?: boolean; readonly automaticRunning?: boolean }
+export const ALL_TOOL_SWITCHES: ToolSwitches = { readout: true, pressResult: true, position: true, fieldLock: true, automaticRunning: false };
 import type { PressTiming } from "./recorder.js";
 
 const NoArgs = Type.Object({});
@@ -162,7 +162,7 @@ export function checkSmoke(transcript: readonly AgentMessage[]): SmokeSummary {
   return { toolCalls, texts };
 }
 
-const PressArgs = Type.Object({ buttons: Type.Array(ButtonSchema, { minItems: 1, maxItems: 8 }) });
+const PressArgs = Type.Object({ buttons: Type.Array(ButtonSchema, { minItems: 1, maxItems: 8 }), walking: Type.Optional(Type.Boolean({description: "Walk deliberately; do not add automatic running to directional travel."})) });
 
 const ActionSchema = Type.Object({ status: Type.String(), message: Type.Optional(Type.String()) });
 
@@ -170,8 +170,15 @@ const ActionSchema = Type.Object({ status: Type.String(), message: Type.Optional
 // explicitly so the log records what the server was asked to do.
 export const PRESS_TIMING: PressTiming = { hold_frames: 10, release_frames: 8 };
 
+/** Automatic B is a held modifier, not a second sequential button action. */
+export function permitsAutomaticRunning(before: GameStateSnapshot | undefined, buttons: readonly Button[], walking: boolean | undefined, enabled: boolean | undefined): boolean {
+  return enabled === true && walking !== true && buttons.length > 0 && buttons.every(button => ["UP", "DOWN", "LEFT", "RIGHT"].includes(button)) && before?.screen === "overworld" && !before.in_battle && before.field_controls_locked === false && before.active_ui == null && before.running?.permitted === true && before.running.controllable === true;
+}
+
+export interface PressModifiers { readonly automatic_running: boolean; readonly walking: boolean; readonly requested_held_buttons?: readonly Button[] }
+
 export interface PressHooks {
-  beforePress(toolCallId: string, buttons: readonly Button[], timing: PressTiming, before?: GameStateSnapshot): void;
+  beforePress(toolCallId: string, buttons: readonly Button[], timing: PressTiming, before?: GameStateSnapshot, modifiers?: PressModifiers): void;
   afterPress(): Promise<void>;
 }
 
@@ -181,6 +188,11 @@ export type CheckedPressTool=AgentTool<typeof PressArgs> & {
 };
 export function isCheckedPress(tool:AgentTool):tool is CheckedPressTool {return "executeChecked" in tool&&typeof tool.executeChecked==="function";}
 
+export function submittedButtons(buttons:readonly Button[], before:GameStateSnapshot|undefined, switches:ToolSwitches):readonly Button[] {
+  const freeField = before?.screen === "overworld" && before.started && !before.in_battle && before.field_controls_locked === false && before.active_ui == null && before.world_context?.dialogue == null && before.world_context?.message == null;
+  const directional = buttons.every(button=>["UP","DOWN","LEFT","RIGHT"].includes(button));
+  return switches.safeInterfaces && !(freeField && directional) ? buttons.slice(0,1) : buttons;
+}
 export function pressTool(
   gameServerUrl: string,
   hooks: PressHooks,
@@ -201,12 +213,15 @@ export function pressTool(
         if(check!==undefined)throw error;
       }
       check?.(before);
-      hooks.beforePress(toolCallId, params.buttons, PRESS_TIMING, before);
-      const url = `${gameServerUrl}/action`;
+      const buttons = submittedButtons(params.buttons,before,switches);
+      const automaticRunning = permitsAutomaticRunning(before, buttons, params.walking, switches.automaticRunning);
+      if (switches.automaticRunning===true || params.walking!==undefined) hooks.beforePress(toolCallId, buttons, PRESS_TIMING, before, {automatic_running:automaticRunning,walking:params.walking===true,...(automaticRunning?{requested_held_buttons:["B"] as const}:{})});
+      else hooks.beforePress(toolCallId, buttons, PRESS_TIMING, before);
+      const url = `${gameServerUrl}${automaticRunning ? "/pokebench/travel" : "/action"}`;
       const response = await fetchFn(url, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ buttons: params.buttons, ...PRESS_TIMING }),
+        body: JSON.stringify({ buttons, ...PRESS_TIMING, ...(automaticRunning ? {automatic_running:true} : {}) }),
         signal: deadline(15_000, signal),
       });
       const body: unknown = await response.json();
@@ -217,15 +232,15 @@ export function pressTool(
       await waitForQueue(gameServerUrl, fetchFn, clock, signal);
       await clock.sleep(STATE_CACHE_SETTLE_MS);
       await hooks.afterPress();
-      const content = await observation(gameServerUrl, fetchFn, signal, (after) => `pressed ${params.buttons.join(", ")}\n${switches.pressResult ? `Press result: ${pressResult(before, after, params.buttons, switches)}\n` : ""}\n`);
+      const content = await observation(gameServerUrl, fetchFn, signal, (after) => `pressed ${buttons.join(", ")}\n${buttons.length < params.buttons.length ? `Interface safety: submitted 1 of ${String(params.buttons.length)} requested inputs; remaining inputs were not sent. Inspect the new state before another input.\n` : ""}${switches.pressResult ? `Press result: ${pressResult(before, after, buttons, switches)}\n` : ""}\n`);
       return { content: content.content, details: { state: content.state } };
   };
   return {
     name: "press",
     label: "Press buttons",
-    description: switches.readout
+    description: (switches.readout
       ? "Press Game Boy Advance buttons in order (up to 8), then see the resulting screen and game state."
-      : "Press Game Boy Advance buttons in order (up to 8), then see the resulting screen.",
+      : "Press Game Boy Advance buttons in order (up to 8), then see the resulting screen.") + (switches.safeInterfaces ? " Interaction/menu or locked/unknown-interface batches submit only the first input; inspect before continuing." : "") + (switches.automaticRunning===true ? " Direction-only field travel runs when native controls permit it; set walking=true to walk deliberately." : ""),
     parameters: PressArgs,
     execute,
     executeChecked:(id,params,check,signal,update)=>execute(id,params,signal,update,check),

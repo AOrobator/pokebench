@@ -1,5 +1,5 @@
 // Read-only access to runs/<id>/events.jsonl (PB7: the viewer's record of truth).
-import { closeSync, existsSync, fstatSync, openSync, readSync, readdirSync } from "node:fs";
+import { closeSync, existsSync, fstatSync, openSync, readSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { RUN_ID_PATTERN, parseEvent, type RunEvent } from "@pokebench/agent/events";
 import { locateRunDir } from "@pokebench/agent/run";
@@ -202,6 +202,52 @@ export function baselineOf(runsRoot: string, runId: string): Baseline {
   return { run: runId, milestones: view.milestones.filter((m) => m.origin !== "present_at_start").map((m) => ({ name: m.name, offsetMs: m.ms - startMs - pausedBefore(m.ms), ...(m.derived === true ? { derived: true } : {}) })) };
 }
 
+export type BaselineReader = (runId: string) => Baseline;
+export const BASELINE_CACHE_LIMIT = 256;
+
+export function createBaselineReader(runsRoot: string, maxEntries = BASELINE_CACHE_LIMIT): BaselineReader {
+  if (!Number.isSafeInteger(maxEntries) || maxEntries < 1) throw new RangeError("baseline cache limit must be a positive integer");
+  type Outcome = { readonly baseline: Baseline } | { readonly error: BaselineError | RunsError };
+  const cache = new Map<string, { readonly fingerprint: string; readonly outcome: Outcome }>();
+  const fingerprint = (runId: string): string => {
+    const path = eventsPath(runsRoot, runId);
+    try {
+      const stat = statSync(path, { bigint: true });
+      return [path, stat.dev, stat.ino, stat.size, stat.mtimeNs, stat.ctimeNs].join(":");
+    } catch {
+      cache.delete(runId);
+      throw new RunsError(`run ${runId} has no readable events.jsonl`);
+    }
+  };
+  return (runId) => {
+    const before = fingerprint(runId);
+    const cached = cache.get(runId);
+    let outcome: Outcome;
+    if (cached?.fingerprint === before) {
+      outcome = cached.outcome;
+    } else {
+      cache.delete(runId);
+      try {
+        outcome = { baseline: baselineOf(runsRoot, runId) };
+      } catch (error) {
+        if (!(error instanceof BaselineError || error instanceof RunsError)) throw error;
+        outcome = { error };
+      }
+    }
+    // A changed file may finish validation, but its result cannot become a cache hit.
+    if (fingerprint(runId) === before) {
+      cache.delete(runId);
+      cache.set(runId, { fingerprint: before, outcome });
+      if (cache.size > maxEntries) {
+        const oldest = cache.keys().next().value;
+        if (oldest !== undefined) cache.delete(oldest);
+      }
+    }
+    if ("error" in outcome) throw outcome.error;
+    return structuredClone(outcome.baseline);
+  };
+}
+
 // The live picture is the one thing the viewer reads outside the log: the
 // run's own game server (INV-7), only while the run has not ended.
 export function liveScreenPort(runsRoot: string, runId: string): number | null {
@@ -230,7 +276,7 @@ function sameStart(a: ReturnType<typeof readStart>, b: ReturnType<typeof readSta
 
 // Once per selection, not per animation tick: validate each candidate's log.
 // DNFs remain eligible for partial splits; probes and unverified logs do not.
-export function comparisonsOf(runsRoot: string, runId: string): Comparisons {
+export function comparisonsOf(runsRoot: string, runId: string, readBaseline: BaselineReader = (id) => baselineOf(runsRoot, id)): Comparisons {
   const current = readStart(runsRoot, runId);
   const candidates: ComparisonRun[] = [];
   if (current.harness_features.includes("probe")) return { candidates, baseline: null, best: null };
@@ -243,7 +289,7 @@ export function comparisonsOf(runsRoot: string, runId: string): Comparisons {
       const currentRom = current.controller?.rom_sha1 ?? current.rom_sha1;
       const candidateRom = start.controller?.rom_sha1 ?? start.rom_sha1;
       if (humanPair && (current.vendor_pin !== start.vendor_pin || (currentRom !== undefined && candidateRom !== undefined && currentRom !== candidateRom))) continue;
-      const baseline = baselineOf(runsRoot, summary.id);
+      const baseline = readBaseline(summary.id);
       if (!baseline.milestones.some((m) => MILESTONE_ORDER.indexOf(m.name as typeof MILESTONE_ORDER[number]) > 0)) continue;
       candidates.push({ ...baseline, model: start.controller?.kind === "human" ? `Human · ${start.controller.name}` : start.model.id, started: start.t, harness: start.harness.commit, features: start.harness_features, ...(start.controller?.kind === "human" ? { controller: { kind: "human" as const, name: start.controller.name } } : {}), ...(humanPair ? { romIdentity: currentRom !== undefined && candidateRom !== undefined ? "verified" as const : "unverified" as const } : {}) });
     } catch (error) {

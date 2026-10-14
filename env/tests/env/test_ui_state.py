@@ -60,10 +60,13 @@ class TestDecodeMessage:
         assert decode_message(raw) == "POKéMON:“A”"
 
     def test_marks_unknown_bytes(self) -> None:
-        assert decode_message(b"\x7f") == "?"
+        with pytest.raises(ValueError, match="unknown text glyph"):
+            decode_message(b"\x7f")
+        assert decode_message(b"\xac") == "?"
 
     def test_a_truncated_control_code_ends_the_text(self) -> None:
-        assert decode_message(text("Hi") + b"\xfc") == "Hi"
+        with pytest.raises(ValueError, match="text control"):
+            decode_message(text("Hi") + b"\xfc")
 
 
 def menu(memory: Memory, cursor: int, maximum: int, window: int) -> None:
@@ -214,7 +217,8 @@ class TestActiveBirchUi:
         from pokebench_env.game_screen import Screen
         from pokebench_env.ui_state import read_active_ui
 
-        assert read_active_ui(Memory().read, Screen("title", 0, 0x080AA7A5)) is None
+        title = read_active_ui(Memory().read, Screen("title", 0, 0x080AA7A5))
+        assert title.phase == "title_initializing" and not title.ready and title.selected is None
         assert read_active_ui(Memory().read, Screen("birch_speech", 0, 0x0802F6B1)) is None
 
     def test_invalid_owned_menu_is_a_coverage_error(self) -> None:
@@ -375,7 +379,10 @@ def test_initialized_naming_readiness_uses_existing_owned_cursor_decoder() -> No
     from tests.env.test_naming import keyboard
 
     screen = Screen("naming", 0, 0x080E4F59)
-    assert read_active_ui(keyboard(phase=2).read, screen) is None
+    editor = read_active_ui(keyboard(phase=2).read, screen)
+    assert editor.phase == "naming_editor"
+    assert editor.ready is True
+    assert editor.details["naming_owner"] == "player"
     ui = read_active_ui(keyboard(phase=1).read, screen)
     assert ui.phase == "naming_transition" and ui.ready is False
 
@@ -404,3 +411,75 @@ def test_unknown_clock_task_is_logged_as_actionable_coverage_error() -> None:
     memory.put(TASKS, struct.pack("<IB", 0x08139999, 1))
     ui = read_active_ui(memory.read, Screen("clock", 0, 0x08134C9D))
     assert ui.phase == "unsupported" and "0x08139999" in ui.diagnostic
+
+
+def test_nonstandard_window_zero_does_not_claim_stale_field_dialog() -> None:
+    memory = Memory()
+    message(memory, MOM)
+    window(memory, 0, bg=0, width=22, height=2, drawn=True)
+    assert read_dialog(memory.read, "overworld") is None
+
+
+def test_pc_owned_standard_window_does_not_claim_stale_string_var4() -> None:
+    from pokebench_env.game_screen import TASKS
+    from pokebench_env.menu_pc import PC_ITEM_ACTION_TASK
+
+    memory = Memory()
+    message(memory, MOM)
+    message_box(memory, drawn=True)
+    memory.put(TASKS, struct.pack("<IB", PC_ITEM_ACTION_TASK, 1))
+    assert read_dialog(memory.read, "overworld") is None
+    memory.put(TASKS + 4, b"\0")
+    assert read_dialog(memory.read, "overworld") is not None
+
+
+def test_battle_ui_uses_native_controller_input_and_keeps_external_menu():
+    from pokebench_env.game_screen import Screen
+    from pokebench_env.ui_state import read_active_ui
+    from tests.env.test_battle_state import fixture
+    from tests.env.test_menus import put_task
+
+    memory = fixture()
+    ui = read_active_ui(memory.read, Screen("battle", 0, 0x08038421))
+    assert ui.phase == "battle_input" and ui.ready is True
+    assert "FIGHT" in ui.selected
+    assert ui.details["battler_0_action_cursor"] == 0
+    assert "battlers" not in ui.details
+    # The native battle flag remains on while a party menu owns the screen.
+    put_task(memory, 0, 0x081B1371, [])
+    memory.put(0x0203CEC8 + 9, bytes([1, 0, 0]))
+    ui = read_active_ui(memory.read, Screen("party_menu", 0, 0x081B01B1))
+    assert ui.phase == "party_menu" and ui.selected == "PARTY SLOT 2"
+
+
+def test_battle_callback_without_battle_flag_is_a_handoff():
+    from pokebench_env.game_screen import Screen
+    from pokebench_env.ui_state import read_active_ui
+
+    ui = read_active_ui(Memory().read, Screen("battle", 0, 0x08038421))
+    assert ui.phase == "battle_transition" and ui.ready is False and ui.diagnostic is None
+
+
+@pytest.mark.parametrize("callback", [0x080B1159, 0x080B11A9, 0x08036761])
+def test_source_owned_starter_battle_entry_needs_no_input(callback):
+    from pokebench_env.game_screen import Screen
+    from pokebench_env.ui_state import read_active_ui
+
+    # These automatic owners precede battle flags and may still retain the
+    # previous screen's tasks; callback ownership is sufficient for this phase.
+    memory = Memory()
+    memory.put(0x03005D04, struct.pack("<IB", 0x08134401, 1))
+    ui = read_active_ui(memory.read, Screen("transition", 0, callback))
+    assert ui.phase == "battle_transition"
+    assert ui.ready is False and ui.selected is None and ui.diagnostic is None
+
+
+def test_wild_battle_entry_qualifies_native_start_task():
+    from pokebench_env.game_screen import Screen
+    from pokebench_env.ui_state import read_active_ui
+    from tests.env.test_menus import put_task
+
+    m = Memory()
+    put_task(m, 0, 0x080B05F1, [1, 0])
+    ui = read_active_ui(m.read, Screen("transition", 0, 0x08085E51))
+    assert ui.phase == "battle_transition" and not ui.ready and ui.diagnostic is None

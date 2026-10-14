@@ -45,7 +45,7 @@ def test_an_unmapped_callback_is_reported_not_guessed() -> None:
 
 def test_gmain_is_the_us_emerald_address() -> None:
     assert GMAIN == 0x030022C0
-    assert len(SCREENS) == 14
+    assert len(SCREENS) == 103
 
 
 def test_a_short_read_is_an_error() -> None:

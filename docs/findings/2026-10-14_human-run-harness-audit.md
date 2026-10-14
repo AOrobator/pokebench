@@ -33,7 +33,7 @@ Already fixed for subsequent recordings:
 Additional observed events still outside the native recording/milestone contract:
 
 - Woods and Route116 trainer victories. Screenshot candidates include Lyle 35963, James 47001, Joey 83887, Karen 85712, Johnson 88181, Devan 89015 and Jose 95025. Add verified initial trainer flags; screenshots alone do not become native flags.
-- First visits to Route115 (82360), Route116 (83029) and Rusturf Tunnel (89725). Stable RAM proves these visits. Optional navigation splits should remain distinct from required first-Gym progress.
+- First visits to Route115 (82360), Route116 (83029) and Rusturf Tunnel (89730). Route RAM proves visits; Tunnel first map observation89725 has an unsupported transition callback, so supported-field recovery uses89730. Optional navigation splits should remain distinct from required first-Gym progress.
 - Berry harvest and same-variety replant. Verified Oran harvest 22972→plant 23136, Pecha 23233→23363; later Oran 30443→30592 and Pecha 30667→30798. These screenshots contain completed messages, not only prompts. Further verified pairs: Cheri 49833→50020, Oran 50078→50240, Leppa 61713→61894, Cheri 61960→62125. All eight pairs show two harvested and one of the same variety planted; this is a screenshot-supported count, not a native event total.
 - Learned moves: Torchic Focus Energy/Ember, Marill Tail Whip/Water Gun/Rollout, Shroomish Stun Spore are visible. Learning a move and executing it are different events; useful move availability is a meaningful training-readiness signal.
 - Captures after the party filled, including Silcoon49143, Taillow78863 and Whismur90687 (screenshot evidence). A new capture counter records totals but still does not preserve caught species or box destination.

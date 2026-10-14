@@ -20,6 +20,8 @@ export interface Press {
   readonly hold: number;
   readonly release: number;
   readonly assumed: boolean;
+  readonly automaticRunning?:boolean;
+  readonly walking?:boolean;
   readonly endMs?:number;
   readonly startFrame?:number;
   readonly endFrame?:number;
@@ -68,6 +70,7 @@ const KNOWN: Record<RunEvent["type"], true> = {
   tool_result: true,
   milestone: true,
   activity: true,
+  native_action:true, battle_choice:true,
   retry: true,
   disk_usage: true,
   frames_evicted: true,
@@ -97,7 +100,7 @@ function samePlace(a: StateEvent, b: StateEvent): boolean {
   return a.location === b.location && a.position?.x === b.position?.x && a.position?.y === b.position?.y;
 }
 
-export const MILESTONE_ORDER = ["GAME_RUNNING", "NEW_GAME_CREATED", "PLAYER_NAME_CONFIRMED", "PLAYER_NAME_SET", "FIRST_TRUCK_EXIT", "INTRO_CUTSCENE_COMPLETE", "LITTLEROOT_TOWN", "PLAYER_HOUSE_ENTERED", "MOM_CLOCK_INSTRUCTION", "PLAYER_BEDROOM", "CLOCK_SET", "MOM_RIVAL_INSTRUCTION", "PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_BEDROOM_REACHED", "RIVAL_MET", "ROUTE_101", "STARTER_CHOSEN", "BIRCH_RESCUE_COMPLETE", "BIRCH_STARTER_HANDOFF_COMPLETE", "OLDALE_TOWN", "ROUTE_103", "RIVAL_BATTLE_WON", "RECEIVED_POKEDEX", "STARTER_TUTORIAL_COMPLETE", "RUNNING_SHOES_RECEIVED", "FIRST_POKEMON_CAUGHT", "FIRST_EVOLUTION", "FIRST_POKECENTER_HEAL", "ROUTE_102", "ROUTE_102_TRAINER_CALVIN_DEFEATED", "ROUTE_102_TRAINER_RICK_DEFEATED", "ROUTE_102_TRAINER_TIANA_DEFEATED", "ROUTE_102_TRAINER_ALLEN_DEFEATED", "PETALBURG_CITY", "DAD_FIRST_MEETING", "WALLY_TUTORIAL_COMPLETE", "ROUTE_104", "ROUTE_104_TRAINER_IVAN_DEFEATED", "ROUTE_104_TRAINER_BILLY_DEFEATED", "ROUTE_104_TRAINER_HALEY_DEFEATED", "ROUTE_104_TRAINER_WINSTON_DEFEATED", "ROUTE_104_TRAINER_CINDY_DEFEATED", "ROUTE_104_TRAINER_GINA_MIA_DEFEATED", "ROUTE_104_TRAINER_DARIAN_DEFEATED", "PETALBURG_WOODS", "TEAM_AQUA_WOODS_EVENT_COMPLETE", "RUSTBORO_CITY", "RUSTBORO_CITY_GYM", "RUSTBORO_GYM_TRAINER_JOSH_DEFEATED", "RUSTBORO_GYM_TRAINER_TOMMY_DEFEATED", "RUSTBORO_GYM_TRAINER_MARC_DEFEATED", "ROXANNE_DEFEATED", "RUSTBORO_GYM_COMPLETE", "STONE_BADGE", "ROCK_TOMB_RECEIVED"] as const;
+export const MILESTONE_ORDER = ["GAME_RUNNING", "NEW_GAME_CREATED", "PLAYER_NAME_CONFIRMED", "PLAYER_NAME_SET", "FIRST_TRUCK_EXIT", "INTRO_CUTSCENE_COMPLETE", "LITTLEROOT_TOWN", "PLAYER_HOUSE_ENTERED", "MOM_CLOCK_INSTRUCTION", "PLAYER_BEDROOM", "CLOCK_SET", "MOM_RIVAL_INSTRUCTION", "PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_BEDROOM_REACHED", "RIVAL_MET", "ROUTE_101", "STARTER_CHOSEN", "BIRCH_RESCUE_COMPLETE", "BIRCH_STARTER_HANDOFF_COMPLETE", "OLDALE_TOWN", "ROUTE_103", "RIVAL_BATTLE_WON", "RECEIVED_POKEDEX", "STARTER_TUTORIAL_COMPLETE", "RUNNING_SHOES_RECEIVED", "FIRST_POKEMON_CAUGHT", "FIRST_EVOLUTION", "FIRST_POKECENTER_HEAL", "ROUTE_102", "ROUTE_102_TRAINER_CALVIN_DEFEATED", "ROUTE_102_TRAINER_RICK_DEFEATED", "ROUTE_102_TRAINER_TIANA_DEFEATED", "ROUTE_102_TRAINER_ALLEN_DEFEATED", "PETALBURG_CITY", "DAD_FIRST_MEETING", "WALLY_TUTORIAL_COMPLETE", "ROUTE_104", "ROUTE_104_TRAINER_IVAN_DEFEATED", "ROUTE_104_TRAINER_BILLY_DEFEATED", "ROUTE_104_TRAINER_HALEY_DEFEATED", "ROUTE_104_TRAINER_WINSTON_DEFEATED", "ROUTE_104_TRAINER_CINDY_DEFEATED", "ROUTE_104_TRAINER_GINA_MIA_DEFEATED", "ROUTE_104_TRAINER_DARIAN_DEFEATED", "PETALBURG_WOODS", "PETALBURG_WOODS_TRAINER_LYLE_DEFEATED", "PETALBURG_WOODS_TRAINER_JAMES_DEFEATED", "PETALBURG_WOODS_TRAINER_AQUA_GRUNT_DEFEATED", "TEAM_AQUA_WOODS_EVENT_COMPLETE", "RUSTBORO_CITY", "ROUTE_115", "ROUTE_116", "ROUTE_116_TRAINER_JOEY_DEFEATED", "ROUTE_116_TRAINER_JOSE_DEFEATED", "ROUTE_116_TRAINER_JERRY_DEFEATED", "ROUTE_116_TRAINER_CLARK_DEFEATED", "ROUTE_116_TRAINER_JANICE_DEFEATED", "ROUTE_116_TRAINER_KAREN_DEFEATED", "ROUTE_116_TRAINER_SARAH_DEFEATED", "ROUTE_116_TRAINER_DAWSON_DEFEATED", "ROUTE_116_TRAINER_DEVAN_DEFEATED", "ROUTE_116_TRAINER_JOHNSON_DEFEATED", "RUSTURF_TUNNEL", "RUSTBORO_CITY_GYM", "RUSTBORO_GYM_TRAINER_JOSH_DEFEATED", "RUSTBORO_GYM_TRAINER_TOMMY_DEFEATED", "RUSTBORO_GYM_TRAINER_MARC_DEFEATED", "ROXANNE_DEFEATED", "RUSTBORO_GYM_COMPLETE", "STONE_BADGE", "ROCK_TOMB_RECEIVED"] as const;
 
 export type ControlState = "running" | "pause_pending" | "paused" | "stop_pending" | "ended";
 
@@ -164,7 +167,9 @@ export class RunView {
   compactions = 0;
   stuck: { now: number; max: number } | null = null;
   readonly milestones: { name: string; ms: number; seq: number; derived?: boolean; kind?: "story" | "navigation" | "legacy"; origin?: "observed" | "present_at_start"; evidence?: readonly number[]; emulatorFrame?:number }[] = [];
+  readonly nativeActions: Of<"native_action">[] = [];
   readonly activities: Of<"activity">[] = [];
+  readonly battleChoices: Of<"battle_choice">[] = [];
   readonly presses: Press[] = [];
   readonly thinkingSpans: Span[] = [];
   streaming = { thinking: "", text: "" };
@@ -245,12 +250,16 @@ export class RunView {
           hold: event.hold_frames ?? ASSUMED_TIMING.hold_frames,
           release: event.release_frames ?? ASSUMED_TIMING.release_frames,
           assumed: event.hold_frames === undefined,
+          ...(event.automatic_running===undefined?{}:{automaticRunning:event.automatic_running}),
+          ...(event.walking===undefined?{}:{walking:event.walking}),
         });
         break;
+      case "native_action": this.nativeActions.push(event); break;
       case "activity": this.activities.push(event); break;
+      case "battle_choice":this.battleChoices.push(event);break;
       case "milestone": {
         // A native route receipt supersedes a provisional replay recovery.
-        const recovered = this.milestones.findIndex(mark => mark.name === event.name && mark.derived === true && /^ROUTE_10[1-4]$/.test(mark.name));
+        const recovered = this.milestones.findIndex(mark => mark.name === event.name && mark.derived === true && /^(?:ROUTE_(?:10[1-4]|115|116)|RUSTURF_TUNNEL)$/.test(mark.name));
         if(recovered>=0)this.milestones.splice(recovered,1);
         if (!this.milestones.some((m) => m.name === event.name)) this.milestones.push({ name: event.name, ms, seq: event.seq, ...(event.emulator_frame===undefined?{}:{emulatorFrame:event.emulator_frame}), ...(event.kind === undefined ? {} : {kind:event.kind}), ...(event.origin === undefined ? {} : {origin:event.origin}), ...(event.evidence === undefined ? {} : {evidence:event.evidence}) });
         break;
@@ -335,9 +344,13 @@ export class RunView {
     const previous = this.state;
     // Recover the old route-label mismatch only from a confirmed field map.
     // Retain the state receipt and first observation time without editing logs.
-    const route = event.location?.match(/^ROUTE ?(101|102|103|104)$/)?.[1];
-    if (this.start !== null && !this.start.harness_features.includes("native-progress-activity-v1") && event.started && event.screen === "overworld" && !event.in_battle && route !== undefined && event.map_id?.[0] === 0 && event.map_id[1] === Number(route) - 85) {
-      const name = `ROUTE_${route}`;
+    const route = event.location?.match(/^ROUTE ?(101|102|103|104|115|116)$/)?.[1];
+    const tunnel = event.location === "RUSTURF TUNNEL" || event.location === "RUSTURF_TUNNEL";
+    const laterVisit = route === "115" || route === "116" || tunnel;
+    const feature = laterVisit ? "remaining-native-milestones-v1" : "native-progress-activity-v1";
+    const qualifiedMap = route !== undefined ? event.map_id?.[0] === 0 && event.map_id[1] === Number(route)-85 : tunnel && event.map_id?.[0] === 24 && event.map_id[1] === 4;
+    if (this.start !== null && !this.start.harness_features.includes(feature) && event.started && event.screen === "overworld" && !event.in_battle && qualifiedMap) {
+      const name = tunnel ? "RUSTURF_TUNNEL" : `ROUTE_${route ?? ""}`;
       if (!this.milestones.some(mark => mark.name === name)) this.milestones.push({name, ms:eventMs(event), seq:event.seq, derived:true, kind:"navigation", origin:previous === null ? "present_at_start" : "observed", evidence:[event.seq]});
     }
     this.state = event;

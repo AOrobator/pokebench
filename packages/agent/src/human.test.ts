@@ -61,3 +61,16 @@ it('binds a restart launch to its assigned fresh human id without sampling a new
  expect(humanRunId(undefined,new Date('2026-10-13T23:00:00Z'),random)).toMatch(/_human_abcd$/);expect(randomCalls).toBe(1);
  for(const id of ['', '../escape', 'a'.repeat(129)])expect(()=>humanRunId(id,new Date(),random)).toThrow('invalid human run id');
 });
+
+it('retains the exact native final state and verifies its hash before any write',async()=>{
+ const {saveHumanCheckpoint}=await import('./human.js');const {createHash}=await import('node:crypto');
+ const dir=root(),data=Buffer.from('native state');
+ const hash=createHash('sha256').update(data).digest('hex');
+ const fetcher:typeof fetch=()=>Promise.resolve(Response.json({frame:42,sha256:hash,state_base64:data.toString('base64')}));
+ await saveHumanCheckpoint('http://game','secret',dir,fetcher);
+ expect(readFileSync(join(dir,'final.state'))).toEqual(data);
+ expect(JSON.parse(readFileSync(join(dir,'final-state.json'),'utf8'))).toMatchObject({frame:42,sha256:hash,bytes:data.length,path:'final.state'});
+ await expect(saveHumanCheckpoint('http://game','secret',root(),()=>Promise.resolve(Response.json({frame:42,sha256:'wrong',state_base64:data.toString('base64')})))).rejects.toThrow('integrity');
+ await expect(saveHumanCheckpoint('http://game','secret',root(),()=>Promise.resolve(Response.json({frame:42})))).rejects.toThrow('Invalid');
+ await expect(saveHumanCheckpoint('http://game','secret',root(),()=>Promise.resolve(new Response('',{status:503})))).rejects.toThrow('503');
+});

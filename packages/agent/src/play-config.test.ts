@@ -10,10 +10,10 @@ const off = (...ids: SwitchableFeature[]): FeatureSet => ({ ...ALL_ON, ...Object
 
 // Hashes of the prompts live.ts built at 0632fc0 (recorded in the worklog).
 it("reproduces the pre-registry prompts for the four legacy flag combinations", () => {
-  expect(sha(playSystemPrompt(ALL_ON, null))).toBe("9acbcc601390c879c1af3a8ff834d2b14fa8f76448b49dce4f8daa4502fe27ea");
-  expect(sha(playSystemPrompt(ALL_ON, "PLAYER_NAME_CONFIRMED"))).toBe("f2f0dd351e6cc7e5e11979d0aa67c18473894dcc3b661cff7a369942b9c17630");
-  expect(sha(playSystemPrompt(off("contextual-interface-docs-v1"), null))).toBe("c9ea0a800d7000717f3526405a8b3217c40d08aa5e14d59964a2e332e306e233");
-  expect(sha(playSystemPrompt(off("objective-tracking-v1", "repeat-attempt-guard-v1", "native-objective-completion-v1"), null))).toBe("5ea8916443c638c8c0cb3bd0706c6195cc251ca532ce140441b8aae007a05fcb");
+  expect(sha(playSystemPrompt(off("dialogue-safe-batches-v1"), null))).toBe("9acbcc601390c879c1af3a8ff834d2b14fa8f76448b49dce4f8daa4502fe27ea");
+  expect(sha(playSystemPrompt(off("dialogue-safe-batches-v1"), "PLAYER_NAME_CONFIRMED"))).toBe("f2f0dd351e6cc7e5e11979d0aa67c18473894dcc3b661cff7a369942b9c17630");
+  expect(sha(playSystemPrompt(off("dialogue-safe-batches-v1","contextual-interface-docs-v1"), null))).toBe("c9ea0a800d7000717f3526405a8b3217c40d08aa5e14d59964a2e332e306e233");
+  expect(sha(playSystemPrompt(off("dialogue-safe-batches-v1", "objective-tracking-v1", "repeat-attempt-guard-v1", "native-objective-completion-v1"), null))).toBe("5ea8916443c638c8c0cb3bd0706c6195cc251ca532ce140441b8aae007a05fcb");
   expect(sha(OBJECTIVE_PROMPT)).toBe("33c0b2a9ec5c8ee817154f6d3c5d56357116848c394667983e6e4b641a3659df");
   expect(objectivePrompt({ repeatGuard: true, nativeCompletion: true })).toBe(OBJECTIVE_PROMPT);
   expect(PLAY_SYSTEM_PROMPT).not.toContain(CONTEXTUAL_CONTROLS);
@@ -56,6 +56,6 @@ it("hides objective-record facts whose observation switch is off", () => {
 });
 
 it("maps observation switches onto the observe/press results", () => {
-  expect(toolSwitches(ALL_ON)).toEqual({ readout: true, pressResult: true, position: true, fieldLock: true });
-  expect(toolSwitches(off("ram-state-v1", "press-result-v1", "live-player-position-v1", "field-control-lock"))).toEqual({ readout: false, pressResult: false, position: false, fieldLock: false });
+  expect(toolSwitches(ALL_ON)).toEqual({ safeInterfaces:true, automaticRunning:true, readout: true, pressResult: true, position: true, fieldLock: true });
+  expect(toolSwitches(off("ram-state-v1", "press-result-v1", "live-player-position-v1", "field-control-lock"))).toEqual({ safeInterfaces:true, automaticRunning:true, readout: false, pressResult: false, position: false, fieldLock: false });
 });

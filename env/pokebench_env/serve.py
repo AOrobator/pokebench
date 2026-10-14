@@ -19,12 +19,16 @@ from fastapi import FastAPI, HTTPException
 from PIL.Image import Image
 from pydantic import BaseModel
 
+from pokebench_env.action_history import install_action_history
 from pokebench_env.audio import EmulatorLike
+from pokebench_env.battle_choices import FrameEmulator, install_battle_journal
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import MapNames
 from pokebench_env.human import HumanServer, install_human
+from pokebench_env.memory_reader import Core, SnapshotMemoryReader
 from pokebench_env.observation import ScreenshotFn, install_observation
 from pokebench_env.pause import SteppingServer, install_pause
+from pokebench_env.travel import TravelServer, install_travel
 from pokebench_env.view import install_spectator
 
 LOCALHOST = "127.0.0.1"
@@ -74,9 +78,16 @@ def run(
     observation: tuple[FastAPI, ScreenshotFn, ReadMemory, MapNames]
     | tuple[FastAPI, ScreenshotFn, ReadMemory, MapNames, AbstractContextManager[object]]
     | None = None,
+    actions: tuple[FastAPI, type[FrameEmulator], ReadMemory] | None = None,
     pause: tuple[FastAPI, SteppingServer] | None = None,
     human: tuple[FastAPI, HumanServer, str] | None = None,
+    checkpoint: Callable[[], bytes | None] | None = None,
+    travel: tuple[FastAPI, type[FrameEmulator], TravelServer, ReadMemory] | None = None,
 ) -> None:
+    if actions is not None:
+        install_action_history(*actions)
+    if travel is not None:
+        install_travel(*travel)
     if pause is not None:
         install_pause(*pause)
     if spectator is not None:
@@ -86,7 +97,7 @@ def run(
         capture = install_observation(*observation)
     if human is not None:
         api, server, token = human
-        controller = install_human(api, server, token, observe=capture)
+        controller = install_human(api, server, token, observe=capture, checkpoint=checkpoint)
         install_pause(api, server, input_pause=controller.set_paused)
     pin_localhost(uvicorn)
     sys.argv = ["server.app", *argv]
@@ -98,20 +109,42 @@ def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
     from pokemon_env.emulator import EmeraldEmulator
     from server import app  # vendor module, on PYTHONPATH
 
+    install_battle_journal(
+        app.app,
+        cast(type[FrameEmulator], EmeraldEmulator),
+        lambda address, length: bytes(app.env.core.memory.u8[address : address + length]),
+    )
     token = os.environ.get("POKEBENCH_HUMAN_TOKEN")
+    read_memory = SnapshotMemoryReader(lambda: cast(Core, app.env.core))
+
+    def checkpoint() -> bytes | None:
+        with app.memory_lock:
+            data = app.env.save_state()
+            return data if isinstance(data, bytes) else None
+
     run(
         sys.argv[1:],
         uvicorn=cast(UvicornLike, uvicorn),
         vendor_main=app.main,
         spectator=(app.app, cast(type[EmulatorLike], EmeraldEmulator)),
+        actions=(app.app, cast(type[FrameEmulator], EmeraldEmulator), read_memory),
         observation=(
             app.app,
             lambda: native_screenshot(cast(FrameSource, app.env)),
             # The vendor creates `env` at startup, after routes are installed.
-            lambda address, length: bytes(app.env.core.memory.u8[address : address + length]),
+            read_memory,
             MapNames.load(PORYMAP_MAPS),
             app.memory_lock,
         ),
+        checkpoint=checkpoint if token else None,
+        travel=(
+            app.app,
+            cast(type[FrameEmulator], EmeraldEmulator),
+            cast(TravelServer, app),
+            read_memory,
+        )
+        if not token and hasattr(app, "action_queue")
+        else None,
         pause=None if token else (app.app, cast(SteppingServer, app)),
         human=(app.app, cast(HumanServer, app), token) if token else None,
     )

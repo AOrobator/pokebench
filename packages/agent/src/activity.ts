@@ -3,7 +3,7 @@ import type {GameStateSnapshot} from './game-state.js';
 
 type Observation={state:GameStateSnapshot;seq:number};
 type Activity=Omit<BodyOf<'activity'>,'type'|'turn'|'server_timestamp'>;
-export const completedHeal=(state:GameStateSnapshot):boolean=>state.started&&state.screen==='overworld'&&!state.in_battle&&state.field_controls_locked===false&&state.party.length>0&&state.party.every(mon=>mon.max_hp>0&&mon.hp===mon.max_hp);
+export const completedHeal=(state:GameStateSnapshot):boolean=>state.started&&state.screen==='overworld'&&!state.in_battle&&state.field_controls_locked===false&&state.party.length>0&&state.party.every(mon=>mon.diagnostic==null&&mon.max_hp!=null&&mon.hp!=null&&mon.max_hp>0&&mon.hp===mon.max_hp);
 // Counters are native cumulative totals; the first sample establishes a baseline,
 // never fabricated activity for a resumed save. Each timestamp is a poll upper bound.
 export class StateActivities {
@@ -30,17 +30,19 @@ export class StateActivities {
     this.pendingHeal=null;
    }
    const duplicated=new Set<string>();
+   if(state.party_owner!=="tutorial"&&previous.state.party_owner!=="tutorial"&&state.party_owner!=="rental"&&previous.state.party_owner!=="rental") {
    for(const party of [previous.state.party,state.party]) {
     const seen=new Set<string>();
-    for(const mon of party)if(mon.identity!==undefined){if(seen.has(mon.identity))duplicated.add(mon.identity);seen.add(mon.identity);}
+    for(const mon of party)if(mon.identity!=null){if(seen.has(mon.identity))duplicated.add(mon.identity);seen.add(mon.identity);}
    }
-   const identities=new Map(previous.state.party.filter(mon=>mon.identity!==undefined&&!duplicated.has(mon.identity)).map(mon=>[mon.identity,mon]));
+   const identities=new Map(previous.state.party.filter(mon=>mon.identity!=null&&!duplicated.has(mon.identity)).map(mon=>[mon.identity,mon]));
    const unique=new Set<string>();
    for(const mon of state.party) {
-    if(mon.identity===undefined||unique.has(mon.identity))continue;
+    if(mon.identity==null||unique.has(mon.identity))continue;
     unique.add(mon.identity);
     const old=identities.get(mon.identity);
-    if(old!==undefined&&mon.level>old.level)activities.push({kind:'level_up',count:mon.level-old.level,evidence:[previous.seq,seq],pokemon:{identity:mon.identity,species:mon.species,from_level:old.level,to_level:mon.level}});
+    if(old!==undefined&&old.diagnostic==null&&mon.diagnostic==null&&old.level!=null&&mon.level!=null&&mon.species!=null&&mon.level>old.level)activities.push({kind:'level_up',count:mon.level-old.level,evidence:[previous.seq,seq],pokemon:{identity:mon.identity,species:mon.species,from_level:old.level,to_level:mon.level}});
+   }
    }
   }
   if(previous?.state.blackout_active===false&&state.blackout_active===true)activities.push({kind:'blackout',count:1,evidence:[previous.seq,seq]});

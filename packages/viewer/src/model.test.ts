@@ -287,3 +287,14 @@ it('uses a native route receipt instead of a provisional recovery when present',
  const native=log.add(201,{type:'milestone',turn:1,name:'ROUTE_102',server_timestamp:1,kind:'navigation',origin:'observed',evidence:[2]});
  expect(fold(log).milestones).toEqual([{name:'ROUTE_102',seq:native.seq,ms:BASE_MS+201,kind:'navigation',origin:'observed',evidence:[2]}]);
 });
+
+it('recovers later historical visits only from exact supported field maps',()=>{
+ for(const [name,location,map] of [['ROUTE_115','ROUTE115',[0,30]],['ROUTE_116','ROUTE 116',[0,31]],['RUSTURF_TUNNEL','RUSTURF TUNNEL',[24,4]]] as const){
+  const log=new Log();log.add(0,START);log.add(100,state());const visit=log.add(200,state({location,map_id:[...map]}));
+  expect(fold(log).milestones).toEqual([{name,ms:BASE_MS+200,seq:visit.seq,derived:true,kind:'navigation',origin:'observed',evidence:[visit.seq]}]);
+  const modern=new Log();modern.add(0,{...START,harness_features:['remaining-native-milestones-v1']});modern.add(100,state({location,map_id:[...map]}));expect(fold(modern).milestones).toEqual([]);
+  const wrong=new Log();wrong.add(0,START);wrong.add(100,state({location,map_id:[0,0]}));expect(fold(wrong).milestones).toEqual([]);
+  const native=log.add(201,{type:'milestone',turn:1,name,kind:'navigation',origin:'observed',server_timestamp:1,evidence:[visit.seq]});
+  expect(fold(log).milestones).toEqual([{name,ms:BASE_MS+201,seq:native.seq,kind:'navigation',origin:'observed',evidence:[visit.seq]}]);
+ }
+});

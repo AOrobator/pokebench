@@ -5,10 +5,12 @@ from the readout only; the typed JSON state used for measurement is unchanged.
 """
 
 from collections.abc import Mapping
+from dataclasses import asdict, replace
 
 from pokebench_env.game_state import GameState
 
 SERVER_FEATURES = (
+    "expanded-menu-battle-information-v1",
     "ram-state-v1",
     "live-map-v1",
     "live-player-position-v1",
@@ -18,6 +20,7 @@ SERVER_FEATURES = (
     "named-interactions-v1",
     "world-destinations-v1",
     "bounded-navigation-v1",
+    "field-dialogue-phase-v1",
     "active-field-message-buffer-v1",
     "naming-cursor-v1",
     "story-state-v1",
@@ -30,7 +33,7 @@ SERVER_FEATURES = (
 def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
     raw = env.get(
         "POKEBENCH_FEATURES_OFF",
-        "named-interactions-v1,world-destinations-v1,bounded-navigation-v1",
+        "named-interactions-v1,world-destinations-v1,bounded-navigation-v1,expanded-menu-battle-information-v1,field-dialogue-phase-v1",
     )
     if raw == "":
         return frozenset()
@@ -72,13 +75,99 @@ def format_readout(
     named_interactions: bool = False,
     world_destinations: bool = False,
     bounded_navigation: bool = False,
+    message_phase: bool = False,
 ) -> str:
     if "ram-state-v1" in off:
         return ""
-    dialog = "none" if state.dialog is None else f'"{state.dialog}"'
-    lines = [f"Screen: {state.screen}", f"Dialog: {dialog}", _menu(state)]
-    if state.active_ui is not None:
-        lines.append(state.active_ui.text())
+    expanded = "expanded-menu-battle-information-v1" not in off
+    ui = state.active_ui
+    from pokebench_env.ui_state import BIRCH_PHASES, CLOCK_PHASES
+
+    incumbent_phases = {
+        *BIRCH_PHASES.values(),
+        *CLOCK_PHASES.values(),
+        "unsupported",
+        "naming_transition",
+        "field_transition",
+    }
+    omitted_ui = not expanded and ui is not None and ui.phase not in incumbent_phases
+    if omitted_ui:
+        lines = [
+            f"Screen: {state.screen}",
+            "Dialog: detailed menu text unprovided",
+            "Menu: detailed controls unprovided",
+        ]
+        if ui is not None and ui.diagnostic:
+            lines.append(f"STATE COVERAGE ERROR: {ui.diagnostic}")
+    else:
+        dialog = "none" if state.dialog is None else f'"{state.dialog}"'
+        lines = [f"Screen: {state.screen}", f"Dialog: {dialog}", _menu(state)]
+        if ui is not None:
+            lines.append((ui if expanded else replace(ui, details=None)).text())
+    if state.resources is not None:
+        if expanded and state.resources.bag is not None:
+            lines.append(
+                "Bag: "
+                + "; ".join(
+                    f"{item.name or 'item #' + str(item.item_id)} ×{item.quantity}"
+                    for item in state.resources.bag
+                )
+            )
+        if expanded and state.resources.daycare:
+            lines.append(
+                "Daycare: "
+                + "; ".join(
+                    f"slot {entry.slot + 1} {entry.pokemon.species} "
+                    f"Lv{entry.displayed_level}; steps {entry.steps}"
+                    for entry in state.resources.daycare
+                )
+            )
+        for diagnostic in state.resources.diagnostics:
+            lines.append(f"HARNESS BUG ({diagnostic.owner}): {diagnostic.message}")
+    if state.party_ownership and state.party_ownership.diagnostic:
+        lines.append(f"HARNESS BUG (party ownership): {state.party_ownership.diagnostic}")
+    if state.battle is not None:
+        battle = state.battle
+        if battle.diagnostic:
+            lines.append(f"HARNESS BUG (battle): {battle.diagnostic}")
+        if expanded:
+            lines.append(
+                f"Battle state: {battle.phase}; input {battle.ready}; "
+                f"turn {battle.turn}; outcome {battle.outcome}"
+            )
+            if battle.playback is not None:
+                lines.append(
+                    f"Battle playback: {battle.playback.controls}; "
+                    f"stoppable {battle.playback.stoppable}; finished {battle.playback.finished}"
+                )
+            for actor in battle.battlers or ():
+                lines.append(
+                    f"Battler {actor.battler} {actor.species} Lv{actor.level} "
+                    f"HP {actor.hp}/{actor.max_hp}; "
+                    f"status {actor.status1}/{actor.status2}/{actor.status3}; "
+                    f"stages {actor.stat_stages}; moves "
+                    + ", ".join(
+                        f"{move.name} PP {move.pp}/{move.max_pp}"
+                        for move in actor.moves
+                        if move.move_id
+                    )
+                )
+            for selection in battle.player_inputs or ():
+                lines.append(
+                    f"Battle input {selection.battler}: {selection.phase}; "
+                    f"ready {selection.ready}; selected {selection.selected}; "
+                    f"target {selection.target_cursor}"
+                )
+            if battle.current_execution is not None:
+                execution = battle.current_execution
+                lines.append(
+                    f"Battle execution: {execution.phase}; attacker {execution.attacker}; "
+                    f"target {execution.target}; move ID {execution.move_id}; "
+                    f"result flags {execution.move_result_flags}. "
+                    "Completion and damage are separate recorded signals."
+                )
+        else:
+            lines.append("Battle details: unprovided")
     if state.story is not None and "story-state-v1" not in off:
         lines.append(state.story.text())
     if state.naming is not None and "naming-cursor-v1" not in off:
@@ -99,12 +188,27 @@ def format_readout(
         )
     x, y = state.position
     facing = "" if state.facing is None else f", facing {state.facing}"
-    party = "; ".join(f"{m.species} Lv{m.level} HP {m.hp}/{m.max_hp}" for m in state.party or ())
+    party = "; ".join(
+        f"{m.species or 'UNKNOWN'} Lv{m.level} HP {m.hp}/{m.max_hp}"
+        + (f" · STATUS {m.status}" if expanded and m.status else "")
+        + (
+            " · moves "
+            + ", ".join(
+                f"{move.name or move.move_id} PP {move.pp}" for move in m.moves if move.move_id
+            )
+            if expanded and m.moves is not None
+            else ""
+        )
+        + (f" · nickname {m.nickname}" if expanded and m.nickname else "")
+        + (f" · HARNESS BUG: {m.diagnostic}" if m.diagnostic else "")
+        + (f" · HARNESS BUG: {m.nickname_diagnostic}" if m.nickname_diagnostic else "")
+        for m in state.party or ()
+    )
     lines += [f"Player: {state.name}", f"Location: {state.location}"]
     if "live-player-position-v1" not in off:
         lines.append(f"Position: X={x}, Y={y}{facing}")
     lines += [
-        f"Party: {party or 'none'}",
+        f"Party ({state.party_owner}): {party or 'none'}",
         f"Money: ₽{state.money}",
         f"Badges: {', '.join(state.badges or ()) or 'none'}",
         f"In battle: {'yes' if state.in_battle else 'no'}",
@@ -130,6 +234,7 @@ def format_readout(
             objects="live-object-sprites-v1" not in off,
             triggers="coordinate-script-conditions-v1" not in off,
             dialogue="active-field-message-buffer-v1" not in off,
+            message=message_phase and "field-dialogue-phase-v1" not in off,
         )
         if context != "":
             lines.append(context)
@@ -198,17 +303,13 @@ def state_json(state: GameState) -> dict[str, object]:
         else {"x": state.position[0], "y": state.position[1]},
         "facing": state.facing,
         "in_battle": state.in_battle,
-        "party": [
-            {
-                "species": m.species,
-                "level": m.level,
-                "hp": m.hp,
-                "max_hp": m.max_hp,
-                **({"identity": m.identity} if m.identity is not None else {}),
-            }
-            for m in state.party or ()
-        ],
+        "party_owner": state.party_owner,
+        "party_ownership": None if state.party_ownership is None else state.party_ownership.json(),
+        "party": [asdict(mon) for mon in state.party or ()],
         "game_stats": state.game_stats,
+        "resources": None if state.resources is None else state.resources.json(),
+        "battle": None if state.battle is None else state.battle.json(),
+        "running": None if state.running is None else state.running.json(),
         "blackout_active": state.blackout_active,
         "money": state.money,
         "badges": list(state.badges or ()),

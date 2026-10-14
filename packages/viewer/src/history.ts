@@ -3,7 +3,7 @@
 // model, thinking, budgets, target, boot start and every other feature).
 import { SWITCHABLE_FEATURES, featuresOf, playHarnessFeatures, type FeatureSet, type SwitchableFeature } from "@pokebench/agent/features";
 import type { RunEvent } from "@pokebench/agent/events";
-import { BaselineError, RunsError, baselineOf, listRuns, readStart } from "./runs.js";
+import { BaselineError, RunsError, baselineOf, listRuns, readStart, type BaselineReader } from "./runs.js";
 
 export interface RunConfig {
   readonly model: string;
@@ -65,14 +65,14 @@ function arm(runs: readonly { name: string; offsetMs: number }[][]): ArmOutcome 
 interface Scored { readonly config: RunConfig; readonly milestones: { name: string; offsetMs: number }[] }
 
 // Ended, validated, non-aborted runs (operator_stop still counts).
-function scoredRuns(runsRoot: string): Scored[] {
+function scoredRuns(runsRoot: string, readBaseline: BaselineReader): Scored[] {
   const scored: Scored[] = [];
   for (const summary of listRuns(runsRoot)) {
     if (!summary.ended || summary.problem !== null || summary.reason === "operator_abort") continue;
     try {
       const config = configOf(readStart(runsRoot, summary.id));
       if (config === null) continue;
-      scored.push({ config, milestones: baselineOf(runsRoot, summary.id).milestones.filter((m) => m.derived !== true) });
+      scored.push({ config, milestones: readBaseline(summary.id).milestones.filter((m) => m.derived !== true) });
     } catch (error) {
       if (!(error instanceof BaselineError || error instanceof RunsError)) throw error;
     }
@@ -80,8 +80,8 @@ function scoredRuns(runsRoot: string): Scored[] {
   return scored;
 }
 
-export function featureHistory(runsRoot: string, draft: RunConfig): Record<SwitchableFeature, FeatureHistory | null> {
-  const scored = scoredRuns(runsRoot);
+export function featureHistory(runsRoot: string, draft: RunConfig, readBaseline: BaselineReader = (id) => baselineOf(runsRoot, id)): Record<SwitchableFeature, FeatureHistory | null> {
+  const scored = scoredRuns(runsRoot, readBaseline);
   return Object.fromEntries(SWITCHABLE_FEATURES.map((feature) => {
     const matching = scored.filter((run) => sameExcept(run.config, draft, feature));
     const on = matching.filter((run) => run.config.features[feature]).map((run) => run.milestones);

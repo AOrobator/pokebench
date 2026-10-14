@@ -112,6 +112,9 @@ const Frames = Type.Integer({ minimum: 1, maximum: 255 });
 const ButtonPress = event("button_press", {
   tool_call_id: Type.String(),
   before_state_seq: Type.Optional(NonNegativeInt),
+  automatic_running:Type.Optional(Type.Boolean()),
+  walking:Type.Optional(Type.Boolean()),
+  requested_held_buttons:Type.Optional(Type.Array(ButtonSchema,{maxItems:1})),
   buttons: Type.Array(ButtonSchema, { minItems: 1 }),
   hold_frames: Type.Optional(Frames),
   release_frames: Type.Optional(Frames),
@@ -144,6 +147,27 @@ const Milestone = event("milestone", {
   origin: Type.Optional(Type.Enum(["observed", "present_at_start"])),
   evidence: Type.Optional(Type.Array(NonNegativeInt, {minItems:1,maxItems:3})),
 });
+
+export const BattleBattlerSchema = Type.Object({
+  battler: Type.Integer({minimum:0,maximum:3}), position:Type.Integer({minimum:0,maximum:3}),
+  party_slot:Type.Integer({minimum:0,maximum:5}), species_id:Type.Integer({minimum:1,maximum:411}),
+  species:Type.String({minLength:1}), identity:Type.String({pattern:"^[0-9a-f]{8}:[0-9a-f]{8}$"}),
+  level:Type.Integer({minimum:1,maximum:100}),hp:NonNegativeInt,max_hp:Type.Integer({minimum:1}),
+},closed);
+export const BattleChoiceFields = {
+  id:Type.Integer({minimum:1}),frame:NonNegativeInt,recorded_ms:NonNegativeInt,
+  battle:Type.Integer({minimum:1}),battle_turn:Type.Integer({minimum:1,maximum:256}),
+  action:Type.Enum(["move","item","switch","run","other","safari_watch_carefully","safari_ball","safari_pokeblock","safari_go_near","safari_run"] as const), action_id:Type.Integer({minimum:0,maximum:255}),
+  origin:Type.Enum(["selected","automatic","scripted","remote"] as const), actor:Type.Union([BattleBattlerSchema,Type.Object({kind:Type.Literal("trainer"),battler:Type.Integer({minimum:0,maximum:3}),position:Type.Integer({minimum:0,maximum:3})},closed)]),
+  safari_pokeblock:Type.Optional(Type.Union([Type.Object({preference_code:Type.Integer({minimum:1,maximum:3}),color:Type.Integer({minimum:0,maximum:14})},closed),Type.Null()])),
+  move:Type.Union([Type.Null(),Type.Object({id:Type.Integer({minimum:1,maximum:354}),name:Type.String({minLength:1}),slot:Type.Integer({minimum:0,maximum:3}),pp:Type.Integer({minimum:0,maximum:255})},closed)]),
+  target:Type.Union([Type.Null(),BattleBattlerSchema]),item_id:Type.Union([Type.Null(),Type.Integer({minimum:1,maximum:376})]),
+  switch_party_slot:Type.Union([Type.Null(),Type.Integer({minimum:0,maximum:5})]),
+  source:Type.Object({main_func:Type.Literal(0x0803D2E9),communication:Type.Array(Type.Literal(5),{minItems:2,maxItems:4}),battle_type:NonNegativeInt},closed),
+};
+export const BattleChoiceSchema = Type.Object(BattleChoiceFields,closed);
+export const BattleJournalSchema = Type.Object({frame:NonNegativeInt,last_id:NonNegativeInt,entries:Type.Array(BattleChoiceSchema,{maxItems:4096})},closed);
+const BattleChoice = event("battle_choice", BattleChoiceFields);
 
 const Activity = event("activity", {
   kind: Type.Enum(["capture", "heal", "evolution", "level_up", "save_attempt", "blackout"] as const),
@@ -181,6 +205,52 @@ const FramesEvicted = event("frames_evicted", {
 
 // PokeBench's own RAM reader (env/pokebench_env/game_state.py). Save-block
 // fields are null before the game starts: they hold defaults, not the player's state.
+const MenuScalar = Type.Union([Type.String(), Type.Number(), Type.Boolean(), Type.Null()]);
+export const NativeDetailsSchema = Type.Record(Type.String(), Type.Union([MenuScalar, Type.Array(MenuScalar, {maxItems:512})]));
+export const PokemonSchema = Type.Object({
+  identity:Type.Optional(Type.Union([Type.String(),Type.Null()])),
+  language:Type.Optional(Type.Union([NonNegativeInt,Type.Null()])),nickname:Type.Optional(Type.Union([Type.String(),Type.Null()])),nickname_diagnostic:Type.Optional(Type.Union([Type.String(),Type.Null()])),
+  species:Type.Union([Type.String(),Type.Null()]),level:Type.Union([Type.Integer({minimum:0,maximum:100}),Type.Null()]),
+  hp:Type.Union([NonNegativeInt,Type.Null()]),max_hp:Type.Union([NonNegativeInt,Type.Null()]),
+  species_id:Type.Optional(Type.Union([Type.Integer({minimum:1,maximum:411}),Type.Null()])),
+  personality:Type.Optional(Type.Union([NonNegativeInt,Type.Null()])),ot_id:Type.Optional(Type.Union([NonNegativeInt,Type.Null()])),
+  is_egg:Type.Optional(Type.Union([Type.Boolean(),Type.Null()])),status:Type.Optional(Type.Union([NonNegativeInt,Type.Null()])),
+  held_item:Type.Optional(Type.Union([NonNegativeInt,Type.Null()])),held_item_name:Type.Optional(Type.Union([Type.String(),Type.Null()])),experience:Type.Optional(Type.Union([NonNegativeInt,Type.Null()])),
+  moves:Type.Optional(Type.Union([Type.Array(Type.Object({move_id:NonNegativeInt,name:Type.Optional(Type.Union([Type.String(),Type.Null()])),pp:NonNegativeInt,max_pp:Type.Optional(Type.Union([NonNegativeInt,Type.Null()])),pp_bonus:Type.Integer({minimum:0,maximum:3})},closed),{maxItems:4}),Type.Null()])),
+  decode_mode:Type.Optional(Type.Union([Type.Enum(["encrypted","plaintext"]),Type.Null()])),
+  cpu_context:Type.Optional(Type.Union([Type.Object({gprs:Type.Array(NonNegativeInt,{minItems:16,maxItems:16}),cpsr:NonNegativeInt,stack_address:NonNegativeInt,stack_hex:Type.String({maxLength:256})},closed),Type.Null()])),
+  diagnostic:Type.Optional(Type.Union([Type.String(),Type.Null()])),raw_hex:Type.Optional(Type.Union([Type.String({maxLength:200}),Type.Null()])),
+},closed);
+const NullableInt=Type.Union([NonNegativeInt,Type.Null()]);
+const NullableString=Type.Union([Type.String(),Type.Null()]);
+const BattleMoveSchema=Type.Object({slot:Type.Integer({minimum:0,maximum:3}),move_id:Type.Integer({minimum:0,maximum:354}),name:NullableString,pp:NonNegativeInt,max_pp:NonNegativeInt,move_type:NullableInt,power:NullableInt,accuracy:NullableInt,effect:NullableInt},closed);
+const ContinuousBattleBattlerSchema=Type.Object({battler:Type.Integer({minimum:0,maximum:3}),position:Type.Integer({minimum:0,maximum:3}),party_slot:Type.Integer({minimum:0,maximum:5}),identity:Type.String(),species_id:Type.Integer({minimum:1,maximum:411}),species:Type.String(),level:Type.Integer({minimum:1,maximum:100}),hp:NonNegativeInt,max_hp:NonNegativeInt,status1:NonNegativeInt,status2:NonNegativeInt,status3:NonNegativeInt,stat_stages:Type.Array(Type.Integer({minimum:0,maximum:12}),{minItems:8,maxItems:8}),stats:Type.Array(NonNegativeInt,{minItems:5,maxItems:5}),types:Type.Array(Type.Integer({minimum:0,maximum:17}),{minItems:2,maxItems:2}),ability:NonNegativeInt,held_item:NonNegativeInt,moves:Type.Array(BattleMoveSchema,{minItems:4,maxItems:4}),absent:Type.Boolean()},closed);
+const BattleInputSchema=Type.Object({battler:Type.Integer({minimum:0,maximum:3}),controller:NonNegativeInt,phase:Type.String(),ready:Type.Boolean(),action_cursor:NullableInt,move_cursor:NullableInt,target_cursor:NullableInt,selected:NullableString,selected_move_id:NullableInt,displayed_pp:NullableInt,displayed_max_pp:NullableInt,communication:NullableInt},closed);
+const BattleSignalSchema=Type.Object({kind:Type.String(),battler:Type.Integer({minimum:0,maximum:3}),command:NonNegativeInt,request:NullableInt,party_mask:NullableInt,string_id:NullableInt,move_id:NullableInt,originally_used_move:NullableInt,hp:NullableInt,status:NullableInt,raw_hex:NullableString},closed);
+const BattleExecutionSchema=Type.Object({attacker:Type.Integer({minimum:0,maximum:3}),target:Type.Integer({minimum:0,maximum:3}),move_id:NonNegativeInt,phase:Type.String(),script_pc:NonNegativeInt,move_result_flags:NonNegativeInt,hit_marker:NonNegativeInt,damage:Type.Integer(),hp_dealt:Type.Integer(),current_action:NonNegativeInt,turn_action:NonNegativeInt},closed);
+export const BattleStateSchema=Type.Object({playback:Type.Optional(Type.Union([Type.Object({stoppable:Type.Boolean(),finished:Type.Boolean(),controls:Type.String()},closed),Type.Null()])),non_pokemon_battlers:Type.Optional(Type.Array(Type.Integer({minimum:0,maximum:3}),{maxItems:4})),active:Type.Boolean(),initialized:Type.Boolean(),phase:Type.String(),ready:Type.Union([Type.Boolean(),Type.Null()]),main_func:NullableInt,script_pc:NullableInt,battle_type:NullableInt,turn:NullableInt,outcome_code:NullableInt,outcome:NullableString,battlers:Type.Union([Type.Array(ContinuousBattleBattlerSchema,{maxItems:4}),Type.Null()]),player_inputs:Type.Union([Type.Array(BattleInputSchema,{maxItems:4}),Type.Null()]),controller_exec_flags:NullableInt,signals:Type.Array(BattleSignalSchema,{maxItems:4}),current_execution:Type.Union([BattleExecutionSchema,Type.Null()]),diagnostic:NullableString,raw_hex:NullableString},closed);
+const NullableBool=Type.Union([Type.Boolean(),Type.Null()]);
+export const RunningPermissionSchema=Type.Object({permitted:NullableBool,controllable:NullableBool,reason:Type.String(),shoes:NullableBool,allow_running:NullableBool,avatar_flags:NullableInt,metatile:NullableInt,elevation:NullableInt,map_type:NullableInt,callback1:NullableInt,callback2:NullableInt,diagnostic:NullableString,raw_hex:NullableString},closed);
+const ResourceItemSchema=Type.Object({slot:NonNegativeInt,item_id:NonNegativeInt,quantity:NonNegativeInt,pocket:Type.Union([Type.String(),Type.Null()]),name:Type.Optional(Type.Union([Type.String(),Type.Null()]))},closed);
+export const NativeActionFields={
+ id:Type.Integer({minimum:1}),frame:NonNegativeInt,server_timestamp:Type.Number(),
+ kind:Type.Enum(["menu_changed","pokemon_captured","pokemon_acquired","pokemon_moved","move_learned","move_forgotten","held_item_changed","status_changed","item_quantity_changed","berry_tree_changed","berry_harvested","berry_planted","berry_watered","harness_bug","battle_started","battle_ended","battle_outcome","battle_signal","battle_hp_changed","battle_status_changed","battle_pp_changed","native_input","pokemon_evolved","pokemon_egg_changed","pokemon_level_changed","pokemon_hp_changed","pokemon_max_hp_changed","pokemon_experience_changed","pokemon_pp_changed","daycare_training"]),
+ details:NativeDetailsSchema,
+};
+export const NativeActionSchema=Type.Object(NativeActionFields,closed);
+const NativeAction=event("native_action",NativeActionFields);
+export const NativeActionJournalSchema=Type.Object({frame:NonNegativeInt,last_id:NonNegativeInt,entries:Type.Array(NativeActionSchema,{maxItems:16384})},closed);
+export const ResourcesSchema=Type.Object({
+ daycare:Type.Optional(Type.Union([Type.Array(Type.Object({slot:Type.Integer({minimum:0,maximum:1}),pokemon:PokemonSchema,steps:NonNegativeInt,displayed_level:Type.Union([Type.Integer({minimum:0,maximum:100}),Type.Null()])},closed),{maxItems:2}),Type.Null()])),
+ bag:Type.Union([Type.Array(ResourceItemSchema,{maxItems:186}),Type.Null()]),
+ pc_items:Type.Union([Type.Array(ResourceItemSchema,{maxItems:50}),Type.Null()]),
+ storage:Type.Union([Type.Object({current_box:Type.Integer({minimum:0,maximum:13}),occupied:Type.Array(Type.Object({box:Type.Integer({minimum:0,maximum:13}),slot:Type.Integer({minimum:0,maximum:29}),pokemon:PokemonSchema},closed),{maxItems:420})},closed),Type.Null()]),
+ berry_trees:Type.Union([Type.Array(Type.Object({tree_id:Type.Integer({minimum:0,maximum:127}),berry:NonNegativeInt,item_id:Type.Union([NonNegativeInt,Type.Null()]),stage:Type.Integer({minimum:0,maximum:5}),stop_growth:Type.Boolean(),minutes_until_next_stage:NonNegativeInt,yield_count:NonNegativeInt,regrowth_count:NonNegativeInt,watered:Type.Array(Type.Boolean(),{minItems:4,maxItems:4})},closed),{maxItems:128}),Type.Null()]),
+ planted_berries:Type.Union([NonNegativeInt,Type.Null()]),
+ diagnostics:Type.Array(Type.Object({owner:Type.String(),message:Type.String(),raw_hex:Type.Union([Type.String({maxLength:4096}),Type.Null()])},closed)),
+ script_pc:Type.Union([NonNegativeInt,Type.Null()]),script_mode:Type.Union([NonNegativeInt,Type.Null()]),script_status:Type.Union([NonNegativeInt,Type.Null()]),
+ selected_tree_id:Type.Union([NonNegativeInt,Type.Null()]),berry_script_owner:Type.Union([Type.Enum(["harvest","water","plant"]),Type.Null()]),
+},closed);
 export const StateBodySchema = Type.Object(
   {
     screen: Type.String(),
@@ -189,6 +259,7 @@ export const StateBodySchema = Type.Object(
       ready: Type.Union([Type.Boolean(),Type.Null()]), controls: Type.String(),
       diagnostic: Type.Union([Type.String(),Type.Null()]),
       value: Type.Optional(Type.Union([Type.String(),Type.Null()])),
+      details:Type.Optional(Type.Union([NativeDetailsSchema,Type.Null()])),
     },closed),Type.Null()])),
     story: Type.Optional(Type.Union([Type.Object({
       name_confirmed: Type.Union([Type.Boolean(), Type.Null()]),
@@ -220,7 +291,25 @@ export const StateBodySchema = Type.Object(
       route104_cindy_defeated: Type.Optional(Type.Union([Type.Boolean(), Type.Null()])),
       route104_gina_mia_defeated: Type.Optional(Type.Union([Type.Boolean(), Type.Null()])),
       route104_darian_defeated: Type.Optional(Type.Union([Type.Boolean(), Type.Null()])),
+      petalburg_woods_lyle_defeated:Type.Optional(Type.Union([Type.Boolean(),Type.Null()])),
+      petalburg_woods_james_defeated:Type.Optional(Type.Union([Type.Boolean(),Type.Null()])),
+      petalburg_woods_aqua_grunt_defeated:Type.Optional(Type.Union([Type.Boolean(),Type.Null()])),
+      route116_joey_defeated:Type.Optional(Type.Union([Type.Boolean(),Type.Null()])),
+      route116_jose_defeated:Type.Optional(Type.Union([Type.Boolean(),Type.Null()])),
+      route116_jerry_defeated:Type.Optional(Type.Union([Type.Boolean(),Type.Null()])),
+      route116_clark_defeated:Type.Optional(Type.Union([Type.Boolean(),Type.Null()])),
+      route116_janice_defeated:Type.Optional(Type.Union([Type.Boolean(),Type.Null()])),
+      route116_karen_defeated:Type.Optional(Type.Union([Type.Boolean(),Type.Null()])),
+      route116_sarah_defeated:Type.Optional(Type.Union([Type.Boolean(),Type.Null()])),
+      route116_dawson_defeated:Type.Optional(Type.Union([Type.Boolean(),Type.Null()])),
+      route116_devan_defeated:Type.Optional(Type.Union([Type.Boolean(),Type.Null()])),
+      route116_johnson_defeated:Type.Optional(Type.Union([Type.Boolean(),Type.Null()])),
+
     }, closed), Type.Null()])),
+    running:Type.Optional(Type.Union([RunningPermissionSchema,Type.Null()])),
+    party_ownership:Type.Optional(Type.Union([Type.Object({owner:NullableString,source:Type.String(),original_identities:Type.Array(Type.String(),{maxItems:6}),rental_personalities:Type.Array(NonNegativeInt,{maxItems:3}),diagnostic:NullableString,raw_hex:Type.Union([Type.String({maxLength:4096}),Type.Null()])},closed),Type.Null()])),
+    battle:Type.Optional(Type.Union([BattleStateSchema,Type.Null()])),
+    resources:Type.Optional(Type.Union([ResourcesSchema,Type.Null()])),
     blackout_active:Type.Optional(Type.Union([Type.Boolean(),Type.Null()])),
     game_stats: Type.Optional(Type.Union([Type.Object({
       pokemon_captures:Type.Union([NonNegativeInt,Type.Null()]),
@@ -237,6 +326,12 @@ export const StateBodySchema = Type.Object(
       objects: Type.Array(Type.Object({local_id: NonNegativeInt, map_id: Type.Tuple([Type.Integer(), Type.Integer()]), graphics_id: NonNegativeInt, sprite_kind: Type.Union([Type.String(), Type.Null()]), x: Type.Integer(), y: Type.Integer()}, closed)),
       triggers: Type.Array(Type.Object({x: Type.Integer(), y: Type.Integer(), elevation: NonNegativeInt, variable: NonNegativeInt, required_value: NonNegativeInt, current_value: Type.Union([NonNegativeInt, Type.Null()]), condition_met: Type.Union([Type.Boolean(), Type.Null()]), script_pointer: NonNegativeInt}, closed)),
       dialogue: Type.Union([Type.String(), Type.Null()]),
+      message_diagnostic: Type.Optional(Type.String({maxLength:1000})),
+      message: Type.Optional(Type.Union([Type.Object({
+        phase: Type.Enum(["dismiss_wait", "printing", "button_wait", "page_wait", "scroll_wait", "scrolling", "audio_wait", "printing_pause"]),
+        cursor: Type.Integer({minimum:0, maximum:999}), ready:Type.Boolean(),
+        identity: Type.Optional(Type.Union([Type.String({pattern:"^[a-f0-9]{64}$"}),Type.Null()])),
+      }, closed), Type.Null()])),
     }, closed), Type.Null()])),
     interaction_targets: Type.Optional(Type.Union([Type.Array(Type.Object({
       name: Type.Optional(Type.Union([Type.String(), Type.Null()])),
@@ -261,12 +356,8 @@ export const StateBodySchema = Type.Object(
     position: Type.Union([Type.Object({ x: Type.Integer(), y: Type.Integer() }, closed), Type.Null()]),
     facing: Type.Union([Type.String(), Type.Null()]),
     in_battle: Type.Boolean(),
-    party: Type.Array(
-      Type.Object(
-        { identity:Type.Optional(Type.String()), species: Type.String(), level: NonNegativeInt, hp: NonNegativeInt, max_hp: NonNegativeInt },
-        closed,
-      ),
-    ),
+    party_owner:Type.Optional(Type.Enum(["player","tutorial","rental"])),
+    party:Type.Array(PokemonSchema,{maxItems:6}),
     money: Type.Union([NonNegativeInt, Type.Null()]),
     badges: Type.Array(Type.String()),
     play_time_s: Type.Union([NonNegativeInt, Type.Null()]),
@@ -295,7 +386,7 @@ const Compaction = event("compaction", { from_tokens: NonNegativeInt, to_tokens:
 // A post-press read that failed after the press landed (operator 2026-10-12:
 // the press still succeeds; the failure is logged, not shown to the model).
 const TelemetryError = event("telemetry_error", {
-  source: Type.Enum(["milestones", "state"] as const),
+  source: Type.Enum(["milestones", "state", "battle", "actions"] as const),
   message: Type.String(),
 });
 
@@ -339,6 +430,8 @@ export const RunEventSchema = Type.Union([
   ToolResult,
   Milestone,
   Activity,
+  NativeAction,
+  BattleChoice,
   Retry,
   DiskUsage,
   FramesEvicted,

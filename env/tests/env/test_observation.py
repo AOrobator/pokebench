@@ -90,7 +90,18 @@ def test_entire_ram_read_uses_the_existing_frame_memory_lock(path: str) -> None:
     install_observation(app, good_shot, locked_read, MapNames({}), lock)
     status, _, body = get(app, path)
     assert status == 200, body
-    assert calls == [0x030022C0, 0x030026F9, 0x0203CD92, 0x02039F94, 0x02039F94, 0x02039F94]
+    assert calls == [
+        0x030022C0,
+        0x030026F9,
+        0x0203CD92,
+        0x03005E00,
+        0x03005E00,
+        0x02039F94,
+        0x02039F94,
+        0x02037595,
+        0x02037350,
+        0x02039F94,
+    ]
     assert not lock.locked()
 
 

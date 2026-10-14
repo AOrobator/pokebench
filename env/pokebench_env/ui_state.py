@@ -14,6 +14,7 @@ from dataclasses import dataclass
 
 from pokebench_env.game_screen import ReadMemory, Screen
 from pokebench_env.gba_text import GBA_TEXT
+from pokebench_env.menus import MenuValue
 
 STRING_VAR4 = 0x02021FC4
 STRING_VAR4_SIZE = 1000
@@ -28,6 +29,84 @@ EWRAM = range(0x02000000, 0x02040000)
 
 MESSAGE_TEXT = {
     **GBA_TEXT,
+    # US font/charmap literal glyphs, including currency and compound labels.
+    0x01: "À",
+    0x02: "Á",
+    0x03: "Â",
+    0x04: "Ç",
+    0x05: "È",
+    0x06: "É",
+    0x07: "Ê",
+    0x08: "Ë",
+    0x09: "Ì",
+    0x0B: "Î",
+    0x0C: "Ï",
+    0x0D: "Ò",
+    0x0E: "Ó",
+    0x0F: "Ô",
+    0x10: "Œ",
+    0x11: "Ù",
+    0x12: "Ú",
+    0x13: "Û",
+    0x14: "Ñ",
+    0x15: "ß",
+    0x16: "à",
+    0x17: "á",
+    0x19: "ç",
+    0x1A: "è",
+    0x1C: "ê",
+    0x1D: "ë",
+    0x1E: "ì",
+    0x20: "î",
+    0x21: "ï",
+    0x22: "ò",
+    0x23: "ó",
+    0x24: "ô",
+    0x25: "œ",
+    0x26: "ù",
+    0x27: "ú",
+    0x28: "û",
+    0x29: "ñ",
+    0x2A: "º",
+    0x2B: "ª",
+    0x2C: "er",
+    0x2E: "+",
+    0x34: "Lv",
+    0x35: "=",
+    0x36: ";",
+    0x37: " ",
+    0x51: "¿",
+    0x52: "¡",
+    0x53: "PK",
+    0x54: "MN",
+    0x55: "PO",
+    0x56: "Ké",
+    0x57: "BL",
+    0x58: "OC",
+    0x59: "K",
+    0x5A: "Í",
+    0x5B: "%",
+    0x68: "â",
+    0x6F: "í",
+    0x77: " ",
+    0x79: "↑",
+    0x7A: "↓",
+    0x7B: "←",
+    0x7C: "→",
+    0x84: "e",
+    0x85: "<",
+    0x86: ">",
+    0xA0: "re",
+    0xAF: "·",
+    0xB7: "¥",
+    0xB9: "×",
+    0xEF: "▶",
+    0xF1: "Ä",
+    0xF2: "Ö",
+    0xF3: "Ü",
+    0xF4: "ä",
+    0xF5: "ö",
+    0xF6: "ü",
     0x1B: "é",
     0x2D: "&",
     0x5C: "(",
@@ -51,18 +130,9 @@ class Menu:
 
 
 def decode_message(raw: bytes) -> str:
-    out: list[str] = []
-    i = 0
-    while i < len(raw) and raw[i] != 0xFF:
-        byte = raw[i]
-        if byte == 0xFC:
-            if i + 1 >= len(raw):
-                break
-            i += 2 + CONTROL_ARGS.get(raw[i + 1], 0)
-            continue
-        out.append(LINE_BREAKS.get(byte) or MESSAGE_TEXT.get(byte, "?"))
-        i += 1
-    return "".join(out).strip(" |")
+    from pokebench_env.native_text import decode_native_text
+
+    return decode_native_text(raw, line_breaks=LINE_BREAKS).strip(" |")
 
 
 def _window_drawn(read: ReadMemory, window_id: int) -> bool:
@@ -78,12 +148,43 @@ def _window_drawn(read: ReadMemory, window_id: int) -> bool:
 def read_dialog(read: ReadMemory, screen_kind: str) -> str | None:
     if screen_kind not in MESSAGE_SCREENS or not _window_drawn(read, MESSAGE_WINDOW):
         return None
+    # Window zero is also reused for PC/list widgets. The standard field and
+    # Birch message box templates are both 27 by 4 tiles; a drawn widget does
+    # not establish ownership of the stale gStringVar4 message buffer.
+    template = read(WINDOWS + WINDOW_SIZE * MESSAGE_WINDOW, WINDOW_SIZE)
+    if template[3:5] != bytes((27, 4)):
+        return None
+    if screen_kind == "overworld":
+        from pokebench_env.menu_pc import (
+            PC_ITEM_ACTION_TASK,
+            PC_ITEM_LIST_TASK,
+            PC_ITEM_QUANTITY_TASK,
+            PC_ITEM_SWAP_TASK,
+            PC_MAIL_ACTION_TASK,
+            PC_MAIL_LIST_TASK,
+        )
+        from pokebench_env.menus import task_snapshot
+
+        direct_pc_text_owners = {
+            PC_ITEM_ACTION_TASK,
+            PC_ITEM_LIST_TASK,
+            PC_ITEM_QUANTITY_TASK,
+            PC_ITEM_SWAP_TASK,
+            PC_MAIL_ACTION_TASK,
+            PC_MAIL_LIST_TASK,
+        }
+        if any(task[1] in direct_pc_text_owners for task in task_snapshot(read)):
+            return None
     return decode_message(read(STRING_VAR4, STRING_VAR4_SIZE)) or None
 
 
-def read_menu(read: ReadMemory) -> Menu | None:
+def read_menu(read: ReadMemory, *, allow_single: bool = False) -> Menu | None:
     cursor, _minimum, maximum, window_id = struct.unpack("<bbbB", read(MENU + 2, 4))
-    if maximum <= 0 or not 0 <= cursor <= maximum or not _window_drawn(read, window_id):
+    if (
+        maximum < (0 if allow_single else 1)
+        or not 0 <= cursor <= maximum
+        or not _window_drawn(read, window_id)
+    ):
         return None
     return Menu(selected=cursor + 1, options=maximum + 1)
 
@@ -98,6 +199,7 @@ class ActiveUi:
     controls: str
     diagnostic: str | None = None
     value: str | None = None
+    details: dict[str, MenuValue] | None = None
 
     def json(self) -> dict[str, object]:
         from dataclasses import asdict
@@ -111,10 +213,85 @@ class ActiveUi:
         selection = "" if self.selected is None else f"; selected {self.selected}"
         diagnostic = "" if self.diagnostic is None else f"; STATE COVERAGE ERROR: {self.diagnostic}"
         value = "" if self.value is None else f"; value {self.value}"
+        facts = _menu_facts_text(self.details)
         return (
             f"Interface: {self.phase}; input {readiness}{selection}{value}; "
-            f"{self.controls}{diagnostic}"
+            f"{self.controls}{diagnostic}{facts}"
         )
+
+
+# Ownership addresses/task snapshots remain in structured recording for repair,
+# while the model receives the actual game choices and editable values.
+_RAW_MENU_DETAIL_KEYS = frozenset(
+    {
+        "callback2",
+        "task_ids",
+        "task_functions",
+        "task_data",
+        "owner_task",
+        "destination_pointer",
+        "input_callback",
+        "map_input_callback",
+        "fly_callback",
+        "menu_handler",
+        "pokenav_task_state",
+        "fly_state",
+        "map_state",
+        "card_state",
+        "summary_mode",
+        "party_action",
+        "party_menu_type",
+        "template_id",
+        "list_item_id",
+        "pokenav_menu_index",
+        "pokenav_mode",
+        "current_menu_item",
+        "menu_type",
+        "visible_list_entries",
+        "learning_state",
+        "lobby_state",
+        "text_state",
+        "state",
+        "help_state",
+        "pocket_switch_state",
+        "header_pointer",
+        "raw_task_data",
+        "personality",
+    }
+)
+
+
+def _menu_facts_text(details: dict[str, MenuValue] | None) -> str:
+    if not details:
+        return ""
+    settings = {
+        "text_speed": ("SLOW", "MID", "FAST"),
+        "battle_scene_off": ("ON", "OFF"),
+        "battle_style": ("SHIFT", "SET"),
+        "sound": ("MONO", "STEREO"),
+        "button_mode": ("NORMAL", "LR", "L=A"),
+    }
+    facts: list[str] = []
+    for key, item in details.items():
+        if key in _RAW_MENU_DETAIL_KEYS or key.endswith(("_callback", "_pointer")) or item is None:
+            continue
+        label = {
+            "battle_scene_off": "battle scene",
+            "selected_index": "selected index (zero based)",
+            "party_slot": "party slot (zero based)",
+            "pokemon_slot": "Pokemon slot (zero based)",
+            "box_index": "box index (zero based)",
+        }.get(key, key.replace("_", " "))
+        if key in settings and isinstance(item, int) and item in range(len(settings[key])):
+            rendered = settings[key][item]
+        elif isinstance(item, list):
+            rendered = " | ".join(str(value) for value in item)
+        elif isinstance(item, bool):
+            rendered = "YES" if item else "NO"
+        else:
+            rendered = str(item)
+        facts.append(f"{label}: {rendered}")
+    return "" if not facts else "\nMenu state: " + "; ".join(facts)
 
 
 # Verified US ROM task pointers and main_menu.c ownership, not address ranges.
@@ -149,7 +326,147 @@ BIRCH_PHASES = {
 
 def read_active_ui(read: ReadMemory, screen: "Screen") -> ActiveUi | None:
     from pokebench_env.game_screen import TASKS
+    from pokebench_env.menu_apprentice import read_apprentice_ui
+    from pokebench_env.menu_aux import read_aux_ui
+    from pokebench_env.menu_cable import read_cable_ui
+    from pokebench_env.menu_common import read_shared_menu
+    from pokebench_env.menu_corner import read_corner_ui
+    from pokebench_env.menu_dex import read_dex_ui
+    from pokebench_env.menu_ereader import read_ereader_ui
+    from pokebench_env.menu_field_people import read_field_people_menu
+    from pokebench_env.menu_field_widgets import read_field_widget_ui
+    from pokebench_env.menu_frontier import read_frontier_ui
+    from pokebench_env.menu_item_use import read_item_use_ui
+    from pokebench_env.menu_learning import read_learning_ui
+    from pokebench_env.menu_legacy import read_legacy_menu
+    from pokebench_env.menu_nav import read_nav_ui
+    from pokebench_env.menu_pc import read_pc_ui
+    from pokebench_env.menu_pokemon_lifecycle import read_pokemon_lifecycle_menu
+    from pokebench_env.menu_prelude import read_prelude_ui
+    from pokebench_env.menu_save import read_save_ui
+    from pokebench_env.menu_title import read_title_ui
+    from pokebench_env.menu_views import read_view_ui
+    from pokebench_env.menu_wireless import read_wireless_ui
+    from pokebench_env.menus import (
+        STARTER_CALLBACK,
+        owner_details,
+        read_menu_family,
+        read_starter_ui,
+    )
+    from pokebench_env.menus_misc import HOF_CALLBACKS, read_misc_menu
 
+    if screen.callback1 == 0 and screen.callback2 == 0:
+        from pokebench_env.boot import read_boot_ui
+
+        boot_ui = read_boot_ui(read)
+        if boot_ui is not None:
+            return boot_ui
+    if screen.kind == "clock":
+        return read_clock_ui(read)
+    # battle_setup.c CB2_GiveStarter / CB2_StartFirstBattle and battle_main.c
+    # CB2_InitBattle are callback-owned automatic handoffs, not input menus.
+    # US ROM ownership is verified by historical battle_setup.s and battle_2.s.
+    battle_entry = {
+        0x080B1159: "Giving selected starter; battle setup is automatic",
+        0x080B11A9: "First battle transition animation is running",
+        0x08036761: "Battle core is initializing",
+    }
+    if screen.callback2 in battle_entry:
+        return ActiveUi("battle_transition", None, False, battle_entry[screen.callback2])
+    if screen.callback2 == 0x08085E51:
+        from pokebench_env.menus import task_snapshot
+
+        battle_start = [task for task in task_snapshot(read) if task[1] == 0x080B05F1]
+        if len(battle_start) == 1 and battle_start[0][2][0] in (0, 1):
+            return ActiveUi(
+                "battle_transition",
+                None,
+                False,
+                "Wild/trainer battle animation is automatic",
+                details=owner_details(read, screen.callback2),
+            )
+
+    lifecycle_ui = read_pokemon_lifecycle_menu(read, screen.callback2)
+    if lifecycle_ui is not None:
+        return lifecycle_ui
+    legacy_ui = read_legacy_menu(read, screen.callback2)
+    if legacy_ui is not None:
+        return legacy_ui
+    title_ui = read_title_ui(read, screen.callback2)
+    if title_ui is not None:
+        return title_ui
+    aux_ui = read_aux_ui(read, screen.callback2)
+    if aux_ui is not None:
+        return aux_ui
+    prelude_ui = read_prelude_ui(read, screen.callback2)
+    if prelude_ui is not None:
+        return prelude_ui
+    learning_ui = read_learning_ui(read, screen.callback2)
+    if learning_ui is not None:
+        return learning_ui
+    frontier_ui = read_frontier_ui(read, screen.callback2)
+    if frontier_ui is not None:
+        return frontier_ui
+    nav_ui = read_nav_ui(read, screen.callback2)
+    if nav_ui is not None:
+        return nav_ui
+    view_ui = read_view_ui(read, screen.callback2)
+    if view_ui is not None:
+        return view_ui
+    dex_ui = read_dex_ui(read, screen.callback2)
+    if dex_ui is not None:
+        return dex_ui
+    wireless_ui = read_wireless_ui(read, screen.callback2)
+    if wireless_ui is not None:
+        return wireless_ui
+    field_people_ui = read_field_people_menu(read, screen.callback2)
+    if field_people_ui is not None:
+        return field_people_ui
+    apprentice_ui = read_apprentice_ui(read, screen.callback2)
+    if apprentice_ui is not None:
+        return apprentice_ui
+    cable_ui = read_cable_ui(read, screen.callback2)
+    if cable_ui is not None:
+        return cable_ui
+    pc_ui = read_pc_ui(read, screen.callback2)
+    if pc_ui is not None:
+        return pc_ui
+    misc_ui = (
+        read_misc_menu(read, screen.callback2)
+        if screen.callback2 in HOF_CALLBACKS
+        or screen.callback2 in (0x08085E5D, 0x08085FFD, 0x080860F5, 0x08085FCD)
+        else None
+    )
+    if misc_ui is not None:
+        return misc_ui
+    save_ui = read_save_ui(read, screen.callback2)
+    if save_ui is not None:
+        return save_ui
+    item_use_ui = read_item_use_ui(read, screen.callback2)
+    if item_use_ui is not None:
+        return item_use_ui
+    shared_ui = read_shared_menu(read, screen.callback2)
+    if shared_ui is not None:
+        return shared_ui
+    corner_ui = read_corner_ui(read, screen.callback2)
+    if corner_ui is not None:
+        return corner_ui
+    menu_family = read_menu_family(read, screen.callback2)
+    if menu_family is not None:
+        return menu_family
+    field_widget_ui = read_field_widget_ui(read, screen.callback2)
+    if field_widget_ui is not None:
+        return field_widget_ui
+    from pokebench_env.menus_extra import read_extra_menu
+
+    ereader_ui = read_ereader_ui(read, screen.callback2)
+    if ereader_ui is not None:
+        return ereader_ui
+    extra_ui = read_extra_menu(read, screen.callback2)
+    if extra_ui is not None:
+        return extra_ui
+    if screen.callback2 == STARTER_CALLBACK:
+        return read_starter_ui(read)
     if screen.callback2 == 0x080E2E05:
         return ActiveUi(
             "naming_transition",
@@ -171,14 +488,80 @@ def read_active_ui(read: ReadMemory, screen: "Screen") -> ActiveUi | None:
                 "Observe and report this coverage error",
                 f"callback2 0x080E4F59; naming buffer or cursor invalid; pointer 0x{pointer:08X}",
             )
+        pointer = int.from_bytes(read(NAMING_POINTER, 4), "little")
+        template = read(pointer + 0x1E2C, 1)[0]
+        if template not in range(5):
+            return ActiveUi(
+                "naming_unsupported",
+                None,
+                None,
+                "Naming owner unavailable",
+                "invalid NamingScreen template owner",
+            )
+        owner = ("player", "box", "caught_mon", "nickname", "walda")[template]
+        destination = int.from_bytes(read(pointer + 0x1E30, 4), "little")
         if not naming.ready:
             return ActiveUi(
                 "naming_transition",
                 None,
                 False,
                 "Naming editor transition; selection input is not active",
+                details={"naming_owner": owner, "template_id": template},
             )
-        return None
+        return ActiveUi(
+            "naming_editor",
+            naming.key,
+            True,
+            "A selects key; B deletes; SELECT changes page; START moves to OK",
+            value=naming.text,
+            details={
+                "naming_owner": owner,
+                "template_id": template,
+                "destination_pointer": f"0x{destination:08X}",
+                "species_id": int.from_bytes(read(pointer + 0x1E34, 2), "little"),
+                "personality": int.from_bytes(read(pointer + 0x1E38, 4), "little"),
+                "page": naming.page,
+                "column": naming.column,
+                "row": naming.row,
+            },
+        )
+    from pokebench_env.battle_choices import IN_BATTLE
+    from pokebench_env.battle_state import read_battle_state
+
+    battle_flag = read(IN_BATTLE, 1)
+    if len(battle_flag) != 1:
+        raise ValueError("short active UI battle flag read")
+    if battle_flag[0] & 2:
+        battle = read_battle_state(read)
+        inputs = battle.player_inputs or ()
+        selected = (
+            "; ".join(
+                f"battler {item.battler}: {item.selected}"
+                for item in inputs
+                if item.ready and item.selected is not None
+            )
+            or None
+        )
+        details: dict[str, MenuValue] = {"input_phases": [item.phase for item in inputs]}
+        for item in inputs:
+            prefix = f"battler_{item.battler}_"
+            details[prefix + "ready"] = item.ready
+            details[prefix + "action_cursor"] = item.action_cursor
+            details[prefix + "move_cursor"] = item.move_cursor
+            details[prefix + "target_cursor"] = item.target_cursor
+            details[prefix + "selected"] = item.selected
+        return ActiveUi(
+            "battle_" + battle.phase,
+            selected,
+            battle.ready,
+            "Use the game-owned battle input and selected control when ready",
+            battle.diagnostic,
+            details=details,
+        )
+    if screen.kind == "battle":
+        return ActiveUi(
+            "battle_transition", None, False, "Battle callback handoff; wait for native input owner"
+        )
     if screen.kind == "field_transition":
         return ActiveUi(
             "field_transition", None, False, "Map load in progress; field input is not active"
@@ -238,6 +621,7 @@ def read_active_ui(read: ReadMemory, screen: "Screen") -> ActiveUi | None:
         "Observe and report this coverage error; do not infer a selection.",
         f"callback1 0x{screen.callback1:08X}; callback2 0x{screen.callback2:08X}; active tasks "
         + ",".join(f"0x{fn:08X}" for fn in functions),
+        details=owner_details(read, screen.callback2),
     )
 
 

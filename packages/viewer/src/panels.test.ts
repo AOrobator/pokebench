@@ -503,3 +503,19 @@ it('shows native repeated activity receipts without inventing historical support
  const modern=new RunView();const native=new Log();native.add(0,{...START,harness_features:['native-progress-activity-v1']});native.events.forEach(event=>{modern.apply(event);});
  expect(splits(modern,null,BASE_MS+1000).table).not.toContain('first pokemon caught</td><td class="t">not<br>recorded');
 });
+
+it("shows remaining native splits only for declared or recorded support",()=>{
+ const names=["petalburg woods trainer lyle defeated","route 116 trainer joey defeated","route 115","route 116","rusturf tunnel"];
+ const historical=splits(view(bare()),null,BASE_MS+1000).table;
+ for(const name of names) expect(historical).toContain(`${name}</td><td class="t">not<br>recorded`);
+ const log=new Log();log.add(0,{...START,harness_features:["remaining-native-milestones-v1"]});
+ const modern=splits(view(log),null,BASE_MS+1000).table;
+ for(const name of names) expect(modern).not.toContain(`${name}</td><td class="t">not<br>recorded`);
+ log.add(1000,{type:"milestone",turn:0,name:"ROUTE_116_TRAINER_JOEY_DEFEATED",server_timestamp:1,kind:"story",origin:"observed",evidence:[0]});
+ expect(splits(view(log),null,BASE_MS+2000).table).toContain('route 116 trainer joey defeated</td><td class="t">0:00:01');
+});
+it("shows qualified dialogue phase and escaped coverage diagnostics from recorded state",()=>{
+ const log=bare();log.add(1,state({world_context:{objects:[],triggers:[],dialogue:"Box",message:{phase:"dismiss_wait",cursor:45,ready:true},message_diagnostic:"owner <unknown>"}}));
+ expect(fieldContext(view(log))).toContain("Field-message phase: dismiss_wait; buffer cursor 45; advance input ready");
+ expect(fieldContext(view(log))).toContain("STATE COVERAGE ERROR: owner &lt;unknown&gt;");
+});

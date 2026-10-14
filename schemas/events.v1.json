@@ -1381,6 +1381,28 @@
           "type": "integer",
           "minimum": 0
         },
+        "automatic_running": {
+          "type": "boolean"
+        },
+        "walking": {
+          "type": "boolean"
+        },
+        "requested_held_buttons": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "A",
+              "B",
+              "START",
+              "SELECT",
+              "UP",
+              "DOWN",
+              "LEFT",
+              "RIGHT"
+            ]
+          },
+          "maxItems": 1
+        },
         "buttons": {
           "type": "array",
           "items": {
@@ -1960,6 +1982,508 @@
         "t",
         "turn",
         "type",
+        "id",
+        "frame",
+        "server_timestamp",
+        "kind",
+        "details"
+      ],
+      "properties": {
+        "v": {
+          "type": "number",
+          "const": 1
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type": {
+          "type": "string",
+          "const": "native_action"
+        },
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "frame": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "server_timestamp": {
+          "type": "number"
+        },
+        "kind": {
+          "enum": [
+            "menu_changed",
+            "pokemon_captured",
+            "pokemon_acquired",
+            "pokemon_moved",
+            "move_learned",
+            "move_forgotten",
+            "held_item_changed",
+            "status_changed",
+            "item_quantity_changed",
+            "berry_tree_changed",
+            "berry_harvested",
+            "berry_planted",
+            "berry_watered",
+            "harness_bug",
+            "battle_started",
+            "battle_ended",
+            "battle_outcome",
+            "battle_signal",
+            "battle_hp_changed",
+            "battle_status_changed",
+            "battle_pp_changed",
+            "native_input",
+            "pokemon_evolved",
+            "pokemon_egg_changed",
+            "pokemon_level_changed",
+            "pokemon_hp_changed",
+            "pokemon_max_hp_changed",
+            "pokemon_experience_changed",
+            "pokemon_pp_changed",
+            "daycare_training"
+          ]
+        },
+        "details": {
+          "type": "object",
+          "patternProperties": {
+            "^.*$": {
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "maxItems": 512
+                }
+              ]
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "run",
+        "seq",
+        "t",
+        "turn",
+        "type",
+        "id",
+        "frame",
+        "recorded_ms",
+        "battle",
+        "battle_turn",
+        "action",
+        "action_id",
+        "origin",
+        "actor",
+        "move",
+        "target",
+        "item_id",
+        "switch_party_slot",
+        "source"
+      ],
+      "properties": {
+        "v": {
+          "type": "number",
+          "const": 1
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type": {
+          "type": "string",
+          "const": "battle_choice"
+        },
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "frame": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "recorded_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "battle": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "battle_turn": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 256
+        },
+        "action": {
+          "enum": [
+            "move",
+            "item",
+            "switch",
+            "run",
+            "other",
+            "safari_watch_carefully",
+            "safari_ball",
+            "safari_pokeblock",
+            "safari_go_near",
+            "safari_run"
+          ]
+        },
+        "action_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "origin": {
+          "enum": [
+            "selected",
+            "automatic",
+            "scripted",
+            "remote"
+          ]
+        },
+        "actor": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "battler",
+                "position",
+                "party_slot",
+                "species_id",
+                "species",
+                "identity",
+                "level",
+                "hp",
+                "max_hp"
+              ],
+              "properties": {
+                "battler": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3
+                },
+                "position": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3
+                },
+                "party_slot": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 5
+                },
+                "species_id": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 411
+                },
+                "species": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "identity": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{8}:[0-9a-f]{8}$"
+                },
+                "level": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100
+                },
+                "hp": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "max_hp": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "kind",
+                "battler",
+                "position"
+              ],
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "trainer"
+                },
+                "battler": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3
+                },
+                "position": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "safari_pokeblock": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "preference_code",
+                "color"
+              ],
+              "properties": {
+                "preference_code": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 3
+                },
+                "color": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 14
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "move": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "required": [
+                "id",
+                "name",
+                "slot",
+                "pp"
+              ],
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 354
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "slot": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3
+                },
+                "pp": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 255
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "target": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "required": [
+                "battler",
+                "position",
+                "party_slot",
+                "species_id",
+                "species",
+                "identity",
+                "level",
+                "hp",
+                "max_hp"
+              ],
+              "properties": {
+                "battler": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3
+                },
+                "position": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3
+                },
+                "party_slot": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 5
+                },
+                "species_id": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 411
+                },
+                "species": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "identity": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{8}:[0-9a-f]{8}$"
+                },
+                "level": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100
+                },
+                "hp": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "max_hp": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "item_id": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 376
+            }
+          ]
+        },
+        "switch_party_slot": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 5
+            }
+          ]
+        },
+        "source": {
+          "type": "object",
+          "required": [
+            "main_func",
+            "communication",
+            "battle_type"
+          ],
+          "properties": {
+            "main_func": {
+              "type": "number",
+              "const": 134468329
+            },
+            "communication": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "const": 5
+              },
+              "minItems": 2,
+              "maxItems": 4
+            },
+            "battle_type": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "run",
+        "seq",
+        "t",
+        "turn",
+        "type",
         "reason",
         "attempt",
         "limit"
@@ -2365,6 +2889,58 @@
                       "type": "null"
                     }
                   ]
+                },
+                "details": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "patternProperties": {
+                        "^.*$": {
+                          "anyOf": [
+                            {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "boolean"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "array",
+                              "items": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "maxItems": 512
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 }
               },
               "additionalProperties": false
@@ -2694,6 +3270,2124 @@
                       "type": "null"
                     }
                   ]
+                },
+                "petalburg_woods_lyle_defeated": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "petalburg_woods_james_defeated": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "petalburg_woods_aqua_grunt_defeated": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "route116_joey_defeated": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "route116_jose_defeated": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "route116_jerry_defeated": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "route116_clark_defeated": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "route116_janice_defeated": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "route116_karen_defeated": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "route116_sarah_defeated": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "route116_dawson_defeated": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "route116_devan_defeated": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "route116_johnson_defeated": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "running": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "permitted",
+                "controllable",
+                "reason",
+                "shoes",
+                "allow_running",
+                "avatar_flags",
+                "metatile",
+                "elevation",
+                "map_type",
+                "callback1",
+                "callback2",
+                "diagnostic",
+                "raw_hex"
+              ],
+              "properties": {
+                "permitted": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "controllable": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "reason": {
+                  "type": "string"
+                },
+                "shoes": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "allow_running": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "avatar_flags": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "metatile": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "elevation": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "map_type": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "callback1": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "callback2": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "diagnostic": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "raw_hex": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "party_ownership": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "owner",
+                "source",
+                "original_identities",
+                "rental_personalities",
+                "diagnostic",
+                "raw_hex"
+              ],
+              "properties": {
+                "owner": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "source": {
+                  "type": "string"
+                },
+                "original_identities": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 6
+                },
+                "rental_personalities": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "maxItems": 3
+                },
+                "diagnostic": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "raw_hex": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "maxLength": 4096
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "battle": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "active",
+                "initialized",
+                "phase",
+                "ready",
+                "main_func",
+                "script_pc",
+                "battle_type",
+                "turn",
+                "outcome_code",
+                "outcome",
+                "battlers",
+                "player_inputs",
+                "controller_exec_flags",
+                "signals",
+                "current_execution",
+                "diagnostic",
+                "raw_hex"
+              ],
+              "properties": {
+                "playback": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "stoppable",
+                        "finished",
+                        "controls"
+                      ],
+                      "properties": {
+                        "stoppable": {
+                          "type": "boolean"
+                        },
+                        "finished": {
+                          "type": "boolean"
+                        },
+                        "controls": {
+                          "type": "string"
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "non_pokemon_battlers": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3
+                  },
+                  "maxItems": 4
+                },
+                "active": {
+                  "type": "boolean"
+                },
+                "initialized": {
+                  "type": "boolean"
+                },
+                "phase": {
+                  "type": "string"
+                },
+                "ready": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "main_func": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "script_pc": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "battle_type": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "turn": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "outcome_code": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "outcome": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "battlers": {
+                  "anyOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "battler",
+                          "position",
+                          "party_slot",
+                          "identity",
+                          "species_id",
+                          "species",
+                          "level",
+                          "hp",
+                          "max_hp",
+                          "status1",
+                          "status2",
+                          "status3",
+                          "stat_stages",
+                          "stats",
+                          "types",
+                          "ability",
+                          "held_item",
+                          "moves",
+                          "absent"
+                        ],
+                        "properties": {
+                          "battler": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 3
+                          },
+                          "position": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 3
+                          },
+                          "party_slot": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 5
+                          },
+                          "identity": {
+                            "type": "string"
+                          },
+                          "species_id": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 411
+                          },
+                          "species": {
+                            "type": "string"
+                          },
+                          "level": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100
+                          },
+                          "hp": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "max_hp": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "status1": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "status2": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "status3": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "stat_stages": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 12
+                            },
+                            "minItems": 8,
+                            "maxItems": 8
+                          },
+                          "stats": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "minItems": 5,
+                            "maxItems": 5
+                          },
+                          "types": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 17
+                            },
+                            "minItems": 2,
+                            "maxItems": 2
+                          },
+                          "ability": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "held_item": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "moves": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "slot",
+                                "move_id",
+                                "name",
+                                "pp",
+                                "max_pp",
+                                "move_type",
+                                "power",
+                                "accuracy",
+                                "effect"
+                              ],
+                              "properties": {
+                                "slot": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 3
+                                },
+                                "move_id": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 354
+                                },
+                                "name": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "pp": {
+                                  "type": "integer",
+                                  "minimum": 0
+                                },
+                                "max_pp": {
+                                  "type": "integer",
+                                  "minimum": 0
+                                },
+                                "move_type": {
+                                  "anyOf": [
+                                    {
+                                      "type": "integer",
+                                      "minimum": 0
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "power": {
+                                  "anyOf": [
+                                    {
+                                      "type": "integer",
+                                      "minimum": 0
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "accuracy": {
+                                  "anyOf": [
+                                    {
+                                      "type": "integer",
+                                      "minimum": 0
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "effect": {
+                                  "anyOf": [
+                                    {
+                                      "type": "integer",
+                                      "minimum": 0
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                }
+                              },
+                              "additionalProperties": false
+                            },
+                            "minItems": 4,
+                            "maxItems": 4
+                          },
+                          "absent": {
+                            "type": "boolean"
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "maxItems": 4
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "player_inputs": {
+                  "anyOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "battler",
+                          "controller",
+                          "phase",
+                          "ready",
+                          "action_cursor",
+                          "move_cursor",
+                          "target_cursor",
+                          "selected",
+                          "selected_move_id",
+                          "displayed_pp",
+                          "displayed_max_pp",
+                          "communication"
+                        ],
+                        "properties": {
+                          "battler": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 3
+                          },
+                          "controller": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "phase": {
+                            "type": "string"
+                          },
+                          "ready": {
+                            "type": "boolean"
+                          },
+                          "action_cursor": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "move_cursor": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "target_cursor": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "selected": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "selected_move_id": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "displayed_pp": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "displayed_max_pp": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "communication": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "maxItems": 4
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "controller_exec_flags": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "signals": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "kind",
+                      "battler",
+                      "command",
+                      "request",
+                      "party_mask",
+                      "string_id",
+                      "move_id",
+                      "originally_used_move",
+                      "hp",
+                      "status",
+                      "raw_hex"
+                    ],
+                    "properties": {
+                      "kind": {
+                        "type": "string"
+                      },
+                      "battler": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 3
+                      },
+                      "command": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "request": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "party_mask": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "string_id": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "move_id": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "originally_used_move": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "hp": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "status": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "raw_hex": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "maxItems": 4
+                },
+                "current_execution": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "attacker",
+                        "target",
+                        "move_id",
+                        "phase",
+                        "script_pc",
+                        "move_result_flags",
+                        "hit_marker",
+                        "damage",
+                        "hp_dealt",
+                        "current_action",
+                        "turn_action"
+                      ],
+                      "properties": {
+                        "attacker": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 3
+                        },
+                        "target": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 3
+                        },
+                        "move_id": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "phase": {
+                          "type": "string"
+                        },
+                        "script_pc": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "move_result_flags": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "hit_marker": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "damage": {
+                          "type": "integer"
+                        },
+                        "hp_dealt": {
+                          "type": "integer"
+                        },
+                        "current_action": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "turn_action": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "diagnostic": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "raw_hex": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "resources": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "bag",
+                "pc_items",
+                "storage",
+                "berry_trees",
+                "planted_berries",
+                "diagnostics",
+                "script_pc",
+                "script_mode",
+                "script_status",
+                "selected_tree_id",
+                "berry_script_owner"
+              ],
+              "properties": {
+                "daycare": {
+                  "anyOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "slot",
+                          "pokemon",
+                          "steps",
+                          "displayed_level"
+                        ],
+                        "properties": {
+                          "slot": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 1
+                          },
+                          "pokemon": {
+                            "type": "object",
+                            "required": [
+                              "species",
+                              "level",
+                              "hp",
+                              "max_hp"
+                            ],
+                            "properties": {
+                              "identity": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "language": {
+                                "anyOf": [
+                                  {
+                                    "type": "integer",
+                                    "minimum": 0
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "nickname": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "nickname_diagnostic": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "species": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "level": {
+                                "anyOf": [
+                                  {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 100
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "hp": {
+                                "anyOf": [
+                                  {
+                                    "type": "integer",
+                                    "minimum": 0
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "max_hp": {
+                                "anyOf": [
+                                  {
+                                    "type": "integer",
+                                    "minimum": 0
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "species_id": {
+                                "anyOf": [
+                                  {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 411
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "personality": {
+                                "anyOf": [
+                                  {
+                                    "type": "integer",
+                                    "minimum": 0
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "ot_id": {
+                                "anyOf": [
+                                  {
+                                    "type": "integer",
+                                    "minimum": 0
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "is_egg": {
+                                "anyOf": [
+                                  {
+                                    "type": "boolean"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "status": {
+                                "anyOf": [
+                                  {
+                                    "type": "integer",
+                                    "minimum": 0
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "held_item": {
+                                "anyOf": [
+                                  {
+                                    "type": "integer",
+                                    "minimum": 0
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "held_item_name": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "experience": {
+                                "anyOf": [
+                                  {
+                                    "type": "integer",
+                                    "minimum": 0
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "moves": {
+                                "anyOf": [
+                                  {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "required": [
+                                        "move_id",
+                                        "pp",
+                                        "pp_bonus"
+                                      ],
+                                      "properties": {
+                                        "move_id": {
+                                          "type": "integer",
+                                          "minimum": 0
+                                        },
+                                        "name": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string"
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
+                                        },
+                                        "pp": {
+                                          "type": "integer",
+                                          "minimum": 0
+                                        },
+                                        "max_pp": {
+                                          "anyOf": [
+                                            {
+                                              "type": "integer",
+                                              "minimum": 0
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
+                                        },
+                                        "pp_bonus": {
+                                          "type": "integer",
+                                          "minimum": 0,
+                                          "maximum": 3
+                                        }
+                                      },
+                                      "additionalProperties": false
+                                    },
+                                    "maxItems": 4
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "decode_mode": {
+                                "anyOf": [
+                                  {
+                                    "enum": [
+                                      "encrypted",
+                                      "plaintext"
+                                    ]
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "cpu_context": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "required": [
+                                      "gprs",
+                                      "cpsr",
+                                      "stack_address",
+                                      "stack_hex"
+                                    ],
+                                    "properties": {
+                                      "gprs": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "integer",
+                                          "minimum": 0
+                                        },
+                                        "minItems": 16,
+                                        "maxItems": 16
+                                      },
+                                      "cpsr": {
+                                        "type": "integer",
+                                        "minimum": 0
+                                      },
+                                      "stack_address": {
+                                        "type": "integer",
+                                        "minimum": 0
+                                      },
+                                      "stack_hex": {
+                                        "type": "string",
+                                        "maxLength": 256
+                                      }
+                                    },
+                                    "additionalProperties": false
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "diagnostic": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "raw_hex": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 200
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "steps": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "displayed_level": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 100
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "maxItems": 2
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "bag": {
+                  "anyOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "slot",
+                          "item_id",
+                          "quantity",
+                          "pocket"
+                        ],
+                        "properties": {
+                          "slot": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "item_id": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "quantity": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "pocket": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "name": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "maxItems": 186
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "pc_items": {
+                  "anyOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "slot",
+                          "item_id",
+                          "quantity",
+                          "pocket"
+                        ],
+                        "properties": {
+                          "slot": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "item_id": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "quantity": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "pocket": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "name": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "maxItems": 50
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "storage": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "current_box",
+                        "occupied"
+                      ],
+                      "properties": {
+                        "current_box": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 13
+                        },
+                        "occupied": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "box",
+                              "slot",
+                              "pokemon"
+                            ],
+                            "properties": {
+                              "box": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 13
+                              },
+                              "slot": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 29
+                              },
+                              "pokemon": {
+                                "type": "object",
+                                "required": [
+                                  "species",
+                                  "level",
+                                  "hp",
+                                  "max_hp"
+                                ],
+                                "properties": {
+                                  "identity": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "language": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": 0
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "nickname": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "nickname_diagnostic": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "species": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "level": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 100
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "hp": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": 0
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "max_hp": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": 0
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "species_id": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 411
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "personality": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": 0
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "ot_id": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": 0
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "is_egg": {
+                                    "anyOf": [
+                                      {
+                                        "type": "boolean"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "status": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": 0
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "held_item": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": 0
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "held_item_name": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "experience": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": 0
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "moves": {
+                                    "anyOf": [
+                                      {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "required": [
+                                            "move_id",
+                                            "pp",
+                                            "pp_bonus"
+                                          ],
+                                          "properties": {
+                                            "move_id": {
+                                              "type": "integer",
+                                              "minimum": 0
+                                            },
+                                            "name": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "string"
+                                                },
+                                                {
+                                                  "type": "null"
+                                                }
+                                              ]
+                                            },
+                                            "pp": {
+                                              "type": "integer",
+                                              "minimum": 0
+                                            },
+                                            "max_pp": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "integer",
+                                                  "minimum": 0
+                                                },
+                                                {
+                                                  "type": "null"
+                                                }
+                                              ]
+                                            },
+                                            "pp_bonus": {
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "maximum": 3
+                                            }
+                                          },
+                                          "additionalProperties": false
+                                        },
+                                        "maxItems": 4
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "decode_mode": {
+                                    "anyOf": [
+                                      {
+                                        "enum": [
+                                          "encrypted",
+                                          "plaintext"
+                                        ]
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "cpu_context": {
+                                    "anyOf": [
+                                      {
+                                        "type": "object",
+                                        "required": [
+                                          "gprs",
+                                          "cpsr",
+                                          "stack_address",
+                                          "stack_hex"
+                                        ],
+                                        "properties": {
+                                          "gprs": {
+                                            "type": "array",
+                                            "items": {
+                                              "type": "integer",
+                                              "minimum": 0
+                                            },
+                                            "minItems": 16,
+                                            "maxItems": 16
+                                          },
+                                          "cpsr": {
+                                            "type": "integer",
+                                            "minimum": 0
+                                          },
+                                          "stack_address": {
+                                            "type": "integer",
+                                            "minimum": 0
+                                          },
+                                          "stack_hex": {
+                                            "type": "string",
+                                            "maxLength": 256
+                                          }
+                                        },
+                                        "additionalProperties": false
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "diagnostic": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "raw_hex": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "maxLength": 200
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "maxItems": 420
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "berry_trees": {
+                  "anyOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "tree_id",
+                          "berry",
+                          "item_id",
+                          "stage",
+                          "stop_growth",
+                          "minutes_until_next_stage",
+                          "yield_count",
+                          "regrowth_count",
+                          "watered"
+                        ],
+                        "properties": {
+                          "tree_id": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 127
+                          },
+                          "berry": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "item_id": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "stage": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 5
+                          },
+                          "stop_growth": {
+                            "type": "boolean"
+                          },
+                          "minutes_until_next_stage": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "yield_count": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "regrowth_count": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "watered": {
+                            "type": "array",
+                            "items": {
+                              "type": "boolean"
+                            },
+                            "minItems": 4,
+                            "maxItems": 4
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "maxItems": 128
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "planted_berries": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "diagnostics": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "owner",
+                      "message",
+                      "raw_hex"
+                    ],
+                    "properties": {
+                      "owner": {
+                        "type": "string"
+                      },
+                      "message": {
+                        "type": "string"
+                      },
+                      "raw_hex": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "maxLength": 4096
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "script_pc": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "script_mode": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "script_status": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "selected_tree_id": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "berry_script_owner": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "harvest",
+                        "water",
+                        "plant"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 }
               },
               "additionalProperties": false
@@ -2953,6 +5647,59 @@
                   "anyOf": [
                     {
                       "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "message_diagnostic": {
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                "message": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "phase",
+                        "cursor",
+                        "ready"
+                      ],
+                      "properties": {
+                        "phase": {
+                          "enum": [
+                            "dismiss_wait",
+                            "printing",
+                            "button_wait",
+                            "page_wait",
+                            "scroll_wait",
+                            "scrolling",
+                            "audio_wait",
+                            "printing_pause"
+                          ]
+                        },
+                        "cursor": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 999
+                        },
+                        "ready": {
+                          "type": "boolean"
+                        },
+                        "identity": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "pattern": "^[a-f0-9]{64}$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "additionalProperties": false
                     },
                     {
                       "type": "null"
@@ -3340,6 +6087,13 @@
         "in_battle": {
           "type": "boolean"
         },
+        "party_owner": {
+          "enum": [
+            "player",
+            "tutorial",
+            "rental"
+          ]
+        },
         "party": {
           "type": "array",
           "items": {
@@ -3352,26 +6106,311 @@
             ],
             "properties": {
               "identity": {
-                "type": "string"
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "language": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "nickname": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "nickname_diagnostic": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               },
               "species": {
-                "type": "string"
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               },
               "level": {
-                "type": "integer",
-                "minimum": 0
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               },
               "hp": {
-                "type": "integer",
-                "minimum": 0
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               },
               "max_hp": {
-                "type": "integer",
-                "minimum": 0
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "species_id": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 411
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "personality": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "ot_id": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "is_egg": {
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "status": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "held_item": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "held_item_name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "experience": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "moves": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "move_id",
+                        "pp",
+                        "pp_bonus"
+                      ],
+                      "properties": {
+                        "move_id": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "name": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "pp": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "max_pp": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "pp_bonus": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 3
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "maxItems": 4
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "decode_mode": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "encrypted",
+                      "plaintext"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "cpu_context": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "required": [
+                      "gprs",
+                      "cpsr",
+                      "stack_address",
+                      "stack_hex"
+                    ],
+                    "properties": {
+                      "gprs": {
+                        "type": "array",
+                        "items": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "minItems": 16,
+                        "maxItems": 16
+                      },
+                      "cpsr": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "stack_address": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "stack_hex": {
+                        "type": "string",
+                        "maxLength": 256
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "diagnostic": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "raw_hex": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             },
             "additionalProperties": false
-          }
+          },
+          "maxItems": 6
         },
         "money": {
           "anyOf": [
@@ -3502,26 +6541,311 @@
             ],
             "properties": {
               "identity": {
-                "type": "string"
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "language": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "nickname": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "nickname_diagnostic": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               },
               "species": {
-                "type": "string"
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               },
               "level": {
-                "type": "integer",
-                "minimum": 0
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               },
               "hp": {
-                "type": "integer",
-                "minimum": 0
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               },
               "max_hp": {
-                "type": "integer",
-                "minimum": 0
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "species_id": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 411
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "personality": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "ot_id": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "is_egg": {
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "status": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "held_item": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "held_item_name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "experience": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "moves": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "move_id",
+                        "pp",
+                        "pp_bonus"
+                      ],
+                      "properties": {
+                        "move_id": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "name": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "pp": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "max_pp": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "pp_bonus": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 3
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "maxItems": 4
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "decode_mode": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "encrypted",
+                      "plaintext"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "cpu_context": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "required": [
+                      "gprs",
+                      "cpsr",
+                      "stack_address",
+                      "stack_hex"
+                    ],
+                    "properties": {
+                      "gprs": {
+                        "type": "array",
+                        "items": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "minItems": 16,
+                        "maxItems": 16
+                      },
+                      "cpsr": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "stack_address": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "stack_hex": {
+                        "type": "string",
+                        "maxLength": 256
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "diagnostic": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "raw_hex": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             },
             "additionalProperties": false
-          }
+          },
+          "maxItems": 6
         },
         "money": {
           "type": "integer",
@@ -3628,7 +6952,9 @@
         "source": {
           "enum": [
             "milestones",
-            "state"
+            "state",
+            "battle",
+            "actions"
           ]
         },
         "message": {

@@ -59,6 +59,13 @@ export function harnessInfo(git: (args: string[]) => string): RunStart["harness"
   };
 }
 
+async function finishRecording(recorder:RunRecorder,reason:RunEndReason,capture:boolean):Promise<void>{
+  let terminal=reason;
+  try {if(capture)await recorder.afterPress();}
+  catch(error){terminal="crash";throw error;}
+  finally {recorder.end(terminal);}
+}
+
 export async function withRun(
   plan: RunPlan,
   host: RunHost,
@@ -105,8 +112,7 @@ export async function withRun(
       if (log.nextSeq > 0 && !log.ended) {
         // A script can commit progress after the last tool's captured frame.
         // Take one final snapshot before teardown; no inputs or polling loop.
-        if (server !== undefined) await recorder.afterPress();
-        recorder.end(reason);
+        await finishRecording(recorder,reason,server!==undefined);
       }
     } finally {
       await server?.stop();

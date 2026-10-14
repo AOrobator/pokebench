@@ -681,15 +681,15 @@ it("offers only eligible references and preserves none while comparisons are pen
   expect(ui("splits").textContent).toContain("Best historical run: best");
 });
 
-it("shows parsed loop phases with attribution on timeline and Activity History", async () => {
+it.each(["planning","cycle"] as const)("shows parsed %s loop phases with attribution on timeline and Activity History", async (kind) => {
   const { app, streams, setNow } = await harness();
   const log = new Log(); log.add(0, START);
   log.add(100, {type:"tool_call",turn:1,id:"plan-1",name:"update_objective",args:{}});
   for (const [index,phase] of (["warning","recovered","stop"] as const).entries()) {
-    log.add(1000+index*1000,{type:"loop_guard",turn:1,kind:"planning",phase,message:"Six plans <without> action",calls:6,evidence:[1]});
+    log.add(1000+index*1000,{type:"loop_guard",turn:1,kind,phase,message:"Six plans <without> action",calls:6,evidence:[1]});
   }
   setNow(BASE_MS+3000); feed(must(streams[0]),log.events.map((event) => parseEvent(JSON.stringify(event))));
-  for (const label of ["Planning stall warning","Planning stall recovered","Planning stall stop"]) {
+  for (const label of [`${kind === "planning" ? "Planning stall" : "Short cycle"} warning`,`${kind === "planning" ? "Planning stall" : "Short cycle"} recovered`,`${kind === "planning" ? "Planning stall" : "Short cycle"} stop`]) {
     expect(ui("lanes").innerHTML).toContain(label);
     expect(ui("log").textContent).toContain(label);
   }
@@ -697,7 +697,7 @@ it("shows parsed loop phases with attribution on timeline and Activity History",
     expect(ui("lanes").textContent).toContain(fragment);
     expect(ui("log").textContent).toContain(fragment);
   }
-  expect(ui("lanes").querySelectorAll('[role="img"][aria-label^="Planning stall"]')).toHaveLength(3);
+  expect(ui("lanes").querySelectorAll(`[role="img"][aria-label^="${kind === 'planning' ? 'Planning stall' : 'Short cycle'}"]`)).toHaveLength(3);
   expect(ui("log").querySelector('[data-seq="3"]')?.classList.contains("ev-error")).toBe(false);
   const stop = ui("log").querySelector<HTMLElement>('[data-seq="4"]');
   if (stop === null) throw new Error("missing stop history row");

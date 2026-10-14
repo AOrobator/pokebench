@@ -55,6 +55,19 @@ GYM_TRAINER_FLAGS = {
     "rustboro_marc_defeated": 0x73B,
 }
 INITIAL_TRAINER_FLAGS = {
+    "petalburg_woods_lyle_defeated": 0x768,
+    "petalburg_woods_james_defeated": 0x76D,
+    "petalburg_woods_aqua_grunt_defeated": 0x50A,
+    "route116_joey_defeated": 0x642,
+    "route116_jose_defeated": 0x769,
+    "route116_jerry_defeated": 0x611,
+    "route116_clark_defeated": 0x777,
+    "route116_janice_defeated": 0x75D,
+    "route116_karen_defeated": 0x618,
+    "route116_sarah_defeated": 0x7B7,
+    "route116_dawson_defeated": 0x7B6,
+    "route116_devan_defeated": 0x7F1,
+    "route116_johnson_defeated": 0x7F2,
     "roxanne_defeated": 0x609,
     "route102_calvin_defeated": 0x63E,
     "route102_rick_defeated": 0x767,
@@ -96,6 +109,20 @@ class StoryState:
     rustboro_josh_defeated: bool | None = None
     rustboro_tommy_defeated: bool | None = None
     rustboro_marc_defeated: bool | None = None
+
+    petalburg_woods_lyle_defeated: bool | None = None
+    petalburg_woods_james_defeated: bool | None = None
+    petalburg_woods_aqua_grunt_defeated: bool | None = None
+    route116_joey_defeated: bool | None = None
+    route116_jose_defeated: bool | None = None
+    route116_jerry_defeated: bool | None = None
+    route116_clark_defeated: bool | None = None
+    route116_janice_defeated: bool | None = None
+    route116_karen_defeated: bool | None = None
+    route116_sarah_defeated: bool | None = None
+    route116_dawson_defeated: bool | None = None
+    route116_devan_defeated: bool | None = None
+    route116_johnson_defeated: bool | None = None
 
     roxanne_defeated: bool | None = None
     route102_calvin_defeated: bool | None = None

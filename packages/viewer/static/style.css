@@ -148,7 +148,8 @@ svg.lanes { width: 100%; height: 170px; display: block; }
 .lanes .b-UP, .lanes .b-DOWN, .lanes .b-LEFT, .lanes .b-RIGHT { fill: #7cc8e8; }
 .lanes .b-A { fill: #ff6b6b; }
 .lanes .b-B { fill: #f5a142; }
-.lanes .b-START, .lanes .b-SELECT { fill: #4cd27a; }
+.lanes .b-START, .lanes .b-SELECT, .lanes .b-L, .lanes .b-R { fill: #4cd27a; }
+.lanes .press-label { fill: #fff; font: 700 11px Inter, sans-serif; stroke: #1e2c44; stroke-width: 3px; paint-order: stroke; pointer-events: none; }
 
 /* action log + raw event */
 .logcols { display: grid; grid-template-columns: 1.4fr 1fr; gap: 12px; }

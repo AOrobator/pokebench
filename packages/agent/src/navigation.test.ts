@@ -84,3 +84,10 @@ it("returns the final coherent observation rather than an older press response",
  const result=await navigationTool({read:()=>Promise.resolve(state),press:()=>Promise.resolve({content:[{type:"text",text:"older press"}],details:{state:after}}),observe:()=>Promise.resolve({content:[{type:"text",text:"final coherent"}],details:{state:{...after,play_time_s:2}}})}).execute("nav",{x:1,y:0,map_id:[0,9]});
  expect(result.details).toMatchObject({state:{play_time_s:2}});expect(result.content).toContainEqual({type:"text",text:"final coherent"});
 });
+
+it("forwards deliberate walking to the ordinary press without creating a separate action",async()=>{
+ const seen:unknown[]=[];
+ const tool=navigationTool({read:()=>Promise.resolve(field),press:(_id,params)=>{seen.push(params);return Promise.resolve(result({...field,position:{x:0,y:1}}));},observe:()=>Promise.resolve(result({...field,position:{x:0,y:1}}))});
+ await tool.execute("nav",{x:0,y:1,map_id:[0,9],walking:true});
+ expect(seen).toEqual([{buttons:["DOWN"],walking:true}]);
+});

@@ -272,3 +272,34 @@ def test_zero_frame_pause_boundary_cannot_extend_next_hold_across_pause(monkeypa
             "session": "after-pause",
         }
     ]
+
+
+def test_checkpoint_requires_credential_and_frozen_owner_and_preserves_exact_bytes():
+    import base64
+    import hashlib
+    from types import SimpleNamespace
+
+    api = FastAPI()
+    state = b"native complete state"
+    calls = []
+
+    def checkpoint():
+        calls.append(True)
+        return state
+
+    server = SimpleNamespace(step_environment=lambda b: None, fps=60)
+    human = install_human(api, server, "secret", pace=False, checkpoint=checkpoint)
+    assert request(api, "/pokebench/human/checkpoint", token="wrong")[0] == 403
+    assert request(api, "/pokebench/human/checkpoint")[0] == 409
+    assert calls == []
+    human.frame()
+    human.set_paused(True)
+    status, value = request(api, "/pokebench/human/checkpoint")
+    assert status == 200
+    assert value["frame"] == 1
+    assert value["sha256"] == hashlib.sha256(state).hexdigest()
+    assert base64.b64decode(value["state_base64"]) == state
+    missing = FastAPI()
+    controller = install_human(missing, server, "secret", pace=False)
+    controller.set_paused(True)
+    assert request(missing, "/pokebench/human/checkpoint")[0] == 503

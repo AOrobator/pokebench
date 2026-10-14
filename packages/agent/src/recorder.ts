@@ -1,3 +1,4 @@
+import type { PressModifiers } from "./game-tools.js";
 import {StateActivities} from "./activity.js";
 import type {DecisionSnapshot} from "./state-decision.js";
 import type { AgentEvent, AgentMessage } from "@mariozechner/pi-agent-core";
@@ -91,6 +92,15 @@ export class RunRecorder {
   private furthest: string | null = null;
   private storyRequired = false;
   private activityEnabled=false;
+  private nativeActionsEnabled=false;
+  private nativeActionCursor=0;
+  private nativeActionFrame=0;
+  private nativeActionTime=0;
+  private nativeActionFailure:Error|null=null;
+  private battleEnabled=false;
+  private battleCursor=0;
+  private battleFrame=0;
+  private battleFailure:Error|null=null;
   private readonly activities=new StateActivities();
   private humanSamplingFrame:number|undefined;
   private humanScreenshotMs:number|undefined;
@@ -144,6 +154,8 @@ export class RunRecorder {
     this.humanScreenshotMs=meta.controller?.screenshot_ms;
     this.storyRequired = meta.harness_features.includes("story-state-v1");
     this.activityEnabled=meta.harness_features.includes("native-progress-activity-v1");
+    this.battleEnabled=meta.harness_features.includes("battle-choices-v1");
+    this.nativeActionsEnabled=meta.harness_features.includes("native-action-history-v1");
     this.append({ type: "run_start", turn: 0, ...meta });
     this.milestones.initialize?.(meta.start_state.kind);
     if (captureState) await this.checkMilestones();
@@ -178,6 +190,8 @@ export class RunRecorder {
         break;
       case "tool_execution_end":
         this.recordToolResult(event.toolCallId, event.toolName, event.result, event.isError);
+        await this.recordBattleChoices();
+    await this.recordNativeActions();
         break;
       default:
         break;
@@ -267,13 +281,14 @@ export class RunRecorder {
     this.frames.flush(this.log, this.turn);
   }
 
-  buttonPress(toolCallId: string, buttons: readonly Button[], timing: PressTiming, before?: GameStateSnapshot): void {
+  buttonPress(toolCallId: string, buttons: readonly Button[], timing: PressTiming, before?: GameStateSnapshot, modifiers?: PressModifiers): void {
     const beforeSeq=before===undefined?undefined:this.recordState(before).seq;
     this.append({
       type: "button_press",
       turn: this.turn,
       tool_call_id: toolCallId,
       ...(beforeSeq===undefined?{}:{before_state_seq:beforeSeq}),
+      ...(modifiers===undefined?{}:{automatic_running:modifiers.automatic_running,walking:modifiers.walking,...(modifiers.requested_held_buttons===undefined?{}:{requested_held_buttons:[...modifiers.requested_held_buttons]})}),
       buttons: [...buttons],
       hold_frames: timing.hold_frames,
       release_frames: timing.release_frames,
@@ -282,6 +297,8 @@ export class RunRecorder {
 
   // The press has landed; a failed read here is logged, never a press failure.
   async afterPress(): Promise<void> {
+    await this.recordBattleChoices();
+    await this.recordNativeActions();
     if (this.milestones.observe !== undefined) {
       try { this.recordState(await this.gameState.read()); }
       catch (error) { this.telemetryError("state", error); }
@@ -299,7 +316,7 @@ export class RunRecorder {
     }
   }
 
-  private telemetryError(source: "milestones" | "state", error: unknown): void {
+  private telemetryError(source: "milestones" | "state" | "battle" | "actions", error: unknown): void {
     const message = error instanceof Error ? error.message : String(error);
     this.append({ type: "telemetry_error", turn: this.turn, source, message });
   }
@@ -330,7 +347,54 @@ export class RunRecorder {
     }
   }
 
+  async recordNativeActions():Promise<void> {
+    if(!this.nativeActionsEnabled)return;
+    if(this.nativeActionFailure!==null)throw this.nativeActionFailure;
+    try {
+      if(this.gameState.nativeActions===undefined)throw new RecorderError("Declared native-action-history-v1 but no native action journal reader is installed");
+      const batch=await this.gameState.nativeActions(this.nativeActionCursor);
+      let cursor=this.nativeActionCursor,frame=this.nativeActionFrame,time=this.nativeActionTime;
+      if(batch.frame<frame)throw new RecorderError("Native action journal frame regressed");
+      for(const entry of batch.entries) {
+        if(entry.id!==cursor+1||entry.frame<frame||entry.frame>batch.frame||entry.server_timestamp<time)throw new RecorderError("Invalid native action journal continuity");
+        cursor=entry.id;frame=entry.frame;time=entry.server_timestamp;
+      }
+      if(batch.last_id!==cursor)throw new RecorderError("Native action journal cursor does not cover snapshot");
+      for(const entry of batch.entries)this.append({type:"native_action",turn:this.turn,...entry});
+      this.nativeActionCursor=cursor;this.nativeActionFrame=batch.frame;this.nativeActionTime=time;
+    } catch(error) {
+      this.nativeActionFailure=error instanceof Error?error:new RecorderError("Native action recording failed");
+      this.telemetryError("actions",this.nativeActionFailure);
+      throw this.nativeActionFailure;
+    }
+  }
+
+  async recordBattleChoices():Promise<void> {
+    if(!this.battleEnabled)return;
+    if(this.battleFailure!==null)throw this.battleFailure;
+    try {
+    if(this.gameState.battleChoices===undefined)throw new RecorderError("Declared battle-choices-v1 but no battle journal reader is installed");
+    const batch=await this.gameState.battleChoices(this.battleCursor);
+    let next=this.battleCursor,lastFrame=this.battleFrame;
+    for(const choice of batch.entries){
+      if(choice.id!==next+1||choice.frame<lastFrame||choice.frame>batch.frame)throw new RecorderError("Battle choice journal has a gap or regressing frame");
+      if(("hp" in choice.actor && choice.actor.hp>choice.actor.max_hp)||(choice.target!==null&&choice.target.hp>choice.target.max_hp))throw new RecorderError("Battle choice journal has invalid HP");
+      if(choice.action==="move"&&choice.origin==="selected"&&(choice.move===null||choice.target===null))throw new RecorderError("Selected move is missing move/target evidence");
+      next=choice.id;lastFrame=choice.frame;
+    }
+    if(batch.last_id!==next||batch.frame<this.battleFrame)throw new RecorderError("Battle journal cursor does not cover snapshot");
+    for(const choice of batch.entries){this.append({type:"battle_choice",turn:this.turn,...choice});this.battleCursor=choice.id;}
+    this.battleFrame=batch.frame;
+    } catch(error) {
+      this.battleFailure=error instanceof Error?error:new RecorderError("Battle recording failed");
+      this.telemetryError("battle",this.battleFailure);
+      throw this.battleFailure;
+    }
+  }
+
   async checkMilestones(): Promise<void> {
+    await this.recordBattleChoices();
+    await this.recordNativeActions();
     if (this.milestones.observe !== undefined) {
       this.recordState(await this.gameState.read());
       return;

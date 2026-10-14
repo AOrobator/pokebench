@@ -6,6 +6,8 @@
 export type FeatureGroup = "observation" | "guidance" | "guard" | "measurement";
 
 export const SWITCHABLE_FEATURES = [
+  "automatic-running-v1",
+  "expanded-menu-battle-information-v1",
   "ram-state-v1",
   "live-map-v1",
   "live-player-position-v1",
@@ -15,6 +17,9 @@ export const SWITCHABLE_FEATURES = [
   "named-interactions-v1",
   "world-destinations-v1",
   "bounded-navigation-v1",
+  "field-dialogue-phase-v1",
+  "dialogue-safe-batches-v1",
+  "interaction-loop-detection-v1",
   "active-field-message-buffer-v1",
   "naming-cursor-v1",
   "story-state-v1",
@@ -37,7 +42,8 @@ export const MEASUREMENT_FEATURES = [
   "clock-milestone-v1",
   "new-game-created-v1",
   "post-clock-navigation-milestones-v1",
-  "rustboro-gym-trainer-milestones-v1", "native-progress-activity-v1",
+  "rustboro-gym-trainer-milestones-v1", "native-progress-activity-v1", "battle-choices-v1",
+  "continuous-battle-state-v1", "validated-pokemon-v1", "menu-observability-v1", "native-action-history-v1", "remaining-native-milestones-v1",
   "native-target-stop-v1",
   "deterministic-loop-diagnostics-v1",
 ] as const;
@@ -65,6 +71,8 @@ function measured(id: MeasurementFeature, title: string, description: string): F
 }
 
 export const FEATURES: readonly FeatureInfo[] = [
+  on("automatic-running-v1", "guidance", "AUTOMATIC RUNNING", RAM, "Adds simultaneous B to ordinary directional travel only when native running permission and controls are verified each frame. walking=true overrides it. Off: ordinary sequential button input."),
+  on("expanded-menu-battle-information-v1", "observation", "EXPANDED MENU + BATTLE INFORMATION", RAM, "Adds newly decoded menu selections, contents and continuous battle descriptions to model text. Off: these descriptions are explicitly unprovided; corrected typed RAM, native journals, milestones and diagnostics remain recorded."),
   on("ram-state-v1", "observation", "RAM GAME-STATE READOUT", null,
     "Reads the game's memory every observation and adds a text readout beside the screenshot: screen, on-screen dialog, menu, player name, location, party, money, badges, battle and play time. Off: observe and press return only the screenshot, and the system prompt's tool lines and the tool descriptions no longer promise a readout; interface docs, if on, still mention readouts."),
   on("live-map-v1", "observation", "LIVE MAP", RAM,
@@ -83,6 +91,12 @@ export const FEATURES: readonly FeatureInfo[] = [
     "Adds current map bounds, game-defined boundary connections and named warp destinations to observations. Conditions may still block passage. Off: original map IDs; no story route is supplied."),
   on("bounded-navigation-v1", "guidance", "BOUNDED NAVIGATION", "live-map-v1",
     "Adds navigate_to for up to eight ordinary walking attempts using the live local map, plus the current map ID needed by the tool. The model chooses destinations. Stops on blocked movement, locks or map changes; unsupported terrain is avoided. Off: no navigate_to tool."),
+  on("field-dialogue-phase-v1", "observation", "DIALOGUE PHASE", RAM,
+    "Reports a qualified field-message printer phase, buffer position and whether A/B can advance a page. Unknown ownership stays unavailable; no story route is supplied. Off: incumbent dialogue readout."),
+  on("dialogue-safe-batches-v1", "guard", "SAFE INTERFACE INPUT", RAM,
+    "Limits interaction/menu inputs and locked or unavailable interface batches to one submitted button, then returns a fresh frame. Freely walking directional batches remain available. Off: submits all requested buttons together."),
+  on("interaction-loop-detection-v1", "guard", "INTERACTION LOOP DETECTION", RAM,
+    "Extends loop diagnostics to equivalent button batches and qualified input-ready field messages, including repeated page cycles. Loop guard independently controls warnings and bounded termination. Off: incumbent single-input/unlocked-field checks."),
   on("active-field-message-buffer-v1", "observation", "DIALOGUE AS TEXT", RAM,
     "Copies the game's active field-message buffer into the readout. It can include pages not yet shown on screen. Off: the buffer is dropped; the readout's short Dialog line for the visible box stays."),
   on("naming-cursor-v1", "observation", "NAMING CURSOR", RAM,
@@ -121,6 +135,12 @@ export const FEATURES: readonly FeatureInfo[] = [
   measured("rustboro-gym-trainer-milestones-v1", "RUSTBORO GYM TRAINERS",
     "Records Josh, Tommy and Marc defeats from native trainer flags before gym-clear; skipped trainers auto-marked by Roxanne are never credited."),
   measured("native-progress-activity-v1", "NATIVE PROGRESS ACTIVITY", "Records trainer victories, captures, completed heals, evolutions, level gains, blackout callbacks and save attempts from native RAM evidence."),
+  measured("continuous-battle-state-v1", "CONTINUOUS BATTLE STATE", "Records source-owned battlers, controllers, actual move announcements, HP/status changes and outcomes every native frame; choices remain separate."),
+  measured("validated-pokemon-v1", "VALIDATED POKÉMON", "Reads checksum-qualified party and stored Pokémon, known moves/PP/status/held items; invalid decoding is a harness defect with bounded evidence."),
+  measured("menu-observability-v1", "NATIVE MENUS", "Records source-owned menu phases, contents, selection and readiness with explicit unsupported-owner diagnostics."),
+  measured("native-action-history-v1", "NATIVE ACTION HISTORY", "Frame-owned history for menu changes, move learning, item quantities, berries and Pokémon acquisitions/storage; selections remain distinct from completion."),
+  measured("remaining-native-milestones-v1", "WOODS AND ROUTE 116 SPLITS", "Records native trainer victories and Route115/116/RusturfTunnel visits."),
+  measured("battle-choices-v1", "BATTLE CHOICES", "Frame-owned committed battle choices for both human and agent recording; execution outcomes remain unobserved."),
   measured("native-target-stop-v1", "TARGET STOP",
     "Ends the run cleanly when the STOP AT milestone is recorded. Present only when a target is set."),
   measured("deterministic-loop-diagnostics-v1", "LOOP LOGGING",
@@ -144,8 +164,9 @@ export function dependencyProblems(features: FeatureSet): string[] {
 
 // Observation switches the game server applies to its readout.
 export const SERVER_FEATURES: readonly SwitchableFeature[] = [
+  "expanded-menu-battle-information-v1",
   "ram-state-v1", "live-map-v1", "live-player-position-v1", "world-coordinate-grid-v1", "live-object-sprites-v1",
-  "world-targets-v1", "named-interactions-v1", "world-destinations-v1", "bounded-navigation-v1", "active-field-message-buffer-v1", "naming-cursor-v1", "story-state-v1",
+  "world-targets-v1", "named-interactions-v1", "world-destinations-v1", "bounded-navigation-v1", "field-dialogue-phase-v1", "active-field-message-buffer-v1", "naming-cursor-v1", "story-state-v1",
   "coordinate-script-conditions-v1", "field-control-lock", "warp-activation-guidance-v1",
 ];
 
@@ -165,11 +186,12 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("ram-state-v1"), ...when("live-map-v1"), ...when("field-control-lock"), ...when("naming-cursor-v1"),
     ...when("live-object-sprites-v1"), ...when("coordinate-script-conditions-v1"), ...when("active-field-message-buffer-v1"),
     ...when("world-targets-v1"), ...when("named-interactions-v1"), ...when("world-destinations-v1"), ...when("bounded-navigation-v1"), ...when("live-player-position-v1"), ...when("world-coordinate-grid-v1"),
+    ...when("field-dialogue-phase-v1"), ...when("dialogue-safe-batches-v1"), ...when("interaction-loop-detection-v1"),
     ...when("press-result-v1"), ...when("warp-activation-guidance-v1"), "clock-milestone-v1", ...when("story-state-v1"),
-    ...when("active-ui-ownership-v1"), "story-milestones-v2", "new-game-created-v1", "post-clock-navigation-milestones-v1", "rustboro-gym-trainer-milestones-v1", "native-progress-activity-v1",
+    ...when("active-ui-ownership-v1"), "story-milestones-v2", "new-game-created-v1", "post-clock-navigation-milestones-v1", "rustboro-gym-trainer-milestones-v1", "native-progress-activity-v1", "battle-choices-v1", "continuous-battle-state-v1", "validated-pokemon-v1", "menu-observability-v1", "native-action-history-v1", "remaining-native-milestones-v1",
     ...(target === null ? [] : ["native-target-stop-v1"]), "deterministic-loop-diagnostics-v1", LOOP_POLICY_FEATURE,
     ...when("deterministic-loop-guard-v1"), ...when("contextual-interface-docs-v1"),
-    ...when("state-only-decisions-v1"), ...when("objective-tracking-v1"), ...when("repeat-attempt-guard-v1"), ...when("native-objective-completion-v1"),
+    ...when("automatic-running-v1"), ...when("expanded-menu-battle-information-v1"), ...when("state-only-decisions-v1"), ...when("objective-tracking-v1"), ...when("repeat-attempt-guard-v1"), ...when("native-objective-completion-v1"),
   ];
 }
 

@@ -1,15 +1,15 @@
 import type { AgentMessage, AgentTool, AgentToolResult } from "@mariozechner/pi-agent-core";
 import { Type } from "typebox";
 import { Value } from "typebox/value";
-import { ButtonSchema } from "./events.js";
+import { ButtonSchema, type Button } from "./events.js";
 import { CompletionInputSchema, CompletionSchema, NATIVE_OBJECTIVES, EvidenceSchema, ObjectiveStatusSchema, validateCompletionType } from "./objective-schema.js";
 import { ALL_OBJECTIVE_SWITCHES, ObjectiveTracker, type ObjectiveSwitches } from "./objectives.js";
 export { ALL_OBJECTIVE_SWITCHES, type ObjectiveSwitches };
-import { ALL_TOOL_SWITCHES, observeTool, pressTool, type ToolSwitches, type BeforePressCheck, type CheckedPressTool } from "./game-tools.js";
+import { ALL_TOOL_SWITCHES, observeTool, pressTool, submittedButtons, type ToolSwitches, type BeforePressCheck, type CheckedPressTool } from "./game-tools.js";
 import { parseGameState, StateWatcher } from "./game-state.js";
 import type { RunRecorder } from "./recorder.js";
 
-const PressArgs = Type.Object({ buttons: Type.Array(ButtonSchema, { minItems: 1, maxItems: 8 }) }, { additionalProperties: false });
+const PressArgs = Type.Object({ walking:Type.Optional(Type.Boolean()), buttons: Type.Array(ButtonSchema, { minItems: 1, maxItems: 8 }) }, { additionalProperties: false });
 const closed = { additionalProperties: false } as const;
 const text = Type.String({ maxLength: 2000 });
 const SetArgs = Type.Object({ title: Type.String({ minLength: 1, maxLength: 2000 }), supports_goal: Type.String({ minLength: 1, maxLength: 2000 }), evidence: EvidenceSchema, completion: CompletionSchema, obstacle: text, next_decision: Type.String({ minLength: 1, maxLength: 2000 }) }, closed);
@@ -74,22 +74,22 @@ function resultState(result: AgentToolResult<unknown>) {
 }
 export function objectiveGameTools(tracker: ObjectiveTracker, recorder: Pick<RunRecorder, "recordState" | "buttonPress" | "afterPress">, url: string, fetchFn: typeof fetch = fetch, switches: ToolSwitches = ALL_TOOL_SWITCHES): AgentTool[] {
   const observe = observeTool(url, fetchFn, switches);
-  const submissions = { count: 0 };
-  const press = pressTool(url, { beforePress: (id, buttons, timing, before) => { submissions.count += 1; recorder.buttonPress(id, buttons, timing, before); }, afterPress: () => recorder.afterPress() }, fetchFn, undefined, switches);
+  const submissions = { count: 0, buttons: [] as readonly Button[] };
+  const press = pressTool(url, { beforePress: (id, buttons, timing, before, modifiers) => { submissions.count += 1; submissions.buttons=buttons; recorder.buttonPress(id, buttons, timing, before, modifiers); }, afterPress: () => recorder.afterPress() }, fetchFn, undefined, switches);
   const perform=async(id:string,params:Parameters<CheckedPressTool["execute"]>[1],signal?:AbortSignal,update?:Parameters<CheckedPressTool["execute"]>[3],check?:BeforePressCheck)=>{
       signal?.throwIfAborted();
       if (!Value.Check(PressArgs, params)) throw new Error("Invalid press parameters");
-      const before = recorder.recordState(await readState(url, fetchFn, signal));
-      tracker.checkPress(params.buttons, before);
+      let before = recorder.recordState(await readState(url, fetchFn, signal));
+
       const submittedBefore = submissions.count;
       try {
-        const result = await (check===undefined ? press.execute(id, params, signal, update) : press.executeChecked(id, params,check,signal,update));
+        const result = await press.executeChecked(id,params,fresh=>{if(fresh===undefined)throw new Error("Coherent pre-action state unavailable");before=recorder.recordState(fresh);tracker.checkPress(submittedButtons(params.buttons,fresh,switches),before);check?.(fresh);},signal,update);
         const after = recorder.recordState(resultState(result));
-        const attempt = tracker.attempt(id, params.buttons, before, after);
+        const attempt = tracker.attempt(id, submissions.buttons, before, after);
         if (attempt.warning !== null) result.content.push({ type: "text", text: attempt.warning });
         return result;
       } catch (error) {
-        if (submissions.count > submittedBefore) tracker.attempt(id, params.buttons, before, null);
+        if (submissions.count > submittedBefore) tracker.attempt(id, submissions.buttons, before, null);
         throw error;
       }
   };

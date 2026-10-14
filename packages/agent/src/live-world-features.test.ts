@@ -5,7 +5,7 @@ import { beforeEach, afterEach, expect, it, vi } from "vitest";
 import { parseEvent, type RunEvent } from "./events.js";
 import type { RunHost, RunPlan } from "./run.js";
 
-const context = vi.hoisted(() => ({ root: "", memory: true, captureRuntime:false, runtimeModes:[] as string[], files: new Map<string, string[]>(), resolve: undefined as ((event: RunEvent) => void) | undefined, reject: undefined as ((error: unknown) => void) | undefined }));
+const context = vi.hoisted(() => ({ root: "", memory: true, captureRuntime:false, runtimeModes:[] as string[], interactionWarnings:[] as (string|null)[], files: new Map<string, string[]>(), resolve: undefined as ((event: RunEvent) => void) | undefined, reject: undefined as ((error: unknown) => void) | undefined }));
 vi.mock("node:fs", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:fs")>();
   return { ...actual,
@@ -43,7 +43,7 @@ vi.mock("./run.js", async (importOriginal) => {
       harness: () => ({ commit: "1".repeat(40), dirty: false }),
       vendorPin: () => "bbab97ad73e460b7cd7c08527d10ced30cc03fbe",
       milestones: { poll: () => Promise.resolve([]) },
-      gameState: { read: () => Promise.resolve({ screen: "title", started: false, name: null, location: null, map_id: null, position: null, facing: null, in_battle: false, party: [], money: null, badges: [], play_time_s: null }) },
+      gameState: { nativeActions:()=>Promise.resolve({frame:0,last_id:0,entries:[]}), battleChoices:()=>Promise.resolve({frame:0,last_id:0,entries:[]}), read: () => Promise.resolve({ screen: "title", started: false, name: null, location: null, map_id: null, position: null, facing: null, in_battle: false, party: [], money: null, badges: [], play_time_s: null }) },
     };
     try {
       const result = await actual.withRun({ ...plan, runsRoot: context.root }, fake, new FrameStore(context.root, 1000, () => undefined), context.captureRuntime ? body : () => Promise.resolve("completed"));
@@ -62,10 +62,13 @@ vi.mock("./harness.js",async(importOriginal)=>{
  return {...actual,piLoop:(options:Parameters<typeof actual.piLoop>[0])=>{
   if(!context.captureRuntime)return actual.piLoop(options);
   context.runtimeModes.push(options.loopDetector?.mode??"missing detector");
+  const state={screen:"overworld",started:true,name:"RED",location:"TEST",map_id:[0,0] as [number,number],position:{x:1,y:1},facing:"DOWN",field_controls_locked:true,in_battle:false,party:[],money:0,badges:[],play_time_s:0,world_context:{objects:[],triggers:[],dialogue:"Box",message:{phase:"page_wait" as const,cursor:30,ready:true}}};
+  for(let i=0;i<3;i++) options.loopDetector?.complete({name:"press",args:{buttons:["A","A"]},text:"ok",isError:false,state,beforeState:state});
+  context.interactionWarnings.push(options.loopDetector?.context() ?? null);
   return {start:()=>{options.governor.abort("completed");return Promise.resolve([]);},resume:()=>Promise.resolve([])};
  }};
 });
-afterEach(() => { context.captureRuntime=false;context.runtimeModes=[];vi.unstubAllGlobals();vi.unstubAllEnvs(); vi.restoreAllMocks(); if (!context.memory && context.root !== "") rmSync(context.root, { recursive: true, force: true }); context.files.clear(); });
+afterEach(() => { context.captureRuntime=false;context.runtimeModes=[];context.interactionWarnings=[];vi.unstubAllGlobals();vi.unstubAllEnvs(); vi.restoreAllMocks(); if (!context.memory && context.root !== "") rmSync(context.root, { recursive: true, force: true }); context.files.clear(); });
 it.each([["smoke", true], ["play", true], ["probe", true], ["verify-state", true], ["smoke", false]] as const)("%s declares world advantages through publisher (memory=%s)", async (command, memory) => {
   vi.resetModules();
   context.memory = memory; context.files.clear();
@@ -90,3 +93,16 @@ it.each([true,false])("play publishes loop-guard ablation (enabled=%s)",async(en
 });
 
 beforeEach(()=>{vi.stubEnv("POKEBENCH_ROM","/test-owned/rom-fixture.bin");});
+
+it.each([true,false])("play delivers enhanced interaction detection only for its effective flag (%s)",async(enabled)=>{
+ vi.resetModules();context.captureRuntime=true;context.runtimeModes=[];context.interactionWarnings=[];context.memory=true;context.files.clear();context.root=`/test-owned/interactions-${String(enabled)}`;
+ const {flagFeatures}=await import("./play-preset.js");
+ const features={...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"field-dialogue-phase-v1":true,"dialogue-safe-batches-v1":true,"interaction-loop-detection-v1":enabled};
+ const path="/test-owned/interaction-preset.json";context.files.set(path,[JSON.stringify({version:2,id:"interaction-proof",target:null,limits:{maxTurns:2,maxWallMs:10000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:100},features})]);
+ const receipt=new Promise<RunEvent>((resolve,reject)=>{context.resolve=resolve;context.reject=reject;});
+ vi.stubGlobal("process",Object.assign(Object.create(process) as NodeJS.Process,{argv:[...process.argv.slice(0,2),"play"],env:{...process.env,POKEBENCH_PLAY_PRESET:path}}));
+ vi.spyOn(console,"log").mockImplementation(()=>undefined);await import("./live.js");const start=await receipt;
+ if(start.type!=="run_start")throw new Error("Missing run_start");expect(start.harness_features.includes("interaction-loop-detection-v1")).toBe(enabled);
+ expect(context.interactionWarnings).toHaveLength(1);
+ if(enabled)expect(context.interactionWarnings[0]).toContain("Use a single input");else expect(context.interactionWarnings).toEqual([null]);
+});

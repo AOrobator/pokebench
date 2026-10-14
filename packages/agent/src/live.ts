@@ -9,7 +9,7 @@
 import { execFileSync, spawn } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import { activeUiFeatures } from "./ui-feature.js";
-import { humanPlan, humanLease, humanRunId, driveHuman } from "./human.js";
+import { humanPlan, humanLease, humanRunId, driveHuman, saveHumanCheckpoint } from "./human.js";
 import { writeFileSync, readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { objectiveHarness } from "./objective-tools.js";
@@ -139,8 +139,8 @@ async function live(): Promise<Live> {
 
 function pressHooks(recorder: RunRecorder): Parameters<typeof pressTool>[1] {
   return {
-    beforePress: (id, buttons, timing, before) => {
-      recorder.buttonPress(id, buttons, timing, before);
+    beforePress: (id, buttons, timing, before, modifiers) => {
+      recorder.buttonPress(id, buttons, timing, before, modifiers);
     },
     afterPress: () => recorder.afterPress(),
   };
@@ -164,7 +164,7 @@ async function smoke(): Promise<void> {
       systemPrompt: SYSTEM_PROMPT,
       tools,
       startState: { kind: "boot" },
-      harnessFeatures: ["ram-state-v1", "live-map-v1", "field-control-lock", "naming-cursor-v1", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "world-targets-v1", "live-player-position-v1", "world-coordinate-grid-v1", "press-result-v1", "warp-activation-guidance-v1", "clock-milestone-v1", "story-state-v1", ...activeUiFeatures(), "story-milestones-v2", "new-game-created-v1", "rustboro-gym-trainer-milestones-v1", "native-progress-activity-v1"],
+      harnessFeatures: ["ram-state-v1", "live-map-v1", "field-control-lock", "naming-cursor-v1", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "world-targets-v1", "live-player-position-v1", "world-coordinate-grid-v1", "press-result-v1", "warp-activation-guidance-v1", "clock-milestone-v1", "story-state-v1", ...activeUiFeatures(), "story-milestones-v2", "new-game-created-v1", "rustboro-gym-trainer-milestones-v1", "native-progress-activity-v1", "battle-choices-v1", "continuous-battle-state-v1", "validated-pokemon-v1", "menu-observability-v1", "native-action-history-v1", "remaining-native-milestones-v1"],
       budgets: { max_wall_ms: LOOP_TIMEOUT_MS },
       piVersion: piVersion(),
     },
@@ -210,7 +210,7 @@ async function playAgent(): Promise<void> {
   const assigned=process.env["POKEBENCH_RUN_ID"];
   if(assigned!==undefined&&!new RegExp(RUN_ID_PATTERN).test(assigned))throw new Error("POKEBENCH_RUN_ID is invalid");
   const limits=preset?.limits??PLAY_LIMITS;
-  const features=preset===null?flagFeatures({loopGuard:readLoopMode(process.env)==="enforced",activeUi:activeUiFeatures().length>0,interfaceDocs:process.env["POKEBENCH_INTERFACE_DOCS"]!=="0",objectives:process.env["POKEBENCH_OBJECTIVES"]!=="0"}):presetFeatures(preset);
+  const features=preset===null?{...flagFeatures({loopGuard:readLoopMode(process.env)==="enforced",activeUi:activeUiFeatures().length>0,interfaceDocs:process.env["POKEBENCH_INTERFACE_DOCS"]!=="0",objectives:process.env["POKEBENCH_OBJECTIVES"]!=="0"}),"field-dialogue-phase-v1":process.env["POKEBENCH_FIELD_DIALOGUE_PHASE"]!=="0","automatic-running-v1":process.env["POKEBENCH_AUTOMATIC_RUNNING"]!=="0","expanded-menu-battle-information-v1":process.env["POKEBENCH_EXPANDED_INFORMATION"]!=="0"}:presetFeatures(preset);
   const serverEnv={...process.env,...serverFeatureEnv(features)};
   const { model, port, gatewayUrl, apiKey } = await live();
   if(preset!==null&&preset.sampling.maxTokens>model.maxTokens)throw new Error("Play preset maxTokens exceeds the discovered model limit");
@@ -273,7 +273,7 @@ async function playAgent(): Promise<void> {
       });
       control = runControl;
       if(preset!==null&&recorder.elapsedMs()>=limits.maxWallMs){governor.abort("budget");return "budget";}
-      const loopDetector = attachLoopGuard(recorder, governor, undefined, loopMode);
+      const loopDetector = attachLoopGuard(recorder, governor, undefined, loopMode, features["interaction-loop-detection-v1"]);
       if(target!==null){
         const stop=new NativeTargetStop(runId,target,proof=>{
           if(governor.stopReason!==null)return;
@@ -343,7 +343,7 @@ async function probe(verify = false): Promise<void> {
       model: { id: "manual-probe", context_window: 0, max_tokens: 0, vision: false },
       sampling: { thinking_level: "none", max_tokens: 0 },
       systemPrompt: "Manual game-state validation probe; excluded from benchmark results.",
-      tools: ["observe", "press"], startState, harnessFeatures: ["probe", "manual-control", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "world-targets-v1", "live-player-position-v1", "world-coordinate-grid-v1", "press-result-v1", "warp-activation-guidance-v1", "clock-milestone-v1", "story-state-v1", ...activeUiFeatures(), "story-milestones-v2", "new-game-created-v1", "rustboro-gym-trainer-milestones-v1", "native-progress-activity-v1"],
+      tools: ["observe", "press"], startState, harnessFeatures: ["probe", "manual-control", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "world-targets-v1", "live-player-position-v1", "world-coordinate-grid-v1", "press-result-v1", "warp-activation-guidance-v1", "clock-milestone-v1", "story-state-v1", ...activeUiFeatures(), "story-milestones-v2", "new-game-created-v1", "rustboro-gym-trainer-milestones-v1", "native-progress-activity-v1", "battle-choices-v1", "continuous-battle-state-v1", "validated-pokemon-v1", "menu-observability-v1", "native-action-history-v1", "remaining-native-milestones-v1"],
       budgets: {}, piVersion: piVersion(),
     }, realHost(port, saved), new FrameStore(RUNS_ROOT), (recorder, url) => driveProbe(recorder, url, verify ? verifyIntro(new StateWatcher(url), (label, state) => { console.log(`CHECKPOINT ${label} ${JSON.stringify(state)}`); }) : commands()));
     console.log(`probe ended: ${reason}`);
@@ -372,10 +372,12 @@ async function playHuman(): Promise<void> {
   try {
     const basePlan = humanPlan(runsRoot,runId,port,romSha1());
     const plan = {...basePlan,romSha1:romSha1(),harnessFeatures:[...basePlan.harnessFeatures,...(process.env["POKEBENCH_HUMAN_VALIDATION"]==="true"?["probe"]:[])]};
-    const host=realHost(port,undefined,{...process.env,POKEBENCH_HUMAN_TOKEN:token});
+    const host=realHost(port,undefined,{...process.env,POKEBENCH_HUMAN_TOKEN:token,POKEBENCH_ACTIVE_UI:"1",POKEBENCH_FEATURES_OFF:"named-interactions-v1,world-destinations-v1,bounded-navigation-v1,expanded-menu-battle-information-v1"});
     await withRun(plan,{...host,launchServer:async(dir,id,p)=>{writeFileSync(join(dir,"human-token"),token,{mode:0o600,flag:"wx"});if(process.env["POKEBENCH_HUMAN_START_PAUSED"]==="true")writeFileSync(join(dir,"control.jsonl"),controlLine(1,"pause",new Date().toISOString())+"\n",{flag:"wx"});return host.launchServer(dir,id,p);}},new FrameStore(runsRoot),async(recorder,url)=>{
       console.log(`Human play: http://127.0.0.1:8791/play#run=${runId}`);
-      return driveHuman(recorder,url,join(runDir,"control.jsonl"),abort.signal,fetch,token);
+      const reason=await driveHuman(recorder,url,join(runDir,"control.jsonl"),abort.signal,fetch,token);
+      await saveHumanCheckpoint(url,token,runDir);
+      return reason;
     });
   } finally { process.off("SIGINT",onSignal);process.off("SIGTERM",onSignal);release(); }
 }

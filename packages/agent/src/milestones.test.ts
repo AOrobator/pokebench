@@ -116,8 +116,24 @@ describe("StateMilestones", () => {
       "ROUTE_104_TRAINER_DARIAN_DEFEATED",
 
       "PETALBURG_WOODS",
+      "PETALBURG_WOODS_TRAINER_LYLE_DEFEATED",
+      "PETALBURG_WOODS_TRAINER_JAMES_DEFEATED",
+      "PETALBURG_WOODS_TRAINER_AQUA_GRUNT_DEFEATED",
       "TEAM_AQUA_WOODS_EVENT_COMPLETE",
       "RUSTBORO_CITY",
+      "ROUTE_115",
+      "ROUTE_116",
+      "ROUTE_116_TRAINER_JOEY_DEFEATED",
+      "ROUTE_116_TRAINER_JOSE_DEFEATED",
+      "ROUTE_116_TRAINER_JERRY_DEFEATED",
+      "ROUTE_116_TRAINER_CLARK_DEFEATED",
+      "ROUTE_116_TRAINER_JANICE_DEFEATED",
+      "ROUTE_116_TRAINER_KAREN_DEFEATED",
+      "ROUTE_116_TRAINER_SARAH_DEFEATED",
+      "ROUTE_116_TRAINER_DAWSON_DEFEATED",
+      "ROUTE_116_TRAINER_DEVAN_DEFEATED",
+      "ROUTE_116_TRAINER_JOHNSON_DEFEATED",
+      "RUSTURF_TUNNEL",
       "RUSTBORO_CITY_GYM",
       "RUSTBORO_GYM_TRAINER_JOSH_DEFEATED",
       "RUSTBORO_GYM_TRAINER_TOMMY_DEFEATED",
@@ -295,4 +311,26 @@ it('records individual Rustboro trainer victories once, before gym-clear, withou
  const resumed=new StateMilestones({read:()=>Promise.resolve(BASE)},()=>1000);resumed.initialize('save_state');
  expect(resumed.observe(gym({rustboro_marc_defeated:true}),5).filter(e=>e.name==='RUSTBORO_GYM_TRAINER_MARC_DEFEATED')).toEqual([{name:'RUSTBORO_GYM_TRAINER_MARC_DEFEATED',serverTimestamp:1,kind:'story',origin:'present_at_start',evidence:[5]}]);
  expect(detector.observe(at('RUSTBORO CITY GYM',{screen:'field_transition',story:{...story,rustboro_marc_defeated:true}}),6).filter(e=>e.name.startsWith('RUSTBORO_GYM_TRAINER_'))).toEqual([]);
+});
+
+const unknownRemainingStory = {name_confirmed:null,intro_stage:null,rival_stage:null,birch_lab_stage:null,petalburg_gym_stage:null,woods_stage:null,clock_set:null,rival_battle_won:null,pokedex_received:null,running_shoes_received:null,starter_tutorial_complete:null,rustboro_gym_complete:null,stone_badge:null,rock_tomb_received:null};
+const remainingTrainers = ["petalburg_woods_lyle_defeated", "petalburg_woods_james_defeated", "petalburg_woods_aqua_grunt_defeated", "route116_joey_defeated", "route116_jose_defeated", "route116_jerry_defeated", "route116_clark_defeated", "route116_janice_defeated", "route116_karen_defeated", "route116_sarah_defeated", "route116_dawson_defeated", "route116_devan_defeated", "route116_johnson_defeated"] as const;
+it.each(remainingTrainers)("records native %s once with unknown and resumed provenance", (field) => {
+ const name=field.toUpperCase().replace("PETALBURG_WOODS_","PETALBURG_WOODS_TRAINER_").replace("ROUTE116_","ROUTE_116_TRAINER_");
+ const tracker=source([]);tracker.initialize("save_state");
+ expect(tracker.observe(at("ROUTE116",{story:{...unknownRemainingStory,[field]:null}}),1).map(m=>m.name)).not.toContain(name);
+ expect(tracker.observe(at("ROUTE116",{screen:"field_transition",story:{...unknownRemainingStory,[field]:true}}),2).map(m=>m.name)).not.toContain(name);
+ expect(tracker.observe(at("ROUTE116",{story:{...unknownRemainingStory,[field]:true}}),3).find(m=>m.name===name)).toMatchObject({origin:"present_at_start",kind:"story",evidence:[3]});
+ expect(tracker.observe(at("ROUTE116",{story:{...unknownRemainingStory,[field]:true}}),4).map(m=>m.name)).not.toContain(name);
+ const observed=source([]);observed.initialize("save_state");observed.observe(at("ROUTE116",{story:{...unknownRemainingStory,[field]:false}}),5);
+ expect(observed.observe(at("ROUTE116",{story:{...unknownRemainingStory,[field]:true}}),6).find(m=>m.name===name)).toMatchObject({origin:"observed",evidence:[6]});
+});
+it.each([
+ ["ROUTE_115","ROUTE115",[0,30]], ["ROUTE_116","ROUTE116",[0,31]], ["RUSTURF_TUNNEL","RUSTURF TUNNEL",[24,4]],
+] as const)("records stable exact first visit %s with no submap credit",(name,label,map)=>{
+ const tracker=source([]);tracker.initialize("save_state");
+ for(const invalid of [at(label,{screen:"field_transition",map_id:[...map]}),at(label,{screen:"unknown",map_id:[...map]}),at(label+" HOUSE",{map_id:[...map]}),at(label,{map_id:[0,0]})]) expect(tracker.observe(invalid,1).map(m=>m.name)).not.toContain(name);
+ expect(tracker.observe(at(label,{map_id:[...map]}),2).find(m=>m.name===name)).toMatchObject({kind:"navigation",origin:"observed",evidence:[2]});
+ expect(tracker.observe(at(label,{map_id:[...map]}),3).map(m=>m.name)).not.toContain(name);
+ const resumed=source([]);resumed.initialize("save_state");expect(resumed.observe(at(label,{map_id:[...map]}),4).find(m=>m.name===name)?.origin).toBe("present_at_start");
 });

@@ -58,6 +58,9 @@ def test_production_main_registers_view_pcm_and_browser_module_before_vendor_mai
     app = FastAPI()
 
     class LocalEmulator(Emulator):
+        def run_frame_with_buttons(self, buttons):
+            pass
+
         def get_screenshot(self):
             from PIL import Image
 
@@ -121,8 +124,12 @@ def test_production_main_registers_view_pcm_and_browser_module_before_vendor_mai
         (0x030022C0, 0x030022C8),
         (0x030026F9, 0x030026FA),
         (0x0203CD92, 0x0203CD96),
+        (0x03005E00, 0x03006080),
+        (0x03005E00, 0x03006080),
         (0x02039F94, 0x02039F98),
         (0x02039F94, 0x02039F98),
+        (0x02037595, 0x02037596),
+        (0x02037350, 0x02037353),
         (0x02039F94, 0x02039F98),
     ]
     assert calls == [{"host": "127.0.0.1", "port": 8129}]

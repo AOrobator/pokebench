@@ -256,6 +256,7 @@ it.each([
               }),
             ),
           );
+        if (route === "/pokebench/battle/choices" || route === "/pokebench/actions")return Promise.resolve(Response.json({frame:0,last_id:0,entries:[]}));
         if (route === "/pokebench/state")
           return Promise.resolve(
             new Response(

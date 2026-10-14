@@ -1,5 +1,7 @@
 """Frame-held human input on an isolated server; vendor sources stay untouched."""
 
+import base64
+import hashlib
 import secrets
 import threading
 import time
@@ -179,6 +181,7 @@ def install_human(
     *,
     pace: bool = True,
     observe: Callable[[], dict[str, object]] | None = None,
+    checkpoint: Callable[[], bytes | None] | None = None,
 ) -> HumanController:
     human = HumanController()
     step = server.step_environment
@@ -197,6 +200,21 @@ def install_human(
     def authorize(value: str) -> None:
         if not secrets.compare_digest(value, token):
             raise HTTPException(403, "human server credential required")
+
+    @api.post("/pokebench/human/checkpoint")
+    def save_checkpoint(x_human_token: Annotated[str, Header()] = "") -> dict[str, object]:
+        authorize(x_human_token)
+        with human.lock:
+            if not human.paused:
+                raise HTTPException(409, "pause the game before capturing final state")
+            data = None if checkpoint is None else checkpoint()
+            if not data:
+                raise HTTPException(503, "native checkpoint unavailable")
+            return {
+                "frame": human.frames,
+                "sha256": hashlib.sha256(data).hexdigest(),
+                "state_base64": base64.b64encode(data).decode("ascii"),
+            }
 
     @api.post("/pokebench/human/claim")
     def claim(body: Claim, x_human_token: Annotated[str, Header()] = "") -> dict[str, bool]:

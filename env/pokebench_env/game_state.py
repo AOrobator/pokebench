@@ -11,10 +11,16 @@ import struct
 from dataclasses import dataclass
 from pathlib import Path
 
+from pokebench_env.battle_state import BattleState, read_battle_state
 from pokebench_env.game_screen import ReadMemory, read_screen
 from pokebench_env.gba_text import GBA_TEXT, decode_text
 from pokebench_env.live_map import MAP_OFFSET, LocalMap, read_local_map
 from pokebench_env.naming import NamingState, read_naming
+from pokebench_env.party_ownership import PartyOwnership, read_party_ownership
+from pokebench_env.pokemon import SPECIES_NAMES as SPECIES_NAMES
+from pokebench_env.pokemon import PartyMon, decode_party_mon, pokemon_cpu_context
+from pokebench_env.resources import Resources, read_resources
+from pokebench_env.running import RunningPermission, read_running_permission
 from pokebench_env.story import StoryState, read_story
 from pokebench_env.topology import Topology, read_topology
 from pokebench_env.ui_state import ActiveUi, Menu, read_active_ui, read_dialog, read_menu
@@ -30,16 +36,11 @@ PLAYER_AVATAR = 0x02037590
 OBJECT_EVENTS = 0x02037350
 IN_BATTLE = 0x030026F9
 FIELD_CONTROLS_LOCK = 0x03000F2C
-SPECIES_NAMES = 0x083185C8
 
 PRE_GAME = frozenset({"intro", "title", "main_menu", "birch_speech", "naming"})
 FACING = {1: "down", 2: "up", 3: "left", 4: "right"}
 BADGES = ("STONE", "KNUCKLE", "DYNAMO", "HEAT", "BALANCE", "FEATHER", "MIND", "RAIN")
 FLAG_BADGE01 = 0x867
-SUBSTRUCT_ORDERS = (
-    "GAEM GAME GEAM GEMA GMAE GMEA AGEM AGME AEGM AEMG AMGE AMEG "
-    "EGAM EGMA EAGM EAMG EMGA EMAG MGAE MGEA MAGE MAEG MEGA MEAG"
-).split()
 
 
 class MapNames:
@@ -58,15 +59,6 @@ class MapNames:
 
     def name(self, map_id: tuple[int, int]) -> str | None:
         return self._names.get(map_id)
-
-
-@dataclass(frozen=True)
-class PartyMon:
-    species: str
-    level: int
-    hp: int
-    max_hp: int
-    identity: str | None = None
 
 
 @dataclass(frozen=True)
@@ -95,6 +87,11 @@ class GameState:
     nearby: LocalMap | None = None
     topology: Topology | None = None
     player_elevation: int = 0
+    party_owner: str = "player"
+    party_ownership: PartyOwnership | None = None
+    resources: Resources | None = None
+    battle: BattleState | None = None
+    running: RunningPermission | None = None
     game_stats: dict[str, int | None] | None = None
     blackout_active: bool | None = None
     destination_names: tuple[tuple[int, int, str], ...] = ()
@@ -104,38 +101,19 @@ def _u32(read: ReadMemory, address: int) -> int:
     return int.from_bytes(read(address, 4), "little")
 
 
-def _species(body: bytes) -> int:
-    personality: int
-    ot_id: int
-    personality, ot_id = struct.unpack_from("<II", body, 0)
-    key = personality ^ ot_id
-    order = SUBSTRUCT_ORDERS[personality % 24]
-    offset = 0x20 + 12 * order.index("G")
-    word: int = struct.unpack_from("<I", body, offset)[0]
-    return (word ^ key) & 0xFFFF
-
-
 def _party(read: ReadMemory) -> tuple[PartyMon, ...]:
     count = read(PARTY_COUNT, 1)[0]
     if count > 6:
         raise ValueError(f"party count {count} is not a party")
-    members = []
-    for slot in range(count):
-        body = read(PARTY + 100 * slot, 100)
-        species_id = _species(body)
-        name = decode_text(read(SPECIES_NAMES + 11 * species_id, 11)) if species_id < 412 else ""
-        level, _, hp, max_hp = struct.unpack_from("<BBHH", body, 0x54)
-        personality, ot_id = struct.unpack_from("<II", body)
-        members.append(
-            PartyMon(
-                name or f"species #{species_id}",
-                level,
-                hp,
-                max_hp,
-                f"{personality:08x}:{ot_id:08x}",
-            )
+    # One contiguous read prevents mixing slots from different emulator snapshots.
+    body = read(PARTY, 100 * count)
+    cpu = pokemon_cpu_context(read)
+    return tuple(
+        decode_party_mon(
+            body[100 * slot : 100 * (slot + 1)], read, address=PARTY + 100 * slot, cpu=cpu
         )
-    return tuple(members)
+        for slot in range(count)
+    )
 
 
 GAME_STAT_FIELDS = {
@@ -166,33 +144,48 @@ def _badges(read: ReadMemory, save1: int) -> tuple[str, ...]:
 
 
 def read_game_state(
-    read: ReadMemory, maps: MapNames, *, active_ui_enabled: bool = True
+    read: ReadMemory,
+    maps: MapNames,
+    *,
+    active_ui_enabled: bool = True,
+    message_phase_enabled: bool = False,
 ) -> GameState:
     screen = read_screen(read)
     in_battle = bool(read(IN_BATTLE, 1)[0] & 0x02)
+    battle = read_battle_state(read) if in_battle else None
     dialog, menu = read_dialog(read, screen.kind), read_menu(read)
-    active_ui = read_active_ui(read, screen) if active_ui_enabled else None
+    native_ui = read_active_ui(read, screen)
+    active_ui = native_ui if active_ui_enabled else None
+    if native_ui and native_ui.details and isinstance(native_ui.details.get("message"), str):
+        dialog = str(native_ui.details["message"])
     player_object = 0
     field_initialized = False
-    if screen.kind not in PRE_GAME:
+    if screen.kind not in PRE_GAME or screen.kind == "naming":
         player_object = read(PLAYER_AVATAR + 5, 1)[0]
         player_flags = (
             read(OBJECT_EVENTS + 0x24 * player_object, 3) if player_object < 16 else bytes(3)
         )
         field_initialized = bool(player_flags[0] & 1 and player_flags[2] & 1)
+    pregame = screen.kind in PRE_GAME and not (
+        screen.kind == "naming"
+        and field_initialized
+        and native_ui is not None
+        and native_ui.details is not None
+        and native_ui.details.get("naming_owner") in ("box", "caught_mon", "nickname", "walda")
+    )
     save1, save2 = (0, 0)
-    if screen.kind not in PRE_GAME and screen.kind != "field_transition" and field_initialized:
+    if not pregame and screen.kind != "field_transition" and field_initialized:
         save1, save2 = struct.unpack("<II", read(SAVE_BLOCK_PTRS, 8))
     valid_saves = (
-        0x02000000 <= save1 <= 0x02040000 - 0x169C
+        0x02000000 <= save1 <= 0x02040000 - 0x1A9C
         and save1 % 4 == 0
         and 0x02000000 <= save2 <= 0x02040000 - 0xB0
         and save2 % 4 == 0
     )
-    if screen.kind in PRE_GAME or not field_initialized or not valid_saves:
+    if pregame or not field_initialized or not valid_saves:
         return GameState(
             screen.label,
-            field_initialized and screen.kind not in PRE_GAME,
+            field_initialized and not pregame,
             None,
             None,
             None,
@@ -203,6 +196,7 @@ def read_game_state(
             None,
             None,
             None,
+            battle=battle,
             blackout_active=screen.callback2 == 0x08085F59,
             story=read_story(read, screen) if screen.kind in PRE_GAME else StoryState(),
             naming=read_naming(read, decode_text) if screen.callback2 == 0x080E4F59 else None,
@@ -224,9 +218,14 @@ def read_game_state(
         else None
     )
     targets = read_targets(read, map_id) if nearby is not None else None
+    party = _party(read)
+    ownership = read_party_ownership(read, party)
     return GameState(
         blackout_active=screen.callback2 == 0x08085F59,
         game_stats=_game_stats(read, save1, save2),
+        resources=read_resources(read, save1, save2),
+        battle=battle,
+        running=read_running_permission(read),
         screen=screen.label,
         started=True,
         story=read_story(read, screen, save1),
@@ -236,7 +235,13 @@ def read_game_state(
         position=(x, y),
         facing=FACING.get(facing),
         in_battle=in_battle,
-        party=_party(read),
+        party=party,
+        party_ownership=ownership,
+        party_owner=(
+            "tutorial"
+            if in_battle and _u32(read, 0x02022FEC) & (1 << 9)
+            else ownership.owner or "unknown"
+        ),
         money=_u32(read, save1 + 0x490) ^ _u32(read, save2 + 0xAC),
         badges=_badges(read, save1),
         play_time=(hours, minutes, seconds),
@@ -257,7 +262,9 @@ def read_game_state(
             for t in targets or ()
             if t.destination is not None and t.destination[:2] != (127, 127)
         ),
-        world_context=read_world_context(read, (x, y), map_id, save1, decode_text)
+        world_context=read_world_context(
+            read, (x, y), map_id, save1, decode_text, message_phase=message_phase_enabled
+        )
         if screen.kind == "overworld" and not in_battle
         else None,
         interaction_targets=targets,

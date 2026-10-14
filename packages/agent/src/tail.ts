@@ -62,6 +62,8 @@ function body(event: RunEvent): [string, string] {
       const frames = event.frames.length === 0 ? "" : ` [${String(event.frames.length)} frame${event.frames.length === 1 ? "" : "s"}]`;
       return ["RESULT", `${event.name} ${status} ${String(event.duration_ms)}ms: ${clip(event.text, 80)}${frames}`];
     }
+    case "battle_choice":return ["BATTLE CHOICE",`battle ${String(event.battle)} turn ${String(event.battle_turn)} · ${"species" in event.actor ? event.actor.species : "Trainer"} chose ${event.move?.name??event.action} (${event.origin})`];
+    case "native_action": return ["ACTION", `${event.kind.replaceAll("_"," ")} · frame ${String(event.frame)}`];
     case "activity": return ["ACTIVITY", `${event.kind.replace("_"," ")} ×${String(event.count)}`];
     case "milestone":
       return ["MILESTONE", event.name];
@@ -76,7 +78,7 @@ function body(event: RunEvent): [string, string] {
       if (!("started" in event)) return ["STATE", "historical vendor state (unverified)"];
       if (!event.started || event.position === null) return ["STATE", `${event.screen}, game not started`];
       const at = ` (${String(event.position.x)},${String(event.position.y)})`;
-      const party = event.party.length === 0 ? "none" : event.party.map((mon) => `${mon.species} L${String(mon.level)} ${String(mon.hp)}/${String(mon.max_hp)}`).join(" ");
+      const party = event.party.length === 0 ? "none" : event.party.map((mon) => `${mon.species ?? "UNKNOWN"} L${String(mon.level)} ${String(mon.hp)}/${String(mon.max_hp)}`).join(" ");
       return [
         "STATE",
         `${event.location ?? "?"}${at} ${event.screen}, party ${party}, ₽${String(event.money ?? 0)}, ${String(event.badges.length)} badges, play ${clock(event.play_time_s ?? 0)}`,

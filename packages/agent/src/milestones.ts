@@ -33,6 +33,9 @@ const savedWorld = (s:GameStateSnapshot):boolean => s.started && s.screen!=="fie
 const place = (s: GameStateSnapshot, matches: (location: string) => boolean): boolean | null =>
   s.screen === "field_transition" ? null : s.started && s.location !== null ? matches(s.location) : knownPregame(s) ? false : null;
 const at = (location: string) => (s: GameStateSnapshot) => place(s, (current) => current === location || (/^ROUTE \d+$/.test(location) && current === location.replace("ROUTE ", "ROUTE")));
+const verifiedVisit = (label: string, map: readonly [number, number]) => (s: GameStateSnapshot): boolean | null =>
+  s.screen === "field_transition" || s.screen === "unknown" ? null
+    : s.map_id !== null && (s.map_id[0] !== map[0] || s.map_id[1] !== map[1]) ? false : at(label)(s);
 const flag = (field:
   | "name_confirmed" | "clock_set" | "rival_battle_won" | "pokedex_received"
   | "running_shoes_received" | "starter_tutorial_complete" | "rustboro_gym_complete"
@@ -41,7 +44,7 @@ const flag = (field:
   s.screen === "field_transition" ? null : (field === "name_confirmed" || savedWorld(s)) ? (s.story?.[field] ?? null) : null;
 const gymTrainer = (field: "rustboro_josh_defeated" | "rustboro_tommy_defeated" | "rustboro_marc_defeated") => (s: GameStateSnapshot): boolean | null =>
   savedWorld(s) && s.story?.rustboro_gym_complete === false ? (s.story[field] ?? null) : null;
-const trainer = (field: "roxanne_defeated" | "route102_calvin_defeated" | "route102_rick_defeated" | "route102_tiana_defeated" | "route102_allen_defeated" | "route104_ivan_defeated" | "route104_billy_defeated" | "route104_haley_defeated" | "route104_winston_defeated" | "route104_cindy_defeated" | "route104_gina_mia_defeated" | "route104_darian_defeated") => (s:GameStateSnapshot):boolean|null => savedWorld(s) ? s.story?.[field] ?? null : null;
+const trainer = (field: "petalburg_woods_lyle_defeated" | "petalburg_woods_james_defeated" | "petalburg_woods_aqua_grunt_defeated" | "route116_joey_defeated" | "route116_jose_defeated" | "route116_jerry_defeated" | "route116_clark_defeated" | "route116_janice_defeated" | "route116_karen_defeated" | "route116_sarah_defeated" | "route116_dawson_defeated" | "route116_devan_defeated" | "route116_johnson_defeated" | "roxanne_defeated" | "route102_calvin_defeated" | "route102_rick_defeated" | "route102_tiana_defeated" | "route102_allen_defeated" | "route104_ivan_defeated" | "route104_billy_defeated" | "route104_haley_defeated" | "route104_winston_defeated" | "route104_cindy_defeated" | "route104_gina_mia_defeated" | "route104_darian_defeated") => (s:GameStateSnapshot):boolean|null => savedWorld(s) ? s.story?.[field] ?? null : null;
 const countReached = (field:"pokemon_captures"|"evolved_pokemon") => (s:GameStateSnapshot):boolean|null => savedWorld(s) && s.game_stats?.[field]!=null ? s.game_stats[field]>0 : null;
 const stage = (field:
   | "intro_stage" | "rival_stage" | "birch_lab_stage" | "petalburg_gym_stage" | "woods_stage",
@@ -130,8 +133,24 @@ export const MILESTONES: readonly Milestone[] = [
   { name: "ROUTE_104_TRAINER_GINA_MIA_DEFEATED", kind: "story", reached: trainer("route104_gina_mia_defeated") },
   { name: "ROUTE_104_TRAINER_DARIAN_DEFEATED", kind: "story", reached: trainer("route104_darian_defeated") },
   { name: "PETALBURG_WOODS", kind: "navigation", reached: at("PETALBURG WOODS") },
+  { name: "PETALBURG_WOODS_TRAINER_LYLE_DEFEATED", kind: "story", reached: trainer("petalburg_woods_lyle_defeated") },
+  { name: "PETALBURG_WOODS_TRAINER_JAMES_DEFEATED", kind: "story", reached: trainer("petalburg_woods_james_defeated") },
+  { name: "PETALBURG_WOODS_TRAINER_AQUA_GRUNT_DEFEATED", kind: "story", reached: trainer("petalburg_woods_aqua_grunt_defeated") },
   { name: "TEAM_AQUA_WOODS_EVENT_COMPLETE", kind: "story", reached: stage("woods_stage", [1]) },
   { name: "RUSTBORO_CITY", kind: "navigation", reached: at("RUSTBORO CITY") },
+  { name: "ROUTE_115", kind: "navigation", reached: verifiedVisit("ROUTE 115", [0, 30]) },
+  { name: "ROUTE_116", kind: "navigation", reached: verifiedVisit("ROUTE 116", [0, 31]) },
+  { name: "ROUTE_116_TRAINER_JOEY_DEFEATED", kind: "story", reached: trainer("route116_joey_defeated") },
+  { name: "ROUTE_116_TRAINER_JOSE_DEFEATED", kind: "story", reached: trainer("route116_jose_defeated") },
+  { name: "ROUTE_116_TRAINER_JERRY_DEFEATED", kind: "story", reached: trainer("route116_jerry_defeated") },
+  { name: "ROUTE_116_TRAINER_CLARK_DEFEATED", kind: "story", reached: trainer("route116_clark_defeated") },
+  { name: "ROUTE_116_TRAINER_JANICE_DEFEATED", kind: "story", reached: trainer("route116_janice_defeated") },
+  { name: "ROUTE_116_TRAINER_KAREN_DEFEATED", kind: "story", reached: trainer("route116_karen_defeated") },
+  { name: "ROUTE_116_TRAINER_SARAH_DEFEATED", kind: "story", reached: trainer("route116_sarah_defeated") },
+  { name: "ROUTE_116_TRAINER_DAWSON_DEFEATED", kind: "story", reached: trainer("route116_dawson_defeated") },
+  { name: "ROUTE_116_TRAINER_DEVAN_DEFEATED", kind: "story", reached: trainer("route116_devan_defeated") },
+  { name: "ROUTE_116_TRAINER_JOHNSON_DEFEATED", kind: "story", reached: trainer("route116_johnson_defeated") },
+  { name: "RUSTURF_TUNNEL", kind: "navigation", reached: verifiedVisit("RUSTURF TUNNEL", [24, 4]) },
   { name: "RUSTBORO_CITY_GYM", kind: "navigation", reached: at("RUSTBORO CITY GYM") },
   { name: "RUSTBORO_GYM_TRAINER_JOSH_DEFEATED", kind: "story", reached: gymTrainer("rustboro_josh_defeated") },
   { name: "RUSTBORO_GYM_TRAINER_TOMMY_DEFEATED", kind: "story", reached: gymTrainer("rustboro_tommy_defeated") },

@@ -10,6 +10,19 @@ function view(log: Log): RunView {
 }
 
 describe("lanesSvg", () => {
+  it("distinguishes requested running from actual native inputs", () => {
+    const log = new Log();
+    log.add(0, START);
+    log.add(100, {type:"button_press",turn:0,tool_call_id:"run",buttons:["UP"],hold_frames:8,release_frames:8,automatic_running:true});
+    log.add(400, {type:"button_press",turn:0,tool_call_id:"walk",buttons:["LEFT"],hold_frames:8,release_frames:8,automatic_running:true,walking:true});
+    const result = view(log);
+    expect(result.presses[0]?.automaticRunning).toBe(true);
+    expect(result.presses[1]?.walking).toBe(true);
+    const svg = lanesSvg(result, BASE_MS+1000);
+    expect(svg).toContain("running requested where permitted; actual keys in native input history");
+    expect(svg).toContain("walking requested");
+    expect(svg).not.toContain("m-press b-B");
+  });
   it("draws the five lanes and a 60 s axis ending at now", () => {
     const svg = lanesSvg(view(fullRun()), BASE_MS + 9000);
     expect(LANES).toEqual(["thinking", "tool calls", "presses", "milestones", "errors"]);

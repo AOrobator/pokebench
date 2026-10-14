@@ -1,6 +1,7 @@
 // Human sessions share the ordinary durable run lifecycle, never the model loop.
 import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
+import {createHash} from 'node:crypto';
 import { ControlFile, RunControl, freezeGame } from "./run-control.js";
 import type { RunRecorder } from "./recorder.js";
 import { HUMAN_BUTTONS, RUN_ID_PATTERN, type HumanButton, type RunEndReason, type BodyOf } from "./events.js";
@@ -11,7 +12,7 @@ export function humanRunId(assigned:string|undefined,now:Date,random:()=>string)
  return newRunId(now,'human',random);
 }
 export function humanPlan(runsRoot:string,runId:string,port:number,romSha1:string):RunPlan {
- return {runsRoot,runId,port,controller:{kind:'human',name:'Operator',rom_sha1:romSha1,input_policy:'frame-held-v1',sample_ms:100,screenshot_ms:500,nominal_fps:59.7275},model:{id:'Human · Operator',context_window:0,max_tokens:0,vision:false},sampling:{thinking_level:'none',max_tokens:0},systemPrompt:'Human playthrough; no model inference.',tools:[],startState:{kind:'boot'},harnessFeatures:['human-play-v1','human-audio-1x-v1','ram-state-v1','story-state-v1','story-milestones-v2','clock-milestone-v1','new-game-created-v1','rustboro-gym-trainer-milestones-v1','native-progress-activity-v1','post-clock-navigation-milestones-v1'],budgets:{},piVersion:'not-used'};
+ return {runsRoot,runId,port,controller:{kind:'human',name:'Operator',rom_sha1:romSha1,input_policy:'frame-held-v1',sample_ms:100,screenshot_ms:500,nominal_fps:59.7275},model:{id:'Human · Operator',context_window:0,max_tokens:0,vision:false},sampling:{thinking_level:'none',max_tokens:0},systemPrompt:'Human playthrough; no model inference.',tools:[],startState:{kind:'boot'},harnessFeatures:['human-play-v1','human-final-state-v1','human-audio-1x-v1','field-dialogue-phase-v1','ram-state-v1','story-state-v1','story-milestones-v2','clock-milestone-v1','new-game-created-v1','rustboro-gym-trainer-milestones-v1','native-progress-activity-v1','battle-choices-v1','continuous-battle-state-v1','validated-pokemon-v1','menu-observability-v1','native-action-history-v1','remaining-native-milestones-v1','post-clock-navigation-milestones-v1'],budgets:{},piVersion:'not-used'};
 }
 export function humanLease(runsRoot:string,runId:string):()=>void {
  mkdirSync(runsRoot,{recursive:true}); const path=join(runsRoot,HUMAN_GAMEPLAY_LEASE_NAME);
@@ -72,6 +73,8 @@ export async function driveHuman(recorder:Pick<RunRecorder,"recordControl"|"chec
 
 type HumanSegment=Omit<BodyOf<"human_input">,"type"|"turn">;
 export interface HumanRecording {
+ recordBattleChoices?():Promise<void>;
+ recordNativeActions?():Promise<void>;
  recordHumanInput(body:HumanSegment):void;
  recordHumanSample(frame:number,paused:boolean,pngBase64:string,state:GameStateSnapshot,forceScreenshot?:boolean):void;
 }
@@ -101,5 +104,19 @@ export function humanSampler(recorder:HumanRecording,url:string,token:string,fet
   for(const segment of segments)recorder.recordHumanInput(segment);
   recorder.recordHumanSample(payload.frame,payload.paused,observation.screenshot_base64,state,forceScreenshot);
   cursor=next;frame=payload.frame;wall=nextWall;
+  await recorder.recordBattleChoices?.();
+  await recorder.recordNativeActions?.();
  };
+}
+
+
+export async function saveHumanCheckpoint(url:string,token:string,runDir:string,fetchFn:typeof fetch=fetch):Promise<void> {
+ const response=await fetchFn(`${url}/pokebench/human/checkpoint`,{method:"POST",headers:{"x-human-token":token},signal:AbortSignal.timeout(5000)});
+ if(!response.ok)throw Error(`Final checkpoint failed (${String(response.status)})`);
+ const payload:unknown=await response.json();
+ if(!object(payload)||!integer(payload.frame)||typeof payload.sha256!=="string"||typeof payload.state_base64!=="string"||! /^[A-Za-z0-9+/]+={0,2}$/.test(payload.state_base64))throw Error("Invalid final checkpoint");
+ const data=Buffer.from(payload.state_base64,"base64");
+ if(data.length===0||data.length>8*1024*1024||createHash("sha256").update(data).digest("hex")!==payload.sha256)throw Error("Final checkpoint integrity failure");
+ writeFileSync(join(runDir,"final.state"),data,{flag:"wx"});
+ writeFileSync(join(runDir,"final-state.json"),JSON.stringify({v:1,frame:payload.frame,sha256:payload.sha256,bytes:data.length,path:"final.state",kind:"native-mgba-state"})+"\n",{flag:"wx"});
 }

@@ -13,6 +13,10 @@ from pokebench_env.game_state import (
     decode_text,
     read_game_state,
 )
+from pokebench_env.party_ownership import PartyOwnership
+from pokebench_env.pokemon import PokemonMove
+from pokebench_env.resources import BAG_POCKETS, BerryTree, PokemonStorage, Resources
+from pokebench_env.running import read_running_permission
 from pokebench_env.story import INITIAL_TRAINER_FLAGS, StoryState
 
 SB1, SB2 = 0x02025A18, 0x02024A6C
@@ -50,7 +54,10 @@ def mon(species: int, level: int, hp: int, max_hp: int, personality: int, ot_id:
     secure = b"".join(
         struct.pack("<I", struct.unpack("<I", plain[i : i + 4])[0] ^ key) for i in range(0, 48, 4)
     )
-    body = struct.pack("<II", personality, ot_id) + bytes(0x18) + secure
+    header = bytearray(struct.pack("<II", personality, ot_id) + bytes(0x18))
+    header[0x13] = 2
+    struct.pack_into("<H", header, 0x1C, sum(struct.unpack("<24H", plain)) & 0xFFFF)
+    body = bytes(header) + secure
     body += bytes(0x54 - len(body)) + struct.pack("<BBHH", level, 0, hp, max_hp)
     return body + bytes(100 - len(body))
 
@@ -65,6 +72,9 @@ def game(screen: tuple[int, int], party: list[bytes] | None = None, badges: int 
     m.put(SB1, struct.pack("<hhbb", 7, 9, 0, 9))
     m.put(SB1 + 0x159C, struct.pack("<64I", *([0x1234] * 64)))
     m.put(SB1 + 0x490, struct.pack("<I", 3000 ^ 0x1234))
+    for _, offset, count in BAG_POCKETS:
+        m.put(SB1 + offset, struct.pack("<HH", 0, 0x1234) * count)
+    m.put(0x03005D94, struct.pack("<I", 0x02010000))
     m.put(
         SB1 + 0x1270 + (0x867 >> 3),
         bytes([badges << (0x867 & 7) & 0xFF, badges >> (8 - (0x867 & 7))]),
@@ -88,7 +98,8 @@ MAPS = MapNames({(0, 9): "LITTLEROOT TOWN"})
 
 def test_overworld_reports_every_field_from_the_save_blocks() -> None:
     party = [mon(280, 5, 18, 20, personality=0x12345671, ot_id=0xCAFEBABE)]
-    state = read_game_state(game(OVERWORLD, party, badges=0b101).read, MAPS)
+    memory = game(OVERWORLD, party, badges=0b101)
+    state = read_game_state(memory.read, MAPS)
     assert state == GameState(
         screen="overworld",
         story=StoryState(
@@ -111,6 +122,22 @@ def test_overworld_reports_every_field_from_the_save_blocks() -> None:
             rustboro_tommy_defeated=False,
             rustboro_marc_defeated=False,
         ),
+        running=read_running_permission(memory.read),
+        party_ownership=PartyOwnership("player", "ordinary_player_party"),
+        resources=Resources(
+            daycare=(),
+            bag=(),
+            pc_items=(),
+            storage=PokemonStorage(0, ()),
+            berry_trees=tuple(
+                BerryTree(i, 0, None, 0, False, 0, 0, 0, (False, False, False, False))
+                for i in range(128)
+            ),
+            planted_berries=0,
+            script_pc=0,
+            script_mode=0,
+            script_status=0,
+        ),
         started=True,
         name="MAY",
         location="LITTLEROOT TOWN",
@@ -118,7 +145,24 @@ def test_overworld_reports_every_field_from_the_save_blocks() -> None:
         position=(7, 9),
         facing="right",
         in_battle=False,
-        party=(PartyMon("TORCHIC", 5, 18, 20, "12345671:cafebabe"),),
+        party=(
+            PartyMon(
+                "TORCHIC",
+                5,
+                18,
+                20,
+                "12345671:cafebabe",
+                280,
+                0x12345671,
+                0xCAFEBABE,
+                False,
+                0,
+                0,
+                0,
+                (PokemonMove(0, 0, 0, None, 0),) * 4,
+                "encrypted",
+            ),
+        ),
         money=3000,
         badges=("STONE", "DYNAMO"),
         play_time=(1, 2, 3),
@@ -137,7 +181,24 @@ def test_overworld_reports_every_field_from_the_save_blocks() -> None:
 def test_every_substructure_order_decrypts(personality: int) -> None:
     party = [mon(286, 3, 9, 12, personality=personality + 24 * 7, ot_id=0x0BADF00D)]
     state = read_game_state(game(OVERWORLD, party).read, MAPS)
-    assert state.party == (PartyMon("POOCHYENA", 3, 9, 12, f"{personality + 24 * 7:08x}:0badf00d"),)
+    assert state.party == (
+        PartyMon(
+            "POOCHYENA",
+            3,
+            9,
+            12,
+            f"{personality + 24 * 7:08x}:0badf00d",
+            286,
+            personality + 24 * 7,
+            0x0BADF00D,
+            False,
+            0,
+            0,
+            0,
+            (PokemonMove(0, 0, 0, None, 0),) * 4,
+            "encrypted",
+        ),
+    )
 
 
 def test_before_the_game_starts_no_save_field_is_reported() -> None:
@@ -187,11 +248,12 @@ def test_unknown_screen_after_start_still_reports_fields_and_flags_battle() -> N
     )
 
 
-def test_an_unreadable_species_is_reported_by_id() -> None:
+def test_an_invalid_species_is_a_diagnostic_harness_bug() -> None:
     party = [mon(999, 5, 1, 1, personality=1, ot_id=2)]
-    assert read_game_state(game(OVERWORLD, party).read, MAPS).party == (
-        PartyMon("species #999", 5, 1, 1, "00000001:00000002"),
-    )
+    result = read_game_state(game(OVERWORLD, party).read, MAPS).party[0]
+    assert result.species is None
+    assert result.diagnostic == "harness bug: Pokémon species out of range: 999"
+    assert result.raw_hex == party[0].hex()
 
 
 def test_a_party_count_above_six_is_an_error() -> None:
@@ -203,7 +265,7 @@ def test_a_party_count_above_six_is_an_error() -> None:
 
 def test_decode_text_stops_at_the_terminator_and_marks_unknown_bytes() -> None:
     assert decode_text(text("MR. MIME") + b"\xff" + text("X")) == "MR. MIME"
-    assert decode_text(bytes([0x01])) == "?"
+    assert decode_text(bytes([0x01])) == "À"
 
 
 def test_species_names_live_in_the_rom_table() -> None:

@@ -1,7 +1,7 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import { describe, expect, it, vi } from "vitest";
 import { IN_GAME } from "../test-support/events.js";
-import { ALL_TOOL_SWITCHES, PRESS_TIMING, SmokeError, checkSmoke, observeTool, pressTool, serverHealthy, waitForQueue } from "./game-tools.js";
+import { ALL_TOOL_SWITCHES, PRESS_TIMING, SmokeError, checkSmoke, observeTool, permitsAutomaticRunning, pressTool, serverHealthy, waitForQueue } from "./game-tools.js";
 
 const SERVER = "http://127.0.0.1:8000";
 
@@ -345,4 +345,50 @@ it("delivers verified named interaction text with typed names through the real o
  const body=observationBody({state:{...IN_GAME,interaction_targets:[{...schemaTarget,name:"Wall clock"},{...schemaTarget,name:null}]},state_text:text});
  const result=await observeTool(SERVER,serving(body)).execute("named",{});
  expect(result.content[1]).toEqual({type:"text",text});
+});
+
+describe("automatic running eligibility", () => {
+  const running = { permitted:true, controllable:true, reason:"permitted", shoes:true, allow_running:true, avatar_flags:1, metatile:0, elevation:3, map_type:3, callback1:0x08085E05, callback2:0x08085E5D, diagnostic:null, raw_hex:null };
+  const field = {...IN_GAME,screen:"overworld",in_battle:false,field_controls_locked:false,active_ui:null,running};
+  it("requires independent opt-in and preserves deliberate walking",()=>{
+    expect(permitsAutomaticRunning(field,["UP"],false,true)).toBe(true);
+    expect(permitsAutomaticRunning(field,["UP"],true,true)).toBe(false);
+    expect(permitsAutomaticRunning(field,["UP"],false,false)).toBe(false);
+    expect(permitsAutomaticRunning(field,["UP"],false,undefined)).toBe(false);
+  });
+  it("only qualifies directions and explicit native control permission",()=>{
+    for(const buttons of [["A"],["UP","A"],["UP","B"],["START"],[]] as const)expect(permitsAutomaticRunning(field,buttons,false,true)).toBe(false);
+    for(const before of [undefined,{...field,running:null},{...field,running:{...running,permitted:null}},{...field,running:{...running,controllable:false}},{...field,screen:"field_transition"},{...field,in_battle:true},{...field,field_controls_locked:true},{...field,active_ui:{phase:"start_menu",selected:"BAG",ready:true,controls:"A",diagnostic:null}}])expect(permitsAutomaticRunning(before,["UP"],false,true)).toBe(false);
+  });
+});
+
+it("requests guarded simultaneous running and records the modifier separately from sequential buttons",async()=>{
+ const running={permitted:true,controllable:true,reason:"permitted",shoes:true,allow_running:true,avatar_flags:1,metatile:0,elevation:3,map_type:3,callback1:0x08085E05,callback2:0x08085E5D,diagnostic:null,raw_hex:null};
+ const before={...IN_GAME,screen:"overworld",in_battle:false,field_controls_locked:false,active_ui:null,running};
+ const bodies:unknown[]=[];const beforePress=vi.fn();
+ const fetchFn=routes({"/pokebench/state":before,"/action":(init:RequestInit|undefined)=>{bodies.push(JSON.parse(typeof init?.body === "string" ? init.body : "{}") as unknown);return {status:"success"};},"/pokebench/travel":(init:RequestInit|undefined)=>{bodies.push(JSON.parse(typeof init?.body === "string" ? init.body : "{}") as unknown);return {status:"success"};},"/queue_status":{queue_empty:true},"/pokebench/observation":observationBody({state:before})});
+ const tool=pressTool(SERVER,{beforePress,afterPress:()=>Promise.resolve()},fetchFn,instant,{...ALL_TOOL_SWITCHES,automaticRunning:true});
+ await tool.execute("run",{buttons:["UP"]});
+ await tool.execute("walk",{buttons:["UP"],walking:true});
+ await tool.execute("manual",{buttons:["UP","B"]});
+ expect(bodies).toEqual([{buttons:["UP"],...PRESS_TIMING,automatic_running:true},{buttons:["UP"],...PRESS_TIMING},{buttons:["UP","B"],...PRESS_TIMING}]);
+ expect(beforePress.mock.calls[0]?.[1]).toEqual(["UP"]);
+ expect(beforePress.mock.calls[0]?.[4]).toEqual({automatic_running:true,walking:false,requested_held_buttons:["B"]});
+ expect(beforePress.mock.calls[1]?.[4]).toEqual({automatic_running:false,walking:true});
+});
+it.each([true,false])("records and submits actual interaction inputs with safety %s",async(safeInterfaces)=>{
+ const sent:unknown[]=[];let actual:readonly string[]=[];
+ const fetchFn=routes({"/pokebench/state":IN_GAME,"/action":(init:RequestInit|undefined)=>{if(typeof init?.body!=="string")throw new Error("Expected JSON action body");sent.push(JSON.parse(init.body) as unknown);return {status:"success"};},"/queue_status":{queue_empty:true},"/pokebench/observation":observationBody()});
+ const hooks={beforePress:(_id:string,buttons:readonly string[])=>{actual=buttons;},afterPress:()=>Promise.resolve()};
+ const result=await pressTool(SERVER,hooks,fetchFn,instant,{...ALL_TOOL_SWITCHES,safeInterfaces}).execute("safe",{buttons:["A","A","A"]});
+ expect(actual).toEqual(safeInterfaces?["A"]:["A","A","A"]);
+ expect(sent).toEqual([{buttons:actual,...PRESS_TIMING}]);
+ const text=result.content[1];if(text?.type!=="text")throw new Error("Missing input receipt");expect(text.text).toContain(safeInterfaces?"remaining inputs were not sent":"pressed A, A, A");
+});
+it("keeps free-field movement batches but bounds locked or unavailable movement",async()=>{
+ for(const [state,expected] of [[{...IN_GAME,field_controls_locked:false},["RIGHT","RIGHT"]],[{...IN_GAME,field_controls_locked:true},["RIGHT"]],[{...IN_GAME,screen:"unknown",field_controls_locked:null},["RIGHT"]]] as const){
+  let actual:readonly string[]=[];const fetchFn=routes({"/pokebench/state":state,"/action":{status:"success"},"/queue_status":{queue_empty:true},"/pokebench/observation":observationBody()});
+  await pressTool(SERVER,{beforePress:(_id,buttons)=>{actual=buttons;},afterPress:()=>Promise.resolve()},fetchFn,instant,{...ALL_TOOL_SWITCHES,safeInterfaces:true}).execute("safe",{buttons:["RIGHT","RIGHT"]});
+  expect(actual).toEqual(expected);
+ }
 });

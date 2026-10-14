@@ -13,6 +13,8 @@ import { applyHistoricalProvenance } from "./frontier-provenance.js";
 import { parseNavigationReceipt } from "./frontier-queue.js";
 import { dirname } from "node:path";
 import { eventsPath, listRuns, readStart } from "./runs.js";
+import { parseLedger } from "@pokebench/agent/experiments";
+import { readRunner } from "./experiment-store.js";
 import type { HealthProbe, QueueStatus } from "./next-run.js";
 import type { WorkbenchConfig, WorkbenchData, WorkbenchQueueItem, WorkbenchRun } from "./workbench-data.js";
 const MAX_PLAN_BYTES = 1024 * 1024;
@@ -122,7 +124,34 @@ async function cohortQueue(root: string): Promise<{ items: WorkbenchQueueItem[];
       for (const trial of m.trials) if (!completed.has(trial.runId)) items.push({ id: trial.runId, cohort: m.id, model: m.lanes.find(l => l.id === trial.lane)?.model ?? null, arm: trial.arm, status: active ? (launched.has(trial.runId) ? "launching" : "queued") : "withheld", reason: active ? "Serial cohort execution" : "Coordinator is not executing; remaining trials have not been scheduled" });
     } catch (error) { problems.push(`Comparison receipt: ${errorText(error)}`); }
   }
+  experimentCohorts(root, items, failures, membership, problems);
   return { items, failures, membership, problems };
+}
+// Experiment-queue ledgers (runs/experiments/<id>/trials.jsonl): every launched run joins the
+// experiment's cohort, launcher errors are excluded, and trials with no outcome are listed.
+function experimentCohorts(root: string, items: WorkbenchQueueItem[], failures: Map<string, string>, membership: Map<string, string>, problems: string[]): void {
+  const base = join(root, "experiments");
+  if (!existsSync(base)) return;
+  const runner = readRunner(root);
+  for (const entry of readdirSync(base, { withFileTypes: true })) {
+    const path = join(base, entry.name, "trials.jsonl");
+    if (!entry.isDirectory() || !existsSync(path)) continue;
+    try {
+      if (lstatSync(path).isSymbolicLink() || statSync(path).size > MAX_PLAN_BYTES) throw new Error("Experiment ledger exceeds metadata bounds");
+      const { entries, problems: bad } = parseLedger(readFileSync(path, "utf8"));
+      problems.push(...bad.map(p => `Experiment ${entry.name} ledger ${p}`));
+      const cohort = `experiment:${entry.name}`;
+      for (const e of entries) {
+        membership.set(e.run, cohort);
+        if (e.type === "launcher_error") failures.set(e.run, `Launcher outcome: ${e.message}`);
+      }
+      for (const launch of entries) {
+        if (launch.type !== "launch" || entries.some(e => e.run === launch.run && e.type !== "launch")) continue;
+        const running = runner?.experiment === entry.name && runner.trial === launch.trial;
+        items.push({ id: launch.run, cohort, model: launch.model ?? null, arm: launch.arm, status: running ? "running" : "withheld", reason: running ? "Experiment queue trial running" : "Experiment queue trial with no recorded outcome; the runner is not on it" });
+      }
+    } catch (error) { problems.push(`Experiment ${entry.name} ledger: ${errorText(error)}`); }
+  }
 }
 export async function workbenchSnapshot(root: string, healthy: HealthProbe, queue: QueueStatus, now: number): Promise<WorkbenchData> {
   const cohorts = await cohortQueue(root); const summaries = listRuns(root);

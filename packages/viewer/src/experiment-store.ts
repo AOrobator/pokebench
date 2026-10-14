@@ -35,6 +35,7 @@ export interface ArmSummary {
   readonly reachedPer1kTurns: number | null;
 }
 export interface RecordedReadiness { readonly verdict: string; readonly evidence: string }
+export interface ResultSummary { readonly verdict: string; readonly recommendation: string; readonly eligible: boolean; readonly problems: readonly string[] }
 export interface ExperimentView {
   readonly id: string;
   readonly title: string;
@@ -57,6 +58,8 @@ export interface ExperimentView {
   readonly trials: readonly TrialView[];
   readonly arms: { readonly incumbent: ArmSummary; readonly candidate: ArmSummary };
   readonly notes: string | null;
+  // The graded comparison, once result.json holds one.
+  readonly result: ResultSummary | null;
 }
 export interface QueueSnapshot {
   readonly queue: readonly ExperimentView[];
@@ -150,9 +153,9 @@ function ledgerOf(runsRoot: string, id: string, problems: string[]): LedgerEntry
   return entries;
 }
 
-export function experimentView(e: Experiment, input: { approval: Approval | null; ledger: readonly LedgerEntry[]; runner: RunnerPosition | null; recent: readonly ReadinessRun[]; source: RunSource; recorded: RecordedReadiness | null; graded: boolean }): ExperimentView {
+export function experimentView(e: Experiment, input: { approval: Approval | null; ledger: readonly LedgerEntry[]; runner: RunnerPosition | null; recent: readonly ReadinessRun[]; source: RunSource; recorded: RecordedReadiness | null; result: ResultSummary | null }): ExperimentView {
   const readiness = readinessOf(e, input.recent);
-  const status = deriveStatus({ experiment: e, approval: input.approval, ledger: input.ledger, runner: input.runner, readiness, graded: input.graded });
+  const status = deriveStatus({ experiment: e, approval: input.approval, ledger: input.ledger, runner: input.runner, readiness, graded: input.result !== null });
   const metrics = (run: string | null): TrialMetrics | null => (run === null ? null : input.source.trial(run));
   const trials: TrialView[] = status.trials.map((t) => {
     const m = t.state === "done" ? metrics(t.run) : null;
@@ -165,18 +168,24 @@ export function experimentView(e: Experiment, input: { approval: Approval | null
     source: e.source, trialsPerArm: e.trialsPerArm, modelLane: e.modelLane, budgetMs: e.budget.maxWallMs, usedMs,
     state: status.state, reason: status.reason, approved: input.approval !== null && input.approval.sha256 === definitionHash(e), readiness, recorded: input.recorded, trials,
     arms: { incumbent: arm(trials.filter((t) => t.arm === "incumbent")), candidate: arm(trials.filter((t) => t.arm === "candidate")) },
-    notes: e.notes ?? null,
+    notes: e.notes ?? null, result: input.result,
   };
 }
 
 // Graded means result.json is a file holding a comparison result, not only a grading problem.
-export function gradedResult(path: string): boolean {
+export function gradedResult(path: string): ResultSummary | null {
   try {
-    if (!statSync(path).isFile()) return false;
+    if (!statSync(path).isFile()) return null;
     const value: unknown = JSON.parse(readFileSync(path, "utf8"));
-    return typeof value === "object" && value !== null && "result" in value && typeof value.result === "object" && value.result !== null;
+    if (typeof value !== "object" || value === null || !("result" in value)) return null;
+    const r = value.result;
+    if (typeof r !== "object" || r === null) return null;
+    const get = (k: string): unknown => (r as Record<string, unknown>)[k];
+    const problems = get("problems");
+    const text = (v: unknown): string => (typeof v === "string" ? v : "unknown");
+    return { verdict: text(get("verdict")), recommendation: text(get("recommendation")), eligible: get("eligible") === true, problems: Array.isArray(problems) ? problems.filter((p): p is string => typeof p === "string") : [] };
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -201,7 +210,7 @@ export function queueSnapshot(paths: QueuePaths, source: RunSource, alive: (pid:
   const recorded = existsSync(paths.readinessPath) ? parseReadinessDoc(readFileSync(paths.readinessPath, "utf8")) : new Map<string, RecordedReadiness>();
   const runner = readRunner(paths.runsRoot, alive);
   const recent = experiments.length === 0 ? [] : source.recent();
-  const views = experiments.map((e) => experimentView(e, { approval: approvalOf(paths.runsRoot, e.id, problems), ledger: ledgerOf(paths.runsRoot, e.id, problems), runner, recent, source, recorded: recorded.get(e.changedFeature) ?? null, graded: gradedResult(join(experimentDir(paths.runsRoot, e.id), "result.json")) }));
+  const views = experiments.map((e) => experimentView(e, { approval: approvalOf(paths.runsRoot, e.id, problems), ledger: ledgerOf(paths.runsRoot, e.id, problems), runner, recent, source, recorded: recorded.get(e.changedFeature) ?? null, result: gradedResult(join(experimentDir(paths.runsRoot, e.id), "result.json")) }));
   const positions = new Map<number, string>();
   for (const v of views) {
     if (v.queuePosition === null) continue;

@@ -6,10 +6,10 @@ import type { ArmSummary, ExperimentView, QueueSnapshot, TrialView } from "./exp
 import { esc } from "./format.js";
 
 export const QUEUE_POLL_MS = 15_000;
-export type QueueFilter = "all" | "running" | "held" | "approved" | "draft" | "stale" | "not-ready" | "pending" | "closed";
+export type QueueFilter = "all" | "running" | "held" | "approved" | "draft" | "stale" | "not-ready" | "blocked" | "pending" | "closed";
 const FILTERS: readonly { readonly id: QueueFilter; readonly label: string }[] = [
   { id: "all", label: "ALL" }, { id: "running", label: "RUNNING" }, { id: "held", label: "HELD" }, { id: "approved", label: "APPROVED" },
-  { id: "draft", label: "DRAFT" }, { id: "stale", label: "STALE" }, { id: "not-ready", label: "NOT READY" }, { id: "pending", label: "PENDING" }, { id: "closed", label: "DONE" },
+  { id: "draft", label: "DRAFT" }, { id: "stale", label: "STALE" }, { id: "not-ready", label: "NOT READY" }, { id: "blocked", label: "BLOCKED" }, { id: "pending", label: "PENDING" }, { id: "closed", label: "DONE" },
 ];
 const LABEL: Readonly<Record<string, string>> = { running: "RUNNING", held: "HELD", approved: "APPROVED", draft: "DRAFT", stale: "STALE", "not-ready": "NOT READY", pending: "PENDING", blocked: "BLOCKED", done: "DONE", discarded: "DISCARDED" };
 
@@ -22,14 +22,23 @@ function armOk(v: unknown): boolean {
 function trialOk(v: unknown): boolean {
   return isRecord(v) && isNum(v["index"]) && (v["arm"] === "incumbent" || v["arm"] === "candidate") && typeof v["state"] === "string" && (v["reachedPrimary"] === null || typeof v["reachedPrimary"] === "boolean") && numOrNull(v["primaryMs"]) && numOrNull(v["turns"]);
 }
+const isStrings = (v: unknown): boolean => Array.isArray(v) && v.every((x) => typeof x === "string");
+function readinessOk(r: unknown): boolean {
+  return isRecord(r) && typeof r["ready"] === "boolean" && (r["basis"] === "comparable" || r["basis"] === "recent") && typeof r["milestone"] === "string" &&
+    isNum(r["reached"]) && isNum(r["window"]) && isNum(r["minReached"]) && isStrings(r["considered"]);
+}
+function resultOk(r: unknown): boolean {
+  return r === null || (isRecord(r) && typeof r["verdict"] === "string" && typeof r["recommendation"] === "string" && typeof r["eligible"] === "boolean" && isStrings(r["problems"]));
+}
 function viewOk(v: unknown): boolean {
   if (!isRecord(v)) return false;
   const strings = ["id", "title", "changedFeature", "hypothesis", "activationMilestone", "primaryMilestone", "modelLane", "state", "reason"];
-  const readiness = v["readiness"], arms = v["arms"], source = v["source"];
+  const arms = v["arms"], source = v["source"], recorded = v["recorded"];
   return strings.every((k) => typeof v[k] === "string") && numOrNull(v["queuePosition"]) && isNum(v["trialsPerArm"]) && isNum(v["budgetMs"]) && isNum(v["usedMs"]) &&
     typeof v["approved"] === "boolean" && typeof v["incumbentOn"] === "boolean" && Array.isArray(v["trials"]) && v["trials"].every(trialOk) &&
     isRecord(arms) && armOk(arms["incumbent"]) && armOk(arms["candidate"]) && isRecord(source) && typeof source["commit"] === "string" &&
-    isRecord(readiness) && typeof readiness["ready"] === "boolean" && isNum(readiness["reached"]) && isNum(readiness["window"]);
+    readinessOk(v["readiness"]) && (recorded === null || (isRecord(recorded) && typeof recorded["verdict"] === "string" && typeof recorded["evidence"] === "string")) &&
+    (v["notes"] === null || typeof v["notes"] === "string") && resultOk(v["result"]);
 }
 // JSON from /api/experiments into a typed snapshot.
 export function queueSnapshotOf(value: unknown): QueueSnapshot {
@@ -40,6 +49,8 @@ export function queueSnapshotOf(value: unknown): QueueSnapshot {
     if (!Array.isArray(list) || !list.every(viewOk)) throw new Error(`malformed /api/experiments ${key}`);
   }
   if (!Array.isArray(value["problems"]) || !value["problems"].every((p) => typeof p === "string")) throw new Error("malformed /api/experiments problems");
+  const runner = value["runner"];
+  if (runner !== null && !(isRecord(runner) && typeof runner["experiment"] === "string" && isNum(runner["trial"]))) throw new Error("malformed /api/experiments runner");
   return value as unknown as QueueSnapshot;
 }
 
@@ -61,7 +72,7 @@ function hp(v: ExperimentView): string {
     const width = v.trialsPerArm === 0 ? 0 : Math.min(100, (a.reached / v.trialsPerArm) * 100);
     return `<span>${label}</span><span class="eq-hb"><i class="${cls}" style="width:${width.toFixed(0)}%"></i></span><span>${String(a.reached)}/${String(a.finished)}</span>`;
   };
-  return `<div class="eq-hp" aria-label="reached ${esc(v.primaryMilestone)}">${bar("A", v.arms.incumbent, "")}${bar("B", v.arms.candidate, "b")}</div>`;
+  return `<span class="eq-hp" aria-label="reached ${esc(v.primaryMilestone)}">${bar("A", v.arms.incumbent, "")}${bar("B", v.arms.candidate, "b")}</span>`;
 }
 
 function side(v: ExperimentView, arm: "incumbent" | "candidate"): string {
@@ -78,7 +89,7 @@ function readinessLine(v: ExperimentView): string {
 function battle(v: ExperimentView): string {
   return `<div class="eq-battle"><div class="eq-vs">${side(v, "incumbent")}<b class="eq-vsb">VS</b>${side(v, "candidate")}</div>` +
     `<p class="eq-why">${esc(v.reason)}</p><dl class="eq-facts"><dt>hypothesis</dt><dd>${esc(v.hypothesis)}</dd><dt>graded on</dt><dd>${esc(v.primaryMilestone)}</dd><dt>acts at</dt><dd>${esc(v.activationMilestone)} · ${readinessLine(v)}</dd>` +
-    `<dt>build</dt><dd>main @ ${esc(v.source.commit.slice(0, 7))}</dd><dt>budget</dt><dd>${(v.usedMs / 3_600_000).toFixed(1)} of ${(v.budgetMs / 3_600_000).toFixed(1)} h</dd>${v.recorded === null ? "" : `<dt>readiness.md</dt><dd>${esc(v.recorded.verdict)}</dd>`}</dl></div>`;
+    `${v.result === null ? "" : `<dt>verdict</dt><dd>${esc(v.result.verdict.toUpperCase())} → ${esc(v.result.recommendation.toUpperCase().replace(/_/g, " "))}${v.result.eligible ? "" : ` (not eligible: ${v.result.problems.map(esc).join("; ")})`}</dd>`}<dt>build</dt><dd>main @ ${esc(v.source.commit.slice(0, 7))}</dd><dt>budget</dt><dd>${(v.usedMs / 3_600_000).toFixed(1)} of ${(v.budgetMs / 3_600_000).toFixed(1)} h</dd>${v.recorded === null ? "" : `<dt>readiness.md</dt><dd>${esc(v.recorded.verdict)}</dd>`}</dl></div>`;
 }
 
 function slot(v: ExperimentView, open: boolean): string {
@@ -97,7 +108,7 @@ function pendingCard(v: ExperimentView, open: boolean): string {
 }
 
 export function countsOf(s: QueueSnapshot): Readonly<Record<QueueFilter, number>> {
-  const counts: Record<QueueFilter, number> = { all: s.queue.length + s.pending.length + s.closed.length, running: 0, held: 0, approved: 0, draft: 0, stale: 0, "not-ready": 0, pending: s.pending.length, closed: s.closed.length };
+  const counts: Record<QueueFilter, number> = { all: s.queue.length + s.pending.length + s.closed.length, running: 0, held: 0, approved: 0, draft: 0, stale: 0, "not-ready": 0, blocked: 0, pending: s.pending.length, closed: s.closed.length };
   for (const v of s.queue) if (v.state in counts && v.state !== "pending") counts[v.state as QueueFilter] += 1;
   return counts;
 }
@@ -162,9 +173,13 @@ export class QueuePanel {
   render(): void {
     if (this.snapshot === null) return;
     const html = renderQueue(this.snapshot, this.filter, this.open);
+    // Re-rendering replaces the buttons; keep keyboard focus on the same control.
+    const active = this.root.ownerDocument.activeElement;
+    const focused = active instanceof HTMLElement && this.root.contains(active) ? (active.dataset["toggle"] !== undefined ? `[data-toggle="${active.dataset["toggle"]}"]` : active.dataset["filter"] !== undefined ? `[data-filter="${active.dataset["filter"]}"]` : null) : null;
     for (const name of ["chips", "queue", "pending"] as const) {
       const element = this.part(name);
       if (element !== null && element.innerHTML !== html[name]) element.innerHTML = html[name];
     }
+    if (focused !== null && this.root.ownerDocument.activeElement !== active) this.root.querySelector<HTMLElement>(focused)?.focus();
   }
 }

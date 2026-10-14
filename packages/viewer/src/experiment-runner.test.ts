@@ -36,7 +36,7 @@ function writeRun(paths: QueuePaths, runId: string, features: typeof QUEUE_FEATU
 // Every trial of an 8-per-arm experiment finished, written in one pass (no orchestration).
 function seedFinished(paths: QueuePaths, metrics: Map<string, TrialMetrics>): void {
   const order = "ABBAABBAABBAABBA";
-  const rows = [...order].flatMap((a, i) => {
+  const rows = Array.from(order).flatMap((a, i) => {
     const run = `done-${String(i)}`, arm = a === "A" ? "incumbent" : "candidate";
     writeRun(paths, run, a === "A" ? QUEUE_FEATURES : { ...QUEUE_FEATURES, "full-map-navigation-v1": true });
     metrics.set(run, { reached: [], milestoneMs: {}, turns: 9, wallMs: 60_000 });

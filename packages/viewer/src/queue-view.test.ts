@@ -35,7 +35,8 @@ describe("experiment queue view", () => {
     expect(() => queueSnapshotOf({ ...SNAPSHOT, queue: [{ ...view("x"), trials: [{ index: "0" }] }] })).toThrow("malformed /api/experiments queue");
     expect(() => queueSnapshotOf({ ...SNAPSHOT, queue: [{ ...view("x"), arms: { incumbent: {}, candidate: {} } }] })).toThrow("malformed /api/experiments queue");
     expect(() => queueSnapshotOf({ ...SNAPSHOT, problems: [1] })).toThrow("malformed /api/experiments problems");
-    const { considered: _gone, ...noConsidered } = view("x").readiness;
+    const noConsidered: Record<string, unknown> = { ...view("x").readiness };
+    delete noConsidered["considered"];
     expect(() => queueSnapshotOf({ ...SNAPSHOT, queue: [{ ...view("x"), readiness: noConsidered }] })).toThrow("malformed /api/experiments queue");
     expect(() => queueSnapshotOf({ ...SNAPSHOT, queue: [{ ...view("x"), readiness: { ...view("x").readiness, basis: "other" } }] })).toThrow("malformed /api/experiments queue");
     expect(() => queueSnapshotOf({ ...SNAPSHOT, queue: [{ ...view("x"), recorded: "READY" }] })).toThrow("malformed /api/experiments queue");
@@ -124,6 +125,15 @@ describe("experiment queue view", () => {
     root.querySelector<HTMLElement>('[data-toggle="full"]')?.click();
     expect(root.querySelector('[data-experiment="full"] .eq-battle')).not.toBeNull();
     expect(root.querySelector('[data-toggle="full"]')?.getAttribute("aria-expanded")).toBe("true");
+    // Keyboard users keep focus on the control they used after the slot re-renders.
+    root.querySelector<HTMLElement>('[data-toggle="elev"]')?.focus();
+    root.querySelector<HTMLElement>('[data-toggle="elev"]')?.click();
+    expect((document.activeElement as HTMLElement | null)?.dataset["toggle"]).toBe("elev");
+    root.querySelector<HTMLElement>('[data-filter="draft"]')?.focus();
+    root.querySelector<HTMLElement>('[data-filter="draft"]')?.click();
+    expect((document.activeElement as HTMLElement | null)?.dataset["filter"]).toBe("draft");
+    root.querySelector<HTMLElement>('[data-filter="all"]')?.click();
+    root.querySelector<HTMLElement>('[data-toggle="elev"]')?.click();
     root.querySelector<HTMLElement>('[data-toggle="full"] .eq-name')?.click();
     expect(root.querySelector('[data-experiment="full"] .eq-battle')).toBeNull();
     root.querySelector<HTMLElement>('[data-filter="pending"] b')?.click();

@@ -129,7 +129,7 @@ export function trialProgress(experiment:Experiment,ledger:readonly LedgerEntry[
 
 export type ExperimentState="discarded"|"pending"|"blocked"|"not-ready"|"draft"|"stale"|"approved"|"running"|"held"|"done";
 export interface ExperimentStatus {readonly state:ExperimentState;readonly reason:string;readonly trials:readonly TrialProgress[];readonly completed:number}
-// graded: result.json has been written for this experiment.
+// graded: result.json holds a comparison result (not only a grading problem).
 export interface StatusInput {readonly experiment:Experiment;readonly approval:Approval|null;readonly ledger:readonly LedgerEntry[];readonly runner:RunnerPosition|null;readonly readiness:Readiness;readonly graded?:boolean}
 
 export function readinessText(r:Readiness):string {

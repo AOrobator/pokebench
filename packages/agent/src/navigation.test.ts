@@ -155,7 +155,7 @@ it("passes the grass cost port through to the planner",async()=>{
  expect(await first(undefined)).toEqual(await first(false));
 });
 it("prices a ledge hop that lands in grass at one step plus the grass step",()=>{
- const landing=(behavior:number)=>ledgeField(0x3b,{tiles:[tile(1,0),tile(1,1,1,0x3b),tile(1,2,0,behavior),tile(0,0),tile(0,1),tile(0,2,0,2),tile(0,3),tile(1,3)]});
- expect(planNavigation(landing(2),{x:1,y:3},{ledges:true,grassCost:true})).toEqual(["DOWN","DOWN"]);
- expect(planNavigation(landing(0),{x:1,y:3},{ledges:true,grassCost:true})).toEqual(["DOWN","DOWN"]);
+ const twin=ledgeField(0x3b,{tiles:[tile(1,0),tile(2,0),tile(1,1,1,0x3b),tile(2,1,1,0x3b),tile(1,2,0,2),tile(2,2),tile(2,3)]});
+ expect(planNavigation(twin,{x:2,y:3},{ledges:true})).toEqual(["DOWN","RIGHT","DOWN"]);
+ expect(planNavigation(twin,{x:2,y:3},{ledges:true,grassCost:true})).toEqual(["RIGHT","DOWN","DOWN"]);
 });

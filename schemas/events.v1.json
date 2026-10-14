@@ -1807,6 +1807,10 @@
           "type": "string",
           "const": "tool_result"
         },
+        "state_seq": {
+          "type": "integer",
+          "minimum": 0
+        },
         "id": {
           "type": "string"
         },

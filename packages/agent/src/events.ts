@@ -133,6 +133,7 @@ const HumanSample = event("human_sample", {
 const NavigationContext = event("navigation_context", {text:Type.String({maxLength:6500}),evidence:Type.Array(NonNegativeInt,{maxItems:36,uniqueItems:true})});
 
 const ToolResult = event("tool_result", {
+  state_seq: Type.Optional(NonNegativeInt),
   id: Type.String(),
   name: Type.String(),
   is_error: Type.Boolean(),

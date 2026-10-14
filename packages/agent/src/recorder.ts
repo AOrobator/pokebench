@@ -251,10 +251,11 @@ export class RunRecorder {
     if (startedAt === undefined) throw new RecorderError(`tool result for ${id} without a recorded call`);
     this.toolStarts.delete(id);
     const payload = toolResultPayload(result);
+    let stateSeq:number|undefined;
     // Reuse the state paired with the exact returned frame/text, including an
     // observe-only turn and play runs with objective tracking disabled.
     if ((name === "observe" || name === "press" || name === "navigate_to" || name === "act") && isRecord(result) && isRecord(result.details) && result.details.state !== undefined) {
-      try { this.recordState(parseGameState(result.details.state)); }
+      try { stateSeq=this.recordState(parseGameState(result.details.state)).seq; }
       catch (error) { this.telemetryError("state", error); }
     }
     const seq = this.log.nextSeq;
@@ -274,6 +275,7 @@ export class RunRecorder {
     });
     this.append({
       type: "tool_result",
+      ...(stateSeq===undefined?{}:{state_seq:stateSeq}),
       turn: this.turn,
       id,
       name,

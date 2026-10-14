@@ -44,7 +44,7 @@ it("rejects each recorded screenshot identity and temporal mismatch independentl
   expect(()=>verifiedVisuals(plan,start,f.plan.logSha256,new Map([[sample.seq,bad]]))).toThrow("screenshot event");
  }
  const future={...sample,seq:2};
- const futurePlan={...plan,milestones:plan.milestones.map(m=>({...m,screenshots:[...m.screenshots,{...m.screenshots[0]!,seq:2}]}))};
+ const futurePlan={...plan,milestones:plan.milestones.map(m=>({...m,screenshots:[...m.screenshots,{seq:2,path:sample.screenshot.path,sha1:sample.screenshot.sha1}]}))};
  expect(()=>verifiedVisuals(futurePlan,start,f.plan.logSha256,new Map([[1,sample],[2,future]]))).toThrow("screenshot event");
 });
 it("rejects realpath escapes even when the schema path and image digest match",()=>{

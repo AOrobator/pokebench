@@ -795,3 +795,9 @@ it("opens the requested run stream without scanning historical comparisons or fe
  document.querySelector<HTMLButtonElement>('[data-page="splits"]')?.click();await Promise.resolve();
  expect(requested.filter(url=>url.endsWith("/comparisons"))).toHaveLength(1);
 });
+
+it("opens the selected run configuration without changing playback or writing next-run settings",async()=>{
+ const {app,streams}=await harness(`#run=${M4_ID}`);const log=new Log();log.add(0,{...START,model:{...START.model,id:"recorded-current-model"},harness_features:["navigation-evidence-memory-v1"]});feed(must(streams[0]),log.events);app.tick(1000);
+ const clock=app.clock;must(document.querySelector<HTMLButtonElement>('[data-page="config"]')).click();
+ expect(document.querySelector<HTMLElement>('[data-nav-page="config"]')?.hidden).toBe(false);expect(ui("harness-config").textContent).toContain("recorded-current-model");expect(ui("harness-config").textContent).toContain("navigation-evidence-memory-v1");expect(ui("harness-config").querySelector("input,select,textarea,button,form")).toBeNull();expect(app.clock).toBe(clock);expect(streams).toHaveLength(1);
+});

@@ -67,3 +67,5 @@ The repo is local only (operator decision 2026-10-14). It has no remote. Never p
 ## Explainers
 
 Every new feature or switch gets an explainer page with diagrams. Use `.claude/skills/feature-explainer/SKILL.md`. Explainers stay local: no claude.ai artifacts or hosted preview links.
+
+Every report that mentions an explainer must give the operator a clickable link. In a project thread, send the HTML with `SendUserFile`, which copies it into the project's shared folder and reports its path (`/mnt/project-files/<name>-<timestamp>-<id>.html`; the suffix is added for you, so use the reported path, never a guessed one). Link that exact path in the reply text and list it in the reply's `attached_outputs` as a `file`. Then add the local `open ~/dev/pokebench/<path>.html` command as a fallback, never instead of the link. Local paths alone (`/private/tmp/...`, `~/dev/...`) are not clickable in a thread.

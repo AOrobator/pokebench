@@ -1,0 +1,24 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Current-run harness configuration</title><style>:root{color-scheme:light dark;--bg:#f5f3e9;--ink:#263323;--box:#fff;--line:#537b46}@media(prefers-color-scheme:dark){:root{--bg:#18221a;--ink:#e6eedf;--box:#233026;--line:#93bd7a}}body{max-width:960px;margin:auto;padding:28px;background:var(--bg);color:var(--ink);font:17px/1.5 system-ui}figure{margin:24px 0;padding:18px;background:var(--box);border:1px solid var(--line);border-radius:12px}svg{width:100%;height:auto}rect{fill:var(--box);stroke:var(--line);stroke-width:2}text{fill:var(--ink);font:16px system-ui}path{stroke:var(--line);stroke-width:2;fill:none}pre{padding:18px;background:var(--box);white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.5 ui-monospace,monospace}code{overflow-wrap:anywhere}</style><h1>This run’s settings, without editing them</h1><p>PokéNav → <strong>HARNESS CONFIG</strong> shows the selected live or replayed run’s recorded configuration. It is separate from ★ NEXT RUN and has no editing controls.</p><figure><svg viewBox="0 0 880 210" role="img" aria-label="Recorded run settings feed a read-only page; next-run draft feeds a separate editor"><rect x="5" y="10" width="300" height="70" rx="10"/><text x="20" y="40">Selected run’s run_start event</text><text x="20" y="64">Source of recorded configuration</text><path d="M305 45H440"/><text x="322" y="30">read only</text><rect x="440" y="10" width="430" height="70" rx="10"/><text x="458" y="50">HARNESS CONFIG · no write requests</text><rect x="5" y="125" width="300" height="70" rx="10"/><text x="20" y="165">Editable next-run draft</text><path d="M305 160H440"/><text x="326" y="144">separate</text><rect x="440" y="125" width="430" height="70" rx="10"/><text x="458" y="165">★ NEXT RUN · changes future runs</text></svg><figcaption>Opening the configuration page preserves the current stream and replay position.</figcaption></figure><h2>What is displayed</h2><p>Run ID, model/context/vision, thinking and output-token cap, time/turn/failure limits, preset, milestone stop, source and dirty status, start type, vendor/pi versions, tools, recorded switches and enabled feature IDs. Expand the recorded prompt or raw run header for exact details.</p><h2>A real recorded example</h2><p>Selected fields from run <code>2026-10-14T15-15-35_think-fast_00aa</code>. The page reads these values from that run, not from today’s next-run defaults. The excerpt omits other run-header fields.</p><pre>{
+  &quot;model&quot;: {
+    &quot;id&quot;: &quot;think-fast&quot;
+  },
+  &quot;harness&quot;: {
+    &quot;commit&quot;: &quot;2c46415dea95f8bad62df51208afc98a02f5603f&quot;,
+    &quot;dirty&quot;: false
+  },
+  &quot;evaluation&quot;: {
+    &quot;preset_id&quot;: &quot;navigation-memory-n4-on&quot;,
+    &quot;target&quot;: null,
+    &quot;failure_limit&quot;: 3,
+    &quot;flags&quot;: {
+      &quot;loopGuard&quot;: true,
+      &quot;activeUi&quot;: true,
+      &quot;interfaceDocs&quot;: true,
+      &quot;objectives&quot;: false
+    }
+  },
+  &quot;budgets&quot;: {
+    &quot;max_turns&quot;: 1500,
+    &quot;max_wall_ms&quot;: 1800000
+  }
+}</pre><h2>ON, OFF and unknown are different</h2><p>The four explicit evaluation flags show their recorded ON/OFF values. The enabled-feature list shows exact IDs present in the header. An absent ID alone does not prove OFF or support in an older build; missing metadata says “not recorded.” A null recorded milestone target means play to budget. Endpoint, weight digest, temperature and unspecified serving defaults are not reconstructed from the current service.</p><p>Status: viewer-only change on <code>codex/current-run-config</code>; focused mounted tests, viewer coverage/lint/build and independent review qualify delivery separately from landing. No game/harness configuration changes, no model context changes, no benchmark restart.</p></html>

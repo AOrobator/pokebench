@@ -34,3 +34,17 @@ pret/pokeemerald 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881:
   a Python row index (the player's row is rows[1]) and two equal-length A* tie paths.
 - GREEN: `fix: draw one-way tiles with walled sides and keep navigate_to off them`.
   Agent 896/896, viewer 419/419, env 1808/1808; `just coverage` 90% floor passes; `just lint` 0.
+- Merged main 9f111d1 (ledge hops landed). Conflicts resolved by taking main and re-applying
+  this change on top: `LocalMap._cells` now strips ledge arrows and `+` per switch; the planner's
+  edge-wall checks run after the ledge-hop branch because the game's `ShouldJumpLedge` ignores
+  walled sides (new test). Guidance count 11, viewer switch count 31, server features 19.
+  Agent 903/903, viewer 474/474, env 1812/1812; coverage floor passes; lint 0.
+
+## Evidence
+
+- Live, real ROM, vendored `tests/states/house2_upstairs.state` (LITTLEROOT TOWN MAYS HOUSE 2F,
+  map 1/3; the chair is at (7,4)), run dir `runs/one-way-proof/` (gitignored). Model text shows
+  `+` at (7,4) and `Edge walls: (7,4) north+south`. From (7,3) the game refuses DOWN twice
+  (position unchanged); on the chair it refuses UP and DOWN. `navigate_to` (dist build, switch
+  on) reaches (7,4) from (7,3) in 3 presses via the west side and from the west in 2; with the
+  switch off it answers "no supported local path" for (7,4).

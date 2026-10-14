@@ -197,6 +197,48 @@ def test_tile_elevation_is_from_the_live_block_high_nibble():
     assert next(t.elevation for t in local.tiles if (t.x, t.y) == (0, 0)) == 3
 
 
+def ledged() -> Memory:
+    # pokeemerald 731ad5b metatile_behaviors.h: MB_JUMP_EAST/WEST/NORTH/SOUTH.
+    m = loaded()
+    for metatile, behavior in ((3, 0x38), (4, 0x39), (5, 0x3A), (6, 0x3B)):
+        m.put(0x02007000 + 2 * metatile, struct.pack("<H", behavior))
+    tile(m, 1, 0, 0x400 | 4)
+    tile(m, 0, 2, 0x400 | 6)
+    tile(m, 1, 2, 0x400 | 5)
+    tile(m, 2, 2, 0x400 | 3)
+    return m
+
+
+def test_ledges_render_as_one_way_arrows_rather_than_walls() -> None:
+    result = read_local_map(ledged().read, (1, 1), (1, 0), radius=1)
+    assert result is not None
+    assert result.rows == ("g<N", "W@~", "v^>")
+    text = result.text()
+    assert "   0   g   <   N" in text and "   2   v   ^   >" in text, text
+    assert (
+        "v ^ < > ledge: a one-way hop in the arrow's direction (move into it that way to"
+        " jump over it, landing 2 tiles on); impassable from any other side;"
+    ) in text
+    assert "0x3B" in text
+
+
+def test_ledge_guidance_off_draws_ledges_as_collision_without_the_legend() -> None:
+    result = read_local_map(ledged().read, (1, 1), (1, 0), radius=1)
+    assert result is not None
+    for text in (result.text(ledges=False), result.text(grid=False, ledges=False)):
+        assert "ledge" not in text, text
+        assert "g#N" in text.replace(" ", "") and "###" in text.replace(" ", ""), text
+
+
+def test_ledge_guidance_off_keeps_a_collision_free_ledge_as_clear_terrain() -> None:
+    m = ledged()
+    tile(m, 1, 2, 5)
+    result = read_local_map(m.read, (1, 1), (1, 0), radius=1)
+    assert result is not None
+    assert result.rows[2] == "v^>"
+    assert result.text(grid=False, ledges=False).splitlines()[3] == "#.#"
+
+
 def chaired() -> Memory:
     # pokeemerald 731ad5b: MB_IMPASSABLE_SOUTH_AND_NORTH 0xC0 (the bedroom chair) and
     # MB_IMPASSABLE_NORTHEAST 0x34, both collision-free (MetatileBehavior_Is*Blocked).

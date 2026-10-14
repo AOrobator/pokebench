@@ -15,6 +15,9 @@ BACKUP_LAYOUT = 0x03005DC0
 OBJECT_EVENTS = 0x02037350
 MAP_OFFSET = 7
 MAX_MAP_DATA_SIZE = 10240
+# pokeemerald 731ad5b metatile_behaviors.h MB_JUMP_EAST/WEST/NORTH/SOUTH. These tiles carry
+# collision, but moving into one in its direction jumps two tiles (GetLedgeJumpDirection).
+LEDGES = {0x38: ">", 0x39: "<", 0x3A: "^", 0x3B: "v"}
 # pokeemerald 731ad5b MetatileBehavior_Is{North,South,West,East}Blocked: collision-free tiles
 # whose listed sides IsMetatileDirectionallyImpassable refuses to cross, entering or leaving.
 EDGE_WALLS = {
@@ -82,19 +85,27 @@ class LocalMap:
     objects: tuple[tuple[int, int, int], ...]
     warps: tuple[tuple[int, int, int, int], ...]
 
-    def _rows_without_edge_walls(self) -> tuple[str, ...]:
+    def _cells(self, *, ledges: bool, edge_walls: bool) -> tuple[str, ...]:
         x, y = self.origin
         rows = [list(row) for row in self.rows]
         for tile in self.tiles:
-            if rows[tile.y - y][tile.x - x] == "+":
+            cell = rows[tile.y - y][tile.x - x]
+            if not ledges and cell == LEDGES.get(tile.behavior):
+                rows[tile.y - y][tile.x - x] = "#" if tile.collision else "."
+            elif not edge_walls and cell == "+":
                 rows[tile.y - y][tile.x - x] = "."
         return tuple("".join(row) for row in rows)
 
     def text(
-        self, *, grid: bool = True, warp_guidance: bool = True, edge_walls: bool = True
+        self,
+        *,
+        grid: bool = True,
+        warp_guidance: bool = True,
+        ledges: bool = True,
+        edge_walls: bool = True,
     ) -> str:
         x, y = self.origin
-        cells = self.rows if edge_walls else self._rows_without_edge_walls()
+        cells = self._cells(ledges=ledges, edge_walls=edge_walls)
         walled = "; ".join(
             f"({tile.x},{tile.y}) " + "+".join(EDGE_WALLS[tile.behavior])
             for tile in self.tiles
@@ -134,6 +145,12 @@ class LocalMap:
                 else "\n@ player; N live object; W warp;"
             )
             + " # collision; g grass; ~ water;"
+            + (
+                " v ^ < > ledge: a one-way hop in the arrow's direction (move into it that way to"
+                " jump over it, landing 2 tiles on); impassable from any other side;"
+                if ledges
+                else ""
+            )
             + (
                 " + edge walls: walkable, but movement across a walled side is refused in both"
                 " directions (sides listed under Edge walls);"
@@ -236,6 +253,8 @@ def read_local_map(
                 if (cx, cy) in object_coords
                 else "W"
                 if (cx, cy) in warp_coords
+                else LEDGES[cache[metatile]]
+                if cache[metatile] in LEDGES
                 else "#"
                 if collision
                 else "+"

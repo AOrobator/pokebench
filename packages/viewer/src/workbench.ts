@@ -1,3 +1,4 @@
+import { frontierReferences, frontierPlot, frontierNotes, frontierTable, frontierModelColors } from "./frontier.js";
 import { esc, hms } from "./format.js";
 import { parseWorkbench, type WorkbenchData, type WorkbenchRun } from "./workbench-data.js";
 import { METRICS, color, currentRunHtml, eligible, median, metricText, ribbonPlot, runDetails, timingPlot, type Metric } from "./workbench-view.js";
@@ -9,8 +10,11 @@ export class Workbench {
   private verified = false;
   private selected: { run: string; split: string | null } | null = null;
   private restoreFocus: HTMLElement | null = null;
+  private detailHtml: string | null = null;
+  private modelColors: ReadonlyMap<string, string> = new Map();
   private initialized = false;
   private scope = "all";
+  private overlay = "all";
   private model = "all";
   private preset = "all";
   private milestone = "PLAYER_NAME_CONFIRMED";
@@ -37,13 +41,13 @@ export class Workbench {
     try {
       const data = parseWorkbench(await this.deps.fetchSnapshot()); if (!this.active()) return;
       if (data.at < this.data.at) throw new Error("Outdated workbench snapshot ignored; last verified data retained.");
-      this.data = data; this.verified = true;
+      this.data = data; this.modelColors = frontierModelColors(data.runs, this.modelColors); this.verified = true;
       if (!this.initialized) {
-        this.scope = data.runs.find(r => r.id === this.back)?.cohort ?? data.runs.find(r => r.cohort !== null)?.cohort ?? "all"; this.initialized = true;
+        this.scope = "all"; this.initialized = true;
       }
       this.ui("problem").hidden = true; this.render();
     } catch (error) {
-      if (this.active()) { this.verified = false; this.clock(); const box = this.ui("problem"); box.hidden = false; box.textContent = error instanceof Error ? error.message : String(error); }
+      if (this.active()) { this.verified = false; this.clock(); this.renderCharts(); const box = this.ui("problem"); box.hidden = false; box.textContent = error instanceof Error ? error.message : String(error); }
     } finally { this.busy = false; }
   }
   clock(): void { if (this.active()) this.ui("current").innerHTML = (this.verified ? "" : '<p class="wb-notice">Live status unavailable; charts retain the last verified snapshot.</p>') + currentRunHtml(this.verified ? this.data.runs : [], this.data.at, this.deps.now(), this.back); }
@@ -56,12 +60,17 @@ export class Workbench {
     const runs = this.filtered(), width = this.deps.width();
     this.ui("timing").innerHTML = timingPlot(runs, this.milestone, this.feature, this.metric, width);
     this.ui("ribbons").innerHTML = ribbonPlot(runs, width);
+    const refs = frontierReferences(this.data.runs), overlays = this.overlay === "none" ? [] : this.overlay === "all" ? runs : runs.filter(r => r.id === this.overlay);
+    this.ui("frontier-full").innerHTML = frontierPlot(refs, overlays, width, this.modelColors, this.verified ? this.data.runs.filter(r => r.status === "live" || r.status === "paused") : []);
+    this.ui("frontier-notes").innerHTML = frontierNotes(refs);
+    this.ui("frontier-counts").innerHTML = frontierTable(refs, overlays);
   }
   private render(): void {
     const cohorts = Array.from(new Set([...this.data.runs.flatMap(r => r.cohort === null ? [] : [r.cohort]), ...this.data.queue.flatMap(q => q.cohort === null ? [] : [q.cohort])]));
     this.options("cohort", [{ id: "all", label: "All recorded runs" }, ...cohorts.map(id => ({ id, label: id }))], this.scope);
     this.options("model", [{ id: "all", label: "All models" }, ...Array.from(new Set(this.data.runs.flatMap(r => r.model === null ? [] : [r.model]))).map(id => ({ id, label: id }))], this.model);
     this.options("preset", [{ id: "all", label: "All configurations" }, ...Array.from(new Set(this.data.runs.flatMap(r => r.config?.preset == null ? [] : [r.config.preset]))).map(id => ({ id, label: id }))], this.preset);
+    this.options("overlay", [{ id: "all", label: "All filtered runs" }, { id: "none", label: "References only" }, ...this.filtered().map(r => ({ id: r.id, label: `${r.model ?? "Unknown"} · ${r.id}` }))], this.overlay);
     this.options("milestone", this.data.milestones, this.milestone);
     const features = new Map<string, string>(); for (const r of this.data.runs) for (const f of r.config?.features ?? []) features.set(f.id, f.label);
     this.options("feature", [...features].map(([id, label]) => ({ id, label })), this.feature);
@@ -83,11 +92,19 @@ export class Workbench {
   private detail(id: string, split: string | null, focus = true): void {
     const run = this.data.runs.find(r => r.id === id); this.selected = { run: id, split };
     if (focus) this.restoreFocus = this.doc.activeElement as HTMLElement | null;
-    const body = this.ui("detail-body"), hadFocus = body.contains(this.doc.activeElement);
+    const body = this.ui("detail-body"), scrollTop = body.scrollTop;
+    const controls = 'a[href], button:not([disabled])';
+    const focusedIndex = Array.from(body.querySelectorAll(controls)).findIndex(node => node === this.doc.activeElement);
     const html = run === undefined ? '<p>The selected run is no longer available.</p><button type="button" class="wb-button" data-close-detail>Close</button>' : runDetails(run, split);
-    if (body.innerHTML !== html) body.innerHTML = html;
+    const changed = this.detailHtml !== html;
+    if (changed) { body.innerHTML = html; this.detailHtml = html; }
     this.ui("detail").hidden = false;
-    if (focus || hadFocus) body.querySelector<HTMLElement>("[data-close-detail]")?.focus();
+    if (focus) body.querySelector<HTMLElement>("[data-close-detail]")?.focus({ preventScroll: true });
+    else if (changed && focusedIndex >= 0) {
+      const replacement = body.querySelectorAll<HTMLElement>(controls)[focusedIndex] ?? body.querySelector<HTMLElement>("[data-close-detail]");
+      replacement?.focus({ preventScroll: true });
+    }
+    body.scrollTop = focus ? 0 : scrollTop;
   }
 
   private close(): void { this.ui("detail").hidden = true; this.selected = null; if (this.restoreFocus?.isConnected === true) this.restoreFocus.focus();
@@ -111,7 +128,7 @@ export class Workbench {
   };
   private onChange = (event: Event): void => {
     const element = event.target as HTMLSelectElement; const name = element.dataset.wb;
-    if (name === "cohort") this.scope = element.value; else if (name === "model") this.model = element.value; else if (name === "preset") this.preset = element.value; else if (name === "milestone") this.milestone = element.value; else if (name === "feature") this.feature = element.value;
+    if (name === "overlay") this.overlay = element.value; else if (name === "cohort") this.scope = element.value; else if (name === "model") this.model = element.value; else if (name === "preset") this.preset = element.value; else if (name === "milestone") this.milestone = element.value; else if (name === "feature") this.feature = element.value;
     else if (name === "metric" && Object.hasOwn(METRICS, element.value)) this.metric = element.value as Metric; else return;
     this.render();
   };
@@ -119,7 +136,7 @@ export class Workbench {
 export function bootWorkbench(win: Window): Workbench {
   const from = new URL(win.location.href).searchParams.get("from");
   const wb = new Workbench(win.document, {
-    fetchSnapshot: async () => { const response = await win.fetch("/api/workbench", { signal: AbortSignal.timeout(20000) }); if (!response.ok) throw new Error(`Workbench request failed (${String(response.status)})`); return response.json() as Promise<unknown>; },
+    fetchSnapshot: async () => { const response = await win.fetch("/api/workbench", { signal: AbortSignal.timeout(180000) }); if (!response.ok) throw new Error(`Workbench request failed (${String(response.status)})`); return response.json() as Promise<unknown>; },
     now: () => Date.now(), width: () => win.document.querySelector('[data-wb="timing"]')?.getBoundingClientRect().width || win.document.documentElement.clientWidth || 640,
   }, from);
   void wb.refresh(); const poll = win.setInterval(() => { void wb.refresh(); }, 5000), clock = win.setInterval(() => { wb.clock(); }, 1000);

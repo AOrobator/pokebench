@@ -100,6 +100,17 @@ def test_warp_guidance_off_lists_warps_without_activation() -> None:
     assert "W alone does not guarantee" not in text and "W alone does not guarantee" in full
 
 
+def test_ledge_hops_off_draws_ledges_as_collision() -> None:
+    m = map_memory()
+    m.put(0x02007000 + 2 * 3, struct.pack("<H", 0x3B))
+    tile(m, 1, 2, 0x400 | 3)
+    state = read_game_state(m.read, MAPS)
+    full = format_readout(state)
+    text = format_readout(state, frozenset({"ledge-hops-v1"}))
+    assert "?   .   v   .   .   .   ?" in full and "?   .   #   .   .   .   ?" in text, text
+    assert "one-way hop" in full and "ledge" not in text
+
+
 def test_one_way_tiles_off_draws_edge_walls_as_clear_terrain() -> None:
     m = map_memory()
     m.put(0x02007000 + 2 * 3, struct.pack("<H", 0xC0))
@@ -203,7 +214,7 @@ def test_env_list_is_validated() -> None:
     for bad in ("invented-v1", "live-map-v1,,story-state-v1", "deterministic-loop-guard-v1"):
         with pytest.raises(ValueError, match="POKEBENCH_FEATURES_OFF"):
             features_off_from_env({"POKEBENCH_FEATURES_OFF": bad})
-    assert "active-ui-ownership-v1" not in SERVER_FEATURES and len(SERVER_FEATURES) == 18
+    assert "active-ui-ownership-v1" not in SERVER_FEATURES and len(SERVER_FEATURES) == 19
 
 
 def test_observation_route_applies_the_env_switches(monkeypatch: pytest.MonkeyPatch) -> None:

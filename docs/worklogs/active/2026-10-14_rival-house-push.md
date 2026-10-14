@@ -296,3 +296,6 @@ COMMIT: `feat: supervisor message in the operator's wording, labelled as sent to
   Objective tracking is off in these arms, so the briefing now quotes the model's own latest plan,
   lists the characters the readout names here and the story steps the game confirms done, and says
   to believe the readout when the plan names someone it does not show. Agent 1019/1019.
+- The operator (22:21 UTC): no backoff, find loops as fast as possible (speedrun). Supervisor now briefs at
+  detection (alongside the warning) and repeats every policy.recovery (6) looping calls with fresh
+  facts; doubling removed. Detection thresholds (LOOP_POLICY) unchanged. Agent 1019/1019.

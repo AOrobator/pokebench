@@ -19,21 +19,22 @@ const loopUntilWarned=(d:LoopDetector)=>{d.complete(planning());d.complete(plann
 it("posts a supervisor briefing instead of stopping, and the run keeps going",()=>{
  const {detector,notices}=supervised();
  loopUntilWarned(detector);
- expect(notices.map(n=>n.phase)).toEqual(["warning"]);
+ expect(notices.map(n=>n.phase)).toEqual(["warning","supervisor"]);
+ expect(detector.context()).toContain("SUPERVISOR: brief");
  detector.complete(planning());detector.complete(planning());
  expect(detector.stopped).toBe(false);
  expect(notices.at(-1)).toMatchObject({phase:"supervisor",mode:"enforced",message:"SUPERVISOR: brief"});
  expect(detector.context()).toContain("SUPERVISOR: brief");
 });
 
-it("backs off: each further briefing needs twice as many looping calls, up to a cap",()=>{
+it("briefs again at a fixed interval while the loop lasts, with no backoff",()=>{
  let n=0;const {detector,notices}=supervised(()=>`SUPERVISOR: brief ${String(++n)}`);
  loopUntilWarned(detector);
- for(let i=1;i<=200;i++)detector.complete(planning());
+ for(let i=1;i<=40;i++)detector.complete(planning());
  const supervisorCalls=notices.filter(x=>x.phase==="supervisor").map(x=>x.calls);
  const gaps=supervisorCalls.slice(1).map((c,i)=>c-(supervisorCalls[i]??0));
- expect(gaps.slice(0,4)).toEqual([4,8,16,32]);
- expect(new Set(gaps.slice(4))).toEqual(new Set([32]));
+ expect(new Set(gaps.slice(1))).toEqual(new Set([policy.recovery]));
+ expect(supervisorCalls.length).toBeGreaterThanOrEqual(15);
  expect(detector.stopped).toBe(false);
  expect(detector.context()).toMatch(/SUPERVISOR: brief \d+/);
 });
@@ -156,10 +157,9 @@ it("keeps tried tiles separate for maps that share a location label",()=>{
  expect(text).not.toMatch(/\b(rival|birch|professor|may|brendan|neighbou?r|next door|lab|littleroot|oldale|petalburg|rustboro|route|starter|gym|badge)\b/i);
 });
 
-it("describes the live backoff schedule that LOOP_POLICY actually produces",()=>{
- const windows:number[]=[];let w:number=LOOP_POLICY.recovery;for(let i=0;i<6;i++){windows.push(w);w=Math.min(w*2,LOOP_POLICY.recovery*16);}
- expect(windows).toEqual([6,12,24,48,96,96]);
- expect(featureInfo("loop-guard-supervisor-v1").description).toContain(`after ${String(windows[0])} looping calls, then ${String(windows[1])}, ${String(windows[2])} and ${String(windows[3])} more, then every ${String(windows[4])}`);
+it("describes the live schedule: a briefing when the loop is found, then every LOOP_POLICY.recovery looping calls",()=>{
+ expect(featureInfo("loop-guard-supervisor-v1").description).toContain(`as soon as a loop is found, then again every ${String(LOOP_POLICY.recovery)} looping calls`);
+ expect(featureInfo("loop-guard-supervisor-v1").description).not.toMatch(/back ?off|twice/i);
 });
 
 it("catches a two-button walk-and-talk loop like trial 1 of the first 2×2 and keeps the run going",()=>{

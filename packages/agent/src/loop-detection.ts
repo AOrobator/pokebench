@@ -366,7 +366,6 @@ export class LoopDetector {
       if (this.supervisor !== undefined && this.mode === "enforced") {
         this.episode.briefing = this.supervisor(this.episode.kind, this.completed);
         this.episode.recovery = 0;
-        this.episode.window = Math.min(this.episode.window * 2, this.policy.recovery * 16);
         this.notice("supervisor", seq);
         return;
       }
@@ -388,6 +387,11 @@ export class LoopDetector {
         briefing: null,
       };
       this.notice("warning", seq);
+      // Speedrun: the supervisor briefs as soon as a loop is found, then again every window while it lasts.
+      if (this.supervisor !== undefined && this.mode === "enforced") {
+        this.episode.briefing = this.supervisor(hit, this.completed);
+        this.notice("supervisor", seq);
+      }
     }
   }
 

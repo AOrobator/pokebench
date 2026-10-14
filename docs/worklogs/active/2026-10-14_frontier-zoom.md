@@ -14,8 +14,8 @@ Branch: claude/frontier-zoom in /private/tmp/pokebench-frontier-zoom.
 
 ## M1 · Zoom option (RED → GREEN → review)
 - [x] RED: frontier.test.ts zoom cases; frontier-workbench.test.ts switch default/toggle/poll (4 failing, 12 passing)
-- [ ] GREEN: frontierPlot zoom argument, heading switch, workbench state, styles
-- [ ] Gates: viewer tests, coverage ≥90, lint, build
+- [x] GREEN: frontierPlot zoom argument, heading switch, workbench state, styles. Viewer 497/497 tests, agent 954/954.
+- [x] Gates: viewer coverage lines 98.22 / branches 90.57 / functions 95.39 (frontier.ts 100/92.34/100); agent 98.85/93.41/97.93; lint and build pass. Python untouched: pytest 1845 pass, 2 fail only because this worktree has no vendor submodule checkout (map_groups.json missing), unrelated to this change.
 - [ ] Reviews: principles self-review, Claude CLI, Codex, Grok
 - [ ] Browser click-through on an owned preview (viewer-e2e)
 - [ ] Explainer + feature card link (feature-explainer)

@@ -20,6 +20,7 @@ export class Workbench {
   private milestone = "PLAYER_NAME_CONFIRMED";
   private feature = "deterministic-loop-guard-v1";
   private metric: Metric = "elapsedMs";
+  private zoom = true;
   constructor(private readonly doc: Document, private readonly deps: WorkbenchDeps, private readonly back: string | null = null) {
     doc.addEventListener("change", this.onChange); doc.addEventListener("click", this.onClick); doc.addEventListener("keydown", this.onKey);
   }
@@ -74,7 +75,8 @@ export class Workbench {
     this.ui("timing").innerHTML = timingPlot(runs, this.milestone, this.feature, this.metric, width);
     this.ui("ribbons").innerHTML = ribbonPlot(runs, width);
     const refs = frontierReferences(this.data.runs), overlays = this.overlay === "none" ? [] : this.overlay === "all" ? runs : runs.filter(r => r.id === this.overlay);
-    this.ui("frontier-full").innerHTML = frontierPlot(refs, overlays, width, this.modelColors, this.verified ? this.data.runs.filter(r => r.status === "live" || r.status === "paused") : []);
+    this.ui("frontier-full").innerHTML = frontierPlot(refs, overlays, width, this.modelColors, this.verified ? this.data.runs.filter(r => r.status === "live" || r.status === "paused") : [], this.zoom);
+    (this.ui("frontier-zoom") as HTMLInputElement).checked = this.zoom;
     this.ui("frontier-notes").innerHTML = frontierNotes(refs);
     this.ui("frontier-counts").innerHTML = frontierTable(refs, overlays);
   }
@@ -141,6 +143,7 @@ export class Workbench {
   };
   private onChange = (event: Event): void => {
     const element = event.target as HTMLSelectElement; const name = element.dataset.wb;
+    if (name === "frontier-zoom") { this.zoom = (event.target as HTMLInputElement).checked; this.renderCharts(); return; }
     if (name === "overlay") this.overlay = element.value; else if (name === "cohort") this.scope = element.value; else if (name === "model") this.model = element.value; else if (name === "preset") this.preset = element.value; else if (name === "milestone") this.milestone = element.value; else if (name === "feature") this.feature = element.value;
     else if (name === "metric" && Object.hasOwn(METRICS, element.value)) this.metric = element.value as Metric; else return;
     this.render();

@@ -114,7 +114,7 @@ describe("persistent actual native frontier", () => {
   });
 });
 describe("zoom to frontier", () => {
-  const axis = (): string[] => Array.from(document.querySelectorAll(".wb-frontier-chart text.wb-axis")).map(t => t.textContent ?? "");
+  const axis = (): string[] => Array.from(document.querySelectorAll(".wb-frontier-chart text.wb-axis")).map(t => t.textContent);
   it("ends at the next human milestone after the farthest agent and rescales time to visible points", () => {
     const refs = { human: human(), best: best() };
     document.body.innerHTML = frontierPlot(refs, [], 2000, undefined, [], true);

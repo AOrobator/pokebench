@@ -1,5 +1,5 @@
 import {expect,it} from "vitest";
-import {planNavigation,navigationTool} from "./navigation.js";
+import {planNavigation,navigationTool,MAX_FULL_ROUTE_COMMANDS} from "./navigation.js";
 import type {AgentToolResult} from "@mariozechner/pi-agent-core";
 import type {GameStateSnapshot} from "./game-state.js";
 const tile=(x:number,y:number,collision=0,behavior=0,elevation=3)=>({x,y,collision,behavior,elevation});
@@ -90,4 +90,96 @@ it("forwards deliberate walking to the ordinary press without creating a separat
  const tool=navigationTool({read:()=>Promise.resolve(field),press:(_id,params)=>{seen.push(params);return Promise.resolve(result({...field,position:{x:0,y:1}}));},observe:()=>Promise.resolve(result({...field,position:{x:0,y:1}}))});
  await tool.execute("nav",{x:0,y:1,map_id:[0,9],walking:true});
  expect(seen).toEqual([{buttons:["DOWN"],walking:true}]);
+});
+
+type Cell={collision?:number;behavior?:number;elevation?:number};
+const mapGrid=(width:number,height:number,cell:(x:number,y:number)=>Cell,extra:{objects?:{x:number;y:number}[];warps?:{x:number;y:number}[]}={}):NonNullable<GameStateSnapshot["map_grid"]>=>({width,height,elevation:3,
+ rows:Array.from({length:height},(_,y)=>Array.from({length:width},(_,x)=>{const c=cell(x,y);return (((c.collision??0)<<12)|((c.elevation??3)<<8)|(c.behavior??0)).toString(16).padStart(4,"0");}).join("")),
+ objects:extra.objects??[],warps:extra.warps??[]});
+const fullField=(grid:NonNullable<GameStateSnapshot["map_grid"]>,position={x:0,y:0}):GameStateSnapshot=>({...field,position,map_grid:grid,topology:{width:grid.width,height:grid.height,connections:[]}});
+// A serpentine 40x140 route: walls on every other row with one gap alternating sides.
+const serpentine=mapGrid(40,140,(x,y)=>y%2===1&&x!==(y%4===1?39:0)?{collision:1}:{});
+
+it("plans over the whole current map when asked, far beyond the local window",()=>{
+ const path=planNavigation(fullField(serpentine),{x:0,y:138},"full");
+ expect(path).not.toBeNull();expect(path?.length).toBe(70*39+138);
+ expect(planNavigation(fullField(serpentine),{x:0,y:138})).toEqual(["DOWN"]);
+});
+
+it("full-map planning keeps the local rules: collision, objects, water, layers, goal-only warps and doors from below",()=>{
+ const open=mapGrid(5,5,()=>({}));
+ expect(planNavigation(fullField(open),{x:4,y:0},"full")).toEqual(["RIGHT","RIGHT","RIGHT","RIGHT"]);
+ expect(planNavigation(fullField(mapGrid(3,1,x=>x===1?{behavior:0x10}:{})),{x:2,y:0},"full")).toBeNull();
+ expect(planNavigation(fullField(mapGrid(3,1,()=>({}),{warps:[{x:1,y:0}]})),{x:2,y:0},"full")).toBeNull();
+ expect(planNavigation(fullField(mapGrid(3,1,()=>({}),{warps:[{x:1,y:0}]})),{x:1,y:0},"full")).toEqual(["RIGHT"]);
+ expect(planNavigation(fullField(mapGrid(3,1,()=>({}),{objects:[{x:1,y:0}]})),{x:2,y:0},"full")).toBeNull();
+ expect(planNavigation(fullField(mapGrid(3,1,x=>x===1?{elevation:0}:x===2?{elevation:4}:{})),{x:2,y:0},"full")).toBeNull();
+ const door=mapGrid(1,2,(_x,y)=>y===0?{collision:1,behavior:0x69,elevation:0}:{},{warps:[{x:0,y:0}]});
+ expect(planNavigation(fullField(door,{x:0,y:1}),{x:0,y:0},"full")).toEqual(["UP"]);
+ expect(planNavigation(fullField(open),{x:5,y:0},"full")).toBeNull();
+});
+
+it("full-map planning rejects missing or malformed whole-map geometry",()=>{
+ const open=mapGrid(3,2,()=>({}));
+ expect(planNavigation({...fullField(open),map_grid:null},{x:2,y:0},"full")).toBeNull();
+ expect(planNavigation(fullField({...open,rows:[open.rows[0]??""]}),{x:2,y:0},"full")).toBeNull();
+ expect(planNavigation(fullField({...open,rows:[open.rows[0]??"","0000"]}),{x:2,y:0},"full")).toBeNull();
+ expect(planNavigation(fullField(open,{x:7,y:0}),{x:2,y:0},"full")).toBeNull();
+});
+
+// The array open list this replaced: re-sorted every pop, stable on ties.
+function referencePlan(state:GameStateSnapshot,goal:{x:number;y:number}):string[]|null {
+ const grid=state.navigation_grid;if(grid==null||state.position===null)return null;
+ const k=(p:{x:number;y:number})=>`${String(p.x)},${String(p.y)}`,d=(a:{x:number;y:number},b:{x:number;y:number})=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
+ const tiles=new Map(grid.tiles.map(t=>[k(t),t]));
+ type N={p:{x:number;y:number};e:number;cost:number;path:string[]};
+ const pending:N[]=[{p:state.position,e:grid.elevation,cost:0,path:[]}],costs=new Map<string,number>();
+ while(pending.length){
+  pending.sort((a,b)=>(a.cost+d(a.p,goal))-(b.cost+d(b.p,goal)));const n=pending.shift();if(n===undefined)break;
+  const id=`${k(n.p)}:${String(n.e)}`;if((costs.get(id)??Infinity)<=n.cost)continue;costs.set(id,n.cost);
+  if(d(n.p,goal)===0)return n.path;
+  for(const [dir,dx,dy] of [["UP",0,-1],["DOWN",0,1],["LEFT",-1,0],["RIGHT",1,0]] as const){
+   const next={x:n.p.x+dx,y:n.p.y+dy},t=tiles.get(k(next));if(t===undefined||t.collision!==0||t.behavior!==0)continue;
+   if(t.elevation!==0&&n.e!==0&&t.elevation!==n.e)continue;
+   pending.push({p:next,e:t.elevation||n.e,cost:n.cost+1,path:[...n.path,dir]});
+  }
+ }
+ return null;
+}
+
+it("the heap open list returns exactly the paths the sorted array did",()=>{
+ let seed=7;const random=()=>{seed=(seed*1103515245+12345)%2147483648;return seed/2147483648;};
+ for(let trial=0;trial<200;trial++){
+  const tiles=[];for(let y=0;y<15;y++)for(let x=0;x<15;x++)tiles.push(tile(x,y,x+y>0&&random()<0.25?1:0,0,random()<0.1?0:3));
+  const state={...field,navigation_grid:{elevation:3,tiles,objects:[],warps:[]}};const goal={x:Math.floor(random()*15),y:Math.floor(random()*15)};
+  if(tiles.find(t=>t.x===goal.x&&t.y===goal.y)?.collision!==0)continue;
+  expect(planNavigation(state,goal)).toEqual(referencePlan(state,goal));
+ }
+});
+
+it("plans an 80x80 map with random walls quickly",()=>{
+ let seed=11;const random=()=>{seed=(seed*1103515245+12345)%2147483648;return seed/2147483648;};
+ const grid=mapGrid(80,80,(x,y)=>x+y>0&&x+y<158&&random()<0.22?{collision:1}:{});
+ const started=performance.now();for(let i=0;i<20;i++)planNavigation(fullField(grid),{x:79,y:79},"full");
+ expect((performance.now()-started)/20).toBeLessThan(25);
+});
+
+it("full-route navigation walks past eight presses to arrival and keeps per-press stops",async()=>{
+ const corridor=mapGrid(30,1,()=>({}));let current=fullField(corridor);let presses=0;
+ const tool=navigationTool({fullMap:true,read:()=>Promise.resolve(current),press:()=>{presses++;current={...current,position:{x:(current.position?.x??0)+1,y:0}};return Promise.resolve(result(current));},observe:()=>Promise.resolve(result(current))});
+ expect(tool.description).toContain("whole current map");
+ const outcome=await tool.execute("nav",{x:29,y:0,map_id:[0,9]});
+ expect(presses).toBe(29);expect(outcome.details).toMatchObject({navigation:{status:"arrived at requested coordinate",commands:29}});
+ current=fullField(corridor);presses=0;
+ const blocked=navigationTool({fullMap:true,read:()=>Promise.resolve(current),press:()=>{presses++;if(presses<12)current={...current,position:{x:(current.position?.x??0)+1,y:0}};return Promise.resolve(result(current));},observe:()=>Promise.resolve(result(current))});
+ const stopped=await blocked.execute("nav",{x:29,y:0,map_id:[0,9]});
+ expect(presses).toBe(12);expect(stopped.details).toMatchObject({navigation:{status:"blocked; inspect obstacle and choose another approach"}});
+});
+
+it("full-route navigation has its own safety bound and needs whole-map geometry",async()=>{
+ expect(MAX_FULL_ROUTE_COMMANDS).toBe(512);
+ expect(()=>navigationTool({fullMap:true,read:()=>Promise.resolve(field),press:()=>Promise.resolve(result(field)),observe:()=>Promise.resolve(result(field)),maxCommands:513})).toThrow(/bound/);
+ let presses=0;const tool=navigationTool({fullMap:true,read:()=>Promise.resolve(field),press:()=>{presses++;return Promise.resolve(result(field));},observe:()=>Promise.resolve(result(field))});
+ const outcome=await tool.execute("nav",{x:2,y:0,map_id:[0,9]});expect(presses).toBe(0);
+ expect(outcome.details).toMatchObject({navigation:{status:"no supported path on the current map; choose a reachable waypoint"}});
 });

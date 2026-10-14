@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Whole-Map Navigation</title>
+<style>
+/* Layout: one reading column, figures break wider; a field-guide feel borrowed from the game's tile grid. */
+:root{
+ --bg:#f3f5f1;--panel:#ffffff;--fg:#1c2420;--muted:#5d6a62;--line:#c9d2cb;
+ --grass:#3f8f4f;--route:#1f6fb2;--warn:#c4502a;--soft:#e4ebe5;--water:#7fb6d9;
+ --display:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--body:system-ui,-apple-system,"Segoe UI",sans-serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121815;--panel:#1a221e;--fg:#e3ebe5;--muted:#9aa89f;--line:#33413a;--grass:#62b873;--route:#5aa8e8;--warn:#ef8059;--soft:#222d27;--water:#3c6f8f;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121815;--panel:#1a221e;--fg:#e3ebe5;--muted:#9aa89f;--line:#33413a;--grass:#62b873;--route:#5aa8e8;--warn:#ef8059;--soft:#222d27;--water:#3c6f8f;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding-inline:16px;padding-block:32px 64px}
+main{max-width:760px;margin:0 auto;display:grid;gap:28px}
+h1{font:400 clamp(24px,5vw,34px)/1.2 var(--display);margin:0;text-wrap:balance;letter-spacing:.02em}
+h2{font:400 17px/1.3 var(--display);margin:0;letter-spacing:.04em;text-wrap:balance}
+p{margin:0;max-width:65ch}
+.lede{color:var(--muted);font-size:17px}
+section{display:grid;gap:12px}
+figure{margin:0;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;display:grid;gap:10px;overflow-x:auto}
+figure svg{width:100%;height:auto;min-width:520px;display:block}
+figcaption{font-size:14px;color:var(--muted)}
+code{font:14px var(--mono);background:var(--soft);padding:1px 5px;border-radius:3px}
+.t{fill:var(--fg);font:12px var(--body)}
+.ts{fill:var(--muted);font:11px var(--body)}
+.tm{fill:var(--fg);font:11px var(--mono)}
+.th{fill:var(--fg);font:600 13px var(--body)}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+th{font-weight:600;color:var(--muted);font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+.tablewrap{overflow-x:auto}
+ul{margin:0;padding-left:20px;max-width:65ch}
+li+li{margin-top:4px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:12px var(--mono);border:1px solid var(--line);border-radius:999px;padding:3px 10px;color:var(--muted)}
+</style>
+</head>
+<body>
+<main>
+<header style="display:grid;gap:10px">
+ <div class="chips"><span class="chip">full-map-navigation-v1</span><span class="chip">default OFF</span><span class="chip">branch claude/full-map-navigation</span></div>
+ <h1>Whole-Map Navigation</h1>
+ <p class="lede">A switch that shows the model the entire current map and lets <code>navigate_to</code> walk the whole route, plus a faster open list so re-planning before every press stays cheap.</p>
+</header>
+
+<section>
+ <h2>What the model sees</h2>
+ <p>Today the model and the planner both see a 15×15 window around the player. On a long route that is a small slice, so a far target can only be approached through a "local frontier" a few tiles at a time. With the switch on, the readout carries the whole map, one character per tile, and the planner reads the same geometry.</p>
+ <figure>
+  <svg viewBox="0 0 640 300" role="img" aria-label="On Route 119, a 40 by 140 map, the old 15 by 15 window covers about 4 percent of the map; the new view covers all of it.">
+   <defs><pattern id="g" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="var(--soft)"/><path d="M0 0H8V8" fill="none" stroke="var(--line)" stroke-width=".6"/></pattern></defs>
+   <text class="th" x="150" y="22" text-anchor="middle">Before: local window</text>
+   <text class="th" x="470" y="22" text-anchor="middle">After: whole current map</text>
+   <!-- Route 119 drawn at 2px per tile: 40 x 140 -> 40 x 140 scaled to fit 260 tall: 1.857/tile; use 74 wide x 260 tall -->
+   <rect x="113" y="34" width="74" height="260" fill="url(#g)" stroke="var(--line)"/>
+   <rect x="138" y="190" width="28" height="28" fill="var(--route)" fill-opacity=".25" stroke="var(--route)" stroke-width="2"/>
+   <circle cx="152" cy="204" r="3" fill="var(--route)"/>
+   <circle cx="130" cy="52" r="4" fill="var(--warn)"/>
+   <text class="ts" x="198" y="208">15×15 seen</text>
+   <text class="ts" x="198" y="56">goal (unseen)</text>
+   <text class="ts" x="60" y="164" text-anchor="end">Route 119</text>
+   <text class="ts" x="60" y="178" text-anchor="end">40×140</text>
+   <rect x="433" y="34" width="74" height="260" fill="var(--route)" fill-opacity=".14" stroke="var(--route)" stroke-width="2"/>
+   <rect x="433" y="34" width="74" height="260" fill="url(#g)" opacity=".55"/>
+   <circle cx="472" cy="204" r="3" fill="var(--route)"/>
+   <circle cx="450" cy="52" r="4" fill="var(--warn)"/>
+   <polyline points="472,204 472,170 495,170 495,120 455,120 455,80 450,80 450,56" fill="none" stroke="var(--route)" stroke-width="2" stroke-dasharray="4 3"/>
+   <text class="ts" x="518" y="208">player</text>
+   <text class="ts" x="518" y="56">goal, routed</text>
+   <text class="ts" x="518" y="124">one call walks</text>
+   <text class="ts" x="518" y="138">the whole path</text>
+  </svg>
+  <figcaption>Route 119 to scale. The old window is 225 tiles of 5,600 (4%). The new readout and the planner both use all 5,600.</figcaption>
+ </figure>
+ <p>The map text follows PokeAgent's compact style rather than our padded 3-character cells, with world coordinates kept so "door at 5,1" can still be found. Every tenth column is labelled on the top line and the ones digit runs underneath:</p>
+ <figure>
+  <svg viewBox="0 0 640 150" role="img" aria-label="Sample of the whole-map text: two header rows of column labels, then one row per map row with its y coordinate and one character per tile.">
+   <text class="tm" x="16" y="24" xml:space="preserve">     0         10        20</text>
+   <text class="tm" x="16" y="40" xml:space="preserve">     0123456789012345678901</text>
+   <text class="tm" x="16" y="56" xml:space="preserve">   0 ####......gggg....####</text>
+   <text class="tm" x="16" y="72" xml:space="preserve">   1 ##.....N..gggg......W#</text>
+   <text class="tm" x="16" y="88" xml:space="preserve">   2 #.....@...~~~~........</text>
+   <text class="tm" x="16" y="104" xml:space="preserve">   3 #.........~~~~...#####</text>
+   <text class="ts" x="300" y="40">column labels (world X)</text>
+   <text class="ts" x="300" y="72">@ player · N object · W warp</text>
+   <text class="ts" x="300" y="88"># collision · g grass · ~ water</text>
+   <text class="ts" x="16" y="134">Illustrative rows. An 80×80 map is about 7 KB of text per observation.</text>
+  </svg>
+  <figcaption>Turning off the coordinate grid switch drops the labels and leaves bare rows, the same as it does for the local map.</figcaption>
+ </figure>
+</section>
+
+<section>
+ <h2>How one navigate_to call runs</h2>
+ <p>The loop is the same as before. What changes is the geometry it plans on and how many presses one call may make. Every press still goes through the ordinary checked press, so the map, position and field lock are re-verified right before the button is sent.</p>
+ <figure>
+  <svg viewBox="0 0 660 270" role="img" aria-label="The navigate_to loop: read state, plan A star, check before the press, press one button, verify the move, then repeat until arrival or a stop condition. The loop limit grows from 8 to 512.">
+   <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>
+   <g style="color:var(--muted)">
+   <g fill="var(--panel)" stroke="var(--line)" stroke-width="1.5">
+    <rect x="16" y="40" width="110" height="52" rx="5"/>
+    <rect x="156" y="40" width="120" height="52" rx="5" stroke="var(--route)" stroke-width="2"/>
+    <rect x="306" y="40" width="120" height="52" rx="5"/>
+    <rect x="456" y="40" width="80" height="52" rx="5"/>
+    <rect x="566" y="40" width="80" height="52" rx="5"/>
+   </g>
+   <text class="th" x="71" y="63" text-anchor="middle">Read state</text><text class="ts" x="71" y="80" text-anchor="middle">fresh snapshot</text>
+   <text class="th" x="216" y="63" text-anchor="middle">Plan A*</text><text class="ts" x="216" y="80" text-anchor="middle">whole map, heap</text>
+   <text class="th" x="366" y="63" text-anchor="middle">Check</text><text class="ts" x="366" y="80" text-anchor="middle">same map, tile, unlocked</text>
+   <text class="th" x="496" y="63" text-anchor="middle">Press</text><text class="ts" x="496" y="80" text-anchor="middle">one button</text>
+   <text class="th" x="606" y="63" text-anchor="middle">Verify</text><text class="ts" x="606" y="80" text-anchor="middle">moved 1 tile?</text>
+   <g stroke="currentColor" stroke-width="1.5" fill="none" marker-end="url(#a)">
+    <line x1="126" y1="66" x2="154" y2="66"/><line x1="276" y1="66" x2="304" y2="66"/><line x1="426" y1="66" x2="454" y2="66"/><line x1="536" y1="66" x2="564" y2="66"/>
+    <path d="M606 40 V20 H71 V38"/>
+   </g>
+   <text class="ts" x="338" y="15" text-anchor="middle">next press: re-plan from where the player actually is</text>
+   <g stroke="var(--warn)" stroke-width="1.5" fill="none" marker-end="url(#a)" style="color:var(--warn)">
+    <line x1="216" y1="92" x2="216" y2="150"/><line x1="366" y1="92" x2="366" y2="150"/><line x1="606" y1="92" x2="606" y2="150"/>
+   </g>
+   </g>
+   <g class="ts" style="fill:var(--warn)">
+    <text x="216" y="166" text-anchor="middle" style="fill:var(--warn)">no path</text>
+    <text x="366" y="166" text-anchor="middle" style="fill:var(--warn)">state changed:</text>
+    <text x="366" y="180" text-anchor="middle" style="fill:var(--warn)">no button sent</text>
+    <text x="606" y="166" text-anchor="middle" style="fill:var(--warn)">blocked, unexpected</text>
+    <text x="606" y="180" text-anchor="middle" style="fill:var(--warn)">move, map change,</text>
+    <text x="606" y="194" text-anchor="middle" style="fill:var(--warn)">lock, or arrived</text>
+    <text x="216" y="180" text-anchor="middle" style="fill:var(--warn)">or no shorter route</text>
+    <text x="216" y="194" text-anchor="middle" style="fill:var(--warn)">for 16 presses</text>
+   </g>
+   <rect x="16" y="214" width="630" height="44" rx="5" fill="var(--soft)"/>
+   <text class="t" x="32" y="234">Presses per call</text>
+   <text class="tm" x="180" y="234">OFF: up to 8 (15×15 window)</text>
+   <text class="tm" x="420" y="234">ON: up to 512 (whole map)</text>
+   <text class="ts" x="32" y="250">512 is a safety bound; the longest real routes need a few hundred steps.</text>
+  </svg>
+  <figcaption>Red exits end the call and hand the final state back to the model. A turn in place (the first press only changes facing) is not a stop. With the switch on, the call also stops as "route not converging" when 16 presses in a row have not made the planned route shorter, for example when a wandering NPC keeps forcing detours.</figcaption>
+ </figure>
+</section>
+
+<section>
+ <h2>Warps stay goals only</h2>
+ <p>PokeAgent treats doors and exit mats as floor, so a long route can step on one and warp away mid-walk. We keep our rule: the planner never passes over a warp tile unless that tile is the destination, and the per-press map check stops the call if a transition happens anyway.</p>
+ <figure>
+  <svg viewBox="0 0 640 170" role="img" aria-label="A route detours around a warp mat instead of crossing it, unless the warp itself is the goal.">
+   <g transform="translate(40,30)">
+    <g fill="var(--soft)" stroke="var(--line)">
+     <rect x="0" y="0" width="28" height="28"/><rect x="28" y="0" width="28" height="28"/><rect x="56" y="0" width="28" height="28"/><rect x="84" y="0" width="28" height="28"/><rect x="112" y="0" width="28" height="28"/>
+     <rect x="0" y="28" width="28" height="28"/><rect x="28" y="28" width="28" height="28"/><rect x="84" y="28" width="28" height="28"/><rect x="112" y="28" width="28" height="28"/>
+     <rect x="0" y="56" width="28" height="28"/><rect x="28" y="56" width="28" height="28"/><rect x="56" y="56" width="28" height="28"/><rect x="84" y="56" width="28" height="28"/><rect x="112" y="56" width="28" height="28"/>
+    </g>
+    <rect x="56" y="28" width="28" height="28" fill="var(--warn)" fill-opacity=".3" stroke="var(--warn)"/>
+    <text class="th" x="70" y="47" text-anchor="middle">W</text>
+    <text class="th" x="14" y="47" text-anchor="middle">@</text>
+    <text class="th" x="126" y="47" text-anchor="middle">★</text>
+    <polyline points="14,34 14,14 126,14 126,34" fill="none" stroke="var(--route)" stroke-width="2.5"/>
+    <text class="ts" x="0" y="108">Goal past the warp: route goes around it</text>
+   </g>
+   <g transform="translate(360,30)">
+    <g fill="var(--soft)" stroke="var(--line)">
+     <rect x="0" y="28" width="28" height="28"/><rect x="28" y="28" width="28" height="28"/>
+    </g>
+    <rect x="56" y="28" width="28" height="28" fill="var(--warn)" fill-opacity=".3" stroke="var(--warn)"/>
+    <text class="th" x="70" y="47" text-anchor="middle">W★</text>
+    <text class="th" x="14" y="47" text-anchor="middle">@</text>
+    <line x1="18" y1="42" x2="54" y2="42" stroke="var(--route)" stroke-width="2.5"/>
+    <text class="ts" x="0" y="108">Warp is the goal: route ends on it.</text>
+    <text class="ts" x="0" y="124">Directional exits still need the model's</text>
+    <text class="ts" x="0" y="138">own press after arriving.</text>
+   </g>
+  </svg>
+  <figcaption>Doors keep their existing rule too: the only way in is stepping UP into the door as the final move.</figcaption>
+ </figure>
+</section>
+
+<section>
+ <h2>Why the heap ships with it</h2>
+ <p>Re-planning before every press is cheap on a 15×15 window and expensive on a whole route with the old open list, which re-sorted the whole array before every pop. The new binary heap orders by (estimate, insertion order). That tie-break reproduces the old stable sort's pop order exactly, so every route the old planner chose is unchanged. A test checks this against a copy of the old code on 200 random grids.</p>
+ <figure>
+  <svg viewBox="0 0 640 260" role="img" aria-label="Milliseconds per plan, log scale. Sorted array versus binary heap: Route 104 17 vs 0.29, Route 119 108 vs 1.4, Route 124 unreachable 371 vs 3.9.">
+   <!-- log scale: x = 150 + 110*log10(ms/0.1) ; 0.1ms->150, 1->260, 10->370, 100->480, 1000->590 -->
+   <g stroke="var(--line)"><line x1="150" y1="30" x2="150" y2="214"/><line x1="260" y1="30" x2="260" y2="214"/><line x1="370" y1="30" x2="370" y2="214"/><line x1="480" y1="30" x2="480" y2="214"/><line x1="590" y1="30" x2="590" y2="214"/></g>
+   <g class="ts" text-anchor="middle"><text x="150" y="232">0.1 ms</text><text x="260" y="232">1</text><text x="370" y="232">10</text><text x="480" y="232">100</text><text x="590" y="232">1000</text></g>
+   <text class="ts" x="370" y="252" text-anchor="middle">milliseconds per plan (log scale)</text>
+   <g class="t" text-anchor="end"><text x="138" y="54">15×15 window</text><text x="138" y="104">Route 104</text><text x="138" y="154">Route 119</text><text x="138" y="204">Route 124*</text></g>
+   <!-- window 0.44 / 0.20 -->
+   <rect x="150" y="38" width="70.8" height="10" fill="var(--warn)"/><rect x="150" y="52" width="33.1" height="10" fill="var(--route)"/>
+   <!-- R104 17 / 0.29 -->
+   <rect x="150" y="88" width="245.5" height="10" fill="var(--warn)"/><rect x="150" y="102" width="50.9" height="10" fill="var(--route)"/>
+   <!-- R119 108 / 1.4 -->
+   <rect x="150" y="138" width="333.7" height="10" fill="var(--warn)"/><rect x="150" y="152" width="126.1" height="10" fill="var(--route)"/>
+   <!-- R124 unreachable 371 / 3.9 -->
+   <rect x="150" y="188" width="392.5" height="10" fill="var(--warn)"/><rect x="150" y="202" width="175.0" height="10" fill="var(--route)"/>
+   <g class="tm"><text x="226" y="47">0.44</text><text x="189" y="61">0.20</text><text x="401" y="97">17</text><text x="207" y="111">0.29</text><text x="489" y="147">108</text><text x="282" y="161">1.4</text><text x="548" y="197">371</text><text x="331" y="211">3.9</text></g>
+   <g transform="translate(150,10)"><rect width="10" height="10" fill="var(--warn)"/><text class="ts" x="16" y="9">sorted array (before)</text><rect x="150" width="10" height="10" fill="var(--route)"/><text class="ts" x="166" y="9">binary heap (after)</text></g>
+  </svg>
+  <figcaption>From the open-list benchmark (22% random walls; *Route 124 is the unreachable-goal case, the worst one). A 180-step walk on Route 119 would spend about 19 s planning with the array and about 0.25 s with the heap. A test keeps an 80×80 plan under 25 ms.</figcaption>
+ </figure>
+</section>
+
+<section>
+ <h2>How the map reaches the planner</h2>
+ <p>The game server reads the map from live memory once per observation, one memory read per row. It feeds two outputs: the text the model reads, and a compact <code>map_grid</code> in the typed state that the agent's planner decodes. The existing 15×15 <code>navigation_grid</code> stays exactly as it was.</p>
+ <figure>
+  <svg viewBox="0 0 660 230" role="img" aria-label="Live backup map in RAM is read by read_full_map, which produces whole-map text for the model and a compact map_grid for the planner. map_grid uses 4 hex digits per tile.">
+   <defs><marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>
+   <g fill="var(--panel)" stroke="var(--line)" stroke-width="1.5">
+    <rect x="16" y="80" width="120" height="56" rx="5"/>
+    <rect x="186" y="80" width="130" height="56" rx="5" stroke="var(--route)" stroke-width="2"/>
+    <rect x="376" y="20" width="130" height="56" rx="5"/>
+    <rect x="376" y="140" width="130" height="56" rx="5"/>
+    <rect x="546" y="20" width="100" height="56" rx="5"/>
+    <rect x="546" y="140" width="100" height="56" rx="5"/>
+   </g>
+   <text class="th" x="76" y="104" text-anchor="middle">Backup map</text><text class="ts" x="76" y="121" text-anchor="middle">game RAM, live</text>
+   <text class="th" x="251" y="104" text-anchor="middle">read_full_map</text><text class="ts" x="251" y="121" text-anchor="middle">one read per row</text>
+   <text class="th" x="441" y="44" text-anchor="middle">Readout text</text><text class="ts" x="441" y="61" text-anchor="middle">1 char per tile</text>
+   <text class="th" x="441" y="164" text-anchor="middle">map_grid</text><text class="ts" x="441" y="181" text-anchor="middle">4 hex digits per tile</text>
+   <text class="th" x="596" y="44" text-anchor="middle">Model</text><text class="ts" x="596" y="61" text-anchor="middle">chooses goal</text>
+   <text class="th" x="596" y="164" text-anchor="middle">Planner</text><text class="ts" x="596" y="181" text-anchor="middle">A* per press</text>
+   <g stroke="var(--muted)" stroke-width="1.5" fill="none" style="color:var(--muted)" marker-end="url(#b)">
+    <line x1="136" y1="108" x2="184" y2="108"/>
+    <path d="M316 100 L346 100 L346 48 L374 48"/>
+    <path d="M316 116 L346 116 L346 168 L374 168"/>
+    <line x1="506" y1="48" x2="544" y2="48"/>
+    <line x1="506" y1="168" x2="544" y2="168"/>
+   </g>
+   <text class="tm" x="186" y="214">cell = collision&lt;&lt;12 | elevation&lt;&lt;8 | behavior   e.g. 1200 = wall, layer 2</text>
+  </svg>
+  <figcaption>Packing keeps run logs small: an 80×80 map is about 26 KB of map_grid per recorded state, versus roughly 450 KB if every tile were a JSON object like the local grid.</figcaption>
+ </figure>
+</section>
+
+<section>
+ <h2>When the switch is off</h2>
+ <ul>
+  <li>The readout, prompts, tool list and tool description are unchanged, and the state JSON has no <code>map_grid</code> key.</li>
+  <li>It defaults off in old and new presets, the viewer's next-run draft, the human-play server and the game server's own default.</li>
+  <li>It needs <code>bounded-navigation-v1</code>; a preset that turns it on without that is rejected.</li>
+  <li>A map larger than 256 tiles on a side is not sent; the planner then reports geometry unavailable. No Emerald map comes close.</li>
+  <li>It is recorded last in a run's feature list, so older run records keep their order.</li>
+ </ul>
+</section>
+
+<section>
+ <h2>Status</h2>
+ <div class="tablewrap"><table>
+  <thead><tr><th>Check</th><th>Result</th></tr></thead>
+  <tbody>
+   <tr><td>Agent tests</td><td>877 passed · lines 97.1%, branches 93.1%</td></tr>
+   <tr><td>Viewer tests</td><td>417 passed · lines 95.5%, branches 90.5%</td></tr>
+   <tr><td>Python tests</td><td>1,818 passed · lines 96.7%, branches 91.9% (floor 90%)</td></tr>
+   <tr><td>Lint and types</td><td>tsc, eslint, ruff, mypy clean</td></tr>
+   <tr><td>Independent review</td><td>Claude CLI: LGTM; 6 of 8 minor findings fixed, 2 kept as evaluation notes</td></tr>
+   <tr><td>Branch</td><td>claude/full-map-navigation, local only, not merged</td></tr>
+   <tr><td>Real ROM check</td><td>Not run yet: no game servers until the ledge fix lands</td></tr>
+   <tr><td>Benchmark runs</td><td>Not started, by design</td></tr>
+  </tbody>
+ </table></div>
+ <p>Ledges still read as walls on both the local and whole map. That fix is a separate thread, and this branch will need a small merge once it lands because both touch the planner's walkable-tile rules.</p>
+</section>
+</main>
+</body>
+</html>

@@ -1479,7 +1479,7 @@
             "type": "integer",
             "minimum": 0
           },
-          "maxItems": 19,
+          "maxItems": 36,
           "uniqueItems": true
         }
       },

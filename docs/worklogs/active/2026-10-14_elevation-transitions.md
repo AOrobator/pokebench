@@ -20,3 +20,4 @@ Scope: the elevation rule in navigation.ts only. Walkable behaviors (sand, bridg
 - GREEN: agent 893 tests pass; navigation.ts 91.82 lines / 92 branches / 100 functions; agent all-files 97.1/93.16/97.85; viewer 419 pass; Python 1803 pass, 96.53/91.65/99.34 (floor 90). Lint (tsc, eslint, ruff, mypy) and build clean.
 - COMMIT: `fix: follow the game's elevation rule in navigate_to` (40e68db)
 - Merged main a8cbcff (ledge hops landed). Ledge landings now use the same mismatch/entered rule (a jump shifts previousCoords to the take-off tile, so the update compares landing and take-off).
+- Merged main e6f8cc2 (docs only): merge commit ad08a62.

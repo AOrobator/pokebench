@@ -94,6 +94,7 @@ describe("durable cohort queue and metadata boundaries", () => {
     [{ type: "launch", runId: "cohort_01" }, { type: "outcome", runId: "cohort_01", exitCode: 0, reason: "milestone", eventsSha256: undefined }],
     [{ type: "launch", runId: "cohort_01" }, { type: "outcome", runId: "cohort_01", exitCode: 1, reason: "infrastructure_failure", failureCode: "invented" }],
     [{ type: "launch", runId: "cohort_02" }],
+    [{ type: "launch", runId: "cohort_01" }, { type: "outcome", runId: "cohort_01", exitCode: 1, reason: "infrastructure_failure" }, { type: "launch", runId: "cohort_02" }],
     [{ type: "launch", runId: "cohort_01", at: "invalid" }],
     [{ type: "launch", runId: "cohort_01", at: "2026-10-14T12:00:00Z" }, { type: "outcome", runId: "cohort_01", exitCode: 0, reason: "milestone", at: "2026-10-14T11:00:00Z" }],
   ].map(rows => ({ rows })))("rejects production-invalid ledger rows and serial ordering without annotating runs", async ({ rows }) => {

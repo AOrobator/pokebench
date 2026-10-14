@@ -88,10 +88,9 @@ async function cohortQueue(root: string): Promise<{ items: WorkbenchQueueItem[];
       for (const [index, row] of rows.entries()) {
         const trial = m.trials[Math.floor(index / 2)];
         if (trial === undefined || row.runId !== trial.runId || row.type !== (index % 2 === 0 ? "launch" : "outcome") || !Number.isFinite(Date.parse(row.at)) || (row.type === "outcome" && Date.parse(row.at) < Date.parse(rows[index - 1]?.at ?? "")) || cohortFailed) throw new Error("Cohort ledger has invalid serial order or timestamps");
-        if (!record(row) || typeof row.runId !== "string" || !m.trials.some(t => t.runId === row.runId) || !["launch", "outcome"].includes(String(row.type))) throw new Error("Cohort ledger has an invalid trial row");
-        if (row.type === "launch") { if (launched.has(row.runId)) throw new Error("Duplicate cohort launch"); launched.add(row.runId); }
+        if (row.type === "launch") launched.add(row.runId);
         else {
-          if (!launched.has(row.runId) || completed.has(row.runId) || (row.exitCode !== null && !Number.isInteger(row.exitCode)) || typeof row.reason !== "string") throw new Error("Cohort outcome is incomplete or unordered");
+          if (row.reason === undefined) throw new Error("Cohort outcome has no reason");
           completed.add(row.runId);
           if (row.exitCode !== 0) { cohortFailed = true; receiptFailures.set(row.runId, `Infrastructure outcome: ${typeof row.failureCode === "string" ? row.failureCode : row.reason}`); }
         }

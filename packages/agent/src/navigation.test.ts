@@ -329,6 +329,16 @@ it("whole-map planning hops ledges only with ledge hops on and expects the two-t
  expect(buttons).toEqual([["DOWN"],["DOWN"]]);expect(outcome.details).toMatchObject({navigation:{status:"arrived at requested coordinate",commands:2}});
 });
 
+it("whole-map walking stops at once when a hop lands one or three tiles on",async()=>{
+ const column=mapGrid(1,5,(_x,y)=>y===1?{collision:1,behavior:0x3b}:{});
+ for(const landed of [1,3]){
+  let current=fullField(column);let presses=0;
+  const tool=navigationTool({fullMap:true,ledges:true,read:()=>Promise.resolve(current),press:()=>{presses++;current={...current,position:{x:0,y:landed}};return Promise.resolve(result(current));},observe:()=>Promise.resolve(result(current))});
+  const outcome=await tool.execute("nav",{x:0,y:4,map_id:[0,9]});
+  expect(presses).toBe(1);expect(outcome.content[0]?.type==="text"?outcome.content[0].text:"").toContain("unexpected movement");
+ }
+});
+
 // pokeemerald 731ad5b IsMetatileDirectionallyImpassable: a move is refused when the current
 // tile walls its exit side or the next tile walls its entry side (MetatileBehavior_Is*Blocked).
 const room=(chair:number,position={x:0,y:1}):GameStateSnapshot=>({...field,position,navigation_grid:{elevation:3,tiles:[0,1,2].flatMap(x=>[0,1,2].map(y=>x===1&&y===1?tile(1,1,0,chair):tile(x,y))),objects:[],warps:[]}});

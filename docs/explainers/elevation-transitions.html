@@ -17,7 +17,7 @@ pre{font:13px/1.5 ui-monospace,SFMono-Regular,monospace;background:var(--bg);bor
 <tr><td><b>Can I step there?</b></td><td><code>IsElevationMismatchAt</code>, event_object_movement.c:7673. Allowed if you are at 0, or the tile is 0 or 15, or the heights match.</td><td>Allowed if you or the tile were 0, or heights matched. <b>A 15 tile was refused</b> unless you were already 15.</td><td>Same as the game.</td></tr>
 <tr><td><b>What height am I after the step?</b></td><td><code>ObjectEventUpdateElevation</code>, :7725, runs again when the step finishes, after <code>ShiftStillObjectEventCoords</code> (:5093) makes the tile you left equal to the tile you are on. So you end at the new tile's height, <b>including 0</b>, unless the new tile is 15; then your height does not change.</td><td>Took the new tile's height, but <b>kept the old height on a 0 tile</b>.</td><td>Same as the game.</td></tr>
 <tr><td><b>Start height</b></td><td>Player object byte 0x0B, low nibble (<code>currentElevation</code>).</td><td colspan="2"><code>navigation_grid.elevation</code>, read at game_state.py:253. Unchanged.</td></tr>
-<tr><td><b>Ledge landings</b></td><td>A jump finishes the same way (<code>UpdateJumpAnim</code>, :5446), so the landing tile decides.</td><td>Used the old stair rule.</td><td>Same two rules, applied to the landing tile.</td></tr></table></div>
+<tr><td><b>Ledge landings</b></td><td>A jump updates height mid-air on the ledge tile (<code>InitJump</code>, then <code>JUMP_HALFWAY</code> in <code>UpdateJumpAnim</code>, :5437) and finishes like a step (:5446). So the landing tile decides, unless it is 15; then the ledge tile's update stands.</td><td>Used the old stair rule.</td><td>Same as the game. The planner still also refuses a landing at a different height, which the game does not check.</td></tr></table></div>
 <figcaption>Before is main at a8cbcff. After is branch <code>claude/elevation-transitions</code>.</figcaption></figure>
 <h2>2. Stairs: the Route 104 pier</h2>
 <div class="legend"><span><i class="sw e3"></i>elevation 3</span><span><i class="sw e4"></i>elevation 4</span><span><i class="sw e0"></i>0 = stairs (transition)</span><span><i class="sw e15"></i>15 = multi-level (bridge)</span><span><i class="sw wall"></i>collision</span><span><i class="sw water"></i>water</span><span>● start ○ goal</span><span style="color:var(--good)">━ planned route</span><span style="color:var(--bad)">┅ refused</span></div>
@@ -33,10 +33,10 @@ pre{font:13px/1.5 ui-monospace,SFMono-Regular,monospace;background:var(--bg);bor
 <figure><pre>const MULTI_LEVEL=15;
 const mismatch=(walker,tile)=&gt;walker!==0&amp;&amp;tile!==0&amp;&amp;tile!==MULTI_LEVEL&amp;&amp;tile!==walker;
 const entered=(walker,tile)=&gt;tile===MULTI_LEVEL?walker:tile;</pre>
-<figcaption>Each search node is a tile plus the walker's height, as before. The first review round caught an earlier version that also looked at the tile you leave; that only matters halfway through a step, so it was removed.</figcaption></figure>
+<figcaption>Each search node is a tile plus the walker's height, as before; a test proves a tile can be reachable at one height and not another. For ledge jumps a <code>jumped</code> helper also looks at the take-off and ledge tiles. Review round 1 caught an earlier version that looked at the tile you leave on ordinary steps; that only matters halfway through a step, so it was removed.</figcaption></figure>
 <h2>6. Status</h2>
-<figure><ul><li>Branch <code>claude/elevation-transitions</code>, merged with main e6f8cc2 (includes ledge hops).</li>
-<li>Tests: agent 899, viewer 419, Python 1803 pass. Coverage agent 97.2 / 93.3 / 97.9, Python 96.7 / 91.8 / 100 (floor 90). Lint and build clean.</li>
+<figure><ul><li>Branch <code>claude/elevation-transitions</code>, merged with main 9f111d1 (includes ledge hops).</li>
+<li>Tests: agent 899, viewer 474, Python 1803 pass. Coverage agent 97.2 / 93.3 / 97.9, Python 96.7 / 91.8 / 100 (floor 90). Lint and build clean.</li>
 <li>Test fixtures are real 15×15 windows decoded from pokeemerald map.bin: <code>packages/agent/test-support/elevation-maps.json</code>.</li>
 <li>Not done: no live run on the pier or Route 110; no measured benchmark runs; not merged to main.</li>
 <li>Still open elsewhere: sand, cave and bridge behaviors are walls to the planner; the model's text map does not show elevation.</li></ul></figure>

@@ -2,7 +2,7 @@
 
 Requested by the operator (map observation audit follow-up, 2026-10-14). Source: pret/pokeemerald 731ad5b, `IsElevationMismatchAt` and `ObjectEventUpdateElevation` (src/event_object_movement.c:7673, 7725).
 
-Bug: `planNavigation` kept the old elevation across elevation-0 tiles (refusing 3 → 0 → 4 stairs such as the Route 104 pier) and adopted 15 on multi-level tiles (refusing every ordinary tile afterwards). The game sets the walker's elevation to the destination tile's, except that nothing changes when either the source or the destination tile is 15; a walker at 0, or a destination at 0 or 15, never mismatches.
+Bug: `planNavigation` kept the old elevation across elevation-0 tiles (refusing 3 → 0 → 4 stairs such as the Route 104 pier) and adopted 15 on multi-level tiles (refusing every ordinary tile afterwards). The game's finished step sets the walker's elevation to the tile's, unless the tile is 15 (then unchanged); a walker at 0, or a destination at 0 or 15, never mismatches. Ledge jumps also update on the ledge tile mid-air. (The first draft's "source or destination is 15" rule was a mid-step reading, corrected in review round 1.)
 
 Scope: the elevation rule in navigation.ts only. Walkable behaviors (sand, bridges 0x70), ledges and the whole-map planner are owned by sibling threads.
 
@@ -32,3 +32,5 @@ Scope: the elevation rule in navigation.ts only. Walkable behaviors (sand, bridg
 - COMMIT: `docs: record elevation-transitions merge of main 9f111d1` (8912697)
 - Review round 2 (head 8912697): Claude LGTM, Grok LGTM, Codex BLOCKING (no test proves tile+height search identity; no test for a ledge landing on 15). Grok speculation verified against source: a far jump runs OnBeginStep at InitJump (prev=take-off, cur=ledge tile) and again at JUMP_HALFWAY (prev=ledge, cur=landing), then the finish update. So a 15 landing keeps the ledge-tile update: height = ledge tile's unless take-off or ledge tile is 15. Fix adds that and both tests.
 - RED (round 3): 1 failed / 19 passed (ledge landing on 15 after a height-0 ledge tile); junction identity test is a mutation guard and passes.
+- COMMIT: `test: search identity and ledge landings on multi-level tiles (RED)` (d372bac)
+- GREEN (round 3 fix): `jumped` helper; agent 899, viewer 474, Python 1803 pass; agent 97.21/93.3/97.87; Python 96.68/91.83/100; lint, build clean. Explainer ledge row and status updated.

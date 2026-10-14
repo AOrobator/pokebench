@@ -83,3 +83,13 @@ it("keeps multi-input navigation outcome after the final input and bounds long-r
  const m=new NavigationMemory(ALL_ON);m.observe(state(1));m.observe(event({type:"tool_call",id:"nav",name:"navigate_to",args:{x:4,y:4,map_id:[1,1]}},2));m.observe(event({type:"button_press",tool_call_id:"nav",before_state_seq:1,buttons:["RIGHT"]},3));m.observe(state(4));m.observe(event({type:"button_press",tool_call_id:"nav",before_state_seq:4,buttons:["RIGHT"]},5));m.observe(event({type:"tool_result",id:"nav",name:"navigate_to",is_error:false,duration_ms:0,text:"no final sample",frames:[]},6));expect(m.text()).toContain("result state unavailable");
  for(let i=7;i<2007;i++)m.observe(state(i,{location:`Room${String(i)}`,map_id:[1,i],world_context:{objects:[],triggers:[],dialogue:`Observed ${String(i)}`}}));expect(m.text().length).toBeLessThanOrEqual(6500);expect(m.evidence().length).toBeLessThanOrEqual(36);
 });
+it("prioritizes every recent outcome and explicitly qualifies all omitted source references when sections fill together",()=>{
+ const m=new NavigationMemory(ALL_ON);let seq=0;
+ for(let i=0;i<6;i++)m.observe(state(++seq,{location:`Room${String(i)}${"r".repeat(150)}`,map_id:[1,i],world_context:{objects:[],triggers:[],dialogue:`Instruction ${String(i)} ${"d".repeat(650)}`}}));
+ for(let i=0;i<8;i++){
+  m.observe(event({type:"tool_call",id:`try${String(i)}`,name:"press",args:{buttons:["A"]}},++seq));
+  m.observe(event({type:"tool_result",id:`try${String(i)}`,name:"press",is_error:true,duration_ms:1,text:`Result ${String(i)} ${"failure ".repeat(40)}`,frames:[]},++seq));
+ }
+ const text=m.text();expect(text.length).toBeLessThanOrEqual(6500);for(let i=0;i<8;i++)expect(text).toContain(`Result ${String(i)}`);
+ expect(text).toContain("Omitted retained source references (bounded display)");for(const id of m.evidence())expect(text).toMatch(new RegExp(`#${String(id)}(?!\\d)`));
+});

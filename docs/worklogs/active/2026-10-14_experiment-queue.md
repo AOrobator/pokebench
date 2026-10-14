@@ -145,3 +145,4 @@ Pending.
 - Wording fixes accepted: INV-Q6 checks dist mtime against the commit time (not a dist hash); INV-Q4 trials share port 8074 serially under the lease, each with its own run id and run dir.
 - GREEN for B1/B2: `deriveStatus` returns `stale` for a started experiment with no valid approval; `runQueue` re-checks the approval hash before every trial and holds if it no longer matches; a trial whose run recorded `run_end` is an `outcome` even when play exits nonzero (only a run with no recorded end is a launcher error). Lease directory is removed if its owner file cannot be written. Guard check: removed the per-trial approval check; the mid-run revocation test went red; restored.
 - Gates: agent 960 (97.23/93.47/98.01), viewer 516 (95.34/90.38/94.64), Python 1847; lint clean.
+- Elevation explainer: section 6 (switch ON vs OFF diagram, wiring) and status line; Harness Config card link tested (panels.test, server.test). Viewer tests 517.

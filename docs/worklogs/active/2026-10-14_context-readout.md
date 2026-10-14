@@ -25,6 +25,12 @@ sawtooths. Estimate and real prompt dropped on the same turns (36/36, 147/148).
 - [x] GREEN: `RunView.promptTokens` from the latest assistant usage with a nonzero
   prompt; `contextReadout()` prefers it, falling back to the labelled estimate
   Tests: viewer 566 passed. Coverage: viewer 94.84 lines / 90.19 branches / 93.61 functions. Lint clean.
-- [ ] Real viewer check against a recorded run
-- [ ] Reviews: Claude CLI, Grok (Codex out of credits; no local models)
+- [x] Real viewer check: isolated candidate viewer on 127.0.0.1:8799 replaying
+  2026-10-14T17-56-49_think-fast_30b2 showed CONTEXT 7,955 / 65,536 at turn 5 = 1,470 + 6,485
+  from the log (old readout: 4,220).
+- [x] Reviews (packet in runs/reviews/context-readout/): Claude CLI LGTM, Grok
+  (cursor-grok-4.5-high) LGTM. Codex out of credits; no local models.
+  Deferred hardening, both reviewers: the bar shows the previous request's prompt between
+  turn_start and the reply (one-request lag, in contract). Claude: cache writes are not
+  recorded; llama-server reports none.
 - [ ] Operator approval, local merge to main

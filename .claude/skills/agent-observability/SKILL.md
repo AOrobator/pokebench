@@ -20,6 +20,8 @@ For an unsupported active UI readout, log the coverage gap with qualified callba
 
 ## Shared historical recovery
 
+For evidence recovery, inspect both retained screenshots and recorded RAM state before declaring completion unprovable or a split unrecoverable. Missing typed fields or milestone events are only one channel; inspect the surrounding image sequence for explicit game-owned confirmation and correlate it with state, timestamps, pauses and hashes. Follow [story-milestone recovery](../pokebench-story-milestones/SKILL.md) to label native-state and manually reviewed visual evidence separately.
+
 When a streaming comparison reader differs from replay, audit both emitted milestone records and recovered native-state evidence. The same supported historical recovery must reach split tables and graphs with source-state sequence, applied pauses and an explicit first-observation upper-bound label. Prefer a valid native receipt over a recovered observation; never recover a modern missing event merely to hide a recorder defect. Verify current detector → recorded event → comparison reader → plotted point with both route-label spellings and the relevant native completion flags. Keep raw logs unchanged and unsupported evidence visibly missing.
 
 ## Polling viewer interactions

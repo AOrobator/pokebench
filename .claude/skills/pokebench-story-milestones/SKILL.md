@@ -5,7 +5,7 @@ description: Define, implement, or audit PokeBench Pokémon Emerald story milest
 
 # Story milestones from the game
 
-The operator's instruction: Emerald is the source of truth for progress. Prefer the game's story variables and persistent flags for story milestones. Vendor labels, model narration, screenshots alone, and entering a nearby map do not establish that a story event completed.
+The operator's instruction: Emerald is the source of truth for progress. Prefer the game's story variables and persistent flags for automatic native grading. Historical evidence recovery must inspect both recorded RAM state and retained screenshots: explicit in-game confirmation or victory screens can support a labeled visual reconstruction when a RAM field was not recorded. Vendor labels, model narration and proximity to an event do not establish completion.
 
 Use [pokebench-game-state](../pokebench-game-state/SKILL.md) for source checkout, exact-ROM mapping, coherent memory snapshots, and recorded probes. Follow the repository's existing worklog and validation gates for runtime changes. This skill does not authorize new runs, navigation helpers, RAM writes, save manipulation, or vendor modifications.
 
@@ -43,7 +43,9 @@ Trace the same condition through the production reader, typed state, recorder, m
 
 Inspect the pinned vendor implementation before trusting a milestone. It may supply useful emulator or transport functionality while its milestone heuristic differs from the required event. Keep the vendor pristine; place verified adapters, readers, and detectors in PokeBench-owned code. Do not replace working vendor components solely because another component was inaccurate.
 
-Historical recovery is permitted only when recorded game state proves the predicate. Keep original logs unchanged, identify recovered events and their supporting sequence IDs, and label first-observation timing. If the required value was never recorded, show unknown/not recorded; never fill it from the model's claim, a checkpoint filename, or proximity to the event.
+Before declaring a historical milestone impossible to recover, inventory and inspect **both** recorded RAM state and retained screenshots over the relevant event interval. Missing milestone rows or a missing RAM field do not establish that the evidence is absent. Correlate the image sequence with recorded states, timestamps, pauses and source identities; check explicit completion screens and surrounding transitions, including canceled interactions or losses. If one channel is unavailable, record that limitation and still inspect the other.
+
+Recover the event when either the native predicate or directly observed in-game visual evidence supports its meaning. Keep native-state recovery and manually reviewed screenshot reconstruction explicitly labeled, bind both to source event sequences and hashes, and qualify observation-time bounds. Keep original logs and images unchanged. Say unknown/not recoverable only after the available channels have been audited, explaining the specific remaining gap; never fill it from model narration, a checkpoint filename or proximity.
 
 Before declaring a historical trainer split unrecoverable, audit retained screenshots around battle transitions. Inspect trainer-introduction names, explicit in-game victory text, defeat/blackout screens and rewards, including two-opponent battles. Bind a manually reviewed screenshot reconstruction to the immutable event-log hash, screenshot event sequence/time and image hash; label it separately from native trainer-flag grading, retain the images in point details and use an observation-time upper bound. Do not infer individual gym wins from post-clear trainer bits: Roxanne's script marks even skipped trainers defeated. New model runs should use the native pre-clear predicates; screenshot annotations do not promote model frontier records.
 

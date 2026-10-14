@@ -2,7 +2,7 @@ import { existsSync, lstatSync, readFileSync, readdirSync, statSync } from "node
 import { join } from "node:path";
 import { FEATURES } from "@pokebench/agent/features";
 import { MILESTONES, qualifiedNativeMilestone } from "@pokebench/agent/milestones";
-import { prepareComparison, sha256 } from "@pokebench/agent/serial-comparison";
+import { filesystemComparisonHost, prepareComparison, sha256 } from "@pokebench/agent/serial-comparison";
 import type { RunEvent } from "@pokebench/agent/events";
 import { configOf } from "./history.js";
 import { runSeconds } from "./controls.js";
@@ -70,7 +70,7 @@ function plans(root: string): string[] {
     }
   }; visit(join(root, "launch-receipts"), 0); return found;
 }
-function cohortQueue(root: string): { items: WorkbenchQueueItem[]; failures: Map<string, string>; membership: Map<string, string>; problems: string[] } {
+async function cohortQueue(root: string): Promise<{ items: WorkbenchQueueItem[]; failures: Map<string, string>; membership: Map<string, string>; problems: string[] }> {
   const items: WorkbenchQueueItem[] = [], failures = new Map<string, string>(), membership = new Map<string, string>(), problems: string[] = [], accepted = new Set<string>();
   let owner: unknown = null;
   try { if (existsSync(join(root, ".naming-gameplay.lock", "owner.json"))) owner = json(join(root, ".naming-gameplay.lock", "owner.json")); } catch { /* No qualified coordinator ownership. */ }
@@ -80,12 +80,14 @@ function cohortQueue(root: string): { items: WorkbenchQueueItem[]; failures: Map
       const m = prepareComparison(raw), ledgerPath = join(root, "launch-receipts", m.id, "trials.jsonl");
       if (join(m.repoRoot, "runs") !== root || !existsSync(ledgerPath)) continue;
       if (lstatSync(ledgerPath).isSymbolicLink() || statSync(ledgerPath).size > MAX_PLAN_BYTES) throw new Error("Cohort ledger exceeds metadata bounds");
-      const rows: unknown[] = readFileSync(ledgerPath, "utf8").trim().split("\n").filter(Boolean).map((line): unknown => JSON.parse(line));
+      const rows = await filesystemComparisonHost(m).readLedger();
       const digest = sha256(JSON.stringify(m));
       if (rows.length === 0 || !rows.every(row => record(row) && row.manifestSha256 === digest)) continue;
       if (accepted.has(m.id)) continue;
       const launched = new Set<string>(), completed = new Set<string>(), receiptFailures = new Map<string, string>(); let cohortFailed = false;
-      for (const row of rows) {
+      for (const [index, row] of rows.entries()) {
+        const trial = m.trials[Math.floor(index / 2)];
+        if (trial === undefined || row.runId !== trial.runId || row.type !== (index % 2 === 0 ? "launch" : "outcome") || !Number.isFinite(Date.parse(row.at)) || (row.type === "outcome" && Date.parse(row.at) < Date.parse(rows[index - 1]?.at ?? "")) || cohortFailed) throw new Error("Cohort ledger has invalid serial order or timestamps");
         if (!record(row) || typeof row.runId !== "string" || !m.trials.some(t => t.runId === row.runId) || !["launch", "outcome"].includes(String(row.type))) throw new Error("Cohort ledger has an invalid trial row");
         if (row.type === "launch") { if (launched.has(row.runId)) throw new Error("Duplicate cohort launch"); launched.add(row.runId); }
         else {
@@ -105,7 +107,7 @@ function cohortQueue(root: string): { items: WorkbenchQueueItem[]; failures: Map
   return { items, failures, membership, problems };
 }
 export async function workbenchSnapshot(root: string, healthy: HealthProbe, queue: QueueStatus, now: number): Promise<WorkbenchData> {
-  const cohorts = cohortQueue(root); const summaries = listRuns(root);
+  const cohorts = await cohortQueue(root); const summaries = listRuns(root);
   const loadedRuns = summaries.map(s => load(root, s.id));
   const newest = new Map<number, { id: string; at: number }>();
   for (const loaded of loadedRuns) if (loaded.port !== null && loaded.run.status === "unresponsive") {

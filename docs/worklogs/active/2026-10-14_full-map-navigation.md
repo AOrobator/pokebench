@@ -14,7 +14,7 @@ Operator chose the full-map arm (2026-10-14, via the project coordinator). Add a
 
 ## Milestones
 - [x] M1 Planner: heap open list, geometry abstraction, full-map grid decode, full-route bound (RED → GREEN).
-- [ ] M2 Switch: Python full-map read/readout/state JSON, feature registry, presets, prompt/tool copy, server env (RED → GREEN), gates, review.
+- [x] M2 Switch: Python full-map read/readout/state JSON, feature registry, presets, prompt/tool copy, server env (RED → GREEN), gates, review.
 
 ## Session Log
 2026-10-14: worktree created from main 79e17be.
@@ -27,3 +27,7 @@ M1 RED: navigation.test.ts adds whole-map planning (40x140 serpentine, 2868 step
 M1 GREEN: planner runs on local or whole-map geometry through one tile lookup; binary-heap open list keyed (estimate, insertion order); routes rebuilt from parent links; navigationTool fullMap mode (whole-map description, 512 bound, mode-aware readiness/status). map_grid added to StateBodySchema. navigation + caller tests 24/24, agent lint clean.
 
 M1 GREEN commit: cf2857b. M2 RED: Python read_full_map (rows, objects/warps beyond window, one-row reads, labels, packed JSON, unready layouts), observation switch adds map_grid/whole-map text only when on, default-off server list (18 features); TS registry/preset defaults/prompt/factory tests. All new tests fail at collection or assertion.
+
+M2 RED commit: 0eadff1.
+M2 GREEN: live_map shares layout/object/warp/symbol/detail helpers between read_local_map (output unchanged) and new read_full_map (one row read per map row, all warps, all live objects on the map). GameState.full_map read only with full_map_enabled; readout shows the whole map in place of the local grid; state_json adds map_grid only when present (measurement-identity test now pops map_grid explicitly as the single declared exception). Registry: full-map-navigation-v1 (guidance, needs bounded-navigation-v1), server feature, recorded last in harness_features; presets/viewer next-run/flagFeatures/human host env default OFF; prompt line and tool description swap only when on; withNavigation passes fullMap. Schema regenerated.
+Gates: agent 875/875 (97.06 lines, 93.08 branches, 97.77 funcs), viewer 417/417 (95.54/90.47/95.12), Python 1813 passed (96.71/91.89/100, floor 90). tsc/eslint/ruff/format clean; mypy clean with the mGBA-equipped venv (this worktree's venv lacks the native binding, so its mypy reports only the missing mgba._pylib import). Native qualification on the real ROM not run: no game servers until the ledge-fix thread lands and the measurement lease is free.

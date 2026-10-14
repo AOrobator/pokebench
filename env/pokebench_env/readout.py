@@ -2,6 +2,7 @@
 
 Observation switches (harness feature ids, set per run) remove their own text
 from the readout only; the typed JSON state used for measurement is unchanged.
+The one addition is full-map-navigation-v1, which adds `map_grid` when on.
 """
 
 from collections.abc import Mapping
@@ -27,13 +28,14 @@ SERVER_FEATURES = (
     "coordinate-script-conditions-v1",
     "field-control-lock",
     "warp-activation-guidance-v1",
+    "full-map-navigation-v1",
 )
 
 
 def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
     raw = env.get(
         "POKEBENCH_FEATURES_OFF",
-        "named-interactions-v1,world-destinations-v1,bounded-navigation-v1,expanded-menu-battle-information-v1,field-dialogue-phase-v1",
+        "named-interactions-v1,world-destinations-v1,bounded-navigation-v1,expanded-menu-battle-information-v1,field-dialogue-phase-v1,full-map-navigation-v1",
     )
     if raw == "":
         return frozenset()
@@ -221,12 +223,17 @@ def format_readout(
             else "Field controls: available (terrain and objects can still block a direction)"
         )
     if state.local_map is not None and "live-map-v1" not in off:
+        shown = (
+            state.full_map
+            if state.full_map is not None and "full-map-navigation-v1" not in off
+            else state.nearby
+        )
         lines.append(
-            state.nearby.text(
+            shown.text(
                 grid="world-coordinate-grid-v1" not in off,
                 warp_guidance="warp-activation-guidance-v1" not in off,
             )
-            if state.nearby is not None
+            if shown is not None
             else state.local_map
         )
     if state.world_context is not None:
@@ -265,7 +272,12 @@ def format_readout(
 
 
 def state_json(state: GameState) -> dict[str, object]:
+    # map_grid exists only with full-map-navigation-v1, so switch-off state is unchanged.
+    full = (
+        {} if state.full_map is None else {"map_grid": state.full_map.json(state.player_elevation)}
+    )
     return {
+        **full,
         "screen": state.screen,
         "active_ui": None if state.active_ui is None else state.active_ui.json(),
         "story": None if state.story is None else state.story.json(),

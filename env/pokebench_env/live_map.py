@@ -69,21 +69,6 @@ class LocalMap:
 
     def text(self, *, grid: bool = True, warp_guidance: bool = True) -> str:
         x, y = self.origin
-        objects = ", ".join(f"id {i} at ({a},{b})" for i, a, b in self.objects) or "none nearby"
-        behaviors_at = {(tile.x, tile.y): tile.behavior for tile in self.tiles}
-        warps = (
-            ", ".join(
-                (
-                    f"({a},{b}) -> dynamic destination"
-                    if (g, n) == (127, 127)
-                    else f"({a},{b}) -> map {g}/{n}"
-                )
-                + (f" [{_warp_trigger(behaviors_at.get((a, b)))}]" if warp_guidance else "")
-                for a, b, g, n in self.warps
-            )
-            or "none nearby"
-        )
-        behaviors = sorted({tile.behavior for tile in self.tiles})
         rows = (
             "     "
             + " ".join(f"{x + i:3}" for i in range(len(self.rows[0])))
@@ -97,32 +82,121 @@ class LocalMap:
         return (
             f"Local map from live memory; top-left ({x},{y}), north is up:\n"
             + rows
-            + (
-                "\n@ player; N live object; W warp location (see activation below);"
-                if warp_guidance
-                else "\n@ player; N live object; W warp;"
-            )
-            + " # collision; g grass; ~ water;"
-            + " . clear terrain (may have script triggers); ? outside current map."
-            + "\nTerrain rules, elevation and objects can still block movement."
-            + f"\nLive objects: {objects}\nWarps: {warps}"
-            + (
-                "\nWarp destinations are map group/number IDs, not warp indexes. Activation also"
-                " requires matching elevation and available field controls; W alone does not"
-                " guarantee a transition. After a transition, check the new map and position."
-                if warp_guidance
-                else ""
-            )
-            + "\nMetatile behaviors present: "
-            + ", ".join(f"0x{value:02X}" for value in behaviors)
+            + _details(self.tiles, self.objects, self.warps, warp_guidance, outside=True)
         )
 
 
-def read_local_map(
-    read: ReadMemory, position: tuple[int, int], map_id: tuple[int, int], radius: int = 7
-) -> LocalMap | None:
-    if not 0 <= radius <= 7:
-        raise ValueError("map radius must be 0..7")
+@dataclass(frozen=True)
+class FullMap:
+    """The whole current map (full-map-navigation-v1), one character per tile."""
+
+    width: int
+    height: int
+    rows: tuple[str, ...]
+    tiles: tuple[MapTile, ...]
+    objects: tuple[tuple[int, int, int], ...]
+    warps: tuple[tuple[int, int, int, int], ...]
+
+    def text(self, *, grid: bool = True, warp_guidance: bool = True) -> str:
+        if grid:
+            tens = [" "] * self.width
+            for column in range(0, self.width, 10):
+                label = str(column)
+                tens[column : column + len(label)] = label
+            header = "".join(tens[: self.width]).rstrip()
+            rows = (
+                f"     {header}\n     "
+                + "".join(str(c % 10) for c in range(self.width))
+                + "\n"
+                + "\n".join(f"{y:4} {row}" for y, row in enumerate(self.rows))
+            )
+        else:
+            rows = "\n".join(self.rows)
+        return (
+            f"Whole current map from live memory ({self.width}x{self.height}),"
+            " top-left (0,0), north is up:\n"
+            + rows
+            + _details(self.tiles, self.objects, self.warps, warp_guidance, outside=False)
+        )
+
+    def json(self, elevation: int) -> dict[str, object]:
+        cells = {
+            (t.x, t.y): (t.collision << 12) | (t.elevation << 8) | t.behavior for t in self.tiles
+        }
+        return {
+            "width": self.width,
+            "height": self.height,
+            "elevation": elevation,
+            "rows": [
+                "".join(f"{cells[(x, y)]:04x}" for x in range(self.width))
+                for y in range(self.height)
+            ],
+            "objects": [{"x": x, "y": y} for _, x, y in self.objects],
+            "warps": [{"x": x, "y": y} for x, y, _, _ in self.warps],
+        }
+
+
+def _details(
+    tiles: tuple[MapTile, ...],
+    objects: tuple[tuple[int, int, int], ...],
+    warps: tuple[tuple[int, int, int, int], ...],
+    warp_guidance: bool,
+    *,
+    outside: bool,
+) -> str:
+    listed_objects = ", ".join(f"id {i} at ({a},{b})" for i, a, b in objects) or "none nearby"
+    behaviors_at = {(tile.x, tile.y): tile.behavior for tile in tiles}
+    listed_warps = (
+        ", ".join(
+            (
+                f"({a},{b}) -> dynamic destination"
+                if (g, n) == (127, 127)
+                else f"({a},{b}) -> map {g}/{n}"
+            )
+            + (f" [{_warp_trigger(behaviors_at.get((a, b)))}]" if warp_guidance else "")
+            for a, b, g, n in warps
+        )
+        or "none nearby"
+    )
+    behaviors = sorted({tile.behavior for tile in tiles})
+    return (
+        (
+            "\n@ player; N live object; W warp location (see activation below);"
+            if warp_guidance
+            else "\n@ player; N live object; W warp;"
+        )
+        + " # collision; g grass; ~ water;"
+        + (
+            " . clear terrain (may have script triggers); ? outside current map."
+            if outside
+            else " . clear terrain (may have script triggers)."
+        )
+        + "\nTerrain rules, elevation and objects can still block movement."
+        + f"\nLive objects: {listed_objects}\nWarps: {listed_warps}"
+        + (
+            "\nWarp destinations are map group/number IDs, not warp indexes. Activation also"
+            " requires matching elevation and available field controls; W alone does not"
+            " guarantee a transition. After a transition, check the new map and position."
+            if warp_guidance
+            else ""
+        )
+        + "\nMetatile behaviors present: "
+        + ", ".join(f"0x{value:02X}" for value in behaviors)
+    )
+
+
+@dataclass(frozen=True)
+class _Layout:
+    width: int
+    height: int
+    buffer: int
+    map_width: int
+    map_height: int
+    attributes: tuple[int, int]
+    events: int
+
+
+def _layout(read: ReadMemory) -> _Layout | None:
     width, height, buffer = struct.unpack("<III", read(BACKUP_LAYOUT, 12))
     layout, events = struct.unpack("<II", read(MAP_HEADER, 8))
     if not _pointer(layout) or not _pointer(buffer) or width * height > MAX_MAP_DATA_SIZE:
@@ -135,8 +209,12 @@ def read_local_map(
     attributes = (_u32(read, primary + 0x10), _u32(read, secondary + 0x10))
     if not all(_pointer(p) for p in attributes):
         return None
-    x, y = position
-    origin = (x - radius, y - radius)
+    return _Layout(width, height, buffer, map_width, map_height, attributes, events)
+
+
+def _objects(
+    read: ReadMemory, map_id: tuple[int, int], near: tuple[int, int] | None, radius: int
+) -> list[tuple[int, int, int]]:
     objects = []
     raw_objects = read(OBJECT_EVENTS, 16 * 0x24)
     for slot in range(16):
@@ -148,8 +226,14 @@ def read_local_map(
         ox, oy = struct.unpack_from("<hh", body, 0x10)
         ox -= MAP_OFFSET
         oy -= MAP_OFFSET
-        if abs(ox - x) <= radius and abs(oy - y) <= radius:
+        if near is None or (abs(ox - near[0]) <= radius and abs(oy - near[1]) <= radius):
             objects.append((body[8], ox, oy))
+    return objects
+
+
+def _warps(
+    read: ReadMemory, events: int, near: tuple[int, int] | None, radius: int
+) -> list[tuple[int, int, int, int]]:
     warps = []
     if _pointer(events):
         header = read(events, 12)
@@ -159,8 +243,60 @@ def read_local_map(
             raw_warps = read(pointer, count * 8)
             for i in range(count):
                 wx, wy, _, _, number, group = struct.unpack_from("<hhBBBB", raw_warps, i * 8)
-                if abs(wx - x) <= radius and abs(wy - y) <= radius:
+                if near is None or (abs(wx - near[0]) <= radius and abs(wy - near[1]) <= radius):
                     warps.append((wx, wy, group, number))
+    return warps
+
+
+def _behavior(read: ReadMemory, layout: _Layout, cache: dict[int, int], metatile: int) -> int:
+    if metatile not in cache:
+        which = int(metatile >= 512)
+        cache[metatile] = (
+            int.from_bytes(
+                read(layout.attributes[which] + 2 * (metatile - 512 * which), 2), "little"
+            )
+            & 0xFF
+        )
+    return cache[metatile]
+
+
+def _symbol(
+    cell: tuple[int, int],
+    position: tuple[int, int],
+    objects: set[tuple[int, int]],
+    warps: set[tuple[int, int]],
+    collision: int,
+    behavior: int,
+) -> str:
+    return (
+        "@"
+        if cell == position
+        else "N"
+        if cell in objects
+        else "W"
+        if cell in warps
+        else "#"
+        if collision
+        else "g"
+        if behavior in (2, 3)
+        else "~"
+        if 0x10 <= behavior <= 0x15
+        else "."
+    )
+
+
+def read_local_map(
+    read: ReadMemory, position: tuple[int, int], map_id: tuple[int, int], radius: int = 7
+) -> LocalMap | None:
+    if not 0 <= radius <= 7:
+        raise ValueError("map radius must be 0..7")
+    layout = _layout(read)
+    if layout is None:
+        return None
+    x, y = position
+    origin = (x - radius, y - radius)
+    objects = _objects(read, map_id, position, radius)
+    warps = _warps(read, layout.events, position, radius)
     object_coords = {(a, b) for _, a, b in objects}
     warp_coords = {(a, b) for a, b, _, _ in warps}
     tiles = []
@@ -172,39 +308,47 @@ def read_local_map(
         for cx in range(x - radius, x + radius + 1):
             bx = cx + MAP_OFFSET
             if not (
-                0 <= cx < map_width
-                and 0 <= cy < map_height
-                and 0 <= bx < width
-                and 0 <= by < height
+                0 <= cx < layout.map_width
+                and 0 <= cy < layout.map_height
+                and 0 <= bx < layout.width
+                and 0 <= by < layout.height
             ):
                 row.append("?")
                 continue
-            block = int.from_bytes(read(buffer + 2 * (by * width + bx), 2), "little")
+            block = int.from_bytes(read(layout.buffer + 2 * (by * layout.width + bx), 2), "little")
             metatile = block & 0x3FF
             collision = (block >> 10) & 3
-            if metatile not in cache:
-                which = int(metatile >= 512)
-                cache[metatile] = (
-                    int.from_bytes(
-                        read(attributes[which] + 2 * (metatile - 512 * which), 2), "little"
-                    )
-                    & 0xFF
-                )
-            tiles.append(MapTile(cx, cy, metatile, collision, cache[metatile], (block >> 12) & 15))
-            row.append(
-                "@"
-                if (cx, cy) == position
-                else "N"
-                if (cx, cy) in object_coords
-                else "W"
-                if (cx, cy) in warp_coords
-                else "#"
-                if collision
-                else "g"
-                if cache[metatile] in (2, 3)
-                else "~"
-                if 0x10 <= cache[metatile] <= 0x15
-                else "."
-            )
+            behavior = _behavior(read, layout, cache, metatile)
+            tiles.append(MapTile(cx, cy, metatile, collision, behavior, (block >> 12) & 15))
+            row.append(_symbol((cx, cy), position, object_coords, warp_coords, collision, behavior))
         rows.append("".join(row))
     return LocalMap(origin, tuple(rows), tuple(tiles), tuple(objects), tuple(warps))
+
+
+def read_full_map(
+    read: ReadMemory, position: tuple[int, int], map_id: tuple[int, int]
+) -> FullMap | None:
+    layout = _layout(read)
+    if layout is None:
+        return None
+    objects = _objects(read, map_id, None, 0)
+    warps = _warps(read, layout.events, None, 0)
+    object_coords = {(a, b) for _, a, b in objects}
+    warp_coords = {(a, b) for a, b, _, _ in warps}
+    tiles = []
+    rows = []
+    cache: dict[int, int] = {}
+    for cy in range(layout.map_height):
+        start = layout.buffer + 2 * ((cy + MAP_OFFSET) * layout.width + MAP_OFFSET)
+        blocks = struct.unpack(f"<{layout.map_width}H", read(start, 2 * layout.map_width))
+        row = []
+        for cx, block in enumerate(blocks):
+            metatile = block & 0x3FF
+            collision = (block >> 10) & 3
+            behavior = _behavior(read, layout, cache, metatile)
+            tiles.append(MapTile(cx, cy, metatile, collision, behavior, (block >> 12) & 15))
+            row.append(_symbol((cx, cy), position, object_coords, warp_coords, collision, behavior))
+        rows.append("".join(row))
+    return FullMap(
+        layout.map_width, layout.map_height, tuple(rows), tuple(tiles), tuple(objects), tuple(warps)
+    )

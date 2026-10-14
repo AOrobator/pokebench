@@ -61,7 +61,7 @@ it("maps observation switches onto the observe/press results", () => {
 });
 
 it("describes whole-map navigation only when that treatment is on", () => {
-  const local = playSystemPrompt({ ...ALL_ON, "bounded-navigation-v1": true }, null);
+  const local = playSystemPrompt({ ...ALL_ON, "bounded-navigation-v1": true, "full-map-navigation-v1": false }, null);
   const full = playSystemPrompt({ ...ALL_ON, "bounded-navigation-v1": true, "full-map-navigation-v1": true }, null);
   expect(local).toContain("up to eight ordinary button attempts");
   expect(local).not.toContain("whole current map");

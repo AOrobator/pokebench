@@ -164,6 +164,9 @@ def test_measurement_json_is_identical_with_every_switch_off(
         status, _, body = get(app, "/pokebench/observation")
         assert status == 200, body
         payloads.append(json.loads(body))
+    # Whole-map navigation is the one switch that adds planner geometry to the state.
+    assert payloads[0]["state"].pop("map_grid")["width"] == 5
+    assert "map_grid" not in payloads[1]["state"]
     assert payloads[0]["state"] == payloads[1]["state"]
     assert payloads[0]["state_text"] != "" and payloads[1]["state_text"] == ""
 

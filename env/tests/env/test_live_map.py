@@ -227,7 +227,7 @@ def test_full_map_text_is_one_character_per_tile_with_world_labels() -> None:
         "   3 .....",
         "   4 .....",
     ]
-    assert "(0,1) -> dynamic destination" in result.text()
+    assert "(0,1) -> map 0/9 [" in result.text()
     assert "Live objects: id 2 at (2,0)" in result.text()
     plain = result.text(grid=False, warp_guidance=False).splitlines()
     assert plain[1:6] == ["g#N..", "W@~..", ".....", ".....", "....."]

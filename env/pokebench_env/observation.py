@@ -41,6 +41,7 @@ def install_observation(
                 maps,
                 active_ui_enabled=enabled,
                 message_phase_enabled="field-dialogue-phase-v1" not in off,
+                full_map_enabled="full-map-navigation-v1" not in off,
             )
             serialized = state_json(decoded)
             if receipt is not None:
@@ -58,6 +59,7 @@ def install_observation(
                 maps,
                 active_ui_enabled=enabled,
                 message_phase_enabled="field-dialogue-phase-v1" not in off,
+                full_map_enabled="full-map-navigation-v1" not in off,
             )
             serialized = state_json(state)
             if receipt is not None:

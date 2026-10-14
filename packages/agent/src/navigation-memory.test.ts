@@ -99,5 +99,28 @@ it("keeps outcomes and reference qualifications bounded with long targets, a ful
  for(let i=0;i<6;i++)m.observe(state(++seq,{location:`Room${String(i)}${"r".repeat(150)}`,map_id:[1,i],interaction_targets:targets,world_context:{objects:[],triggers:[],dialogue:`Instruction ${String(i)} ${"d".repeat(650)}`}}));
  m.remember("h".repeat(300),[seq]);
  for(let i=0;i<8;i++){const id=`try${String(i)}`;m.observe(event({type:"tool_call",id,name:"press",args:{buttons:["A"]}},++seq));m.observe(event({type:"tool_result",id,name:"press",is_error:true,duration_ms:1,text:`Outcome ${String(i)} ${"failure ".repeat(40)}`,frames:[]},++seq));}
- const text=m.text();expect(text.length).toBeLessThanOrEqual(6500);expect(text).toContain("MODEL HYPOTHESIS");for(let i=0;i<8;i++)expect(text).toContain(`Outcome ${String(i)}`);for(const id of m.evidence())expect(text).toMatch(new RegExp(`#${String(id)}(?!\\d)`));
+ const text=m.text();expect(text.length).toBeLessThanOrEqual(6500);expect(text).toContain("MODEL HYPOTHESIS");expect(text.indexOf("Outcome 7")).toBeLessThan(text.indexOf("Target0"));for(let i=0;i<8;i++)expect(text).toContain(`Outcome ${String(i)}`);for(const id of m.evidence())expect(text).toMatch(new RegExp(`#${String(id)}(?!\\d)`));
+});
+
+it("refreshes a returning quote while deduplicating consecutive polls and preserving their hypothesis",()=>{
+ const m=new NavigationMemory(ALL_ON);m.observe(state(1,{world_context:null}));
+ const quote=(seq:number,text:string)=>state(seq,{world_context:{objects:[],triggers:[],dialogue:text}});
+ m.observe(quote(2,"Quote A"));m.remember("Look for the speaker",[2]);
+ for(let seq=3;seq<10;seq++)m.observe(quote(seq,"Quote A"));
+ expect(m.text()).toContain("MODEL HYPOTHESIS");expect(m.evidence()).toContain(2);
+ m.observe(quote(10,"Quote B"));m.observe(quote(11,"Quote A"));
+ const text=m.text(),last=text.split("Last observed dialogue")[1]?.split("Rooms visited")[0];
+ expect(last).toContain("Quote A");expect(last).toContain("#11");expect(last).not.toContain("Quote B");
+ expect(text).toContain("expired");expect(m.evidence()).not.toContain(2);
+ for(let seq=12;seq<25;seq++)m.observe(quote(seq,`Quote ${String(seq)}`));
+ expect(m.evidence()).not.toContain(11);expect(m.evidence().length).toBeLessThanOrEqual(36);
+});
+it("keeps returning dialogue latest under full outcome and room pressure",()=>{
+ const m=new NavigationMemory(ALL_ON);let seq=0;
+ const observed=(text:string)=>state(++seq,{location:`Room5${"r".repeat(150)}`,map_id:[1,5],world_context:{objects:[],triggers:[],dialogue:text}});
+ for(let i=0;i<6;i++)m.observe(state(++seq,{location:`Room${String(i)}${"r".repeat(150)}`,map_id:[1,i],world_context:{objects:[],triggers:[],dialogue:`Instruction ${String(i)} ${"d".repeat(650)}`}}));
+ m.observe(observed("Quote A"));m.observe(observed("Quote B"));m.observe(observed("Quote A"));
+ for(let i=0;i<8;i++){const id=`try${String(i)}`;m.observe(event({type:"tool_call",id,name:"press",args:{buttons:["A"]}},++seq));m.observe(event({type:"tool_result",id,name:"press",is_error:true,duration_ms:1,text:`Outcome ${String(i)} ${"failure ".repeat(40)}`,frames:[]},++seq));}
+ const text=m.text();expect(text.length).toBeLessThanOrEqual(6500);expect(text.split("Last observed dialogue")[1]?.split("Rooms visited")[0]).toContain("Quote A");
+ for(let i=0;i<8;i++)expect(text).toContain(`Outcome ${String(i)}`);for(const id of m.evidence())expect(text).toMatch(new RegExp(`#${String(id)}(?!\\d)`));
 });

@@ -136,3 +136,10 @@ Pending.
 - 2026-10-14: merged main a3c343b (grass-cost-navigation-v1). Resolved play-preset/features/navigation conflicts keeping both switches; harness order ...full-map, grass-cost, elevation. Seeds repinned to a3c343b with grass-cost explicit OFF; grass-cost-navigation added as pending (activation ROUTE_101). Gates: agent 960, viewer 498, Python 1847.
 - RED: discarded entries leave both lists; snapshot gains `closed` (done + discarded). Operator via coordinator: an entry is never on both lists; it leaves pending when queued, finished or discarded.
 - 2026-10-14: operator round-1 feedback (20:23): liked battle verdict, kanban (status filtering), party box; trial matrix too confusing; Match Call click-in lukewarm; asked for 10 more. Round 2 (designs 11-20) at docs/design/experiment-queue/queue-designs-round2.html, each with a separate PENDING list on both pages. M3 waits on the pick.
+
+## Review r1 (frozen base a3c343b, head 7962072, diff SHA-256 f7282f04b72e65e107d6ab5a9f86b5365ed82c99aba5a702bc79c38097a0bdb0; packet /tmp/eq-review-r1)
+- Claude CLI (`claude -p --permission-mode plan --setting-sources user`; the ~/.claude-review profile is logged out, so the default profile was used): BLOCKING. B1: a started experiment with no approval derived `held` and resumed (INV-Q2). B2: a run that recorded `run_end: crash` and exited 1 was logged as a launcher error, dropped from grading and re-run (PB2).
+- Grok (`cursor-agent --mode ask --model cursor-grok-4.5-high`): BLOCKING, same B1.
+- GPT lane: Codex CLI's configured default gpt-6.1-sol is unsupported on this ChatGPT account (exit 1); Cursor gpt-5.6-sol-xhigh hit the account's usage limit (exit 1). Lane blocked; retrying with an explicit Codex model.
+- RED for B1/B2: started + no approval derives `stale`; runner re-checks the approval before every trial; a crash with a recorded run_end is an outcome and the queue continues.
+- Wording fixes accepted: INV-Q6 checks dist mtime against the commit time (not a dist hash); INV-Q4 trials share port 8074 serially under the lease, each with its own run id and run dir.

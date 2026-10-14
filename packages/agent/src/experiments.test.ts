@@ -95,6 +95,8 @@ it("derives one status from the definition, approval, ledger, runner and readine
  expect(status({runner:{experiment:"full-map",trial:0}})).toBe("running");
  expect(status({approval:{...approval,sha256:"0".repeat(64)}})).toBe("stale");
  expect(status({ledger:all.slice(0,2)})).toBe("held");
+ // INV-Q2 on resume: a started experiment without a valid approval cannot be held (runnable).
+ expect(deriveStatus({experiment:e,approval:null,ledger:all.slice(0,2),runner:null,readiness:ready})).toMatchObject({state:"stale",reason:"trials have started but there is no valid approval; it needs a new approval to resume"});
  expect(status({experiment:experiment({queuePosition:undefined}),readiness:notReady})).toBe("pending");
  expect(deriveStatus({experiment:experiment({queuePosition:undefined}),approval:null,ledger:[],runner:null,readiness:notReady}).reason).toMatch(/not ready: 0 of the last 4 comparable runs reached FIRST_TRUCK_EXIT \(needs 3\)/);
  expect(deriveStatus({experiment:experiment({queuePosition:undefined}),approval:null,ledger:[],runner:null,readiness:ready}).reason).toMatch(/ready to queue/);

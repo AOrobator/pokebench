@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -136,6 +136,33 @@ describe("experiment runner", () => {
     expect(await runQueue({ paths: moving.paths, source: moving.source, host: host(moving.paths, moving.metrics, { verifySource: () => Promise.resolve(checks++ < 2 ? null : "main moved") }) })).toEqual({ ran: 1, stopped: "held: main moved" });
     const stopping = setup();
     expect(await runQueue({ paths: stopping.paths, source: stopping.source, host: host(stopping.paths, stopping.metrics), stopRequested: () => true })).toEqual({ ran: 0, stopped: "stop requested" });
+  });
+
+  it("never resumes or continues without a matching approval (INV-Q2)", async () => {
+    const { paths, metrics, source } = setup();
+    expect((await runQueue({ paths, source, host: host(paths, metrics), once: true })).ran).toBe(1);
+    rmSync(join(experimentDir(paths.runsRoot, "full-map"), "approval.json"));
+    const fake = host(paths, metrics);
+    expect(await runQueue({ paths, source, host: fake })).toEqual({ ran: 0, stopped: "nothing to run: full-map is stale" });
+    expect(fake.launches).toEqual([]);
+    const midway = setup();
+    let launched = 0;
+    const revoking = host(midway.paths, midway.metrics);
+    const launch = revoking.launch.bind(revoking);
+    const outcome = await runQueue({ paths: midway.paths, source: midway.source, host: { ...revoking, launch: async (t) => { const code = await launch(t); if (++launched === 2) rmSync(join(experimentDir(midway.paths.runsRoot, "full-map"), "approval.json")); return code; } } });
+    expect(outcome).toEqual({ ran: 2, stopped: "held: the approval no longer matches the definition" });
+  });
+
+  it("counts a run that ended with a recorded crash as a finished trial, and keeps going (PB2)", async () => {
+    const { paths, metrics, source } = setup();
+    const base = host(paths, metrics);
+    let n = 0;
+    const crashing = { ...base, launch: async (t: TrialLaunch) => { await base.launch(t); if (n++ !== 0) return 0; const file = join(paths.runsRoot, t.runId, "events.jsonl"); writeFileSync(file, readFileSync(file, "utf8").replace('"reason":"budget"', '"reason":"crash"')); return 1; } };
+    const outcome = await runQueue({ paths, source, host: crashing });
+    expect(outcome.ran).toBe(8);
+    expect(ledger(paths).slice(0, 2)).toMatchObject([{ type: "launch", trial: 0 }, { type: "outcome", trial: 0, reason: "crash" }]);
+    const result = JSON.parse(readFileSync(join(experimentDir(paths.runsRoot, "full-map"), "result.json"), "utf8")) as { result: { incumbent: { stopReasons: Record<string, number> } } };
+    expect(result.result.incumbent.stopReasons["crash"]).toBe(1);
   });
 
   it("refuses a preset on disk that no longer matches the definition", async () => {

@@ -16,10 +16,10 @@ Branch: claude/frontier-zoom in /private/tmp/pokebench-frontier-zoom.
 - [x] RED: frontier.test.ts zoom cases; frontier-workbench.test.ts switch default/toggle/poll (4 failing, 12 passing)
 - [x] GREEN: frontierPlot zoom argument, heading switch, workbench state, styles. Viewer 497/497 tests, agent 954/954.
 - [x] Gates: viewer coverage lines 98.22 / branches 90.57 / functions 95.39 (frontier.ts 100/92.34/100); agent 98.85/93.41/97.93; lint and build pass. Python untouched: pytest 1845 pass, 2 fail only because this worktree has no vendor submodule checkout (map_groups.json missing), unrelated to this change.
-- [ ] Reviews: principles self-review, Claude CLI, Codex, Grok
-- [ ] Browser click-through on an owned preview (viewer-e2e)
-- [ ] Explainer + feature card link (feature-explainer)
-- [ ] Operator approval, local merge to main
+- [x] Reviews: principles self-review zero FAIL; Grok LGTM, Claude CLI LGTM, Codex LGTM (round 3). Artifacts in runs/reviews/frontier-zoom/.
+- [x] Browser click-through on owned preview 127.0.0.1:8462 (branch build, real runs): loads zoomed (New game → Route 101, 14 of 36, FRONTIER pressed); real click on FULL BASELINE shows the full graph (axis to 120 min); Shift+Tab + Enter returns to FRONTIER with focus kept and the focus ring visible. No console errors checked separately.
+- [x] Explainer docs/explainers/frontier-zoom.html (viewer option, no harness card)
+- [x] Operator approval (the operator: "yes and yes", 2026-10-14), local merge to main
 
 COMMITS: `test(viewer): define zoom to frontier…` (44b3656), `feat(viewer): zoom the story frontier…` (9e7e10c), `feat(viewer): segmented FRONTIER / FULL BASELINE control…` (543a383).
 Review round 1: Grok (cursor-grok-4.5-high) LGTM with lows; fixed caption wording under zoom, first label from data, added dense-human and paused-run tests. Claude CLI review credential expired and Cursor Opus hit its monthly limit; Codex default model rejected by ChatGPT account. Retrying Claude via Cursor Sonnet 5 and GPT via codex -m gpt-5.6-sol.

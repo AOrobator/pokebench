@@ -6,7 +6,7 @@ it.each([{...preset,extra:true},{...preset,limits:{...preset.limits,maxWallMs:"6
 
 import {ALL_ON} from "./features.js";
 import {presetFeatures,presetFlags} from "./play-preset.js";
-const v2={version:2,id:"viewer-next",target:null,limits:{maxTurns:300,maxWallMs:1800000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},features:{...ALL_ON,"state-only-decisions-v1":false,"story-state-v1":false}};
+const v2={version:2,id:"viewer-next",target:null,limits:{maxTurns:300,maxWallMs:1800000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},features:{...ALL_ON,"field-dialogue-phase-v1":false,"dialogue-safe-batches-v1":false,"interaction-loop-detection-v1":false,"state-only-decisions-v1":false,"story-state-v1":false}};
 it("accepts a v2 preset with every switch explicit and exposes its feature set",()=>{
   const parsed=parsePlayPreset(v2);
   expect(presetFeatures(parsed)).toEqual(v2.features);
@@ -14,9 +14,9 @@ it("accepts a v2 preset with every switch explicit and exposes its feature set",
 });
 it("maps v1 flags onto the full switch set, objectives covering its three guards",()=>{
   const features=presetFeatures(parsePlayPreset(preset));
-  expect(features).toEqual({...ALL_ON,"state-only-decisions-v1":false,"named-interactions-v1":false,"world-destinations-v1":false,"bounded-navigation-v1":false,"deterministic-loop-guard-v1":false});
+  expect(features).toEqual({...ALL_ON,"field-dialogue-phase-v1":false,"dialogue-safe-batches-v1":false,"interaction-loop-detection-v1":false,"state-only-decisions-v1":false,"named-interactions-v1":false,"world-destinations-v1":false,"bounded-navigation-v1":false,"deterministic-loop-guard-v1":false});
   const noObjectives=presetFeatures(parsePlayPreset({...preset,flags:{...preset.flags,objectives:false,activeUi:false}}));
-  expect(noObjectives).toEqual({...ALL_ON,"state-only-decisions-v1":false,"named-interactions-v1":false,"world-destinations-v1":false,"bounded-navigation-v1":false,"deterministic-loop-guard-v1":false,"active-ui-ownership-v1":false,"objective-tracking-v1":false,"repeat-attempt-guard-v1":false,"native-objective-completion-v1":false});
+  expect(noObjectives).toEqual({...ALL_ON,"field-dialogue-phase-v1":false,"dialogue-safe-batches-v1":false,"interaction-loop-detection-v1":false,"state-only-decisions-v1":false,"named-interactions-v1":false,"world-destinations-v1":false,"bounded-navigation-v1":false,"deterministic-loop-guard-v1":false,"active-ui-ownership-v1":false,"objective-tracking-v1":false,"repeat-attempt-guard-v1":false,"native-objective-completion-v1":false});
   expect(presetFlags(parsePlayPreset(preset))).toEqual(preset.flags);
 });
 it.each([

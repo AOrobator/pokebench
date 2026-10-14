@@ -346,3 +346,20 @@ it("delivers verified named interaction text with typed names through the real o
  const result=await observeTool(SERVER,serving(body)).execute("named",{});
  expect(result.content[1]).toEqual({type:"text",text});
 });
+
+it.each([true,false])("records and submits actual interaction inputs with safety %s",async(safeInterfaces)=>{
+ const sent:unknown[]=[];let actual:readonly string[]=[];
+ const fetchFn=routes({"/pokebench/state":IN_GAME,"/action":(init:RequestInit|undefined)=>{if(typeof init?.body!=="string")throw new Error("Expected JSON action body");sent.push(JSON.parse(init.body) as unknown);return {status:"success"};},"/queue_status":{queue_empty:true},"/pokebench/observation":observationBody()});
+ const hooks={beforePress:(_id:string,buttons:readonly string[])=>{actual=buttons;},afterPress:()=>Promise.resolve()};
+ const result=await pressTool(SERVER,hooks,fetchFn,instant,{...ALL_TOOL_SWITCHES,safeInterfaces}).execute("safe",{buttons:["A","A","A"]});
+ expect(actual).toEqual(safeInterfaces?["A"]:["A","A","A"]);
+ expect(sent).toEqual([{buttons:actual,...PRESS_TIMING}]);
+ const text=result.content[1];if(text?.type!=="text")throw new Error("Missing input receipt");expect(text.text).toContain(safeInterfaces?"remaining inputs were not sent":"pressed A, A, A");
+});
+it("keeps free-field movement batches but bounds locked or unavailable movement",async()=>{
+ for(const [state,expected] of [[{...IN_GAME,field_controls_locked:false},["RIGHT","RIGHT"]],[{...IN_GAME,field_controls_locked:true},["RIGHT"]],[{...IN_GAME,screen:"unknown",field_controls_locked:null},["RIGHT"]]] as const){
+  let actual:readonly string[]=[];const fetchFn=routes({"/pokebench/state":state,"/action":{status:"success"},"/queue_status":{queue_empty:true},"/pokebench/observation":observationBody()});
+  await pressTool(SERVER,{beforePress:(_id,buttons)=>{actual=buttons;},afterPress:()=>Promise.resolve()},fetchFn,instant,{...ALL_TOOL_SWITCHES,safeInterfaces:true}).execute("safe",{buttons:["RIGHT","RIGHT"]});
+  expect(actual).toEqual(expected);
+ }
+});

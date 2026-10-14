@@ -70,9 +70,9 @@ const MESSAGES: Record<LoopKind, string> = {
 };
 
 // Only surfaces with observable interaction state can establish equivalence.
-// Unknown menus, battle phases and locked fields still withhold equivalence.
+// Unknown menus, battle phases and unqualified locked fields withhold equivalence.
 // The active UI owner supplies qualified name/gender/clock phase data.
-export function semanticState(state: GameStateSnapshot): string | null {
+export function semanticState(state: GameStateSnapshot, interactions = false): string | null {
   if (state.in_battle) return null;
   const ui = state.active_ui;
   if (ui != null) {
@@ -109,7 +109,7 @@ export function semanticState(state: GameStateSnapshot): string | null {
     state.map_id === null ||
     state.position === null ||
     state.facing === null ||
-    state.field_controls_locked !== false
+    (state.field_controls_locked !== false && !(interactions && state.field_controls_locked === true && state.world_context?.dialogue && state.world_context.message?.ready === true && ["dismiss_wait", "button_wait", "page_wait", "scroll_wait"].includes(state.world_context.message.phase)))
   )
     return null;
   return stable({
@@ -123,6 +123,7 @@ export function semanticState(state: GameStateSnapshot): string | null {
     badges: state.badges,
     story: state.story ?? null,
     dialogue: state.world_context?.dialogue ?? null,
+    ...(interactions ? {message:state.world_context?.message ?? null,locked:state.field_controls_locked} : {}),
   });
 }
 
@@ -160,6 +161,7 @@ export class LoopDetector {
   private readonly rejections = new Map<string, number>();
   private previous: string | null = null;
   private readonly history: string[] = [];
+  private readonly messageVisits: string[] = [];
   private readonly visited: string[] = [];
   private completed = 0;
   private episode: {
@@ -193,6 +195,7 @@ export class LoopDetector {
     private readonly notify: (notice: LoopNotice) => void,
     private readonly policy: LoopPolicy = LOOP_POLICY,
     readonly mode: LoopMode = "enforced",
+    private readonly interactions = false,
   ) {}
 
   observe(event: RunEvent): void {
@@ -219,6 +222,7 @@ export class LoopDetector {
       const pending = this.calls.get(event.tool_call_id);
       if (pending !== undefined && (!pending.navigation || !pending.pressed)) {
         pending.pressed = true;
+        if (!pending.navigation && this.interactions) pending.args = {...pending.args, buttons: event.buttons};
         pending.before =
           event.before_state_seq === this.latestSeq ? this.latest : undefined;
         pending.beforeSeq = event.before_state_seq;
@@ -258,11 +262,13 @@ export class LoopDetector {
     if (this.stopped) return;
     this.completed++;
     const seq = call.seq ?? this.completed;
+    this.messageVisits.push("");
+    if(this.messageVisits.length > 12) this.messageVisits.shift();
     const rejection = rejectionKey(call);
     if (call.isError && rejection === null) return;
     if (this.episode?.exposed) this.episode.recovery++;
     const fingerprint =
-      call.state === undefined ? null : semanticState(call.state);
+      call.state === undefined ? null : semanticState(call.state, this.interactions);
     const game =
       !call.isError && (call.name === "press" || call.name === "navigate_to" || call.name === "observe");
     const changed =
@@ -294,22 +300,28 @@ export class LoopDetector {
           Array.isArray(buttons) &&
           buttons.length === 1 &&
           typeof buttons[0] === "string";
+        const batch = this.interactions && Array.isArray(buttons) && buttons.length >= 1 && buttons.length <= 8 && buttons.every((b:unknown)=>typeof b === "string" && ["A","B","START","SELECT","UP","DOWN","LEFT","RIGHT"].includes(b));
+        const eligible = single || batch || navigation;
+        const action:unknown = navigation ? [call.args["map_id"],call.args["x"],call.args["y"]] : batch ? buttons : Array.isArray(buttons) ? buttons[0] : null;
         const before =
           call.beforeState === undefined
             ? null
-            : semanticState(call.beforeState);
+            : semanticState(call.beforeState, this.interactions);
         const key =
-          (single || navigation) && fingerprint !== null && fingerprint === before
-            ? `${fingerprint}:${navigation ? JSON.stringify([call.args["map_id"],call.args["x"],call.args["y"]]) : String(Array.isArray(buttons) ? buttons[0] : undefined)}`
+          eligible && fingerprint !== null && fingerprint === before
+            ? `${fingerprint}:${JSON.stringify(action)}`
             : "";
         this.ineffective =
           key !== "" && key === this.ineffective.key
             ? { key, count: this.ineffective.count + 1 }
             : { key, count: key === "" ? 0 : 1 };
+        const messageKey = this.interactions && batch && fingerprint !== null && call.state?.world_context?.message?.ready === true ? `${fingerprint}:${JSON.stringify(action)}` : "";
+        this.messageVisits[this.messageVisits.length-1] = messageKey;
+        if(messageKey !== "" && this.messageVisits.filter(item=>item===messageKey).length >= this.policy.ineffective) hit ??= "cycle";
         if (this.ineffective.count >= this.policy.ineffective)
           hit ??= "ineffective";
-        if ((single || navigation) && fingerprint !== null && before !== null) {
-          this.history.push(JSON.stringify([before, navigation ? [call.args["map_id"],call.args["x"],call.args["y"]] : Array.isArray(buttons) ? buttons[0] : null, fingerprint]));
+        if (eligible && fingerprint !== null && before !== null) {
+          this.history.push(JSON.stringify([before, action, fingerprint]));
           if (this.history.length > 12) this.history.shift();
           if (this.cycle()) hit ??= "cycle";
         } else this.history.length = 0;
@@ -342,7 +354,7 @@ export class LoopDetector {
     if (this.episode === null) {
       this.episode = {
         kind: hit,
-        message: hit === "ineffective" && call.name === "navigate_to" ? "Repeated navigation attempts to the same target produced equivalent states. Inspect the destination and obstacle before trying again." : MESSAGES[hit],
+        message: hit === "ineffective" && call.name === "navigate_to" ? "Repeated navigation attempts to the same target produced equivalent states. Inspect the destination and obstacle before trying again." : this.interactions && (hit === "ineffective" || hit === "cycle") ? "The same interaction or input pattern is repeating without new game information. Use a single input, inspect the resulting interface, and choose an evidence-supported different approach. Reopening the same message is not story progress." : MESSAGES[hit],
         exposed: false,
         recovery: 0,
         threshold: false,
@@ -375,6 +387,7 @@ export class LoopDetector {
     this.observations = 0;
     this.previous = null;
     this.history.length = 0;
+    this.messageVisits.length = 0;
     this.visited.length = 0;
   }
 

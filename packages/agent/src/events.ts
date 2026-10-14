@@ -237,6 +237,11 @@ export const StateBodySchema = Type.Object(
       objects: Type.Array(Type.Object({local_id: NonNegativeInt, map_id: Type.Tuple([Type.Integer(), Type.Integer()]), graphics_id: NonNegativeInt, sprite_kind: Type.Union([Type.String(), Type.Null()]), x: Type.Integer(), y: Type.Integer()}, closed)),
       triggers: Type.Array(Type.Object({x: Type.Integer(), y: Type.Integer(), elevation: NonNegativeInt, variable: NonNegativeInt, required_value: NonNegativeInt, current_value: Type.Union([NonNegativeInt, Type.Null()]), condition_met: Type.Union([Type.Boolean(), Type.Null()]), script_pointer: NonNegativeInt}, closed)),
       dialogue: Type.Union([Type.String(), Type.Null()]),
+      message_diagnostic: Type.Optional(Type.String({maxLength:1000})),
+      message: Type.Optional(Type.Union([Type.Object({
+        phase: Type.Enum(["dismiss_wait", "printing", "button_wait", "page_wait", "scroll_wait", "scrolling", "audio_wait", "printing_pause"]),
+        cursor: Type.Integer({minimum:0, maximum:999}), ready:Type.Boolean(),
+      }, closed), Type.Null()])),
     }, closed), Type.Null()])),
     interaction_targets: Type.Optional(Type.Union([Type.Array(Type.Object({
       name: Type.Optional(Type.Union([Type.String(), Type.Null()])),

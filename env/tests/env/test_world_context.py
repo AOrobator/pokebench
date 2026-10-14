@@ -159,8 +159,9 @@ def test_autoscroll_mode_owns_valid_message_buffer() -> None:
 
 
 def test_qualified_field_printer_reports_page_wait_and_withholds_stale_owner() -> None:
-    from pokebench_env.world_context import read_field_message
     from pokebench_env.ui_state import WINDOWS
+    from pokebench_env.world_context import read_field_message
+
     m = world()
     m.put(WINDOWS, struct.pack("<BBBBBBHI", 0, 0, 0, 1, 1, 0, 0, 0x02030000))
     m.put(0x02030000, bytes([1, 2]) * 16)
@@ -171,3 +172,116 @@ def test_qualified_field_printer_reports_page_wait_and_withholds_stale_owner() -
     assert read_field_message(m.read).json() == {"phase": "page_wait", "cursor": 30, "ready": True}
     m.put(0x03005E00 + 4, b"\x00")
     assert read_field_message(m.read) is None
+
+
+def field_printer(mode: int = 2, state: int = 2) -> Memory:
+    from pokebench_env.ui_state import WINDOWS
+
+    m = world()
+    m.put(WINDOWS, struct.pack("<BBBBBBHI", 0, 0, 0, 1, 1, 0, 0, 0x02030000))
+    m.put(0x02030000, bytes([1, 2]) * 16)
+    m.put(0x020375BC, bytes([mode]))
+    m.put(0x03005E00, struct.pack("<I", 0x08098155) + b"\x01" + bytes(3) + struct.pack("<h", 2))
+    m.put(0x020201B0, struct.pack("<I", 0x02021FE2) + bytes([0]))
+    m.put(0x020201B0 + 0x1B, bytes([1, state]))
+    m.put(0x02021FC4, text("Box") + b"\xff")
+    return m
+
+
+def test_field_message_phases_and_final_dismissal_are_source_owned() -> None:
+    from pokebench_env.world_context import read_field_message
+
+    for mode in (2, 3):
+        for state, phase in enumerate(
+            (
+                "printing",
+                "button_wait",
+                "page_wait",
+                "scroll_wait",
+                "scrolling",
+                "audio_wait",
+                "printing_pause",
+            )
+        ):
+            value = read_field_message(field_printer(mode, state).read)
+            assert value.json() == {
+                "phase": phase,
+                "cursor": 30,
+                "ready": mode == 2 and state in (1, 2, 3),
+            }
+    m = field_printer(0)
+    m.put(0x020201B0 + 0x1B, b"\x00")
+    m.put(0x03000E40 + 1, b"\x02")
+    m.put(0x03000E40 + 4, struct.pack("<I", 0x0809AC99))
+    assert read_field_message(m.read).json() == {
+        "phase": "dismiss_wait",
+        "cursor": 30,
+        "ready": True,
+    }
+    c = read_world_context(m.read, (10, 2), (0, 9), SAVE, decode_text, message_phase=True)
+    assert c.dialogue == "Box"
+    assert "A or B advances" in c.text(message=True)
+    m.put(0x03000E38, b"\x01")
+    assert read_field_message(m.read) is None
+
+
+def test_unqualified_printer_operands_do_not_invent_readiness() -> None:
+    from pokebench_env.world_context import read_field_message
+
+    mutations = [
+        (0x020375BC, b"\x01"),
+        (0x02020004, b"\xff"),
+        (0x03005E00, bytes(4)),
+        (0x03005E00 + 8, b"\x01"),
+        (0x020201B0 + 4, b"\x01"),
+        (0x020201B0 + 0x1B, b"\x00"),
+        (0x020201B0, bytes(4)),
+        (0x020201B0, struct.pack("<I", 0x02021FC4 + 1000)),
+        (0x020201B0 + 0x1C, b"\xff"),
+    ]
+    for address, value in mutations:
+        m = field_printer()
+        m.put(address, value)
+        assert read_field_message(m.read) is None, (address, value)
+    m = field_printer()
+    m.put(0x03005E00 + 0x28, m.read(0x03005E00, 0x28))
+    assert read_field_message(m.read) is None
+
+
+def test_phase_switch_off_preserves_json_and_model_text() -> None:
+    from pokebench_env.game_state import read_game_state
+    from pokebench_env.readout import format_readout, state_json
+    from tests.env.test_game_state import MAPS, OVERWORLD, game
+
+    m = game(OVERWORLD)
+    m.cells.update(field_printer().cells)
+    # Restore the live player object required by the production state owner.
+    base = game(OVERWORLD)
+    m.put(0x02037350, base.read(0x02037350, 0x24))
+    state = read_game_state(m.read, MAPS, message_phase_enabled=True)
+    assert state.world_context.message.json() == {"phase": "page_wait", "cursor": 30, "ready": True}
+    assert "Field-message phase: page_wait" in format_readout(state, message_phase=True)
+    assert "Field-message phase" not in format_readout(
+        state, frozenset({"field-dialogue-phase-v1"}), message_phase=True
+    )
+    assert state_json(state)["world_context"]["message"]["cursor"] == 30
+    reference = read_game_state(m.read, MAPS)
+    assert "message" not in state_json(reference)["world_context"]
+
+
+def test_visible_unqualified_owner_records_evidence_as_coverage_error() -> None:
+    m = field_printer()
+    m.put(0x03005E00, struct.pack("<I", 0x080ABCDE))
+    c = read_world_context(m.read, (10, 2), (0, 9), SAVE, decode_text, message_phase=True)
+    assert c.message is None
+    assert "STATE COVERAGE ERROR" in c.text(message=True)
+    assert "0x080ABCDE" in c.json()["message_diagnostic"]
+    assert "mode 2" in c.json()["message_diagnostic"]
+
+
+def test_automatic_text_flags_withhold_manual_page_readiness() -> None:
+    from pokebench_env.world_context import read_field_message
+
+    m = field_printer()
+    m.put(0x03003014, b"\x04")
+    assert read_field_message(m.read).ready is False

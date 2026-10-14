@@ -31,12 +31,22 @@ def install_observation(
 
     def snapshot() -> GameState:
         with memory_lock if memory_lock is not None else nullcontext():
-            return read_game_state(read_memory, maps, active_ui_enabled=enabled)
+            return read_game_state(
+                read_memory,
+                maps,
+                active_ui_enabled=enabled,
+                message_phase_enabled="field-dialogue-phase-v1" not in off,
+            )
 
     @app.get("/pokebench/observation")
     def observation() -> dict[str, object]:
         with memory_lock if memory_lock is not None else nullcontext():
-            state = read_game_state(read_memory, maps, active_ui_enabled=enabled)
+            state = read_game_state(
+                read_memory,
+                maps,
+                active_ui_enabled=enabled,
+                message_phase_enabled="field-dialogue-phase-v1" not in off,
+            )
             shot = get_screenshot().model_dump()
         screenshot = shot.get("screenshot_base64")
         if not isinstance(screenshot, str) or screenshot == "":
@@ -48,6 +58,7 @@ def install_observation(
                 named_interactions="named-interactions-v1" not in off,
                 world_destinations="world-destinations-v1" not in off,
                 bounded_navigation="bounded-navigation-v1" not in off,
+                message_phase="field-dialogue-phase-v1" not in off,
             ),
             "screenshot_base64": screenshot,
             "state": state_json(state),

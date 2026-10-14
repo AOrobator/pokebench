@@ -169,7 +169,7 @@ describe("loop guard through pinned pi and recorded events", () => {
   );
 });
 
-it.each(["observation", "ineffective", "cycle", "rejection"] as const)(
+it.each(["observation", "ineffective", "cycle", "rejection", "interaction"] as const)(
   "wires %s detection through real pi state/result ordering",
   async (kind) => {
     const root = mkdtempSync(join(tmpdir(), "pokebench-loop-seam-"));
@@ -185,7 +185,11 @@ it.each(["observation", "ineffective", "cycle", "rejection"] as const)(
         facing: "RIGHT",
         field_controls_locked: false,
       });
-      let current = field();
+      const expectedKind=kind === "interaction" ? "cycle" : kind;
+      const input=kind === "interaction" ? Array(8).fill("A") as ["A",..."A"[]] : ["RIGHT"] as ["RIGHT"];
+      const fieldState=field();
+      const interactionState={...fieldState,field_controls_locked:true,world_context:{objects:[],triggers:[],dialogue:"Box description",message:{phase:"page_wait" as const,cursor:30,ready:true}}};
+      let current:typeof fieldState|typeof interactionState = kind === "interaction" ? interactionState : fieldState;
       const log = RunLog.create(root, "seam-proof");
       const recorder = new RunRecorder({
         log,
@@ -210,7 +214,7 @@ it.each(["observation", "ineffective", "cycle", "rejection"] as const)(
         cycleRepeats: 2,
         rejection: 2,
         recovery: 2,
-      });
+      }, "enforced", kind === "interaction");
       const executed: string[] = [];
       const tools: AgentTool[] = [
         "observe",
@@ -234,7 +238,7 @@ it.each(["observation", "ineffective", "cycle", "rejection"] as const)(
             const before = current;
             recorder.buttonPress(
               id,
-              ["RIGHT"],
+              input,
               { hold_frames: 10, release_frames: 8 },
               before,
             );
@@ -252,7 +256,7 @@ it.each(["observation", "ineffective", "cycle", "rejection"] as const)(
       const names =
         kind === "observation"
           ? ["observe", "observe", "observe"]
-          : kind === "ineffective"
+          : (kind === "ineffective" || kind === "interaction")
             ? ["press", "press"]
             : kind === "cycle"
               ? ["press", "press", "press", "press"]
@@ -269,7 +273,7 @@ it.each(["observation", "ineffective", "cycle", "rejection"] as const)(
             toolCall(
               `first${String(i)}`,
               name,
-              name === "press" ? { buttons: ["RIGHT"] } : {},
+              name === "press" ? { buttons: input } : {},
             ),
           ),
           stopReason: "toolUse",
@@ -280,7 +284,7 @@ it.each(["observation", "ineffective", "cycle", "rejection"] as const)(
               toolCall(
                 `recover${String(i)}`,
                 name,
-                name === "press" ? { buttons: ["RIGHT"] } : {},
+                name === "press" ? { buttons: input } : {},
               ),
             ),
             toolCall("blocked", "press", {}),
@@ -318,7 +322,8 @@ it.each(["observation", "ineffective", "cycle", "rejection"] as const)(
         "recover0",
         "recover1",
       ]);
-      expect(seen[1]?.at(-1)?.content).toContain(`LOOP GUARD (${kind})`);
+      expect(seen[1]?.at(-1)?.content).toContain(`LOOP GUARD (${expectedKind})`);
+      if(kind === "interaction") expect(seen[1]?.at(-1)?.content).toContain("Use a single input");
       const events = readFileSync(log.eventsPath, "utf8")
         .trim()
         .split("\n")
@@ -328,8 +333,8 @@ it.each(["observation", "ineffective", "cycle", "rejection"] as const)(
           .filter((e) => e.type === "loop_guard")
           .map((e) => [e.kind, e.phase]),
       ).toEqual([
-        [kind, "warning"],
-        [kind, "stop"],
+        [expectedKind, "warning"],
+        [expectedKind, "stop"],
       ]);
       if (kind === "ineffective" || kind === "cycle")
         expect(

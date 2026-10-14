@@ -12,7 +12,7 @@ it("warns on repeated full A batches in a qualified locked dialogue and gives a 
  expect(notices).toHaveLength(1);expect(notices[0]?.phase).toBe("warning");expect(notices[0]?.message).toMatch(/single input/);expect(notices[0]?.message).not.toMatch(/right|truck/i);
 });
 it("does not label advancing pages, printing, unknown owners or a non-dialogue locked cutscene as an ineffective interaction",()=>{
- for(const state of [dialogue(),{...dialogue(),world_context:{objects:[],triggers:[],dialogue:"Box description",message:{phase:"printing" as const,cursor:30,ready:false}}},{...dialogue(),world_context:undefined}]){
+ for(const state of [dialogue(),{...dialogue(),world_context:{objects:[],triggers:[],dialogue:"Box description",message:{phase:"printing" as const,cursor:30,ready:false}}},{...dialogue(),world_context:null}]){
   const notices:unknown[]=[];const d=new LoopDetector(n=>notices.push(n),{...LOOP_POLICY,ineffective:2},"enforced",true);
   for(let i=0;i<4;i++)d.complete({name:"press",args:{buttons:["A","A"]},isError:false,text:"ok",beforeState:state,state:state.world_context?.message?.ready?dialogue(40+i):state});
   expect(notices).toEqual([]);
@@ -22,4 +22,17 @@ it("preserves the incumbent multi-button/locked-field behavior when the new dete
  const notices:unknown[]=[];const d=new LoopDetector(n=>notices.push(n));const state=dialogue();
  for(let i=0;i<4;i++)d.complete({name:"press",args:{buttons:["A","A"]},isError:false,text:"ok",beforeState:state,state});
  expect(notices).toEqual([]);
+});
+it("detects ready-message returns across printing/unknown boundaries without inventing a state for those boundaries",()=>{
+ const notices:{phase:string}[]=[];const d=new LoopDetector(n=>notices.push(n),{...LOOP_POLICY,ineffective:3},"enforced",true);
+ for(let i=0;i<3;i++){
+  d.complete({name:"press",args:{buttons:["A"]},isError:false,text:"ok",state:dialogue(),seq:i*2});
+  d.complete({name:"press",args:{buttons:["A"]},isError:false,text:"ok",state:{...dialogue(),world_context:null},seq:i*2+1});
+ }
+ expect(notices.map(n=>n.phase)).toEqual(["warning"]);
+});
+it("keeps enhanced checks passive when loop intervention is disabled",()=>{
+ const notices:{phase:string}[]=[];const d=new LoopDetector(n=>notices.push(n),{...LOOP_POLICY,ineffective:2},"diagnostic",true);const state=dialogue();
+ for(let i=0;i<2;i++)d.complete({name:"press",args:{buttons:["A","A"]},isError:false,text:"ok",beforeState:state,state});
+ expect(notices.map(n=>n.phase)).toEqual(["would_warn"]);expect(d.context()).toBeNull();expect(d.stopped).toBe(false);
 });

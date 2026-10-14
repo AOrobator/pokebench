@@ -15,6 +15,9 @@ export const SWITCHABLE_FEATURES = [
   "named-interactions-v1",
   "world-destinations-v1",
   "bounded-navigation-v1",
+  "field-dialogue-phase-v1",
+  "dialogue-safe-batches-v1",
+  "interaction-loop-detection-v1",
   "active-field-message-buffer-v1",
   "naming-cursor-v1",
   "story-state-v1",
@@ -83,6 +86,12 @@ export const FEATURES: readonly FeatureInfo[] = [
     "Adds current map bounds, game-defined boundary connections and named warp destinations to observations. Conditions may still block passage. Off: original map IDs; no story route is supplied."),
   on("bounded-navigation-v1", "guidance", "BOUNDED NAVIGATION", "live-map-v1",
     "Adds navigate_to for up to eight ordinary walking attempts using the live local map, plus the current map ID needed by the tool. The model chooses destinations. Stops on blocked movement, locks or map changes; unsupported terrain is avoided. Off: no navigate_to tool."),
+  on("field-dialogue-phase-v1", "observation", "DIALOGUE PHASE", RAM,
+    "Reports a qualified field-message printer phase, buffer position and whether A/B can advance a page. Unknown ownership stays unavailable; no story route is supplied. Off: incumbent dialogue readout."),
+  on("dialogue-safe-batches-v1", "guard", "SAFE INTERFACE INPUT", RAM,
+    "Limits interaction/menu inputs and locked or unavailable interface batches to one submitted button, then returns a fresh frame. Freely walking directional batches remain available. Off: submits all requested buttons together."),
+  on("interaction-loop-detection-v1", "guard", "INTERACTION LOOP DETECTION", RAM,
+    "Extends loop diagnostics to equivalent button batches and qualified input-ready field messages, including repeated page cycles. Loop guard independently controls warnings and bounded termination. Off: incumbent single-input/unlocked-field checks."),
   on("active-field-message-buffer-v1", "observation", "DIALOGUE AS TEXT", RAM,
     "Copies the game's active field-message buffer into the readout. It can include pages not yet shown on screen. Off: the buffer is dropped; the readout's short Dialog line for the visible box stays."),
   on("naming-cursor-v1", "observation", "NAMING CURSOR", RAM,
@@ -145,7 +154,7 @@ export function dependencyProblems(features: FeatureSet): string[] {
 // Observation switches the game server applies to its readout.
 export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "ram-state-v1", "live-map-v1", "live-player-position-v1", "world-coordinate-grid-v1", "live-object-sprites-v1",
-  "world-targets-v1", "named-interactions-v1", "world-destinations-v1", "bounded-navigation-v1", "active-field-message-buffer-v1", "naming-cursor-v1", "story-state-v1",
+  "world-targets-v1", "named-interactions-v1", "world-destinations-v1", "bounded-navigation-v1", "field-dialogue-phase-v1", "active-field-message-buffer-v1", "naming-cursor-v1", "story-state-v1",
   "coordinate-script-conditions-v1", "field-control-lock", "warp-activation-guidance-v1",
 ];
 
@@ -165,6 +174,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("ram-state-v1"), ...when("live-map-v1"), ...when("field-control-lock"), ...when("naming-cursor-v1"),
     ...when("live-object-sprites-v1"), ...when("coordinate-script-conditions-v1"), ...when("active-field-message-buffer-v1"),
     ...when("world-targets-v1"), ...when("named-interactions-v1"), ...when("world-destinations-v1"), ...when("bounded-navigation-v1"), ...when("live-player-position-v1"), ...when("world-coordinate-grid-v1"),
+    ...when("field-dialogue-phase-v1"), ...when("dialogue-safe-batches-v1"), ...when("interaction-loop-detection-v1"),
     ...when("press-result-v1"), ...when("warp-activation-guidance-v1"), "clock-milestone-v1", ...when("story-state-v1"),
     ...when("active-ui-ownership-v1"), "story-milestones-v2", "new-game-created-v1", "post-clock-navigation-milestones-v1", "rustboro-gym-trainer-milestones-v1", "native-progress-activity-v1",
     ...(target === null ? [] : ["native-target-stop-v1"]), "deterministic-loop-diagnostics-v1", LOOP_POLICY_FEATURE,

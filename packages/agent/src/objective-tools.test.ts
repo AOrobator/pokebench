@@ -401,3 +401,10 @@ it("leaves hidden facts out of the objective record and states model-reported co
   await expect(press.executeChecked("nav3",{buttons:["RIGHT"]},check)).rejects.toThrow(/Reassess/);
   expect(checks).toBe(2);expect(server.actions()).toBe(2);expect(tracker.attempts).toHaveLength(2);
  });
+it("tracks submitted single inputs and blocks repeats even when the requested batch was longer",async()=>{
+ const {tracker,recorder}=setup();const server=serving();const press=objectiveGameTools(tracker,recorder,"http://127.0.0.1:8812",server.fetchFn,{...ALL_TOOL_SWITCHES,safeInterfaces:true}).find(t=>t.name==="press");
+ if(press===undefined)throw new Error("Missing press");tracker.set({...request,completion:{kind:"state",field:"party_count",value:1}});
+ await press.execute("safe1",{buttons:["A","A","A"]});await press.execute("safe2",{buttons:["A","A","A"]});
+ expect(tracker.attempts.map(a=>a.buttons)).toEqual([["A"],["A"]]);
+ await expect(press.execute("safe3",{buttons:["A","A","A"]})).rejects.toThrow(/Reassess/);expect(server.actions()).toBe(2);
+});

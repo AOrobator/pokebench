@@ -27,6 +27,7 @@ export function readNativeRecording(path: string, id: string, qualified: (event:
   const size = statSync(path).size; let expected = 0, previousMs = -Infinity, lastSplit = 0;
   const hash = reduceWorkbenchLog(path, event => {
     const ms = Date.parse(event.t);
+    if (event.seq > 0 && event.type === "run_start") throw new Error("Run event order invalid: more than one run_start; no split graded");
     if (event.run !== id || event.seq !== expected || !Number.isFinite(ms) || ms < previousMs || (event.seq === 0 ? event.type !== "run_start" : event.type === "run_start") || view.end !== null) throw new Error("Run identity, event order or terminal sequence is invalid; no split graded");
     expected++; previousMs = ms;
     if (event.type === "run_start" && event.controller?.kind !== "human" && size > 64 * 1024 * 1024) throw new Error("Agent log exceeds the 64 MiB read bound; no split graded");

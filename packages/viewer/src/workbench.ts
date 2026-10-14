@@ -1,3 +1,4 @@
+import { frontierReferences, frontierPlot, frontierNotes, frontierTable } from "./frontier.js";
 import { esc, hms } from "./format.js";
 import { parseWorkbench, type WorkbenchData, type WorkbenchRun } from "./workbench-data.js";
 import { METRICS, color, currentRunHtml, eligible, median, metricText, ribbonPlot, runDetails, timingPlot, type Metric } from "./workbench-view.js";
@@ -11,6 +12,7 @@ export class Workbench {
   private restoreFocus: HTMLElement | null = null;
   private initialized = false;
   private scope = "all";
+  private overlay = "all";
   private model = "all";
   private preset = "all";
   private milestone = "PLAYER_NAME_CONFIRMED";
@@ -39,7 +41,7 @@ export class Workbench {
       if (data.at < this.data.at) throw new Error("Outdated workbench snapshot ignored; last verified data retained.");
       this.data = data; this.verified = true;
       if (!this.initialized) {
-        this.scope = data.runs.find(r => r.id === this.back)?.cohort ?? data.runs.find(r => r.cohort !== null)?.cohort ?? "all"; this.initialized = true;
+        this.scope = "all"; this.initialized = true;
       }
       this.ui("problem").hidden = true; this.render();
     } catch (error) {
@@ -56,12 +58,17 @@ export class Workbench {
     const runs = this.filtered(), width = this.deps.width();
     this.ui("timing").innerHTML = timingPlot(runs, this.milestone, this.feature, this.metric, width);
     this.ui("ribbons").innerHTML = ribbonPlot(runs, width);
+    const refs = frontierReferences(this.data.runs), overlays = this.overlay === "none" ? [] : this.overlay === "all" ? runs : runs.filter(r => r.id === this.overlay);
+    this.ui("frontier-full").innerHTML = frontierPlot(refs, overlays, width);
+    this.ui("frontier-notes").innerHTML = frontierNotes(refs);
+    this.ui("frontier-counts").innerHTML = frontierTable(refs, overlays);
   }
   private render(): void {
     const cohorts = Array.from(new Set([...this.data.runs.flatMap(r => r.cohort === null ? [] : [r.cohort]), ...this.data.queue.flatMap(q => q.cohort === null ? [] : [q.cohort])]));
     this.options("cohort", [{ id: "all", label: "All recorded runs" }, ...cohorts.map(id => ({ id, label: id }))], this.scope);
     this.options("model", [{ id: "all", label: "All models" }, ...Array.from(new Set(this.data.runs.flatMap(r => r.model === null ? [] : [r.model]))).map(id => ({ id, label: id }))], this.model);
     this.options("preset", [{ id: "all", label: "All configurations" }, ...Array.from(new Set(this.data.runs.flatMap(r => r.config?.preset == null ? [] : [r.config.preset]))).map(id => ({ id, label: id }))], this.preset);
+    this.options("overlay", [{ id: "all", label: "All filtered runs" }, { id: "none", label: "References only" }, ...this.filtered().map(r => ({ id: r.id, label: `${r.model ?? "Unknown"} · ${r.id}` }))], this.overlay);
     this.options("milestone", this.data.milestones, this.milestone);
     const features = new Map<string, string>(); for (const r of this.data.runs) for (const f of r.config?.features ?? []) features.set(f.id, f.label);
     this.options("feature", [...features].map(([id, label]) => ({ id, label })), this.feature);
@@ -111,7 +118,7 @@ export class Workbench {
   };
   private onChange = (event: Event): void => {
     const element = event.target as HTMLSelectElement; const name = element.dataset.wb;
-    if (name === "cohort") this.scope = element.value; else if (name === "model") this.model = element.value; else if (name === "preset") this.preset = element.value; else if (name === "milestone") this.milestone = element.value; else if (name === "feature") this.feature = element.value;
+    if (name === "overlay") this.overlay = element.value; else if (name === "cohort") this.scope = element.value; else if (name === "model") this.model = element.value; else if (name === "preset") this.preset = element.value; else if (name === "milestone") this.milestone = element.value; else if (name === "feature") this.feature = element.value;
     else if (name === "metric" && Object.hasOwn(METRICS, element.value)) this.metric = element.value as Metric; else return;
     this.render();
   };
@@ -119,7 +126,7 @@ export class Workbench {
 export function bootWorkbench(win: Window): Workbench {
   const from = new URL(win.location.href).searchParams.get("from");
   const wb = new Workbench(win.document, {
-    fetchSnapshot: async () => { const response = await win.fetch("/api/workbench", { signal: AbortSignal.timeout(20000) }); if (!response.ok) throw new Error(`Workbench request failed (${String(response.status)})`); return response.json() as Promise<unknown>; },
+    fetchSnapshot: async () => { const response = await win.fetch("/api/workbench", { signal: AbortSignal.timeout(180000) }); if (!response.ok) throw new Error(`Workbench request failed (${String(response.status)})`); return response.json() as Promise<unknown>; },
     now: () => Date.now(), width: () => win.document.querySelector('[data-wb="timing"]')?.getBoundingClientRect().width || win.document.documentElement.clientWidth || 640,
   }, from);
   void wb.refresh(); const poll = win.setInterval(() => { void wb.refresh(); }, 5000), clock = win.setInterval(() => { wb.clock(); }, 1000);

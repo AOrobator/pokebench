@@ -40,17 +40,17 @@ describe("persistent actual native frontier", () => {
   it("keeps missing splits as gaps and references independent of filtered overlays", () => {
     const refs = frontierReferences([human(), best()]);
     const gap = measured("gap<script>", [1000, null, 3000]);
-    document.body.innerHTML = frontierPlot(refs, [gap], 340, false);
+    document.body.innerHTML = frontierPlot(refs, [gap], 340);
     expect(document.querySelector("svg")?.getAttribute("viewBox")).toContain("0 0 340");
     expect(document.querySelectorAll(`[data-run="${HUMAN_REFERENCE}"]`)).toHaveLength(10);
     expect(document.querySelectorAll('[data-run="dea1"]')).toHaveLength(7);
     expect(document.querySelectorAll('polyline[data-series="gap<script>"]')).toHaveLength(0);
     expect(document.querySelectorAll("script")).toHaveLength(0);
     expect(document.body.textContent).toContain("Badge");
-    document.body.innerHTML = frontierPlot(refs, [], 920, true);
-    expect(document.querySelectorAll(`[data-run="${HUMAN_REFERENCE}"]`)).toHaveLength(4);
+    document.body.innerHTML = frontierPlot(refs, [], 920);
+    expect(document.querySelectorAll(`[data-run="${HUMAN_REFERENCE}"]`)).toHaveLength(10);
     expect(document.body.textContent).toContain("Home");
-    expect(document.body.textContent).not.toContain("Badge");
+    expect(document.body.textContent).toContain("Badge");
   });
   it("retains failed denominators and identifies unsupported and censored outcomes", () => {
     const failed = measured("failed", []), running = measured("running", []), interrupted = measured("interrupted", []); running.status = "live"; interrupted.status = "unresponsive";
@@ -58,9 +58,12 @@ describe("persistent actual native frontier", () => {
     const html = frontierCoverage([best(), failed, running, interrupted, unknown], "RIVAL_MET");
     expect(html).toContain("1 / 5"); expect(html).toContain("1 not reached"); expect(html).toContain("1 pending"); expect(html).toContain("1 censored"); expect(html).toContain("1 unsupported");
     expect(frontierCoverage([], "RIVAL_MET")).toContain("0 / 0");
+    const resumed = best(); if (resumed.config !== null) resumed.config.start = "save_state";
+    expect(frontierCoverage([best(), human(), resumed], "RIVAL_MET")).toContain("1 / 1");
+    expect(frontierCoverage([best(), human(), resumed], "RIVAL_MET")).toContain("2 excluded");
   });
   it("shows unavailable persistent references explicitly instead of silently substituting another human", () => {
-    document.body.innerHTML = frontierPlot(frontierReferences([measured("other-human", [1], "human")]), [], NaN, false);
+    document.body.innerHTML = frontierPlot(frontierReferences([measured("other-human", [1], "human")]), [], NaN);
     expect(document.body.textContent).toContain("Human reference unavailable");
     expect(document.body.textContent).toContain("Agent frontier unavailable");
   });

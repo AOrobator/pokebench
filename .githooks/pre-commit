@@ -57,27 +57,52 @@ for body in docs/worklogs/active/*.md; do
 done
 shopt -u nullglob
 
-# Archiving moves a body from docs/worklogs/active/ to docs/worklogs/ under the same name. The
-# archived body counts as the worklog for this commit, so it must be updated like any other.
+# Archiving moves a body from docs/worklogs/active/ to docs/worklogs/ under the same name. A commit
+# that archives is judged by the archived bodies alone: each must be updated since the last commit.
 # Read without rename detection, so an edited body still pairs as delete + add. Paths are
-# compared as literal strings, never as Git pathspecs.
-deleted=() added=()
-while IFS= read -r -d '' path; do
-    deleted+=("$path")
-done < <(git diff --cached --name-only -z --no-renames --diff-filter=D)
-while IFS= read -r -d '' path; do
-    added+=("$path")
-done < <(git diff --cached --name-only -z --no-renames --diff-filter=A)
+# compared as literal strings, never as Git pathspecs. Staged names go through a temp file so a
+# failing git diff stops the hook (set -e) instead of looking like an empty list.
+staged=$(mktemp "${TMPDIR:-/tmp}/pokebench-pre-commit.XXXXXX")
+trap 'rm -f "$staged"' EXIT
+staged_names() {
+    git diff --cached --name-only -z --no-renames --diff-filter="$1" >"$staged"
+    names=()
+    while IFS= read -r -d '' path; do
+        names+=("$path")
+    done <"$staged"
+}
+staged_names D
+deleted=(${names[@]+"${names[@]}"})
+staged_names A
+added=(${names[@]+"${names[@]}"})
+archived=()
 for from in ${deleted[@]+"${deleted[@]}"}; do
     [[ $from == docs/worklogs/active/* ]] || continue
     name=${from#docs/worklogs/active/}
     [[ $name == *.md && $name != */* ]] || continue
     for to in ${added[@]+"${added[@]}"}; do
         if [[ $to == "docs/worklogs/$name" ]]; then
-            worklogs+=("$to")
+            archived+=("$to")
         fi
     done
 done
+if (( ${#archived[@]} > 0 )); then
+    HEAD_TS=$(git log -1 --format=%ct HEAD)
+    for file in "${archived[@]}"; do
+        ts=$(mtime "$file") || exit 1
+        if (( ts <= HEAD_TS )); then
+            {
+                echo
+                echo "❌ pre-commit: archived worklog $file has not been updated since the last commit."
+                echo
+                echo "Record the landing or archive note in it, then commit again."
+                echo
+            } >&2
+            exit 1
+        fi
+    done
+    exit 0
+fi
 
 if (( ${#worklogs[@]} == 0 )); then
     exit 0

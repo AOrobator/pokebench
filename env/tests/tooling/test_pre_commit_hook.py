@@ -313,3 +313,58 @@ def test_archiving_a_worklog_with_spaces_in_its_name(tmp_path: Path) -> None:
 
 def rel(path: Path, repo: Path) -> str:
     return str(path.relative_to(repo))
+
+
+def test_stale_archive_is_blocked_even_when_another_worklog_is_fresh(tmp_path: Path) -> None:
+    repo, body = archive_repo(tmp_path)
+    archived = repo / "docs/worklogs/2026-01-02_done.md"
+    assert git(repo, "mv", rel(body, repo), rel(archived, repo)).returncode == 0
+    shift_mtime(archived, -3600)
+    sibling = repo / ACTIVE_BODY
+    sibling.write_text("# other\n- touched\n")
+    shift_mtime(sibling, 5)
+    result = git(repo, "commit", "-q", "-m", "archive")
+    assert result.returncode != 0
+    assert "archived worklog" in result.stderr
+
+
+GIT_FAILS_ON_ADDED = """#!/bin/bash
+for arg in "$@"; do
+    if [ "$arg" = "--diff-filter=A" ]; then
+        echo "injected failure" >&2
+        exit 2
+    fi
+done
+exec "$REAL_GIT" "$@"
+"""
+
+
+def test_archive_discovery_fails_closed_when_git_diff_fails(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, {"docs/worklogs/active/2026-01-02_done.md": "# done\n"})
+    archived = repo / "docs/worklogs/2026-01-02_done.md"
+    assert (
+        git(repo, "mv", "docs/worklogs/active/2026-01-02_done.md", rel(archived, repo)).returncode
+        == 0
+    )
+    shift_mtime(archived, -3600)
+    shim_dir = tmp_path / "failing-git"
+    shim_dir.mkdir()
+    shim = shim_dir / "git"
+    shim.write_text(GIT_FAILS_ON_ADDED)
+    shim.chmod(0o755)
+    real_git = shutil.which("git")
+    assert real_git is not None
+    hook = repo / ".githooks" / "pre-commit"
+    env = {**GIT_ENV, "PATH": f"{shim_dir}{os.pathsep}{os.environ['PATH']}", "REAL_GIT": real_git}
+    failing = subprocess.run(
+        ["bash", str(hook)], cwd=repo, env=env, capture_output=True, text=True, check=False
+    )
+    assert failing.returncode != 0
+    assert "injected failure" in failing.stderr
+    env.pop("REAL_GIT")
+    env["PATH"] = os.environ["PATH"]
+    stale = subprocess.run(
+        ["bash", str(hook)], cwd=repo, env=env, capture_output=True, text=True, check=False
+    )
+    assert stale.returncode != 0
+    assert "archived worklog" in stale.stderr

@@ -95,7 +95,7 @@ describe("production host", () => {
     expect(mainCheckout(join(root, "packages", "viewer", "dist"), git)).toBe(execFileSync("realpath", [root], { encoding: "utf8" }).trim());
   });
 
-  it("verifies the pinned commit, a clean tree and a fresh build", async () => {
+  it("verifies the approved commit, a clean tree and a fresh build", async () => {
     const { root, head } = repo();
     const host = productionHost({ root, runsRoot: join(root, "runs"), git: (args) => git(root, args), fetchFn: fetch, node: process.execPath, env: {}, log: () => undefined });
     expect(await host.verifySource(experiment("c".repeat(40)), "c".repeat(40))).toMatch(/^main is at [0-9a-f]{7}, not the approved ccccccc; withdraw its approval and approve it again on the current build$/);

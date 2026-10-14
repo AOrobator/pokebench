@@ -92,7 +92,7 @@ function readinessLine(v: ExperimentView): string {
   return `${String(r.reached)} of the last ${String(r.considered.length)} ${r.basis === "comparable" ? "comparable" : "recent"} ${esc(v.modelLane)} runs reached ${esc(r.milestone)} (needs ${String(r.minReached)} of ${String(r.window)})`;
 }
 
-// Approve or withdraw from the card; the runner still only starts from just experiment-run.
+// Approve or withdraw from the card; the viewer's queue runner starts approved experiments.
 function actions(v: ExperimentView): string {
   if (v.queuePosition !== null && (v.state === "draft" || v.state === "stale")) return `<div class="eq-actions"><button type="button" class="eq-approve" data-approve="${esc(v.id)}">APPROVE ${String(v.trialsPerArm * 2)} RUNS</button></div>`;
   if (v.approved && (v.state === "approved" || v.state === "running" || v.state === "held")) return `<div class="eq-actions"><button type="button" class="eq-revoke" data-revoke="${esc(v.id)}">WITHDRAW APPROVAL</button></div>`;

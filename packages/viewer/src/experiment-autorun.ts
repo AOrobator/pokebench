@@ -38,7 +38,15 @@ export class ExperimentAutoRun {
 
   tick(): Promise<void> {
     if (this.busy || this.stopped || this.deps.now() < this.retryAt) return Promise.resolve();
-    const next = nextExperiment(queueSnapshot(this.deps.paths, this.deps.source).queue);
+    let next;
+    try {
+      next = nextExperiment(queueSnapshot(this.deps.paths, this.deps.source).queue);
+    } catch (error) {
+      // Runs the timer calls this from: a failure must never take the viewer down.
+      this.current = { state: "error", message: error instanceof Error ? error.message : String(error) };
+      this.retryAt = this.deps.now() + RETRY_MS;
+      return Promise.resolve();
+    }
     if (next === null) {
       if (this.current.state === "error") this.current = { state: "idle", message: "Nothing is approved to run." };
       return Promise.resolve();

@@ -68,7 +68,7 @@ export async function main(argv: readonly string[], deps: CliDeps): Promise<numb
       deps.print(`${view.id}: ${view.title}. ${String(view.trialsPerArm * 2)} trials of ${view.changedFeature} ${view.incumbentOn ? "ON vs OFF" : "OFF vs ON"} on ${view.source.commit.slice(0, 7)}; budget ${String(Math.round(view.budgetMs / 3_600_000))} h.`);
       if ((await deps.ask(`Type ${view.id} to approve: `)).trim() !== view.id) throw new RunnerError("not approved");
       approveExperiment(deps.paths, deps.source, view.id, deps.user, deps.now(), deps.git(["rev-parse", "HEAD"]).trim());
-      deps.print(`approved ${view.id}; just experiment-run will start it when it reaches the front of the queue`);
+      deps.print(`approved ${view.id}; the viewer (or just experiment-run) starts it when it reaches the front of the queue`);
       return 0;
     }
     case "pin": {
@@ -108,7 +108,7 @@ export interface HostDeps {
   readonly onChild?: (child: ChildProcess | null) => void;
 }
 
-// INV-Q6: the build that runs is the pinned commit, clean, with its own fresh dist.
+// INV-Q6: the build that runs is the approved commit, clean, with its own fresh dist.
 export function productionHost(deps: HostDeps): RunnerHost {
   const liveJs = join(deps.root, "packages", "agent", "dist", "live.js");
   return {

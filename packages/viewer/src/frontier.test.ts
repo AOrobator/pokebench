@@ -113,3 +113,41 @@ describe("persistent actual native frontier", () => {
     expect(document.body.textContent).toContain("Agent frontier unavailable");
   });
 });
+describe("zoom to frontier", () => {
+  const axis = (): string[] => Array.from(document.querySelectorAll(".wb-frontier-chart text.wb-axis")).map(t => t.textContent ?? "");
+  it("ends at the next human milestone after the farthest agent and rescales time to visible points", () => {
+    const refs = { human: human(), best: best() };
+    document.body.innerHTML = frontierPlot(refs, [], 2000, undefined, [], true);
+    expect(document.querySelectorAll(`[data-run="${HUMAN_REFERENCE}"]`)).toHaveLength(8);
+    expect(document.querySelector('[data-split="STARTER_CHOSEN"]')).not.toBeNull();
+    expect(document.querySelector('[data-split="STONE_BADGE"]')).toBeNull();
+    expect(axis()).toContain("Starter"); expect(axis()).not.toContain("Oldale"); expect(axis()).not.toContain("Badge");
+    expect(axis()).toContain("30"); expect(axis()).not.toContain("120");
+    expect(document.querySelector(".wb-frontier-chart")?.getAttribute("aria-label")).toBe("Story frontier zoomed to New game through Starter");
+    expect(document.body.textContent).toContain("Zoomed to the frontier: New game → Starter, 15 of 36 checkpoints");
+    expect(document.body.textContent).toContain("21 later checkpoints hidden");
+    document.body.innerHTML = frontierPlot(refs, [], 2000);
+    expect(document.querySelectorAll(`[data-run="${HUMAN_REFERENCE}"]`)).toHaveLength(10);
+    expect(axis()).toContain("120"); expect(document.body.textContent).not.toContain("Zoomed");
+  });
+  it("widens for overlays and live runs but never for human-only progress", () => {
+    const deeper = measured("deeper", [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000]);
+    document.body.innerHTML = frontierPlot({ human: human(), best: best() }, [deeper], 2000, undefined, [], true);
+    expect(axis()).toContain("Gym entry"); expect(document.querySelector('[data-split="STONE_BADGE"]')).toBeNull();
+    const live = { ...measured("live", [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000]), status: "live" as const };
+    document.body.innerHTML = frontierPlot({ human: human(), best: best() }, [], 2000, undefined, [live], true);
+    expect(document.querySelector('[data-split="STONE_BADGE"]')).not.toBeNull();
+    expect(document.body.textContent).not.toContain("Zoomed");
+    document.body.innerHTML = frontierPlot({ human: human(), best: null }, [], 2000, undefined, [], true);
+    expect(axis()).toContain("New game"); expect(axis()).toContain("Name"); expect(axis()).not.toContain("Truck exit");
+    expect(document.body.textContent).toContain("2 of 36 checkpoints");
+  });
+  it("uses the next checkpoint when the human baseline is missing or has nothing later", () => {
+    document.body.innerHTML = frontierPlot({ human: null, best: best() }, [], 2000, undefined, [], true);
+    expect(axis()).toContain("Route 101"); expect(axis()).not.toContain("Starter");
+    const short = measured(HUMAN_REFERENCE, [1000, 2000], "human");
+    document.body.innerHTML = frontierPlot({ human: short, best: best() }, [], 2000, undefined, [], true);
+    expect(axis()).toContain("Route 101"); expect(axis()).not.toContain("Starter");
+  });
+});
+

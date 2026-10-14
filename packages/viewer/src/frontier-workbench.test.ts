@@ -49,3 +49,24 @@ it("keeps the healthy current run visible across filters and withdraws pulse on 
   expect(ui("frontier-full").querySelector('[data-live-run]')).toBeNull();
   fail=false;value={version:1,at:4000,milestones:[],runs:[{...current,status:"ended"}],queue:[],problems:[]};await wb.refresh();expect(ui("frontier-full").querySelector('[data-current-run]')).toBeNull();wb.destroy();
 });
+
+it("zooms the story frontier by default and switches to the full human baseline across polling", async () => {
+  const measurement = { controller: "agent" as const, features: ["story-milestones-v2"], logSha256: "a".repeat(64), pausedMs: 0, rawSplits: [] };
+  const human = Object.assign(run({ id: HUMAN_REFERENCE, cohort: null, model: "Human", splits: ["NEW_GAME_CREATED", "PLAYER_NAME_CONFIRMED", "FIRST_TRUCK_EXIT", "STONE_BADGE"].map((name, i) => ({ name, elapsedMs: (i + 1) * 60000, segmentMs: 60000, seq: i, turn: 0, inputTokens: 0, outputTokens: 0 })) }), { measurement: { ...measurement, controller: "human" as const } });
+  const agent = Object.assign(run({ id: "agent" }), { measurement });
+  const data = (at: number): unknown => ({ version: 1, at, milestones: [], runs: [human, agent], queue: [], problems: [] });
+  let at = 1000;
+  const wb = new Workbench(document, { fetchSnapshot: () => Promise.resolve(data(at)), now: () => 1000, width: () => 900 });
+  await wb.refresh();
+  const zoom = ui("frontier-zoom") as HTMLInputElement;
+  expect(zoom.checked).toBe(true); expect(zoom.getAttribute("role")).toBe("switch");
+  expect(ui("frontier-full").querySelector('[data-split="FIRST_TRUCK_EXIT"]')).not.toBeNull();
+  expect(ui("frontier-full").querySelector('[data-split="STONE_BADGE"]')).toBeNull();
+  zoom.checked = false; zoom.dispatchEvent(new Event("change", { bubbles: true }));
+  expect(ui("frontier-full").querySelector('[data-split="STONE_BADGE"]')).not.toBeNull();
+  at = 2000; await wb.refresh();
+  expect(zoom.checked).toBe(false); expect(ui("frontier-full").querySelector('[data-split="STONE_BADGE"]')).not.toBeNull();
+  zoom.checked = true; zoom.dispatchEvent(new Event("change", { bubbles: true }));
+  expect(ui("frontier-full").querySelector('[data-split="STONE_BADGE"]')).toBeNull();
+  wb.destroy();
+});

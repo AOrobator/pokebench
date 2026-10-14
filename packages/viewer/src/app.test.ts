@@ -788,6 +788,7 @@ it("filters harness features by literal name or ID and retains search through li
  const {app,streams}=await harness();const log=new Log();log.add(0,START);feed(must(streams[0]),log.events);
  app.next.registry=[{id:"navigation-evidence-memory-v1",title:"Navigation Memory",description:"Retains facts.",group:"guidance",switchable:true,needs:null},{id:"deterministic-loop-guard-v1",title:"Loop Guard",description:"Navigation Memory appears in this description only.",group:"guard",switchable:true,needs:null}];app.tick(1000);
  const search=must(document.querySelector<HTMLInputElement>('[data-ui="feature-search"]'));
+ expect(search.labels?.[0]?.textContent).toBe("FIND A FEATURE");expect(search.hasAttribute("aria-label")).toBe(false);
  const visible=()=>Array.from(ui("harness-config").querySelectorAll<HTMLElement>(".config-feature")).filter(card=>!card.hidden).map(card=>card.dataset.feature);
  const filter=(value:string)=>{search.value=value;search.dispatchEvent(new Event("input"));};
  search.focus();filter("navigation memory");expect(visible()).toEqual(["navigation-evidence-memory-v1"]);

@@ -1,5 +1,6 @@
 import {contextTools,loopSupervisor} from "./play-wiring.js";
 import {CheckpointCapture,checkpointTarget} from "./checkpoint-capture.js";
+import {experimentFromEnv} from "./play-experiment.js";
 // Live entrypoint for real, recorded runs: pi-agent-core on the local stack
 // gateway drives the observe / press tools against an isolated game server
 // (INV-7) on the real ROM, and every step lands in runs/<id>/events.jsonl.
@@ -216,6 +217,7 @@ async function playAgent(): Promise<void> {
   const serverEnv={...process.env,...serverFeatureEnv(features)};
   const start=preset===null?{kind:"boot" as const}:presetStart(preset,path=>readFileSync(path));
   const captureAt=checkpointTarget(process.env);
+  const experiment=experimentFromEnv(process.env);
   const { model, port, gatewayUrl, apiKey } = await live();
   if(preset!==null&&preset.sampling.maxTokens>model.maxTokens)throw new Error("Play preset maxTokens exceeds the discovered model limit");
   const runId=assigned??newRunId(new Date(),model.id,()=>randomBytes(2).toString("hex"));
@@ -238,7 +240,7 @@ async function playAgent(): Promise<void> {
       port,
       model: { id: model.id, context_window: model.contextWindow, max_tokens: model.maxTokens, vision: true },
       sampling: { thinking_level: thinking, max_tokens: maxTokens },
-      ...(preset===null?{}:{evaluation:{preset_id:preset.id,target:preset.target,failure_limit:limits.failureLimit,flags:presetFlags(preset)}}),
+      ...(preset===null?{}:{evaluation:{preset_id:preset.id,target:preset.target,failure_limit:limits.failureLimit,flags:presetFlags(preset),...(experiment===null?{}:{experiment})}}),
       systemPrompt,
       tools: stateMode?["act"]:playTools(features),
       startState: start,

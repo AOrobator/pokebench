@@ -844,6 +844,36 @@
                 }
               },
               "additionalProperties": false
+            },
+            "experiment": {
+              "type": "object",
+              "required": [
+                "id",
+                "arm",
+                "trial",
+                "of"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                "arm": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 60
+                },
+                "trial": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "of": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              },
+              "additionalProperties": false
             }
           },
           "additionalProperties": false

@@ -606,3 +606,11 @@ describe("instruction ledger delivery",()=>{
   expect(FEATURE_EXPLAINERS["instruction-ledger-v1"]).toBe("instruction-ledger-v1.html");
  });
 });
+
+it("names the experiment, arm and trial, or the preset, in the run header",()=>{
+ const flags={loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false};
+ const withExperiment=new Log();withExperiment.add(0,{...START,evaluation:{preset_id:"factorial-both",target:null,failure_limit:3,flags,experiment:{id:"factorial-2x2-think-fast",arm:"both",trial:5,of:32}}});
+ expect(brand(view(withExperiment))).toBe(`POKéNAV · ${RUN} · EXPERIMENT factorial-2x2-think-fast · ARM both · TRIAL 5/32`);
+ const presetOnly=new Log();presetOnly.add(0,{...START,evaluation:{preset_id:"checkpoint-clock-set",target:"CLOCK_SET",failure_limit:3,flags}});
+ expect(brand(view(presetOnly))).toBe(`POKéNAV · ${RUN} · PRESET checkpoint-clock-set`);
+});

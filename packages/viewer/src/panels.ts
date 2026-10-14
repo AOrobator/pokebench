@@ -289,7 +289,10 @@ export function inspector(event: RunEvent | undefined): string {
 }
 
 export function brand(view: RunView): string {
-  return `POKéNAV · ${view.start?.run ?? "NO RUN"}`;
+  const evaluation = view.start?.evaluation;
+  const experiment = evaluation?.experiment;
+  const label = experiment !== undefined ? ` · EXPERIMENT ${experiment.id} · ARM ${experiment.arm} · TRIAL ${String(experiment.trial)}/${String(experiment.of)}` : evaluation !== undefined ? ` · PRESET ${evaluation.preset_id}` : "";
+  return `POKéNAV · ${view.start?.run ?? "NO RUN"}${label}`;
 }
 
 export function fieldContext(view: RunView): string {

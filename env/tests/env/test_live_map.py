@@ -195,3 +195,33 @@ def test_tile_elevation_is_from_the_live_block_high_nibble():
     local = read_local_map(m.read, (1, 1), (1, 0), 1)
     assert local is not None
     assert next(t.elevation for t in local.tiles if (t.x, t.y) == (0, 0)) == 3
+
+
+def countered() -> Memory:
+    # pokeemerald 731ad5b metatile_behaviors.h: MB_COUNTER = 0x80. A Pokémon Center
+    # counter row (blocked) with the nurse standing behind it.
+    m = loaded()
+    m.put(0x02007000 + 2 * 7, struct.pack("<H", 0x80))
+    for x in range(3):
+        tile(m, x, 0, 0x400 | 7)
+    tile(m, 0, 2, 7)
+    return m
+
+
+def test_counters_render_as_their_own_glyph_with_talk_across_legend() -> None:
+    result = read_local_map(countered().read, (1, 1), (1, 0), radius=1)
+    assert result is not None
+    assert result.rows == ("==N", "W@~", "...")
+    text = result.text()
+    assert "   0   =   =   N" in text, text
+    assert (
+        " = counter: you cannot walk onto it, but you can talk to someone standing behind it"
+        " by facing the counter and pressing A;"
+    ) in text
+    assert "0x80" in text
+
+
+def test_a_counter_metatile_without_collision_stays_walkable_terrain() -> None:
+    result = read_local_map(countered().read, (1, 1), (1, 0), radius=1)
+    assert result is not None
+    assert result.rows[2] == "..."

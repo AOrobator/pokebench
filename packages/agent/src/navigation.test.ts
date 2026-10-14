@@ -91,3 +91,19 @@ it("forwards deliberate walking to the ordinary press without creating a separat
  await tool.execute("nav",{x:0,y:1,map_id:[0,9],walking:true});
  expect(seen).toEqual([{buttons:["DOWN"],walking:true}]);
 });
+
+
+it("never walks onto a counter and says how to talk across one",async()=>{
+ const counter={...field,position:{x:0,y:2},navigation_grid:{elevation:3,tiles:[tile(0,0),tile(1,0),tile(0,1,1,0x80),tile(1,1,1,0x80),tile(0,2),tile(1,2)],objects:[{x:0,y:0}],warps:[]}};
+ expect(planNavigation(counter,{x:1,y:1})).toBeNull();
+ expect(planNavigation(counter,{x:1,y:0})).toBeNull();
+ for(const goal of [{x:1,y:1},{x:0,y:0}]){
+  let presses=0;const tool=navigationTool({read:()=>Promise.resolve(counter),press:()=>{presses++;return Promise.resolve(result(counter));},observe:()=>Promise.resolve(result(counter))});
+  const outcome=await tool.execute("nav",{...goal,map_id:[0,9]},new AbortController().signal);
+  expect(presses).toBe(0);
+  expect(outcome.content[0]?.type==="text"?outcome.content[0].text:null).toContain("counter: walk to a tile facing the counter, face it and press A to talk across it");
+ }
+ const plain=navigationTool({read:()=>Promise.resolve(counter),press:()=>Promise.resolve(result(counter)),observe:()=>Promise.resolve(result(counter))});
+ const away=await plain.execute("nav",{x:1,y:0,map_id:[0,9]},new AbortController().signal);
+ expect(away.content[0]?.type==="text"?away.content[0].text:null).toContain("no supported local path");
+});

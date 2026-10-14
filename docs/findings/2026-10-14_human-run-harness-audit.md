@@ -8,12 +8,12 @@ Audit of `2026-10-13T23-50-13_human_1848`, through final event 100267. Original 
 
 Sampling preserves a useful baseline but cannot establish every brief menu phase or exact battle turn. Repeated screenshots of the same message are not multiple actions. Input intervals supply actual applied frames; sampled milestone frames remain first-observation upper bounds.
 
-## Highest-priority fixes still needed
+## Gaps found in the original recording
 
 | Priority | Gap | Evidence and required behavior |
 | --- | --- | --- |
 | 1 | Battle readout | 21,946 state samples use unsupported callback `0x08038421`. Record the actual active Pokémon, opponent identity/level/HP, moves and PP, status, action/move/target selection, readiness and outcome. Screenshots currently supply this evidence through manual inspection/OCR. Verify each input owner against the matching ROM; a blanket battle callback label cannot establish cursor or readiness. |
-| 2 | Pokémon decoding validity | 29 state samples report impossible species IDs 42103, 58708, 4205, 40833. Seq 9262 is Torchic→invalid→Torchic with unchanged level/HP. Current reader still emits species strings rather than rejecting invalid/checksum-failing data. Validate the decrypted Pokémon checksum, species/level/HP bounds and ownership; retry or expose unknown instead of silently producing a species. Preserve bounded raw bytes/checksum when decoding fails. |
+| 2 | Pokémon decoding validity | 29 state samples report impossible species IDs 42103, 58708, 4205, 40833. Seq 9262 is Torchic→invalid→Torchic with unchanged level/HP. The recording-time reader emits species strings rather than rejecting invalid/checksum-failing data. Validate the decrypted Pokémon checksum, species/level/HP bounds and ownership; retry or expose unknown instead of silently producing a species. Preserve bounded raw bytes/checksum when decoding fails. |
 | 3 | Actionable menus |Starter selection/confirmation, party switching, Bag, shop quantities and summary moves were encountered with unsupported state and no selected value. Examples: state seq 57538/shop quantity 3,51216/Oran Berry Bag,70026/fainted-Marill party menu,94418/Rollout summary. Record selected item/slot/move, quantity, relevant contents and readiness through each real owner. |
 | 4 | Inventory, captures and berry history |Record received/used/bought items, successful catches with species/identity and party-or-box destination, completed learned/replaced moves, and berry tree harvest/plant/water transitions. Counts alone do not reconstruct these decisions. |
 
@@ -50,3 +50,12 @@ The operator prioritizes damage or reducing the opponent’s ability to act. Stu
 Two useful follow-ups concern decision boundaries: when a trainee is strong enough to stop switching out, and how he chooses between more training, an item, or healing when a fight is risky. Watering/revisiting berry patches is relevant for a long-run resource policy but low priority for first-Gym timing. Route/boss/type knowledge was known before this run; preserve that context when interpreting a model comparison.
 
 Recommended implementation order: battle ownership/readiness plus valid Pokémon decoding; party/Bag/shop/summary owners; action-specific history; remaining optional milestone coverage. Qualify new fields with paired native probes and recorder/replay tests before another measured cohort. No patch benefit is claimed by this audit.
+
+
+## Repairs delivered for future recordings
+
+Landed source1792a16 (implementationc552721) repairs continuous battle/controllers/execution, checksum/CPU-owned Pokémon decoding, typed source-owned menus throughout Emerald, native action/input/resource/move/berry/training history, Woods/Route116 victories and Route115/Route116/Rusturf splits. Owned Pokémon include party, PC and daycare; rental/tutorial copies cannot become fabricated player acquisitions. Native final state is saved on human Finish. The regular viewer retains its lanes and button labels; the human screen retains its shared compact timeline.
+
+The production human validation72ef records566 frames without harness defects, stereo48kHz native audio,19 frames at approximately2Hz, applied inputs and a hash-verified restorable ending state. Paired native menu/battle information ON/OFF preserves raw state/pixels; model HTTP delivery tests verify the intended text treatment. Source/ROM fixtures cover late/link/postgame menus; those pages are not claimed to have been visited live. Source-native running-shoes/chord proof is separate from common recording; it stays OFF in every information-comparison arm.
+
+Current evidence and source/build/schema manifests: runs/harness-qualification/2026-10-14_run-state-completeness/qualification.json. The original100268-event log hash remains68f810a55f605122f2af9878c21d426c4b870747dfe85b74b01d06439a9c29fe. New capabilities do not retrospectively create missing battle/menu/trainer RAM. Supplemental recovered route splits remain first supported observed-state upper bounds; the original events/screenshots remain unchanged.

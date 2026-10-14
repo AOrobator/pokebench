@@ -17,12 +17,17 @@ const distance=(a:Point,b:Point):number=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
 const ready=(s:GameStateSnapshot):boolean=>s.started&&s.screen==="overworld"&&!s.in_battle&&s.field_controls_locked===false&&s.position!==null&&s.map_id!==null&&s.navigation_grid!=null&&(s.active_ui==null||(s.active_ui.ready===true&&s.active_ui.diagnostic===null));
 export const MAX_NAVIGATION_COMMANDS=8;
 // pokeemerald GetInteractedObjectEventScript talks across a faced counter to the object beyond it.
-function counterTarget(state:GameStateSnapshot,goal:Point):boolean {
- const grid=state.navigation_grid;if(grid==null)return false;
- const counter=(p:Point):boolean=>grid.tiles.some(t=>t.x===p.x&&t.y===p.y&&t.behavior===COUNTER&&t.collision!==0);
- return counter(goal)||(grid.objects.some(o=>o.x===goal.x&&o.y===goal.y)&&DIRECTIONS.some(([,dx,dy])=>counter({x:goal.x+dx,y:goal.y+dy})));
+function counterHint(grid:Grid,goal:Point):string|null {
+ const at=(p:Point)=>(t:Point):boolean=>t.x===p.x&&t.y===p.y;
+ const counter=(p:Point):boolean=>grid.tiles.some(t=>at(p)(t)&&t.behavior===COUNTER&&t.collision!==0);
+ const occupied=(p:Point):boolean=>grid.objects.some(at(p));
+ for(const [direction,dx,dy] of DIRECTIONS){
+  const across=occupied(goal)?{counter:{x:goal.x-dx,y:goal.y-dy},person:goal}:{counter:goal,person:{x:goal.x+dx,y:goal.y+dy}};
+  if(!counter(across.counter)||!occupied(across.person))continue;
+  return `target is behind a counter; walk to (${String(across.counter.x-dx)},${String(across.counter.y-dy)}), face ${direction} toward the counter at (${String(across.counter.x)},${String(across.counter.y)}) and press A to talk across it`;
+ }
+ return counter(goal)?"target is a counter; you cannot stand on it, but you can face it from an adjacent tile and press A to talk to someone behind it":null;
 }
-
 // Bounded A* over the current live 15x15 window. No outside-map guessing,
 // surfing, ledges or puzzle policies. Zero elevation preserves the layer.
 export function planNavigation(state:GameStateSnapshot,goal:Point):Direction[]|null {
@@ -86,7 +91,7 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
    if(!sameMap()){status="map changed; inspect destination";break;}
    if(!ready(state)){status="field input or navigation geometry unavailable";break;}
    const path=planNavigation(state,goal);
-   if(path===null){status=counterTarget(state,goal)?"target is a counter or behind one; walk to a tile facing the counter, face it and press A to talk across it":"no supported local path; choose a reachable local waypoint";break;}
+   if(path===null){status=(state.navigation_grid==null?null:counterHint(state.navigation_grid,goal))??"no supported local path; choose a reachable local waypoint";break;}
    const direction=path[0];if(direction===undefined){status="arrived at requested coordinate";break;}
    const previousFacing=state.facing; const before=state.position;if(before===null)throw new Error("Navigation position unavailable");
    try {

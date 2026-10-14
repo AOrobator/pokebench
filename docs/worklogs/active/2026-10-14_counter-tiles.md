@@ -17,14 +17,23 @@ pret/pokeemerald 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881:
 
 - [x] Map draws collision counters as `=`, legend says not walkable but talk across with A.
 - [x] `navigate_to` targeting a counter, or an object directly behind one, stops without
-      pressing and says to stand facing the counter and press A.
+      pressing and names the tile to stand on and the direction to face, then press A.
 - [x] `live-map-v1` feature description lists `=`.
 
 ## Evidence
+
+- Live, real ROM, vendored `tests/states/torchic.state`, walked Route 101 -> Oldale Town ->
+  Pokémon Center 1F (map 2/2), run dir `runs/counter-proof/torchic` (gitignored). The model
+  text shows `=` at (7,3) under the nurse at (7,2); the rest of the counter row stays `#`
+  because only that tile is MB_COUNTER (behaviors present include 0x80). `navigate_to` to
+  (7,2) or (7,3) pressed nothing and returned the counter hint; from (7,4) facing UP, A opened
+  "Hello, and welcome to the POKéMON CENTER." Saved: `runs/counter-proof/oldale-pc-observation.txt`.
 
 ## Commits
 
 - RED: `test: counters render as their own glyph and navigate_to explains talking across them (RED)` (a1376b2)
 - GREEN: tests 891 TS agent + 31 viewer files, 1805 Python; coverage gate 90 passes (Python 95% total); lint clean; vendor OK.
+
+- GREEN: `fix(live-map): draw counters as = and explain talking across them` (3734d45)
 
 ## Review

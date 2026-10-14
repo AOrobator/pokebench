@@ -9,7 +9,7 @@ it("describes every switchable and measurement feature exactly once", () => {
   expect(FEATURES.map((f) => f.id).sort()).toEqual([...SWITCHABLE_FEATURES, ...MEASUREMENT_FEATURES].sort());
   expect(FEATURES.filter((f) => f.switchable).map((f) => f.id)).toEqual([...SWITCHABLE_FEATURES]);
   expect(FEATURES.filter((f) => f.group === "observation")).toHaveLength(14);
-  expect(FEATURES.filter((f) => f.group === "guidance")).toHaveLength(8);
+  expect(FEATURES.filter((f) => f.group === "guidance")).toHaveLength(9);
   expect(FEATURES.filter((f) => f.group === "guard")).toHaveLength(6);
   for (const f of FEATURES) {
     expect(f.title).not.toBe("");
@@ -20,8 +20,8 @@ it("describes every switchable and measurement feature exactly once", () => {
 });
 
 it("reproduces the pre-registry run_start feature list when everything is on", () => {
-  expect(playHarnessFeatures(off("field-dialogue-phase-v1","dialogue-safe-batches-v1","interaction-loop-detection-v1","automatic-running-v1","expanded-menu-battle-information-v1","state-only-decisions-v1","named-interactions-v1","world-destinations-v1","bounded-navigation-v1"), null)).toEqual(LEGACY_DEFAULT);
-  expect(playHarnessFeatures(off("field-dialogue-phase-v1","dialogue-safe-batches-v1","interaction-loop-detection-v1","automatic-running-v1","expanded-menu-battle-information-v1","state-only-decisions-v1","named-interactions-v1","world-destinations-v1","bounded-navigation-v1"), "PLAYER_NAME_CONFIRMED")).toEqual([...LEGACY_DEFAULT.slice(0, 26), "native-target-stop-v1", ...LEGACY_DEFAULT.slice(26)]);
+  expect(playHarnessFeatures(off("navigation-evidence-memory-v1","field-dialogue-phase-v1","dialogue-safe-batches-v1","interaction-loop-detection-v1","automatic-running-v1","expanded-menu-battle-information-v1","state-only-decisions-v1","named-interactions-v1","world-destinations-v1","bounded-navigation-v1"), null)).toEqual(LEGACY_DEFAULT);
+  expect(playHarnessFeatures(off("navigation-evidence-memory-v1","field-dialogue-phase-v1","dialogue-safe-batches-v1","interaction-loop-detection-v1","automatic-running-v1","expanded-menu-battle-information-v1","state-only-decisions-v1","named-interactions-v1","world-destinations-v1","bounded-navigation-v1"), "PLAYER_NAME_CONFIRMED")).toEqual([...LEGACY_DEFAULT.slice(0, 26), "native-target-stop-v1", ...LEGACY_DEFAULT.slice(26)]);
 });
 
 it("drops exactly the switched-off id and round-trips through recorded features", () => {
@@ -46,7 +46,7 @@ it("hands the game server only its own observation switches", () => {
 });
 
 it("keeps the objective record from outliving the RAM readout", () => {
-  expect(dependencyProblems(off("field-dialogue-phase-v1","dialogue-safe-batches-v1","interaction-loop-detection-v1","automatic-running-v1","expanded-menu-battle-information-v1", "state-only-decisions-v1", "named-interactions-v1", "world-destinations-v1", "bounded-navigation-v1", "ram-state-v1", "live-map-v1", "live-player-position-v1", "world-coordinate-grid-v1", "live-object-sprites-v1", "world-targets-v1", "active-field-message-buffer-v1", "naming-cursor-v1", "story-state-v1", "coordinate-script-conditions-v1", "active-ui-ownership-v1", "press-result-v1", "field-control-lock", "warp-activation-guidance-v1"))).toEqual(["objective-tracking-v1 needs ram-state-v1"]);
+  expect(dependencyProblems(off("navigation-evidence-memory-v1","field-dialogue-phase-v1","dialogue-safe-batches-v1","interaction-loop-detection-v1","automatic-running-v1","expanded-menu-battle-information-v1", "state-only-decisions-v1", "named-interactions-v1", "world-destinations-v1", "bounded-navigation-v1", "ram-state-v1", "live-map-v1", "live-player-position-v1", "world-coordinate-grid-v1", "live-object-sprites-v1", "world-targets-v1", "active-field-message-buffer-v1", "naming-cursor-v1", "story-state-v1", "coordinate-script-conditions-v1", "active-ui-ownership-v1", "press-result-v1", "field-control-lock", "warp-activation-guidance-v1"))).toEqual(["objective-tracking-v1 needs ram-state-v1"]);
 });
 
 it("records and delivers the independently switchable interaction-name treatment",()=>{

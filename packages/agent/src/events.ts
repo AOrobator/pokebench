@@ -130,6 +130,8 @@ const HumanSample = event("human_sample", {
   screenshot: Type.Object({path: Type.String({pattern:"^frames/\\d{6}_\\d+\\.png$"}), sha1: Sha1}, closed),
 });
 
+const NavigationContext = event("navigation_context", {text:Type.String({maxLength:6500}),evidence:Type.Array(NonNegativeInt,{maxItems:19,uniqueItems:true})});
+
 const ToolResult = event("tool_result", {
   id: Type.String(),
   name: Type.String(),
@@ -427,6 +429,7 @@ export const RunEventSchema = Type.Union([
   Assistant,
   ToolCall,
   ButtonPress,
+  NavigationContext,
   DecisionInput,
   WaitInput,
   HumanInput,

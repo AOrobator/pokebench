@@ -63,6 +63,7 @@ const KNOWN: Record<RunEvent["type"], true> = {
   assistant_delta: true,
   tool_call: true,
   button_press: true,
+  navigation_context:true,
   decision_input:true,
   wait_input:true,
   human_input:true,

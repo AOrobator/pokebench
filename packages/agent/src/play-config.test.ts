@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { expect, it } from "vitest";
 import { ALL_ON as REGISTRY_ALL_ON, type FeatureSet, type SwitchableFeature } from "./features.js";
-const ALL_ON={...REGISTRY_ALL_ON,"world-destinations-v1":false,"bounded-navigation-v1":false};
+const ALL_ON={...REGISTRY_ALL_ON,"navigation-evidence-memory-v1":false,"world-destinations-v1":false,"bounded-navigation-v1":false};
 import { CONTEXTUAL_CONTROLS, PLAY_SYSTEM_PROMPT, objectiveSwitches, playGoal, playSystemPrompt, playTools, toolSwitches } from "./play-config.js";
 import { OBJECTIVE_PROMPT, objectivePrompt } from "./objective-tools.js";
 
@@ -59,3 +59,5 @@ it("maps observation switches onto the observe/press results", () => {
   expect(toolSwitches(ALL_ON)).toEqual({ safeInterfaces:true, automaticRunning:true, readout: true, pressResult: true, position: true, fieldLock: true });
   expect(toolSwitches(off("ram-state-v1", "press-result-v1", "live-player-position-v1", "field-control-lock"))).toEqual({ safeInterfaces:true, automaticRunning:true, readout: false, pressResult: false, position: false, fieldLock: false });
 });
+
+it("declares only the enabled navigation memory prompt and tool",()=>{const enabled={...ALL_ON,"navigation-evidence-memory-v1":true};expect(playTools(enabled)).toContain("remember_destination");expect(playSystemPrompt(enabled,null)).toContain("not required before acting");expect(playSystemPrompt(ALL_ON,null)).not.toContain("navigation evidence ledger");});

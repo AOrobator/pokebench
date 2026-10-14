@@ -526,3 +526,8 @@ it("records a wait as explicit host time rather than fake button input",async()=
  const {recorder,log}=harness();await recorder.start(START_META);recorder.recordWaitInput("wait-one",60);
  expect(events(log).at(-1)).toMatchObject({type:"wait_input",tool_call_id:"wait-one",duration_ms:60});expect(events(log).filter(e=>e.type==="button_press")).toEqual([]);
 });
+
+it("records exact navigation context before its decision turn without grading model hypotheses",async()=>{
+ const h=harness();await h.recorder.start(START_META,false);h.recorder.recordNavigationContext({text:"MODEL HYPOTHESIS destination; observed #0",evidence:[0]});await h.recorder.transformContext([]);h.recorder.end("budget");
+ const result=events(h.log);const input=result.find(e=>e.type==="navigation_context");expect(input).toMatchObject({type:"navigation_context",turn:1,text:"MODEL HYPOTHESIS destination; observed #0",evidence:[0]});expect(result.filter(e=>e.type==="milestone")).toHaveLength(0);expect(result.find(e=>e.type==="turn_start")?.turn).toBe(input?.turn);
+});

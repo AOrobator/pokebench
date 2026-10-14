@@ -29,6 +29,7 @@ const LEDGES:ReadonlyMap<number,Direction>=new Map([[0x38,"RIGHT"],[0x39,"LEFT"]
 // pokeemerald 731ad5b MetatileBehavior_Is*Blocked: collision-free tiles whose listed sides
 // IsMetatileDirectionallyImpassable refuses to cross, leaving the current tile or entering the next.
 const EDGE_WALLS:ReadonlyMap<number,readonly Direction[]>=new Map([[0x30,["RIGHT"]],[0x31,["LEFT"]],[0x32,["UP"]],[0x33,["DOWN"]],[0x34,["UP","RIGHT"]],[0x35,["UP","LEFT"]],[0x36,["DOWN","RIGHT"]],[0x37,["DOWN","LEFT"]],[0xbe,["LEFT","RIGHT"]],[0xc0,["UP","DOWN"]],[0xc1,["LEFT","RIGHT"]]]);
+const COUNTER=0x80;
 const OPPOSITE:Readonly<Record<Direction,Direction>>={UP:"DOWN",DOWN:"UP",LEFT:"RIGHT",RIGHT:"LEFT"};
 const walled=(tile:Tile|undefined,side:Direction):boolean=>tile!==undefined&&(EDGE_WALLS.get(tile.behavior)?.includes(side)??false);
 const key=(p:Point):string=>`${String(p.x)},${String(p.y)}`;
@@ -72,6 +73,24 @@ function fullGeometry(state:GameStateSnapshot):Geometry|null {
  }};
 }
 
+// pokeemerald GetInteractedObjectEventScript talks across a faced counter to the object beyond it.
+// A stand tile is named only when the planner itself would reach it.
+function counterHint(state:GameStateSnapshot,goal:Point,options:NavigationOptions):string|null {
+ const geometry=options.mode==="full"?fullGeometry(state):localGeometry(state);if(geometry===null)return null;
+ const at=(p:Point)=>(t:Point):boolean=>t.x===p.x&&t.y===p.y;
+ const counter=(p:Point):boolean=>{const tile=geometry.tile(p);return tile!==undefined&&tile.behavior===COUNTER&&tile.collision!==0;};
+ const occupied=(p:Point):boolean=>geometry.objects.some(at(p));
+ let involved=counter(goal);
+ for(const [direction,dx,dy] of DIRECTIONS){
+  const across=occupied(goal)?{counter:{x:goal.x-dx,y:goal.y-dy},person:goal}:{counter:goal,person:{x:goal.x+dx,y:goal.y+dy}};
+  if(!counter(across.counter)||!occupied(across.person))continue;
+  involved=true;
+  const stand={x:across.counter.x-dx,y:across.counter.y-dy};
+  if(geometry.tile(stand)===undefined||planNavigation(state,stand,options)===null)continue;
+  return `target is behind a counter; walk to (${String(stand.x)},${String(stand.y)}), face ${direction} toward the counter at (${String(across.counter.x)},${String(across.counter.y)}) and press A to talk across it`;
+ }
+ return involved?"target is a counter or behind one; you cannot stand on a counter, but you can face it from a reachable adjacent tile and press A to talk to someone behind it":null;
+}
 const hopAhead=(state:GameStateSnapshot,mode:NavigationMode,from:Point,direction:Direction,dx:number,dy:number):boolean=>{
  const tile=(mode==="full"?fullGeometry(state):localGeometry(state))?.tile({x:from.x+dx,y:from.y+dy});
  return tile!==undefined&&LEDGES.get(tile.behavior)===direction;
@@ -150,6 +169,7 @@ export function planNavigation(state:GameStateSnapshot,goal:Point,options:Naviga
 }
 const Args=Type.Object({x:Type.Integer({minimum:0}),y:Type.Integer({minimum:0}),map_id:Type.Tuple([Type.Integer({minimum:0,maximum:255}),Type.Integer({minimum:0,maximum:255})]),walking:Type.Optional(Type.Boolean({description:"Walk deliberately without automatic running."}))},{additionalProperties:false});
 export interface NavigationPorts {
+ readonly counters?:boolean;
  readonly read:(signal?:AbortSignal)=>Promise<GameStateSnapshot>;
  readonly press:(id:string,params:{buttons:Button[];walking?:boolean},signal?:AbortSignal,check?:BeforePressCheck)=>Promise<AgentToolResult<unknown>>;
  readonly observe:(id:string,signal?:AbortSignal)=>Promise<AgentToolResult<unknown>>;
@@ -188,8 +208,9 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
    state=await ports.read(signal);signal?.throwIfAborted();
    if(!sameMap()){status="map changed; inspect destination";break;}
    if(!ready(state,mode)){status="field input or navigation geometry unavailable";break;}
-   const path=planNavigation(state,goal,{mode,ledges:ports.ledges===true,oneWay:ports.oneWay===true});
-   if(path===null){status=mode==="full"?"no supported path on the current map; choose a reachable waypoint":"no supported local path; choose a reachable local waypoint";break;}
+   const options:NavigationOptions={mode,ledges:ports.ledges===true,oneWay:ports.oneWay===true};
+   const path=planNavigation(state,goal,options);
+   if(path===null){status=(ports.counters===true?counterHint(state,goal,options):null)??(mode==="full"?"no supported path on the current map; choose a reachable waypoint":"no supported local path; choose a reachable local waypoint");break;}
    const direction=path[0];if(direction===undefined){status="arrived at requested coordinate";break;}
    if(mode==="full"){if(path.length<shortest){shortest=path.length;stalled=0;}else if(++stalled>=NO_PROGRESS_PRESSES){status="route not converging; inspect obstacles and choose another approach";break;}}
    const planned=state,previousFacing=state.facing; const before=state.position;if(before===null)throw new Error("Navigation position unavailable");
@@ -222,5 +243,5 @@ export function withNavigation(base:readonly AgentTool[],features:FeatureSet,sta
  const tools=[...base];if(!features["bounded-navigation-v1"])return tools;
  const press=base.find(tool=>tool.name==="press"),observe=base.find(tool=>tool.name==="observe");
  if(press===undefined||observe===undefined||!isCheckedPress(press))throw new Error("Navigation requires ordinary game tools");
- tools.push(navigationTool({ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],read:signal=>state.read(signal),press:(id,params,signal,check)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"]}));return tools;
+ tools.push(navigationTool({ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],counters:features["counter-talk-v1"],read:signal=>state.read(signal),press:(id,params,signal,check)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"]}));return tools;
 }

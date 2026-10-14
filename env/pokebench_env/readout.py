@@ -31,6 +31,7 @@ SERVER_FEATURES = (
     "ledge-hops-v1",
     "one-way-tiles-v1",
     "full-map-navigation-v1",
+    "counter-talk-v1",
 )
 
 
@@ -236,6 +237,7 @@ def format_readout(
                 warp_guidance="warp-activation-guidance-v1" not in off,
                 ledges="ledge-hops-v1" not in off,
                 edge_walls="one-way-tiles-v1" not in off,
+                counters="counter-talk-v1" not in off,
             )
             if shown is not None
             else state.local_map

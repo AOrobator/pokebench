@@ -446,3 +446,73 @@ def test_full_map_draws_edge_walls_and_lists_their_sides() -> None:
     assert "\nEdge walls: (1,2) " in result.text()
     off = result.text(grid=False, edge_walls=False)
     assert "Edge walls" not in off and "+" not in "".join(off.splitlines()[1:6])
+
+
+def countered() -> Memory:
+    # pokeemerald 731ad5b metatile_behaviors.h: MB_COUNTER = 0x80. A Pokémon Center
+    # counter row (blocked) with the nurse standing behind it.
+    m = loaded()
+    m.put(0x02007000 + 2 * 7, struct.pack("<H", 0x80))
+    for x in range(3):
+        tile(m, x, 0, 0x400 | 7)
+    tile(m, 0, 2, 7)
+    return m
+
+
+def test_counters_render_as_their_own_glyph_with_talk_across_legend() -> None:
+    result = read_local_map(countered().read, (1, 1), (1, 0), radius=1)
+    assert result is not None
+    assert result.rows == ("==N", "W@~", "...")
+    text = result.text()
+    assert "   0   =   =   N" in text, text
+    assert (
+        " = counter: you cannot walk onto it, but you can talk to someone standing behind it"
+        " by facing the counter and pressing A;"
+    ) in text
+    assert "0x80" in text
+
+
+def test_a_counter_metatile_without_collision_stays_walkable_terrain() -> None:
+    result = read_local_map(countered().read, (1, 1), (1, 0), radius=1)
+    assert result is not None
+    assert result.rows[2] == "..."
+    plain = read_local_map(loaded().read, (1, 1), (1, 0), radius=1)
+    assert plain is not None and "counter" not in plain.text()
+
+
+def test_counter_talk_off_draws_counters_as_collision_without_the_legend() -> None:
+    result = read_local_map(countered().read, (1, 1), (1, 0), radius=1)
+    assert result is not None
+    for text in (result.text(counters=False), result.text(grid=False, counters=False)):
+        assert "counter" not in text and "=" not in text, text
+        assert "##N" in text.replace(" ", ""), text
+
+
+def test_a_lone_collision_free_counter_draws_no_glyph_and_no_legend() -> None:
+    m = loaded()
+    m.put(0x02007000 + 2 * 7, struct.pack("<H", 0x80))
+    tile(m, 0, 2, 7)
+    result = read_local_map(m.read, (1, 1), (1, 0), radius=1)
+    assert result is not None
+    assert result.rows[2] == "..."
+    assert "0x80" in result.text() and "counter" not in result.text()
+
+
+def test_a_counter_hidden_under_an_object_draws_no_legend() -> None:
+    m = loaded()
+    m.put(0x02007000 + 2 * 7, struct.pack("<H", 0x80))
+    tile(m, 2, 0, 0x400 | 7)
+    result = read_local_map(m.read, (1, 1), (1, 0), radius=1)
+    assert result is not None
+    assert result.rows[0] == "g#N"
+    assert "counter" not in result.text()
+
+
+def test_the_whole_map_draws_counters_and_the_switch_turns_them_back_into_walls() -> None:
+    result = read_full_map(countered().read, (1, 1), (1, 0))
+    assert result is not None
+    assert result.rows[0] == "==N.."
+    text = result.text()
+    assert "   0 ==N.." in text and "= counter: you cannot walk onto it" in text, text
+    off = result.text(counters=False)
+    assert "   0 ##N.." in off and "counter" not in off, off

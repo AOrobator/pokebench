@@ -58,7 +58,7 @@ it("leaves the original stop untouched without a supervisor, and in diagnostic m
 
 it("records a schema-valid supervisor event and never aborts the governor",()=>{
  const recorded:RunEvent[]=[];let seq=0;
- const recorder={subscribe:()=>undefined,recordLoopGuard:(body:Record<string,unknown>)=>{recorded.push(checkEvent({v:1,run:"r",t:"2026-10-14T12:00:00.000-04:00",turn:1,seq:seq++,type:"loop_guard",...body}));}};
+ const recorder={subscribe:()=>undefined,recordLoopGuard:(body:LoopNotice)=>{recorded.push(checkEvent({v:1,run:"r",t:"2026-10-14T12:00:00.000-04:00",turn:1,seq:seq++,type:"loop_guard",...body}));}};
  const governor=new Governor({limits:{maxTurns:100,maxWallMs:60_000,failureLimit:3},retry:()=>undefined,abort:()=>undefined,now:()=>0});
  const detector=attachLoopGuard(recorder,governor,policy,"enforced",false,()=>"SUPERVISOR: brief");
  loopUntilWarned(detector);detector.complete(planning());detector.complete(planning());
@@ -114,4 +114,35 @@ it("registers the switch as a guard that needs the loop guard, with a prompt lin
  expect(dependencyProblems({...ALL_ON,"deterministic-loop-guard-v1":false})).toContain("loop-guard-supervisor-v1 needs deterministic-loop-guard-v1");
  expect(playSystemPrompt({...ALL_ON,"loop-guard-supervisor-v1":true},null)).toContain("SUPERVISOR");
  expect(playSystemPrompt({...ALL_ON,"loop-guard-supervisor-v1":false},null)).not.toContain("SUPERVISOR");
+});
+
+it("labels odd calls and outcomes truthfully",()=>{
+ const b=new SupervisorBriefing(ALL_ON);
+ b.observe(ev({type:"tool_call",id:"early",name:"press",args:{buttons:["B"]}},0));
+ delivered(b,1,{},"early");
+ b.observe(ev({type:"tool_call",id:"bad",name:"navigate_to",args:{x:"5",y:1}},3));delivered(b,4,{},"bad");
+ b.observe(ev({type:"tool_call",id:"none",name:"press",args:{buttons:[]}},6));delivered(b,7,{},"none");
+ b.observe(ev({type:"tool_call",id:"talk",name:"press",args:{buttons:["A"]}},9));delivered(b,10,{world_context:{objects:[],triggers:[],dialogue:"Hi."}},"talk");
+ b.observe(ev({type:"tool_call",id:"blind",name:"press",args:{buttons:["A"]}},12));delivered(b,13,{facing:null},"blind");
+ b.observe(ev({type:"tool_call",id:"odd",name:"press",args:{buttons:["A"]}},15));delivered(b,16,{facing:"sideways"},"odd");
+ b.observe(ev({type:"tool_call",id:"walk",name:"press",args:{buttons:["UP","UP"]}},18));delivered(b,19,{location:"TOWN",map_id:[0,9]},"walk");
+ b.observe(ev({type:"tool_call",id:"menu",name:"press",args:{buttons:["START"]}},21));delivered(b,22,{screen:"menu"},"menu");
+ for(let i=0;i<20;i++)b.observe(ev({type:"tool_call",id:`x${String(i)}`,name:"press",args:{buttons:["B"]}},30+i));
+ const text=b.text("ineffective",40);
+ expect(text).toContain("press B in HOUSE 1F → result unverified");
+ expect(text).toContain("navigate_to (invalid target)");
+ expect(text).toContain("A facing tile at 3,2 ×2 in HOUSE 1F → dialogue changed");
+ expect(text).toContain("press A in HOUSE 1F → no change");
+ expect(text).toContain("press UP,UP in HOUSE 1F → entered TOWN");
+ expect(text).toContain("Where you are: TOWN at 3,3 facing up");
+ const unnamed=new SupervisorBriefing({...ALL_ON,"named-interactions-v1":false});
+ unnamed.observe(ev({type:"tool_call",id:"a",name:"press",args:{buttons:["A"]}},0));delivered(unnamed,1,{position:{x:4,y:2}},"x");
+ unnamed.observe(ev({type:"tool_call",id:"b",name:"press",args:{buttons:["A"]}},3));delivered(unnamed,4,{position:{x:9,y:9}},"b");
+ expect(unnamed.text("cycle",5)).toContain("A facing bg at 4,1");
+ expect(unnamed.text("cycle",5)).toContain("warp at 5,1");
+ const done=new SupervisorBriefing(ALL_ON);delivered(done,1,{interaction_targets:[{...MOM,x:3,y:3}]});
+ expect(done.text("cycle",2)).toContain("every listed target here has been tried");
+ const quiet=new SupervisorBriefing({...ALL_ON,"active-field-message-buffer-v1":false});delivered(quiet,1);
+ expect(quiet.text("cycle",2)).toContain("dialogue text is off");
+ expect(new SupervisorBriefing({...ALL_ON,"live-player-position-v1":false}).text("cycle",0)).toContain("none recorded");
 });

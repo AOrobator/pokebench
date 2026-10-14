@@ -8,7 +8,7 @@ import {
   type StreamFn,
 } from "@mariozechner/pi-agent-core";
 import { createAssistantMessageEventStream, streamSimple, type Api, type AssistantMessage, type Model, type ToolResultMessage } from "@mariozechner/pi-ai";
-import { LoopDetector, type LoopPolicy, type LoopMode } from "./loop-detection.js";
+import { LoopDetector, type LoopKind, type LoopPolicy, type LoopMode } from "./loop-detection.js";
 import type { RunRecorder } from "./recorder.js";
 import type { RunEndReason } from "./events.js";
 
@@ -147,11 +147,11 @@ function firstText(result: ToolResultMessage | undefined): string {
   return part?.type === "text" ? part.text : "";
 }
 
-export function attachLoopGuard(recorder: Pick<RunRecorder, "subscribe" | "recordLoopGuard">, governor: Governor, policy?: LoopPolicy, mode:LoopMode="enforced", interactions=false): LoopDetector {
+export function attachLoopGuard(recorder: Pick<RunRecorder, "subscribe" | "recordLoopGuard">, governor: Governor, policy?: LoopPolicy, mode:LoopMode="enforced", interactions=false, supervisor?: (kind: LoopKind, calls: number) => string): LoopDetector {
   const detector = new LoopDetector((notice) => {
     recorder.recordLoopGuard({...notice,evidence:[...notice.evidence]});
     if (notice.phase === "stop") governor.abort("stuck");
-  }, policy, mode, interactions);
+  }, policy, mode, interactions, supervisor);
   recorder.subscribe((event) => { detector.observe(event); });
   return detector;
 }

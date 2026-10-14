@@ -1,5 +1,6 @@
 import {navigationMemory} from "./navigation-memory.js";
 import {dialogueLog} from "./dialogue-log.js";
+import {SupervisorBriefing} from "./loop-supervisor.js";
 // Live entrypoint for real, recorded runs: pi-agent-core on the local stack
 // gateway drives the observe / press tools against an isolated game server
 // (INV-7) on the real ROM, and every step lands in runs/<id>/events.jsonl.
@@ -275,7 +276,9 @@ async function playAgent(): Promise<void> {
       });
       control = runControl;
       if(preset!==null&&recorder.elapsedMs()>=limits.maxWallMs){governor.abort("budget");return "budget";}
-      const loopDetector = attachLoopGuard(recorder, governor, undefined, loopMode, features["interaction-loop-detection-v1"]);
+      const briefing = features["loop-guard-supervisor-v1"] ? new SupervisorBriefing(features) : null;
+      if (briefing !== null) recorder.subscribe(event => { briefing.observe(event); });
+      const loopDetector = attachLoopGuard(recorder, governor, undefined, loopMode, features["interaction-loop-detection-v1"], briefing === null ? undefined : (kind, calls) => briefing.text(kind, calls));
       if(target!==null){
         const stop=new NativeTargetStop(runId,target,proof=>{
           if(governor.stopReason!==null)return;

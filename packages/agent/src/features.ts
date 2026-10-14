@@ -42,6 +42,7 @@ export const SWITCHABLE_FEATURES = [
   "full-map-navigation-v1",
   "game-evidence-priority-v1",
   "dialogue-log-v1",
+  "loop-guard-supervisor-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -147,6 +148,8 @@ export const FEATURES: readonly FeatureInfo[] = [
     "Adds a system-prompt section saying received dialogue, readout labels, location and story flags outrank what the model remembers about Pokémon, to cite who said what before picking a destination, and to change plan when the game disagrees. With bounded navigation on, also says to use navigate_to for longer walks and to target a warp's own coordinates. Names no destination or story step. Off: no such section."),
   on("dialogue-log-v1", "guidance", "DIALOGUE LOG", "active-field-message-buffer-v1",
     "Records every dialogue page the model was actually shown, with turn, location, position and the character faced when the readout names one, and adds recall_dialogue to search it by words, location or recency. Replies are bounded; repeats after other dialogue are kept. Off: no log and no tool."),
+  on("loop-guard-supervisor-v1", "guard", "LOOP SUPERVISOR", "deterministic-loop-guard-v1",
+    "Where the loop guard would end the run as stuck, it posts a SUPERVISOR briefing instead and the run continues: current room and position, the last dialogue shown, recent attempts with outcomes, and listed targets here not yet tried. Further briefings need twice as many looping calls (4, 8, 16, then every 32). Names no route or story goal. Off: the guard ends the run as stuck."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",
@@ -221,6 +224,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("grass-cost-navigation-v1"),
     ...when("game-evidence-priority-v1"),
     ...when("dialogue-log-v1"),
+    ...when("loop-guard-supervisor-v1"),
   ];
 }
 

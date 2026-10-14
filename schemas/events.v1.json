@@ -224,7 +224,8 @@
               "enum": [
                 "warning",
                 "recovered",
-                "stop"
+                "stop",
+                "supervisor"
               ]
             }
           },

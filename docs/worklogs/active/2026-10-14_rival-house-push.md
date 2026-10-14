@@ -135,3 +135,16 @@ COMMIT: `feat(agent): add dialogue-log-v1 with recall_dialogue` (cb8d87c)
 - M4 RED: loop-supervisor.test.ts (9 tests: briefing replaces stop, backoff 4/8/16/32 calls
   capped at 32, recovery clears it, plain and diagnostic modes unchanged, schema-valid event,
   governor never aborted, briefing contents and honest fallbacks, 2500-char bound, wiring).
+COMMIT: `test(agent): RED for loop-guard-supervisor-v1` (8a67399)
+- M4 GREEN: LoopDetector takes an optional supervisor briefing; in enforced mode the would-stop
+  threshold posts phase `supervisor` (schema enum extended, events.v1.json regenerated), resets
+  the recovery count and doubles the window up to 16× policy.recovery (live 6 → 12 → … → 96).
+  Context shows the briefing until recovery. SupervisorBriefing builds where/told/tried/untried
+  from delivered states only, bounded to 2500 chars. Switch is a guard needing
+  deterministic-loop-guard-v1; prompt line added; live.ts wires it. Explainer
+  docs/explainers/loop-guard-supervisor-v1.html linked. Gates: agent 969/969, viewer 495/495,
+  loop-supervisor.ts 98.27/91.17/100/100, agent all files 97/92.93/98.01, tsc/eslint clean.
+- M1 review r1 (diff 8109d52f…): Claude-family LGTM (Claude CLI logged out, Cursor Claude at
+  usage limit, fresh read-only Claude subagents used), Grok LGTM, GPT lane (Codex gpt-5.6-sol)
+  BLOCKING: state-only inert treatment, "few tiles" vs "multi-tile" wording, weak no-destination
+  proof, explainer test does not render the card or fetch the URL. Fixing in M1 r2.

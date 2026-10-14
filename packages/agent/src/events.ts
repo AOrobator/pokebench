@@ -188,7 +188,7 @@ const LoopFields = {
 };
 const LoopGuard = Type.Union([
   event("loop_guard", {...LoopFields, phase:Type.Enum(["warning","recovered","stop"] as const)}),
-  event("loop_guard", {...LoopFields, mode:Type.Literal("enforced"), phase:Type.Enum(["warning","recovered","stop"] as const)}),
+  event("loop_guard", {...LoopFields, mode:Type.Literal("enforced"), phase:Type.Enum(["warning","recovered","stop","supervisor"] as const)}),
   event("loop_guard", {...LoopFields, mode:Type.Literal("diagnostic"), phase:Type.Enum(["would_warn","would_recover","would_stop"] as const)}),
 ]);
 

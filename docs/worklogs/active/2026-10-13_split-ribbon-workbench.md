@@ -50,3 +50,5 @@ Remaining: independent mutation/deletion/restoration receipts, external reviewer
 
 ## Landing continuation (2026-10-14)
 Operator explicitly requested a subagent to finish landing this approved existing screen. Isolated integration branch codex/stats-workbench-landing starts d2a4976; preserves original f4d75fe preview checkpoint. Cherry-picked RED84c3e85 and implementation with current spectator exports/human routes/current close controls preserved. No model services, gameplay or8793 restart authorized to this agent. Original incomplete proof is not counted as green. Completing aggregate/current build gates, adversarial render proofs, independent review and parent-coordinated landing. Frontier follow-on side chat holds until integration ready.
+
+Landing RED: added mounted failure-of-polling test requiring withdrawal of current/live claim while retained plots stay visible, and browser-boundary fractional identity/budget tests. These close handoff-listed risks without adding new execution ownership. Existing serial owner records only PID+cohort; report that limitation, do not redesign execution protocol in analytics.

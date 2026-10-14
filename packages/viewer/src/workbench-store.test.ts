@@ -40,6 +40,13 @@ describe("read-only workbench snapshot", () => {
     appendFileSync(p, JSON.stringify({ v: 1, run: "r", seq: 4, t: "2026-10-11T22:00:06.000-04:00", turn: 1, type: "run_end", reason: "milestone", furthest_milestone: "PLAYER_NAME_CONFIRMED", turns: 1, wall_ms: 6000, tokens: { input: 500, output: 100 }, frames: { saved: 0, bytes: 0 } }) + "\n");
     const d = await workbenchSnapshot(r, () => Promise.resolve(true), { state: "queued", runId: "new-run", waitingFor: "lease" }, 2000000000000); expect(d.runs[0]?.status).toBe("ended"); expect(d.queue).toMatchObject([{ id: "new-run", status: "queued", reason: "lease" }]);
   });
+  it("rejects fractional event identities and budget/count fields at the browser boundary", async () => {
+    const r = root(); write(r, "integer", named()); const d = await workbenchSnapshot(r, () => Promise.resolve(false), { state: "idle" }, 42);
+    const run = d.runs[0]; if (run?.config === null || run === undefined) throw new Error("missing fixture");
+    expect(() => parseWorkbench({ ...d, runs: [{ ...run, turn: 1.5 }] })).toThrow("Invalid workbench");
+    expect(() => parseWorkbench({ ...d, runs: [{ ...run, splits: run.splits.map(s => ({ ...s, seq: 1.5 })) }] })).toThrow("Invalid workbench");
+    expect(() => parseWorkbench({ ...d, runs: [{ ...run, config: { ...run.config, maxTurns: 1.5 } }] })).toThrow("Invalid workbench");
+  });
   it("validates the browser boundary and missing-root empty state", async () => {
     const d = await workbenchSnapshot(join(root(), "absent"), () => Promise.resolve(false), { state: "idle" }, 42); expect(parseWorkbench(d).runs).toEqual([]); expect(() => parseWorkbench({ ...d, at: -1 })).toThrow("Invalid workbench"); expect(() => parseWorkbench({ ...d, runs: [{ id: "fake" }] })).toThrow();
   });

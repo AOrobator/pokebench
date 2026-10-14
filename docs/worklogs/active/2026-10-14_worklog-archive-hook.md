@@ -14,3 +14,5 @@ left only other sessions' stale bodies, so the archive commit was refused.
       without a matching delete blocked.
 
 ## Gates
+- RED: `test: archiving a worklog passes the freshness hook` (f4eb93c); the allow case fails on the old hook (1 failed, 31 passed).
+- GREEN: `fix: let an archive commit satisfy the worklog hook`. tooling 32/32, ruff clean, shellcheck clean.

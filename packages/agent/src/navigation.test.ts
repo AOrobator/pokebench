@@ -1,3 +1,6 @@
+import {readFileSync} from "node:fs";
+import {Type} from "typebox";
+import {Value} from "typebox/value";
 import {expect,it} from "vitest";
 import {planNavigation,navigationTool} from "./navigation.js";
 import type {AgentToolResult} from "@mariozechner/pi-agent-core";
@@ -12,9 +15,18 @@ it("rejects unknown geometry, locked fields, water, occupied tiles and intermedi
  expect(planNavigation({...field,navigation_grid:{elevation:3,tiles:[tile(0,0),tile(1,0,0,0x10)],objects:[],warps:[]}},{x:1,y:0})).toBeNull();
  expect(planNavigation({...field,navigation_grid:{elevation:3,tiles:[tile(0,0),tile(1,0),tile(2,0)],objects:[],warps:[{x:1,y:0}]}},{x:2,y:0})).toBeNull();
 });
-it("retains elevation across zero-elevation connectors and approaches a door from below",()=>{
+it("resets elevation on zero-elevation connectors and approaches a door from below",()=>{
  const grid={elevation:3,tiles:[tile(0,0),tile(1,0,0,0,0),tile(2,0,0,0,4)],objects:[],warps:[]};
- expect(planNavigation({...field,navigation_grid:grid},{x:2,y:0})).toBeNull();
+ expect(planNavigation({...field,navigation_grid:grid},{x:2,y:0})).toEqual(["RIGHT","RIGHT"]);
+ expect(planNavigation({...field,navigation_grid:{...grid,tiles:[tile(0,0),tile(1,0,0,0,4)]}},{x:1,y:0})).toBeNull();
+ // A finished step re-reads only the tile it ends on (ShiftStillObjectEventCoords): leaving 15 takes the new height.
+ const row=(...heights:number[])=>({...grid,tiles:heights.map((e,x)=>tile(x,0,0,0,e))});
+ expect(planNavigation({...field,navigation_grid:row(3,0,15,4,3)},{x:4,y:0})).toBeNull();
+ expect(planNavigation({...field,navigation_grid:row(3,0,15,4,3)},{x:3,y:0})).toEqual(["RIGHT","RIGHT","RIGHT"]);
+ expect(planNavigation({...field,navigation_grid:row(15,0,4)},{x:2,y:0})).toEqual(["RIGHT","RIGHT"]);
+ // Search identity is tile plus height: the junction is reachable only when entered from the 0 side.
+ const junction={...field,position:{x:0,y:1},navigation_grid:{...grid,tiles:[tile(0,1),tile(1,1),tile(2,1,0,0,15),tile(3,1,0,0,4),tile(0,2,0,0,0),tile(1,2,0,0,4),tile(2,2,0,0,4)]}};
+ expect(planNavigation(junction,{x:3,y:1})).toEqual(["DOWN","RIGHT","RIGHT","UP","RIGHT"]);
  const room={...field,position:{x:0,y:1},navigation_grid:{elevation:3,tiles:[tile(0,1),tile(0,0,1,0x69,0)],objects:[],warps:[{x:0,y:0}]}};
  expect(planNavigation(room,{x:0,y:0})).toEqual(["UP"]);
 });
@@ -92,6 +104,31 @@ it("forwards deliberate walking to the ordinary press without creating a separat
  expect(seen).toEqual([{buttons:["DOWN"],walking:true}]);
 });
 
+
+// Real layouts from pokeemerald map.bin (see the fixture's source field).
+const Maps=Type.Object({source:Type.String(),maps:Type.Record(Type.String(),Type.Object({layout:Type.String(),note:Type.String(),width:Type.Integer(),height:Type.Integer(),player:Type.Tuple([Type.Integer(),Type.Integer()]),tiles:Type.Array(Type.Tuple([Type.Integer(),Type.Integer(),Type.Integer(),Type.Integer(),Type.Integer()]))}))});
+const maps=Value.Parse(Maps,JSON.parse(readFileSync(new URL("../test-support/elevation-maps.json",import.meta.url),"utf8")));
+const onMap=(name:string,player:{x:number;y:number},elevation:number,behaviors:ReadonlyMap<number,number>=new Map()):GameStateSnapshot=>{
+ const map=maps.maps[name];if(map===undefined)throw new Error(name);
+ const tiles=map.tiles.map(([x,y,collision,behavior,e])=>tile(x,y,collision,behaviors.get(behavior)??behavior,e));
+ return {...field,position:player,topology:{width:map.width,height:map.height,connections:[]},navigation_grid:{elevation,tiles,objects:[],warps:[]}};
+};
+it("climbs the Route 104 pier stairs in both directions through elevation 0",()=>{
+ expect(planNavigation(onMap("route104_pier",{x:13,y:51},4),{x:17,y:51})).toEqual(["RIGHT","RIGHT","RIGHT","RIGHT"]);
+ expect(planNavigation(onMap("route104_pier",{x:17,y:52},3),{x:12,y:52})).toEqual(["LEFT","LEFT","LEFT","LEFT","LEFT"]);
+});
+it("walks onto and across Littleroot's multi-level tiles without adopting elevation 15",()=>{
+ expect(planNavigation(onMap("littleroot_multilevel",{x:10,y:10},3),{x:11,y:10})).toEqual(["RIGHT"]);
+ expect(planNavigation(onMap("littleroot_multilevel",{x:10,y:10},3),{x:12,y:10})).toEqual(["RIGHT","RIGHT"]);
+ expect(planNavigation(onMap("littleroot_multilevel",{x:11,y:10},3),{x:11,y:12})).toEqual(["DOWN","DOWN"]);
+});
+it("keeps the walker's elevation under the Route 110 Cycling Road deck",()=>{
+ const plain=new Map([[0x70,0],[0x7f,0]]);
+ expect(planNavigation(onMap("route110_under_deck",{x:15,y:70},3,plain),{x:19,y:70})).toEqual(["RIGHT","RIGHT","RIGHT","RIGHT"]);
+ expect(planNavigation(onMap("route110_under_deck",{x:15,y:70},3,plain),{x:17,y:68})).toBeNull();
+ expect(planNavigation(onMap("route110_under_deck",{x:16,y:69},4,plain),{x:16,y:67})).toEqual(["UP","UP"]);
+ expect(planNavigation(onMap("route110_under_deck",{x:16,y:69},4,plain),{x:19,y:70})).toBeNull();
+});
 // pokeemerald 731ad5b: MB_JUMP_EAST/WEST/NORTH/SOUTH = 0x38..0x3B carry collision; moving
 // into one in its direction jumps two tiles (GetLedgeJumpDirection, PlayerJumpLedge).
 const ledgeField=(ledge:number,extra:Partial<Grid>={},position={x:1,y:0}):GameStateSnapshot=>({...field,position,navigation_grid:{elevation:3,tiles:[tile(1,0),tile(1,1,1,ledge),tile(1,2),tile(0,1),tile(2,1),tile(0,0),tile(0,2),tile(2,0),tile(2,2)],objects:[],warps:[],...extra}});
@@ -122,6 +159,15 @@ it("prefers a hop over a longer walk and never lands on blocked, occupied, warp 
  expect(planNavigation(column({},[tile(1,0),tile(1,1,1,0x3b),tile(1,2,1)]),{x:1,y:2},{ledges:true})).toBeNull();
  expect(planNavigation(column({},[tile(1,0),tile(1,1,1,0x3b),tile(1,2,0,0x10)]),{x:1,y:2},{ledges:true})).toBeNull();
  expect(planNavigation(column({},[tile(1,0),tile(1,1,1,0x3b),tile(1,2,0,0,4)]),{x:1,y:2},{ledges:true})).toBeNull();
+ const fromBridge=ledgeField(0x3b,{tiles:[tile(1,0,0,0,15),tile(1,1,1,0x3b),tile(1,2,0,0,0),tile(1,3,0,0,4)]});
+ expect(planNavigation(fromBridge,{x:1,y:3},{ledges:true})).toEqual(["DOWN","DOWN"]);
+ // A jump updates height on the ledge tile, then at the landing; a 15 landing keeps the ledge-tile update.
+ const onto15=(takeoff:number,ledge:number,after:number)=>ledgeField(0x3b,{tiles:[tile(1,0,0,0,takeoff),tile(1,1,1,0x3b,ledge),tile(1,2,0,0,15),tile(1,3,0,0,after)]});
+ expect(planNavigation(onto15(3,3,3),{x:1,y:3},{ledges:true})).toEqual(["DOWN","DOWN"]);
+ expect(planNavigation(onto15(3,3,4),{x:1,y:3},{ledges:true})).toBeNull();
+ expect(planNavigation(onto15(3,0,4),{x:1,y:3},{ledges:true})).toEqual(["DOWN","DOWN"]);
+ expect(planNavigation(onto15(15,0,4),{x:1,y:3},{ledges:true})).toBeNull();
+ expect(planNavigation(onto15(3,15,4),{x:1,y:3},{ledges:true})).toBeNull();
  expect(planNavigation({...column({},[tile(1,0),tile(1,1,1,0x3b)]),topology:{width:5,height:5,connections:[]}},{x:1,y:4},{ledges:true})).toBeNull();
 });
 it("expects a two-tile landing after a hop press and stops on any other movement",async()=>{

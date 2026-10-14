@@ -31,6 +31,7 @@ export const SWITCHABLE_FEATURES = [
   "press-result-v1",
   "field-control-lock",
   "warp-activation-guidance-v1",
+  "one-way-tiles-v1",
   "deterministic-loop-guard-v1",
   "objective-tracking-v1",
   "repeat-attempt-guard-v1",
@@ -118,6 +119,8 @@ export const FEATURES: readonly FeatureInfo[] = [
     "Says whether a dialog, menu or script has locked field controls, so direction presses cannot walk. Off: the line is dropped, press results no longer say locked, and the objective record's evidence leaves it out; a blocked press looks like walking into a wall. Objective tracking, if on, still labels a press made while locked as unavailable rather than no change."),
   on("warp-activation-guidance-v1", "guidance", "WARP GUIDANCE", "live-map-v1",
     "Annotates each nearby warp with how it activates (step on, directional exit, door) from its tile behavior, and adds a paragraph on warps to the system prompt. Off: warps are listed without activation and the paragraph is removed."),
+  on("one-way-tiles-v1", "guidance", "ONE-WAY TILES", "live-map-v1",
+    "Draws collision-free tiles with walled sides (the bedroom chair, fences, railings) as + on the map, with a legend and a list of each tile's walled sides, and makes navigate_to never cross a walled side. Off: they are drawn as clear terrain (.) and navigate_to treats them as walls."),
   on("deterministic-loop-guard-v1", "guard", "LOOP GUARD", null,
     "Watches for repeated planning without acting, repeated observing, presses that change nothing, action cycles and repeated tool rejections. It warns the model first and ends the run as stuck if the loop continues. Off: loops are still logged but never warn or stop."),
   on("objective-tracking-v1", "guard", "OBJECTIVE TRACKING", RAM,
@@ -170,7 +173,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "expanded-menu-battle-information-v1",
   "ram-state-v1", "live-map-v1", "live-player-position-v1", "world-coordinate-grid-v1", "live-object-sprites-v1",
   "world-targets-v1", "named-interactions-v1", "world-destinations-v1", "bounded-navigation-v1", "field-dialogue-phase-v1", "active-field-message-buffer-v1", "naming-cursor-v1", "story-state-v1",
-  "coordinate-script-conditions-v1", "field-control-lock", "warp-activation-guidance-v1",
+  "coordinate-script-conditions-v1", "field-control-lock", "warp-activation-guidance-v1", "one-way-tiles-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -190,7 +193,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("live-object-sprites-v1"), ...when("coordinate-script-conditions-v1"), ...when("active-field-message-buffer-v1"),
     ...when("world-targets-v1"), ...when("named-interactions-v1"), ...when("world-destinations-v1"), ...when("bounded-navigation-v1"), ...when("live-player-position-v1"), ...when("world-coordinate-grid-v1"),
     ...when("field-dialogue-phase-v1"), ...when("dialogue-safe-batches-v1"), ...when("interaction-loop-detection-v1"),
-    ...when("press-result-v1"), ...when("warp-activation-guidance-v1"), "clock-milestone-v1", ...when("story-state-v1"),
+    ...when("press-result-v1"), ...when("warp-activation-guidance-v1"), ...when("one-way-tiles-v1"), "clock-milestone-v1", ...when("story-state-v1"),
     ...when("active-ui-ownership-v1"), "story-milestones-v2", "new-game-created-v1", "post-clock-navigation-milestones-v1", "rustboro-gym-trainer-milestones-v1", "native-progress-activity-v1", "battle-choices-v1", "continuous-battle-state-v1", "validated-pokemon-v1", "menu-observability-v1", "native-action-history-v1", "full-raw-ram-v1", "remaining-native-milestones-v1",
     ...(target === null ? [] : ["native-target-stop-v1"]), "deterministic-loop-diagnostics-v1", LOOP_POLICY_FEATURE,
     ...when("deterministic-loop-guard-v1"), ...when("contextual-interface-docs-v1"),

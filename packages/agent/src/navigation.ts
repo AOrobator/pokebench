@@ -11,14 +11,20 @@ type Grid=NonNullable<GameStateSnapshot["navigation_grid"]>;
 type Tile=Grid["tiles"][number];
 const DIRECTIONS:readonly [Direction,number,number][]=[["UP",0,-1],["DOWN",0,1],["LEFT",-1,0],["RIGHT",1,0]];
 const WALKING=new Set([0,2,3,0x60,0x61,0x62,0x63,0x64,0x65,0x67,0x68,0x69,0x6a,0x6b,0x6c,0x6d,0x6e]);
+// pokeemerald 731ad5b MetatileBehavior_Is*Blocked: collision-free tiles whose listed sides
+// IsMetatileDirectionallyImpassable refuses to cross, leaving the current tile or entering the next.
+const EDGE_WALLS:ReadonlyMap<number,readonly Direction[]>=new Map([[0x30,["RIGHT"]],[0x31,["LEFT"]],[0x32,["UP"]],[0x33,["DOWN"]],[0x34,["UP","RIGHT"]],[0x35,["UP","LEFT"]],[0x36,["DOWN","RIGHT"]],[0x37,["DOWN","LEFT"]],[0xbe,["LEFT","RIGHT"]],[0xc0,["UP","DOWN"]],[0xc1,["LEFT","RIGHT"]]]);
+const OPPOSITE:Readonly<Record<Direction,Direction>>={UP:"DOWN",DOWN:"UP",LEFT:"RIGHT",RIGHT:"LEFT"};
+const walled=(tile:Tile|undefined,side:Direction):boolean=>tile!==undefined&&(EDGE_WALLS.get(tile.behavior)?.includes(side)??false);
+export interface NavigationOptions {readonly oneWay?:boolean}
 const key=(p:Point):string=>`${String(p.x)},${String(p.y)}`;
 const distance=(a:Point,b:Point):number=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
 const ready=(s:GameStateSnapshot):boolean=>s.started&&s.screen==="overworld"&&!s.in_battle&&s.field_controls_locked===false&&s.position!==null&&s.map_id!==null&&s.navigation_grid!=null&&(s.active_ui==null||(s.active_ui.ready===true&&s.active_ui.diagnostic===null));
 export const MAX_NAVIGATION_COMMANDS=8;
 
 // Bounded A* over the current live 15x15 window. No outside-map guessing,
-// surfing, ledges or puzzle policies. Zero elevation preserves the layer.
-export function planNavigation(state:GameStateSnapshot,goal:Point):Direction[]|null {
+// surfing, ledges or puzzle policies; edge walls only when enabled. Zero elevation preserves the layer.
+export function planNavigation(state:GameStateSnapshot,goal:Point,options:NavigationOptions={}):Direction[]|null {
  if(!ready(state)||state.navigation_grid==null||state.position===null)return null;
  const grid=state.navigation_grid,tiles=new Map<string,Tile>();
  for(const tile of grid.tiles){if(tiles.has(key(tile)))return null;tiles.set(key(tile),tile);}
@@ -41,7 +47,9 @@ export function planNavigation(state:GameStateSnapshot,goal:Point):Direction[]|n
   if(distance(node.p,goal)===0)return node.path;
   for(const [direction,dx,dy] of DIRECTIONS){
    const next={x:node.p.x+dx,y:node.p.y+dy},tile=tiles.get(key(next));
-   if(tile===undefined||occupied.has(key(next))||!WALKING.has(tile.behavior))continue;
+   const edge=options.oneWay===true&&walled(tile,OPPOSITE[direction]);
+   if(options.oneWay===true&&(edge||walled(tiles.get(key(node.p)),direction)))continue;
+   if(tile===undefined||occupied.has(key(next))||!(WALKING.has(tile.behavior)||(options.oneWay===true&&EDGE_WALLS.has(tile.behavior))))continue;
    const door=tile.behavior===0x69&&distance(next,goal)===0&&direction==="UP";
    if((tile.collision!==0&&!door)||(tile.behavior===0x69&&!door))continue;
    if(warps.has(key(next))&&distance(next,goal)!==0)continue;
@@ -58,6 +66,7 @@ export interface NavigationPorts {
  readonly observe:(id:string,signal?:AbortSignal)=>Promise<AgentToolResult<unknown>>;
  readonly gate?:((signal?:AbortSignal)=>Promise<void>)|undefined;
  readonly maxCommands?:number;
+ readonly oneWay?:boolean;
 }
 function resultState(result:AgentToolResult<unknown>):GameStateSnapshot {
  const details=result.details;
@@ -68,7 +77,7 @@ class NavigationPreconditionError extends Error {}
 export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
  const bound=ports.maxCommands??MAX_NAVIGATION_COMMANDS;
  if(!Number.isInteger(bound)||bound<1||bound>MAX_NAVIGATION_COMMANDS)throw new Error("Navigation command bound must be 1..8");
- return {name:"navigate_to",label:"Walk to a coordinate",description:"Walk toward a coordinate on the current map using bounded A*. Supply its map_id. Uses only known local tiles, advancing toward a reachable local frontier for distant in-bounds targets; avoids unsupported terrain and stops on locks, unexpected movement or map changes. Does not press A, choose destinations, or activate a directional exit after arriving. Use walking=true for deliberate walking. Maximum 8 ordinary button attempts; inspect the returned state before continuing.",parameters:Args,
+ return {name:"navigate_to",label:"Walk to a coordinate",description:`Walk toward a coordinate on the current map using bounded A*. Supply its map_id. Uses only known local tiles, advancing toward a reachable local frontier for distant in-bounds targets; avoids unsupported terrain${ports.oneWay===true?", never crosses a walled side of a + tile,":""} and stops on locks, unexpected movement or map changes. Does not press A, choose destinations, or activate a directional exit after arriving. Use walking=true for deliberate walking. Maximum 8 ordinary button attempts; inspect the returned state before continuing.`,parameters:Args,
  execute:async(id,goal,signal)=>{
   signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
   let state=await ports.read(signal),commands=0,status="command limit",last:AgentToolResult<unknown>|undefined;
@@ -78,7 +87,7 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
    state=await ports.read(signal);signal?.throwIfAborted();
    if(!sameMap()){status="map changed; inspect destination";break;}
    if(!ready(state)){status="field input or navigation geometry unavailable";break;}
-   const path=planNavigation(state,goal);
+   const path=planNavigation(state,goal,{oneWay:ports.oneWay===true});
    if(path===null){status="no supported local path; choose a reachable local waypoint";break;}
    const direction=path[0];if(direction===undefined){status="arrived at requested coordinate";break;}
    const previousFacing=state.facing; const before=state.position;if(before===null)throw new Error("Navigation position unavailable");
@@ -110,5 +119,5 @@ export function withNavigation(base:readonly AgentTool[],features:FeatureSet,sta
  const tools=[...base];if(!features["bounded-navigation-v1"])return tools;
  const press=base.find(tool=>tool.name==="press"),observe=base.find(tool=>tool.name==="observe");
  if(press===undefined||observe===undefined||!isCheckedPress(press))throw new Error("Navigation requires ordinary game tools");
- tools.push(navigationTool({read:signal=>state.read(signal),press:(id,params,signal,check)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal),observe:(id,signal)=>observe.execute(id,{},signal),gate}));return tools;
+ tools.push(navigationTool({oneWay:features["one-way-tiles-v1"],read:signal=>state.read(signal),press:(id,params,signal,check)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal),observe:(id,signal)=>observe.execute(id,{},signal),gate}));return tools;
 }

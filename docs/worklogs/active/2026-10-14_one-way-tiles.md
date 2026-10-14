@@ -20,11 +20,17 @@ pret/pokeemerald 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881:
 
 ## Change (one switch: `one-way-tiles-v1`, guidance, needs `live-map-v1`)
 
-- [ ] Map text draws collision-free edge-wall tiles as `+`, a legend entry, and an
+- [x] Map text draws collision-free edge-wall tiles as `+`, a legend entry, and an
       `Edge walls: (x,y) north+south` list of walled sides. Off: `.`, no legend, no list.
-- [ ] `planNavigation` with `oneWay` admits edge-wall tiles and refuses leaving through a walled
+- [x] `planNavigation` with `oneWay` admits edge-wall tiles and refuses leaving through a walled
       side of the current tile or entering through a walled side of the next. Off: walls (incumbent).
-- [ ] Recorded as a switchable server feature; absent from older v2 presets and v1 flag presets
+- [x] Recorded as a switchable server feature; absent from older v2 presets and v1 flag presets
       means OFF.
 
 ## Gates
+
+- RED: `test: one-way tiles render with walled sides and navigate_to respects them` (efd1861).
+  Fails on the edge-wall cases (Python 6, TS 8). Two RED expectations were corrected in GREEN:
+  a Python row index (the player's row is rows[1]) and two equal-length A* tie paths.
+- GREEN: `fix: draw one-way tiles with walled sides and keep navigate_to off them`.
+  Agent 896/896, viewer 419/419, env 1808/1808; `just coverage` 90% floor passes; `just lint` 0.

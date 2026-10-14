@@ -103,11 +103,11 @@ it("crosses an edge-wall tile only through its open sides when one-way tiles are
  expect(planNavigation(room(0xc0,{x:1,y:1}),{x:1,y:2},{oneWay:true})).toEqual(["LEFT","DOWN","RIGHT"]);
  expect(planNavigation(room(0xc1,{x:1,y:0}),{x:1,y:2},{oneWay:true})).toEqual(["DOWN","DOWN"]);
  expect(planNavigation(room(0xc1),{x:2,y:1},{oneWay:true})).toEqual(["UP","RIGHT","RIGHT","DOWN"]);
- expect(planNavigation(room(0x30),{x:2,y:1},{oneWay:true})).toEqual(["UP","RIGHT","RIGHT","DOWN"]);
+ expect(planNavigation(room(0x30),{x:2,y:1},{oneWay:true})).toEqual(["RIGHT","UP","RIGHT","DOWN"]);
  expect(planNavigation(room(0x30,{x:2,y:1}),{x:1,y:1},{oneWay:true})).toEqual(["UP","LEFT","DOWN"]);
  expect(planNavigation(room(0x31,{x:2,y:1}),{x:1,y:1},{oneWay:true})).toEqual(["LEFT"]);
  expect(planNavigation(room(0x31),{x:1,y:1},{oneWay:true})).toEqual(["UP","RIGHT","DOWN"]);
- expect(planNavigation(room(0x37,{x:1,y:0}),{x:1,y:2},{oneWay:true})).toEqual(["LEFT","DOWN","DOWN","RIGHT"]);
+ expect(planNavigation(room(0x37,{x:1,y:0}),{x:1,y:2},{oneWay:true})).toEqual(["DOWN","RIGHT","DOWN","LEFT"]);
  expect(planNavigation(room(0x37,{x:1,y:0}),{x:2,y:1},{oneWay:true})).toEqual(["DOWN","RIGHT"]);
 });
 it("keeps edge-wall tiles as walls with one-way tiles off",()=>{

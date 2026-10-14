@@ -226,7 +226,7 @@ def test_edge_walls_include_the_players_own_tile_and_skip_collision_tiles() -> N
     tile(m, 2, 2, 0x400 | 4)
     result = read_local_map(m.read, (1, 2), (1, 0), radius=1)
     assert result is not None
-    assert result.rows[2] == ".@#"
+    assert result.rows[1] == ".@#"
     assert "\nEdge walls: (1,2) north+south\n" in result.text()
 
 

@@ -35,6 +35,8 @@ export interface ArmSummary {
   readonly reachedPer1kTurns: number | null;
 }
 export interface RecordedReadiness { readonly verdict: string; readonly evidence: string }
+export const VERDICTS: readonly string[] = ["improve", "regress", "inconclusive"];
+export const RECOMMENDATIONS: readonly string[] = ["confirm", "keep", "discard", "retain", "repair_and_rerun"];
 export interface ResultSummary { readonly verdict: string; readonly recommendation: string; readonly eligible: boolean; readonly problems: readonly string[] }
 export interface ExperimentView {
   readonly id: string;
@@ -181,9 +183,12 @@ export function gradedResult(path: string): ResultSummary | null {
     const r = value.result;
     if (typeof r !== "object" || r === null) return null;
     const get = (k: string): unknown => (r as Record<string, unknown>)[k];
-    const problems = get("problems");
-    const text = (v: unknown): string => (typeof v === "string" ? v : "unknown");
-    return { verdict: text(get("verdict")), recommendation: text(get("recommendation")), eligible: get("eligible") === true, problems: Array.isArray(problems) ? problems.filter((p): p is string => typeof p === "string") : [] };
+    const verdict = get("verdict"), recommendation = get("recommendation"), eligible = get("eligible"), problems = get("problems");
+    const arm = (k: string): boolean => typeof get(k) === "object" && get(k) !== null;
+    // A comparePatchResults report, or nothing: a partial file keeps the experiment open.
+    if (typeof verdict !== "string" || !VERDICTS.includes(verdict) || typeof recommendation !== "string" || !RECOMMENDATIONS.includes(recommendation) || typeof eligible !== "boolean" ||
+      !Array.isArray(problems) || !problems.every((p) => typeof p === "string") || !arm("incumbent") || !arm("candidate")) return null;
+    return { verdict, recommendation, eligible, problems };
   } catch {
     return null;
   }

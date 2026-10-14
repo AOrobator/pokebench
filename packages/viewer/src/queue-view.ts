@@ -19,8 +19,12 @@ const numOrNull = (v: unknown): boolean => v === null || isNum(v);
 function armOk(v: unknown): boolean {
   return isRecord(v) && isNum(v["finished"]) && isNum(v["reached"]) && numOrNull(v["medianPrimaryMs"]) && numOrNull(v["medianTurns"]) && numOrNull(v["reachedPer1kTurns"]);
 }
+const STATES = ["discarded", "pending", "blocked", "not-ready", "draft", "stale", "approved", "running", "held", "done"];
+const TRIAL_STATES = ["waiting", "running", "done", "failed", "interrupted"];
+const VERDICTS = ["improve", "regress", "inconclusive"], RECOMMENDATIONS = ["confirm", "keep", "discard", "retain", "repair_and_rerun"];
+const oneOf = (v: unknown, values: readonly string[]): boolean => typeof v === "string" && values.includes(v);
 function trialOk(v: unknown): boolean {
-  return isRecord(v) && isNum(v["index"]) && (v["arm"] === "incumbent" || v["arm"] === "candidate") && typeof v["state"] === "string" && (v["reachedPrimary"] === null || typeof v["reachedPrimary"] === "boolean") && numOrNull(v["primaryMs"]) && numOrNull(v["turns"]);
+  return isRecord(v) && isNum(v["index"]) && (v["arm"] === "incumbent" || v["arm"] === "candidate") && oneOf(v["state"], TRIAL_STATES) && (v["reachedPrimary"] === null || typeof v["reachedPrimary"] === "boolean") && numOrNull(v["primaryMs"]) && numOrNull(v["turns"]);
 }
 const isStrings = (v: unknown): boolean => Array.isArray(v) && v.every((x) => typeof x === "string");
 function readinessOk(r: unknown): boolean {
@@ -28,13 +32,13 @@ function readinessOk(r: unknown): boolean {
     isNum(r["reached"]) && isNum(r["window"]) && isNum(r["minReached"]) && isStrings(r["considered"]);
 }
 function resultOk(r: unknown): boolean {
-  return r === null || (isRecord(r) && typeof r["verdict"] === "string" && typeof r["recommendation"] === "string" && typeof r["eligible"] === "boolean" && isStrings(r["problems"]));
+  return r === null || (isRecord(r) && oneOf(r["verdict"], VERDICTS) && oneOf(r["recommendation"], RECOMMENDATIONS) && typeof r["eligible"] === "boolean" && isStrings(r["problems"]));
 }
 function viewOk(v: unknown): boolean {
   if (!isRecord(v)) return false;
   const strings = ["id", "title", "changedFeature", "hypothesis", "activationMilestone", "primaryMilestone", "modelLane", "state", "reason"];
   const arms = v["arms"], source = v["source"], recorded = v["recorded"];
-  return strings.every((k) => typeof v[k] === "string") && numOrNull(v["queuePosition"]) && isNum(v["trialsPerArm"]) && isNum(v["budgetMs"]) && isNum(v["usedMs"]) &&
+  return strings.every((k) => typeof v[k] === "string") && oneOf(v["state"], STATES) && numOrNull(v["queuePosition"]) && isNum(v["trialsPerArm"]) && isNum(v["budgetMs"]) && isNum(v["usedMs"]) &&
     typeof v["approved"] === "boolean" && typeof v["incumbentOn"] === "boolean" && Array.isArray(v["trials"]) && v["trials"].every(trialOk) &&
     isRecord(arms) && armOk(arms["incumbent"]) && armOk(arms["candidate"]) && isRecord(source) && typeof source["commit"] === "string" &&
     readinessOk(v["readiness"]) && (recorded === null || (isRecord(recorded) && typeof recorded["verdict"] === "string" && typeof recorded["evidence"] === "string")) &&
@@ -110,6 +114,7 @@ function pendingCard(v: ExperimentView, open: boolean): string {
 export function countsOf(s: QueueSnapshot): Readonly<Record<QueueFilter, number>> {
   const counts: Record<QueueFilter, number> = { all: s.queue.length + s.pending.length + s.closed.length, running: 0, held: 0, approved: 0, draft: 0, stale: 0, "not-ready": 0, blocked: 0, pending: s.pending.length, closed: s.closed.length };
   for (const v of s.queue) if (v.state in counts && v.state !== "pending") counts[v.state as QueueFilter] += 1;
+  for (const v of s.pending) if (v.state === "blocked") counts.blocked += 1;
   return counts;
 }
 
@@ -123,8 +128,9 @@ export function renderQueue(s: QueueSnapshot, filter: QueueFilter, open: Readonl
   const queue = (showQueue ? (queued.length === 0 ? `<p class="eq-empty">${filter === "all" ? "Nothing is queued. Experiments join the queue once models reliably reach the milestone each one acts on." : "No experiments in this state."}</p>` : queued.map((v) => slot(v, open.has(v.id))).join("")) : "") +
     (closed.length === 0 ? "" : `<h4 class="eq-sub">DONE</h4>${closed.map((v) => slot(v, open.has(v.id))).join("")}`) +
     (s.problems.length === 0 ? "" : `<pre class="eq-problems">${s.problems.map(esc).join("\n")}</pre>`);
-  const showPending = filter === "all" || filter === "pending";
-  const pending = showPending ? `<div class="eq-pc"><h4 class="eq-sub">PENDING · MERGED BEHIND A SWITCH, NOT QUEUED (${String(s.pending.length)})</h4>${s.pending.length === 0 ? `<p class="eq-empty">No pending experiments.</p>` : s.pending.map((v) => pendingCard(v, open.has(v.id))).join("")}<p class="eq-why">A pending experiment joins the queue once models reliably reach the milestone it acts on.</p></div>` : "";
+  const showPending = filter === "all" || filter === "pending" || (filter === "blocked" && s.pending.some((v) => v.state === "blocked"));
+  const pendingShown = filter === "blocked" ? s.pending.filter((v) => v.state === "blocked") : s.pending;
+  const pending = showPending ? `<div class="eq-pc"><h4 class="eq-sub">PENDING · MERGED BEHIND A SWITCH, NOT QUEUED (${String(pendingShown.length)})</h4>${pendingShown.length === 0 ? `<p class="eq-empty">No pending experiments.</p>` : pendingShown.map((v) => pendingCard(v, open.has(v.id))).join("")}<p class="eq-why">A pending experiment joins the queue once models reliably reach the milestone it acts on.</p></div>` : "";
   return { chips, queue, pending };
 }
 

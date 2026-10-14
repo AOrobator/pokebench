@@ -166,11 +166,16 @@ describe("durable cohort queue and metadata boundaries", () => {
     const r = root();
     write(r, "2026-10-14T20-00-00_think-fast_aaaa", named()); write(r, "2026-10-14T20-30-00_think-fast_bbbb", named());
     mkdirSync(join(r, "experiments", "full-map"), { recursive: true });
-    const good = [{ type: "launch", trial: 0, arm: "incumbent", run: "2026-10-14T20-00-00_think-fast_aaaa", at: "t" }, { type: "outcome", trial: 0, arm: "incumbent", run: "2026-10-14T20-00-00_think-fast_aaaa", at: "t", reason: "budget" }, { type: "outcome", trial: 1, arm: "candidate", run: "2026-10-14T20-30-00_think-fast_bbbb", at: "t", reason: "budget" }].map(e => JSON.stringify(e)).join("\n") + "\n";
+    const good = [{ type: "launch", trial: 0, arm: "incumbent", run: "2026-10-14T20-00-00_think-fast_aaaa", at: "t" }, { type: "outcome", trial: 0, arm: "incumbent", run: "2026-10-14T20-00-00_think-fast_aaaa", at: "t", reason: "budget" }].map(e => JSON.stringify(e)).join("\n") + "\n";
+    const orphan = JSON.stringify({ type: "outcome", trial: 1, arm: "candidate", run: "2026-10-14T20-30-00_think-fast_bbbb", at: "t", reason: "budget" }) + "\n";
     writeFileSync(join(r, "experiments", "full-map", "trials.jsonl"), good + "not json\n");
     const broken = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(false), { state: "idle" }, 2000000000000));
     expect(broken.runs.filter(x => x.cohort === "experiment:full-map")).toEqual([]);
     expect(broken.problems.some(p => p.includes("Experiment full-map ledger"))).toBe(true);
+    writeFileSync(join(r, "experiments", "full-map", "trials.jsonl"), good + orphan);
+    const orphaned = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(false), { state: "idle" }, 2000000000000));
+    expect(orphaned.runs.filter(x => x.cohort === "experiment:full-map")).toEqual([]);
+    expect(orphaned.problems.some(p => p.includes("outcome without a launch"))).toBe(true);
     writeFileSync(join(r, "experiments", "full-map", "trials.jsonl"), good);
     const fixed = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(false), { state: "idle" }, 2000000000000));
     expect(fixed.runs.find(x => x.id === "2026-10-14T20-00-00_think-fast_aaaa")?.cohort).toBe("experiment:full-map");

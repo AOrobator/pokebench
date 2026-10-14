@@ -6,7 +6,7 @@ import { createHash } from "node:crypto";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { comparePatchResults, type PatchArm, type PatchResult } from "@pokebench/agent/patch-results";
-import { ApprovalSchema, definitionHash, experimentArms, parseLedger, type Arm, type Experiment, type LedgerEntry } from "@pokebench/agent/experiments";
+import { ApprovalSchema, definitionHash, experimentArms, parseLedger, trialOrder, type Arm, type Experiment, type LedgerEntry } from "@pokebench/agent/experiments";
 import { parseEvent, type RunEvent } from "@pokebench/agent/events";
 import { Value } from "typebox/value";
 import type { PlayPresetV2 } from "@pokebench/agent/play-preset";
@@ -201,10 +201,14 @@ export function gradeExperiment(paths: QueuePaths, experiment: Experiment, now: 
   const arms = experimentArms(experiment);
   const flags = (preset: PlayPresetV2): Record<string, boolean> => ({ ...preset.features });
   try {
+    // The latest outcome of each trial the definition has, in trial order.
+    const order = trialOrder(experiment), latest = new Map<number, LedgerEntry>();
+    for (const e of entries) if (e.type === "outcome" && e.trial < order.length && e.arm === order[e.trial]) latest.set(e.trial, e);
+    const launches = new Map(entries.flatMap((e) => (e.type === "launch" ? [[e.run, e] as const] : [])));
     const armOf = (arm: Arm): PatchArm => ({
       preset: arms[arm].id, flags: flags(arms[arm]),
-      trials: entries.filter((e) => e.type === "outcome" && e.arm === arm).map((e) => {
-        const launch = entries.find((l) => l.type === "launch" && l.run === e.run);
+      trials: [...latest.entries()].sort(([a], [b]) => a - b).map(([, e]) => e).filter((e) => e.arm === arm).map((e) => {
+        const launch = launches.get(e.run);
         const environment = launch?.type === "launch" ? launch.environment ?? "" : "";
         return { events: readEvents(paths.runsRoot, e.run), environment: { fingerprint: environment, receipt: ledgerPath(paths, experiment.id) }, issues: [] };
       }),

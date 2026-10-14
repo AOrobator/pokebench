@@ -139,14 +139,18 @@ function experimentCohorts(root: string, items: WorkbenchQueueItem[], failures: 
     try {
       if (lstatSync(path).isSymbolicLink() || statSync(path).size > MAX_PLAN_BYTES) throw new Error("Experiment ledger exceeds metadata bounds");
       const { entries, problems: bad } = parseLedger(readFileSync(path, "utf8"));
-      problems.push(...bad.map(p => `Experiment ${entry.name} ledger ${p}`));
-      const cohort = `experiment:${entry.name}`;
+      // All or nothing: a ledger with any unreadable row contributes no cohort annotations.
+      if (bad.length > 0) { problems.push(...bad.map(p => `Experiment ${entry.name} ledger ${p}`)); continue; }
+      const cohort = `experiment:${entry.name}`, launched = new Set<string>(), ended = new Set<string>(), errors = new Map<string, string>();
       for (const e of entries) {
-        membership.set(e.run, cohort);
-        if (e.type === "launcher_error") failures.set(e.run, `Launcher outcome: ${e.message}`);
+        if (e.type === "launch") launched.add(e.run);
+        else if (!launched.has(e.run)) throw new Error(`run ${e.run} has an ${e.type} without a launch`);
+        else { ended.add(e.run); if (e.type === "launcher_error") errors.set(e.run, `Launcher outcome: ${e.message}`); }
       }
+      for (const run of launched) membership.set(run, cohort);
+      for (const [run, message] of errors) failures.set(run, message);
       for (const launch of entries) {
-        if (launch.type !== "launch" || entries.some(e => e.run === launch.run && e.type !== "launch")) continue;
+        if (launch.type !== "launch" || ended.has(launch.run)) continue;
         const running = runner?.experiment === entry.name && runner.trial === launch.trial;
         items.push({ id: launch.run, cohort, model: launch.model ?? null, arm: launch.arm, status: running ? "running" : "withheld", reason: running ? "Experiment queue trial running" : "Experiment queue trial with no recorded outcome; the runner is not on it" });
       }

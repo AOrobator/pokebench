@@ -27,6 +27,16 @@ Report target reached/total, missing or censored outcomes, milestone elapsed tim
 
 Compare downstream splits so an earlier gain cannot hide later degradation. Classify improve, regress or inconclusive using the predeclared criteria; four runs per arm do not automatically establish statistical confidence. If completion deteriorates beyond the agreed tolerance, do not promote merely because survivors finish faster. Keep the incumbent on regression or inconclusive evidence. Confirm apparent winners using a fresh predeclared batch before promotion to limit selection bias from repeated hill climbing. Post-run LLM annotations may explain evidence, but never override native grading or measured outcomes.
 
+## Show the human, prior baseline and best run
+
+Every results report and its primary split graphs must include these reference comparisons, or explicitly show why a reference is unavailable:
+
+- The recorded human run, with run ID, native milestone evidence and whether it includes exploration/training. Use acknowledged pauses to show active elapsed time; retain raw wall time and state the timing basis. Never compare pause-adjusted human time to an unlabeled model timing basis.
+- The pre-change incumbent/baseline cohort, including all failures and completion denominators. Prefer the previous configuration matching the candidate's common features; identify source, observation, hardware or budget changes. A historical reference is not a same-build randomized control. If the experiment omitted a neither-treatment arm, say so instead of renaming a treatment baseline.
+- The best valid recorded agent run for the stated frontier, selected by verified progress first and time to that frontier second. Identify the actual run, model/configuration and selection rule. Exclude probes, human recordings, synthetic/replayed gameplay and invalidated historical milestones. Keep a per-milestone record envelope separate: it may combine runs and must not be drawn or labeled as one achieved run.
+
+Plot individual candidate outcomes or spread with completion counts, a visible human reference and the historical references on the same native milestone/time basis. Use a separate frontier panel when the human reaches much farther; do not hide gym results by graphing only naming/clock. Missing, censored and historically unobserved splits are not zero or proof of failure. Pair graph values with native event sequence, source/config and immutable log hashes. Report absolute seconds and gaps versus each available reference, not only treatment-versus-treatment percentages. A single best run describes a record, not a reliable configuration or promotion.
+
 ## Track and restore the incumbent
 
 Maintain an append-only promotion/regression ledger and immutable named presets per compatible model/environment lane. Each preset records:

@@ -36,6 +36,11 @@ pret/pokeemerald 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881:
 
 - RED: `test: ledges render as one-way hops and navigate_to hops them` (bdec460). Fails on the
   ledge cases (Python 4, TS navigation 3, features/preset/config, viewer switch count).
-- GREEN: agent 870/870, viewer 417/417, env 1806/1806. `just coverage` passes the 90% floor on
-  both stacks. `just lint`: tsc, eslint, ruff, ruff format clean; mypy reports only the missing
-  `mgba._pylib` stub because this worktree's venv has no native mGBA build (environmental).
+- GREEN: `fix: render ledges as one-way hops and let navigate_to hop them` (f22d0f4).
+- Review round 1: Claude CLI LGTM, Cursor Grok 4.5 LGTM, GPT lane BLOCKING (Cursor GPT hit its
+  usage limit; Codex `gpt-5.6-sol` ran instead). Blocker: `just lint` mypy failed in this
+  worktree because its venv lacked the native mGBA binding. Fixed by copying the built `mgba`
+  package from the main checkout's venv; `just lint` now exits 0. Accepted hardening (raised by
+  Claude and Codex): with the switch off, a ledge keeps its own collision glyph (`#` or `.`).
+- Round-1 fix: `fix: keep a ledge's own collision glyph with ledge hops off`. Gates: agent
+  870/870, viewer 417/417, env 1807/1807; `just coverage` 90% floor passes; `just lint` exit 0.

@@ -18,7 +18,6 @@ MAX_MAP_DATA_SIZE = 10240
 # pokeemerald 731ad5b metatile_behaviors.h MB_JUMP_EAST/WEST/NORTH/SOUTH. These tiles carry
 # collision, but moving into one in its direction jumps two tiles (GetLedgeJumpDirection).
 LEDGES = {0x38: ">", 0x39: "<", 0x3A: "^", 0x3B: "v"}
-LEDGE_AS_COLLISION = str.maketrans({glyph: "#" for glyph in LEDGES.values()})
 
 
 def _pointer(value: int) -> bool:
@@ -71,9 +70,17 @@ class LocalMap:
     objects: tuple[tuple[int, int, int], ...]
     warps: tuple[tuple[int, int, int, int], ...]
 
+    def _rows_without_ledges(self) -> tuple[str, ...]:
+        x, y = self.origin
+        rows = [list(row) for row in self.rows]
+        for tile in self.tiles:
+            if rows[tile.y - y][tile.x - x] == LEDGES.get(tile.behavior):
+                rows[tile.y - y][tile.x - x] = "#" if tile.collision else "."
+        return tuple("".join(row) for row in rows)
+
     def text(self, *, grid: bool = True, warp_guidance: bool = True, ledges: bool = True) -> str:
         x, y = self.origin
-        cells = self.rows if ledges else tuple(r.translate(LEDGE_AS_COLLISION) for r in self.rows)
+        cells = self.rows if ledges else self._rows_without_ledges()
         objects = ", ".join(f"id {i} at ({a},{b})" for i, a, b in self.objects) or "none nearby"
         behaviors_at = {(tile.x, tile.y): tile.behavior for tile in self.tiles}
         warps = (

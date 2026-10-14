@@ -228,3 +228,12 @@ def test_ledge_guidance_off_draws_ledges_as_collision_without_the_legend() -> No
     for text in (result.text(ledges=False), result.text(grid=False, ledges=False)):
         assert "ledge" not in text, text
         assert "g#N" in text.replace(" ", "") and "###" in text.replace(" ", ""), text
+
+
+def test_ledge_guidance_off_keeps_a_collision_free_ledge_as_clear_terrain() -> None:
+    m = ledged()
+    tile(m, 1, 2, 5)
+    result = read_local_map(m.read, (1, 1), (1, 0), radius=1)
+    assert result is not None
+    assert result.rows[2] == "v^>"
+    assert result.text(grid=False, ledges=False).splitlines()[3] == "#.#"

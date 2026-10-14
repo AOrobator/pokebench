@@ -1,3 +1,6 @@
+import {readFileSync} from "node:fs";
+import {Type} from "typebox";
+import {Value} from "typebox/value";
 import {expect,it} from "vitest";
 import {planNavigation,navigationTool} from "./navigation.js";
 import type {AgentToolResult} from "@mariozechner/pi-agent-core";
@@ -12,9 +15,10 @@ it("rejects unknown geometry, locked fields, water, occupied tiles and intermedi
  expect(planNavigation({...field,navigation_grid:{elevation:3,tiles:[tile(0,0),tile(1,0,0,0x10)],objects:[],warps:[]}},{x:1,y:0})).toBeNull();
  expect(planNavigation({...field,navigation_grid:{elevation:3,tiles:[tile(0,0),tile(1,0),tile(2,0)],objects:[],warps:[{x:1,y:0}]}},{x:2,y:0})).toBeNull();
 });
-it("retains elevation across zero-elevation connectors and approaches a door from below",()=>{
+it("resets elevation on zero-elevation connectors and approaches a door from below",()=>{
  const grid={elevation:3,tiles:[tile(0,0),tile(1,0,0,0,0),tile(2,0,0,0,4)],objects:[],warps:[]};
- expect(planNavigation({...field,navigation_grid:grid},{x:2,y:0})).toBeNull();
+ expect(planNavigation({...field,navigation_grid:grid},{x:2,y:0})).toEqual(["RIGHT","RIGHT"]);
+ expect(planNavigation({...field,navigation_grid:{...grid,tiles:[tile(0,0),tile(1,0,0,0,4)]}},{x:1,y:0})).toBeNull();
  const room={...field,position:{x:0,y:1},navigation_grid:{elevation:3,tiles:[tile(0,1),tile(0,0,1,0x69,0)],objects:[],warps:[{x:0,y:0}]}};
  expect(planNavigation(room,{x:0,y:0})).toEqual(["UP"]);
 });
@@ -90,4 +94,29 @@ it("forwards deliberate walking to the ordinary press without creating a separat
  const tool=navigationTool({read:()=>Promise.resolve(field),press:(_id,params)=>{seen.push(params);return Promise.resolve(result({...field,position:{x:0,y:1}}));},observe:()=>Promise.resolve(result({...field,position:{x:0,y:1}}))});
  await tool.execute("nav",{x:0,y:1,map_id:[0,9],walking:true});
  expect(seen).toEqual([{buttons:["DOWN"],walking:true}]);
+});
+
+
+// Real layouts from pokeemerald map.bin (see the fixture's source field).
+const Maps=Type.Object({source:Type.String(),maps:Type.Record(Type.String(),Type.Object({layout:Type.String(),note:Type.String(),width:Type.Integer(),height:Type.Integer(),player:Type.Tuple([Type.Integer(),Type.Integer()]),tiles:Type.Array(Type.Tuple([Type.Integer(),Type.Integer(),Type.Integer(),Type.Integer(),Type.Integer()]))}))});
+const maps=Value.Parse(Maps,JSON.parse(readFileSync(new URL("../test-support/elevation-maps.json",import.meta.url),"utf8")));
+const onMap=(name:string,player:{x:number;y:number},elevation:number,behaviors:ReadonlyMap<number,number>=new Map()):GameStateSnapshot=>{
+ const map=maps.maps[name];if(map===undefined)throw new Error(name);
+ const tiles=map.tiles.map(([x,y,collision,behavior,e])=>tile(x,y,collision,behaviors.get(behavior)??behavior,e));
+ return {...field,position:player,topology:{width:map.width,height:map.height,connections:[]},navigation_grid:{elevation,tiles,objects:[],warps:[]}};
+};
+it("climbs the Route 104 pier stairs in both directions through elevation 0",()=>{
+ expect(planNavigation(onMap("route104_pier",{x:13,y:51},4),{x:17,y:51})).toEqual(["RIGHT","RIGHT","RIGHT","RIGHT"]);
+ expect(planNavigation(onMap("route104_pier",{x:17,y:52},3),{x:12,y:52})).toEqual(["LEFT","LEFT","LEFT","LEFT","LEFT"]);
+});
+it("walks onto and across Littleroot's multi-level tiles without adopting elevation 15",()=>{
+ expect(planNavigation(onMap("littleroot_multilevel",{x:10,y:10},3),{x:11,y:10})).toEqual(["RIGHT"]);
+ expect(planNavigation(onMap("littleroot_multilevel",{x:10,y:10},3),{x:12,y:10})).toEqual(["RIGHT","RIGHT"]);
+ expect(planNavigation(onMap("littleroot_multilevel",{x:11,y:10},3),{x:11,y:12})).toEqual(["DOWN","DOWN"]);
+});
+it("keeps the walker's elevation under the Route 110 Cycling Road deck",()=>{
+ const plain=new Map([[0x70,0],[0x7f,0]]);
+ expect(planNavigation(onMap("route110_under_deck",{x:15,y:70},3,plain),{x:19,y:70})).toEqual(["RIGHT","RIGHT","RIGHT","RIGHT"]);
+ expect(planNavigation(onMap("route110_under_deck",{x:15,y:70},3,plain),{x:17,y:68})).toBeNull();
+ expect(planNavigation(onMap("route110_under_deck",{x:15,y:70},0,plain),{x:17,y:68})).toHaveLength(4);
 });

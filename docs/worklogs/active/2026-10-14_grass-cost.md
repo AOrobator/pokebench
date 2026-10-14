@@ -69,5 +69,17 @@ COMMIT: `test(agent): prove grass cost reaches the planner and prices long grass
 - [x] Review: Claude CLI, GPT lane (Codex), Cursor Grok. Local endpoint lanes skipped per operator.
 - Explainer status block refreshed.
 COMMIT: `docs: record grass cost review LGTM and refresh explainer status`
-- [ ] Operator approval for the local merge into main.
+- [x] Operator approval for the local merge into main (2026-10-14 20:18, "merge this as a pending
+  experiment").
+- Merged main cef13fb (full-map navigation, counter-talk): grass pricing re-applied on main's
+  OpenList planner for both local and full modes (priority and cost both use `step`); grass is
+  appended after full-map in `playHarnessFeatures`; guidance group 14; viewer switchboard rows 34.
+  Removed the stray tracked scratch files `.tmp-chunk-search.py` and `.tmp-search-pokeemerald.py`
+  (operator request). agent 945/945, viewer 493/493; coverage (agent 97.2/93.4/97.92, viewer
+  95.67/90.53/95.34, Python 96.72/91.91/100) and lint exit 0. Mutations still caught, including
+  ledge-landing cost.
+COMMIT: `Merge branch 'main' into claude/grass-cost` (main at cef13fb)
+- Status: PENDING EXPERIMENT (merged behind the switch, off by default, not in the run queue).
+  Arms drafted at `runs/launch-receipts/grass-cost-think-fast-n4/` (main checkout). The
+  experiment-queue thread owns the pending list and moves it into the queue once ready.
 - [ ] Operator approval before any measured run.

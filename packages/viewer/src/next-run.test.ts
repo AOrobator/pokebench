@@ -33,7 +33,7 @@ describe("next-run draft", () => {
   });
 
   it("turns a draft into a v2 play preset", () => {
-    expect(presetFor({ ...draft, target: "RIVAL_MET" }, "r1")).toEqual({ version: 2, id: "viewer-r1", target: "RIVAL_MET", limits: { maxTurns: 300, maxWallMs: 1_800_000, failureLimit: 3 }, sampling: { thinkingLevel: "medium", maxTokens: 4096 }, features: { ...ALL_ON, "state-only-decisions-v1": false, "named-interactions-v1": false, "world-destinations-v1": false, "bounded-navigation-v1": false, "grass-cost-navigation-v1": false } });
+    expect(presetFor({ ...draft, target: "RIVAL_MET" }, "r1")).toEqual({ version: 2, id: "viewer-r1", target: "RIVAL_MET", limits: { maxTurns: 300, maxWallMs: 1_800_000, failureLimit: 3 }, sampling: { thinkingLevel: "medium", maxTokens: 4096 }, features: { ...ALL_ON, "state-only-decisions-v1": false, "named-interactions-v1": false, "world-destinations-v1": false, "bounded-navigation-v1": false, "full-map-navigation-v1": false, "grass-cost-navigation-v1": false } });
   });
 });
 
@@ -94,7 +94,7 @@ describe("run queue", () => {
     const [spec] = launches;
     expect(spec?.argv).toEqual(["/repo/packages/agent/dist/live.js", "play"]);
     expect(spec?.env).toEqual({ POKEBENCH_PLAY_PRESET: join(runsRoot, ".viewer", "presets", "2026-10-13T12-00-00_Qwen3.8-Flash_ab12.json"), POKEBENCH_RUN_ID: "2026-10-13T12-00-00_Qwen3.8-Flash_ab12", POKEBENCH_MODEL: "Qwen3.8-Flash", POKEBENCH_ENDPOINT_FILE: "/tmp/endpoint.json", POKEBENCH_GAME_SERVER_URL: "http://127.0.0.1:8076" });
-    expect(JSON.parse(readFileSync(spec?.env["POKEBENCH_PLAY_PRESET"] ?? "", "utf8"))).toMatchObject({ version: 2, features: { ...ALL_ON, "state-only-decisions-v1": false, "named-interactions-v1": false, "world-destinations-v1": false, "bounded-navigation-v1": false, "grass-cost-navigation-v1": false } });
+    expect(JSON.parse(readFileSync(spec?.env["POKEBENCH_PLAY_PRESET"] ?? "", "utf8"))).toMatchObject({ version: 2, features: { ...ALL_ON, "state-only-decisions-v1": false, "named-interactions-v1": false, "world-destinations-v1": false, "bounded-navigation-v1": false, "full-map-navigation-v1": false, "grass-cost-navigation-v1": false } });
     finish(0);
     await running;
     expect(queue.status()).toEqual({ state: "idle" });

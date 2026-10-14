@@ -65,6 +65,15 @@ it("the production navigation factory applies the fresh before-action check",asy
  expect(posts,JSON.stringify(result)).toBe(0);expect(JSON.stringify(result.details)).toContain("before action");expect(result.details).toMatchObject({state:{map_id:[1,0]},navigation:{commands:0}});
 });
 
+it("the production factory walks the whole-map route when that treatment is on",()=>{
+ const fetchFn:typeof fetch=()=>Promise.reject(new Error("unused"));
+ const base=[observeTool("http://127.0.0.1",fetchFn),pressTool("http://127.0.0.1",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},fetchFn)];
+ const features={...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"bounded-navigation-v1":true};
+ const local=withNavigation(base,features,{read:()=>Promise.reject(new Error("unused"))}).find(t=>t.name==="navigate_to");
+ const full=withNavigation(base,{...features,"full-map-navigation-v1":true},{read:()=>Promise.reject(new Error("unused"))}).find(t=>t.name==="navigate_to");
+ expect(local?.description).toContain("Maximum 8");expect(full?.description).toContain("whole current map");
+});
+
 it("the production navigation factory routes around grass only with the grass cost switch on",async()=>{
  const strip:GameStateSnapshot={...IN_GAME,screen:"overworld",started:true,map_id:[0,9],position:{x:0,y:0},facing:"right",field_controls_locked:false,navigation_grid:{elevation:3,tiles:[0,1,2,3,4,5,6].flatMap(x=>[{...tile(x,0),behavior:x>0&&x<6?2:0},tile(x,1)]),objects:[],warps:[]}};
  const changed={...strip,map_id:[1,0] as [number,number]};

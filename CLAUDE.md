@@ -17,6 +17,8 @@ Read the active worklog first: `WORKLOG.md` (a gitignored pointer) → `docs/wor
 
 When adding or changing agent diagnostics, loop guards, recovery feedback or completion evidence, use `.claude/skills/agent-observability/SKILL.md` to verify recorded events, model delivery where relevant, timeline, Activity History and replay.
 
+For viewer navigation, playback or polling interaction changes, use `.claude/skills/viewer-e2e/SKILL.md` and verify the real click through to the selected run and visible frame before claiming it works.
+
 ## Project overrides of the global rules
 
 - **Coverage floor is 90%**, enforced independently for lines, branches and functions in TS (vitest thresholds) and Python (`pokebench_gates.coverage_gate`) app code. This is an operator decision (2026-10-11). The floor is 90, not 95; never lower it further or widen excludes to pass.

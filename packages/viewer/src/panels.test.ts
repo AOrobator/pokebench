@@ -556,3 +556,13 @@ it("renders feature cards with descriptions, truthful badges and local explainer
  const memory=must(doc.querySelector('[data-feature="navigation-evidence-memory-v1"]'));expect(memory.textContent).toContain("ON");expect(memory.textContent).toContain("Keeps observed rooms <only>.");expect(memory.querySelector("only")).toBeNull();expect(memory.querySelector("a")?.getAttribute("href")).toBe("/explainers/navigation-evidence-memory-v1.html");
  expect(doc.querySelector('[data-feature="objective-tracking-v1"]')?.textContent).toContain("OFF");expect(doc.querySelector('[data-feature="ledge-hops-v1"]')?.textContent).toContain("NOT RECORDED");expect(doc.querySelector("input,select,button,textarea,form")).toBeNull();
 });
+
+it("documents only recorded tools with input/output contracts and safe unknown fallback",()=>{
+ const log=new Log();log.add(0,{...START,tools:["observe","press","navigate_to","remember_destination","get_objectives","set_objective","update_objective","act","<unknown>","constructor"]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log));
+ expect(Array.from(doc.querySelectorAll(".config-tool h5")).map(node=>node.textContent)).toEqual(["observe","press","navigate_to","remember_destination","get_objectives","set_objective","update_objective","act","<unknown>","constructor"]);
+ const press=must(doc.querySelector('[data-tool="press"]'));expect(press.textContent).toContain("1–8");expect(press.textContent).toContain("walking");expect(press.textContent).toContain("INPUTS");expect(press.textContent).toContain("OUTPUTS");expect(press.textContent).toContain("screenshot");
+ expect(doc.querySelector('[data-tool="navigate_to"]')?.textContent).toContain("map_id");expect(doc.querySelector('[data-tool="remember_destination"]')?.textContent).toContain("1–4");expect(doc.querySelector('[data-tool="act"]')?.textContent).toContain("1–2000");
+ expect(doc.querySelector('[data-tool="constructor"]')?.textContent).toContain("Documentation unavailable");expect(doc.querySelector("unknown,input,button,select,textarea,form")).toBeNull();expect(doc.body.textContent).toContain("not recorded with historical tool schemas");
+ const subset=new Log();subset.add(0,{...START,tools:["observe"]});doc.body.innerHTML=harnessConfig(view(subset));expect(doc.querySelectorAll(".config-tool")).toHaveLength(1);expect(doc.querySelector('[data-tool="press"]')).toBeNull();
+});

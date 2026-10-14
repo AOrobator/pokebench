@@ -34,6 +34,8 @@ describe("next-run panel", () => {
     const { panel: p, problems } = panel({ ...ok, "/api/models": new Error("router down"), "/api/features/history": [] });
     await p.load();
     expect(ui("next-model-info").textContent).toContain("router down");
+    ui("switchboard").querySelector<HTMLButtonElement>("[data-expand]")?.click();
+    await Promise.resolve();await Promise.resolve();
     expect(problems).toEqual(["feature history: Error: malformed history payload"]);
     const bad = panel({ ...ok, "/api/models": { models: [{}] } });
     await bad.panel.load();
@@ -124,4 +126,50 @@ it("locks the next-run settings while a queued run waits, and unlocks on cancel"
   await p.cancel();
   expect((ui("next-max-turns") as HTMLInputElement).disabled).toBe(false);
   expect(ui("switchboard").querySelectorAll("input[data-feature]:not([disabled])").length).toBeGreaterThan(10);
+});
+
+it("keeps historical scans out of watch startup and loads them only when requested", async()=>{
+ const fetched:string[]=[];document.body.innerHTML=PAGE.slice(PAGE.indexOf("<body>")+6,PAGE.indexOf("</body>"));
+ const p=new NextRunPanel(document,{fetchJson:url=>{fetched.push(url);return Promise.resolve(ok[url as keyof typeof ok]);},sendJson:()=>Promise.reject(Error("unexpected write")),problem:text=>{throw Error(text);}});
+ await p.load();expect(fetched).toEqual(["/api/features","/api/next-run","/api/models"]);expect(ui("switchboard").textContent).not.toContain("No matching runs yet");
+ const button=ui("switchboard").querySelector<HTMLButtonElement>("[data-expand]");if(button===null)throw Error("missing history control");button.click();button.click();
+ await Promise.resolve();await Promise.resolve();expect(fetched.filter(url=>url==="/api/features/history")).toEqual(["/api/features/history"]);expect(ui("switchboard").textContent).toContain("No matching runs yet");
+});
+
+it.each([["old-first",false],["new-first",false],["old-error",false],["old-first",true],["new-first",true],["old-error",true]] as const)("refreshes saved-settings history without superseded results (%s, prior save %s)", async (order,priorSave)=>{
+ document.body.innerHTML=PAGE.slice(PAGE.indexOf("<body>")+6,PAGE.indexOf("</body>"));
+ const pending:Array<ReturnType<typeof Promise.withResolvers<unknown>>>=[],problems:string[]=[];
+ const p=new NextRunPanel(document,{fetchJson:url=>{if(url!=="/api/features/history")return Promise.resolve(ok[url as keyof typeof ok]);const request=Promise.withResolvers<unknown>();pending.push(request);return request.promise;},sendJson:(_method,_url,body)=>Promise.resolve({draft:body,queue:{state:"idle"}}),problem:text=>{problems.push(text);}});
+ await p.load();if(priorSave){p.toggle("story-state-v1",false);await Promise.resolve();await Promise.resolve();}else ui("switchboard").querySelector<HTMLButtonElement>("[data-expand]")?.click();expect(pending).toHaveLength(1);
+ const turns=ui("next-max-turns") as HTMLInputElement;turns.value="302";turns.dispatchEvent(new Event("change"));await Promise.resolve();await Promise.resolve();
+ expect(p.draft?.maxTurns).toBe(302);expect(pending).toHaveLength(2);
+ const old=pending[0],latest=pending[1];if(old===undefined||latest===undefined)throw Error("missing history request");
+ const current={"story-state-v1":null};
+ if(order==="new-first"){latest.resolve(current);await Promise.resolve();await Promise.resolve();}
+ if(order==="old-error")old.reject(Error("superseded failure"));else old.resolve({stale:"wrong settings"});
+ await Promise.resolve();await Promise.resolve();expect(p.history).not.toHaveProperty("stale");expect(problems).toEqual([]);
+ if(order!=="new-first"){ui("switchboard").querySelector<HTMLButtonElement>("[data-expand]")?.click();expect(pending).toHaveLength(2);latest.resolve(current);}
+ await Promise.resolve();await Promise.resolve();expect(p.history).toEqual(current);expect(ui("switchboard").textContent).toContain("No matching runs yet");
+});
+
+
+it("refreshes after save even when history was requested while the write was pending",async()=>{
+ document.body.innerHTML=PAGE.slice(PAGE.indexOf("<body>")+6,PAGE.indexOf("</body>"));
+ const write=Promise.withResolvers<unknown>(),old=Promise.withResolvers<unknown>();let requests=0;
+ const p=new NextRunPanel(document,{fetchJson:url=>url==="/api/features/history"?(++requests===1?old.promise:Promise.resolve({})):Promise.resolve(ok[url as keyof typeof ok]),sendJson:()=>write.promise,problem:text=>{throw Error(text);}});
+ await p.load();p.toggle("story-state-v1",false);ui("switchboard").querySelector<HTMLButtonElement>("[data-expand]")?.click();expect(requests).toBe(1);
+ write.resolve({draft:p.draft,queue:{state:"idle"}});await Promise.resolve();await Promise.resolve();expect(requests).toBe(2);
+ old.resolve({stale:"pre-save"});await Promise.resolve();await Promise.resolve();expect(p.history).toEqual({});
+});
+
+it("invalidates an old history response immediately while the settings write is still pending",async()=>{
+ document.body.innerHTML=PAGE.slice(PAGE.indexOf("<body>")+6,PAGE.indexOf("</body>"));
+ const write=Promise.withResolvers<unknown>(),old=Promise.withResolvers<unknown>();let requests=0;
+ const history=(runs:number)=>({"story-state-v1":{on:{runs,reached:{},medianMs:{}},off:{runs:2,reached:{},medianMs:{}}}});
+ const p=new NextRunPanel(document,{fetchJson:url=>url==="/api/features/history"?(++requests===1?old.promise:Promise.resolve(history(11))):Promise.resolve(ok[url as keyof typeof ok]),sendJson:()=>write.promise,problem:text=>{throw Error(text);}});
+ await p.load();ui("switchboard").querySelector<HTMLButtonElement>("[data-expand]")?.click();expect(requests).toBe(1);
+ p.toggle("story-state-v1",false);old.resolve(history(7));await Promise.resolve();await Promise.resolve();
+ expect(p.history).toEqual({});expect(ui("switchboard").textContent).not.toContain("runs with it ON (7)");expect(ui("switchboard").textContent).toContain("LOAD COMPARISON HISTORY");
+ write.resolve({draft:p.draft,queue:{state:"idle"}});await Promise.resolve();await Promise.resolve();await Promise.resolve();await Promise.resolve();
+ expect(requests).toBe(2);expect(p.history).toEqual(history(11));expect(ui("switchboard").textContent).toContain("runs with it ON (11)");
 });

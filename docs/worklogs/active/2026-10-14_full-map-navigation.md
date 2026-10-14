@@ -13,7 +13,7 @@ Operator chose the full-map arm (2026-10-14, via the project coordinator). Add a
 - TS: `planNavigation` runs on either geometry through one tile lookup. Open list is a binary heap keyed by (f, insertion order), which reproduces the old stable-sort pop order exactly. Paths are rebuilt from parent links. With the switch on, `navigate_to` plans over `map_grid` and walks until arrival or a stop, bounded by a safety cap of 512 presses; per-press revalidation and stop rules are unchanged; warps remain goal-only.
 
 ## Milestones
-- [ ] M1 Planner: heap open list, geometry abstraction, full-map grid decode, full-route bound (RED → GREEN).
+- [x] M1 Planner: heap open list, geometry abstraction, full-map grid decode, full-route bound (RED → GREEN).
 - [ ] M2 Switch: Python full-map read/readout/state JSON, feature registry, presets, prompt/tool copy, server env (RED → GREEN), gates, review.
 
 ## Session Log
@@ -23,3 +23,5 @@ Operator chose the full-map arm (2026-10-14, via the project coordinator). Add a
 Pending.
 
 M1 RED: navigation.test.ts adds whole-map planning (40x140 serpentine, 2868 steps), local rules on the whole map, malformed map_grid rejection, heap-vs-reference-array path equivalence on 200 seeded 15x15 grids, 80x80 timing (<25 ms/plan), full-route walking past 8 presses with per-press block stop, 512 safety bound. 5 fail / 16 pass as expected.
+
+M1 GREEN: planner runs on local or whole-map geometry through one tile lookup; binary-heap open list keyed (estimate, insertion order); routes rebuilt from parent links; navigationTool fullMap mode (whole-map description, 512 bound, mode-aware readiness/status). map_grid added to StateBodySchema. navigation + caller tests 24/24, agent lint clean.

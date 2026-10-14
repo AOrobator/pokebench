@@ -181,5 +181,5 @@ it("full-route navigation has its own safety bound and needs whole-map geometry"
  expect(()=>navigationTool({fullMap:true,read:()=>Promise.resolve(field),press:()=>Promise.resolve(result(field)),observe:()=>Promise.resolve(result(field)),maxCommands:513})).toThrow(/bound/);
  let presses=0;const tool=navigationTool({fullMap:true,read:()=>Promise.resolve(field),press:()=>{presses++;return Promise.resolve(result(field));},observe:()=>Promise.resolve(result(field))});
  const outcome=await tool.execute("nav",{x:2,y:0,map_id:[0,9]});expect(presses).toBe(0);
- expect(outcome.details).toMatchObject({navigation:{status:"no supported path on the current map; choose a reachable waypoint"}});
+ expect(outcome.details).toMatchObject({navigation:{status:"field input or navigation geometry unavailable"}});
 });

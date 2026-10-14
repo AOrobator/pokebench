@@ -59,18 +59,24 @@ shopt -u nullglob
 
 # Archiving moves a body from docs/worklogs/active/ to docs/worklogs/ under the same name. The
 # archived body counts as the worklog for this commit, so it must be updated like any other.
-# Read without rename detection, so an edited body still pairs as delete + add.
-deleted=()
+# Read without rename detection, so an edited body still pairs as delete + add. Paths are
+# compared as literal strings, never as Git pathspecs.
+deleted=() added=()
 while IFS= read -r -d '' path; do
     deleted+=("$path")
-done < <(git diff --cached --name-only -z --no-renames --diff-filter=D -- 'docs/worklogs/active/')
+done < <(git diff --cached --name-only -z --no-renames --diff-filter=D)
+while IFS= read -r -d '' path; do
+    added+=("$path")
+done < <(git diff --cached --name-only -z --no-renames --diff-filter=A)
 for from in ${deleted[@]+"${deleted[@]}"}; do
+    [[ $from == docs/worklogs/active/* ]] || continue
     name=${from#docs/worklogs/active/}
     [[ $name == *.md && $name != */* ]] || continue
-    to="docs/worklogs/$name"
-    if [[ -n $(git diff --cached --name-only --no-renames --diff-filter=A -- "$to") ]]; then
-        worklogs+=("$to")
-    fi
+    for to in ${added[@]+"${added[@]}"}; do
+        if [[ $to == "docs/worklogs/$name" ]]; then
+            worklogs+=("$to")
+        fi
+    done
 done
 
 if (( ${#worklogs[@]} == 0 )); then

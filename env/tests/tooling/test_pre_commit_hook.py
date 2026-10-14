@@ -278,3 +278,38 @@ def test_staged_archive_with_missing_working_copy_fails_closed(tmp_path: Path) -
     shift_mtime(archived, 5)
     result = git(repo, "commit", "-q", "-m", "archive")
     assert result.returncode == 0, result.stderr
+
+
+def test_archive_pairing_is_literal_not_a_git_pathspec(tmp_path: Path) -> None:
+    repo = make_repo(
+        tmp_path, {"docs/worklogs/active/[ab].md": "# done\n", str(ACTIVE_BODY): "# other\n"}
+    )
+    shift_mtime(repo / ACTIVE_BODY, -3600)
+    assert git(repo, "rm", "-q", "--cached", "docs/worklogs/active/[ab].md").returncode == 0
+    (repo / "docs/worklogs/active/[ab].md").unlink()
+    literal = repo / "docs/worklogs/[ab].md"
+    literal.write_text("# done\n- archived\n")
+    shift_mtime(literal, 5)
+    stage(repo, "docs/worklogs/a.md", "# other\n")
+    blocked = git(repo, "commit", "-q", "-m", "archive")
+    assert blocked.returncode != 0
+    assert git(repo, "rm", "-q", "--cached", "docs/worklogs/a.md").returncode == 0
+    assert git(repo, "add", "--", ":(literal)docs/worklogs/[ab].md").returncode == 0
+    shift_mtime(literal, 5)
+    result = git(repo, "commit", "-q", "-m", "archive")
+    assert result.returncode == 0, result.stderr
+
+
+def test_archiving_a_worklog_with_spaces_in_its_name(tmp_path: Path) -> None:
+    repo, body = archive_repo(tmp_path, "2026-01-02 done twice.md")
+    archived = repo / "docs/worklogs/2026-01-02 done twice.md"
+    assert git(repo, "mv", rel(body, repo), rel(archived, repo)).returncode == 0
+    archived.write_text("# done\n- archived\n")
+    shift_mtime(archived, 5)
+    assert git(repo, "add", rel(archived, repo)).returncode == 0
+    result = git(repo, "commit", "-q", "-m", "archive")
+    assert result.returncode == 0, result.stderr
+
+
+def rel(path: Path, repo: Path) -> str:
+    return str(path.relative_to(repo))

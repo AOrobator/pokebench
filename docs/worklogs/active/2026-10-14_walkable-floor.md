@@ -51,3 +51,9 @@ pret/pokeemerald 731ad5b:
   names per value, checked by script against metatile_behaviors.h. Tests: mats 0xBB/0xBC refused;
   0xB5, 0xBD, 0xBE, 0xC2, 0xC4 walkable when collision-free. agent 900/900, viewer 419/419, lint clean.
   Static scan unchanged (no mats in layout data).
+- Round 1 Codex gpt-5.6-sol: BLOCKING, same B1 (already fixed) plus B2: bytes 0xF0–0xFF (outside
+  NUM_METATILE_BEHAVIORS; 0xFF is MB_INVALID) were admitted. Accepted. Also asked for full replay
+  output with provenance. Grok lane still running at round-1 close.
+- Round-1b fix: `fix: refuse behavior bytes outside the game's enum`. WALKING built from 0x00–0xEF.
+  Tests: 0xF0, 0xFE, 0xFF refused. agent 900/900, viewer 419/419, lint clean. Replay re-run on the
+  rebuilt dist with hashes: same numbers (2,188 newly reachable, 0 lost).

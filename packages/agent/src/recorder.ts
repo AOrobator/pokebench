@@ -1,3 +1,4 @@
+import {StateActivities} from "./activity.js";
 import type {DecisionSnapshot} from "./state-decision.js";
 import type { AgentEvent, AgentMessage } from "@mariozechner/pi-agent-core";
 import type { AssistantMessage, AssistantMessageEvent, ImageContent, TextContent } from "@mariozechner/pi-ai";
@@ -89,6 +90,8 @@ export class RunRecorder {
   private readonly toolStarts = new Map<string, number>();
   private furthest: string | null = null;
   private storyRequired = false;
+  private activityEnabled=false;
+  private readonly activities=new StateActivities();
   private humanSamplingFrame:number|undefined;
   private humanScreenshotMs:number|undefined;
   private humanScreenshotNextAt:number|null=null;
@@ -125,8 +128,14 @@ export class RunRecorder {
   recordObjective(body: BodyOf<"objective_update"> | BodyOf<"objective_attempt">): void { this.append({ ...body, turn: this.turn }); }
   recordState(state: GameStateSnapshot): Extract<Extract<RunEvent, { type: "state" }>, { started: boolean }> {
     if (this.storyRequired && state.story === undefined) throw new RecorderError("Declared story-state-v1 but the game server returned no story state; check the Python reader deployment.");
+    if(this.activityEnabled&&(state.game_stats===undefined||state.blackout_active===undefined||state.party.some(mon=>mon.identity===undefined)))throw new RecorderError("Declared native-progress-activity-v1 but the game server returned incomplete native activity state; check the Python reader deployment.");
     const event = this.append({ type: "state", turn: this.turn, ...state }) as Extract<Extract<RunEvent, { type: "state" }>, { started: boolean }>;
     if (this.milestones.observe !== undefined) this.recordMilestones(this.milestones.observe(state, event.seq));
+    if(this.activityEnabled) {
+      const result=this.activities.observe(state,event.seq);
+      for(const activity of result.activities)this.append({type:"activity",turn:this.turn,...activity,server_timestamp:Date.parse(event.t)/1000,...(this.humanSamplingFrame===undefined?{}:{emulator_frame:this.humanSamplingFrame,emulator_frame_kind:"sample_upper_bound"})});
+      if(result.firstHealEvidence!==null)this.recordMilestones([{name:"FIRST_POKECENTER_HEAL",kind:"story",origin:"observed",serverTimestamp:Date.parse(event.t)/1000,evidence:result.firstHealEvidence}]);
+    }
     return event;
   }
 
@@ -134,6 +143,7 @@ export class RunRecorder {
     this.startedAt = this.now();
     this.humanScreenshotMs=meta.controller?.screenshot_ms;
     this.storyRequired = meta.harness_features.includes("story-state-v1");
+    this.activityEnabled=meta.harness_features.includes("native-progress-activity-v1");
     this.append({ type: "run_start", turn: 0, ...meta });
     this.milestones.initialize?.(meta.start_state.kind);
     if (captureState) await this.checkMilestones();

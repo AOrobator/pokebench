@@ -13,7 +13,7 @@ from pokebench_env.game_state import (
     decode_text,
     read_game_state,
 )
-from pokebench_env.story import StoryState
+from pokebench_env.story import INITIAL_TRAINER_FLAGS, StoryState
 
 SB1, SB2 = 0x02025A18, 0x02024A6C
 OVERWORLD = (0x08085E05, 0x08085E5D)
@@ -63,6 +63,7 @@ def game(screen: tuple[int, int], party: list[bytes] | None = None, badges: int 
     m.put(SB2 + 0x0E, struct.pack("<HBB", 1, 2, 3))
     m.put(SB2 + 0xAC, struct.pack("<I", 0x1234))
     m.put(SB1, struct.pack("<hhbb", 7, 9, 0, 9))
+    m.put(SB1 + 0x159C, struct.pack("<64I", *([0x1234] * 64)))
     m.put(SB1 + 0x490, struct.pack("<I", 3000 ^ 0x1234))
     m.put(
         SB1 + 0x1270 + (0x867 >> 3),
@@ -91,6 +92,7 @@ def test_overworld_reports_every_field_from_the_save_blocks() -> None:
     assert state == GameState(
         screen="overworld",
         story=StoryState(
+            **{field: False for field in INITIAL_TRAINER_FLAGS},
             name_confirmed=True,
             intro_stage=0,
             rival_stage=0,
@@ -116,11 +118,18 @@ def test_overworld_reports_every_field_from_the_save_blocks() -> None:
         position=(7, 9),
         facing="right",
         in_battle=False,
-        party=(PartyMon("TORCHIC", 5, 18, 20),),
+        party=(PartyMon("TORCHIC", 5, 18, 20, "12345671:cafebabe"),),
         money=3000,
         badges=("STONE", "DYNAMO"),
         play_time=(1, 2, 3),
         field_controls_locked=False,
+        blackout_active=False,
+        game_stats={
+            "saved_game": 0,
+            "pokemon_captures": 0,
+            "evolved_pokemon": 0,
+            "used_pokecenter": 0,
+        },
     )
 
 
@@ -128,7 +137,7 @@ def test_overworld_reports_every_field_from_the_save_blocks() -> None:
 def test_every_substructure_order_decrypts(personality: int) -> None:
     party = [mon(286, 3, 9, 12, personality=personality + 24 * 7, ot_id=0x0BADF00D)]
     state = read_game_state(game(OVERWORLD, party).read, MAPS)
-    assert state.party == (PartyMon("POOCHYENA", 3, 9, 12),)
+    assert state.party == (PartyMon("POOCHYENA", 3, 9, 12, f"{personality + 24 * 7:08x}:0badf00d"),)
 
 
 def test_before_the_game_starts_no_save_field_is_reported() -> None:
@@ -136,6 +145,7 @@ def test_before_the_game_starts_no_save_field_is_reported() -> None:
 
     state = read_game_state(game(NAMING).read, MAPS)
     assert state == GameState(
+        blackout_active=False,
         screen="naming",
         active_ui=ActiveUi(
             "unsupported",
@@ -180,7 +190,7 @@ def test_unknown_screen_after_start_still_reports_fields_and_flags_battle() -> N
 def test_an_unreadable_species_is_reported_by_id() -> None:
     party = [mon(999, 5, 1, 1, personality=1, ot_id=2)]
     assert read_game_state(game(OVERWORLD, party).read, MAPS).party == (
-        PartyMon("species #999", 5, 1, 1),
+        PartyMon("species #999", 5, 1, 1, "00000001:00000002"),
     )
 
 
@@ -307,3 +317,56 @@ def test_active_ui_reader_ablation_withholds_phase_selection_and_diagnostic() ->
         state
     ) and "Interface:" not in format_readout(state)
     assert state.screen == "naming" and state.name is None
+
+
+@pytest.mark.parametrize("key", [0, 0x12345678, 0xFFFFFFFF])
+def test_game_stats_xor_key_exact_indices_and_json(key: int) -> None:
+    from pokebench_env.game_state import GAME_STAT_FIELDS
+    from pokebench_env.readout import state_json
+
+    m = game(OVERWORLD)
+    m.put(SB2 + 0xAC, struct.pack("<I", key))
+    values = {"saved_game": 3, "pokemon_captures": 7, "evolved_pokemon": 2, "used_pokecenter": 11}
+    m.put(SB1 + 0x159C, struct.pack("<64I", *([99 ^ key] * 64)))
+    for field, index in GAME_STAT_FIELDS.items():
+        m.put(SB1 + 0x159C + 4 * index, struct.pack("<I", values[field] ^ key))
+    assert state_json(read_game_state(m.read, MAPS))["game_stats"] == values
+
+
+def test_game_stats_invalid_decoded_counter_and_short_read_are_unknown_or_error() -> None:
+    from pokebench_env.game_state import _game_stats
+
+    m = game(OVERWORLD)
+    m.put(SB1 + 0x159C + 4 * 11, struct.pack("<I", 0x1000000 ^ 0x1234))
+    assert read_game_state(m.read, MAPS).game_stats["pokemon_captures"] is None
+    assert read_game_state(game(NAMING).read, MAPS).game_stats is None
+    with pytest.raises(ValueError, match="short game-stat read"):
+        _game_stats(lambda _a, _n: b"", SB1, SB2)
+
+
+def test_party_identity_survives_reordering_level_and_species_changes() -> None:
+    from pokebench_env.readout import state_json
+
+    a = mon(280, 5, 18, 20, personality=10, ot_id=20)
+    b = mon(286, 3, 9, 12, personality=11, ot_id=20)
+    before = state_json(read_game_state(game(OVERWORLD, [a, b]).read, MAPS))["party"]
+    after = state_json(
+        read_game_state(game(OVERWORLD, [b, mon(286, 6, 20, 21, 10, 20)]).read, MAPS)
+    )["party"]
+    assert before[0]["identity"] == after[1]["identity"] == "0000000a:00000014"
+    assert before[1]["identity"] == after[0]["identity"] == "0000000b:00000014"
+    assert before[0]["identity"] != before[1]["identity"]
+
+
+@pytest.mark.parametrize(
+    "callback,expected",
+    [(0x08085F59, True), (0x08085F57, False), (0x08085F5B, False), (0x08085E5D, False)],
+)
+def test_blackout_exact_callback_owner_even_without_valid_save(callback, expected) -> None:
+    from pokebench_env.readout import state_json
+
+    m = game((0, callback))
+    m.put(0x03005D8C, bytes(8))
+    state = read_game_state(m.read, MAPS)
+    assert state_json(state)["blackout_active"] is expected
+    assert state.game_stats is None

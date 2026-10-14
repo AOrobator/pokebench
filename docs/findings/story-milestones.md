@@ -94,3 +94,62 @@ The current 1848 recording lacks these raw trainer flags, so historical wins
 cannot be recovered from narration or gym-clear evidence. Source semantics and
 synthetic propagation are qualified separately from native proof, review,
 landing and benchmark benefit.
+
+
+### Expanded activity RAM: exact US ROM correspondence (2026-10-14)
+
+Reference remains pret/pokeemerald731ad5bfd6e6f265508d0efcca0ba42f9dcf5881, US ROM SHA1f3ae088181bf583e55daf962a92bb46f4f1d07b7. Read-only Thumb disassembly verifies GetGameStat0x080847F8: guard index<=0x33; literal0x0808481C holds save1 pointer owner0x03005D8C;0x08084820 holds0x159C;0x08084824 holds save2 owner0x03005D90. Instructions0x08084806–18 index*4, add159C, load encryptionKey+AC, XOR. SetGameStat0x08084830 independently uses the same layout/key. Counter values require initialized valid save blocks and coherent snapshot, never fabricated zeros on unavailable reads.
+
+CB2_WhiteOut function0x08085F58/callback0x08085F59 matches source overworld.c: ROM0x08085F5C literalgMain0x030022C0, state+0x438 increments, compares0x77 before DoWhiteOut0x08084620 at0x08085F7E. The callback runs120frames and then loads last-heal map and returns to CB2_Overworld0x08085E5D. DoWhiteOut ROM0x08084620 calls immediate script, halves money at save1+0x490, heals party, resets state and warps, matching source. A blackout activity is a newly observed entry into this callback with a known prior false state; it is not inferred from fainted HP, money loss or a teleport. Polling may miss the entire callback across gaps; no exhaustive count is claimed. This is ROM/source correspondence, not a performed native blackout in the active user run.
+
+### Expanded initial victories and activity RAM semantics (2026-10-14)
+
+Verified read-only pret source revision remains `731ad5bfd6e6f265508d0efcca0ba42f9dcf5881`.
+Initial opponent IDs in `include/constants/opponents.h`, resolved from the actual
+Route102/104 scripts, map through `TRAINER_FLAGS_START=0x500`:
+Route102 Calvin318, Rick615, Tiana603, Allen333; Route104 Ivan337, Billy319,
+Haley604, Winston136, Cindy114, Gina and Mia483, Darian696; Roxanne265.
+Gina and Mia's two scripts share one trainer ID and one victory. These initial
+flags remain readable after gym clear; only the previously added Josh/Tommy/Marc
+flags are made ambiguous by `Common_EventScript_SetGymTrainers`.
+`CB2_EndTrainerBattle` in `src/battle_setup.c` sets the battled-trainer flags on
+its non-defeat branch; lost/drawn player outcomes take the whiteout branch.
+Rematch registration reuses an initial trainer ID for its initial victory split;
+this does not count each subsequent rematch as a new milestone.
+
+`GetGameStat`/`SetGameStat` in `src/overworld.c` XOR the SaveBlock1 game-stat
+words at +0x159C with the SaveBlock2 key at +0xAC. Index0 is saved-game attempts,
+11 Pokémon captures,14 evolved Pokémon,15 Pokémon Center uses. The counters
+saturate at0xFFFFFF; larger decoded values are unavailable. Read validation now
+requires the SaveBlock1 pointer to contain the additional256-byte stat array.
+The words and key are read through the existing coherent frame/snapshot owner.
+
+The capture counter is incremented after a successful normal ball throw in
+`data/battle_scripts_2.s`, before nickname/storage prompts. Safari-ball captures
+skip this counter, so it is explicitly a normal capture counter, not an all-game
+Safari total. The evolution counter increments after species mutation and
+Pokédex updates in `src/evolution_scene.c`; canceled evolution does not do so.
+The nurse script increments Center uses before the animation and
+`HealPlayerParty`. Therefore the counter by itself proves an accepted heal
+interaction, not its completion. Completed-heal recording needs a subsequent
+verified script-release witness. `SaveDoSaveCallback` increments index0 before
+`TrySavingData`; the raw increment records an attempt, not guaranteed write
+success. Labels must retain that distinction.
+
+Party identity uses the already decoded Pokémon header personality and original
+trainer ID (+0/+4) as hexadecimal `personality:ot_id`, preserving identity across
+species, level, nickname and party-order changes. It is an identification key
+rather than a claim of global uniqueness; duplicate identities must not be
+matched for level-up inference. New reader tests cover all initial trainer bits
+and adjacent negatives, pregame unavailability, XOR keys including all-bits-set,
+exact stat indices, invalid/short reads, identity across reorder/evolution, and
+exact blackout callback versus adjacent-address negatives. These synthetic
+receipts do not claim new native battles, healing, or saves occurred.
+
+Reader mutation receipts: moving the stat array from +0x159C to +0x15A0 fails
+all three XOR/index tests. Replacing the exact whiteout callback with adjacent
+0x08085F5B fails two callback-boundary tests. Source restored, then all145
+focused reader/story/readout tests pass. The first adjacent-callback mutation
+check reused Python bytecode because its replacement had identical size and
+same-second mtime; deleting only the reader cache and rerunning established the
+failure above. No source or ROM bytes remain mutated.

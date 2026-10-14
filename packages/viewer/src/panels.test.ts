@@ -493,3 +493,13 @@ it('shows individual Gym trainers as unsupported for old logs and as recorded sp
  expect(current).toContain('rustboro gym trainer tommy defeated');expect(current).toContain('rustboro gym trainer marc defeated');
  expect(current).not.toContain('<td class="n">rustboro gym trainer tommy defeated</td><td class="t">not<br>recorded</td>');
 });
+
+it('shows native repeated activity receipts without inventing historical support',()=>{
+ const log=new Log();log.add(0,START);
+ const activity=log.add(100,{type:'activity',turn:0,kind:'save_attempt',count:2,server_timestamp:1,evidence:[1,2]});
+ expect(actionRow(activity)).toContain('save attempt ×2 · evidence #1, #2 · first observation (upper bound)');
+ const historical=new RunView();log.events.forEach(event=>{historical.apply(event);});
+ expect(splits(historical,null,BASE_MS+1000).table).toContain('first pokemon caught</td><td class="t">not<br>recorded');
+ const modern=new RunView();const native=new Log();native.add(0,{...START,harness_features:['native-progress-activity-v1']});native.events.forEach(event=>{modern.apply(event);});
+ expect(splits(modern,null,BASE_MS+1000).table).not.toContain('first pokemon caught</td><td class="t">not<br>recorded');
+});

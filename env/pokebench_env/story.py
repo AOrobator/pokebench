@@ -54,6 +54,20 @@ GYM_TRAINER_FLAGS = {
     "rustboro_tommy_defeated": 0x641,
     "rustboro_marc_defeated": 0x73B,
 }
+INITIAL_TRAINER_FLAGS = {
+    "roxanne_defeated": 0x609,
+    "route102_calvin_defeated": 0x63E,
+    "route102_rick_defeated": 0x767,
+    "route102_tiana_defeated": 0x75B,
+    "route102_allen_defeated": 0x64D,
+    "route104_ivan_defeated": 0x651,
+    "route104_billy_defeated": 0x63F,
+    "route104_haley_defeated": 0x75C,
+    "route104_winston_defeated": 0x588,
+    "route104_cindy_defeated": 0x572,
+    "route104_gina_mia_defeated": 0x6E3,
+    "route104_darian_defeated": 0x7B8,
+}
 VAR_FIELDS = {
     "intro_stage": (0x4092, 7),
     "rival_stage": (0x408D, 4),
@@ -82,6 +96,19 @@ class StoryState:
     rustboro_josh_defeated: bool | None = None
     rustboro_tommy_defeated: bool | None = None
     rustboro_marc_defeated: bool | None = None
+
+    roxanne_defeated: bool | None = None
+    route102_calvin_defeated: bool | None = None
+    route102_rick_defeated: bool | None = None
+    route102_tiana_defeated: bool | None = None
+    route102_allen_defeated: bool | None = None
+    route104_ivan_defeated: bool | None = None
+    route104_billy_defeated: bool | None = None
+    route104_haley_defeated: bool | None = None
+    route104_winston_defeated: bool | None = None
+    route104_cindy_defeated: bool | None = None
+    route104_gina_mia_defeated: bool | None = None
+    route104_darian_defeated: bool | None = None
 
     def json(self) -> dict[str, object]:
         return asdict(self)
@@ -120,6 +147,11 @@ class StoryState:
         ):
             if field is True:
                 completed.append(label)
+        for trainer_field in INITIAL_TRAINER_FLAGS:
+            if getattr(self, trainer_field) is True:
+                completed.append(
+                    trainer_field.removesuffix("_defeated").replace("_", " ") + " defeated"
+                )
         # The underlying JSON distinguishes false from unavailable.
         return "Story: " + ("; ".join(completed) if completed else "no completion confirmed")
 
@@ -163,12 +195,17 @@ def read_story(read: ReadMemory, screen: Screen, save1: int | None = None) -> St
         )
         for field, flag in GYM_TRAINER_FLAGS.items()
     }
+    initial_trainer_values = {
+        field: bool(flags[flag >> 3] & (1 << (flag & 7)))
+        for field, flag in INITIAL_TRAINER_FLAGS.items()
+    }
     variable_values: dict[str, int | None] = {}
     for field, (variable, maximum) in VAR_FIELDS.items():
         offset = 2 * (variable - 0x4000)
         value = int.from_bytes(variables[offset : offset + 2], "little")
         variable_values[field] = value if value <= maximum else None
     return StoryState(
+        **initial_trainer_values,
         name_confirmed=True,
         intro_stage=variable_values["intro_stage"],
         rival_stage=variable_values["rival_stage"],

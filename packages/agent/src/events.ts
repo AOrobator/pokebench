@@ -145,6 +145,15 @@ const Milestone = event("milestone", {
   evidence: Type.Optional(Type.Array(NonNegativeInt, {minItems:1,maxItems:3})),
 });
 
+const Activity = event("activity", {
+  kind: Type.Enum(["capture", "heal", "evolution", "level_up", "save_attempt", "blackout"] as const),
+  count: Type.Integer({minimum:1}), server_timestamp: Type.Number(),
+  evidence: Type.Array(NonNegativeInt,{minItems:2,maxItems:2}),
+  emulator_frame: Type.Optional(NonNegativeInt),
+  emulator_frame_kind: Type.Optional(Type.Literal("sample_upper_bound")),
+  pokemon: Type.Optional(Type.Object({identity:Type.String(),species:Type.String(),from_level:NonNegativeInt,to_level:NonNegativeInt},closed)),
+});
+
 const LoopFields = {
   kind: Type.Enum(["planning", "observation", "ineffective", "cycle", "rejection"] as const),
   message: Type.String(), calls: NonNegativeInt,
@@ -199,7 +208,26 @@ export const StateBodySchema = Type.Object(
       rustboro_josh_defeated: Type.Optional(Type.Union([Type.Boolean(), Type.Null()])),
       rustboro_tommy_defeated: Type.Optional(Type.Union([Type.Boolean(), Type.Null()])),
       rustboro_marc_defeated: Type.Optional(Type.Union([Type.Boolean(), Type.Null()])),
+      roxanne_defeated: Type.Optional(Type.Union([Type.Boolean(), Type.Null()])),
+      route102_calvin_defeated: Type.Optional(Type.Union([Type.Boolean(), Type.Null()])),
+      route102_rick_defeated: Type.Optional(Type.Union([Type.Boolean(), Type.Null()])),
+      route102_tiana_defeated: Type.Optional(Type.Union([Type.Boolean(), Type.Null()])),
+      route102_allen_defeated: Type.Optional(Type.Union([Type.Boolean(), Type.Null()])),
+      route104_ivan_defeated: Type.Optional(Type.Union([Type.Boolean(), Type.Null()])),
+      route104_billy_defeated: Type.Optional(Type.Union([Type.Boolean(), Type.Null()])),
+      route104_haley_defeated: Type.Optional(Type.Union([Type.Boolean(), Type.Null()])),
+      route104_winston_defeated: Type.Optional(Type.Union([Type.Boolean(), Type.Null()])),
+      route104_cindy_defeated: Type.Optional(Type.Union([Type.Boolean(), Type.Null()])),
+      route104_gina_mia_defeated: Type.Optional(Type.Union([Type.Boolean(), Type.Null()])),
+      route104_darian_defeated: Type.Optional(Type.Union([Type.Boolean(), Type.Null()])),
     }, closed), Type.Null()])),
+    blackout_active:Type.Optional(Type.Union([Type.Boolean(),Type.Null()])),
+    game_stats: Type.Optional(Type.Union([Type.Object({
+      pokemon_captures:Type.Union([NonNegativeInt,Type.Null()]),
+      evolved_pokemon:Type.Union([NonNegativeInt,Type.Null()]),
+      used_pokecenter:Type.Union([NonNegativeInt,Type.Null()]),
+      saved_game:Type.Union([NonNegativeInt,Type.Null()]),
+    },closed),Type.Null()])),
     naming: Type.Optional(Type.Union([Type.Object({
       text: Type.String(), page: Type.Enum(["symbols", "uppercase", "lowercase"]),
       column: Type.Integer({ minimum: 0, maximum: 8 }), row: Type.Integer({ minimum: 0, maximum: 3 }),
@@ -235,7 +263,7 @@ export const StateBodySchema = Type.Object(
     in_battle: Type.Boolean(),
     party: Type.Array(
       Type.Object(
-        { species: Type.String(), level: NonNegativeInt, hp: NonNegativeInt, max_hp: NonNegativeInt },
+        { identity:Type.Optional(Type.String()), species: Type.String(), level: NonNegativeInt, hp: NonNegativeInt, max_hp: NonNegativeInt },
         closed,
       ),
     ),
@@ -310,6 +338,7 @@ export const RunEventSchema = Type.Union([
   HumanSample,
   ToolResult,
   Milestone,
+  Activity,
   Retry,
   DiskUsage,
   FramesEvicted,

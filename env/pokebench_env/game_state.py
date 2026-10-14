@@ -66,6 +66,7 @@ class PartyMon:
     level: int
     hp: int
     max_hp: int
+    identity: str | None = None
 
 
 @dataclass(frozen=True)
@@ -94,6 +95,8 @@ class GameState:
     nearby: LocalMap | None = None
     topology: Topology | None = None
     player_elevation: int = 0
+    game_stats: dict[str, int | None] | None = None
+    blackout_active: bool | None = None
     destination_names: tuple[tuple[int, int, str], ...] = ()
 
 
@@ -122,8 +125,38 @@ def _party(read: ReadMemory) -> tuple[PartyMon, ...]:
         species_id = _species(body)
         name = decode_text(read(SPECIES_NAMES + 11 * species_id, 11)) if species_id < 412 else ""
         level, _, hp, max_hp = struct.unpack_from("<BBHH", body, 0x54)
-        members.append(PartyMon(name or f"species #{species_id}", level, hp, max_hp))
+        personality, ot_id = struct.unpack_from("<II", body)
+        members.append(
+            PartyMon(
+                name or f"species #{species_id}",
+                level,
+                hp,
+                max_hp,
+                f"{personality:08x}:{ot_id:08x}",
+            )
+        )
     return tuple(members)
+
+
+GAME_STAT_FIELDS = {
+    "saved_game": 0,
+    "pokemon_captures": 11,
+    "evolved_pokemon": 14,
+    "used_pokecenter": 15,
+}
+
+
+def _game_stats(read: ReadMemory, save1: int, save2: int) -> dict[str, int | None]:
+    body = read(save1 + 0x159C, 64 * 4)
+    key_body = read(save2 + 0xAC, 4)
+    if len(body) != 256 or len(key_body) != 4:
+        raise ValueError("short game-stat read")
+    key = int.from_bytes(key_body, "little")
+    values = {
+        name: struct.unpack_from("<I", body, index * 4)[0] ^ key
+        for name, index in GAME_STAT_FIELDS.items()
+    }
+    return {name: value if value <= 0xFFFFFF else None for name, value in values.items()}
 
 
 def _badges(read: ReadMemory, save1: int) -> tuple[str, ...]:
@@ -151,7 +184,7 @@ def read_game_state(
     if screen.kind not in PRE_GAME and screen.kind != "field_transition" and field_initialized:
         save1, save2 = struct.unpack("<II", read(SAVE_BLOCK_PTRS, 8))
     valid_saves = (
-        0x02000000 <= save1 <= 0x02040000 - 0x159C
+        0x02000000 <= save1 <= 0x02040000 - 0x169C
         and save1 % 4 == 0
         and 0x02000000 <= save2 <= 0x02040000 - 0xB0
         and save2 % 4 == 0
@@ -170,6 +203,7 @@ def read_game_state(
             None,
             None,
             None,
+            blackout_active=screen.callback2 == 0x08085F59,
             story=read_story(read, screen) if screen.kind in PRE_GAME else StoryState(),
             naming=read_naming(read, decode_text) if screen.callback2 == 0x080E4F59 else None,
             dialog=dialog,
@@ -191,6 +225,8 @@ def read_game_state(
     )
     targets = read_targets(read, map_id) if nearby is not None else None
     return GameState(
+        blackout_active=screen.callback2 == 0x08085F59,
+        game_stats=_game_stats(read, save1, save2),
         screen=screen.label,
         started=True,
         story=read_story(read, screen, save1),

@@ -199,9 +199,17 @@ def state_json(state: GameState) -> dict[str, object]:
         "facing": state.facing,
         "in_battle": state.in_battle,
         "party": [
-            {"species": m.species, "level": m.level, "hp": m.hp, "max_hp": m.max_hp}
+            {
+                "species": m.species,
+                "level": m.level,
+                "hp": m.hp,
+                "max_hp": m.max_hp,
+                **({"identity": m.identity} if m.identity is not None else {}),
+            }
             for m in state.party or ()
         ],
+        "game_stats": state.game_stats,
+        "blackout_active": state.blackout_active,
         "money": state.money,
         "badges": list(state.badges or ()),
         "play_time_s": _play_seconds(state),

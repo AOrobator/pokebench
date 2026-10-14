@@ -62,6 +62,7 @@ function body(event: RunEvent): [string, string] {
       const frames = event.frames.length === 0 ? "" : ` [${String(event.frames.length)} frame${event.frames.length === 1 ? "" : "s"}]`;
       return ["RESULT", `${event.name} ${status} ${String(event.duration_ms)}ms: ${clip(event.text, 80)}${frames}`];
     }
+    case "activity": return ["ACTIVITY", `${event.kind.replace("_"," ")} ×${String(event.count)}`];
     case "milestone":
       return ["MILESTONE", event.name];
     case "loop_guard": return ["LOOP", `${event.kind} ${event.phase}: ${event.message}`];

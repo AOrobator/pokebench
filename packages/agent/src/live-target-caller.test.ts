@@ -187,6 +187,9 @@ it.each([
   async (at, activeUi) => {
     vi.resetModules();
     owner.root = mkdtempSync(join(tmpdir(), "live-target-caller-"));
+    const romPath=join(owner.root,"fixture.gba");
+    writeFileSync(romPath,"test-owned ROM identity fixture");
+    vi.stubEnv("POKEBENCH_ROM",romPath);
     owner.elapsed = 0;
     owner.at = at;
     owner.observed = false;
@@ -229,8 +232,9 @@ it.each([
     );
     vi.spyOn(console, "log").mockImplementation(() => undefined);
     vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const named={...NAME_CONFIRMED,game_stats:null,blackout_active:false};
     const initial = {
-      ...NAME_CONFIRMED,
+      ...named,
       story: { ...NAME_CONFIRMED.story, name_confirmed: false },
     };
     vi.stubGlobal(
@@ -255,7 +259,7 @@ it.each([
         if (route === "/pokebench/state")
           return Promise.resolve(
             new Response(
-              JSON.stringify(owner.observed ? NAME_CONFIRMED : initial),
+              JSON.stringify(owner.observed ? named : initial),
             ),
           );
         if (route === "/pokebench/observation") {
@@ -265,7 +269,7 @@ it.each([
             new Response(
               JSON.stringify({
                 state_text: "Accepted trainer name",
-                state: NAME_CONFIRMED,
+                state: named,
                 screenshot_base64: FRAME.toString("base64"),
               }),
             ),

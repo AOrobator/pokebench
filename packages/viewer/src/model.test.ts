@@ -265,3 +265,25 @@ it('keeps a human hold immediately after resume outside the recorded pause inter
  expect(view.control.pausedBefore(hold?.endMs??0)).toBe(30000);
  expect((hold?.endMs??0)-(hold?.ms??0)).toBe(20);
 });
+
+it("recovers only confirmed historical route visits with first state evidence and replay bounds", () => {
+  const log = new Log(); log.add(0, START); log.add(100, state());
+  const first = log.add(1000, state({location:"ROUTE101",map_id:[0,16]}));
+  log.add(2000, state({location:"ROUTE101",map_id:[0,16]}));
+  expect(foldUntil(log.events,BASE_MS+999).milestones).toEqual([]);
+  expect(foldUntil(log.events,BASE_MS+3000).milestones).toEqual([{name:"ROUTE_101",ms:BASE_MS+1000,seq:first.seq,derived:true,kind:"navigation",origin:"observed",evidence:[first.seq]}]);
+  expect(log.events.filter(e=>e.type==="milestone")).toHaveLength(0);
+  for (const overrides of [{location:"ROUTE104 MR BRINEYS HOUSE",map_id:[0,19] as [number,number]},{location:"ROUTE104",map_id:[0,18] as [number,number]},{location:"ROUTE104",map_id:[0,19] as [number,number],screen:"field_transition" as const},{location:"ROUTE104",map_id:[0,19] as [number,number],in_battle:true},{location:"ROUTE104",map_id:[0,19] as [number,number],started:false}]) {
+    const wrong = new Log(); wrong.add(0,START); wrong.add(100,state(overrides)); expect(fold(wrong).milestones).toEqual([]);
+  }
+});
+it("keeps resumed route visits separate and lets modern recording own route milestones", () => {
+  const resumed = new Log(); resumed.add(0,{...START,start_state:{kind:"save_state",path:"resume",sha1:"0".repeat(40)}}); resumed.add(100,state({location:"ROUTE 102",map_id:[0,17]}));
+  expect(fold(resumed).milestones[0]).toMatchObject({name:"ROUTE_102",origin:"present_at_start",evidence:[1]});
+  const modern = new Log(); modern.add(0,{...START,harness_features:["native-progress-activity-v1"]}); modern.add(100,state({location:"ROUTE103",map_id:[0,18]})); expect(fold(modern).milestones).toEqual([]);
+});
+it('uses a native route receipt instead of a provisional recovery when present',()=>{
+ const log=new Log();log.add(0,START);log.add(100,state());log.add(200,state({location:'ROUTE102',map_id:[0,17]}));
+ const native=log.add(201,{type:'milestone',turn:1,name:'ROUTE_102',server_timestamp:1,kind:'navigation',origin:'observed',evidence:[2]});
+ expect(fold(log).milestones).toEqual([{name:'ROUTE_102',seq:native.seq,ms:BASE_MS+201,kind:'navigation',origin:'observed',evidence:[2]}]);
+});

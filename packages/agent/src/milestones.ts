@@ -1,3 +1,4 @@
+import {completedHeal} from "./activity.js";
 import type { RunEvent } from "./events.js";
 import type { GameStateSnapshot, StateSource } from "./game-state.js";
 
@@ -31,7 +32,7 @@ const knownPregame = (s: GameStateSnapshot): boolean => !s.started && (
 const savedWorld = (s:GameStateSnapshot):boolean => s.started && s.screen!=="field_transition";
 const place = (s: GameStateSnapshot, matches: (location: string) => boolean): boolean | null =>
   s.screen === "field_transition" ? null : s.started && s.location !== null ? matches(s.location) : knownPregame(s) ? false : null;
-const at = (location: string) => (s: GameStateSnapshot) => place(s, (current) => current === location);
+const at = (location: string) => (s: GameStateSnapshot) => place(s, (current) => current === location || (/^ROUTE \d+$/.test(location) && current === location.replace("ROUTE ", "ROUTE")));
 const flag = (field:
   | "name_confirmed" | "clock_set" | "rival_battle_won" | "pokedex_received"
   | "running_shoes_received" | "starter_tutorial_complete" | "rustboro_gym_complete"
@@ -40,6 +41,8 @@ const flag = (field:
   s.screen === "field_transition" ? null : (field === "name_confirmed" || savedWorld(s)) ? (s.story?.[field] ?? null) : null;
 const gymTrainer = (field: "rustboro_josh_defeated" | "rustboro_tommy_defeated" | "rustboro_marc_defeated") => (s: GameStateSnapshot): boolean | null =>
   savedWorld(s) && s.story?.rustboro_gym_complete === false ? (s.story[field] ?? null) : null;
+const trainer = (field: "roxanne_defeated" | "route102_calvin_defeated" | "route102_rick_defeated" | "route102_tiana_defeated" | "route102_allen_defeated" | "route104_ivan_defeated" | "route104_billy_defeated" | "route104_haley_defeated" | "route104_winston_defeated" | "route104_cindy_defeated" | "route104_gina_mia_defeated" | "route104_darian_defeated") => (s:GameStateSnapshot):boolean|null => savedWorld(s) ? s.story?.[field] ?? null : null;
+const countReached = (field:"pokemon_captures"|"evolved_pokemon") => (s:GameStateSnapshot):boolean|null => savedWorld(s) && s.game_stats?.[field]!=null ? s.game_stats[field]>0 : null;
 const stage = (field:
   | "intro_stage" | "rival_stage" | "birch_lab_stage" | "petalburg_gym_stage" | "woods_stage",
   values: readonly number[],
@@ -107,11 +110,25 @@ export const MILESTONES: readonly Milestone[] = [
   { name: "RECEIVED_POKEDEX", kind: "story", reached: flag("pokedex_received") },
   { name: "STARTER_TUTORIAL_COMPLETE", kind: "story", reached: flag("starter_tutorial_complete") },
   { name: "RUNNING_SHOES_RECEIVED", kind: "story", reached: flag("running_shoes_received") },
+  { name: "FIRST_POKEMON_CAUGHT", kind: "story", reached: countReached("pokemon_captures") },
+  { name: "FIRST_EVOLUTION", kind: "story", reached: countReached("evolved_pokemon") },
+  { name: "FIRST_POKECENTER_HEAL", kind: "story", reached: () => null },
   { name: "ROUTE_102", kind: "navigation", reached: at("ROUTE 102") },
+  { name: "ROUTE_102_TRAINER_CALVIN_DEFEATED", kind: "story", reached: trainer("route102_calvin_defeated") },
+  { name: "ROUTE_102_TRAINER_RICK_DEFEATED", kind: "story", reached: trainer("route102_rick_defeated") },
+  { name: "ROUTE_102_TRAINER_TIANA_DEFEATED", kind: "story", reached: trainer("route102_tiana_defeated") },
+  { name: "ROUTE_102_TRAINER_ALLEN_DEFEATED", kind: "story", reached: trainer("route102_allen_defeated") },
   { name: "PETALBURG_CITY", kind: "navigation", reached: at("PETALBURG CITY") },
   { name: "DAD_FIRST_MEETING", kind: "story", reached: stage("petalburg_gym_stage", [1, 2, 3, 4, 5, 6, 7, 8]) },
   { name: "WALLY_TUTORIAL_COMPLETE", kind: "story", reached: stage("petalburg_gym_stage", [2, 3, 4, 5, 6, 7, 8]) },
   { name: "ROUTE_104", kind: "navigation", reached: at("ROUTE 104") },
+  { name: "ROUTE_104_TRAINER_IVAN_DEFEATED", kind: "story", reached: trainer("route104_ivan_defeated") },
+  { name: "ROUTE_104_TRAINER_BILLY_DEFEATED", kind: "story", reached: trainer("route104_billy_defeated") },
+  { name: "ROUTE_104_TRAINER_HALEY_DEFEATED", kind: "story", reached: trainer("route104_haley_defeated") },
+  { name: "ROUTE_104_TRAINER_WINSTON_DEFEATED", kind: "story", reached: trainer("route104_winston_defeated") },
+  { name: "ROUTE_104_TRAINER_CINDY_DEFEATED", kind: "story", reached: trainer("route104_cindy_defeated") },
+  { name: "ROUTE_104_TRAINER_GINA_MIA_DEFEATED", kind: "story", reached: trainer("route104_gina_mia_defeated") },
+  { name: "ROUTE_104_TRAINER_DARIAN_DEFEATED", kind: "story", reached: trainer("route104_darian_defeated") },
   { name: "PETALBURG_WOODS", kind: "navigation", reached: at("PETALBURG WOODS") },
   { name: "TEAM_AQUA_WOODS_EVENT_COMPLETE", kind: "story", reached: stage("woods_stage", [1]) },
   { name: "RUSTBORO_CITY", kind: "navigation", reached: at("RUSTBORO CITY") },
@@ -119,6 +136,7 @@ export const MILESTONES: readonly Milestone[] = [
   { name: "RUSTBORO_GYM_TRAINER_JOSH_DEFEATED", kind: "story", reached: gymTrainer("rustboro_josh_defeated") },
   { name: "RUSTBORO_GYM_TRAINER_TOMMY_DEFEATED", kind: "story", reached: gymTrainer("rustboro_tommy_defeated") },
   { name: "RUSTBORO_GYM_TRAINER_MARC_DEFEATED", kind: "story", reached: gymTrainer("rustboro_marc_defeated") },
+  { name: "ROXANNE_DEFEATED", kind: "story", reached: trainer("roxanne_defeated") },
   { name: "RUSTBORO_GYM_COMPLETE", kind: "story", reached: flag("rustboro_gym_complete") },
   { name: "STONE_BADGE", kind: "story", reached: (s) => savedWorld(s) ? s.badges.includes("STONE") : null },
   { name: "ROCK_TOMB_RECEIVED", kind: "story", reached: flag("rock_tomb_received") },
@@ -168,6 +186,10 @@ export class StateMilestones implements MilestoneSource {
 
 // Shared native evidence qualification for objective completion and run targets.
 export function qualifiedNativeMilestone(event:Extract<RunEvent,{type:"milestone"}>,states:readonly (RunEvent|undefined)[]):boolean {
+ if(event.name==="FIRST_POKECENTER_HEAL") {
+  const baseline=states[0],accepted=states[1],finished=states[2];
+  return event.kind==="story"&&event.origin==="observed"&&states.length===3&&states.every((s,i)=>s?.type==="state"&&"started" in s&&s.run===event.run&&s.seq<event.seq&&s.seq===event.evidence?.[i]&&(i===0||s.seq>(states[i-1]?.seq??Infinity)))&&baseline?.type==="state"&&"started" in baseline&&accepted?.type==="state"&&"started" in accepted&&finished?.type==="state"&&"started" in finished&&baseline.game_stats?.used_pokecenter!=null&&accepted.game_stats?.used_pokecenter!=null&&accepted.game_stats.used_pokecenter>baseline.game_stats.used_pokecenter&&finished.game_stats?.used_pokecenter===accepted.game_stats.used_pokecenter&&completedHeal(finished);
+ }
  const definition=MILESTONES.find(item=>item.name===event.name);
  const last=states.at(-1);
  return definition!==undefined&&definition.kind!=="legacy"&&event.kind===definition.kind&&event.origin!==undefined&&states.length>0&&states.every(state=>state?.type==="state"&&"started" in state&&state.run===event.run&&state.seq<event.seq)&&last?.type==="state"&&"started" in last&&definition.reached(last)===true&&(!routeNames.has(event.name)||(event.origin==="observed"&&event.evidence?.length===states.length&&states.every((state,index)=>event.evidence?.[index]===state?.seq)&&states.every((state,index)=>index===0||(state !== undefined && state.seq > (states[index-1]?.seq ?? Infinity)))&&routeProof(event.name,states.filter((state):state is Extract<RunEvent,{type:"state"}> & GameStateSnapshot=>state?.type==="state"&&"started" in state))))&&(event.name!=="FIRST_TRUCK_EXIT"||(states.length===2&&states[0]?.type==="state"&&"location" in states[0]&&"started" in states[0]&&states[0].screen!=="field_transition"&&states[0].location==="INSIDE OF TRUCK"));

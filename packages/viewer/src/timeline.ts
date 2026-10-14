@@ -71,8 +71,16 @@ export function lanesSvg(view: RunView, nowMs: number, visible: readonly (typeof
     if(lane<0)continue;
     const cy = lane * LANE + LANE / 2;
     parts.push(
-      `<path class="m-milestone" d="M${f(cx)} ${f(cy - 9)}L${f(cx + 7)} ${f(cy)}L${f(cx)} ${f(cy + 9)}L${f(cx - 7)} ${f(cy)}Z"><title>${esc(milestone.name)}</title></path>`,
+      `<path class="m-milestone" d="M${f(cx)} ${f(cy - 9)}L${f(cx + 7)} ${f(cy)}L${f(cx)} ${f(cy + 9)}L${f(cx - 7)} ${f(cy)}Z"><title>${esc(milestone.name)}${milestone.derived === true ? ` · recovered · evidence ${milestone.evidence?.map(seq=>`#${String(seq)}`).join(", ") ?? `#${String(milestone.seq)}`} · first observation (upper bound)` : ""}</title></path>`,
     );
+  }
+  for (const activity of view.activities) {
+    const ms=eventMs(activity); const lane=visible.indexOf("milestones");
+    if(ms<t0||ms>nowMs||lane<0)continue;
+    const pokemon=activity.pokemon;
+    const detail=pokemon===undefined?"":` · ${pokemon.species} Lv${String(pokemon.from_level)}→${String(pokemon.to_level)}`;
+    const title=`${activity.kind.replaceAll("_"," ")} ×${String(activity.count)}${detail} · evidence ${activity.evidence.map(seq=>`#${String(seq)}`).join(", ")} · first observation (upper bound)`;
+    parts.push(`<circle class="m-milestone m-activity" cx="${f(x(ms))}" cy="${f(lane*LANE+LANE/2)}" r="4"><title>${esc(title)}</title></circle>`);
   }
   for (const mark of view.errors) {
     if (mark.ms < t0 || mark.ms > nowMs) continue;

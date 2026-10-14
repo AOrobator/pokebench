@@ -67,3 +67,13 @@ it('omits hidden agent markers as well as their labels on the shared human timel
  for(const mark of ['m-think','m-tool','m-error'])expect(svg).not.toContain(mark);
  expect(svg).toContain('m-press');expect(svg).toContain('m-milestone');
 });
+it('shows repeated native activity on the existing human milestone lane with evidence',()=>{
+ const log=new Log();log.add(0,START);
+ log.add(1000,{type:'activity',turn:0,kind:'capture',count:1,server_timestamp:1,evidence:[1,2]});
+ log.add(2000,{type:'activity',turn:0,kind:'capture',count:2,server_timestamp:2,evidence:[3,4]});
+ log.add(3000,{type:'activity',turn:0,kind:'level_up',count:1,server_timestamp:3,evidence:[5,6],pokemon:{identity:'abc',species:'<TORCHIC>',from_level:5,to_level:6}});
+ const v=view(log);expect(v.activities).toHaveLength(3);
+ const svg=lanesSvg(v,BASE_MS+4000,['presses','milestones']);expect(svg.match(/m-activity/g)).toHaveLength(3);
+ expect(svg).toContain('capture ×2 · evidence #3, #4 · first observation (upper bound)');expect(svg).toContain('&lt;TORCHIC&gt; Lv5→6');
+ expect(svg).toContain('viewBox="0 0 1000 80"');expect(lanesSvg(v,BASE_MS+100000,['presses','milestones'])).not.toContain('m-activity');
+});

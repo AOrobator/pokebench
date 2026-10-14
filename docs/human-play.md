@@ -61,3 +61,12 @@ New human runs save screenshots on a500ms schedule (target two per second), decl
 New recordings include separate splits for defeating Josh, Tommy and Marc, using their native trainer flags. The game also marks skipped trainers as defeated after Roxanne is beaten, so only flags confirmed before Gym completion establish these individual wins. Previously recorded wins remain in the timeline; an unobserved post-clear trainer status is unknown. Older runs lack these fields and show these splits as not recorded. This adds no automatic gameplay or save/RAM changes.
 
 The updated trainer-milestone preview is on port8801. For the next recording, open `http://127.0.0.1:8801/play#run=<current-run-id>` and use Start over after you finish the current run. The existing port8799 recording remains uninterrupted and retains its original state fields. The updated viewer can inspect historical runs, but cannot recover trainer flags those runs never stored.
+
+
+## Expanded progress and activity
+
+New recordings declare `native-progress-activity-v1`: initial Route102/104 trainer victories, Roxanne victory separately from badge receipt, first normal capture, first evolution and first completed Pokémon Center heal. Repeated normal captures, evolutions, completed Center heals, blackouts, identity-matched level gains and save attempts appear as timeline activity markers with recorded state evidence. Save attempts are labeled explicitly because the game increments its counter before writing; write success is not established. Normal capture totals exclude Safari-ball captures. Healing requires both a new accepted Center-use counter and a later full-health, unlocked overworld observation. Resumed cumulative counters establish a baseline, without fabricated repeated activities.
+
+The reader stores native counters, initial trainer flags, blackout callback status and stable party identity. Sampling timestamps and frame bounds are first-observation upper bounds; gaps may miss transient callbacks or level gains. Unknown data remains unavailable. Historical recordings cannot recover missing trainer/counter/identity fields. The viewer can recover the old missing Route101–104 splits from exact confirmed map state, retaining evidence sequence IDs and marking recovery; original event logs remain unchanged.
+
+Port8801 serves this expanded recorder for the next Start over. Keep playing an existing port8799 run to preserve it; its running recorder retains its original fields.

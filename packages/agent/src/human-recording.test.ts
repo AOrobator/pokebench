@@ -155,3 +155,18 @@ it('carries trainer RAM flags through human sampling into native milestone evide
  expect(wins).toHaveLength(1);expect(wins[0]).toMatchObject({name:'RUSTBORO_GYM_TRAINER_JOSH_DEFEATED',kind:'story',origin:'observed',emulator_frame:20});
  const win=wins[0];if(win?.type!=='milestone')throw Error('no native win');const evidence=events.find(e=>e.seq===win.evidence?.[0]);expect(evidence).toMatchObject({type:'state',story:{rustboro_josh_defeated:true,rustboro_gym_complete:false}});
 });
+
+it('records human activity and completed heal evidence from the production sampling owner',async()=>{
+ const {StateMilestones,qualifiedNativeMilestone}=await import('./milestones.js');const r=root();const log=RunLog.create(r,'progress-human');
+ const stats={pokemon_captures:0,evolved_pokemon:0,used_pokecenter:0,saved_game:0};const mon={identity:'12345678:87654321',species:'TORCHIC',level:5,hp:10,max_hp:20};
+ const game={...state,started:true,screen:'overworld',location:'ROUTE102',field_controls_locked:false,game_stats:stats,party:[mon],blackout_active:false};
+ const recorder=new RunRecorder({log,frames:new FrameStore(r),milestones:new StateMilestones({read:()=>Promise.resolve(game)}),gameState:{read:()=>Promise.resolve(game)}});
+ await recorder.start({...RUN_START_META,controller:{kind:'human',name:'Operator',rom_sha1:'a'.repeat(40),input_policy:'frame-held-v1',sample_ms:100,nominal_fps:59.7275,screenshot_ms:500},harness_features:['native-progress-activity-v1']},false);
+ recorder.recordHumanSample(10,false,png,game);
+ const accepted={...game,game_stats:{...stats,pokemon_captures:1,used_pokecenter:1},field_controls_locked:true};recorder.recordHumanSample(20,false,png,accepted);
+ recorder.recordHumanSample(30,false,png,{...accepted,field_controls_locked:false,party:[{...mon,hp:20,level:6}]});
+ const events=readFileSync(log.eventsPath,'utf8').trim().split('\n').map(parseEvent);
+ const activities=events.filter(e=>e.type==='activity');expect(activities.map(e=>e.kind)).toEqual(['capture','heal','level_up']);expect(activities[0]).toMatchObject({emulator_frame:20,emulator_frame_kind:'sample_upper_bound',count:1});
+ const heal=events.find(e=>e.type==='milestone'&&e.name==='FIRST_POKECENTER_HEAL');if(heal?.type!=='milestone')throw Error('missing heal');expect(heal.evidence).toHaveLength(3);expect(qualifiedNativeMilestone(heal,(heal.evidence??[]).map(seq=>events.find(e=>e.seq===seq)))).toBe(true);
+ const capture=activities[0];if(capture?.type!=='activity')throw Error('missing activity');expect(events.find(e=>e.seq===capture.evidence[1])).toMatchObject({type:'state',game_stats:{pokemon_captures:1}});
+});

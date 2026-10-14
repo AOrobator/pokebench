@@ -1858,6 +1858,108 @@
         "t",
         "turn",
         "type",
+        "kind",
+        "count",
+        "server_timestamp",
+        "evidence"
+      ],
+      "properties": {
+        "v": {
+          "type": "number",
+          "const": 1
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type": {
+          "type": "string",
+          "const": "activity"
+        },
+        "kind": {
+          "enum": [
+            "capture",
+            "heal",
+            "evolution",
+            "level_up",
+            "save_attempt",
+            "blackout"
+          ]
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "server_timestamp": {
+          "type": "number"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "emulator_frame": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "emulator_frame_kind": {
+          "type": "string",
+          "const": "sample_upper_bound"
+        },
+        "pokemon": {
+          "type": "object",
+          "required": [
+            "identity",
+            "species",
+            "from_level",
+            "to_level"
+          ],
+          "properties": {
+            "identity": {
+              "type": "string"
+            },
+            "species": {
+              "type": "string"
+            },
+            "from_level": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "to_level": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "run",
+        "seq",
+        "t",
+        "turn",
+        "type",
         "reason",
         "attempt",
         "limit"
@@ -2472,6 +2574,199 @@
                       "type": "null"
                     }
                   ]
+                },
+                "roxanne_defeated": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "route102_calvin_defeated": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "route102_rick_defeated": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "route102_tiana_defeated": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "route102_allen_defeated": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "route104_ivan_defeated": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "route104_billy_defeated": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "route104_haley_defeated": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "route104_winston_defeated": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "route104_cindy_defeated": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "route104_gina_mia_defeated": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "route104_darian_defeated": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "blackout_active": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "game_stats": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "pokemon_captures",
+                "evolved_pokemon",
+                "used_pokecenter",
+                "saved_game"
+              ],
+              "properties": {
+                "pokemon_captures": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "evolved_pokemon": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "used_pokecenter": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "saved_game": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 }
               },
               "additionalProperties": false
@@ -3056,6 +3351,9 @@
               "max_hp"
             ],
             "properties": {
+              "identity": {
+                "type": "string"
+              },
               "species": {
                 "type": "string"
               },
@@ -3203,6 +3501,9 @@
               "max_hp"
             ],
             "properties": {
+              "identity": {
+                "type": "string"
+              },
               "species": {
                 "type": "string"
               },

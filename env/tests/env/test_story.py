@@ -16,7 +16,10 @@ def test_story_reader_propagates_exact_game_variables_flags_and_text() -> None:
         m.put(address, bytes([m.read(address, 1)[0] | (1 << (flag & 7))]))
     state = read_game_state(m.read, MAPS)
     body = state_json(state)
+    from pokebench_env.story import INITIAL_TRAINER_FLAGS
+
     assert body["story"] == {
+        **{field: False for field in INITIAL_TRAINER_FLAGS},
         "name_confirmed": True,
         "intro_stage": 6,
         "rival_stage": 3,
@@ -301,3 +304,37 @@ def test_pregame_trainer_flags_are_unavailable(screen) -> None:
         _set_story_flag(m, flag)
     body = state_json(read_game_state(m.read, MAPS))["story"]
     assert all(body[field] is None for field, _, _ in GYM_TRAINERS)
+
+
+@pytest.mark.parametrize(
+    ("field", "trainer_id"),
+    [
+        ("roxanne_defeated", 265),
+        ("route102_calvin_defeated", 318),
+        ("route102_rick_defeated", 615),
+        ("route102_tiana_defeated", 603),
+        ("route102_allen_defeated", 333),
+        ("route104_ivan_defeated", 337),
+        ("route104_billy_defeated", 319),
+        ("route104_haley_defeated", 604),
+        ("route104_winston_defeated", 136),
+        ("route104_cindy_defeated", 114),
+        ("route104_gina_mia_defeated", 483),
+        ("route104_darian_defeated", 696),
+    ],
+)
+def test_initial_trainer_flag_exact_bit_and_adjacent_negative(field, trainer_id) -> None:
+    from pokebench_env.story import INITIAL_TRAINER_FLAGS
+
+    flag = 0x500 + trainer_id
+    assert INITIAL_TRAINER_FLAGS[field] == flag
+    m = game(OVERWORLD)
+    _set_story_flag(m, flag ^ 1)
+    assert state_json(read_game_state(m.read, MAPS))["story"][field] is False
+    m = game(OVERWORLD)
+    _set_story_flag(m, flag)
+    _set_story_flag(m, 0x4F0)
+    story = state_json(read_game_state(m.read, MAPS))["story"]
+    assert story[field] is True
+    assert all(story[key] is False for key in INITIAL_TRAINER_FLAGS if key != field)
+    assert state_json(read_game_state(game(NAMING).read, MAPS))["story"][field] is None

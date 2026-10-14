@@ -3,7 +3,7 @@ import { request } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { ALL_ON } from "@pokebench/agent/features";
+import { ALL_ON, FEATURES } from "@pokebench/agent/features";
 import { Log, START } from "../test-support/events.js";
 import { DEFAULT_NEXT_RUN, RunQueue } from "./next-run.js";
 import { connect } from "node:net";
@@ -74,7 +74,7 @@ describe("next run", () => {
     const { viewer: v } = await viewer();
     const features = await call(v, "GET", "/api/features");
     expect(features.status).toBe(200);
-    expect((features.json as { features: { id: string }[] }).features).toHaveLength(30);
+    expect((features.json as { features: { id: string }[] }).features).toHaveLength(FEATURES.length);
     expect(await call(v, "GET", "/api/next-run")).toEqual({ status: 200, json: { draft: DEFAULT_NEXT_RUN, queue: { state: "idle" } } });
     const draft = { ...DEFAULT_NEXT_RUN, model: "Qwen", features: { ...ALL_ON, "state-only-decisions-v1":false, "story-state-v1": false } };
     expect(await call(v, "PUT", "/api/next-run", draft)).toEqual({ status: 200, json: { draft, queue: { state: "idle" } } });

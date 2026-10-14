@@ -13,7 +13,7 @@ import { normalizeFeatures, FeatureSetSchema, parsePlayPreset, type PlayPresetV2
 import { controlLine, type ControlAction } from "@pokebench/agent/run-control";
 import { newRunId } from "@pokebench/agent/run";
 import { RUN_ID_PATTERN } from "@pokebench/agent/events";
-import { listRuns, readStart } from "./runs.js";
+import { listRuns, readStart, readFrom, runDir } from "./runs.js";
 
 const positive = Type.Integer({ minimum: 1 });
 export const NextRunSchema = Type.Object({
@@ -101,7 +101,7 @@ export async function appendControl(runsRoot: string, runId: string, action: Con
   if (!new RegExp(RUN_ID_PATTERN).test(runId) || !(await liveRuns(runsRoot, healthy)).includes(runId)) throw new NextRunError(`run ${runId} is not live`);
   // The run may have ended while its game server was being probed.
   if (listRuns(runsRoot).find((run) => run.id === runId)?.ended !== false) throw new NextRunError(`run ${runId} is not live`);
-  const path = join(runsRoot, runId, "control.jsonl");
+  const path = join(runDir(runsRoot, runId), "control.jsonl");
   const seq = existsSync(path) ? readFileSync(path, "utf8").split("\n").filter((line) => line !== "").length + 1 : 1;
   appendFileSync(path, `${controlLine(seq, action, now.toISOString())}\n`);
   return seq;
@@ -235,4 +235,134 @@ export function spawnLaunch(spec: LaunchSpec, node = process.execPath): Promise<
 
 export function randomSuffix(): string {
   return randomBytes(2).toString("hex");
+}
+
+export interface HumanRestartHost {
+  readonly runsRoot: string;
+  readonly liveJs: string;
+  healthy: HealthProbe;
+  now(): Date;
+  random(): string;
+  launch(spec: LaunchSpec): Promise<number | null>;
+  wait?(ms: number): Promise<void>;
+  readonly timeoutMs?: number;
+  readonly pollMs?: number;
+  readonly leasePath?: string;
+  monotonic?(): number;
+}
+const RestartReceiptSchema = Type.Object({source:Type.String({pattern:RUN_ID_PATTERN}),runId:Type.String({pattern:RUN_ID_PATTERN}),state:Type.Enum(['launching','ready','failed'] as const),attempt:Type.Optional(positive),error:Type.Optional(Type.String())},{additionalProperties:false});
+type RestartReceipt = Static<typeof RestartReceiptSchema>;
+
+// A restart is a new recorded run. The original run is stopped through its owner,
+// and its durable outcome and server drain precede any new emulator launch.
+export class HumanRestarts {
+  private active: { source: string; result: Promise<string> } | null = null;
+  constructor(private readonly host: HumanRestartHost) {}
+
+  restart(source: string): Promise<string> {
+    if (this.active !== null) return this.active.source === source ? this.active.result : Promise.reject(new NextRunError('a human restart is busy'));
+    const result = this.perform(source);
+    this.active = {source,result};
+    void result.then(()=>{this.active=null;},()=>{this.active=null;});
+    return result;
+  }
+
+  private monotonic():number { return this.host.monotonic?.()??performance.now(); }
+  private async until(check:()=>Promise<boolean>, message:string, deadline:number):Promise<void> {
+    const step=this.host.pollMs??100;
+    while(this.monotonic()<deadline){
+      const ready=await check();
+      if(this.monotonic()>=deadline)break;
+      if(ready)return;
+      await (this.host.wait?.(step)??new Promise<void>(resolve=>setTimeout(resolve,Math.min(step,Math.max(0,deadline-this.monotonic())))));
+    }
+    throw new NextRunError(`human restart timeout: ${message}`);
+  }
+
+  private async noOtherHuman(source:string):Promise<void> {
+    for(const run of listRuns(this.host.runsRoot)){
+      if(run.id===source||run.ended||run.problem!==null)continue;
+      const start=readStart(this.host.runsRoot,run.id);
+      if(start.controller?.kind==='human'&&await this.host.healthy(start.isolation.port))throw new NextRunError(`other human session ${run.id} is still live`);
+    }
+  }
+
+  private async perform(source:string):Promise<string> {
+    const {runsRoot}=this.host;
+    const deadline=this.monotonic()+(this.host.timeoutMs??20_000);
+    let start:ReturnType<typeof readStart>;
+    try{start=readStart(runsRoot,source);}catch(error){throw new NextRunError(String(error));}
+    if(start.controller?.kind!=='human')throw new NextRunError('restart requires a human run');
+    if(start.start_state.kind!=='boot')throw new NextRunError('restart requires a boot-start human run');
+    const dir=join(viewerDir(runsRoot),'human-restarts'),path=join(dir,`${source}.json`);
+    mkdirSync(dir,{recursive:true});
+    let receipt:RestartReceipt={source,runId:source,state:"launching"};
+    const readReceipt=():RestartReceipt=>{let value:unknown;try{value=JSON.parse(readFileSync(path,'utf8'));}catch{throw new NextRunError('invalid human restart receipt');}if(!Value.Check(RestartReceiptSchema,value)||value.source!==source||value.runId===source)throw new NextRunError('invalid human restart receipt');return value;};
+    const save=():void=>{writeFileSync(`${path}.tmp`,JSON.stringify(receipt)+'\n');renameSync(`${path}.tmp`,path);};
+    let childFailure:string|null=null;
+    const markChildFailure=(message:string):void=>{
+      childFailure=message;
+      // A late exit after an HTTP timeout still leaves a durable diagnosis.
+      // Completed restarts keep their mapping when the playthrough later ends.
+      try{const current=readReceipt();if(current.runId===receipt.runId&&current.state==='launching'){receipt={...current,state:'failed',error:message};save();}}catch{/* Launch log failures remain visible through the attached promise/error. */}
+    };
+    let retry:RestartReceipt|undefined;
+    if(existsSync(path)){
+      receipt=readReceipt();
+      if(receipt.state==='ready')return receipt.runId;
+      if(receipt.state==='failed'){
+        const previous=listRuns(runsRoot).find(run=>run.id===receipt.runId);
+        if(previous!==undefined&&!previous.ended)throw new NextRunError('failed human attempt has no terminal receipt; inspect launch receipts');
+        if(await this.host.healthy(start.isolation.port)||(this.host.leasePath!==undefined&&existsSync(this.host.leasePath)))throw new NextRunError('failed human attempt is still draining; retry after server and lease release');
+        retry=receipt;
+      }
+    }
+    if(!existsSync(path)||retry!==undefined){
+      await this.noOtherHuman(source);
+      if(listRuns(runsRoot).find(run=>run.id===source)?.ended!==true)await appendControl(runsRoot,source,'stop',this.host.now(),this.host.healthy);
+      await this.until(async()=>{const rows=readFrom(join(runDir(runsRoot,source),'events.jsonl'),0,0).results;if(rows.some(row=>!row.ok))throw new NextRunError('previous human log failed validation');const last=rows.at(-1);return last?.ok===true&&last.event.type==='run_end'&&last.event.run===source&&!await this.host.healthy(start.isolation.port)&&!(this.host.leasePath!==undefined&&existsSync(this.host.leasePath));},'previous run terminal/server/lease drain',deadline);
+      await this.noOtherHuman(source);
+      if(this.monotonic()>=deadline)throw new NextRunError('human restart timeout: before launch');
+      const attempt=(retry?.attempt??(retry===undefined?0:1))+1;
+      const runId=newRunId(this.host.now(),'human',()=>this.host.random()+(attempt>1?`-${String(attempt)}`:''));
+      if(existsSync(runDir(runsRoot,runId)))throw new NextRunError('new human run id already exists');
+      receipt={source,runId,state:'launching',attempt};
+      if(retry!==undefined){writeFileSync(join(dir,`${source}.attempt-${String(retry.attempt??1)}.json`),JSON.stringify(retry)+'\n',{flag:'wx'});rmSync(path);}
+      try{writeFileSync(path,JSON.stringify(receipt)+'\n',{flag:'wx'});}catch{receipt=readReceipt();if(receipt.state==='failed')throw new NextRunError(receipt.error??'human restart failed');if(receipt.state==='ready')return receipt.runId;await this.ready(receipt.runId,start.isolation.port,deadline);return receipt.runId;}
+      const receipts=join(runsRoot,'launch-receipts','human-restart');mkdirSync(receipts,{recursive:true});
+      const spec:LaunchSpec={runId,argv:[this.host.liveJs,'human'],env:{POKEBENCH_HUMAN_RUN_ID:runId,POKEBENCH_RUNS_ROOT:runsRoot,POKEBENCH_HUMAN_START_PAUSED:'true',POKEBENCH_HUMAN_VALIDATION:String(start.harness_features.includes('probe')),POKEBENCH_HUMAN_PORT:String(start.isolation.port)},stdout:join(receipts,`${runId}.stdout.log`),stderr:join(receipts,`${runId}.stderr.log`)};
+      try{void this.host.launch(spec).then(code=>{markChildFailure(`human launch exited ${String(code)}; see ${spec.stderr}`);},(error:unknown)=>{markChildFailure(`human launch failed: ${String(error)}; see ${spec.stderr}`);});}catch(error){markChildFailure(`human launch failed: ${String(error)}; see ${spec.stderr}`);}
+    }
+    const observedFailure=():string|null=>{
+      if(childFailure!==null)return childFailure;
+      const current=readReceipt();
+      return current.runId===receipt.runId&&current.state==='failed'?(current.error??'human restart failed'):null;
+    };
+    try{
+      await this.ready(receipt.runId,start.isolation.port,deadline,observedFailure);
+      const failed=observedFailure();if(failed!==null)throw new NextRunError(failed);
+      receipt={...receipt,state:'ready'};save();return receipt.runId;
+    }catch(error){
+      const current=readReceipt();
+      if(current.runId===receipt.runId&&current.state==='failed')throw new NextRunError(current.error??'human restart failed');
+      const timeout=error instanceof NextRunError&&error.message.includes('restart timeout:');receipt={...receipt,state:timeout?'launching':'failed',error:String(error)};save();throw error;
+    }
+  }
+
+  private async ready(runId:string,port:number,deadline:number,failure:()=>string|null=()=>null):Promise<void> {
+    await this.until(async()=>{
+      const failed=failure();if(failed!==null)throw new NextRunError(failed);
+      const path=join(runDir(this.host.runsRoot,runId),'events.jsonl');if(!existsSync(path))return false;
+      const results=readFrom(path,0,0).results;
+      if(results.some(r=>!r.ok))throw new NextRunError('new human log failed validation');
+      const events=results.flatMap(r=>r.ok?[r.event]:[]),first=events[0];
+      if(first===undefined)return false;
+      if(first.type!=='run_start'||first.run!==runId||first.controller?.kind!=='human'||first.start_state.kind!=='boot'||first.isolation.port!==port||events.some(e=>e.run!==runId))throw new NextRunError('new human launch identity failed validation');
+      if(events.some(e=>e.type==='run_end'))throw new NextRunError('new human run ended before paused readiness');
+      const control=events.filter(e=>e.type==='operator_control'&&e.status==='applied').at(-1);
+      const paused = control?.type==='operator_control'&&control.action==='pause'&&control.emulator_frozen===true;
+      const up=await this.host.healthy(port);const exited=failure();if(exited!==null)throw new NextRunError(exited);
+      return paused&&up;
+    },'new human paused readiness',deadline);
+  }
 }

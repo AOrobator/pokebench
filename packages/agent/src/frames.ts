@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { appendFileSync, mkdirSync, readdirSync, statSync, unlinkSync, writeFileSync } from "node:fs";
+import { appendFileSync, readFileSync, mkdirSync, readdirSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { formatBytes } from "./format.js";
 import { easternTimestamp, type RunLog } from "./run-log.js";
@@ -35,6 +35,14 @@ export class FrameStore {
   private lastPercent: Percent = 0;
   private tracked: number | undefined;
   private pending: Pending[] = [];
+  private protectActive = false;
+  protectActiveRuns():void {this.protectActive=true;}
+  private isActive(run:string):boolean {
+    try {
+      const lines=readFileSync(join(this.runsRoot,run,"events.jsonl"),"utf8").trim().split("\n");
+      return !lines.some(line => {try{return (JSON.parse(line) as {type?:string}).type==="run_end";}catch{return false;}});
+    } catch {return true;}
+  }
 
   constructor(
     readonly runsRoot: string,
@@ -103,6 +111,15 @@ export class FrameStore {
   save(log: RunLog, seq: number, index: number, pngBase64: string): FrameRef {
     const bytes = Buffer.from(pngBase64, "base64");
     const path = `frames/${String(seq).padStart(6, "0")}_${String(index)}.png`;
+    if(this.protectActive) {
+      const usage=this.usage();
+      if(usage+bytes.length>this.capBytes) {
+        const candidates=this.frames().filter(frame=>frame.run!==log.runId&&!this.isActive(frame.run));
+        if(candidates.reduce((sum,frame)=>sum+frame.bytes,0)<usage+bytes.length-this.capBytes) throw new FrameCapError("Frame cap reached; active recordings are protected. Free completed run frames before recording again.");
+        this.evict(usage+bytes.length-Math.floor(this.capBytes*EVICT_TO),log.runId,entry=>{this.pending.push({kind:"evicted",...entry});});
+      }
+      this.tracked=this.usage();
+    }
     mkdirSync(join(log.runDir, "frames"), { recursive: true });
     writeFileSync(join(log.runDir, path), bytes);
     const sha1 = createHash("sha1").update(bytes).digest("hex");
@@ -140,6 +157,7 @@ export class FrameStore {
     let freed = 0;
     for (const frame of this.frames()) {
       if (freed >= needBytes) break;
+      if(this.protectActive && (frame.run===byRunId||this.isActive(frame.run))) continue;
       unlinkSync(frame.path);
       freed += frame.bytes;
       const entry = byRun.get(frame.run) ?? { files: 0, bytes: 0 };

@@ -33,6 +33,7 @@ type Start = Extract<RunEvent, { type: "run_start" }>;
 // A run whose recorded features are not exactly a registry play set (probes,
 // smoke runs, older harness revisions) has no comparable configuration.
 export function configOf(start: Start): RunConfig | null {
+  if (start.controller?.kind === "human") return null;
   if (start.start_state.kind !== "boot") return null;
   const features = featuresOf(start.harness_features);
   const target = start.evaluation?.target ?? null;

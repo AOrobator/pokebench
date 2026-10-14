@@ -94,3 +94,7 @@ probe saved="": build
 # Fresh-ROM state gate, recorded in the viewer as a non-benchmark probe.
 verify-state: build
     node packages/agent/dist/live.js verify-state
+
+# Human play at 1x, recorded on an isolated server; open printed /play URL.
+run-human: build
+    node packages/agent/dist/live.js human

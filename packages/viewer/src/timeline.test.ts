@@ -55,3 +55,15 @@ describe("lanesSvg", () => {
     expect(lanesSvg(view(log), BASE_MS + 10)).toContain("<title>&lt;script&gt;</title>");
   });
 });
+it('keeps the shared human timeline compact and simultaneous held buttons aligned',()=>{
+ const v=new RunView();v.presses.push({seq:1,ms:BASE_MS+1000,endMs:BASE_MS+5000,startFrame:60,endFrame:300,buttons:['A','UP'],hold:240,release:0,assumed:false});
+ const svg=lanesSvg(v,BASE_MS+6000,['presses','milestones']);expect(svg).toContain('viewBox="0 0 1000 80"');
+ for(const lane of ['thinking','tool calls','errors'])expect(svg).not.toContain(`>${lane}</text>`);
+ const bars=[...svg.matchAll(/class="m-press b-(?:A|UP)"[^>]* x="([^"]+)"[^>]* width="([^"]+)"/g)];expect(bars).toHaveLength(2);expect(bars[0]?.[1]).toEqual(bars[1]?.[1]);expect(bars[0]?.[2]).toEqual(bars[1]?.[2]);
+ expect(lanesSvg(v,BASE_MS+120000,['presses','milestones'])).not.toContain('m-press');
+});
+it('omits hidden agent markers as well as their labels on the shared human timeline',()=>{
+ const svg=lanesSvg(view(fullRun()),BASE_MS+9000,['presses','milestones']);
+ for(const mark of ['m-think','m-tool','m-error'])expect(svg).not.toContain(mark);
+ expect(svg).toContain('m-press');expect(svg).toContain('m-milestone');
+});

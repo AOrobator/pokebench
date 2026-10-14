@@ -1,10 +1,12 @@
 // `just view [id]`: serve the viewer on 127.0.0.1 and print where to look.
+import { execFileSync } from "node:child_process";
+import { humanLeasePath } from "@pokebench/agent/run";
 import { fileURLToPath } from "node:url";
 import { RUN_ID_PATTERN } from "@pokebench/agent/events";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { RunQueue, healthProbe, randomSuffix, spawnLaunch } from "./next-run.js";
+import { HumanRestarts, RunQueue, healthProbe, randomSuffix, spawnLaunch } from "./next-run.js";
 import { startViewer, type Viewer, type ViewerOptions } from "./server.js";
 
 export const DEFAULT_PORT = 8790;
@@ -69,12 +71,14 @@ export interface MainDeps {
   readonly appDir: string;
   readonly start: (options: ViewerOptions) => Promise<Viewer>;
   readonly print: (line: string) => void;
+  readonly humanLeasePath?: string;
 }
 
 export async function main(argv: readonly string[], deps: MainDeps): Promise<Viewer> {
   const args = parseArgs(argv, deps.repoRunsRoot, deps.defaultEndpoint);
   const queue = new RunQueue({ runsRoot: args.runsRoot, liveJs: deps.liveJs, endpointFile: args.endpointFile, gamePort: QUEUE_GAME_PORT, healthy: healthProbe(), now: () => new Date(), random: randomSuffix, launch: (spec) => spawnLaunch(spec) });
-  const viewer = await deps.start({ runsRoot: args.runsRoot, staticDir: deps.staticDir, appDir: deps.appDir, port: args.port, endpointFile: args.endpointFile, queue });
+  const restarts = new HumanRestarts({runsRoot:args.runsRoot,liveJs:deps.liveJs,healthy:healthProbe(),now:()=>new Date(),random:randomSuffix,launch:spec=>spawnLaunch(spec),...(deps.humanLeasePath===undefined?{}:{leasePath:deps.humanLeasePath})});
+  const viewer = await deps.start({ runsRoot: args.runsRoot, staticDir: deps.staticDir, appDir: deps.appDir, port: args.port, endpointFile: args.endpointFile, queue, restartHuman:id=>restarts.restart(id) });
   deps.print(`PokeBench viewer: ${viewUrl(viewer.url, args.runId)}`);
   deps.print(`runs: ${args.runsRoot} (Ctrl-C to stop)`);
   deps.print(args.endpointFile === null ? "next runs: no local model endpoint file; queueing is disabled" : `next runs: local models from ${args.endpointFile}`);
@@ -85,6 +89,7 @@ if (import.meta.main) {
   const here = (path: string): string => fileURLToPath(new URL(path, import.meta.url));
   main(process.argv.slice(2), {
     repoRunsRoot: here("../../../runs"),
+    humanLeasePath: humanLeasePath(here("../../../"), execFileSync("git", ["rev-parse", "--git-common-dir"], {cwd:here("../../../"),encoding:"utf8"}).trim()),
     defaultEndpoint: process.env["POKEBENCH_ENDPOINT_FILE"] ?? (existsSync(HERMES_ENDPOINT) ? HERMES_ENDPOINT : null),
     liveJs: here("../../agent/dist/live.js"),
     staticDir: here("../static"),

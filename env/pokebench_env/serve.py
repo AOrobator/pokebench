@@ -7,6 +7,7 @@ checkout on `sys.path`; the working directory is the run's server dir (INV-7).
 """
 
 import base64
+import os
 import sys
 from collections.abc import Callable, Sequence
 from contextlib import AbstractContextManager
@@ -21,6 +22,7 @@ from pydantic import BaseModel
 from pokebench_env.audio import EmulatorLike
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import MapNames
+from pokebench_env.human import HumanServer, install_human
 from pokebench_env.observation import ScreenshotFn, install_observation
 from pokebench_env.pause import SteppingServer, install_pause
 from pokebench_env.view import install_spectator
@@ -73,13 +75,19 @@ def run(
     | tuple[FastAPI, ScreenshotFn, ReadMemory, MapNames, AbstractContextManager[object]]
     | None = None,
     pause: tuple[FastAPI, SteppingServer] | None = None,
+    human: tuple[FastAPI, HumanServer, str] | None = None,
 ) -> None:
     if pause is not None:
         install_pause(*pause)
     if spectator is not None:
         install_spectator(*spectator)
+    capture = None
     if observation is not None:
-        install_observation(*observation)
+        capture = install_observation(*observation)
+    if human is not None:
+        api, server, token = human
+        controller = install_human(api, server, token, observe=capture)
+        install_pause(api, server, input_pause=controller.set_paused)
     pin_localhost(uvicorn)
     sys.argv = ["server.app", *argv]
     vendor_main()
@@ -90,6 +98,7 @@ def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
     from pokemon_env.emulator import EmeraldEmulator
     from server import app  # vendor module, on PYTHONPATH
 
+    token = os.environ.get("POKEBENCH_HUMAN_TOKEN")
     run(
         sys.argv[1:],
         uvicorn=cast(UvicornLike, uvicorn),
@@ -103,7 +112,8 @@ def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
             MapNames.load(PORYMAP_MAPS),
             app.memory_lock,
         ),
-        pause=(app.app, cast(SteppingServer, app)),
+        pause=None if token else (app.app, cast(SteppingServer, app)),
+        human=(app.app, cast(HumanServer, app), token) if token else None,
     )
 
 

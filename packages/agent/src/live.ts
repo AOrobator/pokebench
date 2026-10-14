@@ -9,14 +9,15 @@
 import { execFileSync, spawn } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import { activeUiFeatures } from "./ui-feature.js";
-import { readFileSync } from "node:fs";
+import { humanPlan, humanLease, humanRunId, driveHuman } from "./human.js";
+import { writeFileSync, readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { objectiveHarness } from "./objective-tools.js";
 import { playHarnessFeatures, serverFeatureEnv } from "./features.js";
 import { PLAY_LIMITS, PLAY_MAX_TOKENS, PLAY_TASK, PLAY_THINKING, objectiveSwitches, playGoal, playSystemPrompt, playTools, toolSwitches } from "./play-config.js";
 import { verifyIntro } from "./verify-state.js";
 import { driveProbe, parseProbeCommand, type ProbeCommand } from "./probe.js";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runAgentLoop, type AgentMessage } from "@mariozechner/pi-agent-core";
 import { loadConfig } from "./config.js";
@@ -28,7 +29,7 @@ import {flagFeatures,parsePlayPreset,presetFeatures,presetFlags} from "./play-pr
 import {runStateMode,stateOnlyPrompt,stateOnlyProblems} from "./state-runtime.js";
 import {withNavigation} from "./navigation.js";
 import {NativeTargetStop} from "./target-stop.js";
-import { BudgetTimer, ControlFile, RunControl, freezeGame, watchControl } from "./run-control.js";
+import { BudgetTimer, ControlFile, RunControl, freezeGame, watchControl, controlLine } from "./run-control.js";
 import {RUN_ID_PATTERN} from "./events.js";
 import { StateMilestones } from "./milestones.js";
 import { readLoopMode } from "./loop-detection.js";
@@ -36,7 +37,7 @@ import { attachLoopGuard, Governor, piLoop, play } from "./harness.js";
 import { discoverLocal, readEndpoint } from "./local-endpoint.js";
 import { gatewayLoopConfig } from "./provider.js";
 import type { RunRecorder } from "./recorder.js";
-import { harnessInfo, newRunId, withRun, type RunHost, type ServerHandle } from "./run.js";
+import { harnessInfo, humanLeasePath, newRunId, withRun, type RunHost, type ServerHandle } from "./run.js";
 
 const HEALTH_TIMEOUT_MS = 180_000;
 const LOOP_TIMEOUT_MS = 420_000;
@@ -154,6 +155,7 @@ async function smoke(): Promise<void> {
 
   const reason = await withRun(
     {
+      romSha1:romSha1(),
       runsRoot: RUNS_ROOT,
       runId,
       port,
@@ -226,6 +228,7 @@ async function playAgent(): Promise<void> {
 
   const reason = await withRun(
     {
+      romSha1:romSha1(),
       runsRoot: RUNS_ROOT,
       runId,
       port,
@@ -335,6 +338,7 @@ async function probe(verify = false): Promise<void> {
   }
   try {
     const reason = await withRun({
+      romSha1:romSha1(),
       runsRoot: RUNS_ROOT, runId, port,
       model: { id: "manual-probe", context_window: 0, max_tokens: 0, vision: false },
       sampling: { thinking_level: "none", max_tokens: 0 },
@@ -346,8 +350,38 @@ async function probe(verify = false): Promise<void> {
   } finally { lines.close(); }
 }
 
+function romSha1():string {
+  const rom=process.env["POKEBENCH_ROM"];
+  if(rom===undefined)throw new Error("POKEBENCH_ROM is required");
+  return createHash("sha1").update(readFileSync(rom)).digest("hex");
+}
+
+async function playHuman(): Promise<void> {
+  const port = Number(process.env["POKEBENCH_HUMAN_PORT"] ?? "8040");
+  if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error("invalid human port");
+  const rom = process.env["POKEBENCH_ROM"];
+  if (rom === undefined) throw new Error("POKEBENCH_ROM is required");
+  const runsRoot = join(process.env["POKEBENCH_RUNS_ROOT"] ?? RUNS_ROOT,"human");
+  const runId = humanRunId(process.env["POKEBENCH_HUMAN_RUN_ID"], new Date(), () => randomBytes(2).toString("hex"));
+  const release = humanLease(dirname(humanLeasePath(REPO_ROOT,git(REPO_ROOT)(["rev-parse","--git-common-dir"]).trim())), runId);
+  const token = randomBytes(32).toString("hex");
+  const runDir = join(runsRoot, runId);
+  const abort = new AbortController();
+  const onSignal = (): void => { abort.abort(); };
+  process.on("SIGINT",onSignal); process.on("SIGTERM",onSignal);
+  try {
+    const basePlan = humanPlan(runsRoot,runId,port,romSha1());
+    const plan = {...basePlan,romSha1:romSha1(),harnessFeatures:[...basePlan.harnessFeatures,...(process.env["POKEBENCH_HUMAN_VALIDATION"]==="true"?["probe"]:[])]};
+    const host=realHost(port,undefined,{...process.env,POKEBENCH_HUMAN_TOKEN:token});
+    await withRun(plan,{...host,launchServer:async(dir,id,p)=>{writeFileSync(join(dir,"human-token"),token,{mode:0o600,flag:"wx"});if(process.env["POKEBENCH_HUMAN_START_PAUSED"]==="true")writeFileSync(join(dir,"control.jsonl"),controlLine(1,"pause",new Date().toISOString())+"\n",{flag:"wx"});return host.launchServer(dir,id,p);}},new FrameStore(runsRoot),async(recorder,url)=>{
+      console.log(`Human play: http://127.0.0.1:8791/play#run=${runId}`);
+      return driveHuman(recorder,url,join(runDir,"control.jsonl"),abort.signal,fetch,token);
+    });
+  } finally { process.off("SIGINT",onSignal);process.off("SIGTERM",onSignal);release(); }
+}
+
 const command = process.argv[2];
-const entry = command === "smoke" ? smoke : command === "play" ? playAgent : command === "probe" ? () => probe() : command === "verify-state" ? () => probe(true) : null;
+const entry = command === "smoke" ? smoke : command === "human" ? playHuman : command === "play" ? playAgent : command === "probe" ? () => probe() : command === "verify-state" ? () => probe(true) : null;
 if (entry === null) {
   console.error("usage: live.js smoke | live.js play | live.js probe [save-state]");
   process.exitCode = 2;

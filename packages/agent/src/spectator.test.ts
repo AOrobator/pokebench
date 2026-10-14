@@ -149,3 +149,8 @@ describe("spectator audio", () => {
     expect(deps.fetch.mock.calls[0]?.[1].signal.aborted).toBe(true);
   });
 });
+it('plays fixed human audio at 1x despite delayed or undersized segments and can suspend directly',async()=>{
+ vi.useFakeTimers();const {deps,stops}=setup();const follower=new AudioFollower(deps,1);await follower.toggle();
+ deps.fetch.mockResolvedValueOnce(wav(9600,14400));await vi.advanceTimersByTimeAsync(100);expect(deps.play.mock.calls[1]?.[1]).toBe(1);
+ deps.fetch.mockResolvedValueOnce(wav(4,14404));await vi.advanceTimersByTimeAsync(100);expect(deps.play.mock.calls[2]?.[1]).toBe(1);follower.mute();expect(stops[2]).toHaveBeenCalledOnce();await vi.advanceTimersByTimeAsync(500);expect(deps.fetch).toHaveBeenCalledTimes(3);
+});

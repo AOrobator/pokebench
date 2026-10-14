@@ -46,7 +46,7 @@ describe("main", () => {
     const start = vi.fn().mockResolvedValue({ url: "http://127.0.0.1:8790/", port: 8790, address: "127.0.0.1", close: () => Promise.resolve() });
     const lines: string[] = [];
     await main(["abc", "--runs", "/x/runs"], { repoRunsRoot: "/repo/runs", defaultEndpoint: "/e.json", liveJs: "/l.js", staticDir: "/s", appDir: "/a", start, print: (line) => lines.push(line) });
-    expect(start).toHaveBeenCalledWith({ runsRoot: "/x/runs", staticDir: "/s", appDir: "/a", port: 8790, endpointFile: "/e.json", queue: expect.any(RunQueue) as unknown });
+    expect(start).toHaveBeenCalledWith({ runsRoot: "/x/runs", staticDir: "/s", appDir: "/a", port: 8790, endpointFile: "/e.json", queue: expect.any(RunQueue) as unknown, restartHuman: expect.any(Function) as unknown });
     expect(lines).toEqual(["PokeBench viewer: http://127.0.0.1:8790/#run=abc", "runs: /x/runs (Ctrl-C to stop)", "next runs: local models from /e.json"]);
     await main(["--runs", "/x/runs"], { repoRunsRoot: "/repo/runs", defaultEndpoint: null, liveJs: "/l.js", staticDir: "/s", appDir: "/a", start, print: (line) => lines.push(line) });
     expect(lines.at(-1)).toBe("next runs: no local model endpoint file; queueing is disabled");

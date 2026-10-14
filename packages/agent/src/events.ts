@@ -18,6 +18,9 @@ const Sha1 = Type.String({ pattern: "^[0-9a-f]{40}$" });
 export const BUTTONS = ["A", "B", "START", "SELECT", "UP", "DOWN", "LEFT", "RIGHT"] as const;
 export const ButtonSchema = Type.Enum(BUTTONS);
 export type Button = Static<typeof ButtonSchema>;
+export const HUMAN_BUTTONS = [...BUTTONS, "L", "R"] as const;
+export const HumanButtonSchema = Type.Enum(HUMAN_BUTTONS);
+export type HumanButton = Static<typeof HumanButtonSchema>;
 
 export const RUN_END_REASONS = ["completed", "milestone", "budget", "stuck", "crash", "model_error", "operator_abort", "operator_stop"] as const;
 const RunEndReason = Type.Enum(RUN_END_REASONS);
@@ -43,6 +46,8 @@ const Args = Type.Record(Type.String(), Type.Unknown());
 const Evaluation = Type.Object({preset_id:Type.String({minLength:1}),target:Type.Union([Type.String({minLength:1}),Type.Null()]),failure_limit:Type.Integer({minimum:1}),flags:Type.Object({loopGuard:Type.Boolean(),activeUi:Type.Boolean(),interfaceDocs:Type.Boolean(),objectives:Type.Boolean()},closed)},closed);
 const TargetProof = Type.Object({name:Type.String({minLength:1}),milestone_seq:NonNegativeInt,state_evidence:Type.Array(NonNegativeInt,{minItems:1,maxItems:3})},closed);
 const RunStart = event("run_start", {
+  rom_sha1: Type.Optional(Sha1),
+  controller: Type.Optional(Type.Object({ kind: Type.Literal("human"), name: Type.String({minLength:1}), rom_sha1: Sha1, input_policy: Type.Literal("frame-held-v1"), sample_ms: Type.Literal(100), screenshot_ms: Type.Optional(Type.Literal(500)), nominal_fps: Type.Literal(59.7275) }, closed)),
   evaluation:Type.Optional(Evaluation),
   model: Type.Object(
     { id: Type.String({ minLength: 1 }), context_window: NonNegativeInt, max_tokens: NonNegativeInt, vision: Type.Boolean() },
@@ -112,6 +117,16 @@ const ButtonPress = event("button_press", {
   release_frames: Type.Optional(Frames),
 });
 
+const HumanInput = event("human_input", {
+  id: Type.Integer({minimum:1}), start_frame: NonNegativeInt, end_frame: NonNegativeInt,
+  buttons: Type.Array(HumanButtonSchema, {uniqueItems:true}), start_ms: NonNegativeInt, end_ms: NonNegativeInt,
+  request_seq: NonNegativeInt, session: Type.String({minLength:1}),
+});
+const HumanSample = event("human_sample", {
+  frame: NonNegativeInt, paused: Type.Boolean(),
+  screenshot: Type.Object({path: Type.String({pattern:"^frames/\\d{6}_\\d+\\.png$"}), sha1: Sha1}, closed),
+});
+
 const ToolResult = event("tool_result", {
   id: Type.String(),
   name: Type.String(),
@@ -122,6 +137,8 @@ const ToolResult = event("tool_result", {
 });
 
 const Milestone = event("milestone", {
+  emulator_frame: Type.Optional(NonNegativeInt),
+  emulator_frame_kind: Type.Optional(Type.Literal("sample_upper_bound")),
   name: Type.String({ minLength: 1 }), server_timestamp: Type.Number(),
   kind: Type.Optional(Type.Enum(["story", "navigation", "legacy"])),
   origin: Type.Optional(Type.Enum(["observed", "present_at_start"])),
@@ -286,6 +303,8 @@ export const RunEventSchema = Type.Union([
   ButtonPress,
   DecisionInput,
   WaitInput,
+  HumanInput,
+  HumanSample,
   ToolResult,
   Milestone,
   Retry,

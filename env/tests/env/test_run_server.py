@@ -63,7 +63,9 @@ def test_server_env_isolates_the_run(tmp_path: Path) -> None:
     )
     assert env == {
         "PATH": "/usr/bin",
-        "PYTHONPATH": str(tmp_path / "vendor"),
+        "PYTHONPATH": os.pathsep.join(
+            (str(tmp_path / "vendor"), str(Path(__file__).resolve().parents[2]))
+        ),
         "RUN_DATA_ID": "2026-10-11T21-40-05_think-swarm_a1b2",
         "LOAD_CHECKPOINT_MODE": "false",
         "PYTHONPYCACHEPREFIX": str(tmp_path / "pycache"),

@@ -178,3 +178,14 @@ describe("readRun", () => {
     expect(() => readRun(runDir)).toThrow(/events.jsonl:2/);
   });
 });
+
+it("keeps human outcomes inspectable but outside all model aggregate reach rates", () => {
+  const humanEvents = FINISHED.map((e) => e.type === "run_start" ? { ...e, model: { ...e.model, id: "Human · Operator" }, controller: { kind: "human", name: "Operator", rom_sha1: "c".repeat(40), input_policy: "frame-held-v1", sample_ms: 100, nominal_fps: 59.7275 } as const } : { ...e, run: "human" });
+  const human = summarize(humanEvents);
+  expect(human).toMatchObject({ human: true, model: "Human · Operator", reason: "budget" });
+  const lines = summaryLines([summarize(FINISHED), human]);
+  expect(lines).toContain("1 runs: 0 incomplete");
+  expect(lines).toContain("PLAYER_NAME_SET   reached 1/1  median turn 2  median wall 1m30s");
+  expect(lines.join("\n")).toContain("Human · Operator");
+  expect(lines.join("\n")).toContain("1 human sessions excluded from model benchmark results");
+});

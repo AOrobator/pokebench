@@ -15,7 +15,7 @@ export class AudioFollower {
   private timer: ReturnType<typeof setTimeout> | undefined;
   private stop: (() => void) | undefined;
 
-  constructor(private readonly deps: AudioDependencies) {}
+  constructor(private readonly deps: AudioDependencies, private readonly fixedRate?: 1) {}
 
   async toggle(): Promise<void> {
     if (!this.muted) {
@@ -37,7 +37,7 @@ export class AudioFollower {
     }
   }
 
-  private mute(): void {
+  mute(): void {
     this.muted = true;
     ++this.generation;
     this.controller.abort();
@@ -80,7 +80,7 @@ export class AudioFollower {
         for (let i = 0; i < pcm.length; ++i) pcm[i] = view.getInt16(44 + i * 2, true);
         // The owned route caps each response at 12000 / 48000 = 0.25 s;
         // with >=100 ms between responses, the raw rate is already <=2.5.
-        const rate = Math.max(0.25, pcm.length / 2 / 48000 / elapsed);
+        const rate = this.fixedRate ?? Math.max(0.25, pcm.length / 2 / 48000 / elapsed);
         this.stop = this.deps.play(pcm, rate);
       }
       this.timer = setTimeout(() => { void this.poll(generation); }, 100);

@@ -746,6 +746,52 @@
           "type": "string",
           "const": "run_start"
         },
+        "rom_sha1": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "controller": {
+          "type": "object",
+          "required": [
+            "kind",
+            "name",
+            "rom_sha1",
+            "input_policy",
+            "sample_ms",
+            "nominal_fps"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "human"
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "rom_sha1": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "input_policy": {
+              "type": "string",
+              "const": "frame-held-v1"
+            },
+            "sample_ms": {
+              "type": "number",
+              "const": 100
+            },
+            "screenshot_ms": {
+              "type": "number",
+              "const": 500
+            },
+            "nominal_fps": {
+              "type": "number",
+              "const": 59.7275
+            }
+          },
+          "additionalProperties": false
+        },
         "evaluation": {
           "type": "object",
           "required": [
@@ -1497,6 +1543,164 @@
         "turn",
         "type",
         "id",
+        "start_frame",
+        "end_frame",
+        "buttons",
+        "start_ms",
+        "end_ms",
+        "request_seq",
+        "session"
+      ],
+      "properties": {
+        "v": {
+          "type": "number",
+          "const": 1
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type": {
+          "type": "string",
+          "const": "human_input"
+        },
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "start_frame": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_frame": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "buttons": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "A",
+              "B",
+              "START",
+              "SELECT",
+              "UP",
+              "DOWN",
+              "LEFT",
+              "RIGHT",
+              "L",
+              "R"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "start_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "request_seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "session": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "run",
+        "seq",
+        "t",
+        "turn",
+        "type",
+        "frame",
+        "paused",
+        "screenshot"
+      ],
+      "properties": {
+        "v": {
+          "type": "number",
+          "const": 1
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type": {
+          "type": "string",
+          "const": "human_sample"
+        },
+        "frame": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "paused": {
+          "type": "boolean"
+        },
+        "screenshot": {
+          "type": "object",
+          "required": [
+            "path",
+            "sha1"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "pattern": "^frames/\\d{6}_\\d+\\.png$"
+            },
+            "sha1": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "run",
+        "seq",
+        "t",
+        "turn",
+        "type",
+        "id",
         "name",
         "is_error",
         "duration_ms",
@@ -1604,6 +1808,14 @@
         "type": {
           "type": "string",
           "const": "milestone"
+        },
+        "emulator_frame": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "emulator_frame_kind": {
+          "type": "string",
+          "const": "sample_upper_bound"
         },
         "name": {
           "type": "string",

@@ -244,3 +244,24 @@ it("labels passive thresholds without inventing run termination",()=>{
  const log=new Log();log.add(0,START);const event=log.add(100,{type:"loop_guard",turn:1,kind:"planning",mode:"diagnostic",phase:"would_stop",message:"threshold",calls:12,evidence:[1]});const view=fold(log);
  expect(view.loopLabel(event as Extract<typeof event,{type:"loop_guard"}>)).toContain("diagnostic: would stop");expect(view.end).toBe(null);expect(view.retry).toBe(null);
 });
+
+it("folds human simultaneous intervals and saved samples for replay without inferred release time",()=>{
+ const log=new Log();log.add(0,START);
+ log.add(210,{type:"human_input",turn:0,id:1,start_frame:0,end_frame:6,buttons:["A","UP"],start_ms:BASE_MS+100,end_ms:BASE_MS+200,request_seq:1,session:"keyboard"});
+ log.add(310,{type:"human_input",turn:0,id:2,start_frame:6,end_frame:12,buttons:[],start_ms:BASE_MS+200,end_ms:BASE_MS+300,request_seq:2,session:"idle"});
+ log.add(315,{type:"human_sample",turn:0,frame:12,paused:false,screenshot:{path:"frames/000004_0.png",sha1:"a".repeat(40)}});
+ const view=fold(log);expect(view.frame).toBe("frames/000004_0.png");expect(view.humanFrame).toBe(12);
+ expect(view.presses).toEqual([{seq:1,ms:BASE_MS+100,endMs:BASE_MS+200,buttons:["A","UP"],hold:6,release:0,assumed:false,startFrame:0,endFrame:6}]);
+ expect(view.thinkingSpans).toEqual([]);expect(view.toolSpans).toEqual([]);
+ expect(foldUntil(log.events,BASE_MS+250).frame).toBe(null);expect(foldUntil(log.events,BASE_MS+315).frame).toBe(view.frame);
+});
+it('keeps a human hold immediately after resume outside the recorded pause interval',()=>{
+ const log=new Log();log.add(0,START);
+ log.add(2000,{type:'operator_control',turn:0,action:'pause',status:'applied',request:1,emulator_frozen:true});
+ log.add(32000,{type:'operator_control',turn:0,action:'resume',status:'applied',request:2,paused_ms:30000});
+ log.add(32020,{type:'human_input',turn:0,id:2,start_frame:1,end_frame:2,buttons:['A'],start_ms:BASE_MS+32000,end_ms:BASE_MS+32020,request_seq:1,session:'after-pause'});
+ const view=fold(log);const hold=view.presses[0];expect(hold).toMatchObject({ms:BASE_MS+32000,endMs:BASE_MS+32020,hold:1});
+ expect(view.control.pausedBefore(hold?.ms??0)).toBe(30000);
+ expect(view.control.pausedBefore(hold?.endMs??0)).toBe(30000);
+ expect((hold?.endMs??0)-(hold?.ms??0)).toBe(20);
+});

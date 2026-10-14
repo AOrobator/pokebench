@@ -6,7 +6,7 @@ import { Type } from "typebox";
 import { Value } from "typebox/value";
 import { FEATURES } from "@pokebench/agent/features";
 import { CONTROL_ACTIONS } from "@pokebench/agent/events";
-import { BaselineError, RunsError, baselineOf, comparisonsOf, eventsPath, listRuns, liveScreenPort, readFrom, runDir } from "./runs.js";
+import { BaselineError, RunsError, baselineOf, comparisonsOf, eventsPath, listRuns, liveScreenPort, readStart, readFrom, runDir } from "./runs.js";
 import { featureHistory } from "./history.js";
 import { localModels } from "./models.js";
 import { NextRunError, appendControl, healthProbe, liveRuns, readDraft, writeDraft, type RunQueue } from "./next-run.js";
@@ -14,7 +14,7 @@ import { MILESTONE_ORDER } from "./model.js";
 
 export const HOST = "127.0.0.1";
 // Browser code the page may load; everything else in dist/ stays private.
-export const BROWSER_MODULES = ["main", "app", "model", "format", "inspectformat", "timeline", "panels", "gba", "replay", "controls", "nextpanel"] as const;
+export const BROWSER_MODULES = ["main", "app", "model", "format", "inspectformat", "timeline", "panels", "gba", "replay", "controls", "nextpanel", "human-input", "human-play", "human-main"] as const;
 
 const MODULE_NAME = new RegExp(`^(${BROWSER_MODULES.join("|")})\\.js$`);
 const FRAME_NAME = /^\d{6}_\d+\.png$/;
@@ -41,9 +41,13 @@ export interface ViewerOptions {
   readonly endpointFile?: string | null;
   readonly queue?: RunQueue;
   readonly now?: () => Date;
+  readonly restartHuman?: (runId: string) => Promise<string>;
 }
 
 const MAX_BODY = 64 * 1024;
+const HumanAcceptedSchema=Type.Object({accepted:Type.Literal(true)},{additionalProperties:false});
+const HumanClaimSchema=Type.Object({session:Type.String({pattern:"^[A-Za-z0-9_-]{8,128}$"})},{additionalProperties:false});
+const HumanInputSchema=Type.Object({session:Type.String({pattern:"^[A-Za-z0-9_-]{8,128}$"}),seq:Type.Integer({minimum:1}),release:Type.Optional(Type.Boolean()),buttons:Type.Array(Type.Enum(["A","B","START","SELECT","UP","DOWN","LEFT","RIGHT","L","R"]),{maxItems:10,uniqueItems:true})},{additionalProperties:false});
 const ControlBodySchema = Type.Object({ action: Type.Enum(CONTROL_ACTIONS) }, { additionalProperties: false });
 
 class RequestError extends Error {
@@ -81,6 +85,25 @@ async function write(req: IncomingMessage, res: ServerResponse, options: ViewerO
       if (!Value.Check(ControlBodySchema, body)) throw new RequestError(400, "action must be pause, resume, stop, cancel_stop or abort");
       sendJson(res, 200, { request: await appendControl(options.runsRoot, id, body.action, now, healthProbe(options.fetchFn ?? fetch)) });
       return;
+    }
+    if(req.method==="POST" && parts.length===5 && second==="runs" && id!==undefined && leaf==="human" && parts[4]==="restart") {
+      if(!Value.Check(Type.Object({},{additionalProperties:false}),body))throw new RequestError(400,"restart body must be empty");
+      const start=readStart(options.runsRoot,id);
+      if(start.controller?.kind!=="human")throw new RequestError(409,"restart requires a human run");
+      if(options.restartHuman===undefined)throw new RequestError(503,"human restart is unavailable");
+      sendJson(res,200,{run_id:await options.restartHuman(id)});return;
+    }
+    if(req.method==="POST" && parts.length===5 && second==="runs" && id!==undefined && leaf==="human" && (parts[4]==="claim"||parts[4]==="input")) {
+      const operation=parts[4];
+      if(!Value.Check(operation==="claim"?HumanClaimSchema:HumanInputSchema,body))throw new RequestError(400,"invalid human input");
+      const start=readStart(options.runsRoot,id);
+      const gamePort=liveScreenPort(options.runsRoot,id);
+      if(start.controller?.kind!=="human"||gamePort===null)throw new RequestError(409,"select a live human run");
+      const token=readFileSync(join(runDir(options.runsRoot,id),"human-token"),"utf8");
+      const response=await (options.fetchFn??fetch)(`http://127.0.0.1:${String(gamePort)}/pokebench/human/${operation}`,{method:"POST",headers:{"content-type":"application/json","x-human-token":token},body:JSON.stringify(body),signal:AbortSignal.timeout(3000)});
+      const result:unknown=await response.json();
+      if(response.ok&&!Value.Check(HumanAcceptedSchema,result))throw new RequestError(502,"human server did not acknowledge input");
+      sendJson(res,response.status,result);return;
     }
     // The queued run launches with the draft it was queued with: no edits until cancelled.
     const queuedNow = options.queue?.status().state;
@@ -259,6 +282,12 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     sendFile(res, join(options.staticDir, "index.html"), "text/html; charset=utf-8");
     return;
   }
+  if(parts.length===1 && head==="play") {
+    sendFile(res,join(options.staticDir,"play.html"),"text/html; charset=utf-8");return;
+  }
+  if(parts.length===1 && head==="human.css") {
+    sendFile(res,join(options.staticDir,"human.css"),"text/css; charset=utf-8");return;
+  }
   if (parts.length === 1 && head === "style.css") {
     sendFile(res, join(options.staticDir, "style.css"), "text/css; charset=utf-8");
     return;
@@ -266,6 +295,9 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
   if (parts.length === 2 && head === "fonts" && second !== undefined && FONT_NAME.test(second)) {
     sendFile(res, join(options.staticDir, "fonts", second), "font/woff2");
     return;
+  }
+  if(parts.length===2 && head==="app" && second==="agent-spectator.js") {
+    sendFile(res,join(options.appDir,"../../agent/dist/spectator.js"),"text/javascript; charset=utf-8");return;
   }
   if (parts.length === 2 && head === "app" && second !== undefined && MODULE_NAME.test(second)) {
     sendFile(res, join(options.appDir, second), "text/javascript; charset=utf-8");
@@ -283,6 +315,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
   try {
     if (id === undefined) throw new RunsError("no run id");
     const dir = runDir(options.runsRoot, id);
+    if(parts.length===4 && leaf==="start") {sendJson(res,200,readStart(options.runsRoot,id));return;}
     if (parts.length === 4 && leaf === "events") {
       const path = eventsPath(options.runsRoot, id);
       if (!existsSync(path)) throw new RunsError(`run ${id} has no events.jsonl`);
@@ -305,6 +338,19 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     if (parts.length === 5 && leaf === "frames" && file !== undefined && FRAME_NAME.test(file)) {
       sendFile(res, join(dir, "frames", file), "image/png");
       return;
+    }
+    if(parts.length===4 && leaf==="audio.wav") {
+      const start=readStart(options.runsRoot,id);const gamePort=liveScreenPort(options.runsRoot,id);
+      if(start.controller?.kind!=="human"||gamePort===null){sendJson(res,409,{error:"select a live human run"});return;}
+      const url=new URL(req.url??"",`http://127.0.0.1:${String(port)}`);
+      const since=Number(url.searchParams.get("since")??"-1");const max=Number(url.searchParams.get("max_frames")??"12000");
+      if(!Number.isSafeInteger(since)||since< -1||!Number.isSafeInteger(max)||max<1||max>12000){sendJson(res,400,{error:"invalid audio cursor"});return;}
+      const response=await (options.fetchFn??fetch)(`http://127.0.0.1:${String(gamePort)}/audio.wav?since=${String(since)}&max_frames=${String(max)}`,{signal:AbortSignal.timeout(3000)});
+      if(!response.ok){sendJson(res,502,{error:"audio unavailable"});return;}
+      const bytes=Buffer.from(await response.arrayBuffer());
+      if(bytes.length>48044||bytes.length<44){sendJson(res,502,{error:"invalid audio segment"});return;}
+      for(const name of ["X-Audio-Next","X-Audio-Skipped","X-Audio-Epoch"]){const value=response.headers.get(name);if(value!==null)res.setHeader(name,value);}
+      send(res,200,"audio/wav",bytes);return;
     }
     if (parts.length === 4 && leaf === "screen") {
       const live = liveScreenPort(options.runsRoot, id);

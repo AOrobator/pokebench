@@ -767,4 +767,10 @@ it("mounts state-input and host-wait history, timeline, selected inspector and f
  waitRow.click();expect(ui("inspector").textContent).toContain('"type": "wait_input"');expect(ui("inspector").textContent).toContain('"duration_ms": 60');expect(ui("inspector").textContent).toContain("wait-one");expect(waitRow.classList.contains("sel")).toBe(true);
  app.tick(70000);expect(ui("lanes").querySelectorAll('[aria-label*="WAIT 60 ms (host time)"]')).toHaveLength(0);
  expect(ui("log").querySelector(`[data-seq="${String(wait.seq)}"]`)?.textContent).toContain("WAIT 60 ms (host time)");
+
+});
+it('labels human comparison candidates with unverified ROM provenance',async()=>{
+ document.body.innerHTML=PAGE.slice(PAGE.indexOf('<body>')+6,PAGE.indexOf('</body>'));
+ const app=await mountApp(document,{fetchJson:url=>nextRunReply(url) ?? Promise.resolve(url==='/api/runs'?RUNS:{candidates:[{run:'human-unknown',milestones:[],controller:{kind:'human',name:'Operator'},romIdentity:'unverified'},{run:'human-verified',milestones:[],controller:{kind:'human',name:'Operator'},romIdentity:'verified'}],baseline:null,best:null}),sendJson:noWrites,openStream:url=>new FakeStream(url),now:()=>BASE_MS,hash:''});
+ await Promise.resolve();expect(ui('baseline').textContent).toContain('human-unknown (ROM unverified)');expect(ui('baseline').textContent).toContain('human-verified');expect(ui('baseline').textContent).not.toContain('human-verified (ROM unverified)');app.tick(0);
 });

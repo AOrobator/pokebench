@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
@@ -213,4 +213,86 @@ it("refuses a control request for a run that ended while its server was probed",
   const probe = async (port: number): Promise<boolean> => { liveRun(runsRoot, "ending", true, 9001); return healthy(port); };
   await expect(appendControl(runsRoot, "ending", "stop", NOW, probe)).rejects.toThrow(/not live/);
   expect(existsSync(join(runsRoot, "ending", "control.jsonl"))).toBe(false);
+});
+
+import { HumanRestarts, type HumanRestartHost } from './next-run.js';
+function restartFixture(ended=false,paused=true,probe=false) {
+ const r=root(),up=new Set<number>([9001]),launches:LaunchSpec[]=[];let waits=0;let exit:(code:number|null)=>void=()=>undefined;
+ const write=(id:string,terminal:boolean,pause:boolean,port=9001)=>{const log=new Log();log.add(0,{...START,controller:{kind:'human',name:'Operator',rom_sha1:'c'.repeat(40),input_policy:'frame-held-v1',sample_ms:100,nominal_fps:59.7275},harness_features:['ram-state-v1',...(probe?['probe']:[])],isolation:{...START.isolation,port}});if(pause)log.add(1,{type:'operator_control',turn:0,action:'pause',status:'applied',request:1,emulator_frozen:true});if(terminal)log.add(2,{type:'run_end',turn:0,reason:'operator_stop',furthest_milestone:null,turns:0,wall_ms:2,tokens:{input:0,output:0},frames:{saved:0,bytes:0}});mkdirSync(join(r,'human',id),{recursive:true});writeFileSync(join(r,'human',id,'events.jsonl'),log.events.map(e=>JSON.stringify({...e,run:id})).join('\n')+'\n');};
+ write('old',ended,paused);if(ended)up.clear();
+ const h:HumanRestartHost={runsRoot:r,liveJs:'/repo/live.js',now:()=>NOW,random:()=> 'beef',healthy:p=>Promise.resolve(up.has(p)),timeoutMs:200,pollMs:1,wait:()=>{waits++;if(existsSync(join(r,'human','old','control.jsonl'))){write('old',true,paused);up.delete(9001);}return Promise.resolve();},launch:spec=>{launches.push(spec);expect(up.has(9001)).toBe(false);expect(readFileSync(join(r,'human','old','events.jsonl'),'utf8')).toContain('run_end');write(spec.runId,false,true);up.add(9001);return new Promise(resolve=>{exit=resolve;});}};
+ return {r,h,write,up,launches,waits:()=>waits,exit:(code:number|null)=> { exit(code); }};
+}
+it.each([true,false])('restarts an %s paused human only after a durable terminal and port drain',async paused=>{
+ const f=restartFixture(false,paused,true),restarts=new HumanRestarts(f.h);const id=await restarts.restart('old');
+ expect(f.launches).toHaveLength(1);expect(f.waits()).toBeGreaterThan(0);expect(readFileSync(join(f.r,'human','old','control.jsonl'),'utf8')).toContain('"action":"stop"');
+ expect(f.launches[0]).toMatchObject({runId:id,argv:['/repo/live.js','human'],env:{POKEBENCH_HUMAN_RUN_ID:id,POKEBENCH_RUNS_ROOT:f.r,POKEBENCH_HUMAN_START_PAUSED:'true',POKEBENCH_HUMAN_VALIDATION:'true',POKEBENCH_HUMAN_PORT:'9001'}});
+ expect(f.launches[0]?.stderr).toContain('/launch-receipts/human-restart/');
+ expect(await restarts.restart('old')).toBe(id);expect(await new HumanRestarts(f.h).restart('old')).toBe(id);expect(f.launches).toHaveLength(1);f.exit(0);
+});
+it('restarts an ended human without another stop and preserves non-probe identity',async()=>{
+ const f=restartFixture(true);const id=await new HumanRestarts(f.h).restart('old');expect(existsSync(join(f.r,'human','old','control.jsonl'))).toBe(false);expect(f.launches[0]?.env['POKEBENCH_HUMAN_VALIDATION']).toBe('false');expect(id).not.toBe('old');f.exit(0);
+});
+it('deduplicates the same source while rejecting different-source concurrent resets',async()=>{
+ const f=restartFixture();let release:()=>void=()=>undefined;f.h.wait=()=>new Promise(resolve=>{release=()=>{f.write('old',true,true);f.up.clear();resolve();};});
+ const restarts=new HumanRestarts(f.h);const a=restarts.restart('old'),b=restarts.restart('old');await expect(restarts.restart('another')).rejects.toThrow(/busy/);await vi.waitFor(()=> { expect(existsSync(join(f.r,'human','old','control.jsonl'))).toBe(true); });release();expect(await a).toBe(await b);expect(f.launches).toHaveLength(1);f.exit(0);
+});
+it('rejects model, nonboot, other live human sessions, and old stop timeout without launching',async()=>{
+ const model=restartFixture(true);liveRun(model.r,'model');await expect(new HumanRestarts(model.h).restart('model')).rejects.toThrow(/human/);expect(existsSync(join(model.r,'model','control.jsonl'))).toBe(false);
+ const saved=restartFixture(true);const path=join(saved.r,'human','old','events.jsonl');writeFileSync(path,readFileSync(path,'utf8').replace('"kind":"boot"','"kind":"save_state","path":"save","sha1":"'+ 'd'.repeat(40)+'"'));await expect(new HumanRestarts(saved.h).restart('old')).rejects.toThrow(/boot/);
+ const other=restartFixture();other.write('other',false,true,9003);other.up.add(9003);await expect(new HumanRestarts(other.h).restart('old')).rejects.toThrow(/other.*human|human.*other/);expect(existsSync(join(other.r,'human','old','control.jsonl'))).toBe(false);
+ const stuck=restartFixture();stuck.h.wait=()=>Promise.resolve();await expect(new HumanRestarts(stuck.h).restart('old')).rejects.toThrow(/timeout/);expect(stuck.launches).toHaveLength(0);
+});
+it.each(['exit','reject','unpaused','crash'] as const)('surfaces new %s failure and retains restart receipt without a repeat launch',async mode=>{
+ const f=restartFixture(true);f.h.launch=spec=>{f.launches.push(spec);if(mode==='exit')return Promise.resolve(1);if(mode==='reject')return Promise.reject(new Error('spawn failed'));f.write(spec.runId,mode==='crash',false);f.up.add(9001);return new Promise(()=>undefined);};
+ const restarts=new HumanRestarts(f.h);await expect(restarts.restart('old')).rejects.toThrow(/failed|exit|timeout|ended/);expect(f.launches).toHaveLength(1);expect(readFileSync(join(f.r,'.viewer','human-restarts','old.json'),'utf8')).toContain(mode==='unpaused'?'launching':'failed');if(mode==='unpaused'||mode==='crash'){await expect(new HumanRestarts(f.h).restart('old')).rejects.toThrow();expect(f.launches).toHaveLength(1);}
+});
+it('waits for an ended server to drain and rejects a persisted malformed restart receipt',async()=>{
+ const f=restartFixture(true);f.up.add(9001);f.h.wait=()=>{f.up.clear();return Promise.resolve();};await new HumanRestarts(f.h).restart('old');f.exit(0);
+ const invalid=restartFixture(true);mkdirSync(join(invalid.r,'.viewer','human-restarts'),{recursive:true});writeFileSync(join(invalid.r,'.viewer','human-restarts','old.json'),'{}');await expect(new HumanRestarts(invalid.h).restart('old')).rejects.toThrow(/receipt/);expect(invalid.launches).toHaveLength(0);
+});
+
+it('waits for the canonical human lease and a complete terminal line before launching',async()=>{
+ const f=restartFixture(true),lease=join(f.r,'canonical-human-lease');mkdirSync(lease);const path=join(f.r,'human','old','events.jsonl');const complete=readFileSync(path,'utf8');writeFileSync(path,complete.trimEnd());let drained=false;
+ const restarts=new HumanRestarts({...f.h,leasePath:lease,wait:()=>{expect(f.launches).toHaveLength(0);writeFileSync(path,complete);rmSync(lease,{recursive:true});drained=true;return Promise.resolve();}});
+ await restarts.restart('old');expect(drained).toBe(true);f.exit(0);
+});
+it.each(['port','model','boot','malformed'] as const)('rejects new %s readiness provenance before reporting success',async mode=>{
+ const f=restartFixture(true);f.h.launch=spec=>{f.launches.push(spec);f.write(spec.runId,false,true);f.up.add(9001);const path=join(f.r,'human',spec.runId,'events.jsonl');let text=readFileSync(path,'utf8');if(mode==='port')text=text.replace('"port":9001','"port":9002');if(mode==='model')text=text.replace('"kind":"human"','"kind":"other"');if(mode==='boot')text=text.replace('"kind":"boot"','"kind":"save_state","path":"save","sha1":"'+'d'.repeat(40)+'"');if(mode==='malformed')text+='bad\n';writeFileSync(path,text);return new Promise(()=>undefined);};
+ await expect(new HumanRestarts(f.h).restart('old')).rejects.toThrow(/validation/);expect(f.launches).toHaveLength(1);
+});
+
+it('allows retry after a failed spawn drains, preserving the previous attempt receipt',async()=>{
+ const f=restartFixture(true);f.h.launch=spec=>{f.launches.push(spec);return Promise.reject(Error('spawn failed'));};const restarts=new HumanRestarts(f.h);await expect(restarts.restart('old')).rejects.toThrow(/failed/);
+ f.h.launch=spec=>{f.launches.push(spec);f.write(spec.runId,false,true);f.up.add(9001);return new Promise(()=>undefined);};
+ const id=await new HumanRestarts(f.h).restart('old');expect(f.launches).toHaveLength(2);expect(id).not.toBe(f.launches[0]?.runId);expect(readFileSync(join(f.r,'.viewer','human-restarts','old.attempt-1.json'),'utf8')).toContain('spawn failed');expect(readFileSync(join(f.r,'.viewer','human-restarts','old.json'),'utf8')).toContain('ready');
+});
+it('keeps a startup timeout pending and resumes the same target when it becomes paused-ready',async()=>{
+ const f=restartFixture(true);let mono=0;f.h.monotonic=()=>mono;f.h.wait=()=>{mono+=10;return Promise.resolve();};f.h.launch=spec=>{f.launches.push(spec);return new Promise(()=>undefined);};
+ await expect(new HumanRestarts({...f.h,timeoutMs:20}).restart('old')).rejects.toThrow(/timeout/);const id=f.launches[0]?.runId;if(id===undefined)throw Error('fixture');expect(readFileSync(join(f.r,'.viewer','human-restarts','old.json'),'utf8')).toContain('launching');f.write(id,false,true);f.up.add(9001);
+ expect(await new HumanRestarts({...f.h,timeoutMs:20}).restart('old')).toBe(id);expect(f.launches).toHaveLength(1);
+});
+it('counts health-check latency against one transaction deadline and avoids launching after expiry',async()=>{
+ const f=restartFixture(true);let mono=0;f.h.monotonic=()=>mono;f.h.healthy=()=>{mono+=25;return Promise.resolve(false);};
+ await expect(new HumanRestarts({...f.h,timeoutMs:20}).restart('old')).rejects.toThrow(/timeout/);expect(f.launches).toHaveLength(0);
+});
+
+it('persists a late child exit after startup timeout and permits retry only once its server and lease drain',async()=>{
+ const f=restartFixture(true);let mono=0,finish:(code:number)=>void=()=>undefined;f.h.monotonic=()=>mono;f.h.wait=()=>{mono+=10;return Promise.resolve();};f.h.launch=spec=>{f.launches.push(spec);return new Promise(resolve=>{finish=resolve;});};
+ await expect(new HumanRestarts({...f.h,timeoutMs:20}).restart('old')).rejects.toThrow(/timeout/);finish(1);await Promise.resolve();expect(readFileSync(join(f.r,'.viewer','human-restarts','old.json'),'utf8')).toContain('failed');
+ f.up.add(9001);await expect(new HumanRestarts({...f.h,timeoutMs:20}).restart('old')).rejects.toThrow(/draining/);expect(f.launches).toHaveLength(1);
+});
+
+it('preserves an original child failure that arrives during a pending retry and allows a drained fresh attempt',async()=>{
+ const f=restartFixture(true);let mono=0,finish:(code:number)=>void=()=>undefined;
+ f.h.monotonic=()=>mono;f.h.wait=()=>{mono+=10;return Promise.resolve();};
+ f.h.launch=spec=>{f.launches.push(spec);return new Promise(resolve=>{finish=resolve;});};
+ await expect(new HumanRestarts({...f.h,timeoutMs:20}).restart('old')).rejects.toThrow(/timeout/);
+ const path=join(f.r,'.viewer','human-restarts','old.json');const first=f.launches[0]?.runId;
+ f.h.wait=()=>{mono+=10;finish(1);return Promise.resolve();};
+ await expect(new HumanRestarts({...f.h,timeoutMs:20}).restart('old')).rejects.toThrow();
+ const failed=readFileSync(path,'utf8');expect(failed).toContain('"state":"failed"');expect(failed).toContain('exited 1');expect(failed).toContain(first);
+ f.h.launch=spec=>{f.launches.push(spec);f.write(spec.runId,false,true);f.up.add(9001);return new Promise(()=>undefined);};
+ const next=await new HumanRestarts({...f.h,timeoutMs:20}).restart('old');expect(next).not.toBe(first);expect(f.launches).toHaveLength(2);
+ const archived=readFileSync(join(f.r,'.viewer','human-restarts','old.attempt-1.json'),'utf8');expect(archived).toContain('"state":"failed"');expect(archived).toContain('exited 1');
 });

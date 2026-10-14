@@ -27,7 +27,10 @@ class PauseRequest(BaseModel):
 
 
 def install_pause(
-    api: FastAPI, server: SteppingServer, park_timeout_s: float = PARK_TIMEOUT_S
+    api: FastAPI,
+    server: SteppingServer,
+    park_timeout_s: float = PARK_TIMEOUT_S,
+    input_pause: Callable[[bool], None] | None = None,
 ) -> None:
     latch = threading.Condition()
     state = {"paused": False, "parked": False}
@@ -50,14 +53,20 @@ def install_pause(
     @api.post("/pokebench/pause")
     def pause(request: PauseRequest) -> dict[str, bool]:
         with latch:
+            if input_pause is not None:
+                input_pause(request.paused)
             if not request.paused:
                 state["paused"] = False
                 latch.notify_all()
                 return {"paused": False}
+            if state["paused"] and state["parked"]:
+                return {"paused": True}
             state["paused"] = True
             state["parked"] = False
             if not latch.wait_for(lambda: state["parked"], park_timeout_s):
                 state["paused"] = False
+                if input_pause is not None:
+                    input_pause(False)
                 latch.notify_all()
                 raise HTTPException(status_code=503, detail="frame loop did not park")
             return {"paused": True}

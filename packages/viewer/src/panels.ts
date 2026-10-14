@@ -143,7 +143,7 @@ function deltaSpan(seconds: number): string {
   return `<span class="${seconds <= 0 ? "d-ahead" : "d-behind"}">${signedDelta(seconds)}</span>`;
 }
 
-export function splits(view: RunView, baseline: Baseline | null, nowMs: number, best: Baseline | null = null): { summary: string; table: string } {
+export function splits(view: RunView, baseline: Baseline | null, nowMs: number, best: Baseline | null = null, compact = false): { summary: string; table: string } {
   const startMs = view.startMs;
   if (startMs === null) return { summary: "no data", table: `<p>${NO_DATA}</p>` };
   const reached = new Map(view.milestones.filter((m) => m.origin !== "present_at_start").map((m) => [m.name, (m.ms - startMs - view.control.pausedBefore(m.ms)) / 1000]));
@@ -168,11 +168,11 @@ export function splits(view: RunView, baseline: Baseline | null, nowMs: number, 
     const cls = at !== undefined ? "done" : name === next ? "next" : "todo";
     const time = present.has(name) ? "already<br>present" : !supported(name) ? "not<br>recorded" : at !== undefined ? hms(at) : view.end === null && cls === "next" ? `${hms(elapsed)}…` : "—";
     const note = current?.derived === true ? ' title="First recorded RAM observation (upper bound)"' : "";
-    return `<tr class="${cls}"><td class="n">${splitName(name)}${current?.derived === true ? "*" : ""}</td><td class="t"${note}>${time}</td>${cell(name, at, bases)}${cell(name, at, bests)}</tr>`;
+    return `<tr class="${cls}"><td class="n">${splitName(name)}${current?.derived === true ? "*" : ""}</td><td class="t"${note}>${time}</td>${compact ? "" : `${cell(name, at, bases)}${cell(name, at, bests)}`}</tr>`;
   });
   const summary = `${String(view.milestones.filter((m) => m.origin !== "present_at_start").length)} reached${next === undefined ? "" : ` · next ${splitName(next)}`} · ${baseline === null ? "no baseline" : "vs baseline"}${best === null ? "" : " + best"}`;
   const labels = `<p class="comparison-note">Baseline: ${baseline === null ? "none eligible" : esc(baseline.run)}<br>Best historical run: ${best === null ? "none eligible" : esc(best.run)}<br>Same start; harness versions may differ. Best = furthest progress, then fastest to that point. — = not recorded/reached; no delta until reached. * = clock confirmed by recorded RAM state, time is an upper bound.</p>`;
-  return { summary, table: `${labels}<table class="splits"><thead><tr><th>Milestone</th><th>Current</th><th>Baseline<br>time / Δ</th><th>Best<br>time / Δ</th></tr></thead><tbody>${rows.join("")}</tbody></table>` };
+  return { summary, table: `${compact ? "" : labels}<table class="splits"><thead><tr><th>Milestone</th><th>Current</th>${compact ? "" : "<th>Baseline<br>time / Δ</th><th>Best<br>time / Δ</th>"}</tr></thead><tbody>${rows.join("")}</tbody></table>` };
 }
 
 export function thinkingDialog(view: RunView, nowMs: number): { head: string; body: string } {

@@ -53,3 +53,9 @@ pret/pokeemerald 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881:
   glyph. Packet is now `git diff $(git merge-base main HEAD) HEAD`; live proof re-run from a
   clean build of the merge head with dist hashes and full stdout. Tests: agent 896/896,
   viewer 419/419, env 1807/1807.
+- 2026-10-14 19:00Z: operator confirmed round-3 scope unchanged (ledge fix only).
+- Round 3 at 43fabd6 (packet sha 5db312be…): Claude LGTM, Grok LGTM, Codex gpt-5.6-sol BLOCKING
+  (live proof bypassed the recorder, PB7). Fix: recorded probe through withRun/RunRecorder with
+  production press hooks (runs/ledge-proof/proof-43fabd6/recorded-receipt.txt: 67 events parse,
+  DOWN seq 59 moves (9,12)->(9,14)). Round 3b Codex: LGTM. All lanes LGTM on the same packet.
+- Status: ready to land (local merge into main) on operator approval.

@@ -13,7 +13,7 @@ Scope: the elevation rule in navigation.ts only. Walkable behaviors (sand, bridg
 - [x] Gates: test, coverage ≥90, lint, build
 - [x] Merge latest main
 - [ ] Review: principles self-review, Claude CLI, Codex, Grok
-- [ ] Explainer: runs/explainers/elevation-transitions.html
+- [x] Explainer: docs/explainers/elevation-transitions.html (tracked, per updated feature-explainer skill); before-routes verified against main a8cbcff planner
 - [ ] Operator approval to merge into main
 - RED: navigation.test.ts 4 failed / 13 passed (expected: stairs, pier, Littleroot, Route 110).
 - COMMIT: `test: navigation elevation transitions from real maps (RED)` (254be39)
@@ -21,3 +21,4 @@ Scope: the elevation rule in navigation.ts only. Walkable behaviors (sand, bridg
 - COMMIT: `fix: follow the game's elevation rule in navigate_to` (40e68db)
 - Merged main a8cbcff (ledge hops landed). Ledge landings now use the same mismatch/entered rule (a jump shifts previousCoords to the take-off tile, so the update compares landing and take-off).
 - Merged main e6f8cc2 (docs only): merge commit ad08a62.
+- COMMIT: `docs: record elevation-transitions merge of main` (fc1d9d0)

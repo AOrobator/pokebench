@@ -201,3 +201,7 @@ Pending.
 - RED: result.json is bound to the definition hash it graded and needs arm counts; a changed definition makes a graded experiment stale, and re-approval regrades it without launching.
 - GREEN for r7: result.json records `definitionSha256`; `gradedResult` counts it only when that hash matches the current definition and both arms carry integer `launched`/`reached`. A changed definition therefore makes a graded experiment stale, and re-approval regrades it from the ledger without launching.
 - Gates: agent 961 (97.24/93.50/98.01), viewer 538 (95.16/90.53/94.47), Python 1847, lint clean.
+- Focused re-check of the r7 fix delta (Codex, `codex exec -m gpt-5.6-sol`, /tmp/eq-review-r8): VERDICT: LGTM. Final roster: Claude LGTM (r5), Grok LGTM (r7), Codex LGTM (r7 delta); Claude's r7 blocker was the missing gate line, recorded.
+- Merged main fbaf909 (walkable-floor-v1): conflicts in navigation.ts, play-preset.ts, features.test.ts, server.test.ts resolved by keeping both switches; guidance count 16, switchboard rows 36.
+- Gates after the merge: agent 970 (97.24/93.52/98.02), viewer 543 (95.19/90.58/94.52), Python 1863, lint and ruff clean.
+- Landing: operator said "if the review passes u can merge" (2026-10-14 21:18). Seeds are pinned to a3c343b; run `just experiment-pin <id>` on each before approving, since main has moved.

@@ -32,6 +32,7 @@ export const SWITCHABLE_FEATURES = [
   "field-control-lock",
   "warp-activation-guidance-v1",
   "ledge-hops-v1",
+  "counter-talk-v1",
   "deterministic-loop-guard-v1",
   "objective-tracking-v1",
   "repeat-attempt-guard-v1",
@@ -79,7 +80,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("ram-state-v1", "observation", "RAM GAME-STATE READOUT", null,
     "Reads the game's memory every observation and adds a text readout beside the screenshot: screen, on-screen dialog, menu, player name, location, party, money, badges, battle and play time. Off: observe and press return only the screenshot, and the system prompt's tool lines and the tool descriptions no longer promise a readout; interface docs, if on, still mention readouts."),
   on("live-map-v1", "observation", "LIVE MAP", RAM,
-    "Draws the tiles within 7 steps of the player from live memory as a text grid (@ player, N object, W warp, # collision, = counter (talk across it), g grass, ~ water) with nearby objects and warp destinations. Off: no map; the model judges walkable space from the screenshot. The system prompt's tool summary still mentions a map."),
+    "Draws the tiles within 7 steps of the player from live memory as a text grid (@ player, N object, W warp, # collision, g grass, ~ water) with nearby objects and warp destinations. Off: no map; the model judges walkable space from the screenshot. The system prompt's tool summary still mentions a map."),
   on("live-player-position-v1", "observation", "PLAYER POSITION", RAM,
     "Adds the player's X,Y tile and facing, read from the live player object rather than the save block, which only updates on warps. Off: the Position line is dropped, and press results and the objective record leave coordinates and facing out; the map, if on, still marks the player with @ on its coordinate grid, the system prompt's tool summary still mentions coordinates, and the repeat-attempt guard still warns on returning to the same tile."),
   on("world-coordinate-grid-v1", "observation", "COORDINATE GRID", "live-map-v1",
@@ -121,6 +122,8 @@ export const FEATURES: readonly FeatureInfo[] = [
     "Annotates each nearby warp with how it activates (step on, directional exit, door) from its tile behavior, and adds a paragraph on warps to the system prompt. Off: warps are listed without activation and the paragraph is removed."),
   on("ledge-hops-v1", "guidance", "LEDGE HOPS", "live-map-v1",
     "Draws ledges on the map as v ^ < > arrows with a legend saying each is a one-way hop in the arrow's direction, and lets navigate_to hop a ledge in that direction. Off: ledges keep their collision glyph (# almost always) and navigate_to treats them as walls."),
+  on("counter-talk-v1", "guidance", "COUNTER TALK", "live-map-v1",
+    "Draws counter tiles (like the one in front of a Pokémon Center nurse) as = with a legend saying you cannot walk onto one but can talk across it, and navigate_to names the tile and direction for talking to someone behind a counter. Off: counters keep their collision glyph # and navigate_to gives no counter hint."),
   on("deterministic-loop-guard-v1", "guard", "LOOP GUARD", null,
     "Watches for repeated planning without acting, repeated observing, presses that change nothing, action cycles and repeated tool rejections. It warns the model first and ends the run as stuck if the loop continues. Off: loops are still logged but never warn or stop."),
   on("objective-tracking-v1", "guard", "OBJECTIVE TRACKING", RAM,
@@ -173,7 +176,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "expanded-menu-battle-information-v1",
   "ram-state-v1", "live-map-v1", "live-player-position-v1", "world-coordinate-grid-v1", "live-object-sprites-v1",
   "world-targets-v1", "named-interactions-v1", "world-destinations-v1", "bounded-navigation-v1", "field-dialogue-phase-v1", "active-field-message-buffer-v1", "naming-cursor-v1", "story-state-v1",
-  "coordinate-script-conditions-v1", "field-control-lock", "warp-activation-guidance-v1", "ledge-hops-v1",
+  "coordinate-script-conditions-v1", "field-control-lock", "warp-activation-guidance-v1", "ledge-hops-v1", "counter-talk-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -193,7 +196,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("live-object-sprites-v1"), ...when("coordinate-script-conditions-v1"), ...when("active-field-message-buffer-v1"),
     ...when("world-targets-v1"), ...when("named-interactions-v1"), ...when("world-destinations-v1"), ...when("bounded-navigation-v1"), ...when("live-player-position-v1"), ...when("world-coordinate-grid-v1"),
     ...when("field-dialogue-phase-v1"), ...when("dialogue-safe-batches-v1"), ...when("interaction-loop-detection-v1"),
-    ...when("press-result-v1"), ...when("warp-activation-guidance-v1"), ...when("ledge-hops-v1"), "clock-milestone-v1", ...when("story-state-v1"),
+    ...when("press-result-v1"), ...when("warp-activation-guidance-v1"), ...when("ledge-hops-v1"), ...when("counter-talk-v1"), "clock-milestone-v1", ...when("story-state-v1"),
     ...when("active-ui-ownership-v1"), "story-milestones-v2", "new-game-created-v1", "post-clock-navigation-milestones-v1", "rustboro-gym-trainer-milestones-v1", "native-progress-activity-v1", "battle-choices-v1", "continuous-battle-state-v1", "validated-pokemon-v1", "menu-observability-v1", "native-action-history-v1", "full-raw-ram-v1", "remaining-native-milestones-v1",
     ...(target === null ? [] : ["native-target-stop-v1"]), "deterministic-loop-diagnostics-v1", LOOP_POLICY_FEATURE,
     ...when("deterministic-loop-guard-v1"), ...when("contextual-interface-docs-v1"),

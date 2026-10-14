@@ -81,9 +81,18 @@ class LocalMap:
                 rows[tile.y - y][tile.x - x] = "#" if tile.collision else "."
         return tuple("".join(row) for row in rows)
 
-    def text(self, *, grid: bool = True, warp_guidance: bool = True, ledges: bool = True) -> str:
+    def text(
+        self,
+        *,
+        grid: bool = True,
+        warp_guidance: bool = True,
+        ledges: bool = True,
+        counters: bool = True,
+    ) -> str:
         x, y = self.origin
         cells = self.rows if ledges else self._rows_without_ledges()
+        if not counters:
+            cells = tuple(row.replace("=", "#") for row in cells)
         objects = ", ".join(f"id {i} at ({a},{b})" for i, a, b in self.objects) or "none nearby"
         behaviors_at = {(tile.x, tile.y): tile.behavior for tile in self.tiles}
         warps = (
@@ -121,7 +130,7 @@ class LocalMap:
             + (
                 " = counter: you cannot walk onto it, but you can talk to someone standing"
                 " behind it by facing the counter and pressing A;"
-                if COUNTER in behaviors
+                if counters and COUNTER in behaviors
                 else ""
             )
             + (

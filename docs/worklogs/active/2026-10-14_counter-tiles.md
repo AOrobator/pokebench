@@ -21,8 +21,7 @@ frozen presets keep counters as `#` and comparisons stay comparable.
 - [x] Map draws collision counters as `=`, legend says not walkable but talk across with A.
 - [x] `navigate_to` targeting a counter, or an object directly behind one, stops without
       pressing and names the tile to stand on and the direction to face, then press A.
-- [x] `live-map-v1` feature description lists `=`.
-- [ ] `counter-talk-v1` switch: off draws `#`, drops the legend and the navigate_to hint;
+- [x] `counter-talk-v1` switch: off draws `#`, drops the legend and the navigate_to hint;
       absent from older v2 presets and v1 flag presets means OFF; viewer drafts get it ON.
 
 ## Evidence
@@ -43,5 +42,6 @@ frozen presets keep counters as `#` and comparisons stay comparable.
 - Hint refinement: `fix(navigation): name the tile and direction for talking across a counter` (982773a)
 - Merged main (ledge hops landed): conflicts in live_map.py, navigation.ts and both test files resolved by keeping ledges and counters side by side. After merge: 59 agent + 40 viewer test files, 1809 Python tests; coverage gate 90 passes; lint clean.
 - RED (switch): `test: counter-talk-v1 switch keeps counters as walls when off (RED)`
+- GREEN (switch): `feat(features): put counter talk behind counter-talk-v1`. 59 agent + 40 viewer test files (899 + 474 tests), 1811 Python; coverage gate 90 passes; lint clean; vendor OK.
 
 ## Review

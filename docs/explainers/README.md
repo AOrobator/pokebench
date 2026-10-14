@@ -12,6 +12,7 @@ Tracked, local HTML documentation. Open an explainer directly; no server or exte
 - [Map observation audit](map-observation-audit.html)
 - [Navigation evidence memory v1](navigation-evidence-memory-v1.html)
 - [One-way tiles v1](one-way-tiles-v1.html)
+- [Experiment queue](experiment-queue.html)
 
 The original ignored runs/explainers copies remain for existing links. Make future updates here. Runtime probes, generated measurement data and helper scripts remain under runs/.
 

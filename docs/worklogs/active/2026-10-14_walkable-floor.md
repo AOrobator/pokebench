@@ -20,7 +20,7 @@ pret/pokeemerald 731ad5b:
 
 ## Change (behind walkable-floor-v1; kept small for sibling threads in navigation.ts)
 
-- [x] `WALKING` becomes "every behavior except UNWALKABLE": surfable, forced movement, ice, holes and
+- [x] With walkable-floor-v1 on, `FLOOR` (0x00–0xEF except UNWALKABLE) replaces `LEGACY_WALKING`: surfable, forced movement, ice, holes and
       step warps, directional one-way tiles (0x30–0x37, 0xC0, 0xC1; chair thread owns those), ledges
       (ledge thread owns those), Acro Bike tiles. Collision, elevation, door and warp rules unchanged.
 - [x] Scan of every pokeemerald layout (maps.json from the audit): planner rejected 38,662 `.` tiles,
@@ -79,7 +79,7 @@ pret/pokeemerald 731ad5b:
   Replay on the merged head: 12,515 targets, reachable 5,206 → 7,508, 2,302 newly reachable, 0 lost.
 - Explainer refreshed with merged-head numbers.
 - Operator rule relayed 2026-10-14 20:19Z: every behavior change gets its own switch. Adding walkable-floor-v1
-  (needs bounded-navigation-v1, agent-only, frozen presets OFF, drafts ON). RED: tests for option, tool
+  (needs null, see GREEN entry; agent-only, frozen presets OFF, drafts ON). RED: tests for option, tool
   wiring, registry and preset defaults.
 - GREEN: `feat(features): put walkable floor behind walkable-floor-v1`. planNavigation option `floor`
   (FLOOR set) else LEGACY_WALKING (exact old list); NavigationPorts.floor; tool description adds
@@ -102,3 +102,10 @@ pret/pokeemerald 731ad5b:
   both explainer mappings). Counts: guidance 15, switchboard rows 35. agent 954/954, viewer 493/493,
   lint clean, navigation.ts 95.09/94.37/100/100, viewer 95.67/90.53/95.34; derive.py diff empty;
   replay unchanged (2,302 newly reachable, 0 lost).
+- Review round 3b (packet 8a60a98, sha 0de8a582…): Claude LGTM, Grok (cursor-grok-4.5-high) LGTM,
+  Codex gpt-5.6-sol LGTM. All lanes LGTM on the same frozen packet. Hardening follow-ups noted:
+  exact-head click-through (done below), keep derive.py-style drift check, worklog wording (fixed).
+- Exact-head browser rerun at 8a60a98 (built dist, isolated viewer :8799): HARNESS CONFIG ->
+  "Read explainer: WALKABLE FLOOR" (href /explainers/walkable-floor-v1.html) -> opened the
+  explainer (title "Walkable Floor"). Viewer stopped.
+- Waiting for operator approval to merge into main.

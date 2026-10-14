@@ -39,11 +39,6 @@ export const FRONTIER_MILESTONES = [
   { id: "STONE_BADGE", label: "Badge" },
   { id: "ROCK_TOMB_RECEIVED", label: "Rock Tomb" },
 ] as const;
-export const GYM_TRAINER_MILESTONES = [
-  { id: "RUSTBORO_GYM_TRAINER_JOSH_DEFEATED", label: "Josh" },
-  { id: "RUSTBORO_GYM_TRAINER_TOMMY_DEFEATED", label: "Tommy" },
-  { id: "RUSTBORO_GYM_TRAINER_MARC_DEFEATED", label: "Marc" },
-] as const;
 const RECORD_ORDER: readonly string[] = FRONTIER_MILESTONES.map(m => m.id);
 export interface ReferencePair { human: WorkbenchRun | null; best: WorkbenchRun | null }
 const MODEL_COLORS = ["#208b71", "#2583bd", "#8856b5", "#c25464", "#c16b27", "#238e9f", "#ae4c96", "#6a7e2f"];
@@ -91,13 +86,16 @@ function mark(run: WorkbenchRun, name: string, x: number, y: number, color: stri
   const body = markerShape(shape, x, y);
   return `<g class="wb-mark" role="button" tabindex="0" data-run="${esc(run.id)}" data-split="${esc(name)}" aria-label="${esc(title)}" fill="${color}" stroke="${color}" stroke-width="${shape === "best" ? "2" : "1"}"><title>${esc(title)}</title>${body}</g>`;
 }
-export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRun[], requestedWidth: number, colors = frontierModelColors([...overlays, ...(refs.best === null ? [] : [refs.best])])): string {
+export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRun[], requestedWidth: number, colors = frontierModelColors([...overlays, ...(refs.best === null ? [] : [refs.best])]), currentRuns: readonly WorkbenchRun[] = []): string {
   const width = Number.isFinite(requestedWidth) ? Math.max(240, Math.round(requestedWidth)) : 640;
   const milestones = FRONTIER_MILESTONES;
-  const series: { run: WorkbenchRun; color: string; kind: "human" | "best" | "overlay" }[] = [];
-  for (const run of overlays) if (run.id !== refs.human?.id && run.id !== refs.best?.id && plottedAgent(run)) series.push({ run, color: colors.get(modelName(run)) ?? "#536d85", kind: "overlay" });
+  const series: { run: WorkbenchRun; color: string; kind: "human" | "best" | "overlay" | "live" | "paused" }[] = [];
+  const current = currentRuns.filter(r => plottedAgent(r) && (r.status === "live" || r.status === "paused"));
+  const currentIds = new Set(current.map(r => r.id));
+  for (const run of overlays) if (!currentIds.has(run.id) && run.id !== refs.human?.id && run.id !== refs.best?.id && plottedAgent(run)) series.push({ run, color: colors.get(modelName(run)) ?? "#536d85", kind: "overlay" });
   if (refs.human !== null) series.push({ run: refs.human, color: "#304f7a", kind: "human" });
   if (refs.best !== null) series.push({ run: refs.best, color: "#af8915", kind: "best" });
+  for (const run of current) series.push({ run, color: colors.get(modelName(run)) ?? "#536d85", kind: run.status === "live" ? "live" : "paused" });
   const left = 43, right = width - 15, top = 20, bottom = 255, height = 400;
   const values = series.flatMap(s => milestones.flatMap(m => s.run.splits.filter(p => p.name === m.id).map(p => p.elapsedMs / 60000)));
   const peak = Math.max(0, ...values) * 1.08, step = peak > 60 ? 20 : peak > 20 ? 5 : peak > 10 ? 2 : 1;
@@ -109,16 +107,25 @@ export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRu
   const labelEvery = Math.ceil(milestones.length / Math.max(2, Math.floor((right - left) / 28)));
   milestones.forEach((m, i) => { if (i % labelEvery !== 0 && i !== milestones.length - 1) return; const at = x(i); body += `<text class="wb-axis" transform="translate(${String(at)},278) rotate(-60)" text-anchor="end">${m.label}</text>`; });
   for (const { run, color, kind } of series) {
+    const active = kind === "live", isCurrent = active || kind === "paused";
+    if (isCurrent) body += `<g class="${active ? "wb-live-run" : "wb-paused-run"}" data-current-run="${esc(run.id)}"${active ? ` data-live-run="${esc(run.id)}"` : ""} style="--wb-run-color:${color}">`;
     let points: string[] = [];
     const flush = (): void => { if (points.length > 1) body += `<polyline data-series="${esc(run.id)}" fill="none" stroke="${color}" stroke-width="${kind === "overlay" ? "1.5" : "2.5"}" ${kind === "overlay" ? 'opacity=".45"' : ""} points="${points.join(" ")}"/>`; points = []; };
     milestones.forEach((m, i) => { const split = run.splits.find(s => s.name === m.id); if (split === undefined) { flush(); return; } const atX = x(i), atY = y(split.elapsedMs / 60000); points.push(`${String(atX)},${String(atY)}`); }); flush();
-    milestones.forEach((m, i) => { const split = run.splits.find(s => s.name === m.id); if (split !== undefined) body += mark(run, m.id, x(i), y(split.elapsedMs / 60000), color, kind); });
+    milestones.forEach((m, i) => { const split = run.splits.find(s => s.name === m.id); if (split !== undefined) body += mark(run, m.id, x(i), y(split.elapsedMs / 60000), color, kind === "human" || kind === "best" ? kind : "overlay"); });
+    if (active) {
+      const latest = milestones.findLastIndex(m => run.splits.some(s => s.name === m.id));
+      const split = run.splits.find(s => s.name === milestones[latest]?.id);
+      if (split !== undefined) body += `<circle class="wb-live-head" cx="${String(x(latest))}" cy="${String(y(split.elapsedMs / 60000))}" r="10" fill="none" stroke="${color}" pointer-events="none"/>`;
+    }
+    if (isCurrent) body += "</g>";
   }
   const unavailable = `${refs.human === null ? '<p class="wb-notice">Human reference unavailable: recorded baseline is missing or invalid.</p>' : ""}${refs.best === null ? '<p class="wb-notice">Agent frontier unavailable: no eligible finished fresh-boot agent run.</p>' : ""}`;
   const models = Array.from(new Set(series.filter(s => s.kind === "overlay").map(s => modelName(s.run))));
-  const references = series.filter(s => s.kind !== "overlay").map(s => `<span data-reference="${s.kind}"><svg aria-hidden="true" viewBox="0 0 40 18" fill="${s.color}" stroke="${s.color}" stroke-width="2"><line x1="0" x2="40" y1="9" y2="9"/>${markerShape(s.kind, 20, 9)}</svg>${s.kind === "human" ? "Human baseline" : `Agent frontier · ${esc(modelName(s.run))}`}</span>`).join("");
-  const legend = `<div class="wb-model-legend" aria-label="Graph legend">${models.map(model => `<span data-model="${esc(model)}"><i style="background:${colors.get(model) ?? "#536d85"}"></i>${esc(model)}</span>`).join("")}${references}</div>`;
-  return `${unavailable}${legend}<svg class="wb-chart wb-frontier-chart" viewBox="0 0 ${String(width)} ${String(height)}" role="img" aria-label="Full story frontier through gym and badge">${body}</svg><p class="wb-muted">${String(milestones.length)} required progression checkpoints.${labelEvery === 1 ? "" : " Some axis labels are hidden to fit this width; all recorded points remain plotted."} Expand “Completion, missing data &amp; exact times” below for every checkpoint. Recovered first-observation times are upper bounds (≤ in exact times and point details). Missing evidence breaks the line.</p>${gymCheckpoints(refs, overlays)}`;
+  const references = series.filter(s => s.kind === "human" || s.kind === "best").map(s => `<span data-reference="${s.kind}"><svg aria-hidden="true" viewBox="0 0 40 18" fill="${s.color}" stroke="${s.color}" stroke-width="2"><line x1="0" x2="40" y1="9" y2="9"/>${markerShape(s.kind === "human" ? "human" : "best", 20, 9)}</svg>${s.kind === "human" ? "Human baseline" : `Agent frontier · ${esc(modelName(s.run))}`}</span>`).join("");
+  const currentKeys = current.map(run => `<span class="wb-current-key ${run.status === "live" ? "wb-live-key" : ""}" style="--wb-run-color:${colors.get(modelName(run)) ?? "#536d85"}" title="${esc(run.id)}"><i style="background:${colors.get(modelName(run)) ?? "#536d85"}"></i>${run.status === "live" ? "LIVE" : "PAUSED"} · ${esc(modelName(run))} · ${esc(run.id.slice(-4))}${run.splits.some(s => milestones.some(m => m.id === s.name)) ? "" : " · waiting for first story checkpoint"}</span>`).join("");
+  const legend = `<div class="wb-model-legend" aria-label="Graph legend">${models.map(model => `<span data-model="${esc(model)}"><i style="background:${colors.get(model) ?? "#536d85"}"></i>${esc(model)}</span>`).join("")}${references}${currentKeys}</div>`;
+  return `${unavailable}${legend}<svg class="wb-chart wb-frontier-chart" viewBox="0 0 ${String(width)} ${String(height)}" role="img" aria-label="Full story frontier through gym and badge">${body}</svg><p class="wb-muted">${String(milestones.length)} required progression checkpoints.${labelEvery === 1 ? "" : " Some axis labels are hidden to fit this width; all recorded points remain plotted."} Expand “Completion, missing data &amp; exact times” below for every checkpoint. Recovered first-observation times are upper bounds (≤ in exact times and point details). Missing evidence breaks the line.</p>`;
 }
 export function frontierNotes(refs: ReferencePair): string {
   const reference = (run: WorkbenchRun | null, title: string, color: string): string => run === null ? `<span>${title}: unavailable</span>` : `<button type="button" class="wb-reference" data-run="${esc(run.id)}"><i style="background:${color}"></i><strong>${title}</strong> · ${esc(run.model ?? "Model not recorded")} · ${esc(run.id)}</button>`;
@@ -130,9 +137,6 @@ function checkpointCell(run: WorkbenchRun | null, name: string, label = ""): str
   const split = run.splits.find(s => s.name === name);
   if (split === undefined) { const status = milestoneStatus(run, name); return status === "unsupported" ? "not recorded by this build" : status; }
   return `<button type="button" class="wb-reference" data-run="${esc(run.id)}" data-split="${esc(name)}">${esc(label)}${split.derived === true ? "≤ " : ""}${preciseTime(split.elapsedMs)}${split.screenshotEvidence === undefined ? "" : " · screenshot review"}</button>`;
-}
-function gymCheckpoints(refs: ReferencePair, overlays: readonly WorkbenchRun[]): string {
-  return `<section class="wb-gym-checkpoints" aria-label="Gym trainer checkpoints"><h3>GYM TRAINER BATTLES</h3><p class="wb-muted">Josh, Tommy and Marc: individually verified wins before the gym is cleared. These fights are optional and do not increase the story frontier. Screenshot reconstructions are labeled and link to their retained frames. Beating Roxanne also marks skipped trainers as defeated, so a badge cannot establish these wins.</p><table class="wb-frontier-table"><thead><tr><th>Trainer</th><th>Human baseline</th><th>Agent frontier</th><th>Selected runs</th></tr></thead><tbody>${GYM_TRAINER_MILESTONES.map(m => `<tr><td>${m.label}</td><td>${checkpointCell(refs.human, m.id)}</td><td>${checkpointCell(refs.best, m.id)}</td><td>${frontierCoverage(overlays, m.id)}${overlays.filter(r => plottedAgent(r) && r.splits.some(s => s.name === m.id)).map(r => `<span>${checkpointCell(r, m.id, `${modelName(r)} · `)}</span>`).join("")}</td></tr>`).join("")}</tbody></table></section>`;
 }
 export function frontierTable(refs: ReferencePair, overlays: readonly WorkbenchRun[]): string {
 

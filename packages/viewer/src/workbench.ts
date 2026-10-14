@@ -47,7 +47,7 @@ export class Workbench {
       }
       this.ui("problem").hidden = true; this.render();
     } catch (error) {
-      if (this.active()) { this.verified = false; this.clock(); const box = this.ui("problem"); box.hidden = false; box.textContent = error instanceof Error ? error.message : String(error); }
+      if (this.active()) { this.verified = false; this.clock(); this.renderCharts(); const box = this.ui("problem"); box.hidden = false; box.textContent = error instanceof Error ? error.message : String(error); }
     } finally { this.busy = false; }
   }
   clock(): void { if (this.active()) this.ui("current").innerHTML = (this.verified ? "" : '<p class="wb-notice">Live status unavailable; charts retain the last verified snapshot.</p>') + currentRunHtml(this.verified ? this.data.runs : [], this.data.at, this.deps.now(), this.back); }
@@ -61,7 +61,7 @@ export class Workbench {
     this.ui("timing").innerHTML = timingPlot(runs, this.milestone, this.feature, this.metric, width);
     this.ui("ribbons").innerHTML = ribbonPlot(runs, width);
     const refs = frontierReferences(this.data.runs), overlays = this.overlay === "none" ? [] : this.overlay === "all" ? runs : runs.filter(r => r.id === this.overlay);
-    this.ui("frontier-full").innerHTML = frontierPlot(refs, overlays, width, this.modelColors);
+    this.ui("frontier-full").innerHTML = frontierPlot(refs, overlays, width, this.modelColors, this.verified ? this.data.runs.filter(r => r.status === "live" || r.status === "paused") : []);
     this.ui("frontier-notes").innerHTML = frontierNotes(refs);
     this.ui("frontier-counts").innerHTML = frontierTable(refs, overlays);
   }

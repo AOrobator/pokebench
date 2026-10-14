@@ -33,3 +33,19 @@ it("keeps both reference lines across empty model/cohort filters and exposes rec
   expect(ui("frontier-full").querySelector('[data-run="dea1"]')).not.toBeNull();
   wb.destroy();
 });
+
+it("keeps the healthy current run visible across filters and withdraws pulse on pause, end or failed polling", async () => {
+  const measurement={controller:"agent" as const,features:["story-milestones-v2"],logSha256:"a".repeat(64),pausedMs:0,rawSplits:[]};
+  const current=Object.assign(run({id:"current",model:"Active model",status:"live"}),{measurement});
+  let value: unknown={version:1,at:1000,milestones:[],runs:[current],queue:[],problems:[]}, fail=false;
+  const wb=new Workbench(document,{fetchSnapshot:()=>fail?Promise.reject(Error("offline")):Promise.resolve(value),now:()=>1000,width:()=>900});
+  await wb.refresh();change("overlay","none");change("model","missing");
+  expect(ui("frontier-full").querySelector('[data-live-run="current"]')).not.toBeNull();
+  expect(ui("frontier-full").textContent).toContain("LIVE");
+  expect(ui("frontier-full").querySelector('.wb-live-head')).not.toBeNull();
+  value={version:1,at:2000,milestones:[],runs:[{...current,status:"paused"}],queue:[],problems:[]};await wb.refresh();
+  expect(ui("frontier-full").querySelector('[data-live-run]')).toBeNull();expect(ui("frontier-full").textContent).toContain("PAUSED");
+  value={version:1,at:3000,milestones:[],runs:[current],queue:[],problems:[]};await wb.refresh();fail=true;await wb.refresh();
+  expect(ui("frontier-full").querySelector('[data-live-run]')).toBeNull();
+  fail=false;value={version:1,at:4000,milestones:[],runs:[{...current,status:"ended"}],queue:[],problems:[]};await wb.refresh();expect(ui("frontier-full").querySelector('[data-current-run]')).toBeNull();wb.destroy();
+});

@@ -2,10 +2,10 @@ import { statSync } from "node:fs";
 import type { RunEvent } from "@pokebench/agent/events";
 import { readVisualPlan, verifiedVisuals, visualEvidenceSignature, type ScreenshotEvidence } from "./frontier-visual.js";
 import { RunView } from "./model.js";
-import { reduceWorkbenchLog } from "./workbench-reader.js";
+import { readWorkbenchSnapshot } from "./workbench-reader.js";
 export interface RecordingSplit { name: string; elapsedMs: number; segmentMs: number; seq: number; turn: number; inputTokens: number; outputTokens: number; derived?: true; screenshotEvidence?: ScreenshotEvidence[] }
 export interface RecordingMeasurement {
-  controller: "agent" | "human"; features: string[]; logSha256: string; pausedMs: number;
+  controller: "agent" | "human"; features: string[]; logSha256: string; logBytes?: number; pausedMs: number;
   rawSplits: { name: string; elapsedMs: number; evidence: number[] }[];
   receipts?: { path: string; sha256: string }[];
   artifact?: { id: string; receipt: string; sha256: string };
@@ -29,7 +29,7 @@ export function readNativeRecording(path: string, id: string, qualified: (event:
   const wantedSamples = new Set(visual?.milestones.flatMap(m => m.screenshots.map(s => s.seq)) ?? []);
   visualEvidenceSignature(path);
   const size = statSync(path).size; let expected = 0, previousMs = -Infinity;
-  const hash = reduceWorkbenchLog(path, event => {
+  const snapshot = readWorkbenchSnapshot(path, event => {
     const ms = Date.parse(event.t);
     if (event.seq > 0 && event.type === "run_start") throw new Error("Run event order invalid: more than one run_start; no split graded");
     if (event.run !== id || event.seq !== expected || !Number.isFinite(ms) || ms < previousMs || (event.seq === 0 ? event.type !== "run_start" : event.type === "run_start") || view.end !== null) throw new Error("Run identity, event order or terminal sequence is invalid; no split graded");
@@ -58,7 +58,8 @@ export function readNativeRecording(path: string, id: string, qualified: (event:
       view.apply(event); view.events.length = 0;
       rawSplits.push({ name: event.name, elapsedMs: raw, evidence: [...event.evidence] });
     }
-  });
+  }, { allowAppend: true });
+  const hash = snapshot.sha256;
   if (view.start === null) throw new Error("No complete run_start yet");
   for (const mark of verifiedVisuals(visual, view.start, hash, samples)) {
     const existing = splits.findIndex(s => s.name === mark.name);
@@ -71,5 +72,5 @@ export function readNativeRecording(path: string, id: string, qualified: (event:
   splits.sort((a, b) => a.elapsedMs - b.elapsedMs || a.seq - b.seq);
   let previousSplit = 0; for (const split of splits) { split.segmentMs = split.elapsedMs - previousSplit; previousSplit = split.elapsedMs; }
   view.state = null;
-  return { view, splits, measurement: { controller: view.start.controller?.kind === "human" ? "human" : "agent", features: [...view.start.harness_features], logSha256: hash, pausedMs: view.control.pausedBefore(view.lastMs ?? view.startMs ?? 0), rawSplits } };
+  return { view, splits, measurement: { controller: view.start.controller?.kind === "human" ? "human" : "agent", features: [...view.start.harness_features], logSha256: hash, logBytes: snapshot.bytes, pausedMs: view.control.pausedBefore(view.lastMs ?? view.startMs ?? 0), rawSplits } };
 }

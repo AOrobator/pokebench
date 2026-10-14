@@ -175,3 +175,25 @@ describe("write failures", () => {
     expect((await call(v, "GET", "/api/features")).status).toBe(200);
   });
 });
+
+describe("public origins", () => {
+  const TAILNET = "https://studio.example.ts.net:8447";
+
+  it("answer an allowlisted public host and accept writes only from that exact origin", async () => {
+    const { viewer: v, runsRoot } = await viewer({ fetchFn: gameUp, publicOrigins: [TAILNET] });
+    liveRun(runsRoot, "live");
+    const host = "studio.example.ts.net:8447";
+    expect((await call(v, "GET", "/api/features", undefined, { host })).status).toBe(200);
+    expect((await call(v, "POST", "/api/runs/live/control", { action: "pause" }, { host, origin: TAILNET })).status).toBe(200);
+    expect((await call(v, "POST", "/api/runs/live/control", { action: "pause" }, { host, origin: `http://${host}` })).status).toBe(403);
+    expect((await call(v, "POST", "/api/runs/live/control", { action: "pause" }, { origin: TAILNET })).status).toBe(403);
+    expect((await call(v, "GET", "/api/features", undefined, { host: "studio.example.ts.net:8448" })).status).toBe(403);
+    expect((await call(v, "GET", "/api/features", undefined, { host: "evil.example" })).status).toBe(403);
+    expect((await call(v, "GET", "/api/features")).status).toBe(200);
+  });
+
+  it("are not answered unless allowlisted", async () => {
+    const { viewer: v } = await viewer({ fetchFn: gameUp });
+    expect((await call(v, "GET", "/api/features", undefined, { host: "studio.example.ts.net:8447" })).status).toBe(403);
+  });
+});

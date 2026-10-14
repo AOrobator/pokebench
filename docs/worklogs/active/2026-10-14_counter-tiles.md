@@ -72,4 +72,5 @@ Round 2 (head 992cfb9, base main 5195c88, diff SHA-256 78b31cfb…): Claude CLI 
 viewer's FEATURE_EXPLAINERS allowlist (Claude, Grok) and refresh the explainer status text.
 Left as speculation: object elevation is not in navigation_grid (Codex found no mismatch across
 181 static counter/object alignments); first-direction rather than nearest stand tile.
-- [ ] RED: viewer serves /explainers/counter-talk-v1.html
+- [x] RED: viewer serves /explainers/counter-talk-v1.html (44ad206)
+- [x] GREEN: FEATURE_EXPLAINERS lists counter-talk-v1; explainer status refreshed. 921 agent + 478 viewer tests, 1829 Python; gates green. Review-note follow-ups only (allowlist entry, docs); no reviewed logic changed.

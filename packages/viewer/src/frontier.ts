@@ -51,7 +51,8 @@ export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRu
   if (refs.best !== null) series.push({ run: refs.best, color: "#af8915", kind: "best" });
   const left = 43, right = width - 15, top = 20, bottom = 255, height = early ? 305 : 350;
   const values = series.flatMap(s => milestones.flatMap(m => s.run.splits.filter(p => p.name === m.id).map(p => p.elapsedMs / 60000)));
-  const max = Math.max(1, Math.ceil(Math.max(0, ...values) * 1.08 / 5) * 5);
+  const peak = Math.max(0, ...values) * 1.08, step = peak > 60 ? 20 : peak > 20 ? 5 : peak > 10 ? 2 : 1;
+  const max = Math.max(1, Math.ceil(peak / step) * step);
   const x = (i: number): number => left + (right - left) * i / (milestones.length - 1);
   const y = (minutes: number): number => bottom - (bottom - top) * minutes / max;
   let body = '<text x="0" y="10" class="wb-axis">Active minutes · lower is faster</text>';

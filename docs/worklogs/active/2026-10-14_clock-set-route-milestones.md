@@ -28,11 +28,11 @@ Recording only. No new process, port, or path. The model-visible hint stays behi
 ## Milestones
 
 **M1 — Checkpoint-start proof**
-- [ ] COMMIT: `test(agent): RED for leave-home and rival house after a Clock set save`
-- [ ] Implement home from the starting house, and the same anchor in the native target stop
-- [ ] Skill requires the checkpoint-start case
-- [ ] Gates: agent coverage
-- [ ] COMMIT: `feat(agent): record leave-home and rival house from the house a Clock set save starts in`
+- [x] COMMIT: `test(agent): RED for leave-home and rival house after a Clock set save` (2e92c34). Failed on `expected undefined` for leave-home before the proof change.
+- [x] Implement home from the starting house, and the same anchor in the native target stop
+- [x] Skill requires the checkpoint-start case
+- [x] Gates: agent 1028 tests; statements 97.43, branches 93.87, functions 98, lines 98.85. `tsc --noEmit` and eslint clean on the touched files.
+- [x] COMMIT: `feat(agent): record leave-home and rival house from the house a Clock set save starts in`
 
 ## Closing the Loop
 
@@ -40,7 +40,8 @@ The live run `26e0` is not restarted. Missed rows in that log stay missed.
 
 ## Session Log
 
-- 2026-10-14: Checkpoint-start test written. It failed before the proof change because home stayed unset.
+- 2026-10-14: Checkpoint-start test written. It failed before the proof change because home stayed unset. RED `2e92c34`.
+- 2026-10-14: Home for a resumed run is the first stable house before any other map. Fresh boot still uses the pre-clock witness. Agent coverage stays above 90.
 
 ## Surprises
 

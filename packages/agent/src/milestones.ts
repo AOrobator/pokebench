@@ -62,15 +62,18 @@ const house = (location: string | null, floor: "1F" | "2F"): string | null => {
   const match = location?.match(new RegExp(`^LITTLEROOT TOWN (BRENDANS|MAYS) HOUSE ${floor}$`));
   return match?.[1] ?? null;
 };
+export const littlerootHouseMap = (location: string | null): boolean => house(location, "1F") !== null || house(location, "2F") !== null;
 const stableRoute = (s: GameStateSnapshot): boolean => savedWorld(s) && s.screen !== "unknown";
 export const postClockHomeWitness = (s: GameStateSnapshot): string | null =>
   stableRoute(s) && s.story?.clock_set === false && [4, 5].includes(s.story.intro_stage ?? -1)
     ? house(s.location, "1F") ?? house(s.location, "2F") : null;
+export const routeHome = (s: GameStateSnapshot): string | null =>
+  postClockHomeWitness(s) ?? (stableRoute(s) && clockSet(s) === true ? house(s.location, "1F") ?? house(s.location, "2F") : null);
 const routeProof = (name: string, states: readonly GameStateSnapshot[]): boolean => {
   const first = states[0];
   const last = states.at(-1);
   if (first === undefined || last === undefined) return false;
-  const home = postClockHomeWitness(first);
+  const home = routeHome(first);
   if (name === "PLAYER_HOUSE_EXITED_AFTER_CLOCK") {
     const previous = states[1];
     return states.length === 3 && home !== null && previous !== undefined && stableRoute(previous)
@@ -165,6 +168,7 @@ export const MILESTONE_ORDER = MILESTONES.map((m) => m.name);
 export class StateMilestones implements MilestoneSource {
   private readonly seen = new Set<string>();
   private home: { readonly state: GameStateSnapshot; readonly seq: number } | null = null;
+  private originDeparted = false;
   private previous: { readonly state: GameStateSnapshot; readonly seq: number } | null = null;
   private truckSeq: number | null = null;
   private sawTruck = false;
@@ -180,7 +184,11 @@ export class StateMilestones implements MilestoneSource {
       this.sawTruck = true;
       this.truckSeq ??= seq ?? null;
     }
-    if (seq !== undefined && this.home === null && postClockHomeWitness(state) !== null) this.home = { state, seq };
+    if (seq !== undefined && this.home === null) {
+      const resumedHouse = this.resumed && !this.originDeparted && stableRoute(state) && clockSet(state) === true ? house(state.location, "1F") ?? house(state.location, "2F") : null;
+      if (postClockHomeWitness(state) !== null || resumedHouse !== null) this.home = { state, seq };
+      else if (this.resumed && stableRoute(state) && state.location !== null && !littlerootHouseMap(state.location)) this.originDeparted = true;
+    }
     const routeEvidence = new Map<string, number[]>();
     if (seq !== undefined && this.home !== null) {
       if (routeProof("RIVAL_HOUSE_ENTERED", [this.home.state, state])) routeEvidence.set("RIVAL_HOUSE_ENTERED", [this.home.seq, seq]);

@@ -169,7 +169,7 @@ describe("loop guard through pinned pi and recorded events", () => {
   );
 });
 
-it.each(["observation", "ineffective", "cycle", "rejection", "interaction"] as const)(
+it.each(["observation", "ineffective", "cycle", "rejection", "interaction", "naming"] as const)(
   "wires %s detection through real pi state/result ordering",
   async (kind) => {
     const root = mkdtempSync(join(tmpdir(), "pokebench-loop-seam-"));
@@ -185,11 +185,14 @@ it.each(["observation", "ineffective", "cycle", "rejection", "interaction"] as c
         facing: "RIGHT",
         field_controls_locked: false,
       });
-      const expectedKind=kind === "interaction" ? "cycle" : kind;
-      const input=kind === "interaction" ? Array(8).fill("A") as ["A",..."A"[]] : ["RIGHT"] as ["RIGHT"];
+      const expectedKind=kind === "interaction" ? "cycle" : kind === "naming" ? "ineffective" : kind;
+      const input=kind === "interaction" ? Array(8).fill("A") as ["A",..."A"[]] : kind === "naming" ? ["A"] as ["A"] : ["RIGHT"] as ["RIGHT"];
       const fieldState=field();
       const interactionState={...fieldState,field_controls_locked:true,world_context:{objects:[],triggers:[],dialogue:"Box description",message:{phase:"page_wait" as const,cursor:30,ready:true}}};
-      let current:typeof fieldState|typeof interactionState = kind === "interaction" ? interactionState : fieldState;
+      const recorded=parseEvent(readFileSync(new URL("../test-support/naming-owner-gap.json",import.meta.url),"utf8"));
+      if(recorded.type!=="state"||!("screen" in recorded))throw Error("Invalid naming fixture");
+      const namingState={...fieldState,screen:"naming",active_ui:recorded.active_ui ?? null,naming:recorded.naming ?? null};
+      let current:typeof fieldState|typeof interactionState|typeof namingState = kind === "interaction" ? interactionState : kind === "naming" ? namingState : fieldState;
       const log = RunLog.create(root, "seam-proof");
       const recorder = new RunRecorder({
         log,
@@ -256,7 +259,7 @@ it.each(["observation", "ineffective", "cycle", "rejection", "interaction"] as c
       const names =
         kind === "observation"
           ? ["observe", "observe", "observe"]
-          : (kind === "ineffective" || kind === "interaction")
+          : (kind === "ineffective" || kind === "interaction" || kind === "naming")
             ? ["press", "press"]
             : kind === "cycle"
               ? ["press", "press", "press", "press"]

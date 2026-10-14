@@ -83,7 +83,7 @@ export function semanticState(state: GameStateSnapshot, interactions = false): s
       ui.diagnostic !== null || ui.ready !== true || ui.phase !== "naming_editor" ||
       ui.selected !== naming.key || ui.value !== naming.text ||
       ui.details?.["page"] !== naming.page ||
-      ui.details?.["column"] !== naming.column || ui.details?.["row"] !== naming.row
+      ui.details["column"] !== naming.column || ui.details["row"] !== naming.row
     )) return null;
     return stable({screen:state.screen,naming,owner:ui?.details ?? null});
   }

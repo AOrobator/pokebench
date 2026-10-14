@@ -263,7 +263,13 @@ def read_game_state(
             if t.destination is not None and t.destination[:2] != (127, 127)
         ),
         world_context=read_world_context(
-            read, (x, y), map_id, save1, decode_text, message_phase=message_phase_enabled
+            read,
+            (x, y),
+            map_id,
+            save1,
+            decode_text,
+            message_phase=message_phase_enabled,
+            native_ui=native_ui,
         )
         if screen.kind == "overworld" and not in_battle
         else None,

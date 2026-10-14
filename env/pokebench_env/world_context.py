@@ -15,7 +15,7 @@ from pathlib import Path
 from pokebench_env.game_screen import TASKS, ReadMemory
 from pokebench_env.live_map import MAP_HEADER, MAP_OFFSET, OBJECT_EVENTS
 from pokebench_env.native_text import decode_native_text, native_text_payload
-from pokebench_env.ui_state import _window_drawn
+from pokebench_env.ui_state import ActiveUi, _window_drawn
 
 FIELD_MESSAGE_MODE = 0x020375BC
 STRING_VAR4 = 0x02021FC4
@@ -129,12 +129,63 @@ def read_field_message(read: ReadMemory) -> FieldMessage | None:
 
 
 @dataclass(frozen=True)
+class FieldActivity:
+    """Qualified non-message owner; never establishes advance-button readiness."""
+
+    phase: str
+    owner: int
+
+
+def read_field_activity(read: ReadMemory, native_ui: ActiveUi | None) -> FieldActivity | None:
+    mode = read(FIELD_MESSAGE_MODE, 1)[0]
+    tasks = read(TASKS, 16 * 0x28)
+    owners = [
+        tasks[i : i + 0x28]
+        for i in range(0, len(tasks), 0x28)
+        if tasks[i + 4] == 1 and int.from_bytes(tasks[i : i + 4], "little") == DRAW_FIELD_MESSAGE
+    ]
+    if mode in (2, 3) and len(owners) == 1 and int.from_bytes(owners[0][8:10], "little") in (0, 1):
+        return FieldActivity("message_initializing", DRAW_FIELD_MESSAGE)
+    if mode != 0:
+        return None
+    # A drawn window can retain old pixels after Task_DrawFieldMessage exits.
+    # script.c only calls nativePtr in NATIVE mode; BYTECODE retains that pointer.
+    context = read(GLOBAL_SCRIPT, 12)
+    if read(GLOBAL_SCRIPT_STATUS, 1)[0] == 0 and read(FIELD_PRINTER + 0x1B, 1)[0] == 0:
+        owner = int.from_bytes(context[4:8], "little")
+        phases = {
+            0x08099D95: "script_pause",
+            0x0809A671: "movement_wait",
+            0x0809833D: "message_close_wait",
+        }
+        if context[1] == 2 and owner in phases:
+            return FieldActivity(phases[owner], owner)
+        script = int.from_bytes(context[8:12], "little")
+        if context[1] == 1 and 0x08000000 <= script < 0x0A000000:
+            return FieldActivity("script_running", script)
+    # Reuse the stricter interface decoder; a task pointer alone is insufficient.
+    # Only generic ownership is exposed, never the ablated menu's contents.
+    if native_ui is not None and native_ui.diagnostic is None:
+        expected = {"pc_player_menu": 0x0816AF99, "menu_message_printing": 0x08121F3D}.get(
+            native_ui.phase
+        )
+        matches = sum(
+            tasks[i + 4] == 1 and int.from_bytes(tasks[i : i + 4], "little") == expected
+            for i in range(0, len(tasks), 0x28)
+        )
+        if expected is not None and matches == 1:
+            return FieldActivity("other_interface", expected)
+    return None
+
+
+@dataclass(frozen=True)
 class WorldContext:
     objects: tuple[LiveObject, ...]
     triggers: tuple[ScriptTrigger, ...]
     dialogue: str | None
     message: FieldMessage | None = None
     message_diagnostic: str | None = None
+    field_activity: FieldActivity | None = None
 
     def json(self) -> dict[str, object]:
         value = asdict(self)
@@ -142,6 +193,8 @@ class WorldContext:
             value.pop("message")
         if self.message_diagnostic is None:
             value.pop("message_diagnostic")
+        if self.field_activity is None:
+            value.pop("field_activity")
         return value
 
     def text(
@@ -194,14 +247,18 @@ class WorldContext:
                 "Field-message text: unavailable; do not infer that the dialogue box is closed."
             )
         if message:
-            if self.message is None:
+            if self.field_activity is not None:
+                lines.append(
+                    f"Field activity: {self.field_activity.phase}; "
+                    "not an input-ready field message. Inspect the active interface "
+                    "and control lock before acting."
+                )
+            if self.message is None and self.field_activity is None:
                 lines.append(
                     "Field-message phase: unavailable; do not infer a cutscene "
                     "or an input-ready dialogue."
                 )
-                if self.message_diagnostic is not None:
-                    lines.append("STATE COVERAGE ERROR: " + self.message_diagnostic)
-            else:
+            elif self.message is not None:
                 m = self.message
                 lines.append(
                     f"Field-message phase: {m.phase}; buffer cursor {m.cursor}; "
@@ -214,6 +271,8 @@ class WorldContext:
                     + " The buffer can include later pages. "
                     "Repeated identical text is not evidence of story progress."
                 )
+            if self.message_diagnostic is not None:
+                lines.append("STATE COVERAGE ERROR: " + self.message_diagnostic)
         return "\n".join(lines)
 
 
@@ -225,6 +284,7 @@ def read_world_context(
     decode: Callable[[bytes], str],
     *,
     message_phase: bool = False,
+    native_ui: ActiveUi | None = None,
 ) -> WorldContext | None:
     events = int.from_bytes(read(MAP_HEADER + 4, 4), "little")
     if not rom_pointer(events):
@@ -284,7 +344,12 @@ def read_world_context(
                 # Malformed token arity cannot qualify a string boundary.
                 # Preserve the full bounded native buffer identity instead.
                 message = replace(message, identity=sha256(raw).hexdigest())
-    if message_phase and message is None and _window_drawn(read, 0):
+    activity = (
+        read_field_activity(read, native_ui)
+        if message_phase and message is None and _window_drawn(read, 0)
+        else None
+    )
+    if message_phase and message is None and activity is None and _window_drawn(read, 0):
         printer = read(FIELD_PRINTER, 0x24)
         context = read(GLOBAL_SCRIPT, 12)
         tasks = read(TASKS, 16 * 0x28)
@@ -303,4 +368,4 @@ def read_world_context(
         diagnostic = (
             owner_diagnostic if diagnostic is None else diagnostic + "; " + owner_diagnostic
         )
-    return WorldContext(tuple(objects), tuple(triggers), dialogue, message, diagnostic)
+    return WorldContext(tuple(objects), tuple(triggers), dialogue, message, diagnostic, activity)

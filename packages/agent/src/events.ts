@@ -327,6 +327,10 @@ export const StateBodySchema = Type.Object(
       triggers: Type.Array(Type.Object({x: Type.Integer(), y: Type.Integer(), elevation: NonNegativeInt, variable: NonNegativeInt, required_value: NonNegativeInt, current_value: Type.Union([NonNegativeInt, Type.Null()]), condition_met: Type.Union([Type.Boolean(), Type.Null()]), script_pointer: NonNegativeInt}, closed)),
       dialogue: Type.Union([Type.String(), Type.Null()]),
       message_diagnostic: Type.Optional(Type.String({maxLength:1000})),
+      field_activity: Type.Optional(Type.Object({
+        phase: Type.Enum(["message_initializing", "script_pause", "movement_wait", "message_close_wait", "script_running", "other_interface"]),
+        owner: NonNegativeInt,
+      }, closed)),
       message: Type.Optional(Type.Union([Type.Object({
         phase: Type.Enum(["dismiss_wait", "printing", "button_wait", "page_wait", "scroll_wait", "scrolling", "audio_wait", "printing_pause"]),
         cursor: Type.Integer({minimum:0, maximum:999}), ready:Type.Boolean(),

@@ -301,8 +301,9 @@ export function fieldContext(view: RunView): string {
   const triggers = context.triggers.map((t) => `script tile (${String(t.x)},${String(t.y)}): condition ${t.condition_met === true ? "matches" : t.condition_met === false ? "does not match" : "unavailable"}`).join("\n");
   const dialogue = context.dialogue === null ? "Field-message text unavailable; the box may still be visible." : `Active message buffer (may include text not yet displayed):\n${context.dialogue}`;
   const diagnostic=context.message_diagnostic === undefined ? "" : `\nSTATE COVERAGE ERROR: ${context.message_diagnostic}`;
+  const activity=context.field_activity === undefined ? "" : `\nField activity: ${context.field_activity.phase}; not an input-ready field message; owner 0x${context.field_activity.owner.toString(16).toUpperCase()}`;
   const message=context.message == null ? "" : `\nField-message phase: ${context.message.phase}; buffer cursor ${String(context.message.cursor)}; advance input ${context.message.ready ? "ready" : "not ready"}`;
-  return storyHtml + `<pre>${esc(objects)}\n${esc(triggers)}\n${esc(dialogue)}${esc(message)}${esc(diagnostic)}</pre>`;
+  return storyHtml + `<pre>${esc(objects)}\n${esc(triggers)}\n${esc(dialogue)}${esc(message)}${esc(activity)}${esc(diagnostic)}</pre>`;
 }
 
 export function objectiveStatus(objective: NonNullable<RunView["objective"]>): string {

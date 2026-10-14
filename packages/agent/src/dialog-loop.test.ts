@@ -1,7 +1,7 @@
 import {readFileSync} from "node:fs";
 import {parseEvent} from "./events.js";
 import { expect, it } from "vitest";
-import { LoopDetector, LOOP_POLICY } from "./loop-detection.js";
+import { LoopDetector, LOOP_POLICY, semanticState } from "./loop-detection.js";
 import { IN_GAME } from "../test-support/events.js";
 import type { GameStateSnapshot } from "./game-state.js";
 
@@ -66,15 +66,18 @@ it("clears sparse ready-message visits on verified new field progress",()=>{
 
 it("detects repeated actions through the recorded qualified naming-editor owner",()=>{
  const state=parseEvent(readFileSync(new URL("../test-support/naming-owner-gap.json",import.meta.url),"utf8"));
- if(state.type!=="state")throw Error("Wrong native naming fixture");
+ if(state.type!=="state" || !("screen" in state))throw Error("Wrong native naming fixture");
  const notices:{phase:string}[]=[];const detector=new LoopDetector(n=>notices.push(n),undefined,"enforced",true);
  for(let i=0;i<LOOP_POLICY.ineffective;i++)detector.complete({name:"press",args:{buttons:["A"]},isError:false,text:"ok",beforeState:state,state});
  expect(notices.map(n=>n.phase)).toEqual(["warning"]);
 });
 it("withholds naming equivalence when the interface contradicts or cannot qualify the cursor",()=>{
  const state=parseEvent(readFileSync(new URL("../test-support/naming-owner-gap.json",import.meta.url),"utf8"));
- if(state.type!=="state"||state.active_ui==null)throw Error("Wrong native naming fixture");
- for(const ui of [{...state.active_ui,diagnostic:"unknown owner"},{...state.active_ui,ready:false},{...state.active_ui,phase:"clock_adjustment"},{...state.active_ui,selected:"A"},{...state.active_ui,value:"other"}]){
+ if(state.type!=="state"||!("screen" in state)||state.active_ui==null)throw Error("Wrong native naming fixture");
+ const owner=state.active_ui;
+ for(const ui of [{...state.active_ui,diagnostic:"unknown owner"},{...state.active_ui,ready:false},{...state.active_ui,phase:"clock_adjustment"},{...state.active_ui,selected:"A"},{...state.active_ui,value:"other"},...[
+ {page:"lowercase"},{column:2},{row:2}
+ ].map(details=>({...owner,details:{...owner.details,...details}})),{...state.active_ui,details:null}]){
   const notices:unknown[]=[];const detector=new LoopDetector(n=>notices.push(n),undefined,"enforced",true);const conflicting={...state,active_ui:ui};
   for(let i=0;i<LOOP_POLICY.ineffective+1;i++)detector.complete({name:"press",args:{buttons:["A"]},isError:false,text:"ok",beforeState:conflicting,state:conflicting});
   expect(notices).toEqual([]);
@@ -83,10 +86,18 @@ it("withholds naming equivalence when the interface contradicts or cannot qualif
 
 it("records naming recovery only when the qualified buffer or cursor changes",()=>{
  const event=parseEvent(readFileSync(new URL("../test-support/naming-owner-gap.json",import.meta.url),"utf8"));
- if(event.type!=="state"||event.active_ui==null||event.naming==null)throw Error("Wrong native naming fixture");
+ if(event.type!=="state"||!("screen" in event)||event.active_ui==null||event.naming==null)throw Error("Wrong native naming fixture");
  const notices:{phase:string}[]=[];const detector=new LoopDetector(n=>notices.push(n),undefined,"enforced",true);
  for(let i=0;i<LOOP_POLICY.ineffective;i++)detector.complete({name:"press",args:{buttons:["A"]},isError:false,text:"ok",beforeState:event,state:event});
  const next={...event,naming:{...event.naming,text:"AGH"},active_ui:{...event.active_ui,value:"AGH"}};
  detector.complete({name:"press",args:{buttons:["A"]},isError:false,text:"ok",beforeState:event,state:next});
  expect(notices.map(n=>n.phase)).toEqual(["warning","recovered"]);
+});
+
+it("keeps naming targets distinct and preserves legacy ready cursor records",()=>{
+ const state=parseEvent(readFileSync(new URL("../test-support/naming-owner-gap.json",import.meta.url),"utf8"));
+ if(state.type!=="state"||!("screen" in state)||state.active_ui==null)throw Error("Invalid naming fixture");
+ const other={...state,active_ui:{...state.active_ui,details:{...state.active_ui.details,naming_owner:"nickname",destination_pointer:"0x02025000"}}};
+ expect(semanticState(state)).not.toBeNull();expect(semanticState(other)).not.toBe(semanticState(state));
+ expect(semanticState({...state,active_ui:null})).not.toBeNull();
 });

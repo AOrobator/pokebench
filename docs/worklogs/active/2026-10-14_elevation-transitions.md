@@ -9,10 +9,12 @@ Scope: the elevation rule in navigation.ts only. Walkable behaviors (sand, bridg
 ## M1: game elevation rule
 
 - [x] RED: real-map fixtures (Route 104 pier, Littleroot multi-level tiles, Route 110 under-deck) from pokeemerald map.bin; old zero-elevation test corrected
-- [ ] GREEN: mirror the game's mismatch and update rules
-- [ ] Gates: test, coverage ≥90, lint, build
+- [x] GREEN: mirror the game's mismatch and update rules
+- [x] Gates: test, coverage ≥90, lint, build
 - [ ] Merge latest main
 - [ ] Review: principles self-review, Claude CLI, Codex, Grok
 - [ ] Explainer: runs/explainers/elevation-transitions.html
 - [ ] Operator approval to merge into main
 - RED: navigation.test.ts 4 failed / 13 passed (expected: stairs, pier, Littleroot, Route 110).
+- COMMIT: `test: navigation elevation transitions from real maps (RED)` (254be39)
+- GREEN: agent 893 tests pass; navigation.ts 91.82 lines / 92 branches / 100 functions; agent all-files 97.1/93.16/97.85; viewer 419 pass; Python 1803 pass, 96.53/91.65/99.34 (floor 90). Lint (tsc, eslint, ruff, mypy) and build clean.

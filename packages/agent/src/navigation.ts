@@ -13,25 +13,29 @@ const DIRECTIONS:readonly [Direction,number,number][]=[["UP",0,-1],["DOWN",0,1],
 const WALKING=new Set([0,2,3,0x60,0x61,0x62,0x63,0x64,0x65,0x67,0x68,0x69,0x6a,0x6b,0x6c,0x6d,0x6e]);
 const key=(p:Point):string=>`${String(p.x)},${String(p.y)}`;
 const distance=(a:Point,b:Point):number=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
+// pokeemerald IsElevationMismatchAt / ObjectEventUpdateElevation: 0 is a
+// transition (stairs) and 15 is multi-level (bridges); neither ever mismatches.
+const MULTI_LEVEL=15;
+const mismatch=(walker:number,tile:number):boolean=>walker!==0&&tile!==0&&tile!==MULTI_LEVEL&&tile!==walker;
 const ready=(s:GameStateSnapshot):boolean=>s.started&&s.screen==="overworld"&&!s.in_battle&&s.field_controls_locked===false&&s.position!==null&&s.map_id!==null&&s.navigation_grid!=null&&(s.active_ui==null||(s.active_ui.ready===true&&s.active_ui.diagnostic===null));
 export const MAX_NAVIGATION_COMMANDS=8;
 
 // Bounded A* over the current live 15x15 window. No outside-map guessing,
-// surfing, ledges or puzzle policies. Zero elevation preserves the layer.
+// surfing, ledges or puzzle policies. Elevation follows the game's rule.
 export function planNavigation(state:GameStateSnapshot,goal:Point):Direction[]|null {
  if(!ready(state)||state.navigation_grid==null||state.position===null)return null;
  const grid=state.navigation_grid,tiles=new Map<string,Tile>();
  for(const tile of grid.tiles){if(tiles.has(key(tile)))return null;tiles.set(key(tile),tile);}
- if(!tiles.has(key(state.position)))return null;
+ const start=tiles.get(key(state.position));if(start===undefined)return null;
  const topology=state.topology;
  if(topology!=null&&grid.tiles.some(t=>t.x>=topology.width||t.y>=topology.height||t.x<0||t.y<0))return null;
  if(topology!=null&&(goal.x>=topology.width||goal.y>=topology.height||goal.x<0||goal.y<0))return null;
  if(!tiles.has(key(goal))&&topology==null)return null;
  const occupied=new Set(grid.objects.map(key)),warps=new Set(grid.warps.map(key));
  if(occupied.has(key(goal)))return null;
- type Node={p:Point;elevation:number;cost:number;path:Direction[]};
- let best:Node={p:state.position,elevation:grid.elevation,cost:0,path:[]};
- const pending:Node[]=[{p:state.position,elevation:grid.elevation,cost:0,path:[]}],costs=new Map<string,number>();
+ type Node={p:Point;here:number;elevation:number;cost:number;path:Direction[]};
+ let best:Node={p:state.position,here:start.elevation,elevation:grid.elevation,cost:0,path:[]};
+ const pending:Node[]=[best],costs=new Map<string,number>();
  while(pending.length){
   pending.sort((a,b)=>(a.cost+distance(a.p,goal))-(b.cost+distance(b.p,goal)));
   const node=pending.shift();if(node===undefined)break;
@@ -45,8 +49,9 @@ export function planNavigation(state:GameStateSnapshot,goal:Point):Direction[]|n
    const door=tile.behavior===0x69&&distance(next,goal)===0&&direction==="UP";
    if((tile.collision!==0&&!door)||(tile.behavior===0x69&&!door))continue;
    if(warps.has(key(next))&&distance(next,goal)!==0)continue;
-   if(tile.elevation!==0&&node.elevation!==0&&tile.elevation!==node.elevation)continue;
-   pending.push({p:next,elevation:tile.elevation||node.elevation,cost:node.cost+1,path:[...node.path,direction]});
+   if(mismatch(node.elevation,tile.elevation))continue;
+   const elevation=tile.elevation===MULTI_LEVEL||node.here===MULTI_LEVEL?node.elevation:tile.elevation;
+   pending.push({p:next,here:tile.elevation,elevation,cost:node.cost+1,path:[...node.path,direction]});
   }
  }
  return !tiles.has(key(goal))&&best.path.length>0 ? best.path : null;

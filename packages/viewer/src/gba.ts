@@ -71,7 +71,7 @@ export function gbaSvg(): string {
   <path data-btn="UP" class="dpad-hit" d="M90 112 H114 V141 L102 153 L90 141Z"/>
   <path data-btn="DOWN" class="dpad-hit" d="M90 194 H114 V165 L102 153 L90 165Z"/>
   <path data-btn="LEFT" class="dpad-hit" d="M61 141 V165 H90 L102 153 L90 141Z"/>
-  <path data-btn="RIGHT" class="dpad-hit" d="M143 141 V165 H114 L102 153 L114 165Z"/>
+  <path data-btn="RIGHT" class="dpad-hit" d="M143 141 V165 H114 L102 153 L114 141Z"/>
   <g class="dpad-marks"><path d="M97 129 L102 123 L107 129 M97 177 L102 183 L107 177 M78 148 L72 153 L78 158 M126 148 L132 153 L126 158"/></g>
   <circle class="dpad-center" cx="102" cy="153" r="8"/>
   <g transform="rotate(-26 579 151)">

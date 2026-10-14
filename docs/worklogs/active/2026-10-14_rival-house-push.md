@@ -246,3 +246,9 @@ COMMIT: `merge: integrate main (experiment queue, elevation, walkable floor) int
 - Registered the four switches as pending experiments (experiments/{game-evidence-priority,
   dialogue-log,loop-guard-supervisor,instruction-ledger}.json), sharing the queue's incumbent with
   the new switches explicit OFF, 8 per arm, think-fast lane, primary RIVAL_HOUSE_ENTERED.
+COMMIT: `merge: rival-house push …` into main (44913ac), operator-approved.
+- `just experiments` on main: all four new entries pending and "ready to queue" (3 of the last 4
+  runs reached NEW_GAME_CREATED / FIRST_TRUCK_EXIT). Verdicts recorded in readiness.md.
+- 2×2 presets (runs/launch-receipts/navigation-factorial-think-fast-n4/): one-way tiles and ledge
+  hops turned ON in all four arms (the operator, 21:47 UTC), new switches explicit OFF, elevation ON;
+  originals kept in original/. All four parse. Launch waits on the model-server question.

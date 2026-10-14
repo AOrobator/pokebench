@@ -331,6 +331,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "navigation-evidence-memory-v1":"navigation-evidence-memory-v1.html",
  "bounded-navigation-v1":"astar-navigation.html",
  "ledge-hops-v1":"ledge-hops-v1.html",
+ "one-way-tiles-v1":"one-way-tiles-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

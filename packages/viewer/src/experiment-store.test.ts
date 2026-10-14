@@ -59,7 +59,7 @@ describe("experiment queue store", () => {
     writeDefinition(paths.experimentsDir, definition("dropped", { queuePosition: undefined, discarded: "no longer needed" }));
     writeDefinition(paths.experimentsDir, definition("finished", { queuePosition: 9 }));
     mkdirSync(experimentDir(paths.runsRoot, "finished"), { recursive: true });
-    writeFileSync(join(experimentDir(paths.runsRoot, "finished"), "result.json"), "{}");
+    writeFileSync(join(experimentDir(paths.runsRoot, "finished"), "result.json"), JSON.stringify({ experiment: "finished", gradedAt: "t", result: { verdict: "inconclusive" }, problem: null }));
     writeFileSync(join(experimentDir(paths.runsRoot, "finished"), "trials.jsonl"), Array.from({ length: 8 }, (_, i) => [JSON.stringify({ type: "launch", trial: i, arm: i % 4 === 0 || i % 4 === 3 ? "incumbent" : "candidate", run: `f${String(i)}`, at: "t" }), JSON.stringify({ type: "outcome", trial: i, arm: i % 4 === 0 || i % 4 === 3 ? "incumbent" : "candidate", run: `f${String(i)}`, at: "t", reason: "budget" })].join("\n")).join("\n"));
     writeDefinition(paths.experimentsDir, { version: 9 }, "broken.json");
     writeFileSync(paths.readinessPath, READINESS);

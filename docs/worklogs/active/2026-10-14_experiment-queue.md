@@ -164,3 +164,9 @@ Pending.
 - GREEN for r3: `deriveStatus` takes `graded`; all outcomes without result.json is `held` ("running the queue grades it") and the runner grades it without launching; result.json is written to a temp file and renamed; comparePatchResults takes `trialsPerArm` (problems and limitations use it; tolerance ≤ trialsPerArm); the experiment schema bounds speedMarginPercent to (0, 100] and completionTolerance to ≤ trialsPerArm; the lease is released even if ledger loading or log directory creation throws; the `--once` test seeds seven finished trials directly.
 - 8 per arm: seeds now `trialsPerArm: 8`, budget 16 × 30 min; pokebench-patch-evaluation and experiment-queue skills say eight per arm; explainer updated. Readiness window stays 4 runs.
 - Gates: agent 961 (97.26/93.52/98.01), viewer 522 (95.36/90.45/94.65), lint clean.
+
+## Review r4 (frozen head cf71ec3; packet /tmp/eq-review-r4)
+- Claude CLI: LGTM. Hardening taken: grading a finished experiment should not need a launch-ready build, model discovery or the lease; grading must refuse a definition whose hash no longer matches the approval; the budget had no slack over 16 × the wall cap.
+- Grok: LGTM. Hardening taken: `graded` should be a real file, not mere existence; explainer status was stale.
+- Codex: BLOCKING: a result.json holding only a grading problem (`result: null`) still counted as graded, so the experiment closed as done.
+- RED: an experiment stays open (held) until result.json holds a non-null result; the runner grades without a launch, lease, source check or discovery; finished trials under a changed definition are stale, not graded.

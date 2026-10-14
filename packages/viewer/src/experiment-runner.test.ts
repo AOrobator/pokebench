@@ -231,6 +231,33 @@ describe("experiment runner", () => {
     expect(fake.launches.slice(0, 8).every((l) => l.presetPath.includes("/full-map/"))).toBe(true);
   });
 
+  it("keeps an experiment open while grading fails, and grades it without a launch, lease or source check", async () => {
+    const { paths, metrics, source } = setup();
+    expect((await runQueue({ paths, source, host: host(paths, metrics) })).ran).toBe(8);
+    const first = ledger(paths).find((e) => e.type === "outcome");
+    if (first === undefined) throw new Error("no outcome");
+    const events = join(paths.runsRoot, first.run, "events.jsonl"), body = readFileSync(events, "utf8");
+    rmSync(join(experimentDir(paths.runsRoot, "full-map"), "result.json"));
+    rmSync(events);
+    const strict = host(paths, metrics, { verifySource: () => Promise.resolve("main moved"), discover: () => Promise.reject(new Error("no gateway")) });
+    expect((await runQueue({ paths, source, host: strict })).stopped).toMatch(/^held: grading failed: /);
+    const graded = JSON.parse(readFileSync(join(experimentDir(paths.runsRoot, "full-map"), "result.json"), "utf8")) as { result: unknown };
+    expect(graded.result).toBeNull();
+    expect((await runQueue({ paths, source, host: strict, dryRun: true })).stopped).toBe("dry run");
+    writeFileSync(events, body);
+    expect((await runQueue({ paths, source, host: strict })).stopped).toMatch(/^full-map finished; result in /);
+    expect(strict.launches).toEqual([]);
+    expect((await runQueue({ paths, source, host: strict })).stopped).toBe("nothing to run: the queue is empty");
+  });
+
+  it("refuses to grade finished trials under a definition nobody approved", async () => {
+    const { paths, metrics, source } = setup();
+    expect((await runQueue({ paths, source, host: host(paths, metrics) })).ran).toBe(8);
+    rmSync(join(experimentDir(paths.runsRoot, "full-map"), "result.json"));
+    writeDefinition(paths.experimentsDir, definition("full-map", { criteria: { completionTolerance: 1, speedMarginPercent: 10 } }));
+    expect((await runQueue({ paths, source, host: host(paths, metrics) })).stopped).toBe("nothing to run: full-map is stale");
+  });
+
   it("refuses a preset on disk that no longer matches the definition", async () => {
     const { paths, metrics, source } = setup();
     mkdirSync(join(experimentDir(paths.runsRoot, "full-map"), "presets"), { recursive: true });

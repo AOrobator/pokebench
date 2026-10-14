@@ -1,6 +1,6 @@
 ---
 name: feature-explainer
-description: Write a local, self-contained HTML explainer with diagrams for a new PokeBench feature or switch. Use whenever a harness feature, feature switch or navigation/observation behavior is added or changed and the operator needs to understand what it does; not for benchmark result reports.
+description: Write a tracked local HTML explainer with diagrams and link it from the matching PokeBench Harness Config feature card. Use whenever a harness feature, feature switch or navigation/observation behavior is added or changed and the operator needs to understand what it does; also use when adding or repairing feature-card explainer links, not for benchmark result reports.
 ---
 
 # Feature explainers
@@ -17,6 +17,18 @@ The operator wants every new feature and switch explained with diagrams, not pro
 - After the link, add the local `open ~/dev/pokebench/docs/explainers/<id>.html` command in a `bash` block as a fallback. Never give the command instead of a link.
 
 Verify the explainer is included in the commit, not merely present on disk. Keep probe logs and temporary helper scripts under ignored `runs/`; copy only the documentation needed to explain the feature.
+
+## Link it from Harness Config
+
+A harness feature explainer should be reachable from its matching card in **PokéNav → HARNESS CONFIG**, not only from the chat or documentation index.
+
+- Use the exact feature ID from `packages/agent/src/features.ts`. Register its tracked HTML filename in `FEATURE_EXPLAINERS` in `packages/viewer/src/panels.ts`. Filenames need not equal feature IDs: `bounded-navigation-v1` maps to `astar-navigation.html`. Update the existing mapping when renaming a document.
+- That mapping owns both card links and the viewer server's exact-file allowlist. `packages/viewer/src/server.ts` serves `/explainers/<filename>` from `docs/explainers/`. Reuse this owner; do not add another allowlist, arbitrary file serving, external hosting or a guessed `file://` link. Preserve host, GET-only and content-security protections.
+- Keep the card's description in the existing feature catalog. An explainer link must not change ON/OFF/NOT RECORDED status or infer a historical setting from today's defaults. Leave unrelated report/UI documents unassigned rather than inventing a feature ID.
+- Extend the existing tests in `packages/viewer/src/panels.test.ts` and `server.test.ts`: assert the exact card ID links to the intended URL, and that the route returns the tracked document. Retain unknown-ID, missing-file and host/method rejection coverage. Run viewer tests and the relevant build/lint checks.
+- Verify delivery in the actual viewer: open the selected run's Harness Config, find the feature by name or ID, click **READ EXPLAINER**, and confirm the expected document opens. A file on disk or a link in chat alone does not prove this path works. If server code/allowlist changed, distinguish built files from the running server; coordinate any restart with active benchmarks and preserve their frozen execution checkout.
+
+For an explainer-only edit to an already-linked feature, keep its mapping and validate the existing link rather than adding a second entry. Report the clickable canonical document link plus whether card rendering, serving and the live click were verified.
 
 ## What it shows
 

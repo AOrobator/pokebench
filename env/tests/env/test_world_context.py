@@ -156,3 +156,18 @@ def test_autoscroll_mode_owns_valid_message_buffer() -> None:
     assert c.dialogue == "Wild POKEMON!", c
     m.put(0x020375BC, b"\x01")
     assert read_world_context(m.read, (10, 2), (0, 9), SAVE, decode_text).dialogue is None
+
+
+def test_qualified_field_printer_reports_page_wait_and_withholds_stale_owner() -> None:
+    from pokebench_env.world_context import read_field_message
+    from pokebench_env.ui_state import WINDOWS
+    m = world()
+    m.put(WINDOWS, struct.pack("<BBBBBBHI", 0, 0, 0, 1, 1, 0, 0, 0x02030000))
+    m.put(0x02030000, bytes([1, 2]) * 16)
+    m.put(0x020375BC, b"\x02")
+    m.put(0x03005E00, struct.pack("<I", 0x08098155) + b"\x01" + bytes(3) + struct.pack("<h", 2))
+    m.put(0x020201B0, struct.pack("<I", 0x02021FE2) + bytes([0]))
+    m.put(0x020201B0 + 0x1B, bytes([1, 2]))
+    assert read_field_message(m.read).json() == {"phase": "page_wait", "cursor": 30, "ready": True}
+    m.put(0x03005E00 + 4, b"\x00")
+    assert read_field_message(m.read) is None

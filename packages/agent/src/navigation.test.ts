@@ -91,3 +91,21 @@ it("forwards deliberate walking to the ordinary press without creating a separat
  await tool.execute("nav",{x:0,y:1,map_id:[0,9],walking:true});
  expect(seen).toEqual([{buttons:["DOWN"],walking:true}]);
 });
+it("prices grass at 1.5 per step only when the grass cost option is on",()=>{
+ const strip=(grass:readonly number[])=>({...field,navigation_grid:{elevation:3,tiles:[0,1,2,3,4,5,6].flatMap(x=>[tile(x,0,0,grass.includes(x)?2:0),tile(x,1)]),objects:[],warps:[]}});
+ const straight=["RIGHT","RIGHT","RIGHT","RIGHT","RIGHT","RIGHT"],detour=["DOWN",...straight,"UP"];
+ expect(planNavigation(strip([1,2,3,4,5]),{x:6,y:0})).toEqual(straight);
+ expect(planNavigation(strip([1,2,3,4,5]),{x:6,y:0},{grassCost:true})).toEqual(detour);
+ expect(planNavigation(strip([2,3,4]),{x:6,y:0},{grassCost:true})).toEqual(straight);
+ const corner=(behavior:number)=>({...field,navigation_grid:{elevation:3,tiles:[tile(0,0),tile(1,0,0,behavior),tile(0,1),tile(1,1)],objects:[],warps:[]}});
+ expect(planNavigation(corner(3),{x:1,y:1},{grassCost:true})).toEqual(["DOWN","RIGHT"]);
+ expect(planNavigation({...field,navigation_grid:{elevation:3,tiles:[tile(0,0),tile(1,0,0,2)],objects:[],warps:[]}},{x:1,y:0},{grassCost:true})).toEqual(["RIGHT"]);
+});
+it("passes the grass cost port through to the planner",async()=>{
+ const start={...field,navigation_grid:{elevation:3,tiles:[tile(0,0),tile(1,0,0,2),tile(0,1),tile(1,1)],objects:[],warps:[]}};
+ const first=async(grassCost:boolean|undefined)=>{const buttons:string[][]=[];let current=start;
+  const tool=navigationTool({read:()=>Promise.resolve(current),press:(_id,params)=>{buttons.push([...params.buttons]);current={...current,map_id:[1,0]};return Promise.resolve(result(current));},observe:()=>Promise.resolve(result(current)),...(grassCost===undefined?{}:{grassCost})});
+  await tool.execute("nav",{x:1,y:1,map_id:[0,9]},new AbortController().signal);return buttons[0];};
+ expect(await first(true)).toEqual(["DOWN"]);
+ expect(await first(undefined)).toEqual(await first(false));
+});

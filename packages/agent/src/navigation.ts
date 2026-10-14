@@ -15,10 +15,14 @@ const key=(p:Point):string=>`${String(p.x)},${String(p.y)}`;
 const distance=(a:Point,b:Point):number=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
 const ready=(s:GameStateSnapshot):boolean=>s.started&&s.screen==="overworld"&&!s.in_battle&&s.field_controls_locked===false&&s.position!==null&&s.map_id!==null&&s.navigation_grid!=null&&(s.active_ui==null||(s.active_ui.ready===true&&s.active_ui.diagnostic===null));
 export const MAX_NAVIGATION_COMMANDS=8;
+// PokeAgent's GRASS_TILE_COST_MULTIPLIER: entering grass costs more, so routes avoid wild encounters when a detour is cheap.
+export const GRASS_STEP_COST=1.5;
+const GRASS=new Set([2,3]);
+export interface PlanOptions {readonly grassCost?:boolean}
 
 // Bounded A* over the current live 15x15 window. No outside-map guessing,
 // surfing, ledges or puzzle policies. Zero elevation preserves the layer.
-export function planNavigation(state:GameStateSnapshot,goal:Point):Direction[]|null {
+export function planNavigation(state:GameStateSnapshot,goal:Point,options:PlanOptions={}):Direction[]|null {
  if(!ready(state)||state.navigation_grid==null||state.position===null)return null;
  const grid=state.navigation_grid,tiles=new Map<string,Tile>();
  for(const tile of grid.tiles){if(tiles.has(key(tile)))return null;tiles.set(key(tile),tile);}
@@ -46,7 +50,7 @@ export function planNavigation(state:GameStateSnapshot,goal:Point):Direction[]|n
    if((tile.collision!==0&&!door)||(tile.behavior===0x69&&!door))continue;
    if(warps.has(key(next))&&distance(next,goal)!==0)continue;
    if(tile.elevation!==0&&node.elevation!==0&&tile.elevation!==node.elevation)continue;
-   pending.push({p:next,elevation:tile.elevation||node.elevation,cost:node.cost+1,path:[...node.path,direction]});
+   pending.push({p:next,elevation:tile.elevation||node.elevation,cost:node.cost+(options.grassCost===true&&GRASS.has(tile.behavior)?GRASS_STEP_COST:1),path:[...node.path,direction]});
   }
  }
  return !tiles.has(key(goal))&&best.path.length>0 ? best.path : null;
@@ -58,6 +62,7 @@ export interface NavigationPorts {
  readonly observe:(id:string,signal?:AbortSignal)=>Promise<AgentToolResult<unknown>>;
  readonly gate?:((signal?:AbortSignal)=>Promise<void>)|undefined;
  readonly maxCommands?:number;
+ readonly grassCost?:boolean;
 }
 function resultState(result:AgentToolResult<unknown>):GameStateSnapshot {
  const details=result.details;
@@ -78,7 +83,7 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
    state=await ports.read(signal);signal?.throwIfAborted();
    if(!sameMap()){status="map changed; inspect destination";break;}
    if(!ready(state)){status="field input or navigation geometry unavailable";break;}
-   const path=planNavigation(state,goal);
+   const path=planNavigation(state,goal,{grassCost:ports.grassCost===true});
    if(path===null){status="no supported local path; choose a reachable local waypoint";break;}
    const direction=path[0];if(direction===undefined){status="arrived at requested coordinate";break;}
    const previousFacing=state.facing; const before=state.position;if(before===null)throw new Error("Navigation position unavailable");
@@ -110,5 +115,5 @@ export function withNavigation(base:readonly AgentTool[],features:FeatureSet,sta
  const tools=[...base];if(!features["bounded-navigation-v1"])return tools;
  const press=base.find(tool=>tool.name==="press"),observe=base.find(tool=>tool.name==="observe");
  if(press===undefined||observe===undefined||!isCheckedPress(press))throw new Error("Navigation requires ordinary game tools");
- tools.push(navigationTool({read:signal=>state.read(signal),press:(id,params,signal,check)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal),observe:(id,signal)=>observe.execute(id,{},signal),gate}));return tools;
+ tools.push(navigationTool({read:signal=>state.read(signal),press:(id,params,signal,check)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal),observe:(id,signal)=>observe.execute(id,{},signal),gate,grassCost:features["grass-cost-navigation-v1"]}));return tools;
 }

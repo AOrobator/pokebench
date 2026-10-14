@@ -2,7 +2,7 @@ import {expect,it} from "vitest";
 import {ALL_ON} from "./features.js";
 import {parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {stateOnlyProblems,stateOnlyPrompt} from "./state-runtime.js";
-const features={...ALL_ON,"state-only-decisions-v1":true,"objective-tracking-v1":false,"repeat-attempt-guard-v1":false,"native-objective-completion-v1":false,"deterministic-loop-guard-v1":false,"bounded-navigation-v1":false,"press-result-v1":false};
+const features={...ALL_ON,"state-only-decisions-v1":true,"objective-tracking-v1":false,"repeat-attempt-guard-v1":false,"native-objective-completion-v1":false,"deterministic-loop-guard-v1":false,"bounded-navigation-v1":false,"grass-cost-navigation-v1":false,"press-result-v1":false};
 it("permits state-only mode only when no unsupported historical intervention is declared",()=>{
  expect(stateOnlyProblems(features)).toEqual([]);
  for(const flag of ["objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1"] as const)expect(stateOnlyProblems({...features,[flag]:true})).toEqual([`state-only-decisions-v1 requires ${flag} OFF`]);
@@ -12,7 +12,7 @@ it("describes automatic snapshots and one action without an observe-tool instruc
  expect(stateOnlyPrompt({...features,"contextual-interface-docs-v1":false},null)).not.toContain("Naming editor");
 });
 it("normalizes historical presets to state-only OFF and records explicit candidate ON",()=>{
- const old={version:2,id:"historical",target:null,limits:{maxTurns:1500,maxWallMs:1800000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},features:{...ALL_ON,"objective-tracking-v1":false,"repeat-attempt-guard-v1":false,"native-objective-completion-v1":false,"deterministic-loop-guard-v1":false,"bounded-navigation-v1":false,"press-result-v1":false}};
+ const old={version:2,id:"historical",target:null,limits:{maxTurns:1500,maxWallMs:1800000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},features:{...ALL_ON,"objective-tracking-v1":false,"repeat-attempt-guard-v1":false,"native-objective-completion-v1":false,"deterministic-loop-guard-v1":false,"bounded-navigation-v1":false,"grass-cost-navigation-v1":false,"press-result-v1":false}};
  const {"state-only-decisions-v1":_omitted,...without}=old.features;expect(_omitted).toBe(true);
  expect(presetFeatures(parsePlayPreset({...old,features:without}))["state-only-decisions-v1"]).toBe(false);
  expect(presetFeatures(parsePlayPreset({...old,features}))["state-only-decisions-v1"]).toBe(true);

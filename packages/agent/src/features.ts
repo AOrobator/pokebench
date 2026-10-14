@@ -17,6 +17,7 @@ export const SWITCHABLE_FEATURES = [
   "named-interactions-v1",
   "world-destinations-v1",
   "bounded-navigation-v1",
+  "grass-cost-navigation-v1",
   "field-dialogue-phase-v1",
   "dialogue-safe-batches-v1",
   "interaction-loop-detection-v1",
@@ -91,6 +92,8 @@ export const FEATURES: readonly FeatureInfo[] = [
     "Adds current map bounds, game-defined boundary connections and named warp destinations to observations. Conditions may still block passage. Off: original map IDs; no story route is supplied."),
   on("bounded-navigation-v1", "guidance", "BOUNDED NAVIGATION", "live-map-v1",
     "Adds navigate_to for up to eight ordinary walking attempts using the live local map, plus the current map ID needed by the tool. The model chooses destinations. Stops on blocked movement, locks or map changes; unsupported terrain is avoided. Off: no navigate_to tool."),
+  on("grass-cost-navigation-v1", "guidance", "GRASS-AVOIDING NAVIGATION", "bounded-navigation-v1",
+    "navigate_to counts each step into tall or long grass as 1.5 steps, so it takes a slightly longer route around grass when one exists, to avoid wild encounters. Matches PokeAgent's grass penalty. Off: every walkable step costs the same."),
   on("field-dialogue-phase-v1", "observation", "DIALOGUE PHASE", RAM,
     "Reports a qualified field-message printer phase, buffer position and whether A/B can advance a page, or the qualified script/interface activity retaining its window. Unknown ownership stays unavailable; no story route is supplied. Off: incumbent dialogue readout."),
   on("dialogue-safe-batches-v1", "guard", "SAFE INTERFACE INPUT", RAM,
@@ -193,6 +196,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...(target === null ? [] : ["native-target-stop-v1"]), "deterministic-loop-diagnostics-v1", LOOP_POLICY_FEATURE,
     ...when("deterministic-loop-guard-v1"), ...when("contextual-interface-docs-v1"),
     ...when("automatic-running-v1"), ...when("expanded-menu-battle-information-v1"), ...when("state-only-decisions-v1"), ...when("objective-tracking-v1"), ...when("repeat-attempt-guard-v1"), ...when("native-objective-completion-v1"),
+    ...when("grass-cost-navigation-v1"),
   ];
 }
 

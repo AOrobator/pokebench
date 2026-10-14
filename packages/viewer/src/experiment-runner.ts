@@ -122,6 +122,8 @@ async function runNext({ paths, source, host, dryRun = false, once = false, stop
   const todo = view.trials.filter((t) => t.state !== "done");
   host.log(`${experiment.id}: ${view.state}; ${String(todo.length)} of ${String(view.trials.length)} trials to run (${todo.map((t) => `${String(t.index + 1)}${t.arm === "incumbent" ? "A" : "B"}`).join(" ")})`);
   if (dryRun) return hold(0, "dry run");
+  // Every trial already finished: grading reads only the ledger and run logs, so no build, model or lease is needed.
+  if (todo.length === 0) return finish(paths, experiment, 0);
   const problem = await host.verifySource(experiment);
   if (problem !== null) throw new RunnerError(`${experiment.id}: ${problem}`);
   const live = await host.liveRuns();
@@ -174,13 +176,18 @@ async function runNext({ paths, source, host, dryRun = false, once = false, stop
       host.log(`${experiment.id}: trial ${String(trial.index + 1)} (${trial.arm}) finished as ${runId}`);
       if (once && trial !== todo.at(-1)) return hold(ran, "one trial run (--once)");
     }
-    writeResult(paths, experiment);
-    const done = `${experiment.id} finished; result in ${join(experimentDir(paths.runsRoot, experiment.id), "result.json")}`;
-    return { ran, stopped: done, finished: experiment.id };
+    return finish(paths, experiment, ran);
   } finally {
     rmSync(runnerPath(paths.runsRoot), { force: true });
     rmSync(lease, { recursive: true, force: true });
   }
+}
+
+function finish(paths: QueuePaths, experiment: Experiment, ran: number): RunnerOutcome & { finished: string | null } {
+  if (!approved(paths, experiment)) return { ran, stopped: "held: the approval no longer matches the definition", finished: null };
+  const graded = writeResult(paths, experiment);
+  if (graded.result === null) return { ran, stopped: `held: grading failed: ${graded.problem ?? "no result"}`, finished: null };
+  return { ran, stopped: `${experiment.id} finished; result in ${join(experimentDir(paths.runsRoot, experiment.id), "result.json")}`, finished: experiment.id };
 }
 
 function readEvents(runsRoot: string, runId: string): RunEvent[] {

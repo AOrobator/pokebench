@@ -131,3 +131,21 @@ describe("recorded runs as readiness and trial evidence", () => {
     expect(source.trial("not a run id")).toBeNull();
   });
 });
+
+describe("scanning run logs for readiness and trial metrics", () => {
+  it("matches summarize() on a recorded fixture and rejects a log without run_start", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { summarize } = await import("@pokebench/agent/summary");
+    const { parseEvent } = await import("@pokebench/agent/events");
+    const text = readFileSync(join(import.meta.dirname, "fixtures", "m4-run.jsonl"), "utf8");
+    const full = summarize(text.split("\n").filter((l) => l.trim() !== "").map((l) => parseEvent(l)));
+    const { scanRun } = await import("./experiment-store.js");
+    const scanned = scanRun(text);
+    expect(scanned.metrics.reached).toEqual(full.milestones.map((m) => m.name));
+    expect(scanned.metrics.turns).toBe(full.turns);
+    expect(scanned.metrics.wallMs).toBe(full.wallMs);
+    expect(scanned.ended).toBe(full.reason !== "incomplete");
+    expect(() => scanRun("")).toThrow("event log does not begin with run_start");
+    expect(() => scanRun(text.split("\n").slice(1).join("\n"))).toThrow("event log does not begin with run_start");
+  });
+});

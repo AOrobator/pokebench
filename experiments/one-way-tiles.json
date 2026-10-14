@@ -65,7 +65,7 @@
  "trialsPerArm": 8,
  "modelLane": "think-fast",
  "budget": {
-  "maxWallMs": 28800000
+  "maxWallMs": 30600000
  },
  "criteria": {
   "completionTolerance": 0,

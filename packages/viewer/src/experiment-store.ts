@@ -1,12 +1,12 @@
 // Read side of the experiment queue: tracked definitions, the operator's
 // approvals, trial ledgers, the runner's position, recorded run outcomes and
 // the readiness verdicts in docs/experiments/readiness.md.
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { Type } from "typebox";
 import { Value } from "typebox/value";
 import { ApprovalSchema, definitionHash, deriveStatus, parseExperiment, parseLedger, readinessOf, type Approval, type Experiment, type ExperimentState, type LedgerEntry, type Readiness, type ReadinessRun, type RunnerPosition, type TrialProgress } from "@pokebench/agent/experiments";
-import { readRun, summarize } from "@pokebench/agent/summary";
+import { parseEvent } from "@pokebench/agent/events";
 import { configOf } from "./history.js";
 import { RunsError, listRuns, readStart, runDir } from "./runs.js";
 
@@ -169,6 +169,17 @@ export function experimentView(e: Experiment, input: { approval: Approval | null
   };
 }
 
+// Graded means result.json is a file holding a comparison result, not only a grading problem.
+export function gradedResult(path: string): boolean {
+  try {
+    if (!statSync(path).isFile()) return false;
+    const value: unknown = JSON.parse(readFileSync(path, "utf8"));
+    return typeof value === "object" && value !== null && "result" in value && typeof value.result === "object" && value.result !== null;
+  } catch {
+    return false;
+  }
+}
+
 export function loadExperiments(experimentsDir: string, problems: string[]): Experiment[] {
   if (!existsSync(experimentsDir)) return [];
   const experiments: Experiment[] = [];
@@ -190,7 +201,7 @@ export function queueSnapshot(paths: QueuePaths, source: RunSource, alive: (pid:
   const recorded = existsSync(paths.readinessPath) ? parseReadinessDoc(readFileSync(paths.readinessPath, "utf8")) : new Map<string, RecordedReadiness>();
   const runner = readRunner(paths.runsRoot, alive);
   const recent = experiments.length === 0 ? [] : source.recent();
-  const views = experiments.map((e) => experimentView(e, { approval: approvalOf(paths.runsRoot, e.id, problems), ledger: ledgerOf(paths.runsRoot, e.id, problems), runner, recent, source, recorded: recorded.get(e.changedFeature) ?? null, graded: existsSync(join(experimentDir(paths.runsRoot, e.id), "result.json")) }));
+  const views = experiments.map((e) => experimentView(e, { approval: approvalOf(paths.runsRoot, e.id, problems), ledger: ledgerOf(paths.runsRoot, e.id, problems), runner, recent, source, recorded: recorded.get(e.changedFeature) ?? null, graded: gradedResult(join(experimentDir(paths.runsRoot, e.id), "result.json")) }));
   const positions = new Map<number, string>();
   for (const v of views) {
     if (v.queuePosition === null) continue;
@@ -208,22 +219,43 @@ export function queueSnapshot(paths: QueuePaths, source: RunSource, alive: (pid:
   };
 }
 
+// Run logs reach tens of MB (raw RAM archives), so only the run_start, milestone and final
+// lines are parsed and validated; the counts match summarize() for the same log.
+export function scanRun(text: string): { readonly metrics: TrialMetrics; readonly ended: boolean } {
+  const lines = text.split("\n").filter((line) => line.trim() !== "");
+  const first = lines[0], last = lines.at(-1);
+  const start = first === undefined ? null : parseEvent(first);
+  if (start?.type !== "run_start" || last === undefined) throw new RunsError("event log does not begin with run_start");
+  const startMs = Date.parse(start.t);
+  const reached: string[] = [], milestoneMs: Record<string, number> = {};
+  for (const line of lines) {
+    if (!line.includes('"type":"milestone"')) continue;
+    const event = parseEvent(line);
+    if (event.type !== "milestone" || event.origin === "present_at_start") continue;
+    reached.push(event.name);
+    milestoneMs[event.name] ??= Date.parse(event.t) - startMs;
+  }
+  const end = parseEvent(last);
+  return end.type === "run_end"
+    ? { metrics: { reached, milestoneMs, turns: end.turns, wallMs: end.wall_ms }, ended: true }
+    : { metrics: { reached, milestoneMs, turns: end.turn, wallMs: Date.parse(end.t) - startMs }, ended: false };
+}
+
 // Recorded runs from runs/, cached once ended (an ended run's log never changes).
 export function recordedRuns(runsRoot: string): RunSource {
   const cache = new Map<string, TrialMetrics>();
   const metrics = (runId: string): TrialMetrics | null => {
     const hit = cache.get(runId);
     if (hit !== undefined) return hit;
-    let summary;
+    let scanned;
     try {
-      summary = summarize(readRun(runDir(runsRoot, runId)));
+      scanned = scanRun(readFileSync(join(runDir(runsRoot, runId), "events.jsonl"), "utf8"));
     } catch (error) {
       if (error instanceof RunsError || (error as NodeJS.ErrnoException).code === "ENOENT") return null;
       throw error;
     }
-    const value: TrialMetrics = { reached: summary.milestones.map((m) => m.name), milestoneMs: Object.fromEntries(summary.milestones.map((m) => [m.name, m.wallMs])), turns: summary.turns, wallMs: summary.wallMs };
-    if (summary.reason !== "incomplete") cache.set(runId, value);
-    return value;
+    if (scanned.ended) cache.set(runId, scanned.metrics);
+    return scanned.metrics;
   };
   return {
     trial: metrics,

@@ -143,7 +143,9 @@ export function deriveStatus({experiment,approval,ledger,runner,readiness,graded
  const at=(state:ExperimentState,reason:string):ExperimentStatus=>({state,reason,trials,completed});
  if(experiment.discarded!==undefined)return at("discarded",experiment.discarded);
  if(experiment.blocked!==undefined)return at("blocked",experiment.blocked);
- if(completed===trials.length)return graded?at("done",`all ${total} trials finished`):at("held",`all ${total} trials finished; running the queue grades it`);
+ if(completed===trials.length&&graded)return at("done",`all ${total} trials finished`);
+ if(completed===trials.length&&(approval===null||approval.sha256!==definitionHash(experiment)))return at("stale","the definition changed after approval; it needs a new approval before its trials are graded");
+ if(completed===trials.length)return at("held",`all ${total} trials finished; running the queue grades it`);
  if(runner?.experiment===experiment.id)return at("running",`trial ${String(runner.trial+1)} of ${total} running`);
  if(approval!==null&&approval.sha256!==definitionHash(experiment))return at("stale","the definition changed after approval; it needs a new approval");
  if(ledger.length>0&&approval===null)return at("stale","trials have started but there is no valid approval; it needs a new approval to resume");

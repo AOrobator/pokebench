@@ -82,7 +82,7 @@ Argv-only spawns (`node`, `git`), checkout paths treated as untrusted (resolved,
 - DEFERRED (native qualification before trials): the hand-written drivers ran an untracked runs/navigation-proof/native-qualification.mjs; there is no tracked equivalent to call. Recorded for review.
 - DEFERRED (prompt-changing switches): `comparePatchResults` marks a comparison ineligible when the arms' system prompts differ without an audited prompt-change contract. full-map and ledge hops change the prompt, so their results will say ineligible until a contract field exists. The views still show reach, time, turns and efficiency.
 
-**M3 — Viewer queue page**
+**M3 — Viewer queue page** (design: party slots from 11 that open into 18's battle card, operator yes 2026-10-14 21:00)
 - [ ] Tests: `/api/experiments` shape, QueuePanel rendering (happy-dom) for draft/approved/running/held/done/blocked/stale, INV-Q8, workbench cohort integration.
 - [ ] COMMIT RED / implement / gates / screenshot of the page on port 8790 / COMMIT GREEN / review.
 
@@ -170,3 +170,9 @@ Pending.
 - Grok: LGTM. Hardening taken: `graded` should be a real file, not mere existence; explainer status was stale.
 - Codex: BLOCKING: a result.json holding only a grading problem (`result: null`) still counted as graded, so the experiment closed as done.
 - RED: an experiment stays open (held) until result.json holds a non-null result; the runner grades without a launch, lease, source check or discovery; finished trials under a changed definition are stale, not graded.
+- GREEN for r4: `done` needs result.json to be a file holding a non-null comparison result (`gradedResult`); a finished experiment under a definition whose hash no longer matches is `stale`; grading a fully finished experiment skips source checks, discovery and the lease and holds with "grading failed: …" until it succeeds; budgets are 17 × the wall cap (one trial of slack).
+- M3 built: `packages/viewer/src/queue-view.ts` (typed payload check, collapsed party slots with ABBA pips, A/B HP bars and median turns; click opens the battle card in place; status chips filter; separate PENDING box; DONE section), `GET /api/experiments` (5 s snapshot cache; experiments/ and docs/experiments/readiness.md beside runsRoot by default), ★ EXPERIMENT QUEUE page in PokéNav, EXPERIMENT QUEUE and PENDING EXPERIMENTS sections on Runs & Comparisons (above the existing EXECUTION QUEUE), CSS in style.css.
+- Surprise: the first /api/experiments call took ~14 s because run logs are 14–83 MB (raw RAM archive) and summarize() validates every line. `scanRun` parses only the run_start, milestone and final lines (tested equal to summarize on the fixture); cold snapshot now ~0.4 s.
+- Deviation: M3's tests (queue-view.test.ts, server-experiments.test.ts, scanRun) were written right after the code in this commit, not as a separate RED commit.
+- Browser check on a read-only preview (127.0.0.1:8797, real runs/, scratch ledger dir): PokéNav ★ EXPERIMENT QUEUE shows 3 draft slots and 3 pending cards; clicking a slot opens its battle card; PENDING and DRAFT chips filter (0/3 and 3/0 slots/cards); Runs & Comparisons shows both sections.
+- Gates: agent 961, viewer 532 (95.09/90.41/94.39), lint clean.

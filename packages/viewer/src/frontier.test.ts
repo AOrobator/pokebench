@@ -52,6 +52,17 @@ describe("persistent actual native frontier", () => {
     expect(document.body.textContent).toContain("Home");
     expect(document.body.textContent).toContain("Badge");
   });
+  it("colors models distinctly, shares color within a model and identifies each color in a legend", () => {
+    const a = { ...best(), id: "model-a-1", model: "Alpha" }, a2 = { ...best(), id: "model-a-2", model: "Alpha" };
+    const b = { ...best(), id: "model-b", model: "Beta" }, refs = { human: human(), best: a };
+    document.body.innerHTML = frontierPlot(refs, [a, a2, b], 640);
+    const first = document.querySelector('[data-run="model-a-1"]')?.getAttribute("fill"), second = document.querySelector('[data-run="model-a-2"]')?.getAttribute("fill"), other = document.querySelector('[data-run="model-b"]')?.getAttribute("fill");
+    expect(first).toBe(second); expect(first).not.toBe(other);
+    expect(document.querySelector('[data-run="model-a-1"]')?.getAttribute("stroke")).toBe("#af8915");
+    expect(document.querySelector('[data-model="Alpha"]')?.textContent).toContain("Alpha");
+    expect(document.querySelector('[data-model="Beta"]')?.textContent).toContain("Beta");
+    expect(document.querySelector('[data-model="Alpha"] i')?.getAttribute("style")).toContain(first);
+  });
   it("retains failed denominators and identifies unsupported and censored outcomes", () => {
     const failed = measured("failed", []), running = measured("running", []), interrupted = measured("interrupted", []); running.status = "live"; interrupted.status = "unresponsive";
     const unknown = run({ id: "old", splits: [] });

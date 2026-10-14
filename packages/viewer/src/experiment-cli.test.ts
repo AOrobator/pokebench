@@ -98,18 +98,18 @@ describe("production host", () => {
   it("verifies the pinned commit, a clean tree and a fresh build", async () => {
     const { root, head } = repo();
     const host = productionHost({ root, runsRoot: join(root, "runs"), git: (args) => git(root, args), fetchFn: fetch, node: process.execPath, env: {}, log: () => undefined });
-    expect(await host.verifySource(experiment("c".repeat(40)))).toMatch(/^main is at [0-9a-f]{7}, not the pinned ccccccc \(just experiment-pin full-map, then re-approve\)$/);
+    expect(await host.verifySource(experiment("c".repeat(40)), "c".repeat(40))).toMatch(/^main is at [0-9a-f]{7}, not the approved ccccccc; approve full-map again on the current build$/);
     writeFileSync(join(root, "tracked.txt"), "two\n");
-    expect(await host.verifySource(experiment(head))).toBe("the main checkout has uncommitted changes");
+    expect(await host.verifySource(experiment(head), head)).toBe("the main checkout has uncommitted changes");
     git(root, ["checkout", "--", "tracked.txt"]);
-    expect(await host.verifySource(experiment(head))).toBe("packages/agent/dist/live.js is missing; run just build");
+    expect(await host.verifySource(experiment(head), head)).toBe("packages/agent/dist/live.js is missing; run just build");
     const live = join(root, "packages", "agent", "dist", "live.js");
     mkdirSync(join(root, "packages", "agent", "dist"), { recursive: true });
     writeFileSync(live, "");
     utimesSync(live, new Date(0), new Date(0));
-    expect(await host.verifySource(experiment(head))).toBe("the agent build is older than the pinned commit; run just build");
+    expect(await host.verifySource(experiment(head), head)).toBe("the agent build is older than the approved commit; run just build");
     utimesSync(live, new Date(), new Date());
-    expect(await host.verifySource(experiment(head))).toBeNull();
+    expect(await host.verifySource(experiment(head), head)).toBeNull();
     expect(await host.liveRuns()).toEqual([]);
     expect(host.runId("think-fast")).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}_think-fast_[0-9a-f]{4}$/);
     expect(host.now()).toBeInstanceOf(Date);

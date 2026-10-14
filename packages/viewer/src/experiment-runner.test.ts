@@ -18,7 +18,7 @@ function setup(over: Record<string, unknown> = {}, approve = true): { paths: Que
   writeDefinition(paths.experimentsDir, value);
   if (approve) {
     mkdirSync(experimentDir(paths.runsRoot, "full-map"), { recursive: true });
-    writeFileSync(join(experimentDir(paths.runsRoot, "full-map"), "approval.json"), JSON.stringify({ experiment: "full-map", sha256: definitionHash(parseExperiment(value)), approvedAt: "t", approvedBy: "operator" }));
+    writeFileSync(join(experimentDir(paths.runsRoot, "full-map"), "approval.json"), JSON.stringify({ experiment: "full-map", sha256: definitionHash(parseExperiment(value)), approvedAt: "t", approvedBy: "operator", commit: "e".repeat(40) }));
   }
   const metrics = new Map<string, TrialMetrics>();
   const recent: ReadinessRun[] = ["r1", "r2", "r3", "r4"].map((id) => ({ id, model: "think-fast", start: "boot", maxTurns: 1500, maxWallMs: 1_800_000, features: QUEUE_FEATURES, reached: ["FIRST_TRUCK_EXIT"] }));
@@ -50,7 +50,7 @@ function host(paths: QueuePaths, metrics: Map<string, TrialMetrics>, over: Parti
     launches, lines,
     now: () => new Date("2026-10-14T20:00:00Z"),
     runId: (model) => `2026-10-14T20-00-${String(n++).padStart(3, "0")}_${model}_beef`,
-    verifySource: () => Promise.resolve(null),
+    verifySource: (_e, commit) => { expect(commit).toMatch(/^[0-9a-f]{40}$/); return Promise.resolve(null); },
     liveRuns: () => Promise.resolve([]),
     discover: (lane) => Promise.resolve({ id: lane, fingerprint: "f".repeat(64) }),
     launch: (trial) => {
@@ -101,7 +101,7 @@ describe("experiment runner", () => {
     expect(fake.launches.map((l) => l.presetPath.endsWith("incumbent.json") ? "A" : "B").join("")).toBe("ABBAABBA");
     expect(new Set(fake.launches.map((l) => l.runId)).size).toBe(8);
     expect(ledger(paths).map((e) => e.type)).toEqual(Array.from({ length: 8 }, () => ["launch", "outcome"]).flat());
-    expect(ledger(paths)[0]).toMatchObject({ environment: "f".repeat(64), model: "think-fast" });
+    expect(ledger(paths)[0]).toMatchObject({ environment: "f".repeat(64), model: "think-fast", commit: "e".repeat(40) });
     const preset = (arm: string): { features: Record<string, boolean>; id: string } => JSON.parse(readFileSync(join(experimentDir(paths.runsRoot, "full-map"), "presets", `${arm}.json`), "utf8")) as { features: Record<string, boolean>; id: string };
     expect(Object.keys(preset("incumbent").features).filter((k) => preset("incumbent").features[k] !== preset("candidate").features[k])).toEqual(["full-map-navigation-v1"]);
     const result = JSON.parse(readFileSync(join(experimentDir(paths.runsRoot, "full-map"), "result.json"), "utf8")) as { result: { verdict: string; incumbent: { launched: number } } | null };

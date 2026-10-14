@@ -61,7 +61,7 @@ keeps detection and warnings, drops termination, and the experiment measures the
 
 ## Milestones
 
-- [ ] M1 `game-evidence-priority-v1`: RED tests (prompt text present only when ON; OFF
+- [~] M1 `game-evidence-priority-v1`: RED tests (prompt text present only when ON; OFF
   byte-identical; navigate_to guidance wording), GREEN, explainer, gates, review.
 - [ ] M2 `dialogue-log-v1` + `recall_dialogue`: RED tests over recorded event fixtures (dedupe
   of repeated pages, speaker attribution, room, filters, limits on returned size, recorder and
@@ -107,3 +107,12 @@ keeps detection and warnings, drops termination, and the experiment measures the
   first. 8 runs per arm. Starting M1.
 - M1 RED: 4 failing tests (prompt ON/OFF, navigate_to guidance only with navigation, preset
   default OFF, registry entry). 44 existing tests in those files still pass.
+COMMIT: `test(agent): RED for game-evidence-priority-v1 prompt guidance` (15dbf7c)
+- M1 GREEN: switch registered (guidance, needs none, recorded last), OFF in v1 flags, v2
+  presets that omit it and the viewer next-run draft. Prompt sections GAME_EVIDENCE_SECTION and
+  NAVIGATE_TO_USAGE (navigation only). Directional exits: the tool does not activate them after
+  arriving, so the text says to press the direction. Explainer
+  docs/explainers/game-evidence-priority-v1.html linked from FEATURE_EXPLAINERS; new test checks
+  every mapped explainer file exists. Gates: agent 950/950, viewer 494/494, coverage agent
+  97.2/93.41/97.92 (stmts/branches/funcs), viewer 95.67/90.53/95.34, tsc and eslint clean. No
+  Python touched.

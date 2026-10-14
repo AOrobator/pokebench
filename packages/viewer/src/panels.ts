@@ -353,6 +353,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "one-way-tiles-v1":"one-way-tiles-v1.html",
  "counter-talk-v1":"counter-talk-v1.html",
  "grass-cost-navigation-v1":"grass-cost-switch.html",
+ "game-evidence-priority-v1":"game-evidence-priority-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

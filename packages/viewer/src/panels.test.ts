@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import { Window } from "happy-dom";
 import { BASE_MS, Log, RUN, START, assistant, fullRun, must, state } from "../test-support/events.js";
 import { RunView, foldUntil } from "./model.js";
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import {
+  FEATURE_EXPLAINERS,
   NO_DATA,
   objectivePanel,
   actionRow,
@@ -565,4 +568,9 @@ it("documents only recorded tools with input/output contracts and safe unknown f
  expect(doc.querySelector('[data-tool="navigate_to"]')?.textContent).toContain("map_id");expect(doc.querySelector('[data-tool="remember_destination"]')?.textContent).toContain("1–4");expect(doc.querySelector('[data-tool="act"]')?.textContent).toContain("1–2000");
  expect(doc.querySelector('[data-tool="constructor"]')?.textContent).toContain("Documentation unavailable");expect(doc.querySelector("unknown,input,button,select,textarea,form")).toBeNull();expect(doc.body.textContent).toContain("not recorded with historical tool schemas");
  const subset=new Log();subset.add(0,{...START,tools:["observe"]});doc.body.innerHTML=harnessConfig(view(subset));expect(doc.querySelectorAll(".config-tool")).toHaveLength(1);expect(doc.querySelector('[data-tool="press"]')).toBeNull();
+});
+
+it("maps game evidence priority to a tracked explainer, like every other mapped card",()=>{
+ expect(FEATURE_EXPLAINERS["game-evidence-priority-v1"]).toBe("game-evidence-priority-v1.html");
+ for(const file of Object.values(FEATURE_EXPLAINERS))expect(existsSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url)))).toBe(true);
 });

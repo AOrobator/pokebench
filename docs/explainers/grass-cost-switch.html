@@ -291,9 +291,10 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
  <section>
   <h2>Where it stands</h2>
   <dl class="status">
-   <dt>Code</dt><dd>Committed locally on <code>claude/grass-cost</code>. Not pushed.</dd>
-   <dt>Checks</dt><dd>Agent tests 866/866, viewer tests 417/417, coverage above the 90% floor, lint clean.</dd>
-   <dt>Not yet</dt><dd>Multi-model review, and benchmark runs. The runs wait until the ledge fix is on main.</dd>
+   <dt>Code</dt><dd>Merged into main behind the switch, off by default. It works in both the local and whole-map planners, alongside ledge hops, one-way tiles, elevation and counter talk. A ledge hop that lands in grass costs one step plus the grass step.</dd>
+   <dt>Checks</dt><dd>Agent tests 945/945, viewer tests 493/493, coverage above the 90% floor, lint clean.</dd>
+   <dt>Review</dt><dd>Claude, Grok and GPT (via Codex) LGTM, and a further check after re-applying it on main's new planner.</dd>
+   <dt>Experiment</dt><dd>Pending: on the pending-experiments list, not yet in the run queue. The four-run arms (incumbent vs grass cost) wait for the readiness check and your approval.</dd>
   </dl>
  </section>
 </main>

@@ -38,7 +38,11 @@ export const MAX_FULL_ROUTE_COMMANDS=512;
 // Whole-map walks stop when the planned route has not shortened for this many presses.
 export const NO_PROGRESS_PRESSES=16;
 
-export interface NavigationOptions {readonly mode?:NavigationMode;readonly ledges?:boolean;readonly oneWay?:boolean}
+// PokeAgent's GRASS_TILE_COST_MULTIPLIER: entering grass costs more, so routes avoid wild encounters when a detour is cheap.
+export const GRASS_STEP_COST=1.5;
+const GRASS=new Set([2,3]);
+
+export interface NavigationOptions {readonly mode?:NavigationMode;readonly ledges?:boolean;readonly oneWay?:boolean;readonly grassCost?:boolean}
 interface Geometry {readonly elevation:number;readonly tile:(p:Point)=>Tile|undefined;readonly objects:readonly Point[];readonly warps:readonly Point[];readonly bounds:{readonly width:number;readonly height:number}|null}
 
 function localGeometry(state:GameStateSnapshot):Geometry|null {
@@ -113,6 +117,7 @@ class OpenList<T> {
 // Elevation follows the game's rule. Warps are only ever goals.
 export function planNavigation(state:GameStateSnapshot,goal:Point,options:NavigationOptions={}):Direction[]|null {
  const mode=options.mode??"local";
+ const step=(tile:Tile):number=>options.grassCost===true&&GRASS.has(tile.behavior)?GRASS_STEP_COST:1;
  if(!ready(state,mode)||state.position===null)return null;
  const geometry=mode==="full"?fullGeometry(state):localGeometry(state);
  const here=geometry?.tile(state.position);
@@ -142,7 +147,7 @@ export function planNavigation(state:GameStateSnapshot,goal:Point,options:Naviga
     const landing={x:next.x+dx,y:next.y+dy},land=geometry.tile(landing);
     if(land===undefined||occupied.has(key(landing))||warps.has(key(landing))||land.collision!==0||land.behavior===0x69||!WALKING.has(land.behavior))continue;
     if(mismatch(node.elevation,land.elevation))continue;
-    pending.push(node.cost+2+distance(landing,goal),{p:landing,here:land.elevation,elevation:jumped(node.elevation,node.here,tile.elevation,land.elevation),cost:node.cost+2,parent:node,direction});continue;
+    pending.push(node.cost+1+step(land)+distance(landing,goal),{p:landing,here:land.elevation,elevation:jumped(node.elevation,node.here,tile.elevation,land.elevation),cost:node.cost+1+step(land),parent:node,direction});continue;
    }
    if(options.oneWay===true&&(walled(tile,OPPOSITE[direction])||walled(geometry.tile(node.p),direction)))continue;
    if(!(WALKING.has(tile.behavior)||(options.oneWay===true&&EDGE_WALLS.has(tile.behavior))))continue;
@@ -150,7 +155,7 @@ export function planNavigation(state:GameStateSnapshot,goal:Point,options:Naviga
    if((tile.collision!==0&&!door)||(tile.behavior===0x69&&!door))continue;
    if(warps.has(key(next))&&distance(next,goal)!==0)continue;
    if(mismatch(node.elevation,tile.elevation))continue;
-   pending.push(node.cost+1+distance(next,goal),{p:next,here:tile.elevation,elevation:entered(node.elevation,tile.elevation),cost:node.cost+1,parent:node,direction});
+   pending.push(node.cost+step(tile)+distance(next,goal),{p:next,here:tile.elevation,elevation:entered(node.elevation,tile.elevation),cost:node.cost+step(tile),parent:node,direction});
   }
  }
  return !goalKnown&&best!==start ? route(best) : null;
@@ -167,6 +172,7 @@ export interface NavigationPorts {
  readonly fullMap?:boolean;
  readonly ledges?:boolean;
  readonly oneWay?:boolean;
+ readonly grassCost?:boolean;
 }
 function resultState(result:AgentToolResult<unknown>):GameStateSnapshot {
  const details=result.details;
@@ -196,7 +202,7 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
    state=await ports.read(signal);signal?.throwIfAborted();
    if(!sameMap()){status="map changed; inspect destination";break;}
    if(!ready(state,mode)){status="field input or navigation geometry unavailable";break;}
-   const options:NavigationOptions={mode,ledges:ports.ledges===true,oneWay:ports.oneWay===true};
+   const options:NavigationOptions={mode,ledges:ports.ledges===true,oneWay:ports.oneWay===true,grassCost:ports.grassCost===true};
    const path=planNavigation(state,goal,options);
    if(path===null){status=(ports.counters===true?counterHint(state,goal,options):null)??(mode==="full"?"no supported path on the current map; choose a reachable waypoint":"no supported local path; choose a reachable local waypoint");break;}
    const direction=path[0];if(direction===undefined){status="arrived at requested coordinate";break;}
@@ -231,5 +237,5 @@ export function withNavigation(base:readonly AgentTool[],features:FeatureSet,sta
  const tools=[...base];if(!features["bounded-navigation-v1"])return tools;
  const press=base.find(tool=>tool.name==="press"),observe=base.find(tool=>tool.name==="observe");
  if(press===undefined||observe===undefined||!isCheckedPress(press))throw new Error("Navigation requires ordinary game tools");
- tools.push(navigationTool({ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],counters:features["counter-talk-v1"],read:signal=>state.read(signal),press:(id,params,signal,check)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"]}));return tools;
+ tools.push(navigationTool({ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],read:signal=>state.read(signal),press:(id,params,signal,check)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"]}));return tools;
 }

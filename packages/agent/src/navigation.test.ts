@@ -316,6 +316,29 @@ it("expects a two-tile landing after a hop press and stops on any other movement
  const disabled=await run({...south,position:{x:1,y:2}},false);expect(disabled.buttons).toEqual([]);expect(disabled.text).toContain("no supported local path");
  expect(disabled.description).not.toContain("ledge");
 });
+const grassStrip=(grass:readonly number[],behavior=2)=>({...field,navigation_grid:{elevation:3,tiles:[0,1,2,3,4,5,6].flatMap(x=>[tile(x,0,0,grass.includes(x)?behavior:0),tile(x,1)]),objects:[],warps:[]}});
+it("prices tall and long grass at 1.5 per step only when the grass cost option is on",()=>{
+ const straight=["RIGHT","RIGHT","RIGHT","RIGHT","RIGHT","RIGHT"],detour=["DOWN",...straight,"UP"];
+ for(const behavior of [2,3]){
+  expect(planNavigation(grassStrip([1,2,3,4,5],behavior),{x:6,y:0})).toEqual(straight);
+  expect(planNavigation(grassStrip([1,2,3,4,5],behavior),{x:6,y:0},{grassCost:true})).toEqual(detour);
+  expect(planNavigation(grassStrip([2,3,4],behavior),{x:6,y:0},{grassCost:true})).toEqual(straight);
+ }
+ expect(planNavigation({...field,navigation_grid:{elevation:3,tiles:[tile(0,0),tile(1,0,0,2)],objects:[],warps:[]}},{x:1,y:0},{grassCost:true})).toEqual(["RIGHT"]);
+});
+it("passes the grass cost port through to the planner",async()=>{
+ const first=async(grassCost:boolean|undefined)=>{const buttons:string[][]=[];let current:GameStateSnapshot=grassStrip([1,2,3,4,5]);
+  const tool=navigationTool({read:()=>Promise.resolve(current),press:(_id,params)=>{buttons.push([...params.buttons]);current={...current,map_id:[1,0]};return Promise.resolve(result(current));},observe:()=>Promise.resolve(result(current)),...(grassCost===undefined?{}:{grassCost})});
+  await tool.execute("nav",{x:6,y:0,map_id:[0,9]},new AbortController().signal);return buttons;};
+ expect(await first(true)).toEqual([["DOWN"]]);
+ expect(await first(false)).toEqual([["RIGHT"]]);
+ expect(await first(undefined)).toEqual([["RIGHT"]]);
+});
+it("prices a ledge hop that lands in grass at one step plus the grass step",()=>{
+ const twin=ledgeField(0x3b,{tiles:[tile(1,0),tile(2,0),tile(1,1,1,0x3b),tile(2,1,1,0x3b),tile(1,2,0,2),tile(2,2),tile(2,3)]});
+ expect(planNavigation(twin,{x:2,y:3},{ledges:true})).toEqual(["DOWN","RIGHT","DOWN"]);
+ expect(planNavigation(twin,{x:2,y:3},{ledges:true,grassCost:true})).toEqual(["RIGHT","DOWN","DOWN"]);
+});
 
 it("whole-map planning hops ledges only with ledge hops on and expects the two-tile landing",async()=>{
  const column=mapGrid(1,4,(_x,y)=>y===1?{collision:1,behavior:0x3b}:{});

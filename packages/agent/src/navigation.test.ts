@@ -91,3 +91,38 @@ it("forwards deliberate walking to the ordinary press without creating a separat
  await tool.execute("nav",{x:0,y:1,map_id:[0,9],walking:true});
  expect(seen).toEqual([{buttons:["DOWN"],walking:true}]);
 });
+
+// pokeemerald 731ad5b IsMetatileDirectionallyImpassable: a move is refused when the current
+// tile walls its exit side or the next tile walls its entry side (MetatileBehavior_Is*Blocked).
+const room=(chair:number,position={x:0,y:1}):GameStateSnapshot=>({...field,position,navigation_grid:{elevation:3,tiles:[0,1,2].flatMap(x=>[0,1,2].map(y=>x===1&&y===1?tile(1,1,0,chair):tile(x,y))),objects:[],warps:[]}});
+it("crosses an edge-wall tile only through its open sides when one-way tiles are on",()=>{
+ expect(planNavigation(room(0xc0),{x:2,y:1},{oneWay:true})).toEqual(["RIGHT","RIGHT"]);
+ expect(planNavigation(room(0xc0),{x:1,y:1},{oneWay:true})).toEqual(["RIGHT"]);
+ expect(planNavigation(room(0xc0,{x:1,y:0}),{x:1,y:2},{oneWay:true})).toEqual(["LEFT","DOWN","DOWN","RIGHT"]);
+ expect(planNavigation(room(0xc0,{x:1,y:0}),{x:1,y:1},{oneWay:true})).toEqual(["LEFT","DOWN","RIGHT"]);
+ expect(planNavigation(room(0xc0,{x:1,y:1}),{x:1,y:2},{oneWay:true})).toEqual(["LEFT","DOWN","RIGHT"]);
+ expect(planNavigation(room(0xc1,{x:1,y:0}),{x:1,y:2},{oneWay:true})).toEqual(["DOWN","DOWN"]);
+ expect(planNavigation(room(0xc1),{x:2,y:1},{oneWay:true})).toEqual(["UP","RIGHT","RIGHT","DOWN"]);
+ expect(planNavigation(room(0x30),{x:2,y:1},{oneWay:true})).toEqual(["UP","RIGHT","RIGHT","DOWN"]);
+ expect(planNavigation(room(0x30,{x:2,y:1}),{x:1,y:1},{oneWay:true})).toEqual(["UP","LEFT","DOWN"]);
+ expect(planNavigation(room(0x31,{x:2,y:1}),{x:1,y:1},{oneWay:true})).toEqual(["LEFT"]);
+ expect(planNavigation(room(0x31),{x:1,y:1},{oneWay:true})).toEqual(["UP","RIGHT","DOWN"]);
+ expect(planNavigation(room(0x37,{x:1,y:0}),{x:1,y:2},{oneWay:true})).toEqual(["LEFT","DOWN","DOWN","RIGHT"]);
+ expect(planNavigation(room(0x37,{x:1,y:0}),{x:2,y:1},{oneWay:true})).toEqual(["DOWN","RIGHT"]);
+});
+it("keeps edge-wall tiles as walls with one-way tiles off",()=>{
+ expect(planNavigation(room(0xc0),{x:2,y:1})).toEqual(["UP","RIGHT","RIGHT","DOWN"]);
+ expect(planNavigation(room(0xc0),{x:1,y:1})).toBeNull();
+ expect(planNavigation(room(0xc0),{x:1,y:1},{oneWay:false})).toBeNull();
+});
+it("says it respects walled sides only when one-way tiles are on",()=>{
+ const ports={read:()=>Promise.resolve(field),press:()=>Promise.resolve(result(field)),observe:()=>Promise.resolve(result(field))};
+ expect(navigationTool({...ports,oneWay:true}).description).toContain("never crosses a walled side of a + tile");
+ expect(navigationTool(ports).description).not.toContain("walled side");
+});
+it("walks through the chair from the side with the real tool",async()=>{
+ let current=room(0xc0);const buttons:string[][]=[];
+ const tool=navigationTool({oneWay:true,read:()=>Promise.resolve(current),press:(_id,params)=>{buttons.push([...params.buttons]);const p=current.position??{x:0,y:0};current={...current,position:{x:p.x+1,y:p.y}};return Promise.resolve(result(current));},observe:()=>Promise.resolve(result(current))});
+ const outcome=await tool.execute("nav",{x:2,y:1,map_id:[0,9]});
+ expect(buttons).toEqual([["RIGHT"],["RIGHT"]]);expect(outcome.content[0]?.type==="text"?outcome.content[0].text:"").toContain("arrived");
+});

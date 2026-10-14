@@ -195,3 +195,50 @@ def test_tile_elevation_is_from_the_live_block_high_nibble():
     local = read_local_map(m.read, (1, 1), (1, 0), 1)
     assert local is not None
     assert next(t.elevation for t in local.tiles if (t.x, t.y) == (0, 0)) == 3
+
+
+def chaired() -> Memory:
+    # pokeemerald 731ad5b: MB_IMPASSABLE_SOUTH_AND_NORTH 0xC0 (the bedroom chair) and
+    # MB_IMPASSABLE_NORTHEAST 0x34, both collision-free (MetatileBehavior_Is*Blocked).
+    m = loaded()
+    m.put(0x02007000 + 2 * 3, struct.pack("<H", 0xC0))
+    m.put(0x02007000 + 2 * 4, struct.pack("<H", 0x34))
+    tile(m, 1, 2, 3)
+    tile(m, 2, 2, 4)
+    return m
+
+
+def test_edge_wall_tiles_render_as_plus_and_list_their_walled_sides() -> None:
+    result = read_local_map(chaired().read, (1, 1), (1, 0), radius=1)
+    assert result is not None
+    assert result.rows == ("g#N", "W@~", ".++")
+    text = result.text()
+    assert "   2   .   +   +" in text, text
+    assert (
+        " + edge walls: walkable, but movement across a walled side is refused in both"
+        " directions (sides listed under Edge walls);"
+    ) in text
+    assert "\nEdge walls: (1,2) north+south; (2,2) north+east\n" in text, text
+
+
+def test_edge_walls_include_the_players_own_tile_and_skip_collision_tiles() -> None:
+    m = chaired()
+    tile(m, 2, 2, 0x400 | 4)
+    result = read_local_map(m.read, (1, 2), (1, 0), radius=1)
+    assert result is not None
+    assert result.rows[2] == ".@#"
+    assert "\nEdge walls: (1,2) north+south\n" in result.text()
+
+
+def test_edge_walls_off_draws_clear_terrain_without_legend_or_list() -> None:
+    result = read_local_map(chaired().read, (1, 1), (1, 0), radius=1)
+    assert result is not None
+    for text in (result.text(edge_walls=False), result.text(grid=False, edge_walls=False)):
+        assert "edge wall" not in text.lower() and "+" not in text, text
+    assert result.text(grid=False, edge_walls=False).splitlines()[3] == "..."
+
+
+def test_no_edge_walls_nearby_prints_no_list() -> None:
+    result = read_local_map(loaded().read, (1, 1), (1, 0), radius=1)
+    assert result is not None
+    assert "Edge walls:" not in result.text() and "+ edge walls" in result.text()

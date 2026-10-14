@@ -15,7 +15,7 @@ from pokebench_env.naming import NamingState
 from pokebench_env.observation import install_observation
 from pokebench_env.readout import SERVER_FEATURES, features_off_from_env, format_readout
 from tests.env.test_game_state import MAPS, OVERWORLD, SB1, game
-from tests.env.test_live_map import loaded
+from tests.env.test_live_map import loaded, tile
 from tests.env.test_world_context import COORDS, world
 
 
@@ -98,6 +98,17 @@ def test_warp_guidance_off_lists_warps_without_activation() -> None:
     assert "Warps: (0,1) -> map 0/9\n" in text, text
     assert "W warp;" in text and "see activation below" not in text
     assert "W alone does not guarantee" not in text and "W alone does not guarantee" in full
+
+
+def test_one_way_tiles_off_draws_edge_walls_as_clear_terrain() -> None:
+    m = map_memory()
+    m.put(0x02007000 + 2 * 3, struct.pack("<H", 0xC0))
+    tile(m, 1, 2, 3)
+    state = read_game_state(m.read, MAPS)
+    full = format_readout(state)
+    text = format_readout(state, frozenset({"one-way-tiles-v1"}))
+    assert "?   .   +   .   .   .   ?" in full and "?   .   .   .   .   .   ?" in text, text
+    assert "Edge walls: (1,2) north+south" in full and "dge wall" not in text
 
 
 def test_targets_off_drops_candidates_only() -> None:
@@ -192,7 +203,7 @@ def test_env_list_is_validated() -> None:
     for bad in ("invented-v1", "live-map-v1,,story-state-v1", "deterministic-loop-guard-v1"):
         with pytest.raises(ValueError, match="POKEBENCH_FEATURES_OFF"):
             features_off_from_env({"POKEBENCH_FEATURES_OFF": bad})
-    assert "active-ui-ownership-v1" not in SERVER_FEATURES and len(SERVER_FEATURES) == 17
+    assert "active-ui-ownership-v1" not in SERVER_FEATURES and len(SERVER_FEATURES) == 18
 
 
 def test_observation_route_applies_the_env_switches(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -253,8 +253,10 @@ export const ResourcesSchema=Type.Object({
  script_pc:Type.Union([NonNegativeInt,Type.Null()]),script_mode:Type.Union([NonNegativeInt,Type.Null()]),script_status:Type.Union([NonNegativeInt,Type.Null()]),
  selected_tree_id:Type.Union([NonNegativeInt,Type.Null()]),berry_script_owner:Type.Union([Type.Enum(["harvest","water","plant"]),Type.Null()]),
 },closed);
+export const RawRamReferenceSchema = Type.Object({v:Type.Literal(1), sequence:NonNegativeInt, frame:NonNegativeInt, path:Type.String({pattern:"^raw-ram/[0-9]{8,}\\.json\\.gz$"}), sha256:Type.String({pattern:"^[0-9a-f]{64}$"})},closed);
 export const StateBodySchema = Type.Object(
   {
+    raw_ram: Type.Optional(RawRamReferenceSchema),
     screen: Type.String(),
     active_ui: Type.Optional(Type.Union([Type.Object({
       phase: Type.String(), selected: Type.Union([Type.String(),Type.Null()]),

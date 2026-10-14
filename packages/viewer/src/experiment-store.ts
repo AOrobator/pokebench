@@ -275,9 +275,9 @@ export function recordedRuns(runsRoot: string): RunSource {
   return {
     trial: metrics,
     recent: () => listRuns(runsRoot).filter((s) => s.ended && s.problem === null && s.reason !== "operator_abort").reverse().flatMap((s) => {
-      const config = configOf(readStart(runsRoot, s.id));
+      const start = readStart(runsRoot, s.id), config = configOf(start);
       const m = config === null ? null : metrics(s.id);
-      return config === null || m === null ? [] : [{ id: s.id, model: config.model, maxTurns: config.maxTurns, maxWallMs: config.maxWallMs, features: config.features, reached: m.reached }];
+      return config === null || m === null ? [] : [{ id: s.id, model: config.model, start: start.start_state.kind, maxTurns: config.maxTurns, maxWallMs: config.maxWallMs, features: config.features, reached: m.reached }];
     }),
   };
 }

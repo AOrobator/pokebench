@@ -774,3 +774,10 @@ it('labels human comparison candidates with unverified ROM provenance',async()=>
  const app=await mountApp(document,{fetchJson:url=>nextRunReply(url) ?? Promise.resolve(url==='/api/runs'?RUNS:{candidates:[{run:'human-unknown',milestones:[],controller:{kind:'human',name:'Operator'},romIdentity:'unverified'},{run:'human-verified',milestones:[],controller:{kind:'human',name:'Operator'},romIdentity:'verified'}],baseline:null,best:null}),sendJson:noWrites,openStream:url=>new FakeStream(url),now:()=>BASE_MS,hash:''});
  await Promise.resolve();expect(ui('baseline').textContent).toContain('human-unknown (ROM unverified)');expect(ui('baseline').textContent).toContain('human-verified');expect(ui('baseline').textContent).not.toContain('human-verified (ROM unverified)');app.tick(0);
 });
+
+
+it("opens the selected run configuration without changing playback or writing next-run settings",async()=>{
+ const {app,streams}=await harness(`#run=${M4_ID}`);const log=new Log();log.add(0,{...START,model:{...START.model,id:"recorded-current-model"},harness_features:["navigation-evidence-memory-v1"]});feed(must(streams[0]),log.events);app.tick(1000);
+ const clock=app.clock;must(document.querySelector<HTMLButtonElement>('[data-page="config"]')).click();
+ expect(document.querySelector<HTMLElement>('[data-nav-page="config"]')?.hidden).toBe(false);expect(ui("harness-config").textContent).toContain("recorded-current-model");expect(ui("harness-config").textContent).toContain("navigation-evidence-memory-v1");expect(ui("harness-config").querySelector("input,select,textarea,button,form")).toBeNull();expect(app.clock).toBe(clock);expect(streams).toHaveLength(1);
+});

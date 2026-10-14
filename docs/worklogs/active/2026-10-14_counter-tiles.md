@@ -62,3 +62,5 @@ limit) BLOCKING:
 - [x] Recorded probe for 3: `runs/counter-proof/recorded/2026-10-14T19-41-31_probe_counter_talk` at f87b913 (clean), 414 events; navigate_to (7,2) tool_call 359 -> tool_result 361 with 0 button_press between; then (7,4), UP, A -> nurse greeting. Receipt: `runs/counter-proof/recorded-receipt.txt`.
 - [x] Explainer for 4: `docs/explainers/counter-talk-v1.html`, indexed in README; checked at desktop and 390px widths.
 
+- Explainer commit: `docs: counter-talk-v1 explainer with Pokémon Center diagrams` (16e8198)
+- Merged main 8911d0e (one-way tiles `one-way-tiles-v1` landed): every conflict was two sibling switches side by side; both kept. Counts now 12 guidance switches, 20 server features, 32 viewer switch rows. 918 agent + 476 viewer tests, 1829 Python; gates green.

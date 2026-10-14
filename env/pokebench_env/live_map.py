@@ -21,6 +21,21 @@ COUNTER = 0x80
 # pokeemerald 731ad5b metatile_behaviors.h MB_JUMP_EAST/WEST/NORTH/SOUTH. These tiles carry
 # collision, but moving into one in its direction jumps two tiles (GetLedgeJumpDirection).
 LEDGES = {0x38: ">", 0x39: "<", 0x3A: "^", 0x3B: "v"}
+# pokeemerald 731ad5b MetatileBehavior_Is{North,South,West,East}Blocked: collision-free tiles
+# whose listed sides IsMetatileDirectionallyImpassable refuses to cross, entering or leaving.
+EDGE_WALLS = {
+    0x30: ("east",),
+    0x31: ("west",),
+    0x32: ("north",),
+    0x33: ("south",),
+    0x34: ("north", "east"),
+    0x35: ("north", "west"),
+    0x36: ("south", "east"),
+    0x37: ("south", "west"),
+    0xBE: ("west", "east"),
+    0xC0: ("north", "south"),
+    0xC1: ("west", "east"),
+}
 
 
 def _pointer(value: int) -> bool:
@@ -73,12 +88,15 @@ class LocalMap:
     objects: tuple[tuple[int, int, int], ...]
     warps: tuple[tuple[int, int, int, int], ...]
 
-    def _rows_without_ledges(self) -> tuple[str, ...]:
+    def _cells(self, *, ledges: bool, edge_walls: bool) -> tuple[str, ...]:
         x, y = self.origin
         rows = [list(row) for row in self.rows]
         for tile in self.tiles:
-            if rows[tile.y - y][tile.x - x] == LEDGES.get(tile.behavior):
+            cell = rows[tile.y - y][tile.x - x]
+            if not ledges and cell == LEDGES.get(tile.behavior):
                 rows[tile.y - y][tile.x - x] = "#" if tile.collision else "."
+            elif not edge_walls and cell == "+":
+                rows[tile.y - y][tile.x - x] = "."
         return tuple("".join(row) for row in rows)
 
     def text(
@@ -87,12 +105,18 @@ class LocalMap:
         grid: bool = True,
         warp_guidance: bool = True,
         ledges: bool = True,
+        edge_walls: bool = True,
         counters: bool = True,
     ) -> str:
         x, y = self.origin
-        cells = self.rows if ledges else self._rows_without_ledges()
+        cells = self._cells(ledges=ledges, edge_walls=edge_walls)
         if not counters:
             cells = tuple(row.replace("=", "#") for row in cells)
+        walled = "; ".join(
+            f"({tile.x},{tile.y}) " + "+".join(EDGE_WALLS[tile.behavior])
+            for tile in self.tiles
+            if tile.collision == 0 and tile.behavior in EDGE_WALLS
+        )
         objects = ", ".join(f"id {i} at ({a},{b})" for i, a, b in self.objects) or "none nearby"
         behaviors_at = {(tile.x, tile.y): tile.behavior for tile in self.tiles}
         warps = (
@@ -139,8 +163,15 @@ class LocalMap:
                 if ledges
                 else ""
             )
+            + (
+                " + edge walls: walkable, but movement across a walled side is refused in both"
+                " directions (sides listed under Edge walls);"
+                if edge_walls
+                else ""
+            )
             + " . clear terrain (may have script triggers); ? outside current map."
             + "\nTerrain rules, elevation and objects can still block movement."
+            + (f"\nEdge walls: {walled}" if edge_walls and walled else "")
             + f"\nLive objects: {objects}\nWarps: {warps}"
             + (
                 "\nWarp destinations are map group/number IDs, not warp indexes. Activation also"
@@ -240,6 +271,8 @@ def read_local_map(
                 if cache[metatile] in LEDGES
                 else "#"
                 if collision
+                else "+"
+                if cache[metatile] in EDGE_WALLS
                 else "g"
                 if cache[metatile] in (2, 3)
                 else "~"

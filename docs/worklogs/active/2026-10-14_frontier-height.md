@@ -1,0 +1,11 @@
+# Double story-frontier plotting height
+
+The operator requested exactly twice the vertical plotting space for close run timings, then explicitly authorized landing. Scope: existing frontier.ts geometry only; plotting span235→470, top20 unchanged, bottom490, SVG635 (preserves145units for labels), axis labels track bottom+23. Font/marker sizes, data/time domain, reference selection and all other main-thread work unchanged.
+
+Preparation: dedicated codex/frontier-double-height worktree from main9e4665d; no staging/resetting the parent thread's dirty files. Existing10frontier tests pass on updated source; rendered SVG directly verified470span and updated preview module served. No new tests needed for two-line reversible geometry adjustment. Final viewer checks and small-patch reviews passed. Commit/merge only scoped source and this worklog; no services or benchmark actions.
+
+Validation: 476viewer tests pass; coverage lines98.21%, branches90.53%, functions95.21%; viewer lint/build pass. First coverage attempt preceded viewer build and one static-module-serving test correctly returned404; after building dependency/assets, full suite passed without source/test changes. Direct rendered SVG check proves gridline span470, viewBox640×635 and labels at513 (bottom+23), fonts/markers unchanged.
+
+Two stateless local-model reviews (think-fast discovered /models/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf; think-swarm discovered alias think-swarm) returned literal VERDICT: LGTM. Initial swarm response exhausted output budget without verdict and was not counted; concise retry completed. Swarm's opening speculative label concern was immediately retracted in its own output; exact arithmetic above confirms unchanged23unit offset and145unit lower margin. No sub-agents used. Review scope remains two production lines. PB1–8/PB11–12 N/A(no affected grading/harness/dependencies/ROM behavior); PB9PASS(explicit scope), PB10PASS(gates unchanged), PB13PASS(worklog/tests/review/commit/landing receipts). No new milestone or feature switch.
+
+COMMIT: `fix(viewer): double story frontier plotting height` (this commit). Explicit user landing authorization: "land ur work". Local merge to main only; parent unfinished Watch/current-bar changes stay separate. No service restart, gameplay or recording change.

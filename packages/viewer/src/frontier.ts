@@ -96,7 +96,7 @@ export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRu
   if (refs.human !== null) series.push({ run: refs.human, color: "#304f7a", kind: "human" });
   if (refs.best !== null) series.push({ run: refs.best, color: "#af8915", kind: "best" });
   for (const run of current) series.push({ run, color: colors.get(modelName(run)) ?? "#536d85", kind: run.status === "live" ? "live" : "paused" });
-  const left = 43, right = width - 15, top = 20, bottom = 255, height = 400;
+  const left = 43, right = width - 15, top = 20, bottom = 490, height = 635;
   const values = series.flatMap(s => milestones.flatMap(m => s.run.splits.filter(p => p.name === m.id).map(p => p.elapsedMs / 60000)));
   const peak = Math.max(0, ...values) * 1.08, step = peak > 60 ? 20 : peak > 20 ? 5 : peak > 10 ? 2 : 1;
   const max = Math.max(1, Math.ceil(peak / step) * step);
@@ -105,7 +105,7 @@ export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRu
   let body = '<text x="0" y="10" class="wb-axis">Active minutes · lower is faster</text>';
   for (let i = 0; i <= 4; i++) { const value = max * i / 4, at = y(value); body += `<line class="wb-gridline" x1="${String(left)}" x2="${String(right)}" y1="${String(at)}" y2="${String(at)}"/><text class="wb-axis" x="${String(left - 7)}" y="${String(at + 4)}" text-anchor="end">${String(Number(value.toFixed(1)))}</text>`; }
   const labelEvery = Math.ceil(milestones.length / Math.max(2, Math.floor((right - left) / 28)));
-  milestones.forEach((m, i) => { if (i % labelEvery !== 0 && i !== milestones.length - 1) return; const at = x(i); body += `<text class="wb-axis" transform="translate(${String(at)},278) rotate(-60)" text-anchor="end">${m.label}</text>`; });
+  milestones.forEach((m, i) => { if (i % labelEvery !== 0 && i !== milestones.length - 1) return; const at = x(i); body += `<text class="wb-axis" transform="translate(${String(at)},${String(bottom + 23)}) rotate(-60)" text-anchor="end">${m.label}</text>`; });
   for (const { run, color, kind } of series) {
     const active = kind === "live", isCurrent = active || kind === "paused";
     if (isCurrent) body += `<g class="${active ? "wb-live-run" : "wb-paused-run"}" data-current-run="${esc(run.id)}"${active ? ` data-live-run="${esc(run.id)}"` : ""} style="--wb-run-color:${color}">`;

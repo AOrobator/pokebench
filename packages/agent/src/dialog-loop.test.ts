@@ -80,3 +80,13 @@ it("withholds naming equivalence when the interface contradicts or cannot qualif
   expect(notices).toEqual([]);
  }
 });
+
+it("records naming recovery only when the qualified buffer or cursor changes",()=>{
+ const event=parseEvent(readFileSync(new URL("../test-support/naming-owner-gap.json",import.meta.url),"utf8"));
+ if(event.type!=="state"||event.active_ui==null||event.naming==null)throw Error("Wrong native naming fixture");
+ const notices:{phase:string}[]=[];const detector=new LoopDetector(n=>notices.push(n),undefined,"enforced",true);
+ for(let i=0;i<LOOP_POLICY.ineffective;i++)detector.complete({name:"press",args:{buttons:["A"]},isError:false,text:"ok",beforeState:event,state:event});
+ const next={...event,naming:{...event.naming,text:"AGH"},active_ui:{...event.active_ui,value:"AGH"}};
+ detector.complete({name:"press",args:{buttons:["A"]},isError:false,text:"ok",beforeState:event,state:next});
+ expect(notices.map(n=>n.phase)).toEqual(["warning","recovered"]);
+});

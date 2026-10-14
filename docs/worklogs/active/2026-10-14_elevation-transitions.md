@@ -34,3 +34,5 @@ Scope: the elevation rule in navigation.ts only. Walkable behaviors (sand, bridg
 - RED (round 3): 1 failed / 19 passed (ledge landing on 15 after a height-0 ledge tile); junction identity test is a mutation guard and passes.
 - COMMIT: `test: search identity and ledge landings on multi-level tiles (RED)` (d372bac)
 - GREEN (round 3 fix): `jumped` helper; agent 899, viewer 474, Python 1803 pass; agent 97.21/93.3/97.87; Python 96.68/91.83/100; lint, build clean. Explainer ledge row and status updated.
+- COMMIT: `fix: ledge landings on multi-level tiles keep the mid-air elevation` (f178b9f). Merging main 9e4665d before round 3.
+- Merged main 9e4665d (12e143e). Gates: agent 899, viewer 476, Python 1803 pass; lint clean.

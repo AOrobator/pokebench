@@ -54,3 +54,5 @@ Operator explicitly requested a subagent to finish landing this approved existin
 Landing RED: added mounted failure-of-polling test requiring withdrawal of current/live claim while retained plots stay visible, and browser-boundary fractional identity/budget tests. These close handoff-listed risks without adding new execution ownership. Existing serial owner records only PID+cohort; report that limitation, do not redesign execution protocol in analytics.
 
 Landing GREEN: added safe-integer validation for native sequence, turns, token counts and integer budgets; polling failure withdraws live claim and ticking card with explicit stale-snapshot notice/back link. RED r2 observed both intended failures (24pass/2fail). R1 integrated lint/build pass; viewer coverage branch89.84 fails90 floor honestly, adding meaningful consumer boundary branches before freeze.
+
+Consumer coverage addition: exercise legacy unknown targets/budgets/model/objectives, dirty source, nonvision configuration and zero-duration native split rendering; these are actual handoff contract branches, not mirrors or floor suppression. No application excludes/thresholds changed.

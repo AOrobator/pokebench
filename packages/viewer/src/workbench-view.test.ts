@@ -29,4 +29,14 @@ describe("workbench visual contract", () => {
   it("formats actual medians, metric units, eligibility and stable colors", () => {
     expect(median([])).toBeNull(); expect(median([9, 1, 5])).toBe(5); expect(median([4, 2])).toBe(3); expect(metricText(4000, "elapsedMs")).toBe("0:00:04"); expect(metricText(31, "turn")).toBe("31"); expect(viewerUrl(null)).toBe("/"); expect(color("model")).toBe(color("model")); expect(eligible(run({ excluded: "probe" }))).toBe(false);
   });
+  it("renders unknown legacy configuration without inventing targets, budgets or objectives", () => {
+    const c = run().config; if (c === null) throw new Error("fixture");
+    const legacy = run({ id: "old", model: null, reason: null, objective: null, status: "live", config: { ...c, target: null, maxWallMs: null, maxTurns: null, failureLimit: null, preset: null, dirty: true, vision: false }, splits: [] });
+    const card = currentRunHtml([legacy], 1000, 6000, null); expect(card).toContain("no recorded time cap"); expect(card).toContain("No objective recorded"); expect(card).toContain("play to budget");
+    const detail = runDetails(legacy, null); expect(detail).toContain("(dirty)"); expect(detail).toContain("not supported"); expect(detail).toContain("not recorded / play to budget"); expect(detail).toContain("no terminal outcome");
+    expect(timingPlot([legacy], "MISSING", "x", "elapsedMs", Number.NaN)).toContain("No verified");
+    const first = run().splits[0]; if (first === undefined) throw new Error("fixture split");
+    expect(ribbonPlot([run({ splits: [{ ...first, segmentMs: 0 }] })], Number.NaN)).toContain('viewBox="0 0 640');
+  });
+
 });

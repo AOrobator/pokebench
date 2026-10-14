@@ -15,6 +15,9 @@ BACKUP_LAYOUT = 0x03005DC0
 OBJECT_EVENTS = 0x02037350
 MAP_OFFSET = 7
 MAX_MAP_DATA_SIZE = 10240
+# pokeemerald 731ad5b metatile_behaviors.h MB_JUMP_EAST/WEST/NORTH/SOUTH. These tiles carry
+# collision, but moving into one in its direction jumps two tiles (GetLedgeJumpDirection).
+LEDGES = {0x38: ">", 0x39: "<", 0x3A: "^", 0x3B: "v"}
 
 
 def _pointer(value: int) -> bool:
@@ -67,22 +70,25 @@ class LocalMap:
     objects: tuple[tuple[int, int, int], ...]
     warps: tuple[tuple[int, int, int, int], ...]
 
-    def text(self, *, grid: bool = True, warp_guidance: bool = True) -> str:
+    def text(self, *, grid: bool = True, warp_guidance: bool = True, ledges: bool = True) -> str:
         x, y = self.origin
+        cells = self.rows if ledges else _rows_without_ledges(self.rows, self.tiles, self.origin)
         rows = (
             "     "
-            + " ".join(f"{x + i:3}" for i in range(len(self.rows[0])))
+            + " ".join(f"{x + i:3}" for i in range(len(cells[0])))
             + "\n"
             + "\n".join(
-                f"{y + i:4} " + " ".join(f"{c:>3}" for c in row) for i, row in enumerate(self.rows)
+                f"{y + i:4} " + " ".join(f"{c:>3}" for c in row) for i, row in enumerate(cells)
             )
             if grid
-            else "\n".join(self.rows)
+            else "\n".join(cells)
         )
         return (
             f"Local map from live memory; top-left ({x},{y}), north is up:\n"
             + rows
-            + _details(self.tiles, self.objects, self.warps, warp_guidance, outside=True)
+            + _details(
+                self.tiles, self.objects, self.warps, warp_guidance, outside=True, ledges=ledges
+            )
         )
 
 
@@ -97,7 +103,8 @@ class FullMap:
     objects: tuple[tuple[int, int, int], ...]
     warps: tuple[tuple[int, int, int, int], ...]
 
-    def text(self, *, grid: bool = True, warp_guidance: bool = True) -> str:
+    def text(self, *, grid: bool = True, warp_guidance: bool = True, ledges: bool = True) -> str:
+        cells = self.rows if ledges else _rows_without_ledges(self.rows, self.tiles, (0, 0))
         if grid:
             tens = [" "] * self.width
             for column in range(0, self.width, 10):
@@ -108,15 +115,17 @@ class FullMap:
                 f"     {header}\n     "
                 + "".join(str(c % 10) for c in range(self.width))
                 + "\n"
-                + "\n".join(f"{y:4} {row}" for y, row in enumerate(self.rows))
+                + "\n".join(f"{y:4} {row}" for y, row in enumerate(cells))
             )
         else:
-            rows = "\n".join(self.rows)
+            rows = "\n".join(cells)
         return (
             f"Whole current map from live memory ({self.width}x{self.height}),"
             " top-left (0,0), north is up:\n"
             + rows
-            + _details(self.tiles, self.objects, self.warps, warp_guidance, outside=False)
+            + _details(
+                self.tiles, self.objects, self.warps, warp_guidance, outside=False, ledges=ledges
+            )
         )
 
     def json(self, elevation: int) -> dict[str, object]:
@@ -136,6 +145,17 @@ class FullMap:
         }
 
 
+def _rows_without_ledges(
+    rows: tuple[str, ...], tiles: tuple[MapTile, ...], origin: tuple[int, int]
+) -> tuple[str, ...]:
+    x, y = origin
+    cells = [list(row) for row in rows]
+    for tile in tiles:
+        if cells[tile.y - y][tile.x - x] == LEDGES.get(tile.behavior):
+            cells[tile.y - y][tile.x - x] = "#" if tile.collision else "."
+    return tuple("".join(row) for row in cells)
+
+
 def _details(
     tiles: tuple[MapTile, ...],
     objects: tuple[tuple[int, int, int], ...],
@@ -143,6 +163,7 @@ def _details(
     warp_guidance: bool,
     *,
     outside: bool,
+    ledges: bool,
 ) -> str:
     empty = "none nearby" if outside else "none on this map"
     listed_objects = ", ".join(f"id {i} at ({a},{b})" for i, a, b in objects) or empty
@@ -167,6 +188,12 @@ def _details(
             else "\n@ player; N live object; W warp;"
         )
         + " # collision; g grass; ~ water;"
+        + (
+            " v ^ < > ledge: a one-way hop in the arrow's direction (move into it that way to"
+            " jump over it, landing 2 tiles on); impassable from any other side;"
+            if ledges
+            else ""
+        )
         + (
             " . clear terrain (may have script triggers); ? outside current map."
             if outside
@@ -276,6 +303,8 @@ def _symbol(
         if cell in objects
         else "W"
         if cell in warps
+        else LEDGES[behavior]
+        if behavior in LEDGES
         else "#"
         if collision
         else "g"

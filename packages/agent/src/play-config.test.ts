@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { expect, it } from "vitest";
 import { ALL_ON as REGISTRY_ALL_ON, type FeatureSet, type SwitchableFeature } from "./features.js";
-const ALL_ON={...REGISTRY_ALL_ON,"world-destinations-v1":false,"bounded-navigation-v1":false};
+const ALL_ON={...REGISTRY_ALL_ON,"navigation-evidence-memory-v1":false,"world-destinations-v1":false,"bounded-navigation-v1":false};
 import { CONTEXTUAL_CONTROLS, PLAY_SYSTEM_PROMPT, objectiveSwitches, playGoal, playSystemPrompt, playTools, toolSwitches } from "./play-config.js";
 import { OBJECTIVE_PROMPT, objectivePrompt } from "./objective-tools.js";
 
@@ -69,3 +69,12 @@ it("describes whole-map navigation only when that treatment is on", () => {
   expect(full).not.toContain("up to eight ordinary button attempts");
   expect(full).toContain("never crosses a warp unless it is the destination");
 });
+
+it("tells the model navigate_to hops ledges only when ledge hops are on",()=>{
+ const nav={...REGISTRY_ALL_ON,"world-destinations-v1":false};
+ expect(playSystemPrompt(nav,null)).toContain("It hops a ledge only in its arrow direction.");
+ expect(playSystemPrompt(nav,null)).not.toContain("solve ledges");
+ expect(playSystemPrompt({...nav,"ledge-hops-v1":false},null)).toContain("press A, surf or solve ledges.");
+});
+
+it("declares only the enabled navigation memory prompt and tool",()=>{const enabled={...ALL_ON,"navigation-evidence-memory-v1":true};expect(playTools(enabled)).toContain("remember_destination");expect(playSystemPrompt(enabled,null)).toContain("not required before acting");expect(playSystemPrompt(ALL_ON,null)).not.toContain("navigation evidence ledger");});

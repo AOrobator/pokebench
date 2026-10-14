@@ -224,6 +224,7 @@ function rowBody(event: RunEvent, view?: RunView): string | null {
       const frames = event.frames.map((frame) => ` · ${esc(frame.path)}`).join("");
       return `${event.is_error ? "ERROR" : "ok"} ${String(event.duration_ms)}ms → ${esc(event.text.slice(0, 200))}${frames}`;
     }
+    case "navigation_context":return `Navigation memory delivered · ${String(event.evidence.length)} retained references · ${esc(event.text.slice(0,200))}`;
     case "decision_input":return `snapshot for decision ${String(event.decision_turn)} · state #${String(event.state_seq)} · ${esc(event.text.slice(0,200))}`;
     case "wait_input":return `WAIT ${String(event.duration_ms)} ms (host time) · action ${esc(event.tool_call_id)}`;
     case "button_press": {
@@ -322,4 +323,34 @@ export function objectivePanel(view: RunView): string {
     ["OBSTACLE", esc(objective.obstacle || "none recorded")], ["NEXT DECISION", esc(objective.next_decision)],
     ["COMPLETION EVIDENCE", objective.completion_evidence.map((seq) => `#${String(seq)}`).join(", ") || "not completed"],
   ]) + `<details><summary>Attempt history (${String(view.attempts.length)})</summary><ol class="attempts">${history}</ol></details>`;
+}
+
+
+export function harnessConfig(view:RunView):string {
+ const start=view.start;if(start===null)return '<p class="nodata">No run configuration recorded.</p>';
+ const missing="not recorded";
+ const evalConfig=start.evaluation;
+ const flagRows:readonly(readonly[string,string])[]=evalConfig===undefined?[]:[
+  ["LOOP GUARD",evalConfig.flags.loopGuard?"ON":"OFF"],
+  ["ACTIVE UI OWNERSHIP",evalConfig.flags.activeUi?"ON":"OFF"],
+  ["INTERFACE DOCS",evalConfig.flags.interfaceDocs?"ON":"OFF"],
+  ["OBJECTIVE TRACKING",evalConfig.flags.objectives?"ON":"OFF"],
+ ];
+ return '<p class="history-note">RECORDED CONFIGURATION · READ ONLY. These settings belong to the selected run, not the next-run editor.</p>'+kv([
+  ["RUN",esc(start.run)], ["MODEL",esc(start.model.id)],
+  ["CONTEXT WINDOW",num(start.model.context_window)], ["VISION",start.model.vision?"supported":"not supported"],
+  ["THINKING",esc(start.sampling.thinking_level)], ["OUTPUT TOKEN CAP",num(start.sampling.max_tokens)],
+  ["TIME CAP",start.budgets.max_wall_ms===undefined?missing:hms(start.budgets.max_wall_ms/1000)],
+  ["TURN CAP",start.budgets.max_turns===undefined?missing:String(start.budgets.max_turns)],
+  ["FAILURE LIMIT",evalConfig===undefined?missing:String(evalConfig.failure_limit)],
+  ["STOP AT MILESTONE",evalConfig===undefined?missing:evalConfig.target===null?"NONE · play to budget":esc(evalConfig.target)],
+  ["PRESET",esc(evalConfig?.preset_id??missing)],
+  ["HARNESS SOURCE",esc(start.harness.commit)+(start.harness.dirty?" · dirty checkout":" · clean checkout")],
+  ["START STATE",esc(start.start_state.kind)], ["VENDOR PIN",esc(start.vendor_pin)], ["PI VERSION",esc(start.pi_version)],
+ ])+'<h4>EXPLICIT RECORDED SWITCHES</h4>'+(flagRows.length===0?'<p class="nodata">Switch values not recorded.</p>':kv(flagRows))+
+ '<h4>FEATURES RECORDED ON</h4><p class="history-note">Absent feature IDs are not recorded as enabled. Their absence alone does not prove an explicit OFF value or support in this historical build.</p>'+
+ (start.harness_features.length===0?'<p class="nodata">No enabled feature IDs recorded.</p>':`<ul>${start.harness_features.map(id=>`<li><code>${esc(id)}</code></li>`).join("")}</ul>`)+
+ '<h4>TOOLS</h4>'+`<p>${esc(start.tools.join(", ")||"none recorded")}</p>`+
+ '<p class="history-note">Model weight digest, endpoint, temperature and other serving defaults are not recorded in this run header; current service settings are not substituted.</p>'+
+ `<details><summary>RECORDED SYSTEM PROMPT</summary><pre>${esc(start.system_prompt)}</pre></details><details><summary>RAW RUN CONFIGURATION</summary>${jsonHtml(start)}</details>`;
 }

@@ -63,6 +63,7 @@ const KNOWN: Record<RunEvent["type"], true> = {
   assistant_delta: true,
   tool_call: true,
   button_press: true,
+  navigation_context:true,
   decision_input:true,
   wait_input:true,
   human_input:true,
@@ -259,7 +260,7 @@ export class RunView {
       case "battle_choice":this.battleChoices.push(event);break;
       case "milestone": {
         // A native route receipt supersedes a provisional replay recovery.
-        const recovered = this.milestones.findIndex(mark => mark.name === event.name && mark.derived === true && /^(?:ROUTE_(?:10[1-4]|115|116)|RUSTURF_TUNNEL)$/.test(mark.name));
+        const recovered = this.milestones.findIndex(mark => mark.name === event.name && mark.derived === true && /^(?:ROUTE_(?:10[1-4]|115|116)|RUSTURF_TUNNEL|ROXANNE_DEFEATED)$/.test(mark.name));
         if(recovered>=0)this.milestones.splice(recovered,1);
         if (!this.milestones.some((m) => m.name === event.name)) this.milestones.push({ name: event.name, ms, seq: event.seq, ...(event.emulator_frame===undefined?{}:{emulatorFrame:event.emulator_frame}), ...(event.kind === undefined ? {} : {kind:event.kind}), ...(event.origin === undefined ? {} : {origin:event.origin}), ...(event.evidence === undefined ? {} : {evidence:event.evidence}) });
         break;
@@ -352,6 +353,12 @@ export class RunView {
     if (this.start !== null && !this.start.harness_features.includes(feature) && event.started && event.screen === "overworld" && !event.in_battle && qualifiedMap) {
       const name = tunnel ? "RUSTURF_TUNNEL" : `ROUTE_${route ?? ""}`;
       if (!this.milestones.some(mark => mark.name === name)) this.milestones.push({name, ms:eventMs(event), seq:event.seq, derived:true, kind:"navigation", origin:previous === null ? "present_at_start" : "observed", evidence:[event.seq]});
+    }
+    // Old runs lack the dedicated trainer flag. These two native completion
+    // flags are set only by Roxanne's post-victory script, so this is an upper
+    // bound at their first recorded observation, not an exact defeat timestamp.
+    if (this.start !== null && !this.start.harness_features.includes("native-progress-activity-v1") && event.started && event.screen !== "field_transition" && event.screen !== "unknown" && !event.in_battle && event.story?.roxanne_defeated === undefined && event.story?.rustboro_gym_complete === true && event.story.stone_badge === true && !this.milestones.some(mark => mark.name === "ROXANNE_DEFEATED")) {
+      this.milestones.push({ name: "ROXANNE_DEFEATED", ms: eventMs(event), seq: event.seq, derived: true, kind: "story", origin: previous === null || this.start.start_state.kind !== "boot" ? "present_at_start" : "observed", evidence: [event.seq] });
     }
     this.state = event;
     const now = event.started && event.position !== null && event.field_controls_locked !== true && previous !== null && samePlace(previous, event) ? (this.stuck?.now ?? 0) + 1 : 0;

@@ -1,3 +1,4 @@
+import {navigationMemory} from "./navigation-memory.js";
 // Live entrypoint for real, recorded runs: pi-agent-core on the local stack
 // gateway drives the observe / press tools against an isolated game server
 // (INV-7) on the real ROM, and every step lands in runs/<id>/events.jsonl.
@@ -296,13 +297,15 @@ async function playAgent(): Promise<void> {
       const objectives = features["objective-tracking-v1"] ? objectiveHarness(goal, recorder, gameServerUrl, fetch, { ...objectiveSwitches(features), ...toolSwitches(features) }) : null;
       const baseTools=objectives?.tools ?? [observeTool(gameServerUrl, fetch, toolSwitches(features)), pressTool(gameServerUrl, pressHooks(recorder), fetch, undefined, toolSwitches(features))];
       const tools=withNavigation(baseTools,features,new StateWatcher(gameServerUrl),signal=>runControl.gate(signal));
+      const memory=navigationMemory(features,recorder,objectives?.transformContext??recorder.transformContext);
+      if(memory!==null)tools.push(memory.tool);
       const loop = piLoop({
         systemPrompt,
         loopDetector,
         tools,
         base: { ...gatewayLoopConfig(model, thinking, apiKey), maxTokens },
         governor,
-        transformContext: objectives?.transformContext ?? recorder.transformContext,
+        transformContext: memory?.transformContext ?? objectives?.transformContext ?? recorder.transformContext,
         emit: recorder.emit,
         signal: controller.signal,
         gate: (signal) => runControl.gate(signal),

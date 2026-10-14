@@ -11,6 +11,9 @@ type Tile={readonly collision:number;readonly behavior:number;readonly elevation
 export type NavigationMode="local"|"full";
 const DIRECTIONS:readonly [Direction,number,number][]=[["UP",0,-1],["DOWN",0,1],["LEFT",-1,0],["RIGHT",1,0]];
 const WALKING=new Set([0,2,3,0x60,0x61,0x62,0x63,0x64,0x65,0x67,0x68,0x69,0x6a,0x6b,0x6c,0x6d,0x6e]);
+// pokeemerald 731ad5b MB_JUMP_EAST/WEST/NORTH/SOUTH: collision tiles that one press
+// in their direction jumps over, landing two tiles on (GetLedgeJumpDirection).
+const LEDGES:ReadonlyMap<number,Direction>=new Map([[0x38,"RIGHT"],[0x39,"LEFT"],[0x3a,"UP"],[0x3b,"DOWN"]]);
 const key=(p:Point):string=>`${String(p.x)},${String(p.y)}`;
 const distance=(a:Point,b:Point):number=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
 const ready=(s:GameStateSnapshot,mode:NavigationMode="local"):boolean=>s.started&&s.screen==="overworld"&&!s.in_battle&&s.field_controls_locked===false&&s.position!==null&&s.map_id!==null&&(mode==="full"?s.map_grid!=null:s.navigation_grid!=null)&&(s.active_ui==null||(s.active_ui.ready===true&&s.active_ui.diagnostic===null));
@@ -20,6 +23,7 @@ export const MAX_FULL_ROUTE_COMMANDS=512;
 // Whole-map walks stop when the planned route has not shortened for this many presses.
 export const NO_PROGRESS_PRESSES=16;
 
+export interface NavigationOptions {readonly mode?:NavigationMode;readonly ledges?:boolean}
 interface Geometry {readonly elevation:number;readonly tile:(p:Point)=>Tile|undefined;readonly objects:readonly Point[];readonly warps:readonly Point[];readonly bounds:{readonly width:number;readonly height:number}|null}
 
 function localGeometry(state:GameStateSnapshot):Geometry|null {
@@ -41,6 +45,11 @@ function fullGeometry(state:GameStateSnapshot):Geometry|null {
   return {collision:cell>>12,elevation:(cell>>8)&15,behavior:cell&0xff};
  }};
 }
+
+const hopAhead=(state:GameStateSnapshot,mode:NavigationMode,from:Point,direction:Direction,dx:number,dy:number):boolean=>{
+ const tile=(mode==="full"?fullGeometry(state):localGeometry(state))?.tile({x:from.x+dx,y:from.y+dy});
+ return tile!==undefined&&LEDGES.get(tile.behavior)===direction;
+};
 
 // Binary min-heap on (estimate, insertion order). The tie-break reproduces the
 // stable re-sorted array this replaced, so routes are unchanged.
@@ -67,9 +76,10 @@ class OpenList<T> {
 }
 
 // A* over the live local 15x15 window, or the whole current map in "full" mode.
-// No outside-map guessing, surfing, ledges or puzzle policies. Zero elevation
+// No outside-map guessing, surfing or puzzle policies; ledges only when enabled. Zero elevation
 // preserves the layer. Warps are only ever goals.
-export function planNavigation(state:GameStateSnapshot,goal:Point,mode:NavigationMode="local"):Direction[]|null {
+export function planNavigation(state:GameStateSnapshot,goal:Point,options:NavigationOptions={}):Direction[]|null {
+ const mode=options.mode??"local";
  if(!ready(state,mode)||state.position===null)return null;
  const geometry=mode==="full"?fullGeometry(state):localGeometry(state);
  if(geometry===null||geometry.tile(state.position)===undefined)return null;
@@ -93,7 +103,14 @@ export function planNavigation(state:GameStateSnapshot,goal:Point,mode:Navigatio
   if(distance(node.p,goal)===0)return route(node);
   for(const [direction,dx,dy] of DIRECTIONS){
    const next={x:node.p.x+dx,y:node.p.y+dy},tile=geometry.tile(next);
-   if(tile===undefined||occupied.has(key(next))||!WALKING.has(tile.behavior))continue;
+   if(tile===undefined||occupied.has(key(next)))continue;
+   if(options.ledges===true&&LEDGES.get(tile.behavior)===direction&&!warps.has(key(next))){
+    const landing={x:next.x+dx,y:next.y+dy},land=geometry.tile(landing);
+    if(land===undefined||occupied.has(key(landing))||warps.has(key(landing))||land.collision!==0||land.behavior===0x69||!WALKING.has(land.behavior))continue;
+    if(land.elevation!==0&&node.elevation!==0&&land.elevation!==node.elevation)continue;
+    pending.push(node.cost+2+distance(landing,goal),{p:landing,elevation:land.elevation||node.elevation,cost:node.cost+2,parent:node,direction});continue;
+   }
+   if(!WALKING.has(tile.behavior))continue;
    const door=tile.behavior===0x69&&distance(next,goal)===0&&direction==="UP";
    if((tile.collision!==0&&!door)||(tile.behavior===0x69&&!door))continue;
    if(warps.has(key(next))&&distance(next,goal)!==0)continue;
@@ -112,6 +129,7 @@ export interface NavigationPorts {
  readonly maxCommands?:number;
  // Plan over the whole current map and walk the full route (full-map-navigation-v1).
  readonly fullMap?:boolean;
+ readonly ledges?:boolean;
 }
 function resultState(result:AgentToolResult<unknown>):GameStateSnapshot {
  const details=result.details;
@@ -126,7 +144,7 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
  const limit=mode==="full"?MAX_FULL_ROUTE_COMMANDS:MAX_NAVIGATION_COMMANDS;
  const bound=ports.maxCommands??limit;
  if(!Number.isInteger(bound)||bound<1||bound>limit)throw new Error(`Navigation command bound must be 1..${String(limit)}`);
- return {name:"navigate_to",label:"Walk to a coordinate",description:mode==="full"?FULL_DESCRIPTION:LOCAL_DESCRIPTION,parameters:Args,
+ return {name:"navigate_to",label:"Walk to a coordinate",description:(mode==="full"?FULL_DESCRIPTION:LOCAL_DESCRIPTION).replace("avoids unsupported terrain",ports.ledges===true?"avoids unsupported terrain, hops a ledge only in its arrow direction,":"avoids unsupported terrain"),parameters:Args,
  execute:async(id,goal,signal)=>{
   signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
   let state=await ports.read(signal),commands=0,status="command limit",last:AgentToolResult<unknown>|undefined;
@@ -137,11 +155,11 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
    state=await ports.read(signal);signal?.throwIfAborted();
    if(!sameMap()){status="map changed; inspect destination";break;}
    if(!ready(state,mode)){status="field input or navigation geometry unavailable";break;}
-   const path=planNavigation(state,goal,mode);
+   const path=planNavigation(state,goal,{mode,ledges:ports.ledges===true});
    if(path===null){status=mode==="full"?"no supported path on the current map; choose a reachable waypoint":"no supported local path; choose a reachable local waypoint";break;}
    const direction=path[0];if(direction===undefined){status="arrived at requested coordinate";break;}
    if(mode==="full"){if(path.length<shortest){shortest=path.length;stalled=0;}else if(++stalled>=NO_PROGRESS_PRESSES){status="route not converging; inspect obstacles and choose another approach";break;}}
-   const previousFacing=state.facing; const before=state.position;if(before===null)throw new Error("Navigation position unavailable");
+   const planned=state,previousFacing=state.facing; const before=state.position;if(before===null)throw new Error("Navigation position unavailable");
    try {
     last=await ports.press(id,{buttons:[direction],...(goal.walking===undefined?{}:{walking:goal.walking})},signal,actual=>{
      if(actual===undefined||!ready(actual,mode)||actual.map_id?.[0]!==goal.map_id[0]||actual.map_id[1]!==goal.map_id[1]||actual.position?.x!==before.x||actual.position.y!==before.y)throw new NavigationPreconditionError("map, position or field input unavailable or changed before action; no command submitted");
@@ -152,11 +170,12 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
    if(!ready(state,mode)){status="field input locked or unavailable; inspect new state";break;}
    const after=state.position;if(after===null)throw new Error("Navigation position unavailable");
    const delta=DIRECTIONS.find(([d])=>d===direction);if(delta===undefined)throw new Error("Unknown navigation direction");
+   const span=ports.ledges===true&&hopAhead(planned,mode,before,direction,delta[1],delta[2])?2:1;
    if(distance(before,after)===0){
     if(state.facing===direction.toLowerCase()&&previousFacing!==state.facing){continue;}
     status="blocked; inspect obstacle and choose another approach";break;
    }
-   if(after.x!==before.x+delta[1]||after.y!==before.y+delta[2]){status="unexpected movement; inspect new state";break;}
+   if(after.x!==before.x+delta[1]*span||after.y!==before.y+delta[2]*span){status="unexpected movement; inspect new state";break;}
    if(distance(after,goal)===0){status="arrived at requested coordinate";break;}
   }
   last=await ports.observe(id,signal);state=resultState(last);
@@ -170,5 +189,5 @@ export function withNavigation(base:readonly AgentTool[],features:FeatureSet,sta
  const tools=[...base];if(!features["bounded-navigation-v1"])return tools;
  const press=base.find(tool=>tool.name==="press"),observe=base.find(tool=>tool.name==="observe");
  if(press===undefined||observe===undefined||!isCheckedPress(press))throw new Error("Navigation requires ordinary game tools");
- tools.push(navigationTool({read:signal=>state.read(signal),press:(id,params,signal,check)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"]}));return tools;
+ tools.push(navigationTool({ledges:features["ledge-hops-v1"],read:signal=>state.read(signal),press:(id,params,signal,check)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"]}));return tools;
 }

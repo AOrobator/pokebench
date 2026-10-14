@@ -133,6 +133,7 @@ export class RunRecorder {
     this.saved={saved:this.saved.saved+1,bytes:this.saved.bytes+Buffer.from(snapshot.content[0].data,"base64").length};
     this.append({type:"decision_input",turn:this.turn,decision_turn:this.turn+1,state_seq:state.seq,text:snapshot.content[1].text,frames:[frame]});
   }
+  recordNavigationContext(body:Omit<BodyOf<"navigation_context">,"type"|"turn">):void {this.append({type:"navigation_context",turn:this.turn+1,...body});}
   recordWaitInput(id:string,duration_ms:number):void {this.append({type:"wait_input",turn:this.turn,tool_call_id:id,duration_ms});}
   recordControl(body: Omit<BodyOf<"operator_control">, "type" | "turn">): void { this.append({ type: "operator_control", turn: this.turn, ...body }); }
   recordLoopGuard(body: LoopNotice): void { this.append({type:"loop_guard",turn:this.turn,...body,evidence:[...body.evidence]}); }
@@ -250,10 +251,11 @@ export class RunRecorder {
     if (startedAt === undefined) throw new RecorderError(`tool result for ${id} without a recorded call`);
     this.toolStarts.delete(id);
     const payload = toolResultPayload(result);
+    let stateSeq:number|undefined;
     // Reuse the state paired with the exact returned frame/text, including an
     // observe-only turn and play runs with objective tracking disabled.
     if ((name === "observe" || name === "press" || name === "navigate_to" || name === "act") && isRecord(result) && isRecord(result.details) && result.details.state !== undefined) {
-      try { this.recordState(parseGameState(result.details.state)); }
+      try { stateSeq=this.recordState(parseGameState(result.details.state)).seq; }
       catch (error) { this.telemetryError("state", error); }
     }
     const seq = this.log.nextSeq;
@@ -273,6 +275,7 @@ export class RunRecorder {
     });
     this.append({
       type: "tool_result",
+      ...(stateSeq===undefined?{}:{state_seq:stateSeq}),
       turn: this.turn,
       id,
       name,

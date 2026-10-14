@@ -104,30 +104,30 @@ const fullField=(grid:NonNullable<GameStateSnapshot["map_grid"]>,position={x:0,y
 const serpentine=mapGrid(40,140,(x,y)=>y%2===1&&x!==(y%4===1?39:0)?{collision:1}:{});
 
 it("plans over the whole current map when asked, far beyond the local window",()=>{
- const path=planNavigation(fullField(serpentine),{x:0,y:138},"full");
+ const path=planNavigation(fullField(serpentine),{x:0,y:138},{mode:"full"});
  expect(path).not.toBeNull();expect(path?.length).toBe(70*39+138);
  expect(planNavigation(fullField(serpentine),{x:0,y:138})).toEqual(["DOWN"]);
 });
 
 it("full-map planning keeps the local rules: collision, objects, water, layers, goal-only warps and doors from below",()=>{
  const open=mapGrid(5,5,()=>({}));
- expect(planNavigation(fullField(open),{x:4,y:0},"full")).toEqual(["RIGHT","RIGHT","RIGHT","RIGHT"]);
- expect(planNavigation(fullField(mapGrid(3,1,x=>x===1?{behavior:0x10}:{})),{x:2,y:0},"full")).toBeNull();
- expect(planNavigation(fullField(mapGrid(3,1,()=>({}),{warps:[{x:1,y:0}]})),{x:2,y:0},"full")).toBeNull();
- expect(planNavigation(fullField(mapGrid(3,1,()=>({}),{warps:[{x:1,y:0}]})),{x:1,y:0},"full")).toEqual(["RIGHT"]);
- expect(planNavigation(fullField(mapGrid(3,1,()=>({}),{objects:[{x:1,y:0}]})),{x:2,y:0},"full")).toBeNull();
- expect(planNavigation(fullField(mapGrid(3,1,x=>x===1?{elevation:0}:x===2?{elevation:4}:{})),{x:2,y:0},"full")).toBeNull();
+ expect(planNavigation(fullField(open),{x:4,y:0},{mode:"full"})).toEqual(["RIGHT","RIGHT","RIGHT","RIGHT"]);
+ expect(planNavigation(fullField(mapGrid(3,1,x=>x===1?{behavior:0x10}:{})),{x:2,y:0},{mode:"full"})).toBeNull();
+ expect(planNavigation(fullField(mapGrid(3,1,()=>({}),{warps:[{x:1,y:0}]})),{x:2,y:0},{mode:"full"})).toBeNull();
+ expect(planNavigation(fullField(mapGrid(3,1,()=>({}),{warps:[{x:1,y:0}]})),{x:1,y:0},{mode:"full"})).toEqual(["RIGHT"]);
+ expect(planNavigation(fullField(mapGrid(3,1,()=>({}),{objects:[{x:1,y:0}]})),{x:2,y:0},{mode:"full"})).toBeNull();
+ expect(planNavigation(fullField(mapGrid(3,1,x=>x===1?{elevation:0}:x===2?{elevation:4}:{})),{x:2,y:0},{mode:"full"})).toBeNull();
  const door=mapGrid(1,2,(_x,y)=>y===0?{collision:1,behavior:0x69,elevation:0}:{},{warps:[{x:0,y:0}]});
- expect(planNavigation(fullField(door,{x:0,y:1}),{x:0,y:0},"full")).toEqual(["UP"]);
- expect(planNavigation(fullField(open),{x:5,y:0},"full")).toBeNull();
+ expect(planNavigation(fullField(door,{x:0,y:1}),{x:0,y:0},{mode:"full"})).toEqual(["UP"]);
+ expect(planNavigation(fullField(open),{x:5,y:0},{mode:"full"})).toBeNull();
 });
 
 it("full-map planning rejects missing or malformed whole-map geometry",()=>{
  const open=mapGrid(3,2,()=>({}));
- expect(planNavigation({...fullField(open),map_grid:null},{x:2,y:0},"full")).toBeNull();
- expect(planNavigation(fullField({...open,rows:[open.rows[0]??""]}),{x:2,y:0},"full")).toBeNull();
- expect(planNavigation(fullField({...open,rows:[open.rows[0]??"","0000"]}),{x:2,y:0},"full")).toBeNull();
- expect(planNavigation(fullField(open,{x:7,y:0}),{x:2,y:0},"full")).toBeNull();
+ expect(planNavigation({...fullField(open),map_grid:null},{x:2,y:0},{mode:"full"})).toBeNull();
+ expect(planNavigation(fullField({...open,rows:[open.rows[0]??""]}),{x:2,y:0},{mode:"full"})).toBeNull();
+ expect(planNavigation(fullField({...open,rows:[open.rows[0]??"","0000"]}),{x:2,y:0},{mode:"full"})).toBeNull();
+ expect(planNavigation(fullField(open,{x:7,y:0}),{x:2,y:0},{mode:"full"})).toBeNull();
 });
 
 // The array open list this replaced: re-sorted every pop, stable on ties.
@@ -174,7 +174,7 @@ it("the heap open list returns exactly the paths the sorted array did",()=>{
 it("plans an 80x80 map with random walls quickly",()=>{
  let seed=11;const random=()=>{seed=(seed*1103515245+12345)%2147483648;return seed/2147483648;};
  const grid=mapGrid(80,80,(x,y)=>x+y>0&&x+y<158&&random()<0.22?{collision:1}:{});
- const started=performance.now();for(let i=0;i<20;i++)planNavigation(fullField(grid),{x:79,y:79},"full");
+ const started=performance.now();for(let i=0;i<20;i++)planNavigation(fullField(grid),{x:79,y:79},{mode:"full"});
  expect((performance.now()-started)/20).toBeLessThan(250);
 });
 
@@ -210,7 +210,64 @@ it("decodes the whole-map grid the game server actually produces",()=>{
  const grid=parseGameState({...fullField(mapGrid(1,1,()=>({}))),map_grid:sharedGrid,topology:null,position:{x:1,y:1}}).map_grid;
  expect(grid).toEqual(sharedGrid);
  const state={...fullField(sharedGrid,{x:1,y:1}),topology:null};
- expect(planNavigation(state,{x:4,y:4},"full")?.length).toBe(6);
- expect(planNavigation(state,{x:1,y:0},"full")).toBeNull();
- expect(planNavigation(state,{x:0,y:0},"full")).toBeNull();
+ expect(planNavigation(state,{x:4,y:4},{mode:"full"})?.length).toBe(6);
+ expect(planNavigation(state,{x:1,y:0},{mode:"full"})).toBeNull();
+ expect(planNavigation(state,{x:0,y:0},{mode:"full"})).toBeNull();
+});
+
+// pokeemerald 731ad5b: MB_JUMP_EAST/WEST/NORTH/SOUTH = 0x38..0x3B carry collision; moving
+// into one in its direction jumps two tiles (GetLedgeJumpDirection, PlayerJumpLedge).
+const ledgeField=(ledge:number,extra:Partial<Grid>={},position={x:1,y:0}):GameStateSnapshot=>({...field,position,navigation_grid:{elevation:3,tiles:[tile(1,0),tile(1,1,1,ledge),tile(1,2),tile(0,1),tile(2,1),tile(0,0),tile(0,2),tile(2,0),tile(2,2)],objects:[],warps:[],...extra}});
+type Grid=NonNullable<GameStateSnapshot["navigation_grid"]>;
+it("hops a ledge only in its arrow direction and only with ledge hops enabled",()=>{
+ const south=ledgeField(0x3b,{tiles:[tile(1,0),tile(1,1,1,0x3b),tile(1,2)]});
+ expect(planNavigation(south,{x:1,y:2},{ledges:true})).toEqual(["DOWN"]);
+ expect(planNavigation(south,{x:1,y:2})).toBeNull();
+ expect(planNavigation({...south,position:{x:1,y:2}},{x:1,y:0},{ledges:true})).toBeNull();
+ expect(planNavigation(south,{x:1,y:1},{ledges:true})).toBeNull();
+ const east=ledgeField(0x38,{tiles:[tile(0,1),tile(1,1,1,0x38),tile(2,1)]},{x:0,y:1});
+ expect(planNavigation(east,{x:2,y:1},{ledges:true})).toEqual(["RIGHT"]);
+ expect(planNavigation({...east,position:{x:2,y:1}},{x:0,y:1},{ledges:true})).toBeNull();
+ const west=ledgeField(0x39,{tiles:[tile(0,1),tile(1,1,1,0x39),tile(2,1)]},{x:2,y:1});
+ expect(planNavigation(west,{x:0,y:1},{ledges:true})).toEqual(["LEFT"]);
+ const north=ledgeField(0x3a,{tiles:[tile(1,0),tile(1,1,1,0x3a),tile(1,2)]},{x:1,y:2});
+ expect(planNavigation(north,{x:1,y:0},{ledges:true})).toEqual(["UP"]);
+ expect(planNavigation({...north,position:{x:1,y:0}},{x:1,y:2},{ledges:true})).toBeNull();
+});
+it("prefers a hop over a longer walk and never lands on blocked, occupied, warp or unknown tiles",()=>{
+ expect(planNavigation(ledgeField(0x3b),{x:1,y:2},{ledges:true})).toEqual(["DOWN"]);
+ expect(planNavigation(ledgeField(0x3b),{x:1,y:2})).toEqual(["LEFT","DOWN","DOWN","RIGHT"]);
+ const column=(landing:Partial<Grid>,tiles=[tile(1,0),tile(1,1,1,0x3b),tile(1,2),tile(1,3)])=>ledgeField(0x3b,{tiles,...landing});
+ expect(planNavigation(column({}),{x:1,y:3},{ledges:true})).toEqual(["DOWN","DOWN"]);
+ expect(planNavigation(column({objects:[{x:1,y:2}]}),{x:1,y:3},{ledges:true})).toBeNull();
+ expect(planNavigation(column({warps:[{x:1,y:2}]}),{x:1,y:2},{ledges:true})).toBeNull();
+ expect(planNavigation(column({objects:[{x:1,y:1}]}),{x:1,y:3},{ledges:true})).toBeNull();
+ expect(planNavigation(column({},[tile(1,0),tile(1,1,1,0x3b),tile(1,2,1)]),{x:1,y:2},{ledges:true})).toBeNull();
+ expect(planNavigation(column({},[tile(1,0),tile(1,1,1,0x3b),tile(1,2,0,0x10)]),{x:1,y:2},{ledges:true})).toBeNull();
+ expect(planNavigation(column({},[tile(1,0),tile(1,1,1,0x3b),tile(1,2,0,0,4)]),{x:1,y:2},{ledges:true})).toBeNull();
+ expect(planNavigation({...column({},[tile(1,0),tile(1,1,1,0x3b)]),topology:{width:5,height:5,connections:[]}},{x:1,y:4},{ledges:true})).toBeNull();
+});
+it("expects a two-tile landing after a hop press and stops on any other movement",async()=>{
+ const south=ledgeField(0x3b,{tiles:[tile(1,0),tile(1,1,1,0x3b),tile(1,2),tile(1,3)]});
+ const run=async(after:GameStateSnapshot,ledges:boolean)=>{let current=south;const buttons:string[][]=[];
+  const tool=navigationTool({ledges,read:()=>Promise.resolve(current),press:(_id,params)=>{buttons.push([...params.buttons]);current=after;return Promise.resolve(result(current));},observe:()=>Promise.resolve(result(current))});
+  const outcome=await tool.execute("nav",{x:1,y:2,map_id:[0,9]});return {buttons,text:outcome.content[0]?.type==="text"?outcome.content[0].text:"",description:tool.description};};
+ const hopped=await run({...south,position:{x:1,y:2}},true);
+ expect(hopped.buttons).toEqual([["DOWN"]]);expect(hopped.text).toContain("arrived at requested coordinate");
+ expect(hopped.description).toContain("hops a ledge only in its arrow direction");
+ const short=await run({...south,position:{x:1,y:1}},true);expect(short.text).toContain("unexpected movement");
+ const disabled=await run({...south,position:{x:1,y:2}},false);expect(disabled.buttons).toEqual([]);expect(disabled.text).toContain("no supported local path");
+ expect(disabled.description).not.toContain("ledge");
+});
+
+it("whole-map planning hops ledges only with ledge hops on and expects the two-tile landing",async()=>{
+ const column=mapGrid(1,4,(_x,y)=>y===1?{collision:1,behavior:0x3b}:{});
+ expect(planNavigation(fullField(column),{x:0,y:3},{mode:"full",ledges:true})).toEqual(["DOWN","DOWN"]);
+ expect(planNavigation(fullField(column),{x:0,y:3},{mode:"full"})).toBeNull();
+ expect(planNavigation(fullField(column,{x:0,y:3}),{x:0,y:0},{mode:"full",ledges:true})).toBeNull();
+ let current=fullField(column);const buttons:string[][]=[];
+ const tool=navigationTool({fullMap:true,ledges:true,read:()=>Promise.resolve(current),press:(_id,params)=>{buttons.push([...params.buttons]);const y=current.position?.y??0;current={...current,position:{x:0,y:y===0?2:y+1}};return Promise.resolve(result(current));},observe:()=>Promise.resolve(result(current))});
+ expect(tool.description).toContain("whole current map");expect(tool.description).toContain("hops a ledge only in its arrow direction");
+ const outcome=await tool.execute("nav",{x:0,y:3,map_id:[0,9]});
+ expect(buttons).toEqual([["DOWN"],["DOWN"]]);expect(outcome.details).toMatchObject({navigation:{status:"arrived at requested coordinate",commands:2}});
 });

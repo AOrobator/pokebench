@@ -54,6 +54,7 @@ function load(root: string, id: string): { run: WorkbenchRun; port: number | nul
     }
     if (view.start === null) throw new Error("No complete run_start yet");
     run.status = view.end === null ? "unresponsive" : "ended"; run.reason = view.end?.reason ?? null; run.turn = view.turn;
+    if (run.reason === "operator_abort") run.excluded ??= "Excluded operator-aborted run";
     run.objective = view.objective === null ? null : { title: view.objective.title, status: view.objective.status, nextDecision: view.objective.next_decision };
   } catch (error) { run.problem = errorText(error); run.status = "invalid"; run.splits = []; view = null; port = null; }
   if (view !== null) view.events.length = 0;

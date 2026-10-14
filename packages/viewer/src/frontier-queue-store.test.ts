@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
@@ -29,4 +29,18 @@ it("keeps frozen unlaunched slots withheld, rejects late-invalid ledgers atomica
   const planned = await workbenchSnapshot(root, () => Promise.resolve(false), { state: "idle" }, Date.now()); expect(planned.queue).toHaveLength(8); expect(planned.queue.every(q => q.status === "withheld")).toBe(true);
   rows([f.row, f.process, { ...f.outcome, events_sha256: null }]); const invalid = await workbenchSnapshot(root, () => Promise.resolve(false), { state: "idle" }, Date.now()); expect(invalid.queue).toEqual([]); expect(invalid.problems.join()).toContain("outcome");
   writeFileSync(join(folder, "trials.jsonl"), "bad"); expect((await workbenchSnapshot(root, () => Promise.resolve(false), { state: "idle" }, Date.now())).problems.length).toBe(1);
+});
+
+it("qualifies a frozen execution checkout only when its runs directory resolves to this viewer root", async () => {
+  const { root, folder, f } = setup();
+  const checkout = mkdtempSync(join(tmpdir(), "frontier-frozen-"));
+  symlinkSync(root, join(checkout, "runs"));
+  const manifest = { ...f.manifest, root: checkout };
+  writeFileSync(join(folder, "manifest.json"), JSON.stringify(manifest));
+  const accepted = await workbenchSnapshot(root, () => Promise.resolve(false), { state: "idle" }, Date.now());
+  expect(accepted.queue).toHaveLength(8); expect(accepted.problems).toEqual([]);
+  const unrelated = mkdtempSync(join(tmpdir(), "frontier-unrelated-")); mkdirSync(join(unrelated, "runs"));
+  writeFileSync(join(folder, "manifest.json"), JSON.stringify({ ...manifest, root: unrelated }));
+  const rejected = await workbenchSnapshot(root, () => Promise.resolve(false), { state: "idle" }, Date.now());
+  expect(rejected.queue).toEqual([]); expect(rejected.problems.join()).toContain("root");
 });

@@ -1,5 +1,5 @@
 import { visualEvidenceSignature } from "./frontier-visual.js";
-import { existsSync, lstatSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { FEATURES } from "@pokebench/agent/features";
 import { MILESTONES, qualifiedNativeMilestone } from "@pokebench/agent/milestones";
@@ -84,7 +84,8 @@ async function cohortQueue(root: string): Promise<{ items: WorkbenchQueueItem[];
       if (record(raw) && raw.id === "navigation-memory-think-fast-n4" && Array.isArray(raw.order)) {
         const folder = dirname(path), ledgerPath = join(folder, "trials.jsonl"), queuePath = join(folder, "queue.json");
         const rows: unknown[] = existsSync(ledgerPath) ? boundedLedger(ledgerPath) : [];
-        const custom = parseNavigationReceipt(raw, rows, existsSync(queuePath) ? json(queuePath) : null, owner, receipt.digest, dirname(root), pid => { try { process.kill(pid, 0); return true; } catch { return false; } });
+        if (typeof raw.root !== "string" || realpathSync(join(raw.root, "runs")) !== realpathSync(root)) throw new Error("Navigation receipt root does not own this run store");
+        const custom = parseNavigationReceipt(raw, rows, existsSync(queuePath) ? json(queuePath) : null, owner, receipt.digest, raw.root, pid => { try { process.kill(pid, 0); return true; } catch { return false; } });
         if (accepted.has(custom.id)) continue; accepted.add(custom.id);
         for (const trial of custom.trials) {
           if (trial.run !== null) {

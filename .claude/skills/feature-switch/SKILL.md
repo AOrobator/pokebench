@@ -39,7 +39,7 @@ Already-landed behavior that never had a switch gets one retroactively, as `elev
    - Delete the wiring once and watch that test go red, then restore it and record it in the worklog.
    - Update the registry counts and the legacy harness-feature lists.
 7. **Explainer**: write it with `.claude/skills/feature-explainer/SKILL.md` and map the id in `FEATURE_EXPLAINERS` (`packages/viewer/src/panels.ts`).
-8. **Queue it**: add a draft A/B entry for the switch to the experiment queue. Use the experiment-queue skill once it exists; until then, record the planned arms in the worklog. Never approve or start it yourself. Only the operator approves measured runs.
+8. **Register it as pending** in the same merge: add `experiments/<id>.json` with no `queuePosition`. Follow `.claude/skills/experiment-queue/SKILL.md`. The entry records the switch id, hypothesis, arms (the shared incumbent with this switch flipped), activation milestone, readiness and `source.commit` set to the merge SHA. Record the readiness verdict in `docs/experiments/readiness.md`. The entry moves into the queue only when readiness passes. Never approve or start it yourself; only the operator approves measured runs.
 
 ## Veto
 
@@ -47,3 +47,4 @@ Already-landed behavior that never had a switch gets one retroactively, as `elev
 - Changing a default to ON for a new treatment before an experiment supports it.
 - Reordering `SWITCHABLE_FEATURES`, `FEATURES` or `playHarnessFeatures`.
 - Reading the switch anywhere other than the `FeatureSet` passed to the factory.
+- Merging a switch without its pending experiment entry.

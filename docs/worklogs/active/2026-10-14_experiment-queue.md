@@ -91,8 +91,10 @@ Argv-only spawns (`node`, `git`), checkout paths treated as untrusted (resolved,
 - [ ] COMMIT RED / implement / gates / screenshot of the page on port 8790 / COMMIT GREEN / review.
 
 **M4 — Skills**
-- [ ] `.claude/skills/experiment-queue/SKILL.md`: create an experiment from a switch (incumbent choice, held-fixed switches, source pin, trials, budget, criteria), validate with `just experiments --check`, add to the queue as a draft, and hand approval to the operator.
-- [ ] Dry-run the skill on one seed entry.
+- [x] `.claude/skills/experiment-queue/SKILL.md`: lifecycle (pending → queued → approved → running/held → done/discarded; never on both lists), registering a pending entry in the same merge as its switch, moving to the queue only when readiness passes, operator-only interactive approval, pinning, dry runs, reading results with turns and efficiency.
+- [x] feature-switch skill step 8 now requires the pending entry in the same merge (switch id, hypothesis, arms, activation milestone, readiness, merge SHA); veto added. pokebench-patch-evaluation points at the queue's enforcement. `.agents/skills` symlinks added for both new skills.
+- [x] `docs/experiments/readiness.md`: READY rows for full-map, elevation and one-way tiles (3 of the last 4 model runs, recent basis), BLOCKED row for grass cost (0 of 4 reach ROUTE_101).
+- [x] Dry run of the skill on the seeds: `just experiments` equivalent output recorded in M2 evidence.
 
 **M5 — Explainer and hand-off**
 - [ ] Explainer `docs/explainers/experiment-queue.html` with diagrams; shared to project files.

@@ -19,6 +19,8 @@ A patch can only be measured where models actually arrive. The operator's rule (
 
 When reporting a newly landed patch, state its readiness verdict in one line.
 
+The experiment queue enforces this. A merged switch is registered as a pending entry in `experiments/`. It moves into the queue only when readiness passes; a BLOCKED entry stays pending with its reason. `just experiment-approve` applies only to queued entries, and an entry is never both pending and queued. See `.claude/skills/experiment-queue/SKILL.md`.
+
 ## Register one experimental difference
 
 Before trials, record patch ID/version, hypothesized failure mechanism, target native milestone, maximum budgets, meaningful speed/regression margins, tolerated completion change, downstream check and trial order. Compare the frozen incumbent to a candidate on the same reviewed build with exactly one effective behavioral patch flag differing. Reject unexpected differences, missing dependencies or invalid flag combinations before launch. Record complete effective flags, prompt/interface-document hashes, model/artifact/endpoint and serving configuration, sampling, source/build, ROM/vendor, start state and instrumentation identity. Do not use mutable defaults as provenance.

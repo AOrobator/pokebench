@@ -19,19 +19,6 @@ const key=(p:Point):string=>`${String(p.x)},${String(p.y)}`;
 const distance=(a:Point,b:Point):number=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
 const ready=(s:GameStateSnapshot):boolean=>s.started&&s.screen==="overworld"&&!s.in_battle&&s.field_controls_locked===false&&s.position!==null&&s.map_id!==null&&s.navigation_grid!=null&&(s.active_ui==null||(s.active_ui.ready===true&&s.active_ui.diagnostic===null));
 export const MAX_NAVIGATION_COMMANDS=8;
-// pokeemerald GetInteractedObjectEventScript talks across a faced counter to the object beyond it.
-function counterHint(grid:Grid,goal:Point):string|null {
- const at=(p:Point)=>(t:Point):boolean=>t.x===p.x&&t.y===p.y;
- const counter=(p:Point):boolean=>grid.tiles.some(t=>at(p)(t)&&t.behavior===COUNTER&&t.collision!==0);
- const occupied=(p:Point):boolean=>grid.objects.some(at(p));
- for(const [direction,dx,dy] of DIRECTIONS){
-  const across=occupied(goal)?{counter:{x:goal.x-dx,y:goal.y-dy},person:goal}:{counter:goal,person:{x:goal.x+dx,y:goal.y+dy}};
-  if(!counter(across.counter)||!occupied(across.person))continue;
-  return `target is behind a counter; walk to (${String(across.counter.x-dx)},${String(across.counter.y-dy)}), face ${direction} toward the counter at (${String(across.counter.x)},${String(across.counter.y)}) and press A to talk across it`;
- }
- return counter(goal)?"target is a counter; you cannot stand on it, but you can face it from an adjacent tile and press A to talk to someone behind it":null;
-}
-
 export interface NavigationOptions {readonly ledges?:boolean}
 const hopAhead=(state:GameStateSnapshot,from:Point,direction:Direction,dx:number,dy:number):boolean=>{
  const tile=state.navigation_grid?.tiles.find(t=>t.x===from.x+dx&&t.y===from.y+dy);
@@ -96,6 +83,24 @@ function resultState(result:AgentToolResult<unknown>):GameStateSnapshot {
  return parseGameState(details.state);
 }
 class NavigationPreconditionError extends Error {}
+// pokeemerald GetInteractedObjectEventScript talks across a faced counter to the object beyond it.
+// A stand tile is named only when the planner itself would reach it.
+function counterHint(state:GameStateSnapshot,goal:Point,options:NavigationOptions):string|null {
+ const grid=state.navigation_grid;if(grid==null)return null;
+ const at=(p:Point)=>(t:Point):boolean=>t.x===p.x&&t.y===p.y;
+ const counter=(p:Point):boolean=>grid.tiles.some(t=>at(p)(t)&&t.behavior===COUNTER&&t.collision!==0);
+ const occupied=(p:Point):boolean=>grid.objects.some(at(p));
+ let involved=counter(goal);
+ for(const [direction,dx,dy] of DIRECTIONS){
+  const across=occupied(goal)?{counter:{x:goal.x-dx,y:goal.y-dy},person:goal}:{counter:goal,person:{x:goal.x+dx,y:goal.y+dy}};
+  if(!counter(across.counter)||!occupied(across.person))continue;
+  involved=true;
+  const stand={x:across.counter.x-dx,y:across.counter.y-dy};
+  if(!grid.tiles.some(at(stand))||planNavigation(state,stand,options)===null)continue;
+  return `target is behind a counter; walk to (${String(stand.x)},${String(stand.y)}), face ${direction} toward the counter at (${String(across.counter.x)},${String(across.counter.y)}) and press A to talk across it`;
+ }
+ return involved?"target is a counter or behind one; you cannot stand on a counter, but you can face it from a reachable adjacent tile and press A to talk to someone behind it":null;
+}
 export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
  const bound=ports.maxCommands??MAX_NAVIGATION_COMMANDS;
  if(!Number.isInteger(bound)||bound<1||bound>MAX_NAVIGATION_COMMANDS)throw new Error("Navigation command bound must be 1..8");
@@ -110,7 +115,7 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
    if(!sameMap()){status="map changed; inspect destination";break;}
    if(!ready(state)){status="field input or navigation geometry unavailable";break;}
    const path=planNavigation(state,goal,{ledges:ports.ledges===true});
-   if(path===null){status=(ports.counters===true&&state.navigation_grid!=null?counterHint(state.navigation_grid,goal):null)??"no supported local path; choose a reachable local waypoint";break;}
+   if(path===null){status=(ports.counters===true?counterHint(state,goal,{ledges:ports.ledges===true}):null)??"no supported local path; choose a reachable local waypoint";break;}
    const direction=path[0];if(direction===undefined){status="arrived at requested coordinate";break;}
    const planned=state,previousFacing=state.facing; const before=state.position;if(before===null)throw new Error("Navigation position unavailable");
    try {

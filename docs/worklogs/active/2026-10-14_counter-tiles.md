@@ -57,8 +57,8 @@ limit) BLOCKING:
 2. legend shown for a 0x80 tile with no drawn `=`;
 3. live proof lacks a recorded events.jsonl (PB7);
 4. switch lacks its explainer.
-- [ ] RED for 1 and 2: `test: counter hint and legend only describe what is usable and drawn (RED)`
-- [ ] Fix 1 and 2
+- [x] RED for 1 and 2 (5734ded): `test: counter hint and legend only describe what is usable and drawn (RED)`
+- [x] Fix 1 and 2: stand tile named only if it is a known tile `planNavigation` reaches (else a generic hint); legend only when a `=` is drawn. 900 agent + 474 viewer tests, 1813 Python; gates green.
 - [ ] Recorded probe for 3
 - [ ] Explainer for 4
 

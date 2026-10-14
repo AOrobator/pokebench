@@ -130,7 +130,7 @@ class LocalMap:
             + (
                 " = counter: you cannot walk onto it, but you can talk to someone standing"
                 " behind it by facing the counter and pressing A;"
-                if counters and COUNTER in behaviors
+                if counters and any("=" in row for row in cells)
                 else ""
             )
             + (

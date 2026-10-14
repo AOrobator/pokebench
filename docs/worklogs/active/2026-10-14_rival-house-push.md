@@ -70,6 +70,10 @@ keeps detection and warnings, drops termination, and the experiment measures the
   navigation memory result, RED, GREEN, explainer, gates, review.
 - [ ] M4 `loop-guard-supervisor-v1`: RED tests (no stop when ON; stop unchanged when OFF;
   message contents; backoff), GREEN, explainer, gates, review.
+- [ ] M5a Checkpoint starts: an agent run can save a native state when a named native milestone is
+  first observed (POKEBENCH_CHECKPOINT_AT, pause → POST /pokebench/checkpoint → unpause, file plus
+  provenance JSON under runs/<id>/checkpoints/), and a v2 preset can start from that state with
+  its SHA-1 verified before launch. Present-at-start milestones are already excluded.
 - [ ] M5 Operator review, then local merge into main (the operator approves the merge).
 - [ ] M6 Experiments, serial, Think Fast, from boot, 30 minutes, stop at `RIVAL_MET`.
   Each step compares the current stack with the stack plus one switch, 8 runs per arm
@@ -179,3 +183,5 @@ COMMIT: `test(agent): RED for instruction-ledger-v1 and note_contradiction` (15f
   Composes after navigation memory in live.ts; rejected in state-only mode. Gates: agent 975/975,
   viewer 499/499, instruction-ledger.ts 100/97.95/100/100, agent all files 97.17/93.36/97.79,
   viewer 95.67/90.54/95.34, tsc/eslint clean.
+COMMIT: `feat(agent): add instruction-ledger-v1 with note_contradiction` (c87f309)
+- M5a RED: env/tests/env/test_checkpoint.py (2 tests) and checkpoint-capture.test.ts (5 tests).

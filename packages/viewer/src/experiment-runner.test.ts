@@ -274,6 +274,21 @@ describe("experiment runner", () => {
     expect(gradeExperiment(paths, parseExperiment(definition("full-map"))).result?.incumbent.launched).toBe(4);
   });
 
+  it("never keeps a result graded under an older definition", async () => {
+    const { paths, metrics, source } = setup();
+    seedFinished(paths, metrics);
+    expect((await runQueue({ paths, source, host: host(paths, metrics) })).stopped).toMatch(/^full-map finished/);
+    const changed = definition("full-map", { criteria: { completionTolerance: 1, speedMarginPercent: 10 } });
+    writeDefinition(paths.experimentsDir, changed);
+    expect((await runQueue({ paths, source, host: host(paths, metrics) })).stopped).toBe("nothing to run: full-map is stale");
+    writeFileSync(join(experimentDir(paths.runsRoot, "full-map"), "approval.json"), JSON.stringify({ experiment: "full-map", sha256: definitionHash(parseExperiment(changed)), approvedAt: "t", approvedBy: "o" }));
+    const fake = host(paths, metrics);
+    expect((await runQueue({ paths, source, host: fake })).stopped).toMatch(/^full-map finished/);
+    expect(fake.launches).toEqual([]);
+    const regraded = JSON.parse(readFileSync(join(experimentDir(paths.runsRoot, "full-map"), "result.json"), "utf8")) as { definitionSha256: string };
+    expect(regraded.definitionSha256).toBe(definitionHash(parseExperiment(changed)));
+  });
+
   it("refuses a preset on disk that no longer matches the definition", async () => {
     const { paths, metrics, source } = setup();
     mkdirSync(join(experimentDir(paths.runsRoot, "full-map"), "presets"), { recursive: true });

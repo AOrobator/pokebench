@@ -65,7 +65,7 @@ describe("experiment queue store", () => {
     writeFileSync(join(experimentDir(paths.runsRoot, "partial"), "trials.jsonl"), Array.from({ length: 8 }, (_, i) => [JSON.stringify({ type: "launch", trial: i, arm: i % 4 === 0 || i % 4 === 3 ? "incumbent" : "candidate", run: `p${String(i)}`, at: "t" }), JSON.stringify({ type: "outcome", trial: i, arm: i % 4 === 0 || i % 4 === 3 ? "incumbent" : "candidate", run: `p${String(i)}`, at: "t", reason: "budget" })].join("\n")).join("\n"));
     writeDefinition(paths.experimentsDir, definition("finished", { queuePosition: 9 }));
     mkdirSync(experimentDir(paths.runsRoot, "finished"), { recursive: true });
-    writeFileSync(join(experimentDir(paths.runsRoot, "finished"), "result.json"), JSON.stringify({ experiment: "finished", gradedAt: "t", result: { verdict: "inconclusive", recommendation: "retain", eligible: false, problems: ["prompt differs"], incumbent: {}, candidate: {} }, problem: null }));
+    writeFileSync(join(experimentDir(paths.runsRoot, "finished"), "result.json"), JSON.stringify({ experiment: "finished", definitionSha256: definitionHash(parseExperiment(definition("finished", { queuePosition: 9 }))), gradedAt: "t", result: { verdict: "inconclusive", recommendation: "retain", eligible: false, problems: ["prompt differs"], incumbent: { launched: 4, reached: 0 }, candidate: { launched: 4, reached: 0 } }, problem: null }));
     writeFileSync(join(experimentDir(paths.runsRoot, "finished"), "trials.jsonl"), Array.from({ length: 8 }, (_, i) => [JSON.stringify({ type: "launch", trial: i, arm: i % 4 === 0 || i % 4 === 3 ? "incumbent" : "candidate", run: `f${String(i)}`, at: "t" }), JSON.stringify({ type: "outcome", trial: i, arm: i % 4 === 0 || i % 4 === 3 ? "incumbent" : "candidate", run: `f${String(i)}`, at: "t", reason: "budget" })].join("\n")).join("\n"));
     writeDefinition(paths.experimentsDir, { version: 9 }, "broken.json");
     writeFileSync(paths.readinessPath, READINESS);
@@ -156,5 +156,19 @@ describe("scanning run logs for readiness and trial metrics", () => {
     expect(scanned.ended).toBe(full.reason !== "incomplete");
     expect(() => scanRun("")).toThrow("event log does not begin with run_start");
     expect(() => scanRun(text.split("\n").slice(1).join("\n"))).toThrow("event log does not begin with run_start");
+  });
+});
+
+describe("graded results are bound to the definition they graded", () => {
+  it("ignores partial arms and results for another definition", async () => {
+    const { gradedResult } = await import("./experiment-store.js");
+    const root = mkdtempSync(join(tmpdir(), "pokebench-graded-"));
+    const hash = definitionHash(parseExperiment(definition("x")));
+    const write = (value: unknown): string => { const p = join(root, `${String(Math.random())}.json`); writeFileSync(p, JSON.stringify(value)); return p; };
+    const full = { verdict: "improve", recommendation: "confirm", eligible: true, problems: [], incumbent: { launched: 4, reached: 1 }, candidate: { launched: 4, reached: 3 } };
+    expect(gradedResult(write({ definitionSha256: hash, result: full }), hash)).toMatchObject({ verdict: "improve" });
+    expect(gradedResult(write({ definitionSha256: hash, result: { ...full, incumbent: {}, candidate: {} } }), hash)).toBeNull();
+    expect(gradedResult(write({ definitionSha256: "0".repeat(64), result: full }), hash)).toBeNull();
+    expect(gradedResult(write({ result: full }), hash)).toBeNull();
   });
 });

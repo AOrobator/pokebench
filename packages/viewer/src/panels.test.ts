@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import { Window } from "happy-dom";
 import { BASE_MS, Log, RUN, START, assistant, fullRun, must, state } from "../test-support/events.js";
 import { RunView, foldUntil } from "./model.js";
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import {
+  FEATURE_EXPLAINERS,
   NO_DATA,
   objectivePanel,
   actionRow,
@@ -17,7 +20,6 @@ import {
   thinkingDialog,
   trainerCard,
   type Baseline,
-  FEATURE_EXPLAINERS,
 } from "./panels.js";
 
 function view(log: Log): RunView {
@@ -572,4 +574,35 @@ it("documents only recorded tools with input/output contracts and safe unknown f
 
 it("links the elevation transitions card to its tracked explainer",()=>{
  expect(FEATURE_EXPLAINERS["elevation-transitions-v1"]).toBe("elevation-transitions.html");
+});
+
+it("maps game evidence priority to a tracked explainer, like every other mapped card",()=>{
+ expect(FEATURE_EXPLAINERS["game-evidence-priority-v1"]).toBe("game-evidence-priority-v1.html");
+ for(const file of Object.values(FEATURE_EXPLAINERS))expect(existsSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url)))).toBe(true);
+});
+
+it("documents recall_dialogue and links the dialogue log explainer",()=>{
+ const log=new Log();log.add(0,{...START,tools:["observe","press","recall_dialogue"]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log));
+ expect(doc.querySelector('[data-tool="recall_dialogue"]')?.textContent).toContain("1–20");
+ expect(FEATURE_EXPLAINERS["dialogue-log-v1"]).toBe("dialogue-log-v1.html");
+});
+
+it("links the new rival-push feature cards to their explainers in Harness Config",()=>{
+ const log=new Log();log.add(0,{...START,harness_features:["game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1"]});
+ const registry=(["game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1"] as const).map(id=>({id,title:id,description:"d",group:"guidance" as const,switchable:true,needs:null}));
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),registry);
+ for(const id of ["game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1"])expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+});
+
+describe("instruction ledger delivery",()=>{
+ it("retains exact payload for raw inspection, shows delivery and documents note_contradiction",()=>{
+  const log=bare();const event=log.add(100,{type:"ledger_context",turn:1,text:"INSTRUCTION LEDGER <quoted> #1",evidence:[1,3]});
+  const result=view(log);expect(actionRow(event,result)).toContain("Instruction ledger delivered");expect(actionRow(event,result)).toContain("2 references");expect(actionRow(event,result)).toContain("&lt;quoted&gt;");
+  expect(inspector(event)).toContain("INSTRUCTION LEDGER");
+  const tools=new Log();tools.add(0,{...START,tools:["observe","note_contradiction"]});
+  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(tools));
+  expect(doc.querySelector('[data-tool="note_contradiction"]')?.textContent).toContain("1–4 event numbers");
+  expect(FEATURE_EXPLAINERS["instruction-ledger-v1"]).toBe("instruction-ledger-v1.html");
+ });
 });

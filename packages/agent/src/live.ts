@@ -1,4 +1,5 @@
-import {navigationMemory} from "./navigation-memory.js";
+import {contextTools,loopSupervisor} from "./play-wiring.js";
+import {CheckpointCapture,checkpointTarget} from "./checkpoint-capture.js";
 // Live entrypoint for real, recorded runs: pi-agent-core on the local stack
 // gateway drives the observe / press tools against an isolated game server
 // (INV-7) on the real ROM, and every step lands in runs/<id>/events.jsonl.
@@ -11,7 +12,7 @@ import { execFileSync, spawn } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import { activeUiFeatures } from "./ui-feature.js";
 import { humanPlan, humanLease, humanRunId, driveHuman, saveHumanCheckpoint } from "./human.js";
-import { writeFileSync, readFileSync } from "node:fs";
+import { mkdirSync, renameSync, writeFileSync, readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { objectiveHarness } from "./objective-tools.js";
 import { playHarnessFeatures, serverFeatureEnv } from "./features.js";
@@ -26,7 +27,7 @@ import { checkSmoke, observeTool, pressTool, serverHealthy } from "./game-tools.
 import { discoverModels, selectModel, type GatewayModel } from "./gateway.js";
 import { FrameStore } from "./frames.js";
 import { StateWatcher } from "./game-state.js";
-import {flagFeatures,parsePlayPreset,presetFeatures,presetFlags} from "./play-preset.js";
+import {flagFeatures,parsePlayPreset,presetFeatures,presetFlags,presetStart} from "./play-preset.js";
 import {runStateMode,stateOnlyPrompt,stateOnlyProblems} from "./state-runtime.js";
 import {withNavigation} from "./navigation.js";
 import {NativeTargetStop} from "./target-stop.js";
@@ -213,6 +214,8 @@ async function playAgent(): Promise<void> {
   const limits=preset?.limits??PLAY_LIMITS;
   const features=preset===null?{...flagFeatures({loopGuard:readLoopMode(process.env)==="enforced",activeUi:activeUiFeatures().length>0,interfaceDocs:process.env["POKEBENCH_INTERFACE_DOCS"]!=="0",objectives:process.env["POKEBENCH_OBJECTIVES"]!=="0"}),"field-dialogue-phase-v1":process.env["POKEBENCH_FIELD_DIALOGUE_PHASE"]!=="0","automatic-running-v1":process.env["POKEBENCH_AUTOMATIC_RUNNING"]!=="0","expanded-menu-battle-information-v1":process.env["POKEBENCH_EXPANDED_INFORMATION"]!=="0"}:presetFeatures(preset);
   const serverEnv={...process.env,...serverFeatureEnv(features)};
+  const start=preset===null?{kind:"boot" as const}:presetStart(preset,path=>readFileSync(path));
+  const captureAt=checkpointTarget(process.env);
   const { model, port, gatewayUrl, apiKey } = await live();
   if(preset!==null&&preset.sampling.maxTokens>model.maxTokens)throw new Error("Play preset maxTokens exceeds the discovered model limit");
   const runId=assigned??newRunId(new Date(),model.id,()=>randomBytes(2).toString("hex"));
@@ -238,13 +241,13 @@ async function playAgent(): Promise<void> {
       ...(preset===null?{}:{evaluation:{preset_id:preset.id,target:preset.target,failure_limit:limits.failureLimit,flags:presetFlags(preset)}}),
       systemPrompt,
       tools: stateMode?["act"]:playTools(features),
-      startState: { kind: "boot" },
+      startState: start,
       harnessFeatures: playHarnessFeatures(features,target),
 
       budgets: { max_turns: limits.maxTurns, max_wall_ms: limits.maxWallMs },
       piVersion: piVersion(),
     },
-    realHost(port,undefined,serverEnv),
+    realHost(port,start.kind==="save_state"?start.path:undefined,serverEnv),
     new FrameStore(RUNS_ROOT),
     async (recorder, gameServerUrl) => {
       const controller = new AbortController();
@@ -274,7 +277,9 @@ async function playAgent(): Promise<void> {
       });
       control = runControl;
       if(preset!==null&&recorder.elapsedMs()>=limits.maxWallMs){governor.abort("budget");return "budget";}
-      const loopDetector = attachLoopGuard(recorder, governor, undefined, loopMode, features["interaction-loop-detection-v1"]);
+      const capture = captureAt === null ? null : new CheckpointCapture(captureAt, { serverUrl: gameServerUrl, dir: join(RUNS_ROOT, runId, "checkpoints"), fetch, write: (path, data) => { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, data); }, rename: renameSync });
+      if (capture !== null) recorder.subscribe(event => { capture.observe(event); });
+      const loopDetector = attachLoopGuard(recorder, governor, undefined, loopMode, features["interaction-loop-detection-v1"], loopSupervisor(features, recorder));
       if(target!==null){
         const stop=new NativeTargetStop(runId,target,proof=>{
           if(governor.stopReason!==null)return;
@@ -297,15 +302,15 @@ async function playAgent(): Promise<void> {
       const objectives = features["objective-tracking-v1"] ? objectiveHarness(goal, recorder, gameServerUrl, fetch, { ...objectiveSwitches(features), ...toolSwitches(features) }) : null;
       const baseTools=objectives?.tools ?? [observeTool(gameServerUrl, fetch, toolSwitches(features)), pressTool(gameServerUrl, pressHooks(recorder), fetch, undefined, toolSwitches(features))];
       const tools=withNavigation(baseTools,features,new StateWatcher(gameServerUrl),signal=>runControl.gate(signal));
-      const memory=navigationMemory(features,recorder,objectives?.transformContext??recorder.transformContext);
-      if(memory!==null)tools.push(memory.tool);
+      const context=contextTools(features,recorder,objectives?.transformContext??recorder.transformContext);
+      tools.push(...context.tools);
       const loop = piLoop({
         systemPrompt,
         loopDetector,
         tools,
         base: { ...gatewayLoopConfig(model, thinking, apiKey), maxTokens },
         governor,
-        transformContext: memory?.transformContext ?? objectives?.transformContext ?? recorder.transformContext,
+        transformContext: context.transformContext,
         emit: recorder.emit,
         signal: controller.signal,
         gate: (signal) => runControl.gate(signal),
@@ -315,6 +320,7 @@ async function playAgent(): Promise<void> {
         const task: AgentMessage = { role: "user", content: target===null?PLAY_TASK:`The game has just booted. ${goal}`, timestamp: Date.now() };
         return await play(task, governor, loop);
       } finally {
+        await capture?.close().catch((error: unknown) => { console.error(`checkpoint capture failed: ${String(error)}`); });
         wall.clear();
         stopWatching();
         process.off("SIGINT", interrupt);

@@ -42,6 +42,10 @@ export const SWITCHABLE_FEATURES = [
   "native-objective-completion-v1",
   "full-map-navigation-v1",
   "elevation-transitions-v1",
+  "game-evidence-priority-v1",
+  "dialogue-log-v1",
+  "loop-guard-supervisor-v1",
+  "instruction-ledger-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -147,6 +151,14 @@ export const FEATURES: readonly FeatureInfo[] = [
     "Replaces the 15x15 local map with the whole current map, one character per tile, and lets navigate_to walk the full route (up to 512 presses), re-planning before each press. Stops on blocked or unexpected movement, locks and map changes as before, and after 16 presses without the route getting shorter; a route never crosses a warp unless it is the destination. Off: local map and up to eight attempts per call."),
   on("elevation-transitions-v1", "guidance", "ELEVATION TRANSITIONS", null,
     "Applies only while A* navigation is on. navigate_to follows the game's height rule: stairs (height 0) change the walker's layer, bridges and decks (height 15) never block, and a ledge landing sets the layer the game would. Nothing the model reads changes. Off: navigate_to uses the earlier rule, where 0 keeps the current layer and 15 blocks like any other height."),
+  on("game-evidence-priority-v1", "guidance", "GAME EVIDENCE FIRST", null,
+    "Adds a system-prompt section saying received dialogue, readout labels, location and story flags outrank what the model remembers about Pokémon, to cite who said what before picking a destination, and to change plan when the game disagrees. With bounded navigation on, also says to use navigate_to for walks of two or more tiles and to target a warp's own coordinates. Names no destination or story step. Off: no such section."),
+  on("dialogue-log-v1", "guidance", "DIALOGUE LOG", "active-field-message-buffer-v1",
+    "Records every dialogue page the model was actually shown, with turn, location, position and the character faced when the readout names one, and adds recall_dialogue to search it by words, location or recency. Replies are bounded; repeats after other dialogue are kept. Off: no log and no tool."),
+  on("loop-guard-supervisor-v1", "guard", "LOOP SUPERVISOR", "deterministic-loop-guard-v1",
+    "Where the loop guard would end the run as stuck, it posts a SUPERVISOR briefing instead and the run continues: current room and position, the last dialogue shown, recent attempts with outcomes, and listed targets here not yet tried. With the live policy, briefings come after 6 looping calls, then 12, 24 and 48 more, then every 96. Names no route or story goal. Off: the guard ends the run as stuck."),
+  on("instruction-ledger-v1", "guidance", "INSTRUCTION LEDGER", "active-field-message-buffer-v1",
+    "Pins a short ledger before each decision: the last three dialogue pages the model was shown (with the faced character when named), the rooms it visited with the last line heard in each, and contradictions it recorded with note_contradiction, each citing event numbers it was shown. Bounded to 4,000 characters and recorded as ledger_context. Names no goal or route. Off: no ledger and no tool."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",
@@ -219,6 +231,10 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("navigation-evidence-memory-v1"), ...when("automatic-running-v1"), ...when("expanded-menu-battle-information-v1"), ...when("state-only-decisions-v1"), ...when("objective-tracking-v1"), ...when("repeat-attempt-guard-v1"), ...when("native-objective-completion-v1"),
     ...when("full-map-navigation-v1"),
     ...when("grass-cost-navigation-v1"), ...when("elevation-transitions-v1"),
+    ...when("game-evidence-priority-v1"),
+    ...when("dialogue-log-v1"),
+    ...when("loop-guard-supervisor-v1"),
+    ...when("instruction-ledger-v1"),
   ];
 }
 
@@ -229,5 +245,5 @@ export function featuresOf(harnessFeatures: readonly string[]): FeatureSet {
 
 export function stateOnlyProblems(features:FeatureSet):string[]{
  if(!features["state-only-decisions-v1"])return [];
- return (["objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
+ return (["objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
 }

@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Loop Supervisor</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:740px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navb{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.arr.g{stroke:var(--game)} .arr.p{stroke:var(--prior);stroke-dasharray:5 4}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tag{display:inline-block;font:500 .72rem var(--mono);border-radius:99px;padding:1px 8px;border:1px solid var(--rule);color:var(--soft)}
+</style>
+</head>
+<body>
+<main>
+<div>
+<div class="eyebrow">Harness switch · guard · <code>loop-guard-supervisor-v1</code> · needs <code>deterministic-loop-guard-v1</code></div>
+<h1>Loop supervisor</h1>
+</div>
+<p class="lede">The loop guard keeps detecting and warning. Where it used to end the run as "stuck", it now posts a SUPERVISOR briefing and the run continues. Off by default; off keeps today's stop.</p>
+
+<section>
+<h2>Why</h2>
+<p>In the 44 recent Think Fast runs, the guard warned 76 times and 56 of those loops broke afterwards. It also ended 20 runs, which is every "stuck" ending, and 9 of those runs had already left home after setting the clock. The two runs that reached the rival's house both used most of the 30-minute budget. Ending a run early cuts off exactly the search that might succeed.</p>
+</section>
+
+<section>
+<h2>What changes in an episode</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 250" role="img" aria-label="Loop episode timeline, off and on">
+ <text x="10" y="30" class="t">OFF (today)</text>
+ <rect x="110" y="16" width="120" height="26" rx="6" class="box"/><text x="122" y="34">loop detected</text>
+ <rect x="250" y="16" width="110" height="26" rx="6" class="navb"/><text x="262" y="34">warning</text>
+ <rect x="380" y="16" width="170" height="26" rx="6" class="box"/><text x="392" y="34">6 calls, no recovery</text>
+ <rect x="570" y="16" width="120" height="26" rx="6" class="prior hot"/><text x="582" y="34">run ends: stuck</text>
+ <text x="10" y="110" class="t">ON</text>
+ <rect x="110" y="96" width="120" height="26" rx="6" class="box"/><text x="122" y="114">loop detected</text>
+ <rect x="250" y="96" width="110" height="26" rx="6" class="navb"/><text x="262" y="114">warning</text>
+ <rect x="380" y="96" width="170" height="26" rx="6" class="box"/><text x="392" y="114">6 calls, no recovery</text>
+ <rect x="570" y="96" width="120" height="26" rx="6" class="game hot"/><text x="582" y="114">SUPERVISOR #1</text>
+ <rect x="380" y="150" width="170" height="26" rx="6" class="box"/><text x="392" y="168">12 more looping calls</text>
+ <rect x="570" y="150" width="120" height="26" rx="6" class="game"/><text x="582" y="168">SUPERVISOR #2</text>
+ <rect x="380" y="200" width="170" height="26" rx="6" class="box"/><text x="392" y="218">24, 48, then every 96</text>
+ <rect x="570" y="200" width="120" height="26" rx="6" class="game"/><text x="582" y="218">#3, #4, …</text>
+ <path d="M630 122 V148" class="arr g"/><path d="M630 176 V198" class="arr g"/>
+ <text x="110" y="246" class="s">Any new game state at any point ends the episode with "recovered", exactly as today.</text>
+</svg>
+</div>
+<figcaption><b>Backoff.</b> With the live policy (6 calls of bounded recovery), briefings come after 6, then 12, 24, 48 more looping calls, then every 96, so they cannot flood the context. The briefing replaces the plain warning in the model's context until the loop breaks. The unit tests use a 2-call policy, which gives gaps of 4, 8, 16 and then 32.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>What the briefing says</h2>
+<p>Every line comes from events the model was already shown. It names no route and no story goal.</p>
+<table>
+<tr><th>Line</th><th>Source</th><th>When unavailable</th></tr>
+<tr><td>Where you are</td><td>Last delivered state: location, position, facing</td><td>Position left out without <code>live-player-position-v1</code></td></tr>
+<tr><td>Last dialogue you were shown</td><td>Same capture as the dialogue log, clipped to 600 characters</td><td>"not available" without <code>active-field-message-buffer-v1</code></td></tr>
+<tr><td>Tried recently</td><td>Last 8 distinct <code>navigate_to</code> targets and presses, with room, repeat count and the measured outcome (entered a room, moved, dialogue changed, no change)</td><td>"result unverified" when no prior state was delivered</td></tr>
+<tr><td>Listed here and not tried yet</td><td>Readout targets in this room whose tile was never a navigate_to target, an A-press target or a tile the player stood on; up to 8</td><td>"not available" without <code>world-targets-v1</code></td></tr>
+</table>
+<p>Illustrative shape:</p>
+<pre>SUPERVISOR (loop guard: cycle, after 412 calls): you have been repeating a pattern without new game information. The run continues; change strategy now. Get your bearings:
+- Where you are: LITTLEROOT TOWN at 10,9 facing up
+- Last dialogue you were shown: turn 275, …: "…"
+- Tried recently, newest first: navigate_to 14,8 ×3 in LITTLEROOT TOWN → no change; …
+- Listed here and not tried yet: … (walk into it); …
+Look back over your history, use recall_dialogue to check what characters told you, restate your current objective and the observed evidence for it, then try something you have not tried.</pre>
+<p>The recall_dialogue clause appears only when <code>dialogue-log-v1</code> is on. The whole briefing stays under 2,500 characters. Each briefing is recorded as a <code>loop_guard</code> event with phase <code>supervisor</code> and the full text, so it shows in the timeline, Activity History and replay.</p>
+</section>
+
+<section>
+<h2>Status</h2>
+<table>
+<tr><th>Item</th><th>State</th></tr>
+<tr><td>Branch</td><td><code>claude/rival-house-push</code></td></tr>
+<tr><td>Default</td><td>OFF in v1 flag presets, v2 presets that omit it and the viewer next-run draft</td></tr>
+<tr><td>Tests</td><td>Briefing instead of stop, backoff and cap, recovery, unchanged plain and diagnostic modes, schema-valid event, governor never aborted, briefing contents, fallbacks, bound</td></tr>
+<tr><td>Measured runs</td><td><span class="tag">none yet</span> One step of the rival-house push</td></tr>
+</table>
+</section>
+</main>
+</body>
+</html>

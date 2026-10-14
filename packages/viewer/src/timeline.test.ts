@@ -95,3 +95,8 @@ it("shows navigation context delivery on timeline without claiming a game press"
  const log=new Log();log.add(0,START);log.add(100,{type:"navigation_context",turn:1,text:"NAVIGATION EVIDENCE MEMORY",evidence:[1,2]});
  const svg=lanesSvg(view(log),BASE_MS+1000);expect(svg).toContain("Navigation memory delivered · 2 references");expect(svg).toContain('class="m-tool"');expect(svg).not.toContain('class="m-press b-A"');
 });
+
+it("shows instruction ledger delivery on the timeline without claiming a game press",()=>{
+ const log=new Log();log.add(0,START);log.add(100,{type:"ledger_context",turn:1,text:"INSTRUCTION LEDGER",evidence:[4]});
+ const svg=lanesSvg(view(log),BASE_MS+1000);expect(svg).toContain("Instruction ledger delivered · 1 references");expect(svg).not.toContain('class="m-press b-A"');
+});

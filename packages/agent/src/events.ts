@@ -131,6 +131,7 @@ const HumanSample = event("human_sample", {
 });
 
 const NavigationContext = event("navigation_context", {text:Type.String({maxLength:6500}),evidence:Type.Array(NonNegativeInt,{maxItems:36,uniqueItems:true})});
+const LedgerContext = event("ledger_context", {text:Type.String({maxLength:4000}),evidence:Type.Array(NonNegativeInt,{maxItems:64,uniqueItems:true})});
 
 const ToolResult = event("tool_result", {
   state_seq: Type.Optional(NonNegativeInt),
@@ -188,7 +189,7 @@ const LoopFields = {
 };
 const LoopGuard = Type.Union([
   event("loop_guard", {...LoopFields, phase:Type.Enum(["warning","recovered","stop"] as const)}),
-  event("loop_guard", {...LoopFields, mode:Type.Literal("enforced"), phase:Type.Enum(["warning","recovered","stop"] as const)}),
+  event("loop_guard", {...LoopFields, mode:Type.Literal("enforced"), phase:Type.Enum(["warning","recovered","stop","supervisor"] as const)}),
   event("loop_guard", {...LoopFields, mode:Type.Literal("diagnostic"), phase:Type.Enum(["would_warn","would_recover","would_stop"] as const)}),
 ]);
 
@@ -438,6 +439,7 @@ export const RunEventSchema = Type.Union([
   ToolCall,
   ButtonPress,
   NavigationContext,
+  LedgerContext,
   DecisionInput,
   WaitInput,
   HumanInput,

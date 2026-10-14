@@ -55,6 +55,10 @@ export const DOCUMENTED_PLAY_SYSTEM_PROMPT = PLAY_SYSTEM_PROMPT.replace(
   CONTEXTUAL_CONTROLS,
 );
 
+export const GAME_EVIDENCE_SECTION = `Game evidence first: this game, as observed, is the source of truth. What characters have told you, the names of people, objects and rooms in the readout, the location line and the story flags outrank what you remember about Pokémon games, guides or walkthroughs. Your memory of the series can be wrong about this moment of this game. Before choosing where to go, name the observed evidence that supports it: who said it, where, and what they said. When your expectation and the game disagree, for example a different person, a different room or unexpected dialogue, believe the game, say so in one sentence, and change your plan. Do not keep pursuing a goal no character or readout in this game has given you; if nothing tells you where to go, explore places you have not tried yet.`;
+
+export const NAVIGATE_TO_USAGE = `Use navigate_to for any walk of two or more tiles on the current map, using coordinates from the readout. To go through a door or stairs, give the warp's own coordinates as the destination; at a directional exit, arrive on its tile, then press the direction its activation describes. When navigate_to stops early, read its reason and pick a reachable tile or a different listed exit instead of falling back to long runs of single presses. Use press for talking, menus, dialogue and short adjustments.`;
+
 const GOAL_SENTENCE = "Your goal is to make as much story progress as you can: start a new game, get your first Pokémon, and work toward defeating the first Gym Leader in Rustboro City.";
 const OBSERVE_LINE = "- observe: shows the current screen and a text readout of the game state read from memory (location, coordinates, party, and an ASCII map of the surroundings).";
 const OBSERVE_SCREEN_ONLY = "- observe: shows the current screen.";
@@ -76,6 +80,10 @@ export function playSystemPrompt(features: FeatureSet, target: string | null): s
   if (!features["warp-activation-guidance-v1"]) prompt = prompt.replace(WARP_PARAGRAPH, "");
   if (features["ledge-hops-v1"]) prompt = prompt.replace("press A, surf or solve ledges.", "press A or surf. It hops a ledge only in its arrow direction.");
   if(features["navigation-evidence-memory-v1"])prompt+="\n\nA bounded navigation evidence ledger is supplied before each decision. It quotes observations and records attempted targets. Use it to choose destinations from observed instructions; current state overrides stale facts. remember_destination optionally retains your evidence-linked destination hypothesis; it is not required before acting and never proves completion.";
+  if (features["dialogue-log-v1"]) prompt += "\n\n- recall_dialogue: searches every dialogue page you have been shown this run, newest first, with turn, location, your position and the character you faced when known. Filter by contains, room or last. Use it when you are unsure what someone told you or where you heard it.";
+  if (features["instruction-ledger-v1"]) prompt += "\n\nAn INSTRUCTION LEDGER is supplied before each decision: the latest dialogue you were shown, the rooms you visited with what you heard there, and contradictions you recorded. It quotes the game; it is not a walkthrough. When the game turns out different from what you expected, record it with note_contradiction (expected, observed, 1–4 event numbers) so you do not repeat the same wrong assumption.";
+  if (features["loop-guard-supervisor-v1"]) prompt += "\n\nLoop supervisor: if you repeat a pattern without new game information, a SUPERVISOR note summarizes where you are, the last dialogue you were shown, what you tried and what is listed here that you have not tried. The run continues; use the note to change strategy.";
+  if (features["game-evidence-priority-v1"]) prompt += `\n\n${GAME_EVIDENCE_SECTION}${features["bounded-navigation-v1"] ? `\n\n${NAVIGATE_TO_USAGE}` : ""}`;
   return features["objective-tracking-v1"]
     ? `${prompt}\n\n${objectivePrompt(objectiveSwitches(features))}`
     : prompt;
@@ -99,5 +107,5 @@ export function toolSwitches(features: FeatureSet): ToolSwitches {
 }
 
 export function playTools(features: FeatureSet): string[] {
-  return ["observe", "press", ...(features["objective-tracking-v1"] ? ["get_objectives", "set_objective", "update_objective"] : []), ...(features["bounded-navigation-v1"] ? ["navigate_to"] : []), ...(features["navigation-evidence-memory-v1"] ? ["remember_destination"] : [])];
+  return ["observe", "press", ...(features["objective-tracking-v1"] ? ["get_objectives", "set_objective", "update_objective"] : []), ...(features["bounded-navigation-v1"] ? ["navigate_to"] : []), ...(features["navigation-evidence-memory-v1"] ? ["remember_destination"] : []), ...(features["dialogue-log-v1"] ? ["recall_dialogue"] : []), ...(features["instruction-ledger-v1"] ? ["note_contradiction"] : [])];
 }

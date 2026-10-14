@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dialogue Log</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:740px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navb{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.arr.g{stroke:var(--game)} .arr.p{stroke:var(--prior);stroke-dasharray:5 4}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tag{display:inline-block;font:500 .72rem var(--mono);border-radius:99px;padding:1px 8px;border:1px solid var(--rule);color:var(--soft)}
+</style>
+</head>
+<body>
+<main>
+<div>
+<div class="eyebrow">Harness switch · guidance · <code>dialogue-log-v1</code> · needs <code>active-field-message-buffer-v1</code></div>
+<h1>Dialogue log and recall_dialogue</h1>
+</div>
+<p class="lede">The harness writes down every dialogue page the model was actually shown, in order, for the whole run. The model can search it with the <code>recall_dialogue</code> tool when it forgets what someone said or wants to check where it heard something. Off by default.</p>
+
+<section>
+<h2>Why</h2>
+<p>Recent runs lose instructions to context pruning. By the time a run has been wandering Littleroot for 300 turns, Mom's line about the neighbors is long gone from the model's context. Navigation evidence memory pins the newest few pages (at most 5, each clipped). This log keeps all of them and lets the model ask.</p>
+</section>
+
+<section>
+<h2>What gets recorded</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 230" role="img" aria-label="Capture pipeline from game state to the log">
+ <rect x="10" y="20" width="150" height="66" rx="10" class="box"/>
+ <text x="24" y="44" class="t">state event</text>
+ <text x="24" y="62" class="s">sampled by the recorder</text>
+ <rect x="200" y="20" width="170" height="66" rx="10" class="box hot"/>
+ <text x="214" y="44" class="t">delivered?</text>
+ <text x="214" y="62" class="s">a tool_result carries its</text>
+ <text x="214" y="76" class="s">state_seq to the model</text>
+ <rect x="410" y="20" width="130" height="66" rx="10" class="box"/>
+ <text x="424" y="44" class="t">filters</text>
+ <text x="424" y="62" class="s">started, overworld,</text>
+ <text x="424" y="76" class="s">non-empty buffer</text>
+ <rect x="580" y="20" width="110" height="66" rx="10" class="game"/>
+ <text x="594" y="44" class="t">append</text>
+ <text x="594" y="62" class="s">unless same page,</text>
+ <text x="594" y="76" class="s">same room as last</text>
+ <path d="M160 53 H198" class="arr" marker-end="url(#a)"/>
+ <path d="M370 53 H408" class="arr" marker-end="url(#a)"/>
+ <path d="M540 53 H578" class="arr" marker-end="url(#a)"/>
+ <rect x="200" y="140" width="170" height="60" rx="10" class="prior"/>
+ <text x="214" y="164" class="t">dropped</text>
+ <text x="214" y="182" class="s">samples never shown</text>
+ <path d="M285 86 V138" class="arr p" marker-end="url(#a)"/>
+ <rect x="410" y="140" width="280" height="60" rx="10" class="navb"/>
+ <text x="424" y="164" class="t">recall_dialogue</text>
+ <text x="424" y="182" class="s">filter, newest first, bounded reply</text>
+ <path d="M635 86 V138" class="arr g" marker-end="url(#a)"/>
+ <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" style="fill:var(--soft)"/></marker></defs>
+</svg>
+</div>
+<figcaption><b>Only what the model saw.</b> A page is logged only when a tool result delivered that exact state to the model. Consecutive copies of the same page in the same room collapse to one entry. The same words later, after other dialogue, are logged again, so repeated conversations stay visible.</figcaption>
+</figure>
+<table>
+<tr><th>Field</th><th>Meaning</th></tr>
+<tr><td><code>#seq</code></td><td>Event number of the delivered state. It can be checked in the run log and replay.</td></tr>
+<tr><td>turn</td><td>Model turn when the page was delivered.</td></tr>
+<tr><td>room</td><td>Location line from the readout, or "unknown room". With bounded navigation on, the map id the readout already shows is added, for example "(map 1/0)". Identity always uses location plus map id, so two maps with the same label never merge.</td></tr>
+<tr><td>at x,y</td><td>Player tile, only with <code>live-player-position-v1</code>.</td></tr>
+<tr><td>facing NAME at x,y</td><td>The named object on the tile the player faces, only with named interactions and position on. It is who the player was facing, which is usually but not always the speaker (a TV or a cutscene can talk too).</td></tr>
+<tr><td>text</td><td>The active field-message buffer, quoted. It can include pages not yet shown on screen.</td></tr>
+</table>
+</section>
+
+<section>
+<h2>The tool</h2>
+<p>Arguments are all optional: <code>contains</code> (words, up to 80 characters, case-insensitive), <code>room</code> (location text, up to 80 characters) and <code>last</code> (1 to 20, default 8). Each page is clipped to 650 characters and the whole reply stays under 6,000. The reply always says how many pages matched, how many were shown and how many were left out.</p>
+<p>Illustrative reply shape (not from a recorded run yet):</p>
+<pre>DIALOGUE LOG: quoted game text you were shown, newest first. Past text; the current screen overrides it. 2 of 41 entries match.
+#3120 turn 286 · LITTLEROOT TOWN BRENDANS HOUSE 1F · at 8,4 · facing MOM at 8,5: "…"
+#2901 turn 275 · LITTLEROOT TOWN BRENDANS HOUSE 1F · at 8,4 · facing MOM at 8,5: "…"
+2 shown.</pre>
+<p>Every call and reply is an ordinary <code>tool_call</code> / <code>tool_result</code> pair in the run log, so it shows up in the timeline, Activity History and replay like any other tool. Harness Config documents the tool's inputs and outputs.</p>
+</section>
+
+<section>
+<h2>Status</h2>
+<table>
+<tr><th>Item</th><th>State</th></tr>
+<tr><td>Branch</td><td><code>claude/rival-house-push</code></td></tr>
+<tr><td>Default</td><td>OFF in v1 flag presets, v2 presets that omit it and the viewer next-run draft</td></tr>
+<tr><td>Tests</td><td>Delivered-only capture, repeats, filters, reply bound, honest fallbacks when position, facing or names are missing, argument limits, switch, tool and prompt wiring</td></tr>
+<tr><td>Measured runs</td><td><span class="tag">none yet</span> One step of the rival-house push</td></tr>
+</table>
+</section>
+</main>
+</body>
+</html>

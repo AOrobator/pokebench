@@ -33,7 +33,7 @@ export type LoopNotice = NoticeFields &
   (
     | {
         readonly mode: "enforced";
-        readonly phase: "warning" | "recovered" | "stop";
+        readonly phase: "warning" | "recovered" | "stop" | "supervisor";
       }
     | {
         readonly mode: "diagnostic";
@@ -183,6 +183,8 @@ export class LoopDetector {
     recovery: number;
     threshold: boolean;
     evidence: number[];
+    window: number;
+    briefing: string | null;
   } | null = null;
   private run: string | null = null;
   private eventSeq = -1;
@@ -208,6 +210,7 @@ export class LoopDetector {
     private readonly policy: LoopPolicy = LOOP_POLICY,
     readonly mode: LoopMode = "enforced",
     private readonly interactions = false,
+    private readonly supervisor?: (kind: LoopKind, calls: number) => string,
   ) {}
 
   observe(event: RunEvent): void {
@@ -267,6 +270,7 @@ export class LoopDetector {
   context(): string | null {
     if (this.mode === "diagnostic" || this.episode === null) return null;
     this.episode.exposed = true;
+    if (this.episode.briefing !== null) return this.episode.briefing;
     return `LOOP GUARD (${this.episode.kind}): ${this.episode.message} Recovery is bounded; objective wording and new evidence IDs alone do not establish progress.`;
   }
 
@@ -356,9 +360,16 @@ export class LoopDetector {
       this.rejections.clear();
     if (
       this.episode?.exposed &&
-      this.episode.recovery >= this.policy.recovery &&
+      this.episode.recovery >= this.episode.window &&
       !this.episode.threshold
     ) {
+      if (this.supervisor !== undefined && this.mode === "enforced") {
+        this.episode.briefing = this.supervisor(this.episode.kind, this.completed);
+        this.episode.recovery = 0;
+        this.episode.window = Math.min(this.episode.window * 2, this.policy.recovery * 16);
+        this.notice("supervisor", seq);
+        return;
+      }
       this.stopped = this.mode === "enforced";
       this.episode.threshold = true;
       this.notice("stop", seq);
@@ -373,6 +384,8 @@ export class LoopDetector {
         recovery: 0,
         threshold: false,
         evidence: [seq],
+        window: this.policy.recovery,
+        briefing: null,
       };
       this.notice("warning", seq);
     }
@@ -423,7 +436,7 @@ export class LoopDetector {
       this.ineffective = { key: "", count: 0 };
     }
   }
-  private notice(phase: "warning" | "recovered" | "stop", seq: number): void {
+  private notice(phase: "warning" | "recovered" | "stop" | "supervisor", seq: number): void {
     const episode = this.episode;
     if (episode === null) return;
     const fields = {
@@ -431,7 +444,9 @@ export class LoopDetector {
       message:
         phase === "stop"
           ? `${episode.message} Bounded recovery ended without verified recovery; unknown readouts do not prove progress.`
-          : episode.message,
+          : phase === "supervisor" && episode.briefing !== null
+            ? episode.briefing
+            : episode.message,
       calls: this.completed,
       evidence: [...episode.evidence, seq].filter(
         (value, index, all) => all.indexOf(value) === index,

@@ -9,8 +9,8 @@ function measured(id: string, times: readonly (number | null)[], controller: "ag
       rawSplits: times.flatMap((elapsedMs, i) => elapsedMs === null ? [] : [{ name: FRONTIER_MILESTONES[i]?.id ?? "", elapsedMs: elapsedMs + (controller === "human" ? 53869 : 0), evidence: [i] }]) },
   });
 }
-const human = (): WorkbenchRun => measured(HUMAN_REFERENCE, [92246, 132921, 180979, 248863, 317885, 408081, 4194300, 6645600], "human");
-const best = (): WorkbenchRun => measured("dea1", [153477, 200600, 496944, 579200, 1477567]);
+const human = (): WorkbenchRun => measured(HUMAN_REFERENCE, [92246, 132921, 180979, 248863, 257446, 284511, 317885, 408081, 4194258, 6645610], "human");
+const best = (): WorkbenchRun => measured("dea1", [153477, 200600, 496944, 579200, 1301593, 1328664, 1477567]);
 describe("persistent actual native frontier", () => {
   it("selects progress before speed and keeps one actual run, with stable ties", () => {
     const fast = measured("early", [1000, 2000, 3000]);
@@ -18,7 +18,7 @@ describe("persistent actual native frontier", () => {
     const picked = frontierReferences([slow, best(), human(), fast]);
     expect(picked.human?.id).toBe(HUMAN_REFERENCE); expect(picked.best?.id).toBe("dea1");
     expect(picked.best?.splits[0]?.elapsedMs).toBe(153477);
-    expect(frontierReferences([best(), measured("aaa", [153477, 200600, 496944, 579200, 1477567])]).best?.id).toBe("aaa");
+    expect(frontierReferences([best(), measured("aaa", [153477, 200600, 496944, 579200, 1301593, 1328664, 1477567])]).best?.id).toBe("aaa");
   });
   it("excludes probes, human, incomplete, infrastructure, unknown-provenance and resumed sessions from records", () => {
     const advanced = measured("advanced", [1, 2, 3, 4, 5, 6, 7, 8]);
@@ -28,13 +28,22 @@ describe("persistent actual native frontier", () => {
     expect(refs.best?.id).toBe("dea1");
     expect(frontierReferences([])).toMatchObject({ human: null, best: null });
   });
+  it("exposes required rival locations while excluding optional detours from axis and frontier credit", () => {
+    expect(FRONTIER_MILESTONES.map(m => m.id)).toContain("RIVAL_HOUSE_ENTERED");
+    expect(FRONTIER_MILESTONES.map(m => m.id)).toContain("RIVAL_BEDROOM_REACHED");
+    expect(FRONTIER_MILESTONES.map(m => m.id)).toContain("RIVAL_MET");
+    expect(FRONTIER_MILESTONES.some(m => /LAB|AIDE/.test(m.id))).toBe(false);
+    const optional = measured("optional", [1000]);
+    optional.splits.push({ name: "LAB_ENTERED", elapsedMs: 2000, segmentMs: 1000, seq: 2, turn: 2, inputTokens: 0, outputTokens: 0 });
+    expect(frontierReferences([optional, best()]).best?.id).toBe("dea1");
+  });
   it("keeps missing splits as gaps and references independent of filtered overlays", () => {
     const refs = frontierReferences([human(), best()]);
     const gap = measured("gap<script>", [1000, null, 3000]);
     document.body.innerHTML = frontierPlot(refs, [gap], 340, false);
     expect(document.querySelector("svg")?.getAttribute("viewBox")).toContain("0 0 340");
-    expect(document.querySelectorAll(`[data-run="${HUMAN_REFERENCE}"]`)).toHaveLength(8);
-    expect(document.querySelectorAll('[data-run="dea1"]')).toHaveLength(5);
+    expect(document.querySelectorAll(`[data-run="${HUMAN_REFERENCE}"]`)).toHaveLength(10);
+    expect(document.querySelectorAll('[data-run="dea1"]')).toHaveLength(7);
     expect(document.querySelectorAll('polyline[data-series="gap<script>"]')).toHaveLength(0);
     expect(document.querySelectorAll("script")).toHaveLength(0);
     expect(document.body.textContent).toContain("Badge");

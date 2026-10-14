@@ -18,6 +18,10 @@
       3766,
       3772,
       3773,
+      3910,
+      3911,
+      4349,
+      4350,
       4903,
       4904,
       6334,
@@ -30,7 +34,7 @@
       100261,
       100267
     ],
-    "adaptation": "Selected run_start, pause controls, eight report splits and their native evidence, run_end. Sequences and evidence renumbered contiguously; timestamps, state, model, source and feature values retained. Not a benchmark run. Optional state readouts outside native milestone predicates omitted; prompt replaced with fixture label.",
+    "adaptation": "Selected start, pause controls, ten progression splits and their native evidence, terminal. Sequences/evidence renumbered contiguously; timestamps/state/config retained. Optional state fields outside milestone predicates and prompt omitted. Not a benchmark run.",
     "events": [
       {
         "v": 1,
@@ -485,6 +489,125 @@
         "v": 1,
         "run": "2026-10-13T23-50-13_human_1848",
         "seq": 15,
+        "t": "2026-10-13T23:55:25.279-04:00",
+        "type": "state",
+        "turn": 0,
+        "screen": "overworld",
+        "story": {
+          "name_confirmed": true,
+          "intro_stage": 7,
+          "rival_stage": 0,
+          "birch_lab_stage": 0,
+          "petalburg_gym_stage": 0,
+          "woods_stage": 0,
+          "clock_set": true,
+          "rival_battle_won": false,
+          "pokedex_received": false,
+          "running_shoes_received": false,
+          "starter_tutorial_complete": false,
+          "rustboro_gym_complete": false,
+          "stone_badge": false,
+          "rock_tomb_received": false
+        },
+        "started": true,
+        "name": "RED",
+        "location": "LITTLEROOT TOWN MAYS HOUSE 1F",
+        "map_id": [
+          1,
+          2
+        ],
+        "position": {
+          "x": 2,
+          "y": 8
+        },
+        "facing": "up",
+        "in_battle": false,
+        "party": [],
+        "money": 3000,
+        "badges": [],
+        "play_time_s": 139
+      },
+      {
+        "v": 1,
+        "run": "2026-10-13T23-50-13_human_1848",
+        "seq": 16,
+        "t": "2026-10-13T23:55:25.281-04:00",
+        "type": "milestone",
+        "turn": 0,
+        "emulator_frame": 15274,
+        "emulator_frame_kind": "sample_upper_bound",
+        "name": "RIVAL_HOUSE_ENTERED",
+        "server_timestamp": 1791950125.281,
+        "kind": "navigation",
+        "origin": "observed",
+        "evidence": [
+          9,
+          15
+        ]
+      },
+      {
+        "v": 1,
+        "run": "2026-10-13T23-50-13_human_1848",
+        "seq": 17,
+        "t": "2026-10-13T23:55:52.345-04:00",
+        "type": "state",
+        "turn": 0,
+        "screen": "overworld",
+        "story": {
+          "name_confirmed": true,
+          "intro_stage": 7,
+          "rival_stage": 2,
+          "birch_lab_stage": 0,
+          "petalburg_gym_stage": 0,
+          "woods_stage": 0,
+          "clock_set": true,
+          "rival_battle_won": false,
+          "pokedex_received": false,
+          "running_shoes_received": false,
+          "starter_tutorial_complete": false,
+          "rustboro_gym_complete": false,
+          "stone_badge": false,
+          "rock_tomb_received": false
+        },
+        "started": true,
+        "name": "RED",
+        "location": "LITTLEROOT TOWN MAYS HOUSE 2F",
+        "map_id": [
+          1,
+          3
+        ],
+        "position": {
+          "x": 1,
+          "y": 1
+        },
+        "facing": "down",
+        "in_battle": false,
+        "party": [],
+        "money": 3000,
+        "badges": [],
+        "play_time_s": 165
+      },
+      {
+        "v": 1,
+        "run": "2026-10-13T23-50-13_human_1848",
+        "seq": 18,
+        "t": "2026-10-13T23:55:52.346-04:00",
+        "type": "milestone",
+        "turn": 0,
+        "emulator_frame": 16890,
+        "emulator_frame_kind": "sample_upper_bound",
+        "name": "RIVAL_BEDROOM_REACHED",
+        "server_timestamp": 1791950152.346,
+        "kind": "navigation",
+        "origin": "observed",
+        "evidence": [
+          17
+        ]
+      },
+      {
+        "v": 1,
+        "run": "2026-10-13T23-50-13_human_1848",
+        "seq": 19,
         "t": "2026-10-13T23:56:25.718-04:00",
         "type": "state",
         "turn": 0,
@@ -526,7 +649,7 @@
       {
         "v": 1,
         "run": "2026-10-13T23-50-13_human_1848",
-        "seq": 16,
+        "seq": 20,
         "t": "2026-10-13T23:56:25.720-04:00",
         "type": "milestone",
         "turn": 0,
@@ -537,13 +660,13 @@
         "kind": "story",
         "origin": "observed",
         "evidence": [
-          15
+          19
         ]
       },
       {
         "v": 1,
         "run": "2026-10-13T23-50-13_human_1848",
-        "seq": 17,
+        "seq": 21,
         "t": "2026-10-13T23:57:55.916-04:00",
         "type": "state",
         "turn": 0,
@@ -592,7 +715,7 @@
       {
         "v": 1,
         "run": "2026-10-13T23-50-13_human_1848",
-        "seq": 18,
+        "seq": 22,
         "t": "2026-10-13T23:57:55.916-04:00",
         "type": "milestone",
         "turn": 0,
@@ -603,13 +726,13 @@
         "kind": "story",
         "origin": "observed",
         "evidence": [
-          17
+          21
         ]
       },
       {
         "v": 1,
         "run": "2026-10-13T23-50-13_human_1848",
-        "seq": 19,
+        "seq": 23,
         "t": "2026-10-14T01:01:02.162-04:00",
         "type": "state",
         "turn": 0,
@@ -688,7 +811,7 @@
       {
         "v": 1,
         "run": "2026-10-13T23-50-13_human_1848",
-        "seq": 20,
+        "seq": 24,
         "t": "2026-10-14T01:01:02.163-04:00",
         "type": "milestone",
         "turn": 0,
@@ -699,13 +822,13 @@
         "kind": "navigation",
         "origin": "observed",
         "evidence": [
-          19
+          23
         ]
       },
       {
         "v": 1,
         "run": "2026-10-13T23-50-13_human_1848",
-        "seq": 21,
+        "seq": 25,
         "t": "2026-10-14T01:41:53.443-04:00",
         "type": "state",
         "turn": 0,
@@ -786,7 +909,7 @@
       {
         "v": 1,
         "run": "2026-10-13T23-50-13_human_1848",
-        "seq": 22,
+        "seq": 26,
         "t": "2026-10-14T01:41:53.445-04:00",
         "type": "milestone",
         "turn": 0,
@@ -797,13 +920,13 @@
         "kind": "story",
         "origin": "observed",
         "evidence": [
-          21
+          25
         ]
       },
       {
         "v": 1,
         "run": "2026-10-13T23-50-13_human_1848",
-        "seq": 23,
+        "seq": 27,
         "t": "2026-10-14T01:42:12.134-04:00",
         "type": "operator_control",
         "turn": 0,
@@ -814,7 +937,7 @@
       {
         "v": 1,
         "run": "2026-10-13T23-50-13_human_1848",
-        "seq": 24,
+        "seq": 28,
         "t": "2026-10-14T01:42:12.234-04:00",
         "type": "operator_control",
         "turn": 0,
@@ -825,7 +948,7 @@
       {
         "v": 1,
         "run": "2026-10-13T23-50-13_human_1848",
-        "seq": 25,
+        "seq": 29,
         "t": "2026-10-14T01:42:12.449-04:00",
         "type": "run_end",
         "turn": 0,
@@ -860,11 +983,15 @@
       3018,
       3020,
       3021,
+      4802,
+      4803,
+      4915,
+      4916,
       5564,
       5565,
       6557
     ],
-    "adaptation": "Selected run_start, pause controls, eight report splits and their native evidence, run_end. Sequences and evidence renumbered contiguously; timestamps, state, model, source and feature values retained. Not a benchmark run. Optional state readouts outside native milestone predicates omitted; prompt replaced with fixture label.",
+    "adaptation": "Selected start, pause controls, ten progression splits and their native evidence, terminal. Sequences/evidence renumbered contiguously; timestamps/state/config retained. Optional state fields outside milestone predicates and prompt omitted. Not a benchmark run.",
     "events": [
       {
         "v": 1,
@@ -1301,6 +1428,121 @@
         "v": 1,
         "run": "2026-10-14T00-25-06_think-fast_dea1",
         "seq": 12,
+        "t": "2026-10-14T00:46:50.053-04:00",
+        "type": "state",
+        "turn": 460,
+        "screen": "overworld",
+        "story": {
+          "name_confirmed": true,
+          "intro_stage": 7,
+          "rival_stage": 0,
+          "birch_lab_stage": 0,
+          "petalburg_gym_stage": 0,
+          "woods_stage": 0,
+          "clock_set": true,
+          "rival_battle_won": false,
+          "pokedex_received": false,
+          "running_shoes_received": false,
+          "starter_tutorial_complete": false,
+          "rustboro_gym_complete": false,
+          "stone_badge": false,
+          "rock_tomb_received": false
+        },
+        "started": true,
+        "name": "HD",
+        "location": "LITTLEROOT TOWN MAYS HOUSE 1F",
+        "map_id": [
+          1,
+          2
+        ],
+        "position": {
+          "x": 2,
+          "y": 8
+        },
+        "facing": "up",
+        "in_battle": false,
+        "party": [],
+        "money": 3000,
+        "badges": [],
+        "play_time_s": 1135
+      },
+      {
+        "v": 1,
+        "run": "2026-10-14T00-25-06_think-fast_dea1",
+        "seq": 13,
+        "t": "2026-10-14T00:46:50.054-04:00",
+        "type": "milestone",
+        "turn": 460,
+        "name": "RIVAL_HOUSE_ENTERED",
+        "server_timestamp": 1791953210.054,
+        "kind": "navigation",
+        "origin": "observed",
+        "evidence": [
+          6,
+          12
+        ]
+      },
+      {
+        "v": 1,
+        "run": "2026-10-14T00-25-06_think-fast_dea1",
+        "seq": 14,
+        "t": "2026-10-14T00:47:17.158-04:00",
+        "type": "state",
+        "turn": 471,
+        "screen": "overworld",
+        "story": {
+          "name_confirmed": true,
+          "intro_stage": 7,
+          "rival_stage": 2,
+          "birch_lab_stage": 0,
+          "petalburg_gym_stage": 0,
+          "woods_stage": 0,
+          "clock_set": true,
+          "rival_battle_won": false,
+          "pokedex_received": false,
+          "running_shoes_received": false,
+          "starter_tutorial_complete": false,
+          "rustboro_gym_complete": false,
+          "stone_badge": false,
+          "rock_tomb_received": false
+        },
+        "started": true,
+        "name": "HD",
+        "location": "LITTLEROOT TOWN MAYS HOUSE 2F",
+        "map_id": [
+          1,
+          3
+        ],
+        "position": {
+          "x": 1,
+          "y": 2
+        },
+        "facing": "down",
+        "in_battle": false,
+        "party": [],
+        "money": 3000,
+        "badges": [],
+        "play_time_s": 1163
+      },
+      {
+        "v": 1,
+        "run": "2026-10-14T00-25-06_think-fast_dea1",
+        "seq": 15,
+        "t": "2026-10-14T00:47:17.159-04:00",
+        "type": "milestone",
+        "turn": 471,
+        "name": "RIVAL_BEDROOM_REACHED",
+        "server_timestamp": 1791953237.159,
+        "kind": "navigation",
+        "origin": "observed",
+        "evidence": [
+          14
+        ]
+      },
+      {
+        "v": 1,
+        "run": "2026-10-14T00-25-06_think-fast_dea1",
+        "seq": 16,
         "t": "2026-10-14T00:49:46.015-04:00",
         "type": "state",
         "turn": 532,
@@ -1342,7 +1584,7 @@
       {
         "v": 1,
         "run": "2026-10-14T00-25-06_think-fast_dea1",
-        "seq": 13,
+        "seq": 17,
         "t": "2026-10-14T00:49:46.016-04:00",
         "type": "milestone",
         "turn": 532,
@@ -1351,13 +1593,13 @@
         "kind": "story",
         "origin": "observed",
         "evidence": [
-          12
+          16
         ]
       },
       {
         "v": 1,
         "run": "2026-10-14T00-25-06_think-fast_dea1",
-        "seq": 14,
+        "seq": 18,
         "t": "2026-10-14T00:55:08.462-04:00",
         "type": "run_end",
         "turn": 626,

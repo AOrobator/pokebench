@@ -1,4 +1,6 @@
+import json
 import struct
+from pathlib import Path
 
 import pytest
 
@@ -282,3 +284,29 @@ def test_full_map_unready_layout_is_unavailable(address: int, body: bytes) -> No
     m = loaded()
     m.put(address, body)
     assert read_full_map(m.read, (1, 1), (1, 0)) is None
+
+
+SHARED_GRID = Path(__file__).resolve().parents[3] / "packages/agent/src/fixtures/full-map-grid.json"
+
+
+def test_full_map_json_matches_the_fixture_the_agent_planner_decodes() -> None:
+    result = read_full_map(loaded().read, (1, 1), (1, 0))
+    assert result is not None
+    assert result.json(3) == json.loads(SHARED_GRID.read_text())
+
+
+@pytest.mark.parametrize("map_width,map_height", [(257, 1), (1, 257), (0, 1)])
+def test_full_map_outside_the_agent_contract_is_unavailable(map_width: int, map_height: int) -> None:
+    m = loaded()
+    m.put(0x03005DC0, struct.pack("<III", map_width + 15, map_height + 14, 0x02005000))
+    m.put(0x02001000, struct.pack("<II", map_width, map_height))
+    assert read_full_map(m.read, (0, 0), (1, 0)) is None
+
+
+def test_full_map_with_nothing_live_says_so_for_the_whole_map() -> None:
+    m = loaded()
+    m.put(0x02002000, bytes(12))
+    m.put(0x02037350 + 0x24, bytes(0x24))
+    result = read_full_map(m.read, (1, 1), (1, 0))
+    assert result is not None
+    assert "Live objects: none on this map\nWarps: none on this map" in result.text()

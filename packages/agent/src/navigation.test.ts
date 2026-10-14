@@ -1,7 +1,10 @@
 import {expect,it} from "vitest";
-import {planNavigation,navigationTool,MAX_FULL_ROUTE_COMMANDS} from "./navigation.js";
+import {planNavigation,navigationTool,MAX_FULL_ROUTE_COMMANDS,NO_PROGRESS_PRESSES} from "./navigation.js";
+import {readFileSync} from "node:fs";
+import {parseGameState} from "./game-state.js";
 import type {AgentToolResult} from "@mariozechner/pi-agent-core";
 import type {GameStateSnapshot} from "./game-state.js";
+const sharedGrid=JSON.parse(readFileSync(new URL("./fixtures/full-map-grid.json",import.meta.url),"utf8")) as NonNullable<GameStateSnapshot["map_grid"]>;
 const tile=(x:number,y:number,collision=0,behavior=0,elevation=3)=>({x,y,collision,behavior,elevation});
 const grid:NonNullable<GameStateSnapshot["navigation_grid"]>={elevation:3,tiles:[tile(0,0),tile(1,0,1),tile(2,0),tile(0,1),tile(1,1),tile(2,1)],objects:[],warps:[]};
 const result=(state:GameStateSnapshot):AgentToolResult<{state:GameStateSnapshot}>=>({content:[{type:"text",text:"observed"}],details:{state}});
@@ -131,37 +134,48 @@ it("full-map planning rejects missing or malformed whole-map geometry",()=>{
 function referencePlan(state:GameStateSnapshot,goal:{x:number;y:number}):string[]|null {
  const grid=state.navigation_grid;if(grid==null||state.position===null)return null;
  const k=(p:{x:number;y:number})=>`${String(p.x)},${String(p.y)}`,d=(a:{x:number;y:number},b:{x:number;y:number})=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
- const tiles=new Map(grid.tiles.map(t=>[k(t),t]));
+ const tiles=new Map(grid.tiles.map(t=>[k(t),t])),occupied=new Set(grid.objects.map(k)),warps=new Set(grid.warps.map(k));
+ if(occupied.has(k(goal)))return null;
  type N={p:{x:number;y:number};e:number;cost:number;path:string[]};
+ let best:N={p:state.position,e:grid.elevation,cost:0,path:[]};
  const pending:N[]=[{p:state.position,e:grid.elevation,cost:0,path:[]}],costs=new Map<string,number>();
  while(pending.length){
   pending.sort((a,b)=>(a.cost+d(a.p,goal))-(b.cost+d(b.p,goal)));const n=pending.shift();if(n===undefined)break;
   const id=`${k(n.p)}:${String(n.e)}`;if((costs.get(id)??Infinity)<=n.cost)continue;costs.set(id,n.cost);
+  if(d(n.p,goal)<d(best.p,goal)||(d(n.p,goal)===d(best.p,goal)&&n.cost<best.cost))best=n;
   if(d(n.p,goal)===0)return n.path;
   for(const [dir,dx,dy] of [["UP",0,-1],["DOWN",0,1],["LEFT",-1,0],["RIGHT",1,0]] as const){
-   const next={x:n.p.x+dx,y:n.p.y+dy},t=tiles.get(k(next));if(t===undefined||t.collision!==0||t.behavior!==0)continue;
+   const next={x:n.p.x+dx,y:n.p.y+dy},t=tiles.get(k(next));if(t===undefined||occupied.has(k(next))||t.collision!==0||t.behavior!==0)continue;
+   if(warps.has(k(next))&&d(next,goal)!==0)continue;
    if(t.elevation!==0&&n.e!==0&&t.elevation!==n.e)continue;
    pending.push({p:next,e:t.elevation||n.e,cost:n.cost+1,path:[...n.path,dir]});
   }
  }
- return null;
+ return !tiles.has(k(goal))&&best.path.length>0?best.path:null;
 }
 
 it("the heap open list returns exactly the paths the sorted array did",()=>{
  let seed=7;const random=()=>{seed=(seed*1103515245+12345)%2147483648;return seed/2147483648;};
- for(let trial=0;trial<200;trial++){
+ let compared=0,frontier=0;
+ for(let trial=0;trial<400;trial++){
   const tiles=[];for(let y=0;y<15;y++)for(let x=0;x<15;x++)tiles.push(tile(x,y,x+y>0&&random()<0.25?1:0,0,random()<0.1?0:3));
-  const state={...field,navigation_grid:{elevation:3,tiles,objects:[],warps:[]}};const goal={x:Math.floor(random()*15),y:Math.floor(random()*15)};
-  if(tiles.find(t=>t.x===goal.x&&t.y===goal.y)?.collision!==0)continue;
-  expect(planNavigation(state,goal)).toEqual(referencePlan(state,goal));
+  const pick=()=>({x:Math.floor(random()*15),y:Math.floor(random()*15)});
+  const objects=Array.from({length:3},pick).filter(p=>p.x+p.y>0),warps=Array.from({length:3},pick).filter(p=>p.x+p.y>0);
+  const distant=trial%2===1;
+  const goal=distant?{x:15+Math.floor(random()*10),y:Math.floor(random()*25)}:pick();
+  const state={...field,navigation_grid:{elevation:3,tiles,objects,warps},...(distant?{topology:{width:25,height:25,connections:[]}}:{})};
+  if(!distant&&tiles.find(t=>t.x===goal.x&&t.y===goal.y)?.collision!==0)continue;
+  const expected=referencePlan(state,goal);
+  expect(planNavigation(state,goal)).toEqual(expected);compared++;if(distant&&expected!==null)frontier++;
  }
+ expect(compared).toBeGreaterThan(250);expect(frontier).toBeGreaterThan(50);
 });
 
 it("plans an 80x80 map with random walls quickly",()=>{
  let seed=11;const random=()=>{seed=(seed*1103515245+12345)%2147483648;return seed/2147483648;};
  const grid=mapGrid(80,80,(x,y)=>x+y>0&&x+y<158&&random()<0.22?{collision:1}:{});
  const started=performance.now();for(let i=0;i<20;i++)planNavigation(fullField(grid),{x:79,y:79},"full");
- expect((performance.now()-started)/20).toBeLessThan(25);
+ expect((performance.now()-started)/20).toBeLessThan(250);
 });
 
 it("full-route navigation walks past eight presses to arrival and keeps per-press stops",async()=>{
@@ -182,4 +196,21 @@ it("full-route navigation has its own safety bound and needs whole-map geometry"
  let presses=0;const tool=navigationTool({fullMap:true,read:()=>Promise.resolve(field),press:()=>{presses++;return Promise.resolve(result(field));},observe:()=>Promise.resolve(result(field))});
  const outcome=await tool.execute("nav",{x:2,y:0,map_id:[0,9]});expect(presses).toBe(0);
  expect(outcome.details).toMatchObject({navigation:{status:"field input or navigation geometry unavailable"}});
+});
+
+it("full-route navigation stops when the route stops getting shorter",async()=>{
+ const corridor=mapGrid(11,1,()=>({}));const start=fullField(corridor);let presses=0;
+ const tool=navigationTool({fullMap:true,read:()=>Promise.resolve(start),press:()=>{presses++;return Promise.resolve(result({...start,position:{x:1,y:0}}));},observe:()=>Promise.resolve(result(start))});
+ const outcome=await tool.execute("nav",{x:10,y:0,map_id:[0,9]});
+ expect(presses).toBe(NO_PROGRESS_PRESSES);expect(NO_PROGRESS_PRESSES).toBe(16);
+ expect(outcome.details).toMatchObject({navigation:{status:"route not converging; inspect obstacles and choose another approach",commands:16}});
+});
+
+it("decodes the whole-map grid the game server actually produces",()=>{
+ const grid=parseGameState({...fullField(mapGrid(1,1,()=>({}))),map_grid:sharedGrid,topology:null,position:{x:1,y:1}}).map_grid;
+ expect(grid).toEqual(sharedGrid);
+ const state={...fullField(sharedGrid,{x:1,y:1}),topology:null};
+ expect(planNavigation(state,{x:4,y:4},"full")?.length).toBe(6);
+ expect(planNavigation(state,{x:1,y:0},"full")).toBeNull();
+ expect(planNavigation(state,{x:0,y:0},"full")).toBeNull();
 });

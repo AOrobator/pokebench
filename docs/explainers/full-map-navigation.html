@@ -236,7 +236,7 @@ li+li{margin-top:4px}
 
 <section>
  <h2>Ledges and one-way tiles on the whole map</h2>
- <p>Both map fixes on main now work on the whole map too. With <code>ledge-hops-v1</code> on, a ledge is drawn as an arrow and the planner may hop it in that direction only, landing two tiles on; the per-press check then expects a two-tile move. With <code>one-way-tiles-v1</code> on, a <code>+</code> tile can be walked on but never crossed through a walled side. Each switch still decides on its own; whole-map planning only widens where the rules apply.</p>
+ <p>Both map fixes on main now work on the whole map too. With <code>ledge-hops-v1</code> on, a ledge is drawn as an arrow and the planner may hop it in that direction only, landing two tiles on; the per-press check then expects a two-tile move. With <code>one-way-tiles-v1</code> on, a <code>+</code> tile can be walked on but never crossed through a walled side. Each switch still decides on its own; whole-map planning only widens where the rules apply. The game's elevation rule from main (stairs at elevation 0, bridges at 15) applies the same way on both geometries, checked against the Route 104 pier, Littleroot and Route 110 layouts.</p>
  <figure>
   <svg viewBox="0 0 640 200" role="img" aria-label="Left: a route hops a south ledge with one press. Right: a route goes around the chair's walled north and south sides but crosses it east to west.">
    <g transform="translate(40,20)">
@@ -300,11 +300,11 @@ li+li{margin-top:4px}
  <div class="tablewrap"><table>
   <thead><tr><th>Check</th><th>Result</th></tr></thead>
   <tbody>
-   <tr><td>Agent tests</td><td>929 passed · lines 97.2%, branches 93.3%</td></tr>
-   <tr><td>Viewer tests</td><td>476 passed · lines 95.7%, branches 90.5%</td></tr>
-   <tr><td>Python tests</td><td>1,840 passed · lines 96.7%, branches 91.9% (floor 90%)</td></tr>
+   <tr><td>Agent tests</td><td>933 passed · lines 98.8%, branches 93.3%</td></tr>
+   <tr><td>Viewer tests</td><td>478 passed · lines 98.2%, branches 90.6%</td></tr>
+   <tr><td>Python tests</td><td>1,840 passed · lines 96.7%, branches 91.9%, functions 100% (floor 90%)</td></tr>
    <tr><td>Lint and types</td><td>tsc, eslint, ruff, mypy clean</td></tr>
-   <tr><td>Main merged in</td><td>Ledge hops, navigation evidence memory, one-way tiles</td></tr>
+   <tr><td>Main merged in</td><td>Ledge hops, navigation evidence memory, one-way tiles, elevation transitions (stairs, bridges, ledge landings)</td></tr>
    <tr><td>Planned arms</td><td>Both arms set bounded navigation, ledge hops and one-way tiles ON; only full-map-navigation-v1 differs</td></tr>
    <tr><td>Independent review</td><td>See the worklog's review log for the merged branch</td></tr>
    <tr><td>Branch</td><td>claude/full-map-navigation, local only, not merged</td></tr>

@@ -21,6 +21,15 @@ const OPPOSITE:Readonly<Record<Direction,Direction>>={UP:"DOWN",DOWN:"UP",LEFT:"
 const walled=(tile:Tile|undefined,side:Direction):boolean=>tile!==undefined&&(EDGE_WALLS.get(tile.behavior)?.includes(side)??false);
 const key=(p:Point):string=>`${String(p.x)},${String(p.y)}`;
 const distance=(a:Point,b:Point):number=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
+// pokeemerald IsElevationMismatchAt / ObjectEventUpdateElevation: 0 is a
+// transition (stairs) and 15 is multi-level (bridges); neither ever mismatches.
+// A finished step or jump re-reads only its final tile, which sets the walker's
+// height unless that tile is 15. A jump also updates mid-air on the ledge tile
+// (InitJump, then JUMP_HALFWAY), and a 15 landing keeps that update.
+const MULTI_LEVEL=15;
+const mismatch=(walker:number,tile:number):boolean=>walker!==0&&tile!==0&&tile!==MULTI_LEVEL&&tile!==walker;
+const entered=(walker:number,tile:number):number=>tile===MULTI_LEVEL?walker:tile;
+const jumped=(walker:number,takeoff:number,ledge:number,landing:number):number=>landing!==MULTI_LEVEL?landing:takeoff===MULTI_LEVEL?walker:entered(walker,ledge);
 const ready=(s:GameStateSnapshot,mode:NavigationMode="local"):boolean=>s.started&&s.screen==="overworld"&&!s.in_battle&&s.field_controls_locked===false&&s.position!==null&&s.map_id!==null&&(mode==="full"?s.map_grid!=null:s.navigation_grid!=null)&&(s.active_ui==null||(s.active_ui.ready===true&&s.active_ui.diagnostic===null));
 export const MAX_NAVIGATION_COMMANDS=8;
 // Safety bound for whole-map routes; the longest Emerald routes need a few hundred steps.
@@ -81,22 +90,23 @@ class OpenList<T> {
 }
 
 // A* over the live local 15x15 window, or the whole current map in "full" mode.
-// No outside-map guessing, surfing or puzzle policies; ledges and edge walls only when enabled. Zero elevation
-// preserves the layer. Warps are only ever goals.
+// No outside-map guessing, surfing or puzzle policies; ledges and edge walls only when enabled.
+// Elevation follows the game's rule. Warps are only ever goals.
 export function planNavigation(state:GameStateSnapshot,goal:Point,options:NavigationOptions={}):Direction[]|null {
  const mode=options.mode??"local";
  if(!ready(state,mode)||state.position===null)return null;
  const geometry=mode==="full"?fullGeometry(state):localGeometry(state);
- if(geometry===null||geometry.tile(state.position)===undefined)return null;
+ const here=geometry?.tile(state.position);
+ if(geometry===null||here===undefined)return null;
  const bounds=geometry.bounds;
  if(bounds!==null&&(goal.x>=bounds.width||goal.y>=bounds.height||goal.x<0||goal.y<0))return null;
  const goalKnown=geometry.tile(goal)!==undefined;
  if(!goalKnown&&bounds===null)return null;
  const occupied=new Set(geometry.objects.map(key)),warps=new Set(geometry.warps.map(key));
  if(occupied.has(key(goal)))return null;
- type Node={p:Point;elevation:number;cost:number;parent:Node|null;direction:Direction|null};
+ type Node={p:Point;here:number;elevation:number;cost:number;parent:Node|null;direction:Direction|null};
  const route=(node:Node):Direction[]=>{const path:Direction[]=[];for(let n:Node|null=node;n!==null&&n.direction!==null;n=n.parent)path.push(n.direction);return path.reverse();};
- const start:Node={p:state.position,elevation:geometry.elevation,cost:0,parent:null,direction:null};
+ const start:Node={p:state.position,here:here.elevation,elevation:geometry.elevation,cost:0,parent:null,direction:null};
  let best=start;
  const pending=new OpenList<Node>(),costs=new Map<string,number>();
  pending.push(distance(start.p,goal),start);
@@ -112,16 +122,16 @@ export function planNavigation(state:GameStateSnapshot,goal:Point,options:Naviga
    if(options.ledges===true&&LEDGES.get(tile.behavior)===direction&&!warps.has(key(next))){
     const landing={x:next.x+dx,y:next.y+dy},land=geometry.tile(landing);
     if(land===undefined||occupied.has(key(landing))||warps.has(key(landing))||land.collision!==0||land.behavior===0x69||!WALKING.has(land.behavior))continue;
-    if(land.elevation!==0&&node.elevation!==0&&land.elevation!==node.elevation)continue;
-    pending.push(node.cost+2+distance(landing,goal),{p:landing,elevation:land.elevation||node.elevation,cost:node.cost+2,parent:node,direction});continue;
+    if(mismatch(node.elevation,land.elevation))continue;
+    pending.push(node.cost+2+distance(landing,goal),{p:landing,here:land.elevation,elevation:jumped(node.elevation,node.here,tile.elevation,land.elevation),cost:node.cost+2,parent:node,direction});continue;
    }
    if(options.oneWay===true&&(walled(tile,OPPOSITE[direction])||walled(geometry.tile(node.p),direction)))continue;
    if(!(WALKING.has(tile.behavior)||(options.oneWay===true&&EDGE_WALLS.has(tile.behavior))))continue;
    const door=tile.behavior===0x69&&distance(next,goal)===0&&direction==="UP";
    if((tile.collision!==0&&!door)||(tile.behavior===0x69&&!door))continue;
    if(warps.has(key(next))&&distance(next,goal)!==0)continue;
-   if(tile.elevation!==0&&node.elevation!==0&&tile.elevation!==node.elevation)continue;
-   pending.push(node.cost+1+distance(next,goal),{p:next,elevation:tile.elevation||node.elevation,cost:node.cost+1,parent:node,direction});
+   if(mismatch(node.elevation,tile.elevation))continue;
+   pending.push(node.cost+1+distance(next,goal),{p:next,here:tile.elevation,elevation:entered(node.elevation,tile.elevation),cost:node.cost+1,parent:node,direction});
   }
  }
  return !goalKnown&&best!==start ? route(best) : null;

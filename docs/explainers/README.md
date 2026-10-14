@@ -4,6 +4,7 @@ Tracked, local HTML documentation. Open an explainer directly; no server or exte
 
 - [Astar navigation](astar-navigation.html)
 - [Current run frontier](current-run-frontier.html)
+- [Elevation transitions](elevation-transitions.html)
 - [Full map navigation](full-map-navigation.html)
 - [Grass cost switch](grass-cost-switch.html)
 - [Ledge hops v1](ledge-hops-v1.html)

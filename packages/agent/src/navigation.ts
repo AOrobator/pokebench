@@ -17,6 +17,8 @@ const ready=(s:GameStateSnapshot,mode:NavigationMode="local"):boolean=>s.started
 export const MAX_NAVIGATION_COMMANDS=8;
 // Safety bound for whole-map routes; the longest Emerald routes need a few hundred steps.
 export const MAX_FULL_ROUTE_COMMANDS=512;
+// Whole-map walks stop when the planned route has not shortened for this many presses.
+export const NO_PROGRESS_PRESSES=16;
 
 interface Geometry {readonly elevation:number;readonly tile:(p:Point)=>Tile|undefined;readonly objects:readonly Point[];readonly warps:readonly Point[];readonly bounds:{readonly width:number;readonly height:number}|null}
 
@@ -118,7 +120,7 @@ function resultState(result:AgentToolResult<unknown>):GameStateSnapshot {
 }
 class NavigationPreconditionError extends Error {}
 const LOCAL_DESCRIPTION="Walk toward a coordinate on the current map using bounded A*. Supply its map_id. Uses only known local tiles, advancing toward a reachable local frontier for distant in-bounds targets; avoids unsupported terrain and stops on locks, unexpected movement or map changes. Does not press A, choose destinations, or activate a directional exit after arriving. Use walking=true for deliberate walking. Maximum 8 ordinary button attempts; inspect the returned state before continuing.";
-const FULL_DESCRIPTION="Walk to a coordinate on the current map using A* over the whole current map. Supply its map_id. Walks the full route one ordinary button at a time, re-planning before every press; avoids unsupported terrain and never crosses a warp unless it is the destination. Stops on blocked or unexpected movement, locks or map changes. Does not press A, choose destinations, or activate a directional exit after arriving. Use walking=true for deliberate walking. Inspect the returned state before continuing.";
+const FULL_DESCRIPTION="Walk to a coordinate on the current map using A* over the whole current map. Supply its map_id. Walks the full route one ordinary button at a time, re-planning before every press; avoids unsupported terrain and never crosses a warp unless it is the destination. Stops on blocked or unexpected movement, locks, map changes, or when the route stops getting shorter. Does not press A, choose destinations, or activate a directional exit after arriving. Use walking=true for deliberate walking. Inspect the returned state before continuing.";
 export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
  const mode:NavigationMode=ports.fullMap===true?"full":"local";
  const limit=mode==="full"?MAX_FULL_ROUTE_COMMANDS:MAX_NAVIGATION_COMMANDS;
@@ -128,6 +130,7 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
  execute:async(id,goal,signal)=>{
   signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
   let state=await ports.read(signal),commands=0,status="command limit",last:AgentToolResult<unknown>|undefined;
+  let shortest=Infinity,stalled=0;
   const sameMap=():boolean=>state.map_id?.[0]===goal.map_id[0]&&state.map_id[1]===goal.map_id[1];
   while(commands<bound){
    signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
@@ -137,6 +140,7 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
    const path=planNavigation(state,goal,mode);
    if(path===null){status=mode==="full"?"no supported path on the current map; choose a reachable waypoint":"no supported local path; choose a reachable local waypoint";break;}
    const direction=path[0];if(direction===undefined){status="arrived at requested coordinate";break;}
+   if(mode==="full"){if(path.length<shortest){shortest=path.length;stalled=0;}else if(++stalled>=NO_PROGRESS_PRESSES){status="route not converging; inspect obstacles and choose another approach";break;}}
    const previousFacing=state.facing; const before=state.position;if(before===null)throw new Error("Navigation position unavailable");
    try {
     last=await ports.press(id,{buttons:[direction],...(goal.walking===undefined?{}:{walking:goal.walking})},signal,actual=>{

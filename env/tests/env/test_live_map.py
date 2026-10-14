@@ -296,7 +296,9 @@ def test_full_map_json_matches_the_fixture_the_agent_planner_decodes() -> None:
 
 
 @pytest.mark.parametrize("map_width,map_height", [(257, 1), (1, 257), (0, 1)])
-def test_full_map_outside_the_agent_contract_is_unavailable(map_width: int, map_height: int) -> None:
+def test_full_map_outside_the_agent_contract_is_unavailable(
+    map_width: int, map_height: int
+) -> None:
     m = loaded()
     m.put(0x03005DC0, struct.pack("<III", map_width + 15, map_height + 14, 0x02005000))
     m.put(0x02001000, struct.pack("<II", map_width, map_height))

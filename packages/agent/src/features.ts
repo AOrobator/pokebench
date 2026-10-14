@@ -126,7 +126,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("native-objective-completion-v1", "guard", "NATIVE COMPLETION", "objective-tracking-v1",
     "Story objectives complete automatically when the game records the milestone, and the model cannot mark them complete itself. Off: nothing completes automatically; the model reports objectives complete on its own say-so."),
   on("full-map-navigation-v1", "guidance", "WHOLE-MAP NAVIGATION", "bounded-navigation-v1",
-    "Replaces the 15x15 local map with the whole current map, one character per tile, and lets navigate_to walk the full route (up to 512 presses), re-planning before each press. Stops on blocked or unexpected movement, locks and map changes as before; a route never crosses a warp unless it is the destination. Off: local map and up to eight attempts per call."),
+    "Replaces the 15x15 local map with the whole current map, one character per tile, and lets navigate_to walk the full route (up to 512 presses), re-planning before each press. Stops on blocked or unexpected movement, locks and map changes as before, and after 16 presses without the route getting shorter; a route never crosses a warp unless it is the destination. Off: local map and up to eight attempts per call."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",

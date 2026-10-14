@@ -144,7 +144,8 @@ def _details(
     *,
     outside: bool,
 ) -> str:
-    listed_objects = ", ".join(f"id {i} at ({a},{b})" for i, a, b in objects) or "none nearby"
+    empty = "none nearby" if outside else "none on this map"
+    listed_objects = ", ".join(f"id {i} at ({a},{b})" for i, a, b in objects) or empty
     behaviors_at = {(tile.x, tile.y): tile.behavior for tile in tiles}
     listed_warps = (
         ", ".join(
@@ -156,7 +157,7 @@ def _details(
             + (f" [{_warp_trigger(behaviors_at.get((a, b)))}]" if warp_guidance else "")
             for a, b, g, n in warps
         )
-        or "none nearby"
+        or empty
     )
     behaviors = sorted({tile.behavior for tile in tiles})
     return (
@@ -330,6 +331,8 @@ def read_full_map(
 ) -> FullMap | None:
     layout = _layout(read)
     if layout is None:
+        return None
+    if not (1 <= layout.map_width <= 256 and 1 <= layout.map_height <= 256):
         return None
     objects = _objects(read, map_id, None, 0)
     warps = _warps(read, layout.events, None, 0)

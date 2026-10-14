@@ -91,3 +91,9 @@ it("records grass cost as an agent-side planner treatment that needs bounded nav
  expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe("grass-cost-navigation-v1");
  expect(serverFeatureEnv(off("grass-cost-navigation-v1")).POKEBENCH_FEATURES_OFF).toBe("");
 });
+
+it("registers game evidence priority as standalone prompt guidance",()=>{
+  expect(featureInfo("game-evidence-priority-v1")).toMatchObject({group:"guidance",needs:null,switchable:true});
+  expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe("game-evidence-priority-v1");
+  expect(serverFeatureEnv(off("game-evidence-priority-v1")).POKEBENCH_FEATURES_OFF).toBe("");
+});

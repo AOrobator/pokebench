@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { expect, it } from "vitest";
 import { ALL_ON as REGISTRY_ALL_ON, type FeatureSet, type SwitchableFeature } from "./features.js";
-const ALL_ON={...REGISTRY_ALL_ON,"navigation-evidence-memory-v1":false,"world-destinations-v1":false,"bounded-navigation-v1":false};
+const ALL_ON={...REGISTRY_ALL_ON,"navigation-evidence-memory-v1":false,"world-destinations-v1":false,"bounded-navigation-v1":false,"game-evidence-priority-v1":false};
 import { CONTEXTUAL_CONTROLS, PLAY_SYSTEM_PROMPT, objectiveSwitches, playGoal, playSystemPrompt, playTools, toolSwitches } from "./play-config.js";
 import { OBJECTIVE_PROMPT, objectivePrompt } from "./objective-tools.js";
 
@@ -78,3 +78,23 @@ it("tells the model navigate_to hops ledges only when ledge hops are on",()=>{
 });
 
 it("declares only the enabled navigation memory prompt and tool",()=>{const enabled={...ALL_ON,"navigation-evidence-memory-v1":true};expect(playTools(enabled)).toContain("remember_destination");expect(playSystemPrompt(enabled,null)).toContain("not required before acting");expect(playSystemPrompt(ALL_ON,null)).not.toContain("navigation evidence ledger");});
+it("puts game evidence above remembered Pokémon knowledge only when that treatment is on",()=>{
+ const on={...ALL_ON,"game-evidence-priority-v1":true};
+ expect(playSystemPrompt(on,null)).toContain("Game evidence first");
+ expect(playSystemPrompt(on,null)).toContain("outrank what you remember");
+ expect(playSystemPrompt({...ALL_ON,"game-evidence-priority-v1":false},null)).not.toContain("Game evidence first");
+ expect(playSystemPrompt({...ALL_ON,"game-evidence-priority-v1":false},null)).toBe(playSystemPrompt({...ALL_ON},null));
+});
+it("adds navigate_to usage guidance only when navigation is also on",()=>{
+ const nav={...ALL_ON,"bounded-navigation-v1":true,"game-evidence-priority-v1":true};
+ expect(playSystemPrompt(nav,null)).toContain("Use navigate_to for any walk longer than a few tiles");
+ expect(playSystemPrompt(nav,null)).toContain("give the warp's own coordinates");
+ expect(playSystemPrompt({...nav,"bounded-navigation-v1":false},null)).toContain("Game evidence first");
+ expect(playSystemPrompt({...nav,"bounded-navigation-v1":false},null)).not.toContain("Use navigate_to for any walk");
+ expect(playSystemPrompt({...nav,"game-evidence-priority-v1":false},null)).not.toContain("Use navigate_to for any walk");
+});
+it("keeps the evidence section ahead of objective rules and names no story destination",()=>{
+ const text=playSystemPrompt({...ALL_ON,"bounded-navigation-v1":true,"game-evidence-priority-v1":true,"objective-tracking-v1":true},null);
+ expect(text.indexOf("Game evidence first")).toBeLessThan(text.lastIndexOf("objective"));
+ for(const leak of ["rival","Birch","May","Brendan","next door","lab"])expect(text.slice(text.indexOf("Game evidence first"))).not.toMatch(new RegExp(`\\b${leak}\\b`));
+});

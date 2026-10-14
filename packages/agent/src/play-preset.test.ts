@@ -80,3 +80,9 @@ it("defaults absent historical counter talk OFF so frozen presets keep counters 
  expect(presetFeatures(parsePlayPreset(v2))["counter-talk-v1"]).toBe(true);
  expect(presetFeatures(parsePlayPreset(preset))["counter-talk-v1"]).toBe(false);
 });
+it("reads presets written before game evidence priority as OFF and keeps an explicit ON",()=>{
+  const {"game-evidence-priority-v1":_omitted,...older}=v2.features as Record<string,boolean>;
+  expect(presetFeatures(parsePlayPreset({...v2,features:older}))["game-evidence-priority-v1"]).toBe(false);
+  expect(presetFeatures(parsePlayPreset({...v2,features:{...older,"game-evidence-priority-v1":true}}))["game-evidence-priority-v1"]).toBe(true);
+  expect(presetFeatures(parsePlayPreset(preset))["game-evidence-priority-v1"]).toBe(false);
+});

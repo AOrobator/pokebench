@@ -34,3 +34,8 @@ pret/pokeemerald 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881:
 
 ## Gates
 
+- RED: `test: ledges render as one-way hops and navigate_to hops them` (bdec460). Fails on the
+  ledge cases (Python 4, TS navigation 3, features/preset/config, viewer switch count).
+- GREEN: agent 870/870, viewer 417/417, env 1806/1806. `just coverage` passes the 90% floor on
+  both stacks. `just lint`: tsc, eslint, ruff, ruff format clean; mypy reports only the missing
+  `mgba._pylib` stub because this worktree's venv has no native mGBA build (environmental).

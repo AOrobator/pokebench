@@ -73,6 +73,7 @@ export function playSystemPrompt(features: FeatureSet, target: string | null): s
   if (target !== null) prompt = prompt.replace(GOAL_SENTENCE, `Your goal is: ${playGoal(target)}`);
   if (!features["ram-state-v1"]) prompt = prompt.replace(OBSERVE_LINE, OBSERVE_SCREEN_ONLY).replace(PRESS_LINE, PRESS_SCREEN_ONLY);
   if (!features["warp-activation-guidance-v1"]) prompt = prompt.replace(WARP_PARAGRAPH, "");
+  if (features["ledge-hops-v1"]) prompt = prompt.replace("press A, surf or solve ledges.", "press A or surf. It hops a ledge only in its arrow direction.");
   return features["objective-tracking-v1"]
     ? `${prompt}\n\n${objectivePrompt(objectiveSwitches(features))}`
     : prompt;

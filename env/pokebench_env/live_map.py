@@ -15,6 +15,10 @@ BACKUP_LAYOUT = 0x03005DC0
 OBJECT_EVENTS = 0x02037350
 MAP_OFFSET = 7
 MAX_MAP_DATA_SIZE = 10240
+# pokeemerald 731ad5b metatile_behaviors.h MB_JUMP_EAST/WEST/NORTH/SOUTH. These tiles carry
+# collision, but moving into one in its direction jumps two tiles (GetLedgeJumpDirection).
+LEDGES = {0x38: ">", 0x39: "<", 0x3A: "^", 0x3B: "v"}
+LEDGE_AS_COLLISION = str.maketrans({glyph: "#" for glyph in LEDGES.values()})
 
 
 def _pointer(value: int) -> bool:
@@ -67,8 +71,9 @@ class LocalMap:
     objects: tuple[tuple[int, int, int], ...]
     warps: tuple[tuple[int, int, int, int], ...]
 
-    def text(self, *, grid: bool = True, warp_guidance: bool = True) -> str:
+    def text(self, *, grid: bool = True, warp_guidance: bool = True, ledges: bool = True) -> str:
         x, y = self.origin
+        cells = self.rows if ledges else tuple(r.translate(LEDGE_AS_COLLISION) for r in self.rows)
         objects = ", ".join(f"id {i} at ({a},{b})" for i, a, b in self.objects) or "none nearby"
         behaviors_at = {(tile.x, tile.y): tile.behavior for tile in self.tiles}
         warps = (
@@ -86,13 +91,13 @@ class LocalMap:
         behaviors = sorted({tile.behavior for tile in self.tiles})
         rows = (
             "     "
-            + " ".join(f"{x + i:3}" for i in range(len(self.rows[0])))
+            + " ".join(f"{x + i:3}" for i in range(len(cells[0])))
             + "\n"
             + "\n".join(
-                f"{y + i:4} " + " ".join(f"{c:>3}" for c in row) for i, row in enumerate(self.rows)
+                f"{y + i:4} " + " ".join(f"{c:>3}" for c in row) for i, row in enumerate(cells)
             )
             if grid
-            else "\n".join(self.rows)
+            else "\n".join(cells)
         )
         return (
             f"Local map from live memory; top-left ({x},{y}), north is up:\n"
@@ -103,6 +108,12 @@ class LocalMap:
                 else "\n@ player; N live object; W warp;"
             )
             + " # collision; g grass; ~ water;"
+            + (
+                " v ^ < > ledge: a one-way hop in the arrow's direction (move into it that way to"
+                " jump over it, landing 2 tiles on); impassable from any other side;"
+                if ledges
+                else ""
+            )
             + " . clear terrain (may have script triggers); ? outside current map."
             + "\nTerrain rules, elevation and objects can still block movement."
             + f"\nLive objects: {objects}\nWarps: {warps}"
@@ -198,6 +209,8 @@ def read_local_map(
                 if (cx, cy) in object_coords
                 else "W"
                 if (cx, cy) in warp_coords
+                else LEDGES[cache[metatile]]
+                if cache[metatile] in LEDGES
                 else "#"
                 if collision
                 else "g"

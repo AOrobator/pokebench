@@ -30,3 +30,8 @@ pret/pokeemerald 731ad5b:
 
 ## Gates
 
+- RED: `test: navigate_to walks sand, cave and mountain-top floor` (a7a32d3). 3 navigation tests fail
+  (walkable floor, Route 104 beach, water door 0x6C/0x6D still admitted).
+- GREEN: `fix: navigate_to walks every floor the game lets the player walk`. agent 893/893,
+  viewer 419/419; agent coverage 97.1/93.16/97.86 (navigation.ts 91.71 stmts / 91.83 branches /
+  100 funcs); `pnpm -r lint` clean. Python untouched.

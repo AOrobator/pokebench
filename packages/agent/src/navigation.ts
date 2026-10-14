@@ -10,7 +10,15 @@ type Point={readonly x:number;readonly y:number};
 type Grid=NonNullable<GameStateSnapshot["navigation_grid"]>;
 type Tile=Grid["tiles"][number];
 const DIRECTIONS:readonly [Direction,number,number][]=[["UP",0,-1],["DOWN",0,1],["LEFT",-1,0],["RIGHT",1,0]];
-const WALKING=new Set([0,2,3,0x60,0x61,0x62,0x63,0x64,0x65,0x67,0x68,0x69,0x6a,0x6b,0x6c,0x6d,0x6e]);
+// pokeemerald 731ad5b: on foot, a collision-free tile is enterable unless its behavior
+// is surfable water (sTileBitAttributes), forced movement (MetatileBehavior_IsForcedMovementTile,
+// thin/cracked ice), a step-on hole or spin warp, directionally impassable, a ledge, or an Acro Bike
+// trick tile (CheckAcroBikeCollision). Everything else, including sand, cave and mountain-top floor, is walkable.
+const UNWALKABLE=new Set([0x0d,0x0e,0x0f,0x10,0x11,0x12,0x13,0x14,0x15,0x19,0x20,0x22,0x26,0x27,0x29,0x2a,
+ 0x30,0x31,0x32,0x33,0x34,0x35,0x36,0x37,0x38,0x39,0x3a,0x3b,0x3c,0x3d,0x3e,0x3f,
+ 0x40,0x41,0x42,0x43,0x44,0x45,0x46,0x47,0x48,0x50,0x51,0x52,0x53,0x66,0x6c,0x6d,0x6f,
+ 0xbd,0xbe,0xc0,0xc1,0xc4,0xd0,0xd1,0xd2,0xd3,0xd4,0xd5,0xd6]);
+const WALKING=new Set(Array.from({length:256},(_,behavior)=>behavior).filter(behavior=>!UNWALKABLE.has(behavior)));
 const key=(p:Point):string=>`${String(p.x)},${String(p.y)}`;
 const distance=(a:Point,b:Point):number=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
 const ready=(s:GameStateSnapshot):boolean=>s.started&&s.screen==="overworld"&&!s.in_battle&&s.field_controls_locked===false&&s.position!==null&&s.map_id!==null&&s.navigation_grid!=null&&(s.active_ui==null||(s.active_ui.ready===true&&s.active_ui.diagnostic===null));

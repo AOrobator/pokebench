@@ -10,6 +10,7 @@ import { BaselineError, RunsError, createBaselineReader, comparisonsOf, eventsPa
 import { featureHistory } from "./history.js";
 import { localModels } from "./models.js";
 import { NextRunError, appendControl, healthProbe, liveRuns, readDraft, writeDraft, type RunQueue } from "./next-run.js";
+import { WORKBENCH_POLL_MS, type WorkbenchData } from "./workbench-data.js";
 import { workbenchSnapshot } from "./workbench-store.js";
 import { MILESTONE_ORDER } from "./model.js";
 
@@ -244,7 +245,7 @@ async function liveScreen(res: ServerResponse, port: number, fetchFn: typeof fet
   }
 }
 
-async function route(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, origins: ReadonlyMap<string, string>, readBaseline: BaselineReader): Promise<void> {
+async function route(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, origins: ReadonlyMap<string, string>, readBaseline: BaselineReader, readWorkbench: () => Promise<WorkbenchData>): Promise<void> {
   const origin = origins.get(req.headers.host ?? "");
   if (origin === undefined) {
     sendJson(res, 403, { error: "the viewer only answers 127.0.0.1 and its published origins" });
@@ -265,7 +266,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
   }
   const [head, second, id, leaf, file] = parts;
   if (parts.length === 2 && head === "api" && second === "workbench") {
-    sendJson(res, 200, await workbenchSnapshot(options.runsRoot, healthProbe(options.fetchFn ?? fetch), options.queue?.status() ?? { state: "idle" }, (options.now?.() ?? new Date()).getTime()));
+    sendJson(res, 200, await readWorkbench());
     return;
   }
   if (parts.length === 1 && head === "comparisons") {
@@ -390,10 +391,19 @@ export async function startViewer(options: ViewerOptions): Promise<Viewer> {
   let port = 0;
   let origins: ReadonlyMap<string, string> = new Map();
   const readBaseline = createBaselineReader(options.runsRoot);
+  let snapshot: { until: number; result: Promise<WorkbenchData> } | null = null;
+  const readWorkbench = (): Promise<WorkbenchData> => {
+    const now = (options.now?.() ?? new Date()).getTime();
+    if (snapshot !== null && now < snapshot.until) return snapshot.result;
+    const next = { until: Infinity, result: Promise.resolve().then(() => workbenchSnapshot(options.runsRoot, healthProbe(options.fetchFn ?? fetch), options.queue?.status() ?? { state: "idle" }, now)) };
+    snapshot = next;
+    next.result = next.result.then(data => { next.until = (options.now?.() ?? new Date()).getTime() + WORKBENCH_POLL_MS; return data; }, (error: unknown) => { if (snapshot === next) snapshot = null; throw error; });
+    return next.result;
+  };
   // A failing request (a client that disconnects mid-body, a file error) must
   // never take the viewer and its queue down.
   const server = createServer((req, res) => {
-    route(req, res, options, port, origins, readBaseline).catch((error: unknown) => {
+    route(req, res, options, port, origins, readBaseline, readWorkbench).catch((error: unknown) => {
       if (res.headersSent || res.destroyed) res.destroy();
       else sendJson(res, 500, { error: error instanceof Error ? error.message : String(error) });
     });

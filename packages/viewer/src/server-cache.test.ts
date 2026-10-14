@@ -1,4 +1,6 @@
 import * as fs from "node:fs";
+import * as workbench from "./workbench-store.js";
+import { WORKBENCH_POLL_MS } from "./workbench-data.js";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
@@ -7,6 +9,8 @@ import { fullRun } from "../test-support/events.js";
 import { startViewer, type Viewer } from "./server.js";
 
 vi.mock("node:fs", async (original) => ({ ...await original<typeof import("node:fs")>() }));
+
+vi.mock("./workbench-store.js", async original => ({ ...await original<typeof import("./workbench-store.js")>() }));
 
 const viewers: Viewer[] = [], roots: string[] = [];
 afterEach(async () => {
@@ -58,4 +62,17 @@ it("shares cached validated splits across HTTP comparisons, milestones and featu
   expect(await get("api/runs/selected/comparisons")).toEqual({ candidates: [], best: null, baseline: null });
   const malformed = await fetch(new URL("api/runs/reference/milestones", viewer.url));
   expect(malformed.status).toBe(422);
+});
+
+it("shares one snapshot across comparison tabs per polling interval and clears failed refreshes", async()=>{
+ const root=fs.mkdtempSync(join(tmpdir(),"viewer-snapshot-tabs-"));roots.push(root);let now=0;
+ const read=vi.spyOn(workbench,"workbenchSnapshot").mockImplementation((_root,_health,_queue,at)=>Promise.resolve({version:1,at,milestones:[],runs:[],queue:[],problems:[]}));
+ const viewer=await startViewer({runsRoot:root,staticDir:root,appDir:root,port:0,now:()=>new Date(now)});viewers.push(viewer);
+ const get=()=>fetch(new URL("api/workbench",viewer.url));
+ const replies=await Promise.all([get(),get(),get()]);for(const reply of replies)expect(await reply.json()).toMatchObject({at:0});expect(read).toHaveBeenCalledTimes(1);
+ now=WORKBENCH_POLL_MS-1;expect(await(await get()).json()).toMatchObject({at:0});expect(read).toHaveBeenCalledTimes(1);
+ now=WORKBENCH_POLL_MS;expect(await(await get()).json()).toMatchObject({at:now});expect(read).toHaveBeenCalledTimes(2);
+ now+=WORKBENCH_POLL_MS;read.mockRejectedValueOnce(Error("snapshot unavailable"));const failed=await get();expect(failed.status).toBe(500);expect(await failed.json()).toMatchObject({error:"snapshot unavailable"});
+ expect(await(await get()).json()).toMatchObject({at:now});expect(read).toHaveBeenCalledTimes(4);
+ const other=await startViewer({runsRoot:root,staticDir:root,appDir:root,port:0,now:()=>new Date(now)});viewers.push(other);expect((await fetch(new URL("api/workbench",other.url))).status).toBe(200);expect(read).toHaveBeenCalledTimes(5);
 });

@@ -1,6 +1,6 @@
 import { frontierReferences, frontierPlot, frontierNotes, frontierTable, frontierModelColors } from "./frontier.js";
 import { esc, hms } from "./format.js";
-import { parseWorkbench, type WorkbenchData, type WorkbenchRun } from "./workbench-data.js";
+import { WORKBENCH_POLL_MS, parseWorkbench, type WorkbenchData, type WorkbenchRun } from "./workbench-data.js";
 import { METRICS, color, currentRunHtml, eligible, median, metricText, ribbonPlot, runDetails, timingPlot, type Metric } from "./workbench-view.js";
 export interface WorkbenchDeps { fetchSnapshot(): Promise<unknown>; now(): number; width(): number }
 export class Workbench {
@@ -152,7 +152,7 @@ export function bootWorkbench(win: Window): Workbench {
     fetchSnapshot: async () => { const response = await win.fetch("/api/workbench", { signal: AbortSignal.timeout(180000) }); if (!response.ok) throw new Error(`Workbench request failed (${String(response.status)})`); return response.json() as Promise<unknown>; },
     now: () => Date.now(), width: () => win.document.querySelector('[data-wb="timing"]')?.getBoundingClientRect().width || win.document.documentElement.clientWidth || 640,
   }, from);
-  void wb.refresh(); const poll = win.setInterval(() => { void wb.refresh(); }, 5000), clock = win.setInterval(() => { wb.clock(); }, 1000);
+  void wb.refresh(); const poll = win.setInterval(() => { void wb.refresh(); }, WORKBENCH_POLL_MS), clock = win.setInterval(() => { wb.clock(); }, 1000);
   win.addEventListener("resize", () => { wb.resize(); }); win.addEventListener("pagehide", () => { wb.destroy(); win.clearInterval(poll); win.clearInterval(clock); }, { once: true });
   return wb;
 }

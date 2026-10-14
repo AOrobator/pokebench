@@ -252,3 +252,11 @@ COMMIT: `merge: rival-house push …` into main (44913ac), operator-approved.
 - 2×2 presets (runs/launch-receipts/navigation-factorial-think-fast-n4/): one-way tiles and ledge
   hops turned ON in all four arms (the operator, 21:47 UTC), new switches explicit OFF, elevation ON;
   originals kept in original/. All four parse. Launch waits on the model-server question.
+- The operator (21:50–21:53 UTC): run both models, sequentially. Corrected my contention claim: Think
+  Fast runs on the separate GPU server behind inference.example (local-inference-stack
+  deploy/prometheus.yml, dependency-manifest gpu.think-fast-model), Qwen 3.8 on the Mac via Hermes.
+  He asked that the running experiment always be clear in the viewer.
+- Checkpoint run started: 2026-10-14T17-51-38_think-fast_5521 (preset checkpoint-clock-set, target
+  CLOCK_SET, POKEBENCH_CHECKPOINT_AT=CLOCK_SET), receipts runs/launch-receipts/rival-push-checkpoint/.
+- RED: run_start evaluation.experiment {id, arm, trial, of} from POKEBENCH_EXPERIMENT, shown in the
+  viewer run header (falls back to PRESET <id>).

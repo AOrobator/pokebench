@@ -88,7 +88,10 @@ def copy_native_region(core: NativeCore, address: int, size: int) -> bytes:
             raise ValueError("native raw I/O size mismatch")
         return bytes(ffi.buffer(registers, size))
     length = ffi.new("size_t*")
-    block = core._core.getMemoryBlock(core._core, address >> 24, length)
+    # mGBA 0.10.5 block 0x0E reports full Flash size but points at currentBank.
+    # Its 0x0F mirror returns the allocation base, including both Flash banks.
+    block_id = 0x0F if address == 0x0E000000 else address >> 24
+    block = core._core.getMemoryBlock(core._core, block_id, length)
     if block == ffi.NULL or length[0] != size:
         raise ValueError(f"native raw memory block unavailable: {address:#x}/{size}")
     return bytes(ffi.buffer(block, size))

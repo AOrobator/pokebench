@@ -15,3 +15,5 @@ Full gates:1803Python/864agent/356viewer tests pass. Independent Python coverage
 Remaining: commit and fast-forward landing, canonical build for future launch and runtime receipt. Preserve unrelated canonical dirtyworklogs and existing human services.
 
 Implementation a949102 committed with hooks; final lint caught a void-arrow style error in the new assertion after the type correction. Fixed before landing; full lint is rerun, not assumed green from the earlier implementation check.
+
+Integrated latest canonical1c782f7 through merge6c8a26d, preserving separately landed split-ribbon workbench. Combined build/lint/coverage gates pass; Python source unchanged by integration. Updated viewer aggregate floors remain above90. Local global skill is a symlink to canonical repository skill; its sole dirty addition is exactly this authorized skill change and will become tracked on landing. Human viewer service need not be restarted: future game-server launches import canonical Python and will archive regardless of existing viewer process. Existing human services and unrelated worklogs remain preserved.

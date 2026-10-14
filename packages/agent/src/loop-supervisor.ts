@@ -16,6 +16,7 @@ const at=(x:number,y:number)=>`${String(x)},${String(y)}`;
 export class SupervisorBriefing {
  private measured:State|null=null;
  private latest:State|null=null;
+ private plan:{turn:number;text:string}|null=null;
  private readonly dialogue:DialogueLog;
  private readonly calls=new Map<string,{name:string;args:Record<string,unknown>;before:State|null}>();
  private readonly tried:Tried[]=[];
@@ -23,6 +24,7 @@ export class SupervisorBriefing {
  constructor(private readonly features:FeatureSet){this.dialogue=new DialogueLog(features);}
  observe(event:RunEvent):void {
   this.dialogue.observe(event);
+  if(event.type==="assistant"){const words=(event.thinking.trim()||event.text.trim());if(words!=="")this.plan={turn:event.turn,text:words};return;}
   if(event.type==="state"&&"started"in event){this.measured=event;return;}
   if(event.type==="tool_call"&&(event.name==="press"||event.name==="navigate_to")){
    this.calls.set(event.id,{name:event.name,args:event.args,before:this.latest});
@@ -82,6 +84,23 @@ export class SupervisorBriefing {
   this.tried.push({key,room,label,count:(existing?.count??0)+1,outcome});
   if(this.tried.length>MAX_TRIED)this.tried.shift();
  }
+ private stated():string {
+  return this.plan===null?"none recorded":`turn ${String(this.plan.turn)}: "${clip(this.plan.text.replace(/\s+/g," "),400)}"`;
+ }
+ private characters():string {
+  const s=this.latest;
+  if(!this.features["world-targets-v1"]||!this.features["named-interactions-v1"])return "not available (named interactions are off)";
+  if(s===null)return "no observation yet";
+  const named=(s.interaction_targets??[]).filter(t=>t.kind==="object"&&t.name!=null).map(t=>`${t.name??""} at ${at(t.x,t.y)}`);
+  return named.length===0?"none":named.slice(0,8).join("; ")+(named.length>8?`; ${String(named.length-8)} more`:"");
+ }
+ private done():string {
+  const story=this.latest?.story;
+  if(!this.features["story-state-v1"])return "not available (story flags are off)";
+  if(story==null)return "not recorded";
+  const steps=Object.entries(story).filter(([,v])=>v===true).map(([k])=>k.replaceAll("_"," "));
+  return steps.length===0?"none yet":steps.join(", ");
+ }
  private where():string {
   const s=this.latest;if(s===null)return "no observation yet";
   const position=this.features["live-player-position-v1"]&&s.position!==null?` at ${at(s.position.x,s.position.y)}${s.facing===null?"":` facing ${s.facing.toLowerCase()}`}`:"";
@@ -108,10 +127,13 @@ export class SupervisorBriefing {
   const text=`SUPERVISOR: You are currently looping. You keep repeating ${PATTERN[kind]}, and the game is not moving forward (loop guard, ${String(calls)} calls into the run). What you have been trying is not working, so do not try it again.
 Stop and get your bearings:
 - Where you are: ${this.where()}
+- Your latest plan, in your own words: ${this.stated()}
+- Characters the readout names here: ${this.characters()}
+- Story steps the game confirms are done: ${this.done()}
 - Last dialogue you were shown: ${this.told()}
 - What you tried recently, newest first: ${clip(tried,700)}
 - Listed here that you have not tried yet: ${this.untried()}
-Before your next action, look back at your goal and at what the game has told you${recall}. Make a new plan that is different from what you have been trying, and say which untried option you will try first. The run continues.`;
+Before your next action, look back at your goal and at what the game has told you${recall}. If your plan names a character or place that the readout does not show, believe the readout. Make a new plan that is different from what you have been trying, and say which untried option you will try first. The run continues.`;
   return clip(text,LIMIT);
  }
 

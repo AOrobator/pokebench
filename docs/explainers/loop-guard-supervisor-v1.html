@@ -92,6 +92,9 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 <table>
 <tr><th>Line</th><th>Source</th><th>When unavailable</th></tr>
 <tr><td>Where you are</td><td>Last delivered state: location, position, facing</td><td>Position left out without <code>live-player-position-v1</code></td></tr>
+<tr><td>Your latest plan</td><td>The model's own most recent reasoning, quoted (400 characters)</td><td>"none recorded" before its first reply</td></tr>
+<tr><td>Characters the readout names here</td><td>Named objects in the current readout, up to 8</td><td>"not available" without named interactions</td></tr>
+<tr><td>Story steps confirmed done</td><td>Story flags already in the readout that are true</td><td>"not available" without <code>story-state-v1</code></td></tr>
 <tr><td>Last dialogue you were shown</td><td>Same capture as the dialogue log, clipped to 600 characters</td><td>"not available" without <code>active-field-message-buffer-v1</code></td></tr>
 <tr><td>Tried recently</td><td>Last 8 distinct <code>navigate_to</code> targets and presses, with room, repeat count and the measured outcome (entered a room, moved, dialogue changed, no change)</td><td>"result unverified" when no prior state was delivered</td></tr>
 <tr><td>Listed here and not tried yet</td><td>Readout targets in this room whose tile was never a navigate_to target, an A-press target or a tile the player stood on; up to 8</td><td>"not available" without <code>world-targets-v1</code></td></tr>
@@ -100,10 +103,13 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 <pre>SUPERVISOR: You are currently looping. You keep repeating the same short cycle of actions, and the game is not moving forward (loop guard, 393 calls into the run). What you have been trying is not working, so do not try it again.
 Stop and get your bearings:
 - Where you are: LITTLEROOT TOWN (map 0/9) at 9,2 facing left
+- Your latest plan, in your own words: turn 393: "I am at (10,2) facing right. The other character (Professor Birch) is at (9,2). I need to face him to talk. I will turn left to face him."
+- Characters the readout names here: TWIN at 7,2
+- Story steps the game confirms are done: name confirmed, clock set
 - Last dialogue you were shown: turn 107, LITTLEROOT TOWN (map 0/9), facing TWIN at 11,1: "It's dangerous if you don't have your own POKéMON."
 - What you tried recently, newest first: press LEFT,A ×99 in LITTLEROOT TOWN (map 0/9) → moved to 9,2; press RIGHT,A ×98 … → moved to 10,2; …
 - Listed here that you have not tried yet: TWIN at 7,2 (A); Warp to map 1/2 at 14,8 (…); Warp to map 1/0 at 5,8 (…); …; 5 more
-Before your next action, look back at your goal and at what the game has told you. Make a new plan that is different from what you have been trying, and say which untried option you will try first. The run continues.</pre>
+Before your next action, look back at your goal and at what the game has told you. If your plan names a character or place that the readout does not show, believe the readout. Make a new plan that is different from what you have been trying, and say which untried option you will try first. The run continues.</pre>
 <p>The recall_dialogue clause appears only when <code>dialogue-log-v1</code> is on. The whole briefing stays under 2,500 characters. Each briefing is recorded as a <code>loop_guard</code> event with phase <code>supervisor</code> and the full text, so it shows in the timeline, Activity History and replay.</p>
 </section>
 

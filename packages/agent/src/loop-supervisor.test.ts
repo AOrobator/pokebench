@@ -178,3 +178,17 @@ it("catches a two-button walk-and-talk loop like trial 1 of the first 2×2 and k
  expect(d.stopped).toBe(false);
  expect(d.context()).toContain("SUPERVISOR cycle");
 });
+
+it("quotes the model's own latest plan, the characters the readout names and the story steps done",()=>{
+ const b=new SupervisorBriefing(ALL_ON);
+ b.observe(ev({type:"assistant",thinking:"I need to face Professor Birch to talk.",text:"",tool_calls:[],usage:{input:1,output:1,cache_read:0},latency_ms:1,ttft_ms:1,stop_reason:"toolUse"},1,7));
+ delivered(b,2,{story:{name_confirmed:true,intro_stage:null,rival_stage:null,birch_lab_stage:null,petalburg_gym_stage:null,woods_stage:null,clock_set:true,rival_battle_won:null,pokedex_received:null,running_shoes_received:null,starter_tutorial_complete:null,rustboro_gym_complete:null,stone_badge:null,rock_tomb_received:null}});
+ const text=b.text("cycle",9);
+ expect(text).toContain('Your latest plan, in your own words: turn 7: "I need to face Professor Birch to talk."');
+ expect(text).toContain("Characters the readout names here: MOM at 2,6");
+ expect(text).toMatch(/Story steps the game confirms are done: [^\n]*clock set/);
+ expect(text).toContain("believe the readout");
+ const off=new SupervisorBriefing({...ALL_ON,"named-interactions-v1":false,"story-state-v1":false});delivered(off,1);
+ expect(off.text("cycle",2)).toContain("named interactions are off");expect(off.text("cycle",2)).toContain("story flags are off");
+ expect(new SupervisorBriefing(ALL_ON).text("cycle",0)).toContain("Your latest plan, in your own words: none recorded");
+});

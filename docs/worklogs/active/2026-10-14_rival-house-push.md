@@ -288,3 +288,11 @@ COMMIT: `feat: show the experiment, arm and trial of every run in the viewer hea
   two-button loop (warning + repeated briefings, never a stop); viewer labels supervisor events
   "supervisor message sent to the model"; explainer sample replaced with a real replay of trial 1.
   Agent 1018/1018 (+1), viewer 562/562, tsc/eslint clean.
+COMMIT: `feat: supervisor message in the operator's wording, labelled as sent to the model` (565a110)
+- Restart prepared: trial 1 stopped (operator_abort, turn 435) and archived in
+  aborted-run-1-loop-detection-off/; all four arms now have interaction-loop-detection-v1 and
+  loop-guard-supervisor-v1 ON; manifest re-frozen on 565a110.
+- The operator (22:20 UTC): give the supervisor more on its tracked objectives without a walkthrough.
+  Objective tracking is off in these arms, so the briefing now quotes the model's own latest plan,
+  lists the characters the readout names here and the story steps the game confirms done, and says
+  to believe the readout when the plan names someone it does not show. Agent 1019/1019.

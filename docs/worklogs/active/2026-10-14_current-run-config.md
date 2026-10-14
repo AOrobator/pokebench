@@ -17,3 +17,5 @@ Visual GREEN: themed summary cards and grouped feature tiles with descriptions, 
 Boundary follow-up before review: feature IDs can be unknown historical strings; lookups now require own dictionary keys, so IDs such as constructor cannot acquire inherited explainer links/status metadata. Regression covers unknown recorded constructor ID without a link. No runtime gameplay fields changed.
 
 Visual review: independent Sol5.6 and Astra both exact VERDICT: LGTM on e7d411128eb014906cb1d09c4e039441ebc49e73; clean source and frozen cumulative diff verified.478tests, lines98.22/branches90.56/functions95.28. Retain machine-readable browser assertions with final live screenshot. Existing CSP intentionally preserves static A* explanatory content while blocking its inline interactive script; enabling those scripts is outside this read-only delivery change. Final docs-only closeout changes no reviewed runtime bytes.
+
+Landing sync preserves independently reviewed/landed frontier-height37a961b. Its two-line SVG geometry change does not overlap config/server/CSS; no reviewed card bytes changed. Combined viewer gates rerun before local landing.

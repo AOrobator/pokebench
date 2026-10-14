@@ -260,3 +260,8 @@ COMMIT: `merge: rival-house push …` into main (44913ac), operator-approved.
   CLOCK_SET, POKEBENCH_CHECKPOINT_AT=CLOCK_SET), receipts runs/launch-receipts/rival-push-checkpoint/.
 - RED: run_start evaluation.experiment {id, arm, trial, of} from POKEBENCH_EXPERIMENT, shown in the
   viewer run header (falls back to PRESET <id>).
+COMMIT: `test: RED for an always-visible experiment, arm and trial in the run header` (b5766ef)
+- GREEN: play-experiment.ts parses POKEBENCH_EXPERIMENT; live.ts records evaluation.experiment;
+  schema regenerated; viewer brand shows EXPERIMENT · ARM · TRIAL n/N, else PRESET <id>. Agent
+  1017/1017, viewer 550/550, tsc/eslint clean. Measurement/UI only (nothing the model sees), so no
+  switch. Merged without an external review round per the operator's "no more review" for this push.

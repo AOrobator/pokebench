@@ -12,7 +12,7 @@ Scope: the elevation rule in navigation.ts only. Walkable behaviors (sand, bridg
 - [x] GREEN: mirror the game's mismatch and update rules
 - [x] Gates: test, coverage ≥90, lint, build
 - [x] Merge latest main
-- [ ] Review: principles self-review, Claude CLI, Codex, Grok
+- [x] Review: principles self-review, Claude CLI, Codex, Grok (round 3 LGTM x3)
 - [x] Explainer: docs/explainers/elevation-transitions.html (tracked, per updated feature-explainer skill); before-routes verified against main a8cbcff planner
 - [ ] Operator approval to merge into main
 - RED: navigation.test.ts 4 failed / 13 passed (expected: stairs, pier, Littleroot, Route 110).
@@ -36,3 +36,5 @@ Scope: the elevation rule in navigation.ts only. Walkable behaviors (sand, bridg
 - GREEN (round 3 fix): `jumped` helper; agent 899, viewer 474, Python 1803 pass; agent 97.21/93.3/97.87; Python 96.68/91.83/100; lint, build clean. Explainer ledge row and status updated.
 - COMMIT: `fix: ledge landings on multi-level tiles keep the mid-air elevation` (f178b9f). Merging main 9e4665d before round 3.
 - Merged main 9e4665d (12e143e). Gates: agent 899, viewer 476, Python 1803 pass; lint clean.
+- Review round 3 (head a6a4877, diff from merge-base 9e4665d, SHA-256 347535c5…): Claude CLI LGTM, Codex (gpt-5.6-sol) LGTM, Grok (cursor-grok-4.5-high) LGTM. Non-blocking: the planner's ledge-landing mismatch check is stricter than the game (pre-existing on main, ledge-hops scope); fixture provenance is descriptive, not regenerated in CI.
+- Waiting on operator approval to merge into main.

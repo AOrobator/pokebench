@@ -36,8 +36,8 @@ const entered=(walker,tile)=&gt;tile===MULTI_LEVEL?walker:tile;</pre>
 <figcaption>Each search node is a tile plus the walker's height, as before; a test proves a tile can be reachable at one height and not another. For ledge jumps a <code>jumped</code> helper also looks at the take-off and ledge tiles. Review round 1 caught an earlier version that looked at the tile you leave on ordinary steps; that only matters halfway through a step, so it was removed.</figcaption></figure>
 <h2>6. Status</h2>
 <figure><ul><li>Branch <code>claude/elevation-transitions</code>, merged with main 9f111d1 (includes ledge hops).</li>
-<li>Tests: agent 899, viewer 474, Python 1803 pass. Coverage agent 97.2 / 93.3 / 97.9, Python 96.7 / 91.8 / 100 (floor 90). Lint and build clean.</li>
+<li>Tests: agent 899, viewer 476, Python 1803 pass. Coverage agent 97.2 / 93.3 / 97.9, Python 96.7 / 91.8 / 100 (floor 90). Lint and build clean.</li>
 <li>Test fixtures are real 15×15 windows decoded from pokeemerald map.bin: <code>packages/agent/test-support/elevation-maps.json</code>.</li>
-<li>Not done: no live run on the pier or Route 110; no measured benchmark runs; not merged to main.</li>
+<li>Review: Claude, Codex and Grok all LGTM after three rounds (round 1 fixed leaving a 15 tile; round 2 added the search-identity and ledge-onto-15 tests).</li><li>Not done: no live run on the pier or Route 110; no measured benchmark runs; not merged to main.</li>
 <li>Still open elsewhere: sand, cave and bridge behaviors are walls to the planner; the model's text map does not show elevation.</li></ul></figure>
 </main></html>

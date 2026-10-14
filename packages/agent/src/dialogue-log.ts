@@ -5,13 +5,16 @@ import type {FeatureSet} from "./features.js";
 import type {RunRecorder} from "./recorder.js";
 
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
-export interface DialogueEntry {readonly seq:number;readonly turn:number;readonly room:string;readonly position:string|null;readonly facing:string|null;readonly text:string}
+export interface DialogueEntry {readonly seq:number;readonly turn:number;readonly key:string;readonly room:string;readonly position:string|null;readonly facing:string|null;readonly text:string}
 
 const REPLY_LIMIT=6000,ENTRY_LIMIT=650,DEFAULT_LAST=8;
 const clip=(text:string,max:number)=>text.length<=max?text:`${text.slice(0,max-14)}… [truncated]`;
-// Location labels can repeat or be missing across maps, so the map id is part of a room's identity.
-export function roomOf(state:{location:string|null;map_id:readonly number[]|null}):string {
- return `${state.location??"unknown room"}${state.map_id===null?"":` (map ${state.map_id.join("/")})`}`;
+type Place={location:string|null;map_id:readonly number[]|null};
+// Location labels can repeat or be missing across maps, so identity always includes the map id.
+export function roomKey(state:Place):string {return `${state.location??"unknown room"}|${state.map_id?.join("/")??"none"}`;}
+// What the model is shown: the map id only when its readout already shows one (bounded navigation).
+export function roomOf(state:Place,features:FeatureSet):string {
+ return `${state.location??"unknown room"}${features["bounded-navigation-v1"]&&state.map_id!==null?` (map ${state.map_id.join("/")})`:""}`;
 }
 const STEP:Readonly<Record<string,readonly[number,number]>>={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
 const Args=Type.Object({
@@ -31,10 +34,10 @@ export class DialogueLog {
   const state=this.measured;this.measured=null;
   const text=state.world_context?.dialogue;
   if(!state.started||state.screen!=="overworld"||!text)return;
-  const room=roomOf(state);
+  const key=roomKey(state),room=roomOf(state,this.features);
   const previous=this.log.at(-1);
-  if(previous!==undefined&&previous.text===text&&previous.room===room)return;
-  this.log.push({seq:state.seq,turn:state.turn,room,position:this.position(state),facing:this.faced(state),text});
+  if(previous!==undefined&&previous.text===text&&previous.key===key)return;
+  this.log.push({seq:state.seq,turn:state.turn,key,room,position:this.position(state),facing:this.faced(state),text});
  }
  entries():readonly DialogueEntry[]{return this.log;}
  private position(state:State):string|null {

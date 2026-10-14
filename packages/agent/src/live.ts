@@ -12,7 +12,7 @@ import { execFileSync, spawn } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import { activeUiFeatures } from "./ui-feature.js";
 import { humanPlan, humanLease, humanRunId, driveHuman, saveHumanCheckpoint } from "./human.js";
-import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
+import { mkdirSync, renameSync, writeFileSync, readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { objectiveHarness } from "./objective-tools.js";
 import { playHarnessFeatures, serverFeatureEnv } from "./features.js";
@@ -277,7 +277,7 @@ async function playAgent(): Promise<void> {
       });
       control = runControl;
       if(preset!==null&&recorder.elapsedMs()>=limits.maxWallMs){governor.abort("budget");return "budget";}
-      const capture = captureAt === null ? null : new CheckpointCapture(captureAt, { serverUrl: gameServerUrl, dir: join(RUNS_ROOT, runId, "checkpoints"), fetch, write: (path, data) => { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, data); } });
+      const capture = captureAt === null ? null : new CheckpointCapture(captureAt, { serverUrl: gameServerUrl, dir: join(RUNS_ROOT, runId, "checkpoints"), fetch, write: (path, data) => { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, data); }, rename: renameSync });
       if (capture !== null) recorder.subscribe(event => { capture.observe(event); });
       const loopDetector = attachLoopGuard(recorder, governor, undefined, loopMode, features["interaction-loop-detection-v1"], loopSupervisor(features, recorder));
       if(target!==null){
@@ -320,7 +320,7 @@ async function playAgent(): Promise<void> {
         const task: AgentMessage = { role: "user", content: target===null?PLAY_TASK:`The game has just booted. ${goal}`, timestamp: Date.now() };
         return await play(task, governor, loop);
       } finally {
-        await capture?.settled().catch((error: unknown) => { console.error(`checkpoint capture failed: ${String(error)}`); });
+        await capture?.close().catch((error: unknown) => { console.error(`checkpoint capture failed: ${String(error)}`); });
         wall.clear();
         stopWatching();
         process.off("SIGINT", interrupt);

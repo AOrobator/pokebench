@@ -10,12 +10,12 @@ const milestone=(name:string,seq:number,origin="observed")=>ev({type:"milestone"
 const STATE=Buffer.from("native-state");
 const sha1=createHash("sha1").update(STATE).digest("hex"),sha256=createHash("sha256").update(STATE).digest("hex");
 
-function harness(reply:Record<string,unknown>={state_base64:STATE.toString("base64"),sha1,sha256},status=200){
+function harness(reply:Record<string,unknown>={state_base64:STATE.toString("base64"),sha1,sha256},status=200,pauseStatus=200,failMeta=false){
  const calls:{url:string;body:unknown}[]=[];const files=new Map<string,Buffer|string>();
  const fetchFn=(url:string,init?:{body?:string})=>{calls.push({url,body:init?.body===undefined?undefined:JSON.parse(init.body)});
-  const ok=url.endsWith("/pokebench/checkpoint")?status:200;
+  const ok=url.endsWith("/pokebench/checkpoint")?status:pauseStatus;
   return Promise.resolve(new Response(JSON.stringify(url.endsWith("/pokebench/pause")?{paused:true}:reply),{status:ok}));};
- const capture=new CheckpointCapture("CLOCK_SET",{serverUrl:"http://127.0.0.1:9",dir:"/runs/cp-run/checkpoints",fetch:fetchFn,write:(path,data)=>{files.set(path,data);}});
+ const capture=new CheckpointCapture("CLOCK_SET",{serverUrl:"http://127.0.0.1:9",dir:"/runs/cp-run/checkpoints",fetch:fetchFn,write:(path,data)=>{if(path.endsWith(".json.partial")&&failMeta)throw new Error("disk full");files.set(path,data);},rename:(from,to)=>{const v=files.get(from);if(v===undefined)throw new Error("missing");files.delete(from);files.set(to,v);}});
  return {capture,calls,files};
 }
 
@@ -65,4 +65,25 @@ it("lets a v2 preset start from a checkpoint whose SHA-1 is verified before laun
  expect(()=>presetStart(preset,()=>Buffer.from("other"))).toThrow(/SHA-1 mismatch/);
  expect(presetStart(parsePlayPreset(v2),()=>STATE)).toEqual({kind:"boot"});
  expect(()=>parsePlayPreset({...v2,start:{kind:"save_state",path:"x",sha1:"nothex"}})).toThrow(/Invalid play preset/);
+});
+
+it("does not save when the pause fails, stops capturing after close, and never leaves a state without provenance",async()=>{
+ const noPause=harness(undefined,200,503);
+ noPause.capture.observe(milestone("CLOCK_SET",20));
+ await expect(noPause.capture.settled()).rejects.toThrow(/pause request failed/);
+ expect(noPause.calls.map(c=>c.url.endsWith("/pokebench/checkpoint"))).not.toContain(true);
+ expect(noPause.calls.at(-1)?.body).toEqual({paused:false});
+ const late=harness();await late.capture.close();late.capture.observe(milestone("CLOCK_SET",20));await late.capture.settled();
+ expect(late.calls).toHaveLength(0);
+ const disk=harness(undefined,200,200,true);disk.capture.observe(milestone("CLOCK_SET",20));
+ await expect(disk.capture.settled()).rejects.toThrow(/disk full/);
+ expect([...disk.files.keys()].some(k=>k.endsWith("CLOCK_SET.state"))).toBe(false);
+});
+
+it("checks and loads a relative checkpoint path through one absolute path",()=>{
+ const start={kind:"save_state",path:"relative/CLOCK_SET.state",sha1};
+ const seen:string[]=[];
+ const resolved=presetStart(parsePlayPreset({...v2,start}),path=>{seen.push(path);return STATE;});
+ expect(resolved.kind==="save_state"&&resolved.path.startsWith("/")).toBe(true);
+ expect(seen).toEqual([resolved.kind==="save_state"?resolved.path:""]);
 });

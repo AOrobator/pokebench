@@ -99,7 +99,7 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 <tr><th>Field</th><th>Meaning</th></tr>
 <tr><td><code>#seq</code></td><td>Event number of the delivered state. It can be checked in the run log and replay.</td></tr>
 <tr><td>turn</td><td>Model turn when the page was delivered.</td></tr>
-<tr><td>room</td><td>Location line from the readout, or "unknown room".</td></tr>
+<tr><td>room</td><td>Location line from the readout, or "unknown room". With bounded navigation on, the map id the readout already shows is added, for example "(map 1/0)". Identity always uses location plus map id, so two maps with the same label never merge.</td></tr>
 <tr><td>at x,y</td><td>Player tile, only with <code>live-player-position-v1</code>.</td></tr>
 <tr><td>facing NAME at x,y</td><td>The named object on the tile the player faces, only with named interactions and position on. It is who the player was facing, which is usually but not always the speaker (a TV or a cutscene can talk too).</td></tr>
 <tr><td>text</td><td>The active field-message buffer, quoted. It can include pages not yet shown on screen.</td></tr>

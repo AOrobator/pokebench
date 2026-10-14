@@ -1,6 +1,6 @@
 import type {AgentMessage,AgentTool} from "@mariozechner/pi-agent-core";
 import {Type} from "typebox";
-import {DialogueLog,roomOf,type DialogueEntry} from "./dialogue-log.js";
+import {DialogueLog,roomKey,roomOf,type DialogueEntry} from "./dialogue-log.js";
 import type {BodyOf,RunEvent} from "./events.js";
 import type {FeatureSet} from "./features.js";
 import type {RunRecorder} from "./recorder.js";
@@ -21,10 +21,10 @@ const Args=Type.Object({
 export class InstructionLedger {
  private measured:State|null=null;
  private readonly log:DialogueLog;
- private readonly rooms:Room[]=[];
+ private readonly rooms=new Map<string,Room>();
  private readonly known=new Set<number>();
  private readonly contradictions:Contradiction[]=[];
- constructor(features:FeatureSet){this.log=new DialogueLog(features);}
+ constructor(private readonly features:FeatureSet){this.log=new DialogueLog(features);}
  observe(event:RunEvent):void {
   this.log.observe(event);
   if(event.type==="state"&&"started"in event){this.measured=event;return;}
@@ -32,9 +32,9 @@ export class InstructionLedger {
   const state=this.measured;this.measured=null;
   if(!state.started||state.screen!=="overworld")return;
   this.known.add(state.seq);
-  const name=roomOf(state);
-  let room=this.rooms.find(r=>r.name===name);
-  if(room===undefined){room={name,firstTurn:state.turn,seq:state.seq,heard:null};this.rooms.push(room);}
+  const key=roomKey(state),name=roomOf(state,this.features);
+  let room=this.rooms.get(key);
+  if(room===undefined){room={name,firstTurn:state.turn,seq:state.seq,heard:null};this.rooms.set(key,room);}
   const last=this.log.entries().at(-1);
   if(last?.seq===state.seq)room.heard=last;
  }
@@ -48,7 +48,7 @@ export class InstructionLedger {
  evidence():number[]{
   const seqs=new Set<number>();
   for(const e of this.instructions())seqs.add(e.seq);
-  for(const r of this.rooms.slice(-ROOMS)){seqs.add(r.seq);if(r.heard!==null)seqs.add(r.heard.seq);}
+  for(const r of [...this.rooms.values()].slice(-ROOMS)){seqs.add(r.seq);if(r.heard!==null)seqs.add(r.heard.seq);}
   for(const c of this.contradictions)for(const s of c.evidence)seqs.add(s);
   return [...seqs].sort((a,b)=>a-b);
  }
@@ -56,7 +56,7 @@ export class InstructionLedger {
  text():string {
   const entry=(e:DialogueEntry)=>`#${String(e.seq)} turn ${String(e.turn)} · ${e.room}${e.facing===null?"":` · facing ${e.facing}`}: "${clip(e.text,500)}"`;
   const told=this.instructions();
-  const rooms=this.rooms.slice(-ROOMS).reverse();
+  const rooms=[...this.rooms.values()].slice(-ROOMS).reverse();
   const notes=[...this.contradictions].reverse();
   const text=`INSTRUCTION LEDGER: quoted dialogue you were shown, rooms you visited and contradictions you recorded. It is not a walkthrough; the harness does not know your next goal. The current screen overrides it.
 Received instructions${told.length===0?": none recorded":`, newest first:\n${told.map(entry).join("\n")}`}

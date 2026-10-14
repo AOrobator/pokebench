@@ -1,10 +1,10 @@
-import {DialogueLog,roomOf} from "./dialogue-log.js";
+import {DialogueLog,roomKey,roomOf} from "./dialogue-log.js";
 import type {RunEvent} from "./events.js";
 import type {FeatureSet} from "./features.js";
 import type {LoopKind} from "./loop-detection.js";
 
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
-interface Tried {readonly room:string;readonly label:string;count:number;outcome:string}
+interface Tried {readonly key:string;readonly room:string;readonly label:string;count:number;outcome:string}
 
 const LIMIT=2500,MAX_TRIED=8,MAX_UNTRIED=8;
 const clip=(text:string,max:number)=>text.length<=max?text:`${text.slice(0,max-14)}… [truncated]`;
@@ -37,9 +37,10 @@ export class SupervisorBriefing {
   if(call===undefined)return;
   const label=this.label(call);
   if(label===null)return;
-  this.remember(this.room(call.before??after),label,this.outcome(call.before,after));
+  const where=call.before??after;
+  this.remember(this.room(where),roomOf(where,this.features),label,this.outcome(call.before,after));
  }
- private room(state:State):string {return roomOf(state);}
+ private room(state:State):string {return roomKey(state);}
  private touch(room:string,tile:string):void {
   const tiles=this.touched.get(room)??new Set<string>();tiles.add(tile);this.touched.set(room,tiles);
  }
@@ -69,21 +70,21 @@ export class SupervisorBriefing {
  }
  private outcome(before:State|null,after:State):string {
   if(before===null)return "result unverified";
-  if(this.room(before)!==this.room(after))return `entered ${this.room(after)}`;
+  if(this.room(before)!==this.room(after))return `entered ${roomOf(after,this.features)}`;
   if(this.features["live-player-position-v1"]&&before.position!==null&&after.position!==null&&at(before.position.x,before.position.y)!==at(after.position.x,after.position.y))return `moved to ${at(after.position.x,after.position.y)}`;
   if(this.features["active-field-message-buffer-v1"]&&(after.world_context?.dialogue??null)!==(before.world_context?.dialogue??null))return "dialogue changed";
   return "no change";
  }
- private remember(room:string,label:string,outcome:string):void {
-  const index=this.tried.findIndex(t=>t.room===room&&t.label===label);
+ private remember(key:string,room:string,label:string,outcome:string):void {
+  const index=this.tried.findIndex(t=>t.key===key&&t.label===label);
   const existing=index>=0?this.tried.splice(index,1)[0]:undefined;
-  this.tried.push({room,label,count:(existing?.count??0)+1,outcome});
+  this.tried.push({key,room,label,count:(existing?.count??0)+1,outcome});
   if(this.tried.length>MAX_TRIED)this.tried.shift();
  }
  private where():string {
   const s=this.latest;if(s===null)return "no observation yet";
   const position=this.features["live-player-position-v1"]&&s.position!==null?` at ${at(s.position.x,s.position.y)}${s.facing===null?"":` facing ${s.facing.toLowerCase()}`}`:"";
-  return `${this.room(s)}${position}`;
+  return `${roomOf(s,this.features)}${position}`;
  }
  private told():string {
   if(!this.features["active-field-message-buffer-v1"])return "not available (dialogue text is off)";

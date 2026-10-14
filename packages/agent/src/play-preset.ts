@@ -1,4 +1,5 @@
 import {createHash} from "node:crypto";
+import {resolve} from "node:path";
 import {Type,type Static} from "typebox";
 import {Value} from "typebox/value";
 import {MILESTONES} from "./milestones.js";
@@ -72,7 +73,9 @@ export function presetFlags(preset:PlayPreset):PlayFlags{
 // A checkpoint start is verified against its recorded SHA-1 before the run launches.
 export function presetStart(preset:PlayPreset,read:(path:string)=>Buffer):{kind:"boot"}|Static<typeof PresetStartSchema>{
  if(preset.version!==2||preset.start===undefined)return {kind:"boot"};
- const actual=createHash("sha1").update(read(preset.start.path)).digest("hex");
- if(actual!==preset.start.sha1)throw new Error(`Checkpoint SHA-1 mismatch for ${preset.start.path}: preset ${preset.start.sha1}, file ${actual}`);
- return {...preset.start};
+ // The launcher and server run in other directories, so the checked file and the loaded file must share one absolute path.
+ const path=resolve(preset.start.path);
+ const actual=createHash("sha1").update(read(path)).digest("hex");
+ if(actual!==preset.start.sha1)throw new Error(`Checkpoint SHA-1 mismatch for ${path}: preset ${preset.start.sha1}, file ${actual}`);
+ return {...preset.start,path};
 }

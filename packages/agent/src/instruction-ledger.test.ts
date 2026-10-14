@@ -90,3 +90,11 @@ it("skips menus and unmatched results, names unknown rooms and cites contradicti
  await l.tool().execute("c",{expected:"a",observed:"b",evidence:[5]});
  expect(l.evidence()).toEqual([5,7]);
 });
+
+it("records a schema-valid ledger event even with every section full",async()=>{
+ const l=new InstructionLedger(ALL_ON);
+ for(let i=0;i<20;i++)deliver(l,i*2+1,{...said(`line ${String(i)}`),location:`ROOM ${String(i)}`,map_id:[1,i]});
+ const note=l.tool();
+ for(let i=0;i<8;i++)await note.execute("c",{expected:`e${String(i)}`,observed:`o${String(i)}`,evidence:[1+i*4,3+i*4,5+i*4,7+i*4].filter(n=>n<40)});
+ expect(()=>checkEvent({v:1,run:"r",t:"2026-10-14T12:00:00.000-04:00",turn:1,seq:99,type:"ledger_context",text:l.text(),evidence:l.evidence()})).not.toThrow();
+});

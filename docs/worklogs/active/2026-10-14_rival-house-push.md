@@ -104,9 +104,11 @@ keeps detection and warnings, drops termination, and the experiment measures the
 - Every switch gets an explainer linked from its feature card (feature-explainer skill).
 - Checkpoint starts (the operator asked, 2026-10-14 20:49/21:01 UTC): steps 0–4 start from a recorded
   save state taken right after CLOCK_SET (so Mom's rival instruction happens inside every run),
-  stop at RIVAL_MET, present-at-start milestones excluded. Budget: The operator objected to the
-  15-minute cap I proposed (the best run needed 16:21 after the clock); offered 25 minutes
-  (matches the post-clock time of past 30-minute boot runs) or 30. Waiting on his pick. The confirmation batch
+  present-at-start milestones excluded. Budget: The operator objected to the
+  15-minute cap I proposed (the best run needed 16:21 after the clock); offered 25 or 30
+  minutes. The operator chose 30 minutes from the checkpoint (2026-10-14 21:17 UTC). Runs do not stop at
+  RIVAL_MET: the target milestone is recorded, and runs continue to budget so we see how far they
+  get. The confirmation batch
   (Exp 5) starts from boot with the 30-minute budget and is the stop decision.
 
 ## Session log
@@ -211,3 +213,24 @@ COMMIT: `feat: save a checkpoint at a native milestone and start play runs from 
   playTools, both pinned contexts chain; old v2 presets read all four switches OFF; supervisor
   leak regex broadened. Gates: agent 985/985, viewer 499/499, play-wiring.ts 100% funcs after the
   callback test, agent all files 97.29/93.63/97.83, tsc/eslint clean.
+COMMIT: `fix(agent): close review round 2 findings` (402d002)
+- The operator (21:17 UTC): 30 minutes from the checkpoint; I proposed no stop at RIVAL_MET so runs
+  show how far they get (stated in thread, open to change).
+- Review r3 (diff db862836…, artifacts runs/rival-push-review/r3/): Grok LGTM; Claude fallback A
+  (opus), fallback B (sonnet) and GPT (Codex) BLOCKING. Real defects fixed:
+  - ledger_context evidence could reach 51 > schema max 48 → schema max 64, full-ledger test;
+  - roomOf showed map ids the model's readout does not show when bounded-navigation-v1 is off →
+    roomKey (identity: location|map) separate from roomOf (display: map only with navigation);
+  - relative preset start path was checked from the agent cwd but loaded from the launcher cwd →
+    presetStart resolves one absolute path for both;
+  - failed pause was ignored → capture aborts before requesting a state;
+  - capture could start during the final snapshot while the server stops → close() before stop;
+  - non-atomic .state/.json writes → both written as .partial then renamed, provenance first;
+  - ledger rooms lookup is now a Map;
+  - backoff copy now tested against LOOP_POLICY.
+  Deferred with justification: deletion tests for the live.ts call sites. live.ts is the process
+  entrypoint; the wiring sits behind tested helpers (contextTools, loopSupervisor, presetStart,
+  CheckpointCapture) and the first M6 step (creating the CLOCK_SET checkpoint from a real run,
+  then starting a run from it) exercises the live path end to end with recorded evidence.
+  Gates: agent 990/990, viewer 499/499, agent all files 97.35/93.68/97.97, tsc/eslint clean.
+- The review skill requires operator scope confirmation before a fourth round; asking the operator.

@@ -114,3 +114,10 @@ it("treats two maps with the same or a missing location label as different rooms
  deliver(log,5,{map_id:[1,0]});deliver(log,7,{map_id:[1,1]});
  expect(log.entries().map(e=>e.room)).toEqual(["unknown room (map 2/1)","unknown room (map 2/2)","HOUSE 1F (map 1/0)","HOUSE 1F (map 1/1)"]);
 });
+
+it("shows the map id to the model only when its readout shows one",async()=>{
+ const hidden=new DialogueLog({...ALL_ON,"bounded-navigation-v1":false});
+ deliver(hidden,1,{map_id:[1,0]});deliver(hidden,3,{map_id:[1,1]});
+ expect(hidden.entries()).toHaveLength(2);
+ expect(await recall(hidden,{})).not.toContain("map");
+});

@@ -155,3 +155,9 @@ it("keeps tried tiles separate for maps that share a location label",()=>{
  expect(text.slice(text.indexOf("not tried"))).toContain("DOOR at 5,1");
  expect(text).not.toMatch(/\b(rival|birch|professor|may|brendan|neighbou?r|next door|lab|littleroot|oldale|petalburg|rustboro|route|starter|gym|badge)\b/i);
 });
+
+it("describes the live backoff schedule that LOOP_POLICY actually produces",()=>{
+ const windows:number[]=[];let w:number=LOOP_POLICY.recovery;for(let i=0;i<6;i++){windows.push(w);w=Math.min(w*2,LOOP_POLICY.recovery*16);}
+ expect(windows).toEqual([6,12,24,48,96,96]);
+ expect(featureInfo("loop-guard-supervisor-v1").description).toContain(`after ${String(windows[0])} looping calls, then ${String(windows[1])}, ${String(windows[2])} and ${String(windows[3])} more, then every ${String(windows[4])}`);
+});

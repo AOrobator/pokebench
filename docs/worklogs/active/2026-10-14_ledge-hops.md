@@ -44,3 +44,12 @@ pret/pokeemerald 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881:
   Claude and Codex): with the switch off, a ledge keeps its own collision glyph (`#` or `.`).
 - Round-1 fix: `fix: keep a ledge's own collision glyph with ledge hops off`. Gates: agent
   870/870, viewer 417/417, env 1807/1807; `just coverage` 90% floor passes; `just lint` exit 0.
+- Review round 2 (all three lanes BLOCKING): the review packet was built with `git diff main..HEAD`
+  after main advanced to 8258ff9, so it showed main's newer work as deletions. Also the live
+  receipt was a trimmed excerpt with no head/dist binding. Grok: feature OFF copy said only `#`.
+- Round-2 fix: merged main 55e5a25 into the branch (conflicts in play-preset/play-config/
+  features tests resolved by keeping navigation-evidence-memory-v1 and adding ledge-hops-v1;
+  guidance count 10, viewer switch count 30); OFF copy now says ledges keep their collision
+  glyph. Packet is now `git diff $(git merge-base main HEAD) HEAD`; live proof re-run from a
+  clean build of the merge head with dist hashes and full stdout. Tests: agent 896/896,
+  viewer 419/419, env 1807/1807.

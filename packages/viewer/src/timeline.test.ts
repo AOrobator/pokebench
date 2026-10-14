@@ -90,3 +90,8 @@ it('shows repeated native activity on the existing human milestone lane with evi
  expect(svg).toContain('capture ×2 · evidence #3, #4 · first observation (upper bound)');expect(svg).toContain('&lt;TORCHIC&gt; Lv5→6');
  expect(svg).toContain('viewBox="0 0 1000 80"');expect(lanesSvg(v,BASE_MS+100000,['presses','milestones'])).not.toContain('m-activity');
 });
+
+it("shows navigation context delivery on timeline without claiming a game press",()=>{
+ const log=new Log();log.add(0,START);log.add(100,{type:"navigation_context",turn:1,text:"NAVIGATION EVIDENCE MEMORY",evidence:[1,2]});
+ const svg=lanesSvg(view(log),BASE_MS+1000);expect(svg).toContain("Navigation memory delivered · 2 references");expect(svg).toContain('class="m-tool"');expect(svg).not.toContain('class="m-press b-A"');
+});

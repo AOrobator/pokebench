@@ -1,0 +1,148 @@
+import {expect,it} from "vitest";
+import {NavigationMemory} from "./navigation-memory.js";
+import {ALL_ON} from "./features.js";
+import {IN_GAME} from "../test-support/events.js";
+import {checkEvent,type RunEvent} from "./events.js";
+const event=(body:Record<string,unknown>,seq:number):RunEvent=>checkEvent({v:1,run:"memory-test",t:"2026-10-14T12:00:00.000-04:00",turn:1,seq,...body});
+const state=(seq:number,extra:Record<string,unknown>={})=>{const value=event({type:"state",...IN_GAME,started:true,screen:"overworld",location:"Room",map_id:[1,1],position:{x:3,y:4},facing:"right",field_controls_locked:false,world_context:{objects:[],triggers:[],dialogue:"Someone outside is calling for help."},...extra},seq);if(value.type!=="state"||!("started"in value))throw Error("invalid state fixture");return value;};
+it("persists observed instructions after sliding context and links every fact to its original observation",()=>{
+ const memory=new NavigationMemory(ALL_ON);memory.delivered(state(1));
+ memory.delivered(state(2,{location:"Street",map_id:[0,9],world_context:null}));
+ expect(memory.text()).toContain("Someone outside is calling for help.");
+ expect(memory.text()).toContain("#1");expect(memory.text()).toContain("Street");
+ expect(memory.text()).toContain("Unresolved destination: not declared");
+});
+it("records actual targeted interaction and measured result without inventing success",()=>{
+ const memory=new NavigationMemory(ALL_ON);memory.delivered(state(1,{interaction_targets:[{name:"Scientist",kind:"object",x:4,y:4,elevation:0,activation:"press_a",availability:"live",facing:null,local_id:1,destination:null}]}));
+ memory.observe(event({type:"tool_call",id:"a",name:"press",args:{buttons:["A"]}},2));
+ memory.observe(event({type:"button_press",tool_call_id:"a",before_state_seq:1,buttons:["A"]},3));
+ memory.delivered(state(4));memory.observe(event({type:"tool_result",state_seq:4,id:"a",name:"press",is_error:false,duration_ms:10,text:"ok",frames:[]},5));
+ expect(memory.text()).toContain("Scientist");expect(memory.text()).toContain("no observed change");
+ expect(memory.text()).not.toMatch(/completed|next milestone|go north/i);
+});
+it("requires known evidence for model hypotheses and keeps them distinct from fact",()=>{
+ const memory=new NavigationMemory(ALL_ON);memory.delivered(state(1));
+ expect(()=>{memory.remember("Find the caller",[999]);}).toThrow(/unknown observation/);
+ memory.remember("Find the caller",[1]);expect(memory.text()).toContain("MODEL HYPOTHESIS");
+ expect(memory.text()).toContain("Find the caller");
+});
+it("does not resurrect fields disabled for original model observations",()=>{
+ const memory=new NavigationMemory({...ALL_ON,"active-field-message-buffer-v1":false,"live-player-position-v1":false,"named-interactions-v1":false});memory.delivered(state(1));
+ expect(memory.text()).not.toContain("calling for help");expect(memory.text()).not.toContain("3,4");
+});
+it("bounds dialogue, room and attempt history and deduplicates retained dialogue",()=>{
+ const memory=new NavigationMemory(ALL_ON);
+ for(let i=1;i<=80;i++)memory.delivered(state(i,{map_id:[1,i],location:`Room${String(i)}`,world_context:{objects:[],triggers:[],dialogue:"x".repeat(5000)}}));
+ expect(memory.text().length).toBeLessThanOrEqual(6500);expect(memory.text()).not.toContain("Room1 ·");
+ expect(memory.text()).toContain("truncated");
+});
+it("handles unknown field ownership, missing state, tool rejection, movements and screen transitions truthfully",()=>{
+ for(const [extra,result] of [[{field_controls_locked:true},"A input owned"],[{position:null},"A interaction target unverified"],[{facing:null},"A interaction target unverified"]] as const){
+  const m=new NavigationMemory(ALL_ON);m.delivered(state(1,extra));m.observe(event({type:"tool_call",id:"a",name:"press",args:{buttons:["A"]}},2));m.observe(event({type:"button_press",tool_call_id:"a",before_state_seq:1,buttons:["A"]},3));m.observe(event({type:"tool_result",id:"a",name:"press",is_error:false,duration_ms:1,text:"ok",frames:[]},4));expect(m.text()).toContain(result);expect(m.text()).toContain("result state unavailable");
+ }
+ for(const [after,expected] of [[{position:{x:4,y:4}},"position changed"],[{screen:"menu"},"screen changed"],[{world_context:null},"dialogue changed"],[{location:"Next",map_id:[1,2]},"room changed"]] as const){
+  const m=new NavigationMemory(ALL_ON);m.delivered(state(1));m.observe(event({type:"tool_call",id:"n",name:"navigate_to",args:{x:4,y:4,map_id:[1,1]}},2));m.observe(event({type:"button_press",tool_call_id:"n",before_state_seq:1,buttons:["RIGHT"]},3));m.delivered(state(4,after));m.observe(event({type:"tool_result",state_seq:4,id:"n",name:"navigate_to",is_error:false,duration_ms:1,text:"ok",frames:[]},5));expect(m.text()).toContain(expected);
+ }
+ const m=new NavigationMemory(ALL_ON);m.delivered(state(1));m.observe(event({type:"tool_call",id:"p",name:"press",args:{}},2));m.observe(event({type:"tool_result",id:"p",name:"press",is_error:true,duration_ms:1,text:"Invalid buttons",frames:[]},3));expect(m.text()).toContain("tool rejected: Invalid buttons");
+});
+it("ignores unrelated events, unmatched inputs, old state and duplicate dialogue, and bounds pending calls",()=>{
+ const m=new NavigationMemory(ALL_ON);expect(m.text()).toContain("Current: unobserved");
+ m.observe(event({type:"tool_call",id:"a",name:"press",args:{}},0));m.observe(event({type:"button_press",tool_call_id:"unknown",buttons:["A"]},1));
+ m.delivered(state(2,{started:false}));m.delivered(state(3,{map_id:null}));m.delivered(state(4,{screen:"menu"}));
+ m.delivered(state(5));m.delivered(state(6));expect(m.text().split("Someone outside is calling")).toHaveLength(2);
+ for(let i=7;i<22;i++)m.observe(event({type:"tool_call",id:String(i),name:"press",args:{}},i));
+ m.observe(event({type:"tool_result",id:"7",name:"press",is_error:false,duration_ms:0,text:"ok",frames:[]},22));expect(m.text()).toContain("none retained");
+ for(const input of ["", "x".repeat(301)])expect(()=>{m.remember(input,[5]);}).toThrow(/destination must/);
+ expect(()=>{m.remember("Maybe",[]);}).toThrow(/1–4/);
+});
+it("keeps model destination hypothesis separate from current room, landmarks and unacknowledged dialogue",async()=>{
+ const m=new NavigationMemory(ALL_ON);m.delivered(state(1,{interaction_targets:[{name:"Stairs",kind:"warp",x:3,y:2,elevation:0,activation:"step_on",availability:"observed",facing:null,local_id:null,destination:[1,2,0]}]}));
+ await m.tool().execute("memory",{destination:"I think this is the lab",evidence:[1]});
+ expect(m.text()).toContain("Current: Room · map 1/1");expect(m.text()).toContain("MODEL HYPOTHESIS");expect(m.text()).toContain("recorded warp destination 1/2/0");expect(m.text()).toContain("not yet displayed or acknowledged");
+});
+it.each([true,false])("uses authoritative pre-input link and never mistakes it for the outcome (post=%s)",post=>{
+ const m=new NavigationMemory(ALL_ON);m.delivered(state(1));m.observe(event({type:"tool_call",id:"a",name:"press",args:{buttons:["A"]}},2));
+ const before={position:{x:4,y:4},interaction_targets:[{name:"Current scientist",kind:"object",x:5,y:4,elevation:0,activation:"A",availability:"live",facing:null,local_id:1,destination:null}]};
+ m.delivered(state(3,before));m.observe(event({type:"button_press",tool_call_id:"a",before_state_seq:3,buttons:["A"]},4));if(post)m.delivered(state(5,before));m.observe(event({type:"tool_result",...(post?{state_seq:5}:{}),id:"a",name:"press",is_error:false,duration_ms:1,text:"ok",frames:[]},6));
+ expect(m.text()).toContain("Current scientist at faced tile 5,4");expect(m.text()).toContain("before #3");expect(m.text()).not.toContain("position changed");expect(m.text()).toContain(post?"no observed change":"result state unavailable");
+});
+it("expires a model hypothesis when its bounded supporting observations are evicted",()=>{
+ const m=new NavigationMemory(ALL_ON);m.delivered(state(1,{world_context:null}));m.remember("Hypothesis grounded only in room1",[1]);
+ for(let n=2;n<12;n++)m.delivered(state(n,{location:`Room${String(n)}`,map_id:[1,n],world_context:null}));
+ expect(m.text()).not.toContain("MODEL HYPOTHESIS");expect(m.text()).toContain("expired");expect(m.evidence()).not.toContain(1);
+});
+it("hides direct map_id when bounded navigation is off and labels incomplete target summaries",()=>{
+ const m=new NavigationMemory({...ALL_ON,"bounded-navigation-v1":false,"world-destinations-v1":false});m.delivered(state(1,{interaction_targets:Array.from({length:10},(_,i)=>({name:`Object${String(i)}`,kind:"object",x:i,y:4,elevation:0,activation:"A",availability:"live",facing:null,local_id:i,destination:null}))}));
+ expect(m.text()).not.toContain("map 1/1");expect(m.text()).toContain("first 8 of 10");expect(m.text()).toContain("2 omitted");
+});
+it("withholds targets for broken pre-input references and leaves no-input navigation outcomes ungraded",()=>{
+ const m=new NavigationMemory(ALL_ON);m.delivered(state(1));m.observe(event({type:"tool_call",id:"bad",name:"press",args:{buttons:["A"]}},2));m.delivered(state(3));m.observe(event({type:"button_press",tool_call_id:"bad",before_state_seq:999,buttons:["A"]},4));m.delivered(state(5));m.observe(event({type:"tool_result",id:"bad",name:"press",is_error:false,duration_ms:0,text:"ok",frames:[]},6));expect(m.text()).toContain("no linked pre-input state");expect(m.text()).toContain("result state unavailable");
+ m.observe(event({type:"tool_call",id:"nav",name:"navigate_to",args:{x:3,y:4,map_id:[1,1]}},7));m.delivered(state(8));m.observe(event({type:"tool_result",id:"nav",name:"navigate_to",is_error:false,duration_ms:0,text:"blocked before input",frames:[]},9));expect(m.text()).toContain("no button input recorded; outcome ungraded");
+});
+it("keeps multi-input navigation outcome after the final input and bounds long-run evidence",()=>{
+ const m=new NavigationMemory(ALL_ON);m.delivered(state(1));m.observe(event({type:"tool_call",id:"nav",name:"navigate_to",args:{x:4,y:4,map_id:[1,1]}},2));m.observe(event({type:"button_press",tool_call_id:"nav",before_state_seq:1,buttons:["RIGHT"]},3));m.delivered(state(4));m.observe(event({type:"button_press",tool_call_id:"nav",before_state_seq:4,buttons:["RIGHT"]},5));m.observe(event({type:"tool_result",state_seq:4,id:"nav",name:"navigate_to",is_error:false,duration_ms:0,text:"no final sample",frames:[]},6));expect(m.text()).toContain("result state unavailable");
+ for(let i=7;i<2007;i++)m.delivered(state(i,{location:`Room${String(i)}`,map_id:[1,i],world_context:{objects:[],triggers:[],dialogue:`Observed ${String(i)}`}}));expect(m.text().length).toBeLessThanOrEqual(6500);expect(m.evidence().length).toBeLessThanOrEqual(36);
+});
+it("prioritizes every recent outcome and explicitly qualifies all omitted source references when sections fill together",()=>{
+ const m=new NavigationMemory(ALL_ON);let seq=0;
+ for(let i=0;i<6;i++)m.delivered(state(++seq,{location:`Room${String(i)}${"r".repeat(150)}`,map_id:[1,i],world_context:{objects:[],triggers:[],dialogue:`Instruction ${String(i)} ${"d".repeat(650)}`}}));
+ for(let i=0;i<8;i++){
+  m.observe(event({type:"tool_call",id:`try${String(i)}`,name:"press",args:{buttons:["A"]}},++seq));
+  m.observe(event({type:"tool_result",id:`try${String(i)}`,name:"press",is_error:true,duration_ms:1,text:`Result ${String(i)} ${"failure ".repeat(40)}`,frames:[]},++seq));
+ }
+ const text=m.text();expect(text.length).toBeLessThanOrEqual(6500);for(let i=0;i<8;i++)expect(text).toContain(`Result ${String(i)}`);
+ expect(text).toContain("Omitted retained facts/source references (bounded display");for(const id of m.evidence())expect(text).toMatch(new RegExp(`#${String(id)}(?!\\d)`));
+});
+it("keeps outcomes and reference qualifications bounded with long targets, a full hypothesis and large sequence IDs",()=>{
+ const m=new NavigationMemory(ALL_ON);let seq=2**52;
+ const targets=Array.from({length:10},(_,i)=>({name:`Target${String(i)}${"n".repeat(300)}`,kind:"object",x:i,y:4,elevation:0,activation:"A",availability:"live",facing:null,local_id:i,destination:null}));
+ for(let i=0;i<6;i++)m.delivered(state(++seq,{location:`Room${String(i)}${"r".repeat(150)}`,map_id:[1,i],interaction_targets:targets,world_context:{objects:[],triggers:[],dialogue:`Instruction ${String(i)} ${"d".repeat(650)}`}}));
+ m.remember("h".repeat(300),[seq]);
+ for(let i=0;i<8;i++){const id=`try${String(i)}`;m.observe(event({type:"tool_call",id,name:"press",args:{buttons:["A"]}},++seq));m.observe(event({type:"tool_result",id,name:"press",is_error:true,duration_ms:1,text:`Outcome ${String(i)} ${"failure ".repeat(40)}`,frames:[]},++seq));}
+ const text=m.text();expect(text.length).toBeLessThanOrEqual(6500);expect(text).toContain("MODEL HYPOTHESIS");expect(text.indexOf("Outcome 7")).toBeLessThan(text.indexOf("Target0"));for(let i=0;i<8;i++)expect(text).toContain(`Outcome ${String(i)}`);for(const id of m.evidence())expect(text).toMatch(new RegExp(`#${String(id)}(?!\\d)`));
+});
+
+it("refreshes a returning quote while deduplicating consecutive polls and preserving their hypothesis",()=>{
+ const m=new NavigationMemory(ALL_ON);m.delivered(state(1,{world_context:null}));
+ const quote=(seq:number,text:string)=>state(seq,{world_context:{objects:[],triggers:[],dialogue:text}});
+ m.delivered(quote(2,"Quote A"));m.remember("Look for the speaker",[2]);
+ for(let seq=3;seq<10;seq++)m.delivered(quote(seq,"Quote A"));
+ expect(m.text()).toContain("MODEL HYPOTHESIS");expect(m.evidence()).toContain(2);
+ m.delivered(quote(10,"Quote B"));m.delivered(quote(11,"Quote A"));
+ const text=m.text(),last=text.split("Last observed dialogue")[1]?.split("Rooms visited")[0];
+ expect(last).toContain("Quote A");expect(last).toContain("#11");expect(last).not.toContain("Quote B");
+ expect(text).toContain("expired");expect(m.evidence()).not.toContain(2);
+ for(let seq=12;seq<25;seq++)m.delivered(quote(seq,`Quote ${String(seq)}`));
+ expect(m.evidence()).not.toContain(11);expect(m.evidence().length).toBeLessThanOrEqual(36);
+});
+it("keeps returning dialogue latest under full outcome and room pressure",()=>{
+ const m=new NavigationMemory(ALL_ON);let seq=0;
+ const observed=(text:string)=>state(++seq,{location:`Room5${"r".repeat(150)}`,map_id:[1,5],world_context:{objects:[],triggers:[],dialogue:text}});
+ for(let i=0;i<6;i++)m.delivered(state(++seq,{location:`Room${String(i)}${"r".repeat(150)}`,map_id:[1,i],world_context:{objects:[],triggers:[],dialogue:`Instruction ${String(i)} ${"d".repeat(650)}`}}));
+ m.delivered(observed("Quote A"));m.delivered(observed("Quote B"));m.delivered(observed("Quote A"));
+ for(let i=0;i<8;i++){const id=`try${String(i)}`;m.observe(event({type:"tool_call",id,name:"press",args:{buttons:["A"]}},++seq));m.observe(event({type:"tool_result",id,name:"press",is_error:true,duration_ms:1,text:`Outcome ${String(i)} ${"failure ".repeat(40)}`,frames:[]},++seq));}
+ const text=m.text();expect(text.length).toBeLessThanOrEqual(6500);expect(text.split("Last observed dialogue")[1]?.split("Rooms visited")[0]).toContain("Quote A");
+ for(let i=0;i<8;i++)expect(text).toContain(`Outcome ${String(i)}`);for(const id of m.evidence())expect(text).toMatch(new RegExp(`#${String(id)}(?!\\d)`));
+});
+
+it("does not reveal field-lock ownership when that independent information switch is OFF",()=>{
+ for(const locked of [false,true,null]){
+  const m=new NavigationMemory({...ALL_ON,"field-control-lock":false});m.delivered(state(1,{field_controls_locked:locked}));
+  m.observe(event({type:"tool_call",id:"a",name:"press",args:{buttons:["A"]}},2));m.observe(event({type:"button_press",tool_call_id:"a",before_state_seq:1,buttons:["A"]},3));m.observe(event({type:"tool_result",id:"a",name:"press",is_error:false,duration_ms:1,text:"ok",frames:[]},4));
+  expect(m.text()).toContain("A interaction target unverified");expect(m.text()).not.toContain("A input owned by interface");
+ }
+});
+
+it("withholds raw telemetry without an exact returned-state link, including mismatched and missing links",()=>{
+ const m=new NavigationMemory(ALL_ON);m.observe(state(1,{location:"INTERNAL",world_context:{objects:[],triggers:[],dialogue:"INTERNAL QUOTE"}}));
+ for(const link of [undefined,999])m.observe(event({type:"tool_result",...(link===undefined?{}:{state_seq:link}),id:"observe",name:"observe",is_error:false,duration_ms:1,text:"unprovided",frames:[]},2));
+ expect(m.text()).not.toContain("INTERNAL");expect(m.evidence()).toEqual([]);
+ m.observe(event({type:"tool_result",state_seq:1,id:"observe",name:"observe",is_error:false,duration_ms:1,text:"delivered",frames:[]},3));expect(m.text()).toContain("INTERNAL QUOTE");expect(m.evidence()).toEqual([1]);
+});
+
+it("compares delivered call/result positions without attributing internal pre-input changes to the action",()=>{
+ const m=new NavigationMemory(ALL_ON);m.delivered(state(1));m.observe(event({type:"tool_call",id:"a",name:"press",args:{buttons:["RIGHT"]}},2));
+ m.observe(state(3,{position:{x:4,y:4},world_context:{objects:[],triggers:[],dialogue:"PRIVATE PREINPUT"}}));m.observe(event({type:"button_press",tool_call_id:"a",before_state_seq:3,buttons:["RIGHT"]},4));m.observe(state(5,{position:{x:5,y:4}}));
+ m.observe(event({type:"tool_result",state_seq:5,id:"a",name:"press",is_error:false,duration_ms:1,text:"position5",frames:[]},6));
+ expect(m.text()).toContain("delivered call/result comparison: position changed to 5,4; actual input effects unverified");expect(m.text()).toContain("before #unavailable");expect(m.text()).not.toContain("PRIVATE PREINPUT");expect(m.evidence()).not.toContain(3);
+});

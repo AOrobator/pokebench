@@ -524,3 +524,11 @@ it("shows qualified automatic field activity separately from input-ready message
  const log=bare();log.add(1,state({world_context:{objects:[],triggers:[],dialogue:null,field_activity:{phase:"script_pause",owner:0x08099D95}}}));
  const html=fieldContext(view(log));expect(html).toContain("Field activity: script_pause; not an input-ready field message; owner 0x8099D95");expect(html).not.toContain("advance input ready");expect(html).not.toContain("STATE COVERAGE ERROR");
 });
+
+describe("navigation memory delivery",()=>{
+ it("retains exact payload for raw inspection and shows delivery in activity history",()=>{
+  const log=bare();const event=log.add(100,{type:"navigation_context",turn:1,text:"NAVIGATION EVIDENCE MEMORY <observed> #1",evidence:[1]});
+  const result=view(log);expect(actionRow(event,result)).toContain("Navigation memory delivered");expect(actionRow(event,result)).toContain("1 retained references");expect(actionRow(event,result)).toContain("&lt;observed&gt;");
+  expect(inspector(event)).toContain("NAVIGATION EVIDENCE MEMORY");
+ });
+});

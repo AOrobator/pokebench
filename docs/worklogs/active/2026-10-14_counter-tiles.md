@@ -45,8 +45,8 @@ frozen presets keep counters as `#` and comparisons stay comparable.
 - GREEN: `fix(live-map): draw counters as = and explain talking across them` (3734d45)
 - Hint refinement: `fix(navigation): name the tile and direction for talking across a counter` (982773a)
 - Merged main (ledge hops landed): conflicts in live_map.py, navigation.ts and both test files resolved by keeping ledges and counters side by side. After merge: 59 agent + 40 viewer test files, 1809 Python tests; coverage gate 90 passes; lint clean.
-- RED (switch): `test: counter-talk-v1 switch keeps counters as walls when off (RED)`
-- GREEN (switch): `feat(features): put counter talk behind counter-talk-v1`. 59 agent + 40 viewer test files (899 + 474 tests), 1811 Python; coverage gate 90 passes; lint clean; vendor OK.
+- RED (switch): `test: counter-talk-v1 switch keeps counters as walls when off (RED)` (5f06ade)
+- GREEN (switch): `feat(features): put counter talk behind counter-talk-v1` (70202d6). 59 agent + 40 viewer test files (899 + 474 tests), 1811 Python; coverage gate 90 passes; lint clean; vendor OK.
 
 ## Review
 
@@ -66,3 +66,10 @@ limit) BLOCKING:
 - Merged main 8911d0e (one-way tiles `one-way-tiles-v1` landed): every conflict was two sibling switches side by side; both kept. Counts now 12 guidance switches, 20 server features, 32 viewer switch rows. 918 agent + 476 viewer tests, 1829 Python; gates green.
 - Merged main 5195c88 (elevation transitions) cleanly. 921 agent + 478 viewer tests, 1829 Python; gates green; vendor OK.
 - Recorded probe re-run on head 49d5ef1 (clean): `runs/counter-proof/recorded/2026-10-14T19-51-20_probe_counter_talk`, 648 events; navigate_to (7,2) seq 593->595 and (7,3) seq 597->599 with 0 button presses each; UP seq 627, A seq 636, nurse greeting in tool_result 641/645. Receipt rewritten: `runs/counter-proof/recorded-receipt.txt`.
+
+Round 2 (head 992cfb9, base main 5195c88, diff SHA-256 78b31cfb…): Claude CLI LGTM, Codex
+(gpt-5.6-sol, high) LGTM, Cursor Grok 4.5 LGTM. Notes taken: add `counter-talk-v1` to the
+viewer's FEATURE_EXPLAINERS allowlist (Claude, Grok) and refresh the explainer status text.
+Left as speculation: object elevation is not in navigation_grid (Codex found no mismatch across
+181 static counter/object alignments); first-direction rather than nearest stand tile.
+- [ ] RED: viewer serves /explainers/counter-talk-v1.html

@@ -116,3 +116,8 @@ COMMIT: `test(agent): RED for game-evidence-priority-v1 prompt guidance` (15dbf7
   every mapped explainer file exists. Gates: agent 950/950, viewer 494/494, coverage agent
   97.2/93.41/97.92 (stmts/branches/funcs), viewer 95.67/90.53/95.34, tsc and eslint clean. No
   Python touched.
+COMMIT: `feat(agent): add game-evidence-priority-v1 prompt guidance switch` (9bda476)
+- M1 review r1 dispatched (Claude CLI, Cursor Grok, GPT lane; local endpoint lanes skipped per
+  operator). Artifacts: runs/rival-push-review/m1-r1/ in the main checkout.
+- M2 RED: dialogue-log.test.ts (9 tests: delivered-only capture, repeats, filters, bounds,
+  faced-character honesty, argument validation, switch/tool/prompt wiring).

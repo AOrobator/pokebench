@@ -182,3 +182,53 @@ it("expects a two-tile landing after a hop press and stops on any other movement
  const disabled=await run({...south,position:{x:1,y:2}},false);expect(disabled.buttons).toEqual([]);expect(disabled.text).toContain("no supported local path");
  expect(disabled.description).not.toContain("ledge");
 });
+
+// pokeemerald 731ad5b IsMetatileDirectionallyImpassable: a move is refused when the current
+// tile walls its exit side or the next tile walls its entry side (MetatileBehavior_Is*Blocked).
+const room=(chair:number,position={x:0,y:1}):GameStateSnapshot=>({...field,position,navigation_grid:{elevation:3,tiles:[0,1,2].flatMap(x=>[0,1,2].map(y=>x===1&&y===1?tile(1,1,0,chair):tile(x,y))),objects:[],warps:[]}});
+it("crosses an edge-wall tile only through its open sides when one-way tiles are on",()=>{
+ expect(planNavigation(room(0xc0),{x:2,y:1},{oneWay:true})).toEqual(["RIGHT","RIGHT"]);
+ expect(planNavigation(room(0xc0),{x:1,y:1},{oneWay:true})).toEqual(["RIGHT"]);
+ expect(planNavigation(room(0xc0,{x:1,y:0}),{x:1,y:2},{oneWay:true})).toEqual(["LEFT","DOWN","DOWN","RIGHT"]);
+ expect(planNavigation(room(0xc0,{x:1,y:0}),{x:1,y:1},{oneWay:true})).toEqual(["LEFT","DOWN","RIGHT"]);
+ expect(planNavigation(room(0xc0,{x:1,y:1}),{x:1,y:2},{oneWay:true})).toEqual(["LEFT","DOWN","RIGHT"]);
+ expect(planNavigation(room(0xc1,{x:1,y:0}),{x:1,y:2},{oneWay:true})).toEqual(["DOWN","DOWN"]);
+ expect(planNavigation(room(0xc1),{x:2,y:1},{oneWay:true})).toEqual(["UP","RIGHT","RIGHT","DOWN"]);
+ expect(planNavigation(room(0x30),{x:2,y:1},{oneWay:true})).toEqual(["RIGHT","UP","RIGHT","DOWN"]);
+ expect(planNavigation(room(0x30,{x:2,y:1}),{x:1,y:1},{oneWay:true})).toEqual(["UP","LEFT","DOWN"]);
+ expect(planNavigation(room(0x31,{x:2,y:1}),{x:1,y:1},{oneWay:true})).toEqual(["LEFT"]);
+ expect(planNavigation(room(0x31),{x:1,y:1},{oneWay:true})).toEqual(["UP","RIGHT","DOWN"]);
+ expect(planNavigation(room(0x37,{x:1,y:0}),{x:1,y:2},{oneWay:true})).toEqual(["DOWN","RIGHT","DOWN","LEFT"]);
+ expect(planNavigation(room(0x37,{x:1,y:0}),{x:2,y:1},{oneWay:true})).toEqual(["DOWN","RIGHT"]);
+});
+it("keeps edge-wall tiles as walls with one-way tiles off",()=>{
+ expect(planNavigation(room(0xc0),{x:2,y:1})).toEqual(["UP","RIGHT","RIGHT","DOWN"]);
+ expect(planNavigation(room(0xc0),{x:1,y:1})).toBeNull();
+ expect(planNavigation(room(0xc0),{x:1,y:1},{oneWay:false})).toBeNull();
+});
+it("says it respects walled sides only when one-way tiles are on",()=>{
+ const ports={read:()=>Promise.resolve(field),press:()=>Promise.resolve(result(field)),observe:()=>Promise.resolve(result(field))};
+ expect(navigationTool({...ports,oneWay:true}).description).toContain("never crosses a walled side of a + tile");
+ expect(navigationTool(ports).description).not.toContain("walled side");
+});
+it("walks through the chair from the side with the real tool",async()=>{
+ let current=room(0xc0);const buttons:string[][]=[];
+ const tool=navigationTool({oneWay:true,read:()=>Promise.resolve(current),press:(_id,params)=>{buttons.push([...params.buttons]);const p=current.position??{x:0,y:0};current={...current,position:{x:p.x+1,y:p.y}};return Promise.resolve(result(current));},observe:()=>Promise.resolve(result(current))});
+ const outcome=await tool.execute("nav",{x:2,y:1,map_id:[0,9]});
+ expect(buttons).toEqual([["RIGHT"],["RIGHT"]]);expect(outcome.content[0]?.type==="text"?outcome.content[0].text:"").toContain("arrived");
+});
+it("hops a ledge out of an edge-wall tile because the game's ledge jump ignores walled sides",()=>{
+ const state=ledgeField(0x3b,{tiles:[tile(1,0,0,0xc0),tile(1,1,1,0x3b),tile(1,2)]});
+ expect(planNavigation(state,{x:1,y:2},{ledges:true,oneWay:true})).toEqual(["DOWN"]);
+ expect(planNavigation({...state,navigation_grid:{elevation:3,tiles:[tile(1,0,0,0xc0),tile(1,1)],objects:[],warps:[]}},{x:1,y:1},{ledges:true,oneWay:true})).toBeNull();
+});
+it.each([[0x30,["RIGHT"]],[0x31,["LEFT"]],[0x32,["UP"]],[0x33,["DOWN"]],[0x34,["UP","RIGHT"]],[0x35,["UP","LEFT"]],[0x36,["DOWN","RIGHT"]],[0x37,["DOWN","LEFT"]],[0xbe,["LEFT","RIGHT"]],[0xc0,["UP","DOWN"]],[0xc1,["LEFT","RIGHT"]]] as const)("behavior %i walls exactly %j, entering and leaving",(behavior,sides)=>{
+ const from={UP:{x:1,y:0},DOWN:{x:1,y:2},LEFT:{x:0,y:1},RIGHT:{x:2,y:1}} as const;
+ for(const side of ["UP","DOWN","LEFT","RIGHT"] as const){
+  const walledSide=(sides as readonly string[]).includes(side);
+  const enter=planNavigation(room(behavior,from[side]),{x:1,y:1},{oneWay:true});
+  const leave=planNavigation(room(behavior,{x:1,y:1}),from[side],{oneWay:true});
+  expect(enter?.length,`enter through ${side}`).toBe(walledSide?3:1);
+  expect(leave?.length,`leave through ${side}`).toBe(walledSide?3:1);
+ }
+});

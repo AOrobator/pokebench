@@ -14,7 +14,7 @@ Scope: the elevation rule in navigation.ts only. Walkable behaviors (sand, bridg
 - [x] Merge latest main
 - [x] Review: principles self-review, Claude CLI, Codex, Grok (round 3 LGTM x3)
 - [x] Explainer: docs/explainers/elevation-transitions.html (tracked, per updated feature-explainer skill); before-routes verified against main a8cbcff planner
-- [ ] Operator approval to merge into main
+- [x] Operator approval to merge into main (approved 2026-10-14)
 - RED: navigation.test.ts 4 failed / 13 passed (expected: stairs, pier, Littleroot, Route 110).
 - COMMIT: `test: navigation elevation transitions from real maps (RED)` (254be39)
 - GREEN: agent 893 tests pass; navigation.ts 91.82 lines / 92 branches / 100 functions; agent all-files 97.1/93.16/97.85; viewer 419 pass; Python 1803 pass, 96.53/91.65/99.34 (floor 90). Lint (tsc, eslint, ruff, mypy) and build clean.
@@ -38,3 +38,5 @@ Scope: the elevation rule in navigation.ts only. Walkable behaviors (sand, bridg
 - Merged main 9e4665d (12e143e). Gates: agent 899, viewer 476, Python 1803 pass; lint clean.
 - Review round 3 (head a6a4877, diff from merge-base 9e4665d, SHA-256 347535c5…): Claude CLI LGTM, Codex (gpt-5.6-sol) LGTM, Grok (cursor-grok-4.5-high) LGTM. Non-blocking: the planner's ledge-landing mismatch check is stricter than the game (pre-existing on main, ledge-hops scope); fixture provenance is descriptive, not regenerated in CI.
 - Waiting on operator approval to merge into main.
+- Operator approved merge into main (2026-10-14). Merging main 8911d0e (one-way tiles) first.
+- Merged main 8911d0e (one-way tiles): comment-only conflict in navigation.ts. Gates: agent 917, viewer 476, Python 1803 pass; agent 97.22/93.34/97.87, Python 96.68/91.84/100; lint, build clean. Landing as a local --no-ff merge into main.

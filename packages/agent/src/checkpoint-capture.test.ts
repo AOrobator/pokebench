@@ -6,7 +6,7 @@ import {ALL_ON} from "./features.js";
 import {checkEvent,type RunEvent} from "./events.js";
 
 const ev=(body:Record<string,unknown>,seq:number):RunEvent=>checkEvent({v:1,run:"cp-run",t:"2026-10-14T12:00:00.000-04:00",turn:4,seq,...body});
-const milestone=(name:string,seq:number,origin="observed")=>ev({type:"milestone",name,kind:"story",origin,evidence:[seq-1]},seq);
+const milestone=(name:string,seq:number,origin="observed")=>ev({type:"milestone",name,server_timestamp:1,kind:"story",origin,evidence:[seq-1]},seq);
 const STATE=Buffer.from("native-state");
 const sha1=createHash("sha1").update(STATE).digest("hex"),sha256=createHash("sha256").update(STATE).digest("hex");
 

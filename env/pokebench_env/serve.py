@@ -22,6 +22,7 @@ from pydantic import BaseModel
 from pokebench_env.action_history import install_action_history
 from pokebench_env.audio import EmulatorLike
 from pokebench_env.battle_choices import FrameEmulator, install_battle_journal
+from pokebench_env.checkpoint import install_checkpoint
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import MapNames
 from pokebench_env.human import HumanServer, install_human
@@ -87,6 +88,7 @@ def run(
     raw_archive: RawRamArchive | None = None,
     raw_capture: Callable[[], dict[str, object]] | None = None,
     travel: tuple[FastAPI, type[FrameEmulator], TravelServer, ReadMemory] | None = None,
+    agent_checkpoint: tuple[FastAPI, Callable[[], bytes | None]] | None = None,
 ) -> None:
     if actions is not None:
         install_action_history(*actions)
@@ -94,6 +96,8 @@ def run(
         install_travel(*travel)
     if pause is not None:
         install_pause(*pause)
+    if agent_checkpoint is not None:
+        install_checkpoint(*agent_checkpoint)
     if spectator is not None:
         install_spectator(*spectator)
     capture = None
@@ -168,6 +172,7 @@ def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
         if not token and hasattr(app, "action_queue")
         else None,
         pause=None if token else (app.app, cast(SteppingServer, app)),
+        agent_checkpoint=None if token else (app.app, checkpoint),
         human=(app.app, cast(HumanServer, app), token) if token else None,
     )
 

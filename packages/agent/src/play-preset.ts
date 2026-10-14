@@ -1,3 +1,4 @@
+import {createHash} from "node:crypto";
 import {Type,type Static} from "typebox";
 import {Value} from "typebox/value";
 import {MILESTONES} from "./milestones.js";
@@ -33,7 +34,8 @@ export function normalizeFeatures(features:Static<typeof FeatureSetSchema>):Feat
 }
 export const PlayPresetV1Schema=Type.Object({version:Type.Literal(1),...common,flags:PlayFlagsSchema},closed);
 // v2 names every switch explicitly; viewer-queued runs use it.
-export const PlayPresetV2Schema=Type.Object({version:Type.Literal(2),...common,features:FeatureSetSchema},closed);
+export const PresetStartSchema=Type.Object({kind:Type.Literal("save_state"),path:Type.String({minLength:1,maxLength:4096}),sha1:Type.String({pattern:"^[0-9a-f]{40}$"})},closed);
+export const PlayPresetV2Schema=Type.Object({version:Type.Literal(2),...common,features:FeatureSetSchema,start:Type.Optional(PresetStartSchema)},closed);
 export const PlayPresetSchema=Type.Union([PlayPresetV1Schema,PlayPresetV2Schema]);
 export type PlayPresetV1=Static<typeof PlayPresetV1Schema>;
 export type PlayPresetV2=Omit<Static<typeof PlayPresetV2Schema>,"features"> & {features:FeatureSet};
@@ -65,4 +67,12 @@ export function presetFlags(preset:PlayPreset):PlayFlags{
  if(preset.version===1)return {...preset.flags};
  const f=preset.features;
  return {loopGuard:f["deterministic-loop-guard-v1"],activeUi:f["active-ui-ownership-v1"],interfaceDocs:f["contextual-interface-docs-v1"],objectives:f["objective-tracking-v1"]};
+}
+
+// A checkpoint start is verified against its recorded SHA-1 before the run launches.
+export function presetStart(preset:PlayPreset,read:(path:string)=>Buffer):{kind:"boot"}|Static<typeof PresetStartSchema>{
+ if(preset.version!==2||preset.start===undefined)return {kind:"boot"};
+ const actual=createHash("sha1").update(read(preset.start.path)).digest("hex");
+ if(actual!==preset.start.sha1)throw new Error(`Checkpoint SHA-1 mismatch for ${preset.start.path}: preset ${preset.start.sha1}, file ${actual}`);
+ return {...preset.start};
 }

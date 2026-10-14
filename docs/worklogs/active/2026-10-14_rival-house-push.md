@@ -104,7 +104,9 @@ keeps detection and warnings, drops termination, and the experiment measures the
 - Every switch gets an explainer linked from its feature card (feature-explainer skill).
 - Checkpoint starts (the operator asked, 2026-10-14 20:49/21:01 UTC): steps 0–4 start from a recorded
   save state taken right after CLOCK_SET (so Mom's rival instruction happens inside every run),
-  15-minute budget, stop at RIVAL_MET, present-at-start milestones excluded. The confirmation batch
+  stop at RIVAL_MET, present-at-start milestones excluded. Budget: The operator objected to the
+  15-minute cap I proposed (the best run needed 16:21 after the clock); offered 25 minutes
+  (matches the post-clock time of past 30-minute boot runs) or 30. Waiting on his pick. The confirmation batch
   (Exp 5) starts from boot with the 30-minute budget and is the stop decision.
 
 ## Session log
@@ -185,3 +187,14 @@ COMMIT: `test(agent): RED for instruction-ledger-v1 and note_contradiction` (15f
   viewer 95.67/90.54/95.34, tsc/eslint clean.
 COMMIT: `feat(agent): add instruction-ledger-v1 with note_contradiction` (c87f309)
 - M5a RED: env/tests/env/test_checkpoint.py (2 tests) and checkpoint-capture.test.ts (5 tests).
+COMMIT: `test: RED for milestone checkpoint capture and checkpoint starts` (1c344fd)
+- M5a GREEN: env pokebench_env/checkpoint.py adds POST /pokebench/checkpoint for agent (non-human)
+  servers via serve.run(agent_checkpoint=...); returns state + sha1 + sha256, 503 when unavailable.
+  Agent CheckpointCapture (POKEBENCH_CHECKPOINT_AT, native milestones only) pauses, fetches,
+  verifies both digests, writes <MILESTONE>.state + .json provenance under runs/<id>/checkpoints/,
+  always unpauses; live.ts awaits it before the run closes. v2 presets accept
+  start {kind:save_state,path,sha1}; presetStart verifies SHA-1 before launch and live.ts loads the
+  state through the launcher's existing --load-state and records start_state. Gates: agent
+  980/980, viewer 499/499, env 1850 passed, Python coverage 96.72/91.92/100, TS agent
+  97.3/93.5/97.95, ruff/mypy/tsc/eslint clean. Worktree venv got the built mgba package copied from
+  the main checkout (setup gap only).

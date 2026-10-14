@@ -482,3 +482,14 @@ it("shows the three post-clock splits and labels unsupported historical runs",()
  const old=splits(view(bare()),null,BASE_MS+5000).table;
  expect(old).toContain('<td class="n">rival house entered</td><td class="t">not<br>recorded</td>');
 });
+
+it('shows individual Gym trainers as unsupported for old logs and as recorded splits for new runs',()=>{
+ const old=splits(view(bare()),null,BASE_MS+1000).table;
+ expect(old).toContain('<td class="n">rustboro gym trainer josh defeated</td><td class="t">not<br>recorded</td>');
+ const log=new Log();log.add(0,{...START,harness_features:['rustboro-gym-trainer-milestones-v1']});
+ log.add(1000,{type:'milestone',turn:0,name:'RUSTBORO_GYM_TRAINER_JOSH_DEFEATED',server_timestamp:1,kind:'story',origin:'observed',evidence:[0]});
+ const current=splits(view(log),null,BASE_MS+2000).table;
+ expect(current).toContain('<td class="n">rustboro gym trainer josh defeated</td><td class="t">0:00:01</td>');
+ expect(current).toContain('rustboro gym trainer tommy defeated');expect(current).toContain('rustboro gym trainer marc defeated');
+ expect(current).not.toContain('<td class="n">rustboro gym trainer tommy defeated</td><td class="t">not<br>recorded</td>');
+});

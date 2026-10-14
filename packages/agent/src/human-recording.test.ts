@@ -141,3 +141,17 @@ it('skips missed screenshot intervals without producing a catch-up burst',async(
  for(const [index,ms] of [0,2001,2001,2001,2400,2500].entries()){clock=ms;recorder.recordHumanSample(index,false,png,state);}
  const events=readFileSync(log.eventsPath,'utf8').trim().split('\n').map(parseEvent);expect(events.filter(event=>event.type==='state')).toHaveLength(6);expect(events.filter(event=>event.type==='human_sample').map(event=>event.frame)).toEqual([0,1,5]);
 });
+
+it('carries trainer RAM flags through human sampling into native milestone evidence and preserves wins after gym-clear',async()=>{
+ const {StateMilestones}=await import('./milestones.js');const r=root();const log=RunLog.create(r,'gym-human');
+ const story={name_confirmed:true,intro_stage:7,rival_stage:4,birch_lab_stage:5,petalburg_gym_stage:2,woods_stage:1,clock_set:true,rival_battle_won:true,pokedex_received:true,running_shoes_received:true,starter_tutorial_complete:true,rustboro_gym_complete:false,stone_badge:false,rock_tomb_received:false,rustboro_josh_defeated:false,rustboro_tommy_defeated:false,rustboro_marc_defeated:false};
+ const gym={...state,screen:'overworld',started:true,location:'RUSTBORO CITY GYM',story};
+ const detector=new StateMilestones({read:()=>Promise.resolve(gym)});const recorder=new RunRecorder({log,frames:new FrameStore(r),milestones:detector,gameState:{read:()=>Promise.resolve(gym)}});
+ await recorder.start({...RUN_START_META,controller:{kind:'human',name:'Operator',rom_sha1:'a'.repeat(40),input_policy:'frame-held-v1',sample_ms:100,nominal_fps:59.7275,screenshot_ms:500},harness_features:['rustboro-gym-trainer-milestones-v1']},false);
+ recorder.recordHumanSample(10,false,png,gym);
+ recorder.recordHumanSample(20,false,png,{...gym,story:{...story,rustboro_josh_defeated:true}});
+ recorder.recordHumanSample(30,false,png,{...gym,story:{...story,rustboro_gym_complete:true,rustboro_josh_defeated:null,rustboro_tommy_defeated:null,rustboro_marc_defeated:null}});
+ const events=readFileSync(join(r,'gym-human','events.jsonl'),'utf8').trim().split('\n').map(parseEvent);const wins=events.filter(e=>e.type==='milestone'&&e.name.startsWith('RUSTBORO_GYM_TRAINER_'));
+ expect(wins).toHaveLength(1);expect(wins[0]).toMatchObject({name:'RUSTBORO_GYM_TRAINER_JOSH_DEFEATED',kind:'story',origin:'observed',emulator_frame:20});
+ const win=wins[0];if(win?.type!=='milestone')throw Error('no native win');const evidence=events.find(e=>e.seq===win.evidence?.[0]);expect(evidence).toMatchObject({type:'state',story:{rustboro_josh_defeated:true,rustboro_gym_complete:false}});
+});

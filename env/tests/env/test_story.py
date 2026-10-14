@@ -31,6 +31,9 @@ def test_story_reader_propagates_exact_game_variables_flags_and_text() -> None:
         "rustboro_gym_complete": True,
         "stone_badge": True,
         "rock_tomb_received": True,
+        "rustboro_josh_defeated": None,
+        "rustboro_tommy_defeated": None,
+        "rustboro_marc_defeated": None,
     }
     assert "clock set; rival met; Birch rescue complete" in format_readout(state)
     # Adjacent bits do not certify an event.
@@ -220,3 +223,81 @@ def test_existing_positive_owner_keeps_precedence_over_negative_candidate() -> N
     m.put(0x03005E00 + 0x28, struct.pack("<IB", 0x08031221, 1))
     body = state_json(read_game_state(m.read, MAPS))
     assert body["story"]["name_confirmed"] is True, body
+
+
+GYM_TRAINERS = [
+    ("rustboro_josh_defeated", 0x640, "Josh"),
+    ("rustboro_tommy_defeated", 0x641, "Tommy"),
+    ("rustboro_marc_defeated", 0x73B, "Marc"),
+]
+
+
+def _set_story_flag(memory, flag: int) -> None:
+    address = SB1 + 0x1270 + (flag >> 3)
+    memory.put(address, bytes([memory.read(address, 1)[0] | (1 << (flag & 7))]))
+
+
+@pytest.mark.parametrize(("field", "flag", "name"), GYM_TRAINERS)
+def test_rustboro_trainer_exact_flag_propagates_independently(field, flag, name) -> None:
+    from pokebench_env.story import GYM_TRAINER_FLAGS
+
+    m = game(OVERWORLD)
+    _set_story_flag(m, flag)
+    state = read_game_state(m.read, MAPS)
+    body = state_json(state)["story"]
+    assert GYM_TRAINER_FLAGS == {key: bit for key, bit, _ in GYM_TRAINERS}
+    assert {key: body[key] for key, _, _ in GYM_TRAINERS} == {
+        key: key == field for key, _, _ in GYM_TRAINERS
+    }
+    assert f"Rustboro Gym {name} defeated" in format_readout(state)
+    assert body["rustboro_gym_complete"] is False
+    assert body["stone_badge"] is False
+
+
+@pytest.mark.parametrize(("field", "flag", "name"), GYM_TRAINERS)
+def test_rustboro_trainer_adjacent_bit_does_not_certify_defeat(field, flag, name) -> None:
+    m = game(OVERWORLD)
+    _set_story_flag(m, flag ^ 1)
+    state = read_game_state(m.read, MAPS)
+    assert state_json(state)["story"][field] is False
+    assert f"Rustboro Gym {name} defeated" not in format_readout(state)
+
+
+def test_two_rustboro_trainers_can_complete_in_one_snapshot() -> None:
+    m = game(OVERWORLD)
+    _set_story_flag(m, 0x640)
+    _set_story_flag(m, 0x641)
+    state = read_game_state(m.read, MAPS)
+    body = state_json(state)["story"]
+    assert body["rustboro_josh_defeated"] is True
+    assert body["rustboro_tommy_defeated"] is True
+    assert body["rustboro_marc_defeated"] is False
+    assert "Rustboro Gym Josh defeated; Rustboro Gym Tommy defeated" in format_readout(state)
+
+
+@pytest.mark.parametrize("trainer_bits", [False, True])
+def test_gym_clear_makes_trainer_bits_ambiguous(trainer_bits: bool) -> None:
+    m = game(OVERWORLD)
+    _set_story_flag(m, 0x4F0)
+    _set_story_flag(m, 0x867)
+    if trainer_bits:
+        for _, flag, _ in GYM_TRAINERS:
+            _set_story_flag(m, flag)
+    state = read_game_state(m.read, MAPS)
+    body = state_json(state)["story"]
+    assert body["rustboro_gym_complete"] is True
+    assert body["stone_badge"] is True
+    for field, _, name in GYM_TRAINERS:
+        assert body[field] is None
+        assert f"Rustboro Gym {name} defeated" not in format_readout(state)
+
+
+@pytest.mark.parametrize("screen", [NAMING, (0, 0x0802F6B1)])
+def test_pregame_trainer_flags_are_unavailable(screen) -> None:
+    m = game(screen)
+    if screen == (0, 0x0802F6B1):
+        m.put(0x03005E00, struct.pack("<IB", 0x08030A2D, 1))
+    for _, flag, _ in GYM_TRAINERS:
+        _set_story_flag(m, flag)
+    body = state_json(read_game_state(m.read, MAPS))["story"]
+    assert all(body[field] is None for field, _, _ in GYM_TRAINERS)

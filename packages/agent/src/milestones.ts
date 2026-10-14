@@ -38,6 +38,8 @@ const flag = (field:
   | "rock_tomb_received"
 ) => (s: GameStateSnapshot): boolean | null =>
   s.screen === "field_transition" ? null : (field === "name_confirmed" || savedWorld(s)) ? (s.story?.[field] ?? null) : null;
+const gymTrainer = (field: "rustboro_josh_defeated" | "rustboro_tommy_defeated" | "rustboro_marc_defeated") => (s: GameStateSnapshot): boolean | null =>
+  savedWorld(s) && s.story?.rustboro_gym_complete === false ? (s.story[field] ?? null) : null;
 const stage = (field:
   | "intro_stage" | "rival_stage" | "birch_lab_stage" | "petalburg_gym_stage" | "woods_stage",
   values: readonly number[],
@@ -114,6 +116,9 @@ export const MILESTONES: readonly Milestone[] = [
   { name: "TEAM_AQUA_WOODS_EVENT_COMPLETE", kind: "story", reached: stage("woods_stage", [1]) },
   { name: "RUSTBORO_CITY", kind: "navigation", reached: at("RUSTBORO CITY") },
   { name: "RUSTBORO_CITY_GYM", kind: "navigation", reached: at("RUSTBORO CITY GYM") },
+  { name: "RUSTBORO_GYM_TRAINER_JOSH_DEFEATED", kind: "story", reached: gymTrainer("rustboro_josh_defeated") },
+  { name: "RUSTBORO_GYM_TRAINER_TOMMY_DEFEATED", kind: "story", reached: gymTrainer("rustboro_tommy_defeated") },
+  { name: "RUSTBORO_GYM_TRAINER_MARC_DEFEATED", kind: "story", reached: gymTrainer("rustboro_marc_defeated") },
   { name: "RUSTBORO_GYM_COMPLETE", kind: "story", reached: flag("rustboro_gym_complete") },
   { name: "STONE_BADGE", kind: "story", reached: (s) => savedWorld(s) ? s.badges.includes("STONE") : null },
   { name: "ROCK_TOMB_RECEIVED", kind: "story", reached: flag("rock_tomb_received") },

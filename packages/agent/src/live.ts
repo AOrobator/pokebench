@@ -164,7 +164,7 @@ async function smoke(): Promise<void> {
       systemPrompt: SYSTEM_PROMPT,
       tools,
       startState: { kind: "boot" },
-      harnessFeatures: ["ram-state-v1", "live-map-v1", "field-control-lock", "naming-cursor-v1", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "world-targets-v1", "live-player-position-v1", "world-coordinate-grid-v1", "press-result-v1", "warp-activation-guidance-v1", "clock-milestone-v1", "story-state-v1", ...activeUiFeatures(), "story-milestones-v2", "new-game-created-v1"],
+      harnessFeatures: ["ram-state-v1", "live-map-v1", "field-control-lock", "naming-cursor-v1", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "world-targets-v1", "live-player-position-v1", "world-coordinate-grid-v1", "press-result-v1", "warp-activation-guidance-v1", "clock-milestone-v1", "story-state-v1", ...activeUiFeatures(), "story-milestones-v2", "new-game-created-v1", "rustboro-gym-trainer-milestones-v1"],
       budgets: { max_wall_ms: LOOP_TIMEOUT_MS },
       piVersion: piVersion(),
     },
@@ -343,7 +343,7 @@ async function probe(verify = false): Promise<void> {
       model: { id: "manual-probe", context_window: 0, max_tokens: 0, vision: false },
       sampling: { thinking_level: "none", max_tokens: 0 },
       systemPrompt: "Manual game-state validation probe; excluded from benchmark results.",
-      tools: ["observe", "press"], startState, harnessFeatures: ["probe", "manual-control", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "world-targets-v1", "live-player-position-v1", "world-coordinate-grid-v1", "press-result-v1", "warp-activation-guidance-v1", "clock-milestone-v1", "story-state-v1", ...activeUiFeatures(), "story-milestones-v2", "new-game-created-v1"],
+      tools: ["observe", "press"], startState, harnessFeatures: ["probe", "manual-control", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "world-targets-v1", "live-player-position-v1", "world-coordinate-grid-v1", "press-result-v1", "warp-activation-guidance-v1", "clock-milestone-v1", "story-state-v1", ...activeUiFeatures(), "story-milestones-v2", "new-game-created-v1", "rustboro-gym-trainer-milestones-v1"],
       budgets: {}, piVersion: piVersion(),
     }, realHost(port, saved), new FrameStore(RUNS_ROOT), (recorder, url) => driveProbe(recorder, url, verify ? verifyIntro(new StateWatcher(url), (label, state) => { console.log(`CHECKPOINT ${label} ${JSON.stringify(state)}`); }) : commands()));
     console.log(`probe ended: ${reason}`);

@@ -196,6 +196,9 @@ export const StateBodySchema = Type.Object(
       rustboro_gym_complete: Type.Union([Type.Boolean(), Type.Null()]),
       stone_badge: Type.Union([Type.Boolean(), Type.Null()]),
       rock_tomb_received: Type.Union([Type.Boolean(), Type.Null()]),
+      rustboro_josh_defeated: Type.Optional(Type.Union([Type.Boolean(), Type.Null()])),
+      rustboro_tommy_defeated: Type.Optional(Type.Union([Type.Boolean(), Type.Null()])),
+      rustboro_marc_defeated: Type.Optional(Type.Union([Type.Boolean(), Type.Null()])),
     }, closed), Type.Null()])),
     naming: Type.Optional(Type.Union([Type.Object({
       text: Type.String(), page: Type.Enum(["symbols", "uppercase", "lowercase"]),

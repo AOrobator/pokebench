@@ -11,7 +11,7 @@ export function humanRunId(assigned:string|undefined,now:Date,random:()=>string)
  return newRunId(now,'human',random);
 }
 export function humanPlan(runsRoot:string,runId:string,port:number,romSha1:string):RunPlan {
- return {runsRoot,runId,port,controller:{kind:'human',name:'Operator',rom_sha1:romSha1,input_policy:'frame-held-v1',sample_ms:100,screenshot_ms:500,nominal_fps:59.7275},model:{id:'Human · Operator',context_window:0,max_tokens:0,vision:false},sampling:{thinking_level:'none',max_tokens:0},systemPrompt:'Human playthrough; no model inference.',tools:[],startState:{kind:'boot'},harnessFeatures:['human-play-v1','human-audio-1x-v1','ram-state-v1','story-state-v1','story-milestones-v2','clock-milestone-v1','new-game-created-v1'],budgets:{},piVersion:'not-used'};
+ return {runsRoot,runId,port,controller:{kind:'human',name:'Operator',rom_sha1:romSha1,input_policy:'frame-held-v1',sample_ms:100,screenshot_ms:500,nominal_fps:59.7275},model:{id:'Human · Operator',context_window:0,max_tokens:0,vision:false},sampling:{thinking_level:'none',max_tokens:0},systemPrompt:'Human playthrough; no model inference.',tools:[],startState:{kind:'boot'},harnessFeatures:['human-play-v1','human-audio-1x-v1','ram-state-v1','story-state-v1','story-milestones-v2','clock-milestone-v1','new-game-created-v1','rustboro-gym-trainer-milestones-v1'],budgets:{},piVersion:'not-used'};
 }
 export function humanLease(runsRoot:string,runId:string):()=>void {
  mkdirSync(runsRoot,{recursive:true}); const path=join(runsRoot,HUMAN_GAMEPLAY_LEASE_NAME);

@@ -47,6 +47,13 @@ FLAG_FIELDS = {
     "stone_badge": 0x867,
     "rock_tomb_received": 0xA5,
 }
+# These bits also get set for skipped trainers after Roxanne's victory script.
+# Expose defeat evidence only while the gym-clear flag is explicitly unset.
+GYM_TRAINER_FLAGS = {
+    "rustboro_josh_defeated": 0x640,
+    "rustboro_tommy_defeated": 0x641,
+    "rustboro_marc_defeated": 0x73B,
+}
 VAR_FIELDS = {
     "intro_stage": (0x4092, 7),
     "rival_stage": (0x408D, 4),
@@ -72,6 +79,9 @@ class StoryState:
     rustboro_gym_complete: bool | None = None
     stone_badge: bool | None = None
     rock_tomb_received: bool | None = None
+    rustboro_josh_defeated: bool | None = None
+    rustboro_tommy_defeated: bool | None = None
+    rustboro_marc_defeated: bool | None = None
 
     def json(self) -> dict[str, object]:
         return asdict(self)
@@ -101,6 +111,9 @@ class StoryState:
             (self.running_shoes_received, "running shoes received"),
             (self.petalburg_gym_stage in (2, 3, 4, 5, 6, 7, 8), "Wally tutorial complete"),
             (self.woods_stage == 1, "Petalburg Woods Aqua event complete"),
+            (self.rustboro_josh_defeated, "Rustboro Gym Josh defeated"),
+            (self.rustboro_tommy_defeated, "Rustboro Gym Tommy defeated"),
+            (self.rustboro_marc_defeated, "Rustboro Gym Marc defeated"),
             (self.rustboro_gym_complete, "Rustboro Gym complete"),
             (self.stone_badge, "Stone Badge received"),
             (self.rock_tomb_received, "Rock Tomb received"),
@@ -142,6 +155,14 @@ def read_story(read: ReadMemory, screen: Screen, save1: int | None = None) -> St
     flag_values = {
         field: bool(flags[flag >> 3] & (1 << (flag & 7))) for field, flag in FLAG_FIELDS.items()
     }
+    trainer_values = {
+        field: (
+            None
+            if flag_values["rustboro_gym_complete"]
+            else bool(flags[flag >> 3] & (1 << (flag & 7)))
+        )
+        for field, flag in GYM_TRAINER_FLAGS.items()
+    }
     variable_values: dict[str, int | None] = {}
     for field, (variable, maximum) in VAR_FIELDS.items():
         offset = 2 * (variable - 0x4000)
@@ -162,4 +183,7 @@ def read_story(read: ReadMemory, screen: Screen, save1: int | None = None) -> St
         rustboro_gym_complete=flag_values["rustboro_gym_complete"],
         stone_badge=flag_values["stone_badge"],
         rock_tomb_received=flag_values["rock_tomb_received"],
+        rustboro_josh_defeated=trainer_values["rustboro_josh_defeated"],
+        rustboro_tommy_defeated=trainer_values["rustboro_tommy_defeated"],
+        rustboro_marc_defeated=trainer_values["rustboro_marc_defeated"],
     )

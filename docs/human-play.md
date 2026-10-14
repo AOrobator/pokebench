@@ -55,3 +55,7 @@ Malformed state, missing required story state, transport failures or recording f
 ## Human screenshot cadence
 
 New human runs save screenshots on a500ms schedule (target two per second), declared as `controller.screenshot_ms:500`. RAM/state/input-journal polling retains its existing100ms wait plus processing time, so state/milestone analysis does not depend on the reduced screenshot schedule. The first screenshot and final frozen Finish screenshot are always saved. A delayed poll skips missed screenshot intervals instead of writing a catch-up burst. Existing human recordings and agent screenshot behavior remain unchanged. The Play screen's live display is independent of durable screenshot sampling.
+
+## Rustboro Gym trainers
+
+New recordings include separate splits for defeating Josh, Tommy and Marc, using their native trainer flags. The game also marks skipped trainers as defeated after Roxanne is beaten, so only flags confirmed before Gym completion establish these individual wins. Previously recorded wins remain in the timeline; an unobserved post-clear trainer status is unknown. Older runs lack these fields and show these splits as not recorded. This adds no automatic gameplay or save/RAM changes.

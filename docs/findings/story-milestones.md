@@ -46,3 +46,51 @@ M5 pre-confirmation negatives (2026-10-13): the same verified `main_menu.c` task
 The reader now emits name_confirmed=false only for an active task (isActive exactly1) in this finite pre-confirmation set under the two previously qualified callbacks. Existing five post-YES positive roots take precedence. The remaining late-post roots08031581/080315BD/08031631 stay unknown. Intro/title/main-menu labels, shared naming callbacks, inactive/invalid tasks, helpers and adjacent addresses remain insufficient. No save defaults are exposed. The model text remains “Story: no completion confirmed”; JSON distinguishes verified false from unknown for grading. No loop policy, menu/navigation assistance, prompt, renderer, schema or milestone predicate changes.
 
 Synthetic native-reader→JSON/readout tests cover all23 roots;31 isolated mutations individually remove each root or weaken callback/activity/address/positive-priority boundaries and fail intended assertions. Existing actual Swarm trial02 state/text/frame001938 records the pre-repair unknown and full Birch speech, but historical events do not retain raw task pointers. The reused qualified-task-graph receipt plus reverified ROM/source identity is address grounding, not a new paired native probe. Newly produced native-probe evidence is recorded separately in the M5 worklog and cannot rewrite or upgrade the old cohort.
+
+
+Rustboro trainer defeats (2026-10-14): source revision rechecked as
+`731ad5bfd6e6f265508d0efcca0ba42f9dcf5881`, with clean reference checkout.
+`data/maps/RustboroCity_Gym/scripts.inc:41–54` binds Josh, Tommy and Marc to
+`trainerbattle_single`. `include/constants/opponents.h:324–325,575` assigns
+320, 321 and 571 respectively; `TRAINER_FLAGS_START` is 0x500, so their flag
+IDs are 0x640, 0x641 and 0x73B. `src/battle_setup.c:GetTrainerAFlag`,
+`GetTrainerBFlag` and `SetBattledTrainersFlags` own the exact flag calculation
+and set both participants' bits for a two-opponent battle. `CB2_EndTrainerBattle`
+first rejects `IsPlayerDefeated` (LOST/DREW); its ordinary trainer return path
+sets the battled bits. `B_OUTCOME_WON` is a non-defeat outcome. These are
+persistent battle-result flags, not proximity, trainer interaction or narration.
+
+There is a second writer: Roxanne's victory script sets
+`FLAG_DEFEATED_RUSTBORO_GYM` (0x4F0) before calling
+`Common_EventScript_SetGymTrainers`. Its Rustboro branch
+(`data/scripts/set_gym_trainers.inc:13–17`) calls `settrainerflag` for all
+three trainers, including skipped ones; `SetTrainerFlag` writes the same bits.
+Therefore a post-clear set bit cannot prove that the trainer was actually
+battled. `GYM_TRAINER_FLAGS` is a separate semantic owner from the unconditional
+`FLAG_FIELDS`: `rustboro_josh_defeated`, `rustboro_tommy_defeated` and
+`rustboro_marc_defeated` expose known booleans only while the coherent snapshot
+has gym-clear false. Once gym-clear is true, all three become null, regardless
+of their bit values. Missing/uninitialized save state remains null. Previously
+recorded native milestone evidence remains valid after the reader becomes
+ambiguous; the recorder must retain it rather than erase it or generate new
+wins from post-badge bits.
+
+The reader reuses the existing save flags at +0x1270, in the existing 0x12C-byte
+snapshot. No additional address, emulator read, RAM write, source checkout
+change or runtime/server change is required. Nullable dataclass fields pass
+through native state JSON and model readout. Synthetic tests exercise the
+production coherent reader, exact/adjacent bits, each independent trainer,
+two simultaneous trainers, pregame nulls and gym-clear ambiguity with and
+without auto-set bits. RED: all 11 new cases failed before implementation with
+the task-owned Python import path. GREEN: all 69 story tests passed. Removing
+the gym-clear guard made both ambiguity regressions fail; restored source
+passes. Targeted lint and formatting checks pass. Broader state/readout coverage
+initially exposed the existing exact StoryState fixture needing three explicit
+false fields; this is tracked separately from reader verification.
+
+Native paired state/frame/text evidence of new trainer wins remains pending the
+next operator run. No game actions or new run were performed for this repair.
+The current 1848 recording lacks these raw trainer flags, so historical wins
+cannot be recovered from narration or gym-clear evidence. Source semantics and
+synthetic propagation are qualified separately from native proof, review,
+landing and benchmark benefit.

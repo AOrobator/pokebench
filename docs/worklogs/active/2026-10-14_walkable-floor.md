@@ -18,7 +18,7 @@ pret/pokeemerald 731ad5b:
   (`MetatileBehavior_IsForcedMovementTile`, thin/cracked ice), holes and step warps.
 - Surfable water (`sTileBitAttributes` TILE_FLAG_SURFABLE) is never walked on foot.
 
-## Change (no switch; bug fix, kept small for sibling threads in navigation.ts)
+## Change (behind walkable-floor-v1; kept small for sibling threads in navigation.ts)
 
 - [x] `WALKING` becomes "every behavior except UNWALKABLE": surfable, forced movement, ice, holes and
       step warps, directional one-way tiles (0x30–0x37, 0xC0, 0xC1; chair thread owns those), ledges
@@ -89,3 +89,11 @@ pret/pokeemerald 731ad5b:
   harness_features after counter-talk-v1. Presets: absent → OFF, v1 flags OFF, drafts ALL_ON → ON.
   Viewer: feature card links docs/explainers/walkable-floor-v1.html (renamed to the switch id).
   agent 948/948, viewer 493/493, lint clean; agent coverage 97.2/93.4/97.92, viewer 95.67/90.53/95.34.
+- Review round 3 (operator-approved; packet f1a2b19, sha 01f63039…): Claude LGTM; Grok produced no
+  output (empty log, rc 0); Codex BLOCKING: explainer link lacked card/serve tests and a real-viewer
+  click-through (feature-explainer skill). Accepted; stale "no switch" heading renamed.
+- Round-3 fix: `test(viewer): walkable floor card links and serves its explainer`. panels.test asserts
+  the walkable-floor-v1 card links /explainers/walkable-floor-v1.html; server.test serves it (200) and
+  404s the old name. Real viewer click-through on an isolated candidate viewer (port 8799): HARNESS
+  CONFIG -> WALKABLE FLOOR card -> READ EXPLAINER opened /explainers/walkable-floor-v1.html
+  (receipt + screenshots in the session scratchpad review/e2e-*). agent 948/948, viewer 493/493, lint clean.

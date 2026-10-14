@@ -6,6 +6,7 @@
 export type FeatureGroup = "observation" | "guidance" | "guard" | "measurement";
 
 export const SWITCHABLE_FEATURES = [
+  "navigation-evidence-memory-v1",
   "automatic-running-v1",
   "expanded-menu-battle-information-v1",
   "ram-state-v1",
@@ -31,6 +32,7 @@ export const SWITCHABLE_FEATURES = [
   "press-result-v1",
   "field-control-lock",
   "warp-activation-guidance-v1",
+  "ledge-hops-v1",
   "deterministic-loop-guard-v1",
   "objective-tracking-v1",
   "repeat-attempt-guard-v1",
@@ -72,6 +74,7 @@ function measured(id: MeasurementFeature, title: string, description: string): F
 }
 
 export const FEATURES: readonly FeatureInfo[] = [
+  on("navigation-evidence-memory-v1", "guidance", "NAVIGATION EVIDENCE MEMORY", RAM, "Pins bounded observed dialogue, visited rooms and attempted-target outcomes before each turn; optional remember_destination retains a model hypothesis with evidence references. No route or objective enforcement. Off: ordinary sliding conversation and no memory tool."),
   on("automatic-running-v1", "guidance", "AUTOMATIC RUNNING", RAM, "Adds simultaneous B to ordinary directional travel only when native running permission and controls are verified each frame. walking=true overrides it. Off: ordinary sequential button input."),
   on("expanded-menu-battle-information-v1", "observation", "EXPANDED MENU + BATTLE INFORMATION", RAM, "Adds newly decoded menu selections, contents and continuous battle descriptions to model text. Off: these descriptions are explicitly unprovided; corrected typed RAM, native journals, milestones and diagnostics remain recorded."),
   on("ram-state-v1", "observation", "RAM GAME-STATE READOUT", null,
@@ -119,6 +122,8 @@ export const FEATURES: readonly FeatureInfo[] = [
     "Says whether a dialog, menu or script has locked field controls, so direction presses cannot walk. Off: the line is dropped, press results no longer say locked, and the objective record's evidence leaves it out; a blocked press looks like walking into a wall. Objective tracking, if on, still labels a press made while locked as unavailable rather than no change."),
   on("warp-activation-guidance-v1", "guidance", "WARP GUIDANCE", "live-map-v1",
     "Annotates each nearby warp with how it activates (step on, directional exit, door) from its tile behavior, and adds a paragraph on warps to the system prompt. Off: warps are listed without activation and the paragraph is removed."),
+  on("ledge-hops-v1", "guidance", "LEDGE HOPS", "live-map-v1",
+    "Draws ledges on the map as v ^ < > arrows with a legend saying each is a one-way hop in the arrow's direction, and lets navigate_to hop a ledge in that direction. Off: ledges keep their collision glyph (# almost always) and navigate_to treats them as walls."),
   on("deterministic-loop-guard-v1", "guard", "LOOP GUARD", null,
     "Watches for repeated planning without acting, repeated observing, presses that change nothing, action cycles and repeated tool rejections. It warns the model first and ends the run as stuck if the loop continues. Off: loops are still logged but never warn or stop."),
   on("objective-tracking-v1", "guard", "OBJECTIVE TRACKING", RAM,
@@ -171,7 +176,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "expanded-menu-battle-information-v1",
   "ram-state-v1", "live-map-v1", "live-player-position-v1", "world-coordinate-grid-v1", "live-object-sprites-v1",
   "world-targets-v1", "named-interactions-v1", "world-destinations-v1", "bounded-navigation-v1", "field-dialogue-phase-v1", "active-field-message-buffer-v1", "naming-cursor-v1", "story-state-v1",
-  "coordinate-script-conditions-v1", "field-control-lock", "warp-activation-guidance-v1",
+  "coordinate-script-conditions-v1", "field-control-lock", "warp-activation-guidance-v1", "ledge-hops-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -191,11 +196,11 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("live-object-sprites-v1"), ...when("coordinate-script-conditions-v1"), ...when("active-field-message-buffer-v1"),
     ...when("world-targets-v1"), ...when("named-interactions-v1"), ...when("world-destinations-v1"), ...when("bounded-navigation-v1"), ...when("live-player-position-v1"), ...when("world-coordinate-grid-v1"),
     ...when("field-dialogue-phase-v1"), ...when("dialogue-safe-batches-v1"), ...when("interaction-loop-detection-v1"),
-    ...when("press-result-v1"), ...when("warp-activation-guidance-v1"), "clock-milestone-v1", ...when("story-state-v1"),
+    ...when("press-result-v1"), ...when("warp-activation-guidance-v1"), ...when("ledge-hops-v1"), "clock-milestone-v1", ...when("story-state-v1"),
     ...when("active-ui-ownership-v1"), "story-milestones-v2", "new-game-created-v1", "post-clock-navigation-milestones-v1", "rustboro-gym-trainer-milestones-v1", "native-progress-activity-v1", "battle-choices-v1", "continuous-battle-state-v1", "validated-pokemon-v1", "menu-observability-v1", "native-action-history-v1", "full-raw-ram-v1", "remaining-native-milestones-v1",
     ...(target === null ? [] : ["native-target-stop-v1"]), "deterministic-loop-diagnostics-v1", LOOP_POLICY_FEATURE,
     ...when("deterministic-loop-guard-v1"), ...when("contextual-interface-docs-v1"),
-    ...when("automatic-running-v1"), ...when("expanded-menu-battle-information-v1"), ...when("state-only-decisions-v1"), ...when("objective-tracking-v1"), ...when("repeat-attempt-guard-v1"), ...when("native-objective-completion-v1"),
+    ...when("navigation-evidence-memory-v1"), ...when("automatic-running-v1"), ...when("expanded-menu-battle-information-v1"), ...when("state-only-decisions-v1"), ...when("objective-tracking-v1"), ...when("repeat-attempt-guard-v1"), ...when("native-objective-completion-v1"),
     ...when("grass-cost-navigation-v1"),
   ];
 }
@@ -207,5 +212,5 @@ export function featuresOf(harnessFeatures: readonly string[]): FeatureSet {
 
 export function stateOnlyProblems(features:FeatureSet):string[]{
  if(!features["state-only-decisions-v1"])return [];
- return (["objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
+ return (["objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
 }

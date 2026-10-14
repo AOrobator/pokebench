@@ -305,3 +305,13 @@ COMMIT: `feat: supervisor message in the operator's wording, labelled as sent to
   the game over its own beliefs. Replay shows Mom's turn-27 line ("PROF. BIRCH ... lives right next
   door") resurfacing. "Next milestone to achieve" not added: it names the destination, so it is
   offered as its own hint switch, not part of this batch. Agent 1019/1019.
+COMMIT: `feat: supervisor gives only deterministic facts: recent dialogue and last story progress` (014f185)
+- 2×2 restarted (22:29 UTC) from a frozen detached worktree /private/tmp/pokebench-2x2-frozen at
+  014f185 (runs symlinked to main), so main can move without changing trials. Trial 1 run
+  2026-10-14T18-29-33_think-fast_0dda header verified (experiment label, save_state start, batch
+  detection + supervisor on, map/memory off for the neither arm).
+- The operator (22:28 UTC): next-milestone hint as its own switch, tested separately: get_next_milestone
+  tool always available and named in the system prompt, plus a harness message on each milestone
+  earned saying what is next. RED: milestone-hint.test.ts (ladder order from the human run, next
+  computation incl. present-at-start, one message per new milestone, delivery + milestone_hint
+  event, registry/prompt/tool/state-only).

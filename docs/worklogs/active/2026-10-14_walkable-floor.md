@@ -61,3 +61,13 @@ pret/pokeemerald 731ad5b:
 - Merged main 9f111d1 (no conflicts). Explainer now tracked at docs/explainers/walkable-floor.html
   and listed in docs/explainers/README.md (per the updated feature-explainer skill).
   agent 900/900, viewer 474/474, lint clean, agent coverage 97.21/93.27/97.86, viewer 95.65/90.58/95.2.
+- Review round 2 (packet 337a058, sha 99b4f707…): Claude LGTM, Grok (cursor-grok-4.5-high) LGTM,
+  Codex gpt-5.6-sol BLOCKING: MB_SECRET_BASE_BREAKABLE_DOOR 0xBE is in IsEastBlocked/IsWestBlocked,
+  so it is a one-way tile, not floor. Accepted. Note: the Grok lane (cursor-agent --mode ask) left
+  scratch files (.zshrc, .zshenv, scripts/ls, hash helpers) in the worktree; moved out, none committed.
+- Round-2 fix: `fix: treat the secret-base breakable door as one-way`. 0xBE joins the one-way group.
+  New check: scratchpad derive.py rebuilds the refused set from the game's predicates
+  (TILE_FLAG_SURFABLE, IsForcedMovementTile + thin/cracked ice, Is*Blocked, Acro Bike predicates,
+  MB_JUMP_*, named holes/step warps) and diffs it against UNWALKABLE: missing [] extra [].
+  Static scan rerun with the same classifier and input hash: unchanged. agent 900/900, viewer 474/474.
+  Two rounds had new blockers, so round 3 waits for operator scope confirmation.

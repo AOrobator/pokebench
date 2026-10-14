@@ -1300,7 +1300,7 @@ tr:last-child td{border-bottom:0}code{font:13px ui-monospace,Menlo,monospace}
 <tr><td>Forced movement</td><td><code>0x20 0x40–0x48 0xBB 0xBC 0xD0 0xD2</code></td><td>Ice, arrow and slide tiles, muddy slope, cracked floor, jump and spin mats move you on their own, so one press is no longer one tile.</td></tr>
 <tr><td>Thin and cracked ice</td><td><code>0x26 0x27</code></td><td>Sootopolis gym ice cracks, then drops you.</td></tr>
 <tr><td>Holes and step warps</td><td><code>0x0D–0x0F 0x29 0x66</code></td><td>Stepping on them warps or drops you.</td></tr>
-<tr><td>One-way tiles</td><td><code>0x30–0x37 0xC0 0xC1</code></td><td>Blocked from some sides only. Still walls here; the chair thread handles them.</td></tr>
+<tr><td>One-way tiles</td><td><code>0x30–0x37 0xBE 0xC0 0xC1</code></td><td>Blocked from some sides only (0xBE is the secret-base breakable door). Still walls here; the chair thread handles them.</td></tr>
 <tr><td>Ledges</td><td><code>0x38–0x3F</code></td><td>Walls when walking; the <code>ledge-hops-v1</code> switch hops them in their arrow direction.</td></tr>
 <tr><td>Acro Bike tiles</td><td><code>0xD1 0xD3–0xD6</code></td><td>Bumpy slope and rails refuse a walking player (<code>CheckAcroBikeCollision</code>).</td></tr>
 </table></div>
@@ -1312,6 +1312,6 @@ tr:last-child td{border-bottom:0}code{font:13px ui-monospace,Menlo,monospace}
 <tr><td>Tests</td><td class="ok">agent 900/900, viewer 419/419, lint clean, coverage above the 90% floor</td></tr>
 <tr><td>Real-RAM replay</td><td class="ok">Your human run: 12,515 targets drawn as <code>.</code>; reachable went from 5,092 to 7,280. 2,188 newly reachable, 0 lost.</td></tr>
 <tr><td>Switch</td><td>None. It is a correctness fix to <code>bounded-navigation-v1</code>, so runs with that switch on now walk on sand and cave floor.</td></tr>
-<tr><td>Review</td><td>Round 1: Claude and Codex caught the jump/spin mat values (0xBB/0xBC) and undefined bytes ≥ 0xF0; both fixed. Round 2 pending.</td></tr><tr><td>Not done</td><td class="todo">Merge to main (needs your OK); no measured runs.</td></tr>
+<tr><td>Review</td><td>Round 1 caught the jump/spin mat values (0xBB/0xBC) and undefined bytes ≥ 0xF0. Round 2: Claude and Grok LGTM; Codex caught the breakable door (0xBE). All fixed, and the refused set now matches a script that derives it from the game source.</td></tr><tr><td>Not done</td><td class="todo">Merge to main (needs your OK); no measured runs.</td></tr>
 </table></div>
 </main></body></html>

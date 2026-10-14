@@ -85,3 +85,4 @@ the feature-explainer skill require it; first-direction stand tile and object el
 speculation; `local_map` recorded text keeps defaults like its siblings (frozen non-goal).
 
 Status: ready for operator review. Not merged; awaiting approval to merge into main.
+- Merged main 3e8a13c cleanly (viewer and docs only, no counter files touched); gates green.

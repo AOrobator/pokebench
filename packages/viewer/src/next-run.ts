@@ -25,7 +25,7 @@ export const NextRunSchema = Type.Object({
 }, { additionalProperties: false });
 export type NextRun = Omit<Static<typeof NextRunSchema>, "features"> & {features:FeatureSet};
 
-export const DEFAULT_NEXT_RUN: NextRun = { model: "", thinking: "medium", maxTurns: 300, maxWallMs: 30 * 60_000, failureLimit: 3, maxTokens: 4096, target: null, features: { ...ALL_ON, "state-only-decisions-v1":false, "named-interactions-v1": false, "world-destinations-v1": false, "bounded-navigation-v1": false, "full-map-navigation-v1": false } };
+export const DEFAULT_NEXT_RUN: NextRun = { model: "", thinking: "medium", maxTurns: 300, maxWallMs: 30 * 60_000, failureLimit: 3, maxTokens: 4096, target: null, features: { ...ALL_ON, "state-only-decisions-v1":false, "named-interactions-v1": false, "world-destinations-v1": false, "bounded-navigation-v1": false, "full-map-navigation-v1": false, "grass-cost-navigation-v1": false } };
 export const LEASE = ".naming-gameplay.lock";
 // Whether a run's own game server answers on 127.0.0.1:<port>.
 export type HealthProbe = (port: number) => Promise<boolean>;

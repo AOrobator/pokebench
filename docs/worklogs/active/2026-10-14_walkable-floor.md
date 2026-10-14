@@ -97,3 +97,8 @@ pret/pokeemerald 731ad5b:
   404s the old name. Real viewer click-through on an isolated candidate viewer (port 8799): HARNESS
   CONFIG -> WALKABLE FLOOR card -> READ EXPLAINER opened /explainers/walkable-floor-v1.html
   (receipt + screenshots in the session scratchpad review/e2e-*). agent 948/948, viewer 493/493, lint clean.
+- Merged main a3c343b (grass-cost-navigation-v1 landed in navigation.ts, features, presets, panels).
+  Conflicts resolved by keeping both switches (options grassCost + floor; both preset defaults OFF;
+  both explainer mappings). Counts: guidance 15, switchboard rows 35. agent 954/954, viewer 493/493,
+  lint clean, navigation.ts 95.09/94.37/100/100, viewer 95.67/90.53/95.34; derive.py diff empty;
+  replay unchanged (2,302 newly reachable, 0 lost).

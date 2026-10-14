@@ -89,6 +89,16 @@ describe("persistent actual native frontier", () => {
     document.body.innerHTML = frontierPlot({human: recorded, best: null}, [], 340);
     expect(document.querySelectorAll(`[data-run="${HUMAN_REFERENCE}"]`)).toHaveLength(names.length);
   });
+  it("exposes separate gym trainer checkpoints without optional wins increasing story rank", () => {
+    const trainer = measured("trainer", [1000]);
+    trainer.splits.push({name:"RUSTBORO_GYM_TRAINER_JOSH_DEFEATED",elapsedMs:2000,segmentMs:1000,seq:20,turn:2,inputTokens:0,outputTokens:0});
+    document.body.innerHTML=frontierPlot({human:human(),best:best()},[trainer],900);
+    expect(document.body.textContent).toContain("GYM TRAINER BATTLES");
+    for(const name of ["Josh","Tommy","Marc"])expect(document.querySelector('.wb-gym-checkpoints')?.textContent).toContain(name);
+    expect(document.querySelector('.wb-gym-checkpoints [data-run="trainer"][data-split="RUSTBORO_GYM_TRAINER_JOSH_DEFEATED"]')).not.toBeNull();
+    expect(document.querySelector('.wb-gym-checkpoints')?.textContent).toContain("not recorded");
+    expect(frontierReferences([trainer,best()]).best?.id).toBe("dea1");
+  });
   it("retains failed denominators and identifies unsupported and censored outcomes", () => {
     const failed = measured("failed", []), running = measured("running", []), interrupted = measured("interrupted", []); running.status = "live"; interrupted.status = "unresponsive";
     const unknown = run({ id: "old", splits: [] });

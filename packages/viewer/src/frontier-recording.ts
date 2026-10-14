@@ -1,8 +1,9 @@
 import { statSync } from "node:fs";
 import type { RunEvent } from "@pokebench/agent/events";
+import { readVisualPlan, verifiedVisuals, visualEvidenceSignature, type ScreenshotEvidence } from "./frontier-visual.js";
 import { RunView } from "./model.js";
 import { reduceWorkbenchLog } from "./workbench-reader.js";
-export interface RecordingSplit { name: string; elapsedMs: number; segmentMs: number; seq: number; turn: number; inputTokens: number; outputTokens: number; derived?: true }
+export interface RecordingSplit { name: string; elapsedMs: number; segmentMs: number; seq: number; turn: number; inputTokens: number; outputTokens: number; derived?: true; screenshotEvidence?: ScreenshotEvidence[] }
 export interface RecordingMeasurement {
   controller: "agent" | "human"; features: string[]; logSha256: string; pausedMs: number;
   rawSplits: { name: string; elapsedMs: number; evidence: number[] }[];
@@ -24,12 +25,16 @@ function compact(state: State): State {
 export function readNativeRecording(path: string, id: string, qualified: (event: Milestone, states: readonly (RunEvent | undefined)[]) => boolean, evidenceLimit = 100000): NativeRecording {
   if (!Number.isSafeInteger(evidenceLimit) || evidenceLimit < 1) throw new Error("Evidence bound must be positive");
   const view = new RunView(), states = new Map<number, RunEvent>(), splits: RecordingSplit[] = [], rawSplits: RecordingMeasurement["rawSplits"] = [];
+  const visual = readVisualPlan(path), samples = new Map<number, Extract<RunEvent, {type:"human_sample"}>>();
+  const wantedSamples = new Set(visual?.milestones.flatMap(m => m.screenshots.map(s => s.seq)) ?? []);
+  visualEvidenceSignature(path);
   const size = statSync(path).size; let expected = 0, previousMs = -Infinity;
   const hash = reduceWorkbenchLog(path, event => {
     const ms = Date.parse(event.t);
     if (event.seq > 0 && event.type === "run_start") throw new Error("Run event order invalid: more than one run_start; no split graded");
     if (event.run !== id || event.seq !== expected || !Number.isFinite(ms) || ms < previousMs || (event.seq === 0 ? event.type !== "run_start" : event.type === "run_start") || view.end !== null) throw new Error("Run identity, event order or terminal sequence is invalid; no split graded");
     expected++; previousMs = ms;
+    if (event.type === "human_sample" && wantedSamples.has(event.seq)) samples.set(event.seq, event);
     if (event.type === "run_start" && event.controller?.kind !== "human" && size > 64 * 1024 * 1024) throw new Error("Agent log exceeds the 64 MiB read bound; no split graded");
     if (["run_start", "run_end", "operator_control", "assistant", "objective_update"].includes(event.type)) {
       view.apply(event); view.events.length = 0; view.latencies.length = 0; view.errors.length = 0; view.lastThought = null;
@@ -55,6 +60,14 @@ export function readNativeRecording(path: string, id: string, qualified: (event:
     }
   });
   if (view.start === null) throw new Error("No complete run_start yet");
+  for (const mark of verifiedVisuals(visual, view.start, hash, samples)) {
+    const existing = splits.findIndex(s => s.name === mark.name);
+    if (existing >= 0 && splits[existing]?.derived !== true) continue;
+    if (existing >= 0) { splits.splice(existing, 1); rawSplits.splice(rawSplits.findIndex(s => s.name === mark.name), 1); }
+    const raw = Date.parse(mark.sample.t) - (view.startMs ?? 0);
+    splits.push({ name: mark.name, elapsedMs: Math.max(0, raw - view.control.pausedBefore(Date.parse(mark.sample.t))), segmentMs: 0, seq: mark.sample.seq, turn: mark.sample.turn, inputTokens: 0, outputTokens: 0, derived: true, screenshotEvidence: mark.screenshots });
+    rawSplits.push({ name: mark.name, elapsedMs: raw, evidence: mark.screenshots.map(s => s.seq) });
+  }
   splits.sort((a, b) => a.elapsedMs - b.elapsedMs || a.seq - b.seq);
   let previousSplit = 0; for (const split of splits) { split.segmentMs = split.elapsedMs - previousSplit; previousSplit = split.elapsedMs; }
   view.state = null;

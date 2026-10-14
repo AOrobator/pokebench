@@ -1,3 +1,4 @@
+import { visualEvidenceSignature } from "./frontier-visual.js";
 import { existsSync, lstatSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { FEATURES } from "@pokebench/agent/features";
@@ -37,11 +38,13 @@ function configuration(start: Extract<RunEvent, { type: "run_start" }>): Workben
   };
 }
 function load(root: string, id: string): { run: WorkbenchRun; port: number | null; view: RunView | null } {
-  const path = eventsPath(root, id), stat = statSync(path), signature = `${String(stat.size)}:${String(stat.mtimeMs)}:${String(stat.ino)}`;
-  const prior = cache.get(path); if (prior?.signature === signature) return prior;
+  const path = eventsPath(root, id), stat = statSync(path); let signature = `${String(stat.size)}:${String(stat.mtimeMs)}:${String(stat.ino)}`;
+  const prior = cache.get(path);
   let run: WorkbenchRun = { id, cohort: null, model: null, started: null, status: "invalid", reason: null, problem: null, excluded: null, elapsedMs: null, turn: 0, objective: null, config: null, splits: [] };
   let port: number | null, view: RunView | null;
   try {
+    signature += visualEvidenceSignature(path);
+    if (prior?.signature === signature) return prior;
     if (lstatSync(path).isSymbolicLink()) throw new Error("Run log is symlinked; no split graded");
     const start = readStart(root, id);
     if (start.run !== id) throw new Error("Run identity is invalid; no split graded");

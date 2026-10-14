@@ -407,3 +407,9 @@ select.p, .field input { font: 8px 'Press Start 2P', monospace; padding: 6px 8px
 .wb-model-legend i { flex:none; width:12px; height:12px; border-radius:50%; }
 
 .wb-model-legend svg { flex:none; width:40px; height:18px; overflow:visible; }
+
+.wb-gym-checkpoints { margin-top:22px; border-top:1px solid #d5e3ed; padding-top:16px; }
+.wb-gym-checkpoints h3 { font-size:12px; color:#304f7a; }
+.wb-gym-checkpoints td:last-child > span { display:block; }
+
+.wb-proof-frame { margin:16px 0; overflow-wrap:anywhere; }.wb-proof-frame img { width:min(100%,480px); image-rendering:pixelated; }.wb-proof-frame figcaption { font-size:11px; color:#536d85; }

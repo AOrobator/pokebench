@@ -45,6 +45,8 @@ Inspect the pinned vendor implementation before trusting a milestone. It may sup
 
 Historical recovery is permitted only when recorded game state proves the predicate. Keep original logs unchanged, identify recovered events and their supporting sequence IDs, and label first-observation timing. If the required value was never recorded, show unknown/not recorded; never fill it from the model's claim, a checkpoint filename, or proximity to the event.
 
+Before declaring a historical trainer split unrecoverable, audit retained screenshots around battle transitions. Inspect trainer-introduction names, explicit in-game victory text, defeat/blackout screens and rewards, including two-opponent battles. Bind a manually reviewed screenshot reconstruction to the immutable event-log hash, screenshot event sequence/time and image hash; label it separately from native trainer-flag grading, retain the images in point details and use an observation-time upper bound. Do not infer individual gym wins from post-clear trainer bits: Roxanne's script marks even skipped trainers defeated. New model runs should use the native pre-clear predicates; screenshot annotations do not promote model frontier records.
+
 ## Verify completion and non-completion
 
 Exercise the real detector and recording/replay path with paired frame and state evidence. For the targeted event, cover the pre-event state, an opened-but-unconfirmed interaction or canceled path when applicable, actual completion, repeated observations, and unavailable data. A fresh-start test must not pass merely because a resumed save already contains the completion flag.

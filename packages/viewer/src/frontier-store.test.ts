@@ -65,12 +65,12 @@ it("carries modern detector-produced route and Roxanne milestones through schema
   const boss=fixture.events.map(e=>parseEvent(JSON.stringify(e))).find(e=>e.type==="state"&&"story" in e&&e.story?.rustboro_gym_complete===true);
   if(boss?.type!=="state"||!("started" in boss)||boss.story==null)throw Error("boss");
   const bossStory = boss.story;
-  const log=new Log();log.add(0,{...START,harness_features:["native-progress-activity-v1","ram-state-v1","story-milestones-v2"]});
+  const log=new Log();log.add(0,{...START,harness_features:["native-progress-activity-v1","ram-state-v1","story-milestones-v2","rustboro-gym-trainer-milestones-v1"]});
   const detector=new StateMilestones({read:()=>{throw Error("no emulator requests");}},()=>1000);detector.initialize("boot");
-  const targets=["ROUTE_101","ROUTE_103","ROUTE_102","ROUTE_104","ROXANNE_DEFEATED"];
-  const inputs=[state({location:"ROUTE101",map_id:[0,16]}),state({location:"ROUTE 103",map_id:[0,18]}),state({location:"ROUTE102",map_id:[0,17]}),state({location:"ROUTE 104",map_id:[0,19]}),state({location:"RUSTBORO CITY GYM",story:{...bossStory,roxanne_defeated:true}})];
+  const targets=["ROUTE_101","ROUTE_103","ROUTE_102","ROUTE_104","RUSTBORO_GYM_TRAINER_JOSH_DEFEATED","RUSTBORO_GYM_TRAINER_TOMMY_DEFEATED","RUSTBORO_GYM_TRAINER_MARC_DEFEATED","ROXANNE_DEFEATED"];
+  const inputs=[state({location:"ROUTE101",map_id:[0,16]}),state({location:"ROUTE 103",map_id:[0,18]}),state({location:"ROUTE102",map_id:[0,17]}),state({location:"ROUTE 104",map_id:[0,19]}),...(["rustboro_josh_defeated","rustboro_tommy_defeated","rustboro_marc_defeated"] as const).map(field=>state({location:"RUSTBORO CITY GYM",story:{...bossStory,rustboro_gym_complete:false,stone_badge:false,[field]:true}})),state({location:"RUSTBORO CITY GYM",story:{...bossStory,roxanne_defeated:true}})];
   inputs.forEach((body,i)=>{const event=log.add((i+1)*1000,body);if(event.type!=="state"||!("started" in event))throw Error("state");for(const mark of detector.observe(event,event.seq))if(targets.includes(mark.name))log.add((i+1)*1000+1,{type:"milestone",turn:1,name:mark.name,server_timestamp:mark.serverTimestamp,...(mark.kind===undefined?{}:{kind:mark.kind}),...(mark.origin===undefined?{}:{origin:mark.origin}),...(mark.evidence===undefined?{}:{evidence:[...mark.evidence]})});});
-  log.add(6000,{type:"run_end",turn:1,reason:"budget",turns:1,wall_ms:6000,furthest_milestone:"ROXANNE_DEFEATED",tokens:{input:0,output:0},frames:{saved:0,bytes:0}});
+  log.add(10000,{type:"run_end",turn:1,reason:"budget",turns:1,wall_ms:10000,furthest_milestone:"ROXANNE_DEFEATED",tokens:{input:0,output:0},frames:{saved:0,bytes:0}});
   const root=mkdtempSync(join(tmpdir(),"frontier-modern-")),id=log.events[0]?.run??"";mkdirSync(join(root,id));writeFileSync(join(root,id,"events.jsonl"),log.events.map(e=>JSON.stringify(e)).join("\n")+"\n");
   const result=parseWorkbench(await workbenchSnapshot(root,()=>Promise.resolve(false),{state:"idle"},Date.now())),record=result.runs[0];if(record===undefined)throw Error("run");
   const graph=frontierPlot({human:null,best:null},[record],900);

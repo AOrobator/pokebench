@@ -1,0 +1,1379 @@
+{
+  "human": {
+    "source": "human/2026-10-13T23-50-13_human_1848/events.jsonl",
+    "source_sha256": "68f810a55f605122f2af9878c21d426c4b870747dfe85b74b01d06439a9c29fe",
+    "original_seq": [
+      0,
+      4,
+      5,
+      6,
+      1388,
+      1389,
+      1756,
+      1988,
+      1989,
+      2528,
+      2719,
+      2720,
+      3766,
+      3772,
+      3773,
+      4903,
+      4904,
+      6334,
+      6335,
+      64005,
+      64006,
+      100000,
+      100002,
+      100260,
+      100261,
+      100267
+    ],
+    "adaptation": "Selected run_start, pause controls, eight report splits and their native evidence, run_end. Sequences and evidence renumbered contiguously; timestamps, state, model, source and feature values retained. Not a benchmark run. Optional state readouts outside native milestone predicates omitted; prompt replaced with fixture label.",
+    "events": [
+      {
+        "v": 1,
+        "run": "2026-10-13T23-50-13_human_1848",
+        "seq": 0,
+        "t": "2026-10-13T23:50:13.966-04:00",
+        "type": "run_start",
+        "turn": 0,
+        "rom_sha1": "f3ae088181bf583e55daf962a92bb46f4f1d07b7",
+        "controller": {
+          "kind": "human",
+          "name": "The operator",
+          "rom_sha1": "f3ae088181bf583e55daf962a92bb46f4f1d07b7",
+          "input_policy": "frame-held-v1",
+          "sample_ms": 100,
+          "screenshot_ms": 500,
+          "nominal_fps": 59.7275
+        },
+        "model": {
+          "id": "Human \u00b7 the operator",
+          "context_window": 0,
+          "max_tokens": 0,
+          "vision": false
+        },
+        "sampling": {
+          "thinking_level": "none",
+          "max_tokens": 0
+        },
+        "system_prompt": "Recorded reference fixture; original prompt omitted.",
+        "tools": [],
+        "harness": {
+          "commit": "12d7640ae6194a5f1eaf0c4e618261e994d26915",
+          "dirty": false
+        },
+        "vendor_pin": "bbab97ad73e460b7cd7c08527d10ced30cc03fbe",
+        "pi_version": "not-used",
+        "start_state": {
+          "kind": "boot"
+        },
+        "harness_features": [
+          "human-play-v1",
+          "human-audio-1x-v1",
+          "ram-state-v1",
+          "story-state-v1",
+          "story-milestones-v2",
+          "clock-milestone-v1",
+          "new-game-created-v1"
+        ],
+        "budgets": {},
+        "isolation": {
+          "server_dir": "/Users/user/dev/pokebench/runs/human/2026-10-13T23-50-13_human_1848/server",
+          "run_data_id": "2026-10-13T23-50-13_human_1848",
+          "load_checkpoint_mode": false,
+          "port": 8040
+        }
+      },
+      {
+        "v": 1,
+        "run": "2026-10-13T23-50-13_human_1848",
+        "seq": 1,
+        "t": "2026-10-13T23:50:16.014-04:00",
+        "type": "operator_control",
+        "turn": 0,
+        "action": "pause",
+        "status": "pending",
+        "request": 1
+      },
+      {
+        "v": 1,
+        "run": "2026-10-13T23-50-13_human_1848",
+        "seq": 2,
+        "t": "2026-10-13T23:50:16.021-04:00",
+        "type": "operator_control",
+        "turn": 0,
+        "action": "pause",
+        "status": "applied",
+        "request": 1,
+        "emulator_frozen": true
+      },
+      {
+        "v": 1,
+        "run": "2026-10-13T23-50-13_human_1848",
+        "seq": 3,
+        "t": "2026-10-13T23:51:09.890-04:00",
+        "type": "operator_control",
+        "turn": 0,
+        "action": "resume",
+        "status": "applied",
+        "request": 2,
+        "paused_ms": 53869
+      },
+      {
+        "v": 1,
+        "run": "2026-10-13T23-50-13_human_1848",
+        "seq": 4,
+        "t": "2026-10-13T23:52:40.080-04:00",
+        "type": "state",
+        "turn": 0,
+        "screen": "birch_speech",
+        "story": {
+          "name_confirmed": true,
+          "intro_stage": null,
+          "rival_stage": null,
+          "birch_lab_stage": null,
+          "petalburg_gym_stage": null,
+          "woods_stage": null,
+          "clock_set": null,
+          "rival_battle_won": null,
+          "pokedex_received": null,
+          "running_shoes_received": null,
+          "starter_tutorial_complete": null,
+          "rustboro_gym_complete": null,
+          "stone_badge": null,
+          "rock_tomb_received": null
+        },
+        "started": false,
+        "name": null,
+        "location": null,
+        "map_id": null,
+        "position": null,
+        "facing": null,
+        "in_battle": false,
+        "party": [],
+        "money": null,
+        "badges": [],
+        "play_time_s": null
+      },
+      {
+        "v": 1,
+        "run": "2026-10-13T23-50-13_human_1848",
+        "seq": 5,
+        "t": "2026-10-13T23:52:40.081-04:00",
+        "type": "milestone",
+        "turn": 0,
+        "emulator_frame": 5407,
+        "emulator_frame_kind": "sample_upper_bound",
+        "name": "PLAYER_NAME_CONFIRMED",
+        "server_timestamp": 1791949960.08,
+        "kind": "story",
+        "origin": "observed",
+        "evidence": [
+          4
+        ]
+      },
+      {
+        "v": 1,
+        "run": "2026-10-13T23-50-13_human_1848",
+        "seq": 6,
+        "t": "2026-10-13T23:53:04.487-04:00",
+        "type": "state",
+        "turn": 0,
+        "screen": "unknown (callback2 0x08085EF9)",
+        "story": {
+          "name_confirmed": true,
+          "intro_stage": 0,
+          "rival_stage": 0,
+          "birch_lab_stage": 0,
+          "petalburg_gym_stage": 0,
+          "woods_stage": 0,
+          "clock_set": false,
+          "rival_battle_won": false,
+          "pokedex_received": false,
+          "running_shoes_received": false,
+          "starter_tutorial_complete": false,
+          "rustboro_gym_complete": false,
+          "stone_badge": false,
+          "rock_tomb_received": false
+        },
+        "started": true,
+        "name": "RED",
+        "location": "INSIDE OF TRUCK",
+        "map_id": [
+          25,
+          40
+        ],
+        "position": {
+          "x": 2,
+          "y": 2
+        },
+        "facing": "down",
+        "in_battle": false,
+        "party": [],
+        "money": 3000,
+        "badges": [],
+        "play_time_s": 0
+      },
+      {
+        "v": 1,
+        "run": "2026-10-13T23-50-13_human_1848",
+        "seq": 7,
+        "t": "2026-10-13T23:53:20.754-04:00",
+        "type": "state",
+        "turn": 0,
+        "screen": "overworld",
+        "story": {
+          "name_confirmed": true,
+          "intro_stage": 1,
+          "rival_stage": 0,
+          "birch_lab_stage": 0,
+          "petalburg_gym_stage": 0,
+          "woods_stage": 0,
+          "clock_set": false,
+          "rival_battle_won": false,
+          "pokedex_received": false,
+          "running_shoes_received": false,
+          "starter_tutorial_complete": false,
+          "rustboro_gym_complete": false,
+          "stone_badge": false,
+          "rock_tomb_received": false
+        },
+        "started": true,
+        "name": "RED",
+        "location": "LITTLEROOT TOWN",
+        "map_id": [
+          0,
+          9
+        ],
+        "position": {
+          "x": 3,
+          "y": 10
+        },
+        "facing": "down",
+        "in_battle": false,
+        "party": [],
+        "money": 3000,
+        "badges": [],
+        "play_time_s": 16
+      },
+      {
+        "v": 1,
+        "run": "2026-10-13T23-50-13_human_1848",
+        "seq": 8,
+        "t": "2026-10-13T23:53:20.756-04:00",
+        "type": "milestone",
+        "turn": 0,
+        "emulator_frame": 7836,
+        "emulator_frame_kind": "sample_upper_bound",
+        "name": "FIRST_TRUCK_EXIT",
+        "server_timestamp": 1791950000.755,
+        "kind": "story",
+        "origin": "observed",
+        "evidence": [
+          6,
+          7
+        ]
+      },
+      {
+        "v": 1,
+        "run": "2026-10-13T23-50-13_human_1848",
+        "seq": 9,
+        "t": "2026-10-13T23:53:55.769-04:00",
+        "type": "state",
+        "turn": 0,
+        "screen": "overworld",
+        "story": {
+          "name_confirmed": true,
+          "intro_stage": 4,
+          "rival_stage": 0,
+          "birch_lab_stage": 0,
+          "petalburg_gym_stage": 0,
+          "woods_stage": 0,
+          "clock_set": false,
+          "rival_battle_won": false,
+          "pokedex_received": false,
+          "running_shoes_received": false,
+          "starter_tutorial_complete": false,
+          "rustboro_gym_complete": false,
+          "stone_badge": false,
+          "rock_tomb_received": false
+        },
+        "started": true,
+        "name": "RED",
+        "location": "LITTLEROOT TOWN BRENDANS HOUSE 1F",
+        "map_id": [
+          1,
+          0
+        ],
+        "position": {
+          "x": 8,
+          "y": 7
+        },
+        "facing": "up",
+        "in_battle": false,
+        "party": [],
+        "money": 3000,
+        "badges": [],
+        "play_time_s": 50
+      },
+      {
+        "v": 1,
+        "run": "2026-10-13T23-50-13_human_1848",
+        "seq": 10,
+        "t": "2026-10-13T23:54:08.813-04:00",
+        "type": "state",
+        "turn": 0,
+        "screen": "overworld",
+        "story": {
+          "name_confirmed": true,
+          "intro_stage": 6,
+          "rival_stage": 0,
+          "birch_lab_stage": 0,
+          "petalburg_gym_stage": 0,
+          "woods_stage": 0,
+          "clock_set": true,
+          "rival_battle_won": false,
+          "pokedex_received": false,
+          "running_shoes_received": false,
+          "starter_tutorial_complete": false,
+          "rustboro_gym_complete": false,
+          "stone_badge": false,
+          "rock_tomb_received": false
+        },
+        "started": true,
+        "name": "RED",
+        "location": "LITTLEROOT TOWN BRENDANS HOUSE 2F",
+        "map_id": [
+          1,
+          1
+        ],
+        "position": {
+          "x": 5,
+          "y": 2
+        },
+        "facing": "up",
+        "in_battle": false,
+        "party": [],
+        "money": 3000,
+        "badges": [],
+        "play_time_s": 63
+      },
+      {
+        "v": 1,
+        "run": "2026-10-13T23-50-13_human_1848",
+        "seq": 11,
+        "t": "2026-10-13T23:54:08.814-04:00",
+        "type": "milestone",
+        "turn": 0,
+        "emulator_frame": 10707,
+        "emulator_frame_kind": "sample_upper_bound",
+        "name": "CLOCK_SET",
+        "server_timestamp": 1791950048.814,
+        "kind": "story",
+        "origin": "observed",
+        "evidence": [
+          10
+        ]
+      },
+      {
+        "v": 1,
+        "run": "2026-10-13T23-50-13_human_1848",
+        "seq": 12,
+        "t": "2026-10-13T23:55:16.391-04:00",
+        "type": "state",
+        "turn": 0,
+        "screen": "overworld",
+        "story": {
+          "name_confirmed": true,
+          "intro_stage": 7,
+          "rival_stage": 0,
+          "birch_lab_stage": 0,
+          "petalburg_gym_stage": 0,
+          "woods_stage": 0,
+          "clock_set": true,
+          "rival_battle_won": false,
+          "pokedex_received": false,
+          "running_shoes_received": false,
+          "starter_tutorial_complete": false,
+          "rustboro_gym_complete": false,
+          "stone_badge": false,
+          "rock_tomb_received": false
+        },
+        "started": true,
+        "name": "RED",
+        "location": "LITTLEROOT TOWN BRENDANS HOUSE 1F",
+        "map_id": [
+          1,
+          0
+        ],
+        "position": {
+          "x": 9,
+          "y": 8
+        },
+        "facing": "down",
+        "in_battle": false,
+        "party": [],
+        "money": 3000,
+        "badges": [],
+        "play_time_s": 130
+      },
+      {
+        "v": 1,
+        "run": "2026-10-13T23-50-13_human_1848",
+        "seq": 13,
+        "t": "2026-10-13T23:55:16.696-04:00",
+        "type": "state",
+        "turn": 0,
+        "screen": "overworld",
+        "story": {
+          "name_confirmed": true,
+          "intro_stage": 7,
+          "rival_stage": 0,
+          "birch_lab_stage": 0,
+          "petalburg_gym_stage": 0,
+          "woods_stage": 0,
+          "clock_set": true,
+          "rival_battle_won": false,
+          "pokedex_received": false,
+          "running_shoes_received": false,
+          "starter_tutorial_complete": false,
+          "rustboro_gym_complete": false,
+          "stone_badge": false,
+          "rock_tomb_received": false
+        },
+        "started": true,
+        "name": "RED",
+        "location": "LITTLEROOT TOWN",
+        "map_id": [
+          0,
+          9
+        ],
+        "position": {
+          "x": 5,
+          "y": 8
+        },
+        "facing": "down",
+        "in_battle": false,
+        "party": [],
+        "money": 3000,
+        "badges": [],
+        "play_time_s": 130
+      },
+      {
+        "v": 1,
+        "run": "2026-10-13T23-50-13_human_1848",
+        "seq": 14,
+        "t": "2026-10-13T23:55:16.698-04:00",
+        "type": "milestone",
+        "turn": 0,
+        "emulator_frame": 14761,
+        "emulator_frame_kind": "sample_upper_bound",
+        "name": "PLAYER_HOUSE_EXITED_AFTER_CLOCK",
+        "server_timestamp": 1791950116.698,
+        "kind": "navigation",
+        "origin": "observed",
+        "evidence": [
+          9,
+          12,
+          13
+        ]
+      },
+      {
+        "v": 1,
+        "run": "2026-10-13T23-50-13_human_1848",
+        "seq": 15,
+        "t": "2026-10-13T23:56:25.718-04:00",
+        "type": "state",
+        "turn": 0,
+        "screen": "overworld",
+        "story": {
+          "name_confirmed": true,
+          "intro_stage": 7,
+          "rival_stage": 3,
+          "birch_lab_stage": 0,
+          "petalburg_gym_stage": 0,
+          "woods_stage": 0,
+          "clock_set": true,
+          "rival_battle_won": false,
+          "pokedex_received": false,
+          "running_shoes_received": false,
+          "starter_tutorial_complete": false,
+          "rustboro_gym_complete": false,
+          "stone_badge": false,
+          "rock_tomb_received": false
+        },
+        "started": true,
+        "name": "RED",
+        "location": "LITTLEROOT TOWN MAYS HOUSE 2F",
+        "map_id": [
+          1,
+          3
+        ],
+        "position": {
+          "x": 4,
+          "y": 4
+        },
+        "facing": "right",
+        "in_battle": false,
+        "party": [],
+        "money": 3000,
+        "badges": [],
+        "play_time_s": 199
+      },
+      {
+        "v": 1,
+        "run": "2026-10-13T23-50-13_human_1848",
+        "seq": 16,
+        "t": "2026-10-13T23:56:25.720-04:00",
+        "type": "milestone",
+        "turn": 0,
+        "emulator_frame": 18884,
+        "emulator_frame_kind": "sample_upper_bound",
+        "name": "RIVAL_MET",
+        "server_timestamp": 1791950185.72,
+        "kind": "story",
+        "origin": "observed",
+        "evidence": [
+          15
+        ]
+      },
+      {
+        "v": 1,
+        "run": "2026-10-13T23-50-13_human_1848",
+        "seq": 17,
+        "t": "2026-10-13T23:57:55.916-04:00",
+        "type": "state",
+        "turn": 0,
+        "screen": "unknown (callback2 0x080B11A9)",
+        "story": {
+          "name_confirmed": true,
+          "intro_stage": 7,
+          "rival_stage": 3,
+          "birch_lab_stage": 0,
+          "petalburg_gym_stage": 0,
+          "woods_stage": 0,
+          "clock_set": true,
+          "rival_battle_won": false,
+          "pokedex_received": false,
+          "running_shoes_received": false,
+          "starter_tutorial_complete": false,
+          "rustboro_gym_complete": false,
+          "stone_badge": false,
+          "rock_tomb_received": false
+        },
+        "started": true,
+        "name": "RED",
+        "location": "ROUTE101",
+        "map_id": [
+          0,
+          16
+        ],
+        "position": {
+          "x": 6,
+          "y": 13
+        },
+        "facing": "left",
+        "in_battle": false,
+        "party": [
+          {
+            "species": "TORCHIC",
+            "level": 5,
+            "hp": 21,
+            "max_hp": 21
+          }
+        ],
+        "money": 3000,
+        "badges": [],
+        "play_time_s": 288
+      },
+      {
+        "v": 1,
+        "run": "2026-10-13T23-50-13_human_1848",
+        "seq": 18,
+        "t": "2026-10-13T23:57:55.916-04:00",
+        "type": "milestone",
+        "turn": 0,
+        "emulator_frame": 24271,
+        "emulator_frame_kind": "sample_upper_bound",
+        "name": "STARTER_CHOSEN",
+        "server_timestamp": 1791950275.916,
+        "kind": "story",
+        "origin": "observed",
+        "evidence": [
+          17
+        ]
+      },
+      {
+        "v": 1,
+        "run": "2026-10-13T23-50-13_human_1848",
+        "seq": 19,
+        "t": "2026-10-14T01:01:02.162-04:00",
+        "type": "state",
+        "turn": 0,
+        "screen": "overworld",
+        "story": {
+          "name_confirmed": true,
+          "intro_stage": 7,
+          "rival_stage": 4,
+          "birch_lab_stage": 5,
+          "petalburg_gym_stage": 2,
+          "woods_stage": 1,
+          "clock_set": true,
+          "rival_battle_won": true,
+          "pokedex_received": true,
+          "running_shoes_received": true,
+          "starter_tutorial_complete": true,
+          "rustboro_gym_complete": false,
+          "stone_badge": false,
+          "rock_tomb_received": false
+        },
+        "started": true,
+        "name": "RED",
+        "location": "RUSTBORO CITY GYM",
+        "map_id": [
+          11,
+          3
+        ],
+        "position": {
+          "x": 5,
+          "y": 19
+        },
+        "facing": "up",
+        "in_battle": false,
+        "party": [
+          {
+            "species": "MARILL",
+            "level": 10,
+            "hp": 35,
+            "max_hp": 35
+          },
+          {
+            "species": "TORCHIC",
+            "level": 13,
+            "hp": 38,
+            "max_hp": 38
+          },
+          {
+            "species": "POOCHYENA",
+            "level": 4,
+            "hp": 17,
+            "max_hp": 17
+          },
+          {
+            "species": "WURMPLE",
+            "level": 4,
+            "hp": 17,
+            "max_hp": 17
+          },
+          {
+            "species": "SHROOMISH",
+            "level": 5,
+            "hp": 21,
+            "max_hp": 21
+          },
+          {
+            "species": "CASCOON",
+            "level": 5,
+            "hp": 20,
+            "max_hp": 20
+          }
+        ],
+        "money": 5672,
+        "badges": [],
+        "play_time_s": 3989
+      },
+      {
+        "v": 1,
+        "run": "2026-10-13T23-50-13_human_1848",
+        "seq": 20,
+        "t": "2026-10-14T01:01:02.163-04:00",
+        "type": "milestone",
+        "turn": 0,
+        "emulator_frame": 250415,
+        "emulator_frame_kind": "sample_upper_bound",
+        "name": "RUSTBORO_CITY_GYM",
+        "server_timestamp": 1791954062.163,
+        "kind": "navigation",
+        "origin": "observed",
+        "evidence": [
+          19
+        ]
+      },
+      {
+        "v": 1,
+        "run": "2026-10-13T23-50-13_human_1848",
+        "seq": 21,
+        "t": "2026-10-14T01:41:53.443-04:00",
+        "type": "state",
+        "turn": 0,
+        "screen": "overworld",
+        "story": {
+          "name_confirmed": true,
+          "intro_stage": 7,
+          "rival_stage": 4,
+          "birch_lab_stage": 5,
+          "petalburg_gym_stage": 3,
+          "woods_stage": 1,
+          "clock_set": true,
+          "rival_battle_won": true,
+          "pokedex_received": true,
+          "running_shoes_received": true,
+          "starter_tutorial_complete": true,
+          "rustboro_gym_complete": true,
+          "stone_badge": true,
+          "rock_tomb_received": false
+        },
+        "started": true,
+        "name": "RED",
+        "location": "RUSTBORO CITY GYM",
+        "map_id": [
+          11,
+          3
+        ],
+        "position": {
+          "x": 5,
+          "y": 3
+        },
+        "facing": "up",
+        "in_battle": false,
+        "party": [
+          {
+            "species": "MARILL",
+            "level": 16,
+            "hp": 15,
+            "max_hp": 51
+          },
+          {
+            "species": "TORCHIC",
+            "level": 15,
+            "hp": 43,
+            "max_hp": 43
+          },
+          {
+            "species": "POOCHYENA",
+            "level": 4,
+            "hp": 17,
+            "max_hp": 17
+          },
+          {
+            "species": "WURMPLE",
+            "level": 4,
+            "hp": 17,
+            "max_hp": 17
+          },
+          {
+            "species": "SHROOMISH",
+            "level": 9,
+            "hp": 31,
+            "max_hp": 31
+          },
+          {
+            "species": "CASCOON",
+            "level": 5,
+            "hp": 20,
+            "max_hp": 20
+          }
+        ],
+        "money": 5860,
+        "badges": [
+          "STONE"
+        ],
+        "play_time_s": 6380
+      },
+      {
+        "v": 1,
+        "run": "2026-10-13T23-50-13_human_1848",
+        "seq": 22,
+        "t": "2026-10-14T01:41:53.445-04:00",
+        "type": "milestone",
+        "turn": 0,
+        "emulator_frame": 396822,
+        "emulator_frame_kind": "sample_upper_bound",
+        "name": "STONE_BADGE",
+        "server_timestamp": 1791956513.445,
+        "kind": "story",
+        "origin": "observed",
+        "evidence": [
+          21
+        ]
+      },
+      {
+        "v": 1,
+        "run": "2026-10-13T23-50-13_human_1848",
+        "seq": 23,
+        "t": "2026-10-14T01:42:12.134-04:00",
+        "type": "operator_control",
+        "turn": 0,
+        "action": "stop",
+        "status": "pending",
+        "request": 3
+      },
+      {
+        "v": 1,
+        "run": "2026-10-13T23-50-13_human_1848",
+        "seq": 24,
+        "t": "2026-10-14T01:42:12.234-04:00",
+        "type": "operator_control",
+        "turn": 0,
+        "action": "stop",
+        "status": "applied",
+        "request": 3
+      },
+      {
+        "v": 1,
+        "run": "2026-10-13T23-50-13_human_1848",
+        "seq": 25,
+        "t": "2026-10-14T01:42:12.449-04:00",
+        "type": "run_end",
+        "turn": 0,
+        "reason": "operator_stop",
+        "furthest_milestone": "ROCK_TOMB_RECEIVED",
+        "turns": 0,
+        "wall_ms": 6718469,
+        "tokens": {
+          "input": 0,
+          "output": 0
+        },
+        "frames": {
+          "saved": 13324,
+          "bytes": 74975718
+        }
+      }
+    ]
+  },
+  "agent": {
+    "source": "2026-10-14T00-25-06_think-fast_dea1/events.jsonl",
+    "source_sha256": "a776ecf8a1b08247a735d511a345606be737b14cff578718dfaf3f579f338501",
+    "original_seq": [
+      0,
+      822,
+      823,
+      1021,
+      1127,
+      1128,
+      1382,
+      2621,
+      2622,
+      3018,
+      3020,
+      3021,
+      5564,
+      5565,
+      6557
+    ],
+    "adaptation": "Selected run_start, pause controls, eight report splits and their native evidence, run_end. Sequences and evidence renumbered contiguously; timestamps, state, model, source and feature values retained. Not a benchmark run. Optional state readouts outside native milestone predicates omitted; prompt replaced with fixture label.",
+    "events": [
+      {
+        "v": 1,
+        "run": "2026-10-14T00-25-06_think-fast_dea1",
+        "seq": 0,
+        "t": "2026-10-14T00:25:08.449-04:00",
+        "type": "run_start",
+        "turn": 0,
+        "evaluation": {
+          "preset_id": "navigation-full-astar",
+          "target": null,
+          "failure_limit": 3,
+          "flags": {
+            "loopGuard": true,
+            "activeUi": true,
+            "interfaceDocs": true,
+            "objectives": false
+          }
+        },
+        "model": {
+          "id": "think-fast",
+          "context_window": 65536,
+          "max_tokens": 16384,
+          "vision": true
+        },
+        "sampling": {
+          "thinking_level": "medium",
+          "max_tokens": 4096
+        },
+        "system_prompt": "Recorded reference fixture; original prompt omitted.",
+        "tools": [
+          "observe",
+          "press",
+          "navigate_to"
+        ],
+        "harness": {
+          "commit": "256bf2347bd75d8db1645bda5e9f0149f640e1cc",
+          "dirty": false
+        },
+        "vendor_pin": "bbab97ad73e460b7cd7c08527d10ced30cc03fbe",
+        "pi_version": "0.73.1",
+        "start_state": {
+          "kind": "boot"
+        },
+        "harness_features": [
+          "ram-state-v1",
+          "live-map-v1",
+          "field-control-lock",
+          "naming-cursor-v1",
+          "live-object-sprites-v1",
+          "coordinate-script-conditions-v1",
+          "active-field-message-buffer-v1",
+          "world-targets-v1",
+          "named-interactions-v1",
+          "bounded-navigation-v1",
+          "live-player-position-v1",
+          "world-coordinate-grid-v1",
+          "press-result-v1",
+          "warp-activation-guidance-v1",
+          "clock-milestone-v1",
+          "story-state-v1",
+          "active-ui-ownership-v1",
+          "story-milestones-v2",
+          "new-game-created-v1",
+          "post-clock-navigation-milestones-v1",
+          "deterministic-loop-diagnostics-v1",
+          "deterministic-loop-policy-v1:p6:o3:a3:c3:r2:recovery6",
+          "deterministic-loop-guard-v1",
+          "contextual-interface-docs-v1"
+        ],
+        "budgets": {
+          "max_turns": 1500,
+          "max_wall_ms": 1800000
+        },
+        "isolation": {
+          "server_dir": "/Users/user/.codex/worktrees/navigation-experiments/pokebench/runs/2026-10-14T00-25-06_think-fast_dea1/server",
+          "run_data_id": "2026-10-14T00-25-06_think-fast_dea1",
+          "load_checkpoint_mode": false,
+          "port": 8070
+        }
+      },
+      {
+        "v": 1,
+        "run": "2026-10-14T00-25-06_think-fast_dea1",
+        "seq": 1,
+        "t": "2026-10-14T00:27:41.926-04:00",
+        "type": "state",
+        "turn": 75,
+        "screen": "birch_speech",
+        "story": {
+          "name_confirmed": true,
+          "intro_stage": null,
+          "rival_stage": null,
+          "birch_lab_stage": null,
+          "petalburg_gym_stage": null,
+          "woods_stage": null,
+          "clock_set": null,
+          "rival_battle_won": null,
+          "pokedex_received": null,
+          "running_shoes_received": null,
+          "starter_tutorial_complete": null,
+          "rustboro_gym_complete": null,
+          "stone_badge": null,
+          "rock_tomb_received": null
+        },
+        "started": false,
+        "name": null,
+        "location": null,
+        "map_id": null,
+        "position": null,
+        "facing": null,
+        "in_battle": false,
+        "party": [],
+        "money": null,
+        "badges": [],
+        "play_time_s": null
+      },
+      {
+        "v": 1,
+        "run": "2026-10-14T00-25-06_think-fast_dea1",
+        "seq": 2,
+        "t": "2026-10-14T00:27:41.926-04:00",
+        "type": "milestone",
+        "turn": 75,
+        "name": "PLAYER_NAME_CONFIRMED",
+        "server_timestamp": 1791952061.926,
+        "kind": "story",
+        "origin": "observed",
+        "evidence": [
+          1
+        ]
+      },
+      {
+        "v": 1,
+        "run": "2026-10-14T00-25-06_think-fast_dea1",
+        "seq": 3,
+        "t": "2026-10-14T00:28:09.618-04:00",
+        "type": "state",
+        "turn": 95,
+        "screen": "overworld",
+        "story": {
+          "name_confirmed": true,
+          "intro_stage": 0,
+          "rival_stage": 0,
+          "birch_lab_stage": 0,
+          "petalburg_gym_stage": 0,
+          "woods_stage": 0,
+          "clock_set": false,
+          "rival_battle_won": false,
+          "pokedex_received": false,
+          "running_shoes_received": false,
+          "starter_tutorial_complete": false,
+          "rustboro_gym_complete": false,
+          "stone_badge": false,
+          "rock_tomb_received": false
+        },
+        "started": true,
+        "name": "HD",
+        "location": "INSIDE OF TRUCK",
+        "map_id": [
+          25,
+          40
+        ],
+        "position": {
+          "x": 2,
+          "y": 2
+        },
+        "facing": "down",
+        "in_battle": false,
+        "party": [],
+        "money": 3000,
+        "badges": [],
+        "play_time_s": 0
+      },
+      {
+        "v": 1,
+        "run": "2026-10-14T00-25-06_think-fast_dea1",
+        "seq": 4,
+        "t": "2026-10-14T00:28:29.063-04:00",
+        "type": "state",
+        "turn": 105,
+        "screen": "overworld",
+        "story": {
+          "name_confirmed": true,
+          "intro_stage": 1,
+          "rival_stage": 0,
+          "birch_lab_stage": 0,
+          "petalburg_gym_stage": 0,
+          "woods_stage": 0,
+          "clock_set": false,
+          "rival_battle_won": false,
+          "pokedex_received": false,
+          "running_shoes_received": false,
+          "starter_tutorial_complete": false,
+          "rustboro_gym_complete": false,
+          "stone_badge": false,
+          "rock_tomb_received": false
+        },
+        "started": true,
+        "name": "HD",
+        "location": "LITTLEROOT TOWN",
+        "map_id": [
+          0,
+          9
+        ],
+        "position": {
+          "x": 3,
+          "y": 10
+        },
+        "facing": "down",
+        "in_battle": false,
+        "party": [],
+        "money": 3000,
+        "badges": [],
+        "play_time_s": 20
+      },
+      {
+        "v": 1,
+        "run": "2026-10-14T00-25-06_think-fast_dea1",
+        "seq": 5,
+        "t": "2026-10-14T00:28:29.066-04:00",
+        "type": "milestone",
+        "turn": 105,
+        "name": "FIRST_TRUCK_EXIT",
+        "server_timestamp": 1791952109.066,
+        "kind": "story",
+        "origin": "observed",
+        "evidence": [
+          3,
+          4
+        ]
+      },
+      {
+        "v": 1,
+        "run": "2026-10-14T00-25-06_think-fast_dea1",
+        "seq": 6,
+        "t": "2026-10-14T00:29:17.709-04:00",
+        "type": "state",
+        "turn": 130,
+        "screen": "overworld",
+        "story": {
+          "name_confirmed": true,
+          "intro_stage": 4,
+          "rival_stage": 0,
+          "birch_lab_stage": 0,
+          "petalburg_gym_stage": 0,
+          "woods_stage": 0,
+          "clock_set": false,
+          "rival_battle_won": false,
+          "pokedex_received": false,
+          "running_shoes_received": false,
+          "starter_tutorial_complete": false,
+          "rustboro_gym_complete": false,
+          "stone_badge": false,
+          "rock_tomb_received": false
+        },
+        "started": true,
+        "name": "HD",
+        "location": "LITTLEROOT TOWN BRENDANS HOUSE 1F",
+        "map_id": [
+          1,
+          0
+        ],
+        "position": {
+          "x": 8,
+          "y": 7
+        },
+        "facing": "up",
+        "in_battle": false,
+        "party": [],
+        "money": 3000,
+        "badges": [],
+        "play_time_s": 71
+      },
+      {
+        "v": 1,
+        "run": "2026-10-14T00-25-06_think-fast_dea1",
+        "seq": 7,
+        "t": "2026-10-14T00:33:25.392-04:00",
+        "type": "state",
+        "turn": 248,
+        "screen": "overworld",
+        "story": {
+          "name_confirmed": true,
+          "intro_stage": 6,
+          "rival_stage": 0,
+          "birch_lab_stage": 0,
+          "petalburg_gym_stage": 0,
+          "woods_stage": 0,
+          "clock_set": true,
+          "rival_battle_won": false,
+          "pokedex_received": false,
+          "running_shoes_received": false,
+          "starter_tutorial_complete": false,
+          "rustboro_gym_complete": false,
+          "stone_badge": false,
+          "rock_tomb_received": false
+        },
+        "started": true,
+        "name": "HD",
+        "location": "LITTLEROOT TOWN BRENDANS HOUSE 2F",
+        "map_id": [
+          1,
+          1
+        ],
+        "position": {
+          "x": 5,
+          "y": 2
+        },
+        "facing": "up",
+        "in_battle": false,
+        "party": [],
+        "money": 3000,
+        "badges": [],
+        "play_time_s": 327
+      },
+      {
+        "v": 1,
+        "run": "2026-10-14T00-25-06_think-fast_dea1",
+        "seq": 8,
+        "t": "2026-10-14T00:33:25.393-04:00",
+        "type": "milestone",
+        "turn": 248,
+        "name": "CLOCK_SET",
+        "server_timestamp": 1791952405.393,
+        "kind": "story",
+        "origin": "observed",
+        "evidence": [
+          7
+        ]
+      },
+      {
+        "v": 1,
+        "run": "2026-10-14T00-25-06_think-fast_dea1",
+        "seq": 9,
+        "t": "2026-10-14T00:34:45.459-04:00",
+        "type": "state",
+        "turn": 283,
+        "screen": "overworld",
+        "story": {
+          "name_confirmed": true,
+          "intro_stage": 7,
+          "rival_stage": 0,
+          "birch_lab_stage": 0,
+          "petalburg_gym_stage": 0,
+          "woods_stage": 0,
+          "clock_set": true,
+          "rival_battle_won": false,
+          "pokedex_received": false,
+          "running_shoes_received": false,
+          "starter_tutorial_complete": false,
+          "rustboro_gym_complete": false,
+          "stone_badge": false,
+          "rock_tomb_received": false
+        },
+        "started": true,
+        "name": "HD",
+        "location": "LITTLEROOT TOWN BRENDANS HOUSE 1F",
+        "map_id": [
+          1,
+          0
+        ],
+        "position": {
+          "x": 8,
+          "y": 3
+        },
+        "facing": "down",
+        "in_battle": false,
+        "party": [],
+        "money": 3000,
+        "badges": [],
+        "play_time_s": 410
+      },
+      {
+        "v": 1,
+        "run": "2026-10-14T00-25-06_think-fast_dea1",
+        "seq": 10,
+        "t": "2026-10-14T00:34:47.647-04:00",
+        "type": "state",
+        "turn": 283,
+        "screen": "overworld",
+        "story": {
+          "name_confirmed": true,
+          "intro_stage": 7,
+          "rival_stage": 0,
+          "birch_lab_stage": 0,
+          "petalburg_gym_stage": 0,
+          "woods_stage": 0,
+          "clock_set": true,
+          "rival_battle_won": false,
+          "pokedex_received": false,
+          "running_shoes_received": false,
+          "starter_tutorial_complete": false,
+          "rustboro_gym_complete": false,
+          "stone_badge": false,
+          "rock_tomb_received": false
+        },
+        "started": true,
+        "name": "HD",
+        "location": "LITTLEROOT TOWN",
+        "map_id": [
+          0,
+          9
+        ],
+        "position": {
+          "x": 5,
+          "y": 8
+        },
+        "facing": "down",
+        "in_battle": false,
+        "party": [],
+        "money": 3000,
+        "badges": [],
+        "play_time_s": 412
+      },
+      {
+        "v": 1,
+        "run": "2026-10-14T00-25-06_think-fast_dea1",
+        "seq": 11,
+        "t": "2026-10-14T00:34:47.650-04:00",
+        "type": "milestone",
+        "turn": 283,
+        "name": "PLAYER_HOUSE_EXITED_AFTER_CLOCK",
+        "server_timestamp": 1791952487.65,
+        "kind": "navigation",
+        "origin": "observed",
+        "evidence": [
+          6,
+          9,
+          10
+        ]
+      },
+      {
+        "v": 1,
+        "run": "2026-10-14T00-25-06_think-fast_dea1",
+        "seq": 12,
+        "t": "2026-10-14T00:49:46.015-04:00",
+        "type": "state",
+        "turn": 532,
+        "screen": "overworld",
+        "story": {
+          "name_confirmed": true,
+          "intro_stage": 7,
+          "rival_stage": 3,
+          "birch_lab_stage": 0,
+          "petalburg_gym_stage": 0,
+          "woods_stage": 0,
+          "clock_set": true,
+          "rival_battle_won": false,
+          "pokedex_received": false,
+          "running_shoes_received": false,
+          "starter_tutorial_complete": false,
+          "rustboro_gym_complete": false,
+          "stone_badge": false,
+          "rock_tomb_received": false
+        },
+        "started": true,
+        "name": "HD",
+        "location": "LITTLEROOT TOWN MAYS HOUSE 2F",
+        "map_id": [
+          1,
+          3
+        ],
+        "position": {
+          "x": 5,
+          "y": 3
+        },
+        "facing": "right",
+        "in_battle": false,
+        "party": [],
+        "money": 3000,
+        "badges": [],
+        "play_time_s": 1318
+      },
+      {
+        "v": 1,
+        "run": "2026-10-14T00-25-06_think-fast_dea1",
+        "seq": 13,
+        "t": "2026-10-14T00:49:46.016-04:00",
+        "type": "milestone",
+        "turn": 532,
+        "name": "RIVAL_MET",
+        "server_timestamp": 1791953386.016,
+        "kind": "story",
+        "origin": "observed",
+        "evidence": [
+          12
+        ]
+      },
+      {
+        "v": 1,
+        "run": "2026-10-14T00-25-06_think-fast_dea1",
+        "seq": 14,
+        "t": "2026-10-14T00:55:08.462-04:00",
+        "type": "run_end",
+        "turn": 626,
+        "reason": "budget",
+        "furthest_milestone": "RIVAL_MET",
+        "turns": 626,
+        "wall_ms": 1800011,
+        "tokens": {
+          "input": 2478194,
+          "output": 52408
+        },
+        "frames": {
+          "saved": 625,
+          "bytes": 2999001
+        }
+      }
+    ]
+  }
+}

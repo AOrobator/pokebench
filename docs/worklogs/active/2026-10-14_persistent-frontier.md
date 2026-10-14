@@ -33,7 +33,7 @@ Keep implementation, gates, review, landing and served/UI proof separate. Record
 2026-10-14: Main d2a4976; unrelated navigation/transition worklogs dirty and untouched. Split workbench f4d75fe exists only on viewer-overlay-padding worktree; workbench handoff explicitly says not reviewed/landed. Parent landing agent owns integration, so shared UI edits held pending confirmation. Created isolated worktree from main. Report reference-data.json confirms human1848 pause and dea1 selection; original logs retained unchanged.
 
 ## Surprises
-Existing workbench snapshot enumerates top-level runs only; recorded human is nested under runs/human and needs fixed-path ingestion through the same validator. The human log exceeds the old workbench's read bound; inspect landed parser before choosing bounded handling.
+Current main listRuns already locates nested human recordings; the old workbench snapshot has a 64 MiB cap versus human1848 at 241 MiB. Inspect the landed parser before implementing bounded human ingestion.
 
 ## Multi-Model Review Log
 Pending frozen packet.
@@ -43,3 +43,7 @@ None.
 
 ## Archive Milestone
 - [ ] ASK USER: archive after completion.
+
+Prepared independent frontier regression tests (selection, missing-line gaps, persistent references, exclusions, denominators and responsive SVG), plus adapted recorded-event fixture with original sequence mapping and source hashes. Shared workbench files remain untouched pending parent landing receipt.
+
+Independent test preparation continues under parent hold: bounded reducer tests cover tiny UTF-8 chunk boundaries, exact source hashing, incomplete final line, byte/line limits and failure propagation. Adapted recorded fixtures reduced to 36,704 bytes (two runs, bounded selected event sets), with omitted optional state fields/prompt disclosed. Initial broad invocation hit missing built agent exports (setup failure); focused prelanding tests correctly show missing unlanded workbench imports, not a behavior RED receipt. Build agent dependency restored. Shared production UI remains untouched.

@@ -130,3 +130,8 @@ COMMIT: `test(agent): RED for dialogue-log-v1 and recall_dialogue` (6b1b5c4)
   reference + explainer docs/explainers/dialogue-log-v1.html linked. Gates: agent 960/960,
   viewer 495/495, dialogue-log.ts 100/98.66/100/100, agent all files 97.2/93.45/97.81, tsc and
   eslint clean.
+COMMIT: `feat(agent): add dialogue-log-v1 with recall_dialogue` (cb8d87c)
+- M3 deferred until the navigation memory cohort reports (extend-vs-replace decision).
+- M4 RED: loop-supervisor.test.ts (9 tests: briefing replaces stop, backoff 4/8/16/32 calls
+  capped at 32, recovery clears it, plain and diagnostic modes unchanged, schema-valid event,
+  governor never aborted, briefing contents and honest fallbacks, 2500-char bound, wiring).

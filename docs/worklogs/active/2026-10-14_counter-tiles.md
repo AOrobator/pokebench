@@ -84,5 +84,5 @@ only in docs/worklog; Codex classes the viewer explainer link as scope expansion
 the feature-explainer skill require it; first-direction stand tile and object elevation remain
 speculation; `local_map` recorded text keeps defaults like its siblings (frozen non-goal).
 
-Status: ready for operator review. Not merged; awaiting approval to merge into main.
+Status: landed on main (cef13fb) with operator approval 2026-10-14. Experiment readiness: BLOCKED (models do not yet reach Oldale); recorded in docs/experiments/readiness.md, and the patch-evaluation skill now gates experiments on readiness.
 - Merged main 3e8a13c cleanly (viewer and docs only, no counter files touched); gates green.

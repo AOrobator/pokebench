@@ -68,6 +68,7 @@ export class NavigationMemory {
   }
  }
  private facedTarget(state:State):string {
+  if(!this.features["field-control-lock"])return "A interaction target unverified";
   if(state.screen!=="overworld"||state.field_controls_locked!==false)return "A input owned by interface or unverified field controls";
   if(!this.features["world-targets-v1"]||!this.features["live-player-position-v1"]||state.position===null)return "A interaction target unverified";
   const delta:Record<string,readonly[number,number]>={UP:[0,-1],DOWN:[0,1],LEFT:[-1,0],RIGHT:[1,0]};

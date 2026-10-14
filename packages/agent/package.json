@@ -31,6 +31,15 @@
     "./spectator": {
       "types": "./src/spectator.ts",
       "default": "./dist/spectator.js"
+    },
+    "./milestones": {
+      "types": "./src/milestones.ts",
+      "default": "./dist/milestones.js"
+    },
+    "./serial-comparison": {
+      "types": "./src/serial-comparison.ts",
+      "default": "./dist/serial-comparison.js"
+
     }
   },
   "scripts": {

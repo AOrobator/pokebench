@@ -10,11 +10,12 @@ import { BaselineError, RunsError, createBaselineReader, comparisonsOf, eventsPa
 import { featureHistory } from "./history.js";
 import { localModels } from "./models.js";
 import { NextRunError, appendControl, healthProbe, liveRuns, readDraft, writeDraft, type RunQueue } from "./next-run.js";
+import { workbenchSnapshot } from "./workbench-store.js";
 import { MILESTONE_ORDER } from "./model.js";
 
 export const HOST = "127.0.0.1";
 // Browser code the page may load; everything else in dist/ stays private.
-export const BROWSER_MODULES = ["main", "app", "model", "format", "inspectformat", "timeline", "panels", "gba", "replay", "controls", "nextpanel", "human-input", "human-play", "human-main"] as const;
+export const BROWSER_MODULES = ["main", "app", "model", "format", "inspectformat", "timeline", "panels", "gba", "replay", "controls", "nextpanel", "human-input", "human-play", "human-main", "workbench-main", "workbench", "workbench-view", "workbench-data"] as const;
 
 const MODULE_NAME = new RegExp(`^(${BROWSER_MODULES.join("|")})\\.js$`);
 const FRAME_NAME = /^\d{6}_\d+\.png$/;
@@ -263,6 +264,14 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     return;
   }
   const [head, second, id, leaf, file] = parts;
+  if (parts.length === 2 && head === "api" && second === "workbench") {
+    sendJson(res, 200, await workbenchSnapshot(options.runsRoot, healthProbe(options.fetchFn ?? fetch), options.queue?.status() ?? { state: "idle" }, (options.now?.() ?? new Date()).getTime()));
+    return;
+  }
+  if (parts.length === 1 && head === "comparisons") {
+    sendFile(res, join(options.staticDir, "workbench.html"), "text/html; charset=utf-8");
+    return;
+  }
   if (parts.length === 2 && head === "api" && second === "features") {
     sendJson(res, 200, { features: FEATURES, milestones: MILESTONE_ORDER });
     return;

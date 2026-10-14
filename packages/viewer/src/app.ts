@@ -366,6 +366,8 @@ export class App {
     // References are eligible only after the owned server validates their logs.
     this.picker("baseline").replaceChildren(option(this.doc, "", "none"));
     this.doc.location.hash = `run=${encodeURIComponent(runId)}`;
+    const comparisons = this.doc.querySelector<HTMLAnchorElement>('[data-ui="comparisons-link"]');
+    if (comparisons !== null) comparisons.href = `/comparisons?from=${encodeURIComponent(runId)}`;
     void this.loadComparisons(runId);
     const stream = this.deps.openStream(`/api/runs/${encodeURIComponent(runId)}/events`);
     this.stream = stream;

@@ -43,6 +43,10 @@ describe("experiment queue view", () => {
     expect(() => queueSnapshotOf({ ...SNAPSHOT, queue: [{ ...view("x"), notes: 3 }] })).toThrow("malformed /api/experiments queue");
     expect(() => queueSnapshotOf({ ...SNAPSHOT, queue: [{ ...view("x"), result: { verdict: 1 } }] })).toThrow("malformed /api/experiments queue");
     expect(() => queueSnapshotOf({ ...SNAPSHOT, runner: { experiment: 1 } })).toThrow("malformed /api/experiments runner");
+    expect(() => queueSnapshotOf({ ...SNAPSHOT, queue: [{ ...view("x"), state: "bogus" }] })).toThrow("malformed /api/experiments queue");
+    expect(() => queueSnapshotOf({ ...SNAPSHOT, queue: [{ ...view("x"), trials: [{ ...trial(0, "done", true), state: "odd" }] }] })).toThrow("malformed /api/experiments queue");
+    expect(() => queueSnapshotOf({ ...SNAPSHOT, closed: [{ ...view("x"), result: { verdict: "great", recommendation: "keep", eligible: true, problems: [] } }] })).toThrow("malformed /api/experiments closed");
+    expect(() => queueSnapshotOf({ ...SNAPSHOT, closed: [{ ...view("x"), result: { verdict: "improve", recommendation: "ship", eligible: true, problems: [] } }] })).toThrow("malformed /api/experiments closed");
   });
 
   it("counts states and shows chips only for states that exist", () => {
@@ -89,6 +93,11 @@ describe("experiment queue view", () => {
     expect(ineligible.queue).toContain("INCONCLUSIVE → RETAIN (not eligible: prompt differs)");
     const blocked = { ...SNAPSHOT, queue: [...SNAPSHOT.queue, view("stuck", { state: "blocked", reason: "needs a fix" })] };
     expect(renderQueue(blocked, "all", new Set()).chips).toContain('data-filter="blocked"');
+    const pendingBlocked = { ...SNAPSHOT, pending: [...SNAPSHOT.pending, view("held-back", { queuePosition: null, state: "blocked", reason: "needs a fix" })] };
+    expect(countsOf(pendingBlocked).blocked).toBe(1);
+    const onlyPending = renderQueue(pendingBlocked, "blocked", new Set());
+    expect(onlyPending.pending).toContain("EXPERIMENT HELD-BACK");
+    expect(onlyPending.pending).not.toContain("EXPERIMENT LEDGE");
     const only = renderQueue(blocked, "blocked", new Set());
     expect(only.queue).toContain("EXPERIMENT STUCK");
     expect(only.queue).not.toContain("EXPERIMENT FULL");

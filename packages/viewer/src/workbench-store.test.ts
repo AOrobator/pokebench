@@ -162,4 +162,18 @@ describe("durable cohort queue and metadata boundaries", () => {
     expect(d.runs.find(x => x.id === "2026-10-14T20-30-00_think-fast_bbbb")?.excluded).toContain("play exited with 1");
     expect(d.queue.filter(q => q.cohort === "experiment:full-map")).toEqual([{ id: "2026-10-14T21-00-00_think-fast_cccc", cohort: "experiment:full-map", model: "think-fast", arm: "candidate", status: "withheld", reason: "Experiment queue trial with no recorded outcome; the runner is not on it" }]);
   });
+  it("ingests an experiment ledger all or nothing, and only launched runs join the cohort", async () => {
+    const r = root();
+    write(r, "2026-10-14T20-00-00_think-fast_aaaa", named()); write(r, "2026-10-14T20-30-00_think-fast_bbbb", named());
+    mkdirSync(join(r, "experiments", "full-map"), { recursive: true });
+    const good = [{ type: "launch", trial: 0, arm: "incumbent", run: "2026-10-14T20-00-00_think-fast_aaaa", at: "t" }, { type: "outcome", trial: 0, arm: "incumbent", run: "2026-10-14T20-00-00_think-fast_aaaa", at: "t", reason: "budget" }, { type: "outcome", trial: 1, arm: "candidate", run: "2026-10-14T20-30-00_think-fast_bbbb", at: "t", reason: "budget" }].map(e => JSON.stringify(e)).join("\n") + "\n";
+    writeFileSync(join(r, "experiments", "full-map", "trials.jsonl"), good + "not json\n");
+    const broken = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(false), { state: "idle" }, 2000000000000));
+    expect(broken.runs.filter(x => x.cohort === "experiment:full-map")).toEqual([]);
+    expect(broken.problems.some(p => p.includes("Experiment full-map ledger"))).toBe(true);
+    writeFileSync(join(r, "experiments", "full-map", "trials.jsonl"), good);
+    const fixed = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(false), { state: "idle" }, 2000000000000));
+    expect(fixed.runs.find(x => x.id === "2026-10-14T20-00-00_think-fast_aaaa")?.cohort).toBe("experiment:full-map");
+    expect(fixed.runs.find(x => x.id === "2026-10-14T20-30-00_think-fast_bbbb")?.cohort).toBeNull();
+  });
 });

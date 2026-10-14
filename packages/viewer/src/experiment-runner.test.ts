@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { definitionHash, parseExperiment, type ReadinessRun } from "@pokebench/agent/experiments";
+import { definitionHash, parseExperiment, trialOrder, type ReadinessRun } from "@pokebench/agent/experiments";
 import { playHarnessFeatures } from "@pokebench/agent/features";
 import { Log, START } from "../test-support/events.js";
 import { QUEUE_FEATURES, definition, writeDefinition } from "../test-support/experiments.js";
@@ -33,12 +33,11 @@ function writeRun(paths: QueuePaths, runId: string, features: typeof QUEUE_FEATU
   mkdirSync(join(paths.runsRoot, runId), { recursive: true });
   writeFileSync(join(paths.runsRoot, runId, "events.jsonl"), log.events.map((e) => JSON.stringify({ ...e, run: runId })).join("\n") + "\n");
 }
-// Every trial of an 8-per-arm experiment finished, written in one pass (no orchestration).
-function seedFinished(paths: QueuePaths, metrics: Map<string, TrialMetrics>): void {
-  const order = "ABBAABBAABBAABBA";
-  const rows = Array.from(order).flatMap((a, i) => {
-    const run = `done-${String(i)}`, arm = a === "A" ? "incumbent" : "candidate";
-    writeRun(paths, run, a === "A" ? QUEUE_FEATURES : { ...QUEUE_FEATURES, "full-map-navigation-v1": true });
+// Every trial of the fixture experiment finished, ledger written once. Run logs only when grading reads them.
+function seedFinished(paths: QueuePaths, metrics: Map<string, TrialMetrics>, logs = true): void {
+  const rows = trialOrder(parseExperiment(definition("full-map"))).flatMap((arm, i) => {
+    const run = `done-${String(i)}`;
+    if (logs) writeRun(paths, run, arm === "incumbent" ? QUEUE_FEATURES : { ...QUEUE_FEATURES, "full-map-navigation-v1": true });
     metrics.set(run, { reached: [], milestoneMs: {}, turns: 9, wallMs: 60_000 });
     return [JSON.stringify({ type: "launch", trial: i, arm, run, at: "t" }), JSON.stringify({ type: "outcome", trial: i, arm, run, at: "t", reason: "budget" })];
   });
@@ -255,14 +254,24 @@ describe("experiment runner", () => {
     writeFileSync(events, body);
     expect((await runQueue({ paths, source, host: strict })).stopped).toMatch(/^full-map finished; result in /);
     expect(strict.launches).toEqual([]);
+    const final = JSON.parse(readFileSync(join(experimentDir(paths.runsRoot, "full-map"), "result.json"), "utf8")) as { result: { incumbent: { launched: number }; candidate: { launched: number } } };
+    expect([final.result.incumbent.launched, final.result.candidate.launched]).toEqual([4, 4]);
     expect((await runQueue({ paths, source, host: strict })).stopped).toBe("nothing to run: the queue is empty");
   });
 
   it("refuses to grade finished trials under a definition nobody approved", async () => {
     const { paths, metrics, source } = setup();
-    seedFinished(paths, metrics);
+    seedFinished(paths, metrics, false);
     writeDefinition(paths.experimentsDir, definition("full-map", { criteria: { completionTolerance: 1, speedMarginPercent: 10 } }));
     expect((await runQueue({ paths, source, host: host(paths, metrics) })).stopped).toBe("nothing to run: full-map is stale");
+  });
+
+  it("grades only the latest outcome of each trial the definition has", () => {
+    const { paths, metrics } = setup();
+    seedFinished(paths, metrics);
+    writeRun(paths, "extra", QUEUE_FEATURES);
+    writeFileSync(join(experimentDir(paths.runsRoot, "full-map"), "trials.jsonl"), readFileSync(join(experimentDir(paths.runsRoot, "full-map"), "trials.jsonl"), "utf8") + [JSON.stringify({ type: "launch", trial: 99, arm: "incumbent", run: "extra", at: "t" }), JSON.stringify({ type: "outcome", trial: 99, arm: "incumbent", run: "extra", at: "t", reason: "budget" })].join("\n") + "\n");
+    expect(gradeExperiment(paths, parseExperiment(definition("full-map"))).result?.incumbent.launched).toBe(4);
   });
 
   it("refuses a preset on disk that no longer matches the definition", async () => {

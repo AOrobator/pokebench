@@ -41,6 +41,7 @@ function load(root: string, id: string): { run: WorkbenchRun; port: number | nul
     for (const result of readFrom(path, 0, 0).results) {
       if (!result.ok) throw new Error(`line ${String(result.line)}: ${result.problem}`);
       const e = result.event, ms = Date.parse(e.t);
+      if (e.type === "run_start" && seen.size !== 0) throw new Error("Run has more than one run_start; no split graded");
       if (e.run !== id || e.seq !== seen.size || !Number.isFinite(ms) || ms < previousMs || (seen.size === 0 && e.type !== "run_start") || view.end !== null) throw new Error("Run identity, event order or terminal sequence is invalid; no split graded");
       previousMs = ms; seen.set(e.seq, e); view.apply(e);
       if (e.type === "run_start") {

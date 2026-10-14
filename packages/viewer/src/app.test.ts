@@ -777,7 +777,8 @@ it('labels human comparison candidates with unverified ROM provenance',async()=>
 
 
 it("opens the selected run configuration without changing playback or writing next-run settings",async()=>{
- const {app,streams}=await harness(`#run=${M4_ID}`);const log=new Log();log.add(0,{...START,model:{...START.model,id:"recorded-current-model"},harness_features:["navigation-evidence-memory-v1"]});feed(must(streams[0]),log.events);app.tick(1000);
+ const {app,streams}=await harness(`#run=${M4_ID}`);const log=new Log();log.add(0,{...START,model:{...START.model,id:"recorded-current-model"},harness_features:["navigation-evidence-memory-v1"]});feed(must(streams[0]),log.events);app.next.registry=[{id:"navigation-evidence-memory-v1",title:"NAVIGATION MEMORY",description:"Retains observed facts only.",group:"guidance",switchable:true,needs:null}];app.tick(1000);
+ expect(ui("harness-config").textContent).toContain("Retains observed facts only.");expect(ui("harness-config").querySelector("a")?.getAttribute("href")).toBe("/explainers/navigation-evidence-memory-v1.html");
  const clock=app.clock;must(document.querySelector<HTMLButtonElement>('[data-page="config"]')).click();
  expect(document.querySelector<HTMLElement>('[data-nav-page="config"]')?.hidden).toBe(false);expect(ui("harness-config").textContent).toContain("recorded-current-model");expect(ui("harness-config").textContent).toContain("navigation-evidence-memory-v1");expect(ui("harness-config").querySelector("input,select,textarea,button,form")).toBeNull();expect(app.clock).toBe(clock);expect(streams).toHaveLength(1);
 });

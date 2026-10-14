@@ -89,7 +89,7 @@ async function cohortQueue(root: string): Promise<{ items: WorkbenchQueueItem[];
         if (accepted.has(custom.id)) continue; accepted.add(custom.id);
         for (const trial of custom.trials) {
           if (trial.run !== null) {
-            try { const start = readStart(root, trial.run); if (start.harness.commit === custom.source && start.model.id === custom.model) membership.set(trial.run, custom.id); else problems.push(`Navigation run ${trial.run} source/model does not match its receipt`); } catch { /* A launched child may not have written run_start yet. */ }
+            try { const start = readStart(root, trial.run); if (start.harness.commit === custom.source && start.model.id === custom.model) { membership.set(trial.run, custom.id); if (trial.failed) failures.set(trial.run, `Infrastructure outcome: ${custom.failure ?? "child process failed"}`); } else problems.push(`Navigation run ${trial.run} source/model does not match its receipt`); } catch { /* A launched child may not have written run_start yet. */ }
           }
           items.push({ id: trial.run ?? `${custom.id}:trial-${String(trial.ordinal)}`, cohort: custom.id, model: custom.model, arm: trial.arm, status: trial.phase === "completed" ? "completed" : trial.failed ? "failed" : custom.active ? trial.phase === "launched" ? "launching" : "queued" : "withheld", reason: custom.failure ?? (custom.active ? "Recorded eight-trial serial cohort" : "Coordinator not qualified as executing; plan slots retained") });
         }

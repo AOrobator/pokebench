@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { existsSync, lstatSync, readFileSync, realpathSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { dirname, join, sep } from "node:path";
 import { Type, type Static } from "typebox";
 import { Value } from "typebox/value";
@@ -22,7 +22,7 @@ export function visualEvidenceSignature(eventsPath: string): string {
   const root = realpathSync(dirname(eventsPath));
   for (const frame of plan.milestones.flatMap(m => m.screenshots)) {
     const path = join(root, frame.path);
-    if (!realpathSync(path).startsWith(root + sep) || lstatSync(path).size > 2 * 1024 * 1024) throw Error("Visual screenshot escapes run or exceeds bounds");
+    if (!realpathSync(path).startsWith(root + sep) || statSync(path).size > 2 * 1024 * 1024) throw Error("Visual screenshot escapes run or exceeds bounds");
     const data = readFileSync(path);
     if (createHash("sha1").update(data).digest("hex") !== frame.sha1) throw Error("Visual screenshot hash mismatch");
   }

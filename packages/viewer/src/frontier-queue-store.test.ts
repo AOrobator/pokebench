@@ -6,6 +6,7 @@ import { expect, it } from "vitest";
 import { navigationFixture } from "../test-support/navigation-queue.js";
 import { Log, START } from "../test-support/events.js";
 import { workbenchSnapshot } from "./workbench-store.js";
+import { frontierReferences, frontierCoverage } from "./frontier.js";
 import { parseWorkbench } from "./workbench-data.js";
 function setup() {
   const repo = mkdtempSync(join(tmpdir(), "frontier-queue-store-")), root = join(repo, "runs"), folder = join(root, "launch-receipts", "navigation-memory-think-fast-n4"); mkdirSync(folder, { recursive: true });
@@ -43,4 +44,23 @@ it("qualifies a frozen execution checkout only when its runs directory resolves 
   writeFileSync(join(folder, "manifest.json"), JSON.stringify({ ...manifest, root: unrelated }));
   const rejected = await workbenchSnapshot(root, () => Promise.resolve(false), { state: "idle" }, Date.now());
   expect(rejected.queue).toEqual([]); expect(rejected.problems.join()).toContain("root");
+});
+
+it("retains process-failed recordings as outcomes but excludes them from best-run rank and timing credit", async () => {
+ const { root, f, rows }=setup();
+ rows([f.row,{...f.process,code:1},{...f.row,type:"launcher_error",error:"child exit 1"}]);
+ const reference: {agent:{events:unknown[]}}=JSON.parse(readFileSync(join(import.meta.dirname,"../test-support/frontier-reference.json"),"utf8")) as {agent:{events:unknown[]}};
+ const events=reference.agent.events.map(raw=>{
+  const event=raw as Record<string,unknown>;
+  return event.type==="run_start"?{...event,run:"real_run",harness:{...(event.harness as Record<string,unknown>),commit:f.manifest.source},model:{...(event.model as Record<string,unknown>),id:f.manifest.model.id}}:{...event,run:"real_run"};
+ });
+ mkdirSync(join(root,"real_run"));writeFileSync(join(root,"real_run/events.jsonl"),events.map(e=>JSON.stringify(e)).join("\n")+"\n");
+ const data=await workbenchSnapshot(root,()=>Promise.resolve(false),{state:"idle"},Date.now());
+ expect(data.queue[0]).toMatchObject({id:"real_run",status:"failed"});
+ expect(data.runs[0]).toMatchObject({id:"real_run",status:"ended",reason:"budget",excluded:"Infrastructure outcome: child exit 1"});
+ expect(frontierReferences(data.runs).best).toBeNull();
+ expect(frontierCoverage(data.runs,"RIVAL_MET")).toBe("<span><b>0 / 0</b> reached · 1 excluded</span>");
+ rows([f.row,f.process,f.outcome]);
+ const recovered=await workbenchSnapshot(root,()=>Promise.resolve(false),{state:"idle"},Date.now());
+ expect(recovered.runs[0]?.excluded).toBeNull();expect(frontierReferences(recovered.runs).best?.id).toBe("real_run");
 });

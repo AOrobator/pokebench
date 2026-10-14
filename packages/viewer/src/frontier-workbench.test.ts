@@ -2,7 +2,7 @@
 import { readFileSync } from "node:fs";
 import { beforeEach, expect, it } from "vitest";
 import { Workbench } from "./workbench.js";
-import { run } from "../test-support/workbench.js";
+import { run } from "../test-support/frontier-run.js";
 import { HUMAN_REFERENCE } from "./frontier.js";
 const html = readFileSync(new URL("../static/workbench.html", import.meta.url), "utf8");
 function ui(name: string): HTMLElement { const node = document.querySelector<HTMLElement>(`[data-wb="${name}"]`); if (node === null) throw new Error(name); return node; }

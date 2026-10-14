@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from "vitest";
-import { run } from "../test-support/workbench.js";
+import { run } from "../test-support/frontier-run.js";
 import { HUMAN_REFERENCE, FRONTIER_MILESTONES, frontierReferences, frontierPlot, frontierCoverage } from "./frontier.js";
 import type { WorkbenchRun } from "./workbench-data.js";
 function measured(id: string, times: readonly (number | null)[], controller: "agent" | "human" = "agent"): WorkbenchRun {

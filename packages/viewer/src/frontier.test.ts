@@ -142,6 +142,15 @@ describe("zoom to frontier", () => {
     expect(axis()).toContain("New game"); expect(axis()).toContain("Name"); expect(axis()).not.toContain("Truck exit");
     expect(document.body.textContent).toContain("2 of 36 checkpoints");
   });
+  it("ends at the next dense human checkpoint and widens for paused runs, keeping narrow labels honest", () => {
+    const dense = human(); dense.splits = FRONTIER_MILESTONES.map((m, i) => ({ name: m.id, elapsedMs: (i + 1) * 1000, segmentMs: 1000, seq: i, turn: 0, inputTokens: 0, outputTokens: 0 }));
+    document.body.innerHTML = frontierPlot({ human: dense, best: best() }, [], 2000, undefined, [], true);
+    expect(document.body.textContent).toContain("New game → Route 101, 14 of 36 checkpoints");
+    const paused = { ...measured("paused", [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000]), status: "paused" as const };
+    document.body.innerHTML = frontierPlot({ human: dense, best: best() }, [], 300, undefined, [paused], true);
+    expect(document.body.textContent).toContain("New game → Birch rescue, 16 of 36 checkpoints");
+    expect(document.body.textContent).toContain("all visible points remain plotted");
+  });
   it("uses the next checkpoint when the human baseline is missing or has nothing later", () => {
     document.body.innerHTML = frontierPlot({ human: null, best: best() }, [], 2000, undefined, [], true);
     expect(axis()).toContain("Route 101"); expect(axis()).not.toContain("Starter");

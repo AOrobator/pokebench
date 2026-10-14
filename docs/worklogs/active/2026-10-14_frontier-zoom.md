@@ -20,3 +20,7 @@ Branch: claude/frontier-zoom in /private/tmp/pokebench-frontier-zoom.
 - [ ] Browser click-through on an owned preview (viewer-e2e)
 - [ ] Explainer + feature card link (feature-explainer)
 - [ ] Operator approval, local merge to main
+
+COMMITS: `test(viewer): define zoom to frontier…` (44b3656), `feat(viewer): zoom the story frontier…` (9e7e10c), `feat(viewer): segmented FRONTIER / FULL BASELINE control…` (543a383).
+Review round 1: Grok (cursor-grok-4.5-high) LGTM with lows; fixed caption wording under zoom, first label from data, added dense-human and paused-run tests. Claude CLI review credential expired and Cursor Opus hit its monthly limit; Codex default model rejected by ChatGPT account. Retrying Claude via Cursor Sonnet 5 and GPT via codex -m gpt-5.6-sol.
+Explainer: docs/explainers/frontier-zoom.html (viewer option, not a harness feature card).

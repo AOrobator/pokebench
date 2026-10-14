@@ -35,5 +35,7 @@ pret/pokeemerald 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881:
 - GREEN: tests 891 TS agent + 31 viewer files, 1805 Python; coverage gate 90 passes (Python 95% total); lint clean; vendor OK.
 
 - GREEN: `fix(live-map): draw counters as = and explain talking across them` (3734d45)
+- Hint refinement: `fix(navigation): name the tile and direction for talking across a counter` (982773a)
+- Merged main (ledge hops landed): conflicts in live_map.py, navigation.ts and both test files resolved by keeping ledges and counters side by side. After merge: 59 agent + 40 viewer test files, 1809 Python tests; coverage gate 90 passes; lint clean.
 
 ## Review

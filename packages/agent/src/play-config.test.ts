@@ -60,4 +60,11 @@ it("maps observation switches onto the observe/press results", () => {
   expect(toolSwitches(off("ram-state-v1", "press-result-v1", "live-player-position-v1", "field-control-lock"))).toEqual({ safeInterfaces:true, automaticRunning:true, readout: false, pressResult: false, position: false, fieldLock: false });
 });
 
+it("tells the model navigate_to hops ledges only when ledge hops are on",()=>{
+ const nav={...REGISTRY_ALL_ON,"world-destinations-v1":false};
+ expect(playSystemPrompt(nav,null)).toContain("It hops a ledge only in its arrow direction.");
+ expect(playSystemPrompt(nav,null)).not.toContain("solve ledges");
+ expect(playSystemPrompt({...nav,"ledge-hops-v1":false},null)).toContain("press A, surf or solve ledges.");
+});
+
 it("declares only the enabled navigation memory prompt and tool",()=>{const enabled={...ALL_ON,"navigation-evidence-memory-v1":true};expect(playTools(enabled)).toContain("remember_destination");expect(playSystemPrompt(enabled,null)).toContain("not required before acting");expect(playSystemPrompt(ALL_ON,null)).not.toContain("navigation evidence ledger");});

@@ -32,6 +32,10 @@ frozen presets keep counters as `#` and comparisons stay comparable.
   because only that tile is MB_COUNTER (behaviors present include 0x80). `navigate_to` to
   (7,2) or (7,3) pressed nothing and returned the counter hint; from (7,4) facing UP, A opened
   "Hello, and welcome to the POKéMON CENTER." Saved: `runs/counter-proof/oldale-pc-observation.txt`.
+- Re-run on head 70202d6 (switch ON via ALL_ON), run dir `runs/counter-proof/torchic-final`:
+  `navigate_to` to the nurse (7,2) pressed nothing and returned "target is behind a counter;
+  walk to (7,4), face UP toward the counter at (7,3) and press A to talk across it". Following
+  it: navigate_to (7,4), UP, A -> nurse dialogue. Saved: `runs/counter-proof/final-observation.txt`.
 
 ## Commits
 

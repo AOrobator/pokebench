@@ -79,6 +79,11 @@ COMMIT: `docs: record grass cost review LGTM and refresh explainer status`
   95.67/90.53/95.34, Python 96.72/91.91/100) and lint exit 0. Mutations still caught, including
   ledge-landing cost.
 COMMIT: `Merge branch 'main' into claude/grass-cost` (main at cef13fb)
+- Round 3 (conflict resolution, 7516c95): Claude CLI LGTM; Grok BLOCKING on readiness/counter-talk
+  docs "reverted", which was a packet artifact (diff taken against main 2c73b02, which had moved;
+  `git diff $(merge-base) HEAD` on those paths is empty). Merged main 2c73b02, refreshed the
+  explainer status, re-ran Grok on the merge-base packet.
+COMMIT: `docs: grass cost explainer status after landing as a pending experiment`
 - Status: PENDING EXPERIMENT (merged behind the switch, off by default, not in the run queue).
   Arms drafted at `runs/launch-receipts/grass-cost-think-fast-n4/` (main checkout). The
   experiment-queue thread owns the pending list and moves it into the queue once ready.

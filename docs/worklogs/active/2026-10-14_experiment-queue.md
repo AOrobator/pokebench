@@ -146,3 +146,7 @@ Pending.
 - GREEN for B1/B2: `deriveStatus` returns `stale` for a started experiment with no valid approval; `runQueue` re-checks the approval hash before every trial and holds if it no longer matches; a trial whose run recorded `run_end` is an `outcome` even when play exits nonzero (only a run with no recorded end is a launcher error). Lease directory is removed if its owner file cannot be written. Guard check: removed the per-trial approval check; the mid-run revocation test went red; restored.
 - Gates: agent 960 (97.23/93.47/98.01), viewer 516 (95.34/90.38/94.64), Python 1847; lint clean.
 - Elevation explainer: section 6 (switch ON vs OFF diagram, wiring) and status line; Harness Config card link tested (panels.test, server.test). Viewer tests 517.
+
+## Review r2 (frozen head fd64e50, diff SHA-256 cc152c9224e125c846051d3388f682786d03d8b4be380eebfff0cd84b5f7d189; packet /tmp/eq-review-r2)
+- Claude CLI: r1 B1 and B2 confirmed fixed. BLOCKING on N1: Ctrl-C makes play end with run_end operator_abort and exit 0, which the runner graded as a finished miss and never reran (PB3/PB5; the repo excludes operator_abort everywhere else). N2: `--once` on the last trial returned before writing result.json, and the experiment then closed ungraded.
+- RED for N1/N2 written (operator stop → launcher_error, hold, rerun, not graded; `--once` on the last trial grades). Fake host run ids made globally unique.

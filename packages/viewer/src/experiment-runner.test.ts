@@ -26,13 +26,13 @@ function setup(over: Record<string, unknown> = {}, approve = true): { paths: Que
 }
 
 interface Fake extends RunnerHost { launches: TrialLaunch[]; lines: string[] }
+let n = 0;
 function host(paths: QueuePaths, metrics: Map<string, TrialMetrics>, over: Partial<RunnerHost> = {}): Fake {
-  let n = 0;
   const launches: TrialLaunch[] = [], lines: string[] = [];
   return {
     launches, lines,
     now: () => new Date("2026-10-14T20:00:00Z"),
-    runId: (model) => `2026-10-14T20-00-${String(n++).padStart(2, "0")}_${model}_beef`,
+    runId: (model) => `2026-10-14T20-00-${String(n++).padStart(3, "0")}_${model}_beef`,
     verifySource: () => Promise.resolve(null),
     liveRuns: () => Promise.resolve([]),
     discover: (lane) => Promise.resolve({ id: lane, fingerprint: "f".repeat(64) }),
@@ -163,6 +163,29 @@ describe("experiment runner", () => {
     expect(ledger(paths).slice(0, 2)).toMatchObject([{ type: "launch", trial: 0 }, { type: "outcome", trial: 0, reason: "crash" }]);
     const result = JSON.parse(readFileSync(join(experimentDir(paths.runsRoot, "full-map"), "result.json"), "utf8")) as { result: { incumbent: { stopReasons: Record<string, number> } } };
     expect(result.result.incumbent.stopReasons["crash"]).toBe(1);
+  });
+
+  it("treats an operator stop during a trial as unfinished: logged, rerun, never graded", async () => {
+    const { paths, metrics, source } = setup();
+    const base = host(paths, metrics);
+    let stop = false, first = true;
+    const stopping = { ...base, launch: async (t: TrialLaunch) => { await base.launch(t); if (first) { first = false; stop = true; const file = join(paths.runsRoot, t.runId, "events.jsonl"); writeFileSync(file, readFileSync(file, "utf8").replace('"reason":"budget"', '"reason":"operator_abort"')); } return 0; } };
+    expect(await runQueue({ paths, source, host: stopping, stopRequested: () => stop })).toEqual({ ran: 0, stopped: "held: trial 1 was stopped by the operator; it will be rerun" });
+    expect(ledger(paths).at(-1)).toMatchObject({ type: "launcher_error", trial: 0, message: "operator stopped the trial" });
+    stop = false;
+    expect((await runQueue({ paths, source, host: stopping })).ran).toBe(8);
+    expect(ledger(paths).filter((e) => e.type === "launch" && e.trial === 0)).toHaveLength(2);
+    const result = JSON.parse(readFileSync(join(experimentDir(paths.runsRoot, "full-map"), "result.json"), "utf8")) as { result: { incumbent: { stopReasons: Record<string, number>; launched: number } } };
+    expect(result.result.incumbent.stopReasons["operator_abort"]).toBeUndefined();
+    expect(result.result.incumbent.launched).toBe(4);
+  });
+
+  it("grades the experiment when --once runs its last trial", async () => {
+    const { paths, metrics, source } = setup();
+    for (let i = 0; i < 7; i++) expect((await runQueue({ paths, source, host: host(paths, metrics), once: true })).ran).toBe(1);
+    expect(existsSync(join(experimentDir(paths.runsRoot, "full-map"), "result.json"))).toBe(false);
+    expect((await runQueue({ paths, source, host: host(paths, metrics), once: true })).stopped).toMatch(/^full-map finished; result in /);
+    expect(existsSync(join(experimentDir(paths.runsRoot, "full-map"), "result.json"))).toBe(true);
   });
 
   it("refuses a preset on disk that no longer matches the definition", async () => {

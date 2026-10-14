@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { ReadinessRun } from "@pokebench/agent/experiments";
 import { QUEUE_FEATURES, definition, writeDefinition } from "../test-support/experiments.js";
 import { HOST, startViewer, type Viewer } from "./server.js";
+import type { ExperimentAutoRun } from "./experiment-autorun.js";
 
 const open: Viewer[] = [];
 afterEach(async () => { await Promise.all(open.splice(0).map((v) => new Promise<void>((resolve) => { v.server.close(() => { resolve(); }); }))); });
@@ -30,11 +31,12 @@ describe("GET /api/experiments", () => {
     writeDefinition(paths.experimentsDir, definition("full-map"));
     let calls = 0, now = 0, fail = false;
     const recent: ReadinessRun[] = ["a", "b", "c", "d"].map((id) => ({ id, model: "think-fast", start: "boot", maxTurns: 1500, maxWallMs: 1_800_000, features: QUEUE_FEATURES, reached: ["FIRST_TRUCK_EXIT"] }));
-    const viewer = await startViewer({ runsRoot: paths.runsRoot, staticDir: join(root, "static"), appDir: join(root, "app"), port: 0, now: () => new Date(now), experiments: { paths, source: { recent: () => { calls += 1; if (fail) throw new Error("runs unreadable"); return recent; }, trial: () => null } } });
+    const viewer = await startViewer({ runsRoot: paths.runsRoot, staticDir: join(root, "static"), appDir: join(root, "app"), port: 0, now: () => new Date(now), experiments: { paths, head: () => "a".repeat(40), source: { recent: () => { calls += 1; if (fail) throw new Error("runs unreadable"); return recent; }, trial: () => null } }, autorun: { status: () => ({ state: "idle", message: "Nothing is approved to run." }), tick: () => Promise.resolve(), stop: () => undefined } as unknown as ExperimentAutoRun });
     open.push(viewer);
     const first = await call(viewer, "/api/experiments");
     expect(first.status).toBe(200);
     expect((JSON.parse(first.body) as { queue: { id: string; state: string }[] }).queue.map((v) => [v.id, v.state])).toEqual([["full-map", "draft"]]);
+    expect((JSON.parse(first.body) as { autorun: unknown }).autorun).toEqual({ state: "idle", message: "Nothing is approved to run." });
     await call(viewer, "/api/experiments");
     expect(calls).toBe(1);
     now = 10_000;
@@ -66,5 +68,6 @@ describe("GET /api/experiments", () => {
     const body = JSON.parse((await call(viewer, "/api/experiments")).body) as { pending: { id: string }[]; problems: string[] };
     expect(body.pending.map((v) => v.id)).toEqual(["solo"]);
     expect(body.problems[0]).toMatch(/^broken.json: /);
+    expect((body as unknown as { autorun: unknown }).autorun).toBeNull();
   });
 });

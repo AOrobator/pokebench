@@ -43,6 +43,8 @@ describe("experiment queue view", () => {
     expect(() => queueSnapshotOf({ ...SNAPSHOT, queue: [{ ...view("x"), notes: 3 }] })).toThrow("malformed /api/experiments queue");
     expect(() => queueSnapshotOf({ ...SNAPSHOT, queue: [{ ...view("x"), result: { verdict: 1 } }] })).toThrow("malformed /api/experiments queue");
     expect(() => queueSnapshotOf({ ...SNAPSHOT, runner: { experiment: 1 } })).toThrow("malformed /api/experiments runner");
+    expect(() => queueSnapshotOf({ ...SNAPSHOT, autorun: { state: "asleep", message: "" } })).toThrow("malformed /api/experiments autorun");
+    expect(renderQueue(queueSnapshotOf({ ...SNAPSHOT, autorun: { state: "running", message: "Running full." } }), "all", new Set()).queue).toContain("QUEUE RUNNER · RUNNING · Running full.");
     expect(() => queueSnapshotOf({ ...SNAPSHOT, queue: [{ ...view("x"), state: "bogus" }] })).toThrow("malformed /api/experiments queue");
     expect(() => queueSnapshotOf({ ...SNAPSHOT, queue: [{ ...view("x"), trials: [{ ...trial(0, "done", true), state: "odd" }] }] })).toThrow("malformed /api/experiments queue");
     expect(() => queueSnapshotOf({ ...SNAPSHOT, closed: [{ ...view("x"), result: { verdict: "great", recommendation: "keep", eligible: true, problems: [] } }] })).toThrow("malformed /api/experiments closed");

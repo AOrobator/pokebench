@@ -67,7 +67,7 @@ export async function main(argv: readonly string[], deps: CliDeps): Promise<numb
       if (!deps.interactive) throw new RunnerError("approval is interactive: run it yourself in a terminal");
       deps.print(`${view.id}: ${view.title}. ${String(view.trialsPerArm * 2)} trials of ${view.changedFeature} ${view.incumbentOn ? "ON vs OFF" : "OFF vs ON"} on ${view.source.commit.slice(0, 7)}; budget ${String(Math.round(view.budgetMs / 3_600_000))} h.`);
       if ((await deps.ask(`Type ${view.id} to approve: `)).trim() !== view.id) throw new RunnerError("not approved");
-      approveExperiment(deps.paths, deps.source, view.id, deps.user, deps.now());
+      approveExperiment(deps.paths, deps.source, view.id, deps.user, deps.now(), deps.git(["rev-parse", "HEAD"]).trim());
       deps.print(`approved ${view.id}; just experiment-run will start it when it reaches the front of the queue`);
       return 0;
     }
@@ -114,13 +114,13 @@ export function productionHost(deps: HostDeps): RunnerHost {
   return {
     now: () => new Date(),
     runId: (model) => newRunId(new Date(), model, randomSuffix),
-    verifySource: (experiment) => {
+    verifySource: (experiment, commit) => {
       const head = deps.git(["rev-parse", "HEAD"]).trim();
-      if (head !== experiment.source.commit) return Promise.resolve(`main is at ${head.slice(0, 7)}, not the pinned ${experiment.source.commit.slice(0, 7)} (just experiment-pin ${experiment.id}, then re-approve)`);
+      if (head !== commit) return Promise.resolve(`main is at ${head.slice(0, 7)}, not the approved ${commit.slice(0, 7)}; withdraw its approval and approve it again on the current build`);
       if (deps.git(["status", "--porcelain", "--untracked-files=no"]).trim() !== "") return Promise.resolve("the main checkout has uncommitted changes");
       if (!existsSync(liveJs)) return Promise.resolve("packages/agent/dist/live.js is missing; run just build");
       const committed = Number(deps.git(["log", "-1", "--format=%ct", head]).trim()) * 1000;
-      if (statSync(liveJs).mtimeMs < committed) return Promise.resolve("the agent build is older than the pinned commit; run just build");
+      if (statSync(liveJs).mtimeMs < committed) return Promise.resolve("the agent build is older than the approved commit; run just build");
       return Promise.resolve(null);
     },
     liveRuns: () => liveRuns(deps.runsRoot, healthProbe()),

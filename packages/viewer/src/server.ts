@@ -3,6 +3,8 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import type { AddressInfo } from "node:net";
 import { dirname, join } from "node:path";
 import { ApprovalError, approveExperiment, revokeApproval } from "./experiment-approval.js";
+import { AUTORUN_TICK_MS, type AutoRunStatus, type ExperimentAutoRun } from "./experiment-autorun.js";
+import { execFileSync } from "node:child_process";
 import { queueSnapshot, recordedRuns, type QueuePaths, type QueueSnapshot, type RunSource } from "./experiment-store.js";
 import { Type } from "typebox";
 import { Value } from "typebox/value";
@@ -51,7 +53,9 @@ export interface ViewerOptions {
   // Origins a loopback reverse proxy (Tailscale Serve) publishes this viewer at.
   readonly publicOrigins?: readonly string[];
   // The experiment queue (default: experiments/ and docs/experiments/readiness.md beside runsRoot).
-  readonly experiments?: { readonly paths: QueuePaths; readonly source: RunSource };
+  readonly experiments?: { readonly paths: QueuePaths; readonly source: RunSource; readonly head?: () => string };
+  // Runs approved experiments by itself; its status is shown on the queue page.
+  readonly autorun?: ExperimentAutoRun;
 }
 
 const MAX_BODY = 64 * 1024;
@@ -94,7 +98,8 @@ async function jsonBody(req: IncomingMessage, origin: string): Promise<unknown> 
 }
 
 // The experiment queue's read and its two writes (approve, withdraw), sharing one snapshot cache.
-interface QueueApi { read(): Promise<QueueSnapshot>; change(id: string, action: "approve" | "revoke"): QueueSnapshot }
+type QueuePayload = QueueSnapshot & { readonly autorun: AutoRunStatus | null };
+interface QueueApi { read(): Promise<QueuePayload>; change(id: string, action: "approve" | "revoke"): QueuePayload }
 const EmptyBodySchema = Type.Object({}, { additionalProperties: false });
 
 async function write(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, parts: string[], origin: string, queueApi: QueueApi): Promise<void> {
@@ -435,16 +440,20 @@ export async function startViewer(options: ViewerOptions): Promise<Viewer> {
     next.result.catch(() => { if (queued === next) queued = null; });
     return next.result;
   };
+  const head = experiments.head ?? ((): string => execFileSync("git", ["rev-parse", "HEAD"], { cwd: repo, encoding: "utf8" }).trim());
+  const payload = (s: QueueSnapshot): QueuePayload => ({ ...s, autorun: options.autorun?.status() ?? null });
   const queueApi: QueueApi = {
-    read: readExperiments,
+    read: async () => payload(await readExperiments()),
     change: (id, action) => {
       const at = options.now?.() ?? new Date();
-      if (action === "approve") approveExperiment(experiments.paths, experiments.source, id, "viewer", at);
+      if (action === "approve") approveExperiment(experiments.paths, experiments.source, id, "viewer", at, head());
       else revokeApproval(experiments.paths, experiments.source, id, "viewer", at);
       queued = null;
-      return queueSnapshot(experiments.paths, experiments.source);
+      return payload(queueSnapshot(experiments.paths, experiments.source));
     },
   };
+  const autorun = options.autorun;
+  const autorunTicker = autorun === undefined ? null : setInterval(() => { autorun.tick().catch(() => undefined); }, AUTORUN_TICK_MS);
   // A failing request (a client that disconnects mid-body, a file error) must
   // never take the viewer and its queue down.
   const server = createServer((req, res) => {
@@ -470,6 +479,8 @@ export async function startViewer(options: ViewerOptions): Promise<Viewer> {
     close: () =>
       new Promise<void>((resolve) => {
         if (ticker !== null) clearInterval(ticker);
+        if (autorunTicker !== null) clearInterval(autorunTicker);
+        autorun?.stop();
         server.closeAllConnections();
         server.close(() => {
           resolve();

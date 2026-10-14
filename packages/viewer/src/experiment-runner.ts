@@ -6,7 +6,7 @@ import { createHash } from "node:crypto";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { comparePatchResults, type PatchArm, type PatchResult } from "@pokebench/agent/patch-results";
-import { ApprovalSchema, definitionHash, experimentArms, parseLedger, trialOrder, type Arm, type Experiment, type LedgerEntry } from "@pokebench/agent/experiments";
+import { ApprovalSchema, definitionHash, experimentArms, parseLedger, trialOrder, type Approval, type Arm, type Experiment, type LedgerEntry } from "@pokebench/agent/experiments";
 import { parseEvent, type RunEvent } from "@pokebench/agent/events";
 import { Value } from "typebox/value";
 import type { PlayPresetV2 } from "@pokebench/agent/play-preset";
@@ -19,7 +19,7 @@ export interface RunnerHost {
   now(): Date;
   runId(model: string): string;
   // A problem that stops the runner, or null.
-  verifySource(experiment: Experiment): Promise<string | null>;
+  verifySource(experiment: Experiment, commit: string): Promise<string | null>;
   liveRuns(): Promise<string[]>;
   discover(lane: string): Promise<DiscoveredModel>;
   // Resolves with the child's exit code once the run's process ends.
@@ -44,15 +44,18 @@ function ledgerEntries(paths: QueuePaths, id: string): LedgerEntry[] {
   return existsSync(path) ? parseLedger(readFileSync(path, "utf8")).entries : [];
 }
 // INV-Q2, re-checked before every trial: the approval on disk still matches the definition.
-function approved(paths: QueuePaths, experiment: Experiment): boolean {
+function approval(paths: QueuePaths, experiment: Experiment): Approval | null {
   const path = join(experimentDir(paths.runsRoot, experiment.id), "approval.json");
   try {
     const value: unknown = JSON.parse(readFileSync(path, "utf8"));
-    return Value.Check(ApprovalSchema, value) && value.experiment === experiment.id && value.sha256 === definitionHash(experiment);
+    return Value.Check(ApprovalSchema, value) && value.experiment === experiment.id && value.sha256 === definitionHash(experiment) ? value : null;
   } catch {
-    return false;
+    return null;
   }
 }
+const approved = (paths: QueuePaths, experiment: Experiment): boolean => approval(paths, experiment) !== null;
+// The build trials run on: the one the operator approved (older approvals: the definition's pin).
+const approvedCommit = (paths: QueuePaths, experiment: Experiment): string => approval(paths, experiment)?.commit ?? experiment.source.commit;
 
 function presetFile(paths: QueuePaths, experiment: Experiment, arm: Arm): string {
   const arms = experimentArms(experiment);
@@ -124,7 +127,8 @@ async function runNext({ paths, source, host, dryRun = false, once = false, stop
   if (dryRun) return hold(0, "dry run");
   // Every trial already finished: grading reads only the ledger and run logs, so no build, model or lease is needed.
   if (todo.length === 0) return finish(paths, experiment, 0);
-  const problem = await host.verifySource(experiment);
+  const commit = approvedCommit(paths, experiment);
+  const problem = await host.verifySource(experiment, commit);
   if (problem !== null) throw new RunnerError(`${experiment.id}: ${problem}`);
   const live = await host.liveRuns();
   if (live.length > 0) throw new RunnerError(`live run ${live[0] ?? ""} is still running`);
@@ -141,7 +145,7 @@ async function runNext({ paths, source, host, dryRun = false, once = false, stop
     for (const trial of todo) {
       if (stopRequested()) return hold(ran, "stop requested");
       if (!approved(paths, experiment)) return hold(ran, "held: the approval no longer matches the definition");
-      const recheck = await host.verifySource(experiment);
+      const recheck = await host.verifySource(experiment, approvedCommit(paths, experiment));
       if (recheck !== null) return hold(ran, `held: ${recheck}`);
       const used = entries.flatMap((e) => (e.type === "launch" ? [e.run] : [])).reduce((sum, run) => sum + (source.trial(run)?.wallMs ?? 0), 0);
       if (used + experiment.incumbent.limits.maxWallMs > experiment.budget.maxWallMs) return hold(ran, "held: the next trial could exceed the experiment budget");
@@ -150,7 +154,7 @@ async function runNext({ paths, source, host, dryRun = false, once = false, stop
       const presetPath = presets.get(trial.arm) ?? presetFile(paths, experiment, trial.arm);
       presets.set(trial.arm, presetPath);
       const runId = host.runId(model.id);
-      record({ type: "launch", trial: trial.index, arm: trial.arm, run: runId, at: at(), model: model.id, environment: model.fingerprint });
+      record({ type: "launch", trial: trial.index, arm: trial.arm, run: runId, at: at(), model: model.id, environment: model.fingerprint, commit });
       writeFileSync(runnerPath(paths.runsRoot), JSON.stringify({ pid: process.pid, experiment: experiment.id, trial: trial.index }));
       let code: number | null;
       try {

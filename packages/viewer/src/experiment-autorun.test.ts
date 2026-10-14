@@ -61,4 +61,17 @@ describe("the viewer runs approved experiments on its own", () => {
     await auto.tick();
     expect(calls).toBe(2);
   });
+
+  it("waits quietly while another run or cohort holds the machine", async () => {
+    const paths = setup();
+    approveExperiment(paths, source, "full-map", "viewer", new Date(), "a".repeat(40));
+    let now = 0, calls = 0;
+    const auto = new ExperimentAutoRun({ paths, source, host, now: () => now, run: () => { calls += 1; return Promise.reject(new Error("the gameplay lease is held (another run, cohort or queue is active)")); } });
+    await auto.tick();
+    await Promise.resolve(); await Promise.resolve();
+    expect(auto.status()).toEqual({ state: "idle", message: "Waiting: the gameplay lease is held (another run, cohort or queue is active)" });
+    now = 5_000;
+    await auto.tick();
+    expect(calls).toBe(2);
+  });
 });

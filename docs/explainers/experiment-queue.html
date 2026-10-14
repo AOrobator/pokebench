@@ -88,8 +88,9 @@ table{border-collapse:collapse;width:100%;font-size:15px}th,td{text-align:left;p
 <tr><th>Command</th><th>Who</th><th>What it does</th></tr>
 <tr><td><code>just experiments</code></td><td>anyone</td><td>Lists the queue, the pending list and closed experiments with their reasons.</td></tr>
 <tr><td><code>just experiments-check</code></td><td>anyone</td><td>Validates every definition.</td></tr>
-<tr><td><code>just experiment-approve &lt;id&gt;</code></td><td>you only</td><td>Needs a terminal and the typed id, so an agent can't approve anything.</td></tr>
-<tr><td><code>just experiment-pin &lt;id&gt;</code></td><td>anyone</td><td>Moves an unstarted entry to main's current commit; its approval goes stale.</td></tr>
+<tr><td>APPROVE / WITHDRAW APPROVAL buttons in an experiment's card</td><td>you only</td><td>Approving asks you to confirm and locks the current main build. The viewer then runs approved experiments by itself, one at a time, when no other run holds the machine. Withdrawing stops it before its next trial.</td></tr>
+<tr><td><code>just experiment-approve &lt;id&gt;</code></td><td>you only</td><td>The same approval from a terminal (typed id).</td></tr>
+
 <tr><td><code>just experiment-run [--dry-run] [--once]</code></td><td>you</td><td>Runs approved entries in queue order. <code>--dry-run</code> only prints the plan.</td></tr>
 </table></figure>
 

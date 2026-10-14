@@ -5,7 +5,10 @@ import { fileURLToPath } from "node:url";
 import { RUN_ID_PATTERN } from "@pokebench/agent/events";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { ExperimentAutoRun } from "./experiment-autorun.js";
+import { productionHost } from "./experiment-cli.js";
+import { recordedRuns } from "./experiment-store.js";
 import { HumanRestarts, RunQueue, healthProbe, randomSuffix, spawnLaunch } from "./next-run.js";
 import { startViewer, type Viewer, type ViewerOptions } from "./server.js";
 
@@ -95,13 +98,16 @@ export interface MainDeps {
   readonly start: (options: ViewerOptions) => Promise<Viewer>;
   readonly print: (line: string) => void;
   readonly humanLeasePath?: string;
+  // Builds the experiment queue runner for this runs directory (absent in tests).
+  readonly autorun?: (runsRoot: string) => ExperimentAutoRun;
 }
 
 export async function main(argv: readonly string[], deps: MainDeps): Promise<Viewer> {
   const args = parseArgs(argv, deps.repoRunsRoot, deps.defaultEndpoint, deps.defaultPublicOrigins);
   const queue = new RunQueue({ runsRoot: args.runsRoot, liveJs: deps.liveJs, endpointFile: args.endpointFile, gamePort: QUEUE_GAME_PORT, healthy: healthProbe(), now: () => new Date(), random: randomSuffix, launch: (spec) => spawnLaunch(spec) });
   const restarts = new HumanRestarts({runsRoot:args.runsRoot,liveJs:deps.liveJs,healthy:healthProbe(),now:()=>new Date(),random:randomSuffix,launch:spec=>spawnLaunch(spec),...(deps.humanLeasePath===undefined?{}:{leasePath:deps.humanLeasePath})});
-  const viewer = await deps.start({ runsRoot: args.runsRoot, staticDir: deps.staticDir, appDir: deps.appDir, port: args.port, endpointFile: args.endpointFile, publicOrigins: args.publicOrigins, queue, restartHuman:id=>restarts.restart(id) });
+  const autorun = deps.autorun?.(args.runsRoot);
+  const viewer = await deps.start({ runsRoot: args.runsRoot, staticDir: deps.staticDir, appDir: deps.appDir, port: args.port, endpointFile: args.endpointFile, publicOrigins: args.publicOrigins, queue, restartHuman:id=>restarts.restart(id), ...(autorun === undefined ? {} : { autorun }) });
   deps.print(`PokeBench viewer: ${viewUrl(viewer.url, args.runId)}`);
   for (const origin of args.publicOrigins) deps.print(`also published at: ${viewUrl(`${origin}/`, args.runId)}`);
   deps.print(`runs: ${args.runsRoot} (Ctrl-C to stop)`);
@@ -120,6 +126,13 @@ if (import.meta.main) {
     staticDir: here("../static"),
     appDir: here("./"),
     start: startViewer,
+    // The repository that owns runsRoot runs approved experiments from its own build.
+    autorun: (runsRoot) => {
+      const root = dirname(runsRoot), git = (args: readonly string[]): string => execFileSync("git", [...args], { cwd: root, encoding: "utf8" });
+      const paths = { experimentsDir: join(root, "experiments"), runsRoot, readinessPath: join(root, "docs", "experiments", "readiness.md") };
+      const source = recordedRuns(runsRoot);
+      return new ExperimentAutoRun({ paths, source, now: () => Date.now(), host: productionHost({ root, runsRoot, git, fetchFn: fetch, node: process.execPath, env: process.env, log: (line) => { console.log(`experiments: ${line}`); } }) });
+    },
     print: (line) => {
       console.log(line);
     },

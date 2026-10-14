@@ -45,7 +45,7 @@ function viewOk(v: unknown): boolean {
     (v["notes"] === null || typeof v["notes"] === "string") && resultOk(v["result"]);
 }
 // JSON from /api/experiments into a typed snapshot.
-export function queueSnapshotOf(value: unknown): QueueSnapshot {
+export function queueSnapshotOf(value: unknown): QueuePayload {
   if (!isRecord(value)) throw new Error("malformed /api/experiments payload");
   const lists = ["queue", "pending", "closed"] as const;
   for (const key of lists) {
@@ -53,9 +53,11 @@ export function queueSnapshotOf(value: unknown): QueueSnapshot {
     if (!Array.isArray(list) || !list.every(viewOk)) throw new Error(`malformed /api/experiments ${key}`);
   }
   if (!Array.isArray(value["problems"]) || !value["problems"].every((p) => typeof p === "string")) throw new Error("malformed /api/experiments problems");
+  const autorun = value["autorun"];
+  if (autorun !== undefined && autorun !== null && !(isRecord(autorun) && oneOf(autorun["state"], ["idle", "running", "error"]) && typeof autorun["message"] === "string")) throw new Error("malformed /api/experiments autorun");
   const runner = value["runner"];
   if (runner !== null && !(isRecord(runner) && typeof runner["experiment"] === "string" && isNum(runner["trial"]))) throw new Error("malformed /api/experiments runner");
-  return value as unknown as QueueSnapshot;
+  return value as unknown as QueuePayload;
 }
 
 const minutes = (ms: number | null): string => (ms === null ? "—" : `${String(Math.round(ms / 60_000))}m`);
@@ -125,14 +127,17 @@ export function countsOf(s: QueueSnapshot): Readonly<Record<QueueFilter, number>
   return counts;
 }
 
+export interface AutoRunLine { readonly state: "idle" | "running" | "error"; readonly message: string }
+export type QueuePayload = QueueSnapshot & { readonly autorun?: AutoRunLine | null };
 export interface QueueRender { readonly chips: string; readonly queue: string; readonly pending: string }
-export function renderQueue(s: QueueSnapshot, filter: QueueFilter, open: ReadonlySet<string>, controls = false, notice: string | null = null): QueueRender {
+export function renderQueue(s: QueuePayload, filter: QueueFilter, open: ReadonlySet<string>, controls = false, notice: string | null = null): QueueRender {
   const counts = countsOf(s);
   const chips = `<div class="eq-chips" role="toolbar" aria-label="Filter experiments by status">${FILTERS.filter((f) => f.id === "all" || counts[f.id] > 0).map((f) => `<button type="button" class="eq-chip${f.id === filter ? " on" : ""}" data-filter="${f.id}" aria-pressed="${String(f.id === filter)}">${f.label} <b>${String(counts[f.id])}</b></button>`).join("")}</div>`;
   const showQueue = filter !== "pending" && filter !== "closed";
   const queued = s.queue.filter((v) => filter === "all" || v.state === filter);
   const closed = filter === "all" || filter === "closed" ? s.closed : [];
-  const queue = (notice === null ? "" : `<p class="eq-notice" role="alert">${esc(notice)}</p>`) + (showQueue ? (queued.length === 0 ? `<p class="eq-empty">${filter === "all" ? "Nothing is queued. Experiments join the queue once models reliably reach the milestone each one acts on." : "No experiments in this state."}</p>` : queued.map((v) => slot(v, open.has(v.id), controls)).join("")) : "") +
+  const runner = s.autorun === undefined || s.autorun === null ? "" : `<p class="eq-runner eq-runner-${s.autorun.state}">QUEUE RUNNER · ${s.autorun.state.toUpperCase()} · ${esc(s.autorun.message)}</p>`;
+  const queue = runner + (notice === null ? "" : `<p class="eq-notice" role="alert">${esc(notice)}</p>`) + (showQueue ? (queued.length === 0 ? `<p class="eq-empty">${filter === "all" ? "Nothing is queued. Experiments join the queue once models reliably reach the milestone each one acts on." : "No experiments in this state."}</p>` : queued.map((v) => slot(v, open.has(v.id), controls)).join("")) : "") +
     (closed.length === 0 ? "" : `<h4 class="eq-sub">DONE</h4>${closed.map((v) => slot(v, open.has(v.id))).join("")}`) +
     (s.problems.length === 0 ? "" : `<pre class="eq-problems">${s.problems.map(esc).join("\n")}</pre>`);
   const showPending = filter === "all" || filter === "pending" || (filter === "blocked" && s.pending.some((v) => v.state === "blocked"));
@@ -150,7 +155,7 @@ export interface QueueDeps {
 }
 // Binds one rendering to a container holding [data-eq=chips], [data-eq=queue] and [data-eq=pending].
 export class QueuePanel {
-  snapshot: QueueSnapshot | null = null;
+  snapshot: QueuePayload | null = null;
   filter: QueueFilter = "all";
   readonly open = new Set<string>();
   private loading = false;

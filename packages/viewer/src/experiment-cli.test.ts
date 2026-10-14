@@ -46,7 +46,7 @@ describe("experiment queue CLI", () => {
     await expect(main(["approve", "full-map"], { ...d, ask: () => Promise.resolve("yes") })).rejects.toThrow("not approved");
     expect(existsSync(join(experimentDir(d.paths.runsRoot, "full-map"), "approval.json"))).toBe(false);
     expect(await main(["approve", "full-map"], d)).toBe(0);
-    expect(JSON.parse(readFileSync(join(experimentDir(d.paths.runsRoot, "full-map"), "approval.json"), "utf8"))).toEqual({ experiment: "full-map", sha256: definitionHash(parseExperiment(definition("full-map"))), approvedAt: "2026-10-14T21:00:00.000Z", approvedBy: "operator" });
+    expect(JSON.parse(readFileSync(join(experimentDir(d.paths.runsRoot, "full-map"), "approval.json"), "utf8"))).toEqual({ experiment: "full-map", sha256: definitionHash(parseExperiment(definition("full-map"))), approvedAt: "2026-10-14T21:00:00.000Z", approvedBy: "operator", commit: "b".repeat(40) });
     await expect(main(["approve", "full-map"], d)).rejects.toThrow("full-map is approved");
   });
 
@@ -98,7 +98,7 @@ describe("production host", () => {
   it("verifies the pinned commit, a clean tree and a fresh build", async () => {
     const { root, head } = repo();
     const host = productionHost({ root, runsRoot: join(root, "runs"), git: (args) => git(root, args), fetchFn: fetch, node: process.execPath, env: {}, log: () => undefined });
-    expect(await host.verifySource(experiment("c".repeat(40)), "c".repeat(40))).toMatch(/^main is at [0-9a-f]{7}, not the approved ccccccc; approve full-map again on the current build$/);
+    expect(await host.verifySource(experiment("c".repeat(40)), "c".repeat(40))).toMatch(/^main is at [0-9a-f]{7}, not the approved ccccccc; withdraw its approval and approve it again on the current build$/);
     writeFileSync(join(root, "tracked.txt"), "two\n");
     expect(await host.verifySource(experiment(head), head)).toBe("the main checkout has uncommitted changes");
     git(root, ["checkout", "--", "tracked.txt"]);

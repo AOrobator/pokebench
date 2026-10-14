@@ -97,7 +97,7 @@ export function readinessOf(experiment:Experiment,runs:readonly ReadinessRun[]):
  return {ready:latest.length===window&&reached>=minReached,basis,milestone,window,minReached,reached,considered:latest.map(r=>r.id)};
 }
 
-const LaunchSchema=Type.Object({type:Type.Literal("launch"),trial:Type.Integer({minimum:0}),arm:Type.Enum(["incumbent","candidate"] as const),run:Type.String({minLength:1}),at:Type.String(),model:Type.Optional(Type.String({minLength:1})),environment:Type.Optional(Type.String({pattern:"^[0-9a-f]{64}$"}))},closed);
+const LaunchSchema=Type.Object({type:Type.Literal("launch"),trial:Type.Integer({minimum:0}),arm:Type.Enum(["incumbent","candidate"] as const),run:Type.String({minLength:1}),at:Type.String(),model:Type.Optional(Type.String({minLength:1})),environment:Type.Optional(Type.String({pattern:"^[0-9a-f]{64}$"})),commit:Type.Optional(Type.String({pattern:"^[0-9a-f]{40}$"}))},closed);
 const OutcomeSchema=Type.Object({type:Type.Literal("outcome"),trial:Type.Integer({minimum:0}),arm:Type.Enum(["incumbent","candidate"] as const),run:Type.String({minLength:1}),at:Type.String(),reason:Type.String()},closed);
 const ErrorSchema=Type.Object({type:Type.Literal("launcher_error"),trial:Type.Integer({minimum:0}),arm:Type.Enum(["incumbent","candidate"] as const),run:Type.String({minLength:1}),at:Type.String(),message:Type.String()},closed);
 export const LedgerEntrySchema=Type.Union([LaunchSchema,OutcomeSchema,ErrorSchema]);
@@ -112,7 +112,9 @@ export function parseLedger(text:string):{entries:LedgerEntry[];problems:string[
  return {entries,problems};
 }
 
-export const ApprovalSchema=Type.Object({experiment:Type.String({minLength:1}),sha256:Type.String({pattern:"^[0-9a-f]{64}$"}),approvedAt:Type.String({minLength:1}),approvedBy:Type.String({minLength:1})},closed);
+export const ApprovalSchema=Type.Object({experiment:Type.String({minLength:1}),sha256:Type.String({pattern:"^[0-9a-f]{64}$"}),approvedAt:Type.String({minLength:1}),approvedBy:Type.String({minLength:1}),
+ // The main build the operator approved; trials run only on it. Older approvals fall back to source.commit.
+ commit:Type.Optional(Type.String({pattern:"^[0-9a-f]{40}$"}))},closed);
 export type Approval=Static<typeof ApprovalSchema>;
 export interface RunnerPosition {readonly experiment:string;readonly trial:number}
 

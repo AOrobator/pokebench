@@ -12,7 +12,8 @@ The operator wants every new feature and switch explained with diagrams, not pro
 - One file per feature: `runs/explainers/<feature-or-switch-id>.html` (gitignored `runs/`).
 - Self-contained: inline CSS and inline SVG only. Zero network requests: no web fonts, CDNs, images by URL or scripts from elsewhere. Use system font stacks.
 - Never publish it as a claude.ai artifact or any hosted link. Everything stays local.
-- In the report, give the operator the command to open it, in its own `bash` block: `open ~/dev/pokebench/runs/explainers/<file>.html`.
+- In the report, provide a clickable Markdown link with a descriptive label and the existing file’s absolute path, for example `[Navigation memory explainer](/Users/user/dev/pokebench/runs/explainers/navigation-evidence-memory-v1.html)`. Link the canonical retained artifact, not a temporary worktree copy. Do not wrap the link in backticks or use `file://` URLs.
+- Do not make the operator copy a terminal command to open an explainer. Include an `open` command only when explicitly requested or as a fallback if clickable links are unavailable.
 
 ## What it shows
 

@@ -29,3 +29,6 @@ Scope: the elevation rule in navigation.ts only. Walkable behaviors (sand, bridg
 - GREEN (round 2 fix): agent 899, viewer 419, Python 1803 pass; agent 97.21/93.29/97.86, viewer 95.54/90.49/95.12, Python 96.68/91.83/100; lint and build clean. Explainer updated to the finish-of-step rule.
 - COMMIT: `fix: a finished step takes the tile's elevation unless it is 15` (d4b3a5d). Merging main 9f111d1 (viewer frontier work) before round 2.
 - Merged main 9f111d1 (0dfa14b). Gates after merge: agent 899, viewer 474, Python 1803 pass; viewer 95.65/90.58/95.2; lint clean.
+- COMMIT: `docs: record elevation-transitions merge of main 9f111d1` (8912697)
+- Review round 2 (head 8912697): Claude LGTM, Grok LGTM, Codex BLOCKING (no test proves tile+height search identity; no test for a ledge landing on 15). Grok speculation verified against source: a far jump runs OnBeginStep at InitJump (prev=take-off, cur=ledge tile) and again at JUMP_HALFWAY (prev=ledge, cur=landing), then the finish update. So a 15 landing keeps the ledge-tile update: height = ledge tile's unless take-off or ledge tile is 15. Fix adds that and both tests.
+- RED (round 3): 1 failed / 19 passed (ledge landing on 15 after a height-0 ledge tile); junction identity test is a mutation guard and passes.

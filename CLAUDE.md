@@ -62,6 +62,10 @@ The commit author for this repo is `aorobator <orobator.andrew@gmail.com>`, set 
 
 The repo is local only (operator decision 2026-10-14). It has no remote. Never push, never open pull requests, never add a remote. Work on a branch in its own worktree; landing means a local merge into `main` after the operator approves it.
 
+## Feature switches
+
+Every harness behavior change ships behind a registered switch whose OFF state is the previous behavior, so it can be A/B tested. Use `.claude/skills/feature-switch/SKILL.md`.
+
 ## Explainers
 
 Every new feature or switch gets an explainer page with diagrams. Use `.claude/skills/feature-explainer/SKILL.md`. Explainers stay local: no claude.ai artifacts or hosted preview links.

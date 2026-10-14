@@ -27,9 +27,19 @@ const distance=(a:Point,b:Point):number=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
 // height unless that tile is 15. A jump also updates mid-air on the ledge tile
 // (InitJump, then JUMP_HALFWAY), and a 15 landing keeps that update.
 const MULTI_LEVEL=15;
-const mismatch=(walker:number,tile:number):boolean=>walker!==0&&tile!==0&&tile!==MULTI_LEVEL&&tile!==walker;
-const entered=(walker:number,tile:number):number=>tile===MULTI_LEVEL?walker:tile;
-const jumped=(walker:number,takeoff:number,ledge:number,landing:number):number=>landing!==MULTI_LEVEL?landing:takeoff===MULTI_LEVEL?walker:entered(walker,ledge);
+interface ElevationRule {readonly mismatch:(walker:number,tile:number)=>boolean;readonly entered:(walker:number,tile:number)=>number;readonly jumped:(walker:number,takeoff:number,ledge:number,landing:number)=>number}
+const GAME_RULE:ElevationRule={
+ mismatch:(walker,tile)=>walker!==0&&tile!==0&&tile!==MULTI_LEVEL&&tile!==walker,
+ entered:(walker,tile)=>tile===MULTI_LEVEL?walker:tile,
+ jumped:(walker,takeoff,ledge,landing)=>landing!==MULTI_LEVEL?landing:takeoff===MULTI_LEVEL?walker:GAME_RULE.entered(walker,ledge),
+};
+// The rule before elevation-transitions-v1: 0 keeps the walker's layer, 15 is an ordinary layer.
+const LEGACY_RULE:ElevationRule={
+ mismatch:(walker,tile)=>walker!==0&&tile!==0&&tile!==walker,
+ entered:(walker,tile)=>tile||walker,
+ jumped:(walker,_takeoff,_ledge,landing)=>landing||walker,
+};
+export type ElevationMode="game"|"legacy";
 const ready=(s:GameStateSnapshot,mode:NavigationMode="local"):boolean=>s.started&&s.screen==="overworld"&&!s.in_battle&&s.field_controls_locked===false&&s.position!==null&&s.map_id!==null&&(mode==="full"?s.map_grid!=null:s.navigation_grid!=null)&&(s.active_ui==null||(s.active_ui.ready===true&&s.active_ui.diagnostic===null));
 export const MAX_NAVIGATION_COMMANDS=8;
 // Safety bound for whole-map routes; the longest Emerald routes need a few hundred steps.
@@ -37,7 +47,7 @@ export const MAX_FULL_ROUTE_COMMANDS=512;
 // Whole-map walks stop when the planned route has not shortened for this many presses.
 export const NO_PROGRESS_PRESSES=16;
 
-export interface NavigationOptions {readonly mode?:NavigationMode;readonly ledges?:boolean;readonly oneWay?:boolean}
+export interface NavigationOptions {readonly mode?:NavigationMode;readonly ledges?:boolean;readonly oneWay?:boolean;readonly elevation?:ElevationMode}
 interface Geometry {readonly elevation:number;readonly tile:(p:Point)=>Tile|undefined;readonly objects:readonly Point[];readonly warps:readonly Point[];readonly bounds:{readonly width:number;readonly height:number}|null}
 
 function localGeometry(state:GameStateSnapshot):Geometry|null {
@@ -93,7 +103,7 @@ class OpenList<T> {
 // No outside-map guessing, surfing or puzzle policies; ledges and edge walls only when enabled.
 // Elevation follows the game's rule. Warps are only ever goals.
 export function planNavigation(state:GameStateSnapshot,goal:Point,options:NavigationOptions={}):Direction[]|null {
- const mode=options.mode??"local";
+ const mode=options.mode??"local",{mismatch,entered,jumped}=options.elevation==="legacy"?LEGACY_RULE:GAME_RULE;
  if(!ready(state,mode)||state.position===null)return null;
  const geometry=mode==="full"?fullGeometry(state):localGeometry(state);
  const here=geometry?.tile(state.position);
@@ -147,6 +157,7 @@ export interface NavigationPorts {
  readonly fullMap?:boolean;
  readonly ledges?:boolean;
  readonly oneWay?:boolean;
+ readonly elevation?:ElevationMode;
 }
 function resultState(result:AgentToolResult<unknown>):GameStateSnapshot {
  const details=result.details;
@@ -176,7 +187,7 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
    state=await ports.read(signal);signal?.throwIfAborted();
    if(!sameMap()){status="map changed; inspect destination";break;}
    if(!ready(state,mode)){status="field input or navigation geometry unavailable";break;}
-   const path=planNavigation(state,goal,{mode,ledges:ports.ledges===true,oneWay:ports.oneWay===true});
+   const path=planNavigation(state,goal,{mode,ledges:ports.ledges===true,oneWay:ports.oneWay===true,elevation:ports.elevation??"game"});
    if(path===null){status=mode==="full"?"no supported path on the current map; choose a reachable waypoint":"no supported local path; choose a reachable local waypoint";break;}
    const direction=path[0];if(direction===undefined){status="arrived at requested coordinate";break;}
    if(mode==="full"){if(path.length<shortest){shortest=path.length;stalled=0;}else if(++stalled>=NO_PROGRESS_PRESSES){status="route not converging; inspect obstacles and choose another approach";break;}}
@@ -210,5 +221,5 @@ export function withNavigation(base:readonly AgentTool[],features:FeatureSet,sta
  const tools=[...base];if(!features["bounded-navigation-v1"])return tools;
  const press=base.find(tool=>tool.name==="press"),observe=base.find(tool=>tool.name==="observe");
  if(press===undefined||observe===undefined||!isCheckedPress(press))throw new Error("Navigation requires ordinary game tools");
- tools.push(navigationTool({ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],read:signal=>state.read(signal),press:(id,params,signal,check)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"]}));return tools;
+ tools.push(navigationTool({ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",read:signal=>state.read(signal),press:(id,params,signal,check)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"]}));return tools;
 }

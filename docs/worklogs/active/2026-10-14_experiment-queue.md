@@ -65,9 +65,10 @@ Argv-only spawns (`node`, `git`), checkout paths treated as untrusted (resolved,
 ## Milestones
 **M0 — Elevation switch + feature-switch skill** (operator 2026-10-14: "we need a skill so that you always include switches for changes, and add the elevation switch. go")
 - [x] RED: planner legacy rule on local/whole-map/ledge landings, tool and factory wiring, registry entry, preset default ON when omitted. 6 fail / 82 pass.
-- [ ] GREEN: `elevation-transitions-v1` (guidance, needs bounded-navigation-v1, default ON, planner-only, no prompt change). OFF restores the pre-44390a4 rule (0 resets to the walker's layer, any other mismatch blocks, 15 is not special).
-- [ ] `.claude/skills/feature-switch/SKILL.md`: every behavior change ships behind a registered switch with OFF reproducing the previous behavior, plus an experiment-queue entry; CLAUDE.md points at it.
-- [ ] Gates, review.
+- [x] GREEN: `elevation-transitions-v1` (guidance, `needs: null`, default ON including omitted preset keys, planner-only, no prompt change). OFF restores the pre-44390a4 rule (0 keeps the walker's layer, any other mismatch blocks, 15 is not special). Explainer mapped to the existing `elevation-transitions.html`.
+- [x] `.claude/skills/feature-switch/SKILL.md`: every behavior change ships behind a registered switch with OFF reproducing the previous behavior, plus an experiment-queue entry; CLAUDE.md points at it.
+- [x] Gates: agent 940/940 (97.18 lines / 93.36 branches / 97.91 funcs), viewer 479/479 (95.71/90.53/95.30), Python 1840 passed (no Python change; submodule had to be initialised in this worktree). tsc/eslint clean, build clean. Guard check: removed the factory wiring, the factory test went red, restored.
+- [ ] Multi-model review (batched with M1/M2).
 
 **M1 — Definitions and derived status**
 - [ ] Tests: schema, candidate derivation, INV-Q1, approval hash and stale detection, status derivation from ledger, seed files parse.
@@ -96,6 +97,8 @@ Argv-only spawns (`node`, `git`), checkout paths treated as untrusted (resolved,
 - "we'd need skills for creating experiments and adding them to the queue": new milestone M4 adds `.claude/skills/experiment-queue/SKILL.md` (author a definition from a switch, validate it, add it as a draft, never approve).
 - Via the coordinator, from the rival-house thread: "milestone reaching isn't the only measurable effect. there's also total turns and overall run efficiency". Grading and cards report reach, median time, median turns (a miss counts the full turn cap) and reach per 1k turns.
 
+- Via the coordinator, from the counters thread: "it doesn't make sense to run this experiment until the models can reliably reach this milestone. crud ur experiment skills so you know the right time to run experiments and when experiments are blocked like this one is cuz the models cant even reach this part yet". Each definition names `reachMilestone` (the first milestone where the switch can matter). The entry is derived `not-ready` until incumbent-config runs reach it reliably (default: at least 3 of the last 4 valid runs with the same model lane and limits). The runner refuses not-ready entries, the views show why, and the experiment skill checks readiness before proposing a run.
+
 ## Open decisions
 - Elevation A/B: resolved, operator said add the switch (M0).
 - Design pick for the viewer and stats views: pending (round 1).
@@ -109,6 +112,8 @@ Gates per milestone: `just test`, `just lint`, `just build`, `just coverage` (�
 2026-10-14: operator asked for 10 design variants first, the queue on the stats page, skills, and turns/efficiency metrics. Round 1 designs drawn; build blocked on the pick.
 
 ## Surprises
+- M0: a default-ON switch cannot declare `needs: bounded-navigation-v1`, because every preset with navigation OFF would then fail dependency validation. `needs: null`; the copy says it applies only while A* navigation is on. Captured in the feature-switch skill.
+- M0: runs recorded between 44390a4 and this switch used the game rule but their harness_features lack the id, so `featuresOf` reads them as OFF. Runs before 44390a4 read correctly as OFF.
 
 ## Multi-Model Review Log
 Pending.

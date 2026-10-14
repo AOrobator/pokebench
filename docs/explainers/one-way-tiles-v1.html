@@ -327,9 +327,10 @@ Terrain rules, elevation and objects can still block movement.
 <h2>Status</h2>
 <div class="card"><ul class="status">
 <li>Branch <code>claude/one-way-tiles</code> in its own worktree, merged with main after ledge hops landed.</li>
-<li>Agent 914, viewer 474 and env 1823 tests pass; coverage floor 90% and lint pass.</li>
+<li>Agent 914, viewer 476 and env 1823 tests pass at the branch head after merging main; coverage floor 90% and lint pass.</li>
 <li>Live on the real ROM, plus a recorded probe run on and off: the game refuses DOWN into the chair from (7,3) and UP/DOWN off it; <code>navigate_to</code> enters from the west in 3 presses.</li>
-<li>Review round 1: Claude and Grok LGTM; Codex blocked only on this explainer being missing from the branch. Their test and copy fixes are applied: every one of the 11 behaviors now has its own enter and leave test.</li>
+<li>Review round 1: Claude and Grok LGTM; Codex blocked only on this explainer being missing from the branch. Their test and copy fixes are applied: in TypeScript every one of the 11 behaviors is tested entering and leaving through every side, and in Python each one is tested for its listed sides.</li>
+<li>Review round 2 on the fixes: Claude, Codex and Grok all LGTM.</li>
 <li>Not done: no measured runs, so no claim that this helps a model. Not merged to main.</li>
 <li>Seen but out of scope: the bedroom floor behaviors are outside the planner's walkable list, so <code>navigate_to</code> detours elsewhere in this room. The walkability thread owns that.</li>
 </ul></div>

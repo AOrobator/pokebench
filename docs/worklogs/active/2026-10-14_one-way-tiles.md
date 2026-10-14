@@ -71,3 +71,10 @@ on `+` tiles (scope expansion).
   entry in the packet (CLAUDE.md explainer rule). Same non-blocking notes as the other lanes.
 - Round-1 fix: explainer committed at `docs/explainers/one-way-tiles-v1.html` and indexed.
 - Merged main 37a961b (897d741), clean merge. Agent 914/914, viewer 476/476, env 1823/1823; coverage, lint pass.
+
+## Review round 2
+
+Fix delta `git diff fdabbb0 ea76222` plus full packet against main 37a961b. Claude CLI LGTM,
+Codex `gpt-5.6-sol` LGTM, Cursor Grok 4.5 high LGTM. Applied doc-only nits: explainer counts now
+say viewer 476 at the merged head, and the Python table test is described as checking listed sides.
+Ready for operator approval to merge into main.

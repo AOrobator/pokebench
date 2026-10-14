@@ -166,7 +166,11 @@ def _badges(read: ReadMemory, save1: int) -> tuple[str, ...]:
 
 
 def read_game_state(
-    read: ReadMemory, maps: MapNames, *, active_ui_enabled: bool = True
+    read: ReadMemory,
+    maps: MapNames,
+    *,
+    active_ui_enabled: bool = True,
+    message_phase_enabled: bool = False,
 ) -> GameState:
     screen = read_screen(read)
     in_battle = bool(read(IN_BATTLE, 1)[0] & 0x02)
@@ -257,7 +261,9 @@ def read_game_state(
             for t in targets or ()
             if t.destination is not None and t.destination[:2] != (127, 127)
         ),
-        world_context=read_world_context(read, (x, y), map_id, save1, decode_text)
+        world_context=read_world_context(
+            read, (x, y), map_id, save1, decode_text, message_phase=message_phase_enabled
+        )
         if screen.kind == "overworld" and not in_battle
         else None,
         interaction_targets=targets,

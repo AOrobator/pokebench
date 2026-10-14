@@ -2958,6 +2958,59 @@
                       "type": "null"
                     }
                   ]
+                },
+                "message_diagnostic": {
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                "message": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "phase",
+                        "cursor",
+                        "ready"
+                      ],
+                      "properties": {
+                        "phase": {
+                          "enum": [
+                            "dismiss_wait",
+                            "printing",
+                            "button_wait",
+                            "page_wait",
+                            "scroll_wait",
+                            "scrolling",
+                            "audio_wait",
+                            "printing_pause"
+                          ]
+                        },
+                        "cursor": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 999
+                        },
+                        "ready": {
+                          "type": "boolean"
+                        },
+                        "identity": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "pattern": "^[a-f0-9]{64}$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 }
               },
               "additionalProperties": false

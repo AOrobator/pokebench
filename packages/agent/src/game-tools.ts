@@ -7,7 +7,7 @@ import { parseGameState, type GameStateSnapshot } from "./game-state.js";
 import { pressResult } from "./press-result.js";
 
 // Which model-visible parts of the observe/press results this run shows.
-export interface ToolSwitches { readonly readout: boolean; readonly pressResult: boolean; readonly position: boolean; readonly fieldLock: boolean }
+export interface ToolSwitches { readonly readout: boolean; readonly pressResult: boolean; readonly position: boolean; readonly fieldLock: boolean; readonly safeInterfaces?: boolean }
 export const ALL_TOOL_SWITCHES: ToolSwitches = { readout: true, pressResult: true, position: true, fieldLock: true };
 import type { PressTiming } from "./recorder.js";
 
@@ -181,6 +181,11 @@ export type CheckedPressTool=AgentTool<typeof PressArgs> & {
 };
 export function isCheckedPress(tool:AgentTool):tool is CheckedPressTool {return "executeChecked" in tool&&typeof tool.executeChecked==="function";}
 
+export function submittedButtons(buttons:readonly Button[], before:GameStateSnapshot|undefined, switches:ToolSwitches):readonly Button[] {
+  const freeField = before?.screen === "overworld" && before.started && !before.in_battle && before.field_controls_locked === false && before.active_ui == null && before.world_context?.dialogue == null && before.world_context?.message == null;
+  const directional = buttons.every(button=>["UP","DOWN","LEFT","RIGHT"].includes(button));
+  return switches.safeInterfaces && !(freeField && directional) ? buttons.slice(0,1) : buttons;
+}
 export function pressTool(
   gameServerUrl: string,
   hooks: PressHooks,
@@ -201,12 +206,13 @@ export function pressTool(
         if(check!==undefined)throw error;
       }
       check?.(before);
-      hooks.beforePress(toolCallId, params.buttons, PRESS_TIMING, before);
+      const buttons = submittedButtons(params.buttons,before,switches);
+      hooks.beforePress(toolCallId, buttons, PRESS_TIMING, before);
       const url = `${gameServerUrl}/action`;
       const response = await fetchFn(url, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ buttons: params.buttons, ...PRESS_TIMING }),
+        body: JSON.stringify({ buttons, ...PRESS_TIMING }),
         signal: deadline(15_000, signal),
       });
       const body: unknown = await response.json();
@@ -217,14 +223,14 @@ export function pressTool(
       await waitForQueue(gameServerUrl, fetchFn, clock, signal);
       await clock.sleep(STATE_CACHE_SETTLE_MS);
       await hooks.afterPress();
-      const content = await observation(gameServerUrl, fetchFn, signal, (after) => `pressed ${params.buttons.join(", ")}\n${switches.pressResult ? `Press result: ${pressResult(before, after, params.buttons, switches)}\n` : ""}\n`);
+      const content = await observation(gameServerUrl, fetchFn, signal, (after) => `pressed ${buttons.join(", ")}\n${buttons.length < params.buttons.length ? `Interface safety: submitted 1 of ${String(params.buttons.length)} requested inputs; remaining inputs were not sent. Inspect the new state before another input.\n` : ""}${switches.pressResult ? `Press result: ${pressResult(before, after, buttons, switches)}\n` : ""}\n`);
       return { content: content.content, details: { state: content.state } };
   };
   return {
     name: "press",
     label: "Press buttons",
     description: switches.readout
-      ? "Press Game Boy Advance buttons in order (up to 8), then see the resulting screen and game state."
+      ? `Press Game Boy Advance buttons in order (up to 8), then see the resulting screen and game state.${switches.safeInterfaces ? " Interaction/menu or locked/unknown-interface batches submit only the first input; inspect before continuing." : ""}`
       : "Press Game Boy Advance buttons in order (up to 8), then see the resulting screen.",
     parameters: PressArgs,
     execute,

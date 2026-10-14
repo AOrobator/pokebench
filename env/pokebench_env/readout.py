@@ -18,6 +18,7 @@ SERVER_FEATURES = (
     "named-interactions-v1",
     "world-destinations-v1",
     "bounded-navigation-v1",
+    "field-dialogue-phase-v1",
     "active-field-message-buffer-v1",
     "naming-cursor-v1",
     "story-state-v1",
@@ -30,7 +31,7 @@ SERVER_FEATURES = (
 def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
     raw = env.get(
         "POKEBENCH_FEATURES_OFF",
-        "named-interactions-v1,world-destinations-v1,bounded-navigation-v1",
+        "named-interactions-v1,world-destinations-v1,bounded-navigation-v1,field-dialogue-phase-v1",
     )
     if raw == "":
         return frozenset()
@@ -72,6 +73,7 @@ def format_readout(
     named_interactions: bool = False,
     world_destinations: bool = False,
     bounded_navigation: bool = False,
+    message_phase: bool = False,
 ) -> str:
     if "ram-state-v1" in off:
         return ""
@@ -130,6 +132,7 @@ def format_readout(
             objects="live-object-sprites-v1" not in off,
             triggers="coordinate-script-conditions-v1" not in off,
             dialogue="active-field-message-buffer-v1" not in off,
+            message=message_phase and "field-dialogue-phase-v1" not in off,
         )
         if context != "":
             lines.append(context)

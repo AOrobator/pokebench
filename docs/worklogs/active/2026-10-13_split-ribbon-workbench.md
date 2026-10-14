@@ -64,3 +64,5 @@ Proof r2: strengthened native-contradiction/ribbon assertions now fail under eac
 Final gate r1 correctly rejected test fixture union access (legacy state has no story). Narrow fixture on declared current story field; no app behavior changes. Re-running final gates before review freeze.
 
 Final lint r2 found nullable story fixture narrowing incomplete; added explicit nonnull guard before spread. Test fixture only. Review identity supersedes r1 packet for this type-only correction; previous packets/failedlogs retained.
+
+Final applicable TS gates r3: lint/build pass; agent863tests and coverage all independentfloorspass; viewer399tests and lines97.98/branches90.47/functions95.13 pass. Canonicalvendorbbab97ad73e460b7cd7c08527d10ced30cc03fbe clean; noenvironmentchanges, ROM/game untouched. Snapshotcold42.84s on retained160runs, warm0.100s; giantlogs explicitlyexcluded currentbound. Retained-window/replay logs immutable. Frozenreview pending mandatoryexternalavailability and fallback; no independentLGTM/landing/deployment claimed.

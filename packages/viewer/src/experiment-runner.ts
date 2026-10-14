@@ -53,7 +53,6 @@ function approved(paths: QueuePaths, experiment: Experiment): boolean {
     return false;
   }
 }
-const ledgerRuns = (paths: QueuePaths, id: string): string[] => ledgerEntries(paths, id).flatMap((e) => (e.type === "launch" ? [e.run] : []));
 
 function presetFile(paths: QueuePaths, experiment: Experiment, arm: Arm): string {
   const arms = experimentArms(experiment);
@@ -98,62 +97,86 @@ export function nextExperiment(queue: readonly ExperimentView[]): ExperimentView
   return queue.find((v) => v.state === "approved" || v.state === "held") ?? null;
 }
 
-export async function runQueue({ paths, source, host, dryRun = false, once = false, stopRequested = () => false }: RunnerOptions): Promise<RunnerOutcome> {
+export async function runQueue(options: RunnerOptions): Promise<RunnerOutcome> {
+  let ran = 0;
+  const finished: string[] = [];
+  for (;;) {
+    const step = await runNext(options);
+    ran += step.ran;
+    if (step.finished === null || options.once === true || options.dryRun === true) {
+      return { ran, stopped: finished.length === 0 ? step.stopped : `${finished.join("; ")}; ${step.stopped}` };
+    }
+    finished.push(step.stopped);
+    if (nextExperiment(queueSnapshot(options.paths, options.source).queue) === null) return { ran, stopped: finished.join("; ") };
+  }
+}
+
+async function runNext({ paths, source, host, dryRun = false, once = false, stopRequested = () => false }: RunnerOptions): Promise<RunnerOutcome & { finished: string | null }> {
   const snapshot = queueSnapshot(paths, source);
   for (const problem of snapshot.problems) host.log(`problem: ${problem}`);
   const view = nextExperiment(snapshot.queue);
-  if (view === null) return { ran: 0, stopped: `nothing to run: ${snapshot.queue.map((v) => `${v.id} is ${v.state}`).join("; ") || "the queue is empty"}` };
+  const hold = (ran: number, stopped: string) => ({ ran, stopped, finished: null });
+  if (view === null) return hold(0, `nothing to run: ${snapshot.queue.map((v) => `${v.id} is ${v.state}`).join("; ") || "the queue is empty"}`);
   const experiment = loadExperiments(paths.experimentsDir, []).find((e) => e.id === view.id);
   if (experiment === undefined) throw new RunnerError(`${view.id}: definition disappeared`);
   const todo = view.trials.filter((t) => t.state !== "done");
   host.log(`${experiment.id}: ${view.state}; ${String(todo.length)} of ${String(view.trials.length)} trials to run (${todo.map((t) => `${String(t.index + 1)}${t.arm === "incumbent" ? "A" : "B"}`).join(" ")})`);
-  if (dryRun) return { ran: 0, stopped: "dry run" };
+  if (dryRun) return hold(0, "dry run");
   const problem = await host.verifySource(experiment);
   if (problem !== null) throw new RunnerError(`${experiment.id}: ${problem}`);
   const live = await host.liveRuns();
   if (live.length > 0) throw new RunnerError(`live run ${live[0] ?? ""} is still running`);
   const model = await host.discover(experiment.modelLane);
   const lease = takeLease(paths.runsRoot, { pid: process.pid, owner: "experiment-queue", experiment: experiment.id });
+  // The ledger is read once; appends go to disk and to this copy.
+  const entries = ledgerEntries(paths, experiment.id);
+  const record = (entry: LedgerEntry): void => { append(paths, experiment.id, entry); entries.push(entry); };
+  const presets = new Map<Arm, string>();
+  const logs = join(experimentDir(paths.runsRoot, experiment.id), "logs");
+  mkdirSync(logs, { recursive: true });
   let ran = 0;
   try {
     for (const trial of todo) {
-      if (stopRequested()) return { ran, stopped: "stop requested" };
-      if (!approved(paths, experiment)) return { ran, stopped: "held: the approval no longer matches the definition" };
+      if (stopRequested()) return hold(ran, "stop requested");
+      if (!approved(paths, experiment)) return hold(ran, "held: the approval no longer matches the definition");
       const recheck = await host.verifySource(experiment);
-      if (recheck !== null) return { ran, stopped: `held: ${recheck}` };
-      const used = ledgerRuns(paths, experiment.id).reduce((sum, run) => sum + (source.trial(run)?.wallMs ?? 0), 0);
-      if (used + experiment.incumbent.limits.maxWallMs > experiment.budget.maxWallMs) return { ran, stopped: "held: the next trial could exceed the experiment budget" };
-      if (trial.state === "interrupted" && trial.run !== null) append(paths, experiment.id, { type: "launcher_error", trial: trial.index, arm: trial.arm, run: trial.run, at: host.now().toISOString(), message: "interrupted: no outcome was recorded" });
-      const runId = host.runId(model.id), presetPath = presetFile(paths, experiment, trial.arm);
-      append(paths, experiment.id, { type: "launch", trial: trial.index, arm: trial.arm, run: runId, at: host.now().toISOString(), model: model.id, environment: model.fingerprint });
+      if (recheck !== null) return hold(ran, `held: ${recheck}`);
+      const used = entries.flatMap((e) => (e.type === "launch" ? [e.run] : [])).reduce((sum, run) => sum + (source.trial(run)?.wallMs ?? 0), 0);
+      if (used + experiment.incumbent.limits.maxWallMs > experiment.budget.maxWallMs) return hold(ran, "held: the next trial could exceed the experiment budget");
+      const at = (): string => host.now().toISOString();
+      if (trial.state === "interrupted" && trial.run !== null) record({ type: "launcher_error", trial: trial.index, arm: trial.arm, run: trial.run, at: at(), message: "interrupted: no outcome was recorded" });
+      const presetPath = presets.get(trial.arm) ?? presetFile(paths, experiment, trial.arm);
+      presets.set(trial.arm, presetPath);
+      const runId = host.runId(model.id);
+      record({ type: "launch", trial: trial.index, arm: trial.arm, run: runId, at: at(), model: model.id, environment: model.fingerprint });
       writeFileSync(runnerPath(paths.runsRoot), JSON.stringify({ pid: process.pid, experiment: experiment.id, trial: trial.index }));
-      const logs = join(experimentDir(paths.runsRoot, experiment.id), "logs");
-      mkdirSync(logs, { recursive: true });
       let code: number | null;
       try {
         code = await host.launch({ runId, presetPath, model: model.id, stdout: join(logs, `${runId}.stdout.log`), stderr: join(logs, `${runId}.stderr.log`) });
       } catch (error) {
-        append(paths, experiment.id, { type: "launcher_error", trial: trial.index, arm: trial.arm, run: runId, at: host.now().toISOString(), message: error instanceof Error ? error.message : String(error) });
-        return { ran, stopped: `held: trial ${String(trial.index + 1)} failed to launch` };
+        record({ type: "launcher_error", trial: trial.index, arm: trial.arm, run: runId, at: at(), message: error instanceof Error ? error.message : String(error) });
+        return hold(ran, `held: trial ${String(trial.index + 1)} failed to launch`);
       }
       const reason = endReason(paths.runsRoot, runId);
       // An operator stop is not a model result: keep it on record, rerun the trial later, never grade it.
       if (reason === "operator_abort") {
-        append(paths, experiment.id, { type: "launcher_error", trial: trial.index, arm: trial.arm, run: runId, at: host.now().toISOString(), message: "operator stopped the trial" });
-        return { ran, stopped: `held: trial ${String(trial.index + 1)} was stopped by the operator; it will be rerun` };
+        record({ type: "launcher_error", trial: trial.index, arm: trial.arm, run: runId, at: at(), message: "operator stopped the trial" });
+        return hold(ran, `held: trial ${String(trial.index + 1)} was stopped by the operator; it will be rerun`);
       }
-      // A run that recorded its own end (crash, model_error, ...) is a result, even when play exits nonzero (PB2).
-      if (code !== 0 && reason === "incomplete") {
-        append(paths, experiment.id, { type: "launcher_error", trial: trial.index, arm: trial.arm, run: runId, at: host.now().toISOString(), message: `play exited with ${String(code)}` });
-        return { ran, stopped: `held: trial ${String(trial.index + 1)} exited with ${String(code)}` };
+      // A run that recorded its own end (crash, model_error, ...) is a result even when play exits nonzero (PB2);
+      // a run with no recorded end is a launcher failure, whatever the exit code.
+      if (reason === "incomplete") {
+        record({ type: "launcher_error", trial: trial.index, arm: trial.arm, run: runId, at: at(), message: code === 0 ? "play exited with 0 but recorded no run_end" : `play exited with ${String(code)}` });
+        return hold(ran, code === 0 ? `held: trial ${String(trial.index + 1)} ended without a recorded run_end` : `held: trial ${String(trial.index + 1)} exited with ${String(code)}`);
       }
-      append(paths, experiment.id, { type: "outcome", trial: trial.index, arm: trial.arm, run: runId, at: host.now().toISOString(), reason });
+      record({ type: "outcome", trial: trial.index, arm: trial.arm, run: runId, at: at(), reason });
       ran += 1;
       host.log(`${experiment.id}: trial ${String(trial.index + 1)} (${trial.arm}) finished as ${runId}`);
-      if (once && trial !== todo.at(-1)) return { ran, stopped: "one trial run (--once)" };
+      if (once && trial !== todo.at(-1)) return hold(ran, "one trial run (--once)");
     }
     writeResult(paths, experiment);
-    return { ran, stopped: `${experiment.id} finished; result in ${join(experimentDir(paths.runsRoot, experiment.id), "result.json")}` };
+    const done = `${experiment.id} finished; result in ${join(experimentDir(paths.runsRoot, experiment.id), "result.json")}`;
+    return { ran, stopped: done, finished: experiment.id };
   } finally {
     rmSync(runnerPath(paths.runsRoot), { force: true });
     rmSync(lease, { recursive: true, force: true });

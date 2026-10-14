@@ -39,7 +39,7 @@ Then run `just experiments-check` and record the readiness verdict in `docs/expe
 ## Moving pending → queue: only when readiness passes
 
 - Run `just experiments`. A pending entry whose reason starts `ready to queue:` may get a `queuePosition`. One that says `not ready:` stays pending, and you report its reason.
-- Readiness is computed from recorded runs: at least 3 of the last 4 qualifying runs reach `activationMilestone`. Runs that match the incumbent on every other switch are used first. If too few exist, the latest model runs of any registry configuration stand in, and the reason says so. Human runs, probes and aborted runs never count.
+- Readiness is computed from recorded runs of the experiment's model lane: at least 3 of the last 4 qualifying runs reach `activationMilestone`. Runs that match the incumbent's turn and wall limits and every other switch are used first. If too few exist, the latest runs of that lane in any registry configuration stand in, and the reason says so. Human runs, probes and aborted runs never count.
 - Choose the position by what the frontier needs most. Queue positions must be unique, and changing a position does not invalidate an approval.
 - Re-check pending entries whenever the frontier advances, and before proposing any experiment.
 

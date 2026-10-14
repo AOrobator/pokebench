@@ -39,7 +39,7 @@ function host(paths: QueuePaths, metrics: Map<string, TrialMetrics>, over: Parti
     launch: (trial) => {
       launches.push(trial);
       expect(existsSync(join(paths.runsRoot, LEASE, "owner.json"))).toBe(true);
-      expect(JSON.parse(readFileSync(runnerPath(paths.runsRoot), "utf8"))).toMatchObject({ experiment: "full-map" });
+      expect(JSON.parse(readFileSync(runnerPath(paths.runsRoot), "utf8"))).toMatchObject({ trial: expect.any(Number) as number });
       const preset = JSON.parse(readFileSync(trial.presetPath, "utf8")) as { features: Record<string, boolean> };
       const log = new Log();
       log.add(0, { ...START, harness_features: playHarnessFeatures(preset.features as typeof QUEUE_FEATURES, null) });
@@ -191,7 +191,7 @@ describe("experiment runner", () => {
   it("holds when play exits cleanly without recording run_end", async () => {
     const { paths, metrics, source } = setup();
     const base = host(paths, metrics);
-    const silent = { ...base, launch: async (t: TrialLaunch) => { await base.launch(t); const file = join(paths.runsRoot, t.runId, "events.jsonl"); writeFileSync(file, readFileSync(file, "utf8").split("\n")[0] + "\n"); return 0; } };
+    const silent = { ...base, launch: async (t: TrialLaunch) => { await base.launch(t); const file = join(paths.runsRoot, t.runId, "events.jsonl"); writeFileSync(file, `${readFileSync(file, "utf8").split("\n")[0] ?? ""}\n`); return 0; } };
     expect(await runQueue({ paths, source, host: silent })).toEqual({ ran: 0, stopped: "held: trial 1 ended without a recorded run_end" });
     expect(ledger(paths).at(-1)).toMatchObject({ type: "launcher_error", message: "play exited with 0 but recorded no run_end" });
   });

@@ -83,7 +83,7 @@ export async function main(argv: readonly string[], deps: CliDeps): Promise<numb
       const value = JSON.parse(readFileSync(path, "utf8")) as { source: { commit: string } };
       value.source.commit = head;
       writeFileSync(path, `${JSON.stringify(value, null, 1)}\n`);
-      deps.print(`${view.id}: source pinned to ${head}${view.approved ? "; its approval is now stale" : ""}`);
+      deps.print(`${view.id}: source pinned to ${head}${existsSync(join(experimentDir(deps.paths.runsRoot, view.id), "approval.json")) ? "; its approval is now stale" : ""}`);
       return 0;
     }
     case "run": {

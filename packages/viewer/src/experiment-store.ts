@@ -5,7 +5,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { Type } from "typebox";
 import { Value } from "typebox/value";
-import { ApprovalSchema, deriveStatus, parseExperiment, parseLedger, readinessOf, type Approval, type Experiment, type ExperimentState, type LedgerEntry, type Readiness, type ReadinessRun, type RunnerPosition, type TrialProgress } from "@pokebench/agent/experiments";
+import { ApprovalSchema, definitionHash, deriveStatus, parseExperiment, parseLedger, readinessOf, type Approval, type Experiment, type ExperimentState, type LedgerEntry, type Readiness, type ReadinessRun, type RunnerPosition, type TrialProgress } from "@pokebench/agent/experiments";
 import { readRun, summarize } from "@pokebench/agent/summary";
 import { configOf } from "./history.js";
 import { RunsError, listRuns, readStart, runDir } from "./runs.js";
@@ -163,7 +163,7 @@ export function experimentView(e: Experiment, input: { approval: Approval | null
     id: e.id, title: e.title, changedFeature: e.changedFeature, incumbentOn: e.incumbent.features[e.changedFeature], hypothesis: e.hypothesis,
     activationMilestone: e.activationMilestone, primaryMilestone: e.primaryMilestone, queuePosition: e.queuePosition ?? null,
     source: e.source, trialsPerArm: e.trialsPerArm, modelLane: e.modelLane, budgetMs: e.budget.maxWallMs, usedMs,
-    state: status.state, reason: status.reason, approved: input.approval !== null, readiness, recorded: input.recorded, trials,
+    state: status.state, reason: status.reason, approved: input.approval !== null && input.approval.sha256 === definitionHash(e), readiness, recorded: input.recorded, trials,
     arms: { incumbent: arm(trials.filter((t) => t.arm === "incumbent")), candidate: arm(trials.filter((t) => t.arm === "candidate")) },
     notes: e.notes ?? null,
   };
@@ -230,7 +230,7 @@ export function recordedRuns(runsRoot: string): RunSource {
     recent: () => listRuns(runsRoot).filter((s) => s.ended && s.problem === null && s.reason !== "operator_abort").reverse().flatMap((s) => {
       const config = configOf(readStart(runsRoot, s.id));
       const m = config === null ? null : metrics(s.id);
-      return config === null || m === null ? [] : [{ id: s.id, features: config.features, reached: m.reached }];
+      return config === null || m === null ? [] : [{ id: s.id, model: config.model, maxTurns: config.maxTurns, maxWallMs: config.maxWallMs, features: config.features, reached: m.reached }];
     }),
   };
 }

@@ -75,7 +75,7 @@ export function definitionHash(experiment:Experiment):string {
  return createHash("sha256").update(canonical({...experiment,queuePosition:undefined,notes:undefined})).digest("hex");
 }
 
-export interface ReadinessRun {readonly id:string;readonly features:FeatureSet;readonly reached:readonly string[]}
+export interface ReadinessRun {readonly id:string;readonly model:string;readonly maxTurns:number|null;readonly maxWallMs:number|null;readonly features:FeatureSet;readonly reached:readonly string[]}
 export interface Readiness {
  readonly ready:boolean;
  // comparable: runs matching the incumbent on every switch but the changed one. recent: too few of
@@ -86,9 +86,10 @@ export interface Readiness {
 // Runs are in chronological order.
 export function readinessOf(experiment:Experiment,runs:readonly ReadinessRun[]):Readiness {
  const {window,minReached}=experiment.readiness,milestone=experiment.activationMilestone,incumbent=experiment.incumbent.features;
- const comparable=runs.filter(r=>SWITCHABLE_FEATURES.every(id=>id===experiment.changedFeature||r.features[id]===incumbent[id]));
+ const lane=runs.filter(r=>r.model===experiment.modelLane),limits=experiment.incumbent.limits;
+ const comparable=lane.filter(r=>r.maxTurns===limits.maxTurns&&r.maxWallMs===limits.maxWallMs&&SWITCHABLE_FEATURES.every(id=>id===experiment.changedFeature||r.features[id]===incumbent[id]));
  const basis=comparable.length>=window?"comparable":"recent";
- const latest=(basis==="comparable"?comparable:runs).slice(-window);
+ const latest=(basis==="comparable"?comparable:lane).slice(-window);
  const reached=latest.filter(r=>r.reached.includes(milestone)).length;
  return {ready:latest.length===window&&reached>=minReached,basis,milestone,window,minReached,reached,considered:latest.map(r=>r.id)};
 }

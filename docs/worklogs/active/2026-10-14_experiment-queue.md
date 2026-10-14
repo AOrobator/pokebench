@@ -23,15 +23,11 @@ So there is no general queue: each experiment needs a new driver script and a ne
 feature-worklog, pokebench-patch-evaluation (arm rules, 4 trials per arm, no auto-promotion), agent-observability (queue events in the viewer), feature-explainer.
 
 ## Architecture
-**Definitions (tracked):** `experiments/<id>.json`, one file per experiment, validated by a zod `ExperimentSchema` in `packages/agent/src/experiments.ts`:
-- `id`, `title`, `changedFeature` (a `SwitchableFeature`), `hypothesis`, `order` (queue position).
-- `source`: `{ checkout: "main" | <worktree path>, commit }`. A trial runs the agent build of that checkout, and the runner refuses to start unless that checkout's HEAD equals `commit`, its tree is clean and its dist is built from it. This lets an unmerged branch (grass cost) be measured before merge on its own build, with both arms on the same build.
-- `incumbent`: a full v2 preset (every switch explicit). The candidate is derived as the incumbent with `changedFeature` flipped, so the two arms differ in exactly one switch by construction (checked against `dependencyProblems`).
-- `trialsPerArm` (default 4), `order pattern` ABBAABBA, `model` lane name resolved by gateway discovery at launch (no SKU), `limits` per trial, `budget.maxWallMs` total.
-- `criteria`: primary milestone, completion tolerance 0, median speed margin 10%.
-- `blocked`: optional reason string; a blocked entry is shown but never runnable.
+**Definitions (tracked):** `experiments/<id>.json`, one file per experiment, validated by the typebox `ExperimentSchema` in `packages/agent/src/experiments.ts`: `id`, `title`, `changedFeature`, `hypothesis`, `activationMilestone`, `primaryMilestone`, optional `queuePosition` (absent = pending), `source` `{checkout:"main", commit}`, a full v2 `incumbent` preset, `trialsPerArm` (4–8), `modelLane` (the gateway model id), `budget`, `criteria`, `readiness` `{window, minReached}`, optional `blocked`, `discarded`, `notes`. The candidate is derived as the incumbent with `changedFeature` flipped (INV-Q1).
 
-**Runtime state (gitignored):** `runs/experiments/<id>/` holds `approval.json` (who, when, definition SHA-256), `trials.jsonl` (launch / outcome / launcher_error, append-only), `status.json` (pid, current trial, remaining), `result.json` (from `comparePatchResults`). Status is derived, never stored as truth: draft → approved → running → (held | done) | blocked, with `stale` when the definition changed after approval.
+**Runtime state (gitignored):** `runs/experiments/<id>/` holds `approval.json` (who, when, definition SHA-256), `trials.jsonl` (launch / outcome / launcher_error, append-only), `presets/`, `logs/` and `result.json`; `runs/experiments/runner.json` names the experiment and trial the live runner is on. State is always derived: pending, not-ready, draft, approved, running, held, stale, blocked, done, discarded.
+
+**Readiness:** runs of the experiment's model lane only. Comparable runs also share the incumbent's turn and wall limits and every switch but the changed one; with fewer than `window` of those, the latest lane runs of any registry configuration stand in (labelled "recent").
 
 **Runner:** `packages/agent/src/experiment-queue.ts` + CLI `experiment-queue-cli.ts`, recipes:
 - `just experiments` lists entries and derived status.
@@ -153,3 +149,6 @@ Pending.
 - Codex (`codex exec -m gpt-5.6-sol --sandbox read-only`): r1 fixes confirmed. BLOCKING: (1) exit 0 without run_end was graded as an `incomplete` outcome; (2) readiness ignored the model lane and limits the worklog requires; (3) one `experiment-run` stopped after the first experiment instead of continuing in queue order; (4) the runner reread the whole ledger and rewrote presets every trial (quadratic in rows).
 - Grok: LGTM. Hardening taken: `approved` in views now means the approval matches the definition hash; worklog Architecture text corrected.
 - RED for Codex 1–3 written (clean exit without run_end holds; readiness filters to the lane and, for comparable runs, the same turn and wall limits; two approved entries both run in one call).
+- GREEN for r2: N1 operator_abort → launcher_error + hold + rerun, never graded; N2 `--once` grades on the last trial; Codex 1: any run without a recorded run_end is a launcher error whatever the exit code; Codex 2: readiness uses only the experiment's model lane, and comparable runs must match the incumbent's turn and wall limits (ReadinessRun carries model, maxTurns, maxWallMs); Codex 3: `runQueue` continues to the next approved entry after one finishes (unless `--once` or a hold); Codex 4: the ledger is read once per experiment and kept in memory, presets written once per arm, approval still re-read before every trial (revocation must be seen). Grok: `approved` means the approval matches the hash.
+- Guard check: dropped the lane filter in readinessOf; the lane test went red; restored. Real data unchanged: the three queued entries are ready on think-fast runs (3 of 4), the three pending ones are not.
+- Gates: agent 960 (97.23/93.48/98.01), viewer 521 (95.36/90.43/94.65), lint clean. Python unchanged (1847).

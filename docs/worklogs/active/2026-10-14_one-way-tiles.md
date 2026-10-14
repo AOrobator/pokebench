@@ -78,3 +78,4 @@ Fix delta `git diff fdabbb0 ea76222` plus full packet against main 37a961b. Clau
 Codex `gpt-5.6-sol` LGTM, Cursor Grok 4.5 high LGTM. Applied doc-only nits: explainer counts now
 say viewer 476 at the merged head, and the Python table test is described as checking listed sides.
 Ready for operator approval to merge into main.
+- Operator asked for a clickable explainer link; feature-explainer skill now requires SendUserFile plus attached_outputs in project threads.

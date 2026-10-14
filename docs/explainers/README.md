@@ -17,3 +17,4 @@ Tracked, local HTML documentation. Open an explainer directly; no server or exte
 The original ignored runs/explainers copies remain for existing links. Make future updates here. Runtime probes, generated measurement data and helper scripts remain under runs/.
 
 - [Current-run harness configuration](current-run-harness-config.html)
+- [Story frontier zoom](frontier-zoom.html)

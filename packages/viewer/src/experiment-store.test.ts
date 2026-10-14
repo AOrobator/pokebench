@@ -56,6 +56,10 @@ describe("experiment queue store", () => {
     writeDefinition(paths.experimentsDir, definition("second", { queuePosition: 1 }));
     writeDefinition(paths.experimentsDir, definition("counter", { changedFeature: "counter-talk-v1", activationMilestone: "OLDALE_TOWN", queuePosition: undefined }));
     writeDefinition(paths.experimentsDir, definition("misnamed"), "wrong.json");
+    writeDefinition(paths.experimentsDir, definition("dropped", { queuePosition: undefined, discarded: "no longer needed" }));
+    writeDefinition(paths.experimentsDir, definition("finished", { queuePosition: 9 }));
+    mkdirSync(experimentDir(paths.runsRoot, "finished"), { recursive: true });
+    writeFileSync(join(experimentDir(paths.runsRoot, "finished"), "trials.jsonl"), Array.from({ length: 8 }, (_, i) => [JSON.stringify({ type: "launch", trial: i, arm: i % 4 === 0 || i % 4 === 3 ? "incumbent" : "candidate", run: `f${String(i)}`, at: "t" }), JSON.stringify({ type: "outcome", trial: i, arm: i % 4 === 0 || i % 4 === 3 ? "incumbent" : "candidate", run: `f${String(i)}`, at: "t", reason: "budget" })].join("\n")).join("\n"));
     writeDefinition(paths.experimentsDir, { version: 9 }, "broken.json");
     writeFileSync(paths.readinessPath, READINESS);
     const full = parseExperiment(definition("full-map"));
@@ -74,6 +78,7 @@ describe("experiment queue store", () => {
     const snapshot = queueSnapshot(paths, fake({ a: reached(600, 900_000), b: reached(400, 600_000), c: missed(1500), d: missed(10) }), () => true);
     expect(snapshot.queue.map((v) => [v.id, v.state])).toEqual([["full-map", "running"], ["second", "draft"]]);
     expect(snapshot.pending.map((v) => [v.id, v.state, v.recorded?.verdict])).toEqual([["counter", "pending", "BLOCKED: models do not yet reach Oldale"]]);
+    expect(snapshot.closed.map((v) => [v.id, v.state])).toEqual([["dropped", "discarded"], ["finished", "done"]]);
     expect(snapshot.runner).toEqual({ experiment: "full-map", trial: 3 });
     expect(snapshot.problems.some((p) => p.startsWith("broken.json: Invalid experiment"))).toBe(true);
     expect(snapshot.problems).toContain("wrong.json: file name must be misnamed.json");
@@ -91,7 +96,7 @@ describe("experiment queue store", () => {
 
   it("is empty without an experiments directory and summarizes unfinished arms as empty", () => {
     const paths = roots();
-    expect(queueSnapshot(paths, fake({}))).toEqual({ queue: [], pending: [], runner: null, problems: [] });
+    expect(queueSnapshot(paths, fake({}))).toEqual({ queue: [], pending: [], closed: [], runner: null, problems: [] });
     writeDefinition(paths.experimentsDir, definition("solo", { notes: "n" }));
     const [view] = queueSnapshot(paths, fake({}, [])).queue;
     expect(view).toMatchObject({ state: "not-ready", notes: "n", recorded: null, usedMs: 0, arms: { incumbent: { finished: 0, reached: 0, medianPrimaryMs: null, medianTurns: null, reachedPer1kTurns: null } } });

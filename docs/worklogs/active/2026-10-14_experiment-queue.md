@@ -127,3 +127,4 @@ Pending.
 - [ ] ASK USER: archive.
 - 2026-10-14: merged main cef13fb (counter-talk-v1). Conflicts in play-preset, panels, navigation (+tests), features.test resolved by keeping both switches; guidance count 14.
 - 2026-10-14: merged main a3c343b (grass-cost-navigation-v1). Resolved play-preset/features/navigation conflicts keeping both switches; harness order ...full-map, grass-cost, elevation. Seeds repinned to a3c343b with grass-cost explicit OFF; grass-cost-navigation added as pending (activation ROUTE_101). Gates: agent 960, viewer 498, Python 1847.
+- RED: discarded entries leave both lists; snapshot gains `closed` (done + discarded). Operator via coordinator: an entry is never on both lists; it leaves pending when queued, finished or discarded.

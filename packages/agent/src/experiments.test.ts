@@ -87,6 +87,8 @@ it("derives one status from the definition, approval, ledger, runner and readine
  const e=experiment(),hash=definitionHash(e),approval={experiment:"full-map",sha256:hash,approvedAt:"t",approvedBy:"operator"};
  const all=trialOrder(e).flatMap((arm,i)=>[launch(i,`r${String(i)}`,arm),outcome(i,`r${String(i)}`,arm)]);
  const status=(over:Partial<Parameters<typeof deriveStatus>[0]>)=>deriveStatus({experiment:e,approval,ledger:[],runner:null,readiness:ready,...over}).state;
+ expect(status({experiment:experiment({blocked:"needs a fix",discarded:"lost to the incumbent"})})).toBe("discarded");
+ expect(deriveStatus({experiment:experiment({discarded:"lost to the incumbent"}),approval,ledger:all,runner:null,readiness:ready}).reason).toBe("lost to the incumbent");
  expect(status({experiment:experiment({blocked:"needs a fix"})})).toBe("blocked");
  expect(deriveStatus({experiment:experiment({blocked:"needs a fix"}),approval,ledger:[],runner:null,readiness:ready}).reason).toBe("needs a fix");
  expect(status({ledger:all})).toBe("done");

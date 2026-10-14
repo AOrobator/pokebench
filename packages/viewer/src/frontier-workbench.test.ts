@@ -55,8 +55,12 @@ it("zooms the story frontier by default and switches to the full human baseline 
   const human = Object.assign(run({ id: HUMAN_REFERENCE, cohort: null, model: "Human", splits: ["NEW_GAME_CREATED", "PLAYER_NAME_CONFIRMED", "FIRST_TRUCK_EXIT", "STONE_BADGE"].map((name, i) => ({ name, elapsedMs: (i + 1) * 60000, segmentMs: 60000, seq: i, turn: 0, inputTokens: 0, outputTokens: 0 })) }), { measurement: { ...measurement, controller: "human" as const } });
   const agent = Object.assign(run({ id: "agent" }), { measurement });
   const data = (at: number): unknown => ({ version: 1, at, milestones: [], runs: [human, agent], queue: [], problems: [] });
-  let at = 1000;
-  const wb = new Workbench(document, { fetchSnapshot: () => Promise.resolve(data(at)), now: () => 1000, width: () => 900 });
+  let at = 1000, fail = false;
+  const wb = new Workbench(document, { fetchSnapshot: () => fail ? Promise.reject(Error("offline")) : Promise.resolve(data(at)), now: () => 1000, width: () => 900 });
+  document.querySelector<HTMLElement>('[data-frontier-view="full"]')?.click();
+  expect(ui("frontier-full").textContent).toContain("Loading recorded runs");
+  expect(document.querySelector('[data-frontier-view="full"]')?.getAttribute("aria-pressed")).toBe("true");
+  document.querySelector<HTMLElement>('[data-frontier-view="zoom"]')?.click();
   await wb.refresh();
   const pressed = (view: string): string | null => document.querySelector(`[data-frontier-view="${view}"]`)?.getAttribute("aria-pressed") ?? null;
   const pick = (view: string): void => { document.querySelector<HTMLElement>(`[data-frontier-view="${view}"]`)?.click(); };
@@ -66,7 +70,12 @@ it("zooms the story frontier by default and switches to the full human baseline 
   pick("full");
   expect(pressed("full")).toBe("true"); expect(pressed("zoom")).toBe("false");
   expect(ui("frontier-full").querySelector('[data-split="STONE_BADGE"]')).not.toBeNull();
-  at = 2000; await wb.refresh();
+  const full = document.querySelector<HTMLElement>('[data-frontier-view="full"]'); full?.focus();
+  expect(document.activeElement).toBe(full);
+  at = 2000; await wb.refresh(); fail = true; await wb.refresh();
+  expect(document.activeElement).toBe(full);
+  expect(pressed("full")).toBe("true"); expect(ui("frontier-full").querySelector('[data-split="STONE_BADGE"]')).not.toBeNull();
+  fail = false; at = 3000; await wb.refresh();
   expect(pressed("full")).toBe("true"); expect(ui("frontier-full").querySelector('[data-split="STONE_BADGE"]')).not.toBeNull();
   pick("zoom");
   expect(pressed("zoom")).toBe("true"); expect(ui("frontier-full").querySelector('[data-split="STONE_BADGE"]')).toBeNull();

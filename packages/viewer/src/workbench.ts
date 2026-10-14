@@ -76,10 +76,11 @@ export class Workbench {
     this.ui("ribbons").innerHTML = ribbonPlot(runs, width);
     const refs = frontierReferences(this.data.runs), overlays = this.overlay === "none" ? [] : this.overlay === "all" ? runs : runs.filter(r => r.id === this.overlay);
     this.ui("frontier-full").innerHTML = frontierPlot(refs, overlays, width, this.modelColors, this.verified ? this.data.runs.filter(r => r.status === "live" || r.status === "paused") : [], this.zoom);
-    for (const button of this.ui("frontier-view").querySelectorAll("button")) button.setAttribute("aria-pressed", String((button.dataset.frontierView === "zoom") === this.zoom));
+    this.pressed();
     this.ui("frontier-notes").innerHTML = frontierNotes(refs);
     this.ui("frontier-counts").innerHTML = frontierTable(refs, overlays);
   }
+  private pressed(): void { for (const button of this.ui("frontier-view").querySelectorAll("button")) button.setAttribute("aria-pressed", String((button.dataset.frontierView === "zoom") === this.zoom)); }
   private render(): void {
     const cohorts = Array.from(new Set([...this.data.runs.flatMap(r => r.cohort === null ? [] : [r.cohort]), ...this.data.queue.flatMap(q => q.cohort === null ? [] : [q.cohort])]));
     this.options("cohort", [{ id: "all", label: "All recorded runs" }, ...cohorts.map(id => ({ id, label: id }))], this.scope);
@@ -127,7 +128,7 @@ export class Workbench {
   private onClick = (event: Event): void => {
     const target = event.target as Element | null; if (target?.nodeType !== 1) return;
     if (target.closest("[data-close-detail]") !== null || target === this.ui("detail")) { this.close(); return; }
-    const view = target.closest<HTMLElement>("[data-frontier-view]"); if (view !== null) { this.zoom = view.dataset.frontierView === "zoom"; this.renderCharts(); return; }
+    const view = target.closest<HTMLElement>("[data-frontier-view]"); if (view !== null) { this.zoom = view.dataset.frontierView === "zoom"; if (this.initialized) this.renderCharts(); else this.pressed(); return; }
     const mark = target.closest<HTMLElement>("[data-run]"); if (mark !== null) { event.preventDefault(); this.detail(mark.dataset.run ?? "", mark.dataset.split ?? null); }
   };
   private onKey = (event: Event): void => {

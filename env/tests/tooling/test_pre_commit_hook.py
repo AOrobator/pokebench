@@ -203,3 +203,60 @@ def test_freshness_works_with_gnu_stat(
     assert (result.returncode == 0) is allowed, result.stderr
     if not allowed:
         assert "worklog" in result.stderr.lower()
+
+
+def archive_repo(tmp_path: Path, archived_name: str = "2026-01-02_done.md") -> tuple[Path, Path]:
+    """A repo with a stale unrelated active worklog and a committed active body to archive."""
+    active = f"docs/worklogs/active/{archived_name}"
+    repo = make_repo(tmp_path, {active: "# done\n", str(ACTIVE_BODY): "# other\n"})
+    shift_mtime(repo / ACTIVE_BODY, -3600)
+    return repo, repo / active
+
+
+def test_archiving_an_updated_worklog_is_allowed_while_others_are_stale(tmp_path: Path) -> None:
+    repo, body = archive_repo(tmp_path)
+    archived = repo / "docs/worklogs/2026-01-02_done.md"
+    assert (
+        git(repo, "mv", str(body.relative_to(repo)), str(archived.relative_to(repo))).returncode
+        == 0
+    )
+    archived.write_text("# done\n- archived\n")
+    shift_mtime(archived, 5)
+    assert git(repo, "add", str(archived.relative_to(repo))).returncode == 0
+    result = git(repo, "commit", "-q", "-m", "archive")
+    assert result.returncode == 0, result.stderr
+
+
+def test_archiving_without_updating_the_archived_body_is_blocked(tmp_path: Path) -> None:
+    repo, body = archive_repo(tmp_path)
+    archived = repo / "docs/worklogs/2026-01-02_done.md"
+    assert (
+        git(repo, "mv", str(body.relative_to(repo)), str(archived.relative_to(repo))).returncode
+        == 0
+    )
+    shift_mtime(archived, -3600)
+    result = git(repo, "commit", "-q", "-m", "archive")
+    assert result.returncode != 0
+    assert "worklog" in result.stderr.lower()
+
+
+@pytest.mark.parametrize(
+    "destination", ["docs/notes/2026-01-02_done.md", "docs/worklogs/x/2026-01-02_done.md"]
+)
+def test_moving_a_worklog_anywhere_but_the_archive_is_blocked(
+    tmp_path: Path, destination: str
+) -> None:
+    repo, body = archive_repo(tmp_path)
+    (repo / destination).parent.mkdir(parents=True, exist_ok=True)
+    assert git(repo, "mv", str(body.relative_to(repo)), destination).returncode == 0
+    shift_mtime(repo / destination, 5)
+    result = git(repo, "commit", "-q", "-m", "move")
+    assert result.returncode != 0
+
+
+def test_adding_a_new_archive_file_is_not_an_archive(tmp_path: Path) -> None:
+    repo, _ = archive_repo(tmp_path)
+    stage(repo, "docs/worklogs/2026-01-03_new.md", "# new\n")
+    shift_mtime(repo / "docs/worklogs/2026-01-03_new.md", 5)
+    result = git(repo, "commit", "-q", "-m", "add")
+    assert result.returncode != 0

@@ -22,6 +22,7 @@ describe("RunView", () => {
     expect(view.latencies).toEqual([2000, 4000]);
     expect(view.lastTps).toBe(75);
     expect(view.context).toEqual({ messages: 3, images: 1, est_tokens: 5000 });
+    expect(view.promptTokens).toBe(700);
     expect(view.disk).toEqual({ bytes: 50 * 1024 * 1024, cap_bytes: 500 * 1024 * 1024, percent: 10 });
     expect(view.retry).toEqual({ count: 1, attempt: 1, limit: 3 });
     expect(view.modelErrors).toBe(0);
@@ -76,6 +77,15 @@ describe("RunView", () => {
     expect(fold(log).stuck).toEqual({ now: 0, max: 2 });
     log.add(5, state({ position: { x: 6, y: 8 }, location: "ROUTE 101" }));
     expect(fold(log).stuck).toEqual({ now: 0, max: 2 });
+  });
+
+  it("keeps the last measured prompt size when a failed request reports no usage", () => {
+    const log = new Log();
+    log.add(0, START);
+    log.add(1, assistant({ usage: { input: 1200, output: 40, cache_read: 8000 } }));
+    log.add(2, assistant({ stop_reason: "error", error: "HTTP 500", tool_calls: [], latency_ms: 0, usage: { input: 0, output: 0, cache_read: 0 } }));
+    expect(fold(log).promptTokens).toBe(9200);
+    expect(fold(new Log()).promptTokens).toBeNull();
   });
 
   it("tracks model errors, tool errors and compactions as errors-lane marks", () => {

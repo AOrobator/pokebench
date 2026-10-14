@@ -1,0 +1,159 @@
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+import { definitionHash, parseExperiment, type ReadinessRun } from "@pokebench/agent/experiments";
+import { playHarnessFeatures } from "@pokebench/agent/features";
+import { Log, START } from "../test-support/events.js";
+import { QUEUE_FEATURES, definition, writeDefinition } from "../test-support/experiments.js";
+import { experimentDir, runnerPath, type QueuePaths, type RunSource, type TrialMetrics } from "./experiment-store.js";
+import { RunnerError, gradeExperiment, nextExperiment, runQueue, type RunnerHost, type TrialLaunch } from "./experiment-runner.js";
+import { LEASE } from "./next-run.js";
+
+function setup(over: Record<string, unknown> = {}, approve = true): { paths: QueuePaths; metrics: Map<string, TrialMetrics>; source: RunSource } {
+  const root = mkdtempSync(join(tmpdir(), "pokebench-runner-"));
+  const paths = { experimentsDir: join(root, "experiments"), runsRoot: join(root, "runs"), readinessPath: join(root, "none.md") };
+  mkdirSync(paths.runsRoot, { recursive: true });
+  const value = definition("full-map", over);
+  writeDefinition(paths.experimentsDir, value);
+  if (approve) {
+    mkdirSync(experimentDir(paths.runsRoot, "full-map"), { recursive: true });
+    writeFileSync(join(experimentDir(paths.runsRoot, "full-map"), "approval.json"), JSON.stringify({ experiment: "full-map", sha256: definitionHash(parseExperiment(value)), approvedAt: "t", approvedBy: "operator" }));
+  }
+  const metrics = new Map<string, TrialMetrics>();
+  const recent: ReadinessRun[] = ["r1", "r2", "r3", "r4"].map((id) => ({ id, features: QUEUE_FEATURES, reached: ["FIRST_TRUCK_EXIT"] }));
+  return { paths, metrics, source: { recent: () => recent, trial: (id) => metrics.get(id) ?? null } };
+}
+
+interface Fake extends RunnerHost { launches: TrialLaunch[]; lines: string[] }
+function host(paths: QueuePaths, metrics: Map<string, TrialMetrics>, over: Partial<RunnerHost> = {}): Fake {
+  let n = 0;
+  const launches: TrialLaunch[] = [], lines: string[] = [];
+  return {
+    launches, lines,
+    now: () => new Date("2026-10-14T20:00:00Z"),
+    runId: (model) => `2026-10-14T20-00-${String(n++).padStart(2, "0")}_${model}_beef`,
+    verifySource: () => Promise.resolve(null),
+    liveRuns: () => Promise.resolve([]),
+    discover: (lane) => Promise.resolve({ id: lane, fingerprint: "f".repeat(64) }),
+    launch: (trial) => {
+      launches.push(trial);
+      expect(existsSync(join(paths.runsRoot, LEASE, "owner.json"))).toBe(true);
+      expect(JSON.parse(readFileSync(runnerPath(paths.runsRoot), "utf8"))).toMatchObject({ experiment: "full-map" });
+      const preset = JSON.parse(readFileSync(trial.presetPath, "utf8")) as { features: Record<string, boolean> };
+      const log = new Log();
+      log.add(0, { ...START, harness_features: playHarnessFeatures(preset.features as typeof QUEUE_FEATURES, null) });
+      log.add(60_000, { type: "run_end", turn: 9, reason: "budget", furthest_milestone: null, turns: 9, wall_ms: 60_000, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } });
+      mkdirSync(join(paths.runsRoot, trial.runId), { recursive: true });
+      writeFileSync(join(paths.runsRoot, trial.runId, "events.jsonl"), log.events.map((e) => JSON.stringify({ ...e, run: trial.runId })).join("\n") + "\n");
+      metrics.set(trial.runId, { reached: [], milestoneMs: {}, turns: 9, wallMs: 60_000 });
+      return Promise.resolve(0);
+    },
+    log: (line) => { lines.push(line); },
+    ...over,
+  };
+}
+const ledger = (paths: QueuePaths): { type: string; trial: number; arm: string; run: string; message?: string; reason?: string; environment?: string }[] =>
+  readFileSync(join(experimentDir(paths.runsRoot, "full-map"), "trials.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l) as { type: string; trial: number; arm: string; run: string });
+
+describe("experiment runner", () => {
+  it("runs nothing that is unapproved, not ready or stale", async () => {
+    const draft = setup({}, false);
+    expect(await runQueue({ paths: draft.paths, source: draft.source, host: host(draft.paths, draft.metrics) })).toEqual({ ran: 0, stopped: "nothing to run: full-map is draft" });
+    const notReady = setup();
+    expect((await runQueue({ paths: notReady.paths, source: { ...notReady.source, recent: () => [] }, host: host(notReady.paths, notReady.metrics) })).stopped).toBe("nothing to run: full-map is not-ready");
+    const stale = setup();
+    writeDefinition(stale.paths.experimentsDir, definition("full-map", { trialsPerArm: 5 }));
+    expect((await runQueue({ paths: stale.paths, source: stale.source, host: host(stale.paths, stale.metrics) })).stopped).toBe("nothing to run: full-map is stale");
+    const empty = setup();
+    writeDefinition(empty.paths.experimentsDir, definition("full-map", { queuePosition: undefined }));
+    expect((await runQueue({ paths: empty.paths, source: empty.source, host: host(empty.paths, empty.metrics) })).stopped).toBe("nothing to run: the queue is empty");
+    expect(existsSync(join(draft.paths.runsRoot, LEASE))).toBe(false);
+  });
+
+  it("prints the plan on a dry run without launching or writing", async () => {
+    const { paths, metrics, source } = setup();
+    const fake = host(paths, metrics);
+    expect(await runQueue({ paths, source, host: fake, dryRun: true })).toEqual({ ran: 0, stopped: "dry run" });
+    expect(fake.lines).toEqual(["full-map: approved; 8 of 8 trials to run (1A 2B 3B 4A 5A 6B 7B 8A)"]);
+    expect(fake.launches).toEqual([]);
+    expect(existsSync(join(experimentDir(paths.runsRoot, "full-map"), "trials.jsonl"))).toBe(false);
+  });
+
+  it("runs every trial in ABBA order on its own run id, then grades and releases the lease", async () => {
+    const { paths, metrics, source } = setup();
+    const fake = host(paths, metrics);
+    const outcome = await runQueue({ paths, source, host: fake });
+    expect(outcome.ran).toBe(8);
+    expect(outcome.stopped).toMatch(/^full-map finished; result in /);
+    expect(fake.launches.map((l) => l.presetPath.endsWith("incumbent.json") ? "A" : "B").join("")).toBe("ABBAABBA");
+    expect(new Set(fake.launches.map((l) => l.runId)).size).toBe(8);
+    expect(ledger(paths).map((e) => e.type)).toEqual(Array.from({ length: 8 }, () => ["launch", "outcome"]).flat());
+    expect(ledger(paths)[0]).toMatchObject({ environment: "f".repeat(64), model: "think-fast" });
+    const preset = (arm: string): { features: Record<string, boolean>; id: string } => JSON.parse(readFileSync(join(experimentDir(paths.runsRoot, "full-map"), "presets", `${arm}.json`), "utf8")) as { features: Record<string, boolean>; id: string };
+    expect(Object.keys(preset("incumbent").features).filter((k) => preset("incumbent").features[k] !== preset("candidate").features[k])).toEqual(["full-map-navigation-v1"]);
+    const result = JSON.parse(readFileSync(join(experimentDir(paths.runsRoot, "full-map"), "result.json"), "utf8")) as { result: { verdict: string; incumbent: { launched: number } } | null };
+    expect(result.result?.incumbent.launched).toBe(4);
+    expect(existsSync(join(paths.runsRoot, LEASE))).toBe(false);
+    expect(existsSync(runnerPath(paths.runsRoot))).toBe(false);
+    expect((await runQueue({ paths, source, host: fake })).stopped).toBe("nothing to run: the queue is empty");
+  });
+
+  it("resumes from the ledger without repeating a finished trial and retires an interrupted one", async () => {
+    const { paths, metrics, source } = setup();
+    const lines = [{ type: "launch", trial: 0, arm: "incumbent", run: "old0", at: "t" }, { type: "outcome", trial: 0, arm: "incumbent", run: "old0", at: "t", reason: "budget" }, { type: "launch", trial: 1, arm: "candidate", run: "old1", at: "t" }];
+    writeFileSync(join(experimentDir(paths.runsRoot, "full-map"), "trials.jsonl"), lines.map((l) => JSON.stringify(l)).join("\n") + "\n");
+    const fake = host(paths, metrics);
+    expect((await runQueue({ paths, source, host: fake, once: true })).stopped).toBe("one trial run (--once)");
+    expect(fake.launches).toHaveLength(1);
+    expect(ledger(paths).slice(3)).toMatchObject([{ type: "launcher_error", trial: 1, run: "old1", message: "interrupted: no outcome was recorded" }, { type: "launch", trial: 1 }, { type: "outcome", trial: 1 }]);
+  });
+
+  it("refuses to start on a source problem, a live run or a held lease", async () => {
+    const a = setup();
+    await expect(runQueue({ paths: a.paths, source: a.source, host: host(a.paths, a.metrics, { verifySource: () => Promise.resolve("main moved") }) })).rejects.toThrow("full-map: main moved");
+    await expect(runQueue({ paths: a.paths, source: a.source, host: host(a.paths, a.metrics, { liveRuns: () => Promise.resolve(["someone"]) }) })).rejects.toThrow("live run someone is still running");
+    mkdirSync(join(a.paths.runsRoot, LEASE));
+    await expect(runQueue({ paths: a.paths, source: a.source, host: host(a.paths, a.metrics) })).rejects.toThrow(RunnerError);
+    expect(existsSync(join(a.paths.runsRoot, "experiments", "full-map", "trials.jsonl"))).toBe(false);
+  });
+
+  it("holds on launch failures, exits, budget, a moved source and stop requests", async () => {
+    const failing = setup();
+    expect((await runQueue({ paths: failing.paths, source: failing.source, host: host(failing.paths, failing.metrics, { launch: () => Promise.reject(new Error("spawn failed")) }) })).stopped).toBe("held: trial 1 failed to launch");
+    expect(ledger(failing.paths).at(-1)).toMatchObject({ type: "launcher_error", message: "spawn failed" });
+    expect(existsSync(join(failing.paths.runsRoot, LEASE))).toBe(false);
+    const crashing = setup();
+    expect((await runQueue({ paths: crashing.paths, source: crashing.source, host: host(crashing.paths, crashing.metrics, { launch: () => Promise.resolve(2) }) })).stopped).toBe("held: trial 1 exited with 2");
+    expect(ledger(crashing.paths).at(-1)).toMatchObject({ type: "launcher_error", message: "play exited with 2" });
+    const tight = setup({ budget: { maxWallMs: 1_800_000 } }, false);
+    mkdirSync(experimentDir(tight.paths.runsRoot, "full-map"), { recursive: true });
+    writeFileSync(join(experimentDir(tight.paths.runsRoot, "full-map"), "approval.json"), JSON.stringify({ experiment: "full-map", sha256: definitionHash(parseExperiment(definition("full-map", { budget: { maxWallMs: 1_800_000 } }))), approvedAt: "t", approvedBy: "o" }));
+    const fake = host(tight.paths, tight.metrics);
+    expect(await runQueue({ paths: tight.paths, source: tight.source, host: fake })).toEqual({ ran: 1, stopped: "held: the next trial could exceed the experiment budget" });
+    const moving = setup();
+    let checks = 0;
+    expect(await runQueue({ paths: moving.paths, source: moving.source, host: host(moving.paths, moving.metrics, { verifySource: () => Promise.resolve(checks++ < 2 ? null : "main moved") }) })).toEqual({ ran: 1, stopped: "held: main moved" });
+    const stopping = setup();
+    expect(await runQueue({ paths: stopping.paths, source: stopping.source, host: host(stopping.paths, stopping.metrics), stopRequested: () => true })).toEqual({ ran: 0, stopped: "stop requested" });
+  });
+
+  it("refuses a preset on disk that no longer matches the definition", async () => {
+    const { paths, metrics, source } = setup();
+    mkdirSync(join(experimentDir(paths.runsRoot, "full-map"), "presets"), { recursive: true });
+    writeFileSync(join(experimentDir(paths.runsRoot, "full-map"), "presets", "incumbent.json"), "{}");
+    await expect(runQueue({ paths, source, host: host(paths, metrics) })).rejects.toThrow("full-map: incumbent preset on disk differs from the definition");
+    expect(existsSync(join(paths.runsRoot, LEASE))).toBe(false);
+  });
+
+  it("reports grading problems instead of a verdict and picks held before later approved entries", () => {
+    const { paths } = setup();
+    writeFileSync(join(experimentDir(paths.runsRoot, "full-map"), "trials.jsonl"), JSON.stringify({ type: "outcome", trial: 0, arm: "incumbent", run: "missing", at: "t", reason: "budget" }) + "\n");
+    const graded = gradeExperiment(paths, parseExperiment(definition("full-map")), new Date("2026-10-14T00:00:00Z"));
+    expect(graded).toMatchObject({ experiment: "full-map", gradedAt: "2026-10-14T00:00:00.000Z", result: null });
+    expect(graded.problem).toMatch(/ENOENT/);
+    const view = (id: string, state: string) => ({ id, state }) as unknown as Parameters<typeof nextExperiment>[0][number];
+    expect(nextExperiment([view("a", "draft"), view("b", "held"), view("c", "approved")])?.id).toBe("b");
+    expect(nextExperiment([view("a", "done")])).toBeNull();
+  });
+});

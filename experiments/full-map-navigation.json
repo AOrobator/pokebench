@@ -63,7 +63,7 @@
   }
  },
  "trialsPerArm": 4,
- "modelLane": "think_fast",
+ "modelLane": "think-fast",
  "budget": {
   "maxWallMs": 14400000
  },

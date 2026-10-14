@@ -10,7 +10,7 @@ export function definition(id: string, over: Record<string, unknown> = {}): Reco
     activationMilestone: "FIRST_TRUCK_EXIT", primaryMilestone: "RIVAL_HOUSE_ENTERED", queuePosition: 1,
     source: { checkout: "main", commit: "a".repeat(40) },
     incumbent: { version: 2, id: "incumbent", target: null, limits: { maxTurns: 1500, maxWallMs: 1_800_000, failureLimit: 3 }, sampling: { thinkingLevel: "medium", maxTokens: 4096 }, features: QUEUE_FEATURES },
-    trialsPerArm: 4, modelLane: "think_fast", budget: { maxWallMs: 8 * 1_800_000 },
+    trialsPerArm: 4, modelLane: "think-fast", budget: { maxWallMs: 8 * 1_800_000 },
     criteria: { completionTolerance: 0, speedMarginPercent: 10 }, readiness: { window: 4, minReached: 3 },
     ...over,
   };

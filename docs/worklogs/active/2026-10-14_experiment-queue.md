@@ -78,6 +78,7 @@ Argv-only spawns (`node`, `git`), checkout paths treated as untrusted (resolved,
 - [x] Gates: agent 954 (97.22/93.45/98.01; experiments.ts 98.1 lines), viewer 498 (95.78/90.41/95.57), lint clean. Python unchanged since M0 (1847 passed).
 
 **M2 — Runner and CLI**
+- [x] RED: `experiment-runner.test.ts` (nothing runs unless queued + ready + approved with a matching hash; dry run; ABBA order on fresh run ids; ledger + presets + result.json; lease and runner file released; resume retires an interrupted trial without repeating finished ones; holds on launch failure, nonzero exit, budget, moved source, stop request; stale preset refused) and `experiment-cli.test.ts` (list/check/approve/pin/run, interactive-only approval with typed id, production host source checks against a temp git repo, discovery, launch env).
 - [ ] Tests with a fake host: INV-Q2..Q6, ABBA order, budget stop, dry run, grading into result.json via `comparePatchResults`.
 - [ ] COMMIT RED / implement runner, CLI, just recipes / gates / `just experiment-run --dry-run` evidence / COMMIT GREEN / review.
 

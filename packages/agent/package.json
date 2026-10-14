@@ -47,6 +47,10 @@
     "./summary": {
       "types": "./src/summary.ts",
       "default": "./dist/summary.js"
+    },
+    "./patch-results": {
+      "types": "./src/patch-results.ts",
+      "default": "./dist/patch-results.js"
     }
   },
   "scripts": {

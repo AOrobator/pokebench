@@ -9,6 +9,12 @@ The operator's instruction: Emerald is the source of truth for progress. Prefer 
 
 Use [pokebench-game-state](../pokebench-game-state/SKILL.md) for source checkout, exact-ROM mapping, coherent memory snapshots, and recorded probes. Follow the repository's existing worklog and validation gates for runtime changes. This skill does not authorize new runs, navigation helpers, RAM writes, save manipulation, or vendor modifications.
 
+## Keep the story frontier about progression
+
+Only include events that advance the game or required location splits on that progression path in the story milestone catalog and its frontier graphs. An optional visit or conversation is a diagnostic event, not a story milestone: entering Birch’s lab early or talking to its aide does not unlock the initial story. Do not give optional detours progress credit or insert them into the frontier axis.
+
+For the opening rival sequence, expose the already-recorded `RIVAL_HOUSE_ENTERED`, `RIVAL_BEDROOM_REACHED` and `RIVAL_MET` splits. Keep location arrival distinct from completing the introduction. The upstairs Poké Ball triggers that encounter; touching it or starting dialogue does not establish `RIVAL_MET`. Grade the completed scene using the game-owned rival/town state. Verify the gender-mirrored scripts. Before adding a new milestone, check the native catalog and existing recordings so a missing graph label does not become a duplicate event.
+
 ## Choose the game's completion condition
 
 Find the script or input handler that commits the event, then follow the flag or variable it changes. Distinguish starting an interaction from completing it. Prefer a persistent completion flag when available; for a script variable, inspect every relevant writer and establish which values mean completion. Do not assume that a larger value means more progress, or that a reused variable permanently records an event.
@@ -19,7 +25,7 @@ Some milestones have no dedicated story flag. Use the owning game transition ins
 - **First truck exit:** establish that the run was in the opening truck, then observe its confirmed exit transition. Starting a resumed run outside the truck does not prove this event happened during that run.
 - **Clock set:** follow `PlayersHouse_2F_EventScript_WallClock` in `data/scripts/players_house.inc`. At the reference revision, it sets `VAR_LITTLEROOT_INTRO_STATE` to 6 and `FLAG_SET_WALL_CLOCK` after the setting interaction returns; state 7 follows the subsequent Mom conversation. Merely entering the bedroom or opening the clock is insufficient.
 
-Other useful candidates include meeting the rival, rescuing Birch, receiving the Pokédex and running shoes, and defeating the Rustboro Gym. Follow their actual scripts and flags before defining predicates. Starter ownership, first visits to maps, and entering the gym may remain useful splits, but keep them distinct from story completion and earning the badge.
+Other useful candidates include meeting the rival, rescuing Birch, receiving the Pokédex and running shoes, and defeating the Rustboro Gym. Follow their actual scripts and flags before defining predicates. Starter ownership and required location arrivals may remain useful progression splits, but keep them distinct from completed story scenes and earning the badge. Optional map visits belong in diagnostic history instead.
 
 Consult `data/maps/LittlerootTown/scripts.inc`, `include/constants/vars.h`, `include/constants/flags.h`, `src/naming_screen.c`, and each event's calling script as needed. These symbols explain semantics; they are not verified RAM addresses. Record the reference revision and verify the running ROM as required by the game-state skill.
 

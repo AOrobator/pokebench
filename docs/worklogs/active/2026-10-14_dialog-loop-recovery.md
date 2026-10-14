@@ -58,3 +58,5 @@ First trial5d66 ended stuck after255turns/603438ms; earned truck/clock/left-home
 07:57EDT checkpoint:4/12 terminal (A1stuck,B2budget,C3stuck,C4budget), allfour reached clock and left-home; no earned rival/starter yet. Trial5 expanded-informatione555 live. This is partial, unbalanced arm coverage and not a patch comparison result. Driver46701/lease/8793healthy; originalordered12 and allfrozen settings intact.
 
 08:48EDT midpoint:6/12 terminal, exactly2eacharm; clock/left-home6/6, rival/starter0/6. A2stuck; B2budget; C1stuck/1budget. Seventh dialoguec38b live. Partial outcomes cannot support four-per-arm speed/reliability conclusions; all failures retained and remaining6 proceed unchanged. Queue/lease/8793healthy, no interventions or source/preset changes.
+
+09:08EDT checkpoint:9/12 terminal,3eacharm; accepted name 9/9, truck 9/9, clock 7/9, rival 0/9. Trial10 expanded-informationd4fa live; lastthree supply fourth replicate perarm. Allterminal reasons and missing splits retained; source/presets/modelconfiguration unchanged and viewer/driver/lease healthy.

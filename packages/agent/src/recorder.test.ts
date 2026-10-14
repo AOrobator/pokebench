@@ -531,3 +531,28 @@ it("records exact navigation context before its decision turn without grading mo
  const h=harness();await h.recorder.start(START_META,false);h.recorder.recordNavigationContext({text:"MODEL HYPOTHESIS destination; observed #0",evidence:[0]});await h.recorder.transformContext([]);h.recorder.end("budget");
  const result=events(h.log);const input=result.find(e=>e.type==="navigation_context");expect(input).toMatchObject({type:"navigation_context",turn:1,text:"MODEL HYPOTHESIS destination; observed #0",evidence:[0]});expect(result.filter(e=>e.type==="milestone")).toHaveLength(0);expect(result.find(e=>e.type==="turn_start")?.turn).toBe(input?.turn);
 });
+
+it("navigation memory retains only the state actually returned after internal post-press telemetry",async()=>{
+ const {navigationMemory}=await import("./navigation-memory.js"),{ALL_ON}=await import("./features.js");
+ const root=mkdtempSync(join(tmpdir(),"pokebench-delivery-")),log=RunLog.create(root,"navigation-delivery");
+ const a={...STATE,location:"Delivered before",world_context:null};
+ const b={...STATE,location:"MEASUREMENT ONLY ROOM",world_context:{objects:[],triggers:[],dialogue:"MEASUREMENT ONLY QUOTE"}};
+ const c={...STATE,location:"Delivered after",world_context:{objects:[],triggers:[],dialogue:"Delivered quote"}};
+ let sampled:GameStateSnapshot=a;
+ const recorder=new RunRecorder({log,frames:new FrameStore(root),milestones:{poll:()=>Promise.resolve([])},gameState:{read:()=>Promise.resolve(sampled)}});
+ const memory=navigationMemory(ALL_ON,recorder,recorder.transformContext);if(memory===null)throw Error("memory disabled");
+ await recorder.start(START_META);
+ await recorder.emit({type:"tool_execution_start",toolCallId:"observe",toolName:"observe",args:{}});
+ await recorder.emit({type:"tool_execution_end",toolCallId:"observe",toolName:"observe",isError:false,result:{content:[{type:"text",text:"Delivered before"}],details:{state:a}}});
+ await recorder.emit({type:"tool_execution_start",toolCallId:"press",toolName:"press",args:{buttons:["A"]}});
+ recorder.buttonPress("press",["A"],{hold_frames:8,release_frames:8},a);sampled=b;await recorder.afterPress();
+ await recorder.emit({type:"tool_execution_end",toolCallId:"press",toolName:"press",isError:false,result:{content:[{type:"text",text:"Delivered after: Delivered quote"}],details:{state:c}}});
+ await memory.transformContext([]);const logged=events(log),context=logged.findLast(e=>e.type==="navigation_context");
+ if(context?.type!=="navigation_context")throw Error("missing memory delivery");
+ expect(context.text).toContain("Delivered after");expect(context.text).toContain("Delivered quote");expect(context.text).not.toContain("MEASUREMENT ONLY");
+ const hidden=logged.filter(e=>e.type==="state"&&"location"in e&&e.location==="MEASUREMENT ONLY ROOM");expect(hidden).toHaveLength(1);for(const e of hidden)expect(context.evidence).not.toContain(e.seq);
+ const delivered=logged.findLast(e=>e.type==="state"&&"location"in e&&e.location==="Delivered after");expect(delivered).toBeDefined();expect(context.evidence).toContain(delivered?.seq);
+ expect(logged.findLast(e=>e.type==="tool_result")).toMatchObject({state_seq:delivered?.seq});
+ const input=logged.find(e=>e.type==="button_press");if(input?.type!=="button_press")throw Error("missing input");expect(context.evidence).not.toContain(input.before_state_seq);expect(context.text).toContain("input location unverified");
+ recorder.end("completed");
+});

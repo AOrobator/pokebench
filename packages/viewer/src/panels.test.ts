@@ -10,6 +10,7 @@ import {
   budgets,
   counters,
   fieldContext,
+  harnessConfig,
   inspector,
   party,
   splits,
@@ -530,5 +531,18 @@ describe("navigation memory delivery",()=>{
   const log=bare();const event=log.add(100,{type:"navigation_context",turn:1,text:"NAVIGATION EVIDENCE MEMORY <observed> #1",evidence:[1]});
   const result=view(log);expect(actionRow(event,result)).toContain("Navigation memory delivered");expect(actionRow(event,result)).toContain("1 retained references");expect(actionRow(event,result)).toContain("&lt;observed&gt;");
   expect(inspector(event)).toContain("NAVIGATION EVIDENCE MEMORY");
+ });
+});
+
+
+describe("read-only harness configuration", () => {
+ it("shows exact recorded settings, preserves unknown OFF states and escapes recorded content", () => {
+  const log=new Log();log.add(0,{...START,model:{...START.model,id:"<model>"},tools:["press","<tool>"],budgets:{max_turns:1500,max_wall_ms:1800000},harness_features:["navigation-evidence-memory-v1"],evaluation:{preset_id:"memory-on",target:null,failure_limit:3,flags:{loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}}});
+  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log));
+  expect(doc.body.textContent).toContain("<model>");expect(doc.body.textContent).toContain("memory-on");expect(doc.body.textContent).toContain("1500");
+  expect(doc.body.textContent).toContain("OBJECTIVE TRACKING");expect(doc.body.textContent).toContain("OFF");expect(doc.body.textContent).toContain("navigation-evidence-memory-v1");expect(doc.body.textContent).toContain("not recorded");
+  expect(doc.querySelector("model, tool, input, select, textarea, button, form")).toBeNull();
+  expect(harnessConfig(new RunView())).toContain("No run configuration recorded");
+  const legacy=harnessConfig(view(bare()));expect(legacy).toContain("not recorded");expect(legacy).not.toContain("OBJECTIVE TRACKING</dt><dd>OFF");
  });
 });

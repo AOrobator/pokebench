@@ -32,7 +32,7 @@ describe("read-only workbench snapshot", () => {
     expect(d.runs.find(x => x.id === "probe")?.excluded).toContain("probe");
   });
   it("refuses an observed milestone whose existing evidence state contradicts the native predicate", async () => {
-    const r = root(), log = named(); const evidence = log.events[2]; if (evidence?.type !== "state" || !("story" in evidence)) throw new Error("fixture state");
+    const r = root(), log = named(); const evidence = log.events[2]; if (evidence?.type !== "state" || !("story" in evidence) || evidence.story == null) throw new Error("fixture state");
     log.events[2] = { ...evidence, story: { ...evidence.story, name_confirmed: false } }; write(r, "forged", log);
     const d = await workbenchSnapshot(r, () => Promise.resolve(false), { state: "idle" }, 42);
     expect(d.runs.find(x => x.id === "forged")?.splits).toEqual([]);

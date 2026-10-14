@@ -6,6 +6,7 @@ export class Workbench {
   private data: WorkbenchData = { version: 1, at: 0, milestones: [], runs: [], queue: [], problems: [] };
   private busy = false;
   private disposed = false;
+  private verified = false;
   private selected: { run: string; split: string | null } | null = null;
   private restoreFocus: HTMLElement | null = null;
   private initialized = false;
@@ -36,16 +37,16 @@ export class Workbench {
     try {
       const data = parseWorkbench(await this.deps.fetchSnapshot()); if (!this.active()) return;
       if (data.at < this.data.at) throw new Error("Outdated workbench snapshot ignored; last verified data retained.");
-      this.data = data;
+      this.data = data; this.verified = true;
       if (!this.initialized) {
         this.scope = data.runs.find(r => r.id === this.back)?.cohort ?? data.runs.find(r => r.cohort !== null)?.cohort ?? "all"; this.initialized = true;
       }
       this.ui("problem").hidden = true; this.render();
     } catch (error) {
-      if (this.active()) { const box = this.ui("problem"); box.hidden = false; box.textContent = error instanceof Error ? error.message : String(error); }
+      if (this.active()) { this.verified = false; this.clock(); const box = this.ui("problem"); box.hidden = false; box.textContent = error instanceof Error ? error.message : String(error); }
     } finally { this.busy = false; }
   }
-  clock(): void { if (this.active()) this.ui("current").innerHTML = currentRunHtml(this.data.runs, this.data.at, this.deps.now(), this.back); }
+  clock(): void { if (this.active()) this.ui("current").innerHTML = (this.verified ? "" : '<p class="wb-notice">Live status unavailable; charts retain the last verified snapshot.</p>') + currentRunHtml(this.verified ? this.data.runs : [], this.data.at, this.deps.now(), this.back); }
   resize(): void { if (this.active()) this.renderCharts(); }
   destroy(): void { this.disposed = true; this.doc.removeEventListener("change", this.onChange); this.doc.removeEventListener("click", this.onClick); this.doc.removeEventListener("keydown", this.onKey); }
   private filtered(): WorkbenchRun[] {

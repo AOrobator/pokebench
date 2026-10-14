@@ -6,8 +6,10 @@ import { describe, expect, it } from "vitest";
 import { parseEvent } from "@pokebench/agent/events";
 import { workbenchSnapshot } from "./workbench-store.js";
 import { parseWorkbench } from "./workbench-data.js";
-import { fullRun } from "../test-support/events.js";
-import { frontierReferences } from "./frontier.js";
+import { Log, START, state, fullRun } from "../test-support/events.js";
+import { StateMilestones } from "../../agent/src/milestones.js";
+import { runDetails } from "./workbench-view.js";
+import { frontierPlot, frontierReferences } from "./frontier.js";
 const fixtures: unknown = JSON.parse(readFileSync(new URL("../test-support/frontier-reference.json", import.meta.url), "utf8"));
 function fixture(name: string): unknown[] {
   if (typeof fixtures !== "object" || fixtures === null || !(name in fixtures)) throw new Error("missing fixture");
@@ -56,4 +58,33 @@ it("accepts the common baseline's typed raw RAM references in new recordings wit
   expect(data.runs).toHaveLength(1); expect(data.runs[0]).toMatchObject({ id, status: "ended", problem: null });
   expect(data.runs[0]?.measurement?.features).toContain("full-raw-ram-v1");
   expect(data.runs[0]?.measurement?.logSha256).toBe(createHash("sha256").update(bytes).digest("hex"));
+});
+
+it("carries modern detector-produced route and Roxanne milestones through schema, snapshot and graph", async () => {
+  const fixture: {events: unknown[]} = JSON.parse(readFileSync(new URL("../test-support/frontier-gap-reference.json",import.meta.url),"utf8")) as {events: unknown[]};
+  const boss=fixture.events.map(e=>parseEvent(JSON.stringify(e))).find(e=>e.type==="state"&&"story" in e&&e.story?.rustboro_gym_complete===true);
+  if(boss?.type!=="state"||!("started" in boss)||boss.story==null)throw Error("boss");
+  const bossStory = boss.story;
+  const log=new Log();log.add(0,{...START,harness_features:["native-progress-activity-v1","ram-state-v1","story-milestones-v2"]});
+  const detector=new StateMilestones({read:()=>{throw Error("no emulator requests");}},()=>1000);detector.initialize("boot");
+  const targets=["ROUTE_101","ROUTE_103","ROUTE_102","ROUTE_104","ROXANNE_DEFEATED"];
+  const inputs=[state({location:"ROUTE101",map_id:[0,16]}),state({location:"ROUTE 103",map_id:[0,18]}),state({location:"ROUTE102",map_id:[0,17]}),state({location:"ROUTE 104",map_id:[0,19]}),state({location:"RUSTBORO CITY GYM",story:{...bossStory,roxanne_defeated:true}})];
+  inputs.forEach((body,i)=>{const event=log.add((i+1)*1000,body);if(event.type!=="state"||!("started" in event))throw Error("state");for(const mark of detector.observe(event,event.seq))if(targets.includes(mark.name))log.add((i+1)*1000+1,{type:"milestone",turn:1,name:mark.name,server_timestamp:mark.serverTimestamp,...(mark.kind===undefined?{}:{kind:mark.kind}),...(mark.origin===undefined?{}:{origin:mark.origin}),...(mark.evidence===undefined?{}:{evidence:[...mark.evidence]})});});
+  log.add(6000,{type:"run_end",turn:1,reason:"budget",turns:1,wall_ms:6000,furthest_milestone:"ROXANNE_DEFEATED",tokens:{input:0,output:0},frames:{saved:0,bytes:0}});
+  const root=mkdtempSync(join(tmpdir(),"frontier-modern-")),id=log.events[0]?.run??"";mkdirSync(join(root,id));writeFileSync(join(root,id,"events.jsonl"),log.events.map(e=>JSON.stringify(e)).join("\n")+"\n");
+  const result=parseWorkbench(await workbenchSnapshot(root,()=>Promise.resolve(false),{state:"idle"},Date.now())),record=result.runs[0];if(record===undefined)throw Error("run");
+  const graph=frontierPlot({human:null,best:null},[record],900);
+  for(const name of targets){expect(record.splits.find(s=>s.name===name)).toBeDefined();expect(record.splits.find(s=>s.name===name)?.derived).toBeUndefined();expect(graph).toContain(`data-split="${name}"`);}
+});
+
+it("keeps recovered historical evidence and upper-bound labels through the wire contract and point details", async () => {
+  const fixture: {events: unknown[]} = JSON.parse(readFileSync(new URL("../test-support/frontier-gap-reference.json",import.meta.url),"utf8")) as {events: unknown[]};
+  const events=fixture.events.map(e=>parseEvent(JSON.stringify(e))),id=events[0]?.run??"";
+  const root=mkdtempSync(join(tmpdir(),"frontier-historical-wire-"));mkdirSync(join(root,id));writeFileSync(join(root,id,"events.jsonl"),events.map(e=>JSON.stringify(e)).join("\n")+"\n");
+  const data=parseWorkbench(await workbenchSnapshot(root,()=>Promise.resolve(false),{state:"idle"},Date.now())),human=data.runs[0];if(human===undefined)throw Error("human");
+  const graph=frontierPlot({human,best:null},[],900);
+  expect(graph).toContain('data-split="ROXANNE_DEFEATED"');expect(graph).toContain("first observation upper bound");
+  expect(runDetails(human,"ROXANNE_DEFEATED")).toContain("exact defeat time was not recorded");
+  expect(runDetails(human,"ROUTE_101")).toContain("≤ 6:31.340");
+  expect(()=>parseWorkbench({...data,runs:[{...human,splits:human.splits.map(s=>({...s,derived:"exact"}))}]})).toThrow("Invalid workbench");
 });

@@ -18,6 +18,10 @@ Trace the actual changed signal across its owners:
 
 For an unsupported active UI readout, log the coverage gap with qualified callback/task ownership evidence; missing state is not proof of a loop. Use the repository `pokebench-game-state` skill to investigate the read-only matching game source and implement an authorized decoder repair. Diagnose first; skill discovery does not authorize autonomous runtime source edits. For native story completion, use `pokebench-story-milestones`: recorded native milestone evidence and origin qualify completion, while local scalar/visual claims remain provisional and older completion records remain historical.
 
+## Shared historical recovery
+
+When a streaming comparison reader differs from replay, audit both emitted milestone records and recovered native-state evidence. The same supported historical recovery must reach split tables and graphs with source-state sequence, applied pauses and an explicit first-observation upper-bound label. Prefer a valid native receipt over a recovered observation; never recover a modern missing event merely to hide a recorder defect. Verify current detector → recorded event → comparison reader → plotted point with both route-label spellings and the relevant native completion flags. Keep raw logs unchanged and unsupported evidence visibly missing.
+
 ## Polling viewer interactions
 
 For viewer panes that refresh in the background, verify interaction continuity across multiple real polling cycles, not just the first render: scroll into long details and focus a lower control, then check unchanged and updated snapshots. Background refresh must preserve the reader's scroll and focused control; focus Close and reset scroll only when explicitly opening a selection. If content must be replaced, restore the corresponding control with `preventScroll` and retain the scroll offset. Keep keyboard trapping, Escape and return focus covered. Mounted DOM tests can detect unwanted focus calls but cannot prove browser scrolling; retain real-browser before/after scroll evidence. A static screenshot alone misses this failure.

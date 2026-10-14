@@ -82,7 +82,7 @@ function markerShape(shape: "human" | "best" | "overlay", x: number, y: number):
 }
 function mark(run: WorkbenchRun, name: string, x: number, y: number, color: string, shape: "human" | "best" | "overlay"): string {
   const split = run.splits.find(s => s.name === name); if (split === undefined) return "";
-  const title = `${run.id} · ${name} · active ${preciseTime(split.elapsedMs)} · native #${String(split.seq)}`;
+  const title = `${run.id} · ${name} · active ${split.derived === true ? "≤ " : ""}${preciseTime(split.elapsedMs)} · ${split.derived === true ? "recovered native state (first observation upper bound)" : "native milestone"} #${String(split.seq)}`;
   const body = markerShape(shape, x, y);
   return `<g class="wb-mark" role="button" tabindex="0" data-run="${esc(run.id)}" data-split="${esc(name)}" aria-label="${esc(title)}" fill="${color}" stroke="${color}" stroke-width="${shape === "best" ? "2" : "1"}"><title>${esc(title)}</title>${body}</g>`;
 }
@@ -113,7 +113,7 @@ export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRu
   const models = Array.from(new Set(series.filter(s => s.kind === "overlay").map(s => modelName(s.run))));
   const references = series.filter(s => s.kind !== "overlay").map(s => `<span data-reference="${s.kind}"><svg aria-hidden="true" viewBox="0 0 40 18" fill="${s.color}" stroke="${s.color}" stroke-width="2"><line x1="0" x2="40" y1="9" y2="9"/>${markerShape(s.kind, 20, 9)}</svg>${s.kind === "human" ? "Human baseline" : `Agent frontier · ${esc(modelName(s.run))}`}</span>`).join("");
   const legend = `<div class="wb-model-legend" aria-label="Graph legend">${models.map(model => `<span data-model="${esc(model)}"><i style="background:${colors.get(model) ?? "#536d85"}"></i>${esc(model)}</span>`).join("")}${references}</div>`;
-  return `${unavailable}${legend}<svg class="wb-chart wb-frontier-chart" viewBox="0 0 ${String(width)} ${String(height)}" role="img" aria-label="Full story frontier through gym and badge">${body}</svg><p class="wb-muted">${String(milestones.length)} required progression checkpoints.${labelEvery === 1 ? "" : " Some axis labels are hidden to fit this width; all recorded points remain plotted."} Expand “Completion, missing data &amp; exact times” below for every checkpoint. Missing recordings break the line.</p>`;
+  return `${unavailable}${legend}<svg class="wb-chart wb-frontier-chart" viewBox="0 0 ${String(width)} ${String(height)}" role="img" aria-label="Full story frontier through gym and badge">${body}</svg><p class="wb-muted">${String(milestones.length)} required progression checkpoints.${labelEvery === 1 ? "" : " Some axis labels are hidden to fit this width; all recorded points remain plotted."} Expand “Completion, missing data &amp; exact times” below for every checkpoint. Recovered first-observation times are upper bounds (≤ in exact times and point details). Missing evidence breaks the line.</p>`;
 }
 export function frontierNotes(refs: ReferencePair): string {
   const reference = (run: WorkbenchRun | null, title: string, color: string): string => run === null ? `<span>${title}: unavailable</span>` : `<button type="button" class="wb-reference" data-run="${esc(run.id)}"><i style="background:${color}"></i><strong>${title}</strong> · ${esc(run.model ?? "Model not recorded")} · ${esc(run.id)}</button>`;
@@ -124,7 +124,7 @@ export function frontierTable(refs: ReferencePair, overlays: readonly WorkbenchR
   const cell = (run: WorkbenchRun | null, name: string): string => {
     if (run === null) return "unavailable";
     const split = run.splits.find(s => s.name === name);
-    return split === undefined ? milestoneStatus(run, name) : `<button type="button" class="wb-reference" data-run="${esc(run.id)}" data-split="${esc(name)}">${preciseTime(split.elapsedMs)}</button>`;
+    return split === undefined ? milestoneStatus(run, name) : `<button type="button" class="wb-reference" data-run="${esc(run.id)}" data-split="${esc(name)}">${split.derived === true ? "≤ " : ""}${preciseTime(split.elapsedMs)}</button>`;
   };
   return `<table class="wb-frontier-table"><thead><tr><th>Native checkpoint</th><th>Selected runs · reached / eligible</th><th>Human / best agent · active</th></tr></thead><tbody>${FRONTIER_MILESTONES.map(m => `<tr><td>${m.label}</td><td>${frontierCoverage(overlays, m.id)}</td><td><span>Human: ${cell(refs.human, m.id)}</span><span>Agent: ${cell(refs.best, m.id)}</span></td></tr>`).join("")}</tbody></table><p class="wb-muted">Counts include all selected eligible runs, including failures and unsupported recording. Pending = healthy live/paused; censored = no confirmed terminal; unsupported = this build did not declare the measurement and no valid split exists. Not reached = no recorded completion before the run ended. Human references, non-fresh starts, probes, invalid/aborted and infrastructure-excluded sessions remain in Outcomes but earn no selected-agent denominator credit. Each persistent reference is a single run (N=1).</p>`;
 }

@@ -2,7 +2,7 @@ import { statSync } from "node:fs";
 import type { RunEvent } from "@pokebench/agent/events";
 import { RunView } from "./model.js";
 import { reduceWorkbenchLog } from "./workbench-reader.js";
-export interface RecordingSplit { name: string; elapsedMs: number; segmentMs: number; seq: number; turn: number; inputTokens: number; outputTokens: number }
+export interface RecordingSplit { name: string; elapsedMs: number; segmentMs: number; seq: number; turn: number; inputTokens: number; outputTokens: number; derived?: true }
 export interface RecordingMeasurement {
   controller: "agent" | "human"; features: string[]; logSha256: string; pausedMs: number;
   rawSplits: { name: string; elapsedMs: number; evidence: number[] }[];
@@ -24,7 +24,7 @@ function compact(state: State): State {
 export function readNativeRecording(path: string, id: string, qualified: (event: Milestone, states: readonly (RunEvent | undefined)[]) => boolean, evidenceLimit = 100000): NativeRecording {
   if (!Number.isSafeInteger(evidenceLimit) || evidenceLimit < 1) throw new Error("Evidence bound must be positive");
   const view = new RunView(), states = new Map<number, RunEvent>(), splits: RecordingSplit[] = [], rawSplits: RecordingMeasurement["rawSplits"] = [];
-  const size = statSync(path).size; let expected = 0, previousMs = -Infinity, lastSplit = 0;
+  const size = statSync(path).size; let expected = 0, previousMs = -Infinity;
   const hash = reduceWorkbenchLog(path, event => {
     const ms = Date.parse(event.t);
     if (event.seq > 0 && event.type === "run_start") throw new Error("Run event order invalid: more than one run_start; no split graded");
@@ -36,14 +36,27 @@ export function readNativeRecording(path: string, id: string, qualified: (event:
     } else { view.lastMs = ms; view.turn = Math.max(view.turn, event.turn); }
     if (event.type === "state" && "started" in event) {
       if (states.size >= evidenceLimit) throw new Error("Native evidence state bound exceeded; no split graded");
-      states.set(event.seq, compact(event));
+      const nativeState = compact(event); states.set(event.seq, nativeState);
+      view.apply(nativeState); view.events.length = 0;
+      if (view.start?.start_state.kind === "boot" && !view.start.harness_features.includes("probe")) for (const recovered of view.milestones) {
+        if (recovered.derived !== true || recovered.origin !== "observed" || recovered.evidence === undefined || splits.some(s => s.name === recovered.name)) continue;
+        const raw = recovered.ms - (view.startMs ?? recovered.ms);
+        splits.push({ name: recovered.name, elapsedMs: Math.max(0, raw - view.control.pausedBefore(recovered.ms)), segmentMs: 0, seq: recovered.seq, turn: event.turn, inputTokens: view.tokens.input, outputTokens: view.tokens.output, derived: true });
+        rawSplits.push({ name: recovered.name, elapsedMs: raw, evidence: [...recovered.evidence] });
+      }
     }
-    if (event.type === "milestone" && event.origin === "observed" && event.evidence !== undefined && !view.start?.harness_features.includes("probe") && qualified(event, event.evidence.map(seq => states.get(seq))) && !splits.some(s => s.name === event.name)) {
+    if (event.type === "milestone" && event.origin === "observed" && event.evidence !== undefined && !view.start?.harness_features.includes("probe") && qualified(event, event.evidence.map(seq => states.get(seq))) && !splits.some(s => s.name === event.name && s.derived !== true)) {
       const raw = ms - (view.startMs ?? ms), elapsedMs = Math.max(0, raw - view.control.pausedBefore(ms));
-      splits.push({ name: event.name, elapsedMs, segmentMs: elapsedMs - lastSplit, seq: event.seq, turn: event.turn, inputTokens: view.tokens.input, outputTokens: view.tokens.output }); lastSplit = elapsedMs;
+      const recovered = splits.findIndex(s => s.name === event.name);
+      if (recovered >= 0) { splits.splice(recovered, 1); rawSplits.splice(rawSplits.findIndex(s => s.name === event.name), 1); }
+      splits.push({ name: event.name, elapsedMs, segmentMs: 0, seq: event.seq, turn: event.turn, inputTokens: view.tokens.input, outputTokens: view.tokens.output });
+      view.apply(event); view.events.length = 0;
       rawSplits.push({ name: event.name, elapsedMs: raw, evidence: [...event.evidence] });
     }
   });
   if (view.start === null) throw new Error("No complete run_start yet");
+  splits.sort((a, b) => a.elapsedMs - b.elapsedMs || a.seq - b.seq);
+  let previousSplit = 0; for (const split of splits) { split.segmentMs = split.elapsedMs - previousSplit; previousSplit = split.elapsedMs; }
+  view.state = null;
   return { view, splits, measurement: { controller: view.start.controller?.kind === "human" ? "human" : "agent", features: [...view.start.harness_features], logSha256: hash, pausedMs: view.control.pausedBefore(view.lastMs ?? view.startMs ?? 0), rawSplits } };
 }

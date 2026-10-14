@@ -74,4 +74,16 @@ describe("the viewer runs approved experiments on its own", () => {
     await auto.tick();
     expect(calls).toBe(2);
   });
+
+  it("never throws out of a tick when the queue cannot be read", async () => {
+    const paths = setup();
+    let now = 0;
+    const auto = new ExperimentAutoRun({ paths, source: { recent: () => { throw new Error("runs unreadable"); }, trial: () => null }, host, now: () => now, run: () => Promise.resolve({ ran: 0, stopped: "x" }) });
+    approveExperiment(paths, source, "full-map", "viewer", new Date(), "a".repeat(40));
+    expect(() => auto.tick()).not.toThrow();
+    await auto.tick();
+    expect(auto.status()).toEqual({ state: "error", message: "runs unreadable" });
+    now = RETRY_MS;
+    expect(() => auto.tick()).not.toThrow();
+  });
 });

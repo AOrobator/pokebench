@@ -2,7 +2,7 @@
 
 Request (the operator, 2026-10-14): an on/off option on the Runs & Comparisons story frontier graph that zooms to the frontier, showing only up to one more human milestone than the farthest agent checkpoint. On by default; off shows the full human baseline.
 
-Design: five local HTML mockups (runs/mockups/frontier-zoom/, gitignored), rendered from the real frontierPlot on the 2026-10-14 snapshot (farthest agent: Rival met, zoom shows New game → Route 101, 14 of 36). Building variant A: a switch on the graph heading row.
+Design: five local HTML mockups (runs/mockups/frontier-zoom/, gitignored), rendered from the real frontierPlot on the 2026-10-14 snapshot (farthest agent: Rival met, zoom shows New game → Route 101, 14 of 36). The operator picked variant B: a segmented FRONTIER / FULL BASELINE control on the graph heading row (A was built first by mistake, then replaced).
 
 Rules:
 - Farthest agent = the deepest frontier checkpoint among plotted agent series (filtered overlays, the agent frontier run, live/paused current runs). Human-only progress never widens the zoom.

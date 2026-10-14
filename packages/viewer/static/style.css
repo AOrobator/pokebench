@@ -390,13 +390,10 @@ select.p, .field input { font: 8px 'Press Start 2P', monospace; padding: 6px 8px
 .wb-frontier-panel { min-width:0; }
 .wb-frontier-head { display:flex; align-items:center; justify-content:space-between; gap:12px 18px; flex-wrap:wrap; }
 .wb-frontier-head h2 { margin:0; }
-.wb-switch { position:relative; display:inline-flex; align-items:center; gap:10px; font:8px/1.8 'Press Start 2P', monospace; color:#3a6ea5; cursor:pointer; }
-.wb-switch input { position:absolute; inset:0; opacity:0; margin:0; cursor:pointer; }
-.wb-switch-track { position:relative; flex:none; width:44px; height:24px; box-sizing:border-box; border:3px solid #283038; border-radius:14px; background:#c9d4de; }
-.wb-switch-track::after { content:""; position:absolute; top:2px; left:2px; width:14px; height:14px; box-sizing:border-box; border:2px solid #283038; border-radius:50%; background:#fff; transition:left .15s; }
-.wb-switch input:checked + .wb-switch-track { background:#2f9e57; }
-.wb-switch input:checked + .wb-switch-track::after { left:22px; }
-.wb-switch input:focus-visible + .wb-switch-track { outline:3px solid #ffd447; outline-offset:2px; }
+.wb-segmented { display:inline-flex; border:3px solid #3a6ea5; border-radius:8px; overflow:hidden; }
+.wb-segmented button { font:8px/1.8 'Press Start 2P', monospace; padding:9px 12px; border:0; background:#fff; color:#3a6ea5; cursor:pointer; }
+.wb-segmented button[aria-pressed="true"] { background:#3a6ea5; color:#fff; }
+.wb-segmented button:focus-visible { outline:3px solid #ffd447; outline-offset:-3px; }
 .wb-frontier-notes p { font-size:12px; color:#536d85; overflow-wrap:anywhere; }
 .wb-reference-list { display:grid; gap:10px; }
 .wb-reference { border:0; background:transparent; color:#345471; font:inherit; padding:3px 0; cursor:pointer; text-align:left; overflow-wrap:anywhere; }

@@ -76,7 +76,7 @@ export class Workbench {
     this.ui("ribbons").innerHTML = ribbonPlot(runs, width);
     const refs = frontierReferences(this.data.runs), overlays = this.overlay === "none" ? [] : this.overlay === "all" ? runs : runs.filter(r => r.id === this.overlay);
     this.ui("frontier-full").innerHTML = frontierPlot(refs, overlays, width, this.modelColors, this.verified ? this.data.runs.filter(r => r.status === "live" || r.status === "paused") : [], this.zoom);
-    (this.ui("frontier-zoom") as HTMLInputElement).checked = this.zoom;
+    for (const button of this.ui("frontier-view").querySelectorAll("button")) button.setAttribute("aria-pressed", String((button.dataset.frontierView === "zoom") === this.zoom));
     this.ui("frontier-notes").innerHTML = frontierNotes(refs);
     this.ui("frontier-counts").innerHTML = frontierTable(refs, overlays);
   }
@@ -127,6 +127,7 @@ export class Workbench {
   private onClick = (event: Event): void => {
     const target = event.target as Element | null; if (target?.nodeType !== 1) return;
     if (target.closest("[data-close-detail]") !== null || target === this.ui("detail")) { this.close(); return; }
+    const view = target.closest<HTMLElement>("[data-frontier-view]"); if (view !== null) { this.zoom = view.dataset.frontierView === "zoom"; this.renderCharts(); return; }
     const mark = target.closest<HTMLElement>("[data-run]"); if (mark !== null) { event.preventDefault(); this.detail(mark.dataset.run ?? "", mark.dataset.split ?? null); }
   };
   private onKey = (event: Event): void => {
@@ -143,7 +144,6 @@ export class Workbench {
   };
   private onChange = (event: Event): void => {
     const element = event.target as HTMLSelectElement; const name = element.dataset.wb;
-    if (name === "frontier-zoom") { this.zoom = (event.target as HTMLInputElement).checked; this.renderCharts(); return; }
     if (name === "overlay") this.overlay = element.value; else if (name === "cohort") this.scope = element.value; else if (name === "model") this.model = element.value; else if (name === "preset") this.preset = element.value; else if (name === "milestone") this.milestone = element.value; else if (name === "feature") this.feature = element.value;
     else if (name === "metric" && Object.hasOwn(METRICS, element.value)) this.metric = element.value as Metric; else return;
     this.render();

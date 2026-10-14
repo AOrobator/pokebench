@@ -1,3 +1,5 @@
+import {readFileSync} from "node:fs";
+import {parseEvent} from "./events.js";
 import { expect, it } from "vitest";
 import { LoopDetector, LOOP_POLICY } from "./loop-detection.js";
 import { IN_GAME } from "../test-support/events.js";
@@ -60,4 +62,21 @@ it("clears sparse ready-message visits on verified new field progress",()=>{
   d.complete({name:"press",args:{buttons:["RIGHT"]},isError:false,text:"ok",state:{...dialogue(),position:{x:3+visit,y:2},field_controls_locked:false,world_context:{objects:[],triggers:[],dialogue:null}}});
  }
  expect(notices).toEqual([]);
+});
+
+it("detects repeated actions through the recorded qualified naming-editor owner",()=>{
+ const state=parseEvent(readFileSync(new URL("../test-support/naming-owner-gap.json",import.meta.url),"utf8"));
+ if(state.type!=="state")throw Error("Wrong native naming fixture");
+ const notices:{phase:string}[]=[];const detector=new LoopDetector(n=>notices.push(n),undefined,"enforced",true);
+ for(let i=0;i<LOOP_POLICY.ineffective;i++)detector.complete({name:"press",args:{buttons:["A"]},isError:false,text:"ok",beforeState:state,state});
+ expect(notices.map(n=>n.phase)).toEqual(["warning"]);
+});
+it("withholds naming equivalence when the interface contradicts or cannot qualify the cursor",()=>{
+ const state=parseEvent(readFileSync(new URL("../test-support/naming-owner-gap.json",import.meta.url),"utf8"));
+ if(state.type!=="state"||state.active_ui==null)throw Error("Wrong native naming fixture");
+ for(const ui of [{...state.active_ui,diagnostic:"unknown owner"},{...state.active_ui,ready:false},{...state.active_ui,phase:"clock_adjustment"},{...state.active_ui,selected:"A"},{...state.active_ui,value:"other"}]){
+  const notices:unknown[]=[];const detector=new LoopDetector(n=>notices.push(n),undefined,"enforced",true);const conflicting={...state,active_ui:ui};
+  for(let i=0;i<LOOP_POLICY.ineffective+1;i++)detector.complete({name:"press",args:{buttons:["A"]},isError:false,text:"ok",beforeState:conflicting,state:conflicting});
+  expect(notices).toEqual([]);
+ }
 });

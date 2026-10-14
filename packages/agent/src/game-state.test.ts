@@ -64,3 +64,11 @@ it("propagates parent cancellation into a state read deadline",async()=>{
  const fetchFn:typeof fetch=(_input,init)=>{request=init?.signal;return Promise.resolve(new Response(JSON.stringify(IN_GAME)));};
  const stop=new AbortController();await new StateWatcher("http://127.0.0.1",fetchFn).read(stop.signal);stop.abort();expect(request?.aborted).toBe(true);
 });
+
+it('accepts optional nullable gym trainer fields without changing older story payloads',()=>{
+ const story={name_confirmed:true,intro_stage:7,rival_stage:4,birch_lab_stage:5,petalburg_gym_stage:2,woods_stage:1,clock_set:true,rival_battle_won:true,pokedex_received:true,running_shoes_received:true,starter_tutorial_complete:true,rustboro_gym_complete:false,stone_badge:false,rock_tomb_received:false};
+ expect(parseGameState({...IN_GAME,story}).story).toEqual(story);
+ const extended={...story,rustboro_josh_defeated:true,rustboro_tommy_defeated:false,rustboro_marc_defeated:null};
+ expect(parseGameState({...IN_GAME,story:extended}).story).toEqual(extended);
+ expect(()=>parseGameState({...IN_GAME,story:{...extended,rustboro_marc_defeated:'won'}})).toThrow('malformed');
+});

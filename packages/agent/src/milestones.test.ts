@@ -262,3 +262,17 @@ it("does not treat a loading truck observation as an exit witness",async()=>{
  const tracker=source([at("INSIDE OF TRUCK",{screen:"field_transition"}),at("LITTLEROOT TOWN")]);
  await tracker.poll();expect((await tracker.poll()).map(m=>m.name)).not.toContain("FIRST_TRUCK_EXIT");
 });
+
+it('records individual Rustboro trainer victories once, before gym-clear, without crediting automatic flags',()=>{
+ const story={name_confirmed:true,intro_stage:7,rival_stage:4,birch_lab_stage:5,petalburg_gym_stage:2,woods_stage:1,clock_set:true,rival_battle_won:true,pokedex_received:true,running_shoes_received:true,starter_tutorial_complete:true,rustboro_gym_complete:false,stone_badge:false,rock_tomb_received:false,rustboro_josh_defeated:false,rustboro_tommy_defeated:false,rustboro_marc_defeated:false};
+ const detector=new StateMilestones({read:()=>Promise.resolve(BASE)},()=>1000);detector.initialize('boot');
+ const gym=(extra:Partial<typeof story>)=>at('RUSTBORO CITY GYM',{story:{...story,...extra}});
+ detector.observe(gym({}),1);
+ const wins=detector.observe(gym({rustboro_josh_defeated:true,rustboro_tommy_defeated:true}),2).filter(e=>e.name.startsWith('RUSTBORO_GYM_TRAINER_'));
+ expect(wins).toEqual([{name:'RUSTBORO_GYM_TRAINER_JOSH_DEFEATED',serverTimestamp:1,kind:'story',origin:'observed',evidence:[2]},{name:'RUSTBORO_GYM_TRAINER_TOMMY_DEFEATED',serverTimestamp:1,kind:'story',origin:'observed',evidence:[2]}]);
+ expect(detector.observe(gym({rustboro_josh_defeated:true,rustboro_tommy_defeated:true}),3).filter(e=>e.name.startsWith('RUSTBORO_GYM_TRAINER_'))).toEqual([]);
+ expect(detector.observe(gym({rustboro_gym_complete:true,rustboro_josh_defeated:true,rustboro_tommy_defeated:true,rustboro_marc_defeated:true}),4).filter(e=>e.name.startsWith('RUSTBORO_GYM_TRAINER_'))).toEqual([]);
+ const resumed=new StateMilestones({read:()=>Promise.resolve(BASE)},()=>1000);resumed.initialize('save_state');
+ expect(resumed.observe(gym({rustboro_marc_defeated:true}),5).filter(e=>e.name==='RUSTBORO_GYM_TRAINER_MARC_DEFEATED')).toEqual([{name:'RUSTBORO_GYM_TRAINER_MARC_DEFEATED',serverTimestamp:1,kind:'story',origin:'present_at_start',evidence:[5]}]);
+ expect(detector.observe(at('RUSTBORO CITY GYM',{screen:'field_transition',story:{...story,rustboro_marc_defeated:true}}),6).filter(e=>e.name.startsWith('RUSTBORO_GYM_TRAINER_'))).toEqual([]);
+});

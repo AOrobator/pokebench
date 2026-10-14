@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { FEATURES } from "@pokebench/agent/features";
 import { MILESTONES, qualifiedNativeMilestone } from "@pokebench/agent/milestones";
 import { filesystemComparisonHost, prepareComparison, sha256 } from "@pokebench/agent/serial-comparison";
-import type { RunEvent } from "@pokebench/agent/events";
+import { RUN_END_REASONS, type RunEvent } from "@pokebench/agent/events";
 import { configOf } from "./history.js";
 import { runSeconds } from "./controls.js";
 import { RunView } from "./model.js";
@@ -92,7 +92,7 @@ async function cohortQueue(root: string): Promise<{ items: WorkbenchQueueItem[];
         else {
           if (row.reason === undefined) throw new Error("Cohort outcome has no reason");
           completed.add(row.runId);
-          if (row.exitCode !== 0) { cohortFailed = true; receiptFailures.set(row.runId, `Infrastructure outcome: ${typeof row.failureCode === "string" ? row.failureCode : row.reason}`); }
+          if (row.exitCode !== 0 || row.eventsSha256 === null || !RUN_END_REASONS.some(reason => reason === row.reason)) { cohortFailed = true; receiptFailures.set(row.runId, `Infrastructure outcome: ${row.failureCode ?? (row.eventsSha256 === null ? "missing event digest" : row.reason)}`); }
         }
       }
       accepted.add(m.id);

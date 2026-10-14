@@ -83,18 +83,20 @@ function cohortQueue(root: string): { items: WorkbenchQueueItem[]; failures: Map
       const rows: unknown[] = readFileSync(ledgerPath, "utf8").trim().split("\n").filter(Boolean).map((line): unknown => JSON.parse(line));
       const digest = sha256(JSON.stringify(m));
       if (rows.length === 0 || !rows.every(row => record(row) && row.manifestSha256 === digest)) continue;
-      if (accepted.has(m.id)) continue; accepted.add(m.id);
-      const launched = new Set<string>(), completed = new Set<string>(); let cohortFailed = false;
-      for (const trial of m.trials) membership.set(trial.runId, m.id);
+      if (accepted.has(m.id)) continue;
+      const launched = new Set<string>(), completed = new Set<string>(), receiptFailures = new Map<string, string>(); let cohortFailed = false;
       for (const row of rows) {
         if (!record(row) || typeof row.runId !== "string" || !m.trials.some(t => t.runId === row.runId) || !["launch", "outcome"].includes(String(row.type))) throw new Error("Cohort ledger has an invalid trial row");
         if (row.type === "launch") { if (launched.has(row.runId)) throw new Error("Duplicate cohort launch"); launched.add(row.runId); }
         else {
           if (!launched.has(row.runId) || completed.has(row.runId) || (row.exitCode !== null && !Number.isInteger(row.exitCode)) || typeof row.reason !== "string") throw new Error("Cohort outcome is incomplete or unordered");
           completed.add(row.runId);
-          if (row.exitCode !== 0) { cohortFailed = true; failures.set(row.runId, `Infrastructure outcome: ${typeof row.failureCode === "string" ? row.failureCode : row.reason}`); }
+          if (row.exitCode !== 0) { cohortFailed = true; receiptFailures.set(row.runId, `Infrastructure outcome: ${typeof row.failureCode === "string" ? row.failureCode : row.reason}`); }
         }
       }
+      accepted.add(m.id);
+      for (const trial of m.trials) membership.set(trial.runId, m.id);
+      for (const [id, failure] of receiptFailures) failures.set(id, failure);
       let active = false;
       if (!cohortFailed && record(owner) && owner.cohort === m.id && typeof owner.pid === "number" && Number.isInteger(owner.pid) && owner.pid > 0) { try { process.kill(owner.pid, 0); active = true; } catch { /* Stale lease is not executing. */ } }
       for (const trial of m.trials) if (!completed.has(trial.runId)) items.push({ id: trial.runId, cohort: m.id, model: m.lanes.find(l => l.id === trial.lane)?.model ?? null, arm: trial.arm, status: active ? (launched.has(trial.runId) ? "launching" : "queued") : "withheld", reason: active ? "Serial cohort execution" : "Coordinator is not executing; remaining trials have not been scheduled" });

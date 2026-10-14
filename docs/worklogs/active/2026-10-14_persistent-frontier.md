@@ -20,11 +20,11 @@ Read-only existing loopback server/snapshot owners, fixed human path under run r
 
 ## Milestones
 - [x] Inspect main/status/workbench receipts; isolated codex/persistent-frontier at /private/tmp/pokebench-persistent-frontier.
-- [ ] Confirm workbench landing then update isolated baseline.
-- [ ] RED tests and commit for persistent reference selection/native active timing, charts and mounted filters/details.
-- [ ] GREEN implementation, mutation/restoration, focused and required full gates.
-- [ ] Frozen principles and independent review; accepted fixes re-reviewed.
-- [ ] Land scoped source, verify served assets and desktop/narrow UI without changing benchmark/model services.
+- [x] Confirm workbench landing then update isolated baseline.
+- [x] RED tests and commit for persistent reference selection/native active timing, charts and mounted filters/details.
+- [x] GREEN implementation, mutation/restoration, focused and required full gates.
+- [x] Frozen principles and independent review; accepted fixes re-reviewed.
+- [x] Land scoped source, verify served assets and desktop/narrow UI without changing benchmark/model services.
 
 ## Closing the Loop
 Keep implementation, gates, review, landing and served/UI proof separate. Record unavailable evidence and do not claim a gate complete from silence. Explicit user request authorizes implementation and landing; no extra approval checkpoint.
@@ -170,3 +170,8 @@ Round2 preparation correction: reviewer dispatch occurred before lint completion
 Final cumulative review green: fresh Sol/Astra reviewers both literal VERDICT: LGTM on7b2d8a1 (delta65edabab5254904b2d9d59a32e7f285cf43919aa3d06bd85bf98e88356f52b25), reproduced clean head/hash pre/post and independently474viewer+11focused. All3original blockers closed, no new production paths/domains. Selected two-model availability fallback replaces unavailable external lanes; reduced vendor diversity explicit, no unavailable lane countedLGTM. Full synthesis and literal verdict receipts at runs/persistent-frontier-proof/landing-review-r2.
 
 Canonical main advanced during review (ledge-hops and tracked explainers, latest e6f8cc2). Fast-forward landing correctly refused without edits. Integrate reviewed main into owned branch, preserve all canonical changes and dirty worklogs; no conflict/rewriting reviewed frontier production code anticipated. Rerun complete deterministic gates on prospective merged tree before local landing. Running frozen benchmark/source and shared8793 remain unchanged; only owned61575 preview is warming final reviewed frontier code.
+
+## Landed receipt
+COMMIT: `merge: integrate reviewed frontier with current local main` (7d4887c439bc5db834624a8966428eb4465dacc5) landed via local fast-forward on canonicalmain after user visual/landing approval. Reviewed frontier production files14/14 byte-identical to7b2d8a1; original main e6f8cc2 changes preserved. Final merged full gates896agent/474viewer/1807Python, everycoverage metric>=90, lint/build/vendor pass. Initial concurrent build/coverage saw old compiled feature catalog against new main30feature test; after ordered dependency build all gates pass. No retries/suppression/sourceworkarounds added.
+
+Both independent fallback reviewers literalLGTM, full R1+R2 findings and synthesis retained; reduced vendor diversity explicitly recorded. Canonical three unrelated dirty worklogs matched pre-landing SHA256 exactly. Receipt runs/persistent-frontier-proof/landing-review-r2/landing.json. Existing preview remains available during read-only cache warm replacement; first refresh warm overlapped natural benchmark transition66d3→00aa and correctly preserved priorserver rather than claiming active; new trial healthy and secondwarm underway. Shared8793, modelservices, frozenbenchmarkcheckout and original recordings untouched. Worklog intentionally remains active; archive requires explicit userrequest. Tracked explainer retained at docs/explainers/current-run-frontier.html by concurrently landed main.

@@ -31,6 +31,12 @@ describe("mounted split ribbon workbench", () => {
   it("never hides model failures from completion counts, while infrastructure failures remain explicitly excluded", async () => {
     const failed = run({ id: "failed", reason: "model_error", splits: [] }); const infra = run({ id: "infra", excluded: "Infrastructure", splits: run().splits }); const { wb } = mount({ ...data(), runs: [run(), failed, infra] }); await wb.refresh(); expect(ui("summary").textContent).toContain("1 / 2"); expect(ui("outcomes").textContent).toContain("excluded from timing"); expect(ui("outcomes").textContent).toContain("model_error"); wb.destroy();
   });
+  it("keeps an excluded abort visible but gives it no plot or denominator credit", async () => {
+    const aborted = run({ id: "aborted", reason: "operator_abort", excluded: "Excluded operator-aborted run" });
+    const { wb } = mount({ ...data(), runs: [run(), aborted] }); await wb.refresh();
+    expect(ui("summary").textContent).toContain("1 / 1"); expect(ui("outcomes").textContent).toContain("operator_abort"); expect(ui("outcomes").textContent).toContain("excluded from timing");
+    expect(ui("timing").querySelector('[data-run="aborted"]')).toBeNull(); expect(ui("ribbons").querySelector('[data-run="aborted"]')).toBeNull(); wb.destroy();
+  });
   it("retains verified data after bad JSON/network/stale snapshots and bounds visible errors", async () => {
     const { wb, fetch } = mount(); await wb.refresh(); fetch.mockResolvedValue({ nonsense: true }); await wb.refresh(); expect(ui("problem").hidden).toBe(false); expect(ui("summary").textContent).toContain("1 / 1"); fetch.mockResolvedValue({ ...data(), at: 1 }); await wb.refresh(); expect(ui("problem").textContent).toContain("Outdated"); fetch.mockRejectedValue(new Error("offline")); await wb.refresh(); expect(ui("problem").textContent).toBe("offline"); wb.destroy();
   });

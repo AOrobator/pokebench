@@ -53,6 +53,12 @@ describe("read-only workbench snapshot", () => {
     expect(() => parseWorkbench({ ...d, runs: [{ ...run, splits: run.splits.map(s => ({ ...s, seq: 1.5 })) }] })).toThrow("Invalid workbench");
     expect(() => parseWorkbench({ ...d, runs: [{ ...run, config: { ...run.config, maxTurns: 1.5 } }] })).toThrow("Invalid workbench");
   });
+  it.each(["operator_abort", "operator_stop"] as const)("preserves %s history while enforcing existing abort eligibility", async reason => {
+    const r = root(), log = named(); log.add(5000, { type: "run_end", turn: 1, reason, furthest_milestone: "PLAYER_NAME_CONFIRMED", turns: 1, wall_ms: 5000, tokens: { input: 500, output: 100 }, frames: { saved: 0, bytes: 0 } }); write(r, "stopped", log);
+    const d = await workbenchSnapshot(r, () => Promise.resolve(false), { state: "idle" }, 42);
+    expect(d.runs[0]?.reason).toBe(reason); expect(d.runs[0]?.splits).toHaveLength(1);
+    expect(d.runs[0]?.excluded).toBe(reason === "operator_abort" ? "Excluded operator-aborted run" : null);
+  });
   it("validates the browser boundary and missing-root empty state", async () => {
     const d = await workbenchSnapshot(join(root(), "absent"), () => Promise.resolve(false), { state: "idle" }, 42); expect(parseWorkbench(d).runs).toEqual([]); expect(() => parseWorkbench({ ...d, at: -1 })).toThrow("Invalid workbench"); expect(() => parseWorkbench({ ...d, runs: [{ id: "fake" }] })).toThrow();
   });

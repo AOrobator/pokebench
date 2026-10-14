@@ -150,9 +150,9 @@ function ledgerOf(runsRoot: string, id: string, problems: string[]): LedgerEntry
   return entries;
 }
 
-export function experimentView(e: Experiment, input: { approval: Approval | null; ledger: readonly LedgerEntry[]; runner: RunnerPosition | null; recent: readonly ReadinessRun[]; source: RunSource; recorded: RecordedReadiness | null }): ExperimentView {
+export function experimentView(e: Experiment, input: { approval: Approval | null; ledger: readonly LedgerEntry[]; runner: RunnerPosition | null; recent: readonly ReadinessRun[]; source: RunSource; recorded: RecordedReadiness | null; graded: boolean }): ExperimentView {
   const readiness = readinessOf(e, input.recent);
-  const status = deriveStatus({ experiment: e, approval: input.approval, ledger: input.ledger, runner: input.runner, readiness });
+  const status = deriveStatus({ experiment: e, approval: input.approval, ledger: input.ledger, runner: input.runner, readiness, graded: input.graded });
   const metrics = (run: string | null): TrialMetrics | null => (run === null ? null : input.source.trial(run));
   const trials: TrialView[] = status.trials.map((t) => {
     const m = t.state === "done" ? metrics(t.run) : null;
@@ -190,7 +190,7 @@ export function queueSnapshot(paths: QueuePaths, source: RunSource, alive: (pid:
   const recorded = existsSync(paths.readinessPath) ? parseReadinessDoc(readFileSync(paths.readinessPath, "utf8")) : new Map<string, RecordedReadiness>();
   const runner = readRunner(paths.runsRoot, alive);
   const recent = experiments.length === 0 ? [] : source.recent();
-  const views = experiments.map((e) => experimentView(e, { approval: approvalOf(paths.runsRoot, e.id, problems), ledger: ledgerOf(paths.runsRoot, e.id, problems), runner, recent, source, recorded: recorded.get(e.changedFeature) ?? null }));
+  const views = experiments.map((e) => experimentView(e, { approval: approvalOf(paths.runsRoot, e.id, problems), ledger: ledgerOf(paths.runsRoot, e.id, problems), runner, recent, source, recorded: recorded.get(e.changedFeature) ?? null, graded: existsSync(join(experimentDir(paths.runsRoot, e.id), "result.json")) }));
   const positions = new Map<number, string>();
   for (const v of views) {
     if (v.queuePosition === null) continue;

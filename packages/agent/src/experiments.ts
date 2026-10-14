@@ -28,7 +28,8 @@ export const ExperimentSchema=Type.Object({
  trialsPerArm:Type.Integer({minimum:4,maximum:8}),
  modelLane:Type.String({minLength:1}),
  budget:Type.Object({maxWallMs:positive},closed),
- criteria:Type.Object({completionTolerance:Type.Integer({minimum:0}),speedMarginPercent:Type.Number({minimum:0})},closed),
+ // Bounds match comparePatchResults, so every accepted definition can be graded.
+ criteria:Type.Object({completionTolerance:Type.Integer({minimum:0}),speedMarginPercent:Type.Number({exclusiveMinimum:0,maximum:100})},closed),
  readiness:Type.Object({window:positive,minReached:positive},closed),
  blocked:Type.Optional(Type.String({minLength:1})),
  // Set when the operator drops the experiment; it then leaves both the queue and the pending list.
@@ -44,6 +45,7 @@ export function parseExperiment(value:unknown):Experiment {
  const incumbent=parsePlayPreset(value.incumbent);
  if(incumbent.version!==2)throw new Error("Invalid experiment: incumbent must be a version 2 preset");
  for(const field of ["activationMilestone","primaryMilestone"] as const)if(!native(value[field]))throw new Error(`Invalid experiment: ${field} ${value[field]} is not a native milestone`);
+ if(value.criteria.completionTolerance>value.trialsPerArm)throw new Error("Invalid experiment: criteria completionTolerance exceeds trialsPerArm");
  if(value.readiness.minReached>value.readiness.window)throw new Error("Invalid experiment: readiness minReached exceeds its window");
  if(value.budget.maxWallMs<incumbent.limits.maxWallMs)throw new Error("Invalid experiment: budget is shorter than one trial");
  const experiment:Experiment={...value,changedFeature:value.changedFeature,incumbent};
@@ -127,7 +129,8 @@ export function trialProgress(experiment:Experiment,ledger:readonly LedgerEntry[
 
 export type ExperimentState="discarded"|"pending"|"blocked"|"not-ready"|"draft"|"stale"|"approved"|"running"|"held"|"done";
 export interface ExperimentStatus {readonly state:ExperimentState;readonly reason:string;readonly trials:readonly TrialProgress[];readonly completed:number}
-export interface StatusInput {readonly experiment:Experiment;readonly approval:Approval|null;readonly ledger:readonly LedgerEntry[];readonly runner:RunnerPosition|null;readonly readiness:Readiness}
+// graded: result.json has been written for this experiment.
+export interface StatusInput {readonly experiment:Experiment;readonly approval:Approval|null;readonly ledger:readonly LedgerEntry[];readonly runner:RunnerPosition|null;readonly readiness:Readiness;readonly graded?:boolean}
 
 export function readinessText(r:Readiness):string {
  return r.basis==="comparable"
@@ -135,12 +138,12 @@ export function readinessText(r:Readiness):string {
   : `${String(r.reached)} of the last ${String(r.considered.length)} runs of any configuration reached ${r.milestone} (needs ${String(r.minReached)} of ${String(r.window)}; too few runs match the incumbent)`;
 }
 
-export function deriveStatus({experiment,approval,ledger,runner,readiness}:StatusInput):ExperimentStatus {
+export function deriveStatus({experiment,approval,ledger,runner,readiness,graded=false}:StatusInput):ExperimentStatus {
  const trials=trialProgress(experiment,ledger,runner),completed=trials.filter(t=>t.state==="done").length,total=String(trials.length);
  const at=(state:ExperimentState,reason:string):ExperimentStatus=>({state,reason,trials,completed});
  if(experiment.discarded!==undefined)return at("discarded",experiment.discarded);
  if(experiment.blocked!==undefined)return at("blocked",experiment.blocked);
- if(completed===trials.length)return at("done",`all ${total} trials finished`);
+ if(completed===trials.length)return graded?at("done",`all ${total} trials finished`):at("held",`all ${total} trials finished; running the queue grades it`);
  if(runner?.experiment===experiment.id)return at("running",`trial ${String(runner.trial+1)} of ${total} running`);
  if(approval!==null&&approval.sha256!==definitionHash(experiment))return at("stale","the definition changed after approval; it needs a new approval");
  if(ledger.length>0&&approval===null)return at("stale","trials have started but there is no valid approval; it needs a new approval to resume");

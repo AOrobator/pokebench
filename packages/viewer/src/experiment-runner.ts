@@ -3,7 +3,7 @@
 // append-only and a rerun resumes from it. Nothing here approves, promotes or
 // changes defaults.
 import { createHash } from "node:crypto";
-import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { comparePatchResults, type PatchArm, type PatchResult } from "@pokebench/agent/patch-results";
 import { ApprovalSchema, definitionHash, experimentArms, parseLedger, type Arm, type Experiment, type LedgerEntry } from "@pokebench/agent/experiments";
@@ -128,14 +128,14 @@ async function runNext({ paths, source, host, dryRun = false, once = false, stop
   if (live.length > 0) throw new RunnerError(`live run ${live[0] ?? ""} is still running`);
   const model = await host.discover(experiment.modelLane);
   const lease = takeLease(paths.runsRoot, { pid: process.pid, owner: "experiment-queue", experiment: experiment.id });
-  // The ledger is read once; appends go to disk and to this copy.
-  const entries = ledgerEntries(paths, experiment.id);
-  const record = (entry: LedgerEntry): void => { append(paths, experiment.id, entry); entries.push(entry); };
-  const presets = new Map<Arm, string>();
-  const logs = join(experimentDir(paths.runsRoot, experiment.id), "logs");
-  mkdirSync(logs, { recursive: true });
   let ran = 0;
   try {
+    // The ledger is read once; appends go to disk and to this copy.
+    const entries = ledgerEntries(paths, experiment.id);
+    const record = (entry: LedgerEntry): void => { append(paths, experiment.id, entry); entries.push(entry); };
+    const presets = new Map<Arm, string>();
+    const logs = join(experimentDir(paths.runsRoot, experiment.id), "logs");
+    mkdirSync(logs, { recursive: true });
     for (const trial of todo) {
       if (stopRequested()) return hold(ran, "stop requested");
       if (!approved(paths, experiment)) return hold(ran, "held: the approval no longer matches the definition");
@@ -202,7 +202,7 @@ export function gradeExperiment(paths: QueuePaths, experiment: Experiment, now: 
         return { events: readEvents(paths.runsRoot, e.run), environment: { fingerprint: environment, receipt: ledgerPath(paths, experiment.id) }, issues: [] };
       }),
     });
-    const result = comparePatchResults({ patchId: experiment.id, target: experiment.primaryMilestone, changedFeature: experiment.changedFeature, stage: "screening", speedMarginPercent: experiment.criteria.speedMarginPercent, completionTolerance: experiment.criteria.completionTolerance, incumbent: armOf("incumbent"), candidate: armOf("candidate") });
+    const result = comparePatchResults({ patchId: experiment.id, target: experiment.primaryMilestone, changedFeature: experiment.changedFeature, stage: "screening", speedMarginPercent: experiment.criteria.speedMarginPercent, completionTolerance: experiment.criteria.completionTolerance, trialsPerArm: experiment.trialsPerArm, incumbent: armOf("incumbent"), candidate: armOf("candidate") });
     return { experiment: experiment.id, gradedAt: now.toISOString(), result, problem: null };
   } catch (error) {
     return { experiment: experiment.id, gradedAt: now.toISOString(), result: null, problem: error instanceof Error ? error.message : String(error) };
@@ -211,7 +211,10 @@ export function gradeExperiment(paths: QueuePaths, experiment: Experiment, now: 
 
 export function writeResult(paths: QueuePaths, experiment: Experiment): ExperimentResult {
   const graded = gradeExperiment(paths, experiment);
-  writeFileSync(join(experimentDir(paths.runsRoot, experiment.id), "result.json"), `${JSON.stringify(graded, null, 1)}\n`);
+  // Written whole then renamed, so a half-written result never marks the experiment done.
+  const path = join(experimentDir(paths.runsRoot, experiment.id), "result.json");
+  writeFileSync(`${path}.tmp`, `${JSON.stringify(graded, null, 1)}\n`);
+  renameSync(`${path}.tmp`, path);
   return graded;
 }
 

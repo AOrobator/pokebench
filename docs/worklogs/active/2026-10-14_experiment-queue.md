@@ -29,7 +29,7 @@ feature-worklog, pokebench-patch-evaluation (arm rules, 4 trials per arm, no aut
 
 **Readiness:** runs of the experiment's model lane only. Comparable runs also share the incumbent's turn and wall limits and every switch but the changed one; with fewer than `window` of those, the latest lane runs of any registry configuration stand in (labelled "recent").
 
-**Runner:** `packages/agent/src/experiment-queue.ts` + CLI `experiment-queue-cli.ts`, recipes:
+**Runner:** `packages/viewer/src/experiment-runner.ts` + CLI `packages/viewer/src/experiment-cli.ts`, recipes:
 - `just experiments` lists entries and derived status.
 - `just experiment-approve <id>` records approval (operator only; agents never run it).
 - `just experiment-run` runs the first approved entry in queue order, then the next, serially. It takes the existing lease (so it never overlaps NEXT RUN, the human host or an old cohort driver), runs native qualification and model discovery, launches each trial with `POKEBENCH_PLAY_PRESET` on its own run id and port (INV-7), appends to the ledger, resumes from the ledger after a crash, and stops at the budget. `--dry-run` prints the plan without launching anything.
@@ -161,3 +161,6 @@ Pending.
 - Operator (via coordinator, 2026-10-14 21:01, "What to prioritize next" thread): "we also need to update the experiment skills to 8 per arm". With 4 per arm only 4/4 vs 0/4 reaches p < 0.05.
 - Operator design decision (21:00 "yes"): build design 11's party slots that open in place into design 18's battle card, with working status chips and a separate pending box, on PokéNav and the stats page.
 - RED: comparePatchResults takes `trialsPerArm` and bounds the tolerance by it; schema rejects ungradeable criteria; `done` needs a written result (otherwise `held`, "running the queue grades it"); the runner grades an all-finished experiment without launching; the `--once` test seeds seven outcomes in one pass.
+- GREEN for r3: `deriveStatus` takes `graded`; all outcomes without result.json is `held` ("running the queue grades it") and the runner grades it without launching; result.json is written to a temp file and renamed; comparePatchResults takes `trialsPerArm` (problems and limitations use it; tolerance ≤ trialsPerArm); the experiment schema bounds speedMarginPercent to (0, 100] and completionTolerance to ≤ trialsPerArm; the lease is released even if ledger loading or log directory creation throws; the `--once` test seeds seven finished trials directly.
+- 8 per arm: seeds now `trialsPerArm: 8`, budget 16 × 30 min; pokebench-patch-evaluation and experiment-queue skills say eight per arm; explainer updated. Readiness window stays 4 runs.
+- Gates: agent 961 (97.26/93.52/98.01), viewer 522 (95.36/90.45/94.65), lint clean.

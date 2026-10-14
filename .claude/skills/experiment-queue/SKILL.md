@@ -32,7 +32,7 @@ The feature-switch skill requires this. Add `experiments/<id>.json` with no `que
 - `primaryMilestone`: the frontier you grade on, currently `RIVAL_HOUSE_ENTERED`.
 - `incumbent`: a full v2 preset with every switch explicit. Copy it from an existing entry so experiments share one incumbent unless there is a reason not to. The candidate is always that incumbent with only `changedFeature` flipped; the schema refuses anything else.
 - `source`: `{"checkout":"main","commit":"<merge SHA>"}`.
-- The trial count (4 per arm), `modelLane` (the gateway model id, for example `think-fast`), `budget`, `criteria` and `readiness` (`window` 4, `minReached` 3). Copy these from an existing entry.
+- The trial count (`trialsPerArm`: 8, the operator's default since 2026-10-14; the schema allows 4–8 and grading uses the declared count), `modelLane` (the gateway model id, for example `think-fast`), `budget`, `criteria` and `readiness` (`window` 4, `minReached` 3). Copy these from an existing entry.
 
 Then run `just experiments-check` and record the readiness verdict in `docs/experiments/readiness.md`.
 

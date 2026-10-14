@@ -16,7 +16,7 @@ table{border-collapse:collapse;width:100%;font-size:15px}th,td{text-align:left;p
 <main>
 <div class="eyebrow">PokeBench · harness tooling explainer</div>
 <h1>The experiment queue: every switch gets measured, in order, only when it can matter</h1>
-<p>Each merged feature switch becomes an experiment: the incumbent configuration against the same configuration with that one switch flipped, 4 trials each. The queue runs them one at a time under the same gameplay lock NEXT RUN uses. It waits for your approval, and it never queues an experiment the models can't reach yet.</p>
+<p>Each merged feature switch becomes an experiment: the incumbent configuration against the same configuration with that one switch flipped, 8 trials each. The queue runs them one at a time under the same gameplay lock NEXT RUN uses. It waits for your approval, and it never queues an experiment the models can't reach yet.</p>
 
 <h2>1. Where an experiment lives</h2>
 <figure><div class="diagram"><svg viewBox="0 0 900 250" role="img" aria-label="Lifecycle: pending, queued, approved, running or held, done or discarded">
@@ -57,7 +57,7 @@ table{border-collapse:collapse;width:100%;font-size:15px}th,td{text-align:left;p
 <rect class="pa" x="0" y="0" width="56" height="56" rx="10"/><rect class="pb" x="68" y="0" width="56" height="56" rx="10"/><rect class="pb" x="136" y="0" width="56" height="56" rx="10"/><rect class="pa" x="204" y="0" width="56" height="56" rx="10"/>
 <rect class="pa" x="272" y="0" width="56" height="56" rx="10"/><rect class="pb" x="340" y="0" width="56" height="56" rx="10"/><rect class="pb" x="408" y="0" width="56" height="56" rx="10"/><rect class="pa" x="476" y="0" width="56" height="56" rx="10"/>
 <text class="lab" x="22" y="34" fill="#fff">A</text><text class="lab" x="90" y="34">B</text><text class="lab" x="158" y="34">B</text><text class="lab" x="226" y="34">A</text><text class="lab" x="294" y="34">A</text><text class="lab" x="362" y="34">B</text><text class="lab" x="430" y="34">B</text><text class="lab" x="498" y="34">A</text>
-<text class="sub" x="0" y="80">8 trials, each its own run id and run directory, about 4 hours at 30 minutes each</text></g>
+<text class="sub" x="0" y="80">the ABBA block repeats: 16 trials, 8 per arm, each its own run id and run directory, about 8 hours at 30 minutes each</text></g>
 </svg></div><figcaption>The schema refuses a definition whose candidate differs from the incumbent anywhere else, or breaks a switch dependency. ABBA blocks keep either arm from always running first or last. Results report rival-house reach, median time among completers, median turns and reach per 1,000 turns, so efficiency counts as well as milestones.</figcaption></figure>
 
 <h2>4. What the runner checks before every trial</h2>

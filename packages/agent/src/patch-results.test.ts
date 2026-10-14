@@ -43,7 +43,7 @@ describe("passive patch comparison", () => {
   });
   it("rejects historical three-per-arm data and records actual denominators", () => {
     const p = input(); p.incumbent.trials.pop(); const r = comparePatchResults(p);
-    expect(r.eligible).toBe(false); expect(r.incumbent.launched).toBe(3); expect(r.problems.join(" ")).toContain("four");
+    expect(r.eligible).toBe(false); expect(r.incumbent.launched).toBe(3); expect(r.problems.join(" ")).toContain("expected 4 trials, got 3");
   });
   it.each(["legacy", "present", "missing", "false", "origin"])("does not earn progress from %s evidence", (mode) => {
     const p = input(); const es = first(p).events;

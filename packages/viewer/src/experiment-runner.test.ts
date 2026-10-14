@@ -26,6 +26,13 @@ function setup(over: Record<string, unknown> = {}, approve = true): { paths: Que
 }
 
 interface Fake extends RunnerHost { launches: TrialLaunch[]; lines: string[] }
+function writeRun(paths: QueuePaths, runId: string, features: typeof QUEUE_FEATURES): void {
+  const log = new Log();
+  log.add(0, { ...START, harness_features: playHarnessFeatures(features, null) });
+  log.add(60_000, { type: "run_end", turn: 9, reason: "budget", furthest_milestone: null, turns: 9, wall_ms: 60_000, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } });
+  mkdirSync(join(paths.runsRoot, runId), { recursive: true });
+  writeFileSync(join(paths.runsRoot, runId, "events.jsonl"), log.events.map((e) => JSON.stringify({ ...e, run: runId })).join("\n") + "\n");
+}
 let n = 0;
 function host(paths: QueuePaths, metrics: Map<string, TrialMetrics>, over: Partial<RunnerHost> = {}): Fake {
   const launches: TrialLaunch[] = [], lines: string[] = [];
@@ -40,12 +47,7 @@ function host(paths: QueuePaths, metrics: Map<string, TrialMetrics>, over: Parti
       launches.push(trial);
       expect(existsSync(join(paths.runsRoot, LEASE, "owner.json"))).toBe(true);
       expect(JSON.parse(readFileSync(runnerPath(paths.runsRoot), "utf8"))).toMatchObject({ trial: expect.any(Number) as number });
-      const preset = JSON.parse(readFileSync(trial.presetPath, "utf8")) as { features: Record<string, boolean> };
-      const log = new Log();
-      log.add(0, { ...START, harness_features: playHarnessFeatures(preset.features as typeof QUEUE_FEATURES, null) });
-      log.add(60_000, { type: "run_end", turn: 9, reason: "budget", furthest_milestone: null, turns: 9, wall_ms: 60_000, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } });
-      mkdirSync(join(paths.runsRoot, trial.runId), { recursive: true });
-      writeFileSync(join(paths.runsRoot, trial.runId, "events.jsonl"), log.events.map((e) => JSON.stringify({ ...e, run: trial.runId })).join("\n") + "\n");
+      writeRun(paths, trial.runId, (JSON.parse(readFileSync(trial.presetPath, "utf8")) as { features: typeof QUEUE_FEATURES }).features);
       metrics.set(trial.runId, { reached: [], milestoneMs: {}, turns: 9, wallMs: 60_000 });
       return Promise.resolve(0);
     },
@@ -184,11 +186,11 @@ describe("experiment runner", () => {
     const { paths, metrics, source } = setup();
     const fake = host(paths, metrics);
     // Seed seven finished trials in one pass, then run the eighth with --once.
-    for (let i = 0; i < 7; i++) await fake.launch({ runId: `seed-${String(i)}`, presetPath: join(experimentDir(paths.runsRoot, "full-map"), "presets", "incumbent.json"), model: "think-fast", stdout: "", stderr: "" }).catch(() => 0);
-    expect(fake.launches).toHaveLength(7);
+    for (let i = 0; i < 7; i++) { writeRun(paths, `seed-${String(i)}`, QUEUE_FEATURES); metrics.set(`seed-${String(i)}`, { reached: [], milestoneMs: {}, turns: 9, wallMs: 60_000 }); }
     const arms = "ABBAABB";
     writeFileSync(join(experimentDir(paths.runsRoot, "full-map"), "trials.jsonl"), Array.from({ length: 7 }, (_, i) => [JSON.stringify({ type: "launch", trial: i, arm: arms[i] === "A" ? "incumbent" : "candidate", run: `seed-${String(i)}`, at: "t" }), JSON.stringify({ type: "outcome", trial: i, arm: arms[i] === "A" ? "incumbent" : "candidate", run: `seed-${String(i)}`, at: "t", reason: "budget" })].join("\n")).join("\n") + "\n");
     expect((await runQueue({ paths, source, host: fake, once: true })).stopped).toMatch(/^full-map finished; result in /);
+    expect(fake.launches).toHaveLength(1);
     expect(existsSync(join(experimentDir(paths.runsRoot, "full-map"), "result.json"))).toBe(true);
   });
 

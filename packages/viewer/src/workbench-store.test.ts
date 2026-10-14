@@ -93,6 +93,8 @@ describe("durable cohort queue and metadata boundaries", () => {
     [{ type: "launch", runId: "cohort_01", extra: true }],
     [{ type: "launch", runId: "cohort_01" }, { type: "outcome", runId: "cohort_01", exitCode: 0, reason: "milestone", eventsSha256: undefined }],
     [{ type: "launch", runId: "cohort_01" }, { type: "outcome", runId: "cohort_01", exitCode: 1, reason: "infrastructure_failure", failureCode: "invented" }],
+    [{ type: "launch", runId: "cohort_01" }, { type: "outcome", runId: "cohort_01", exitCode: 0, reason: "milestone", eventsSha256: null }, { type: "launch", runId: "cohort_02" }],
+    [{ type: "launch", runId: "cohort_01" }, { type: "outcome", runId: "cohort_01", exitCode: 0, reason: "invented" }, { type: "launch", runId: "cohort_02" }],
     [{ type: "launch", runId: "cohort_02" }],
     [{ type: "launch", runId: "cohort_01" }, { type: "outcome", runId: "cohort_01", exitCode: 1, reason: "infrastructure_failure" }, { type: "launch", runId: "cohort_02" }],
     [{ type: "launch", runId: "cohort_01", at: "invalid" }],
@@ -102,6 +104,12 @@ describe("durable cohort queue and metadata boundaries", () => {
     const d = await workbenchSnapshot(r, () => Promise.resolve(false), { state: "idle" }, 42);
     expect(d.queue).toEqual([]); expect(d.problems).not.toEqual([]);
     expect(d.runs).toMatchObject([{ id: "cohort_01", cohort: null, excluded: null }]);
+  });
+  it.each([{ reason: "milestone", eventsSha256: null }, { reason: "invented", eventsSha256: "a".repeat(64) }])("withholds remaining trials after a production-failed outcome even when its child exited zero", async outcome => {
+    const r = root(); write(r, "cohort_01", named()); cohort(r, [{ type: "launch", runId: "cohort_01" }, { type: "outcome", runId: "cohort_01", exitCode: 0, ...outcome }]);
+    const d = await workbenchSnapshot(r, () => Promise.resolve(false), { state: "idle" }, 42);
+    expect(d.problems).toEqual([]); expect(d.queue).toHaveLength(23); expect(d.queue.every(q => q.status === "withheld")).toBe(true);
+    expect(d.runs[0]?.excluded).toContain("Infrastructure outcome");
   });
   it("accepts a production-shaped completed prefix and only its final pending launch", async () => {
     const r = root(); cohort(r, [{ type: "launch", runId: "cohort_01" }, { type: "outcome", runId: "cohort_01", exitCode: 0, reason: "milestone" }, { type: "launch", runId: "cohort_02" }]);

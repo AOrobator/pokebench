@@ -75,10 +75,20 @@ Argv-only spawns (`node`, `git`), checkout paths treated as untrusted (resolved,
 - [ ] Tests: `/api/experiments` shape, QueuePanel rendering (happy-dom) for draft/approved/running/held/done/blocked/stale, INV-Q8, workbench cohort integration.
 - [ ] COMMIT RED / implement / gates / screenshot of the page on port 8790 / COMMIT GREEN / review.
 
-**M4 — Explainer and hand-off**
+**M4 — Skills**
+- [ ] `.claude/skills/experiment-queue/SKILL.md`: create an experiment from a switch (incumbent choice, held-fixed switches, source pin, trials, budget, criteria), validate with `just experiments --check`, add to the queue as a draft, and hand approval to the operator.
+- [ ] Dry-run the skill on one seed entry.
+
+**M5 — Explainer and hand-off**
 - [ ] Explainer `docs/explainers/experiment-queue.html` with diagrams; shared to project files.
 - [ ] ASK USER: approve merge to main.
 - [ ] ASK USER: approve each seed entry before any measured run.
+
+## Operator additions (2026-10-14)
+- "the queue should also be visible on the stats page": the queue also renders on Runs & Comparisons (`/comparisons`), replacing the EXECUTION QUEUE section.
+- "i need 10 html variants of designs to choose from": round 1 at `docs/design/experiment-queue/queue-designs-round1.html`. Build waits for the operator's pick.
+- "we'd need skills for creating experiments and adding them to the queue": new milestone M4 adds `.claude/skills/experiment-queue/SKILL.md` (author a definition from a switch, validate it, add it as a draft, never approve).
+- Via the coordinator, from the rival-house thread: "milestone reaching isn't the only measurable effect. there's also total turns and overall run efficiency". Grading and cards report reach, median time, median turns (a miss counts the full turn cap) and reach per 1k turns.
 
 ## Open decisions
 - Elevation A/B: add an `elevation-transitions-v1` switch (default ON, OFF restores the pre-44390a4 rule) as a separate small worklog, then queue entry 5. Default: leave blocked until the operator says.
@@ -88,6 +98,7 @@ Gates per milestone: `just test`, `just lint`, `just build`, `just coverage` (�
 
 ## Session Log
 2026-10-14: worktree created from main 0357cea. Discovery done; awaiting operator approval of this worklog before M1.
+2026-10-14: operator asked for 10 design variants first, the queue on the stats page, skills, and turns/efficiency metrics. Round 1 designs drawn; build blocked on the pick.
 
 ## Surprises
 

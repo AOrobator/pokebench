@@ -782,3 +782,22 @@ it("opens the selected run configuration without changing playback or writing ne
  const clock=app.clock;must(document.querySelector<HTMLButtonElement>('[data-page="config"]')).click();
  expect(document.querySelector<HTMLElement>('[data-nav-page="config"]')?.hidden).toBe(false);expect(ui("harness-config").textContent).toContain("recorded-current-model");expect(ui("harness-config").textContent).toContain("navigation-evidence-memory-v1");expect(ui("harness-config").querySelector("input,select,textarea,button,form")).toBeNull();expect(app.clock).toBe(clock);expect(streams).toHaveLength(1);
 });
+
+
+it("filters harness features by literal name or ID and retains search through live rendering",async()=>{
+ const {app,streams}=await harness();const log=new Log();log.add(0,START);feed(must(streams[0]),log.events);
+ app.next.registry=[{id:"navigation-evidence-memory-v1",title:"Navigation Memory",description:"Retains facts.",group:"guidance",switchable:true,needs:null},{id:"deterministic-loop-guard-v1",title:"Loop Guard",description:"Navigation Memory appears in this description only.",group:"guard",switchable:true,needs:null}];app.tick(1000);
+ const search=must(document.querySelector<HTMLInputElement>('[data-ui="feature-search"]'));
+ const visible=()=>Array.from(ui("harness-config").querySelectorAll<HTMLElement>(".config-feature")).filter(card=>!card.hidden).map(card=>card.dataset.feature);
+ const filter=(value:string)=>{search.value=value;search.dispatchEvent(new Event("input"));};
+ search.focus();filter("navigation memory");expect(visible()).toEqual(["navigation-evidence-memory-v1"]);
+ expect(ui("feature-search-results").textContent).toBe("1 matching feature");
+ const guard=must(ui("harness-config").querySelector<HTMLElement>('[data-feature="deterministic-loop-guard-v1"]'));expect(guard.closest<HTMLElement>(".config-group")?.hidden).toBe(true);
+ app.next.registry=[...app.next.registry,{id:"bounded-navigation-v1",title:"Extra",description:"New catalog entry.",group:"guidance",switchable:true,needs:null}];app.tick(2000);
+ expect(document.activeElement).toBe(search);expect(search.value).toBe("navigation memory");expect(visible()).toEqual(["navigation-evidence-memory-v1"]);
+ filter("DETERMINISTIC-LOOP-GUARD-v1");expect(visible()).toEqual(["deterministic-loop-guard-v1"]);
+ filter("nvgtn");expect(visible()).toEqual([]);expect(ui("feature-search-results").textContent).toBe("No matching features");
+ filter("[");expect(visible()).toEqual([]);
+ filter("");expect(visible()).toContain("bounded-navigation-v1");expect(visible()).toContain("deterministic-loop-guard-v1");
+ expect(Array.from(ui("harness-config").querySelectorAll<HTMLElement>(".config-group")).every(group=>!group.hidden)).toBe(true);expect(streams).toHaveLength(1);
+});

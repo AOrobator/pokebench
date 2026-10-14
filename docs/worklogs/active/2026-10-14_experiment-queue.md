@@ -153,3 +153,11 @@ Pending.
 - Guard check: dropped the lane filter in readinessOf; the lane test went red; restored. Real data unchanged: the three queued entries are ready on think-fast runs (3 of 4), the three pending ones are not.
 - Gates: agent 960 (97.23/93.48/98.01), viewer 521 (95.36/90.43/94.65), lint clean. Python unchanged (1847).
 - Explainer: docs/explainers/experiment-queue.html (lifecycle, readiness gate with the 2026-10-14 counts, arms/ABBA, per-trial checks and outcomes, current contents, commands, status); README index entry. Rendered and checked locally.
+
+## Review r3 (frozen head b3703e4; packet /tmp/eq-review-r3)
+- Claude CLI: LGTM (all r2 fixes confirmed).
+- Grok: BLOCKING: an experiment whose outcomes are all recorded but whose result.json was never written derives `done`, closes and is never graded.
+- Codex: BLOCKING: (1) same as Grok; (2) definitions accept values comparePatchResults rejects or disqualifies (trialsPerArm 5–8 vs the evaluator's fixed 4, speedMarginPercent 0 or >100, completionTolerance >4); (3) the `--once` last-trial test ran the full orchestration seven times to build its state.
+- Operator (via coordinator, 2026-10-14 21:01, "What to prioritize next" thread): "we also need to update the experiment skills to 8 per arm". With 4 per arm only 4/4 vs 0/4 reaches p < 0.05.
+- Operator design decision (21:00 "yes"): build design 11's party slots that open in place into design 18's battle card, with working status chips and a separate pending box, on PokéNav and the stats page.
+- RED: comparePatchResults takes `trialsPerArm` and bounds the tolerance by it; schema rejects ungradeable criteria; `done` needs a written result (otherwise `held`, "running the queue grades it"); the runner grades an all-finished experiment without launching; the `--once` test seeds seven outcomes in one pass.

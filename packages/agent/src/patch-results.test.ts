@@ -17,7 +17,7 @@ function trial(run: string, arm: "incumbent" | "candidate", ms: number | null = 
   return { events, environment: { fingerprint: "e".repeat(64), receipt: "runtime-and-rom.json" }, issues: [] };
 }
 function input(): PatchComparison {
-  return { patchId: "action-bias", target, changedFeature: "action-bias-v1", stage: "screening", speedMarginPercent: 10, completionTolerance: 0,
+  return { patchId: "action-bias", target, changedFeature: "action-bias-v1", stage: "screening", speedMarginPercent: 10, completionTolerance: 0, trialsPerArm: 4,
     incumbent: { preset: "inc-v1", flags: { "action-bias-v1": false }, trials: Array.from({ length: 4 }, (_, i) => trial(`inc-${String(i)}`, "incumbent", 1000 + i * 100)) },
     candidate: { preset: "candidate-v1", flags: { "action-bias-v1": true }, trials: Array.from({ length: 4 }, (_, i) => trial(`new-${String(i)}`, "candidate", 500 + i * 100)) } };
 }
@@ -238,4 +238,17 @@ it("retains human trial diagnostics without producing model arm timing distribut
   expect(result.candidate).toMatchObject({ launched: 4, reached: 0, elapsedMs: null, targetTurns: null });
   expect(result.timeChangePercent).toBeNull();
   expect(result.trials.every(t => t.outcome === "unqualified" && t.coverage.positive === 1)).toBe(true);
+});
+
+it("grades the declared number of trials per arm and bounds the tolerance by it", () => {
+  const p = input();
+  const eight = { ...p, trialsPerArm: 8, incumbent: { ...p.incumbent, trials: [...p.incumbent.trials, ...p.incumbent.trials.map((t, i) => ({ ...t, events: t.events.map((e) => ({ ...e, run: `inc-x${String(i)}` })) }))] }, candidate: { ...p.candidate, trials: [...p.candidate.trials, ...p.candidate.trials.map((t, i) => ({ ...t, events: t.events.map((e) => ({ ...e, run: `new-x${String(i)}` })) }))] } };
+  const r = comparePatchResults(eight);
+  expect(r.problems.filter((x) => x.includes("expected"))).toEqual([]);
+  expect(r.limitations[0]).toBe("8 per arm does not establish statistical confidence.");
+  expect(comparePatchResults(p).problems).not.toContain("incumbent: expected 8 trials, got 4");
+  expect(comparePatchResults({ ...p, trialsPerArm: 8 }).problems).toContain("incumbent: expected 8 trials, got 4");
+  expect(() => comparePatchResults({ ...p, completionTolerance: 5 })).toThrow("Invalid predeclared comparison margins");
+  expect(() => comparePatchResults({ ...eight, completionTolerance: 5 })).not.toThrow();
+  expect(() => comparePatchResults({ ...p, trialsPerArm: 0 })).toThrow("Invalid predeclared comparison margins");
 });

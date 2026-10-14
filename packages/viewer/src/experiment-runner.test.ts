@@ -182,10 +182,28 @@ describe("experiment runner", () => {
 
   it("grades the experiment when --once runs its last trial", async () => {
     const { paths, metrics, source } = setup();
-    for (let i = 0; i < 7; i++) expect((await runQueue({ paths, source, host: host(paths, metrics), once: true })).ran).toBe(1);
-    expect(existsSync(join(experimentDir(paths.runsRoot, "full-map"), "result.json"))).toBe(false);
-    expect((await runQueue({ paths, source, host: host(paths, metrics), once: true })).stopped).toMatch(/^full-map finished; result in /);
+    const fake = host(paths, metrics);
+    // Seed seven finished trials in one pass, then run the eighth with --once.
+    for (let i = 0; i < 7; i++) await fake.launch({ runId: `seed-${String(i)}`, presetPath: join(experimentDir(paths.runsRoot, "full-map"), "presets", "incumbent.json"), model: "think-fast", stdout: "", stderr: "" }).catch(() => 0);
+    expect(fake.launches).toHaveLength(7);
+    const arms = "ABBAABB";
+    writeFileSync(join(experimentDir(paths.runsRoot, "full-map"), "trials.jsonl"), Array.from({ length: 7 }, (_, i) => [JSON.stringify({ type: "launch", trial: i, arm: arms[i] === "A" ? "incumbent" : "candidate", run: `seed-${String(i)}`, at: "t" }), JSON.stringify({ type: "outcome", trial: i, arm: arms[i] === "A" ? "incumbent" : "candidate", run: `seed-${String(i)}`, at: "t", reason: "budget" })].join("\n")).join("\n") + "\n");
+    expect((await runQueue({ paths, source, host: fake, once: true })).stopped).toMatch(/^full-map finished; result in /);
     expect(existsSync(join(experimentDir(paths.runsRoot, "full-map"), "result.json"))).toBe(true);
+  });
+
+  it("grades an experiment whose trials all finished but whose result was never written", async () => {
+    const { paths, metrics, source } = setup();
+    const resultPath = join(experimentDir(paths.runsRoot, "full-map"), "result.json");
+    mkdirSync(resultPath);
+    await expect(runQueue({ paths, source, host: host(paths, metrics) })).rejects.toThrow();
+    expect(ledger(paths).filter((e) => e.type === "outcome")).toHaveLength(8);
+    rmSync(resultPath, { recursive: true });
+    const fake = host(paths, metrics);
+    expect((await runQueue({ paths, source, host: fake })).stopped).toMatch(/^full-map finished; result in /);
+    expect(fake.launches).toEqual([]);
+    expect(existsSync(resultPath)).toBe(true);
+    expect(existsSync(join(paths.runsRoot, LEASE))).toBe(false);
   });
 
   it("holds when play exits cleanly without recording run_end", async () => {

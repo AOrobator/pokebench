@@ -29,6 +29,12 @@ it("rejects malformed definitions, unknown milestones, short arms, tiny budgets 
  expect(()=>parseExperiment({...base,activationMilestone:"NOWHERE"})).toThrow(/activationMilestone NOWHERE/);
  expect(()=>parseExperiment({...base,primaryMilestone:"GAME_RUNNING"})).toThrow(/primaryMilestone GAME_RUNNING/);
  expect(()=>parseExperiment({...base,trialsPerArm:3})).toThrow(/Invalid experiment/);
+ expect(()=>parseExperiment({...base,trialsPerArm:9})).toThrow(/Invalid experiment/);
+ // Every accepted definition must be gradeable by comparePatchResults.
+ expect(()=>parseExperiment({...base,criteria:{completionTolerance:0,speedMarginPercent:0}})).toThrow(/Invalid experiment/);
+ expect(()=>parseExperiment({...base,criteria:{completionTolerance:0,speedMarginPercent:101}})).toThrow(/Invalid experiment/);
+ expect(()=>parseExperiment({...base,criteria:{completionTolerance:5,speedMarginPercent:10}})).toThrow(/completionTolerance exceeds trialsPerArm/);
+ expect(parseExperiment({...base,trialsPerArm:8,criteria:{completionTolerance:5,speedMarginPercent:10}}).trialsPerArm).toBe(8);
  expect(()=>parseExperiment({...base,readiness:{window:4,minReached:5}})).toThrow(/minReached/);
  expect(()=>parseExperiment({...base,budget:{maxWallMs:1000}})).toThrow(/budget/);
  expect(()=>parseExperiment({...base,source:{checkout:"main",commit:"abc"}})).toThrow(/Invalid experiment/);
@@ -97,7 +103,8 @@ it("derives one status from the definition, approval, ledger, runner and readine
  expect(deriveStatus({experiment:experiment({discarded:"lost to the incumbent"}),approval,ledger:all,runner:null,readiness:ready}).reason).toBe("lost to the incumbent");
  expect(status({experiment:experiment({blocked:"needs a fix"})})).toBe("blocked");
  expect(deriveStatus({experiment:experiment({blocked:"needs a fix"}),approval,ledger:[],runner:null,readiness:ready}).reason).toBe("needs a fix");
- expect(status({ledger:all})).toBe("done");
+ expect(status({ledger:all,graded:true})).toBe("done");
+ expect(deriveStatus({experiment:e,approval,ledger:all,runner:null,readiness:ready,graded:false})).toMatchObject({state:"held",reason:"all 8 trials finished; running the queue grades it"});
  expect(status({runner:{experiment:"full-map",trial:0}})).toBe("running");
  expect(status({approval:{...approval,sha256:"0".repeat(64)}})).toBe("stale");
  expect(status({ledger:all.slice(0,2)})).toBe("held");

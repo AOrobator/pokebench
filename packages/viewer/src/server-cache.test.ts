@@ -79,9 +79,9 @@ it("shares one snapshot across comparison tabs per polling interval and clears f
 
 it("shares a genuinely pending snapshot even after the completed-result TTL has elapsed", async()=>{
  const root=fs.mkdtempSync(join(tmpdir(),"viewer-pending-tabs-"));roots.push(root);let now=0,arrivals=0;
- const seen=Promise.withResolvers<void>(),started=Promise.withResolvers<void>(),held=Promise.withResolvers<Awaited<ReturnType<typeof workbench.workbenchSnapshot>>>();
- const read=vi.spyOn(workbench,"workbenchSnapshot").mockImplementation(()=>{started.resolve();return held.promise;});
- const viewer=await startViewer({runsRoot:root,staticDir:root,appDir:root,port:0,now:()=>{arrivals++;if(arrivals===3)seen.resolve();return new Date(now);}});viewers.push(viewer);
+ const seen=Promise.withResolvers<undefined>(),started=Promise.withResolvers<undefined>(),held=Promise.withResolvers<Awaited<ReturnType<typeof workbench.workbenchSnapshot>>>();
+ const read=vi.spyOn(workbench,"workbenchSnapshot").mockImplementation(()=>{started.resolve(undefined);return held.promise;});
+ const viewer=await startViewer({runsRoot:root,staticDir:root,appDir:root,port:0,now:()=>{arrivals++;if(arrivals===3)seen.resolve(undefined);return new Date(now);}});viewers.push(viewer);
  const first=fetch(new URL("api/workbench",viewer.url));await started.promise;
  now=WORKBENCH_POLL_MS*2;const others=[fetch(new URL("api/workbench",viewer.url)),fetch(new URL("api/workbench",viewer.url))];
  await seen.promise;const callsWhilePending=read.mock.calls.length;held.resolve({version:1,at:0,milestones:[],runs:[],queue:[],problems:[]});

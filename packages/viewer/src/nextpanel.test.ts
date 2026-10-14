@@ -161,3 +161,15 @@ it("refreshes after save even when history was requested while the write was pen
  write.resolve({draft:p.draft,queue:{state:"idle"}});await Promise.resolve();await Promise.resolve();expect(requests).toBe(2);
  old.resolve({stale:"pre-save"});await Promise.resolve();await Promise.resolve();expect(p.history).toEqual({});
 });
+
+it("invalidates an old history response immediately while the settings write is still pending",async()=>{
+ document.body.innerHTML=PAGE.slice(PAGE.indexOf("<body>")+6,PAGE.indexOf("</body>"));
+ const write=Promise.withResolvers<unknown>(),old=Promise.withResolvers<unknown>();let requests=0;
+ const history=(runs:number)=>({"story-state-v1":{on:{runs,reached:{},medianMs:{}},off:{runs:2,reached:{},medianMs:{}}}});
+ const p=new NextRunPanel(document,{fetchJson:url=>url==="/api/features/history"?(++requests===1?old.promise:Promise.resolve(history(11))):Promise.resolve(ok[url as keyof typeof ok]),sendJson:()=>write.promise,problem:text=>{throw Error(text);}});
+ await p.load();ui("switchboard").querySelector<HTMLButtonElement>("[data-expand]")?.click();expect(requests).toBe(1);
+ p.toggle("story-state-v1",false);old.resolve(history(7));await Promise.resolve();await Promise.resolve();
+ expect(p.history).toEqual({});expect(ui("switchboard").textContent).not.toContain("runs with it ON (7)");expect(ui("switchboard").textContent).toContain("LOAD COMPARISON HISTORY");
+ write.resolve({draft:p.draft,queue:{state:"idle"}});await Promise.resolve();await Promise.resolve();await Promise.resolve();await Promise.resolve();
+ expect(requests).toBe(2);expect(p.history).toEqual(history(11));expect(ui("switchboard").textContent).toContain("runs with it ON (11)");
+});

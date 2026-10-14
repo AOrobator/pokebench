@@ -225,3 +225,5 @@ def test_a_counter_metatile_without_collision_stays_walkable_terrain() -> None:
     result = read_local_map(countered().read, (1, 1), (1, 0), radius=1)
     assert result is not None
     assert result.rows[2] == "..."
+    plain = read_local_map(loaded().read, (1, 1), (1, 0), radius=1)
+    assert plain is not None and "counter" not in plain.text()

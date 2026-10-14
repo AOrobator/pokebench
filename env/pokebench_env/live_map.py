@@ -15,6 +15,9 @@ BACKUP_LAYOUT = 0x03005DC0
 OBJECT_EVENTS = 0x02037350
 MAP_OFFSET = 7
 MAX_MAP_DATA_SIZE = 10240
+# pokeemerald 731ad5b MB_COUNTER. GetInteractedObjectEventScript talks to the object one tile
+# past a faced counter, so a nurse behind one is reachable without walking onto it.
+COUNTER = 0x80
 
 
 def _pointer(value: int) -> bool:
@@ -103,6 +106,12 @@ class LocalMap:
                 else "\n@ player; N live object; W warp;"
             )
             + " # collision; g grass; ~ water;"
+            + (
+                " = counter: you cannot walk onto it, but you can talk to someone standing"
+                " behind it by facing the counter and pressing A;"
+                if COUNTER in behaviors
+                else ""
+            )
             + " . clear terrain (may have script triggers); ? outside current map."
             + "\nTerrain rules, elevation and objects can still block movement."
             + f"\nLive objects: {objects}\nWarps: {warps}"
@@ -198,6 +207,8 @@ def read_local_map(
                 if (cx, cy) in object_coords
                 else "W"
                 if (cx, cy) in warp_coords
+                else "="
+                if collision and cache[metatile] == COUNTER
                 else "#"
                 if collision
                 else "g"

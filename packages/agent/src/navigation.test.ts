@@ -101,7 +101,7 @@ it("never walks onto a counter and says how to talk across one",async()=>{
   let presses=0;const tool=navigationTool({read:()=>Promise.resolve(counter),press:()=>{presses++;return Promise.resolve(result(counter));},observe:()=>Promise.resolve(result(counter))});
   const outcome=await tool.execute("nav",{...goal,map_id:[0,9]},new AbortController().signal);
   expect(presses).toBe(0);
-  expect(outcome.content[0]?.type==="text"?outcome.content[0].text:null).toContain("counter: walk to a tile facing the counter, face it and press A to talk across it");
+  expect(outcome.content[0]?.type==="text"?outcome.content[0].text:null).toContain("target is a counter or behind one; walk to a tile facing the counter, face it and press A to talk across it");
  }
  const plain=navigationTool({read:()=>Promise.resolve(counter),press:()=>Promise.resolve(result(counter)),observe:()=>Promise.resolve(result(counter))});
  const away=await plain.execute("nav",{x:1,y:0,map_id:[0,9]},new AbortController().signal);

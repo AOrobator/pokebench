@@ -15,13 +15,16 @@ pret/pokeemerald 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881:
 
 ## Change (no new switch; a correction inside `live-map-v1`)
 
-- [ ] Map draws collision counters as `=`, legend says not walkable but talk across with A.
-- [ ] `navigate_to` targeting a counter, or an object directly behind one, stops without
+- [x] Map draws collision counters as `=`, legend says not walkable but talk across with A.
+- [x] `navigate_to` targeting a counter, or an object directly behind one, stops without
       pressing and says to stand facing the counter and press A.
-- [ ] `live-map-v1` feature description lists `=`.
+- [x] `live-map-v1` feature description lists `=`.
 
 ## Evidence
 
 ## Commits
+
+- RED: `test: counters render as their own glyph and navigate_to explains talking across them (RED)` (a1376b2)
+- GREEN: tests 891 TS agent + 31 viewer files, 1805 Python; coverage gate 90 passes (Python 95% total); lint clean; vendor OK.
 
 ## Review

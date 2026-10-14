@@ -11,10 +11,17 @@ type Grid=NonNullable<GameStateSnapshot["navigation_grid"]>;
 type Tile=Grid["tiles"][number];
 const DIRECTIONS:readonly [Direction,number,number][]=[["UP",0,-1],["DOWN",0,1],["LEFT",-1,0],["RIGHT",1,0]];
 const WALKING=new Set([0,2,3,0x60,0x61,0x62,0x63,0x64,0x65,0x67,0x68,0x69,0x6a,0x6b,0x6c,0x6d,0x6e]);
+const COUNTER=0x80;
 const key=(p:Point):string=>`${String(p.x)},${String(p.y)}`;
 const distance=(a:Point,b:Point):number=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
 const ready=(s:GameStateSnapshot):boolean=>s.started&&s.screen==="overworld"&&!s.in_battle&&s.field_controls_locked===false&&s.position!==null&&s.map_id!==null&&s.navigation_grid!=null&&(s.active_ui==null||(s.active_ui.ready===true&&s.active_ui.diagnostic===null));
 export const MAX_NAVIGATION_COMMANDS=8;
+// pokeemerald GetInteractedObjectEventScript talks across a faced counter to the object beyond it.
+function counterTarget(state:GameStateSnapshot,goal:Point):boolean {
+ const grid=state.navigation_grid;if(grid==null)return false;
+ const counter=(p:Point):boolean=>grid.tiles.some(t=>t.x===p.x&&t.y===p.y&&t.behavior===COUNTER&&t.collision!==0);
+ return counter(goal)||(grid.objects.some(o=>o.x===goal.x&&o.y===goal.y)&&DIRECTIONS.some(([,dx,dy])=>counter({x:goal.x+dx,y:goal.y+dy})));
+}
 
 // Bounded A* over the current live 15x15 window. No outside-map guessing,
 // surfing, ledges or puzzle policies. Zero elevation preserves the layer.
@@ -79,7 +86,7 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
    if(!sameMap()){status="map changed; inspect destination";break;}
    if(!ready(state)){status="field input or navigation geometry unavailable";break;}
    const path=planNavigation(state,goal);
-   if(path===null){status="no supported local path; choose a reachable local waypoint";break;}
+   if(path===null){status=counterTarget(state,goal)?"target is a counter or behind one; walk to a tile facing the counter, face it and press A to talk across it":"no supported local path; choose a reachable local waypoint";break;}
    const direction=path[0];if(direction===undefined){status="arrived at requested coordinate";break;}
    const previousFacing=state.facing; const before=state.position;if(before===null)throw new Error("Navigation position unavailable");
    try {

@@ -57,3 +57,7 @@ pret/pokeemerald 731ad5b:
 - Round-1b fix: `fix: refuse behavior bytes outside the game's enum`. WALKING built from 0x00–0xEF.
   Tests: 0xF0, 0xFE, 0xFF refused. agent 900/900, viewer 419/419, lint clean. Replay re-run on the
   rebuilt dist with hashes: same numbers (2,188 newly reachable, 0 lost).
+- Grok round 1 (cursor-grok-4.5-high) produced no output after ~18 min; stopped and folded into round 2.
+- Merged main 9f111d1 (no conflicts). Explainer now tracked at docs/explainers/walkable-floor.html
+  and listed in docs/explainers/README.md (per the updated feature-explainer skill).
+  agent 900/900, viewer 474/474, lint clean, agent coverage 97.21/93.27/97.86, viewer 95.65/90.58/95.2.

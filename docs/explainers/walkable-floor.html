@@ -1,0 +1,1317 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Walkable Floor</title><style>
+:root{--bg:#f6f4ee;--fg:#1f2421;--muted:#6b6f68;--card:#fff;--line:#e3dfd3;--accent:#2f6fde;--accent2:#c9792a;--bad:#d2493a;--good:#2e9d63;
+--floor1:#efe9d8;--floor2:#e3dbc4;--wall1:#7d776d;--wall2:#6a645b;--grass1:#9fd07c;--grass2:#7fb85d;--sand1:#f4dc9c;--sand2:#e2c174;--cave1:#cdb79a;--cave2:#b39c7e;
+--water1:#8cc4f0;--water2:#6aa8de;--mtn1:#d6d0c4;--puddle:#a9cfe9;--shadow:rgba(30,30,20,.10);--sky1:#fdf3d8;--sky2:#f6f4ee}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#121512;--fg:#e9ece6;--muted:#9ba196;--card:#1b1f1b;--line:#2d332d;--accent:#78a8ff;--accent2:#f0a050;--bad:#ff7a6a;--good:#58cf8d;
+--floor1:#3a372e;--floor2:#312e26;--wall1:#5b5750;--wall2:#4a4640;--grass1:#4f7a3a;--grass2:#3e6530;--sand1:#8f7a43;--sand2:#76632f;--cave1:#5e5243;--cave2:#4c4236;
+--water1:#2f5f88;--water2:#244c70;--mtn1:#5a564e;--puddle:#36607e;--shadow:rgba(0,0,0,.35);--sky1:#2a2516;--sky2:#121512}}
+:root[data-theme=dark]{--bg:#121512;--fg:#e9ece6;--muted:#9ba196;--card:#1b1f1b;--line:#2d332d;--accent:#78a8ff;--accent2:#f0a050;--bad:#ff7a6a;--good:#58cf8d;--floor1:#3a372e;--floor2:#312e26;--wall1:#5b5750;--wall2:#4a4640;--grass1:#4f7a3a;--grass2:#3e6530;--sand1:#8f7a43;--sand2:#76632f;--cave1:#5e5243;--cave2:#4c4236;--water1:#2f5f88;--water2:#244c70;--mtn1:#5a564e;--puddle:#36607e;--shadow:rgba(0,0,0,.35);--sky1:#2a2516;--sky2:#121512}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Helvetica,Arial,sans-serif}
+main{max-width:980px;margin:0 auto;padding:32px 16px 72px}
+.eyebrow{font:600 12px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;color:var(--accent2);text-transform:uppercase}
+h1{font-size:34px;line-height:1.15;margin:10px 0 8px;letter-spacing:-.02em}h2{font-size:21px;margin:44px 0 6px;letter-spacing:-.01em}
+.lead{font-size:18px;color:var(--muted);max-width:700px}.cap{color:var(--muted);font-size:14px;margin:10px 2px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 1px 2px var(--shadow),0 8px 24px var(--shadow)}
+.scroll{overflow-x:auto}svg{display:block;max-width:100%;height:auto}
+.chips{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0 0}.chip{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:14px}.chip b{font-variant-numeric:tabular-nums}
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media (max-width:760px){.vs{grid-template-columns:1fr}}
+.vs h3{margin:0 0 2px;font-size:16px}.tag{display:inline-block;font:600 11px/1 ui-monospace,Menlo,monospace;padding:4px 8px;border-radius:6px;margin-right:6px;vertical-align:2px}
+.tag.off{background:var(--line);color:var(--muted)}.tag.on{background:var(--accent);color:#fff}
+.big{font-size:26px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin-bottom:6px}.big small{font-size:14px;font-weight:500;color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:14.5px}td,th{padding:9px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+tr:last-child td{border-bottom:0}code{font:13px ui-monospace,Menlo,monospace}
+.ax{font:11px ui-monospace,Menlo,monospace;fill:var(--muted);text-anchor:middle}.frame{fill:none;stroke:var(--line);stroke-width:2}
+.nogo{stroke:var(--bad);stroke-width:1.2;opacity:.9}
+.route{fill:none;stroke:var(--accent);stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
+.ghost{stroke:var(--bad);stroke-width:3;stroke-dasharray:3 7;stroke-linecap:round}
+.player{fill:var(--accent);stroke:#fff;stroke-width:3}.eye{fill:#fff}.goal{fill:var(--good);stroke:#fff;stroke-width:3}.tick{fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.npc{fill:var(--accent2);stroke:#fff;stroke-width:2.5}.warp{fill:none;stroke:var(--good);stroke-width:3;stroke-dasharray:5 4}
+.badge{fill:var(--card);stroke:var(--accent);stroke-width:2}.badge.warn{stroke:var(--bad)}.badget{font:700 14px -apple-system,Helvetica,sans-serif;fill:var(--fg);text-anchor:middle}.badges{font:12px -apple-system,Helvetica,sans-serif;fill:var(--muted);text-anchor:middle}
+.sw text{font:600 13px -apple-system,Helvetica,sans-serif;fill:var(--fg);text-anchor:middle}.sw .h{font:12px ui-monospace,Menlo,monospace;fill:var(--muted)}.glyph{font:700 34px ui-monospace,Menlo,monospace;fill:var(--fg);text-anchor:middle}
+.okc{fill:var(--good)}.noc{fill:var(--bad)}.mark{stroke:#fff;stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.rowlab{font:600 12px ui-monospace,Menlo,monospace;letter-spacing:.08em;fill:var(--muted)}
+.node rect{fill:var(--card);stroke:var(--line);stroke-width:1.5}.node.hot rect{fill:color-mix(in srgb,var(--accent) 12%,var(--card));stroke:var(--accent);stroke-width:2}
+.node.no rect{fill:color-mix(in srgb,var(--bad) 10%,var(--card));stroke:var(--bad)}.node.yes rect{fill:color-mix(in srgb,var(--good) 12%,var(--card));stroke:var(--good)}
+.nt{font:600 13.5px -apple-system,Helvetica,sans-serif;fill:var(--fg);text-anchor:middle}.ns{font:12px -apple-system,Helvetica,sans-serif;fill:var(--muted);text-anchor:middle}
+.flow{fill:none;stroke:var(--muted);stroke-width:2}.fl{font:600 11px ui-monospace,Menlo,monospace;fill:var(--muted)}
+.bl{font:13px -apple-system,Helvetica,sans-serif;fill:var(--fg);text-anchor:end}.bh{font:11px ui-monospace,Menlo,monospace;fill:var(--muted)}.bv{font:600 12px ui-monospace,Menlo,monospace;fill:var(--fg)}
+.bar{fill:var(--accent);opacity:.85}
+.ok{color:var(--good);font-weight:600}.todo{color:var(--accent2);font-weight:600}
+</style></head><body><main>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<pattern id="floor" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="10" height="10" fill="var(--floor1)"/><circle cx="2" cy="2" r="1" fill="var(--floor2)"/><circle cx="7" cy="7" r="1" fill="var(--floor2)"/></pattern>
+<pattern id="sand" width="9" height="9" patternUnits="userSpaceOnUse"><rect width="9" height="9" fill="var(--sand1)"/><circle cx="2" cy="3" r=".9" fill="var(--sand2)"/><circle cx="6.5" cy="7" r=".9" fill="var(--sand2)"/><circle cx="7" cy="1.5" r=".6" fill="var(--sand2)"/></pattern>
+<pattern id="cave" width="14" height="14" patternUnits="userSpaceOnUse"><rect width="14" height="14" fill="var(--cave1)"/><path d="M1,4 q3,-2 5,0 M8,11 q3,-2 5,0" stroke="var(--cave2)" stroke-width="1.3" fill="none"/></pattern>
+<pattern id="mtn" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="var(--mtn1)"/><path d="M1,10 l4,-6 l4,6" stroke="var(--wall2)" stroke-width="1" fill="none" opacity=".5"/></pattern>
+<pattern id="puddle" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="var(--floor1)"/><ellipse cx="6" cy="6" rx="5" ry="3" fill="var(--puddle)"/></pattern>
+<pattern id="grass" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="var(--grass1)"/><path d="M2,10 l1.5,-5 l1.5,5 M7,7 l1.5,-5 l1.5,5" stroke="var(--grass2)" stroke-width="1.4" fill="none"/></pattern>
+<pattern id="water" width="16" height="10" patternUnits="userSpaceOnUse"><rect width="16" height="10" fill="var(--water1)"/><path d="M0,5 q4,-3 8,0 t8,0" stroke="var(--water2)" stroke-width="1.4" fill="none"/></pattern>
+<pattern id="wall" width="14" height="10" patternUnits="userSpaceOnUse"><rect width="14" height="10" fill="var(--wall1)"/><path d="M0,5 h14 M7,0 v5 M0,5 v5" stroke="var(--wall2)" stroke-width="1.2"/></pattern>
+<pattern id="nogo" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="8" fill="transparent"/><line x1="0" y1="0" x2="0" y2="8" stroke="var(--bad)" stroke-width="2.4" opacity=".55"/></pattern>
+<marker id="aroute" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker>
+<marker id="aflow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker>
+</defs></svg>
+
+<div class="eyebrow">navigate_to fix · walkable floor</div>
+<h1>Sand, caves and mountain tops are floor, not walls</h1>
+<p class="lead">The map text has always drawn these tiles as <code>.</code>, but <code>navigate_to</code> kept its own short list of walkable tile types: plain ground, grass and doors. Anything else was a wall. On a beach or in a cave the tool could not take a single step. Now it uses the game's own rule: a tile without the collision bit is floor, unless the game does something special when you step on it.</p>
+
+<div class="card" style="margin-top:20px;padding:10px"><svg viewBox="0 0 740 250" role="img" aria-label="Six tile types, each drawn as a dot, refused before and walkable now">
+<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--sky1)"/><stop offset="1" stop-color="var(--sky2)"/></linearGradient></defs>
+<rect width="740" height="250" rx="14" fill="url(#sky)"/>
+<text x="28" y="44" class="rowlab">MAP SAYS</text><text x="28" y="168" class="rowlab">BEFORE</text><text x="28" y="214" class="rowlab">NOW</text>
+<g class="sw">
+<g transform="translate(150,0)"><text y="44" class="glyph">.</text><rect x="-32" y="62" width="64" height="64" rx="10" fill="url(#floor)" stroke="var(--line)"/><text y="146">Plain</text><text y="160" class="h" dy="0"></text><circle cy="164" r="12" class="okc"/><path d="M-5,164 l4,4 l7,-8" class="mark"/><circle cy="210" r="12" class="okc"/><path d="M-5,210 l4,4 l7,-8" class="mark"/></g>
+<g transform="translate(250,0)"><text y="44" class="glyph">.</text><rect x="-32" y="62" width="64" height="64" rx="10" fill="url(#sand)" stroke="var(--line)"/><text y="146">Sand</text><circle cy="164" r="12" class="noc"/><path d="M-5,159 l10,10 M5,159 l-10,10" class="mark"/><circle cy="210" r="12" class="okc"/><path d="M-5,210 l4,4 l7,-8" class="mark"/></g>
+<g transform="translate(350,0)"><text y="44" class="glyph">.</text><rect x="-32" y="62" width="64" height="64" rx="10" fill="url(#cave)" stroke="var(--line)"/><text y="146">Cave</text><circle cy="164" r="12" class="noc"/><path d="M-5,159 l10,10 M5,159 l-10,10" class="mark"/><circle cy="210" r="12" class="okc"/><path d="M-5,210 l4,4 l7,-8" class="mark"/></g>
+<g transform="translate(450,0)"><text y="44" class="glyph">.</text><rect x="-32" y="62" width="64" height="64" rx="10" fill="url(#mtn)" stroke="var(--line)"/><text y="146">Mountain</text><circle cy="164" r="12" class="noc"/><path d="M-5,159 l10,10 M5,159 l-10,10" class="mark"/><circle cy="210" r="12" class="okc"/><path d="M-5,210 l4,4 l7,-8" class="mark"/></g>
+<g transform="translate(550,0)"><text y="44" class="glyph">.</text><rect x="-32" y="62" width="64" height="64" rx="10" fill="url(#puddle)" stroke="var(--line)"/><text y="146">Puddle</text><circle cy="164" r="12" class="noc"/><path d="M-5,159 l10,10 M5,159 l-10,10" class="mark"/><circle cy="210" r="12" class="okc"/><path d="M-5,210 l4,4 l7,-8" class="mark"/></g>
+<g transform="translate(650,0)"><text y="44" class="glyph">.</text><rect x="-32" y="62" width="64" height="64" rx="10" fill="url(#water)" stroke="var(--line)"/><text y="146">Shallow water</text><circle cy="164" r="12" class="noc"/><path d="M-5,159 l10,10 M5,159 l-10,10" class="mark"/><circle cy="210" r="12" class="okc"/><path d="M-5,210 l4,4 l7,-8" class="mark"/></g>
+</g></svg></div>
+<p class="cap">Every one of these is drawn as <code>.</code> in the model's map. Before the fix only plain ground was walkable to <code>navigate_to</code>.</p>
+<div class="chips"><span class="chip">Tiles opened across the game · <b>30,647</b></span><span class="chip">Dewford Town · <b>197</b></span><span class="chip">Granite Cave 1F · <b>201</b></span><span class="chip">Route 104 · <b>244</b></span><span class="chip">Rusturf Tunnel · <b>174</b></span></div>
+
+<h2>Route 104 beach</h2><p class="cap" style="margin-top:0">Real live-RAM grid from your human playthrough (event 33236), standing on the beach at (21,68). Target (27,71) on the far side of the cliff. Hatched tiles are ones the old planner refused even though the map drew them as <code>.</code>.</p><div class="vs">
+<div class="card"><h3><span class="tag off">BEFORE</span>Planner sees walls</h3><div class="big">0 presses <small>tool gives up</small></div><div class="scroll"><svg viewBox="0 0 580 574" role="img" aria-label="Route 104 beach before">
+<text x="52.0" y="14" class="ax">14</text>
+<text x="88.0" y="14" class="ax">15</text>
+<text x="124.0" y="14" class="ax">16</text>
+<text x="160.0" y="14" class="ax">17</text>
+<text x="196.0" y="14" class="ax">18</text>
+<text x="232.0" y="14" class="ax">19</text>
+<text x="268.0" y="14" class="ax">20</text>
+<text x="304.0" y="14" class="ax">21</text>
+<text x="340.0" y="14" class="ax">22</text>
+<text x="376.0" y="14" class="ax">23</text>
+<text x="412.0" y="14" class="ax">24</text>
+<text x="448.0" y="14" class="ax">25</text>
+<text x="484.0" y="14" class="ax">26</text>
+<text x="520.0" y="14" class="ax">27</text>
+<text x="556.0" y="14" class="ax">28</text>
+<text x="14" y="50.0" class="ax">61</text>
+<text x="14" y="86.0" class="ax">62</text>
+<text x="14" y="122.0" class="ax">63</text>
+<text x="14" y="158.0" class="ax">64</text>
+<text x="14" y="194.0" class="ax">65</text>
+<text x="14" y="230.0" class="ax">66</text>
+<text x="14" y="266.0" class="ax">67</text>
+<text x="14" y="302.0" class="ax">68</text>
+<text x="14" y="338.0" class="ax">69</text>
+<text x="14" y="374.0" class="ax">70</text>
+<text x="14" y="410.0" class="ax">71</text>
+<text x="14" y="446.0" class="ax">72</text>
+<text x="14" y="482.0" class="ax">73</text>
+<text x="14" y="518.0" class="ax">74</text>
+<text x="14" y="554.0" class="ax">75</text>
+<rect x="34" y="24" width="36" height="36" fill="url(#sand)"/>
+<rect x="35" y="25" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="70" y="24" width="36" height="36" fill="url(#sand)"/>
+<rect x="71" y="25" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="106" y="24" width="36" height="36" fill="url(#sand)"/>
+<rect x="107" y="25" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="142" y="24" width="36" height="36" fill="url(#sand)"/>
+<rect x="143" y="25" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="178" y="24" width="36" height="36" fill="url(#sand)"/>
+<rect x="179" y="25" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="214" y="24" width="36" height="36" fill="url(#sand)"/>
+<rect x="215" y="25" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="250" y="24" width="36" height="36" fill="url(#sand)"/>
+<rect x="251" y="25" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="286" y="24" width="36" height="36" fill="url(#wall)"/>
+<rect x="322" y="24" width="36" height="36" fill="url(#grass)"/>
+<rect x="358" y="24" width="36" height="36" fill="url(#grass)"/>
+<rect x="394" y="24" width="36" height="36" fill="url(#grass)"/>
+<rect x="430" y="24" width="36" height="36" fill="url(#floor)"/>
+<rect x="466" y="24" width="36" height="36" fill="url(#floor)"/>
+<rect x="502" y="24" width="36" height="36" fill="url(#floor)"/>
+<rect x="538" y="24" width="36" height="36" fill="url(#floor)"/>
+<rect x="34" y="60" width="36" height="36" fill="url(#sand)"/>
+<rect x="35" y="61" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="70" y="60" width="36" height="36" fill="url(#sand)"/>
+<rect x="71" y="61" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="106" y="60" width="36" height="36" fill="url(#sand)"/>
+<rect x="107" y="61" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="142" y="60" width="36" height="36" fill="url(#sand)"/>
+<rect x="143" y="61" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="178" y="60" width="36" height="36" fill="url(#sand)"/>
+<rect x="179" y="61" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="214" y="60" width="36" height="36" fill="url(#sand)"/>
+<rect x="215" y="61" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="250" y="60" width="36" height="36" fill="url(#sand)"/>
+<rect x="251" y="61" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="286" y="60" width="36" height="36" fill="url(#wall)"/>
+<rect x="322" y="60" width="36" height="36" fill="url(#wall)"/>
+<rect x="358" y="60" width="36" height="36" fill="url(#wall)"/>
+<rect x="394" y="60" width="36" height="36" fill="url(#floor)"/>
+<rect x="430" y="60" width="36" height="36" fill="url(#floor)"/>
+<rect x="466" y="60" width="36" height="36" fill="url(#floor)"/>
+<rect x="502" y="60" width="36" height="36" fill="url(#floor)"/>
+<rect x="538" y="60" width="36" height="36" fill="url(#floor)"/>
+<rect x="34" y="96" width="36" height="36" fill="url(#sand)"/>
+<rect x="35" y="97" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="70" y="96" width="36" height="36" fill="url(#sand)"/>
+<rect x="71" y="97" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="106" y="96" width="36" height="36" fill="url(#sand)"/>
+<rect x="107" y="97" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="142" y="96" width="36" height="36" fill="url(#sand)"/>
+<rect x="143" y="97" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="178" y="96" width="36" height="36" fill="url(#sand)"/>
+<rect x="179" y="97" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="214" y="96" width="36" height="36" fill="url(#sand)"/>
+<rect x="215" y="97" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="250" y="96" width="36" height="36" fill="url(#sand)"/>
+<rect x="251" y="97" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="286" y="96" width="36" height="36" fill="url(#sand)"/>
+<rect x="287" y="97" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="322" y="96" width="36" height="36" fill="url(#sand)"/>
+<rect x="323" y="97" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="358" y="96" width="36" height="36" fill="url(#wall)"/>
+<rect x="394" y="96" width="36" height="36" fill="url(#floor)"/>
+<rect x="430" y="96" width="36" height="36" fill="url(#floor)"/>
+<rect x="466" y="96" width="36" height="36" fill="url(#floor)"/>
+<rect x="502" y="96" width="36" height="36" fill="url(#floor)"/>
+<rect x="538" y="96" width="36" height="36" fill="url(#floor)"/>
+<rect x="34" y="132" width="36" height="36" fill="url(#sand)"/>
+<rect x="35" y="133" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="70" y="132" width="36" height="36" fill="url(#sand)"/>
+<rect x="71" y="133" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="106" y="132" width="36" height="36" fill="url(#sand)"/>
+<rect x="107" y="133" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="142" y="132" width="36" height="36" fill="url(#sand)"/>
+<rect x="143" y="133" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="178" y="132" width="36" height="36" fill="url(#sand)"/>
+<rect x="179" y="133" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="214" y="132" width="36" height="36" fill="url(#sand)"/>
+<rect x="215" y="133" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="250" y="132" width="36" height="36" fill="url(#sand)"/>
+<rect x="251" y="133" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="286" y="132" width="36" height="36" fill="url(#sand)"/>
+<rect x="287" y="133" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="322" y="132" width="36" height="36" fill="url(#sand)"/>
+<rect x="323" y="133" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="358" y="132" width="36" height="36" fill="url(#wall)"/>
+<rect x="394" y="132" width="36" height="36" fill="url(#wall)"/>
+<rect x="430" y="132" width="36" height="36" fill="url(#floor)"/>
+<rect x="466" y="132" width="36" height="36" fill="url(#floor)"/>
+<rect x="502" y="132" width="36" height="36" fill="url(#floor)"/>
+<rect x="538" y="132" width="36" height="36" fill="url(#floor)"/>
+<rect x="34" y="168" width="36" height="36" fill="url(#sand)"/>
+<rect x="35" y="169" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="70" y="168" width="36" height="36" fill="url(#sand)"/>
+<rect x="71" y="169" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="106" y="168" width="36" height="36" fill="url(#sand)"/>
+<rect x="107" y="169" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="142" y="168" width="36" height="36" fill="url(#sand)"/>
+<rect x="143" y="169" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="178" y="168" width="36" height="36" fill="url(#sand)"/>
+<rect x="179" y="169" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="214" y="168" width="36" height="36" fill="url(#sand)"/>
+<rect x="215" y="169" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="250" y="168" width="36" height="36" fill="url(#sand)"/>
+<rect x="251" y="169" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="286" y="168" width="36" height="36" fill="url(#sand)"/>
+<rect x="287" y="169" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="322" y="168" width="36" height="36" fill="url(#sand)"/>
+<rect x="323" y="169" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="358" y="168" width="36" height="36" fill="url(#sand)"/>
+<rect x="359" y="169" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="394" y="168" width="36" height="36" fill="url(#wall)"/>
+<rect x="430" y="168" width="36" height="36" fill="url(#floor)"/>
+<rect x="466" y="168" width="36" height="36" fill="url(#floor)"/>
+<rect x="502" y="168" width="36" height="36" fill="url(#floor)"/>
+<rect x="538" y="168" width="36" height="36" fill="url(#floor)"/>
+<rect x="34" y="204" width="36" height="36" fill="url(#water)"/>
+<rect x="70" y="204" width="36" height="36" fill="url(#sand)"/>
+<rect x="71" y="205" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="106" y="204" width="36" height="36" fill="url(#sand)"/>
+<rect x="107" y="205" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="142" y="204" width="36" height="36" fill="url(#sand)"/>
+<rect x="143" y="205" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="178" y="204" width="36" height="36" fill="url(#sand)"/>
+<rect x="179" y="205" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="214" y="204" width="36" height="36" fill="url(#sand)"/>
+<rect x="215" y="205" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="250" y="204" width="36" height="36" fill="url(#sand)"/>
+<rect x="251" y="205" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="286" y="204" width="36" height="36" fill="url(#sand)"/>
+<rect x="287" y="205" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="322" y="204" width="36" height="36" fill="url(#sand)"/>
+<rect x="323" y="205" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="358" y="204" width="36" height="36" fill="url(#sand)"/>
+<rect x="359" y="205" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="394" y="204" width="36" height="36" fill="url(#wall)"/>
+<rect x="430" y="204" width="36" height="36" fill="url(#wall)"/>
+<rect x="466" y="204" width="36" height="36" fill="url(#wall)"/>
+<rect x="502" y="204" width="36" height="36" fill="url(#wall)"/>
+<rect x="538" y="204" width="36" height="36" fill="url(#floor)"/>
+<rect x="34" y="240" width="36" height="36" fill="url(#water)"/>
+<rect x="70" y="240" width="36" height="36" fill="url(#sand)"/>
+<rect x="71" y="241" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="106" y="240" width="36" height="36" fill="url(#sand)"/>
+<rect x="107" y="241" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="142" y="240" width="36" height="36" fill="url(#sand)"/>
+<rect x="143" y="241" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="178" y="240" width="36" height="36" fill="url(#sand)"/>
+<rect x="179" y="241" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="214" y="240" width="36" height="36" fill="url(#sand)"/>
+<rect x="215" y="241" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="250" y="240" width="36" height="36" fill="url(#sand)"/>
+<rect x="251" y="241" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="286" y="240" width="36" height="36" fill="url(#sand)"/>
+<rect x="287" y="241" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="322" y="240" width="36" height="36" fill="url(#sand)"/>
+<rect x="323" y="241" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="358" y="240" width="36" height="36" fill="url(#sand)"/>
+<rect x="359" y="241" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="394" y="240" width="36" height="36" fill="url(#sand)"/>
+<rect x="395" y="241" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="430" y="240" width="36" height="36" fill="url(#sand)"/>
+<rect x="431" y="241" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="466" y="240" width="36" height="36" fill="url(#wall)"/>
+<rect x="502" y="240" width="36" height="36" fill="url(#floor)"/>
+<rect x="538" y="240" width="36" height="36" fill="url(#floor)"/>
+<rect x="34" y="276" width="36" height="36" fill="url(#water)"/>
+<rect x="70" y="276" width="36" height="36" fill="url(#sand)"/>
+<rect x="71" y="277" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="106" y="276" width="36" height="36" fill="url(#sand)"/>
+<rect x="107" y="277" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="142" y="276" width="36" height="36" fill="url(#sand)"/>
+<rect x="143" y="277" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="178" y="276" width="36" height="36" fill="url(#sand)"/>
+<rect x="179" y="277" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="214" y="276" width="36" height="36" fill="url(#sand)"/>
+<rect x="215" y="277" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="250" y="276" width="36" height="36" fill="url(#sand)"/>
+<rect x="251" y="277" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="286" y="276" width="36" height="36" fill="url(#sand)"/>
+<rect x="287" y="277" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="322" y="276" width="36" height="36" fill="url(#sand)"/>
+<rect x="323" y="277" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="358" y="276" width="36" height="36" fill="url(#sand)"/>
+<rect x="359" y="277" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="394" y="276" width="36" height="36" fill="url(#sand)"/>
+<rect x="395" y="277" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="430" y="276" width="36" height="36" fill="url(#sand)"/>
+<rect x="431" y="277" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="466" y="276" width="36" height="36" fill="url(#wall)"/>
+<rect x="502" y="276" width="36" height="36" fill="url(#floor)"/>
+<rect x="538" y="276" width="36" height="36" fill="url(#floor)"/>
+<rect x="34" y="312" width="36" height="36" fill="url(#water)"/>
+<rect x="70" y="312" width="36" height="36" fill="url(#sand)"/>
+<rect x="71" y="313" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="106" y="312" width="36" height="36" fill="url(#sand)"/>
+<rect x="107" y="313" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="142" y="312" width="36" height="36" fill="url(#sand)"/>
+<rect x="143" y="313" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="178" y="312" width="36" height="36" fill="url(#sand)"/>
+<rect x="179" y="313" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="214" y="312" width="36" height="36" fill="url(#sand)"/>
+<rect x="215" y="313" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="250" y="312" width="36" height="36" fill="url(#sand)"/>
+<rect x="251" y="313" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="286" y="312" width="36" height="36" fill="url(#sand)"/>
+<rect x="287" y="313" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="322" y="312" width="36" height="36" fill="url(#sand)"/>
+<rect x="323" y="313" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="358" y="312" width="36" height="36" fill="url(#sand)"/>
+<rect x="359" y="313" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="394" y="312" width="36" height="36" fill="url(#sand)"/>
+<rect x="395" y="313" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="430" y="312" width="36" height="36" fill="url(#sand)"/>
+<rect x="431" y="313" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="466" y="312" width="36" height="36" fill="url(#wall)"/>
+<rect x="502" y="312" width="36" height="36" fill="url(#floor)"/>
+<rect x="538" y="312" width="36" height="36" fill="url(#floor)"/>
+<rect x="34" y="348" width="36" height="36" fill="url(#water)"/>
+<rect x="70" y="348" width="36" height="36" fill="url(#water)"/>
+<rect x="106" y="348" width="36" height="36" fill="url(#sand)"/>
+<rect x="107" y="349" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="142" y="348" width="36" height="36" fill="url(#sand)"/>
+<rect x="143" y="349" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="178" y="348" width="36" height="36" fill="url(#sand)"/>
+<rect x="179" y="349" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="214" y="348" width="36" height="36" fill="url(#sand)"/>
+<rect x="215" y="349" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="250" y="348" width="36" height="36" fill="url(#sand)"/>
+<rect x="251" y="349" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="286" y="348" width="36" height="36" fill="url(#sand)"/>
+<rect x="287" y="349" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="322" y="348" width="36" height="36" fill="url(#sand)"/>
+<rect x="323" y="349" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="358" y="348" width="36" height="36" fill="url(#sand)"/>
+<rect x="359" y="349" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="394" y="348" width="36" height="36" fill="url(#sand)"/>
+<rect x="395" y="349" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="430" y="348" width="36" height="36" fill="url(#sand)"/>
+<rect x="431" y="349" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="466" y="348" width="36" height="36" fill="url(#wall)"/>
+<rect x="502" y="348" width="36" height="36" fill="url(#wall)"/>
+<rect x="538" y="348" width="36" height="36" fill="url(#floor)"/>
+<rect x="34" y="384" width="36" height="36" fill="url(#water)"/>
+<rect x="70" y="384" width="36" height="36" fill="url(#water)"/>
+<rect x="106" y="384" width="36" height="36" fill="url(#sand)"/>
+<rect x="107" y="385" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="142" y="384" width="36" height="36" fill="url(#sand)"/>
+<rect x="143" y="385" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="178" y="384" width="36" height="36" fill="url(#sand)"/>
+<rect x="179" y="385" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="214" y="384" width="36" height="36" fill="url(#sand)"/>
+<rect x="215" y="385" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="250" y="384" width="36" height="36" fill="url(#sand)"/>
+<rect x="251" y="385" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="286" y="384" width="36" height="36" fill="url(#sand)"/>
+<rect x="287" y="385" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="322" y="384" width="36" height="36" fill="url(#sand)"/>
+<rect x="323" y="385" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="358" y="384" width="36" height="36" fill="url(#sand)"/>
+<rect x="359" y="385" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="394" y="384" width="36" height="36" fill="url(#sand)"/>
+<rect x="395" y="385" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="430" y="384" width="36" height="36" fill="url(#sand)"/>
+<rect x="431" y="385" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="466" y="384" width="36" height="36" fill="url(#sand)"/>
+<rect x="467" y="385" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="502" y="384" width="36" height="36" fill="url(#sand)"/>
+<rect x="503" y="385" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="538" y="384" width="36" height="36" fill="url(#sand)"/>
+<rect x="539" y="385" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="34" y="420" width="36" height="36" fill="url(#water)"/>
+<rect x="70" y="420" width="36" height="36" fill="url(#water)"/>
+<rect x="106" y="420" width="36" height="36" fill="url(#sand)"/>
+<rect x="107" y="421" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="142" y="420" width="36" height="36" fill="url(#sand)"/>
+<rect x="143" y="421" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="178" y="420" width="36" height="36" fill="url(#sand)"/>
+<rect x="179" y="421" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="214" y="420" width="36" height="36" fill="url(#sand)"/>
+<rect x="215" y="421" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="250" y="420" width="36" height="36" fill="url(#sand)"/>
+<rect x="251" y="421" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="286" y="420" width="36" height="36" fill="url(#sand)"/>
+<rect x="287" y="421" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="322" y="420" width="36" height="36" fill="url(#sand)"/>
+<rect x="323" y="421" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="358" y="420" width="36" height="36" fill="url(#sand)"/>
+<rect x="359" y="421" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="394" y="420" width="36" height="36" fill="url(#sand)"/>
+<rect x="395" y="421" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="430" y="420" width="36" height="36" fill="url(#sand)"/>
+<rect x="431" y="421" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="466" y="420" width="36" height="36" fill="url(#sand)"/>
+<rect x="467" y="421" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="502" y="420" width="36" height="36" fill="url(#sand)"/>
+<rect x="503" y="421" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="538" y="420" width="36" height="36" fill="url(#sand)"/>
+<rect x="539" y="421" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="34" y="456" width="36" height="36" fill="url(#water)"/>
+<rect x="70" y="456" width="36" height="36" fill="url(#water)"/>
+<rect x="106" y="456" width="36" height="36" fill="url(#water)"/>
+<rect x="142" y="456" width="36" height="36" fill="url(#water)"/>
+<rect x="178" y="456" width="36" height="36" fill="url(#sand)"/>
+<rect x="179" y="457" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="214" y="456" width="36" height="36" fill="url(#sand)"/>
+<rect x="215" y="457" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="250" y="456" width="36" height="36" fill="url(#sand)"/>
+<rect x="251" y="457" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="286" y="456" width="36" height="36" fill="url(#sand)"/>
+<rect x="287" y="457" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="322" y="456" width="36" height="36" fill="url(#sand)"/>
+<rect x="323" y="457" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="358" y="456" width="36" height="36" fill="url(#sand)"/>
+<rect x="359" y="457" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="394" y="456" width="36" height="36" fill="url(#sand)"/>
+<rect x="395" y="457" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="430" y="456" width="36" height="36" fill="url(#sand)"/>
+<rect x="431" y="457" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="466" y="456" width="36" height="36" fill="url(#sand)"/>
+<rect x="467" y="457" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="502" y="456" width="36" height="36" fill="url(#sand)"/>
+<rect x="503" y="457" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="538" y="456" width="36" height="36" fill="url(#sand)"/>
+<rect x="539" y="457" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="34" y="492" width="36" height="36" fill="url(#water)"/>
+<rect x="70" y="492" width="36" height="36" fill="url(#water)"/>
+<rect x="106" y="492" width="36" height="36" fill="url(#water)"/>
+<rect x="142" y="492" width="36" height="36" fill="url(#water)"/>
+<rect x="178" y="492" width="36" height="36" fill="url(#water)"/>
+<rect x="214" y="492" width="36" height="36" fill="url(#water)"/>
+<rect x="250" y="492" width="36" height="36" fill="url(#sand)"/>
+<rect x="251" y="493" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="286" y="492" width="36" height="36" fill="url(#sand)"/>
+<rect x="287" y="493" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="322" y="492" width="36" height="36" fill="url(#sand)"/>
+<rect x="323" y="493" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="358" y="492" width="36" height="36" fill="url(#sand)"/>
+<rect x="359" y="493" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="394" y="492" width="36" height="36" fill="url(#sand)"/>
+<rect x="395" y="493" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="430" y="492" width="36" height="36" fill="url(#sand)"/>
+<rect x="431" y="493" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="466" y="492" width="36" height="36" fill="url(#sand)"/>
+<rect x="467" y="493" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="502" y="492" width="36" height="36" fill="url(#sand)"/>
+<rect x="503" y="493" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="538" y="492" width="36" height="36" fill="url(#sand)"/>
+<rect x="539" y="493" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="34" y="528" width="36" height="36" fill="url(#water)"/>
+<rect x="70" y="528" width="36" height="36" fill="url(#water)"/>
+<rect x="106" y="528" width="36" height="36" fill="url(#water)"/>
+<rect x="142" y="528" width="36" height="36" fill="url(#water)"/>
+<rect x="178" y="528" width="36" height="36" fill="url(#water)"/>
+<rect x="214" y="528" width="36" height="36" fill="url(#water)"/>
+<rect x="250" y="528" width="36" height="36" fill="url(#water)"/>
+<rect x="286" y="528" width="36" height="36" fill="url(#water)"/>
+<rect x="322" y="528" width="36" height="36" fill="url(#water)"/>
+<rect x="358" y="528" width="36" height="36" fill="url(#sand)"/>
+<rect x="359" y="529" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="394" y="528" width="36" height="36" fill="url(#sand)"/>
+<rect x="395" y="529" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="430" y="528" width="36" height="36" fill="url(#sand)"/>
+<rect x="431" y="529" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="466" y="528" width="36" height="36" fill="url(#sand)"/>
+<rect x="467" y="529" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="502" y="528" width="36" height="36" fill="url(#sand)"/>
+<rect x="503" y="529" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="538" y="528" width="36" height="36" fill="url(#sand)"/>
+<rect x="539" y="529" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<circle cx="196.0" cy="438.0" r="10" class="npc"/>
+<circle cx="556.0" cy="510.0" r="10" class="npc"/>
+<circle cx="520.0" cy="114.0" r="10" class="npc"/>
+<rect x="33" y="23" width="542" height="542" rx="6" class="frame"/>
+<line x1="304.0" y1="294.0" x2="520.0" y2="402.0" class="ghost"/>
+<circle cx="520.0" cy="402.0" r="12" class="goal"/><path d="M515.0,402.0 l4,4 l7,-8" class="tick"/>
+<circle cx="304.0" cy="294.0" r="12" class="player"/><circle cx="300.0" cy="292.0" r="2" class="eye"/><circle cx="308.0" cy="292.0" r="2" class="eye"/>
+<g transform="translate(290.0,530)"><rect x="-120" y="-22" width="240" height="44" rx="22" class="badge warn"/><text y="-2" class="badget">no supported local path</text><text y="14" class="badges">every neighbour counts as a wall</text></g>
+</svg></div></div>
+<div class="card"><h3><span class="tag on">AFTER</span>Planner sees floor</h3><div class="big">9 presses <small>D D D, then R × 6</small></div><div class="scroll"><svg viewBox="0 0 580 574" role="img" aria-label="Route 104 beach after">
+<text x="52.0" y="14" class="ax">14</text>
+<text x="88.0" y="14" class="ax">15</text>
+<text x="124.0" y="14" class="ax">16</text>
+<text x="160.0" y="14" class="ax">17</text>
+<text x="196.0" y="14" class="ax">18</text>
+<text x="232.0" y="14" class="ax">19</text>
+<text x="268.0" y="14" class="ax">20</text>
+<text x="304.0" y="14" class="ax">21</text>
+<text x="340.0" y="14" class="ax">22</text>
+<text x="376.0" y="14" class="ax">23</text>
+<text x="412.0" y="14" class="ax">24</text>
+<text x="448.0" y="14" class="ax">25</text>
+<text x="484.0" y="14" class="ax">26</text>
+<text x="520.0" y="14" class="ax">27</text>
+<text x="556.0" y="14" class="ax">28</text>
+<text x="14" y="50.0" class="ax">61</text>
+<text x="14" y="86.0" class="ax">62</text>
+<text x="14" y="122.0" class="ax">63</text>
+<text x="14" y="158.0" class="ax">64</text>
+<text x="14" y="194.0" class="ax">65</text>
+<text x="14" y="230.0" class="ax">66</text>
+<text x="14" y="266.0" class="ax">67</text>
+<text x="14" y="302.0" class="ax">68</text>
+<text x="14" y="338.0" class="ax">69</text>
+<text x="14" y="374.0" class="ax">70</text>
+<text x="14" y="410.0" class="ax">71</text>
+<text x="14" y="446.0" class="ax">72</text>
+<text x="14" y="482.0" class="ax">73</text>
+<text x="14" y="518.0" class="ax">74</text>
+<text x="14" y="554.0" class="ax">75</text>
+<rect x="34" y="24" width="36" height="36" fill="url(#sand)"/>
+<rect x="70" y="24" width="36" height="36" fill="url(#sand)"/>
+<rect x="106" y="24" width="36" height="36" fill="url(#sand)"/>
+<rect x="142" y="24" width="36" height="36" fill="url(#sand)"/>
+<rect x="178" y="24" width="36" height="36" fill="url(#sand)"/>
+<rect x="214" y="24" width="36" height="36" fill="url(#sand)"/>
+<rect x="250" y="24" width="36" height="36" fill="url(#sand)"/>
+<rect x="286" y="24" width="36" height="36" fill="url(#wall)"/>
+<rect x="322" y="24" width="36" height="36" fill="url(#grass)"/>
+<rect x="358" y="24" width="36" height="36" fill="url(#grass)"/>
+<rect x="394" y="24" width="36" height="36" fill="url(#grass)"/>
+<rect x="430" y="24" width="36" height="36" fill="url(#floor)"/>
+<rect x="466" y="24" width="36" height="36" fill="url(#floor)"/>
+<rect x="502" y="24" width="36" height="36" fill="url(#floor)"/>
+<rect x="538" y="24" width="36" height="36" fill="url(#floor)"/>
+<rect x="34" y="60" width="36" height="36" fill="url(#sand)"/>
+<rect x="70" y="60" width="36" height="36" fill="url(#sand)"/>
+<rect x="106" y="60" width="36" height="36" fill="url(#sand)"/>
+<rect x="142" y="60" width="36" height="36" fill="url(#sand)"/>
+<rect x="178" y="60" width="36" height="36" fill="url(#sand)"/>
+<rect x="214" y="60" width="36" height="36" fill="url(#sand)"/>
+<rect x="250" y="60" width="36" height="36" fill="url(#sand)"/>
+<rect x="286" y="60" width="36" height="36" fill="url(#wall)"/>
+<rect x="322" y="60" width="36" height="36" fill="url(#wall)"/>
+<rect x="358" y="60" width="36" height="36" fill="url(#wall)"/>
+<rect x="394" y="60" width="36" height="36" fill="url(#floor)"/>
+<rect x="430" y="60" width="36" height="36" fill="url(#floor)"/>
+<rect x="466" y="60" width="36" height="36" fill="url(#floor)"/>
+<rect x="502" y="60" width="36" height="36" fill="url(#floor)"/>
+<rect x="538" y="60" width="36" height="36" fill="url(#floor)"/>
+<rect x="34" y="96" width="36" height="36" fill="url(#sand)"/>
+<rect x="70" y="96" width="36" height="36" fill="url(#sand)"/>
+<rect x="106" y="96" width="36" height="36" fill="url(#sand)"/>
+<rect x="142" y="96" width="36" height="36" fill="url(#sand)"/>
+<rect x="178" y="96" width="36" height="36" fill="url(#sand)"/>
+<rect x="214" y="96" width="36" height="36" fill="url(#sand)"/>
+<rect x="250" y="96" width="36" height="36" fill="url(#sand)"/>
+<rect x="286" y="96" width="36" height="36" fill="url(#sand)"/>
+<rect x="322" y="96" width="36" height="36" fill="url(#sand)"/>
+<rect x="358" y="96" width="36" height="36" fill="url(#wall)"/>
+<rect x="394" y="96" width="36" height="36" fill="url(#floor)"/>
+<rect x="430" y="96" width="36" height="36" fill="url(#floor)"/>
+<rect x="466" y="96" width="36" height="36" fill="url(#floor)"/>
+<rect x="502" y="96" width="36" height="36" fill="url(#floor)"/>
+<rect x="538" y="96" width="36" height="36" fill="url(#floor)"/>
+<rect x="34" y="132" width="36" height="36" fill="url(#sand)"/>
+<rect x="70" y="132" width="36" height="36" fill="url(#sand)"/>
+<rect x="106" y="132" width="36" height="36" fill="url(#sand)"/>
+<rect x="142" y="132" width="36" height="36" fill="url(#sand)"/>
+<rect x="178" y="132" width="36" height="36" fill="url(#sand)"/>
+<rect x="214" y="132" width="36" height="36" fill="url(#sand)"/>
+<rect x="250" y="132" width="36" height="36" fill="url(#sand)"/>
+<rect x="286" y="132" width="36" height="36" fill="url(#sand)"/>
+<rect x="322" y="132" width="36" height="36" fill="url(#sand)"/>
+<rect x="358" y="132" width="36" height="36" fill="url(#wall)"/>
+<rect x="394" y="132" width="36" height="36" fill="url(#wall)"/>
+<rect x="430" y="132" width="36" height="36" fill="url(#floor)"/>
+<rect x="466" y="132" width="36" height="36" fill="url(#floor)"/>
+<rect x="502" y="132" width="36" height="36" fill="url(#floor)"/>
+<rect x="538" y="132" width="36" height="36" fill="url(#floor)"/>
+<rect x="34" y="168" width="36" height="36" fill="url(#sand)"/>
+<rect x="70" y="168" width="36" height="36" fill="url(#sand)"/>
+<rect x="106" y="168" width="36" height="36" fill="url(#sand)"/>
+<rect x="142" y="168" width="36" height="36" fill="url(#sand)"/>
+<rect x="178" y="168" width="36" height="36" fill="url(#sand)"/>
+<rect x="214" y="168" width="36" height="36" fill="url(#sand)"/>
+<rect x="250" y="168" width="36" height="36" fill="url(#sand)"/>
+<rect x="286" y="168" width="36" height="36" fill="url(#sand)"/>
+<rect x="322" y="168" width="36" height="36" fill="url(#sand)"/>
+<rect x="358" y="168" width="36" height="36" fill="url(#sand)"/>
+<rect x="394" y="168" width="36" height="36" fill="url(#wall)"/>
+<rect x="430" y="168" width="36" height="36" fill="url(#floor)"/>
+<rect x="466" y="168" width="36" height="36" fill="url(#floor)"/>
+<rect x="502" y="168" width="36" height="36" fill="url(#floor)"/>
+<rect x="538" y="168" width="36" height="36" fill="url(#floor)"/>
+<rect x="34" y="204" width="36" height="36" fill="url(#water)"/>
+<rect x="70" y="204" width="36" height="36" fill="url(#sand)"/>
+<rect x="106" y="204" width="36" height="36" fill="url(#sand)"/>
+<rect x="142" y="204" width="36" height="36" fill="url(#sand)"/>
+<rect x="178" y="204" width="36" height="36" fill="url(#sand)"/>
+<rect x="214" y="204" width="36" height="36" fill="url(#sand)"/>
+<rect x="250" y="204" width="36" height="36" fill="url(#sand)"/>
+<rect x="286" y="204" width="36" height="36" fill="url(#sand)"/>
+<rect x="322" y="204" width="36" height="36" fill="url(#sand)"/>
+<rect x="358" y="204" width="36" height="36" fill="url(#sand)"/>
+<rect x="394" y="204" width="36" height="36" fill="url(#wall)"/>
+<rect x="430" y="204" width="36" height="36" fill="url(#wall)"/>
+<rect x="466" y="204" width="36" height="36" fill="url(#wall)"/>
+<rect x="502" y="204" width="36" height="36" fill="url(#wall)"/>
+<rect x="538" y="204" width="36" height="36" fill="url(#floor)"/>
+<rect x="34" y="240" width="36" height="36" fill="url(#water)"/>
+<rect x="70" y="240" width="36" height="36" fill="url(#sand)"/>
+<rect x="106" y="240" width="36" height="36" fill="url(#sand)"/>
+<rect x="142" y="240" width="36" height="36" fill="url(#sand)"/>
+<rect x="178" y="240" width="36" height="36" fill="url(#sand)"/>
+<rect x="214" y="240" width="36" height="36" fill="url(#sand)"/>
+<rect x="250" y="240" width="36" height="36" fill="url(#sand)"/>
+<rect x="286" y="240" width="36" height="36" fill="url(#sand)"/>
+<rect x="322" y="240" width="36" height="36" fill="url(#sand)"/>
+<rect x="358" y="240" width="36" height="36" fill="url(#sand)"/>
+<rect x="394" y="240" width="36" height="36" fill="url(#sand)"/>
+<rect x="430" y="240" width="36" height="36" fill="url(#sand)"/>
+<rect x="466" y="240" width="36" height="36" fill="url(#wall)"/>
+<rect x="502" y="240" width="36" height="36" fill="url(#floor)"/>
+<rect x="538" y="240" width="36" height="36" fill="url(#floor)"/>
+<rect x="34" y="276" width="36" height="36" fill="url(#water)"/>
+<rect x="70" y="276" width="36" height="36" fill="url(#sand)"/>
+<rect x="106" y="276" width="36" height="36" fill="url(#sand)"/>
+<rect x="142" y="276" width="36" height="36" fill="url(#sand)"/>
+<rect x="178" y="276" width="36" height="36" fill="url(#sand)"/>
+<rect x="214" y="276" width="36" height="36" fill="url(#sand)"/>
+<rect x="250" y="276" width="36" height="36" fill="url(#sand)"/>
+<rect x="286" y="276" width="36" height="36" fill="url(#sand)"/>
+<rect x="322" y="276" width="36" height="36" fill="url(#sand)"/>
+<rect x="358" y="276" width="36" height="36" fill="url(#sand)"/>
+<rect x="394" y="276" width="36" height="36" fill="url(#sand)"/>
+<rect x="430" y="276" width="36" height="36" fill="url(#sand)"/>
+<rect x="466" y="276" width="36" height="36" fill="url(#wall)"/>
+<rect x="502" y="276" width="36" height="36" fill="url(#floor)"/>
+<rect x="538" y="276" width="36" height="36" fill="url(#floor)"/>
+<rect x="34" y="312" width="36" height="36" fill="url(#water)"/>
+<rect x="70" y="312" width="36" height="36" fill="url(#sand)"/>
+<rect x="106" y="312" width="36" height="36" fill="url(#sand)"/>
+<rect x="142" y="312" width="36" height="36" fill="url(#sand)"/>
+<rect x="178" y="312" width="36" height="36" fill="url(#sand)"/>
+<rect x="214" y="312" width="36" height="36" fill="url(#sand)"/>
+<rect x="250" y="312" width="36" height="36" fill="url(#sand)"/>
+<rect x="286" y="312" width="36" height="36" fill="url(#sand)"/>
+<rect x="322" y="312" width="36" height="36" fill="url(#sand)"/>
+<rect x="358" y="312" width="36" height="36" fill="url(#sand)"/>
+<rect x="394" y="312" width="36" height="36" fill="url(#sand)"/>
+<rect x="430" y="312" width="36" height="36" fill="url(#sand)"/>
+<rect x="466" y="312" width="36" height="36" fill="url(#wall)"/>
+<rect x="502" y="312" width="36" height="36" fill="url(#floor)"/>
+<rect x="538" y="312" width="36" height="36" fill="url(#floor)"/>
+<rect x="34" y="348" width="36" height="36" fill="url(#water)"/>
+<rect x="70" y="348" width="36" height="36" fill="url(#water)"/>
+<rect x="106" y="348" width="36" height="36" fill="url(#sand)"/>
+<rect x="142" y="348" width="36" height="36" fill="url(#sand)"/>
+<rect x="178" y="348" width="36" height="36" fill="url(#sand)"/>
+<rect x="214" y="348" width="36" height="36" fill="url(#sand)"/>
+<rect x="250" y="348" width="36" height="36" fill="url(#sand)"/>
+<rect x="286" y="348" width="36" height="36" fill="url(#sand)"/>
+<rect x="322" y="348" width="36" height="36" fill="url(#sand)"/>
+<rect x="358" y="348" width="36" height="36" fill="url(#sand)"/>
+<rect x="394" y="348" width="36" height="36" fill="url(#sand)"/>
+<rect x="430" y="348" width="36" height="36" fill="url(#sand)"/>
+<rect x="466" y="348" width="36" height="36" fill="url(#wall)"/>
+<rect x="502" y="348" width="36" height="36" fill="url(#wall)"/>
+<rect x="538" y="348" width="36" height="36" fill="url(#floor)"/>
+<rect x="34" y="384" width="36" height="36" fill="url(#water)"/>
+<rect x="70" y="384" width="36" height="36" fill="url(#water)"/>
+<rect x="106" y="384" width="36" height="36" fill="url(#sand)"/>
+<rect x="142" y="384" width="36" height="36" fill="url(#sand)"/>
+<rect x="178" y="384" width="36" height="36" fill="url(#sand)"/>
+<rect x="214" y="384" width="36" height="36" fill="url(#sand)"/>
+<rect x="250" y="384" width="36" height="36" fill="url(#sand)"/>
+<rect x="286" y="384" width="36" height="36" fill="url(#sand)"/>
+<rect x="322" y="384" width="36" height="36" fill="url(#sand)"/>
+<rect x="358" y="384" width="36" height="36" fill="url(#sand)"/>
+<rect x="394" y="384" width="36" height="36" fill="url(#sand)"/>
+<rect x="430" y="384" width="36" height="36" fill="url(#sand)"/>
+<rect x="466" y="384" width="36" height="36" fill="url(#sand)"/>
+<rect x="502" y="384" width="36" height="36" fill="url(#sand)"/>
+<rect x="538" y="384" width="36" height="36" fill="url(#sand)"/>
+<rect x="34" y="420" width="36" height="36" fill="url(#water)"/>
+<rect x="70" y="420" width="36" height="36" fill="url(#water)"/>
+<rect x="106" y="420" width="36" height="36" fill="url(#sand)"/>
+<rect x="142" y="420" width="36" height="36" fill="url(#sand)"/>
+<rect x="178" y="420" width="36" height="36" fill="url(#sand)"/>
+<rect x="214" y="420" width="36" height="36" fill="url(#sand)"/>
+<rect x="250" y="420" width="36" height="36" fill="url(#sand)"/>
+<rect x="286" y="420" width="36" height="36" fill="url(#sand)"/>
+<rect x="322" y="420" width="36" height="36" fill="url(#sand)"/>
+<rect x="358" y="420" width="36" height="36" fill="url(#sand)"/>
+<rect x="394" y="420" width="36" height="36" fill="url(#sand)"/>
+<rect x="430" y="420" width="36" height="36" fill="url(#sand)"/>
+<rect x="466" y="420" width="36" height="36" fill="url(#sand)"/>
+<rect x="502" y="420" width="36" height="36" fill="url(#sand)"/>
+<rect x="538" y="420" width="36" height="36" fill="url(#sand)"/>
+<rect x="34" y="456" width="36" height="36" fill="url(#water)"/>
+<rect x="70" y="456" width="36" height="36" fill="url(#water)"/>
+<rect x="106" y="456" width="36" height="36" fill="url(#water)"/>
+<rect x="142" y="456" width="36" height="36" fill="url(#water)"/>
+<rect x="178" y="456" width="36" height="36" fill="url(#sand)"/>
+<rect x="214" y="456" width="36" height="36" fill="url(#sand)"/>
+<rect x="250" y="456" width="36" height="36" fill="url(#sand)"/>
+<rect x="286" y="456" width="36" height="36" fill="url(#sand)"/>
+<rect x="322" y="456" width="36" height="36" fill="url(#sand)"/>
+<rect x="358" y="456" width="36" height="36" fill="url(#sand)"/>
+<rect x="394" y="456" width="36" height="36" fill="url(#sand)"/>
+<rect x="430" y="456" width="36" height="36" fill="url(#sand)"/>
+<rect x="466" y="456" width="36" height="36" fill="url(#sand)"/>
+<rect x="502" y="456" width="36" height="36" fill="url(#sand)"/>
+<rect x="538" y="456" width="36" height="36" fill="url(#sand)"/>
+<rect x="34" y="492" width="36" height="36" fill="url(#water)"/>
+<rect x="70" y="492" width="36" height="36" fill="url(#water)"/>
+<rect x="106" y="492" width="36" height="36" fill="url(#water)"/>
+<rect x="142" y="492" width="36" height="36" fill="url(#water)"/>
+<rect x="178" y="492" width="36" height="36" fill="url(#water)"/>
+<rect x="214" y="492" width="36" height="36" fill="url(#water)"/>
+<rect x="250" y="492" width="36" height="36" fill="url(#sand)"/>
+<rect x="286" y="492" width="36" height="36" fill="url(#sand)"/>
+<rect x="322" y="492" width="36" height="36" fill="url(#sand)"/>
+<rect x="358" y="492" width="36" height="36" fill="url(#sand)"/>
+<rect x="394" y="492" width="36" height="36" fill="url(#sand)"/>
+<rect x="430" y="492" width="36" height="36" fill="url(#sand)"/>
+<rect x="466" y="492" width="36" height="36" fill="url(#sand)"/>
+<rect x="502" y="492" width="36" height="36" fill="url(#sand)"/>
+<rect x="538" y="492" width="36" height="36" fill="url(#sand)"/>
+<rect x="34" y="528" width="36" height="36" fill="url(#water)"/>
+<rect x="70" y="528" width="36" height="36" fill="url(#water)"/>
+<rect x="106" y="528" width="36" height="36" fill="url(#water)"/>
+<rect x="142" y="528" width="36" height="36" fill="url(#water)"/>
+<rect x="178" y="528" width="36" height="36" fill="url(#water)"/>
+<rect x="214" y="528" width="36" height="36" fill="url(#water)"/>
+<rect x="250" y="528" width="36" height="36" fill="url(#water)"/>
+<rect x="286" y="528" width="36" height="36" fill="url(#water)"/>
+<rect x="322" y="528" width="36" height="36" fill="url(#water)"/>
+<rect x="358" y="528" width="36" height="36" fill="url(#sand)"/>
+<rect x="394" y="528" width="36" height="36" fill="url(#sand)"/>
+<rect x="430" y="528" width="36" height="36" fill="url(#sand)"/>
+<rect x="466" y="528" width="36" height="36" fill="url(#sand)"/>
+<rect x="502" y="528" width="36" height="36" fill="url(#sand)"/>
+<rect x="538" y="528" width="36" height="36" fill="url(#sand)"/>
+<circle cx="196.0" cy="438.0" r="10" class="npc"/>
+<circle cx="556.0" cy="510.0" r="10" class="npc"/>
+<circle cx="520.0" cy="114.0" r="10" class="npc"/>
+<rect x="33" y="23" width="542" height="542" rx="6" class="frame"/>
+<polyline points="304.0,294.0 304.0,330.0 304.0,366.0 304.0,402.0 340.0,402.0 376.0,402.0 412.0,402.0 448.0,402.0 484.0,402.0 520.0,402.0" class="route" marker-end="url(#aroute)"/>
+<circle cx="520.0" cy="402.0" r="12" class="goal"/><path d="M515.0,402.0 l4,4 l7,-8" class="tick"/>
+<circle cx="304.0" cy="294.0" r="12" class="player"/><circle cx="300.0" cy="292.0" r="2" class="eye"/><circle cx="308.0" cy="292.0" r="2" class="eye"/>
+</svg></div></div></div>
+<h2>Rusturf Tunnel</h2><p class="cap" style="margin-top:0">Same run, event 91964, standing at (10,5) in the tunnel. Target is the south exit warp at (4,10). Every cave tile was refused, so the tool could not take a single step.</p><div class="vs">
+<div class="card"><h3><span class="tag off">BEFORE</span>Planner sees walls</h3><div class="big">0 presses <small>tool gives up</small></div><div class="scroll"><svg viewBox="0 0 580 502" role="img" aria-label="Rusturf Tunnel before">
+<text x="52.0" y="14" class="ax">3</text>
+<text x="88.0" y="14" class="ax">4</text>
+<text x="124.0" y="14" class="ax">5</text>
+<text x="160.0" y="14" class="ax">6</text>
+<text x="196.0" y="14" class="ax">7</text>
+<text x="232.0" y="14" class="ax">8</text>
+<text x="268.0" y="14" class="ax">9</text>
+<text x="304.0" y="14" class="ax">10</text>
+<text x="340.0" y="14" class="ax">11</text>
+<text x="376.0" y="14" class="ax">12</text>
+<text x="412.0" y="14" class="ax">13</text>
+<text x="448.0" y="14" class="ax">14</text>
+<text x="484.0" y="14" class="ax">15</text>
+<text x="520.0" y="14" class="ax">16</text>
+<text x="556.0" y="14" class="ax">17</text>
+<text x="14" y="50.0" class="ax">0</text>
+<text x="14" y="86.0" class="ax">1</text>
+<text x="14" y="122.0" class="ax">2</text>
+<text x="14" y="158.0" class="ax">3</text>
+<text x="14" y="194.0" class="ax">4</text>
+<text x="14" y="230.0" class="ax">5</text>
+<text x="14" y="266.0" class="ax">6</text>
+<text x="14" y="302.0" class="ax">7</text>
+<text x="14" y="338.0" class="ax">8</text>
+<text x="14" y="374.0" class="ax">9</text>
+<text x="14" y="410.0" class="ax">10</text>
+<text x="14" y="446.0" class="ax">11</text>
+<text x="14" y="482.0" class="ax">12</text>
+<rect x="34" y="24" width="36" height="36" fill="url(#wall)"/>
+<rect x="70" y="24" width="36" height="36" fill="url(#wall)"/>
+<rect x="106" y="24" width="36" height="36" fill="url(#wall)"/>
+<rect x="142" y="24" width="36" height="36" fill="url(#wall)"/>
+<rect x="178" y="24" width="36" height="36" fill="url(#wall)"/>
+<rect x="214" y="24" width="36" height="36" fill="url(#wall)"/>
+<rect x="250" y="24" width="36" height="36" fill="url(#wall)"/>
+<rect x="286" y="24" width="36" height="36" fill="url(#wall)"/>
+<rect x="322" y="24" width="36" height="36" fill="url(#wall)"/>
+<rect x="358" y="24" width="36" height="36" fill="url(#wall)"/>
+<rect x="394" y="24" width="36" height="36" fill="url(#wall)"/>
+<rect x="430" y="24" width="36" height="36" fill="url(#wall)"/>
+<rect x="466" y="24" width="36" height="36" fill="url(#wall)"/>
+<rect x="502" y="24" width="36" height="36" fill="url(#wall)"/>
+<rect x="538" y="24" width="36" height="36" fill="url(#wall)"/>
+<rect x="34" y="60" width="36" height="36" fill="url(#cave)"/>
+<rect x="35" y="61" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="70" y="60" width="36" height="36" fill="url(#cave)"/>
+<rect x="71" y="61" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="106" y="60" width="36" height="36" fill="url(#cave)"/>
+<rect x="107" y="61" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="142" y="60" width="36" height="36" fill="url(#cave)"/>
+<rect x="143" y="61" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="178" y="60" width="36" height="36" fill="url(#cave)"/>
+<rect x="179" y="61" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="214" y="60" width="36" height="36" fill="url(#cave)"/>
+<rect x="215" y="61" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="250" y="60" width="36" height="36" fill="url(#wall)"/>
+<rect x="286" y="60" width="36" height="36" fill="url(#wall)"/>
+<rect x="322" y="60" width="36" height="36" fill="url(#wall)"/>
+<rect x="358" y="60" width="36" height="36" fill="url(#wall)"/>
+<rect x="394" y="60" width="36" height="36" fill="url(#wall)"/>
+<rect x="430" y="60" width="36" height="36" fill="url(#wall)"/>
+<rect x="466" y="60" width="36" height="36" fill="url(#wall)"/>
+<rect x="502" y="60" width="36" height="36" fill="url(#wall)"/>
+<rect x="538" y="60" width="36" height="36" fill="url(#wall)"/>
+<rect x="34" y="96" width="36" height="36" fill="url(#cave)"/>
+<rect x="35" y="97" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="70" y="96" width="36" height="36" fill="url(#cave)"/>
+<rect x="71" y="97" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="106" y="96" width="36" height="36" fill="url(#cave)"/>
+<rect x="107" y="97" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="142" y="96" width="36" height="36" fill="url(#cave)"/>
+<rect x="143" y="97" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="178" y="96" width="36" height="36" fill="url(#cave)"/>
+<rect x="179" y="97" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="214" y="96" width="36" height="36" fill="url(#cave)"/>
+<rect x="215" y="97" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="250" y="96" width="36" height="36" fill="url(#wall)"/>
+<rect x="286" y="96" width="36" height="36" fill="url(#wall)"/>
+<rect x="322" y="96" width="36" height="36" fill="url(#wall)"/>
+<rect x="358" y="96" width="36" height="36" fill="url(#wall)"/>
+<rect x="394" y="96" width="36" height="36" fill="url(#wall)"/>
+<rect x="430" y="96" width="36" height="36" fill="url(#wall)"/>
+<rect x="466" y="96" width="36" height="36" fill="url(#wall)"/>
+<rect x="502" y="96" width="36" height="36" fill="url(#wall)"/>
+<rect x="538" y="96" width="36" height="36" fill="url(#wall)"/>
+<rect x="34" y="132" width="36" height="36" fill="url(#wall)"/>
+<rect x="70" y="132" width="36" height="36" fill="url(#wall)"/>
+<rect x="106" y="132" width="36" height="36" fill="url(#wall)"/>
+<rect x="142" y="132" width="36" height="36" fill="url(#wall)"/>
+<rect x="178" y="132" width="36" height="36" fill="url(#wall)"/>
+<rect x="214" y="132" width="36" height="36" fill="url(#cave)"/>
+<rect x="215" y="133" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="250" y="132" width="36" height="36" fill="url(#wall)"/>
+<rect x="286" y="132" width="36" height="36" fill="url(#wall)"/>
+<rect x="322" y="132" width="36" height="36" fill="url(#wall)"/>
+<rect x="358" y="132" width="36" height="36" fill="url(#wall)"/>
+<rect x="394" y="132" width="36" height="36" fill="url(#wall)"/>
+<rect x="430" y="132" width="36" height="36" fill="url(#wall)"/>
+<rect x="466" y="132" width="36" height="36" fill="url(#wall)"/>
+<rect x="502" y="132" width="36" height="36" fill="url(#wall)"/>
+<rect x="538" y="132" width="36" height="36" fill="url(#wall)"/>
+<rect x="34" y="168" width="36" height="36" fill="url(#wall)"/>
+<rect x="70" y="168" width="36" height="36" fill="url(#cave)"/>
+<rect x="71" y="169" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="106" y="168" width="36" height="36" fill="url(#cave)"/>
+<rect x="107" y="169" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="142" y="168" width="36" height="36" fill="url(#cave)"/>
+<rect x="143" y="169" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="178" y="168" width="36" height="36" fill="url(#cave)"/>
+<rect x="179" y="169" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="214" y="168" width="36" height="36" fill="url(#cave)"/>
+<rect x="215" y="169" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="250" y="168" width="36" height="36" fill="url(#cave)"/>
+<rect x="251" y="169" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="286" y="168" width="36" height="36" fill="url(#cave)"/>
+<rect x="287" y="169" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="322" y="168" width="36" height="36" fill="url(#cave)"/>
+<rect x="323" y="169" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="358" y="168" width="36" height="36" fill="url(#cave)"/>
+<rect x="359" y="169" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="394" y="168" width="36" height="36" fill="url(#cave)"/>
+<rect x="395" y="169" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="430" y="168" width="36" height="36" fill="url(#cave)"/>
+<rect x="431" y="169" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="466" y="168" width="36" height="36" fill="url(#cave)"/>
+<rect x="467" y="169" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="502" y="168" width="36" height="36" fill="url(#cave)"/>
+<rect x="503" y="169" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="538" y="168" width="36" height="36" fill="url(#cave)"/>
+<rect x="539" y="169" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="34" y="204" width="36" height="36" fill="url(#wall)"/>
+<rect x="70" y="204" width="36" height="36" fill="url(#cave)"/>
+<rect x="71" y="205" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="106" y="204" width="36" height="36" fill="url(#cave)"/>
+<rect x="107" y="205" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="142" y="204" width="36" height="36" fill="url(#cave)"/>
+<rect x="143" y="205" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="178" y="204" width="36" height="36" fill="url(#cave)"/>
+<rect x="179" y="205" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="214" y="204" width="36" height="36" fill="url(#cave)"/>
+<rect x="215" y="205" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="250" y="204" width="36" height="36" fill="url(#cave)"/>
+<rect x="251" y="205" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="286" y="204" width="36" height="36" fill="url(#cave)"/>
+<rect x="287" y="205" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="322" y="204" width="36" height="36" fill="url(#cave)"/>
+<rect x="323" y="205" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="358" y="204" width="36" height="36" fill="url(#cave)"/>
+<rect x="359" y="205" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="394" y="204" width="36" height="36" fill="url(#cave)"/>
+<rect x="395" y="205" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="430" y="204" width="36" height="36" fill="url(#cave)"/>
+<rect x="431" y="205" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="466" y="204" width="36" height="36" fill="url(#cave)"/>
+<rect x="467" y="205" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="502" y="204" width="36" height="36" fill="url(#cave)"/>
+<rect x="503" y="205" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="538" y="204" width="36" height="36" fill="url(#cave)"/>
+<rect x="539" y="205" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="34" y="240" width="36" height="36" fill="url(#wall)"/>
+<rect x="70" y="240" width="36" height="36" fill="url(#cave)"/>
+<rect x="71" y="241" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="106" y="240" width="36" height="36" fill="url(#wall)"/>
+<rect x="142" y="240" width="36" height="36" fill="url(#wall)"/>
+<rect x="178" y="240" width="36" height="36" fill="url(#wall)"/>
+<rect x="214" y="240" width="36" height="36" fill="url(#wall)"/>
+<rect x="250" y="240" width="36" height="36" fill="url(#wall)"/>
+<rect x="286" y="240" width="36" height="36" fill="url(#wall)"/>
+<rect x="322" y="240" width="36" height="36" fill="url(#wall)"/>
+<rect x="358" y="240" width="36" height="36" fill="url(#wall)"/>
+<rect x="394" y="240" width="36" height="36" fill="url(#wall)"/>
+<rect x="430" y="240" width="36" height="36" fill="url(#wall)"/>
+<rect x="466" y="240" width="36" height="36" fill="url(#wall)"/>
+<rect x="502" y="240" width="36" height="36" fill="url(#wall)"/>
+<rect x="538" y="240" width="36" height="36" fill="url(#wall)"/>
+<rect x="34" y="276" width="36" height="36" fill="url(#cave)"/>
+<rect x="35" y="277" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="70" y="276" width="36" height="36" fill="url(#cave)"/>
+<rect x="71" y="277" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="106" y="276" width="36" height="36" fill="url(#cave)"/>
+<rect x="107" y="277" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="142" y="276" width="36" height="36" fill="url(#cave)"/>
+<rect x="143" y="277" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="178" y="276" width="36" height="36" fill="url(#cave)"/>
+<rect x="179" y="277" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="214" y="276" width="36" height="36" fill="url(#wall)"/>
+<rect x="250" y="276" width="36" height="36" fill="url(#wall)"/>
+<rect x="286" y="276" width="36" height="36" fill="url(#wall)"/>
+<rect x="322" y="276" width="36" height="36" fill="url(#wall)"/>
+<rect x="358" y="276" width="36" height="36" fill="url(#wall)"/>
+<rect x="394" y="276" width="36" height="36" fill="url(#wall)"/>
+<rect x="430" y="276" width="36" height="36" fill="url(#wall)"/>
+<rect x="466" y="276" width="36" height="36" fill="url(#wall)"/>
+<rect x="502" y="276" width="36" height="36" fill="url(#wall)"/>
+<rect x="538" y="276" width="36" height="36" fill="url(#wall)"/>
+<rect x="34" y="312" width="36" height="36" fill="url(#cave)"/>
+<rect x="35" y="313" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="70" y="312" width="36" height="36" fill="url(#cave)"/>
+<rect x="71" y="313" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="106" y="312" width="36" height="36" fill="url(#cave)"/>
+<rect x="107" y="313" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="142" y="312" width="36" height="36" fill="url(#cave)"/>
+<rect x="143" y="313" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="178" y="312" width="36" height="36" fill="url(#cave)"/>
+<rect x="179" y="313" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="214" y="312" width="36" height="36" fill="url(#wall)"/>
+<rect x="250" y="312" width="36" height="36" fill="url(#wall)"/>
+<rect x="286" y="312" width="36" height="36" fill="url(#wall)"/>
+<rect x="322" y="312" width="36" height="36" fill="url(#wall)"/>
+<rect x="358" y="312" width="36" height="36" fill="url(#wall)"/>
+<rect x="394" y="312" width="36" height="36" fill="url(#wall)"/>
+<rect x="430" y="312" width="36" height="36" fill="url(#wall)"/>
+<rect x="466" y="312" width="36" height="36" fill="url(#wall)"/>
+<rect x="502" y="312" width="36" height="36" fill="url(#wall)"/>
+<rect x="538" y="312" width="36" height="36" fill="url(#wall)"/>
+<rect x="34" y="348" width="36" height="36" fill="url(#cave)"/>
+<rect x="35" y="349" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="70" y="348" width="36" height="36" fill="url(#cave)"/>
+<rect x="71" y="349" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="106" y="348" width="36" height="36" fill="url(#cave)"/>
+<rect x="107" y="349" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="142" y="348" width="36" height="36" fill="url(#cave)"/>
+<rect x="143" y="349" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="178" y="348" width="36" height="36" fill="url(#cave)"/>
+<rect x="179" y="349" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="214" y="348" width="36" height="36" fill="url(#wall)"/>
+<rect x="250" y="348" width="36" height="36" fill="url(#wall)"/>
+<rect x="286" y="348" width="36" height="36" fill="url(#wall)"/>
+<rect x="322" y="348" width="36" height="36" fill="url(#wall)"/>
+<rect x="358" y="348" width="36" height="36" fill="url(#wall)"/>
+<rect x="394" y="348" width="36" height="36" fill="url(#wall)"/>
+<rect x="430" y="348" width="36" height="36" fill="url(#wall)"/>
+<rect x="466" y="348" width="36" height="36" fill="url(#wall)"/>
+<rect x="502" y="348" width="36" height="36" fill="url(#wall)"/>
+<rect x="538" y="348" width="36" height="36" fill="url(#wall)"/>
+<rect x="34" y="384" width="36" height="36" fill="url(#cave)"/>
+<rect x="35" y="385" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="70" y="384" width="36" height="36" fill="url(#floor)"/>
+<rect x="106" y="384" width="36" height="36" fill="url(#cave)"/>
+<rect x="107" y="385" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="142" y="384" width="36" height="36" fill="url(#cave)"/>
+<rect x="143" y="385" width="34" height="34" fill="url(#nogo)" class="nogo"/>
+<rect x="178" y="384" width="36" height="36" fill="url(#wall)"/>
+<rect x="214" y="384" width="36" height="36" fill="url(#wall)"/>
+<rect x="250" y="384" width="36" height="36" fill="url(#wall)"/>
+<rect x="286" y="384" width="36" height="36" fill="url(#wall)"/>
+<rect x="322" y="384" width="36" height="36" fill="url(#wall)"/>
+<rect x="358" y="384" width="36" height="36" fill="url(#wall)"/>
+<rect x="394" y="384" width="36" height="36" fill="url(#wall)"/>
+<rect x="430" y="384" width="36" height="36" fill="url(#wall)"/>
+<rect x="466" y="384" width="36" height="36" fill="url(#wall)"/>
+<rect x="502" y="384" width="36" height="36" fill="url(#wall)"/>
+<rect x="538" y="384" width="36" height="36" fill="url(#wall)"/>
+<rect x="34" y="420" width="36" height="36" fill="url(#wall)"/>
+<rect x="70" y="420" width="36" height="36" fill="url(#wall)"/>
+<rect x="106" y="420" width="36" height="36" fill="url(#wall)"/>
+<rect x="142" y="420" width="36" height="36" fill="url(#wall)"/>
+<rect x="178" y="420" width="36" height="36" fill="url(#wall)"/>
+<rect x="214" y="420" width="36" height="36" fill="url(#wall)"/>
+<rect x="250" y="420" width="36" height="36" fill="url(#wall)"/>
+<rect x="286" y="420" width="36" height="36" fill="url(#wall)"/>
+<rect x="322" y="420" width="36" height="36" fill="url(#wall)"/>
+<rect x="358" y="420" width="36" height="36" fill="url(#wall)"/>
+<rect x="394" y="420" width="36" height="36" fill="url(#wall)"/>
+<rect x="430" y="420" width="36" height="36" fill="url(#wall)"/>
+<rect x="466" y="420" width="36" height="36" fill="url(#wall)"/>
+<rect x="502" y="420" width="36" height="36" fill="url(#wall)"/>
+<rect x="538" y="420" width="36" height="36" fill="url(#wall)"/>
+<rect x="34" y="456" width="36" height="36" fill="url(#wall)"/>
+<rect x="70" y="456" width="36" height="36" fill="url(#wall)"/>
+<rect x="106" y="456" width="36" height="36" fill="url(#wall)"/>
+<rect x="142" y="456" width="36" height="36" fill="url(#wall)"/>
+<rect x="178" y="456" width="36" height="36" fill="url(#wall)"/>
+<rect x="214" y="456" width="36" height="36" fill="url(#wall)"/>
+<rect x="250" y="456" width="36" height="36" fill="url(#wall)"/>
+<rect x="286" y="456" width="36" height="36" fill="url(#wall)"/>
+<rect x="322" y="456" width="36" height="36" fill="url(#wall)"/>
+<rect x="358" y="456" width="36" height="36" fill="url(#wall)"/>
+<rect x="394" y="456" width="36" height="36" fill="url(#wall)"/>
+<rect x="430" y="456" width="36" height="36" fill="url(#wall)"/>
+<rect x="466" y="456" width="36" height="36" fill="url(#wall)"/>
+<rect x="502" y="456" width="36" height="36" fill="url(#wall)"/>
+<rect x="538" y="456" width="36" height="36" fill="url(#wall)"/>
+<rect x="74" y="388" width="28" height="28" rx="6" class="warp"/>
+<rect x="33" y="23" width="542" height="470" rx="6" class="frame"/>
+<line x1="304.0" y1="222.0" x2="88.0" y2="402.0" class="ghost"/>
+<circle cx="88.0" cy="402.0" r="12" class="goal"/><path d="M83.0,402.0 l4,4 l7,-8" class="tick"/>
+<circle cx="304.0" cy="222.0" r="12" class="player"/><circle cx="300.0" cy="220.0" r="2" class="eye"/><circle cx="308.0" cy="220.0" r="2" class="eye"/>
+<g transform="translate(290.0,458)"><rect x="-120" y="-22" width="240" height="44" rx="22" class="badge warn"/><text y="-2" class="badget">no supported local path</text><text y="14" class="badges">every neighbour counts as a wall</text></g>
+</svg></div></div>
+<div class="card"><h3><span class="tag on">AFTER</span>Planner sees floor</h3><div class="big">11 presses <small>L × 6, then D × 5</small></div><div class="scroll"><svg viewBox="0 0 580 502" role="img" aria-label="Rusturf Tunnel after">
+<text x="52.0" y="14" class="ax">3</text>
+<text x="88.0" y="14" class="ax">4</text>
+<text x="124.0" y="14" class="ax">5</text>
+<text x="160.0" y="14" class="ax">6</text>
+<text x="196.0" y="14" class="ax">7</text>
+<text x="232.0" y="14" class="ax">8</text>
+<text x="268.0" y="14" class="ax">9</text>
+<text x="304.0" y="14" class="ax">10</text>
+<text x="340.0" y="14" class="ax">11</text>
+<text x="376.0" y="14" class="ax">12</text>
+<text x="412.0" y="14" class="ax">13</text>
+<text x="448.0" y="14" class="ax">14</text>
+<text x="484.0" y="14" class="ax">15</text>
+<text x="520.0" y="14" class="ax">16</text>
+<text x="556.0" y="14" class="ax">17</text>
+<text x="14" y="50.0" class="ax">0</text>
+<text x="14" y="86.0" class="ax">1</text>
+<text x="14" y="122.0" class="ax">2</text>
+<text x="14" y="158.0" class="ax">3</text>
+<text x="14" y="194.0" class="ax">4</text>
+<text x="14" y="230.0" class="ax">5</text>
+<text x="14" y="266.0" class="ax">6</text>
+<text x="14" y="302.0" class="ax">7</text>
+<text x="14" y="338.0" class="ax">8</text>
+<text x="14" y="374.0" class="ax">9</text>
+<text x="14" y="410.0" class="ax">10</text>
+<text x="14" y="446.0" class="ax">11</text>
+<text x="14" y="482.0" class="ax">12</text>
+<rect x="34" y="24" width="36" height="36" fill="url(#wall)"/>
+<rect x="70" y="24" width="36" height="36" fill="url(#wall)"/>
+<rect x="106" y="24" width="36" height="36" fill="url(#wall)"/>
+<rect x="142" y="24" width="36" height="36" fill="url(#wall)"/>
+<rect x="178" y="24" width="36" height="36" fill="url(#wall)"/>
+<rect x="214" y="24" width="36" height="36" fill="url(#wall)"/>
+<rect x="250" y="24" width="36" height="36" fill="url(#wall)"/>
+<rect x="286" y="24" width="36" height="36" fill="url(#wall)"/>
+<rect x="322" y="24" width="36" height="36" fill="url(#wall)"/>
+<rect x="358" y="24" width="36" height="36" fill="url(#wall)"/>
+<rect x="394" y="24" width="36" height="36" fill="url(#wall)"/>
+<rect x="430" y="24" width="36" height="36" fill="url(#wall)"/>
+<rect x="466" y="24" width="36" height="36" fill="url(#wall)"/>
+<rect x="502" y="24" width="36" height="36" fill="url(#wall)"/>
+<rect x="538" y="24" width="36" height="36" fill="url(#wall)"/>
+<rect x="34" y="60" width="36" height="36" fill="url(#cave)"/>
+<rect x="70" y="60" width="36" height="36" fill="url(#cave)"/>
+<rect x="106" y="60" width="36" height="36" fill="url(#cave)"/>
+<rect x="142" y="60" width="36" height="36" fill="url(#cave)"/>
+<rect x="178" y="60" width="36" height="36" fill="url(#cave)"/>
+<rect x="214" y="60" width="36" height="36" fill="url(#cave)"/>
+<rect x="250" y="60" width="36" height="36" fill="url(#wall)"/>
+<rect x="286" y="60" width="36" height="36" fill="url(#wall)"/>
+<rect x="322" y="60" width="36" height="36" fill="url(#wall)"/>
+<rect x="358" y="60" width="36" height="36" fill="url(#wall)"/>
+<rect x="394" y="60" width="36" height="36" fill="url(#wall)"/>
+<rect x="430" y="60" width="36" height="36" fill="url(#wall)"/>
+<rect x="466" y="60" width="36" height="36" fill="url(#wall)"/>
+<rect x="502" y="60" width="36" height="36" fill="url(#wall)"/>
+<rect x="538" y="60" width="36" height="36" fill="url(#wall)"/>
+<rect x="34" y="96" width="36" height="36" fill="url(#cave)"/>
+<rect x="70" y="96" width="36" height="36" fill="url(#cave)"/>
+<rect x="106" y="96" width="36" height="36" fill="url(#cave)"/>
+<rect x="142" y="96" width="36" height="36" fill="url(#cave)"/>
+<rect x="178" y="96" width="36" height="36" fill="url(#cave)"/>
+<rect x="214" y="96" width="36" height="36" fill="url(#cave)"/>
+<rect x="250" y="96" width="36" height="36" fill="url(#wall)"/>
+<rect x="286" y="96" width="36" height="36" fill="url(#wall)"/>
+<rect x="322" y="96" width="36" height="36" fill="url(#wall)"/>
+<rect x="358" y="96" width="36" height="36" fill="url(#wall)"/>
+<rect x="394" y="96" width="36" height="36" fill="url(#wall)"/>
+<rect x="430" y="96" width="36" height="36" fill="url(#wall)"/>
+<rect x="466" y="96" width="36" height="36" fill="url(#wall)"/>
+<rect x="502" y="96" width="36" height="36" fill="url(#wall)"/>
+<rect x="538" y="96" width="36" height="36" fill="url(#wall)"/>
+<rect x="34" y="132" width="36" height="36" fill="url(#wall)"/>
+<rect x="70" y="132" width="36" height="36" fill="url(#wall)"/>
+<rect x="106" y="132" width="36" height="36" fill="url(#wall)"/>
+<rect x="142" y="132" width="36" height="36" fill="url(#wall)"/>
+<rect x="178" y="132" width="36" height="36" fill="url(#wall)"/>
+<rect x="214" y="132" width="36" height="36" fill="url(#cave)"/>
+<rect x="250" y="132" width="36" height="36" fill="url(#wall)"/>
+<rect x="286" y="132" width="36" height="36" fill="url(#wall)"/>
+<rect x="322" y="132" width="36" height="36" fill="url(#wall)"/>
+<rect x="358" y="132" width="36" height="36" fill="url(#wall)"/>
+<rect x="394" y="132" width="36" height="36" fill="url(#wall)"/>
+<rect x="430" y="132" width="36" height="36" fill="url(#wall)"/>
+<rect x="466" y="132" width="36" height="36" fill="url(#wall)"/>
+<rect x="502" y="132" width="36" height="36" fill="url(#wall)"/>
+<rect x="538" y="132" width="36" height="36" fill="url(#wall)"/>
+<rect x="34" y="168" width="36" height="36" fill="url(#wall)"/>
+<rect x="70" y="168" width="36" height="36" fill="url(#cave)"/>
+<rect x="106" y="168" width="36" height="36" fill="url(#cave)"/>
+<rect x="142" y="168" width="36" height="36" fill="url(#cave)"/>
+<rect x="178" y="168" width="36" height="36" fill="url(#cave)"/>
+<rect x="214" y="168" width="36" height="36" fill="url(#cave)"/>
+<rect x="250" y="168" width="36" height="36" fill="url(#cave)"/>
+<rect x="286" y="168" width="36" height="36" fill="url(#cave)"/>
+<rect x="322" y="168" width="36" height="36" fill="url(#cave)"/>
+<rect x="358" y="168" width="36" height="36" fill="url(#cave)"/>
+<rect x="394" y="168" width="36" height="36" fill="url(#cave)"/>
+<rect x="430" y="168" width="36" height="36" fill="url(#cave)"/>
+<rect x="466" y="168" width="36" height="36" fill="url(#cave)"/>
+<rect x="502" y="168" width="36" height="36" fill="url(#cave)"/>
+<rect x="538" y="168" width="36" height="36" fill="url(#cave)"/>
+<rect x="34" y="204" width="36" height="36" fill="url(#wall)"/>
+<rect x="70" y="204" width="36" height="36" fill="url(#cave)"/>
+<rect x="106" y="204" width="36" height="36" fill="url(#cave)"/>
+<rect x="142" y="204" width="36" height="36" fill="url(#cave)"/>
+<rect x="178" y="204" width="36" height="36" fill="url(#cave)"/>
+<rect x="214" y="204" width="36" height="36" fill="url(#cave)"/>
+<rect x="250" y="204" width="36" height="36" fill="url(#cave)"/>
+<rect x="286" y="204" width="36" height="36" fill="url(#cave)"/>
+<rect x="322" y="204" width="36" height="36" fill="url(#cave)"/>
+<rect x="358" y="204" width="36" height="36" fill="url(#cave)"/>
+<rect x="394" y="204" width="36" height="36" fill="url(#cave)"/>
+<rect x="430" y="204" width="36" height="36" fill="url(#cave)"/>
+<rect x="466" y="204" width="36" height="36" fill="url(#cave)"/>
+<rect x="502" y="204" width="36" height="36" fill="url(#cave)"/>
+<rect x="538" y="204" width="36" height="36" fill="url(#cave)"/>
+<rect x="34" y="240" width="36" height="36" fill="url(#wall)"/>
+<rect x="70" y="240" width="36" height="36" fill="url(#cave)"/>
+<rect x="106" y="240" width="36" height="36" fill="url(#wall)"/>
+<rect x="142" y="240" width="36" height="36" fill="url(#wall)"/>
+<rect x="178" y="240" width="36" height="36" fill="url(#wall)"/>
+<rect x="214" y="240" width="36" height="36" fill="url(#wall)"/>
+<rect x="250" y="240" width="36" height="36" fill="url(#wall)"/>
+<rect x="286" y="240" width="36" height="36" fill="url(#wall)"/>
+<rect x="322" y="240" width="36" height="36" fill="url(#wall)"/>
+<rect x="358" y="240" width="36" height="36" fill="url(#wall)"/>
+<rect x="394" y="240" width="36" height="36" fill="url(#wall)"/>
+<rect x="430" y="240" width="36" height="36" fill="url(#wall)"/>
+<rect x="466" y="240" width="36" height="36" fill="url(#wall)"/>
+<rect x="502" y="240" width="36" height="36" fill="url(#wall)"/>
+<rect x="538" y="240" width="36" height="36" fill="url(#wall)"/>
+<rect x="34" y="276" width="36" height="36" fill="url(#cave)"/>
+<rect x="70" y="276" width="36" height="36" fill="url(#cave)"/>
+<rect x="106" y="276" width="36" height="36" fill="url(#cave)"/>
+<rect x="142" y="276" width="36" height="36" fill="url(#cave)"/>
+<rect x="178" y="276" width="36" height="36" fill="url(#cave)"/>
+<rect x="214" y="276" width="36" height="36" fill="url(#wall)"/>
+<rect x="250" y="276" width="36" height="36" fill="url(#wall)"/>
+<rect x="286" y="276" width="36" height="36" fill="url(#wall)"/>
+<rect x="322" y="276" width="36" height="36" fill="url(#wall)"/>
+<rect x="358" y="276" width="36" height="36" fill="url(#wall)"/>
+<rect x="394" y="276" width="36" height="36" fill="url(#wall)"/>
+<rect x="430" y="276" width="36" height="36" fill="url(#wall)"/>
+<rect x="466" y="276" width="36" height="36" fill="url(#wall)"/>
+<rect x="502" y="276" width="36" height="36" fill="url(#wall)"/>
+<rect x="538" y="276" width="36" height="36" fill="url(#wall)"/>
+<rect x="34" y="312" width="36" height="36" fill="url(#cave)"/>
+<rect x="70" y="312" width="36" height="36" fill="url(#cave)"/>
+<rect x="106" y="312" width="36" height="36" fill="url(#cave)"/>
+<rect x="142" y="312" width="36" height="36" fill="url(#cave)"/>
+<rect x="178" y="312" width="36" height="36" fill="url(#cave)"/>
+<rect x="214" y="312" width="36" height="36" fill="url(#wall)"/>
+<rect x="250" y="312" width="36" height="36" fill="url(#wall)"/>
+<rect x="286" y="312" width="36" height="36" fill="url(#wall)"/>
+<rect x="322" y="312" width="36" height="36" fill="url(#wall)"/>
+<rect x="358" y="312" width="36" height="36" fill="url(#wall)"/>
+<rect x="394" y="312" width="36" height="36" fill="url(#wall)"/>
+<rect x="430" y="312" width="36" height="36" fill="url(#wall)"/>
+<rect x="466" y="312" width="36" height="36" fill="url(#wall)"/>
+<rect x="502" y="312" width="36" height="36" fill="url(#wall)"/>
+<rect x="538" y="312" width="36" height="36" fill="url(#wall)"/>
+<rect x="34" y="348" width="36" height="36" fill="url(#cave)"/>
+<rect x="70" y="348" width="36" height="36" fill="url(#cave)"/>
+<rect x="106" y="348" width="36" height="36" fill="url(#cave)"/>
+<rect x="142" y="348" width="36" height="36" fill="url(#cave)"/>
+<rect x="178" y="348" width="36" height="36" fill="url(#cave)"/>
+<rect x="214" y="348" width="36" height="36" fill="url(#wall)"/>
+<rect x="250" y="348" width="36" height="36" fill="url(#wall)"/>
+<rect x="286" y="348" width="36" height="36" fill="url(#wall)"/>
+<rect x="322" y="348" width="36" height="36" fill="url(#wall)"/>
+<rect x="358" y="348" width="36" height="36" fill="url(#wall)"/>
+<rect x="394" y="348" width="36" height="36" fill="url(#wall)"/>
+<rect x="430" y="348" width="36" height="36" fill="url(#wall)"/>
+<rect x="466" y="348" width="36" height="36" fill="url(#wall)"/>
+<rect x="502" y="348" width="36" height="36" fill="url(#wall)"/>
+<rect x="538" y="348" width="36" height="36" fill="url(#wall)"/>
+<rect x="34" y="384" width="36" height="36" fill="url(#cave)"/>
+<rect x="70" y="384" width="36" height="36" fill="url(#floor)"/>
+<rect x="106" y="384" width="36" height="36" fill="url(#cave)"/>
+<rect x="142" y="384" width="36" height="36" fill="url(#cave)"/>
+<rect x="178" y="384" width="36" height="36" fill="url(#wall)"/>
+<rect x="214" y="384" width="36" height="36" fill="url(#wall)"/>
+<rect x="250" y="384" width="36" height="36" fill="url(#wall)"/>
+<rect x="286" y="384" width="36" height="36" fill="url(#wall)"/>
+<rect x="322" y="384" width="36" height="36" fill="url(#wall)"/>
+<rect x="358" y="384" width="36" height="36" fill="url(#wall)"/>
+<rect x="394" y="384" width="36" height="36" fill="url(#wall)"/>
+<rect x="430" y="384" width="36" height="36" fill="url(#wall)"/>
+<rect x="466" y="384" width="36" height="36" fill="url(#wall)"/>
+<rect x="502" y="384" width="36" height="36" fill="url(#wall)"/>
+<rect x="538" y="384" width="36" height="36" fill="url(#wall)"/>
+<rect x="34" y="420" width="36" height="36" fill="url(#wall)"/>
+<rect x="70" y="420" width="36" height="36" fill="url(#wall)"/>
+<rect x="106" y="420" width="36" height="36" fill="url(#wall)"/>
+<rect x="142" y="420" width="36" height="36" fill="url(#wall)"/>
+<rect x="178" y="420" width="36" height="36" fill="url(#wall)"/>
+<rect x="214" y="420" width="36" height="36" fill="url(#wall)"/>
+<rect x="250" y="420" width="36" height="36" fill="url(#wall)"/>
+<rect x="286" y="420" width="36" height="36" fill="url(#wall)"/>
+<rect x="322" y="420" width="36" height="36" fill="url(#wall)"/>
+<rect x="358" y="420" width="36" height="36" fill="url(#wall)"/>
+<rect x="394" y="420" width="36" height="36" fill="url(#wall)"/>
+<rect x="430" y="420" width="36" height="36" fill="url(#wall)"/>
+<rect x="466" y="420" width="36" height="36" fill="url(#wall)"/>
+<rect x="502" y="420" width="36" height="36" fill="url(#wall)"/>
+<rect x="538" y="420" width="36" height="36" fill="url(#wall)"/>
+<rect x="34" y="456" width="36" height="36" fill="url(#wall)"/>
+<rect x="70" y="456" width="36" height="36" fill="url(#wall)"/>
+<rect x="106" y="456" width="36" height="36" fill="url(#wall)"/>
+<rect x="142" y="456" width="36" height="36" fill="url(#wall)"/>
+<rect x="178" y="456" width="36" height="36" fill="url(#wall)"/>
+<rect x="214" y="456" width="36" height="36" fill="url(#wall)"/>
+<rect x="250" y="456" width="36" height="36" fill="url(#wall)"/>
+<rect x="286" y="456" width="36" height="36" fill="url(#wall)"/>
+<rect x="322" y="456" width="36" height="36" fill="url(#wall)"/>
+<rect x="358" y="456" width="36" height="36" fill="url(#wall)"/>
+<rect x="394" y="456" width="36" height="36" fill="url(#wall)"/>
+<rect x="430" y="456" width="36" height="36" fill="url(#wall)"/>
+<rect x="466" y="456" width="36" height="36" fill="url(#wall)"/>
+<rect x="502" y="456" width="36" height="36" fill="url(#wall)"/>
+<rect x="538" y="456" width="36" height="36" fill="url(#wall)"/>
+<rect x="74" y="388" width="28" height="28" rx="6" class="warp"/>
+<rect x="33" y="23" width="542" height="470" rx="6" class="frame"/>
+<polyline points="304.0,222.0 268.0,222.0 232.0,222.0 196.0,222.0 160.0,222.0 124.0,222.0 88.0,222.0 88.0,258.0 88.0,294.0 88.0,330.0 88.0,366.0 88.0,402.0" class="route" marker-end="url(#aroute)"/>
+<circle cx="88.0" cy="402.0" r="12" class="goal"/><path d="M83.0,402.0 l4,4 l7,-8" class="tick"/>
+<circle cx="304.0" cy="222.0" r="12" class="player"/><circle cx="300.0" cy="220.0" r="2" class="eye"/><circle cx="308.0" cy="220.0" r="2" class="eye"/>
+</svg></div></div></div>
+
+<h2>The new rule</h2>
+<p class="cap" style="margin-top:0">This mirrors the game's own check for a step (<code>GetCollisionAtCoords</code> and <code>CheckForObjectEventCollision</code>). The tile's behavior only matters when the game does something special with it.</p>
+<div class="card scroll"><svg viewBox="0 0 900 300" role="img" aria-label="Decision flow for one step">
+<g class="node"><rect x="20" y="118" width="150" height="62" rx="12"/><text x="95" y="144" class="nt">Next tile</text><text x="95" y="162" class="ns">in the 15×15 grid</text></g>
+<path d="M170,149 H222" class="flow" marker-end="url(#aflow)"/>
+<g class="node"><rect x="226" y="118" width="170" height="62" rx="12"/><text x="311" y="144" class="nt">Collision bit set?</text><text x="311" y="162" class="ns">drawn as #</text></g>
+<path d="M311,118 V64 H470" class="flow" marker-end="url(#aflow)"/><text x="320" y="96" class="fl">yes</text>
+<g class="node no"><rect x="474" y="34" width="190" height="56" rx="12"/><text x="569" y="58" class="nt">Wall</text><text x="569" y="76" class="ns">unchanged (doors from below)</text></g>
+<path d="M396,149 H470" class="flow" marker-end="url(#aflow)"/><text x="410" y="140" class="fl">no</text>
+<g class="node hot"><rect x="474" y="112" width="190" height="74" rx="12"/><text x="569" y="138" class="nt">Special behavior?</text><text x="569" y="156" class="ns">water, slides, ice, holes,</text><text x="569" y="172" class="ns">one-way, ledges, bike rails</text></g>
+<path d="M664,130 H700 V64 H716" class="flow" marker-end="url(#aflow)"/><text x="672" y="122" class="fl">yes</text>
+<g class="node no"><rect x="720" y="34" width="160" height="56" rx="12"/><text x="800" y="58" class="nt">Refused</text><text x="800" y="76" class="ns">see table below</text></g>
+<path d="M664,168 H700 V232 H716" class="flow" marker-end="url(#aflow)"/><text x="672" y="186" class="fl">no</text>
+<g class="node yes"><rect x="720" y="204" width="160" height="56" rx="12"/><text x="800" y="228" class="nt">Walk on it</text><text x="800" y="246" class="ns">sand, cave, rugs, bridges…</text></g>
+<g class="node"><rect x="226" y="226" width="438" height="50" rx="12" style="stroke-dasharray:5 4"/><text x="445" y="248" class="nt">Then, unchanged: elevation, objects, warps only as the target</text><text x="445" y="265" class="ns">(the stairs/bridge elevation fix is a separate thread)</text></g>
+</svg></div>
+<p class="cap">Only the highlighted box changed. Before, it was a short allow-list; now it is the game's short list of exceptions.</p>
+
+<h2>What opened up, across every map in the game</h2>
+<p class="cap" style="margin-top:0">Collision-free tiles in every pokeemerald layout that the old planner refused and the new one accepts, by tile behavior.</p>
+<div class="card scroll"><svg viewBox="0 0 720 346" role="img" aria-label="Tiles opened by behavior"><text x="200" y="25" class="bl">Cave floor <tspan class="bh">0x08</tspan></text><rect x="210" y="10" width="430.0" height="22" rx="5" class="bar"/><text x="646.0" y="26" class="bv">15,997</text><text x="200" y="55" class="bl">Mountain top <tspan class="bh">0x0C</tspan></text><rect x="210" y="40" width="110.5" height="22" rx="5" class="bar"/><text x="326.5" y="56" class="bv">4,110</text><text x="200" y="85" class="bl">Shallow water <tspan class="bh">0x17</tspan></text><rect x="210" y="70" width="83.8" height="22" rx="5" class="bar"/><text x="299.8" y="86" class="bv">3,116</text><text x="200" y="115" class="bl">Sand <tspan class="bh">0x21</tspan></text><rect x="210" y="100" width="59.7" height="22" rx="5" class="bar"/><text x="275.7" y="116" class="bv">2,221</text><text x="200" y="145" class="bl">Indoor encounter floor <tspan class="bh">0x0B</tspan></text><rect x="210" y="130" width="54.9" height="22" rx="5" class="bar"/><text x="270.9" y="146" class="bv">2,043</text><text x="200" y="175" class="bl">Deep sand <tspan class="bh">0x06</tspan></text><rect x="210" y="160" width="18.5" height="22" rx="5" class="bar"/><text x="234.5" y="176" class="bv">687</text><text x="200" y="205" class="bl">Puddle <tspan class="bh">0x16</tspan></text><rect x="210" y="190" width="17.4" height="22" rx="5" class="bar"/><text x="233.4" y="206" class="bv">646</text><text x="200" y="235" class="bl">Bridge over ocean <tspan class="bh">0x70</tspan></text><rect x="210" y="220" width="14.5" height="22" rx="5" class="bar"/><text x="230.5" y="236" class="bv">540</text><text x="200" y="265" class="bl">Long grass edge <tspan class="bh">0x09</tspan></text><rect x="210" y="250" width="9.0" height="22" rx="5" class="bar"/><text x="225.0" y="266" class="bv">335</text><text x="200" y="295" class="bl">Ash grass <tspan class="bh">0x24</tspan></text><rect x="210" y="280" width="7.7" height="22" rx="5" class="bar"/><text x="223.7" y="296" class="bv">287</text><text x="200" y="325" class="bl">Everything else <tspan class="bh"></tspan></text><rect x="210" y="310" width="63.6" height="22" rx="5" class="bar"/><text x="279.6" y="326" class="bv">2,365</text></svg></div>
+
+<h2>What stays refused, and why</h2>
+<div class="card scroll"><table>
+<tr><th>Tiles</th><th>Behaviors</th><th>Why the planner refuses them</th></tr>
+<tr><td>Surfable water</td><td><code>0x10–0x15 0x19 0x22 0x2A 0x50–0x53 0x6C 0x6D 0x6F</code></td><td>Needs Surf. The game marks these <code>TILE_FLAG_SURFABLE</code>.</td></tr>
+<tr><td>Forced movement</td><td><code>0x20 0x40–0x48 0xBB 0xBC 0xD0 0xD2</code></td><td>Ice, arrow and slide tiles, muddy slope, cracked floor, jump and spin mats move you on their own, so one press is no longer one tile.</td></tr>
+<tr><td>Thin and cracked ice</td><td><code>0x26 0x27</code></td><td>Sootopolis gym ice cracks, then drops you.</td></tr>
+<tr><td>Holes and step warps</td><td><code>0x0D–0x0F 0x29 0x66</code></td><td>Stepping on them warps or drops you.</td></tr>
+<tr><td>One-way tiles</td><td><code>0x30–0x37 0xC0 0xC1</code></td><td>Blocked from some sides only. Still walls here; the chair thread handles them.</td></tr>
+<tr><td>Ledges</td><td><code>0x38–0x3F</code></td><td>Walls when walking; the <code>ledge-hops-v1</code> switch hops them in their arrow direction.</td></tr>
+<tr><td>Acro Bike tiles</td><td><code>0xD1 0xD3–0xD6</code></td><td>Bumpy slope and rails refuse a walking player (<code>CheckAcroBikeCollision</code>).</td></tr>
+</table></div>
+<p class="cap">Source: pret/pokeemerald 731ad5b, <code>src/event_object_movement.c</code>, <code>src/field_player_avatar.c</code>, <code>src/metatile_behavior.c</code>. The only tiles that went the other way are 15 water-door tiles (<code>0x6C 0x6D</code>), which the old list let you walk into although the game needs Surf.</p>
+
+<h2>Status</h2>
+<div class="card"><table>
+<tr><td>Branch</td><td><code>claude/walkable-floor</code> in <code>/private/tmp/pokebench-walkable-floor</code>, latest main merged (includes ledge hops).</td></tr>
+<tr><td>Tests</td><td class="ok">agent 900/900, viewer 419/419, lint clean, coverage above the 90% floor</td></tr>
+<tr><td>Real-RAM replay</td><td class="ok">Your human run: 12,515 targets drawn as <code>.</code>; reachable went from 5,092 to 7,280. 2,188 newly reachable, 0 lost.</td></tr>
+<tr><td>Switch</td><td>None. It is a correctness fix to <code>bounded-navigation-v1</code>, so runs with that switch on now walk on sand and cave floor.</td></tr>
+<tr><td>Review</td><td>Round 1: Claude and Codex caught the jump/spin mat values (0xBB/0xBC) and undefined bytes ≥ 0xF0; both fixed. Round 2 pending.</td></tr><tr><td>Not done</td><td class="todo">Merge to main (needs your OK); no measured runs.</td></tr>
+</table></div>
+</main></body></html>

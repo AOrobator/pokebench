@@ -37,6 +37,14 @@ Every results report and its primary split graphs must include these reference c
 
 Plot individual candidate outcomes or spread with completion counts, a visible human reference and the historical references on the same native milestone/time basis. Use a separate frontier panel when the human reaches much farther; do not hide gym results by graphing only naming/clock. Missing, censored and historically unobserved splits are not zero or proof of failure. Pair graph values with native event sequence, source/config and immutable log hashes. Report absolute seconds and gaps versus each available reference, not only treatment-versus-treatment percentages. A single best run describes a record, not a reliable configuration or promotion.
 
+### Default visual: cumulative milestone lines
+
+Use the approved early-splits plus full-frontier line-chart format for PokeBench reports and comparison UI. Put ordered native milestones on X and cumulative active elapsed minutes on Y (lower is faster). Keep the human line and best valid actual agent-run line visible as reference anchors; overlay the chosen candidate runs/cohort summaries and prior matched baseline with consistent colors. Show individual outcomes or spread and completion counts alongside cohort medians. Use separate early and full-frontier panels so gym/badge timing does not flatten naming/clock detail. The approved example is `runs/reports/dialogue-information-think-fast-n4/reference-v2/reference-splits.png` with its source-qualified data sidecar.
+
+Fit interactive graphs to the available width without horizontal scrolling; let the user select additional runs/configurations while retaining reference anchors. Break lines at missing/unsupported milestones, and distinguish no completion before a cap from an unrecorded event. A best-progress run can be slower at early splits: never replace its points with a cross-run record envelope. Changes in best observed frontier across builds remain historical context, not automatic promotion or proof of a causal improvement. Use a bounded streaming reduction or qualified compact index for large human logs rather than loading the entire raw history just to draw a few splits.
+
+The story frontier axis contains game-advancing events and required progression locations, not optional detours. Follow the story-milestone skill; expose existing house-entry, rival-bedroom and completed rival-introduction splits rather than hiding them inside a home-to-rival gap. Optional lab/aide visits may appear in diagnostic history but must not increase milestone completion counts or the achieved story frontier.
+
 ## Track and restore the incumbent
 
 Maintain an append-only promotion/regression ledger and immutable named presets per compatible model/environment lane. Each preset records:

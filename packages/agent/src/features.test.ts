@@ -9,7 +9,7 @@ it("describes every switchable and measurement feature exactly once", () => {
   expect(FEATURES.map((f) => f.id).sort()).toEqual([...SWITCHABLE_FEATURES, ...MEASUREMENT_FEATURES].sort());
   expect(FEATURES.filter((f) => f.switchable).map((f) => f.id)).toEqual([...SWITCHABLE_FEATURES]);
   expect(FEATURES.filter((f) => f.group === "observation")).toHaveLength(14);
-  expect(FEATURES.filter((f) => f.group === "guidance")).toHaveLength(14);
+  expect(FEATURES.filter((f) => f.group === "guidance")).toHaveLength(15);
   expect(FEATURES.filter((f) => f.group === "guard")).toHaveLength(6);
   for (const f of FEATURES) {
     expect(f.title).not.toBe("");
@@ -21,8 +21,8 @@ it("describes every switchable and measurement feature exactly once", () => {
 
 it("retains the legacy information list while adding mandatory raw recording", () => {
   const recorded = [...LEGACY_DEFAULT.slice(0,25), "full-raw-ram-v1", ...LEGACY_DEFAULT.slice(25)];
-  expect(playHarnessFeatures(off("navigation-evidence-memory-v1","field-dialogue-phase-v1","dialogue-safe-batches-v1","interaction-loop-detection-v1","automatic-running-v1","expanded-menu-battle-information-v1","state-only-decisions-v1","named-interactions-v1","world-destinations-v1","bounded-navigation-v1","ledge-hops-v1","one-way-tiles-v1","counter-talk-v1","full-map-navigation-v1","elevation-transitions-v1"), null)).toEqual(recorded);
-  expect(playHarnessFeatures(off("navigation-evidence-memory-v1","field-dialogue-phase-v1","dialogue-safe-batches-v1","interaction-loop-detection-v1","automatic-running-v1","expanded-menu-battle-information-v1","state-only-decisions-v1","named-interactions-v1","world-destinations-v1","bounded-navigation-v1","ledge-hops-v1","one-way-tiles-v1","counter-talk-v1","full-map-navigation-v1","elevation-transitions-v1"), "PLAYER_NAME_CONFIRMED")).toEqual([...recorded.slice(0, 27), "native-target-stop-v1", ...recorded.slice(27)]);
+  expect(playHarnessFeatures(off("navigation-evidence-memory-v1","field-dialogue-phase-v1","dialogue-safe-batches-v1","interaction-loop-detection-v1","automatic-running-v1","expanded-menu-battle-information-v1","state-only-decisions-v1","named-interactions-v1","world-destinations-v1","bounded-navigation-v1","ledge-hops-v1","one-way-tiles-v1","counter-talk-v1","full-map-navigation-v1","grass-cost-navigation-v1","elevation-transitions-v1"), null)).toEqual(recorded);
+  expect(playHarnessFeatures(off("navigation-evidence-memory-v1","field-dialogue-phase-v1","dialogue-safe-batches-v1","interaction-loop-detection-v1","automatic-running-v1","expanded-menu-battle-information-v1","state-only-decisions-v1","named-interactions-v1","world-destinations-v1","bounded-navigation-v1","ledge-hops-v1","one-way-tiles-v1","counter-talk-v1","full-map-navigation-v1","grass-cost-navigation-v1","elevation-transitions-v1"), "PLAYER_NAME_CONFIRMED")).toEqual([...recorded.slice(0, 27), "native-target-stop-v1", ...recorded.slice(27)]);
 });
 
 it("drops exactly the switched-off id and round-trips through recorded features", () => {
@@ -47,7 +47,7 @@ it("hands the game server only its own observation switches", () => {
 });
 
 it("keeps the objective record from outliving the RAM readout", () => {
-  expect(dependencyProblems(off("navigation-evidence-memory-v1","field-dialogue-phase-v1","dialogue-safe-batches-v1","interaction-loop-detection-v1","automatic-running-v1","expanded-menu-battle-information-v1", "state-only-decisions-v1", "named-interactions-v1", "world-destinations-v1", "bounded-navigation-v1", "ledge-hops-v1", "one-way-tiles-v1","counter-talk-v1","full-map-navigation-v1", "ram-state-v1", "live-map-v1", "live-player-position-v1", "world-coordinate-grid-v1", "live-object-sprites-v1", "world-targets-v1", "active-field-message-buffer-v1", "naming-cursor-v1", "story-state-v1", "coordinate-script-conditions-v1", "active-ui-ownership-v1", "press-result-v1", "field-control-lock", "warp-activation-guidance-v1"))).toEqual(["objective-tracking-v1 needs ram-state-v1"]);
+  expect(dependencyProblems(off("navigation-evidence-memory-v1","field-dialogue-phase-v1","dialogue-safe-batches-v1","interaction-loop-detection-v1","automatic-running-v1","expanded-menu-battle-information-v1", "state-only-decisions-v1", "named-interactions-v1", "world-destinations-v1", "bounded-navigation-v1", "ledge-hops-v1", "one-way-tiles-v1","counter-talk-v1","full-map-navigation-v1","grass-cost-navigation-v1", "ram-state-v1", "live-map-v1", "live-player-position-v1", "world-coordinate-grid-v1", "live-object-sprites-v1", "world-targets-v1", "active-field-message-buffer-v1", "naming-cursor-v1", "story-state-v1", "coordinate-script-conditions-v1", "active-ui-ownership-v1", "press-result-v1", "field-control-lock", "warp-activation-guidance-v1"))).toEqual(["objective-tracking-v1 needs ram-state-v1"]);
 });
 
 it("records and delivers the independently switchable interaction-name treatment",()=>{
@@ -59,7 +59,7 @@ it("records and delivers the independently switchable interaction-name treatment
 
 it("registers whole-map navigation as a navigation-dependent server treatment recorded last",()=>{
  expect(featureInfo("full-map-navigation-v1")).toMatchObject({group:"guidance",needs:"bounded-navigation-v1",switchable:true});
- expect(playHarnessFeatures(ALL_ON,null).at(-2)).toBe("full-map-navigation-v1");
+ expect(playHarnessFeatures(ALL_ON,null).at(-3)).toBe("full-map-navigation-v1");
  expect(serverFeatureEnv(off("full-map-navigation-v1")).POKEBENCH_FEATURES_OFF).toBe("full-map-navigation-v1");
  expect(dependencyProblems(off("bounded-navigation-v1"))).toContain("full-map-navigation-v1 needs bounded-navigation-v1");
 });
@@ -83,7 +83,7 @@ it("registers the elevation transitions switch as a planner-only guidance featur
  expect(featureInfo("elevation-transitions-v1").description).toMatch(/stairs/);
  expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe("elevation-transitions-v1");
  expect(serverFeatureEnv(off("elevation-transitions-v1")).POKEBENCH_FEATURES_OFF).toBe("");
- expect(dependencyProblems(off("bounded-navigation-v1","full-map-navigation-v1"))).toEqual([]);
+ expect(dependencyProblems(off("bounded-navigation-v1","full-map-navigation-v1","grass-cost-navigation-v1"))).toEqual([]);
 });
 
 it("records counter talk as a server-side map treatment that needs the live map",()=>{
@@ -91,4 +91,11 @@ it("records counter talk as a server-side map treatment that needs the live map"
  expect(featureInfo("counter-talk-v1").description).toMatch(/talk across/);
  expect(playHarnessFeatures(ALL_ON,null)).toContain("counter-talk-v1");
  expect(serverFeatureEnv(off("counter-talk-v1")).POKEBENCH_FEATURES_OFF).toBe("counter-talk-v1");
+});
+
+it("records grass cost as an agent-side planner treatment that needs bounded navigation",()=>{
+ expect(featureInfo("grass-cost-navigation-v1")).toMatchObject({group:"guidance",needs:"bounded-navigation-v1",switchable:true});
+ expect(dependencyProblems(off("bounded-navigation-v1"))).toContain("grass-cost-navigation-v1 needs bounded-navigation-v1");
+ expect(playHarnessFeatures(ALL_ON,null).at(-2)).toBe("grass-cost-navigation-v1");
+ expect(serverFeatureEnv(off("grass-cost-navigation-v1")).POKEBENCH_FEATURES_OFF).toBe("");
 });

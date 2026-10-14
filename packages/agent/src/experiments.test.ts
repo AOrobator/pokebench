@@ -34,7 +34,7 @@ it("rejects malformed definitions, unknown milestones, short arms, tiny budgets 
  expect(()=>parseExperiment({...base,source:{checkout:"main",commit:"abc"}})).toThrow(/Invalid experiment/);
  expect(()=>parseExperiment({...base,incumbent:{...base.incumbent,version:1}})).toThrow(/Invalid experiment/);
  // Flipping bounded navigation off leaves full-map on without its dependency.
- expect(()=>parseExperiment({...base,changedFeature:"bounded-navigation-v1",incumbent:{...base.incumbent,features:{...features,"full-map-navigation-v1":true}}})).toThrow(/candidate: full-map-navigation-v1 needs bounded-navigation-v1/);
+ expect(()=>parseExperiment({...base,changedFeature:"bounded-navigation-v1",incumbent:{...base.incumbent,features:{...features,"full-map-navigation-v1":true}}})).toThrow(/candidate: .*full-map-navigation-v1 needs bounded-navigation-v1/);
  expect(()=>parseExperiment({...base,incumbent:{...base.incumbent,features:{...features,"live-map-v1":false}}})).toThrow(/Invalid play preset/);
 });
 

@@ -9,7 +9,7 @@
  "queuePosition": 2,
  "source": {
   "checkout": "main",
-  "commit": "2c73b02b5c37391848a45eadfaf671d0c7bd1da6"
+  "commit": "a3c343bdbe245dbe4d22dd2fe413a1bed66fa36d"
  },
  "incumbent": {
   "version": 2,
@@ -58,7 +58,8 @@
    "repeat-attempt-guard-v1": false,
    "native-objective-completion-v1": false,
    "full-map-navigation-v1": false,
-   "elevation-transitions-v1": true
+   "elevation-transitions-v1": true,
+   "grass-cost-navigation-v1": false
   }
  },
  "trialsPerArm": 4,

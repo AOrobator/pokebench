@@ -76,3 +76,12 @@ Left as speculation: object elevation is not in navigation_grid (Codex found no 
 - [x] GREEN: FEATURE_EXPLAINERS lists counter-talk-v1; explainer status refreshed. 921 agent + 478 viewer tests, 1829 Python; gates green. Review-note follow-ups only (allowlist entry, docs); no reviewed logic changed.
 - Merged main 353a3d1 (full-map navigation restructured live_map.py into shared `_cells`/`_details`/`_symbol` and navigation.ts into a `Geometry` over local or whole-map grids). Counter handling re-applied on that structure: `=` in `_symbol`, `counters` through `_cells`/`_details` for both LocalMap and FullMap, `counterHint` now reads the same `Geometry` so it works in whole-map mode. New tests: whole-map `=`/off, full-mode navigate_to hint, malformed local geometry stays quiet. Counts: 13 guidance switches, 21 server features, 33 viewer rows. 939 agent + 478 viewer tests, 1847 Python; gates green; vendor OK.
 - Merged main 4fec90f (viewer feature search) cleanly; gates green. Recorded probe on 55c78b5 (clean) with whole-map navigation on: `runs/counter-proof/recorded/2026-10-14T20-05-29_probe_counter_talk`, 644 events; whole-map row 3 `....###=##....` with legend; navigate_to (7,2) seq 589->591 and (7,3) 593->595, 0 presses each; UP 623, A 632, nurse greeting 637/641. Explainer status refreshed.
+
+Round 3 (head e66594b, base main 4fec90f, diff SHA-256 6a6011df…): Claude CLI LGTM, Codex
+(gpt-5.6-sol, high) LGTM, Cursor Grok 4.5 LGTM. Taken: explainer wiring label now covers the
+whole-map text. Noted, not changed: the probe ran at 55c78b5, which differs from the reviewed head
+only in docs/worklog; Codex classes the viewer explainer link as scope expansion, but CLAUDE.md and
+the feature-explainer skill require it; first-direction stand tile and object elevation remain
+speculation; `local_map` recorded text keeps defaults like its siblings (frozen non-goal).
+
+Status: ready for operator review. Not merged; awaiting approval to merge into main.

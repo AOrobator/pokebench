@@ -578,7 +578,7 @@ code{font:13px ui-monospace,Menlo,monospace;overflow-wrap:anywhere}.vs>*{min-wid
 <path d="M160,70 C200,70 200,35 240,35" class="flow" marker-end="url(#aflow)"/><text x="172" y="40" class="fl">server env</text>
 <path d="M160,96 C200,96 200,131 240,131" class="flow" marker-end="url(#aflow)"/><text x="168" y="140" class="fl">agent tools</text>
 <g class="node"><rect x="245" y="5" width="190" height="60" rx="10"/><text x="340" y="30" class="nt">POKEBENCH_FEATURES_OFF</text><text x="340" y="50" class="ns">readout.py</text></g>
-<g class="node hot"><rect x="485" y="5" width="190" height="60" rx="10"/><text x="580" y="30" class="nt">LocalMap.text(counters=)</text><text x="580" y="50" class="ns">= glyph + legend clause</text></g>
+<g class="node hot"><rect x="485" y="5" width="190" height="60" rx="10"/><text x="580" y="30" class="nt">Local / whole-map text</text><text x="580" y="50" class="ns">counters= : = glyph + legend</text></g>
 <path d="M435,35 H480" class="flow" marker-end="url(#aflow)"/>
 <g class="node"><rect x="245" y="101" width="190" height="60" rx="10"/><text x="340" y="126" class="nt">withNavigation</text><text x="340" y="146" class="ns">ports.counters</text></g>
 <g class="node hot"><rect x="485" y="101" width="190" height="60" rx="10"/><text x="580" y="126" class="nt">counterHint()</text><text x="580" y="146" class="ns">only on a failed plan</text></g>
@@ -593,7 +593,7 @@ code{font:13px ui-monospace,Menlo,monospace;overflow-wrap:anywhere}.vs>*{min-wid
 <tr><td>Branch</td><td><code>claude/counter-tiles</code> (local worktree), merged with current <code>main</code> including ledge hops, one-way tiles, elevation transitions and whole-map navigation</td></tr>
 <tr><td>Checks</td><td><span class="ok">Passing:</span> vitest (agent and viewer), pytest, coverage floor 90 on both stacks, tsc/eslint/ruff/mypy, vendor pin.</td></tr>
 <tr><td>Live proof</td><td>Recorded run on the real ROM from <code>torchic.state</code>: Route 101 → Oldale Town → Pokémon Center 1F. Event log shows the hint with 0 button presses, then the route and the nurse's greeting. The latest probe ran with whole-map navigation on: the whole-map readout row 3 reads <code>....###=##....</code>.</td></tr>
-<tr><td>Review</td><td>Round 1: Claude and Grok LGTM; Codex blocked on four points, all fixed. Round 2: Claude, Codex and Grok LGTM. Round 3 (after the whole-map merge) pending at time of writing.</td></tr>
+<tr><td>Review</td><td>Round 1: Claude and Grok LGTM; Codex blocked on four points, all fixed. Round 2: Claude, Codex and Grok LGTM. Round 3 (after the whole-map merge): Claude, Codex and Grok LGTM.</td></tr>
 <tr><td>Viewer</td><td>The PokeNav configuration card links here (READ EXPLAINER).</td></tr>
 <tr><td>Not done</td><td>No measured runs. This changes what the model sees; whether it helps is a patch evaluation question.</td></tr>
 </table></div>

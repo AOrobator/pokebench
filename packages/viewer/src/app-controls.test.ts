@@ -155,6 +155,7 @@ describe("★ NEXT RUN on the page", () => {
     const { app } = await mount({ "story-state-v1": { on: { runs: 2, reached: { NEW_GAME_CREATED: 2 }, medianMs: { NEW_GAME_CREATED: 30_000 } }, off: { runs: 2, reached: { NEW_GAME_CREATED: 1 }, medianMs: { NEW_GAME_CREATED: 60_000 } } } });
     const toggle = ui("switchboard").querySelector<HTMLButtonElement>('[data-expand="story-state-v1"]');
     toggle?.click();
+    await Promise.resolve();await Promise.resolve();
     expect(ui("switchboard").textContent).toContain("MEDIAN SPLIT · ON");
     ui("switchboard").querySelector<HTMLButtonElement>('[data-expand="story-state-v1"]')?.click();
     expect(ui("switchboard").textContent).not.toContain("MEDIAN SPLIT · ON");

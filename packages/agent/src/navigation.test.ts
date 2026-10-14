@@ -431,3 +431,57 @@ it("the tool plans with the legacy elevation rule only when the switch is off",a
  await navigationTool(ports).execute("nav",{x:2,y:0,map_id:[0,9]});
  expect(pressed).toEqual([{buttons:["RIGHT"]}]);
 });
+
+it("never walks onto a counter and says where to stand to talk across one",async()=>{
+ const counter={...field,position:{x:0,y:2},navigation_grid:{elevation:3,tiles:[tile(0,0),tile(1,0),tile(2,0),tile(0,1,1,0x80),tile(1,1,1,0x80),tile(2,1,1,0x80),tile(0,2),tile(1,2),tile(2,2)],objects:[{x:1,y:0}],warps:[]}};
+ expect(planNavigation(counter,{x:1,y:1})).toBeNull();
+ expect(planNavigation(counter,{x:0,y:0})).toBeNull();
+ const status=async(goal:{x:number;y:number},on=true):Promise<[string|null,number]>=>{
+  let presses=0;const tool=navigationTool({counters:on,read:()=>Promise.resolve(counter),press:()=>{presses++;return Promise.resolve(result(counter));},observe:()=>Promise.resolve(result(counter))});
+  const outcome=await tool.execute("nav",{...goal,map_id:[0,9]},new AbortController().signal);
+  return [outcome.content[0]?.type==="text"?outcome.content[0].text:null,presses];
+ };
+ const generic="target is a counter or behind one; you cannot stand on a counter, but you can face it from a reachable adjacent tile and press A to talk to someone behind it";
+ const across="target is behind a counter; walk to (1,2), face UP toward the counter at (1,1) and press A to talk across it";
+ for(const goal of [{x:1,y:0},{x:1,y:1}]){const [text,presses]=await status(goal);expect(presses).toBe(0);expect(text).toContain(across);}
+ const [empty]=await status({x:2,y:1});
+ expect(empty).toContain(generic);
+ const [nobody]=await status({x:0,y:0});
+ const [off]=await status({x:1,y:0},false);
+ expect(off).toContain("no supported local path");expect(off).not.toContain("counter");
+ expect(nobody).toContain("no supported local path");
+});
+
+it("names a stand tile only when navigate_to could reach it",async()=>{
+ const base={elevation:3,tiles:[tile(0,0),tile(1,0),tile(0,1,1,0x80),tile(1,1),tile(0,2),tile(1,2)],objects:[{x:0,y:0}],warps:[]};
+ const hint=async(grid:typeof base):Promise<string|null>=>{
+  const state={...field,position:{x:1,y:2},navigation_grid:grid};
+  const outcome=await navigationTool({counters:true,read:()=>Promise.resolve(state),press:()=>Promise.reject(new Error("pressed")),observe:()=>Promise.resolve(result(state))}).execute("nav",{x:0,y:0,map_id:[0,9]},new AbortController().signal);
+  return outcome.content[0]?.type==="text"?outcome.content[0].text:null;
+ };
+ expect(await hint(base)).toContain("walk to (0,2), face UP toward the counter at (0,1)");
+ const generic="target is a counter or behind one; you cannot stand on a counter, but you can face it from a reachable adjacent tile";
+ for(const blocked of [
+  {...base,tiles:base.tiles.map(t=>t.x===0&&t.y===2?tile(0,2,1):t)},
+  {...base,tiles:base.tiles.map(t=>t.x===0&&t.y===2?tile(0,2,0,0x10):t)},
+  {...base,tiles:base.tiles.map(t=>t.x===0&&t.y===2?tile(0,2,0,0,4):t),elevation:3},
+  {...base,objects:[...base.objects,{x:0,y:2}]},
+  {...base,tiles:base.tiles.filter(t=>!(t.x===0&&t.y===2))},
+ ]){const text=await hint(blocked);expect(text).toContain(generic);expect(text).not.toContain("walk to (");}
+ const sideways={elevation:3,tiles:[tile(0,0),tile(1,0,1,0x80),tile(2,0),tile(2,1)],objects:[{x:0,y:0}],warps:[]};
+ const state={...field,position:{x:2,y:1},navigation_grid:sideways};
+ const outcome=await navigationTool({counters:true,read:()=>Promise.resolve(state),press:()=>Promise.reject(new Error("pressed")),observe:()=>Promise.resolve(result(state))}).execute("nav",{x:0,y:0,map_id:[0,9]},new AbortController().signal);
+ expect(outcome.content[0]?.type==="text"?outcome.content[0].text:null).toContain("walk to (2,0), face LEFT toward the counter at (1,0)");
+});
+
+it("gives the counter hint on the whole map and stays quiet on malformed local geometry",async()=>{
+ const center=mapGrid(5,8,(x,y)=>y===1&&x===2?{collision:1,behavior:0x80}:y<=1&&x!==2?{collision:1}:{},{objects:[{x:2,y:0}]});
+ const state=fullField(center,{x:4,y:7});
+ const hint=async(s:GameStateSnapshot,fullMap:boolean):Promise<string|null>=>{
+  const outcome=await navigationTool({fullMap,counters:true,read:()=>Promise.resolve(s),press:()=>Promise.reject(new Error("pressed")),observe:()=>Promise.resolve(result(s))}).execute("nav",{x:2,y:0,map_id:[0,9]},new AbortController().signal);
+  return outcome.content[0]?.type==="text"?outcome.content[0].text:null;
+ };
+ expect(await hint(state,true)).toContain("target is behind a counter; walk to (2,2), face UP toward the counter at (2,1) and press A to talk across it");
+ const duplicated={...field,navigation_grid:{...grid,tiles:[...grid.tiles,tile(0,0)],objects:[{x:2,y:0}]}};
+ const text=await hint(duplicated,false);expect(text).toContain("no supported local path");expect(text).not.toContain("counter");
+});

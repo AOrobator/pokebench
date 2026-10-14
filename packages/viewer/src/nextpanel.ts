@@ -49,6 +49,9 @@ export class NextRunPanel {
   private live: ReadonlySet<string> | null = null;
   private liveView: RunView | null = null;
   private saving = 0;
+  private historyLoaded = false;
+  private historyLoading = false;
+  private historyRequest = 0;
 
   constructor(private readonly doc: Document, private readonly deps: PanelDeps) {}
 
@@ -74,19 +77,22 @@ export class NextRunPanel {
     } catch (error) {
       this.modelsProblem = String(error);
     }
-    await this.refreshHistory();
     this.wire();
     this.render();
   }
 
-  private async refreshHistory(): Promise<void> {
+  private async refreshHistory(force = false): Promise<void> {
+    if (this.historyLoading && !force) return;
+    const request = ++this.historyRequest;
+    this.historyLoading = true;
     try {
       const value = await this.deps.fetchJson("/api/features/history");
+      if (request !== this.historyRequest) return;
       if (!isRecord(value)) throw new Error("malformed history payload");
-      this.history = value;
+      this.history = value; this.historyLoaded = true;
     } catch (error) {
-      this.deps.problem(`feature history: ${String(error)}`);
-    }
+      if (request === this.historyRequest) this.deps.problem(`feature history: ${String(error)}`);
+    } finally { if (request === this.historyRequest) this.historyLoading = false; }
   }
 
   // The live run keeps its own features; the switchboard flags differences.
@@ -101,6 +107,7 @@ export class NextRunPanel {
 
   private async save(draft: NextRunDraft): Promise<void> {
     this.draft = draft;
+    this.historyRequest += 1; this.historyLoading = false; this.historyLoaded = false;
     this.render();
     const request = ++this.saving;
     try {
@@ -108,7 +115,7 @@ export class NextRunPanel {
       if (request !== this.saving) return;
       this.draft = draftOf(reply);
       this.queue = queueOf(reply);
-      await this.refreshHistory();
+      await this.refreshHistory(true);
     } catch (error) {
       this.deps.problem(`save next run: ${String(error)}`);
     }
@@ -194,6 +201,7 @@ export class NextRunPanel {
       const button = (event.target as HTMLElement).closest<HTMLElement>("[data-expand]");
       const id = button?.dataset.expand;
       if (id === undefined) return;
+      if (!this.historyLoaded) void this.refreshHistory().then(() => { this.render(); });
       if (this.expanded.has(id)) this.expanded.delete(id);
       else this.expanded.add(id);
       this.render();
@@ -255,7 +263,7 @@ export class NextRunPanel {
     if (target.innerHTML !== targets) target.innerHTML = targets;
     target.value = draft.target ?? "";
     const locked = this.queue.state === "queued" || this.queue.state === "launching";
-    this.setHtml("switchboard", switchboard({ features: this.registry, draft, live: this.live, history: this.history, expanded: this.expanded, locked }));
+    this.setHtml("switchboard", switchboard({ features: this.registry, draft, live: this.live, history: this.history, historyLoaded: this.historyLoaded, expanded: this.expanded, locked }));
     // The queued run launches with the settings it was queued with: editing is
     // locked until it is cancelled or has launched.
     for (const input of this.doc.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLButtonElement>('.next-left input, .next-left select, .next-left [data-level], [data-ui="next-copy"], [data-ui="next-reset"]')) input.disabled = locked;

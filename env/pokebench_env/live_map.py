@@ -18,6 +18,9 @@ MAX_MAP_DATA_SIZE = 10240
 # pokeemerald 731ad5b metatile_behaviors.h MB_JUMP_EAST/WEST/NORTH/SOUTH. These tiles carry
 # collision, but moving into one in its direction jumps two tiles (GetLedgeJumpDirection).
 LEDGES = {0x38: ">", 0x39: "<", 0x3A: "^", 0x3B: "v"}
+# pokeemerald 731ad5b MB_COUNTER. GetInteractedObjectEventScript talks to the object one tile
+# past a faced counter, so a nurse behind one is reachable without walking onto it.
+COUNTER = 0x80
 # pokeemerald 731ad5b MetatileBehavior_Is{North,South,West,East}Blocked: collision-free tiles
 # whose listed sides IsMetatileDirectionallyImpassable refuses to cross, entering or leaving.
 EDGE_WALLS = {
@@ -92,9 +95,17 @@ class LocalMap:
         warp_guidance: bool = True,
         ledges: bool = True,
         edge_walls: bool = True,
+        counters: bool = True,
     ) -> str:
         x, y = self.origin
-        cells = _cells(self.rows, self.tiles, self.origin, ledges=ledges, edge_walls=edge_walls)
+        cells = _cells(
+            self.rows,
+            self.tiles,
+            self.origin,
+            ledges=ledges,
+            edge_walls=edge_walls,
+            counters=counters,
+        )
         rows = (
             "     "
             + " ".join(f"{x + i:3}" for i in range(len(cells[0])))
@@ -116,6 +127,7 @@ class LocalMap:
                 outside=True,
                 ledges=ledges,
                 edge_walls=edge_walls,
+                counters=counters and any("=" in row for row in cells),
             )
         )
 
@@ -138,8 +150,16 @@ class FullMap:
         warp_guidance: bool = True,
         ledges: bool = True,
         edge_walls: bool = True,
+        counters: bool = True,
     ) -> str:
-        cells = _cells(self.rows, self.tiles, (0, 0), ledges=ledges, edge_walls=edge_walls)
+        cells = _cells(
+            self.rows,
+            self.tiles,
+            (0, 0),
+            ledges=ledges,
+            edge_walls=edge_walls,
+            counters=counters,
+        )
         if grid:
             tens = [" "] * self.width
             for column in range(0, self.width, 10):
@@ -166,6 +186,7 @@ class FullMap:
                 outside=False,
                 ledges=ledges,
                 edge_walls=edge_walls,
+                counters=counters and any("=" in row for row in cells),
             )
         )
 
@@ -193,6 +214,7 @@ def _cells(
     *,
     ledges: bool,
     edge_walls: bool,
+    counters: bool,
 ) -> tuple[str, ...]:
     x, y = origin
     cells = [list(row) for row in rows]
@@ -202,6 +224,8 @@ def _cells(
             cells[tile.y - y][tile.x - x] = "#" if tile.collision else "."
         elif not edge_walls and cell == "+":
             cells[tile.y - y][tile.x - x] = "."
+        elif not counters and cell == "=":
+            cells[tile.y - y][tile.x - x] = "#"
     return tuple("".join(row) for row in cells)
 
 
@@ -214,6 +238,7 @@ def _details(
     outside: bool,
     ledges: bool,
     edge_walls: bool,
+    counters: bool,
 ) -> str:
     walled = "; ".join(
         f"({tile.x},{tile.y}) " + "+".join(EDGE_WALLS[tile.behavior])
@@ -243,6 +268,12 @@ def _details(
             else "\n@ player; N live object; W warp;"
         )
         + " # collision; g grass; ~ water;"
+        + (
+            " = counter: you cannot walk onto it, but you can talk to someone standing"
+            " behind it by facing the counter and pressing A;"
+            if counters
+            else ""
+        )
         + (
             " v ^ < > ledge: a one-way hop in the arrow's direction (move into it that way to"
             " jump over it, landing 2 tiles on); impassable from any other side;"
@@ -365,6 +396,8 @@ def _symbol(
         if cell in objects
         else "W"
         if cell in warps
+        else "="
+        if collision and behavior == COUNTER
         else LEDGES[behavior]
         if behavior in LEDGES
         else "#"

@@ -122,3 +122,4 @@ Pending.
 
 ## Archive Milestone (user-gated)
 - [ ] ASK USER: archive.
+- 2026-10-14: merged main cef13fb (counter-talk-v1). Conflicts in play-preset, panels, navigation (+tests), features.test resolved by keeping both switches; guidance count 14.

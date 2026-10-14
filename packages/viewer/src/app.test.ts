@@ -99,6 +99,11 @@ function ui(name: string): HTMLElement {
   return element;
 }
 
+async function openSplits(): Promise<void> {
+  must(document.querySelector<HTMLButtonElement>('[data-page="splits"]')).click();
+  await Promise.resolve();
+}
+
 // Events go out as the stream's own run, as the server would send them.
 function feed(stream: FakeStream, events: readonly RunEvent[], caughtUp = true): void {
   const run = decodeURIComponent(stream.url.split("/")[3] ?? "");
@@ -300,6 +305,7 @@ describe("viewer app", () => {
   it("compares splits against a picked baseline run", async () => {
     const { app, streams, fetched } = await harness(`#run=${M4_ID}`);
     feed(must(streams[0]), fullRun().events);
+  await openSplits();
     const baseline = ui("baseline") as HTMLSelectElement;
     expect([...baseline.querySelectorAll("option")].map((option) => option.value)).toEqual([
       "",
@@ -614,7 +620,7 @@ it("shows streamed objective history live and reconstructs it when replay seeks"
   app.clock?.seek(BASE_MS + 250);app.tick(0);expect(ui("objective").textContent).toContain("Set clock");expect(ui("objective").textContent).toContain("Attempt history (1)");expect(ui("objective").textContent).toContain("Reassess approach");
 });
 
-it("automatically renders current vs baseline and best without touching the picker", async () => {
+it("loads baseline and best when the splits page opens without changing the picker", async () => {
   document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
   const streams: FakeStream[] = [];
   const reference = { run: "previous", milestones: [{name:"PLAYER_NAME_SET", offsetMs:5000}] };
@@ -626,6 +632,7 @@ it("automatically renders current vs baseline and best without touching the pick
     now: () => BASE_MS + 6000,
     hash:"",
   });
+  await openSplits();
   feed(must(streams[0]), fullRun().events);
   app.clock?.seek(BASE_MS + 6000);
   app.tick(0);
@@ -645,6 +652,7 @@ it("does not apply comparisons from a superseded run selection", async () => {
     sendJson: noWrites,
     openStream: (url) => { const stream = new FakeStream(url); streams.push(stream); return stream; }, now:()=>BASE_MS, hash:"",
   });
+  await openSplits();
   app.select(M4_ID);
   feed(must(streams[1]), fullRun().events);
   must(pending[1])({candidates:[],baseline:null,best:null});
@@ -666,6 +674,7 @@ it("offers only eligible references and preserves none while comparisons are pen
     sendJson: noWrites,
     openStream:(url)=>{const s=new FakeStream(url);streams.push(s);return s;},now:()=>BASE_MS,hash:"",
   });
+  await openSplits();
   feed(must(streams[0]),fullRun().events);
   const picker=ui("baseline") as HTMLSelectElement;
   expect([...picker.options].map((o)=>o.value)).toEqual([""]);
@@ -772,12 +781,24 @@ it("mounts state-input and host-wait history, timeline, selected inspector and f
 it('labels human comparison candidates with unverified ROM provenance',async()=>{
  document.body.innerHTML=PAGE.slice(PAGE.indexOf('<body>')+6,PAGE.indexOf('</body>'));
  const app=await mountApp(document,{fetchJson:url=>nextRunReply(url) ?? Promise.resolve(url==='/api/runs'?RUNS:{candidates:[{run:'human-unknown',milestones:[],controller:{kind:'human',name:'Operator'},romIdentity:'unverified'},{run:'human-verified',milestones:[],controller:{kind:'human',name:'Operator'},romIdentity:'verified'}],baseline:null,best:null}),sendJson:noWrites,openStream:url=>new FakeStream(url),now:()=>BASE_MS,hash:''});
+  await openSplits();
  await Promise.resolve();expect(ui('baseline').textContent).toContain('human-unknown (ROM unverified)');expect(ui('baseline').textContent).toContain('human-verified');expect(ui('baseline').textContent).not.toContain('human-verified (ROM unverified)');app.tick(0);
 });
 
+it("opens the requested run stream without scanning historical comparisons or feature history",async()=>{
+ document.body.innerHTML=PAGE.slice(PAGE.indexOf("<body>")+6,PAGE.indexOf("</body>"));const requested:string[]=[],streams:FakeStream[]=[];
+ await mountApp(document,{fetchJson:url=>{requested.push(url);return nextRunReply(url)??Promise.resolve(url==="/api/runs"?RUNS:{candidates:[],baseline:null,best:null});},sendJson:noWrites,openStream:url=>{const stream=new FakeStream(url);streams.push(stream);return stream;},now:()=>BASE_MS,hash:`#run=${M4_ID}`});
+ await Promise.resolve();await Promise.resolve();
+ expect(streams.map(s=>s.url)).toEqual([`/api/runs/${M4_ID}/events`]);expect(requested.filter(url=>url.endsWith("/comparisons")||url.endsWith("/history"))).toEqual([]);
+ document.querySelector<HTMLButtonElement>('[data-page="splits"]')?.click();await Promise.resolve();
+ expect(requested.filter(url=>url.endsWith("/comparisons"))).toEqual([`/api/runs/${M4_ID}/comparisons`]);
+ document.querySelector<HTMLButtonElement>('[data-page="splits"]')?.click();await Promise.resolve();
+ expect(requested.filter(url=>url.endsWith("/comparisons"))).toHaveLength(1);
+});
 
 it("opens the selected run configuration without changing playback or writing next-run settings",async()=>{
  const {app,streams}=await harness(`#run=${M4_ID}`);const log=new Log();log.add(0,{...START,model:{...START.model,id:"recorded-current-model"},harness_features:["navigation-evidence-memory-v1"]});feed(must(streams[0]),log.events);app.next.registry=[{id:"navigation-evidence-memory-v1",title:"NAVIGATION MEMORY",description:"Retains observed facts only.",group:"guidance",switchable:true,needs:null}];app.tick(1000);
+ expect(ui("harness-config").querySelector('[data-tool="press"]')?.textContent).toContain("buttons: required array of 1–8");
  expect(ui("harness-config").textContent).toContain("Retains observed facts only.");expect(ui("harness-config").querySelector("a")?.getAttribute("href")).toBe("/explainers/navigation-evidence-memory-v1.html");
  const clock=app.clock;must(document.querySelector<HTMLButtonElement>('[data-page="config"]')).click();
  expect(document.querySelector<HTMLElement>('[data-nav-page="config"]')?.hidden).toBe(false);expect(ui("harness-config").textContent).toContain("recorded-current-model");expect(ui("harness-config").textContent).toContain("navigation-evidence-memory-v1");expect(ui("harness-config").querySelector("input,select,textarea,button,form")).toBeNull();expect(app.clock).toBe(clock);expect(streams).toHaveLength(1);

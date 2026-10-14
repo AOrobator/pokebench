@@ -1,4 +1,5 @@
 import {navigationMemory} from "./navigation-memory.js";
+import {dialogueLog} from "./dialogue-log.js";
 // Live entrypoint for real, recorded runs: pi-agent-core on the local stack
 // gateway drives the observe / press tools against an isolated game server
 // (INV-7) on the real ROM, and every step lands in runs/<id>/events.jsonl.
@@ -299,6 +300,8 @@ async function playAgent(): Promise<void> {
       const tools=withNavigation(baseTools,features,new StateWatcher(gameServerUrl),signal=>runControl.gate(signal));
       const memory=navigationMemory(features,recorder,objectives?.transformContext??recorder.transformContext);
       if(memory!==null)tools.push(memory.tool);
+      const dialogue=dialogueLog(features,recorder);
+      if(dialogue!==null)tools.push(dialogue);
       const loop = piLoop({
         systemPrompt,
         loopDetector,

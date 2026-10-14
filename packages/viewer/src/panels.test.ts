@@ -574,3 +574,10 @@ it("maps game evidence priority to a tracked explainer, like every other mapped 
  expect(FEATURE_EXPLAINERS["game-evidence-priority-v1"]).toBe("game-evidence-priority-v1.html");
  for(const file of Object.values(FEATURE_EXPLAINERS))expect(existsSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url)))).toBe(true);
 });
+
+it("documents recall_dialogue and links the dialogue log explainer",()=>{
+ const log=new Log();log.add(0,{...START,tools:["observe","press","recall_dialogue"]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log));
+ expect(doc.querySelector('[data-tool="recall_dialogue"]')?.textContent).toContain("1–20");
+ expect(FEATURE_EXPLAINERS["dialogue-log-v1"]).toBe("dialogue-log-v1.html");
+});

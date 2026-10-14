@@ -41,6 +41,7 @@ export const SWITCHABLE_FEATURES = [
   "native-objective-completion-v1",
   "full-map-navigation-v1",
   "game-evidence-priority-v1",
+  "dialogue-log-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -144,6 +145,8 @@ export const FEATURES: readonly FeatureInfo[] = [
     "Replaces the 15x15 local map with the whole current map, one character per tile, and lets navigate_to walk the full route (up to 512 presses), re-planning before each press. Stops on blocked or unexpected movement, locks and map changes as before, and after 16 presses without the route getting shorter; a route never crosses a warp unless it is the destination. Off: local map and up to eight attempts per call."),
   on("game-evidence-priority-v1", "guidance", "GAME EVIDENCE FIRST", null,
     "Adds a system-prompt section saying received dialogue, readout labels, location and story flags outrank what the model remembers about Pokémon, to cite who said what before picking a destination, and to change plan when the game disagrees. With bounded navigation on, also says to use navigate_to for longer walks and to target a warp's own coordinates. Names no destination or story step. Off: no such section."),
+  on("dialogue-log-v1", "guidance", "DIALOGUE LOG", "active-field-message-buffer-v1",
+    "Records every dialogue page the model was actually shown, with turn, location, position and the character faced when the readout names one, and adds recall_dialogue to search it by words, location or recency. Replies are bounded; repeats after other dialogue are kept. Off: no log and no tool."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",
@@ -217,6 +220,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("full-map-navigation-v1"),
     ...when("grass-cost-navigation-v1"),
     ...when("game-evidence-priority-v1"),
+    ...when("dialogue-log-v1"),
   ];
 }
 

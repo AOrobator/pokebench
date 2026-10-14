@@ -11,7 +11,7 @@ const state=(seq:number,extra:Record<string,unknown>={},turn=1)=>event({type:"st
 const result=(seq:number,stateSeq:number,turn=1)=>event({type:"tool_result",id:`t${String(seq)}`,name:"press",is_error:false,duration_ms:1,text:"ok",frames:[],state_seq:stateSeq},seq,turn);
 const deliver=(log:DialogueLog,seq:number,extra:Record<string,unknown>={},turn=1)=>{log.observe(state(seq,extra,turn));log.observe(result(seq+1,seq,turn));};
 const recall=async(log:DialogueLog,args:Record<string,unknown>)=>{
- const out=await log.tool().execute("r",args as never);const first=out.content[0];
+ const out=await log.tool().execute("r",args);const first=out.content[0];
  if(first?.type!=="text")throw Error("expected text");return first.text;
 };
 
@@ -86,6 +86,7 @@ it("exists only when the switch is on and its dialogue source is on",()=>{
  expect(dialogueLog({...ALL_ON,"dialogue-log-v1":false},recorder)).toBeNull();
  const tool=dialogueLog({...ALL_ON,"dialogue-log-v1":true},recorder);
  expect(tool?.name).toBe("recall_dialogue");expect(subscribers).toHaveLength(1);
+ subscribers[0]?.(state(1));
  expect(featureInfo("dialogue-log-v1")).toMatchObject({group:"guidance",needs:"active-field-message-buffer-v1"});
 });
 
@@ -93,4 +94,16 @@ it("lists the tool and its prompt line only when on",()=>{
  const on={...ALL_ON,"dialogue-log-v1":true},off={...ALL_ON,"dialogue-log-v1":false};
  expect(playTools(on)).toContain("recall_dialogue");expect(playTools(off)).not.toContain("recall_dialogue");
  expect(playSystemPrompt(on,null)).toContain("- recall_dialogue:");expect(playSystemPrompt(off,null)).not.toContain("recall_dialogue");
+});
+
+it("falls back truthfully when location, position, facing or names are missing",async()=>{
+ const log=new DialogueLog(ALL_ON);
+ deliver(log,1,{location:null});
+ deliver(log,3,{position:null,world_context:{objects:[],triggers:[],dialogue:"Two."}});
+ deliver(log,5,{facing:null,world_context:{objects:[],triggers:[],dialogue:"Three."}});
+ deliver(log,7,{facing:"sideways",world_context:{objects:[],triggers:[],dialogue:"Four."}});
+ deliver(log,9,{interaction_targets:undefined,world_context:{objects:[],triggers:[],dialogue:"Five."}});
+ deliver(log,11,{interaction_targets:[{...MOM,name:null}],world_context:{objects:[],triggers:[],dialogue:"Six."}});
+ expect(log.entries().map(e=>[e.room,e.position,e.facing])).toEqual([["unknown room","3,4","MOM at 4,4"],["HOUSE 1F",null,null],["HOUSE 1F","3,4",null],["HOUSE 1F","3,4",null],["HOUSE 1F","3,4",null],["HOUSE 1F","3,4",null]]);
+ expect(await recall(log,{contains:"  ",room:" "})).toContain("6 of 6 entries match");
 });

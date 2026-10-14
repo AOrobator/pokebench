@@ -121,3 +121,12 @@ COMMIT: `feat(agent): add game-evidence-priority-v1 prompt guidance switch` (9bd
   operator). Artifacts: runs/rival-push-review/m1-r1/ in the main checkout.
 - M2 RED: dialogue-log.test.ts (9 tests: delivered-only capture, repeats, filters, bounds,
   faced-character honesty, argument validation, switch/tool/prompt wiring).
+COMMIT: `test(agent): RED for dialogue-log-v1 and recall_dialogue` (6b1b5c4)
+- M2 GREEN: DialogueLog logs delivered pages only (tool_result state_seq match), collapses
+  consecutive identical page+room, keeps later repeats. recall_dialogue filters contains/room/last
+  (1–20, default 8), 650 chars per page, reply under 6000 with matched/shown/omitted counts.
+  Faced character only with named interactions + position. Switch needs
+  active-field-message-buffer-v1; OFF in v1 flags, omitted-v2 and next-run. Viewer tool
+  reference + explainer docs/explainers/dialogue-log-v1.html linked. Gates: agent 960/960,
+  viewer 495/495, dialogue-log.ts 100/98.66/100/100, agent all files 97.2/93.45/97.81, tsc and
+  eslint clean.

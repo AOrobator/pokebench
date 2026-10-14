@@ -29,6 +29,7 @@ SERVER_FEATURES = (
     "field-control-lock",
     "warp-activation-guidance-v1",
     "ledge-hops-v1",
+    "one-way-tiles-v1",
     "full-map-navigation-v1",
 )
 
@@ -234,6 +235,7 @@ def format_readout(
                 grid="world-coordinate-grid-v1" not in off,
                 warp_guidance="warp-activation-guidance-v1" not in off,
                 ledges="ledge-hops-v1" not in off,
+                edge_walls="one-way-tiles-v1" not in off,
             )
             if shown is not None
             else state.local_map

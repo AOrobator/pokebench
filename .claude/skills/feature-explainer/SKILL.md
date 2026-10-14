@@ -12,6 +12,7 @@ The operator wants every new feature and switch explained with diagrams, not pro
 - One file per feature: `docs/explainers/<feature-or-switch-id>.html`, tracked in Git alongside the feature. Add it to `docs/explainers/README.md`. Do not keep the only copy in ignored `runs/` or a temporary directory.
 - Self-contained: inline CSS and inline SVG only. Zero network requests: no web fonts, CDNs, images by URL or scripts from elsewhere. Use system font stacks.
 - Never publish it as a claude.ai artifact or any hosted link. Everything stays local.
+- When reporting in a project thread, send the HTML with `SendUserFile` (it lands at `/mnt/project-files/<name>.html`), link that path in the reply, and list it in the reply's `attached_outputs` as `{kind: "file", ref: "/mnt/project-files/<name>.html"}`. A local path such as `/private/tmp/...` or `~/dev/...` is not clickable in a thread.
 - In the report, provide a clickable Markdown link with a descriptive label and the existing file’s absolute path, for example `[Navigation memory explainer](/Users/user/dev/pokebench/docs/explainers/navigation-evidence-memory-v1.html)`. Link the canonical retained artifact, not a temporary worktree copy. Do not wrap the link in backticks or use `file://` URLs.
 - Do not make the operator copy a terminal command to open an explainer. Include an `open` command only when explicitly requested or as a fallback if clickable links are unavailable.
 

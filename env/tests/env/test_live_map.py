@@ -364,3 +364,85 @@ def test_full_map_draws_ledges_as_arrows_and_as_collision_when_off() -> None:
     off = result.text(grid=False, ledges=False)
     assert "ledge" not in off
     assert off.splitlines()[1:4] == ["g#N..", "W@~..", "###.."]
+
+
+def chaired() -> Memory:
+    # pokeemerald 731ad5b: MB_IMPASSABLE_SOUTH_AND_NORTH 0xC0 (the bedroom chair) and
+    # MB_IMPASSABLE_NORTHEAST 0x34, both collision-free (MetatileBehavior_Is*Blocked).
+    m = loaded()
+    m.put(0x02007000 + 2 * 3, struct.pack("<H", 0xC0))
+    m.put(0x02007000 + 2 * 4, struct.pack("<H", 0x34))
+    tile(m, 1, 2, 3)
+    tile(m, 2, 2, 4)
+    return m
+
+
+def test_edge_wall_tiles_render_as_plus_and_list_their_walled_sides() -> None:
+    result = read_local_map(chaired().read, (1, 1), (1, 0), radius=1)
+    assert result is not None
+    assert result.rows == ("g#N", "W@~", ".++")
+    text = result.text()
+    assert "   2   .   +   +" in text, text
+    assert (
+        " + edge walls: walkable, but movement across a walled side is refused in both"
+        " directions (sides listed under Edge walls);"
+    ) in text
+    assert "\nEdge walls: (1,2) north+south; (2,2) north+east\n" in text, text
+
+
+def test_edge_walls_include_the_players_own_tile_and_skip_collision_tiles() -> None:
+    m = chaired()
+    tile(m, 2, 2, 0x400 | 4)
+    result = read_local_map(m.read, (1, 2), (1, 0), radius=1)
+    assert result is not None
+    assert result.rows[1] == ".@#"
+    assert "\nEdge walls: (1,2) north+south\n" in result.text()
+
+
+def test_edge_walls_off_draws_clear_terrain_without_legend_or_list() -> None:
+    result = read_local_map(chaired().read, (1, 1), (1, 0), radius=1)
+    assert result is not None
+    for text in (result.text(edge_walls=False), result.text(grid=False, edge_walls=False)):
+        assert "edge wall" not in text.lower() and "+" not in text, text
+    assert result.text(grid=False, edge_walls=False).splitlines()[3] == "..."
+
+
+def test_no_edge_walls_nearby_prints_no_list() -> None:
+    result = read_local_map(loaded().read, (1, 1), (1, 0), radius=1)
+    assert result is not None
+    assert "Edge walls:" not in result.text() and "+ edge walls" in result.text()
+
+
+@pytest.mark.parametrize(
+    "behavior,sides",
+    [
+        (0x30, "east"),
+        (0x31, "west"),
+        (0x32, "north"),
+        (0x33, "south"),
+        (0x34, "north+east"),
+        (0x35, "north+west"),
+        (0x36, "south+east"),
+        (0x37, "south+west"),
+        (0xBE, "west+east"),
+        (0xC0, "north+south"),
+        (0xC1, "west+east"),
+    ],
+)
+def test_every_edge_wall_behavior_lists_its_game_walled_sides(behavior: int, sides: str) -> None:
+    m = loaded()
+    m.put(0x02007000 + 2 * 3, struct.pack("<H", behavior))
+    tile(m, 1, 2, 3)
+    result = read_local_map(m.read, (1, 1), (1, 0), radius=1)
+    assert result is not None
+    assert result.rows[2] == ".+."
+    assert f"\nEdge walls: (1,2) {sides}\n" in result.text()
+
+
+def test_full_map_draws_edge_walls_and_lists_their_sides() -> None:
+    result = read_full_map(chaired().read, (1, 1), (1, 0))
+    assert result is not None
+    assert "+" in result.rows[2]
+    assert "\nEdge walls: (1,2) " in result.text()
+    off = result.text(grid=False, edge_walls=False)
+    assert "Edge walls" not in off and "+" not in "".join(off.splitlines()[1:6])

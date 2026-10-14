@@ -14,8 +14,8 @@ Operator chose the full-map arm (2026-10-14, via the project coordinator). Add a
 
 ## Evaluation arms (planned; no measured runs without operator approval)
 Both arms set every navigation switch explicitly, so neither inherits a preset default:
-- Incumbent: `bounded-navigation-v1: true`, `ledge-hops-v1: true`, `full-map-navigation-v1: false`.
-- Candidate: `bounded-navigation-v1: true`, `ledge-hops-v1: true`, `full-map-navigation-v1: true`.
+- Incumbent: `bounded-navigation-v1: true`, `ledge-hops-v1: true`, `one-way-tiles-v1: true`, `full-map-navigation-v1: false`.
+- Candidate: `bounded-navigation-v1: true`, `ledge-hops-v1: true`, `one-way-tiles-v1: true`, `full-map-navigation-v1: true`.
 Ledge hops (main a8cbcff) are ON in both arms so the comparison isolates the whole-map treatment. With both on, whole-map planning also hops ledges in their arrow direction.
 
 ## Milestones
@@ -43,3 +43,6 @@ M2 GREEN commit: 46859dc. Independent Claude CLI review (runs/full-map-review/cl
 Follow-up GREEN: read_full_map rejects maps outside 1..256 per side; whole-map walks stop as "route not converging" after 16 presses with no shorter route (tool, prompt and registry copy say so); full-map lists say "none on this map"; shared fixture packages/agent/src/fixtures/full-map-grid.json checked by both stacks. Gates: agent 877 (97.07/93.13/97.77), viewer 417, Python 1818 (96.71/91.89/100); lint/types clean. Review findings 1,2,3,4,5,8 fixed; 6,7 recorded above as evaluation notes.
 
 2026-10-14 merge of main (37a961b, includes ledge hops a8cbcff and navigation evidence memory): 12 conflicts resolved. planNavigation now takes {mode, ledges}; ledge hops work on local and whole-map geometry, and the per-press two-tile landing check uses the same geometry. live_map draws ledge arrows in both the local and whole-map grids, with the ledge legend dropped when ledge-hops-v1 is off. Registry counts: guidance 11, server features 19. New test: whole-map ledge hop plan and walk. Gates: agent 910 (97.16/93.22/97.89), viewer 476, Python 1823 (96.71/91.90/100); lint/types clean.
+
+First merge COMMIT: `merge: integrate main (ledge hops, navigation evidence memory) into full-map navigation` (52cc7a2).
+Second merge of main (bbe91f8, one-way tiles): planner honors edge walls (oneWay) on both geometries; live_map draws + tiles and lists Edge walls in the whole-map grid too; navigate_to description joins enabled terrain rules (also fixes a doubled comma when ledges and one-way tiles are both on). Counts: guidance 12, server features 20. Arms: one-way-tiles-v1 set ON in both arms alongside ledge-hops-v1. Gates: agent 929 (97.17/93.29/97.89), viewer 476, Python 1840 (96.71/91.91/100); lint clean.

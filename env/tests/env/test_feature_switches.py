@@ -111,6 +111,17 @@ def test_ledge_hops_off_draws_ledges_as_collision() -> None:
     assert "one-way hop" in full and "ledge" not in text
 
 
+def test_one_way_tiles_off_draws_edge_walls_as_clear_terrain() -> None:
+    m = map_memory()
+    m.put(0x02007000 + 2 * 3, struct.pack("<H", 0xC0))
+    tile(m, 1, 2, 3)
+    state = read_game_state(m.read, MAPS)
+    full = format_readout(state)
+    text = format_readout(state, frozenset({"one-way-tiles-v1"}))
+    assert "?   .   +   .   .   .   ?" in full and "?   .   .   .   .   .   ?" in text, text
+    assert "Edge walls: (1,2) north+south" in full and "dge wall" not in text
+
+
 def test_targets_off_drops_candidates_only() -> None:
     state = map_state()
     gone = dropped(format_readout(state), format_readout(state, frozenset({"world-targets-v1"})))
@@ -207,7 +218,7 @@ def test_env_list_is_validated() -> None:
     for bad in ("invented-v1", "live-map-v1,,story-state-v1", "deterministic-loop-guard-v1"):
         with pytest.raises(ValueError, match="POKEBENCH_FEATURES_OFF"):
             features_off_from_env({"POKEBENCH_FEATURES_OFF": bad})
-    assert "active-ui-ownership-v1" not in SERVER_FEATURES and len(SERVER_FEATURES) == 19
+    assert "active-ui-ownership-v1" not in SERVER_FEATURES and len(SERVER_FEATURES) == 20
 
 
 def test_observation_route_applies_the_env_switches(monkeypatch: pytest.MonkeyPatch) -> None:

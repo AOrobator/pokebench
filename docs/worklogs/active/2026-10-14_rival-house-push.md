@@ -299,3 +299,9 @@ COMMIT: `feat: supervisor message in the operator's wording, labelled as sent to
 - The operator (22:21 UTC): no backoff, find loops as fast as possible (speedrun). Supervisor now briefs at
   detection (alongside the warning) and repeats every policy.recovery (6) looping calls with fresh
   facts; doubling removed. Detection thresholds (LOOP_POLICY) unchanged. Agent 1019/1019.
+- The operator (22:22–22:23 UTC): quoting the model's own plan feeds its mistakes back; use deterministic
+  facts (suggested recent dialogue or next milestone). Plan line removed. Briefing now has the last
+  three dialogue pages and the last earned story milestone with turns since; closing says to believe
+  the game over its own beliefs. Replay shows Mom's turn-27 line ("PROF. BIRCH ... lives right next
+  door") resurfacing. "Next milestone to achieve" not added: it names the destination, so it is
+  offered as its own hint switch, not part of this batch. Agent 1019/1019.

@@ -3,6 +3,7 @@
 Tracked, local HTML documentation. Open an explainer directly; no server or external account is required.
 
 - [Astar navigation](astar-navigation.html)
+- [Counter talk v1](counter-talk-v1.html)
 - [Current run frontier](current-run-frontier.html)
 - [Full map navigation](full-map-navigation.html)
 - [Grass cost switch](grass-cost-switch.html)

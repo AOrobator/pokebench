@@ -59,6 +59,6 @@ limit) BLOCKING:
 4. switch lacks its explainer.
 - [x] RED for 1 and 2 (5734ded): `test: counter hint and legend only describe what is usable and drawn (RED)`
 - [x] Fix 1 and 2: stand tile named only if it is a known tile `planNavigation` reaches (else a generic hint); legend only when a `=` is drawn. 900 agent + 474 viewer tests, 1813 Python; gates green.
-- [ ] Recorded probe for 3
-- [ ] Explainer for 4
+- [x] Recorded probe for 3: `runs/counter-proof/recorded/2026-10-14T19-41-31_probe_counter_talk` at f87b913 (clean), 414 events; navigate_to (7,2) tool_call 359 -> tool_result 361 with 0 button_press between; then (7,4), UP, A -> nurse greeting. Receipt: `runs/counter-proof/recorded-receipt.txt`.
+- [x] Explainer for 4: `docs/explainers/counter-talk-v1.html`, indexed in README; checked at desktop and 390px widths.
 

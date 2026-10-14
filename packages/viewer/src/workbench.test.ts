@@ -25,6 +25,21 @@ describe("mounted split ribbon workbench", () => {
     const { wb } = mount(); await wb.refresh(); const mark = ui("timing").querySelector("[data-run]"); mark?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })); expect(ui("detail").hidden).toBe(false);
     const close = ui("detail-body").querySelector<HTMLElement>("button"); close?.focus(); close?.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", shiftKey: true, bubbles: true })); expect(document.activeElement?.tagName).toBe("A"); document.activeElement?.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", bubbles: true })); expect(document.activeElement?.tagName).toBe("BUTTON"); close?.click(); expect(ui("detail").hidden).toBe(true); wb.destroy();
   });
+  it("leaves the reader's focus and scroll alone across unchanged detail refreshes", async () => {
+    const { wb, fetch } = mount(); await wb.refresh(); ui("outcomes").querySelector<HTMLButtonElement>("button")?.click();
+    const body = ui("detail-body"), link = body.querySelector<HTMLAnchorElement>("a"); link?.focus(); body.scrollTop = 480;
+    const focus = vi.spyOn(HTMLElement.prototype, "focus");
+    fetch.mockResolvedValue({ ...data(), at: 2000 }); await wb.refresh();
+    expect(focus).not.toHaveBeenCalled(); expect(document.activeElement).toBe(link); expect(body.scrollTop).toBe(480);
+    focus.mockRestore(); wb.destroy();
+  });
+  it("preserves the focused control and reading position when selected run details change", async () => {
+    const { wb, fetch } = mount(); await wb.refresh(); ui("outcomes").querySelector<HTMLButtonElement>("button")?.click();
+    const body = ui("detail-body"); body.querySelector<HTMLAnchorElement>("a")?.focus(); body.scrollTop = 480;
+    fetch.mockResolvedValue({ ...data(), at: 2000, runs: [run({ reason: "model_error" })] }); await wb.refresh();
+    expect(body.textContent).toContain("model_error"); expect(document.activeElement).toBe(body.querySelector("a")); expect(body.scrollTop).toBe(480);
+    wb.destroy();
+  });
   it("renders a ticking live-run meta card, then a normal back link when the run ends", async () => {
     const { wb, fetch } = mount({ ...data(), runs: [run({ status: "live" })] }); await wb.refresh(); wb.clock(); expect(ui("current").textContent).toContain("0:02:05"); expect(ui("current").textContent).toContain("CURRENT OBJECTIVE"); expect(ui("current").querySelector("a")?.getAttribute("href")).toBe("/#run=run_01"); fetch.mockResolvedValue({ ...data(), at: 2000 }); await wb.refresh(); expect(ui("current").textContent).toContain("BACK TO VIEWER"); wb.destroy();
   });

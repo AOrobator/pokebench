@@ -461,6 +461,37 @@ it("whole-map planning respects edge walls only with one-way tiles on",()=>{
  expect(local.description).toContain("hops a ledge only in its arrow direction, never crosses a walled side of a + tile, and stops");
 });
 
+it("elevation-transitions-v1 off restores the pre-transition rule on both geometries",()=>{
+ const stairs={elevation:3,tiles:[tile(0,0),tile(1,0,0,0,0),tile(2,0,0,0,4)],objects:[],warps:[]};
+ const local={...field,navigation_grid:stairs};
+ expect(planNavigation(local,{x:2,y:0})).toEqual(["RIGHT","RIGHT"]);
+ expect(planNavigation(local,{x:2,y:0},{elevation:"game"})).toEqual(["RIGHT","RIGHT"]);
+ expect(planNavigation(local,{x:2,y:0},{elevation:"legacy"})).toBeNull();
+ const deck={...field,navigation_grid:{elevation:3,tiles:[tile(0,0),tile(1,0,0,0,15),tile(2,0)],objects:[],warps:[]}};
+ expect(planNavigation(deck,{x:2,y:0})).toEqual(["RIGHT","RIGHT"]);
+ expect(planNavigation(deck,{x:2,y:0},{elevation:"legacy"})).toBeNull();
+ const whole=fullField(mapGrid(3,1,x=>x===1?{elevation:0}:x===2?{elevation:4}:{}));
+ expect(planNavigation(whole,{x:2,y:0},{mode:"full",elevation:"legacy"})).toBeNull();
+ expect(planNavigation(whole,{x:2,y:0},{mode:"full"})).toEqual(["RIGHT","RIGHT"]);
+});
+it("elevation-transitions-v1 off keeps the legacy ledge landing rule",()=>{
+ const hop={...field,position:{x:1,y:0},navigation_grid:{elevation:3,tiles:[tile(1,0),tile(1,1,1,0x3b),tile(1,2,0,0,15),tile(1,3,0,0,4)],objects:[],warps:[]}};
+ expect(planNavigation(hop,{x:1,y:2},{ledges:true,elevation:"legacy"})).toBeNull();
+ expect(planNavigation(hop,{x:1,y:2},{ledges:true})).toEqual(["DOWN"]);
+ const flat={...field,position:{x:1,y:0},navigation_grid:{elevation:3,tiles:[tile(1,0),tile(1,1,1,0x3b),tile(1,2,0,0,0),tile(1,3,0,0,4)],objects:[],warps:[]}};
+ expect(planNavigation(flat,{x:1,y:3},{ledges:true,elevation:"legacy"})).toBeNull();
+ expect(planNavigation(flat,{x:1,y:3},{ledges:true})).toEqual(["DOWN","DOWN"]);
+});
+it("the tool plans with the legacy elevation rule only when the switch is off",async()=>{
+ const stairs={...field,map_id:[0,9] as [number,number],navigation_grid:{elevation:3,tiles:[tile(0,0),tile(1,0,0,0,0),tile(2,0,0,0,4)],objects:[],warps:[]}};
+ const pressed:unknown[]=[];
+ const ports={read:()=>Promise.resolve(stairs),press:(_id:string,params:unknown)=>{pressed.push(params);return Promise.resolve(result(stairs));},observe:()=>Promise.resolve(result(stairs))};
+ const legacy=await navigationTool({...ports,elevation:"legacy"}).execute("nav",{x:2,y:0,map_id:[0,9]});
+ expect(legacy.details).toMatchObject({navigation:{status:"no supported local path; choose a reachable local waypoint",commands:0}});
+ expect(pressed).toEqual([]);
+ await navigationTool(ports).execute("nav",{x:2,y:0,map_id:[0,9]});
+ expect(pressed).toEqual([{buttons:["RIGHT"]}]);
+});
 
 it("never walks onto a counter and says where to stand to talk across one",async()=>{
  const counter={...field,position:{x:0,y:2},navigation_grid:{elevation:3,tiles:[tile(0,0),tile(1,0),tile(2,0),tile(0,1,1,0x80),tile(1,1,1,0x80),tile(2,1,1,0x80),tile(0,2),tile(1,2),tile(2,2)],objects:[{x:1,y:0}],warps:[]}};

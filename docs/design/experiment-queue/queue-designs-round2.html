@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Experiment Queue Round 2</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Press+Start+2P&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}html,body{margin:0;padding:0}
+body{background:#0d1117;color:#e6edf3;font-family:Inter,system-ui,sans-serif;overflow-x:hidden}
+nav.top{position:sticky;top:0;z-index:50;background:#0d1117;border-bottom:1px solid #263040;padding:10px 16px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+nav.top .brand{font-weight:800;letter-spacing:.04em;color:#7cc8e8;margin-right:10px;font-size:14px}
+nav.top button{background:#161b22;color:#c9d1d9;border:1px solid #2b3545;border-radius:999px;padding:6px 12px;font:500 12px Inter,sans-serif;cursor:pointer}
+nav.top button.on{background:#7cc8e8;color:#08202c;border-color:#7cc8e8;font-weight:700}
+nav.top .desc{flex-basis:100%;font-size:13px;color:#9aa7b4;padding-top:6px;line-height:1.5}
+nav.top .desc b{color:#e6edf3}
+.sample{flex-basis:100%;font-size:11.5px;color:#f5c542}
+
+/* ---- viewer chrome copied from packages/viewer/static/style.css ---- */
+.pn{background:#4a9fd8 repeating-linear-gradient(45deg,rgba(255,255,255,.07) 0 12px,transparent 12px 24px);color:#283038;font-family:'Press Start 2P',ui-monospace,monospace;padding:22px}
+.frame-label{font:700 11px Inter,sans-serif;letter-spacing:.12em;color:#fff;opacity:.9;margin:0 0 10px 4px}
+.frame-label.dark{color:#1e2c44}
+.navopen{background:#e04848;border:4px solid #8a2020;border-radius:22px;padding:12px;box-shadow:0 6px 0 #6a1818;display:grid;gap:10px;grid-template-columns:220px minmax(0,1fr);max-width:1180px;margin:0 auto}
+.navopen .brand{grid-column:1/-1;color:#fff;font-size:10px;margin:2px 0 0 4px}
+.dir{display:flex;flex-direction:column;gap:6px}
+.dir span{background:#f8f8f8;border:3px solid #283038;border-radius:10px;padding:9px 10px;font-size:7.5px;line-height:1.6;opacity:.75}
+.dir span.on{background:#ffd447;opacity:1}
+.scrn{background:#f8f8f8;border:4px solid #283038;border-radius:12px;padding:14px;font-size:9px;line-height:1.8;min-width:0}
+.scrn h3{margin:0 0 12px;font-size:10px;color:#d03a3a;font-weight:400;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.pbtn{font:7.5px/1.8 'Press Start 2P',monospace;border:3px solid #3a6ea5;background:#fff;color:#283038;border-radius:8px;padding:5px 9px}
+.counter{font-size:7px;background:#1e2c44;color:#ffd447;padding:4px 8px;border-radius:6px}
+.inter{font:500 12.5px/1.55 Inter,sans-serif;color:#3d4a57}
+.mono{font-family:'JetBrains Mono',monospace}
+.muted{opacity:.65}
+.stats-page{background:#4a9fd8 repeating-linear-gradient(45deg,rgba(255,255,255,.07) 0 12px,transparent 12px 24px);padding:22px;font-family:Inter,sans-serif;color:#283038}
+.bar{display:flex;gap:12px;align-items:center;padding:10px 18px;background:#1e2c44;color:#dfe8f5;font:9px 'Press Start 2P',monospace;box-shadow:0 3px 0 #22476e;border-radius:10px 10px 0 0;max-width:1180px;margin:0 auto}
+.bar .logo{color:#ffd447;font-size:10px}
+.wbw{max-width:1180px;margin:0 auto;padding:18px 0 0;display:grid;gap:16px}
+.box{background:#f8f8f8;border:4px solid #3a6ea5;outline:3px solid #fff;outline-offset:-9px;border-radius:12px;padding:22px;font:14px/1.6 Inter,sans-serif;box-shadow:0 4px 0 #22476e;min-width:0}
+.box h2{font:10px/1.8 'Press Start 2P',monospace;color:#3a6ea5;margin:0 0 14px}
+.ghost{opacity:.45;font:13px Inter,sans-serif;color:#345471;padding:6px 4px}
+.ghost b{font:9px 'Press Start 2P',monospace}
+
+/* shared atoms */
+.st{display:inline-block;font:7px/1 'Press Start 2P',monospace;padding:5px 7px;border-radius:5px;color:#fff;white-space:nowrap}
+.st.running{background:#2f9e57}.st.approved{background:#3a6ea5}.st.draft{background:#8a96a3}.st.done{background:#1e2c44;color:#ffd447}.st.blocked{background:#d03a3a}.st.held{background:#b68120}
+.pipset{display:flex;gap:4px;flex-wrap:wrap}
+.tp{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;font:7px 'Press Start 2P',monospace;border:3px solid #283038;background:#fff;color:#283038}
+.tp.A{border-color:#6b7d90}.tp.B{border-color:#8a5cc8}
+.tp.ok.A{background:#6b7d90;color:#fff}.tp.ok.B{background:#8a5cc8;color:#fff}
+.tp.miss{background:repeating-linear-gradient(45deg,#ffe0e0 0 4px,#fff 4px 8px)}
+.tp.run{background:#ffd447;animation:pulse 1.2s ease-in-out infinite}
+.tp.wait{opacity:.45;border-style:dashed}
+@keyframes pulse{50%{box-shadow:0 0 0 4px rgba(255,212,71,.45)}}
+.sw{font:600 11.5px 'JetBrains Mono',monospace;color:#5b3f99;background:#efe7fb;border-radius:5px;padding:2px 6px;white-space:nowrap}
+.track{height:10px;border:2px solid #444;border-radius:5px;background:#fff;overflow:hidden}
+.track i{display:block;height:100%;background:#4cd27a}
+.track i.mid{background:#f5c542}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font:11px Inter,sans-serif;color:#49647e;margin-top:10px;align-items:center}
+.legend .tp{width:16px;height:16px;border-width:2px;font-size:0}
+.design{display:none}.design.active{display:block}
+.pair{display:grid;gap:28px;padding:0 0 30px}
+
+
+/* stats-page strips */
+.sq-row{display:grid;grid-template-columns:150px minmax(0,1fr) auto;gap:18px;align-items:center;border-bottom:1px solid #d5e3ed;padding:14px 0}
+.sq-row:last-child{border-bottom:0}
+.sq-row small{display:block;color:#677d91;font-size:12px;margin-top:4px}
+.sq-mini{display:flex;gap:12px;flex-wrap:wrap}
+.sq-card{flex:1 1 200px;border:3px solid #c9d6e6;border-radius:10px;padding:12px;background:#fff}
+.sq-card.lead{border-color:#2f9e57}
+.sq-card small{display:block;color:#677d91;font-size:12px}
+.chipbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.chip{border:2px solid #a4bdd1;border-radius:999px;padding:4px 10px;font:600 12px Inter,sans-serif;background:#fff;color:#345471}
+.chip.on{background:#3a6ea5;color:#fff;border-color:#3a6ea5}
+/* ---- round 2 shared ---- */
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.chip2{font:7px/1 'Press Start 2P',monospace;padding:7px 9px;border:3px solid #283038;border-radius:8px;background:#fff;color:#283038;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.chip2 b{font-weight:400;background:#283038;color:#ffd447;border-radius:4px;padding:2px 4px}
+.chip2.on{background:#ffd447}
+.sect{font:8px 'Press Start 2P',monospace;color:#3a6ea5;margin:16px 0 8px;display:flex;justify-content:space-between;align-items:center}
+.sect.pend{color:#b68120}
+.why{font:500 12px/1.5 Inter,sans-serif;color:#8a5a10}
+.hp2{display:grid;grid-template-columns:auto 1fr auto;gap:6px;align-items:center;font-size:6.5px}
+.hp2 .hb{height:9px;border:2px solid #283038;border-radius:5px;background:#fff;overflow:hidden}
+.hp2 .hb i{display:block;height:100%;background:#4cd27a}
+.hp2 .hb i.b{background:#a06ef0}
+.stat3{display:grid;grid-template-columns:repeat(3,auto);gap:2px 12px;font:600 11px 'JetBrains Mono',monospace;color:#3d4a57}
+.stat3 span{font:500 10px Inter,sans-serif;color:#7a8a9a}
+.pcbox{background:#e6d9b8;border:4px solid #8a6a2a;border-radius:14px;padding:12px;background-image:repeating-linear-gradient(0deg,rgba(0,0,0,.04) 0 2px,transparent 2px 22px)}
+.pcbox h4{margin:0 0 8px;font:8px 'Press Start 2P',monospace;color:#5a4410}
+.mon{display:grid;grid-template-columns:34px 1fr;gap:8px;align-items:center;background:#fffaf0;border:3px solid #b69a5a;border-radius:10px;padding:8px;margin-bottom:6px;font-size:7.5px;line-height:1.8}
+.mini-ball{width:30px;height:30px;border-radius:50%;border:3px solid #283038;background:linear-gradient(#d03a3a 0 45%,#283038 45% 55%,#fff 55%);filter:grayscale(.7);opacity:.7}
+.vsrow{display:grid;grid-template-columns:1fr 34px 1fr;gap:6px;align-items:stretch}
+.side{border-radius:10px;padding:9px;font-size:6.5px;line-height:1.8}
+.side.A{background:#dfe5ec}.side.B{background:#ede3fb}
+.side big{display:block;font:600 20px 'JetBrains Mono',monospace;color:#283038}
+.vs2{display:grid;place-items:center;font-size:11px;color:#d03a3a}
+.closed{opacity:.7}
+.v-legend{font:500 11px Inter,sans-serif;color:#607992;margin-top:10px}
+/* 1 party+kanban */
+.r1 .slot{display:grid;grid-template-columns:48px minmax(0,1fr) 230px;gap:12px;align-items:center;background:#7cc8e8;border:4px solid #283038;border-radius:14px 30px 30px 14px;padding:10px 14px;margin-bottom:8px;box-shadow:0 3px 0 #22476e}
+.r1 .slot.run{background:#4cd27a}.r1 .slot.dr{background:#c8d4e0}
+.r1 .ball{width:40px;height:40px;border-radius:50%;border:4px solid #283038;background:linear-gradient(#d03a3a 0 45%,#283038 45% 55%,#fff 55%)}
+/* 2 battle tabs */
+.r2 .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.bcard{background:linear-gradient(160deg,#fff 0 60%,#e8f3ea 60%);border:4px solid #283038;border-radius:14px;padding:12px}
+.bcard h4{margin:0 0 8px;font:8px/1.8 'Press Start 2P',monospace;display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap}
+.bcard .foot{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center}
+/* 3 kanban with battle minis */
+.r3 .cols{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.r3 .col{background:#e9eef4;border-radius:10px;padding:8px;min-height:200px}
+.r3 .col.pend{background:#f6efdc}
+.r3 .col h4{margin:0 0 8px;font:7px 'Press Start 2P',monospace;display:flex;justify-content:space-between}
+.r3 .k .pipset .tp{width:15px;height:15px;border-width:2px;font-size:0}.r3 .k .stat3{grid-template-columns:auto auto;font-size:10px}.r3 .k{background:#fff;border:3px solid #283038;border-radius:10px;padding:8px;margin-bottom:6px;font-size:7px;line-height:1.8}
+.r3 .k .side big{font-size:15px}
+/* 4 party + PC box + hall of fame */
+.r4 .lay{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:12px}
+.r4 .slot{display:grid;grid-template-columns:40px minmax(0,1fr);gap:10px;align-items:center;background:#7cc8e8;border:4px solid #283038;border-radius:12px 26px 26px 12px;padding:8px 12px;margin-bottom:8px}
+.r4 .slot.run{background:#4cd27a}
+.r4 .ball{width:34px;height:34px;border-radius:50%;border:3px solid #283038;background:linear-gradient(#d03a3a 0 45%,#283038 45% 55%,#fff 55%)}
+.hof{background:#1e2c44;color:#ffd447;border-radius:12px;padding:10px;font-size:7px;line-height:2;margin-top:10px}
+/* 5 arena */
+.r5 .arena{background:linear-gradient(#bfe8ff 0 55%,#9fd88a 55%);border:4px solid #283038;border-radius:14px;padding:14px;position:relative;min-height:230px}
+.r5 .plat{position:absolute;width:190px;height:34px;border-radius:50%;background:#7fbf6a;border:3px solid #5a8f48}
+.r5 .box{position:absolute;background:#f8f8f8;border:4px solid #283038;border-radius:10px;padding:8px 10px;font-size:7px;line-height:1.9;width:270px}
+.r5 .box .hb{height:9px;border:2px solid #283038;border-radius:5px;background:#fff;overflow:hidden;margin-top:4px}
+.r5 .box .hb i{display:block;height:100%;background:#4cd27a}
+.r5 .sprite{position:absolute;width:64px;height:64px;border-radius:12px;display:grid;place-items:center;font:22px 'Press Start 2P',monospace;color:#fff;border:4px solid #283038}
+.r5 .msg{background:#f8f8f8;border:4px solid #283038;border-radius:10px;padding:10px;font-size:8px;line-height:1.9;margin-top:10px}
+.r5 .bench{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.r5 .bench span{background:#fff;border:3px solid #283038;border-radius:20px;padding:6px 10px;font-size:7px}
+/* 6 swimlanes */
+.r6 .lane{display:grid;grid-template-columns:120px minmax(0,1fr);gap:10px;align-items:start;border-bottom:3px dashed #d8e1ec;padding:10px 0}
+.r6 .lane .lab{font-size:7.5px;line-height:1.8}
+.r6 .row{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.r6 .bcard{min-width:300px}
+/* 7 sidebar filter */
+.r7 .lay{display:grid;grid-template-columns:170px minmax(0,1fr);gap:12px}
+.r7 .filt{background:#1e2c44;color:#dfe8f5;border-radius:12px;padding:10px;font-size:7px;line-height:2.2}
+.r7 .filt label{display:flex;justify-content:space-between;gap:6px}
+.r7 .filt i{width:12px;height:12px;border:2px solid #dfe8f5;border-radius:3px;display:inline-block;vertical-align:-2px;margin-right:6px}
+.r7 .filt i.on{background:#ffd447;border-color:#ffd447}
+/* 8 accordion party */
+.r8 details{background:#7cc8e8;border:4px solid #283038;border-radius:14px 30px 30px 14px;margin-bottom:8px;box-shadow:0 3px 0 #22476e}
+.r8 details[open]{background:#f8f8f8;border-radius:14px}
+.r8 summary{list-style:none;display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 12px;cursor:pointer;font-size:7.5px;line-height:1.8}
+.r8 summary::-webkit-details-marker{display:none}
+.r8 .ball{width:32px;height:32px;border-radius:50%;border:3px solid #283038;background:linear-gradient(#d03a3a 0 45%,#283038 45% 55%,#fff 55%)}
+.r8 .inner{padding:0 14px 12px}
+/* 9 scoreboard + kanban */
+.r9 .tiles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-bottom:10px}
+.r9 .tile{background:#1e2c44;color:#dfe8f5;border-radius:10px;padding:10px;font-size:6.5px;line-height:1.8;cursor:pointer;border:3px solid transparent}
+.r9 .tile.on{border-color:#ffd447}
+.r9 .tile b{display:block;color:#ffd447;font-size:14px;font-weight:400;margin-top:4px}
+/* 10 trainer cards */
+.r10 .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.tcard{background:linear-gradient(135deg,#f8d878,#f0b848);border:4px solid #8a6a2a;border-radius:14px;padding:12px;font-size:7px;line-height:1.9;color:#3a2a08}
+.tcard.pend{background:linear-gradient(135deg,#e8e0d0,#d0c4ac)}
+.tcard h4{margin:0 0 8px;font:8px 'Press Start 2P',monospace;display:flex;justify-content:space-between}
+.badges2{display:flex;gap:5px;margin:8px 0}
+.badges2 i{width:22px;height:22px;border-radius:50%;border:3px solid #5a4410;background:#fff8e0;display:grid;place-items:center;font:6px 'Press Start 2P';font-style:normal}
+.badges2 i.okA{background:#6b7d90;color:#fff}.badges2 i.okB{background:#8a5cc8;color:#fff}.badges2 i.miss{background:repeating-linear-gradient(45deg,#ffd0d0 0 3px,#fff 3px 6px)}.badges2 i.run{background:#ffd447}
+@media (max-width:900px){.r2 .grid2,.r10 .grid2,.r4 .lay,.r7 .lay{grid-template-columns:1fr}.r3 .cols,.r9 .tiles{grid-template-columns:1fr 1fr}.r1 .slot{grid-template-columns:40px 1fr}.r1 .slot>:last-child{grid-column:1/-1}}
+</style></head>
+<body>
+<nav class="top"><span class="brand">EXPERIMENT QUEUE · ROUND 2</span><span id="tabs"></span>
+<div class="desc" id="desc"></div>
+<div class="sample">Built from your notes: battle cards for the A vs B comparison, status filtering like the kanban, the party-box look, no trial matrix, and a separate PENDING list in every design. Each tab shows the viewer's PokéNav page, then the Runs &amp; Comparisons (stats) page. Results are made-up examples so every state shows; nothing has been run.</div></nav>
+<main id="root"></main>
+<script>
+const W=['ABBAABBA'];
+const t=(a,s,m,turns)=>({a,s,m,turns});
+const wait=()=>'ABBAABBA'.split('').map(a=>t(a,'wait'));
+const Q=[
+ {n:1,title:'Whole-map navigation',sw:'full-map-navigation-v1',st:'running',act:'PLAYER_NAME_CONFIRMED',trials:[t('A','ok',41,612),t('B','ok',33,488),t('B','miss',null,1500),t('A','run'),t('A','wait'),t('B','wait'),t('B','wait'),t('A','wait')],used:2.1,note:'trial 4 of 8 running'},
+ {n:2,title:'Elevation transitions',sw:'elevation-transitions-v1',st:'approved',act:'LITTLEROOT_TOWN',trials:wait(),used:0,note:'approved; runs after #1'},
+ {n:3,title:'One-way tiles',sw:'one-way-tiles-v1',st:'draft',act:'PLAYER_BEDROOM',trials:wait(),used:0,note:'ready; needs your approval'},
+];
+const P=[
+ {title:'Ledge hops',sw:'ledge-hops-v1',act:'ROUTE_101',why:'0 of the last 4 model runs reached ROUTE_101 (needs 3)'},
+ {title:'Grass-avoiding navigation',sw:'grass-cost-navigation-v1',act:'ROUTE_101',why:'0 of the last 4 model runs reached ROUTE_101 (needs 3)'},
+ {title:'Counter talk',sw:'counter-talk-v1',act:'OLDALE_TOWN',why:'0 of the last 4 model runs reached OLDALE_TOWN (needs 3)'},
+];
+const C=[{title:'Interaction loop detection',sw:'interaction-loop-detection-v1',st:'done',trials:[t('A','ok',44,700),t('B','ok',38,560),t('B','ok',36,520),t('A','miss',null,1500),t('A','ok',47,740),t('B','miss',null,1500),t('B','ok',35,500),t('A','ok',43,690)],verdict:'IMPROVE → CONFIRM'}];
+const LAB={running:'RUNNING',approved:'APPROVED',draft:'DRAFT',done:'DONE',pending:'PENDING',blocked:'BLOCKED',held:'HELD'};
+const st=s=>`<span class="st ${s==='pending'?'held':s}">${LAB[s]}</span>`;
+const pip=(x,i)=>`<span class="tp ${x.a} ${x.s}" title="trial ${i+1}">${x.a}</span>`;
+const pips=e=>`<span class="pipset">${e.trials.map(pip).join('')}</span>`;
+const fin=(e,a)=>e.trials.filter(x=>x.a===a&&(x.s==='ok'||x.s==='miss'));
+const reach=(e,a)=>{const f=fin(e,a);return `${f.filter(x=>x.s==='ok').length}/${f.length}`};
+const med=v=>{if(!v.length)return null;v=[...v].sort((p,q)=>p-q);return v.length%2?v[(v.length-1)/2]:(v[v.length/2-1]+v[v.length/2])/2};
+const mtime=(e,a)=>{const m=med(fin(e,a).filter(x=>x.s==='ok').map(x=>x.m));return m===null?'—':m.toFixed(0)+'m'};
+const mturn=(e,a)=>{const m=med(fin(e,a).map(x=>x.turns));return m===null?'—':String(Math.round(m))};
+const eff=(e,a)=>{const f=fin(e,a);const tt=f.reduce((s,x)=>s+x.turns,0);return tt?(f.filter(x=>x.s==='ok').length*1000/tt).toFixed(2):'—'};
+const hpw=(e,a)=>{const f=fin(e,a);return f.length?f.filter(x=>x.s==='ok').length/4*100:0};
+const sw=e=>`<span class="sw">${e.sw}</span>`;
+const legend=`<div class="legend"><span><span class="tp A ok"></span> A incumbent reached RIVAL_HOUSE</span><span><span class="tp B ok"></span> B candidate reached</span><span><span class="tp A miss"></span> didn't reach</span><span><span class="tp A run"></span> running</span><span><span class="tp A wait"></span> waiting</span></div><p class="v-legend">Turns = median turns per finished trial (a miss counts every turn it used). Reach/1k = trials that reached the rival house per 1,000 turns.</p>`;
+const vs=(e,big=true)=>`<div class="vsrow"><div class="side A">A · INCUMBENT<big>${reach(e,'A')}</big>${mtime(e,'A')} · ${mturn(e,'A')} turns<br>${eff(e,'A')} reach/1k</div><div class="vs2">VS</div><div class="side B">B · CANDIDATE<big>${reach(e,'B')}</big>${mtime(e,'B')} · ${mturn(e,'B')} turns<br>${eff(e,'B')} reach/1k</div></div>`;
+const hp=e=>`<div class="hp2"><span>A</span><div class="hb"><i style="width:${hpw(e,'A')}%"></i></div><span>${reach(e,'A')}</span><span>B</span><div class="hb"><i class="b" style="width:${hpw(e,'B')}%"></i></div><span>${reach(e,'B')}</span></div>`;
+const bcard=e=>`<div class="bcard ${e.st==='done'?'closed':''}"><h4><span>${e.n?'#'+e.n+' ':''}${e.title.toUpperCase()}</span>${st(e.st)}</h4><div class="inter" style="font-size:11.5px;margin-bottom:8px">${sw(e)}</div>${vs(e)}<div class="foot">${pips(e)}<span>${e.verdict||e.note||''}</span></div></div>`;
+const pcard=p=>`<div class="mon"><span class="mini-ball"></span><span>${p.title.toUpperCase()} ${st('pending')}<br><span class="sw">${p.sw}</span><div class="why">Waiting for ${p.act}: ${p.why}</div></span></div>`;
+const pendingBox=(title='PENDING · MERGED, NOT QUEUED')=>`<div class="pcbox"><h4>${title} (${P.length})</h4>${P.map(pcard).join('')}<div class="why">They join the queue on their own once models reliably reach the milestone each one acts on.</div></div>`;
+const chips=(on='ALL')=>`<div class="chips">${[['ALL',Q.length+P.length+C.length],['RUNNING',1],['APPROVED',1],['DRAFT',1],['PENDING',P.length],['DONE',C.length]].map(([k,n])=>`<span class="chip2 ${k===on?'on':''}">${k} <b>${n}</b></span>`).join('')}</div>`;
+const DIR=['<b style="font-family:Inter;font-weight:400">★</b> NEXT RUN','EXPERIMENT QUEUE','HARNESS CONFIG','TRAINER CARD','POKéMON PARTY','LLM STATS','SPLITS · BASELINE · BEST','ACTIVITY HISTORY'];
+const shell=body=>`<div class="pn"><p class="frame-label">VIEWER · POKéNAV PAGE (port 8790)</p><section class="navopen"><div class="brand">POKéNAV</div><div class="dir">${DIR.map(d=>`<span class="${d==='EXPERIMENT QUEUE'?'on':''}">${d}</span>`).join('')}</div><section class="scrn"><h3><span>EXPERIMENT QUEUE</span><span><span class="counter">3 QUEUED · 3 PENDING · 1 DONE</span> <span class="pbtn">READ ONLY</span></span></h3>${body}${legend}</section></section></div>`;
+const stats=body=>`<div class="stats-page"><p class="frame-label">STATS · RUNS &amp; COMPARISONS PAGE</p><header class="bar"><span class="logo">POKE BENCH</span><span>RUNS &amp; COMPARISONS</span></header><div class="wbw"><div class="ghost"><b>STORY FRONTIER · ALL SELECTED RUNS</b> · existing charts stay as they are</div>${body}<div class="ghost"><b>MILESTONE TIMING · SPLIT RIBBONS · OUTCOMES</b></div></div></div>`;
+const sbox=(title,body)=>`<section class="box"><h2>${title}</h2>${body}</section>`;
+const pendRows=()=>P.map(p=>`<div class="sq-row"><div>${st('pending')}<small>waiting for ${p.act}</small></div><div><b>${p.title}</b> ${sw(p)}<small>${p.why}</small></div><div></div></div>`).join('');
+const queueRows=()=>Q.map(e=>`<div class="sq-row"><div>${st(e.st)}<small>#${e.n} in queue</small></div><div><b>${e.title}</b> ${sw(e)}<div style="margin-top:8px;max-width:380px">${hp(e)}</div></div><div>${pips(e)}</div></div>`).join('');
+
+const D=[];
+D.push({name:'Party + status chips',desc:'<b>11 · Party with status chips.</b> The party-box look you liked, with kanban-style status chips on top to filter it. Each slot shows an A vs B HP bar (rival-house reach per arm) and the trial pips. PENDING experiments sit in a separate box underneath, each with the milestone it waits for.',
+ v:()=>shell(`<div class="r1">${chips()}<div class="sect">QUEUE · IN ORDER</div>${Q.map(e=>`<div class="slot ${e.st==='running'?'run':''} ${e.st==='draft'?'dr':''}"><span class="ball"></span><div style="font-size:8px;line-height:1.9">#${e.n} ${e.title.toUpperCase()} ${st(e.st)}<div class="inter" style="font-size:11.5px">${sw(e)}</div><div style="margin-top:6px">${pips(e)}</div></div><div>${hp(e)}<div class="stat3" style="margin-top:6px">${mturn(e,'A')}<span>A turns</span>${eff(e,'A')}<span>A reach/1k</span></div></div></div>`).join('')}${pendingBox()}</div>`),
+ s:()=>stats(sbox('EXPERIMENT QUEUE',chips()+queueRows())+sbox('PENDING EXPERIMENTS · NOT IN THE QUEUE',pendRows()))});
+D.push({name:'Battle cards + tabs',desc:'<b>12 · Battle cards with status tabs.</b> Every queued experiment is a battle card: incumbent vs candidate with reach, median time, turns and reach per 1k turns. The tabs filter by status. PENDING sits in its own tab and as a strip below.',
+ v:()=>shell(`<div class="r2">${chips()}<div class="grid2">${[...Q,...C].map(bcard).join('')}</div><div class="sect pend">PENDING · WAITING FOR THE FRONTIER</div>${pendingBox('PENDING')}</div>`),
+ s:()=>stats(sbox('EXPERIMENT QUEUE · BATTLES',`${chips()}<div class="r2"><div class="grid2">${Q.map(bcard).join('')}</div></div>`)+sbox('PENDING EXPERIMENTS',pendRows()))});
+D.push({name:'Kanban of battles',desc:'<b>13 · Kanban of mini battles.</b> Kanban columns for PENDING, DRAFT, APPROVED, RUNNING and DONE. Each card is a small battle (A vs B reach). PENDING is the first column, tinted, so it reads as "not in the queue yet". Click a column header to filter to it.',
+ v:()=>shell(`<div class="r3"><div class="cols">${[['PENDING',P.map(p=>`<div class="k">${p.title.toUpperCase()}<div class="why">waits for ${p.act}</div></div>`),'pend'],['DRAFT',Q.filter(e=>e.st==='draft')],['APPROVED',Q.filter(e=>e.st==='approved')],['RUNNING',Q.filter(e=>e.st==='running')],['DONE',C]].map(([h,items,cls])=>`<div class="col ${cls||''}"><h4>${h}<span>${items.length}</span></h4>${items.map(x=>typeof x==='string'?x:`<div class="k">${x.n?'#'+x.n+' ':''}${x.title.toUpperCase()}<div style="margin:6px 0">${hp(x)}</div><div class="stat3">${mturn(x,'A')}<span>A turns</span>${mturn(x,'B')}<span>B turns</span></div><div style="margin-top:6px">${pips(x)}</div></div>`).join('')}</div>`).join('')}</div></div>`),
+ s:()=>stats(sbox('EXPERIMENT QUEUE · BOARD',`<div class="sq-mini">${[['pending',P.length,'Ledge hops, Grass, Counter talk'],['draft',1,'One-way tiles'],['approved',1,'Elevation transitions'],['running',1,'Whole-map navigation · trial 4/8'],['done',1,'Interaction loop detection']].map(([s,n,l])=>`<div class="sq-card ${s==='running'?'lead':''}">${st(s)}<b style="font:26px 'JetBrains Mono';display:block;margin-top:8px">${n}</b><small>${l}</small></div>`).join('')}</div>`))});
+D.push({name:'Party · PC box · Hall of Fame',desc:'<b>14 · Party, PC box and Hall of Fame.</b> The queue is your party (in order, running one in the lead). PENDING experiments are stored in the PC box until models can reach their milestone. Finished ones go to the Hall of Fame with their verdict.',
+ v:()=>shell(`<div class="r4"><div class="lay"><div><div class="sect">PARTY · THE QUEUE</div>${Q.map(e=>`<div class="slot ${e.st==='running'?'run':''}"><span class="ball"></span><div style="font-size:7.5px;line-height:1.9">#${e.n} ${e.title.toUpperCase()} ${st(e.st)}${hp(e)}<div style="margin-top:4px">${pips(e)}</div></div></div>`).join('')}</div><div>${pendingBox('PC BOX · PENDING')}<div class="hof">HALL OF FAME · DONE<br>${C.map(c=>`★ ${c.title.toUpperCase()} · A ${reach(c,'A')} vs B ${reach(c,'B')} · ${c.verdict}`).join('<br>')}</div></div></div></div>`),
+ s:()=>stats(sbox('EXPERIMENT QUEUE · PARTY',queueRows())+sbox('PC BOX · PENDING EXPERIMENTS',pendRows())+sbox('HALL OF FAME',C.map(c=>`<div class="sq-row"><div>${st('done')}</div><div><b>${c.title}</b><small>${c.verdict}</small></div><div>${pips(c)}</div></div>`).join('')))});
+D.push({name:'Battle arena',desc:'<b>15 · Battle arena.</b> The running experiment is staged as a real battle: incumbent and candidate on platforms with HP boxes for reach, and a message box with the latest trial. The rest of the queue waits on the bench, and PENDING sits in the PC box below.',
+ v:()=>{const e=Q[0];return shell(`<div class="r5"><div class="arena"><div class="plat" style="right:40px;top:90px"></div><div class="sprite" style="right:100px;top:40px;background:#6b7d90">A</div><div class="box" style="left:14px;top:14px">A · INCUMBENT<br>REACHED ${reach(e,'A')} · ${mturn(e,'A')} TURNS<div class="hb"><i style="width:${hpw(e,'A')}%"></i></div></div><div class="plat" style="left:40px;bottom:16px"></div><div class="sprite" style="left:100px;bottom:34px;background:#8a5cc8">B</div><div class="box" style="right:14px;bottom:14px">B · ${e.sw.toUpperCase()}<br>REACHED ${reach(e,'B')} · ${mturn(e,'B')} TURNS<div class="hb"><i style="width:${hpw(e,'B')}%;background:#a06ef0"></i></div></div></div><div class="msg">WHOLE-MAP NAVIGATION · TRIAL 4 OF 8 (A) IS RUNNING… ${pips(e)}</div><div class="bench">${Q.slice(1).map(x=>`<span>#${x.n} ${x.title.toUpperCase()} · ${LAB[x.st]}</span>`).join('')}</div><div style="margin-top:12px">${pendingBox('PC BOX · PENDING')}</div></div>`)},
+ s:()=>stats(sbox('NOW BATTLING · WHOLE-MAP NAVIGATION',`<div class="r2" style="max-width:560px">${bcard(Q[0])}</div>`)+sbox('UP NEXT',queueRows())+sbox('PENDING EXPERIMENTS',pendRows()))});
+D.push({name:'Status swimlanes',desc:'<b>16 · Status swimlanes.</b> One horizontal lane per status (RUNNING, APPROVED, DRAFT, PENDING, DONE) with battle cards scrolling sideways. Every status is visible at once without columns getting cramped, and the PENDING lane is visibly separate.',
+ v:()=>shell(`<div class="r6">${[['RUNNING',Q.filter(e=>e.st==='running')],['APPROVED',Q.filter(e=>e.st==='approved')],['DRAFT',Q.filter(e=>e.st==='draft')]].map(([l,items])=>`<div class="lane"><div class="lab">${l}<br><span class="counter">${items.length}</span></div><div class="row">${items.map(bcard).join('')}</div></div>`).join('')}<div class="lane"><div class="lab" style="color:#b68120">PENDING<br><span class="counter">${P.length}</span></div><div class="row">${P.map(p=>`<div class="pcbox" style="min-width:240px">${pcard(p)}</div>`).join('')}</div></div><div class="lane"><div class="lab">DONE<br><span class="counter">1</span></div><div class="row">${C.map(bcard).join('')}</div></div></div>`),
+ s:()=>stats(sbox('EXPERIMENT QUEUE · BY STATUS',`<div class="r6">${[['RUNNING',Q.filter(e=>e.st==='running')],['APPROVED · DRAFT',Q.filter(e=>e.st!=='running')]].map(([l,items])=>`<div class="lane"><div class="lab" style="font:8px 'Press Start 2P'">${l}</div><div class="row">${items.map(bcard).join('')}</div></div>`).join('')}</div>`)+sbox('PENDING EXPERIMENTS',pendRows()))});
+D.push({name:'Battle cards + filter panel',desc:'<b>17 · Battle cards with a filter panel.</b> A dark side panel with status checkboxes and switch groups (navigation, dialogue, map) filters the battle cards. PENDING is one of the statuses but also gets its own heading so it never mixes into the queue.',
+ v:()=>shell(`<div class="r7"><div class="lay"><div class="filt">STATUS<br>${[['RUNNING',1,1],['APPROVED',1,1],['DRAFT',1,1],['PENDING',3,1],['DONE',1,0]].map(([k,n,on])=>`<label><span><i class="${on?'on':''}"></i>${k}</span><span>${n}</span></label>`).join('')}<br>SWITCH GROUP<br>${['NAVIGATION','MAP','DIALOGUE'].map((g,i)=>`<label><span><i class="${i<2?'on':''}"></i>${g}</span></label>`).join('')}</div><div><div class="sect">QUEUE</div><div class="r2"><div class="grid2">${Q.map(bcard).join('')}</div></div><div class="sect pend">PENDING</div>${pendingBox('PENDING')}</div></div></div>`),
+ s:()=>stats(sbox('EXPERIMENT QUEUE',`<div class="chipbar">${['All','Running','Approved','Draft','Done'].map((c,i)=>`<span class="chip ${i===0?'on':''}">${c}</span>`).join('')}</div>${queueRows()}`)+sbox('PENDING EXPERIMENTS',pendRows()))});
+D.push({name:'Party that opens into battles',desc:'<b>18 · Party that opens into battles.</b> Party slots stay compact. Click one and it opens in place into the full battle card with the trial pips and metrics, so you click in without leaving the page (the Match Call idea, inline). PENDING slots are greyed Poké Balls in their own section.',
+ v:()=>shell(`<div class="r8">${chips()}<div class="sect">QUEUE</div>${Q.map((e,i)=>`<details ${i===0?'open':''}><summary><span class="ball"></span><span>#${e.n} ${e.title.toUpperCase()} ${st(e.st)}</span><span style="width:200px">${hp(e)}</span></summary><div class="inner">${vs(e)}<div style="margin-top:8px">${pips(e)}</div><p class="inter">${sw(e)} · acts from ${e.act} · ${e.note}</p></div></details>`).join('')}<div class="sect pend">PENDING · NOT QUEUED</div>${P.map(p=>`<details style="background:#e6d9b8;border-color:#8a6a2a"><summary><span class="ball" style="filter:grayscale(1);opacity:.6"></span><span>${p.title.toUpperCase()} ${st('pending')}</span><span class="why" style="width:200px">waits for ${p.act}</span></summary><div class="inner why">${p.why}</div></details>`).join('')}</div>`),
+ s:()=>stats(sbox('EXPERIMENT QUEUE',`<div class="r8">${Q.map((e,i)=>`<details ${i===0?'open':''}><summary><span class="ball"></span><span style="font:8px/1.9 'Press Start 2P'">#${e.n} ${e.title.toUpperCase()} ${st(e.st)}</span><span style="width:220px">${hp(e)}</span></summary><div class="inner">${vs(e)}</div></details>`).join('')}</div>`)+sbox('PENDING EXPERIMENTS',pendRows()))});
+D.push({name:'Scoreboard tiles + battles',desc:'<b>19 · Scoreboard tiles that filter.</b> A row of status tiles (PENDING, DRAFT, APPROVED, RUNNING, DONE) works like kanban columns folded into counts: click a tile to filter the battle cards below. The PENDING tile shows the pending list with its reasons instead of battles.',
+ v:()=>shell(`<div class="r9"><div class="tiles">${[['PENDING',3],['DRAFT',1],['APPROVED',1],['RUNNING',1],['DONE',1]].map(([k,n],i)=>`<div class="tile ${i===3?'on':''}">${k}<b>${n}</b></div>`).join('')}</div><div class="r2"><div class="grid2">${Q.filter(e=>e.st==='running').map(bcard).join('')}<div class="bcard" style="background:#f6efdc;border-style:dashed"><h4><span>PENDING TILE PREVIEW</span>${st('pending')}</h4>${P.map(p=>`<div class="why">• ${p.title}: waits for ${p.act}</div>`).join('')}</div></div></div></div>`),
+ s:()=>stats(sbox('EXPERIMENT QUEUE',`<div class="r9"><div class="tiles">${[['PENDING',3],['DRAFT',1],['APPROVED',1],['RUNNING',1],['DONE',1]].map(([k,n],i)=>`<div class="tile ${i===3?'on':''}" style="font-size:7px">${k}<b>${n}</b></div>`).join('')}</div></div><div class="r2" style="max-width:560px">${bcard(Q[0])}</div>`)+sbox('PENDING EXPERIMENTS',pendRows()))});
+D.push({name:'Trainer cards',desc:'<b>20 · Trainer cards.</b> Each experiment is a gold trainer card: the switch is the trainer, the eight trials are its badge case (grey A, purple B, striped miss), and the back of the card is the A vs B comparison. PENDING experiments are faded silver cards with the milestone they still need.',
+ v:()=>shell(`<div class="r10">${chips()}<div class="grid2">${Q.map(e=>`<div class="tcard"><h4><span>#${e.n} ${e.title.toUpperCase()}</span>${st(e.st)}</h4>${e.sw}<div class="badges2">${e.trials.map(x=>`<i class="${x.s==='ok'?'ok'+x.a:x.s}">${x.a}</i>`).join('')}</div>${vs(e)}</div>`).join('')}${P.map(p=>`<div class="tcard pend"><h4><span>${p.title.toUpperCase()}</span>${st('pending')}</h4>${p.sw}<div class="badges2">${'ABBAABBA'.split('').map(a=>`<i>${a}</i>`).join('')}</div><div class="why">Needs ${p.act}: ${p.why}</div></div>`).join('')}</div></div>`),
+ s:()=>stats(sbox('EXPERIMENT QUEUE · TRAINER CARDS',`<div class="r10"><div class="grid2">${Q.map(e=>`<div class="tcard"><h4><span>#${e.n} ${e.title.toUpperCase()}</span>${st(e.st)}</h4><div class="badges2">${e.trials.map(x=>`<i class="${x.s==='ok'?'ok'+x.a:x.s}">${x.a}</i>`).join('')}</div>${hp(e)}</div>`).join('')}</div></div>`)+sbox('PENDING EXPERIMENTS',pendRows()))});
+
+const root=document.getElementById('root'),tabs=document.getElementById('tabs'),desc=document.getElementById('desc');
+D.forEach((d,i)=>{const s=document.createElement('section');s.className='design';s.innerHTML=`<div class="pair">${d.v()}${d.s()}</div>`;root.appendChild(s);const b=document.createElement('button');b.textContent=(i+11)+' · '+d.name;b.onclick=()=>show(i);tabs.appendChild(b)});
+function show(i){document.querySelectorAll('.design').forEach((s,j)=>s.classList.toggle('active',i===j));tabs.querySelectorAll('button').forEach((b,j)=>b.classList.toggle('on',i===j));desc.innerHTML=D[i].desc;history.replaceState(null,'','#'+(i+11))}
+show(Math.max(0,Math.min(9,(parseInt(location.hash.slice(1))||11)-11)));
+</script></body></html>

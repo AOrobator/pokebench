@@ -9,7 +9,7 @@ export interface PatchArm { preset: string; flags: Record<string, boolean>; tria
 export interface AllowedPromptChange { changedFeature: string; incumbentSha256: string; candidateSha256: string; auditReceipt: string }
 export interface PatchComparison {
   patchId: string; target: string; changedFeature: string; stage: "screening" | "confirmation";
-  speedMarginPercent: number; completionTolerance: number; incumbent: PatchArm; candidate: PatchArm; allowedPromptChange?: AllowedPromptChange;
+  speedMarginPercent: number; completionTolerance: number; trialsPerArm: number; incumbent: PatchArm; candidate: PatchArm; allowedPromptChange?: AllowedPromptChange;
 }
 export interface Distribution { median: number; min: number; max: number; count: number }
 export interface TrialResult {
@@ -123,7 +123,7 @@ function armResult(preset: string, trials: TrialResult[]): ArmResult {
 
 /** Pure offline evaluation. Environment receipt identity is supplied by the audited manifest, not inferred from event metadata. */
 export function comparePatchResults(input: PatchComparison): PatchResult {
-  if (!Number.isFinite(input.speedMarginPercent) || input.speedMarginPercent <= 0 || input.speedMarginPercent > 100 || !Number.isInteger(input.completionTolerance) || input.completionTolerance < 0 || input.completionTolerance > 4) throw new Error("Invalid predeclared comparison margins");
+  if (!Number.isFinite(input.speedMarginPercent) || input.speedMarginPercent <= 0 || input.speedMarginPercent > 100 || !Number.isInteger(input.completionTolerance) || input.completionTolerance < 0 || !Number.isInteger(input.trialsPerArm) || input.trialsPerArm < 1 || input.completionTolerance > input.trialsPerArm) throw new Error("Invalid predeclared comparison margins");
   const problems: string[] = [];
   const keys = new Set([...Object.keys(input.incumbent.flags), ...Object.keys(input.candidate.flags)]);
   const differing = [...keys].filter((key) => input.incumbent.flags[key] !== input.candidate.flags[key]);
@@ -135,7 +135,7 @@ export function comparePatchResults(input: PatchComparison): PatchResult {
   const armPrompts: Partial<Record<TrialResult["arm"], string>> = {};
   for (const arm of ["incumbent", "candidate"] as const) {
     const config = input[arm];
-    if (config.trials.length !== 4) problems.push(`${arm}: expected four trials, got ${String(config.trials.length)}`);
+    if (config.trials.length !== input.trialsPerArm) problems.push(`${arm}: expected ${String(input.trialsPerArm)} trials, got ${String(config.trials.length)}`);
     let prompt: string | undefined;
     for (const trial of config.trials) {
       const first = trial.events[0]; if (first?.type !== "run_start") throw new Error("Patch trial must begin with run_start");
@@ -183,7 +183,7 @@ export function comparePatchResults(input: PatchComparison): PatchResult {
   const bug = trials.some((t) => t.issues.some((i) => i.kind === "harness_bug" && i.invalidatesComparison));
   return { patchId: input.patchId, target: input.target, eligible, verdict, recommendation: bug ? "repair_and_rerun" : verdict === "regress" ? "discard" : verdict === "improve" ? input.stage === "confirmation" ? "keep" : "confirm" : "retain",
     incumbent, candidate, timeChangePercent, configuration: { changedFeature: input.changedFeature, incumbentFlags: { ...input.incumbent.flags }, candidateFlags: { ...input.candidate.flags }, ...(declaration === undefined ? {} : { allowedPromptChange: { ...declaration } }) }, problems: [...new Set(problems)], trials,
-    limitations: ["Four per arm does not establish statistical confidence.", "Times are among native target completers; missing splits remain explicit.", "Evaluation target observations after the wall cap are censored; positive coverage and native event evidence remain visible.", "Not reached means no qualified recorded completion, not an inference about unseen game state.", "Environment identity is an externally supplied receipt, not independently verified here.", "Prompt audit receipt content is reviewed externally; exact observed hashes are checked here.", "Recommendation does not execute promotion or rollback; downstream qualification is separate."] };
+    limitations: [`${String(input.trialsPerArm)} per arm does not establish statistical confidence.`, "Times are among native target completers; missing splits remain explicit.", "Evaluation target observations after the wall cap are censored; positive coverage and native event evidence remain visible.", "Not reached means no qualified recorded completion, not an inference about unseen game state.", "Environment identity is an externally supplied receipt, not independently verified here.", "Prompt audit receipt content is reviewed externally; exact observed hashes are checked here.", "Recommendation does not execute promotion or rollback; downstream qualification is separate."] };
 }
 
 

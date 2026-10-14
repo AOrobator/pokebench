@@ -41,6 +41,7 @@ export const SWITCHABLE_FEATURES = [
   "repeat-attempt-guard-v1",
   "native-objective-completion-v1",
   "full-map-navigation-v1",
+  "elevation-transitions-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -144,6 +145,8 @@ export const FEATURES: readonly FeatureInfo[] = [
     "Story objectives complete automatically when the game records the milestone, and the model cannot mark them complete itself. Off: nothing completes automatically; the model reports objectives complete on its own say-so."),
   on("full-map-navigation-v1", "guidance", "WHOLE-MAP NAVIGATION", "bounded-navigation-v1",
     "Replaces the 15x15 local map with the whole current map, one character per tile, and lets navigate_to walk the full route (up to 512 presses), re-planning before each press. Stops on blocked or unexpected movement, locks and map changes as before, and after 16 presses without the route getting shorter; a route never crosses a warp unless it is the destination. Off: local map and up to eight attempts per call."),
+  on("elevation-transitions-v1", "guidance", "ELEVATION TRANSITIONS", null,
+    "Applies only while A* navigation is on. navigate_to follows the game's height rule: stairs (height 0) change the walker's layer, bridges and decks (height 15) never block, and a ledge landing sets the layer the game would. Nothing the model reads changes. Off: navigate_to uses the earlier rule, where 0 keeps the current layer and 15 blocks like any other height."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",
@@ -215,7 +218,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("deterministic-loop-guard-v1"), ...when("contextual-interface-docs-v1"),
     ...when("navigation-evidence-memory-v1"), ...when("automatic-running-v1"), ...when("expanded-menu-battle-information-v1"), ...when("state-only-decisions-v1"), ...when("objective-tracking-v1"), ...when("repeat-attempt-guard-v1"), ...when("native-objective-completion-v1"),
     ...when("full-map-navigation-v1"),
-    ...when("grass-cost-navigation-v1"),
+    ...when("grass-cost-navigation-v1"), ...when("elevation-transitions-v1"),
   ];
 }
 

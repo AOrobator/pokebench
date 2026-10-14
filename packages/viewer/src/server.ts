@@ -1,7 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { queueSnapshot, recordedRuns, type QueuePaths, type QueueSnapshot, type RunSource } from "./experiment-store.js";
 import { Type } from "typebox";
 import { Value } from "typebox/value";
 import { FEATURES } from "@pokebench/agent/features";
@@ -16,8 +17,9 @@ import { MILESTONE_ORDER } from "./model.js";
 import { FEATURE_EXPLAINERS } from "./panels.js";
 
 export const HOST = "127.0.0.1";
+const EXPERIMENTS_CACHE_MS = 5_000;
 // Browser code the page may load; everything else in dist/ stays private.
-export const BROWSER_MODULES = ["main", "app", "model", "format", "inspectformat", "timeline", "panels", "gba", "replay", "controls", "nextpanel", "human-input", "human-play", "human-main", "workbench-main", "workbench", "workbench-view", "workbench-data", "frontier"] as const;
+export const BROWSER_MODULES = ["main", "app", "model", "format", "inspectformat", "timeline", "panels", "gba", "replay", "controls", "nextpanel", "human-input", "human-play", "human-main", "workbench-main", "workbench", "workbench-view", "workbench-data", "frontier", "queue-view"] as const;
 
 const MODULE_NAME = new RegExp(`^(${BROWSER_MODULES.join("|")})\\.js$`);
 const FRAME_NAME = /^\d{6}_\d+\.png$/;
@@ -47,6 +49,8 @@ export interface ViewerOptions {
   readonly restartHuman?: (runId: string) => Promise<string>;
   // Origins a loopback reverse proxy (Tailscale Serve) publishes this viewer at.
   readonly publicOrigins?: readonly string[];
+  // The experiment queue (default: experiments/ and docs/experiments/readiness.md beside runsRoot).
+  readonly experiments?: { readonly paths: QueuePaths; readonly source: RunSource };
 }
 
 const MAX_BODY = 64 * 1024;
@@ -246,7 +250,7 @@ async function liveScreen(res: ServerResponse, port: number, fetchFn: typeof fet
   }
 }
 
-async function route(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, origins: ReadonlyMap<string, string>, readBaseline: BaselineReader, readWorkbench: () => Promise<WorkbenchData>): Promise<void> {
+async function route(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, origins: ReadonlyMap<string, string>, readBaseline: BaselineReader, readWorkbench: () => Promise<WorkbenchData>, readExperiments: () => Promise<QueueSnapshot>): Promise<void> {
   const origin = origins.get(req.headers.host ?? "");
   if (origin === undefined) {
     sendJson(res, 403, { error: "the viewer only answers 127.0.0.1 and its published origins" });
@@ -266,6 +270,10 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     return;
   }
   const [head, second, id, leaf, file] = parts;
+  if (parts.length === 2 && head === "api" && second === "experiments") {
+    sendJson(res, 200, await readExperiments());
+    return;
+  }
   if (parts.length === 2 && head === "api" && second === "workbench") {
     sendJson(res, 200, await readWorkbench());
     return;
@@ -405,10 +413,22 @@ export async function startViewer(options: ViewerOptions): Promise<Viewer> {
     next.result = next.result.then(data => { next.until = (options.now?.() ?? new Date()).getTime() + WORKBENCH_POLL_MS; return data; }, (error: unknown) => { if (snapshot === next) snapshot = null; throw error; });
     return next.result;
   };
+  const repo = dirname(options.runsRoot);
+  const experiments = options.experiments ?? { paths: { experimentsDir: join(repo, "experiments"), runsRoot: options.runsRoot, readinessPath: join(repo, "docs", "experiments", "readiness.md") }, source: recordedRuns(options.runsRoot) };
+  // Recorded runs are cached by the source; the snapshot itself is reused for a few seconds.
+  let queued: { until: number; result: Promise<QueueSnapshot> } | null = null;
+  const readExperiments = (): Promise<QueueSnapshot> => {
+    const now = (options.now?.() ?? new Date()).getTime();
+    if (queued !== null && now < queued.until) return queued.result;
+    const next = { until: now + EXPERIMENTS_CACHE_MS, result: Promise.resolve().then(() => queueSnapshot(experiments.paths, experiments.source)) };
+    queued = next;
+    next.result.catch(() => { if (queued === next) queued = null; });
+    return next.result;
+  };
   // A failing request (a client that disconnects mid-body, a file error) must
   // never take the viewer and its queue down.
   const server = createServer((req, res) => {
-    route(req, res, options, port, origins, readBaseline, readWorkbench).catch((error: unknown) => {
+    route(req, res, options, port, origins, readBaseline, readWorkbench, readExperiments).catch((error: unknown) => {
       if (res.headersSent || res.destroyed) res.destroy();
       else sendJson(res, 500, { error: error instanceof Error ? error.message : String(error) });
     });

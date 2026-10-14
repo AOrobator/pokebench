@@ -351,6 +351,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "bounded-navigation-v1":"astar-navigation.html",
  "ledge-hops-v1":"ledge-hops-v1.html",
  "one-way-tiles-v1":"one-way-tiles-v1.html",
+ "elevation-transitions-v1":"elevation-transitions.html",
  "counter-talk-v1":"counter-talk-v1.html",
  "walkable-floor-v1":"walkable-floor-v1.html",
  "grass-cost-navigation-v1":"grass-cost-switch.html",

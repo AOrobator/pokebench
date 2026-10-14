@@ -86,6 +86,26 @@ runs-prune percent: build
 view run_id="": build
     node packages/viewer/dist/cli.js {{quote(run_id)}}
 
+# Experiment queue: list the queue, pending and closed experiments.
+experiments: build
+    node packages/viewer/dist/experiment-cli.js list
+
+# Validate every experiments/*.json definition.
+experiments-check: build
+    node packages/viewer/dist/experiment-cli.js check
+
+# Operator only, interactive: approve a queued experiment for measured runs.
+experiment-approve id: build
+    node packages/viewer/dist/experiment-cli.js approve {{quote(id)}}
+
+# Pin an unstarted experiment to main's HEAD (its approval goes stale).
+experiment-pin id: build
+    node packages/viewer/dist/experiment-cli.js pin {{quote(id)}}
+
+# Run approved experiments in queue order (--dry-run prints the plan; --once runs one trial).
+experiment-run *flags: build
+    node packages/viewer/dist/experiment-cli.js run {{flags}}
+
 # Manual validation probes are recorded like runs, excluded from benchmark results.
 # stdin accepts {"action":"observe"}, {"action":"press","buttons":["A"]}, {"action":"end"}.
 probe saved="": build

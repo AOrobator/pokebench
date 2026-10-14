@@ -39,7 +39,18 @@
     "./serial-comparison": {
       "types": "./src/serial-comparison.ts",
       "default": "./dist/serial-comparison.js"
-
+    },
+    "./experiments": {
+      "types": "./src/experiments.ts",
+      "default": "./dist/experiments.js"
+    },
+    "./summary": {
+      "types": "./src/summary.ts",
+      "default": "./dist/summary.js"
+    },
+    "./patch-results": {
+      "types": "./src/patch-results.ts",
+      "default": "./dist/patch-results.js"
     }
   },
   "scripts": {

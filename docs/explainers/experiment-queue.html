@@ -1,0 +1,106 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Experiment queue</title>
+<style>
+:root{color-scheme:light dark;--bg:#f4f3ed;--ink:#20271f;--muted:#5d665a;--panel:#fff;--edge:#b8c1b2;--accent:#28613b;--good:#1f7a3f;--bad:#b3261e;--warn:#9a6a10;--a:#6b7d90;--b:#8a5cc8;--pend:#e9dcb8;--queue:#cfe5c4;--run:#f2d27a;--done:#c9d6e6;--soft:#eef1ea}
+@media(prefers-color-scheme:dark){:root{--bg:#151c17;--ink:#e2eadf;--muted:#a8b3a4;--panel:#202b22;--edge:#536650;--accent:#a5db8d;--good:#6fdc8c;--bad:#ff8a80;--warn:#e6b85c;--a:#8fa3b8;--b:#b48ef0;--pend:#5a4a22;--queue:#2f5a33;--run:#7a6420;--done:#33465c;--soft:#26322a}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.55 system-ui,-apple-system,sans-serif;padding:clamp(16px,5vw,60px)}main{max-width:1000px;margin:auto}
+h1{font-size:clamp(25px,4vw,40px);margin:.2em 0}h2{margin-top:44px}.eyebrow{color:var(--muted);font-size:14px;letter-spacing:.06em;text-transform:uppercase}
+figure{margin:22px 0;padding:18px;background:var(--panel);border:1px solid var(--edge);border-radius:15px}figcaption{margin-top:10px;color:var(--muted);font-size:15px}
+.diagram{overflow-x:auto}svg{width:100%;height:auto;min-width:560px;display:block}
+code{font:14px ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--soft);padding:1px 5px;border-radius:5px}
+table{border-collapse:collapse;width:100%;font-size:15px}th,td{text-align:left;padding:8px;border-bottom:1px solid var(--edge);vertical-align:top}th{color:var(--muted);font-weight:600}
+.box{stroke:var(--edge);stroke-width:1.5}.pend{fill:var(--pend)}.queue{fill:var(--queue)}.run{fill:var(--run)}.done{fill:var(--done)}.plain{fill:var(--panel)}.bad{fill:none;stroke:var(--bad);stroke-width:2;stroke-dasharray:6 5}
+.lab{fill:var(--ink);font:600 14px system-ui,sans-serif}.sub{fill:var(--muted);font:12.5px system-ui,sans-serif}.arr{stroke:var(--ink);stroke-width:2;fill:none;marker-end:url(#h)}.arr.g{stroke:var(--good)}.arr.r{stroke:var(--bad)}
+.pa{fill:var(--a)}.pb{fill:var(--b)}.miss{fill:var(--panel);stroke:var(--bad);stroke-width:2}.wait{fill:var(--panel);stroke:var(--edge);stroke-width:2;stroke-dasharray:4 3}
+.pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:13px;font-weight:600}.p-ready{background:var(--queue)}.p-pend{background:var(--pend)}
+</style>
+<main>
+<div class="eyebrow">PokeBench · harness tooling explainer</div>
+<h1>The experiment queue: every switch gets measured, in order, only when it can matter</h1>
+<p>Each merged feature switch becomes an experiment: the incumbent configuration against the same configuration with that one switch flipped, 8 trials each. The queue runs them one at a time under the same gameplay lock NEXT RUN uses. It waits for your approval, and it never queues an experiment the models can't reach yet.</p>
+
+<h2>1. Where an experiment lives</h2>
+<figure><div class="diagram"><svg viewBox="0 0 900 250" role="img" aria-label="Lifecycle: pending, queued, approved, running or held, done or discarded">
+<defs><marker id="h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>
+<rect class="box pend" x="10" y="40" width="160" height="80" rx="12"/><text class="lab" x="24" y="70">PENDING</text><text class="sub" x="24" y="92">merged behind a switch,</text><text class="sub" x="24" y="108">no queue position</text>
+<rect class="box queue" x="220" y="40" width="160" height="80" rx="12"/><text class="lab" x="234" y="70">QUEUED · DRAFT</text><text class="sub" x="234" y="92">ready; has a position;</text><text class="sub" x="234" y="108">waiting for you</text>
+<rect class="box queue" x="430" y="40" width="150" height="80" rx="12"/><text class="lab" x="444" y="70">APPROVED</text><text class="sub" x="444" y="92">your typed approval</text><text class="sub" x="444" y="108">matches the definition</text>
+<rect class="box run" x="630" y="40" width="120" height="80" rx="12"/><text class="lab" x="644" y="70">RUNNING</text><text class="sub" x="644" y="92">or HELD (resumes</text><text class="sub" x="644" y="108">on the next run)</text>
+<rect class="box done" x="790" y="40" width="100" height="80" rx="12"/><text class="lab" x="802" y="70">DONE</text><text class="sub" x="802" y="92">result.json</text>
+<path class="arr g" d="M170 80H218"/><text class="sub" x="172" y="140">readiness passes</text><text class="sub" x="172" y="156">+ a position is set</text>
+<path class="arr" d="M380 80H428"/><text class="sub" x="382" y="140">just experiment-</text><text class="sub" x="382" y="156">approve (you)</text>
+<path class="arr" d="M580 80H628"/><text class="sub" x="582" y="140">just experiment-</text><text class="sub" x="582" y="156">run</text>
+<path class="arr" d="M750 80H788"/>
+<path class="arr r" d="M505 120 V200 H300 V122"/><text class="sub" x="315" y="220">any edit except position/notes → STALE, needs a new approval</text>
+<rect class="box plain" x="790" y="160" width="100" height="56" rx="12"/><text class="lab" x="802" y="186">DISCARDED</text><text class="sub" x="802" y="204">reason in file</text>
+</svg></div><figcaption>An experiment is on exactly one list: pending, the queue, or closed (done or discarded). State is never stored; it is derived each time from the tracked definition in <code>experiments/&lt;id&gt;.json</code>, the approval file, the append-only trial ledger and the recorded runs.</figcaption></figure>
+
+<h2>2. The readiness gate: only test where models arrive</h2>
+<p>Your rule: don't run an experiment until the models reliably reach the part of the game the switch changes. Each experiment names its activation milestone. It is ready when at least 3 of the last 4 qualifying runs on its model lane reach that milestone.</p>
+<figure><div class="diagram"><svg viewBox="0 0 900 245" role="img" aria-label="Readiness for three experiments over the last four think-fast runs">
+<text class="sub" x="10" y="24">last 4 think-fast runs →</text>
+<text class="lab" x="10" y="70">One-way tiles</text><text class="sub" x="10" y="88">acts at PLAYER_BEDROOM</text>
+<text class="lab" x="10" y="140">Ledge hops</text><text class="sub" x="10" y="158">acts at ROUTE_101</text>
+<text class="lab" x="10" y="210">Counter talk</text><text class="sub" x="10" y="228">acts at OLDALE_TOWN</text>
+<g><rect class="pa" x="260" y="50" width="56" height="40" rx="8"/><rect class="pa" x="326" y="50" width="56" height="40" rx="8"/><rect class="miss" x="392" y="50" width="56" height="40" rx="8"/><rect class="pa" x="458" y="50" width="56" height="40" rx="8"/></g>
+<text class="lab" x="540" y="76">3 of 4 reached</text><text class="sub" x="680" y="76">READY → can be queued</text>
+<g><rect class="miss" x="260" y="120" width="56" height="40" rx="8"/><rect class="miss" x="326" y="120" width="56" height="40" rx="8"/><rect class="miss" x="392" y="120" width="56" height="40" rx="8"/><rect class="miss" x="458" y="120" width="56" height="40" rx="8"/></g>
+<text class="lab" x="540" y="146">0 of 4</text><text class="sub" x="680" y="146">NOT READY → stays pending</text>
+<g><rect class="miss" x="260" y="190" width="56" height="40" rx="8"/><rect class="miss" x="326" y="190" width="56" height="40" rx="8"/><rect class="miss" x="392" y="190" width="56" height="40" rx="8"/><rect class="miss" x="458" y="190" width="56" height="40" rx="8"/></g>
+<text class="lab" x="540" y="216">0 of 4</text><text class="sub" x="680" y="216">NOT READY → stays pending</text>
+</svg></div><figcaption>The actual 2026-10-14 check (runs <code>…15-23-36_965d</code>, <code>…15-37-31_15ad</code>, <code>…16-07-40_7e37</code>, <code>…16-37-47_671c</code>). Filled = reached the milestone; outlined red = did not. The counts are actual; which of the four runs missed is drawn for illustration. Runs that match the incumbent's switches and turn and wall limits count first. Until four of those exist, the latest runs of the same model lane in any configuration stand in, and the reason says so. Human runs, probes and operator-aborted runs never count.</figcaption></figure>
+
+<h2>3. One experiment: two arms, one difference, ABBA order</h2>
+<figure><div class="diagram"><svg viewBox="0 0 900 170" role="img" aria-label="Incumbent and candidate differ in one switch; eight trials alternate ABBAABBA">
+<rect class="box plain" x="10" y="20" width="250" height="60" rx="12"/><text class="lab" x="24" y="46">A · incumbent preset</text><text class="sub" x="24" y="66">every switch explicit</text>
+<rect class="box plain" x="10" y="95" width="250" height="60" rx="12"/><text class="lab" x="24" y="121">B · candidate</text><text class="sub" x="24" y="141">same preset, one switch flipped</text>
+<g transform="translate(300,55)">
+<rect class="pa" x="0" y="0" width="56" height="56" rx="10"/><rect class="pb" x="68" y="0" width="56" height="56" rx="10"/><rect class="pb" x="136" y="0" width="56" height="56" rx="10"/><rect class="pa" x="204" y="0" width="56" height="56" rx="10"/>
+<rect class="pa" x="272" y="0" width="56" height="56" rx="10"/><rect class="pb" x="340" y="0" width="56" height="56" rx="10"/><rect class="pb" x="408" y="0" width="56" height="56" rx="10"/><rect class="pa" x="476" y="0" width="56" height="56" rx="10"/>
+<text class="lab" x="22" y="34" fill="#fff">A</text><text class="lab" x="90" y="34">B</text><text class="lab" x="158" y="34">B</text><text class="lab" x="226" y="34">A</text><text class="lab" x="294" y="34">A</text><text class="lab" x="362" y="34">B</text><text class="lab" x="430" y="34">B</text><text class="lab" x="498" y="34">A</text>
+<text class="sub" x="0" y="80">the ABBA block repeats: 16 trials, 8 per arm, each its own run id and run directory, about 8 hours at 30 minutes each</text></g>
+</svg></div><figcaption>The schema refuses a definition whose candidate differs from the incumbent anywhere else, or breaks a switch dependency. ABBA blocks keep either arm from always running first or last. Results report rival-house reach, median time among completers, median turns and reach per 1,000 turns, so efficiency counts as well as milestones.</figcaption></figure>
+
+<h2>4. What the runner checks before every trial</h2>
+<figure><div class="diagram"><svg viewBox="0 0 900 250" role="img" aria-label="Per-trial checks and how each outcome is recorded">
+<rect class="box plain" x="10" y="20" width="210" height="190" rx="12"/><text class="lab" x="24" y="46">Before each trial</text>
+<text class="sub" x="24" y="72">• approval still matches the hash</text><text class="sub" x="24" y="94">• main at the pinned commit,</text><text class="sub" x="34" y="110">clean tree, fresh build</text><text class="sub" x="24" y="132">• budget leaves room for a trial</text><text class="sub" x="24" y="154">• no stop requested</text><text class="sub" x="24" y="176">• lease held, no other live run</text>
+<path class="arr" d="M220 110H268"/>
+<rect class="box run" x="270" y="80" width="150" height="60" rx="12"/><text class="lab" x="286" y="106">live.js play</text><text class="sub" x="286" y="126">on 127.0.0.1:8074</text>
+<path class="arr g" d="M420 95 L500 50"/><path class="arr r" d="M420 110 L500 125"/><path class="arr r" d="M420 125 L500 200"/>
+<rect class="box queue" x="502" y="20" width="390" height="56" rx="12"/><text class="lab" x="516" y="44">run_end recorded (budget, stuck, crash, milestone…)</text><text class="sub" x="516" y="64">outcome: counted and graded, even if play exited nonzero</text>
+<rect class="box pend" x="502" y="96" width="390" height="56" rx="12"/><text class="lab" x="516" y="120">run_end says operator_abort</text><text class="sub" x="516" y="140">kept on record, trial rerun later, never graded; queue holds</text>
+<rect class="box plain" x="502" y="172" width="390" height="56" rx="12"/><rect class="bad" x="502" y="172" width="390" height="56" rx="12"/><text class="lab" x="516" y="196">no run_end, or launch failed</text><text class="sub" x="516" y="216">launcher error; queue holds; the trial reruns on resume</text>
+</svg></div><figcaption>The ledger is append-only, so a crashed runner resumes exactly where it stopped and never repeats a finished trial. After the last trial it grades the experiment with the existing patch evaluator into <code>result.json</code>, then moves on to the next approved entry. It never promotes a switch or changes a default.</figcaption></figure>
+
+<h2>5. What is in it today</h2>
+<figure><table>
+<tr><th>Position</th><th>Experiment</th><th>Acts at</th><th>Readiness</th></tr>
+<tr><td>1</td><td>Whole-map navigation · <code>full-map-navigation-v1</code></td><td>PLAYER_NAME_CONFIRMED</td><td><span class="pill p-ready">ready</span> needs your approval</td></tr>
+<tr><td>2</td><td>Elevation transitions · <code>elevation-transitions-v1</code></td><td>LITTLEROOT_TOWN</td><td><span class="pill p-ready">ready</span> needs your approval; repin after merge</td></tr>
+<tr><td>3</td><td>One-way tiles · <code>one-way-tiles-v1</code></td><td>PLAYER_BEDROOM</td><td><span class="pill p-ready">ready</span> needs your approval</td></tr>
+<tr><td>pending</td><td>Ledge hops · <code>ledge-hops-v1</code></td><td>ROUTE_101</td><td><span class="pill p-pend">not ready</span> 0 of 4</td></tr>
+<tr><td>pending</td><td>Grass-avoiding navigation · <code>grass-cost-navigation-v1</code></td><td>ROUTE_101</td><td><span class="pill p-pend">not ready</span> 0 of 4</td></tr>
+<tr><td>pending</td><td>Counter talk · <code>counter-talk-v1</code></td><td>OLDALE_TOWN</td><td><span class="pill p-pend">not ready</span> 0 of 4</td></tr>
+</table><figcaption>All share one incumbent: the A* cohort preset with ledge hops, one-way tiles and elevation on, whole-map and counter talk off. Graded on <code>RIVAL_HOUSE_ENTERED</code>, the current frontier. Verdicts are also recorded in <code>docs/experiments/readiness.md</code>.</figcaption></figure>
+
+<h2>6. Commands</h2>
+<figure><table>
+<tr><th>Command</th><th>Who</th><th>What it does</th></tr>
+<tr><td><code>just experiments</code></td><td>anyone</td><td>Lists the queue, the pending list and closed experiments with their reasons.</td></tr>
+<tr><td><code>just experiments-check</code></td><td>anyone</td><td>Validates every definition.</td></tr>
+<tr><td><code>just experiment-approve &lt;id&gt;</code></td><td>you only</td><td>Needs a terminal and the typed id, so an agent can't approve anything.</td></tr>
+<tr><td><code>just experiment-pin &lt;id&gt;</code></td><td>anyone</td><td>Moves an unstarted entry to main's current commit; its approval goes stale.</td></tr>
+<tr><td><code>just experiment-run [--dry-run] [--once]</code></td><td>you</td><td>Runs approved entries in queue order. <code>--dry-run</code> only prints the plan.</td></tr>
+</table></figure>
+
+<h2>7. Where to see it</h2>
+<p>PokéNav has an <b>EXPERIMENT QUEUE</b> page, and Runs &amp; Comparisons has <b>EXPERIMENT QUEUE</b> and <b>PENDING EXPERIMENTS</b> sections. Each experiment is a party slot: its trial pips in run order, an HP bar per arm for how many trials reached the rival house, and median turns. Click a slot to open its battle card with reach, median time, median turns and reach per 1,000 turns for each arm. The chips filter by status. Both pages are read only.</p>
+<h2>8. Status</h2>
+<figure><ul>
+<li>Branch <code>claude/experiment-queue</code>, merged with main through a3c343b (grass cost, counter talk). Not merged to main.</li>
+<li>Built: definitions and readiness (<code>packages/agent/src/experiments.ts</code>); store, runner and CLI (<code>packages/viewer/src/experiment-*.ts</code>); the queue views (<code>queue-view.ts</code>, <code>GET /api/experiments</code>); just recipes; the experiment-queue and feature-switch skills; the elevation switch. Eight trials per arm by default.</li>
+<li>Tests: agent 961, viewer 532, Python 1847 pass. Viewer coverage 95.1 / 90.4 / 94.4, agent 97.3 / 93.5 / 98.0 (floor 90).</li>
+<li>Review: four rounds found and fixed real runner bugs: resuming without approval, dropped crashes, graded operator stops, missing run_end accepted, readiness ignoring the model lane, the runner stopping after one experiment, and finished experiments closing ungraded. Round 5 covers the views.</li>
+<li>Not done: no measured runs have been started. Native qualification before trials and audited prompt-change contracts are deferred, so experiments whose switch changes the system prompt will grade as ineligible until that contract exists.</li>
+</ul></figure>
+</main></html>

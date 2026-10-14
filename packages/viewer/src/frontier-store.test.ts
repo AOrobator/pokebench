@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import { parseEvent } from "@pokebench/agent/events";
 import { workbenchSnapshot } from "./workbench-store.js";
 import { parseWorkbench } from "./workbench-data.js";
+import { fullRun } from "../test-support/events.js";
 import { frontierReferences } from "./frontier.js";
 const fixtures: unknown = JSON.parse(readFileSync(new URL("../test-support/frontier-reference.json", import.meta.url), "utf8"));
 function fixture(name: string): unknown[] {
@@ -42,4 +43,17 @@ describe("recorded reference ingestion", () => {
     expect(refs.best?.measurement?.rawSplits.find(s => s.name === "RIVAL_MET")?.evidence.length).toBe(1);
     expect(() => parseWorkbench({ ...data, runs: data.runs.map(r => ({ ...r, measurement: { ...r.measurement, logSha256: "bad" } })) })).toThrow();
   });
+});
+it("accepts the common baseline's typed raw RAM references in new recordings without inventing historical archives", async () => {
+  const root = mkdtempSync(join(tmpdir(), "frontier-raw-schema-")), id = "raw_schema_compatibility";
+  const log = fullRun();
+  const events = log.events.map(event => ({ ...event, run: id,
+    ...(event.type === "run_start" ? { harness_features: [...event.harness_features, "full-raw-ram-v1"] } : {}),
+    ...(event.type === "state" && "started" in event ? { raw_ram: { v: 1, sequence: 0, frame: 100, path: "raw-ram/00000000.json.gz", sha256: "a".repeat(64) } } : {}),
+  }));
+  mkdirSync(join(root, id)); const bytes = events.map(event => JSON.stringify(event)).join("\n") + "\n"; writeFileSync(join(root, id, "events.jsonl"), bytes);
+  const data = parseWorkbench(await workbenchSnapshot(root, () => Promise.resolve(false), { state: "idle" }, Date.now()));
+  expect(data.runs).toHaveLength(1); expect(data.runs[0]).toMatchObject({ id, status: "ended", problem: null });
+  expect(data.runs[0]?.measurement?.features).toContain("full-raw-ram-v1");
+  expect(data.runs[0]?.measurement?.logSha256).toBe(createHash("sha256").update(bytes).digest("hex"));
 });

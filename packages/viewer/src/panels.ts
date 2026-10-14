@@ -345,10 +345,11 @@ export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):s
  };
  const ids=[...new Set([...registry.map(f=>f.id),...start.harness_features,...Object.keys(explicit)])];
  const cards=ids.map(id=>{
-  const info=registry.find(f=>f.id===id),known=fallback[id];
-  const state=start.harness_features.includes(id)?explicit[id]===false?"conflict":"on":explicit[id]===undefined?"unknown":explicit[id]?"on":"off";
+  const info=registry.find(f=>f.id===id),known=Object.hasOwn(fallback,id)?fallback[id]:undefined;
+  const explicitValue=Object.hasOwn(explicit,id)?explicit[id]:undefined;
+  const state=start.harness_features.includes(id)?explicitValue===false?"conflict":"on":explicitValue===undefined?"unknown":explicitValue?"on":"off";
   const title=info?.title??known?.[0]??id.replaceAll("-"," ");const description=info?.description??known?.[1]??"Recorded feature ID. A description is unavailable in this viewer’s feature catalog.";
-  const file=FEATURE_EXPLAINERS[id];
+  const file=Object.hasOwn(FEATURE_EXPLAINERS,id)?FEATURE_EXPLAINERS[id]:undefined;
   return {group:info?.group??known?.[2]??"other",state,html:`<article class="config-feature config-${state}" data-feature="${esc(id)}"><header><h5>${esc(title)}</h5><span class="config-badge">${state==="unknown"?"NOT RECORDED":state.toUpperCase()}</span></header><p>${esc(description)}</p><footer><code>${esc(id)}</code>${file===undefined?"":`<a href="/explainers/${file}" target="_blank" rel="noopener" aria-label="Read explainer: ${esc(title)}">READ EXPLAINER ↗</a>`}</footer></article>`};
  });
  const groups=[["observation","OBSERVATION","What the model can see"],["guidance","GUIDANCE","How the harness helps"],["guard","GUARDS","What can intervene"],["measurement","MEASUREMENT","Recorded evidence and scoring"],["other","RECORDED POLICIES","Other recorded feature IDs"]]as const;

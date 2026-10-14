@@ -124,3 +124,11 @@ it("keeps returning dialogue latest under full outcome and room pressure",()=>{
  const text=m.text();expect(text.length).toBeLessThanOrEqual(6500);expect(text.split("Last observed dialogue")[1]?.split("Rooms visited")[0]).toContain("Quote A");
  for(let i=0;i<8;i++)expect(text).toContain(`Outcome ${String(i)}`);for(const id of m.evidence())expect(text).toMatch(new RegExp(`#${String(id)}(?!\\d)`));
 });
+
+it("does not reveal field-lock ownership when that independent information switch is OFF",()=>{
+ for(const locked of [false,true,null]){
+  const m=new NavigationMemory({...ALL_ON,"field-control-lock":false});m.observe(state(1,{field_controls_locked:locked}));
+  m.observe(event({type:"tool_call",id:"a",name:"press",args:{buttons:["A"]}},2));m.observe(event({type:"button_press",tool_call_id:"a",before_state_seq:1,buttons:["A"]},3));m.observe(event({type:"tool_result",id:"a",name:"press",is_error:false,duration_ms:1,text:"ok",frames:[]},4));
+  expect(m.text()).toContain("A interaction target unverified");expect(m.text()).not.toContain("A input owned by interface");
+ }
+});

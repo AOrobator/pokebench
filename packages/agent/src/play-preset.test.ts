@@ -33,3 +33,7 @@ it("defaults absent historical v2 named interactions OFF and records explicit tr
  expect(presetFeatures(parsePlayPreset(v2))["named-interactions-v1"]).toBe(true);
  expect(()=>parsePlayPreset({...v2,features:{...old,"named-interactions-v1":"true"}})).toThrow(/preset/);
 });
+
+it("rejects navigation memory when the RAM umbrella would suppress all ordinary observations",()=>{
+ expect(()=>parsePlayPreset({...v2,features:{...v2.features,"ram-state-v1":false}})).toThrow(/navigation-evidence-memory-v1 needs ram-state-v1/);
+});

@@ -19,6 +19,8 @@ wild encounters (`metatile_behavior.c` encounter table) and Cut clears both into
 
 COMMIT: `feat(agent): add switchable grass step cost to navigate_to planner` (768c404)
 COMMIT: `Merge branch 'main' into claude/grass-cost` (96808e0), re-applied on top of ledge hops.
+COMMIT: `test(agent): prove a ledge hop pays the grass cost of its landing tile` (3cdfd5c)
+COMMIT: `Merge branch 'main' into claude/grass-cost` (c854957), main at 37a961b, clean merge.
 
 ## Experiment arms (draft, no runs launched)
 
@@ -32,6 +34,10 @@ with no dependency problems on 96808e0.
 - After merge: agent 899/899, viewer 419/419, TS coverage above 90 on all metrics, tsc/eslint
   clean. Python: 1805 pass, 2 fail and mypy reports `mgba._pylib` missing, all worktree setup
   gaps (no vendored porymap data, no mGBA binding in this worktree's venv). No Python is touched.
+- After merging main 37a961b (c854957): agent 899/899, viewer 476/476, env 1807/1807. `just
+  coverage` passes the 90 floor (Python lines 96.68, branches 91.83, functions 100). `just lint`
+  exit 0, `just verify-vendor` OK. The earlier setup gaps were closed by initializing the vendor
+  submodule in this worktree and copying the built `mgba` package from the main checkout's venv.
 - [ ] Review: Claude CLI, Codex (GPT lane), Cursor Grok. Local endpoint lanes skipped per operator.
 - [ ] Operator approval for the local merge into main.
 - [ ] Operator approval before any measured run.

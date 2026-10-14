@@ -19,6 +19,11 @@ it("resets elevation on zero-elevation connectors and approaches a door from bel
  const grid={elevation:3,tiles:[tile(0,0),tile(1,0,0,0,0),tile(2,0,0,0,4)],objects:[],warps:[]};
  expect(planNavigation({...field,navigation_grid:grid},{x:2,y:0})).toEqual(["RIGHT","RIGHT"]);
  expect(planNavigation({...field,navigation_grid:{...grid,tiles:[tile(0,0),tile(1,0,0,0,4)]}},{x:1,y:0})).toBeNull();
+ // A finished step re-reads only the tile it ends on (ShiftStillObjectEventCoords): leaving 15 takes the new height.
+ const row=(...heights:number[])=>({...grid,tiles:heights.map((e,x)=>tile(x,0,0,0,e))});
+ expect(planNavigation({...field,navigation_grid:row(3,0,15,4,3)},{x:4,y:0})).toBeNull();
+ expect(planNavigation({...field,navigation_grid:row(3,0,15,4,3)},{x:3,y:0})).toEqual(["RIGHT","RIGHT","RIGHT"]);
+ expect(planNavigation({...field,navigation_grid:row(15,0,4)},{x:2,y:0})).toEqual(["RIGHT","RIGHT"]);
  const room={...field,position:{x:0,y:1},navigation_grid:{elevation:3,tiles:[tile(0,1),tile(0,0,1,0x69,0)],objects:[],warps:[{x:0,y:0}]}};
  expect(planNavigation(room,{x:0,y:0})).toEqual(["UP"]);
 });
@@ -118,7 +123,8 @@ it("keeps the walker's elevation under the Route 110 Cycling Road deck",()=>{
  const plain=new Map([[0x70,0],[0x7f,0]]);
  expect(planNavigation(onMap("route110_under_deck",{x:15,y:70},3,plain),{x:19,y:70})).toEqual(["RIGHT","RIGHT","RIGHT","RIGHT"]);
  expect(planNavigation(onMap("route110_under_deck",{x:15,y:70},3,plain),{x:17,y:68})).toBeNull();
- expect(planNavigation(onMap("route110_under_deck",{x:15,y:70},0,plain),{x:17,y:68})).toHaveLength(4);
+ expect(planNavigation(onMap("route110_under_deck",{x:16,y:69},4,plain),{x:16,y:67})).toEqual(["UP","UP"]);
+ expect(planNavigation(onMap("route110_under_deck",{x:16,y:69},4,plain),{x:19,y:70})).toBeNull();
 });
 // pokeemerald 731ad5b: MB_JUMP_EAST/WEST/NORTH/SOUTH = 0x38..0x3B carry collision; moving
 // into one in its direction jumps two tiles (GetLedgeJumpDirection, PlayerJumpLedge).
@@ -150,6 +156,8 @@ it("prefers a hop over a longer walk and never lands on blocked, occupied, warp 
  expect(planNavigation(column({},[tile(1,0),tile(1,1,1,0x3b),tile(1,2,1)]),{x:1,y:2},{ledges:true})).toBeNull();
  expect(planNavigation(column({},[tile(1,0),tile(1,1,1,0x3b),tile(1,2,0,0x10)]),{x:1,y:2},{ledges:true})).toBeNull();
  expect(planNavigation(column({},[tile(1,0),tile(1,1,1,0x3b),tile(1,2,0,0,4)]),{x:1,y:2},{ledges:true})).toBeNull();
+ const fromBridge=ledgeField(0x3b,{tiles:[tile(1,0,0,0,15),tile(1,1,1,0x3b),tile(1,2,0,0,0),tile(1,3,0,0,4)]});
+ expect(planNavigation(fromBridge,{x:1,y:3},{ledges:true})).toEqual(["DOWN","DOWN"]);
  expect(planNavigation({...column({},[tile(1,0),tile(1,1,1,0x3b)]),topology:{width:5,height:5,connections:[]}},{x:1,y:4},{ledges:true})).toBeNull();
 });
 it("expects a two-tile landing after a hop press and stops on any other movement",async()=>{

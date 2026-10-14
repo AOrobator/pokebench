@@ -22,3 +22,6 @@ Scope: the elevation rule in navigation.ts only. Walkable behaviors (sand, bridg
 - Merged main a8cbcff (ledge hops landed). Ledge landings now use the same mismatch/entered rule (a jump shifts previousCoords to the take-off tile, so the update compares landing and take-off).
 - Merged main e6f8cc2 (docs only): merge commit ad08a62.
 - COMMIT: `docs: record elevation-transitions merge of main` (fc1d9d0)
+- COMMIT: `docs: elevation transitions explainer` (b59c999)
+- Review round 1 (packet head fc1d9d0): Claude CLI BLOCKING. Verified against source: a finished step calls ShiftStillObjectEventCoords (UpdateMovementNormal :5093, UpdateJumpAnim :5446) then ObjectEventUpdateElevation with prev == cur, so the walker ends at the tile's height unless the tile is 15; the tile left only matters mid-step. Fix: entered = tile===15 ? walker : tile, drop `here`. Unreachable test state (walker 0 on a height-3 tile) replaced with a real one (walker 4 on the Route 110 crossing). Cursor GPT lane hit a usage limit; Codex CLI runs with -m gpt-5.6-sol (default gpt-6.1-sol unsupported on this account).
+- RED (round 2): 2 failed / 18 passed (3→0→15→4→3 must be refused; ledge take-off from 15 onto 0 then 4).

@@ -352,3 +352,14 @@ it("surfaces malformed nested human logs and duplicate ids without selecting amb
   expect(() => baselineOf(r, "duplicate")).toThrow(RunsError);
   expect(() => runDir(r, "../human/duplicate")).toThrow(RunsError);
 });
+
+it("names a run's experiment, arm and trial, or its preset, in the run list",()=>{
+ const runsRoot=root();
+ const flags={loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false};
+ const write=(id:string,evaluation:NonNullable<typeof START["evaluation"]>)=>{const log=new Log();log.add(0,{...START,evaluation});writeRun(runsRoot,id,log);};
+ write("2026-10-14T18-00-00_e",{preset_id:"p",target:null,failure_limit:3,flags,experiment:{id:"factorial-2x2-think-fast",arm:"both",trial:5,of:32}});
+ write("2026-10-14T17-00-00_p",{preset_id:"checkpoint-clock-set",target:"CLOCK_SET",failure_limit:3,flags});
+ const listed=listRuns(runsRoot);
+ expect(listed.find(r=>r.id.endsWith("_e"))?.experiment).toBe("factorial-2x2-think-fast · both · 5/32");
+ expect(listed.find(r=>r.id.endsWith("_p"))?.experiment).toBe("preset checkpoint-clock-set");
+});

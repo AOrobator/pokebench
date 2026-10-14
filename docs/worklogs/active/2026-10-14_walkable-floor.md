@@ -81,3 +81,11 @@ pret/pokeemerald 731ad5b:
 - Operator rule relayed 2026-10-14 20:19Z: every behavior change gets its own switch. Adding walkable-floor-v1
   (needs bounded-navigation-v1, agent-only, frozen presets OFF, drafts ON). RED: tests for option, tool
   wiring, registry and preset defaults.
+- GREEN: `feat(features): put walkable floor behind walkable-floor-v1`. planNavigation option `floor`
+  (FLOOR set) else LEGACY_WALKING (exact old list); NavigationPorts.floor; tool description adds
+  "walks sand, cave and other floor the game allows" when on. Registry: guidance, needs null (only
+  matters with bounded-navigation-v1; a bounded-navigation dependency would force the default draft,
+  which has navigation off, to turn it off). Agent-only (not a server feature); recorded in
+  harness_features after counter-talk-v1. Presets: absent → OFF, v1 flags OFF, drafts ALL_ON → ON.
+  Viewer: feature card links docs/explainers/walkable-floor-v1.html (renamed to the switch id).
+  agent 948/948, viewer 493/493, lint clean; agent coverage 97.2/93.4/97.92, viewer 95.67/90.53/95.34.

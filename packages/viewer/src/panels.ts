@@ -352,6 +352,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "ledge-hops-v1":"ledge-hops-v1.html",
  "one-way-tiles-v1":"one-way-tiles-v1.html",
  "counter-talk-v1":"counter-talk-v1.html",
+ "walkable-floor-v1":"walkable-floor-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

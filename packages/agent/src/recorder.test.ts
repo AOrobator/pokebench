@@ -1,3 +1,4 @@
+import {createHash} from "node:crypto";
 import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -507,4 +508,21 @@ it("records and qualifies post-clock home-exit evidence from observed snapshots"
  expect(mark).toMatchObject({kind:"navigation",origin:"observed"});expect(mark.evidence).toHaveLength(3);
  expect(qualifiedNativeMilestone(mark,(mark.evidence??[]).map(seq=>logged.find(e=>e.seq===seq)))).toBe(true);
  expect(logged.at(-1)).toMatchObject({type:"run_end",reason:"budget"});
+});
+
+it("records exact decision input frame/text with its paired state and next decision index",async()=>{
+ const {recorder,log}=harness();await recorder.start(START_META);
+ const current={...STATE,position:{x:6,y:8}};const png="iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+ recorder.recordDecisionSnapshot({state:current,content:[{type:"image",data:png,mimeType:"image/png"},{type:"text",text:"Clock at (5,1); current snapshot"}]});
+ const rows=events(log);const input=rows.find(e=>e.type as string==="decision_input");
+ expect(input).toMatchObject({type:"decision_input",turn:0,decision_turn:1,text:"Clock at (5,1); current snapshot"});
+ if(!input||input.type!=="decision_input")throw Error("Missing linked decision input");
+ expect(input.frames).toHaveLength(1);expect(input.frames[0]?.path).toMatch(/^frames\//);expect(input.frames[0]?.sha1).toMatch(/^[a-f0-9]{40}$/);
+ expect(rows.find(e=>e.seq===input.state_seq)).toMatchObject({type:"state",position:current.position});
+ const ref=input.frames[0];if(!ref)throw Error("Missing recorded input frame");const bytes=readFileSync(join(log.runDir,ref.path));expect(bytes).toEqual(Buffer.from(png,"base64"));expect(ref.sha1).toBe(createHash("sha1").update(bytes).digest("hex"));
+ expect(rows.filter(e=>e.type==="tool_call")).toEqual([]);
+});
+it("records a wait as explicit host time rather than fake button input",async()=>{
+ const {recorder,log}=harness();await recorder.start(START_META);recorder.recordWaitInput("wait-one",60);
+ expect(events(log).at(-1)).toMatchObject({type:"wait_input",tool_call_id:"wait-one",duration_ms:60});expect(events(log).filter(e=>e.type==="button_press")).toEqual([]);
 });

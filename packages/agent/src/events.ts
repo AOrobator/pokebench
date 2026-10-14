@@ -85,7 +85,7 @@ const TurnStart = event("turn_start", {
 const Assistant = event("assistant", {
   thinking: Type.String(),
   text: Type.String(),
-  tool_calls: Type.Array(Type.Object({ id: Type.String(), name: Type.String(), args: Args }, closed)),
+  tool_calls: Type.Array(Type.Union([Type.Object({id:Type.String(),name:Type.Literal("act"),args:Type.Unknown()},closed),Type.Object({ id: Type.String(), name: Type.String(), args: Args }, closed)])),
   usage: Type.Object({ input: NonNegativeInt, output: NonNegativeInt, cache_read: NonNegativeInt }, closed),
   latency_ms: NonNegativeInt,
   ttft_ms: Type.Union([NonNegativeInt, Type.Null()]),
@@ -97,7 +97,10 @@ const Assistant = event("assistant", {
 // lands in the turn's `assistant` event.
 const AssistantDelta = event("assistant_delta", { thinking: Type.String(), text: Type.String() });
 
-const ToolCall = event("tool_call", { id: Type.String(), name: Type.String(), args: Args });
+const ToolCall = Type.Union([event("tool_call",{id:Type.String(),name:Type.Literal("act"),args:Type.Unknown()}),event("tool_call", { id: Type.String(), name: Type.String(), args: Args })]);
+
+const DecisionInput = event("decision_input",{decision_turn:Type.Integer({minimum:1}),state_seq:NonNegativeInt,text:Type.String(),frames:Type.Array(Type.Object({path:Type.String(),sha1:Sha1},closed),{minItems:1,maxItems:1})});
+const WaitInput = event("wait_input",{tool_call_id:Type.String(),duration_ms:Type.Integer({minimum:1,maximum:2000})});
 
 const Frames = Type.Integer({ minimum: 1, maximum: 255 });
 
@@ -281,6 +284,8 @@ export const RunEventSchema = Type.Union([
   Assistant,
   ToolCall,
   ButtonPress,
+  DecisionInput,
+  WaitInput,
   ToolResult,
   Milestone,
   Retry,

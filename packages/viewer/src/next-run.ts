@@ -8,7 +8,7 @@ import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSyn
 import { join } from "node:path";
 import { Type, type Static } from "typebox";
 import { Value } from "typebox/value";
-import { ALL_ON, dependencyProblems, type FeatureSet } from "@pokebench/agent/features";
+import { ALL_ON, dependencyProblems, stateOnlyProblems, type FeatureSet } from "@pokebench/agent/features";
 import { normalizeFeatures, FeatureSetSchema, parsePlayPreset, type PlayPresetV2 } from "@pokebench/agent/play-preset";
 import { controlLine, type ControlAction } from "@pokebench/agent/run-control";
 import { newRunId } from "@pokebench/agent/run";
@@ -25,7 +25,7 @@ export const NextRunSchema = Type.Object({
 }, { additionalProperties: false });
 export type NextRun = Omit<Static<typeof NextRunSchema>, "features"> & {features:FeatureSet};
 
-export const DEFAULT_NEXT_RUN: NextRun = { model: "", thinking: "medium", maxTurns: 300, maxWallMs: 30 * 60_000, failureLimit: 3, maxTokens: 4096, target: null, features: { ...ALL_ON, "named-interactions-v1": false, "world-destinations-v1": false, "bounded-navigation-v1": false } };
+export const DEFAULT_NEXT_RUN: NextRun = { model: "", thinking: "medium", maxTurns: 300, maxWallMs: 30 * 60_000, failureLimit: 3, maxTokens: 4096, target: null, features: { ...ALL_ON, "state-only-decisions-v1":false, "named-interactions-v1": false, "world-destinations-v1": false, "bounded-navigation-v1": false } };
 export const LEASE = ".naming-gameplay.lock";
 // Whether a run's own game server answers on 127.0.0.1:<port>.
 export type HealthProbe = (port: number) => Promise<boolean>;
@@ -53,7 +53,7 @@ export function parseNextRun(value: unknown): NextRun {
     throw new NextRunError(`invalid next run: ${first?.instancePath ?? ""} ${first?.message ?? "schema mismatch"}`);
   }
   const normalized={...value,features:normalizeFeatures(value.features)};
-  const problems = dependencyProblems(normalized.features);
+  const problems = [...dependencyProblems(normalized.features),...stateOnlyProblems(normalized.features)];
   if (problems.length > 0) throw new NextRunError(`invalid next run: ${problems.join("; ")}`);
   return normalized;
 }

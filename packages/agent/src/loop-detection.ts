@@ -214,7 +214,7 @@ export class LoopDetector {
     } else if (event.type === "telemetry_error" && event.source === "state")
       this.latest = undefined;
     else if (event.type === "tool_call")
-      this.calls.set(event.id, { args: event.args, seq: event.seq, ...(event.name === "navigate_to" ? {navigation:true,before:this.latest,beforeSeq:this.latestSeq} : {}) });
+      this.calls.set(event.id, { args: typeof event.args==="object"&&event.args!==null&&!Array.isArray(event.args)?event.args as Record<string,unknown>:{}, seq: event.seq, ...(event.name === "navigate_to" ? {navigation:true,before:this.latest,beforeSeq:this.latestSeq} : {}) });
     else if (event.type === "button_press") {
       const pending = this.calls.get(event.tool_call_id);
       if (pending !== undefined && (!pending.navigation || !pending.pressed)) {
@@ -226,8 +226,9 @@ export class LoopDetector {
     } else if (event.type === "tool_result") {
       const pending = this.calls.get(event.id);
       this.calls.delete(event.id);
+      const name=event.name==="act"&&!event.is_error?(pending?.args["kind"]==="press"?"press":pending?.args["kind"]==="wait"?"observe":event.name):event.name;
       this.complete({
-        name: event.name,
+        name,
         args: pending?.args ?? {},
         isError: event.is_error,
         text: event.text,
@@ -237,10 +238,10 @@ export class LoopDetector {
         state:
           pending !== undefined &&
           this.latestSeq >
-            ((event.name === "press" || event.name === "navigate_to")
+            ((name === "press" || name === "navigate_to")
               ? (pending.beforeSeq ?? Infinity)
               : pending.seq) &&
-          (event.name === "press" || event.name === "navigate_to" || event.name === "observe")
+          (name === "press" || name === "navigate_to" || name === "observe")
             ? this.latest
             : undefined,
       });

@@ -751,3 +751,20 @@ it("shows explicit evaluation target/cap and native terminal proof in history an
  expect(ui("log").textContent).toContain("native target PLAYER_NAME_CONFIRMED");expect(ui("lanes").textContent).toContain("native target PLAYER_NAME_CONFIRMED");
  expect(ui("run-details").textContent).toContain('"preset_id": "name-control"');expect(ui("budgets").textContent).toContain("0:10:00");
 });
+
+it("mounts state-input and host-wait history, timeline, selected inspector and frame ingress",async()=>{
+ const {app,streams}=await harness(`#run=${M4_ID}`);const stream=must(streams[0]);const log=new Log();log.add(0,START);const s=log.add(10,state());
+ const input=log.add(20,{type:"decision_input",turn:0,decision_turn:1,state_seq:s.seq,text:"CURRENT <clock> at (5,1)",frames:[{path:"frames/000002_0.png",sha1:"a".repeat(40)}]});
+ const wait=log.add(30,{type:"wait_input",turn:1,tool_call_id:"wait-one",duration_ms:60});
+ log.add(70000,{type:"run_end",turn:1,reason:"budget",furthest_milestone:null,turns:1,wall_ms:70000,tokens:{input:0,output:0},frames:{saved:1,bytes:100}});
+ feed(stream,log.events.map(e=>parseEvent(JSON.stringify(e))));stream.send("done",{});app.tick(100);
+ expect(ui("screen").getAttribute("href")).toBe(`/api/runs/${M4_ID}/frames/000002_0.png`);
+ const inputRow=must(ui("log").querySelector<HTMLElement>(`[data-seq="${String(input.seq)}"]`));expect(inputRow.textContent).toContain("snapshot for decision 1");
+ expect(ui("lanes").querySelectorAll('[aria-label*="snapshot for decision 1"]')).toHaveLength(1);
+ inputRow.click();expect(ui("inspector").textContent).toContain('"type": "decision_input"');expect(ui("inspector").textContent).toContain("CURRENT <clock> at (5,1)");expect(ui("inspector").querySelector("clock")).toBeNull();
+ const waitRow=must(ui("log").querySelector<HTMLElement>(`[data-seq="${String(wait.seq)}"]`));expect(waitRow.textContent).toContain("WAIT 60 ms (host time)");
+ expect(ui("lanes").querySelectorAll('[aria-label*="WAIT 60 ms (host time)"]')).toHaveLength(1);
+ waitRow.click();expect(ui("inspector").textContent).toContain('"type": "wait_input"');expect(ui("inspector").textContent).toContain('"duration_ms": 60');expect(ui("inspector").textContent).toContain("wait-one");expect(waitRow.classList.contains("sel")).toBe(true);
+ app.tick(70000);expect(ui("lanes").querySelectorAll('[aria-label*="WAIT 60 ms (host time)"]')).toHaveLength(0);
+ expect(ui("log").querySelector(`[data-seq="${String(wait.seq)}"]`)?.textContent).toContain("WAIT 60 ms (host time)");
+});

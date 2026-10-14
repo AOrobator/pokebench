@@ -8,7 +8,7 @@ import { RunView } from "./model.js";
 import { NextRunPanel, type PanelDeps } from "./nextpanel.js";
 
 const PAGE = readFileSync(join(import.meta.dirname, "../static/index.html"), "utf8");
-const DRAFT = { model: "", thinking: "medium", maxTurns: 300, maxWallMs: 1_800_000, failureLimit: 3, maxTokens: 4096, target: null, features: { ...ALL_ON } };
+const DRAFT = { model: "", thinking: "medium", maxTurns: 300, maxWallMs: 1_800_000, failureLimit: 3, maxTokens: 4096, target: null, features: { ...ALL_ON, "state-only-decisions-v1": false } };
 const ui = (name: string): HTMLElement => { const e = document.querySelector<HTMLElement>(`[data-ui="${name}"]`); if (e === null) throw new Error(name); return e; };
 
 function panel(replies: Record<string, unknown>, writes: (method: string, url: string, body: unknown) => Promise<unknown> = (_m, _u, body) => Promise.resolve({ draft: body, queue: { state: "idle" } })) {

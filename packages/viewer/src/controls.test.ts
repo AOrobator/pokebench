@@ -11,7 +11,7 @@ function view(build: (log: Log) => void = () => undefined): RunView {
   const v = new RunView(); for (const e of log.events) v.apply(e); return v;
 }
 const control = (action: "pause" | "resume" | "stop" | "cancel_stop" | "abort", status: "pending" | "applied", extra = {}) => ({ type: "operator_control" as const, turn: 3, action, status, request: 1, ...extra });
-const draft: NextRunDraft = { model: "Qwen", thinking: "medium", maxTurns: 300, maxWallMs: 1_800_000, failureLimit: 3, maxTokens: 4096, target: null, features: { ...ALL_ON } };
+const draft: NextRunDraft = { model: "Qwen", thinking: "medium", maxTurns: 300, maxWallMs: 1_800_000, failureLimit: 3, maxTokens: 4096, target: null, features: { ...ALL_ON, "state-only-decisions-v1": false } };
 
 describe("run controls", () => {
   it("offers only the controls that apply to the recorded state", () => {
@@ -94,12 +94,12 @@ describe("switchboard", () => {
     expect(html).toContain("12/12 ON");
     expect(html).toContain("needs live-map-v1");
     expect(html).toContain("MEASUREMENT · ALWAYS ON");
-    expect(html.match(/No matching runs yet/g)).toHaveLength(22);
+    expect(html.match(/No matching runs yet/g)).toHaveLength(23);
     expect(html.match(/🔒/g)).toHaveLength(6);
   });
 
   it("flags switches that differ from the live run", () => {
-    const live = new Set(FEATURES.filter((f) => f.id !== "story-state-v1").map((f) => f.id));
+    const live = new Set(FEATURES.filter((f) => f.id !== "story-state-v1" && f.id !== "state-only-decisions-v1").map((f) => f.id));
     const html = switchboard({ features: FEATURES, draft, live, history: {}, expanded: new Set() });
     expect(html.match(/DIFFERS FROM LIVE RUN/g)).toHaveLength(1);
     expect(differenceCount(FEATURES, draft, live)).toBe(1);
@@ -108,7 +108,7 @@ describe("switchboard", () => {
 
   it("shows paired on/off bars and, expanded, reach and median splits", () => {
     const history = { "story-state-v1": { on: { runs: 4, reached: { NEW_GAME_CREATED: 4, CLOCK_SET: 3 }, medianMs: { NEW_GAME_CREATED: 41_000, CLOCK_SET: 580_000 } }, off: { runs: 4, reached: { NEW_GAME_CREATED: 4, CLOCK_SET: 1 }, medianMs: { NEW_GAME_CREATED: 43_000, CLOCK_SET: 1_265_000 } } } };
-    const collapsed = switchboard({ features: FEATURES, draft: { ...draft, features: { ...ALL_ON, "story-state-v1": false } }, live: null, history, expanded: new Set() });
+    const collapsed = switchboard({ features: FEATURES, draft: { ...draft, features: { ...ALL_ON, "state-only-decisions-v1": false, "story-state-v1": false } }, live: null, history, expanded: new Set() });
     expect(collapsed).toContain("<b>3·1</b>CLOCK");
     expect(collapsed).toContain("runs with it ON (4)");
     expect(collapsed).toContain("▶ MILESTONES + SPLITS");
@@ -119,7 +119,7 @@ describe("switchboard", () => {
   });
 
   it("disables a switch whose dependency is off", () => {
-    const html = switchboard({ features: FEATURES, draft: { ...draft, features: { ...ALL_ON, "live-map-v1": false, "world-coordinate-grid-v1": false, "warp-activation-guidance-v1": false } }, live: null, history: {}, expanded: new Set() });
+    const html = switchboard({ features: FEATURES, draft: { ...draft, features: { ...ALL_ON, "state-only-decisions-v1": false, "live-map-v1": false, "world-coordinate-grid-v1": false, "warp-activation-guidance-v1": false } }, live: null, history: {}, expanded: new Set() });
     expect(html).toMatch(/data-feature="world-coordinate-grid-v1" disabled/);
     expect(html).not.toMatch(/data-feature="live-map-v1"[^>]*disabled/);
   });

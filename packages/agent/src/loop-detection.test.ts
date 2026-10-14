@@ -6,7 +6,7 @@ import {
   type CompletedCall,
 } from "./loop-detection.js";
 import type { GameStateSnapshot } from "./game-state.js";
-import type { RunEvent } from "./events.js";
+import {parseEvent,type EventBody,type RunEvent} from "./events.js";
 
 const field = (x = 0): GameStateSnapshot => ({
   screen: "overworld",
@@ -683,4 +683,29 @@ it("an arrived/no-action navigation call cannot clear an exposed planning stall"
  const {detector,events}=fixture();detector.complete(call("observe",field()));detector.complete(call("get_objectives"));detector.complete(call("get_objectives"));detector.context();
  detector.complete({name:"navigate_to",args:{x:0,y:0,map_id:[0,0]},isError:false,text:"arrived;0 attempts",state:field(),beforeState:field(),acted:false});
  expect(events).toEqual([{kind:"planning",phase:"warning"}]);
+});
+
+it("keeps passive ineffective-action diagnostics for state-mode act events",()=>{
+ const notices: {kind:string;phase:string}[]=[];
+ const detector=new LoopDetector(n=>{notices.push(n);},{...LOOP_POLICY,ineffective:2},"diagnostic");
+ let seq=0;const emit=(body:EventBody):number=>{const n=seq++;detector.observe(parseEvent(JSON.stringify({v:1,run:"state-input-fixture",seq:n,t:"2026-10-13T20:04:00.000-04:00",...body})));return n;};
+ for(let i=0;i<2;i++){
+  const before=emit({type:"state",turn:i,...field()});const id=`act-${String(i)}`;
+  emit({type:"tool_call",turn:i,id,name:"act",args:{kind:"press",buttons:["UP"]}});
+  emit({type:"button_press",turn:i,tool_call_id:id,before_state_seq:before,buttons:["UP"],hold_frames:10,release_frames:8});
+  emit({type:"state",turn:i,...field()});emit({type:"tool_result",turn:i,id,name:"act",text:"blocked",is_error:false,duration_ms:1,frames:[]});
+ }
+ expect(notices).toContainEqual(expect.objectContaining({kind:"ineffective",phase:"would_warn"}));expect(detector.context()).toBeNull();expect(detector.stopped).toBe(false);
+});
+
+it("records passive observation stalls for repeated state-mode host waits without fake presses",()=>{
+ const notices:{kind:string;phase:string}[]=[];const detector=new LoopDetector(n=>{notices.push(n);},{...LOOP_POLICY,observation:2},"diagnostic");
+ let seq=0;const rows:RunEvent[]=[];const emit=(body:EventBody):void=>{const event=parseEvent(JSON.stringify({v:1,run:"host-wait-fixture",seq:seq++,t:"2026-10-13T21:34:00.000-04:00",...body}));rows.push(event);detector.observe(event);};
+ for(let i=0;i<3;i++){
+  const id=`wait-${String(i)}`;emit({type:"state",turn:i,...field()});
+  emit({type:"tool_call",turn:i,id,name:"act",args:{kind:"wait",duration_ms:60}});
+  emit({type:"wait_input",turn:i,tool_call_id:id,duration_ms:60});emit({type:"state",turn:i,...field()});
+  emit({type:"tool_result",turn:i,id,name:"act",is_error:false,duration_ms:60,text:"waited 60 ms (host time)",frames:[]});
+ }
+ expect(notices).toContainEqual(expect.objectContaining({kind:"observation",phase:"would_warn"}));expect(rows.filter(e=>e.type==="button_press")).toEqual([]);expect(rows.filter(e=>e.type==="wait_input")).toHaveLength(3);expect(detector.context()).toBeNull();expect(detector.stopped).toBe(false);
 });

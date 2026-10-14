@@ -1086,27 +1086,50 @@
         "tool_calls": {
           "type": "array",
           "items": {
-            "type": "object",
-            "required": [
-              "id",
-              "name",
-              "args"
-            ],
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "name": {
-                "type": "string"
-              },
-              "args": {
+            "anyOf": [
+              {
                 "type": "object",
-                "patternProperties": {
-                  "^.*$": {}
-                }
+                "required": [
+                  "id",
+                  "name",
+                  "args"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string",
+                    "const": "act"
+                  },
+                  "args": {}
+                },
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "required": [
+                  "id",
+                  "name",
+                  "args"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "args": {
+                    "type": "object",
+                    "patternProperties": {
+                      "^.*$": {}
+                    }
+                  }
+                },
+                "additionalProperties": false
               }
-            },
-            "additionalProperties": false
+            ]
           }
         },
         "usage": {
@@ -1163,57 +1186,110 @@
       "additionalProperties": false
     },
     {
-      "type": "object",
-      "required": [
-        "v",
-        "run",
-        "seq",
-        "t",
-        "turn",
-        "type",
-        "id",
-        "name",
-        "args"
-      ],
-      "properties": {
-        "v": {
-          "type": "number",
-          "const": 1
-        },
-        "run": {
-          "type": "string",
-          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
-        },
-        "seq": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "t": {
-          "type": "string",
-          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
-        },
-        "turn": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "type": {
-          "type": "string",
-          "const": "tool_call"
-        },
-        "id": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "args": {
+      "anyOf": [
+        {
           "type": "object",
-          "patternProperties": {
-            "^.*$": {}
-          }
+          "required": [
+            "v",
+            "run",
+            "seq",
+            "t",
+            "turn",
+            "type",
+            "id",
+            "name",
+            "args"
+          ],
+          "properties": {
+            "v": {
+              "type": "number",
+              "const": 1
+            },
+            "run": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+            },
+            "seq": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "t": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+            },
+            "turn": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "type": {
+              "type": "string",
+              "const": "tool_call"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string",
+              "const": "act"
+            },
+            "args": {}
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "v",
+            "run",
+            "seq",
+            "t",
+            "turn",
+            "type",
+            "id",
+            "name",
+            "args"
+          ],
+          "properties": {
+            "v": {
+              "type": "number",
+              "const": 1
+            },
+            "run": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+            },
+            "seq": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "t": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+            },
+            "turn": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "type": {
+              "type": "string",
+              "const": "tool_call"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "args": {
+              "type": "object",
+              "patternProperties": {
+                "^.*$": {}
+              }
+            }
+          },
+          "additionalProperties": false
         }
-      },
-      "additionalProperties": false
+      ]
     },
     {
       "type": "object",
@@ -1284,6 +1360,129 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 255
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "run",
+        "seq",
+        "t",
+        "turn",
+        "type",
+        "decision_turn",
+        "state_seq",
+        "text",
+        "frames"
+      ],
+      "properties": {
+        "v": {
+          "type": "number",
+          "const": 1
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type": {
+          "type": "string",
+          "const": "decision_input"
+        },
+        "decision_turn": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "state_seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "text": {
+          "type": "string"
+        },
+        "frames": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "path",
+              "sha1"
+            ],
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "sha1": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              }
+            },
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "run",
+        "seq",
+        "t",
+        "turn",
+        "type",
+        "tool_call_id",
+        "duration_ms"
+      ],
+      "properties": {
+        "v": {
+          "type": "number",
+          "const": 1
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type": {
+          "type": "string",
+          "const": "wait_input"
+        },
+        "tool_call_id": {
+          "type": "string"
+        },
+        "duration_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2000
         }
       },
       "additionalProperties": false

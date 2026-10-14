@@ -52,6 +52,12 @@ export function lanesSvg(view: RunView, nowMs: number): string {
       parts.push(bar(`m-press b-${button}`, 2, x(start), x(start + step), title, 0.5));
     });
   }
+  for(const event of view.events){
+    if(event.type!=="decision_input"&&event.type!=="wait_input")continue;
+    const ms=eventMs(event);if(ms<t0||ms>nowMs)continue;
+    const title=event.type==="decision_input"?`snapshot for decision ${String(event.decision_turn)} · state #${String(event.state_seq)}`:`WAIT ${String(event.duration_ms)} ms (host time)`;
+    parts.push(bar(event.type==="decision_input"?"m-tool":"m-press",event.type==="decision_input"?1:2,x(ms)-2,x(ms)+3,title,0.5));
+  }
   for (const milestone of view.milestones) {
     if (milestone.ms < t0 || milestone.ms > nowMs) continue;
     const cx = x(milestone.ms);

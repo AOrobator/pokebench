@@ -46,6 +46,8 @@ function body(event: RunEvent): [string, string] {
     }
     case "tool_call":
       return ["CALL", `${event.name} ${clip(JSON.stringify(event.args), 80)}`];
+    case "decision_input":return ["DECISION INPUT",`decision ${String(event.decision_turn)} · state #${String(event.state_seq)} · ${clip(event.text,80)}`];
+    case "wait_input":return ["WAIT",`${String(event.duration_ms)} ms (host time)`];
     case "button_press": {
       const timing =
         event.hold_frames === undefined

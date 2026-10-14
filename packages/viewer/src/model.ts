@@ -58,6 +58,8 @@ const KNOWN: Record<RunEvent["type"], true> = {
   assistant_delta: true,
   tool_call: true,
   button_press: true,
+  decision_input:true,
+  wait_input:true,
   tool_result: true,
   milestone: true,
   retry: true,
@@ -217,6 +219,10 @@ export class RunView {
       case "tool_result":
         this.onToolResult(event, ms);
         break;
+      case "decision_input":
+        this.frame=event.frames[0]?.path??this.frame;
+        break;
+      case "wait_input":break;
       case "button_press":
         this.presses.push({
           seq: event.seq,

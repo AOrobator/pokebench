@@ -25,6 +25,7 @@ import { discoverModels, selectModel, type GatewayModel } from "./gateway.js";
 import { FrameStore } from "./frames.js";
 import { StateWatcher } from "./game-state.js";
 import {flagFeatures,parsePlayPreset,presetFeatures,presetFlags} from "./play-preset.js";
+import {runStateMode,stateOnlyPrompt,stateOnlyProblems} from "./state-runtime.js";
 import {withNavigation} from "./navigation.js";
 import {NativeTargetStop} from "./target-stop.js";
 import { BudgetTimer, ControlFile, RunControl, freezeGame, watchControl } from "./run-control.js";
@@ -217,7 +218,9 @@ async function playAgent(): Promise<void> {
   const loopMode=features["deterministic-loop-guard-v1"]?"enforced":"diagnostic";
   const target=preset?.target??null;
   const goal=playGoal(target);
-  const systemPrompt=playSystemPrompt(features,target);
+  const stateMode=features["state-only-decisions-v1"];
+  const incompatible=stateOnlyProblems(features);if(incompatible.length)throw new Error(incompatible.join("; "));
+  const systemPrompt=stateMode?stateOnlyPrompt(features,target):playSystemPrompt(features,target);
   console.log(`run-agent: run ${runId}, model ${model.id} via ${gatewayUrl}`);
   console.log(`watch: just tail-run ${runId}   (frame: http://127.0.0.1:${String(port)}/view)`);
 
@@ -230,7 +233,7 @@ async function playAgent(): Promise<void> {
       sampling: { thinking_level: thinking, max_tokens: maxTokens },
       ...(preset===null?{}:{evaluation:{preset_id:preset.id,target:preset.target,failure_limit:limits.failureLimit,flags:presetFlags(preset)}}),
       systemPrompt,
-      tools: playTools(features),
+      tools: stateMode?["act"]:playTools(features),
       startState: { kind: "boot" },
       harnessFeatures: playHarnessFeatures(features,target),
 
@@ -302,6 +305,7 @@ async function playAgent(): Promise<void> {
         gate: (signal) => runControl.gate(signal),
       });
       try {
+        if(stateMode)return await runStateMode({features,target,serverUrl:gameServerUrl,recorder,governor,base:{...gatewayLoopConfig(model,thinking,apiKey),maxTokens},signal:controller.signal,gate:signal=>runControl.gate(signal),inputEpoch:()=>runControl.pausedMs()});
         const task: AgentMessage = { role: "user", content: target===null?PLAY_TASK:`The game has just booted. ${goal}`, timestamp: Date.now() };
         return await play(task, governor, loop);
       } finally {

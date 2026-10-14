@@ -1,3 +1,4 @@
+import type {DecisionSnapshot} from "./state-decision.js";
 import type { AgentEvent, AgentMessage } from "@mariozechner/pi-agent-core";
 import type { AssistantMessage, AssistantMessageEvent, ImageContent, TextContent } from "@mariozechner/pi-ai";
 import type { TargetProof } from "./target-stop.js";
@@ -108,6 +109,14 @@ export class RunRecorder {
     for (const observer of this.observers) observer(event);
     return event;
   }
+  recordDecisionSnapshot(snapshot:DecisionSnapshot):void {
+    const state=this.recordState(snapshot.state);
+    const seq=this.log.nextSeq;
+    const frame=this.frames.save(this.log,seq,0,snapshot.content[0].data);
+    this.saved={saved:this.saved.saved+1,bytes:this.saved.bytes+Buffer.from(snapshot.content[0].data,"base64").length};
+    this.append({type:"decision_input",turn:this.turn,decision_turn:this.turn+1,state_seq:state.seq,text:snapshot.content[1].text,frames:[frame]});
+  }
+  recordWaitInput(id:string,duration_ms:number):void {this.append({type:"wait_input",turn:this.turn,tool_call_id:id,duration_ms});}
   recordControl(body: Omit<BodyOf<"operator_control">, "type" | "turn">): void { this.append({ type: "operator_control", turn: this.turn, ...body }); }
   recordLoopGuard(body: LoopNotice): void { this.append({type:"loop_guard",turn:this.turn,...body,evidence:[...body.evidence]}); }
   recordObjective(body: BodyOf<"objective_update"> | BodyOf<"objective_attempt">): void { this.append({ ...body, turn: this.turn }); }
@@ -197,9 +206,11 @@ export class RunRecorder {
   }
 
   private recordToolCall(id: string, name: string, args: unknown): void {
-    if (!isRecord(args)) throw new RecorderError(`tool ${name} called with non-object arguments`);
-    this.toolStarts.set(id, this.now());
-    this.append({ type: "tool_call", turn: this.turn, id, name, args });
+    if(name==="act"){
+      this.toolStarts.set(id,this.now());this.append({type:"tool_call",turn:this.turn,id,name:"act",args});return;
+    }
+    if(!isRecord(args))throw new RecorderError(`tool ${name} called with non-object arguments`);
+    this.toolStarts.set(id,this.now());this.append({type:"tool_call",turn:this.turn,id,name,args});
   }
 
   private recordToolResult(id: string, name: string, result: unknown, isError: boolean): void {
@@ -209,7 +220,7 @@ export class RunRecorder {
     const payload = toolResultPayload(result);
     // Reuse the state paired with the exact returned frame/text, including an
     // observe-only turn and play runs with objective tracking disabled.
-    if ((name === "observe" || name === "press" || name === "navigate_to") && isRecord(result) && isRecord(result.details) && result.details.state !== undefined) {
+    if ((name === "observe" || name === "press" || name === "navigate_to" || name === "act") && isRecord(result) && isRecord(result.details) && result.details.state !== undefined) {
       try { this.recordState(parseGameState(result.details.state)); }
       catch (error) { this.telemetryError("state", error); }
     }

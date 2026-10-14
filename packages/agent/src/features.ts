@@ -19,6 +19,7 @@ export const SWITCHABLE_FEATURES = [
   "naming-cursor-v1",
   "story-state-v1",
   "coordinate-script-conditions-v1",
+  "state-only-decisions-v1",
   "contextual-interface-docs-v1",
   "active-ui-ownership-v1",
   "press-result-v1",
@@ -89,6 +90,7 @@ export const FEATURES: readonly FeatureInfo[] = [
     "Lists story steps the game's own flags and variables say are done (name confirmed, clock set, rival met, starter received…). Off: the line is dropped; progress has to be inferred from the screen."),
   on("coordinate-script-conditions-v1", "observation", "SCRIPT TRIGGERS", RAM,
     "Lists nearby tiles that start a script when stepped on, the game variable each one checks, and whether its condition matches now. Off: the list is dropped; the model learns about them by walking into them."),
+  on("state-only-decisions-v1","guidance","STATE-ONLY DECISIONS",RAM,"Automatically supplies a fresh screenshot and state before each single action, with no conversation history or observe tool. Requires objective enforcement, active loop intervention, bounded navigation and legacy press-result feedback OFF. Off: ordinary conversational tool loop."),
   on("contextual-interface-docs-v1", "guidance", "INTERFACE DOCS", null,
     "Replaces the one-line controls in the system prompt with screen-specific instructions for the overworld, menus, the naming keyboard layout and the clock. Off: only the one-line general controls."),
   on("active-ui-ownership-v1", "guidance", "ACTIVE UI OWNERSHIP", RAM,
@@ -163,11 +165,16 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("active-ui-ownership-v1"), "story-milestones-v2", "new-game-created-v1", "post-clock-navigation-milestones-v1",
     ...(target === null ? [] : ["native-target-stop-v1"]), "deterministic-loop-diagnostics-v1", LOOP_POLICY_FEATURE,
     ...when("deterministic-loop-guard-v1"), ...when("contextual-interface-docs-v1"),
-    ...when("objective-tracking-v1"), ...when("repeat-attempt-guard-v1"), ...when("native-objective-completion-v1"),
+    ...when("state-only-decisions-v1"), ...when("objective-tracking-v1"), ...when("repeat-attempt-guard-v1"), ...when("native-objective-completion-v1"),
   ];
 }
 
 // The inverse: which switches a recorded run had, from its harness_features.
 export function featuresOf(harnessFeatures: readonly string[]): FeatureSet {
   return Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, harnessFeatures.includes(id)])) as Record<SwitchableFeature, boolean>;
+}
+
+export function stateOnlyProblems(features:FeatureSet):string[]{
+ if(!features["state-only-decisions-v1"])return [];
+ return (["objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
 }

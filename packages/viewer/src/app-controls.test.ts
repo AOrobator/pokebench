@@ -8,7 +8,7 @@ import { mountApp, type App, type StreamLike } from "./app.js";
 
 const PAGE = readFileSync(join(import.meta.dirname, "../static/index.html"), "utf8");
 const RUN = "2026-10-13T12-00-00_live";
-const DRAFT = { model: "Qwen", thinking: "medium", maxTurns: 300, maxWallMs: 1_800_000, failureLimit: 3, maxTokens: 4096, target: null, features: { ...ALL_ON } };
+const DRAFT = { model: "Qwen", thinking: "medium", maxTurns: 300, maxWallMs: 1_800_000, failureLimit: 3, maxTokens: 4096, target: null, features: { ...ALL_ON, "state-only-decisions-v1": false } };
 
 class Stream implements StreamLike {
   private readonly listeners = new Map<string, ((m: { data: string }) => void)[]>();
@@ -48,7 +48,7 @@ async function mount(history: unknown = {}, refuse = false, gameUp = true) {
   if (stream === undefined) throw new Error("no stream");
   const log = new Log();
   const send = (offset: number, body: Parameters<Log["add"]>[1]): void => { stream.send("ev", { ...log.add(offset, body), run: RUN }); };
-  send(0, { ...START, harness_features: FEATURES.filter((f) => f.id !== "story-state-v1").map((f) => f.id) });
+  send(0, { ...START, harness_features: FEATURES.filter((f) => f.id !== "story-state-v1" && f.id !== "state-only-decisions-v1").map((f) => f.id) });
   stream.send("caught_up", {});
   await vi.waitFor(() => { expect(app.next.draft).not.toBeNull(); });
   app.tick(0);

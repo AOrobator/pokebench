@@ -49,6 +49,8 @@ export class NextRunPanel {
   private live: ReadonlySet<string> | null = null;
   private liveView: RunView | null = null;
   private saving = 0;
+  private historyLoaded = false;
+  private historyLoading = false;
 
   constructor(private readonly doc: Document, private readonly deps: PanelDeps) {}
 
@@ -74,19 +76,20 @@ export class NextRunPanel {
     } catch (error) {
       this.modelsProblem = String(error);
     }
-    await this.refreshHistory();
     this.wire();
     this.render();
   }
 
   private async refreshHistory(): Promise<void> {
+    if (this.historyLoading) return;
+    this.historyLoading = true;
     try {
       const value = await this.deps.fetchJson("/api/features/history");
       if (!isRecord(value)) throw new Error("malformed history payload");
-      this.history = value;
+      this.history = value; this.historyLoaded = true;
     } catch (error) {
       this.deps.problem(`feature history: ${String(error)}`);
-    }
+    } finally { this.historyLoading = false; }
   }
 
   // The live run keeps its own features; the switchboard flags differences.
@@ -194,6 +197,7 @@ export class NextRunPanel {
       const button = (event.target as HTMLElement).closest<HTMLElement>("[data-expand]");
       const id = button?.dataset.expand;
       if (id === undefined) return;
+      if (!this.historyLoaded) void this.refreshHistory().then(() => { this.render(); });
       if (this.expanded.has(id)) this.expanded.delete(id);
       else this.expanded.add(id);
       this.render();
@@ -255,7 +259,7 @@ export class NextRunPanel {
     if (target.innerHTML !== targets) target.innerHTML = targets;
     target.value = draft.target ?? "";
     const locked = this.queue.state === "queued" || this.queue.state === "launching";
-    this.setHtml("switchboard", switchboard({ features: this.registry, draft, live: this.live, history: this.history, expanded: this.expanded, locked }));
+    this.setHtml("switchboard", switchboard({ features: this.registry, draft, live: this.live, history: this.history, historyLoaded: this.historyLoaded, expanded: this.expanded, locked }));
     // The queued run launches with the settings it was queued with: editing is
     // locked until it is cancelled or has launched.
     for (const input of this.doc.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLButtonElement>('.next-left input, .next-left select, .next-left [data-level], [data-ui="next-copy"], [data-ui="next-reset"]')) input.disabled = locked;

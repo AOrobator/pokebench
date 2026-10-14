@@ -91,6 +91,7 @@ export class App {
   private baselineRequest = 0;
   private best: Baseline | null = null;
   private comparisonRequest = 0;
+  private comparisonsRun: string | null = null;
   private problems: string[] = [];
   private logged = 0;
   private screenTick = 0;
@@ -293,6 +294,7 @@ export class App {
   }
 
   private showPage(name: string): void {
+    if (name === "splits" && this.runId !== null && this.comparisonsRun !== this.runId) void this.loadComparisons(this.runId);
     for (const panel of this.doc.querySelectorAll<HTMLElement>("[data-nav-page]")) panel.hidden = panel.dataset.navPage !== name;
     for (const button of this.doc.querySelectorAll<HTMLButtonElement>("[data-page]")) button.setAttribute("aria-pressed", String(button.dataset.page === name));
   }
@@ -315,6 +317,7 @@ export class App {
   }
 
   private async loadComparisons(runId: string): Promise<void> {
+    this.comparisonsRun = runId;
     const request = ++this.comparisonRequest;
     const baselineRequest = this.baselineRequest;
     try {
@@ -334,13 +337,14 @@ export class App {
       this.picker("baseline").value = this.baseline?.run ?? "";
       this.render();
     } catch (error) {
-      if (request === this.comparisonRequest) this.problem(`comparisons: ${String(error)}`);
+      if (request === this.comparisonRequest) { this.comparisonsRun = null; this.problem(`comparisons: ${String(error)}`); }
     }
   }
 
   select(runId: string): void {
     this.stream?.close();
     this.runId = runId;
+    this.comparisonRequest += 1; this.comparisonsRun = null;
     this.following = this.runs[0]?.id === runId;
     this.view = new RunView();
     this.shown = this.view;
@@ -368,7 +372,6 @@ export class App {
     this.doc.location.hash = `run=${encodeURIComponent(runId)}`;
     const comparisons = this.doc.querySelector<HTMLAnchorElement>('[data-ui="comparisons-link"]');
     if (comparisons !== null) comparisons.href = `/comparisons?from=${encodeURIComponent(runId)}`;
-    void this.loadComparisons(runId);
     const stream = this.deps.openStream(`/api/runs/${encodeURIComponent(runId)}/events`);
     this.stream = stream;
     stream.addEventListener("ev", (message) => {
@@ -395,6 +398,7 @@ export class App {
       if (this.mode !== "replay") this.startReplay(true);
       this.render();
     });
+    if (this.doc.querySelector('[data-page="splits"][aria-pressed="true"]') !== null) void this.loadComparisons(runId);
     this.render();
   }
 

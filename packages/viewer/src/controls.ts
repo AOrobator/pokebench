@@ -182,19 +182,20 @@ export interface SwitchboardInput {
   readonly draft: NextRunDraft;
   readonly live: ReadonlySet<string> | null;
   readonly history: HistoryMap;
+  readonly historyLoaded?: boolean;
   readonly expanded: ReadonlySet<string>;
   // While a queued run is waiting, its settings cannot change.
   readonly locked?: boolean;
 }
 
-export function switchboard({ features, draft, live, history, expanded, locked = false }: SwitchboardInput): string {
+export function switchboard({ features, draft, live, history, historyLoaded = true, expanded, locked = false }: SwitchboardInput): string {
   const differs = (f: FeatureInfo): boolean => live !== null && f.switchable && live.has(f.id) !== draft.features[f.id as SwitchableFeature];
   const row = (f: FeatureInfo): string => {
     const id = f.id as SwitchableFeature;
     const on = draft.features[id];
     const h = history[id] ?? null;
     const needsOff = f.needs !== null && !draft.features[f.needs];
-    const evidence = h === null
+    const evidence = !historyLoaded ? `<button type="button" class="xbtn" data-expand="${f.id}">LOAD COMPARISON HISTORY</button>` : h === null
       ? `<span class="eff-empty">No matching runs yet. Needs past runs identical to this setup except for this feature.</span>`
       : `${pips(h)}<button type="button" class="xbtn" data-expand="${f.id}" aria-expanded="${String(expanded.has(f.id))}">${expanded.has(f.id) ? "▼ HIDE MILESTONES + SPLITS" : "▶ MILESTONES + SPLITS"}</button>${expanded.has(f.id) ? historyTable(h) : ""}`;
     return `<div class="frow${on ? "" : " off"}${differs(f) ? " differs" : ""}"><label class="cbwrap"><input type="checkbox" data-feature="${f.id}"${on ? " checked" : ""}${locked || (!on && needsOff) ? " disabled" : ""} aria-label="${esc(f.title)}"><span class="cb${on ? " on" : ""}">${on ? "✔" : ""}</span></label><span class="nm"><span>${esc(f.title)}${differs(f) ? '<span class="diffmark">DIFFERS FROM LIVE RUN</span>' : ""}</span><i>${esc(f.description)}</i>${evidence}<u>${esc(f.id)}</u></span><span class="req">${f.needs === null ? "" : `needs ${esc(f.needs)}`}</span></div>`;

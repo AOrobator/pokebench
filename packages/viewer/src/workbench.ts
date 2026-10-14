@@ -50,7 +50,20 @@ export class Workbench {
       if (this.active()) { this.verified = false; this.clock(); this.renderCharts(); const box = this.ui("problem"); box.hidden = false; box.textContent = error instanceof Error ? error.message : String(error); }
     } finally { this.busy = false; }
   }
-  clock(): void { if (this.active()) this.ui("current").innerHTML = (this.verified ? "" : '<p class="wb-notice">Live status unavailable; charts retain the last verified snapshot.</p>') + currentRunHtml(this.verified ? this.data.runs : [], this.data.at, this.deps.now(), this.back); }
+  clock(): void {
+    if (!this.active()) return;
+    const host = this.ui("current"), template = this.doc.createElement("template");
+    template.innerHTML = (this.verified ? "" : '<p class="wb-notice">Live status unavailable; charts retain the last verified snapshot.</p>') + currentRunHtml(this.verified ? this.data.runs : [], this.data.at, this.deps.now(), this.back);
+    const before = [...host.querySelectorAll<HTMLAnchorElement>(".wb-current")], after = [...template.content.querySelectorAll<HTMLAnchorElement>(".wb-current")];
+    if (before.length > 0 && before.length === after.length && before.every((link, i) => link.getAttribute("href") === after[i]?.getAttribute("href"))) {
+      before.forEach((link, i) => {
+        for (const field of after[i]?.querySelectorAll<HTMLElement>("[data-current-field]") ?? []) {
+          const target = link.querySelector<HTMLElement>(`[data-current-field="${field.dataset.currentField ?? ""}"]`);
+          if (target !== null && target.textContent !== field.textContent) target.textContent = field.textContent;
+        }
+      });
+    } else if (host.innerHTML !== template.innerHTML) host.replaceChildren(template.content);
+  }
   resize(): void { if (this.active()) this.renderCharts(); }
   destroy(): void { this.disposed = true; this.doc.removeEventListener("change", this.onChange); this.doc.removeEventListener("click", this.onClick); this.doc.removeEventListener("keydown", this.onKey); }
   private filtered(): WorkbenchRun[] {

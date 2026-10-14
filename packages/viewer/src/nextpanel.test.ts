@@ -34,6 +34,8 @@ describe("next-run panel", () => {
     const { panel: p, problems } = panel({ ...ok, "/api/models": new Error("router down"), "/api/features/history": [] });
     await p.load();
     expect(ui("next-model-info").textContent).toContain("router down");
+    ui("switchboard").querySelector<HTMLButtonElement>("[data-expand]")?.click();
+    await Promise.resolve();await Promise.resolve();
     expect(problems).toEqual(["feature history: Error: malformed history payload"]);
     const bad = panel({ ...ok, "/api/models": { models: [{}] } });
     await bad.panel.load();
@@ -124,4 +126,12 @@ it("locks the next-run settings while a queued run waits, and unlocks on cancel"
   await p.cancel();
   expect((ui("next-max-turns") as HTMLInputElement).disabled).toBe(false);
   expect(ui("switchboard").querySelectorAll("input[data-feature]:not([disabled])").length).toBeGreaterThan(10);
+});
+
+it("keeps historical scans out of watch startup and loads them only when requested", async()=>{
+ const fetched:string[]=[];document.body.innerHTML=PAGE.slice(PAGE.indexOf("<body>")+6,PAGE.indexOf("</body>"));
+ const p=new NextRunPanel(document,{fetchJson:url=>{fetched.push(url);return Promise.resolve(ok[url as keyof typeof ok]);},sendJson:()=>Promise.reject(Error("unexpected write")),problem:text=>{throw Error(text);}});
+ await p.load();expect(fetched).toEqual(["/api/features","/api/next-run","/api/models"]);expect(ui("switchboard").textContent).not.toContain("No matching runs yet");
+ const button=ui("switchboard").querySelector<HTMLButtonElement>("[data-expand]");if(button===null)throw Error("missing history control");button.click();button.click();
+ await Promise.resolve();await Promise.resolve();expect(fetched.filter(url=>url==="/api/features/history")).toEqual(["/api/features/history"]);expect(ui("switchboard").textContent).toContain("No matching runs yet");
 });

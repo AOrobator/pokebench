@@ -2,7 +2,7 @@
 
 Bug: counter tiles (behavior 0x80, MB_COUNTER) carry collision, so the live map drew them as `#`
 and every Pokémon Center nurse looked unreachable. The game lets the player talk across a
-counter. Source: `runs/explainers/map-observation-audit.html` in the main checkout.
+counter. Source: `docs/explainers/map-observation-audit.html` in the main checkout.
 
 ## Game-source grounding
 
@@ -49,3 +49,16 @@ frozen presets keep counters as `#` and comparisons stay comparable.
 - GREEN (switch): `feat(features): put counter talk behind counter-talk-v1`. 59 agent + 40 viewer test files (899 + 474 tests), 1811 Python; coverage gate 90 passes; lint clean; vendor OK.
 
 ## Review
+
+Round 1 (head 01b2aad, diff SHA-256 4b02764b…): Claude CLI LGTM, Cursor Grok 4.5 LGTM, Codex
+(gpt-5.6-sol; its configured gpt-6.1-sol is rejected for this account; Cursor GPT hit its usage
+limit) BLOCKING:
+1. stand tile not validated (could be colliding/occupied/absent/unreachable);
+2. legend shown for a 0x80 tile with no drawn `=`;
+3. live proof lacks a recorded events.jsonl (PB7);
+4. switch lacks its explainer.
+- [ ] RED for 1 and 2: `test: counter hint and legend only describe what is usable and drawn (RED)`
+- [ ] Fix 1 and 2
+- [ ] Recorded probe for 3
+- [ ] Explainer for 4
+

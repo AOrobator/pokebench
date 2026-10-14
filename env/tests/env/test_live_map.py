@@ -277,3 +277,23 @@ def test_counter_talk_off_draws_counters_as_collision_without_the_legend() -> No
     for text in (result.text(counters=False), result.text(grid=False, counters=False)):
         assert "counter" not in text and "=" not in text, text
         assert "##N" in text.replace(" ", ""), text
+
+
+def test_a_lone_collision_free_counter_draws_no_glyph_and_no_legend() -> None:
+    m = loaded()
+    m.put(0x02007000 + 2 * 7, struct.pack("<H", 0x80))
+    tile(m, 0, 2, 7)
+    result = read_local_map(m.read, (1, 1), (1, 0), radius=1)
+    assert result is not None
+    assert result.rows[2] == "..."
+    assert "0x80" in result.text() and "counter" not in result.text()
+
+
+def test_a_counter_hidden_under_an_object_draws_no_legend() -> None:
+    m = loaded()
+    m.put(0x02007000 + 2 * 7, struct.pack("<H", 0x80))
+    tile(m, 2, 0, 0x400 | 7)
+    result = read_local_map(m.read, (1, 1), (1, 0), radius=1)
+    assert result is not None
+    assert result.rows[0] == "g#N"
+    assert "counter" not in result.text()

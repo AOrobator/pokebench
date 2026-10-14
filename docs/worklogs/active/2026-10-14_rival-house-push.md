@@ -322,3 +322,6 @@ COMMIT: `test(agent): RED for next-milestone-hint-v1` (3701b26)
   play-wiring, viewer action row / timeline / tool reference, explainer
   docs/explainers/next-milestone-hint-v1.html. Agent 1025/1025, viewer 563/563, tsc/eslint clean.
   Merging to main does not affect the running 2×2 (frozen worktree build).
+COMMIT: `feat: next-milestone-hint-v1, a separate hint arm with get_next_milestone` (19d7ce5)
+- Registered experiments/next-milestone-hint.json as pending (hint arm, own experiment); the other
+  rival-push entries' incumbents now set next-milestone-hint-v1 explicitly OFF.

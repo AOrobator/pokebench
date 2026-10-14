@@ -70,3 +70,4 @@ on `+` tiles (scope expansion).
 - Codex (`gpt-5.6-sol`): BLOCKING, one finding: no `docs/explainers/one-way-tiles-v1.html` or README
   entry in the packet (CLAUDE.md explainer rule). Same non-blocking notes as the other lanes.
 - Round-1 fix: explainer committed at `docs/explainers/one-way-tiles-v1.html` and indexed.
+- Merged main 37a961b (897d741), clean merge. Agent 914/914, viewer 476/476, env 1823/1823; coverage, lint pass.

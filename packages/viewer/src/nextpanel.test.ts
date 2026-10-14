@@ -136,11 +136,11 @@ it("keeps historical scans out of watch startup and loads them only when request
  await Promise.resolve();await Promise.resolve();expect(fetched.filter(url=>url==="/api/features/history")).toEqual(["/api/features/history"]);expect(ui("switchboard").textContent).toContain("No matching runs yet");
 });
 
-it.each(["old-first", "new-first", "old-error"])("refreshes history for saved settings without publishing superseded results (%s)", async order=>{
+it.each([["old-first",false],["new-first",false],["old-error",false],["old-first",true],["new-first",true],["old-error",true]] as const)("refreshes saved-settings history without superseded results (%s, prior save %s)", async (order,priorSave)=>{
  document.body.innerHTML=PAGE.slice(PAGE.indexOf("<body>")+6,PAGE.indexOf("</body>"));
  const pending:Array<ReturnType<typeof Promise.withResolvers<unknown>>>=[],problems:string[]=[];
  const p=new NextRunPanel(document,{fetchJson:url=>{if(url!=="/api/features/history")return Promise.resolve(ok[url as keyof typeof ok]);const request=Promise.withResolvers<unknown>();pending.push(request);return request.promise;},sendJson:(_method,_url,body)=>Promise.resolve({draft:body,queue:{state:"idle"}}),problem:text=>{problems.push(text);}});
- await p.load();ui("switchboard").querySelector<HTMLButtonElement>("[data-expand]")?.click();expect(pending).toHaveLength(1);
+ await p.load();if(priorSave){p.toggle("story-state-v1",false);await Promise.resolve();await Promise.resolve();}else ui("switchboard").querySelector<HTMLButtonElement>("[data-expand]")?.click();expect(pending).toHaveLength(1);
  const turns=ui("next-max-turns") as HTMLInputElement;turns.value="302";turns.dispatchEvent(new Event("change"));await Promise.resolve();await Promise.resolve();
  expect(p.draft?.maxTurns).toBe(302);expect(pending).toHaveLength(2);
  const old=pending[0],latest=pending[1];if(old===undefined||latest===undefined)throw Error("missing history request");
@@ -148,6 +148,16 @@ it.each(["old-first", "new-first", "old-error"])("refreshes history for saved se
  if(order==="new-first"){latest.resolve(current);await Promise.resolve();await Promise.resolve();}
  if(order==="old-error")old.reject(Error("superseded failure"));else old.resolve({stale:"wrong settings"});
  await Promise.resolve();await Promise.resolve();expect(p.history).not.toHaveProperty("stale");expect(problems).toEqual([]);
- if(order!=="new-first")latest.resolve(current);
+ if(order!=="new-first"){ui("switchboard").querySelector<HTMLButtonElement>("[data-expand]")?.click();expect(pending).toHaveLength(2);latest.resolve(current);}
  await Promise.resolve();await Promise.resolve();expect(p.history).toEqual(current);expect(ui("switchboard").textContent).toContain("No matching runs yet");
+});
+
+
+it("refreshes after save even when history was requested while the write was pending",async()=>{
+ document.body.innerHTML=PAGE.slice(PAGE.indexOf("<body>")+6,PAGE.indexOf("</body>"));
+ const write=Promise.withResolvers<unknown>(),old=Promise.withResolvers<unknown>();let requests=0;
+ const p=new NextRunPanel(document,{fetchJson:url=>url==="/api/features/history"?(++requests===1?old.promise:Promise.resolve({})):Promise.resolve(ok[url as keyof typeof ok]),sendJson:()=>write.promise,problem:text=>{throw Error(text);}});
+ await p.load();p.toggle("story-state-v1",false);ui("switchboard").querySelector<HTMLButtonElement>("[data-expand]")?.click();expect(requests).toBe(1);
+ write.resolve({draft:p.draft,queue:{state:"idle"}});await Promise.resolve();await Promise.resolve();expect(requests).toBe(2);
+ old.resolve({stale:"pre-save"});await Promise.resolve();await Promise.resolve();expect(p.history).toEqual({});
 });

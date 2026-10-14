@@ -51,6 +51,7 @@ export class NextRunPanel {
   private saving = 0;
   private historyLoaded = false;
   private historyLoading = false;
+  private historyRequest = 0;
 
   constructor(private readonly doc: Document, private readonly deps: PanelDeps) {}
 
@@ -80,16 +81,18 @@ export class NextRunPanel {
     this.render();
   }
 
-  private async refreshHistory(): Promise<void> {
-    if (this.historyLoading) return;
+  private async refreshHistory(force = false): Promise<void> {
+    if (this.historyLoading && !force) return;
+    const request = ++this.historyRequest;
     this.historyLoading = true;
     try {
       const value = await this.deps.fetchJson("/api/features/history");
+      if (request !== this.historyRequest) return;
       if (!isRecord(value)) throw new Error("malformed history payload");
       this.history = value; this.historyLoaded = true;
     } catch (error) {
-      this.deps.problem(`feature history: ${String(error)}`);
-    } finally { this.historyLoading = false; }
+      if (request === this.historyRequest) this.deps.problem(`feature history: ${String(error)}`);
+    } finally { if (request === this.historyRequest) this.historyLoading = false; }
   }
 
   // The live run keeps its own features; the switchboard flags differences.
@@ -104,6 +107,7 @@ export class NextRunPanel {
 
   private async save(draft: NextRunDraft): Promise<void> {
     this.draft = draft;
+    this.historyRequest += 1; this.historyLoading = false; this.historyLoaded = false;
     this.render();
     const request = ++this.saving;
     try {
@@ -111,7 +115,7 @@ export class NextRunPanel {
       if (request !== this.saving) return;
       this.draft = draftOf(reply);
       this.queue = queueOf(reply);
-      await this.refreshHistory();
+      await this.refreshHistory(true);
     } catch (error) {
       this.deps.problem(`save next run: ${String(error)}`);
     }

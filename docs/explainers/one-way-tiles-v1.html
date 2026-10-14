@@ -1,0 +1,336 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>One-Way Tiles</title><style>
+:root{--bg:#f6f4ee;--fg:#1f2421;--muted:#6b6f68;--card:#fff;--line:#e3dfd3;--accent:#2f6fde;--accent2:#c2410c;--bad:#d2493a;--good:#2e9d63;
+--floor1:#efe6d2;--floor2:#e3d8bf;--wall1:#7d776d;--wall2:#6a645b;--grid:rgba(0,0,0,.10);--warp:#b9d3f7;--chair1:#c98c4a;--chair2:#8a5a2b;--edge:#d2493a;--shadow:rgba(30,30,20,.10)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#121512;--fg:#e9ece6;--muted:#9ba196;--card:#1b1f1b;--line:#2d332d;--accent:#78a8ff;--accent2:#f59e5b;--bad:#ff7a6a;--good:#58cf8d;
+--floor1:#38352c;--floor2:#2f2c25;--wall1:#5b5750;--wall2:#4a4640;--grid:rgba(255,255,255,.08);--warp:#2c4a73;--chair1:#a5713a;--chair2:#6e4520;--edge:#ff7a6a;--shadow:rgba(0,0,0,.35)}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Helvetica,Arial,sans-serif}
+main{max-width:960px;margin:0 auto;padding:32px 16px 72px}
+.eyebrow{font:600 12px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;color:var(--accent2);text-transform:uppercase}
+h1{font-size:34px;line-height:1.15;margin:10px 0 8px;letter-spacing:-.02em}h2{font-size:21px;margin:44px 0 6px;letter-spacing:-.01em}
+.lead{font-size:18px;color:var(--muted);max-width:700px}.cap{color:var(--muted);font-size:14px;margin:10px 2px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 1px 2px var(--shadow),0 8px 24px var(--shadow)}
+.scroll{overflow-x:auto}svg{display:block;max-width:100%;height:auto}
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media (max-width:720px){.vs{grid-template-columns:1fr}}
+.vs h3{margin:0 0 2px;font-size:16px}.tag{display:inline-block;font:600 11px/1 ui-monospace,Menlo,monospace;padding:4px 8px;border-radius:6px;margin-right:6px;vertical-align:2px}
+.tag.off{background:var(--line);color:var(--muted)}.tag.on{background:var(--accent);color:#fff}
+.big{font-size:22px;font-weight:700;letter-spacing:-.01em;margin:4px 0 8px}.big small{font-size:14px;font-weight:500;color:var(--muted)}
+pre{margin:0;font:13px/1.6 ui-monospace,Menlo,monospace;overflow-x:auto;white-space:pre}.hl{background:color-mix(in srgb,var(--chair1) 35%,transparent);border-radius:3px}.dim{color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:14.5px}td,th{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+tr:last-child td{border-bottom:0}code{font:13px ui-monospace,Menlo,monospace}
+.ax{font:11px ui-monospace,Menlo,monospace;fill:var(--muted);text-anchor:middle}
+.glyph{font:700 16px ui-monospace,Menlo,monospace;fill:var(--fg);text-anchor:middle}.glyph.light{fill:#f1efe8}
+.chair{fill:var(--chair1);stroke:var(--chair2);stroke-width:2.5;opacity:.85}
+.edge{stroke:var(--edge);stroke-width:5;stroke-linecap:round}
+.route{fill:none;stroke:var(--accent);stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+.refused{fill:none;stroke:var(--bad);stroke-width:3.5;stroke-dasharray:5 5;stroke-linecap:round}
+.x{stroke:var(--bad);stroke-width:3;stroke-linecap:round;fill:none}
+.stepdot{fill:var(--card);stroke:var(--accent);stroke-width:2}.stepn{font:700 10px ui-monospace,Menlo,monospace;fill:var(--accent);text-anchor:middle}
+.player{fill:var(--accent);stroke:#fff;stroke-width:3}
+.ok{fill:none;stroke:var(--good);stroke-width:4;stroke-linecap:round}.no{fill:none;stroke:var(--bad);stroke-width:4;stroke-linecap:round;stroke-dasharray:6 6}
+.lbl{font:600 13px -apple-system,Helvetica,sans-serif;fill:var(--fg);text-anchor:middle}.sub{font:12px -apple-system,Helvetica,sans-serif;fill:var(--muted);text-anchor:middle}
+.node rect{fill:var(--card);stroke:var(--line);stroke-width:1.5}.node.hot rect{fill:color-mix(in srgb,var(--chair1) 22%,var(--card));stroke:var(--chair2);stroke-width:2}
+.nt{font:600 13px -apple-system,Helvetica,sans-serif;fill:var(--fg);text-anchor:middle}.ns{font:11.5px ui-monospace,Menlo,monospace;fill:var(--muted);text-anchor:middle}
+.flow{fill:none;stroke:var(--muted);stroke-width:2}.fl{font:11px -apple-system,Helvetica,sans-serif;fill:var(--muted)}
+ul.status{margin:8px 0 0;padding-left:20px}ul.status li{margin:4px 0}
+</style></head><body><main>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<pattern id="floor" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="10" height="10" fill="var(--floor1)"/><circle cx="2" cy="2" r="1" fill="var(--floor2)"/><circle cx="7" cy="7" r="1" fill="var(--floor2)"/></pattern>
+<pattern id="wall" width="14" height="10" patternUnits="userSpaceOnUse"><rect width="14" height="10" fill="var(--wall1)"/><path d="M0,5 h14 M7,0 v5 M0,5 v5" stroke="var(--wall2)" stroke-width="1.2"/></pattern>
+<marker id="ago" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker>
+<marker id="abad" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--bad)"/></marker>
+<marker id="aok" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--good)"/></marker>
+<marker id="ano" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--bad)"/></marker>
+<marker id="aflow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker>
+</defs></svg>
+
+<div class="eyebrow">Harness switch · one-way-tiles-v1</div>
+<h1>The bedroom chair has walls on two sides</h1>
+<p class="lead">The chair in the player's bedroom has no collision, so the map drew it as plain floor (<code>.</code>). The game still refuses every step across its north and south edges, into it or out of it. With this switch on, the map draws it as <code>+</code>, lists its walled sides, and <code>navigate_to</code> only uses its open sides.</p>
+
+<div class="card" style="margin-top:20px"><div class="scroll"><svg viewBox="0 0 720 250" role="img" aria-label="A one-way tile: open west and east, walled north and south">
+<rect x="300" y="65" width="120" height="120" fill="url(#floor)" stroke="var(--line)"/>
+<rect x="318" y="83" width="84" height="84" rx="14" class="chair"/>
+<text x="360" y="137" class="glyph" style="font-size:34px">+</text>
+<line x1="296" y1="65" x2="424" y2="65" class="edge" style="stroke-width:8"/><line x1="296" y1="185" x2="424" y2="185" class="edge" style="stroke-width:8"/>
+<path d="M190,125 L285,125" class="ok" marker-start="url(#aok)" marker-end="url(#aok)"/><path d="M435,125 L530,125" class="ok" marker-start="url(#aok)" marker-end="url(#aok)"/>
+<path d="M360,10 L360,52" class="no" marker-start="url(#ano)" marker-end="url(#ano)"/><path d="M360,198 L360,240" class="no" marker-start="url(#ano)" marker-end="url(#ano)"/>
+<text x="140" y="120" class="lbl">west side</text><text x="140" y="138" class="sub">open, both ways</text>
+<text x="580" y="120" class="lbl">east side</text><text x="580" y="138" class="sub">open, both ways</text>
+<text x="470" y="30" class="lbl">north side walled</text><text x="470" y="47" class="sub">refused in and out</text>
+<text x="470" y="215" class="lbl">south side walled</text><text x="470" y="232" class="sub">refused in and out</text>
+<text x="140" y="232" class="sub">0xC0 · collision 0</text><text x="140" y="214" class="sub">MB_IMPASSABLE_SOUTH_AND_NORTH</text>
+</svg></div></div>
+<p class="cap">One tile, four edges. Red edges refuse a step in either direction; green edges behave like floor.</p>
+
+<h2>The same move in the bedroom</h2>
+<p class="cap" style="margin-top:0">Real live-map tiles from <code>tests/states/house2_upstairs.state</code> (Littleroot, May's house 2F, map 1/3). The chair is at (7,4). Going from (7,3) to the chair.</p>
+<div class="vs">
+<div class="card"><h3><span class="tag off">OFF</span>Chair drawn as floor</h3><div class="big">Refused <small>DOWN from (7,3) does not move</small></div><div class="scroll"><svg viewBox="0 0 344 306" role="img" aria-label="Bedroom map, one-way tiles off">
+<text x="47.0" y="16" class="ax">0</text>
+<text x="81.0" y="16" class="ax">1</text>
+<text x="115.0" y="16" class="ax">2</text>
+<text x="149.0" y="16" class="ax">3</text>
+<text x="183.0" y="16" class="ax">4</text>
+<text x="217.0" y="16" class="ax">5</text>
+<text x="251.0" y="16" class="ax">6</text>
+<text x="285.0" y="16" class="ax">7</text>
+<text x="319.0" y="16" class="ax">8</text>
+<text x="14" y="47.0" class="ax">0</text>
+<text x="14" y="81.0" class="ax">1</text>
+<text x="14" y="115.0" class="ax">2</text>
+<text x="14" y="149.0" class="ax">3</text>
+<text x="14" y="183.0" class="ax">4</text>
+<text x="14" y="217.0" class="ax">5</text>
+<text x="14" y="251.0" class="ax">6</text>
+<text x="14" y="285.0" class="ax">7</text>
+<rect x="30" y="26" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="64" y="26" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="98" y="26" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="132" y="26" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="166" y="26" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="200" y="26" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="234" y="26" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="268" y="26" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="302" y="26" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="30" y="60" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="64" y="60" width="34" height="34" fill="var(--warp)" stroke="var(--grid)" stroke-width="1"/>
+<text x="81.0" y="82.0" class="glyph light">W</text>
+<rect x="98" y="60" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="132" y="60" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="166" y="60" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="200" y="60" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="234" y="60" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="268" y="60" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="302" y="60" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="30" y="94" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="64" y="94" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="98" y="94" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="132" y="94" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="166" y="94" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="200" y="94" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="234" y="94" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="268" y="94" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="302" y="94" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="30" y="128" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="64" y="128" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="98" y="128" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="132" y="128" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="166" y="128" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="200" y="128" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="234" y="128" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="268" y="128" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="302" y="128" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="30" y="162" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="64" y="162" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="98" y="162" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="132" y="162" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="166" y="162" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="200" y="162" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="234" y="162" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="268" y="162" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="302" y="162" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="30" y="196" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="64" y="196" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="98" y="196" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="132" y="196" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="166" y="196" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="200" y="196" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="234" y="196" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="268" y="196" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<text x="285.0" y="218.0" class="glyph light">#</text>
+<rect x="302" y="196" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="30" y="230" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="64" y="230" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="98" y="230" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="132" y="230" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="166" y="230" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="200" y="230" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="234" y="230" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="268" y="230" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="302" y="230" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="30" y="264" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="64" y="264" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="98" y="264" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="132" y="264" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="166" y="264" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="200" y="264" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="234" y="264" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="268" y="264" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="302" y="264" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="273" y="167" width="24" height="24" rx="6" class="chair"/>
+<text x="285.0" y="184.0" class="glyph">.</text>
+<path d="M285.0,145.0 L285.0,167.0" class="refused" marker-end="url(#abad)"/>
+<g transform="translate(307.0,162.0)"><path d="M-5,-5 L5,5 M5,-5 L-5,5" class="x"/></g>
+<circle cx="285.0" cy="145.0" r="10" class="player"/>
+</svg>
+</div>
+<p class="cap">The grid promises a clear tile, so the obvious move is DOWN. The game refuses it. <code>navigate_to</code> treats the tile as a wall: "no supported local path".</p></div>
+<div class="card"><h3><span class="tag on">ON</span>Chair drawn as <code>+</code></h3><div class="big">3 presses <small>LEFT DOWN RIGHT</small></div><div class="scroll"><svg viewBox="0 0 344 306" role="img" aria-label="Bedroom map, one-way tiles on">
+<text x="47.0" y="16" class="ax">0</text>
+<text x="81.0" y="16" class="ax">1</text>
+<text x="115.0" y="16" class="ax">2</text>
+<text x="149.0" y="16" class="ax">3</text>
+<text x="183.0" y="16" class="ax">4</text>
+<text x="217.0" y="16" class="ax">5</text>
+<text x="251.0" y="16" class="ax">6</text>
+<text x="285.0" y="16" class="ax">7</text>
+<text x="319.0" y="16" class="ax">8</text>
+<text x="14" y="47.0" class="ax">0</text>
+<text x="14" y="81.0" class="ax">1</text>
+<text x="14" y="115.0" class="ax">2</text>
+<text x="14" y="149.0" class="ax">3</text>
+<text x="14" y="183.0" class="ax">4</text>
+<text x="14" y="217.0" class="ax">5</text>
+<text x="14" y="251.0" class="ax">6</text>
+<text x="14" y="285.0" class="ax">7</text>
+<rect x="30" y="26" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="64" y="26" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="98" y="26" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="132" y="26" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="166" y="26" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="200" y="26" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="234" y="26" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="268" y="26" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="302" y="26" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="30" y="60" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="64" y="60" width="34" height="34" fill="var(--warp)" stroke="var(--grid)" stroke-width="1"/>
+<text x="81.0" y="82.0" class="glyph light">W</text>
+<rect x="98" y="60" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="132" y="60" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="166" y="60" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="200" y="60" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="234" y="60" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="268" y="60" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="302" y="60" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="30" y="94" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="64" y="94" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="98" y="94" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="132" y="94" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="166" y="94" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="200" y="94" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="234" y="94" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="268" y="94" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="302" y="94" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="30" y="128" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="64" y="128" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="98" y="128" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="132" y="128" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="166" y="128" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="200" y="128" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="234" y="128" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="268" y="128" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="302" y="128" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="30" y="162" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="64" y="162" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="98" y="162" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="132" y="162" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="166" y="162" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="200" y="162" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="234" y="162" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="268" y="162" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="302" y="162" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="30" y="196" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="64" y="196" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="98" y="196" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="132" y="196" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="166" y="196" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="200" y="196" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="234" y="196" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="268" y="196" width="34" height="34" fill="url(#wall)" stroke="var(--grid)" stroke-width="1"/>
+<text x="285.0" y="218.0" class="glyph light">#</text>
+<rect x="302" y="196" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="30" y="230" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="64" y="230" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="98" y="230" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="132" y="230" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="166" y="230" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="200" y="230" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="234" y="230" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="268" y="230" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="302" y="230" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="30" y="264" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="64" y="264" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="98" y="264" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="132" y="264" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="166" y="264" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="200" y="264" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="234" y="264" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="268" y="264" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="302" y="264" width="34" height="34" fill="url(#floor)" stroke="var(--grid)" stroke-width="1"/>
+<rect x="273" y="167" width="24" height="24" rx="6" class="chair"/>
+<line x1="269" y1="164" x2="301" y2="164" class="edge"/><line x1="269" y1="194" x2="301" y2="194" class="edge"/>
+<text x="285.0" y="184.0" class="glyph">+</text>
+<path d="M285.0,145.0 L251.0,145.0 L251.0,179.0 L285.0,179.0" class="route" marker-end="url(#ago)"/>
+<circle cx="251.0" cy="145.0" r="8" class="stepdot"/><text x="251.0" y="148.5" class="stepn">1</text>
+<circle cx="251.0" cy="179.0" r="8" class="stepdot"/><text x="251.0" y="182.5" class="stepn">2</text>
+
+<circle cx="285.0" cy="145.0" r="10" class="player"/>
+</svg>
+</div>
+<p class="cap">The planner refuses the walled north edge and enters from the open west side. Recorded live: "arrived at requested coordinate; 3 ordinary button attempts".</p></div>
+</div>
+
+<h2>What the model reads</h2>
+<div class="card"><pre><span class="dim">     -1   0   1   2   3   4   5   6   7   8</span>
+<span class="dim">   3</span>  ?   .   .   .   .   .   .   .   .   .
+<span class="dim">   4</span>  ?   .   @   .   .   .   .   .   <span class="hl"> + </span> .
+<span class="dim">   5</span>  ?   .   .   .   .   .   .   .   #   .
+<span class="dim">…</span> # collision; g grass; ~ water; v ^ &lt; &gt; ledge: …;
+<span class="hl">+ edge walls: walkable, but movement across a walled side is refused in both directions (sides listed under Edge walls);</span>
+. clear terrain (may have script triggers); ? outside current map.
+Terrain rules, elevation and objects can still block movement.
+<span class="hl">Edge walls: (7,4) north+south</span></pre></div>
+<p class="cap">Excerpt of the live readout on the real ROM (rows trimmed). Off: the cell is <code>.</code>, and the legend clause and the Edge walls line are gone. The Edge walls line appears only when such a tile is within 7 tiles, and it still lists the tile while the player stands on it (the cell then shows <code>@</code>).</p>
+
+<h2>The game's rule: two checks per step</h2>
+<div class="card"><div class="scroll"><svg viewBox="0 0 720 200" role="img" aria-label="Exit check on current tile and entry check on next tile">
+<rect x="110" y="50" width="110" height="110" fill="url(#floor)" stroke="var(--line)"/><rect x="220" y="50" width="110" height="110" fill="url(#floor)" stroke="var(--line)"/>
+<text x="165" y="110" class="lbl">current</text><text x="275" y="110" class="lbl">next</text>
+<path d="M150,140 L295,140" class="route" marker-end="url(#ago)"/><text x="222" y="185" class="sub">moving RIGHT</text>
+<line x1="216" y1="54" x2="216" y2="156" stroke="var(--accent2)" stroke-width="5"/><line x1="224" y1="54" x2="224" y2="156" stroke="var(--accent)" stroke-width="5"/>
+<text x="216" y="40" class="sub" style="text-anchor:end">current's east side walled?</text><text x="226" y="40" class="sub" style="text-anchor:start">  next's west side walled?</text>
+<text x="520" y="70" class="lbl" style="text-anchor:start">Refused if either is walled</text>
+<text x="400" y="98" class="sub" style="text-anchor:start">gOppositeDirectionBlockedMetatileFuncs[dir](current)</text>
+<text x="400" y="118" class="sub" style="text-anchor:start">gDirectionBlockedMetatileFuncs[dir](next)</text>
+<text x="400" y="146" class="sub" style="text-anchor:start">IsMetatileDirectionallyImpassable</text>
+<text x="400" y="166" class="sub" style="text-anchor:start">Ledge jumps skip it (ShouldJumpLedge runs first)</text>
+</svg></div></div>
+<p class="cap">That is why one walled side blocks both directions: leaving through it fails the first check, entering through it fails the second. <code>planNavigation</code> runs the same two checks.</p>
+
+<h2>Which tiles count</h2>
+<div class="card scroll"><table>
+<tr><th>Behavior</th><th>Value</th><th>Walled sides</th></tr>
+<tr><td><code>MB_IMPASSABLE_EAST / WEST / NORTH / SOUTH</code></td><td><code>0x30–0x33</code></td><td>that one side</td></tr>
+<tr><td><code>MB_IMPASSABLE_NORTHEAST / NORTHWEST</code></td><td><code>0x34, 0x35</code></td><td>north+east, north+west</td></tr>
+<tr><td><code>MB_IMPASSABLE_SOUTHEAST / SOUTHWEST</code></td><td><code>0x36, 0x37</code></td><td>south+east, south+west</td></tr>
+<tr><td><code>MB_SECRET_BASE_BREAKABLE_DOOR</code></td><td><code>0xBE</code></td><td>west+east</td></tr>
+<tr><td><code>MB_IMPASSABLE_SOUTH_AND_NORTH</code> (the chair)</td><td><code>0xC0</code></td><td>north+south</td></tr>
+<tr><td><code>MB_IMPASSABLE_WEST_AND_EAST</code></td><td><code>0xC1</code></td><td>west+east</td></tr>
+</table></div>
+<p class="cap">From <code>MetatileBehavior_Is{North,South,West,East}Blocked</code>, pokeemerald 731ad5b. A tile with collision keeps <code>#</code> and is not listed.</p>
+
+<h2>How the switch travels</h2>
+<div class="card"><div class="scroll"><svg viewBox="0 0 760 210" role="img" aria-label="Switch wiring">
+<g class="node"><rect x="10" y="80" width="150" height="50" rx="10"/><text x="85" y="102" class="nt">Run preset</text><text x="85" y="119" class="ns">one-way-tiles-v1</text></g>
+<g class="node"><rect x="215" y="20" width="170" height="50" rx="10"/><text x="300" y="42" class="nt">serverFeatureEnv</text><text x="300" y="59" class="ns">POKEBENCH_FEATURES_OFF</text></g>
+<g class="node hot"><rect x="440" y="20" width="200" height="50" rx="10"/><text x="540" y="42" class="nt">LocalMap.text(edge_walls)</text><text x="540" y="59" class="ns">+ glyph, legend, list</text></g>
+<g class="node"><rect x="215" y="140" width="170" height="50" rx="10"/><text x="300" y="162" class="nt">withNavigation</text><text x="300" y="179" class="ns">navigationTool({oneWay})</text></g>
+<g class="node hot"><rect x="440" y="140" width="200" height="50" rx="10"/><text x="540" y="162" class="nt">planNavigation</text><text x="540" y="179" class="ns">exit + entry checks</text></g>
+<path d="M160,95 L212,50" class="flow" marker-end="url(#aflow)"/><path d="M160,115 L212,160" class="flow" marker-end="url(#aflow)"/>
+<path d="M385,45 L437,45" class="flow" marker-end="url(#aflow)"/><path d="M385,165 L437,165" class="flow" marker-end="url(#aflow)"/>
+<text x="650" y="49" class="fl">model text</text><text x="650" y="169" class="fl">button presses</text>
+<text x="10" y="150" class="fl">absent in old presets → OFF</text>
+</svg></div></div>
+<p class="cap">Highlighted boxes change behavior. The typed state JSON keeps the full map text either way; the switch changes only what the model reads and how the planner walks.</p>
+
+<h2>Status</h2>
+<div class="card"><ul class="status">
+<li>Branch <code>claude/one-way-tiles</code> in its own worktree, merged with main after ledge hops landed.</li>
+<li>Agent 914, viewer 474 and env 1823 tests pass; coverage floor 90% and lint pass.</li>
+<li>Live on the real ROM, plus a recorded probe run on and off: the game refuses DOWN into the chair from (7,3) and UP/DOWN off it; <code>navigate_to</code> enters from the west in 3 presses.</li>
+<li>Review round 1: Claude and Grok LGTM; Codex blocked only on this explainer being missing from the branch. Their test and copy fixes are applied: every one of the 11 behaviors now has its own enter and leave test.</li>
+<li>Not done: no measured runs, so no claim that this helps a model. Not merged to main.</li>
+<li>Seen but out of scope: the bedroom floor behaviors are outside the planner's walkable list, so <code>navigate_to</code> detours elsewhere in this room. The walkability thread owns that.</li>
+</ul></div>
+</main></body></html>

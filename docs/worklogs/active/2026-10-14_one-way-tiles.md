@@ -67,3 +67,6 @@ bug line corrected to (7,4); PB3 rescored N/A and PB13 scored after the review o
 Deferred: legend note that north is decreasing y (grid header already shows it); ledge landings
 on `+` tiles (scope expansion).
   Gates after fixes: agent 914/914, viewer 474/474, env 1823/1823; coverage and lint pass.
+- Codex (`gpt-5.6-sol`): BLOCKING, one finding: no `docs/explainers/one-way-tiles-v1.html` or README
+  entry in the packet (CLAUDE.md explainer rule). Same non-blocking notes as the other lanes.
+- Round-1 fix: explainer committed at `docs/explainers/one-way-tiles-v1.html` and indexed.

@@ -306,3 +306,14 @@ def test_final_dismiss_rejects_wrong_native_and_inactive_context_operands() -> N
         assert read_field_message(m.read).ready is True
         m.put(address, value)
         assert read_field_message(m.read) is None, (hex(address), value)
+
+
+def test_qualified_raw_message_identity_survives_unsupported_controls() -> None:
+    from hashlib import sha256
+    m = field_printer()
+    raw = text("Box") + b"\xfc\x04\x00\x01\x02" + b"\xff"
+    m.put(0x02021FC4, raw)
+    c = read_world_context(m.read, (10, 2), (0, 9), SAVE, decode_text, message_phase=True)
+    assert c.dialogue is None
+    assert c.message.identity == sha256(raw[:-1]).hexdigest()
+    assert c.json()["message"]["identity"] == sha256(raw[:-1]).hexdigest()

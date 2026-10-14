@@ -36,3 +36,12 @@ it("keeps enhanced checks passive when loop intervention is disabled",()=>{
  for(let i=0;i<2;i++)d.complete({name:"press",args:{buttons:["A","A"]},isError:false,text:"ok",beforeState:state,state});
  expect(notices.map(n=>n.phase)).toEqual(["would_warn"]);expect(d.context()).toBeNull();expect(d.stopped).toBe(false);
 });
+it("detects the native truck-shaped message even when decoded buffer text is unavailable",()=>{
+ const notices:{phase:string}[]=[];const d=new LoopDetector(n=>notices.push(n),{...LOOP_POLICY,ineffective:2},"enforced",true);
+ const base=dialogue();const state:GameStateSnapshot={...base,world_context:{objects:[],triggers:[],dialogue:null,message:{phase:"page_wait",cursor:40,ready:true,identity:"a".repeat(64)}}};
+ for(let i=0;i<2;i++)d.complete({name:"press",args:{buttons:Array(8).fill("A")},isError:false,text:"ok",beforeState:state,state});
+ expect(notices.map(n=>n.phase)).toEqual(["warning"]);
+ const newMessage:GameStateSnapshot={...state,world_context:{...state.world_context!,message:{phase:"page_wait",cursor:40,ready:true,identity:"b".repeat(64)}}};
+ d.complete({name:"press",args:{buttons:["A"]},isError:false,text:"ok",beforeState:state,state:newMessage});
+ expect(notices.map(n=>n.phase)).toEqual(["warning","recovered"]);
+});

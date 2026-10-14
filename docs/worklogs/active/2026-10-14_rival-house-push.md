@@ -156,3 +156,12 @@ COMMIT: `feat(agent): add loop-guard-supervisor-v1` (6e7c61d)
   test and served-URL test for all three new explainers. The existsSync check over
   FEATURE_EXPLAINERS is kept deliberately: it is a handful of stat calls and catches a mapped
   explainer that was never committed.
+COMMIT: `fix(agent): close M1 review findings for game-evidence-priority-v1` (7e1ce7a)
+- Review r2 dispatched: packet 9bda476..7e1ce7a (M1 fixes + M2 + M4), artifacts
+  runs/rival-push-review/r2/.
+- M3 decision (17:05 EDT): the navigation memory cohort is on an infrastructure hold after 5/8
+  trials (trial 6 game-server SIGSEGV, owned by that thread). No arm reached RIVAL_MET. Build
+  instruction-ledger-v1 as its own switch so each experiment step differs by one flag; it reuses
+  the DialogueLog capture and does not modify navigation-evidence-memory-v1.
+- M3 RED: instruction-ledger.test.ts (instructions, rooms, contradictions with evidence, bounds,
+  context delivery + ledger_context event, registry/prompt/tool/state-only).

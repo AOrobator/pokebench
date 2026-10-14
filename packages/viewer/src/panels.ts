@@ -1,3 +1,4 @@
+import type { FeatureInfo } from "@pokebench/agent/features";
 // HTML for each panel of the Open PokéNav layout. Every value comes from the
 // folded event log; a panel without its data says so instead of guessing.
 import type { RunEvent } from "@pokebench/agent/events";
@@ -323,4 +324,59 @@ export function objectivePanel(view: RunView): string {
     ["OBSTACLE", esc(objective.obstacle || "none recorded")], ["NEXT DECISION", esc(objective.next_decision)],
     ["COMPLETION EVIDENCE", objective.completion_evidence.map((seq) => `#${String(seq)}`).join(", ") || "not completed"],
   ]) + `<details><summary>Attempt history (${String(view.attempts.length)})</summary><ol class="attempts">${history}</ol></details>`;
+}
+
+
+// Viewer reference summaries, source-checked against game-tools.ts,
+// navigation.ts, navigation-memory.ts, objective-tools.ts and state-decision.ts.
+// Historical run headers contain tool names, not versioned tool schemas.
+const TOOL_REFERENCE: Readonly<Record<string, readonly [description:string, inputs:string, outputs:string, example:string]>> = {
+ observe: ["Inspect the current game without pressing a button.", "None. Send an empty object {}.", "A 240×160 screenshot plus observation text. State/map detail depends on the run’s observation switches; decoded state is retained in tool details.", '{}'],
+ press: ["Press Game Boy Advance buttons in order, then inspect the result. Buttons are contextual to the current screen.", "buttons: required array of 1–8 values: A, B, START, SELECT, UP, DOWN, LEFT, RIGHT. walking: optional boolean; true suppresses automatic running. Interface safety may submit only the first requested button.", "A fresh screenshot and observation text, submitted-button acknowledgement, and optional before/after feedback. State is retained in tool details. Invalid requests or server failures return errors.", '{"buttons":["RIGHT"],"walking":true}'],
+ navigate_to: ["Walk toward a model-chosen coordinate on the current map using A*. It does not press A or choose a destination.", "x, y: required nonnegative integers. map_id: required [group, number], each integer 0–255, matching the current map. walking: optional boolean. Local mode allows up to 8 button attempts; whole-map mode and terrain support depend on enabled features.", "Navigation status and button-attempt count, final observation/screenshot, and details containing state plus navigation {status, commands, target}. May stop before arrival on a lock, blocked movement or map change.", '{"x":5,"y":1,"map_id":[1,2]}'],
+ remember_destination: ["Retain a destination hypothesis across context pruning. This does not select a route or prove completion.", "destination: required string, 1–300 characters. evidence: required array of 1–4 distinct nonnegative event IDs known to the navigation ledger.", "Text acknowledgement: Retained MODEL HYPOTHESIS: followed by the destination. Unknown or unsuitable evidence is rejected.", '{"destination":"Inspect the observed doorway","evidence":[42]}'],
+ get_objectives: ["Read the fixed goal, current objective and full attempt history.", "None. Send an empty object {}.", "JSON text containing goal, native_catalog, objective and attempts. The objective can be null when none is set.", '{}'],
+ set_objective: ["Select a native milestone task or propose a provisional local plan using observed evidence. Completion behavior depends on the recorded objective features.", "Required fields: title, supports_goal, evidence, completion, obstacle, next_decision. Title/supports_goal/next_decision: 1–2000 characters; obstacle: up to 2000. evidence: 1–16 distinct nonnegative event IDs. completion: {kind: milestone, name}, {kind: state, field, value}, or {kind: visual, description}. State values must match the field type: started/in_battle boolean; money/party_count number; screen/name/location/badge string. Milestone names must belong to the native catalog.", "JSON text of the objective record, including ID/revision, goal, plan, status, evidence and completion evidence. Native task titles/verification are harness-owned when native completion is enabled; invalid inputs/evidence are rejected.", '{"title":"Confirm the player name","supports_goal":"Advance the opening","evidence":[42],"completion":{"kind":"milestone","name":"PLAYER_NAME_CONFIRMED"},"obstacle":"","next_decision":"Inspect the current naming screen"}'],
+ update_objective: ["Revise the active objective’s status, obstacle, next decision and evidence. A retry reason supports a reassessed attempt where the repeat guard applies.", "Required fields: status (active, blocked, completed or reported_complete), evidence (1–16 distinct nonnegative event IDs), obstacle, next_decision, retry_reason. Text fields: up to 2000 characters; next_decision must be nonempty. Completion claims remain subject to native verification and objective rules.", "JSON text of the updated objective record. Invalid evidence, status transitions or unsupported completion claims return errors; this tool does not grade the benchmark itself.", '{"status":"active","evidence":[42],"obstacle":"Movement was blocked","next_decision":"Inspect another approach","retry_reason":""}'],
+ act: ["Choose one action from the current snapshot in state-only decision mode.", "Either {kind: press, buttons: [1–8 supported buttons]} or {kind: wait, duration_ms: integer 1–2000}. Do not combine buttons and duration_ms. Waiting measures host time, not guaranteed emulator frames.", "A fresh screenshot and observation text with press feedback or a wait acknowledgement; state is retained in tool details. A fresh snapshot is also supplied for the next decision; invalid action shapes are rejected.", '{"kind":"wait","duration_ms":100}'],
+};
+
+function toolReference(name:string):string {
+ const reference=Object.hasOwn(TOOL_REFERENCE,name)?TOOL_REFERENCE[name]:undefined;
+ return `<article class="config-tool" data-tool="${esc(name)}"><h5>${esc(name)}</h5>${reference===undefined?'<p>Documentation unavailable for this recorded tool. Its historical inputs and outputs were not recorded.</p>':`<p>${esc(reference[0])}</p><dl><dt>INPUTS</dt><dd>${esc(reference[1])}</dd><dt>OUTPUTS</dt><dd>${esc(reference[2])}</dd></dl><details><summary>INPUT EXAMPLE</summary><pre>${esc(reference[3])}</pre><p>Illustrative shape only. Coordinates, map IDs and evidence must come from the actual run.</p></details>`}</article>`;
+}
+
+export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
+ "navigation-evidence-memory-v1":"navigation-evidence-memory-v1.html",
+ "bounded-navigation-v1":"astar-navigation.html",
+ "ledge-hops-v1":"ledge-hops-v1.html",
+ "one-way-tiles-v1":"one-way-tiles-v1.html",
+});
+
+export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {
+ const start=view.start;if(start===null)return '<p class="nodata">No run configuration recorded.</p>';
+ const missing="not recorded",evaluation=start.evaluation;
+ const explicit:Readonly<Record<string,boolean>>=evaluation===undefined?{}:{"deterministic-loop-guard-v1":evaluation.flags.loopGuard,"active-ui-ownership-v1":evaluation.flags.activeUi,"contextual-interface-docs-v1":evaluation.flags.interfaceDocs,"objective-tracking-v1":evaluation.flags.objectives};
+ const fallback:Readonly<Record<string,readonly[string,string,string]>>={
+  "deterministic-loop-guard-v1":["LOOP GUARD","Warns on repeated planning, observations, actions, cycles and rejections; can end persistent loops.","guard"],
+  "active-ui-ownership-v1":["ACTIVE UI OWNERSHIP","Reports the interface that owns input, its selection and readiness.","guidance"],
+  "contextual-interface-docs-v1":["INTERFACE DOCS","Supplies screen-specific control documentation.","guidance"],
+  "objective-tracking-v1":["OBJECTIVE TRACKING","Maintains an objective record and requires an active objective before pressing.","guard"],
+ };
+ const ids=[...new Set([...registry.map(f=>f.id),...start.harness_features,...Object.keys(explicit)])];
+ const cards=ids.map(id=>{
+  const info=registry.find(f=>f.id===id),known=Object.hasOwn(fallback,id)?fallback[id]:undefined;
+  const explicitValue=Object.hasOwn(explicit,id)?explicit[id]:undefined;
+  const state=start.harness_features.includes(id)?explicitValue===false?"conflict":"on":explicitValue===undefined?"unknown":explicitValue?"on":"off";
+  const title=info?.title??known?.[0]??id.replaceAll("-"," ");const description=info?.description??known?.[1]??"Recorded feature ID. A description is unavailable in this viewer’s feature catalog.";
+  const file=Object.hasOwn(FEATURE_EXPLAINERS,id)?FEATURE_EXPLAINERS[id]:undefined;
+  return {group:info?.group??known?.[2]??"other",state,html:`<article class="config-feature config-${state}" data-feature="${esc(id)}"><header><h5>${esc(title)}</h5><span class="config-badge">${state==="unknown"?"NOT RECORDED":state.toUpperCase()}</span></header><p>${esc(description)}</p><footer><code>${esc(id)}</code>${file===undefined?"":`<a href="/explainers/${file}" target="_blank" rel="noopener" aria-label="Read explainer: ${esc(title)}">READ EXPLAINER ↗</a>`}</footer></article>`};
+ });
+ const groups=[["observation","OBSERVATION","What the model can see"],["guidance","GUIDANCE","How the harness helps"],["guard","GUARDS","What can intervene"],["measurement","MEASUREMENT","Recorded evidence and scoring"],["other","RECORDED POLICIES","Other recorded feature IDs"]]as const;
+ const sections=groups.map(([id,title,description])=>{const list=cards.filter(c=>c.group===id||id==="other"&&!groups.some(g=>g[0]===c.group));return list.length===0?"":`<section class="config-group"><h4>${title}<span>${description}</span></h4><div class="config-feature-grid">${list.map(c=>c.html).join("")}</div></section>`;}).join("");
+ const box=(title:string,rows:readonly(readonly[string,string])[])=>`<section class="config-summary-card"><h4>${title}</h4>${kv(rows)}</section>`;
+ return `<div class="config-overview"><span class="config-readonly">◈ READ ONLY</span><p>Recorded settings for <strong>${esc(start.run)}</strong></p><div class="config-counts"><span>${String(cards.filter(c=>c.state==="on").length)} ON</span><span>${String(cards.filter(c=>c.state==="off").length)} OFF</span><span>${String(cards.filter(c=>c.state==="unknown").length)} NOT RECORDED</span>${cards.some(c=>c.state==="conflict")?'<span>CONFLICT · inspect raw configuration</span>':""}</div></div><div class="config-summary-grid">`+
+ box("MODEL",[["MODEL",esc(start.model.id)],["CONTEXT WINDOW",num(start.model.context_window)],["VISION",start.model.vision?"supported":"not supported"],["THINKING",esc(start.sampling.thinking_level)],["OUTPUT TOKEN CAP",num(start.sampling.max_tokens)]])+
+ box("BUDGET & GOAL",[["TIME CAP",start.budgets.max_wall_ms===undefined?missing:hms(start.budgets.max_wall_ms/1000)],["TURN CAP",start.budgets.max_turns===undefined?missing:String(start.budgets.max_turns)],["FAILURE LIMIT",evaluation===undefined?missing:String(evaluation.failure_limit)],["STOP AT MILESTONE",evaluation===undefined?missing:evaluation.target===null?"NONE · play to budget":esc(evaluation.target)]])+
+ box("BUILD & PRESET",[["PRESET",esc(evaluation?.preset_id??missing)],["HARNESS SOURCE",esc(start.harness.commit)+(start.harness.dirty?" · dirty":" · clean")],["START STATE",esc(start.start_state.kind)],["VENDOR PIN",esc(start.vendor_pin)],["PI VERSION",esc(start.pi_version)]])+`</div><p class="config-provenance">Statuses come from this run’s recorded header. Missing IDs stay NOT RECORDED, not guessed OFF. Descriptions come from the viewer’s feature catalog and may be newer than a historical run. This page never edits next-run settings.</p>${sections}<section class="config-summary-card"><h4>AVAILABLE TOOLS</h4><p class="config-provenance">Tools listed by this run’s recorded header. Reference documentation reflects this viewer build; names are not recorded with historical tool schemas. Outputs and limits depend on the run’s enabled features.</p><div class="config-tool-grid">${start.tools.map(toolReference).join("")||"none recorded"}</div></section><p class="config-provenance">Model weight digest, endpoint, temperature and other serving defaults: not recorded in this run header.</p><details class="config-raw"><summary>RECORDED SYSTEM PROMPT</summary><pre>${esc(start.system_prompt)}</pre></details><details class="config-raw"><summary>RAW RUN CONFIGURATION</summary>${jsonHtml(start)}</details>`;
 }

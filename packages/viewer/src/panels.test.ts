@@ -10,6 +10,7 @@ import {
   budgets,
   counters,
   fieldContext,
+  harnessConfig,
   inspector,
   party,
   splits,
@@ -531,4 +532,37 @@ describe("navigation memory delivery",()=>{
   const result=view(log);expect(actionRow(event,result)).toContain("Navigation memory delivered");expect(actionRow(event,result)).toContain("1 retained references");expect(actionRow(event,result)).toContain("&lt;observed&gt;");
   expect(inspector(event)).toContain("NAVIGATION EVIDENCE MEMORY");
  });
+});
+
+
+describe("read-only harness configuration", () => {
+ it("shows exact recorded settings, preserves unknown OFF states and escapes recorded content", () => {
+  const log=new Log();log.add(0,{...START,model:{...START.model,id:"<model>"},tools:["press","<tool>"],budgets:{max_turns:1500,max_wall_ms:1800000},harness_features:["navigation-evidence-memory-v1"],evaluation:{preset_id:"memory-on",target:null,failure_limit:3,flags:{loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}}});
+  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log));
+  expect(doc.body.textContent).toContain("<model>");expect(doc.body.textContent).toContain("memory-on");expect(doc.body.textContent).toContain("1500");
+  expect(doc.body.textContent).toContain("OBJECTIVE TRACKING");expect(doc.body.textContent).toContain("OFF");expect(doc.body.textContent).toContain("navigation-evidence-memory-v1");expect(doc.body.textContent).toContain("not recorded");
+  expect(doc.querySelector("model, tool, input, select, textarea, button, form")).toBeNull();
+  expect(harnessConfig(new RunView())).toContain("No run configuration recorded");
+  const legacy=harnessConfig(view(bare()));expect(legacy).toContain("not recorded");expect(legacy).not.toContain("OBJECTIVE TRACKING</dt><dd>OFF");
+ });
+});
+
+
+it("renders feature cards with descriptions, truthful badges and local explainer links",()=>{
+ const log=new Log();log.add(0,{...START,harness_features:["navigation-evidence-memory-v1","constructor"],evaluation:{preset_id:"memory-on",target:null,failure_limit:3,flags:{loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}}});
+ const registry=[{id:"navigation-evidence-memory-v1",title:"NAVIGATION MEMORY",description:"Keeps observed rooms <only>.",group:"guidance",switchable:true,needs:null},{id:"objective-tracking-v1",title:"OBJECTIVE TRACKING",description:"Requires an objective.",group:"guard",switchable:true,needs:null},{id:"ledge-hops-v1",title:"LEDGE HOPS",description:"Allows one-way hops.",group:"guidance",switchable:true,needs:null}]as const;
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),registry);
+ const cards=doc.querySelectorAll(".config-feature");expect(cards.length).toBeGreaterThanOrEqual(4);expect(doc.querySelector('[data-feature="constructor"] a')).toBeNull();
+ const memory=must(doc.querySelector('[data-feature="navigation-evidence-memory-v1"]'));expect(memory.textContent).toContain("ON");expect(memory.textContent).toContain("Keeps observed rooms <only>.");expect(memory.querySelector("only")).toBeNull();expect(memory.querySelector("a")?.getAttribute("href")).toBe("/explainers/navigation-evidence-memory-v1.html");
+ expect(doc.querySelector('[data-feature="objective-tracking-v1"]')?.textContent).toContain("OFF");expect(doc.querySelector('[data-feature="ledge-hops-v1"]')?.textContent).toContain("NOT RECORDED");expect(doc.querySelector("input,select,button,textarea,form")).toBeNull();
+});
+
+it("documents only recorded tools with input/output contracts and safe unknown fallback",()=>{
+ const log=new Log();log.add(0,{...START,tools:["observe","press","navigate_to","remember_destination","get_objectives","set_objective","update_objective","act","<unknown>","constructor"]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log));
+ expect(Array.from(doc.querySelectorAll(".config-tool h5")).map(node=>node.textContent)).toEqual(["observe","press","navigate_to","remember_destination","get_objectives","set_objective","update_objective","act","<unknown>","constructor"]);
+ const press=must(doc.querySelector('[data-tool="press"]'));expect(press.textContent).toContain("1–8");expect(press.textContent).toContain("walking");expect(press.textContent).toContain("INPUTS");expect(press.textContent).toContain("OUTPUTS");expect(press.textContent).toContain("screenshot");
+ expect(doc.querySelector('[data-tool="navigate_to"]')?.textContent).toContain("map_id");expect(doc.querySelector('[data-tool="remember_destination"]')?.textContent).toContain("1–4");expect(doc.querySelector('[data-tool="act"]')?.textContent).toContain("1–2000");
+ expect(doc.querySelector('[data-tool="constructor"]')?.textContent).toContain("Documentation unavailable");expect(doc.querySelector("unknown,input,button,select,textarea,form")).toBeNull();expect(doc.body.textContent).toContain("not recorded with historical tool schemas");
+ const subset=new Log();subset.add(0,{...START,tools:["observe"]});doc.body.innerHTML=harnessConfig(view(subset));expect(doc.querySelectorAll(".config-tool")).toHaveLength(1);expect(doc.querySelector('[data-tool="press"]')).toBeNull();
 });

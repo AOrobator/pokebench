@@ -1,8 +1,10 @@
+import json
 import struct
+from pathlib import Path
 
 import pytest
 
-from pokebench_env.live_map import read_local_map
+from pokebench_env.live_map import read_full_map, read_local_map
 
 
 class Memory:
@@ -197,6 +199,121 @@ def test_tile_elevation_is_from_the_live_block_high_nibble():
     assert next(t.elevation for t in local.tiles if (t.x, t.y) == (0, 0)) == 3
 
 
+def test_full_map_reads_every_tile_objects_and_warps_beyond_the_local_window() -> None:
+    m = loaded()
+    obj(m, 2, 4, 4)
+    m.put(0x02002000, bytes([0, 2, 0, 0]) + struct.pack("<II", 0, 0x02009000))
+    m.put(0x02009008, struct.pack("<hhBBBB", 4, 3, 0, 0, 5, 1))
+    tile(m, 4, 4, 0x3000)
+    result = read_full_map(m.read, (1, 1), (1, 0))
+    assert result is not None
+    assert (result.width, result.height) == (5, 5)
+    assert result.rows == ("g#N..", "W@~..", ".....", "....W", "....N")
+    assert result.objects == ((2, 2, 0), (2, 4, 4))
+    assert result.warps == ((0, 1, 0, 9), (4, 3, 1, 5))
+    assert len(result.tiles) == 25
+    assert next(t.elevation for t in result.tiles if (t.x, t.y) == (4, 4)) == 3
+
+
+def test_full_map_text_is_one_character_per_tile_with_world_labels() -> None:
+    result = read_full_map(loaded().read, (1, 1), (1, 0))
+    assert result is not None
+    lines = result.text().splitlines()
+    assert lines[:8] == [
+        "Whole current map from live memory (5x5), top-left (0,0), north is up:",
+        "     0",
+        "     01234",
+        "   0 g#N..",
+        "   1 W@~..",
+        "   2 .....",
+        "   3 .....",
+        "   4 .....",
+    ]
+    assert "(0,1) -> map 0/9 [" in result.text()
+    assert "Live objects: id 2 at (2,0)" in result.text()
+    plain = result.text(grid=False, warp_guidance=False).splitlines()
+    assert plain[1:6] == ["g#N..", "W@~..", ".....", ".....", "....."]
+    assert "activation" not in result.text(grid=False, warp_guidance=False)
+
+
+def test_full_map_column_labels_mark_every_tenth_column() -> None:
+    m = loaded()
+    m.put(0x03005DC0, struct.pack("<III", 37, 15, 0x02005000))
+    m.put(0x02001000, struct.pack("<II", 22, 1))
+    m.put(0x02037318, struct.pack("<II", 0x02001000, 0))
+    result = read_full_map(m.read, (1, 0), (1, 0))
+    assert result is not None
+    assert result.text().splitlines()[1] == "     0         10        20"
+    assert result.text().splitlines()[2] == "     0123456789012345678901"
+
+
+def test_full_map_json_packs_collision_elevation_and_behavior_per_tile() -> None:
+    m = loaded()
+    tile(m, 3, 0, 0x2400)
+    result = read_full_map(m.read, (1, 1), (1, 0))
+    assert result is not None
+    grid = result.json(3)
+    assert grid["width"] == 5 and grid["height"] == 5 and grid["elevation"] == 3
+    assert grid["rows"][0] == "0002" + "1000" + "0000" + "1200" + "0000"
+    assert grid["rows"][1] == "0000" + "0000" + "0010" + "0000" + "0000"
+    assert grid["objects"] == [{"x": 2, "y": 0}]
+    assert grid["warps"] == [{"x": 0, "y": 1}]
+
+
+def test_full_map_reads_one_row_at_a_time() -> None:
+    m = loaded()
+    calls: list[tuple[int, int]] = []
+
+    def read(address: int, length: int) -> bytes:
+        calls.append((address, length))
+        return m.read(address, length)
+
+    assert read_full_map(read, (1, 1), (1, 0)) is not None
+    assert sum(1 for a, _ in calls if 0x02005000 <= a < 0x02006000) == 5
+
+
+@pytest.mark.parametrize(
+    "address,body",
+    [
+        (0x03005DC0, struct.pack("<III", 20, 19, 3)),
+        (0x03005DC0, struct.pack("<III", 21, 19, 0x02005000)),
+        (0x02003010, struct.pack("<I", 0)),
+    ],
+)
+def test_full_map_unready_layout_is_unavailable(address: int, body: bytes) -> None:
+    m = loaded()
+    m.put(address, body)
+    assert read_full_map(m.read, (1, 1), (1, 0)) is None
+
+
+SHARED_GRID = Path(__file__).resolve().parents[3] / "packages/agent/src/fixtures/full-map-grid.json"
+
+
+def test_full_map_json_matches_the_fixture_the_agent_planner_decodes() -> None:
+    result = read_full_map(loaded().read, (1, 1), (1, 0))
+    assert result is not None
+    assert result.json(3) == json.loads(SHARED_GRID.read_text())
+
+
+@pytest.mark.parametrize("map_width,map_height", [(257, 1), (1, 257), (0, 1)])
+def test_full_map_outside_the_agent_contract_is_unavailable(
+    map_width: int, map_height: int
+) -> None:
+    m = loaded()
+    m.put(0x03005DC0, struct.pack("<III", map_width + 15, map_height + 14, 0x02005000))
+    m.put(0x02001000, struct.pack("<II", map_width, map_height))
+    assert read_full_map(m.read, (0, 0), (1, 0)) is None
+
+
+def test_full_map_with_nothing_live_says_so_for_the_whole_map() -> None:
+    m = loaded()
+    m.put(0x02002000, bytes(12))
+    m.put(0x02037350 + 0x24, bytes(0x24))
+    result = read_full_map(m.read, (1, 1), (1, 0))
+    assert result is not None
+    assert "Live objects: none on this map\nWarps: none on this map" in result.text()
+
+
 def ledged() -> Memory:
     # pokeemerald 731ad5b metatile_behaviors.h: MB_JUMP_EAST/WEST/NORTH/SOUTH.
     m = loaded()
@@ -237,3 +354,95 @@ def test_ledge_guidance_off_keeps_a_collision_free_ledge_as_clear_terrain() -> N
     assert result is not None
     assert result.rows[2] == "v^>"
     assert result.text(grid=False, ledges=False).splitlines()[3] == "#.#"
+
+
+def test_full_map_draws_ledges_as_arrows_and_as_collision_when_off() -> None:
+    result = read_full_map(ledged().read, (1, 1), (1, 0))
+    assert result is not None
+    assert result.rows[:3] == ("g<N..", "W@~..", "v^>..")
+    assert "v ^ < > ledge: a one-way hop" in result.text()
+    off = result.text(grid=False, ledges=False)
+    assert "ledge" not in off
+    assert off.splitlines()[1:4] == ["g#N..", "W@~..", "###.."]
+
+
+def chaired() -> Memory:
+    # pokeemerald 731ad5b: MB_IMPASSABLE_SOUTH_AND_NORTH 0xC0 (the bedroom chair) and
+    # MB_IMPASSABLE_NORTHEAST 0x34, both collision-free (MetatileBehavior_Is*Blocked).
+    m = loaded()
+    m.put(0x02007000 + 2 * 3, struct.pack("<H", 0xC0))
+    m.put(0x02007000 + 2 * 4, struct.pack("<H", 0x34))
+    tile(m, 1, 2, 3)
+    tile(m, 2, 2, 4)
+    return m
+
+
+def test_edge_wall_tiles_render_as_plus_and_list_their_walled_sides() -> None:
+    result = read_local_map(chaired().read, (1, 1), (1, 0), radius=1)
+    assert result is not None
+    assert result.rows == ("g#N", "W@~", ".++")
+    text = result.text()
+    assert "   2   .   +   +" in text, text
+    assert (
+        " + edge walls: walkable, but movement across a walled side is refused in both"
+        " directions (sides listed under Edge walls);"
+    ) in text
+    assert "\nEdge walls: (1,2) north+south; (2,2) north+east\n" in text, text
+
+
+def test_edge_walls_include_the_players_own_tile_and_skip_collision_tiles() -> None:
+    m = chaired()
+    tile(m, 2, 2, 0x400 | 4)
+    result = read_local_map(m.read, (1, 2), (1, 0), radius=1)
+    assert result is not None
+    assert result.rows[1] == ".@#"
+    assert "\nEdge walls: (1,2) north+south\n" in result.text()
+
+
+def test_edge_walls_off_draws_clear_terrain_without_legend_or_list() -> None:
+    result = read_local_map(chaired().read, (1, 1), (1, 0), radius=1)
+    assert result is not None
+    for text in (result.text(edge_walls=False), result.text(grid=False, edge_walls=False)):
+        assert "edge wall" not in text.lower() and "+" not in text, text
+    assert result.text(grid=False, edge_walls=False).splitlines()[3] == "..."
+
+
+def test_no_edge_walls_nearby_prints_no_list() -> None:
+    result = read_local_map(loaded().read, (1, 1), (1, 0), radius=1)
+    assert result is not None
+    assert "Edge walls:" not in result.text() and "+ edge walls" in result.text()
+
+
+@pytest.mark.parametrize(
+    "behavior,sides",
+    [
+        (0x30, "east"),
+        (0x31, "west"),
+        (0x32, "north"),
+        (0x33, "south"),
+        (0x34, "north+east"),
+        (0x35, "north+west"),
+        (0x36, "south+east"),
+        (0x37, "south+west"),
+        (0xBE, "west+east"),
+        (0xC0, "north+south"),
+        (0xC1, "west+east"),
+    ],
+)
+def test_every_edge_wall_behavior_lists_its_game_walled_sides(behavior: int, sides: str) -> None:
+    m = loaded()
+    m.put(0x02007000 + 2 * 3, struct.pack("<H", behavior))
+    tile(m, 1, 2, 3)
+    result = read_local_map(m.read, (1, 1), (1, 0), radius=1)
+    assert result is not None
+    assert result.rows[2] == ".+."
+    assert f"\nEdge walls: (1,2) {sides}\n" in result.text()
+
+
+def test_full_map_draws_edge_walls_and_lists_their_sides() -> None:
+    result = read_full_map(chaired().read, (1, 1), (1, 0))
+    assert result is not None
+    assert "+" in result.rows[2]
+    assert "\nEdge walls: (1,2) " in result.text()
+    off = result.text(grid=False, edge_walls=False)
+    assert "Edge walls" not in off and "+" not in "".join(off.splitlines()[1:6])

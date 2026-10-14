@@ -17,6 +17,8 @@ Read the active worklog first: `WORKLOG.md` (a gitignored pointer) → `docs/wor
 
 When adding or changing agent diagnostics, loop guards, recovery feedback or completion evidence, use `.claude/skills/agent-observability/SKILL.md` to verify recorded events, model delivery where relevant, timeline, Activity History and replay.
 
+For viewer navigation, playback or polling interaction changes, use `.claude/skills/viewer-e2e/SKILL.md` and verify the real click through to the selected run and visible frame before claiming it works.
+
 ## Project overrides of the global rules
 
 - **Coverage floor is 90%**, enforced independently for lines, branches and functions in TS (vitest thresholds) and Python (`pokebench_gates.coverage_gate`) app code. This is an operator decision (2026-10-11). The floor is 90, not 95; never lower it further or widen excludes to pass.
@@ -65,3 +67,5 @@ The repo is local only (operator decision 2026-10-14). It has no remote. Never p
 ## Explainers
 
 Every new feature or switch gets an explainer page with diagrams. Use `.claude/skills/feature-explainer/SKILL.md`. Explainers stay local: no claude.ai artifacts or hosted preview links.
+
+Every report that mentions an explainer must give the operator a clickable link. In a project thread, send the HTML with `SendUserFile`, which copies it into the project's shared folder and reports its path (`/mnt/project-files/<name>-<timestamp>-<id>.html`; the suffix is added for you, so use the reported path, never a guessed one). Link that exact path in the reply text and list it in the reply's `attached_outputs` as a `file`. Then add the local `open ~/dev/pokebench/<path>.html` command as a fallback, never instead of the link. Local paths alone (`/private/tmp/...`, `~/dev/...`) are not clickable in a thread.

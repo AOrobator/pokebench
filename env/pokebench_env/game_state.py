@@ -14,7 +14,7 @@ from pathlib import Path
 from pokebench_env.battle_state import BattleState, read_battle_state
 from pokebench_env.game_screen import ReadMemory, read_screen
 from pokebench_env.gba_text import GBA_TEXT, decode_text
-from pokebench_env.live_map import MAP_OFFSET, LocalMap, read_local_map
+from pokebench_env.live_map import MAP_OFFSET, FullMap, LocalMap, read_full_map, read_local_map
 from pokebench_env.naming import NamingState, read_naming
 from pokebench_env.party_ownership import PartyOwnership, read_party_ownership
 from pokebench_env.pokemon import SPECIES_NAMES as SPECIES_NAMES
@@ -85,6 +85,7 @@ class GameState:
     active_ui: ActiveUi | None = None
     interaction_targets: tuple[InteractionTarget, ...] | None = None
     nearby: LocalMap | None = None
+    full_map: FullMap | None = None
     topology: Topology | None = None
     player_elevation: int = 0
     party_owner: str = "player"
@@ -149,6 +150,7 @@ def read_game_state(
     *,
     active_ui_enabled: bool = True,
     message_phase_enabled: bool = False,
+    full_map_enabled: bool = False,
 ) -> GameState:
     screen = read_screen(read)
     in_battle = bool(read(IN_BATTLE, 1)[0] & 0x02)
@@ -250,6 +252,9 @@ def read_game_state(
         active_ui=active_ui,
         local_map=None if nearby is None else nearby.text(),
         nearby=nearby,
+        full_map=read_full_map(read, (x, y), map_id)
+        if full_map_enabled and nearby is not None
+        else None,
         player_elevation=body[0x0B] & 15,
         topology=read_topology(read, maps) if nearby is not None else None,
         destination_names=tuple(

@@ -4,11 +4,15 @@ Tracked, local HTML documentation. Open an explainer directly; no server or exte
 
 - [Astar navigation](astar-navigation.html)
 - [Current run frontier](current-run-frontier.html)
+- [Elevation transitions](elevation-transitions.html)
 - [Full map navigation](full-map-navigation.html)
 - [Grass cost switch](grass-cost-switch.html)
 - [Ledge hops v1](ledge-hops-v1.html)
 - [Map observation audit](map-observation-audit.html)
 - [Navigation evidence memory v1](navigation-evidence-memory-v1.html)
 - [Walkable floor](walkable-floor.html)
+- [One-way tiles v1](one-way-tiles-v1.html)
 
 The original ignored runs/explainers copies remain for existing links. Make future updates here. Runtime probes, generated measurement data and helper scripts remain under runs/.
+
+- [Current-run harness configuration](current-run-harness-config.html)

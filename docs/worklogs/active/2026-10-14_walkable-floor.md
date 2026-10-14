@@ -71,3 +71,9 @@ pret/pokeemerald 731ad5b:
   MB_JUMP_*, named holes/step warps) and diffs it against UNWALKABLE: missing [] extra [].
   Static scan rerun with the same classifier and input hash: unchanged. agent 900/900, viewer 474/474.
   Two rounds had new blockers, so round 3 waits for operator scope confirmation.
+- Merged main 3e8a13c (full-map navigation, one-way tiles v1, elevation fixes landed). Conflicts in
+  navigation.test.ts and docs/explainers/README.md resolved by keeping both sides; navigation.ts
+  auto-merged: one-way-tiles' EDGE_WALLS (incl. 0xBE) admits one-way tiles only with its option on,
+  consistent with UNWALKABLE. Added full-map test (sand and cave walkable, current 0x51 refused).
+  agent 939/939, viewer 493/493, lint clean, navigation.ts 94.56/93.68/100/100, derive.py diff empty.
+  Replay on the merged head: 12,515 targets, reachable 5,206 → 7,508, 2,302 newly reachable, 0 lost.

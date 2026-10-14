@@ -4,7 +4,7 @@ import type { RunEvent } from "@pokebench/agent/events";
 import { esc, eventMs, hms } from "./format.js";
 import { gbaSvg, litButtons } from "./gba.js";
 import { RunView, isRunEvent } from "./model.js";
-import { actionRow, brand, budgets, counters, fieldContext, objectivePanel, objectiveStatus, inspector, party, splits, thinkingDialog, trainerCard, type Baseline } from "./panels.js";
+import { actionRow, brand, budgets, counters, fieldContext, harnessConfig, objectivePanel, objectiveStatus, inspector, party, splits, thinkingDialog, trainerCard, type Baseline } from "./panels.js";
 import { ReplayClock } from "./replay.js";
 import { lanesSvg } from "./timeline.js";
 import { ABORT_HOLD_MS, availableActions, controlBar, overlay, overlayKind, runSeconds, sideStats, splitStrip, stateLabel, type ControlAction } from "./controls.js";
@@ -91,6 +91,7 @@ export class App {
   private baselineRequest = 0;
   private best: Baseline | null = null;
   private comparisonRequest = 0;
+  private comparisonsRun: string | null = null;
   private problems: string[] = [];
   private logged = 0;
   private screenTick = 0;
@@ -247,6 +248,7 @@ export class App {
     for (const button of this.doc.querySelectorAll<HTMLButtonElement>("[data-page]")) {
       button.addEventListener("click", () => { this.showPage(button.dataset.page ?? "trainer"); });
     }
+    this.ui("feature-search").addEventListener("input", () => { this.filterFeatures(); });
     this.ui("objective-link").addEventListener("click", () => {
       this.showPage("objectives");
       this.doc.querySelector(".inspection-nav")?.scrollIntoView({ block: "start", behavior: "smooth" });
@@ -292,7 +294,24 @@ export class App {
     });
   }
 
+  private filterFeatures(): void {
+    const query = (this.ui("feature-search") as HTMLInputElement).value.trim().toLowerCase();
+    const config = this.ui("harness-config");
+    const cards = config.querySelectorAll<HTMLElement>(".config-feature");
+    let matches = 0;
+    for (const card of cards) {
+      const title = card.querySelector("h5")?.textContent ?? "";
+      card.hidden = !title.toLowerCase().includes(query) && !(card.dataset.feature ?? "").toLowerCase().includes(query);
+      if (!card.hidden) matches++;
+    }
+    for (const group of config.querySelectorAll<HTMLElement>(".config-group")) {
+      group.hidden = Array.from(group.querySelectorAll<HTMLElement>(".config-feature")).every(card => card.hidden);
+    }
+    this.ui("feature-search-results").textContent = matches === 0 ? "No matching features" : `${String(matches)} matching feature${matches === 1 ? "" : "s"}`;
+  }
+
   private showPage(name: string): void {
+    if (name === "splits" && this.runId !== null && this.comparisonsRun !== this.runId) void this.loadComparisons(this.runId);
     for (const panel of this.doc.querySelectorAll<HTMLElement>("[data-nav-page]")) panel.hidden = panel.dataset.navPage !== name;
     for (const button of this.doc.querySelectorAll<HTMLButtonElement>("[data-page]")) button.setAttribute("aria-pressed", String(button.dataset.page === name));
   }
@@ -315,6 +334,7 @@ export class App {
   }
 
   private async loadComparisons(runId: string): Promise<void> {
+    this.comparisonsRun = runId;
     const request = ++this.comparisonRequest;
     const baselineRequest = this.baselineRequest;
     try {
@@ -334,13 +354,14 @@ export class App {
       this.picker("baseline").value = this.baseline?.run ?? "";
       this.render();
     } catch (error) {
-      if (request === this.comparisonRequest) this.problem(`comparisons: ${String(error)}`);
+      if (request === this.comparisonRequest) { this.comparisonsRun = null; this.problem(`comparisons: ${String(error)}`); }
     }
   }
 
   select(runId: string): void {
     this.stream?.close();
     this.runId = runId;
+    this.comparisonRequest += 1; this.comparisonsRun = null;
     this.following = this.runs[0]?.id === runId;
     this.view = new RunView();
     this.shown = this.view;
@@ -368,7 +389,6 @@ export class App {
     this.doc.location.hash = `run=${encodeURIComponent(runId)}`;
     const comparisons = this.doc.querySelector<HTMLAnchorElement>('[data-ui="comparisons-link"]');
     if (comparisons !== null) comparisons.href = `/comparisons?from=${encodeURIComponent(runId)}`;
-    void this.loadComparisons(runId);
     const stream = this.deps.openStream(`/api/runs/${encodeURIComponent(runId)}/events`);
     this.stream = stream;
     stream.addEventListener("ev", (message) => {
@@ -395,6 +415,7 @@ export class App {
       if (this.mode !== "replay") this.startReplay(true);
       this.render();
     });
+    if (this.doc.querySelector('[data-page="splits"][aria-pressed="true"]') !== null) void this.loadComparisons(runId);
     this.render();
   }
 
@@ -533,6 +554,8 @@ export class App {
     }
     this.setHtml("trainer", trainerCard(view, nowMs));
     this.setHtml("field-context", fieldContext(view));
+    this.setHtml("harness-config", harnessConfig(view, this.next.registry));
+    this.filterFeatures();
     this.setHtml("party", party(view));
     this.setHtml("objective", objectivePanel(view));
     const objective = view.objective;

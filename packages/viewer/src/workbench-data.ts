@@ -1,3 +1,4 @@
+export const WORKBENCH_POLL_MS = 5000;
 import type { RecordingMeasurement, RecordingSplit } from "./frontier-recording.js";
 // The read-only workbench wire contract. This module also runs in the browser.
 export type WorkbenchSplit = RecordingSplit;

@@ -42,6 +42,8 @@ export interface ViewerOptions {
   readonly queue?: RunQueue;
   readonly now?: () => Date;
   readonly restartHuman?: (runId: string) => Promise<string>;
+  // Origins a loopback reverse proxy (Tailscale Serve) publishes this viewer at.
+  readonly publicOrigins?: readonly string[];
 }
 
 const MAX_BODY = 64 * 1024;
@@ -56,10 +58,17 @@ class RequestError extends Error {
   }
 }
 
+// Each answered Host header maps to the one page origin allowed to write through it.
+function allowedOrigins(port: number, publicOrigins: readonly string[]): ReadonlyMap<string, string> {
+  const hosts = new Map<string, string>();
+  for (const host of [`${HOST}:${String(port)}`, `localhost:${String(port)}`]) hosts.set(host, `http://${host}`);
+  for (const origin of publicOrigins) hosts.set(new URL(origin).host, origin);
+  return hosts;
+}
+
 // Writes come only from this page: same origin, JSON body, bounded size.
-async function jsonBody(req: IncomingMessage): Promise<unknown> {
-  // The page's origin is exactly the host it was served from (already allowlisted).
-  if (req.headers.origin !== `http://${req.headers.host ?? ""}`) throw new RequestError(403, "writes are accepted only from the viewer page");
+async function jsonBody(req: IncomingMessage, origin: string): Promise<unknown> {
+  if (req.headers.origin !== origin) throw new RequestError(403, "writes are accepted only from the viewer page");
   if (req.headers["content-type"]?.split(";")[0]?.trim() !== "application/json") throw new RequestError(415, "send application/json");
   const chunks: Buffer[] = [];
   let size = 0;
@@ -76,11 +85,11 @@ async function jsonBody(req: IncomingMessage): Promise<unknown> {
   }
 }
 
-async function write(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, parts: string[]): Promise<void> {
+async function write(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, parts: string[], origin: string): Promise<void> {
   const [, second, id, leaf] = parts;
   const now = options.now?.() ?? new Date();
   try {
-    const body = await jsonBody(req);
+    const body = await jsonBody(req, origin);
     if (req.method === "POST" && parts.length === 4 && second === "runs" && id !== undefined && leaf === "control") {
       if (!Value.Check(ControlBodySchema, body)) throw new RequestError(400, "action must be pause, resume, stop, cancel_stop or abort");
       sendJson(res, 200, { request: await appendControl(options.runsRoot, id, body.action, now, healthProbe(options.fetchFn ?? fetch)) });
@@ -234,10 +243,10 @@ async function liveScreen(res: ServerResponse, port: number, fetchFn: typeof fet
   }
 }
 
-async function route(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, readBaseline: BaselineReader): Promise<void> {
-  const host = req.headers.host ?? "";
-  if (host !== `${HOST}:${String(port)}` && host !== `localhost:${String(port)}`) {
-    sendJson(res, 403, { error: "the viewer only answers 127.0.0.1" });
+async function route(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, origins: ReadonlyMap<string, string>, readBaseline: BaselineReader): Promise<void> {
+  const origin = origins.get(req.headers.host ?? "");
+  if (origin === undefined) {
+    sendJson(res, 403, { error: "the viewer only answers 127.0.0.1 and its published origins" });
     return;
   }
   const parts = segments(req.url ?? "/");
@@ -246,7 +255,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     return;
   }
   if ((req.method === "POST" || req.method === "PUT") && parts[0] === "api") {
-    await write(req, res, options, port, parts);
+    await write(req, res, options, port, parts, origin);
     return;
   }
   if (req.method !== "GET") {
@@ -370,11 +379,12 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
 
 export async function startViewer(options: ViewerOptions): Promise<Viewer> {
   let port = 0;
+  let origins: ReadonlyMap<string, string> = new Map();
   const readBaseline = createBaselineReader(options.runsRoot);
   // A failing request (a client that disconnects mid-body, a file error) must
   // never take the viewer and its queue down.
   const server = createServer((req, res) => {
-    route(req, res, options, port, readBaseline).catch((error: unknown) => {
+    route(req, res, options, port, origins, readBaseline).catch((error: unknown) => {
       if (res.headersSent || res.destroyed) res.destroy();
       else sendJson(res, 500, { error: error instanceof Error ? error.message : String(error) });
     });
@@ -387,6 +397,7 @@ export async function startViewer(options: ViewerOptions): Promise<Viewer> {
   });
   const address = server.address() as AddressInfo;
   port = address.port;
+  origins = allowedOrigins(port, options.publicOrigins ?? []);
   return {
     server,
     address: address.address,

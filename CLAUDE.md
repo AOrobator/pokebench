@@ -36,6 +36,7 @@ When adding or changing agent diagnostics, loop guards, recovery feedback or com
 - **No hardcoded model SKUs.** Model ids come from gateway discovery and config.
 - **Argv lists only** for subprocesses. Paths are untrusted; the real ROM path contains spaces and parentheses.
 - Servers bind `127.0.0.1`. The vendor server hardcodes `0.0.0.0`; `pokebench_env.serve` pins the host without modifying vendor code.
+- The viewer answers only loopback hosts plus the https origins in `POKEBENCH_VIEWER_ORIGINS` (gitignored `.env`). Tailscale Serve publishes it at `https://viewer.example.ts.net:8447/` for the local inference stack portal card; it never binds anything but `127.0.0.1`.
 - **Every run is isolated (INV-7).** Each game server runs from its own `runs/<id>/server/` cwd with its own `RUN_DATA_ID` and `LOAD_CHECKPOINT_MODE=false`. Never point two runs at one server or one run dir.
 - Never run formatters or linters over `env/vendor/`. ruff excludes it; `just verify-vendor` catches drift.
 - The ROM lives at `~/.roms/pokemon-emerald.gba` (operator decision 2026-10-11), set as `POKEBENCH_ROM` in the gitignored `.env`. It is outside macOS TCC-protected folders, so background contexts can read it. Never point `POKEBENCH_ROM` back at `~/Downloads`.

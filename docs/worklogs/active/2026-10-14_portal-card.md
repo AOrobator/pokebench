@@ -10,9 +10,10 @@ Requested 2026-10-14 through the project thread: add a PokeBench card to the loc
 
 ## M1: viewer public origins (pokebench)
 
-- [ ] RED: server and CLI tests for allowlisted public origins
-- [ ] GREEN: server host/origin map, `--public-origin`, env default
-- [ ] Gates: `just test`, `just coverage` (≥90), `just lint`
+- [x] RED: server and CLI tests for allowlisted public origins
+  COMMIT: `test: reproduce viewer refusing its Tailscale origin` (e04d1b1), 7 failing
+- [x] GREEN: server host/origin map, `--public-origin`, env default (`.env` now sets `POKEBENCH_VIEWER_ORIGINS`)
+- [x] Gates: lint clean; viewer 356 tests, agent 863, Python 1791 pass; TS viewer 96.06/90.94/95.87 (lines/branches/functions), Python 96.61/91.68/100. cli.ts uncovered lines are the pre-existing `import.meta.main` entry block.
 - [ ] Review: Claude CLI reviewer (no local models as reviewers)
 
 ## M2: portal card (local-inference-stack, separate branch)

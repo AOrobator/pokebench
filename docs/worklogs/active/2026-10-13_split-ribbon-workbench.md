@@ -20,9 +20,9 @@ Existing typed event reader/RunView owns run parsing and event folding. Add a re
 Loopback existing CSP/static allowlist; bounded typed JSON boundary; only fixed run/receipt roots read. Escape model/objective strings, do not expose endpoint credentials or complete private configuration files. No agent/environment/vendor/schema edits, no input sent to games.
 
 ## Milestones
-- [ ] RED producer/aggregate tests, then minimal typed read-only aggregation.
-- [ ] RED mounted viewer navigation/chart/current card/details/queue tests; implement selected design.
-- [ ] Full applicable viewer gates and independent90 coverage floors, mutation receipts, actual retained replay and served-artifact hashes.
+- [x] RED producer/aggregate tests, then minimal typed read-only aggregation.
+- [x] RED mounted viewer navigation/chart/current card/details/queue tests; implement selected design.
+- [x] Full applicable viewer gates and independent90 coverage floors, mutation receipts, actual retained replay and served-artifact hashes.
 - [ ] Frozen independent review, landing, viewer deployment and recoverable worktree cleanup.
 
 ## Closing the Loop
@@ -35,7 +35,7 @@ Verify viewer→workbench→live viewer, chart/row→configuration drawer, nativ
 The prior benchmark was not still running at UI implementation time; current and queue status must use durable/live evidence.
 
 ## Multi-Model Review Log
-Pending frozen implementation packet; no approvals claimed.
+Rounds 1–5 and their frozen packets, findings, failures and literal verdicts are retained under `runs/workbench-landing-proof/`. Round 5 independently approved the reviewed source; landing/deployment remain separate below.
 
 ## Boy Scout Log
 Existing overlay spacing patch preserved; no unrelated refactor.
@@ -98,3 +98,22 @@ DuplicateheaderGREEN: reject any later run_start beforeRunView/headerfold, leavi
 FocusedduplicateheaderGREEN34pass; independentlydeletingonlysingleheaderguardfailsnative/provenanceassertion, restored34pass (header-mutation). Precommithookcorrectlyblocked GREENcommit on same-secondworklogmtimefreshness; appendtheseactualnewreceipts and retrywithhookenabled, no bypass. FullTSgates running onrestoredsource.
 
 Round5 qualification: all863agent417viewer tests, lint/buildpass; viewerlines97.99/branches90.47/functions95.12 withunchanged90floors. Duplicateheaderguard oneproductionline, focusednativeprovenanceRED/GREEN andindependentdeletionproof retained. Priorround4verdicts/packet preserved review-round4/. No other same-owner concrete malformedtimelinebugs found, no newfeatures/owners/API/schema. Parentownsreview/merge/8793deployment; sourcefreezenowforfreshcumulativereview+deltafrome6c5c18.
+
+
+## Review synthesis and implementation closeout — 2026-10-14
+
+**Reviewed source:** `432431c88f995b9f5a89f763604e3e68245cc4b7`, base `d2a4976`; cumulative diff SHA256 `c1739d228b7303ce7e0475418f01d492cdf5400fd604e3651c1ff1dd96fac29a`. Both fresh, read-only Sol 5.6 and Astra reviewers ended exactly `VERDICT: LGTM` in round 5. Their receipts independently retain unchanged HEAD, clean status and matching cumulative/fix digests. This commit records results only; no runtime changes.
+
+Normal-lane availability failures remain retained: Claude CLI timed out; Cursor Claude Opus/Sonnet reported usage limits; Cursor Grok timed out. Local Fast/Swarm reviews were not invoked because the operator reserved local models for benchmarking. Codex Sol 6.1/Sol 6 were account-unsupported; supported independent Sol 5.6 and Astra CLI contexts supplied the authorized fallback. **Vendor diversity is reduced; this is not normal-roster success.**
+
+Accepted in-contract findings are repaired and re-reviewed: partial ledger publication, production row-schema/order and supervisor-stop mismatches, operator-abort comparison credit, and duplicate headers replacing provenance. Earlier stale live-card and fractional count boundary defects are also repaired. Original findings, unexpected mutation passes, failed gates and all superseded packets are preserved. The operator explicitly confirmed the bounded validator repair, then authorized “Yes—finish existing fixes until review is green,” with correctness-only scope and repeated-checkpoint waiver. No new feature, schema, API or runtime owner was added by review fixes.
+
+Principles synthesis (all current IDs; zero FAIL): PB1 PASS—native-qualified timing; PB2 PASS—failed runs retained and abort/infra exclusions explicit; PB3 PASS—no improvement claim; PB4 PASS—read-only analytics and feature tri-states; PB5 N/A—no behavioral trial; PB6 N/A—no context changes; PB7 PASS—immutable event/provenance checks; PB8 N/A—no model retry changes; PB9 PASS—explicit scope/confirmations; PB10 PASS—unchanged independent 90% gates; PB11 PASS—existing production validator reused; PB12 N/A—no ROM access; PB13 PASS—tests, worklog and independent review complete, deployment handed off explicitly.
+
+All nine test-quality checks were examined: real JSON/filesystem/HTTP and mounted consumer seams; performed operand deletion/restoration; isolated roots with no environment/cwd mutation; assertions select test-owned identities; controlled async tests without timing suppression; no retries/sleeps/skips/serialization workaround; concrete native/config/provenance assertion payloads; linear batched fixtures without per-row I/O or repeated growing-state work; sparse size-bound fixtures without filling production caps. Reviewers found no remaining blockers. Review context was separate from gameplay; no reviewer information or gameplay rescue was injected into a measured run.
+
+Final gates: **863 agent and 417 viewer tests**, lint and build pass. Viewer coverage: lines **97.99%**, branches **90.47%**, functions **95.12%**. The duplicate-header guard independently fails when deleted and passes when restored; earlier atomic publication, schema/order/stop, abort eligibility and rendering mutation receipts remain retained. Actual 8798 replay demonstrated native event 5565, configuration inspection, viewer navigation and desktop/narrow fit; seven served UI assets matched built bytes. That process still holds an older aggregation module and is **not** proof of deployed final repairs.
+
+Deferred, non-blocking work remains explicit: cold aggregate latency (42.84 seconds versus the browser's 20-second timeout), 241 MiB human-log streaming beyond the existing read bound, persistent human/frontier comparisons, and stronger coordinator identity. The frontier side chat owns its approved follow-on design. No benchmark was launched, no model service changed, and no incumbent was promoted by this task.
+
+**Handoff:** implementation/gates/review are complete. Parent owns merge, integrated build/checks, restart of 8793, served-byte/browser verification and the landed SHA handoff. Landing/deployment/cleanup checkbox remains open until those receipts exist. Preserve the original `f4d75fe` worktree and 8796 preview while they remain dependencies; no worklog archival is authorized here.

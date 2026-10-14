@@ -52,6 +52,15 @@ it("defaults absent historical one-way tiles OFF so frozen presets keep edge wal
  expect(()=>parsePlayPreset({...v2,features:{...v2.features,"one-way-tiles-v1":true,"ledge-hops-v1":false,"live-map-v1":false,"world-coordinate-grid-v1":false,"bounded-navigation-v1":false,"warp-activation-guidance-v1":false}})).toThrow(/one-way-tiles-v1 needs live-map-v1/);
 });
 
+it("defaults absent historical grass cost OFF so frozen presets price every step the same",()=>{
+ const {"grass-cost-navigation-v1":omitted,...old}=v2.features;
+ expect(omitted).toBe(true);
+ expect(presetFeatures(parsePlayPreset({...v2,features:old}))["grass-cost-navigation-v1"]).toBe(false);
+ expect(presetFeatures(parsePlayPreset(v2))["grass-cost-navigation-v1"]).toBe(true);
+ expect(presetFeatures(parsePlayPreset(preset))["grass-cost-navigation-v1"]).toBe(false);
+ expect(()=>parsePlayPreset({...v2,features:{...v2.features,"bounded-navigation-v1":false}})).toThrow(/grass-cost-navigation-v1 needs bounded-navigation-v1/);
+});
+
 it("rejects navigation memory when the RAM umbrella would suppress all ordinary observations",()=>{
  expect(()=>parsePlayPreset({...v2,features:{...v2.features,"ram-state-v1":false}})).toThrow(/navigation-evidence-memory-v1 needs ram-state-v1/);
 });

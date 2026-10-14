@@ -51,6 +51,17 @@ COMMIT: `Merge branch 'main' into claude/grass-cost` (main at 5195c88)
 - Switch description said it "matches" PokeAgent's penalty; corrected to say it is adapted
   (PokeAgent leaves long grass at 1). agent 920/920.
 COMMIT: `docs(agent): describe grass cost as adapted from PokeAgent`
+- Review round 1 on c2af98f (diff sha 11c9de42): Grok (cursor-grok-4.5-high) LGTM; Claude CLI
+  BLOCKING: the port test and the long-grass assertion passed with the switch off (tie-break).
+  Codex CLI failed (default model `gpt-6.1-sol` rejected for the ChatGPT account, HTTP 400);
+  GPT lane moves to Cursor per standing authorization.
+- Fix: grass tests use a strip where on and off differ, for behaviors 2 and 3; port test asserts
+  on DOWN / off RIGHT / absent RIGHT; new `withNavigation` test drives the feature through the
+  production factory; preset omit-key and `needs` tests added (Grok hardening). Mutations
+  (GRASS={2}, port forced false, factory key dropped) each fail a test now. Tool description
+  deliberately unchanged so the model sees the same tool in both arms.
+  agent 923/923, viewer 478/478, Python 96.68/91.84/100; coverage and lint exit 0.
+COMMIT: `test(agent): prove grass cost reaches the planner and prices long grass`
 - [ ] Review: Claude CLI, Codex (GPT lane), Cursor Grok. Local endpoint lanes skipped per operator.
 - [ ] Operator approval for the local merge into main.
 - [ ] Operator approval before any measured run.

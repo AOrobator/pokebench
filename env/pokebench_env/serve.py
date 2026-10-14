@@ -25,9 +25,11 @@ from pokebench_env.battle_choices import FrameEmulator, install_battle_journal
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import MapNames
 from pokebench_env.human import HumanServer, install_human
-from pokebench_env.memory_reader import Core, SnapshotMemoryReader
+from pokebench_env.memory_reader import Core, NativeCore, SnapshotMemoryReader, copy_native_region
 from pokebench_env.observation import ScreenshotFn, install_observation
 from pokebench_env.pause import SteppingServer, install_pause
+from pokebench_env.raw_ram import RawRamArchive
+from pokebench_env.rom import resolve_rom
 from pokebench_env.travel import TravelServer, install_travel
 from pokebench_env.view import install_spectator
 
@@ -82,6 +84,8 @@ def run(
     pause: tuple[FastAPI, SteppingServer] | None = None,
     human: tuple[FastAPI, HumanServer, str] | None = None,
     checkpoint: Callable[[], bytes | None] | None = None,
+    raw_archive: RawRamArchive | None = None,
+    raw_capture: Callable[[], dict[str, object]] | None = None,
     travel: tuple[FastAPI, type[FrameEmulator], TravelServer, ReadMemory] | None = None,
 ) -> None:
     if actions is not None:
@@ -94,7 +98,9 @@ def run(
         install_spectator(*spectator)
     capture = None
     if observation is not None:
-        capture = install_observation(*observation)
+        capture = install_observation(
+            *observation, raw_archive=raw_archive, raw_capture=raw_capture
+        )
     if human is not None:
         api, server, token = human
         controller = install_human(api, server, token, observe=capture, checkpoint=checkpoint)
@@ -115,7 +121,21 @@ def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
         lambda address, length: bytes(app.env.core.memory.u8[address : address + length]),
     )
     token = os.environ.get("POKEBENCH_HUMAN_TOKEN")
-    read_memory = SnapshotMemoryReader(lambda: cast(Core, app.env.core))
+
+    def raw_region(address: int, size: int) -> bytes:
+        return copy_native_region(cast(NativeCore, app.env.core), address, size)
+
+    read_memory = SnapshotMemoryReader(lambda: cast(Core, app.env.core), raw_region)
+
+    import hashlib
+
+    archive = RawRamArchive(
+        Path.cwd().parent / "raw-ram",
+        hashlib.sha1(resolve_rom(os.environ).read_bytes(), usedforsecurity=False).hexdigest(),
+    )
+
+    def raw_capture() -> dict[str, object]:
+        return archive.capture(read_memory, int(app.env.core.frame_counter))
 
     def checkpoint() -> bytes | None:
         with app.memory_lock:
@@ -137,6 +157,8 @@ def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
             app.memory_lock,
         ),
         checkpoint=checkpoint if token else None,
+        raw_archive=archive,
+        raw_capture=raw_capture,
         travel=(
             app.app,
             cast(type[FrameEmulator], EmeraldEmulator),

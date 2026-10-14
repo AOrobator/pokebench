@@ -170,3 +170,16 @@ it('records human activity and completed heal evidence from the production sampl
  const heal=events.find(e=>e.type==='milestone'&&e.name==='FIRST_POKECENTER_HEAL');if(heal?.type!=='milestone')throw Error('missing heal');expect(heal.evidence).toHaveLength(3);expect(qualifiedNativeMilestone(heal,(heal.evidence??[]).map(seq=>events.find(e=>e.seq===seq)))).toBe(true);
  const capture=activities[0];if(capture?.type!=='activity')throw Error('missing activity');expect(events.find(e=>e.seq===capture.evidence[1])).toMatchObject({type:'state',game_stats:{pokemon_captures:1}});
 });
+
+it('retains an exact typed raw-memory reference in human and agent state events and rejects declared decoded-only capture',async()=>{
+ const r=root();const log=RunLog.create(r,'raw-reference');
+ const recorder=new RunRecorder({log,frames:new FrameStore(r),milestones:{poll:()=>Promise.resolve([])},gameState:{read:()=>Promise.resolve(state)}});
+ await recorder.start({...RUN_START_META,harness_features:['full-raw-ram-v1']},false);
+ expect(()=>recorder.recordHumanSample(10,false,png,state)).toThrow('no raw RAM archive reference');
+ const raw_ram={v:1 as const,sequence:2,frame:11,path:'raw-ram/00000002.json.gz',sha256:'a'.repeat(64)};
+ recorder.recordHumanSample(10,false,png,{...state,raw_ram});
+ recorder.recordState({...state,raw_ram});
+ const events=readFileSync(log.eventsPath,'utf8').trim().split('\n').map(parseEvent);
+ expect(events.filter(e=>e.type==='state').map(e=>'raw_ram' in e?e.raw_ram:undefined)).toEqual([raw_ram,raw_ram]);
+ expect(()=>parseEvent(JSON.stringify({...events.find(e=>e.type==='state'),raw_ram:{...raw_ram,path:'../outside'}}))).toThrow();
+});

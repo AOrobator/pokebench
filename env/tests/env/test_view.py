@@ -46,8 +46,21 @@ def test_production_main_registers_view_pcm_and_browser_module_before_vendor_mai
     import sys
     from pathlib import Path
 
+    import pokebench_env.serve as serving
     from pokebench_env import view
     from pokebench_env.serve import main
+
+    server_dir = tmp_path / "run" / "server"
+    server_dir.mkdir(parents=True)
+    monkeypatch.chdir(server_dir)
+    rom = tmp_path / "rom-reference"
+    rom.write_bytes(b"fixture ROM identity")
+    monkeypatch.setattr(serving, "resolve_rom", lambda _: rom)
+    monkeypatch.setattr(
+        serving,
+        "copy_native_region",
+        lambda core, address, size: bytes(core.memory.u8[address : address + size]),
+    )
 
     repo = Path(__file__).resolve().parents[3]
     assert view.BROWSER_MODULE.relative_to(repo) == Path("packages/agent/dist/spectator.js")
@@ -87,6 +100,8 @@ def test_production_main_registers_view_pcm_and_browser_module_before_vendor_mai
     def vendor_main():
         assert emu.initialize() == "initialized"
         emu.core.memory = SimpleNamespace(u8=ByteView())
+        emu.core.cpu = SimpleNamespace(gprs=[0] * 16, cpsr=SimpleNamespace(packed=0))
+        emu.core.frame_counter = 1
         emu.core.run_frame()
         uvicorn.run(app, host="0.0.0.0", port=8129)
 
@@ -120,7 +135,11 @@ def test_production_main_registers_view_pcm_and_browser_module_before_vendor_mai
     state_status, _, state_body = get(app, "/pokebench/state")
     assert state_status == 200
     assert json.loads(state_body)["screen"] == "naming"
-    assert memory_reads == [
+    from pokebench_env.raw_ram import REGIONS
+
+    assert memory_reads[:7] == [(a, a + n) for _, a, n in REGIONS]
+    assert memory_reads[7] == (0x03007E20, 0x03007E40)
+    assert memory_reads[8:] == [
         (0x030022C0, 0x030022C8),
         (0x030026F9, 0x030026FA),
         (0x0203CD92, 0x0203CD96),

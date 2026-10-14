@@ -198,3 +198,43 @@ def test_active_ui_off_hides_typed_state_and_model_text(monkeypatch) -> None:
     )
     status, _, body = get(app_with(good_shot), "/pokebench/state")
     assert status == 200 and json.loads(body)["active_ui"] is None
+
+
+def test_raw_archive_precedes_decode_and_shares_frame_lock(tmp_path, monkeypatch):
+    import threading
+
+    from test_raw_ram import reader
+
+    import pokebench_env.observation as module
+    from pokebench_env.raw_ram import RawRamArchive, load_raw_ram
+
+    lock = threading.Lock()
+    archive = RawRamArchive(tmp_path, "a" * 40)
+    read = reader()
+
+    def capture():
+        assert lock.locked()
+        return archive.capture(read, 42)
+
+    app = FastAPI()
+    observe = install_observation(
+        app, good_shot, memory, MapNames({}), lock, raw_capture=capture, raw_archive=archive
+    )
+    payload = observe()
+    assert payload["raw_ram"]["frame"] == 42
+    paired = json.loads((tmp_path / "observations.jsonl").read_text())
+    assert paired["state"] == payload["state"]
+    assert paired["screenshot_sha256"] is not None
+
+    def failed_decode(*args, **kwargs):
+        raise ValueError("decoder defect")
+
+    monkeypatch.setattr(module, "read_game_state", failed_decode)
+    with pytest.raises(ValueError, match="decoder defect"):
+        observe()
+    receipts = [json.loads(line) for line in (tmp_path / "index.jsonl").read_text().splitlines()]
+    assert len(receipts) == 2
+    assert (
+        load_raw_ram(tmp_path / receipts[1]["path"], receipts[1]["sha256"])(0x02000001, 3)
+        == b"\x01\x02\x03"
+    )

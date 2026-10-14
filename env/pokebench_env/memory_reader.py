@@ -34,8 +34,14 @@ class Core(Protocol):
 
 
 class SnapshotMemoryReader:
-    def __init__(self, core: Callable[[], Core]) -> None:
+    def __init__(
+        self, core: Callable[[], Core], raw_read: Callable[[int, int], bytes] | None = None
+    ) -> None:
         self.core = core
+        self.raw_read = raw_read
+
+    def raw_region(self, address: int, length: int) -> bytes:
+        return self(address, length) if self.raw_read is None else self.raw_read(address, length)
 
     def __call__(self, address: int, length: int) -> bytes:
         return bytes(self.core().memory.u8[address : address + length])
@@ -53,3 +59,36 @@ class SnapshotMemoryReader:
         cpu = self.core().cpu
         registers = tuple(int(cpu.gprs[i]) & 0xFFFFFFFF for i in range(16))
         return BootCpu(registers, int(cpu.cpsr.packed) & 0xFFFFFFFF, self(0x03007E20, 32))
+
+
+class NativeBlocks(Protocol):
+    def getMemoryBlock(self, core: "NativeBlocks", block: int, length: object) -> object: ...
+
+
+class NativeIo(Protocol):
+    io: object
+
+
+class NativeBoard(Protocol):
+    memory: NativeIo
+
+
+class NativeCore(Protocol):
+    memory: Memory
+    _core: NativeBlocks
+    _native: NativeBoard
+
+
+def copy_native_region(core: NativeCore, address: int, size: int) -> bytes:
+    from mgba._pylib import ffi  # type: ignore[import-untyped]
+
+    if address == 0x04000000:
+        registers = core._native.memory.io
+        if ffi.sizeof(registers) != size:
+            raise ValueError("native raw I/O size mismatch")
+        return bytes(ffi.buffer(registers, size))
+    length = ffi.new("size_t*")
+    block = core._core.getMemoryBlock(core._core, address >> 24, length)
+    if block == ffi.NULL or length[0] != size:
+        raise ValueError(f"native raw memory block unavailable: {address:#x}/{size}")
+    return bytes(ffi.buffer(block, size))

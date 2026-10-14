@@ -19,9 +19,10 @@ it("describes every switchable and measurement feature exactly once", () => {
   expect(() => featureInfo("invented" as "ram-state-v1")).toThrow(/unknown feature/);
 });
 
-it("reproduces the pre-registry run_start feature list when everything is on", () => {
-  expect(playHarnessFeatures(off("field-dialogue-phase-v1","dialogue-safe-batches-v1","interaction-loop-detection-v1","automatic-running-v1","expanded-menu-battle-information-v1","state-only-decisions-v1","named-interactions-v1","world-destinations-v1","bounded-navigation-v1"), null)).toEqual(LEGACY_DEFAULT);
-  expect(playHarnessFeatures(off("field-dialogue-phase-v1","dialogue-safe-batches-v1","interaction-loop-detection-v1","automatic-running-v1","expanded-menu-battle-information-v1","state-only-decisions-v1","named-interactions-v1","world-destinations-v1","bounded-navigation-v1"), "PLAYER_NAME_CONFIRMED")).toEqual([...LEGACY_DEFAULT.slice(0, 26), "native-target-stop-v1", ...LEGACY_DEFAULT.slice(26)]);
+it("retains the legacy information list while adding mandatory raw recording", () => {
+  const recorded = [...LEGACY_DEFAULT.slice(0,25), "full-raw-ram-v1", ...LEGACY_DEFAULT.slice(25)];
+  expect(playHarnessFeatures(off("field-dialogue-phase-v1","dialogue-safe-batches-v1","interaction-loop-detection-v1","automatic-running-v1","expanded-menu-battle-information-v1","state-only-decisions-v1","named-interactions-v1","world-destinations-v1","bounded-navigation-v1"), null)).toEqual(recorded);
+  expect(playHarnessFeatures(off("field-dialogue-phase-v1","dialogue-safe-batches-v1","interaction-loop-detection-v1","automatic-running-v1","expanded-menu-battle-information-v1","state-only-decisions-v1","named-interactions-v1","world-destinations-v1","bounded-navigation-v1"), "PLAYER_NAME_CONFIRMED")).toEqual([...recorded.slice(0, 27), "native-target-stop-v1", ...recorded.slice(27)]);
 });
 
 it("drops exactly the switched-off id and round-trips through recorded features", () => {

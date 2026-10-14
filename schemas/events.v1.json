@@ -2829,6 +2829,39 @@
           "type": "string",
           "const": "state"
         },
+        "raw_ram": {
+          "type": "object",
+          "required": [
+            "v",
+            "sequence",
+            "frame",
+            "path",
+            "sha256"
+          ],
+          "properties": {
+            "v": {
+              "type": "number",
+              "const": 1
+            },
+            "sequence": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "frame": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "path": {
+              "type": "string",
+              "pattern": "^raw-ram/[0-9]{8,}\\.json\\.gz$"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "additionalProperties": false
+        },
         "screen": {
           "type": "string"
         },

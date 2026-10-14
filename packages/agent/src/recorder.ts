@@ -91,6 +91,7 @@ export class RunRecorder {
   private readonly toolStarts = new Map<string, number>();
   private furthest: string | null = null;
   private storyRequired = false;
+  private rawRamRequired = false;
   private activityEnabled=false;
   private nativeActionsEnabled=false;
   private nativeActionCursor=0;
@@ -137,6 +138,7 @@ export class RunRecorder {
   recordLoopGuard(body: LoopNotice): void { this.append({type:"loop_guard",turn:this.turn,...body,evidence:[...body.evidence]}); }
   recordObjective(body: BodyOf<"objective_update"> | BodyOf<"objective_attempt">): void { this.append({ ...body, turn: this.turn }); }
   recordState(state: GameStateSnapshot): Extract<Extract<RunEvent, { type: "state" }>, { started: boolean }> {
+    if (this.rawRamRequired && state.raw_ram === undefined) throw new RecorderError("Declared full-raw-ram-v1 but the server returned no raw RAM archive reference");
     if (this.storyRequired && state.story === undefined) throw new RecorderError("Declared story-state-v1 but the game server returned no story state; check the Python reader deployment.");
     if(this.activityEnabled&&(state.game_stats===undefined||state.blackout_active===undefined||state.party.some(mon=>mon.identity===undefined)))throw new RecorderError("Declared native-progress-activity-v1 but the game server returned incomplete native activity state; check the Python reader deployment.");
     const event = this.append({ type: "state", turn: this.turn, ...state }) as Extract<Extract<RunEvent, { type: "state" }>, { started: boolean }>;
@@ -152,6 +154,7 @@ export class RunRecorder {
   async start(meta: RunStartMeta, captureState = true): Promise<void> {
     this.startedAt = this.now();
     this.humanScreenshotMs=meta.controller?.screenshot_ms;
+    this.rawRamRequired = meta.harness_features.includes("full-raw-ram-v1");
     this.storyRequired = meta.harness_features.includes("story-state-v1");
     this.activityEnabled=meta.harness_features.includes("native-progress-activity-v1");
     this.battleEnabled=meta.harness_features.includes("battle-choices-v1");

@@ -590,11 +590,11 @@ code{font:13px ui-monospace,Menlo,monospace;overflow-wrap:anywhere}.vs>*{min-wid
 
 <h2>Status</h2>
 <div class="card"><table>
-<tr><td>Branch</td><td><code>claude/counter-tiles</code> (local worktree), merged with current <code>main</code> including ledge hops, one-way tiles, elevation transitions and whole-map navigation</td></tr>
+<tr><td>Branch</td><td>Landed on <code>main</code> (cef13fb) from <code>claude/counter-tiles</code>, merged with current <code>main</code> including ledge hops, one-way tiles, elevation transitions and whole-map navigation</td></tr>
 <tr><td>Checks</td><td><span class="ok">Passing:</span> vitest (agent and viewer), pytest, coverage floor 90 on both stacks, tsc/eslint/ruff/mypy, vendor pin.</td></tr>
 <tr><td>Live proof</td><td>Recorded run on the real ROM from <code>torchic.state</code>: Route 101 → Oldale Town → Pokémon Center 1F. Event log shows the hint with 0 button presses, then the route and the nurse's greeting. The latest probe ran with whole-map navigation on: the whole-map readout row 3 reads <code>....###=##....</code>.</td></tr>
 <tr><td>Review</td><td>Round 1: Claude and Grok LGTM; Codex blocked on four points, all fixed. Round 2: Claude, Codex and Grok LGTM. Round 3 (after the whole-map merge): Claude, Codex and Grok LGTM.</td></tr>
 <tr><td>Viewer</td><td>The PokeNav configuration card links here (READ EXPLAINER).</td></tr>
-<tr><td>Not done</td><td>No measured runs. This changes what the model sees; whether it helps is a patch evaluation question.</td></tr>
+<tr><td>Not done</td><td>No measured runs. Experiment readiness: BLOCKED until models reliably reach Oldale Town (0 of 124 recorded model runs had, as of 2026-10-14). See <code>docs/experiments/readiness.md</code>.</td></tr>
 </table></div>
 </main></body></html>

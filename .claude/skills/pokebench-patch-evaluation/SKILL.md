@@ -1,11 +1,23 @@
 ---
 name: pokebench-patch-evaluation
-description: Evaluate individual PokeBench behavioral patches against a reproducible incumbent configuration using feature-flag comparisons, four runs per arm, native milestone splits, incumbent comparisons and evidence-backed keep/discard/improve reports. Use for patch benefit claims, benchmark plans, results reporting and incumbent promotion; not passive viewer diagnostics or game-playing automation.
+description: Decide whether a PokeBench patch is ready to test (models must reliably reach the milestone it acts on) or blocked, then evaluate individual behavioral patches against a reproducible incumbent configuration using feature-flag comparisons, four runs per arm, native milestone splits, incumbent comparisons and evidence-backed keep/discard/improve reports. Use for experiment readiness checks, patch benefit claims, benchmark plans, results reporting and incumbent promotion; not passive viewer diagnostics or game-playing automation.
 ---
 
 # Measure patches before calling them improvements
 
 A patch is a change, not a proven improvement. The operator requires individual comparisons, four runs per arm per model, completion reliability before speed, incremental milestone targets, and a reproducible best-known configuration. This is prospective: the completed twelve-trial contextual-interface cohort remains three runs per arm per model; preserve its original protocol and actual counts. This skill defines evaluation; it does not authorize new runs, runtime edits, resource changes or landing. Use the active worklog and repository gates for authorized implementation. See [story milestones](../pokebench-story-milestones/SKILL.md) for native grading and [game state](../pokebench-game-state/SKILL.md) for qualified observations.
+
+## Check readiness first: is the patch reachable yet?
+
+A patch can only be measured where models actually arrive. The operator's rule (2026-10-14): do not run an experiment until the incumbent can reliably reach the part of the game the patch changes. Before proposing, planning or launching any comparison, decide READY or BLOCKED and say which.
+
+1. **Name the activation milestone:** the earliest native milestone (from `packages/agent/src/milestones.ts`) at or after which the patch first changes what the model sees or does. Ground it in the game, not the feature name. Examples: `counter-talk-v1` first matters at `OLDALE_TOWN` (first Pokémon Center); `ledge-hops-v1` at `ROUTE_101`. A patch active from boot (prompt or observation format everywhere) activates at the first milestone where its text appears.
+2. **Measure the current frontier:** count recorded, non-probe, non-human incumbent runs for the model lane and their native milestones. Use the most recent four-plus runs on a build compatible with the incumbent. Human runs, probes, checkpoint starts and replayed gameplay never count.
+3. **READY** only when at least 3 of the last 4 qualifying incumbent runs reach the activation milestone from the planned common start within the planned budget. Otherwise **BLOCKED**, with the reason "models do not yet reach `<milestone>`": reached/total, the furthest typical milestone, and the run IDs checked.
+4. **BLOCKED means:** do not propose, plan or launch the comparison, and do not offer a checkpoint start at the activation point as a workaround unless the operator explicitly asks for that diagnostic. The patch can still land as a correctness fix behind its switch; landing is not a benefit claim. Point effort at the patches that act at or before the current frontier.
+5. **Record the verdict** in [`docs/experiments/readiness.md`](../../../docs/experiments/readiness.md): patch, activation milestone, verdict, evidence (counts, run IDs, date). Re-check BLOCKED entries whenever the incumbent's frontier advances past a milestone, and before any experiment plan; never rely on an old READY.
+
+When reporting a newly landed patch, state its readiness verdict in one line.
 
 ## Register one experimental difference
 

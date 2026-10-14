@@ -264,8 +264,6 @@ export class LoopDetector {
     if (this.stopped) return;
     this.completed++;
     const seq = call.seq ?? this.completed;
-    this.messageVisits.push("");
-    if(this.messageVisits.length > 12) this.messageVisits.shift();
     const rejection = rejectionKey(call);
     if (call.isError && rejection === null) return;
     if (this.episode?.exposed) this.episode.recovery++;
@@ -276,6 +274,7 @@ export class LoopDetector {
     const changed =
       game && fingerprint !== null && fingerprint !== this.previous;
     const novel = changed && !this.visited.includes(fingerprint);
+    if (novel) this.messageVisits.length = 0;
     if (
       novel ||
       (game && (call.name === "press" || (call.name === "navigate_to" && call.acted===true)) && this.episode?.kind === "planning")
@@ -318,7 +317,10 @@ export class LoopDetector {
             ? { key, count: this.ineffective.count + 1 }
             : { key, count: key === "" ? 0 : 1 };
         const messageKey = this.interactions && batch && fingerprint !== null && call.state?.world_context?.message?.ready === true ? `${fingerprint}:${JSON.stringify(action)}` : "";
-        this.messageVisits[this.messageVisits.length-1] = messageKey;
+        if (messageKey !== "") {
+          this.messageVisits.push(messageKey);
+          if (this.messageVisits.length > 12) this.messageVisits.shift();
+        }
         if(messageKey !== "" && this.messageVisits.filter(item=>item===messageKey).length >= this.policy.ineffective) hit ??= "cycle";
         if (this.ineffective.count >= this.policy.ineffective)
           hit ??= "ineffective";

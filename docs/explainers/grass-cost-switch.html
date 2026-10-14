@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grass Cost Switch</title>
+<style>
+/* Layout: one narrow reading column; each claim gets one tile-map figure. */
+:root{
+ --bg:#f6f8f3; --fg:#1d2420; --soft:#5a665e; --rule:#d8dfd5; --panel:#ffffff;
+ --grass:#7fc46a; --grass-ink:#2f6e2a; --ground:#efe4c8; --tile-edge:#cdbf98;
+ --route:#d1433a; --muted:#8b968e;
+ --go:#d1433a; --go-ink:#ffffff; --thru:#e7ece4; --thru-ink:#4c574f; --tie:#f0cf6b; --tie-ink:#4a3a05;
+ --display:ui-rounded,"SF Pro Rounded",system-ui,sans-serif; --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#141a16; --fg:#e6ece6; --soft:#9aa69d; --rule:#2c362f; --panel:#1b231e;
+ --grass:#3f7f3a; --grass-ink:#a8e39a; --ground:#3a3427; --tile-edge:#544b37;
+ --route:#ff6b5e; --muted:#6f7b73;
+ --go:#e2554b; --go-ink:#ffffff; --thru:#24302a; --thru-ink:#a9b5ad; --tie:#b89530; --tie-ink:#1a1405; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#141a16; --fg:#e6ece6; --soft:#9aa69d; --rule:#2c362f; --panel:#1b231e;
+ --grass:#3f7f3a; --grass-ink:#a8e39a; --ground:#3a3427; --tile-edge:#544b37;
+ --route:#ff6b5e; --muted:#6f7b73;
+ --go:#e2554b; --go-ink:#ffffff; --thru:#24302a; --thru-ink:#a9b5ad; --tie:#b89530; --tie-ink:#1a1405; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:720px;margin:0 auto;padding-block:40px 64px;display:flex;flex-direction:column;gap:36px}
+h1,h2{font-family:var(--display);font-weight:700;text-wrap:balance;margin:0;line-height:1.15}
+h1{font-size:2.3rem}
+h2{font-size:1.35rem}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+p{margin:0;max-width:65ch}
+.lede{font-size:1.1rem;color:var(--soft)}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+section{display:flex;flex-direction:column;gap:14px}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media (max-width:640px){.pair{grid-template-columns:1fr}}
+figure{margin:0;display:flex;flex-direction:column;gap:8px;min-width:0}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+.scroll svg{min-width:0}
+figcaption{font-size:.88rem;color:var(--soft)}
+figcaption b{color:var(--fg)}
+svg text{font-family:var(--mono);fill:var(--soft);font-size:11px;text-anchor:middle}
+svg .ax.end,svg .tot.end{text-anchor:end}
+svg .tot{text-anchor:start;font-size:13px}
+svg .tot.win{fill:var(--route);font-weight:500}
+svg .pin{fill:var(--fg);font-weight:500;font-size:12px}
+svg .go{fill:var(--go)} svg .thru{fill:var(--thru)} svg .tie{fill:var(--tie)}
+svg .cv{font-size:12px} svg .got{fill:var(--go-ink)} svg .thrut{fill:var(--thru-ink)} svg .tiet{fill:var(--tie-ink)}
+svg .box{fill:var(--panel);stroke:var(--rule)} svg .box.hot{stroke:var(--route);stroke-width:2}
+svg .bt{fill:var(--fg);font-size:12px;font-family:var(--body);font-weight:600}
+svg .bs{font-size:10.5px}
+svg .lab{font-size:10px;fill:var(--soft)}
+.key{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:.85rem;color:var(--soft)}
+.key span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:14px;height:14px;border-radius:3px;display:inline-block}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule)}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.yes{color:var(--route);font-weight:600}
+.status{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:.95rem}
+.status dt{font:500 .78rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft);padding-top:3px}
+.status dd{margin:0}
+</style>
+</head>
+<body>
+<main>
+ <header style="display:flex;flex-direction:column;gap:10px">
+  <span class="eyebrow">PokeBench · navigate_to experiment</span>
+  <h1>Grass Cost Switch</h1>
+  <p class="lede">A new switch, <code>grass-cost-navigation-v1</code>, makes the walking planner count each step into grass as 1.5 steps. The idea is to dodge wild battles when going around the grass is cheap. It is off by default.</p>
+ </header>
+
+ <section>
+  <h2>When the planner goes around</h2>
+  <p>Same strip of route, same start and goal. The only difference is how much grass sits in the way. The red line is the route the planner picks.</p>
+  <div class="pair">
+   <figure><div class="scroll"><svg viewBox="0 0 384 160" role="img" aria-label="Five grass tiles: the detour costs 8, walking through costs 8.5, so the planner goes around.">
+<defs><marker id="ah-5" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--route)"/></marker><marker id="am-5" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
+<text x="48.0" y="24" class="ax">x0</text>
+<text x="96.0" y="24" class="ax">x1</text>
+<text x="144.0" y="24" class="ax">x2</text>
+<text x="192.0" y="24" class="ax">x3</text>
+<text x="240.0" y="24" class="ax">x4</text>
+<text x="288.0" y="24" class="ax">x5</text>
+<text x="336.0" y="24" class="ax">x6</text>
+<rect x="25" y="35" width="46" height="46" rx="5" fill="var(--ground)" stroke="var(--tile-edge)"/>
+<rect x="73" y="35" width="46" height="46" rx="5" fill="var(--grass)" stroke="var(--tile-edge)"/>
+<path d="M80 56L83 49L85 54L88 48" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M98 52L101 45L103 50L106 44" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M88 72L91 65L93 70L96 64" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M104 70L107 63L109 68L112 62" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="121" y="35" width="46" height="46" rx="5" fill="var(--grass)" stroke="var(--tile-edge)"/>
+<path d="M128 56L131 49L133 54L136 48" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M146 52L149 45L151 50L154 44" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M136 72L139 65L141 70L144 64" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M152 70L155 63L157 68L160 62" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="169" y="35" width="46" height="46" rx="5" fill="var(--grass)" stroke="var(--tile-edge)"/>
+<path d="M176 56L179 49L181 54L184 48" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M194 52L197 45L199 50L202 44" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M184 72L187 65L189 70L192 64" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M200 70L203 63L205 68L208 62" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="217" y="35" width="46" height="46" rx="5" fill="var(--grass)" stroke="var(--tile-edge)"/>
+<path d="M224 56L227 49L229 54L232 48" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M242 52L245 45L247 50L250 44" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M232 72L235 65L237 70L240 64" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M248 70L251 63L253 68L256 62" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="265" y="35" width="46" height="46" rx="5" fill="var(--grass)" stroke="var(--tile-edge)"/>
+<path d="M272 56L275 49L277 54L280 48" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M290 52L293 45L295 50L298 44" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M280 72L283 65L285 70L288 64" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M296 70L299 63L301 68L304 62" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="313" y="35" width="46" height="46" rx="5" fill="var(--ground)" stroke="var(--tile-edge)"/>
+<rect x="25" y="83" width="46" height="46" rx="5" fill="var(--ground)" stroke="var(--tile-edge)"/>
+<rect x="73" y="83" width="46" height="46" rx="5" fill="var(--ground)" stroke="var(--tile-edge)"/>
+<rect x="121" y="83" width="46" height="46" rx="5" fill="var(--ground)" stroke="var(--tile-edge)"/>
+<rect x="169" y="83" width="46" height="46" rx="5" fill="var(--ground)" stroke="var(--tile-edge)"/>
+<rect x="217" y="83" width="46" height="46" rx="5" fill="var(--ground)" stroke="var(--tile-edge)"/>
+<rect x="265" y="83" width="46" height="46" rx="5" fill="var(--ground)" stroke="var(--tile-edge)"/>
+<rect x="313" y="83" width="46" height="46" rx="5" fill="var(--ground)" stroke="var(--tile-edge)"/>
+<polyline points="48.0,52.0 322.0,52.0" fill="none" stroke="var(--muted)" stroke-width="2" stroke-dasharray="5 5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#am-5)"/>
+<polyline points="48.0,66.0 48.0,106.0 336.0,106.0 336.0,72.0" fill="none" stroke="var(--route)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#ah-5)"/>
+<circle cx="48.0" cy="58.0" r="11" fill="var(--bg)" stroke="var(--fg)" stroke-width="2"/><text x="48.0" y="62.5" class="pin">S</text>
+<circle cx="336.0" cy="58.0" r="11" fill="var(--bg)" stroke="var(--fg)" stroke-width="2"/><text x="336.0" y="62.5" class="pin">G</text>
+<text x="24" y="152" class="tot ">straight 8.5</text>
+<text x="360" y="152" class="tot end win">detour 8</text>
+</svg></div>
+    <figcaption><b>Five grass tiles.</b> Walking through costs 5 × 1.5 + 1 = 8.5. Going around costs 8 plain steps. The detour wins.</figcaption></figure>
+   <figure><div class="scroll"><svg viewBox="0 0 384 160" role="img" aria-label="Three grass tiles: walking through costs 7.5, the detour costs 8, so the planner walks through.">
+<defs><marker id="ah-3" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--route)"/></marker><marker id="am-3" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
+<text x="48.0" y="24" class="ax">x0</text>
+<text x="96.0" y="24" class="ax">x1</text>
+<text x="144.0" y="24" class="ax">x2</text>
+<text x="192.0" y="24" class="ax">x3</text>
+<text x="240.0" y="24" class="ax">x4</text>
+<text x="288.0" y="24" class="ax">x5</text>
+<text x="336.0" y="24" class="ax">x6</text>
+<rect x="25" y="35" width="46" height="46" rx="5" fill="var(--ground)" stroke="var(--tile-edge)"/>
+<rect x="73" y="35" width="46" height="46" rx="5" fill="var(--ground)" stroke="var(--tile-edge)"/>
+<rect x="121" y="35" width="46" height="46" rx="5" fill="var(--grass)" stroke="var(--tile-edge)"/>
+<path d="M128 56L131 49L133 54L136 48" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M146 52L149 45L151 50L154 44" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M136 72L139 65L141 70L144 64" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M152 70L155 63L157 68L160 62" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="169" y="35" width="46" height="46" rx="5" fill="var(--grass)" stroke="var(--tile-edge)"/>
+<path d="M176 56L179 49L181 54L184 48" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M194 52L197 45L199 50L202 44" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M184 72L187 65L189 70L192 64" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M200 70L203 63L205 68L208 62" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="217" y="35" width="46" height="46" rx="5" fill="var(--grass)" stroke="var(--tile-edge)"/>
+<path d="M224 56L227 49L229 54L232 48" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M242 52L245 45L247 50L250 44" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M232 72L235 65L237 70L240 64" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M248 70L251 63L253 68L256 62" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="265" y="35" width="46" height="46" rx="5" fill="var(--ground)" stroke="var(--tile-edge)"/>
+<rect x="313" y="35" width="46" height="46" rx="5" fill="var(--ground)" stroke="var(--tile-edge)"/>
+<rect x="25" y="83" width="46" height="46" rx="5" fill="var(--ground)" stroke="var(--tile-edge)"/>
+<rect x="73" y="83" width="46" height="46" rx="5" fill="var(--ground)" stroke="var(--tile-edge)"/>
+<rect x="121" y="83" width="46" height="46" rx="5" fill="var(--ground)" stroke="var(--tile-edge)"/>
+<rect x="169" y="83" width="46" height="46" rx="5" fill="var(--ground)" stroke="var(--tile-edge)"/>
+<rect x="217" y="83" width="46" height="46" rx="5" fill="var(--ground)" stroke="var(--tile-edge)"/>
+<rect x="265" y="83" width="46" height="46" rx="5" fill="var(--ground)" stroke="var(--tile-edge)"/>
+<rect x="313" y="83" width="46" height="46" rx="5" fill="var(--ground)" stroke="var(--tile-edge)"/>
+<polyline points="48.0,52.0 322.0,52.0" fill="none" stroke="var(--route)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#ah-3)"/>
+<polyline points="48.0,66.0 48.0,106.0 336.0,106.0 336.0,72.0" fill="none" stroke="var(--muted)" stroke-width="2" stroke-dasharray="5 5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#am-3)"/>
+<circle cx="48.0" cy="58.0" r="11" fill="var(--bg)" stroke="var(--fg)" stroke-width="2"/><text x="48.0" y="62.5" class="pin">S</text>
+<circle cx="336.0" cy="58.0" r="11" fill="var(--bg)" stroke="var(--fg)" stroke-width="2"/><text x="336.0" y="62.5" class="pin">G</text>
+<text x="24" y="152" class="tot win">straight 7.5</text>
+<text x="360" y="152" class="tot end ">detour 8</text>
+</svg></div>
+    <figcaption><b>Three grass tiles.</b> Walking through costs 3 × 1.5 + 3 = 7.5, which still beats the 8-step detour. The planner walks through.</figcaption></figure>
+  </div>
+  <div class="key"><span><i class="sw" style="background:var(--grass)"></i>grass (costs 1.5)</span><span><i class="sw" style="background:var(--ground)"></i>path (costs 1)</span><span><i class="sw" style="background:var(--route)"></i>chosen route</span></div>
+ </section>
+
+ <section>
+  <h2>The break-even rule</h2>
+  <p>Each grass tile skipped saves half a step. So a detour wins when half the grass it skips is more than the extra steps it adds. Each cell shows the saving.</p>
+  <figure><div class="scroll"><svg viewBox="0 0 480 162" role="img" aria-label="Break-even table: the planner detours when half the skipped grass tiles exceeds the extra steps."><text x="58" y="51.0" class="ax end">+2 steps</text>
+<rect x="71" y="31" width="38" height="32" rx="4" class="thru"/>
+<text x="90.0" y="51.0" class="cv thrut">0.5</text>
+<rect x="111" y="31" width="38" height="32" rx="4" class="thru"/>
+<text x="130.0" y="51.0" class="cv thrut">1</text>
+<rect x="151" y="31" width="38" height="32" rx="4" class="thru"/>
+<text x="170.0" y="51.0" class="cv thrut">1.5</text>
+<rect x="191" y="31" width="38" height="32" rx="4" class="tie"/>
+<text x="210.0" y="51.0" class="cv tiet">2</text>
+<rect x="231" y="31" width="38" height="32" rx="4" class="go"/>
+<text x="250.0" y="51.0" class="cv got">2.5</text>
+<rect x="271" y="31" width="38" height="32" rx="4" class="go"/>
+<text x="290.0" y="51.0" class="cv got">3</text>
+<rect x="311" y="31" width="38" height="32" rx="4" class="go"/>
+<text x="330.0" y="51.0" class="cv got">3.5</text>
+<rect x="351" y="31" width="38" height="32" rx="4" class="go"/>
+<text x="370.0" y="51.0" class="cv got">4</text>
+<rect x="391" y="31" width="38" height="32" rx="4" class="go"/>
+<text x="410.0" y="51.0" class="cv got">4.5</text>
+<rect x="431" y="31" width="38" height="32" rx="4" class="go"/>
+<text x="450.0" y="51.0" class="cv got">5</text>
+<text x="58" y="85.0" class="ax end">+4 steps</text>
+<rect x="71" y="65" width="38" height="32" rx="4" class="thru"/>
+<text x="90.0" y="85.0" class="cv thrut">0.5</text>
+<rect x="111" y="65" width="38" height="32" rx="4" class="thru"/>
+<text x="130.0" y="85.0" class="cv thrut">1</text>
+<rect x="151" y="65" width="38" height="32" rx="4" class="thru"/>
+<text x="170.0" y="85.0" class="cv thrut">1.5</text>
+<rect x="191" y="65" width="38" height="32" rx="4" class="thru"/>
+<text x="210.0" y="85.0" class="cv thrut">2</text>
+<rect x="231" y="65" width="38" height="32" rx="4" class="thru"/>
+<text x="250.0" y="85.0" class="cv thrut">2.5</text>
+<rect x="271" y="65" width="38" height="32" rx="4" class="thru"/>
+<text x="290.0" y="85.0" class="cv thrut">3</text>
+<rect x="311" y="65" width="38" height="32" rx="4" class="thru"/>
+<text x="330.0" y="85.0" class="cv thrut">3.5</text>
+<rect x="351" y="65" width="38" height="32" rx="4" class="tie"/>
+<text x="370.0" y="85.0" class="cv tiet">4</text>
+<rect x="391" y="65" width="38" height="32" rx="4" class="go"/>
+<text x="410.0" y="85.0" class="cv got">4.5</text>
+<rect x="431" y="65" width="38" height="32" rx="4" class="go"/>
+<text x="450.0" y="85.0" class="cv got">5</text>
+<text x="58" y="119.0" class="ax end">+6 steps</text>
+<rect x="71" y="99" width="38" height="32" rx="4" class="thru"/>
+<text x="90.0" y="119.0" class="cv thrut">0.5</text>
+<rect x="111" y="99" width="38" height="32" rx="4" class="thru"/>
+<text x="130.0" y="119.0" class="cv thrut">1</text>
+<rect x="151" y="99" width="38" height="32" rx="4" class="thru"/>
+<text x="170.0" y="119.0" class="cv thrut">1.5</text>
+<rect x="191" y="99" width="38" height="32" rx="4" class="thru"/>
+<text x="210.0" y="119.0" class="cv thrut">2</text>
+<rect x="231" y="99" width="38" height="32" rx="4" class="thru"/>
+<text x="250.0" y="119.0" class="cv thrut">2.5</text>
+<rect x="271" y="99" width="38" height="32" rx="4" class="thru"/>
+<text x="290.0" y="119.0" class="cv thrut">3</text>
+<rect x="311" y="99" width="38" height="32" rx="4" class="thru"/>
+<text x="330.0" y="119.0" class="cv thrut">3.5</text>
+<rect x="351" y="99" width="38" height="32" rx="4" class="thru"/>
+<text x="370.0" y="119.0" class="cv thrut">4</text>
+<rect x="391" y="99" width="38" height="32" rx="4" class="thru"/>
+<text x="410.0" y="119.0" class="cv thrut">4.5</text>
+<rect x="431" y="99" width="38" height="32" rx="4" class="thru"/>
+<text x="450.0" y="119.0" class="cv thrut">5</text>
+<text x="90.0" y="20" class="ax">1</text>
+<text x="130.0" y="20" class="ax">2</text>
+<text x="170.0" y="20" class="ax">3</text>
+<text x="210.0" y="20" class="ax">4</text>
+<text x="250.0" y="20" class="ax">5</text>
+<text x="290.0" y="20" class="ax">6</text>
+<text x="330.0" y="20" class="ax">7</text>
+<text x="370.0" y="20" class="ax">8</text>
+<text x="410.0" y="20" class="ax">9</text>
+<text x="450.0" y="20" class="ax">10</text>
+<text x="270" y="156" class="ax">grass tiles the detour skips</text></svg></div>
+   <figcaption>Red cells go around. Grey cells walk through. On a tie, both routes cost the same and either can be picked. Most real detours add at least 2 steps (one off the line, one back), so it takes 5 or more grass tiles in a row before the switch changes anything.</figcaption></figure>
+  <div class="key"><span><i class="sw" style="background:var(--go)"></i>goes around</span><span><i class="sw" style="background:var(--tie)"></i>tie</span><span><i class="sw" style="background:var(--thru)"></i>walks through</span></div>
+ </section>
+
+ <section>
+  <h2>How the switch reaches the planner</h2>
+  <p>The model never sees a different tool. Only the step cost inside the planner changes, so runs with the switch on and off are directly comparable.</p>
+  <figure><div class="scroll">
+   <svg viewBox="0 0 700 120" role="img" aria-label="The switch flows from the run's feature set through withNavigation and the navigate_to tool into the planner's step cost.">
+    <defs><marker id="fa" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
+    <rect class="box" x="4" y="30" width="120" height="56" rx="8"/><text class="bt" x="64" y="54">Run preset</text><text class="bs" x="64" y="72">switchboard or JSON</text>
+    <rect class="box" x="148" y="30" width="120" height="56" rx="8"/><text class="bt" x="208" y="54">Feature set</text><text class="bs" x="208" y="72">needs bounded nav</text>
+    <rect class="box" x="292" y="30" width="120" height="56" rx="8"/><text class="bt" x="352" y="54">withNavigation</text><text class="bs" x="352" y="72">builds the tool</text>
+    <rect class="box" x="436" y="30" width="120" height="56" rx="8"/><text class="bt" x="496" y="54">navigate_to</text><text class="bs" x="496" y="72">re-plans each press</text>
+    <rect class="box hot" x="580" y="30" width="116" height="56" rx="8"/><text class="bt" x="638" y="54">planNavigation</text><text class="bs" x="638" y="72">grass step = 1.5</text>
+    <line x1="124" y1="58" x2="146" y2="58" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#fa)"/>
+    <line x1="268" y1="58" x2="290" y2="58" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#fa)"/>
+    <line x1="412" y1="58" x2="434" y2="58" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#fa)"/>
+    <line x1="556" y1="58" x2="578" y2="58" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#fa)"/>
+    <text class="lab" x="136" y="22">on/off</text><text class="lab" x="280" y="22">flag</text><text class="lab" x="424" y="22">grassCost port</text><text class="lab" x="568" y="22">option</text>
+    <text class="lab" x="638" y="106">only this box changes behavior</text>
+   </svg></div>
+   <figcaption>Off by default everywhere: run presets, older saved presets and the viewer's next-run draft. Turning it on without bounded navigation is rejected as a dependency error.</figcaption></figure>
+ </section>
+
+ <section>
+  <h2>Which tiles count as grass</h2>
+  <table>
+   <thead><tr><th>Tile</th><th>Game behavior</th><th>Our live map</th><th>This switch</th><th>PokeAgent</th></tr></thead>
+   <tbody>
+    <tr><td>Tall grass</td><td><code>0x02</code></td><td><code>g</code></td><td class="yes">1.5</td><td class="yes">1.5</td></tr>
+    <tr><td>Long grass</td><td><code>0x03</code></td><td><code>g</code></td><td class="yes">1.5</td><td>1</td></tr>
+   </tbody>
+  </table>
+  <p>Long grass also triggers wild battles, and our map already draws both as <code>g</code>, so the switch prices both. That is the one deliberate difference from PokeAgent.</p>
+ </section>
+
+ <section>
+  <h2>Where it stands</h2>
+  <dl class="status">
+   <dt>Code</dt><dd>Committed locally on <code>claude/grass-cost</code>. Not pushed.</dd>
+   <dt>Checks</dt><dd>Agent tests 866/866, viewer tests 417/417, coverage above the 90% floor, lint clean.</dd>
+   <dt>Not yet</dt><dd>Multi-model review, and benchmark runs. The runs wait until the ledge fix is on main.</dd>
+  </dl>
+ </section>
+</main>
+</body>
+</html>

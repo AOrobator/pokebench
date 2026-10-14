@@ -1,0 +1,278 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ledge Hops</title><style>
+:root{--bg:#f6f4ee;--fg:#1f2421;--muted:#6b6f68;--card:#ffffff;--line:#e3dfd3;--accent:#2f6fde;--accent2:#e0802a;--bad:#d2493a;--good:#2e9d63;
+--floor1:#efe9d8;--floor2:#e6dfca;--wall1:#7d776d;--wall2:#6a645b;--grass1:#9fd07c;--grass2:#7fb85d;--ledge1:#f2c46b;--ledge2:#c98c2e;--ledgeEdge:#a8661c;
+--sky1:#dbeefe;--sky2:#f3f8ee;--grassD:#8cc56a;--grassL:#b6e08f;--shadow:rgba(30,30,20,.10)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#121512;--fg:#e9ece6;--muted:#9ba196;--card:#1b1f1b;--line:#2d332d;--accent:#78a8ff;--accent2:#f0a050;--bad:#ff7a6a;--good:#58cf8d;
+--floor1:#38352c;--floor2:#2f2c25;--wall1:#5b5750;--wall2:#4a4640;--grass1:#4f7a3a;--grass2:#3e6530;--ledge1:#b8862f;--ledge2:#8a5f1c;--ledgeEdge:#d48a35;
+--sky1:#1b2a3a;--sky2:#1a221b;--grassD:#36592a;--grassL:#4f7a3a;--shadow:rgba(0,0,0,.35)}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Helvetica,Arial,sans-serif}
+main{max-width:960px;margin:0 auto;padding:32px 16px 72px}
+.eyebrow{font:600 12px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;color:var(--accent2);text-transform:uppercase}
+h1{font-size:34px;line-height:1.15;margin:10px 0 8px;letter-spacing:-.02em}h2{font-size:21px;margin:44px 0 6px;letter-spacing:-.01em}
+.lead{font-size:18px;color:var(--muted);max-width:680px}.cap{color:var(--muted);font-size:14px;margin:10px 2px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 1px 2px var(--shadow),0 8px 24px var(--shadow)}
+.scroll{overflow-x:auto}svg{display:block;max-width:100%;height:auto}
+.chips{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0 0}.chip{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:14px}.chip b{font-variant-numeric:tabular-nums}
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media (max-width:720px){.vs{grid-template-columns:1fr}}
+.vs h3{margin:0 0 2px;font-size:16px}.tag{display:inline-block;font:600 11px/1 ui-monospace,Menlo,monospace;padding:4px 8px;border-radius:6px;margin-right:6px;vertical-align:2px}
+.tag.off{background:var(--line);color:var(--muted)}.tag.on{background:var(--accent);color:#fff}
+.big{font-size:28px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}.big small{font-size:14px;font-weight:500;color:var(--muted)}
+.minis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}@media (max-width:720px){.minis{grid-template-columns:repeat(2,1fr)}}
+.mini-card{text-align:center;padding:10px}.mt{font-weight:600;margin-top:2px}.ms{color:var(--muted);font:12px ui-monospace,Menlo,monospace}
+.kbd{display:inline-block;min-width:22px;padding:1px 6px;border-radius:6px;background:var(--ledge1);color:#3b2a08;font:700 13px ui-monospace,Menlo,monospace}
+pre{margin:0;font:13px/1.6 ui-monospace,Menlo,monospace;overflow-x:auto;white-space:pre}.hl{background:color-mix(in srgb,var(--ledge1) 45%,transparent);border-radius:3px}.dim{color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:14.5px}td,th{padding:9px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+tr:last-child td{border-bottom:0}code{font:13px ui-monospace,Menlo,monospace}
+.ax{font:11px ui-monospace,Menlo,monospace;fill:var(--muted);text-anchor:middle}.frame{fill:none;stroke:var(--line);stroke-width:2}
+.chev{fill:none;stroke:#5a3a0c;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.hash{font:700 15px ui-monospace,Menlo,monospace;fill:#f1efe8;text-anchor:middle}
+.walk{fill:none;stroke:var(--bad);stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1 0}
+.stepdot{fill:var(--card);stroke:var(--bad);stroke-width:2}.stepn{font:700 10px ui-monospace,Menlo,monospace;fill:var(--bad);text-anchor:middle}
+.ghost{fill:none;stroke:var(--muted);stroke-width:2.5;stroke-dasharray:4 6;stroke-linecap:round;opacity:.7}
+.hop{fill:none;stroke:var(--accent);stroke-width:4;stroke-linecap:round}.hop.big{stroke-width:5;stroke-dasharray:2 9}
+.player{fill:var(--accent);stroke:#fff;stroke-width:3}.player.ghosty{opacity:.35}.eye{fill:#fff}.goal{fill:var(--good);stroke:#fff;stroke-width:3}.tick{fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.badge{fill:var(--card);stroke:var(--accent);stroke-width:2}.badge.warn{stroke:var(--bad)}.badget{font:700 14px -apple-system,Helvetica,sans-serif;fill:var(--fg);text-anchor:middle}.badges{font:12px -apple-system,Helvetica,sans-serif;fill:var(--muted);text-anchor:middle}
+.tiles line{stroke:var(--fg);opacity:.35;stroke-width:2}.tl{font:12px ui-monospace,Menlo,monospace;fill:var(--fg);opacity:.7;text-anchor:middle}
+.block{stroke:var(--bad);stroke-width:3;stroke-linecap:round}.x{stroke:var(--bad);stroke-width:3;stroke-linecap:round}
+.lane rect{fill:color-mix(in srgb,var(--accent) 6%,transparent);stroke:var(--line);stroke-width:1.5}.lanet{font:600 11px ui-monospace,Menlo,monospace;letter-spacing:.1em;fill:var(--muted)}
+.node rect{fill:var(--card);stroke:var(--line);stroke-width:1.5}.node.hot rect{fill:color-mix(in srgb,var(--ledge1) 30%,var(--card));stroke:var(--ledge2);stroke-width:2}
+.nt{font:600 13.5px -apple-system,Helvetica,sans-serif;fill:var(--fg);text-anchor:middle}.ns{font:12px -apple-system,Helvetica,sans-serif;fill:var(--muted);text-anchor:middle}
+.flow{fill:none;stroke:var(--muted);stroke-width:2}
+</style></head><body><main>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<pattern id="floor" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="10" height="10" fill="var(--floor1)"/><circle cx="2" cy="2" r="1" fill="var(--floor2)"/><circle cx="7" cy="7" r="1" fill="var(--floor2)"/></pattern>
+<pattern id="grass" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="var(--grass1)"/><path d="M2,10 l1.5,-5 l1.5,5 M7,7 l1.5,-5 l1.5,5" stroke="var(--grass2)" stroke-width="1.4" fill="none"/></pattern>
+<pattern id="wall" width="14" height="10" patternUnits="userSpaceOnUse"><rect width="14" height="10" fill="var(--wall1)"/><path d="M0,5 h14 M7,0 v5 M0,5 v5" stroke="var(--wall2)" stroke-width="1.2"/></pattern>
+<linearGradient id="ledge" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--ledge1)"/><stop offset=".62" stop-color="var(--ledge1)"/><stop offset=".63" stop-color="var(--ledge2)"/><stop offset="1" stop-color="var(--ledgeEdge)"/></linearGradient>
+<marker id="ahop" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker>
+<marker id="ahead" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--bad)"/></marker>
+<marker id="aflow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker>
+</defs></svg>
+
+<div class="eyebrow">Harness switch · ledge-hops-v1</div>
+<h1>Ledges are one-way doors, not walls</h1>
+<p class="lead">Emerald's ledges are marked as collision in the map data, so our map drew them as <code>#</code> and <code>navigate_to</code> walked around them. With this switch on, the model sees which way each ledge drops, and the planner jumps down it in one press.</p>
+<div class="card" style="margin-top:20px;padding:10px"><svg class="hero" viewBox="0 0 720 230" role="img" aria-label="Side view of a ledge hop">
+<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--sky1)"/><stop offset="1" stop-color="var(--sky2)"/></linearGradient></defs>
+<rect x="0" y="0" width="720" height="230" rx="16" fill="url(#sky)"/>
+<path d="M0,120 L330,120 L330,128 Q338,160 350,170 L720,170 L720,230 L0,230 Z" fill="var(--grassD)"/>
+<path d="M0,120 L330,120 L330,128 Q338,160 350,170 L720,170" fill="none" stroke="var(--grassL)" stroke-width="5" stroke-linecap="round"/>
+<path d="M330,128 Q338,160 350,170" fill="none" stroke="var(--ledgeEdge)" stroke-width="7" stroke-linecap="round"/>
+<g class="tiles"><line x1="250" y1="200" x2="250" y2="214"/><line x1="330" y1="200" x2="330" y2="214"/><line x1="410" y1="200" x2="410" y2="214"/><line x1="490" y1="200" x2="490" y2="214"/>
+<text x="290" y="212" class="tl">start</text><text x="370" y="212" class="tl">ledge</text><text x="450" y="212" class="tl">landing</text></g>
+<path d="M290,104 C330,40 420,40 450,150" class="hop big" marker-end="url(#ahop)"/>
+<circle cx="290" cy="104" r="15" class="player"/><circle cx="285" cy="101" r="2.2" class="eye"/><circle cx="295" cy="101" r="2.2" class="eye"/>
+<circle cx="450" cy="155" r="15" class="player ghosty"/>
+<g transform="translate(560,58)"><rect x="-70" y="-24" width="140" height="48" rx="24" class="badge"/><text x="0" y="-2" class="badget">1 press</text><text x="0" y="15" class="badges">moves 2 tiles</text></g>
+<g transform="translate(150,58)"><rect x="-86" y="-24" width="172" height="48" rx="24" class="badge warn"/><text x="0" y="-2" class="badget">the way back up</text><text x="0" y="15" class="badges">is a wall</text></g>
+</svg></div>
+<p class="cap">Pressing toward a ledge in its arrow direction jumps over it and lands two tiles away. From any other side it blocks like a wall.</p>
+<div class="chips"><span class="chip">Route 101 · <b>12</b> south ledges</span><span class="chip">Route 102 · <b>16</b></span><span class="chip">Route 103 · <b>23</b></span><span class="chip">Route 116 · <b>27</b></span></div>
+
+<h2>The same spot on Route 101</h2>
+<p class="cap" style="margin-top:0">Real live-map tiles from the Route 101 save (<code>tests/states/torchic.state</code>), x 5–13, y 11–15. Going from (9,12) to (9,14).</p>
+<div class="vs">
+<div class="card"><h3><span class="tag off">OFF</span>Ledges drawn as walls</h3><div class="big">6 presses <small>L L D D R R</small></div><div class="scroll"><svg class="map" viewBox="0 0 404 236" role="img" aria-label="Switch off: walk around">
+<text x="54.0" y="16" class="ax">5</text>
+<text x="94.0" y="16" class="ax">6</text>
+<text x="134.0" y="16" class="ax">7</text>
+<text x="174.0" y="16" class="ax">8</text>
+<text x="214.0" y="16" class="ax">9</text>
+<text x="254.0" y="16" class="ax">10</text>
+<text x="294.0" y="16" class="ax">11</text>
+<text x="334.0" y="16" class="ax">12</text>
+<text x="374.0" y="16" class="ax">13</text>
+<text x="14" y="50.0" class="ax">11</text>
+<text x="14" y="90.0" class="ax">12</text>
+<text x="14" y="130.0" class="ax">13</text>
+<text x="14" y="170.0" class="ax">14</text>
+<text x="14" y="210.0" class="ax">15</text>
+<rect x="31" y="23" width="364" height="204" rx="10" class="frame"/>
+<rect x="35" y="27" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="75" y="27" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="115" y="27" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="155" y="27" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="195" y="27" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="235" y="27" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="275" y="27" width="38" height="38" rx="5" fill="url(#grass)"/>
+<rect x="315" y="27" width="38" height="38" rx="5" fill="url(#grass)"/>
+<rect x="355" y="27" width="38" height="38" rx="5" fill="url(#grass)"/>
+<rect x="35" y="67" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="75" y="67" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="115" y="67" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="155" y="67" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="195" y="67" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="235" y="67" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="275" y="67" width="38" height="38" rx="5" fill="url(#grass)"/>
+<rect x="315" y="67" width="38" height="38" rx="5" fill="url(#grass)"/>
+<rect x="355" y="67" width="38" height="38" rx="5" fill="url(#grass)"/>
+<rect x="35" y="107" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="75" y="107" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="115" y="107" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="155" y="107" width="38" height="38" rx="5" fill="url(#wall)"/>
+<text x="174" y="131" class="hash">#</text>
+<rect x="195" y="107" width="38" height="38" rx="5" fill="url(#wall)"/>
+<text x="214" y="131" class="hash">#</text>
+<rect x="235" y="107" width="38" height="38" rx="5" fill="url(#wall)"/>
+<text x="254" y="131" class="hash">#</text>
+<rect x="275" y="107" width="38" height="38" rx="5" fill="url(#wall)"/>
+<text x="294" y="131" class="hash">#</text>
+<rect x="315" y="107" width="38" height="38" rx="5" fill="url(#grass)"/>
+<rect x="355" y="107" width="38" height="38" rx="5" fill="url(#grass)"/>
+<rect x="35" y="147" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="75" y="147" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="115" y="147" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="155" y="147" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="195" y="147" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="235" y="147" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="275" y="147" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="315" y="147" width="38" height="38" rx="5" fill="url(#wall)"/>
+<rect x="355" y="147" width="38" height="38" rx="5" fill="url(#wall)"/>
+<rect x="35" y="187" width="38" height="38" rx="5" fill="url(#grass)"/>
+<rect x="75" y="187" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="115" y="187" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="155" y="187" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="195" y="187" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="235" y="187" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="275" y="187" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="315" y="187" width="38" height="38" rx="5" fill="url(#wall)"/>
+<rect x="355" y="187" width="38" height="38" rx="5" fill="url(#wall)"/>
+<path d="M214.0,86.0 L174.0,86.0 L134.0,86.0 L134.0,126.0 L134.0,166.0 L174.0,166.0 L214.0,166.0" class="walk" marker-end="url(#ahead)"/>
+<circle cx="174.0" cy="86.0" r="9" class="stepdot"/><text x="174.0" y="90.0" class="stepn">1</text>
+<circle cx="134.0" cy="86.0" r="9" class="stepdot"/><text x="134.0" y="90.0" class="stepn">2</text>
+<circle cx="134.0" cy="126.0" r="9" class="stepdot"/><text x="134.0" y="130.0" class="stepn">3</text>
+<circle cx="134.0" cy="166.0" r="9" class="stepdot"/><text x="134.0" y="170.0" class="stepn">4</text>
+<circle cx="174.0" cy="166.0" r="9" class="stepdot"/><text x="174.0" y="170.0" class="stepn">5</text>
+<circle cx="214.0" cy="166.0" r="9" class="stepdot"/><text x="214.0" y="170.0" class="stepn">6</text>
+<circle cx="214.0" cy="86.0" r="13" class="player"/><circle cx="210.0" cy="83.0" r="2" class="eye"/><circle cx="218.0" cy="83.0" r="2" class="eye"/>
+<circle cx="214.0" cy="166.0" r="13" class="goal"/><path d="M209.0,166.0 l4,4 l7,-8" class="tick"/>
+</svg></div></div>
+<div class="card"><h3><span class="tag on">ON</span>Ledges drawn as v</h3><div class="big">1 press <small>DOWN, lands 2 tiles on</small></div><div class="scroll"><svg class="map" viewBox="0 0 404 236" role="img" aria-label="Switch on: one hop">
+<text x="54.0" y="16" class="ax">5</text>
+<text x="94.0" y="16" class="ax">6</text>
+<text x="134.0" y="16" class="ax">7</text>
+<text x="174.0" y="16" class="ax">8</text>
+<text x="214.0" y="16" class="ax">9</text>
+<text x="254.0" y="16" class="ax">10</text>
+<text x="294.0" y="16" class="ax">11</text>
+<text x="334.0" y="16" class="ax">12</text>
+<text x="374.0" y="16" class="ax">13</text>
+<text x="14" y="50.0" class="ax">11</text>
+<text x="14" y="90.0" class="ax">12</text>
+<text x="14" y="130.0" class="ax">13</text>
+<text x="14" y="170.0" class="ax">14</text>
+<text x="14" y="210.0" class="ax">15</text>
+<rect x="31" y="23" width="364" height="204" rx="10" class="frame"/>
+<rect x="35" y="27" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="75" y="27" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="115" y="27" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="155" y="27" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="195" y="27" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="235" y="27" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="275" y="27" width="38" height="38" rx="5" fill="url(#grass)"/>
+<rect x="315" y="27" width="38" height="38" rx="5" fill="url(#grass)"/>
+<rect x="355" y="27" width="38" height="38" rx="5" fill="url(#grass)"/>
+<rect x="35" y="67" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="75" y="67" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="115" y="67" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="155" y="67" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="195" y="67" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="235" y="67" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="275" y="67" width="38" height="38" rx="5" fill="url(#grass)"/>
+<rect x="315" y="67" width="38" height="38" rx="5" fill="url(#grass)"/>
+<rect x="355" y="67" width="38" height="38" rx="5" fill="url(#grass)"/>
+<rect x="35" y="107" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="75" y="107" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="115" y="107" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="155" y="107" width="38" height="38" rx="5" fill="url(#ledge)"/>
+<path d="M166,121 L174,130 L182,121" class="chev"/>
+<rect x="195" y="107" width="38" height="38" rx="5" fill="url(#ledge)"/>
+<path d="M206,121 L214,130 L222,121" class="chev"/>
+<rect x="235" y="107" width="38" height="38" rx="5" fill="url(#ledge)"/>
+<path d="M246,121 L254,130 L262,121" class="chev"/>
+<rect x="275" y="107" width="38" height="38" rx="5" fill="url(#ledge)"/>
+<path d="M286,121 L294,130 L302,121" class="chev"/>
+<rect x="315" y="107" width="38" height="38" rx="5" fill="url(#grass)"/>
+<rect x="355" y="107" width="38" height="38" rx="5" fill="url(#grass)"/>
+<rect x="35" y="147" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="75" y="147" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="115" y="147" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="155" y="147" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="195" y="147" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="235" y="147" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="275" y="147" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="315" y="147" width="38" height="38" rx="5" fill="url(#wall)"/>
+<rect x="355" y="147" width="38" height="38" rx="5" fill="url(#wall)"/>
+<rect x="35" y="187" width="38" height="38" rx="5" fill="url(#grass)"/>
+<rect x="75" y="187" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="115" y="187" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="155" y="187" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="195" y="187" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="235" y="187" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="275" y="187" width="38" height="38" rx="5" fill="url(#floor)"/>
+<rect x="315" y="187" width="38" height="38" rx="5" fill="url(#wall)"/>
+<rect x="355" y="187" width="38" height="38" rx="5" fill="url(#wall)"/>
+<path d="M214.0,86.0 L174.0,86.0 L134.0,86.0 L134.0,126.0 L134.0,166.0 L174.0,166.0 L214.0,166.0" class="ghost"/>
+<path d="M214.0,92.0 C258.0,94.0 258.0,158.0 218.0,154.0" class="hop" marker-end="url(#ahop)"/>
+<circle cx="214.0" cy="86.0" r="13" class="player"/><circle cx="210.0" cy="83.0" r="2" class="eye"/><circle cx="218.0" cy="83.0" r="2" class="eye"/>
+<circle cx="214.0" cy="166.0" r="13" class="goal"/><path d="M209.0,166.0 l4,4 l7,-8" class="tick"/>
+</svg></div></div>
+</div>
+<p class="cap">Brick = collision, green = grass, orange band = ledge. The dashed grey path on the right is the detour the hop replaces. Live check on the real ROM: <code>navigate_to(9,14)</code> from (9,12) arrived in 1 press.</p>
+
+<h2>Four ledges, four one-way rules</h2>
+<div class="minis"><div class="card mini-card"><svg class="mini" viewBox="0 0 150 150" role="img" aria-label="South ledge"><rect x="31" y="31" width="28" height="28" rx="4" fill="url(#floor)"/><rect x="61" y="31" width="28" height="28" rx="4" fill="url(#floor)"/><rect x="91" y="31" width="28" height="28" rx="4" fill="url(#floor)"/><rect x="31" y="61" width="28" height="28" rx="4" fill="url(#floor)"/><rect x="61" y="61" width="28" height="28" rx="4" fill="url(#ledge)"/><rect x="91" y="61" width="28" height="28" rx="4" fill="url(#floor)"/><rect x="31" y="91" width="28" height="28" rx="4" fill="url(#floor)"/><rect x="61" y="91" width="28" height="28" rx="4" fill="url(#floor)"/><rect x="91" y="91" width="28" height="28" rx="4" fill="url(#floor)"/><g transform="rotate(0 75 75)"><path d="M67,71 L75,80 L83,71" class="chev"/><circle cx="75" cy="105" r="9" class="player ghosty"/><circle cx="75" cy="45" r="9" class="player"/><path d="M80,48 C122,56 122,94 82,101" class="hop" marker-end="url(#ahop)"/><path d="M55,70 l10,10 M65,70 l-10,10" class="x"/><path d="M70,85 l10,10 M80,85 l-10,10" class="x"/></g></svg><div class="mt"><span class="kbd">v</span> South ledge</div><div class="ms">0x3B · hop DOWN</div></div><div class="card mini-card"><svg class="mini" viewBox="0 0 150 150" role="img" aria-label="North ledge"><rect x="31" y="31" width="28" height="28" rx="4" fill="url(#floor)"/><rect x="61" y="31" width="28" height="28" rx="4" fill="url(#floor)"/><rect x="91" y="31" width="28" height="28" rx="4" fill="url(#floor)"/><rect x="31" y="61" width="28" height="28" rx="4" fill="url(#floor)"/><rect x="61" y="61" width="28" height="28" rx="4" fill="url(#ledge)"/><rect x="91" y="61" width="28" height="28" rx="4" fill="url(#floor)"/><rect x="31" y="91" width="28" height="28" rx="4" fill="url(#floor)"/><rect x="61" y="91" width="28" height="28" rx="4" fill="url(#floor)"/><rect x="91" y="91" width="28" height="28" rx="4" fill="url(#floor)"/><g transform="rotate(180 75 75)"><path d="M67,71 L75,80 L83,71" class="chev"/><circle cx="75" cy="105" r="9" class="player ghosty"/><circle cx="75" cy="45" r="9" class="player"/><path d="M80,48 C122,56 122,94 82,101" class="hop" marker-end="url(#ahop)"/><path d="M55,70 l10,10 M65,70 l-10,10" class="x"/><path d="M70,85 l10,10 M80,85 l-10,10" class="x"/></g></svg><div class="mt"><span class="kbd">^</span> North ledge</div><div class="ms">0x3A · hop UP</div></div><div class="card mini-card"><svg class="mini" viewBox="0 0 150 150" role="img" aria-label="West ledge"><rect x="31" y="31" width="28" height="28" rx="4" fill="url(#floor)"/><rect x="61" y="31" width="28" height="28" rx="4" fill="url(#floor)"/><rect x="91" y="31" width="28" height="28" rx="4" fill="url(#floor)"/><rect x="31" y="61" width="28" height="28" rx="4" fill="url(#floor)"/><rect x="61" y="61" width="28" height="28" rx="4" fill="url(#ledge)"/><rect x="91" y="61" width="28" height="28" rx="4" fill="url(#floor)"/><rect x="31" y="91" width="28" height="28" rx="4" fill="url(#floor)"/><rect x="61" y="91" width="28" height="28" rx="4" fill="url(#floor)"/><rect x="91" y="91" width="28" height="28" rx="4" fill="url(#floor)"/><g transform="rotate(90 75 75)"><path d="M67,71 L75,80 L83,71" class="chev"/><circle cx="75" cy="105" r="9" class="player ghosty"/><circle cx="75" cy="45" r="9" class="player"/><path d="M80,48 C122,56 122,94 82,101" class="hop" marker-end="url(#ahop)"/><path d="M55,70 l10,10 M65,70 l-10,10" class="x"/><path d="M70,85 l10,10 M80,85 l-10,10" class="x"/></g></svg><div class="mt"><span class="kbd">&lt;</span> West ledge</div><div class="ms">0x39 · hop LEFT</div></div><div class="card mini-card"><svg class="mini" viewBox="0 0 150 150" role="img" aria-label="East ledge"><rect x="31" y="31" width="28" height="28" rx="4" fill="url(#floor)"/><rect x="61" y="31" width="28" height="28" rx="4" fill="url(#floor)"/><rect x="91" y="31" width="28" height="28" rx="4" fill="url(#floor)"/><rect x="31" y="61" width="28" height="28" rx="4" fill="url(#floor)"/><rect x="61" y="61" width="28" height="28" rx="4" fill="url(#ledge)"/><rect x="91" y="61" width="28" height="28" rx="4" fill="url(#floor)"/><rect x="31" y="91" width="28" height="28" rx="4" fill="url(#floor)"/><rect x="61" y="91" width="28" height="28" rx="4" fill="url(#floor)"/><rect x="91" y="91" width="28" height="28" rx="4" fill="url(#floor)"/><g transform="rotate(-90 75 75)"><path d="M67,71 L75,80 L83,71" class="chev"/><circle cx="75" cy="105" r="9" class="player ghosty"/><circle cx="75" cy="45" r="9" class="player"/><path d="M80,48 C122,56 122,94 82,101" class="hop" marker-end="url(#ahop)"/><path d="M55,70 l10,10 M65,70 l-10,10" class="x"/><path d="M70,85 l10,10 M80,85 l-10,10" class="x"/></g></svg><div class="mt"><span class="kbd">&gt;</span> East ledge</div><div class="ms">0x38 · hop RIGHT</div></div></div>
+<p class="cap">Blue: pressing in the arrow's direction jumps from the dark dot to the faded one. Red ✕: entering from the other sides is blocked (the side the arc covers is blocked too). The ledge tile is never a place you stand.</p>
+
+<h2>When the planner refuses a hop</h2>
+<div class="card"><table>
+<tr><th>Landing tile is…</th><th>Hop?</th><th>Why</th></tr>
+<tr><td>known, clear, walkable</td><td style="color:var(--good)">✓ yes</td><td>cost 2 (two tiles), keeps A* distance-consistent</td></tr>
+<tr><td>collision, water or a door</td><td style="color:var(--bad)">✕ no</td><td>not a walkable landing</td></tr>
+<tr><td>an NPC or object</td><td style="color:var(--bad)">✕ no</td><td>conservative; the game would still jump</td></tr>
+<tr><td>a warp (even as the goal)</td><td style="color:var(--bad)">✕ no</td><td>warps stay goals reached by walking only</td></tr>
+<tr><td>outside the 15×15 window</td><td style="color:var(--bad)">✕ no</td><td>never guesses unseen tiles</td></tr>
+<tr><td>on a different elevation layer</td><td style="color:var(--bad)">✕ no</td><td>same rule as ordinary steps</td></tr>
+</table></div>
+<p class="cap">After a hop press, <code>navigate_to</code> expects exactly two tiles of movement. One tile, or anything else, stops the walk as “unexpected movement”.</p>
+
+<h2>What the model reads</h2>
+<div class="vs">
+<div class="card"><h3><span class="tag off">OFF</span>map row 13</h3><pre><span class="dim">  13</span>   N   g   .   .   .   .   <span class="hl">#   #   #   #</span>   g</pre><p class="cap">No legend entry. Only “Metatile behaviors present: 0x3B” hints at it.</p></div>
+<div class="card"><h3><span class="tag on">ON</span>map row 13 + legend</h3><pre><span class="dim">  13</span>   N   g   .   .   .   .   <span class="hl">v   v   v   v</span>   g</pre><p class="cap">“v ^ &lt; &gt; ledge: a one-way hop in the arrow's direction (move into it that way to jump over it, landing 2 tiles on); impassable from any other side;”</p></div>
+</div>
+
+<h2>Grounded in the game</h2>
+<div class="card"><table>
+<tr><th>Behavior</th><th>pokeemerald</th><th>Glyph</th><th>Hop</th></tr>
+<tr><td><code>0x38</code></td><td><code>MB_JUMP_EAST</code></td><td><span class="kbd">&gt;</span></td><td>RIGHT</td></tr>
+<tr><td><code>0x39</code></td><td><code>MB_JUMP_WEST</code></td><td><span class="kbd">&lt;</span></td><td>LEFT</td></tr>
+<tr><td><code>0x3A</code></td><td><code>MB_JUMP_NORTH</code></td><td><span class="kbd">^</span></td><td>UP</td></tr>
+<tr><td><code>0x3B</code></td><td><code>MB_JUMP_SOUTH</code></td><td><span class="kbd">v</span></td><td>DOWN</td></tr>
+</table></div>
+<p class="cap">pret/pokeemerald 731ad5b: <code>CheckForObjectEventCollision</code> asks <code>ShouldJumpLedge</code> whatever the collision bit says; <code>GetLedgeJumpDirection</code> matches the tile you move into against your direction; <code>PlayerJumpLedge</code> moves two tiles. PokeAgent's Emerald code only defines these values (<code>pokemon_env/enums.py</code>); its Pokémon Red environment already draws ledges as arrows. Diagonal jumps (0x3C–0x3F) are out of scope.</p>
+
+<h2>Where the switch goes</h2>
+<div class="card scroll"><svg class="wire" viewBox="0 0 780 250" role="img" aria-label="Where the switch goes">
+<g class="lane"><rect x="200" y="14" width="570" height="96" rx="14"/><text x="216" y="36" class="lanet">GAME SERVER · Python</text></g>
+<g class="lane"><rect x="200" y="138" width="570" height="96" rx="14"/><text x="216" y="160" class="lanet">AGENT · TypeScript</text></g>
+<g class="node"><rect x="10" y="96" width="160" height="58" rx="29"/><text x="90" y="121" class="nt">ledge-hops-v1</text><text x="90" y="139" class="ns">preset · switchboard</text></g>
+<g class="node"><rect x="230" y="48" width="220" height="50" rx="12"/><text x="340" y="70" class="nt">POKEBENCH_FEATURES_OFF</text><text x="340" y="87" class="ns">serverFeatureEnv</text></g>
+<g class="node hot"><rect x="520" y="48" width="232" height="50" rx="12"/><text x="636" y="70" class="nt">LocalMap.text(ledges)</text><text x="636" y="87" class="ns">v ^ &lt; &gt; + legend, or #</text></g>
+<g class="node"><rect x="230" y="172" width="220" height="50" rx="12"/><text x="340" y="194" class="nt">withNavigation</text><text x="340" y="211" class="ns">prompt line · tool text</text></g>
+<g class="node hot"><rect x="520" y="172" width="232" height="50" rx="12"/><text x="636" y="194" class="nt">planNavigation</text><text x="636" y="211" class="ns">hop edge · cost 2 · expect 2 tiles</text></g>
+<path d="M170,116 C200,116 200,73 226,73" class="flow" marker-end="url(#aflow)"/>
+<path d="M170,134 C200,134 200,197 226,197" class="flow" marker-end="url(#aflow)"/>
+<path d="M450,73 L516,73" class="flow" marker-end="url(#aflow)"/>
+<path d="M450,197 L516,197" class="flow" marker-end="url(#aflow)"/>
+</svg></div>
+<p class="cap">Orange boxes change behavior. Older presets that don't name the switch get it OFF, so frozen incumbents still see walls; new viewer drafts get it ON. The recorded <code>local_map</code> JSON always keeps the full ledge text.</p>
+
+<h2>Status</h2>
+<div class="card"><table>
+<tr><td>Branch</td><td><code>claude/ledge-hops</code>, merged with current main, not yet landed</td></tr>
+<tr><td>Tests</td><td>agent 896 · viewer 419 · env 1807 pass; coverage ≥90% and lint clean</td></tr>
+<tr><td>Live proof</td><td>recorded probe on the real ROM, Route 101: 1 press, 2 tiles</td></tr><tr><td>Review</td><td>Claude, Grok and GPT all LGTM</td></tr>
+<tr><td>Not done</td><td>measured runs; no benefit is claimed yet</td></tr>
+</table></div>
+</main></body></html>

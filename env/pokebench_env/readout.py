@@ -27,6 +27,7 @@ SERVER_FEATURES = (
     "coordinate-script-conditions-v1",
     "field-control-lock",
     "warp-activation-guidance-v1",
+    "ledge-hops-v1",
 )
 
 
@@ -225,6 +226,7 @@ def format_readout(
             state.nearby.text(
                 grid="world-coordinate-grid-v1" not in off,
                 warp_guidance="warp-activation-guidance-v1" not in off,
+                ledges="ledge-hops-v1" not in off,
             )
             if state.nearby is not None
             else state.local_map

@@ -91,5 +91,13 @@ it("prioritizes every recent outcome and explicitly qualifies all omitted source
   m.observe(event({type:"tool_result",id:`try${String(i)}`,name:"press",is_error:true,duration_ms:1,text:`Result ${String(i)} ${"failure ".repeat(40)}`,frames:[]},++seq));
  }
  const text=m.text();expect(text.length).toBeLessThanOrEqual(6500);for(let i=0;i<8;i++)expect(text).toContain(`Result ${String(i)}`);
- expect(text).toContain("Omitted retained source references (bounded display)");for(const id of m.evidence())expect(text).toMatch(new RegExp(`#${String(id)}(?!\\d)`));
+ expect(text).toContain("Omitted retained facts/source references (bounded display");for(const id of m.evidence())expect(text).toMatch(new RegExp(`#${String(id)}(?!\\d)`));
+});
+it("keeps outcomes and reference qualifications bounded with long targets, a full hypothesis and large sequence IDs",()=>{
+ const m=new NavigationMemory(ALL_ON);let seq=2**52;
+ const targets=Array.from({length:10},(_,i)=>({name:`Target${String(i)}${"n".repeat(300)}`,kind:"object",x:i,y:4,elevation:0,activation:"A",availability:"live",facing:null,local_id:i,destination:null}));
+ for(let i=0;i<6;i++)m.observe(state(++seq,{location:`Room${String(i)}${"r".repeat(150)}`,map_id:[1,i],interaction_targets:targets,world_context:{objects:[],triggers:[],dialogue:`Instruction ${String(i)} ${"d".repeat(650)}`}}));
+ m.remember("h".repeat(300),[seq]);
+ for(let i=0;i<8;i++){const id=`try${String(i)}`;m.observe(event({type:"tool_call",id,name:"press",args:{buttons:["A"]}},++seq));m.observe(event({type:"tool_result",id,name:"press",is_error:true,duration_ms:1,text:`Outcome ${String(i)} ${"failure ".repeat(40)}`,frames:[]},++seq));}
+ const text=m.text();expect(text.length).toBeLessThanOrEqual(6500);expect(text).toContain("MODEL HYPOTHESIS");for(let i=0;i<8;i++)expect(text).toContain(`Outcome ${String(i)}`);for(const id of m.evidence())expect(text).toMatch(new RegExp(`#${String(id)}(?!\\d)`));
 });

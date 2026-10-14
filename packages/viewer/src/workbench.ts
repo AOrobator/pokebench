@@ -10,6 +10,7 @@ export class Workbench {
   private verified = false;
   private selected: { run: string; split: string | null } | null = null;
   private restoreFocus: HTMLElement | null = null;
+  private detailHtml: string | null = null;
   private initialized = false;
   private scope = "all";
   private overlay = "all";
@@ -90,11 +91,19 @@ export class Workbench {
   private detail(id: string, split: string | null, focus = true): void {
     const run = this.data.runs.find(r => r.id === id); this.selected = { run: id, split };
     if (focus) this.restoreFocus = this.doc.activeElement as HTMLElement | null;
-    const body = this.ui("detail-body"), hadFocus = body.contains(this.doc.activeElement);
+    const body = this.ui("detail-body"), scrollTop = body.scrollTop;
+    const controls = 'a[href], button:not([disabled])';
+    const focusedIndex = Array.from(body.querySelectorAll(controls)).findIndex(node => node === this.doc.activeElement);
     const html = run === undefined ? '<p>The selected run is no longer available.</p><button type="button" class="wb-button" data-close-detail>Close</button>' : runDetails(run, split);
-    if (body.innerHTML !== html) body.innerHTML = html;
+    const changed = this.detailHtml !== html;
+    if (changed) { body.innerHTML = html; this.detailHtml = html; }
     this.ui("detail").hidden = false;
-    if (focus || hadFocus) body.querySelector<HTMLElement>("[data-close-detail]")?.focus();
+    if (focus) body.querySelector<HTMLElement>("[data-close-detail]")?.focus({ preventScroll: true });
+    else if (changed && focusedIndex >= 0) {
+      const replacement = body.querySelectorAll<HTMLElement>(controls)[focusedIndex] ?? body.querySelector<HTMLElement>("[data-close-detail]");
+      replacement?.focus({ preventScroll: true });
+    }
+    body.scrollTop = focus ? 0 : scrollTop;
   }
 
   private close(): void { this.ui("detail").hidden = true; this.selected = null; if (this.restoreFocus?.isConnected === true) this.restoreFocus.focus();

@@ -40,6 +40,19 @@ describe("mounted split ribbon workbench", () => {
     expect(body.textContent).toContain("model_error"); expect(document.activeElement).toBe(body.querySelector("a")); expect(body.scrollTop).toBe(480);
     wb.destroy();
   });
+  it("keeps outside focus on updated details and resets scroll only for an explicit opening", async () => {
+    const { wb, fetch } = mount(); await wb.refresh(); const opener = ui("outcomes").querySelector<HTMLButtonElement>("button"); opener?.click();
+    const body = ui("detail-body"); body.scrollTop = 480; ui("model").focus();
+    fetch.mockResolvedValue({ ...data(), at: 2000, runs: [run({ reason: "model_error" })] }); await wb.refresh();
+    expect(document.activeElement).toBe(ui("model")); expect(body.scrollTop).toBe(480);
+    ui("outcomes").querySelector<HTMLButtonElement>("button")?.click();
+    expect(body.scrollTop).toBe(0); expect(document.activeElement).toBe(body.querySelector("[data-close-detail]")); wb.destroy();
+  });
+  it("retains keyboard focus inside the drawer if its selected run disappears", async () => {
+    const { wb, fetch } = mount(); await wb.refresh(); ui("outcomes").querySelector<HTMLButtonElement>("button")?.click();
+    ui("detail-body").querySelector<HTMLAnchorElement>("a")?.focus(); fetch.mockResolvedValue({ ...data(), at: 2000, runs: [] }); await wb.refresh();
+    expect(document.activeElement).toBe(ui("detail-body").querySelector("[data-close-detail]")); wb.destroy();
+  });
   it("renders a ticking live-run meta card, then a normal back link when the run ends", async () => {
     const { wb, fetch } = mount({ ...data(), runs: [run({ status: "live" })] }); await wb.refresh(); wb.clock(); expect(ui("current").textContent).toContain("0:02:05"); expect(ui("current").textContent).toContain("CURRENT OBJECTIVE"); expect(ui("current").querySelector("a")?.getAttribute("href")).toBe("/#run=run_01"); fetch.mockResolvedValue({ ...data(), at: 2000 }); await wb.refresh(); expect(ui("current").textContent).toContain("BACK TO VIEWER"); wb.destroy();
   });

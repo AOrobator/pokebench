@@ -62,6 +62,12 @@ COMMIT: `docs(agent): describe grass cost as adapted from PokeAgent`
   deliberately unchanged so the model sees the same tool in both arms.
   agent 923/923, viewer 478/478, Python 96.68/91.84/100; coverage and lint exit 0.
 COMMIT: `test(agent): prove grass cost reaches the planner and prices long grass`
-- [ ] Review: Claude CLI, Codex (GPT lane), Cursor Grok. Local endpoint lanes skipped per operator.
+- Review round 2 on a4533cf (diff sha da5b0fd2): Claude CLI LGTM; Cursor Grok (cursor-grok-4.5-high)
+  LGTM; GPT lane: Cursor gpt-5.6-sol-xhigh hit its usage limit, Codex CLI with explicit
+  `-m gpt-5.6-sol` LGTM (packet and tree verified unchanged). Non-blocking: unexport
+  GRASS_STEP_COST, ledge off-arm fixture relies on a tie-break.
+- [x] Review: Claude CLI, GPT lane (Codex), Cursor Grok. Local endpoint lanes skipped per operator.
+- Explainer status block refreshed.
+COMMIT: `docs: record grass cost review LGTM and refresh explainer status`
 - [ ] Operator approval for the local merge into main.
 - [ ] Operator approval before any measured run.

@@ -291,9 +291,10 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
  <section>
   <h2>Where it stands</h2>
   <dl class="status">
-   <dt>Code</dt><dd>Committed locally on <code>claude/grass-cost</code>. Not pushed.</dd>
-   <dt>Checks</dt><dd>Agent tests 866/866, viewer tests 417/417, coverage above the 90% floor, lint clean.</dd>
-   <dt>Not yet</dt><dd>Multi-model review, and benchmark runs. The runs wait until the ledge fix is on main.</dd>
+   <dt>Code</dt><dd>Committed locally on <code>claude/grass-cost</code>, merged with the latest main (ledge hops, one-way tiles, elevation). A ledge hop that lands in grass costs one step plus the grass step. Not merged into main yet.</dd>
+   <dt>Checks</dt><dd>Agent tests 923/923, viewer tests 478/478, env tests 1823/1823, coverage above the 90% floor, lint clean.</dd>
+   <dt>Review</dt><dd>Claude, Grok and GPT (via Codex) all LGTM after one round of stronger on/off tests.</dd>
+   <dt>Not yet</dt><dd>Merge into main and the four-run benchmark arms. Both wait for your go-ahead.</dd>
   </dl>
  </section>
 </main>

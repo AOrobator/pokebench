@@ -3,10 +3,11 @@ import { describe, expect, it } from "vitest";
 import { run } from "../test-support/frontier-run.js";
 import { HUMAN_REFERENCE, FRONTIER_MILESTONES, frontierReferences, frontierPlot, frontierCoverage, frontierModelColors } from "./frontier.js";
 import type { WorkbenchRun } from "./workbench-data.js";
+const referenceNames = ["PLAYER_NAME_CONFIRMED", "FIRST_TRUCK_EXIT", "CLOCK_SET", "PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_BEDROOM_REACHED", "RIVAL_MET", "STARTER_CHOSEN", "RUSTBORO_CITY_GYM", "STONE_BADGE"];
 function measured(id: string, times: readonly (number | null)[], controller: "agent" | "human" = "agent"): WorkbenchRun {
-  return Object.assign(run({ id, cohort: "selected", splits: times.flatMap((elapsedMs, i) => elapsedMs === null ? [] : [{ name: FRONTIER_MILESTONES[i]?.id ?? "", elapsedMs, segmentMs: 0, seq: i + 1, turn: 1, inputTokens: 0, outputTokens: 0 }]) }), {
+  return Object.assign(run({ id, cohort: "selected", splits: times.flatMap((elapsedMs, i) => elapsedMs === null ? [] : [{ name: referenceNames[i] ?? "", elapsedMs, segmentMs: 0, seq: i + 1, turn: 1, inputTokens: 0, outputTokens: 0 }]) }), {
     measurement: { controller, features: ["story-milestones-v2", "post-clock-navigation-milestones-v1"], logSha256: "a".repeat(64), pausedMs: controller === "human" ? 53869 : 0,
-      rawSplits: times.flatMap((elapsedMs, i) => elapsedMs === null ? [] : [{ name: FRONTIER_MILESTONES[i]?.id ?? "", elapsedMs: elapsedMs + (controller === "human" ? 53869 : 0), evidence: [i] }]) },
+      rawSplits: times.flatMap((elapsedMs, i) => elapsedMs === null ? [] : [{ name: referenceNames[i] ?? "", elapsedMs: elapsedMs + (controller === "human" ? 53869 : 0), evidence: [i] }]) },
   });
 }
 const human = (): WorkbenchRun => measured(HUMAN_REFERENCE, [92246, 132921, 180979, 248863, 257446, 284511, 317885, 408081, 4194258, 6645610], "human");
@@ -46,11 +47,11 @@ describe("persistent actual native frontier", () => {
     expect(document.querySelectorAll('[data-run="dea1"]')).toHaveLength(7);
     expect(document.querySelectorAll('polyline[data-series="gap<script>"]')).toHaveLength(0);
     expect(document.querySelectorAll("script")).toHaveLength(0);
-    expect(document.body.textContent).toContain("Badge");
+    expect(document.querySelector('[data-split="STONE_BADGE"]')).not.toBeNull();
     document.body.innerHTML = frontierPlot(refs, [], 920);
     expect(document.querySelectorAll(`[data-run="${HUMAN_REFERENCE}"]`)).toHaveLength(10);
-    expect(document.body.textContent).toContain("Home");
-    expect(document.body.textContent).toContain("Badge");
+    expect(document.querySelector('[data-split="PLAYER_HOUSE_EXITED_AFTER_CLOCK"]')).not.toBeNull();
+    expect(document.querySelector('[data-split="STONE_BADGE"]')).not.toBeNull();
   });
   it("colors models distinctly, shares color within a model and identifies each color in a legend", () => {
     const a = { ...best(), id: "model-a-1", model: "Alpha" }, a2 = { ...best(), id: "model-a-2", model: "Alpha" };
@@ -79,6 +80,14 @@ describe("persistent actual native frontier", () => {
     expect(document.querySelector('[data-run="filtered-overlay"]')?.getAttribute("fill")).toBe(colors.get("Zulu"));
     const many = frontierModelColors(Array.from({ length: 12 }, (_, i) => ({ ...best(), model: `Model ${String(i)}` })));
     expect(new Set(many.values()).size).toBe(12); expect(colors.has("Model not recorded")).toBe(true);
+  });
+  it("includes the full required progression instead of skipping the human run's middle and finish", () => {
+    const names = FRONTIER_MILESTONES.map(m => m.id);
+    for (const name of ["NEW_GAME_CREATED", "LITTLEROOT_TOWN", "PLAYER_HOUSE_ENTERED", "MOM_CLOCK_INSTRUCTION", "PLAYER_BEDROOM", "MOM_RIVAL_INSTRUCTION", "ROUTE_101", "BIRCH_RESCUE_COMPLETE", "BIRCH_STARTER_HANDOFF_COMPLETE", "OLDALE_TOWN", "ROUTE_103", "RIVAL_BATTLE_WON", "RECEIVED_POKEDEX", "STARTER_TUTORIAL_COMPLETE", "RUNNING_SHOES_RECEIVED", "ROUTE_102", "PETALBURG_CITY", "DAD_FIRST_MEETING", "WALLY_TUTORIAL_COMPLETE", "ROUTE_104", "PETALBURG_WOODS", "TEAM_AQUA_WOODS_EVENT_COMPLETE", "RUSTBORO_CITY", "ROXANNE_DEFEATED", "RUSTBORO_GYM_COMPLETE", "ROCK_TOMB_RECEIVED"]) expect(names).toContain(name);
+    expect(names.some(name => /TRAINER|FIRST_POKEMON|EVOLUTION|HEAL|ROUTE_115|ROUTE_116|RUSTURF/.test(name))).toBe(false);
+    const recorded = human(); recorded.splits = names.map((name, i) => ({ name, elapsedMs: i * 1000, segmentMs: 1000, seq: i, turn: 0, inputTokens: 0, outputTokens: 0 }));
+    document.body.innerHTML = frontierPlot({human: recorded, best: null}, [], 340);
+    expect(document.querySelectorAll(`[data-run="${HUMAN_REFERENCE}"]`)).toHaveLength(names.length);
   });
   it("retains failed denominators and identifies unsupported and censored outcomes", () => {
     const failed = measured("failed", []), running = measured("running", []), interrupted = measured("interrupted", []); running.status = "live"; interrupted.status = "unresponsive";

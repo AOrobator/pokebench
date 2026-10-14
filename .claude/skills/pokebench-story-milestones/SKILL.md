@@ -13,6 +13,8 @@ Use [pokebench-game-state](../pokebench-game-state/SKILL.md) for source checkout
 
 Only include events that advance the game or required location splits on that progression path in the story milestone catalog and its frontier graphs. An optional visit or conversation is a diagnostic event, not a story milestone: entering Birch’s lab early or talking to its aide does not unlock the initial story. Do not give optional detours progress credit or insert them into the frontier axis.
 
+When auditing missing graph milestones, compare the human interface's shared split catalog and the qualified recording splits with the plotted axis. Render the full required progression sequence through the report's endpoint, rather than a handpicked summary that silently drops recorded story events. A narrow graph may thin axis labels, but must retain all plotted points and expose every checkpoint with exact times. Preserve missing-event gaps and keep optional activities separate.
+
 For the opening rival sequence, expose the already-recorded `RIVAL_HOUSE_ENTERED`, `RIVAL_BEDROOM_REACHED` and `RIVAL_MET` splits. Keep location arrival distinct from completing the introduction. The upstairs Poké Ball triggers that encounter; touching it or starting dialogue does not establish `RIVAL_MET`. Grade the completed scene using the game-owned rival/town state. Verify the gender-mirrored scripts. Before adding a new milestone, check the native catalog and existing recordings so a missing graph label does not become a duplicate event.
 
 ## Choose the game's completion condition

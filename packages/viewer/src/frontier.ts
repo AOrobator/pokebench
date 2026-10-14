@@ -2,13 +2,44 @@ import { esc } from "./format.js";
 import type { WorkbenchRun } from "./workbench-data.js";
 export const HUMAN_REFERENCE = "2026-10-13T23-50-13_human_1848";
 export const FRONTIER_MILESTONES = [
-  { id: "PLAYER_NAME_CONFIRMED", label: "Name" }, { id: "FIRST_TRUCK_EXIT", label: "Truck" },
-  { id: "CLOCK_SET", label: "Clock" }, { id: "PLAYER_HOUSE_EXITED_AFTER_CLOCK", label: "Home" },
-  { id: "RIVAL_HOUSE_ENTERED", label: "Rival house" }, { id: "RIVAL_BEDROOM_REACHED", label: "Bedroom" },
-  { id: "RIVAL_MET", label: "Rival met" }, { id: "STARTER_CHOSEN", label: "Starter" },
-  { id: "RUSTBORO_CITY_GYM", label: "Gym" }, { id: "STONE_BADGE", label: "Badge" },
+  { id: "NEW_GAME_CREATED", label: "New game" },
+  { id: "PLAYER_NAME_CONFIRMED", label: "Name" },
+  { id: "FIRST_TRUCK_EXIT", label: "Truck exit" },
+  { id: "LITTLEROOT_TOWN", label: "Littleroot" },
+  { id: "PLAYER_HOUSE_ENTERED", label: "Enter home" },
+  { id: "MOM_CLOCK_INSTRUCTION", label: "Clock instruction" },
+  { id: "PLAYER_BEDROOM", label: "Your bedroom" },
+  { id: "CLOCK_SET", label: "Clock set" },
+  { id: "MOM_RIVAL_INSTRUCTION", label: "Rival instruction" },
+  { id: "PLAYER_HOUSE_EXITED_AFTER_CLOCK", label: "Leave home" },
+  { id: "RIVAL_HOUSE_ENTERED", label: "Rival house" },
+  { id: "RIVAL_BEDROOM_REACHED", label: "Rival bedroom" },
+  { id: "RIVAL_MET", label: "Rival met" },
+  { id: "ROUTE_101", label: "Route 101" },
+  { id: "STARTER_CHOSEN", label: "Starter" },
+  { id: "BIRCH_RESCUE_COMPLETE", label: "Birch rescue" },
+  { id: "BIRCH_STARTER_HANDOFF_COMPLETE", label: "Birch handoff" },
+  { id: "OLDALE_TOWN", label: "Oldale" },
+  { id: "ROUTE_103", label: "Route 103" },
+  { id: "RIVAL_BATTLE_WON", label: "Rival battle" },
+  { id: "RECEIVED_POKEDEX", label: "Pokédex" },
+  { id: "STARTER_TUTORIAL_COMPLETE", label: "Starter tutorial" },
+  { id: "RUNNING_SHOES_RECEIVED", label: "Running shoes" },
+  { id: "ROUTE_102", label: "Route 102" },
+  { id: "PETALBURG_CITY", label: "Petalburg" },
+  { id: "DAD_FIRST_MEETING", label: "Meet Dad" },
+  { id: "WALLY_TUTORIAL_COMPLETE", label: "Wally tutorial" },
+  { id: "ROUTE_104", label: "Route 104" },
+  { id: "PETALBURG_WOODS", label: "Petalburg Woods" },
+  { id: "TEAM_AQUA_WOODS_EVENT_COMPLETE", label: "Aqua woods event" },
+  { id: "RUSTBORO_CITY", label: "Rustboro" },
+  { id: "RUSTBORO_CITY_GYM", label: "Gym entry" },
+  { id: "ROXANNE_DEFEATED", label: "Roxanne defeated" },
+  { id: "RUSTBORO_GYM_COMPLETE", label: "Gym complete" },
+  { id: "STONE_BADGE", label: "Badge" },
+  { id: "ROCK_TOMB_RECEIVED", label: "Rock Tomb" },
 ] as const;
-const RECORD_ORDER: readonly string[] = ["NEW_GAME_CREATED", "PLAYER_NAME_CONFIRMED", "FIRST_TRUCK_EXIT", "PLAYER_HOUSE_ENTERED", "MOM_CLOCK_INSTRUCTION", "PLAYER_BEDROOM", "CLOCK_SET", "MOM_RIVAL_INSTRUCTION", "PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_BEDROOM_REACHED", "RIVAL_MET", "ROUTE_101", "STARTER_CHOSEN", "BIRCH_RESCUE_COMPLETE", "BIRCH_STARTER_HANDOFF_COMPLETE", "OLDALE_TOWN", "ROUTE_103", "RIVAL_BATTLE_WON", "RECEIVED_POKEDEX", "STARTER_TUTORIAL_COMPLETE", "RUNNING_SHOES_RECEIVED", "ROUTE_102", "PETALBURG_CITY", "DAD_FIRST_MEETING", "WALLY_TUTORIAL_COMPLETE", "ROUTE_104", "PETALBURG_WOODS", "TEAM_AQUA_WOODS_EVENT_COMPLETE", "RUSTBORO_CITY", "RUSTBORO_CITY_GYM", "RUSTBORO_GYM_COMPLETE", "STONE_BADGE", "ROCK_TOMB_RECEIVED"];
+const RECORD_ORDER: readonly string[] = FRONTIER_MILESTONES.map(m => m.id);
 export interface ReferencePair { human: WorkbenchRun | null; best: WorkbenchRun | null }
 const MODEL_COLORS = ["#208b71", "#2583bd", "#8856b5", "#c25464", "#c16b27", "#238e9f", "#ae4c96", "#6a7e2f"];
 const modelName = (run: WorkbenchRun): string => run.model ?? "Model not recorded";
@@ -36,7 +67,7 @@ export function milestoneStatus(run: WorkbenchRun, name: string): "reached" | "u
   if (run.excluded !== null || run.problem !== null) return "excluded";
   if (run.splits.some(s => s.name === name)) return "reached";
   const features = run.measurement?.features;
-  const required = ["PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_BEDROOM_REACHED"].includes(name) ? "post-clock-navigation-milestones-v1" : name === "CLOCK_SET" ? "clock-milestone-v1" : name === "RUSTBORO_CITY_GYM" || name === "STONE_BADGE" ? "ram-state-v1" : "story-milestones-v2";
+  const required = name === "NEW_GAME_CREATED" ? "new-game-created-v1" : name === "ROXANNE_DEFEATED" ? "native-progress-activity-v1" : ["PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_BEDROOM_REACHED"].includes(name) ? "post-clock-navigation-milestones-v1" : name === "CLOCK_SET" ? "clock-milestone-v1" : ["LITTLEROOT_TOWN", "PLAYER_HOUSE_ENTERED", "PLAYER_BEDROOM", "ROUTE_101", "OLDALE_TOWN", "ROUTE_103", "ROUTE_102", "PETALBURG_CITY", "ROUTE_104", "PETALBURG_WOODS", "RUSTBORO_CITY", "RUSTBORO_CITY_GYM", "STONE_BADGE"].includes(name) ? "ram-state-v1" : "story-milestones-v2";
   if (features === undefined || !features.includes(required)) return "unsupported";
   return run.status === "ended" ? "not reached" : run.status === "live" || run.status === "paused" ? "pending" : "censored";
 }
@@ -62,7 +93,7 @@ export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRu
   for (const run of overlays) if (run.id !== refs.human?.id && run.id !== refs.best?.id && plottedAgent(run)) series.push({ run, color: colors.get(modelName(run)) ?? "#536d85", kind: "overlay" });
   if (refs.human !== null) series.push({ run: refs.human, color: "#304f7a", kind: "human" });
   if (refs.best !== null) series.push({ run: refs.best, color: "#af8915", kind: "best" });
-  const left = 43, right = width - 15, top = 20, bottom = 255, height = 350;
+  const left = 43, right = width - 15, top = 20, bottom = 255, height = 400;
   const values = series.flatMap(s => milestones.flatMap(m => s.run.splits.filter(p => p.name === m.id).map(p => p.elapsedMs / 60000)));
   const peak = Math.max(0, ...values) * 1.08, step = peak > 60 ? 20 : peak > 20 ? 5 : peak > 10 ? 2 : 1;
   const max = Math.max(1, Math.ceil(peak / step) * step);
@@ -70,7 +101,8 @@ export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRu
   const y = (minutes: number): number => bottom - (bottom - top) * minutes / max;
   let body = '<text x="0" y="10" class="wb-axis">Active minutes · lower is faster</text>';
   for (let i = 0; i <= 4; i++) { const value = max * i / 4, at = y(value); body += `<line class="wb-gridline" x1="${String(left)}" x2="${String(right)}" y1="${String(at)}" y2="${String(at)}"/><text class="wb-axis" x="${String(left - 7)}" y="${String(at + 4)}" text-anchor="end">${String(Number(value.toFixed(1)))}</text>`; }
-  milestones.forEach((m, i) => { const at = x(i); body += `<text class="wb-axis" transform="translate(${String(at)},278) rotate(-48)" text-anchor="end">${m.label}</text>`; });
+  const labelEvery = Math.ceil(milestones.length / Math.max(2, Math.floor((right - left) / 28)));
+  milestones.forEach((m, i) => { if (i % labelEvery !== 0 && i !== milestones.length - 1) return; const at = x(i); body += `<text class="wb-axis" transform="translate(${String(at)},278) rotate(-60)" text-anchor="end">${m.label}</text>`; });
   for (const { run, color, kind } of series) {
     let points: string[] = [];
     const flush = (): void => { if (points.length > 1) body += `<polyline data-series="${esc(run.id)}" fill="none" stroke="${color}" stroke-width="${kind === "overlay" ? "1.5" : "2.5"}" ${kind === "overlay" ? 'opacity=".45"' : ""} points="${points.join(" ")}"/>`; points = []; };
@@ -81,7 +113,7 @@ export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRu
   const models = Array.from(new Set(series.filter(s => s.kind === "overlay").map(s => modelName(s.run))));
   const references = series.filter(s => s.kind !== "overlay").map(s => `<span data-reference="${s.kind}"><svg aria-hidden="true" viewBox="0 0 40 18" fill="${s.color}" stroke="${s.color}" stroke-width="2"><line x1="0" x2="40" y1="9" y2="9"/>${markerShape(s.kind, 20, 9)}</svg>${s.kind === "human" ? "Human baseline" : `Agent frontier · ${esc(modelName(s.run))}`}</span>`).join("");
   const legend = `<div class="wb-model-legend" aria-label="Graph legend">${models.map(model => `<span data-model="${esc(model)}"><i style="background:${colors.get(model) ?? "#536d85"}"></i>${esc(model)}</span>`).join("")}${references}</div>`;
-  return `${unavailable}${legend}<svg class="wb-chart wb-frontier-chart" viewBox="0 0 ${String(width)} ${String(height)}" role="img" aria-label="Full story frontier through gym and badge">${body}</svg>`;
+  return `${unavailable}${legend}<svg class="wb-chart wb-frontier-chart" viewBox="0 0 ${String(width)} ${String(height)}" role="img" aria-label="Full story frontier through gym and badge">${body}</svg><p class="wb-muted">${String(milestones.length)} required progression checkpoints.${labelEvery === 1 ? "" : " Some axis labels are hidden to fit this width; all recorded points remain plotted."} Expand “Completion, missing data &amp; exact times” below for every checkpoint. Missing recordings break the line.</p>`;
 }
 export function frontierNotes(refs: ReferencePair): string {
   const reference = (run: WorkbenchRun | null, title: string, color: string): string => run === null ? `<span>${title}: unavailable</span>` : `<button type="button" class="wb-reference" data-run="${esc(run.id)}"><i style="background:${color}"></i><strong>${title}</strong> · ${esc(run.model ?? "Model not recorded")} · ${esc(run.id)}</button>`;

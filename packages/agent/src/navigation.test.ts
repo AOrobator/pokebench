@@ -112,3 +112,51 @@ it("keeps refusing tiles the game refuses or moves the player off on foot",()=>{
   0xd1,0xd3,0xd4,0xd5,0xd6];
  for(const behavior of refused)expect(planNavigation(corridor(behavior),{x:2,y:0}),behavior.toString(16)).toBeNull();
 });
+it("hops a ledge down onto sand",()=>{
+ const beach=ledgeField(0x3b,{tiles:[tile(1,0),tile(1,1,1,0x3b),tile(1,2,0,0x21)]});
+ expect(planNavigation(beach,{x:1,y:2},{ledges:true})).toEqual(["DOWN"]);
+});
+// pokeemerald 731ad5b: MB_JUMP_EAST/WEST/NORTH/SOUTH = 0x38..0x3B carry collision; moving
+// into one in its direction jumps two tiles (GetLedgeJumpDirection, PlayerJumpLedge).
+const ledgeField=(ledge:number,extra:Partial<Grid>={},position={x:1,y:0}):GameStateSnapshot=>({...field,position,navigation_grid:{elevation:3,tiles:[tile(1,0),tile(1,1,1,ledge),tile(1,2),tile(0,1),tile(2,1),tile(0,0),tile(0,2),tile(2,0),tile(2,2)],objects:[],warps:[],...extra}});
+type Grid=NonNullable<GameStateSnapshot["navigation_grid"]>;
+it("hops a ledge only in its arrow direction and only with ledge hops enabled",()=>{
+ const south=ledgeField(0x3b,{tiles:[tile(1,0),tile(1,1,1,0x3b),tile(1,2)]});
+ expect(planNavigation(south,{x:1,y:2},{ledges:true})).toEqual(["DOWN"]);
+ expect(planNavigation(south,{x:1,y:2})).toBeNull();
+ expect(planNavigation({...south,position:{x:1,y:2}},{x:1,y:0},{ledges:true})).toBeNull();
+ expect(planNavigation(south,{x:1,y:1},{ledges:true})).toBeNull();
+ const east=ledgeField(0x38,{tiles:[tile(0,1),tile(1,1,1,0x38),tile(2,1)]},{x:0,y:1});
+ expect(planNavigation(east,{x:2,y:1},{ledges:true})).toEqual(["RIGHT"]);
+ expect(planNavigation({...east,position:{x:2,y:1}},{x:0,y:1},{ledges:true})).toBeNull();
+ const west=ledgeField(0x39,{tiles:[tile(0,1),tile(1,1,1,0x39),tile(2,1)]},{x:2,y:1});
+ expect(planNavigation(west,{x:0,y:1},{ledges:true})).toEqual(["LEFT"]);
+ const north=ledgeField(0x3a,{tiles:[tile(1,0),tile(1,1,1,0x3a),tile(1,2)]},{x:1,y:2});
+ expect(planNavigation(north,{x:1,y:0},{ledges:true})).toEqual(["UP"]);
+ expect(planNavigation({...north,position:{x:1,y:0}},{x:1,y:2},{ledges:true})).toBeNull();
+});
+it("prefers a hop over a longer walk and never lands on blocked, occupied, warp or unknown tiles",()=>{
+ expect(planNavigation(ledgeField(0x3b),{x:1,y:2},{ledges:true})).toEqual(["DOWN"]);
+ expect(planNavigation(ledgeField(0x3b),{x:1,y:2})).toEqual(["LEFT","DOWN","DOWN","RIGHT"]);
+ const column=(landing:Partial<Grid>,tiles=[tile(1,0),tile(1,1,1,0x3b),tile(1,2),tile(1,3)])=>ledgeField(0x3b,{tiles,...landing});
+ expect(planNavigation(column({}),{x:1,y:3},{ledges:true})).toEqual(["DOWN","DOWN"]);
+ expect(planNavigation(column({objects:[{x:1,y:2}]}),{x:1,y:3},{ledges:true})).toBeNull();
+ expect(planNavigation(column({warps:[{x:1,y:2}]}),{x:1,y:2},{ledges:true})).toBeNull();
+ expect(planNavigation(column({objects:[{x:1,y:1}]}),{x:1,y:3},{ledges:true})).toBeNull();
+ expect(planNavigation(column({},[tile(1,0),tile(1,1,1,0x3b),tile(1,2,1)]),{x:1,y:2},{ledges:true})).toBeNull();
+ expect(planNavigation(column({},[tile(1,0),tile(1,1,1,0x3b),tile(1,2,0,0x10)]),{x:1,y:2},{ledges:true})).toBeNull();
+ expect(planNavigation(column({},[tile(1,0),tile(1,1,1,0x3b),tile(1,2,0,0,4)]),{x:1,y:2},{ledges:true})).toBeNull();
+ expect(planNavigation({...column({},[tile(1,0),tile(1,1,1,0x3b)]),topology:{width:5,height:5,connections:[]}},{x:1,y:4},{ledges:true})).toBeNull();
+});
+it("expects a two-tile landing after a hop press and stops on any other movement",async()=>{
+ const south=ledgeField(0x3b,{tiles:[tile(1,0),tile(1,1,1,0x3b),tile(1,2),tile(1,3)]});
+ const run=async(after:GameStateSnapshot,ledges:boolean)=>{let current=south;const buttons:string[][]=[];
+  const tool=navigationTool({ledges,read:()=>Promise.resolve(current),press:(_id,params)=>{buttons.push([...params.buttons]);current=after;return Promise.resolve(result(current));},observe:()=>Promise.resolve(result(current))});
+  const outcome=await tool.execute("nav",{x:1,y:2,map_id:[0,9]});return {buttons,text:outcome.content[0]?.type==="text"?outcome.content[0].text:"",description:tool.description};};
+ const hopped=await run({...south,position:{x:1,y:2}},true);
+ expect(hopped.buttons).toEqual([["DOWN"]]);expect(hopped.text).toContain("arrived at requested coordinate");
+ expect(hopped.description).toContain("hops a ledge only in its arrow direction");
+ const short=await run({...south,position:{x:1,y:1}},true);expect(short.text).toContain("unexpected movement");
+ const disabled=await run({...south,position:{x:1,y:2}},false);expect(disabled.buttons).toEqual([]);expect(disabled.text).toContain("no supported local path");
+ expect(disabled.description).not.toContain("ledge");
+});

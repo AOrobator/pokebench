@@ -35,3 +35,11 @@ pret/pokeemerald 731ad5b:
 - GREEN: `fix: navigate_to walks every floor the game lets the player walk`. agent 893/893,
   viewer 419/419; agent coverage 97.1/93.16/97.86 (navigation.ts 91.71 stmts / 91.83 branches /
   100 funcs); `pnpm -r lint` clean. Python untouched.
+- Evidence (real RAM grids): replayed the human run `runs/human/2026-10-13T23-50-13_human_1848`
+  (3,226 sampled field states with non-legacy floor). Of 12,515 `.` targets, the old rule reached
+  5,092 and the new one 7,280: 2,188 newly reachable (Route 104 1,750, Rusturf Tunnel 161,
+  Route 116 51, Route 115 71, house rugs 155), 0 newly unreachable.
+- Merged main 986b386 (ledge hops landed in navigation.ts). Conflict at the WALKING/LEDGES
+  constants resolved by keeping both; ledge landings now accept sand etc. via WALKING (test
+  "hops a ledge down onto sand"). agent 900/900, viewer 419/419, lint clean, navigation.ts
+  93.71/93.29/100/100.

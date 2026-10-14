@@ -199,3 +199,5 @@ Pending.
 - Codex: BLOCKING: (1) a result with empty arm objects still closed an experiment; (2) a result graded under an earlier definition kept the experiment `done` after the definition changed, and was reused after re-approval. (2) is a real behavior bug.
 - Operator (21:37): "7 rounds is a bit much". Plan agreed in thread: fix real behavior bugs and merge; stop and ask instead of another round for style-only findings.
 - RED: result.json is bound to the definition hash it graded and needs arm counts; a changed definition makes a graded experiment stale, and re-approval regrades it without launching.
+- GREEN for r7: result.json records `definitionSha256`; `gradedResult` counts it only when that hash matches the current definition and both arms carry integer `launched`/`reached`. A changed definition therefore makes a graded experiment stale, and re-approval regrades it from the ledger without launching.
+- Gates: agent 961 (97.24/93.50/98.01), viewer 538 (95.16/90.53/94.47), Python 1847, lint clean.

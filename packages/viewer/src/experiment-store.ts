@@ -175,16 +175,17 @@ export function experimentView(e: Experiment, input: { approval: Approval | null
 }
 
 // Graded means result.json is a file holding a comparison result, not only a grading problem.
-export function gradedResult(path: string): ResultSummary | null {
+export function gradedResult(path: string, definitionSha256: string): ResultSummary | null {
   try {
     if (!statSync(path).isFile()) return null;
     const value: unknown = JSON.parse(readFileSync(path, "utf8"));
-    if (typeof value !== "object" || value === null || !("result" in value)) return null;
+    // A result graded under an earlier definition no longer counts.
+    if (typeof value !== "object" || value === null || !("result" in value) || !("definitionSha256" in value) || value.definitionSha256 !== definitionSha256) return null;
     const r = value.result;
     if (typeof r !== "object" || r === null) return null;
     const get = (k: string): unknown => (r as Record<string, unknown>)[k];
     const verdict = get("verdict"), recommendation = get("recommendation"), eligible = get("eligible"), problems = get("problems");
-    const arm = (k: string): boolean => typeof get(k) === "object" && get(k) !== null;
+    const arm = (k: string): boolean => { const a = get(k); return typeof a === "object" && a !== null && Number.isInteger((a as Record<string, unknown>)["launched"]) && Number.isInteger((a as Record<string, unknown>)["reached"]); };
     // A comparePatchResults report, or nothing: a partial file keeps the experiment open.
     if (typeof verdict !== "string" || !VERDICTS.includes(verdict) || typeof recommendation !== "string" || !RECOMMENDATIONS.includes(recommendation) || typeof eligible !== "boolean" ||
       !Array.isArray(problems) || !problems.every((p) => typeof p === "string") || !arm("incumbent") || !arm("candidate")) return null;
@@ -215,7 +216,7 @@ export function queueSnapshot(paths: QueuePaths, source: RunSource, alive: (pid:
   const recorded = existsSync(paths.readinessPath) ? parseReadinessDoc(readFileSync(paths.readinessPath, "utf8")) : new Map<string, RecordedReadiness>();
   const runner = readRunner(paths.runsRoot, alive);
   const recent = experiments.length === 0 ? [] : source.recent();
-  const views = experiments.map((e) => experimentView(e, { approval: approvalOf(paths.runsRoot, e.id, problems), ledger: ledgerOf(paths.runsRoot, e.id, problems), runner, recent, source, recorded: recorded.get(e.changedFeature) ?? null, result: gradedResult(join(experimentDir(paths.runsRoot, e.id), "result.json")) }));
+  const views = experiments.map((e) => experimentView(e, { approval: approvalOf(paths.runsRoot, e.id, problems), ledger: ledgerOf(paths.runsRoot, e.id, problems), runner, recent, source, recorded: recorded.get(e.changedFeature) ?? null, result: gradedResult(join(experimentDir(paths.runsRoot, e.id), "result.json"), definitionHash(e)) }));
   const positions = new Map<number, string>();
   for (const v of views) {
     if (v.queuePosition === null) continue;

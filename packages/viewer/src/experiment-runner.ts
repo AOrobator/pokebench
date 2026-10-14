@@ -194,7 +194,7 @@ function readEvents(runsRoot: string, runId: string): RunEvent[] {
   return readFileSync(join(runsRoot, runId, "events.jsonl"), "utf8").split("\n").filter((line) => line.trim() !== "").map((line) => parseEvent(line));
 }
 
-export interface ExperimentResult { readonly experiment: string; readonly gradedAt: string; readonly result: PatchResult | null; readonly problem: string | null }
+export interface ExperimentResult { readonly experiment: string; readonly definitionSha256: string; readonly gradedAt: string; readonly result: PatchResult | null; readonly problem: string | null }
 // Grades the finished trials with the patch evaluator; no promotion follows from it (INV-Q7).
 export function gradeExperiment(paths: QueuePaths, experiment: Experiment, now: Date = new Date()): ExperimentResult {
   const entries = ledgerEntries(paths, experiment.id);
@@ -214,9 +214,9 @@ export function gradeExperiment(paths: QueuePaths, experiment: Experiment, now: 
       }),
     });
     const result = comparePatchResults({ patchId: experiment.id, target: experiment.primaryMilestone, changedFeature: experiment.changedFeature, stage: "screening", speedMarginPercent: experiment.criteria.speedMarginPercent, completionTolerance: experiment.criteria.completionTolerance, trialsPerArm: experiment.trialsPerArm, incumbent: armOf("incumbent"), candidate: armOf("candidate") });
-    return { experiment: experiment.id, gradedAt: now.toISOString(), result, problem: null };
+    return { experiment: experiment.id, definitionSha256: definitionHash(experiment), gradedAt: now.toISOString(), result, problem: null };
   } catch (error) {
-    return { experiment: experiment.id, gradedAt: now.toISOString(), result: null, problem: error instanceof Error ? error.message : String(error) };
+    return { experiment: experiment.id, definitionSha256: definitionHash(experiment), gradedAt: now.toISOString(), result: null, problem: error instanceof Error ? error.message : String(error) };
   }
 }
 

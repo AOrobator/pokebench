@@ -97,7 +97,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("bounded-navigation-v1", "guidance", "BOUNDED NAVIGATION", "live-map-v1",
     "Adds navigate_to for up to eight ordinary walking attempts using the live local map, plus the current map ID needed by the tool. The model chooses destinations. Stops on blocked movement, locks or map changes; unsupported terrain is avoided. Off: no navigate_to tool."),
   on("grass-cost-navigation-v1", "guidance", "GRASS-AVOIDING NAVIGATION", "bounded-navigation-v1",
-    "navigate_to counts each step into tall or long grass as 1.5 steps, so it takes a slightly longer route around grass when one exists, to avoid wild encounters. Matches PokeAgent's grass penalty. Off: every walkable step costs the same."),
+    "navigate_to counts each step into tall or long grass as 1.5 steps, so it takes a slightly longer route around grass when one exists, to avoid wild encounters. Adapted from PokeAgent's grass penalty, which leaves long grass at 1. Off: every walkable step costs the same."),
   on("field-dialogue-phase-v1", "observation", "DIALOGUE PHASE", RAM,
     "Reports a qualified field-message printer phase, buffer position and whether A/B can advance a page, or the qualified script/interface activity retaining its window. Unknown ownership stays unavailable; no story route is supplied. Off: incumbent dialogue readout."),
   on("dialogue-safe-batches-v1", "guard", "SAFE INTERFACE INPUT", RAM,

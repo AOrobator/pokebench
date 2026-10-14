@@ -48,6 +48,9 @@ with no dependency problems on 96808e0.
   Note: main carries two stray tracked scratch files (`.tmp-chunk-search.py`,
   `.tmp-search-pokeemerald.py`, from 2fc6f9e); left untouched here.
 COMMIT: `Merge branch 'main' into claude/grass-cost` (main at 5195c88)
+- Switch description said it "matches" PokeAgent's penalty; corrected to say it is adapted
+  (PokeAgent leaves long grass at 1). agent 920/920.
+COMMIT: `docs(agent): describe grass cost as adapted from PokeAgent`
 - [ ] Review: Claude CLI, Codex (GPT lane), Cursor Grok. Local endpoint lanes skipped per operator.
 - [ ] Operator approval for the local merge into main.
 - [ ] Operator approval before any measured run.

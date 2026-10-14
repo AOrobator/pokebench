@@ -38,6 +38,7 @@ export const SWITCHABLE_FEATURES = [
   "objective-tracking-v1",
   "repeat-attempt-guard-v1",
   "native-objective-completion-v1",
+  "full-map-navigation-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -135,6 +136,8 @@ export const FEATURES: readonly FeatureInfo[] = [
     "After two presses of the same buttons from the same state change nothing, blocks a third until the model updates its objective with a retry reason; also warns on returning to the same tile repeatedly. Off: attempts are recorded without warnings or blocks."),
   on("native-objective-completion-v1", "guard", "NATIVE COMPLETION", "objective-tracking-v1",
     "Story objectives complete automatically when the game records the milestone, and the model cannot mark them complete itself. Off: nothing completes automatically; the model reports objectives complete on its own say-so."),
+  on("full-map-navigation-v1", "guidance", "WHOLE-MAP NAVIGATION", "bounded-navigation-v1",
+    "Replaces the 15x15 local map with the whole current map, one character per tile, and lets navigate_to walk the full route (up to 512 presses), re-planning before each press. Stops on blocked or unexpected movement, locks and map changes as before, and after 16 presses without the route getting shorter; a route never crosses a warp unless it is the destination. Off: local map and up to eight attempts per call."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",
@@ -179,7 +182,8 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "expanded-menu-battle-information-v1",
   "ram-state-v1", "live-map-v1", "live-player-position-v1", "world-coordinate-grid-v1", "live-object-sprites-v1",
   "world-targets-v1", "named-interactions-v1", "world-destinations-v1", "bounded-navigation-v1", "field-dialogue-phase-v1", "active-field-message-buffer-v1", "naming-cursor-v1", "story-state-v1",
-  "coordinate-script-conditions-v1", "field-control-lock", "warp-activation-guidance-v1", "ledge-hops-v1", "one-way-tiles-v1", "counter-talk-v1",
+  "coordinate-script-conditions-v1", "field-control-lock", "warp-activation-guidance-v1", "ledge-hops-v1", "one-way-tiles-v1",
+  "full-map-navigation-v1", "counter-talk-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -204,6 +208,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...(target === null ? [] : ["native-target-stop-v1"]), "deterministic-loop-diagnostics-v1", LOOP_POLICY_FEATURE,
     ...when("deterministic-loop-guard-v1"), ...when("contextual-interface-docs-v1"),
     ...when("navigation-evidence-memory-v1"), ...when("automatic-running-v1"), ...when("expanded-menu-battle-information-v1"), ...when("state-only-decisions-v1"), ...when("objective-tracking-v1"), ...when("repeat-attempt-guard-v1"), ...when("native-objective-completion-v1"),
+    ...when("full-map-navigation-v1"),
   ];
 }
 

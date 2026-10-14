@@ -197,6 +197,9 @@ def test_measurement_json_is_identical_with_every_switch_off(
         status, _, body = get(app, "/pokebench/observation")
         assert status == 200, body
         payloads.append(json.loads(body))
+    # Whole-map navigation is the one switch that adds planner geometry to the state.
+    assert payloads[0]["state"].pop("map_grid")["width"] == 5
+    assert "map_grid" not in payloads[1]["state"]
     assert payloads[0]["state"] == payloads[1]["state"]
     assert payloads[0]["state_text"] != "" and payloads[1]["state_text"] == ""
 
@@ -216,6 +219,7 @@ def test_env_list_is_validated() -> None:
             "bounded-navigation-v1",
             "expanded-menu-battle-information-v1",
             "field-dialogue-phase-v1",
+            "full-map-navigation-v1",
         }
     )
     assert features_off_from_env({"POKEBENCH_FEATURES_OFF": ""}) == frozenset()
@@ -225,7 +229,7 @@ def test_env_list_is_validated() -> None:
     for bad in ("invented-v1", "live-map-v1,,story-state-v1", "deterministic-loop-guard-v1"):
         with pytest.raises(ValueError, match="POKEBENCH_FEATURES_OFF"):
             features_off_from_env({"POKEBENCH_FEATURES_OFF": bad})
-    assert "active-ui-ownership-v1" not in SERVER_FEATURES and len(SERVER_FEATURES) == 20
+    assert "active-ui-ownership-v1" not in SERVER_FEATURES and len(SERVER_FEATURES) == 21
 
 
 def test_observation_route_applies_the_env_switches(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -242,3 +246,37 @@ def test_observation_route_applies_the_env_switches(monkeypatch: pytest.MonkeyPa
 class _Shot:
     def model_dump(self) -> dict[str, object]:
         return {"screenshot_base64": "iVBORw0KGgo="}
+
+
+def test_full_map_switch_replaces_the_local_grid_and_adds_map_grid_only_when_on(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("POKEBENCH_FEATURES_OFF", "")
+    app = FastAPI()
+    install_observation(app, lambda: _Shot(), map_memory().read, MAPS)
+    _, _, body = get(app, "/pokebench/observation")
+    payload = json.loads(body)
+    assert "Whole current map from live memory (5x5)" in payload["state_text"]
+    assert "Local map from live memory" not in payload["state_text"]
+    assert payload["state"]["map_grid"]["width"] == 5
+    assert len(payload["state"]["navigation_grid"]["tiles"]) == 25
+    _, _, state_body = get(app, "/pokebench/state")
+    assert json.loads(state_body)["map_grid"]["height"] == 5
+    monkeypatch.setenv("POKEBENCH_FEATURES_OFF", "full-map-navigation-v1")
+    app = FastAPI()
+    install_observation(app, lambda: _Shot(), map_memory().read, MAPS)
+    _, _, body = get(app, "/pokebench/observation")
+    payload = json.loads(body)
+    assert "Local map from live memory" in payload["state_text"]
+    assert "Whole current map" not in payload["state_text"]
+    assert "map_grid" not in payload["state"]
+
+
+def test_full_map_text_respects_live_map_and_coordinate_switches() -> None:
+    state = read_game_state(map_memory().read, MAPS, full_map_enabled=True)
+    assert state.full_map is not None
+    assert "Whole current map" in format_readout(state)
+    assert "Whole current map" not in format_readout(state, frozenset({"live-map-v1"}))
+    assert "     01234" not in format_readout(state, frozenset({"world-coordinate-grid-v1"}))
+    local = format_readout(state, frozenset({"full-map-navigation-v1"}))
+    assert "Local map from live memory" in local and "Whole current map" not in local

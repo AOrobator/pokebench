@@ -11,7 +11,7 @@ figure{margin:22px 0;padding:18px;background:var(--panel);border:1px solid var(-
 table{width:100%;border-collapse:collapse;font-size:15px}td,th{text-align:left;vertical-align:top;padding:10px;border-bottom:1px solid var(--edge)}code{font:14px ui-monospace,SFMono-Regular,monospace;overflow-wrap:anywhere}.tab{overflow:auto}
 pre{font:13px/1.5 ui-monospace,SFMono-Regular,monospace;background:var(--bg);border:1px solid var(--edge);border-radius:10px;padding:14px;overflow:auto}</style><main>
 <p>POKEBENCH · FEATURE EXPLAINER</p><h1>navigate_to now climbs stairs and crosses bridges</h1>
-<p>Every map tile has an elevation from 0 to 15, and the player carries one too. The game refuses a step onto a tile at a different height. <code>planNavigation</code> had two rules wrong: it kept the old height on stairs, and it took on height 15 on bridges. It now copies the game's two rules exactly. This is a fix inside <code>bounded-navigation-v1</code>; there is no new switch.</p>
+<p>Every map tile has an elevation from 0 to 15, and the player carries one too. The game refuses a step onto a tile at a different height. <code>planNavigation</code> had two rules wrong: it kept the old height on stairs, and it took on height 15 on bridges. It now copies the game's two rules exactly. It applies inside <code>bounded-navigation-v1</code> and now has its own switch, <code>elevation-transitions-v1</code> (ON by default; see section 6).</p>
 <h2>1. The game's rules</h2>
 <figure><div class="tab"><table><tr><th></th><th>pokeemerald (731ad5b)</th><th>Before</th><th>After</th></tr>
 <tr><td><b>Can I step there?</b></td><td><code>IsElevationMismatchAt</code>, event_object_movement.c:7673. Allowed if you are at 0, or the tile is 0 or 15, or the heights match.</td><td>Allowed if you or the tile were 0, or heights matched. <b>A 15 tile was refused</b> unless you were already 15.</td><td>Same as the game.</td></tr>
@@ -34,10 +34,34 @@ pre{font:13px/1.5 ui-monospace,SFMono-Regular,monospace;background:var(--bg);bor
 const mismatch=(walker,tile)=&gt;walker!==0&amp;&amp;tile!==0&amp;&amp;tile!==MULTI_LEVEL&amp;&amp;tile!==walker;
 const entered=(walker,tile)=&gt;tile===MULTI_LEVEL?walker:tile;</pre>
 <figcaption>Each search node is a tile plus the walker's height, as before; a test proves a tile can be reachable at one height and not another. For ledge jumps a <code>jumped</code> helper also looks at the take-off and ledge tiles. Review round 1 caught an earlier version that looked at the tile you leave on ordinary steps; that only matters halfway through a step, so it was removed.</figcaption></figure>
-<h2>6. Status</h2>
+<h2>6. The switch: elevation-transitions-v1</h2>
+<p>The rule is now behind a switch so it can be A/B tested. It is ON by default, so runs and presets keep today's behavior, and a preset written before the switch existed counts as ON. OFF brings back the rule from before this change. Nothing the model reads changes in either state; only <code>navigate_to</code>'s planner does.</p>
+<figure><div class="pair">
+<div><h3>ON (default): the game's rule</h3><div class="diagram"><svg viewBox="0 0 300 120" role="img" aria-label="Walker at height 3 steps onto stairs at height 0, then onto height 4: allowed">
+<rect class="t e3" x="20" y="30" width="70" height="60"/><rect class="t e0" x="115" y="30" width="70" height="60"/><rect class="t e4" x="210" y="30" width="70" height="60"/>
+<text class="el" x="47" y="66">3</text><text class="el" x="142" y="66">0</text><text class="el" x="237" y="66">4</text>
+<path class="good" d="M55 105 L150 105 L245 105"/><circle class="start" cx="55" cy="105" r="6"/><circle class="goal" cx="245" cy="105" r="8"/>
+<text class="ax" x="20" y="20">stairs (0) let the next step set height 4</text></svg></div></div>
+<div><h3>OFF: the earlier rule</h3><div class="diagram"><svg viewBox="0 0 300 120" role="img" aria-label="With the switch off, height 0 keeps the walker at 3, so the height 4 tile is blocked">
+<rect class="t e3" x="20" y="30" width="70" height="60"/><rect class="t e0" x="115" y="30" width="70" height="60"/><rect class="t e4" x="210" y="30" width="70" height="60"/>
+<text class="el" x="47" y="66">3</text><text class="el" x="142" y="66">0</text><text class="el" x="237" y="66">4</text>
+<path class="good" d="M55 105 L150 105"/><path class="bad" d="M150 105 L245 105"/><circle class="start" cx="55" cy="105" r="6"/><circle class="goal" cx="245" cy="105" r="8"/>
+<text class="ax" x="20" y="20">0 keeps height 3, so 4 mismatches: no path</text></svg></div></div>
+</div><figcaption>The same three tiles with the switch ON and OFF, as in the test "elevation-transitions-v1 off restores the pre-transition rule on both geometries". With it OFF, height 15 also blocks like any other height, and a ledge landing on 0 keeps the walker's height.</figcaption></figure>
+<figure><div class="diagram"><svg viewBox="0 0 640 95" role="img" aria-label="Wiring from run preset through withNavigation and the navigate_to port to the planner rule">
+<rect class="t other" x="5" y="20" width="135" height="50" rx="10"/><text class="el" x="20" y="50">run preset</text>
+<rect class="t other" x="170" y="20" width="135" height="50" rx="10"/><text class="el" x="182" y="50">withNavigation</text>
+<rect class="t other" x="335" y="20" width="135" height="50" rx="10"/><text class="el" x="342" y="50">navigate_to port</text>
+<rect class="t e15" x="500" y="20" width="135" height="50" rx="10"/><text class="el" x="515" y="50">planner rule</text>
+<path class="good" d="M140 45 L170 45 M305 45 L335 45 M470 45 L500 45"/>
+<text class="ax" x="335" y="90">elevation: "game" or "legacy"</text></svg></div>
+<figcaption>The switch travels from the run's feature set through the production factory to the one place behavior changes: the planner's elevation rule. A factory test removes this wiring and fails.</figcaption></figure>
+<h2>7. Status</h2>
+
 <figure><ul><li>Branch <code>claude/elevation-transitions</code>, merged with main 9f111d1 (includes ledge hops).</li>
 <li>Tests: agent 899, viewer 476, Python 1803 pass. Coverage agent 97.2 / 93.3 / 97.9, Python 96.7 / 91.8 / 100 (floor 90). Lint and build clean.</li>
 <li>Test fixtures are real 15×15 windows decoded from pokeemerald map.bin: <code>packages/agent/test-support/elevation-maps.json</code>.</li>
 <li>Review: Claude, Codex and Grok all LGTM after three rounds (round 1 fixed leaving a 15 tile; round 2 added the search-identity and ledge-onto-15 tests).</li><li>Not done: no live run on the pier or Route 110; no measured benchmark runs; not merged to main.</li>
+<li>2026-10-14: switch added on <code>claude/experiment-queue</code> (default ON, planner-only). It is queued as an A/B experiment, position 2, waiting for the operator&rsquo;s approval. No measured runs yet.</li>
 <li>Still open elsewhere: sand, cave and bridge behaviors are walls to the planner; the model's text map does not show elevation.</li></ul></figure>
 </main></html>

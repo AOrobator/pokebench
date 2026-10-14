@@ -234,3 +234,11 @@ COMMIT: `fix(agent): close review round 2 findings` (402d002)
   then starting a run from it) exercises the live path end to end with recorded evidence.
   Gates: agent 990/990, viewer 499/499, agent all files 97.35/93.68/97.97, tsc/eslint clean.
 - The review skill requires operator scope confirmation before a fourth round; asking the operator.
+COMMIT: `fix: close review round 3 findings` (b21a718)
+- The operator (21:43 UTC): "no more review, merge it". Wants a combined experiment: whole-map alone,
+  navigation memory alone, and both together. Proposed a 2×2 (neither / map / memory / both,
+  8 per arm) before stacking the four new switches; waiting on his OK.
+- Merged main (fe84704: experiment queue, elevation and walkable-floor switches) into the branch.
+  Conflicts in features/play-preset and their tests resolved by keeping main's switches and adding
+  the four new ones after them (guidance 19, guard 7, switchboard rows 40). Agent 1015/1015,
+  viewer 549/549, tsc/eslint clean.

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Frontier Zoom</title>
+<style>
+:root { --bg:#f4f7fa; --card:#fff; --ink:#22303c; --muted:#5a6b7a; --line:#c9d4de; --human:#304f7a; --agent:#af8915; --hide:#dfe6ec; --accent:#3a6ea5; }
+@media (prefers-color-scheme: dark) { :root { --bg:#141a20; --card:#1d252d; --ink:#e3e9ee; --muted:#9aabb9; --line:#3a4651; --human:#8fb4e6; --agent:#e2bd4a; --hide:#2a333c; --accent:#7fb0e6; } }
+body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.6 system-ui, -apple-system, sans-serif; }
+main { max-width:900px; margin:0 auto; padding:24px 16px 60px; }
+h1 { font-size:24px; margin:0 0 6px; } h2 { font-size:18px; margin:32px 0 8px; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; overflow-x:auto; }
+figcaption { color:var(--muted); font-size:13px; margin-top:8px; }
+svg text { fill:var(--ink); font:12px system-ui, sans-serif; } .muted { fill:var(--muted); }
+table { border-collapse:collapse; width:100%; font-size:14px; } td, th { border-bottom:1px solid var(--line); padding:6px 8px; text-align:left; }
+code { font-size:13px; }
+</style></head><body><main>
+<h1>Zoom to frontier</h1>
+<p>The story frontier graph on Runs &amp; Comparisons has 36 checkpoints. Agents currently stop near the start, so the full human run squeezes their lines into the left third. A <b>FRONTIER / FULL BASELINE</b> control on the graph heading now picks the range. FRONTIER is the default.</p>
+
+<h2>Where the graph ends</h2>
+<figure class="card"><svg viewBox="0 0 820 170" width="820" role="img" aria-label="Checkpoint strip showing the zoom end">
+<g>
+<rect x="10" y="40" width="440" height="40" rx="6" fill="none" stroke="var(--accent)" stroke-width="2"/>
+<text x="14" y="30">Shown with FRONTIER (14 of 36 today)</text>
+<rect x="455" y="40" width="355" height="40" rx="6" fill="var(--hide)"/>
+<text x="460" y="30" class="muted">Hidden until FULL BASELINE (22)</text>
+</g>
+<g>
+<text x="20" y="66">New game … Rival bedroom</text>
+<circle cx="300" cy="60" r="7" fill="var(--agent)"/><text x="275" y="110">Rival met</text><text x="250" y="126" class="muted">farthest agent</text>
+<path d="M300 60 L 400 60" stroke="var(--human)" stroke-width="2" stroke-dasharray="4 3"/>
+<path d="M400 53 l2 5 5 0 -4 3 2 5 -5 -3 -5 3 2 -5 -4 -3 5 0 Z" fill="var(--human)"/><text x="375" y="110">Route 101</text><text x="345" y="126" class="muted">next human checkpoint</text>
+<text x="470" y="66" class="muted">Starter … Rock Tomb</text>
+</g>
+</svg><figcaption>Today's recorded runs: the farthest any plotted agent reached is Rival met, so the graph ends one human checkpoint later, at Route 101. The time axis rescales to only the visible points.</figcaption></figure>
+
+<h2>The rule</h2>
+<div class="card"><table>
+<tr><th>Situation</th><th>Graph ends at</th></tr>
+<tr><td>Agents reached checkpoint N, human reached a later one</td><td>The first checkpoint after N that the human reached</td></tr>
+<tr><td>No human baseline, or the human has nothing past N</td><td>Checkpoint N + 1</td></tr>
+<tr><td>No agent has any checkpoint yet</td><td>At least the first two checkpoints</td></tr>
+<tr><td>An agent reached the last checkpoint or the one before it</td><td>Full graph, no zoom note</td></tr>
+</table><p>“Agents” means every agent line on the graph: the filtered overlay runs, the gold agent frontier run, and any live or paused run. The human line never widens the zoom. Changing the Experiment, Model or Overlay filter can move the end.</p></div>
+
+<h2>What stays the same</h2>
+<ul>
+<li>The completion table below the graph still lists all 36 checkpoints.</li>
+<li>Run selection, reference lines, colors and point details are unchanged.</li>
+<li>The choice survives the page polling for new data. Reloading the page returns to FRONTIER.</li>
+</ul>
+
+<h2>Status</h2>
+<p>Branch <code>claude/frontier-zoom</code>. Viewer tests, coverage, lint and build pass. Code lives in <code>packages/viewer/src/frontier.ts</code> (<code>zoomEnd</code>, the <code>zoom</code> argument of <code>frontierPlot</code>) and <code>workbench.ts</code>.</p>
+</main></body></html>

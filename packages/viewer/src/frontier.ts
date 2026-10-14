@@ -86,9 +86,14 @@ function mark(run: WorkbenchRun, name: string, x: number, y: number, color: stri
   const body = markerShape(shape, x, y);
   return `<g class="wb-mark" role="button" tabindex="0" data-run="${esc(run.id)}" data-split="${esc(name)}" aria-label="${esc(title)}" fill="${color}" stroke="${color}" stroke-width="${shape === "best" ? "2" : "1"}"><title>${esc(title)}</title>${body}</g>`;
 }
-export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRun[], requestedWidth: number, colors = frontierModelColors([...overlays, ...(refs.best === null ? [] : [refs.best])]), currentRuns: readonly WorkbenchRun[] = []): string {
+function zoomEnd(agents: readonly WorkbenchRun[], human: WorkbenchRun | null): number {
+  const reached = (run: WorkbenchRun, i: number): boolean => run.splits.some(s => s.name === RECORD_ORDER[i]);
+  const farthest = Math.max(-1, ...agents.map(run => RECORD_ORDER.findLastIndex((_, i) => reached(run, i))));
+  const next = human === null ? -1 : RECORD_ORDER.findIndex((_, i) => i > farthest && reached(human, i));
+  return Math.min(RECORD_ORDER.length - 1, Math.max(1, next === -1 ? farthest + 1 : next));
+}
+export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRun[], requestedWidth: number, colors = frontierModelColors([...overlays, ...(refs.best === null ? [] : [refs.best])]), currentRuns: readonly WorkbenchRun[] = [], zoom = false): string {
   const width = Number.isFinite(requestedWidth) ? Math.max(240, Math.round(requestedWidth)) : 640;
-  const milestones = FRONTIER_MILESTONES;
   const series: { run: WorkbenchRun; color: string; kind: "human" | "best" | "overlay" | "live" | "paused" }[] = [];
   const current = currentRuns.filter(r => plottedAgent(r) && (r.status === "live" || r.status === "paused"));
   const currentIds = new Set(current.map(r => r.id));
@@ -96,6 +101,8 @@ export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRu
   if (refs.human !== null) series.push({ run: refs.human, color: "#304f7a", kind: "human" });
   if (refs.best !== null) series.push({ run: refs.best, color: "#af8915", kind: "best" });
   for (const run of current) series.push({ run, color: colors.get(modelName(run)) ?? "#536d85", kind: run.status === "live" ? "live" : "paused" });
+  const milestones = zoom ? FRONTIER_MILESTONES.slice(0, zoomEnd(series.filter(s => s.kind !== "human").map(s => s.run), refs.human) + 1) : FRONTIER_MILESTONES;
+  const hidden = FRONTIER_MILESTONES.length - milestones.length, last = milestones[milestones.length - 1]?.label ?? "";
   const left = 43, right = width - 15, top = 20, bottom = 490, height = 635;
   const values = series.flatMap(s => milestones.flatMap(m => s.run.splits.filter(p => p.name === m.id).map(p => p.elapsedMs / 60000)));
   const peak = Math.max(0, ...values) * 1.08, step = peak > 60 ? 20 : peak > 20 ? 5 : peak > 10 ? 2 : 1;
@@ -125,7 +132,7 @@ export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRu
   const references = series.filter(s => s.kind === "human" || s.kind === "best").map(s => `<span data-reference="${s.kind}"><svg aria-hidden="true" viewBox="0 0 40 18" fill="${s.color}" stroke="${s.color}" stroke-width="2"><line x1="0" x2="40" y1="9" y2="9"/>${markerShape(s.kind === "human" ? "human" : "best", 20, 9)}</svg>${s.kind === "human" ? "Human baseline" : `Agent frontier · ${esc(modelName(s.run))}`}</span>`).join("");
   const currentKeys = current.map(run => `<span class="wb-current-key ${run.status === "live" ? "wb-live-key" : ""}" style="--wb-run-color:${colors.get(modelName(run)) ?? "#536d85"}" title="${esc(run.id)}"><i style="background:${colors.get(modelName(run)) ?? "#536d85"}"></i>${run.status === "live" ? "LIVE" : "PAUSED"} · ${esc(modelName(run))} · ${esc(run.id.slice(-4))}${run.splits.some(s => milestones.some(m => m.id === s.name)) ? "" : " · waiting for first story checkpoint"}</span>`).join("");
   const legend = `<div class="wb-model-legend" aria-label="Graph legend">${models.map(model => `<span data-model="${esc(model)}"><i style="background:${colors.get(model) ?? "#536d85"}"></i>${esc(model)}</span>`).join("")}${references}${currentKeys}</div>`;
-  return `${unavailable}${legend}<svg class="wb-chart wb-frontier-chart" viewBox="0 0 ${String(width)} ${String(height)}" role="img" aria-label="Full story frontier through gym and badge">${body}</svg><p class="wb-muted">${String(milestones.length)} required progression checkpoints.${labelEvery === 1 ? "" : " Some axis labels are hidden to fit this width; all recorded points remain plotted."} Expand “Completion, missing data &amp; exact times” below for every checkpoint. Recovered first-observation times are upper bounds (≤ in exact times and point details). Missing evidence breaks the line.</p>`;
+  return `${unavailable}${legend}<svg class="wb-chart wb-frontier-chart" viewBox="0 0 ${String(width)} ${String(height)}" role="img" aria-label="${hidden === 0 ? "Full story frontier through gym and badge" : `Story frontier zoomed to ${FRONTIER_MILESTONES[0].label} through ${last}`}">${body}</svg><p class="wb-muted">${hidden === 0 ? `${String(milestones.length)} required progression checkpoints.` : `Zoomed to the frontier: ${FRONTIER_MILESTONES[0].label} → ${last}, ${String(milestones.length)} of ${String(FRONTIER_MILESTONES.length)} checkpoints. ${String(hidden)} later checkpoints hidden; choose FULL BASELINE for the whole human run.`}${labelEvery === 1 ? "" : ` Some axis labels are hidden to fit this width; all ${hidden === 0 ? "recorded" : "visible"} points remain plotted.`} Expand “Completion, missing data &amp; exact times” below for every checkpoint. Recovered first-observation times are upper bounds (≤ in exact times and point details). Missing evidence breaks the line.</p>`;
 }
 export function frontierNotes(refs: ReferencePair): string {
   const reference = (run: WorkbenchRun | null, title: string, color: string): string => run === null ? `<span>${title}: unavailable</span>` : `<button type="button" class="wb-reference" data-run="${esc(run.id)}"><i style="background:${color}"></i><strong>${title}</strong> · ${esc(run.model ?? "Model not recorded")} · ${esc(run.id)}</button>`;

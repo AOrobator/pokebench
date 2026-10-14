@@ -203,3 +203,168 @@ def test_freshness_works_with_gnu_stat(
     assert (result.returncode == 0) is allowed, result.stderr
     if not allowed:
         assert "worklog" in result.stderr.lower()
+
+
+def archive_repo(tmp_path: Path, archived_name: str = "2026-01-02_done.md") -> tuple[Path, Path]:
+    """A repo with a stale unrelated active worklog and a committed active body to archive."""
+    active = f"docs/worklogs/active/{archived_name}"
+    repo = make_repo(tmp_path, {active: "# done\n", str(ACTIVE_BODY): "# other\n"})
+    shift_mtime(repo / ACTIVE_BODY, -3600)
+    return repo, repo / active
+
+
+def test_archiving_an_updated_worklog_is_allowed_while_others_are_stale(tmp_path: Path) -> None:
+    repo, body = archive_repo(tmp_path)
+    archived = repo / "docs/worklogs/2026-01-02_done.md"
+    assert (
+        git(repo, "mv", str(body.relative_to(repo)), str(archived.relative_to(repo))).returncode
+        == 0
+    )
+    archived.write_text("# done\n- archived\n")
+    shift_mtime(archived, 5)
+    assert git(repo, "add", str(archived.relative_to(repo))).returncode == 0
+    result = git(repo, "commit", "-q", "-m", "archive")
+    assert result.returncode == 0, result.stderr
+
+
+def test_archiving_without_updating_the_archived_body_is_blocked(tmp_path: Path) -> None:
+    repo, body = archive_repo(tmp_path)
+    archived = repo / "docs/worklogs/2026-01-02_done.md"
+    assert (
+        git(repo, "mv", str(body.relative_to(repo)), str(archived.relative_to(repo))).returncode
+        == 0
+    )
+    shift_mtime(archived, -3600)
+    result = git(repo, "commit", "-q", "-m", "archive")
+    assert result.returncode != 0
+    assert "worklog" in result.stderr.lower()
+
+
+@pytest.mark.parametrize(
+    "destination", ["docs/notes/2026-01-02_done.md", "docs/worklogs/x/2026-01-02_done.md"]
+)
+def test_moving_a_worklog_anywhere_but_the_archive_is_blocked(
+    tmp_path: Path, destination: str
+) -> None:
+    repo, body = archive_repo(tmp_path)
+    (repo / destination).parent.mkdir(parents=True, exist_ok=True)
+    assert git(repo, "mv", str(body.relative_to(repo)), destination).returncode == 0
+    shift_mtime(repo / destination, 5)
+    result = git(repo, "commit", "-q", "-m", "move")
+    assert result.returncode != 0
+
+
+def test_adding_a_new_archive_file_is_not_an_archive(tmp_path: Path) -> None:
+    repo, _ = archive_repo(tmp_path)
+    stage(repo, "docs/worklogs/2026-01-03_new.md", "# new\n")
+    shift_mtime(repo / "docs/worklogs/2026-01-03_new.md", 5)
+    result = git(repo, "commit", "-q", "-m", "add")
+    assert result.returncode != 0
+
+
+def test_staged_archive_with_missing_working_copy_fails_closed(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, {"docs/worklogs/active/2026-01-02_done.md": "# done\n"})
+    archived = repo / "docs/worklogs/2026-01-02_done.md"
+    moved = git(
+        repo, "mv", "docs/worklogs/active/2026-01-02_done.md", "docs/worklogs/2026-01-02_done.md"
+    )
+    assert moved.returncode == 0
+    archived.unlink()
+    blocked = git(repo, "commit", "-q", "-m", "archive")
+    assert blocked.returncode != 0
+    staged = git(repo, "diff", "--cached", "--name-only", "--no-renames").stdout.split()
+    assert staged == ["docs/worklogs/2026-01-02_done.md", "docs/worklogs/active/2026-01-02_done.md"]
+    archived.write_text("# done\n")
+    shift_mtime(archived, 5)
+    result = git(repo, "commit", "-q", "-m", "archive")
+    assert result.returncode == 0, result.stderr
+
+
+def test_archive_pairing_is_literal_not_a_git_pathspec(tmp_path: Path) -> None:
+    repo = make_repo(
+        tmp_path, {"docs/worklogs/active/[ab].md": "# done\n", str(ACTIVE_BODY): "# other\n"}
+    )
+    shift_mtime(repo / ACTIVE_BODY, -3600)
+    assert git(repo, "rm", "-q", "--cached", "docs/worklogs/active/[ab].md").returncode == 0
+    (repo / "docs/worklogs/active/[ab].md").unlink()
+    literal = repo / "docs/worklogs/[ab].md"
+    literal.write_text("# done\n- archived\n")
+    shift_mtime(literal, 5)
+    stage(repo, "docs/worklogs/a.md", "# other\n")
+    blocked = git(repo, "commit", "-q", "-m", "archive")
+    assert blocked.returncode != 0
+    assert git(repo, "rm", "-q", "--cached", "docs/worklogs/a.md").returncode == 0
+    assert git(repo, "add", "--", ":(literal)docs/worklogs/[ab].md").returncode == 0
+    shift_mtime(literal, 5)
+    result = git(repo, "commit", "-q", "-m", "archive")
+    assert result.returncode == 0, result.stderr
+
+
+def test_archiving_a_worklog_with_spaces_in_its_name(tmp_path: Path) -> None:
+    repo, body = archive_repo(tmp_path, "2026-01-02 done twice.md")
+    archived = repo / "docs/worklogs/2026-01-02 done twice.md"
+    assert git(repo, "mv", rel(body, repo), rel(archived, repo)).returncode == 0
+    archived.write_text("# done\n- archived\n")
+    shift_mtime(archived, 5)
+    assert git(repo, "add", rel(archived, repo)).returncode == 0
+    result = git(repo, "commit", "-q", "-m", "archive")
+    assert result.returncode == 0, result.stderr
+
+
+def rel(path: Path, repo: Path) -> str:
+    return str(path.relative_to(repo))
+
+
+def test_stale_archive_is_blocked_even_when_another_worklog_is_fresh(tmp_path: Path) -> None:
+    repo, body = archive_repo(tmp_path)
+    archived = repo / "docs/worklogs/2026-01-02_done.md"
+    assert git(repo, "mv", rel(body, repo), rel(archived, repo)).returncode == 0
+    shift_mtime(archived, -3600)
+    sibling = repo / ACTIVE_BODY
+    sibling.write_text("# other\n- touched\n")
+    shift_mtime(sibling, 5)
+    result = git(repo, "commit", "-q", "-m", "archive")
+    assert result.returncode != 0
+    assert "archived worklog" in result.stderr
+
+
+GIT_FAILS_ON_ADDED = """#!/bin/bash
+for arg in "$@"; do
+    if [ "$arg" = "--diff-filter=A" ]; then
+        echo "injected failure" >&2
+        exit 2
+    fi
+done
+exec "$REAL_GIT" "$@"
+"""
+
+
+def test_archive_discovery_fails_closed_when_git_diff_fails(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, {"docs/worklogs/active/2026-01-02_done.md": "# done\n"})
+    archived = repo / "docs/worklogs/2026-01-02_done.md"
+    assert (
+        git(repo, "mv", "docs/worklogs/active/2026-01-02_done.md", rel(archived, repo)).returncode
+        == 0
+    )
+    shift_mtime(archived, -3600)
+    shim_dir = tmp_path / "failing-git"
+    shim_dir.mkdir()
+    shim = shim_dir / "git"
+    shim.write_text(GIT_FAILS_ON_ADDED)
+    shim.chmod(0o755)
+    real_git = shutil.which("git")
+    assert real_git is not None
+    hook = repo / ".githooks" / "pre-commit"
+    env = {**GIT_ENV, "PATH": f"{shim_dir}{os.pathsep}{os.environ['PATH']}", "REAL_GIT": real_git}
+    failing = subprocess.run(
+        ["bash", str(hook)], cwd=repo, env=env, capture_output=True, text=True, check=False
+    )
+    assert failing.returncode != 0
+    assert "injected failure" in failing.stderr
+    env.pop("REAL_GIT")
+    env["PATH"] = os.environ["PATH"]
+    stale = subprocess.run(
+        ["bash", str(hook)], cwd=repo, env=env, capture_output=True, text=True, check=False
+    )
+    assert stale.returncode != 0
+    assert "archived worklog" in stale.stderr

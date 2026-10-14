@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Experiment Queue Designs</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Press+Start+2P&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}html,body{margin:0;padding:0}
+body{background:#0d1117;color:#e6edf3;font-family:Inter,system-ui,sans-serif;overflow-x:hidden}
+nav.top{position:sticky;top:0;z-index:50;background:#0d1117;border-bottom:1px solid #263040;padding:10px 16px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+nav.top .brand{font-weight:800;letter-spacing:.04em;color:#7cc8e8;margin-right:10px;font-size:14px}
+nav.top button{background:#161b22;color:#c9d1d9;border:1px solid #2b3545;border-radius:999px;padding:6px 12px;font:500 12px Inter,sans-serif;cursor:pointer}
+nav.top button.on{background:#7cc8e8;color:#08202c;border-color:#7cc8e8;font-weight:700}
+nav.top .desc{flex-basis:100%;font-size:13px;color:#9aa7b4;padding-top:6px;line-height:1.5}
+nav.top .desc b{color:#e6edf3}
+.sample{flex-basis:100%;font-size:11.5px;color:#f5c542}
+
+/* ---- viewer chrome copied from packages/viewer/static/style.css ---- */
+.pn{background:#4a9fd8 repeating-linear-gradient(45deg,rgba(255,255,255,.07) 0 12px,transparent 12px 24px);color:#283038;font-family:'Press Start 2P',ui-monospace,monospace;padding:22px}
+.frame-label{font:700 11px Inter,sans-serif;letter-spacing:.12em;color:#fff;opacity:.9;margin:0 0 10px 4px}
+.frame-label.dark{color:#1e2c44}
+.navopen{background:#e04848;border:4px solid #8a2020;border-radius:22px;padding:12px;box-shadow:0 6px 0 #6a1818;display:grid;gap:10px;grid-template-columns:220px minmax(0,1fr);max-width:1180px;margin:0 auto}
+.navopen .brand{grid-column:1/-1;color:#fff;font-size:10px;margin:2px 0 0 4px}
+.dir{display:flex;flex-direction:column;gap:6px}
+.dir span{background:#f8f8f8;border:3px solid #283038;border-radius:10px;padding:9px 10px;font-size:7.5px;line-height:1.6;opacity:.75}
+.dir span.on{background:#ffd447;opacity:1}
+.scrn{background:#f8f8f8;border:4px solid #283038;border-radius:12px;padding:14px;font-size:9px;line-height:1.8;min-width:0}
+.scrn h3{margin:0 0 12px;font-size:10px;color:#d03a3a;font-weight:400;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.pbtn{font:7.5px/1.8 'Press Start 2P',monospace;border:3px solid #3a6ea5;background:#fff;color:#283038;border-radius:8px;padding:5px 9px}
+.counter{font-size:7px;background:#1e2c44;color:#ffd447;padding:4px 8px;border-radius:6px}
+.inter{font:500 12.5px/1.55 Inter,sans-serif;color:#3d4a57}
+.mono{font-family:'JetBrains Mono',monospace}
+.muted{opacity:.65}
+.stats-page{background:#4a9fd8 repeating-linear-gradient(45deg,rgba(255,255,255,.07) 0 12px,transparent 12px 24px);padding:22px;font-family:Inter,sans-serif;color:#283038}
+.bar{display:flex;gap:12px;align-items:center;padding:10px 18px;background:#1e2c44;color:#dfe8f5;font:9px 'Press Start 2P',monospace;box-shadow:0 3px 0 #22476e;border-radius:10px 10px 0 0;max-width:1180px;margin:0 auto}
+.bar .logo{color:#ffd447;font-size:10px}
+.wbw{max-width:1180px;margin:0 auto;padding:18px 0 0;display:grid;gap:16px}
+.box{background:#f8f8f8;border:4px solid #3a6ea5;outline:3px solid #fff;outline-offset:-9px;border-radius:12px;padding:22px;font:14px/1.6 Inter,sans-serif;box-shadow:0 4px 0 #22476e;min-width:0}
+.box h2{font:10px/1.8 'Press Start 2P',monospace;color:#3a6ea5;margin:0 0 14px}
+.ghost{opacity:.45;font:13px Inter,sans-serif;color:#345471;padding:6px 4px}
+.ghost b{font:9px 'Press Start 2P',monospace}
+
+/* shared atoms */
+.st{display:inline-block;font:7px/1 'Press Start 2P',monospace;padding:5px 7px;border-radius:5px;color:#fff;white-space:nowrap}
+.st.running{background:#2f9e57}.st.approved{background:#3a6ea5}.st.draft{background:#8a96a3}.st.done{background:#1e2c44;color:#ffd447}.st.blocked{background:#d03a3a}.st.held{background:#b68120}
+.pipset{display:flex;gap:4px;flex-wrap:wrap}
+.tp{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;font:7px 'Press Start 2P',monospace;border:3px solid #283038;background:#fff;color:#283038}
+.tp.A{border-color:#6b7d90}.tp.B{border-color:#8a5cc8}
+.tp.ok.A{background:#6b7d90;color:#fff}.tp.ok.B{background:#8a5cc8;color:#fff}
+.tp.miss{background:repeating-linear-gradient(45deg,#ffe0e0 0 4px,#fff 4px 8px)}
+.tp.run{background:#ffd447;animation:pulse 1.2s ease-in-out infinite}
+.tp.wait{opacity:.45;border-style:dashed}
+@keyframes pulse{50%{box-shadow:0 0 0 4px rgba(255,212,71,.45)}}
+.sw{font:600 11.5px 'JetBrains Mono',monospace;color:#5b3f99;background:#efe7fb;border-radius:5px;padding:2px 6px;white-space:nowrap}
+.track{height:10px;border:2px solid #444;border-radius:5px;background:#fff;overflow:hidden}
+.track i{display:block;height:100%;background:#4cd27a}
+.track i.mid{background:#f5c542}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font:11px Inter,sans-serif;color:#49647e;margin-top:10px;align-items:center}
+.legend .tp{width:16px;height:16px;border-width:2px;font-size:0}
+.design{display:none}.design.active{display:block}
+.pair{display:grid;gap:28px;padding:0 0 30px}
+
+/* ---- 1 party box ---- */
+.v1 .slots{display:grid;gap:10px}
+.v1 .slot{display:grid;grid-template-columns:54px minmax(0,1fr) 190px;gap:14px;align-items:center;background:#7cc8e8;border:4px solid #283038;border-radius:14px 30px 30px 14px;padding:10px 14px;box-shadow:0 3px 0 #22476e}
+.v1 .slot.lead{background:#4cd27a}
+.v1 .slot.blocked{background:#e3e7ec}
+.v1 .ball{width:44px;height:44px;border-radius:50%;border:4px solid #283038;background:linear-gradient(#d03a3a 0 45%,#283038 45% 55%,#fff 55%);position:relative}
+.v1 .ball::after{content:'';position:absolute;inset:13px;border-radius:50%;background:#fff;border:3px solid #283038}
+.v1 .slot.blocked .ball{filter:grayscale(1);opacity:.5}
+.v1 .nm{font-size:8.5px;line-height:1.9}
+.v1 .nm small{display:block;font:500 12px Inter,sans-serif;color:#1e2c44}
+.v1 .hp{font-size:6.5px}
+.v1 .hp .track{margin:4px 0}
+.v1 .side{display:grid;gap:12px}
+.v1 .side .scrn{border-color:#3a6ea5}
+
+/* ---- 2 battle tower ladder ---- */
+.v2 .ladder{position:relative;display:grid;gap:0;padding-left:46px}
+.v2 .ladder::before{content:'';position:absolute;left:18px;top:14px;bottom:14px;width:6px;background:#283038;border-radius:3px}
+.v2 .rung{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 18px;padding:14px 16px;margin-bottom:12px;background:#fff;border:4px solid #3a6ea5;border-radius:12px}
+.v2 .rung::before{content:attr(data-n);position:absolute;left:-44px;top:12px;width:30px;height:30px;border-radius:50%;background:#fff;border:4px solid #283038;display:grid;place-items:center;font-size:8px}
+.v2 .rung.now{border-color:#2f9e57;box-shadow:0 0 0 4px #4cd27a55}
+.v2 .rung.now::before{background:#4cd27a}
+.v2 .rung.done::before{background:#1e2c44;color:#ffd447}
+.v2 .rung.blocked{border-color:#d03a3a;border-style:dashed;background:#fff4f4}
+.v2 .rung h4{margin:0;font-size:8.5px;font-weight:400}
+.v2 .rung .inter{grid-column:1/-1;font-size:12px}
+.v2 .floor{font-size:7px;color:#3a6ea5}
+
+/* ---- 3 gantt ---- */
+.v3 svg{width:100%;height:auto;display:block}
+.v3 .lab{font:8px 'Press Start 2P',monospace;fill:#283038}
+.v3 .sub{font:11px Inter,sans-serif;fill:#607992}
+.v3 .ax{font:10px Inter,sans-serif;fill:#607992}
+
+/* ---- 4 kanban ---- */
+.v4 .cols{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.v4 .col{background:#e9eef4;border-radius:10px;padding:10px;min-height:220px}
+.v4 .col h4{margin:0 0 10px;font-size:7.5px;font-weight:400;display:flex;justify-content:space-between}
+.v4 .card{background:#fff;border:3px solid #283038;border-radius:10px;padding:10px;margin-bottom:8px;font-size:7.5px;line-height:1.8}
+.v4 .card .inter{font-size:11.5px;margin-top:6px}
+.v4 .card .pipset{margin-top:8px}
+.v4 .card .sw{white-space:normal;overflow-wrap:anywhere;display:inline-block;max-width:100%}.v4 .card .tp{width:16px;height:16px;border-width:2px;font-size:0}
+
+/* ---- 5 match call ---- */
+.v5 .mc{display:grid;grid-template-columns:300px minmax(0,1fr);gap:12px}
+.v5 .list{display:grid;gap:6px;align-content:start}
+.v5 .li{display:grid;grid-template-columns:38px minmax(0,1fr);gap:10px;align-items:center;background:#fff;border:3px solid #c9d6e6;border-radius:10px;padding:8px;font-size:7.5px;line-height:1.8}
+.v5 .li.sel{border-color:#283038;background:#fff7cf;box-shadow:4px 0 0 #ffd447}
+.v5 .ic{width:38px;height:38px;border-radius:8px;background:#1e2c44;color:#ffd447;display:grid;place-items:center;font-size:12px}
+.v5 .det{background:#1e2c44;color:#dfe8f5;border-radius:12px;padding:16px;font-size:8px;line-height:1.9}
+.v5 .det h4{margin:0 0 8px;color:#ffd447;font-size:9px;font-weight:400}
+.v5 .det .inter{color:#c8d6e6}
+.v5 .vs{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;margin:14px 0}
+.v5 .arm{background:#2a3d5c;border-radius:10px;padding:12px}
+.v5 .arm b{display:block;font:22px 'JetBrains Mono',monospace;color:#fff;font-weight:600}
+.v5 .vsb{font-size:12px;color:#ffd447}
+
+/* ---- 6 matrix ---- */
+.v6 table{width:100%;border-collapse:separate;border-spacing:4px}
+.v6 th{font:7px 'Press Start 2P',monospace;font-weight:400;color:#49647e;text-align:center;padding:4px}
+.v6 th.l{text-align:left}
+.v6 td.l{font-size:7.5px;line-height:1.8;padding-right:10px;white-space:nowrap}
+.v6 td.c{height:40px;border-radius:7px;text-align:center;font:600 10.5px 'JetBrains Mono',monospace;border:2px solid transparent}
+.v6 td.c.A{background:#dfe5ec}.v6 td.c.B{background:#e8dcf8}
+.v6 td.c.ok.A{background:#8fa3b8;color:#fff}.v6 td.c.ok.B{background:#8a5cc8;color:#fff}
+.v6 td.c.miss{background:repeating-linear-gradient(45deg,#ffd0d0 0 5px,#fff 5px 10px);color:#a01010}
+.v6 td.c.run{background:#ffd447;animation:pulse 1.2s infinite}
+.v6 td.c.wait{background:#fff;border:2px dashed #c9d6e6;color:#a4b2c0}
+.v6 td.c.x{background:#f1f3f6;color:#c0c8d0}
+.v6 td.v{font:7px 'Press Start 2P',monospace;white-space:nowrap;padding-left:8px}
+
+/* ---- 7 battle verdict ---- */
+.v7 .bouts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.v7 .bout{background:linear-gradient(160deg,#fff 0 55%,#e8f3ea 55%);border:4px solid #283038;border-radius:14px;padding:14px;position:relative;overflow:hidden}
+.v7 .bout.blocked{background:#f1f3f6;border-style:dashed}
+.v7 .bout h4{margin:0 0 10px;font-size:8.5px;font-weight:400}
+.v7 .fighters{display:grid;grid-template-columns:1fr 40px 1fr;align-items:end;gap:6px}
+.v7 .f{border-radius:10px;padding:10px;font-size:7px;line-height:1.8}
+.v7 .f.A{background:#dfe5ec}.v7 .f.B{background:#ede3fb;text-align:right}
+.v7 .f b{display:block;font:24px 'JetBrains Mono',monospace;font-weight:600}
+.v7 .f .hpb{height:8px;border:2px solid #283038;border-radius:4px;background:#fff;overflow:hidden;margin-top:6px}
+.v7 .f .hpb i{display:block;height:100%;background:#4cd27a}
+.v7 .vs{font-size:13px;color:#d03a3a;text-align:center;padding-bottom:20px}
+.v7 .foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:8px;flex-wrap:wrap}
+
+/* ---- 8 departure board ---- */
+.v8 .board{font-family:'Press Start 2P',monospace;background:#11161d;border:6px solid #283038;border-radius:12px;padding:12px;color:#ffd447;font-size:8.5px}
+.v8 .row{display:grid;grid-template-columns:40px minmax(0,2fr) 120px 120px 150px 110px;gap:10px;padding:10px 6px;border-bottom:2px dashed #2b3545;align-items:center}
+.v8 .row.h{color:#7cc8e8;font-size:7px}
+.v8 .row .flap{background:#1e2530;border-radius:4px;padding:6px;letter-spacing:.06em;box-shadow:inset 0 -2px 0 #0a0d12}
+.v8 .row .g{color:#4cd27a}.v8 .row .r{color:#ff6b6b}.v8 .row .w{color:#dfe8f5}
+.v8 .blink{animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:.2}}
+
+/* ---- 9 pokedex ---- */
+.v9 .dex{display:grid;grid-template-columns:minmax(0,1.1fr) 280px;gap:12px}
+.v9 .entry{background:#fff;border:4px solid #d03a3a;border-radius:14px;padding:16px}
+.v9 .entry .hd{display:flex;gap:14px;align-items:center;margin-bottom:12px}
+.v9 .entry .no{font-size:18px;color:#d03a3a}
+.v9 .entry .meta{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:7.5px;line-height:1.8}
+.v9 .entry .meta dt{opacity:.6}
+.v9 .entry .meta dd{margin:0}
+.v9 .desc{background:#fff7cf;border:3px dashed #b68120;border-radius:10px;padding:10px 12px;margin:12px 0}
+.v9 .idx{background:#283038;border-radius:12px;padding:8px;display:grid;gap:4px;align-content:start}
+.v9 .idx div{display:grid;grid-template-columns:36px 1fr auto;gap:8px;align-items:center;color:#dfe8f5;font-size:7px;padding:8px;border-radius:6px}
+.v9 .idx div.sel{background:#ffd447;color:#283038}
+
+/* ---- 10 dashboard ---- */
+.v10 .tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.v10 .tile{background:#1e2c44;color:#dfe8f5;border-radius:8px;padding:10px;font-size:6.5px;line-height:1.8}
+.v10 .tile b{display:block;color:#ffd447;font-size:13px;font-weight:400;margin-top:4px}
+.v10 table{width:100%;border-collapse:collapse;background:#fff;border:3px solid #3a6ea5}
+.v10 th{background:#3a6ea5;color:#fff;font:7px 'Press Start 2P',monospace;font-weight:400;padding:8px;text-align:left}
+.v10 td{padding:9px 8px;border-top:1px solid #e3eaf2;font:12.5px Inter,sans-serif;vertical-align:middle}
+.v10 td .tp{width:14px;height:14px;border-width:2px;font-size:0;border-radius:4px}
+.v10 .pipset{gap:3px}
+
+/* stats-page strips */
+.sq-row{display:grid;grid-template-columns:150px minmax(0,1fr) auto;gap:18px;align-items:center;border-bottom:1px solid #d5e3ed;padding:14px 0}
+.sq-row:last-child{border-bottom:0}
+.sq-row small{display:block;color:#677d91;font-size:12px;margin-top:4px}
+.sq-mini{display:flex;gap:12px;flex-wrap:wrap}
+.sq-card{flex:1 1 200px;border:3px solid #c9d6e6;border-radius:10px;padding:12px;background:#fff}
+.sq-card.lead{border-color:#2f9e57}
+.sq-card small{display:block;color:#677d91;font-size:12px}
+.chipbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.chip{border:2px solid #a4bdd1;border-radius:999px;padding:4px 10px;font:600 12px Inter,sans-serif;background:#fff;color:#345471}
+.chip.on{background:#3a6ea5;color:#fff;border-color:#3a6ea5}
+@media (max-width:900px){.navopen{grid-template-columns:1fr}.dir{flex-direction:row;flex-wrap:wrap}.v4 .cols,.v7 .bouts,.v10 .tiles{grid-template-columns:1fr 1fr}.v5 .mc,.v9 .dex{grid-template-columns:1fr}.v1 .slot{grid-template-columns:44px 1fr}.v1 .slot .hp{grid-column:1/-1}.v8 .row{grid-template-columns:30px 1fr 90px}.v8 .row>:nth-child(n+4){display:none}.sq-row{grid-template-columns:1fr}}
+</style></head>
+<body>
+<nav class="top"><span class="brand">EXPERIMENT QUEUE · ROUND 1</span><span id="tabs"></span>
+<div class="desc" id="desc"></div>
+<div class="sample">Each design shows the viewer's PokéNav page on top and the Runs &amp; Comparisons (stats) page below it. The states, trial results and verdicts are made-up examples so every status is visible. In the real queue every entry starts as DRAFT, and nothing has been run.</div></nav>
+<main id="root"></main>
+<script>
+const HOUR=3600000;
+const Q=[
+ {n:1,id:'full-map-navigation-v1',title:'Whole-map navigation',sw:'full-map-navigation-v1',src:'main · 353a3d1',status:'running',hyp:'Seeing the whole map and walking full routes reaches RIVAL_MET more often than the 15×15 window.',
+  trials:[['A','ok',41,612],['B','ok',33,488],['B','miss',null,1500],['A','run'],['A','wait'],['B','wait'],['B','wait'],['A','wait']],used:2.1,eta:'~5.9 h'},
+ {n:2,id:'grass-cost-navigation-v1',title:'Grass costs extra',sw:'grass-cost-navigation-v1',src:'claude/grass-cost · 72fe3bc',status:'approved',hyp:'Routing around tall grass cuts wild battles on the way to the rival house.',
+  trials:Array(8).fill(0).map((_,i)=>['ABBAABBA'[i],'wait']),used:0,eta:'after #1'},
+ {n:3,id:'ledge-hops-v1',title:'Ledge hops A/B',sw:'ledge-hops-v1',src:'main · 0357cea',status:'done',hyp:'Planning one-way ledge hops shortens Route 101–103 walks.',
+  trials:[['A','ok',44,1500],['B','ok',38,640],['B','ok',36,540],['A','miss',null,1500],['A','ok',47,505],['B','miss',null,1500],['B','ok',35,1500],['A','ok',43,690]],used:6.4,verdict:'INCONCLUSIVE',rec:'repair and rerun'},
+ {n:4,id:'one-way-tiles-v1',title:'One-way tiles A/B',sw:'one-way-tiles-v1',src:'main · 0357cea',status:'draft',hyp:'Respecting edge walls removes stuck navigate_to plans.',
+  trials:Array(8).fill(0).map((_,i)=>['ABBAABBA'[i],'wait']),used:0,eta:'needs approval'},
+ {n:5,id:'elevation-transitions',title:'Elevation transitions A/B',sw:'(not a switch yet)',src:'main · 44390a4',status:'blocked',hyp:'The game elevation rule fixes pier and bridge planning.',
+  trials:[],used:0,blocked:'Always-on planner rule. Needs an elevation-transitions-v1 switch before it has an OFF arm.'}
+];
+const BUDGET=8;
+const LABEL={running:'RUNNING',approved:'APPROVED',draft:'DRAFT',done:'DONE',blocked:'BLOCKED',held:'HELD'};
+const st=s=>`<span class="st ${s}">${LABEL[s]}</span>`;
+const sw=e=>`<span class="sw">${e.sw}</span>`;
+const pip=(t,i)=>`<span class="tp ${t[0]} ${t[1]}" title="trial ${i+1} · arm ${t[0]}${t[2]?' · '+t[2]+' min':''}">${t[0]}</span>`;
+const pips=e=>e.trials.length?`<span class="pipset">${e.trials.map(pip).join('')}</span>`:'<span class="inter muted">no trials</span>';
+const done=e=>e.trials.filter(t=>t[1]==='ok'||t[1]==='miss').length;
+const reach=(e,a)=>{const t=e.trials.filter(x=>x[0]===a&&(x[1]==='ok'||x[1]==='miss'));return `${t.filter(x=>x[1]==='ok').length}/${t.length}`};
+const med=(e,a)=>{const v=e.trials.filter(x=>x[0]===a&&x[1]==='ok').map(x=>x[2]).sort((p,q)=>p-q);if(!v.length)return '—';const m=v.length%2?v[(v.length-1)/2]:(v[v.length/2-1]+v[v.length/2])/2;return m.toFixed(0)+'m'};
+const mt=(e,a)=>{const v=e.trials.filter(x=>x[0]===a&&(x[1]==='ok'||x[1]==='miss')).map(x=>x[3]).sort((p,q)=>p-q);if(!v.length)return '—';return String(v.length%2?v[(v.length-1)/2]:Math.round((v[v.length/2-1]+v[v.length/2])/2))};
+const eff=(e,a)=>{const t=e.trials.filter(x=>x[0]===a&&(x[1]==='ok'||x[1]==='miss'));if(!t.length)return '—';const ok=t.filter(x=>x[1]==='ok').length;return (ok/(t.reduce((s,x)=>s+x[3],0)/1000)).toFixed(2)};
+const bud=e=>`<div class="track"><i class="${e.used/BUDGET>.6?'mid':''}" style="width:${Math.min(100,e.used/BUDGET*100)}%"></i></div>`;
+const legend=`<div class="legend"><span><span class="tp A ok"></span> incumbent (A) reached RIVAL_MET</span><span><span class="tp B ok"></span> candidate (B) reached</span><span><span class="tp A miss"></span> didn't reach</span><span><span class="tp A run"></span> running</span><span><span class="tp A wait"></span> waiting</span><span>· turns = median turns per trial (a miss counts the full 1500) · efficiency = RIVAL_MET reached per 1k turns</span></div>`;
+const DIR=['<b style="font-family:Inter;font-weight:400">★</b> NEXT RUN','EXPERIMENT QUEUE','HARNESS CONFIG','TRAINER CARD','POKéMON PARTY','LLM STATS','SPLITS · BASELINE · BEST','ACTIVITY HISTORY'];
+const shell=(body,extra='')=>`<div class="pn"><p class="frame-label">VIEWER · POKéNAV PAGE (port 8790)</p><section class="navopen"><div class="brand">POKéNAV</div><div class="dir">${DIR.map(d=>`<span class="${d.includes('EXPERIMENT QUEUE')?'on':''}">${d}</span>`).join('')}</div><section class="scrn"><h3><span>EXPERIMENT QUEUE</span><span><span class="counter">5 ENTRIES · 1 RUNNING · 1 APPROVED</span> <span class="pbtn">READ ONLY</span></span></h3>${body}</section></section></div>`;
+const stats=(body,title='EXPERIMENT QUEUE')=>`<div class="stats-page"><p class="frame-label">STATS · RUNS &amp; COMPARISONS PAGE</p><header class="bar"><span class="logo">POKE BENCH</span><span>RUNS &amp; COMPARISONS</span></header><div class="wbw"><div class="ghost"><b>STORY FRONTIER · ALL SELECTED RUNS</b> · existing charts stay as they are</div><section class="box"><h2>${title}</h2>${body}</section><div class="ghost"><b>MILESTONE TIMING · SPLIT RIBBONS · OUTCOMES</b></div></div></div>`;
+const statsTop=(body,title)=>`<div class="stats-page"><p class="frame-label">STATS · RUNS &amp; COMPARISONS PAGE</p><header class="bar"><span class="logo">POKE BENCH</span><span>RUNS &amp; COMPARISONS</span></header><div class="wbw"><section class="box"><h2>${title}</h2>${body}</section><div class="ghost"><b>STORY FRONTIER · MILESTONE TIMING · SPLIT RIBBONS · OUTCOMES</b> · existing charts stay below</div></div></div>`;
+const stdRows=()=>Q.map(e=>`<div class="sq-row"><div>${st(e.status)}<small>#${e.n} in queue</small></div><div><b>${e.title}</b> ${sw(e)}<small>${e.blocked||e.hyp}</small></div><div>${pips(e)}</div></div>`).join('');
+
+const D=[];
+// 1
+D.push({name:'Party box',desc:'<b>1 · Party box.</b> Each experiment is a party slot. The Poké Ball is its queue position, the HP-style bar is budget used, and the trial pips sit inline. The lead slot is the one running. On the stats page, the queue is a compact list above the outcomes table.',
+v:()=>shell(`<div class="v1"><div class="slots">${Q.map((e,i)=>`<div class="slot ${e.status==='running'?'lead':''} ${e.status==='blocked'?'blocked':''}"><div class="ball"></div><div class="nm">#${e.n} ${e.title.toUpperCase()} ${st(e.status)}<small>${sw(e)} · ${e.src}</small><div style="margin-top:6px">${pips(e)}</div></div><div class="hp">BUDGET ${e.used.toFixed(1)}/${BUDGET} H${bud(e)}${e.verdict?`<b>${e.verdict}</b>`:e.blocked?'<span style="color:#d03a3a">NEEDS A SWITCH</span>':e.eta}</div></div>`).join('')}</div>${legend}</div>`),
+s:()=>stats(stdRows()+legend)});
+// 2
+D.push({name:'Battle Tower ladder',desc:'<b>2 · Battle Tower ladder.</b> The queue is a vertical climb. The current floor is lit, finished floors are dark, and a blocked floor is dashed. The stats page gets a matching horizontal ladder.',
+v:()=>shell(`<div class="v2"><div class="ladder">${Q.map(e=>`<div class="rung ${e.status==='running'?'now':''} ${e.status==='done'?'done':''} ${e.status==='blocked'?'blocked':''}" data-n="${e.n}"><h4>${e.title.toUpperCase()} ${st(e.status)}</h4><span class="floor">${e.status==='done'?e.verdict:e.status==='running'?'ETA '+e.eta:e.status==='blocked'?'BLOCKED':e.eta.toUpperCase()}</span><div class="inter">${sw(e)} <span class="muted">· ${e.src}</span></div><div>${pips(e)}</div><div class="floor">A ${reach(e,'A')} · B ${reach(e,'B')}</div></div>`).join('')}</div>${legend}</div>`),
+s:()=>stats(`<div style="display:flex;gap:0;align-items:stretch;overflow-x:auto">${Q.map((e,i)=>`<div style="flex:1 0 190px;border:3px solid ${e.status==='running'?'#2f9e57':e.status==='blocked'?'#d03a3a':'#c9d6e6'};border-radius:10px;padding:12px;margin-right:${i<Q.length-1?'24px':'0'};position:relative;background:#fff">${st(e.status)}<p style="margin:8px 0 4px;font-weight:700">${e.n}. ${e.title}</p><small style="color:#677d91">${e.sw}</small><div style="margin-top:10px">${pips(e)}</div>${i<Q.length-1?'<span style="position:absolute;right:-22px;top:40%;font:12px \'Press Start 2P\';color:#3a6ea5">›</span>':''}</div>`).join('')}</div>${legend}`)});
+// 3
+function gantt(w,compact){const rows=Q.length,rh=compact?44:62,lx=compact?210:240,top=34,h=top+rows*rh+20,hours=24,px=(w-lx-20)/hours;let start=0;const now=2.1;let g=`<svg viewBox="0 0 ${w} ${h}">`;for(let i=0;i<=hours;i+=4){const x=lx+i*px;g+=`<line x1="${x}" y1="${top-8}" x2="${x}" y2="${h-14}" stroke="#d9e5ee"/><text class="ax" x="${x}" y="${top-14}" text-anchor="middle">+${i}h</text>`}
+Q.forEach((e,r)=>{const y=top+r*rh;g+=`<text class="lab" x="0" y="${y+18}">${e.n}. ${e.title.toUpperCase().slice(0,22)}</text><text class="sub" x="0" y="${y+36}">${e.sw}</text>`;if(e.status==='blocked'){g+=`<rect x="${lx}" y="${y+6}" width="${w-lx-20}" height="${rh-20}" rx="8" fill="#fff4f4" stroke="#d03a3a" stroke-dasharray="6 4"/><text class="sub" x="${lx+12}" y="${y+rh/2+2}" fill="#d03a3a">blocked · needs a switch</text>`;return}if(e.status==='done'){const w2=Math.min(8*px,(w-lx-20));g+=`<rect x="${lx}" y="${y+6}" width="${Math.max(420,w2)}" height="${rh-20}" rx="8" fill="#1e2c44"/><text x="${lx+12}" y="${y+rh/2+2}" font-family="Press Start 2P" font-size="7" fill="#ffd447">FINISHED · A ${reach(e,'A')} · B ${reach(e,'B')} · ${e.verdict}</text>`;return}
+ const s0=e.status==='done'?-6.4:start;e.trials.forEach((t,i)=>{const x=lx+Math.max(0,(s0+i))*px;if(s0+i<0)return;const fill=t[1]==='ok'?(t[0]==='A'?'#8fa3b8':'#8a5cc8'):t[1]==='miss'?'url(#hatch)':t[1]==='run'?'#ffd447':'#fff';g+=`<rect x="${x+1}" y="${y+6}" width="${px-2}" height="${rh-20}" rx="5" fill="${fill}" stroke="${t[1]==='wait'?'#c9d6e6':'#283038'}" stroke-width="2" ${t[1]==='wait'?'stroke-dasharray="4 3"':''}/><text x="${x+px/2}" y="${y+rh/2+2}" text-anchor="middle" font-family="Press Start 2P" font-size="7" fill="${t[1]==='ok'?'#fff':'#283038'}">${t[0]}</text>`});
+ if(e.status!=='done')start+=e.trials.length})
+g+=`<line x1="${lx+now*px}" y1="${top-8}" x2="${lx+now*px}" y2="${h-14}" stroke="#d03a3a" stroke-width="3"/><text x="${lx+now*px+6}" y="${h-4}" font-family="Press Start 2P" font-size="7" fill="#d03a3a">NOW</text><defs><pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="8" fill="#fff"/><rect width="4" height="8" fill="#ffc9c9"/></pattern></defs></svg>`;return g}
+D.push({name:'Timeline (Gantt)',desc:'<b>3 · Timeline.</b> Each trial is a one-hour block on a shared clock, so you can see when each experiment is likely to finish. The red line is now. The stats page gets the same chart in a shorter form.',
+v:()=>shell(`<div class="v3">${gantt(900,false)}${legend}</div>`),
+s:()=>stats(`<div class="v3">${gantt(1100,true)}</div>`,'EXPERIMENT QUEUE · PROJECTED SCHEDULE')});
+// 4
+const cols=['draft','approved','running','done','blocked'];
+D.push({name:'Kanban',desc:'<b>4 · Kanban.</b> Columns by status: DRAFT → APPROVED → RUNNING → DONE, plus BLOCKED. The cards show the switch and the trial pips. The stats page uses the same board, collapsed into counts plus the running card.',
+v:()=>shell(`<div class="v4"><div class="cols">${cols.map(c=>`<div class="col"><h4>${LABEL[c]}<span>${Q.filter(e=>e.status===c).length}</span></h4>${Q.filter(e=>e.status===c).map(e=>`<div class="card">#${e.n} ${e.title.toUpperCase()}<div class="inter">${sw(e)}</div>${e.trials.length?pips(e):''}${e.verdict?`<div style="margin-top:6px">${e.verdict}</div>`:''}${e.blocked?`<div class="inter" style="color:#d03a3a">${e.blocked}</div>`:''}</div>`).join('')}</div>`).join('')}</div>${legend}</div>`),
+s:()=>stats(`<div class="sq-mini">${cols.map(c=>`<div class="sq-card ${c==='running'?'lead':''}">${st(c)}<b style="font:26px 'JetBrains Mono';display:block;margin-top:8px">${Q.filter(e=>e.status===c).length}</b><small>${Q.filter(e=>e.status===c).map(e=>e.title).join(', ')||'—'}</small></div>`).join('')}</div>`)});
+// 5
+const sel=Q[0];
+D.push({name:'Match Call',desc:'<b>5 · Match Call.</b> A list on the left and the selected experiment\'s detail on the right, styled like the PokéNav Match Call screen. The detail shows incumbent vs candidate with live counts and medians. The stats page gets a slim strip with one chip per entry, and clicking a chip filters the charts to that cohort.',
+v:()=>shell(`<div class="v5"><div class="mc"><div class="list">${Q.map(e=>`<div class="li ${e===sel?'sel':''}"><span class="ic">${e.n}</span><span>${e.title.toUpperCase()}<br>${st(e.status)}</span></div>`).join('')}</div><div class="det"><h4>#${sel.n} ${sel.title.toUpperCase()}</h4><div class="inter">${sel.hyp}</div><div class="vs"><div class="arm">A · INCUMBENT<b>${reach(sel,'A')}</b>reached · median ${med(sel,'A')}<br>${mt(sel,'A')} turns · ${eff(sel,'A')} reach/1k turns</div><span class="vsb">VS</span><div class="arm">B · ${sel.sw.toUpperCase()}<b>${reach(sel,'B')}</b>reached · median ${med(sel,'B')}<br>${mt(sel,'B')} turns · ${eff(sel,'B')} reach/1k turns</div></div>${pips(sel)}<p>SOURCE ${sel.src}<br>BUDGET ${sel.used}/${BUDGET} H · ETA ${sel.eta}</p></div></div>${legend}</div>`),
+s:()=>stats(`<div class="chipbar">${Q.map(e=>`<span class="chip ${e===sel?'on':''}">${e.n}. ${e.title} · ${LABEL[e.status]}</span>`).join('')}</div><p style="margin:0;color:#345471">Selecting a chip sets the EXPERIMENT filter, so the frontier and timing charts below show only that cohort's runs.</p>`)});
+// 6
+D.push({name:'Trial matrix',desc:'<b>6 · Trial matrix.</b> The densest view: one row per experiment and one cell per trial in run order (ABBAABBA), with minutes-to-RIVAL_MET in each finished cell. On the stats page it moves to the top as the first thing you see.',
+v:()=>shell(`<div class="v6"><table><tr><th class="l">EXPERIMENT</th>${'ABBAABBA'.split('').map((a,i)=>`<th>${i+1}<br>${a}</th>`).join('')}<th class="l">STATUS</th></tr>${Q.map(e=>`<tr><td class="l">#${e.n} ${e.title.toUpperCase()}<br><span class="sw">${e.sw}</span></td>${e.trials.length?e.trials.map(t=>`<td class="c ${t[0]} ${t[1]}">${t[1]==='ok'?t[2]+'m':t[1]==='miss'?'✕':t[1]==='run'?'▶':t[0]}</td>`).join(''):'<td class="c x" colspan="8">blocked · needs a switch</td>'}<td class="v">${st(e.status)}${e.verdict?`<div style="margin-top:8px">${e.verdict}</div>`:''}</td></tr>`).join('')}</table>${legend}</div>`),
+s:()=>statsTop(`<div class="v6"><table><tr><th class="l">EXPERIMENT</th>${'ABBAABBA'.split('').map((a,i)=>`<th>${i+1}·${a}</th>`).join('')}<th class="l">REACHED A·B</th><th class="l">TURNS A·B</th></tr>${Q.map(e=>`<tr><td class="l" style="font:600 13px Inter">${e.title}</td>${e.trials.length?e.trials.map(t=>`<td class="c ${t[0]} ${t[1]}" style="height:30px">${t[1]==='ok'?t[2]:t[1]==='miss'?'✕':t[1]==='run'?'▶':''}</td>`).join(''):'<td class="c x" colspan="8">blocked</td>'}<td class="v">${e.trials.length?reach(e,'A')+'·'+reach(e,'B'):'—'}</td><td class="v">${e.trials.length?mt(e,'A')+'·'+mt(e,'B'):'—'}</td></tr>`).join('')}</table></div>`,'EXPERIMENT QUEUE · TRIAL MATRIX')});
+// 7
+D.push({name:'Battle verdict',desc:'<b>7 · Battle cards.</b> Every experiment is a battle: incumbent (A) vs candidate (B). Each side has a big reached count and an HP-style bar of completions, and the verdict appears when the battle ends. The stats page uses a scoreboard row per experiment.',
+v:()=>shell(`<div class="v7"><div class="bouts">${Q.map(e=>e.status==='blocked'?`<div class="bout blocked"><h4>#${e.n} ${e.title.toUpperCase()} ${st(e.status)}</h4><p class="inter">${e.blocked}</p></div>`:`<div class="bout"><h4>#${e.n} ${e.title.toUpperCase()} ${st(e.status)}</h4><div class="fighters"><div class="f A">INCUMBENT<b>${reach(e,'A')}</b>median ${med(e,'A')} · ${mt(e,'A')} turns<div class="hpb"><i style="width:${(e.trials.filter(t=>t[0]==='A'&&t[1]==='ok').length/4)*100}%"></i></div></div><div class="vs">VS</div><div class="f B">CANDIDATE<b>${reach(e,'B')}</b>median ${med(e,'B')} · ${mt(e,'B')} turns<div class="hpb"><i style="width:${(e.trials.filter(t=>t[0]==='B'&&t[1]==='ok').length/4)*100}%"></i></div></div></div><div class="foot">${pips(e)}<span>${e.verdict||e.eta.toUpperCase()}</span></div></div>`).join('')}</div>${legend}</div>`),
+s:()=>stats(Q.map(e=>`<div class="sq-row"><div>${st(e.status)}</div><div><b>${e.title}</b><small>${e.sw}</small></div><div style="font:600 18px 'JetBrains Mono'">${e.trials.length?`A ${reach(e,'A')} <span style="color:#d03a3a;font:10px 'Press Start 2P'">VS</span> B ${reach(e,'B')}`:'—'}</div></div>`).join(''),'EXPERIMENT QUEUE · SCOREBOARD')});
+// 8
+D.push({name:'Departure board',desc:'<b>8 · Departure board.</b> A dark split-flap board: position, experiment, status, trials, A vs B, and ETA. It reads at a glance from across the room. The stats page reuses the same board.',
+v:()=>shell(`<div class="v8"><div class="board"><div class="row h"><span>#</span><span>EXPERIMENT</span><span>STATUS</span><span>TRIALS</span><span>REACHED · TURNS</span><span>ETA</span></div>${Q.map(e=>`<div class="row"><span class="flap">${String(e.n).padStart(2,'0')}</span><span class="flap w">${e.title.toUpperCase()}</span><span class="flap ${e.status==='running'?'g blink':e.status==='blocked'?'r':''}">${LABEL[e.status]}</span><span class="flap w">${e.trials.length?done(e)+'/'+e.trials.length:'--'}</span><span class="flap w">${e.trials.length?reach(e,'A')+'·'+reach(e,'B')+' '+mt(e,'A')+'·'+mt(e,'B')+'T':'--'}</span><span class="flap">${e.verdict||(e.blocked?'NEEDS SWITCH':e.eta.toUpperCase())}</span></div>`).join('')}</div></div>`),
+s:()=>stats(`<div class="v8"><div class="board">${Q.map(e=>`<div class="row"><span class="flap">${String(e.n).padStart(2,'0')}</span><span class="flap w">${e.title.toUpperCase()}</span><span class="flap ${e.status==='running'?'g blink':e.status==='blocked'?'r':''}">${LABEL[e.status]}</span><span class="flap w">${e.trials.length?done(e)+'/'+e.trials.length:'--'}</span><span class="flap w">${e.trials.length?reach(e,'A')+'·'+reach(e,'B')+' '+mt(e,'A')+'·'+mt(e,'B')+'T':'--'}</span><span class="flap">${e.verdict||(e.blocked?'NEEDS SWITCH':e.eta.toUpperCase())}</span></div>`).join('')}</div></div>`)});
+// 9
+const d9=Q[2];
+D.push({name:'Pokédex entry',desc:'<b>9 · Pokédex.</b> An index on the right and a full "dex entry" on the left with the hypothesis, the exact arm difference, source build, criteria and verdict. It suits reading one experiment closely. The stats page gets a row of compact dex cards.',
+v:()=>shell(`<div class="v9"><div class="dex"><div class="entry"><div class="hd"><span class="no">No.00${d9.n}</span><span>${d9.title.toUpperCase()}<br>${st(d9.status)}</span></div><div class="desc inter">${d9.hyp}</div><dl class="meta"><dt>CHANGES</dt><dd>${sw(d9)} OFF → ON</dd><dt>HELD FIXED</dt><dd class="inter" style="font-size:11.5px">bounded-navigation ON · one-way-tiles ON · full-map OFF · loop guard ON</dd><dt>SOURCE</dt><dd>${d9.src}</dd><dt>TRIALS</dt><dd>${pips(d9)}</dd><dt>CRITERIA</dt><dd class="inter" style="font-size:11.5px">RIVAL_MET reach first, then median time and turns (≥10% better), then reach per 1k turns</dd><dt>REACHED</dt><dd>A ${reach(d9,'A')} · B ${reach(d9,'B')}</dd><dt>MEDIAN TIME</dt><dd>A ${med(d9,'A')} · B ${med(d9,'B')}</dd><dt>MEDIAN TURNS</dt><dd>A ${mt(d9,'A')} · B ${mt(d9,'B')}</dd><dt>EFFICIENCY</dt><dd>A ${eff(d9,'A')} · B ${eff(d9,'B')} reached per 1k turns</dd><dt>VERDICT</dt><dd>${d9.verdict} → ${d9.rec.toUpperCase()}</dd></dl></div><div class="idx">${Q.map(e=>`<div class="${e===d9?'sel':''}"><span>00${e.n}</span><span>${e.title.toUpperCase()}</span><span>${LABEL[e.status].slice(0,4)}</span></div>`).join('')}</div></div></div>`),
+s:()=>stats(`<div class="sq-mini">${Q.map(e=>`<div class="sq-card ${e.status==='running'?'lead':''}"><span style="font:9px 'Press Start 2P';color:#d03a3a">No.00${e.n}</span> ${st(e.status)}<p style="margin:8px 0 2px;font-weight:700">${e.title}</p><small>${e.sw}</small><div style="margin-top:8px">${pips(e)}</div></div>`).join('')}</div>`)});
+// 10
+const tot=Q.reduce((s,e)=>s+(e.status==='blocked'||e.status==='done'?0:(e.trials.length-done(e))),0);
+D.push({name:'Dashboard + table',desc:'<b>10 · Dashboard.</b> Summary tiles (hours queued, approved, running, finished) over a plain sortable table, in the same look as the existing LLM STATS page. This is the most conventional option. On the stats page the table sits in the existing EXECUTION QUEUE slot.',
+v:()=>shell(`<div class="v10"><div class="tiles"><div class="tile">TRIAL HOURS QUEUED<b>${tot} H</b></div><div class="tile">APPROVED<b>${Q.filter(e=>e.status==='approved').length}</b></div><div class="tile">RUNNING<b>${Q.filter(e=>e.status==='running').length}</b></div><div class="tile">FINISHED<b>${Q.filter(e=>e.status==='done').length}</b></div></div><table><tr><th>#</th><th>EXPERIMENT</th><th>STATUS</th><th>TRIALS</th><th>A · B REACHED</th><th>MEDIAN TURNS A · B</th><th>BUDGET</th></tr>${Q.map(e=>`<tr><td>${e.n}</td><td><b>${e.title}</b><br><span class="sw">${e.sw}</span></td><td>${st(e.status)}</td><td>${pips(e)}</td><td class="mono">${e.trials.length?reach(e,'A')+' · '+reach(e,'B'):'—'}</td><td class="mono">${e.trials.length?mt(e,'A')+' · '+mt(e,'B'):'—'}</td><td style="width:120px">${e.used.toFixed(1)}/${BUDGET} h${bud(e)}</td></tr>`).join('')}</table>${legend}</div>`),
+s:()=>stats(`<div class="v10"><table><tr><th>#</th><th>EXPERIMENT</th><th>STATUS</th><th>TRIALS</th><th>A · B REACHED</th><th>VERDICT / ETA</th></tr>${Q.map(e=>`<tr><td>${e.n}</td><td><b>${e.title}</b> <span class="sw">${e.sw}</span></td><td>${st(e.status)}</td><td>${pips(e)}</td><td class="mono">${e.trials.length?reach(e,'A')+' · '+reach(e,'B'):'—'}</td><td>${e.verdict||e.blocked||e.eta}</td></tr>`).join('')}</table></div>`,'EXECUTION QUEUE')});
+
+const root=document.getElementById('root'),tabs=document.getElementById('tabs'),desc=document.getElementById('desc');
+D.forEach((d,i)=>{const s=document.createElement('section');s.className='design v'+(i+1);s.innerHTML=`<div class="pair">${d.v()}${d.s()}</div>`;root.appendChild(s);const b=document.createElement('button');b.textContent=(i+1)+' · '+d.name;b.onclick=()=>show(i);tabs.appendChild(b)});
+function show(i){document.querySelectorAll('.design').forEach((s,j)=>s.classList.toggle('active',i===j));tabs.querySelectorAll('button').forEach((b,j)=>b.classList.toggle('on',i===j));desc.innerHTML=D[i].desc;history.replaceState(null,'','#'+(i+1))}
+show(Math.max(0,Math.min(9,(parseInt(location.hash.slice(1))||1)-1)));
+</script></body></html>

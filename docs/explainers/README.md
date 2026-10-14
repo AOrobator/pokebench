@@ -15,8 +15,11 @@ Tracked, local HTML documentation. Open an explainer directly; no server or exte
 - [Instruction ledger](instruction-ledger-v1.html)
 - [Loop supervisor](loop-guard-supervisor-v1.html)
 - [Navigation evidence memory v1](navigation-evidence-memory-v1.html)
+- [Walkable floor v1](walkable-floor-v1.html)
 - [One-way tiles v1](one-way-tiles-v1.html)
+- [Experiment queue](experiment-queue.html)
 
 The original ignored runs/explainers copies remain for existing links. Make future updates here. Runtime probes, generated measurement data and helper scripts remain under runs/.
 
 - [Current-run harness configuration](current-run-harness-config.html)
+- [Story frontier zoom](frontier-zoom.html)

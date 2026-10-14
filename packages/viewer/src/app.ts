@@ -9,6 +9,7 @@ import { ReplayClock } from "./replay.js";
 import { lanesSvg } from "./timeline.js";
 import { ABORT_HOLD_MS, availableActions, controlBar, overlay, overlayKind, runSeconds, sideStats, splitStrip, stateLabel, type ControlAction } from "./controls.js";
 import { NextRunPanel } from "./nextpanel.js";
+import { QueuePanel } from "./queue-view.js";
 
 export interface StreamLike {
   addEventListener(type: string, listener: (message: { data: string }) => void): void;
@@ -103,12 +104,15 @@ export class App {
   private overlayClosed = false;
   private wasLive = false;
   readonly next: NextRunPanel;
+  readonly experiments: QueuePanel | null;
 
   constructor(
     private readonly doc: Document,
     private readonly deps: AppDeps,
   ) {
     this.next = new NextRunPanel(doc, { fetchJson: (url) => deps.fetchJson(url), sendJson: (method, url, body) => deps.sendJson(method, url, body), problem: (text) => { this.problem(text); } });
+    const queueRoot = doc.querySelector<HTMLElement>('[data-ui="experiment-queue"]');
+    this.experiments = queueRoot === null ? null : new QueuePanel(queueRoot, { fetchJson: (url) => deps.fetchJson(url), problem: (text) => { this.problem(text); } });
   }
 
   private get live(): boolean {
@@ -310,8 +314,14 @@ export class App {
     this.ui("feature-search-results").textContent = matches === 0 ? "No matching features" : `${String(matches)} matching feature${matches === 1 ? "" : "s"}`;
   }
 
+  // Refreshes the queue page only while it is open.
+  async pollExperiments(): Promise<void> {
+    if (this.doc.querySelector('[data-page="queue"][aria-pressed="true"]') !== null) await this.experiments?.load();
+  }
+
   private showPage(name: string): void {
     if (name === "splits" && this.runId !== null && this.comparisonsRun !== this.runId) void this.loadComparisons(this.runId);
+    if (name === "queue") void this.experiments?.load();
     for (const panel of this.doc.querySelectorAll<HTMLElement>("[data-nav-page]")) panel.hidden = panel.dataset.navPage !== name;
     for (const button of this.doc.querySelectorAll<HTMLButtonElement>("[data-page]")) button.setAttribute("aria-pressed", String(button.dataset.page === name));
   }
@@ -631,6 +641,7 @@ export async function boot(win: BootWindow): Promise<App> {
   win.setInterval(() => {
     void app.refreshRuns();
     void app.next.poll();
+    void app.pollExperiments();
   }, RUN_LIST_MS);
   return app;
 }

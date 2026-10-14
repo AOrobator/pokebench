@@ -92,7 +92,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("bounded-navigation-v1", "guidance", "BOUNDED NAVIGATION", "live-map-v1",
     "Adds navigate_to for up to eight ordinary walking attempts using the live local map, plus the current map ID needed by the tool. The model chooses destinations. Stops on blocked movement, locks or map changes; unsupported terrain is avoided. Off: no navigate_to tool."),
   on("field-dialogue-phase-v1", "observation", "DIALOGUE PHASE", RAM,
-    "Reports a qualified field-message printer phase, buffer position and whether A/B can advance a page. Unknown ownership stays unavailable; no story route is supplied. Off: incumbent dialogue readout."),
+    "Reports a qualified field-message printer phase, buffer position and whether A/B can advance a page, or the qualified script/interface activity retaining its window. Unknown ownership stays unavailable; no story route is supplied. Off: incumbent dialogue readout."),
   on("dialogue-safe-batches-v1", "guard", "SAFE INTERFACE INPUT", RAM,
     "Limits interaction/menu inputs and locked or unavailable interface batches to one submitted button, then returns a fresh frame. Freely walking directional batches remain available. Off: submits all requested buttons together."),
   on("interaction-loop-detection-v1", "guard", "INTERACTION LOOP DETECTION", RAM,

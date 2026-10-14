@@ -75,6 +75,18 @@ const MESSAGES: Record<LoopKind, string> = {
 export function semanticState(state: GameStateSnapshot, interactions = false): string | null {
   if (state.in_battle) return null;
   const ui = state.active_ui;
+  if (state.screen === "naming" && state.naming?.ready === true) {
+    const naming = state.naming;
+    // A qualified owner must agree with the cursor readout. Unknown or
+    // contradictory owners must never become evidence of equivalence.
+    if (ui != null && (
+      ui.diagnostic !== null || ui.ready !== true || ui.phase !== "naming_editor" ||
+      ui.selected !== naming.key || ui.value !== naming.text ||
+      ui.details?.["page"] !== naming.page ||
+      ui.details["column"] !== naming.column || ui.details["row"] !== naming.row
+    )) return null;
+    return stable({screen:state.screen,naming,owner:ui?.details ?? null});
+  }
   if (ui != null) {
     if (ui.diagnostic !== null || ui.ready !== true) return null;
     const selected =
@@ -101,8 +113,6 @@ export function semanticState(state: GameStateSnapshot, interactions = false): s
       });
     return null;
   }
-  if (state.screen === "naming" && state.naming?.ready === true)
-    return stable({ screen: state.screen, naming: state.naming });
   const message = state.world_context?.message;
   const qualifiedMessage = interactions && Boolean(state.world_context?.dialogue || message?.identity) && message?.ready === true && ["dismiss_wait", "button_wait", "page_wait", "scroll_wait"].includes(message.phase);
   if (

@@ -356,3 +356,175 @@ def test_corrected_field_characters_are_common_even_when_phase_information_is_of
     m.put(0x02021FC4, bytes(1000))
     c = read_world_context(m.read, (10, 2), (0, 9), SAVE, decode_text, message_phase=True)
     assert c.message.identity == sha256(bytes(1000)).hexdigest() and c.dialogue is None
+
+
+def test_retained_window_reports_qualified_script_activity_not_an_input_ready_message():
+    for native, phase in (
+        (0x08099D95, "script_pause"),
+        (0x0809A671, "movement_wait"),
+        (0x0809833D, "message_close_wait"),
+    ):
+        m = field_printer(0)
+        m.put(0x020201B0 + 0x1B, b"\x00")
+        m.put(0x03000E40 + 1, b"\x02")
+        m.put(0x03000E40 + 4, struct.pack("<I", native))
+        c = read_world_context(m.read, (10, 2), (0, 9), SAVE, decode_text, message_phase=True)
+        assert c.message is None and c.dialogue is None
+        assert c.message_diagnostic is None
+        assert c.json()["field_activity"] == {"phase": phase, "owner": native}
+        assert f"Field activity: {phase}; not an input-ready field message" in c.text(message=True)
+        assert "STATE COVERAGE ERROR" not in c.text(message=True)
+        # Stale native pointers in a stopped/waiting context do not qualify.
+        for address, value in (
+            (0x03000E38, b"\x01"),
+            (0x03000E40 + 1, b"\x00"),
+            (0x03000E40 + 4, struct.pack("<I", 0x080ABCDE)),
+            (0x020201B0 + 0x1B, b"\x01"),
+        ):
+            previous = m.read(address, len(value))
+            m.put(address, value)
+            bad = read_world_context(m.read, (10, 2), (0, 9), SAVE, decode_text, message_phase=True)
+            assert bad.message is None and bad.message_diagnostic is not None
+            assert "field_activity" not in bad.json()
+            m.put(address, previous)
+
+
+def test_field_message_initialization_is_owned_but_not_ready():
+    for step in (0, 1):
+        m = field_printer()
+        m.put(0x03005E00 + 8, bytes([step, 0]))
+        c = read_world_context(m.read, (10, 2), (0, 9), SAVE, decode_text, message_phase=True)
+        assert c.message is None and c.message_diagnostic is None
+        assert c.json()["field_activity"] == {"phase": "message_initializing", "owner": 0x08098155}
+        m.put(0x03005E00 + 0x28, m.read(0x03005E00, 0x28))
+        assert (
+            read_world_context(
+                m.read, (10, 2), (0, 9), SAVE, decode_text, message_phase=True
+            ).message_diagnostic
+            is not None
+        )
+
+
+def test_bytecode_phase_uses_script_pointer_not_stale_native():
+    m = field_printer(0)
+    m.put(0x020201B0 + 0x1B, b"\x00")
+    m.put(0x03000E40 + 1, b"\x01")
+    m.put(0x03000E40 + 4, struct.pack("<II", 0x08099D95, 0x08200001))
+    c = read_world_context(m.read, (10, 2), (0, 9), SAVE, decode_text, message_phase=True)
+    assert c.json()["field_activity"] == {"phase": "script_running", "owner": 0x08200001}
+    m.put(0x03000E40 + 8, bytes(4))
+    assert (
+        read_world_context(
+            m.read, (10, 2), (0, 9), SAVE, decode_text, message_phase=True
+        ).message_diagnostic
+        is not None
+    )
+
+
+def test_real_pc_decoder_qualifies_retained_window_without_leaking_menu_contents():
+    from dataclasses import replace
+
+    from pokebench_env.menu_pc import FIELD_CALLBACK, PC_TOP_TASK, read_pc_ui
+    from tests.env.test_menu_pc import setup
+
+    pc = setup(PC_TOP_TASK, 2, 3)
+    pc.put(0x0203BCB4, b"\x03")
+    pc.put(0x0203BCB0, struct.pack("<I", 0x085DF000))
+    pc.put(0x085DF000, bytes([0, 1, 3]))
+    m = world()
+    m.cells.update(pc.cells)
+    ui = read_pc_ui(m.read, FIELD_CALLBACK)
+    assert ui.diagnostic is None and ui.phase == "pc_player_menu"
+    c = read_world_context(
+        m.read, (10, 2), (0, 9), SAVE, decode_text, message_phase=True, native_ui=ui
+    )
+    assert c.json()["field_activity"] == {"phase": "other_interface", "owner": PC_TOP_TASK}
+    assert c.message_diagnostic is None and c.dialogue is None
+    assert "TURN OFF" not in c.text(message=True)
+    assert "Field activity" not in c.text(message=False)
+    for bad_ui in (None, replace(ui, diagnostic="unsupported"), replace(ui, phase="other")):
+        bad = read_world_context(
+            m.read, (10, 2), (0, 9), SAVE, decode_text, message_phase=True, native_ui=bad_ui
+        )
+        assert bad.message_diagnostic is not None and "field_activity" not in bad.json()
+    m.put(0x03005E00 + 4, b"\x00")
+    assert (
+        read_world_context(
+            m.read, (10, 2), (0, 9), SAVE, decode_text, message_phase=True, native_ui=ui
+        ).message_diagnostic
+        is not None
+    )
+
+
+def test_initializing_message_preserves_malformed_text_diagnostic_in_model_text():
+    m = field_printer()
+    m.put(0x03005E00 + 8, bytes(2))
+    m.put(0x02021FC4, b"\x0a\xff")
+    c = read_world_context(m.read, (10, 2), (0, 9), SAVE, decode_text, message_phase=True)
+    assert c.field_activity is not None and c.message_diagnostic is not None
+    assert "STATE COVERAGE ERROR" in c.text(message=True)
+
+
+def test_shared_menu_message_is_another_owner_not_a_field_dialogue():
+    from pokebench_env.menu_common import MESSAGE_TASK, read_shared_menu
+    from tests.env.test_menus import put_task
+    from tests.env.test_ui_state import window
+
+    m = world()
+    put_task(m, 0, MESSAGE_TASK, [])
+    m.put(0x0300117C, struct.pack("<I", 0x080E0EDD))
+    window(m, 0, 0, 27, 4, True)
+    m.put(0x02021FC4, text("THANK YOU") + b"\xff")
+    m.put(0x03000E38, b"\x01")
+    m.put(0x020201B0 + 0x1B, b"\x01")
+    ui = read_shared_menu(m.read, 0x080DFD65)
+    assert ui.diagnostic is None
+    c = read_world_context(
+        m.read, (10, 2), (0, 9), SAVE, decode_text, message_phase=True, native_ui=ui
+    )
+    assert c.json()["field_activity"] == {"phase": "other_interface", "owner": MESSAGE_TASK}
+    assert c.dialogue is None and "THANK YOU" not in c.text(message=True)
+    m.put(0x03005E00 + 0x28, m.read(0x03005E00, 0x28))
+    assert (
+        read_world_context(
+            m.read, (10, 2), (0, 9), SAVE, decode_text, message_phase=True, native_ui=ui
+        ).message_diagnostic
+        is not None
+    )
+
+
+def test_unknown_initializing_owner_and_mode_still_report_coverage_gap():
+    for mode, step, active in ((4, 0, 1), (2, 3, 1), (2, 0, 0)):
+        m = field_printer(mode)
+        m.put(0x03005E00 + 8, bytes([step, 0]))
+        m.put(0x03005E00 + 4, bytes([active]))
+        c = read_world_context(m.read, (10, 2), (0, 9), SAVE, decode_text, message_phase=True)
+        assert c.message is None and c.message_diagnostic is not None
+        assert "field_activity" not in c.json()
+
+
+def test_production_readout_reuses_native_interface_owner_even_when_model_ui_is_ablated():
+    from pokebench_env.game_state import read_game_state
+    from pokebench_env.menu_pc import PC_TOP_TASK
+    from pokebench_env.readout import format_readout, state_json
+    from tests.env.test_game_state import MAPS, OVERWORLD, game
+    from tests.env.test_menu_pc import setup
+
+    m = game(OVERWORLD)
+    pc = setup(PC_TOP_TASK, 2, 3)
+    pc.put(0x0203BCB4, b"\x03")
+    pc.put(0x0203BCB0, struct.pack("<I", 0x085DF000))
+    pc.put(0x085DF000, bytes([0, 1, 3]))
+    m.cells.update(world().cells)
+    m.cells.update(pc.cells)
+    base = game(OVERWORLD)
+    m.put(0x02037350, base.read(0x02037350, 0x24))
+    state = read_game_state(m.read, MAPS, active_ui_enabled=False, message_phase_enabled=True)
+    assert state.active_ui is None
+    assert state.world_context.message_diagnostic is None
+    assert state_json(state)["world_context"]["field_activity"]["phase"] == "other_interface"
+    text_on = format_readout(state, message_phase=True)
+    assert "Field activity: other_interface" in text_on and "TURN OFF" not in text_on
+    assert "Field activity" not in format_readout(
+        state, frozenset({"field-dialogue-phase-v1"}), message_phase=True
+    )

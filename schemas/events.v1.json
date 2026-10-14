@@ -5657,6 +5657,30 @@
                   "type": "string",
                   "maxLength": 1000
                 },
+                "field_activity": {
+                  "type": "object",
+                  "required": [
+                    "phase",
+                    "owner"
+                  ],
+                  "properties": {
+                    "phase": {
+                      "enum": [
+                        "message_initializing",
+                        "script_pause",
+                        "movement_wait",
+                        "message_close_wait",
+                        "script_running",
+                        "other_interface"
+                      ]
+                    },
+                    "owner": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "additionalProperties": false
+                },
                 "message": {
                   "anyOf": [
                     {

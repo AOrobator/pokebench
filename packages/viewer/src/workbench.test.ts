@@ -80,3 +80,11 @@ describe("mounted split ribbon workbench", () => {
     const { wb, fetch } = mount(); await wb.refresh(); ui("outcomes").querySelector<HTMLButtonElement>("button")?.click(); fetch.mockResolvedValue({ ...data(), at: 2000, runs: [], queue: [], problems: ["Unreadable receipt"] }); await wb.refresh(); expect(ui("detail-body").textContent).toContain("no longer available"); expect(ui("queue").textContent).toContain("No runs are queued"); expect(ui("data-problems").textContent).toContain("Unreadable"); expect(ui("timing").textContent).toContain("No verified"); ui("detail").dispatchEvent(new MouseEvent("click", { bubbles: true })); expect(ui("detail").hidden).toBe(true); wb.destroy();
   });
 });
+
+it("keeps the live watch link and keyboard focus stable through clock ticks and updated run metadata", async () => {
+  const { wb, fetch } = mount({ ...data(), runs: [run({ status: "live" })] }); await wb.refresh();
+  const link=ui("current").querySelector<HTMLAnchorElement>(".wb-current");if(link===null)throw Error("missing watch link");link.focus();
+  wb.clock();wb.clock();expect(ui("current").querySelector(".wb-current")).toBe(link);expect(document.activeElement).toBe(link);
+  fetch.mockResolvedValue({...data(),at:2000,runs:[run({status:"live",turn:77})]});await wb.refresh();
+  expect(ui("current").querySelector(".wb-current")).toBe(link);expect(document.activeElement).toBe(link);expect(link.textContent).toContain("Turn 77");wb.destroy();
+});

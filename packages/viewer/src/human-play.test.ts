@@ -40,7 +40,7 @@ it('claims on focus, suppresses repeats, maintains combinations, heartbeats and 
  expect(key('KeyO').defaultPrevented).toBe(true);key('KeyO');await settle();key('KeyW');await settle();key('KeyO','keyup');await settle();
  expect(send.mock.calls.at(-1)?.[1]).toMatchObject({buttons:['UP']});advance(100);await settle();expect(send.mock.calls.at(-1)?.[1]).toMatchObject({buttons:['UP']});
  ui('surface').blur();await settle();expect(send.mock.calls.at(-1)?.[1]).toMatchObject({buttons:[],release:true});
- expect(ui('focus').textContent).toContain('Click');expect(key('KeyW').defaultPrevented).toBe(false);
+ expect(ui('focus').textContent).toContain('Controls ready');expect(key('KeyW').defaultPrevented).toBe(false);
  ui('surface').focus();await settle();expect(send.mock.calls.at(-1)?.[1]).toEqual({session:'session-2'});play.close();await settle();expect(send.mock.calls.at(-1)?.[1]).toMatchObject({release:true});
 });
 it('releases a claim which finishes after focus is lost and removes handlers on close',async()=>{
@@ -77,7 +77,7 @@ it('renders recorded human frames, milestones and pause/resume without acquiring
  const {play,stream,send,advance}=await harness();const log=new Log();log.add(0,START);
  stream.send(log.add(100,{type:'human_sample',turn:0,frame:6,paused:false,screenshot:{path:'frames/000001_0.png',sha1:'a'.repeat(40)}}));
  stream.send(log.add(200,{type:'milestone',turn:0,name:'GAME_RUNNING',server_timestamp:1}));expect(ui('splits').textContent).toContain('game running');
- stream.send(log.add(500,{type:'operator_control',turn:0,action:'pause',status:'applied',request:1,emulator_frozen:true}));ui('surface').click();await settle();expect(send).not.toHaveBeenCalled();expect(ui('pause').textContent).toBe('Resume');ui('pause').click();await settle();expect(send.mock.calls.at(-1)?.[1]).toEqual({action:'resume'});
+ stream.send(log.add(500,{type:'operator_control',turn:0,action:'pause',status:'applied',request:1,emulator_frozen:true}));ui('surface').click();await settle();expect(send).not.toHaveBeenCalled();expect(ui('pause').textContent).toBe('Start run');ui('pause').click();await settle();expect(send.mock.calls.at(-1)?.[1]).toEqual({action:'resume'});
  stream.send(log.add(1500,{type:'operator_control',turn:0,action:'resume',status:'applied',request:2,paused_ms:1000}));advance(2000);expect(ui('time').textContent).toBe('0:00:01');
  stream.send(log.add(3000,{type:'run_end',turn:0,reason:'operator_stop',turns:0,wall_ms:2000,furthest_milestone:null,tokens:{input:0,output:0},frames:{saved:1,bytes:1}}));expect(ui('screen').getAttribute('src')).toContain('/frames/000001_0.png');play.close();
 });
@@ -131,4 +131,16 @@ it.each([{},null,{run_id:RUN},{run_id:'../wrong'},{run_id:'safe',extra:true},{ru
 it('starts over from pause and waits for an in-flight claim to release before restart',async()=>{
  const {play,stream,send,openRun}=await harness();let claimed:()=>void=()=>{};send.mockImplementationOnce(()=>new Promise(resolve=>{claimed=()=>{resolve({});};}));ui('surface').focus();await settle();send.mockResolvedValueOnce({});send.mockResolvedValueOnce({run_id:'claimed-replacement'});ui('restart').click();await settle();expect(send).toHaveBeenCalledTimes(1);claimed();await settle();expect(send.mock.calls[1]?.[1]).toMatchObject({release:true});expect(send.mock.calls[2]).toEqual([`/api/runs/${RUN}/human/restart`,{}]);expect(openRun).toHaveBeenCalledWith('claimed-replacement');play.close();
  const paused=await harness();const log=new Log();log.add(0,START);paused.stream.send(log.add(100,{type:'operator_control',turn:0,action:'pause',status:'applied',request:1,emulator_frozen:true}));paused.send.mockResolvedValueOnce({run_id:'paused-replacement'});ui('restart').click();await settle();expect(paused.openRun).toHaveBeenCalledWith('paused-replacement');expect(paused.send.mock.calls).toEqual([[`/api/runs/${RUN}/human/restart`,{}]]);paused.play.close();expect(stream.closed).toBe(true);
+});
+
+it('Start run unlocks audio in the click and claims keyboard after Resume applies without clicking the game',async()=>{
+ const stream=new Stream(),send=vi.fn<(url:string,body:unknown)=>Promise<unknown>>().mockResolvedValue({});
+ const audio={muted:true,toggle:vi.fn<()=>Promise<void>>().mockResolvedValue(undefined),mute:vi.fn()};
+ const play=new HumanPlay(document,RUN,{audio,fetchJson:()=>Promise.resolve(start()),sendJson:send,openStream:()=>stream,now:()=>BASE_MS,session:()=> 'one-click'});
+ await play.start();const log=new Log();log.add(0,START);
+ stream.send(log.add(100,{type:'operator_control',turn:0,action:'pause',status:'applied',request:1,emulator_frozen:true}));
+ ui('pause').click();expect(audio.toggle).toHaveBeenCalledOnce();await settle();
+ expect(send).toHaveBeenCalledWith(expect.stringContaining('/control'),{action:'resume'});expect(send.mock.calls.some(([url])=>url.endsWith('/claim'))).toBe(false);
+ stream.send(log.add(200,{type:'operator_control',turn:0,action:'resume',status:'applied',request:2,paused_ms:100}));await settle();
+ expect(document.activeElement).toBe(ui('surface'));expect(ui('focus').textContent).toBe('Controls active');expect(key('KeyO').defaultPrevented).toBe(true);await settle();expect(send.mock.calls.at(-1)?.[1]).toMatchObject({buttons:['A']});play.close();
 });

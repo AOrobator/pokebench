@@ -25,6 +25,7 @@ export class HumanPlay {
  private claiming=false;
  private claimDone:Promise<void>=Promise.resolve();
  private restarting=false;
+ private startRequested=false;
  private suspended=false;
  private stream:StreamLike|null=null;
  private renderedAt=0;
@@ -52,6 +53,7 @@ export class HumanPlay {
    let value:unknown;try{value=JSON.parse(message.data);}catch{this.fail(Error('Invalid recording event'));return;}
    if(!isRunEvent(value)||value.run!==this.runId)return;
    this.view.apply(value);
+   if(value.type==='operator_control'&&value.action==='resume'&&value.status==='applied'&&this.startRequested){this.startRequested=false;this.ui('surface').focus();this.beginClaim();}
    if(value.type==='run_end')this.stream?.close();
    if(value.type==='run_end'||(value.type==='operator_control'&&value.action==='pause'))this.suspend();
    this.render();
@@ -68,7 +70,7 @@ export class HumanPlay {
   this.ui('sound').addEventListener('click',()=>{
    if(this.controlsReady()&&this.deps.audio!==undefined){this.mutedByUser=!this.deps.audio.muted;void this.deps.audio.toggle();}
   },{signal:this.listeners.signal});
-  this.ui('pause').addEventListener('click',()=>{void this.control(this.view.control.state==='paused'?'resume':'pause');},{signal:this.listeners.signal});
+  this.ui('pause').addEventListener('click',()=>{if(this.view.control.state==='paused')void this.startRun();else void this.control('pause');},{signal:this.listeners.signal});
   this.ui('restart').addEventListener('click',()=>{void this.restart();},{signal:this.listeners.signal});
   this.ui('finish').addEventListener('click',()=>{void this.control('stop');},{signal:this.listeners.signal});
   this.render();
@@ -113,6 +115,14 @@ export class HumanPlay {
   this.error=error instanceof Error?error.message:'Input connection failed';
   this.suspend();
  }
+ async startRun():Promise<void> {
+  if(this.closed||this.restarting||this.startRequested||this.view.start===null||this.view.end!==null)return;
+  this.startRequested=true;this.error='';
+  // Unlock sound in the button gesture, before the asynchronous Resume request.
+  if(!this.mutedByUser&&this.deps.audio?.muted===true)void this.deps.audio.toggle();
+  try{await this.writes;await this.deps.sendJson(`/api/runs/${encodeURIComponent(this.runId)}/control`,{action:'resume'});}
+  catch(error){this.startRequested=false;this.fail(error);}
+ }
  async control(action:'pause'|'resume'|'stop'):Promise<void> {
   if(this.closed||this.restarting||this.view.start===null||this.view.end!==null)return;
   this.suspend();await this.writes;
@@ -147,7 +157,7 @@ export class HumanPlay {
   const ended=this.view.end!==null;const ready=this.view.start!==null&&!ended&&!this.restarting&&!this.closed;
   this.ui('time').textContent=hms(runSeconds(this.view,this.deps.now()));
   this.ui('status').textContent=this.restarting?'Starting new game':this.error!==''?'Recording/input needs attention':ended?(this.view.end?.reason==='operator_abort'?'Recording aborted':this.view.end?.reason==='crash'||this.view.end?.reason==='model_error'?'Recording failed':'Recording finished'):ready?(this.view.control.state==='paused'?'Recording · paused':'Recording'): 'Connecting';
-  this.ui('focus').textContent=this.restarting?'Controls disabled':ended?'Controls disabled':this.session===null?'Click game to enable controls':'Controls active';
+  this.ui('focus').textContent=this.restarting?'Controls disabled':ended?'Controls disabled':this.session===null?(this.view.control.state==='paused'?'Ready · press Start run':'Controls ready'):'Controls active';
   this.ui('problem').textContent=this.error;
   if(ended&&this.view.frame!==null)(this.ui('screen') as HTMLImageElement).src=`/api/runs/${encodeURIComponent(this.runId)}/${this.view.frame}`;
   (this.ui('restart') as HTMLButtonElement).disabled=this.view.start===null||this.restarting||this.closed;
@@ -155,7 +165,7 @@ export class HumanPlay {
   this.ui('surface').setAttribute('aria-disabled',String(this.restarting||this.closed));
   this.ui('surface').tabIndex=this.restarting||this.closed?-1:0;
   (this.ui('pause') as HTMLButtonElement).disabled=!ready;
-  this.ui('pause').textContent=this.view.control.state==='paused'?'Resume':'Pause';
+  this.ui('pause').textContent=this.view.control.state==='paused'?'Start run':'Pause';
   (this.ui('finish') as HTMLButtonElement).disabled=!ready;
   const now=ended?(this.view.lastMs??this.deps.now()):this.deps.now();
   this.ui('splits').innerHTML=splits(this.view,null,now,null,true).table;

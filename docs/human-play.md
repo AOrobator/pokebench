@@ -8,7 +8,7 @@ just run-human
 
 Open the printed `/play#run=…` link on the usual viewer (port 8791). If needed, start the built viewer separately with `node packages/viewer/dist/cli.js --port 8791 --runs runs`. Human Play is separate from the model inspection screen. Game speed and sound playback are fixed at 1×, including dialogue.
 
-Click the game screen to enable controls and sound. Browser audio needs that first click. The screen shows when controls are active. Splits stay beside the game on desktop; the existing timeline below it stays visible and shows presses and milestones. Narrow windows stack the game, timeline, then splits. Use the sound button to turn sound off/on.
+Press Start run to resume the game, enable keyboard controls, and unlock sound in one click. The screen shows when controls are active. Splits stay beside the game on desktop; the existing timeline below it stays visible and shows presses and milestones. Narrow windows stack the game, timeline, then splits. Use the sound button to turn sound off/on.
 
 | Key | Game button |
 | --- | --- |
@@ -17,9 +17,9 @@ Click the game screen to enable controls and sound. Browser audio needs that fir
 | O / P | A / B |
 | 1 / 2 | L / R |
 
-Holds and combinations work. Leaving the game surface releases controls and mutes sound. The server also releases controls if the connection stops sending heartbeats. Click the game again to acquire a fresh control session. Pause freezes the emulator and excludes the pause from active wall-time splits; the cartridge clock still follows host time. Resume, then click the game to restore controls and sound. Finish preserves the recording and its terminal outcome. There are no viewer keyboard shortcuts.
+Holds and combinations work. Leaving the game surface releases controls and mutes sound. The server also releases controls if the connection stops sending heartbeats. Click the game again to acquire a fresh control session. Pause freezes the emulator and excludes the pause from active wall-time splits; the cartridge clock still follows host time. Start run restores controls and sound after a pause. Finish preserves the recording and its terminal outcome. There are no viewer keyboard shortcuts.
 
-Start over is available during play, while paused, and after Finish. It finishes and saves the current recording, waits for the old game to shut down, then opens a fresh game under a new run ID. The new game starts paused: press Resume and click the game to play with sound. Previous recordings, timeline and splits remain available through Inspect recording. Repeated clicks follow the same restart; a startup error stays visible and can be retried. Validation probes remain probes after restarting.
+Start over is available during play, while paused, and after Finish. It finishes and saves the current recording, waits for the old game to shut down, then opens a fresh game under a new run ID. The new game starts paused: press Start run to play with controls and sound. Previous recordings, timeline and splits remain available through Inspect recording. Repeated clicks follow the same restart; a startup error stays visible and can be retried. Validation probes remain probes after restarting.
 
 Recordings are in `runs/human/<run-id>/events.jsonl` and `frames/`. Inspect recording opens the existing viewer, including replay after the game server has stopped. Human input intervals store actual applied frame bounds and Unix timestamps. Sampled milestone frame counts are upper bounds on when the game transition occurred; they are not exact transition frames.
 
@@ -31,7 +31,7 @@ For operator validation, `POKEBENCH_HUMAN_VALIDATION=true just run-human` tags t
 
 ## Current isolated preview
 
-While the existing model cohort remains active, the reviewed human code is served from `/Users/user/.codex/worktrees/human-playthrough/pokebench` on viewer port8799 and human game port8040. The preview viewer reads the usual `/Users/user/dev/pokebench/runs` catalog, including its separate `human/` recordings. Existing model viewers and canonical source/builds are preserved. Use the supplied ready Play link on8799; the printed8791 link is the usual default for after integration. The ready run starts paused so waiting is excluded. Press Resume, click the game, wait for Controls active, then play; first game click enables sound at1×. Start over saves this recording and opens a fresh paused game.
+While the existing model cohort remains active, the reviewed human code is served from `/Users/user/.codex/worktrees/human-playthrough/pokebench` on viewer port8799 and human game port8040. The preview viewer reads the usual `/Users/user/dev/pokebench/runs` catalog, including its separate `human/` recordings. Existing model viewers and canonical source/builds are preserved. Use the supplied ready Play link on8799; the printed8791 link is the usual default for after integration. The ready run starts paused so waiting is excluded. Press Start run and play; that click enables controls and sound at1×. Start over saves this recording and opens a fresh paused game.
 
 The branch is `codex/human-playthrough`. Source integration is pending while changing canonical source/builds could invalidate later trials in the active cohort. This is a ready isolated runtime, not a claim of canonical landing or a completed the operator baseline.
 

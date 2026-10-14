@@ -44,10 +44,10 @@ describe("persistent actual native frontier", () => {
     expect(document.body.textContent).not.toContain("Badge");
   });
   it("retains failed denominators and identifies unsupported and censored outcomes", () => {
-    const failed = measured("failed", []), running = measured("running", []); running.status = "live";
+    const failed = measured("failed", []), running = measured("running", []), interrupted = measured("interrupted", []); running.status = "live"; interrupted.status = "unresponsive";
     const unknown = run({ id: "old", splits: [] });
-    const html = frontierCoverage([best(), failed, running, unknown], "RIVAL_MET");
-    expect(html).toContain("1 / 4"); expect(html).toContain("1 not reached"); expect(html).toContain("1 censored"); expect(html).toContain("1 unsupported");
+    const html = frontierCoverage([best(), failed, running, interrupted, unknown], "RIVAL_MET");
+    expect(html).toContain("1 / 5"); expect(html).toContain("1 not reached"); expect(html).toContain("1 pending"); expect(html).toContain("1 censored"); expect(html).toContain("1 unsupported");
     expect(frontierCoverage([], "RIVAL_MET")).toContain("0 / 0");
   });
   it("shows unavailable persistent references explicitly instead of silently substituting another human", () => {

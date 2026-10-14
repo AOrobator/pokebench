@@ -68,7 +68,7 @@ for from in ${deleted[@]+"${deleted[@]}"}; do
     name=${from#docs/worklogs/active/}
     [[ $name == *.md && $name != */* ]] || continue
     to="docs/worklogs/$name"
-    if [[ -n $(git diff --cached --name-only --no-renames --diff-filter=A -- "$to") && -f $to ]]; then
+    if [[ -n $(git diff --cached --name-only --no-renames --diff-filter=A -- "$to") ]]; then
         worklogs+=("$to")
     fi
 done

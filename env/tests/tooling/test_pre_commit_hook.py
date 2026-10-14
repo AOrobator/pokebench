@@ -260,3 +260,21 @@ def test_adding_a_new_archive_file_is_not_an_archive(tmp_path: Path) -> None:
     shift_mtime(repo / "docs/worklogs/2026-01-03_new.md", 5)
     result = git(repo, "commit", "-q", "-m", "add")
     assert result.returncode != 0
+
+
+def test_staged_archive_with_missing_working_copy_fails_closed(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, {"docs/worklogs/active/2026-01-02_done.md": "# done\n"})
+    archived = repo / "docs/worklogs/2026-01-02_done.md"
+    moved = git(
+        repo, "mv", "docs/worklogs/active/2026-01-02_done.md", "docs/worklogs/2026-01-02_done.md"
+    )
+    assert moved.returncode == 0
+    archived.unlink()
+    blocked = git(repo, "commit", "-q", "-m", "archive")
+    assert blocked.returncode != 0
+    staged = git(repo, "diff", "--cached", "--name-only", "--no-renames").stdout.split()
+    assert staged == ["docs/worklogs/2026-01-02_done.md", "docs/worklogs/active/2026-01-02_done.md"]
+    archived.write_text("# done\n")
+    shift_mtime(archived, 5)
+    result = git(repo, "commit", "-q", "-m", "archive")
+    assert result.returncode == 0, result.stderr

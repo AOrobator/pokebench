@@ -16,3 +16,4 @@ left only other sessions' stale bodies, so the archive commit was refused.
 ## Gates
 - RED: `test: archiving a worklog passes the freshness hook` (f4eb93c); the allow case fails on the old hook (1 failed, 31 passed).
 - GREEN: `fix: let an archive commit satisfy the worklog hook`. tooling 32/32, ruff clean, shellcheck clean.
+- Review round 1 (packet cd13c11): Claude LGTM, Grok LGTM, Codex BLOCKING: the `-f $to` check made a staged archive whose working copy was deleted fall through and commit unchecked. Fix: `fix: fail closed when a staged archive has no working copy` drops the check, so a missing file fails the mtime read. New test breaks with the old condition (1 failed) and passes with the fix. tooling 33/33, ruff and shellcheck clean.

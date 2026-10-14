@@ -31,6 +31,12 @@ describe("read-only workbench snapshot", () => {
     expect(d.runs).toHaveLength(3); expect(d.runs.every(x => x.splits.length === 0)).toBe(true);
     expect(d.runs.find(x => x.id === "probe")?.excluded).toContain("probe");
   });
+  it("refuses an observed milestone whose existing evidence state contradicts the native predicate", async () => {
+    const r = root(), log = named(); const evidence = log.events[2]; if (evidence?.type !== "state") throw new Error("fixture state");
+    log.events[2] = { ...evidence, story: { ...evidence.story, name_confirmed: false } }; write(r, "forged", log);
+    const d = await workbenchSnapshot(r, () => Promise.resolve(false), { state: "idle" }, 42);
+    expect(d.runs.find(x => x.id === "forged")?.splits).toEqual([]);
+  });
   it("shows malformed logs instead of silently grading or hiding them", async () => {
     const r = root(), p = write(r, "broken", named()); appendFileSync(p, '{"bad":true}\n');
     const d = await workbenchSnapshot(r, () => Promise.resolve(true), { state: "idle" }, 2000000000000); expect(d.runs[0]?.status).toBe("invalid"); expect(d.runs[0]?.problem).toBeTruthy(); expect(d.runs[0]?.splits).toEqual([]);

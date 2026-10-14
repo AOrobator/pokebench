@@ -23,7 +23,7 @@ function roots(): { experimentsDir: string; runsRoot: string; readinessPath: str
   mkdirSync(paths.runsRoot, { recursive: true });
   return paths;
 }
-const reachedRun = (id: string): ReadinessRun => ({ id, features: QUEUE_FEATURES, reached: ["FIRST_TRUCK_EXIT"] });
+const reachedRun = (id: string): ReadinessRun => ({ id, model: "think-fast", maxTurns: 1500, maxWallMs: 1_800_000, features: QUEUE_FEATURES, reached: ["FIRST_TRUCK_EXIT"] });
 const fake = (metrics: Record<string, TrialMetrics>, recent: ReadinessRun[] = ["r1", "r2", "r3", "r4"].map(reachedRun)): RunSource => ({ recent: () => recent, trial: (id) => metrics[id] ?? null });
 const reached = (turns: number, ms: number): TrialMetrics => ({ reached: ["FIRST_TRUCK_EXIT", "RIVAL_HOUSE_ENTERED"], milestoneMs: { RIVAL_HOUSE_ENTERED: ms }, turns, wallMs: ms + 1000 });
 const missed = (turns: number): TrialMetrics => ({ reached: ["FIRST_TRUCK_EXIT"], milestoneMs: {}, turns, wallMs: 1_800_000 });
@@ -77,6 +77,7 @@ describe("experiment queue store", () => {
     writeFileSync(runnerPath(paths.runsRoot), JSON.stringify({ pid: 7, experiment: "full-map", trial: 3 }));
     const snapshot = queueSnapshot(paths, fake({ a: reached(600, 900_000), b: reached(400, 600_000), c: missed(1500), d: missed(10) }), () => true);
     expect(snapshot.queue.map((v) => [v.id, v.state])).toEqual([["full-map", "running"], ["second", "draft"]]);
+    expect(snapshot.queue.map((v) => v.approved)).toEqual([true, false]);
     expect(snapshot.pending.map((v) => [v.id, v.state, v.recorded?.verdict])).toEqual([["counter", "pending", "BLOCKED: models do not yet reach Oldale"]]);
     expect(snapshot.closed.map((v) => [v.id, v.state])).toEqual([["dropped", "discarded"], ["finished", "done"]]);
     expect(snapshot.runner).toEqual({ experiment: "full-map", trial: 3 });
@@ -120,6 +121,7 @@ describe("recorded runs as readiness and trial evidence", () => {
     run(runsRoot, "2026-10-14T04-00-00_think-fast_dddd", { reason: "operator_abort" });
     run(runsRoot, "2026-10-14T05-00-00_think-fast_eeee", { harness: ["probe"] });
     const source = recordedRuns(runsRoot);
+    expect(source.recent()[0]).toMatchObject({ model: "think-swarm", maxTurns: 1500, maxWallMs: 1_800_000 });
     expect(source.recent().map((r) => [r.id, r.reached])).toEqual([["2026-10-14T01-00-00_think-fast_aaaa", ["FIRST_TRUCK_EXIT"]], ["2026-10-14T02-00-00_think-fast_bbbb", ["FIRST_TRUCK_EXIT", "RIVAL_HOUSE_ENTERED"]]]);
     expect(source.trial("2026-10-14T02-00-00_think-fast_bbbb")).toEqual({ reached: ["FIRST_TRUCK_EXIT", "RIVAL_HOUSE_ENTERED"], milestoneMs: { FIRST_TRUCK_EXIT: 1000, RIVAL_HOUSE_ENTERED: 2000 }, turns: 9, wallMs: 60_000 });
     expect(source.trial("2026-10-14T02-00-00_think-fast_bbbb")).toBe(source.trial("2026-10-14T02-00-00_think-fast_bbbb"));

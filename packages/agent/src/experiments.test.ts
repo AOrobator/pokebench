@@ -51,7 +51,7 @@ it("hashes the definition except its queue position and notes",()=>{
  expect(definitionHash(experiment({trialsPerArm:5}))).not.toBe(definitionHash(e));
 });
 
-const run=(id:string,reached:string[],over:Partial<FeatureSet>={}):ReadinessRun=>({id,features:{...features,...over},reached});
+const run=(id:string,reached:string[],over:Partial<FeatureSet>={},extra:Partial<ReadinessRun>={}):ReadinessRun=>({id,model:"think_fast",maxTurns:1500,maxWallMs:1_800_000,features:{...features,...over},reached,...extra});
 it("is ready only when enough of the latest comparable runs reach the activation milestone",()=>{
  const e=experiment();
  const comparable=[run("r1",[]),run("r2",["FIRST_TRUCK_EXIT"]),run("r3",["FIRST_TRUCK_EXIT"],{"full-map-navigation-v1":true}),run("r4",["FIRST_TRUCK_EXIT"]),run("r5",["FIRST_TRUCK_EXIT"])];
@@ -60,6 +60,12 @@ it("is ready only when enough of the latest comparable runs reach the activation
  expect(readinessOf(e,[run("o1",["FIRST_TRUCK_EXIT"],{"live-map-v1":false,"world-coordinate-grid-v1":false}),...comparable.slice(0,3)])).toMatchObject({ready:true,basis:"recent",reached:3,considered:["o1","r1","r2","r3"]});
  expect(readinessOf(e,comparable.slice(0,3))).toMatchObject({ready:false,basis:"recent",reached:2,considered:["r1","r2","r3"]});
  expect(readinessOf(e,[])).toMatchObject({ready:false,reached:0,considered:[]});
+ // Only the experiment's own model lane counts, and comparable runs share its turn and wall limits.
+ const otherLane=["x1","x2","x3","x4"].map(id=>run(id,["FIRST_TRUCK_EXIT"],{},{model:"think-slow"}));
+ expect(readinessOf(e,otherLane)).toMatchObject({ready:false,reached:0,considered:[]});
+ const shorter=["s1","s2","s3","s4"].map(id=>run(id,["FIRST_TRUCK_EXIT"],{},{maxTurns:300}));
+ expect(readinessOf(e,shorter)).toMatchObject({ready:true,basis:"recent"});
+ expect(readinessOf(e,[...shorter,...comparable.slice(1)])).toMatchObject({ready:true,basis:"comparable",considered:["r2","r3","r4","r5"]});
 });
 
 it("parses an append-only ledger and reports malformed lines",()=>{

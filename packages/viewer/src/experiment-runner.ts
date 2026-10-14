@@ -137,6 +137,11 @@ export async function runQueue({ paths, source, host, dryRun = false, once = fal
         return { ran, stopped: `held: trial ${String(trial.index + 1)} failed to launch` };
       }
       const reason = endReason(paths.runsRoot, runId);
+      // An operator stop is not a model result: keep it on record, rerun the trial later, never grade it.
+      if (reason === "operator_abort") {
+        append(paths, experiment.id, { type: "launcher_error", trial: trial.index, arm: trial.arm, run: runId, at: host.now().toISOString(), message: "operator stopped the trial" });
+        return { ran, stopped: `held: trial ${String(trial.index + 1)} was stopped by the operator; it will be rerun` };
+      }
       // A run that recorded its own end (crash, model_error, ...) is a result, even when play exits nonzero (PB2).
       if (code !== 0 && reason === "incomplete") {
         append(paths, experiment.id, { type: "launcher_error", trial: trial.index, arm: trial.arm, run: runId, at: host.now().toISOString(), message: `play exited with ${String(code)}` });
@@ -145,7 +150,7 @@ export async function runQueue({ paths, source, host, dryRun = false, once = fal
       append(paths, experiment.id, { type: "outcome", trial: trial.index, arm: trial.arm, run: runId, at: host.now().toISOString(), reason });
       ran += 1;
       host.log(`${experiment.id}: trial ${String(trial.index + 1)} (${trial.arm}) finished as ${runId}`);
-      if (once) return { ran, stopped: "one trial run (--once)" };
+      if (once && trial !== todo.at(-1)) return { ran, stopped: "one trial run (--once)" };
     }
     writeResult(paths, experiment);
     return { ran, stopped: `${experiment.id} finished; result in ${join(experimentDir(paths.runsRoot, experiment.id), "result.json")}` };

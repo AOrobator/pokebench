@@ -21,7 +21,7 @@ function setup(over: Record<string, unknown> = {}, approve = true): { paths: Que
     writeFileSync(join(experimentDir(paths.runsRoot, "full-map"), "approval.json"), JSON.stringify({ experiment: "full-map", sha256: definitionHash(parseExperiment(value)), approvedAt: "t", approvedBy: "operator" }));
   }
   const metrics = new Map<string, TrialMetrics>();
-  const recent: ReadinessRun[] = ["r1", "r2", "r3", "r4"].map((id) => ({ id, features: QUEUE_FEATURES, reached: ["FIRST_TRUCK_EXIT"] }));
+  const recent: ReadinessRun[] = ["r1", "r2", "r3", "r4"].map((id) => ({ id, model: "think-fast", maxTurns: 1500, maxWallMs: 1_800_000, features: QUEUE_FEATURES, reached: ["FIRST_TRUCK_EXIT"] }));
   return { paths, metrics, source: { recent: () => recent, trial: (id) => metrics.get(id) ?? null } };
 }
 
@@ -186,6 +186,29 @@ describe("experiment runner", () => {
     expect(existsSync(join(experimentDir(paths.runsRoot, "full-map"), "result.json"))).toBe(false);
     expect((await runQueue({ paths, source, host: host(paths, metrics), once: true })).stopped).toMatch(/^full-map finished; result in /);
     expect(existsSync(join(experimentDir(paths.runsRoot, "full-map"), "result.json"))).toBe(true);
+  });
+
+  it("holds when play exits cleanly without recording run_end", async () => {
+    const { paths, metrics, source } = setup();
+    const base = host(paths, metrics);
+    const silent = { ...base, launch: async (t: TrialLaunch) => { await base.launch(t); const file = join(paths.runsRoot, t.runId, "events.jsonl"); writeFileSync(file, readFileSync(file, "utf8").split("\n")[0] + "\n"); return 0; } };
+    expect(await runQueue({ paths, source, host: silent })).toEqual({ ran: 0, stopped: "held: trial 1 ended without a recorded run_end" });
+    expect(ledger(paths).at(-1)).toMatchObject({ type: "launcher_error", message: "play exited with 0 but recorded no run_end" });
+  });
+
+  it("runs every approved experiment in queue order in one invocation", async () => {
+    const { paths, metrics, source } = setup();
+    const second = definition("second", { queuePosition: 2, changedFeature: "one-way-tiles-v1", activationMilestone: "FIRST_TRUCK_EXIT" });
+    writeDefinition(paths.experimentsDir, second);
+    mkdirSync(experimentDir(paths.runsRoot, "second"), { recursive: true });
+    writeFileSync(join(experimentDir(paths.runsRoot, "second"), "approval.json"), JSON.stringify({ experiment: "second", sha256: definitionHash(parseExperiment(second)), approvedAt: "t", approvedBy: "o" }));
+    const fake = host(paths, metrics);
+    const outcome = await runQueue({ paths, source, host: fake });
+    expect(outcome.ran).toBe(16);
+    expect(outcome.stopped).toMatch(/second finished/);
+    expect(existsSync(join(experimentDir(paths.runsRoot, "full-map"), "result.json"))).toBe(true);
+    expect(existsSync(join(experimentDir(paths.runsRoot, "second"), "result.json"))).toBe(true);
+    expect(fake.launches.slice(0, 8).every((l) => l.presetPath.includes("/full-map/"))).toBe(true);
   });
 
   it("refuses a preset on disk that no longer matches the definition", async () => {

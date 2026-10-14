@@ -24,6 +24,8 @@ export interface RunSummary {
   readonly ended: boolean;
   readonly reason: string | null;
   readonly problem: string | null;
+  // The experiment, arm and trial (or preset) the run belongs to, when its header records one.
+  readonly experiment?: string;
 }
 
 export type LineResult =
@@ -134,6 +136,8 @@ function summarize(runsRoot: string, id: string): RunSummary {
   const last = lastLine(path);
   const end = last === null ? null : parseLine(last, 0);
   const ended = end?.ok === true && end.event.type === "run_end" ? end.event : null;
+  const evaluation = start.event.evaluation;
+  const experiment = evaluation === undefined ? undefined : evaluation.experiment === undefined ? `preset ${evaluation.preset_id}` : `${evaluation.experiment.id} · ${evaluation.experiment.arm} · ${String(evaluation.experiment.trial)}/${String(evaluation.experiment.of)}`;
   return {
     id,
     model: start.event.controller?.kind === "human" ? `Human · ${start.event.controller.name}` : start.event.model.id,
@@ -141,6 +145,7 @@ function summarize(runsRoot: string, id: string): RunSummary {
     ended: ended !== null,
     reason: ended?.reason ?? null,
     problem: null,
+    ...(experiment === undefined ? {} : { experiment }),
   };
 }
 

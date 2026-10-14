@@ -265,3 +265,14 @@ COMMIT: `test: RED for an always-visible experiment, arm and trial in the run he
   schema regenerated; viewer brand shows EXPERIMENT · ARM · TRIAL n/N, else PRESET <id>. Agent
   1017/1017, viewer 550/550, tsc/eslint clean. Measurement/UI only (nothing the model sees), so no
   switch. Merged without an external review round per the operator's "no more review" for this push.
+COMMIT: `feat: show the experiment, arm and trial of every run in the viewer header` (c1a442f)
+- Checkpoint saved: runs/launch-receipts/rival-push-checkpoint/CLOCK_SET.state (sha1 51007c05…,
+  from run 5521, CLOCK_SET at turn 118). Start check run 2126 (4 turns): start_state save_state
+  recorded, CLOCK_SET and earlier milestones present_at_start, location player 2F, experiment label
+  recorded.
+- Think Fast 2×2 launched (manifest/driver in runs/launch-receipts/navigation-factorial-think-fast-n4/,
+  source c1a442f). First launch failed before gameplay (driver .env parser kept single quotes on
+  POKEBENCH_ROM; no run dir) and is recorded in aborted-launch-1/; relaunch running from trial 01.
+- The 8793 viewer was stale since the experiment queue merge (queue-view.js 404, app never loaded);
+  restarted on the current build. Header verified in the browser for trial 01.
+- Live-run chip and run list now carry the experiment label too (RunSummary.experiment).

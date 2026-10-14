@@ -32,6 +32,7 @@ interface RunChoice {
   readonly started?: string | null;
   readonly model?: string | null;
   readonly problem?: string | null;
+  readonly experiment?: string;
   // The server's answer to "is its game server up?"; absent from older servers.
   readonly live?: boolean;
 }
@@ -193,7 +194,7 @@ export class App {
     box.replaceChildren();
     for (const run of live) {
       const button = this.doc.createElement("button");
-      button.dataset.label = run.model ?? run.id;
+      button.dataset.label = run.experiment === undefined ? run.model ?? run.id : `${run.model ?? run.id} · ${run.experiment}`;
       button.title = run.id;
       button.dataset.run = run.id;
       button.addEventListener("click", () => { this.select(run.id); });

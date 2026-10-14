@@ -74,3 +74,10 @@ it("registers a separate hint switch with its tool, prompt line and state-only e
  expect(playSystemPrompt(on,null)).toContain("get_next_milestone");expect(playSystemPrompt(off,null)).not.toContain("get_next_milestone");
  expect(stateOnlyProblems({...ALL_ON,"state-only-decisions-v1":true})).toContain("state-only-decisions-v1 requires next-milestone-hint-v1 OFF");
 });
+
+it("counts earlier milestones as done when a later one is earned, as at a checkpoint start",async()=>{
+ const h=new NextMilestoneHint();
+ h.observe(milestone("CLOCK_SET",2,"present_at_start"));
+ expect(await text(h)).toContain(MILESTONE_HINTS.find(m=>m.name==="MOM_RIVAL_INSTRUCTION")?.goal);
+ expect(await text(h)).toMatch(/7 of \d+ main story milestones/);
+});

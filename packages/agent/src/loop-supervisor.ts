@@ -1,4 +1,5 @@
 import {DialogueLog,roomKey,roomOf} from "./dialogue-log.js";
+import {NextMilestoneHint} from "./milestone-hint.js";
 import type {RunEvent} from "./events.js";
 import type {FeatureSet} from "./features.js";
 import type {LoopKind} from "./loop-detection.js";
@@ -22,9 +23,11 @@ export class SupervisorBriefing {
  private readonly calls=new Map<string,{name:string;args:Record<string,unknown>;before:State|null}>();
  private readonly tried:Tried[]=[];
  private readonly touched=new Map<string,Set<string>>();
- constructor(private readonly features:FeatureSet){this.dialogue=new DialogueLog(features);}
+ private readonly hint:NextMilestoneHint|null;
+ constructor(private readonly features:FeatureSet){this.dialogue=new DialogueLog(features);this.hint=features["next-milestone-hint-v1"]?new NextMilestoneHint():null;}
  observe(event:RunEvent):void {
   this.dialogue.observe(event);
+  this.hint?.observe(event);
   this.turn=Math.max(this.turn,event.turn);
   if(event.type==="milestone"){if(event.origin!=="present_at_start"&&event.name!=="GAME_RUNNING")this.progress={turn:event.turn,name:event.name};return;}
   if(event.type==="state"&&"started"in event){this.measured=event;return;}
@@ -131,7 +134,7 @@ export class SupervisorBriefing {
 Stop and get your bearings:
 - Where you are: ${this.where()}
 - Last story progress: ${this.lastProgress()}
-- Characters the readout names here: ${this.characters()}
+${this.hint===null?"":`- Next milestone (hint): ${this.hint.describe()}\n`}- Characters the readout names here: ${this.characters()}
 - Story steps the game confirms are done: ${this.done()}
 - Recent dialogue you were shown, newest first: ${this.told()}
 - What you tried recently, newest first: ${clip(tried,700)}

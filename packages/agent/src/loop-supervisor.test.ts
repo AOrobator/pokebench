@@ -149,7 +149,7 @@ it("labels odd calls and outcomes truthfully",()=>{
 });
 
 it("keeps tried tiles separate for maps that share a location label",()=>{
- const b=new SupervisorBriefing(ALL_ON);
+ const b=new SupervisorBriefing({...ALL_ON,"next-milestone-hint-v1":false});
  b.observe(ev({type:"tool_call",id:"n",name:"navigate_to",args:{x:5,y:1,map_id:[1,0]}},0));delivered(b,1,{},"n");
  delivered(b,3,{map_id:[1,1]});
  const text=b.text("cycle",4);
@@ -197,4 +197,14 @@ it("gives only deterministic facts: recent dialogue, last story progress, named 
  const off=new SupervisorBriefing({...ALL_ON,"named-interactions-v1":false,"story-state-v1":false});delivered(off,1);
  expect(off.text("cycle",2)).toContain("named interactions are off");expect(off.text("cycle",2)).toContain("story flags are off");
  expect(new SupervisorBriefing(ALL_ON).text("cycle",0)).toContain("Last story progress: none earned in this run yet");
+});
+
+it("names the next milestone in the briefing only when the hint switch is on",()=>{
+ const on=new SupervisorBriefing({...ALL_ON,"next-milestone-hint-v1":true});
+ on.observe(ev({type:"milestone",name:"CLOCK_SET",server_timestamp:1,kind:"story",origin:"present_at_start",evidence:[1]},1,0));
+ on.observe(ev({type:"milestone",name:"MOM_RIVAL_INSTRUCTION",server_timestamp:1,kind:"story",origin:"observed",evidence:[1]},2,3));
+ delivered(on,3);
+ expect(on.text("cycle",4)).toContain("- Next milestone (hint): Next milestone: Leave your house.");
+ const off=new SupervisorBriefing({...ALL_ON,"next-milestone-hint-v1":false});delivered(off,1);
+ expect(off.text("cycle",2)).not.toContain("Next milestone");
 });

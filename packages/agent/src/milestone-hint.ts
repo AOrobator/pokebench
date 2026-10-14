@@ -52,7 +52,10 @@ export class NextMilestoneHint {
   if(event.origin==="present_at_start")return;
   this.pending={milestone:event.name,text:`MILESTONE REACHED: ${hint.done} ${this.nextLine()}`};
  }
- private next():MilestoneHint|undefined {return MILESTONE_HINTS.find(h=>!this.achieved.has(h.name));}
+ // The furthest milestone earned counts its predecessors as done: a checkpoint start does not
+ // report every earlier milestone (truck exit, for example) as present.
+ private furthest():number {return MILESTONE_HINTS.reduce((max,h,i)=>this.achieved.has(h.name)?i:max,-1);}
+ private next():MilestoneHint|undefined {return MILESTONE_HINTS[this.furthest()+1];}
  private nextLine():string {
   const next=this.next();
   return next===undefined?"Next milestone: every main story milestone in this list is done.":`Next milestone: ${next.goal}`;
@@ -60,7 +63,7 @@ export class NextMilestoneHint {
  take():string|null {const p=this.pending;this.pending=null;return p?.text??null;}
  takeWithName():{milestone:string;text:string}|null {const p=this.pending;this.pending=null;return p;}
  describe():string {
-  const done=MILESTONE_HINTS.filter(h=>this.achieved.has(h.name)).length;
+  const done=this.furthest()+1;
   return `${this.nextLine()} (${String(done)} of ${String(MILESTONE_HINTS.length)} main story milestones on the way to the first badge are done.)`;
  }
  tool():AgentTool<typeof Args> {

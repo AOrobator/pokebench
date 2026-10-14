@@ -148,3 +148,11 @@ COMMIT: `test(agent): RED for loop-guard-supervisor-v1` (8a67399)
   usage limit, fresh read-only Claude subagents used), Grok LGTM, GPT lane (Codex gpt-5.6-sol)
   BLOCKING: state-only inert treatment, "few tiles" vs "multi-tile" wording, weak no-destination
   proof, explainer test does not render the card or fetch the URL. Fixing in M1 r2.
+COMMIT: `feat(agent): add loop-guard-supervisor-v1` (6e7c61d)
+- M1 r1 fixes: state-only mode now rejects game-evidence-priority-v1 and dialogue-log-v1 ON
+  (supervisor is already excluded through its loop-guard dependency); wording is "any walk of
+  two or more tiles" to match the worklog; exact prompt-seam equality plus SHA-256 pins for both
+  sections and a broad case-insensitive name/place/story-step regex; Harness Config card-link
+  test and served-URL test for all three new explainers. The existsSync check over
+  FEATURE_EXPLAINERS is kept deliberately: it is a handful of stat calls and catches a mapped
+  explainer that was never committed.

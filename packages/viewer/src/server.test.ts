@@ -261,3 +261,10 @@ it("serves only allowlisted tracked feature explainers with existing host and me
  const reply=await get(viewer,"/explainers/navigation-evidence-memory-v1.html");expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.toString()).toContain("Memory mechanism");expect((await get(viewer,"/explainers/one-way-tiles-v1.html")).status).toBe(200);expect((await get(viewer,"/explainers/counter-talk-v1.html")).status).toBe(200);expect((await get(viewer,"/explainers/grass-cost-switch.html")).status).toBe(200);
  expect((await get(viewer,"/explainers/private.html")).status).toBe(404);expect((await get(viewer,"/explainers/ledge-hops-v1.html")).status).toBe(404);expect((await get(viewer,"/explainers/navigation-evidence-memory-v1.html",{host:"elsewhere.invalid"})).status).toBe(403);expect((await get(viewer,"/explainers/navigation-evidence-memory-v1.html",{method:"PUT"})).status).toBe(405);
 });
+
+it("serves the rival-push explainers through the existing allowlist",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ for(const id of ["game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1"])writeFileSync(join(docs,`${id}.html`),`<h1>${id}</h1>`);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ for(const id of ["game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1"]){const reply=await get(viewer,`/explainers/${id}.html`);expect(reply.status).toBe(200);expect(reply.body.toString()).toContain(id);}
+});

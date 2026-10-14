@@ -581,3 +581,10 @@ it("documents recall_dialogue and links the dialogue log explainer",()=>{
  expect(doc.querySelector('[data-tool="recall_dialogue"]')?.textContent).toContain("1–20");
  expect(FEATURE_EXPLAINERS["dialogue-log-v1"]).toBe("dialogue-log-v1.html");
 });
+
+it("links the new rival-push feature cards to their explainers in Harness Config",()=>{
+ const log=new Log();log.add(0,{...START,harness_features:["game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1"]});
+ const registry=(["game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1"] as const).map(id=>({id,title:id,description:"d",group:"guidance" as const,switchable:true,needs:null}));
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),registry);
+ for(const id of ["game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1"])expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+});

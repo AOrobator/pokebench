@@ -26,7 +26,8 @@ describe("run controls", () => {
   it("renders PAUSE/STOP/ABORT in the bar, swapping to RESUME and CANCEL STOP", () => {
     const bar = controlBar(view(), true, null);
     expect(bar).toContain('data-control="pause"');
-    expect(bar).toContain("hold X");
+    expect(bar).toContain("hold to abort");
+    expect(bar).not.toContain("<kbd>");
     expect(bar).not.toContain("disabled");
     expect(controlBar(view((l) => l.add(1, control("stop", "pending"))), true, null)).toContain("↺ CANCEL STOP");
     expect(controlBar(view((l) => l.add(1, control("pause", "pending"))), true, 0.5)).toContain("--hold:50%");

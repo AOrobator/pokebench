@@ -58,14 +58,15 @@ export function availableActions(view: RunView, live: boolean): Set<ControlActio
 export function controlBar(view: RunView, live: boolean, holdFraction: number | null): string {
   const actions = availableActions(view, live);
   const paused = view.control.state === "paused" || view.control.state === "pause_pending";
-  const button = (action: ControlAction, cls: string, label: string, key: string): string =>
-    `<button type="button" class="${cls}" data-control="${action}"${actions.has(action) ? "" : " disabled"}>${label} <kbd>${key}</kbd></button>`;
+  const button = (action: ControlAction, cls: string, label: string): string =>
+    `<button type="button" class="${cls}" data-control="${action}"${actions.has(action) ? "" : " disabled"}>${label}</button>`;
   const stopping = view.control.state === "stop_pending";
   const abort = holdFraction === null ? "" : ` style="--hold:${String(Math.round(holdFraction * 100))}%"`;
   return [
-    paused ? button("resume", "resume", "▶ RESUME", "P") : button("pause", "pause", "⏸ PAUSE", "P"),
-    stopping ? button("cancel_stop", "cancel", "↺ CANCEL STOP", "S") : button("stop", "stop", "■ STOP", "S"),
-    `<button type="button" class="abort${holdFraction === null ? "" : " holding"}" data-control="abort"${actions.has("abort") ? "" : " disabled"}${abort}>✖ ABORT <kbd>hold X</kbd></button>`,
+    ...(view.end === null ? [] : ['<button type="button" data-dismiss-overlay>CLOSE</button>']),
+    paused ? button("resume", "resume", "▶ RESUME") : button("pause", "pause", "⏸ PAUSE"),
+    stopping ? button("cancel_stop", "cancel", "↺ CANCEL STOP") : button("stop", "stop", "■ STOP"),
+    `<button type="button" class="abort${holdFraction === null ? "" : " holding"}" data-control="abort"${actions.has("abort") ? "" : " disabled"}${abort}>✖ ABORT <span>hold to abort</span></button>`,
   ].join("");
 }
 
@@ -105,16 +106,16 @@ export function overlay(kind: Overlay, view: RunView, nowMs: number, holdFractio
   const text = (y: number, cls: string, value: string): string => `<text class="scr-t ${cls}" x="144" y="${String(y)}" text-anchor="middle">${value}</text>`;
   const box = (fill: string, stroke: string, title: string, titleCls: string, lines: [string, string][], extra = ""): string =>
     `<g class="overlay ${kind}" role="status" aria-label="${esc(title)}"><rect width="288" height="192" fill="#0e1626" opacity=".6"/><rect x="24" y="36" width="240" height="112" rx="10" fill="${fill}" stroke="${stroke}" stroke-width="4"/><rect x="30" y="42" width="228" height="100" rx="7" fill="none" stroke="#fff" stroke-width="2" opacity=".7"/>${text(70, `l ${titleCls}`, title)}${lines.map(([cls, line], n) => text(90 + 16 * n, `s ${cls}`, line)).join("")}${extra}</g>`;
-  if (kind === "pausing") return box("#ffd447", "#7a5410", "⏸ PAUSING", "", [["", `finishing turn ${turn}, then holding`], ["", "no further model call"], ["r", "P = RESUME   S = STOP"]]);
-  if (kind === "paused") return box("#ffd447", "#7a5410", "⏸ PAUSED", "", [["", `after turn ${turn} · no model call`], ["", `time cap clock stopped at ${at}`], ["r", view.control.emulatorFrozen === false ? "emulator NOT frozen" : "P = RESUME   S = STOP"]]);
-  if (kind === "stopping") return box("#1e2c44", "#ff9b4a", "■ STOPPING", "y", [["w", `finishing turn ${turn}, then ending`], ["w", "S = CANCEL STOP"], ["w", "still counted in results"]], '<rect x="64" y="128" width="160" height="8" rx="3" fill="#2a3e60" stroke="#ff9b4a" stroke-width="2"/><rect class="sweep" x="66" y="130" width="60" height="4" rx="2" fill="#ff9b4a"/>');
+  if (kind === "pausing") return box("#ffd447", "#7a5410", "⏸ PAUSING", "", [["", `finishing turn ${turn}, then holding`], ["", "no further model call"], ["r", "Use RESUME or STOP above"]]);
+  if (kind === "paused") return box("#ffd447", "#7a5410", "⏸ PAUSED", "", [["", `after turn ${turn} · no model call`], ["", `time cap clock stopped at ${at}`], ["r", view.control.emulatorFrozen === false ? "emulator NOT frozen" : "Use RESUME or STOP above"]]);
+  if (kind === "stopping") return box("#1e2c44", "#ff9b4a", "■ STOPPING", "y", [["w", `finishing turn ${turn}, then ending`], ["w", "Use CANCEL STOP above"], ["w", "still counted in results"]], '<rect x="64" y="128" width="160" height="8" rx="3" fill="#2a3e60" stroke="#ff9b4a" stroke-width="2"/><rect class="sweep" x="66" y="130" width="60" height="4" rx="2" fill="#ff9b4a"/>');
   if (kind === "abort_hold") {
     const width = Math.round(156 * Math.max(0, Math.min(1, holdFraction)));
-    return box("#f8f8f8", "#d03a3a", "✖ ABORT RUN?", "r", [["", "kills the model call now"], ["r", "run is EXCLUDED from results"]], `<rect x="64" y="118" width="160" height="16" rx="4" fill="#fff" stroke="#d03a3a" stroke-width="2"/><rect class="hold" x="66" y="120" width="${String(width)}" height="12" rx="3" fill="#d03a3a"/>${text(130, "s", "HOLD X… release cancels")}`);
+    return box("#f8f8f8", "#d03a3a", "✖ ABORT RUN?", "r", [["", "kills the model call now"], ["r", "run is EXCLUDED from results"]], `<rect x="64" y="118" width="160" height="16" rx="4" fill="#fff" stroke="#d03a3a" stroke-width="2"/><rect class="hold" x="66" y="120" width="${String(width)}" height="12" rx="3" fill="#d03a3a"/>${text(130, "s", "Hold ABORT… release cancels")}`);
   }
   const reached = view.milestones.filter((m) => m.origin !== "present_at_start");
-  if (kind === "aborted") return box("#d03a3a", "#6a1818", "✖ ABORTED", "w", [["w", `turn ${turn} · model call cancelled`], ["w", "excluded from results"], ["w", "B = CLOSE"]]);
-  return box("#f8f8f8", "#2f9e57", "■ RUN ENDED", "g", [["", `${esc(view.end?.reason ?? "")} · turn ${turn} · ${at}`], ["", `furthest: ${esc(reached.at(-1)?.name.replace(/_/g, " ") ?? "none")} · ${String(reached.length)} splits`], ["", "B = CLOSE"]]);
+  if (kind === "aborted") return box("#d03a3a", "#6a1818", "✖ ABORTED", "w", [["w", `turn ${turn} · model call cancelled`], ["w", "excluded from results"], ["w", "Use CLOSE above"]]);
+  return box("#f8f8f8", "#2f9e57", "■ RUN ENDED", "g", [["", `${esc(view.end?.reason ?? "")} · turn ${turn} · ${at}`], ["", `furthest: ${esc(reached.at(-1)?.name.replace(/_/g, " ") ?? "none")} · ${String(reached.length)} splits`], ["", "Use CLOSE above"]]);
 }
 
 function bar(label: string, fraction: number, value: string, of: string): string {

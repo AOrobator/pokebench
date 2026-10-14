@@ -43,6 +43,8 @@ Use the approved early-splits plus full-frontier line-chart format for PokeBench
 
 Fit interactive graphs to the available width without horizontal scrolling; let the user select additional runs/configurations while retaining reference anchors. Break lines at missing/unsupported milestones, and distinguish no completion before a cap from an unrecorded event. A best-progress run can be slower at early splits: never replace its points with a cross-run record envelope. Changes in best observed frontier across builds remain historical context, not automatic promotion or proof of a causal improvement. Use a bounded streaming reduction or qualified compact index for large human logs rather than loading the entire raw history just to draw a few splits.
 
+The story frontier axis contains game-advancing events and required progression locations, not optional detours. Follow the story-milestone skill; expose existing house-entry, rival-bedroom and completed rival-introduction splits rather than hiding them inside a home-to-rival gap. Optional lab/aide visits may appear in diagnostic history but must not increase milestone completion counts or the achieved story frontier.
+
 ## Track and restore the incumbent
 
 Maintain an append-only promotion/regression ledger and immutable named presets per compatible model/environment lane. Each preset records:

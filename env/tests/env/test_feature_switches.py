@@ -111,6 +111,17 @@ def test_ledge_hops_off_draws_ledges_as_collision() -> None:
     assert "one-way hop" in full and "ledge" not in text
 
 
+def test_counter_talk_off_draws_counters_as_collision() -> None:
+    m = map_memory()
+    m.put(0x02007000 + 2 * 3, struct.pack("<H", 0x80))
+    tile(m, 1, 2, 0x400 | 3)
+    state = read_game_state(m.read, MAPS)
+    full = format_readout(state)
+    text = format_readout(state, frozenset({"counter-talk-v1"}))
+    assert "?   .   =   .   .   .   ?" in full and "?   .   #   .   .   .   ?" in text, text
+    assert "talk to someone standing behind it" in full and "counter" not in text
+
+
 def test_targets_off_drops_candidates_only() -> None:
     state = map_state()
     gone = dropped(format_readout(state), format_readout(state, frozenset({"world-targets-v1"})))

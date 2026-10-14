@@ -269,3 +269,11 @@ def test_a_counter_metatile_without_collision_stays_walkable_terrain() -> None:
     assert result.rows[2] == "..."
     plain = read_local_map(loaded().read, (1, 1), (1, 0), radius=1)
     assert plain is not None and "counter" not in plain.text()
+
+
+def test_counter_talk_off_draws_counters_as_collision_without_the_legend() -> None:
+    result = read_local_map(countered().read, (1, 1), (1, 0), radius=1)
+    assert result is not None
+    for text in (result.text(counters=False), result.text(grid=False, counters=False)):
+        assert "counter" not in text and "=" not in text, text
+        assert "##N" in text.replace(" ", ""), text

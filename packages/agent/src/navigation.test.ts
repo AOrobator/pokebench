@@ -142,8 +142,8 @@ it("never walks onto a counter and says where to stand to talk across one",async
  const counter={...field,position:{x:0,y:2},navigation_grid:{elevation:3,tiles:[tile(0,0),tile(1,0),tile(2,0),tile(0,1,1,0x80),tile(1,1,1,0x80),tile(2,1,1,0x80),tile(0,2),tile(1,2),tile(2,2)],objects:[{x:1,y:0}],warps:[]}};
  expect(planNavigation(counter,{x:1,y:1})).toBeNull();
  expect(planNavigation(counter,{x:0,y:0})).toBeNull();
- const status=async(goal:{x:number;y:number}):Promise<[string|null,number]>=>{
-  let presses=0;const tool=navigationTool({read:()=>Promise.resolve(counter),press:()=>{presses++;return Promise.resolve(result(counter));},observe:()=>Promise.resolve(result(counter))});
+ const status=async(goal:{x:number;y:number},on=true):Promise<[string|null,number]>=>{
+  let presses=0;const tool=navigationTool({counters:on,read:()=>Promise.resolve(counter),press:()=>{presses++;return Promise.resolve(result(counter));},observe:()=>Promise.resolve(result(counter))});
   const outcome=await tool.execute("nav",{...goal,map_id:[0,9]},new AbortController().signal);
   return [outcome.content[0]?.type==="text"?outcome.content[0].text:null,presses];
  };
@@ -152,5 +152,7 @@ it("never walks onto a counter and says where to stand to talk across one",async
  const [empty]=await status({x:2,y:1});
  expect(empty).toContain("target is a counter; you cannot stand on it, but you can face it from an adjacent tile and press A to talk to someone behind it");
  const [nobody]=await status({x:0,y:0});
+ const [off]=await status({x:1,y:0},false);
+ expect(off).toContain("no supported local path");expect(off).not.toContain("counter");
  expect(nobody).toContain("no supported local path");
 });

@@ -13,12 +13,17 @@ pret/pokeemerald 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881:
   faced tile and that tile's behavior is a counter, the object one further tile in the facing
   direction is the one talked to.
 
-## Change (no new switch; a correction inside `live-map-v1`)
+## Change (one switch: `counter-talk-v1`, guidance, needs `live-map-v1`)
+
+First landed as an unswitched correction; switched to match `ledge-hops-v1` (PB4/PB5) so
+frozen presets keep counters as `#` and comparisons stay comparable.
 
 - [x] Map draws collision counters as `=`, legend says not walkable but talk across with A.
 - [x] `navigate_to` targeting a counter, or an object directly behind one, stops without
       pressing and names the tile to stand on and the direction to face, then press A.
 - [x] `live-map-v1` feature description lists `=`.
+- [ ] `counter-talk-v1` switch: off draws `#`, drops the legend and the navigate_to hint;
+      absent from older v2 presets and v1 flag presets means OFF; viewer drafts get it ON.
 
 ## Evidence
 
@@ -37,5 +42,6 @@ pret/pokeemerald 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881:
 - GREEN: `fix(live-map): draw counters as = and explain talking across them` (3734d45)
 - Hint refinement: `fix(navigation): name the tile and direction for talking across a counter` (982773a)
 - Merged main (ledge hops landed): conflicts in live_map.py, navigation.ts and both test files resolved by keeping ledges and counters side by side. After merge: 59 agent + 40 viewer test files, 1809 Python tests; coverage gate 90 passes; lint clean.
+- RED (switch): `test: counter-talk-v1 switch keeps counters as walls when off (RED)`
 
 ## Review

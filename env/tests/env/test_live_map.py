@@ -284,3 +284,29 @@ def test_no_edge_walls_nearby_prints_no_list() -> None:
     result = read_local_map(loaded().read, (1, 1), (1, 0), radius=1)
     assert result is not None
     assert "Edge walls:" not in result.text() and "+ edge walls" in result.text()
+
+
+@pytest.mark.parametrize(
+    "behavior,sides",
+    [
+        (0x30, "east"),
+        (0x31, "west"),
+        (0x32, "north"),
+        (0x33, "south"),
+        (0x34, "north+east"),
+        (0x35, "north+west"),
+        (0x36, "south+east"),
+        (0x37, "south+west"),
+        (0xBE, "west+east"),
+        (0xC0, "north+south"),
+        (0xC1, "west+east"),
+    ],
+)
+def test_every_edge_wall_behavior_lists_its_game_walled_sides(behavior: int, sides: str) -> None:
+    m = loaded()
+    m.put(0x02007000 + 2 * 3, struct.pack("<H", behavior))
+    tile(m, 1, 2, 3)
+    result = read_local_map(m.read, (1, 1), (1, 0), radius=1)
+    assert result is not None
+    assert result.rows[2] == ".+."
+    assert f"\nEdge walls: (1,2) {sides}\n" in result.text()

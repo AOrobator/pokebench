@@ -123,7 +123,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("ledge-hops-v1", "guidance", "LEDGE HOPS", "live-map-v1",
     "Draws ledges on the map as v ^ < > arrows with a legend saying each is a one-way hop in the arrow's direction, and lets navigate_to hop a ledge in that direction. Off: ledges keep their collision glyph (# almost always) and navigate_to treats them as walls."),
   on("one-way-tiles-v1", "guidance", "ONE-WAY TILES", "live-map-v1",
-    "Draws collision-free tiles with walled sides (the bedroom chair, fences, railings) as + on the map, with a legend and a list of each tile's walled sides, and makes navigate_to never cross a walled side. Off: they are drawn as clear terrain (.) and navigate_to treats them as walls."),
+    "Draws collision-free tiles with walled sides (such as the chair in the player's bedroom) as + on the map, with a legend and a list of each tile's walled sides, and makes navigate_to never cross a walled side. Off: they are drawn as clear terrain (.) and navigate_to treats them as walls."),
   on("deterministic-loop-guard-v1", "guard", "LOOP GUARD", null,
     "Watches for repeated planning without acting, repeated observing, presses that change nothing, action cycles and repeated tool rejections. It warns the model first and ends the run as stuck if the loop continues. Off: loops are still logged but never warn or stop."),
   on("objective-tracking-v1", "guard", "OBJECTIVE TRACKING", RAM,

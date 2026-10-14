@@ -176,3 +176,13 @@ it("hops a ledge out of an edge-wall tile because the game's ledge jump ignores 
  expect(planNavigation(state,{x:1,y:2},{ledges:true,oneWay:true})).toEqual(["DOWN"]);
  expect(planNavigation({...state,navigation_grid:{elevation:3,tiles:[tile(1,0,0,0xc0),tile(1,1)],objects:[],warps:[]}},{x:1,y:1},{ledges:true,oneWay:true})).toBeNull();
 });
+it.each([[0x30,["RIGHT"]],[0x31,["LEFT"]],[0x32,["UP"]],[0x33,["DOWN"]],[0x34,["UP","RIGHT"]],[0x35,["UP","LEFT"]],[0x36,["DOWN","RIGHT"]],[0x37,["DOWN","LEFT"]],[0xbe,["LEFT","RIGHT"]],[0xc0,["UP","DOWN"]],[0xc1,["LEFT","RIGHT"]]] as const)("behavior %i walls exactly %j, entering and leaving",(behavior,sides)=>{
+ const from={UP:{x:1,y:0},DOWN:{x:1,y:2},LEFT:{x:0,y:1},RIGHT:{x:2,y:1}} as const;
+ for(const side of ["UP","DOWN","LEFT","RIGHT"] as const){
+  const walledSide=(sides as readonly string[]).includes(side);
+  const enter=planNavigation(room(behavior,from[side]),{x:1,y:1},{oneWay:true});
+  const leave=planNavigation(room(behavior,{x:1,y:1}),from[side],{oneWay:true});
+  expect(enter?.length,`enter through ${side}`).toBe(walledSide?3:1);
+  expect(leave?.length,`leave through ${side}`).toBe(walledSide?3:1);
+ }
+});

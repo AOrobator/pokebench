@@ -1,6 +1,6 @@
 # One-way tiles (2026-10-14)
 
-Bug: the chair in the player's bedroom (Littleroot, tile (1,4)) is MB_IMPASSABLE_SOUTH_AND_NORTH
+Bug: the chair in the player's bedroom (May's house 2F, map 1/3, tile (7,4) on the vendored house2_upstairs.state) is MB_IMPASSABLE_SOUTH_AND_NORTH
 (0xC0) with no collision, so the live map drew it as `.`. The game refuses every move across
 its north and south edges, in both directions. Source: `runs/explainers/map-observation-audit.html`
 §4 and the "One-way walls drawn as clear" finding in the main checkout.
@@ -56,3 +56,14 @@ pret/pokeemerald 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881:
   tool results carry the list.
 - Observed, out of scope: from (1,4) navigate_to detours via row 2 because the bedroom floor
   behaviors 0x85/0x86/0xB5/0xC3 are outside `WALKING` (the walkability sibling thread's finding).
+
+## Review round 1
+
+Packet `git diff 9f111d1 fdabbb0` (SHA-256 53f13ffa…). Claude CLI: LGTM. Cursor Grok 4.5 high: LGTM.
+Codex: default model refused for this account, re-run on `gpt-5.6-sol`.
+Accepted non-blocking fixes: table-driven tests for all 11 behaviors in both stacks (a mutated
+0x32 entry fails the TS table test); feature copy no longer names fences/railings; this worklog's
+bug line corrected to (7,4); PB3 rescored N/A and PB13 scored after the review outcome is recorded.
+Deferred: legend note that north is decreasing y (grid header already shows it); ledge landings
+on `+` tiles (scope expansion).
+  Gates after fixes: agent 914/914, viewer 474/474, env 1823/1823; coverage and lint pass.

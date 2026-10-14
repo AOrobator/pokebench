@@ -43,3 +43,11 @@ pret/pokeemerald 731ad5b:
   constants resolved by keeping both; ledge landings now accept sand etc. via WALKING (test
   "hops a ledge down onto sand"). agent 900/900, viewer 419/419, lint clean, navigation.ts
   93.71/93.29/100/100.
+- Review round 1 (packet c3917dc, sha beb09a5b…): Claude CLI BLOCKING. B1: jump/spin mats are
+  MB_SECRET_BASE_JUMP_MAT 0xBB / SPIN_MAT 0xBC, not 0xBD/0xBE (sound mat, breakable door); 0xC4 is
+  MB_SECRET_BASE_TV_SHIELD, not a hole (MB_SECRET_BASE_HOLE 0xC2 is decoration-only). Accepted.
+  Codex gpt-6.1-sol default rejected for ChatGPT accounts; rerun with gpt-5.6-sol.
+- Round-1 fix: `fix: refuse the real jump and spin mat behaviors`. UNWALKABLE grouped with MB_*
+  names per value, checked by script against metatile_behaviors.h. Tests: mats 0xBB/0xBC refused;
+  0xB5, 0xBD, 0xBE, 0xC2, 0xC4 walkable when collision-free. agent 900/900, viewer 419/419, lint clean.
+  Static scan unchanged (no mats in layout data).

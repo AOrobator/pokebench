@@ -6,7 +6,7 @@ import { Type } from "typebox";
 import { Value } from "typebox/value";
 import { FEATURES } from "@pokebench/agent/features";
 import { CONTROL_ACTIONS } from "@pokebench/agent/events";
-import { BaselineError, RunsError, baselineOf, comparisonsOf, eventsPath, listRuns, liveScreenPort, readStart, readFrom, runDir } from "./runs.js";
+import { BaselineError, RunsError, createBaselineReader, comparisonsOf, eventsPath, listRuns, liveScreenPort, readStart, readFrom, runDir, type BaselineReader } from "./runs.js";
 import { featureHistory } from "./history.js";
 import { localModels } from "./models.js";
 import { NextRunError, appendControl, healthProbe, liveRuns, readDraft, writeDraft, type RunQueue } from "./next-run.js";
@@ -234,7 +234,7 @@ async function liveScreen(res: ServerResponse, port: number, fetchFn: typeof fet
   }
 }
 
-async function route(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number): Promise<void> {
+async function route(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, readBaseline: BaselineReader): Promise<void> {
   const host = req.headers.host ?? "";
   if (host !== `${HOST}:${String(port)}` && host !== `localhost:${String(port)}`) {
     sendJson(res, 403, { error: "the viewer only answers 127.0.0.1" });
@@ -259,7 +259,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     return;
   }
   if (parts.length === 3 && head === "api" && second === "features" && id === "history") {
-    sendJson(res, 200, featureHistory(options.runsRoot, (({ model, thinking, maxTokens, maxTurns, maxWallMs, failureLimit, target, features }) => ({ model, thinking, maxTokens, maxTurns, maxWallMs, failureLimit, target, features }))(readDraft(options.runsRoot))));
+    sendJson(res, 200, featureHistory(options.runsRoot, (({ model, thinking, maxTokens, maxTurns, maxWallMs, failureLimit, target, features }) => ({ model, thinking, maxTokens, maxTurns, maxWallMs, failureLimit, target, features }))(readDraft(options.runsRoot)), readBaseline));
     return;
   }
   if (parts.length === 2 && head === "api" && second === "next-run") {
@@ -323,12 +323,12 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
       return;
     }
     if (parts.length === 4 && leaf === "comparisons") {
-      sendJson(res, 200, comparisonsOf(options.runsRoot, id));
+      sendJson(res, 200, comparisonsOf(options.runsRoot, id, readBaseline));
       return;
     }
     if (parts.length === 4 && leaf === "milestones") {
       try {
-        sendJson(res, 200, baselineOf(options.runsRoot, id));
+        sendJson(res, 200, readBaseline(id));
       } catch (error) {
         if (!(error instanceof BaselineError)) throw error;
         sendJson(res, 422, { error: error.message });
@@ -370,10 +370,11 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
 
 export async function startViewer(options: ViewerOptions): Promise<Viewer> {
   let port = 0;
+  const readBaseline = createBaselineReader(options.runsRoot);
   // A failing request (a client that disconnects mid-body, a file error) must
   // never take the viewer and its queue down.
   const server = createServer((req, res) => {
-    route(req, res, options, port).catch((error: unknown) => {
+    route(req, res, options, port, readBaseline).catch((error: unknown) => {
       if (res.headersSent || res.destroyed) res.destroy();
       else sendJson(res, 500, { error: error instanceof Error ? error.message : String(error) });
     });

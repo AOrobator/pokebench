@@ -112,7 +112,7 @@ export class App {
   ) {
     this.next = new NextRunPanel(doc, { fetchJson: (url) => deps.fetchJson(url), sendJson: (method, url, body) => deps.sendJson(method, url, body), problem: (text) => { this.problem(text); } });
     const queueRoot = doc.querySelector<HTMLElement>('[data-ui="experiment-queue"]');
-    this.experiments = queueRoot === null ? null : new QueuePanel(queueRoot, { fetchJson: (url) => deps.fetchJson(url), problem: (text) => { this.problem(text); } });
+    this.experiments = queueRoot === null ? null : new QueuePanel(queueRoot, { fetchJson: (url) => deps.fetchJson(url), problem: (text) => { this.problem(text); }, sendJson: (method, url, body) => deps.sendJson(method, url, body), confirm: (text) => doc.defaultView?.confirm(text) ?? false });
   }
 
   private get live(): boolean {

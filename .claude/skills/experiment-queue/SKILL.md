@@ -45,7 +45,7 @@ Then run `just experiments-check` and record the readiness verdict in `docs/expe
 
 ## Approval, pinning and running (operator)
 
-- `just experiment-approve <id>` is interactive: it needs a terminal and the typed id. Never run it, simulate it or write `approval.json` yourself. It applies only to queued entries in `draft` or `stale`.
+- The operator approves in the viewer (APPROVE button in an experiment's card, with a confirmation) or with `just experiment-approve <id>` (interactive: a terminal and the typed id). WITHDRAW APPROVAL stops the queue before that experiment's next trial; the trial already running finishes. Never press these, POST to `/api/experiments/<id>/approve|revoke`, run the command or write `approval.json` yourself. Approval applies only to queued entries in `draft` or `stale`.
 - Approval covers the whole definition except `queuePosition` and `notes`, including the build. Any other edit makes it `stale`.
 - `just experiment-pin <id>` moves an unstarted entry to main's HEAD. Its approval then goes stale and needs a new one. Pin when main has moved past the entry's commit.
 - `just experiment-run [--dry-run] [--once]` runs approved entries in queue order. You may run `--dry-run` to show the plan. Starting real trials needs the operator's explicit go-ahead in chat for that run.

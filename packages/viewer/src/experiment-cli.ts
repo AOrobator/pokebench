@@ -2,14 +2,14 @@
 // `just experiment-run [--dry-run] [--once]`: the experiment queue from the
 // main checkout. Approval is interactive so an agent can never grant it.
 import { execFileSync, spawn, type ChildProcess } from "node:child_process";
-import { closeSync, existsSync, mkdirSync, openSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { closeSync, existsSync, openSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { userInfo } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
-import { definitionHash, type Approval, type Experiment } from "@pokebench/agent/experiments";
 import { newRunId } from "@pokebench/agent/run";
-import { experimentDir, loadExperiments, queueSnapshot, recordedRuns, type ExperimentView, type QueuePaths, type RunSource } from "./experiment-store.js";
+import { experimentDir, queueSnapshot, recordedRuns, type ExperimentView, type QueuePaths, type RunSource } from "./experiment-store.js";
+import { approveExperiment } from "./experiment-approval.js";
 import { RunnerError, runQueue, sha256, type DiscoveredModel, type RunnerHost, type TrialLaunch } from "./experiment-runner.js";
 import { healthProbe, liveRuns, randomSuffix } from "./next-run.js";
 
@@ -67,11 +67,7 @@ export async function main(argv: readonly string[], deps: CliDeps): Promise<numb
       if (!deps.interactive) throw new RunnerError("approval is interactive: run it yourself in a terminal");
       deps.print(`${view.id}: ${view.title}. ${String(view.trialsPerArm * 2)} trials of ${view.changedFeature} ${view.incumbentOn ? "ON vs OFF" : "OFF vs ON"} on ${view.source.commit.slice(0, 7)}; budget ${String(Math.round(view.budgetMs / 3_600_000))} h.`);
       if ((await deps.ask(`Type ${view.id} to approve: `)).trim() !== view.id) throw new RunnerError("not approved");
-      const experiment = loadExperiments(deps.paths.experimentsDir, []).find((e) => e.id === view.id) as Experiment;
-      const approval: Approval = { experiment: view.id, sha256: definitionHash(experiment), approvedAt: deps.now().toISOString(), approvedBy: deps.user };
-      const dir = experimentDir(deps.paths.runsRoot, view.id);
-      mkdirSync(dir, { recursive: true });
-      writeFileSync(join(dir, "approval.json"), `${JSON.stringify(approval)}\n`);
+      approveExperiment(deps.paths, deps.source, view.id, deps.user, deps.now());
       deps.print(`approved ${view.id}; just experiment-run will start it when it reaches the front of the queue`);
       return 0;
     }

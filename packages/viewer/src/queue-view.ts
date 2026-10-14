@@ -90,19 +90,26 @@ function readinessLine(v: ExperimentView): string {
   return `${String(r.reached)} of the last ${String(r.considered.length)} ${r.basis === "comparable" ? "comparable" : "recent"} ${esc(v.modelLane)} runs reached ${esc(r.milestone)} (needs ${String(r.minReached)} of ${String(r.window)})`;
 }
 
-function battle(v: ExperimentView): string {
-  return `<div class="eq-battle"><div class="eq-vs">${side(v, "incumbent")}<b class="eq-vsb">VS</b>${side(v, "candidate")}</div>` +
+// Approve or withdraw from the card; the runner still only starts from just experiment-run.
+function actions(v: ExperimentView): string {
+  if (v.queuePosition !== null && (v.state === "draft" || v.state === "stale")) return `<div class="eq-actions"><button type="button" class="eq-approve" data-approve="${esc(v.id)}">APPROVE ${String(v.trialsPerArm * 2)} RUNS</button></div>`;
+  if (v.approved && (v.state === "approved" || v.state === "running" || v.state === "held")) return `<div class="eq-actions"><button type="button" class="eq-revoke" data-revoke="${esc(v.id)}">WITHDRAW APPROVAL</button></div>`;
+  return "";
+}
+
+function battle(v: ExperimentView, controls: boolean): string {
+  return `<div class="eq-battle">${controls ? actions(v) : ""}<div class="eq-vs">${side(v, "incumbent")}<b class="eq-vsb">VS</b>${side(v, "candidate")}</div>` +
     `<p class="eq-why">${esc(v.reason)}</p><dl class="eq-facts"><dt>hypothesis</dt><dd>${esc(v.hypothesis)}</dd><dt>graded on</dt><dd>${esc(v.primaryMilestone)}</dd><dt>acts at</dt><dd>${esc(v.activationMilestone)} · ${readinessLine(v)}</dd>` +
     `${v.result === null ? "" : `<dt>verdict</dt><dd>${esc(v.result.verdict.toUpperCase())} → ${esc(v.result.recommendation.toUpperCase().replace(/_/g, " "))}${v.result.eligible ? "" : ` (not eligible: ${v.result.problems.map(esc).join("; ")})`}</dd>`}<dt>build</dt><dd>main @ ${esc(v.source.commit.slice(0, 7))}</dd><dt>budget</dt><dd>${(v.usedMs / 3_600_000).toFixed(1)} of ${(v.budgetMs / 3_600_000).toFixed(1)} h</dd>${v.recorded === null ? "" : `<dt>readiness.md</dt><dd>${esc(v.recorded.verdict)}</dd>`}</dl></div>`;
 }
 
-function slot(v: ExperimentView, open: boolean): string {
+function slot(v: ExperimentView, open: boolean, controls = false): string {
   const pos = v.queuePosition === null ? "" : `#${String(v.queuePosition)} `;
   return `<article class="eq-slot eq-s-${esc(v.state)}${open ? " open" : ""}" data-experiment="${esc(v.id)}">` +
     `<button type="button" class="eq-head" data-toggle="${esc(v.id)}" aria-expanded="${String(open)}"><span class="eq-ball" aria-hidden="true"></span>` +
     `<span class="eq-name">${pos}${esc(v.title.toUpperCase())} ${chip(v.state)}<code>${esc(v.changedFeature)}</code>${pips(v)}</span>` +
     `<span class="eq-glance">${hp(v)}<span class="eq-turns">${turns(v.arms.incumbent.medianTurns)} · ${turns(v.arms.candidate.medianTurns)} median turns (A · B)</span></span></button>` +
-    (open ? battle(v) : "") + `</article>`;
+    (open ? battle(v, controls) : "") + `</article>`;
 }
 
 function pendingCard(v: ExperimentView, open: boolean): string {
@@ -119,13 +126,13 @@ export function countsOf(s: QueueSnapshot): Readonly<Record<QueueFilter, number>
 }
 
 export interface QueueRender { readonly chips: string; readonly queue: string; readonly pending: string }
-export function renderQueue(s: QueueSnapshot, filter: QueueFilter, open: ReadonlySet<string>): QueueRender {
+export function renderQueue(s: QueueSnapshot, filter: QueueFilter, open: ReadonlySet<string>, controls = false, notice: string | null = null): QueueRender {
   const counts = countsOf(s);
   const chips = `<div class="eq-chips" role="toolbar" aria-label="Filter experiments by status">${FILTERS.filter((f) => f.id === "all" || counts[f.id] > 0).map((f) => `<button type="button" class="eq-chip${f.id === filter ? " on" : ""}" data-filter="${f.id}" aria-pressed="${String(f.id === filter)}">${f.label} <b>${String(counts[f.id])}</b></button>`).join("")}</div>`;
   const showQueue = filter !== "pending" && filter !== "closed";
   const queued = s.queue.filter((v) => filter === "all" || v.state === filter);
   const closed = filter === "all" || filter === "closed" ? s.closed : [];
-  const queue = (showQueue ? (queued.length === 0 ? `<p class="eq-empty">${filter === "all" ? "Nothing is queued. Experiments join the queue once models reliably reach the milestone each one acts on." : "No experiments in this state."}</p>` : queued.map((v) => slot(v, open.has(v.id))).join("")) : "") +
+  const queue = (notice === null ? "" : `<p class="eq-notice" role="alert">${esc(notice)}</p>`) + (showQueue ? (queued.length === 0 ? `<p class="eq-empty">${filter === "all" ? "Nothing is queued. Experiments join the queue once models reliably reach the milestone each one acts on." : "No experiments in this state."}</p>` : queued.map((v) => slot(v, open.has(v.id), controls)).join("")) : "") +
     (closed.length === 0 ? "" : `<h4 class="eq-sub">DONE</h4>${closed.map((v) => slot(v, open.has(v.id))).join("")}`) +
     (s.problems.length === 0 ? "" : `<pre class="eq-problems">${s.problems.map(esc).join("\n")}</pre>`);
   const showPending = filter === "all" || filter === "pending" || (filter === "blocked" && s.pending.some((v) => v.state === "blocked"));
@@ -134,13 +141,20 @@ export function renderQueue(s: QueueSnapshot, filter: QueueFilter, open: Readonl
   return { chips, queue, pending };
 }
 
-export interface QueueDeps { fetchJson(url: string): Promise<unknown>; problem(text: string): void }
+export interface QueueDeps {
+  fetchJson(url: string): Promise<unknown>;
+  problem(text: string): void;
+  // Present on pages that may approve: POST and a confirmation prompt.
+  sendJson?(method: "POST", url: string, body: unknown): Promise<unknown>;
+  confirm?(text: string): boolean;
+}
 // Binds one rendering to a container holding [data-eq=chips], [data-eq=queue] and [data-eq=pending].
 export class QueuePanel {
   snapshot: QueueSnapshot | null = null;
   filter: QueueFilter = "all";
   readonly open = new Set<string>();
   private loading = false;
+  private notice: string | null = null;
 
   constructor(private readonly root: HTMLElement, private readonly deps: QueueDeps) {
     root.addEventListener("click", (event) => {
@@ -149,6 +163,12 @@ export class QueuePanel {
       if (filter !== undefined) {
         this.filter = FILTERS.some((f) => f.id === filter) ? (filter as QueueFilter) : "all";
         this.render();
+        return;
+      }
+      const approve = target.closest<HTMLElement>("[data-approve]")?.dataset["approve"];
+      const revoke = target.closest<HTMLElement>("[data-revoke]")?.dataset["revoke"];
+      if (approve !== undefined || revoke !== undefined) {
+        void this.act(approve ?? revoke ?? "", approve !== undefined ? "approve" : "revoke");
         return;
       }
       const toggle = target.closest<HTMLElement>("[data-toggle]")?.dataset["toggle"];
@@ -163,14 +183,37 @@ export class QueuePanel {
     return this.root.querySelector<HTMLElement>(`[data-eq="${name}"]`);
   }
 
+  async act(id: string, action: "approve" | "revoke"): Promise<void> {
+    const view = this.snapshot === null ? undefined : [...this.snapshot.queue, ...this.snapshot.pending].find((v) => v.id === id);
+    if (view === undefined || this.deps.sendJson === undefined || this.deps.confirm === undefined) return;
+    const question = action === "approve"
+      ? `Approve ${view.title} for ${String(view.trialsPerArm * 2)} measured runs (about ${String(Math.round((view.trialsPerArm * 2 * 30) / 60))} hours)? The queue runs it when it reaches the front.`
+      : `Withdraw approval for ${view.title}? The trial already running finishes; no further trials start until it is approved again.`;
+    if (!this.deps.confirm(question)) return;
+    try {
+      this.snapshot = queueSnapshotOf(await this.deps.sendJson("POST", `/api/experiments/${encodeURIComponent(id)}/${action}`, {}));
+      this.notice = null;
+    } catch (error) {
+      this.notice = error instanceof Error ? error.message : String(error);
+    }
+    this.render();
+  }
+
   async load(): Promise<void> {
     if (this.loading) return;
     this.loading = true;
     try {
       this.snapshot = queueSnapshotOf(await this.deps.fetchJson("/api/experiments"));
+      this.notice = null;
       this.render();
     } catch (error) {
-      this.deps.problem(`experiment queue: ${error instanceof Error ? error.message : String(error)}`);
+      const message = error instanceof Error ? error.message : String(error);
+      this.deps.problem(`experiment queue: ${message}`);
+      this.notice = `Could not load the experiment queue (${message}).${/\b404\b/.test(message) ? " This viewer was started before the queue existed: restart the viewer." : ""}`;
+      if (this.snapshot === null) {
+        const queue = this.part("queue");
+        if (queue !== null) queue.innerHTML = `<p class="eq-notice" role="alert">${esc(this.notice)}</p>`;
+      } else this.render();
     } finally {
       this.loading = false;
     }
@@ -178,10 +221,10 @@ export class QueuePanel {
 
   render(): void {
     if (this.snapshot === null) return;
-    const html = renderQueue(this.snapshot, this.filter, this.open);
+    const html = renderQueue(this.snapshot, this.filter, this.open, this.deps.sendJson !== undefined, this.notice);
     // Re-rendering replaces the buttons; keep keyboard focus on the same control.
     const active = this.root.ownerDocument.activeElement;
-    const focused = active instanceof HTMLElement && this.root.contains(active) ? (active.dataset["toggle"] !== undefined ? `[data-toggle="${active.dataset["toggle"]}"]` : active.dataset["filter"] !== undefined ? `[data-filter="${active.dataset["filter"]}"]` : null) : null;
+    const focused = active instanceof HTMLElement && this.root.contains(active) ? (active.dataset["approve"] !== undefined || active.dataset["revoke"] !== undefined ? `[data-toggle="${active.dataset["approve"] ?? active.dataset["revoke"] ?? ""}"]` : active.dataset["toggle"] !== undefined ? `[data-toggle="${active.dataset["toggle"]}"]` : active.dataset["filter"] !== undefined ? `[data-filter="${active.dataset["filter"]}"]` : null) : null;
     for (const name of ["chips", "queue", "pending"] as const) {
       const element = this.part(name);
       if (element !== null && element.innerHTML !== html[name]) element.innerHTML = html[name];

@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { dirname, join } from "node:path";
+import { ApprovalError, approveExperiment, revokeApproval } from "./experiment-approval.js";
 import { queueSnapshot, recordedRuns, type QueuePaths, type QueueSnapshot, type RunSource } from "./experiment-store.js";
 import { Type } from "typebox";
 import { Value } from "typebox/value";
@@ -92,11 +93,20 @@ async function jsonBody(req: IncomingMessage, origin: string): Promise<unknown> 
   }
 }
 
-async function write(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, parts: string[], origin: string): Promise<void> {
+// The experiment queue's read and its two writes (approve, withdraw), sharing one snapshot cache.
+interface QueueApi { read(): Promise<QueueSnapshot>; change(id: string, action: "approve" | "revoke"): QueueSnapshot }
+const EmptyBodySchema = Type.Object({}, { additionalProperties: false });
+
+async function write(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, parts: string[], origin: string, queueApi: QueueApi): Promise<void> {
   const [, second, id, leaf] = parts;
   const now = options.now?.() ?? new Date();
   try {
     const body = await jsonBody(req, origin);
+    if (req.method === "POST" && parts.length === 4 && second === "experiments" && id !== undefined && (leaf === "approve" || leaf === "revoke")) {
+      if (!Value.Check(EmptyBodySchema, body)) throw new RequestError(400, "the body must be empty");
+      sendJson(res, 200, queueApi.change(id, leaf));
+      return;
+    }
     if (req.method === "POST" && parts.length === 4 && second === "runs" && id !== undefined && leaf === "control") {
       if (!Value.Check(ControlBodySchema, body)) throw new RequestError(400, "action must be pause, resume, stop, cancel_stop or abort");
       sendJson(res, 200, { request: await appendControl(options.runsRoot, id, body.action, now, healthProbe(options.fetchFn ?? fetch)) });
@@ -147,7 +157,7 @@ async function write(req: IncomingMessage, res: ServerResponse, options: ViewerO
     }
     throw new RequestError(404, "not found");
   } catch (error) {
-    if (error instanceof RequestError) sendJson(res, error.status, { error: error.message });
+    if (error instanceof RequestError || error instanceof ApprovalError) sendJson(res, error.status, { error: error.message });
     else if (error instanceof NextRunError) sendJson(res, 409, { error: error.message });
     else throw error;
   }
@@ -250,7 +260,7 @@ async function liveScreen(res: ServerResponse, port: number, fetchFn: typeof fet
   }
 }
 
-async function route(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, origins: ReadonlyMap<string, string>, readBaseline: BaselineReader, readWorkbench: () => Promise<WorkbenchData>, readExperiments: () => Promise<QueueSnapshot>): Promise<void> {
+async function route(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, origins: ReadonlyMap<string, string>, readBaseline: BaselineReader, readWorkbench: () => Promise<WorkbenchData>, queueApi: QueueApi): Promise<void> {
   const origin = origins.get(req.headers.host ?? "");
   if (origin === undefined) {
     sendJson(res, 403, { error: "the viewer only answers 127.0.0.1 and its published origins" });
@@ -262,7 +272,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     return;
   }
   if ((req.method === "POST" || req.method === "PUT") && parts[0] === "api") {
-    await write(req, res, options, port, parts, origin);
+    await write(req, res, options, port, parts, origin, queueApi);
     return;
   }
   if (req.method !== "GET") {
@@ -271,7 +281,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
   }
   const [head, second, id, leaf, file] = parts;
   if (parts.length === 2 && head === "api" && second === "experiments") {
-    sendJson(res, 200, await readExperiments());
+    sendJson(res, 200, await queueApi.read());
     return;
   }
   if (parts.length === 2 && head === "api" && second === "workbench") {
@@ -425,10 +435,20 @@ export async function startViewer(options: ViewerOptions): Promise<Viewer> {
     next.result.catch(() => { if (queued === next) queued = null; });
     return next.result;
   };
+  const queueApi: QueueApi = {
+    read: readExperiments,
+    change: (id, action) => {
+      const at = options.now?.() ?? new Date();
+      if (action === "approve") approveExperiment(experiments.paths, experiments.source, id, "viewer", at);
+      else revokeApproval(experiments.paths, experiments.source, id, "viewer", at);
+      queued = null;
+      return queueSnapshot(experiments.paths, experiments.source);
+    },
+  };
   // A failing request (a client that disconnects mid-body, a file error) must
   // never take the viewer and its queue down.
   const server = createServer((req, res) => {
-    route(req, res, options, port, origins, readBaseline, readWorkbench, readExperiments).catch((error: unknown) => {
+    route(req, res, options, port, origins, readBaseline, readWorkbench, queueApi).catch((error: unknown) => {
       if (res.headersSent || res.destroyed) res.destroy();
       else sendJson(res, 500, { error: error instanceof Error ? error.message : String(error) });
     });

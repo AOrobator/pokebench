@@ -37,6 +37,13 @@ describe("read-only workbench snapshot", () => {
     const d = await workbenchSnapshot(r, () => Promise.resolve(false), { state: "idle" }, 42);
     expect(d.runs.find(x => x.id === "forged")?.splits).toEqual([]);
   });
+  it("rejects a second run header rather than combining earned splits with replaced provenance", async () => {
+    const r = root(), log = named(); log.add(5000, { ...START, model: { ...START.model, id: "replacement-model" }, harness: { ...START.harness, commit: "b".repeat(40) } });
+    log.add(6000, { type: "run_end", turn: 1, reason: "budget", furthest_milestone: "PLAYER_NAME_CONFIRMED", turns: 1, wall_ms: 6000, tokens: { input: 500, output: 100 }, frames: { saved: 0, bytes: 0 } }); write(r, "duplicate_header", log);
+    const d = await workbenchSnapshot(r, () => Promise.resolve(true), { state: "idle" }, 42);
+    expect(d.runs).toMatchObject([{ id: "duplicate_header", status: "invalid", model: START.model.id, config: { source: START.harness.commit }, splits: [] }]);
+    expect(d.runs[0]?.problem).toContain("more than one run_start");
+  });
   it("shows malformed logs instead of silently grading or hiding them", async () => {
     const r = root(), p = write(r, "broken", named()); appendFileSync(p, '{"bad":true}\n');
     const d = await workbenchSnapshot(r, () => Promise.resolve(true), { state: "idle" }, 2000000000000); expect(d.runs[0]?.status).toBe("invalid"); expect(d.runs[0]?.problem).toBeTruthy(); expect(d.runs[0]?.splits).toEqual([]);

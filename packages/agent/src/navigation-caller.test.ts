@@ -64,3 +64,12 @@ it("the production navigation factory applies the fresh before-action check",asy
  const result=await nav.execute("nav",{x:1,y:0,map_id:[0,9]});
  expect(posts,JSON.stringify(result)).toBe(0);expect(JSON.stringify(result.details)).toContain("before action");expect(result.details).toMatchObject({state:{map_id:[1,0]},navigation:{commands:0}});
 });
+
+it("the production factory walks the whole-map route when that treatment is on",()=>{
+ const fetchFn:typeof fetch=()=>Promise.reject(new Error("unused"));
+ const base=[observeTool("http://127.0.0.1",fetchFn),pressTool("http://127.0.0.1",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},fetchFn)];
+ const features={...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"bounded-navigation-v1":true};
+ const local=withNavigation(base,features,{read:()=>Promise.reject(new Error("unused"))}).find(t=>t.name==="navigate_to");
+ const full=withNavigation(base,{...features,"full-map-navigation-v1":true},{read:()=>Promise.reject(new Error("unused"))}).find(t=>t.name==="navigate_to");
+ expect(local?.description).toContain("Maximum 8");expect(full?.description).toContain("whole current map");
+});

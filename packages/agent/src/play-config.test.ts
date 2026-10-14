@@ -59,3 +59,13 @@ it("maps observation switches onto the observe/press results", () => {
   expect(toolSwitches(ALL_ON)).toEqual({ safeInterfaces:true, automaticRunning:true, readout: true, pressResult: true, position: true, fieldLock: true });
   expect(toolSwitches(off("ram-state-v1", "press-result-v1", "live-player-position-v1", "field-control-lock"))).toEqual({ safeInterfaces:true, automaticRunning:true, readout: false, pressResult: false, position: false, fieldLock: false });
 });
+
+it("describes whole-map navigation only when that treatment is on", () => {
+  const local = playSystemPrompt({ ...ALL_ON, "bounded-navigation-v1": true }, null);
+  const full = playSystemPrompt({ ...ALL_ON, "bounded-navigation-v1": true, "full-map-navigation-v1": true }, null);
+  expect(local).toContain("up to eight ordinary button attempts");
+  expect(local).not.toContain("whole current map");
+  expect(full).toContain("whole current map");
+  expect(full).not.toContain("up to eight ordinary button attempts");
+  expect(full).toContain("never crosses a warp unless it is the destination");
+});

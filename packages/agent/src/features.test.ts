@@ -56,3 +56,10 @@ it("records and delivers the independently switchable interaction-name treatment
  expect(serverFeatureEnv(off("named-interactions-v1")).POKEBENCH_FEATURES_OFF).toBe("named-interactions-v1");
  expect(dependencyProblems(off("world-targets-v1"))).toContain("named-interactions-v1 needs world-targets-v1");
 });
+
+it("registers whole-map navigation as a navigation-dependent server treatment recorded last",()=>{
+ expect(featureInfo("full-map-navigation-v1")).toMatchObject({group:"guidance",needs:"bounded-navigation-v1",switchable:true});
+ expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe("full-map-navigation-v1");
+ expect(serverFeatureEnv(off("full-map-navigation-v1")).POKEBENCH_FEATURES_OFF).toBe("full-map-navigation-v1");
+ expect(dependencyProblems(off("bounded-navigation-v1"))).toContain("full-map-navigation-v1 needs bounded-navigation-v1");
+});

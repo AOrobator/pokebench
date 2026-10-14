@@ -25,3 +25,5 @@ Pending.
 M1 RED: navigation.test.ts adds whole-map planning (40x140 serpentine, 2868 steps), local rules on the whole map, malformed map_grid rejection, heap-vs-reference-array path equivalence on 200 seeded 15x15 grids, 80x80 timing (<25 ms/plan), full-route walking past 8 presses with per-press block stop, 512 safety bound. 5 fail / 16 pass as expected.
 
 M1 GREEN: planner runs on local or whole-map geometry through one tile lookup; binary-heap open list keyed (estimate, insertion order); routes rebuilt from parent links; navigationTool fullMap mode (whole-map description, 512 bound, mode-aware readiness/status). map_grid added to StateBodySchema. navigation + caller tests 24/24, agent lint clean.
+
+M1 GREEN commit: cf2857b. M2 RED: Python read_full_map (rows, objects/warps beyond window, one-row reads, labels, packed JSON, unready layouts), observation switch adds map_grid/whole-map text only when on, default-off server list (18 features); TS registry/preset defaults/prompt/factory tests. All new tests fail at collection or assertion.

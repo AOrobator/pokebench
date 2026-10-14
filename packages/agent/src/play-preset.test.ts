@@ -33,3 +33,11 @@ it("defaults absent historical v2 named interactions OFF and records explicit tr
  expect(presetFeatures(parsePlayPreset(v2))["named-interactions-v1"]).toBe(true);
  expect(()=>parsePlayPreset({...v2,features:{...old,"named-interactions-v1":"true"}})).toThrow(/preset/);
 });
+
+it("defaults absent whole-map navigation OFF in every preset and records an explicit treatment",()=>{
+ const {"full-map-navigation-v1":omitted,...old}=v2.features;expect(omitted).toBe(true);
+ expect(presetFeatures(parsePlayPreset({...v2,features:old}))["full-map-navigation-v1"]).toBe(false);
+ expect(presetFeatures(parsePlayPreset(preset))["full-map-navigation-v1"]).toBe(false);
+ expect(presetFeatures(parsePlayPreset({...v2,features:{...old,"bounded-navigation-v1":true,"full-map-navigation-v1":true}}))["full-map-navigation-v1"]).toBe(true);
+ expect(()=>parsePlayPreset({...v2,features:{...old,"bounded-navigation-v1":false,"full-map-navigation-v1":true}})).toThrow(/needs bounded-navigation-v1/);
+});

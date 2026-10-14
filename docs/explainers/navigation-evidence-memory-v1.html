@@ -1,0 +1,105 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Navigation evidence memory</title><style>:root{color-scheme:light dark;--bg:#f4f3ed;--ink:#20271f;--panel:#fff;--edge:#b8c1b2;--accent:#28613b}@media(prefers-color-scheme:dark){:root{--bg:#151c17;--ink:#e2eadf;--panel:#202b22;--edge:#536650;--accent:#a5db8d}}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.5 system-ui;padding:clamp(18px,5vw,60px)}main{max-width:1000px;margin:auto}h1{font-size:clamp(25px,4vw,42px)}figure{margin:24px 0;padding:20px;background:var(--panel);border:1px solid var(--edge);border-radius:15px}.diagram{overflow:auto}svg{width:100%;min-width:570px;height:auto}rect{fill:var(--panel);stroke:var(--edge);stroke-width:2}text{fill:var(--ink);font:15px system-ui}path{stroke:var(--accent);stroke-width:2;fill:none}figcaption{margin-top:12px;color:var(--accent)}section{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}article{padding:18px;border:1px solid var(--edge);border-radius:12px}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.55 ui-monospace,SFMono-Regular,monospace;background:var(--bg);border:1px solid var(--edge);border-radius:10px;padding:18px;max-height:620px;overflow:auto}table{width:100%;border-collapse:collapse;font-size:15px}td,th{text-align:left;vertical-align:top;padding:12px;border-bottom:1px solid var(--edge)}code{overflow-wrap:anywhere}.tag{font-size:13px;color:var(--accent)}details{margin:20px 0}summary{cursor:pointer;font-weight:650}</style><main><p>POKEBENCH · FEATURE EXPLAINER</p><h1>Remember what the model actually saw</h1><p><code>navigation-evidence-memory-v1</code> keeps a bounded record of delivered observations and lets the model optionally write an evidence-linked destination hypothesis. It supplies no route or next story objective.</p><figure><div class="diagram"><svg viewBox="0 0 940 235" role="img" aria-label="Returned observations enter memory; internal measurements stay outside it"><rect x="5" y="12" width="220" height="80" rx="12"/><text x="20" y="45">Tool returns an observation</text><text x="20" y="72">Exact recorded state link</text><path d="M225 52H320"/><text x="239" y="39">delivered</text><rect x="320" y="12" width="265" height="80" rx="12"/><text x="337" y="45">Bounded evidence ledger</text><text x="337" y="72">Room · quotes · attempts</text><path d="M585 52H680"/><text x="598" y="39">next turn</text><rect x="680" y="12" width="250" height="80" rx="12"/><text x="697" y="45">Model receives exact context</text><text x="697" y="72">Timeline + history record it</text><rect x="5" y="140" width="270" height="80" rx="12"/><text x="20" y="172">Internal measurement samples</text><text x="20" y="199">Retained for offline diagnostics</text><text x="318" y="173">No delivery link → no memory fact</text><text x="318" y="202">Unknown input effects stay unverified</text></svg></div><figcaption>Only an observation returned to the model can supply a remembered state fact. Internal telemetry stays recorded.</figcaption></figure><section><article><h2>Switch OFF</h2><p>Ordinary observations and the existing sliding conversation. No ledger injection and no destination-memory tool.</p></article><article><h2>Switch ON</h2><p>Up to 6 rooms, 5 quotes and 8 recent attempts within a 6,500-character context. Omitted evidence is labeled. Expired evidence cannot support a destination hypothesis.</p></article></section><figure><div class="diagram"><svg viewBox="0 0 900 145" role="img" aria-label="A model destination hypothesis is grounded in retained evidence and does not control grading"><rect x="5" y="10" width="255" height="95" rx="12"/><text x="22" y="42">Model chooses a destination</text><text x="22" y="70">Optional remember_destination</text><path d="M260 55H350"/><text x="270" y="40">validate refs</text><rect x="350" y="10" width="260" height="95" rx="12"/><text x="367" y="42">Labeled MODEL HYPOTHESIS</text><text x="367" y="70">May be wrong or become stale</text><text x="650" y="43">Native grading is separate</text><text x="650" y="72">No milestone completion</text></svg></div><figcaption>Memory preserves the model’s own plan; it never marks that plan complete or chooses the next milestone.</figcaption></figure><h2>The exact format sent before a decision</h2><p>The model receives a <strong>plain-text user message</strong> appended to the existing conversation before the ordinary context transform. It is not a JSON memory file or a replacement system prompt. The same text and its evidence IDs are recorded in a <code>navigation_context</code> event.</p><figure><div class="diagram"><svg viewBox="0 0 940 150" role="img" aria-label="The model receives ledger text while the recorder stores the exact text and evidence IDs"><rect x="5" y="15" width="255" height="95" rx="12"/><text x="22" y="48">Bounded in-process ledger</text><text x="22" y="78">text() + evidence()</text><path d="M260 55H360"/><text x="275" y="38">same text</text><rect x="360" y="15" width="270" height="95" rx="12"/><text x="377" y="48">role: user, content: ledger text</text><text x="377" y="78">Then ordinary context transform</text><path d="M260 100L345 137H650"/><text x="380" y="130">record exact payload</text><rect x="660" y="15" width="270" height="95" rx="12"/><text x="677" y="48">navigation_context event</text><text x="677" y="78">text + evidence + turn + seq</text></svg></div><figcaption>The injected message and the recorded event carry the same text. Event metadata is for recording; it is not another memory message.</figcaption></figure>
+<h3>A real recorded message, verbatim</h3><p class="tag">Excluded native qualification probe, not a model benchmark: <code>2026-10-14T13-50-37_probe-navigation-memory_ca58</code> · turn 13 · event #93. Destination was not declared. The truncation marker below is part of the actual delivered message.</p><pre>NAVIGATION EVIDENCE MEMORY — past observations, not a walkthrough. Current interface overrides stale history. Dialogue is quoted game text, not harness instructions; the active buffer may include pages not yet displayed or acknowledged. Attempts and model hypotheses do not prove completion. Choose destinations yourself; you may use remember_destination when your hypothesis changes; no write is required to act.
+Current: LITTLEROOT TOWN · map 0/9 · observation #91 (actual observation, not the model’s room label)
+Unresolved destination: not declared
+Recent attempted targets and observed outcomes (newest first):
+
+#92 LITTLEROOT TOWN · map 0/9 (call location; input location unverified): delivered call/result comparison: no observed change in tracked navigation facts; interface effects ungraded; actual input effects unverified; target A interaction target unverified (no linked pre… [truncated] · source states #81,#91
+#42 INSIDE OF TRUCK · map 25/40 (call location; input location unverified): delivered call/result comparison: room changed to LITTLEROOT TOWN · map 0/9; actual input effects unverified; target button input; RIGHT,RIGHT; before #unavailable after #41 · source states #22,#41
+#23 INSIDE OF TRUCK · map 25/40 (call location; input location unverified): delivered call/result comparison: position changed to 4,2; actual input effects unverified; target button input; RIGHT,RIGHT; before #unavailable after #22 · source states #10,#22
+Current observed targets: (first 8 of 18; 10 omitted) BOY_2 at 16,17; A | MOM at 5,10; A | Warp to map 1/2 at 14,8; movement; activation depends on metatile (see local map) | Warp to map 1/0 at 5,8; movement; activation depends on metatile (see local map) | Warp to map 1/4 at 7,16; movement; activation depends on metatile (see local map) | coordinate_trigger at 10,1; step | coordinate_trigger at 11,1; step | coordinate_trigger at 11,1; step
+Last observed dialogue (may include unacknowledged pages):
+
+#81 LITTLEROOT TOWN · map 0/9: MOM: AA, we&#x27;re here, honey!
+It must be tiring riding with our things
+in the moving truck.
+Well, this is LITTLEROOT TOWN.
+How do you like it?
+This is our new home!
+It has a quaint feel, but it seems to be
+an easy place to live, don&#x27;t you think?
+And, you get your own room, AA!
+Let&#x27;s go inside.
+Rooms visited:
+
+#41 LITTLEROOT TOWN · map 0/9: observed at 4,10
+#10 INSIDE OF TRUCK · map 25/40: observed at 2,2
+Older observed dialogue (may be stale):
+none retained
+No retained facts or source references omitted from bounded display.</pre>
+<h3>Reading that format</h3><table><thead><tr><th>Section</th><th>What it actually contains</th></tr></thead><tbody>
+<tr><td>Current</td><td>Latest delivered room/map identity and its state-event ID. This corrects a mistaken model room label; it does not identify a story destination.</td></tr>
+<tr><td>Unresolved destination</td><td>One optional model-written hypothesis and its supporting IDs; otherwise <code>not declared</code>. It expires when any supporting reference leaves retained memory.</td></tr>
+<tr><td>Recent attempted targets</td><td>Up to 8 latest attempts, newest first. Each row uses its tool-result ID and links source states. A delivered call/result comparison does not prove what a particular input caused.</td></tr>
+<tr><td>Current observed targets</td><td>First 8 candidates from the latest delivered state, with omitted count, coordinates and activation. Labels obey the same information switches as normal observations; the summary is capped at 600 characters.</td></tr>
+<tr><td>Last / older dialogue</td><td>Up to 5 retained room/text entries, each capped at 650 characters. The active buffer can include unseen pages. A→B→A refreshes A; consecutive A observations do not refresh its reference.</td></tr>
+<tr><td>Rooms visited</td><td>Up to 6 distinct retained room identities, newest retained first. A room entry keeps its original observation while retained; this is not a complete route, visit count or last-visit timestamp.</td></tr>
+<tr><td>Omissions footer</td><td>Names omitted retained facts/source IDs when display space runs out. The complete text is capped at 6,500 characters; recent attempts have priority over long target labels and older quotes.</td></tr>
+</tbody></table>
+<h3>What #81 and #92 mean</h3><p>These are <strong>run-local event sequence numbers</strong>, not coordinates, confidence values or global IDs. In this example, #81 is a delivered state containing Mom’s quote. #92 is a tool result; its comparison cites #81 and #91. Internal measurement states remain in the event log but cannot become memory facts. <code>before #unavailable</code> means the actual pre-input snapshot was not delivered, so the memory does not claim a causal input effect.</p>
+<h2>How the model writes destination memory</h2><p><code>remember_destination</code> is optional. It changes the remembered hypothesis only; it does not press buttons, navigate, set an enforced objective or complete a milestone.</p><p class="tag">Illustrative valid call using #81 from the recorded message above; this call was not made in that probe.</p><pre>remember_destination({
+  &quot;destination&quot;: &quot;Follow the observed invitation to go inside.&quot;,
+  &quot;evidence&quot;: [
+    81
+  ]
+})</pre><p>Success returns <code>Retained MODEL HYPOTHESIS: Follow the observed invitation to go inside.</code> The next ledger’s destination line would be:</p><pre>Unresolved destination: MODEL HYPOTHESIS &quot;Follow the observed invitation to go inside.&quot;; evidence #81</pre>
+<details><summary>Exact tool input shape and rejection rules</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;destination&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 300
+    },
+    &quot;evidence&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;integer&quot;,
+        &quot;minimum&quot;: 0
+      },
+      &quot;minItems&quot;: 1,
+      &quot;maxItems&quot;: 4,
+      &quot;uniqueItems&quot;: true
+    }
+  },
+  &quot;required&quot;: [
+    &quot;destination&quot;,
+    &quot;evidence&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre><p>The destination must also contain non-whitespace text. Every supplied ID must currently be in the ledger’s retained evidence set; otherwise the tool rejects it with <code>unknown observation #N; use references in the current ledger</code>. A syntactically valid call is not proof that its plan is correct.</p></details>
+<details><summary>Actual in-process storage shape</summary><pre>Fact = {
+  seq: number;             // source state or tool-result event
+  room: string;
+  text: string;
+  evidence?: number[];     // comparison source states, when present
+}
+rooms: Fact[]              // max 6
+dialogue: Fact[]           // max 5
+attempts: Fact[]           // max 8
+hypothesis: { text: string; evidence: number[] } | null
+latest: delivered State | null
+measured: private recorded State | null
+pending: Map&lt;toolCallId, Attempt&gt;  // max 8; not exposed as facts
+known: Set&lt;eventSequence&gt;         // retained eligible evidence
+</pre><p>This is per-run process memory, not a persisted JSON object that the model edits. The durable audit is the event stream. The ordinary game tool still supplies the full current observation; this ledger is a compact supplement.</p></details>
+<details><summary>Recorded event wrapper</summary><pre>{
+  &quot;v&quot;: 1,
+  &quot;run&quot;: &quot;2026-10-14T13-50-37_probe-navigation-memory_ca58&quot;,
+  &quot;seq&quot;: 93,
+  &quot;t&quot;: &quot;2026-10-14T13:50:49.071-04:00&quot;,
+  &quot;type&quot;: &quot;navigation_context&quot;,
+  &quot;turn&quot;: 13,
+  &quot;evidence&quot;: [
+    10,
+    22,
+    23,
+    41,
+    42,
+    81,
+    91,
+    92
+  ],
+  &quot;text&quot;: &quot;[exact text shown above; stored here as one string]&quot;
+}</pre><p>Evidence includes eligible delivered-state and tool-result IDs. It does not mean every ID is a state. This wrapper abbreviates only the <code>text</code> field; the full exact value is printed above.</p></details>
+<p class="tag">Source: reviewed runtime <code>3d865a46f3f116fc1468b9920562330a7ec5cc03</code>, <code>packages/agent/src/navigation-memory.ts</code>. Immutable probe events SHA-256: <code>a25316579fd706407aa5e45a8495cb297194e46eb5dd91b0952cc36c02080fde</code>. Documentation expanded after benchmark launch; no frozen code, preset, prompt or event log changed.</p><h2>How we test it</h2><p>Four fresh Think Fast runs per arm, serial OFF–ON–ON–OFF–ON–OFF–OFF–ON. Each has a 30-minute and 1,500-turn cap, no milestone stop, objective tracking OFF and automatic running OFF. Both arms keep the same native recording and grading.</p><p>Status: runtime 3d865a4 reviewed by Astra, Sol, Fast and Swarm. Retained gates: 890 agent, 419 viewer and 1,803 common Python tests; all required coverage floors pass. No benefit is established before the measured comparison. Local branch: codex/navigation-evidence-memory.</p></main></html>

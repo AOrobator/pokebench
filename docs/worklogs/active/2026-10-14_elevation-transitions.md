@@ -27,3 +27,5 @@ Scope: the elevation rule in navigation.ts only. Walkable behaviors (sand, bridg
 - RED (round 2): 2 failed / 18 passed (3→0→15→4→3 must be refused; ledge take-off from 15 onto 0 then 4).
 - COMMIT: `test: finished steps take the tile's elevation unless it is 15 (RED)` (439819b)
 - GREEN (round 2 fix): agent 899, viewer 419, Python 1803 pass; agent 97.21/93.29/97.86, viewer 95.54/90.49/95.12, Python 96.68/91.83/100; lint and build clean. Explainer updated to the finish-of-step rule.
+- COMMIT: `fix: a finished step takes the tile's elevation unless it is 15` (d4b3a5d). Merging main 9f111d1 (viewer frontier work) before round 2.
+- Merged main 9f111d1 (0dfa14b). Gates after merge: agent 899, viewer 474, Python 1803 pass; viewer 95.65/90.58/95.2; lint clean.

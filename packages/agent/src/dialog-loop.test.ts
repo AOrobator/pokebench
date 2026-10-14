@@ -45,3 +45,19 @@ it("detects the native truck-shaped message even when decoded buffer text is una
  d.complete({name:"press",args:{buttons:["A"]},isError:false,text:"ok",beforeState:state,state:newMessage});
  expect(notices.map(n=>n.phase)).toEqual(["warning","recovered"]);
 });
+it("detects native ready-message returns nine calls apart without treating intervening printer frames as progress",()=>{
+ const notices:{phase:string}[]=[];const d=new LoopDetector(n=>notices.push(n),{...LOOP_POLICY,ineffective:4},"diagnostic",true);
+ for(let visit=0;visit<4;visit++){
+  d.complete({name:"press",args:{buttons:Array(8).fill("A")},isError:false,text:"ok",state:dialogue()});
+  for(let frame=0;frame<8;frame++)d.complete({name:"press",args:{buttons:Array(8).fill("A")},isError:false,text:"ok",state:{...dialogue(),world_context:{objects:[],triggers:[],dialogue:"Box description",message:{phase:"printing",cursor:frame,ready:false}}}});
+ }
+ expect(notices.map(n=>n.phase)).toEqual(["would_warn"]);
+});
+it("clears sparse ready-message visits on verified new field progress",()=>{
+ const notices:unknown[]=[];const d=new LoopDetector(n=>notices.push(n),{...LOOP_POLICY,ineffective:4},"diagnostic",true);
+ for(let visit=0;visit<6;visit++){
+  d.complete({name:"press",args:{buttons:Array(8).fill("A")},isError:false,text:"ok",state:dialogue()});
+  d.complete({name:"press",args:{buttons:["RIGHT"]},isError:false,text:"ok",state:{...dialogue(),position:{x:3+visit,y:2},field_controls_locked:false,world_context:{objects:[],triggers:[],dialogue:null}}});
+ }
+ expect(notices).toEqual([]);
+});

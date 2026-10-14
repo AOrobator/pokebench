@@ -161,4 +161,51 @@ describe("experiment queue view", () => {
     expect(problems.at(-1)).toBe("experiment queue: offline");
     await Promise.all([panel.load(), panel.load()]);
   });
+
+  it("approves and withdraws from the battle card after a confirmation", async () => {
+    document.body.innerHTML = readFileSync(join(import.meta.dirname, "../static/index.html"), "utf8").replace(/<script[^>]*><\/script>|<link[^>]*>/g, "");
+    const root = document.querySelector<HTMLElement>('[data-ui="experiment-queue"]');
+    if (root === null) throw new Error("page is missing the queue");
+    const sent: [string, string][] = [], asked: string[] = [];
+    let answer = false;
+    const approved = { ...SNAPSHOT, queue: [view("elev", { queuePosition: 2, state: "approved", approved: true, trials: [trial(0, "waiting")], arms: { incumbent: arm(0, 0, null, null), candidate: arm(0, 0, null, null) } })] };
+    const panel = new QueuePanel(root, {
+      fetchJson: () => Promise.resolve(SNAPSHOT), problem: () => undefined,
+      sendJson: (method, url) => { sent.push([method, url]); return Promise.resolve(approved); },
+      confirm: (text) => { asked.push(text); return answer; },
+    });
+    await panel.load();
+    root.querySelector<HTMLElement>('[data-toggle="elev"]')?.click();
+    expect(root.querySelector('[data-approve="elev"]')?.textContent).toBe("APPROVE 16 RUNS");
+    expect(root.querySelector('[data-approve="full"]')).toBeNull();
+    root.querySelector<HTMLElement>('[data-approve="elev"]')?.click();
+    await Promise.resolve();
+    expect(asked[0]).toContain("Approve Experiment elev");
+    expect(sent).toEqual([]);
+    answer = true;
+    root.querySelector<HTMLElement>('[data-approve="elev"]')?.click();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(sent).toEqual([["POST", "/api/experiments/elev/approve"]]);
+    expect(root.querySelector('[data-experiment="elev"] .eq-st')?.textContent).toBe("APPROVED");
+    expect(root.querySelector('[data-revoke="elev"]')?.textContent).toBe("WITHDRAW APPROVAL");
+    root.querySelector<HTMLElement>('[data-revoke="elev"]')?.click();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(sent.at(-1)).toEqual(["POST", "/api/experiments/elev/revoke"]);
+    expect(asked.at(-1)).toContain("The trial already running finishes");
+  });
+
+  it("explains a failed load inside the queue instead of loading forever", async () => {
+    document.body.innerHTML = readFileSync(join(import.meta.dirname, "../static/index.html"), "utf8").replace(/<script[^>]*><\/script>|<link[^>]*>/g, "");
+    const root = document.querySelector<HTMLElement>('[data-ui="experiment-queue"]');
+    if (root === null) throw new Error("page is missing the queue");
+    const panel = new QueuePanel(root, { fetchJson: () => Promise.reject(new Error("GET /api/experiments returned HTTP 404")), problem: () => undefined });
+    await panel.load();
+    expect(root.querySelector('[data-eq="queue"]')?.textContent).toContain("restart the viewer");
+    const failing = new QueuePanel(root, { fetchJson: () => Promise.resolve(SNAPSHOT), problem: () => undefined, sendJson: () => Promise.reject(new Error("elev is approved")), confirm: () => true });
+    await failing.load();
+    root.querySelector<HTMLElement>('[data-toggle="elev"]')?.click();
+    root.querySelector<HTMLElement>('[data-approve="elev"]')?.click();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(root.querySelector('[data-eq="queue"]')?.textContent).toContain("elev is approved");
+  });
 });

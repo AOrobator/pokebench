@@ -53,7 +53,7 @@ Shared incumbent: the A* preset from `navigation-topology-astar-think-fast-n4` (
 - INV-Q5: The ledger is append-only and the runner resumes from it without repeating a completed trial. Test: crash after trial k, rerun, trials k+1.. only.
 - INV-Q6: Source pinning: refuse to run when main's HEAD is not the pinned commit, the tracked tree is dirty, or packages/agent/dist/live.js is older than the commit. Test: temp git repo.
 - INV-Q7: No automatic promotion. Result carries a recommendation only; no code path edits presets or defaults.
-- INV-Q8: The viewer queue page is read-only. Test: no POST route for experiments.
+- INV-Q8: The viewer queue page only approves or withdraws (operator 2026-10-14: "I would want a approve experiment button and the option to undo or like deny a previously approved experiment"); it never launches runs. Test: only /approve and /revoke POST routes exist.
 
 ## Security Review
 Argv-only spawns (`node`, `git`), checkout paths treated as untrusted (resolved, must be an existing git worktree of this repo), loopback-only viewer route behind the existing Host/Origin checks, no secrets in definitions, ROM still only via `POKEBENCH_ROM` symlink.
@@ -212,3 +212,7 @@ Pending.
 - RED: readinessOf ignores save_state runs; recordedRuns reports `start` and excludes a checkpoint run.
 - GREEN: `ReadinessRun.start` (from run_start.start_state.kind); `readinessOf` counts only boot starts on the model lane. Guard check: removed the start filter, the checkpoint test went red, restored. Real data unchanged: full-map, elevation, one-way tiles and the four rival-push entries ready on boot think-fast runs (3 of 4); counter talk, grass cost and ledge hops not ready.
 - Gates: agent 1015 (97.39/93.78/98.06), viewer 549 (95.19/90.59/94.52), Python 1866, lint clean.
+- Focused review of the follow-up (/tmp/eq-review-f1): Claude LGTM; Grok BLOCKING only because main gained 11163f5 (readiness rows for the rival-push experiments) after this branch was cut, so `git diff main HEAD` showed those rows as deleted; merging main resolves it. Codex unavailable: the ChatGPT account hit its usage limit until 2026-10-20 (Cursor GPT lane also at its limit) — GPT lane blocked, needs the operator's call.
+- Operator (2026-10-14 21:49): "the experiment queue takes a long time to load ... I don't think it is loading successfully ... the read only tag is way too close to the experiment queue tag ... I would want a approve experiment button and the option to undo or like deny a previously approved experiment from running if it has not completed."
+  - Cause of the endless "Loading…": every running viewer (8791, 8801, 8793, 8796) was started before the merge, so it serves the new page but has no /api/experiments route (HTTP 404); nothing listens on 8790, which Tailscale publishes. They need a restart; the panel now says so inline instead of spinning.
+- RED: approve/withdraw module (draft/stale queued only; withdraw until done; audit in approvals.jsonl), POST /api/experiments/<id>/approve|revoke, APPROVE / WITHDRAW APPROVAL buttons with confirmation in the battle card, inline load and action errors.

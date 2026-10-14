@@ -45,6 +45,15 @@ describe("GET /api/experiments", () => {
     expect(calls).toBe(3);
     expect((await call(viewer, "/api/experiments", "POST")).status).toBe(404);
     expect((await call(viewer, "/api/experiments", "PUT")).status).toBe(404);
+    // Approve and withdraw from the page; both refresh the snapshot at once.
+    const approved = await call(viewer, "/api/experiments/full-map/approve", "POST");
+    expect(approved.status).toBe(200);
+    expect((JSON.parse(approved.body) as { queue: { state: string }[] }).queue[0]?.state).toBe("approved");
+    expect((await call(viewer, "/api/experiments/full-map/approve", "POST")).status).toBe(409);
+    expect((await call(viewer, "/api/experiments/nope/approve", "POST")).status).toBe(404);
+    expect((await call(viewer, "/api/experiments/full-map/launch", "POST")).status).toBe(404);
+    const revoked = await call(viewer, "/api/experiments/full-map/revoke", "POST");
+    expect((JSON.parse(revoked.body) as { queue: { state: string }[] }).queue[0]?.state).toBe("draft");
   });
 
   it("reads experiments/ beside the runs directory by default", async () => {

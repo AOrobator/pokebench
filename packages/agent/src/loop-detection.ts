@@ -103,13 +103,15 @@ export function semanticState(state: GameStateSnapshot, interactions = false): s
   }
   if (state.screen === "naming" && state.naming?.ready === true)
     return stable({ screen: state.screen, naming: state.naming });
+  const message = state.world_context?.message;
+  const qualifiedMessage = interactions && Boolean(state.world_context?.dialogue || message?.identity) && message?.ready === true && ["dismiss_wait", "button_wait", "page_wait", "scroll_wait"].includes(message.phase);
   if (
     state.screen !== "overworld" ||
     !state.started ||
     state.map_id === null ||
     state.position === null ||
     state.facing === null ||
-    (state.field_controls_locked !== false && !(interactions && state.field_controls_locked === true && state.world_context?.dialogue && state.world_context.message?.ready === true && ["dismiss_wait", "button_wait", "page_wait", "scroll_wait"].includes(state.world_context.message.phase)))
+    (state.field_controls_locked !== false && !(state.field_controls_locked === true && qualifiedMessage))
   )
     return null;
   return stable({

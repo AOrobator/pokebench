@@ -1,4 +1,5 @@
 import struct
+from hashlib import sha256
 
 from pokebench_env.game_state import decode_text
 from pokebench_env.world_context import read_world_context
@@ -259,7 +260,12 @@ def test_phase_switch_off_preserves_json_and_model_text() -> None:
     base = game(OVERWORLD)
     m.put(0x02037350, base.read(0x02037350, 0x24))
     state = read_game_state(m.read, MAPS, message_phase_enabled=True)
-    assert state.world_context.message.json() == {"phase": "page_wait", "cursor": 30, "ready": True}
+    assert state.world_context.message.json() == {
+        "phase": "page_wait",
+        "cursor": 30,
+        "ready": True,
+        "identity": sha256(text("Box")).hexdigest(),
+    }
     assert "Field-message phase: page_wait" in format_readout(state, message_phase=True)
     assert "Field-message phase" not in format_readout(
         state, frozenset({"field-dialogue-phase-v1"}), message_phase=True
@@ -309,7 +315,6 @@ def test_final_dismiss_rejects_wrong_native_and_inactive_context_operands() -> N
 
 
 def test_qualified_raw_message_identity_survives_unsupported_controls() -> None:
-    from hashlib import sha256
     m = field_printer()
     raw = text("Box") + b"\xfc\x04\x00\x01\x02" + b"\xff"
     m.put(0x02021FC4, raw)
@@ -317,3 +322,15 @@ def test_qualified_raw_message_identity_survives_unsupported_controls() -> None:
     assert c.dialogue is None
     assert c.message.identity == sha256(raw[:-1]).hexdigest()
     assert c.json()["message"]["identity"] == sha256(raw[:-1]).hexdigest()
+
+
+def test_phase_readout_uses_verified_field_character_aliases_without_changing_off_arm() -> None:
+    m = field_printer()
+    raw = text("POK") + b"\x1b" + text("MON ") + b"\x2d\x00\x5c" + text("Box") + b"\x5d\xff"
+    m.put(0x02021FC4, raw)
+    c = read_world_context(m.read, (10, 2), (0, 9), SAVE, decode_text, message_phase=True)
+    assert c.dialogue == "POKéMON & (Box)"
+    assert read_world_context(m.read, (10, 2), (0, 9), SAVE, decode_text).dialogue is None
+    m.put(0x02021FC4, bytes(1000))
+    c = read_world_context(m.read, (10, 2), (0, 9), SAVE, decode_text, message_phase=True)
+    assert c.message.identity is None and c.dialogue is None

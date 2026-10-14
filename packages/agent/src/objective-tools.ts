@@ -79,11 +79,11 @@ export function objectiveGameTools(tracker: ObjectiveTracker, recorder: Pick<Run
   const perform=async(id:string,params:Parameters<CheckedPressTool["execute"]>[1],signal?:AbortSignal,update?:Parameters<CheckedPressTool["execute"]>[3],check?:BeforePressCheck)=>{
       signal?.throwIfAborted();
       if (!Value.Check(PressArgs, params)) throw new Error("Invalid press parameters");
-      const before = recorder.recordState(await readState(url, fetchFn, signal));
+      let before = recorder.recordState(await readState(url, fetchFn, signal));
 
       const submittedBefore = submissions.count;
       try {
-        const result = await press.executeChecked(id,params,fresh=>{tracker.checkPress(submittedButtons(params.buttons,fresh,switches),fresh ?? before);check?.(fresh);},signal,update);
+        const result = await press.executeChecked(id,params,fresh=>{if(fresh===undefined)throw new Error("Coherent pre-action state unavailable");before=recorder.recordState(fresh);tracker.checkPress(submittedButtons(params.buttons,fresh,switches),before);check?.(fresh);},signal,update);
         const after = recorder.recordState(resultState(result));
         const attempt = tracker.attempt(id, submissions.buttons, before, after);
         if (attempt.warning !== null) result.content.push({ type: "text", text: attempt.warning });

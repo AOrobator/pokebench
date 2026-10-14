@@ -241,6 +241,7 @@ export const StateBodySchema = Type.Object(
       message: Type.Optional(Type.Union([Type.Object({
         phase: Type.Enum(["dismiss_wait", "printing", "button_wait", "page_wait", "scroll_wait", "scrolling", "audio_wait", "printing_pause"]),
         cursor: Type.Integer({minimum:0, maximum:999}), ready:Type.Boolean(),
+        identity: Type.Optional(Type.Union([Type.String({pattern:"^[a-f0-9]{64}$"}),Type.Null()])),
       }, closed), Type.Null()])),
     }, closed), Type.Null()])),
     interaction_targets: Type.Optional(Type.Union([Type.Array(Type.Object({

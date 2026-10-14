@@ -2992,6 +2992,17 @@
                         },
                         "ready": {
                           "type": "boolean"
+                        },
+                        "identity": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "pattern": "^[a-f0-9]{64}$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
                         }
                       },
                       "additionalProperties": false

@@ -8,12 +8,13 @@ Sprite labels describe graphics, not inferred character names or objectives.
 import json
 import struct
 from collections.abc import Callable
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
+from hashlib import sha256
 from pathlib import Path
 
 from pokebench_env.game_screen import TASKS, ReadMemory
 from pokebench_env.live_map import MAP_HEADER, MAP_OFFSET, OBJECT_EVENTS
-from pokebench_env.ui_state import _window_drawn
+from pokebench_env.ui_state import MESSAGE_TEXT, _window_drawn
 
 FIELD_MESSAGE_MODE = 0x020375BC
 STRING_VAR4 = 0x02021FC4
@@ -71,9 +72,13 @@ class FieldMessage:
     phase: str
     cursor: int
     ready: bool
+    identity: str | None = None
 
     def json(self) -> dict[str, object]:
-        return asdict(self)
+        value = asdict(self)
+        if self.identity is None:
+            value.pop("identity")
+        return value
 
 
 def read_field_message(read: ReadMemory) -> FieldMessage | None:
@@ -264,10 +269,19 @@ def read_world_context(
         raw = read(STRING_VAR4, 1000)
         if 0xFF in raw:
             raw = raw[: raw.index(0xFF)]
+            if message is not None:
+                message = replace(message, identity=sha256(raw).hexdigest())
             # Unhandled extended controls/placeholders fail unavailable instead
             # of silently dropping formatting operands or inventing text.
             if not any(b in (0xFC, 0xFD) for b in raw):
-                decoded = ["\n" if b in (0xFA, 0xFB, 0xFE) else decode(bytes([b])) for b in raw]
+                decoded = [
+                    "\n"
+                    if b in (0xFA, 0xFB, 0xFE)
+                    else MESSAGE_TEXT.get(b, decode(bytes([b])))
+                    if message_phase
+                    else decode(bytes([b]))
+                    for b in raw
+                ]
                 if all(s != "?" or b == 0xAC for b, s in zip(raw, decoded, strict=True)):
                     dialogue = "".join(decoded)
     diagnostic = None

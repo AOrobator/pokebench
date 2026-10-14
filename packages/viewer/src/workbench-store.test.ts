@@ -88,10 +88,31 @@ describe("durable cohort queue and metadata boundaries", () => {
     expect(d.runs).toMatchObject([{ id: "cohort_01", cohort: null, excluded: null, status: "ended", reason: "model_error", splits: [{ name: "PLAYER_NAME_CONFIRMED" }] }]);
     expect(d.runs.filter(run => run.status === "ended" && run.excluded === null && run.problem === null)).toHaveLength(1);
   });
+  it.each([
+    [{ type: "launch", runId: "cohort_01", at: undefined }],
+    [{ type: "launch", runId: "cohort_01", extra: true }],
+    [{ type: "launch", runId: "cohort_01" }, { type: "outcome", runId: "cohort_01", exitCode: 0, reason: "milestone", eventsSha256: undefined }],
+    [{ type: "launch", runId: "cohort_01" }, { type: "outcome", runId: "cohort_01", exitCode: 1, reason: "infrastructure_failure", failureCode: "invented" }],
+    [{ type: "launch", runId: "cohort_02" }],
+    [{ type: "launch", runId: "cohort_01", at: "invalid" }],
+    [{ type: "launch", runId: "cohort_01", at: "2026-10-14T12:00:00Z" }, { type: "outcome", runId: "cohort_01", exitCode: 0, reason: "milestone", at: "2026-10-14T11:00:00Z" }],
+  ].map(rows => ({ rows })))("rejects production-invalid ledger rows and serial ordering without annotating runs", async ({ rows }) => {
+    const r = root(); write(r, "cohort_01", named()); cohort(r, rows);
+    const d = await workbenchSnapshot(r, () => Promise.resolve(false), { state: "idle" }, 42);
+    expect(d.queue).toEqual([]); expect(d.problems).not.toEqual([]);
+    expect(d.runs).toMatchObject([{ id: "cohort_01", cohort: null, excluded: null }]);
+  });
+  it("accepts a production-shaped completed prefix and only its final pending launch", async () => {
+    const r = root(); cohort(r, [{ type: "launch", runId: "cohort_01" }, { type: "outcome", runId: "cohort_01", exitCode: 0, reason: "milestone" }, { type: "launch", runId: "cohort_02" }]);
+    mkdirSync(join(r, ".naming-gameplay.lock")); writeFileSync(join(r, ".naming-gameplay.lock/owner.json"), JSON.stringify({ cohort: "cohort", pid: process.pid }));
+    const d = await workbenchSnapshot(r, () => Promise.resolve(false), { state: "idle" }, 42);
+    expect(d.problems).toEqual([]); expect(d.queue).toHaveLength(23);
+    expect(d.queue.slice(0, 2)).toMatchObject([{ id: "cohort_02", status: "launching" }, { id: "cohort_03", status: "queued" }]);
+  });
   it("does not admit a wrong digest, empty ledger, unrelated metadata or stale lease", async () => {
     const r = root(), c = cohort(r); expect((await workbenchSnapshot(r, () => Promise.resolve(false), { state: "idle" }, 42)).queue).toEqual([]);
-    writeFileSync(c.ledger, JSON.stringify({ type: "launch", runId: "cohort_01", manifestSha256: "wrong" }) + "\n"); expect((await workbenchSnapshot(r, () => Promise.resolve(false), { state: "idle" }, 42)).queue).toEqual([]);
-    writeFileSync(c.ledger, JSON.stringify({ type: "launch", runId: "cohort_01", manifestSha256: c.digest }) + "\n"); mkdirSync(join(r, ".naming-gameplay.lock")); writeFileSync(join(r, ".naming-gameplay.lock/owner.json"), JSON.stringify({ cohort: "cohort", pid: 2147483647 })); expect((await workbenchSnapshot(r, () => Promise.resolve(false), { state: "idle" }, 42)).queue[0]?.status).toBe("withheld");
+    writeFileSync(c.ledger, JSON.stringify({ type: "launch", runId: "cohort_01", at: "2026-10-14T12:00:00Z", manifestSha256: "wrong" }) + "\n"); expect((await workbenchSnapshot(r, () => Promise.resolve(false), { state: "idle" }, 42)).queue).toEqual([]);
+    writeFileSync(c.ledger, JSON.stringify({ type: "launch", runId: "cohort_01", at: "2026-10-14T12:00:00Z", manifestSha256: c.digest }) + "\n"); mkdirSync(join(r, ".naming-gameplay.lock")); writeFileSync(join(r, ".naming-gameplay.lock/owner.json"), JSON.stringify({ cohort: "cohort", pid: 2147483647 })); expect((await workbenchSnapshot(r, () => Promise.resolve(false), { state: "idle" }, 42)).queue[0]?.status).toBe("withheld");
     writeFileSync(c.path, '{"version":1}'); expect((await workbenchSnapshot(r, () => Promise.resolve(false), { state: "idle" }, 42)).queue).toEqual([]);
   });
   it("rejects oversized and symlinked receipts/logs without reading arbitrary files", async () => {

@@ -408,3 +408,18 @@ it("tracks submitted single inputs and blocks repeats even when the requested ba
  expect(tracker.attempts.map(a=>a.buttons)).toEqual([["A"],["A"]]);
  await expect(press.execute("safe3",{buttons:["A","A","A"]})).rejects.toThrow(/Reassess/);expect(server.actions()).toBe(2);
 });
+it.each([false,true])("uses the submitted fresh state for actual objective attempts (action fails=%s)",async(fail)=>{
+ const {tracker,recorder,events}=setup();const base=serving();let reads=0;let actions=0;
+ const fetchFn:typeof fetch=async(input,init)=>{
+  const url=typeof input==="string"?input:input instanceof URL?input.href:input.url;
+  if(url.endsWith("/pokebench/state")){reads++;return new Response(JSON.stringify({...game,position:{x:reads%2===1?7:8,y:9}}));}
+  if(url.endsWith("/action")){actions++;if(fail)return new Response(JSON.stringify({status:"failed",message:"test-owned failure"}));}
+  return base.fetchFn(input,init);
+ };
+ const recorded:GameStateSnapshot[]=[];recorder.buttonPress=(_id?:unknown,_buttons?:unknown,_timing?:unknown,before?:GameStateSnapshot)=>{if(before)recorded.push(before);};
+ const press=objectiveGameTools(tracker,recorder,"http://127.0.0.1:8812",fetchFn).find(t=>t.name==="press");if(press===undefined)throw new Error("Missing press");tracker.set({...request,completion:{kind:"state",field:"party_count",value:1}});
+ for(let i=0;i<3;i++){if(fail)await expect(press.execute(`fresh${String(i)}`,{buttons:["LEFT"]})).rejects.toThrow(/test-owned failure/);else await press.execute(`fresh${String(i)}`,{buttons:["LEFT"]});}
+ expect(actions).toBe(3);expect(recorded.map(s=>s.position?.x)).toEqual([8,8,8]);
+ expect(tracker.attempts.map(a=>[a.outcome,a.failure_count])).toEqual(Array.from({length:3},()=>[fail?"unavailable":"moved",0]));
+ for(const attempt of tracker.attempts)expect(events.find(e=>e.seq===attempt.before_seq)).toMatchObject({type:"state",position:{x:8,y:9}});
+});

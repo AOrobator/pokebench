@@ -285,3 +285,24 @@ def test_automatic_text_flags_withhold_manual_page_readiness() -> None:
     m = field_printer()
     m.put(0x03003014, b"\x04")
     assert read_field_message(m.read).ready is False
+
+
+def test_final_dismiss_rejects_wrong_native_and_inactive_context_operands() -> None:
+    from pokebench_env.world_context import read_field_message
+
+    for address, value in (
+        (0x03000E40 + 4, struct.pack("<I", 0x0809833D)),
+        (0x03000E40 + 1, b"\x01"),
+        (0x03000E38, b"\x01"),
+        (0x020201B0 + 0x1B, b"\x01"),
+        (0x020201B0 + 4, b"\x01"),
+        (0x020201B0, bytes(4)),
+        (0x02020004, b"\xff"),
+    ):
+        m = field_printer(0)
+        m.put(0x020201B0 + 0x1B, b"\x00")
+        m.put(0x03000E40 + 1, b"\x02")
+        m.put(0x03000E40 + 4, struct.pack("<I", 0x0809AC99))
+        assert read_field_message(m.read).ready is True
+        m.put(address, value)
+        assert read_field_message(m.read) is None, (hex(address), value)

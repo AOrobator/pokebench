@@ -39,8 +39,8 @@ export async function connectHumanAudio(deps:HumanPlayDeps,doc:Document,runId:st
   const button=doc.querySelector('[data-play="sound"]');if(button!==null)button.textContent='Sound unavailable';
  }
 }
-void connectHumanAudio(deps,document,id,url=>import(url));
+const audioReady=connectHumanAudio(deps,document,id,url=>import(url));
 let timer:ReturnType<typeof setInterval>|undefined;
 let disposed=false;
-void play.start().then(()=>{if(disposed)return;timer=setInterval(()=>{play.tick();},100);}).catch((error:unknown)=>{const el=document.querySelector('[data-play="problem"]');if(el!==null)el.textContent=error instanceof Error?error.message:'Cannot start human play';});
+void audioReady.then(()=>play.start()).then(()=>{if(disposed)return;timer=setInterval(()=>{play.tick();},100);}).catch((error:unknown)=>{const el=document.querySelector('[data-play="problem"]');if(el!==null)el.textContent=error instanceof Error?error.message:'Cannot start human play';});
 window.addEventListener('pagehide',()=>{disposed=true;clearInterval(timer);play.close();});

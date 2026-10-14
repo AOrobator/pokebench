@@ -74,7 +74,7 @@ keeps detection and warnings, drops termination, and the experiment measures the
   first observed (POKEBENCH_CHECKPOINT_AT, pause → POST /pokebench/checkpoint → unpause, file plus
   provenance JSON under runs/<id>/checkpoints/), and a v2 preset can start from that state with
   its SHA-1 verified before launch. Present-at-start milestones are already excluded.
-- [ ] M5 Operator review, then local merge into main (the operator approves the merge).
+- [x] M5 Operator review, then local merge into main (the operator approved 21:43 UTC: "no more review, merge it").
 - [ ] M6 Experiments, serial, Think Fast, from boot, 30 minutes, stop at `RIVAL_MET`.
   Each step compares the current stack with the stack plus one switch, 8 runs per arm
   (the operator, 2026-10-14) in a predeclared counterbalanced order. Test: one-sided Fisher exact on
@@ -242,3 +242,7 @@ COMMIT: `fix: close review round 3 findings` (b21a718)
   Conflicts in features/play-preset and their tests resolved by keeping main's switches and adding
   the four new ones after them (guidance 19, guard 7, switchboard rows 40). Agent 1015/1015,
   viewer 549/549, tsc/eslint clean.
+COMMIT: `merge: integrate main (experiment queue, elevation, walkable floor) into rival-house push` (beee4e6)
+- Registered the four switches as pending experiments (experiments/{game-evidence-priority,
+  dialogue-log,loop-guard-supervisor,instruction-ledger}.json), sharing the queue's incumbent with
+  the new switches explicit OFF, 8 per arm, think-fast lane, primary RIVAL_HOUSE_ENTERED.

@@ -198,3 +198,16 @@ COMMIT: `test: RED for milestone checkpoint capture and checkpoint starts` (1c34
   980/980, viewer 499/499, env 1850 passed, Python coverage 96.72/91.92/100, TS agent
   97.3/93.5/97.95, ruff/mypy/tsc/eslint clean. Worktree venv got the built mgba package copied from
   the main checkout (setup gap only).
+COMMIT: `feat: save a checkpoint at a native milestone and start play runs from it` (35d43c9)
+- Review r2 (diff 126efcc3…, artifacts runs/rival-push-review/r2/): all four M1 r1 blockers
+  resolved by every lane. Grok LGTM, Claude fallback B (sonnet) LGTM; Claude fallback A (opus) and
+  GPT (Codex) BLOCKING: (1) supervisor feature text gave the unit-test backoff (4/8/16/32) instead
+  of the live 6/12/24/48/96; (2) rooms keyed on the location label collide across maps; (3) no test
+  of the live wiring or of old v2 presets reading the new switches OFF. Claude CLI logged out and
+  Cursor Claude/GPT at usage limit again; standing fallbacks used.
+- r2 fixes: roomOf() = location + map id, used by the dialogue log, supervisor and ledger, with
+  collision tests; feature text gives the live backoff and "two or more tiles"; switch wiring moved
+  into play-wiring.ts (contextTools, loopSupervisor) and tested ON/OFF, tool order matches
+  playTools, both pinned contexts chain; old v2 presets read all four switches OFF; supervisor
+  leak regex broadened. Gates: agent 985/985, viewer 499/499, play-wiring.ts 100% funcs after the
+  callback test, agent all files 97.29/93.63/97.83, tsc/eslint clean.

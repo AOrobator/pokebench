@@ -1,4 +1,4 @@
-import {DialogueLog} from "./dialogue-log.js";
+import {DialogueLog,roomOf} from "./dialogue-log.js";
 import type {RunEvent} from "./events.js";
 import type {FeatureSet} from "./features.js";
 import type {LoopKind} from "./loop-detection.js";
@@ -39,7 +39,7 @@ export class SupervisorBriefing {
   if(label===null)return;
   this.remember(this.room(call.before??after),label,this.outcome(call.before,after));
  }
- private room(state:State):string {return state.location??"unknown room";}
+ private room(state:State):string {return roomOf(state);}
  private touch(room:string,tile:string):void {
   const tiles=this.touched.get(room)??new Set<string>();tiles.add(tile);this.touched.set(room,tiles);
  }

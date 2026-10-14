@@ -1,6 +1,6 @@
 import type {AgentMessage,AgentTool} from "@mariozechner/pi-agent-core";
 import {Type} from "typebox";
-import {DialogueLog,type DialogueEntry} from "./dialogue-log.js";
+import {DialogueLog,roomOf,type DialogueEntry} from "./dialogue-log.js";
 import type {BodyOf,RunEvent} from "./events.js";
 import type {FeatureSet} from "./features.js";
 import type {RunRecorder} from "./recorder.js";
@@ -32,7 +32,7 @@ export class InstructionLedger {
   const state=this.measured;this.measured=null;
   if(!state.started||state.screen!=="overworld")return;
   this.known.add(state.seq);
-  const name=state.location??"unknown room";
+  const name=roomOf(state);
   let room=this.rooms.find(r=>r.name===name);
   if(room===undefined){room={name,firstTurn:state.turn,seq:state.seq,heard:null};this.rooms.push(room);}
   const last=this.log.entries().at(-1);

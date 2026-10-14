@@ -85,7 +85,7 @@ it("briefs where the agent is, what it was told, what it tried and what it has n
  delivered(b,10,{position:{x:4,y:2},facing:"up"},"p2");
  const text=b.text("cycle",12);
  expect(text).toContain("SUPERVISOR");
- expect(text).toContain("HOUSE 1F at 4,2 facing up");
+ expect(text).toContain("HOUSE 1F (map 1/0) at 4,2 facing up");
  expect(text).toContain("Your neighbor has a kid your age.");
  expect(text).toContain("navigate_to 4,2");
  expect(text).toMatch(/A facing TV at 4,1 ×2/);
@@ -129,12 +129,12 @@ it("labels odd calls and outcomes truthfully",()=>{
  b.observe(ev({type:"tool_call",id:"menu",name:"press",args:{buttons:["START"]}},21));delivered(b,22,{screen:"menu"},"menu");
  for(let i=0;i<20;i++)b.observe(ev({type:"tool_call",id:`x${String(i)}`,name:"press",args:{buttons:["B"]}},30+i));
  const text=b.text("ineffective",40);
- expect(text).toContain("press B in HOUSE 1F → result unverified");
+ expect(text).toContain("press B in HOUSE 1F (map 1/0) → result unverified");
  expect(text).toContain("navigate_to (invalid target)");
- expect(text).toContain("A facing tile at 3,2 ×2 in HOUSE 1F → dialogue changed");
- expect(text).toContain("press A in HOUSE 1F → no change");
- expect(text).toContain("press UP,UP in HOUSE 1F → entered TOWN");
- expect(text).toContain("Where you are: TOWN at 3,3 facing up");
+ expect(text).toContain("A facing tile at 3,2 ×2 in HOUSE 1F (map 1/0) → dialogue changed");
+ expect(text).toContain("press A in HOUSE 1F (map 1/0) → no change");
+ expect(text).toContain("press UP,UP in HOUSE 1F (map 1/0) → entered TOWN (map 0/9)");
+ expect(text).toContain("Where you are: TOWN (map 0/9) at 3,3 facing up");
  const unnamed=new SupervisorBriefing({...ALL_ON,"named-interactions-v1":false});
  unnamed.observe(ev({type:"tool_call",id:"a",name:"press",args:{buttons:["A"]}},0));delivered(unnamed,1,{position:{x:4,y:2}},"x");
  unnamed.observe(ev({type:"tool_call",id:"b",name:"press",args:{buttons:["A"]}},3));delivered(unnamed,4,{position:{x:9,y:9}},"b");
@@ -145,4 +145,13 @@ it("labels odd calls and outcomes truthfully",()=>{
  const quiet=new SupervisorBriefing({...ALL_ON,"active-field-message-buffer-v1":false});delivered(quiet,1);
  expect(quiet.text("cycle",2)).toContain("dialogue text is off");
  expect(new SupervisorBriefing({...ALL_ON,"live-player-position-v1":false}).text("cycle",0)).toContain("none recorded");
+});
+
+it("keeps tried tiles separate for maps that share a location label",()=>{
+ const b=new SupervisorBriefing(ALL_ON);
+ b.observe(ev({type:"tool_call",id:"n",name:"navigate_to",args:{x:5,y:1,map_id:[1,0]}},0));delivered(b,1,{},"n");
+ delivered(b,3,{map_id:[1,1]});
+ const text=b.text("cycle",4);
+ expect(text.slice(text.indexOf("not tried"))).toContain("DOOR at 5,1");
+ expect(text).not.toMatch(/\b(rival|birch|professor|may|brendan|neighbou?r|next door|lab|littleroot|oldale|petalburg|rustboro|route|starter|gym|badge)\b/i);
 });

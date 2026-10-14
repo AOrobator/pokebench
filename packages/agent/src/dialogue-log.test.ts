@@ -104,6 +104,13 @@ it("falls back truthfully when location, position, facing or names are missing",
  deliver(log,7,{facing:"sideways",world_context:{objects:[],triggers:[],dialogue:"Four."}});
  deliver(log,9,{interaction_targets:undefined,world_context:{objects:[],triggers:[],dialogue:"Five."}});
  deliver(log,11,{interaction_targets:[{...MOM,name:null}],world_context:{objects:[],triggers:[],dialogue:"Six."}});
- expect(log.entries().map(e=>[e.room,e.position,e.facing])).toEqual([["unknown room","3,4","MOM at 4,4"],["HOUSE 1F",null,null],["HOUSE 1F","3,4",null],["HOUSE 1F","3,4",null],["HOUSE 1F","3,4",null],["HOUSE 1F","3,4",null]]);
+ expect(log.entries().map(e=>[e.room,e.position,e.facing])).toEqual([["unknown room (map 1/0)","3,4","MOM at 4,4"],["HOUSE 1F (map 1/0)",null,null],["HOUSE 1F (map 1/0)","3,4",null],["HOUSE 1F (map 1/0)","3,4",null],["HOUSE 1F (map 1/0)","3,4",null],["HOUSE 1F (map 1/0)","3,4",null]]);
  expect(await recall(log,{contains:"  ",room:" "})).toContain("6 of 6 entries match");
+});
+
+it("treats two maps with the same or a missing location label as different rooms",()=>{
+ const log=new DialogueLog(ALL_ON);
+ deliver(log,1,{location:null,map_id:[2,1]});deliver(log,3,{location:null,map_id:[2,2]});
+ deliver(log,5,{map_id:[1,0]});deliver(log,7,{map_id:[1,1]});
+ expect(log.entries().map(e=>e.room)).toEqual(["unknown room (map 2/1)","unknown room (map 2/2)","HOUSE 1F (map 1/0)","HOUSE 1F (map 1/1)"]);
 });

@@ -1,7 +1,4 @@
-import {navigationMemory} from "./navigation-memory.js";
-import {dialogueLog} from "./dialogue-log.js";
-import {SupervisorBriefing} from "./loop-supervisor.js";
-import {instructionLedger} from "./instruction-ledger.js";
+import {contextTools,loopSupervisor} from "./play-wiring.js";
 import {CheckpointCapture,checkpointTarget} from "./checkpoint-capture.js";
 // Live entrypoint for real, recorded runs: pi-agent-core on the local stack
 // gateway drives the observe / press tools against an isolated game server
@@ -282,9 +279,7 @@ async function playAgent(): Promise<void> {
       if(preset!==null&&recorder.elapsedMs()>=limits.maxWallMs){governor.abort("budget");return "budget";}
       const capture = captureAt === null ? null : new CheckpointCapture(captureAt, { serverUrl: gameServerUrl, dir: join(RUNS_ROOT, runId, "checkpoints"), fetch, write: (path, data) => { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, data); } });
       if (capture !== null) recorder.subscribe(event => { capture.observe(event); });
-      const briefing = features["loop-guard-supervisor-v1"] ? new SupervisorBriefing(features) : null;
-      if (briefing !== null) recorder.subscribe(event => { briefing.observe(event); });
-      const loopDetector = attachLoopGuard(recorder, governor, undefined, loopMode, features["interaction-loop-detection-v1"], briefing === null ? undefined : (kind, calls) => briefing.text(kind, calls));
+      const loopDetector = attachLoopGuard(recorder, governor, undefined, loopMode, features["interaction-loop-detection-v1"], loopSupervisor(features, recorder));
       if(target!==null){
         const stop=new NativeTargetStop(runId,target,proof=>{
           if(governor.stopReason!==null)return;
@@ -307,19 +302,15 @@ async function playAgent(): Promise<void> {
       const objectives = features["objective-tracking-v1"] ? objectiveHarness(goal, recorder, gameServerUrl, fetch, { ...objectiveSwitches(features), ...toolSwitches(features) }) : null;
       const baseTools=objectives?.tools ?? [observeTool(gameServerUrl, fetch, toolSwitches(features)), pressTool(gameServerUrl, pressHooks(recorder), fetch, undefined, toolSwitches(features))];
       const tools=withNavigation(baseTools,features,new StateWatcher(gameServerUrl),signal=>runControl.gate(signal));
-      const memory=navigationMemory(features,recorder,objectives?.transformContext??recorder.transformContext);
-      const ledger=instructionLedger(features,recorder,memory?.transformContext??objectives?.transformContext??recorder.transformContext);
-      if(ledger!==null)tools.push(ledger.tool);
-      if(memory!==null)tools.push(memory.tool);
-      const dialogue=dialogueLog(features,recorder);
-      if(dialogue!==null)tools.push(dialogue);
+      const context=contextTools(features,recorder,objectives?.transformContext??recorder.transformContext);
+      tools.push(...context.tools);
       const loop = piLoop({
         systemPrompt,
         loopDetector,
         tools,
         base: { ...gatewayLoopConfig(model, thinking, apiKey), maxTokens },
         governor,
-        transformContext: ledger?.transformContext ?? memory?.transformContext ?? objectives?.transformContext ?? recorder.transformContext,
+        transformContext: context.transformContext,
         emit: recorder.emit,
         signal: controller.signal,
         gate: (signal) => runControl.gate(signal),

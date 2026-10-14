@@ -20,10 +20,10 @@ it("pins received instructions, rooms visited and what was heard there",()=>{
  const text=l.text();
  expect(text).toContain("INSTRUCTION LEDGER");
  expect(text).toContain("not a walkthrough");
- expect(text).toMatch(/turn 5 · HOUSE 1F · facing MOM at 4,4: "Go meet the family that moved in\."/);
+ expect(text).toMatch(/turn 5 · HOUSE 1F \(map 1\/0\) · facing MOM at 4,4: "Go meet the family that moved in\."/);
  expect(text.indexOf("Go meet the family")).toBeLessThan(text.indexOf("Welcome home"));
- expect(text).toMatch(/OTHER BUILDING \(first turn 9\): last heard "The professor is out right now\."/);
- expect(text).toMatch(/HOUSE 1F \(first turn 2\)/);
+ expect(text).toMatch(/OTHER BUILDING \(map 1\/4\) \(first turn 9\): last heard "The professor is out right now\."/);
+ expect(text).toMatch(/HOUSE 1F \(map 1\/0\) \(first turn 2\)/);
  expect(text).toContain("Contradictions you recorded: none");
 });
 
@@ -84,9 +84,9 @@ it("skips menus and unmatched results, names unknown rooms and cites contradicti
  deliver(l,3,{screen:"menu"});
  deliver(l,5,{location:null});
  deliver(l,7,{location:null,...said("Hi.")});
- expect(l.text()).toMatch(/unknown room \(first turn 1\): last heard "Hi\."/);
+ expect(l.text()).toMatch(/unknown room \(map 1\/0\) \(first turn 1\): last heard "Hi\."/);
  const quiet=new InstructionLedger(ALL_ON);deliver(quiet,1);
- expect(quiet.text()).toContain("HOUSE 1F (first turn 1): nothing heard");
+ expect(quiet.text()).toContain("HOUSE 1F (map 1/0) (first turn 1): nothing heard");
  await l.tool().execute("c",{expected:"a",observed:"b",evidence:[5]});
  expect(l.evidence()).toEqual([5,7]);
 });

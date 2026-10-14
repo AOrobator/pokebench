@@ -109,3 +109,4 @@ pret/pokeemerald 731ad5b:
   "Read explainer: WALKABLE FLOOR" (href /explainers/walkable-floor-v1.html) -> opened the
   explainer (title "Walkable Floor"). Viewer stopped.
 - Waiting for operator approval to merge into main.
+- 2026-10-14 operator approved ("yes", 20:36Z). Landed: `merge: walkable-floor-v1 …` (f3b23ef), tree identical to the reviewed branch head c537caf; agent 954/954 on main. Not archived (needs operator approval).

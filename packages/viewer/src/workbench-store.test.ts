@@ -80,6 +80,14 @@ describe("durable cohort queue and metadata boundaries", () => {
   ].map(rows => ({ rows })))("quarantines malformed or unordered ledger rows instead of scheduling them", async ({ rows }) => {
     const r = root(); cohort(r, rows); const d = await workbenchSnapshot(r, () => Promise.resolve(false), { state: "idle" }, 42); expect(d.queue).toEqual([]); expect(d.problems).not.toEqual([]);
   });
+  it("rolls back all cohort annotations when a later ledger row is invalid", async () => {
+    const r = root(), log = named(); log.add(5000, { type: "run_end", turn: 1, reason: "model_error", furthest_milestone: "PLAYER_NAME_CONFIRMED", turns: 1, wall_ms: 5000, tokens: { input: 500, output: 100 }, frames: { saved: 0, bytes: 0 } }); write(r, "cohort_01", log);
+    cohort(r, [{ type: "launch", runId: "cohort_01" }, { type: "outcome", runId: "cohort_01", exitCode: 1, reason: "model_error", failureCode: "launcher_error" }, { type: "launch", runId: "cohort_01" }]);
+    const d = await workbenchSnapshot(r, () => Promise.resolve(false), { state: "idle" }, 42);
+    expect(d.queue).toEqual([]); expect(d.problems).not.toEqual([]);
+    expect(d.runs).toMatchObject([{ id: "cohort_01", cohort: null, excluded: null, status: "ended", reason: "model_error", splits: [{ name: "PLAYER_NAME_CONFIRMED" }] }]);
+    expect(d.runs.filter(run => run.status === "ended" && run.excluded === null && run.problem === null)).toHaveLength(1);
+  });
   it("does not admit a wrong digest, empty ledger, unrelated metadata or stale lease", async () => {
     const r = root(), c = cohort(r); expect((await workbenchSnapshot(r, () => Promise.resolve(false), { state: "idle" }, 42)).queue).toEqual([]);
     writeFileSync(c.ledger, JSON.stringify({ type: "launch", runId: "cohort_01", manifestSha256: "wrong" }) + "\n"); expect((await workbenchSnapshot(r, () => Promise.resolve(false), { state: "idle" }, 42)).queue).toEqual([]);

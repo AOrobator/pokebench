@@ -6,7 +6,7 @@ Run: `2026-10-13T23-50-13_human_1848`. Finish applied at seq100261; terminal seq
 
 The operator has played Emerald several times and already knew the route, Gym location, Rock matchup and useful Water/Grass moves. Fire starter selection is personal preference; a model may choose any starter. He catches species he does not already own to build a varied team. Marill with Water Gun became the main Gym counter, and Shroomish was trained as Grass backup. Switch training means leading with the weaker Pokémon and switching to a stronger teammate for shared battle experience; it does not imply holding the Exp. Share item.
 
-The first Gym loss was diagnosed as insufficient strength, rather than the wrong Pokémon or ineffective move choice. The training target was parity with or above Roxanne’s Pokémon. He healed at low HP to avoid fainting and money loss, and avoided grass during return trips to avoid interruptions. He favors damaging moves, occasionally uses Stun Spore early, and reports avoiding Growl/Howl. These are reported intentions and prior knowledge, not facts inferred from the recording alone.
+The first Gym loss was diagnosed as insufficient strength, rather than the wrong Pokémon or ineffective move choice. The training target was parity with or above Roxanne’s Pokémon. He healed at low HP to avoid fainting and money loss, and avoided grass during return trips to avoid interruptions. He prioritizes damage or disrupting the opponent: Stun Spore can prevent enemy actions and create attack opportunities. He reports avoiding Growl/Howl. He also replants the same berry variety after harvesting to replenish the resource. These are reported intentions and prior knowledge, not facts inferred from the recording alone.
 
 ## What the recording supports
 

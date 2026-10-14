@@ -73,3 +73,14 @@ it("the production factory walks the whole-map route when that treatment is on",
  const full=withNavigation(base,{...features,"full-map-navigation-v1":true},{read:()=>Promise.reject(new Error("unused"))}).find(t=>t.name==="navigate_to");
  expect(local?.description).toContain("Maximum 8");expect(full?.description).toContain("whole current map");
 });
+
+it("the production factory passes the elevation switch to the planner",async()=>{
+ const stairs:GameStateSnapshot={...IN_GAME,screen:"overworld",started:true,map_id:[0,9],position:{x:0,y:0},facing:"right",field_controls_locked:false,navigation_grid:{elevation:3,tiles:[tile(0,0),{x:1,y:0,collision:0,behavior:0,elevation:0},{x:2,y:0,collision:0,behavior:0,elevation:4}],objects:[],warps:[]}};
+ const png=Buffer.alloc(33);Buffer.from([137,80,78,71,13,10,26,10]).copy(png);png.write("IHDR",12);png.writeUInt32BE(240,16);png.writeUInt32BE(160,20);
+ const fetchFn:typeof fetch=()=>Promise.resolve(new Response(JSON.stringify({state:stairs,state_text:"stairs",screenshot_base64:png.toString("base64")})));
+ const base=[observeTool("http://127.0.0.1",fetchFn),pressTool("http://127.0.0.1",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},fetchFn,{now:()=>0,sleep:()=>Promise.resolve()})];
+ const features={...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"bounded-navigation-v1":true,"elevation-transitions-v1":false};
+ const nav=withNavigation(base,features,{read:()=>Promise.resolve(stairs)}).find(t=>t.name==="navigate_to");if(!nav)throw new Error("Missing navigation");
+ const result=await nav.execute("nav",{x:2,y:0,map_id:[0,9]});
+ expect(result.details).toMatchObject({navigation:{status:"no supported local path; choose a reachable local waypoint",commands:0}});
+});

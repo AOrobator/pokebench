@@ -63,3 +63,11 @@ it("defaults absent historical one-way tiles OFF so frozen presets keep edge wal
 it("rejects navigation memory when the RAM umbrella would suppress all ordinary observations",()=>{
  expect(()=>parsePlayPreset({...v2,features:{...v2.features,"ram-state-v1":false}})).toThrow(/navigation-evidence-memory-v1 needs ram-state-v1/);
 });
+
+it("keeps the game elevation rule for presets written before the switch existed",()=>{
+ const {"elevation-transitions-v1":omitted,...old}=v2.features;
+ expect(omitted).toBe(true);
+ expect(presetFeatures(parsePlayPreset({...v2,features:old}))["elevation-transitions-v1"]).toBe(true);
+ expect(presetFeatures(parsePlayPreset({...v2,features:{...v2.features,"elevation-transitions-v1":false}}))["elevation-transitions-v1"]).toBe(false);
+ expect(presetFeatures(parsePlayPreset(preset))["elevation-transitions-v1"]).toBe(true);
+});

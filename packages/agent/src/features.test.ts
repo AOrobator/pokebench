@@ -77,3 +77,11 @@ it("records one-way tiles as a server-side map treatment that needs the live map
  expect(playHarnessFeatures(ALL_ON,null)).toContain("one-way-tiles-v1");
  expect(serverFeatureEnv(off("one-way-tiles-v1")).POKEBENCH_FEATURES_OFF).toBe("one-way-tiles-v1");
 });
+
+it("registers the elevation transitions switch as a planner-only guidance feature",()=>{
+ expect(featureInfo("elevation-transitions-v1")).toMatchObject({group:"guidance",needs:"bounded-navigation-v1",switchable:true});
+ expect(featureInfo("elevation-transitions-v1").description).toMatch(/stairs/);
+ expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe("elevation-transitions-v1");
+ expect(serverFeatureEnv(off("elevation-transitions-v1")).POKEBENCH_FEATURES_OFF).toBe("");
+ expect(dependencyProblems(off("bounded-navigation-v1","full-map-navigation-v1"))).toEqual(["elevation-transitions-v1 needs bounded-navigation-v1"]);
+});

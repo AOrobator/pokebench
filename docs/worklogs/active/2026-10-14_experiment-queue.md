@@ -47,7 +47,7 @@ Shared incumbent: the A* preset from `navigation-topology-astar-think-fast-n4` (
 2. `grass-cost-navigation-v1` on checkout `/private/tmp/pokebench-grass-cost` (branch `claude/grass-cost`, 72fe3bc). Same incumbent; both arms on that branch's build.
 3. `ledge-hops-v1` A/B on main: incumbent with ledges off vs on.
 4. `one-way-tiles-v1` A/B on main: incumbent with one-way tiles off vs on.
-5. Elevation transitions: **blocked**. It is an always-on planner rule (`navigation.ts`), not a switch, so it has no off arm on one build. It needs an `elevation-transitions-v1` switch (default ON) before it can be queued; see Open decisions.
+5. `elevation-transitions-v1` A/B on main once M0 lands (operator said add the switch).
 
 ## Invariants
 - INV-Q1: An entry's two arms differ in exactly one switch. Test: schema rejects definitions whose derived candidate differs elsewhere or breaks dependencies.
@@ -63,6 +63,12 @@ Shared incumbent: the A* preset from `navigation-topology-astar-think-fast-n4` (
 Argv-only spawns (`node`, `git`), checkout paths treated as untrusted (resolved, must be an existing git worktree of this repo), loopback-only viewer route behind the existing Host/Origin checks, no secrets in definitions, ROM still only via `POKEBENCH_ROM` symlink.
 
 ## Milestones
+**M0 — Elevation switch + feature-switch skill** (operator 2026-10-14: "we need a skill so that you always include switches for changes, and add the elevation switch. go")
+- [x] RED: planner legacy rule on local/whole-map/ledge landings, tool and factory wiring, registry entry, preset default ON when omitted. 6 fail / 82 pass.
+- [ ] GREEN: `elevation-transitions-v1` (guidance, needs bounded-navigation-v1, default ON, planner-only, no prompt change). OFF restores the pre-44390a4 rule (0 resets to the walker's layer, any other mismatch blocks, 15 is not special).
+- [ ] `.claude/skills/feature-switch/SKILL.md`: every behavior change ships behind a registered switch with OFF reproducing the previous behavior, plus an experiment-queue entry; CLAUDE.md points at it.
+- [ ] Gates, review.
+
 **M1 — Definitions and derived status**
 - [ ] Tests: schema, candidate derivation, INV-Q1, approval hash and stale detection, status derivation from ledger, seed files parse.
 - [ ] COMMIT RED / implement `experiments.ts` + `experiments/*.json` seeds / gates / COMMIT GREEN / review.
@@ -91,7 +97,9 @@ Argv-only spawns (`node`, `git`), checkout paths treated as untrusted (resolved,
 - Via the coordinator, from the rival-house thread: "milestone reaching isn't the only measurable effect. there's also total turns and overall run efficiency". Grading and cards report reach, median time, median turns (a miss counts the full turn cap) and reach per 1k turns.
 
 ## Open decisions
-- Elevation A/B: add an `elevation-transitions-v1` switch (default ON, OFF restores the pre-44390a4 rule) as a separate small worklog, then queue entry 5. Default: leave blocked until the operator says.
+- Elevation A/B: resolved, operator said add the switch (M0).
+- Design pick for the viewer and stats views: pending (round 1).
+- Operator said "go" (2026-10-14 20:07): worklog approved; M3 waits on the design pick.
 
 ## Closing the Loop
 Gates per milestone: `just test`, `just lint`, `just build`, `just coverage` (≥90 lines/branches/functions both stacks).

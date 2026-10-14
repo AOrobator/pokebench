@@ -588,3 +588,15 @@ it("links the new rival-push feature cards to their explainers in Harness Config
  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),registry);
  for(const id of ["game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1"])expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
 });
+
+describe("instruction ledger delivery",()=>{
+ it("retains exact payload for raw inspection, shows delivery and documents note_contradiction",()=>{
+  const log=bare();const event=log.add(100,{type:"ledger_context",turn:1,text:"INSTRUCTION LEDGER <quoted> #1",evidence:[1,3]});
+  const result=view(log);expect(actionRow(event,result)).toContain("Instruction ledger delivered");expect(actionRow(event,result)).toContain("2 references");expect(actionRow(event,result)).toContain("&lt;quoted&gt;");
+  expect(inspector(event)).toContain("INSTRUCTION LEDGER");
+  const tools=new Log();tools.add(0,{...START,tools:["observe","note_contradiction"]});
+  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(tools));
+  expect(doc.querySelector('[data-tool="note_contradiction"]')?.textContent).toContain("1–4 event numbers");
+  expect(FEATURE_EXPLAINERS["instruction-ledger-v1"]).toBe("instruction-ledger-v1.html");
+ });
+});

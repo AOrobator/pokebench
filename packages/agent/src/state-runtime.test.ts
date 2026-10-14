@@ -2,10 +2,10 @@ import {expect,it} from "vitest";
 import {ALL_ON} from "./features.js";
 import {parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {stateOnlyProblems,stateOnlyPrompt} from "./state-runtime.js";
-const features={...ALL_ON,"navigation-evidence-memory-v1":false,"game-evidence-priority-v1":false,"dialogue-log-v1":false,"state-only-decisions-v1":true,"objective-tracking-v1":false,"repeat-attempt-guard-v1":false,"native-objective-completion-v1":false,"deterministic-loop-guard-v1":false,"loop-guard-supervisor-v1":false,"bounded-navigation-v1":false,"full-map-navigation-v1":false,"grass-cost-navigation-v1":false,"press-result-v1":false};
+const features={...ALL_ON,"navigation-evidence-memory-v1":false,"game-evidence-priority-v1":false,"dialogue-log-v1":false,"instruction-ledger-v1":false,"state-only-decisions-v1":true,"objective-tracking-v1":false,"repeat-attempt-guard-v1":false,"native-objective-completion-v1":false,"deterministic-loop-guard-v1":false,"loop-guard-supervisor-v1":false,"bounded-navigation-v1":false,"full-map-navigation-v1":false,"grass-cost-navigation-v1":false,"press-result-v1":false};
 it("permits state-only mode only when no unsupported historical intervention is declared",()=>{
  expect(stateOnlyProblems(features)).toEqual([]);
- for(const flag of ["objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","game-evidence-priority-v1","dialogue-log-v1"] as const)expect(stateOnlyProblems({...features,[flag]:true})).toEqual([`state-only-decisions-v1 requires ${flag} OFF`]);
+ for(const flag of ["objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1"] as const)expect(stateOnlyProblems({...features,[flag]:true})).toEqual([`state-only-decisions-v1 requires ${flag} OFF`]);
 });
 it("describes automatic snapshots and one action without an observe-tool instruction",()=>{
  const prompt=stateOnlyPrompt(features,null);expect(prompt).toContain("fresh snapshot");expect(prompt).toContain("No conversation history");expect(prompt).toContain("wait");expect(prompt).not.toMatch(/call observe|observe:|observe again/i);

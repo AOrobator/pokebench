@@ -43,6 +43,7 @@ export const SWITCHABLE_FEATURES = [
   "game-evidence-priority-v1",
   "dialogue-log-v1",
   "loop-guard-supervisor-v1",
+  "instruction-ledger-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -150,6 +151,8 @@ export const FEATURES: readonly FeatureInfo[] = [
     "Records every dialogue page the model was actually shown, with turn, location, position and the character faced when the readout names one, and adds recall_dialogue to search it by words, location or recency. Replies are bounded; repeats after other dialogue are kept. Off: no log and no tool."),
   on("loop-guard-supervisor-v1", "guard", "LOOP SUPERVISOR", "deterministic-loop-guard-v1",
     "Where the loop guard would end the run as stuck, it posts a SUPERVISOR briefing instead and the run continues: current room and position, the last dialogue shown, recent attempts with outcomes, and listed targets here not yet tried. Further briefings need twice as many looping calls (4, 8, 16, then every 32). Names no route or story goal. Off: the guard ends the run as stuck."),
+  on("instruction-ledger-v1", "guidance", "INSTRUCTION LEDGER", "active-field-message-buffer-v1",
+    "Pins a short ledger before each decision: the last three dialogue pages the model was shown (with the faced character when named), the rooms it visited with the last line heard in each, and contradictions it recorded with note_contradiction, each citing event numbers it was shown. Bounded to 4,000 characters and recorded as ledger_context. Names no goal or route. Off: no ledger and no tool."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",
@@ -225,6 +228,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("game-evidence-priority-v1"),
     ...when("dialogue-log-v1"),
     ...when("loop-guard-supervisor-v1"),
+    ...when("instruction-ledger-v1"),
   ];
 }
 
@@ -235,5 +239,5 @@ export function featuresOf(harnessFeatures: readonly string[]): FeatureSet {
 
 export function stateOnlyProblems(features:FeatureSet):string[]{
  if(!features["state-only-decisions-v1"])return [];
- return (["objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
+ return (["objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
 }

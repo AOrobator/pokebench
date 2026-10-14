@@ -1,6 +1,7 @@
 import {navigationMemory} from "./navigation-memory.js";
 import {dialogueLog} from "./dialogue-log.js";
 import {SupervisorBriefing} from "./loop-supervisor.js";
+import {instructionLedger} from "./instruction-ledger.js";
 // Live entrypoint for real, recorded runs: pi-agent-core on the local stack
 // gateway drives the observe / press tools against an isolated game server
 // (INV-7) on the real ROM, and every step lands in runs/<id>/events.jsonl.
@@ -302,6 +303,8 @@ async function playAgent(): Promise<void> {
       const baseTools=objectives?.tools ?? [observeTool(gameServerUrl, fetch, toolSwitches(features)), pressTool(gameServerUrl, pressHooks(recorder), fetch, undefined, toolSwitches(features))];
       const tools=withNavigation(baseTools,features,new StateWatcher(gameServerUrl),signal=>runControl.gate(signal));
       const memory=navigationMemory(features,recorder,objectives?.transformContext??recorder.transformContext);
+      const ledger=instructionLedger(features,recorder,memory?.transformContext??objectives?.transformContext??recorder.transformContext);
+      if(ledger!==null)tools.push(ledger.tool);
       if(memory!==null)tools.push(memory.tool);
       const dialogue=dialogueLog(features,recorder);
       if(dialogue!==null)tools.push(dialogue);
@@ -311,7 +314,7 @@ async function playAgent(): Promise<void> {
         tools,
         base: { ...gatewayLoopConfig(model, thinking, apiKey), maxTokens },
         governor,
-        transformContext: memory?.transformContext ?? objectives?.transformContext ?? recorder.transformContext,
+        transformContext: ledger?.transformContext ?? memory?.transformContext ?? objectives?.transformContext ?? recorder.transformContext,
         emit: recorder.emit,
         signal: controller.signal,
         gate: (signal) => runControl.gate(signal),

@@ -98,7 +98,10 @@ keeps detection and warnings, drops termination, and the experiment measures the
   and replay (agent-observability skill).
 - Coverage stays at or above 90% for lines, branches and functions.
 - Every switch gets an explainer linked from its feature card (feature-explainer skill).
-- No checkpoint starts: The operator has not asked for one, so every run starts from boot.
+- Checkpoint starts (the operator asked, 2026-10-14 20:49/21:01 UTC): steps 0–4 start from a recorded
+  save state taken right after CLOCK_SET (so Mom's rival instruction happens inside every run),
+  15-minute budget, stop at RIVAL_MET, present-at-start milestones excluded. The confirmation batch
+  (Exp 5) starts from boot with the 30-minute budget and is the stop decision.
 
 ## Session log
 
@@ -165,3 +168,14 @@ COMMIT: `fix(agent): close M1 review findings for game-evidence-priority-v1` (7e
   the DialogueLog capture and does not modify navigation-evidence-memory-v1.
 - M3 RED: instruction-ledger.test.ts (instructions, rooms, contradictions with evidence, bounds,
   context delivery + ledger_context event, registry/prompt/tool/state-only).
+COMMIT: `test(agent): RED for instruction-ledger-v1 and note_contradiction` (15f0d64)
+- Answered the operator's checkpoint question (21:07 UTC): checkpoint right after CLOCK_SET, 15-minute
+  budget, confirmation from boot. Constraint updated above.
+- M3 GREEN: InstructionLedger (reuses DialogueLog capture) pins last 3 pages, last 8 rooms with
+  first turn and last line heard, newest 8 model contradictions (1–4 known event numbers), header
+  says it is not a walkthrough, bounded to 4000 chars. New ledger_context event (schema
+  regenerated), recorder method, tail, viewer action row, inspector, timeline marker, Harness
+  Config tool reference for note_contradiction, explainer docs/explainers/instruction-ledger-v1.html.
+  Composes after navigation memory in live.ts; rejected in state-only mode. Gates: agent 975/975,
+  viewer 499/499, instruction-ledger.ts 100/97.95/100/100, agent all files 97.17/93.36/97.79,
+  viewer 95.67/90.54/95.34, tsc/eslint clean.

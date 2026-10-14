@@ -77,3 +77,16 @@ it("registers the switch with its dependency, prompt line, tool and state-only e
  expect(playSystemPrompt(on,null)).toContain("INSTRUCTION LEDGER");expect(playSystemPrompt(off,null)).not.toContain("INSTRUCTION LEDGER");
  expect(stateOnlyProblems({...ALL_ON,"state-only-decisions-v1":true})).toContain("state-only-decisions-v1 requires instruction-ledger-v1 OFF");
 });
+
+it("skips menus and unmatched results, names unknown rooms and cites contradiction evidence",async()=>{
+ const l=new InstructionLedger(ALL_ON);
+ l.observe(st(1));l.observe(ev({type:"tool_result",id:"x",name:"press",is_error:false,duration_ms:1,text:"ok",frames:[],state_seq:99},2));
+ deliver(l,3,{screen:"menu"});
+ deliver(l,5,{location:null});
+ deliver(l,7,{location:null,...said("Hi.")});
+ expect(l.text()).toMatch(/unknown room \(first turn 1\): last heard "Hi\."/);
+ const quiet=new InstructionLedger(ALL_ON);deliver(quiet,1);
+ expect(quiet.text()).toContain("HOUSE 1F (first turn 1): nothing heard");
+ await l.tool().execute("c",{expected:"a",observed:"b",evidence:[5]});
+ expect(l.evidence()).toEqual([5,7]);
+});

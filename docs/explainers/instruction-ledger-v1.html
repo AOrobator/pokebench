@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Instruction Ledger</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:740px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navb{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.arr.g{stroke:var(--game)} .arr.p{stroke:var(--prior);stroke-dasharray:5 4}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tag{display:inline-block;font:500 .72rem var(--mono);border-radius:99px;padding:1px 8px;border:1px solid var(--rule);color:var(--soft)}
+</style>
+</head>
+<body>
+<main>
+<div>
+<div class="eyebrow">Harness switch · guidance · <code>instruction-ledger-v1</code> · needs <code>active-field-message-buffer-v1</code></div>
+<h1>Instruction ledger</h1>
+</div>
+<p class="lede">A short block pinned before every decision: the latest dialogue the model was shown, the rooms it visited with what it heard there, and contradictions it recorded itself. Off by default.</p>
+
+<section>
+<h2>Why</h2>
+<p>In 11 of 24 recent runs that left home, the model walked into Birch's lab and kept treating it as the right place. In one run it called the object at 10,8 "Birch" while the readout labelled it SCIENTIST_1 and the dialogue said the professor would rather be outside than at a desk. The evidence was on screen; it just wasn't kept. The ledger keeps the last instructions in view and gives the model one place to write down "I expected X, the game showed Y" so it stops repeating the same wrong assumption.</p>
+</section>
+
+<section>
+<h2>What it pins</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 260" role="img" aria-label="Ledger sections and their sources">
+ <rect x="10" y="20" width="200" height="60" rx="10" class="box"/><text x="24" y="44" class="t">Delivered states</text><text x="24" y="62" class="s">tool results the model saw</text>
+ <rect x="10" y="110" width="200" height="60" rx="10" class="box"/><text x="24" y="134" class="t">Dialogue log capture</text><text x="24" y="152" class="s">same rules as dialogue-log-v1</text>
+ <rect x="10" y="200" width="200" height="54" rx="10" class="prior"/><text x="24" y="224" class="t">note_contradiction</text><text x="24" y="242" class="s">written by the model</text>
+ <rect x="300" y="14" width="390" height="240" rx="12" class="game hot"/>
+ <text x="316" y="40" class="t">INSTRUCTION LEDGER (≤ 4,000 chars)</text>
+ <text x="316" y="72">Received instructions: last 3 pages, newest first,</text>
+ <text x="316" y="90" class="s">with turn, room and the faced character when named</text>
+ <text x="316" y="128">Rooms visited: last 8, newest first,</text>
+ <text x="316" y="146" class="s">first turn there and the last line heard there</text>
+ <text x="316" y="184">Contradictions you recorded: newest 8,</text>
+ <text x="316" y="202" class="s">expected · observed · evidence #seq</text>
+ <text x="316" y="236" class="s">Header: quotes the game; not a walkthrough</text>
+ <path d="M210 50 C250 50 260 135 298 135" class="arr" marker-end="url(#m)"/>
+ <path d="M210 140 C250 140 260 80 298 80" class="arr" marker-end="url(#m)"/>
+ <path d="M210 227 C250 227 260 192 298 192" class="arr" marker-end="url(#m)"/>
+ <defs><marker id="m" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" style="fill:var(--soft)"/></marker></defs>
+</svg>
+</div>
+<figcaption><b>Every line has a source the model already saw.</b> The harness adds no goal, route or story step. Each delivered ledger is recorded as a <code>ledger_context</code> event with its text and the event numbers it cites, so the timeline, Activity History and replay show exactly what the model received.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>Recording a contradiction</h2>
+<table>
+<tr><th>Field</th><th>Rule</th></tr>
+<tr><td>expected</td><td>1–200 characters: what the model assumed</td></tr>
+<tr><td>observed</td><td>1–300 characters: what the game showed</td></tr>
+<tr><td>evidence</td><td>1–4 event numbers of delivered states or dialogue. Unknown numbers are rejected with a message saying to cite something it was shown.</td></tr>
+</table>
+<p>Only the newest 8 contradictions are kept. A contradiction is the model's own claim tied to evidence; the harness does not judge whether it is right.</p>
+</section>
+
+<section>
+<h2>How it relates to the other memory switches</h2>
+<table>
+<tr><th>Switch</th><th>Shape</th></tr>
+<tr><td><code>navigation-evidence-memory-v1</code></td><td>Pinned: attempted targets and outcomes, rooms, last dialogue, an optional destination hypothesis</td></tr>
+<tr><td><code>dialogue-log-v1</code></td><td>Not pinned: the full dialogue history, searched with recall_dialogue</td></tr>
+<tr><td><code>instruction-ledger-v1</code></td><td>Pinned: last instructions, rooms with what was heard there, model-recorded contradictions</td></tr>
+</table>
+<p>Each is a separate switch so experiment arms can differ by exactly one flag. When both pinned switches are on, the ledger is appended after the navigation memory.</p>
+</section>
+
+<section>
+<h2>Status</h2>
+<table>
+<tr><th>Item</th><th>State</th></tr>
+<tr><td>Branch</td><td><code>claude/rival-house-push</code></td></tr>
+<tr><td>Default</td><td>OFF in v1 flag presets, v2 presets that omit it and the viewer next-run draft. Rejected in state-only mode.</td></tr>
+<tr><td>Measured runs</td><td><span class="tag">none yet</span> One step of the rival-house push</td></tr>
+</table>
+</section>
+</main>
+</body>
+</html>

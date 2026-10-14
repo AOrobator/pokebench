@@ -6,6 +6,8 @@ export interface RecordingSplit { name: string; elapsedMs: number; segmentMs: nu
 export interface RecordingMeasurement {
   controller: "agent" | "human"; features: string[]; logSha256: string; pausedMs: number;
   rawSplits: { name: string; elapsedMs: number; evidence: number[] }[];
+  receipts?: { path: string; sha256: string }[];
+  artifact?: { id: string; receipt: string; sha256: string };
 }
 type Milestone = Extract<RunEvent, { type: "milestone" }>;
 type State = Extract<RunEvent, { type: "state"; started: boolean }>;

@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { parseEvent } from "@pokebench/agent/events";
 import { qualifiedNativeMilestone } from "../../agent/src/milestones.js";
 import { readNativeRecording } from "./frontier-recording.js";
-import { Log, START } from "../test-support/events.js";
+import { Log, START, assistant, state } from "../test-support/events.js";
 function write(raw: string): string { const path = join(mkdtempSync(join(tmpdir(), "native-frontier-")), "events.jsonl"); writeFileSync(path, raw); return path; }
 describe("bounded native recording reduction", () => {
   it("uses actual recorded native states and preserves active/raw timing without retaining replay history", () => {
@@ -28,4 +28,17 @@ describe("bounded native recording reduction", () => {
     expect(() => readNativeRecording(write(JSON.stringify(log.events[0]) + "\n"), "wrong", qualifiedNativeMilestone)).toThrow("identity");
     expect(() => readNativeRecording(write(""), "empty", qualifiedNativeMilestone, 0)).toThrow("positive");
   });
+});
+it("retains token/turn attribution and multi-state heal evidence through compact reduction", () => {
+  const log = new Log(); log.add(0, START);
+  log.add(100, assistant());
+  const counters = (used: number) => ({ pokemon_captures: 0, evolved_pokemon: 0, used_pokecenter: used, saved_game: 0 });
+  const baseline = log.add(200, state({ game_stats: counters(0), field_controls_locked: false }));
+  const accepted = log.add(300, state({ game_stats: counters(1), field_controls_locked: true }));
+  const finished = log.add(400, state({ game_stats: counters(1), field_controls_locked: false, party: [{ species: "TORCHIC", level: 5, hp: 20, max_hp: 20 }] }));
+  log.add(500, { type: "milestone", turn: 1, name: "FIRST_POKECENTER_HEAL", kind: "story", origin: "observed", server_timestamp: 1, evidence: [baseline.seq, accepted.seq, finished.seq] });
+  const raw = log.events.map(e => JSON.stringify(e)).join("\n") + "\n", result = readNativeRecording(write(raw), baseline.run, qualifiedNativeMilestone);
+  expect(result.splits).toMatchObject([{ name: "FIRST_POKECENTER_HEAL", elapsedMs: 500, turn: 1, inputTokens: 500, outputTokens: 100 }]);
+  expect(result.measurement.rawSplits[0]?.evidence).toEqual([2, 3, 4]);
+  expect(() => readNativeRecording(write(raw), baseline.run, qualifiedNativeMilestone, 2)).toThrow("state bound");
 });

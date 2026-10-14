@@ -6,8 +6,9 @@ import { createHash } from "node:crypto";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { comparePatchResults, type PatchArm, type PatchResult } from "@pokebench/agent/patch-results";
-import { experimentArms, parseLedger, type Arm, type Experiment, type LedgerEntry } from "@pokebench/agent/experiments";
+import { ApprovalSchema, definitionHash, experimentArms, parseLedger, type Arm, type Experiment, type LedgerEntry } from "@pokebench/agent/experiments";
 import { parseEvent, type RunEvent } from "@pokebench/agent/events";
+import { Value } from "typebox/value";
 import type { PlayPresetV2 } from "@pokebench/agent/play-preset";
 import { experimentDir, loadExperiments, queueSnapshot, runnerPath, type ExperimentView, type QueuePaths, type RunSource } from "./experiment-store.js";
 import { LEASE } from "./next-run.js";
@@ -42,6 +43,16 @@ function ledgerEntries(paths: QueuePaths, id: string): LedgerEntry[] {
   const path = ledgerPath(paths, id);
   return existsSync(path) ? parseLedger(readFileSync(path, "utf8")).entries : [];
 }
+// INV-Q2, re-checked before every trial: the approval on disk still matches the definition.
+function approved(paths: QueuePaths, experiment: Experiment): boolean {
+  const path = join(experimentDir(paths.runsRoot, experiment.id), "approval.json");
+  try {
+    const value: unknown = JSON.parse(readFileSync(path, "utf8"));
+    return Value.Check(ApprovalSchema, value) && value.experiment === experiment.id && value.sha256 === definitionHash(experiment);
+  } catch {
+    return false;
+  }
+}
 const ledgerRuns = (paths: QueuePaths, id: string): string[] => ledgerEntries(paths, id).flatMap((e) => (e.type === "launch" ? [e.run] : []));
 
 function presetFile(paths: QueuePaths, experiment: Experiment, arm: Arm): string {
@@ -74,7 +85,12 @@ function takeLease(runsRoot: string, owner: Record<string, unknown>): string {
   } catch {
     throw new RunnerError("the gameplay lease is held (another run, cohort or queue is active)");
   }
-  writeFileSync(join(lease, "owner.json"), JSON.stringify(owner), { flag: "wx" });
+  try {
+    writeFileSync(join(lease, "owner.json"), JSON.stringify(owner), { flag: "wx" });
+  } catch (error) {
+    rmSync(lease, { recursive: true, force: true });
+    throw error;
+  }
   return lease;
 }
 
@@ -102,6 +118,7 @@ export async function runQueue({ paths, source, host, dryRun = false, once = fal
   try {
     for (const trial of todo) {
       if (stopRequested()) return { ran, stopped: "stop requested" };
+      if (!approved(paths, experiment)) return { ran, stopped: "held: the approval no longer matches the definition" };
       const recheck = await host.verifySource(experiment);
       if (recheck !== null) return { ran, stopped: `held: ${recheck}` };
       const used = ledgerRuns(paths, experiment.id).reduce((sum, run) => sum + (source.trial(run)?.wallMs ?? 0), 0);
@@ -119,11 +136,13 @@ export async function runQueue({ paths, source, host, dryRun = false, once = fal
         append(paths, experiment.id, { type: "launcher_error", trial: trial.index, arm: trial.arm, run: runId, at: host.now().toISOString(), message: error instanceof Error ? error.message : String(error) });
         return { ran, stopped: `held: trial ${String(trial.index + 1)} failed to launch` };
       }
-      if (code !== 0) {
+      const reason = endReason(paths.runsRoot, runId);
+      // A run that recorded its own end (crash, model_error, ...) is a result, even when play exits nonzero (PB2).
+      if (code !== 0 && reason === "incomplete") {
         append(paths, experiment.id, { type: "launcher_error", trial: trial.index, arm: trial.arm, run: runId, at: host.now().toISOString(), message: `play exited with ${String(code)}` });
         return { ran, stopped: `held: trial ${String(trial.index + 1)} exited with ${String(code)}` };
       }
-      append(paths, experiment.id, { type: "outcome", trial: trial.index, arm: trial.arm, run: runId, at: host.now().toISOString(), reason: endReason(paths.runsRoot, runId) });
+      append(paths, experiment.id, { type: "outcome", trial: trial.index, arm: trial.arm, run: runId, at: host.now().toISOString(), reason });
       ran += 1;
       host.log(`${experiment.id}: trial ${String(trial.index + 1)} (${trial.arm}) finished as ${runId}`);
       if (once) return { ran, stopped: "one trial run (--once)" };

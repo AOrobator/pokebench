@@ -53,9 +53,9 @@ Shared incumbent: the A* preset from `navigation-topology-astar-think-fast-n4` (
 - INV-Q1: An entry's two arms differ in exactly one switch. Test: schema rejects definitions whose derived candidate differs elsewhere or breaks dependencies.
 - INV-Q2: No trial launches for an entry without an approval whose SHA-256 matches the current definition. Test: runner with a fake host refuses unapproved and stale entries; delete the check once and watch it go red.
 - INV-Q3: One measured run at a time, machine-wide. Test: runner waits while the lease exists or a run is live; releases the lease in finally.
-- INV-Q4: Every trial has its own run id, run dir and server port (INV-7). Test: launched argv/env per trial.
+- INV-Q4: Every trial has its own run id and run dir (INV-7); trials share port 8074 one at a time under the lease. Test: launched argv/env per trial.
 - INV-Q5: The ledger is append-only and the runner resumes from it without repeating a completed trial. Test: crash after trial k, rerun, trials k+1.. only.
-- INV-Q6: Source pinning: refuse to run when the checkout HEAD, tree or dist hash does not match. Test: fake git host.
+- INV-Q6: Source pinning: refuse to run when main's HEAD is not the pinned commit, the tracked tree is dirty, or packages/agent/dist/live.js is older than the commit. Test: temp git repo.
 - INV-Q7: No automatic promotion. Result carries a recommendation only; no code path edits presets or defaults.
 - INV-Q8: The viewer queue page is read-only. Test: no POST route for experiments.
 
@@ -143,3 +143,5 @@ Pending.
 - GPT lane: Codex CLI's configured default gpt-6.1-sol is unsupported on this ChatGPT account (exit 1); Cursor gpt-5.6-sol-xhigh hit the account's usage limit (exit 1). Lane blocked; retrying with an explicit Codex model.
 - RED for B1/B2: started + no approval derives `stale`; runner re-checks the approval before every trial; a crash with a recorded run_end is an outcome and the queue continues.
 - Wording fixes accepted: INV-Q6 checks dist mtime against the commit time (not a dist hash); INV-Q4 trials share port 8074 serially under the lease, each with its own run id and run dir.
+- GREEN for B1/B2: `deriveStatus` returns `stale` for a started experiment with no valid approval; `runQueue` re-checks the approval hash before every trial and holds if it no longer matches; a trial whose run recorded `run_end` is an `outcome` even when play exits nonzero (only a run with no recorded end is a launcher error). Lease directory is removed if its owner file cannot be written. Guard check: removed the per-trial approval check; the mid-run revocation test went red; restored.
+- Gates: agent 960 (97.23/93.47/98.01), viewer 516 (95.34/90.38/94.64), Python 1847; lint clean.

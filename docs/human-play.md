@@ -59,3 +59,5 @@ New human runs save screenshots on a500ms schedule (target two per second), decl
 ## Rustboro Gym trainers
 
 New recordings include separate splits for defeating Josh, Tommy and Marc, using their native trainer flags. The game also marks skipped trainers as defeated after Roxanne is beaten, so only flags confirmed before Gym completion establish these individual wins. Previously recorded wins remain in the timeline; an unobserved post-clear trainer status is unknown. Older runs lack these fields and show these splits as not recorded. This adds no automatic gameplay or save/RAM changes.
+
+The updated trainer-milestone preview is on port8801. For the next recording, open `http://127.0.0.1:8801/play#run=<current-run-id>` and use Start over after you finish the current run. The existing port8799 recording remains uninterrupted and retains its original state fields. The updated viewer can inspect historical runs, but cannot recover trainer flags those runs never stored.

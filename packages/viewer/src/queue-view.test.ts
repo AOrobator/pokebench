@@ -13,7 +13,7 @@ function view(id: string, over: Partial<ExperimentView> = {}): ExperimentView {
     queuePosition: 1, source: { checkout: "main", commit: "a3c343bdbe245dbe4d22dd2fe413a1bed66fa36d" }, trialsPerArm: 8, modelLane: "think-fast", budgetMs: 17 * 1_800_000, usedMs: 3_600_000,
     state: "running", reason: "trial 3 of 16 running", approved: true,
     readiness: { ready: true, basis: "recent", milestone: "PLAYER_NAME_CONFIRMED", window: 4, minReached: 3, reached: 3, considered: ["a", "b", "c", "d"] },
-    recorded: { verdict: "READY", evidence: "3 of 4" },
+    recorded: { verdict: "READY", evidence: "3 of 4" }, result: null,
     trials: [trial(0, "done", true), trial(1, "done", false), trial(2, "running"), trial(3, "waiting"), trial(4, "failed"), trial(5, "interrupted")],
     arms: { incumbent: arm(1, 1, 2_460_000, 600), candidate: arm(1, 0, null, 600) }, notes: null, ...over,
   };
@@ -21,7 +21,7 @@ function view(id: string, over: Partial<ExperimentView> = {}): ExperimentView {
 const SNAPSHOT: QueueSnapshot = {
   queue: [view("full"), view("elev", { queuePosition: 2, state: "draft", reason: "queued; needs the operator's approval", approved: false, trials: [trial(0, "waiting")], arms: { incumbent: arm(0, 0, null, null), candidate: arm(0, 0, null, null) } })],
   pending: [view("ledge", { queuePosition: null, activationMilestone: "ROUTE_101", state: "pending", reason: "not ready: 0 of 4", recorded: null, readiness: { ready: false, basis: "recent", milestone: "ROUTE_101", window: 4, minReached: 3, reached: 0, considered: [] } })],
-  closed: [view("old", { queuePosition: 9, state: "done", reason: "all 16 trials finished" })],
+  closed: [view("old", { queuePosition: 9, state: "done", reason: "all 16 trials finished", result: { verdict: "improve", recommendation: "confirm", eligible: true, problems: [] } })],
   runner: { experiment: "full", trial: 2 },
   problems: ["bad.json: Invalid experiment"],
 };
@@ -35,6 +35,13 @@ describe("experiment queue view", () => {
     expect(() => queueSnapshotOf({ ...SNAPSHOT, queue: [{ ...view("x"), trials: [{ index: "0" }] }] })).toThrow("malformed /api/experiments queue");
     expect(() => queueSnapshotOf({ ...SNAPSHOT, queue: [{ ...view("x"), arms: { incumbent: {}, candidate: {} } }] })).toThrow("malformed /api/experiments queue");
     expect(() => queueSnapshotOf({ ...SNAPSHOT, problems: [1] })).toThrow("malformed /api/experiments problems");
+    const { considered: _gone, ...noConsidered } = view("x").readiness;
+    expect(() => queueSnapshotOf({ ...SNAPSHOT, queue: [{ ...view("x"), readiness: noConsidered }] })).toThrow("malformed /api/experiments queue");
+    expect(() => queueSnapshotOf({ ...SNAPSHOT, queue: [{ ...view("x"), readiness: { ...view("x").readiness, basis: "other" } }] })).toThrow("malformed /api/experiments queue");
+    expect(() => queueSnapshotOf({ ...SNAPSHOT, queue: [{ ...view("x"), recorded: "READY" }] })).toThrow("malformed /api/experiments queue");
+    expect(() => queueSnapshotOf({ ...SNAPSHOT, queue: [{ ...view("x"), notes: 3 }] })).toThrow("malformed /api/experiments queue");
+    expect(() => queueSnapshotOf({ ...SNAPSHOT, queue: [{ ...view("x"), result: { verdict: 1 } }] })).toThrow("malformed /api/experiments queue");
+    expect(() => queueSnapshotOf({ ...SNAPSHOT, runner: { experiment: 1 } })).toThrow("malformed /api/experiments runner");
   });
 
   it("counts states and shows chips only for states that exist", () => {
@@ -72,6 +79,18 @@ describe("experiment queue view", () => {
     expect(flipped.queue).toContain("A · INCUMBENT · SWITCH ON");
     expect(flipped.queue).toContain("comparable think-fast runs");
     expect(flipped.queue).toContain('style="width:0%"');
+  });
+
+  it("shows a finished experiment's verdict and recommendation, and filters blocked entries", () => {
+    const done = renderQueue(SNAPSHOT, "closed", new Set(["old"]));
+    expect(done.queue).toContain("<dt>verdict</dt><dd>IMPROVE → CONFIRM</dd>");
+    const ineligible = renderQueue({ ...SNAPSHOT, closed: [view("bad", { state: "done", result: { verdict: "inconclusive", recommendation: "retain", eligible: false, problems: ["prompt differs"] } })] }, "closed", new Set(["bad"]));
+    expect(ineligible.queue).toContain("INCONCLUSIVE → RETAIN (not eligible: prompt differs)");
+    const blocked = { ...SNAPSHOT, queue: [...SNAPSHOT.queue, view("stuck", { state: "blocked", reason: "needs a fix" })] };
+    expect(renderQueue(blocked, "all", new Set()).chips).toContain('data-filter="blocked"');
+    const only = renderQueue(blocked, "blocked", new Set());
+    expect(only.queue).toContain("EXPERIMENT STUCK");
+    expect(only.queue).not.toContain("EXPERIMENT FULL");
   });
 
   it("filters by status, including pending and done", () => {

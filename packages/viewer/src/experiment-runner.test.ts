@@ -33,6 +33,17 @@ function writeRun(paths: QueuePaths, runId: string, features: typeof QUEUE_FEATU
   mkdirSync(join(paths.runsRoot, runId), { recursive: true });
   writeFileSync(join(paths.runsRoot, runId, "events.jsonl"), log.events.map((e) => JSON.stringify({ ...e, run: runId })).join("\n") + "\n");
 }
+// Every trial of an 8-per-arm experiment finished, written in one pass (no orchestration).
+function seedFinished(paths: QueuePaths, metrics: Map<string, TrialMetrics>): void {
+  const order = "ABBAABBAABBAABBA";
+  const rows = [...order].flatMap((a, i) => {
+    const run = `done-${String(i)}`, arm = a === "A" ? "incumbent" : "candidate";
+    writeRun(paths, run, a === "A" ? QUEUE_FEATURES : { ...QUEUE_FEATURES, "full-map-navigation-v1": true });
+    metrics.set(run, { reached: [], milestoneMs: {}, turns: 9, wallMs: 60_000 });
+    return [JSON.stringify({ type: "launch", trial: i, arm, run, at: "t" }), JSON.stringify({ type: "outcome", trial: i, arm, run, at: "t", reason: "budget" })];
+  });
+  writeFileSync(join(experimentDir(paths.runsRoot, "full-map"), "trials.jsonl"), `${rows.join("\n")}\n`);
+}
 let n = 0;
 function host(paths: QueuePaths, metrics: Map<string, TrialMetrics>, over: Partial<RunnerHost> = {}): Fake {
   const launches: TrialLaunch[] = [], lines: string[] = [];
@@ -233,11 +244,8 @@ describe("experiment runner", () => {
 
   it("keeps an experiment open while grading fails, and grades it without a launch, lease or source check", async () => {
     const { paths, metrics, source } = setup();
-    expect((await runQueue({ paths, source, host: host(paths, metrics) })).ran).toBe(8);
-    const first = ledger(paths).find((e) => e.type === "outcome");
-    if (first === undefined) throw new Error("no outcome");
-    const events = join(paths.runsRoot, first.run, "events.jsonl"), body = readFileSync(events, "utf8");
-    rmSync(join(experimentDir(paths.runsRoot, "full-map"), "result.json"));
+    seedFinished(paths, metrics);
+    const events = join(paths.runsRoot, "done-0", "events.jsonl"), body = readFileSync(events, "utf8");
     rmSync(events);
     const strict = host(paths, metrics, { verifySource: () => Promise.resolve("main moved"), discover: () => Promise.reject(new Error("no gateway")) });
     expect((await runQueue({ paths, source, host: strict })).stopped).toMatch(/^held: grading failed: /);
@@ -252,8 +260,7 @@ describe("experiment runner", () => {
 
   it("refuses to grade finished trials under a definition nobody approved", async () => {
     const { paths, metrics, source } = setup();
-    expect((await runQueue({ paths, source, host: host(paths, metrics) })).ran).toBe(8);
-    rmSync(join(experimentDir(paths.runsRoot, "full-map"), "result.json"));
+    seedFinished(paths, metrics);
     writeDefinition(paths.experimentsDir, definition("full-map", { criteria: { completionTolerance: 1, speedMarginPercent: 10 } }));
     expect((await runQueue({ paths, source, host: host(paths, metrics) })).stopped).toBe("nothing to run: full-map is stale");
   });

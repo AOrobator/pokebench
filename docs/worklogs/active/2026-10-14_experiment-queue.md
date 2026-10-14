@@ -176,3 +176,9 @@ Pending.
 - Deviation: M3's tests (queue-view.test.ts, server-experiments.test.ts, scanRun) were written right after the code in this commit, not as a separate RED commit.
 - Browser check on a read-only preview (127.0.0.1:8797, real runs/, scratch ledger dir): PokéNav ★ EXPERIMENT QUEUE shows 3 draft slots and 3 pending cards; clicking a slot opens its battle card; PENDING and DRAFT chips filter (0/3 and 3/0 slots/cards); Runs & Comparisons shows both sections.
 - Gates: agent 961, viewer 532 (95.09/90.41/94.39), lint clean.
+
+## Review r5 (frozen head 857fe8b; packet /tmp/eq-review-r5)
+- Claude CLI: LGTM. Grok: LGTM (hardening: fuller payload check, `<div>` inside `<button>`, comment wording).
+- Codex: BLOCKING: (1) the grading-failure and changed-definition tests ran 16 fake trials to reach a finished state; (2) DONE cards show no verdict or recommendation; (3) BLOCKED has no chip; (4) the browser payload check skips fields the renderer uses (readiness considered/basis/milestone/minReached, recorded, notes, runner); (5) Runs & Comparisons does not assign experiment trials to an experiment cohort; (6) the browser check had no retained screenshots or keyboard/poll/failure coverage.
+- Operator (2026-10-14 21:18): "if the review passes u can merge".
+- RED: verdict/recommendation in store and card; BLOCKED chip; full payload validation; experiment ledgers assign `experiment:<id>` cohorts and list unfinished trials in the workbench; the two runner tests seed finished trials in one pass.

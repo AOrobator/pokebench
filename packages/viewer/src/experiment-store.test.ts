@@ -59,7 +59,7 @@ describe("experiment queue store", () => {
     writeDefinition(paths.experimentsDir, definition("dropped", { queuePosition: undefined, discarded: "no longer needed" }));
     writeDefinition(paths.experimentsDir, definition("finished", { queuePosition: 9 }));
     mkdirSync(experimentDir(paths.runsRoot, "finished"), { recursive: true });
-    writeFileSync(join(experimentDir(paths.runsRoot, "finished"), "result.json"), JSON.stringify({ experiment: "finished", gradedAt: "t", result: { verdict: "inconclusive" }, problem: null }));
+    writeFileSync(join(experimentDir(paths.runsRoot, "finished"), "result.json"), JSON.stringify({ experiment: "finished", gradedAt: "t", result: { verdict: "inconclusive", recommendation: "retain", eligible: false, problems: ["prompt differs"] }, problem: null }));
     writeFileSync(join(experimentDir(paths.runsRoot, "finished"), "trials.jsonl"), Array.from({ length: 8 }, (_, i) => [JSON.stringify({ type: "launch", trial: i, arm: i % 4 === 0 || i % 4 === 3 ? "incumbent" : "candidate", run: `f${String(i)}`, at: "t" }), JSON.stringify({ type: "outcome", trial: i, arm: i % 4 === 0 || i % 4 === 3 ? "incumbent" : "candidate", run: `f${String(i)}`, at: "t", reason: "budget" })].join("\n")).join("\n"));
     writeDefinition(paths.experimentsDir, { version: 9 }, "broken.json");
     writeFileSync(paths.readinessPath, READINESS);
@@ -81,6 +81,8 @@ describe("experiment queue store", () => {
     expect(snapshot.queue.map((v) => v.approved)).toEqual([true, false]);
     expect(snapshot.pending.map((v) => [v.id, v.state, v.recorded?.verdict])).toEqual([["counter", "pending", "BLOCKED: models do not yet reach Oldale"]]);
     expect(snapshot.closed.map((v) => [v.id, v.state])).toEqual([["dropped", "discarded"], ["finished", "done"]]);
+    expect(snapshot.closed[1]?.result).toEqual({ verdict: "inconclusive", recommendation: "retain", eligible: false, problems: ["prompt differs"] });
+    expect(snapshot.queue[0]?.result).toBeNull();
     expect(snapshot.runner).toEqual({ experiment: "full-map", trial: 3 });
     expect(snapshot.problems.some((p) => p.startsWith("broken.json: Invalid experiment"))).toBe(true);
     expect(snapshot.problems).toContain("wrong.json: file name must be misnamed.json");

@@ -93,12 +93,14 @@ table{border-collapse:collapse;width:100%;font-size:15px}th,td{text-align:left;p
 <tr><td><code>just experiment-run [--dry-run] [--once]</code></td><td>you</td><td>Runs approved entries in queue order. <code>--dry-run</code> only prints the plan.</td></tr>
 </table></figure>
 
-<h2>7. Status</h2>
+<h2>7. Where to see it</h2>
+<p>PokéNav has an <b>EXPERIMENT QUEUE</b> page, and Runs &amp; Comparisons has <b>EXPERIMENT QUEUE</b> and <b>PENDING EXPERIMENTS</b> sections. Each experiment is a party slot: its trial pips in run order, an HP bar per arm for how many trials reached the rival house, and median turns. Click a slot to open its battle card with reach, median time, median turns and reach per 1,000 turns for each arm. The chips filter by status. Both pages are read only.</p>
+<h2>8. Status</h2>
 <figure><ul>
 <li>Branch <code>claude/experiment-queue</code>, merged with main through a3c343b (grass cost, counter talk). Not merged to main.</li>
-<li>Built: definitions and readiness (<code>packages/agent/src/experiments.ts</code>), store, runner and CLI (<code>packages/viewer/src/experiment-*.ts</code>), just recipes, the experiment-queue and feature-switch skills, the elevation switch.</li>
-<li>Tests: agent 960, viewer 521, Python 1847 pass; coverage agent 97.2 / 93.5 / 98.0, viewer 95.4 / 90.4 / 94.7 (floor 90). Lint clean.</li>
-<li>Review: rounds 1 and 2 found five real runner bugs (resume without approval, crashes dropped, operator stops graded, missing run_end accepted, readiness ignoring the model lane). All fixed with tests; round 3 is running.</li>
-<li>Not done: the PokéNav and stats-page views wait for your design pick (round 2, designs 11 to 20). No measured runs have been started. Native qualification before trials and audited prompt-change contracts are deferred, so experiments whose switch changes the system prompt will grade as ineligible until that contract exists.</li>
+<li>Built: definitions and readiness (<code>packages/agent/src/experiments.ts</code>); store, runner and CLI (<code>packages/viewer/src/experiment-*.ts</code>); the queue views (<code>queue-view.ts</code>, <code>GET /api/experiments</code>); just recipes; the experiment-queue and feature-switch skills; the elevation switch. Eight trials per arm by default.</li>
+<li>Tests: agent 961, viewer 532, Python 1847 pass. Viewer coverage 95.1 / 90.4 / 94.4, agent 97.3 / 93.5 / 98.0 (floor 90).</li>
+<li>Review: four rounds found and fixed real runner bugs: resuming without approval, dropped crashes, graded operator stops, missing run_end accepted, readiness ignoring the model lane, the runner stopping after one experiment, and finished experiments closing ungraded. Round 5 covers the views.</li>
+<li>Not done: no measured runs have been started. Native qualification before trials and audited prompt-change contracts are deferred, so experiments whose switch changes the system prompt will grade as ineligible until that contract exists.</li>
 </ul></figure>
 </main></html>

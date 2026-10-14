@@ -147,4 +147,19 @@ describe("durable cohort queue and metadata boundaries", () => {
     l.add(5000, { type: "operator_control", turn: 1, request: 1, action: "pause", status: "applied", emulator_frozen: true }); write(r, "paused", l);
     const d = await workbenchSnapshot(r, () => Promise.resolve(true), { state: "failed", runId: "failed", error: "launch failed" }, 2000000000000); expect(d.runs[0]?.status).toBe("paused"); expect(d.runs[0]?.config?.features.find(f => f.id === "deterministic-loop-guard-v1")?.on).toBe(false); expect(d.queue[0]?.status).toBe("failed");
   });
+  it("assigns experiment-queue trials to their experiment and lists unfinished ones", async () => {
+    const r = root();
+    write(r, "2026-10-14T20-00-00_think-fast_aaaa", named()); write(r, "2026-10-14T20-30-00_think-fast_bbbb", named());
+    mkdirSync(join(r, "experiments", "full-map"), { recursive: true });
+    writeFileSync(join(r, "experiments", "full-map", "trials.jsonl"), [
+      { type: "launch", trial: 0, arm: "incumbent", run: "2026-10-14T20-00-00_think-fast_aaaa", at: "t", model: "think-fast" }, { type: "outcome", trial: 0, arm: "incumbent", run: "2026-10-14T20-00-00_think-fast_aaaa", at: "t", reason: "budget" },
+      { type: "launch", trial: 1, arm: "candidate", run: "2026-10-14T20-30-00_think-fast_bbbb", at: "t", model: "think-fast" }, { type: "launcher_error", trial: 1, arm: "candidate", run: "2026-10-14T20-30-00_think-fast_bbbb", at: "t", message: "play exited with 1" },
+      { type: "launch", trial: 1, arm: "candidate", run: "2026-10-14T21-00-00_think-fast_cccc", at: "t", model: "think-fast" },
+    ].map(e => JSON.stringify(e)).join("\n") + "\n");
+    mkdirSync(join(r, "experiments", "empty"), { recursive: true });
+    const d = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(false), { state: "idle" }, 2000000000000));
+    expect(d.runs.find(x => x.id === "2026-10-14T20-00-00_think-fast_aaaa")?.cohort).toBe("experiment:full-map");
+    expect(d.runs.find(x => x.id === "2026-10-14T20-30-00_think-fast_bbbb")?.excluded).toContain("play exited with 1");
+    expect(d.queue.filter(q => q.cohort === "experiment:full-map")).toEqual([{ id: "2026-10-14T21-00-00_think-fast_cccc", cohort: "experiment:full-map", model: "think-fast", arm: "candidate", status: "withheld", reason: "Experiment queue trial with no recorded outcome; the runner is not on it" }]);
+  });
 });

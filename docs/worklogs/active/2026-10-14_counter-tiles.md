@@ -64,3 +64,4 @@ limit) BLOCKING:
 
 - Explainer commit: `docs: counter-talk-v1 explainer with Pokémon Center diagrams` (16e8198)
 - Merged main 8911d0e (one-way tiles `one-way-tiles-v1` landed): every conflict was two sibling switches side by side; both kept. Counts now 12 guidance switches, 20 server features, 32 viewer switch rows. 918 agent + 476 viewer tests, 1829 Python; gates green.
+- Merged main 5195c88 (elevation transitions) cleanly. 921 agent + 478 viewer tests, 1829 Python; gates green; vendor OK.

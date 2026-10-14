@@ -248,6 +248,7 @@ export class App {
     for (const button of this.doc.querySelectorAll<HTMLButtonElement>("[data-page]")) {
       button.addEventListener("click", () => { this.showPage(button.dataset.page ?? "trainer"); });
     }
+    this.ui("feature-search").addEventListener("input", () => { this.filterFeatures(); });
     this.ui("objective-link").addEventListener("click", () => {
       this.showPage("objectives");
       this.doc.querySelector(".inspection-nav")?.scrollIntoView({ block: "start", behavior: "smooth" });
@@ -291,6 +292,22 @@ export class App {
     this.ui("screen").addEventListener("error", () => {
       if (this.mode === "live") this.liveFailedAt = this.deps.now();
     });
+  }
+
+  private filterFeatures(): void {
+    const query = (this.ui("feature-search") as HTMLInputElement).value.trim().toLowerCase();
+    const config = this.ui("harness-config");
+    const cards = config.querySelectorAll<HTMLElement>(".config-feature");
+    let matches = 0;
+    for (const card of cards) {
+      const title = card.querySelector("h5")?.textContent ?? "";
+      card.hidden = !title.toLowerCase().includes(query) && !(card.dataset.feature ?? "").toLowerCase().includes(query);
+      if (!card.hidden) matches++;
+    }
+    for (const group of config.querySelectorAll<HTMLElement>(".config-group")) {
+      group.hidden = Array.from(group.querySelectorAll<HTMLElement>(".config-feature")).every(card => card.hidden);
+    }
+    this.ui("feature-search-results").textContent = matches === 0 ? "No matching features" : `${String(matches)} matching feature${matches === 1 ? "" : "s"}`;
   }
 
   private showPage(name: string): void {
@@ -537,7 +554,8 @@ export class App {
     }
     this.setHtml("trainer", trainerCard(view, nowMs));
     this.setHtml("field-context", fieldContext(view));
-    this.setHtml("harness-config", harnessConfig(view));
+    this.setHtml("harness-config", harnessConfig(view, this.next.registry));
+    this.filterFeatures();
     this.setHtml("party", party(view));
     this.setHtml("objective", objectivePanel(view));
     const objective = view.objective;

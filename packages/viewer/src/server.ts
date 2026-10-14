@@ -13,6 +13,7 @@ import { NextRunError, appendControl, healthProbe, liveRuns, readDraft, writeDra
 import { WORKBENCH_POLL_MS, type WorkbenchData } from "./workbench-data.js";
 import { workbenchSnapshot } from "./workbench-store.js";
 import { MILESTONE_ORDER } from "./model.js";
+import { FEATURE_EXPLAINERS } from "./panels.js";
 
 export const HOST = "127.0.0.1";
 // Browser code the page may load; everything else in dist/ stays private.
@@ -267,6 +268,10 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
   const [head, second, id, leaf, file] = parts;
   if (parts.length === 2 && head === "api" && second === "workbench") {
     sendJson(res, 200, await readWorkbench());
+    return;
+  }
+  if (parts.length === 2 && head === "explainers" && Object.values(FEATURE_EXPLAINERS).includes(second ?? "")) {
+    sendFile(res, join(options.staticDir, "../../../docs/explainers", second ?? ""), "text/html; charset=utf-8");
     return;
   }
   if (parts.length === 1 && head === "comparisons") {

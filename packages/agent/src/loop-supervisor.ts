@@ -9,6 +9,7 @@ interface Tried {readonly key:string;readonly room:string;readonly label:string;
 const LIMIT=2500,MAX_TRIED=8,MAX_UNTRIED=8;
 const clip=(text:string,max:number)=>text.length<=max?text:`${text.slice(0,max-14)}… [truncated]`;
 const STEP:Readonly<Record<string,readonly[number,number]>>={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
+const PATTERN:Readonly<Record<LoopKind,string>>={cycle:"the same short cycle of actions",ineffective:"the same input with no effect",planning:"planning without acting",observation:"observing without acting",rejection:"the same rejected tool call"};
 const at=(x:number,y:number)=>`${String(x)},${String(y)}`;
 
 // A deterministic summary for a looping agent: facts it was shown, never a route or story goal.
@@ -103,13 +104,15 @@ export class SupervisorBriefing {
  }
  text(kind:LoopKind,calls:number):string {
   const tried=this.tried.length===0?"nothing recorded":this.tried.slice().reverse().map(t=>`${t.label}${t.count>1?` ×${String(t.count)}`:""} in ${t.room} → ${t.outcome}`).join("; ");
-  const recall=this.features["dialogue-log-v1"]?"use recall_dialogue to check what characters told you, ":"";
-  const text=`SUPERVISOR (loop guard: ${kind}, after ${String(calls)} calls): you have been repeating a pattern without new game information. The run continues; change strategy now. Get your bearings:
+  const recall=this.features["dialogue-log-v1"]?" (use recall_dialogue to check exactly what characters said)":"";
+  const text=`SUPERVISOR: You are currently looping. You keep repeating ${PATTERN[kind]}, and the game is not moving forward (loop guard, ${String(calls)} calls into the run). What you have been trying is not working, so do not try it again.
+Stop and get your bearings:
 - Where you are: ${this.where()}
 - Last dialogue you were shown: ${this.told()}
-- Tried recently, newest first: ${clip(tried,700)}
-- Listed here and not tried yet: ${this.untried()}
-Look back over your history, ${recall}restate your current objective and the observed evidence for it, then try something you have not tried.`;
+- What you tried recently, newest first: ${clip(tried,700)}
+- Listed here that you have not tried yet: ${this.untried()}
+Before your next action, look back at your goal and at what the game has told you${recall}. Make a new plan that is different from what you have been trying, and say which untried option you will try first. The run continues.`;
   return clip(text,LIMIT);
  }
+
 }

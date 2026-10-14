@@ -192,7 +192,7 @@ export class RunView {
     const kinds = { planning: "Planning stall", observation: "Observation stall", ineffective: "Ineffective action", cycle: "Short cycle", rejection: "Repeated rejection" } as const;
     const tool = this.events.findLast((item) => item.seq < event.seq && item.type === "tool_call");
     const elapsed = this.startMs === null ? "elapsed unavailable" : hms((eventMs(event) - this.startMs) / 1000);
-    const phase = "mode" in event && event.mode === "diagnostic" ? `diagnostic: ${event.phase.replace("_", " ")}` : event.phase;
+    const phase = "mode" in event && event.mode === "diagnostic" ? `diagnostic: ${event.phase.replace("_", " ")}` : event.phase === "supervisor" ? "supervisor message sent to the model" : event.phase;
     const mode = "mode" in event ? event.mode : "historical mode unrecorded";
     return `${kinds[event.kind]} ${phase} · #${String(event.seq)} · turn ${String(event.turn)} · ${elapsed} · ${String(event.calls)} completed calls · preceding tool ${tool?.type === "tool_call" ? tool.name : "not recorded"}: ${event.message} · evidence ${event.evidence.map((seq) => `#${String(seq)}`).join(", ")} · ${mode}`;
   }

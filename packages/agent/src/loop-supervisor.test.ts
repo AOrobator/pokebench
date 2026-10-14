@@ -161,3 +161,20 @@ it("describes the live backoff schedule that LOOP_POLICY actually produces",()=>
  expect(windows).toEqual([6,12,24,48,96,96]);
  expect(featureInfo("loop-guard-supervisor-v1").description).toContain(`after ${String(windows[0])} looping calls, then ${String(windows[1])}, ${String(windows[2])} and ${String(windows[3])} more, then every ${String(windows[4])}`);
 });
+
+it("catches a two-button walk-and-talk loop like trial 1 of the first 2×2 and keeps the run going",()=>{
+ const notices:LoopNotice[]=[];
+ const d=new LoopDetector(n=>notices.push(n),LOOP_POLICY,"enforced",true,(k,c)=>`SUPERVISOR ${k} ${String(c)}`);
+ const at=(x:number)=>({...IN_GAME,started:true as const,screen:"overworld" as const,location:"TOWN",map_id:[0,9] as [number,number],position:{x,y:2},facing:x===9?"left":"right",field_controls_locked:false});
+ let x=10;
+ for(let i=0;i<60;i++){
+  const before=at(x);x=x===10?9:10;
+  d.complete({name:"press",args:{buttons:[x===9?"LEFT":"RIGHT","A"]},isError:false,text:"ok",state:at(x),beforeState:before});
+  d.context();
+ }
+ expect(notices.map(n=>n.phase)).toContain("warning");
+ expect(notices.filter(n=>n.phase==="supervisor").length).toBeGreaterThanOrEqual(2);
+ expect(notices.map(n=>n.phase)).not.toContain("stop");
+ expect(d.stopped).toBe(false);
+ expect(d.context()).toContain("SUPERVISOR cycle");
+});

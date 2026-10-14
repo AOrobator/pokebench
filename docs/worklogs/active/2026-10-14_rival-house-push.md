@@ -276,3 +276,15 @@ COMMIT: `feat: show the experiment, arm and trial of every run in the viewer hea
 - The 8793 viewer was stale since the experiment queue merge (queue-view.js 404, app never loaded);
   restarted on the current build. Header verified in the browser for trial 01.
 - Live-run chip and run list now carry the experiment label too (RunSummary.experiment).
+- The operator (22:09 UTC) saw trial 1 (neither arm) loop with no guard events. Cause: the guard only
+  tracks multi-button presses when interaction-loop-detection-v1 is on, and it was off in all arms.
+  Replaying trial 1 with it on: warning at call 79, supervisor briefings from 139, three loops caught
+  about 6 calls in. Batch held; trial 1 left to finish.
+- The operator (22:14 UTC): restart with loop detection on, 30-minute trials, supervisor messages sent to
+  the model, never end the run; show him the message first. Winner marking routed by the
+  coordinator to the Experiment queue thread.
+- Supervisor text rewritten in his wording ("You are currently looping … what you have been trying
+  is not working … make a new plan that is different"); regression test reproduces trial 1's
+  two-button loop (warning + repeated briefings, never a stop); viewer labels supervisor events
+  "supervisor message sent to the model"; explainer sample replaced with a real replay of trial 1.
+  Agent 1018/1018 (+1), viewer 562/562, tsc/eslint clean.

@@ -614,3 +614,10 @@ it("names the experiment, arm and trial, or the preset, in the run header",()=>{
  const presetOnly=new Log();presetOnly.add(0,{...START,evaluation:{preset_id:"checkpoint-clock-set",target:"CLOCK_SET",failure_limit:3,flags}});
  expect(brand(view(presetOnly))).toBe(`POKéNAV · ${RUN} · PRESET checkpoint-clock-set`);
 });
+
+it("labels a supervisor loop event as a message sent to the model, with its full text",()=>{
+ const log=bare();const event=log.add(100,{type:"loop_guard",turn:3,kind:"cycle",message:"SUPERVISOR: You are currently looping.",calls:40,evidence:[1,2],mode:"enforced",phase:"supervisor"});
+ const row=actionRow(event,view(log));
+ expect(row).toContain("supervisor message sent to the model");
+ expect(row).toContain("SUPERVISOR: You are currently looping.");
+});

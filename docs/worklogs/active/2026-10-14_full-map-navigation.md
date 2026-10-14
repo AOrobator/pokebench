@@ -46,3 +46,5 @@ Follow-up GREEN: read_full_map rejects maps outside 1..256 per side; whole-map w
 
 First merge COMMIT: `merge: integrate main (ledge hops, navigation evidence memory) into full-map navigation` (52cc7a2).
 Second merge of main (bbe91f8, one-way tiles): planner honors edge walls (oneWay) on both geometries; live_map draws + tiles and lists Edge walls in the whole-map grid too; navigate_to description joins enabled terrain rules (also fixes a doubled comma when ledges and one-way tiles are both on). Counts: guidance 12, server features 20. Arms: one-way-tiles-v1 set ON in both arms alongside ledge-hops-v1. Gates: agent 929 (97.17/93.29/97.89), viewer 476, Python 1840 (96.71/91.91/100); lint clean.
+
+Second merge COMMIT: `merge: integrate main (one-way tiles) into full-map navigation` (49a0ba0); main 8911d0e (explainer delivery docs) merged cleanly. Explainer updated with a ledges/one-way-tiles section and current status.

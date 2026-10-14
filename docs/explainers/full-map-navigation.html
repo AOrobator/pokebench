@@ -235,6 +235,56 @@ li+li{margin-top:4px}
 </section>
 
 <section>
+ <h2>Ledges and one-way tiles on the whole map</h2>
+ <p>Both map fixes on main now work on the whole map too. With <code>ledge-hops-v1</code> on, a ledge is drawn as an arrow and the planner may hop it in that direction only, landing two tiles on; the per-press check then expects a two-tile move. With <code>one-way-tiles-v1</code> on, a <code>+</code> tile can be walked on but never crossed through a walled side. Each switch still decides on its own; whole-map planning only widens where the rules apply.</p>
+ <figure>
+  <svg viewBox="0 0 640 200" role="img" aria-label="Left: a route hops a south ledge with one press. Right: a route goes around the chair's walled north and south sides but crosses it east to west.">
+   <g transform="translate(40,20)">
+    <g fill="var(--soft)" stroke="var(--line)">
+     <rect x="0" y="0" width="28" height="28"/><rect x="0" y="56" width="28" height="28"/><rect x="0" y="84" width="28" height="28"/>
+    </g>
+    <rect x="0" y="28" width="28" height="28" fill="var(--grass)" fill-opacity=".25" stroke="var(--grass)"/>
+    <text class="th" x="14" y="19" text-anchor="middle">@</text>
+    <text class="th" x="14" y="47" text-anchor="middle">v</text>
+    <text class="th" x="14" y="103" text-anchor="middle">★</text>
+    <path d="M40,14 C64,14 64,70 40,70" fill="none" stroke="var(--route)" stroke-width="2.5"/>
+    <text class="tm" x="66" y="40">DOWN = hop</text>
+    <text class="tm" x="66" y="56">0 → 2</text>
+    <line x1="40" y1="74" x2="40" y2="98" stroke="var(--route)" stroke-width="2.5"/>
+    <text class="tm" x="66" y="92">DOWN</text>
+    <text class="ts" x="0" y="140">ledge-hops-v1 on: 2 presses,</text>
+    <text class="ts" x="0" y="156">landing checked as a 2-tile move.</text>
+    <text class="ts" x="0" y="172">Off, or from below: the ledge is a wall.</text>
+   </g>
+   <g transform="translate(360,20)">
+    <g fill="var(--soft)" stroke="var(--line)">
+     <rect x="0" y="0" width="28" height="28"/><rect x="28" y="0" width="28" height="28"/><rect x="56" y="0" width="28" height="28"/>
+     <rect x="0" y="28" width="28" height="28"/><rect x="56" y="28" width="28" height="28"/>
+     <rect x="0" y="56" width="28" height="28"/><rect x="28" y="56" width="28" height="28"/><rect x="56" y="56" width="28" height="28"/>
+    </g>
+    <rect x="28" y="28" width="28" height="28" fill="var(--panel)" stroke="var(--line)"/>
+    <line x1="28" y1="28" x2="56" y2="28" stroke="var(--warn)" stroke-width="4"/>
+    <line x1="28" y1="56" x2="56" y2="56" stroke="var(--warn)" stroke-width="4"/>
+    <text class="th" x="42" y="47" text-anchor="middle">+</text>
+    <text class="th" x="42" y="19" text-anchor="middle">@</text>
+    <text class="th" x="42" y="75" text-anchor="middle">★</text>
+    <polyline points="36,12 12,12 12,70 34,70" fill="none" stroke="var(--route)" stroke-width="2.5"/>
+    <line x1="42" y1="22" x2="42" y2="62" stroke="var(--warn)" stroke-width="2" stroke-dasharray="4 4"/>
+    <polyline points="6,42 78,42" fill="none" stroke="var(--route)" stroke-width="1.5" stroke-dasharray="2 3" opacity=".7"/>
+    <text class="ts" x="96" y="20">dashed red: refused,</text>
+    <text class="ts" x="96" y="36">walled north and south</text>
+    <text class="ts" x="96" y="56">dotted blue: open east</text>
+    <text class="ts" x="96" y="72">and west sides, allowed</text>
+    <text class="ts" x="0" y="140">one-way-tiles-v1 on, chair 0xC0:</text>
+    <text class="ts" x="0" y="156">4 presses around instead of 2 through.</text>
+    <text class="ts" x="0" y="172">Off: the chair is a wall and drawn as “.”.</text>
+   </g>
+  </svg>
+  <figcaption>Both cases are tests in <code>navigation.test.ts</code> on whole-map geometry. Ledge behaviors 0x38–0x3B and edge-wall behaviors 0x30–0x37, 0xBE, 0xC0, 0xC1 come from pokeemerald 731ad5b.</figcaption>
+ </figure>
+</section>
+
+<section>
  <h2>When the switch is off</h2>
  <ul>
   <li>The readout, prompts, tool list and tool description are unchanged, and the state JSON has no <code>map_grid</code> key.</li>
@@ -250,17 +300,17 @@ li+li{margin-top:4px}
  <div class="tablewrap"><table>
   <thead><tr><th>Check</th><th>Result</th></tr></thead>
   <tbody>
-   <tr><td>Agent tests</td><td>877 passed · lines 97.1%, branches 93.1%</td></tr>
-   <tr><td>Viewer tests</td><td>417 passed · lines 95.5%, branches 90.5%</td></tr>
-   <tr><td>Python tests</td><td>1,818 passed · lines 96.7%, branches 91.9% (floor 90%)</td></tr>
+   <tr><td>Agent tests</td><td>929 passed · lines 97.2%, branches 93.3%</td></tr>
+   <tr><td>Viewer tests</td><td>476 passed · lines 95.7%, branches 90.5%</td></tr>
+   <tr><td>Python tests</td><td>1,840 passed · lines 96.7%, branches 91.9% (floor 90%)</td></tr>
    <tr><td>Lint and types</td><td>tsc, eslint, ruff, mypy clean</td></tr>
-   <tr><td>Independent review</td><td>Claude CLI: LGTM; 6 of 8 minor findings fixed, 2 kept as evaluation notes</td></tr>
+   <tr><td>Main merged in</td><td>Ledge hops, navigation evidence memory, one-way tiles</td></tr>
+   <tr><td>Planned arms</td><td>Both arms set bounded navigation, ledge hops and one-way tiles ON; only full-map-navigation-v1 differs</td></tr>
+   <tr><td>Independent review</td><td>See the worklog's review log for the merged branch</td></tr>
    <tr><td>Branch</td><td>claude/full-map-navigation, local only, not merged</td></tr>
-   <tr><td>Real ROM check</td><td>Not run yet: no game servers until the ledge fix lands</td></tr>
-   <tr><td>Benchmark runs</td><td>Not started, by design</td></tr>
+   <tr><td>Real ROM check and benchmark runs</td><td>Not run, by design; waiting on operator approval</td></tr>
   </tbody>
  </table></div>
- <p>Ledges still read as walls on both the local and whole map. That fix is a separate thread, and this branch will need a small merge once it lands because both touch the planner's walkable-tile rules.</p>
 </section>
 </main>
 </body>

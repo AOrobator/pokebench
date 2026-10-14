@@ -48,3 +48,11 @@ pret/pokeemerald 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881:
   (position unchanged); on the chair it refuses UP and DOWN. `navigate_to` (dist build, switch
   on) reaches (7,4) from (7,3) in 3 presses via the west side and from the west in 2; with the
   switch off it answers "no supported local path" for (7,4).
+- Recorded probe (PB7) through `withRun`/`RunRecorder` with production press hooks at merge head
+  0994cdc: `runs/one-way-proof/recorded-bedroom.mjs`, receipt `runs/one-way-proof/recorded-receipt.txt`.
+  On run: 137 events parse; run_start lists one-way-tiles-v1; navigate_to (7,3)->(7,4) arrives in
+  3 presses LEFT, DOWN, RIGHT; raw DOWN at (7,3) and UP/DOWN on the chair do not move. All 7 model
+  tool results carry the edge-wall list. Off run: navigate_to (7,4) "no supported local path"; 0
+  tool results carry the list.
+- Observed, out of scope: from (1,4) navigate_to detours via row 2 because the bedroom floor
+  behaviors 0x85/0x86/0xB5/0xC3 are outside `WALKING` (the walkability sibling thread's finding).

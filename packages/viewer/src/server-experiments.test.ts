@@ -29,7 +29,7 @@ describe("GET /api/experiments", () => {
     mkdirSync(paths.runsRoot, { recursive: true });
     writeDefinition(paths.experimentsDir, definition("full-map"));
     let calls = 0, now = 0, fail = false;
-    const recent: ReadinessRun[] = ["a", "b", "c", "d"].map((id) => ({ id, model: "think-fast", maxTurns: 1500, maxWallMs: 1_800_000, features: QUEUE_FEATURES, reached: ["FIRST_TRUCK_EXIT"] }));
+    const recent: ReadinessRun[] = ["a", "b", "c", "d"].map((id) => ({ id, model: "think-fast", start: "boot", maxTurns: 1500, maxWallMs: 1_800_000, features: QUEUE_FEATURES, reached: ["FIRST_TRUCK_EXIT"] }));
     const viewer = await startViewer({ runsRoot: paths.runsRoot, staticDir: join(root, "static"), appDir: join(root, "app"), port: 0, now: () => new Date(now), experiments: { paths, source: { recent: () => { calls += 1; if (fail) throw new Error("runs unreadable"); return recent; }, trial: () => null } } });
     open.push(viewer);
     const first = await call(viewer, "/api/experiments");

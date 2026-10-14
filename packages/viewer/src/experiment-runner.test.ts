@@ -21,7 +21,7 @@ function setup(over: Record<string, unknown> = {}, approve = true): { paths: Que
     writeFileSync(join(experimentDir(paths.runsRoot, "full-map"), "approval.json"), JSON.stringify({ experiment: "full-map", sha256: definitionHash(parseExperiment(value)), approvedAt: "t", approvedBy: "operator" }));
   }
   const metrics = new Map<string, TrialMetrics>();
-  const recent: ReadinessRun[] = ["r1", "r2", "r3", "r4"].map((id) => ({ id, model: "think-fast", maxTurns: 1500, maxWallMs: 1_800_000, features: QUEUE_FEATURES, reached: ["FIRST_TRUCK_EXIT"] }));
+  const recent: ReadinessRun[] = ["r1", "r2", "r3", "r4"].map((id) => ({ id, model: "think-fast", start: "boot", maxTurns: 1500, maxWallMs: 1_800_000, features: QUEUE_FEATURES, reached: ["FIRST_TRUCK_EXIT"] }));
   return { paths, metrics, source: { recent: () => recent, trial: (id) => metrics.get(id) ?? null } };
 }
 

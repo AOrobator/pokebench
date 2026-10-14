@@ -23,7 +23,7 @@ function roots(): { experimentsDir: string; runsRoot: string; readinessPath: str
   mkdirSync(paths.runsRoot, { recursive: true });
   return paths;
 }
-const reachedRun = (id: string): ReadinessRun => ({ id, model: "think-fast", maxTurns: 1500, maxWallMs: 1_800_000, features: QUEUE_FEATURES, reached: ["FIRST_TRUCK_EXIT"] });
+const reachedRun = (id: string): ReadinessRun => ({ id, model: "think-fast", start: "boot", maxTurns: 1500, maxWallMs: 1_800_000, features: QUEUE_FEATURES, reached: ["FIRST_TRUCK_EXIT"] });
 const fake = (metrics: Record<string, TrialMetrics>, recent: ReadinessRun[] = ["r1", "r2", "r3", "r4"].map(reachedRun)): RunSource => ({ recent: () => recent, trial: (id) => metrics[id] ?? null });
 const reached = (turns: number, ms: number): TrialMetrics => ({ reached: ["FIRST_TRUCK_EXIT", "RIVAL_HOUSE_ENTERED"], milestoneMs: { RIVAL_HOUSE_ENTERED: ms }, turns, wallMs: ms + 1000 });
 const missed = (turns: number): TrialMetrics => ({ reached: ["FIRST_TRUCK_EXIT"], milestoneMs: {}, turns, wallMs: 1_800_000 });
@@ -115,9 +115,9 @@ describe("experiment queue store", () => {
 });
 
 describe("recorded runs as readiness and trial evidence", () => {
-  function run(root: string, id: string, opts: { milestones?: string[]; ended?: boolean; reason?: string; harness?: string[] } = {}): void {
+  function run(root: string, id: string, opts: { milestones?: string[]; ended?: boolean; reason?: string; harness?: string[]; checkpoint?: boolean } = {}): void {
     const log = new Log();
-    log.add(0, { ...START, harness_features: opts.harness ?? playHarnessFeatures(QUEUE_FEATURES, null), budgets: { max_turns: 1500, max_wall_ms: 1_800_000 } });
+    log.add(0, { ...START, ...(opts.checkpoint === true ? { start_state: { kind: "save_state" as const, path: "clock_set.state", sha1: "1".repeat(40) } } : {}), harness_features: opts.harness ?? playHarnessFeatures(QUEUE_FEATURES, null), budgets: { max_turns: 1500, max_wall_ms: 1_800_000 } });
     for (const [i, name] of (opts.milestones ?? []).entries()) log.add(1000 * (i + 1), { type: "milestone", turn: i + 1, name, server_timestamp: i, kind: "story", origin: "observed" });
     if (opts.ended !== false) log.add(60_000, { type: "run_end", turn: 9, reason: (opts.reason ?? "budget") as "budget", furthest_milestone: null, turns: 9, wall_ms: 60_000, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } });
     mkdirSync(join(root, id), { recursive: true });
@@ -130,8 +130,11 @@ describe("recorded runs as readiness and trial evidence", () => {
     run(runsRoot, "2026-10-14T03-00-00_think-fast_cccc", { ended: false });
     run(runsRoot, "2026-10-14T04-00-00_think-fast_dddd", { reason: "operator_abort" });
     run(runsRoot, "2026-10-14T05-00-00_think-fast_eeee", { harness: ["probe"] });
+    run(runsRoot, "2026-10-14T06-00-00_think-fast_ffff", { milestones: ["RIVAL_HOUSE_ENTERED"], checkpoint: true });
     const source = recordedRuns(runsRoot);
-    expect(source.recent()[0]).toMatchObject({ model: "think-swarm", maxTurns: 1500, maxWallMs: 1_800_000 });
+    expect(source.recent()[0]).toMatchObject({ model: "think-swarm", start: "boot", maxTurns: 1500, maxWallMs: 1_800_000 });
+    // A checkpoint start (CLOCK_SET save state) never stands in for a boot run.
+    expect(source.recent().map((r) => r.id)).not.toContain("2026-10-14T06-00-00_think-fast_ffff");
     expect(source.recent().map((r) => [r.id, r.reached])).toEqual([["2026-10-14T01-00-00_think-fast_aaaa", ["FIRST_TRUCK_EXIT"]], ["2026-10-14T02-00-00_think-fast_bbbb", ["FIRST_TRUCK_EXIT", "RIVAL_HOUSE_ENTERED"]]]);
     expect(source.trial("2026-10-14T02-00-00_think-fast_bbbb")).toEqual({ reached: ["FIRST_TRUCK_EXIT", "RIVAL_HOUSE_ENTERED"], milestoneMs: { FIRST_TRUCK_EXIT: 1000, RIVAL_HOUSE_ENTERED: 2000 }, turns: 9, wallMs: 60_000 });
     expect(source.trial("2026-10-14T02-00-00_think-fast_bbbb")).toBe(source.trial("2026-10-14T02-00-00_think-fast_bbbb"));

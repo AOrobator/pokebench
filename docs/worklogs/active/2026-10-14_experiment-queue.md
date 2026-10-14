@@ -205,3 +205,8 @@ Pending.
 - Merged main fbaf909 (walkable-floor-v1): conflicts in navigation.ts, play-preset.ts, features.test.ts, server.test.ts resolved by keeping both switches; guidance count 16, switchboard rows 36.
 - Gates after the merge: agent 970 (97.24/93.52/98.02), viewer 543 (95.19/90.58/94.52), Python 1863, lint and ruff clean.
 - Landing: operator said "if the review passes u can merge" (2026-10-14 21:18). Seeds are pinned to a3c343b; run `just experiment-pin <id>` on each before approving, since main has moved.
+
+## Follow-up 2026-10-14 (branch restarted from main 44913ac after the merge)
+- Operator (via coordinator, "Rerun Qwen 3.8?" thread): "turn them on in all 4" — set `field-dialogue-phase-v1` ON in the queue's shared incumbent so it matches the 2×2 control arm. Applied to all ten experiments/*.json (the four rival-push entries share the same incumbent). Changes every definitionHash; nothing was approved.
+- Coordinator-reported readiness bug: checkpoint-start runs (CLOCK_SET save state) would count as comparable runs that never reached early milestones. Checked: `recordedRuns` already drops them, because `configOf` returns null for `start_state.kind !== "boot"`. Hardening anyway so the rule is explicit where readiness is decided: `ReadinessRun.start`, and `readinessOf` counts only boot starts (the incumbent's common start).
+- RED: readinessOf ignores save_state runs; recordedRuns reports `start` and excludes a checkpoint run.

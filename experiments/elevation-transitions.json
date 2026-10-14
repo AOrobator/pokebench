@@ -37,7 +37,7 @@
    "named-interactions-v1": true,
    "world-destinations-v1": false,
    "bounded-navigation-v1": true,
-   "field-dialogue-phase-v1": false,
+   "field-dialogue-phase-v1": true,
    "dialogue-safe-batches-v1": false,
    "interaction-loop-detection-v1": false,
    "active-field-message-buffer-v1": true,

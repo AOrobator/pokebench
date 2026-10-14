@@ -9,7 +9,7 @@ import { EXPERIMENT_GAME_PORT, GATEWAY, main, mainCheckout, productionHost, type
 import { experimentDir, type QueuePaths } from "./experiment-store.js";
 import type { RunnerHost } from "./experiment-runner.js";
 
-const READY: ReadinessRun[] = ["r1", "r2", "r3", "r4"].map((id) => ({ id, model: "think-fast", maxTurns: 1500, maxWallMs: 1_800_000, features: QUEUE_FEATURES, reached: ["FIRST_TRUCK_EXIT"] }));
+const READY: ReadinessRun[] = ["r1", "r2", "r3", "r4"].map((id) => ({ id, model: "think-fast", start: "boot", maxTurns: 1500, maxWallMs: 1_800_000, features: QUEUE_FEATURES, reached: ["FIRST_TRUCK_EXIT"] }));
 function deps(over: Partial<CliDeps> = {}): CliDeps & { lines: string[]; paths: QueuePaths } {
   const root = mkdtempSync(join(tmpdir(), "pokebench-cli-"));
   const paths = { experimentsDir: join(root, "experiments"), runsRoot: join(root, "runs"), readinessPath: join(root, "readiness.md") };

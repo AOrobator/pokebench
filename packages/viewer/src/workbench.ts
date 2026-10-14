@@ -1,4 +1,4 @@
-import { frontierReferences, frontierPlot, frontierNotes, frontierTable } from "./frontier.js";
+import { frontierReferences, frontierPlot, frontierNotes, frontierTable, frontierModelColors } from "./frontier.js";
 import { esc, hms } from "./format.js";
 import { parseWorkbench, type WorkbenchData, type WorkbenchRun } from "./workbench-data.js";
 import { METRICS, color, currentRunHtml, eligible, median, metricText, ribbonPlot, runDetails, timingPlot, type Metric } from "./workbench-view.js";
@@ -11,6 +11,7 @@ export class Workbench {
   private selected: { run: string; split: string | null } | null = null;
   private restoreFocus: HTMLElement | null = null;
   private detailHtml: string | null = null;
+  private modelColors: ReadonlyMap<string, string> = new Map();
   private initialized = false;
   private scope = "all";
   private overlay = "all";
@@ -40,7 +41,7 @@ export class Workbench {
     try {
       const data = parseWorkbench(await this.deps.fetchSnapshot()); if (!this.active()) return;
       if (data.at < this.data.at) throw new Error("Outdated workbench snapshot ignored; last verified data retained.");
-      this.data = data; this.verified = true;
+      this.data = data; this.modelColors = frontierModelColors(data.runs, this.modelColors); this.verified = true;
       if (!this.initialized) {
         this.scope = "all"; this.initialized = true;
       }
@@ -60,7 +61,7 @@ export class Workbench {
     this.ui("timing").innerHTML = timingPlot(runs, this.milestone, this.feature, this.metric, width);
     this.ui("ribbons").innerHTML = ribbonPlot(runs, width);
     const refs = frontierReferences(this.data.runs), overlays = this.overlay === "none" ? [] : this.overlay === "all" ? runs : runs.filter(r => r.id === this.overlay);
-    this.ui("frontier-full").innerHTML = frontierPlot(refs, overlays, width);
+    this.ui("frontier-full").innerHTML = frontierPlot(refs, overlays, width, this.modelColors);
     this.ui("frontier-notes").innerHTML = frontierNotes(refs);
     this.ui("frontier-counts").innerHTML = frontierTable(refs, overlays);
   }

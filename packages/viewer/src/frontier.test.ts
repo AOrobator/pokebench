@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from "vitest";
 import { run } from "../test-support/frontier-run.js";
-import { HUMAN_REFERENCE, FRONTIER_MILESTONES, frontierReferences, frontierPlot, frontierCoverage } from "./frontier.js";
+import { HUMAN_REFERENCE, FRONTIER_MILESTONES, frontierReferences, frontierPlot, frontierCoverage, frontierModelColors } from "./frontier.js";
 import type { WorkbenchRun } from "./workbench-data.js";
 function measured(id: string, times: readonly (number | null)[], controller: "agent" | "human" = "agent"): WorkbenchRun {
   return Object.assign(run({ id, cohort: "selected", splits: times.flatMap((elapsedMs, i) => elapsedMs === null ? [] : [{ name: FRONTIER_MILESTONES[i]?.id ?? "", elapsedMs, segmentMs: 0, seq: i + 1, turn: 1, inputTokens: 0, outputTokens: 0 }]) }), {
@@ -62,6 +62,16 @@ describe("persistent actual native frontier", () => {
     expect(document.querySelector('[data-model="Alpha"]')?.textContent).toContain("Alpha");
     expect(document.querySelector('[data-model="Beta"]')?.textContent).toContain("Beta");
     expect(document.querySelector('[data-model="Alpha"] i')?.getAttribute("style")).toContain(first);
+  });
+  it("keeps colors stable across filtering, reordered snapshots and newly recorded models", () => {
+    const a = { ...best(), model: "Zulu" }, b = { ...best(), model: "Alpha" }, unknown = { ...best(), model: null };
+    const colors = frontierModelColors([a, b, unknown]);
+    const updated = frontierModelColors([{ ...best(), model: "A newly recorded model" }, b, a, unknown], colors);
+    expect(updated.get("Zulu")).toBe(colors.get("Zulu")); expect(updated.get("Alpha")).toBe(colors.get("Alpha"));
+    document.body.innerHTML = frontierPlot({ human: null, best: a }, [], 640, updated);
+    expect(document.querySelector('[data-run="dea1"]')?.getAttribute("fill")).toBe(colors.get("Zulu"));
+    const many = frontierModelColors(Array.from({ length: 12 }, (_, i) => ({ ...best(), model: `Model ${String(i)}` })));
+    expect(new Set(many.values()).size).toBe(12); expect(colors.has("Model not recorded")).toBe(true);
   });
   it("retains failed denominators and identifies unsupported and censored outcomes", () => {
     const failed = measured("failed", []), running = measured("running", []), interrupted = measured("interrupted", []); running.status = "live"; interrupted.status = "unresponsive";

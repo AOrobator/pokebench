@@ -10,6 +10,16 @@ export const FRONTIER_MILESTONES = [
 ] as const;
 const RECORD_ORDER: readonly string[] = ["NEW_GAME_CREATED", "PLAYER_NAME_CONFIRMED", "FIRST_TRUCK_EXIT", "PLAYER_HOUSE_ENTERED", "MOM_CLOCK_INSTRUCTION", "PLAYER_BEDROOM", "CLOCK_SET", "MOM_RIVAL_INSTRUCTION", "PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_BEDROOM_REACHED", "RIVAL_MET", "ROUTE_101", "STARTER_CHOSEN", "BIRCH_RESCUE_COMPLETE", "BIRCH_STARTER_HANDOFF_COMPLETE", "OLDALE_TOWN", "ROUTE_103", "RIVAL_BATTLE_WON", "RECEIVED_POKEDEX", "STARTER_TUTORIAL_COMPLETE", "RUNNING_SHOES_RECEIVED", "ROUTE_102", "PETALBURG_CITY", "DAD_FIRST_MEETING", "WALLY_TUTORIAL_COMPLETE", "ROUTE_104", "PETALBURG_WOODS", "TEAM_AQUA_WOODS_EVENT_COMPLETE", "RUSTBORO_CITY", "RUSTBORO_CITY_GYM", "RUSTBORO_GYM_COMPLETE", "STONE_BADGE", "ROCK_TOMB_RECEIVED"];
 export interface ReferencePair { human: WorkbenchRun | null; best: WorkbenchRun | null }
+const MODEL_COLORS = ["#208b71", "#2583bd", "#8856b5", "#c25464", "#c16b27", "#238e9f", "#ae4c96", "#6a7e2f"];
+const modelName = (run: WorkbenchRun): string => run.model ?? "Model not recorded";
+const plottedAgent = (run: WorkbenchRun): boolean => run.excluded === null && run.problem === null && run.measurement?.controller === "agent" && run.config?.start === "boot";
+export function frontierModelColors(runs: readonly WorkbenchRun[], previous: ReadonlyMap<string, string> = new Map()): ReadonlyMap<string, string> {
+  const colors = new Map(previous);
+  for (const model of Array.from(new Set(runs.filter(plottedAgent).map(modelName))).sort()) {
+    if (!colors.has(model)) colors.set(model, MODEL_COLORS[colors.size] ?? `hsl(${String((colors.size * 137.508) % 360)} 55% 38%)`);
+  }
+  return colors;
+}
 export function preciseTime(ms: number): string {
   const whole = Math.floor(ms / 1000), fraction = String(Math.round(ms % 1000)).padStart(3, "0");
   return `${String(Math.floor(whole / 60))}:${String(whole % 60).padStart(2, "0")}.${fraction}`;
@@ -40,15 +50,15 @@ function mark(run: WorkbenchRun, name: string, x: number, y: number, color: stri
   const split = run.splits.find(s => s.name === name); if (split === undefined) return "";
   const title = `${run.id} · ${name} · active ${preciseTime(split.elapsedMs)} · native #${String(split.seq)}`;
   const body = shape === "best" ? `<path d="M ${String(x)} ${String(y - 6)} l 6 6 -6 6 -6 -6 Z"/>` : shape === "human" ? `<path d="M ${String(x)} ${String(y - 7)} l 2 5 5 0 -4 3 2 5 -5 -3 -5 3 2 -5 -4 -3 5 0 Z"/>` : `<circle cx="${String(x)}" cy="${String(y)}" r="4"/>`;
-  return `<g class="wb-mark" role="button" tabindex="0" data-run="${esc(run.id)}" data-split="${esc(name)}" aria-label="${esc(title)}" fill="${color}" stroke="${color}"><title>${esc(title)}</title>${body}</g>`;
+  return `<g class="wb-mark" role="button" tabindex="0" data-run="${esc(run.id)}" data-split="${esc(name)}" aria-label="${esc(title)}" fill="${color}" stroke="${shape === "best" ? "#af8915" : color}" stroke-width="${shape === "best" ? "2" : "1"}"><title>${esc(title)}</title>${body}</g>`;
 }
-export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRun[], requestedWidth: number): string {
+export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRun[], requestedWidth: number, colors = frontierModelColors([...overlays, ...(refs.best === null ? [] : [refs.best])])): string {
   const width = Number.isFinite(requestedWidth) ? Math.max(240, Math.round(requestedWidth)) : 640;
   const milestones = FRONTIER_MILESTONES;
   const series: { run: WorkbenchRun; color: string; kind: "human" | "best" | "overlay" }[] = [];
-  for (const run of overlays) if (run.id !== refs.human?.id && run.id !== refs.best?.id && run.excluded === null && run.problem === null && run.measurement?.controller === "agent" && run.config?.start === "boot") series.push({ run, color: "#2c9d91", kind: "overlay" });
+  for (const run of overlays) if (run.id !== refs.human?.id && run.id !== refs.best?.id && plottedAgent(run)) series.push({ run, color: colors.get(modelName(run)) ?? "#536d85", kind: "overlay" });
   if (refs.human !== null) series.push({ run: refs.human, color: "#304f7a", kind: "human" });
-  if (refs.best !== null) series.push({ run: refs.best, color: "#af8915", kind: "best" });
+  if (refs.best !== null) series.push({ run: refs.best, color: colors.get(modelName(refs.best)) ?? "#536d85", kind: "best" });
   const left = 43, right = width - 15, top = 20, bottom = 255, height = 350;
   const values = series.flatMap(s => milestones.flatMap(m => s.run.splits.filter(p => p.name === m.id).map(p => p.elapsedMs / 60000)));
   const peak = Math.max(0, ...values) * 1.08, step = peak > 60 ? 20 : peak > 20 ? 5 : peak > 10 ? 2 : 1;
@@ -65,7 +75,9 @@ export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRu
     milestones.forEach((m, i) => { const split = run.splits.find(s => s.name === m.id); if (split !== undefined) body += mark(run, m.id, x(i), y(split.elapsedMs / 60000), color, kind); });
   }
   const unavailable = `${refs.human === null ? '<p class="wb-notice">Human reference unavailable: recorded baseline is missing or invalid.</p>' : ""}${refs.best === null ? '<p class="wb-notice">Agent frontier unavailable: no eligible finished fresh-boot agent run.</p>' : ""}`;
-  return `${unavailable}<svg class="wb-chart wb-frontier-chart" viewBox="0 0 ${String(width)} ${String(height)}" role="img" aria-label="Full story frontier through gym and badge">${body}</svg>`;
+  const models = Array.from(new Set(series.filter(s => s.kind !== "human").map(s => modelName(s.run))));
+  const legend = `<div class="wb-model-legend" aria-label="Model colors">${models.map(model => `<span data-model="${esc(model)}"><i style="background:${colors.get(model) ?? "#536d85"}"></i>${esc(model)}</span>`).join("")}</div>`;
+  return `${unavailable}${legend}<svg class="wb-chart wb-frontier-chart" viewBox="0 0 ${String(width)} ${String(height)}" role="img" aria-label="Full story frontier through gym and badge">${body}</svg>`;
 }
 export function frontierNotes(refs: ReferencePair): string {
   const reference = (run: WorkbenchRun | null, title: string, color: string): string => run === null ? `<span>${title}: unavailable</span>` : `<button type="button" class="wb-reference" data-run="${esc(run.id)}"><i style="background:${color}"></i><strong>${title}</strong> · ${esc(run.model ?? "Model not recorded")} · ${esc(run.id)}</button>`;

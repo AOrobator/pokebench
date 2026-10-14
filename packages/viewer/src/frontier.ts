@@ -46,11 +46,14 @@ export function frontierCoverage(runs: readonly WorkbenchRun[], name: string): s
   const total = runs.length - (counts.get("excluded") ?? 0), reached = counts.get("reached") ?? 0;
   return `<span><b>${String(reached)} / ${String(total)}</b> reached${["not reached", "pending", "censored", "unsupported", "excluded"].flatMap(status => { const n = counts.get(status) ?? 0; return n === 0 ? [] : [` · ${String(n)} ${status}`]; }).join("")}</span>`;
 }
+function markerShape(shape: "human" | "best" | "overlay", x: number, y: number): string {
+  return shape === "best" ? `<path d="M ${String(x)} ${String(y - 6)} l 6 6 -6 6 -6 -6 Z"/>` : shape === "human" ? `<path d="M ${String(x)} ${String(y - 7)} l 2 5 5 0 -4 3 2 5 -5 -3 -5 3 2 -5 -4 -3 5 0 Z"/>` : `<circle cx="${String(x)}" cy="${String(y)}" r="4"/>`;
+}
 function mark(run: WorkbenchRun, name: string, x: number, y: number, color: string, shape: "human" | "best" | "overlay"): string {
   const split = run.splits.find(s => s.name === name); if (split === undefined) return "";
   const title = `${run.id} · ${name} · active ${preciseTime(split.elapsedMs)} · native #${String(split.seq)}`;
-  const body = shape === "best" ? `<path d="M ${String(x)} ${String(y - 6)} l 6 6 -6 6 -6 -6 Z"/>` : shape === "human" ? `<path d="M ${String(x)} ${String(y - 7)} l 2 5 5 0 -4 3 2 5 -5 -3 -5 3 2 -5 -4 -3 5 0 Z"/>` : `<circle cx="${String(x)}" cy="${String(y)}" r="4"/>`;
-  return `<g class="wb-mark" role="button" tabindex="0" data-run="${esc(run.id)}" data-split="${esc(name)}" aria-label="${esc(title)}" fill="${color}" stroke="${shape === "best" ? "#af8915" : color}" stroke-width="${shape === "best" ? "2" : "1"}"><title>${esc(title)}</title>${body}</g>`;
+  const body = markerShape(shape, x, y);
+  return `<g class="wb-mark" role="button" tabindex="0" data-run="${esc(run.id)}" data-split="${esc(name)}" aria-label="${esc(title)}" fill="${color}" stroke="${color}" stroke-width="${shape === "best" ? "2" : "1"}"><title>${esc(title)}</title>${body}</g>`;
 }
 export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRun[], requestedWidth: number, colors = frontierModelColors([...overlays, ...(refs.best === null ? [] : [refs.best])])): string {
   const width = Number.isFinite(requestedWidth) ? Math.max(240, Math.round(requestedWidth)) : 640;
@@ -58,7 +61,7 @@ export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRu
   const series: { run: WorkbenchRun; color: string; kind: "human" | "best" | "overlay" }[] = [];
   for (const run of overlays) if (run.id !== refs.human?.id && run.id !== refs.best?.id && plottedAgent(run)) series.push({ run, color: colors.get(modelName(run)) ?? "#536d85", kind: "overlay" });
   if (refs.human !== null) series.push({ run: refs.human, color: "#304f7a", kind: "human" });
-  if (refs.best !== null) series.push({ run: refs.best, color: colors.get(modelName(refs.best)) ?? "#536d85", kind: "best" });
+  if (refs.best !== null) series.push({ run: refs.best, color: "#af8915", kind: "best" });
   const left = 43, right = width - 15, top = 20, bottom = 255, height = 350;
   const values = series.flatMap(s => milestones.flatMap(m => s.run.splits.filter(p => p.name === m.id).map(p => p.elapsedMs / 60000)));
   const peak = Math.max(0, ...values) * 1.08, step = peak > 60 ? 20 : peak > 20 ? 5 : peak > 10 ? 2 : 1;
@@ -70,13 +73,14 @@ export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRu
   milestones.forEach((m, i) => { const at = x(i); body += `<text class="wb-axis" transform="translate(${String(at)},278) rotate(-48)" text-anchor="end">${m.label}</text>`; });
   for (const { run, color, kind } of series) {
     let points: string[] = [];
-    const flush = (): void => { if (points.length > 1) body += `<polyline data-series="${esc(run.id)}" fill="none" stroke="${color}" stroke-width="${kind === "overlay" ? "1.5" : "2.5"}" ${kind === "overlay" ? 'opacity=".45"' : 'stroke-dasharray="6 4"'} points="${points.join(" ")}"/>`; points = []; };
+    const flush = (): void => { if (points.length > 1) body += `<polyline data-series="${esc(run.id)}" fill="none" stroke="${color}" stroke-width="${kind === "overlay" ? "1.5" : "2.5"}" ${kind === "overlay" ? 'opacity=".45"' : ""} points="${points.join(" ")}"/>`; points = []; };
     milestones.forEach((m, i) => { const split = run.splits.find(s => s.name === m.id); if (split === undefined) { flush(); return; } const atX = x(i), atY = y(split.elapsedMs / 60000); points.push(`${String(atX)},${String(atY)}`); }); flush();
     milestones.forEach((m, i) => { const split = run.splits.find(s => s.name === m.id); if (split !== undefined) body += mark(run, m.id, x(i), y(split.elapsedMs / 60000), color, kind); });
   }
   const unavailable = `${refs.human === null ? '<p class="wb-notice">Human reference unavailable: recorded baseline is missing or invalid.</p>' : ""}${refs.best === null ? '<p class="wb-notice">Agent frontier unavailable: no eligible finished fresh-boot agent run.</p>' : ""}`;
-  const models = Array.from(new Set(series.filter(s => s.kind !== "human").map(s => modelName(s.run))));
-  const legend = `<div class="wb-model-legend" aria-label="Model colors">${models.map(model => `<span data-model="${esc(model)}"><i style="background:${colors.get(model) ?? "#536d85"}"></i>${esc(model)}</span>`).join("")}</div>`;
+  const models = Array.from(new Set(series.filter(s => s.kind === "overlay").map(s => modelName(s.run))));
+  const references = series.filter(s => s.kind !== "overlay").map(s => `<span data-reference="${s.kind}"><svg aria-hidden="true" viewBox="0 0 40 18" fill="${s.color}" stroke="${s.color}" stroke-width="2"><line x1="0" x2="40" y1="9" y2="9"/>${markerShape(s.kind, 20, 9)}</svg>${s.kind === "human" ? "Human baseline" : `Agent frontier · ${esc(modelName(s.run))}`}</span>`).join("");
+  const legend = `<div class="wb-model-legend" aria-label="Graph legend">${models.map(model => `<span data-model="${esc(model)}"><i style="background:${colors.get(model) ?? "#536d85"}"></i>${esc(model)}</span>`).join("")}${references}</div>`;
   return `${unavailable}${legend}<svg class="wb-chart wb-frontier-chart" viewBox="0 0 ${String(width)} ${String(height)}" role="img" aria-label="Full story frontier through gym and badge">${body}</svg>`;
 }
 export function frontierNotes(refs: ReferencePair): string {

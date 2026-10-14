@@ -41,7 +41,7 @@ describe("persistent actual native frontier", () => {
     const refs = frontierReferences([human(), best()]);
     const gap = measured("gap<script>", [1000, null, 3000]);
     document.body.innerHTML = frontierPlot(refs, [gap], 340);
-    expect(document.querySelector("svg")?.getAttribute("viewBox")).toContain("0 0 340");
+    expect(document.querySelector(".wb-frontier-chart")?.getAttribute("viewBox")).toContain("0 0 340");
     expect(document.querySelectorAll(`[data-run="${HUMAN_REFERENCE}"]`)).toHaveLength(10);
     expect(document.querySelectorAll('[data-run="dea1"]')).toHaveLength(7);
     expect(document.querySelectorAll('polyline[data-series="gap<script>"]')).toHaveLength(0);
@@ -57,19 +57,26 @@ describe("persistent actual native frontier", () => {
     const b = { ...best(), id: "model-b", model: "Beta" }, refs = { human: human(), best: a };
     document.body.innerHTML = frontierPlot(refs, [a, a2, b], 640);
     const first = document.querySelector('[data-run="model-a-1"]')?.getAttribute("fill"), second = document.querySelector('[data-run="model-a-2"]')?.getAttribute("fill"), other = document.querySelector('[data-run="model-b"]')?.getAttribute("fill");
-    expect(first).toBe(second); expect(first).not.toBe(other);
+    expect(first).toBe("#af8915"); expect(second).not.toBe(other);
     expect(document.querySelector('[data-run="model-a-1"]')?.getAttribute("stroke")).toBe("#af8915");
     expect(document.querySelector('[data-model="Alpha"]')?.textContent).toContain("Alpha");
     expect(document.querySelector('[data-model="Beta"]')?.textContent).toContain("Beta");
-    expect(document.querySelector('[data-model="Alpha"] i')?.getAttribute("style")).toContain(first);
+    expect(document.querySelector('[data-model="Alpha"] i')?.getAttribute("style")).toContain(second);
+    for (const id of ["model-a-1", "model-a-2", "model-b", HUMAN_REFERENCE]) {
+      expect(document.querySelector(`[data-series="${id}"]`)?.getAttribute("stroke")).toBe(document.querySelector(`[data-run="${id}"]`)?.getAttribute("fill"));
+    }
+    expect(document.querySelector('[data-reference="human"]')?.textContent).toContain("Human baseline");
+    expect(document.querySelector('[data-reference="best"]')?.textContent).toContain("Agent frontier");
+    expect(document.querySelector('[data-reference="best"] svg')?.getAttribute("fill")).toBe("#af8915");
+    expect(document.querySelector('[data-reference="human"] svg')?.getAttribute("fill")).toBe("#304f7a");
   });
   it("keeps colors stable across filtering, reordered snapshots and newly recorded models", () => {
     const a = { ...best(), model: "Zulu" }, b = { ...best(), model: "Alpha" }, unknown = { ...best(), model: null };
     const colors = frontierModelColors([a, b, unknown]);
     const updated = frontierModelColors([{ ...best(), model: "A newly recorded model" }, b, a, unknown], colors);
     expect(updated.get("Zulu")).toBe(colors.get("Zulu")); expect(updated.get("Alpha")).toBe(colors.get("Alpha"));
-    document.body.innerHTML = frontierPlot({ human: null, best: a }, [], 640, updated);
-    expect(document.querySelector('[data-run="dea1"]')?.getAttribute("fill")).toBe(colors.get("Zulu"));
+    document.body.innerHTML = frontierPlot({ human: null, best: a }, [{ ...a, id: "filtered-overlay" }], 640, updated);
+    expect(document.querySelector('[data-run="filtered-overlay"]')?.getAttribute("fill")).toBe(colors.get("Zulu"));
     const many = frontierModelColors(Array.from({ length: 12 }, (_, i) => ({ ...best(), model: `Model ${String(i)}` })));
     expect(new Set(many.values()).size).toBe(12); expect(colors.has("Model not recorded")).toBe(true);
   });

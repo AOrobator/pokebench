@@ -405,3 +405,5 @@ select.p, .field input { font: 8px 'Press Start 2P', monospace; padding: 6px 8px
 .wb-model-legend { display:flex; flex-wrap:wrap; gap:10px 20px; margin:12px 0; font:12px/1.5 Inter,sans-serif; }
 .wb-model-legend span { display:inline-flex; align-items:center; gap:7px; overflow-wrap:anywhere; min-width:0; }
 .wb-model-legend i { flex:none; width:12px; height:12px; border-radius:50%; }
+
+.wb-model-legend svg { flex:none; width:40px; height:18px; overflow:visible; }

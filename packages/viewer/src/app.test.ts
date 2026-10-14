@@ -774,3 +774,14 @@ it('labels human comparison candidates with unverified ROM provenance',async()=>
  const app=await mountApp(document,{fetchJson:url=>nextRunReply(url) ?? Promise.resolve(url==='/api/runs'?RUNS:{candidates:[{run:'human-unknown',milestones:[],controller:{kind:'human',name:'Operator'},romIdentity:'unverified'},{run:'human-verified',milestones:[],controller:{kind:'human',name:'Operator'},romIdentity:'verified'}],baseline:null,best:null}),sendJson:noWrites,openStream:url=>new FakeStream(url),now:()=>BASE_MS,hash:''});
  await Promise.resolve();expect(ui('baseline').textContent).toContain('human-unknown (ROM unverified)');expect(ui('baseline').textContent).toContain('human-verified');expect(ui('baseline').textContent).not.toContain('human-verified (ROM unverified)');app.tick(0);
 });
+
+it("opens the requested run stream without scanning historical comparisons or feature history",async()=>{
+ document.body.innerHTML=PAGE.slice(PAGE.indexOf("<body>")+6,PAGE.indexOf("</body>"));const requested:string[]=[],streams:FakeStream[]=[];
+ const app=await mountApp(document,{fetchJson:url=>{requested.push(url);return nextRunReply(url)??Promise.resolve(url==="/api/runs"?RUNS:{candidates:[],baseline:null,best:null});},sendJson:noWrites,openStream:url=>{const stream=new FakeStream(url);streams.push(stream);return stream;},now:()=>BASE_MS,hash:`#run=${M4_ID}`});
+ await Promise.resolve();await Promise.resolve();
+ expect(streams.map(s=>s.url)).toEqual([`/api/runs/${M4_ID}/events`]);expect(requested.filter(url=>url.endsWith("/comparisons")||url.endsWith("/history"))).toEqual([]);
+ document.querySelector<HTMLButtonElement>('[data-page="splits"]')?.click();await Promise.resolve();
+ expect(requested.filter(url=>url.endsWith("/comparisons"))).toEqual([`/api/runs/${M4_ID}/comparisons`]);
+ document.querySelector<HTMLButtonElement>('[data-page="splits"]')?.click();await Promise.resolve();
+ expect(requested.filter(url=>url.endsWith("/comparisons"))).toHaveLength(1);app.destroy();
+});

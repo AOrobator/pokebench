@@ -60,3 +60,18 @@ it("keeps model destination hypothesis separate from current room, landmarks and
  await m.tool().execute("memory",{destination:"I think this is the lab",evidence:[1]});
  expect(m.text()).toContain("Current: Room · map 1/1");expect(m.text()).toContain("MODEL HYPOTHESIS");expect(m.text()).toContain("recorded warp destination 1/2/0");expect(m.text()).toContain("not yet displayed or acknowledged");
 });
+it.each([true,false])("uses authoritative pre-input link and never mistakes it for the outcome (post=%s)",post=>{
+ const m=new NavigationMemory(ALL_ON);m.observe(state(1));m.observe(event({type:"tool_call",id:"a",name:"press",args:{buttons:["A"]}},2));
+ const before={position:{x:4,y:4},interaction_targets:[{name:"Current scientist",kind:"object",x:5,y:4,elevation:0,activation:"A",availability:"live",facing:null,local_id:1,destination:null}]};
+ m.observe(state(3,before));m.observe(event({type:"button_press",tool_call_id:"a",before_state_seq:3,buttons:["A"]},4));if(post)m.observe(state(5,before));m.observe(event({type:"tool_result",id:"a",name:"press",is_error:false,duration_ms:1,text:"ok",frames:[]},6));
+ expect(m.text()).toContain("Current scientist at faced tile 5,4");expect(m.text()).toContain("before #3");expect(m.text()).not.toContain("position changed");expect(m.text()).toContain(post?"no observed change":"result state unavailable");
+});
+it("expires a model hypothesis when its bounded supporting observations are evicted",()=>{
+ const m=new NavigationMemory(ALL_ON);m.observe(state(1,{world_context:null}));m.remember("Hypothesis grounded only in room1",[1]);
+ for(let n=2;n<12;n++)m.observe(state(n,{location:`Room${String(n)}`,map_id:[1,n],world_context:null}));
+ expect(m.text()).not.toContain("MODEL HYPOTHESIS");expect(m.text()).toContain("expired");expect(m.evidence()).not.toContain(1);
+});
+it("hides direct map_id when bounded navigation is off and labels incomplete target summaries",()=>{
+ const m=new NavigationMemory({...ALL_ON,"bounded-navigation-v1":false,"world-destinations-v1":false});m.observe(state(1,{interaction_targets:Array.from({length:10},(_,i)=>({name:`Object${String(i)}`,kind:"object",x:i,y:4,elevation:0,activation:"A",availability:"live",facing:null,local_id:i,destination:null}))}));
+ expect(m.text()).not.toContain("map 1/1");expect(m.text()).toContain("first 8 of 10");expect(m.text()).toContain("2 omitted");
+});

@@ -533,7 +533,7 @@ export class App {
     }
     this.setHtml("trainer", trainerCard(view, nowMs));
     this.setHtml("field-context", fieldContext(view));
-    this.setHtml("harness-config", harnessConfig(view));
+    this.setHtml("harness-config", harnessConfig(view, this.next.registry));
     this.setHtml("party", party(view));
     this.setHtml("objective", objectivePanel(view));
     const objective = view.objective;

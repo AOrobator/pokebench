@@ -38,6 +38,16 @@ with no dependency problems on 96808e0.
   coverage` passes the 90 floor (Python lines 96.68, branches 91.83, functions 100). `just lint`
   exit 0, `just verify-vendor` OK. The earlier setup gaps were closed by initializing the vendor
   submodule in this worktree and copying the built `mgba` package from the main checkout's venv.
+- After merging main 5195c88 (one-way tiles, elevation, explainer links): conflicts in
+  navigation, features, play-preset and their tests resolved by keeping both switches.
+  Grass pricing now rides main's elevation rules (`mismatch`/`entered`/`jumped`); a ledge hop
+  costs `1 + step(landing)`, which is main's 2 with grass off. Guidance group is 12. Added
+  `grass-cost-navigation-v1` to the viewer's `FEATURE_EXPLAINERS` with a server test.
+  agent 920/920, viewer 478/478, env 1823/1823; `just coverage` exit 0 (agent 97.22/93.32/97.87,
+  viewer 95.69/90.56/95.28, Python 96.68/91.84/100); `just lint` exit 0; vendor OK.
+  Note: main carries two stray tracked scratch files (`.tmp-chunk-search.py`,
+  `.tmp-search-pokeemerald.py`, from 2fc6f9e); left untouched here.
+COMMIT: `Merge branch 'main' into claude/grass-cost` (main at 5195c88)
 - [ ] Review: Claude CLI, Codex (GPT lane), Cursor Grok. Local endpoint lanes skipped per operator.
 - [ ] Operator approval for the local merge into main.
 - [ ] Operator approval before any measured run.

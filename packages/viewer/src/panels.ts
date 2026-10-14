@@ -1,3 +1,4 @@
+import type { FeatureInfo } from "@pokebench/agent/features";
 // HTML for each panel of the Open PokéNav layout. Every value comes from the
 // folded event log; a panel without its data says so instead of guessing.
 import type { RunEvent } from "@pokebench/agent/events";
@@ -326,31 +327,38 @@ export function objectivePanel(view: RunView): string {
 }
 
 
-export function harnessConfig(view:RunView):string {
+export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
+ "navigation-evidence-memory-v1":"navigation-evidence-memory-v1.html",
+ "bounded-navigation-v1":"astar-navigation.html",
+ "ledge-hops-v1":"ledge-hops-v1.html",
+ "one-way-tiles-v1":"one-way-tiles-v1.html",
+ "grass-cost-navigation-v1":"grass-cost-switch.html",
+});
+
+export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {
  const start=view.start;if(start===null)return '<p class="nodata">No run configuration recorded.</p>';
- const missing="not recorded";
- const evalConfig=start.evaluation;
- const flagRows:readonly(readonly[string,string])[]=evalConfig===undefined?[]:[
-  ["LOOP GUARD",evalConfig.flags.loopGuard?"ON":"OFF"],
-  ["ACTIVE UI OWNERSHIP",evalConfig.flags.activeUi?"ON":"OFF"],
-  ["INTERFACE DOCS",evalConfig.flags.interfaceDocs?"ON":"OFF"],
-  ["OBJECTIVE TRACKING",evalConfig.flags.objectives?"ON":"OFF"],
- ];
- return '<p class="history-note">RECORDED CONFIGURATION · READ ONLY. These settings belong to the selected run, not the next-run editor.</p>'+kv([
-  ["RUN",esc(start.run)], ["MODEL",esc(start.model.id)],
-  ["CONTEXT WINDOW",num(start.model.context_window)], ["VISION",start.model.vision?"supported":"not supported"],
-  ["THINKING",esc(start.sampling.thinking_level)], ["OUTPUT TOKEN CAP",num(start.sampling.max_tokens)],
-  ["TIME CAP",start.budgets.max_wall_ms===undefined?missing:hms(start.budgets.max_wall_ms/1000)],
-  ["TURN CAP",start.budgets.max_turns===undefined?missing:String(start.budgets.max_turns)],
-  ["FAILURE LIMIT",evalConfig===undefined?missing:String(evalConfig.failure_limit)],
-  ["STOP AT MILESTONE",evalConfig===undefined?missing:evalConfig.target===null?"NONE · play to budget":esc(evalConfig.target)],
-  ["PRESET",esc(evalConfig?.preset_id??missing)],
-  ["HARNESS SOURCE",esc(start.harness.commit)+(start.harness.dirty?" · dirty checkout":" · clean checkout")],
-  ["START STATE",esc(start.start_state.kind)], ["VENDOR PIN",esc(start.vendor_pin)], ["PI VERSION",esc(start.pi_version)],
- ])+'<h4>EXPLICIT RECORDED SWITCHES</h4>'+(flagRows.length===0?'<p class="nodata">Switch values not recorded.</p>':kv(flagRows))+
- '<h4>FEATURES RECORDED ON</h4><p class="history-note">Absent feature IDs are not recorded as enabled. Their absence alone does not prove an explicit OFF value or support in this historical build.</p>'+
- (start.harness_features.length===0?'<p class="nodata">No enabled feature IDs recorded.</p>':`<ul>${start.harness_features.map(id=>`<li><code>${esc(id)}</code></li>`).join("")}</ul>`)+
- '<h4>TOOLS</h4>'+`<p>${esc(start.tools.join(", ")||"none recorded")}</p>`+
- '<p class="history-note">Model weight digest, endpoint, temperature and other serving defaults are not recorded in this run header; current service settings are not substituted.</p>'+
- `<details><summary>RECORDED SYSTEM PROMPT</summary><pre>${esc(start.system_prompt)}</pre></details><details><summary>RAW RUN CONFIGURATION</summary>${jsonHtml(start)}</details>`;
+ const missing="not recorded",evaluation=start.evaluation;
+ const explicit:Readonly<Record<string,boolean>>=evaluation===undefined?{}:{"deterministic-loop-guard-v1":evaluation.flags.loopGuard,"active-ui-ownership-v1":evaluation.flags.activeUi,"contextual-interface-docs-v1":evaluation.flags.interfaceDocs,"objective-tracking-v1":evaluation.flags.objectives};
+ const fallback:Readonly<Record<string,readonly[string,string,string]>>={
+  "deterministic-loop-guard-v1":["LOOP GUARD","Warns on repeated planning, observations, actions, cycles and rejections; can end persistent loops.","guard"],
+  "active-ui-ownership-v1":["ACTIVE UI OWNERSHIP","Reports the interface that owns input, its selection and readiness.","guidance"],
+  "contextual-interface-docs-v1":["INTERFACE DOCS","Supplies screen-specific control documentation.","guidance"],
+  "objective-tracking-v1":["OBJECTIVE TRACKING","Maintains an objective record and requires an active objective before pressing.","guard"],
+ };
+ const ids=[...new Set([...registry.map(f=>f.id),...start.harness_features,...Object.keys(explicit)])];
+ const cards=ids.map(id=>{
+  const info=registry.find(f=>f.id===id),known=Object.hasOwn(fallback,id)?fallback[id]:undefined;
+  const explicitValue=Object.hasOwn(explicit,id)?explicit[id]:undefined;
+  const state=start.harness_features.includes(id)?explicitValue===false?"conflict":"on":explicitValue===undefined?"unknown":explicitValue?"on":"off";
+  const title=info?.title??known?.[0]??id.replaceAll("-"," ");const description=info?.description??known?.[1]??"Recorded feature ID. A description is unavailable in this viewer’s feature catalog.";
+  const file=Object.hasOwn(FEATURE_EXPLAINERS,id)?FEATURE_EXPLAINERS[id]:undefined;
+  return {group:info?.group??known?.[2]??"other",state,html:`<article class="config-feature config-${state}" data-feature="${esc(id)}"><header><h5>${esc(title)}</h5><span class="config-badge">${state==="unknown"?"NOT RECORDED":state.toUpperCase()}</span></header><p>${esc(description)}</p><footer><code>${esc(id)}</code>${file===undefined?"":`<a href="/explainers/${file}" target="_blank" rel="noopener" aria-label="Read explainer: ${esc(title)}">READ EXPLAINER ↗</a>`}</footer></article>`};
+ });
+ const groups=[["observation","OBSERVATION","What the model can see"],["guidance","GUIDANCE","How the harness helps"],["guard","GUARDS","What can intervene"],["measurement","MEASUREMENT","Recorded evidence and scoring"],["other","RECORDED POLICIES","Other recorded feature IDs"]]as const;
+ const sections=groups.map(([id,title,description])=>{const list=cards.filter(c=>c.group===id||id==="other"&&!groups.some(g=>g[0]===c.group));return list.length===0?"":`<section class="config-group"><h4>${title}<span>${description}</span></h4><div class="config-feature-grid">${list.map(c=>c.html).join("")}</div></section>`;}).join("");
+ const box=(title:string,rows:readonly(readonly[string,string])[])=>`<section class="config-summary-card"><h4>${title}</h4>${kv(rows)}</section>`;
+ return `<div class="config-overview"><span class="config-readonly">◈ READ ONLY</span><p>Recorded settings for <strong>${esc(start.run)}</strong></p><div class="config-counts"><span>${String(cards.filter(c=>c.state==="on").length)} ON</span><span>${String(cards.filter(c=>c.state==="off").length)} OFF</span><span>${String(cards.filter(c=>c.state==="unknown").length)} NOT RECORDED</span>${cards.some(c=>c.state==="conflict")?'<span>CONFLICT · inspect raw configuration</span>':""}</div></div><div class="config-summary-grid">`+
+ box("MODEL",[["MODEL",esc(start.model.id)],["CONTEXT WINDOW",num(start.model.context_window)],["VISION",start.model.vision?"supported":"not supported"],["THINKING",esc(start.sampling.thinking_level)],["OUTPUT TOKEN CAP",num(start.sampling.max_tokens)]])+
+ box("BUDGET & GOAL",[["TIME CAP",start.budgets.max_wall_ms===undefined?missing:hms(start.budgets.max_wall_ms/1000)],["TURN CAP",start.budgets.max_turns===undefined?missing:String(start.budgets.max_turns)],["FAILURE LIMIT",evaluation===undefined?missing:String(evaluation.failure_limit)],["STOP AT MILESTONE",evaluation===undefined?missing:evaluation.target===null?"NONE · play to budget":esc(evaluation.target)]])+
+ box("BUILD & PRESET",[["PRESET",esc(evaluation?.preset_id??missing)],["HARNESS SOURCE",esc(start.harness.commit)+(start.harness.dirty?" · dirty":" · clean")],["START STATE",esc(start.start_state.kind)],["VENDOR PIN",esc(start.vendor_pin)],["PI VERSION",esc(start.pi_version)]])+`</div><p class="config-provenance">Statuses come from this run’s recorded header. Missing IDs stay NOT RECORDED, not guessed OFF. Descriptions come from the viewer’s feature catalog and may be newer than a historical run. This page never edits next-run settings.</p>${sections}<section class="config-summary-card"><h4>AVAILABLE TOOLS</h4><div class="config-tools">${start.tools.map(tool=>`<code>${esc(tool)}</code>`).join("")||"none recorded"}</div></section><p class="config-provenance">Model weight digest, endpoint, temperature and other serving defaults: not recorded in this run header.</p><details class="config-raw"><summary>RECORDED SYSTEM PROMPT</summary><pre>${esc(start.system_prompt)}</pre></details><details class="config-raw"><summary>RAW RUN CONFIGURATION</summary>${jsonHtml(start)}</details>`;
 }

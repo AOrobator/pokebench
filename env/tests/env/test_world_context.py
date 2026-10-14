@@ -356,3 +356,36 @@ def test_corrected_field_characters_are_common_even_when_phase_information_is_of
     m.put(0x02021FC4, bytes(1000))
     c = read_world_context(m.read, (10, 2), (0, 9), SAVE, decode_text, message_phase=True)
     assert c.message.identity == sha256(bytes(1000)).hexdigest() and c.dialogue is None
+
+
+def test_retained_window_reports_qualified_script_activity_not_an_input_ready_message():
+    for native, phase in ((0x08099D95, "script_pause"), (0x0809A671, "movement_wait"), (0x0809833D, "message_close_wait")):
+        m = field_printer(0)
+        m.put(0x020201B0 + 0x1B, b"\x00")
+        m.put(0x03000E40 + 1, b"\x02")
+        m.put(0x03000E40 + 4, struct.pack("<I", native))
+        c = read_world_context(m.read, (10, 2), (0, 9), SAVE, decode_text, message_phase=True)
+        assert c.message is None and c.dialogue is None
+        assert c.message_diagnostic is None
+        assert c.json()["field_activity"] == {"phase": phase, "owner": native}
+        assert "not an input-ready field message" in c.text(message=True)
+        assert "STATE COVERAGE ERROR" not in c.text(message=True)
+        # Stale native pointers in a stopped/waiting context do not qualify.
+        for address, value in ((0x03000E38, b"\x01"), (0x03000E40 + 1, b"\x00"), (0x03000E40 + 4, struct.pack("<I", 0x080ABCDE)), (0x020201B0 + 0x1B, b"\x01")):
+            previous = m.read(address, len(value))
+            m.put(address, value)
+            bad = read_world_context(m.read, (10, 2), (0, 9), SAVE, decode_text, message_phase=True)
+            assert bad.message is None and bad.message_diagnostic is not None
+            assert "field_activity" not in bad.json()
+            m.put(address, previous)
+
+
+def test_field_message_initialization_is_owned_but_not_ready():
+    for step in (0, 1):
+        m = field_printer()
+        m.put(0x03005E00 + 8, bytes([step, 0]))
+        c = read_world_context(m.read, (10, 2), (0, 9), SAVE, decode_text, message_phase=True)
+        assert c.message is None and c.message_diagnostic is None
+        assert c.json()["field_activity"] == {"phase": "message_initializing", "owner": 0x08098155}
+        m.put(0x03005E00 + 0x28, m.read(0x03005E00, 0x28))
+        assert read_world_context(m.read, (10, 2), (0, 9), SAVE, decode_text, message_phase=True).message_diagnostic is not None

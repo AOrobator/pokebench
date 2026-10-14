@@ -4,7 +4,7 @@ import type { RunEvent } from "@pokebench/agent/events";
 import { esc, eventMs, hms } from "./format.js";
 import { gbaSvg, litButtons } from "./gba.js";
 import { RunView, isRunEvent } from "./model.js";
-import { actionRow, brand, budgets, counters, fieldContext, objectivePanel, objectiveStatus, inspector, party, splits, thinkingDialog, trainerCard, type Baseline } from "./panels.js";
+import { actionRow, brand, budgets, counters, fieldContext, harnessConfig, objectivePanel, objectiveStatus, inspector, party, splits, thinkingDialog, trainerCard, type Baseline } from "./panels.js";
 import { ReplayClock } from "./replay.js";
 import { lanesSvg } from "./timeline.js";
 import { ABORT_HOLD_MS, availableActions, controlBar, overlay, overlayKind, runSeconds, sideStats, splitStrip, stateLabel, type ControlAction } from "./controls.js";
@@ -533,6 +533,7 @@ export class App {
     }
     this.setHtml("trainer", trainerCard(view, nowMs));
     this.setHtml("field-context", fieldContext(view));
+    this.setHtml("harness-config", harnessConfig(view));
     this.setHtml("party", party(view));
     this.setHtml("objective", objectivePanel(view));
     const objective = view.objective;

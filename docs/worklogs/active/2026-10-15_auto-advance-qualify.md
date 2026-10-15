@@ -122,6 +122,70 @@ Triage by the operator merge rule (blocks only on crash / OFF drift / false info
   clean-tree flag and the sha256 of `dist/dialogue-auto-advance.js`; re-run lab-1, truck-late, nickname-no and
   help-me on the committed build.
 
+Round 3 (scoped to the fix delta fa2497a → 14cc201, incl. the main merge): Codex `VERDICT: LGTM`, grok
+`VERDICT: LGTM`. Verbatim:
+
+<details><summary>Codex gpt-5.6-sol (r3-codex.out)</summary>
+
+```text
+## BLOCKERS
+
+None.
+
+The merge resolution correctly preserves `pressedOf`/`pressLineOf`/`results`/`dropped` alongside the carried `open` and `inDialogue` logic. OFF behavior remains unchanged.
+
+## DEFERRED
+
+- Test hardening: the failed-read fake does not emulate B selecting NO on a live YES/NO prompt, so it verifies batch truncation but not prompt preservation.
+- Known byte-offset versus decoded-character cursor issue beyond Oldale remains out of scope.
+
+Focused tests could not be rerun in the read-only workspace because Vitest requires temporary writes; static checks and `git diff --check` passed, and the checkout is clean at `14cc201`.
+
+VERDICT: LGTM
+```
+</details>
+
+<details><summary>grok-4.5 (r3-grok.out)</summary>
+
+```text
+## Round-3 review (fa2497a → 14cc201)
+
+### Round-2 blockers
+
+**B1 — fixed (rule 3).**  
+`inDialogue` is now `shownBefore || (before === undefined ? open !== null : dialogueEngaged(before))`, and `open` is no longer cleared at prime. A failed before-read with a carried open message stops the batch after the first input. Covered by the new `[B,B]` → one `B`, `dropped:["B"]`, `stop:"menu"` test (lab help-me shape).
+
+**B2 — fixed (rule 4).**  
+`navigate_to` builds `new Pages(record, open)` so a capped page is not re-recorded when the same message is still open. Covered by the new navigate_to test.
+
+**B3 — fixed (rule 4).**  
+`open = null` runs only after the model’s press returns, so a thrown `/action` keeps the carry for the retry. Covered by the fail-then-retry test.
+
+**B4 — accepted as out-of-delta.**  
+Build binding is in the qualification driver (`runs/` gitignored). Operator’s ROM re-runs (ramcheck 0 on ee890b4 and the merge) are enough under this rule; nothing in-repo to re-check.
+
+### Merge resolution (ee890b4 × main → 14cc201)
+
+Both sides survive in `execute`:
+
+| Main | Branch |
+|------|--------|
+| `pressLineOf` / `pressedOf` / `results[]` | `open` / `Pages(..., open)` |
+| `dropped = params.buttons.slice(sent.length)` | `inDialogue` (incl. failed-read + open) |
+| walk + interface-safety / Press-result lines | clear `open` only after press; `engaged \|\| inDialogue`; `openAt` on press + navigate_to |
+
+Walk still requires `freeField(before)`, so it does not fight `inDialogue`. Feature OFF still returns tools unchanged (rule 2).
+
+### DEFERRED
+
+- Known byte-vs-char cursor past Oldale (pre-existing; out of CLOCK_SET→RIVAL_MET).
+- B1 FakeGame does not model B→NO on `field_yes_no` (asserts batch cut only).
+- Live `build={head,clean,dist_sha256}` attestation stays outside this package.
+
+VERDICT: LGTM
+```
+</details>
+
 ## Deferred (post-experiment)
 
 - Byte-offset printer cursor vs decoded-text page cut (multi-char glyphs, `{PAUSE}` codes): first reachable in
@@ -150,6 +214,11 @@ Triage by the operator merge rule (blocks only on crash / OFF drift / false info
 - 19:05 merged main (bundle 4b5b8bf + decision-point 954d74f): conflicts only in dialogue-auto-advance.ts/test.ts
   (main's round 4–6 pressedOf/pressLineOf/results vs round-3 carried `open`); both kept. observation.py untouched
   by this branch.
+- 19:20 post-merge `just test`: decision-probe-live 'dialogue auto-advance' timed out at 60 s. Cause: the
+  decision-point fixture served the same free-field snapshot (raw_ram.frame 77164) on every read, so D3 never saw
+  a later frame and each engaged turn waited out the 10 s settle timeout (`field_free`, "did not reach a later
+  frame"); 14 turns > 60 s. The wrapper is bounded (waitMs 10 s, callMs 90 s), not a hang; no product change.
+  Fix in the fixture only: each free-field read is a later frame, like the real server. Test 7.3 s.
 
 ## Invariants
 

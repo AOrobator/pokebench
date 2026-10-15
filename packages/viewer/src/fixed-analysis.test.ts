@@ -83,6 +83,16 @@ describe("analyze and renderAnalysis", () => {
   });
 });
 
+describe("trials that ended before the wall cap", () => {
+  it("lists every valid trial that did not end at the wall cap, loudly, and says so when there are none", () => {
+    const early = { ...trial(3, "B", "bundle", null), reason: "ended stuck before the wall cap" };
+    const text = renderAnalysis(analyze([early, trial(4, "B", "control", null)], ["B"]), "x");
+    expect(text).toContain("## WARNING: 1 valid trial ended before its wall cap");
+    expect(text).toContain("| 3 | B | bundle | r3 | ended stuck before the wall cap |");
+    expect(renderAnalysis(analyze([trial(4, "B", "control", null)], ["B"]), "x")).toContain("Every valid trial ended at its wall cap.");
+  });
+});
+
 describe("analyze against the cap", () => {
   it("counts a primary milestone after the cap as a miss in Fisher as well as log-rank", () => {
     const late = { ...trial(1, "A", "bundle", 900_500), primaryMs: 900_500 };

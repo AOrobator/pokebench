@@ -107,8 +107,13 @@ describe("dryRunDefinition", () => {
 });
 
 describe("trial-ending features", () => {
+  it("refuses a diagnostic loop guard, whose stop notice still ends a trial stuck", () => {
+    const def = definition({ base: { ...definition().base, features: { ...definition().base.features, "deterministic-loop-guard-v1": false } } });
+    expect(definitionProblems(def)).toContain("deterministic-loop-guard-v1 and loop-guard-supervisor-v1 must both be on: otherwise the loop guard can end a trial stuck before its wall cap");
+  });
+
   it("refuses an enforced loop guard without its supervisor, which would end trials stuck", () => {
     const def = definition({ base: { ...definition().base, features: { ...definition().base.features, "loop-guard-supervisor-v1": false } } });
-    expect(definitionProblems(def)).toContain("deterministic-loop-guard-v1 without loop-guard-supervisor-v1 can end a trial before its wall cap");
+    expect(definitionProblems(def)).toContain("deterministic-loop-guard-v1 and loop-guard-supervisor-v1 must both be on: otherwise the loop guard can end a trial stuck before its wall cap");
   });
 });

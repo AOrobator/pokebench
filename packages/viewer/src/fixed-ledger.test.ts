@@ -105,6 +105,17 @@ describe("classifyTrial", () => {
     return classifyTrial(text(build), expectation, exit);
   }
 
+  it("checks the recorded feature bits against the arm, so a wrong-arm or unrecorded trial is invalid", () => {
+    const planned = { ...expectation, features: { "stall-briefing-v1": true, "milestone-stall-stop-v1": false } };
+    const run = (features: Record<string, boolean> | undefined) => classifyTrial(text((log) => {
+      log.add(0, { ...goodStart, evaluation: { ...goodStart.evaluation, ...(features === undefined ? {} : { features }) } });
+      log.add(900_000, { ...end, reason: "budget" });
+    }), planned, 0);
+    expect(run({ "stall-briefing-v1": true, "milestone-stall-stop-v1": false, other: true })).toMatchObject({ valid: true });
+    expect(run({ "stall-briefing-v1": false, "milestone-stall-stop-v1": true })).toMatchObject({ valid: false, reason: "run_start does not match the plan: stall-briefing-v1 off (planned on); milestone-stall-stop-v1 on (planned off)" });
+    expect(run(undefined)).toMatchObject({ valid: false, reason: "run_start does not match the plan: run_start does not record its feature set" });
+  });
+
   it("counts no milestone recorded after the wall cap: a primary reached late is a miss and does not deepen the furthest", () => {
     const late = classify((log) => {
       log.add(0, goodStart);

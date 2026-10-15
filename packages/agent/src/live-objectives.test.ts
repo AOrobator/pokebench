@@ -143,4 +143,7 @@ it("records a preset's replyFailuresEndRun in run_start", async () => {
   vi.spyOn(console,"log").mockImplementation(()=>undefined);
   await import("./live.js");await done;
   expect(owner.start).toMatchObject({evaluation:{preset_id:"lenient",failure_limit:3,reply_failures_end_run:false}});
+  const recorded=(owner.start as {evaluation?:{features?:Record<string,boolean>}}).evaluation?.features;
+  expect(recorded).toMatchObject({"deterministic-loop-guard-v1":false,"milestone-stall-stop-v1":false,"stall-briefing-v1":false});
+  expect(Object.values(recorded??{}).every(v=>typeof v==="boolean")).toBe(true);
 });

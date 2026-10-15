@@ -91,6 +91,27 @@ All 5 `model_error` ends in the 2×2 cohort (`factorial-2x2-think-fast-*`, 32 gr
 - `runner.json` names a running trial while either lane plays (so merges into main wait); the viewer's experiment panel shows a card per fixed run: n done / 140, invalid count, reserve, each lane's state/reason/retry time/last error, the invalid list, and a loud "RUNNER NOT RUNNING" when the pid is gone before the end.
 - Commands: `just fixed-run check|plan|approve|run|dry-run|status|analyze <id>` and `analyze-receipt <dir> <control-arm> <treatment-arm> --cap-ms <ms>`. `approve` is interactive (types the id) and binds the definition sha256; `run` refuses without it or after any edit.
 
+## Trial end conditions with this definition (grok b, verified against `4b5b8bf`)
+
+Every way a preset run ends, with `target: null` and both arms' flags:
+
+| End | Code | Can it fire? |
+|---|---|---|
+| `budget` (wall cap) | `live.ts` `BudgetTimer`, `harness.ts` Governor `active >= maxWallMs` | Yes: the intended end. |
+| `budget` (turn cap) | `harness.ts` `this.turns >= maxTurns` | In principle at 20000 turns; operator-rejected as unreachable (no run near 1500). Reported by the classifier as "turn cap before the wall cap". |
+| `milestone` | `live.ts` `NativeTargetStop`, only when `target !== null` | No: the definition schema fixes `target: null`. |
+| `stalled` | `play-wiring.ts` `stallStop`, only with `milestone-stall-stop-v1` | No: off in both arms (`offInBoth`, checked). |
+| `stuck` | `loop-detection.ts` `notice("stop")` → `harness.ts` `attachLoopGuard` aborts | Only without a supervisor: line ~402 sends the supervisor briefing instead when `loop-guard-supervisor-v1` is on and the mode is enforced (`deterministic-loop-guard-v1`). Both are on in both arms; the definition check now refuses either off. |
+| `model_error` | `harness.ts` Governor `fail` | Only for consecutive model/gateway errors: `replyFailuresEndRun: false` resets text-only/cut-off/invalid streaks. Invalid (infrastructure). |
+| `crash`, `operator_abort` | `live.ts` | Infrastructure or operator: invalid. |
+| Stall briefing, dialogue auto-advance, text-only supervisor | `play-wiring.ts` | Notes only; never end a run. |
+
+Any valid trial that still ends before the wall cap is listed in a WARNING table at the top of the analysis.
+
+## Bundle activation milestones at CLOCK_SET (`4b5b8bf`)
+
+- `character-presence-v1` activates at PLAYER_NAME_CONFIRMED and `stall-briefing-v1` at NEW_GAME_CREATED; both precede CLOCK_SET in `MILESTONE_ORDER`, so both are active from the first turn of every bundle trial. All eight, from `experiments/<switch>.json` `activationMilestone` against `milestones.ts` order (CLOCK_SET = index 8): dialogue-auto-advance, game-evidence-priority, stall-briefing at NEW_GAME_CREATED (1); character-presence, navigation-refusal-reasons, world-destinations at PLAYER_NAME_CONFIRMED (2); named-warp-destinations at FIRST_TRUCK_EXIT (4); transition-press-result at PLAYER_HOUSE_ENTERED (7). None is gated on a milestone at run time; the activation milestone is grading metadata, and milestones already reached in the save arrive as `present_at_start`.
+
 ## M3 lane receipts (2026-10-15 ~22:25 EDT, three short requests per lane)
 
 | | Lane A (GPU1) | Lane B (GPU0) |
@@ -140,6 +161,7 @@ All 5 `model_error` ends in the 2×2 cohort (`factorial-2x2-think-fast-*`, 32 gr
 - 2026-10-15 22:00 EDT: Operator merge rule recorded (Decisions). 22:15 EDT: operator burn-in (~3 h, both lanes, 15-min fixed-control trials from CLOCK_SET, worktree /private/tmp/pokebench-burnin, status ~/.hermes/cache/scratch/burnin/status.json, runs under runs/burnin-2026-10-15/) is running: M3 probes kept to three short requests per lane; M4 waits for the operator to stop it; its report's model_error evidence goes to M2.
 - 2026-10-15 22:35 EDT: Viewer RED was `feaefc3`. Viewer GREEN: `fixed-design`, `fixed-ledger`, `fixed-runner`, `fixed-status`, `fixed-analysis`, `fixed-cli`, the queue-view card, `/api/experiments` `fixedRuns`, `just fixed-run`, the draft definition. Gates: `just test` agent 70 files / 1090, viewer 58 / 735, env 1877 passed; `just lint` 0; `just build` 0; `just coverage` agent 97.5 / 93.88 / 98.15 / 98.88, viewer 95.31 / 90.55 / 94.13 / 97.9 (stmts / branches / funcs / lines); `just verify-vendor` OK.
 - 2026-10-15 22:50 EDT: Cloud review of `5340c08..761e8a6` (diff sha256 `0374e9e8…`). Codex gpt-5.6-sol: BLOCKING, three findings; grok (Cursor): LGTM with notes, triaged by the operator. Operator dispositions: Codex 2 (maxTurns 20000) rejected by operator decision; fix Codex 1, Codex 3 and grok (a), (b), (c). RED for Codex 1 and 3 (ledger: no milestone after the wall cap counts; analysis: Fisher counts a late primary as a miss; runner: one pinned commit for every build check and launch).
+- 2026-10-15 23:05 EDT: Merged main (bundle 4b5b8bf and decision-point screening 954d74f) into the branch. RED for grok (a) a lane survives an unexpected I/O throw, (b) the definition requires both loop-guard switches on and the analysis prints a WARNING table of valid trials that ended before the wall cap, (c) run_start records `evaluation.features` and the classifier checks the eight switches and the off-in-both flags against the arm.
 
 ## Deferred
 

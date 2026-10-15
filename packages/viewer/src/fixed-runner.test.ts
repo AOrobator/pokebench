@@ -20,6 +20,7 @@ interface FakeOptions {
   readonly verifyBuild?: (n: number) => string | null;
   readonly head?: (n: number) => string;
   readonly alive?: (pid: number) => boolean;
+  readonly runId?: (lane: FixedLane, n: number) => void;
 }
 
 class Fake implements FixedHost {
@@ -51,7 +52,8 @@ class Fake implements FixedHost {
     try { return Promise.resolve(this.options.serving?.(lane, n) ?? RECEIPT); } catch (error) { return Promise.reject(error instanceof Error ? error : new Error(String(error))); }
   }
   portInUse(): Promise<boolean> { return Promise.resolve(false); }
-  runId(lane: FixedLane): string { return `2026-10-16T00-00-00_qwen36-${lane.gpu.toLowerCase()}_${String(this.launches.length).padStart(4, "0")}`; }
+  runIds = 0;
+  runId(lane: FixedLane): string { this.runIds += 1; this.options.runId?.(lane, this.runIds); return `2026-10-16T00-00-00_qwen36-${lane.gpu.toLowerCase()}_${String(this.launches.length).padStart(4, "0")}`; }
   alive(pid: number): boolean { return this.options.alive?.(pid) ?? false; }
   log(line: string): void { this.logs.push(line); }
   async launch(l: FixedLaunch): Promise<number | null> {
@@ -75,10 +77,10 @@ class Fake implements FixedHost {
 }
 
 function writeEvents(runsRoot: string, l: FixedLaunch, ending: "budget" | "model_error"): void {
-  const preset = JSON.parse(readFileSync(l.presetPath, "utf8")) as { id: string; limits: { maxWallMs: number } };
+  const preset = JSON.parse(readFileSync(l.presetPath, "utf8")) as { id: string; limits: { maxWallMs: number }; features: Record<string, boolean> };
   const port = Number(new URL(l.env["POKEBENCH_GAME_SERVER_URL"] ?? "").port);
   const log = new Log();
-  log.add(0, { ...START, model: { ...START.model, id: l.env["POKEBENCH_MODEL"] ?? "" }, start_state: { kind: "save_state", path: "x", sha1: START_SHA1 }, budgets: { max_wall_ms: preset.limits.maxWallMs }, isolation: { ...START.isolation, port }, evaluation: { preset_id: preset.id, target: null, failure_limit: 3, reply_failures_end_run: false, flags: { loopGuard: true, activeUi: true, interfaceDocs: true, objectives: false } } });
+  log.add(0, { ...START, model: { ...START.model, id: l.env["POKEBENCH_MODEL"] ?? "" }, start_state: { kind: "save_state", path: "x", sha1: START_SHA1 }, budgets: { max_wall_ms: preset.limits.maxWallMs }, isolation: { ...START.isolation, port }, evaluation: { preset_id: preset.id, target: null, failure_limit: 3, reply_failures_end_run: false, flags: { loopGuard: true, activeUi: true, interfaceDocs: true, objectives: false }, features: preset.features } });
   if (ending === "model_error") log.add(10, { type: "retry", turn: 1, reason: "model error: HTTP 502", attempt: 3, limit: 3 });
   log.add(preset.limits.maxWallMs, { type: "run_end", turn: 5, reason: ending, furthest_milestone: null, turns: 5, wall_ms: ending === "budget" ? preset.limits.maxWallMs : 10, tokens: { input: 1, output: 1 }, frames: { saved: 0, bytes: 0 } });
   mkdirSync(join(runsRoot, l.runId), { recursive: true });
@@ -171,6 +173,16 @@ describe("runFixed", () => {
     expect(host.statuses.some((s) => s.lanes[0]?.reason === "lane A serves build b1 (planned b10236-1464c62d8); 2 slots (planned 1)")).toBe(true);
     expect(last.lanes[0]?.state).not.toBe("running");
     expect(host.launches.every((l) => l.lane === "B")).toBe(true);
+  });
+
+  it("pauses a lane on an unexpected I/O error and retries it, while the other lane plays on", async () => {
+    const { def, runsRoot } = setup();
+    let thrown = false;
+    const host = new Fake(runsRoot, { runId: (lane) => { if (lane.id === "B" && !thrown) { thrown = true; throw new Error("EIO: i/o error, write"); } } });
+    const result = await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77 });
+    expect(result).toBe("finished");
+    expect(host.statuses.some((st) => st.lanes.find((l) => l.id === "B")?.state === "paused" && st.lanes.find((l) => l.id === "B")?.reason.includes("EIO") === true && st.lastError?.includes("EIO") === true)).toBe(true);
+    expect(host.statuses.at(-1)?.valid).toBe(def.plan.length);
   });
 
   it("pins one commit for the whole run: every build check and every launch uses the commit read at start", async () => {

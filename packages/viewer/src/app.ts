@@ -7,8 +7,8 @@ import { RunView, isRunEvent } from "./model.js";
 import { brand, runIdentity, budgets, counters, fieldContext, harnessConfig, objectivePanel, objectiveStatus, inspector, party, splits, thinkingDialog, trainerCard, type Baseline } from "./panels.js";
 import { ReplayClock } from "./replay.js";
 import { lanesSvg } from "./timeline.js";
-import { TRACE_CHIPS, TraceBuilder, chipCounts, sideTraceHtml, traceHtml, type TraceCategory } from "./trace.js";
-import { ABORT_HOLD_MS, availableActions, controlBar, overlay, overlayKind, runSeconds, sideStats, splitStrip, stateLabel, type ControlAction } from "./controls.js";
+import { TRACE_CHIPS, TraceBuilder, moreButton, sideGroups, traceGroups, type TraceCategory, type TraceGroup } from "./trace.js";
+import { ABORT_HOLD_MS, availableActions, controlBar, overlay, overlayKind, runSeconds, sideStats, splitStrip, splitTimes, stateLabel, type ControlAction } from "./controls.js";
 import { NextRunPanel } from "./nextpanel.js";
 import { QueuePanel } from "./queue-view.js";
 
@@ -42,23 +42,63 @@ const LIVE_SCREEN_MS = 500;
 const TRACE_TURNS = 50;
 const SIDE_TURNS = 30;
 
-// Rerendering rows keeps what the operator opened, folded or selected, and
-// keeps the rows they were reading in place while newer turns arrive above.
-function replacePreserving(box: HTMLElement, html: string): void {
-  const open = new Set([...box.querySelectorAll<HTMLDetailsElement>("details[data-key][open]")].map((row) => row.dataset.key));
-  const folded = new Set([...box.querySelectorAll<HTMLDetailsElement>("details.res-d:not([open])")].map((result) => result.closest<HTMLElement>("[data-key]")?.dataset.key));
-  const selected = box.querySelector<HTMLElement>("[data-key].sel")?.dataset.key;
-  const { scrollTop, scrollHeight } = box;
-  box.innerHTML = html;
-  for (const row of box.querySelectorAll<HTMLDetailsElement>("details[data-key]")) {
-    if (open.has(row.dataset.key)) row.open = true;
+// Redrawing a turn keeps what the operator opened, folded or selected in it.
+function replacePreserving(group: HTMLElement, html: string): void {
+  const open = new Set([...group.querySelectorAll<HTMLDetailsElement>("details[data-key][open]")].map((row) => row.dataset.key));
+  const folded = new Set([...group.querySelectorAll<HTMLDetailsElement>("details.res-d:not([open])")].map((result) => result.closest<HTMLElement>("[data-key]")?.dataset.key));
+  const selected = group.querySelector<HTMLElement>("[data-key].sel")?.dataset.key;
+  group.innerHTML = html;
+  for (const row of group.querySelectorAll<HTMLElement>("[data-key]")) {
+    if (row instanceof HTMLDetailsElement && open.has(row.dataset.key)) row.open = true;
     const result = row.querySelector<HTMLDetailsElement>("details.res-d");
     if (result !== null && folded.has(row.dataset.key)) result.open = false;
     if (row.dataset.key === selected) row.classList.add("sel");
   }
-  if (selected !== undefined) box.querySelector<HTMLElement>(`div[data-key="${selected}"]`)?.classList.add("sel");
-  if (scrollTop > 0) box.scrollTop = scrollTop + box.scrollHeight - scrollHeight;
 }
+
+// The row (or turn heading) at the top of the visible list, so it can stay put.
+// At the very top the newest turn is shown, unless the pointer is over the list.
+function anchorOf(box: HTMLElement, held: boolean): { readonly find: () => HTMLElement | null; readonly offset: number } | null {
+  if (box.scrollTop <= 0 && !held) return null;
+  const top = box.getBoundingClientRect().top;
+  const first = [...box.querySelectorAll<HTMLElement>(".turn-h, [data-key]")].find((el) => el.getBoundingClientRect().bottom > top);
+  if (first === undefined) return null;
+  const key = first.dataset.key;
+  const group = first.closest<HTMLElement>("[data-group]")?.dataset.group ?? "";
+  const find = (): HTMLElement | null => key === undefined ? box.querySelector<HTMLElement>(`[data-group="${group}"] .turn-h`) : box.querySelector<HTMLElement>(`[data-key="${key}"]`);
+  return { find, offset: first.getBoundingClientRect().top - top };
+}
+
+// Updates the list turn by turn: unchanged turns keep their elements, so a click
+// or keyboard focus is never lost to a live update, and the reader's row stays put.
+function reconcile(box: HTMLElement, groups: readonly TraceGroup[], tail: string, stamps: WeakMap<HTMLElement, string>, held: boolean): void {
+  const anchor = anchorOf(box, held);
+  const existing = new Map<string, HTMLElement>();
+  for (const child of [...box.children] as HTMLElement[]) {
+    if (child.dataset.group === undefined) child.remove();
+    else existing.set(child.dataset.group, child);
+  }
+  const wanted: { key: string; stamp: string; html: () => string }[] = [...groups];
+  if (tail !== "") wanted.push({ key: "tail", stamp: tail, html: () => tail });
+  wanted.forEach((group, at) => {
+    let element = existing.get(group.key);
+    existing.delete(group.key);
+    if (element === undefined) {
+      element = box.ownerDocument.createElement("div");
+      element.className = "tgroup";
+      element.dataset.group = group.key;
+      element.innerHTML = group.html();
+    } else if (stamps.get(element) !== group.stamp) {
+      replacePreserving(element, group.html());
+    }
+    stamps.set(element, group.stamp);
+    if (box.children[at] !== element) box.insertBefore(element, box.children[at] ?? null);
+  });
+  for (const stale of existing.values()) stale.remove();
+  const moved = anchor?.find();
+  if (anchor !== null && moved !== null && moved !== undefined) box.scrollTop += moved.getBoundingClientRect().top - box.getBoundingClientRect().top - anchor.offset;
+}
+
 const LIVE_RETRY_MS = 5_000;
 export const RUN_LIST_MS = 3_000;
 const MODE_TEXT: Record<Mode, string> = { loading: "LOADING", live: "LIVE", replay: "REPLAY", idle: "NO RUNS" };
@@ -121,6 +161,9 @@ export class App {
   private traceKey = "";
   private traceOn = new Set<TraceCategory>(TRACE_CHIPS.filter((chip) => chip.on).map((chip) => chip.id));
   private traceLimit = TRACE_TURNS;
+  private readonly stamps = new WeakMap<HTMLElement, string>();
+  // Lists under the pointer hold still while newer turns arrive, so a click lands where aimed.
+  private readonly held = new Set<HTMLElement>();
   private screenTick = 0;
   private sinceScreen = 0;
   private liveFailedAt: number | null = null;
@@ -319,6 +362,11 @@ export class App {
       this.inspectRow(target);
     });
     this.ui("side-trace").addEventListener("click", (event) => { this.inspectRow(event.target as HTMLElement); });
+    for (const name of ["trace", "side-trace"]) {
+      const list = this.ui(name);
+      list.addEventListener("mouseenter", () => this.held.add(list));
+      list.addEventListener("mouseleave", () => this.held.delete(list));
+    }
     this.ui("trace-link").addEventListener("click", () => {
       this.showPage("trace");
       this.doc.querySelector(".inspection-nav")?.scrollIntoView({ block: "start", behavior: "smooth" });
@@ -331,7 +379,8 @@ export class App {
         for (const row of this.ui("trace").querySelectorAll<HTMLDetailsElement>("details[data-key]")) row.open = open;
         return;
       }
-      const chip = target.closest<HTMLElement>("[data-chip]")?.dataset.chip as TraceCategory | undefined;
+      const raw = target.closest<HTMLElement>("[data-chip]")?.dataset.chip;
+      const chip = TRACE_CHIPS.find((c) => c.id === raw)?.id;
       if (chip === undefined) return;
       if (!this.traceOn.delete(chip)) this.traceOn.add(chip);
       this.render();
@@ -544,8 +593,9 @@ export class App {
     }
   }
 
+  // The attribution without the message itself, which the row body already shows.
   private newTrace(): TraceBuilder {
-    return new TraceBuilder((event) => this.shown.loopLabel(event));
+    return new TraceBuilder((event) => this.shown.loopLabel(event).replace(`: ${event.message}`, ""));
   }
 
   private resetTrace(): void {
@@ -553,10 +603,20 @@ export class App {
     this.traced = 0;
     this.traceKey = "";
     this.traceLimit = TRACE_TURNS;
-    for (const name of ["trace", "side-trace"]) {
-      const element = this.doc.querySelector<HTMLElement>(`[data-ui="${name}"]`);
-      element?.replaceChildren();
-      if (element !== null) this.html.delete(element);
+    for (const name of ["trace", "side-trace"]) this.doc.querySelector<HTMLElement>(`[data-ui="${name}"]`)?.replaceChildren();
+  }
+
+  // The chip buttons are built once and updated in place, so focus and clicks survive live updates.
+  private renderChips(): void {
+    const bar = this.ui("trace-chips");
+    if (bar.childElementCount === 0) {
+      bar.innerHTML = TRACE_CHIPS.map((chip) => `<button type="button" data-chip="${chip.id}" aria-pressed="false">${chip.label} <small>0</small></button>`).join("") + '<span class="spacer"></span><button type="button" class="act" data-trace-collapse>▸ COLLAPSE ALL</button><button type="button" class="act" data-trace-expand>▾ EXPAND ALL</button>';
+    }
+    for (const chip of TRACE_CHIPS) {
+      const button = bar.querySelector<HTMLElement>(`[data-chip="${chip.id}"]`);
+      button?.setAttribute("aria-pressed", String(this.traceOn.has(chip.id)));
+      const count = button?.querySelector("small");
+      if (count !== null && count !== undefined && count.textContent !== String(this.trace.counts[chip.id])) count.textContent = String(this.trace.counts[chip.id]);
     }
   }
 
@@ -578,20 +638,26 @@ export class App {
     const key = `${String(this.trace.version)}|${[...this.traceOn].join(",")}|${String(this.traceLimit)}|${String(live?.turn ?? "")}`;
     const box = this.ui("trace");
     if (key !== this.traceKey) {
-      if (this.traceKey.split("|")[0] !== String(this.trace.version) || this.traceKey === "") {
-        const counts = chipCounts(this.trace.turns);
-        this.setHtml("trace-chips", TRACE_CHIPS.map((chip) => `<button type="button" data-chip="${chip.id}" aria-pressed="${String(this.traceOn.has(chip.id))}">${chip.label} <small>${String(counts[chip.id])}</small></button>`).join("") + '<span class="spacer"></span><button type="button" class="act" data-trace-collapse>▸ COLLAPSE ALL</button><button type="button" class="act" data-trace-expand>▾ EXPAND ALL</button>');
-      } else {
-        for (const chip of this.ui("trace-chips").querySelectorAll<HTMLElement>("[data-chip]")) chip.setAttribute("aria-pressed", String(this.traceOn.has(chip.dataset.chip as TraceCategory)));
-      }
-      if (this.traceKey.split("|")[0] !== String(this.trace.version)) replacePreserving(this.ui("side-trace"), sideTraceHtml(this.trace.turns, SIDE_TURNS));
+      const versionChanged = this.traceKey.split("|")[0] !== String(this.trace.version);
       this.traceKey = key;
-      replacePreserving(box, traceHtml(this.trace.turns, this.traceOn, { startMs: this.shown.startMs, live, limit: this.traceLimit }));
+      this.renderChips();
+      if (versionChanged) {
+        const side = this.ui("side-trace");
+        const groups = sideGroups(this.trace.turns, SIDE_TURNS);
+        reconcile(side, groups, groups.length === 0 ? '<p class="nodata">no steps yet</p>' : "", this.stamps, this.held.has(side));
+      }
+      const { groups, more } = traceGroups(this.trace.turns, this.traceOn, { startMs: this.shown.startMs, live, limit: this.traceLimit, page: TRACE_TURNS });
+      reconcile(box, groups, groups.length === 0 ? '<p class="nodata">no recorded events</p>' : moreButton(more, TRACE_TURNS), this.stamps, this.held.has(box));
     }
     if (live !== null) {
       const { thinking, text } = this.shown.streaming;
       const liveText = box.querySelector<HTMLElement>("[data-live-text]");
-      if (liveText !== null && liveText.textContent !== thinking + text) liveText.textContent = thinking + text;
+      if (liveText !== null && liveText.textContent !== thinking + text) {
+        // The live box has a fixed height so rows below never move; it follows the newest text unless scrolled back.
+        const following = liveText.scrollHeight - liveText.scrollTop - liveText.clientHeight < 24;
+        liveText.textContent = thinking + text;
+        if (following) liveText.scrollTop = liveText.scrollHeight;
+      }
       const secs = box.querySelector<HTMLElement>("[data-live-secs]");
       if (secs !== null && this.shown.turnStartMs !== null) secs.textContent = `${((nowMs - this.shown.turnStartMs) / 1000).toFixed(1)}s`;
     }
@@ -634,12 +700,13 @@ export class App {
       }
     }
     this.setHtml("stats", sideStats(view, nowMs));
-    this.setHtml("split-strip", splitStrip(view, this.best));
+    this.setHtml("split-strip", splitStrip(view));
+    this.setHtml("split-times", splitTimes(view, this.best));
     this.next.setLive(live ? view : null);
     this.ui("brand").textContent = brand(view);
     const dialog = thinkingDialog(view, nowMs);
     this.ui("think-head").textContent = dialog.head;
-    this.ui("think-title").textContent = view.start === null ? "NO RUN" : `RIGHT NOW · TURN ${String(view.turn)}`;
+    this.ui("think-title").textContent = view.start === null ? "NO RUN" : `${view.end === null ? "RIGHT NOW" : "FINAL"} · TURN ${String(view.turn)}`;
     const ident = runIdentity(view);
     this.setHtml("ident", ident);
     this.ui("ident").hidden = ident === "";

@@ -870,14 +870,67 @@ describe("agent trace page", () => {
     must(tool.querySelector("summary")).click();
     tool.open = true;
     expect(ui("inspector").textContent).toContain('"type": "tool_result"');
+    const chip = must(ui("trace-chips").querySelector('[data-chip="think"]'));
     feed(must(streams[0]), events.slice(10, 12), false);
     setNow(BASE_MS + 8_100);
+    app.tick(100);
+    // A newer turn arriving leaves turn 1's elements and the chip buttons untouched.
+    expect(ui("trace").querySelector('details[data-key="5"]')).toBe(tool);
+    expect(ui("trace-chips").querySelector('[data-chip="think"]')).toBe(chip);
+    expect(chip.textContent).toBe("THINKING 2");
+    // A new event in turn 1 redraws that turn and keeps what was opened, folded and selected.
+    const late = new Log();
+    late.events.push(...events.slice(0, 12));
+    feed(must(streams[0]), [late.add(8_050, { type: "retry", turn: 1, reason: "late", attempt: 1, limit: 3 })], false);
     app.tick(100);
     const again = must(ui("trace").querySelector<HTMLDetailsElement>('details[data-key="5"]'));
     expect(again).not.toBe(tool);
     expect(again.open).toBe(true);
     expect(must(again.querySelector<HTMLDetailsElement>("details.res-d")).open).toBe(false);
     expect(again.classList.contains("sel")).toBe(true);
+  });
+
+  it("keeps the row being read in place when turns change above or below it", async () => {
+    const { app, streams, setNow } = await harness();
+    const log = new Log();
+    log.add(0, START);
+    for (let turn = 1; turn <= 70; turn += 1) log.add(turn * 10, assistantAt(turn));
+    feed(must(streams[0]), log.events);
+    setNow(BASE_MS + 1_000);
+    app.tick(10);
+    const box = ui("trace");
+    const items = (): HTMLElement[] => [...box.querySelectorAll<HTMLElement>(".turn-h, [data-key]")];
+    const rect = (top: number): DOMRect => ({ top, bottom: top + 20, left: 0, right: 0, width: 0, height: 20, x: 0, y: top, toJSON: () => ({}) });
+    const spy = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+      return this === box ? rect(0) : rect(items().indexOf(this) * 20 - box.scrollTop);
+    });
+    try {
+      box.scrollTop = 400;
+      const reading = must(items().find((el) => el.getBoundingClientRect().bottom > 0));
+      const offset = reading.getBoundingClientRect().top;
+      must(box.querySelector<HTMLButtonElement>("[data-trace-more]")).click();
+      expect(box.querySelectorAll(".turn-h")).toHaveLength(70);
+      expect(reading.getBoundingClientRect().top).toBe(offset);
+      feed(must(streams[0]), [log.add(800, assistantAt(71))], false);
+      app.tick(10);
+      expect(reading.isConnected).toBe(true);
+      expect(reading.getBoundingClientRect().top).toBe(offset);
+      // At the top the newest turn shows, unless the pointer is over the list.
+      box.scrollTop = 0;
+      const top = must(items()[0]);
+      feed(must(streams[0]), [log.add(810, assistantAt(72))], false);
+      app.tick(10);
+      expect(top.getBoundingClientRect().top).toBeGreaterThan(0);
+      box.scrollTop = 0;
+      const held = must(items()[0]);
+      box.dispatchEvent(new Event("mouseenter"));
+      feed(must(streams[0]), [log.add(820, assistantAt(73))], false);
+      app.tick(10);
+      expect(held.getBoundingClientRect().top).toBe(0);
+      box.dispatchEvent(new Event("mouseleave"));
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it("collapses and expands every row", async () => {
@@ -959,9 +1012,24 @@ describe("side panel", () => {
     const { app, streams } = await harness(`#run=${M4_ID}`);
     feed(must(streams[0]), m4Run());
     app.tick(60_000);
+    expect(ui("think-title").textContent).toBe("FINAL · TURN 4");
     ui("trace-link").click();
     expect(document.querySelector<HTMLElement>('[data-nav-page="trace"]')?.hidden).toBe(false);
     expect(document.querySelector('[data-page="trace"]')?.getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("keeps split chips in the side panel and folds the split times table away", async () => {
+    const { app, streams } = await harness(`#run=${M4_ID}`);
+    feed(must(streams[0]), m4Run());
+    app.tick(100);
+    const fold = must(document.querySelector<HTMLDetailsElement>(".side details.split-times"));
+    expect(fold.open).toBe(false);
+    expect(fold.contains(ui("split-times"))).toBe(true);
+    expect(ui("split-times").textContent).toContain("VS BEST");
+    expect(ui("split-strip").querySelector(".mspl")).not.toBeNull();
+    fold.open = true;
+    app.tick(60_000);
+    expect(fold.open).toBe(true);
   });
 
   it("shows the run identity strip in the header", async () => {

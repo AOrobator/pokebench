@@ -39,16 +39,25 @@ export interface TraceStep {
   readonly body: string | null;
 }
 
+// Events the trace leaves to their own panels (the same ones ACTIVITY HISTORY skipped).
+const PANEL_ONLY = new Set<RunEvent["type"]>(["run_start", "turn_start", "state", "assistant_delta", "human_input", "human_sample"]);
+export const showsInTrace = (event: RunEvent): boolean => !PANEL_ONLY.has(event.type);
+
 class Entry {
   readonly events: RunEvent[];
+  readonly category: TraceCategory;
   private cached: TraceStep | null = null;
-  constructor(first: RunEvent, readonly label: string | null = null) {
+  private row: string | null = null;
+  constructor(first: RunEvent, readonly home: TraceTurn, readonly label: string | null = null) {
     this.events = [first];
+    this.category = categoryOf(first);
   }
 
   push(event: RunEvent): void {
     this.events.push(event);
     this.cached = null;
+    this.row = null;
+    this.home.version += 1;
   }
 
   // Built once per change: a long run rerenders without re-escaping old results.
@@ -56,10 +65,17 @@ class Entry {
     this.cached ??= describe(this);
     return this.cached;
   }
+
+  html(): string {
+    this.row ??= traceRow(this.step());
+    return this.row;
+  }
 }
 
 export class TraceTurn {
   readonly entries: Entry[] = [];
+  // Bumped whenever this turn's rows change, so the viewer redraws only that turn.
+  version = 0;
   constructor(readonly turn: number, readonly ms: number) {}
   inputTokens: number | null = null;
 
@@ -70,6 +86,7 @@ export class TraceTurn {
 
 export class TraceBuilder {
   readonly turns: TraceTurn[] = [];
+  readonly counts = Object.fromEntries(TRACE_CHIPS.map((chip) => [chip.id, 0])) as Record<TraceCategory, number>;
   version = 0;
   private readonly tools = new Map<string, Entry>();
 
@@ -77,7 +94,7 @@ export class TraceBuilder {
   constructor(private readonly loopLabel?: (event: Of<"loop_guard">) => string) {}
 
   add(event: RunEvent): void {
-    if (eventText(event) === null) return;
+    if (!showsInTrace(event)) return;
     this.version += 1;
     const owner = this.ownerOf(event);
     if (owner !== undefined) {
@@ -85,14 +102,16 @@ export class TraceBuilder {
       if (event.type === "tool_result") this.tools.delete(event.id);
       return;
     }
-    const entry = new Entry(event, event.type === "loop_guard" && this.loopLabel !== undefined ? this.loopLabel(event) : null);
-    if (event.type === "tool_call") this.tools.set(event.id, entry);
     let turn = this.turns.at(-1);
     if (turn?.turn !== event.turn) {
       turn = this.turns.find((t) => t.turn === event.turn) ?? this.insert(new TraceTurn(event.turn, eventMs(event)));
     }
+    const entry = new Entry(event, turn, event.type === "loop_guard" && this.loopLabel !== undefined ? this.loopLabel(event) : null);
+    if (event.type === "tool_call") this.tools.set(event.id, entry);
     if (event.type === "assistant") turn.inputTokens = event.usage.input;
     turn.entries.push(entry);
+    turn.version += 1;
+    this.counts[entry.category] += 1;
   }
 
   private ownerOf(event: RunEvent): Entry | undefined {
@@ -131,6 +150,19 @@ const RUN_LABEL: Readonly<Partial<Record<RunEvent["type"], readonly [string, str
 const MEMORY = new Set<RunEvent["type"]>(["navigation_context", "ledger_context", "milestone_hint", "decision_input", "compaction"]);
 const ACTION = new Set<RunEvent["type"]>(["battle_choice", "objective_attempt", "button_press", "tool_result", "wait_input"]);
 
+function categoryOf(event: RunEvent): TraceCategory {
+  switch (event.type) {
+    case "assistant": return "think";
+    case "tool_call": return "act";
+    case "loop_guard": return event.phase === "supervisor" ? "sup" : "guard";
+    case "milestone": return "ms";
+    // A harness bug is a diagnostic, so it stays visible with the errors, not behind EMULATOR.
+    case "native_action": return event.kind === "harness_bug" ? "err" : "eng";
+    case "retry": case "telemetry_error": return "err";
+    default: return MEMORY.has(event.type) ? "mem" : ACTION.has(event.type) ? "act" : "run";
+  }
+}
+
 function isError(event: RunEvent): boolean {
   return (event.type === "tool_result" && event.is_error) || event.type === "retry" || event.type === "telemetry_error" ||
     (event.type === "native_action" && event.kind === "harness_bug") ||
@@ -155,11 +187,11 @@ function describe(entry: Entry): TraceStep {
     };
     case "native_action": {
       const [icon, tone] = NATIVE_ICON[first.kind] ?? ["ENG", "engine"];
-      return { ...base(entry), category: "eng", iconHtml: icon, tone, titleHtml: esc(first.kind.replace(/_/g, " ")), summaryHtml: esc(JSON.stringify(first.details)), desc: `#${String(first.seq)} · frame ${String(first.frame)} (first observed)`, status: isError(first) ? "error" : null, body: null };
+      return { ...base(entry), category: entry.category, iconHtml: icon, tone, titleHtml: esc(first.kind.replace(/_/g, " ")), summaryHtml: esc(JSON.stringify(first.details)), desc: `#${String(first.seq)} · frame ${String(first.frame)} (first observed)`, status: isError(first) ? "error" : null, body: null };
     }
     default: {
       const [icon, title] = RUN_LABEL[first.type] ?? ["EV", first.type];
-      const category: TraceCategory = MEMORY.has(first.type) ? "mem" : ACTION.has(first.type) ? "act" : first.type === "retry" || first.type === "telemetry_error" ? "err" : "run";
+      const category = entry.category;
       const text = "text" in first && typeof first.text === "string" ? first.text : null;
       return {
         ...base(entry), category, iconHtml: esc(icon), tone: category === "err" ? "error" : category === "mem" ? "teal" : "ok", titleHtml: esc(title),
@@ -179,7 +211,7 @@ function thought(entry: Entry, event: Of<"assistant">): TraceStep {
     summaryHtml: esc(firstLine(event.thinking || event.text || (event.error ?? ""))),
     desc: `#${String(event.seq)} · ${num(event.usage.output)} out${event.ttft_ms === null ? "" : ` · ttft ${secs(event.ttft_ms)}`}`,
     status: event.error === undefined ? null : "error",
-    body: `${event.thinking === "" ? "" : `<div class="thought">${esc(event.thinking.trim())}</div>`}${reply}${error}`,
+    body: `${event.thinking === "" ? "" : `<div class="thought">${esc(event.thinking.trim())}</div>`}${reply}${error}` || null,
   };
 }
 
@@ -230,16 +262,20 @@ export function traceRow(step: TraceStep, gutter?: string): string {
   return `<details ${attrs}><summary class="tl-row">${head}<span class="chev">›</span></summary><div class="tl-body">${step.body}</div></details>`;
 }
 
-export function chipCounts(turns: readonly TraceTurn[]): Record<TraceCategory, number> {
-  const counts = Object.fromEntries(TRACE_CHIPS.map((chip) => [chip.id, 0])) as Record<TraceCategory, number>;
-  for (const turn of turns) for (const step of turn.steps()) counts[step.category] += 1;
-  return counts;
-}
-
 export interface TraceOptions {
   readonly startMs: number | null;
   readonly live: { readonly turn: number } | null;
+  // Turns on screen, and how many more each SHOW OLDER click adds.
   readonly limit: number;
+  readonly page: number;
+}
+
+// One turn's rows. The stamp changes exactly when its HTML would, so the viewer
+// redraws only the turns that changed and builds HTML only for those.
+export interface TraceGroup {
+  readonly key: string;
+  readonly stamp: string;
+  html(): string;
 }
 
 const LIVE_ROW = '<div class="tl tl-think live-row" data-c="think"><div class="tl-row"><span class="tl-icon ic-think pulse">THK</span><span class="tl-title shimmer">Thinking</span><span class="tl-res">current turn · always open</span><span class="tl-desc" data-live-secs></span><span class="st running">running</span><span class="chev blank"></span></div><div class="tl-body always"><div class="thought" data-live-text></div></div></div>';
@@ -250,35 +286,54 @@ function turnHead(turn: number, ms: number | null, startMs: number | null, token
 }
 
 // Newest turn first; inside a turn, rows keep seq order.
-export function traceHtml(turns: readonly TraceTurn[], on: ReadonlySet<TraceCategory>, options: TraceOptions): string {
-  const groups: string[] = [];
+export function traceGroups(turns: readonly TraceTurn[], on: ReadonlySet<TraceCategory>, options: TraceOptions): { groups: TraceGroup[]; more: number } {
+  const groups: TraceGroup[] = [];
   let more = 0;
   const live = options.live;
-  if (live !== null && !turns.some((t) => t.turn === live.turn)) groups.push(turnHead(live.turn, null, null, null) + LIVE_ROW);
+  const filter = [...on].sort().join(",");
+  if (live !== null && !turns.some((t) => t.turn === live.turn)) groups.push({ key: `t${String(live.turn)}`, stamp: "live", html: () => turnHead(live.turn, null, null, null) + LIVE_ROW });
   for (let i = turns.length - 1; i >= 0; i -= 1) {
     const turn = turns[i] as TraceTurn;
-    const steps = turn.steps().filter((step) => on.has(step.category));
-    if (steps.length === 0 && live?.turn !== turn.turn) continue;
+    const isLive = live?.turn === turn.turn;
+    const shown = turn.entries.filter((entry) => on.has(entry.category));
+    if (shown.length === 0 && !isLive) continue;
     // Only the turns on screen become HTML; the rest are counted.
     if (groups.length >= options.limit) {
       more += 1;
       continue;
     }
-    const rows = steps.map((step) => traceRow(step));
-    if (live?.turn === turn.turn) rows.push(LIVE_ROW);
-    groups.push(turnHead(turn.turn, turn.ms, options.startMs, turn.inputTokens) + rows.join(""));
+    groups.push({
+      key: `t${String(turn.turn)}`,
+      stamp: `${String(turn.version)}|${filter}|${String(isLive)}|${String(options.startMs)}`,
+      html: () => turnHead(turn.turn, turn.ms, options.startMs, turn.inputTokens) + shown.map((entry) => entry.html()).join("") + (isLive ? LIVE_ROW : ""),
+    });
   }
-  if (groups.length === 0) return '<p class="nodata">no recorded events</p>';
-  return groups.join("") + (more > 0 ? `<button type="button" class="pbtn trace-more" data-trace-more>SHOW ${String(Math.min(more, options.limit))} OLDER TURNS</button>` : "");
+  return { groups, more };
+}
+
+export function moreButton(more: number, page: number): string {
+  return more > 0 ? `<button type="button" class="pbtn trace-more" data-trace-more>SHOW ${String(Math.min(more, page))} OLDER TURNS</button>` : "";
+}
+
+export const groupHtml = (group: TraceGroup): string => `<div class="tgroup" data-group="${group.key}">${group.html()}</div>`;
+
+export function traceHtml(turns: readonly TraceTurn[], on: ReadonlySet<TraceCategory>, options: TraceOptions): string {
+  const { groups, more } = traceGroups(turns, on, options);
+  return groups.length === 0 ? '<p class="nodata">no recorded events</p>' : groups.map(groupHtml).join("") + moreButton(more, options.page);
 }
 
 // The side panel's earlier steps: agent and harness only, newest turn first.
-export function sideTraceHtml(turns: readonly TraceTurn[], limit: number): string {
-  const groups: string[] = [];
-  for (const turn of [...turns].reverse()) {
-    if (groups.length >= limit) break;
-    const steps = turn.steps().filter((step) => SIDE.has(step.category));
-    if (steps.length > 0) groups.push(steps.map((step, i) => traceRow(step, i === 0 ? `T${String(turn.turn)}` : "")).join(""));
+export function sideGroups(turns: readonly TraceTurn[], limit: number): TraceGroup[] {
+  const groups: TraceGroup[] = [];
+  for (let i = turns.length - 1; i >= 0 && groups.length < limit; i -= 1) {
+    const turn = turns[i] as TraceTurn;
+    const shown = turn.entries.filter((entry) => SIDE.has(entry.category));
+    if (shown.length > 0) groups.push({ key: `t${String(turn.turn)}`, stamp: String(turn.version), html: () => shown.map((entry, j) => traceRow(entry.step(), j === 0 ? `T${String(turn.turn)}` : "")).join("") });
   }
-  return groups.length === 0 ? '<p class="nodata">no steps yet</p>' : groups.join("");
+  return groups;
+}
+
+export function sideTraceHtml(turns: readonly TraceTurn[], limit: number): string {
+  const groups = sideGroups(turns, limit);
+  return groups.length === 0 ? '<p class="nodata">no steps yet</p>' : groups.map(groupHtml).join("");
 }

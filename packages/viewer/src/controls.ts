@@ -144,19 +144,28 @@ export function sideStats(view: RunView, nowMs: number): string {
 
 export interface BestSplits { readonly run: string; readonly milestones: readonly { readonly name: string; readonly offsetMs: number }[] }
 
-export function splitStrip(view: RunView, best: BestSplits | null): string {
+function reachedSplits(view: RunView): { reached: Map<string, number>; next: string | undefined } {
   const startMs = view.startMs;
   const reached = new Map(startMs === null ? [] : view.milestones.filter((m) => m.origin !== "present_at_start").map((m) => [m.name, (m.ms - startMs - view.control.pausedBefore(m.ms)) / 1000]));
+  return { reached, next: BAR_MILESTONES.find(([name]) => !reached.has(name))?.[0] };
+}
+
+export function splitStrip(view: RunView): string {
+  const { reached, next } = reachedSplits(view);
+  return `<div class="mspl">${BAR_MILESTONES.map(([name, label]) => `<span class="${reached.has(name) ? "done" : name === next ? "next" : ""}">${label}${reached.has(name) ? " ✔" : ""}</span>`).join("")}</div>`;
+}
+
+// This run's split times against the best comparable run.
+export function splitTimes(view: RunView, best: BestSplits | null): string {
+  const { reached, next } = reachedSplits(view);
   const bests = new Map(best?.milestones.map((m) => [m.name, m.offsetMs / 1000]) ?? []);
-  const next = BAR_MILESTONES.find(([name]) => !reached.has(name))?.[0];
-  const chips = BAR_MILESTONES.map(([name, label]) => `<span class="${reached.has(name) ? "done" : name === next ? "next" : ""}">${label}${reached.has(name) ? " ✔" : ""}</span>`).join("");
   const rows = BAR_MILESTONES.map(([name, label]) => {
     const at = reached.get(name);
     const ref = bests.get(name);
     const delta = at === undefined || ref === undefined ? `<span class="d na">${name === next ? "next" : ""}</span>` : `<span class="d ${at <= ref ? "g" : "r"}">${at <= ref ? "−" : "+"}${hms(Math.abs(at - ref))}</span>`;
     return `<span>${label}</span><span class="t${at === undefined ? " na" : ""}">${at === undefined ? "—" : hms(at)}</span>${delta}`;
   }).join("");
-  return `<div class="mspl">${chips}</div><div class="splitrows"><span class="small muted">SPLIT</span><span class="small muted t">THIS RUN</span><span class="small muted d">VS BEST</span>${rows}</div>${best === null ? '<p class="small muted">no comparable best run yet</p>' : ""}`;
+  return `<div class="splitrows"><span class="small muted">SPLIT</span><span class="small muted t">THIS RUN</span><span class="small muted d">VS BEST</span>${rows}</div>${best === null ? '<p class="small muted">no comparable best run yet</p>' : ""}`;
 }
 
 function pips(history: FeatureHistory): string {

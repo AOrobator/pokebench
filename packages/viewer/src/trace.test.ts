@@ -4,7 +4,7 @@ import type { RunEvent } from "@pokebench/agent/events";
 import { NAME_CONFIRMED } from "../../agent/test-support/events.js";
 import { BASE_MS, Log, START, assistant, fullRun, m4Run, must, state } from "../test-support/events.js";
 import { eventText } from "./panels.js";
-import { STAR_SVG, TRACE_CHIPS, TraceBuilder, chipCounts, sideTraceHtml, traceHtml, traceRow, type TraceCategory, type TraceStep } from "./trace.js";
+import { STAR_SVG, TRACE_CHIPS, TraceBuilder, moreButton, sideTraceHtml, showsInTrace, traceGroups, traceHtml, traceRow, type TraceCategory, type TraceStep } from "./trace.js";
 
 function build(events: readonly RunEvent[]): TraceBuilder {
   const builder = new TraceBuilder();
@@ -83,13 +83,17 @@ describe("every event type (INV-1)", () => {
     for (const event of log.events) {
       const step = all.find((s) => s.seqs.includes(event.seq));
       expect(step !== undefined, event.type).toBe(eventText(event) !== null);
+      expect(showsInTrace(event), event.type).toBe(eventText(event) !== null);
       if (step !== undefined) expect(step.titleHtml, event.type).not.toBe("");
     }
   });
 
   it("keeps every type but emulator rows visible under the default chips", () => {
     const on = new Set(TRACE_CHIPS.filter((chip) => chip.on).map((chip) => chip.id));
-    expect(all.filter((step) => !on.has(step.category)).map((step) => step.kind)).toEqual(["native_action"]);
+    expect(all.filter((step) => !on.has(step.category))).toEqual([]);
+    const emulator = new Log();
+    emulator.add(0, { type: "native_action", turn: 1, id: 1, kind: "menu_changed", frame: 1, server_timestamp: 1, details: {} });
+    expect(steps(build(emulator.events)).map((step) => step.category)).toEqual(["eng"]);
   });
 
   it("escapes every recorded string it renders", () => {
@@ -146,12 +150,13 @@ describe("TraceBuilder", () => {
     const all = steps(build(log.events));
     expect(all.map((step) => step.category)).toEqual(["act", "act", "act"]);
     expect(all[1]?.status).toBe("error");
+    expect(dom(traceRow(must(all[1]))).querySelector(".tl-body pre")?.textContent).toBe("boom");
   });
 });
 
 describe("chips", () => {
   it("count steps per category and start with emulator rows off", () => {
-    const counts = chipCounts(build(supervisedRun().events).turns);
+    const counts = build(supervisedRun().events).counts;
     expect(counts).toMatchObject({ think: 1, act: 1, sup: 1, guard: 1, eng: 1, mem: 1, ms: 0 });
     expect(TRACE_CHIPS.find((chip) => chip.id === "eng")?.on).toBe(false);
     expect(TRACE_CHIPS.filter((chip) => chip.id !== "eng").every((chip) => chip.on)).toBe(true);
@@ -167,8 +172,12 @@ describe("traceRow", () => {
     const guard = dom(traceRow(byKind("guard"))).firstElementChild as HTMLElement;
     expect(sup.tagName).toBe(guard.tagName);
     expect(sup.className).toBe(guard.className);
-    const shape = (row: Element): string[] => [...row.querySelectorAll("*")].filter((el) => el.closest(".tl-icon") === null && el.closest(".tl-body") === null && el.className !== "st error").map((el) => `${el.tagName}.${el.className}`);
-    expect(shape(sup)).toEqual(shape(guard));
+    const recovered = new Log();
+    recovered.add(0, { type: "loop_guard", turn: 1, kind: "cycle", phase: "recovered", mode: "enforced", calls: 4, message: "Recovered.\nMore.", evidence: [1] });
+    const plain = dom(traceRow(must(steps(build(recovered.events))[0]))).firstElementChild as HTMLElement;
+    const shape = (row: Element): string[] => [...row.querySelectorAll("*")].filter((el) => el.closest(".tl-icon") === null && el.closest(".tl-body") === null).map((el) => `${el.tagName}.${el.className}`);
+    expect(shape(sup)).toEqual(shape(plain));
+    expect(sup.querySelector(".st")).toBeNull();
     expect(sup.querySelector(".tl-title")?.textContent).toBe("Supervisor note");
     expect(sup.querySelector(".tl-icon")?.textContent).toBe("SUP");
     expect(sup.querySelector(".tl-res")?.textContent).toBe("You are looping.");
@@ -227,6 +236,12 @@ describe("traceRow", () => {
     expect(row.querySelector(".tl-icon")?.textContent).toBe("<B>");
   });
 
+  it("gives an empty answer a plain row with nothing to expand", () => {
+    const log = new Log();
+    log.add(0, assistant({ thinking: "", text: "" }));
+    expect(must(steps(build(log.events))[0]).body).toBeNull();
+  });
+
   it("titles an answer that only failed as a model error", () => {
     const log = new Log();
     log.add(0, assistant({ thinking: "", text: "", error: "terminated" }));
@@ -274,32 +289,32 @@ describe("traceHtml", () => {
   const builder = build(supervisedRun().events);
 
   it("lists turns newest first and filters by chip", () => {
-    const root = dom(traceHtml(builder.turns, ALL, { startMs: BASE_MS, live: null, limit: 50 }));
+    const root = dom(traceHtml(builder.turns, ALL, { startMs: BASE_MS, live: null, limit: 50, page: 50 }));
     expect([...root.querySelectorAll(".turn-h")].map((h) => h.firstChild?.textContent?.trim())).toEqual(["TURN 2", "TURN 1"]);
-    const noSup = dom(traceHtml(builder.turns, new Set<TraceCategory>(["think", "act"]), { startMs: BASE_MS, live: null, limit: 50 }));
+    const noSup = dom(traceHtml(builder.turns, new Set<TraceCategory>(["think", "act"]), { startMs: BASE_MS, live: null, limit: 50, page: 50 }));
     expect(noSup.textContent).not.toContain("Supervisor note");
     expect(noSup.querySelectorAll(".turn-h")).toHaveLength(1);
   });
 
   it("opens the live turn on its thinking, always expanded (INV-6)", () => {
-    const root = dom(traceHtml(builder.turns, new Set<TraceCategory>(["act"]), { startMs: BASE_MS, live: { turn: 3 }, limit: 50 }));
+    const root = dom(traceHtml(builder.turns, new Set<TraceCategory>(["act"]), { startMs: BASE_MS, live: { turn: 3 }, limit: 50, page: 50 }));
     const first = must(root.firstElementChild);
     expect(first.textContent).toContain("TURN 3");
     const live = must(root.querySelector(".live-row"));
     expect(live.tagName).toBe("DIV");
     expect(live.querySelector("[data-live-text]")).not.toBeNull();
-    const ongoing = dom(traceHtml(builder.turns, ALL, { startMs: BASE_MS, live: { turn: 2 }, limit: 50 }));
-    expect(ongoing.querySelectorAll(".turn-h")[0]?.parentElement === ongoing).toBe(true);
-    expect([...ongoing.children].slice(0, 3).map((el) => el.classList.contains("live-row") ? "live" : el.className)).toEqual(["turn-h", "tl", "live"]);
+    const ongoing = dom(traceHtml(builder.turns, ALL, { startMs: BASE_MS, live: { turn: 2 }, limit: 50, page: 50 }));
+    expect(ongoing.firstElementChild?.getAttribute("data-group")).toBe("t2");
+    expect([...must(ongoing.firstElementChild).children].map((el) => el.classList.contains("live-row") ? "live" : el.className)).toEqual(["turn-h", "tl", "live"]);
   });
 
   it("caps the turns it renders and offers the rest", () => {
-    const root = dom(traceHtml(build(m4Run()).turns, ALL, { startMs: null, live: null, limit: 1 }));
+    const root = dom(traceHtml(build(m4Run()).turns, ALL, { startMs: null, live: null, limit: 1, page: 50 }));
     expect(root.querySelectorAll(".turn-h")).toHaveLength(1);
     expect(root.querySelector("[data-trace-more]")?.textContent).toMatch(/SHOW \d+ OLDER TURNS/);
   });
 
-  it("renders only the turns on screen of a long run, and reuses built rows", () => {
+  it("renders only the turns on screen of a long run", () => {
     const log = new Log();
     for (let turn = 1; turn <= 2000; turn += 1) {
       log.add(turn * 10, assistant({ turn, thinking: `Turn ${String(turn)}` }));
@@ -307,12 +322,27 @@ describe("traceHtml", () => {
       log.add(turn * 10 + 2, { type: "tool_result", turn, id: `c${String(turn)}`, name: "press", is_error: false, duration_ms: 1, text: "y".repeat(5000), frames: [] });
     }
     const turns = build(log.events).turns;
-    const html = traceHtml(turns, ALL, { startMs: null, live: null, limit: 50 });
+    const html = traceHtml(turns, ALL, { startMs: null, live: null, limit: 50, page: 50 });
     expect(html.match(/class="turn-h"/g)).toHaveLength(50);
     expect(html.length).toBeLessThan(50 * 5000 + 100_000);
     expect(html).toContain("SHOW 50 OLDER TURNS");
-    const first = must(turns[0]).steps()[1];
-    expect(must(turns[0]).steps()[1]).toBe(first);
+  });
+
+  it("changes a turn's stamp only when that turn's rows or the filter change", () => {
+    const builder = build(supervisedRun().events);
+    const stamps = (on: ReadonlySet<TraceCategory>): string[] => traceGroups(builder.turns, on, { startMs: BASE_MS, live: null, limit: 50, page: 50 }).groups.map((g) => g.stamp);
+    const before = stamps(ALL);
+    builder.add(new Log().add(0, { type: "retry", turn: 1, reason: "x", attempt: 1, limit: 3 }));
+    const after = stamps(ALL);
+    expect(after[0]).toBe(before[0]);
+    expect(after[1]).not.toBe(before[1]);
+    expect(stamps(new Set<TraceCategory>(["think"]))[0]).not.toBe(before[0]);
+  });
+
+  it("offers one page of older turns at a time", () => {
+    expect(moreButton(0, 50)).toBe("");
+    expect(moreButton(120, 50)).toContain("SHOW 50 OLDER TURNS");
+    expect(moreButton(7, 50)).toContain("SHOW 7 OLDER TURNS");
   });
 });
 

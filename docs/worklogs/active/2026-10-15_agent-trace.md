@@ -102,7 +102,7 @@ Every recorded string goes through `esc`. Tool result text is shown in `<pre>` o
   - agent 1066 passed; viewer 615 passed (95.2/91.0/94.3), `app.ts` 95.1/84.9/94.6, `trace.ts` 99.3/92.9/100
   - Python unchanged since M1 (1877 passed)
 - [x] COMMIT (GREEN): `feat(viewer): agent trace page replaces activity history` (6bd997c)
-- [ ] Review round 2: covers M1 fixes + M2 together
+- [x] Review round 2 (032d206..92f27d6): Claude BLOCKING, Grok BLOCKING. Fixed in `fix(viewer): stable live trace updates and review round 2` (see the log)
 
 **M3 — Side panel Emerald box + earlier rows + identity strip**
 - [x] Write tests (`runIdentity` unit test; app: Emerald box on top, side rows newest first without memory/run rows, side row → inspector, FULL TRACE link, identity strip). RED: 4 failing:
@@ -112,10 +112,19 @@ Every recorded string goes through `esc`. Tool result text is shown in `<pre>` o
 - [ ] COMMIT (RED)
 - [ ] Implement
 - [ ] Gates
-- [ ] COMMIT (GREEN)
-- [ ] Review
+- [x] COMMIT (GREEN): `feat(viewer): emerald thinking box, earlier steps and run identity strip` (b6a2062)
+- [ ] Review: round 3 covers the whole branch
 
 **M4 — Browser verification + explainer**
+
+Browser verification so far, at 1440×900:
+- Setup: a viewer built from the worktree on 127.0.0.1:8797 (`startViewer` with no autorun and no queue), reading symlinks to three real runs. The 8790 viewer and the experiment chain were untouched.
+- Live run `…21bc`:
+  - the Emerald box streams the current turn
+  - the trace's live row streams
+  - real clicks: THINKING/ACTIONS chips toggle; a press row expands to its full result; folding the result alone works; a supervisor row expands like any other; the inspector shows the grouped raw events
+  - the list holds still while the pointer is over it
+- Finished run `…c0b8`: replays; side panel reads FINAL.
 - [ ] Separate viewer on its own port against a real run, including a live run streaming its current turn, at 1440x900. Real clicks:
   - a chip
   - a supervisor row
@@ -135,9 +144,54 @@ Every recorded string goes through `esc`. Tool result text is shown in `<pre>` o
 
 ## Surprises
 
+- **Live rebuilds broke clicks.** Rebuilding the whole trace on every event lost real clicks in the browser: the clicked element was replaced between mousedown and click. That happened on a live run several times a second, and the chips were rebuilt too. The fix:
+  - Turn-level stamps, so only turns whose rows changed are redrawn.
+  - Chip buttons built once, with counts updated in place.
+  - A scroll anchor on the row being read.
+  - Lists hold still while the pointer is over them.
+- **1440×900 was cramped before this branch.** On `main` at that size the side panel's thinking box gets about 80px and spills onto the timeline: the splits table takes about 220px. Mockup 20 had no timeline and only split chips. The fix:
+  - The side panel shows the split chips; the times-vs-best table folds under "SPLIT TIMES VS BEST" (the SPLITS page still has the full table).
+  - The identity strip is one compact row.
+  - `.side` scrolls instead of overflowing.
+
 - The fresh worktree had no vendor submodule (`git submodule update --init` fixed 5 pytest failures) and no mGBA binding in `env/.venv`, so `just lint`'s mypy step can't import `mgba._pylib`. I ran mypy with `~/dev/pokebench/env/.venv/bin/mypy` from the worktree's `env/` instead. No Python changes on this branch.
 
 ## Multi-Model Review Log
+
+**M1+M2 round 2 (032d206..92f27d6)**
+
+Claude (BLOCKING):
+- the scroll fix wrongly assumed every change happens above the reader (SHOW OLDER, chips)
+- SHOW OLDER label wrong after the first click
+- `harness_bug` hidden behind EMULATOR
+- whole-trace rebuild per hidden event
+- unchecked chip cast
+- chip focus lost
+- guard message printed twice
+- live thought not following its text
+- no scroll tests
+
+Grok (BLOCKING):
+- `innerHTML` wipe at 10 Hz
+- INV-3 compared against an error row
+- orphan body not asserted
+- `eventText` used only as a visibility check
+- reuse test misnamed
+- empty answer gets an empty `<details>`
+- `harness_bug`
+
+All fixed:
+- `traceGroups`/`sideGroups` with per-turn stamps; `reconcile()` redraws only changed turns and anchors the reading row
+- pointer hold; chips built once
+- `harness_bug` → ERRORS
+- `moreButton(more, page)`
+- chip id lookup instead of a cast
+- loop label without the message
+- live text follows (fixed-height live box)
+- `showsInTrace` type set, with a parity test against `eventText`
+- empty body → null
+- INV-3 compares a recovered guard and checks for no pill
+- tests: scroll anchor and pointer hold (deleting the anchor turned 1 test red; deleting reuse turned 2 red), stamps, more label, orphan body, empty answer
 
 **M1 round 1 (032d206..af6a3fb)**
 

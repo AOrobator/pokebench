@@ -74,7 +74,7 @@ Unrelated workloads and their automatic recovery were paused to reserve compute.
 - [ ] M1 Driver: two-arm fixed-N experiment definition plus a two-lane parallel runner (one game server port and one model endpoint per lane), balanced-block order with a seed, invalid-trial replacement, a pause-with-reason status file, no early stopping. RED/GREEN, gates, multi-model review, merge.
 - [ ] M2 Model-error cause: find why 5 of 32 trials in the 2×2 cohort ended `model_error`, and fix or classify it before launch.
 - [ ] M3 Lane qualification: serving/environment receipts for both lanes; prove both use the same proxy path, model, argv and build.
-- [ ] M4 Dry run on main's built bytes: one 2-minute trial per arm per lane; both runners concurrently; verify events, preset flags, caps and status reporting; delete the dry-run trials from the cohort.
+- [x] M4 Dry run on main's built bytes: one 2-minute trial per arm per lane; both runners concurrently; verify events, preset flags, caps and status reporting; delete the dry-run trials from the cohort. (Results below. The dry run writes only to its own `bundle-v-control-dryrun` ledger, so no trial reached the cohort and nothing needed deleting.)
 - [ ] M5 Ready to launch: report to the operator. The operator launches.
 - [ ] M6 Analysis script (pre-registered tests above) and report after the cohort completes.
 
@@ -142,6 +142,26 @@ Any valid trial that still ends before the wall cap is listed in a WARNING table
 
 - Server argv identity rests on the operator's compute record above (identical argv, image digest); the `/props` fields and default sampling params hash agree. The GPU host was not touched.
 
+## M4 dry run (`3bab974`, 2026-10-15 19:42–19:47 EDT)
+
+`just fixed-run check bundle-v-control` passed (definition sha256 `b98add43…`, control base `finals-incumbent.json` sha256 `2a7a2a0f…` matches, approval none). `just fixed-run dry-run bundle-v-control` exited 0 after 4 min 9 s. It ran both lanes at once with a 120000 ms cap: `bundle-v-control-dryrun: finished`. Its ledger is `runs/experiments/bundle-v-control-dryrun/trials.jsonl`, with definition sha256 `8dc111c9…`, one phase `dry-run`, `primary: false`, and zero reserve.
+
+| Slot | Lane | Arm | Run | Port / endpoint | Turns | Turns/min | Model s/turn (mean) | Tool s/call (mean) | Furthest (depth) | Ledger |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | A | control | `2026-10-15T19-42-50_qwen36-gpu1_ab75` | 8075 / `loopback inference endpoint/v1` | 51 | 25.5 | 1.38 | 0.97 | PLAYER_HOUSE_EXITED_AFTER_CLOCK (12) | valid, wall cap |
+| 2 | B | bundle | `2026-10-15T19-42-50_qwen36-gpu0_c205` | 8076 / `loopback inference endpoint/v1` | 12 | 6.0 | 1.50 | 8.48 | PLAYER_HOUSE_EXITED_AFTER_CLOCK (12) | valid, wall cap |
+| 3 | B | control | `2026-10-15T19-44-55_qwen36-gpu0_dfb0` | 8076 / `loopback inference endpoint/v1` | 46 | 23.0 | 1.41 | 1.21 | MOM_RIVAL_INSTRUCTION (11) | valid, wall cap |
+| 4 | A | bundle | `2026-10-15T19-44-55_qwen36-gpu1_2262` | 8075 / `loopback inference endpoint/v1` | 14 | 7.0 | 1.64 | 6.91 | PLAYER_HOUSE_EXITED_AFTER_CLOCK (12) | valid, wall cap |
+
+- **Arms.** In every `run_start.evaluation.features`, the eight switches are all true in bundle trials and all false in control trials. Every other flag equals `finals-incumbent.json` `features`, with no difference and no key missing. The three off-in-both flags are false in all four trials. `evaluation.flags` is `{loopGuard, activeUi, interfaceDocs: true, objectives: false}` in all four. `evaluation.experiment` gives `{id: bundle-v-control-dryrun, arm, trial n of 4}`. The bundle runs' `harness_features` add exactly the eight switch ids. Preset sha256: control `e17c1fd8…`, bundle `677002eb…`, matching the ledger `presetSha256`.
+- **Start.** All four runs have `start_state` = `save_state` `runs/launch-receipts/rival-push-checkpoint/CLOCK_SET.state`, sha1 `51007c05068f4059f7d97c34541e29a93bedd80b`. That equals the definition and a re-hash of the file. Milestones GAME_RUNNING through CLOCK_SET arrive at the first second. Also identical in all four: `harness.commit` `3bab9746…`, `dirty: false`, model `/models/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf`, sampling medium / 4096, and `budgets.max_wall_ms` 120000. The ledger `serving` fingerprint `f4fdb502…` is the same on both lanes.
+- **Lanes.** `isolation.port` is 8075 for lane A and 8076 for lane B. The run logs identify a separate loopback inference endpoint for each lane.
+- **Ends.** Every `run_end` gives `reason: budget` at about 120 s (wall_ms 120036 / 120173 / 120029 / 120056). `reply_failures_end_run: false` in all four. There were no `retry` or `error` events, and every assistant stop was `toolUse` except the last request of slot 3 (`aborted`, "Request was aborted"). Three runs end with a tool error, and each is the final tool result, within 110 ms of `run_end`: "This operation was aborted". This is the cap abort. Each run's `.err` has only the usual startup WARNINGs (pytesseract/OCR, LLM logger, no objectives file).
+- **Ledger and isolation.** All four trials were classified `valid`, reason `wall cap`, endReason `budget`, primaryReached false. The furthest milestone and depth match the run events. Each lane ran one trial of each arm. Nothing exists under `runs/experiments/bundle-v-control/`, so the n/140 cohort is untouched. A second dry run needs `runs/experiments/bundle-v-control-dryrun` moved aside first; the CLI refuses otherwise. `runs/experiments/runner.json` existed during the run and is gone afterwards.
+- **Status.** `just fixed-run status bundle-v-control` prints "bundle-v-control has no status yet" (exit 1). `status bundle-v-control-dryrun` prints "finished: 4 / 4 done, 0 invalid, reserve 0.00 / 0.00 GPU-h … (runner pid 35035 is not running)", and each lane is "done: every trial planned for this lane has run". The main-built viewer on a scratch port shows the same data in `/api/experiments` `fixedRuns` (`state: finished`, `runnerAlive: false`, each lane `valid 2 / total 2`). It renders this card: "Harness-fixes bundle vs fixed control (CLOCK_SET → RIVAL_MET) (dry run) · FINISHED 4 / 4 done · 0 invalid · … LANE A · GPU1 · :8075 DONE 2 / 2 … LANE B · GPU0 · :8076 DONE 2 / 2". The long-running viewer on :8790 is an older checkout (`/private/tmp/pokebench-viewer` at `5340c086`) without the fixed-run card. Restart it from main before the operator relies on it.
+- **Analyze.** `just fixed-run analyze bundle-v-control` runs with no data. It prints the full report with 0/0 cells, p = 1.000, "No invalid trials", and the vacuous line "Every valid trial ended at its wall cap." It does not refuse. `analyze bundle-v-control-dryrun` refuses with "no definition …/bundle-v-control-dryrun.json" (exit 1).
+- **Throughput.** Per lane within an arm, rates are similar: control 25.5 (A) vs 23.0 (B) turns/min, bundle 7.0 (A) vs 6.0 (B). Model latency per turn is 1.4–1.6 s on both lanes. The arms differ by about 3.7× in turns per minute, and the cause is in the tools, not the model. Bundle `press`/`navigate_to` calls that trigger `dialogue_auto_advance` take 18.8–42.2 s, for example "Dialogue auto-advance: the harness pressed B 8 times" in 41.3 s. Button presses per run are about the same (50/50/55/47). Bundle trials reached the same milestones in 12–14 turns that control trials reached in 46–51. This is how the treatment behaves, not a lane problem. The turn count is therefore not a fair comparison across arms.
+
 ## M6 analysis
 
 - `packages/viewer/src/fixed-analysis.ts`: two-sided Fisher exact (all tables no more likely than observed, relative tolerance 1e-7), log-rank (ties, censored at the cap), Mann-Whitney U with tie and continuity corrections on a depth-then-time score; pooled and per lane, valid trials only, plus the invalid list. Unit tests match scipy `fisher_exact`, `mannwhitneyu(method="asymptotic")` and lifelines `logrank_test` to 9 digits.
@@ -185,6 +205,7 @@ Any valid trial that still ends before the wall cap is listed in a WARNING table
 - 2026-10-15 20:00 EDT: Gates at `219f7c9` + test-type fix: `just test` agent 80 / 1263, viewer 58 / 762, env 1962; `just lint` 0 (after adding `turn` to the pause fixture events); `just build` 0; `just coverage` agent 97.61 / 94.19 / 97.85 / 99.02, viewer 95.35 / 90.54 / 94.19 / 97.89, env 97.03 / 92.57 / 100; `just verify-vendor` OK. Delta re-review `cc6372d..219f7c9` (sha256 `faca790f…`) running: Codex gpt-5.6-sol, grok.
 - 2026-10-15 19:26 EDT: Delta re-review `cc6372d..219f7c9`: grok `VERDICT: LGTM` (both blockers cleared; non-blocking: bare `host.log`/post-exit `writeRunner` in `play`/`record` now only cost a backoff; a lost `started` pid degrades only restart adoption; open pauses lack `paused_ms`). Codex `VERDICT: BLOCKING` on one item only: the pause fixtures omitted `turn` (TS2345, `just lint` exit 2), already fixed test-only in `f17700b` with `just lint` 0; not an operator-rule blocker. Merging into main.
 - 2026-10-15 19:28 EDT: Merged into main at `4ce5e7a` (`--no-ff`; main was `3c4c26f`, quiet, no runner.json). `just build` 0. `just fixed-run check bundle-v-control` from `~/dev/pokebench` passes against the real `finals-incumbent.json`; definition sha256 `b98add435a0ed044d57cd91c2ec3af1cefc93061041da18de2e21d75a9a981f5`, approval none. Not dry-run, approved or launched (burn-in on both GPUs).
+- 2026-10-15 19:42 EDT: Burn-in stopped: both lanes `stopped (STOP file)`, the last trials ended `budget`, and no live.js, game server or loop is left on 8881/8883/8075/8076. Its two idle `shim.py` proxies (8891→8091, 8892→8098) are still up; the dry run does not use them. `nvidia-smi`: both GPUs 0 %, only the two llama-servers resident. M4 dry run 19:42–19:47 EDT: 4/4 valid at the wall cap, arms, start, lanes and status verified (M4 section). Not approved or launched.
 
 ## Deferred
 
@@ -203,10 +224,13 @@ Any valid trial that still ends before the wall cap is listed in a WARNING table
 - grok: a failed `started` append leaves no pid, so only a mid-trial runner restart adopts without it.
 - grok: an open pause (no `paused_ms` yet) is not subtracted; completed trials always close it.
 - Codex: the two new runner tests run the full 12-trial fixture; a smaller plan would be faster.
+- M4: `analyze` with an empty ledger prints a full report (0/0, p = 1.000, "Every valid trial ended at its wall cap.") instead of refusing; `analyze` cannot read a `-dryrun` ledger (no definition file).
 
 ## Surprises
 
 - The first SSH connection attempt returned "No route to host" while ping and llama traffic were fine; the retry seconds later connected. Transient. Don't conclude the host is down from one failure.
+- The viewer on :8790 serves `/private/tmp/pokebench-viewer` at `5340c086`, not main, so it has no fixed-run card. To check the card, use a viewer built from main.
+- Dialogue auto-advance makes a bundle tool call take up to ~42 s, so bundle trials run about 4× fewer turns per minute than control for the same milestone progress.
 
 ## Multi-Model Review Log
 

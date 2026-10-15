@@ -105,6 +105,9 @@ it("derives one status from the definition, approval, ledger, runner and readine
  expect(status({experiment:experiment({blocked:"needs a fix",discarded:"lost to the incumbent"})})).toBe("discarded");
  expect(deriveStatus({experiment:experiment({discarded:"lost to the incumbent"}),approval,ledger:all,runner:null,readiness:ready}).reason).toBe("lost to the incumbent");
  expect(status({experiment:experiment({blocked:"needs a fix"})})).toBe("blocked");
+ // Measured by another cohort: shown as running, never launched again by the queue, approval untouched.
+ expect(deriveStatus({experiment:experiment({externalCohort:"factorial-2x2-think-fast"}),approval:null,ledger:[],runner:null,readiness:ready})).toMatchObject({state:"running",reason:"being measured in the factorial-2x2-think-fast cohort; the queue will not run it again"});
+ expect(definitionHash(experiment({externalCohort:"x"}))).toBe(definitionHash(experiment()));
  expect(deriveStatus({experiment:experiment({blocked:"needs a fix"}),approval,ledger:[],runner:null,readiness:ready}).reason).toBe("needs a fix");
  expect(status({ledger:all,graded:true})).toBe("done");
  expect(deriveStatus({experiment:e,approval,ledger:all,runner:null,readiness:ready,graded:false})).toMatchObject({state:"held",reason:"all 8 trials finished; running the queue grades it"});

@@ -14,4 +14,4 @@ Operator request: the objective feature is no longer used, so remove the objecti
   Round 1 (packet 2d9eb7ec): Claude CLI LGTM. Grok BLOCKING: worklog browser box unchecked while PB13 claimed PASS; stale workbench test title; lowercase objective guard. Fixed: `test(viewer): tighten objective-absence guards and record the browser check` (99ef729)
   Round 2 (fix delta dc04bae..99ef729): Claude CLI LGTM, Grok LGTM.
 - [x] Rebased onto main 914d90c (mobile timeline order): kept its phone flex rule, dropped the strip from the phone grid and mobile-layout.test.ts. After rebase: viewer vitest 646 passed, coverage 95.34/91.14/94.35, tsc + eslint clean. Branch head after this entry.
-- [ ] Operator approval, local merge. Restart 8790 only when the operator says so.
+- [x] Operator approval (2026-10-15 15:45Z: "You can merge, but don't restart"), local merge into main. 8790 not restarted, per the operator. Restart 8790 only when the operator says so.

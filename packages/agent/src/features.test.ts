@@ -10,7 +10,7 @@ it("describes every switchable and measurement feature exactly once", () => {
   expect(FEATURES.filter((f) => f.switchable).map((f) => f.id)).toEqual([...SWITCHABLE_FEATURES]);
   expect(FEATURES.filter((f) => f.group === "observation")).toHaveLength(14);
   expect(FEATURES.filter((f) => f.group === "guidance")).toHaveLength(20);
-  expect(FEATURES.filter((f) => f.group === "guard")).toHaveLength(7);
+  expect(FEATURES.filter((f) => f.group === "guard")).toHaveLength(8);
   for (const f of FEATURES) {
     expect(f.title).not.toBe("");
     if (f.switchable) expect(f.description).toMatch(/ Off: /);
@@ -113,4 +113,11 @@ it("registers game evidence priority as standalone prompt guidance",()=>{
   expect(featureInfo("game-evidence-priority-v1")).toMatchObject({group:"guidance",needs:null,switchable:true});
   expect(playHarnessFeatures(ALL_ON,null).at(-5)).toBe("game-evidence-priority-v1");
   expect(serverFeatureEnv(off("game-evidence-priority-v1")).POKEBENCH_FEATURES_OFF).toBe("");
+});
+
+it("registers fresh retry as an agent-side guard recorded last",()=>{
+ expect(featureInfo("fresh-retry-v1")).toMatchObject({group:"guard",needs:null,switchable:true});
+ expect(featureInfo("fresh-retry-v1").description).toContain(" Off: ");
+ expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe("fresh-retry-v1");
+ expect(serverFeatureEnv(off("fresh-retry-v1")).POKEBENCH_FEATURES_OFF).toBe("");
 });

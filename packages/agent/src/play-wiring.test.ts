@@ -6,7 +6,7 @@ import {parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {playTools} from "./play-config.js";
 import {checkEvent,type RunEvent} from "./events.js";
 
-const NEW=["game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1","instruction-ledger-v1","next-milestone-hint-v1"] as const;
+const NEW=["game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1","instruction-ledger-v1","next-milestone-hint-v1","fresh-retry-v1"] as const;
 const OFF:FeatureSet={...ALL_ON,"navigation-evidence-memory-v1":false,...Object.fromEntries(NEW.map(id=>[id,false]))};
 function recorder(){
  const subscribers:((e:RunEvent)=>void)[]=[];const delivered:string[]=[];
@@ -38,4 +38,16 @@ it("reads v2 presets written before these switches as all OFF",()=>{
  const features=Object.fromEntries(Object.entries({...ALL_ON,"state-only-decisions-v1":false}).filter(([id])=>!(NEW as readonly string[]).includes(id)));
  const preset=parsePlayPreset({version:2,id:"old",target:null,limits:{maxTurns:1500,maxWallMs:1800000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},features});
  for(const id of NEW)expect(presetFeatures(preset)[id]).toBe(false);
+});
+
+it("sends text-only replies back to the model only while fresh-retry-v1 is off",async()=>{
+ const textOnly:AgentMessage={role:"assistant",content:[{type:"thinking",thinking:"Let me press B to"}],api:"openai-completions",provider:"p",model:"m",usage:{input:0,output:0,cacheRead:0,cacheWrite:0,totalTokens:0,cost:{input:0,output:0,cacheRead:0,cacheWrite:0,total:0}},stopReason:"stop",timestamp:0};
+ const nudge:AgentMessage={role:"user",content:"Keep playing",timestamp:0};
+ const task:AgentMessage={role:"user",content:"Play.",timestamp:0};
+ expect(await contextTools(OFF,recorder().api,base).transformContext([task,textOnly,nudge])).toEqual([task,textOnly,nudge]);
+ const on={...OFF,"fresh-retry-v1":true,"navigation-evidence-memory-v1":true};const r=recorder();
+ const out=await contextTools(on,r.api,base).transformContext([task,textOnly,nudge]);
+ expect(out.some(m=>m.role==="assistant")).toBe(false);
+ expect(out.at(-1)).toEqual(nudge);
+ expect(r.delivered).toEqual(["navigation"]);
 });

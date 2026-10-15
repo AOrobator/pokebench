@@ -44,7 +44,8 @@ export class DialogueLog {
   // Pages count as shown only when their result reached the model; they already cover the paired state's buffer.
   const pages=this.pending.get(event.id);this.pending.delete(event.id);
   const delivered=!event.is_error&&pages!==undefined&&pages.length>0;
-  if(delivered)for(const entry of pages)this.add(entry);
+  // Each page was shown once; only the first is compared with what the log already holds.
+  if(delivered)pages.forEach((entry,i)=>{if(i===0)this.add(entry);else this.log.push(entry);});
   if(event.state_seq===undefined||this.measured?.seq!==event.state_seq)return;
   const state=this.measured;this.measured=null;
   if(delivered)return;

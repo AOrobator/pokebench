@@ -4,10 +4,10 @@ import type { RunEvent } from "@pokebench/agent/events";
 import { esc, eventMs, hms } from "./format.js";
 import { gbaSvg, litButtons } from "./gba.js";
 import { RunView, isRunEvent } from "./model.js";
-import { brand, budgets, counters, fieldContext, harnessConfig, objectivePanel, objectiveStatus, inspector, party, splits, thinkingDialog, trainerCard, type Baseline } from "./panels.js";
+import { brand, runIdentity, budgets, counters, fieldContext, harnessConfig, objectivePanel, objectiveStatus, inspector, party, splits, thinkingDialog, trainerCard, type Baseline } from "./panels.js";
 import { ReplayClock } from "./replay.js";
 import { lanesSvg } from "./timeline.js";
-import { TRACE_CHIPS, TraceBuilder, chipCounts, traceHtml, type TraceCategory } from "./trace.js";
+import { TRACE_CHIPS, TraceBuilder, chipCounts, sideTraceHtml, traceHtml, type TraceCategory } from "./trace.js";
 import { ABORT_HOLD_MS, availableActions, controlBar, overlay, overlayKind, runSeconds, sideStats, splitStrip, stateLabel, type ControlAction } from "./controls.js";
 import { NextRunPanel } from "./nextpanel.js";
 import { QueuePanel } from "./queue-view.js";
@@ -40,6 +40,7 @@ interface RunChoice {
 
 const LIVE_SCREEN_MS = 500;
 const TRACE_TURNS = 50;
+const SIDE_TURNS = 30;
 
 // Rerendering rows keeps what the operator opened, folded or selected, and
 // keeps the rows they were reading in place while newer turns arrive above.
@@ -317,6 +318,11 @@ export class App {
       }
       this.inspectRow(target);
     });
+    this.ui("side-trace").addEventListener("click", (event) => { this.inspectRow(event.target as HTMLElement); });
+    this.ui("trace-link").addEventListener("click", () => {
+      this.showPage("trace");
+      this.doc.querySelector(".inspection-nav")?.scrollIntoView({ block: "start", behavior: "smooth" });
+    });
     this.ui("trace-chips").addEventListener("click", (event) => {
       const target = event.target as HTMLElement;
       const all = target.closest("[data-trace-expand],[data-trace-collapse]");
@@ -547,9 +553,11 @@ export class App {
     this.traced = 0;
     this.traceKey = "";
     this.traceLimit = TRACE_TURNS;
-    const box = this.doc.querySelector<HTMLElement>('[data-ui="trace"]');
-    box?.replaceChildren();
-    if (box !== null) this.html.delete(box);
+    for (const name of ["trace", "side-trace"]) {
+      const element = this.doc.querySelector<HTMLElement>(`[data-ui="${name}"]`);
+      element?.replaceChildren();
+      if (element !== null) this.html.delete(element);
+    }
   }
 
   // Selecting a row (but not text inside its expanded body) shows every event it groups.
@@ -576,6 +584,7 @@ export class App {
       } else {
         for (const chip of this.ui("trace-chips").querySelectorAll<HTMLElement>("[data-chip]")) chip.setAttribute("aria-pressed", String(this.traceOn.has(chip.dataset.chip as TraceCategory)));
       }
+      if (this.traceKey.split("|")[0] !== String(this.trace.version)) replacePreserving(this.ui("side-trace"), sideTraceHtml(this.trace.turns, SIDE_TURNS));
       this.traceKey = key;
       replacePreserving(box, traceHtml(this.trace.turns, this.traceOn, { startMs: this.shown.startMs, live, limit: this.traceLimit }));
     }
@@ -630,6 +639,10 @@ export class App {
     this.ui("brand").textContent = brand(view);
     const dialog = thinkingDialog(view, nowMs);
     this.ui("think-head").textContent = dialog.head;
+    this.ui("think-title").textContent = view.start === null ? "NO RUN" : `RIGHT NOW · TURN ${String(view.turn)}`;
+    const ident = runIdentity(view);
+    this.setHtml("ident", ident);
+    this.ui("ident").hidden = ident === "";
     this.setHtml("think-body", dialog.body);
     if (this.followThinking) {
       const body = this.ui("think-body");

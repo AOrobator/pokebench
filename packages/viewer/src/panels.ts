@@ -290,6 +290,24 @@ export function brand(view: RunView): string {
   return `POKéNAV · ${view.start?.run ?? "NO RUN"}${label}`;
 }
 
+// The header strip: which experiment, arm and trial (or preset) is on screen.
+export function runIdentity(view: RunView): string {
+  const start = view.start;
+  if (start === null) return "";
+  const cell = (label: string, value: string, cls = "", extra = ""): string => `<div class="id-cell${cls}"><small>${label}</small><span>${esc(value)}</span>${extra}</div>`;
+  const evaluation = start.evaluation;
+  const experiment = evaluation?.experiment;
+  const cells: string[] = [];
+  if (experiment !== undefined) {
+    const dots = Array.from({ length: experiment.of }, (_, i) => `<i class="${i + 1 < experiment.trial ? "done" : i + 1 === experiment.trial ? "now" : ""}"></i>`).join("");
+    cells.push(cell("EXPERIMENT", experiment.id, " id-exp"), cell("ARM", experiment.arm, " id-arm"), cell("TRIAL", `${String(experiment.trial)} of ${String(experiment.of)}`, "", `<div class="trial-dots" title="trial ${String(experiment.trial)} of ${String(experiment.of)}">${dots}</div>`));
+  } else if (evaluation !== undefined) {
+    cells.push(cell("PRESET", evaluation.preset_id, " id-exp"));
+  }
+  cells.push(cell("MODEL · THINKING", `${start.model.id} · ${start.sampling.thinking_level}`), cell("RUN", `…${start.run.slice(-4)}`));
+  return cells.join("");
+}
+
 export function fieldContext(view: RunView): string {
   const context = view.state?.world_context;
   const story = view.state?.story;

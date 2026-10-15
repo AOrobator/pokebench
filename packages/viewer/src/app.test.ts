@@ -932,9 +932,10 @@ function assistantAt(turn: number): Parameters<Log["add"]>[1] {
 describe("side panel", () => {
   it("puts the Emerald thinking box on top and earlier steps below it, newest first", async () => {
     const { app, streams, setNow } = await harness();
-    const events = fullRun().events;
-    feed(must(streams[0]), [...events.slice(0, 10), must(events[10])]);
-    feed(must(streams[0]), [{ ...must(events[10]), seq: 99, type: "assistant_delta", turn: 2, thinking: "Next I go up.", text: "" } as RunEvent], false);
+    const log = new Log();
+    log.events.push(...fullRun().events.slice(0, 11));
+    log.add(4_100, { type: "assistant_delta", turn: 2, thinking: "Next I go up.", text: "" });
+    feed(must(streams[0]), log.events);
     setNow(BASE_MS + 4_500);
     app.tick(100);
     const side = must(document.querySelector<HTMLElement>(".side .thinking-stream"));

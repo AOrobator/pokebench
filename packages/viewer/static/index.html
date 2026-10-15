@@ -25,6 +25,7 @@
   <span class="tb-ctl" data-ui="run-controls" aria-label="Run controls"></span>
   <div class="live-runs" data-ui="live-runs" aria-label="Live runs" hidden></div>
   <div class="problems" data-ui="problems" hidden></div>
+  <div class="ident" data-ui="ident" aria-label="Run identity" hidden></div>
 </header>
 <main class="watch-layout">
   <section class="watch-deck" aria-label="Watch the run">
@@ -34,7 +35,7 @@
       <section class="box red side" aria-label="Live run">
         <div class="stats" data-ui="stats"></div>
         <div><h4>SPLITS THIS RUN</h4><div data-ui="split-strip"></div></div>
-        <div class="thinkbox thinking-stream"><div class="thinking-header"><h3 data-ui="think-head">NO RUN</h3><button type="button" data-ui="follow-thinking" aria-pressed="true">FOLLOW LATEST</button></div><div class="live-thought" data-ui="think-body" tabindex="0" role="region" aria-label="Agent thinking"></div></div>
+        <div class="thinkbox thinking-stream"><div class="thinking-header"><h3 data-ui="think-title">NO RUN</h3><span class="think-actions"><button type="button" data-ui="follow-thinking" aria-pressed="true">FOLLOW LATEST</button><button type="button" data-ui="trace-link">FULL TRACE ↓</button></span></div><div class="emer"><div class="emer-name" data-ui="think-head">NO RUN</div><div class="live-thought emer-text" data-ui="think-body" tabindex="0" role="region" aria-label="Agent thinking"></div><span class="emer-arrow" aria-hidden="true">▼</span></div><h4 class="side-earlier">EARLIER · NEWEST FIRST</h4><div class="side-trace trace" data-ui="side-trace"></div></div>
       </section>
     </div>
     <section class="box lanesBox"><h3>TIMELINE · THINKING · TOOL CALLS · PRESSES · MILESTONES · ERRORS</h3><div data-ui="lanes"></div></section>

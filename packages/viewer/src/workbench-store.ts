@@ -14,9 +14,8 @@ import { parseNavigationReceipt } from "./frontier-queue.js";
 import { dirname } from "node:path";
 import { eventsPath, listRuns, readStart } from "./runs.js";
 import { parseLedger } from "@pokebench/agent/experiments";
-import { readRunner } from "./experiment-store.js";
-import type { HealthProbe, QueueStatus } from "./next-run.js";
-import type { WorkbenchConfig, WorkbenchData, WorkbenchQueueItem, WorkbenchRun } from "./workbench-data.js";
+import type { HealthProbe } from "./next-run.js";
+import type { WorkbenchConfig, WorkbenchData, WorkbenchRun } from "./workbench-data.js";
 const MAX_PLAN_BYTES = 1024 * 1024;
 const cache = new Map<string, { signature: string; run: WorkbenchRun; port: number | null; view: RunView | null }>();
 const record = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -25,8 +24,6 @@ function metadata(path: string): { value: unknown; digest: string } {
   if (lstatSync(path).isSymbolicLink() || statSync(path).size > MAX_PLAN_BYTES) throw new Error("Receipt is symlinked or exceeds the metadata size bound");
   const bytes = readFileSync(path, "utf8");
   return { value: JSON.parse(bytes) as unknown, digest: sha256(bytes) };
-}
-function json(path: string): unknown { return metadata(path).value;
 }
 function resumeCheckpoint(start: Extract<RunEvent, { type: "run_start" }>): string | null {
   if (start.start_state.kind !== "save_state") return null;
@@ -81,24 +78,21 @@ function plans(root: string): string[] {
     }
   }; visit(join(root, "launch-receipts"), 0); return found;
 }
-async function cohortQueue(root: string): Promise<{ items: WorkbenchQueueItem[]; failures: Map<string, string>; membership: Map<string, string>; problems: string[] }> {
-  const items: WorkbenchQueueItem[] = [], failures = new Map<string, string>(), membership = new Map<string, string>(), problems: string[] = [], accepted = new Set<string>();
-  let owner: unknown = null;
-  try { if (existsSync(join(root, ".naming-gameplay.lock", "owner.json"))) owner = json(join(root, ".naming-gameplay.lock", "owner.json")); } catch { /* No qualified coordinator ownership. */ }
+async function cohortMembership(root: string): Promise<{ failures: Map<string, string>; membership: Map<string, string>; problems: string[] }> {
+  const failures = new Map<string, string>(), membership = new Map<string, string>(), problems: string[] = [], accepted = new Set<string>();
   for (const path of plans(root)) {
     try {
       const receipt = metadata(path), raw = receipt.value;
       if (record(raw) && raw.id === "navigation-memory-think-fast-n4" && Array.isArray(raw.order)) {
-        const folder = dirname(path), ledgerPath = join(folder, "trials.jsonl"), queuePath = join(folder, "queue.json");
+        const ledgerPath = join(dirname(path), "trials.jsonl");
         const rows: unknown[] = existsSync(ledgerPath) ? boundedLedger(ledgerPath) : [];
         if (typeof raw.root !== "string" || realpathSync(join(raw.root, "runs")) !== realpathSync(root)) throw new Error("Navigation receipt root does not own this run store");
-        const custom = parseNavigationReceipt(raw, rows, existsSync(queuePath) ? json(queuePath) : null, owner, receipt.digest, raw.root, pid => { try { process.kill(pid, 0); return true; } catch { return false; } });
+        const custom = parseNavigationReceipt(raw, rows, receipt.digest, raw.root);
         if (accepted.has(custom.id)) continue; accepted.add(custom.id);
         for (const trial of custom.trials) {
           if (trial.run !== null) {
             try { const start = readStart(root, trial.run); if (start.harness.commit === custom.source && start.model.id === custom.model) { membership.set(trial.run, custom.id); if (trial.failed) failures.set(trial.run, `Infrastructure outcome: ${custom.failure ?? "child process failed"}`); } else problems.push(`Navigation run ${trial.run} source/model does not match its receipt`); } catch { /* A launched child may not have written run_start yet. */ }
           }
-          items.push({ id: trial.run ?? `${custom.id}:trial-${String(trial.ordinal)}`, cohort: custom.id, model: custom.model, arm: trial.arm, status: trial.phase === "completed" ? "completed" : trial.failed ? "failed" : custom.active ? trial.phase === "launched" ? "launching" : "queued" : "withheld", reason: custom.failure ?? (custom.active ? "Recorded eight-trial serial cohort" : "Coordinator not qualified as executing; plan slots retained") });
         }
         continue;
       }
@@ -110,34 +104,28 @@ async function cohortQueue(root: string): Promise<{ items: WorkbenchQueueItem[];
       const digest = sha256(JSON.stringify(m));
       if (rows.length === 0 || !rows.every(row => record(row) && row.manifestSha256 === digest)) continue;
       if (accepted.has(m.id)) continue;
-      const launched = new Set<string>(), completed = new Set<string>(), receiptFailures = new Map<string, string>(); let cohortFailed = false;
+      const receiptFailures = new Map<string, string>(); let cohortFailed = false;
       for (const [index, row] of rows.entries()) {
         const trial = m.trials[Math.floor(index / 2)];
         if (trial === undefined || row.runId !== trial.runId || row.type !== (index % 2 === 0 ? "launch" : "outcome") || !Number.isFinite(Date.parse(row.at)) || (row.type === "outcome" && Date.parse(row.at) < Date.parse(rows[index - 1]?.at ?? "")) || cohortFailed) throw new Error("Cohort ledger has invalid serial order or timestamps");
-        if (row.type === "launch") launched.add(row.runId);
-        else {
+        if (row.type === "outcome") {
           if (row.reason === undefined) throw new Error("Cohort outcome has no reason");
-          completed.add(row.runId);
           if (row.exitCode !== 0 || row.eventsSha256 === null || !RUN_END_REASONS.some(reason => reason === row.reason)) { cohortFailed = true; receiptFailures.set(row.runId, `Infrastructure outcome: ${row.failureCode ?? (row.eventsSha256 === null ? "missing event digest" : row.reason)}`); }
         }
       }
       accepted.add(m.id);
       for (const trial of m.trials) membership.set(trial.runId, m.id);
       for (const [id, failure] of receiptFailures) failures.set(id, failure);
-      let active = false;
-      if (!cohortFailed && record(owner) && owner.cohort === m.id && typeof owner.pid === "number" && Number.isInteger(owner.pid) && owner.pid > 0) { try { process.kill(owner.pid, 0); active = true; } catch { /* Stale lease is not executing. */ } }
-      for (const trial of m.trials) if (!completed.has(trial.runId)) items.push({ id: trial.runId, cohort: m.id, model: m.lanes.find(l => l.id === trial.lane)?.model ?? null, arm: trial.arm, status: active ? (launched.has(trial.runId) ? "launching" : "queued") : "withheld", reason: active ? "Serial cohort execution" : "Coordinator is not executing; remaining trials have not been scheduled" });
     } catch (error) { problems.push(`Comparison receipt: ${errorText(error)}`); }
   }
-  experimentCohorts(root, items, failures, membership, problems);
-  return { items, failures, membership, problems };
+  experimentCohorts(root, failures, membership, problems);
+  return { failures, membership, problems };
 }
 // Experiment-queue ledgers (runs/experiments/<id>/trials.jsonl): every launched run joins the
-// experiment's cohort, launcher errors are excluded, and trials with no outcome are listed.
-function experimentCohorts(root: string, items: WorkbenchQueueItem[], failures: Map<string, string>, membership: Map<string, string>, problems: string[]): void {
+// experiment's cohort and launcher errors are excluded.
+function experimentCohorts(root: string, failures: Map<string, string>, membership: Map<string, string>, problems: string[]): void {
   const base = join(root, "experiments");
   if (!existsSync(base)) return;
-  const runner = readRunner(root);
   for (const entry of readdirSync(base, { withFileTypes: true })) {
     const path = join(base, entry.name, "trials.jsonl");
     if (!entry.isDirectory() || !existsSync(path)) continue;
@@ -146,24 +134,19 @@ function experimentCohorts(root: string, items: WorkbenchQueueItem[], failures: 
       const { entries, problems: bad } = parseLedger(readFileSync(path, "utf8"));
       // All or nothing: a ledger with any unreadable row contributes no cohort annotations.
       if (bad.length > 0) { problems.push(...bad.map(p => `Experiment ${entry.name} ledger ${p}`)); continue; }
-      const cohort = `experiment:${entry.name}`, launched = new Set<string>(), ended = new Set<string>(), errors = new Map<string, string>();
+      const cohort = `experiment:${entry.name}`, launched = new Set<string>(), errors = new Map<string, string>();
       for (const e of entries) {
         if (e.type === "launch") launched.add(e.run);
         else if (!launched.has(e.run)) throw new Error(`run ${e.run} has an ${e.type} without a launch`);
-        else { ended.add(e.run); if (e.type === "launcher_error") errors.set(e.run, `Launcher outcome: ${e.message}`); }
+        else if (e.type === "launcher_error") errors.set(e.run, `Launcher outcome: ${e.message}`);
       }
       for (const run of launched) membership.set(run, cohort);
       for (const [run, message] of errors) failures.set(run, message);
-      for (const launch of entries) {
-        if (launch.type !== "launch" || ended.has(launch.run)) continue;
-        const running = runner?.experiment === entry.name && runner.trial === launch.trial;
-        items.push({ id: launch.run, cohort, model: launch.model ?? null, arm: launch.arm, status: running ? "running" : "withheld", reason: running ? "Experiment queue trial running" : "Experiment queue trial with no recorded outcome; the runner is not on it" });
-      }
     } catch (error) { problems.push(`Experiment ${entry.name} ledger: ${errorText(error)}`); }
   }
 }
-export async function workbenchSnapshot(root: string, healthy: HealthProbe, queue: QueueStatus, now: number): Promise<WorkbenchData> {
-  const cohorts = await cohortQueue(root); const summaries = listRuns(root);
+export async function workbenchSnapshot(root: string, healthy: HealthProbe, now: number): Promise<WorkbenchData> {
+  const cohorts = await cohortMembership(root); const summaries = listRuns(root);
   const loadedRuns = summaries.map(s => load(root, s.id));
   const newest = new Map<number, { id: string; at: number }>();
   for (const loaded of loadedRuns) if (loaded.port !== null && loaded.run.status === "unresponsive") {
@@ -183,11 +166,9 @@ export async function workbenchSnapshot(root: string, healthy: HealthProbe, queu
     }
     run.cohort = cohorts.membership.get(run.id) ?? null;
     applyHistoricalProvenance(root, run);
-    for (const item of cohorts.items) if (item.id === run.id && item.status === "launching" && (run.status === "live" || run.status === "paused")) item.status = "running";
     const failure = cohorts.failures.get(run.id); if (failure !== undefined) run.excluded = failure;
     return run;
   }));
-  if (queue.state !== "idle") cohorts.items.unshift({ id: queue.runId, cohort: null, model: null, arm: null, status: queue.state, reason: queue.state === "queued" ? queue.waitingFor : queue.state === "failed" ? queue.error : null });
   for (const path of cache.keys()) if (!summaries.some(s => eventsPath(root, s.id) === path) && path.startsWith(root + "/")) cache.delete(path);
-  return { version: 1, at: now, milestones: MILESTONES.filter(m => m.kind !== "legacy").map(m => ({ id: m.name, label: m.name.replace(/_/g, " ") })), runs: runs.sort((a, b) => Date.parse(b.started ?? "") - Date.parse(a.started ?? "") || b.id.localeCompare(a.id)), queue: cohorts.items, problems: cohorts.problems };
+  return { version: 1, at: now, milestones: MILESTONES.filter(m => m.kind !== "legacy").map(m => ({ id: m.name, label: m.name.replace(/_/g, " ") })), runs: runs.sort((a, b) => Date.parse(b.started ?? "") - Date.parse(a.started ?? "") || b.id.localeCompare(a.id)), problems: cohorts.problems };
 }

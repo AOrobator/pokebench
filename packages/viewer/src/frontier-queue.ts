@@ -1,10 +1,10 @@
 export interface NavigationTrial { ordinal: number; arm: "off" | "on"; run: string | null; phase: "planned" | "launched" | "process_ended" | "completed"; failed: boolean }
-export interface NavigationReceipt { id: string; source: string; model: string; trials: NavigationTrial[]; active: boolean; failure: string | null }
+export interface NavigationReceipt { id: string; source: string; model: string; trials: NavigationTrial[]; failure: string | null }
 const record = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 const count = (v: unknown): v is number => typeof v === "number" && Number.isSafeInteger(v) && v >= 0;
 const digestOf = (v: unknown): v is string => typeof v === "string" && /^[a-f0-9]{64}$/.test(v);
 const strings = (v: unknown): v is string[] => Array.isArray(v) && v.every(x => typeof x === "string");
-export function parseNavigationReceipt(manifest: unknown, rows: readonly unknown[], queue: unknown, owner: unknown, digest: string, repoRoot: string, alive: (pid: number) => boolean): NavigationReceipt {
+export function parseNavigationReceipt(manifest: unknown, rows: readonly unknown[], digest: string, repoRoot: string): NavigationReceipt {
   if (!record(manifest) || manifest.version !== 1 || manifest.id !== "navigation-memory-think-fast-n4" || manifest.root !== repoRoot || typeof manifest.source !== "string" || !/^[a-f0-9]{40}$/.test(manifest.source) || !record(manifest.model) || typeof manifest.model.id !== "string" || !Array.isArray(manifest.order) || manifest.order.length !== 8 || !manifest.order.every(a => a === "off" || a === "on") || manifest.order.filter(a => a === "off").length !== 4 || !record(manifest.presets) || !record(manifest.expected_harness_features) || !digestOf(digest)) throw new Error("Unsupported eight-trial navigation manifest");
   for (const arm of ["off", "on"] as const) {
     const preset: unknown = manifest.presets[arm], features: unknown = manifest.expected_harness_features[arm];
@@ -33,8 +33,5 @@ export function parseNavigationReceipt(manifest: unknown, rows: readonly unknown
       trial.phase = "completed"; current++;
     } else throw new Error("Unknown navigation ledger row");
   }
-  const pending = trials[current];
-  const matches = !stopped && pending !== undefined && pending.phase === "launched" && record(queue) && queue.status === "running" && queue.total === 8 && queue.completed === current && queue.trial === pending.ordinal && queue.arm === pending.arm && queue.run === pending.run && Array.isArray(queue.remaining) && JSON.stringify(queue.remaining) === JSON.stringify(manifest.order.slice(current + 1));
-  const active = matches && record(owner) && owner.cohort === manifest.id && owner.source === manifest.source && owner.manifest_sha256 === digest && count(owner.pid) && owner.pid > 0 && queue.pid === owner.pid && alive(owner.pid);
-  return { id: manifest.id, source: manifest.source, model: manifest.model.id, trials, active, failure };
+  return { id: manifest.id, source: manifest.source, model: manifest.model.id, trials, failure };
 }

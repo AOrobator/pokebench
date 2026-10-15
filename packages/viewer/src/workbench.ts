@@ -5,7 +5,7 @@ import { WORKBENCH_POLL_MS, parseWorkbench, type WorkbenchData, type WorkbenchRu
 import { currentRunHtml, runDetails } from "./workbench-view.js";
 export interface WorkbenchDeps { fetchSnapshot(): Promise<unknown>; now(): number; width(): number }
 export class Workbench {
-  private data: WorkbenchData = { version: 1, at: 0, milestones: [], runs: [], queue: [], problems: [] };
+  private data: WorkbenchData = { version: 1, at: 0, milestones: [], runs: [], problems: [] };
   private busy = false;
   private disposed = false;
   private verified = false;
@@ -76,14 +76,11 @@ export class Workbench {
   }
   private pressed(): void { for (const button of this.ui("frontier-view").querySelectorAll("button")) button.setAttribute("aria-pressed", String((button.dataset.frontierView === "zoom") === this.zoom)); }
   private render(): void {
-    const cohorts = Array.from(new Set([...this.data.runs.flatMap(r => r.cohort === null ? [] : [r.cohort]), ...this.data.queue.flatMap(q => q.cohort === null ? [] : [q.cohort])]));
+    const cohorts = Array.from(new Set(this.data.runs.flatMap(r => r.cohort === null ? [] : [r.cohort])));
     this.options("cohort", [{ id: "all", label: "All recorded runs" }, ...cohorts.map(id => ({ id, label: id }))], this.scope);
     this.options("model", [{ id: "all", label: "All models" }, ...Array.from(new Set(this.data.runs.flatMap(r => r.model === null ? [] : [r.model]))).map(id => ({ id, label: id }))], this.model);
     this.options("preset", [{ id: "all", label: "All configurations" }, ...Array.from(new Set(this.data.runs.flatMap(r => r.config?.preset == null ? [] : [r.config.preset]))).map(id => ({ id, label: id }))], this.preset);
     this.options("overlay", [{ id: "all", label: "All filtered runs" }, { id: "none", label: "References only" }, ...this.filtered().map(r => ({ id: r.id, label: `${r.model ?? "Unknown"} · ${r.id}` }))], this.overlay);
-    const queue = this.data.queue.filter(q => this.scope === "all" || q.cohort === null || q.cohort === this.scope);
-    this.ui("queue-title").textContent = `EXECUTION QUEUE · ${String(queue.filter(q => q.status === "queued").length)} WAITING · ${String(queue.filter(q => q.status === "withheld").length)} WITHHELD`;
-    this.ui("queue").innerHTML = queue.length === 0 ? '<p class="wb-empty">No runs are queued. An editable next-run draft is not a scheduled run.</p>' : queue.map((q, i) => `<div class="wb-queue-row"><span class="wb-queue-state ${q.status}">${esc(q.status === "queued" ? `QUEUED ${String(i + 1)}` : q.status.toUpperCase())}</span><span><strong>${esc(q.model ?? "Model not recorded")}${q.arm === null ? "" : ` · ${esc(q.arm)}`}</strong><small>${esc(q.id)}</small><small>${esc(q.reason ?? "")}</small></span></div>`).join("");
     this.ui("data-problems").textContent = this.data.problems.join("\n"); this.ui("data-problems").hidden = this.data.problems.length === 0;
     this.clock(); this.renderCharts(); if (this.selected !== null) this.detail(this.selected.run, this.selected.split, false);
   }

@@ -113,6 +113,14 @@ describe("experiment queue view", () => {
     expect(only.queue).not.toContain("EXPERIMENT FULL");
   });
 
+  it("lists approved, running and held experiments above drafts, keeping queue order within each group", () => {
+    const draft = (id: string, queuePosition: number | null): ExperimentView => view(id, { queuePosition, state: "draft", approved: false });
+    const queue = [draft("d1", 1), view("a2", { queuePosition: 2, state: "approved" }), view("s3", { queuePosition: 3, state: "stale", approved: false }), view("h4", { queuePosition: 4, state: "held" }), view("r5", { queuePosition: 5 }), draft("d6", null)];
+    const html = renderQueue({ ...SNAPSHOT, queue }, "all", new Set()).queue;
+    const order = [...html.matchAll(/data-experiment="([^"]+)"/g)].map((m) => m[1]);
+    expect(order.slice(0, queue.length)).toEqual(["a2", "h4", "r5", "d1", "s3", "d6"]);
+  });
+
   it("filters by status, including pending and done", () => {
     const drafts = renderQueue(SNAPSHOT, "draft", new Set());
     expect(drafts.queue).toContain("EXPERIMENT ELEV");

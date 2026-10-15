@@ -60,6 +60,13 @@ export function finalsOrder(arms:readonly string[],perArm:number):string[] {
  return Array.from({length:perArm},(_,b)=>(all[b%all.length]??[]).map(i=>arms[i]??"")).flat();
 }
 
+// The finals still to run: the balanced order with the first `reused` incumbent slots taken by
+// recorded runs that already match the finals incumbent (operator 2026-10-15: reuse them).
+export function finalsPlan(arms:readonly string[],perArm:number,reused:number):string[] {
+ let skip=Math.min(reused,perArm);
+ return finalsOrder(arms,perArm).filter(arm=>arm!=="incumbent"||skip--<=0);
+}
+
 export function finalsPreset(base:PlayPresetV2,experiment:string,arm:string,switches:Partial<Record<SwitchableFeature,boolean>>,config:FinalsConfig):PlayPresetV2 {
  const features:FeatureSet={...base.features,...switches};
  const problems=[...dependencyProblems(features),...stateOnlyProblems(features)];
@@ -111,7 +118,9 @@ const FinalistSchema=Type.Object({arm:Type.String({pattern:"^[a-z0-9][a-z0-9-]{0
 const FinalsConfigSchema=Type.Object({runsPerArm:Type.Integer({minimum:1}),maxWallMs:Type.Integer({minimum:1}),target:Type.Union([Type.String({minLength:1}),Type.Null()])},{additionalProperties:false});
 export const NominationSchema=Type.Object({experiment:Type.String({minLength:1}),source:Type.Enum(["queue","cohort"] as const),cohort:Type.Optional(Type.String({minLength:1})),at:Type.String({minLength:1}),
  // The finals incumbent: boot start and finals limits already applied.
- incumbent:PlayPresetV2Schema,finals:FinalsConfigSchema,ranking:Type.Array(RankSchema),finalists:Type.Array(FinalistSchema,{maxItems:MAX_FINALISTS}),reason:Type.String()},{additionalProperties:false});
+ incumbent:PlayPresetV2Schema,finals:FinalsConfigSchema,ranking:Type.Array(RankSchema),
+ // Recorded runs of the finals incumbent counted toward its runs instead of running them again.
+ reusedIncumbent:Type.Array(Type.String({minLength:1})),finalists:Type.Array(FinalistSchema,{maxItems:MAX_FINALISTS}),reason:Type.String()},{additionalProperties:false});
 export type Nomination=Omit<Static<typeof NominationSchema>,"incumbent">&{readonly incumbent:PlayPresetV2};
 export function parseNomination(value:unknown):Nomination {
  if(!Value.Check(NominationSchema,value)){const [first]=Value.Errors(NominationSchema,value);throw new Error(`Invalid nomination: ${first?.instancePath ?? ""} ${first?.message ?? "schema mismatch"}`);}

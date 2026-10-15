@@ -7,6 +7,8 @@ import { Type } from "typebox";
 import { Value } from "typebox/value";
 import { ApprovalSchema, definitionHash, deriveStatus, parseExperiment, parseLedger, parseNewerExperiment, unknownSwitches, type NewerExperiment, readinessOf, type Approval, type Experiment, type ExperimentState, type LedgerEntry, type Readiness, type ReadinessRun, type RunnerPosition, type TrialProgress } from "@pokebench/agent/experiments";
 import { parseEvent } from "@pokebench/agent/events";
+import type { Promotion } from "@pokebench/agent/experiment-gate";
+import { UNSETTLED, effectiveExperiment, findCohort, gateView, readPromotions, promotionOverlay, type GateView } from "./experiment-gate-store.js";
 import { configOf } from "./history.js";
 import { RunsError, listRuns, readStart, runDir } from "./runs.js";
 
@@ -72,8 +74,15 @@ export interface QueueSnapshot {
   readonly closed: readonly ExperimentView[];
   readonly runner: RunnerPosition | null;
   readonly problems: readonly string[];
+  // The winner gate (empty, null and null with it off): nominations and their finals, the
+  // promoted incumbent overlay, and why no new experiment may start.
+  readonly gate: readonly GateView[];
+  readonly incumbent: Promotion | null;
+  readonly gateBlock: string | null;
 }
-export interface QueuePaths { readonly experimentsDir: string; readonly runsRoot: string; readonly readinessPath: string }
+// winnerGate: on in the viewer and CLI unless POKEBENCH_WINNER_GATE=off; absent means off (today's queue).
+export interface QueuePaths { readonly experimentsDir: string; readonly runsRoot: string; readonly readinessPath: string; readonly winnerGate?: boolean }
+export const winnerGateOn = (env: Readonly<Record<string, string | undefined>>): boolean => env["POKEBENCH_WINNER_GATE"] !== "off";
 
 export const experimentDir = (runsRoot: string, id: string): string => join(runsRoot, "experiments", id);
 export const runnerPath = (runsRoot: string): string => join(runsRoot, "experiments", "runner.json");
@@ -157,9 +166,9 @@ function ledgerOf(runsRoot: string, id: string, problems: string[]): LedgerEntry
   return entries;
 }
 
-export function experimentView(e: Experiment, input: { approval: Approval | null; ledger: readonly LedgerEntry[]; runner: RunnerPosition | null; recent: readonly ReadinessRun[]; source: RunSource; recorded: RecordedReadiness | null; result: ResultSummary | null }): ExperimentView {
+export function experimentView(e: Experiment, input: { approval: Approval | null; ledger: readonly LedgerEntry[]; runner: RunnerPosition | null; recent: readonly ReadinessRun[]; source: RunSource; recorded: RecordedReadiness | null; result: ResultSummary | null; cohortFinished?: boolean; superseded?: string | null }): ExperimentView {
   const readiness = readinessOf(e, input.recent);
-  const status = deriveStatus({ experiment: e, approval: input.approval, ledger: input.ledger, runner: input.runner, readiness, graded: input.result !== null });
+  const status = deriveStatus({ experiment: e, approval: input.approval, ledger: input.ledger, runner: input.runner, readiness, graded: input.result !== null, cohortFinished: input.cohortFinished ?? false, superseded: input.superseded ?? null });
   const metrics = (run: string | null): TrialMetrics | null => (run === null ? null : input.source.trial(run));
   const trials: TrialView[] = status.trials.map((t) => {
     const m = t.state === "done" ? metrics(t.run) : null;
@@ -241,8 +250,21 @@ export function queueSnapshot(paths: QueuePaths, source: RunSource, alive: (pid:
   const recorded = existsSync(paths.readinessPath) ? parseReadinessDoc(readFileSync(paths.readinessPath, "utf8")) : new Map<string, RecordedReadiness>();
   const runner = readRunner(paths.runsRoot, alive);
   const recent = experiments.length === 0 ? [] : source.recent();
-  const views = experiments.map((e) => experimentView(e, { approval: approvalOf(paths.runsRoot, e.id, problems), ledger: ledgerOf(paths.runsRoot, e.id, problems), runner, recent, source, recorded: recorded.get(e.changedFeature) ?? null, result: gradedResult(join(experimentDir(paths.runsRoot, e.id), "result.json"), definitionHash(e)) }))
-    .concat(newer.map((n) => newerView(n, recorded.get(n.changedFeature) ?? null)));
+  const gateOn = paths.winnerGate === true;
+  const promotions = gateOn ? readPromotions(paths.runsRoot, problems) : [];
+  const gate: GateView[] = [];
+  const views = experiments.map((file) => {
+    const ledger = ledgerOf(paths.runsRoot, file.id, problems);
+    const { experiment: e, superseded } = gateOn ? effectiveExperiment(file, ledger, promotions) : { experiment: file, superseded: null };
+    const cohort = gateOn && e.externalCohort !== undefined ? findCohort(paths.runsRoot, e.externalCohort) : null;
+    const cohortFinished = cohort?.done === true;
+    if (gateOn) {
+      const waiting = `waiting for the ${e.externalCohort ?? ""} cohort to finish (${cohort === null ? "no manifest found under runs/launch-receipts" : cohort.status}); its finalists then run from boot`;
+      const g = gateView(e, paths.runsRoot, runner, problems, e.externalCohort === undefined ? null : { done: cohortFinished, waiting });
+      if (g !== null) gate.push(g);
+    }
+    return experimentView(e, { approval: approvalOf(paths.runsRoot, e.id, problems), ledger, runner, recent, source, recorded: recorded.get(e.changedFeature) ?? null, result: gradedResult(join(experimentDir(paths.runsRoot, e.id), "result.json"), definitionHash(e)), cohortFinished, superseded });
+  }).concat(newer.map((n) => newerView(n, recorded.get(n.changedFeature) ?? null)));
   const positions = new Map<number, string>();
   for (const v of views) {
     if (v.queuePosition === null) continue;
@@ -259,6 +281,9 @@ export function queueSnapshot(paths: QueuePaths, source: RunSource, alive: (pid:
     closed: views.filter(closed),
     runner,
     problems,
+    gate,
+    incumbent: promotionOverlay(promotions),
+    gateBlock: gate.find((g) => UNSETTLED.includes(g.state))?.reason ?? null,
   };
 }
 

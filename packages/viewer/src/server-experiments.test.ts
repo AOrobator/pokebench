@@ -53,6 +53,9 @@ describe("GET /api/experiments", () => {
     expect((JSON.parse(approved.body) as { queue: { state: string }[] }).queue[0]?.state).toBe("approved");
     expect((await call(viewer, "/api/experiments/full-map/approve", "POST")).status).toBe(409);
     expect((await call(viewer, "/api/experiments/nope/approve", "POST")).status).toBe(404);
+    expect((await call(viewer, "/api/experiments/full-map/finals-withdraw", "POST")).status).toBe(409);
+    expect((await call(viewer, "/api/experiments/full-map/finals-resume", "POST")).status).toBe(409);
+    expect((await call(viewer, "/api/experiments/full-map/finals-other", "POST")).status).toBe(404);
     expect((await call(viewer, "/api/experiments/full-map/launch", "POST")).status).toBe(404);
     const revoked = await call(viewer, "/api/experiments/full-map/revoke", "POST");
     expect((JSON.parse(revoked.body) as { queue: { state: string }[] }).queue[0]?.state).toBe("draft");

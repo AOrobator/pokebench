@@ -1,7 +1,7 @@
 // The viewer runs approved experiments by itself (operator 2026-10-14: approve in the
 // viewer and it runs), one at a time, under the same gameplay lease as NEXT RUN.
 // Withdrawing an approval stops it before the experiment's next trial.
-import { nextExperiment, runQueue, type RunnerHost, type RunnerOptions, type RunnerOutcome } from "./experiment-runner.js";
+import { nextStep, runQueue, type RunnerHost, type RunnerOptions, type RunnerOutcome } from "./experiment-runner.js";
 import { queueSnapshot, type QueuePaths, type RunSource } from "./experiment-store.js";
 
 export const AUTORUN_TICK_MS = 5_000;
@@ -40,7 +40,7 @@ export class ExperimentAutoRun {
     if (this.busy || this.stopped || this.deps.now() < this.retryAt) return Promise.resolve();
     let next;
     try {
-      next = nextExperiment(queueSnapshot(this.deps.paths, this.deps.source).queue);
+      next = nextStep(queueSnapshot(this.deps.paths, this.deps.source));
     } catch (error) {
       // Runs the timer calls this from: a failure must never take the viewer down.
       this.current = { state: "error", message: error instanceof Error ? error.message : String(error) };
@@ -51,9 +51,13 @@ export class ExperimentAutoRun {
       if (this.current.state === "error") this.current = { state: "idle", message: "Nothing is approved to run." };
       return Promise.resolve();
     }
+    if (next.kind === "blocked") {
+      this.current = { state: "idle", message: `Waiting: ${next.reason}` };
+      return Promise.resolve();
+    }
     this.busy = true;
     this.stopping = false;
-    this.current = { state: "running", message: `Running ${next.id}.` };
+    this.current = { state: "running", message: next.kind === "experiment" ? `Running ${next.view.id}.` : next.kind === "finals" ? `Running the ${next.id} finals from boot.` : `Nominating ${next.id}'s finalists.` };
     const run = this.deps.run ?? runQueue;
     run({ paths: this.deps.paths, source: this.deps.source, host: this.deps.host, stopRequested: () => this.stopping }).then(
       (outcome) => { this.current = { state: "idle", message: `${String(outcome.ran)} trial(s) run; ${outcome.stopped}` }; },

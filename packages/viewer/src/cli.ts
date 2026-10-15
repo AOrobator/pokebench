@@ -7,6 +7,7 @@ import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { ExperimentAutoRun } from "./experiment-autorun.js";
+import { winnerGateOn } from "./experiment-store.js";
 import { productionHost } from "./experiment-cli.js";
 import { recordedRuns } from "./experiment-store.js";
 import { HumanRestarts, RunQueue, healthProbe, randomSuffix, spawnLaunch } from "./next-run.js";
@@ -129,7 +130,7 @@ if (import.meta.main) {
     // The repository that owns runsRoot runs approved experiments from its own build.
     autorun: (runsRoot) => {
       const root = dirname(runsRoot), git = (args: readonly string[]): string => execFileSync("git", [...args], { cwd: root, encoding: "utf8" });
-      const paths = { experimentsDir: join(root, "experiments"), runsRoot, readinessPath: join(root, "docs", "experiments", "readiness.md") };
+      const paths = { experimentsDir: join(root, "experiments"), runsRoot, readinessPath: join(root, "docs", "experiments", "readiness.md"), winnerGate: winnerGateOn(process.env) };
       const source = recordedRuns(runsRoot);
       return new ExperimentAutoRun({ paths, source, now: () => Date.now(), host: productionHost({ root, runsRoot, git, fetchFn: fetch, node: process.execPath, env: process.env, log: (line) => { console.log(`experiments: ${line}`); } }) });
     },

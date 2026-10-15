@@ -1,6 +1,6 @@
 import {expect,it} from "vitest";
 import {ALL_ON,type FeatureSet} from "./features.js";
-import {DEFAULT_FINALS,FINALS_MAX_TURNS,decideFinals,finalsConfig,finalsOrder,finalsPreset,furthestIndex,nominate,parseFinalsLedger,parseNomination,parsePromotions,rankArms,withPromotion,type ArmRuns,type Promotion,type RunOutcome} from "./experiment-gate.js";
+import {DEFAULT_FINALS,FINALS_MAX_TURNS,decideFinals,finalsConfig,finalsOrder,finalsPlan,finalsPreset,furthestIndex,nominate,parseFinalsLedger,parseNomination,parsePromotions,rankArms,withPromotion,type ArmRuns,type Promotion,type RunOutcome} from "./experiment-gate.js";
 import {parseExperiment} from "./experiments.js";
 import {MILESTONES} from "./milestones.js";
 
@@ -43,6 +43,12 @@ it("orders finals so every arm runs the same number of times, balanced: ABBA for
   for(let i=0;i<o.length;i+=arms.length)expect(new Set(o.slice(i,i+arms.length)).size).toBe(arms.length);
   expect(new Set(Array.from({length:8},(_,b)=>o[b*arms.length])).size).toBe(arms.length);
  }
+});
+
+it("runs only the incumbent slots that recorded runs do not already fill",()=>{
+ expect(finalsPlan(["incumbent","a"],4,0)).toEqual(finalsOrder(["incumbent","a"],4));
+ expect(finalsPlan(["incumbent","a"],4,3)).toEqual(["a","a","a","a","incumbent"]);
+ expect(finalsPlan(["incumbent","a"],4,9)).toEqual(["a","a","a","a"]);
 });
 
 it("builds a finals preset: boot start, the finals wall limit and stop milestone, the finalist's switches over the incumbent",()=>{
@@ -118,7 +124,7 @@ it("overlays a promotion's switches on an incumbent and names a superseded exper
 });
 
 it("validates nomination, finals ledger and promotion records",()=>{
- const nomination={experiment:"exp",source:"cohort",cohort:"factorial",at:"t",incumbent:finalsPreset(preset,"exp","incumbent",{},DEFAULT_FINALS),finals:DEFAULT_FINALS,ranking:[{arm:"whole",runs:8,reached:3,medianFurthest:4,medianPrimaryMs:null}],finalists:[{arm:"whole",switches:{"full-map-navigation-v1":true}}],reason:"r"};
+ const nomination={experiment:"exp",source:"cohort",cohort:"factorial",at:"t",incumbent:finalsPreset(preset,"exp","incumbent",{},DEFAULT_FINALS),finals:DEFAULT_FINALS,reusedIncumbent:[],ranking:[{arm:"whole",runs:8,reached:3,medianFurthest:4,medianPrimaryMs:null}],finalists:[{arm:"whole",switches:{"full-map-navigation-v1":true}}],reason:"r"};
  expect(parseNomination(nomination).finalists[0]?.arm).toBe("whole");
  expect(()=>parseNomination({...nomination,finalists:[1,2,3,4].map(i=>({arm:`a${String(i)}`,switches:{}}))})).toThrow(/Invalid nomination/);
  expect(()=>parseNomination({...nomination,finalists:[{arm:"incumbent",switches:{}}]})).toThrow(/finalist cannot be named incumbent/);

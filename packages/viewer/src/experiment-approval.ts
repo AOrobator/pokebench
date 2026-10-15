@@ -4,6 +4,7 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { definitionHash, parseLedger, type Approval } from "@pokebench/agent/experiments";
+import { finalsWithdrawnPath } from "./experiment-gate-store.js";
 import { experimentDir, loadExperiments, queueSnapshot, type ExperimentView, type QueuePaths, type RunSource } from "./experiment-store.js";
 
 export class ApprovalError extends Error {
@@ -56,4 +57,20 @@ export function revokeApproval(paths: QueuePaths, source: RunSource, id: string,
   rmSync(path);
   record(paths, id, { type: "revoke", at: now.toISOString(), by });
   return after(paths, source, id);
+}
+
+// Finals run under the experiment's approval (operator 2026-10-15: winners run from boot before
+// anything new). Withdrawing them stops the queue before the next finals run, and keeps every new
+// experiment waiting until they are resumed or the experiment is discarded.
+export function setFinalsWithdrawn(paths: QueuePaths, source: RunSource, id: string, withdrawn: boolean, by: string, now: Date): void {
+  const gate = queueSnapshot(paths, source).gate.find((g) => g.experiment === id);
+  const path = finalsWithdrawnPath(paths.runsRoot, id);
+  if (withdrawn) {
+    if (gate === undefined || (gate.state !== "finals" && gate.state !== "held")) throw new ApprovalError(409, `${id} has no finals to withdraw${gate === undefined ? "" : ` (${gate.state})`}`);
+    writeFileSync(path, `${JSON.stringify({ at: now.toISOString(), by })}\n`);
+  } else {
+    if (gate?.state !== "withdrawn") throw new ApprovalError(409, `${id} has no withdrawn finals to resume`);
+    rmSync(path);
+  }
+  record(paths, id, { type: withdrawn ? "finals-withdraw" : "finals-resume", at: now.toISOString(), by });
 }

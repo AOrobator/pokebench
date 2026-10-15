@@ -2,10 +2,10 @@ import { existsSync, readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { dirname, join } from "node:path";
-import { ApprovalError, approveExperiment, revokeApproval } from "./experiment-approval.js";
+import { ApprovalError, approveExperiment, revokeApproval, setFinalsWithdrawn } from "./experiment-approval.js";
 import { AUTORUN_TICK_MS, type AutoRunStatus, type ExperimentAutoRun } from "./experiment-autorun.js";
 import { execFileSync } from "node:child_process";
-import { queueSnapshot, recordedRuns, type QueuePaths, type QueueSnapshot, type RunSource } from "./experiment-store.js";
+import { queueSnapshot, recordedRuns, winnerGateOn, type QueuePaths, type QueueSnapshot, type RunSource } from "./experiment-store.js";
 import { Type } from "typebox";
 import { Value } from "typebox/value";
 import { FEATURES } from "@pokebench/agent/features";
@@ -99,7 +99,9 @@ async function jsonBody(req: IncomingMessage, origin: string): Promise<unknown> 
 
 // The experiment queue's read and its two writes (approve, withdraw), sharing one snapshot cache.
 type QueuePayload = QueueSnapshot & { readonly autorun: AutoRunStatus | null };
-interface QueueApi { read(): Promise<QueuePayload>; change(id: string, action: "approve" | "revoke"): QueuePayload }
+type QueueAction = "approve" | "revoke" | "finals-withdraw" | "finals-resume";
+const QUEUE_ACTIONS: readonly string[] = ["approve", "revoke", "finals-withdraw", "finals-resume"];
+interface QueueApi { read(): Promise<QueuePayload>; change(id: string, action: QueueAction): QueuePayload }
 const EmptyBodySchema = Type.Object({}, { additionalProperties: false });
 
 async function write(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, parts: string[], origin: string, queueApi: QueueApi): Promise<void> {
@@ -107,9 +109,9 @@ async function write(req: IncomingMessage, res: ServerResponse, options: ViewerO
   const now = options.now?.() ?? new Date();
   try {
     const body = await jsonBody(req, origin);
-    if (req.method === "POST" && parts.length === 4 && second === "experiments" && id !== undefined && (leaf === "approve" || leaf === "revoke")) {
+    if (req.method === "POST" && parts.length === 4 && second === "experiments" && id !== undefined && leaf !== undefined && QUEUE_ACTIONS.includes(leaf)) {
       if (!Value.Check(EmptyBodySchema, body)) throw new RequestError(400, "the body must be empty");
-      sendJson(res, 200, queueApi.change(id, leaf));
+      sendJson(res, 200, queueApi.change(id, leaf as QueueAction));
       return;
     }
     if (req.method === "POST" && parts.length === 4 && second === "runs" && id !== undefined && leaf === "control") {
@@ -429,7 +431,7 @@ export async function startViewer(options: ViewerOptions): Promise<Viewer> {
     return next.result;
   };
   const repo = dirname(options.runsRoot);
-  const experiments = options.experiments ?? { paths: { experimentsDir: join(repo, "experiments"), runsRoot: options.runsRoot, readinessPath: join(repo, "docs", "experiments", "readiness.md") }, source: recordedRuns(options.runsRoot) };
+  const experiments = options.experiments ?? { paths: { experimentsDir: join(repo, "experiments"), runsRoot: options.runsRoot, readinessPath: join(repo, "docs", "experiments", "readiness.md"), winnerGate: winnerGateOn(process.env) }, source: recordedRuns(options.runsRoot) };
   // Recorded runs are cached by the source; the snapshot itself is reused for a few seconds.
   let queued: { until: number; result: Promise<QueueSnapshot> } | null = null;
   const readExperiments = (): Promise<QueueSnapshot> => {
@@ -447,7 +449,8 @@ export async function startViewer(options: ViewerOptions): Promise<Viewer> {
     change: (id, action) => {
       const at = options.now?.() ?? new Date();
       if (action === "approve") approveExperiment(experiments.paths, experiments.source, id, "viewer", at, head());
-      else revokeApproval(experiments.paths, experiments.source, id, "viewer", at);
+      else if (action === "revoke") revokeApproval(experiments.paths, experiments.source, id, "viewer", at);
+      else setFinalsWithdrawn(experiments.paths, experiments.source, id, action === "finals-withdraw", "viewer", at);
       queued = null;
       return payload(queueSnapshot(experiments.paths, experiments.source));
     },

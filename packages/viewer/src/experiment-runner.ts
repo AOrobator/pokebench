@@ -1,7 +1,8 @@
 // Runs approved experiments one at a time under the shared gameplay lease.
 // Every trial gets its own run id, run dir and preset (INV-7); the ledger is
-// append-only and a rerun resumes from it. Nothing here approves, promotes or
-// changes defaults.
+// append-only and a rerun resumes from it. Nothing here approves or changes
+// defaults. With the winner gate on, a finished experiment's finalists run from
+// boot before anything new, and only a finals winner becomes the incumbent.
 import { createHash } from "node:crypto";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -10,7 +11,9 @@ import { ApprovalSchema, definitionHash, experimentArms, parseLedger, trialOrder
 import { parseEvent, type RunEvent } from "@pokebench/agent/events";
 import { Value } from "typebox/value";
 import type { PlayPresetV2 } from "@pokebench/agent/play-preset";
-import { experimentDir, loadExperiments, queueSnapshot, runnerPath, type ExperimentView, type QueuePaths, type RunSource } from "./experiment-store.js";
+import { finalsPreset, type FinalsEntry, type Nomination } from "@pokebench/agent/experiment-gate";
+import { experimentDir, loadExperiments, queueSnapshot, runnerPath, type ExperimentView, type QueuePaths, type QueueSnapshot, type RunSource } from "./experiment-store.js";
+import { cohortNomination, decide, effectiveExperiment, finalsLedger, finalsLedgerPath, finalsResultPath, finalsRunner, finalsTrials, finalsWithdrawnPath, findCohort, nominationPath, promotionsPath, queueNomination, readNomination, readPromotions, type FinalsResult } from "./experiment-gate-store.js";
 import { LEASE } from "./next-run.js";
 
 export interface DiscoveredModel { readonly id: string; readonly fingerprint: string }
@@ -27,6 +30,8 @@ export interface RunnerHost {
   // Resolves with the child's exit code once the run's process ends.
   launch(trial: TrialLaunch): Promise<number | null>;
   log(line: string): void;
+  // A hand-run cohort driver or chain still alive (it frees the lease between steps), or null.
+  activeCohort?(): Promise<string | null>;
 }
 export interface RunnerOptions { readonly paths: QueuePaths; readonly source: RunSource; readonly host: RunnerHost; readonly dryRun?: boolean; readonly once?: boolean; readonly stopRequested?: () => boolean }
 export interface RunnerOutcome { readonly ran: number; readonly stopped: string }
@@ -107,6 +112,24 @@ export function nextExperiment(queue: readonly ExperimentView[]): ExperimentView
   return queue.find((v) => v.state === "approved" || v.state === "held") ?? null;
 }
 
+export type Step = { readonly kind: "experiment"; readonly view: ExperimentView } | { readonly kind: "nominate"; readonly id: string } | { readonly kind: "finals"; readonly id: string } | { readonly kind: "blocked"; readonly reason: string };
+// INV-G1: while a nomination is unsettled, nothing new starts; its finals run first.
+export function nextStep(snapshot: QueueSnapshot): Step | null {
+  const open = snapshot.gate.find((g) => g.state === "waiting" || g.state === "nominating" || g.state === "finals" || g.state === "held" || g.state === "withdrawn");
+  if (open !== undefined) {
+    if (open.state === "nominating") return { kind: "nominate", id: open.experiment };
+    if (open.state === "finals" || open.state === "held") return { kind: "finals", id: open.experiment };
+    return { kind: "blocked", reason: `${open.experiment}: ${open.reason}` };
+  }
+  const view = nextExperiment(snapshot.queue);
+  return view === null ? null : { kind: "experiment", view };
+}
+
+function writeJson(path: string, value: unknown): void {
+  writeFileSync(`${path}.tmp`, `${JSON.stringify(value, null, 1)}\n`);
+  renameSync(`${path}.tmp`, path);
+}
+
 export async function runQueue(options: RunnerOptions): Promise<RunnerOutcome> {
   let ran = 0;
   const finished: string[] = [];
@@ -117,23 +140,39 @@ export async function runQueue(options: RunnerOptions): Promise<RunnerOutcome> {
       return { ran, stopped: finished.length === 0 ? step.stopped : `${finished.join("; ")}; ${step.stopped}` };
     }
     finished.push(step.stopped);
-    if (nextExperiment(queueSnapshot(options.paths, options.source).queue) === null) return { ran, stopped: finished.join("; ") };
+    const next = nextStep(queueSnapshot(options.paths, options.source));
+    if (next === null || next.kind === "blocked") return { ran, stopped: finished.join("; ") };
   }
 }
 
-async function runNext({ paths, source, host, dryRun = false, once = false, stopRequested = () => false }: RunnerOptions): Promise<RunnerOutcome & { finished: string | null }> {
+async function runNext(options: RunnerOptions): Promise<RunnerOutcome & { finished: string | null }> {
+  const { paths, source, host, dryRun = false, once = false, stopRequested = () => false } = options;
   const snapshot = queueSnapshot(paths, source);
   for (const problem of snapshot.problems) host.log(`problem: ${problem}`);
-  const view = nextExperiment(snapshot.queue);
+  const step = nextStep(snapshot);
   const hold = (ran: number, stopped: string) => ({ ran, stopped, finished: null });
-  if (view === null) return hold(0, `nothing to run: ${snapshot.queue.map((v) => `${v.id} is ${v.state}`).join("; ") || "the queue is empty"}`);
-  const experiment = loadExperiments(paths.experimentsDir, []).find((e) => e.id === view.id);
-  if (experiment === undefined) throw new RunnerError(`${view.id}: definition disappeared`);
+  if (step === null) return hold(0, `nothing to run: ${snapshot.queue.map((v) => `${v.id} is ${v.state}`).join("; ") || "the queue is empty"}`);
+  if (step.kind === "blocked") return hold(0, `waiting: ${step.reason}`);
+  if (step.kind === "nominate") {
+    if (dryRun) return hold(0, `dry run: ${step.id} nominates its cohort's finalists next`);
+    return nominateCohort(paths, source, host, step.id);
+  }
+  if (paths.winnerGate === true && !dryRun) {
+    const cohort = (await host.activeCohort?.()) ?? null;
+    if (cohort !== null) throw new RunnerError(`cohort ${cohort} is still running`);
+  }
+  if (step.kind === "finals") return runFinals(options, step.id);
+  const view = step.view;
+  const file = loadExperiments(paths.experimentsDir, []).find((e) => e.id === view.id);
+  if (file === undefined) throw new RunnerError(`${view.id}: definition disappeared`);
+  const gated = paths.winnerGate === true ? effectiveExperiment(file, ledgerEntries(paths, file.id), readPromotions(paths.runsRoot)) : null;
+  const experiment = gated?.experiment ?? file;
+  const promotion = gated === null ? {} : { promotion: gated.promotion };
   const todo = view.trials.filter((t) => t.state !== "done");
   host.log(`${experiment.id}: ${view.state}; ${String(todo.length)} of ${String(view.trials.length)} trials to run (${todo.map((t) => `${String(t.index + 1)}${t.arm === "incumbent" ? "A" : "B"}`).join(" ")})`);
   if (dryRun) return hold(0, "dry run");
   // Every trial already finished: grading reads only the ledger and run logs, so no build, model or lease is needed.
-  if (todo.length === 0) return finish(paths, experiment, 0);
+  if (todo.length === 0) return finish(paths, source, experiment, 0);
   const commit = await buildCommit(paths, experiment, host);
   const live = await host.liveRuns();
   if (live.length > 0) throw new RunnerError(`live run ${live[0] ?? ""} is still running`);
@@ -162,7 +201,7 @@ async function runNext({ paths, source, host, dryRun = false, once = false, stop
       const presetPath = presets.get(trial.arm) ?? presetFile(paths, experiment, trial.arm);
       presets.set(trial.arm, presetPath);
       const runId = host.runId(model.id);
-      record({ type: "launch", trial: trial.index, arm: trial.arm, run: runId, at: at(), model: model.id, environment: model.fingerprint, commit });
+      record({ type: "launch", trial: trial.index, arm: trial.arm, run: runId, at: at(), model: model.id, environment: model.fingerprint, commit, ...promotion });
       writeFileSync(runnerPath(paths.runsRoot), JSON.stringify({ pid: process.pid, experiment: experiment.id, trial: trial.index }));
       let code: number | null;
       try {
@@ -188,18 +227,121 @@ async function runNext({ paths, source, host, dryRun = false, once = false, stop
       host.log(`${experiment.id}: trial ${String(trial.index + 1)} (${trial.arm}) finished as ${runId}`);
       if (once && trial !== todo.at(-1)) return hold(ran, "one trial run (--once)");
     }
-    return finish(paths, experiment, ran);
+    return finish(paths, source, experiment, ran);
   } finally {
     rmSync(runnerPath(paths.runsRoot), { force: true });
     rmSync(lease, { recursive: true, force: true });
   }
 }
 
-function finish(paths: QueuePaths, experiment: Experiment, ran: number): RunnerOutcome & { finished: string | null } {
+function finish(paths: QueuePaths, source: RunSource, experiment: Experiment, ran: number): RunnerOutcome & { finished: string | null } {
   if (!approved(paths, experiment)) return { ran, stopped: "held: the approval no longer matches the definition", finished: null };
   const graded = writeResult(paths, experiment);
   if (graded.result === null) return { ran, stopped: `held: grading failed: ${graded.problem ?? "no result"}`, finished: null };
-  return { ran, stopped: `${experiment.id} finished; result in ${join(experimentDir(paths.runsRoot, experiment.id), "result.json")}`, finished: experiment.id };
+  const done = `${experiment.id} finished; result in ${join(experimentDir(paths.runsRoot, experiment.id), "result.json")}`;
+  if (paths.winnerGate !== true) return { ran, stopped: done, finished: experiment.id };
+  // The result only nominates (INV-Q7 as amended 2026-10-15): finals decide.
+  const n = queueNomination(experiment, ledgerEntries(paths, experiment.id), source, new Date());
+  writeJson(nominationPath(paths.runsRoot, experiment.id), n);
+  return { ran, stopped: `${done}; ${n.reason}`, finished: experiment.id };
+}
+
+function nominateCohort(paths: QueuePaths, source: RunSource, host: RunnerHost, id: string): RunnerOutcome & { finished: string | null } {
+  const experiment = loadExperiments(paths.experimentsDir, []).find((e) => e.id === id);
+  const cohort = experiment?.externalCohort === undefined ? null : findCohort(paths.runsRoot, experiment.externalCohort);
+  if (experiment === undefined || cohort === null) throw new RunnerError(`${id}: its cohort disappeared`);
+  const n = cohortNomination(experiment, cohort, source, host.now());
+  mkdirSync(experimentDir(paths.runsRoot, id), { recursive: true });
+  writeJson(nominationPath(paths.runsRoot, id), n);
+  host.log(`${id}: ${n.reason}`);
+  return { ran: 0, stopped: `${id}: ${n.reason}`, finished: id };
+}
+
+const finalsPresetOf = (n: Nomination, arm: string): PlayPresetV2 => {
+  const f = n.finalists.find((x) => x.arm === arm);
+  return f === undefined ? n.incumbent : finalsPreset(n.incumbent, n.experiment, arm, f.switches, n.finals);
+};
+
+// INV-G2: every finals arm starts from boot with the same limits; the ledger resumes like trials.jsonl.
+async function runFinals({ paths, source, host, once = false, stopRequested = () => false }: RunnerOptions, id: string): Promise<RunnerOutcome & { finished: string | null }> {
+  const hold = (ran: number, stopped: string) => ({ ran, stopped, finished: null });
+  const n = readNomination(paths.runsRoot, id, []);
+  const file = loadExperiments(paths.experimentsDir, []).find((e) => e.id === id);
+  if (n === null || file === undefined) throw new RunnerError(`${id}: its nomination or definition disappeared`);
+  const entries: FinalsEntry[] = finalsLedger(paths.runsRoot, id);
+  const todo = finalsTrials(n, entries, null).filter((t) => t.state !== "done");
+  host.log(`${id}: finals; ${String(todo.length)} run(s) from boot to go (${todo.map((t) => `${String(t.index + 1)}${t.arm}`).join(" ")})`);
+  if (todo.length === 0) return settleFinals(paths, source, host, n, file, entries);
+  const commit = entries.find((e) => e.type === "launch")?.type === "launch" ? (entries.find((e) => e.type === "launch") as Extract<FinalsEntry, { type: "launch" }>).commit : await host.head();
+  const live = await host.liveRuns();
+  if (live.length > 0) throw new RunnerError(`live run ${live[0] ?? ""} is still running`);
+  const lease = takeLease(paths.runsRoot, { pid: process.pid, owner: "experiment-queue", experiment: id, finals: true });
+  let ran = 0;
+  try {
+    const problem = await host.verifySource(file, commit);
+    if (problem !== null) throw new RunnerError(`${id}: ${problem}`);
+    const model = await host.discover(file.modelLane);
+    const record = (entry: FinalsEntry): void => { appendFileSync(finalsLedgerPath(paths.runsRoot, id), `${JSON.stringify(entry)}\n`); entries.push(entry); };
+    const dir = join(experimentDir(paths.runsRoot, id), "presets"), logs = join(experimentDir(paths.runsRoot, id), "logs");
+    mkdirSync(dir, { recursive: true });
+    mkdirSync(logs, { recursive: true });
+    for (const trial of todo) {
+      if (stopRequested()) return hold(ran, "stop requested");
+      if (existsSync(finalsWithdrawnPath(paths.runsRoot, id))) return hold(ran, "held: the finals were withdrawn");
+      const recheck = await host.verifySource(file, commit);
+      if (recheck !== null) return hold(ran, `held: ${recheck}`);
+      const at = (): string => host.now().toISOString();
+      if (trial.state === "interrupted" && trial.run !== null) record({ type: "launcher_error", trial: trial.index, arm: trial.arm, run: trial.run, at: at(), message: "interrupted: no outcome was recorded" });
+      const presetPath = join(dir, `finals-${trial.arm}.json`);
+      const body = `${JSON.stringify(finalsPresetOf(n, trial.arm), null, 1)}\n`;
+      if (existsSync(presetPath) && readFileSync(presetPath, "utf8") !== body) throw new RunnerError(`${id}: finals ${trial.arm} preset on disk differs from the nomination`);
+      writeFileSync(presetPath, body);
+      const runId = host.runId(model.id);
+      record({ type: "launch", trial: trial.index, arm: trial.arm, run: runId, at: at(), model: model.id, commit });
+      writeFileSync(runnerPath(paths.runsRoot), JSON.stringify({ pid: process.pid, experiment: finalsRunner(id), trial: trial.index }));
+      let code: number | null;
+      try {
+        code = await host.launch({ runId, presetPath, model: model.id, stdout: join(logs, `${runId}.stdout.log`), stderr: join(logs, `${runId}.stderr.log`) });
+      } catch (error) {
+        record({ type: "launcher_error", trial: trial.index, arm: trial.arm, run: runId, at: at(), message: error instanceof Error ? error.message : String(error) });
+        return hold(ran, `held: finals run ${String(trial.index + 1)} failed to launch`);
+      }
+      const reason = endReason(paths.runsRoot, runId);
+      if (reason === "operator_abort" || reason === "incomplete") {
+        record({ type: "launcher_error", trial: trial.index, arm: trial.arm, run: runId, at: at(), message: reason === "operator_abort" ? "operator stopped the run" : `play exited with ${String(code)} and recorded no run_end` });
+        return hold(ran, `held: finals run ${String(trial.index + 1)} ${reason === "operator_abort" ? "was stopped by the operator; it will be rerun" : "ended without a recorded run_end"}`);
+      }
+      record({ type: "outcome", trial: trial.index, arm: trial.arm, run: runId, at: at(), reason });
+      ran += 1;
+      host.log(`${id}: finals run ${String(trial.index + 1)} (${trial.arm}) finished as ${runId}`);
+      if (once && trial !== todo.at(-1)) return hold(ran, "one finals run (--once)");
+    }
+  } finally {
+    rmSync(runnerPath(paths.runsRoot), { force: true });
+    rmSync(lease, { recursive: true, force: true });
+  }
+  const settled = settleFinals(paths, source, host, n, file, entries);
+  return { ...settled, ran };
+}
+
+// INV-G3: only a finals winner is appended to promotions.jsonl, once.
+function settleFinals(paths: QueuePaths, source: RunSource, host: RunnerHost, n: Nomination, experiment: Experiment, entries: readonly FinalsEntry[]): RunnerOutcome & { finished: string | null } {
+  const decision = decide(n, entries, source, experiment.criteria);
+  if (decision === null) return { ran: 0, stopped: `held: ${n.experiment} finals are incomplete`, finished: null };
+  let promotion: string | null = null;
+  const winner = decision.winner === null ? undefined : n.finalists.find((f) => f.arm === decision.winner);
+  if (winner !== undefined) {
+    promotion = `${n.experiment}:${winner.arm}`;
+    if (!readPromotions(paths.runsRoot).some((p) => p.id === promotion)) {
+      const runs = finalsTrials(n, entries, null).filter((t) => t.arm === winner.arm).flatMap((t) => (t.run === null ? [] : [t.run]));
+      appendFileSync(promotionsPath(paths.runsRoot), `${JSON.stringify({ id: promotion, from: n.experiment, arm: winner.arm, features: winner.switches, at: host.now().toISOString(), finals: runs })}\n`);
+    }
+  }
+  const result: FinalsResult = { experiment: n.experiment, decidedAt: host.now().toISOString(), decision, promotion };
+  writeJson(finalsResultPath(paths.runsRoot, n.experiment), result);
+  const stopped = promotion === null ? `${n.experiment} finals: no finalist beat the incumbent; the incumbent stays` : `${n.experiment} finals: ${winner?.arm ?? ""} won and is now the incumbent`;
+  host.log(stopped);
+  return { ran: 0, stopped, finished: n.experiment };
 }
 
 function readEvents(runsRoot: string, runId: string): RunEvent[] {

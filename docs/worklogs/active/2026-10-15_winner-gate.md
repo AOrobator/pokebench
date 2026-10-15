@@ -19,6 +19,12 @@ Defaults picked where the spec forks (say so in the reply):
 - A queued experiment whose `changedFeature` the winner already sets becomes `superseded` (held, shown on its card) rather than silently flipping its arms.
 - An experiment that has already launched trials keeps the incumbent it started with (recorded per launch), like the build commit.
 
+## Budget decisions (operator 2026-10-15: "yes but i dont want the decide early change")
+- **Stall stop** (`milestone-stall-stop-v1`, its own switch, default OFF): a run ends as `stalled` after 10 minutes of active play with no new milestone; 45 minutes stays the hard cap. Finals presets turn it on for every arm.
+- **Reuse the incumbent's runs:** recorded boot runs of the same model lane whose switches, wall limit and turn limit match the finals incumbent preset count toward its 8 (latest first). Only the shortfall is run.
+- **No decide-early:** all 8 runs per finalist always complete.
+- Per-experiment overrides: optional `finals` `{runsPerArm, maxWallMs, target}` in the definition.
+
 ## Constraints
 - Own worktree `/private/tmp/pokebench-winner-gate` on `claude/winner-gate`. Local only, no push. Ask before merging; after merging run `just viewer-main` (restarts 8790 on main).
 - Do not disturb the running 2×2 driver (pid 89598), the chain (pid 99469) or the frozen worktrees they use. Nothing here edits `runs/launch-receipts/**`; the gate only reads them.
@@ -64,3 +70,5 @@ Defaults picked where the spec forks (say so in the reply):
 - 2026-10-15: run count settled at 8; building. Worst case (three finalists) is 32 finals runs × 45 min ≈ 24 h.
 - M1 RED: experiment-gate.test.ts (ranking, nomination cap, finals order, finals preset/config, decision rule, promotion overlay, records).
 - M1 GREEN: experiment-gate.ts + experiments.ts finals config, promotion pin, cohortFinished/superseded states; agent tests 23/23 in the two files.
+- 2026-10-15: operator added stall stop (own switch) and incumbent run reuse; no decide-early. finals config made per-experiment.
+- M2: viewer gate (store, runner finals, nomination, promotion overlay, superseded, cohort wait, activeCohort, finals withdraw/resume routes, gate card). Tests and code landed in one commit; red checks: disabling INV-G1 in nextStep turns 6 gate tests red, forcing promotion on a non-winner turns 1 red. experiment-gate.test.ts 13/13, queue-view 11/11, server-experiments 2/2.

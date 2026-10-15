@@ -111,8 +111,17 @@ Cohort report: furthest milestones first; reach counts and survivor medians per 
 ## Surprises
 
 ## Multi-Model Review Log
+- OPERATOR MERGE RULE (the operator, after a slop check of rounds 1-5; applies from round 6): a finding blocks the merge ONLY if it (1) crashes or throws in either arm; (2) makes the control arm (all eight bundle switches OFF) behave differently from the old harness; (3) gives the model false information on the route from the CLOCK_SET save to RIVAL_MET; or (4) corrupts the recorded outcomes (milestones, their timing, or the trial end reason). Everything else goes to "Deferred (post-experiment)" with one line each and is not fixed now: docs/explainers, test hardening, the dropped battle switches, registry or activation metadata, sent/dropped bookkeeping, maps past Route 101/Oldale. If blockers exist: fix only those (RED/GREEN), gates, ONE cloud-only re-review scoped to the fix delta, merge when clean under the same rule.
 - OPERATOR DECISION (the operator, 2026-10-15, after round 5): no local-model review lanes from now on (no think-fast, think-swarm or other local endpoint lanes) — they slow the process. Round 6 and later use only the cloud lanes, Codex gpt-5.6-sol and grok (Cursor), with opus/fable as fallbacks. The round-5 endpoint BLOCKING verdicts keep dispositions (Session Log, round-5 rejected) and are not re-run.
 - Operator change (the operator): the fade-settle fix is landed on main separately (cherry-pick of its 5 commits) by another subagent; this branch merges the latest main and resolves the fade code toward main's version.
+
+## Deferred (post-experiment)
+- R6-2 repeated same-text auto-advanced pages collapsed in DialogueLog — omission, not false information; the fix was already committed in d0f16bf before the merge rule arrived and is kept (gated), not extended.
+- R6-3 exact drought assertion restored (test hardening; already in 191a9b9).
+- Fable R6 hardening 3: inner press should expose submitted buttons in details instead of parsing "pressed …".
+- Fable R6 hardening 4: principles-adherence rows for the R4/R5 deltas.
+- Interaction-loop-detection restartedConversation does not consume auto-advance pages (switch not in the bundle).
+- Decompose auto-advance stop-path recording (opus/fable R4 hardening).
 
 ## Boy Scout Log
 
@@ -194,3 +203,4 @@ Cohort report: furthest milestones first; reach counts and survivor medians per 
 - Round-6 dispositions: fable hardening 2 (walk path drops appended objective text) — not reproduced: a wrapped press that appends "Objective warning: fixture" on a walk that engages dialogue keeps the text (test added, passes at HEAD); fable hardening 3 (pressedOf parses the model-facing "pressed …" line) — deferred, structured submitted buttons in press details is a follow-up; fable hardening 4 (principles-adherence rows for R4/R5) — packet documentation, the worklog carries R4/R5 gates and deletion checks; fable speculation 5 (supervisor ignoring is_error) — unreachable, error results carry no state_seq (round-5 test covers the retry grading).
 - Round-6 GREEN: navigation.ts unreadyReason names any open active_ui (ready or not) before the script-lock branch, explainer step 4 updated (R6-1); DialogueLog compares only an auto-advance call's first page with the log's last entry and appends every later page as shown (R6-2). Agent 1215/1215, viewer 686/686 (full gates after the main merge below).
 - Merged latest main (ec046eb: fade-settle landed via f031ed0, experiment-design skills 96990d3/c8a92e1) into the branch. One conflict, env/pokebench_env/observation.py: took main's settle/capture structure whole and added the bundle's three read_game_state switches (character-presence-v1, battle-details-v2, named-warp-destinations-v1 → dynamic_warp_enabled) to capture(); serve.py, pause.py and frame_settle.py equal main's version (`git diff main` empty for them).
+- Round-6 triage under the operator merge rule: R6-1 BLOCKS (rule 3: with navigation-refusal-reasons-v1 ON, an open Start menu on the Littleroot route made navigate_to tell the model "field controls are locked by a script" — false information). R6-2 and R6-3 do not block (Deferred list). Fix delta for the scoped re-review: 191a9b9 (RED) .. d0f16bf (GREEN) plus the main merge fd55b0b (observation.py resolution) and the test type fix after it.

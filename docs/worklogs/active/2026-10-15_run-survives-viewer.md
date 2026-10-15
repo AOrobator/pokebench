@@ -24,7 +24,8 @@ No feature switch: this changes process supervision, not what the model sees, it
 
 ### M1: launched runs are detached
 - [x] RED (19 failing: new detached.test.ts plus runner/finals/queue/launcher fakes). RED: the launchers spawn with `detached: true` in their own process group and `unref()`. The child pid is recorded next to the trial (`runner.json` gains `pid` and `run`; NEXT RUN and human-restart leases gain `run` and `pid`).
-- [ ] GREEN, gates (viewer + agent tests, 90% coverage, lint).
+- [x] RED COMMIT: `test: launched runs are detached process-group leaders and name their child pid` (02be7f6)
+- [x] GREEN: new `detached.ts` `spawnDetached` (detached, unref, wx logs, `started(pid)`); experiment trials, finals, NEXT RUN and human restarts all launch through it. runner.json carries `run` then `child`; the NEXT RUN lease owner carries `child`. The experiments CLI forwards Ctrl-C to the detached pid explicitly. Viewer 51 files / 648 tests; coverage 95.36 / 91.05 / 94.38; tsc + eslint clean.
 - [ ] Review (Claude + Grok).
 
 ### M2: a fresh viewer adopts an in-flight or finished trial

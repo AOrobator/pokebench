@@ -17,7 +17,7 @@ import { cohortNomination, decide, effectiveExperiment, finalsLedger, finalsLedg
 import { LEASE } from "./next-run.js";
 
 export interface DiscoveredModel { readonly id: string; readonly fingerprint: string }
-export interface TrialLaunch { readonly runId: string; readonly presetPath: string; readonly model: string; readonly stdout: string; readonly stderr: string }
+export interface TrialLaunch { readonly runId: string; readonly presetPath: string; readonly model: string; readonly stdout: string; readonly stderr: string; readonly started?: (pid: number) => void }
 export interface RunnerHost {
   now(): Date;
   runId(model: string): string;
@@ -202,10 +202,11 @@ async function runNext(options: RunnerOptions): Promise<RunnerOutcome & { finish
       presets.set(trial.arm, presetPath);
       const runId = host.runId(model.id);
       record({ type: "launch", trial: trial.index, arm: trial.arm, run: runId, at: at(), model: model.id, environment: model.fingerprint, commit, ...promotion });
-      writeFileSync(runnerPath(paths.runsRoot), JSON.stringify({ pid: process.pid, experiment: experiment.id, trial: trial.index }));
+      const position = { pid: process.pid, experiment: experiment.id, trial: trial.index, run: runId };
+      writeFileSync(runnerPath(paths.runsRoot), JSON.stringify(position));
       let code: number | null;
       try {
-        code = await host.launch({ runId, presetPath, model: model.id, stdout: join(logs, `${runId}.stdout.log`), stderr: join(logs, `${runId}.stderr.log`) });
+        code = await host.launch({ runId, presetPath, model: model.id, stdout: join(logs, `${runId}.stdout.log`), stderr: join(logs, `${runId}.stderr.log`), started: (child) => { writeFileSync(runnerPath(paths.runsRoot), JSON.stringify({ ...position, child })); } });
       } catch (error) {
         record({ type: "launcher_error", trial: trial.index, arm: trial.arm, run: runId, at: at(), message: error instanceof Error ? error.message : String(error) });
         return hold(ran, `held: trial ${String(trial.index + 1)} failed to launch`);
@@ -299,10 +300,11 @@ async function runFinals({ paths, source, host, once = false, stopRequested = ()
       writeFileSync(presetPath, body);
       const runId = host.runId(model.id);
       record({ type: "launch", trial: trial.index, arm: trial.arm, run: runId, at: at(), model: model.id, commit });
-      writeFileSync(runnerPath(paths.runsRoot), JSON.stringify({ pid: process.pid, experiment: finalsRunner(id), trial: trial.index }));
+      const position = { pid: process.pid, experiment: finalsRunner(id), trial: trial.index, run: runId };
+      writeFileSync(runnerPath(paths.runsRoot), JSON.stringify(position));
       let code: number | null;
       try {
-        code = await host.launch({ runId, presetPath, model: model.id, stdout: join(logs, `${runId}.stdout.log`), stderr: join(logs, `${runId}.stderr.log`) });
+        code = await host.launch({ runId, presetPath, model: model.id, stdout: join(logs, `${runId}.stdout.log`), stderr: join(logs, `${runId}.stderr.log`), started: (child) => { writeFileSync(runnerPath(paths.runsRoot), JSON.stringify({ ...position, child })); } });
       } catch (error) {
         record({ type: "launcher_error", trial: trial.index, arm: trial.arm, run: runId, at: at(), message: error instanceof Error ? error.message : String(error) });
         return hold(ran, `held: finals run ${String(trial.index + 1)} failed to launch`);

@@ -152,7 +152,7 @@ it("gives no rival-house exit credit to a save whose home already shows the riva
  const mark:Extract<RunEvent,{type:"milestone"}>={type:"milestone",run:"r",seq:9,turn:1,v:1,t:"2026-10-15T00:00:00.000-04:00",name:"RIVAL_HOUSE_EXITED",kind:"navigation",origin:"observed",evidence:[1,2,3],server_timestamp:1};
  expect(qualifiedNativeMilestone(mark,events)).toBe(false);
  const [, inside, town]=events;if(inside===undefined||town===undefined)throw new Error("fixture");
- const home={...state("LITTLEROOT TOWN MAYS HOUSE 2F",{story:clocked}),type:"state" as const,run:"r",seq:1,turn:1,v:1,t:mark.t};
+ const home:Extract<RunEvent,{type:"state"}> & GameStateSnapshot={...state("LITTLEROOT TOWN MAYS HOUSE 2F",{story:clocked}),type:"state",run:"r",seq:1,turn:1,v:1,t:mark.t};
  expect(qualifiedNativeMilestone(mark,[home,inside,town])).toBe(true);
  expect(qualifiedNativeMilestone(mark,[home,inside,{...town,story:{...clocked,rival_stage:2}}])).toBe(false);
  expect(qualifiedNativeMilestone(mark,[{...home,location:"LITTLEROOT TOWN"},inside,town])).toBe(false);

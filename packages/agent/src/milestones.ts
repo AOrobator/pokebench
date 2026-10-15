@@ -83,7 +83,7 @@ const routeProof = (name: string, states: readonly GameStateSnapshot[]): boolean
   if (name === "RIVAL_HOUSE_EXITED") {
     const previous = states[1];
     const rival = previous === undefined ? null : house(previous.location, "1F");
-    return states.length === 3 && home !== null && previous !== undefined && stableRoute(previous)
+    return states.length === 3 && home !== null && stage("rival_stage", [0, 1, 2])(first) === true && previous !== undefined && stableRoute(previous)
       && rival !== null && rival !== home && stage("rival_stage", [3, 4])(previous) === true
       && stableRoute(last) && last.location === "LITTLEROOT TOWN" && stage("rival_stage", [3, 4])(last) === true;
   }

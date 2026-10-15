@@ -434,7 +434,8 @@ export class RunView {
       const priorStable = previous.state.started && previous.state.screen !== "field_transition" && previous.state.screen !== "unknown";
       const rival = houseFamily(previous.state.location, "1F");
       const met = (s: StateEvent) => [3, 4].includes(s.story?.rival_stage ?? -1);
-      if (priorStable && rival !== null && rival !== home && met(previous.state) && stable && event.location === "LITTLEROOT TOWN" && met(event)) {
+      const unmetHome = [0, 1, 2].includes(this.routeHome.state.story?.rival_stage ?? -1);
+      if (unmetHome && priorStable && rival !== null && rival !== home && met(previous.state) && stable && event.location === "LITTLEROOT TOWN" && met(event)) {
         this.milestones.push({ name: "RIVAL_HOUSE_EXITED", ms: eventMs(event), seq: event.seq, derived: true, kind: "navigation", origin: "observed", evidence: [this.routeHome.seq, previous.seq, event.seq] });
       }
     }

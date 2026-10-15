@@ -194,7 +194,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   measured("full-raw-ram-v1", "RAW RAM ARCHIVE", "Durably archives all writable GBA memory, both save-memory banks and CPU registers before each decoded observation for offline reparsing."),
   measured("remaining-native-milestones-v1", "WOODS AND ROUTE 116 SPLITS", "Records native trainer victories and Route115/116/RusturfTunnel visits."),
   measured("birch-rescue-requested-v1", "BIRCH SEND-OFF", "Records Littleroot town state 2, 3 or 4: the north exit has sent the player to help Professor Birch. Meeting the rival is the earlier town state 1 and does not count."),
-  measured("rival-house-exit-v1", "LEFT RIVAL HOUSE", "Records the first step back into Littleroot Town straight from the rival family's ground floor after the rival meeting (rival state 3 or 4), with the run's home, that floor and the town as evidence. Leaving the player's own house, or the rival's house before the meeting, does not count."),
+  measured("rival-house-exit-v1", "LEFT RIVAL HOUSE", "Records the first step back into Littleroot Town straight from the rival family's ground floor after the rival meeting (rival state 3 or 4), with the run's home, that floor and the town as evidence. Leaving the player's own house, or the rival's house before the meeting, does not count, and a run whose home already shows the rival met gets no credit."),
   measured("battle-choices-v1", "BATTLE CHOICES", "Frame-owned committed battle choices for both human and agent recording; execution outcomes remain unobserved."),
   measured("native-target-stop-v1", "TARGET STOP",
     "Ends the run cleanly when the STOP AT milestone is recorded. Present only when a target is set."),

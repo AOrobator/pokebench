@@ -202,6 +202,13 @@ it("gives only deterministic facts: recent dialogue, last story progress, named 
  expect(off.text("cycle",2)).toContain("named interactions are off");expect(off.text("cycle",2)).toContain("story flags are off");
  expect(new SupervisorBriefing(ALL_ON).text("cycle",0)).toContain("Last story progress: none earned in this run yet");
 });
+it("never reports a measurement-only split as story progress",()=>{
+ const b=new SupervisorBriefing(ALL_ON);
+ b.observe(ev({type:"milestone",name:"BIRCH_STARTER_HANDOFF_COMPLETE",server_timestamp:1,kind:"story",origin:"observed",evidence:[1]},2,5));
+ b.observe(ev({type:"milestone",name:"ROUTE_101_AFTER_HANDOFF",server_timestamp:1,kind:"navigation",origin:"observed",evidence:[1,2,3]},3,9));
+ b.observe(ev({type:"turn_start",context:{messages:1,images:0,est_tokens:1}},4,12));
+ expect(b.text("cycle",9)).toContain("Last story progress: birch starter handoff complete at turn 5 (7 turns ago)");
+});
 
 it("names the next milestone in the briefing only when the hint switch is on",()=>{
  const on=new SupervisorBriefing({...ALL_ON,"next-milestone-hint-v1":true});

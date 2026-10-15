@@ -90,6 +90,7 @@ describe("StateMilestones", () => {
       "STARTER_CHOSEN",
       "BIRCH_RESCUE_COMPLETE",
       "BIRCH_STARTER_HANDOFF_COMPLETE",
+      "ROUTE_101_AFTER_HANDOFF",
       "OLDALE_TOWN",
       "ROUTE_103",
       "RIVAL_BATTLE_WON",

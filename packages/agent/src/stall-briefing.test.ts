@@ -204,3 +204,14 @@ it("describes exactly what it does in the switch registry",()=>{
  expect(info.description).toContain(`every ${String(STALL_DROUGHT_MS/60_000)} minutes of play`);
  expect(info.description).toContain(" Off: ");
 });
+
+it("keeps counting the drought through a measurement-only split",()=>{
+ let now=0;const kinds:string[]=[];
+ const b=new StallBriefing(ON,()=>now,{stall:(kind)=>{kinds.push(kind);return true;}},()=>"");
+ const at=(seq:number,body:Record<string,unknown>)=>checkEvent({v:1,run:"m",t:"2026-10-15T12:00:00.000-04:00",turn:seq,seq,...body});
+ now=STALL_DROUGHT_MS-60_000;
+ b.observe(at(1,{type:"milestone",name:"ROUTE_101_AFTER_HANDOFF",server_timestamp:0,kind:"navigation",origin:"observed",evidence:[1]}));
+ now=STALL_DROUGHT_MS;
+ b.observe(at(2,{type:"tool_result",id:"c1",name:"press",is_error:false,duration_ms:1,text:"ok",frames:[]}));
+ expect(kinds).toEqual(["milestone_drought"]);
+});

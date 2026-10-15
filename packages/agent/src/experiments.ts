@@ -44,14 +44,26 @@ export type Arm="incumbent"|"candidate";
 const native=(name:string):boolean=>MILESTONES.some(m=>m.name===name&&m.kind!=="legacy");
 const known=new Set<string>([...SWITCHABLE_FEATURES,...MEASUREMENT_FEATURES]);
 // A switch merged after this program was built: say that, not a bare enum error.
-function unknownSwitch(value:unknown):string|undefined{
- if(typeof value!=="object"||value===null)return undefined;
+export function unknownSwitches(value:unknown):string[]{
+ if(typeof value!=="object"||value===null)return [];
  const v=value as {changedFeature?:unknown;incumbent?:{features?:unknown}};
  const ids=[...(typeof v.changedFeature==="string"?[v.changedFeature]:[]),...(typeof v.incumbent?.features==="object"&&v.incumbent.features!==null?Object.keys(v.incumbent.features):[])];
- return ids.find(id=>!known.has(id));
+ return [...new Set(ids.filter(id=>!known.has(id)))];
+}
+const NewerSchema=Type.Object({...ExperimentSchema.properties,changedFeature:Type.String({pattern:"^[a-z0-9][a-z0-9-]*$"}),incumbent:Type.Object({features:Type.Record(Type.String(),Type.Boolean())})},closed);
+export type NewerExperiment=Omit<Experiment,"changedFeature"|"incumbent">&{readonly changedFeature:string;readonly incumbentOn:boolean;readonly unknownSwitches:readonly string[]};
+// A definition naming a switch this build does not know, read only for display: nothing
+// here can arm, run or grade it, since the build cannot launch that switch.
+export function parseNewerExperiment(value:unknown):NewerExperiment{
+ const unknown=unknownSwitches(value);
+ if(unknown.length===0)throw new Error("Invalid experiment: names no switch newer than this build");
+ if(!Value.Check(NewerSchema,value)){const [first]=Value.Errors(NewerSchema,value);throw new Error(`Invalid experiment: ${first?.instancePath ?? ""} ${first?.message ?? "schema mismatch"}`);}
+ for(const field of ["activationMilestone","primaryMilestone"] as const)if(!native(value[field]))throw new Error(`Invalid experiment: ${field} ${value[field]} is not a native milestone`);
+ const {incumbent,...rest}=value;
+ return {...rest,incumbentOn:incumbent.features[value.changedFeature]===true,unknownSwitches:unknown};
 }
 export function parseExperiment(value:unknown):Experiment {
- const missing=unknownSwitch(value);
+ const [missing]=unknownSwitches(value);
  if(missing!==undefined)throw new Error(`Invalid experiment: ${missing} is not a switch in this build; if it landed after this build, rebuild on current main (just viewer-main)`);
  if(!Value.Check(ExperimentSchema,value)){const [first]=Value.Errors(ExperimentSchema,value);throw new Error(`Invalid experiment: ${first?.instancePath ?? ""} ${first?.message ?? "schema mismatch"}`);}
  const incumbent=parsePlayPreset(value.incumbent);

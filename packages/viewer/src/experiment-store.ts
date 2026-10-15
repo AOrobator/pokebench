@@ -5,7 +5,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { Type } from "typebox";
 import { Value } from "typebox/value";
-import { ApprovalSchema, definitionHash, deriveStatus, parseExperiment, parseLedger, readinessOf, type Approval, type Experiment, type ExperimentState, type LedgerEntry, type Readiness, type ReadinessRun, type RunnerPosition, type TrialProgress } from "@pokebench/agent/experiments";
+import { ApprovalSchema, definitionHash, deriveStatus, parseExperiment, parseLedger, parseNewerExperiment, unknownSwitches, type NewerExperiment, readinessOf, type Approval, type Experiment, type ExperimentState, type LedgerEntry, type Readiness, type ReadinessRun, type RunnerPosition, type TrialProgress } from "@pokebench/agent/experiments";
 import { parseEvent } from "@pokebench/agent/events";
 import { configOf } from "./history.js";
 import { RunsError, listRuns, readStart, runDir } from "./runs.js";
@@ -195,12 +195,21 @@ export function gradedResult(path: string, definitionSha256: string): ResultSumm
   }
 }
 
-export function loadExperiments(experimentsDir: string, problems: string[]): Experiment[] {
+// Definitions this build can run. With `newer`, ones naming a switch that landed after this
+// build are collected there for display instead of being reported as problems.
+export function loadExperiments(experimentsDir: string, problems: string[], newer?: NewerExperiment[]): Experiment[] {
   if (!existsSync(experimentsDir)) return [];
   const experiments: Experiment[] = [];
   for (const file of readdirSync(experimentsDir).filter((f) => f.endsWith(".json")).sort()) {
     try {
-      const e = parseExperiment(readJsonFile(join(experimentsDir, file)));
+      const value = readJsonFile(join(experimentsDir, file));
+      if (newer !== undefined && unknownSwitches(value).length > 0) {
+        const n = parseNewerExperiment(value);
+        if (file !== `${n.id}.json`) throw new Error(`file name must be ${n.id}.json`);
+        newer.push(n);
+        continue;
+      }
+      const e = parseExperiment(value);
       if (file !== `${e.id}.json`) throw new Error(`file name must be ${e.id}.json`);
       experiments.push(e);
     } catch (error) {
@@ -210,13 +219,27 @@ export function loadExperiments(experimentsDir: string, problems: string[]): Exp
   return experiments;
 }
 
+const NO_TRIALS: ArmSummary = { finished: 0, reached: 0, medianPrimaryMs: null, medianTurns: null, reachedPer1kTurns: null };
+function newerView(n: NewerExperiment, recorded: RecordedReadiness | null): ExperimentView {
+  return {
+    id: n.id, title: n.title, changedFeature: n.changedFeature, incumbentOn: n.incumbentOn, hypothesis: n.hypothesis,
+    activationMilestone: n.activationMilestone, primaryMilestone: n.primaryMilestone, queuePosition: n.queuePosition ?? null,
+    source: n.source, trialsPerArm: n.trialsPerArm, modelLane: n.modelLane, budgetMs: n.budget.maxWallMs, usedMs: 0,
+    state: "blocked", reason: `uses ${n.unknownSwitches.join(", ")}, which landed after this viewer was built; restart the viewer with just viewer-main to check readiness or run it`,
+    approved: false, readiness: { ready: false, basis: "recent", milestone: n.activationMilestone, window: n.readiness.window, minReached: n.readiness.minReached, reached: 0, considered: [] },
+    recorded, trials: [], arms: { incumbent: NO_TRIALS, candidate: NO_TRIALS }, notes: n.notes ?? null, result: null,
+  };
+}
+
 export function queueSnapshot(paths: QueuePaths, source: RunSource, alive: (pid: number) => boolean = pidAlive): QueueSnapshot {
   const problems: string[] = [];
-  const experiments = loadExperiments(paths.experimentsDir, problems);
+  const newer: NewerExperiment[] = [];
+  const experiments = loadExperiments(paths.experimentsDir, problems, newer);
   const recorded = existsSync(paths.readinessPath) ? parseReadinessDoc(readFileSync(paths.readinessPath, "utf8")) : new Map<string, RecordedReadiness>();
   const runner = readRunner(paths.runsRoot, alive);
   const recent = experiments.length === 0 ? [] : source.recent();
-  const views = experiments.map((e) => experimentView(e, { approval: approvalOf(paths.runsRoot, e.id, problems), ledger: ledgerOf(paths.runsRoot, e.id, problems), runner, recent, source, recorded: recorded.get(e.changedFeature) ?? null, result: gradedResult(join(experimentDir(paths.runsRoot, e.id), "result.json"), definitionHash(e)) }));
+  const views = experiments.map((e) => experimentView(e, { approval: approvalOf(paths.runsRoot, e.id, problems), ledger: ledgerOf(paths.runsRoot, e.id, problems), runner, recent, source, recorded: recorded.get(e.changedFeature) ?? null, result: gradedResult(join(experimentDir(paths.runsRoot, e.id), "result.json"), definitionHash(e)) }))
+    .concat(newer.map((n) => newerView(n, recorded.get(n.changedFeature) ?? null)));
   const positions = new Map<number, string>();
   for (const v of views) {
     if (v.queuePosition === null) continue;

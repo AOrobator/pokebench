@@ -27,4 +27,5 @@ Landing note: the 8790 viewer runs the queue with the code it loaded at start, s
   COMMIT: `fix(viewer): untracked agent or env sources hold experiments; comments say sources, not HEAD` (see git log)
   Tests: agent 1083, viewer 656 passed. Coverage: agent 97.5/93.84/98.15, viewer 95.4/91.2/94.4. TS lint clean. Main checkout has no untracked files under the build sources (checked).
 - [x] Review round 2 (Claude CLI; Cursor grok-4.7-high): both LGTM. Verified the real main checkout lists no untracked build sources and every build output is gitignored. Deferred (pre-existing): untracked files inside the vendor submodule's own worktree are invisible to the superproject check; `just verify-vendor` owns that tree.
+- [x] Pre-merge: reverted the experiments.ts schema comment, because any byte under packages/agent changes the agent tree and would hold the running finals (pinned at 74ad319). The contract now lives only in the viewer comments; the schema comment is fixed with the next agent change. Branch now touches no build source.
 - [ ] Operator approves the local merge; restart the 8790 viewer on main.

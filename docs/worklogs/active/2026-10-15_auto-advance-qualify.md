@@ -109,6 +109,26 @@ CHANGES REQUESTED, Cursor opus unavailable (usage limit; fable fallback next rou
 - the settle timeout no longer claims free field: its detail says the frame never advanced;
 - `OpenMessage` is module-internal; the fake's per-press `posts` copy is removed.
 
+Round 2 (base 4d5cc83, head fa2497a): Codex CHANGES REQUESTED, grok CHANGES REQUESTED, fable rc=1 (no output).
+Triage by the operator merge rule (blocks only on crash / OFF drift / false info or wrong press CLOCK_SET→RIVAL_MET
+/ corrupted outcomes). Blockers, fixed in round 3:
+- B1 (both): a failed before-read ignored the carried open message, so `[B,B]` could open a YES/NO and answer NO
+  (rule 3). Fix: without a read, `open !== null` counts as in-dialogue.
+- B2 (both): an engaged `navigate_to` built `Pages` without the carried position and re-recorded a capped page
+  (rule 4). Fix: `new Pages(record, open)`.
+- B3 (codex): the carried position was cleared before the model's press succeeded; a failed press then a retry
+  re-recorded the page (rule 4). Fix: clear `open` only after the press went through.
+- B4 (codex): live evidence not bound to a commit. Operator-chosen cheap fix: `qualify.mjs` records HEAD, a
+  clean-tree flag and the sha256 of `dist/dialogue-auto-advance.js`; re-run lab-1, truck-late, nickname-no and
+  help-me on the committed build.
+
+## Deferred (post-experiment)
+
+- Byte-offset printer cursor vs decoded-text page cut (multi-char glyphs, `{PAUSE}` codes): first reachable in
+  Slateport/Mauville/Lilycove, past Oldale.
+- Frameless second free read still confirms `field_free` (fakes only; real archives carry `raw_ram.frame`).
+- Settle timeout reuses stop `field_free` with a distinct detail (schema constraint).
+
 ## Progress Log
 
 - 2026-10-15 17:15 setup: worktree, submodule, .env, `just setup`, `just build-mgba`, `just build`.
@@ -118,6 +138,7 @@ CHANGES REQUESTED, Cursor opus unavailable (usage limit; fable fallback next rou
 - 18:00 lint 0; coverage agent 97.69/94.68, viewer 95.25/90.94.
 - 18:15 server on 8811 hung mid re-qualification (another client was holding connections to 8811); restarted
   as `aaq-explore-2` on port 8873 and re-ran the remaining scenarios.
+- 18:35 round 3 RED: 3 new tests fail on fa2497a (B1–B3).
 
 ## Invariants
 

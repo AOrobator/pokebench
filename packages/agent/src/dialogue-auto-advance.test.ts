@@ -180,6 +180,51 @@ describe("dialogue-auto-advance-v1 press path",()=>{
   expect(second?.pages[0]?.text).toBe("The power of science is staggering!");
  });
 
+ it("treats a message the last call left open as dialogue when the next before-read fails",async()=>{
+  const game=new FakeGame({text:"Will you help me?",ends:[17],then:"yesno"},0);game.openNow();const rec=memoryRecorder();const clock=fakeClock();
+  const reads=game.read.read;let fail=false;
+  const state={read:()=>{if(fail){fail=false;return Promise.reject(new Error("read failed"));}return reads();}};
+  const tools=withDialogueAutoAdvance([observeTool(URL_BASE,game.fetch),pressTool(URL_BASE,{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},game.fetch,{now:()=>clock.t,sleep:()=>Promise.resolve()})],ON,{state,recorder:rec.api,clock});
+  const press=tools.find(x=>x.name==="press");if(press===undefined)throw new Error("press");
+  await press.execute("q1",{buttons:["UP"]});
+  game.posts.length=0;fail=true;
+  await press.execute("q2",{buttons:["B","B"]});
+  expect(game.posts.map(p=>p.buttons[0])).toEqual(["B"]);
+  expect(rec.advances().at(-1)).toMatchObject({stop:"menu",dropped:["B"]});
+ });
+
+ it("does not repeat a capped page when navigate_to returns that message still open",async()=>{
+  const game=new FakeGame({...SCIENTIST,then:"endless"});const rec=memoryRecorder();const clock=fakeClock();
+  const nav:AgentTool={name:"navigate_to",label:"n",description:"walk",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text" as const,text:"Navigation: refused, a message is waiting"}],details:{state:game.state()}})};
+  const tools=withDialogueAutoAdvance([observeTool(URL_BASE,game.fetch),pressTool(URL_BASE,{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},game.fetch,{now:()=>clock.t,sleep:()=>Promise.resolve()}),nav],ON,{state:game.read,recorder:rec.api,clock});
+  const tool=(name:string):AgentTool=>{const x=tools.find(y=>y.name===name);if(x===undefined)throw new Error(name);return x;};
+  await tool("press").execute("k1",{buttons:["A"]});
+  await tool("navigate_to").execute("n",{});
+  const [first,second]=rec.advances();
+  expect(first?.pages.at(-1)?.text).toBe("If you use a PC, you can store items\nand POKéMON.");
+  expect(second?.tool).toBe("navigate_to");
+  expect(second?.pages[0]?.text).toBe("The power of science is staggering!");
+ });
+
+ it("keeps the carried page when the model's own press fails, so the retry does not repeat it",async()=>{
+  const game=new FakeGame({...SCIENTIST,then:"endless"});const rec=memoryRecorder();const clock=fakeClock();
+  let failNext=false;
+  const fetchFn:typeof fetch=(input,init)=>{
+   const url=typeof input==="string"?input:input instanceof URL?input.href:input.url;
+   if(failNext&&url.endsWith("/action")){failNext=false;return Promise.resolve(new Response(JSON.stringify({status:"error",message:"emulator busy"}),{status:500}));}
+   return game.fetch(input,init);
+  };
+  const tools=withDialogueAutoAdvance([observeTool(URL_BASE,fetchFn),pressTool(URL_BASE,{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},fetchFn,{now:()=>clock.t,sleep:()=>Promise.resolve()})],ON,{state:game.read,recorder:rec.api,clock});
+  const press=tools.find(x=>x.name==="press");if(press===undefined)throw new Error("press");
+  await press.execute("k1",{buttons:["A"]});
+  failNext=true;
+  await expect(press.execute("k2",{buttons:["B"]})).rejects.toThrow();
+  await press.execute("k3",{buttons:["B"]});
+  const events=rec.advances();
+  expect(events.at(-1)?.tool_call_id).toBe("k3");
+  expect(events.at(-1)?.pages[0]?.text).toBe("The power of science is staggering!");
+ });
+
  it("confirms free field only on a later frame, and says so when the frame never advances",async()=>{
   const framed=(frame:number,s:GameStateSnapshot):GameStateSnapshot=>({...s,raw_ram:{v:1,sequence:frame,frame,path:`raw-ram/${String(frame).padStart(8,"0")}.json.gz`,sha256:"0".repeat(64)}});
   const stuck=new Scripted([framed(1,MSG("page_wait")),framed(2,MSG("page_wait")),framed(5,FREE)]);

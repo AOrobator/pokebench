@@ -113,6 +113,25 @@ describe("viewer server", () => {
     expect(viewer.url).toBe(`http://127.0.0.1:${String(viewer.port)}/`);
   });
 
+  it("gives every page the local Poké Ball favicon", async () => {
+    const staticDir = new URL("../static/", import.meta.url).pathname;
+    for (const page of ["index.html", "workbench.html", "play.html"]) {
+      expect(readFileSync(join(staticDir, page), "utf8"), page).toContain('<link rel="icon" href="/favicon.svg" type="image/svg+xml">');
+    }
+    const base = mkdtempSync(join(tmpdir(), "pokebench-viewer-favicon-"));
+    const viewer = await startViewer({ runsRoot: base, staticDir, appDir: base, port: 0, pollMs: 10 });
+    open.push(viewer);
+    for (const path of ["/favicon.svg", "/favicon.ico"]) {
+      const icon = await get(viewer, path);
+      expect(icon.status, path).toBe(200);
+      expect(icon.type, path).toBe("image/svg+xml");
+      const svg = icon.body.toString();
+      expect(svg).toMatch(/^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg"/);
+      expect(svg).toContain("<title>Poké Ball</title>");
+      expect(svg).not.toMatch(/https?:\/\/(?!www\.w3\.org\/2000\/svg)/);
+    }
+  });
+
   it("serves the page, the stylesheet and only the browser modules", async () => {
     const { viewer } = await fixture();
     const page = await get(viewer, "/");

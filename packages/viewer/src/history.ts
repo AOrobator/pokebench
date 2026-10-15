@@ -1,7 +1,7 @@
 // Strict per-feature history for the next-run switchboard: for each switch,
 // the past runs identical to the draft except for that one switch (same
 // model, thinking, budgets, target, boot start and every other feature).
-import { SWITCHABLE_FEATURES, featuresOf, playHarnessFeatures, type FeatureSet, type SwitchableFeature } from "@pokebench/agent/features";
+import { MEASUREMENT_FEATURES, SWITCHABLE_FEATURES, featuresOf, playHarnessFeatures, type FeatureSet, type SwitchableFeature } from "@pokebench/agent/features";
 import type { RunEvent } from "@pokebench/agent/events";
 import { BaselineError, RunsError, baselineOf, listRuns, readStart, type BaselineReader } from "./runs.js";
 
@@ -32,12 +32,17 @@ type Start = Extract<RunEvent, { type: "run_start" }>;
 
 // A run whose recorded features are not exactly a registry play set (probes,
 // smoke runs, older harness revisions) has no comparable configuration.
+const MEASURED: ReadonlySet<string> = new Set(MEASUREMENT_FEATURES);
+const behaviorOnly = (ids: readonly string[]): string[] => ids.filter((id) => !MEASURED.has(id));
+
 export function configOf(start: Start): RunConfig | null {
   if (start.controller?.kind === "human") return null;
   if (start.start_state.kind !== "boot") return null;
   const features = featuresOf(start.harness_features);
   const target = start.evaluation?.target ?? null;
-  if (JSON.stringify(playHarnessFeatures(features, target)) !== JSON.stringify(start.harness_features)) return null;
+  // Measurement-only features record more without changing play, and new ones keep landing,
+  // so they are left out of the match; every behavior feature must still agree exactly.
+  if (JSON.stringify(behaviorOnly(playHarnessFeatures(features, target))) !== JSON.stringify(behaviorOnly(start.harness_features))) return null;
   return { model: start.model.id, thinking: start.sampling.thinking_level, maxTokens: start.sampling.max_tokens, maxTurns: start.budgets.max_turns ?? null, maxWallMs: start.budgets.max_wall_ms ?? null, failureLimit: start.evaluation?.failure_limit ?? 3, target, features };
 }
 

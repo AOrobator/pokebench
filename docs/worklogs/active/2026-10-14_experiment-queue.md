@@ -260,3 +260,5 @@ Pending.
 ## Runs recorded before a measurement feature (2026-10-15, branch claude/measurement-tolerant-config from main dc484ed)
 - Found after the restart: queue 6, pending 32, every readiness "0 of the last 0". Cause: d75eddf (Birch send-off, merged in 990ffaa) added the measurement feature birch-rescue-requested-v1 to playHarnessFeatures, and history.configOf requires a run's recorded harness_features to equal today's list exactly, so all 181 earlier runs became unconfigured (readiness, stats comparisons and the workbench lose them).
 - RED: configOf matches a run recorded without a measurement-only feature; an unknown id still rejects.
+- COMMIT: `test(viewer): RED runs recorded before a measurement feature keep their configuration` (0afe0c0)
+- GREEN: configOf compares only behavior features (measurement ids dropped from both lists; order kept). Real data: queue 33, pending 5 (automatic running, counter talk, grass cost, ledge hops, walkable floor), no problems. Gates: viewer 581 (94.95/90.65/93.81; history.ts 98.03/90/100), lint clean.

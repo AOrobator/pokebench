@@ -16,7 +16,7 @@ describe("workbench visual contract", () => {
   it("renders unknown legacy configuration without inventing targets or budgets", () => {
     const c = run().config; if (c === null) throw new Error("fixture");
     const legacy = run({ id: "old", model: null, reason: null, status: "live", config: { ...c, target: null, maxWallMs: null, maxTurns: null, failureLimit: null, preset: null, dirty: true, vision: false }, splits: [] });
-    const card = currentRunHtml([legacy], 1000, 6000, null); expect(card).toContain("no recorded time cap"); expect(card).not.toContain("objective"); expect(card).toContain("play to budget");
+    const card = currentRunHtml([legacy], 1000, 6000, null); expect(card).toContain("no recorded time cap"); expect(card.toUpperCase()).not.toContain("OBJECTIVE"); expect(card).toContain("play to budget");
     const detail = runDetails(legacy, null); expect(detail).toContain("(dirty)"); expect(detail).toContain("not supported"); expect(detail).toContain("not recorded / play to budget"); expect(detail).toContain("no terminal outcome");
     expect(viewerUrl(null)).toBe("/");
   });

@@ -103,8 +103,16 @@ Readout text only. No new inputs, subprocesses, network or file paths. The ROM i
 - [x] Gates and review (round 2 covers 5ae6acb and 5d42f8b): all pass, see review log
 
 **M3 — Landing (ASK USER)**
-- [ ] ASK USER: approve local merge into main
-- [ ] Merge, rerun gates on main
+- [x] ASK USER: approve local merge into main ("merge now by stashing that work and then unstashing", 2026-10-15)
+- [x] Merge: main's uncommitted work from another session stashed (`named-warps-landing-hold-20261015`),
+      main fast-forwarded 224ee68 → 65ba716, stash re-applied. One conflict in features.test.ts (both sides
+      extended the legacy off() lists) resolved by keeping the stashed lines plus this switch id; the other
+      session's files are unstaged exactly as before (status identical). Combined tree: features/play-preset
+      42 pass, test_named_warps + test_feature_switches 30 pass. Full gates on main wait for the other
+      session's work to land; the branch itself passed them at 65ba716.
+- [x] Experiment `source.commit` repinned to 65ba716 (main's dist predates the switch, so edited directly
+      instead of `just experiment-pin`).
+- [ ] Live viewer click-through of READ EXPLAINER after main is rebuilt
 
 ## Closing the Loop
 

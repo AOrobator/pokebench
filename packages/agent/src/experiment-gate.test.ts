@@ -36,7 +36,9 @@ it("builds a finals preset: boot start, the finals wall limit and stop milestone
  expect("start" in p).toBe(false);
  expect(p.features["full-map-navigation-v1"]).toBe(true);
  // Finals never end a run early for lack of a milestone (operator 2026-10-15 14:02 UTC): every run plays the full wall limit.
- expect(finalsPreset(preset,"exp","incumbent",{},DEFAULT_FINALS).features).toEqual({...features,"milestone-stall-stop-v1":false});
+ expect(finalsPreset(preset,"exp","incumbent",{},DEFAULT_FINALS).features).toEqual({...features,"milestone-stall-stop-v1":false,"text-only-supervisor-v1":true});
+ // Text-only replies get a supervisor note instead of ending a finals run (operator 2026-10-15 14:41 UTC).
+ expect(finalsPreset(preset,"exp","whole",{"text-only-supervisor-v1":false},DEFAULT_FINALS).features["text-only-supervisor-v1"]).toBe(true);
  expect(finalsPreset(preset,"exp","whole",{"milestone-stall-stop-v1":true},DEFAULT_FINALS).features["milestone-stall-stop-v1"]).toBe(false);
  // An experiment can stop its finals early, at a milestone or a shorter wall limit.
  expect(finalsPreset(preset,"exp","whole",{},{runsPerArm:4,maxWallMs:20*60_000,target:"RIVAL_MET"})).toMatchObject({target:"RIVAL_MET",limits:{maxWallMs:20*60_000}});

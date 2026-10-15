@@ -136,7 +136,7 @@ it("registers the milestone stall stop as a default-off agent-side guard recorde
  expect(featureInfo("milestone-stall-stop-v1")).toMatchObject({group:"guard",needs:null,switchable:true});
  expect(featureInfo("milestone-stall-stop-v1").description).toContain(" Off: ");
  expect(featureInfo("milestone-stall-stop-v1").description).toMatch(/10 minutes/);
- expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe("milestone-stall-stop-v1");
+ expect(playHarnessFeatures(ALL_ON,null).at(-2)).toBe("milestone-stall-stop-v1");
  expect(playHarnessFeatures(off("milestone-stall-stop-v1"),null)).not.toContain("milestone-stall-stop-v1");
  expect(serverFeatureEnv(off("milestone-stall-stop-v1")).POKEBENCH_FEATURES_OFF).toBe("");
 });
@@ -146,4 +146,11 @@ it("registers the rival-house exit split as a measured feature recorded with the
  expect(featureInfo("rival-house-exit-v1").description).toMatch(/rival/);
  const recorded=playHarnessFeatures(ALL_ON,null);
  expect(recorded.indexOf("rival-house-exit-v1")).toBe(recorded.indexOf("birch-rescue-requested-v1")+1);
+});
+
+it("registers the text-only supervisor as a default-off guard recorded last",()=>{
+ expect(featureInfo("text-only-supervisor-v1")).toMatchObject({group:"guard",needs:null,switchable:true});
+ expect(featureInfo("text-only-supervisor-v1").description).toContain(" Off: ");
+ expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe("text-only-supervisor-v1");
+ expect(playHarnessFeatures({...ALL_ON,"text-only-supervisor-v1":false},null)).not.toContain("text-only-supervisor-v1");
 });

@@ -347,3 +347,10 @@ it('recovers later historical visits only from exact supported field maps',()=>{
   expect(fold(log).milestones).toEqual([{name,ms:BASE_MS+201,seq:native.seq,kind:'navigation',origin:'observed',evidence:[visit.seq]}]);
  }
 });
+
+it("shows a text-only supervisor note in the error lane", () => {
+  const log = new Log();
+  log.add(0, START);
+  log.add(5000, { type: "text_only_supervisor", turn: 4, replies: 3, note: 2, limit: 3, text: "SUPERVISOR: Your last 3 replies called no tool." });
+  expect(fold(log).errors).toEqual([{ ms: expect.any(Number) as number, kind: "loop", label: "Text-only supervisor 2/3 · turn 4: SUPERVISOR: Your last 3 replies called no tool." }]);
+});

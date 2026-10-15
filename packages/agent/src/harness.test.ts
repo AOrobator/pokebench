@@ -13,7 +13,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ControlFile, RunControl, controlLine } from "./run-control.js";
 import { PRESS_TIMING, pressTool } from "./game-tools.js";
-import { DOUBLE_WINDOW, Governor, NUDGE, OMITTED_FRAME, WINDOW, contextWindow, keepCount, piLoop, play, slideWindow, withoutTextOnlyReplies, type Loop, type Window } from "./harness.js";
+import { DOUBLE_WINDOW, Governor, NUDGE, OMITTED_FRAME, TEXT_ONLY_NOTE_LIMIT, WINDOW, contextWindow, keepCount, piLoop, play, slideWindow, withoutTextOnlyReplies, type Loop, type Window } from "./harness.js";
 import { ALL_ON } from "./features.js";
 
 const usage = {
@@ -260,6 +260,68 @@ describe("Governor", () => {
     g.afterTurn(reply([]), []);
     g.abort("operator_abort");
     expect(await g.followUps()).toEqual([]);
+  });
+});
+
+describe("text-only supervisor (text-only-supervisor-v1)", () => {
+  function supervised() {
+    const notes: [number, number][] = [];
+    const retries: Retry[] = [];
+    const g = new Governor({
+      limits: { maxTurns: 300, maxWallMs: 3_600_000, failureLimit: 3 },
+      retry: (reason, attempt, limit) => { retries.push({ reason, attempt, limit }); },
+      abort: () => undefined,
+      now: () => 0,
+      textOnlySupervisor: (replies, note) => { notes.push([replies, note]); return `SUPERVISOR note ${String(note)}`; },
+    });
+    return { g, notes, retries };
+  }
+  it("sends a supervisor note instead of ending the run at the failure limit, then restarts the count", async () => {
+    const { g, notes, retries } = supervised();
+    expect(g.afterTurn(reply([]), [])).toBe(false);
+    expect(await g.followUps()).toEqual([expect.objectContaining({ role: "user", content: NUDGE })]);
+    g.afterTurn(reply([]), []); await g.followUps();
+    expect(g.afterTurn(reply([]), [])).toBe(false);
+    expect(g.stopReason).toBeNull();
+    expect(notes).toEqual([[3, 1]]);
+    expect(await g.followUps()).toEqual([expect.objectContaining({ role: "user", content: "SUPERVISOR note 1" })]);
+    expect(await g.followUps()).toEqual([]);
+    g.afterTurn(reply([]), []);
+    expect(retries.at(-1)).toEqual({ reason: "text-only reply", attempt: 1, limit: 3 });
+  });
+  it("treats a reply cut off at max_tokens with no tool call like a text-only reply", () => {
+    const { g, notes } = supervised();
+    for (let i = 0; i < 3; i++) g.afterTurn(reply([], "length"), []);
+    expect(g.stopReason).toBeNull();
+    expect(notes).toEqual([[3, 1]]);
+  });
+  it("ends the run after the bounded number of notes in a row with no tool call between them", () => {
+    const { g, notes } = supervised();
+    for (let i = 0; i < 3 * TEXT_ONLY_NOTE_LIMIT; i++) g.afterTurn(reply([]), []);
+    expect(notes.map(([, n]) => n)).toEqual(Array.from({ length: TEXT_ONLY_NOTE_LIMIT }, (_, i) => i + 1));
+    expect(g.stopReason).toBeNull();
+    for (let i = 0; i < 3; i++) g.afterTurn(reply([]), []);
+    expect(g.stopReason).toBe("model_error");
+    expect(notes).toHaveLength(TEXT_ONLY_NOTE_LIMIT);
+  });
+  it("a successful tool call resets the note count", () => {
+    const { g, notes } = supervised();
+    for (let r = 0; r < TEXT_ONLY_NOTE_LIMIT + 1; r++) {
+      for (let i = 0; i < 3; i++) g.afterTurn(reply([]), []);
+      g.afterTurn(reply(), [toolResult()]);
+    }
+    expect(g.stopReason).toBeNull();
+    expect(notes.map(([, n]) => n)).toEqual(Array.from({ length: TEXT_ONLY_NOTE_LIMIT + 1 }, () => 1));
+  });
+  it("still ends the run when the limit is reached by invalid tool calls or model errors", () => {
+    const invalid = supervised();
+    for (let i = 0; i < 3; i++) invalid.g.afterTurn(reply(), [toolResult(0, true, "Validation failed for tool press")]);
+    expect(invalid.g.stopReason).toBe("model_error");
+    const errored = supervised();
+    errored.g.afterTurn(reply([]), []); errored.g.afterTurn(reply([]), []);
+    errored.g.modelError(reply([], "error", "HTTP 502"));
+    expect(errored.g.stopReason).toBe("model_error");
+    expect([...invalid.notes, ...errored.notes]).toEqual([]);
   });
 });
 

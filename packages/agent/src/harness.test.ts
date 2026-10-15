@@ -263,6 +263,61 @@ describe("Governor", () => {
   });
 });
 
+describe("reply failures that do not end the run (limits.replyFailuresEndRun false)", () => {
+  function lenient() {
+    const retries: Retry[] = [];
+    const g = new Governor({
+      limits: { maxTurns: 300, maxWallMs: 3_600_000, failureLimit: 3, replyFailuresEndRun: false },
+      retry: (reason, attempt, limit) => { retries.push({ reason, attempt, limit }); },
+      abort: () => undefined,
+      now: () => 0,
+    });
+    return { g, retries };
+  }
+  it("keeps playing through any number of text-only, cut-off or invalid replies, restarting the count", () => {
+    const { g, retries } = lenient();
+    for (let i = 0; i < 4; i++) {
+      g.afterTurn(reply([]), []);
+      g.afterTurn(reply([], "length"), []);
+      g.afterTurn(reply(), [toolResult(0, true, "Validation failed for tool press")]);
+    }
+    expect(g.stopReason).toBeNull();
+    expect(retries.map((r) => r.attempt)).toEqual([1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3]);
+  });
+  it("still ends model_error after three consecutive model errors, even right after reply failures", () => {
+    const { g, retries } = lenient();
+    g.afterTurn(reply([]), []);
+    g.modelError(reply([], "error", "HTTP 502"));
+    g.modelError(reply([], "error", "HTTP 502"));
+    expect(g.stopReason).toBeNull();
+    g.modelError(reply([], "error", "HTTP 502"));
+    expect(g.stopReason).toBe("model_error");
+    expect(retries.map((r) => r.attempt)).toEqual([1, 2, 3, 3]);
+  });
+  it("restarts the model-error count once the model answers", () => {
+    const { g } = lenient();
+    g.modelError(reply([], "error", "HTTP 502"));
+    g.modelError(reply([], "error", "HTTP 502"));
+    g.afterTurn(reply([]), []);
+    g.modelError(reply([], "error", "HTTP 502"));
+    g.modelError(reply([], "error", "HTTP 502"));
+    expect(g.stopReason).toBeNull();
+  });
+  it("gives the text-only supervisor notes first, then keeps playing once they run out", async () => {
+    const notes: number[] = [];
+    const g = new Governor({
+      limits: { maxTurns: 300, maxWallMs: 3_600_000, failureLimit: 3, replyFailuresEndRun: false },
+      retry: () => undefined,
+      abort: () => undefined,
+      now: () => 0,
+      textOnlySupervisor: (_replies, note) => { notes.push(note); return `SUPERVISOR note ${String(note)}`; },
+    });
+    for (let i = 0; i < 15; i++) { g.afterTurn(reply([]), []); await g.followUps(); }
+    expect(g.stopReason).toBeNull();
+    expect(notes).toEqual([1, 2, 3]);
+  });
+});
+
 describe("text-only supervisor (text-only-supervisor-v1)", () => {
   function supervised() {
     const notes: [number, number][] = [];

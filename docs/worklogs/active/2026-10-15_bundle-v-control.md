@@ -62,9 +62,28 @@ Unrelated workloads and their automatic recovery were paused to reserve compute.
 - [ ] M5 Ready to launch: report to the operator. The operator launches.
 - [ ] M6 Analysis script (pre-registered tests above) and report after the cohort completes.
 
+## M2 finding: the 2×2 `model_error` ends were model behavior
+
+All 5 `model_error` ends in the 2×2 cohort (`factorial-2x2-think-fast-*`, 32 graded trials) were three consecutive text-only replies, not model or gateway failures:
+
+| Run | Arm | Wall | Turns | Furthest | Retries in the run | Last three |
+|---|---|---|---|---|---|---|
+| `2026-10-14T19-30-06_think-fast_26e0` | both | 29.0 min | 270 | MOM_RIVAL_INSTRUCTION | 4 text-only | turns 268–270, text-only 1/2/3 |
+| `2026-10-14T19-59-09_think-fast_0c89` | memory | 13.7 min | 219 | RIVAL_MET | 3 text-only | turns 217–219, text-only 1/2/3 |
+| `2026-10-15T00-26-27_think-fast_fb9b` | neither | 15.7 min | 335 | MOM_RIVAL_INSTRUCTION | 5 text-only | turns 333–335, text-only 1/2/3 |
+| `2026-10-15T00-13-22_think-fast_a08c` | both | 13.0 min | 209 | MOM_RIVAL_INSTRUCTION | 3 text-only | turns 207–209, text-only 1/2/3 |
+| `2026-10-15T06-43-00_think-fast_952f` | whole-map | 29.7 min | 600 | MOM_RIVAL_INSTRUCTION | 3 text-only | turns 598–600, text-only 1/2/3 |
+
+- None of the five has a `model error:` retry. Each reply streamed normally and ended `stop`. The reasoning was a degenerate repetition (0c89 enumerates "(8,1) is clear … (8,84) is clear" in two consecutive turns; 952f repeats one paragraph about the Twin), and the reply carried no tool call.
+- The 2×2 presets had `text-only-supervisor-v1` off, so the Governor's `failureLimit` (3) ended the run at the third text-only reply in a row. The end reason `model_error` is shared by API errors and reply failures (`Governor.fail`), which is why these looked like infrastructure failures.
+- Classification under the invalid-trial rule: model behavior, so **valid** trials. They are not replaced.
+- Fix for this experiment (harness, RED/GREEN): an optional preset limit `limits.replyFailuresEndRun: false`. Text-only, cut-off (`max_tokens`) and invalid-tool-call streaks then never end the run (the nudge and the text-only supervisor notes still go out, and the count restarts). Three consecutive model errors still end it `model_error`. `run_start.evaluation.reply_failures_end_run` records the setting. Both arms set it, so the wall cap is the only behavioral end, and a `model_error` end is always an infrastructure failure (invalid, replaced).
+
 ## Session Log
 
 - 2026-10-15 17:45 EDT: Finals confirmed stopped (`finals-withdrawn.json`; the last trials record "operator stopped the run"; no runner). GPU0 cleared and a twin think-fast started; the bot stack disabled; the lane-B tunnel added. Power analysis and plan B chosen by the operator.
+
+- 2026-10-15 20:30 EDT: M2 traced (table above). Agent RED: Governor tests for `replyFailuresEndRun: false`, preset schema, run_start record, single-model llama-server discovery (7 failing, 95 passing in the four files).
 
 ## Surprises
 

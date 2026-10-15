@@ -81,6 +81,19 @@ describe("discoverLocal", () => {
     await expect(discoverLocal(endpoint, vi.fn<typeof fetch>().mockResolvedValue(response))).rejects.toThrow(message);
   });
 
+  it("lists a single-model llama-server (no router) by its id, with context from meta.n_ctx and vision from its capabilities", async () => {
+    const single = (capabilities: string[]) => ({
+      models: [{ name: "/models/q.gguf", model: "/models/q.gguf", capabilities }],
+      object: "list",
+      data: [{ id: "/models/q.gguf", object: "model", owned_by: "llamacpp", meta: { n_ctx: 65536, n_ctx_train: 262144 } }],
+    });
+    const vision = await discoverLocal(endpoint, vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify(single(["completion", "multimodal"])))));
+    expect(vision.map((m) => [m.id, m.contextWindow, m.maxTokens, m.input])).toEqual([["/models/q.gguf", 65536, 65536, ["text", "image"]]]);
+    expect(vision[0]).toMatchObject({ provider: "local-llamacpp", baseUrl: endpoint.baseUrl, compat: GATEWAY_COMPAT });
+    const text = await discoverLocal(endpoint, vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify(single(["completion"])))));
+    expect(text[0]?.input).toEqual(["text"]);
+  });
+
   it("reports an unreachable server", async () => {
     const refused = vi.fn<typeof fetch>().mockRejectedValue(new TypeError("fetch failed"));
     await expect(discoverLocal(endpoint, refused)).rejects.toThrow(/GET http:\/\/127.0.0.1:18434\/v1\/models failed/);

@@ -109,6 +109,9 @@ afterEach(() => {
 // and, after A×8, the same conversation printing again from the top.
 const PC = JSON.parse(readFileSync(new URL("../test-support/littleroot-pc-restart.json", import.meta.url), "utf8")) as { before: Record<string, unknown>; after: Record<string, unknown> };
 
+// The same place once the box is closed: no message, field controls free.
+const FREE = { ...PC.before, field_controls_locked: false, world_context: { ...(PC.before.world_context as Record<string, unknown>), dialogue: null, message: null } };
+
 async function recordRun(features: Record<string, boolean>, maxTurns = 9): Promise<string> {
   vi.resetModules();
   owner.root = mkdtempSync(join(tmpdir(), "decision-probe-"));
@@ -132,18 +135,24 @@ async function recordRun(features: Record<string, boolean>, maxTurns = 9): Promi
   });
   vi.stubGlobal("process", Object.assign(Object.create(process) as NodeJS.Process, { argv: [...process.argv.slice(0, 2), "play"] }));
   vi.spyOn(console, "log").mockImplementation(() => undefined);
-  vi.spyOn(console, "error").mockImplementation(() => undefined);
+  // live.ts reports a failed start (e.g. a rejected preset) only as "play FAILED: ..."; end the wait on it instead of hanging.
+  vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => { const line = args.map(String).join(" "); if (line.startsWith("play FAILED:")) owner.reject?.(new Error(line)); });
   // Each press closes the box and the same conversation prints again from the top (the 6684 shape).
-  let presses = 0;
+  let presses = 0, free = false;
   vi.stubGlobal("fetch", vi.fn<typeof fetch>().mockImplementation((input, init) => {
     const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
     const route = new URL(url).pathname;
     if (route === "/health") return Promise.resolve(Response.json({ status: owner.launched ? "healthy" : "unavailable" }));
     if (route === "/pokebench/battle/choices" || route === "/pokebench/actions") return Promise.resolve(Response.json({ frame: 0, last_id: 0, entries: [] }));
-    if (route === "/pokebench/state") return Promise.resolve(Response.json(PC.before));
-    if (route === "/pokebench/observation") return Promise.resolve(Response.json({ state_text: `Screen: overworld\nDialog: printing (${String(presses)})`, state: PC.after, screenshot_base64: FRAME.toString("base64") }));
+    if (route === "/pokebench/state") return Promise.resolve(Response.json(free ? FREE : PC.before));
+    if (route === "/pokebench/observation") return Promise.resolve(Response.json({ state_text: `Screen: overworld\nDialog: printing (${String(presses)})`, state: free ? FREE : PC.after, screenshot_base64: FRAME.toString("base64") }));
     if (route === "/queue_status") return Promise.resolve(Response.json({ queue_empty: true }));
-    if (route === "/action" && init?.method === "POST") { presses++; return Promise.resolve(Response.json({ status: "success" })); }
+    if (route === "/action" && init?.method === "POST") {
+      presses++;
+      // B closes the box (auto-advance); A starts the conversation again.
+      free = typeof init.body === "string" && (JSON.parse(init.body) as { buttons: string[] }).buttons.includes("B");
+      return Promise.resolve(Response.json({ status: "success" }));
+    }
     throw new Error(`Unexpected fixture route ${route}`);
   }));
   const done = new Promise<RunEndReason>((resolve, reject) => { owner.resolve = resolve; owner.reject = reject; });
@@ -158,6 +167,7 @@ const sent = (c: Context) => ({ systemPrompt: c.systemPrompt, tools: (c.tools ??
 it.each([
   ["the guard, supervisor, stall briefing, navigation memory and ledger", { ...flagFeatures({ loopGuard: true, activeUi: true, interfaceDocs: true, objectives: false }), "loop-guard-supervisor-v1": true, "interaction-loop-detection-v1": true, "navigation-evidence-memory-v1": true, "instruction-ledger-v1": true, "transition-press-result-v1": true }],
   ["the plain play preset", flagFeatures({ loopGuard: false, activeUi: true, interfaceDocs: true, objectives: false })],
+  ["dialogue auto-advance, whose results are kept as recorded", { ...flagFeatures({ loopGuard: true, activeUi: true, interfaceDocs: true, objectives: false }), "transition-press-result-v1": true, "field-dialogue-phase-v1": true, "dialogue-auto-advance-v1": true }],
   ["fresh retries, which keep text-only replies out of context", { ...flagFeatures({ loopGuard: false, activeUi: true, interfaceDocs: true, objectives: false }), "fresh-retry-v1": true }],
 ])("rebuilds every recorded turn exactly as the model received it, with %s", async (_label, features) => {
   const dir = await recordRun(features, 14);
@@ -177,7 +187,16 @@ it.each([
     }
   }
   if (features["loop-guard-supervisor-v1"]) expect(owner.contexts.at(-1)?.messages.some((m) => m.role === "user" && typeof m.content === "string" && m.content.startsWith("SUPERVISOR"))).toBe(true);
-});
+  if (features["dialogue-auto-advance-v1"]) {
+    expect(run.events.some((e) => e.type === "dialogue_auto_advance")).toBe(true);
+    // An auto-advanced result is composed from many inner presses, so a switch that shapes its text, or a re-render, is refused rather than guessed.
+    const last = turns.at(-1)?.turn ?? 0;
+    const recorded = probe.recordedFeatures(run);
+    await expect(probe.decisionContext(run, last, probe.withSwitches(recorded, [{ id: "transition-press-result-v1", on: false }]), ports)).rejects.toThrow(/was auto-advanced through dialogue; its text cannot be re-derived/);
+    await expect(probe.decisionContext(run, last, recorded, ports, "replayed", true)).rejects.toThrow(/was auto-advanced through dialogue/);
+    await expect(probe.decisionContext(run, last, probe.withSwitches(recorded, [{ id: "fresh-retry-v1", on: !recorded["fresh-retry-v1"] }]), ports)).resolves.toBeDefined();
+  }
+}, 60_000);
 
 it("re-derives press results under a flipped switch and reports how the next call changes", async () => {
   const dir = await recordRun(flagFeatures({ loopGuard: false, activeUi: true, interfaceDocs: true, objectives: false }));

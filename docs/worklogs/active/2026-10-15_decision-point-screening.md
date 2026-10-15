@@ -69,6 +69,14 @@ feature-worklog, feature-switch, agent-observability, pokebench-game-state, poke
   the server's own `read_state`/`render`, so the arms differ only by the switch. Sampling uses pi `completeSimple`
   with the run's thinking level and token budget on the gateway model (discovered, not hardcoded).
 
+- Merged claude/bundle-integration 5d8681d (round-4 GREEN) into this branch (16cad4f; one conflict in
+  loop-supervisor.ts, both sides kept). Agent suite 1236 green on the merge.
+- M6c RED (auto-advance fidelity): `decision-probe-live.test.ts` gains a dialogue-auto-advance-v1 preset (with
+  its required field-dialogue-phase-v1) and asserts the rebuilt context equals what the model was sent, plus refusals
+  for a flipped text-shaping switch or a re-render of an auto-advanced result. The earlier hang was the fixture: the
+  preset lacked field-dialogue-phase-v1, live.ts rejected it with only `play FAILED:` on console.error, and the test
+  awaited a run that never started. The fixture now rejects on that line, so a bad preset fails in ~0.2 s.
+
 ## Decisions
 - R1 is a bug fix (false model-facing facts in the supervisor briefing), under the M1 operator exception.
 - R2 changes wording that was literally true but incomplete. It goes behind the existing, not yet landed,

@@ -68,3 +68,5 @@ No feature switch: this changes process supervision, not what the model sees, it
 
 ## Gates per milestone
 RED → GREEN → Claude + Grok review; viewer/agent coverage ≥90% lines/branches/functions; tsc, eslint, ruff where touched.
+
+- 2026-10-15: rebased onto main 74ad319 (one import conflict in experiment-gate.test.ts with finalsRunLabels, kept both). Agent and viewer rebuilt; viewer 52 files / 673 tests; coverage 95.22 / 90.98 / 94.15; tsc + eslint clean. Waiting for the operator on merge timing: any merge to main stalls the running finals at the next run boundary.

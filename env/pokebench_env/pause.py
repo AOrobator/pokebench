@@ -31,6 +31,7 @@ def install_pause(
     server: SteppingServer,
     park_timeout_s: float = PARK_TIMEOUT_S,
     input_pause: Callable[[bool], None] | None = None,
+    on_park: Callable[[], None] | None = None,
 ) -> None:
     latch = threading.Condition()
     state = {"paused": False, "parked": False}
@@ -39,6 +40,8 @@ def install_pause(
     def paused_step(actions: list[str]) -> None:
         with latch:
             while state["paused"]:
+                if on_park is not None:
+                    on_park()
                 state["parked"] = True
                 latch.notify_all()
                 latch.wait()

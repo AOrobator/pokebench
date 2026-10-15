@@ -31,6 +31,7 @@ from pokebench_env.observation import ScreenshotFn, install_observation
 from pokebench_env.pause import SteppingServer, install_pause
 from pokebench_env.raw_ram import RawRamArchive
 from pokebench_env.rom import resolve_rom
+from pokebench_env.screen_settle import FrameSettle, SteppedEmulator, install_frame_settle
 from pokebench_env.travel import TravelServer, install_travel
 from pokebench_env.view import install_spectator
 
@@ -89,13 +90,20 @@ def run(
     raw_capture: Callable[[], dict[str, object]] | None = None,
     travel: tuple[FastAPI, type[FrameEmulator], TravelServer, ReadMemory] | None = None,
     agent_checkpoint: tuple[FastAPI, Callable[[], bytes | None]] | None = None,
+    frames: type[SteppedEmulator] | None = None,
 ) -> None:
+    # Observations wait out screen fades on emulated frames (never wall time).
+    settle = None
+    if observation is not None and frames is not None:
+        settle = FrameSettle(observation[2])
+        install_frame_settle(frames, settle)
+    on_park = None if settle is None else settle.release
     if actions is not None:
         install_action_history(*actions)
     if travel is not None:
         install_travel(*travel)
     if pause is not None:
-        install_pause(*pause)
+        install_pause(*pause, on_park=on_park)
     if agent_checkpoint is not None:
         install_checkpoint(*agent_checkpoint)
     if spectator is not None:
@@ -103,12 +111,12 @@ def run(
     capture = None
     if observation is not None:
         capture = install_observation(
-            *observation, raw_archive=raw_archive, raw_capture=raw_capture
+            *observation, raw_archive=raw_archive, raw_capture=raw_capture, settle=settle
         )
     if human is not None:
         api, server, token = human
         controller = install_human(api, server, token, observe=capture, checkpoint=checkpoint)
-        install_pause(api, server, input_pause=controller.set_paused)
+        install_pause(api, server, input_pause=controller.set_paused, on_park=on_park)
     pin_localhost(uvicorn)
     sys.argv = ["server.app", *argv]
     vendor_main()
@@ -174,6 +182,7 @@ def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
         pause=None if token else (app.app, cast(SteppingServer, app)),
         agent_checkpoint=None if token else (app.app, checkpoint),
         human=(app.app, cast(HumanServer, app), token) if token else None,
+        frames=cast(type[SteppedEmulator], EmeraldEmulator),
     )
 
 

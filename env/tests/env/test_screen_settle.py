@@ -1,6 +1,8 @@
 """Frame-driven observation settle: capture on the first emulated frame after a
 screen fade (gPaletteFade.active) and its black loading frames end."""
 
+from __future__ import annotations
+
 import base64
 import json
 import threading
@@ -130,14 +132,20 @@ def waiting(settle: FrameSettle, capture: Capture, lock: threading.Lock):
         except RuntimeError as error:
             out["error"] = str(error)
 
-    thread = threading.Thread(target=worker)
+    thread = threading.Thread(target=worker, daemon=True)
     thread.start()
     assert registered.wait(5)
     return out, thread
 
 
-def frames(game: Game, settle: FrameSettle, lock: threading.Lock, thread: threading.Thread,
-           change: dict[int, tuple[bytes, bytes]], limit: int = 1000) -> int:
+def frames(
+    game: Game,
+    settle: FrameSettle,
+    lock: threading.Lock,
+    thread: threading.Thread,
+    change: dict[int, tuple[bytes, bytes]],
+    limit: int = 1000,
+) -> int:
     """The vendor loop: each frame under the memory lock, then the hook."""
     stepped = 0
     while thread.is_alive() and stepped < limit:
@@ -156,7 +164,10 @@ def test_settled_screen_captures_at_once_without_waiting_for_a_frame() -> None:
     game = Game()
     settle = FrameSettle(game.read)
     waited: list[bool] = []
-    assert settle.settle(lambda: game.frame, threading.Lock(), on_wait=lambda: waited.append(True)) == 0
+    assert (
+        settle.settle(lambda: game.frame, threading.Lock(), on_wait=lambda: waited.append(True))
+        == 0
+    )
     assert waited == []
 
 
@@ -206,7 +217,7 @@ def test_a_parked_frame_loop_releases_waiters_and_later_observations_capture_at_
     with lock:
         settle.on_frame()
     out, thread = waiting(settle, lambda: game.frame, lock)
-    assert frames(game, settle, lock, thread, {2: (IDLE, LIT)}) == 1
+    frames(game, settle, lock, thread, {2: (IDLE, LIT)})
     assert out["result"] == 2
 
 
@@ -250,12 +261,17 @@ class Shot(BaseModel):
     screenshot_base64: str
 
 
-def observation_app(game: Game, shot: str, settle: FrameSettle | None,
-                    lock: threading.Lock | None = None) -> FastAPI:
+def observation_app(
+    game: Game, shot: str, settle: FrameSettle | None, lock: threading.Lock | None = None
+) -> FastAPI:
     app = FastAPI()
     install_observation(
-        app, lambda: Shot(screenshot_base64=shot), game.read, MapNames({}),
-        lock or threading.Lock(), settle=settle,
+        app,
+        lambda: Shot(screenshot_base64=shot),
+        game.read,
+        MapNames({}),
+        lock or threading.Lock(),
+        settle=settle,
     )
     return app
 
@@ -290,13 +306,23 @@ def test_observation_route_captures_on_the_first_frame_after_the_fade() -> None:
     game = Game(ACTIVE, LIT)
     lock = threading.Lock()
     settle = FrameSettle(game.read)
-    app = observation_app(game, png((90, 90, 90)), settle, lock)
+    shot_frames: list[int] = []
+
+    def shot() -> Shot:
+        shot_frames.append(game.frame)
+        return Shot(screenshot_base64=png((90, 90, 90)))
+
+    app = FastAPI()
+    install_observation(app, shot, game.read, MapNames({}), lock, settle=settle)
     result: dict[str, object] = {}
-    thread = threading.Thread(target=lambda: result.update(r=get(app, "/pokebench/observation")))
+    thread = threading.Thread(
+        target=lambda: result.update(r=get(app, "/pokebench/observation")), daemon=True
+    )
     thread.start()
     thread.join(0.2)
     assert thread.is_alive(), "the observation waits for emulated frames, not for time"
-    assert frames(game, settle, lock, thread, {3: (IDLE, LIT)}) == 3
+    frames(game, settle, lock, thread, {3: (IDLE, LIT)})
+    assert shot_frames == [3]
     status, _, body = result["r"]  # type: ignore[misc]
     assert status == 200
     assert json.loads(body)["state_text"].startswith("Screen: ")
@@ -343,13 +369,20 @@ def test_production_run_wires_the_frame_settle_into_the_observation_and_pause() 
         [],
         uvicorn=types.SimpleNamespace(run=lambda *a, **k: None),
         vendor_main=lambda: None,
-        observation=(app, lambda: Shot(screenshot_base64=png((9, 9, 9))), game.read,
-                     MapNames({}), lock),
+        observation=(
+            app,
+            lambda: Shot(screenshot_base64=png((9, 9, 9))),
+            game.read,
+            MapNames({}),
+            lock,
+        ),
         pause=(app, module),
         frames=Emulator,
     )
     result: dict[str, object] = {}
-    thread = threading.Thread(target=lambda: result.update(r=get(app, "/pokebench/observation")))
+    thread = threading.Thread(
+        target=lambda: result.update(r=get(app, "/pokebench/observation")), daemon=True
+    )
     thread.start()
     thread.join(0.2)
     assert thread.is_alive()
@@ -365,7 +398,9 @@ def test_production_run_wires_the_frame_settle_into_the_observation_and_pause() 
     assert game.frame == 2
 
     game.fade = ACTIVE
-    thread = threading.Thread(target=lambda: result.update(r=get(app, "/pokebench/observation")))
+    thread = threading.Thread(
+        target=lambda: result.update(r=get(app, "/pokebench/observation")), daemon=True
+    )
     thread.start()
     thread.join(0.2)
     assert thread.is_alive()
@@ -375,3 +410,46 @@ def test_production_run_wires_the_frame_settle_into_the_observation_and_pause() 
         assert not thread.is_alive(), "parking the frame loop releases the waiting observation"
         assert FADING_NOTE in json.loads(result["r"][2])["state_text"]  # type: ignore[index]
         post(app, "/pokebench/pause", b'{"paused": false}')
+
+
+def test_human_mode_run_wires_the_frame_settle_into_the_human_pause() -> None:
+    from pokebench_env.serve import run
+
+    game = Game(ACTIVE, LIT)
+    lock = threading.Lock()
+    app = FastAPI()
+    server = types.SimpleNamespace(step_environment=lambda actions: None, fps=80)
+
+    class Emulator:
+        def run_frame_with_buttons(self, buttons: list[str]) -> None:
+            game.frame += 1
+
+    run(
+        [],
+        uvicorn=types.SimpleNamespace(run=lambda *a, **k: None),
+        vendor_main=lambda: None,
+        observation=(
+            app,
+            lambda: Shot(screenshot_base64=png((9, 9, 9))),
+            game.read,
+            MapNames({}),
+            lock,
+        ),
+        human=(app, server, "secret"),
+        frames=Emulator,
+    )
+    result: dict[str, object] = {}
+    thread = threading.Thread(
+        target=lambda: result.update(r=get(app, "/pokebench/observation")), daemon=True
+    )
+    thread.start()
+    thread.join(0.2)
+    assert thread.is_alive(), "the human server's observation also waits for frames"
+    with FrameLoop(server) as loop:
+        assert post(app, "/pokebench/pause", b'{"paused": true}')[0] == 200
+        thread.join(5)
+        assert not thread.is_alive(), "parking the human frame loop releases the observation"
+        assert FADING_NOTE in json.loads(result["r"][2])["state_text"]  # type: ignore[index]
+        loop.stop.set()
+        post(app, "/pokebench/pause", b'{"paused": false}')
+        loop.thread.join(2)

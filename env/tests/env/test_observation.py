@@ -101,6 +101,7 @@ def test_entire_ram_read_uses_the_existing_frame_memory_lock(path: str) -> None:
         0x02037595,
         0x02037350,
         0x02039F94,
+        *([0x02037FD4 + 7] if path == "/pokebench/observation" else []),
     ]
     assert not lock.locked()
 

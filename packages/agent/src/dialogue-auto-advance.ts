@@ -156,6 +156,12 @@ async function advance(start:GameStateSnapshot,pages:Pages,press:(signal?:AbortS
  }
 }
 
+// The inner press's own Press result: computed on the shared observe/press tracker, so it keeps
+// carried-over warps and restarted conversations that a before/after rebuild cannot see.
+function pressLineOf(result:Result):string|null {
+ for(const part of result.content)if(part.type==="text"){const line=/^Press result: (.*)$/m.exec(part.text)?.[1];if(line!==undefined)return line;}
+ return null;
+}
 // Text the ordinary tools append after their observation (objective warnings).
 function extraText(result:Result):TextContent[] {
  return result.content.slice(2).filter((part):part is TextContent=>part.type==="text");
@@ -205,20 +211,21 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
   const walking=params.walking===undefined?{}:{walking:params.walking};
   const run=(buttons:Button[],first:boolean)=>first&&check!==undefined?press.executeChecked(id,{buttons,...walking},check,signal,update):press.execute(id,{buttons,...walking},signal,update);
   const pages=new Pages(record);if(before!==undefined)pages.prime(before);
-  const extras:TextContent[]=[];const sent:Button[]=[];
+  const extras:TextContent[]=[];const sent:Button[]=[];const results:{buttons:readonly Button[];line:string|null}[]=[];
   const walk=before!==undefined&&freeField(before)&&plan.every(b=>DIRECTIONS.has(b));
   let last:Result;
-  if(walk){last=await run([...plan],true);sent.push(...plan);}
+  if(walk){last=await run([...plan],true);sent.push(...plan);results.push({buttons:[...plan],line:pressLineOf(last)});}
   else{
    let result:Result|undefined;
-   for(const button of plan){result=await run([button],sent.length===0);sent.push(button);extras.push(...extraText(result));if(dialogueEngaged(stateOf(result)))break;}
+   for(const button of plan){result=await run([button],sent.length===0);sent.push(button);results.push({buttons:[button],line:pressLineOf(result)});extras.push(...extraText(result));if(dialogueEngaged(stateOf(result)))break;}
    if(result===undefined)throw new Error("press requires at least one button");
    last=result;
   }
   const after=stateOf(last);
   const engaged=dialogueEngaged(after);
   if(!engaged&&(walk||plan.length===1)&&plan.length===params.buttons.length)return last as AgentToolResult<{state:GameStateSnapshot|undefined}>;
-  const dropped=plan.slice(sent.length);
+  // Every requested input that was not sent: cut by engaged dialogue or withheld by the safe-batch rule.
+  const dropped=params.buttons.slice(sent.length);
   let block:string|null=null,final:Result;
   if(engaged){
    const outcome=await advance(after,pages,autoPress(id),full,signal);
@@ -230,7 +237,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
   const seen=observation(final);
   const head=[`pressed ${sent.join(", ")}`,
    ...(plan.length<params.buttons.length?[`Interface safety: submitted ${String(plan.length)} of ${String(params.buttons.length)} requested inputs; remaining inputs were not sent. Inspect the new state before another input.`]:[]),
-   ...(switches.pressResult?[`Press result: ${pressResult(before,finalState,sent,switches)}`]:[]),
+   ...(switches.pressResult?[`Press result: ${results.every(r=>r.line!==null)?results.length===1?results[0]?.line??"":results.map((r,i)=>`${i===0?"":"then "}${r.buttons.join(", ")}: ${r.line??""}`).join(" | "):pressResult(before,finalState,sent,switches)}`]:[]),
    ...(block===null?[]:[block])];
   return {content:[...seen.images,{type:"text",text:`${head.join("\n")}\n\n${seen.text}`},...extras],details:{state:finalState}};
  };

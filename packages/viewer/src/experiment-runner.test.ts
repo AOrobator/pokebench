@@ -57,7 +57,11 @@ function host(paths: QueuePaths, metrics: Map<string, TrialMetrics>, over: Parti
     launch: (trial) => {
       launches.push(trial);
       expect(existsSync(join(paths.runsRoot, LEASE, "owner.json"))).toBe(true);
-      expect(JSON.parse(readFileSync(runnerPath(paths.runsRoot), "utf8"))).toMatchObject({ trial: expect.any(Number) as number });
+      expect(JSON.parse(readFileSync(runnerPath(paths.runsRoot), "utf8"))).toMatchObject({ trial: expect.any(Number) as number, run: trial.runId });
+      expect(JSON.parse(readFileSync(join(paths.runsRoot, LEASE, "owner.json"), "utf8"))).toMatchObject({ owner: "experiment-queue", run: trial.runId });
+      trial.started?.(4321);
+      expect(JSON.parse(readFileSync(runnerPath(paths.runsRoot), "utf8"))).toMatchObject({ run: trial.runId, child: 4321 });
+      expect(JSON.parse(readFileSync(join(paths.runsRoot, LEASE, "owner.json"), "utf8"))).toMatchObject({ pid: process.pid, owner: "experiment-queue", run: trial.runId, child: 4321 });
       writeRun(paths, trial.runId, (JSON.parse(readFileSync(trial.presetPath, "utf8")) as { features: typeof QUEUE_FEATURES }).features);
       metrics.set(trial.runId, { reached: [], milestoneMs: {}, turns: 9, wallMs: 60_000 });
       return Promise.resolve(0);
@@ -136,6 +140,79 @@ describe("experiment runner", () => {
     expect((await runQueue({ paths, source, host: fake, once: true })).stopped).toBe("one trial run (--once)");
     expect(fake.launches).toHaveLength(1);
     expect(ledger(paths).slice(3)).toMatchObject([{ type: "launcher_error", trial: 1, run: "old1", message: "interrupted: no outcome was recorded" }, { type: "launch", trial: 1 }, { type: "outcome", trial: 1 }]);
+  });
+
+  it("adopts a trial a dead viewer left playing: waits for it under the lease, records its outcome once and never relaunches it", async () => {
+    const { paths, metrics, source } = setup();
+    writeFileSync(join(experimentDir(paths.runsRoot, "full-map"), "trials.jsonl"), `${JSON.stringify({ type: "launch", trial: 0, arm: "incumbent", run: "orphan0", at: "t" })}\n`);
+    // A pid no process has (the dead viewer) and this test process standing in for the trial still playing.
+    const gone = 2 ** 22 + 7;
+    writeFileSync(runnerPath(paths.runsRoot), JSON.stringify({ pid: gone, experiment: "full-map", trial: 0, run: "orphan0", child: process.pid }));
+    mkdirSync(join(paths.runsRoot, LEASE));
+    writeFileSync(join(paths.runsRoot, LEASE, "owner.json"), JSON.stringify({ pid: gone, owner: "experiment-queue", experiment: "full-map" }));
+    let polls = 0;
+    const fake = host(paths, metrics, {
+      alive: (pid) => pid === process.pid && polls < 2,
+      liveRuns: () => Promise.resolve(polls < 2 ? ["orphan0"] : []),
+      wait: () => {
+        expect(JSON.parse(readFileSync(join(paths.runsRoot, LEASE, "owner.json"), "utf8"))).toMatchObject({ pid: process.pid, run: "orphan0", child: process.pid });
+        expect(JSON.parse(readFileSync(runnerPath(paths.runsRoot), "utf8"))).toMatchObject({ pid: process.pid, trial: 0, run: "orphan0", child: process.pid });
+        polls += 1;
+        if (polls === 2) { writeRun(paths, "orphan0", QUEUE_FEATURES); metrics.set("orphan0", { reached: [], milestoneMs: {}, turns: 9, wallMs: 60_000 }); }
+        return Promise.resolve();
+      },
+    });
+    const outcome = await runQueue({ paths, source, host: fake });
+    expect(polls).toBe(2);
+    expect(fake.launches.map((l) => l.runId)).not.toContain("orphan0");
+    expect(fake.launches).toHaveLength(trialOrder(parseExperiment(definition("full-map"))).length - 1);
+    expect(ledger(paths).slice(0, 2)).toMatchObject([{ type: "launch", trial: 0, run: "orphan0" }, { type: "outcome", trial: 0, run: "orphan0", reason: "budget" }]);
+    expect(ledger(paths).filter((e) => e.type === "launcher_error")).toEqual([]);
+    expect(outcome.ran).toBe(trialOrder(parseExperiment(definition("full-map"))).length);
+    expect(existsSync(join(paths.runsRoot, LEASE))).toBe(false);
+  });
+
+  it("records a trial that finished while no viewer was up instead of relaunching it", async () => {
+    const { paths, metrics, source } = setup();
+    writeFileSync(join(experimentDir(paths.runsRoot, "full-map"), "trials.jsonl"), `${JSON.stringify({ type: "launch", trial: 0, arm: "incumbent", run: "ended0", at: "t" })}\n`);
+    writeRun(paths, "ended0", QUEUE_FEATURES);
+    metrics.set("ended0", { reached: [], milestoneMs: {}, turns: 9, wallMs: 60_000 });
+    const fake = host(paths, metrics, { wait: () => { throw new Error("nothing to wait for"); } });
+    expect((await runQueue({ paths, source, host: fake, once: true })).stopped).toBe("one trial run (--once)");
+    expect(fake.launches).toEqual([]);
+    expect(ledger(paths)).toMatchObject([{ type: "launch", run: "ended0" }, { type: "outcome", trial: 0, run: "ended0", reason: "budget" }]);
+  });
+
+  it("records an adopted trial even when one more trial would exceed the budget", async () => {
+    const { paths, metrics, source } = setup({ budget: { maxWallMs: 1_800_000 } });
+    writeFileSync(join(experimentDir(paths.runsRoot, "full-map"), "trials.jsonl"), `${JSON.stringify({ type: "launch", trial: 0, arm: "incumbent", run: "ended0", at: "t" })}\n`);
+    writeRun(paths, "ended0", QUEUE_FEATURES);
+    metrics.set("ended0", { reached: [], milestoneMs: {}, turns: 9, wallMs: 60_000 });
+    const fake = host(paths, metrics);
+    expect((await runQueue({ paths, source, host: fake })).stopped).toBe("held: the next trial could exceed the experiment budget");
+    expect(fake.launches).toEqual([]);
+    expect(ledger(paths)).toMatchObject([{ type: "launch", run: "ended0" }, { type: "outcome", trial: 0, run: "ended0" }]);
+  });
+
+  it("adopts the trial in flight even when the source check fails, and holds the lease until it is recorded", async () => {
+    const { paths, metrics, source } = setup();
+    writeFileSync(join(experimentDir(paths.runsRoot, "full-map"), "trials.jsonl"), `${JSON.stringify({ type: "launch", trial: 0, arm: "incumbent", run: "orphan0", at: "t" })}\n`);
+    let polls = 0;
+    const fake = host(paths, metrics, {
+      verifySource: () => Promise.resolve("the main checkout has uncommitted changes"),
+      liveRuns: () => Promise.resolve(polls < 1 ? ["orphan0"] : []),
+      wait: () => {
+        expect(existsSync(join(paths.runsRoot, LEASE, "owner.json"))).toBe(true);
+        polls += 1;
+        writeRun(paths, "orphan0", QUEUE_FEATURES);
+        metrics.set("orphan0", { reached: [], milestoneMs: {}, turns: 9, wallMs: 60_000 });
+        return Promise.resolve();
+      },
+    });
+    await expect(runQueue({ paths, source, host: fake })).rejects.toThrow("full-map: the main checkout has uncommitted changes");
+    expect(polls).toBe(1);
+    expect(fake.launches).toEqual([]);
+    expect(ledger(paths)).toMatchObject([{ type: "launch", run: "orphan0" }, { type: "outcome", trial: 0, run: "orphan0", reason: "budget" }]);
   });
 
   it("refuses to start on a source problem, a live run or a held lease", async () => {

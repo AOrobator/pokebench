@@ -38,7 +38,7 @@ No recorded run has a trainer battle (every recorded `battle_type` is 20 or 4), 
 ## Deferred (not read, never guessed)
 
 - Disable, Taunt, Torment (status2 bit 31 is shown as a condition, but the per-move lock is not), Imprison, Encore, Choice Band locked move: `gDisableStructs` and `gBattleStruct` fields at derived addresses without a ROM literal or raw-RAM receipt.
-- runTries for the escape odds: `gBattleStruct->runTries`, derived. The readout prints the formula with both speeds.
+- runTries for the escape odds: `gBattleStruct->runTries`, derived. Not read, so the readout gives only the speed comparison (guaranteed or not); the odds are not computed because TryRunFromBattle keeps them in a u8 that wraps (battle_util.c:412-466).
 - ENIGMA BERRY hold effect: `gEnigmaBerries`, derived; RUN says "unknown" when it is held.
 - Battle text (`gDisplayedStringBattle`): derived address.
 - Script-owned YES/NO prompts ("Use next POKéMON?", learn a move): still reported as resolving. `gBattlescriptCurrInstr` 0x02024214 and the cursor `gBattleCommunication[1]` 0x02024333 are verified, but identifying which battle script owns the box needs script-address receipts that do not exist yet.

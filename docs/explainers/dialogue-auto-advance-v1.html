@@ -114,7 +114,9 @@ Record your progress with SAVE."
 </svg><figcaption>The one box that changes behavior is highlighted. OFF returns the tool list unchanged: the same press tool object, prompt and tool names.</figcaption></figure>
 <ul>
 <li>Needs <code>active-field-message-buffer-v1</code> (the text) and <code>field-dialogue-phase-v1</code> (the wait phase); presets missing either are refused.</li>
-<li>Works with <code>dialogue-safe-batches-v1</code>: that switch still submits only the first input outside free walking, then this one advances any dialogue it opened.</li>
+<li>Works with <code>dialogue-safe-batches-v1</code>: that switch still submits only the first input outside free walking, then this one advances any dialogue it opened. Inputs either switch held back are listed in <code>dropped</code>, so <code>requested</code> = <code>sent</code> + <code>dropped</code>.</li>
+<li>With <code>transition-press-result-v1</code> the Press result line is each sent input's own result, computed on the shared observe/press tracker (several inputs read <code>LEFT: … | then A: …</code>), so a carried-over warp or a restarted conversation is still named.</li>
+<li>The loop supervisor and stall briefing grade an auto-advanced call from its pages (<code>dialogue shown (N pages, advanced automatically)</code>, or <code>restarted a conversation already shown (…)</code> for the same first page at the same map and tile), and the pages count as dialogue shown for the supervisor, <code>recall_dialogue</code> and the instruction ledger (each page cites its own state event).</li>
 <li>Refused with <code>state-only-decisions-v1</code>, which has no press tool to wrap.</li>
 <li>A free-field walking batch is sent whole as before; any other batch is sent one input at a time so the harness can stop the moment a conversation opens.</li>
 </ul>

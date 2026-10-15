@@ -2,9 +2,8 @@
 // (one local model), launched as an ordinary recorded play run with a v2
 // preset under the shared gameplay lease. Operator controls for a live run are
 // appended to its runs/<id>/control.jsonl, which the agent polls.
-import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Type, type Static } from "typebox";
 import { Value } from "typebox/value";
@@ -13,6 +12,8 @@ import { normalizeFeatures, FeatureSetSchema, parsePlayPreset, type PlayPresetV2
 import { controlLine, type ControlAction } from "@pokebench/agent/run-control";
 import { newRunId } from "@pokebench/agent/run";
 import { RUN_ID_PATTERN } from "@pokebench/agent/events";
+import { spawnDetached } from "./detached.js";
+import { LEASE, LeaseHeldError, leaseStale, nameLeaseRun, pidAlive, takeLease } from "./lease.js";
 import { listRuns, readStart, readFrom, runDir } from "./runs.js";
 
 const positive = Type.Integer({ minimum: 1 });
@@ -26,7 +27,7 @@ export const NextRunSchema = Type.Object({
 export type NextRun = Omit<Static<typeof NextRunSchema>, "features"> & {features:FeatureSet};
 
 export const DEFAULT_NEXT_RUN: NextRun = { model: "", thinking: "medium", maxTurns: 300, maxWallMs: 30 * 60_000, failureLimit: 3, maxTokens: 4096, target: null, features: { ...ALL_ON, "state-only-decisions-v1":false, "named-interactions-v1": false, "world-destinations-v1": false, "bounded-navigation-v1": false, "full-map-navigation-v1": false, "grass-cost-navigation-v1": false, "game-evidence-priority-v1": false, "dialogue-log-v1": false, "loop-guard-supervisor-v1": false, "instruction-ledger-v1": false, "next-milestone-hint-v1": false, "double-context-window-v1": false, "fresh-retry-v1": false, "named-warp-destinations-v1": false, "milestone-stall-stop-v1": false, "text-only-supervisor-v1": false, "character-presence-v1": false, "navigation-refusal-reasons-v1": false, "transition-press-result-v1": false, "stall-briefing-v1": false, "battle-details-v2": false, "dialogue-auto-advance-v1": false } };
-export const LEASE = ".naming-gameplay.lock";
+export { LEASE } from "./lease.js";
 // Whether a run's own game server answers on 127.0.0.1:<port>.
 export type HealthProbe = (port: number) => Promise<boolean>;
 
@@ -107,7 +108,7 @@ export async function appendControl(runsRoot: string, runId: string, action: Con
   return seq;
 }
 
-export interface LaunchSpec { readonly runId: string; readonly argv: readonly string[]; readonly env: Readonly<Record<string, string>>; readonly stdout: string; readonly stderr: string }
+export interface LaunchSpec { readonly runId: string; readonly argv: readonly string[]; readonly env: Readonly<Record<string, string>>; readonly stdout: string; readonly stderr: string; readonly started?: (pid: number) => void }
 export interface QueueHost {
   readonly runsRoot: string;
   readonly liveJs: string;
@@ -117,6 +118,8 @@ export interface QueueHost {
   now(): Date;
   random(): string;
   launch(spec: LaunchSpec): Promise<number | null>;
+  // Whether a pid lives; a lease whose viewer and run are both gone is free again.
+  alive?(pid: number): boolean;
 }
 
 export type QueueStatus =
@@ -175,7 +178,8 @@ export class RunQueue {
     const queued = this.queued;
     // A cancel during the probes clears the queued entry.
     if (queued === null) return;
-    const waitingFor = existsSync(lease) ? "the gameplay lease (a benchmark cohort is running)" : live.length > 0 ? `live run ${live[0] ?? ""}` : null;
+    const alive = (pid: number): boolean => (this.host.alive ?? pidAlive)(pid);
+    const waitingFor = existsSync(lease) && !leaseStale(runsRoot, alive) ? "the gameplay lease (a benchmark cohort is running)" : live.length > 0 ? `live run ${live[0] ?? ""}` : null;
     if (waitingFor !== null) {
       this.current = { state: "queued", runId: queued.runId, waitingFor };
       return;
@@ -183,15 +187,15 @@ export class RunQueue {
     const { runId, draft } = queued;
     this.queued = null;
     try {
-      mkdirSync(lease);
-    } catch {
+      takeLease(runsRoot, { pid: process.pid, owner: "viewer-queue", run: runId }, alive);
+    } catch (error) {
+      if (!(error instanceof LeaseHeldError)) throw error;
       this.queued = { runId, draft };
       this.current = { state: "queued", runId, waitingFor: "the gameplay lease" };
       return;
     }
     this.current = { state: "launching", runId };
     try {
-      writeFileSync(join(lease, "owner.json"), JSON.stringify({ pid: process.pid, owner: "viewer-queue", run: runId }), { flag: "wx" });
       const presets = join(viewerDir(runsRoot), "presets");
       const receipts = join(runsRoot, "launch-receipts", "viewer-queue");
       mkdirSync(presets, { recursive: true });
@@ -199,7 +203,8 @@ export class RunQueue {
       const presetPath = join(presets, `${runId}.json`);
       writeFileSync(presetPath, `${JSON.stringify(presetFor(draft, runId), null, 2)}\n`, { flag: "wx" });
       const env: Record<string, string> = { POKEBENCH_PLAY_PRESET: presetPath, POKEBENCH_RUN_ID: runId, POKEBENCH_MODEL: draft.model, POKEBENCH_ENDPOINT_FILE: this.host.endpointFile ?? "", POKEBENCH_GAME_SERVER_URL: `http://127.0.0.1:${String(this.host.gamePort)}` };
-      const launched = this.host.launch({ runId, argv: [this.host.liveJs, "play"], env, stdout: join(receipts, `${runId}.stdout.log`), stderr: join(receipts, `${runId}.stderr.log`) });
+      const started = (child: number): void => { nameLeaseRun(lease, { pid: process.pid, owner: "viewer-queue", run: runId, child }); };
+      const launched = this.host.launch({ runId, argv: [this.host.liveJs, "play"], env, stdout: join(receipts, `${runId}.stdout.log`), stderr: join(receipts, `${runId}.stderr.log`), started });
       this.current = { state: "running", runId };
       const exit = await launched;
       this.current = exit === 0 ? { state: "idle" } : { state: "failed", runId, error: `play exited with ${exit === null ? "a signal" : `code ${String(exit)}`}; see runs/launch-receipts/viewer-queue/${runId}.stderr.log` };
@@ -213,24 +218,9 @@ export class RunQueue {
 
 // Production launch: argv only, explicit env, logs to the receipts directory.
 export function spawnLaunch(spec: LaunchSpec, node = process.execPath): Promise<number | null> {
-  const inherited = { ...process.env };
-  delete inherited["POKEBENCH_PLAY_PRESET"];
-  return new Promise((resolve, reject) => {
-    const out = openSync(spec.stdout, "wx", 0o600);
-    let err: number;
-    try {
-      err = openSync(spec.stderr, "wx", 0o600);
-    } catch (error) {
-      closeSync(out);
-      throw error;
-    }
-    // The child holds its own copies; the parent closes its descriptors.
-    const child = spawn(node, [...spec.argv], { env: { ...inherited, ...spec.env }, stdio: ["ignore", out, err] });
-    closeSync(out);
-    closeSync(err);
-    child.once("error", reject);
-    child.once("exit", (code) => { resolve(code); });
-  });
+  const env: Record<string, string> = {};
+  for (const [k, v] of Object.entries(process.env)) if (v !== undefined && k !== "POKEBENCH_PLAY_PRESET") env[k] = v;
+  return spawnDetached(node, spec.argv, { env: { ...env, ...spec.env }, stdout: spec.stdout, stderr: spec.stderr, ...(spec.started === undefined ? {} : { started: spec.started }) });
 }
 
 export function randomSuffix(): string {

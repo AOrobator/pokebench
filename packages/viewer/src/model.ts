@@ -449,7 +449,8 @@ export class RunView {
   // Mirrors the tracker's ROUTE_101_AFTER_HANDOFF proof: a settled pre-handoff state (Birch lab state 0-2),
   // then a settled Littleroot or Oldale state and a settled Route 101 state, both at lab state 3-5.
   private recoverRoute101Return(event: StateEvent): void {
-    if (this.start?.harness_features.includes("probe") === true) return;
+    // Only logs from before the split: a run whose recorder declares it must carry the native event.
+    if (this.start?.harness_features.includes("probe") === true || this.start?.harness_features.includes("route-101-after-handoff-v1") === true) return;
     const settled = event.started && event.screen !== "field_transition" && !event.screen.startsWith("unknown") && event.location !== null;
     if (!settled) return;
     const lab = event.story?.birch_lab_stage ?? -1;

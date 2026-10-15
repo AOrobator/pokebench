@@ -6,7 +6,8 @@ import { describe, expect, it } from "vitest";
 import { definitionHash, parseExperiment, type ReadinessRun } from "@pokebench/agent/experiments";
 import { HUMAN_GAMEPLAY_LEASE_NAME } from "@pokebench/agent/run";
 import { QUEUE_FEATURES, definition, writeDefinition } from "../test-support/experiments.js";
-import { EXPERIMENT_GAME_PORT, GATEWAY, buildAgent, main, mainCheckout, productionHost, type CliDeps } from "./experiment-cli.js";
+import { processGroup } from "../test-support/process-group.js";
+import { EXPERIMENT_GAME_PORT, GATEWAY, buildAgent, main, mainCheckout, productionHost, sourceIdentity, type CliDeps } from "./experiment-cli.js";
 import { experimentDir, type QueuePaths } from "./experiment-store.js";
 import type { RunnerHost } from "./experiment-runner.js";
 
@@ -84,10 +85,22 @@ describe("production host", () => {
     git(root, ["config", "user.email", "t@example.com"]);
     git(root, ["config", "user.name", "t"]);
     writeFileSync(join(root, "tracked.txt"), "one\n");
-    git(root, ["add", "tracked.txt"]);
+    for (const [path, body] of Object.entries(SOURCES)) {
+      mkdirSync(join(root, path, ".."), { recursive: true });
+      writeFileSync(join(root, path), body);
+    }
+    git(root, ["add", "."]);
     git(root, ["commit", "-q", "-m", "init"]);
     return { root, head: git(root, ["rev-parse", "HEAD"]).trim() };
   }
+  const SOURCES: Record<string, string> = { ".gitignore": "dist/\n", "packages/agent/src/a.ts": "a\n", "packages/viewer/src/v.ts": "v\n", "env/e.py": "e\n", "package.json": "{}\n", "pnpm-lock.yaml": "l\n", "pnpm-workspace.yaml": "w\n" };
+  const commit = (root: string, path: string, body: string): string => {
+    mkdirSync(join(root, path, ".."), { recursive: true });
+    writeFileSync(join(root, path), body);
+    git(root, ["add", path]);
+    git(root, ["commit", "-q", "-m", `change ${path}`]);
+    return git(root, ["rev-parse", "HEAD"]).trim();
+  };
   const experiment = (commit: string) => parseExperiment(definition("full-map", { source: { checkout: "main", commit } }));
 
   it("finds the main checkout from a nested directory", () => {
@@ -108,14 +121,14 @@ describe("production host", () => {
     };
     const host = productionHost({ root, runsRoot: join(root, "runs"), git: (args) => git(root, args), fetchFn: fetch, node: process.execPath, env: {}, log: (line) => { calls.push(line); }, build });
     expect(await host.head()).toBe(head);
-    expect(await host.verifySource(experiment("c".repeat(40)), "c".repeat(40))).toMatch(/^earlier trials ran on ccccccc but main is at [0-9a-f]{7}; both arms must run on one build$/);
-    writeFileSync(join(root, "tracked.txt"), "two\n");
-    expect(await host.verifySource(experiment(head), head)).toBe("the main checkout has uncommitted changes");
-    git(root, ["checkout", "--", "tracked.txt"]);
+    expect(await host.verifySource(experiment("c".repeat(40)), "c".repeat(40))).toBe("earlier trials ran on ccccccc, which this checkout does not have; both arms must run on one build");
+    writeFileSync(join(root, "packages", "agent", "src", "a.ts"), "dirty\n");
+    expect(await host.verifySource(experiment(head), head)).toBe("the main checkout has uncommitted agent or env changes");
+    git(root, ["checkout", "--", "packages/agent/src/a.ts"]);
     expect(calls).toEqual([]);
     expect(await host.verifySource(experiment(head), head)).toBeNull();
     expect(calls).toEqual([`building the agent for ${head.slice(0, 7)}`, "build"]);
-    expect(readFileSync(stamp, "utf8")).toBe(`${head} ${String(statSync(join(dist, "live.js")).mtimeMs)}\n`);
+    expect(readFileSync(stamp, "utf8")).toBe(`${sourceIdentity((args) => git(root, args), head) ?? ""} ${String(statSync(join(dist, "live.js")).mtimeMs)}\n`);
     expect(await host.verifySource(experiment(head), head)).toBeNull();
     expect(calls).toHaveLength(2);
     const rebuilt = [`building the agent for ${head.slice(0, 7)}`, "build"];
@@ -138,6 +151,59 @@ describe("production host", () => {
     expect(host.now()).toBeInstanceOf(Date);
   });
 
+  it("pins the agent and env sources, not the commit: other merges keep both arms on one build", async () => {
+    const { root, head: pinned } = repo();
+    const gitHere = (args: readonly string[]): string => git(root, args);
+    let builds = 0;
+    const build = (): Promise<string | null> => {
+      builds += 1;
+      mkdirSync(join(root, "packages", "agent", "dist"), { recursive: true });
+      writeFileSync(join(root, "packages", "agent", "dist", "live.js"), "");
+      return Promise.resolve(null);
+    };
+    const host = productionHost({ root, runsRoot: join(root, "runs"), git: gitHere, fetchFn: fetch, node: process.execPath, env: {}, log: () => undefined, build, live: () => Promise.resolve([]) });
+    expect(await host.verifySource(experiment(pinned), pinned)).toBeNull();
+    expect(builds).toBe(1);
+    // A viewer-only merge moves main but not the build: no hold, no rebuild.
+    commit(root, "packages/viewer/src/v.ts", "v2\n");
+    commit(root, "docs/notes.md", "n\n");
+    expect(await host.verifySource(experiment(pinned), pinned)).toBeNull();
+    expect(builds).toBe(1);
+    writeFileSync(join(root, "packages", "viewer", "src", "v.ts"), "uncommitted\n");
+    writeFileSync(join(root, "tracked.txt"), "uncommitted\n");
+    expect(await host.verifySource(experiment(pinned), pinned)).toBeNull();
+    git(root, ["checkout", "--", "packages/viewer/src/v.ts", "tracked.txt"]);
+    // A fresh build does not make an untracked source harmless: the game server imports env/ as it is.
+    writeFileSync(join(root, "env", "stray.py"), "");
+    expect(await host.verifySource(experiment(pinned), pinned)).toBe("untracked files in the agent or env sources: env/stray.py");
+    rmSync(join(root, "env", "stray.py"));
+    writeFileSync(join(root, "packages", "viewer", "src", "stray.ts"), "");
+    expect(await host.verifySource(experiment(pinned), pinned)).toBeNull();
+    rmSync(join(root, "packages", "viewer", "src", "stray.ts"));
+    const refused = (head: string): string => `the agent or env sources changed since earlier trials ran on ${pinned.slice(0, 7)} (main is at ${head.slice(0, 7)}); both arms must run on one build`;
+    for (const [path, body] of [["packages/agent/src/a.ts", "a2\n"], ["env/e.py", "e2\n"], ["pnpm-lock.yaml", "l2\n"], ["package.json", "{\"x\":1}\n"], ["pnpm-workspace.yaml", "w2\n"], ["packages/agent/src/new.ts", "n\n"]] as const) {
+      const head = commit(root, path, body);
+      expect(await host.verifySource(experiment(pinned), pinned)).toBe(refused(head));
+      git(root, ["reset", "-q", "--hard", "HEAD~1"]);
+      expect(await host.verifySource(experiment(pinned), pinned)).toBeNull();
+    }
+    // A submodule pin lives in env's tree.
+    git(root, ["update-index", "--add", "--cacheinfo", `160000,${pinned},env/vendor/harness`]);
+    git(root, ["commit", "-q", "-m", "bump vendor pin"]);
+    expect(await host.verifySource(experiment(pinned), pinned)).toBe(refused(gitHere(["rev-parse", "HEAD"]).trim()));
+    git(root, ["reset", "-q", "--hard", "HEAD~1"]);
+    // Same sources reached by a different history still count as the one build.
+    commit(root, "packages/agent/src/a.ts", "a3\n");
+    commit(root, "packages/agent/src/a.ts", "a\n");
+    expect(await host.verifySource(experiment(pinned), pinned)).toBeNull();
+    expect(builds).toBe(1);
+    expect(sourceIdentity(gitHere, pinned)).toMatch(/^[0-9a-f]{64}$/);
+    expect(sourceIdentity(gitHere, "HEAD")).toBe(sourceIdentity(gitHere, pinned));
+    expect(sourceIdentity(gitHere, "c".repeat(40))).toBeNull();
+    expect(sourceIdentity(() => { throw new Error("git must not run"); }, "--all")).toBeNull();
+    expect(sourceIdentity(() => { throw new Error("git must not run"); }, "main")).toBeNull();
+  });
+
   it("never rebuilds under a live run, and never trusts a failed or empty build", async () => {
     const { root, head } = repo();
     const dist = join(root, "packages", "agent", "dist"), stamp = join(dist, ".build-commit");
@@ -153,7 +219,7 @@ describe("production host", () => {
     rmSync(join(root, "runs", HUMAN_GAMEPLAY_LEASE_NAME), { recursive: true });
     mkdirSync(join(root, "packages", "agent", "src"), { recursive: true });
     writeFileSync(join(root, "packages", "agent", "src", "stray.ts"), "");
-    expect(await make(() => Promise.resolve(null)).verifySource(experiment(head), head)).toBe("untracked files would enter the agent build: packages/agent/src/stray.ts");
+    expect(await make(() => Promise.resolve(null)).verifySource(experiment(head), head)).toBe("untracked files in the agent or env sources: packages/agent/src/stray.ts");
     rmSync(join(root, "packages", "agent", "src", "stray.ts"));
     expect(builds).toBe(0);
     const failing = make(() => { writeFileSync(join(dist, "live.js"), ""); return Promise.resolve("src/x.ts(1,1): error TS2322"); });
@@ -194,11 +260,13 @@ describe("production host", () => {
   it("launches play from the main checkout with the trial's preset, run id and an isolated port", async () => {
     const { root } = repo();
     mkdirSync(join(root, "packages", "agent", "dist"), { recursive: true });
-    writeFileSync(join(root, "packages", "agent", "dist", "live.js"), "const e=process.env;require('node:fs').writeFileSync(process.argv[2]+'.env',JSON.stringify({argv:process.argv.slice(2),model:e.POKEBENCH_MODEL,url:e.POKEBENCH_GAME_SERVER_URL,preset:e.POKEBENCH_PLAY_PRESET,run:e.POKEBENCH_RUN_ID,gateway:e.POKEBENCH_GATEWAY_URL,endpoint:e.POKEBENCH_ENDPOINT_FILE??null,keep:e.KEEP}));process.exit(Number(e.EXIT_CODE??0));".replace("process.argv[2]+'.env'", JSON.stringify(join(root, "seen.json"))));
+    writeFileSync(join(root, "packages", "agent", "dist", "live.js"), "const e=process.env;require('node:fs').writeFileSync(process.argv[2]+'.env',JSON.stringify({argv:process.argv.slice(2),model:e.POKEBENCH_MODEL,url:e.POKEBENCH_GAME_SERVER_URL,preset:e.POKEBENCH_PLAY_PRESET,run:e.POKEBENCH_RUN_ID,gateway:e.POKEBENCH_GATEWAY_URL,endpoint:e.POKEBENCH_ENDPOINT_FILE??null,keep:e.KEEP}));setTimeout(()=>process.exit(Number(e.EXIT_CODE??0)),500);".replace("process.argv[2]+'.env'", JSON.stringify(join(root, "seen.json"))));
     const children: unknown[] = [];
     const host = productionHost({ root, runsRoot: join(root, "runs"), git: () => "", fetchFn: fetch, node: process.execPath, env: { KEEP: "yes", POKEBENCH_ENDPOINT_FILE: "/x", POKEBENCH_PLAY_PRESET: "/stale", EXIT_CODE: undefined }, log: () => undefined, onChild: (c) => { children.push(c === null ? null : "child"); } });
-    const code = await host.launch({ runId: "2026-10-14T21-00-00_think-fast_beef", presetPath: "/p/incumbent.json", model: "think-fast", stdout: join(root, "out.log"), stderr: join(root, "err.log") });
+    const groups: boolean[] = [];
+    const code = await host.launch({ runId: "2026-10-14T21-00-00_think-fast_beef", presetPath: "/p/incumbent.json", model: "think-fast", stdout: join(root, "out.log"), stderr: join(root, "err.log"), started: (pid) => { groups.push(processGroup(pid) === String(pid)); } });
     expect(code).toBe(0);
+    expect(groups).toEqual([true]);
     expect(JSON.parse(readFileSync(join(root, "seen.json"), "utf8"))).toEqual({ argv: ["play"], model: "think-fast", url: `http://127.0.0.1:${String(EXPERIMENT_GAME_PORT)}`, preset: "/p/incumbent.json", run: "2026-10-14T21-00-00_think-fast_beef", gateway: GATEWAY, endpoint: null, keep: "yes" });
     expect(children).toEqual(["child", null]);
     const failing = productionHost({ root, runsRoot: join(root, "runs"), git: () => "", fetchFn: fetch, node: join(root, "no-such-node"), env: {}, log: () => undefined });

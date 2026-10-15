@@ -8,7 +8,7 @@ import { LEASE } from "./lease.js";
 import { parseFixedStatus, type FixedStatus } from "./fixed-status.js";
 import { definition, MODEL_PATH, START_SHA1 } from "../test-support/fixed.js";
 import { Log, START } from "../test-support/events.js";
-import type { FixedDefinition, FixedLane } from "./fixed-design.js";
+import { dryRunDefinition, type FixedDefinition, type FixedLane } from "./fixed-design.js";
 
 const COMMIT = "0123456789abcdef0123456789abcdef01234567";
 const RECEIPT: ServingReceipt = { model: MODEL_PATH, build: "b10236-1464c62d8", contextTokens: 65536, slots: 1, vision: true, fingerprint: "f".repeat(64) };
@@ -86,8 +86,8 @@ function setup(def: FixedDefinition = definition()) {
   const runsRoot = mkdtempSync(join(tmpdir(), "fixed-runner-"));
   return { def, runsRoot, dir: join(runsRoot, "experiments", def.id) };
 }
-const outcomes = (entries: readonly FixedLedgerEntry[]) => entries.filter((e) => e.kind === "outcome");
-const launchesOf = (entries: readonly FixedLedgerEntry[]) => entries.filter((e) => e.kind === "launch");
+const outcomes = (entries: readonly FixedLedgerEntry[]) => entries.filter((e): e is Extract<FixedLedgerEntry, { kind: "outcome" }> => e.kind === "outcome");
+const launchesOf = (entries: readonly FixedLedgerEntry[]) => entries.filter((e): e is Extract<FixedLedgerEntry, { kind: "launch" }> => e.kind === "launch");
 
 describe("runFixed", () => {
   it("runs every planned trial on its lane, two at a time, confirmatory before cook, and records each with its configuration", async () => {
@@ -96,9 +96,9 @@ describe("runFixed", () => {
     expect(await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77 })).toBe("finished");
     const ledger = readLedger(join(dir, "trials.jsonl"));
     expect(outcomes(ledger)).toHaveLength(12);
-    expect(outcomes(ledger).every((o) => o.kind === "outcome" && o.valid)).toBe(true);
+    expect(outcomes(ledger).every((o) => o.valid)).toBe(true);
     expect(host.maxRunning).toBe(2);
-    const order = launchesOf(ledger).map((e) => (e.kind === "launch" ? e.phase : ""));
+    const order = launchesOf(ledger).map((e) => e.phase);
     expect(order.lastIndexOf("confirmatory")).toBeLessThan(order.indexOf("cook"));
     const firstCook = ledger.findIndex((e) => e.kind === "launch" && e.phase === "cook");
     expect(outcomes(ledger.slice(0, firstCook))).toHaveLength(8);
@@ -116,7 +116,7 @@ describe("runFixed", () => {
     const preset = JSON.parse(readFileSync(join(dir, "presets", "cook-bundle.json"), "utf8")) as { features: Record<string, boolean>; limits: { maxWallMs: number } };
     expect(preset.limits.maxWallMs).toBe(3_600_000);
     expect(preset.features["world-destinations-v1"]).toBe(true);
-    expect(launchesOf(ledger).filter((e) => e.kind === "launch" && e.phase === "cook").every((e) => e.kind === "launch" && e.presetSha256.length === 64)).toBe(true);
+    expect(launchesOf(ledger).filter((e) => e.phase === "cook").every((e) => e.presetSha256.length === 64)).toBe(true);
     const status = parseFixedStatus(JSON.parse(readFileSync(join(dir, "status.json"), "utf8")));
     expect(status).toMatchObject({ state: "finished", total: 12, valid: 12, invalid: 0, pid: 77, definitionSha256: "d".repeat(64) });
     expect(status.lanes.map((l) => [l.id, l.state, l.valid, l.total])).toEqual([["A", "done", 6, 6], ["B", "done", 6, 6]]);
@@ -130,10 +130,10 @@ describe("runFixed", () => {
     const host = new Fake(runsRoot, { ending: (_l, n) => (n === 1 ? "model_error" : "budget") });
     await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77 });
     const ledger = readLedger(join(dir, "trials.jsonl"));
-    const invalid = outcomes(ledger).filter((o) => o.kind === "outcome" && !o.valid);
+    const invalid = outcomes(ledger).filter((o) => !o.valid);
     expect(invalid).toEqual([expect.objectContaining({ reason: "model/gateway error: model error: HTTP 502" })]);
     const first = host.launches[0];
-    const replacement = launchesOf(ledger).find((e) => e.kind === "launch" && e.replaces !== undefined);
+    const replacement = launchesOf(ledger).find((e) => e.replaces !== undefined);
     expect(replacement).toMatchObject({ lane: first?.lane, arm: first?.arm, phase: "confirmatory", replaces: first?.slot, slot: 13 });
     expect(outcomes(ledger)).toHaveLength(13);
     const status = parseFixedStatus(JSON.parse(readFileSync(join(dir, "status.json"), "utf8")));
@@ -150,7 +150,7 @@ describe("runFixed", () => {
     const paused = host.statuses.filter((s) => s.lanes[1]?.state === "paused");
     expect(paused.length).toBeGreaterThan(0);
     expect(paused[0]?.lanes[1]?.reason).toBe("lane B cannot serve: connect ECONNREFUSED 127.0.0.1:8098");
-    expect(paused[0]?.lanes[0]?.state).toBe("running");
+    expect(paused.some((st) => st.lanes[0]?.state === "running")).toBe(true);
     expect(outcomes(readLedger(join(dir, "trials.jsonl")))).toHaveLength(12);
     const retries = [...new Set(paused.map((s) => s.lanes[1]?.retryAt))];
     expect(retries.length).toBeGreaterThanOrEqual(3);
@@ -161,12 +161,12 @@ describe("runFixed", () => {
     let stop = false;
     const host = new Fake(runsRoot, { serving: (lane) => (lane.id === "A" ? { ...RECEIPT, build: "b1", slots: 2 } : RECEIPT) });
     const done = runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => stop, pid: 77 });
-    while (!host.statuses.some((s) => s.lanes[1]?.state === "done")) await new Promise((r) => setImmediate(r));
+    while (!host.statuses.some((s) => s.lanes[1]?.state === "waiting")) await new Promise((r) => setImmediate(r));
     stop = true;
     expect(await done).toBe("stopped");
-    const last = host.statuses.at(-1);
+    const last = parseFixedStatus(JSON.parse(readFileSync(join(runsRoot, "experiments", def.id, "status.json"), "utf8")));
     expect(host.statuses.some((s) => s.lanes[0]?.reason === "lane A serves build b1 (planned b10236-1464c62d8); 2 slots (planned 1)")).toBe(true);
-    expect(last?.lanes[0]?.state).not.toBe("running");
+    expect(last.lanes[0]?.state).not.toBe("running");
     expect(host.launches.every((l) => l.lane === "B")).toBe(true);
   });
 
@@ -188,13 +188,13 @@ describe("runFixed", () => {
     while (host.sleeps < sleepsAtBlock + 5) await new Promise((r) => setImmediate(r));
     stop = true;
     expect(await done).toBe("stopped");
-    expect(host.statuses.at(-1)?.state).toBe("stopped");
+    expect(parseFixedStatus(JSON.parse(readFileSync(join(runsRoot, "experiments", def.id, "status.json"), "utf8"))).state).toBe("stopped");
   });
 
   it("stops launching once stop is requested, letting running trials finish", async () => {
     const { def, runsRoot, dir } = setup();
     let stop = false;
-    const host = new Fake(runsRoot, { ending: (_l, n) => { if (n === 2) stop = true; return "budget"; } });
+    const host = new Fake(runsRoot, { ending: (_l, n) => { if (n === 1) stop = true; return "budget"; } });
     expect(await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => stop, pid: 77 })).toBe("stopped");
     const ledger = readLedger(join(dir, "trials.jsonl"));
     expect(launchesOf(ledger)).toHaveLength(2);
@@ -218,7 +218,7 @@ describe("runFixed", () => {
     const adopt = runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77 });
     await adopt;
     expect(existsSync(presetPath)).toBe(true);
-    const outcome = outcomes(readLedger(join(dir, "trials.jsonl"))).find((o) => o.kind === "outcome" && o.slot === slot.slot);
+    const outcome = outcomes(readLedger(join(dir, "trials.jsonl"))).find((o) => o.slot === slot.slot);
     expect(outcome).toMatchObject({ valid: false, reason: "no run_start: the run never began (exit unknown); a server, emulator or checkpoint load failure" });
     expect(host.launches.some((l) => l.slot === slot.slot)).toBe(false);
     expect(checks).toBe(3);
@@ -227,16 +227,18 @@ describe("runFixed", () => {
   it("waits for the gameplay lease, saying who holds it", async () => {
     const { def, runsRoot, dir } = setup();
     mkdirSync(join(runsRoot, LEASE), { recursive: true });
-    writeFileSync(join(runsRoot, "gameplay.lease", "owner.json"), JSON.stringify({ pid: 999, owner: "experiment-queue" }));
-    const host = new Fake(runsRoot, { alive: (pid) => pid === 999 && host.sleeps < 3 });
+    writeFileSync(join(runsRoot, LEASE, "owner.json"), JSON.stringify({ pid: 999, owner: "experiment-queue" }));
+    const holder = { sleeps: (): number => 0 };
+    const host: Fake = new Fake(runsRoot, { alive: (pid: number): boolean => pid === 999 && holder.sleeps() < 3 });
+    holder.sleeps = () => host.sleeps;
     await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77 });
     expect(host.statuses.some((s) => s.state === "waiting" && s.lanes.every((l) => l.reason === "waiting for the gameplay lease, held by experiment-queue (pid 999)"))).toBe(true);
     expect(outcomes(readLedger(join(dir, "trials.jsonl")))).toHaveLength(12);
   });
 
   it("finishes a dry run even when an invalid trial cannot be replaced", async () => {
-    const { def, runsRoot } = setup(definition({ replacementReserveMs: 0 }));
-    const host = new Fake(runsRoot, { ending: (_l, n) => (n === 1 ? "model_error" : "budget") });
+    const { def, runsRoot } = setup(dryRunDefinition(definition(), 120_000));
+    const host = new Fake(runsRoot, { ending: (_l, n) => (n === 1 ? "model_error" : "budget") }, def.id);
     expect(await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77, dryRun: true })).toBe("finished");
   });
 

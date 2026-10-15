@@ -12,6 +12,7 @@ The full-map-navigation finals were withdrawn by the operator: every arm was dom
 - Fixed N. No interim analysis, no early stopping for efficacy or futility, no automatic experiment ejects.
 - Both RTX 4090s run trials in parallel, one runner per GPU. The chat bot stays offline for the duration.
 - Primary milestone RIVAL_MET; ranking stays furthest-milestone-first.
+- Review merge rule (operator directive, the operator, 2026-10-15 ~22:00 EDT): a review finding blocks ONLY if it (1) crashes, throws, or can stop or stall the experiment silently; (2) breaks the pre-registered design: fixed N, balanced blocks per lane, arms differing only in the eight switches, caps, the CLOCK_SET start, milestone-stall-stop off; (3) mishandles invalid trials or lane pause/retry, or misreports status; (4) gets the analysis wrong. Everything else goes to the Deferred list below, one line each, and is not fixed now. One cloud-only review; any re-review covers only the blocker-fix delta.
 - Review lanes (operator directive, 2026-10-15 ~20:45 EDT): no local-model review lanes at all, think-swarm included. Review uses cloud lanes only: Codex `gpt-5.6-sol` and grok (Cursor), with opus/fable as fallbacks. Both 4090s stay with the experiment.
 - The two battle switches (`expanded-menu-battle-information-v1`, `battle-details-v2`) are out; they get their own experiment from a Birch-rescue save.
 
@@ -80,6 +81,37 @@ All 5 `model_error` ends in the 2×2 cohort (`factorial-2x2-think-fast-*`, 32 gr
 - Classification under the invalid-trial rule: model behavior, so **valid** trials. They are not replaced.
 - Fix for this experiment (harness, RED/GREEN): an optional preset limit `limits.replyFailuresEndRun: false`. Text-only, cut-off (`max_tokens`) and invalid-tool-call streaks then never end the run (the nudge and the text-only supervisor notes still go out, and the count restarts). Three consecutive model errors still end it `model_error`. `run_start.evaluation.reply_failures_end_run` records the setting. Both arms set it, so the wall cap is the only behavioral end, and a `model_error` end is always an infrastructure failure (invalid, replaced).
 
+## M1 driver: `just fixed-run`
+
+- Definition `experiments/fixed/bundle-v-control.json` (a subdirectory, so the experiment queue's `experiments/*.json` loader never sees it). Seed `b70b39b399e5bbae`, drawn 2026-10-15 22:20 EDT. 64 + 6 per arm, two lanes, so 32 confirmatory blocks and 3 cook blocks of four; 140 planned trials. The plan is frozen with `just fixed-run plan bundle-v-control` once `claude/bundle-integration` is in main (this branch's preset schema does not know the five new bundle switches yet); `plan` reuses the recorded seed and refuses once any trial has launched. Every load regenerates the plan from the seed and refuses a mismatch.
+- Arms: `base.features` = the full-map-navigation finals incumbent with all eight switches, `milestone-stall-stop-v1`, `battle-details-v2` and `expanded-menu-battle-information-v1` off; the bundle arm turns the eight switches on and changes nothing else (`armPreset`). The definition check refuses a switch that is on in the base, an `offInBoth` flag that is on, an unknown feature, and an enforced loop guard without its supervisor (the only other behavioral end, `stuck`). Limits: maxTurns 20000, failureLimit 3, `replyFailuresEndRun: false` (schema-fixed); sampling medium / 4096. Start: CLOCK_SET `runs/launch-receipts/rival-push-checkpoint/CLOCK_SET.state`, sha1 `51007c05068f4059f7d97c34541e29a93bedd80b` (checked against the bytes at `check`, `run` and `dry-run`).
+- Lanes A and B used separate game servers and symmetric direct tunnels to llama-server to avoid introducing a gateway hop in only one arm. Each trial gets an endpoint file `{base_url: <lane>/v1}` (`POKEBENCH_ENDPOINT_FILE`), so the agent's single-model discovery reads the model path id, n_ctx and vision from that lane's own `/v1/models`.
+- Runner (`runFixed`): one process holds the gameplay lease and runs both lanes concurrently. Each lane plays its own planned slots in order; confirmatory before cook across both lanes (a lane whose confirmatory slots are done waits for the other lane's). Before each trial: build check (serialized across lanes), `/health` + `/props` receipt (model path, build, n_ctx, slots, vision must match `serving`), game port free. Any failure pauses only that lane with the reason in `runs/experiments/<id>/status.json`, then retries with backoff 30 s, 1, 2, 5, 10 min (10 min thereafter). Nothing ends the experiment: no interim analysis, no stopping rule; the reserve exhausting pauses the lane "waiting for the operator". Ctrl-C/SIGTERM only stops new trials; running trials are detached, play to their wall cap and are adopted by the next runner.
+- Ledger `runs/experiments/<id>/trials.jsonl`: launch (slot, lane, phase, arm, run, commit, source identity, preset sha256, serving fingerprint, replaces), started (pid), outcome. Invalid = infrastructure only: no run_start (server/emulator/checkpoint), no run_end (process died), run_start not matching the plan (preset, cap, start sha1, port, model), `crash`, `model_error` whose last retry is `model error:` (API/gateway), operator stop. Each invalid trial is kept and a replacement of the same arm on the same lane is appended to the end of its phase, charged at the phase cap against the 4 GPU-h reserve (`replacementReserveMs` 14400000).
+- `runner.json` names a running trial while either lane plays (so merges into main wait); the viewer's experiment panel shows a card per fixed run: n done / 140, invalid count, reserve, each lane's state/reason/retry time/last error, the invalid list, and a loud "RUNNER NOT RUNNING" when the pid is gone before the end.
+- Commands: `just fixed-run check|plan|approve|run|dry-run|status|analyze <id>` and `analyze-receipt <dir> <control-arm> <treatment-arm> --cap-ms <ms>`. `approve` is interactive (types the id) and binds the definition sha256; `run` refuses without it or after any edit.
+
+## M3 lane receipts (2026-10-15 ~22:25 EDT, three short requests per lane)
+
+| | Lane A (GPU1) | Lane B (GPU0) |
+|---|---|---|
+| `/health` | 200 | 200 |
+| `/props` model_path / alias | `/models/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf` (alias = path) | same |
+| build_info | `b10236-1464c62d8` | same |
+| total_slots / n_ctx | 1 / 65536 | 1 / 65536 |
+| modalities | vision true, video true, audio false | same |
+| chat_template sha256 | `55d4931433fe…` | `55d4931433fe…` |
+| default sampling params sha256 | `257d326ca7b9c7eb…` | `257d326ca7b9c7eb…` |
+| `/v1/chat/completions` (8 tokens) | 200 in 0.24 s, `system_fingerprint` b10236-1464c62d8 | 200 in 0.12 s, same |
+| Tunnel | Direct tunnel | Direct tunnel, same options |
+
+- Server argv identity rests on the operator's compute record above (identical argv, image digest); the `/props` fields and default sampling params hash agree. The GPU host was not touched.
+
+## M6 analysis
+
+- `packages/viewer/src/fixed-analysis.ts`: two-sided Fisher exact (all tables no more likely than observed, relative tolerance 1e-7), log-rank (ties, censored at the cap), Mann-Whitney U with tie and continuity corrections on a depth-then-time score; pooled and per lane, valid trials only, plus the invalid list. Unit tests match scipy `fisher_exact`, `mannwhitneyu(method="asymptotic")` and lifelines `logrank_test` to 9 digits.
+- Smoke on the 2×2 cohort (`analyze-receipt runs/launch-receipts/navigation-factorial-think-fast-n4 control both --cap-ms 1800000`): RIVAL_MET both 4/8 vs control 3/8, Fisher p = 1.000 (scipy agrees); log-rank χ² 0.312, p 0.577; Mann-Whitney U 38, p 0.564. The 4/8 and 3/8 match a raw grep of the run events.
+
 ## Session Log
 
 - 2026-10-15 17:45 EDT: Finals confirmed stopped (`finals-withdrawn.json`; the last trials record "operator stopped the run"; no runner). GPU0 cleared and a twin think-fast started; the bot stack disabled; the lane-B tunnel added. Power analysis and plan B chosen by the operator.
@@ -87,6 +119,12 @@ All 5 `model_error` ends in the 2×2 cohort (`factorial-2x2-think-fast-*`, 32 gr
 - 2026-10-15 20:30 EDT: M2 traced (table above). Agent RED: Governor tests for `replyFailuresEndRun: false`, preset schema, run_start record, single-model llama-server discovery (7 failing, 95 passing in the four files).
 - 2026-10-15 20:50 EDT: Agent GREEN: `limits.replyFailuresEndRun` (Governor, preset schema, `run_start.evaluation.reply_failures_end_run`, `schemas/events.v1.json` regenerated), single-model llama-server discovery in `discoverLocal`. Agent vitest 70 files / 1090 tests pass; agent tsc and eslint clean. The RED live-objectives test was narrowed to the run_start record: the mocked run has ended by the time a test can drive its Governor, and harness.test covers the Governor behavior.
 - 2026-10-15 21:40 EDT: Viewer RED: tests for the fixed-run driver (`fixed-design`, `fixed-ledger`, `fixed-runner`, `fixed-status`, `fixed-analysis`, `fixed-cli`), the queue-view status card and `/api/experiments` `fixedRuns`. All six new test files fail to import; 3 tests fail in the queue-view and server-experiments files; 12 pass.
+- 2026-10-15 22:00 EDT: Operator merge rule recorded (Decisions). 22:15 EDT: operator burn-in (~3 h, both lanes, 15-min fixed-control trials from CLOCK_SET, worktree /private/tmp/pokebench-burnin, status ~/.hermes/cache/scratch/burnin/status.json, runs under runs/burnin-2026-10-15/) is running: M3 probes kept to three short requests per lane; M4 waits for the operator to stop it; its report's model_error evidence goes to M2.
+- 2026-10-15 22:35 EDT: Viewer RED was `feaefc3`. Viewer GREEN: `fixed-design`, `fixed-ledger`, `fixed-runner`, `fixed-status`, `fixed-analysis`, `fixed-cli`, the queue-view card, `/api/experiments` `fixedRuns`, `just fixed-run`, the draft definition. Gates: `just test` agent 70 files / 1090, viewer 58 / 735, env 1877 passed; `just lint` 0; `just build` 0; `just coverage` agent 97.5 / 93.88 / 98.15 / 98.88, viewer 95.31 / 90.55 / 94.13 / 97.9 (stmts / branches / funcs / lines); `just verify-vendor` OK.
+
+## Deferred
+
+(Non-blocking review findings under the operator merge rule, one line each.)
 
 ## Surprises
 

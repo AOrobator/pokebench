@@ -105,3 +105,10 @@ describe("dryRunDefinition", () => {
     expect(definitionProblems(dry)).toEqual([]);
   });
 });
+
+describe("trial-ending features", () => {
+  it("refuses an enforced loop guard without its supervisor, which would end trials stuck", () => {
+    const def = definition({ base: { ...definition().base, features: { ...definition().base.features, "loop-guard-supervisor-v1": false } } });
+    expect(definitionProblems(def)).toContain("deterministic-loop-guard-v1 without loop-guard-supervisor-v1 can end a trial before its wall cap");
+  });
+});

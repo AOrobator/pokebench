@@ -110,6 +110,11 @@ experiment-pin id: build
 experiment-run *flags: build
     node packages/viewer/dist/experiment-cli.js run {{flags}}
 
+# Fixed-N two-arm, two-lane experiments (experiments/fixed/<id>.json): plan, check, approve
+# (operator only, interactive), run, dry-run, status, analyze, analyze-receipt.
+fixed-run *args: build
+    node packages/viewer/dist/fixed-cli.js {{args}}
+
 # Manual validation probes are recorded like runs, excluded from benchmark results.
 # stdin accepts {"action":"observe"}, {"action":"press","buttons":["A"]}, {"action":"end"}.
 probe saved="": build

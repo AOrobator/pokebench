@@ -38,7 +38,8 @@ function setup(over: Partial<FixedCliDeps> = {}) {
 describe("fixed-run plan", () => {
   it("freezes a seeded plan into the definition, drawing a seed only when none is recorded", async () => {
     const { deps, out, path } = setup();
-    const { seed: _seed, ...draft } = draftDefinition();
+    const draft: Partial<ReturnType<typeof draftDefinition>> = draftDefinition();
+    delete draft.seed;
     writeFileSync(path, JSON.stringify(draft));
     expect(await main(["plan", "bundle-v-control"], deps)).toBe(0);
     const planned = parseFixedDefinition(readFileSync(path, "utf8")).definition;
@@ -176,7 +177,7 @@ describe("production host pieces", () => {
     const props = { model_path: MODEL_PATH, build_info: "b10236-1464c62d8", total_slots: 1, modalities: { vision: true }, default_generation_settings: { n_ctx: 65536 }, chat_template: "T" };
     const models = { models: [{ model: MODEL_PATH, capabilities: ["completion", "multimodal"] }], data: [{ id: MODEL_PATH, meta: { n_ctx: 65536 } }] };
     const fetchFn = vi.fn<typeof fetch>((url) => {
-      const u = String(url as string);
+      const u = url as string;
       if (u.endsWith("/health")) return Promise.resolve(new Response(JSON.stringify({ status: "ok" })));
       return Promise.resolve(new Response(JSON.stringify(u.endsWith("/props") ? props : models)));
     });

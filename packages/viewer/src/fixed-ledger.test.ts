@@ -18,7 +18,7 @@ function outcome(slot: number, valid: boolean): FixedLedgerEntry {
   return { kind: "outcome", slot, run: `run-${String(slot)}`, at, valid, reason: valid ? "wall cap" : "model/gateway error: model error: HTTP 502", endReason: valid ? "budget" : "model_error", primaryReached: false, primaryMs: null, furthest: null, furthestDepth: -1, furthestMs: null, wallMs: 900_000, turns: 100 };
 }
 function finishAll(entries: FixedLedgerEntry[], phase: string, lane?: string): void {
-  for (const s of queueState(def, entries).slots.filter((q) => q.phase === phase && (lane === undefined || q.lane === lane))) {
+  for (const s of queueState(def, entries).slots.filter((q) => q.replaces === null && q.phase === phase && (lane === undefined || q.lane === lane))) {
     if (!entries.some((e) => e.kind === "launch" && e.slot === s.slot)) entries.push(launch(s.slot, entries), outcome(s.slot, true));
   }
 }
@@ -93,7 +93,8 @@ describe("readLedger and appendLedger", () => {
 
 describe("classifyTrial", () => {
   const expectation = { presetId: "bundle-v-control-confirmatory-bundle", maxWallMs: 900_000, startSha1: START_SHA1, port: 8071, model: MODEL_PATH, primary: "RIVAL_MET" };
-  const goodStart = { ...START, model: { ...START.model, id: MODEL_PATH }, start_state: { kind: "save_state" as const, path: "x", sha1: START_SHA1 }, budgets: { max_turns: 20000, max_wall_ms: 900_000 }, isolation: { ...START.isolation, port: 8071 }, evaluation: { preset_id: expectation.presetId, target: null, failure_limit: 3, reply_failures_end_run: false, flags: { loopGuard: true, activeUi: true, interfaceDocs: true, objectives: false } } };
+  const unlabelledStart = { ...START, model: { ...START.model, id: MODEL_PATH }, start_state: { kind: "save_state" as const, path: "x", sha1: START_SHA1 }, budgets: { max_turns: 20000, max_wall_ms: 900_000 }, isolation: { ...START.isolation, port: 8071 } };
+  const goodStart = { ...unlabelledStart, evaluation: { preset_id: expectation.presetId, target: null, failure_limit: 3, reply_failures_end_run: false, flags: { loopGuard: true, activeUi: true, interfaceDocs: true, objectives: false } } };
   const end = { type: "run_end" as const, turn: 9, furthest_milestone: null, turns: 9, wall_ms: 900_000, tokens: { input: 1, output: 1 }, frames: { saved: 0, bytes: 0 } };
   function text(build: (log: Log) => void): string {
     const log = new Log();
@@ -133,7 +134,7 @@ describe("classifyTrial", () => {
     expect(wrong).toMatchObject({ valid: false, reason: "run_start does not match the plan: port 9000 (planned 8071); model other (planned /models/q.gguf)" });
     const lenient = classify((log) => { log.add(0, { ...goodStart, evaluation: { ...goodStart.evaluation, reply_failures_end_run: true }, budgets: { max_wall_ms: 1 }, start_state: { kind: "boot" } }); log.add(20, { ...end, reason: "budget" }); });
     expect(lenient.reason).toBe(`run_start does not match the plan: preset limits do not keep reply failures from ending the run; wall cap 1 ms (planned 900000); start boot (planned save_state ${START_SHA1})`);
-    const unlabelled = classify((log) => { const { evaluation: _drop, ...bare } = goodStart; log.add(0, bare); log.add(20, { ...end, reason: "budget" }); });
+    const unlabelled = classify((log) => { log.add(0, unlabelledStart); log.add(20, { ...end, reason: "budget" }); });
     expect(unlabelled.reason).toMatch(/preset none \(planned bundle-v-control-confirmatory-bundle\)/);
   });
 

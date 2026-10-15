@@ -1,6 +1,6 @@
 import {expect,it} from "vitest";
 import {ALL_ON,type FeatureSet} from "./features.js";
-import {definitionHash,deriveStatus,experimentArms,parseExperiment,parseLedger,readinessOf,trialOrder,trialProgress,type Experiment,type LedgerEntry,type ReadinessRun} from "./experiments.js";
+import {definitionHash,deriveStatus,experimentArms,parseExperiment,parseNewerExperiment,parseLedger,readinessOf,trialOrder,trialProgress,type Experiment,type LedgerEntry,type ReadinessRun} from "./experiments.js";
 
 const features:FeatureSet={...ALL_ON,"state-only-decisions-v1":false,"named-interactions-v1":false,"world-destinations-v1":false,"full-map-navigation-v1":false,"objective-tracking-v1":false,"repeat-attempt-guard-v1":false,"native-objective-completion-v1":false};
 const base={
@@ -28,6 +28,18 @@ it("names a switch this build does not know, so an old viewer says it needs rebu
  expect(()=>parseExperiment({...base,incumbent:{...base.incumbent,features:{...base.incumbent.features,"future-switch-v1":true}}})).toThrow(stale);
  expect(()=>parseExperiment(null)).toThrow(/Invalid experiment/);
  expect(()=>parseExperiment({...base,changedFeature:7,incumbent:{...base.incumbent,features:null}})).toThrow(/Invalid experiment/);
+});
+
+it("reads a definition whose switch landed after this build, without trusting the switch",()=>{
+ const newer={...base,changedFeature:"future-switch-v1",incumbent:{...base.incumbent,features:{...base.incumbent.features,"future-switch-v1":true}}};
+ const n=parseNewerExperiment(newer);
+ expect(n.unknownSwitches).toEqual(["future-switch-v1"]);
+ expect([n.id,n.changedFeature,n.incumbentOn]).toEqual([base.id,"future-switch-v1",true]);
+ expect(parseNewerExperiment({...base,changedFeature:"future-switch-v1"}).incumbentOn).toBe(false);
+ expect(()=>parseNewerExperiment(base)).toThrow("Invalid experiment: names no switch newer than this build");
+ expect(()=>parseNewerExperiment({...newer,title:""})).toThrow(/Invalid experiment/);
+ expect(()=>parseNewerExperiment({...newer,changedFeature:"Not An Id"})).toThrow(/Invalid experiment/);
+ expect(()=>parseNewerExperiment({...newer,primaryMilestone:"NOWHERE"})).toThrow(/primaryMilestone NOWHERE/);
 });
 
 it("rejects malformed definitions, unknown milestones, short arms, tiny budgets and invalid candidates",()=>{

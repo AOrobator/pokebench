@@ -50,6 +50,19 @@ describe("experiment queue store", () => {
     expect(pidAlive(2 ** 22 + 7)).toBe(false);
   });
 
+  it("shows a definition naming a switch newer than this build as blocked, not as a problem", () => {
+    const paths = roots();
+    writeDefinition(paths.experimentsDir, definition("newer", { changedFeature: "future-switch-v1", queuePosition: undefined, notes: "n" }));
+    writeDefinition(paths.experimentsDir, definition("newer-queued", { changedFeature: "future-switch-v1", queuePosition: 2 }));
+    const s = queueSnapshot(paths, fake({}));
+    expect(s.problems).toEqual([]);
+    expect(s.pending.map((v) => [v.id, v.state])).toEqual([["newer", "blocked"]]);
+    expect(s.queue.map((v) => [v.id, v.state])).toEqual([["newer-queued", "blocked"]]);
+    const view = s.pending[0];
+    expect(view?.reason).toBe("uses future-switch-v1, which landed after this viewer was built; restart the viewer with just viewer-main to check readiness or run it");
+    expect([view?.changedFeature, view?.incumbentOn, view?.approved, view?.trials, view?.notes, view?.readiness.ready]).toEqual(["future-switch-v1", false, false, [], "n", false]);
+  });
+
   it("splits queued from pending entries, folds trials and reports bad records", () => {
     const paths = roots();
     writeDefinition(paths.experimentsDir, definition("full-map"));

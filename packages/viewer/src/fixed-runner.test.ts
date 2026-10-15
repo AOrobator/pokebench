@@ -21,6 +21,7 @@ interface FakeOptions {
   readonly head?: (n: number) => string;
   readonly alive?: (pid: number) => boolean;
   readonly runId?: (lane: FixedLane, n: number) => void;
+  readonly log?: (line: string) => void;
 }
 
 class Fake implements FixedHost {
@@ -55,13 +56,15 @@ class Fake implements FixedHost {
   runIds = 0;
   runId(lane: FixedLane): string { this.runIds += 1; this.options.runId?.(lane, this.runIds); return `2026-10-16T00-00-00_qwen36-${lane.gpu.toLowerCase()}_${String(this.launches.length).padStart(4, "0")}`; }
   alive(pid: number): boolean { return this.options.alive?.(pid) ?? false; }
-  log(line: string): void { this.logs.push(line); }
+  log(line: string): void { this.options.log?.(line); this.logs.push(line); }
+  // A throw from the started callback escapes an EventEmitter listener in production and kills the process.
+  startedThrows = 0;
   async launch(l: FixedLaunch): Promise<number | null> {
     this.launches.push(l);
     const n = this.launches.length;
     this.running += 1;
     this.maxRunning = Math.max(this.maxRunning, this.running);
-    l.started(1000 + n);
+    try { l.started(1000 + n); } catch { this.startedThrows += 1; }
     this.snapshot();
     await new Promise((r) => setTimeout(r, 2));
     this.clock += 60_000;
@@ -182,6 +185,30 @@ describe("runFixed", () => {
     const result = await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77 });
     expect(result).toBe("finished");
     expect(host.statuses.some((st) => st.lanes.find((l) => l.id === "B")?.state === "paused" && st.lanes.find((l) => l.id === "B")?.reason.includes("EIO") === true && st.lastError?.includes("EIO") === true)).toBe(true);
+    expect(parseFixedStatus(JSON.parse(readFileSync(join(runsRoot, "experiments", def.id, "status.json"), "utf8"))).valid).toBe(def.plan.length);
+  });
+
+  it("never throws from the started callback: a runner-file write that fails there keeps the trial and says why", async () => {
+    const { def, runsRoot } = setup();
+    mkdirSync(join(runsRoot, "experiments", "runner.json"), { recursive: true });
+    const host = new Fake(runsRoot);
+    expect(await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77 })).toBe("finished");
+    expect(host.startedThrows).toBe(0);
+    expect(host.statuses.some((st) => st.lastError?.includes("cannot record the started trial") === true)).toBe(true);
+    expect(parseFixedStatus(JSON.parse(readFileSync(join(runsRoot, "experiments", def.id, "status.json"), "utf8"))).valid).toBe(def.plan.length);
+  });
+
+  it("keeps the runner alive when pausing itself throws: the lane retries, the other lane plays on", async () => {
+    const { def, runsRoot } = setup();
+    let thrown = false;
+    let logThrown = false;
+    const host = new Fake(runsRoot, {
+      runId: (lane) => { if (lane.id === "B" && !thrown) { thrown = true; throw new Error("EIO: i/o error, write"); } },
+      log: (line) => { if (line.includes("paused") && !logThrown) { logThrown = true; throw new Error("EPIPE: broken pipe, write"); } },
+    });
+    expect(await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77 })).toBe("finished");
+    expect(logThrown).toBe(true);
+    expect(host.statuses.some((st) => st.lanes.find((l) => l.id === "B")?.state === "paused" && st.lanes.find((l) => l.id === "B")?.reason.includes("EIO") === true)).toBe(true);
     expect(parseFixedStatus(JSON.parse(readFileSync(join(runsRoot, "experiments", def.id, "status.json"), "utf8"))).valid).toBe(def.plan.length);
   });
 

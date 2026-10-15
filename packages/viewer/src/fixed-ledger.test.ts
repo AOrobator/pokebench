@@ -132,6 +132,26 @@ describe("classifyTrial", () => {
     expect(onCap).toMatchObject({ primaryReached: true, primaryMs: 900_000, furthest: "RIVAL_MET" });
   });
 
+  it("measures milestones in unpaused time, like the production wall cap, so a pause never turns a hit into a miss", () => {
+    const paused = classify((log) => {
+      log.add(0, goodStart);
+      log.add(100_000, { type: "operator_control", action: "pause", status: "applied", request: 1 });
+      log.add(220_000, { type: "operator_control", action: "resume", status: "applied", request: 2, paused_ms: 120_000 });
+      log.add(400_000, { type: "milestone", turn: 3, name: "MOM_RIVAL_INSTRUCTION", server_timestamp: 1 });
+      log.add(950_000, { type: "milestone", turn: 9, name: "RIVAL_MET", server_timestamp: 2 });
+      log.add(1_020_000, { ...end, reason: "budget", wall_ms: 1_020_000 });
+    });
+    expect(paused).toMatchObject({ valid: true, primaryReached: true, primaryMs: 830_000, furthest: "RIVAL_MET", furthestMs: 830_000 });
+    const late = classify((log) => {
+      log.add(0, goodStart);
+      log.add(100_000, { type: "operator_control", action: "pause", status: "applied", request: 1 });
+      log.add(150_000, { type: "operator_control", action: "resume", status: "applied", request: 2, paused_ms: 50_000 });
+      log.add(950_001, { type: "milestone", turn: 9, name: "RIVAL_MET", server_timestamp: 2 });
+      log.add(950_002, { ...end, reason: "budget", wall_ms: 950_002 });
+    });
+    expect(late).toMatchObject({ primaryReached: false, primaryMs: null });
+  });
+
   it("is valid at the wall cap, with the milestones reached after the start and the furthest by milestone order", () => {
     const o = classify((log) => {
       log.add(0, goodStart);

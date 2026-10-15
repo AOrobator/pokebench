@@ -180,6 +180,7 @@ Any valid trial that still ends before the wall cap is listed in a WARNING table
 - 2026-10-15 19:00 EDT: Control base pinned to the finals incumbent (Pre-registration). RED: `controlBaseProblems` (sha256, preset id, sampling, limits, every non-switch flag) and CLI refusal when the preset is missing or drifted (12 failing in fixed-design/fixed-cli).
 - 2026-10-15 19:01 EDT: GREEN: `controlBase` in the schema and definition; `controlBaseProblems` in fixed-design; every CLI load checks it; `check` prints the matched control base. Verified the real definition against the real `finals-incumbent.json` (definition sha256 `b98add43…`, pre-merge).
 - 2026-10-15 19:06 EDT: Gates at `4cdb29a` (main `1bb327e` already merged, nothing new on main): `just test` agent 80 files / 1251, viewer 58 / 759, env 1962 passed; `just lint` 0; `just build` 0; `just coverage` agent 97.59 / 94.14 / 97.85 / 99.02, viewer 95.34 / 90.5 / 94.19 / 97.89, env lines 97.03 / branches 92.57 / functions 100 (stmts / branches / funcs / lines); `just verify-vendor` OK. Scoped cloud re-review of `19f3784` + `a0092a1..4cdb29a` (docs and definition JSON excluded; diff sha256 `850e0276…`) started: Codex gpt-5.6-sol and grok (Cursor).
+- 2026-10-15 19:40 EDT: Re-review of `19f3784` + `a0092a1..4cdb29a`: Codex `VERDICT: BLOCKING` (2), grok `VERDICT: LGTM`. Operator triage: BLOCK Codex 1 (started-record I/O in the spawn listener escapes every catch and can kill the runner; with it, grok's residual: a throw inside `pause()` rejects `Promise.all` and drops the lease while the other lane runs; rule 1) and Codex 2 (the cap classifier must use paused-time-excluded elapsed time like the production `BudgetTimer`; rules 2/4). Merged main `3c4c26f` (auto-advance `0d589f1`). RED: three failing tests in fixed-runner/fixed-ledger.
 
 ## Deferred
 
@@ -190,6 +191,10 @@ Any valid trial that still ends before the wall cap is listed in a WARNING table
 - grok: no backoff before a replacement trial.
 - grok: `operator_stop` treated as invalid.
 - **Rejected by operator decision (Codex 2, maxTurns 20000 as an early end):** no run has come near 1500 turns, so a 20000-turn cap cannot bind within 15 or 60 minutes. Not fixed.
+- grok: `plan` / `analyze` load without the control-base gate; the launch paths (`check`, `approve`, `run`, `dry-run`) gate it.
+- grok: `controlBaseProblems` compares sampling by `JSON.stringify` without sorting keys; a key-order change fails closed.
+- grok: analysis re-caps the primary but not `furthest*` for ledger rows written before the classifier fix; no such rows exist.
+- Codex/grok: the review bundle lacked `finals-incumbent.json` (it lives under gitignored `runs/`); `check` from `~/dev/pokebench` re-hashes it.
 
 ## Surprises
 

@@ -105,7 +105,7 @@ Every recorded string goes through `esc`. Tool result text is shown in `<pre>` o
 - [ ] Review round 2: covers M1 fixes + M2 together
 
 **M3 — Side panel Emerald box + earlier rows + identity strip**
-- [ ] Write tests:
+- [x] Write tests (`runIdentity` unit test; app: Emerald box on top, side rows newest first without memory/run rows, side row → inspector, FULL TRACE link, identity strip). RED: 4 failing:
   - live thinking streams into the Emerald box, always expanded
   - earlier rows newest first, without emulator or memory rows
   - identity strip for experiment, preset and plain runs

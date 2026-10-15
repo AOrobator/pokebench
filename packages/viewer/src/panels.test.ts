@@ -17,6 +17,7 @@ import {
   harnessConfig,
   inspector,
   party,
+  runIdentity,
   splits,
   thinkingDialog,
   trainerCard,
@@ -647,4 +648,19 @@ it("links the named warp destinations card to its explainer",()=>{
 
 it("links the milestone stall stop card to its explainer",()=>{
  expect(FEATURE_EXPLAINERS["milestone-stall-stop-v1"]).toBe("milestone-stall-stop-v1.html");
+});
+
+it("shows the experiment, arm and trial strip, the preset, or just the model and run",()=>{
+ const flags={loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false};
+ const cells=(html:string)=>{const w=new Window();const root=w.document.createElement("div");root.innerHTML=html;const out=[...root.querySelectorAll(".id-cell")].map(c=>`${c.querySelector("small")?.textContent??""}=${c.querySelector("span")?.textContent??""}`);void w.happyDOM.abort();return{out,root};};
+ const withExperiment=new Log();withExperiment.add(0,{...START,evaluation:{preset_id:"factorial-both",target:null,failure_limit:3,flags,experiment:{id:"factorial-2x2-<think>",arm:"both",trial:5,of:8}}});
+ const exp=cells(runIdentity(view(withExperiment)));
+ expect(exp.out).toEqual(["EXPERIMENT=factorial-2x2-<think>","ARM=both","TRIAL=5 of 8","MODEL · THINKING=think-swarm · medium",`RUN=…${RUN.slice(-4)}`]);
+ expect(exp.root.querySelectorAll(".trial-dots i.done")).toHaveLength(4);
+ expect(exp.root.querySelectorAll(".trial-dots i.now")).toHaveLength(1);
+ expect(exp.root.querySelector("think")).toBeNull();
+ const presetOnly=new Log();presetOnly.add(0,{...START,evaluation:{preset_id:"checkpoint-clock-set",target:"CLOCK_SET",failure_limit:3,flags}});
+ expect(cells(runIdentity(view(presetOnly))).out).toEqual(["PRESET=checkpoint-clock-set","MODEL · THINKING=think-swarm · medium",`RUN=…${RUN.slice(-4)}`]);
+ expect(cells(runIdentity(view(fullRun()))).out).toEqual(["MODEL · THINKING=think-swarm · medium",`RUN=…${RUN.slice(-4)}`]);
+ expect(runIdentity(new RunView())).toBe("");
 });

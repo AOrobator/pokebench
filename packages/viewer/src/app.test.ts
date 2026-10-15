@@ -928,3 +928,47 @@ describe("agent trace page", () => {
 function assistantAt(turn: number): Parameters<Log["add"]>[1] {
   return { type: "assistant", turn, thinking: `Turn ${String(turn)}.`, text: "", tool_calls: [], usage: { input: 1, output: 1, cache_read: 0 }, latency_ms: 5, ttft_ms: null, stop_reason: "stop" };
 }
+
+describe("side panel", () => {
+  it("puts the Emerald thinking box on top and earlier steps below it, newest first", async () => {
+    const { app, streams, setNow } = await harness();
+    const events = fullRun().events;
+    feed(must(streams[0]), [...events.slice(0, 10), must(events[10])]);
+    feed(must(streams[0]), [{ ...must(events[10]), seq: 99, type: "assistant_delta", turn: 2, thinking: "Next I go up.", text: "" } as RunEvent], false);
+    setNow(BASE_MS + 4_500);
+    app.tick(100);
+    const side = must(document.querySelector<HTMLElement>(".side .thinking-stream"));
+    const emer = must(side.querySelector<HTMLElement>(".emer"));
+    expect(emer.contains(ui("think-body"))).toBe(true);
+    expect(emer.contains(ui("think-head"))).toBe(true);
+    expect(ui("think-title").textContent).toBe("RIGHT NOW · TURN 2");
+    expect(ui("think-body").textContent).toBe("Next I go up.");
+    expect(ui("think-head").textContent).toBe("AGENT is thinking… 0.5s");
+    const order = [...side.children].map((el) => el.className || el.tagName);
+    expect(order.indexOf("emer")).toBeLessThan(order.indexOf("side-trace trace"));
+    const rows = [...ui("side-trace").querySelectorAll<HTMLElement>("[data-key]")];
+    expect(rows.map((row) => row.dataset.c)).toEqual(["think", "act", "ms", "ms"]);
+    expect(ui("side-trace").textContent).not.toContain("Disk usage");
+    expect(ui("side-trace").querySelector(".tg")?.textContent).toBe("T1");
+    must(rows[1]?.querySelector("summary")).click();
+    expect(ui("inspector").textContent).toContain('"type": "tool_result"');
+  });
+
+  it("jumps from the side panel to the full agent trace", async () => {
+    const { app, streams } = await harness(`#run=${M4_ID}`);
+    feed(must(streams[0]), m4Run());
+    app.tick(60_000);
+    ui("trace-link").click();
+    expect(document.querySelector<HTMLElement>('[data-nav-page="trace"]')?.hidden).toBe(false);
+    expect(document.querySelector('[data-page="trace"]')?.getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("shows the run identity strip in the header", async () => {
+    const { app, streams } = await harness(`#run=${M4_ID}`);
+    expect(ui("ident").hidden).toBe(true);
+    feed(must(streams[0]), m4Run());
+    app.tick(100);
+    expect(ui("ident").hidden).toBe(false);
+    expect(ui("ident").textContent).toContain("MODEL · THINKING");
+  });
+});

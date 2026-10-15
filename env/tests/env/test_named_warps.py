@@ -28,18 +28,29 @@ def lines(text: str) -> list[str]:
     return text.split("\n")
 
 
-def test_off_is_byte_identical_to_the_existing_readout() -> None:
-    for state in (
-        read_game_state(map_memory().read, MAPS),
-        read_game_state(map_memory().read, MAPS, full_map_enabled=True),
-    ):
-        base = format_readout(state)
-        assert format_readout(state, named_warps=False) == base
-        assert PLAIN in lines(base) and "LITTLEROOT TOWN (map" not in base
-        assert (
-            format_readout(state, frozenset({"named-warp-destinations-v1"}), named_warps=True)
-            == base
-        )
+OFF_GUIDANCE = (
+    "Warp destinations are map group/number IDs, not warp indexes. Activation also requires"
+    " matching elevation and available field controls; W alone does not guarantee a transition."
+    " After a transition, check the new map and position."
+)
+ON_GUIDANCE = (
+    "Warp destinations are the map you arrive on: its name when the game's map table has one,"
+    " then its group/number ID in parentheses; not warp indexes. Activation also requires"
+    " matching elevation and available field controls; W alone does not guarantee a transition."
+    " After a transition, check the new map and position."
+)
+FIXTURES = Path(__file__).resolve().parent / "fixtures"
+
+
+def test_off_equals_the_readout_rendered_by_the_previous_commit() -> None:
+    # Goldens were rendered by env/pokebench_env at 224ee68 from this same memory fixture.
+    for kw, golden in (({}, "local"), ({"full_map_enabled": True}, "whole")):
+        state = read_game_state(map_memory().read, MAPS, **kw)
+        expected = (FIXTURES / f"named-warps-off-{golden}-224ee68.txt").read_text()
+        for off, named in ((frozenset(), False), (frozenset({"named-warp-destinations-v1"}), True)):
+            text = format_readout(state, off, named_interactions=True, named_warps=named)
+            assert text == expected
+        assert OFF_GUIDANCE in lines(expected) and PLAIN in lines(expected)
 
 
 def test_on_names_the_destination_in_the_warps_line_and_candidates() -> None:
@@ -49,11 +60,7 @@ def test_on_names_the_destination_in_the_warps_line_and_candidates() -> None:
     ):
         text = format_readout(state, named_warps=True)
         assert NAMED in lines(text) and PLAIN not in lines(text)
-        assert (
-            "Warp destinations are the map you arrive on: its name when the game's map"
-            " table has one, then its group/number ID in brackets; not warp indexes." in text
-        )
-        assert "Warp destinations are map group/number IDs" not in text
+        assert ON_GUIDANCE in lines(text) and OFF_GUIDANCE not in lines(text)
         assert (
             "warp at (0,1), elevation 0; movement; activation depends on metatile (see local map);"
             " conditional; destination LITTLEROOT TOWN (map 0/9) warp 0" in lines(text)
@@ -66,18 +73,30 @@ def test_on_names_the_destination_in_the_warps_line_and_candidates() -> None:
 
 def test_only_warp_lines_change() -> None:
     state = read_game_state(map_memory().read, MAPS)
-    before, after = lines(format_readout(state)), lines(format_readout(state, named_warps=True))
-    assert len(before) == len(after)
-    changed = [(a, b) for a, b in zip(before, after, strict=True) if a != b]
-    assert [a.split(" ", 1)[0] for a, _ in changed] == ["Warps:", "Warp", "warp"], changed
+    before = lines(format_readout(state, named_interactions=True))
+    after = lines(format_readout(state, named_interactions=True, named_warps=True))
+    candidate = (
+        " at (0,1), elevation 0; movement; activation depends on metatile (see local map);"
+        " conditional; destination "
+    )
+    assert [(a, b) for a, b in zip(before, after, strict=True) if a != b] == [
+        (PLAIN, NAMED),
+        (OFF_GUIDANCE, ON_GUIDANCE),
+        (
+            f"Warp to map 0/9{candidate}map 0/9 warp 0",
+            f"Warp to LITTLEROOT TOWN (map 0/9){candidate}LITTLEROOT TOWN (map 0/9) warp 0",
+        ),
+    ]
 
 
 def test_unknown_and_dynamic_destinations_are_never_named() -> None:
     state = read_game_state(map_memory().read, MapNames({}))
     assert state.destination_names == ((0, 9, "unknown map 0/9"),)
     text = format_readout(state, named_warps=True)
-    assert PLAIN in lines(text)
+    assert PLAIN in lines(text) and ON_GUIDANCE in lines(text)
     assert "destination map 0/9 warp 0" in text and "unknown map 0/9" not in text
+    named = format_readout(state, named_warps=True, named_interactions=True)
+    assert any(line.startswith("Warp to map 0/9 at (0,1)") for line in lines(named)), named
     dynamic = InteractionTarget("warp", 3, 4, 0, "movement", destination=(127, 127, 0))
     assert dynamic.text(destinations={(127, 127): "LITTLEROOT TOWN"}).endswith(
         "; dynamic destination"
@@ -87,15 +106,16 @@ def test_unknown_and_dynamic_destinations_are_never_named() -> None:
 
 def test_the_name_is_the_location_the_game_reports_on_arrival() -> None:
     maps = MapNames.load(VENDOR_MAPS)
-    # Recorded 2x2 runs: the (14,8) door in Littleroot leads to map 1/2, and the location line read
-    # after walking through it was LITTLEROOT TOWN MAYS HOUSE 1F.
+    # The fixture's warp leads to map 0/9, the map the fixture stands on, so the readout's own
+    # Location line is what the game reports after arriving there.
+    text = format_readout(read_game_state(map_memory().read, maps), named_warps=True)
+    location = next(line for line in lines(text) if line.startswith("Location: "))
+    assert location == "Location: LITTLEROOT TOWN"
+    assert f"Warps: (0,1) -> {location.removeprefix('Location: ')} (map 0/9) {DOOR}" in lines(text)
+    # The 2x2 runs' doors: (14,8) -> 1/2 was recorded as LITTLEROOT TOWN MAYS HOUSE 1F on arrival.
     assert maps.name((1, 2)) == "LITTLEROOT TOWN MAYS HOUSE 1F"
     assert maps.name((1, 0)) == "LITTLEROOT TOWN BRENDANS HOUSE 1F"
     assert maps.name((1, 4)) == "LITTLEROOT TOWN PROFESSOR BIRCHS LAB"
-    target = InteractionTarget("warp", 14, 8, 0, "movement", destination=(1, 2, 1))
-    assert target.text(destinations={(1, 2): "LITTLEROOT TOWN MAYS HOUSE 1F"}).endswith(
-        "; destination LITTLEROOT TOWN MAYS HOUSE 1F (map 1/2) warp 1"
-    )
 
 
 def test_observation_route_applies_the_switch_from_env(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -1,0 +1,39 @@
+Screen: overworld
+Dialog: none
+Menu: unavailable (active owner not verified)
+Bag: 
+Story: player name confirmed
+Player: MAY
+Location: LITTLEROOT TOWN
+Position: X=1, Y=1, facing right
+Party (player): none
+Money: ₽3000
+Badges: none
+In battle: no
+Play time: 1:02:03
+Field controls: available (terrain and objects can still block a direction)
+Local map from live memory; top-left (-6,-6), north is up:
+      -6  -5  -4  -3  -2  -1   0   1   2   3   4   5   6   7   8
+  -6   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?
+  -5   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?
+  -4   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?
+  -3   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?
+  -2   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?
+  -1   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?
+   0   ?   ?   ?   ?   ?   ?   g   #   .   .   .   ?   ?   ?   ?
+   1   ?   ?   ?   ?   ?   ?   W   @   ~   .   .   ?   ?   ?   ?
+   2   ?   ?   ?   ?   ?   ?   .   .   .   .   .   ?   ?   ?   ?
+   3   ?   ?   ?   ?   ?   ?   .   .   .   .   .   ?   ?   ?   ?
+   4   ?   ?   ?   ?   ?   ?   .   .   .   .   .   ?   ?   ?   ?
+   5   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?
+   6   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?
+   7   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?
+   8   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?
+@ player; N live object; W warp location (see activation below); # collision; g grass; ~ water; v ^ < > ledge: a one-way hop in the arrow's direction (move into it that way to jump over it, landing 2 tiles on); impassable from any other side; + edge walls: walkable, but movement across a walled side is refused in both directions (sides listed under Edge walls); . clear terrain (may have script triggers); ? outside current map.
+Terrain rules, elevation and objects can still block movement.
+Live objects: none nearby
+Warps: (0,1) -> map 0/9 [door: approach from below and press UP toward door]
+Warp destinations are map group/number IDs, not warp indexes. Activation also requires matching elevation and available field controls; W alone does not guarantee a transition. After a transition, check the new map and position.
+Metatile behaviors present: 0x02, 0x10, 0x69
+Map interaction candidates (world coordinates; flags/scripts may gate use):
+Warp to map 0/9 at (0,1), elevation 0; movement; activation depends on metatile (see local map); conditional; destination map 0/9 warp 0

@@ -52,11 +52,11 @@ pokebench-patch-evaluation (readiness), multi-model-review (local-inference-stac
 
 ## Invariants
 
-- INV-1 OFF is byte-identical. Test: golden readouts of recorded Littleroot and Route 101 states
-  compare equal with the switch off.
-- INV-2 Names come only from the game map table. Test: for every Littleroot/Oldale/Route 101–104/
-  Petalburg/Rustboro warp in fixtures, the ON name equals the Location string the run later recorded
-  on arrival (taken from recorded events, not hand-written).
+- INV-1 OFF is byte-identical. Test: OFF readouts (local and whole map) equal goldens rendered by
+  env/pokebench_env at 224ee68 from the same memory fixture (`fixtures/named-warps-off-*-224ee68.txt`).
+- INV-2 Names come only from the game map table. Test: with the vendored map table, the warp's ON
+  name equals the readout's own Location line for that map; Littleroot door ids 1/0, 1/2, 1/4 resolve
+  to the names the 2x2 runs recorded on arrival.
 - INV-3 Unknown or dynamic destinations never get a guessed name. Test: (127,127) and an id absent
   from the enum keep their old text.
 - INV-4 The vendor stays unmodified (`just verify-vendor`).
@@ -81,7 +81,7 @@ Readout text only. No new inputs, subprocesses, network or file paths. The ROM i
   `just verify-vendor` OK.
 - [x] Guard check: deleting `named_warps=` in observation.py turned `test_observation_route_applies_the_switch_from_env`
   red; removing the id from TS `SERVER_FEATURES` turned the registry and Python list-match tests red. Both restored.
-- [ ] COMMIT: `feat(readout): warps name their destination map (GREEN)`
+- [x] COMMIT: `feat(readout): warps name their destination map (GREEN)` (c08c0c6)
 - [x] Smoke: launcher from CLOCK_SET.state on 127.0.0.1:8197 with the switch on, walked 2F → 1F → Littleroot.
   Outside: `(14,8) -> LITTLEROOT TOWN MAYS HOUSE 1F (map 1/2)`, `(7,16) -> LITTLEROOT TOWN PROFESSOR BIRCHS LAB
   (map 1/4)`, candidates `Warp to LITTLEROOT TOWN MAYS HOUSE 1F (map 1/2) at (14,8)`. Capture in
@@ -124,6 +124,23 @@ experiment is pending (or queued if readiness passes). No measured runs start wi
   build the inline variant.
 
 ## Multi-Model Review Log
+
+**M1 round 1** (packet `git diff --binary 224ee68 c08c0c6`, SHA-256 7639bdfc…d9677; boundary and principles
+in `runs/named-warps-review/`). Principles self-review: no FAIL rows.
+- Lane availability: Claude CLI reviewer profile `~/.claude-review` not logged in; Cursor
+  `claude-opus-5-thinking-high` and `gpt-5.6-sol-xhigh` hit Cursor usage limits (reset 10/17); Codex
+  `gpt-5.6-sol` usage limit (reset 10/20), other Codex models unsupported on this account. Standing
+  subagent fallback used for the Claude and GPT lanes: Opus and Sonnet read-only subagents. Reduced
+  vendor diversity: Grok is the only non-Claude lane.
+- `think_fast` / `think_swarm` endpoint lanes deferred: think-fast is the model under measurement in the
+  running factorial chain, and review traffic would perturb measured trials. Run them when the chain is idle.
+- Cursor `cursor-grok-4.5-high`: VERDICT: LGTM (hardening: stronger INV-2, dynamic Warps-line case, wording).
+- Opus subagent: VERDICT: BLOCKING — B1 OFF guidance sentence not pinned to pre-patch bytes; the OFF test
+  compared new code to itself. Independently confirmed 18 OFF renders equal 224ee68 out of tree.
+- Sonnet subagent: VERDICT: BLOCKING — same gap; a mutated OFF sentence survived the suite.
+- Accepted fixes (test-only plus wording): OFF goldens from 224ee68 for local and whole map, exact OFF/ON
+  guidance lines, exact changed-line pairs, unknown-name candidate label, INV-2 via the readout's Location
+  line, "brackets" → "parentheses" in the ON sentence. Mutating the OFF sentence now fails 2 tests; restored.
 
 ## Boy Scout Log
 

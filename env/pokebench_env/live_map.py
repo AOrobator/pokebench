@@ -305,7 +305,7 @@ def _details(
         + (
             (
                 "\nWarp destinations are the map you arrive on: its name when the game's map"
-                " table has one, then its group/number ID in brackets; not warp indexes."
+                " table has one, then its group/number ID in parentheses; not warp indexes."
                 if destinations is not None
                 else "\nWarp destinations are map group/number IDs, not warp indexes."
             )

@@ -174,6 +174,8 @@ export class LoopDetector {
   private previous: string | null = null;
   private readonly history: string[] = [];
   private readonly messageVisits: string[] = [];
+  // The same conversation reopened in the same place: closed then shown again, or its print cursor jumping back.
+  private readonly conversation = { text: "", place: "", cursor: null as number | null, open: false, restarts: 0 };
   private readonly visited: string[] = [];
   private completed = 0;
   private episode: {
@@ -274,6 +276,26 @@ export class LoopDetector {
     return `LOOP GUARD (${this.episode.kind}): ${this.episode.message} Recovery is bounded; objective wording and new evidence IDs alone do not establish progress.`;
   }
 
+  private restartedConversation(state: GameStateSnapshot | undefined): boolean {
+    if (state === undefined || state.screen !== "overworld") return false;
+    const c = this.conversation;
+    const place = JSON.stringify([state.location, state.map_id, state.position]);
+    const text = state.world_context?.dialogue ?? null;
+    const cursor = state.world_context?.message?.cursor ?? null;
+    if (text === null || text === "") {
+      c.open = false;
+      c.cursor = null;
+      if (place !== c.place) Object.assign(c, { text: "", place, restarts: 0 });
+      return false;
+    }
+    if (text === c.text && place === c.place) {
+      if (!c.open || (cursor !== null && c.cursor !== null && cursor < c.cursor)) c.restarts++;
+    } else Object.assign(c, { text, place, restarts: 0 });
+    c.open = true;
+    c.cursor = cursor;
+    return c.restarts >= this.policy.ineffective;
+  }
+
   complete(call: CompletedCall): void {
     if (this.stopped) return;
     this.completed++;
@@ -336,6 +358,7 @@ export class LoopDetector {
           if (this.messageVisits.length > 12) this.messageVisits.shift();
         }
         if(messageKey !== "" && this.messageVisits.filter(item=>item===messageKey).length >= this.policy.ineffective) hit ??= "cycle";
+        if (this.interactions && this.restartedConversation(call.state)) hit ??= "cycle";
         if (this.ineffective.count >= this.policy.ineffective)
           hit ??= "ineffective";
         if (eligible && fingerprint !== null && before !== null) {

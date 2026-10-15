@@ -325,3 +325,14 @@ COMMIT: `test(agent): RED for next-milestone-hint-v1` (3701b26)
 COMMIT: `feat: next-milestone-hint-v1, a separate hint arm with get_next_milestone` (19d7ce5)
 - Registered experiments/next-milestone-hint.json as pending (hint arm, own experiment); the other
   rival-push entries' incumbents now set next-milestone-hint-v1 explicitly OFF.
+COMMIT: `feat(experiments): register next-milestone-hint as a pending experiment` (d05acb4)
+- The operator (22:31–22:34 UTC): hint must also be in the loop detection; all trials must run with no
+  agent intervention. Supervisor briefing gains "Next milestone (hint)" when the hint switch is on.
+  Next milestone is now the one after the furthest earned (checkpoint starts do not re-report
+  NEW_GAME_CREATED, FIRST_TRUCK_EXIT, PLAYER_HOUSE_ENTERED). Agent 1027/1027.
+- Unattended: driver now generic (cohort dir argument, optional endpointFile), retains failed trials
+  and continues, holding only after three consecutive failures. Qwen 3.8 cohort prepared
+  (navigation-factorial-qwen38-n4: same presets with renamed ids, same checkpoint and frozen build,
+  local Hermes endpoint ~/.hermes/runtimes/llamacpp/server.json, model Qwen3.8-Flash-Next-UD-IQ4_XS).
+  runs/launch-receipts/factorial-chain/run-all.sh runs Think Fast then Qwen under caffeinate;
+  started 22:35:58Z, reparented to launchd (ppid 1, own process group), adopted trial 1.

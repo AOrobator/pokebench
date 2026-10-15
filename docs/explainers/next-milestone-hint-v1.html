@@ -61,7 +61,7 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 <svg viewBox="0 0 700 220" role="img" aria-label="Tool and pinned message paths">
  <rect x="10" y="20" width="200" height="66" rx="10" class="box"/><text x="24" y="44" class="t">Model calls</text><text x="24" y="62" class="s">get_next_milestone (any time)</text>
  <rect x="10" y="130" width="200" height="66" rx="10" class="box"/><text x="24" y="154" class="t">Native milestone earned</text><text x="24" y="172" class="s">on the main path, observed in this run</text>
- <rect x="260" y="70" width="180" height="76" rx="10" class="game hot"/><text x="274" y="96" class="t">Main-path ladder</text><text x="274" y="114" class="s">28 milestones, human order;</text><text x="274" y="130" class="s">next = first not yet earned</text>
+ <rect x="260" y="70" width="180" height="76" rx="10" class="game hot"/><text x="274" y="96" class="t">Main-path ladder</text><text x="274" y="114" class="s">28 milestones, human order;</text><text x="274" y="130" class="s">next = one after the furthest earned</text>
  <rect x="490" y="20" width="200" height="66" rx="10" class="navb"/><text x="504" y="44" class="t">Tool reply</text><text x="504" y="62" class="s">next goal + how many done</text>
  <rect x="490" y="130" width="200" height="66" rx="10" class="navb"/><text x="504" y="154" class="t">Pinned message</text><text x="504" y="172" class="s">MILESTONE REACHED … Next …</text>
  <path d="M210 53 C235 53 235 100 258 100" class="arr" marker-end="url(#a)"/>
@@ -71,7 +71,7 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" style="fill:var(--soft)"/></marker></defs>
 </svg>
 </div>
-<figcaption><b>Always available, not tied to loops.</b> The system prompt names the tool. When a main-path milestone is earned, a message like "MILESTONE REACHED: You set the clock. Next milestone: Go back downstairs and listen to Mom." is pinned before each decision until the next one replaces it, and is recorded as a <code>milestone_hint</code> event. Milestones already present at a checkpoint start count as done but send no message.</figcaption>
+<figcaption><b>Always available, not tied to loops.</b> The system prompt names the tool. When a main-path milestone is earned, a message like "MILESTONE REACHED: You set the clock. Next milestone: Go back downstairs and listen to Mom." is pinned before each decision until the next one replaces it, and is recorded as a <code>milestone_hint</code> event. Milestones already present at a checkpoint start count as done but send no message. The next milestone is the one after the furthest earned, so a checkpoint start that does not re-report early milestones (like the truck exit) still gets the right hint. When the loop supervisor is also on, its briefing adds a "Next milestone (hint)" line.</figcaption>
 </figure>
 </section>
 

@@ -56,3 +56,49 @@ it("withholds post-clock exit for pre-clock, unrelated previous map, and unknown
  tracker.observe(state("LITTLEROOT TOWN BRENDANS HOUSE 1F",{story:{...story,clock_set:true}}),2);
  expect(tracker.observe(state("LITTLEROOT TOWN",{story:{...story,clock_set:true}}),3).map(m=>m.name)).not.toContain("PLAYER_HOUSE_EXITED_AFTER_CLOCK");
 });
+
+const clocked={...story,intro_stage:7,clock_set:true};
+it("records leave-home and rival house after a Clock set save starts inside the player's house",()=>{
+ for(const home of ["BRENDANS","MAYS"]){
+  const rival=home==="BRENDANS"?"MAYS":"BRENDANS";
+  const tracker=new StateMilestones({read:()=>Promise.resolve(state("LITTLEROOT TOWN"))});
+  tracker.initialize("save_state");
+  const bedroom=state(`LITTLEROOT TOWN ${home} HOUSE 2F`,{story:clocked});
+  const downstairs=state(`LITTLEROOT TOWN ${home} HOUSE 1F`,{story:clocked});
+  const town=state("LITTLEROOT TOWN",{story:clocked});
+  const rivalHouse=state(`LITTLEROOT TOWN ${rival} HOUSE 1F`,{story:clocked});
+  expect(tracker.observe(bedroom,1).map(m=>m.name)).not.toContain("PLAYER_HOUSE_EXITED_AFTER_CLOCK");
+  expect(tracker.observe(downstairs,2).map(m=>m.name)).not.toContain("RIVAL_HOUSE_ENTERED");
+  const exit=tracker.observe(town,3).find(m=>m.name==="PLAYER_HOUSE_EXITED_AFTER_CLOCK");
+  expect(exit).toMatchObject({origin:"observed",kind:"navigation",evidence:[1,2,3]});
+  const enter=tracker.observe(rivalHouse,4).find(m=>m.name==="RIVAL_HOUSE_ENTERED");
+  expect(enter).toMatchObject({origin:"observed",kind:"navigation",evidence:[1,4]});
+  const events:(Extract<RunEvent,{type:"state"}> & GameStateSnapshot)[]=[bedroom,downstairs,town,rivalHouse].map((game,i)=>({...game,type:"state",run:"r",seq:i+1,turn:1,v:1,t:"2026-10-14T00:00:00.000-04:00"}));
+  const exitMark:Extract<RunEvent,{type:"milestone"}>={type:"milestone",run:"r",seq:5,turn:1,v:1,t:"2026-10-14T00:00:00.000-04:00",name:"PLAYER_HOUSE_EXITED_AFTER_CLOCK",kind:"navigation",origin:"observed",evidence:[1,2,3],server_timestamp:1};
+  const enterMark:Extract<RunEvent,{type:"milestone"}>={...exitMark,seq:6,name:"RIVAL_HOUSE_ENTERED",evidence:[1,4]};
+  expect(qualifiedNativeMilestone(exitMark,[events[0],events[1],events[2]])).toBe(true);
+  expect(qualifiedNativeMilestone(enterMark,[events[0],events[3]])).toBe(true);
+  const exitTarget=new NativeTargetStop("r","PLAYER_HOUSE_EXITED_AFTER_CLOCK",()=>undefined);
+  for(const event of [events[0],events[1],events[2]])if(event!==undefined)exitTarget.observe(event);
+  exitTarget.observe(exitMark);expect(exitTarget.proof?.state_evidence).toEqual([1,2,3]);
+  const enterTarget=new NativeTargetStop("r","RIVAL_HOUSE_ENTERED",()=>undefined);
+  for(const event of [events[0],events[3]])if(event!==undefined)enterTarget.observe(event);
+  enterTarget.observe(enterMark);expect(enterTarget.proof?.state_evidence).toEqual([1,4]);
+ }
+ const late=new StateMilestones({read:()=>Promise.resolve(state("LITTLEROOT TOWN"))});
+ late.initialize("save_state");
+ late.observe(state("LITTLEROOT TOWN",{story:clocked}),1);
+ late.observe(state("LITTLEROOT TOWN BRENDANS HOUSE 1F",{story:clocked}),2);
+ expect(late.observe(state("LITTLEROOT TOWN",{story:clocked}),3).map(m=>m.name)).not.toContain("PLAYER_HOUSE_EXITED_AFTER_CLOCK");
+ expect(late.observe(state("LITTLEROOT TOWN MAYS HOUSE 1F",{story:clocked}),4).map(m=>m.name)).not.toContain("RIVAL_HOUSE_ENTERED");
+ const startedInside=new StateMilestones({read:()=>Promise.resolve(state("LITTLEROOT TOWN"))});
+ startedInside.initialize("save_state");
+ expect(startedInside.observe(state("LITTLEROOT TOWN BRENDANS HOUSE 1F",{story:clocked}),1).map(m=>m.name)).not.toContain("RIVAL_HOUSE_ENTERED");
+ const outside:(Extract<RunEvent,{type:"state"}> & GameStateSnapshot)={...state("LITTLEROOT TOWN",{story:clocked}),type:"state",run:"r",seq:1,turn:1,v:1,t:"2026-10-14T00:00:00.000-04:00"};
+ const returned:(Extract<RunEvent,{type:"state"}> & GameStateSnapshot)={...state("LITTLEROOT TOWN BRENDANS HOUSE 1F",{story:clocked}),type:"state",run:"r",seq:2,turn:1,v:1,t:outside.t};
+ const leftAgain:(Extract<RunEvent,{type:"state"}> & GameStateSnapshot)={...outside,seq:3};
+ const blocked=new NativeTargetStop("r","PLAYER_HOUSE_EXITED_AFTER_CLOCK",()=>undefined);
+ blocked.observe(outside);blocked.observe(returned);blocked.observe(leftAgain);
+ blocked.observe({type:"milestone",run:"r",seq:4,turn:1,v:1,t:outside.t,name:"PLAYER_HOUSE_EXITED_AFTER_CLOCK",kind:"navigation",origin:"observed",evidence:[2,2,3],server_timestamp:1});
+ expect(blocked.proof).toBeNull();
+});

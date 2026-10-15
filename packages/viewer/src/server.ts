@@ -423,7 +423,7 @@ export async function startViewer(options: ViewerOptions): Promise<Viewer> {
   const readWorkbench = (): Promise<WorkbenchData> => {
     const now = (options.now?.() ?? new Date()).getTime();
     if (snapshot !== null && now < snapshot.until) return snapshot.result;
-    const next = { until: Infinity, result: Promise.resolve().then(() => workbenchSnapshot(options.runsRoot, healthProbe(options.fetchFn ?? fetch), options.queue?.status() ?? { state: "idle" }, now)) };
+    const next = { until: Infinity, result: Promise.resolve().then(() => workbenchSnapshot(options.runsRoot, healthProbe(options.fetchFn ?? fetch), now)) };
     snapshot = next;
     next.result = next.result.then(data => { next.until = (options.now?.() ?? new Date()).getTime() + WORKBENCH_POLL_MS; return data; }, (error: unknown) => { if (snapshot === next) snapshot = null; throw error; });
     return next.result;

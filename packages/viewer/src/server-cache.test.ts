@@ -66,7 +66,7 @@ it("shares cached validated splits across HTTP comparisons, milestones and featu
 
 it("shares one snapshot across comparison tabs per polling interval and clears failed refreshes", async()=>{
  const root=fs.mkdtempSync(join(tmpdir(),"viewer-snapshot-tabs-"));roots.push(root);let now=0;
- const read=vi.spyOn(workbench,"workbenchSnapshot").mockImplementation((_root,_health,_queue,at)=>Promise.resolve({version:1,at,milestones:[],runs:[],queue:[],problems:[]}));
+ const read=vi.spyOn(workbench,"workbenchSnapshot").mockImplementation((_root,_health,at)=>Promise.resolve({version:1,at,milestones:[],runs:[],problems:[]}));
  const viewer=await startViewer({runsRoot:root,staticDir:root,appDir:root,port:0,now:()=>new Date(now)});viewers.push(viewer);
  const get=()=>fetch(new URL("api/workbench",viewer.url));
  const replies=await Promise.all([get(),get(),get()]);for(const reply of replies)expect(await reply.json()).toMatchObject({at:0});expect(read).toHaveBeenCalledTimes(1);
@@ -84,6 +84,6 @@ it("shares a genuinely pending snapshot even after the completed-result TTL has 
  const viewer=await startViewer({runsRoot:root,staticDir:root,appDir:root,port:0,now:()=>{arrivals++;if(arrivals===3)seen.resolve(undefined);return new Date(now);}});viewers.push(viewer);
  const first=fetch(new URL("api/workbench",viewer.url));await started.promise;
  now=WORKBENCH_POLL_MS*2;const others=[fetch(new URL("api/workbench",viewer.url)),fetch(new URL("api/workbench",viewer.url))];
- await seen.promise;const callsWhilePending=read.mock.calls.length;held.resolve({version:1,at:0,milestones:[],runs:[],queue:[],problems:[]});
+ await seen.promise;const callsWhilePending=read.mock.calls.length;held.resolve({version:1,at:0,milestones:[],runs:[],problems:[]});
  const replies=await Promise.all([first,...others]);expect(callsWhilePending).toBe(1);for(const reply of replies)expect(await reply.json()).toMatchObject({at:0});
 });

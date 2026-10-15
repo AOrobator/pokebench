@@ -30,7 +30,7 @@ describe("recorded reference ingestion", () => {
       hashes.set(first.run, createHash("sha256").update(bytes).digest("hex"));
       writeFileSync(join(directory, "events.jsonl"), bytes);
     }
-    const data = parseWorkbench(await workbenchSnapshot(root, () => Promise.resolve(false), { state: "idle" }, Date.parse("2026-10-14T13:00:00Z")));
+    const data = parseWorkbench(await workbenchSnapshot(root, () => Promise.resolve(false),  Date.parse("2026-10-14T13:00:00Z")));
     const refs = frontierReferences(data.runs);
     expect(refs.human?.splits.find(s => s.name === "RIVAL_MET")?.elapsedMs).toBe(317885);
     expect(refs.human?.measurement?.pausedMs).toBe(53869);
@@ -54,7 +54,7 @@ it("accepts the common baseline's typed raw RAM references in new recordings wit
     ...(event.type === "state" && "started" in event ? { raw_ram: { v: 1, sequence: 0, frame: 100, path: "raw-ram/00000000.json.gz", sha256: "a".repeat(64) } } : {}),
   }));
   mkdirSync(join(root, id)); const bytes = events.map(event => JSON.stringify(event)).join("\n") + "\n"; writeFileSync(join(root, id, "events.jsonl"), bytes);
-  const data = parseWorkbench(await workbenchSnapshot(root, () => Promise.resolve(false), { state: "idle" }, Date.now()));
+  const data = parseWorkbench(await workbenchSnapshot(root, () => Promise.resolve(false),  Date.now()));
   expect(data.runs).toHaveLength(1); expect(data.runs[0]).toMatchObject({ id, status: "ended", problem: null });
   expect(data.runs[0]?.measurement?.features).toContain("full-raw-ram-v1");
   expect(data.runs[0]?.measurement?.logSha256).toBe(createHash("sha256").update(bytes).digest("hex"));
@@ -72,7 +72,7 @@ it("carries modern detector-produced route and Roxanne milestones through schema
   inputs.forEach((body,i)=>{const event=log.add((i+1)*1000,body);if(event.type!=="state"||!("started" in event))throw Error("state");for(const mark of detector.observe(event,event.seq))if(targets.includes(mark.name))log.add((i+1)*1000+1,{type:"milestone",turn:1,name:mark.name,server_timestamp:mark.serverTimestamp,...(mark.kind===undefined?{}:{kind:mark.kind}),...(mark.origin===undefined?{}:{origin:mark.origin}),...(mark.evidence===undefined?{}:{evidence:[...mark.evidence]})});});
   log.add(10000,{type:"run_end",turn:1,reason:"budget",turns:1,wall_ms:10000,furthest_milestone:"ROXANNE_DEFEATED",tokens:{input:0,output:0},frames:{saved:0,bytes:0}});
   const root=mkdtempSync(join(tmpdir(),"frontier-modern-")),id=log.events[0]?.run??"";mkdirSync(join(root,id));writeFileSync(join(root,id,"events.jsonl"),log.events.map(e=>JSON.stringify(e)).join("\n")+"\n");
-  const result=parseWorkbench(await workbenchSnapshot(root,()=>Promise.resolve(false),{state:"idle"},Date.now())),record=result.runs[0];if(record===undefined)throw Error("run");
+  const result=parseWorkbench(await workbenchSnapshot(root,()=>Promise.resolve(false), Date.now())),record=result.runs[0];if(record===undefined)throw Error("run");
   const graph=frontierPlot({human:null,best:null},[record],900);
   for(const name of targets){expect(record.splits.find(s=>s.name===name)).toBeDefined();expect(record.splits.find(s=>s.name===name)?.derived).toBeUndefined();if(name.startsWith("RUSTBORO_GYM_TRAINER_"))expect(graph).not.toContain(`data-split="${name}"`);else expect(graph).toContain(`data-split="${name}"`);}
 });
@@ -81,7 +81,7 @@ it("keeps recovered historical evidence and upper-bound labels through the wire 
   const fixture: {events: unknown[]} = JSON.parse(readFileSync(new URL("../test-support/frontier-gap-reference.json",import.meta.url),"utf8")) as {events: unknown[]};
   const events=fixture.events.map(e=>parseEvent(JSON.stringify(e))),id=events[0]?.run??"";
   const root=mkdtempSync(join(tmpdir(),"frontier-historical-wire-"));mkdirSync(join(root,id));writeFileSync(join(root,id,"events.jsonl"),events.map(e=>JSON.stringify(e)).join("\n")+"\n");
-  const data=parseWorkbench(await workbenchSnapshot(root,()=>Promise.resolve(false),{state:"idle"},Date.now())),human=data.runs[0];if(human===undefined)throw Error("human");
+  const data=parseWorkbench(await workbenchSnapshot(root,()=>Promise.resolve(false), Date.now())),human=data.runs[0];if(human===undefined)throw Error("human");
   const graph=frontierPlot({human,best:null},[],900);
   expect(graph).toContain('data-split="ROXANNE_DEFEATED"');expect(graph).toContain("first observation upper bound");
   expect(runDetails(human,"ROXANNE_DEFEATED")).toContain("exact defeat time was not recorded");

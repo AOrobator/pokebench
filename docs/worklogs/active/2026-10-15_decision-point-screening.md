@@ -33,7 +33,7 @@ feature-worklog, feature-switch, agent-observability, pokebench-game-state, poke
   conversation counts as a restart even when every batch stops at the same print cursor.
 - [x] M6a context rebuild + raw-RAM re-render (`env/pokebench_env/rerender.py`, `decision-probe.ts`).
 - [x] M6b `just probe-decision`, tests, small samples.
-- [ ] Merge into main after the bundle (pending conditions above).
+- [x] Merge into main after the bundle: 954d74f (main was d5cdb18, unchanged >3 min; no git merge running; no runs/experiments/runner.json, so no trial; `just build` on main OK). Live probe sampling pending (GPUs reserved).
 
 ## Progress Log
 - R0 (replay, scratch `~/.hermes/cache/scratch/dp-replay.mjs`): with the fixed dist, dc0e fires first at T193 (cycle),

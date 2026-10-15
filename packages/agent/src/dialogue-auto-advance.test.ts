@@ -545,3 +545,22 @@ describe("dialogue-auto-advance-v1 with transition-press-result-v1 (strong-bundl
   expect(event).toMatchObject({requested:["A","A","A"],sent:["A"],dropped:["A","A"]});
  });
 });
+
+describe("dialogue-auto-advance-v1 records what the press tool really sent",()=>{
+ it("takes sent from the inner press when the state changed between the two reads",async()=>{
+  const game=new FakeGame(SCIENTIST);
+  const free=await game.read.read();
+  await game.fetch(`${URL_BASE}/action`,{method:"POST",body:JSON.stringify({buttons:["A"]})});
+  game.posts.length=0;
+  const features:FeatureSet={...ON,"dialogue-safe-batches-v1":true};
+  const rec=memoryRecorder();const clock=fakeClock();
+  const base=[observeTool(URL_BASE,game.fetch),pressTool(URL_BASE,{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},game.fetch,{now:()=>clock.t,sleep:()=>Promise.resolve()},toolSwitches(features))];
+  const tools=withDialogueAutoAdvance(base,features,{state:{read:()=>Promise.resolve(free)},recorder:rec.api,clock});
+  const press=tools.find(t=>t.name==="press");if(press===undefined)throw new Error("missing press");
+  const result=await press.execute("c1",{buttons:["UP","UP"]});
+  expect(game.posts[0]?.buttons).toEqual(["UP"]);
+  const [event]=rec.advances();
+  expect(event).toMatchObject({requested:["UP","UP"],sent:["UP"],dropped:["UP"]});
+  expect(textOf(result).split("\n")[0]).toBe("pressed UP");
+ });
+});

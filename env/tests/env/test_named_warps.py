@@ -220,3 +220,31 @@ def test_the_dynamic_warp_is_read_only_where_a_dynamic_warp_exists() -> None:
     m = map_memory()
     m.put(SB1 + 0x14, struct.pack("<bbbhh", 0, 9, 0, 3, 10))
     assert read_game_state(m.read, maps).dynamic_warp is None
+
+
+def test_off_the_dynamic_warp_is_never_read_on_the_observation_route(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Round-5 review: OFF must not perform the new SaveBlock1.dynamicWarp read at all.
+    maps = MapNames.load(VENDOR_MAPS)
+    memory = truck()
+    reads: list[int] = []
+
+    def read(address: int, size: int) -> bytes:
+        if address == SB1 + 0x14:
+            reads.append(address)
+            raise OSError("dynamic warp read refused")
+        return memory.read(address, size)
+
+    for route in ("/pokebench/observation", "/pokebench/state"):
+        monkeypatch.setenv("POKEBENCH_FEATURES_OFF", "named-warp-destinations-v1")
+        app = FastAPI()
+        install_observation(app, lambda: _Shot(), read, maps)
+        status, _, body = get(app, route)
+        assert status == 200, (route, body)
+        assert reads == [], route
+    monkeypatch.setenv("POKEBENCH_FEATURES_OFF", "")
+    app = FastAPI()
+    install_observation(app, lambda: _Shot(), memory.read, maps)
+    status, _, body = get(app, "/pokebench/observation")
+    assert status == 200 and DYNAMIC in json.loads(body)["state_text"]

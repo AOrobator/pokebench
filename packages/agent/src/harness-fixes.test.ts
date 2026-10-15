@@ -266,3 +266,26 @@ it("lets the dialogue log and the instruction ledger cite auto-advanced pages",(
  expect(()=>{ledger.note("dad at home","dad at the GYM",[4]);}).not.toThrow();
  expect(ledger.text()).toContain(`#4 turn 1 · LAB (map 1/4): "Go see your father at the GYM."`);
 });
+
+it("counts auto-advanced pages as shown only when their result reached the model",()=>{
+ const b=new SupervisorBriefing(ALL_ON);const log=new DialogueLog(ALL_ON);const ledger=new InstructionLedger(ALL_ON);
+ const all={observe:(e:RunEvent)=>{b.observe(e);log.observe(e);ledger.observe(e);}};
+ result(all,1,msg(null,null));
+ all.observe(ev({type:"tool_call",id:"a1",name:"press",args:{buttons:["A"]}},3));
+ all.observe(st(4,msg(AIDE,"page_wait",9)));
+ all.observe(ev({type:"dialogue_auto_advance",tool_call_id:"a1",tool:"press",requested:["A"],sent:["A"],dropped:[],auto_presses:1,pages:[{state_seq:4,map:"LAB",map_id:[1,4],position:{x:9,y:8},speaker:null,speaker_source:null,text:"Go see your father at the GYM."}],stop:"field_free",detail:"the conversation closed and field controls are free",duration_ms:5},5));
+ all.observe(ev({type:"tool_result",id:"a1",name:"press",is_error:true,duration_ms:1,text:"Error: GET /pokebench/observation failed",frames:[]},6));
+ expect(log.entries()).toEqual([]);
+ expect(()=>{ledger.note("dad at home","dad at the GYM",[4]);}).toThrow();
+ autoAdvance(all,7,"a2",["Go see your father at the GYM."]);
+ expect(b.text("cycle",20)).toMatch(/A facing SCIENTIST_1 at 9,7 in LAB \(map 1\/4\) → dialogue shown \(1 page, advanced automatically\)/);
+});
+it("does not log the whole message buffer again when auto-advance stops at a decision with the pages already listed",()=>{
+ const log=new DialogueLog(ALL_ON);
+ result(log,1,msg(null,null));
+ log.observe(ev({type:"tool_call",id:"a1",name:"press",args:{buttons:["A"]}},3));
+ log.observe(st(4,msg("Will you help?",null)));
+ log.observe(ev({type:"dialogue_auto_advance",tool_call_id:"a1",tool:"press",requested:["A"],sent:["A"],dropped:[],auto_presses:1,pages:[{state_seq:4,map:"LAB",map_id:[1,4],position:{x:9,y:8},speaker:null,speaker_source:null,text:"I need a hand."},{state_seq:4,map:"LAB",map_id:[1,4],position:{x:9,y:8},speaker:null,speaker_source:null,text:"Will you help?"}],stop:"menu",detail:"a menu is open",duration_ms:5},5));
+ result(log,6,msg("I need a hand.\nWill you help?","page_wait"),"a1");
+ expect(log.entries().map(e=>e.text)).toEqual(["I need a hand.","Will you help?"]);
+});

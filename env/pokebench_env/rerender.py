@@ -37,6 +37,7 @@ def read_state(
         full_map_enabled="full-map-navigation-v1" not in off,
         story_characters_enabled="character-presence-v1" not in off,
         battle_details_enabled="battle-details-v2" not in off,
+        dynamic_warp_enabled="named-warp-destinations-v1" not in off,
     )
 
 

@@ -1,0 +1,131 @@
+<!doctype html>
+<!--
+  Experiment overview template. Copy to docs/experiments/<experiment-id>.html, replace every
+  double-brace placeholder, then delete this comment. Remove optional rows that do not apply rather
+  than leaving a placeholder. Numbers come from power.py and the recorded cohorts, never from memory.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}} — experiment overview</title>
+<style>
+:root { --bg:#f7f8fb; --card:#fff; --ink:#1f2a36; --muted:#5d6b7a; --line:#c9d2dc; --blue:#2f6fb5; --blue-bg:#e6f0fb; --green:#24804a; --green-bg:#e3f5ea; --amber:#9a6200; --amber-bg:#fff2d6; --red:#b23434; --red-bg:#fbe5e5; --gray-bg:#eef1f4; --violet:#6b4fb3; }
+@media (prefers-color-scheme: dark) { :root { --bg:#12161c; --card:#1b2129; --ink:#e4e9ef; --muted:#9aa7b4; --line:#34404d; --blue:#7fb2ea; --blue-bg:#1d2d40; --green:#6fd09a; --green-bg:#173325; --amber:#f0c060; --amber-bg:#3a2e14; --red:#f08a8a; --red-bg:#3a1c1c; --gray-bg:#252c35; --violet:#b9a3f0; } }
+body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+main { max-width:900px; margin:0 auto; padding:24px 16px 48px; }
+h1 { font-size:26px; margin:0 0 4px; } h2 { font-size:18px; margin:32px 0 8px; }
+p.lead { color:var(--muted); margin:0 0 16px; }
+figure { margin:12px 0 20px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; overflow-x:auto; }
+figcaption { color:var(--muted); font-size:13px; margin-top:8px; }
+svg text { fill:var(--ink); font:13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+svg .small { font-size:11px; fill:var(--muted); }
+.box { stroke:var(--line); stroke-width:1.5; fill:var(--card); }
+.b-blue { fill:var(--blue-bg); stroke:var(--blue); } .b-green { fill:var(--green-bg); stroke:var(--green); } .b-amber { fill:var(--amber-bg); stroke:var(--amber); } .b-gray { fill:var(--gray-bg); stroke:var(--line); } .b-red { fill:var(--red-bg); stroke:var(--red); }
+.arrow { stroke:var(--muted); stroke-width:1.5; fill:none; marker-end:url(#a); }
+.grid { stroke:var(--line); stroke-width:1; } .target { stroke:var(--muted); stroke-dasharray:4 4; } .budget { stroke:var(--red); stroke-dasharray:2 3; }
+.curve { fill:none; stroke-width:2; } .curve.c0 { stroke:var(--blue); } .curve.c1 { stroke:var(--green); } .curve.c2 { stroke:var(--amber); } .curve.c3 { stroke:var(--violet); }
+.key.c0 { fill:var(--blue); } .key.c1 { fill:var(--green); } .key.c2 { fill:var(--amber); } .key.c3 { fill:var(--violet); }
+table { border-collapse:collapse; width:100%; background:var(--card); border:1px solid var(--line); border-radius:12px; overflow:hidden; font-size:14px; }
+th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+th { background:var(--gray-bg); }
+code { font:13px ui-monospace, SFMono-Regular, Menlo, monospace; background:var(--gray-bg); padding:1px 4px; border-radius:4px; }
+.wrap { overflow-x:auto; }
+.facts { display:grid; grid-template-columns:repeat(auto-fit, minmax(128px, 1fr)); gap:8px; margin:12px 0 4px; }
+.fact { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:8px 10px; }
+.fact b { display:block; font-size:12px; color:var(--muted); font-weight:600; }
+.tier { display:inline-block; padding:1px 8px; border-radius:999px; font-size:13px; font-weight:600; background:var(--blue-bg); color:var(--blue); border:1px solid var(--blue); }
+.note { background:var(--amber-bg); border:1px solid var(--amber); border-radius:10px; padding:8px 12px; margin:12px 0; }
+</style>
+</head>
+<body>
+<main>
+<h1>{{TITLE}}</h1>
+<p class="lead">{{ONE_SENTENCE_QUESTION}}</p>
+<p><span class="tier">{{TIER}}</span> &nbsp;<code>experiments/{{EXPERIMENT_ID}}.json</code> &nbsp;·&nbsp; status: {{STATUS}}</p>
+
+<div class="facts">
+<div class="fact"><b>Start</b>{{START}}</div>
+<div class="fact"><b>Runs per arm</b>{{RUNS_PER_ARM}}</div>
+<div class="fact"><b>Trial cap</b>{{CAP}}</div>
+<div class="fact"><b>GPU-hours / wall</b>{{GPU_HOURS}} / {{WALL_HOURS}}</div>
+<div class="fact"><b>Primary outcome</b>{{PRIMARY_OUTCOME}}</div>
+<div class="fact"><b>Smallest lift we can see</b>{{DETECTABLE_LIFT}}</div>
+</div>
+
+<h2>1. What it tests and why</h2>
+<figure>
+<svg viewBox="0 0 860 150" width="860" height="150" role="img" aria-label="From the recorded failure to the switch, the expected behavior and the primary milestone">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--muted)"/></marker></defs>
+<rect class="box b-red" x="10" y="20" width="190" height="100" rx="10"/><text x="24" y="46">Recorded failure</text><text class="small" x="24" y="68">{{FAILURE_LINE_1}}</text><text class="small" x="24" y="86">{{FAILURE_LINE_2}}</text><text class="small" x="24" y="104">{{FAILURE_EVIDENCE}}</text>
+<rect class="box b-blue" x="230" y="20" width="190" height="100" rx="10"/><text x="244" y="46">Change</text><text class="small" x="244" y="68">{{CHANGE_LINE_1}}</text><text class="small" x="244" y="86">{{CHANGE_LINE_2}}</text><text class="small" x="244" y="104">{{SWITCHES}}</text>
+<rect class="box b-amber" x="450" y="20" width="190" height="100" rx="10"/><text x="464" y="46">Expected behavior</text><text class="small" x="464" y="68">{{EXPECTED_LINE_1}}</text><text class="small" x="464" y="86">{{EXPECTED_LINE_2}}</text><text class="small" x="464" y="104">visible from {{ACTIVATION_MILESTONE}}</text>
+<rect class="box b-green" x="670" y="20" width="180" height="100" rx="10"/><text x="684" y="46">Measured as</text><text class="small" x="684" y="68">{{PRIMARY_MILESTONE}}</text><text class="small" x="684" y="86">within {{CAP}}</text><text class="small" x="684" y="104">{{ANALYSIS_SHORT}}</text>
+<path class="arrow" d="M200,70 H226"/><path class="arrow" d="M420,70 H446"/><path class="arrow" d="M640,70 H666"/>
+</svg>
+<figcaption>{{MECHANISM_CAPTION}}</figcaption>
+</figure>
+
+<h2>2. Where runs start and what they cover</h2>
+<figure>
+<svg viewBox="0 0 860 120" width="860" height="120" role="img" aria-label="Story path with the start point, activation milestone and primary milestone">
+<line x1="20" x2="840" y1="50" y2="50" style="stroke:var(--line);stroke-width:6;stroke-linecap:round"/>
+<!-- Shade the measured segment: x from the start point to the primary milestone. -->
+<line x1="{{START_X}}" x2="{{PRIMARY_X}}" y1="50" y2="50" style="stroke:var(--green);stroke-width:6;stroke-linecap:round"/>
+<circle cx="20" cy="50" r="7" class="box b-gray"/><text class="small" x="20" y="80" text-anchor="middle">boot</text>
+<circle cx="{{START_X}}" cy="50" r="9" class="box b-blue"/><text x="{{START_X}}" y="16" text-anchor="end">start</text><text class="small" x="{{START_X}}" y="32" text-anchor="end">{{START_POINT}}</text>
+<circle cx="{{ACTIVATION_X}}" cy="50" r="7" class="box b-amber"/><text class="small" x="{{ACTIVATION_X}}" y="80" text-anchor="start">{{ACTIVATION_MILESTONE}}</text><text class="small" x="{{ACTIVATION_X}}" y="96" text-anchor="start">switch first matters</text>
+<circle cx="{{PRIMARY_X}}" cy="50" r="9" class="box b-green"/><text x="{{PRIMARY_X}}" y="28" text-anchor="start">primary</text><text class="small" x="{{PRIMARY_X}}" y="80" text-anchor="middle">{{PRIMARY_MILESTONE}}</text>
+</svg>
+<figcaption>{{START_CAPTION}}</figcaption>
+</figure>
+
+<h2>3. Arms</h2>
+<div class="wrap"><table>
+<tr><th>Arm</th><th>Switches</th><th>Differs from control by</th><th>Evidence it is ready</th></tr>
+{{ARM_ROWS}}
+</table></div>
+
+<h2>4. Outcomes and the decision rule</h2>
+<div class="wrap"><table>
+<tr><th>Role</th><th>Outcome</th><th>Analysis</th></tr>
+<tr><td>Primary</td><td>{{PRIMARY_OUTCOME}}</td><td>{{PRIMARY_ANALYSIS}}</td></tr>
+{{SECONDARY_ROWS}}
+</table></div>
+<p>{{DECISION_RULE}}</p>
+<div class="note">Fixed N, one analysis after the last trial. Nothing stops or ejects the experiment early. Every launched trial counts; model errors and crashes count as not reached. {{EXTRA_RULES}}</div>
+
+<h2>5. How many runs, and why</h2>
+<figure>
+{{POWER_CURVE_SVG}}
+<figcaption>Exact Fisher power against GPU-hours from <code>power.py plan</code>. Baseline {{BASELINE_RATE}} from {{BASELINE_SOURCE}}. Dashed line: target power. Red line: the operator's budget.</figcaption>
+</figure>
+<div class="wrap"><table>
+<tr><th>True lift</th><th>Runs per arm for {{TARGET_POWER}}</th><th>GPU-hours</th><th>Wall hours</th><th>Power at the planned N</th></tr>
+{{POWER_ROWS}}
+</table></div>
+<p><code>{{POWER_COMMAND}}</code></p>
+
+<h2>6. Order, executors and failures</h2>
+<p>{{ORDER_AND_EXECUTORS}}</p>
+<p>{{FAILURE_HANDLING}}</p>
+
+<h2>7. What could fool us, and what this cannot tell us</h2>
+<div class="wrap"><table>
+<tr><th>Threat</th><th>Control in this design</th></tr>
+{{THREAT_ROWS}}
+</table></div>
+<p>{{OUT_OF_SCOPE}}</p>
+
+<h2>8. Provenance</h2>
+<div class="wrap"><table>
+<tr><th>Item</th><th>Value</th></tr>
+<tr><td>Build</td><td><code>{{COMMIT}}</code></td></tr>
+<tr><td>Start state</td><td>{{START_STATE_PROVENANCE}}</td></tr>
+<tr><td>Baseline cohort</td><td>{{BASELINE_SOURCE}}</td></tr>
+<tr><td>Grading code</td><td>{{GRADING_PROVENANCE}}</td></tr>
+<tr><td>Design review</td><td>{{DESIGN_REVIEW}}</td></tr>
+</table></div>
+</main>
+</body>
+</html>

@@ -105,6 +105,16 @@ feature-worklog, feature-switch, agent-observability, pokebench-game-state, poke
   none crashes play, changes control-arm behavior, gives the model false facts on CLOCK_SET→RIVAL_MET, or corrupts
   recorded trial outcomes (the probe never touches a game or a trial record). All deferred below.
 
+- Merged main d5cdb18 (bundle 4b5b8bf + fade settle) into the branch. One conflict, observation.py: kept main's
+  fade-settle capture and routed both reads and the readout through rerender.read_state/render; rerender.read_state
+  gains main's dynamic_warp_enabled (named-warp-destinations-v1), which test_rerender's pass-through test caught.
+  Server output identical to main. Gates on the merge: just test agent 1244 / viewer 686 / pytest 1962; lint, build,
+  verify-vendor clean; coverage agent 97.59/94.13/97.84 (lines 99.02), viewer 95.25/90.95/94.18 (lines 98.01), env
+  lines 97.03 branches 92.57 functions 100.
+- Operator answers: (a) R3 stays inside interaction-loop-detection-v1, no new switch (counting correction; same value
+  in both arms). (b) The probe refusing to re-derive auto-advanced results is acceptable and documented; the live
+  case is fixed (not skipped). DEBUG appendFileSync removed before the RED commit.
+
 ## Deferred review findings (operator rule: not blocking)
 - rerender.py: no post-join symlink-escape check under run_dir (absolute and `..` already refused). (grok r1)
 - Probe report keeps context sizes, the diff and decisions, not full contexts. (grok r1)

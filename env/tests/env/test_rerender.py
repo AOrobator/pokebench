@@ -96,6 +96,7 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "full_map_enabled": False,
         "story_characters_enabled": False,
         "battle_details_enabled": False,
+        "dynamic_warp_enabled": False,
         "fmt_named_interactions": False,
         "fmt_world_destinations": False,
         "fmt_bounded_navigation": False,

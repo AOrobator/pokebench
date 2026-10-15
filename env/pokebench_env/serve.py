@@ -31,6 +31,7 @@ from pokebench_env.observation import ScreenshotFn, install_observation
 from pokebench_env.pause import SteppingServer, install_pause
 from pokebench_env.raw_ram import RawRamArchive
 from pokebench_env.rom import resolve_rom
+from pokebench_env.screen_settle import FrameSettle, SteppedEmulator, install_frame_settle
 from pokebench_env.travel import TravelServer, install_travel
 from pokebench_env.view import install_spectator
 
@@ -89,13 +90,25 @@ def run(
     raw_capture: Callable[[], dict[str, object]] | None = None,
     travel: tuple[FastAPI, type[FrameEmulator], TravelServer, ReadMemory] | None = None,
     agent_checkpoint: tuple[FastAPI, Callable[[], bytes | None]] | None = None,
+    frames: type[SteppedEmulator] | None = None,
 ) -> None:
+    # Agent observations wait out screen fades on emulated frames (never wall
+    # time). The human server records its snapshot observation under the
+    # journal lock that the frame step also takes, so it captures at once.
+    settle = None
+    if observation is not None and frames is not None and human is None:
+        settle = FrameSettle(observation[2])
+        install_frame_settle(frames, settle)
     if actions is not None:
         install_action_history(*actions)
     if travel is not None:
         install_travel(*travel)
     if pause is not None:
-        install_pause(*pause)
+        install_pause(
+            *pause,
+            on_park=None if settle is None else settle.park,
+            on_resume=None if settle is None else settle.resume,
+        )
     if agent_checkpoint is not None:
         install_checkpoint(*agent_checkpoint)
     if spectator is not None:
@@ -103,7 +116,7 @@ def run(
     capture = None
     if observation is not None:
         capture = install_observation(
-            *observation, raw_archive=raw_archive, raw_capture=raw_capture
+            *observation, raw_archive=raw_archive, raw_capture=raw_capture, settle=settle
         )
     if human is not None:
         api, server, token = human
@@ -174,6 +187,7 @@ def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
         pause=None if token else (app.app, cast(SteppingServer, app)),
         agent_checkpoint=None if token else (app.app, checkpoint),
         human=(app.app, cast(HumanServer, app), token) if token else None,
+        frames=cast(type[SteppedEmulator], EmeraldEmulator),
     )
 
 

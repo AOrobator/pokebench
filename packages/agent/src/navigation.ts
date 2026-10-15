@@ -118,7 +118,7 @@ function unreadyReason(state:GameStateSnapshot):string {
  const context=state.world_context;
  if(context!=null&&(context.message!=null||Boolean(context.dialogue)))return "a message is waiting for A or B; dismiss it with B, then call navigate_to again";
  const ui=state.active_ui;
- if(ui!=null&&!(ui.ready===true&&ui.diagnostic===null))return `a menu or other interface is open (${ui.phase}); close it before calling navigate_to`;
+ if(ui!=null)return `a menu or other interface is open (${ui.phase}); close it before calling navigate_to`;
  if(state.field_controls_locked===true)return "field controls are locked by a script and no message is open; the game is acting on its own, so inspect the new state before calling navigate_to again";
  if(state.field_controls_locked!==false)return "field control state is unavailable; inspect the new state before calling navigate_to again";
  return "this map's navigation geometry is unavailable; inspect the new state before calling navigate_to again";

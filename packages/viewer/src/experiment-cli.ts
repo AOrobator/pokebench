@@ -231,7 +231,7 @@ if (import.meta.main) {
   const paths: QueuePaths = { experimentsDir: join(root, "experiments"), runsRoot, readinessPath: join(root, "docs", "experiments", "readiness.md"), winnerGate: winnerGateOn(process.env) };
   let child: number | null = null, stop = false;
   // Play is detached, so a terminal Ctrl-C reaches it only through this explicit forward.
-  for (const signal of ["SIGINT", "SIGTERM"] as const) process.on(signal, () => { stop = true; if (child !== null) process.kill(child, "SIGINT"); });
+  for (const signal of ["SIGINT", "SIGTERM"] as const) process.on(signal, () => { stop = true; if (child !== null) { try { process.kill(child, "SIGINT"); } catch { /* it already exited */ } } });
   const git = (args: readonly string[]): string => gitIn(root, args);
   const rl = process.stdin.isTTY ? createInterface({ input: process.stdin, output: process.stdout }) : null;
   main(process.argv.slice(2), {

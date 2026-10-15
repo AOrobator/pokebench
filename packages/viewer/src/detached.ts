@@ -11,7 +11,8 @@ export interface DetachedOptions {
   readonly started?: (pid: number) => void;
 }
 
-// Resolves with the child's exit code (null for a signal) while this process lives.
+// Resolves with the child's exit code (null for a signal). The child stays referenced, so a
+// launcher with nothing else to do (the experiments CLI) lives until its run ends.
 export function spawnDetached(command: string, argv: readonly string[], options: DetachedOptions): Promise<number | null> {
   return new Promise((resolve, reject) => {
     const out = openSync(options.stdout, "wx", 0o600);
@@ -26,7 +27,6 @@ export function spawnDetached(command: string, argv: readonly string[], options:
     const child = spawn(command, [...argv], { ...(options.cwd === undefined ? {} : { cwd: options.cwd }), env: { ...options.env }, stdio: ["ignore", out, err], detached: true });
     closeSync(out);
     closeSync(err);
-    child.unref();
     child.once("spawn", () => { if (child.pid !== undefined) options.started?.(child.pid); });
     child.once("error", reject);
     child.once("exit", (code) => { resolve(code); });

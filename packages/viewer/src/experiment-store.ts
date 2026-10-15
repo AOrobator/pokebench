@@ -3,14 +3,17 @@
 // the readiness verdicts in docs/experiments/readiness.md.
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { Type } from "typebox";
+import { Type, type Static } from "typebox";
 import { Value } from "typebox/value";
 import { ApprovalSchema, definitionHash, deriveStatus, parseExperiment, parseLedger, parseNewerExperiment, unknownSwitches, type NewerExperiment, readinessOf, type Approval, type Experiment, type ExperimentState, type LedgerEntry, type Readiness, type ReadinessRun, type RunnerPosition, type TrialProgress } from "@pokebench/agent/experiments";
 import { parseEvent } from "@pokebench/agent/events";
 import type { Promotion } from "@pokebench/agent/experiment-gate";
 import { UNSETTLED, effectiveExperiment, findCohort, gateView, readPromotions, promotionOverlay, type GateView } from "./experiment-gate-store.js";
 import { configOf } from "./history.js";
+import { pidAlive } from "./lease.js";
 import { RunsError, listRuns, readStart, runDir } from "./runs.js";
+
+export { pidAlive };
 
 export interface TrialMetrics {
   readonly reached: readonly string[];
@@ -86,27 +89,25 @@ export const winnerGateOn = (env: Readonly<Record<string, string | undefined>>):
 
 export const experimentDir = (runsRoot: string, id: string): string => join(runsRoot, "experiments", id);
 export const runnerPath = (runsRoot: string): string => join(runsRoot, "experiments", "runner.json");
-const RunnerSchema = Type.Object({ pid: Type.Integer({ minimum: 1 }), experiment: Type.String({ minLength: 1 }), trial: Type.Integer({ minimum: 0 }) });
+// pid is the viewer running the queue; run and child name the trial it launched.
+const RunnerSchema = Type.Object({ pid: Type.Integer({ minimum: 1 }), experiment: Type.String({ minLength: 1 }), trial: Type.Integer({ minimum: 0 }), run: Type.Optional(Type.String()), child: Type.Optional(Type.Integer({ minimum: 1 })) });
+export type RunnerFile = Static<typeof RunnerSchema>;
 
-export function pidAlive(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error) {
-    return (error as NodeJS.ErrnoException).code === "EPERM";
-  }
-}
-
-export function readRunner(runsRoot: string, alive: (pid: number) => boolean = pidAlive): RunnerPosition | null {
+export function readRunnerFile(runsRoot: string): RunnerFile | null {
   const path = runnerPath(runsRoot);
   if (!existsSync(path)) return null;
-  let value: unknown;
   try {
-    value = JSON.parse(readFileSync(path, "utf8"));
+    const value: unknown = JSON.parse(readFileSync(path, "utf8"));
+    return Value.Check(RunnerSchema, value) ? value : null;
   } catch {
     return null;
   }
-  if (!Value.Check(RunnerSchema, value) || !alive(value.pid)) return null;
+}
+
+// The trial in progress: its viewer runs it, or the viewer died and the trial still plays.
+export function readRunner(runsRoot: string, alive: (pid: number) => boolean = pidAlive): RunnerPosition | null {
+  const value = readRunnerFile(runsRoot);
+  if (value === null || !(alive(value.pid) || (value.child !== undefined && alive(value.child)))) return null;
   return { experiment: value.experiment, trial: value.trial };
 }
 

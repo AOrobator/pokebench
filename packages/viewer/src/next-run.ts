@@ -13,6 +13,7 @@ import { controlLine, type ControlAction } from "@pokebench/agent/run-control";
 import { newRunId } from "@pokebench/agent/run";
 import { RUN_ID_PATTERN } from "@pokebench/agent/events";
 import { spawnDetached } from "./detached.js";
+import { LEASE, LeaseHeldError, leaseStale, pidAlive, takeLease } from "./lease.js";
 import { listRuns, readStart, readFrom, runDir } from "./runs.js";
 
 const positive = Type.Integer({ minimum: 1 });
@@ -26,7 +27,7 @@ export const NextRunSchema = Type.Object({
 export type NextRun = Omit<Static<typeof NextRunSchema>, "features"> & {features:FeatureSet};
 
 export const DEFAULT_NEXT_RUN: NextRun = { model: "", thinking: "medium", maxTurns: 300, maxWallMs: 30 * 60_000, failureLimit: 3, maxTokens: 4096, target: null, features: { ...ALL_ON, "state-only-decisions-v1":false, "named-interactions-v1": false, "world-destinations-v1": false, "bounded-navigation-v1": false, "full-map-navigation-v1": false, "grass-cost-navigation-v1": false, "game-evidence-priority-v1": false, "dialogue-log-v1": false, "loop-guard-supervisor-v1": false, "instruction-ledger-v1": false, "next-milestone-hint-v1": false, "double-context-window-v1": false, "fresh-retry-v1": false, "named-warp-destinations-v1": false, "milestone-stall-stop-v1": false, "text-only-supervisor-v1": false } };
-export const LEASE = ".naming-gameplay.lock";
+export { LEASE } from "./lease.js";
 // Whether a run's own game server answers on 127.0.0.1:<port>.
 export type HealthProbe = (port: number) => Promise<boolean>;
 
@@ -117,6 +118,8 @@ export interface QueueHost {
   now(): Date;
   random(): string;
   launch(spec: LaunchSpec): Promise<number | null>;
+  // Whether a pid lives; a lease whose viewer and run are both gone is free again.
+  alive?(pid: number): boolean;
 }
 
 export type QueueStatus =
@@ -175,7 +178,8 @@ export class RunQueue {
     const queued = this.queued;
     // A cancel during the probes clears the queued entry.
     if (queued === null) return;
-    const waitingFor = existsSync(lease) ? "the gameplay lease (a benchmark cohort is running)" : live.length > 0 ? `live run ${live[0] ?? ""}` : null;
+    const alive = (pid: number): boolean => (this.host.alive ?? pidAlive)(pid);
+    const waitingFor = existsSync(lease) && !leaseStale(runsRoot, alive) ? "the gameplay lease (a benchmark cohort is running)" : live.length > 0 ? `live run ${live[0] ?? ""}` : null;
     if (waitingFor !== null) {
       this.current = { state: "queued", runId: queued.runId, waitingFor };
       return;
@@ -183,8 +187,9 @@ export class RunQueue {
     const { runId, draft } = queued;
     this.queued = null;
     try {
-      mkdirSync(lease);
-    } catch {
+      takeLease(runsRoot, { pid: process.pid, owner: "viewer-queue", run: runId }, alive);
+    } catch (error) {
+      if (!(error instanceof LeaseHeldError)) throw error;
       this.queued = { runId, draft };
       this.current = { state: "queued", runId, waitingFor: "the gameplay lease" };
       return;
@@ -192,7 +197,6 @@ export class RunQueue {
     this.current = { state: "launching", runId };
     try {
       const owner = join(lease, "owner.json");
-      writeFileSync(owner, JSON.stringify({ pid: process.pid, owner: "viewer-queue", run: runId }), { flag: "wx" });
       const presets = join(viewerDir(runsRoot), "presets");
       const receipts = join(runsRoot, "launch-receipts", "viewer-queue");
       mkdirSync(presets, { recursive: true });
@@ -200,7 +204,13 @@ export class RunQueue {
       const presetPath = join(presets, `${runId}.json`);
       writeFileSync(presetPath, `${JSON.stringify(presetFor(draft, runId), null, 2)}\n`, { flag: "wx" });
       const env: Record<string, string> = { POKEBENCH_PLAY_PRESET: presetPath, POKEBENCH_RUN_ID: runId, POKEBENCH_MODEL: draft.model, POKEBENCH_ENDPOINT_FILE: this.host.endpointFile ?? "", POKEBENCH_GAME_SERVER_URL: `http://127.0.0.1:${String(this.host.gamePort)}` };
-      const started = (child: number): void => { writeFileSync(owner, JSON.stringify({ pid: process.pid, owner: "viewer-queue", run: runId, child })); };
+      const started = (child: number): void => {
+        try {
+          writeFileSync(owner, JSON.stringify({ pid: process.pid, owner: "viewer-queue", run: runId, child }));
+        } catch {
+          // The lease still names this viewer and run; only the pid is missing.
+        }
+      };
       const launched = this.host.launch({ runId, argv: [this.host.liveJs, "play"], env, stdout: join(receipts, `${runId}.stdout.log`), stderr: join(receipts, `${runId}.stderr.log`), started });
       this.current = { state: "running", runId };
       const exit = await launched;

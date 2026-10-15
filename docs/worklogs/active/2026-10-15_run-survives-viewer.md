@@ -38,8 +38,9 @@ No feature switch: this changes process supervision, not what the model sees, it
   - (c) Trial ended with no `run_end` and its pid is gone: today's interrupted path is unchanged.
   - (d) A lease owned by a **live** pid is never taken.
   - The same cases hold for finals and for regular experiment trials. The NEXT RUN queue reports the adopted run as running and frees the lease when it ends.
-- [ ] GREEN, gates.
-- [ ] Review.
+- [x] RED COMMIT: `test: a fresh viewer adopts the trial a dead viewer left, and launchers outlive their runs` (8505bd7)
+- [x] GREEN: new `lease.ts` (shared `takeLease`, `leaseStale`, `pidAlive`). A dead owner's lease is reclaimed only when its run is gone or is the one being adopted; an unreadable owner never is. Runner and finals loops adopt any interrupted or running trial with a run: wait under the lease while it plays (`liveRuns`, or the recorded child pid with no run_end), then record its outcome once. An operator stop holds; a run with no run_end gets the old interrupted path. The pre-launch live check ignores adoptable runs. `readRunner` keeps the position while the child lives. NEXT RUN waits only on a lease that is not stale. M1 fixes: no `unref`, guarded SIGINT forward and `started` writes. Viewer 52 files / 657 tests; coverage 95.18 / 90.94 / 94.29; tsc + eslint clean.
+- [ ] Review (M1 fix + M2).
 
 ### M3: deploys are safe by construction
 - [ ] The viewer handles SIGTERM and SIGINT by closing the server and stopping the autorun only. It never signals launched runs.

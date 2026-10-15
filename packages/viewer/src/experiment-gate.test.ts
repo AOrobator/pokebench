@@ -199,6 +199,8 @@ describe("winner gate", () => {
     mkdirSync(experimentDir(w.paths.runsRoot, "broken"), { recursive: true });
     writeFileSync(finalsLedgerPath(w.paths.runsRoot, "broken"), `${launch("orphan", "x")}\n`);
     writeFileSync(nominationPath(w.paths.runsRoot, "broken"), "{");
+    mkdirSync(join(finalsLedgerPath(w.paths.runsRoot, "unreadable")), { recursive: true });
+    writeFileSync(nominationPath(w.paths.runsRoot, "unreadable"), readFileSync(nominationPath(w.paths.runsRoot, "full-map")));
     const labels = finalsRunLabels(w.paths.runsRoot);
     expect(labels.get("relaunch")).toBe("full-map finals · incumbent · run 1/12");
     expect(labels.get("aborted")).toBe("full-map finals · incumbent · run 1/12");

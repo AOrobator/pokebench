@@ -187,7 +187,12 @@ export function finalsRunLabels(runsRoot: string): Map<string, string> {
     if (!existsSync(finalsLedgerPath(runsRoot, id))) continue;
     const n = readNomination(runsRoot, id, []);
     if (n === null) continue;
-    const ledger = finalsLedger(runsRoot, id);
+    let ledger: FinalsEntry[];
+    try {
+      ledger = finalsLedger(runsRoot, id);
+    } catch {
+      continue; // an unreadable ledger never empties the run list
+    }
     const trials = finalsTrials(n, ledger, null);
     for (const e of ledger) {
       const t = e.type === "launch" ? trials[e.trial] : undefined;

@@ -13,6 +13,7 @@ Viewer-only; no harness behavior change, so no feature switch.
   Rebased onto main at 914d90c (mobile timeline merge); GREEN is now 0a4333f.
 - [x] Review round 1: Claude CLI (no blockers) and Grok 4.5 high. Grok's "deletes mobile layout" was a stale-base diff artifact, gone after the rebase. Addressed: /api/runs overlay test, replay-with-live-elsewhere chip test, arm taken from the ledger row. Accepted as is: reused incumbent runs keep their cohort label and "/total" counts finals launches, matching the gate's "finals run n of N"; withdrawn finals keep plain labels (history); no cache (one readdir and two small files per finals experiment per poll).
   Tests: viewer 651 passed; viewer coverage 95.37/91.16/94.39/98.1; tsc + eslint clean.
-- [ ] Review round 2: Claude CLI, Grok
+- [x] Review round 2: Grok LGTM; Claude LGTM with a non-blocking note that an unreadable finals.jsonl would 500 /api/runs. Fixed: an unreadable ledger is skipped (test covers a directory named finals.jsonl). Deferred: a finals run's own header still shows PRESET, not its finals place.
+  Tests: viewer 651 passed; coverage 95.37/91.16/94.39/98.1; tsc + eslint clean.
 - [ ] Operator approval, rebase onto main, local merge
 - [ ] Restart 8790 only when no finals run is live (the runner lives in the viewer process)

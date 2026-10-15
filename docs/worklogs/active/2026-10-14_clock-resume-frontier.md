@@ -40,3 +40,5 @@ Takeover note: the fix was found as idle uncommitted edits in the main checkout 
 
 Operator saw gaps in the graph. Cause: the new Sent to Birch column breaks every line that reaches Rival met and Route 101, because no existing run (or the human baseline) recorded that measurement. Fix: a column whose measurement the run's build did not declare (`milestoneStatus` = unsupported) is bridged; a declared-but-missing checkpoint still breaks the line.
 - [x] RED: older build bridges Sent to Birch; newer build that missed it breaks. Gap fixture now declares ram-state-v1 so it still tests a real miss.
+- [x] GREEN: unsupported columns no longer flush the polyline; chart note updated. Viewer 580 pass.
+- Round 3 (head 5dbef8f): Grok LGTM. Claude lanes: Claude CLI auth expired; Cursor Opus and Sonnet both at usage limit; Claude-family review subagent fallback running.

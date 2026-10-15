@@ -44,7 +44,8 @@ No feature switch: this changes process supervision, not what the model sees, it
 
 ### M3: deploys are safe by construction
 - [x] RED: cli.test.ts `shutdown` (2 failing): SIGTERM/SIGINT close the viewer once and exit 0; a failed close still exits 1.
-- [ ] The viewer handles SIGTERM and SIGINT by closing the server and stopping the autorun only. It never signals launched runs.
+- [x] RED COMMIT: `test: the viewer closes itself on SIGTERM or SIGINT and leaves its runs alone` (e3d9989)
+- [x] GREEN: `closeOnSignals` in cli.ts closes the server and stops the autorun once, then exits; it never signals a run. `scripts/viewer-restart.sh` (new, used by `just viewer-main`) records live `live.js play|human` pids, SIGTERMs only the port's listener, starts the new viewer and fails unless every recorded gameplay pid still lives.
 - [ ] `just viewer-main` refuses to report success unless every run that was live before the restart is still live after it, and the new viewer's autorun reports it adopted.
 - [ ] Explainer page with a diagram (before and after process tree, adoption flow), per the feature-explainer skill.
 - [ ] Review.

@@ -116,6 +116,19 @@ export async function main(argv: readonly string[], deps: MainDeps): Promise<Vie
   return viewer;
 }
 
+// A deploy stops the viewer with SIGTERM, a terminal with SIGINT. Runs are detached and
+// a restarted viewer adopts them, so shutdown only closes the server and the autorun.
+export function closeOnSignals(viewer: Pick<Viewer, "close">, on: (signal: "SIGTERM" | "SIGINT", handler: () => void) => void, exit: (code: number) => void): void {
+  let closing = false;
+  const shutdown = (): void => {
+    if (closing) return;
+    closing = true;
+    viewer.close().then(() => { exit(0); }, () => { exit(1); });
+  };
+  on("SIGTERM", shutdown);
+  on("SIGINT", shutdown);
+}
+
 if (import.meta.main) {
   const here = (path: string): string => fileURLToPath(new URL(path, import.meta.url));
   main(process.argv.slice(2), {
@@ -137,7 +150,9 @@ if (import.meta.main) {
     print: (line) => {
       console.log(line);
     },
-  }).catch((error: unknown) => {
+  }).then((viewer) => {
+    closeOnSignals(viewer, (signal, handler) => { process.on(signal, handler); }, (code) => { process.exit(code); });
+  }, (error: unknown) => {
     console.error(`view FAILED: ${String(error)}`);
     process.exitCode = 1;
   });

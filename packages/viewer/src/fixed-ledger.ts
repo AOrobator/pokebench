@@ -208,9 +208,12 @@ export function classifyTrial(text: string | null, expect: TrialExpectation, exi
   if (start?.type !== "run_start") return { valid: false, reason: `no run_start: the run never began (exit ${exitText(exit)}); a server, emulator or checkpoint load failure`, ...blank };
   const t0 = Date.parse(String(start.t));
   const reached = new Map<string, number>();
+  // Milestone times count only unpaused time, as the production wall cap (BudgetTimer) does.
+  let pausedMs = 0;
   for (const e of events) {
+    if (e.type === "operator_control" && e["status"] === "applied" && typeof e["paused_ms"] === "number") pausedMs += e["paused_ms"];
     if (e.type !== "milestone" || e["origin"] === "present_at_start" || typeof e["name"] !== "string" || reached.has(e["name"])) continue;
-    const ms = Date.parse(String(e.t)) - t0;
+    const ms = Date.parse(String(e.t)) - t0 - pausedMs;
     if (ms <= expect.maxWallMs) reached.set(e["name"], ms);
   }
   const furthest = [...reached.keys()].filter((n) => MILESTONE_ORDER.includes(n)).sort((a, b) => MILESTONE_ORDER.indexOf(b) - MILESTONE_ORDER.indexOf(a))[0] ?? null;

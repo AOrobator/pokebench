@@ -218,7 +218,7 @@ class Runner {
   private async pause(lane: FixedLane, reason: string, failures: number, error = reason): Promise<void> {
     const wait = BACKOFF_MS[Math.min(failures, BACKOFF_MS.length) - 1] ?? POLL_MS;
     this.lastError = `lane ${lane.id}: ${error}`;
-    this.o.host.log(`${this.o.def.id} lane ${lane.id} paused: ${reason}`);
+    this.say(`${this.o.def.id} lane ${lane.id} paused: ${reason}`);
     this.setLane(lane.id, { state: "paused", reason, slot: null, arm: null, phase: null, run: null, lastError: error, retryAt: new Date(this.o.host.now().getTime() + wait).toISOString() });
     await this.o.host.sleep(wait);
   }
@@ -307,10 +307,19 @@ class Runner {
       exit = await this.o.host.launch({
         lane: lane.id, slot: slot.slot, arm: slot.arm, phase: slot.phase, runId: run, presetPath: env.POKEBENCH_PLAY_PRESET, env,
         stdout: join(this.dir, "logs", `${run}.out`), stderr: join(this.dir, "logs", `${run}.err`),
+        // Runs inside the child's spawn listener, outside every await: a throw here would escape
+        // all catches and end the process, so a failed record only says why and the trial plays on.
         started: (pid) => {
-          this.append({ kind: "started", slot: slot.slot, run, pid, at: this.o.host.now().toISOString() });
           this.children.set(lane.id, { slot: slot.slot, run, pid });
-          this.writeRunner();
+          try {
+            this.append({ kind: "started", slot: slot.slot, run, pid, at: this.o.host.now().toISOString() });
+            this.writeRunner();
+          } catch (error) {
+            const reason = `cannot record the started trial ${String(slot.slot)}: ${message(error)}`;
+            this.lastError = `lane ${lane.id}: ${reason}`;
+            this.say(`${this.o.def.id} lane ${lane.id}: ${reason}`);
+            this.setLane(lane.id, { lastError: reason });
+          }
         },
       });
     } catch (error) {
@@ -381,7 +390,16 @@ class Runner {
       });
     } catch (error) {
       // A status write that fails must not stop a lane; the next change rewrites it.
-      this.o.host.log(`${this.o.def.id}: cannot write status: ${message(error)}`);
+      this.say(`${this.o.def.id}: cannot write status: ${message(error)}`);
+    }
+  }
+
+  // Pausing and status must never throw: a lane that cannot log still pauses and retries.
+  private say(line: string): void {
+    try {
+      this.o.host.log(line);
+    } catch {
+      // The status file carries the reason.
     }
   }
 }

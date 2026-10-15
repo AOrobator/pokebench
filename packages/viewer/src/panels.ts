@@ -214,7 +214,7 @@ function controlRow(event: Extract<RunEvent, { type: "operator_control" }>): str
   return `${CONTROL_ICON[event.action]} ${name} ${status}${detail} · request ${String(event.request)}`;
 }
 
-function rowBody(event: RunEvent, view?: RunView): string | null {
+export function eventText(event: RunEvent, view?: RunView): string | null {
   switch (event.type) {
     case "assistant": return `${event.thinking === "" ? "response" : "thinking"} · turn ${String(event.turn)}: ${esc((event.thinking || event.text || "no text recorded").slice(0, 200))}`;
     case "operator_control": return controlRow(event);
@@ -271,7 +271,7 @@ function rowBody(event: RunEvent, view?: RunView): string | null {
 }
 
 export function actionRow(event: RunEvent, view?: RunView): string | null {
-  const body = rowBody(event, view);
+  const body = eventText(event, view);
   if (body === null) return null;
   const error = (event.type === "tool_result" && event.is_error) || event.type === "retry" || (event.type === "loop_guard" && event.phase !== "recovered" && !("mode" in event && event.mode === "diagnostic")) || event.type === "telemetry_error" || (event.type === "operator_control" && (event.emulator_frozen === false || event.status === "failed")) ? " ev-error" : "";
   return `<div class="ev ev-${event.type}${error}" data-seq="${String(event.seq)}"><span class="seq">#${String(event.seq)}</span><span class="tag">${event.type}</span><span class="body">${body}</span></div>`;

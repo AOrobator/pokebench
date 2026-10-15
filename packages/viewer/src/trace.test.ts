@@ -119,7 +119,7 @@ describe("traceRow", () => {
     const row = dom(traceRow(must(steps(build(fullRun().events)).find((step) => step.category === "ms"))));
     const icon = must(row.querySelector(".tl-icon"));
     expect(icon.querySelector("svg")).not.toBeNull();
-    expect(icon.textContent?.trim()).toBe("");
+    expect(icon.textContent.trim()).toBe("");
     expect(row.textContent).not.toMatch(/[★*]/);
     expect(STAR_SVG).toContain("<svg");
     expect(row.querySelector(".tl-title")?.textContent).toBe("Milestone GAME RUNNING");
@@ -187,7 +187,7 @@ describe("traceHtml", () => {
     expect(live.querySelector("[data-live-text]")).not.toBeNull();
     const ongoing = dom(traceHtml(builder.turns, ALL, { startMs: BASE_MS, live: { turn: 2 }, limit: 50 }));
     expect(ongoing.querySelectorAll(".turn-h")[0]?.parentElement === ongoing).toBe(true);
-    expect(ongoing.querySelector(".turn-h + [data-key] ~ .live-row")).not.toBeNull();
+    expect([...ongoing.children].slice(0, 3).map((el) => el.classList.contains("live-row") ? "live" : el.className)).toEqual(["turn-h", "tl", "live"]);
   });
 
   it("caps the turns it renders and offers the rest", () => {
@@ -205,7 +205,7 @@ describe("sideTraceHtml", () => {
     expect(root.textContent).not.toContain("Navigation memory");
     expect(root.textContent).not.toContain("Emulator input");
     expect([...root.querySelectorAll(".tg")].map((g) => g.textContent).filter(Boolean)).toEqual(["T2", "T1"]);
-    expect(root.querySelector(".tl-supervisor .tl-title")?.textContent).toBe("Supervisor note");
+    expect(root.querySelector("[data-c=sup] .tl-title")?.textContent).toBe("Supervisor note");
   });
 
   it("says when there is nothing yet", () => {

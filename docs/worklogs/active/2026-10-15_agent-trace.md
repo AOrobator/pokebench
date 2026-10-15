@@ -126,6 +126,8 @@ Every recorded string goes through `esc`. Tool result text is shown in `<pre>` o
 
 ## Surprises
 
+- The fresh worktree had no vendor submodule (`git submodule update --init` fixed 5 pytest failures) and no mGBA binding in `env/.venv`, so `just lint`'s mypy step can't import `mgba._pylib`. I ran mypy with `~/dev/pokebench/env/.venv/bin/mypy` from the worktree's `env/` instead. No Python changes on this branch.
+
 ## Multi-Model Review Log
 
 ## Boy Scout Log

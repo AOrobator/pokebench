@@ -40,6 +40,7 @@ Already-landed behavior that never had a switch gets one retroactively, as `elev
    - Update the registry counts and the legacy harness-feature lists.
 7. **Explainer**: write it with `.claude/skills/feature-explainer/SKILL.md` and map the id in `FEATURE_EXPLAINERS` (`packages/viewer/src/panels.ts`).
 8. **Register it as pending** in the same merge: add `experiments/<id>.json` with no `queuePosition`. Follow `.claude/skills/experiment-queue/SKILL.md`. The entry records the switch id, hypothesis, arms (the shared incumbent with this switch flipped), activation milestone, readiness and `source.commit` set to the merge SHA. Record the readiness verdict in `docs/experiments/readiness.md`. The entry moves into the queue only when readiness passes. Never approve or start it yourself; only the operator approves measured runs.
+9. **Restart the viewer** after the merge with `just viewer-main`. The viewer on 8790 validates `experiments/*.json` against the switches in its own build, so a viewer built before the merge reports the new switch as invalid until it is rebuilt.
 
 ## Veto
 

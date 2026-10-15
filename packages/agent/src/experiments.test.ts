@@ -22,6 +22,14 @@ it("parses a definition and derives two arms that differ in exactly the changed 
  expect(experiment({queuePosition:undefined}).queuePosition).toBeUndefined();
 });
 
+it("names a switch this build does not know, so an old viewer says it needs rebuilding",()=>{
+ const stale="Invalid experiment: future-switch-v1 is not a switch in this build; if it landed after this build, rebuild on current main (just viewer-main)";
+ expect(()=>parseExperiment({...base,changedFeature:"future-switch-v1"})).toThrow(stale);
+ expect(()=>parseExperiment({...base,incumbent:{...base.incumbent,features:{...base.incumbent.features,"future-switch-v1":true}}})).toThrow(stale);
+ expect(()=>parseExperiment(null)).toThrow(/Invalid experiment/);
+ expect(()=>parseExperiment({...base,changedFeature:7,incumbent:{...base.incumbent,features:null}})).toThrow(/Invalid experiment/);
+});
+
 it("rejects malformed definitions, unknown milestones, short arms, tiny budgets and invalid candidates",()=>{
  expect(()=>parseExperiment({...base,extra:true})).toThrow(/Invalid experiment/);
  expect(()=>parseExperiment({...base,id:"Bad Id"})).toThrow(/Invalid experiment/);

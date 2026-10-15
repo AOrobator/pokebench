@@ -5,7 +5,7 @@
 import {createHash} from "node:crypto";
 import {Type,type Static} from "typebox";
 import {Value} from "typebox/value";
-import {SWITCHABLE_FEATURES,dependencyProblems,stateOnlyProblems,type FeatureSet,type SwitchableFeature} from "./features.js";
+import {MEASUREMENT_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,stateOnlyProblems,type FeatureSet,type SwitchableFeature} from "./features.js";
 import {MILESTONES} from "./milestones.js";
 import {PlayPresetV2Schema,parsePlayPreset,type PlayPresetV2} from "./play-preset.js";
 
@@ -42,7 +42,17 @@ export type Experiment=Omit<Static<typeof ExperimentSchema>,"incumbent"|"changed
 export type Arm="incumbent"|"candidate";
 
 const native=(name:string):boolean=>MILESTONES.some(m=>m.name===name&&m.kind!=="legacy");
+const known=new Set<string>([...SWITCHABLE_FEATURES,...MEASUREMENT_FEATURES]);
+// A switch merged after this program was built: say that, not a bare enum error.
+function unknownSwitch(value:unknown):string|undefined{
+ if(typeof value!=="object"||value===null)return undefined;
+ const v=value as {changedFeature?:unknown;incumbent?:{features?:unknown}};
+ const ids=[...(typeof v.changedFeature==="string"?[v.changedFeature]:[]),...(typeof v.incumbent?.features==="object"&&v.incumbent.features!==null?Object.keys(v.incumbent.features):[])];
+ return ids.find(id=>!known.has(id));
+}
 export function parseExperiment(value:unknown):Experiment {
+ const missing=unknownSwitch(value);
+ if(missing!==undefined)throw new Error(`Invalid experiment: ${missing} is not a switch in this build; if it landed after this build, rebuild on current main (just viewer-main)`);
  if(!Value.Check(ExperimentSchema,value)){const [first]=Value.Errors(ExperimentSchema,value);throw new Error(`Invalid experiment: ${first?.instancePath ?? ""} ${first?.message ?? "schema mismatch"}`);}
  const incumbent=parsePlayPreset(value.incumbent);
  if(incumbent.version!==2)throw new Error("Invalid experiment: incumbent must be a version 2 preset");

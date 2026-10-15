@@ -86,6 +86,10 @@ runs-prune percent: build
 view run_id="": build
     node packages/viewer/dist/cli.js {{quote(run_id)}}
 
+# Restart the long-lived viewer on 8790 from a clean worktree at main. Run after every merge.
+viewer-main:
+    scripts/viewer-main.sh
+
 # Experiment queue: list the queue, pending and closed experiments.
 experiments: build
     node packages/viewer/dist/experiment-cli.js list

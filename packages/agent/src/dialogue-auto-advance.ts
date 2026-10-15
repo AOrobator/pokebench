@@ -225,11 +225,11 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
   const plan=submittedButtons(params.buttons,before,switches);
   const walking=params.walking===undefined?{}:{walking:params.walking};
   const run=(buttons:Button[],first:boolean)=>first&&check!==undefined?press.executeChecked(id,{buttons,...walking},check,signal,update):press.execute(id,{buttons,...walking},signal,update);
-  const pages=new Pages(record,open);if(before!==undefined){pages.prime(before);open=null;}
+  const pages=new Pages(record,open);if(before!==undefined)pages.prime(before);
   const shownBefore=pages.pages.length>0;
   // A batch that starts inside a conversation stops after its first input: the next inputs could land on a
-  // YES/NO (B answers NO) or a locked script.
-  const inDialogue=shownBefore||(before!==undefined&&dialogueEngaged(before));
+  // YES/NO (B answers NO) or a locked script. Without a read, a message the last call left open counts.
+  const inDialogue=shownBefore||(before===undefined?open!==null:dialogueEngaged(before));
   const extras:TextContent[]=[];const sent:Button[]=[];
   const walk=before!==undefined&&freeField(before)&&plan.every(b=>DIRECTIONS.has(b));
   let last:Result;
@@ -240,6 +240,8 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
    if(result===undefined)throw new Error("press requires at least one button");
    last=result;
   }
+  // The carried position is spent once the model's press went through; this call's pages now own it.
+  if(before!==undefined)open=null;
   const after=stateOf(last);
   const engaged=dialogueEngaged(after)||inDialogue;
   if(!engaged&&before!==undefined)open=pages.openAt(after);
@@ -270,7 +272,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
    const result=await tool.execute(id,params,signal,update);
    const state=stateOf(result);
    if(!dialogueEngaged(state))return result;
-   const pages=new Pages(record);
+   const pages=new Pages(record,open);
    const outcome=await advance(state,pages,autoPress(id),full,signal);
    open=pages.openAt(outcome.state);
    const done=await finish(id,"navigate_to",outcome,pages,[],[],[],began,signal);

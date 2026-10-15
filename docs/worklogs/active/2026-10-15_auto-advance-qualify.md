@@ -139,6 +139,7 @@ Triage by the operator merge rule (blocks only on crash / OFF drift / false info
 - 18:15 server on 8811 hung mid re-qualification (another client was holding connections to 8811); restarted
   as `aaq-explore-2` on port 8873 and re-ran the remaining scenarios.
 - 18:35 round 3 RED: 3 new tests fail on fa2497a (B1–B3).
+- 18:40 round 3 GREEN: 43/43.
 
 ## Invariants
 

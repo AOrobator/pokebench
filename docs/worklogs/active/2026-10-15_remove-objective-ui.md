@@ -10,6 +10,7 @@ Operator request: the objective feature is no longer used, so remove the objecti
   COMMIT: `refactor(viewer): remove the objective strip, page and comparisons field` (dc04bae)
 - [x] Gates: viewer vitest 644 passed; coverage 95.34 lines / 91.14 branches / 94.35 functions; tsc + eslint clean.
 - [x] Browser check on an isolated viewer (127.0.0.1:8817, startViewer with no queue/autorun, copied runs): watch view has no strip and PokéNav has no Objectives page; /comparisons current-run card shows no objective at pane width and 375px. 8790 untouched (the finals runner lives in that process).
-- [ ] Review: Claude + Grok.
-  Round 1 (packet 2d9eb7ec): Claude CLI LGTM. Grok BLOCKING: worklog browser box unchecked while PB13 claimed PASS; stale workbench test title; lowercase objective guard. Fixed: `test(viewer): tighten objective-absence guards and record the browser check`
+- [x] Review: Claude + Grok.
+  Round 1 (packet 2d9eb7ec): Claude CLI LGTM. Grok BLOCKING: worklog browser box unchecked while PB13 claimed PASS; stale workbench test title; lowercase objective guard. Fixed: `test(viewer): tighten objective-absence guards and record the browser check` (99ef729)
+  Round 2 (fix delta dc04bae..99ef729): Claude CLI LGTM, Grok LGTM.
 - [ ] Operator approval, rebase, local merge. Restart 8790 only when the operator says so.

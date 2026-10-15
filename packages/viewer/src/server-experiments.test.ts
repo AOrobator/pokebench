@@ -24,6 +24,17 @@ function call(viewer: Viewer, path: string, method = "GET"): Promise<{ status: n
 }
 
 describe("GET /api/experiments", () => {
+  it("serves every fixed-run status with whether its runner still runs", async () => {
+    const root = mkdtempSync(join(tmpdir(), "pokebench-srv-fixed-"));
+    const paths = { experimentsDir: join(root, "experiments"), runsRoot: join(root, "runs"), readinessPath: join(root, "readiness.md") };
+    mkdirSync(join(paths.runsRoot, "experiments", "bundle-v-control"), { recursive: true });
+    writeFileSync(join(paths.runsRoot, "experiments", "bundle-v-control", "status.json"), JSON.stringify({ kind: "fixed-run", version: 1, experiment: "bundle-v-control", title: "Bundle", definitionSha256: "d".repeat(64), pid: process.pid, updatedAt: "2026-10-16T04:00:00.000Z", state: "running", total: 140, valid: 2, invalid: 0, invalidTrials: [], reserve: { usedMs: 0, totalMs: 14_400_000 }, lanes: [], lastError: null }));
+    const viewer = await startViewer({ runsRoot: paths.runsRoot, staticDir: join(root, "static"), appDir: join(root, "app"), port: 0, experiments: { paths, head: () => "a".repeat(40), source: { recent: () => [], trial: () => null } } });
+    open.push(viewer);
+    const body = JSON.parse((await call(viewer, "/api/experiments")).body) as { fixedRuns: { experiment: string; runnerAlive: boolean }[] };
+    expect(body.fixedRuns.map((f) => [f.experiment, f.runnerAlive])).toEqual([["bundle-v-control", true]]);
+  });
+
   it("serves the queue snapshot, caches it briefly and never accepts writes (INV-Q8)", async () => {
     const root = mkdtempSync(join(tmpdir(), "pokebench-srv-eq-"));
     const paths = { experimentsDir: join(root, "experiments"), runsRoot: join(root, "runs"), readinessPath: join(root, "readiness.md") };
@@ -35,6 +46,7 @@ describe("GET /api/experiments", () => {
     open.push(viewer);
     const first = await call(viewer, "/api/experiments");
     expect(first.status).toBe(200);
+    expect((JSON.parse(first.body) as { fixedRuns: unknown }).fixedRuns).toEqual([]);
     expect((JSON.parse(first.body) as { queue: { id: string; state: string }[] }).queue.map((v) => [v.id, v.state])).toEqual([["full-map", "draft"]]);
     expect((JSON.parse(first.body) as { autorun: unknown }).autorun).toEqual({ state: "idle", message: "Nothing is approved to run." });
     await call(viewer, "/api/experiments");

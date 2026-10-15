@@ -86,6 +86,7 @@ All 5 `model_error` ends in the 2×2 cohort (`factorial-2x2-think-fast-*`, 32 gr
 
 - 2026-10-15 20:30 EDT: M2 traced (table above). Agent RED: Governor tests for `replyFailuresEndRun: false`, preset schema, run_start record, single-model llama-server discovery (7 failing, 95 passing in the four files).
 - 2026-10-15 20:50 EDT: Agent GREEN: `limits.replyFailuresEndRun` (Governor, preset schema, `run_start.evaluation.reply_failures_end_run`, `schemas/events.v1.json` regenerated), single-model llama-server discovery in `discoverLocal`. Agent vitest 70 files / 1090 tests pass; agent tsc and eslint clean. The RED live-objectives test was narrowed to the run_start record: the mocked run has ended by the time a test can drive its Governor, and harness.test covers the Governor behavior.
+- 2026-10-15 21:40 EDT: Viewer RED: tests for the fixed-run driver (`fixed-design`, `fixed-ledger`, `fixed-runner`, `fixed-status`, `fixed-analysis`, `fixed-cli`), the queue-view status card and `/api/experiments` `fixedRuns`. All six new test files fail to import; 3 tests fail in the queue-view and server-experiments files; 12 pass.
 
 ## Surprises
 

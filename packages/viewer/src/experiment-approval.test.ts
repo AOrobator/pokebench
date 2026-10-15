@@ -32,7 +32,8 @@ describe("approving and withdrawing experiments", () => {
 
   it("refuses pending, unknown, already approved, not-ready and finished experiments", () => {
     const paths = setup();
-    expect(() => approveExperiment(paths, source, "later", "viewer", now, HEAD)).toThrow("later is pending, not queued; only queued experiments can be approved");
+    expect(() => approveExperiment(paths, { ...source, recent: () => [] }, "later", "viewer", now, HEAD)).toThrow("later is pending (not ready yet); only queued experiments can be approved");
+    expect(approveExperiment(paths, source, "later", "viewer", now, HEAD).state).toBe("approved");
     expect(() => approveExperiment(paths, source, "nope", "viewer", now, HEAD)).toThrow(ApprovalError);
     approveExperiment(paths, source, "full-map", "viewer", now, HEAD);
     expect(() => approveExperiment(paths, source, "full-map", "viewer", now, HEAD)).toThrow("full-map is approved");

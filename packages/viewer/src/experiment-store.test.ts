@@ -58,6 +58,7 @@ describe("experiment queue store", () => {
     writeDefinition(paths.experimentsDir, definition("misnamed"), "wrong.json");
     writeDefinition(paths.experimentsDir, definition("dropped", { queuePosition: undefined, discarded: "no longer needed" }));
     writeDefinition(paths.experimentsDir, definition("halted", { queuePosition: undefined, blocked: "needs a fix" }));
+    writeDefinition(paths.experimentsDir, definition("joins", { queuePosition: undefined, changedFeature: "one-way-tiles-v1" }));
     writeDefinition(paths.experimentsDir, definition("partial", { queuePosition: 7 }));
     mkdirSync(experimentDir(paths.runsRoot, "partial"), { recursive: true });
     writeFileSync(join(experimentDir(paths.runsRoot, "partial"), "result.json"), JSON.stringify({ experiment: "partial", result: {} }));
@@ -83,10 +84,11 @@ describe("experiment queue store", () => {
     writeFileSync(join(experimentDir(paths.runsRoot, "second"), "approval.json"), JSON.stringify({ experiment: "other" }));
     writeFileSync(runnerPath(paths.runsRoot), JSON.stringify({ pid: 7, experiment: "full-map", trial: 3 }));
     const snapshot = queueSnapshot(paths, fake({ a: reached(600, 900_000), b: reached(400, 600_000), c: missed(1500), d: missed(10) }), () => true);
-    expect(snapshot.queue.map((v) => [v.id, v.state])).toEqual([["full-map", "running"], ["second", "draft"], ["partial", "held"]]);
+    expect(snapshot.queue.map((v) => [v.id, v.state])).toEqual([["full-map", "running"], ["second", "draft"], ["partial", "held"], ["joins", "draft"]]);
     expect(snapshot.pending.map((v) => [v.id, v.state])).toContainEqual(["halted", "blocked"]);
-    expect(snapshot.queue.map((v) => v.approved)).toEqual([true, false, true]);
-    expect(snapshot.pending.filter((v) => v.id === "counter").map((v) => [v.id, v.state, v.recorded?.verdict])).toEqual([["counter", "pending", "BLOCKED: models do not yet reach Oldale"]]);
+    expect(snapshot.queue.map((v) => v.approved)).toEqual([true, false, true, false]);
+    // Not-ready and blocked experiments stay pending.
+    expect(snapshot.pending.map((v) => [v.id, v.state, v.recorded?.verdict ?? null])).toEqual([["counter", "pending", "BLOCKED: models do not yet reach Oldale"], ["halted", "blocked", null]]);
     expect(snapshot.closed.map((v) => [v.id, v.state])).toEqual([["dropped", "discarded"], ["finished", "done"]]);
     expect(snapshot.closed[1]?.result).toEqual({ verdict: "inconclusive", recommendation: "retain", eligible: false, problems: ["prompt differs"] });
     expect(snapshot.queue[0]?.result).toBeNull();

@@ -115,7 +115,8 @@ it("derives one status from the definition, approval, ledger, runner and readine
  expect(deriveStatus({experiment:e,approval:null,ledger:all.slice(0,2),runner:null,readiness:ready})).toMatchObject({state:"stale",reason:"trials have started but there is no valid approval; it needs a new approval to resume"});
  expect(status({experiment:experiment({queuePosition:undefined}),readiness:notReady})).toBe("pending");
  expect(deriveStatus({experiment:experiment({queuePosition:undefined}),approval:null,ledger:[],runner:null,readiness:notReady}).reason).toMatch(/not ready: 0 of the last 4 comparable runs reached FIRST_TRUCK_EXIT \(needs 3\)/);
- expect(deriveStatus({experiment:experiment({queuePosition:undefined}),approval:null,ledger:[],runner:null,readiness:ready}).reason).toMatch(/ready to queue/);
+ // A pending experiment joins the queue by itself once readiness passes (operator 2026-10-15: the queue should hold everything merged and untested).
+ expect(deriveStatus({experiment:experiment({queuePosition:undefined}),approval:null,ledger:[],runner:null,readiness:ready}).state).toBe("draft");
  expect(status({readiness:notReady})).toBe("not-ready");
  expect(deriveStatus({experiment:e,approval:null,ledger:[],runner:null,readiness:{...notReady,basis:"recent",considered:["x"]}}).reason).toBe("not ready: 0 of the last 1 runs of any configuration reached FIRST_TRUCK_EXIT (needs 3 of 4; too few runs match the incumbent)");
  expect(status({approval:null})).toBe("draft");

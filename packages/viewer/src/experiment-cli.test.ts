@@ -41,7 +41,7 @@ describe("experiment queue CLI", () => {
     const d = deps();
     await expect(main(["approve"], d)).rejects.toThrow("approve needs an experiment id");
     await expect(main(["approve", "nope"], d)).rejects.toThrow("no experiment nope");
-    await expect(main(["approve", "pending-one"], d)).rejects.toThrow("pending-one is pending, not queued; only queued experiments can be approved");
+    await expect(main(["approve", "pending-one"], { ...d, source: { recent: () => [], trial: () => null } })).rejects.toThrow("pending-one is pending (not ready yet); only queued experiments can be approved");
     await expect(main(["approve", "full-map"], { ...d, interactive: false })).rejects.toThrow("approval is interactive");
     await expect(main(["approve", "full-map"], { ...d, ask: () => Promise.resolve("yes") })).rejects.toThrow("not approved");
     expect(existsSync(join(experimentDir(d.paths.runsRoot, "full-map"), "approval.json"))).toBe(false);

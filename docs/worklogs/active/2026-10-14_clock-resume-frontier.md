@@ -42,3 +42,8 @@ Operator saw gaps in the graph. Cause: the new Sent to Birch column breaks every
 - [x] RED: older build bridges Sent to Birch; newer build that missed it breaks. Gap fixture now declares ram-state-v1 so it still tests a real miss.
 - [x] GREEN: unsupported columns no longer flush the polyline; chart note updated. Viewer 580 pass.
 - Round 3 (head 5dbef8f): Grok LGTM. Claude lanes: Claude CLI auth expired; Cursor Opus and Sonnet both at usage limit; Claude-family review subagent fallback running.
+- Gates at f9bc0c5: agent 1039, viewer 580, Python 1877 pass; coverage viewer 97.72/90.63/93.78, agent 98.86/93.91/98.01, Python 96.73/91.93/100; lint clean except mypy's absent native mGBA binding in this venv.
+- Browser at 8806: 84 frontier series, none split; screenshot sent to the thread.
+- Round 4: Grok LGTM on the 5dbef8f..f9bc0c5 delta. Claude-family review subagent (fallback; CLI auth expired, Cursor Opus/Sonnet at quota) LGTM on f9bc0c5. Its MEDIUM: a live log over 64 MiB is now fully re-parsed on every 5 s poll (78 MB parse measured at 4.2 s, synchronous). Logs up to 64 MiB already behaved this way; deferred to a follow-up throttle.
+- [x] Review: Claude-family + Grok LGTM.
+- [x] Operator approved merge 2026-10-14 ("yes").

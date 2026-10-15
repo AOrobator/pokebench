@@ -105,6 +105,22 @@ describe("classifyTrial", () => {
     return classifyTrial(text(build), expectation, exit);
   }
 
+  it("counts no milestone recorded after the wall cap: a primary reached late is a miss and does not deepen the furthest", () => {
+    const late = classify((log) => {
+      log.add(0, goodStart);
+      log.add(300_000, { type: "milestone", turn: 3, name: "MOM_RIVAL_INSTRUCTION", server_timestamp: 1 });
+      log.add(900_001, { type: "milestone", turn: 9, name: "RIVAL_MET", server_timestamp: 2 });
+      log.add(900_002, { ...end, reason: "budget" });
+    });
+    expect(late).toMatchObject({ valid: true, primaryReached: false, primaryMs: null, furthest: "MOM_RIVAL_INSTRUCTION", furthestMs: 300_000 });
+    const onCap = classify((log) => {
+      log.add(0, goodStart);
+      log.add(900_000, { type: "milestone", turn: 9, name: "RIVAL_MET", server_timestamp: 2 });
+      log.add(900_001, { ...end, reason: "budget" });
+    });
+    expect(onCap).toMatchObject({ primaryReached: true, primaryMs: 900_000, furthest: "RIVAL_MET" });
+  });
+
   it("is valid at the wall cap, with the milestones reached after the start and the furthest by milestone order", () => {
     const o = classify((log) => {
       log.add(0, goodStart);

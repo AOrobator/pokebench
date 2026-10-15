@@ -139,10 +139,17 @@ All 5 `model_error` ends in the 2×2 cohort (`factorial-2x2-think-fast-*`, 32 gr
 - 2026-10-15 21:40 EDT: Viewer RED: tests for the fixed-run driver (`fixed-design`, `fixed-ledger`, `fixed-runner`, `fixed-status`, `fixed-analysis`, `fixed-cli`), the queue-view status card and `/api/experiments` `fixedRuns`. All six new test files fail to import; 3 tests fail in the queue-view and server-experiments files; 12 pass.
 - 2026-10-15 22:00 EDT: Operator merge rule recorded (Decisions). 22:15 EDT: operator burn-in (~3 h, both lanes, 15-min fixed-control trials from CLOCK_SET, worktree /private/tmp/pokebench-burnin, status ~/.hermes/cache/scratch/burnin/status.json, runs under runs/burnin-2026-10-15/) is running: M3 probes kept to three short requests per lane; M4 waits for the operator to stop it; its report's model_error evidence goes to M2.
 - 2026-10-15 22:35 EDT: Viewer RED was `feaefc3`. Viewer GREEN: `fixed-design`, `fixed-ledger`, `fixed-runner`, `fixed-status`, `fixed-analysis`, `fixed-cli`, the queue-view card, `/api/experiments` `fixedRuns`, `just fixed-run`, the draft definition. Gates: `just test` agent 70 files / 1090, viewer 58 / 735, env 1877 passed; `just lint` 0; `just build` 0; `just coverage` agent 97.5 / 93.88 / 98.15 / 98.88, viewer 95.31 / 90.55 / 94.13 / 97.9 (stmts / branches / funcs / lines); `just verify-vendor` OK.
+- 2026-10-15 22:50 EDT: Cloud review of `5340c08..761e8a6` (diff sha256 `0374e9e8…`). Codex gpt-5.6-sol: BLOCKING, three findings; grok (Cursor): LGTM with notes, triaged by the operator. Operator dispositions: Codex 2 (maxTurns 20000) rejected by operator decision; fix Codex 1, Codex 3 and grok (a), (b), (c). RED for Codex 1 and 3 (ledger: no milestone after the wall cap counts; analysis: Fisher counts a late primary as a miss; runner: one pinned commit for every build check and launch).
 
 ## Deferred
 
 (Non-blocking review findings under the operator merge rule, one line each.)
+
+- Codex: the runner records each lane's serving fingerprint but neither compares fingerprints across lanes nor reads `/v1/models`; M3 supplies that assurance.
+- grok: the `/v1/models` probe wording.
+- grok: no backoff before a replacement trial.
+- grok: `operator_stop` treated as invalid.
+- **Rejected by operator decision (Codex 2, maxTurns 20000 as an early end):** no run has come near 1500 turns, so a 20000-turn cap cannot bind within 15 or 60 minutes. Not fixed.
 
 ## Surprises
 

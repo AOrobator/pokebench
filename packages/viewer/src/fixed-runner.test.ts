@@ -18,6 +18,7 @@ interface FakeOptions {
   readonly ending?: (launch: FixedLaunch, n: number) => Ending;
   readonly serving?: (lane: FixedLane, n: number) => ServingReceipt;
   readonly verifyBuild?: (n: number) => string | null;
+  readonly head?: (n: number) => string;
   readonly alive?: (pid: number) => boolean;
 }
 
@@ -39,9 +40,11 @@ class Fake implements FixedHost {
     this.snapshot();
     await new Promise((r) => setImmediate(r));
   }
-  head(): string { return COMMIT; }
+  heads = 0;
+  head(): string { this.heads += 1; return this.options.head?.(this.heads) ?? COMMIT; }
   sources(): string { return "sources-identity"; }
-  verifyBuild(): Promise<string | null> { this.builds += 1; return Promise.resolve(this.options.verifyBuild?.(this.builds) ?? null); }
+  verified: string[] = [];
+  verifyBuild(commit: string): Promise<string | null> { this.builds += 1; this.verified.push(commit); return Promise.resolve(this.options.verifyBuild?.(this.builds) ?? null); }
   serving(lane: FixedLane): Promise<ServingReceipt> {
     const n = (this.servingCalls.get(lane.id) ?? 0) + 1;
     this.servingCalls.set(lane.id, n);
@@ -168,6 +171,14 @@ describe("runFixed", () => {
     expect(host.statuses.some((s) => s.lanes[0]?.reason === "lane A serves build b1 (planned b10236-1464c62d8); 2 slots (planned 1)")).toBe(true);
     expect(last.lanes[0]?.state).not.toBe("running");
     expect(host.launches.every((l) => l.lane === "B")).toBe(true);
+  });
+
+  it("pins one commit for the whole run: every build check and every launch uses the commit read at start", async () => {
+    const { def, runsRoot, dir } = setup();
+    const host = new Fake(runsRoot, { head: (n) => (n === 1 ? "a".repeat(40) : "b".repeat(40)) });
+    await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77 });
+    expect(new Set(host.verified)).toEqual(new Set(["a".repeat(40)]));
+    expect(new Set(launchesOf(readLedger(join(dir, "trials.jsonl"))).map((l) => l.commit))).toEqual(new Set(["a".repeat(40)]));
   });
 
   it("pauses both lanes on a build problem until it clears", async () => {

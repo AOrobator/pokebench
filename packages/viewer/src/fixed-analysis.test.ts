@@ -83,6 +83,14 @@ describe("analyze and renderAnalysis", () => {
   });
 });
 
+describe("analyze against the cap", () => {
+  it("counts a primary milestone after the cap as a miss in Fisher as well as log-rank", () => {
+    const late = { ...trial(1, "A", "bundle", 900_500), primaryMs: 900_500 };
+    const report = analyze([late, trial(2, "A", "control", null)], ["A"]);
+    expect(report.groups[0]?.bundle).toEqual({ n: 1, reached: 0 });
+  });
+});
+
 describe("trialsFromLedger", () => {
   it("takes the phase's trials with an outcome, with the phase's cap", () => {
     const def = definition();

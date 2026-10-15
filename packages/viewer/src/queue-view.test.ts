@@ -13,7 +13,7 @@ function view(id: string, over: Partial<ExperimentView> = {}): ExperimentView {
     queuePosition: 1, source: { checkout: "main", commit: "a3c343bdbe245dbe4d22dd2fe413a1bed66fa36d" }, trialsPerArm: 8, modelLane: "think-fast", budgetMs: 17 * 1_800_000, usedMs: 3_600_000,
     state: "running", reason: "trial 3 of 16 running", approved: true,
     readiness: { ready: true, basis: "recent", milestone: "PLAYER_NAME_CONFIRMED", window: 4, minReached: 3, reached: 3, considered: ["a", "b", "c", "d"] },
-    recorded: { verdict: "READY", evidence: "3 of 4" }, result: null,
+    recorded: { verdict: "READY", evidence: "3 of 4" }, result: null, buildCommit: "b7e1f00dbe245dbe4d22dd2fe413a1bed66fa36d",
     trials: [trial(0, "done", true), trial(1, "done", false), trial(2, "running"), trial(3, "waiting"), trial(4, "failed"), trial(5, "interrupted")],
     arms: { incumbent: arm(1, 1, 2_460_000, 600), candidate: arm(1, 0, null, 600) }, notes: null, ...over,
   };
@@ -78,7 +78,9 @@ describe("experiment queue view", () => {
     expect(open.queue).toContain("<dd>41m</dd>");
     expect(open.queue).toContain("It &lt;helps&gt;.");
     expect(open.queue).toContain("1.0 of 8.5 h");
-    expect(open.queue).toContain("main @ a3c343b");
+    // The build the trials actually ran on, not the commit the definition was written against.
+    expect(open.queue).toContain("main @ b7e1f00");
+    expect(renderQueue({ ...SNAPSHOT, queue: [view("fresh", { buildCommit: null })] }, "all", new Set(["fresh"])).queue).toContain("main as of its first trial");
     expect(open.queue).toContain("<dt>readiness.md</dt><dd>READY</dd>");
     expect(open.pending).toContain("runs checked</dt><dd>none yet");
     expect(open.pending).toContain("Waits for ROUTE_101: 0 of the last 0 recent think-fast runs reached ROUTE_101 (needs 3 of 4)");

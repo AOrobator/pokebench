@@ -25,3 +25,4 @@ slower turns and fewer turns per 30-minute run.
 - [ ] Gates: test, coverage ≥90, lint
 - [ ] Review: principles self-review, Claude CLI, independent lane
 - [ ] Local merge into main (approved by the operator 2026-10-15 01:22 UTC)
+- Explainer: moved the OFF label off the line, corrected the wiring box source (checked in a browser).

@@ -34,13 +34,14 @@ SERVER_FEATURES = (
     "counter-talk-v1",
     "named-warp-destinations-v1",
     "character-presence-v1",
+    "battle-details-v2",
 )
 
 
 def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
     raw = env.get(
         "POKEBENCH_FEATURES_OFF",
-        "named-interactions-v1,world-destinations-v1,bounded-navigation-v1,expanded-menu-battle-information-v1,field-dialogue-phase-v1,full-map-navigation-v1,named-warp-destinations-v1,character-presence-v1",
+        "named-interactions-v1,world-destinations-v1,bounded-navigation-v1,expanded-menu-battle-information-v1,field-dialogue-phase-v1,full-map-navigation-v1,named-warp-destinations-v1,character-presence-v1,battle-details-v2",
     )
     if raw == "":
         return frozenset()
@@ -94,6 +95,8 @@ def format_readout(
         else None
     )
     expanded = "expanded-menu-battle-information-v1" not in off
+    # battle-details-v2 replaces the raw battler/input lines; OFF keeps them byte for byte.
+    details = state.battle_details if expanded and "battle-details-v2" not in off else None
     ui = state.active_ui
     from pokebench_env.ui_state import BIRCH_PHASES, CLOCK_PHASES
 
@@ -122,6 +125,7 @@ def format_readout(
         if expanded and state.resources.bag is not None:
             lines.append(
                 "Bag: "
+                + ("empty" if details is not None and not state.resources.bag else "")
                 + "; ".join(
                     f"{item.name or 'item #' + str(item.item_id)} ×{item.quantity}"
                     for item in state.resources.bag
@@ -144,16 +148,34 @@ def format_readout(
         battle = state.battle
         if battle.diagnostic:
             lines.append(f"HARNESS BUG (battle): {battle.diagnostic}")
-        if expanded:
+        playback = (
+            []
+            if battle.playback is None
+            else [
+                f"Battle playback: {battle.playback.controls}; "
+                f"stoppable {battle.playback.stoppable}; finished {battle.playback.finished}"
+            ]
+        )
+        execution = (
+            []
+            if battle.current_execution is None
+            else [
+                f"Battle execution: {battle.current_execution.phase}; "
+                f"attacker {battle.current_execution.attacker}; "
+                f"target {battle.current_execution.target}; "
+                f"move ID {battle.current_execution.move_id}; "
+                f"result flags {battle.current_execution.move_result_flags}. "
+                "Completion and damage are separate recorded signals."
+            ]
+        )
+        if details is not None:
+            lines += [*details.lines(battle), *playback, *execution]
+        elif expanded:
             lines.append(
                 f"Battle state: {battle.phase}; input {battle.ready}; "
                 f"turn {battle.turn}; outcome {battle.outcome}"
             )
-            if battle.playback is not None:
-                lines.append(
-                    f"Battle playback: {battle.playback.controls}; "
-                    f"stoppable {battle.playback.stoppable}; finished {battle.playback.finished}"
-                )
+            lines += playback
             for actor in battle.battlers or ():
                 lines.append(
                     f"Battler {actor.battler} {actor.species} Lv{actor.level} "
@@ -172,14 +194,7 @@ def format_readout(
                     f"ready {selection.ready}; selected {selection.selected}; "
                     f"target {selection.target_cursor}"
                 )
-            if battle.current_execution is not None:
-                execution = battle.current_execution
-                lines.append(
-                    f"Battle execution: {execution.phase}; attacker {execution.attacker}; "
-                    f"target {execution.target}; move ID {execution.move_id}; "
-                    f"result flags {execution.move_result_flags}. "
-                    "Completion and damage are separate recorded signals."
-                )
+            lines += execution
         else:
             lines.append("Battle details: unprovided")
     if state.story is not None and "story-state-v1" not in off:

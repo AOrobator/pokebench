@@ -177,12 +177,13 @@ def test_move_select_marks_the_highlighted_move_and_zero_pp_refusal() -> None:
     observed = battle_lines(format_readout(state(m)))
     assert (
         "  2 GROWL NORMAL status acc 100 PP 0/40 — "
-        "REFUSED: \"There's no PP left for this move!\"" in observed
+        'REFUSED: "There\'s no PP left for this move!"' in observed
     )
     m.put(MONS + 0x24, b"\x00")
-    assert "FIGHT (every move has 0 PP: the game uses STRUGGLE)" in battle_lines(
-        format_readout(state(m))
-    )[2]
+    assert (
+        "FIGHT (every move has 0 PP: the game uses STRUGGLE)"
+        in battle_lines(format_readout(state(m)))[2]
+    )
 
 
 def trainer() -> Memory:
@@ -193,15 +194,13 @@ def trainer() -> Memory:
 
 def test_trainer_battle_refuses_run_and_warns_balls_are_lost() -> None:
     observed = battle_lines(format_readout(state(trainer(), bag(13, 4, 259))))
-    assert observed[0] == (
-        "Battle details: TRAINER single · turn 2 · input ready (action select)"
-    )
+    assert observed[0] == ("Battle details: TRAINER single · turn 2 · input ready (action select)")
     assert observed[1].startswith("Foe ZIGZAGOON Lv2 · NORMAL · HP 13/13")
     assert "stages Atk -1 · moves: TACKLE" in observed[1] and "PP 39/40" in observed[1]
     assert observed[2] == (
         "Actions (2×2 FIGHT BAG / POKéMON RUN; menu open, highlighted ▶ BAG): FIGHT · "
         "BAG allowed — usable here: POTION ×5; balls POKé BALL ×5: the TRAINER blocks the BALL "
-        "(\"Don't be a thief!\") and the ball is used up; not usable in battle: MACH BIKE ×5 · "
+        '("Don\'t be a thief!") and the ball is used up; not usable in battle: MACH BIKE ×5 · '
         "POKéMON switching allowed — no other Pokémon can battle · "
         'RUN REFUSED — "No! There\'s no running from a TRAINER battle!"'
     )
@@ -212,10 +211,10 @@ def test_wild_run_odds_balls_and_speed_from_game_stats() -> None:
     m.put(TYPE_FLAGS, struct.pack("<I", 0x04))
     actions = battle_lines(format_readout(state(m, bag(4))))[2]
     assert "balls POKé BALL ×5: usable (a ball is used up on every throw)" in actions
-    assert "RUN allowed — escape guaranteed (your Spe 8 ≥ foe Spe 7)" in actions
-    m.put(MONS + 0x58 + 6, struct.pack("<H", 9))
+    assert "RUN allowed — escape guaranteed (your Spe 10 ≥ foe Spe 7)" in actions
+    m.put(MONS + 0x58 + 6, struct.pack("<H", 12))
     actions = battle_lines(format_readout(state(m)))[2]
-    assert "escape not guaranteed: your Spe 8 < foe Spe 9; succeeds if 8×128÷9" in actions
+    assert "escape not guaranteed: your Spe 10 < foe Spe 12; succeeds if 10×128÷12" in actions
     full = Resources(bag=bag(4).bag, storage=PokemonStorage(0, ()))
     six = state(m, full)
     six = replace(six, party=six.party * 6)
@@ -248,11 +247,11 @@ def test_storage_fullness_for_a_full_party() -> None:
 @pytest.mark.parametrize(
     "flags,expected",
     [
-        (0x06, "BAG REFUSED — \"Items can't be used now.\""),
+        (0x06, 'BAG REFUSED — "Items can\'t be used now."'),
         (0x0C | (1 << 8), "RUN asks whether to forfeit the match"),
         (0x06, "RUN allowed — link battle (running forfeits)"),
         (0x05, "RUN allowed — escape chance not worked out for double battles"),
-        (0x04 | (1 << 18), "POKéMON switching REFUSED — \"TORCHIC can't be switched out!\""),
+        (0x04 | (1 << 18), 'POKéMON switching REFUSED — "TORCHIC can\'t be switched out!"'),
     ],
 )
 def test_game_type_rules(flags: int, expected: str) -> None:
@@ -267,21 +266,21 @@ def test_traps_and_bindings_refuse_with_game_messages() -> None:
     m.put(MONS + 0x58 + 0x20, bytes([23]))
     text_ = "\n".join(battle_lines(format_readout(state(m))))
     assert 'RUN REFUSED — "Wild ZIGZAGOON prevents escape with SHADOW TAG!"' in text_
-    assert "POKéMON switching REFUSED — \"ZIGZAGOON's SHADOW TAG prevents switching!\"" in text_
+    assert 'POKéMON switching REFUSED — "ZIGZAGOON\'s SHADOW TAG prevents switching!"' in text_
     m.put(MONS + 0x58 + 0x20, bytes([71]))
     assert "prevents escape with ARENA TRAP" in format_readout(state(m))
     m.put(MONS + 0x21, bytes([2, 2]))
-    assert "ARENA TRAP" not in format_readout(state(m))
+    assert "prevents escape with ARENA TRAP" not in format_readout(state(m))
     m.put(MONS + 0x58 + 0x20, bytes([42]))
     m.put(MONS + 0x21, bytes([8, 8]))
     assert "prevents escape with MAGNET PULL" in format_readout(state(m))
     m.put(MONS + 0x21, bytes([10, 10]))
     m.put(MONS + 0x50, struct.pack("<I", 1 << 13))
     text_ = format_readout(state(m))
-    assert "RUN REFUSED — \"Can't escape!\"" in text_ and "conditions wrapped" in text_
+    assert 'RUN REFUSED — "Can\'t escape!"' in text_ and "conditions wrapped" in text_
     m.put(MONS + 0x50, struct.pack("<I", 0))
     m.put(STATUSES3, struct.pack("<I", 1 << 10))
-    assert "RUN REFUSED — \"Can't escape!\"" in format_readout(state(m))
+    assert 'RUN REFUSED — "Can\'t escape!"' in format_readout(state(m))
     assert "conditions rooted (INGRAIN)" in format_readout(state(m))
 
 
@@ -358,7 +357,9 @@ def test_unreadable_inputs_are_reported_not_guessed() -> None:
     assert "Party: unreadable" in text_
     m.put(SPECIES_INFO + 28 * 280 + 6, bytes([18]))
     bad = read_battle_details(m.read, base.battle, base.party, base.resources)
-    assert bad is not None and bad.diagnostic == "harness bug: invalid species types for species 280"
+    assert (
+        bad is not None and bad.diagnostic == "harness bug: invalid species types for species 280"
+    )
     assert "HARNESS BUG (battle details): harness bug: invalid species types" in "\n".join(
         bad.lines(base.battle)
     )
@@ -391,9 +392,7 @@ def test_resolving_finishing_absent_and_special_battles() -> None:
     finishing = replace(battle, player_inputs=(), phase="finishing", outcome="won")
     assert "finishing (outcome won)" in details.lines(finishing)[0]
     assert "recorded playback" in details.lines(replace(finishing, phase="replay"))[0]
-    gone = replace(
-        battle, battlers=tuple(replace(b, absent=True) for b in battle.battlers or ())
-    )
+    gone = replace(battle, battlers=tuple(replace(b, absent=True) for b in battle.battlers or ()))
     lines = details.lines(gone)
     assert "Foe ZIGZAGOON · absent (fainted or switched out)" in lines
     assert "You TORCHIC · absent (fainted or switched out)" in lines
@@ -431,3 +430,58 @@ def test_switch_is_registered_server_side_and_default_off() -> None:
     assert SERVER_FEATURES[-1] == "battle-details-v2"
     assert "battle-details-v2" in features_off_from_env({})
     assert features_off_from_env({"POKEBENCH_FEATURES_OFF": "battle-details-v2"}) == OFF
+
+
+def test_production_observation_route_honours_the_switch(monkeypatch: pytest.MonkeyPatch) -> None:
+    from fastapi import FastAPI
+    from test_feature_switches import _Shot
+    from test_game_state import MAPS, game
+    from test_view import get
+
+    from pokebench_env.observation import install_observation
+
+    m = game((0x0, 0x0803CAFE))
+    data = json.loads((FIXTURES / "battle-c406-00001266.json").read_text())
+    for window in data["windows"]:
+        m.put(int(window["address"], 16), bytes.fromhex(window["hex"]))
+    rom(m)
+    payloads = {}
+    for off in ("", "battle-details-v2"):
+        monkeypatch.setenv("POKEBENCH_FEATURES_OFF", off)
+        app = FastAPI()
+        install_observation(app, lambda: _Shot(), m.read, MAPS)
+        status, _, body = get(app, "/pokebench/observation")
+        assert status == 200, body
+        payloads[off] = json.loads(body)
+    on, hidden = payloads[""]["state_text"], payloads["battle-details-v2"]["state_text"]
+    assert battle_lines(on)[: len(BIRCH)] == BIRCH and "Bag: empty" in on.split("\n")
+    assert "Battle state: input; input True; turn 1" in hidden and "Battle details:" not in hidden
+    assert "Bag: " in hidden.split("\n")
+    assert payloads[""]["state"] == payloads["battle-details-v2"]["state"]
+
+
+def test_party_ability_slot_plaintext_and_unreadable_members() -> None:
+    from pokebench_env.pokemon import SUBSTRUCT_ORDERS
+
+    m = trainer()
+    base = state(m)
+    torchic = base.party[0]
+    assert torchic.decode_mode == "encrypted" and torchic.personality is not None
+    body = bytearray(m.read(PARTY, 100))
+    key = torchic.personality ^ (torchic.ot_id or 0)
+    secure = bytearray(
+        struct.pack("<12I", *(w ^ key for w in struct.unpack("<12I", bytes(body[0x20:0x50]))))
+    )
+    misc = 12 * SUBSTRUCT_ORDERS[torchic.personality % 24].index("M") + 4
+    struct.pack_into("<I", secure, misc, struct.unpack_from("<I", secure, misc)[0] | 1 << 31)
+    m.put(PARTY + 0x20, bytes(secure))
+    m.put(SPECIES_INFO + 28 * 280 + 0x17, bytes([18]))
+    plain = replace(torchic, decode_mode="plaintext")
+    unreadable = replace(torchic, diagnostic="harness bug: checksum", species_id=None)
+    details = read_battle_details(m.read, base.battle, (plain, unreadable), bag(259))
+    assert details is not None and details.party is not None
+    assert details.party[0].ability == 18
+    assert details.party[1].diagnostic == "harness bug: checksum"
+    text_ = "\n".join(details.lines(base.battle))
+    assert "ability FLASH FIRE" in text_
+    assert "BAG allowed — not usable in battle: MACH BIKE ×5" in text_

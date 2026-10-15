@@ -56,6 +56,7 @@ export const SWITCHABLE_FEATURES = [
   "navigation-refusal-reasons-v1",
   "transition-press-result-v1",
   "stall-briefing-v1",
+  "battle-details-v2",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -187,6 +188,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("navigation-refusal-reasons-v1", "guidance", "NAVIGATION REFUSAL REASONS", "bounded-navigation-v1", "When navigate_to cannot walk, it says why and what would work: a message is waiting for A or B (dismiss it first); the target is a person or object (stand on a named free neighbouring tile, face it and press A); the target is a wall, water or other blocked tile; or the target is outside this map. Off: the generic refusal text."),
   on("transition-press-result-v1", "guidance", "TRANSITION PRESS RESULTS", "press-result-v1", "Press results name what really happened at transitions: warped from one map and tile to another (with both map names), moved by a script while field controls were locked (not by the press), and a conversation restarted with text already shown. Off: warps read as ordinary moves, scripted motion is reported as the press's movement, and a restarted conversation reads as an interface change."),
   on("stall-briefing-v1", "guard", "STALL BRIEFING", "loop-guard-supervisor-v1", "Posts the loop supervisor's briefing for stalls the loop guard does not detect: walking back and forth between the same two maps (on the second round trip), and every 5 minutes of play without a new milestone. The run continues. Off: briefings only when the loop guard detects a loop."),
+  on("battle-details-v2", "observation", "BATTLE DETAILS V2", "expanded-menu-battle-information-v1", "In battle, replaces the raw battler lines with what each action allows, from game RAM and ROM tables: the battle kind (wild or trainer, PROF. BIRCH rescue), the 2x2 FIGHT/BAG/POKéMON/RUN menu with the highlighted option, and an allowed/REFUSED verdict with the game's own message only for actions the game can refuse (RUN in trainer battles, the Birch rescue, trapping abilities, MEAN LOOK/wrap/INGRAIN; BAG in link and Frontier battles; switching while trapped). RUN also gives the guaranteed-escape speed check or the escape formula. The foe gets everything a talented player would remember: types, exact HP, status, ability, held item, stats, non-neutral stat stages, volatile conditions and every move with type, physical/special/status, power, accuracy and PP. Your active Pokémon gets the same plus its moves in menu order with the highlighted move and 0-PP refusals; every party member gets types, ability, item, HP, status, whether it can switch in, and its full moveset. Usable, unusable and ball items are separated (balls are blocked and lost in trainer battles). An empty bag reads \"Bag: empty\". Disable, Taunt, Torment, Imprison, Encore, Choice Band locks, the escape-try counter and battle text are not read. Off: today's expanded battle lines (Battle state, Battler, Battle input) and a bare \"Bag: \" for an empty bag."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",
@@ -235,6 +237,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "world-targets-v1", "named-interactions-v1", "world-destinations-v1", "bounded-navigation-v1", "field-dialogue-phase-v1", "active-field-message-buffer-v1", "naming-cursor-v1", "story-state-v1",
   "coordinate-script-conditions-v1", "field-control-lock", "warp-activation-guidance-v1", "ledge-hops-v1", "one-way-tiles-v1",
   "full-map-navigation-v1", "counter-talk-v1", "named-warp-destinations-v1", "character-presence-v1",
+  "battle-details-v2",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -275,6 +278,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("navigation-refusal-reasons-v1"),
     ...when("transition-press-result-v1"),
     ...when("stall-briefing-v1"),
+    ...when("battle-details-v2"),
   ];
 }
 

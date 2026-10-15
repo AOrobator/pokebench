@@ -617,6 +617,9 @@ it("links the text-only supervisor card to its explainer",()=>{
 it("links the milestone stall stop card to its explainer",()=>{
  expect(FEATURE_EXPLAINERS["milestone-stall-stop-v1"]).toBe("milestone-stall-stop-v1.html");
 });
+it("links the navigation refusal reasons card to its explainer",()=>{
+ expect(FEATURE_EXPLAINERS["navigation-refusal-reasons-v1"]).toBe("navigation-refusal-reasons-v1.html");
+});
 
 it("shows the experiment, arm and trial strip, the preset, or just the model and run",()=>{
  const flags={loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false};

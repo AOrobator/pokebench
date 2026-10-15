@@ -1,0 +1,148 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Navigation Refusal Reasons</title><style>
+:root{--bg:#f6f4ee;--fg:#1f2421;--muted:#6b6f68;--card:#ffffff;--line:#e3dfd3;--accent:#2f6fde;--accent2:#e0802a;--bad:#d2493a;--good:#2e9d63;
+--floor:#f3ead6;--wall:#7d776d;--water:#8cc3ea;--npc:#8c8f86;--obj:#b08a5a;--shadow:rgba(30,30,20,.10)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#121512;--fg:#e9ece6;--muted:#9ba196;--card:#1b1f1b;--line:#2d332d;--accent:#78a8ff;--accent2:#f0a050;--bad:#ff7a6a;--good:#58cf8d;
+--floor:#3a362c;--wall:#5b5750;--water:#3f78a8;--npc:#6d7068;--obj:#8a6a3a;--shadow:rgba(0,0,0,.35)}}
+:root[data-theme=dark]{--bg:#121512;--fg:#e9ece6;--muted:#9ba196;--card:#1b1f1b;--line:#2d332d;--accent:#78a8ff;--accent2:#f0a050;--bad:#ff7a6a;--good:#58cf8d;
+--floor:#3a362c;--wall:#5b5750;--water:#3f78a8;--npc:#6d7068;--obj:#8a6a3a;--shadow:rgba(0,0,0,.35)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Helvetica,Arial,sans-serif}
+main{max-width:960px;margin:0 auto;padding:32px 16px 72px}
+.eyebrow{font:600 12px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;color:var(--accent2);text-transform:uppercase}
+h1{font-size:34px;line-height:1.15;margin:10px 0 8px;letter-spacing:-.02em}h2{font-size:21px;margin:44px 0 6px}h3{margin:0 0 6px;font-size:16px}
+.lead{font-size:18px;color:var(--muted);max-width:720px}.cap{color:var(--muted);font-size:14px;margin:10px 2px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 1px 2px var(--shadow),0 8px 24px var(--shadow)}
+.scroll{overflow-x:auto}svg{display:block;max-width:100%;height:auto}
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media (max-width:760px){.vs{grid-template-columns:1fr}}.vs>*{min-width:0}
+.tag{display:inline-block;font:600 11px/1 ui-monospace,Menlo,monospace;padding:4px 8px;border-radius:6px;margin-right:6px;vertical-align:2px}.tag.off{background:var(--line);color:var(--muted)}.tag.on{background:var(--accent);color:#fff}
+table{border-collapse:collapse;width:100%;font-size:14.5px}td,th{padding:9px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}tr:last-child td{border-bottom:0}
+code{font:13px ui-monospace,Menlo,monospace;overflow-wrap:anywhere}
+.floor{fill:var(--floor);stroke:var(--line)}.wall{fill:var(--wall);stroke:var(--line)}.water{fill:var(--water);stroke:var(--line)}.obj{fill:var(--obj);stroke:var(--line)}
+.npc{fill:var(--npc);stroke:#fff;stroke-width:2.5}.player{fill:var(--accent);stroke:#fff;stroke-width:3}
+.goal{fill:none;stroke:var(--bad);stroke-width:3;stroke-dasharray:5 4}.stand{fill:none;stroke:var(--good);stroke-width:3}
+.t{font:12px -apple-system,Helvetica,sans-serif;fill:var(--fg)}.tm{font:11px ui-monospace,Menlo,monospace;fill:var(--muted)}.tg{font:700 12px -apple-system,Helvetica,sans-serif;fill:var(--good)}
+.node rect{fill:var(--card);stroke:var(--line);stroke-width:1.5}.node.hot rect{fill:color-mix(in srgb,var(--accent2) 22%,var(--card));stroke:var(--accent2);stroke-width:2}
+.nt{font:600 13px -apple-system,Helvetica,sans-serif;fill:var(--fg);text-anchor:middle}.ns{font:11.5px -apple-system,Helvetica,sans-serif;fill:var(--muted);text-anchor:middle}
+.flow{fill:none;stroke:var(--muted);stroke-width:2}.fl{font:11px -apple-system,Helvetica,sans-serif;fill:var(--muted)}
+</style></head><body><main>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker>
+<marker id="g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--good)"/></marker>
+</defs></svg>
+
+<div class="eyebrow">Harness switch · navigation-refusal-reasons-v1 · default OFF</div>
+<h1>navigate_to says why it cannot walk</h1>
+<p class="lead">When <code>navigate_to</code> refuses, the model used to get one of two generic lines. It could not tell a waiting message from a wall, or a person from water, so it retried the same call. With this switch on, the refusal names the cause and what would work instead.</p>
+
+<h2>What went wrong in recorded runs</h2>
+<div class="card"><table>
+<tr><th>Run</th><th>What the model did</th><th>What it was told (OFF)</th></tr>
+<tr><td><code>0c40</code></td><td>Called <code>navigate_to(10,7)</code> 42 times in Birch's lab while an aide's message waited for A or B (<code>world_context.message.phase</code> = <code>scroll_wait</code> / <code>dismiss_wait</code>, <code>field_controls_locked</code> = true). (10,7) is also the lab's Machine, a solid tile.</td><td><code>field input or navigation geometry unavailable</code>, every time</td></tr>
+<tr><td><code>c497</code></td><td>Retried <code>navigate_to</code> onto a wandering NPC's own tile.</td><td><code>no supported local path; choose a reachable local waypoint</code></td></tr>
+</table></div>
+
+<h2>How the reason is chosen</h2>
+<div class="card scroll"><svg viewBox="0 0 900 430" role="img" aria-label="Decision tree for the refusal reason">
+<g class="node"><rect x="330" y="10" width="240" height="46" rx="10"/><text x="450" y="38" class="nt">navigate_to refuses</text></g>
+<path class="flow" d="M390 56 L190 100" marker-end="url(#a)"/><text x="230" y="76" class="fl">field not ready (before or after a step)</text>
+<path class="flow" d="M510 56 L700 100" marker-end="url(#a)"/><text x="610" y="76" class="fl">planner found no path</text>
+<g class="node"><rect x="20" y="100" width="360" height="300" rx="10"/></g>
+<text x="200" y="124" class="nt">first match wins</text>
+<text x="200" y="152" class="ns">1. in_battle → a battle is in progress</text>
+<text x="200" y="178" class="ns">2. not started / screen ≠ overworld → not on the field</text>
+<g class="node hot"><rect x="40" y="192" width="320" height="40" rx="8"/></g>
+<text x="200" y="217" class="nt">3. message or dialogue present → dismiss with B</text>
+<text x="200" y="256" class="ns">4. active_ui not ready → a menu is open (phase)</text>
+<text x="200" y="282" class="ns">5. field_controls_locked = true → locked by a script</text>
+<text x="200" y="308" class="ns">6. field_controls_locked null → control state unavailable</text>
+<text x="200" y="334" class="ns">7. otherwise → navigation geometry unavailable</text>
+<text x="200" y="370" class="ns">After a step, the same text is prefixed</text>
+<text x="200" y="388" class="ns">"walk interrupted: "</text>
+<g class="node"><rect x="420" y="100" width="460" height="300" rx="10"/></g>
+<text x="650" y="124" class="nt">first match wins (same grid the planner used)</text>
+<text x="650" y="152" class="ns">0. counter-talk-v1 on and a counter is involved → counter hint (unchanged)</text>
+<text x="650" y="178" class="ns">1. x ≥ width or y ≥ height → outside this map, with its bounds</text>
+<text x="650" y="204" class="ns">2. target is a listed warp → generic text</text>
+<g class="node hot"><rect x="440" y="218" width="420" height="58" rx="8"/></g>
+<text x="650" y="240" class="nt">3. a person/object on it, or an A-target on a solid tile</text>
+<text x="650" y="262" class="ns">→ name it; list free reachable neighbours with facing</text>
+<g class="node hot"><rect x="440" y="288" width="420" height="58" rx="8"/></g>
+<text x="650" y="310" class="nt">4. tile not walkable → ledge / water / wall / terrain</text>
+<text x="650" y="332" class="ns">→ nearest reachable walkable tile within 3 steps</text>
+<text x="650" y="372" class="ns">5. otherwise (unknown tile, enclosed floor, elevation)</text>
+<text x="650" y="390" class="ns">→ generic text, as with the switch off</text>
+</svg></div>
+<p class="cap">Both branches read only the state snapshot the tool already has: <code>world_context.message</code> / <code>dialogue</code>, <code>field_controls_locked</code>, <code>active_ui</code>, <code>interaction_targets</code>, <code>world_context.objects</code>, and the <code>navigation_grid</code> (local) or <code>map_grid</code> (whole map) and <code>topology</code> bounds.</p>
+
+<h2>A person on the target tile</h2>
+<div class="vs">
+<div class="card"><h3>Illustrative 3×3 room, target (1,1) = MOM</h3><div class="scroll"><svg viewBox="0 0 300 300" role="img" aria-label="Grid with MOM in the centre and four green stand tiles">
+<g transform="translate(30,30)">
+<rect class="floor" x="0" y="0" width="80" height="80"/><rect class="floor" x="80" y="0" width="80" height="80"/><rect class="floor" x="160" y="0" width="80" height="80"/>
+<rect class="floor" x="0" y="80" width="80" height="80"/><rect class="floor" x="80" y="80" width="80" height="80"/><rect class="floor" x="160" y="80" width="80" height="80"/>
+<rect class="floor" x="0" y="160" width="80" height="80"/><rect class="floor" x="80" y="160" width="80" height="80"/><rect class="floor" x="160" y="160" width="80" height="80"/>
+<circle class="player" cx="40" cy="40" r="16"/><text x="40" y="74" class="tm" text-anchor="middle">you (0,0)</text>
+<circle class="npc" cx="120" cy="120" r="20"/><text x="120" y="125" class="t" text-anchor="middle">MOM</text>
+<rect class="goal" x="84" y="84" width="72" height="72"/>
+<rect class="stand" x="86" y="6" width="68" height="68"/><path d="M120 50 L120 78" stroke="var(--good)" stroke-width="3" marker-end="url(#g)"/>
+<rect class="stand" x="86" y="166" width="68" height="68"/><path d="M120 190 L120 162" stroke="var(--good)" stroke-width="3" marker-end="url(#g)"/>
+<rect class="stand" x="6" y="86" width="68" height="68"/><path d="M50 120 L78 120" stroke="var(--good)" stroke-width="3" marker-end="url(#g)"/>
+<rect class="stand" x="166" y="86" width="68" height="68"/><path d="M190 120 L162 120" stroke="var(--good)" stroke-width="3" marker-end="url(#g)"/>
+</g></svg></div>
+<p class="cap">Red dashed: the requested tile. Green: free tiles the planner can reach, each with the direction to face. The order is up, down, left, right of the target.</p></div>
+<div class="card"><h3><span class="tag off">OFF</span></h3><p><code>Navigation: no supported local path; choose a reachable local waypoint; 0 ordinary button attempts.</code></p>
+<h3><span class="tag on">ON</span></h3><p><code>Navigation: (1,1) is MOM (person or object), which navigate_to cannot stand on; to talk to it or use it, walk to one of these free tiles, face it and press A: (1,0) facing DOWN; (1,2) facing UP; (0,1) facing RIGHT; (2,1) facing LEFT; 0 ordinary button attempts.</code></p>
+<p class="cap">A neighbour is listed only if it is walkable under the same rules the planner uses (walkable-floor-v1, one-way-tiles-v1), holds no object, is not a warp, and the planner finds a route to it. With none: "…and none of its free neighbouring tiles can be reached from here; choose a reachable waypoint nearer to it". The name comes from <code>interaction_targets</code>; an object without one is "a person or object". A face-and-press-A target on a solid tile (the lab's Machine, a PC) is named the same way, for example "Machine (background)".</p></div>
+</div>
+
+<h2>A wall, water or ledge</h2>
+<div class="vs">
+<div class="card"><div class="scroll"><svg viewBox="0 0 300 140" role="img" aria-label="Row with player, floor and water target; nearest tile highlighted">
+<g transform="translate(30,20)">
+<rect class="floor" x="0" y="0" width="80" height="80"/><rect class="floor" x="80" y="0" width="80" height="80"/><rect class="water" x="160" y="0" width="80" height="80"/>
+<circle class="player" cx="40" cy="40" r="16"/><rect class="goal" x="164" y="4" width="72" height="72"/><rect class="stand" x="86" y="6" width="68" height="68"/>
+<text x="200" y="45" class="t" text-anchor="middle">water</text><text x="120" y="100" class="tg" text-anchor="middle">nearest (1,0)</text>
+</g></svg></div></div>
+<div class="card"><table>
+<tr><th>Tile</th><th>Says</th></tr>
+<tr><td>ledge behaviour 0x38–0x3B</td><td>a ledge, which you can only hop over in its arrow direction</td></tr>
+<tr><td>water behaviours (surfable set)</td><td>water</td></tr>
+<tr><td>collision ≠ 0</td><td>a wall or other solid tile</td></tr>
+<tr><td>other unwalkable behaviour</td><td>terrain navigate_to does not walk on (metatile behavior 0x20)</td></tr>
+</table><p class="cap">Then: "…, not a walkable tile; the nearest walkable tile navigate_to can reach is (x,y)", searching every tile within 3 steps, nearest first, then top to bottom, left to right. None: "no walkable tile navigate_to can reach lies within 3 steps of it".</p></div>
+</div>
+
+<h2>Every text, OFF and ON</h2>
+<div class="card scroll"><table>
+<tr><th>Case</th><th>OFF (unchanged)</th><th>ON</th></tr>
+<tr><td>Message open</td><td>field input or navigation geometry unavailable</td><td>a message is waiting for A or B; dismiss it with B, then call navigate_to again</td></tr>
+<tr><td>Script lock, no message</td><td>same</td><td>field controls are locked by a script and no message is open; the game is acting on its own, so inspect the new state before calling navigate_to again</td></tr>
+<tr><td>Lock unknown</td><td>same</td><td>field control state is unavailable; inspect the new state before calling navigate_to again</td></tr>
+<tr><td>Battle</td><td>same</td><td>a battle is in progress; navigate_to walks only on the field</td></tr>
+<tr><td>Not started / other screen</td><td>same</td><td>the game has not started yet; … / the game is not on the field (screen: X); navigate_to walks only on the field</td></tr>
+<tr><td>Menu open</td><td>same</td><td>a menu or other interface is open (phase); close it before calling navigate_to</td></tr>
+<tr><td>No geometry</td><td>same</td><td>this map's navigation geometry is unavailable; inspect the new state before calling navigate_to again</td></tr>
+<tr><td>Stopped after a step</td><td>field input locked or unavailable; inspect new state</td><td>walk interrupted: &lt;one of the above&gt;</td></tr>
+<tr><td>Outside map</td><td>no supported (local) path…</td><td>(25,3) is outside this map; its tiles run from (0,0) to (19,19); to reach another map, use a listed warp or a map connection</td></tr>
+<tr><td>Person/object, blocked tile</td><td>no supported (local) path…</td><td>see the two sections above</td></tr>
+</table><p class="cap">Texts are whole; nothing is shortened. The tool description and every other status are identical in both states.</p></div>
+
+<h2>Wiring</h2>
+<div class="card scroll"><svg viewBox="0 0 900 120" role="img" aria-label="Switch wiring from FeatureSet to the navigate_to tool">
+<g class="node"><rect x="10" y="30" width="190" height="56" rx="10"/><text x="105" y="55" class="nt">run preset / FeatureSet</text><text x="105" y="74" class="ns">navigation-refusal-reasons-v1</text></g>
+<path class="flow" d="M200 58 L260 58" marker-end="url(#a)"/>
+<g class="node"><rect x="262" y="30" width="190" height="56" rx="10"/><text x="357" y="55" class="nt">withNavigation()</text><text x="357" y="74" class="ns">refusalReasons port</text></g>
+<path class="flow" d="M452 58 L512 58" marker-end="url(#a)"/>
+<g class="node hot"><rect x="514" y="30" width="190" height="56" rx="10"/><text x="609" y="55" class="nt">navigate_to execute</text><text x="609" y="74" class="ns">unreadyReason / targetReason</text></g>
+<path class="flow" d="M704 58 L764 58" marker-end="url(#a)"/>
+<g class="node"><rect x="766" y="30" width="124" height="56" rx="10"/><text x="828" y="55" class="nt">tool result</text><text x="828" y="74" class="ns">"Navigation: …"</text></g>
+</svg></div>
+<p class="cap">The switch is read only from the FeatureSet given to <code>withNavigation</code>. It needs <code>bounded-navigation-v1</code>. Deleting the wiring turned the factory test red; restoring it turned it green.</p>
+
+<h2>Status</h2>
+<div class="card"><table>
+<tr><td>Branch</td><td><code>claude/nav-refusal-reasons</code> (local only)</td></tr>
+<tr><td>Tests</td><td><code>packages/agent/src/navigation-refusal-reasons.test.ts</code>: every reason ON, OFF byte-identical, counter hint priority, factory path</td></tr>
+<tr><td>Not done</td><td>Multi-model review; measured runs. A pending experiment entry is registered; it runs only after readiness passes and the operator approves it.</td></tr>
+</table></div>
+</main></body></html>

@@ -52,6 +52,7 @@ describe("navigation-refusal-reasons-v1: why navigate_to cannot start",()=>{
   expect(await status({...field,screen:"title_menu"},{x:2,y:0},on)).toBe(SCREEN);
   expect(await status({...field,started:false},{x:2,y:0},on)).toBe("the game has not started yet; navigate_to walks only on the field");
   expect(await status({...field,active_ui:{phase:"start_menu",selected:null,ready:false,controls:"menu",diagnostic:null}},{x:2,y:0},on)).toBe(UI);
+  expect(await status({...field,active_ui:{phase:"bag",selected:null,ready:true,controls:"menu",diagnostic:"unsupported"}},{x:2,y:0},on)).toBe("a menu or other interface is open (bag); close it before calling navigate_to");
   expect(await status({...field,navigation_grid:null},{x:2,y:0},on)).toBe(GEOMETRY);
   expect(await status({...field,position:null},{x:2,y:0},on)).toBe(GEOMETRY);
   expect(await status({...field,map_grid:null},{x:2,y:0},{...on,fullMap:true})).toBe(GEOMETRY);
@@ -97,6 +98,12 @@ describe("navigation-refusal-reasons-v1: why the target cannot be walked to",()=
   expect(await status(at(0,0x10),{x:2,y:0},on)).toBe("(2,0) is water, not a walkable tile; the nearest walkable tile navigate_to can reach is (1,0)");
   expect(await status(at(1,0x3b),{x:2,y:0},on)).toBe("(2,0) is a ledge, which you can only hop over in its arrow direction, not a walkable tile; the nearest walkable tile navigate_to can reach is (1,0)");
   expect(await status(at(0,0x20),{x:2,y:0},on)).toBe("(2,0) is terrain navigate_to does not walk on (metatile behavior 0x20), not a walkable tile; the nearest walkable tile navigate_to can reach is (1,0)");
+  const beside=(behavior:number)=>({...field,navigation_grid:{elevation:3,tiles:square(3,(x,y)=>x===2&&y===0?tile(2,0,1):x===1&&y===0?tile(1,0,0,behavior):null),objects:[],warps:[]}});
+  const wall="(2,0) is a wall or other solid tile, not a walkable tile; the nearest walkable tile navigate_to can reach is ";
+  expect(await status(beside(0x06),{x:2,y:0},{...on,floor:true})).toBe(`${wall}(1,0)`);
+  expect(await status(beside(0x06),{x:2,y:0},on)).toBe(`${wall}(2,1)`);
+  expect(await status(beside(0x30),{x:2,y:0},{...on,oneWay:true})).toBe(`${wall}(1,0)`);
+  expect(await status(beside(0x30),{x:2,y:0},on)).toBe(`${wall}(2,1)`);
   const sealed={...field,navigation_grid:{elevation:3,tiles:[tile(0,0),tile(1,0,1),tile(3,0,1),tile(4,0,1),tile(5,0),tile(4,1)],objects:[],warps:[]}};
   expect(await status(sealed,{x:4,y:0},on)).toBe("(4,0) is a wall or other solid tile, not a walkable tile; no walkable tile navigate_to can reach lies within 3 steps of it");
  });

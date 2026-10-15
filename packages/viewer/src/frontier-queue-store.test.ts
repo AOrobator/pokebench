@@ -31,7 +31,7 @@ it("discovers the real eight-position format without fabricating 24 trial rows a
 it("accepts a frozen unlaunched plan, rejects late-invalid ledgers atomically and surfaces malformed receipts", async () => {
   const { root, folder, f, rows } = setup(); writeRun(root, f);
   const planned = await workbenchSnapshot(root, () => Promise.resolve(false), Date.now()); expect(planned.problems).toEqual([]); expect(planned.runs[0]?.cohort).toBeNull();
-  rows([f.row, f.process, { ...f.outcome, events_sha256: null }]); const invalid = await workbenchSnapshot(root, () => Promise.resolve(false), Date.now()); expect(invalid.problems.join()).toContain("outcome");
+  rows([f.row, f.process, { ...f.outcome, events_sha256: null }]); const invalid = await workbenchSnapshot(root, () => Promise.resolve(false), Date.now()); expect(invalid.problems.join()).toContain("outcome"); expect(invalid.runs[0]?.cohort).toBeNull();
   writeFileSync(join(folder, "trials.jsonl"), "bad"); expect((await workbenchSnapshot(root, () => Promise.resolve(false), Date.now())).problems.length).toBe(1);
 });
 

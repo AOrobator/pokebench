@@ -63,7 +63,8 @@
       "dialogue-log-v1": false,
       "loop-guard-supervisor-v1": false,
       "instruction-ledger-v1": false,
-      "next-milestone-hint-v1": false
+      "next-milestone-hint-v1": false,
+      "double-context-window-v1": false
     }
   },
   "trialsPerArm": 8,

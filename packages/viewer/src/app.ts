@@ -173,6 +173,7 @@ export class App {
   private readonly held = new Set<HTMLElement>();
   private readonly heldAtTop = new Set<HTMLElement>();
   private sideBox: number | null = null;
+  private readonly autoScroll = new WeakMap<HTMLElement, number>();
   private rows: RowState = { open: new Set(), folded: new Set(), selected: null };
   private screenTick = 0;
   private sinceScreen = 0;
@@ -383,20 +384,18 @@ export class App {
         this.held.delete(list);
         if (this.heldAtTop.delete(list)) list.scrollTop = 0;
       });
-      for (const type of ["wheel", "keydown", "pointerdown"]) list.addEventListener(type, (event) => { if (type !== "pointerdown" || event.target === list) this.heldAtTop.delete(list); });
+      // Any scroll the reader makes (not one reconcile made) cancels the return to the top.
+      list.addEventListener("scroll", () => { if (Math.abs(list.scrollTop - (this.autoScroll.get(list) ?? 0)) > 1) this.heldAtTop.delete(list); });
+      // Recorded on click, before the toggle event, so a redraw in between cannot lose it.
+      list.addEventListener("click", (event) => {
+        const summary = (event.target as HTMLElement).closest("summary");
+        const details = summary?.parentElement;
+        if (!(details instanceof HTMLDetailsElement)) return;
+        this.remember(details, !details.open);
+      }, true);
       list.addEventListener("toggle", (event) => {
         const details = event.target as HTMLDetailsElement;
-        const key = details.closest<HTMLElement>("[data-key]")?.dataset.key;
-        if (key === undefined) return;
-        const set = details.classList.contains("res-d") ? this.rows.folded : this.rows.open;
-        const remember = details.classList.contains("res-d") ? !details.open : details.open;
-        if (remember) set.add(key);
-        else set.delete(key);
-        // A redraw may have replaced the row between the click and this event: make every copy match.
-        for (const row of this.doc.querySelectorAll<HTMLDetailsElement>(`details[data-key="${key}"]`)) {
-          const target = details.classList.contains("res-d") ? row.querySelector<HTMLDetailsElement>("details.res-d") : row;
-          if (target !== null && target !== details && target.open !== details.open) target.open = details.open;
-        }
+        this.remember(details, details.open);
       }, true);
     }
     this.ui("trace-link").addEventListener("click", () => {
@@ -640,6 +639,15 @@ export class App {
     for (const name of ["trace", "side-trace"]) this.doc.querySelector<HTMLElement>(`[data-ui="${name}"]`)?.replaceChildren();
   }
 
+  private remember(details: HTMLDetailsElement, open: boolean): void {
+    const key = details.closest<HTMLElement>("[data-key]")?.dataset.key;
+    if (key === undefined) return;
+    const result = details.classList.contains("res-d");
+    const set = result ? this.rows.folded : this.rows.open;
+    if (result ? !open : open) set.add(key);
+    else set.delete(key);
+  }
+
   // The chip buttons are built once and updated in place, so focus and clicks survive live updates.
   private renderChips(): void {
     const bar = this.ui("trace-chips");
@@ -683,11 +691,13 @@ export class App {
         const side = this.ui("side-trace");
         const groups = sideGroups(this.trace.turns, SIDE_TURNS, boxTurn);
         reconcile(side, groups, groups.length === 0 ? '<p class="nodata">no steps yet</p>' : "", this.stamps, this.held.has(side), this.rows);
+        this.autoScroll.set(side, side.scrollTop);
       }
       const startMs = this.shown.startMs;
       const elapsed = startMs === null ? null : (ms: number): number => (ms - startMs - this.shown.control.pausedBefore(ms)) / 1000;
       const { groups, more } = traceGroups(this.trace.turns, this.traceOn, { elapsed, live, limit: this.traceLimit, page: TRACE_TURNS });
       reconcile(box, groups, groups.length === 0 ? '<p class="nodata">no recorded events</p>' : moreButton(more, TRACE_TURNS), this.stamps, this.held.has(box), this.rows);
+      this.autoScroll.set(box, box.scrollTop);
     }
     if (live !== null) {
       const { thinking, text } = this.shown.streaming;

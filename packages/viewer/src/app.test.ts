@@ -966,9 +966,30 @@ describe("agent trace page", () => {
     box.scrollTop = 0;
     box.dispatchEvent(new Event("mouseenter"));
     box.scrollTop = 300;
-    box.dispatchEvent(new Event("wheel"));
+    box.dispatchEvent(new Event("scroll"));
     box.dispatchEvent(new Event("mouseleave"));
     expect(box.scrollTop).toBe(300);
+  });
+
+  it("remembers a row opened by a click even if a redraw lands before its toggle event", async () => {
+    const { app, streams, setNow } = await harness();
+    const events = fullRun().events;
+    feed(must(streams[0]), events.slice(0, 10));
+    setNow(BASE_MS + 3_300);
+    app.tick(100);
+    const tool = must(ui("trace").querySelector<HTMLDetailsElement>('details[data-key="5"]'));
+    const summary = must(tool.querySelector("summary"));
+    // Stand-in for the browser's queued toggle: the click lands, the toggle event has not fired yet.
+    summary.addEventListener("click", (event) => { event.preventDefault(); });
+    summary.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+    expect(tool.open).toBe(false);
+    const late = new Log();
+    late.events.push(...events.slice(0, 10));
+    feed(must(streams[0]), [late.add(3_400, { type: "retry", turn: 1, reason: "late", attempt: 1, limit: 3 })], false);
+    app.tick(100);
+    const again = must(ui("trace").querySelector<HTMLDetailsElement>('details[data-key="5"]'));
+    expect(again).not.toBe(tool);
+    expect(again.open).toBe(true);
   });
 
   it("collapses and expands every row", async () => {

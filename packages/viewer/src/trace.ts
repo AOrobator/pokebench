@@ -48,7 +48,6 @@ class Entry {
   readonly category: TraceCategory;
   private cached: TraceStep | null = null;
   private row: string | null = null;
-  private side: { readonly gutter: string; readonly html: string } | null = null;
   constructor(first: RunEvent, readonly label: string | null = null) {
     this.events = [first];
     this.category = categoryOf(first);
@@ -58,7 +57,6 @@ class Entry {
     this.events.push(event);
     this.cached = null;
     this.row = null;
-    this.side = null;
   }
 
   // Built once per change: a long run rerenders without re-escaping old results.
@@ -76,13 +74,10 @@ class Entry {
     return this.row;
   }
 
-  // The side panel's copy, with its turn gutter; cached the same way.
+  // The side panel's copy, with its turn gutter. Not cached: it is rebuilt only when its turn changes,
+  // and caching it would hold a second copy of every result.
   sideHtml(gutter: string): string {
-    if (this.side?.gutter !== gutter) {
-      this.side = { gutter, html: traceRow(this.cached ?? describe(this), gutter) };
-      if (this.row !== null) this.cached = null;
-    }
-    return this.side.html;
+    return traceRow(this.cached ?? describe(this), gutter);
   }
 
   // Changes exactly when this entry's row would.

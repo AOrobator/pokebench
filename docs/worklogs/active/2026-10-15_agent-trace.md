@@ -158,6 +158,20 @@ Browser verification so far, at 1440×900:
 
 ## Multi-Model Review Log
 
+**Round 5 (032d206..62b4c67)**
+
+Claude: **LGTM**. It verified the round-4 fixes and judged the deferral acceptable.
+
+Minor items, fixed in `fix(viewer): agent trace review round 5`:
+- side rows no longer cached (the cache held a second copy of results)
+- the toggle race really is fixed now: row state is recorded on the summary click, before the queued toggle event; the test cancels the native toggle to isolate it, and removing the recorder turns 1 test red
+- any user scroll (touch included) cancels the snap back to the top, instead of wheel/keydown; it compares against the scroll reconcile set itself, and disabling the check turns 1 test red
+- the mirror loop was removed
+
+Grok: the Cursor connection was lost three times (`RetriableError: [unavailable]`), so I re-ran it on the final head.
+
+Gates: viewer 639 passed (95.3/91.1/94.4), agent 1066 passed, lint clean, build ok.
+
 **Round 4 (032d206..73d7a12)**
 
 Claude and Grok, both BLOCKING on the same regression: the side list redrew only on trace version bumps, so when `turn_start` moved the Emerald box on, the previous thought vanished from both panels until thinking ended.

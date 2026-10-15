@@ -120,6 +120,8 @@ function pendingCard(v: ExperimentView, open: boolean): string {
     (open ? `<div class="eq-battle"><p class="eq-why">${esc(v.reason)}</p><dl class="eq-facts"><dt>hypothesis</dt><dd>${esc(v.hypothesis)}</dd>${v.recorded === null ? "" : `<dt>readiness.md</dt><dd>${esc(v.recorded.verdict)}</dd>`}<dt>runs checked</dt><dd>${v.readiness.considered.map(esc).join(", ") || "none yet"}</dd></dl></div>` : "") + `</article>`;
 }
 
+// Approved work lists above drafts; the stable sort keeps queue order within each group.
+const APPROVED: ReadonlySet<string> = new Set(["running", "held", "approved"]);
 export function countsOf(s: QueueSnapshot): Readonly<Record<QueueFilter, number>> {
   const counts: Record<QueueFilter, number> = { all: s.queue.length + s.pending.length + s.closed.length, running: 0, held: 0, approved: 0, draft: 0, stale: 0, "not-ready": 0, blocked: 0, pending: s.pending.length, closed: s.closed.length };
   for (const v of s.queue) if (v.state in counts && v.state !== "pending") counts[v.state as QueueFilter] += 1;
@@ -134,7 +136,7 @@ export function renderQueue(s: QueuePayload, filter: QueueFilter, open: Readonly
   const counts = countsOf(s);
   const chips = `<div class="eq-chips" role="toolbar" aria-label="Filter experiments by status">${FILTERS.filter((f) => f.id === "all" || counts[f.id] > 0).map((f) => `<button type="button" class="eq-chip${f.id === filter ? " on" : ""}" data-filter="${f.id}" aria-pressed="${String(f.id === filter)}">${f.label} <b>${String(counts[f.id])}</b></button>`).join("")}</div>`;
   const showQueue = filter !== "pending" && filter !== "closed";
-  const queued = s.queue.filter((v) => filter === "all" || v.state === filter);
+  const queued = s.queue.filter((v) => filter === "all" || v.state === filter).sort((a, b) => Number(!APPROVED.has(a.state)) - Number(!APPROVED.has(b.state)));
   const closed = filter === "all" || filter === "closed" ? s.closed : [];
   const runner = s.autorun === undefined || s.autorun === null ? "" : `<p class="eq-runner eq-runner-${s.autorun.state}">QUEUE RUNNER · ${s.autorun.state.toUpperCase()} · ${esc(s.autorun.message)}</p>`;
   const queue = runner + (notice === null ? "" : `<p class="eq-notice" role="alert">${esc(notice)}</p>`) + (showQueue ? (queued.length === 0 ? `<p class="eq-empty">${filter === "all" ? "Nothing is queued. Experiments join the queue once models reliably reach the milestone each one acts on." : "No experiments in this state."}</p>` : queued.map((v) => slot(v, open.has(v.id), controls)).join("")) : "") +

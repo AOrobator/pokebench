@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ALL_ON, FEATURES } from "@pokebench/agent/features";
 import { BASE_MS, Log, START } from "../test-support/events.js";
-import { availableActions, controlBar, differenceCount, overlay, overlayKind, queueText, runSeconds, sideStats, splitStrip, stateLabel, switchboard, type NextRunDraft } from "./controls.js";
+import { availableActions, controlBar, differenceCount, overlay, overlayKind, queueText, runSeconds, sideStats, splitStrip, splitTimes, stateLabel, switchboard, type NextRunDraft } from "./controls.js";
 import { RunView } from "./model.js";
 
 function view(build: (log: Log) => void = () => undefined): RunView {
@@ -88,11 +88,13 @@ describe("live side panel", () => {
       l.add(6_000, control("resume", "applied", { paused_ms: 5_000 }));
       l.add(10_000, { type: "milestone", turn: 1, name: "NEW_GAME_CREATED", server_timestamp: 1, kind: "story", origin: "observed" });
     });
-    const html = splitStrip(v, { run: "best", milestones: [{ name: "NEW_GAME_CREATED", offsetMs: 7_000 }] });
+    const best = { run: "best", milestones: [{ name: "NEW_GAME_CREATED", offsetMs: 7_000 }] };
+    const html = splitStrip(v);
     expect(html).toContain('<span class="done">NEW GAME ✔</span>');
     expect(html).toContain('<span class="next">NAMED</span>');
-    expect(html).toContain('<span class="t">0:00:05</span><span class="d g">−0:00:02</span>');
-    expect(splitStrip(v, null)).toContain("no comparable best run yet");
+    expect(html).not.toContain("splitrows");
+    expect(splitTimes(v, best)).toContain('<span class="t">0:00:05</span><span class="d g">−0:00:02</span>');
+    expect(splitTimes(v, null)).toContain("no comparable best run yet");
   });
 });
 

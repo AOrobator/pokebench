@@ -201,7 +201,7 @@ export function thinkingDialog(view: RunView, nowMs: number): { head: string; bo
 }
 
 function chip(button: string): string {
-  return `<span class="chipb">${ARROW[button] ?? ""}${button}</span>`;
+  return `<span class="chipb">${ARROW[button] ?? ""}${esc(button)}</span>`;
 }
 
 const CONTROL_ICON = { pause: "⏸", resume: "▶", stop: "■", cancel_stop: "↺", abort: "✖" } as const;
@@ -214,7 +214,7 @@ function controlRow(event: Extract<RunEvent, { type: "operator_control" }>): str
   return `${CONTROL_ICON[event.action]} ${name} ${status}${detail} · request ${String(event.request)}`;
 }
 
-function rowBody(event: RunEvent, view?: RunView): string | null {
+export function eventText(event: RunEvent, view?: RunView): string | null {
   switch (event.type) {
     case "assistant": return `${event.thinking === "" ? "response" : "thinking"} · turn ${String(event.turn)}: ${esc((event.thinking || event.text || "no text recorded").slice(0, 200))}`;
     case "operator_control": return controlRow(event);
@@ -270,15 +270,8 @@ function rowBody(event: RunEvent, view?: RunView): string | null {
   }
 }
 
-export function actionRow(event: RunEvent, view?: RunView): string | null {
-  const body = rowBody(event, view);
-  if (body === null) return null;
-  const error = (event.type === "tool_result" && event.is_error) || event.type === "retry" || (event.type === "loop_guard" && event.phase !== "recovered" && !("mode" in event && event.mode === "diagnostic")) || event.type === "telemetry_error" || (event.type === "operator_control" && (event.emulator_frozen === false || event.status === "failed")) ? " ev-error" : "";
-  return `<div class="ev ev-${event.type}${error}" data-seq="${String(event.seq)}"><span class="seq">#${String(event.seq)}</span><span class="tag">${event.type}</span><span class="body">${body}</span></div>`;
-}
-
 export function inspector(event: RunEvent | undefined): string {
-  if (event === undefined) return '<p class="nodata">click a log row to see its raw event</p>';
+  if (event === undefined) return '<p class="nodata">select a trace row to see its complete recorded events</p>';
   const record = event as unknown as Record<string, unknown>;
   const sections = ["thinking", "text", "message", "reason", "system_prompt"].flatMap((key) => {
     const value = record[key];
@@ -295,6 +288,24 @@ export function brand(view: RunView): string {
   const experiment = evaluation?.experiment;
   const label = experiment !== undefined ? ` · EXPERIMENT ${experiment.id} · ARM ${experiment.arm} · TRIAL ${String(experiment.trial)}/${String(experiment.of)}` : evaluation !== undefined ? ` · PRESET ${evaluation.preset_id}` : "";
   return `POKéNAV · ${view.start?.run ?? "NO RUN"}${label}`;
+}
+
+// The header strip: which experiment, arm and trial (or preset) is on screen.
+export function runIdentity(view: RunView): string {
+  const start = view.start;
+  if (start === null) return "";
+  const cell = (label: string, value: string, cls = "", extra = ""): string => `<div class="id-cell${cls}"><small>${label}</small><span>${esc(value)}</span>${extra}</div>`;
+  const evaluation = start.evaluation;
+  const experiment = evaluation?.experiment;
+  const cells: string[] = [];
+  if (experiment !== undefined) {
+    const dots = Array.from({ length: experiment.of }, (_, i) => `<i class="${i + 1 < experiment.trial ? "done" : i + 1 === experiment.trial ? "now" : ""}"></i>`).join("");
+    cells.push(cell("EXPERIMENT", experiment.id, " id-exp"), cell("ARM", experiment.arm, " id-arm"), cell("TRIAL", `${String(experiment.trial)} of ${String(experiment.of)}`, "", `<div class="trial-dots" title="trial ${String(experiment.trial)} of ${String(experiment.of)}">${dots}</div>`));
+  } else if (evaluation !== undefined) {
+    cells.push(cell("PRESET", evaluation.preset_id, " id-exp"));
+  }
+  cells.push(cell("MODEL · THINKING", `${start.model.id} · ${start.sampling.thinking_level}`), cell("RUN", `…${start.run.slice(-4)}`));
+  return cells.join("");
 }
 
 export function fieldContext(view: RunView): string {

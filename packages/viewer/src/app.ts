@@ -4,10 +4,11 @@ import type { RunEvent } from "@pokebench/agent/events";
 import { esc, eventMs, hms } from "./format.js";
 import { gbaSvg, litButtons } from "./gba.js";
 import { RunView, isRunEvent } from "./model.js";
-import { actionRow, brand, budgets, counters, fieldContext, harnessConfig, objectivePanel, objectiveStatus, inspector, party, splits, thinkingDialog, trainerCard, type Baseline } from "./panels.js";
+import { brand, runIdentity, budgets, counters, fieldContext, harnessConfig, objectivePanel, objectiveStatus, inspector, party, splits, thinkingDialog, trainerCard, type Baseline } from "./panels.js";
 import { ReplayClock } from "./replay.js";
 import { lanesSvg } from "./timeline.js";
-import { ABORT_HOLD_MS, availableActions, controlBar, overlay, overlayKind, runSeconds, sideStats, splitStrip, stateLabel, type ControlAction } from "./controls.js";
+import { TRACE_CHIPS, TraceBuilder, moreButton, sideGroups, traceGroups, type TraceCategory, type TraceGroup } from "./trace.js";
+import { ABORT_HOLD_MS, availableActions, controlBar, overlay, overlayKind, runSeconds, sideStats, splitStrip, splitTimes, stateLabel, type ControlAction } from "./controls.js";
 import { NextRunPanel } from "./nextpanel.js";
 import { QueuePanel } from "./queue-view.js";
 
@@ -38,6 +39,75 @@ interface RunChoice {
 }
 
 const LIVE_SCREEN_MS = 500;
+const TRACE_TURNS = 50;
+const SIDE_TURNS = 30;
+
+// What the operator opened, folded or selected, by row key. It is reapplied to
+// every redrawn or newly drawn turn, so a row stays open when its turn is
+// redrawn, hidden by a chip and shown again, or reloaded by SHOW OLDER.
+interface RowState {
+  readonly open: Set<string>;
+  readonly folded: Set<string>;
+  selected: string | null;
+}
+
+function applyState(group: HTMLElement, state: RowState): void {
+  for (const row of group.querySelectorAll<HTMLElement>("[data-key]")) {
+    const key = row.dataset.key ?? "";
+    if (row instanceof HTMLDetailsElement && state.open.has(key)) row.open = true;
+    const result = row.querySelector<HTMLDetailsElement>("details.res-d");
+    if (result !== null && state.folded.has(key)) result.open = false;
+    row.classList.toggle("sel", key === state.selected);
+  }
+}
+
+// The row (or turn heading) at the top of the visible list, so it can stay put.
+// At the very top the newest turn is shown, unless the pointer is over the list.
+function anchorOf(box: HTMLElement, held: boolean): { readonly find: () => HTMLElement | null; readonly offset: number } | null {
+  if (box.scrollTop <= 0 && !held) return null;
+  const top = box.getBoundingClientRect().top;
+  const first = [...box.querySelectorAll<HTMLElement>(".turn-h, [data-key]")].find((el) => el.getBoundingClientRect().bottom > top);
+  if (first === undefined) return null;
+  const key = first.dataset.key;
+  const group = first.closest<HTMLElement>("[data-group]")?.dataset.group ?? "";
+  const find = (): HTMLElement | null => key === undefined ? box.querySelector<HTMLElement>(`[data-group="${group}"] .turn-h`) : box.querySelector<HTMLElement>(`[data-key="${key}"]`);
+  return { find, offset: first.getBoundingClientRect().top - top };
+}
+
+// Updates the list turn by turn: unchanged turns keep their elements, so a click
+// or keyboard focus is never lost to a live update, and the reader's row stays put.
+// `scrollTo` records a position as the viewer's own before setting it, so the scroll event it causes,
+// whenever the browser fires it, is not mistaken for the reader's.
+function reconcile(box: HTMLElement, groups: readonly TraceGroup[], tail: string, stamps: WeakMap<HTMLElement, string>, held: boolean, state: RowState, scrollTo: (top: number) => void): void {
+  const anchor = anchorOf(box, held);
+  const existing = new Map<string, HTMLElement>();
+  for (const child of [...box.children] as HTMLElement[]) {
+    if (child.dataset.group === undefined) child.remove();
+    else existing.set(child.dataset.group, child);
+  }
+  const wanted: { key: string; stamp: string; html: () => string }[] = [...groups];
+  if (tail !== "") wanted.push({ key: "tail", stamp: tail, html: () => tail });
+  wanted.forEach((group, at) => {
+    let element = existing.get(group.key);
+    existing.delete(group.key);
+    if (element === undefined) {
+      element = box.ownerDocument.createElement("div");
+      element.className = "tgroup";
+      element.dataset.group = group.key;
+      element.innerHTML = group.html();
+      applyState(element, state);
+    } else if (stamps.get(element) !== group.stamp) {
+      element.innerHTML = group.html();
+      applyState(element, state);
+    }
+    stamps.set(element, group.stamp);
+    if (box.children[at] !== element) box.insertBefore(element, box.children[at] ?? null);
+  });
+  for (const stale of existing.values()) stale.remove();
+  const moved = anchor?.find();
+  if (anchor !== null && moved !== null && moved !== undefined) scrollTo(box.scrollTop + moved.getBoundingClientRect().top - box.getBoundingClientRect().top - anchor.offset);
+}
+
 const LIVE_RETRY_MS = 5_000;
 export const RUN_LIST_MS = 3_000;
 const MODE_TEXT: Record<Mode, string> = { loading: "LOADING", live: "LIVE", replay: "REPLAY", idle: "NO RUNS" };
@@ -95,7 +165,18 @@ export class App {
   private comparisonRequest = 0;
   private comparisonsRun: string | null = null;
   private problems: string[] = [];
-  private logged = 0;
+  private trace = this.newTrace();
+  private traced = 0;
+  private traceKey = "";
+  private traceOn = new Set<TraceCategory>(TRACE_CHIPS.filter((chip) => chip.on).map((chip) => chip.id));
+  private traceLimit = TRACE_TURNS;
+  private readonly stamps = new WeakMap<HTMLElement, string>();
+  // Lists under the pointer hold still while newer turns arrive, so a click lands where aimed.
+  private readonly held = new Set<HTMLElement>();
+  private readonly heldAtTop = new Set<HTMLElement>();
+  private sideBox: number | null = null;
+  private readonly autoScroll = new WeakMap<HTMLElement, number>();
+  private rows: RowState = { open: new Set(), folded: new Set(), selected: null };
   private screenTick = 0;
   private sinceScreen = 0;
   private liveFailedAt: number | null = null;
@@ -284,12 +365,62 @@ export class App {
       this.clock?.seekFraction(Number((event.target as HTMLInputElement).value) / 1000);
       this.render();
     });
-    this.ui("log").addEventListener("click", (event) => {
-      const row = (event.target as HTMLElement).closest<HTMLElement>(".ev");
-      if (row === null) return;
-      for (const selected of this.ui("log").querySelectorAll(".ev.sel")) selected.classList.remove("sel");
-      row.classList.add("sel");
-      this.setHtml("inspector", inspector(this.view.bySeq(Number(row.dataset.seq))));
+    this.ui("trace").addEventListener("click", (event) => {
+      const target = event.target as HTMLElement;
+      if (target.closest("[data-trace-more]") !== null) {
+        this.traceLimit += TRACE_TURNS;
+        this.render();
+        return;
+      }
+      this.inspectRow(target);
+    });
+    this.ui("side-trace").addEventListener("click", (event) => { this.inspectRow(event.target as HTMLElement); });
+    for (const name of ["trace", "side-trace"]) {
+      const list = this.ui(name);
+      list.addEventListener("mouseenter", () => {
+        this.held.add(list);
+        if (list.scrollTop <= 0) this.heldAtTop.add(list);
+      });
+      // A list held at the top goes back to following the newest turn, unless the reader scrolled away.
+      list.addEventListener("mouseleave", () => {
+        this.held.delete(list);
+        if (this.heldAtTop.delete(list)) this.scrollTo(list, 0);
+      });
+      // Any scroll the reader makes (not one reconcile made) cancels the return to the top.
+      list.addEventListener("scroll", () => { if (Math.abs(list.scrollTop - (this.autoScroll.get(list) ?? 0)) > 1) this.heldAtTop.delete(list); });
+      for (const type of ["wheel", "touchmove"]) list.addEventListener(type, () => { this.heldAtTop.delete(list); }, { passive: true });
+      // Recorded on click, before the toggle event, so a redraw in between cannot lose it.
+      list.addEventListener("click", (event) => {
+        const summary = (event.target as HTMLElement).closest("summary");
+        const details = summary?.parentElement;
+        if (!(details instanceof HTMLDetailsElement)) return;
+        this.remember(details, !details.open);
+      }, true);
+      list.addEventListener("toggle", (event) => {
+        const details = event.target as HTMLDetailsElement;
+        this.remember(details, details.open, true);
+      }, true);
+    }
+    this.ui("trace-link").addEventListener("click", () => {
+      this.showPage("trace");
+      this.doc.querySelector(".inspection-nav")?.scrollIntoView({ block: "start", behavior: "smooth" });
+    });
+    this.ui("trace-chips").addEventListener("click", (event) => {
+      const target = event.target as HTMLElement;
+      const all = target.closest("[data-trace-expand],[data-trace-collapse]");
+      if (all !== null) {
+        const open = all.hasAttribute("data-trace-expand");
+        for (const row of this.doc.querySelectorAll<HTMLDetailsElement>('[data-ui="trace"] details[data-key], [data-ui="side-trace"] details[data-key]')) {
+          this.remember(row, open);
+          row.open = open;
+        }
+        return;
+      }
+      const raw = target.closest<HTMLElement>("[data-chip]")?.dataset.chip;
+      const chip = TRACE_CHIPS.find((c) => c.id === raw)?.id;
+      if (chip === undefined) return;
+      if (!this.traceOn.delete(chip)) this.traceOn.add(chip);
+      this.render();
     });
     this.picker("baseline").addEventListener("change", (event) => {
       void this.pickBaseline((event.target as HTMLSelectElement).value);
@@ -384,14 +515,13 @@ export class App {
     this.problems = [];
     this.ui("problems").hidden = true;
     this.ui("problems").textContent = "";
-    this.logged = 0;
+    this.resetTrace();
     this.followThinking = true;
     this.holdStart = null;
     this.overlayClosed = false;
     this.wasLive = false;
     this.ui("follow-thinking").setAttribute("aria-pressed", "true");
     this.liveFailedAt = null;
-    this.ui("log").replaceChildren();
     this.setHtml("inspector", inspector(undefined));
     this.picker("run").value = runId;
     this.markSelectedRun();
@@ -468,8 +598,7 @@ export class App {
     else this.clock.play();
     this.mode = "replay";
     this.shown = new RunView();
-    this.ui("log").replaceChildren();
-    this.logged = 0;
+    this.resetTrace();
   }
 
   tick(realMs: number): void {
@@ -491,8 +620,7 @@ export class App {
       // Rewinding removes the selected row; discard its now-future raw event.
       this.setHtml("inspector", inspector(undefined));
       this.shown = new RunView();
-      this.ui("log").replaceChildren();
-      this.logged = 0;
+      this.resetTrace();
     }
     const events: readonly RunEvent[] = this.view.events;
     for (let i = this.shown.events.length; i < events.length; i += 1) {
@@ -502,18 +630,106 @@ export class App {
     }
   }
 
-  private renderLog(): void {
-    const log = this.ui("log");
-    const atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
-    const rows: string[] = [];
-    for (const event of this.shown.events.slice(this.logged)) {
-      const row = actionRow(event, this.shown);
-      if (row !== null) rows.push(row);
+  // The attribution without the message itself, which the row body already shows.
+  private newTrace(): TraceBuilder {
+    return new TraceBuilder((event) => this.shown.loopLabel(event).replace(`: ${event.message}`, ""));
+  }
+
+  private resetTrace(): void {
+    this.trace = this.newTrace();
+    this.traced = 0;
+    this.traceKey = "";
+    this.traceLimit = TRACE_TURNS;
+    this.rows = { open: new Set(), folded: new Set(), selected: null };
+    this.sideBox = null;
+    for (const name of ["trace", "side-trace"]) this.doc.querySelector<HTMLElement>(`[data-ui="${name}"]`)?.replaceChildren();
+  }
+
+  private scrollTo(list: HTMLElement, top: number): void {
+    this.autoScroll.set(list, top);
+    list.scrollTop = top;
+    // The browser may clamp the value; record where the list really is.
+    this.autoScroll.set(list, list.scrollTop);
+  }
+
+  // `mirror` only once the state has changed (a toggle event); a click arrives before its own toggle.
+  private remember(details: HTMLDetailsElement, open: boolean, mirror = false): void {
+    const key = details.closest<HTMLElement>("[data-key]")?.dataset.key;
+    if (key === undefined) return;
+    const result = details.classList.contains("res-d");
+    const set = result ? this.rows.folded : this.rows.open;
+    if (result ? !open : open) set.add(key);
+    else set.delete(key);
+    if (!mirror) return;
+    // Keep the side panel's and the trace page's copies of this row in step.
+    const other = details.closest("[data-ui]")?.getAttribute("data-ui") === "trace" ? "side-trace" : "trace";
+    for (const row of this.doc.querySelectorAll<HTMLDetailsElement>(`[data-ui="${other}"] details[data-key="${key}"]`)) {
+      const target = result ? row.querySelector<HTMLDetailsElement>("details.res-d") : row;
+      if (target !== null && target !== details && target.open !== open) target.open = open;
     }
-    this.logged = this.shown.events.length;
-    if (rows.length === 0) return;
-    log.insertAdjacentHTML("beforeend", rows.join(""));
-    if (atBottom) log.scrollTop = log.scrollHeight;
+  }
+
+  // The chip buttons are built once and updated in place, so focus and clicks survive live updates.
+  private renderChips(): void {
+    const bar = this.ui("trace-chips");
+    if (bar.childElementCount === 0) {
+      bar.innerHTML = TRACE_CHIPS.map((chip) => `<button type="button" data-chip="${chip.id}" aria-pressed="false">${chip.label} <small>0</small></button>`).join("") + '<span class="spacer"></span><button type="button" class="act" data-trace-collapse>▸ COLLAPSE ALL</button><button type="button" class="act" data-trace-expand>▾ EXPAND ALL</button>';
+    }
+    for (const chip of TRACE_CHIPS) {
+      const button = bar.querySelector<HTMLElement>(`[data-chip="${chip.id}"]`);
+      button?.setAttribute("aria-pressed", String(this.traceOn.has(chip.id)));
+      const count = button?.querySelector("small");
+      if (count !== null && count !== undefined && count.textContent !== String(this.trace.counts[chip.id])) count.textContent = String(this.trace.counts[chip.id]);
+    }
+  }
+
+  // Selecting a row (but not text inside its expanded body) shows every event it groups.
+  private inspectRow(target: HTMLElement): void {
+    if (target.closest(".tl-body") !== null) return;
+    const row = target.closest<HTMLElement>("[data-key]");
+    if (row === null) return;
+    for (const selected of this.doc.querySelectorAll(".tl.sel")) selected.classList.remove("sel");
+    this.rows.selected = row.dataset.key ?? null;
+    for (const same of this.doc.querySelectorAll<HTMLElement>(`[data-key="${row.dataset.key ?? ""}"]`)) same.classList.add("sel");
+    const seqs = (row.dataset.seqs ?? "").split(" ").map(Number);
+    this.setHtml("inspector", seqs.map((seq) => inspector(this.shown.bySeq(seq))).join(""));
+  }
+
+  private renderTrace(nowMs: number): void {
+    const events = this.shown.events;
+    for (; this.traced < events.length; this.traced += 1) this.trace.add(events[this.traced] as RunEvent);
+    const live = this.shown.isThinking ? { turn: this.shown.turn } : null;
+    const key = `${String(this.trace.version)}|${[...this.traceOn].sort().join(",")}|${String(this.traceLimit)}|${String(live?.turn ?? "")}`;
+    const box = this.ui("trace");
+    if (key !== this.traceKey) {
+      const versionChanged = this.traceKey.split("|")[0] !== String(this.trace.version);
+      this.traceKey = key;
+      this.renderChips();
+      // The side list leaves out the thought the Emerald box shows, so it also redraws when the box moves on.
+      const boxTurn = this.shown.isThinking ? null : this.shown.lastThought?.turn ?? null;
+      if (versionChanged || boxTurn !== this.sideBox) {
+        this.sideBox = boxTurn;
+        const side = this.ui("side-trace");
+        const groups = sideGroups(this.trace.turns, SIDE_TURNS, boxTurn);
+        reconcile(side, groups, groups.length === 0 ? '<p class="nodata">no steps yet</p>' : "", this.stamps, this.held.has(side), this.rows, (top) => { this.scrollTo(side, top); });
+      }
+      const startMs = this.shown.startMs;
+      const elapsed = startMs === null ? null : (ms: number): number => (ms - startMs - this.shown.control.pausedBefore(ms)) / 1000;
+      const { groups, more } = traceGroups(this.trace.turns, this.traceOn, { elapsed, live, limit: this.traceLimit, page: TRACE_TURNS });
+      reconcile(box, groups, groups.length === 0 ? '<p class="nodata">no recorded events</p>' : moreButton(more, TRACE_TURNS), this.stamps, this.held.has(box), this.rows, (top) => { this.scrollTo(box, top); });
+    }
+    if (live !== null) {
+      const { thinking, text } = this.shown.streaming;
+      const liveText = box.querySelector<HTMLElement>("[data-live-text]");
+      if (liveText !== null && liveText.textContent !== thinking + text) {
+        // The live box has a fixed height so rows below never move; it follows the newest text unless scrolled back.
+        const following = liveText.scrollHeight - liveText.scrollTop - liveText.clientHeight < 24;
+        liveText.textContent = thinking + text;
+        if (following) liveText.scrollTop = liveText.scrollHeight;
+      }
+      const secs = box.querySelector<HTMLElement>("[data-live-secs]");
+      if (secs !== null && this.shown.turnStartMs !== null) secs.textContent = `${((nowMs - this.shown.turnStartMs) / 1000).toFixed(1)}s`;
+    }
   }
 
   private renderScreen(nowMs: number): void {
@@ -553,11 +769,16 @@ export class App {
       }
     }
     this.setHtml("stats", sideStats(view, nowMs));
-    this.setHtml("split-strip", splitStrip(view, this.best));
+    this.setHtml("split-strip", splitStrip(view));
+    this.setHtml("split-times", splitTimes(view, this.best));
     this.next.setLive(live ? view : null);
     this.ui("brand").textContent = brand(view);
     const dialog = thinkingDialog(view, nowMs);
     this.ui("think-head").textContent = dialog.head;
+    this.ui("think-title").textContent = view.start === null ? "NO RUN" : `${view.end === null ? "RIGHT NOW" : "FINAL"} · TURN ${String(view.turn)}`;
+    const ident = runIdentity(view);
+    this.setHtml("ident", ident);
+    this.ui("ident").hidden = ident === "";
     this.setHtml("think-body", dialog.body);
     if (this.followThinking) {
       const body = this.ui("think-body");
@@ -580,7 +801,7 @@ export class App {
     this.setHtml("splits-summary", split.summary);
     this.setHtml("splits", split.table);
     this.setHtml("lanes", lanesSvg(view, nowMs));
-    this.renderLog();
+    this.renderTrace(nowMs);
     this.renderScreen(nowMs);
     const lit = litButtons(view.presses, nowMs);
     for (const button of this.ui("gba").querySelectorAll<SVGElement>("[data-btn]")) {

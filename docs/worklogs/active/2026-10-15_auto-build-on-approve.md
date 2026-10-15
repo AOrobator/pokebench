@@ -28,5 +28,6 @@ Operator request (2026-10-15): approving an experiment in the viewer queue must 
 - [x] GREEN round 3: `fix(viewer): the build stamp follows live.js; untracked sources and human play block a rebuild` (dc725b6)
 - [x] Review round 3 (Claude CLI, Cursor Grok): round-2 fixes confirmed. Remaining: branch was behind main (approvals-survive-merge landed: `host.head()`, `buildCommit`, new head-mismatch wording); human play could start mid-build because its lock was only checked.
 - [x] Replayed onto main (pre-rebase history kept on `claude/auto-build-on-approve-pre-rebase`): `buildCommit` stays before the lease, verify/build and discover run inside it; main's head-mismatch wording kept. The build now holds `.human-gameplay.lock` for its duration and releases it even if the build throws.
-- [ ] Review round 4.
+- [x] COMMIT: `feat(viewer): the experiment queue rebuilds the agent itself instead of asking for just build` (f39a93e). Tests: viewer 585 passed; coverage all files 94.97 / 90.65 / 93.77; lint clean.
+- [x] Review round 4 (Claude CLI, Cursor Grok 4.5 high): both LGTM. Noted, no change: hand-started `just run` does not take the gameplay lease (pre-existing); a human restart during a build reads as "still draining".
 - [ ] Operator approves the local merge; restart the 8790 viewer on main.

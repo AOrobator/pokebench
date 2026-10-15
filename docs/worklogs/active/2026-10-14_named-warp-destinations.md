@@ -86,7 +86,7 @@ Readout text only. No new inputs, subprocesses, network or file paths. The ROM i
   Outside: `(14,8) -> LITTLEROOT TOWN MAYS HOUSE 1F (map 1/2)`, `(7,16) -> LITTLEROOT TOWN PROFESSOR BIRCHS LAB
   (map 1/4)`, candidates `Warp to LITTLEROOT TOWN MAYS HOUSE 1F (map 1/2) at (14,8)`. Capture in
   `runs/named-warps-smoke-on2/littleroot-on.txt`. OFF bytes are covered by unit tests.
-- [ ] Multi-model review loop until clean
+- [x] Multi-model review loop until clean (round 2: all three lanes LGTM; endpoint lanes deferred, see log)
 
 **M2 — Explainer and pending experiment**
 - [x] Explainer `docs/explainers/named-warp-destinations-v1.html` (Littleroot door diagram, exact OFF/ON
@@ -100,7 +100,7 @@ Readout text only. No new inputs, subprocesses, network or file paths. The ROM i
       loaded from the worktree it validates with no problems.
 - [x] COMMIT: `docs(explainers): named warp destinations explainer and queued experiment` (5d42f8b)
 - [ ] Live viewer click-through of READ EXPLAINER (after landing; the shared viewer serves main)
-- [ ] Gates and review (round 2 covers 5ae6acb and this commit)
+- [x] Gates and review (round 2 covers 5ae6acb and 5d42f8b): all pass, see review log
 
 **M3 — Landing (ASK USER)**
 - [ ] ASK USER: approve local merge into main
@@ -148,6 +148,16 @@ in `runs/named-warps-review/`). Principles self-review: no FAIL rows.
 - Accepted fixes (test-only plus wording): OFF goldens from 224ee68 for local and whole map, exact OFF/ON
   guidance lines, exact changed-line pairs, unknown-name candidate label, INV-2 via the readout's Location
   line, "brackets" → "parentheses" in the ON sentence. Mutating the OFF sentence now fails 2 tests; restored.
+
+**Round 2** (packet `git diff --binary c08c0c6 1059d06`, SHA-256 7daa937c…246787b: B1 fix + M2).
+- Cursor `cursor-grok-4.5-high`: VERDICT: LGTM.
+- Opus subagent: VERDICT: LGTM. B1 closed: goldens re-rendered from 224ee68 match; OFF and ON mutations fail
+  2 and 3 tests. Hardening accepted (doc-only): readiness row now cites the actual last four boot runs;
+  explainer says candidates need world targets, not the live map; principles table rescoped to M1+M2.
+  `source.commit` gets repinned to the merge SHA at landing.
+- Sonnet subagent: VERDICT: LGTM. Same mutations fail; notes wording made consistent with the explainer
+  (four of seven left, three citing the wrong building).
+- These doc-only follow-ups change no code or tests; recorded here rather than a third round.
 
 ## Boy Scout Log
 

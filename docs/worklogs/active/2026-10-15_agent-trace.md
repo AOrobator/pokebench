@@ -130,8 +130,8 @@ Browser verification so far, at 1440×900:
   - a supervisor row
   - a tool result fold
   - the inspector
-- [ ] Screenshots page and explainer HTML (zero network) under `runs/mockups/agent-trace/`, served at http://127.0.0.1:8791/agent-trace/
-- [ ] Review: Claude lane plus the Cursor Grok lane. Per the operator's brief, the local inference lanes are skipped this time.
+- [x] Screenshots page and explainer HTML (zero network) under `runs/mockups/agent-trace/`, served at http://127.0.0.1:8791/agent-trace/
+- [x] Review: Claude lane plus the Cursor Grok lane, 8 rounds; LGTM from both on bc1f66c. Per the operator's brief, the local inference lanes were skipped.
 
 ## Closing the Loop
 
@@ -157,6 +157,20 @@ Browser verification so far, at 1440×900:
 - The fresh worktree had no vendor submodule (`git submodule update --init` fixed 5 pytest failures) and no mGBA binding in `env/.venv`, so `just lint`'s mypy step can't import `mgba._pylib`. I ran mypy with `~/dev/pokebench/env/.venv/bin/mypy` from the worktree's `env/` instead. No Python changes on this branch.
 
 ## Multi-Model Review Log
+
+**Round 8 (032d206..bc1f66c): Claude LGTM, Grok LGTM.** Review loop clean.
+
+DEFERRED minor follow-ups, none of which loses information or affects correctness at normal use:
+- a wheel inside a scrollable child (live thought box, long result) or at the top cancels the snap back; the `scroll` comparison alone may suffice
+- `reconcile` records its position even for a 0px shift
+- the mirror's echo toggle costs one no-op pass
+- a replay rewind clears `RowState` even though seq keys survive
+- a stale comment ("not one reconcile made")
+- a clamped `scrollTo` value could cancel a hold when the browser fires scroll synchronously
+- `touchmove` cancel is untested
+- the bulk toggle isn't asserted on the side list
+- the test's `scrollTop` descriptor isn't restored
+- `sideHtml` re-describes on each side redraw (by design, 30 turns)
 
 **Round 7 (032d206..e71f9f0)**
 

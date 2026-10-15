@@ -1,4 +1,4 @@
-import {mkdtempSync} from "node:fs";
+import {mkdtempSync,readFileSync,rmSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
 import {expect,it} from "vitest";
@@ -15,6 +15,8 @@ import {loopSupervisor,textOnlySupervisor} from "./play-wiring.js";
 import {nextMilestoneHint} from "./milestone-hint.js";
 import {RunRecorder} from "./recorder.js";
 import {RunLog} from "./run-log.js";
+import {Governor,attachLoopGuard} from "./harness.js";
+import {LOOP_POLICY} from "./loop-detection.js";
 import {ObjectiveTracker} from "./objectives.js";
 import {NAVIGATE_RULES,withNavigation} from "./navigation.js";
 import {observeTool,pressTool} from "./game-tools.js";
@@ -117,6 +119,7 @@ it("replays milestones present at the start to observers that subscribe later",a
  expect(seen).toEqual(["CLOCK_SET:present_at_start"]);
  const plain:string[]=[];recorder.subscribe(e=>{plain.push(e.type);});
  expect(plain).toEqual([]);
+ rmSync(runsRoot,{recursive:true,force:true});
 });
 
 it("tells the model how navigate_to targets work, in the prompt and the tool",()=>{
@@ -166,4 +169,41 @@ it("puts the navigate_to rules in both tool descriptions",()=>{
   const tools=withNavigation([observeTool("http://127.0.0.1"),pressTool("http://127.0.0.1",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()})],{...ALL_ON,"bounded-navigation-v1":true,"full-map-navigation-v1":full},state);
   expect(tools.find(t=>t.name==="navigate_to")?.description).toContain(NAVIGATE_RULES);
  }
+});
+
+it("carries the corrected briefing through the production recorder, loop guard and supervisor wiring into the recorded loop_guard event",async()=>{
+ const runsRoot=mkdtempSync(join(tmpdir(),"pokebench-fix-"));
+ try{
+  const log=RunLog.create(runsRoot,"2026-10-15T12-00-00_think-fast_fix1");
+  const field={screen:"overworld" as const,started:true,name:"AAA",location:"LITTLEROOT TOWN",map_id:[0,9] as [number,number],position:{x:5,y:8},facing:"up" as const,in_battle:false,party:[],money:0,badges:[],play_time_s:12,field_controls_locked:false};
+  const recorder=new RunRecorder({log,frames:new FrameStore(runsRoot,1_000_000,()=>undefined),milestones:{poll:()=>Promise.resolve([])},gameState:{read:()=>Promise.resolve(field)}});
+  await recorder.start(RUN_START_META);
+  const governor=new Governor({limits:{maxTurns:100,maxWallMs:60_000,failureLimit:3},retry:()=>undefined,abort:()=>undefined,now:()=>0});
+  const detector=attachLoopGuard(recorder,governor,LOOP_POLICY,"enforced",true,loopSupervisor(ALL_ON,recorder));
+  for(let i=0;i<20;i++){
+   await recorder.emit({type:"tool_execution_start",toolCallId:`p${String(i)}`,toolName:"press",args:{buttons:["UP"]}});
+   recorder.buttonPress(`p${String(i)}`,["UP"],{hold_frames:10,release_frames:8},field);await recorder.afterPress();
+   await recorder.emit({type:"tool_execution_end",toolCallId:`p${String(i)}`,toolName:"press",result:{content:[{type:"text",text:`pressed UP\n${STORY_RIVAL}`}],details:{state:field}},isError:false});
+   detector.context();
+  }
+  const briefings=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(l=>JSON.parse(l) as {type:string;phase?:string;message?:string}).filter(e=>e.type==="loop_guard"&&e.phase==="supervisor");
+  expect(briefings.length).toBeGreaterThan(0);
+  expect(briefings[0]?.message).toContain("- Story steps the game confirms are done: player name confirmed; Mom clock instruction received; clock set; Mom rival instruction received; rival met\n");
+ }finally{rmSync(runsRoot,{recursive:true,force:true});}
+});
+
+it("never cuts any context builder's entry, whatever its length (INV-1)",()=>{
+ for(const n of [10_000,40_000]){
+  const long=`${"Q".repeat(n)}END`;
+  const sup=new SupervisorBriefing(ALL_ON);result(sup,1,msg(long,"dismiss_wait",9));
+  const ledger=new InstructionLedger(ALL_ON);result(ledger,1,msg(long,"dismiss_wait",9));
+  const log=new DialogueLog(ALL_ON);result(log,1,msg(long,"dismiss_wait",9));
+  const memory=new NavigationMemory(ALL_ON);result(memory,1,msg(long,"dismiss_wait",9));
+  for(const text of [sup.text("cycle",2),sup.textOnly(3,1,3),ledger.text(),log.recall({}),memory.text()])expect(text).toContain(long);
+ }
+});
+
+it("repeats every staged Story line the readout prints, word for word (INV-2)",()=>{
+ const lines=["Story: no completion confirmed","Story: player name confirmed; Mom clock instruction received","Story: player name confirmed; Mom clock instruction received; clock set","Story: player name confirmed; Mom clock instruction received; clock set; Mom rival instruction received",STORY_RIVAL,`${STORY_RIVAL}; sent to save Birch; Birch rescue complete; Birch starter handoff complete`];
+ for(const line of lines){const b=new SupervisorBriefing(ALL_ON);result(b,1,{},"t",`ok\n${line}`);expect(b.text("cycle",2)).toContain(`- Story steps the game confirms are done: ${line.slice("Story: ".length)}\n`);}
 });

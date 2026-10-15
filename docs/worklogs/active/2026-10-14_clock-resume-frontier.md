@@ -19,9 +19,10 @@ Takeover note: the fix was found as idle uncommitted edits in the main checkout 
 
 ## M2: frontier shows Clock set resumes (viewer only, no switch)
 
-- [x] RED: frontier/workbench tests for resumed runs and the lifted 64 MiB bound
-- [ ] GREEN: `config.resume`, dashed hollow series after Clock set, notices, run details
-- [ ] Real data: 11 eligible resumed runs plotted on a scratch viewer (port 8806)
-- [ ] Gates: tests, coverage ≥90, lint (mypy needs the native mGBA binding, absent in this worktree's fresh venv)
+- [x] RED: frontier/workbench tests for resumed runs and the lifted 64 MiB bound (10 failing against HEAD source)
+  COMMIT: `test(viewer): Clock set resumes and long agent logs reach the story frontier (RED)` (ec60767)
+- [x] GREEN: `config.resume`, dashed hollow series after Clock set, notices, run details
+- [x] Real data: 11 eligible resumed runs plotted on a scratch viewer (port 8806)
+- [x] Gates: viewer 577 / agent 1037 / Python 1868 pass; coverage viewer 97.72/90.59/93.78, agent 98.86/93.9/98.01, Python 96.72/91.93/100; lint (mypy needs the native mGBA binding, absent in this worktree's fresh venv)
 - [ ] Review: Claude CLI + Cursor Grok
 - [ ] Operator approval, then local merge to main

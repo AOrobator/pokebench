@@ -417,6 +417,7 @@ select.p, .field input { font: 8px 'Press Start 2P', monospace; padding: 6px 8px
 
 .wb-proof-frame { margin:16px 0; overflow-wrap:anywhere; }.wb-proof-frame img { width:min(100%,480px); image-rendering:pixelated; }.wb-proof-frame figcaption { font-size:11px; color:#536d85; }
 
+.wb-resume-tag { fill:#8a4b08; font:700 11px Inter,sans-serif; }
 .wb-live-run { filter:drop-shadow(0 0 5px var(--wb-run-color)); animation:wb-live-pulse 1.6s ease-in-out infinite; }
 .wb-live-run .wb-mark { stroke:#fff; stroke-width:1.5px; }
 .wb-live-head { stroke-width:2.5px; vector-effect:non-scaling-stroke; animation:wb-live-head-pulse 1.6s ease-out infinite; }

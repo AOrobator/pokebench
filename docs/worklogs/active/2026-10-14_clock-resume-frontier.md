@@ -30,3 +30,6 @@ Takeover note: the fix was found as idle uncommitted edits in the main checkout 
   - [x] GREEN: hollow marks stroke the series color, legend lists resumed models, scale uses only plotted points, summary warns on mixed starts
 - [ ] Operator approval, then local merge to main
 
+
+  - Round 2: Cursor Claude Opus hit its usage limit (exit 1). Grok BLOCKING: `.wb-live-run .wb-mark` CSS could still whiten live resumed marks; Birch not in the native objective catalog. Accepted the CSS carve-out (real-browser computed stroke rgb(37,131,189) on the live resumed mark at 8806). Declined the catalog addition: objectives are model-facing behavior and post-clock milestones are not in that catalog either.
+  - [x] RED: stylesheet must carve resumed live marks out of the white stroke

@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 // @vitest-environment happy-dom
 import { describe, expect, it } from "vitest";
 import { run } from "../test-support/frontier-run.js";
@@ -126,6 +128,7 @@ describe("persistent actual native frontier", () => {
     expect(document.querySelector('[data-run="clock"]')?.getAttribute("aria-label")).toContain("not from New game");
     expect(document.body.textContent).toContain("NOT FROM ZERO");
     expect(document.querySelector('[data-resume-origin="CLOCK_SET"]')).not.toBeNull();
+    expect(readFileSync(join(process.cwd(), "static/style.css"), "utf8")).toContain(".wb-live-run.wb-resumed-run .wb-mark { stroke:var(--wb-run-color); }");
     const liveMark = document.querySelector('[data-live-run="clock"] .wb-mark circle');
     expect(liveMark?.getAttribute("fill")).toBe("#fff");
     expect(liveMark?.getAttribute("stroke")).not.toBe("#fff");

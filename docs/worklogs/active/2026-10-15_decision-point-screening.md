@@ -93,6 +93,21 @@ feature-worklog, feature-switch, agent-observability, pokebench-game-state, poke
   GREEN: `filePorts.frame` resolves against the run dir, refuses empty/absolute/escaping paths, and caches each frame.
   Gates: lint, build, verify-vendor clean; coverage run agent 1238 tests 97.63/94.24/97.74 (lines 99.04), viewer 686
   95.25/90.95/94.18 (lines 98.01), env 1929 lines 96.94 branches 92.44 functions 100.
+- Operator merge rule (the operator, mid-review): a finding blocks only if it (1) crashes/throws, (2) changes control-arm
+  behavior, (3) gives the model false information on the CLOCK_SET→RIVAL_MET route, or (4) corrupts recorded outcomes.
+  Everything else is deferred below. One cloud-only review; re-review scoped to the blocker-fix delta. Under this rule
+  neither round-1 grok finding would block (offline tool, no model-facing or outcome effect); both were already fixed.
+  Codex gpt-5.6-sol's round-1 run exited without output, so its single review runs on the full packet at da0e682;
+  grok re-reviews only 18fb078..da0e682.
+- Grok delta re-review (18fb078..da0e682): VERDICT: LGTM ("Round-1 blockers are fixed in-contract").
+
+## Deferred review findings (operator rule: not blocking)
+- rerender.py: no post-join symlink-escape check under run_dir (absolute and `..` already refused). (grok r1)
+- Probe report keeps context sizes, the diff and decisions, not full contexts. (grok r1)
+- THINKING_FIELD is hardcoded `reasoning_content`. (grok r1, speculation)
+- test_rerender.py skips its ROM tests when POKEBENCH_ROM is unset. (grok r1, speculation)
+- filePorts.frame: containment is resolve/relative only (no realpath symlink check); `rel.startsWith("..")` also
+  rejects an in-root `..foo` name (unreachable: schema fixes `frames/NNNNNN_N.png`); frame cache is unbounded. (grok delta)
 
 ## Decisions
 - R1 is a bug fix (false model-facing facts in the supervisor briefing), under the M1 operator exception.

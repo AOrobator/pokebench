@@ -76,6 +76,14 @@ feature-worklog, feature-switch, agent-observability, pokebench-game-state, poke
   for a flipped text-shaping switch or a re-render of an auto-advanced result. The earlier hang was the fixture: the
   preset lacked field-dialogue-phase-v1, live.ts rejected it with only `play FAILED:` on console.error, and the test
   awaited a run that never started. The fixture now rejects on that line, so a bad preset fails in ~0.2 s.
+  RED 064081b: 1 red (rebuilt turn 3 differs: today's code re-derives the auto-advanced result's Press result).
+- M6c GREEN (decision-probe.ts): a tool_result with a dialogue_auto_advance event keeps its recorded text (it is
+  composed from many inner presses), and its after-state still feeds ShownStates; flipping a switch that shapes such
+  text (auto-advance, press-result, transition-press-result, live position, field-control lock, dialogue-safe
+  batches) or re-rendering a windowed auto-advanced result throws a named error instead of guessing.
+  Gates: just test agent 1237 / viewer 686 / pytest 1929; just lint clean; just build ok; just verify-vendor OK;
+  just coverage agent 97.62/94.22/97.74 (lines 99.04), viewer 95.25/90.95/94.18 (lines 98.01), env lines 96.94 /
+  branches 92.44 / functions 100 (floor 90).
 
 ## Decisions
 - R1 is a bug fix (false model-facing facts in the supervisor briefing), under the M1 operator exception.

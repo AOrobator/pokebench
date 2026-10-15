@@ -65,7 +65,9 @@ export interface DecisionContext {
 }
 
 // The model-facing text of every recorded tool result, re-derived under `features`.
-interface ResultParts { readonly event: ToolResultEvent; readonly before: StateEvent | undefined; readonly after: StateEvent | undefined; readonly buttons: readonly Button[] | null }
+interface ResultParts { readonly event: ToolResultEvent; readonly before: StateEvent | undefined; readonly after: StateEvent | undefined; readonly buttons: readonly Button[] | null; readonly auto: boolean }
+// Switches that shape an auto-advanced result's text; such a result is composed from many inner presses and is kept as recorded.
+const AUTO_TEXT: readonly SwitchableFeature[] = ["dialogue-auto-advance-v1", "press-result-v1", "transition-press-result-v1", "live-player-position-v1", "field-control-lock", "dialogue-safe-batches-v1"];
 
 const PRESS_LINE = /^Press result: .*\n/m;
 function pressLine(text: string, line: string | null): string {
@@ -78,8 +80,10 @@ function pressLine(text: string, line: string | null): string {
 const READOUT = /^Screen: /m;
 export const serverSwitch = (id: SwitchableFeature): boolean => id === "active-ui-ownership-v1" || SERVER_FEATURES.includes(id);
 
-async function resultTexts(parts: readonly ResultParts[], features: FeatureSet, ports: ProbePorts, visible: ReadonlySet<number>, rerender: boolean): Promise<Map<number, string>> {
+async function resultTexts(parts: readonly ResultParts[], recorded: FeatureSet, features: FeatureSet, ports: ProbePorts, visible: ReadonlySet<number>, rerender: boolean): Promise<Map<number, string>> {
   const texts = new Map<number, string>();
+  const auto = parts.find((p) => p.auto && (AUTO_TEXT.some((id) => recorded[id] !== features[id]) || (rerender && visible.has(p.event.seq))));
+  if (auto !== undefined) throw new Error(`tool_result seq ${String(auto.event.seq)} was auto-advanced through dialogue; its text cannot be re-derived under these switches yet`);
   const shown = new ShownStates();
   const switches = toolSwitches(features);
   const rendered = parts.filter((p) => rerender && visible.has(p.event.seq) && p.after?.raw_ram !== undefined && READOUT.test(p.event.text));
@@ -87,6 +91,11 @@ async function resultTexts(parts: readonly ResultParts[], features: FeatureSet, 
   const fresh = new Map(rendered.map((p, i) => [p.event.seq, readouts[i] ?? ""]));
   for (const part of parts) {
     let text = part.event.text;
+    if (part.auto) {
+      if (part.after !== undefined) shown.record(part.after);
+      texts.set(part.event.seq, text);
+      continue;
+    }
     const readout = fresh.get(part.event.seq);
     if (readout !== undefined) text = text.slice(0, text.search(READOUT)) + readout;
     if (part.buttons !== null && part.after !== undefined && part.event.name === "press" && !part.event.is_error) {
@@ -198,10 +207,11 @@ export async function decisionContext(run: RecordedRun, turn: number, features: 
   const pressed = new Map(prior.flatMap((e) => (e.type === "button_press" ? [[e.tool_call_id, e] as const] : [])));
   const calls = new Map(prior.flatMap((e) => (e.type === "tool_call" ? [[e.id, e] as const] : [])));
   const results = prior.filter((e): e is ToolResultEvent => e.type === "tool_result");
+  const advanced = new Set(prior.flatMap((e) => (e.type === "dialogue_auto_advance" ? [e.tool_call_id] : [])));
   const parts: ResultParts[] = results.map((event) => {
     const press = pressed.get(event.id), call = calls.get(event.id);
     const buttons = call?.name === "press" && press !== undefined ? press.buttons : null;
-    return { event, before: press?.before_state_seq === undefined ? undefined : states.get(press.before_state_seq), after: event.state_seq === undefined ? undefined : states.get(event.state_seq), buttons };
+    return { event, before: press?.before_state_seq === undefined ? undefined : states.get(press.before_state_seq), after: event.state_seq === undefined ? undefined : states.get(event.state_seq), buttons, auto: advanced.has(event.id) };
   });
   const goal = start.evaluation?.target ?? null;
   const byId = new Map(results.map((r) => [r.id, r]));
@@ -210,7 +220,7 @@ export async function decisionContext(run: RecordedRun, turn: number, features: 
   const recordedHistory = conversation(prior, goal, byId, notes, new Map(), ports, start.model.id);
   // Only results the window keeps whole are shown in full, so only those are re-derived.
   const kept = new Set(slideWindow(recordedHistory, window).flatMap((m) => (m.role === "toolResult" && m.content.some((p) => p.type === "text" && p.text === byId.get(m.toolCallId)?.text) ? [byId.get(m.toolCallId)?.seq ?? -1] : [])));
-  const texts = derivation === "recorded" ? new Map<number, string>() : await resultTexts(parts, features, ports, kept, rerender);
+  const texts = derivation === "recorded" ? new Map<number, string>() : await resultTexts(parts, recorded, features, ports, kept, rerender);
   const history = derivation === "recorded" ? recordedHistory : conversation(prior, goal, byId, notes, texts, ports, start.model.id);
   if (derivation === "recorded") {
     const wiring = probeTools(features, new Replay(start));

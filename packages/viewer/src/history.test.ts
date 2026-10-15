@@ -35,6 +35,12 @@ describe("strict per-feature history", () => {
     expect(configOf(start)).toEqual({ model: "qwen", thinking: "medium", maxTokens: 4096, maxTurns: 10, maxWallMs: 60_000, failureLimit: 3, target: "RIVAL_MET", features: off("story-state-v1") });
     expect(configOf({ ...start, harness_features: [...start.harness_features, "something-new-v9"] })).toBeNull();
     expect(configOf({ ...start, harness_features: ["probe", ...start.harness_features] })).toBeNull();
+    // Measurement-only features change what is recorded, not how the agent plays: a run
+    // recorded before one was added (birch-rescue-requested-v1) is still that configuration.
+    const before = start.harness_features.filter((id) => id !== "birch-rescue-requested-v1");
+    expect(before.length).toBe(start.harness_features.length - 1);
+    expect(configOf({ ...start, harness_features: before })).toEqual(configOf(start));
+    expect(configOf({ ...start, harness_features: [...before, "something-new-v9"] })).toBeNull();
   });
 
   it("pairs only runs identical except for the one feature, counting reach and median splits without paused time", () => {

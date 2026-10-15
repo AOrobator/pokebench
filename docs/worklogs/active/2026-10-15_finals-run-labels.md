@@ -15,5 +15,5 @@ Viewer-only; no harness behavior change, so no feature switch.
   Tests: viewer 651 passed; viewer coverage 95.37/91.16/94.39/98.1; tsc + eslint clean.
 - [x] Review round 2: Grok LGTM; Claude LGTM with a non-blocking note that an unreadable finals.jsonl would 500 /api/runs. Fixed: an unreadable ledger is skipped (test covers a directory named finals.jsonl). Deferred: a finals run's own header still shows PRESET, not its finals place.
   Tests: viewer 651 passed; coverage 95.37/91.16/94.39/98.1; tsc + eslint clean.
-- [ ] Operator approval, rebase onto main, local merge
-- [ ] Restart 8790 only when no finals run is live (the runner lives in the viewer process)
+- [x] Operator approval (the operator 2026-10-15 16:22 UTC: "yes but dont restart the viewer"); rebased onto main at e0a0552 (objective UI removal). Viewer 648 passed, coverage 95.36/91.17/94.36/98.09, lint clean.
+- [ ] 8790 is not restarted (operator). The fix goes live at the next viewer restart made for another reason.

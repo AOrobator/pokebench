@@ -33,4 +33,4 @@ sawtooths. Estimate and real prompt dropped on the same turns (36/36, 147/148).
   Deferred hardening, both reviewers: the bar shows the previous request's prompt between
   turn_start and the reply (one-request lag, in contract). Claude: cache writes are not
   recorded; llama-server reports none.
-- [ ] Operator approval, local merge to main
+- [x] Operator approval (2026-10-15), local merge to main: 965f62e. Viewer gates on the merged branch: 573 tests passed; coverage 94.9 lines / 90.45 branches / 93.68 functions; lint clean. Main's viewer dist was not rebuilt (2×2 batch runs from its frozen build).

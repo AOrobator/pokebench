@@ -47,7 +47,7 @@ function summary(text: string): string {
   const position = /^Position: (.+)$/m.exec(text)?.[1];
   const [first = ""] = text.split("\n");
   if (location === undefined) return first;
-  const action = first.startsWith("pressed ") ? first : "observed";
+  const action = first.startsWith("pressed ") || first.startsWith("Navigation: ") ? first : "observed";
   return `${action} · ${location}${position === undefined ? "" : ` (${position})`}`;
 }
 

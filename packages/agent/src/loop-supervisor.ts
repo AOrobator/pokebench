@@ -8,6 +8,8 @@ type State=Extract<RunEvent,{type:"state";started:boolean}>;
 interface Tried {readonly key:string;readonly room:string;readonly label:string;count:number;outcome:string}
 
 const MAX_TRIED=8;
+// Only these tools return the game readout; any other text could only quote it.
+const GAME_TOOLS=new Set(["observe","press","navigate_to"]);
 const STEP:Readonly<Record<string,readonly[number,number]>>={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
 const PATTERN:Readonly<Record<LoopKind,string>>={cycle:"the same short cycle of actions",ineffective:"the same input with no effect",planning:"planning without acting",observation:"observing without acting",rejection:"the same rejected tool call"};
 const at=(x:number,y:number)=>`${String(x)},${String(y)}`;
@@ -37,9 +39,9 @@ export class SupervisorBriefing {
    if(this.calls.size>16)this.calls.delete(this.calls.keys().next().value??"");
    return;
   }
-  if(event.type==="tool_result")this.readStory(event.text);
   if(event.type!=="tool_result"||event.state_seq===undefined||this.measured?.seq!==event.state_seq)return;
   const after=this.measured;this.measured=null;
+  if(!event.is_error&&GAME_TOOLS.has(event.name))this.readStory(event.text);
   if(!after.started||after.screen!=="overworld")return;
   this.latest=after;
   const call=this.calls.get(event.id);this.calls.delete(event.id);

@@ -108,7 +108,7 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 
 <section>
 <h2>The tool</h2>
-<p>Arguments are all optional: <code>contains</code> (words, up to 80 characters, case-insensitive), <code>room</code> (location text, up to 80 characters) and <code>last</code> (1 to 20, default 8). Each page is clipped to 650 characters and the whole reply stays under 6,000. The reply always says how many pages matched, how many were shown and how many were left out.</p>
+<p>Arguments are all optional: <code>contains</code> (words, up to 80 characters, case-insensitive), <code>room</code> (location text, up to 80 characters) and <code>last</code> (1 to 20, default 8). Every matching page is returned whole (no clipping since 2026-10-15; operator rule: nothing sent to the model is truncated). The reply always says how many pages matched, how many were shown and how many were left out.</p>
 <p>Illustrative reply shape (not from a recorded run yet):</p>
 <pre>DIALOGUE LOG: quoted game text you were shown, newest first. Past text; the current screen overrides it. 2 of 41 entries match.
 #3120 turn 286 · LITTLEROOT TOWN BRENDANS HOUSE 1F · at 8,4 · facing MOM at 8,5: "…"

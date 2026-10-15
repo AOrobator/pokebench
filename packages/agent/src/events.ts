@@ -130,9 +130,9 @@ const HumanSample = event("human_sample", {
   screenshot: Type.Object({path: Type.String({pattern:"^frames/\\d{6}_\\d+\\.png$"}), sha1: Sha1}, closed),
 });
 
-const NavigationContext = event("navigation_context", {text:Type.String({maxLength:6500}),evidence:Type.Array(NonNegativeInt,{maxItems:36,uniqueItems:true})});
+const NavigationContext = event("navigation_context", {text:Type.String(),evidence:Type.Array(NonNegativeInt,{maxItems:36,uniqueItems:true})});
 const MilestoneHintContext = event("milestone_hint", {text:Type.String({maxLength:1000}),milestone:Type.String({minLength:1})});
-const LedgerContext = event("ledger_context", {text:Type.String({maxLength:4000}),evidence:Type.Array(NonNegativeInt,{maxItems:64,uniqueItems:true})});
+const LedgerContext = event("ledger_context", {text:Type.String(),evidence:Type.Array(NonNegativeInt,{maxItems:64,uniqueItems:true})});
 
 const ToolResult = event("tool_result", {
   state_seq: Type.Optional(NonNegativeInt),

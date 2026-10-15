@@ -15,6 +15,9 @@ import {loopSupervisor,textOnlySupervisor} from "./play-wiring.js";
 import {nextMilestoneHint} from "./milestone-hint.js";
 import {RunRecorder} from "./recorder.js";
 import {RunLog} from "./run-log.js";
+import {ObjectiveTracker} from "./objectives.js";
+import {NAVIGATE_RULES,withNavigation} from "./navigation.js";
+import {observeTool,pressTool} from "./game-tools.js";
 
 const ev=(body:Record<string,unknown>,seq:number,turn=1):RunEvent=>checkEvent({v:1,run:"fix-test",t:"2026-10-15T12:00:00.000-04:00",turn,seq,...body});
 const SCIENTIST={name:"SCIENTIST_1",kind:"object",x:9,y:7,elevation:0,activation:"press_a",availability:"live",facing:null,local_id:1,destination:null};
@@ -36,9 +39,9 @@ it("states the story steps exactly as the readout's Story line does, including s
 it("keeps the last available story line while a map loads",()=>{
  const b=new SupervisorBriefing(ALL_ON);
  result(b,1);
- result(b,3,{},"t2","ok\nStory: unavailable while the map loads");
+ result(b,3,{},"t2","ok\nStory: unavailable (story state not readable right now)");
  expect(b.text("cycle",5)).toContain("Mom rival instruction received; rival met");
- expect(b.text("cycle",5)).not.toContain("unavailable while the map loads");
+ expect(b.text("cycle",5)).not.toContain("not readable right now");
 });
 
 it("grades reading a conversation with B as progress, and a repeat A as a restarted conversation",()=>{
@@ -130,4 +133,37 @@ it("wires the hint and both supervisors to receive start milestones",()=>{
  const recorder={subscribe:(_fn:(e:RunEvent)=>void,replay?:boolean)=>{replays.push(replay===true);},textOnlySupervisor:()=>undefined,recordMilestoneHint:()=>undefined};
  loopSupervisor(ALL_ON,recorder);textOnlySupervisor(ALL_ON,recorder);nextMilestoneHint(ALL_ON,recorder,m=>Promise.resolve(m));
  expect(replays).toEqual([true,true,true]);
+});
+
+it("records long ledger and navigation contexts as valid events",()=>{
+ const long="x".repeat(25_000);
+ expect(()=>checkEvent({v:1,run:"r",t:"2026-10-15T12:00:00.000-04:00",turn:1,seq:1,type:"ledger_context",text:long,evidence:[]})).not.toThrow();
+ expect(()=>checkEvent({v:1,run:"r",t:"2026-10-15T12:00:00.000-04:00",turn:1,seq:2,type:"navigation_context",text:long,evidence:[]})).not.toThrow();
+});
+
+it("takes the story line only from a game readout paired with its state, never from other tools or errors",()=>{
+ const b=new SupervisorBriefing(ALL_ON);
+ result(b,1);
+ b.observe(ev({type:"tool_result",id:"m",name:"remember_destination",is_error:false,duration_ms:1,text:"x\nStory: ROXANNE defeated",frames:[]},3));
+ b.observe(st(4));b.observe(ev({type:"tool_result",id:"r",name:"recall_dialogue",is_error:false,duration_ms:1,text:"Story: ROXANNE defeated",frames:[],state_seq:4},5));
+ b.observe(st(6));b.observe(ev({type:"tool_result",id:"e",name:"press",is_error:true,duration_ms:1,text:"Story: ROXANNE defeated",frames:[],state_seq:6},7));
+ expect(b.textOnly(3,1,3)).not.toContain("ROXANNE");
+ expect(b.textOnly(3,1,3)).toContain("rival met");
+});
+
+it("delivers objective evidence whole",()=>{
+ const tracker=new ObjectiveTracker("Reach gym",()=>undefined);
+ const tail="SENTINEL-AFTER-1500";
+ tracker.observe(ev({type:"tool_result",id:"o",name:"observe",is_error:false,duration_ms:1,text:`${"y".repeat(3000)}${tail}`,frames:[]},1));
+ const out=tracker.context([],0);
+ const last=out.at(-1);
+ expect(typeof last?.content==="string"&&last.content.includes(tail)).toBe(true);
+});
+
+it("puts the navigate_to rules in both tool descriptions",()=>{
+ const state={read:()=>Promise.resolve({...IN_GAME})};
+ for(const full of [true,false]){
+  const tools=withNavigation([observeTool("http://127.0.0.1"),pressTool("http://127.0.0.1",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()})],{...ALL_ON,"bounded-navigation-v1":true,"full-map-navigation-v1":full},state);
+  expect(tools.find(t=>t.name==="navigate_to")?.description).toContain(NAVIGATE_RULES);
+ }
 });

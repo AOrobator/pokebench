@@ -138,14 +138,21 @@ async function recordRun(features: Record<string, boolean>, maxTurns = 9): Promi
   // live.ts reports any failed start (e.g. a rejected preset) only as "<command> FAILED: ..."; end the wait on it instead of hanging.
   vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => { const line = args.map(String).join(" "); if (/^\S* FAILED: /.test(line)) owner.reject?.(new Error(line)); });
   // Each press closes the box and the same conversation prints again from the top (the 6684 shape).
-  let presses = 0, free = false;
+  // Like the real server, the game keeps running between reads: each free-field snapshot is a later frame,
+  // so auto-advance confirms free field instead of waiting out its settle timeout on every turn.
+  let presses = 0, free = false, frame = 0;
+  const raw = PC.before.raw_ram as { frame: number };
+  const freeAt = () => {
+    frame += 1;
+    return { ...FREE, raw_ram: { ...raw, frame: raw.frame + frame } };
+  };
   vi.stubGlobal("fetch", vi.fn<typeof fetch>().mockImplementation((input, init) => {
     const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
     const route = new URL(url).pathname;
     if (route === "/health") return Promise.resolve(Response.json({ status: owner.launched ? "healthy" : "unavailable" }));
     if (route === "/pokebench/battle/choices" || route === "/pokebench/actions") return Promise.resolve(Response.json({ frame: 0, last_id: 0, entries: [] }));
-    if (route === "/pokebench/state") return Promise.resolve(Response.json(free ? FREE : PC.before));
-    if (route === "/pokebench/observation") return Promise.resolve(Response.json({ state_text: `Screen: overworld\nDialog: printing (${String(presses)})`, state: free ? FREE : PC.after, screenshot_base64: FRAME.toString("base64") }));
+    if (route === "/pokebench/state") return Promise.resolve(Response.json(free ? freeAt() : PC.before));
+    if (route === "/pokebench/observation") return Promise.resolve(Response.json({ state_text: `Screen: overworld\nDialog: printing (${String(presses)})`, state: free ? freeAt() : PC.after, screenshot_base64: FRAME.toString("base64") }));
     if (route === "/queue_status") return Promise.resolve(Response.json({ queue_empty: true }));
     if (route === "/action" && init?.method === "POST") {
       presses++;

@@ -49,14 +49,16 @@ No feature switch: this changes process supervision, not what the model sees, it
 - [x] RED: cli.test.ts `shutdown` (2 failing): SIGTERM/SIGINT close the viewer once and exit 0; a failed close still exits 1.
 - [x] RED COMMIT: `test: the viewer closes itself on SIGTERM or SIGINT and leaves its runs alone` (e3d9989)
 - [x] GREEN: `closeOnSignals` in cli.ts closes the server and stops the autorun once, then exits; it never signals a run. `scripts/viewer-restart.sh` (new, used by `just viewer-main`) records live `live.js play|human` pids, SIGTERMs only the port's listener, starts the new viewer and fails unless every recorded gameplay pid still lives.
-- [ ] `just viewer-main` refuses to report success unless every run that was live before the restart is still live after it, and the new viewer's autorun reports it adopted.
-- [ ] Explainer page with a diagram (before and after process tree, adoption flow), per the feature-explainer skill.
+- [x] `just viewer-main` refuses to report success unless every run that was live before the restart is still live after it, and the new viewer's autorun reports it adopted.
+- [x] `docs/explainers/run-survives-viewer.html` (+ README index): process groups before and after, the adoption flow, the lease reclaim table, the proof table. Checked in a browser. Not a harness switch, so no Harness Config card.
+- [x] Explainer page with a diagram (before and after process tree, adoption flow), per the feature-explainer skill.
 - [ ] Review.
 
 ### M4: proof on an owned server, never 8790
 - [x] First real-process proof (scratchpad harness: this branch's runner + stub play with a /health grandchild) found a bug: with the trial still playing, the experiment shows `running`, and `nextExperiment` only picks approved/held, so the restarted runner said "nothing to run: survive is running" until the trial ended. RED: the adoption test now uses a really-live child pid.
 - [x] GREEN: `nextExperiment` also picks a `running` experiment whose own trial is the one playing (not one being measured in an external cohort; INV-G5 test kept that distinction). 659 tests; coverage 95.14 / 90.95 / 94.08.
-- [ ] Owned test viewer on a spare port with an isolated runs root and a stub `live.js` that plays for a few minutes and writes `run_end`. Restart that viewer mid-trial with `kill`, Ctrl-C-style group signal and `viewer-main`-style restart. Show the trial finishes, is recorded once and the next trial starts.
+- [x] Real-process proofs (receipts in `runs/run-survives-viewer/`). Before, Ctrl-C: play and server died, and the fresh runner was stuck on the lease. Before, deploy: the run lived, but the fresh runner refused it as still running. After, Ctrl-C and after, deploy: play and server lived, and the fresh runner adopted trial 1 (one launch, one outcome) then ran trials 2 and 3. `viewer-restart.sh` on owned port 18990 kept the stand-in run alive (exit 0, stats page 200, run listed live).
+- [x] Owned test viewer on a spare port with an isolated runs root and a stub `live.js` that plays for a few minutes and writes `run_end`. Restart that viewer mid-trial with `kill`, Ctrl-C-style group signal and `viewer-main`-style restart. Show the trial finishes, is recorded once and the next trial starts.
 - [ ] Report to the operator. Merge on approval. Restarting 8790 onto the new build waits for the operator's go-ahead (the first restart still kills an old-code trial if it is group-signalled; a pid-only SIGTERM plus adoption should carry it, but that is decided with the operator).
 
 ## Gates per milestone

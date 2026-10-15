@@ -6,6 +6,7 @@ Addresses were verified on the pinned US ROM; see docs/findings/game-state.md.
 """
 
 import struct
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 from pokebench_env.game_screen import ReadMemory
@@ -96,6 +97,7 @@ class LocalMap:
         ledges: bool = True,
         edge_walls: bool = True,
         counters: bool = True,
+        destinations: Mapping[tuple[int, int], str] | None = None,
     ) -> str:
         x, y = self.origin
         cells = _cells(
@@ -128,6 +130,7 @@ class LocalMap:
                 ledges=ledges,
                 edge_walls=edge_walls,
                 counters=counters and any("=" in row for row in cells),
+                destinations=destinations,
             )
         )
 
@@ -151,6 +154,7 @@ class FullMap:
         ledges: bool = True,
         edge_walls: bool = True,
         counters: bool = True,
+        destinations: Mapping[tuple[int, int], str] | None = None,
     ) -> str:
         cells = _cells(
             self.rows,
@@ -187,6 +191,7 @@ class FullMap:
                 ledges=ledges,
                 edge_walls=edge_walls,
                 counters=counters and any("=" in row for row in cells),
+                destinations=destinations,
             )
         )
 
@@ -239,6 +244,7 @@ def _details(
     ledges: bool,
     edge_walls: bool,
     counters: bool,
+    destinations: Mapping[tuple[int, int], str] | None = None,
 ) -> str:
     walled = "; ".join(
         f"({tile.x},{tile.y}) " + "+".join(EDGE_WALLS[tile.behavior])
@@ -253,6 +259,8 @@ def _details(
             (
                 f"({a},{b}) -> dynamic destination"
                 if (g, n) == (127, 127)
+                else f"({a},{b}) -> {destinations[(g, n)]} (map {g}/{n})"
+                if destinations is not None and (g, n) in destinations
                 else f"({a},{b}) -> map {g}/{n}"
             )
             + (f" [{_warp_trigger(behaviors_at.get((a, b)))}]" if warp_guidance else "")
@@ -295,7 +303,13 @@ def _details(
         + (f"\nEdge walls: {walled}" if edge_walls and walled else "")
         + f"\nLive objects: {listed_objects}\nWarps: {listed_warps}"
         + (
-            "\nWarp destinations are map group/number IDs, not warp indexes. Activation also"
+            (
+                "\nWarp destinations are the map you arrive on: its name when the game's map"
+                " table has one, then its group/number ID in brackets; not warp indexes."
+                if destinations is not None
+                else "\nWarp destinations are map group/number IDs, not warp indexes."
+            )
+            + " Activation also"
             " requires matching elevation and available field controls; W alone does not"
             " guarantee a transition. After a transition, check the new map and position."
             if warp_guidance

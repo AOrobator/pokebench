@@ -5,6 +5,7 @@ are candidates, not proof a flag, elevation, script or facing permits use now.
 """
 
 import struct
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 
 from pokebench_env.game_screen import ReadMemory
@@ -36,18 +37,32 @@ class InteractionTarget:
     def json(self) -> dict[str, object]:
         return asdict(self)
 
-    def text(self, *, named: bool = False) -> str:
+    def text(
+        self,
+        *,
+        named: bool = False,
+        destinations: Mapping[tuple[int, int], str] | None = None,
+    ) -> str:
         facing = "" if self.facing is None else f", face {self.facing}"
         identity = "" if self.local_id is None else f" id {self.local_id}"
         destination = ""
+        label = self.kind if not named else (self.name or f"{self.kind} (identity unavailable)")
         if self.destination is not None:
             group, number, warp = self.destination
+            place = (
+                None
+                if destinations is None or (group, number) == (127, 127)
+                else destinations.get((group, number))
+            )
             destination = (
                 "; dynamic destination"
                 if (group, number) == (127, 127)
                 else f"; destination map {group}/{number} warp {warp}"
+                if place is None
+                else f"; destination {place} (map {group}/{number}) warp {warp}"
             )
-        label = self.kind if not named else (self.name or f"{self.kind} (identity unavailable)")
+            if named and place is not None:
+                label = f"Warp to {place} (map {group}/{number})"
         return (
             f"{label}{identity} at ({self.x},{self.y}), elevation {self.elevation}; "
             f"{self.activation}{facing}; {self.availability}{destination}"

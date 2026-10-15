@@ -79,6 +79,7 @@ def install_observation(
                 world_destinations="world-destinations-v1" not in off,
                 bounded_navigation="bounded-navigation-v1" not in off,
                 message_phase="field-dialogue-phase-v1" not in off,
+                named_warps="named-warp-destinations-v1" not in off,
             ),
             "screenshot_base64": screenshot,
             "state": serialized,

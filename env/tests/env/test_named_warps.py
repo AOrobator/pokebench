@@ -16,8 +16,9 @@ from pokebench_env.world import InteractionTarget
 from tests.env.test_feature_switches import _Shot, map_memory
 from tests.env.test_game_state import MAPS
 
-NAMED = "Warps: (0,1) -> LITTLEROOT TOWN (map 0/9) [door: approach from below and press UP toward door]"
-PLAIN = "Warps: (0,1) -> map 0/9 [door: approach from below and press UP toward door]"
+DOOR = "[door: approach from below and press UP toward door]"
+NAMED = f"Warps: (0,1) -> LITTLEROOT TOWN (map 0/9) {DOOR}"
+PLAIN = f"Warps: (0,1) -> map 0/9 {DOOR}"
 VENDOR_MAPS = (
     Path(__file__).resolve().parents[2] / "vendor/continual-harness/pokemon_env/porymap/data/maps"
 )
@@ -49,8 +50,8 @@ def test_on_names_the_destination_in_the_warps_line_and_candidates() -> None:
         text = format_readout(state, named_warps=True)
         assert NAMED in lines(text) and PLAIN not in lines(text)
         assert (
-            "Warp destinations name the map you arrive on, with its group/number ID in"
-            " brackets; they are not warp indexes." in text
+            "Warp destinations are the map you arrive on: its name when the game's map"
+            " table has one, then its group/number ID in brackets; not warp indexes." in text
         )
         assert "Warp destinations are map group/number IDs" not in text
         assert (
@@ -76,7 +77,7 @@ def test_unknown_and_dynamic_destinations_are_never_named() -> None:
     assert state.destination_names == ((0, 9, "unknown map 0/9"),)
     text = format_readout(state, named_warps=True)
     assert PLAIN in lines(text)
-    assert "destination map 0/9 warp 0" in text and "unknown map" not in text
+    assert "destination map 0/9 warp 0" in text and "unknown map 0/9" not in text
     dynamic = InteractionTarget("warp", 3, 4, 0, "movement", destination=(127, 127, 0))
     assert dynamic.text(destinations={(127, 127): "LITTLEROOT TOWN"}).endswith(
         "; dynamic destination"

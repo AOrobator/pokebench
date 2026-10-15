@@ -49,6 +49,7 @@ export const SWITCHABLE_FEATURES = [
   "next-milestone-hint-v1",
   "double-context-window-v1",
   "fresh-retry-v1",
+  "named-warp-destinations-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -168,6 +169,8 @@ export const FEATURES: readonly FeatureInfo[] = [
     "Keeps twice as much recent play in the prompt: up to the last 40 turns (older turns drop 20 at a time) and the last 12 tool results in full with their screenshots (older ones collapse to a one-line summary, 6 at a time). The prompt grows to roughly twice the size, so each turn is slower. Presets must keep it OFF with state-only decisions, which send no history. Off: up to the last 20 turns (dropped 10 at a time) and the last 6 full tool results (collapsed 3 at a time)."),
   on("fresh-retry-v1", "guard", "FRESH RETRY", null,
     "When a reply calls no tool, the retry is sent without that reply: the model sees its last tool result and the nudge to keep playing, not its own failed answer and reasoning. The reply is still recorded and still counts toward the failure limit. Off: the failed reply stays in the context and the retry sees it."),
+  on("named-warp-destinations-v1", "observation", "NAMED WARP DESTINATIONS", "live-map-v1",
+    "Names the map each warp leads to, using the game's own map table, in the Warps line and in the warp's interaction candidate: (14,8) -> LITTLEROOT TOWN MAYS HOUSE 1F (map 1/2). The name is the same one the Location line shows after walking through. Unknown and dynamic destinations keep their ID. Off: warps show only the map ID, such as map 1/2."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",
@@ -213,7 +216,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "ram-state-v1", "live-map-v1", "live-player-position-v1", "world-coordinate-grid-v1", "live-object-sprites-v1",
   "world-targets-v1", "named-interactions-v1", "world-destinations-v1", "bounded-navigation-v1", "field-dialogue-phase-v1", "active-field-message-buffer-v1", "naming-cursor-v1", "story-state-v1",
   "coordinate-script-conditions-v1", "field-control-lock", "warp-activation-guidance-v1", "ledge-hops-v1", "one-way-tiles-v1",
-  "full-map-navigation-v1", "counter-talk-v1",
+  "full-map-navigation-v1", "counter-talk-v1", "named-warp-destinations-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -247,6 +250,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("next-milestone-hint-v1"),
     ...when("double-context-window-v1"),
     ...when("fresh-retry-v1"),
+    ...when("named-warp-destinations-v1"),
   ];
 }
 

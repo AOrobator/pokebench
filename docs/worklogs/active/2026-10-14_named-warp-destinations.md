@@ -73,11 +73,19 @@ Readout text only. No new inputs, subprocesses, network or file paths. The ROM i
 - [x] Write tests: INV-1 to INV-5, registry counts, preset normalization, legacy harness-feature lists
   (`env/tests/env/test_named_warps.py` 9 tests; features/play-preset/next-run TS tests). RED: TS 2 failed,
   Python 9 failed (1866 pass).
-- [ ] COMMIT: `test(readout): warps name their destination map behind named-warp-destinations-v1 (RED)`
-- [ ] Implement registry, preset, server feature, `map_name`, Warps line, interaction candidates
-- [ ] Gates: `just test` (TS + Python counts), `just lint`, `just build`, `just coverage` (≥90 both stacks), `just verify-vendor`
+- [x] COMMIT: `test(readout): warps name their destination map behind named-warp-destinations-v1 (RED)` (ff9b891)
+- [x] Implement registry, preset, server feature, Warps line, interaction candidates, guidance sentence
+- [x] Gates: `just test` TS agent 1039, viewer 573, Python 1875 all pass; `just lint` clean; `just build` ok;
+  `just coverage` agent 97.4/93.9/98.0/98.9, viewer 94.9/90.5/93.7/97.7, Python lines 96.72 branches 91.93
+  functions 100 (touched files: world 100, live_map 99, readout 98 with pre-existing gaps only);
+  `just verify-vendor` OK.
+- [x] Guard check: deleting `named_warps=` in observation.py turned `test_observation_route_applies_the_switch_from_env`
+  red; removing the id from TS `SERVER_FEATURES` turned the registry and Python list-match tests red. Both restored.
 - [ ] COMMIT: `feat(readout): warps name their destination map (GREEN)`
-- [ ] Smoke: `just smoke` style session from the CLOCK_SET checkpoint, outside the house, ON vs OFF readout captured
+- [x] Smoke: launcher from CLOCK_SET.state on 127.0.0.1:8197 with the switch on, walked 2F → 1F → Littleroot.
+  Outside: `(14,8) -> LITTLEROOT TOWN MAYS HOUSE 1F (map 1/2)`, `(7,16) -> LITTLEROOT TOWN PROFESSOR BIRCHS LAB
+  (map 1/4)`, candidates `Warp to LITTLEROOT TOWN MAYS HOUSE 1F (map 1/2) at (14,8)`. Capture in
+  `runs/named-warps-smoke-on2/littleroot-on.txt`. OFF bytes are covered by unit tests.
 - [ ] Multi-model review loop until clean
 
 **M2 — Explainer and pending experiment**
@@ -104,6 +112,9 @@ experiment is pending (or queued if readiness passes). No measured runs start wi
 - Baseline in worktree at 224ee68: TS agent 1037 + viewer 573 pass; Python 1866 pass.
 
 ## Surprises
+
+- The worktree venv lacked the mGBA binding, so mypy failed on `mgba._pylib`; copied the read-only
+  binding from main's venv as other worktrees do. Port [local inference port] was already taken; smoke used 8197.
 
 - 2026-10-14: `world-destinations-v1` already names warp destinations from the game's own
   `map_groups.json` (`game_state.py` `MapNames`), printing `Warp destination at (14,8): LITTLEROOT TOWN

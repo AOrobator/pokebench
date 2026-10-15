@@ -32,13 +32,14 @@ SERVER_FEATURES = (
     "one-way-tiles-v1",
     "full-map-navigation-v1",
     "counter-talk-v1",
+    "named-warp-destinations-v1",
 )
 
 
 def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
     raw = env.get(
         "POKEBENCH_FEATURES_OFF",
-        "named-interactions-v1,world-destinations-v1,bounded-navigation-v1,expanded-menu-battle-information-v1,field-dialogue-phase-v1,full-map-navigation-v1",
+        "named-interactions-v1,world-destinations-v1,bounded-navigation-v1,expanded-menu-battle-information-v1,field-dialogue-phase-v1,full-map-navigation-v1,named-warp-destinations-v1",
     )
     if raw == "":
         return frozenset()
@@ -81,9 +82,16 @@ def format_readout(
     world_destinations: bool = False,
     bounded_navigation: bool = False,
     message_phase: bool = False,
+    named_warps: bool = False,
 ) -> str:
     if "ram-state-v1" in off:
         return ""
+    # Only names the game's map table resolved; the "unknown map" fallback keeps the bare ID.
+    destinations = (
+        {(g, n): name for g, n, name in state.destination_names if name != f"unknown map {g}/{n}"}
+        if named_warps and "named-warp-destinations-v1" not in off
+        else None
+    )
     expanded = "expanded-menu-battle-information-v1" not in off
     ui = state.active_ui
     from pokebench_env.ui_state import BIRCH_PHASES, CLOCK_PHASES
@@ -238,6 +246,7 @@ def format_readout(
                 ledges="ledge-hops-v1" not in off,
                 edge_walls="one-way-tiles-v1" not in off,
                 counters="counter-talk-v1" not in off,
+                destinations=destinations,
             )
             if shown is not None
             else state.local_map
@@ -254,7 +263,10 @@ def format_readout(
     if state.interaction_targets is not None and "world-targets-v1" not in off:
         lines.append("Map interaction candidates (world coordinates; flags/scripts may gate use):")
         lines.extend(
-            t.text(named=named_interactions and "named-interactions-v1" not in off)
+            t.text(
+                named=named_interactions and "named-interactions-v1" not in off,
+                destinations=destinations,
+            )
             for t in state.interaction_targets
         )
     if bounded_navigation and "bounded-navigation-v1" not in off and state.map_id is not None:

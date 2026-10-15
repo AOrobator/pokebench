@@ -65,7 +65,7 @@ function classify(s:GameStateSnapshot):Decision {
 }
 const FIELD_FREE="the conversation closed and field controls are free";
 const WAIT_STOP:Readonly<Record<Wait,{stop:Stop;detail:string}>>={
- settling:{stop:"field_free",detail:FIELD_FREE},
+ settling:{stop:"field_free",detail:"field controls read free, but the game did not reach a later frame to confirm it; inspect the screen before acting"},
  printing:{stop:"message_not_ready",detail:`the message stayed printing or waiting without accepting input for ${String(AUTO_ADVANCE_LIMITS.waitMs/1000)} s; inspect it before pressing`},
  locked:{stop:"locked_no_message",detail:`field controls stayed locked with no message for ${String(AUTO_ADVANCE_LIMITS.waitMs/1000)} s (a cutscene or script may still be running); inspect before acting`},
  interface:{stop:"interface_not_ready",detail:`an interface stayed not ready for ${String(AUTO_ADVANCE_LIMITS.waitMs/1000)} s; inspect before acting`},
@@ -89,7 +89,7 @@ function speakerOf(text:string,s:GameStateSnapshot):Speaker|null {
 // Pages are cut from the game's own message buffer at the printer's cursor when
 // each page reaches a wait phase; a closed message contributes its remainder.
 // Where a call left a message still on screen, so the next call neither repeats nor drops its pages.
-export interface OpenMessage {readonly text:string;readonly offset:number;readonly cursor:number}
+interface OpenMessage {readonly text:string;readonly offset:number;readonly cursor:number}
 class Pages {
  readonly pages:DialoguePage[]=[];
  private opened=false;private id:string|null=null;private text="";private offset=0;private cursor=0;private speaker:Speaker|null=null;private last:GameStateSnapshot|null=null;
@@ -97,7 +97,6 @@ class Pages {
  // A page already waiting when the call begins is recorded now unless an earlier call recorded it.
  prime(s:GameStateSnapshot):void {
   this.see(s);
-  if(this.opened&&this.open?.text===this.text){this.offset=this.open.offset;this.cursor=this.open.cursor;}
   const m=s.world_context?.message;
   if(m?.ready===true)this.capture(s,m);
  }
@@ -109,7 +108,8 @@ class Pages {
   const same=this.opened&&text===this.text&&(id===null||this.id===null||id===this.id);
   if(!same){
    if(this.last!==null)this.flush(this.last);
-   this.opened=true;this.text=text;this.offset=0;this.cursor=0;this.speaker=speakerOf(text,s)??this.speaker;this.id=null;
+   const resume=!this.opened&&this.open?.text===text;
+   this.opened=true;this.text=text;this.offset=resume?this.open.offset:0;this.cursor=resume?this.open.cursor:0;this.speaker=speakerOf(text,s)??this.speaker;this.id=null;
   }
   if(id!==null)this.id=id;
   this.last=s;
@@ -225,20 +225,24 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
   const plan=submittedButtons(params.buttons,before,switches);
   const walking=params.walking===undefined?{}:{walking:params.walking};
   const run=(buttons:Button[],first:boolean)=>first&&check!==undefined?press.executeChecked(id,{buttons,...walking},check,signal,update):press.execute(id,{buttons,...walking},signal,update);
-  const pages=new Pages(record,open);if(before!==undefined)pages.prime(before);open=null;
+  const pages=new Pages(record,open);if(before!==undefined){pages.prime(before);open=null;}
   const shownBefore=pages.pages.length>0;
+  // A batch that starts inside a conversation stops after its first input: the next inputs could land on a
+  // YES/NO (B answers NO) or a locked script.
+  const inDialogue=shownBefore||(before!==undefined&&dialogueEngaged(before));
   const extras:TextContent[]=[];const sent:Button[]=[];
   const walk=before!==undefined&&freeField(before)&&plan.every(b=>DIRECTIONS.has(b));
   let last:Result;
   if(walk){last=await run([...plan],true);sent.push(...plan);}
   else{
    let result:Result|undefined;
-   for(const button of plan){result=await run([button],sent.length===0);sent.push(button);extras.push(...extraText(result));if(shownBefore||dialogueEngaged(stateOf(result)))break;}
+   for(const button of plan){result=await run([button],sent.length===0);sent.push(button);extras.push(...extraText(result));if(inDialogue||dialogueEngaged(stateOf(result)))break;}
    if(result===undefined)throw new Error("press requires at least one button");
    last=result;
   }
   const after=stateOf(last);
-  const engaged=dialogueEngaged(after)||shownBefore;
+  const engaged=dialogueEngaged(after)||inDialogue;
+  if(!engaged&&before!==undefined)open=pages.openAt(after);
   if(!engaged&&(walk||plan.length===1)&&plan.length===params.buttons.length)return last as AgentToolResult<{state:GameStateSnapshot|undefined}>;
   const dropped=plan.slice(sent.length);
   let block:string|null=null,final:Result;
@@ -265,7 +269,6 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
    const began=full.clock.now();
    const result=await tool.execute(id,params,signal,update);
    const state=stateOf(result);
-   open=null;
    if(!dialogueEngaged(state))return result;
    const pages=new Pages(record);
    const outcome=await advance(state,pages,autoPress(id),full,signal);

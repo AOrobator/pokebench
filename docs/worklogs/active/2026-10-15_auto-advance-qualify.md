@@ -72,9 +72,42 @@ bytes → 9 chars) and dropped control codes (`{PAUSE n}`, `{PAUSE_UNTIL_PRESS}`
 Slateport's Fan Club, Mauville, TV shows, Lilycove and the Safari Zone. There the cut would shift by the length
 difference (pages still contiguous, nothing lost). A fix needs a server-side decoded cursor behind a server switch.
 
-## Qualification table
+## Qualification table (fixed build)
 
-See "Qualification results" below (filled from `runs/auto-advance-qualify/out/fixed/summary.json`).
+Evidence: `runs/auto-advance-qualify/out/fixed/summary.json` (69c062a build, servers `aaq-explore-1`/`-2`),
+`out/r2/` (round-2 build). Runs data is gitignored (repo convention); paths are in the main checkout.
+"B" = harness presses; "RAM" = `ramcheck.py`: every harness B had a ready field message and no YES/NO or
+multichoice task in its pre-read RAM, and the event's joined pages equal the `gStringVar4` buffers printed.
+
+| Scenario (save) | Expected per RAM / pokeemerald | Observed | Result |
+|---|---|---|---|
+| Truck exit (`truck-edge`), RIGHT then A | MOM's 12 pages (`players_house.inc` truck script); field free after `releaseall` | 12 pages from "MOM: AA, we're here, honey!" to "Don't forget to set it!", B×12, stop field_free; final lock 0, ctx stopped | pass |
+| Truck exit, A sent 9 s late, MOM's page 1 already waiting (D1) | same 12 pages | before fix 11 (page 1 missing); after: 12, B×11, identical pages in 2 runs | pass (fixed) |
+| Wall clock (`clock-facing`), A A | "The clock is stopped…" pages then the clock UI | 2 pages, B×2, stop menu at the clock UI | pass |
+| Clock-set confirmation YES/NO (`clock-ui`), A ×3 | wall-clock UI is not a field message; harness must not engage | 0 harness presses, no event; only the model's 3 A | pass |
+| TV cutscene (`room-after-clock`) | MOM calls, walks, TV report; lock between pages | 8 pages, B×8, no press during lock, stop field_free with ctx stopped | pass |
+| Rival's house (`town-before-rival-door`) | rival's mom, 6 pages | 6 pages, B×6, field_free | pass |
+| May's bedroom (`may-ball`), A ×4 | `MeetMay`: lockall, MAY walks in, 13 pages, MAY walks out | 13 pages, B×13, waited out both walks, field_free (lock 0, ctx stopped) | pass |
+| Twin NPC (`twin`) | 4 pages, NPC talk | 4 pages, B×4, field_free | pass |
+| "H-help me!" waiting, model A closes it into the chase (D1) | page recorded; no press while locked; "Please! Help!" pages advanced | before fix: no event, page lost; after: ["H-help me!", "Hello! You over there!\nPlease! Help!", "In my BAG!\nThere's a POKé BALL!"], B×2, 0 presses during the lock, field_free | pass (fixed) |
+| Route 101 entry (`route101-edge`), UP then A | `StartBirchRescue` | 3 pages, B×3, field_free | pass |
+| Bag and starter YES/NO (`bag`), A ×4 | starter choose screen is not a field message | 0 harness presses; only the model's 4 A | pass |
+| Post-battle talk → lab → nickname YES/NO (`birch-yousavedme-p1`), A (D1, D2, D3) | 15 pages; ON_FRAME `GiveStarter` after the warp; `MSGBOX_YESNO` left open (`gSpecialVar_Result` 0xFF) | before fix: page 1 missing; 15 pages with a message duplicated (1 run); stop field_free on frame 86241 in 2 of 5 runs. After: 15 pages = RAM buffers, identical in 3 runs, B×12, stop menu with YES/NO and YES highlighted; final `Task_HandleYesNoInput` live, result 0xFF | pass (fixed) |
+| Model answers NO to the nickname (`lab-yesno`), DOWN, A | harness resumes the next messages and stops at the next YES/NO unanswered | 4 pages, B×3, stop menu, YES/NO live, result 0xFF; question not re-recorded | pass |
+
+No harness B was pressed while a YES/NO or multichoice task was live in any run (RAM-checked), and none was
+pressed into a locked script without a ready message.
+
+## Review
+
+Round 1 (cloud lanes; base 4d5cc83, head 69c062a): Codex gpt-5.6-sol CHANGES REQUESTED, Cursor grok-4.5
+CHANGES REQUESTED, Cursor opus unavailable (usage limit; fable fallback next round). Fixed in round 2:
+- a batch that starts inside a conversation stops after its first input (a carried page could otherwise let a
+  second B land on the YES/NO the first one opened);
+- the carried position survives a failed state read and a `navigate_to` that opens no dialogue (resume happens
+  in `see`, not only in `prime`);
+- the settle timeout no longer claims free field: its detail says the frame never advanced;
+- `OpenMessage` is module-internal; the fake's per-press `posts` copy is removed.
 
 ## Progress Log
 

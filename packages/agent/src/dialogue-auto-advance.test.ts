@@ -65,7 +65,6 @@ class FakeGame{
     if(this.page>=this.convo.ends.length)this.close();else this.printing=this.printReads;
    }else if(this.mode==="yesno"&&b==="A"){this.mode="free";this.convo=null;}
   }
-  this.posts=[...this.posts];
  }
  tick(){
   this.reads++;
@@ -153,6 +152,44 @@ describe("dialogue-auto-advance-v1 press path",()=>{
   expect(game.posts.map(p=>p.buttons[0])).toEqual(["B","B"]);
   expect(rec.advances()[0]?.pages.map(p=>p.text)).toEqual(["If you use a PC, you can store items\nand POKéMON.","The power of science is staggering!"]);
   expect(textOf(result)).toContain("dialogue closed; 2 remaining inputs not sent: B, B.");
+ });
+
+ it("drops the rest of a batch that started in a conversation, so a B never reaches the YES/NO it opened",async()=>{
+  const game=new FakeGame({text:"Will you help me?",ends:[17],then:"yesno"},0);game.openNow();const {tool,rec}=wire(game);
+  const result=await tool("press").execute("y",{buttons:["B","B"]});
+  expect(game.posts.map(p=>p.buttons[0])).toEqual(["B"]);
+  const [event]=rec.advances();
+  expect(event).toMatchObject({stop:"menu",auto_presses:0,sent:["B"],dropped:["B"]});
+  expect(event?.pages.map(p=>p.text)).toEqual(["Will you help me?"]);
+  expect(textOf(result)).toContain("remaining input not sent: B.");
+ });
+
+ it("keeps the recorded position across a failed state read and a navigate_to that opens no dialogue",async()=>{
+  const game=new FakeGame({...SCIENTIST,then:"endless"});const rec=memoryRecorder();const clock=fakeClock();
+  const reads=game.read.read;let fail=false;
+  const state={read:()=>{if(fail){fail=false;return Promise.reject(new Error("read failed"));}return reads();}};
+  const nav:AgentTool={name:"navigate_to",label:"n",description:"walk",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text" as const,text:"Navigation: blocked"}],details:{state:{...game.state(),world_context:{objects:[],triggers:[],dialogue:null,message:null},active_ui:{phase:"start_menu",selected:null,ready:true,controls:"",diagnostic:null,details:null}}}})};
+  const tools=withDialogueAutoAdvance([observeTool(URL_BASE,game.fetch),pressTool(URL_BASE,{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},game.fetch,{now:()=>clock.t,sleep:()=>Promise.resolve()}),nav],ON,{state,recorder:rec.api,clock});
+  const tool=(name:string):AgentTool=>{const x=tools.find(y=>y.name===name);if(x===undefined)throw new Error(name);return x;};
+  await tool("press").execute("k1",{buttons:["A"]});
+  await tool("navigate_to").execute("n",{});
+  fail=true;
+  await tool("press").execute("k2",{buttons:["B"]});
+  const [first,second]=rec.advances();
+  expect(first?.pages.at(-1)?.text).toBe("If you use a PC, you can store items\nand POKéMON.");
+  expect(second?.pages[0]?.text).toBe("The power of science is staggering!");
+ });
+
+ it("confirms free field only on a later frame, and says so when the frame never advances",async()=>{
+  const framed=(frame:number,s:GameStateSnapshot):GameStateSnapshot=>({...s,raw_ram:{v:1,sequence:frame,frame,path:`raw-ram/${String(frame).padStart(8,"0")}.json.gz`,sha256:"0".repeat(64)}});
+  const stuck=new Scripted([framed(1,MSG("page_wait")),framed(2,MSG("page_wait")),framed(5,FREE)]);
+  const a=scriptedTools(stuck);await a.press.execute("s1",{buttons:["A"]});
+  const [stale]=a.rec.advances();
+  expect(stale?.stop).toBe("field_free");expect(stale?.detail).toContain("did not reach a later frame");
+  const moving=new Scripted([framed(1,MSG("page_wait")),framed(2,MSG("page_wait")),framed(5,FREE),framed(6,FREE)]);
+  const b=scriptedTools(moving);await b.press.execute("s2",{buttons:["A"]});
+  const [confirmed]=b.rec.advances();
+  expect(confirmed?.stop).toBe("field_free");expect(confirmed?.detail).toBe("the conversation closed and field controls are free");
  });
 
  it("does not repeat the page an earlier capped call already recorded",async()=>{

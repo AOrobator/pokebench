@@ -112,6 +112,24 @@ All 5 `model_error` ends in the 2×2 cohort (`factorial-2x2-think-fast-*`, 32 gr
 - `packages/viewer/src/fixed-analysis.ts`: two-sided Fisher exact (all tables no more likely than observed, relative tolerance 1e-7), log-rank (ties, censored at the cap), Mann-Whitney U with tie and continuity corrections on a depth-then-time score; pooled and per lane, valid trials only, plus the invalid list. Unit tests match scipy `fisher_exact`, `mannwhitneyu(method="asymptotic")` and lifelines `logrank_test` to 9 digits.
 - Smoke on the 2×2 cohort (`analyze-receipt runs/launch-receipts/navigation-factorial-think-fast-n4 control both --cap-ms 1800000`): RIVAL_MET both 4/8 vs control 3/8, Fisher p = 1.000 (scipy agrees); log-rank χ² 0.312, p 0.577; Mann-Whitney U 38, p 0.564. The 4/8 and 3/8 match a raw grep of the run events.
 
+## Principles Adherence (driver review, `6635285..bbf3873`)
+
+| ID | Score | Evidence |
+|---|---|---|
+| PB1 | PASS | Outcomes come from the run's own milestone events (`classifyTrial`), never from agent claims. |
+| PB2 | PASS | Every trial, invalid ones included, stays in the ledger and the report; misses are censored at the cap, not dropped. |
+| PB3 | PASS | Fixed N = 64 per arm confirmatory, pre-registered tests; cook is labeled exploratory. |
+| PB4 | PASS | Arms differ only in the eight switches (`armPreset`, checked by `definitionProblems`); same build, start bytes, model, sampling, caps. |
+| PB5 | PASS | One change (the bundle) with the hypothesis in the worklog. |
+| PB6 | PASS | 15-min and 60-min caps; runner adopts long trials across restarts; the wall cap is the only behavioral end (`replyFailuresEndRun: false`, loop-guard supervisor required). |
+| PB7 | PASS | No run_start/run_end ⇒ invalid with reason; every launch has a ledger line before spawn. |
+| PB8 | PASS | Reply failures are counted (retry events) and bounded by the cap, not silently ending runs; M2 reclassified the five 2×2 ends with evidence. |
+| PB9 | PASS | Lane problems pause with a written reason and retry; reserve exhaustion waits for the operator; nothing guesses. |
+| PB10 | PASS | All gates run in full; coverage ≥ 90 per metric on both stacks; no skipped tests. |
+| PB11 | PASS | llama.cpp build, model path, slots, ctx and vision are read live from `/props` before every trial. |
+| PB12 | N/A | No macOS privacy-protected resources touched. |
+| PB13 | PASS | Analysis is run on the 2×2 cohort's real runs and cross-checked against a raw grep and scipy. |
+
 ## Session Log
 
 - 2026-10-15 17:45 EDT: Finals confirmed stopped (`finals-withdrawn.json`; the last trials record "operator stopped the run"; no runner). GPU0 cleared and a twin think-fast started; the bot stack disabled; the lane-B tunnel added. Power analysis and plan B chosen by the operator.

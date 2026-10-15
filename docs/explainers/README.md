@@ -25,6 +25,7 @@ Tracked, local HTML documentation. Open an explainer directly; no server or exte
 - [Milestone stall stop v1](milestone-stall-stop-v1.html)
 - [Text-only supervisor v1](text-only-supervisor-v1.html)
 - [Navigation refusal reasons v1](navigation-refusal-reasons-v1.html)
+- [Transition press results v1](transition-press-result-v1.html)
 - [Experiment queue](experiment-queue.html)
 
 The original ignored runs/explainers copies remain for existing links. Make future updates here. Runtime probes, generated measurement data and helper scripts remain under runs/.

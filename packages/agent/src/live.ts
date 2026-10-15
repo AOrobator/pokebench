@@ -24,7 +24,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runAgentLoop, type AgentMessage } from "@mariozechner/pi-agent-core";
 import { loadConfig } from "./config.js";
-import { checkSmoke, observeTool, pressTool, serverHealthy } from "./game-tools.js";
+import { checkSmoke, gameTools, observeTool, pressTool, serverHealthy } from "./game-tools.js";
 import { discoverModels, selectModel, type GatewayModel } from "./gateway.js";
 import { FrameStore } from "./frames.js";
 import { StateWatcher } from "./game-state.js";
@@ -307,7 +307,7 @@ async function playAgent(): Promise<void> {
       };
       process.once("SIGINT", interrupt);
       const objectives = features["objective-tracking-v1"] ? objectiveHarness(goal, recorder, gameServerUrl, fetch, { ...objectiveSwitches(features), ...toolSwitches(features) }) : null;
-      const baseTools=objectives?.tools ?? [observeTool(gameServerUrl, fetch, toolSwitches(features)), pressTool(gameServerUrl, pressHooks(recorder), fetch, undefined, toolSwitches(features))];
+      const baseTools=objectives?.tools ?? gameTools(gameServerUrl, pressHooks(recorder), fetch, toolSwitches(features));
       const tools=withNavigation(baseTools,features,new StateWatcher(gameServerUrl),signal=>runControl.gate(signal));
       const context=contextTools(features,recorder,objectives?.transformContext??recorder.transformContext);
       tools.push(...context.tools);

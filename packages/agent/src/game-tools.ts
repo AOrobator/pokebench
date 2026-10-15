@@ -4,11 +4,11 @@ import { Type, type Static } from "typebox";
 import { Value } from "typebox/value";
 import { ButtonSchema, StateBodySchema, type Button } from "./events.js";
 import { parseGameState, type GameStateSnapshot } from "./game-state.js";
-import { pressResult } from "./press-result.js";
+import { ShownStates, pressResult } from "./press-result.js";
 
 // Which model-visible parts of the observe/press results this run shows.
-export interface ToolSwitches { readonly readout: boolean; readonly pressResult: boolean; readonly position: boolean; readonly fieldLock: boolean; readonly safeInterfaces?: boolean; readonly automaticRunning?: boolean }
-export const ALL_TOOL_SWITCHES: ToolSwitches = { readout: true, pressResult: true, position: true, fieldLock: true, automaticRunning: false };
+export interface ToolSwitches { readonly readout: boolean; readonly pressResult: boolean; readonly position: boolean; readonly fieldLock: boolean; readonly safeInterfaces?: boolean; readonly automaticRunning?: boolean; readonly transitions?: boolean }
+export const ALL_TOOL_SWITCHES: ToolSwitches = { readout: true, pressResult: true, position: true, fieldLock: true, automaticRunning: false, transitions: false };
 import type { PressTiming } from "./recorder.js";
 
 const NoArgs = Type.Object({});
@@ -78,7 +78,7 @@ async function observation(
   ], state: body.state };
 }
 
-export function observeTool(gameServerUrl: string, fetchFn: typeof fetch = fetch, switches: ToolSwitches = ALL_TOOL_SWITCHES): AgentTool {
+export function observeTool(gameServerUrl: string, fetchFn: typeof fetch = fetch, switches: ToolSwitches = ALL_TOOL_SWITCHES, shown?: ShownStates): AgentTool {
   return {
     name: "observe",
     label: "Observe",
@@ -86,6 +86,7 @@ export function observeTool(gameServerUrl: string, fetchFn: typeof fetch = fetch
     parameters: NoArgs,
     execute: async (_toolCallId, _params, signal) => {
       const result = await observation(gameServerUrl, fetchFn, signal);
+      shown?.record(result.state);
       return { content: result.content, details: { state: result.state } };
     },
   };
@@ -199,6 +200,7 @@ export function pressTool(
   fetchFn: typeof fetch = fetch,
   clock: Clock = realClock,
   switches: ToolSwitches = ALL_TOOL_SWITCHES,
+  shown: ShownStates = new ShownStates(),
 ): CheckedPressTool {
   const execute=async(toolCallId:string,params:Static<typeof PressArgs>,signal?:AbortSignal,_update?:Parameters<AgentTool<typeof PressArgs>["execute"]>[3],check?:BeforePressCheck):Promise<AgentToolResult<{state:GameStateSnapshot|undefined}>>=>{
       // A stopped run (budget, operator abort) must not press anything further.
@@ -232,7 +234,8 @@ export function pressTool(
       await waitForQueue(gameServerUrl, fetchFn, clock, signal);
       await clock.sleep(STATE_CACHE_SETTLE_MS);
       await hooks.afterPress();
-      const content = await observation(gameServerUrl, fetchFn, signal, (after) => `pressed ${buttons.join(", ")}\n${buttons.length < params.buttons.length ? `Interface safety: submitted 1 of ${String(params.buttons.length)} requested inputs; remaining inputs were not sent. Inspect the new state before another input.\n` : ""}${switches.pressResult ? `Press result: ${pressResult(before, after, buttons, switches)}\n` : ""}\n`);
+      const content = await observation(gameServerUrl, fetchFn, signal, (after) => `pressed ${buttons.join(", ")}\n${buttons.length < params.buttons.length ? `Interface safety: submitted 1 of ${String(params.buttons.length)} requested inputs; remaining inputs were not sent. Inspect the new state before another input.\n` : ""}${switches.pressResult ? `Press result: ${pressResult(before, after, buttons, switches, shown)}\n` : ""}\n`);
+      shown.record(content.state);
       return { content: content.content, details: { state: content.state } };
   };
   return {
@@ -247,3 +250,9 @@ export function pressTool(
   };
 }
 
+
+/** observe and press sharing what the model was last shown. */
+export function gameTools(gameServerUrl: string, hooks: PressHooks, fetchFn: typeof fetch = fetch, switches: ToolSwitches = ALL_TOOL_SWITCHES, clock: Clock = realClock): [AgentTool, CheckedPressTool] {
+  const shown = new ShownStates();
+  return [observeTool(gameServerUrl, fetchFn, switches, shown), pressTool(gameServerUrl, hooks, fetchFn, clock, switches, shown)];
+}

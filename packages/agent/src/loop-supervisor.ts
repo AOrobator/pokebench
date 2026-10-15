@@ -143,7 +143,8 @@ export class SupervisorBriefing {
   if(!this.features["world-targets-v1"])return "not available (world targets are off)";
   if(s===null)return "no observation yet";
   const done=this.touched.get(this.room(s))??new Set<string>();
-  const open=(s.interaction_targets??[]).filter(t=>!done.has(at(t.x,t.y)));
+  // Exits first: ordering only, so a briefing never buries the way out under room furniture.
+  const open=(s.interaction_targets??[]).filter(t=>!done.has(at(t.x,t.y))).sort((a,b)=>Number(b.kind==="warp")-Number(a.kind==="warp"));
   if(open.length===0)return "none: every listed target here has been tried";
   return open.map(t=>`${this.features["named-interactions-v1"]&&t.name!=null?t.name:t.kind} at ${at(t.x,t.y)} (${t.activation})`).join("; ");
  }

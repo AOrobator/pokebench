@@ -23,7 +23,7 @@ const top = r => {
   return { i, ms: i < 0 ? Infinity : (r.splits.find(s => s.name === order[i])?.elapsedMs ?? Infinity) };
 };
 const start = r => r.config.start === "boot" ? "boot" : `${r.config.start}:${r.config.resume ?? "unknown"}`;
-const line = (r, t) => `${t.i < 0 ? "no progress past the resume point" : order[t.i]}\t${t.ms === Infinity ? "-" : (t.ms / 60000).toFixed(1)} min\t${r.model ?? "-"}\t${r.config.preset ?? "-"}\t${start(r)}\t${r.status}\t${r.id}`;
+const line = (r, t) => `${t.i < 0 ? (resumed(r) ? "no progress past the resume point" : "no milestone reached") : order[t.i]}\t${t.ms === Infinity ? "-" : (t.ms / 60000).toFixed(1)} min\t${r.model ?? "-"}\t${r.config.preset ?? "-"}\t${start(r)}\t${r.status}\t${r.id}`;
 const list = (label, runs, n) => {
   console.log(`## ${label}`);
   const rows = runs.map(r => ({ r, t: top(r) })).sort((a, b) => b.t.i - a.t.i || a.t.ms - b.t.ms || a.r.id.localeCompare(b.r.id)).slice(0, n);
@@ -35,6 +35,6 @@ const refs = frontierReferences(wb.runs);
 console.log(`## best valid fresh-boot run (viewer frontierReferences)\n${refs.best === null ? "unavailable" : line(refs.best, top(refs.best))}`);
 list("fresh-boot frontier: ended boot runs, active minutes since New game", wb.runs.filter(r => agent(r) && r.status === "ended" && r.config.start === "boot"), 5);
 list("checkpoint frontier: ended runs resumed at CLOCK_SET, minutes since the save loaded (never compare with boot times)", wb.runs.filter(r => agent(r) && r.status === "ended" && resumed(r)), 5);
-list("in progress, not counted: live or paused", wb.runs.filter(r => agent(r) && (r.status === "live" || r.status === "paused")), 5);
-list("stalled, not counted: unresponsive", wb.runs.filter(r => agent(r) && r.status === "unresponsive"), 5);
+list("in progress, not counted: live or paused (save_state rows: minutes since the save loaded)", wb.runs.filter(r => agent(r) && (r.status === "live" || r.status === "paused")), 5);
+list("stalled, not counted: unresponsive (save_state rows: minutes since the save loaded)", wb.runs.filter(r => agent(r) && r.status === "unresponsive"), 5);
 console.log(`## human reference (viewer frontierReferences)\n${refs.human === null ? "unavailable" : line(refs.human, top(refs.human))}`);

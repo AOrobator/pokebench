@@ -14,7 +14,7 @@ import type { PlayPresetV2 } from "@pokebench/agent/play-preset";
 import { finalsPreset, type FinalsEntry, type Nomination } from "@pokebench/agent/experiment-gate";
 import { experimentDir, loadExperiments, queueSnapshot, readRunnerFile, runnerPath, type ExperimentView, type QueuePaths, type QueueSnapshot, type RunSource } from "./experiment-store.js";
 import { cohortNomination, decide, effectiveExperiment, finalsLedger, finalsLedgerPath, finalsResultPath, finalsRunner, finalsTrials, finalsWithdrawnPath, findCohort, nominationPath, promotionsPath, queueNomination, readNomination, readPromotions, type FinalsResult } from "./experiment-gate-store.js";
-import { pidAlive, takeLease } from "./lease.js";
+import { nameLeaseRun, pidAlive, takeLease } from "./lease.js";
 
 export interface DiscoveredModel { readonly id: string; readonly fingerprint: string }
 export interface TrialLaunch { readonly runId: string; readonly presetPath: string; readonly model: string; readonly stdout: string; readonly stderr: string; readonly started?: (pid: number) => void }
@@ -95,15 +95,18 @@ function endReason(runsRoot: string, runId: string): string {
 }
 
 export const ADOPT_POLL_MS = 5_000;
+interface Holder { readonly lease: string; readonly owner: Readonly<Record<string, unknown>> }
 // Trials a viewer launched and never recorded: a restarted viewer adopts them instead of relaunching.
 const orphans = (todo: readonly { state: string; run: string | null }[]): Set<string> => new Set(todo.flatMap((t) => (t.run !== null && (t.state === "interrupted" || t.state === "running") ? [t.run] : [])));
 
 // Waits under the lease until an adopted trial stops playing, then reads how it ended (null: stop requested).
-async function settleOrphan(runsRoot: string, host: RunnerHost, run: string, position: Readonly<Record<string, unknown>>, stopRequested: () => boolean): Promise<string | null> {
+async function settleOrphan(runsRoot: string, host: RunnerHost, run: string, position: Readonly<Record<string, unknown>>, holder: Holder, stopRequested: () => boolean): Promise<string | null> {
   const alive = (pid: number): boolean => (host.alive ?? pidAlive)(pid);
   const file = readRunnerFile(runsRoot);
   const child = file?.run === run ? (file.child ?? null) : null;
-  writeFileSync(runnerPath(runsRoot), JSON.stringify({ ...position, run, ...(child === null ? {} : { child }) }));
+  const named = { run, ...(child === null ? {} : { child }) };
+  writeFileSync(runnerPath(runsRoot), JSON.stringify({ ...position, ...named }));
+  nameLeaseRun(holder.lease, { ...holder.owner, ...named });
   for (;;) {
     const playing = (await host.liveRuns()).includes(run) || (child !== null && alive(child) && endReason(runsRoot, run) === "incomplete");
     if (!playing) return endReason(runsRoot, run);
@@ -112,13 +115,14 @@ async function settleOrphan(runsRoot: string, host: RunnerHost, run: string, pos
   }
 }
 
-// The detached play pid joins the runner position; a failed write only loses that pid.
-function noteChild(runsRoot: string, position: Readonly<Record<string, unknown>>, child: number): void {
+// The detached play pid joins the runner position and the lease; a failed write only loses that pid.
+function noteChild(runsRoot: string, position: Readonly<Record<string, unknown>>, holder: Holder, child: number): void {
   try {
     writeFileSync(runnerPath(runsRoot), JSON.stringify({ ...position, child }));
   } catch {
     // The position still names the run, which adoption falls back to.
   }
+  nameLeaseRun(holder.lease, { ...holder.owner, run: position["run"], child });
 }
 
 // A queue trial still playing, maybe launched by a viewer that is gone, is picked up so the runner
@@ -194,7 +198,9 @@ async function runNext(options: RunnerOptions): Promise<RunnerOutcome & { finish
   const live = (await host.liveRuns()).filter((run) => !adoptable.has(run));
   if (live.length > 0) throw new RunnerError(`live run ${live[0] ?? ""} is still running`);
   // The lease comes first: verifying the source may rebuild the agent dist every gameplay launcher loads.
-  const lease = takeLease(paths.runsRoot, { pid: process.pid, owner: "experiment-queue", experiment: experiment.id }, (pid) => (host.alive ?? pidAlive)(pid), adoptable);
+  const owner = { pid: process.pid, owner: "experiment-queue", experiment: experiment.id };
+  const lease = takeLease(paths.runsRoot, owner, (pid) => (host.alive ?? pidAlive)(pid), adoptable);
+  const holder: Holder = { lease, owner };
   let ran = 0;
   try {
     const problem = await host.verifySource(experiment, commit);
@@ -211,11 +217,9 @@ async function runNext(options: RunnerOptions): Promise<RunnerOutcome & { finish
       if (!approved(paths, experiment)) return hold(ran, "held: the approval no longer matches the definition");
       const recheck = await host.verifySource(experiment, commit);
       if (recheck !== null) return hold(ran, `held: ${recheck}`);
-      const used = entries.flatMap((e) => (e.type === "launch" ? [e.run] : [])).reduce((sum, run) => sum + (source.trial(run)?.wallMs ?? 0), 0);
-      if (used + experiment.incumbent.limits.maxWallMs > experiment.budget.maxWallMs) return hold(ran, "held: the next trial could exceed the experiment budget");
       const at = (): string => host.now().toISOString();
       if (trial.run !== null && adoptable.has(trial.run)) {
-        const ended = await settleOrphan(paths.runsRoot, host, trial.run, { pid: process.pid, experiment: experiment.id, trial: trial.index }, stopRequested);
+        const ended = await settleOrphan(paths.runsRoot, host, trial.run, { pid: process.pid, experiment: experiment.id, trial: trial.index }, holder, stopRequested);
         if (ended === null) return hold(ran, "stop requested");
         if (ended === "operator_abort") {
           record({ type: "launcher_error", trial: trial.index, arm: trial.arm, run: trial.run, at: at(), message: "operator stopped the trial" });
@@ -230,15 +234,19 @@ async function runNext(options: RunnerOptions): Promise<RunnerOutcome & { finish
         }
         record({ type: "launcher_error", trial: trial.index, arm: trial.arm, run: trial.run, at: at(), message: "interrupted: no outcome was recorded" });
       }
+      // Only a new launch spends budget; an adopted trial already ran.
+      const used = entries.flatMap((e) => (e.type === "launch" ? [e.run] : [])).reduce((sum, run) => sum + (source.trial(run)?.wallMs ?? 0), 0);
+      if (used + experiment.incumbent.limits.maxWallMs > experiment.budget.maxWallMs) return hold(ran, "held: the next trial could exceed the experiment budget");
       const presetPath = presets.get(trial.arm) ?? presetFile(paths, experiment, trial.arm);
       presets.set(trial.arm, presetPath);
       const runId = host.runId(model.id);
       record({ type: "launch", trial: trial.index, arm: trial.arm, run: runId, at: at(), model: model.id, environment: model.fingerprint, commit, ...promotion });
       const position = { pid: process.pid, experiment: experiment.id, trial: trial.index, run: runId };
       writeFileSync(runnerPath(paths.runsRoot), JSON.stringify(position));
+      nameLeaseRun(lease, { ...owner, run: runId });
       let code: number | null;
       try {
-        code = await host.launch({ runId, presetPath, model: model.id, stdout: join(logs, `${runId}.stdout.log`), stderr: join(logs, `${runId}.stderr.log`), started: (child) => { noteChild(paths.runsRoot, position, child); } });
+        code = await host.launch({ runId, presetPath, model: model.id, stdout: join(logs, `${runId}.stdout.log`), stderr: join(logs, `${runId}.stderr.log`), started: (child) => { noteChild(paths.runsRoot, position, holder, child); } });
       } catch (error) {
         record({ type: "launcher_error", trial: trial.index, arm: trial.arm, run: runId, at: at(), message: error instanceof Error ? error.message : String(error) });
         return hold(ran, `held: trial ${String(trial.index + 1)} failed to launch`);
@@ -310,7 +318,9 @@ async function runFinals({ paths, source, host, once = false, stopRequested = ()
   const adoptable = orphans(todo);
   const live = (await host.liveRuns()).filter((run) => !adoptable.has(run));
   if (live.length > 0) throw new RunnerError(`live run ${live[0] ?? ""} is still running`);
-  const lease = takeLease(paths.runsRoot, { pid: process.pid, owner: "experiment-queue", experiment: id, finals: true }, (pid) => (host.alive ?? pidAlive)(pid), adoptable);
+  const owner = { pid: process.pid, owner: "experiment-queue", experiment: id, finals: true };
+  const lease = takeLease(paths.runsRoot, owner, (pid) => (host.alive ?? pidAlive)(pid), adoptable);
+  const holder: Holder = { lease, owner };
   let ran = 0;
   try {
     const problem = await host.verifySource(file, commit);
@@ -327,7 +337,7 @@ async function runFinals({ paths, source, host, once = false, stopRequested = ()
       if (recheck !== null) return hold(ran, `held: ${recheck}`);
       const at = (): string => host.now().toISOString();
       if (trial.run !== null && adoptable.has(trial.run)) {
-        const ended = await settleOrphan(paths.runsRoot, host, trial.run, { pid: process.pid, experiment: finalsRunner(id), trial: trial.index }, stopRequested);
+        const ended = await settleOrphan(paths.runsRoot, host, trial.run, { pid: process.pid, experiment: finalsRunner(id), trial: trial.index }, holder, stopRequested);
         if (ended === null) return hold(ran, "stop requested");
         if (ended === "operator_abort") {
           record({ type: "launcher_error", trial: trial.index, arm: trial.arm, run: trial.run, at: at(), message: "operator stopped the run" });
@@ -350,9 +360,10 @@ async function runFinals({ paths, source, host, once = false, stopRequested = ()
       record({ type: "launch", trial: trial.index, arm: trial.arm, run: runId, at: at(), model: model.id, commit });
       const position = { pid: process.pid, experiment: finalsRunner(id), trial: trial.index, run: runId };
       writeFileSync(runnerPath(paths.runsRoot), JSON.stringify(position));
+      nameLeaseRun(lease, { ...owner, run: runId });
       let code: number | null;
       try {
-        code = await host.launch({ runId, presetPath, model: model.id, stdout: join(logs, `${runId}.stdout.log`), stderr: join(logs, `${runId}.stderr.log`), started: (child) => { noteChild(paths.runsRoot, position, child); } });
+        code = await host.launch({ runId, presetPath, model: model.id, stdout: join(logs, `${runId}.stdout.log`), stderr: join(logs, `${runId}.stderr.log`), started: (child) => { noteChild(paths.runsRoot, position, holder, child); } });
       } catch (error) {
         record({ type: "launcher_error", trial: trial.index, arm: trial.arm, run: runId, at: at(), message: error instanceof Error ? error.message : String(error) });
         return hold(ran, `held: finals run ${String(trial.index + 1)} failed to launch`);

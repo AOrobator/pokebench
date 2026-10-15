@@ -102,3 +102,58 @@ it("records leave-home and rival house after a Clock set save starts inside the 
  blocked.observe({type:"milestone",run:"r",seq:4,turn:1,v:1,t:outside.t,name:"PLAYER_HOUSE_EXITED_AFTER_CLOCK",kind:"navigation",origin:"observed",evidence:[2,2,3],server_timestamp:1});
  expect(blocked.proof).toBeNull();
 });
+
+const met={...clocked,rival_stage:3};
+it("records leaving the rival's house after meeting the rival, with home, rival-house and town evidence",()=>{
+ for(const home of ["BRENDANS","MAYS"]){
+  const rival=home==="BRENDANS"?"MAYS":"BRENDANS";
+  const tracker=new StateMilestones({read:()=>Promise.resolve(state("LITTLEROOT TOWN"))});
+  const witness=state(`LITTLEROOT TOWN ${home} HOUSE 2F`);
+  const sequence=[witness,state(`LITTLEROOT TOWN ${home} HOUSE 1F`,{story:clocked}),state("LITTLEROOT TOWN",{story:clocked}),state(`LITTLEROOT TOWN ${rival} HOUSE 1F`,{story:clocked}),state(`LITTLEROOT TOWN ${rival} HOUSE 2F`,{story:met}),state(`LITTLEROOT TOWN ${rival} HOUSE 1F`,{story:met})];
+  sequence.forEach((s,i)=>{expect(tracker.observe(s,i+1).map(m=>m.name)).not.toContain("RIVAL_HOUSE_EXITED");});
+  const exit=tracker.observe(state("LITTLEROOT TOWN",{story:met}),7).find(m=>m.name==="RIVAL_HOUSE_EXITED");
+  expect(exit).toEqual({name:"RIVAL_HOUSE_EXITED",kind:"navigation",origin:"observed",serverTimestamp:expect.any(Number) as number,evidence:[1,6,7]});
+  expect(tracker.observe(state(`LITTLEROOT TOWN ${rival} HOUSE 1F`,{story:met}),8)).toEqual([]);
+  expect(tracker.observe(state("LITTLEROOT TOWN",{story:met}),9)).toEqual([]);
+  const events:(Extract<RunEvent,{type:"state"}> & GameStateSnapshot)[]=[...sequence,state("LITTLEROOT TOWN",{story:met})].map((game,i)=>({...game,type:"state",run:"r",seq:i+1,turn:1,v:1,t:"2026-10-15T00:00:00.000-04:00"}));
+  const mark:Extract<RunEvent,{type:"milestone"}>={type:"milestone",run:"r",seq:20,turn:1,v:1,t:"2026-10-15T00:00:00.000-04:00",name:"RIVAL_HOUSE_EXITED",kind:"navigation",origin:"observed",evidence:[1,6,7],server_timestamp:1};
+  const [first,,,,,inside,town]=events;if(first===undefined||inside===undefined||town===undefined)throw new Error("fixture");
+  expect(qualifiedNativeMilestone(mark,[first,inside,town])).toBe(true);
+  expect(qualifiedNativeMilestone({...mark,origin:"present_at_start"},[first,inside,town])).toBe(false);
+  expect(qualifiedNativeMilestone(mark,[first,{...inside,story:clocked},town])).toBe(false);
+  expect(qualifiedNativeMilestone(mark,[first,{...inside,screen:"field_transition"},town])).toBe(false);
+  expect(qualifiedNativeMilestone(mark,[first,{...inside,location:`LITTLEROOT TOWN ${home} HOUSE 1F`},town])).toBe(false);
+  expect(qualifiedNativeMilestone({...mark,evidence:[6,7]},[inside,town])).toBe(false);
+ }
+});
+it("withholds the rival-house exit for the player's own house, before the rival is met, and without a home",()=>{
+ const tracker=new StateMilestones({read:()=>Promise.resolve(state("LITTLEROOT TOWN"))});
+ tracker.observe(state("LITTLEROOT TOWN BRENDANS HOUSE 2F"),1);
+ for(const [s,seq] of [[state("LITTLEROOT TOWN BRENDANS HOUSE 1F",{story:met}),2],[state("LITTLEROOT TOWN",{story:met}),3],[state("LITTLEROOT TOWN MAYS HOUSE 1F",{story:{...clocked,rival_stage:2}}),4],[state("LITTLEROOT TOWN",{story:{...clocked,rival_stage:2}}),5],[state("LITTLEROOT TOWN MAYS HOUSE 1F",{story:met}),6],[state("LITTLEROOT TOWN",{screen:"unknown",story:met}),7]] as const)expect(tracker.observe(s,seq).map(m=>m.name)).not.toContain("RIVAL_HOUSE_EXITED");
+ expect(tracker.observe(state("LITTLEROOT TOWN MAYS HOUSE 1F",{story:met,screen:"field_transition"}),8).map(m=>m.name)).not.toContain("RIVAL_HOUSE_EXITED");
+ expect(tracker.observe(state("LITTLEROOT TOWN",{story:met}),9).map(m=>m.name)).not.toContain("RIVAL_HOUSE_EXITED");
+ const homeless=new StateMilestones({read:()=>Promise.resolve(state("LITTLEROOT TOWN"))});homeless.initialize("save_state");
+ for(const [s,seq] of [[state("LITTLEROOT TOWN",{story:met}),1],[state("LITTLEROOT TOWN MAYS HOUSE 1F",{story:met}),2],[state("LITTLEROOT TOWN",{story:met}),3]] as const)expect(homeless.observe(s,seq).map(m=>m.name)).not.toContain("RIVAL_HOUSE_EXITED");
+});
+it("records the rival-house exit after a Clock set save that starts inside the player's house",()=>{
+ const tracker=new StateMilestones({read:()=>Promise.resolve(state("LITTLEROOT TOWN"))});tracker.initialize("save_state");
+ const seq=[state("LITTLEROOT TOWN MAYS HOUSE 2F",{story:clocked}),state("LITTLEROOT TOWN MAYS HOUSE 1F",{story:clocked}),state("LITTLEROOT TOWN",{story:clocked}),state("LITTLEROOT TOWN BRENDANS HOUSE 1F",{story:clocked}),state("LITTLEROOT TOWN BRENDANS HOUSE 2F",{story:met}),state("LITTLEROOT TOWN BRENDANS HOUSE 1F",{story:met}),state("LITTLEROOT TOWN",{story:met})];
+ const found=seq.flatMap((s,i)=>tracker.observe(s,i+1)).filter(m=>m.name==="RIVAL_HOUSE_EXITED");
+ expect(found).toMatchObject([{origin:"observed",kind:"navigation",evidence:[1,6,7]}]);
+});
+it("gives no rival-house exit credit to a save whose home already shows the rival met",()=>{
+ for(const [start,home] of [["LITTLEROOT TOWN MAYS HOUSE 2F","MAYS"],["LITTLEROOT TOWN BRENDANS HOUSE 2F","BRENDANS"]] as const){
+  const rival=home==="BRENDANS"?"MAYS":"BRENDANS";
+  const tracker=new StateMilestones({read:()=>Promise.resolve(state("LITTLEROOT TOWN"))});tracker.initialize("save_state");
+  const seq=[state(start,{story:met}),state(`LITTLEROOT TOWN ${home} HOUSE 1F`,{story:met}),state("LITTLEROOT TOWN",{story:met}),state(`LITTLEROOT TOWN ${rival} HOUSE 1F`,{story:met}),state("LITTLEROOT TOWN",{story:met})];
+  expect(seq.flatMap((s,i)=>tracker.observe(s,i+1)).map(m=>m.name)).not.toContain("RIVAL_HOUSE_EXITED");
+ }
+ const events:(Extract<RunEvent,{type:"state"}> & GameStateSnapshot)[]=[state("LITTLEROOT TOWN MAYS HOUSE 2F",{story:met}),state("LITTLEROOT TOWN BRENDANS HOUSE 1F",{story:met}),state("LITTLEROOT TOWN",{story:met})].map((game,i)=>({...game,type:"state",run:"r",seq:i+1,turn:1,v:1,t:"2026-10-15T00:00:00.000-04:00"}));
+ const mark:Extract<RunEvent,{type:"milestone"}>={type:"milestone",run:"r",seq:9,turn:1,v:1,t:"2026-10-15T00:00:00.000-04:00",name:"RIVAL_HOUSE_EXITED",kind:"navigation",origin:"observed",evidence:[1,2,3],server_timestamp:1};
+ expect(qualifiedNativeMilestone(mark,events)).toBe(false);
+ const [, inside, town]=events;if(inside===undefined||town===undefined)throw new Error("fixture");
+ const home:Extract<RunEvent,{type:"state"}> & GameStateSnapshot={...state("LITTLEROOT TOWN MAYS HOUSE 2F",{story:clocked}),type:"state",run:"r",seq:1,turn:1,v:1,t:mark.t};
+ expect(qualifiedNativeMilestone(mark,[home,inside,town])).toBe(true);
+ expect(qualifiedNativeMilestone(mark,[home,inside,{...town,story:{...clocked,rival_stage:2}}])).toBe(false);
+ expect(qualifiedNativeMilestone(mark,[{...home,location:"LITTLEROOT TOWN"},inside,town])).toBe(false);
+});

@@ -20,7 +20,7 @@ Defaults picked where the spec forks (say so in the reply):
 - An experiment that has already launched trials keeps the incumbent it started with (recorded per launch), like the build commit.
 
 ## Budget decisions (operator 2026-10-15: "yes but i dont want the decide early change")
-- **Stall stop** (`milestone-stall-stop-v1`, its own switch, default OFF): a run ends as `stalled` after 10 minutes of active play with no new milestone; 45 minutes stays the hard cap. Finals presets turn it on for every arm.
+- **Stall stop** (`milestone-stall-stop-v1`, its own switch, default OFF): a run ends as `stalled` after 10 minutes of active play with no new milestone; 45 minutes stays the hard cap. Finals presets turn it on for every arm. Superseded 2026-10-15 14:02 UTC (operator): finals force it OFF, because on the Think Fast 2×2 even 20 minutes would have cut a run that later chose a starter. See `2026-10-15_rival-house-exit-split.md`.
 - **Reuse the incumbent's runs:** recorded boot runs of the same model lane whose switches, wall limit and turn limit match the finals incumbent preset count toward its 8 (latest first). Only the shortfall is run.
 - **No decide-early:** all 8 runs per finalist always complete.
 - Per-experiment overrides: optional `finals` `{runsPerArm, maxWallMs, target}` in the definition.

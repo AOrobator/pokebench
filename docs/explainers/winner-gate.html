@@ -36,7 +36,7 @@ code { font:13px ui-monospace, SFMono-Regular, Menlo, monospace; background:var(
 <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="currentColor" style="fill:var(--muted)"/></marker></defs>
 <rect class="box b-gray" x="10" y="40" width="160" height="80" rx="10"/><text x="24" y="66">Experiment finishes</text><text class="small" x="24" y="86">queue A/B (8 per arm), or</text><text class="small" x="24" y="102">an external cohort (2×2)</text>
 <rect class="box b-blue" x="210" y="40" width="170" height="80" rx="10"/><text x="224" y="66">Nominate</text><text class="small" x="224" y="86">arms beating the incumbent</text><text class="small" x="224" y="102">arm in &gt;50% of pairs, max 3</text>
-<rect class="box b-amber" x="420" y="40" width="190" height="80" rx="10"/><text x="434" y="66">Finals from boot</text><text class="small" x="434" y="86">8 runs per arm, 45 min cap,</text><text class="small" x="434" y="102">10 min stall stop, balanced</text>
+<rect class="box b-amber" x="420" y="40" width="190" height="80" rx="10"/><text x="434" y="66">Finals from boot</text><text class="small" x="434" y="86">8 runs per arm, 45 min cap,</text><text class="small" x="434" y="102">no stall stop, balanced</text>
 <rect class="box b-green" x="660" y="10" width="190" height="70" rx="10"/><text x="674" y="36">Winner declared</text><text class="small" x="674" y="56">its switches become the</text><text class="small" x="674" y="72">incumbent; approvals kept</text>
 <rect class="box b-gray" x="660" y="96" width="190" height="56" rx="10"/><text x="674" y="120">No finalist passes</text><text class="small" x="674" y="140">incumbent stays (no winner)</text>
 <path class="arrow" d="M170,80 H206"/><path class="arrow" d="M380,80 H416"/><path class="arrow" d="M610,70 L656,46"/><path class="arrow" d="M610,92 L656,122"/>
@@ -98,7 +98,7 @@ code { font:13px ui-monospace, SFMono-Regular, Menlo, monospace; background:var(
 <text class="small" x="494" y="88">Finalist: beats the incumbent arm in more than 0.5.</text>
 <text class="small" x="494" y="108">Winner: highest share, at least 0.71 (about 46 of 64).</text>
 <text class="small" x="494" y="128">0.71 is the usual "large effect" cutoff.</text>
-<text class="small" x="10" y="190">Every run counts, a single lucky run cannot dominate, and runs cut off by the 45-minute cap or the stall stop are ranked by how far they got.</text>
+<text class="small" x="10" y="190">Every run counts, a single lucky run cannot dominate, and runs cut off by the 45-minute cap are ranked by how far they got.</text>
 </svg>
 <figcaption>The same share picks the finalists (against the cohort's control arm) and the winner (against the incumbent's finals runs from boot). When picking finalists, equal shares go to the simpler arm; when picking the winner, to nomination order.</figcaption>
 </figure>

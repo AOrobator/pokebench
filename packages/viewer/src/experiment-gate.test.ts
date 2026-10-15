@@ -196,7 +196,7 @@ describe("winner gate", () => {
       writeDefinition(w.paths.experimentsDir, value);
       approve(w.paths, value);
       // Two recorded boot runs that already match the finals incumbent count toward its four.
-      const finalsFeatures = QUEUE_FEATURES;
+      const finalsFeatures = { ...QUEUE_FEATURES, "milestone-stall-stop-v1": false };
       w.recent.push(...["old-a", "old-b"].map((id) => ({ id, model: "think-fast", start: "boot" as const, maxTurns: FINALS_MAX_TURNS, maxWallMs: 600_000, features: finalsFeatures, reached: HOUSE })));
       w.recent.push({ id: "other-lane", model: "qwen", start: "boot", maxTurns: FINALS_MAX_TURNS, maxWallMs: 600_000, features: finalsFeatures, reached: HOUSE });
       w.metrics.set("old-a", reach(HOUSE));

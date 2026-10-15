@@ -41,7 +41,7 @@ export function readNativeRecording(path: string, id: string, qualified: (event:
       if (states.size >= evidenceLimit) throw new Error("Native evidence state bound exceeded; no split graded");
       const nativeState = compact(event); states.set(event.seq, nativeState);
       view.apply(nativeState); view.events.length = 0;
-      const resumedSplit = (name: string): boolean => name === "PLAYER_HOUSE_EXITED_AFTER_CLOCK" || name === "RIVAL_HOUSE_ENTERED" || name === "CLOCK_SET" || name === "PLAYER_BEDROOM";
+      const resumedSplit = (name: string): boolean => name === "PLAYER_HOUSE_EXITED_AFTER_CLOCK" || name === "RIVAL_HOUSE_ENTERED" || name === "RIVAL_HOUSE_EXITED" || name === "CLOCK_SET" || name === "PLAYER_BEDROOM";
       if (view.start !== null && !view.start.harness_features.includes("probe") && (view.start.start_state.kind === "boot" || view.milestones.some(mark => mark.derived === true && resumedSplit(mark.name)))) for (const recovered of view.milestones) {
         if (view.start.start_state.kind !== "boot" && !resumedSplit(recovered.name)) continue;
         if (recovered.derived !== true || recovered.origin !== "observed" || recovered.evidence === undefined || splits.some(s => s.name === recovered.name)) continue;

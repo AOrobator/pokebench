@@ -1,13 +1,13 @@
 // `just experiments`, `just experiment-approve <id>`, `just experiment-pin <id>`,
 // `just experiment-run [--dry-run] [--once]`: the experiment queue from the
 // main checkout. Approval is interactive so an agent can never grant it.
-import { execFileSync, spawn, type ChildProcess } from "node:child_process";
-import { closeSync, existsSync, openSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { execFile, execFileSync, spawn, type ChildProcess } from "node:child_process";
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { userInfo } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
-import { newRunId } from "@pokebench/agent/run";
+import { HUMAN_GAMEPLAY_LEASE_NAME, newRunId } from "@pokebench/agent/run";
 import { experimentDir, queueSnapshot, recordedRuns, type ExperimentView, type QueuePaths, type RunSource } from "./experiment-store.js";
 import { approveExperiment } from "./experiment-approval.js";
 import { RunnerError, runQueue, sha256, type DiscoveredModel, type RunnerHost, type TrialLaunch } from "./experiment-runner.js";
@@ -106,25 +106,71 @@ export interface HostDeps {
   readonly env: Readonly<Record<string, string | undefined>>;
   readonly log: (line: string) => void;
   readonly onChild?: (child: ChildProcess | null) => void;
+  readonly build?: () => Promise<string | null>;
+  readonly live?: () => Promise<string[]>;
+}
+
+// The agent package's own tsc, the same compile `just build` runs for it but emitting nothing on errors;
+// resolves to the compiler's errors, or null.
+export function buildAgent(root: string, node: string, env: Readonly<Record<string, string | undefined>>): Promise<string | null> {
+  const agent = join(root, "packages", "agent");
+  return new Promise((resolveBuild) => {
+    execFile(node, [join(agent, "node_modules", "typescript", "bin", "tsc"), "-p", "tsconfig.build.json", "--noEmitOnError"], { cwd: agent, env, encoding: "utf8", timeout: 600_000 }, (error, stdout, stderr) => {
+      if (error === null) { resolveBuild(null); return; }
+      const lines = `${stdout}\n${stderr}`.split("\n").filter((line) => line.trim() !== "").slice(0, 3);
+      resolveBuild(lines.length > 0 ? lines.join("; ") : error.message);
+    });
+  });
 }
 
 // INV-Q6: the build that runs is the approved commit, clean, with its own fresh dist.
 export function productionHost(deps: HostDeps): RunnerHost {
   const liveJs = join(deps.root, "packages", "agent", "dist", "live.js");
+  const live = deps.live ?? (() => liveRuns(deps.runsRoot, healthProbe()));
+  const build = deps.build ?? (() => buildAgent(deps.root, deps.node, deps.env));
+  // Written only after a clean build, so a failed or interrupted build is never mistaken for a fresh one.
+  // It names live.js's mtime too: any other build of this dist (just build, another branch) rewrites live.js and voids it.
+  const stamp = join(deps.root, "packages", "agent", "dist", ".build-commit");
+  const identity = (head: string): string | null => (existsSync(liveJs) ? `${head} ${String(statSync(liveJs).mtimeMs)}` : null);
+  const fresh = (head: string): boolean => existsSync(stamp) && readFileSync(stamp, "utf8").trim() === identity(head);
   return {
     now: () => new Date(),
     runId: (model) => newRunId(new Date(), model, randomSuffix),
     head: () => Promise.resolve(deps.git(["rev-parse", "HEAD"]).trim()),
-    verifySource: (experiment, commit) => {
+    verifySource: async (experiment, commit) => {
       const head = deps.git(["rev-parse", "HEAD"]).trim();
-      if (head !== commit) return Promise.resolve(`earlier trials ran on ${commit.slice(0, 7)} but main is at ${head.slice(0, 7)}; both arms must run on one build`);
-      if (deps.git(["status", "--porcelain", "--untracked-files=no"]).trim() !== "") return Promise.resolve("the main checkout has uncommitted changes");
-      if (!existsSync(liveJs)) return Promise.resolve("packages/agent/dist/live.js is missing; run just build");
-      const committed = Number(deps.git(["log", "-1", "--format=%ct", head]).trim()) * 1000;
-      if (statSync(liveJs).mtimeMs < committed) return Promise.resolve("the agent build is older than the approved commit; run just build");
-      return Promise.resolve(null);
+      if (head !== commit) return `earlier trials ran on ${commit.slice(0, 7)} but main is at ${head.slice(0, 7)}; both arms must run on one build`;
+      if (deps.git(["status", "--porcelain", "--untracked-files=no"]).trim() !== "") return "the main checkout has uncommitted changes";
+      if (fresh(head)) return null;
+      // A live run or a human session may still be loading modules from this dist.
+      const running = await live();
+      if (running.length > 0) return `live run ${running[0] ?? ""} is still running; the agent is rebuilt once it ends`;
+      const untracked = deps.git(["ls-files", "--others", "--exclude-standard", "--", "packages/agent/src"]).trim();
+      if (untracked !== "") return `untracked files would enter the agent build: ${untracked.split("\n").join(", ")}`;
+      // Human play takes its own lock, not the gameplay lease; holding it keeps a session from starting mid-build.
+      const humanLock = join(deps.runsRoot, HUMAN_GAMEPLAY_LEASE_NAME);
+      mkdirSync(deps.runsRoot, { recursive: true });
+      try {
+        mkdirSync(humanLock);
+      } catch {
+        return "a human play session is still running; the agent is rebuilt once it ends";
+      }
+      let failure: string | null;
+      try {
+        writeFileSync(join(humanLock, "owner.json"), JSON.stringify({ pid: process.pid, owner: "experiment-queue-build" }));
+        deps.log(`building the agent for ${head.slice(0, 7)}`);
+        rmSync(stamp, { force: true });
+        failure = await build();
+      } finally {
+        rmSync(humanLock, { recursive: true, force: true });
+      }
+      if (failure !== null) return `the agent build failed: ${failure}`;
+      const built = identity(head);
+      if (built === null) return "the agent build produced no packages/agent/dist/live.js";
+      writeFileSync(stamp, `${built}\n`);
+      return null;
     },
-    liveRuns: () => liveRuns(deps.runsRoot, healthProbe()),
+    liveRuns: live,
     discover: async (lane): Promise<DiscoveredModel> => {
       const response = await deps.fetchFn(`${GATEWAY}/models`, { signal: AbortSignal.timeout(10_000) });
       if (!response.ok) throw new RunnerError(`model discovery failed: HTTP ${String(response.status)}`);

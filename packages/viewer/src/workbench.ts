@@ -1,8 +1,8 @@
-import { frontierReferences, frontierPlot, frontierNotes, frontierTable, frontierModelColors } from "./frontier.js";
-import { esc, hms } from "./format.js";
+import { frontierReferences, frontierPlot, frontierModelColors } from "./frontier.js";
+import { esc } from "./format.js";
 import { QUEUE_POLL_MS, QueuePanel } from "./queue-view.js";
 import { WORKBENCH_POLL_MS, parseWorkbench, type WorkbenchData, type WorkbenchRun } from "./workbench-data.js";
-import { METRICS, color, currentRunHtml, eligible, median, metricText, ribbonPlot, runDetails, timingPlot, type Metric } from "./workbench-view.js";
+import { currentRunHtml, runDetails } from "./workbench-view.js";
 export interface WorkbenchDeps { fetchSnapshot(): Promise<unknown>; now(): number; width(): number }
 export class Workbench {
   private data: WorkbenchData = { version: 1, at: 0, milestones: [], runs: [], problems: [] };
@@ -18,9 +18,6 @@ export class Workbench {
   private overlay = "all";
   private model = "all";
   private preset = "all";
-  private milestone = "PLAYER_NAME_CONFIRMED";
-  private feature = "deterministic-loop-guard-v1";
-  private metric: Metric = "elapsedMs";
   private zoom = true;
   constructor(private readonly doc: Document, private readonly deps: WorkbenchDeps, private readonly back: string | null = null) {
     doc.addEventListener("change", this.onChange); doc.addEventListener("click", this.onClick); doc.addEventListener("keydown", this.onKey);
@@ -73,13 +70,9 @@ export class Workbench {
   }
   private renderCharts(): void {
     const runs = this.filtered(), width = this.deps.width();
-    this.ui("timing").innerHTML = timingPlot(runs, this.milestone, this.feature, this.metric, width);
-    this.ui("ribbons").innerHTML = ribbonPlot(runs, width);
     const refs = frontierReferences(this.data.runs), overlays = this.overlay === "none" ? [] : this.overlay === "all" ? runs : runs.filter(r => r.id === this.overlay);
     this.ui("frontier-full").innerHTML = frontierPlot(refs, overlays, width, this.modelColors, this.verified ? this.data.runs.filter(r => r.status === "live" || r.status === "paused") : [], this.zoom);
     this.pressed();
-    this.ui("frontier-notes").innerHTML = frontierNotes(refs);
-    this.ui("frontier-counts").innerHTML = frontierTable(refs, overlays);
   }
   private pressed(): void { for (const button of this.ui("frontier-view").querySelectorAll("button")) button.setAttribute("aria-pressed", String((button.dataset.frontierView === "zoom") === this.zoom)); }
   private render(): void {
@@ -88,18 +81,6 @@ export class Workbench {
     this.options("model", [{ id: "all", label: "All models" }, ...Array.from(new Set(this.data.runs.flatMap(r => r.model === null ? [] : [r.model]))).map(id => ({ id, label: id }))], this.model);
     this.options("preset", [{ id: "all", label: "All configurations" }, ...Array.from(new Set(this.data.runs.flatMap(r => r.config?.preset == null ? [] : [r.config.preset]))).map(id => ({ id, label: id }))], this.preset);
     this.options("overlay", [{ id: "all", label: "All filtered runs" }, { id: "none", label: "References only" }, ...this.filtered().map(r => ({ id: r.id, label: `${r.model ?? "Unknown"} · ${r.id}` }))], this.overlay);
-    this.options("milestone", this.data.milestones, this.milestone);
-    const features = new Map<string, string>(); for (const r of this.data.runs) for (const f of r.config?.features ?? []) features.set(f.id, f.label);
-    this.options("feature", [...features].map(([id, label]) => ({ id, label })), this.feature);
-    this.options("metric", Object.entries(METRICS).map(([id, label]) => ({ id, label })), this.metric);
-    const runs = this.filtered(), finished = runs.filter(r => eligible(r) && r.status === "ended");
-    const reached = finished.flatMap(r => r.splits.filter(s => s.name === this.milestone)), middle = median(reached.map(s => s[this.metric]));
-    this.ui("summary").innerHTML = `<div><small>${esc(METRICS[this.metric])} · ${esc(this.milestone.replace(/_/g, " "))}</small><b>${middle === null ? "—" : metricText(middle, this.metric)}</b><span>median among successful finished runs</span></div><div><small>COMPLETION</small><b>${String(reached.length)} / ${String(finished.length)}</b><span>reached / eligible finished runs${new Set(finished.map(r => r.config?.resume === "CLOCK_SET")).size > 1 ? " · mixes New game and Clock set starts; pick one experiment to compare like with like" : ""}</span></div><div><small>MODEL TURNS</small><b>${median(reached.map(s => s.turn)) === null ? "—" : String(median(reached.map(s => s.turn)))}</b><span>median to the selected checkpoint</span></div>`;
-    this.ui("timing-label").textContent = `${this.milestone.replace(/_/g, " ")} · ${METRICS[this.metric]}`;
-    this.ui("encoding").textContent = `Lane and fill show ${features.get(this.feature) ?? this.feature}: ON, OFF or unknown. Median ticks summarize observations, not a controlled improvement claim.`;
-    const names = Array.from(new Set(runs.filter(eligible).flatMap(r => r.splits.map(s => s.name))));
-    this.ui("legend").innerHTML = names.map(n => `<span><i style="background:${color(n)}"></i>${esc(n.replace(/_/g, " "))}</span>`).join("");
-    this.ui("outcomes").innerHTML = runs.length === 0 ? '<p class="wb-empty">No runs in this selection.</p>' : runs.map(r => `<button type="button" class="wb-run-row" data-run="${esc(r.id)}"><span><strong>${esc(r.model ?? "Model not recorded")}</strong><small>${esc(r.id)}</small></span><span>${esc(r.reason ?? r.status)}${r.excluded === null ? "" : " · excluded from timing"}</span><span>${r.splits.find(s => s.name === this.milestone) === undefined ? "not reached" : hms((r.splits.find(s => s.name === this.milestone)?.elapsedMs ?? 0) / 1000)}</span></button>`).join("");
     this.ui("data-problems").textContent = this.data.problems.join("\n"); this.ui("data-problems").hidden = this.data.problems.length === 0;
     this.clock(); this.renderCharts(); if (this.selected !== null) this.detail(this.selected.run, this.selected.split, false);
   }
@@ -121,8 +102,12 @@ export class Workbench {
     body.scrollTop = focus ? 0 : scrollTop;
   }
 
-  private close(): void { this.ui("detail").hidden = true; this.selected = null; if (this.restoreFocus?.isConnected === true) this.restoreFocus.focus();
-    else this.ui("outcomes").querySelector<HTMLElement>("button")?.focus(); }
+  private close(): void {
+    const selected = this.selected; this.ui("detail").hidden = true; this.selected = null;
+    if (this.restoreFocus?.isConnected === true) { this.restoreFocus.focus(); return; }
+    const marks = Array.from(this.ui("frontier-full").querySelectorAll<HTMLElement>("[data-run]")).filter(m => m.dataset.run === selected?.run);
+    (marks.find(m => (m.dataset.split ?? null) === selected?.split) ?? marks[0])?.focus();
+  }
   private onClick = (event: Event): void => {
     const target = event.target as Element | null; if (target?.nodeType !== 1) return;
     if (target.closest("[data-close-detail]") !== null || target === this.ui("detail")) { this.close(); return; }
@@ -143,8 +128,7 @@ export class Workbench {
   };
   private onChange = (event: Event): void => {
     const element = event.target as HTMLSelectElement; const name = element.dataset.wb;
-    if (name === "overlay") this.overlay = element.value; else if (name === "cohort") this.scope = element.value; else if (name === "model") this.model = element.value; else if (name === "preset") this.preset = element.value; else if (name === "milestone") this.milestone = element.value; else if (name === "feature") this.feature = element.value;
-    else if (name === "metric" && Object.hasOwn(METRICS, element.value)) this.metric = element.value as Metric; else return;
+    if (name === "overlay") this.overlay = element.value; else if (name === "cohort") this.scope = element.value; else if (name === "model") this.model = element.value; else if (name === "preset") this.preset = element.value; else return;
     this.render();
   };
 }
@@ -152,7 +136,7 @@ export function bootWorkbench(win: Window): Workbench {
   const from = new URL(win.location.href).searchParams.get("from");
   const wb = new Workbench(win.document, {
     fetchSnapshot: async () => { const response = await win.fetch("/api/workbench", { signal: AbortSignal.timeout(180000) }); if (!response.ok) throw new Error(`Workbench request failed (${String(response.status)})`); return response.json() as Promise<unknown>; },
-    now: () => Date.now(), width: () => win.document.querySelector('[data-wb="timing"]')?.getBoundingClientRect().width || win.document.documentElement.clientWidth || 640,
+    now: () => Date.now(), width: () => win.document.querySelector('[data-wb="frontier-full"]')?.getBoundingClientRect().width || win.document.documentElement.clientWidth || 640,
   }, from);
   const queueRoot = win.document.querySelector<HTMLElement>('[data-ui="experiment-queue"]');
   const experiments = queueRoot === null ? null : new QueuePanel(queueRoot, { fetchJson: async (url) => { const response = await win.fetch(url); if (!response.ok) throw new Error(`GET ${url} returned HTTP ${String(response.status)}`); return response.json() as Promise<unknown>; }, sendJson: async (method, url, body) => { const response = await win.fetch(url, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) }); const reply: unknown = await response.json(); if (!response.ok) throw new Error(typeof reply === "object" && reply !== null && "error" in reply ? String(reply.error) : `${method} ${url} returned HTTP ${String(response.status)}`); return reply; }, confirm: (text) => win.confirm(text), problem: (text) => { const el = queueRoot.querySelector('[data-eq="queue"]'); if (el !== null) el.innerHTML = `<pre class="eq-problems">${esc(text)}</pre>`; } });

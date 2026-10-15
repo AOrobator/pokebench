@@ -192,6 +192,18 @@ describe("public origins", () => {
     expect((await call(v, "GET", "/api/features")).status).toBe(200);
   });
 
+  it("answer a LAN origin and accept writes only with that exact http origin", async () => {
+    const LAN = "http://inference.example:8790";
+    const { viewer: v, runsRoot } = await viewer({ fetchFn: gameUp, publicOrigins: [TAILNET, LAN] });
+    liveRun(runsRoot, "live");
+    const host = "inference.example:8790";
+    expect((await call(v, "GET", "/api/features", undefined, { host })).status).toBe(200);
+    expect((await call(v, "POST", "/api/runs/live/control", { action: "pause" }, { host, origin: LAN })).status).toBe(200);
+    expect((await call(v, "POST", "/api/runs/live/control", { action: "pause" }, { host, origin: TAILNET })).status).toBe(403);
+    expect((await call(v, "POST", "/api/runs/live/control", { action: "pause" }, { host, origin: "http://evil.example" })).status).toBe(403);
+    expect((await call(v, "GET", "/api/features", undefined, { host: "inference.example" })).status).toBe(403);
+  });
+
   it("are not answered unless allowlisted", async () => {
     const { viewer: v } = await viewer({ fetchFn: gameUp });
     expect((await call(v, "GET", "/api/features", undefined, { host: "studio.example.ts.net:8447" })).status).toBe(403);

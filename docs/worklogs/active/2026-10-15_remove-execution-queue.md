@@ -11,4 +11,6 @@ Operator request (2026-10-15): the Runs & Comparisons execution queue duplicates
 - [x] Fixes: `parseNavigationReceipt` drops the queue.json/lease-owner check that only fed the queue; accepted-receipt, frozen-checkout, pending-launch and experiment-ledger tests assert run cohorts. Viewer 583 tests; coverage 94.92 lines / 90.74 branches / 93.78 functions (gate 90 green); lint clean.
 - [x] COMMIT: `refactor(viewer): drop the unused navigation lease check and prove cohort membership in tests` (d4b05bd)
 - [x] Review round 2: Claude CLI LGTM, Grok LGTM. Shared advisory: the late-invalid navigation ledger test now also asserts no cohort is assigned. Remaining nits deferred: the malformed-ledger table has no on-disk run (rollback is covered by neighbouring tests); no two-cohort crossover test (membership is keyed by run id).
+- [x] COMMIT: `test(viewer): a late-invalid navigation ledger assigns no cohort` (e29e255)
+- [x] Merge main (stats cleanup removed the sections below the frontier): conflicts in `workbench.ts`, `workbench.test.ts`, `style.css` resolved to main's layout without the execution queue. Viewer 573 tests; coverage 94.83 / 90.80 / 93.42 (gate 90 green); lint clean.
 - [ ] Operator approval, local merge into main, restart viewer on 8790.

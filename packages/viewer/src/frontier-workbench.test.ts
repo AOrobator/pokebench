@@ -21,8 +21,6 @@ it("keeps both reference lines across empty model/cohort filters and exposes rec
   expect(ui("frontier-full").querySelectorAll(`[data-run="${HUMAN_REFERENCE}"]`)).toHaveLength(2);
   expect(ui("frontier-full").querySelectorAll('[data-run="dea1"]')).toHaveLength(2);
   expect(document.querySelector('[data-wb="frontier-early"]')).toBeNull();
-  expect(ui("frontier-notes").textContent).toContain("exploration");
-  expect(ui("frontier-notes").textContent).toContain("53.869");
   const mark = ui("frontier-full").querySelector(`[data-run="${HUMAN_REFERENCE}"][data-split="PLAYER_NAME_CONFIRMED"]`);
   mark?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
   expect(ui("detail").hidden).toBe(false); expect(ui("detail-body").textContent).toContain("2:53.869");

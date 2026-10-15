@@ -135,14 +135,15 @@ async function runNext({ paths, source, host, dryRun = false, once = false, stop
   // Every trial already finished: grading reads only the ledger and run logs, so no build, model or lease is needed.
   if (todo.length === 0) return finish(paths, experiment, 0);
   const commit = await buildCommit(paths, experiment, host);
-  const problem = await host.verifySource(experiment, commit);
-  if (problem !== null) throw new RunnerError(`${experiment.id}: ${problem}`);
   const live = await host.liveRuns();
   if (live.length > 0) throw new RunnerError(`live run ${live[0] ?? ""} is still running`);
-  const model = await host.discover(experiment.modelLane);
+  // The lease comes first: verifying the source may rebuild the agent dist every gameplay launcher loads.
   const lease = takeLease(paths.runsRoot, { pid: process.pid, owner: "experiment-queue", experiment: experiment.id });
   let ran = 0;
   try {
+    const problem = await host.verifySource(experiment, commit);
+    if (problem !== null) throw new RunnerError(`${experiment.id}: ${problem}`);
+    const model = await host.discover(experiment.modelLane);
     // The ledger is read once; appends go to disk and to this copy.
     const entries = ledgerEntries(paths, experiment.id);
     const record = (entry: LedgerEntry): void => { append(paths, experiment.id, entry); entries.push(entry); };

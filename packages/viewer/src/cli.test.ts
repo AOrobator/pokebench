@@ -32,7 +32,7 @@ describe("parseArgs", () => {
     [["--host", "0.0.0.0"]],
     [["--public-origin"]],
     [["--public-origin", "not a url"]],
-    [["--public-origin", "http://studio.example.ts.net:8447"]],
+    [["--public-origin", "ftp://studio.example.ts.net:8447"]],
     [["--public-origin", "https://studio.example.ts.net:8447/viewer"]],
     [["--public-origin", "https://studio.example.ts.net:8447/?x=1"]],
     [["--public-origin", "https://user@studio.example.ts.net:8447"]],
@@ -50,7 +50,11 @@ describe("public origins", () => {
     expect(parseArgs([], "/r", null, "https://a.example.ts.net:8447, https://b.example.ts.net:8447").publicOrigins).toEqual(["https://a.example.ts.net:8447", "https://b.example.ts.net:8447"]);
     expect(parseArgs([], "/r", null, " ").publicOrigins).toEqual([]);
     expect(parseArgs(["--public-origin", "https://c.example.ts.net:8447"], "/r", null, "https://a.example.ts.net:8447").publicOrigins).toEqual(["https://c.example.ts.net:8447"]);
-    expect(() => parseArgs([], "/r", null, "http://a.example.ts.net:8447")).toThrow(CliError);
+    expect(() => parseArgs([], "/r", null, "ws://a.example.ts.net:8447")).toThrow(CliError);
+  });
+
+  it("accept a cleartext LAN origin next to the tailnet one", () => {
+    expect(parseArgs([], "/r", null, "https://a.example.ts.net:8447,http://inference.example:8790").publicOrigins).toEqual(["https://a.example.ts.net:8447", "http://inference.example:8790"]);
   });
 });
 

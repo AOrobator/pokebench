@@ -17,11 +17,6 @@ export function num(n: number): string {
   return n.toLocaleString("en-US");
 }
 
-export function clip(text: string, limit: number): string {
-  const flat = text.replace(/\s+/g, " ").trim();
-  return flat.length > limit ? `${flat.slice(0, limit - 1)}…` : flat;
-}
-
 export function signedDelta(seconds: number): string {
   const whole = Math.floor(Math.abs(seconds));
   const text = whole < 3600 ? `${String(Math.floor(whole / 60))}:${pad(whole % 60)}` : hms(whole);

@@ -6,7 +6,7 @@ import { expect, it } from "vitest";
 import { navigationFixture } from "../test-support/navigation-queue.js";
 import { Log, START } from "../test-support/events.js";
 import { workbenchSnapshot } from "./workbench-store.js";
-import { frontierReferences, frontierCoverage } from "./frontier.js";
+import { frontierReferences, milestoneStatus } from "./frontier.js";
 import { parseWorkbench } from "./workbench-data.js";
 function setup() {
   const repo = mkdtempSync(join(tmpdir(), "frontier-queue-store-")), root = join(repo, "runs"), folder = join(root, "launch-receipts", "navigation-memory-think-fast-n4"); mkdirSync(folder, { recursive: true });
@@ -62,7 +62,7 @@ it("retains process-failed recordings as outcomes but excludes them from best-ru
  const data=await workbenchSnapshot(root,()=>Promise.resolve(false), Date.now());
  expect(data.runs[0]).toMatchObject({id:"real_run",status:"ended",reason:"budget",excluded:"Infrastructure outcome: child exit 1"});
  expect(frontierReferences(data.runs).best).toBeNull();
- expect(frontierCoverage(data.runs,"RIVAL_MET")).toBe("<span><b>0 / 0</b> reached · 1 excluded</span>");
+ expect(data.runs.map(r=>milestoneStatus(r,"RIVAL_MET"))).toEqual(["excluded"]);
  rows([f.row,f.process,f.outcome]);
  const recovered=await workbenchSnapshot(root,()=>Promise.resolve(false), Date.now());
  expect(recovered.runs[0]?.excluded).toBeNull();expect(frontierReferences(recovered.runs).best?.id).toBe("real_run");

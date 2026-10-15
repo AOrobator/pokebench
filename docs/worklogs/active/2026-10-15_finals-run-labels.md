@@ -10,6 +10,9 @@ Viewer-only; no harness behavior change, so no feature switch.
   COMMIT: `test: finals runs carry their own finals place, and a live chip for another run says so` (e803880)
 - [x] GREEN: `finalsRunLabels` in experiment-gate-store; `/api/runs` uses it for the run's experiment label; app chip text
   Tests: agent 1083, viewer 648 passed. TS coverage over 90 on every metric; tsc + eslint clean. Python gates not run in this worktree (no mGBA binding built here; nothing Python changed).
-- [ ] Review: Claude CLI, Grok
+  Rebased onto main at 914d90c (mobile timeline merge); GREEN is now 0a4333f.
+- [x] Review round 1: Claude CLI (no blockers) and Grok 4.5 high. Grok's "deletes mobile layout" was a stale-base diff artifact, gone after the rebase. Addressed: /api/runs overlay test, replay-with-live-elsewhere chip test, arm taken from the ledger row. Accepted as is: reused incumbent runs keep their cohort label and "/total" counts finals launches, matching the gate's "finals run n of N"; withdrawn finals keep plain labels (history); no cache (one readdir and two small files per finals experiment per poll).
+  Tests: viewer 651 passed; viewer coverage 95.37/91.16/94.39/98.1; tsc + eslint clean.
+- [ ] Review round 2: Claude CLI, Grok
 - [ ] Operator approval, rebase onto main, local merge
 - [ ] Restart 8790 only when no finals run is live (the runner lives in the viewer process)

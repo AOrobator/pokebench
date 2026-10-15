@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { Log, START, fullRun } from "../test-support/events.js";
+import { QUEUE_FEATURES } from "../test-support/experiments.js";
 import { BROWSER_MODULES, HOST, startViewer, type Viewer } from "./server.js";
 import { parseWorkbench } from "./workbench-data.js";
 
@@ -141,6 +142,20 @@ describe("viewer server", () => {
     const reply = await get(viewer, "/api/runs");
     expect(reply.type).toContain("application/json");
     expect(JSON.parse(reply.body.toString())).toMatchObject([{ id: "2026-10-11T22-00-00_a", ended: true }]);
+  });
+
+  it("labels a finals run with its finals place and leaves every other run's label alone", async () => {
+    const { runsRoot, viewer } = await fixture();
+    writeRun(runsRoot, "2026-10-11T22-00-00_a", fullRun());
+    writeRun(runsRoot, "2026-10-11T22-00-00_f", fullRun());
+    const dir = join(runsRoot, "experiments", "fm");
+    mkdirSync(dir, { recursive: true });
+    const incumbent = { version: 2, id: "fm-finals-incumbent", target: null, limits: { maxTurns: 10, maxWallMs: 1000, failureLimit: 3 }, sampling: { thinkingLevel: "medium", maxTokens: 4096 }, features: QUEUE_FEATURES };
+    writeFileSync(join(dir, "nomination.json"), JSON.stringify({ experiment: "fm", source: "queue", at: "t", incumbent, finals: { runsPerArm: 1, maxWallMs: 1000, target: null }, ranking: [], reusedIncumbent: [], finalists: [{ arm: "whole", switches: { "full-map-navigation-v1": true } }], reason: "r" }));
+    writeFileSync(join(dir, "finals.jsonl"), `${JSON.stringify({ type: "launch", trial: 1, arm: "whole", run: "2026-10-11T22-00-00_f", at: "t", model: "m", commit: "c".repeat(40) })}\n`);
+    const runs = JSON.parse((await get(viewer, "/api/runs")).body.toString()) as { id: string; experiment?: string }[];
+    expect(runs.find((r) => r.id === "2026-10-11T22-00-00_f")?.experiment).toBe("fm finals · whole · run 2/2");
+    expect(runs.find((r) => r.id === "2026-10-11T22-00-00_a")?.experiment).toBeUndefined();
   });
 
   it("streams a finished run's events, then caught_up and done", async () => {

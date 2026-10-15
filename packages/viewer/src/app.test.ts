@@ -587,6 +587,8 @@ it("marks only the selected live run and retains the mark after discovery refres
   app.select(M4_ID);
   expect(selected()).toEqual([]);
   expect((ui("run") as HTMLSelectElement).value).toBe(M4_ID);
+  // Replaying an ended run: every live chip says it is another run, none says WATCHING.
+  expect([...ui("live-runs").querySelectorAll("button")].map((b) => b.textContent)).toEqual([expect.stringMatching(/^LIVE ELSEWHERE · .* · WATCH ▸$/), expect.stringMatching(/^LIVE ELSEWHERE · .* · WATCH ▸$/)]);
 });
 
 

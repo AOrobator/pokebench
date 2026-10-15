@@ -110,6 +110,7 @@ def test_overworld_reports_every_field_from_the_save_blocks() -> None:
             birch_lab_stage=0,
             petalburg_gym_stage=0,
             woods_stage=0,
+            town_stage=0,
             clock_set=False,
             rival_battle_won=False,
             pokedex_received=False,

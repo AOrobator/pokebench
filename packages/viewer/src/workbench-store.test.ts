@@ -145,9 +145,21 @@ describe("durable cohort queue and metadata boundaries", () => {
     writeFileSync(c.ledger, JSON.stringify({ type: "launch", runId: "cohort_01", at: "2026-10-14T12:00:00Z", manifestSha256: c.digest }) + "\n"); mkdirSync(join(r, ".naming-gameplay.lock")); writeFileSync(join(r, ".naming-gameplay.lock/owner.json"), JSON.stringify({ cohort: "cohort", pid: 2147483647 })); expect((await workbenchSnapshot(r, () => Promise.resolve(false), { state: "idle" }, 42)).queue[0]?.status).toBe("withheld");
     writeFileSync(c.path, '{"version":1}'); expect((await workbenchSnapshot(r, () => Promise.resolve(false), { state: "idle" }, 42)).queue).toEqual([]);
   });
+  it("names a Clock set save and leaves every other start unmarked", async () => {
+    const r = root();
+    const clock = named(); const clockStart = clock.events[0]; if (clockStart?.type !== "run_start") throw new Error("fixture");
+    clock.events[0] = { ...clockStart, start_state: { kind: "save_state", path: "/saves/CLOCK_SET.state", sha1: "a".repeat(40) } };
+    const other = named(); const otherStart = other.events[0]; if (otherStart?.type !== "run_start") throw new Error("fixture");
+    other.events[0] = { ...otherStart, start_state: { kind: "save_state", path: "/saves/CLOCK_SET.state.bak", sha1: "b".repeat(40) } };
+    write(r, "clock", clock); write(r, "other", other); write(r, "boot", named());
+    const d = await workbenchSnapshot(r, () => Promise.resolve(false), { state: "idle" }, 42);
+    expect(d.runs.find(x => x.id === "clock")?.config).toMatchObject({ start: "save_state", resume: "CLOCK_SET" });
+    expect(d.runs.find(x => x.id === "other")?.config).toMatchObject({ start: "save_state", resume: null });
+    expect(d.runs.find(x => x.id === "boot")?.config).toMatchObject({ start: "boot", resume: null });
+  });
   it("rejects oversized and symlinked receipts/logs without reading arbitrary files", async () => {
-    const r = root(), p = write(r, "large", named()); truncateSync(p, 65 * 1024 * 1024); const c = cohort(r, [{ type: "launch", runId: "cohort_01" }]); truncateSync(c.path, 2 * 1024 * 1024);
-    const d = await workbenchSnapshot(r, () => Promise.resolve(false), { state: "idle" }, 42); expect(d.runs[0]?.problem).toContain("64 MiB"); expect(d.problems[0]).toContain("metadata size");
+    const r = root(), p = write(r, "large", named()); truncateSync(p, 513 * 1024 * 1024); const c = cohort(r, [{ type: "launch", runId: "cohort_01" }]); truncateSync(c.path, 2 * 1024 * 1024);
+    const d = await workbenchSnapshot(r, () => Promise.resolve(false), { state: "idle" }, 42); expect(d.runs[0]?.problem).toContain("streaming byte bound"); expect(d.problems[0]).toContain("metadata size");
     mkdirSync(join(r, "linked")); symlinkSync(p, join(r, "linked/events.jsonl")); expect((await workbenchSnapshot(r, () => Promise.resolve(false), { state: "idle" }, 42)).runs.find(x => x.id === "linked")?.status).toBe("invalid");
   });
   it("distinguishes recorded OFF flags from historical absence and surfaces paused objectives", async () => {

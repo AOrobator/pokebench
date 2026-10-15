@@ -275,6 +275,7 @@ export const StateBodySchema = Type.Object(
       birch_lab_stage: Type.Union([Type.Integer({minimum:0,maximum:5}), Type.Null()]),
       petalburg_gym_stage: Type.Union([Type.Integer({minimum:0,maximum:8}), Type.Null()]),
       woods_stage: Type.Union([Type.Integer({minimum:0,maximum:1}), Type.Null()]),
+      town_stage: Type.Optional(Type.Union([Type.Integer({minimum:0,maximum:4}), Type.Null()])),
       clock_set: Type.Union([Type.Boolean(), Type.Null()]),
       rival_battle_won: Type.Union([Type.Boolean(), Type.Null()]),
       pokedex_received: Type.Union([Type.Boolean(), Type.Null()]),

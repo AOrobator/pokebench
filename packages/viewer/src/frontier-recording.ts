@@ -1,4 +1,3 @@
-import { statSync } from "node:fs";
 import type { RunEvent } from "@pokebench/agent/events";
 import { readVisualPlan, verifiedVisuals, visualEvidenceSignature, type ScreenshotEvidence } from "./frontier-visual.js";
 import { RunView } from "./model.js";
@@ -28,14 +27,13 @@ export function readNativeRecording(path: string, id: string, qualified: (event:
   const visual = readVisualPlan(path), samples = new Map<number, Extract<RunEvent, {type:"human_sample"}>>();
   const wantedSamples = new Set(visual?.milestones.flatMap(m => m.screenshots.map(s => s.seq)) ?? []);
   visualEvidenceSignature(path);
-  const size = statSync(path).size; let expected = 0, previousMs = -Infinity;
+  let expected = 0, previousMs = -Infinity;
   const snapshot = readWorkbenchSnapshot(path, event => {
     const ms = Date.parse(event.t);
     if (event.seq > 0 && event.type === "run_start") throw new Error("Run event order invalid: more than one run_start; no split graded");
     if (event.run !== id || event.seq !== expected || !Number.isFinite(ms) || ms < previousMs || (event.seq === 0 ? event.type !== "run_start" : event.type === "run_start") || view.end !== null) throw new Error("Run identity, event order or terminal sequence is invalid; no split graded");
     expected++; previousMs = ms;
     if (event.type === "human_sample" && wantedSamples.has(event.seq)) samples.set(event.seq, event);
-    if (event.type === "run_start" && event.controller?.kind !== "human" && size > 64 * 1024 * 1024) throw new Error("Agent log exceeds the 64 MiB read bound; no split graded");
     if (["run_start", "run_end", "operator_control", "assistant", "objective_update"].includes(event.type)) {
       view.apply(event); view.events.length = 0; view.latencies.length = 0; view.errors.length = 0; view.lastThought = null;
     } else { view.lastMs = ms; view.turn = Math.max(view.turn, event.turn); }

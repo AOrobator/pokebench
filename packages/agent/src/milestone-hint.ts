@@ -21,6 +21,7 @@ export const MILESTONE_HINTS:readonly MilestoneHint[]=[
  {name:"RIVAL_HOUSE_ENTERED",goal:"Enter the house next door, where Professor Birch's family lives.",done:"You entered the house next door."},
  {name:"RIVAL_BEDROOM_REACHED",goal:"Go upstairs in the house next door.",done:"You reached the upstairs bedroom next door."},
  {name:"RIVAL_MET",goal:"Meet Professor Birch's child in that upstairs bedroom.",done:"You met your rival."},
+ {name:"BIRCH_RESCUE_REQUESTED",goal:"Go to the north exit of Littleroot. The child there will send you to see what is happening on Route 101.",done:"You were sent to help Professor Birch."},
  {name:"STARTER_CHOSEN",goal:"Go north out of Littleroot to Route 101, help Professor Birch, and choose a Pokémon from his bag.",done:"You chose your first Pokémon."},
  {name:"BIRCH_RESCUE_COMPLETE",goal:"Win the battle to rescue Professor Birch.",done:"You rescued Professor Birch."},
  {name:"BIRCH_STARTER_HANDOFF_COMPLETE",goal:"Go with Professor Birch to his lab and accept the Pokémon.",done:"Professor Birch gave you the Pokémon."},

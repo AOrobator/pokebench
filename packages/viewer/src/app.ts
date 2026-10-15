@@ -4,7 +4,7 @@ import type { RunEvent } from "@pokebench/agent/events";
 import { esc, eventMs, hms } from "./format.js";
 import { gbaSvg, litButtons } from "./gba.js";
 import { RunView, isRunEvent } from "./model.js";
-import { brand, runIdentity, budgets, counters, fieldContext, harnessConfig, objectivePanel, objectiveStatus, inspector, party, splits, thinkingDialog, trainerCard, type Baseline } from "./panels.js";
+import { brand, runIdentity, budgets, counters, fieldContext, harnessConfig, inspector, party, splits, thinkingDialog, trainerCard, type Baseline } from "./panels.js";
 import { ReplayClock } from "./replay.js";
 import { lanesSvg } from "./timeline.js";
 import { TRACE_CHIPS, TraceBuilder, moreButton, sideGroups, traceGroups, type TraceCategory, type TraceGroup } from "./trace.js";
@@ -335,10 +335,6 @@ export class App {
       button.addEventListener("click", () => { this.showPage(button.dataset.page ?? "trainer"); });
     }
     this.ui("feature-search").addEventListener("input", () => { this.filterFeatures(); });
-    this.ui("objective-link").addEventListener("click", () => {
-      this.showPage("objectives");
-      this.doc.querySelector(".inspection-nav")?.scrollIntoView({ block: "start", behavior: "smooth" });
-    });
     this.ui("think-body").addEventListener("scroll", () => {
       const body = this.ui("think-body");
       this.followThinking = body.scrollHeight - body.scrollTop - body.clientHeight < 40;
@@ -789,9 +785,6 @@ export class App {
     this.setHtml("harness-config", harnessConfig(view, this.next.registry));
     this.filterFeatures();
     this.setHtml("party", party(view));
-    this.setHtml("objective", objectivePanel(view));
-    const objective = view.objective;
-    this.setHtml("objective-summary", objective === null ? '<span class="nodata">no objective recorded</span>' : `<span class="objective-status">${esc(objectiveStatus(objective))}</span> ${esc(objective.title)}`);
     this.setHtml("run-details", `<details><summary>RUN METADATA · PROMPT · TOOLS · BUDGETS</summary><pre>${esc(JSON.stringify(view.start, null, 2))}</pre></details><details><summary>LATEST RECORDED STATE</summary><pre>${esc(JSON.stringify(view.state, null, 2))}</pre></details><details><summary>TERMINAL EVENT</summary><pre>${esc(JSON.stringify(view.end, null, 2))}</pre></details>`);
     const barHeight = this.doc.querySelector(".bar")?.getBoundingClientRect().height ?? 0;
     this.doc.documentElement.style.setProperty("--viewer-bar-height", `${String(barHeight || 110)}px`);

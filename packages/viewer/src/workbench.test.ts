@@ -63,7 +63,7 @@ describe("mounted runs and comparisons workbench", () => {
     open(); fetch.mockResolvedValue({ ...data(), at: 3000, runs: [] }); await wb.refresh(); ui("detail").dispatchEvent(new MouseEvent("click", { bubbles: true })); expect(ui("detail").hidden).toBe(true); wb.destroy();
   });
   it("renders a ticking live-run meta card, then a normal back link when the run ends", async () => {
-    const { wb, fetch } = mount({ ...data(), runs: [run({ status: "live" })] }); await wb.refresh(); wb.clock(); expect(ui("current").textContent).toContain("0:02:05"); expect(ui("current").textContent).toContain("CURRENT OBJECTIVE"); expect(ui("current").querySelector("a")?.getAttribute("href")).toBe("/#run=run_01"); fetch.mockResolvedValue({ ...data(), at: 2000 }); await wb.refresh(); expect(ui("current").textContent).toContain("BACK TO VIEWER"); wb.destroy();
+    const { wb, fetch } = mount({ ...data(), runs: [run({ status: "live" })] }); await wb.refresh(); wb.clock(); expect(ui("current").textContent).toContain("0:02:05"); expect(ui("current").textContent).not.toContain("OBJECTIVE"); expect(ui("current").querySelector("a")?.getAttribute("href")).toBe("/#run=run_01"); fetch.mockResolvedValue({ ...data(), at: 2000 }); await wb.refresh(); expect(ui("current").textContent).toContain("BACK TO VIEWER"); wb.destroy();
   });
   it("retains verified data after bad JSON/network/stale snapshots and bounds visible errors", async () => {
     const { wb, fetch } = mount(); await wb.refresh(); fetch.mockResolvedValue({ nonsense: true }); await wb.refresh(); expect(ui("problem").hidden).toBe(false); expect(ui("frontier-full").querySelector('[data-run="run_01"]')).not.toBeNull(); fetch.mockResolvedValue({ ...data(), at: 1 }); await wb.refresh(); expect(ui("problem").textContent).toContain("Outdated"); fetch.mockRejectedValue(new Error("offline")); await wb.refresh(); expect(ui("problem").textContent).toBe("offline"); wb.destroy();
@@ -76,7 +76,7 @@ describe("mounted runs and comparisons workbench", () => {
   it("coalesces polling and ignores late responses after disposal", async () => {
     let resolve: (value: unknown) => void = () => { throw new Error("not captured"); }; const fetch = vi.fn(() => new Promise<unknown>(r => { resolve = r; })); const wb = new Workbench(document, { fetchSnapshot: fetch, now: () => 6000, width: () => 340 }); const first = wb.refresh(); await wb.refresh(); expect(fetch).toHaveBeenCalledTimes(1); wb.destroy(); resolve(data()); await first; expect(ui("frontier-full").textContent).toBe("Loading recorded runs…"); await wb.refresh(); wb.clock(); wb.resize(); expect(fetch).toHaveBeenCalledTimes(1);
   });
-  it("handles empty records, missing current objective and missing selected run on refresh", async () => {
+  it("handles empty records, no current run and missing selected run on refresh", async () => {
     const { wb, fetch } = mount(); await wb.refresh(); open(); fetch.mockResolvedValue({ ...data(), at: 2000, runs: [], problems: ["Unreadable receipt"] }); await wb.refresh(); expect(ui("detail-body").textContent).toContain("no longer available"); expect(ui("data-problems").textContent).toContain("Unreadable"); ui("detail").dispatchEvent(new MouseEvent("click", { bubbles: true })); expect(ui("detail").hidden).toBe(true); wb.destroy();
   });
 });

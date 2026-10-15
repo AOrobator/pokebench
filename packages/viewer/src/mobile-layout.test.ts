@@ -22,7 +22,7 @@ describe("phone-width watch deck", () => {
     const document = new DOMParser().parseFromString(read("index.html").replace(/<(script|link)\b[^>]*>(<\/script>)?/g, ""), "text/html");
     const deck = document.querySelector(".watch-deck");
     const children = Array.from(deck?.children ?? [], (el) => el.className);
-    expect(children).toEqual(["box red objective-strip", "game-stream", "box lanesBox"]);
+    expect(children).toEqual(["game-stream", "box lanesBox"]);
     expect(Array.from(document.querySelector(".game-stream")?.children ?? [], (el) => el.className)).toEqual(["gbaStage", "box red side"]);
   });
 

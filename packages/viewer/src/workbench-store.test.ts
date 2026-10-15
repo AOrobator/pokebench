@@ -153,10 +153,10 @@ describe("durable cohort membership and metadata boundaries", () => {
     const d = await workbenchSnapshot(r, () => Promise.resolve(false), 42); expect(d.runs[0]?.problem).toContain("streaming byte bound"); expect(d.problems[0]).toContain("metadata size");
     mkdirSync(join(r, "linked")); symlinkSync(p, join(r, "linked/events.jsonl")); expect((await workbenchSnapshot(r, () => Promise.resolve(false), 42)).runs.find(x => x.id === "linked")?.status).toBe("invalid");
   });
-  it("distinguishes recorded OFF flags from historical absence and surfaces paused objectives", async () => {
+  it("distinguishes recorded OFF flags from historical absence and surfaces paused runs without objectives", async () => {
     const r = root(), l = named(); const first = l.events[0]; if (first?.type !== "run_start") throw new Error("fixture"); l.events[0] = { ...first, harness_features: playHarnessFeatures({ ...ALL_ON, "deterministic-loop-guard-v1": false }, null) };
     l.add(5000, { type: "operator_control", turn: 1, request: 1, action: "pause", status: "applied", emulator_frozen: true }); write(r, "paused", l);
-    const d = await workbenchSnapshot(r, () => Promise.resolve(true), 2000000000000); expect(d.runs[0]?.status).toBe("paused"); expect(d.runs[0]?.config?.features.find(f => f.id === "deterministic-loop-guard-v1")?.on).toBe(false);
+    const d = await workbenchSnapshot(r, () => Promise.resolve(true), 2000000000000); expect(d.runs[0]?.status).toBe("paused"); expect(d.runs[0]).not.toHaveProperty("objective"); expect(d.runs[0]?.config?.features.find(f => f.id === "deterministic-loop-guard-v1")?.on).toBe(false);
   });
   it("assigns experiment-queue trials to their experiment", async () => {
     const r = root();

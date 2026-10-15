@@ -175,8 +175,6 @@ export class RunView {
   humanFrame: number | null = null;
   state: StateEvent | null = null;
   legacyState = false;
-  objective: Of<"objective_update">["objective"] | null = null;
-  readonly attempts: Of<"objective_attempt">["attempt"][] = [];
   context: Of<"turn_start">["context"] | null = null;
   // Prompt tokens the server reported for the latest answered request; the
   // turn_start estimate omits the system prompt, tool schemas and images.
@@ -232,8 +230,6 @@ export class RunView {
     this.turn = Math.max(this.turn, event.turn);
     switch (event.type) {
       case "operator_control": this.control.apply(event, ms); break;
-      case "objective_update": this.objective = event.objective; break;
-      case "objective_attempt": this.attempts.push(event.attempt); break;
       case "run_start":
         this.start = event;
         this.startMs = ms;

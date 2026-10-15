@@ -44,7 +44,7 @@ function configuration(start: Extract<RunEvent, { type: "run_start" }>): Workben
 function load(root: string, id: string): { run: WorkbenchRun; port: number | null; view: RunView | null } {
   const path = eventsPath(root, id), stat = statSync(path); let signature = `${String(stat.size)}:${String(stat.mtimeMs)}:${String(stat.ino)}`;
   const prior = cache.get(path);
-  let run: WorkbenchRun = { id, cohort: null, model: null, started: null, status: "invalid", reason: null, problem: null, excluded: null, elapsedMs: null, turn: 0, objective: null, config: null, splits: [] };
+  let run: WorkbenchRun = { id, cohort: null, model: null, started: null, status: "invalid", reason: null, problem: null, excluded: null, elapsedMs: null, turn: 0, config: null, splits: [] };
   let port: number | null, view: RunView | null;
   try {
     signature += visualEvidenceSignature(path);
@@ -58,7 +58,6 @@ function load(root: string, id: string): { run: WorkbenchRun; port: number | nul
     run.splits = recording.splits; run.measurement = recording.measurement;
     run.status = view.end === null ? "unresponsive" : "ended"; run.reason = view.end?.reason ?? null; run.turn = view.turn;
     if (run.reason === "operator_abort") run.excluded ??= "Excluded operator-aborted run";
-    run.objective = view.objective === null ? null : { title: view.objective.title, status: view.objective.status, nextDecision: view.objective.next_decision };
   } catch (error) { run.problem = errorText(error); run.status = "invalid"; run.splits = []; view = null; port = null; }
   if (view !== null) view.events.length = 0;
   const entry = { signature, run, port, view }; cache.set(path, entry); return entry;

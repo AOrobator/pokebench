@@ -130,8 +130,8 @@ describe("viewer app", () => {
     expect(app.clock).toBe(clock);
     expect(app.clock?.positionMs).toBe(position);
     expect(streams).toHaveLength(1);
-    ui("objective-link").click();
-    expect(document.querySelector<HTMLElement>('[data-nav-page="objectives"]')?.hidden).toBe(false);
+    expect(document.querySelector('[data-page="objectives"]')).toBeNull();
+    expect(document.querySelector('[data-nav-page="objectives"]')).toBeNull();
   });
 
   it("lets the reader pause follow while streaming and explicitly resume", async () => {
@@ -607,17 +607,16 @@ it("renders field observations through the event stream and app", async () => {
 });
 
 
-it("shows streamed objective history live and reconstructs it when replay seeks", async () => {
+it("keeps recorded objective events out of the watch view and PokéNav pages", async () => {
   const { app, streams } = await harness();const stream = must(streams[0]);const log = new Log();
   log.add(0, START);
   log.add(100, { type: "objective_update", turn: 1, objective: { id: "objective-1", revision: 1, goal: "Reach gym", title: "Set clock", supports_goal: "Observed instruction", evidence: [0], completion: { kind: "visual", description: "Clock confirms" }, obstacle: "Need facing", next_decision: "Face north", status: "active", completion_evidence: [] } });
   log.add(200, { type: "objective_attempt", turn: 1, attempt: { id: "p1", objective_id: "objective-1", buttons: ["A"], before_seq: 0, after_seq: 1, outcome: "no_change", failure_count: 2, warning: "Reassess approach", retry_justification: null } });
   feed(stream, log.events);
-  expect(app.mode).toBe("live");expect(ui("objective").textContent).toContain("Set clock");expect(ui("objective").textContent).toContain("Reassess approach");
-  const end = log.add(300, { type: "run_end", turn: 1, reason: "budget", furthest_milestone: null, turns: 1, wall_ms: 300, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } });
-  feed(stream, [end]);stream.send("done", {});expect(app.mode).toBe("replay");
-  app.clock?.seek(BASE_MS);app.tick(0);expect(ui("objective").textContent).toContain("No objective recorded");
-  app.clock?.seek(BASE_MS + 250);app.tick(0);expect(ui("objective").textContent).toContain("Set clock");expect(ui("objective").textContent).toContain("Attempt history (1)");expect(ui("objective").textContent).toContain("Reassess approach");
+  expect(app.mode).toBe("live");
+  for (const selector of ['[data-ui="objective"]', '[data-ui="objective-summary"]', '[data-ui="objective-link"]', ".objective-strip"]) expect(document.querySelector(selector)).toBeNull();
+  expect(must(document.querySelector(".watch-deck")).textContent).not.toContain("OBJECTIVE");
+  expect(must(document.querySelector(".page-directory")).textContent).not.toContain("OBJECTIVE");
 });
 
 it("loads baseline and best when the splits page opens without changing the picker", async () => {
@@ -711,18 +710,6 @@ it.each(["planning","cycle"] as const)("shows parsed %s loop phases with attribu
   const stop = ui("trace").querySelector<HTMLElement>('[data-seqs~="4"]');
   if (stop === null) throw new Error("missing stop history row");
   stop.click(); expect(ui("inspector").textContent).toContain('"phase": "stop"');
-  expect(app.mode).toBe("live");
-});
-
-it("qualifies completion in the watch objective strip", async () => {
-  const { app, streams } = await harness(); const log=new Log(); log.add(0,START);
-  const objective={id:"native",revision:1,goal:"Reach gym",title:"Set clock",supports_goal:"Opening",evidence:[0],completion:{kind:"milestone" as const,name:"CLOCK_SET" as const},obstacle:"",next_decision:"Observe",status:"completed" as const,completion_evidence:[0]};
-  log.add(1,{type:"objective_update",turn:0,objective}); feed(must(streams[0]),log.events);
-  expect(ui("objective-summary").textContent).toContain("historical completion (not native verified)");
-  feed(must(streams[0]),[log.add(2,{type:"objective_update",turn:0,objective:{...objective,verification:{origin:"observed",milestone_seq:0,state_evidence:[0]}}})]);
-  expect(ui("objective-summary").textContent).toContain("game verified (observed)");
-  feed(must(streams[0]),[log.add(3,{type:"objective_update",turn:0,objective:{...objective,status:"reported_complete"}})]);
-  expect(ui("objective-summary").textContent).toContain("reported complete (provisional local plan)");
   expect(app.mode).toBe("live");
 });
 

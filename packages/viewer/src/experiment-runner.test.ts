@@ -50,6 +50,7 @@ function host(paths: QueuePaths, metrics: Map<string, TrialMetrics>, over: Parti
     launches, lines,
     now: () => new Date("2026-10-14T20:00:00Z"),
     runId: (model) => `2026-10-14T20-00-${String(n++).padStart(3, "0")}_${model}_beef`,
+    head: () => Promise.resolve("e".repeat(40)),
     verifySource: (_e, commit) => { expect(commit).toMatch(/^[0-9a-f]{40}$/); return Promise.resolve(null); },
     liveRuns: () => Promise.resolve([]),
     discover: (lane) => Promise.resolve({ id: lane, fingerprint: "f".repeat(64) }),
@@ -69,6 +70,22 @@ const ledger = (paths: QueuePaths): { type: string; trial: number; arm: string; 
   readFileSync(join(experimentDir(paths.runsRoot, "full-map"), "trials.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l) as { type: string; trial: number; arm: string; run: string });
 
 describe("experiment runner", () => {
+  it("runs an approval on main as it is now, then keeps every later trial on the first trial's build", async () => {
+    const { paths, metrics, source } = setup();
+    const seen: string[] = [];
+    const watch = (head: string): Fake => {
+      const h: Fake = host(paths, metrics, { head: () => Promise.resolve(head), verifySource: (_e, commit) => { seen.push(commit); return Promise.resolve(null); } });
+      return h;
+    };
+    const first = watch("c".repeat(40));
+    await runQueue({ paths, source, host: first, stopRequested: () => first.launches.length >= 1 });
+    expect(ledger(paths)[0]).toMatchObject({ type: "launch", commit: "c".repeat(40) });
+    const later = watch("d".repeat(40));
+    await runQueue({ paths, source, host: later, stopRequested: () => later.launches.length >= 1 });
+    expect(later.launches).toHaveLength(1);
+    expect(new Set(seen)).toEqual(new Set(["c".repeat(40)]));
+  });
+
   it("runs nothing that is unapproved, not ready or stale", async () => {
     const draft = setup({}, false);
     expect(await runQueue({ paths: draft.paths, source: draft.source, host: host(draft.paths, draft.metrics) })).toEqual({ ran: 0, stopped: "nothing to run: full-map is draft" });

@@ -68,6 +68,15 @@ describe("experiment queue store", () => {
     expect(later.pending.find((v) => v.id === "newer-held")?.reason).toBe("needs a fix");
   });
 
+  it("names the build an experiment's trials launched on, or none before its first trial", () => {
+    const paths = roots();
+    writeDefinition(paths.experimentsDir, definition("full-map"));
+    expect(queueSnapshot(paths, fake({})).queue[0]?.buildCommit).toBeNull();
+    mkdirSync(experimentDir(paths.runsRoot, "full-map"), { recursive: true });
+    writeFileSync(join(experimentDir(paths.runsRoot, "full-map"), "trials.jsonl"), `${JSON.stringify({ type: "launch", trial: 0, arm: "incumbent", run: "r", at: "t", commit: "c".repeat(40) })}\n`);
+    expect(queueSnapshot(paths, fake({})).queue[0]?.buildCommit).toBe("c".repeat(40));
+  });
+
   it("splits queued from pending entries, folds trials and reports bad records", () => {
     const paths = roots();
     writeDefinition(paths.experimentsDir, definition("full-map"));

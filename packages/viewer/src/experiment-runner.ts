@@ -18,6 +18,8 @@ export interface TrialLaunch { readonly runId: string; readonly presetPath: stri
 export interface RunnerHost {
   now(): Date;
   runId(model: string): string;
+  // The commit main's checkout is at now.
+  head(): Promise<string>;
   // A problem that stops the runner, or null.
   verifySource(experiment: Experiment, commit: string): Promise<string | null>;
   liveRuns(): Promise<string[]>;
@@ -55,7 +57,12 @@ function approval(paths: QueuePaths, experiment: Experiment): Approval | null {
 }
 const approved = (paths: QueuePaths, experiment: Experiment): boolean => approval(paths, experiment) !== null;
 // The build trials run on: the one the operator approved (older approvals: the definition's pin).
-const approvedCommit = (paths: QueuePaths, experiment: Experiment): string => approval(paths, experiment)?.commit ?? experiment.source.commit;
+// Both arms run on one build: the commit the first trial launched on. Before any trial, main as
+// it is now, so an approval holds across merges instead of pinning the commit it was given on.
+async function buildCommit(paths: QueuePaths, experiment: Experiment, host: RunnerHost): Promise<string> {
+  for (const e of ledgerEntries(paths, experiment.id)) if (e.type === "launch" && e.commit !== undefined) return e.commit;
+  return host.head();
+}
 
 function presetFile(paths: QueuePaths, experiment: Experiment, arm: Arm): string {
   const arms = experimentArms(experiment);
@@ -127,7 +134,7 @@ async function runNext({ paths, source, host, dryRun = false, once = false, stop
   if (dryRun) return hold(0, "dry run");
   // Every trial already finished: grading reads only the ledger and run logs, so no build, model or lease is needed.
   if (todo.length === 0) return finish(paths, experiment, 0);
-  const commit = approvedCommit(paths, experiment);
+  const commit = await buildCommit(paths, experiment, host);
   const problem = await host.verifySource(experiment, commit);
   if (problem !== null) throw new RunnerError(`${experiment.id}: ${problem}`);
   const live = await host.liveRuns();
@@ -145,7 +152,7 @@ async function runNext({ paths, source, host, dryRun = false, once = false, stop
     for (const trial of todo) {
       if (stopRequested()) return hold(ran, "stop requested");
       if (!approved(paths, experiment)) return hold(ran, "held: the approval no longer matches the definition");
-      const recheck = await host.verifySource(experiment, approvedCommit(paths, experiment));
+      const recheck = await host.verifySource(experiment, commit);
       if (recheck !== null) return hold(ran, `held: ${recheck}`);
       const used = entries.flatMap((e) => (e.type === "launch" ? [e.run] : [])).reduce((sum, run) => sum + (source.trial(run)?.wallMs ?? 0), 0);
       if (used + experiment.incumbent.limits.maxWallMs > experiment.budget.maxWallMs) return hold(ran, "held: the next trial could exceed the experiment budget");

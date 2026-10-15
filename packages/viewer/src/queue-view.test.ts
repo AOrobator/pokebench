@@ -13,7 +13,7 @@ function view(id: string, over: Partial<ExperimentView> = {}): ExperimentView {
     queuePosition: 1, source: { checkout: "main", commit: "a3c343bdbe245dbe4d22dd2fe413a1bed66fa36d" }, trialsPerArm: 8, modelLane: "think-fast", budgetMs: 17 * 1_800_000, usedMs: 3_600_000,
     state: "running", reason: "trial 3 of 16 running", approved: true,
     readiness: { ready: true, basis: "recent", milestone: "PLAYER_NAME_CONFIRMED", window: 4, minReached: 3, reached: 3, considered: ["a", "b", "c", "d"] },
-    recorded: { verdict: "READY", evidence: "3 of 4" }, result: null,
+    recorded: { verdict: "READY", evidence: "3 of 4" }, result: null, buildCommit: "b7e1f00dbe245dbe4d22dd2fe413a1bed66fa36d",
     trials: [trial(0, "done", true), trial(1, "done", false), trial(2, "running"), trial(3, "waiting"), trial(4, "failed"), trial(5, "interrupted")],
     arms: { incumbent: arm(1, 1, 2_460_000, 600), candidate: arm(1, 0, null, 600) }, notes: null, ...over,
   };
@@ -78,7 +78,9 @@ describe("experiment queue view", () => {
     expect(open.queue).toContain("<dd>41m</dd>");
     expect(open.queue).toContain("It &lt;helps&gt;.");
     expect(open.queue).toContain("1.0 of 8.5 h");
-    expect(open.queue).toContain("main @ a3c343b");
+    // The build the trials actually ran on, not the commit the definition was written against.
+    expect(open.queue).toContain("main @ b7e1f00");
+    expect(renderQueue({ ...SNAPSHOT, queue: [view("fresh", { buildCommit: null })] }, "all", new Set(["fresh"])).queue).toContain("main as of its first trial");
     expect(open.queue).toContain("<dt>readiness.md</dt><dd>READY</dd>");
     expect(open.pending).toContain("runs checked</dt><dd>none yet");
     expect(open.pending).toContain("Waits for ROUTE_101: 0 of the last 0 recent think-fast runs reached ROUTE_101 (needs 3 of 4)");
@@ -109,6 +111,23 @@ describe("experiment queue view", () => {
     const only = renderQueue(blocked, "blocked", new Set());
     expect(only.queue).toContain("EXPERIMENT STUCK");
     expect(only.queue).not.toContain("EXPERIMENT FULL");
+  });
+
+  it("lists approved, running and held experiments above drafts, keeping queue order within each group", () => {
+    const draft = (id: string, queuePosition: number | null): ExperimentView => view(id, { queuePosition, state: "draft", approved: false });
+    const queue = [draft("d1", 1), view("a2", { queuePosition: 2, state: "approved" }), view("s3", { queuePosition: 3, state: "stale", approved: false }), view("h4", { queuePosition: 4, state: "held" }), view("r5", { queuePosition: 5 }),
+      view("n6", { queuePosition: 6, state: "not-ready" }), view("n7", { queuePosition: 7, state: "not-ready", approved: false }), view("c8", { queuePosition: 8, approved: false }), draft("d9", null)];
+    const html = renderQueue({ ...SNAPSHOT, queue }, "all", new Set()).queue;
+    const order = [...html.matchAll(/data-experiment="([^"]+)"/g)].map((m) => m[1]);
+    expect(order.slice(0, queue.length)).toEqual(["a2", "h4", "r5", "n6", "c8", "d1", "s3", "n7", "d9"]);
+  });
+
+  it("keeps pending experiments on the same stats-page card as the queue", () => {
+    document.body.innerHTML = readFileSync(join(import.meta.dirname, "../static/workbench.html"), "utf8").replace(/<script[^>]*><\/script>|<link[^>]*>/g, "");
+    const boxes = document.querySelectorAll(".eq-stats > .box");
+    expect(boxes).toHaveLength(1);
+    expect(boxes[0]?.querySelector('[data-eq="queue"]')).not.toBeNull();
+    expect(boxes[0]?.querySelector('[data-eq="pending"]')).not.toBeNull();
   });
 
   it("filters by status, including pending and done", () => {

@@ -38,7 +38,8 @@ export const ExperimentSchema=Type.Object({
  // Being measured by another cohort right now: shown as running, never launched again by the queue.
  externalCohort:Type.Optional(Type.String({minLength:1})),
 },closed);
-export type Experiment=Omit<Static<typeof ExperimentSchema>,"incumbent"|"changedFeature"> & {readonly changedFeature:SwitchableFeature;readonly incumbent:PlayPresetV2};
+// definitionSha256 is the hash of the definition as written (see definitionHash).
+export type Experiment=Omit<Static<typeof ExperimentSchema>,"incumbent"|"changedFeature"> & {readonly changedFeature:SwitchableFeature;readonly incumbent:PlayPresetV2;readonly definitionSha256:string};
 export type Arm="incumbent"|"candidate";
 
 const native=(name:string):boolean=>MILESTONES.some(m=>m.name===name&&m.kind!=="legacy");
@@ -51,7 +52,7 @@ export function unknownSwitches(value:unknown):string[]{
  return [...new Set(ids.filter(id=>!known.has(id)))];
 }
 const NewerSchema=Type.Object({...ExperimentSchema.properties,changedFeature:Type.String({pattern:"^[a-z0-9][a-z0-9-]*$"}),incumbent:Type.Object({features:Type.Record(Type.String(),Type.Boolean())})},closed);
-export type NewerExperiment=Omit<Experiment,"changedFeature"|"incumbent">&{readonly changedFeature:string;readonly incumbentOn:boolean;readonly unknownSwitches:readonly string[]};
+export type NewerExperiment=Omit<Experiment,"changedFeature"|"incumbent"|"definitionSha256">&{readonly changedFeature:string;readonly incumbentOn:boolean;readonly unknownSwitches:readonly string[]};
 // A definition naming a switch this build does not know, read only for display: nothing
 // here can arm, run or grade it, since the build cannot launch that switch.
 export function parseNewerExperiment(value:unknown):NewerExperiment{
@@ -74,7 +75,7 @@ export function parseExperiment(value:unknown):Experiment {
  if(order.indexOf(value.activationMilestone)>order.indexOf(value.primaryMilestone))throw new Error(`Invalid experiment: activationMilestone ${value.activationMilestone} comes after primaryMilestone ${value.primaryMilestone}, so the switch cannot change the graded result`);
  if(value.readiness.minReached>value.readiness.window)throw new Error("Invalid experiment: readiness minReached exceeds its window");
  if(value.budget.maxWallMs<incumbent.limits.maxWallMs)throw new Error("Invalid experiment: budget is shorter than one trial");
- const experiment:Experiment={...value,changedFeature:value.changedFeature,incumbent};
+ const experiment:Experiment={...value,changedFeature:value.changedFeature,incumbent,definitionSha256:writtenHash(value)};
  experimentArms(experiment);
  return experiment;
 }
@@ -98,9 +99,14 @@ function canonical(value:unknown):string {
  if(typeof value==="object"&&value!==null)return `{${Object.entries(value).filter(([,v])=>v!==undefined).sort(([a],[b])=>a.localeCompare(b)).map(([k,v])=>`${JSON.stringify(k)}:${canonical(v)}`).join(",")}}`;
  return JSON.stringify(value);
 }
-// Reordering the queue or editing notes keeps an approval valid; anything else invalidates it.
+// The definition file as written, not as parsed: parsing fills in a default for every switch
+// registered since, which must not invalidate an approval. Reordering the queue, editing notes
+// or naming an external cohort keeps an approval valid; any other edit to the file invalidates it.
+function writtenHash(value:object):string {
+ return createHash("sha256").update(canonical({...value,queuePosition:undefined,notes:undefined,externalCohort:undefined})).digest("hex");
+}
 export function definitionHash(experiment:Experiment):string {
- return createHash("sha256").update(canonical({...experiment,queuePosition:undefined,notes:undefined,externalCohort:undefined})).digest("hex");
+ return experiment.definitionSha256;
 }
 
 export interface ReadinessRun {readonly id:string;readonly model:string;readonly start:"boot"|"save_state";readonly maxTurns:number|null;readonly maxWallMs:number|null;readonly features:FeatureSet;readonly reached:readonly string[]}
@@ -139,7 +145,7 @@ export function parseLedger(text:string):{entries:LedgerEntry[];problems:string[
 }
 
 export const ApprovalSchema=Type.Object({experiment:Type.String({minLength:1}),sha256:Type.String({pattern:"^[0-9a-f]{64}$"}),approvedAt:Type.String({minLength:1}),approvedBy:Type.String({minLength:1}),
- // The main build the operator approved; trials run only on it. Older approvals fall back to source.commit.
+ // Main's commit when the operator approved, kept as a record. Trials run on the first trial's build, else main as it is.
  commit:Type.Optional(Type.String({pattern:"^[0-9a-f]{40}$"}))},closed);
 export type Approval=Static<typeof ApprovalSchema>;
 export interface RunnerPosition {readonly experiment:string;readonly trial:number}

@@ -1,6 +1,6 @@
 // The experiment queue as party slots (design 11) that open in place into a
-// battle card (design 18), with status chips that filter and a separate
-// PENDING box. Used on the PokéNav page and on Runs & Comparisons. Read only:
+// battle card (design 18), with status chips that filter and a PENDING group
+// on the same card. Used on the PokéNav page and on Runs & Comparisons. Read only:
 // approval and running stay in the CLI.
 import type { ArmSummary, ExperimentView, QueueSnapshot, TrialView } from "./experiment-store.js";
 import { esc } from "./format.js";
@@ -42,7 +42,7 @@ function viewOk(v: unknown): boolean {
     typeof v["approved"] === "boolean" && typeof v["incumbentOn"] === "boolean" && Array.isArray(v["trials"]) && v["trials"].every(trialOk) &&
     isRecord(arms) && armOk(arms["incumbent"]) && armOk(arms["candidate"]) && isRecord(source) && typeof source["commit"] === "string" &&
     readinessOk(v["readiness"]) && (recorded === null || (isRecord(recorded) && typeof recorded["verdict"] === "string" && typeof recorded["evidence"] === "string")) &&
-    (v["notes"] === null || typeof v["notes"] === "string") && resultOk(v["result"]);
+    (v["notes"] === null || typeof v["notes"] === "string") && resultOk(v["result"]) && (v["buildCommit"] === null || typeof v["buildCommit"] === "string");
 }
 // JSON from /api/experiments into a typed snapshot.
 export function queueSnapshotOf(value: unknown): QueuePayload {
@@ -102,7 +102,7 @@ function actions(v: ExperimentView): string {
 function battle(v: ExperimentView, controls: boolean): string {
   return `<div class="eq-battle">${controls ? actions(v) : ""}<div class="eq-vs">${side(v, "incumbent")}<b class="eq-vsb">VS</b>${side(v, "candidate")}</div>` +
     `<p class="eq-why">${esc(v.reason)}</p><dl class="eq-facts"><dt>hypothesis</dt><dd>${esc(v.hypothesis)}</dd><dt>graded on</dt><dd>${esc(v.primaryMilestone)}</dd><dt>acts at</dt><dd>${esc(v.activationMilestone)}${v.state === "blocked" ? "" : ` · ${readinessLine(v)}`}</dd>` +
-    `${v.result === null ? "" : `<dt>verdict</dt><dd>${esc(v.result.verdict.toUpperCase())} → ${esc(v.result.recommendation.toUpperCase().replace(/_/g, " "))}${v.result.eligible ? "" : ` (not eligible: ${v.result.problems.map(esc).join("; ")})`}</dd>`}<dt>build</dt><dd>main @ ${esc(v.source.commit.slice(0, 7))}</dd><dt>budget</dt><dd>${(v.usedMs / 3_600_000).toFixed(1)} of ${(v.budgetMs / 3_600_000).toFixed(1)} h</dd>${v.recorded === null ? "" : `<dt>readiness.md</dt><dd>${esc(v.recorded.verdict)}</dd>`}</dl></div>`;
+    `${v.result === null ? "" : `<dt>verdict</dt><dd>${esc(v.result.verdict.toUpperCase())} → ${esc(v.result.recommendation.toUpperCase().replace(/_/g, " "))}${v.result.eligible ? "" : ` (not eligible: ${v.result.problems.map(esc).join("; ")})`}</dd>`}<dt>build</dt><dd>${v.buildCommit === null ? "main as of its first trial" : `main @ ${esc(v.buildCommit.slice(0, 7))}`}</dd><dt>budget</dt><dd>${(v.usedMs / 3_600_000).toFixed(1)} of ${(v.budgetMs / 3_600_000).toFixed(1)} h</dd>${v.recorded === null ? "" : `<dt>readiness.md</dt><dd>${esc(v.recorded.verdict)}</dd>`}</dl></div>`;
 }
 
 function slot(v: ExperimentView, open: boolean, controls = false): string {
@@ -120,6 +120,9 @@ function pendingCard(v: ExperimentView, open: boolean): string {
     (open ? `<div class="eq-battle"><p class="eq-why">${esc(v.reason)}</p><dl class="eq-facts"><dt>hypothesis</dt><dd>${esc(v.hypothesis)}</dd>${v.recorded === null ? "" : `<dt>readiness.md</dt><dd>${esc(v.recorded.verdict)}</dd>`}<dt>runs checked</dt><dd>${v.readiness.considered.map(esc).join(", ") || "none yet"}</dd></dl></div>` : "") + `</article>`;
 }
 
+// Operator-approved or running work lists above drafts; the stable sort keeps queue order within each group.
+const approvedFirst = (v: ExperimentView): number => (v.approved || v.state === "running" ? 0 : 1);
+
 export function countsOf(s: QueueSnapshot): Readonly<Record<QueueFilter, number>> {
   const counts: Record<QueueFilter, number> = { all: s.queue.length + s.pending.length + s.closed.length, running: 0, held: 0, approved: 0, draft: 0, stale: 0, "not-ready": 0, blocked: 0, pending: s.pending.length, closed: s.closed.length };
   for (const v of s.queue) if (v.state in counts && v.state !== "pending") counts[v.state as QueueFilter] += 1;
@@ -134,7 +137,7 @@ export function renderQueue(s: QueuePayload, filter: QueueFilter, open: Readonly
   const counts = countsOf(s);
   const chips = `<div class="eq-chips" role="toolbar" aria-label="Filter experiments by status">${FILTERS.filter((f) => f.id === "all" || counts[f.id] > 0).map((f) => `<button type="button" class="eq-chip${f.id === filter ? " on" : ""}" data-filter="${f.id}" aria-pressed="${String(f.id === filter)}">${f.label} <b>${String(counts[f.id])}</b></button>`).join("")}</div>`;
   const showQueue = filter !== "pending" && filter !== "closed";
-  const queued = s.queue.filter((v) => filter === "all" || v.state === filter);
+  const queued = s.queue.filter((v) => filter === "all" || v.state === filter).sort((a, b) => approvedFirst(a) - approvedFirst(b));
   const closed = filter === "all" || filter === "closed" ? s.closed : [];
   const runner = s.autorun === undefined || s.autorun === null ? "" : `<p class="eq-runner eq-runner-${s.autorun.state}">QUEUE RUNNER · ${s.autorun.state.toUpperCase()} · ${esc(s.autorun.message)}</p>`;
   const queue = runner + (notice === null ? "" : `<p class="eq-notice" role="alert">${esc(notice)}</p>`) + (showQueue ? (queued.length === 0 ? `<p class="eq-empty">${filter === "all" ? "Nothing is queued. Experiments join the queue once models reliably reach the milestone each one acts on." : "No experiments in this state."}</p>` : queued.map((v) => slot(v, open.has(v.id), controls)).join("")) : "") +

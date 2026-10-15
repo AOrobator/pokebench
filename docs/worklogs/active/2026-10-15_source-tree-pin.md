@@ -26,5 +26,5 @@ Landing note: the 8790 viewer runs the queue with the code it loaded at start, s
 - [x] GREEN round 2: untracked files under any build source hold before the fresh-stamp shortcut (replaces the agent-src-only check); schema and ledger comments say sources, not HEAD; the test repo ignores dist/ like the real one.
   COMMIT: `fix(viewer): untracked agent or env sources hold experiments; comments say sources, not HEAD` (see git log)
   Tests: agent 1083, viewer 656 passed. Coverage: agent 97.5/93.84/98.15, viewer 95.4/91.2/94.4. TS lint clean. Main checkout has no untracked files under the build sources (checked).
-- [ ] Review round 2 (Claude CLI, Grok)
+- [x] Review round 2 (Claude CLI; Cursor grok-4.7-high): both LGTM. Verified the real main checkout lists no untracked build sources and every build output is gitignored. Deferred (pre-existing): untracked files inside the vendor submodule's own worktree are invisible to the superproject check; `just verify-vendor` owns that tree.
 - [ ] Operator approves the local merge; restart the 8790 viewer on main.

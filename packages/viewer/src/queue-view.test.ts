@@ -240,7 +240,7 @@ describe("experiment queue view", () => {
   it("shows the winner gate: finalists, finals pips, verdicts, the promoted incumbent and why the queue waits", async () => {
     const finals = { runsPerArm: 4, maxWallMs: 2_700_000, target: null };
     const running: GateView = { experiment: "full", title: "Whole <map>", state: "held", reason: "finals stopped after 1 of 12 runs", source: "cohort", finals, finalists: [{ arm: "whole", switches: { "full-map-navigation-v1": true } }, { arm: "both", switches: {} }], ranking: [], trials: [{ index: 0, arm: "incumbent", state: "done", run: "r" }, { index: 1, arm: "whole", state: "running", run: "s" }, { index: 2, arm: "both", state: "waiting", run: null }], decision: null, winner: null };
-    const done: GateView = { ...running, experiment: "old", title: "Old", state: "declared", reason: "whole won", finals: { ...finals, target: "RIVAL_MET" }, trials: [], decision: { winner: "whole", incumbent: { medianFurthest: 3, medianMs: null }, verdicts: [{ arm: "whole", pass: true, reasons: [], medianFurthest: 5, medianMs: null }, { arm: "both", pass: false, reasons: ["not <further>"], medianFurthest: 3, medianMs: null }] } };
+    const done: GateView = { ...running, experiment: "old", title: "Old", state: "declared", reason: "whole won", finals: { ...finals, target: "RIVAL_MET" }, trials: [], decision: { winner: "whole", verdicts: [{ arm: "whole", pass: true, reasons: [], share: 0.8, wins: 50, ties: 4, pairs: 64 }, { arm: "both", pass: false, reasons: ["not <further>"], share: 0.4, wins: 20, ties: 11, pairs: 64 }] } };
     const withdrawn: GateView = { ...running, experiment: "w", state: "withdrawn", finalists: [] };
     const gated: QueueSnapshot = { ...SNAPSHOT, gate: [running, done, withdrawn], gateBlock: "full: finals stopped", incumbent: { id: "old:whole", from: "old", arm: "whole", features: { "full-map-navigation-v1": true }, at: "t", finals: [] } };
     expect(queueSnapshotOf(JSON.parse(JSON.stringify(gated)))).toEqual(gated);
@@ -256,6 +256,7 @@ describe("experiment queue view", () => {
     expect(html).toContain("4 runs each from boot, 45 min");
     expect(html).toContain("stop at RIVAL_MET");
     expect(html).toContain("both: FAIL (not &lt;further&gt;)");
+    expect(html).toContain("whole: PASS, better in 50 and tied in 4 of 64 pairs");
     expect(html).toContain('data-finals-withdraw="full"');
     expect(html).toContain('data-finals-resume="w"');
     expect(html).toContain(">WINNER<");

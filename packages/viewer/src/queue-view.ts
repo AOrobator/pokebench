@@ -55,7 +55,7 @@ function gateOk(g: unknown): boolean {
     Array.isArray(g["finalists"]) && g["finalists"].every((f) => isRecord(f) && typeof f["arm"] === "string" && isSwitches(f["switches"])) &&
     Array.isArray(g["trials"]) && g["trials"].every((t) => isRecord(t) && isNum(t["index"]) && typeof t["arm"] === "string" && oneOf(t["state"], TRIAL_STATES)) &&
     (g["winner"] === null || typeof g["winner"] === "string") &&
-    (decision === null || (isRecord(decision) && Array.isArray(decision["verdicts"]) && decision["verdicts"].every((v) => isRecord(v) && typeof v["arm"] === "string" && typeof v["pass"] === "boolean" && isStrings(v["reasons"]))));
+    (decision === null || (isRecord(decision) && Array.isArray(decision["verdicts"]) && decision["verdicts"].every((v) => isRecord(v) && typeof v["arm"] === "string" && typeof v["pass"] === "boolean" && isStrings(v["reasons"]) && isNum(v["wins"]) && isNum(v["ties"]) && isNum(v["pairs"]))));
 }
 // JSON from /api/experiments into a typed snapshot.
 export function queueSnapshotOf(value: unknown): QueuePayload {
@@ -147,7 +147,7 @@ function gateCard(s: QueueSnapshot, controls: boolean): string {
   if (s.gate.length === 0 && s.incumbent === null) return "";
   const rows = s.gate.map((g) => {
     const arms = g.finalists.map((f) => f.arm);
-    const verdicts = g.decision === null ? "" : `<dt>verdicts</dt><dd>${g.decision.verdicts.map((v) => `${esc(v.arm)}: ${v.pass ? "PASS" : `FAIL (${v.reasons.map(esc).join("; ")})`}`).join("<br>")}</dd>`;
+    const verdicts = g.decision === null ? "" : `<dt>verdicts</dt><dd>${g.decision.verdicts.map((v) => `${esc(v.arm)}: ${v.pass ? `PASS, better in ${String(v.wins)} and tied in ${String(v.ties)} of ${String(v.pairs)} pairs` : `FAIL (${v.reasons.map(esc).join("; ")})`}`).join("<br>")}</dd>`;
     const button = !controls ? "" : g.state === "finals" || g.state === "held" ? `<button type="button" class="eq-revoke" data-finals-withdraw="${esc(g.experiment)}">WITHDRAW FINALS</button>` : g.state === "withdrawn" ? `<button type="button" class="eq-approve" data-finals-resume="${esc(g.experiment)}">RESUME FINALS</button>` : "";
     return `<article class="eq-gate eq-g-${esc(g.state)}" data-gate="${esc(g.experiment)}"><div class="eq-gate-head"><span class="eq-name">${esc(g.title.toUpperCase())} <span class="eq-st eq-${esc(g.state)}">${esc(GATE_LABEL[g.state] ?? g.state.toUpperCase())}</span></span>${button === "" ? "" : `<span class="eq-actions">${button}</span>`}</div>` +
       `<p class="eq-why">${esc(g.reason)}</p>${g.trials.length === 0 ? "" : `<span class="pipset">${g.trials.map((t) => gatePip(t, arms)).join("")}</span>`}` +

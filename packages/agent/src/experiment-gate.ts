@@ -4,7 +4,7 @@
 import {Type,type Static} from "typebox";
 import {Value} from "typebox/value";
 import {SWITCHABLE_FEATURES,dependencyProblems,stateOnlyProblems,type FeatureSet,type SwitchableFeature} from "./features.js";
-import {MILESTONES} from "./milestones.js";
+import {MILESTONE_HINTS} from "./milestone-hint.js";
 import {PlayPresetV2Schema,parsePlayPreset,type PlayPresetV2} from "./play-preset.js";
 import type {Experiment} from "./experiments.js";
 
@@ -20,36 +20,51 @@ export function finalsConfig(experiment:Experiment):FinalsConfig {
  return {runsPerArm:f?.runsPerArm??DEFAULT_FINALS.runsPerArm,maxWallMs:f?.maxWallMs??DEFAULT_FINALS.maxWallMs,target:f?.target??DEFAULT_FINALS.target};
 }
 
-const ORDER=MILESTONES.filter(m=>m.kind!=="legacy").map(m=>m.name);
+// Runs are ranked along the main story path, in the order the recorded human run earned it.
+const MAIN_PATH=MILESTONE_HINTS.map(h=>h.name);
 export interface RunOutcome {readonly reached:readonly string[];readonly milestoneMs:Readonly<Record<string,number>>}
 export interface ArmRuns {readonly arm:string;readonly runs:readonly RunOutcome[]}
 
+// How far along the main path a run got (-1: nowhere), and when it got there.
 export function furthestIndex(run:RunOutcome):number {
- return run.reached.reduce((best,name)=>Math.max(best,ORDER.indexOf(name)),-1);
+ return run.reached.reduce((best,name)=>Math.max(best,MAIN_PATH.indexOf(name)),-1);
 }
-function median(values:readonly number[]):number|null {
- if(values.length===0)return null;
- const s=[...values].sort((a,b)=>a-b),mid=Math.floor(s.length/2);
- return s.length%2===1?(s[mid]??0):((s[mid-1]??0)+(s[mid]??0))/2;
+// One order for every run (operator 2026-10-15): the further main-path milestone wins; at the same
+// milestone the earlier arrival wins. 1: a is better, -1: b is better, 0: a tie.
+export function compareRuns(a:RunOutcome,b:RunOutcome):number {
+ const fa=furthestIndex(a),fb=furthestIndex(b);
+ if(fa!==fb)return fa>fb?1:-1;
+ const name=MAIN_PATH[fa];
+ const ta=name===undefined?undefined:a.milestoneMs[name],tb=name===undefined?undefined:b.milestoneMs[name];
+ if(ta===undefined||tb===undefined||ta===tb)return 0;
+ return ta<tb?1:-1;
 }
+export interface Superiority {readonly share:number;readonly wins:number;readonly ties:number;readonly pairs:number}
+// Probability of superiority: over every (a, b) pair of runs, how often a's run is better, ties counting half.
+export function superiority(a:readonly RunOutcome[],b:readonly RunOutcome[]):Superiority {
+ let wins=0,ties=0;
+ for(const x of a)for(const y of b){const c=compareRuns(x,y);if(c>0)wins+=1;else if(c===0)ties+=1;}
+ const pairs=a.length*b.length;
+ return {share:pairs===0?0.5:(wins+ties/2)/pairs,wins,ties,pairs};
+}
+// The "large effect" cutoff for the probability of superiority: about 46 of 64 pairs at 8 runs each.
+export const WIN_SHARE=0.71;
 
-export const RankSchema=Type.Object({arm:Type.String({minLength:1}),runs:Type.Integer({minimum:0}),reached:Type.Integer({minimum:0}),medianFurthest:Type.Number(),medianPrimaryMs:Type.Union([Type.Number(),Type.Null()])},{additionalProperties:false});
+export const RankSchema=Type.Object({arm:Type.String({minLength:1}),runs:Type.Integer({minimum:0}),reached:Type.Integer({minimum:0}),share:Type.Number({minimum:0,maximum:1})},{additionalProperties:false});
 export type ArmRank=Static<typeof RankSchema>;
-// The chain's predeclared ranking (pick_best.py), generalized: most runs reaching the primary
-// milestone, then the furthest median native milestone, then the fastest median time to the
-// primary among runs that reached it, then the order given (simplest arm first).
-export function rankArms(arms:readonly ArmRuns[],primary:string):ArmRank[] {
- const ranks=arms.map(({arm,runs})=>({arm,runs:runs.length,reached:runs.filter(r=>r.reached.includes(primary)).length,
-  medianFurthest:median(runs.map(furthestIndex))??-1,medianPrimaryMs:median(runs.flatMap(r=>{const ms=r.milestoneMs[primary];return ms===undefined?[]:[ms];}))}));
- const slow=(r:ArmRank):number=>r.medianPrimaryMs??Number.POSITIVE_INFINITY;
- return ranks.map((r,i)=>({r,i})).sort((a,b)=>b.r.reached-a.r.reached||b.r.medianFurthest-a.r.medianFurthest||slow(a.r)-slow(b.r)||a.i-b.i).map(x=>x.r);
+// Each arm's probability of superiority over the incumbent arm (0.5 for the incumbent itself),
+// best first; equal shares keep the order given (simplest arm first). `reached` counts runs
+// reaching the primary milestone, for display only.
+export function rankArms(arms:readonly ArmRuns[],primary:string,incumbentArm:string):ArmRank[] {
+ const base=arms.find(a=>a.arm===incumbentArm);
+ if(base===undefined)throw new Error(`no incumbent arm ${incumbentArm} in the ranking`);
+ const ranks=arms.map(({arm,runs})=>({arm,runs:runs.length,reached:runs.filter(r=>r.reached.includes(primary)).length,share:arm===incumbentArm?0.5:superiority(runs,base.runs).share}));
+ return ranks.map((r,i)=>({r,i})).sort((a,b)=>b.r.share-a.r.share||a.i-b.i).map(x=>x.r);
 }
 
-// Finalists are the arms ranked above the incumbent arm, at most three (operator 2026-10-15).
+// Finalists beat the incumbent arm in more than half their pairs, best first, at most three.
 export function nominate(ranked:readonly ArmRank[],incumbentArm:string):string[] {
- const at=ranked.findIndex(r=>r.arm===incumbentArm);
- if(at<0)throw new Error(`no incumbent arm ${incumbentArm} in the ranking`);
- return ranked.slice(0,at).slice(0,MAX_FINALISTS).map(r=>r.arm);
+ return ranked.filter(r=>r.arm!==incumbentArm&&r.share>0.5).slice(0,MAX_FINALISTS).map(r=>r.arm);
 }
 
 // Williams-balanced rows (each arm once per row, each first equally often); two arms give ABBA.
@@ -75,30 +90,20 @@ export function finalsPreset(base:PlayPresetV2,experiment:string,arm:string,swit
  return {version:2,sampling:base.sampling,id:`${experiment}-finals-${arm}`,target:config.target,limits:{maxTurns:FINALS_MAX_TURNS,maxWallMs:config.maxWallMs,failureLimit:base.limits.failureLimit},features};
 }
 
-export interface FinalsVerdict {readonly arm:string;readonly pass:boolean;readonly reasons:readonly string[];readonly medianFurthest:number;readonly medianMs:number|null}
-export interface FinalsDecision {readonly winner:string|null;readonly incumbent:{readonly medianFurthest:number;readonly medianMs:number|null};readonly verdicts:readonly FinalsVerdict[]}
-export interface FinalsInput {readonly incumbent:readonly RunOutcome[];readonly finalists:readonly ArmRuns[];readonly speedMarginPercent:number;readonly completionTolerance:number}
+export interface FinalsVerdict {readonly arm:string;readonly pass:boolean;readonly reasons:readonly string[];readonly share:number;readonly wins:number;readonly ties:number;readonly pairs:number}
+export interface FinalsDecision {readonly winner:string|null;readonly verdicts:readonly FinalsVerdict[]}
+export interface FinalsInput {readonly incumbent:readonly RunOutcome[];readonly finalists:readonly ArmRuns[]}
 
-// A finalist passes when it reaches further at the median, or the same milestone at least
-// speedMarginPercent faster, and no milestone up to the incumbent's median furthest is reached
-// in fewer runs than the incumbent's count minus completionTolerance. The best passing finalist,
-// in nomination order, wins.
-export function decideFinals({incumbent,finalists,speedMarginPercent,completionTolerance}:FinalsInput):FinalsDecision {
- const furthestOf=(runs:readonly RunOutcome[]):number=>median(runs.map(furthestIndex))??-1;
- const msTo=(runs:readonly RunOutcome[],index:number):number|null=>{const name=ORDER[Math.floor(index)];return name===undefined?null:median(runs.flatMap(r=>{const ms=r.milestoneMs[name];return ms===undefined?[]:[ms];}));};
- const base=furthestOf(incumbent),baseMs=msTo(incumbent,base);
- const count=(runs:readonly RunOutcome[],name:string):number=>runs.filter(r=>r.reached.includes(name)).length;
+// A finalist passes when its runs from boot beat the incumbent's in at least WIN_SHARE of all
+// pairs. The passing finalist with the highest share wins; equal shares go to nomination order.
+export function decideFinals({incumbent,finalists}:FinalsInput):FinalsDecision {
  const verdicts=finalists.map(({arm,runs}):FinalsVerdict=>{
-  const furthest=furthestOf(runs),ms=furthest===base?msTo(runs,furthest):null,reasons:string[]=[];
-  const further=furthest>base,faster=furthest===base&&base>=0&&ms!==null&&baseMs!==null&&ms<=baseMs*(1-speedMarginPercent/100);
-  if(!further&&!faster)reasons.push(`not further and not ${String(speedMarginPercent)}% faster than the incumbent`);
-  for(const name of ORDER.slice(0,Math.floor(base)+1)){
-   const theirs=count(runs,name),ours=count(incumbent,name);
-   if(theirs<ours-completionTolerance)reasons.push(`reached ${name} in ${String(theirs)} of ${String(runs.length)} runs; the incumbent did in ${String(ours)}`);
-  }
-  return {arm,pass:reasons.length===0,reasons,medianFurthest:furthest,medianMs:ms};
+  const s=superiority(runs,incumbent),pass=s.pairs>0&&s.share>=WIN_SHARE;
+  const reasons=pass?[]:[`better in ${String(s.wins)} and tied in ${String(s.ties)} of ${String(s.pairs)} pairs (${s.share.toFixed(2)}); a winner needs ${String(WIN_SHARE)}`];
+  return {arm,pass,reasons,...s};
  });
- return {winner:verdicts.find(v=>v.pass)?.arm??null,incumbent:{medianFurthest:base,medianMs:baseMs},verdicts};
+ const best=verdicts.filter(v=>v.pass).reduce<FinalsVerdict|null>((top,v)=>top===null||v.share>top.share?v:top,null);
+ return {winner:best?.arm??null,verdicts};
 }
 
 export const PromotionSchema=Type.Object({id:Type.String({minLength:1}),from:Type.String({minLength:1}),arm:Type.String({minLength:1}),features:Type.Record(Type.String(),Type.Boolean()),at:Type.String({minLength:1}),finals:Type.Array(Type.String())},{additionalProperties:false});

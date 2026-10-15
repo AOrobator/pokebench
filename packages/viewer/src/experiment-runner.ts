@@ -326,7 +326,7 @@ async function runFinals({ paths, source, host, once = false, stopRequested = ()
 
 // INV-G3: only a finals winner is appended to promotions.jsonl, once.
 function settleFinals(paths: QueuePaths, source: RunSource, host: RunnerHost, n: Nomination, experiment: Experiment, entries: readonly FinalsEntry[]): RunnerOutcome & { finished: string | null } {
-  const decision = decide(n, entries, source, experiment.criteria);
+  const decision = decide(n, entries, source);
   if (decision === null) return { ran: 0, stopped: `held: ${n.experiment} finals are incomplete`, finished: null };
   let promotion: string | null = null;
   const winner = decision.winner === null ? undefined : n.finalists.find((f) => f.arm === decision.winner);

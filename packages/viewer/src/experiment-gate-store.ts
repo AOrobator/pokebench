@@ -109,7 +109,7 @@ export function cohortNomination(experiment: Experiment, cohort: CohortRecord, s
   const control = cohort.presets.get("control");
   if (control === undefined) throw new Error(`${cohort.id}: the cohort has no control arm`);
   const arms: ArmRuns[] = cohort.arms.map((arm) => ({ arm, runs: outcomesOf(source, cohort.outcomes.filter((o) => o.arm === arm).map((o) => o.run)) }));
-  const ranking = rankArms(arms, experiment.primaryMilestone);
+  const ranking = rankArms(arms, experiment.primaryMilestone, "control");
   const finalists = nominate(ranking, "control").map((arm) => ({ arm, switches: diff(control, cohort.presets.get(arm) ?? control) }));
   return nomination(experiment, source, "cohort", control, ranking, finalists, now, cohort.id);
 }
@@ -118,7 +118,7 @@ export function queueNomination(experiment: Experiment, ledger: readonly LedgerE
   const order = trialOrder(experiment), latest = new Map<number, string>();
   for (const e of ledger) if (e.type === "outcome" && e.trial < order.length && e.arm === order[e.trial]) latest.set(e.trial, e.run);
   const runsOf = (arm: string): string[] => [...latest.entries()].filter(([trial]) => order[trial] === arm).map(([, run]) => run);
-  const ranking = rankArms([{ arm: "incumbent", runs: outcomesOf(source, runsOf("incumbent")) }, { arm: "candidate", runs: outcomesOf(source, runsOf("candidate")) }], experiment.primaryMilestone);
+  const ranking = rankArms([{ arm: "incumbent", runs: outcomesOf(source, runsOf("incumbent")) }, { arm: "candidate", runs: outcomesOf(source, runsOf("candidate")) }], experiment.primaryMilestone, "incumbent");
   const arms = experimentArms(experiment);
   const finalists = nominate(ranking, "incumbent").map((arm) => ({ arm, switches: diff(arms.incumbent, arms.candidate) }));
   return nomination(experiment, source, "queue", arms.incumbent, ranking, finalists, now);
@@ -177,12 +177,12 @@ export function finalsTrials(n: Nomination, ledger: readonly FinalsEntry[], runn
   });
 }
 // The decision over the latest outcome of every finals trial, once all of them finished.
-export function decide(n: Nomination, ledger: readonly FinalsEntry[], source: RunSource, criteria: { readonly speedMarginPercent: number; readonly completionTolerance: number }): FinalsDecision | null {
+export function decide(n: Nomination, ledger: readonly FinalsEntry[], source: RunSource): FinalsDecision | null {
   const trials = finalsTrials(n, ledger, null);
   if (trials.some((t) => t.state !== "done")) return null;
   // Every finals run counts (PB2): one whose log can no longer be read scores as reaching nothing.
   const runsOf = (arm: string): RunOutcome[] => [...(arm === "incumbent" ? n.reusedIncumbent : []), ...trials.filter((t) => t.arm === arm).map((t) => t.run ?? "")].map((run) => { const m = source.trial(run); return m === null ? { reached: [], milestoneMs: {} } : { reached: m.reached, milestoneMs: m.milestoneMs }; });
-  return decideFinals({ incumbent: runsOf("incumbent"), finalists: n.finalists.map((f) => ({ arm: f.arm, runs: runsOf(f.arm) })), ...criteria });
+  return decideFinals({ incumbent: runsOf("incumbent"), finalists: n.finalists.map((f) => ({ arm: f.arm, runs: runsOf(f.arm) })) });
 }
 
 // cohort: for an experiment measured in an external cohort, whether that cohort finished and, if not, why it is waited for.

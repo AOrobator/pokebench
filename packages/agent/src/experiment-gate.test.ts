@@ -1,37 +1,14 @@
 import {expect,it} from "vitest";
 import {ALL_ON,type FeatureSet} from "./features.js";
-import {DEFAULT_FINALS,FINALS_MAX_TURNS,decideFinals,finalsConfig,finalsOrder,finalsPlan,finalsPreset,furthestIndex,nominate,parseFinalsLedger,parseNomination,parsePromotions,rankArms,withPromotion,type ArmRuns,type Promotion,type RunOutcome} from "./experiment-gate.js";
+import {DEFAULT_FINALS,FINALS_MAX_TURNS,WIN_SHARE,compareRuns,decideFinals,finalsConfig,finalsOrder,finalsPlan,finalsPreset,furthestIndex,nominate,parseFinalsLedger,parseNomination,parsePromotions,rankArms,superiority,withPromotion,type ArmRuns,type Promotion,type RunOutcome} from "./experiment-gate.js";
 import {parseExperiment} from "./experiments.js";
-import {MILESTONES} from "./milestones.js";
+import {MILESTONE_HINTS} from "./milestone-hint.js";
 
-const order=MILESTONES.filter(m=>m.kind!=="legacy").map(m=>m.name);
+const order=MILESTONE_HINTS.map(h=>h.name);
 const upTo=(name:string,ms=60_000):RunOutcome=>{const reached=order.slice(order.indexOf("CLOCK_SET"),order.indexOf(name)+1);return {reached,milestoneMs:Object.fromEntries(reached.map((m,i)=>[m,ms*(i+1)]))};};
 const none:RunOutcome={reached:[],milestoneMs:{}};
 const features:FeatureSet={...ALL_ON,"state-only-decisions-v1":false,"named-interactions-v1":false,"world-destinations-v1":false,"full-map-navigation-v1":false,"objective-tracking-v1":false,"repeat-attempt-guard-v1":false,"native-objective-completion-v1":false,"navigation-evidence-memory-v1":false};
 const preset={version:2,id:"incumbent",target:null,limits:{maxTurns:1500,maxWallMs:1_800_000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},features} as const;
-
-it("ranks arms by primary reach, then median furthest milestone, then speed, then the given order",()=>{
- const arms:ArmRuns[]=[
-  {arm:"control",runs:[upTo("RIVAL_HOUSE_ENTERED"),none,none,none]},
-  {arm:"whole",runs:[upTo("RIVAL_MET"),upTo("RIVAL_HOUSE_ENTERED"),none,none]},
-  {arm:"memory",runs:[upTo("RIVAL_HOUSE_ENTERED",30_000),upTo("RIVAL_HOUSE_ENTERED",30_000),none,none]},
-  {arm:"both",runs:[upTo("RIVAL_HOUSE_ENTERED"),upTo("RIVAL_HOUSE_ENTERED"),none,none]},
- ];
- const ranked=rankArms(arms,"RIVAL_HOUSE_ENTERED");
- // whole reaches further in one run, but the median furthest ties; memory is fastest; whole and both tie, so the given order decides.
- expect(ranked.map(r=>r.arm)).toEqual(["memory","whole","both","control"]);
- expect(ranked[0]).toMatchObject({arm:"memory",runs:4,reached:2,medianPrimaryMs:expect.any(Number) as number});
- expect(ranked[3]).toMatchObject({arm:"control",reached:1});
- expect(rankArms([{arm:"a",runs:[]},{arm:"b",runs:[]}],"RIVAL_HOUSE_ENTERED").map(r=>[r.arm,r.medianFurthest,r.medianPrimaryMs])).toEqual([["a",-1,null],["b",-1,null]]);
-});
-
-it("nominates at most three finalists, only arms ranked above the incumbent arm",()=>{
- const r=(arm:string)=>({arm,runs:4,reached:0,medianFurthest:0,medianPrimaryMs:null});
- expect(nominate([r("a"),r("b"),r("c"),r("control"),r("d")],"control")).toEqual(["a","b","c"]);
- expect(nominate([r("a"),r("b"),r("c"),r("e"),r("control")],"control")).toEqual(["a","b","c"]);
- expect(nominate([r("control"),r("a")],"control")).toEqual([]);
- expect(()=>nominate([r("a")],"control")).toThrow("no incumbent arm control");
-});
 
 it("orders finals so every arm runs the same number of times, balanced: ABBA for two arms",()=>{
  expect(finalsOrder(["incumbent","candidate"],4)).toEqual(["incumbent","candidate","candidate","incumbent","incumbent","candidate","candidate","incumbent"]);
@@ -73,41 +50,68 @@ it("reads an experiment's finals settings, defaulting to 8 runs of 45 minutes wi
  expect(()=>parseExperiment({...base,finals:{runsPerArm:2}})).toThrow(/Invalid experiment/);
 });
 
-it("measures the furthest native milestone a run reached",()=>{
+const eight=(r:RunOutcome)=>Array.from({length:8},()=>r);
+
+it("orders runs by the furthest main-path milestone, then by who got there first",()=>{
  expect(furthestIndex(none)).toBe(-1);
  expect(furthestIndex(upTo("RIVAL_MET"))).toBe(order.indexOf("RIVAL_MET"));
- expect(furthestIndex({reached:["NOT_A_MILESTONE"],milestoneMs:{}})).toBe(-1);
+ // Off-path and unknown milestones do not move a run along the main path.
+ expect(furthestIndex({reached:["FIRST_POKEMON_CAUGHT","NOT_A_MILESTONE"],milestoneMs:{}})).toBe(-1);
+ expect(compareRuns(upTo("RIVAL_MET"),upTo("RIVAL_HOUSE_ENTERED",1))).toBe(1);
+ expect(compareRuns(upTo("RIVAL_HOUSE_ENTERED",60_000),upTo("RIVAL_HOUSE_ENTERED",50_000))).toBe(-1);
+ expect(compareRuns(upTo("RIVAL_HOUSE_ENTERED"),upTo("RIVAL_HOUSE_ENTERED"))).toBe(0);
+ expect(compareRuns(none,none)).toBe(0);
+ expect(compareRuns({reached:["RIVAL_MET"],milestoneMs:{}},upTo("RIVAL_MET"))).toBe(0);
 });
 
-const eight=(r:RunOutcome)=>Array.from({length:8},()=>r);
-it("declares a finalist that reaches further, without regressing on earlier milestones",()=>{
- const d=decideFinals({incumbent:eight(upTo("RIVAL_HOUSE_ENTERED")),finalists:[{arm:"whole",runs:eight(upTo("RIVAL_MET"))}],speedMarginPercent:10,completionTolerance:0});
- expect(d.winner).toBe("whole");
- expect(d.verdicts[0]).toMatchObject({arm:"whole",pass:true});
- expect(d.incumbent.medianFurthest).toBe(order.indexOf("RIVAL_HOUSE_ENTERED"));
+it("measures the probability of superiority over every pair of runs, ties counting half",()=>{
+ expect(superiority([upTo("RIVAL_MET"),none],[upTo("RIVAL_HOUSE_ENTERED"),none])).toEqual({share:0.625,wins:2,ties:1,pairs:4});
+ expect(superiority([],[none])).toEqual({share:0.5,wins:0,ties:0,pairs:0});
 });
 
-it("declares a finalist that reaches the same milestone enough faster, and refuses one that is only a little faster",()=>{
- const fast=decideFinals({incumbent:eight(upTo("RIVAL_HOUSE_ENTERED",60_000)),finalists:[{arm:"a",runs:eight(upTo("RIVAL_HOUSE_ENTERED",50_000))}],speedMarginPercent:10,completionTolerance:0});
- expect(fast.winner).toBe("a");
- const slow=decideFinals({incumbent:eight(upTo("RIVAL_HOUSE_ENTERED",60_000)),finalists:[{arm:"a",runs:eight(upTo("RIVAL_HOUSE_ENTERED",57_000))}],speedMarginPercent:10,completionTolerance:0});
- expect(slow.winner).toBeNull();
- expect(slow.verdicts[0]?.reasons.join(" ")).toMatch(/not further and not 10% faster/);
- const nowhere=decideFinals({incumbent:eight(none),finalists:[{arm:"a",runs:eight(none)}],speedMarginPercent:10,completionTolerance:0});
- expect(nowhere.winner).toBeNull();
+it("ranks arms by how often their runs beat the incumbent arm's, so runs that go much further count",()=>{
+ // both reaches the rival's house in all 4 runs and whole in only 3, but whole's runs go to Oldale:
+ // greedy reach counting would rank both first.
+ const arms:ArmRuns[]=[
+  {arm:"control",runs:[upTo("RIVAL_HOUSE_ENTERED"),upTo("RIVAL_HOUSE_ENTERED"),none,none]},
+  {arm:"whole",runs:[upTo("OLDALE_TOWN"),upTo("OLDALE_TOWN"),upTo("OLDALE_TOWN"),none]},
+  {arm:"memory",runs:[none,none,none,none]},
+  {arm:"both",runs:[upTo("RIVAL_HOUSE_ENTERED"),upTo("RIVAL_HOUSE_ENTERED"),upTo("RIVAL_HOUSE_ENTERED"),upTo("RIVAL_HOUSE_ENTERED")]},
+ ];
+ const ranked=rankArms(arms,"RIVAL_HOUSE_ENTERED","control");
+ expect(ranked.map(r=>[r.arm,r.share,r.reached])).toEqual([["whole",0.8125,3],["both",0.75,4],["control",0.5,2],["memory",0.25,0]]);
+ expect(()=>rankArms(arms,"RIVAL_HOUSE_ENTERED","nope")).toThrow("no incumbent arm nope");
+ // Equal shares keep the order given.
+ expect(rankArms([{arm:"control",runs:[none]},{arm:"a",runs:[none]},{arm:"b",runs:[none]}],"RIVAL_HOUSE_ENTERED","control").map(r=>r.arm)).toEqual(["control","a","b"]);
 });
 
-it("fails a finalist that regresses on an earlier milestone, and the runner-up can pass instead",()=>{
- const incumbent=[...Array.from({length:4},()=>upTo("RIVAL_MET")),...Array.from({length:4},()=>upTo("RIVAL_HOUSE_ENTERED"))];
- // Further at the median, but reaches RIVAL_HOUSE_ENTERED in only 6 runs where the incumbent did in 8.
- const best=[...Array.from({length:6},()=>upTo("STARTER_CHOSEN")),none,none];
- const runnerUp=eight(upTo("RIVAL_MET"));
- const d=decideFinals({incumbent,finalists:[{arm:"best",runs:best},{arm:"second",runs:runnerUp}],speedMarginPercent:10,completionTolerance:0});
- expect(d.verdicts[0]).toMatchObject({arm:"best",pass:false});
- expect(d.verdicts[0]?.reasons.join(" ")).toMatch(/RIVAL_HOUSE_ENTERED in 6 of 8 runs; the incumbent did in 8/);
- expect(d.winner).toBe("second");
- expect(decideFinals({incumbent,finalists:[{arm:"best",runs:best}],speedMarginPercent:10,completionTolerance:2}).winner).toBe("best");
- expect(decideFinals({incumbent,finalists:[],speedMarginPercent:10,completionTolerance:0}).winner).toBeNull();
+it("nominates at most three finalists, only arms that beat the incumbent arm in more than half their pairs",()=>{
+ const r=(arm:string,share:number)=>({arm,runs:4,reached:0,share});
+ expect(nominate([r("a",0.9),r("b",0.8),r("c",0.7),r("d",0.6),r("control",0.5)],"control")).toEqual(["a","b","c"]);
+ expect(nominate([r("a",0.6),r("control",0.5),r("tie",0.5),r("d",0.2)],"control")).toEqual(["a"]);
+ expect(nominate([r("control",0.5)],"control")).toEqual([]);
+});
+
+it("declares the finalist with the highest share at or above the large-effect cutoff",()=>{
+ expect(WIN_SHARE).toBe(0.71);
+ const incumbent=eight(upTo("RIVAL_HOUSE_ENTERED"));
+ const d=decideFinals({incumbent,finalists:[{arm:"ok",runs:[...Array.from({length:6},()=>upTo("RIVAL_MET")),none,none]},{arm:"best",runs:eight(upTo("RIVAL_MET"))}]});
+ expect(d.verdicts.map(v=>[v.arm,v.pass,v.share])).toEqual([["ok",true,0.75],["best",true,1]]);
+ expect(d.winner).toBe("best");
+ // Equal shares go to nomination order.
+ expect(decideFinals({incumbent,finalists:[{arm:"a",runs:eight(upTo("RIVAL_MET"))},{arm:"b",runs:eight(upTo("RIVAL_MET"))}]}).winner).toBe("a");
+});
+
+it("keeps the incumbent when no finalist reaches the cutoff, saying how close it came",()=>{
+ const incumbent=eight(upTo("RIVAL_HOUSE_ENTERED",60_000));
+ // Same milestone: 5 runs faster, 1 tied, 2 that reach nothing: 40 wins and 8 ties of 64 pairs, 0.69.
+ const near=[...Array.from({length:5},()=>upTo("RIVAL_HOUSE_ENTERED",50_000)),upTo("RIVAL_HOUSE_ENTERED",60_000),none,none];
+ const d=decideFinals({incumbent,finalists:[{arm:"near",runs:near}]});
+ expect(d.winner).toBeNull();
+ expect(d.verdicts[0]).toMatchObject({pass:false,wins:40,ties:8,pairs:64});
+ expect(d.verdicts[0]?.reasons[0]).toBe("better in 40 and tied in 8 of 64 pairs (0.69); a winner needs 0.71");
+ expect(decideFinals({incumbent,finalists:[]}).winner).toBeNull();
+ expect(decideFinals({incumbent:[],finalists:[{arm:"x",runs:[]}]}).verdicts[0]).toMatchObject({pass:false,pairs:0});
 });
 
 it("overlays a promotion's switches on an incumbent and names a superseded experiment",()=>{
@@ -124,7 +128,7 @@ it("overlays a promotion's switches on an incumbent and names a superseded exper
 });
 
 it("validates nomination, finals ledger and promotion records",()=>{
- const nomination={experiment:"exp",source:"cohort",cohort:"factorial",at:"t",incumbent:finalsPreset(preset,"exp","incumbent",{},DEFAULT_FINALS),finals:DEFAULT_FINALS,reusedIncumbent:[],ranking:[{arm:"whole",runs:8,reached:3,medianFurthest:4,medianPrimaryMs:null}],finalists:[{arm:"whole",switches:{"full-map-navigation-v1":true}}],reason:"r"};
+ const nomination={experiment:"exp",source:"cohort",cohort:"factorial",at:"t",incumbent:finalsPreset(preset,"exp","incumbent",{},DEFAULT_FINALS),finals:DEFAULT_FINALS,reusedIncumbent:[],ranking:[{arm:"whole",runs:8,reached:3,share:0.8}],finalists:[{arm:"whole",switches:{"full-map-navigation-v1":true}}],reason:"r"};
  expect(parseNomination(nomination).finalists[0]?.arm).toBe("whole");
  expect(()=>parseNomination({...nomination,finalists:[1,2,3,4].map(i=>({arm:`a${String(i)}`,switches:{}}))})).toThrow(/Invalid nomination/);
  expect(()=>parseNomination({...nomination,finalists:[{arm:"incumbent",switches:{}}]})).toThrow(/finalist cannot be named incumbent/);

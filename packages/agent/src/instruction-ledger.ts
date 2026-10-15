@@ -26,6 +26,7 @@ export class InstructionLedger {
  constructor(private readonly features:FeatureSet){this.log=new DialogueLog(features);}
  observe(event:RunEvent):void {
   this.log.observe(event);
+  if(event.type==="dialogue_auto_advance"){for(const page of event.pages)this.known.add(page.state_seq??event.seq);return;}
   if(event.type==="state"&&"started"in event){this.measured=event;return;}
   if(event.type!=="tool_result"||event.state_seq===undefined||this.measured?.seq!==event.state_seq)return;
   const state=this.measured;this.measured=null;

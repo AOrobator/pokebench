@@ -29,14 +29,24 @@ export class DialogueLog {
  constructor(private readonly features:FeatureSet){}
  observe(event:RunEvent):void {
   if(event.type==="state"&&"started"in event){this.measured=event;return;}
+  // dialogue-auto-advance-v1 hands the model its pages in the result; each page cites its own recorded state (else the event).
+  if(event.type==="dialogue_auto_advance"){
+   for(const page of event.pages){
+    const place={location:page.map,map_id:page.map_id};
+    this.add({seq:page.state_seq??event.seq,turn:event.turn,key:roomKey(place),room:roomOf(place,this.features),position:this.features["live-player-position-v1"]&&page.position!==null?`${String(page.position.x)},${String(page.position.y)}`:null,facing:null,text:page.text});
+   }
+   return;
+  }
   if(event.type!=="tool_result"||event.state_seq===undefined||this.measured?.seq!==event.state_seq)return;
   const state=this.measured;this.measured=null;
   const text=state.world_context?.dialogue;
   if(!state.started||state.screen!=="overworld"||!text)return;
-  const key=roomKey(state),room=roomOf(state,this.features);
+  this.add({seq:state.seq,turn:state.turn,key:roomKey(state),room:roomOf(state,this.features),position:this.position(state),facing:this.faced(state),text});
+ }
+ private add(entry:DialogueEntry):void {
   const previous=this.log.at(-1);
-  if(previous!==undefined&&previous.text===text&&previous.key===key)return;
-  this.log.push({seq:state.seq,turn:state.turn,key,room,position:this.position(state),facing:this.faced(state),text});
+  if(previous!==undefined&&previous.text===entry.text&&previous.key===entry.key)return;
+  this.log.push(entry);
  }
  entries():readonly DialogueEntry[]{return this.log;}
  private position(state:State):string|null {

@@ -117,3 +117,8 @@ it("reads presets written before the milestone stall stop as OFF and keeps an ex
   expect(presetFeatures(parsePlayPreset({...v2,features:{...older,"milestone-stall-stop-v1":true}}))["milestone-stall-stop-v1"]).toBe(true);
   expect(presetFeatures(parsePlayPreset(preset))["milestone-stall-stop-v1"]).toBe(false);
 });
+it("accepts limits.replyFailuresEndRun as an optional boolean only",()=>{
+  const lenient={...preset,limits:{...preset.limits,replyFailuresEndRun:false}};
+  expect(parsePlayPreset(lenient)).toEqual(lenient);
+  expect(()=>parsePlayPreset({...preset,limits:{...preset.limits,replyFailuresEndRun:"false"}})).toThrow();
+});

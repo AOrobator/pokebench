@@ -827,6 +827,9 @@
               "type": "integer",
               "minimum": 1
             },
+            "reply_failures_end_run": {
+              "type": "boolean"
+            },
             "flags": {
               "type": "object",
               "required": [
@@ -850,6 +853,14 @@
                 }
               },
               "additionalProperties": false
+            },
+            "features": {
+              "type": "object",
+              "patternProperties": {
+                "^[a-z0-9-]+$": {
+                  "type": "boolean"
+                }
+              }
             },
             "experiment": {
               "type": "object",

@@ -6,6 +6,8 @@ import { ApprovalError, approveExperiment, revokeApproval, setFinalsWithdrawn } 
 import { AUTORUN_TICK_MS, type AutoRunStatus, type ExperimentAutoRun } from "./experiment-autorun.js";
 import { execFileSync } from "node:child_process";
 import { queueSnapshot, recordedRuns, winnerGateOn, type QueuePaths, type QueueSnapshot, type RunSource } from "./experiment-store.js";
+import { readFixedStatuses, type FixedStatusView } from "./fixed-status.js";
+import { pidAlive } from "./lease.js";
 import { Type } from "typebox";
 import { Value } from "typebox/value";
 import { FEATURES } from "@pokebench/agent/features";
@@ -99,7 +101,7 @@ async function jsonBody(req: IncomingMessage, origin: string): Promise<unknown> 
 }
 
 // The experiment queue's read and its two writes (approve, withdraw), sharing one snapshot cache.
-type QueuePayload = QueueSnapshot & { readonly autorun: AutoRunStatus | null };
+type QueuePayload = QueueSnapshot & { readonly autorun: AutoRunStatus | null; readonly fixedRuns: readonly FixedStatusView[] };
 type QueueAction = "approve" | "revoke" | "finals-withdraw" | "finals-resume";
 const QUEUE_ACTIONS: readonly string[] = ["approve", "revoke", "finals-withdraw", "finals-resume"];
 interface QueueApi { read(): Promise<QueuePayload>; change(id: string, action: QueueAction): QueuePayload }
@@ -449,7 +451,7 @@ export async function startViewer(options: ViewerOptions): Promise<Viewer> {
     return next.result;
   };
   const head = experiments.head ?? ((): string => execFileSync("git", ["rev-parse", "HEAD"], { cwd: repo, encoding: "utf8" }).trim());
-  const payload = (s: QueueSnapshot): QueuePayload => ({ ...s, autorun: options.autorun?.status() ?? null });
+  const payload = (s: QueueSnapshot): QueuePayload => ({ ...s, autorun: options.autorun?.status() ?? null, fixedRuns: readFixedStatuses(options.runsRoot, pidAlive) });
   const queueApi: QueueApi = {
     read: async () => payload(await readExperiments()),
     change: (id, action) => {

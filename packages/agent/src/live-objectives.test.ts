@@ -131,3 +131,19 @@ it.each([0,15000,600000])("actual play honors run-start anchored preset limits, 
 });
 
 beforeEach(()=>{vi.stubEnv("POKEBENCH_ROM","/test-owned/rom-fixture.bin");});
+
+it("records a preset's replyFailuresEndRun in run_start", async () => {
+  vi.resetModules();owner.files.clear();owner.loop=null;
+  const preset={version:1,id:"lenient",target:null,limits:{maxTurns:300,maxWallMs:600000,failureLimit:3,replyFailuresEndRun:false},sampling:{thinkingLevel:"medium",maxTokens:100},flags:{loopGuard:false,activeUi:false,interfaceDocs:true,objectives:true}};
+  owner.files.set("/test-owned/preset.json",[JSON.stringify(preset)]);
+  vi.stubEnv("POKEBENCH_PLAY_PRESET","/test-owned/preset.json");vi.stubEnv("POKEBENCH_RUN_ID","assigned-lenient");
+  vi.spyOn(Date,"now").mockImplementation(()=>0);owner.clock=()=>0;
+  const done=new Promise<RunPlan>((resolve,reject)=>{owner.resolve=resolve;owner.reject=reject;});
+  vi.stubGlobal("process",Object.assign(Object.create(process) as NodeJS.Process,{argv:[...process.argv.slice(0,2),"play"]}));
+  vi.spyOn(console,"log").mockImplementation(()=>undefined);
+  await import("./live.js");await done;
+  expect(owner.start).toMatchObject({evaluation:{preset_id:"lenient",failure_limit:3,reply_failures_end_run:false}});
+  const recorded=(owner.start as {evaluation?:{features?:Record<string,boolean>}}).evaluation?.features;
+  expect(recorded).toMatchObject({"deterministic-loop-guard-v1":false,"milestone-stall-stop-v1":false,"stall-briefing-v1":false});
+  expect(Object.values(recorded??{}).every(v=>typeof v==="boolean")).toBe(true);
+});

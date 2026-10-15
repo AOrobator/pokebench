@@ -28,6 +28,14 @@ const SNAPSHOT: QueueSnapshot = {
 };
 
 describe("experiment queue view", () => {
+  it("puts fixed-run status cards above the queue and validates them", () => {
+    const fixed = { kind: "fixed-run", version: 1, experiment: "bundle-v-control", title: "Bundle", definitionSha256: "d".repeat(64), pid: 1, updatedAt: "2026-10-16T04:00:00.000Z", state: "running", total: 140, valid: 2, invalid: 0, invalidTrials: [], reserve: { usedMs: 0, totalMs: 14_400_000 }, lanes: [], lastError: null, runnerAlive: true } as const;
+    const payload = queueSnapshotOf({ ...SNAPSHOT, fixedRuns: [fixed] });
+    expect(renderQueue(payload, "all", new Set()).queue.startsWith('<section class="eq-fixed"')).toBe(true);
+    expect(renderQueue(payload, "pending", new Set()).queue).toContain("2 / 140 done");
+    expect(() => queueSnapshotOf({ ...SNAPSHOT, fixedRuns: [{ experiment: 1 }] })).toThrow("malformed /api/experiments fixedRuns");
+  });
+
   it("validates the /api/experiments payload", () => {
     expect(queueSnapshotOf(JSON.parse(JSON.stringify(SNAPSHOT)))).toEqual(SNAPSHOT);
     expect(() => queueSnapshotOf(null)).toThrow("malformed /api/experiments payload");

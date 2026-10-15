@@ -1,0 +1,1116 @@
+{
+ "version": 1,
+ "id": "bundle-v-control",
+ "title": "Harness-fixes bundle vs fixed control (CLOCK_SET → RIVAL_MET)",
+ "worklog": "docs/worklogs/active/2026-10-15_bundle-v-control.md",
+ "primaryMilestone": "RIVAL_MET",
+ "start": {
+  "kind": "save_state",
+  "path": "runs/launch-receipts/rival-push-checkpoint/CLOCK_SET.state",
+  "sha1": "51007c05068f4059f7d97c34541e29a93bedd80b"
+ },
+ "controlBase": {
+  "path": "runs/experiments/full-map-navigation/presets/finals-incumbent.json",
+  "presetId": "full-map-navigation-finals-incumbent",
+  "sha256": "2a7a2a0fd7cba935ce8631c6ca67770e3cc6833447cc1b3a037e3c46039e0161"
+ },
+ "base": {
+  "target": null,
+  "limits": {
+   "maxTurns": 20000,
+   "failureLimit": 3,
+   "replyFailuresEndRun": false
+  },
+  "sampling": {
+   "thinkingLevel": "medium",
+   "maxTokens": 4096
+  },
+  "features": {
+   "active-field-message-buffer-v1": true,
+   "active-ui-ownership-v1": true,
+   "automatic-running-v1": false,
+   "battle-details-v2": false,
+   "bounded-navigation-v1": true,
+   "character-presence-v1": false,
+   "contextual-interface-docs-v1": true,
+   "coordinate-script-conditions-v1": true,
+   "counter-talk-v1": false,
+   "deterministic-loop-guard-v1": true,
+   "dialogue-auto-advance-v1": false,
+   "dialogue-log-v1": false,
+   "dialogue-safe-batches-v1": false,
+   "double-context-window-v1": false,
+   "elevation-transitions-v1": true,
+   "expanded-menu-battle-information-v1": false,
+   "field-control-lock": true,
+   "field-dialogue-phase-v1": true,
+   "fresh-retry-v1": false,
+   "full-map-navigation-v1": false,
+   "game-evidence-priority-v1": false,
+   "grass-cost-navigation-v1": false,
+   "instruction-ledger-v1": false,
+   "interaction-loop-detection-v1": true,
+   "ledge-hops-v1": true,
+   "live-map-v1": true,
+   "live-object-sprites-v1": true,
+   "live-player-position-v1": true,
+   "loop-guard-supervisor-v1": true,
+   "milestone-stall-stop-v1": false,
+   "named-interactions-v1": true,
+   "named-warp-destinations-v1": false,
+   "naming-cursor-v1": true,
+   "native-objective-completion-v1": false,
+   "navigation-evidence-memory-v1": false,
+   "navigation-refusal-reasons-v1": false,
+   "next-milestone-hint-v1": false,
+   "objective-tracking-v1": false,
+   "one-way-tiles-v1": true,
+   "press-result-v1": true,
+   "ram-state-v1": true,
+   "repeat-attempt-guard-v1": false,
+   "stall-briefing-v1": false,
+   "state-only-decisions-v1": false,
+   "story-state-v1": true,
+   "text-only-supervisor-v1": true,
+   "transition-press-result-v1": false,
+   "walkable-floor-v1": false,
+   "warp-activation-guidance-v1": true,
+   "world-coordinate-grid-v1": true,
+   "world-destinations-v1": false,
+   "world-targets-v1": true
+  }
+ },
+ "switches": [
+  "named-warp-destinations-v1",
+  "world-destinations-v1",
+  "game-evidence-priority-v1",
+  "character-presence-v1",
+  "navigation-refusal-reasons-v1",
+  "transition-press-result-v1",
+  "stall-briefing-v1",
+  "dialogue-auto-advance-v1"
+ ],
+ "offInBoth": [
+  "milestone-stall-stop-v1",
+  "battle-details-v2",
+  "expanded-menu-battle-information-v1"
+ ],
+ "phases": [
+  {
+   "id": "confirmatory",
+   "perArm": 64,
+   "maxWallMs": 900000,
+   "primary": true
+  },
+  {
+   "id": "cook",
+   "perArm": 6,
+   "maxWallMs": 3600000,
+   "primary": false
+  }
+ ],
+ "lanes": [
+  {
+   "id": "A",
+   "gpu": "GPU1",
+   "gamePort": 8075,
+   "modelUrl": "http://127.0.0.1:8091"
+  },
+  {
+   "id": "B",
+   "gpu": "GPU0",
+   "gamePort": 8076,
+   "modelUrl": "http://127.0.0.1:8098"
+  }
+ ],
+ "serving": {
+  "model": "/models/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf",
+  "build": "b10236-1464c62d8",
+  "contextTokens": 65536,
+  "slots": 1
+ },
+ "replacementReserveMs": 14400000,
+ "seed": "b70b39b399e5bbae",
+ "plan": [
+  {
+   "slot": 1,
+   "phase": "confirmatory",
+   "block": 1,
+   "lane": "A",
+   "arm": "bundle"
+  },
+  {
+   "slot": 2,
+   "phase": "confirmatory",
+   "block": 1,
+   "lane": "B",
+   "arm": "bundle"
+  },
+  {
+   "slot": 3,
+   "phase": "confirmatory",
+   "block": 1,
+   "lane": "A",
+   "arm": "control"
+  },
+  {
+   "slot": 4,
+   "phase": "confirmatory",
+   "block": 1,
+   "lane": "B",
+   "arm": "control"
+  },
+  {
+   "slot": 5,
+   "phase": "confirmatory",
+   "block": 2,
+   "lane": "B",
+   "arm": "bundle"
+  },
+  {
+   "slot": 6,
+   "phase": "confirmatory",
+   "block": 2,
+   "lane": "A",
+   "arm": "control"
+  },
+  {
+   "slot": 7,
+   "phase": "confirmatory",
+   "block": 2,
+   "lane": "A",
+   "arm": "bundle"
+  },
+  {
+   "slot": 8,
+   "phase": "confirmatory",
+   "block": 2,
+   "lane": "B",
+   "arm": "control"
+  },
+  {
+   "slot": 9,
+   "phase": "confirmatory",
+   "block": 3,
+   "lane": "A",
+   "arm": "control"
+  },
+  {
+   "slot": 10,
+   "phase": "confirmatory",
+   "block": 3,
+   "lane": "B",
+   "arm": "bundle"
+  },
+  {
+   "slot": 11,
+   "phase": "confirmatory",
+   "block": 3,
+   "lane": "A",
+   "arm": "bundle"
+  },
+  {
+   "slot": 12,
+   "phase": "confirmatory",
+   "block": 3,
+   "lane": "B",
+   "arm": "control"
+  },
+  {
+   "slot": 13,
+   "phase": "confirmatory",
+   "block": 4,
+   "lane": "A",
+   "arm": "bundle"
+  },
+  {
+   "slot": 14,
+   "phase": "confirmatory",
+   "block": 4,
+   "lane": "A",
+   "arm": "control"
+  },
+  {
+   "slot": 15,
+   "phase": "confirmatory",
+   "block": 4,
+   "lane": "B",
+   "arm": "control"
+  },
+  {
+   "slot": 16,
+   "phase": "confirmatory",
+   "block": 4,
+   "lane": "B",
+   "arm": "bundle"
+  },
+  {
+   "slot": 17,
+   "phase": "confirmatory",
+   "block": 5,
+   "lane": "B",
+   "arm": "control"
+  },
+  {
+   "slot": 18,
+   "phase": "confirmatory",
+   "block": 5,
+   "lane": "A",
+   "arm": "bundle"
+  },
+  {
+   "slot": 19,
+   "phase": "confirmatory",
+   "block": 5,
+   "lane": "A",
+   "arm": "control"
+  },
+  {
+   "slot": 20,
+   "phase": "confirmatory",
+   "block": 5,
+   "lane": "B",
+   "arm": "bundle"
+  },
+  {
+   "slot": 21,
+   "phase": "confirmatory",
+   "block": 6,
+   "lane": "A",
+   "arm": "bundle"
+  },
+  {
+   "slot": 22,
+   "phase": "confirmatory",
+   "block": 6,
+   "lane": "B",
+   "arm": "bundle"
+  },
+  {
+   "slot": 23,
+   "phase": "confirmatory",
+   "block": 6,
+   "lane": "A",
+   "arm": "control"
+  },
+  {
+   "slot": 24,
+   "phase": "confirmatory",
+   "block": 6,
+   "lane": "B",
+   "arm": "control"
+  },
+  {
+   "slot": 25,
+   "phase": "confirmatory",
+   "block": 7,
+   "lane": "A",
+   "arm": "control"
+  },
+  {
+   "slot": 26,
+   "phase": "confirmatory",
+   "block": 7,
+   "lane": "B",
+   "arm": "bundle"
+  },
+  {
+   "slot": 27,
+   "phase": "confirmatory",
+   "block": 7,
+   "lane": "A",
+   "arm": "bundle"
+  },
+  {
+   "slot": 28,
+   "phase": "confirmatory",
+   "block": 7,
+   "lane": "B",
+   "arm": "control"
+  },
+  {
+   "slot": 29,
+   "phase": "confirmatory",
+   "block": 8,
+   "lane": "A",
+   "arm": "control"
+  },
+  {
+   "slot": 30,
+   "phase": "confirmatory",
+   "block": 8,
+   "lane": "B",
+   "arm": "control"
+  },
+  {
+   "slot": 31,
+   "phase": "confirmatory",
+   "block": 8,
+   "lane": "B",
+   "arm": "bundle"
+  },
+  {
+   "slot": 32,
+   "phase": "confirmatory",
+   "block": 8,
+   "lane": "A",
+   "arm": "bundle"
+  },
+  {
+   "slot": 33,
+   "phase": "confirmatory",
+   "block": 9,
+   "lane": "A",
+   "arm": "control"
+  },
+  {
+   "slot": 34,
+   "phase": "confirmatory",
+   "block": 9,
+   "lane": "B",
+   "arm": "bundle"
+  },
+  {
+   "slot": 35,
+   "phase": "confirmatory",
+   "block": 9,
+   "lane": "A",
+   "arm": "bundle"
+  },
+  {
+   "slot": 36,
+   "phase": "confirmatory",
+   "block": 9,
+   "lane": "B",
+   "arm": "control"
+  },
+  {
+   "slot": 37,
+   "phase": "confirmatory",
+   "block": 10,
+   "lane": "B",
+   "arm": "bundle"
+  },
+  {
+   "slot": 38,
+   "phase": "confirmatory",
+   "block": 10,
+   "lane": "B",
+   "arm": "control"
+  },
+  {
+   "slot": 39,
+   "phase": "confirmatory",
+   "block": 10,
+   "lane": "A",
+   "arm": "bundle"
+  },
+  {
+   "slot": 40,
+   "phase": "confirmatory",
+   "block": 10,
+   "lane": "A",
+   "arm": "control"
+  },
+  {
+   "slot": 41,
+   "phase": "confirmatory",
+   "block": 11,
+   "lane": "B",
+   "arm": "bundle"
+  },
+  {
+   "slot": 42,
+   "phase": "confirmatory",
+   "block": 11,
+   "lane": "A",
+   "arm": "control"
+  },
+  {
+   "slot": 43,
+   "phase": "confirmatory",
+   "block": 11,
+   "lane": "A",
+   "arm": "bundle"
+  },
+  {
+   "slot": 44,
+   "phase": "confirmatory",
+   "block": 11,
+   "lane": "B",
+   "arm": "control"
+  },
+  {
+   "slot": 45,
+   "phase": "confirmatory",
+   "block": 12,
+   "lane": "B",
+   "arm": "control"
+  },
+  {
+   "slot": 46,
+   "phase": "confirmatory",
+   "block": 12,
+   "lane": "B",
+   "arm": "bundle"
+  },
+  {
+   "slot": 47,
+   "phase": "confirmatory",
+   "block": 12,
+   "lane": "A",
+   "arm": "control"
+  },
+  {
+   "slot": 48,
+   "phase": "confirmatory",
+   "block": 12,
+   "lane": "A",
+   "arm": "bundle"
+  },
+  {
+   "slot": 49,
+   "phase": "confirmatory",
+   "block": 13,
+   "lane": "A",
+   "arm": "bundle"
+  },
+  {
+   "slot": 50,
+   "phase": "confirmatory",
+   "block": 13,
+   "lane": "A",
+   "arm": "control"
+  },
+  {
+   "slot": 51,
+   "phase": "confirmatory",
+   "block": 13,
+   "lane": "B",
+   "arm": "control"
+  },
+  {
+   "slot": 52,
+   "phase": "confirmatory",
+   "block": 13,
+   "lane": "B",
+   "arm": "bundle"
+  },
+  {
+   "slot": 53,
+   "phase": "confirmatory",
+   "block": 14,
+   "lane": "B",
+   "arm": "control"
+  },
+  {
+   "slot": 54,
+   "phase": "confirmatory",
+   "block": 14,
+   "lane": "B",
+   "arm": "bundle"
+  },
+  {
+   "slot": 55,
+   "phase": "confirmatory",
+   "block": 14,
+   "lane": "A",
+   "arm": "control"
+  },
+  {
+   "slot": 56,
+   "phase": "confirmatory",
+   "block": 14,
+   "lane": "A",
+   "arm": "bundle"
+  },
+  {
+   "slot": 57,
+   "phase": "confirmatory",
+   "block": 15,
+   "lane": "B",
+   "arm": "bundle"
+  },
+  {
+   "slot": 58,
+   "phase": "confirmatory",
+   "block": 15,
+   "lane": "A",
+   "arm": "bundle"
+  },
+  {
+   "slot": 59,
+   "phase": "confirmatory",
+   "block": 15,
+   "lane": "B",
+   "arm": "control"
+  },
+  {
+   "slot": 60,
+   "phase": "confirmatory",
+   "block": 15,
+   "lane": "A",
+   "arm": "control"
+  },
+  {
+   "slot": 61,
+   "phase": "confirmatory",
+   "block": 16,
+   "lane": "B",
+   "arm": "control"
+  },
+  {
+   "slot": 62,
+   "phase": "confirmatory",
+   "block": 16,
+   "lane": "A",
+   "arm": "bundle"
+  },
+  {
+   "slot": 63,
+   "phase": "confirmatory",
+   "block": 16,
+   "lane": "B",
+   "arm": "bundle"
+  },
+  {
+   "slot": 64,
+   "phase": "confirmatory",
+   "block": 16,
+   "lane": "A",
+   "arm": "control"
+  },
+  {
+   "slot": 65,
+   "phase": "confirmatory",
+   "block": 17,
+   "lane": "B",
+   "arm": "bundle"
+  },
+  {
+   "slot": 66,
+   "phase": "confirmatory",
+   "block": 17,
+   "lane": "A",
+   "arm": "bundle"
+  },
+  {
+   "slot": 67,
+   "phase": "confirmatory",
+   "block": 17,
+   "lane": "B",
+   "arm": "control"
+  },
+  {
+   "slot": 68,
+   "phase": "confirmatory",
+   "block": 17,
+   "lane": "A",
+   "arm": "control"
+  },
+  {
+   "slot": 69,
+   "phase": "confirmatory",
+   "block": 18,
+   "lane": "B",
+   "arm": "bundle"
+  },
+  {
+   "slot": 70,
+   "phase": "confirmatory",
+   "block": 18,
+   "lane": "B",
+   "arm": "control"
+  },
+  {
+   "slot": 71,
+   "phase": "confirmatory",
+   "block": 18,
+   "lane": "A",
+   "arm": "bundle"
+  },
+  {
+   "slot": 72,
+   "phase": "confirmatory",
+   "block": 18,
+   "lane": "A",
+   "arm": "control"
+  },
+  {
+   "slot": 73,
+   "phase": "confirmatory",
+   "block": 19,
+   "lane": "A",
+   "arm": "bundle"
+  },
+  {
+   "slot": 74,
+   "phase": "confirmatory",
+   "block": 19,
+   "lane": "A",
+   "arm": "control"
+  },
+  {
+   "slot": 75,
+   "phase": "confirmatory",
+   "block": 19,
+   "lane": "B",
+   "arm": "control"
+  },
+  {
+   "slot": 76,
+   "phase": "confirmatory",
+   "block": 19,
+   "lane": "B",
+   "arm": "bundle"
+  },
+  {
+   "slot": 77,
+   "phase": "confirmatory",
+   "block": 20,
+   "lane": "A",
+   "arm": "bundle"
+  },
+  {
+   "slot": 78,
+   "phase": "confirmatory",
+   "block": 20,
+   "lane": "B",
+   "arm": "bundle"
+  },
+  {
+   "slot": 79,
+   "phase": "confirmatory",
+   "block": 20,
+   "lane": "B",
+   "arm": "control"
+  },
+  {
+   "slot": 80,
+   "phase": "confirmatory",
+   "block": 20,
+   "lane": "A",
+   "arm": "control"
+  },
+  {
+   "slot": 81,
+   "phase": "confirmatory",
+   "block": 21,
+   "lane": "B",
+   "arm": "bundle"
+  },
+  {
+   "slot": 82,
+   "phase": "confirmatory",
+   "block": 21,
+   "lane": "A",
+   "arm": "bundle"
+  },
+  {
+   "slot": 83,
+   "phase": "confirmatory",
+   "block": 21,
+   "lane": "A",
+   "arm": "control"
+  },
+  {
+   "slot": 84,
+   "phase": "confirmatory",
+   "block": 21,
+   "lane": "B",
+   "arm": "control"
+  },
+  {
+   "slot": 85,
+   "phase": "confirmatory",
+   "block": 22,
+   "lane": "B",
+   "arm": "bundle"
+  },
+  {
+   "slot": 86,
+   "phase": "confirmatory",
+   "block": 22,
+   "lane": "A",
+   "arm": "control"
+  },
+  {
+   "slot": 87,
+   "phase": "confirmatory",
+   "block": 22,
+   "lane": "B",
+   "arm": "control"
+  },
+  {
+   "slot": 88,
+   "phase": "confirmatory",
+   "block": 22,
+   "lane": "A",
+   "arm": "bundle"
+  },
+  {
+   "slot": 89,
+   "phase": "confirmatory",
+   "block": 23,
+   "lane": "A",
+   "arm": "bundle"
+  },
+  {
+   "slot": 90,
+   "phase": "confirmatory",
+   "block": 23,
+   "lane": "B",
+   "arm": "bundle"
+  },
+  {
+   "slot": 91,
+   "phase": "confirmatory",
+   "block": 23,
+   "lane": "A",
+   "arm": "control"
+  },
+  {
+   "slot": 92,
+   "phase": "confirmatory",
+   "block": 23,
+   "lane": "B",
+   "arm": "control"
+  },
+  {
+   "slot": 93,
+   "phase": "confirmatory",
+   "block": 24,
+   "lane": "A",
+   "arm": "bundle"
+  },
+  {
+   "slot": 94,
+   "phase": "confirmatory",
+   "block": 24,
+   "lane": "A",
+   "arm": "control"
+  },
+  {
+   "slot": 95,
+   "phase": "confirmatory",
+   "block": 24,
+   "lane": "B",
+   "arm": "control"
+  },
+  {
+   "slot": 96,
+   "phase": "confirmatory",
+   "block": 24,
+   "lane": "B",
+   "arm": "bundle"
+  },
+  {
+   "slot": 97,
+   "phase": "confirmatory",
+   "block": 25,
+   "lane": "B",
+   "arm": "bundle"
+  },
+  {
+   "slot": 98,
+   "phase": "confirmatory",
+   "block": 25,
+   "lane": "B",
+   "arm": "control"
+  },
+  {
+   "slot": 99,
+   "phase": "confirmatory",
+   "block": 25,
+   "lane": "A",
+   "arm": "control"
+  },
+  {
+   "slot": 100,
+   "phase": "confirmatory",
+   "block": 25,
+   "lane": "A",
+   "arm": "bundle"
+  },
+  {
+   "slot": 101,
+   "phase": "confirmatory",
+   "block": 26,
+   "lane": "A",
+   "arm": "bundle"
+  },
+  {
+   "slot": 102,
+   "phase": "confirmatory",
+   "block": 26,
+   "lane": "B",
+   "arm": "bundle"
+  },
+  {
+   "slot": 103,
+   "phase": "confirmatory",
+   "block": 26,
+   "lane": "B",
+   "arm": "control"
+  },
+  {
+   "slot": 104,
+   "phase": "confirmatory",
+   "block": 26,
+   "lane": "A",
+   "arm": "control"
+  },
+  {
+   "slot": 105,
+   "phase": "confirmatory",
+   "block": 27,
+   "lane": "A",
+   "arm": "bundle"
+  },
+  {
+   "slot": 106,
+   "phase": "confirmatory",
+   "block": 27,
+   "lane": "A",
+   "arm": "control"
+  },
+  {
+   "slot": 107,
+   "phase": "confirmatory",
+   "block": 27,
+   "lane": "B",
+   "arm": "control"
+  },
+  {
+   "slot": 108,
+   "phase": "confirmatory",
+   "block": 27,
+   "lane": "B",
+   "arm": "bundle"
+  },
+  {
+   "slot": 109,
+   "phase": "confirmatory",
+   "block": 28,
+   "lane": "A",
+   "arm": "bundle"
+  },
+  {
+   "slot": 110,
+   "phase": "confirmatory",
+   "block": 28,
+   "lane": "B",
+   "arm": "control"
+  },
+  {
+   "slot": 111,
+   "phase": "confirmatory",
+   "block": 28,
+   "lane": "B",
+   "arm": "bundle"
+  },
+  {
+   "slot": 112,
+   "phase": "confirmatory",
+   "block": 28,
+   "lane": "A",
+   "arm": "control"
+  },
+  {
+   "slot": 113,
+   "phase": "confirmatory",
+   "block": 29,
+   "lane": "B",
+   "arm": "bundle"
+  },
+  {
+   "slot": 114,
+   "phase": "confirmatory",
+   "block": 29,
+   "lane": "A",
+   "arm": "control"
+  },
+  {
+   "slot": 115,
+   "phase": "confirmatory",
+   "block": 29,
+   "lane": "B",
+   "arm": "control"
+  },
+  {
+   "slot": 116,
+   "phase": "confirmatory",
+   "block": 29,
+   "lane": "A",
+   "arm": "bundle"
+  },
+  {
+   "slot": 117,
+   "phase": "confirmatory",
+   "block": 30,
+   "lane": "A",
+   "arm": "control"
+  },
+  {
+   "slot": 118,
+   "phase": "confirmatory",
+   "block": 30,
+   "lane": "B",
+   "arm": "bundle"
+  },
+  {
+   "slot": 119,
+   "phase": "confirmatory",
+   "block": 30,
+   "lane": "B",
+   "arm": "control"
+  },
+  {
+   "slot": 120,
+   "phase": "confirmatory",
+   "block": 30,
+   "lane": "A",
+   "arm": "bundle"
+  },
+  {
+   "slot": 121,
+   "phase": "confirmatory",
+   "block": 31,
+   "lane": "A",
+   "arm": "bundle"
+  },
+  {
+   "slot": 122,
+   "phase": "confirmatory",
+   "block": 31,
+   "lane": "B",
+   "arm": "bundle"
+  },
+  {
+   "slot": 123,
+   "phase": "confirmatory",
+   "block": 31,
+   "lane": "B",
+   "arm": "control"
+  },
+  {
+   "slot": 124,
+   "phase": "confirmatory",
+   "block": 31,
+   "lane": "A",
+   "arm": "control"
+  },
+  {
+   "slot": 125,
+   "phase": "confirmatory",
+   "block": 32,
+   "lane": "A",
+   "arm": "control"
+  },
+  {
+   "slot": 126,
+   "phase": "confirmatory",
+   "block": 32,
+   "lane": "B",
+   "arm": "bundle"
+  },
+  {
+   "slot": 127,
+   "phase": "confirmatory",
+   "block": 32,
+   "lane": "A",
+   "arm": "bundle"
+  },
+  {
+   "slot": 128,
+   "phase": "confirmatory",
+   "block": 32,
+   "lane": "B",
+   "arm": "control"
+  },
+  {
+   "slot": 129,
+   "phase": "cook",
+   "block": 33,
+   "lane": "B",
+   "arm": "control"
+  },
+  {
+   "slot": 130,
+   "phase": "cook",
+   "block": 33,
+   "lane": "A",
+   "arm": "control"
+  },
+  {
+   "slot": 131,
+   "phase": "cook",
+   "block": 33,
+   "lane": "A",
+   "arm": "bundle"
+  },
+  {
+   "slot": 132,
+   "phase": "cook",
+   "block": 33,
+   "lane": "B",
+   "arm": "bundle"
+  },
+  {
+   "slot": 133,
+   "phase": "cook",
+   "block": 34,
+   "lane": "B",
+   "arm": "bundle"
+  },
+  {
+   "slot": 134,
+   "phase": "cook",
+   "block": 34,
+   "lane": "A",
+   "arm": "control"
+  },
+  {
+   "slot": 135,
+   "phase": "cook",
+   "block": 34,
+   "lane": "A",
+   "arm": "bundle"
+  },
+  {
+   "slot": 136,
+   "phase": "cook",
+   "block": 34,
+   "lane": "B",
+   "arm": "control"
+  },
+  {
+   "slot": 137,
+   "phase": "cook",
+   "block": 35,
+   "lane": "B",
+   "arm": "bundle"
+  },
+  {
+   "slot": 138,
+   "phase": "cook",
+   "block": 35,
+   "lane": "B",
+   "arm": "control"
+  },
+  {
+   "slot": 139,
+   "phase": "cook",
+   "block": 35,
+   "lane": "A",
+   "arm": "bundle"
+  },
+  {
+   "slot": 140,
+   "phase": "cook",
+   "block": 35,
+   "lane": "A",
+   "arm": "control"
+  }
+ ]
+}

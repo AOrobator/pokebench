@@ -4,6 +4,7 @@
 // approval and running stay in the CLI.
 import type { GateView } from "./experiment-gate-store.js";
 import type { ArmSummary, ExperimentView, QueueSnapshot, TrialView } from "./experiment-store.js";
+import type { FixedLaneStatus, FixedStatusView } from "./fixed-status.js";
 import { esc } from "./format.js";
 
 export const QUEUE_POLL_MS = 15_000;
@@ -71,6 +72,8 @@ export function queueSnapshotOf(value: unknown): QueuePayload {
   if (incumbent !== null && !(isRecord(incumbent) && typeof incumbent["from"] === "string" && typeof incumbent["arm"] === "string" && isSwitches(incumbent["features"]))) throw new Error("malformed /api/experiments incumbent");
   const autorun = value["autorun"];
   if (autorun !== undefined && autorun !== null && !(isRecord(autorun) && oneOf(autorun["state"], ["idle", "running", "error"]) && typeof autorun["message"] === "string")) throw new Error("malformed /api/experiments autorun");
+  const fixedRuns = value["fixedRuns"];
+  if (fixedRuns !== undefined && !(Array.isArray(fixedRuns) && fixedRuns.every((f) => isRecord(f) && typeof f["experiment"] === "string" && typeof f["title"] === "string" && isNum(f["valid"]) && isNum(f["total"]) && Array.isArray(f["lanes"]) && Array.isArray(f["invalidTrials"]) && isRecord(f["reserve"])))) throw new Error("malformed /api/experiments fixedRuns");
   const runner = value["runner"];
   if (runner !== null && !(isRecord(runner) && typeof runner["experiment"] === "string" && isNum(runner["trial"]))) throw new Error("malformed /api/experiments runner");
   return value as unknown as QueuePayload;
@@ -170,7 +173,24 @@ export function countsOf(s: QueueSnapshot): Readonly<Record<QueueFilter, number>
 }
 
 export interface AutoRunLine { readonly state: "idle" | "running" | "error"; readonly message: string }
-export type QueuePayload = QueueSnapshot & { readonly autorun?: AutoRunLine | null };
+export type QueuePayload = QueueSnapshot & { readonly autorun?: AutoRunLine | null; readonly fixedRuns?: readonly FixedStatusView[] };
+
+const gpuHours = (ms: number): string => (ms / 3_600_000).toFixed(2);
+function fixedLane(l: FixedLaneStatus): string {
+  const retry = l.retryAt === null ? "" : ` · retry ${esc(l.retryAt)}`;
+  const run = l.run === null ? "" : ` · ${esc(l.run)}`;
+  const error = l.lastError === null || l.lastError === l.reason ? "" : `<br><span class="eq-fixed-err">last error: ${esc(l.lastError)}</span>`;
+  return `<li class="eq-fixed-lane eq-fixed-${l.state}"><b>LANE ${esc(l.id)} · ${esc(l.gpu)} · :${String(l.port)}</b> <span class="eq-fixed-state">${l.state.toUpperCase()}</span> ${String(l.valid)} / ${String(l.total)}<br>${esc(l.reason)}${run}${retry}${error}</li>`;
+}
+// Fixed-run experiments (one runner, one lane per GPU): progress, every lane's state and the last error.
+export function fixedRunCards(runs: readonly FixedStatusView[]): string {
+  return runs.map((r) => {
+    const gone = !r.runnerAlive && r.state !== "finished" ? `<p class="eq-fixed-gone" role="alert">RUNNER NOT RUNNING (pid ${String(r.pid)}, last update ${esc(r.updatedAt)})</p>` : "";
+    const lastError = r.lastError === null ? "" : `<p class="eq-fixed-err"><b>LAST ERROR</b> ${esc(r.lastError)}</p>`;
+    const invalid = r.invalidTrials.length === 0 ? "" : `<details class="eq-fixed-invalid"><summary>INVALID TRIALS (${String(r.invalidTrials.length)})</summary><ul>${r.invalidTrials.map((t) => `<li>#${String(t.slot)} lane ${esc(t.lane)} ${esc(t.arm)} ${esc(t.phase)} · ${esc(t.run)}: ${esc(t.reason)}</li>`).join("")}</ul></details>`;
+    return `<section class="eq-fixed" aria-label="${esc(r.title)}"><h4 class="eq-sub">${esc(r.title)} · ${r.state.toUpperCase()}</h4>${gone}<p class="eq-fixed-sum">${String(r.valid)} / ${String(r.total)} done · ${String(r.invalid)} invalid · reserve ${gpuHours(r.reserve.usedMs)} / ${gpuHours(r.reserve.totalMs)} GPU-h · updated ${esc(r.updatedAt)}</p><ul class="eq-fixed-lanes">${r.lanes.map(fixedLane).join("")}</ul>${lastError}${invalid}</section>`;
+  }).join("");
+}
 export interface QueueRender { readonly chips: string; readonly queue: string; readonly pending: string }
 export function renderQueue(s: QueuePayload, filter: QueueFilter, open: ReadonlySet<string>, controls = false, notice: string | null = null): QueueRender {
   const counts = countsOf(s);
@@ -179,7 +199,7 @@ export function renderQueue(s: QueuePayload, filter: QueueFilter, open: Readonly
   const queued = s.queue.filter((v) => filter === "all" || v.state === filter).sort((a, b) => approvedFirst(a) - approvedFirst(b));
   const closed = filter === "all" || filter === "closed" ? s.closed : [];
   const runner = s.autorun === undefined || s.autorun === null ? "" : `<p class="eq-runner eq-runner-${s.autorun.state}">QUEUE RUNNER · ${s.autorun.state.toUpperCase()} · ${esc(s.autorun.message)}</p>`;
-  const queue = runner + (notice === null ? "" : `<p class="eq-notice" role="alert">${esc(notice)}</p>`) + (showQueue ? gateCard(s, controls) : "") + (showQueue ? (queued.length === 0 ? `<p class="eq-empty">${filter === "all" ? "Nothing is queued. Experiments join the queue once models reliably reach the milestone each one acts on." : "No experiments in this state."}</p>` : queued.map((v) => slot(v, open.has(v.id), controls)).join("")) : "") +
+  const queue = fixedRunCards(s.fixedRuns ?? []) + runner + (notice === null ? "" : `<p class="eq-notice" role="alert">${esc(notice)}</p>`) + (showQueue ? gateCard(s, controls) : "") + (showQueue ? (queued.length === 0 ? `<p class="eq-empty">${filter === "all" ? "Nothing is queued. Experiments join the queue once models reliably reach the milestone each one acts on." : "No experiments in this state."}</p>` : queued.map((v) => slot(v, open.has(v.id), controls)).join("")) : "") +
     (closed.length === 0 ? "" : `<h4 class="eq-sub">DONE</h4>${closed.map((v) => slot(v, open.has(v.id))).join("")}`) +
     (s.problems.length === 0 ? "" : `<pre class="eq-problems">${s.problems.map(esc).join("\n")}</pre>`);
   const showPending = filter === "all" || filter === "pending" || (filter === "blocked" && s.pending.some((v) => v.state === "blocked"));

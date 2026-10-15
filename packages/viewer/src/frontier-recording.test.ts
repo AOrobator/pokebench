@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseEvent } from "@pokebench/agent/events";
-import { qualifiedNativeMilestone } from "../../agent/src/milestones.js";
+import { StateMilestones, qualifiedNativeMilestone } from "../../agent/src/milestones.js";
 import { readNativeRecording } from "./frontier-recording.js";
 import { Log, START, assistant, state } from "../test-support/events.js";
 function write(raw: string): string { const path = join(mkdtempSync(join(tmpdir(), "native-frontier-")), "events.jsonl"); writeFileSync(path, raw); return path; }
@@ -60,6 +60,83 @@ it("prefers an emitted native route receipt over historical recovery and recompu
   const result = readNativeRecording(write(log.events.map(e=>JSON.stringify(e)).join("\n")+"\n"),witness.run,qualifiedNativeMilestone);
   expect(result.splits).toMatchObject([{name:"ROUTE_101",elapsedMs:210,segmentMs:210,seq:3}]);
   expect(result.splits).toHaveLength(1); expect(result.splits[0]?.derived).toBeUndefined();
+});
+const clocked = { name_confirmed: true, intro_stage: 7 as const, rival_stage: 0 as const, birch_lab_stage: 0 as const, petalburg_gym_stage: 0 as const, woods_stage: 0 as const, clock_set: true, rival_battle_won: false, pokedex_received: false, running_shoes_received: false, starter_tutorial_complete: false, rustboro_gym_complete: false, stone_badge: false, rock_tomb_received: false };
+const quiet = { badges: [] as string[], party: [] as { species: string; level: number; hp: number; max_hp: number }[] };
+it("recovers leave-home and rival house from a Clock set save whose log omitted both rows", () => {
+  for (const home of ["BRENDANS", "MAYS"] as const) {
+    const rival = home === "BRENDANS" ? "MAYS" : "BRENDANS";
+    const log = new Log();
+    log.add(0, { ...START, start_state: { kind: "save_state", path: "/saves/CLOCK_SET.state", sha1: "a".repeat(40) }, harness_features: ["post-clock-navigation-milestones-v1"] });
+    const bedroom = log.add(1000, state({ ...quiet, location: `LITTLEROOT TOWN ${home} HOUSE 2F`, story: clocked }));
+    const downstairs = log.add(2000, state({ ...quiet, location: `LITTLEROOT TOWN ${home} HOUSE 1F`, story: clocked }));
+    log.add(2200, state({ ...quiet, location: `LITTLEROOT TOWN ${home} HOUSE 1F`, screen: "field_transition", story: clocked }));
+    const town = log.add(3000, state({ ...quiet, location: "LITTLEROOT TOWN", story: clocked }));
+    log.add(3500, state({ ...quiet, location: `LITTLEROOT TOWN ${home} HOUSE 1F`, story: clocked }));
+    const rivalHouse = log.add(4000, state({ ...quiet, location: `LITTLEROOT TOWN ${rival} HOUSE 1F`, story: clocked }));
+    const result = readNativeRecording(write(log.events.map(e => JSON.stringify(e)).join("\n") + "\n"), bedroom.run, qualifiedNativeMilestone);
+    expect(result.splits.find(s => s.name === "PLAYER_HOUSE_EXITED_AFTER_CLOCK")).toMatchObject({ derived: true, seq: town.seq, elapsedMs: 3000 });
+    expect(result.measurement.rawSplits.find(s => s.name === "PLAYER_HOUSE_EXITED_AFTER_CLOCK")?.evidence).toEqual([bedroom.seq, downstairs.seq, town.seq]);
+    expect(result.splits.find(s => s.name === "CLOCK_SET")).toMatchObject({ derived: true, seq: bedroom.seq, elapsedMs: 1000 });
+    expect(result.splits.find(s => s.name === "PLAYER_BEDROOM")).toMatchObject({ derived: true, seq: bedroom.seq, elapsedMs: 1000 });
+    expect(result.splits.find(s => s.name === "RIVAL_HOUSE_ENTERED")).toMatchObject({ derived: true, seq: rivalHouse.seq, elapsedMs: 4000 });
+    expect(result.measurement.rawSplits.find(s => s.name === "RIVAL_HOUSE_ENTERED")?.evidence).toEqual([bedroom.seq, rivalHouse.seq]);
+    const tracker = new StateMilestones({ read: () => Promise.resolve(state({ location: "LITTLEROOT TOWN" }) as never) });
+    tracker.initialize("save_state");
+    const detected: { name: string; evidence?: readonly number[] }[] = [];
+    for (const event of log.events) if (event.type === "state" && "started" in event) detected.push(...tracker.observe(event, event.seq));
+    expect(detected.filter(m => m.name === "PLAYER_HOUSE_EXITED_AFTER_CLOCK" || m.name === "RIVAL_HOUSE_ENTERED").map(m => [m.name, m.evidence])).toEqual([
+      ["PLAYER_HOUSE_EXITED_AFTER_CLOCK", [bedroom.seq, downstairs.seq, town.seq]],
+      ["RIVAL_HOUSE_ENTERED", [bedroom.seq, rivalHouse.seq]],
+    ]);
+  }
+});
+it("does not recover a rival-house visit that the save already started inside, or a boot run with no pre-clock home", () => {
+  const resumed = new Log();
+  resumed.add(0, { ...START, start_state: { kind: "save_state", path: "/saves/CLOCK_SET.state", sha1: "b".repeat(40) } });
+  resumed.add(1000, state({ ...quiet, location: "LITTLEROOT TOWN", story: clocked }));
+  resumed.add(2000, state({ ...quiet, location: "LITTLEROOT TOWN MAYS HOUSE 1F", story: clocked }));
+  const late = readNativeRecording(write(resumed.events.map(e => JSON.stringify(e)).join("\n") + "\n"), resumed.events[0]?.run ?? "", qualifiedNativeMilestone);
+  expect(late.splits.some(s => s.name === "PLAYER_HOUSE_EXITED_AFTER_CLOCK" || s.name === "RIVAL_HOUSE_ENTERED")).toBe(false);
+  const boot = new Log();
+  boot.add(0, START);
+  boot.add(1000, state({ ...quiet, location: "LITTLEROOT TOWN BRENDANS HOUSE 2F", story: clocked }));
+  boot.add(2000, state({ ...quiet, location: "LITTLEROOT TOWN BRENDANS HOUSE 1F", story: clocked }));
+  boot.add(3000, state({ ...quiet, location: "LITTLEROOT TOWN", story: clocked }));
+  boot.add(4000, state({ ...quiet, location: "LITTLEROOT TOWN MAYS HOUSE 1F", story: clocked }));
+  const fresh = readNativeRecording(write(boot.events.map(e => JSON.stringify(e)).join("\n") + "\n"), boot.events[0]?.run ?? "", qualifiedNativeMilestone);
+  expect(fresh.splits.some(s => s.name === "PLAYER_HOUSE_EXITED_AFTER_CLOCK" || s.name === "RIVAL_HOUSE_ENTERED")).toBe(false);
+  const probe = new Log();
+  probe.add(0, { ...START, start_state: { kind: "save_state", path: "/saves/CLOCK_SET.state", sha1: "c".repeat(40) }, harness_features: ["probe"] });
+  probe.add(1000, state({ ...quiet, location: "LITTLEROOT TOWN BRENDANS HOUSE 2F", story: clocked }));
+  probe.add(2000, state({ ...quiet, location: "LITTLEROOT TOWN BRENDANS HOUSE 1F", story: clocked }));
+  probe.add(3000, state({ ...quiet, location: "LITTLEROOT TOWN", story: clocked }));
+  probe.add(4000, state({ ...quiet, location: "LITTLEROOT TOWN MAYS HOUSE 1F", story: clocked }));
+  const probed = readNativeRecording(write(probe.events.map(e => JSON.stringify(e)).join("\n") + "\n"), probe.events[0]?.run ?? "", qualifiedNativeMilestone);
+  expect(probed.splits.some(s => s.name === "PLAYER_HOUSE_EXITED_AFTER_CLOCK" || s.name === "RIVAL_HOUSE_ENTERED")).toBe(false);
+});
+it("prefers a recorded leave-home receipt over the recovered observation", () => {
+  const log = new Log();
+  log.add(0, { ...START, start_state: { kind: "save_state", path: "/saves/CLOCK_SET.state", sha1: "d".repeat(40) } });
+  const bedroom = log.add(1000, state({ ...quiet, location: "LITTLEROOT TOWN BRENDANS HOUSE 2F", story: clocked }));
+  const downstairs = log.add(2000, state({ ...quiet, location: "LITTLEROOT TOWN BRENDANS HOUSE 1F", story: clocked }));
+  const town = log.add(3000, state({ ...quiet, location: "LITTLEROOT TOWN", story: clocked }));
+  const mark = log.add(3100, { type: "milestone", turn: 1, name: "PLAYER_HOUSE_EXITED_AFTER_CLOCK", kind: "navigation", origin: "observed", server_timestamp: 1, evidence: [bedroom.seq, downstairs.seq, town.seq] });
+  const result = readNativeRecording(write(log.events.map(e => JSON.stringify(e)).join("\n") + "\n"), town.run, qualifiedNativeMilestone);
+  expect(result.splits.filter(s => s.name === "PLAYER_HOUSE_EXITED_AFTER_CLOCK")).toEqual([expect.objectContaining({ seq: mark.seq, elapsedMs: 3100 })]);
+  expect(result.splits.find(s => s.name === "PLAYER_HOUSE_EXITED_AFTER_CLOCK")?.derived).toBeUndefined();
+});
+it("recovers a bedroom the transition frame could not grade, and does not treat the rival room as home", () => {
+  const beforeClock = { ...clocked, clock_set: false, intro_stage: 5 as const };
+  const log = new Log();
+  log.add(0, START);
+  const transition = log.add(1000, state({ ...quiet, location: "LITTLEROOT TOWN BRENDANS HOUSE 2F", screen: "field_transition", story: beforeClock }));
+  log.add(1100, { type: "milestone", turn: 1, name: "PLAYER_BEDROOM", kind: "navigation", origin: "observed", server_timestamp: 1, evidence: [transition.seq] });
+  const room = log.add(2000, state({ ...quiet, location: "LITTLEROOT TOWN BRENDANS HOUSE 2F", story: beforeClock }));
+  log.add(3000, state({ ...quiet, location: "LITTLEROOT TOWN MAYS HOUSE 2F", story: clocked }));
+  const result = readNativeRecording(write(log.events.map(e => JSON.stringify(e)).join("\n") + "\n"), room.run, qualifiedNativeMilestone);
+  expect(result.splits.filter(s => s.name === "PLAYER_BEDROOM")).toEqual([expect.objectContaining({ derived: true, seq: room.seq, elapsedMs: 2000 })]);
+  expect(result.measurement.rawSplits.find(s => s.name === "PLAYER_BEDROOM")?.evidence).toEqual([room.seq]);
 });
 it("does not recover unsupported modern, resumed, transitioning, battle, or incomplete boss evidence", () => {
   const fixture: {events: unknown[]} = JSON.parse(readFileSync(new URL("../test-support/frontier-gap-reference.json", import.meta.url), "utf8")) as {events: unknown[]};

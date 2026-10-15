@@ -103,6 +103,23 @@ function samePlace(a: StateEvent, b: StateEvent): boolean {
   return a.location === b.location && a.position?.x === b.position?.x && a.position?.y === b.position?.y;
 }
 
+// Mirrors StateMilestones route proof. A Clock set save has no pre-clock frame, so home is the
+// first stable Littleroot house before any other map. The original log stays unchanged.
+function houseFamily(location: string | null, floor: "1F" | "2F"): string | null {
+  return location?.match(new RegExp(`^LITTLEROOT TOWN (BRENDANS|MAYS) HOUSE ${floor}$`))?.[1] ?? null;
+}
+function clockSet(state: StateEvent): boolean | null {
+  if (state.story !== undefined) return state.screen === "field_transition" ? null : state.started && state.screen !== "field_transition" ? state.story?.clock_set ?? null : null;
+  if (!state.started || state.screen === "field_transition") return null;
+  const value = state.world_context?.triggers.find(trigger => trigger.variable === 0x4092)?.current_value;
+  return value == null || value < 0 || value > 7 ? null : value === 6 || value === 7;
+}
+function routeHomeOf(state: StateEvent): string | null {
+  const saved = state.started && state.screen !== "field_transition" && state.screen !== "unknown";
+  const witnessed = saved && state.story?.clock_set === false && [4, 5].includes(state.story.intro_stage ?? -1) ? houseFamily(state.location, "1F") ?? houseFamily(state.location, "2F") : null;
+  return witnessed ?? (saved && clockSet(state) === true ? houseFamily(state.location, "1F") ?? houseFamily(state.location, "2F") : null);
+}
+
 export const MILESTONE_ORDER = ["GAME_RUNNING", "NEW_GAME_CREATED", "PLAYER_NAME_CONFIRMED", "PLAYER_NAME_SET", "FIRST_TRUCK_EXIT", "INTRO_CUTSCENE_COMPLETE", "LITTLEROOT_TOWN", "PLAYER_HOUSE_ENTERED", "MOM_CLOCK_INSTRUCTION", "PLAYER_BEDROOM", "CLOCK_SET", "MOM_RIVAL_INSTRUCTION", "PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_BEDROOM_REACHED", "RIVAL_MET", "ROUTE_101", "STARTER_CHOSEN", "BIRCH_RESCUE_COMPLETE", "BIRCH_STARTER_HANDOFF_COMPLETE", "OLDALE_TOWN", "ROUTE_103", "RIVAL_BATTLE_WON", "RECEIVED_POKEDEX", "STARTER_TUTORIAL_COMPLETE", "RUNNING_SHOES_RECEIVED", "FIRST_POKEMON_CAUGHT", "FIRST_EVOLUTION", "FIRST_POKECENTER_HEAL", "ROUTE_102", "ROUTE_102_TRAINER_CALVIN_DEFEATED", "ROUTE_102_TRAINER_RICK_DEFEATED", "ROUTE_102_TRAINER_TIANA_DEFEATED", "ROUTE_102_TRAINER_ALLEN_DEFEATED", "PETALBURG_CITY", "DAD_FIRST_MEETING", "WALLY_TUTORIAL_COMPLETE", "ROUTE_104", "ROUTE_104_TRAINER_IVAN_DEFEATED", "ROUTE_104_TRAINER_BILLY_DEFEATED", "ROUTE_104_TRAINER_HALEY_DEFEATED", "ROUTE_104_TRAINER_WINSTON_DEFEATED", "ROUTE_104_TRAINER_CINDY_DEFEATED", "ROUTE_104_TRAINER_GINA_MIA_DEFEATED", "ROUTE_104_TRAINER_DARIAN_DEFEATED", "PETALBURG_WOODS", "PETALBURG_WOODS_TRAINER_LYLE_DEFEATED", "PETALBURG_WOODS_TRAINER_JAMES_DEFEATED", "PETALBURG_WOODS_TRAINER_AQUA_GRUNT_DEFEATED", "TEAM_AQUA_WOODS_EVENT_COMPLETE", "RUSTBORO_CITY", "ROUTE_115", "ROUTE_116", "ROUTE_116_TRAINER_JOEY_DEFEATED", "ROUTE_116_TRAINER_JOSE_DEFEATED", "ROUTE_116_TRAINER_JERRY_DEFEATED", "ROUTE_116_TRAINER_CLARK_DEFEATED", "ROUTE_116_TRAINER_JANICE_DEFEATED", "ROUTE_116_TRAINER_KAREN_DEFEATED", "ROUTE_116_TRAINER_SARAH_DEFEATED", "ROUTE_116_TRAINER_DAWSON_DEFEATED", "ROUTE_116_TRAINER_DEVAN_DEFEATED", "ROUTE_116_TRAINER_JOHNSON_DEFEATED", "RUSTURF_TUNNEL", "RUSTBORO_CITY_GYM", "RUSTBORO_GYM_TRAINER_JOSH_DEFEATED", "RUSTBORO_GYM_TRAINER_TOMMY_DEFEATED", "RUSTBORO_GYM_TRAINER_MARC_DEFEATED", "ROXANNE_DEFEATED", "RUSTBORO_GYM_COMPLETE", "STONE_BADGE", "ROCK_TOMB_RECEIVED"] as const;
 
 export type ControlState = "running" | "pause_pending" | "paused" | "stop_pending" | "ended";
@@ -180,6 +197,10 @@ export class RunView {
   readonly errors: ErrorMark[] = [];
   readonly control = new ControlView();
   private readonly openTools = new Map<string, ToolSpan>();
+  private routeHome: { state: StateEvent; seq: number } | null = null;
+  private routeDeparted = false;
+  private routePrevious: { state: StateEvent; seq: number } | null = null;
+  private routeResumed = false;
 
   get isThinking(): boolean {
     return this.thinkingSpans.at(-1)?.endMs === null;
@@ -212,6 +233,7 @@ export class RunView {
       case "run_start":
         this.start = event;
         this.startMs = ms;
+        this.routeResumed = event.start_state.kind === "save_state";
         break;
       case "turn_start":
         this.turnStartMs = ms;
@@ -262,7 +284,7 @@ export class RunView {
       case "battle_choice":this.battleChoices.push(event);break;
       case "milestone": {
         // A native route receipt supersedes a provisional replay recovery.
-        const recovered = this.milestones.findIndex(mark => mark.name === event.name && mark.derived === true && /^(?:ROUTE_(?:10[1-4]|115|116)|RUSTURF_TUNNEL|ROXANNE_DEFEATED)$/.test(mark.name));
+        const recovered = this.milestones.findIndex(mark => mark.name === event.name && mark.derived === true && (/^(?:ROUTE_(?:10[1-4]|115|116)|RUSTURF_TUNNEL|ROXANNE_DEFEATED|PLAYER_HOUSE_EXITED_AFTER_CLOCK|RIVAL_HOUSE_ENTERED|PLAYER_BEDROOM)$/.test(mark.name) || (mark.name === "CLOCK_SET" && event.origin !== undefined && event.evidence !== undefined)));
         if(recovered>=0)this.milestones.splice(recovered,1);
         if (!this.milestones.some((m) => m.name === event.name)) this.milestones.push({ name: event.name, ms, seq: event.seq, ...(event.emulator_frame===undefined?{}:{emulatorFrame:event.emulator_frame}), ...(event.kind === undefined ? {} : {kind:event.kind}), ...(event.origin === undefined ? {} : {origin:event.origin}), ...(event.evidence === undefined ? {} : {evidence:event.evidence}) });
         break;
@@ -362,9 +384,43 @@ export class RunView {
     if (this.start !== null && !this.start.harness_features.includes("native-progress-activity-v1") && event.started && event.screen !== "field_transition" && event.screen !== "unknown" && !event.in_battle && event.story?.roxanne_defeated === undefined && event.story?.rustboro_gym_complete === true && event.story.stone_badge === true && !this.milestones.some(mark => mark.name === "ROXANNE_DEFEATED")) {
       this.milestones.push({ name: "ROXANNE_DEFEATED", ms: eventMs(event), seq: event.seq, derived: true, kind: "story", origin: previous === null || this.start.start_state.kind !== "boot" ? "present_at_start" : "observed", evidence: [event.seq] });
     }
+    this.recoverPostClockRoute(event);
     this.state = event;
     const now = event.started && event.position !== null && event.field_controls_locked !== true && previous !== null && samePlace(previous, event) ? (this.stuck?.now ?? 0) + 1 : 0;
     this.stuck = { now, max: Math.max(now, this.stuck?.max ?? 0) };
+  }
+
+  private recoverPostClockRoute(event: StateEvent): void {
+    if (this.start?.harness_features.includes("probe") === true) return;
+    const saved = event.started && event.screen !== "field_transition";
+    const stable = saved && event.screen !== "unknown";
+    const clock = clockSet(event);
+    if (this.routeHome === null) {
+      const witnessed = stable && event.story?.clock_set === false && [4, 5].includes(event.story.intro_stage ?? -1) ? houseFamily(event.location, "1F") ?? houseFamily(event.location, "2F") : null;
+      const resumedHouse = this.routeResumed && !this.routeDeparted && stable && clock === true ? houseFamily(event.location, "1F") ?? houseFamily(event.location, "2F") : null;
+      if (witnessed !== null || resumedHouse !== null) this.routeHome = { state: event, seq: event.seq };
+      else if (this.routeResumed && stable && event.location !== null && houseFamily(event.location, "1F") === null && houseFamily(event.location, "2F") === null) this.routeDeparted = true;
+    }
+    if (stable && clock === true && !this.milestones.some(mark => mark.name === "CLOCK_SET")) {
+      this.milestones.push({ name: "CLOCK_SET", ms: eventMs(event), seq: event.seq, derived: true, kind: "story", origin: "observed", evidence: [event.seq] });
+    }
+    const homeFamily = this.routeHome === null ? null : houseFamily(this.routeHome.state.location, "1F") ?? houseFamily(this.routeHome.state.location, "2F");
+    if (stable && homeFamily !== null && houseFamily(event.location, "2F") === homeFamily && !this.milestones.some(mark => mark.name === "PLAYER_BEDROOM")) {
+      this.milestones.push({ name: "PLAYER_BEDROOM", ms: eventMs(event), seq: event.seq, derived: true, kind: "navigation", origin: "observed", evidence: [event.seq] });
+    }
+    const home = this.routeHome === null ? null : routeHomeOf(this.routeHome.state);
+    const previous = this.routePrevious;
+    if (home !== null && stable && clock === true && !this.milestones.some(mark => mark.name === "RIVAL_HOUSE_ENTERED")) {
+      const floor = houseFamily(event.location, "1F");
+      if (floor !== null && floor !== home && this.routeHome !== null) this.milestones.push({ name: "RIVAL_HOUSE_ENTERED", ms: eventMs(event), seq: event.seq, derived: true, kind: "navigation", origin: "observed", evidence: [this.routeHome.seq, event.seq] });
+    }
+    if (home !== null && previous !== null && !this.milestones.some(mark => mark.name === "PLAYER_HOUSE_EXITED_AFTER_CLOCK")) {
+      const priorStable = previous.state.started && previous.state.screen !== "field_transition" && previous.state.screen !== "unknown";
+      if (priorStable && houseFamily(previous.state.location, "1F") === home && clockSet(previous.state) === true && stable && event.location === "LITTLEROOT TOWN" && clock === true && this.routeHome !== null) {
+        this.milestones.push({ name: "PLAYER_HOUSE_EXITED_AFTER_CLOCK", ms: eventMs(event), seq: event.seq, derived: true, kind: "navigation", origin: "observed", evidence: [this.routeHome.seq, previous.seq, event.seq] });
+      }
+    }
+    if (saved && event.location !== null) this.routePrevious = { state: event, seq: event.seq };
   }
 }
 

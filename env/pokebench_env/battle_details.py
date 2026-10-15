@@ -57,7 +57,8 @@ MULTI, SAFARI, WALLY_TUTORIAL, EREADER = 1 << 6, 1 << 7, 1 << 9, 1 << 11
 ARENA, INGAME_PARTNER, RECORDED, RECORDED_LINK = 1 << 18, 1 << 22, 1 << 24, 1 << 25
 TRAINER_HILL, SECRET_BASE, TWO_OPPONENTS = 1 << 26, 1 << 27, 1 << 15
 FRONTIER = sum(1 << bit for bit in (8, 16, 17, 18, 19, 20, 21))
-FRONTIER_NO_PYRAMID = FRONTIER & ~(1 << 21)
+PYRAMID = 1 << 21
+FRONTIER_NO_PYRAMID = FRONTIER & ~PYRAMID
 STATUS2_MULTIPLETURNS, STATUS2_WRAPPED, STATUS2_RECHARGE = 1 << 12, 7 << 13, 1 << 22
 STATUS2_ESCAPE_PREVENTION, STATUS3_ROOTED = 1 << 26, 1 << 10
 STATUS2_NAMES = (
@@ -228,7 +229,7 @@ def read_battle_details(
             full = len(resources.storage.occupied) >= BOX_SLOTS
         held = tuple(_held(read, battler) for battler in battle.battlers)
         return BattleDetails(members, bag, held, full)
-    except (ValueError, struct.error) as error:
+    except (ValueError, OSError, struct.error) as error:
         return BattleDetails(None, None, (), None, f"harness bug: {error}")
 
 
@@ -396,10 +397,11 @@ def _run(battle: BattleState, actor: BattleBattler, held: HeldItem | None) -> st
     mine, theirs = actor.stats[2], foe.stats[2]
     if mine >= theirs:
         return f"RUN allowed — escape guaranteed (your Spe {mine} ≥ foe Spe {theirs})"
+    # TryRunFromBattle (battle_util.c:412-466) keeps the odds in a u8 that wraps, and runTries
+    # is not read, so only the speed comparison is stated.
     return (
         f"RUN allowed — escape not guaranteed: your Spe {mine} < foe Spe {theirs}; "
-        f"succeeds if {mine}×128÷{theirs} + 30 per earlier failed try this battle "
-        "beats a random 0–255; a failed try uses your turn"
+        "a failed try uses your turn"
     )
 
 
@@ -407,6 +409,9 @@ def _bag(battle: BattleState, details: BattleDetails) -> str:
     flags = battle.battle_type or 0
     if flags & (LINK | FRONTIER_NO_PYRAMID | EREADER | RECORDED_LINK):
         return 'BAG REFUSED — "Items can\'t be used now."'
+    if flags & PYRAMID:
+        # In the Battle Pyramid CB2_BagMenuFromBattle (item_menu.c) opens the Pyramid bag.
+        return "BAG allowed — Battle Pyramid bag not read"
     if details.bag is None:
         return "BAG allowed — bag contents unreadable"
     if not details.bag:
@@ -417,7 +422,12 @@ def _bag(battle: BattleState, details: BattleDetails) -> str:
     others = [i for i in usable if i.pocket != "poke_balls"]
     parts = []
     if others:
-        parts.append("usable here: " + ", ".join(f"{i.name} ×{i.quantity}" for i in others))
+        # A nonzero battleUsage only says the item has a battle use; whether it would have any
+        # effect on the current target (e.g. a POTION at full HP) is not checked.
+        parts.append(
+            "has a battle use (whether it does anything now is not checked): "
+            + ", ".join(f"{i.name} ×{i.quantity}" for i in others)
+        )
     if balls:
         names = ", ".join(f"{i.name} ×{i.quantity}" for i in balls)
         if flags & TRAINER:

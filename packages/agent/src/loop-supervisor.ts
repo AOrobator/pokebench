@@ -6,7 +6,7 @@ import type {FeatureSet} from "./features.js";
 import type {LoopKind} from "./loop-detection.js";
 
 export type Stall=
- | {readonly kind:"map_cycle";readonly from:string;readonly to:string;readonly roundTrips:number}
+ | {readonly kind:"map_cycle";readonly from:string;readonly to:string;readonly roundTrips:number;readonly consecutive:boolean}
  | {readonly kind:"milestone_drought";readonly minutes:number};
 
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
@@ -56,7 +56,7 @@ export class SupervisorBriefing {
    this.remember(this.room(where),roomOf(where,this.features),label,this.outcome(call.before,after));
   }
   const dialogue=after.world_context?.dialogue;
-  if(dialogue)this.heard.add(dialogue);
+  if(dialogue)this.heard.add(this.opening(after,dialogue));
  }
  // The readout's own Story line, so the briefing never disagrees with it. A reload gap keeps the last known line.
  private readStory(text:string):void {
@@ -66,6 +66,8 @@ export class SupervisorBriefing {
   this.story=line;
  }
  private room(state:State):string {return roomKey(state);}
+ // The same text at another map or tile is a different conversation (another sign, another person).
+ private opening(state:State,text:string):string {return JSON.stringify([this.room(state),state.position===null?null:at(state.position.x,state.position.y),text]);}
  private touch(room:string,tile:string):void {
   const tiles=this.touched.get(room)??new Set<string>();tiles.add(tile);this.touched.set(room,tiles);
  }
@@ -100,7 +102,7 @@ export class SupervisorBriefing {
   if(this.features["active-field-message-buffer-v1"]){
    const was=before.world_context?.dialogue??null,now=after.world_context?.dialogue??null;
    if(was!==null&&now===null)return "dialogue closed";
-   if(was===null&&now!==null&&this.heard.has(now))return "restarted a conversation already shown";
+   if(was===null&&now!==null&&this.heard.has(this.opening(after,now)))return "restarted a conversation already shown";
    if(was!==now)return "dialogue changed";
    const a=before.world_context?.message??null,b=after.world_context?.message??null;
    if(now!==null&&(a?.cursor!==b?.cursor||a?.phase!==b?.phase))return "dialogue advanced";
@@ -154,7 +156,7 @@ export class SupervisorBriefing {
 
  // stall-briefing-v1: the same facts, headed by which stall it is.
  stallText(stall:Stall,calls:number):string {
-  const what=stall.kind==="map_cycle"?`You have walked between ${stall.from} and ${stall.to} ${String(stall.roundTrips)} times, out and back, with no new story milestone`:`There has been no new story milestone for ${String(stall.minutes)} minutes of play`;
+  const what=stall.kind==="map_cycle"?`You have walked between ${stall.from} and ${stall.to} ${String(stall.roundTrips)} times${stall.consecutive?", out and back,":" (with other maps in between),"} with no new story milestone`:`There has been no new story milestone for ${String(stall.minutes)} minutes of play`;
   return this.bearings(`SUPERVISOR: You are stalling. ${what}, and the game is not moving forward (stall briefing, ${String(calls)} calls into the run).`);
  }
 

@@ -89,7 +89,8 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 <p>Recorded in <code>2026-10-15T11-08-31_think-fast_504f</code>, s1512. Field controls were locked before the press (a script was running), the model pressed UP, and the player moved from (5,9) to (5,8). Today's result said <code>moved (5,9) -&gt; (5,8)</code>, as if the press had done it.</p>
 <table>
 <tr><th>Situation (same map, position changed)</th><th>Off</th><th>On</th></tr>
-<tr><td>Controls locked in the before snapshot</td><td><code>moved (5,9) -&gt; (5,8)</code></td><td><code>moved by a script while field controls were locked (not by your press): (5,9) -&gt; (5,8)</code></td></tr>
+<tr><td>Controls locked in both snapshots</td><td><code>moved (5,9) -&gt; (5,8)</code></td><td><code>moved by a script while field controls were locked (not by your press): (5,9) -&gt; (5,8)</code></td></tr>
+<tr><td>A direction pressed; locked when the press began, unlocked after it</td><td><code>moved (5,9) -&gt; (5,8)</code></td><td><code>moved (5,9) -&gt; (5,8); field controls were locked when the press began</code> (the button is held for 10 frames, so a script can release the lock mid-press and the held direction can then move the player; the press is not ruled out)</td></tr>
 <tr><td>No direction button pressed, locked after</td><td><code>moved …</code></td><td>same as above</td></tr>
 <tr><td>No direction button pressed, never locked</td><td><code>moved …</code></td><td><code>moved by a script (not by your press; no direction was pressed): …</code></td></tr>
 <tr><td>Direction pressed, controls free</td><td><code>moved …</code></td><td><code>moved …</code> (unchanged)</td></tr>
@@ -110,7 +111,7 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 <text class="m" x="10" y="132">Off: interface changed (… input acceptance per frame unproven) or the field result</text>
 </svg></div>
 <figcaption>Each shown page counts once when it appears; a page left on screen is not counted again.</figcaption></figure>
-<p>The rule needs no open dialogue before the press and an after-state whose <code>world_context.dialogue</code> text was already shown earlier in the run.</p>
+<p>The rule needs no open dialogue before the press and an after-state whose <code>world_context.dialogue</code> text was already shown earlier in the run at the same place (same map and player tile). The same sign text read at another tile, or on another map, is a new conversation, not a restart. The loop supervisor's "restarted a conversation already shown" outcome uses the same place-and-text key.</p>
 </section>
 
 <section>

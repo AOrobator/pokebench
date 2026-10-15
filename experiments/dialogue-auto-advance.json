@@ -8,7 +8,7 @@
   "primaryMilestone": "RIVAL_HOUSE_ENTERED",
   "source": {
     "checkout": "main",
-    "commit": "65ba7164c38245569aa2be7d65848df59599dc23"
+    "commit": "a85b5915a6481c830372711a3a345da5a70c434f"
   },
   "incumbent": {
     "version": 2,
@@ -82,5 +82,5 @@
     "window": 4,
     "minReached": 3
   },
-  "notes": "Operator 2026-10-15: \"when we start to engage with any dialogue, it auto advances to the next decision point while recording all of the dialogue that was observed\"; automatic; one switch covers auto-advance and the dialogue record (get_dialogue). Evidence: about 49% of Think Fast turns are a single A/B press through dialogue; finals run 2026-10-15T14-21-06_think-fast_6684 loops from turn 494 sending A x8 at the lab scientist; 2026-10-15T04-42-49_think-fast_0c40 turns 520-540 alternate A, B x7 at the lab aide. It acts at the first field message after the new game starts (Mom in the truck house). Part of the strong-bundle cohort (operator 2026-10-15). source.commit is repinned to the merge SHA when it lands."
+  "notes": "Operator 2026-10-15: \"when we start to engage with any dialogue, it auto advances to the next decision point while recording all of the dialogue that was observed\"; automatic; one switch covers auto-advance and the dialogue record (get_dialogue). Evidence: about 49% of Think Fast turns are a single A/B press through dialogue; finals run 2026-10-15T14-21-06_think-fast_6684 loops from turn 494 sending A x8 at the lab scientist; 2026-10-15T04-42-49_think-fast_0c40 turns 520-540 alternate A, B x7 at the lab aide. It acts at the first field message after the new game starts (Mom in the truck house). Part of the strong-bundle cohort (operator 2026-10-15). Provisional source.commit a85b591 (branch claude/r3-fixes, the parent of the round-3 fix commit; it contains this switch's implementation but not the round-3 fixes). It is repinned to the merge SHA on main with `just experiment-pin` when the bundle lands; until then this entry is not reproducible from main."
 }

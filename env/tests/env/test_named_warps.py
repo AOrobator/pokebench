@@ -196,7 +196,9 @@ def test_switch_off_keeps_dynamic_destination_byte_for_byte() -> None:
     state = read_game_state(truck().read, maps)
     plain = replace(state, dynamic_warp=None)
     for kw in ({}, {"named_interactions": True, "world_destinations": True}):
-        off = format_readout(state, frozenset({"named-warp-destinations-v1"}), named_warps=True, **kw)
+        off = format_readout(
+            state, frozenset({"named-warp-destinations-v1"}), named_warps=True, **kw
+        )
         assert off == format_readout(plain, **kw)
         assert f"Warps: (0,1) -> dynamic destination {EXIT}" in lines(off)
         assert DYNAMIC not in off

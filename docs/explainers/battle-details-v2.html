@@ -81,6 +81,7 @@ Your moves (2×2 1 2 / 3 4; menu not open):
   2 GROWL NORMAL status acc 100 PP 40/40
 Party (game party slots):
   1 TORCHIC Lv5 FIRE · HP 20/20 · status OK · ability BLAZE · item none · in battle · moves SCRATCH NORMAL physical pow 40 acc 100 PP 35/35; GROWL NORMAL status acc 100 PP 40/40</pre>
+<p>Bag items with a nonzero battle use are listed as "has a battle use (whether it does anything now is not checked)": the game's item-effect check (for example a POTION on a Pokémon at full HP) is not run, so nothing is called usable. In a Battle Pyramid battle the game opens the Pyramid's own bag (<code>CB2_BagMenuFromBattle</code>, item_menu.c), so the BAG action says "Battle Pyramid bag not read" instead of listing the ordinary bag.</p>
 <p>Only the battle lines and the empty-bag line change. Battle playback and battle execution lines, the overworld readout and the JSON state used for grading are unchanged. Nothing is shortened.</p>
 </section>
 
@@ -136,7 +137,7 @@ Party (game party slots):
 <rect x="380" y="206" width="300" height="34" rx="6" class="prior"/><text x="390" y="228" class="s">REFUSED "Can't escape!"</text>
 <rect x="20" y="254" width="300" height="34" rx="6" class="box"/><text x="30" y="276" class="s">6. First battle (PROF. BIRCH rescue)?</text>
 <rect x="380" y="254" width="300" height="34" rx="6" class="prior hot"/><text x="390" y="276" class="s">REFUSED "PROF. BIRCH: Don't leave me like this!"</text>
-<rect x="20" y="302" width="300" height="44" rx="6" class="box"/><text x="30" y="320" class="s">7. Wild single battle: your Spe ≥ foe Spe?</text><text x="30" y="336" class="s">yes: guaranteed · no: Spe×128÷foe Spe + 30 per failed try</text>
+<rect x="20" y="302" width="300" height="44" rx="6" class="box"/><text x="30" y="320" class="s">7. Wild single battle: your Spe ≥ foe Spe?</text><text x="30" y="336" class="s">yes: guaranteed · no: not guaranteed (odds not computed)</text>
 <rect x="380" y="302" width="300" height="44" rx="6" class="game"/><text x="390" y="320" class="s">allowed — guaranteed, or the formula with</text><text x="390" y="336" class="s">both speeds (the try counter is not read)</text>
 </g>
 <path d="M320 31H378" class="arr" marker-end="url(#a)"/><path d="M320 79H378" class="arr" marker-end="url(#a)"/><path d="M320 127H378" class="arr" marker-end="url(#a)"/><path d="M320 175H378" class="arr" marker-end="url(#a)"/><path d="M320 223H378" class="arr" marker-end="url(#a)"/><path d="M320 271H378" class="arr" marker-end="url(#a)"/><path d="M320 324H378" class="arr" marker-end="url(#a)"/>
@@ -165,7 +166,7 @@ Party (game party slots):
 <table>
 <tr><th>Game rule</th><th>Why it is not shown</th></tr>
 <tr><td>Disable, Taunt, Torment, Imprison, Encore, Choice Band lock on a move</td><td>Kept in gDisableStructs and gBattleStruct at derived addresses with no ROM literal or raw-RAM receipt.</td></tr>
-<tr><td>Escape-try counter (runTries) for the odds</td><td>gBattleStruct field, derived address. The readout gives the formula with both speeds instead.</td></tr>
+<tr><td>Escape-try counter (runTries) for the odds</td><td>gBattleStruct field, derived address. The readout gives only the speed comparison: TryRunFromBattle keeps the odds in a u8 that wraps (battle_util.c:412-466), so a formula without runTries would mislead.</td></tr>
 <tr><td>ENIGMA BERRY effect for escape</td><td>gEnigmaBerries, derived address. RUN says "unknown" when it is held.</td></tr>
 <tr><td>Battle text box (gDisplayedStringBattle)</td><td>Derived address.</td></tr>
 <tr><td>Script-owned YES/NO prompts ("Use next POKéMON?", learning a move)</td><td>Still read as resolving; the script-owned cursor needs a verified owner check first.</td></tr>

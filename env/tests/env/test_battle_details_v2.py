@@ -208,7 +208,8 @@ def test_trainer_battle_refuses_run_and_warns_balls_are_lost() -> None:
     assert "stages Atk -1 · moves: TACKLE" in observed[1] and "PP 39/40" in observed[1]
     assert observed[2] == (
         "Actions (2×2 FIGHT BAG / POKéMON RUN; menu open, highlighted ▶ BAG): FIGHT · "
-        "BAG allowed — has a battle use (whether it does anything now is not checked): POTION ×5; balls POKé BALL ×5: the TRAINER blocks the BALL "
+        "BAG allowed — has a battle use (whether it does anything now is not checked): "
+        "POTION ×5; balls POKé BALL ×5: the TRAINER blocks the BALL "
         '("Don\'t be a thief!") and the ball is used up; not usable in battle: MACH BIKE ×5 · '
         "POKéMON switching allowed — no other Pokémon can battle · "
         'RUN REFUSED — "No! There\'s no running from a TRAINER battle!"'

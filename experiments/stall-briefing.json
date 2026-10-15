@@ -8,7 +8,7 @@
  "primaryMilestone": "RIVAL_HOUSE_ENTERED",
  "source": {
   "checkout": "main",
-  "commit": "81a6b3c6898e103d84a2f44ba6c7978ccd219800"
+  "commit": "a85b5915a6481c830372711a3a345da5a70c434f"
  },
  "incumbent": {
   "version": 2,
@@ -89,5 +89,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Uses the finals incumbent (switch set of 2026-10-15T11-08-31_think-fast_504f, which has loop-guard-supervisor-v1 on) instead of the shared navigation incumbent, because stall-briefing-v1 needs loop-guard-supervisor-v1 and the shared incumbent has it off, so its candidate would fail validation. Activation: the drought clock runs from the first turn, and the first map change (and so the first possible round trip) can only happen once play starts in the truck after the name is confirmed; the earliest briefing is 5 minutes of play after that. source.commit is this branch's RED commit until landing; repin it to the merge SHA (just experiment-pin) when it lands."
+ "notes": "Uses the finals incumbent (switch set of 2026-10-15T11-08-31_think-fast_504f, which has loop-guard-supervisor-v1 on) instead of the shared navigation incumbent, because stall-briefing-v1 needs loop-guard-supervisor-v1 and the shared incumbent has it off, so its candidate would fail validation. Activation: the drought clock runs from the first turn, and the first map change (and so the first possible round trip) can only happen once play starts in the truck after the name is confirmed; the earliest briefing is 5 minutes of play after that. Provisional source.commit a85b591 (branch claude/r3-fixes, the parent of the round-3 fix commit; it contains this switch's implementation but not the round-3 fixes). It is repinned to the merge SHA on main with `just experiment-pin` when the bundle lands; until then this entry is not reproducible from main."
 }

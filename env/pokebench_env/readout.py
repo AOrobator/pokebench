@@ -94,6 +94,11 @@ def format_readout(
         if named_warps and "named-warp-destinations-v1" not in off
         else None
     )
+    # The game's own dynamic warp (SaveBlock1.dynamicWarp) for MAP_DYNAMIC warps; ON side only.
+    dynamic = None
+    if destinations is not None and state.dynamic_warp is not None:
+        group, number, place = state.dynamic_warp
+        dynamic = f"{place} (dynamic warp; map {group}/{number})"
     expanded = "expanded-menu-battle-information-v1" not in off
     # battle-details-v2 replaces the raw battler/input lines; OFF keeps them byte for byte.
     details = state.battle_details if expanded and "battle-details-v2" not in off else None
@@ -263,6 +268,7 @@ def format_readout(
                 edge_walls="one-way-tiles-v1" not in off,
                 counters="counter-talk-v1" not in off,
                 destinations=destinations,
+                dynamic=dynamic,
             )
             if shown is not None
             else state.local_map
@@ -284,6 +290,7 @@ def format_readout(
             t.text(
                 named=named_interactions and "named-interactions-v1" not in off,
                 destinations=destinations,
+                dynamic=dynamic,
             )
             for t in state.interaction_targets
         )
@@ -299,7 +306,7 @@ def format_readout(
                 if target.destination is not None:
                     g, n, _ = target.destination
                     name = (
-                        "dynamic destination"
+                        dynamic or "dynamic destination"
                         if (g, n) == (127, 127)
                         else names.get((g, n), f"unknown map {g}/{n}")
                     )

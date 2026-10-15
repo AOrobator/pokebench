@@ -557,7 +557,7 @@ it("renders every mapped explainer's body as a page, not as stylesheet text",()=
   const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url)),"utf8");
   const doc=new Window().document;doc.write(html);
   const heading=doc.querySelector("body h1");
-  expect(heading?.textContent?.trim(),file).toBeTruthy();
+  expect(heading?.textContent.trim(),file).toBeTruthy();
   for(const style of doc.querySelectorAll("style"))expect(style.textContent,file).not.toMatch(/<body|<h1/);
  }
 });

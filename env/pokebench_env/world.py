@@ -42,6 +42,7 @@ class InteractionTarget:
         *,
         named: bool = False,
         destinations: Mapping[tuple[int, int], str] | None = None,
+        dynamic: str | None = None,
     ) -> str:
         facing = "" if self.facing is None else f", face {self.facing}"
         identity = "" if self.local_id is None else f" id {self.local_id}"
@@ -54,15 +55,23 @@ class InteractionTarget:
                 if destinations is None or (group, number) == (127, 127)
                 else destinations.get((group, number))
             )
+            if (group, number) == (127, 127) and dynamic is not None:
+                place = dynamic
             destination = (
-                "; dynamic destination"
+                f"; destination {dynamic}"
+                if (group, number) == (127, 127) and dynamic is not None
+                else "; dynamic destination"
                 if (group, number) == (127, 127)
                 else f"; destination map {group}/{number} warp {warp}"
                 if place is None
                 else f"; destination {place} (map {group}/{number}) warp {warp}"
             )
             if named and place is not None:
-                label = f"Warp to {place} (map {group}/{number})"
+                label = (
+                    f"Warp to {place}"
+                    if (group, number) == (127, 127)
+                    else f"Warp to {place} (map {group}/{number})"
+                )
         return (
             f"{label}{identity} at ({self.x},{self.y}), elevation {self.elevation}; "
             f"{self.activation}{facing}; {self.availability}{destination}"

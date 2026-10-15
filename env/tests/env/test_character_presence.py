@@ -114,7 +114,7 @@ def test_reused_rival_graphics_off_the_story_maps_name_nobody() -> None:
     # the falling player. Neither is the story rival.
     for location, var in (
         ("SLATEPORT CITY BATTLE TENT BATTLE ROOM", 1),
-        ("ROUTE 111", 0),
+        ("ROUTE111", 0),
         ("BATTLE FRONTIER BATTLE ARENA BATTLE ROOM", 1),
         (None, 0),
     ):
@@ -127,7 +127,7 @@ def test_reused_rival_graphics_off_the_story_maps_name_nobody() -> None:
 
 
 def test_the_rival_is_named_on_the_maps_where_pret_places_the_story_rival() -> None:
-    for location in ("LITTLEROOT TOWN MAYS HOUSE 2F", "ROUTE 103", "OLDALE TOWN"):
+    for location in ("LITTLEROOT TOWN MAYS HOUSE 2F", "ROUTE103", "OLDALE TOWN"):
         memory = Memory()
         rival(memory, 0, 105)
         shown = read_story_characters(memory.read, SAVE1, (0, 0), (), location=location)
@@ -137,7 +137,7 @@ def test_the_rival_is_named_on_the_maps_where_pret_places_the_story_rival() -> N
 def test_a_graphics_id_names_a_character_only_on_that_characters_story_maps() -> None:
     memory = Memory()
     memory.put(*template(0, 1, 64, 4, 4, 0))
-    birch = read_story_characters(memory.read, SAVE1, (0, 16), (), location="ROUTE 101")
+    birch = read_story_characters(memory.read, SAVE1, (0, 16), (), location="ROUTE101")
     assert birch is not None and birch.here == ("PROF. BIRCH (on this map, out of view)",)
     elsewhere = read_story_characters(memory.read, SAVE1, (9, 4), (), location="SLATEPORT CITY")
     assert elsewhere is not None and elsewhere.here == ()
@@ -149,7 +149,9 @@ def test_a_failed_or_short_read_gives_no_line() -> None:
 
     assert read_story_characters(broken, SAVE1, (0, 9), (), location="LITTLEROOT TOWN") is None
     assert (
-        read_story_characters(lambda a, n: b"\x01\x02", SAVE1, (0, 9), (), location="LITTLEROOT TOWN")
+        read_story_characters(
+            lambda a, n: b"\x01\x02", SAVE1, (0, 9), (), location="LITTLEROOT TOWN"
+        )
         is None
     )
 

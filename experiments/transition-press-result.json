@@ -8,7 +8,7 @@
  "primaryMilestone": "RIVAL_HOUSE_ENTERED",
  "source": {
   "checkout": "main",
-  "commit": "e51d2abcfeeed3de0a9e96dc3f5aa5ad329c18b6"
+  "commit": "a85b5915a6481c830372711a3a345da5a70c434f"
  },
  "incumbent": {
   "version": 2,
@@ -83,5 +83,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Pending, not queued. Activation PLAYER_HOUSE_ENTERED: the first door warp and the 1F/2F stairs (where 258d lost the floor change) are the first ordinary warps, Mom walks the player in by script on entry, and her conversations are the first ones the model restarts. The truck exit before it is a scripted map load the model does not press through. Needs press-result-v1 (ON in the incumbent). source.commit is this branch's RED commit; repin to the merge SHA when it lands (just experiment-pin)."
+ "notes": "Pending, not queued. Activation PLAYER_HOUSE_ENTERED: the first door warp and the 1F/2F stairs (where 258d lost the floor change) are the first ordinary warps, Mom walks the player in by script on entry, and her conversations are the first ones the model restarts. The truck exit before it is a scripted map load the model does not press through. Needs press-result-v1 (ON in the incumbent). Provisional source.commit a85b591 (branch claude/r3-fixes, the parent of the round-3 fix commit; it contains this switch's implementation but not the round-3 fixes). It is repinned to the merge SHA on main with `just experiment-pin` when the bundle lands; until then this entry is not reproducible from main."
 }

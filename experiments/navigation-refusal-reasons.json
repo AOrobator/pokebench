@@ -8,7 +8,7 @@
  "primaryMilestone": "RIVAL_HOUSE_ENTERED",
  "source": {
   "checkout": "main",
-  "commit": "c2e5c7c15b718f58265ec9f1c7e6534f2e2e0aee"
+  "commit": "a85b5915a6481c830372711a3a345da5a70c434f"
  },
  "incumbent": {
   "version": 2,
@@ -83,5 +83,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Registered 2026-10-15 (harness-fixes-bundle worklog, M3). Evidence: run 0c40 called navigate_to(10,7) 42 times while a message waited for B and got the generic \"field input or navigation geometry unavailable\"; c497 retried navigate_to onto a wandering NPC's tile. Activation is PLAYER_NAME_CONFIRMED because navigate_to (bounded-navigation-v1, activation PLAYER_NAME_CONFIRMED) is already available in the truck, where a refusal can first occur (truck boxes are solid tiles, and messages open there). source.commit must be repinned to the merge SHA when this branch lands."
+ "notes": "Registered 2026-10-15 (harness-fixes-bundle worklog, M3). Evidence: run 0c40 called navigate_to(10,7) 42 times while a message waited for B and got the generic \"field input or navigation geometry unavailable\"; c497 retried navigate_to onto a wandering NPC's tile. Activation is PLAYER_NAME_CONFIRMED because navigate_to (bounded-navigation-v1, activation PLAYER_NAME_CONFIRMED) is already available in the truck, where a refusal can first occur (truck boxes are solid tiles, and messages open there). Provisional source.commit a85b591 (branch claude/r3-fixes, the parent of the round-3 fix commit; it contains this switch's implementation but not the round-3 fixes). It is repinned to the merge SHA on main with `just experiment-pin` when the bundle lands; until then this entry is not reproducible from main."
 }

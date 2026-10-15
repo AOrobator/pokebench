@@ -100,6 +100,19 @@ class GameState:
     destination_names: tuple[tuple[int, int, str], ...] = ()
     story_characters: StoryCharacters | None = None
     battle_details: BattleDetails | None = None
+    # SaveBlock1.dynamicWarp (group, number, map name) when this map has a MAP_DYNAMIC warp.
+    dynamic_warp: tuple[int, int, str] | None = None
+
+
+DYNAMIC_WARP = 0x14
+
+
+def _dynamic_warp(read: ReadMemory, save1: int, maps: MapNames) -> tuple[int, int, str] | None:
+    # struct WarpData {s8 mapGroup; s8 mapNum; s8 warpId; ...} (include/global.h), set by
+    # setdynamicwarp / SetDynamicWarp and used by SetWarpDestinationToDynamicWarp (overworld.c).
+    group, number = struct.unpack("<bb", read(save1 + DYNAMIC_WARP, 2))
+    name = maps.name((group, number)) if (group, number) != (127, 127) else None
+    return None if name is None else (group, number, name)
 
 
 def _u32(read: ReadMemory, address: int) -> int:
@@ -155,6 +168,8 @@ def read_game_state(
     active_ui_enabled: bool = True,
     message_phase_enabled: bool = False,
     full_map_enabled: bool = False,
+    story_characters_enabled: bool = True,
+    battle_details_enabled: bool = True,
 ) -> GameState:
     screen = read_screen(read)
     in_battle = bool(read(IN_BATTLE, 1)[0] & 0x02)
@@ -245,7 +260,9 @@ def read_game_state(
         game_stats=_game_stats(read, save1, save2),
         resources=resources,
         battle=battle,
-        battle_details=read_battle_details(read, battle, party, resources),
+        battle_details=read_battle_details(read, battle, party, resources)
+        if battle_details_enabled
+        else None,
         running=read_running_permission(read),
         screen=screen.label,
         started=True,
@@ -288,9 +305,16 @@ def read_game_state(
         ),
         world_context=context,
         story_characters=read_story_characters(
-            read, save1, map_id, () if context is None else context.objects
+            read,
+            save1,
+            map_id,
+            () if context is None else context.objects,
+            location=maps.name(map_id),
         )
-        if screen.kind == "overworld" and not in_battle
+        if story_characters_enabled and screen.kind == "overworld" and not in_battle
+        else None,
+        dynamic_warp=_dynamic_warp(read, save1, maps)
+        if any(t.destination is not None and t.destination[:2] == (127, 127) for t in targets or ())
         else None,
         interaction_targets=targets,
         field_controls_locked=bool(read(FIELD_CONTROLS_LOCK, 1)[0])

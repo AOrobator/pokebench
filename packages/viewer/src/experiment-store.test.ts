@@ -88,7 +88,7 @@ describe("experiment queue store", () => {
     expect(snapshot.pending.map((v) => [v.id, v.state])).toContainEqual(["halted", "blocked"]);
     expect(snapshot.queue.map((v) => v.approved)).toEqual([true, false, true, false]);
     // Not-ready and blocked experiments stay pending.
-    expect(snapshot.pending.map((v) => [v.id, v.state, v.recorded?.verdict ?? null])).toEqual([["counter", "pending", "BLOCKED: models do not yet reach Oldale"], ["halted", "blocked", null]]);
+    expect(snapshot.pending.map((v) => [v.id, v.state, v.recorded?.verdict ?? null])).toEqual([["counter", "pending", "BLOCKED: models do not yet reach Oldale"], ["halted", "blocked", "READY"]]);
     expect(snapshot.closed.map((v) => [v.id, v.state])).toEqual([["dropped", "discarded"], ["finished", "done"]]);
     expect(snapshot.closed[1]?.result).toEqual({ verdict: "inconclusive", recommendation: "retain", eligible: false, problems: ["prompt differs"] });
     expect(snapshot.queue[0]?.result).toBeNull();

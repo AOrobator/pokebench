@@ -33,7 +33,7 @@ const record = (paths: QueuePaths, id: string, entry: Record<string, string>): v
 // Only a queued experiment that is ready and unapproved (draft) or whose approval no longer matches (stale).
 export function approveExperiment(paths: QueuePaths, source: RunSource, id: string, by: string, now: Date, head: string): ExperimentView {
   const view = find(paths, source, id);
-  if (view.queuePosition === null) throw new ApprovalError(409, `${id} is pending, not queued; only queued experiments can be approved`);
+  if (view.state === "pending") throw new ApprovalError(409, `${id} is pending (not ready yet); only queued experiments can be approved`);
   if (view.state !== "draft" && view.state !== "stale") throw new ApprovalError(409, `${id} is ${view.state}: ${view.reason}`);
   const experiment = loadExperiments(paths.experimentsDir, []).find((e) => e.id === id);
   if (experiment === undefined) throw new ApprovalError(404, `no experiment ${id}`);

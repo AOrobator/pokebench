@@ -62,7 +62,7 @@ export async function main(argv: readonly string[], deps: CliDeps): Promise<numb
     }
     case "approve": {
       const s = snapshot(), view = find([...s.queue, ...s.pending, ...s.closed]);
-      if (view.queuePosition === null) throw new RunnerError(`${view.id} is pending, not queued; only queued experiments can be approved`);
+      if (view.state === "pending") throw new RunnerError(`${view.id} is pending (not ready yet); only queued experiments can be approved`);
       if (view.state !== "draft" && view.state !== "stale") throw new RunnerError(`${view.id} is ${view.state}: ${view.reason}`);
       if (!deps.interactive) throw new RunnerError("approval is interactive: run it yourself in a terminal");
       deps.print(`${view.id}: ${view.title}. ${String(view.trialsPerArm * 2)} trials of ${view.changedFeature} ${view.incumbentOn ? "ON vs OFF" : "OFF vs ON"} on ${view.source.commit.slice(0, 7)}; budget ${String(Math.round(view.budgetMs / 3_600_000))} h.`);

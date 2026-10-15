@@ -153,7 +153,8 @@ export function deriveStatus({experiment,approval,ledger,runner,readiness,graded
  if(approval!==null&&approval.sha256!==definitionHash(experiment))return at("stale","the definition changed after approval; it needs a new approval");
  if(ledger.length>0&&approval===null)return at("stale","trials have started but there is no valid approval; it needs a new approval to resume");
  if(ledger.length>0)return at("held",`stopped after ${String(completed)} of ${total} trials; running the queue resumes it`);
- if(experiment.queuePosition===undefined)return at("pending",readiness.ready?`ready to queue: ${readinessText(readiness)}`:`not ready: ${readinessText(readiness)}`);
+ // Unnumbered experiments join the queue by themselves once readiness passes.
+ if(experiment.queuePosition===undefined&&!readiness.ready)return at("pending",`not ready: ${readinessText(readiness)}`);
  if(!readiness.ready)return at("not-ready",`not ready: ${readinessText(readiness)}`);
  if(approval===null)return at("draft","queued; needs the operator's approval");
  return at("approved","approved; runs when it reaches the front of the queue");

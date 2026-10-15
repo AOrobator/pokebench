@@ -225,9 +225,11 @@ export function queueSnapshot(paths: QueuePaths, source: RunSource, alive: (pid:
     positions.set(v.queuePosition, v.id);
   }
   const closed = (v: ExperimentView): boolean => v.state === "done" || v.state === "discarded";
+  const pendingOf = (v: ExperimentView): boolean => v.state === "pending" || (v.queuePosition === null && v.state === "blocked");
   return {
-    queue: views.filter((v) => v.queuePosition !== null && !closed(v)).sort((a, b) => (a.queuePosition ?? 0) - (b.queuePosition ?? 0) || a.id.localeCompare(b.id)),
-    pending: views.filter((v) => v.queuePosition === null && !closed(v)),
+    // Numbered entries first, then experiments that joined by passing readiness; not-ready and blocked unnumbered ones stay pending.
+    queue: views.filter((v) => !closed(v) && !pendingOf(v)).sort((a, b) => (a.queuePosition ?? Infinity) - (b.queuePosition ?? Infinity) || a.id.localeCompare(b.id)),
+    pending: views.filter((v) => !closed(v) && pendingOf(v)),
     closed: views.filter(closed),
     runner,
     problems,

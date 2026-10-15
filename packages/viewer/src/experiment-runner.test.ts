@@ -79,7 +79,7 @@ describe("experiment runner", () => {
     expect((await runQueue({ paths: stale.paths, source: stale.source, host: host(stale.paths, stale.metrics) })).stopped).toBe("nothing to run: full-map is stale");
     const empty = setup();
     writeDefinition(empty.paths.experimentsDir, definition("full-map", { queuePosition: undefined }));
-    expect((await runQueue({ paths: empty.paths, source: empty.source, host: host(empty.paths, empty.metrics) })).stopped).toBe("nothing to run: the queue is empty");
+    expect((await runQueue({ paths: empty.paths, source: { ...empty.source, recent: () => [] }, host: host(empty.paths, empty.metrics) })).stopped).toBe("nothing to run: the queue is empty");
     expect(existsSync(join(draft.paths.runsRoot, LEASE))).toBe(false);
   });
 

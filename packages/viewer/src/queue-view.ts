@@ -94,7 +94,7 @@ function readinessLine(v: ExperimentView): string {
 
 // Approve or withdraw from the card; the viewer's queue runner starts approved experiments.
 function actions(v: ExperimentView): string {
-  if (v.queuePosition !== null && (v.state === "draft" || v.state === "stale")) return `<div class="eq-actions"><button type="button" class="eq-approve" data-approve="${esc(v.id)}">APPROVE ${String(v.trialsPerArm * 2)} RUNS</button></div>`;
+  if (v.state === "draft" || v.state === "stale") return `<div class="eq-actions"><button type="button" class="eq-approve" data-approve="${esc(v.id)}">APPROVE ${String(v.trialsPerArm * 2)} RUNS</button></div>`;
   if (v.approved && (v.state === "approved" || v.state === "running" || v.state === "held")) return `<div class="eq-actions"><button type="button" class="eq-revoke" data-revoke="${esc(v.id)}">WITHDRAW APPROVAL</button></div>`;
   return "";
 }

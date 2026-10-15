@@ -1,0 +1,78 @@
+{
+ "version": 1,
+ "id": "field-control-lock",
+ "title": "Without Field control lock",
+ "changedFeature": "field-control-lock",
+ "hypothesis": "Turning field control lock off makes runs reach the rival house less often or in more turns; it is ON in the incumbent but has no recorded A/B. Says whether a dialog, menu or script has locked field controls, so direction presses cannot walk.",
+ "activationMilestone": "NEW_GAME_CREATED",
+ "primaryMilestone": "RIVAL_HOUSE_ENTERED",
+ "source": {
+  "checkout": "main",
+  "commit": "a3c343bdbe245dbe4d22dd2fe413a1bed66fa36d"
+ },
+ "incumbent": {
+  "version": 2,
+  "id": "navigation-incumbent",
+  "target": null,
+  "limits": {
+   "maxTurns": 1500,
+   "maxWallMs": 1800000,
+   "failureLimit": 3
+  },
+  "sampling": {
+   "thinkingLevel": "medium",
+   "maxTokens": 4096
+  },
+  "features": {
+   "navigation-evidence-memory-v1": false,
+   "automatic-running-v1": false,
+   "expanded-menu-battle-information-v1": false,
+   "ram-state-v1": true,
+   "live-map-v1": true,
+   "live-player-position-v1": true,
+   "world-coordinate-grid-v1": true,
+   "live-object-sprites-v1": true,
+   "world-targets-v1": true,
+   "named-interactions-v1": true,
+   "world-destinations-v1": false,
+   "bounded-navigation-v1": true,
+   "field-dialogue-phase-v1": true,
+   "dialogue-safe-batches-v1": false,
+   "interaction-loop-detection-v1": false,
+   "active-field-message-buffer-v1": true,
+   "naming-cursor-v1": true,
+   "story-state-v1": true,
+   "coordinate-script-conditions-v1": true,
+   "state-only-decisions-v1": false,
+   "contextual-interface-docs-v1": true,
+   "active-ui-ownership-v1": true,
+   "press-result-v1": true,
+   "field-control-lock": true,
+   "warp-activation-guidance-v1": true,
+   "ledge-hops-v1": true,
+   "one-way-tiles-v1": true,
+   "counter-talk-v1": false,
+   "deterministic-loop-guard-v1": true,
+   "objective-tracking-v1": false,
+   "repeat-attempt-guard-v1": false,
+   "native-objective-completion-v1": false,
+   "full-map-navigation-v1": false,
+   "elevation-transitions-v1": true,
+   "grass-cost-navigation-v1": false
+  }
+ },
+ "trialsPerArm": 8,
+ "modelLane": "think-fast",
+ "budget": {
+  "maxWallMs": 30600000
+ },
+ "criteria": {
+  "completionTolerance": 0,
+  "speedMarginPercent": 10
+ },
+ "readiness": {
+  "window": 4,
+  "minReached": 3
+ },
+ "notes": "Registered 2026-10-15 in the switch audit: merged behind a switch with no experiment."
+}

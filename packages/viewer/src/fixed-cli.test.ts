@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from "vitest";
 import { main, productionFixedHost, servingReceipt, type FixedCliDeps } from "./fixed-cli.js";
 import { parseFixedDefinition } from "./fixed-design.js";
 import type { FixedRunOptions } from "./fixed-runner.js";
-import { draftDefinition, definition, MODEL_PATH, START_SHA1 } from "../test-support/fixed.js";
+import { CONTROL_BASE_PATH, controlBaseText, draftDefinition, definition, MODEL_PATH, START_SHA1 } from "../test-support/fixed.js";
 import { Log, START } from "../test-support/events.js";
 
 function setup(over: Partial<FixedCliDeps> = {}) {
@@ -32,6 +32,8 @@ function setup(over: Partial<FixedCliDeps> = {}) {
     ...over,
   };
   const path = join(root, "experiments", "fixed", "bundle-v-control.json");
+  mkdirSync(join(root, CONTROL_BASE_PATH, ".."), { recursive: true });
+  writeFileSync(join(root, CONTROL_BASE_PATH), controlBaseText());
   return { root, runsRoot, deps, out, err, runs, path };
 }
 
@@ -73,6 +75,7 @@ describe("fixed-run check, approve, run, dry-run", () => {
     expect(await main(["check", "bundle-v-control"], deps)).toBe(0);
     expect(out.join("\n")).toMatch(/confirmatory: 4 control \+ 4 bundle, 900000 ms cap/);
     expect(out.join("\n")).toContain("approval: none");
+    expect(out.join("\n")).toMatch(/control base: full-map-navigation-finals-incumbent \(runs\/experiments\/full-map-navigation\/presets\/finals-incumbent\.json, sha256 [0-9a-f]{64}\) matches outside the switches/);
     expect(await main(["run", "bundle-v-control"], deps)).toBe(1);
     expect(err.at(-1)).toBe("bundle-v-control is not approved; run `just fixed-run approve bundle-v-control` in a terminal");
     expect(await main(["approve", "bundle-v-control"], deps)).toBe(1);
@@ -95,6 +98,18 @@ describe("fixed-run check, approve, run, dry-run", () => {
     expect(await main(["check", "bundle-v-control"], deps)).toBe(1);
     expect(err.at(-1)).toMatch(/start save .* has sha1 f{40}, the definition records 51007c05/);
     expect(await main(["dry-run", "bundle-v-control"], deps)).toBe(1);
+  });
+
+  it("refuses to load when the control base preset is missing or has drifted", async () => {
+    const { deps, err, path, root } = setup();
+    writeFileSync(path, JSON.stringify(definition()));
+    writeFileSync(join(root, CONTROL_BASE_PATH), controlBaseText(undefined, { note: "edited" }));
+    expect(await main(["check", "bundle-v-control"], deps)).toBe(1);
+    expect(err.at(-1)).toMatch(/control base runs\/experiments\/full-map-navigation\/presets\/finals-incumbent\.json has sha256 [0-9a-f]{64}, the definition records/);
+    expect(await main(["run", "bundle-v-control"], deps)).toBe(1);
+    rmSync(join(root, CONTROL_BASE_PATH));
+    expect(await main(["check", "bundle-v-control"], deps)).toBe(1);
+    expect(err.at(-1)).toBe(`control base ${CONTROL_BASE_PATH} is missing`);
   });
 
   it("dry-runs one trial per arm per lane under its own id, with no approval", async () => {

@@ -19,7 +19,21 @@ The full-map-navigation finals were withdrawn by the operator: every arm was dom
 ## Pre-registration (frozen before the first trial)
 
 - Start: the clock-set save (CLOCK_SET), same checkpoint bytes for every trial.
-- Control arm: main after the bundle, decision-point, fade-settle and auto-advance-qualify merges, all eight bundle switches off.
+- Control arm: main after the bundle, decision-point, fade-settle and auto-advance-qualify merges, running the **finals incumbent preset** with all eight bundle switches off and `milestone-stall-stop-v1` off. Control base = `runs/experiments/full-map-navigation/presets/finals-incumbent.json`, preset id `full-map-navigation-finals-incumbent`, sha256 `2a7a2a0fd7cba935ce8631c6ca67770e3cc6833447cc1b3a037e3c46039e0161` (the 504f flag set). It is NOT the checked-in `experiments/full-map-navigation.json` `incumbent` (`navigation-incumbent`).
+  - Decision (orchestrator, 2026-10-15; operator may overturn). Reasons: it is what the finals ran; the decision-point supervisor and loop-guard corrections only act with these switches on; with the supervisor off the loop guard ends trials `stuck` before the cap, which violates "only the wall cap ends a trial".
+  - The definition records it as `controlBase {path, presetId, sha256}`; every load (`check`, `approve`, `run`, `dry-run`) refuses to proceed unless the preset file's bytes match that sha256, its id matches, and the base equals it in sampling, `maxTurns`, `failureLimit` and every feature outside the eight switches and the off-in-both flags.
+  - Flags where the two presets differ (finals incumbent vs checked-in `navigation-incumbent`; "unset" = absent from the preset, default off):
+
+    | Flag | finals incumbent (control base) | checked-in `navigation-incumbent` |
+    |---|---|---|
+    | `interaction-loop-detection-v1` | true | false |
+    | `loop-guard-supervisor-v1` | true | unset |
+    | `text-only-supervisor-v1` | true | unset |
+    | `deterministic-loop-guard-v1` | true | true |
+    | `dialogue-log-v1`, `double-context-window-v1`, `fresh-retry-v1`, `instruction-ledger-v1`, `next-milestone-hint-v1`, `walkable-floor-v1` | false | unset |
+    | `game-evidence-priority-v1`, `named-warp-destinations-v1` (bundle switches) | false | unset |
+    | `milestone-stall-stop-v1` (off in both) | false | unset |
+    | limits | maxTurns 20000, maxWallMs 2700000 (phase caps replace it) | maxTurns 1500, maxWallMs 1800000 |
 - Bundle arm: the same build bytes, switches on: `named-warp-destinations-v1`, `world-destinations-v1`, `game-evidence-priority-v1`, `character-presence-v1`, `navigation-refusal-reasons-v1`, `transition-press-result-v1`, `stall-briefing-v1`, `dialogue-auto-advance-v1`. Every other flag identical between arms.
 - Corrections (bundle fixes, fade-settle, qualification fixes) are in both arms.
 - Confirmatory trials: maxWallMs 900000 (15 min). Cook trials: maxWallMs 3600000 (60 min).
@@ -163,6 +177,7 @@ Any valid trial that still ends before the wall cap is listed in a WARNING table
 - 2026-10-15 22:50 EDT: Cloud review of `5340c08..761e8a6` (diff sha256 `0374e9e8…`). Codex gpt-5.6-sol: BLOCKING, three findings; grok (Cursor): LGTM with notes, triaged by the operator. Operator dispositions: Codex 2 (maxTurns 20000) rejected by operator decision; fix Codex 1, Codex 3 and grok (a), (b), (c). RED for Codex 1 and 3 (ledger: no milestone after the wall cap counts; analysis: Fisher counts a late primary as a miss; runner: one pinned commit for every build check and launch).
 - 2026-10-15 23:05 EDT: Merged main (bundle 4b5b8bf and decision-point screening 954d74f) into the branch. RED for grok (a) a lane survives an unexpected I/O throw, (b) the definition requires both loop-guard switches on and the analysis prints a WARNING table of valid trials that ended before the wall cap, (c) run_start records `evaluation.features` and the classifier checks the eight switches and the off-in-both flags against the arm.
 - 2026-10-15 23:40 EDT: GREEN for the five blockers (RED `19f3784`, `8ea1018`): ledger drops milestones after the wall cap; Fisher counts a late primary as a miss; one pinned commit per run; lanes survive unexpected I/O throws (pause, write status, retry); definition requires both loop-guard switches; analysis WARNING table for valid trials ending before the cap; run_start `evaluation.features` checked against the arm. Plan re-frozen with seed `b70b39b399e5bbae`.
+- 2026-10-15 23:50 EDT: Control base pinned to the finals incumbent (Pre-registration). RED: `controlBaseProblems` (sha256, preset id, sampling, limits, every non-switch flag) and CLI refusal when the preset is missing or drifted (12 failing in fixed-design/fixed-cli).
 
 ## Deferred
 

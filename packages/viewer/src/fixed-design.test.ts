@@ -1,6 +1,10 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { armPreset, definitionProblems, dryRunDefinition, FixedDesignError, generatePlan, parseFixedDefinition, planOrder } from "./fixed-design.js";
-import { definition, draftDefinition, INCUMBENT_FEATURES } from "../test-support/fixed.js";
+
+import { armPreset, controlBaseProblems, definitionProblems, dryRunDefinition, FixedDesignError, generatePlan, parseFixedDefinition, planOrder } from "./fixed-design.js";
+import { CONTROL_BASE_SHA256, controlBaseText, definition, draftDefinition, INCUMBENT_FEATURES } from "../test-support/fixed.js";
+
+const sha = (text: string): string => createHash("sha256").update(text).digest("hex");
 
 describe("generatePlan", () => {
   it("gives every block of four one bundle and one control trial per lane, phases in order", () => {
@@ -115,5 +119,42 @@ describe("trial-ending features", () => {
   it("refuses an enforced loop guard without its supervisor, which would end trials stuck", () => {
     const def = definition({ base: { ...definition().base, features: { ...definition().base.features, "loop-guard-supervisor-v1": false } } });
     expect(definitionProblems(def)).toContain("deterministic-loop-guard-v1 and loop-guard-supervisor-v1 must both be on: otherwise the loop guard can end a trial stuck before its wall cap");
+  });
+});
+
+describe("controlBaseProblems", () => {
+  it("accepts a control base that reproduces the recorded preset outside the switches and off-in-both flags", () => {
+    expect(controlBaseProblems(definition(), controlBaseText())).toEqual([]);
+    // A switch or off-in-both flag the preset sets differently, or lacks, is the design, not drift.
+    const preset = { ...INCUMBENT_FEATURES, "milestone-stall-stop-v1": true } as Record<string, boolean>;
+    delete preset["world-destinations-v1"];
+    const text = controlBaseText(preset);
+    const def = definition({ controlBase: { ...definition().controlBase, sha256: sha(text) } });
+    expect(controlBaseProblems(def, text)).toEqual([]);
+  });
+
+  it("refuses preset bytes whose sha256 differs from the recorded one", () => {
+    const text = controlBaseText({ ...INCUMBENT_FEATURES }, { note: "edited" });
+    expect(controlBaseProblems(definition(), text)).toContain(`control base ${definition().controlBase.path} has sha256 ${sha(text)}, the definition records ${CONTROL_BASE_SHA256}`);
+  });
+
+  it("refuses a base whose flags, sampling, limits or preset id drift from the control base", () => {
+    const text = controlBaseText({ ...INCUMBENT_FEATURES, "interaction-loop-detection-v1": false, "text-only-supervisor-v1": false }, { id: "navigation-incumbent", sampling: { thinkingLevel: "high", maxTokens: 4096 }, limits: { maxTurns: 1500, failureLimit: 3 } });
+    const def = definition({ controlBase: { ...definition().controlBase, sha256: sha(text) } });
+    const problems = controlBaseProblems(def, text);
+    expect(problems).toContain("control base preset id is navigation-incumbent, the definition records full-map-navigation-finals-incumbent");
+    expect(problems).toContain("base feature interaction-loop-detection-v1 is true, the control base has false");
+    expect(problems).toContain("base feature text-only-supervisor-v1 is true, the control base has false");
+    expect(problems).toContain("base sampling differs from the control base");
+    expect(problems).toContain("base limits.maxTurns is 20000, the control base has 1500");
+    const missing = { ...INCUMBENT_FEATURES } as Record<string, boolean>;
+    delete missing["ram-state-v1"];
+    const gone = controlBaseText(missing);
+    expect(controlBaseProblems(definition({ controlBase: { ...definition().controlBase, sha256: sha(gone) } }), gone)).toContain("base feature ram-state-v1 is true, the control base has unset");
+  });
+
+  it("refuses a control base that is not a JSON preset", () => {
+    const def = definition({ controlBase: { ...definition().controlBase, sha256: sha("nope") } });
+    expect(controlBaseProblems(def, "nope")[0]).toMatch(/^control base .* is not a preset/);
   });
 });

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { FixedDefinition } from "../src/fixed-design.js";
 import { generatePlan } from "../src/fixed-design.js";
 
@@ -15,6 +16,14 @@ export const INCUMBENT_FEATURES: Readonly<Record<string, boolean>> = {
   "fresh-retry-v1": false, "named-warp-destinations-v1": false, "milestone-stall-stop-v1": false, "text-only-supervisor-v1": true,
 };
 
+export const CONTROL_BASE_PATH = "runs/experiments/full-map-navigation/presets/finals-incumbent.json";
+export const CONTROL_BASE_ID = "full-map-navigation-finals-incumbent";
+// The finals incumbent preset the control base must reproduce, flag for flag, outside the switches.
+export function controlBaseText(features: Readonly<Record<string, boolean>> = INCUMBENT_FEATURES, over: Record<string, unknown> = {}): string {
+  return `${JSON.stringify({ version: 2, sampling: { thinkingLevel: "medium", maxTokens: 4096 }, id: CONTROL_BASE_ID, target: null, limits: { maxTurns: 20000, maxWallMs: 2_700_000, failureLimit: 3 }, features, ...over }, null, 2)}\n`;
+}
+export const CONTROL_BASE_SHA256 = createHash("sha256").update(controlBaseText()).digest("hex");
+
 export const START_SHA1 = "51007c05d2a4f1f3e0f2b0d0b6c7c4a3e2d1f0a9";
 export const MODEL_PATH = "/models/q.gguf";
 
@@ -26,6 +35,7 @@ export function draftDefinition(overrides: Partial<Omit<FixedDefinition, "plan">
     worklog: "docs/worklogs/active/2026-10-15_bundle-v-control.md",
     primaryMilestone: "RIVAL_MET",
     start: { kind: "save_state", path: "runs/launch-receipts/rival-push-checkpoint/CLOCK_SET.state", sha1: START_SHA1 },
+    controlBase: { path: CONTROL_BASE_PATH, presetId: CONTROL_BASE_ID, sha256: CONTROL_BASE_SHA256 },
     base: { target: null, limits: { maxTurns: 20000, failureLimit: 3, replyFailuresEndRun: false }, sampling: { thinkingLevel: "medium", maxTokens: 4096 }, features: INCUMBENT_FEATURES },
     switches: ["world-destinations-v1", "game-evidence-priority-v1", "named-warp-destinations-v1"],
     offInBoth: ["milestone-stall-stop-v1"],

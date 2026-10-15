@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { run } from "../test-support/frontier-run.js";
-import { HUMAN_REFERENCE, FRONTIER_MILESTONES, frontierReferences, frontierPlot, frontierCoverage, frontierModelColors } from "./frontier.js";
+import { HUMAN_REFERENCE, FRONTIER_MILESTONES, frontierReferences, frontierPlot, frontierModelColors, milestoneStatus } from "./frontier.js";
 import type { WorkbenchRun } from "./workbench-data.js";
 const referenceNames = ["PLAYER_NAME_CONFIRMED", "FIRST_TRUCK_EXIT", "CLOCK_SET", "PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_BEDROOM_REACHED", "RIVAL_MET", "STARTER_CHOSEN", "RUSTBORO_CITY_GYM", "STONE_BADGE"];
 function measured(id: string, times: readonly (number | null)[], controller: "agent" | "human" = "agent"): WorkbenchRun {
@@ -98,19 +98,16 @@ describe("persistent actual native frontier", () => {
     const trainer = measured("trainer", [1000]);
     trainer.splits.push({name:"RUSTBORO_GYM_TRAINER_JOSH_DEFEATED",elapsedMs:2000,segmentMs:1000,seq:20,turn:2,inputTokens:0,outputTokens:0});
     document.body.innerHTML=frontierPlot({human:human(),best:best()},[trainer],900);
+    expect(document.body.textContent).not.toContain("exact times");
     expect(document.body.textContent).not.toContain("GYM TRAINER BATTLES");
     expect(document.querySelector('.wb-gym-checkpoints')).toBeNull();
     expect(frontierReferences([trainer,best()]).best?.id).toBe("dea1");
   });
-  it("retains failed denominators and identifies unsupported and censored outcomes", () => {
+  it("identifies reached, unsupported, pending, censored and excluded milestone outcomes", () => {
     const failed = measured("failed", []), running = measured("running", []), interrupted = measured("interrupted", []); running.status = "live"; interrupted.status = "unresponsive";
     const unknown = run({ id: "old", splits: [] });
-    const html = frontierCoverage([best(), failed, running, interrupted, unknown], "RIVAL_MET");
-    expect(html).toContain("1 / 5"); expect(html).toContain("1 not reached"); expect(html).toContain("1 pending"); expect(html).toContain("1 censored"); expect(html).toContain("1 unsupported");
-    expect(frontierCoverage([], "RIVAL_MET")).toContain("0 / 0");
-    const resumed = best(); if (resumed.config !== null) resumed.config.start = "save_state";
-    expect(frontierCoverage([best(), human(), resumed], "RIVAL_MET")).toContain("1 / 1");
-    expect(frontierCoverage([best(), human(), resumed], "RIVAL_MET")).toContain("2 excluded");
+    const statuses = [best(), failed, running, interrupted, unknown, run({ id: "probe", excluded: "probe" })].map(r => milestoneStatus(r, "RIVAL_MET"));
+    expect(statuses).toEqual(["reached", "not reached", "pending", "censored", "unsupported", "excluded"]);
   });
   it("draws a Clock set resume as a dashed not-from-zero line and keeps it out of the fresh-boot record", () => {
     const resumed = measured("clock", [90000, null, 5000, 120000]);

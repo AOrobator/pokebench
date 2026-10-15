@@ -1,3 +1,4 @@
+import {createHash} from "node:crypto";
 import {expect,it} from "vitest";
 import {ALL_ON,type FeatureSet} from "./features.js";
 import {definitionHash,deriveStatus,experimentArms,parseExperiment,parseNewerExperiment,parseLedger,readinessOf,trialOrder,trialProgress,type Experiment,type LedgerEntry,type ReadinessRun} from "./experiments.js";
@@ -40,6 +41,19 @@ it("reads a definition whose switch landed after this build, without trusting th
  expect(()=>parseNewerExperiment({...newer,title:""})).toThrow(/Invalid experiment/);
  expect(()=>parseNewerExperiment({...newer,changedFeature:"Not An Id"})).toThrow(/Invalid experiment/);
  expect(()=>parseNewerExperiment({...newer,primaryMilestone:"NOWHERE"})).toThrow(/primaryMilestone NOWHERE/);
+});
+
+// Sorted keys, undefined dropped: the definition file's content, independent of key order.
+const stable=(v:unknown):string=>Array.isArray(v)?`[${v.map(stable).join(",")}]`:typeof v==="object"&&v!==null?`{${Object.entries(v).filter(([,x])=>x!==undefined).sort(([a],[b])=>a.localeCompare(b)).map(([k,x])=>`${JSON.stringify(k)}:${stable(x)}`).join(",")}}`:JSON.stringify(v);
+it("hashes the definition as written, so a switch added to the registry later keeps its approval valid",()=>{
+ const {"named-warp-destinations-v1":omitted,...older}=base.incumbent.features as Record<string,boolean>;
+ expect(omitted).toBeDefined();
+ const written={...base,incumbent:{...base.incumbent,features:older}};
+ const e=parseExperiment(written);
+ expect(Object.keys(e.incumbent.features)).toContain("named-warp-destinations-v1");
+ const {queuePosition:_q,...hashed}=written;
+ expect(definitionHash(e)).toBe(createHash("sha256").update(stable(hashed)).digest("hex"));
+ expect(definitionHash(parseExperiment({...written,notes:"n",externalCohort:"c",queuePosition:4}))).toBe(definitionHash(e));
 });
 
 it("rejects malformed definitions, unknown milestones, short arms, tiny budgets and invalid candidates",()=>{

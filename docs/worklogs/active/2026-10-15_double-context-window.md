@@ -27,3 +27,7 @@ slower turns and fewer turns per 30-minute run.
 - [ ] Local merge into main (approved by the operator 2026-10-15 01:22 UTC)
 - Explainer: moved the OFF label off the line, corrected the wiring box source (checked in a browser).
 - Corrected activation note: full results differ from the 7th tool result, turns from turn 21.
+- Review r1 (runs/window-double-review/r1 in the main checkout): Claude CLI LGTM, Cursor Grok LGTM, Cursor GPT lane unavailable (usage limit until 2026-10-17), Codex substituted for the GPT lane. Local think_fast/think_swarm lanes skipped: the 2×2 chain is using think-fast.
+  - Fixed: `FeatureSetSchema` Exclude cast now names the switch; switch copy says presets must keep it OFF with state-only decisions.
+  - Deferred: `live.ts` passing `context.window` to `piLoop` has no test. It is the entrypoint, excluded like the other `contextTools` outputs it sits beside; the `contextTools` and `piLoop` halves are each deletion-tested.
+  - After merge: repin `source.commit` to the merge SHA.

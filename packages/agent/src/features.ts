@@ -164,7 +164,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("next-milestone-hint-v1", "guidance", "NEXT-MILESTONE HINT", null,
     "HINT ARM: names the next main-story milestone to pursue. Adds get_next_milestone (always callable, named in the system prompt) and, whenever a main-path milestone is earned, pins a message saying what was achieved and what the next milestone is. Milestones follow the order a recorded human run earned them. This tells the model where to go, so results measure hinted play. Off: no tool and no message."),
   on("double-context-window-v1", "guidance", "DOUBLED CONTEXT WINDOW", null,
-    "Keeps twice as much recent play in the prompt: up to the last 40 turns (older turns drop 20 at a time) and the last 12 tool results in full with their screenshots (older ones collapse to a one-line summary, 6 at a time). The prompt grows to roughly twice the size, so each turn is slower. Has no effect with state-only decisions. Off: up to the last 20 turns (dropped 10 at a time) and the last 6 full tool results (collapsed 3 at a time)."),
+    "Keeps twice as much recent play in the prompt: up to the last 40 turns (older turns drop 20 at a time) and the last 12 tool results in full with their screenshots (older ones collapse to a one-line summary, 6 at a time). The prompt grows to roughly twice the size, so each turn is slower. Presets must keep it OFF with state-only decisions, which send no history. Off: up to the last 20 turns (dropped 10 at a time) and the last 6 full tool results (collapsed 3 at a time)."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",

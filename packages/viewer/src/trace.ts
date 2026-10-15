@@ -29,10 +29,11 @@ export interface TraceStep {
   readonly seqs: readonly number[];
   readonly kind: RunEvent["type"];
   readonly category: TraceCategory;
-  readonly icon: string;
+  readonly iconHtml: string;
   readonly tone: string;
-  readonly title: string;
-  readonly summary: string;
+  readonly titleHtml: string;
+  readonly summaryHtml: string;
+  // Plain text; traceRow escapes it.
   readonly desc: string;
   readonly status: "error" | "warn" | null;
   readonly body: string | null;
@@ -40,8 +41,20 @@ export interface TraceStep {
 
 class Entry {
   readonly events: RunEvent[];
+  private cached: TraceStep | null = null;
   constructor(first: RunEvent, readonly label: string | null = null) {
     this.events = [first];
+  }
+
+  push(event: RunEvent): void {
+    this.events.push(event);
+    this.cached = null;
+  }
+
+  // Built once per change: a long run rerenders without re-escaping old results.
+  step(): TraceStep {
+    this.cached ??= describe(this);
+    return this.cached;
   }
 }
 
@@ -51,7 +64,7 @@ export class TraceTurn {
   inputTokens: number | null = null;
 
   steps(): TraceStep[] {
-    return this.entries.map(describe);
+    return this.entries.map((entry) => entry.step());
   }
 }
 
@@ -68,7 +81,8 @@ export class TraceBuilder {
     this.version += 1;
     const owner = this.ownerOf(event);
     if (owner !== undefined) {
-      owner.events.push(event);
+      owner.push(event);
+      if (event.type === "tool_result") this.tools.delete(event.id);
       return;
     }
     const entry = new Entry(event, event.type === "loop_guard" && this.loopLabel !== undefined ? this.loopLabel(event) : null);
@@ -97,7 +111,8 @@ export class TraceBuilder {
 
 const ARROW: Readonly<Record<string, string>> = { UP: "↑", DOWN: "↓", LEFT: "←", RIGHT: "→" };
 const chip = (button: string): string => `<span class="chipb">${ARROW[button] ?? ""}${esc(button)}</span>`;
-const firstLine = (text: string): string => text.trim().split("\n")[0] ?? "";
+// One-line summaries are clipped by CSS anyway; the full text stays in the body and the inspector.
+const firstLine = (text: string): string => (text.trim().split("\n")[0] ?? "").slice(0, 300);
 const secs = (ms: number): string => `${(ms / 1000).toFixed(1)}s`;
 const LOOP_KIND = { planning: "planning", observation: "observation", ineffective: "ineffective", cycle: "cycle", rejection: "rejection" } as const;
 const NATIVE_ICON: Readonly<Record<string, readonly [string, string]>> = {
@@ -134,21 +149,21 @@ function describe(entry: Entry): TraceStep {
     case "tool_call": return tool(entry, first);
     case "loop_guard": return guard(entry, first);
     case "milestone": return {
-      ...base(entry), category: "ms", icon: STAR_SVG, tone: "gold", title: esc(`Milestone ${first.name.replace(/_/g, " ")}`),
-      summary: esc([first.kind, first.origin === "present_at_start" ? "already present when run started" : null, first.evidence === undefined ? null : `evidence ${first.evidence.map((s) => `#${String(s)}`).join(", ")}`].filter((x) => x !== null && x !== undefined).join(" · ")),
-      desc: "", status: null, body: null,
+      ...base(entry), category: "ms", iconHtml: STAR_SVG, tone: "gold", titleHtml: esc(`Milestone ${first.name.replace(/_/g, " ")}`),
+      summaryHtml: esc([first.kind, first.origin === "present_at_start" ? "already present when run started" : null, first.evidence === undefined ? null : `evidence ${first.evidence.map((s) => `#${String(s)}`).join(", ")}`].filter((x) => x !== null && x !== undefined).join(" · ")),
+      desc: `#${String(first.seq)}`, status: null, body: null,
     };
     case "native_action": {
       const [icon, tone] = NATIVE_ICON[first.kind] ?? ["ENG", "engine"];
-      return { ...base(entry), category: "eng", icon, tone, title: esc(first.kind.replace(/_/g, " ")), summary: esc(JSON.stringify(first.details)), desc: `frame ${String(first.frame)}`, status: isError(first) ? "error" : null, body: null };
+      return { ...base(entry), category: "eng", iconHtml: icon, tone, titleHtml: esc(first.kind.replace(/_/g, " ")), summaryHtml: esc(JSON.stringify(first.details)), desc: `#${String(first.seq)} · frame ${String(first.frame)} (first observed)`, status: isError(first) ? "error" : null, body: null };
     }
     default: {
       const [icon, title] = RUN_LABEL[first.type] ?? ["EV", first.type];
-      const category: TraceCategory = MEMORY.has(first.type) ? "mem" : ACTION.has(first.type) ? "act" : first.type === "activity" ? "eng" : first.type === "retry" || first.type === "telemetry_error" ? "err" : "run";
-      const text = "text" in first && typeof first.text === "string" && first.type !== "tool_result" ? first.text : null;
+      const category: TraceCategory = MEMORY.has(first.type) ? "mem" : ACTION.has(first.type) ? "act" : first.type === "retry" || first.type === "telemetry_error" ? "err" : "run";
+      const text = "text" in first && typeof first.text === "string" ? first.text : null;
       return {
-        ...base(entry), category, icon, tone: category === "err" ? "error" : category === "mem" ? "teal" : category === "eng" ? "engine" : "ok", title: esc(title),
-        summary: eventText(first) ?? "", desc: text === null ? "" : `${num(text.length)} chars`, status: isError(first) ? "error" : null,
+        ...base(entry), category, iconHtml: esc(icon), tone: category === "err" ? "error" : category === "mem" ? "teal" : "ok", titleHtml: esc(title),
+        summaryHtml: eventText(first) ?? "", desc: `#${String(first.seq)}${text === null ? "" : ` · ${num(text.length)} chars`}`, status: isError(first) ? "error" : null,
         body: text === null ? null : `<pre class="res">${esc(text)}</pre>`,
       };
     }
@@ -159,10 +174,10 @@ function thought(entry: Entry, event: Of<"assistant">): TraceStep {
   const reply = event.text.trim() !== "" && event.text.trim() !== event.thinking.trim() ? `<div class="args">reply: ${esc(event.text)}</div>` : "";
   const error = event.error === undefined ? "" : `<div class="args">model error: ${esc(event.error)}</div>`;
   return {
-    ...base(entry), category: "think", icon: "THK", tone: "think",
-    title: event.thinking === "" ? "Replied" : `Thought for ${secs(event.latency_ms)}`,
-    summary: esc(firstLine(event.thinking || event.text)),
-    desc: `${num(event.usage.output)} out${event.ttft_ms === null ? "" : ` · ttft ${secs(event.ttft_ms)}`}`,
+    ...base(entry), category: "think", iconHtml: "THK", tone: "think",
+    titleHtml: event.thinking !== "" ? `Thought for ${secs(event.latency_ms)}` : event.text.trim() === "" && event.error !== undefined ? "Model error" : "Replied",
+    summaryHtml: esc(firstLine(event.thinking || event.text || (event.error ?? ""))),
+    desc: `#${String(event.seq)} · ${num(event.usage.output)} out${event.ttft_ms === null ? "" : ` · ttft ${secs(event.ttft_ms)}`}`,
     status: event.error === undefined ? null : "error",
     body: `${event.thinking === "" ? "" : `<div class="thought">${esc(event.thinking.trim())}</div>`}${reply}${error}`,
   };
@@ -171,7 +186,7 @@ function thought(entry: Entry, event: Of<"assistant">): TraceStep {
 function resultSummary(result: Of<"tool_result">): string {
   const lines = result.text.split("\n");
   const press = lines.find((line) => line.startsWith("Press result:"));
-  return press === undefined ? firstLine(result.text).replace(/^Navigation: /, "") : press.replace("Press result: ", "");
+  return press === undefined ? firstLine(result.text).replace(/^Navigation: /, "") : firstLine(press.replace("Press result: ", ""));
 }
 
 function tool(entry: Entry, call: Of<"tool_call">): TraceStep {
@@ -179,16 +194,16 @@ function tool(entry: Entry, call: Of<"tool_call">): TraceStep {
   const wait = entry.events.find((e): e is Of<"wait_input"> => e.type === "wait_input");
   const result = entry.events.find((e): e is Of<"tool_result"> => e.type === "tool_result");
   const args = JSON.stringify(call.args ?? null);
-  const icon = call.name === "press" ? "BTN" : call.name === "navigate_to" ? "NAV" : call.name === "observe" ? "EYE" : call.name.slice(0, 3).toUpperCase();
+  const icon = call.name === "press" ? "BTN" : call.name === "navigate_to" ? "NAV" : call.name === "observe" ? "EYE" : esc(call.name.slice(0, 3).toUpperCase());
   const title = press !== undefined ? `Pressed ${press.buttons.map(chip).join("")}` : `<code>${esc(call.name)}</code> <span class="dim">${esc(args.length > 80 ? `${args.slice(0, 80)}…` : args)}</span>`;
   const status = result === undefined ? null : result.is_error ? "error" : /^Navigation: no supported path|unchanged world position/m.test(result.text) ? "warn" : null;
   const details = [`${esc(call.name)}(${esc(args)})`, press === undefined ? null : eventText(press), wait === undefined ? null : eventText(wait)].filter((x) => x !== null).join(" · ");
   const frames = result === undefined || result.frames.length === 0 ? "" : `<div class="args">${result.frames.map((f) => esc(f.path)).join(" · ")}</div>`;
   const body = `<div class="args">${details}</div>${result === undefined ? '<p class="nodata">waiting for result</p>' : `<details class="res-d" open><summary class="res-head"><span class="tog">tool_result · ${esc(result.name)} · ${num(result.text.length)} chars · ${String(result.duration_ms)} ms</span><span>#${String(result.seq)}</span></summary><pre class="res">${esc(result.text)}</pre>${frames}</details>`}`;
   return {
-    ...base(entry), category: "act", icon, tone: status === "error" ? "error" : status === "warn" ? "warn" : "ok", title,
-    summary: result === undefined ? "waiting for result" : `→ ${esc(resultSummary(result))}`,
-    desc: result === undefined ? "" : `${String(result.duration_ms)} ms`, status, body,
+    ...base(entry), category: "act", iconHtml: icon, tone: status === "error" ? "error" : status === "warn" ? "warn" : "ok", titleHtml: title,
+    summaryHtml: result === undefined ? "waiting for result" : `→ ${esc(resultSummary(result))}`,
+    desc: `#${String(call.seq)}${result === undefined ? "" : ` · ${String(result.duration_ms)} ms`}`, status, body,
   };
 }
 
@@ -198,16 +213,18 @@ function guard(entry: Entry, event: Of<"loop_guard">): TraceStep {
   const body = `<div class="thought">${esc(event.message)}</div><div class="args">${entry.label === null ? `evidence ${event.evidence.map((s) => `#${String(s)}`).join(", ")}${"mode" in event ? ` · ${event.mode}` : ""}` : esc(entry.label)}</div>`;
   return {
     ...base(entry), category: supervisor ? "sup" : "guard",
-    icon: supervisor ? "SUP" : "LG", tone: supervisor ? "red" : diagnostic ? "engine" : event.phase === "recovered" ? "ok" : "orange",
-    title: supervisor ? "Supervisor note" : esc(`Loop guard · ${LOOP_KIND[event.kind]} ${diagnostic ? `diagnostic: ${event.phase.replace("_", " ")}` : event.phase}`),
-    summary: esc(firstLine(event.message.replace(/^SUPERVISOR: /, ""))), desc: `call ${String(event.calls)}`, status: null, body,
+    iconHtml: supervisor ? "SUP" : "LG", tone: supervisor ? "red" : diagnostic ? "engine" : event.phase === "recovered" ? "ok" : "orange",
+    titleHtml: supervisor ? "Supervisor note" : esc(`Loop guard · ${LOOP_KIND[event.kind]} ${diagnostic ? `diagnostic: ${event.phase.replace("_", " ")}` : event.phase}`),
+    // Activity history flagged unrecovered enforced guards as errors; the supervisor row stays plain by operator request.
+    summaryHtml: esc(firstLine(event.message.replace(/^SUPERVISOR: /, ""))), desc: `#${String(event.seq)} · call ${String(event.calls)}`,
+    status: !supervisor && !diagnostic && event.phase !== "recovered" ? "error" : null, body,
   };
 }
 
 // Every row has the same anatomy: icon · title · one-line summary · desc · status.
 export function traceRow(step: TraceStep, gutter?: string): string {
   const status = step.status === "error" ? '<span class="st error">error</span>' : step.status === "warn" ? '<span class="st warn">no effect</span>' : "";
-  const head = `${gutter === undefined ? "" : `<span class="tg">${esc(gutter)}</span>`}<span class="tl-icon ic-${step.tone}">${step.icon}</span><span class="tl-title">${step.title}</span><span class="tl-res">${step.summary}</span>${step.desc === "" ? "" : `<span class="tl-desc">${esc(step.desc)}</span>`}${status}`;
+  const head = `${gutter === undefined ? "" : `<span class="tg">${esc(gutter)}</span>`}<span class="tl-icon ic-${step.tone}">${step.iconHtml}</span><span class="tl-title">${step.titleHtml}</span><span class="tl-res">${step.summaryHtml}</span>${step.desc === "" ? "" : `<span class="tl-desc">${esc(step.desc)}</span>`}${status}`;
   const attrs = `class="tl" data-key="${String(step.key)}" data-seqs="${step.seqs.join(" ")}" data-c="${step.category}"`;
   if (step.body === null) return `<div ${attrs}><div class="tl-row">${head}<span class="chev blank"></span></div></div>`;
   return `<details ${attrs}><summary class="tl-row">${head}<span class="chev">›</span></summary><div class="tl-body">${step.body}</div></details>`;
@@ -235,16 +252,24 @@ function turnHead(turn: number, ms: number | null, startMs: number | null, token
 // Newest turn first; inside a turn, rows keep seq order.
 export function traceHtml(turns: readonly TraceTurn[], on: ReadonlySet<TraceCategory>, options: TraceOptions): string {
   const groups: string[] = [];
+  let more = 0;
   const live = options.live;
   if (live !== null && !turns.some((t) => t.turn === live.turn)) groups.push(turnHead(live.turn, null, null, null) + LIVE_ROW);
-  for (const turn of [...turns].reverse()) {
-    const rows = turn.steps().filter((step) => on.has(step.category)).map((step) => traceRow(step));
+  for (let i = turns.length - 1; i >= 0; i -= 1) {
+    const turn = turns[i] as TraceTurn;
+    const steps = turn.steps().filter((step) => on.has(step.category));
+    if (steps.length === 0 && live?.turn !== turn.turn) continue;
+    // Only the turns on screen become HTML; the rest are counted.
+    if (groups.length >= options.limit) {
+      more += 1;
+      continue;
+    }
+    const rows = steps.map((step) => traceRow(step));
     if (live?.turn === turn.turn) rows.push(LIVE_ROW);
-    if (rows.length > 0) groups.push(turnHead(turn.turn, turn.ms, options.startMs, turn.inputTokens) + rows.join(""));
+    groups.push(turnHead(turn.turn, turn.ms, options.startMs, turn.inputTokens) + rows.join(""));
   }
   if (groups.length === 0) return '<p class="nodata">no recorded events</p>';
-  const more = groups.length - options.limit;
-  return groups.slice(0, options.limit).join("") + (more > 0 ? `<button type="button" class="pbtn trace-more" data-trace-more>SHOW ${String(Math.min(more, options.limit))} OLDER TURNS</button>` : "");
+  return groups.join("") + (more > 0 ? `<button type="button" class="pbtn trace-more" data-trace-more>SHOW ${String(Math.min(more, options.limit))} OLDER TURNS</button>` : "");
 }
 
 // The side panel's earlier steps: agent and harness only, newest turn first.

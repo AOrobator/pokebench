@@ -101,8 +101,8 @@ Every recorded string goes through `esc`. Tool result text is shown in `<pre>` o
   - build ok; `pnpm -r lint` clean
   - agent 1066 passed; viewer 615 passed (95.2/91.0/94.3), `app.ts` 95.1/84.9/94.6, `trace.ts` 99.3/92.9/100
   - Python unchanged since M1 (1877 passed)
-- [ ] COMMIT (GREEN)
-- [ ] Review
+- [x] COMMIT (GREEN): `feat(viewer): agent trace page replaces activity history` (6bd997c)
+- [ ] Review round 2: covers M1 fixes + M2 together
 
 **M3 — Side panel Emerald box + earlier rows + identity strip**
 - [ ] Write tests:
@@ -159,7 +159,21 @@ Grok 4.5 (BLOCKING, 7 findings, overlapping):
 - loop-guard attribution lost (already added in M2 via the `TraceBuilder` labeler)
 - more escaping tests
 
-All are being fixed in one follow-up commit after M2 GREEN.
+All are fixed in `fix(viewer): address agent trace review round 1`:
+- Exhaustive `SAMPLES` table, typed by `RunEvent["type"]`, checking:
+  - shown/hidden parity with `eventText`
+  - default-chip visibility
+  - escaping of every string
+- Steps cached per entry and invalidated on push. `traceHtml` builds HTML only for the turns on screen (2,000-turn test). Summaries clipped to 300 chars.
+- Icon escaped. Fields renamed to `iconHtml`/`titleHtml`/`summaryHtml`.
+- Guards flagged as errors again when unrecovered and enforced. The supervisor row stays plain: this is an operator design decision, recorded here.
+- Rows show `#seq`; emulator rows say "first observed". Orphan tool_result gets a full body. Tool map entries are dropped once the result arrives. "Model error" title. Exact-kinds test. INV-3 compares every descendant's class.
+- `activity` moved to RUN (on by default).
+- Guards deleted once, each test went red, then restored:
+  - icon escape (2 red)
+  - step cache (1 red)
+  - limit skip (2 red)
+- Gates: lint clean; viewer 623 passed (95.2/91.0/94.3), `trace.ts` 99.4/93.8/100; agent 1066 passed.
 
 ## Boy Scout Log
 

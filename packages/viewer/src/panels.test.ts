@@ -438,7 +438,7 @@ it("shows creation before name confirmation with recorded baseline and best delt
 
 it("shows escaped loop evidence in the action log",()=>{
   const log=bare();const event=log.add(100,{type:"loop_guard",turn:1,kind:"cycle",phase:"warning",message:"Reassess <now>",calls:9,evidence:[4,7]});
-  const html=eventText(event);expect(html).toContain("Loop cycle warning");expect(html).toContain("Reassess &lt;now&gt;");expect(html).toContain("#4, #7");expect(stepOf(event)).toMatchObject({status:null,tone:"orange",category:"guard"});
+  const html=eventText(event);expect(html).toContain("Loop cycle warning");expect(html).toContain("Reassess &lt;now&gt;");expect(html).toContain("#4, #7");expect(stepOf(event)).toMatchObject({status:"error",tone:"orange",category:"guard"});
 });
 
 it("distinguishes native proof, provisional claims and historical completion", () => {

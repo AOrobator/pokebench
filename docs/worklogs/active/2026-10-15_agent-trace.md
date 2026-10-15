@@ -135,8 +135,8 @@ Browser verification so far, at 1440×900:
 
 ## Closing the Loop
 
-- [ ] ASK USER: merge `claude/agent-trace` into main
-- [ ] ASK USER: restart the 8790 viewer on main
+- [x] ASK USER: merge `claude/agent-trace` into main. Operator said "go" at 13:42Z; merged as e8af7a7 (--no-ff, no push). Gates re-run first on fa66263: agent 1066, viewer 642, Python 1877 passed; coverage above 90; lint and build clean.
+- [x] ASK USER: restart the 8790 viewer on main. `just viewer-main` gives "viewer on 127.0.0.1:8790 at e8af7a7". Verified on live run `…0875` at 1440×900: AGENT TRACE has 154 rows, the side panel 64, the identity strip shows, ACTIVITY HISTORY is gone, and rows in turns already on screen kept their elements through live updates.
 
 ## Session Log
 

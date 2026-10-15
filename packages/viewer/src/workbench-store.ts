@@ -67,6 +67,17 @@ function boundedLedger(path: string): unknown[] {
   if (lstatSync(path).isSymbolicLink() || statSync(path).size > MAX_PLAN_BYTES) throw new Error("Cohort ledger exceeds metadata bounds");
   return readFileSync(path, "utf8").split("\n").filter(line => line.trim() !== "").map((line): unknown => JSON.parse(line));
 }
+const RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+// The runner may be mid-append: an unterminated last line that is not JSON yet is not read.
+function untorn(text: string): string {
+  const cut = text.lastIndexOf("\n") + 1, last = text.slice(cut);
+  if (last.trim() === "") return text;
+  try { JSON.parse(last); return text; } catch { return text.slice(0, cut); }
+}
+// The plan shape applyHistoricalProvenance reads (order and presets).
+function provenancePlan(path: string): boolean {
+  try { const plan = metadata(path).value; return record(plan) && Array.isArray(plan.order) && record(plan.presets); } catch { return false; }
+}
 function plans(root: string): string[] {
   const found: string[] = []; const visit = (dir: string, depth: number): void => {
     if (!existsSync(dir)) return;
@@ -79,12 +90,12 @@ function plans(root: string): string[] {
   }; visit(join(root, "launch-receipts"), 0); return found;
 }
 async function cohortMembership(root: string): Promise<{ failures: Map<string, string>; membership: Map<string, string>; problems: string[] }> {
-  const failures = new Map<string, string>(), membership = new Map<string, string>(), problems: string[] = [], accepted = new Set<string>(), claimed = new Set<string>();
+  const failures = new Map<string, string>(), membership = new Map<string, string>(), problems: string[] = [], accepted = new Set<string>(), claimed = new Set<string>(), reserved = new Set<string>();
   for (const path of plans(root)) {
     try {
       const receipt = metadata(path), raw = receipt.value;
       if (record(raw) && raw.id === "navigation-memory-think-fast-n4" && Array.isArray(raw.order)) {
-        claimed.add(dirname(path));
+        claimed.add(dirname(path)); reserved.add(raw.id);
         const ledgerPath = join(dirname(path), "trials.jsonl");
         const rows: unknown[] = existsSync(ledgerPath) ? boundedLedger(ledgerPath) : [];
         if (typeof raw.root !== "string" || realpathSync(join(raw.root, "runs")) !== realpathSync(root)) throw new Error("Navigation receipt root does not own this run store");
@@ -98,7 +109,8 @@ async function cohortMembership(root: string): Promise<{ failures: Map<string, s
         continue;
       }
       if (!record(raw) || !Array.isArray(raw.trials) || !Array.isArray(raw.lanes)) continue;
-      claimed.add(dirname(path)); if (typeof raw.id === "string") claimed.add(join(root, "launch-receipts", raw.id));
+      claimed.add(dirname(path));
+      if (typeof raw.id === "string") { reserved.add(raw.id); if (RUN_ID.test(raw.id) && !raw.id.includes("..")) claimed.add(join(root, "launch-receipts", raw.id)); }
       const m = prepareComparison(raw), ledgerPath = join(root, "launch-receipts", m.id, "trials.jsonl");
       if (join(m.repoRoot, "runs") !== root || !existsSync(ledgerPath)) continue;
       if (lstatSync(ledgerPath).isSymbolicLink() || statSync(ledgerPath).size > MAX_PLAN_BYTES) throw new Error("Cohort ledger exceeds metadata bounds");
@@ -121,7 +133,7 @@ async function cohortMembership(root: string): Promise<{ failures: Map<string, s
     } catch (error) { problems.push(`Comparison receipt: ${errorText(error)}`); }
   }
   experimentCohorts(root, failures, membership, problems);
-  handRunCohorts(root, claimed, failures, membership, problems);
+  handRunCohorts(root, claimed, reserved, failures, membership, problems);
   return { failures, membership, problems };
 }
 // Experiment-queue ledgers under runs/experiments/<id>/: trials.jsonl joins cohort experiment:<id>
@@ -137,8 +149,7 @@ function experimentCohorts(root: string, failures: Map<string, string>, membersh
       if (!existsSync(path)) continue;
       try {
         if (lstatSync(path).isSymbolicLink() || statSync(path).size > MAX_PLAN_BYTES) throw new Error("Experiment ledger exceeds metadata bounds");
-        // The runner may be mid-append: an unterminated last line is not read yet.
-        const raw = readFileSync(path, "utf8"), text = raw.endsWith("\n") ? raw : raw.slice(0, raw.lastIndexOf("\n") + 1);
+        const text = untorn(readFileSync(path, "utf8"));
         const { entries, problems: bad } = file === "trials.jsonl" ? parseLedger(text) : parseFinalsLedger(text);
         // All or nothing: a ledger with any unreadable row contributes no cohort annotations.
         if (bad.length > 0) { problems.push(...bad.map(p => `Experiment ${entry.name} ${label} ${p}`)); continue; }
@@ -154,7 +165,6 @@ function experimentCohorts(root: string, failures: Map<string, string>, membersh
     }
   }
 }
-const RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 function runOf(row: Record<string, unknown>): string | null {
   const run = row.run ?? row.run_id;
   return typeof run === "string" && RUN_ID.test(run) && !run.includes("..") ? run : null;
@@ -189,14 +199,14 @@ function jsonRows(path: string): Record<string, unknown>[] {
 // Hand-run cohorts under runs/launch-receipts/<dir>/ that no verified receipt claimed: runs named by
 // trials.jsonl rows or manifest.json attempts join the manifest's id (else the directory name).
 // They never relabel a run that a verified receipt or the experiment queue already owns, never take
-// a verified cohort's name, and a directory with plan.json is left to historical provenance.
-function handRunCohorts(root: string, claimed: ReadonlySet<string>, failures: Map<string, string>, membership: Map<string, string>, problems: string[]): void {
+// a verified cohort's name, and a directory whose plan.json historical provenance can use is left to it.
+function handRunCohorts(root: string, claimed: ReadonlySet<string>, reserved: ReadonlySet<string>, failures: Map<string, string>, membership: Map<string, string>, problems: string[]): void {
   const base = join(root, "launch-receipts");
   if (!existsSync(base)) return;
-  const owned = new Set(membership.keys()), verified = new Set(membership.values()), source = new Map<string, string>();
+  const owned = new Set(membership.keys()), verified = new Set([...reserved, ...membership.values()]), source = new Map<string, string>();
   for (const entry of readdirSync(base, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
     const here = join(base, entry.name);
-    if (!entry.isDirectory() || claimed.has(here) || existsSync(join(here, "plan.json"))) continue;
+    if (!entry.isDirectory() || claimed.has(here) || provenancePlan(join(here, "plan.json"))) continue;
     try {
       const manifestPath = join(here, "manifest.json"), ledgerPath = join(here, "trials.jsonl");
       const manifest = existsSync(manifestPath) ? metadata(manifestPath).value : null;

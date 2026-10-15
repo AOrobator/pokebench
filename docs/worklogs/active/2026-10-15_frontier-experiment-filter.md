@@ -28,6 +28,11 @@ attempt (30b2, 2126, 5521) is excluded from the 2×2 by its README; early baseli
 - [x] Claude CLI review: LGTM with hardening notes. Applied: plan.json dirs left to provenance, hand-run
   ids may not take a verified or experiment: name, duplicate runs across receipts reported, finals and
   queue ledgers tolerate a torn last line, plus tests (viewer 652/652, coverage 95.39 / 91.16 / 94.41, lint clean)
-- [ ] Grok review
+- [x] HARDENING COMMIT: `fix: harden hand-run cohorts per Claude review` (1112755)
+- [x] Grok review: CHANGES REQUESTED (torn-line trim dropped complete rows; unvalidated id claim;
+  verified names reserved only after membership). Claude re-review: CHANGES REQUESTED (plan.json skip
+  dropped think-fast-objectives-off-30m). Fixed: only provenance-shaped plans skip, a last line is dropped
+  only when it is not JSON yet, ids claim a dir only as one safe segment, every strict receipt id is reserved.
+- [ ] Re-review round 3
 - [ ] Operator merge approval; rebase onto main first (three parallel viewer sessions)
 - [ ] 8790 restart only with operator OK: the finals runner lives in that process

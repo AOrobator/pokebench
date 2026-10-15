@@ -57,6 +57,7 @@ export const SWITCHABLE_FEATURES = [
   "transition-press-result-v1",
   "stall-briefing-v1",
   "battle-details-v2",
+  "dialogue-auto-advance-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -189,6 +190,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("transition-press-result-v1", "guidance", "TRANSITION PRESS RESULTS", "press-result-v1", "Press results name what really happened at transitions: warped from one map and tile to another (with both map names), moved by a script while field controls were locked (not by the press), and a conversation restarted with text already shown. Off: warps read as ordinary moves, scripted motion is reported as the press's movement, and a restarted conversation reads as an interface change."),
   on("stall-briefing-v1", "guard", "STALL BRIEFING", "loop-guard-supervisor-v1", "Posts the loop supervisor's briefing for stalls the loop guard does not detect: walking back and forth between the same two maps (on the second round trip), and every 5 minutes of play without a new milestone. The run continues. Off: briefings only when the loop guard detects a loop."),
   on("battle-details-v2", "observation", "BATTLE DETAILS V2", "expanded-menu-battle-information-v1", "In battle, replaces the raw battler lines with what each action allows, from game RAM and ROM tables: the battle kind (wild or trainer, PROF. BIRCH rescue), the 2x2 FIGHT/BAG/POKéMON/RUN menu with the highlighted option, and an allowed/REFUSED verdict with the game's own message only for actions the game can refuse (RUN in trainer battles, the Birch rescue, trapping abilities, MEAN LOOK/wrap/INGRAIN; BAG in link and Frontier battles; switching while trapped). RUN also gives the guaranteed-escape speed check or the escape formula. The foe gets everything a talented player would remember: types, exact HP, status, ability, held item, stats, non-neutral stat stages, volatile conditions and every move with type, physical/special/status, power, accuracy and PP. Your active Pokémon gets the same plus its moves in menu order with the highlighted move and 0-PP refusals; every party member gets types, ability, item, HP, status, whether it can switch in, and its full moveset. Usable, unusable and ball items are separated (balls are blocked and lost in trainer battles). An empty bag reads \"Bag: empty\". Disable, Taunt, Torment, Imprison, Encore, Choice Band locks, the escape-try counter and battle text are not read. Off: today's expanded battle lines (Battle state, Battler, Battle input) and a bare \"Bag: \" for an empty bag."),
+  on("dialogue-auto-advance-v1", "guidance", "DIALOGUE AUTO-ADVANCE", "active-field-message-buffer-v1", "As soon as a press or navigate_to opens or continues a field message, the harness itself advances it with B, waiting for each page to finish printing, until the next decision point: free field control, a YES/NO or other menu (named with its options and highlighted choice), the naming screen, a battle, a screen change, or a cutscene that keeps controls locked with no message (waited out for up to 10 s). Buttons left in the model's batch once the conversation opens are not sent, so extra A presses cannot restart it. At most 50 automatic presses and 90 s per call, and a stop at either cap says so. The result lists every page shown, whole and in order, with speaker (the game's NAME: prefix, else the faced sprite kind, labelled as such), map, position and turn; get_dialogue searches every recorded page by speaker, words, map or recency. Each advance is recorded as a dialogue_auto_advance event. Needs the dialogue phase readout. Off: every requested button is sent and the model advances dialogue itself, one batch per turn; no get_dialogue."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",
@@ -224,10 +226,12 @@ export function featureInfo(id: FeatureId): FeatureInfo {
 }
 
 export function dependencyProblems(features: FeatureSet): string[] {
-  return SWITCHABLE_FEATURES.flatMap((id) => {
+  return [...SWITCHABLE_FEATURES.flatMap((id) => {
     const needs = featureInfo(id).needs;
     return features[id] && needs !== null && !features[needs] ? [`${id} needs ${needs}`] : [];
-  });
+  }),
+  // Waiting for a page to finish printing reads the dialogue phase as well as the buffer.
+  ...(features["dialogue-auto-advance-v1"] && !features["field-dialogue-phase-v1"] ? ["dialogue-auto-advance-v1 needs field-dialogue-phase-v1"] : [])];
 }
 
 // Observation switches the game server applies to its readout.
@@ -279,6 +283,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("transition-press-result-v1"),
     ...when("stall-briefing-v1"),
     ...when("battle-details-v2"),
+    ...when("dialogue-auto-advance-v1"),
   ];
 }
 
@@ -289,5 +294,5 @@ export function featuresOf(harnessFeatures: readonly string[]): FeatureSet {
 
 export function stateOnlyProblems(features:FeatureSet):string[]{
  if(!features["state-only-decisions-v1"])return [];
- return (["objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
+ return (["objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
 }

@@ -100,3 +100,13 @@ it("shows instruction ledger delivery on the timeline without claiming a game pr
  const log=new Log();log.add(0,START);log.add(100,{type:"ledger_context",turn:1,text:"INSTRUCTION LEDGER",evidence:[4]});
  const svg=lanesSvg(view(log),BASE_MS+1000);expect(svg).toContain("Instruction ledger delivered · 1 references");expect(svg).not.toContain('class="m-press b-A"');
 });
+
+it("marks each dialogue auto-advance on the timeline with its presses, pages, stop and dropped inputs, inside the window only",()=>{
+ const log=new Log();log.add(0,START);
+ log.add(100,{type:"dialogue_auto_advance",turn:1,tool_call_id:"c1",tool:"press",requested:["A","A","A"],sent:["A"],dropped:["A","A"],auto_presses:2,pages:[{state_seq:3,map:"LAB",map_id:[1,4],position:{x:6,y:5},speaker:"SCIENTIST_1",speaker_source:"faced_sprite",text:"Hi"}],stop:"field_free",detail:"closed",duration_ms:400});
+ log.add(200,{type:"dialogue_auto_advance",turn:1,tool_call_id:"c2",tool:"navigate_to",requested:[],sent:[],dropped:[],auto_presses:1,pages:[],stop:"menu",detail:"menu",duration_ms:400});
+ const svg=lanesSvg(view(log),BASE_MS+1000);
+ expect(svg).toContain("Dialogue auto-advanced · B ×2 · 1 pages · stopped: field free · 2 inputs not sent");
+ expect(svg).toContain("Dialogue auto-advanced · B ×1 · 0 pages · stopped: menu<");
+ expect(lanesSvg(view(log),BASE_MS+50)).not.toContain("Dialogue auto-advanced");
+});

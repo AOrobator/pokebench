@@ -614,6 +614,7 @@ it("links the fresh retry card to its explainer",()=>{
 it("links the named warp destinations card to its explainer",()=>{
  expect(FEATURE_EXPLAINERS["named-warp-destinations-v1"]).toBe("named-warp-destinations-v1.html");
  expect(FEATURE_EXPLAINERS["character-presence-v1"]).toBe("character-presence-v1.html");
+ expect(FEATURE_EXPLAINERS["dialogue-auto-advance-v1"]).toBe("dialogue-auto-advance-v1.html");
 });
 
 it("links the stall briefing card to its explainer",()=>{

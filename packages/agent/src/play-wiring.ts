@@ -1,5 +1,8 @@
 import type {AgentMessage,AgentTool} from "@mariozechner/pi-agent-core";
+import {withDialogueAutoAdvance,type AutoAdvanceRecorder} from "./dialogue-auto-advance.js";
 import {dialogueLog} from "./dialogue-log.js";
+import type {StateSource} from "./game-state.js";
+import {withNavigation,type NavigationPorts} from "./navigation.js";
 import type {FeatureSet} from "./features.js";
 import {instructionLedger} from "./instruction-ledger.js";
 import {nextMilestoneHint} from "./milestone-hint.js";
@@ -58,4 +61,9 @@ export function stallStop(features:FeatureSet,recorder:Pick<RunRecorder,"subscri
  if(!features["milestone-stall-stop-v1"])return null;
  const stop=new StallStop(control,STALL_STOP_MS,elapsed,stalled);recorder.subscribe(event=>{stop.observe(event);});
  return stop;
+}
+
+// The game tools a play run hands the model: ordinary tools, navigate_to and dialogue auto-advance per switch.
+export function playGameTools(base:readonly AgentTool[],features:FeatureSet,state:StateSource,recorder:AutoAdvanceRecorder,gate?:NavigationPorts["gate"]):AgentTool[]{
+ return withDialogueAutoAdvance(withNavigation(base,features,state,gate),features,{state,recorder});
 }

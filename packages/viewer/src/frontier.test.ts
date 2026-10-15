@@ -1,6 +1,6 @@
+// @vitest-environment happy-dom
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-// @vitest-environment happy-dom
 import { describe, expect, it } from "vitest";
 import { run } from "../test-support/frontier-run.js";
 import { HUMAN_REFERENCE, FRONTIER_MILESTONES, frontierReferences, frontierPlot, frontierCoverage, frontierModelColors } from "./frontier.js";

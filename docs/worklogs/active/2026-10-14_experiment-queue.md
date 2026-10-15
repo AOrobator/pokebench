@@ -244,3 +244,5 @@ Pending.
 - Fixed now: 8790 restarted from a clean detached worktree at main (/private/tmp/pokebench-viewer); queue 33, pending 5, no problems.
 - RED: parseExperiment names a switch it does not know (changedFeature or incumbent feature) and says to rebuild on current main, instead of a bare enum error.
 - GREEN: unknownSwitch pre-check (switchable plus measurement ids). `just viewer-main` (scripts/viewer-main.sh) moves the viewer worktree to main, builds it and restarts 8790; ran it for real (viewer at 9374f61, no problems). feature-switch skill step 9: run `just viewer-main` after every switch merge. Gates: agent 1040, experiments.ts 97.81/95.72/100, lint clean.
+- COMMIT: `fix(viewer): name switches a stale build does not know; just viewer-main restarts 8790 from main` (20f4c10)
+- Review (claude -p): three script findings, all fixed: refuse when the old viewer still holds 8790 and only report success when the new child is the listener; `git worktree prune` before re-adding after /private/tmp is wiped; a vanished pid no longer aborts the kill loop. Reran for real: viewer at 9374f61, no problems.

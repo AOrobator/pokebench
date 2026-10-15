@@ -552,6 +552,10 @@ it("maps game evidence priority to a tracked explainer, like every other mapped 
  for(const file of Object.values(FEATURE_EXPLAINERS))expect(existsSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url)))).toBe(true);
 });
 
+it("links the battle details v2 card to its tracked explainer",()=>{
+ expect(FEATURE_EXPLAINERS["battle-details-v2"]).toBe("battle-details-v2.html");
+});
+
 it("documents recall_dialogue and links the dialogue log explainer",()=>{
  const log=new Log();log.add(0,{...START,tools:["observe","press","recall_dialogue"]});
  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log));

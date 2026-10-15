@@ -11,6 +11,7 @@ import struct
 from dataclasses import dataclass
 from pathlib import Path
 
+from pokebench_env.battle_details import BattleDetails, read_battle_details
 from pokebench_env.battle_state import BattleState, read_battle_state
 from pokebench_env.character_presence import StoryCharacters, read_story_characters
 from pokebench_env.game_screen import ReadMemory, read_screen
@@ -98,6 +99,7 @@ class GameState:
     blackout_active: bool | None = None
     destination_names: tuple[tuple[int, int, str], ...] = ()
     story_characters: StoryCharacters | None = None
+    battle_details: BattleDetails | None = None
 
 
 def _u32(read: ReadMemory, address: int) -> int:
@@ -223,6 +225,7 @@ def read_game_state(
     )
     targets = read_targets(read, map_id) if nearby is not None else None
     party = _party(read)
+    resources = read_resources(read, save1, save2)
     ownership = read_party_ownership(read, party)
     context = (
         read_world_context(
@@ -240,8 +243,9 @@ def read_game_state(
     return GameState(
         blackout_active=screen.callback2 == 0x08085F59,
         game_stats=_game_stats(read, save1, save2),
-        resources=read_resources(read, save1, save2),
+        resources=resources,
         battle=battle,
+        battle_details=read_battle_details(read, battle, party, resources),
         running=read_running_permission(read),
         screen=screen.label,
         started=True,

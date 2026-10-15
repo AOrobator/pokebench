@@ -13,7 +13,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ControlFile, RunControl, controlLine } from "./run-control.js";
 import { PRESS_TIMING, pressTool } from "./game-tools.js";
-import { DOUBLE_WINDOW, Governor, NUDGE, OMITTED_FRAME, WINDOW, contextWindow, keepCount, piLoop, play, slideWindow, type Loop, type Window } from "./harness.js";
+import { DOUBLE_WINDOW, Governor, NUDGE, OMITTED_FRAME, WINDOW, contextWindow, keepCount, piLoop, play, slideWindow, withoutTextOnlyReplies, type Loop, type Window } from "./harness.js";
 import { ALL_ON } from "./features.js";
 
 const usage = {
@@ -80,6 +80,20 @@ function turnsOf(n: number): AgentMessage[] {
 function resultTexts(messages: AgentMessage[]): string[] {
   return messages.flatMap((m) => (m.role === "toolResult" ? [m.content.map((p) => (p.type === "text" ? p.text : "<img>")).join(" | ")] : []));
 }
+
+describe("withoutTextOnlyReplies", () => {
+  it("drops replies without a tool call and keeps everything else, nudges included", () => {
+    const nudge: AgentMessage = { role: "user", content: NUDGE, timestamp: 0 };
+    const kept = [TASK, reply(), toolResult()];
+    const dropped = [reply([]), reply([], "length")];
+    expect(withoutTextOnlyReplies([...kept, dropped[0] as AgentMessage, nudge, dropped[1] as AgentMessage, nudge])).toEqual([...kept, nudge, nudge]);
+  });
+
+  it("returns the same messages when every reply called a tool", () => {
+    const messages = [TASK, ...turnsOf(3)];
+    expect(withoutTextOnlyReplies(messages)).toEqual(messages);
+  });
+});
 
 describe("slideWindow", () => {
   const window: Window = { turns: { max: 20, chunk: 10 }, results: { max: 6, chunk: 3 } };
@@ -419,6 +433,27 @@ describe("piLoop on the pinned pi-agent-core loop", () => {
     expect(presses).toEqual(["A", "B"]);
     expect(seen[1]?.at(-1)).toMatchObject({ role: "user", content: NUDGE });
     expect(retries).toEqual([{ reason: "text-only reply", attempt: 1, limit: 3 }]);
+  });
+
+  it("retries without the text-only reply when the context drops it", async () => {
+    const controller = new AbortController();
+    const { g, retries } = governor({ maxTurns: 3 });
+    const seen: Message[][] = [];
+    const loop = piLoop({
+      systemPrompt: "play",
+      tools: [fakePress(() => undefined)],
+      base: { model: MODEL, convertToLlm: (messages) => messages as Message[] },
+      governor: g,
+      transformContext: (messages) => Promise.resolve(withoutTextOnlyReplies(messages)),
+      emit: () => undefined,
+      signal: controller.signal,
+      streamFn: scriptedModel([pressReply(["A"]), reply([]), pressReply(["B"])], seen),
+    });
+    expect(await play(TASK, g, loop)).toBe("budget");
+    expect(retries).toEqual([{ reason: "text-only reply", attempt: 1, limit: 3 }]);
+    expect(seen[2]?.at(-1)).toMatchObject({ role: "user", content: NUDGE });
+    expect(seen[2]?.at(-2)?.role).toBe("toolResult");
+    expect(seen[2]?.filter((m) => m.role === "assistant")).toHaveLength(1);
   });
 
   it("drops an errored reply, logs a retry and resumes from the last good message", async () => {

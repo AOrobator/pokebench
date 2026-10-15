@@ -70,6 +70,12 @@ export function slideWindow(messages: AgentMessage[], window: Window = WINDOW): 
   return [task, ...shown.slice(from)];
 }
 
+// A reply that called no tool, left out of what the model is sent next, so a
+// retry is a fresh sample rather than a continuation of the failed reply.
+export function withoutTextOnlyReplies(messages: AgentMessage[]): AgentMessage[] {
+  return messages.filter((message) => message.role !== "assistant" || message.content.some((part) => part.type === "toolCall"));
+}
+
 export interface Limits {
   readonly maxTurns: number;
   readonly maxWallMs: number;

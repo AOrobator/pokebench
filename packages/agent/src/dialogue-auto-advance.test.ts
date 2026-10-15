@@ -1,10 +1,11 @@
 import {describe,expect,it} from "vitest";
+import {Type} from "typebox";
 import {mkdtempSync,readFileSync,rmSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {AUTO_ADVANCE_LIMITS,DialogueRecord,withDialogueAutoAdvance,type AutoAdvanceRecorder} from "./dialogue-auto-advance.js";
-import {observeTool,pressTool,type Clock} from "./game-tools.js";
+import {isCheckedPress,observeTool,pressTool,type CheckedPressTool,type Clock} from "./game-tools.js";
 import {withNavigation} from "./navigation.js";
 import {playGameTools} from "./play-wiring.js";
 import {flagFeatures} from "./play-preset.js";
@@ -292,7 +293,7 @@ describe("navigate_to and the dialogue record",()=>{
  it("leaves a navigate_to result alone when no dialogue opens",async()=>{
   const game=new FakeGame(SCIENTIST);const rec=memoryRecorder();
   const result={content:[{type:"text" as const,text:"Navigation: arrived"}],details:{state:game.state()}};
-  const nav:AgentTool={name:"navigate_to",label:"n",description:"walk",parameters:{} as never,execute:()=>Promise.resolve(result)};
+  const nav:AgentTool={name:"navigate_to",label:"n",description:"walk",parameters:Type.Object({}),execute:()=>Promise.resolve(result)};
   const press=pressTool(URL_BASE,{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},game.fetch);
   const tools=withDialogueAutoAdvance([observeTool(URL_BASE,game.fetch),press,nav],ON,{state:game.read,recorder:rec.api});
   expect(await tools.find(t=>t.name==="navigate_to")?.execute("n",{})).toBe(result);
@@ -300,7 +301,7 @@ describe("navigate_to and the dialogue record",()=>{
 
  it("get_dialogue returns whole pages newest first, filtered by speaker, words, map and count",async()=>{
   const log=new DialogueRecord();
-  const page=(text:string,speaker:string|null,map:string|null)=>({state_seq:3,map,map_id:[1,4] as [number,number],position:{x:1,y:2},speaker,speaker_source:speaker===null?null:"faced_sprite" as const,text});
+  const page=(text:string,speaker:string|null,map:string|null)=>({state_seq:3,map,map_id:map===null?null:[1,4] as [number,number],position:{x:1,y:2},speaker,speaker_source:speaker===null?null:speaker==="MOM"?"name_prefix" as const:"faced_sprite" as const,text});
   const long="x".repeat(5000);
   log.observe(checkEvent({v:1,run:"r",seq:10,t:"2026-10-15T12:00:00.000-04:00",turn:3,type:"dialogue_auto_advance",tool_call_id:"a",tool:"press",requested:["A"],sent:["A"],dropped:[],auto_presses:2,pages:[page("Hello there","SCIENTIST_1","LAB"),page(long,"SCIENTIST_1","LAB")],stop:"field_free",detail:"closed",duration_ms:5}));
   log.observe(checkEvent({v:1,run:"r",seq:20,t:"2026-10-15T12:00:01.000-04:00",turn:4,type:"dialogue_auto_advance",tool_call_id:"b",tool:"press",requested:["A"],sent:["A"],dropped:[],auto_presses:1,pages:[page("MOM: Go see Birch","MOM","HOUSE"),page("No speaker here",null,null)],stop:"field_free",detail:"closed",duration_ms:5}));
@@ -312,7 +313,8 @@ describe("navigate_to and the dialogue record",()=>{
   expect(log.recall({speaker:"mom"})).not.toContain("Hello there");
   expect(log.recall({contains:"HELLO"})).toContain("1 of 4 pages match");
   expect(log.recall({map:"lab"})).toContain("2 of 4 pages match");
-  expect(log.recall({map:"1/4"})).toContain("4 of 4 pages match");
+  expect(log.recall({map:"1/4"})).toContain("3 of 4 pages match");
+  expect(log.recall({contains:"No speaker"})).toContain(`#20 turn 4 · unknown location · at 1,2: "No speaker here"`);
   expect(log.recall({last:1})).toContain("No speaker here");expect(log.recall({last:1})).not.toContain("MOM: Go");
   expect(log.recall({contains:"zzz"})).toBe("No recorded dialogue matches (4 pages recorded this run).");
   expect(()=>log.recall({last:0})).toThrow("last");
@@ -367,7 +369,7 @@ describe("dialogue-auto-advance-v1 registry and production wiring",()=>{
    expect(recall===undefined?"":textOf(recall)).toContain("The power of science is staggering!");
    recorder.end("budget");
    const events=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(line=>checkEvent(JSON.parse(line)));
-   expect(events.filter(e=>e.type==="button_press").map(e=>e.type==="button_press"?[e.tool_call_id,e.buttons]:null)).toEqual([["p",["A"]],["p",["B"]],["p",["B"]]]);
+   expect(events.filter((e):e is Extract<RunEvent,{type:"button_press"}>=>e.type==="button_press").map(e=>[e.tool_call_id,e.buttons])).toEqual([["p",["A"]],["p",["B"]],["p",["B"]]]);
    const advance=events.find(e=>e.type==="dialogue_auto_advance");
    expect(advance).toMatchObject({turn:0,stop:"field_free",dropped:["A","A"]});
    const seqs=advance?.type==="dialogue_auto_advance"?advance.pages.map(p=>p.state_seq):[];
@@ -375,4 +377,126 @@ describe("dialogue-auto-advance-v1 registry and production wiring",()=>{
    expect(events.filter(e=>e.type==="tool_result")).toHaveLength(1);
   }finally{rmSync(root,{recursive:true,force:true});}
  });
+});
+
+// Replays a fixed sequence of states, one per read, repeating the last; records every action.
+class Scripted{
+ posts:Button[][]=[];private i=0;
+ constructor(private readonly states:GameStateSnapshot[],private readonly failOn:((buttons:Button[])=>boolean)|null=null){}
+ next(){const s=this.states[Math.min(this.i,this.states.length-1)];this.i++;if(s===undefined)throw new Error("no state");return s;}
+ fetch:typeof fetch=(input,init)=>{
+  const url=typeof input==="string"?input:input instanceof URL?input.href:input.url;let body:unknown;
+  if(url.endsWith("/action")){if(typeof init?.body!=="string")throw new Error("body");const sent=(JSON.parse(init.body) as {buttons:Button[]}).buttons;this.posts.push(sent);if(this.failOn?.(sent)===true)return Promise.resolve(new Response(JSON.stringify({status:"error",message:"emulator busy"}),{status:500}));body={status:"success"};}
+  else if(url.endsWith("/queue_status"))body={queue_empty:true};
+  else if(url.endsWith("/pokebench/observation"))body={state_text:"scripted",screenshot_base64:png,state:this.next()};
+  else body=this.next();
+  return Promise.resolve(new Response(JSON.stringify(body)));
+ };
+ read={read:()=>Promise.resolve(this.next())};
+}
+const FREE:GameStateSnapshot={...IN_GAME,active_ui:null,naming:null,field_controls_locked:false,world_context:{objects:[],triggers:[],dialogue:null,message:null}};
+const MSG=(phase:"printing"|"page_wait",text="Hello."):GameStateSnapshot=>({...FREE,position:null,facing:null,map_id:null,location:null,field_controls_locked:true,world_context:{objects:[],triggers:[],dialogue:text,message:{phase,cursor:text.length,ready:phase!=="printing"}}});
+function scriptedTools(game:Scripted,features:FeatureSet=ON){
+ const rec=memoryRecorder();const clock=fakeClock();
+ const tools=withDialogueAutoAdvance([observeTool(URL_BASE,game.fetch),pressTool(URL_BASE,{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},game.fetch,{now:()=>0,sleep:()=>Promise.resolve()})],features,{state:game.read,recorder:rec.api,clock});
+ const press=tools.find(t=>t.name==="press");if(press===undefined)throw new Error("press");
+ return {press:press as CheckedPressTool,rec,clock};
+}
+
+describe("dialogue-auto-advance-v1 edges",()=>{
+ it("sends a whole non-dialogue batch one input at a time and reports it like an ordinary press",async()=>{
+  const game=new FakeGame(SCIENTIST);const {tool,rec}=wire(game);
+  const result=await tool("press").execute("m",{buttons:["LEFT","A","A"]});
+  expect(game.posts.map(p=>p.buttons[0])).toEqual(["LEFT","A","A"]);
+  expect(textOf(result).split("\n")[0]).toBe("pressed LEFT, A, A");
+  expect(textOf(result)).toContain("Press result:");
+  expect(textOf(result)).not.toContain("Dialogue auto-advance");
+  expect(rec.advances()).toEqual([]);
+ });
+
+ it("applies the caller's before-press check to the first input only, through executeChecked",async()=>{
+  const game=new FakeGame(SCIENTIST);const {tool}=wire(game);
+  const press=tool("press");if(!isCheckedPress(press))throw new Error("checked");
+  await expect(press.executeChecked("k",{buttons:["A"]},()=>{throw new Error("stale");})).rejects.toThrow("stale");
+  expect(game.posts).toEqual([]);
+  let checks=0;await press.executeChecked("k",{buttons:["A"]},()=>{checks++;});
+  expect(checks).toBe(1);expect(game.posts.map(p=>p.buttons[0])).toEqual(["A","B","B"]);
+ });
+
+ it("stops with an error note when an automatic press fails, and rethrows when the run is aborted",async()=>{
+  const game=new Scripted([FREE,FREE,MSG("page_wait"),MSG("page_wait")],b=>b[0]==="B");const {press,rec}=scriptedTools(game);
+  const result=await press.execute("e",{buttons:["A"]});
+  expect(rec.advances()[0]).toMatchObject({stop:"error",auto_presses:0});
+  expect(textOf(result)).toContain("auto-advance stopped: POST http://127.0.0.1/action failed: emulator busy");
+  expect(rec.advances()[0]?.pages.map(p=>[p.text,p.speaker,p.map])).toEqual([["Hello.",null,null]]);
+  expect(textOf(result)).toContain(`1. turn 7 · unknown location: "Hello."`);
+  const aborted=new Scripted([FREE,FREE,MSG("printing")]);const controller=new AbortController();
+  const {press:p2}=scriptedTools(aborted);
+  const run=p2.execute("x",{buttons:["A"]},controller.signal);controller.abort();
+  await expect(run).rejects.toThrow();
+ });
+
+ it("waits out a not-ready interface and a message still initializing, then stops at a screen change",async()=>{
+  const transition:GameStateSnapshot={...FREE,screen:"field_transition",field_controls_locked:null,active_ui:{phase:"field_transition",selected:null,ready:false,controls:"",diagnostic:null}};
+  const init:GameStateSnapshot={...FREE,field_controls_locked:true,world_context:{objects:[],triggers:[],dialogue:null,field_activity:{phase:"message_initializing",owner:1}}};
+  const game=new Scripted([FREE,FREE,init,init,transition,transition,{...FREE,screen:"title"}]);const {press,rec}=scriptedTools(game);
+  await press.execute("t",{buttons:["A"]});
+  expect(rec.advances()[0]).toMatchObject({stop:"screen_change",detail:"the screen changed to title"});
+  const stuck=new Scripted([FREE,FREE,MSG("printing"),transition]);const s=scriptedTools(stuck);
+  const result=await s.press.execute("u",{buttons:["A"]});
+  expect(s.rec.advances()[0]?.stop).toBe("interface_not_ready");
+  expect(textOf(result)).toContain("an interface stayed not ready");
+ });
+
+ it("names a menu without listed options by its highlighted choice, and a state read failure before the press does not block it",async()=>{
+  const menu:GameStateSnapshot={...FREE,field_controls_locked:true,active_ui:{phase:"field_multichoice",selected:"LITTLEROOT",ready:true,controls:"",diagnostic:null}};
+  const plain:GameStateSnapshot={...FREE,field_controls_locked:true,active_ui:{phase:"start_menu",selected:null,ready:true,controls:"",diagnostic:null}};
+  for(const [stop,detail] of [[menu,"menu field_multichoice is open; highlighted LITTLEROOT"],[plain,"menu start_menu is open"]] as const){
+   const game=new Scripted([FREE,FREE,MSG("page_wait"),stop]);const {press,rec}=scriptedTools(game);
+   await press.execute("m",{buttons:["A"]});
+   expect(rec.advances()[0]?.detail).toBe(detail);
+  }
+  let reads=0;const flaky=new Scripted([FREE]);
+  const rec=memoryRecorder();
+  const tools=withDialogueAutoAdvance([observeTool(URL_BASE,flaky.fetch),pressTool(URL_BASE,{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},flaky.fetch,{now:()=>0,sleep:()=>Promise.resolve()})],ON,{state:{read:()=>{reads++;return Promise.reject(new Error("down"));}},recorder:rec.api,clock:fakeClock()});
+  const result=await tools.find(t=>t.name==="press")?.execute("f",{buttons:["A"]});
+  expect(reads).toBe(1);expect(flaky.posts).toEqual([["A"]]);expect(result===undefined?"":textOf(result)).toContain("pressed A");
+ });
+
+ it("refuses to wrap a tool list without the ordinary game tools",()=>{
+  expect(()=>withDialogueAutoAdvance([],ON,{state:{read:()=>Promise.reject(new Error("unused"))},recorder:memoryRecorder().api})).toThrow("ordinary game tools");
+ });
+});
+
+it("names a faced background object as the speaker when the text has no NAME: prefix",async()=>{
+ const at={position:{x:1,y:2},facing:"up",map_id:[1,1] as [number,number],location:"HOUSE 2F",interaction_targets:[{kind:"background",x:1,y:1,elevation:0,activation:"A",availability:"always",facing:null,local_id:null,destination:null,name:"Notebook"}]};
+ const game=new Scripted([{...FREE,...at},{...FREE,...at},{...MSG("page_wait","AAA flipped open the notebook."),...at},{...FREE,...at}]);const {press,rec}=scriptedTools(game);
+ const result=await press.execute("n",{buttons:["A","A"]});
+ expect(rec.advances()[0]?.pages.map(p=>[p.speaker,p.speaker_source])).toEqual([["Notebook","faced_target"]]);
+ expect(textOf(result)).toContain(`1. turn 7 · HOUSE 2F (map 1/1) · at 1,2 · Notebook (faced object): "AAA flipped open the notebook."`);
+});
+
+it("records a page once when B does not advance it, cuts a page with no line break at the cursor, and honours walking and the press-result switch",async()=>{
+ const text="Hello there. Bye now.";
+ const page=(cursor:number):GameStateSnapshot=>({...MSG("page_wait",text),world_context:{objects:[],triggers:[],dialogue:text,message:{phase:"page_wait",cursor,ready:true}}});
+ const game=new Scripted([FREE,FREE,page(13),page(13),page(13),{...page(21),world_context:{objects:[],triggers:[],dialogue:text,message:{phase:"button_wait",cursor:21,ready:true}}},FREE]);
+ const {press,rec}=scriptedTools(game,{...ON,"press-result-v1":false});
+ const result=await press.execute("r",{buttons:["A"],walking:true});
+ expect(rec.advances()[0]?.pages.map(p=>p.text)).toEqual(["Hello there.","Bye now."]);
+ expect(game.posts).toEqual([["A"],["B"],["B"]]);
+ expect(textOf(result)).not.toContain("Press result:");
+});
+
+it("falls back to the faced object's sprite kind when no interaction target is listed",async()=>{
+ const at={position:{x:1,y:2},facing:"left",interaction_targets:null};
+ const objects=[{local_id:1,map_id:[0,9] as [number,number],graphics_id:5,sprite_kind:"FAT_MAN",x:0,y:2}];
+ const msg={...MSG("page_wait","Science is amazing!"),...at};
+ const withObjects:GameStateSnapshot={...msg,world_context:{objects,triggers:[],dialogue:"Science is amazing!",message:{phase:"page_wait",cursor:19,ready:true}}};
+ const game=new Scripted([{...FREE,...at},{...FREE,...at},withObjects,{...FREE,...at}]);
+ const {press,rec}=scriptedTools(game);
+ await press.execute("f",{buttons:["A"]});
+ expect(rec.advances()[0]?.pages.map(p=>[p.speaker,p.speaker_source])).toEqual([["FAT_MAN","faced_sprite"]]);
+ const nobody=new Scripted([{...FREE,...at},{...FREE,...at},{...MSG("page_wait","Hm?"),...at},{...FREE,...at}]);const n=scriptedTools(nobody);
+ await n.press.execute("g",{buttons:["A"]});
+ expect(n.rec.advances()[0]?.pages.map(p=>[p.speaker,p.speaker_source])).toEqual([[null,null]]);
 });

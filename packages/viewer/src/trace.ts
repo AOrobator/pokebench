@@ -155,11 +155,11 @@ const RUN_LABEL: Readonly<Partial<Record<RunEvent["type"], readonly [string, str
   disk_usage: ["HDD", "Disk usage"], frames_evicted: ["HDD", "Frames evicted"], run_end: ["END", "Run ended"],
   compaction: ["CMP", "Context compacted"], navigation_context: ["MEM", "Navigation memory delivered"], ledger_context: ["MEM", "Instruction ledger delivered"],
   milestone_hint: ["MEM", "Milestone hint sent"], decision_input: ["SNP", "Decision snapshot"], battle_choice: ["VS", "Battle choice"],
-  activity: ["ACT", "Activity"], retry: ["↻", "Retry"], text_only_supervisor: ["SUP", "Text-only supervisor"], telemetry_error: ["!", "Telemetry error"],
+  activity: ["ACT", "Activity"], retry: ["↻", "Retry"], text_only_supervisor: ["SUP", "Text-only supervisor"], dialogue_auto_advance: ["DLG", "Dialogue auto-advanced"], telemetry_error: ["!", "Telemetry error"],
   button_press: ["BTN", "Press"], tool_result: ["RES", "Tool result"], wait_input: ["WAIT", "Wait"],
 };
 const MEMORY = new Set<RunEvent["type"]>(["navigation_context", "ledger_context", "milestone_hint", "decision_input", "compaction"]);
-const ACTION = new Set<RunEvent["type"]>(["battle_choice", "objective_attempt", "button_press", "tool_result", "wait_input"]);
+const ACTION = new Set<RunEvent["type"]>(["battle_choice", "objective_attempt", "button_press", "tool_result", "wait_input", "dialogue_auto_advance"]);
 
 function categoryOf(event: RunEvent): TraceCategory {
   switch (event.type) {

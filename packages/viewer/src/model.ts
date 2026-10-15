@@ -76,6 +76,7 @@ const KNOWN: Record<RunEvent["type"], true> = {
   native_action:true, battle_choice:true,
   retry: true,
   text_only_supervisor: true,
+  dialogue_auto_advance: true,
   disk_usage: true,
   frames_evicted: true,
   run_end: true,

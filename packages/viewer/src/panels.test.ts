@@ -610,6 +610,7 @@ it("links the fresh retry card to its explainer",()=>{
 it("links the named warp destinations card to its explainer",()=>{
  expect(FEATURE_EXPLAINERS["named-warp-destinations-v1"]).toBe("named-warp-destinations-v1.html");
  expect(FEATURE_EXPLAINERS["character-presence-v1"]).toBe("character-presence-v1.html");
+ expect(FEATURE_EXPLAINERS["dialogue-auto-advance-v1"]).toBe("dialogue-auto-advance-v1.html");
 });
 
 it("links the text-only supervisor card to its explainer",()=>{
@@ -632,4 +633,16 @@ it("shows the experiment, arm and trial strip, the preset, or just the model and
  expect(cells(runIdentity(view(presetOnly))).out).toEqual(["PRESET=checkpoint-clock-set","MODEL · THINKING=think-swarm · medium",`RUN=…${RUN.slice(-4)}`]);
  expect(cells(runIdentity(view(fullRun()))).out).toEqual(["MODEL · THINKING=think-swarm · medium",`RUN=…${RUN.slice(-4)}`]);
  expect(runIdentity(new RunView())).toBe("");
+});
+
+it("lists every auto-advanced dialogue page whole in Activity History, with its speaker's provenance and dropped inputs",()=>{
+  const log=new Log();log.add(0,START);
+  const page=(speaker:string|null,speaker_source:"name_prefix"|"faced_sprite"|"faced_target"|null,text:string)=>({state_seq:1,map:"HOUSE",map_id:[1,1] as [number,number],position:null,speaker,speaker_source,text});
+  log.add(100,{type:"dialogue_auto_advance",turn:1,tool_call_id:"c",tool:"press",requested:["A","A"],sent:["A"],dropped:["A"],auto_presses:3,pages:[page("MOM","name_prefix","MOM: Hi"),page("SCIENTIST_1","faced_sprite","Science!"),page("Notebook","faced_target","x".repeat(3000)),page(null,null,"<b>plain</b>")],stop:"field_free",detail:"closed",duration_ms:9});
+  const text=eventText(must(log.events[1]))??"";
+  expect(text).toContain("Dialogue auto-advance (press) · B ×3 · stopped: field free · closed · 1 requested inputs not sent (A) · 4 pages");
+  expect(text).toContain("1. MOM: “MOM: Hi”");expect(text).toContain("2. SCIENTIST_1 (sprite kind): “Science!”");
+  expect(text).toContain(`3. Notebook (faced object): “${"x".repeat(3000)}”`);expect(text).toContain("4. “&lt;b&gt;plain&lt;/b&gt;”");
+  log.add(200,{type:"dialogue_auto_advance",turn:1,tool_call_id:"d",tool:"navigate_to",requested:[],sent:[],dropped:[],auto_presses:0,pages:[],stop:"menu",detail:"menu",duration_ms:9});
+  expect(eventText(must(log.events[2]))).toBe("Dialogue auto-advance (navigate_to) · B ×0 · stopped: menu · menu · 0 pages");
 });

@@ -56,6 +56,7 @@ export const SWITCHABLE_FEATURES = [
   "navigation-refusal-reasons-v1",
   "transition-press-result-v1",
   "stall-briefing-v1",
+  "dialogue-auto-advance-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -187,6 +188,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("navigation-refusal-reasons-v1", "guidance", "NAVIGATION REFUSAL REASONS", "bounded-navigation-v1", "When navigate_to cannot walk, it says why and what would work: a message is waiting for A or B (dismiss it first); the target is a person or object (stand on a named free neighbouring tile, face it and press A); the target is a wall, water or other blocked tile; or the target is outside this map. Off: the generic refusal text."),
   on("transition-press-result-v1", "guidance", "TRANSITION PRESS RESULTS", "press-result-v1", "Press results name what really happened at transitions: warped from one map and tile to another (with both map names), moved by a script while field controls were locked (not by the press), and a conversation restarted with text already shown. Off: warps read as ordinary moves, scripted motion is reported as the press's movement, and a restarted conversation reads as an interface change."),
   on("stall-briefing-v1", "guard", "STALL BRIEFING", "loop-guard-supervisor-v1", "Posts the loop supervisor's briefing for stalls the loop guard does not detect: walking back and forth between the same two maps (on the second round trip), and every 5 minutes of play without a new milestone. The run continues. Off: briefings only when the loop guard detects a loop."),
+  on("dialogue-auto-advance-v1", "guidance", "DIALOGUE AUTO-ADVANCE", "active-field-message-buffer-v1", "As soon as a press or navigate_to opens or continues a field message, the harness itself advances it with B, waiting for each page to finish printing, until the next decision point: free field control, a YES/NO or other menu (named with its options and highlighted choice), the naming screen, a battle, a screen change, or a cutscene that keeps controls locked with no message (waited out for up to 10 s). Buttons left in the model's batch once the conversation opens are not sent, so extra A presses cannot restart it. At most 50 automatic presses and 90 s per call, and a stop at either cap says so. The result lists every page shown, whole and in order, with speaker (the game's NAME: prefix, else the faced sprite kind, labelled as such), map, position and turn; get_dialogue searches every recorded page by speaker, words, map or recency. Each advance is recorded as a dialogue_auto_advance event. Needs the dialogue phase readout. Off: every requested button is sent and the model advances dialogue itself, one batch per turn; no get_dialogue."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",
@@ -222,10 +224,12 @@ export function featureInfo(id: FeatureId): FeatureInfo {
 }
 
 export function dependencyProblems(features: FeatureSet): string[] {
-  return SWITCHABLE_FEATURES.flatMap((id) => {
+  return [...SWITCHABLE_FEATURES.flatMap((id) => {
     const needs = featureInfo(id).needs;
     return features[id] && needs !== null && !features[needs] ? [`${id} needs ${needs}`] : [];
-  });
+  }),
+  // Waiting for a page to finish printing reads the dialogue phase as well as the buffer.
+  ...(features["dialogue-auto-advance-v1"] && !features["field-dialogue-phase-v1"] ? ["dialogue-auto-advance-v1 needs field-dialogue-phase-v1"] : [])];
 }
 
 // Observation switches the game server applies to its readout.
@@ -275,6 +279,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("navigation-refusal-reasons-v1"),
     ...when("transition-press-result-v1"),
     ...when("stall-briefing-v1"),
+    ...when("dialogue-auto-advance-v1"),
   ];
 }
 
@@ -285,5 +290,5 @@ export function featuresOf(harnessFeatures: readonly string[]): FeatureSet {
 
 export function stateOnlyProblems(features:FeatureSet):string[]{
  if(!features["state-only-decisions-v1"])return [];
- return (["objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
+ return (["objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
 }

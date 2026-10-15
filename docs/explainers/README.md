@@ -30,6 +30,7 @@ Tracked, local HTML documentation. Open an explainer directly; no server or exte
 - [Stall briefing v1](stall-briefing-v1.html)
 - [Battle details v2](battle-details-v2.html)
 - [Experiment queue](experiment-queue.html)
+- [Runs survive viewer restarts](run-survives-viewer.html)
 
 The original ignored runs/explainers copies remain for existing links. Make future updates here. Runtime probes, generated measurement data and helper scripts remain under runs/.
 

@@ -1,8 +1,8 @@
 // `just experiments`, `just experiment-approve <id>`, `just experiment-pin <id>`,
 // `just experiment-run [--dry-run] [--once]`: the experiment queue from the
 // main checkout. Approval is interactive so an agent can never grant it.
-import { execFile, execFileSync, spawn, type ChildProcess } from "node:child_process";
-import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { execFile, execFileSync } from "node:child_process";
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { userInfo } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 import { HUMAN_GAMEPLAY_LEASE_NAME, newRunId } from "@pokebench/agent/run";
 import { experimentDir, queueSnapshot, recordedRuns, winnerGateOn, type ExperimentView, type QueuePaths, type RunSource } from "./experiment-store.js";
 import { approveExperiment } from "./experiment-approval.js";
+import { spawnDetached } from "./detached.js";
 import { RunnerError, runQueue, sha256, type DiscoveredModel, type RunnerHost, type TrialLaunch } from "./experiment-runner.js";
 import { healthProbe, liveRuns, randomSuffix } from "./next-run.js";
 
@@ -105,7 +106,8 @@ export interface HostDeps {
   readonly node: string;
   readonly env: Readonly<Record<string, string | undefined>>;
   readonly log: (line: string) => void;
-  readonly onChild?: (child: ChildProcess | null) => void;
+  // The detached play pid while a trial runs, then null.
+  readonly onChild?: (pid: number | null) => void;
   readonly build?: () => Promise<string | null>;
   readonly live?: () => Promise<string[]>;
   readonly pidCommand?: (pid: number) => string | null;
@@ -124,7 +126,20 @@ export function buildAgent(root: string, node: string, env: Readonly<Record<stri
   });
 }
 
-// INV-Q6: the build that runs is the approved commit, clean, with its own fresh dist.
+// What an agent build is made of; env's tree carries the vendor submodule pin.
+export const BUILD_SOURCES = ["packages/agent", "env", "package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml"] as const;
+// The identity of the build sources at a commit, or null when this checkout does not have it.
+// Two commits with the same identity build the same agent, whatever else differs between them.
+export function sourceIdentity(git: (args: readonly string[]) => string, rev: string): string | null {
+  if (!/^(HEAD|[0-9a-f]{7,64})$/.test(rev)) return null;
+  try {
+    return sha256(git(["ls-tree", "--full-tree", rev, "--", ...BUILD_SOURCES]));
+  } catch {
+    return null;
+  }
+}
+
+// INV-Q6: the build that runs has the sources of the commit the first trial ran on, clean, with its own fresh dist.
 export function productionHost(deps: HostDeps): RunnerHost {
   const liveJs = join(deps.root, "packages", "agent", "dist", "live.js");
   const live = deps.live ?? (() => liveRuns(deps.runsRoot, healthProbe()));
@@ -132,22 +147,26 @@ export function productionHost(deps: HostDeps): RunnerHost {
   // Written only after a clean build, so a failed or interrupted build is never mistaken for a fresh one.
   // It names live.js's mtime too: any other build of this dist (just build, another branch) rewrites live.js and voids it.
   const stamp = join(deps.root, "packages", "agent", "dist", ".build-commit");
-  const identity = (head: string): string | null => (existsSync(liveJs) ? `${head} ${String(statSync(liveJs).mtimeMs)}` : null);
-  const fresh = (head: string): boolean => existsSync(stamp) && readFileSync(stamp, "utf8").trim() === identity(head);
+  const identity = (sources: string): string | null => (existsSync(liveJs) ? `${sources} ${String(statSync(liveJs).mtimeMs)}` : null);
+  const fresh = (sources: string): boolean => existsSync(stamp) && readFileSync(stamp, "utf8").trim() === identity(sources);
   return {
     now: () => new Date(),
     runId: (model) => newRunId(new Date(), model, randomSuffix),
     head: () => Promise.resolve(deps.git(["rev-parse", "HEAD"]).trim()),
     verifySource: async (experiment, commit) => {
       const head = deps.git(["rev-parse", "HEAD"]).trim();
-      if (head !== commit) return `earlier trials ran on ${commit.slice(0, 7)} but main is at ${head.slice(0, 7)}; both arms must run on one build`;
-      if (deps.git(["status", "--porcelain", "--untracked-files=no"]).trim() !== "") return "the main checkout has uncommitted changes";
-      if (fresh(head)) return null;
+      // Merges that leave the build sources alone (viewer, docs, experiments) keep both arms on one build.
+      const sources = sourceIdentity(deps.git, commit);
+      if (sources === null) return `earlier trials ran on ${commit.slice(0, 7)}, which this checkout does not have; both arms must run on one build`;
+      if (sourceIdentity(deps.git, head) !== sources) return `the agent or env sources changed since earlier trials ran on ${commit.slice(0, 7)} (main is at ${head.slice(0, 7)}); both arms must run on one build`;
+      if (deps.git(["status", "--porcelain", "--untracked-files=no", "--", ...BUILD_SOURCES]).trim() !== "") return "the main checkout has uncommitted agent or env changes";
+      // A fresh build does not cover them: the game server imports env/ as it is on disk.
+      const untracked = deps.git(["ls-files", "--others", "--exclude-standard", "--", ...BUILD_SOURCES]).trim();
+      if (untracked !== "") return `untracked files in the agent or env sources: ${untracked.split("\n").join(", ")}`;
+      if (fresh(sources)) return null;
       // A live run or a human session may still be loading modules from this dist.
       const running = await live();
       if (running.length > 0) return `live run ${running[0] ?? ""} is still running; the agent is rebuilt once it ends`;
-      const untracked = deps.git(["ls-files", "--others", "--exclude-standard", "--", "packages/agent/src"]).trim();
-      if (untracked !== "") return `untracked files would enter the agent build: ${untracked.split("\n").join(", ")}`;
       // Human play takes its own lock, not the gameplay lease; holding it keeps a session from starting mid-build.
       const humanLock = join(deps.runsRoot, HUMAN_GAMEPLAY_LEASE_NAME);
       mkdirSync(deps.runsRoot, { recursive: true });
@@ -166,7 +185,7 @@ export function productionHost(deps: HostDeps): RunnerHost {
         rmSync(humanLock, { recursive: true, force: true });
       }
       if (failure !== null) return `the agent build failed: ${failure}`;
-      const built = identity(head);
+      const built = identity(sources);
       if (built === null) return "the agent build produced no packages/agent/dist/live.js";
       writeFileSync(stamp, `${built}\n`);
       return null;
@@ -185,13 +204,10 @@ export function productionHost(deps: HostDeps): RunnerHost {
       const env: Record<string, string> = {};
       for (const [k, v] of Object.entries(deps.env)) if (v !== undefined && k !== "POKEBENCH_ENDPOINT_FILE" && k !== "POKEBENCH_PLAY_PRESET") env[k] = v;
       Object.assign(env, { POKEBENCH_MODEL: trial.model, POKEBENCH_GATEWAY_URL: GATEWAY, POKEBENCH_GAME_SERVER_URL: `http://127.0.0.1:${String(EXPERIMENT_GAME_PORT)}`, POKEBENCH_PLAY_PRESET: trial.presetPath, POKEBENCH_RUN_ID: trial.runId });
-      const out = openSync(trial.stdout, "wx", 0o600), err = openSync(trial.stderr, "wx", 0o600);
-      const child = spawn(deps.node, [liveJs, "play"], { cwd: deps.root, env, stdio: ["ignore", out, err] });
-      closeSync(out);
-      closeSync(err);
-      deps.onChild?.(child);
-      child.once("error", (error) => { deps.onChild?.(null); reject(error); });
-      child.once("exit", (code) => { deps.onChild?.(null); resolveExit(code); });
+      spawnDetached(deps.node, [liveJs, "play"], { cwd: deps.root, env, stdout: trial.stdout, stderr: trial.stderr, started: (pid) => { deps.onChild?.(pid); trial.started?.(pid); } }).then(
+        (code) => { deps.onChild?.(null); resolveExit(code); },
+        (error: unknown) => { deps.onChild?.(null); reject(error instanceof Error ? error : new Error(String(error))); },
+      );
     }),
     log: deps.log,
     activeCohort: () => Promise.resolve(activeCohort(deps.runsRoot, deps.pidCommand ?? pidCommand)),
@@ -230,8 +246,9 @@ if (import.meta.main) {
   const gitIn = (cwd: string, args: readonly string[]): string => execFileSync("git", [...args], { cwd, encoding: "utf8" });
   const root = mainCheckout(here, gitIn), runsRoot = join(root, "runs");
   const paths: QueuePaths = { experimentsDir: join(root, "experiments"), runsRoot, readinessPath: join(root, "docs", "experiments", "readiness.md"), winnerGate: winnerGateOn(process.env) };
-  let child: ChildProcess | null = null, stop = false;
-  for (const signal of ["SIGINT", "SIGTERM"] as const) process.on(signal, () => { stop = true; child?.kill("SIGINT"); });
+  let child: number | null = null, stop = false;
+  // Play is detached, so a terminal Ctrl-C reaches it only through this explicit forward.
+  for (const signal of ["SIGINT", "SIGTERM"] as const) process.on(signal, () => { stop = true; if (child !== null) { try { process.kill(child, "SIGINT"); } catch { /* it already exited */ } } });
   const git = (args: readonly string[]): string => gitIn(root, args);
   const rl = process.stdin.isTTY ? createInterface({ input: process.stdin, output: process.stdout }) : null;
   main(process.argv.slice(2), {

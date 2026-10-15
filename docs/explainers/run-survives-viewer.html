@@ -1,0 +1,85 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Runs survive viewer restarts</title>
+<style>
+:root{color-scheme:light dark;--bg:#f4f3ed;--ink:#20271f;--muted:#5d665a;--panel:#fff;--edge:#b8c1b2;--good:#1f7a3f;--bad:#b3261e;--soft:#eef1ea;--viewer:#c9d6e6;--play:#cfe5c4;--server:#f2d27a;--group:#e9e3d2}
+@media(prefers-color-scheme:dark){:root{--bg:#151c17;--ink:#e2eadf;--muted:#a8b3a4;--panel:#202b22;--edge:#536650;--good:#6fdc8c;--bad:#ff8a80;--soft:#26322a;--viewer:#33465c;--play:#2f5a33;--server:#7a6420;--group:#2b2a22}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.55 system-ui,-apple-system,sans-serif;padding:clamp(16px,5vw,60px)}main{max-width:1000px;margin:auto}
+h1{font-size:clamp(25px,4vw,40px);margin:.2em 0}h2{margin-top:44px}.eyebrow{color:var(--muted);font-size:14px;letter-spacing:.06em;text-transform:uppercase}
+figure{margin:22px 0;padding:18px;background:var(--panel);border:1px solid var(--edge);border-radius:15px}figcaption{margin-top:10px;color:var(--muted);font-size:15px}
+.diagram{overflow-x:auto}svg{width:100%;height:auto;min-width:560px;display:block}
+code{font:14px ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--soft);padding:1px 5px;border-radius:5px}
+.tbl{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:15px}th,td{text-align:left;padding:8px;border-bottom:1px solid var(--edge);vertical-align:top}th{color:var(--muted);font-weight:600}
+.box{stroke:var(--edge);stroke-width:1.5}.v{fill:var(--viewer)}.p{fill:var(--play)}.s{fill:var(--server)}.grp{fill:var(--group);stroke:var(--edge);stroke-width:1.5;stroke-dasharray:6 4}
+.lab{fill:var(--ink);font:600 14px system-ui,sans-serif}.sub{fill:var(--muted);font:12.5px system-ui,sans-serif}.arr{stroke:var(--ink);stroke-width:2;fill:none;marker-end:url(#h)}.kill{stroke:var(--bad);stroke-width:2.5;fill:none}.ok{fill:var(--good);font:700 14px system-ui,sans-serif}.no{fill:var(--bad);font:700 14px system-ui,sans-serif}
+.good{color:var(--good);font-weight:600}.bad{color:var(--bad);font-weight:600}
+</style>
+<main>
+<div class="eyebrow">PokeBench · viewer tooling explainer</div>
+<h1>Runs survive viewer restarts</h1>
+<p>The 8790 viewer serves the run page and the stats page, and it also runs the experiment queue and the finals. Before this change, restarting it to ship a viewer or stats update could kill the trial in progress, or leave the next viewer stuck. Now a restart leaves the trial playing, and the new viewer picks it up where the old one left off.</p>
+
+<h2>1. Who owns the trial's processes</h2>
+<figure><div class="diagram"><svg viewBox="0 0 900 300" role="img" aria-label="Before: viewer, play and game server share one process group. After: play leads its own group.">
+<defs><marker id="h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>
+<text class="lab" x="10" y="22">Before</text>
+<rect class="grp" x="10" y="34" width="420" height="230" rx="14"/><text class="sub" x="22" y="54">one process group: the viewer's</text>
+<rect class="box v" x="30" y="70" width="160" height="56" rx="10"/><text class="lab" x="44" y="96">viewer :8790</text><text class="sub" x="44" y="114">+ queue + finals runner</text>
+<rect class="box p" x="250" y="70" width="160" height="56" rx="10"/><text class="lab" x="264" y="96">live.js play</text><text class="sub" x="264" y="114">the trial's agent</text>
+<rect class="box s" x="250" y="180" width="160" height="56" rx="10"/><text class="lab" x="264" y="206">game server</text><text class="sub" x="264" y="224">pokebench_env.launcher</text>
+<path class="arr" d="M190 98H248"/><path class="arr" d="M330 126V178"/>
+<path class="kill" d="M30 150l140 70M170 150L30 220"/><text class="no" x="40" y="250">Ctrl-C hits all three</text>
+<text class="lab" x="470" y="22">After</text>
+<rect class="grp" x="470" y="34" width="190" height="230" rx="14"/><text class="sub" x="482" y="54">viewer's group</text>
+<rect class="box v" x="485" y="70" width="160" height="56" rx="10"/><text class="lab" x="499" y="96">viewer :8790</text><text class="sub" x="499" y="114">+ queue + finals runner</text>
+<rect class="grp" x="690" y="34" width="200" height="230" rx="14"/><text class="sub" x="702" y="54">the trial's own group</text>
+<rect class="box p" x="710" y="70" width="160" height="56" rx="10"/><text class="lab" x="724" y="96">live.js play</text><text class="sub" x="724" y="114">detached, group leader</text>
+<rect class="box s" x="710" y="180" width="160" height="56" rx="10"/><text class="lab" x="724" y="206">game server</text><text class="sub" x="724" y="224">stays in play's group</text>
+<path class="arr" d="M645 98H708"/><path class="arr" d="M790 126V178"/>
+<text class="ok" x="485" y="250">a restart stops only the viewer</text>
+</svg></div><figcaption>Every launch (experiment trials, finals, NEXT RUN, human restarts) now goes through one detached launcher. The viewer still waits for the trial's exit while it lives; it just no longer shares a signal group with it.</figcaption></figure>
+
+<h2>2. What a restarted viewer does with a trial in flight</h2>
+<figure><div class="diagram"><svg viewBox="0 0 900 250" role="img" aria-label="Old viewer stops, new viewer starts, sees the trial in runner.json and the lease, waits for it, records it once and launches the next trial">
+<defs><marker id="h2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>
+<rect class="box v" x="10" y="30" width="150" height="80" rx="12"/><text class="lab" x="24" y="58">old viewer stops</text><text class="sub" x="24" y="78">leaves the lease and</text><text class="sub" x="24" y="94">runner.json behind</text>
+<rect class="box v" x="200" y="30" width="160" height="80" rx="12"/><text class="lab" x="214" y="58">new viewer starts</text><text class="sub" x="214" y="78">the queue shows the</text><text class="sub" x="214" y="94">experiment RUNNING</text>
+<rect class="box p" x="400" y="30" width="170" height="80" rx="12"/><text class="lab" x="414" y="58">adopt</text><text class="sub" x="414" y="78">take the lease back,</text><text class="sub" x="414" y="94">wait while it plays</text>
+<rect class="box p" x="610" y="30" width="130" height="80" rx="12"/><text class="lab" x="624" y="58">run_end</text><text class="sub" x="624" y="78">record one outcome</text><text class="sub" x="624" y="94">for that run</text>
+<rect class="box v" x="780" y="30" width="110" height="80" rx="12"/><text class="lab" x="792" y="58">next trial</text><text class="sub" x="792" y="78">launched as</text><text class="sub" x="792" y="94">usual</text>
+<g style="marker-end:url(#h2)"><path class="arr" d="M160 70H198" style="marker-end:url(#h2)"/><path class="arr" d="M360 70H398" style="marker-end:url(#h2)"/><path class="arr" d="M570 70H608" style="marker-end:url(#h2)"/><path class="arr" d="M740 70H778" style="marker-end:url(#h2)"/></g>
+<text class="sub" x="400" y="150">"Still plays" = no run_end yet and its game server answers /health,</text>
+<text class="sub" x="400" y="168">or its recorded play pid is alive. Checked every 5 s.</text>
+<text class="sub" x="10" y="150">No run_end at all once it stopped: the old path</text>
+<text class="sub" x="10" y="168">(logged as interrupted, then rerun). Operator stop: held.</text>
+<text class="no" x="10" y="215">Before: the new viewer waited on "lease is held" forever, or reran the trial and lost its result.</text>
+</svg></div><figcaption>Adoption works the same for queue trials and finals runs. A trial that finished while no viewer was up is recorded from its run_end instead of being rerun. The budget check only gates new launches, so an adopted trial is always recorded.</figcaption></figure>
+
+<h2>3. When a leftover lease can be taken back</h2>
+<figure><div class="tbl"><table>
+<tr><th>Lease owner (viewer) pid</th><th>Run it names</th><th>Play pid it names</th><th>Result</th></tr>
+<tr><td>alive</td><td>any</td><td>any</td><td class="bad">held: another viewer or cohort is using it</td></tr>
+<tr><td>owner file missing or unreadable</td><td>n/a</td><td>n/a</td><td class="bad">held: it may have been taken a moment ago</td></tr>
+<tr><td>dead</td><td>another run</td><td>alive</td><td class="bad">held: that run still plays (NEXT RUN waits)</td></tr>
+<tr><td>dead</td><td>the trial being adopted</td><td>alive</td><td class="good">taken back, to adopt it</td></tr>
+<tr><td>dead</td><td>any</td><td>dead or none named</td><td class="good">taken back</td></tr>
+</table></div><figcaption>The holder now writes the run id at launch and the play pid once it starts, for queue trials and finals as well as NEXT RUN. Only one process at a time may take a lease back (a <code>.reclaim</code> lock, cleared after 60 s if its holder died), so two never both hold it.</figcaption></figure>
+
+<h2>4. Proof with real processes</h2>
+<p>This used this branch's runner, plus a stand-in for <code>live.js play</code> that writes run_start, keeps a game-server grandchild answering /health for 20 s, then writes run_end. Each case stopped the first runner during trial 1 and then started a fresh one. Receipts are in <code>runs/run-survives-viewer/</code>.</p>
+<figure><div class="tbl"><table>
+<tr><th>Case</th><th>Trial 1's play and game server</th><th>Fresh runner</th></tr>
+<tr><td>Before, Ctrl-C (SIGINT to the viewer's group)</td><td class="bad">both died</td><td class="bad">stuck: "the gameplay lease is held"</td></tr>
+<tr><td>Before, deploy (SIGTERM to the viewer pid)</td><td>both kept playing</td><td class="bad">refused: "live run … is still running"; it would rerun the trial once it ended</td></tr>
+<tr><td>After, Ctrl-C</td><td class="good">both kept playing</td><td class="good">adopted trial 1 (launched once, one outcome), then ran trials 2 and 3</td></tr>
+<tr><td>After, deploy</td><td class="good">both kept playing</td><td class="good">adopted trial 1 (launched once, one outcome), then ran trials 2 and 3</td></tr>
+<tr><td>After, <code>viewer-restart.sh</code> on an owned port (18990)</td><td class="good">the stand-in run kept playing</td><td class="good">new viewer up, stats page HTTP 200, run listed live; script exit 0</td></tr>
+</table></div><figcaption>None of these touched 8790 or the finals. viewer-restart.sh also counted the real finals agent among the live gameplay processes and confirmed it was still running afterwards.</figcaption></figure>
+
+<h2>5. Deploying</h2>
+<p><code>just viewer-main</code> builds the viewer worktree, then calls <code>scripts/viewer-restart.sh</code>. That script records every live <code>agent/dist/live.js play|human</code> pid, sends SIGTERM only to the process listening on the port, starts the new viewer, and fails unless every recorded pid is still alive. On SIGTERM or SIGINT the viewer closes its server and stops its queue runner, and never signals a run.</p>
+<p><b>The first restart onto this build</b> stops a viewer that still runs the old code. A pid-only SIGTERM (what viewer-main sends) leaves that viewer's trial playing (row 2 above), and the new viewer adopts it.</p>
+
+<h2>6. Status</h2>
+<p>Branch <code>claude/run-survives-viewer</code>. Viewer tests (662), the 90% coverage gate, tsc and eslint all pass. Claude found three blocking problems across two reviews; all are fixed and tested. A final Claude + Grok review is pending. Not merged, and 8790 is not restarted: merging to main while the finals run stalls them at the next run boundary, so that waits for the operator.</p>
+<p>Known limits: pid liveness uses signal 0, so a reused pid of a dead play process could make adoption wait until its game server stops answering. A lease written before this change names no run, so it relies on the live-run check alone.</p>
+</main>
+</html>

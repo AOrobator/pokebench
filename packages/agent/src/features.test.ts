@@ -121,3 +121,13 @@ it("registers fresh retry as an agent-side guard recorded last",()=>{
  expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe("fresh-retry-v1");
  expect(serverFeatureEnv(off("fresh-retry-v1")).POKEBENCH_FEATURES_OFF).toBe("");
 });
+
+it("registers named warp destinations as a default-off server readout treatment recorded last",()=>{
+ expect(featureInfo("named-warp-destinations-v1")).toMatchObject({group:"observation",needs:"live-map-v1",switchable:true});
+ expect(featureInfo("named-warp-destinations-v1").description).toContain(" Off: ");
+ expect(featureInfo("named-warp-destinations-v1").description).toMatch(/map 1\/2/);
+ expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe("named-warp-destinations-v1");
+ expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("");
+ expect(serverFeatureEnv(off("named-warp-destinations-v1")).POKEBENCH_FEATURES_OFF).toBe("named-warp-destinations-v1");
+ expect(dependencyProblems(off("live-map-v1"))).toContain("named-warp-destinations-v1 needs live-map-v1");
+});

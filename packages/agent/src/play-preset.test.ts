@@ -103,3 +103,10 @@ it("reads presets written before game evidence priority as OFF and keeps an expl
   expect(presetFeatures(parsePlayPreset({...v2,features:{...older,"game-evidence-priority-v1":true}}))["game-evidence-priority-v1"]).toBe(true);
   expect(presetFeatures(parsePlayPreset(preset))["game-evidence-priority-v1"]).toBe(false);
 });
+
+it("reads presets written before named warp destinations as OFF and keeps an explicit ON",()=>{
+  const older:Record<string,boolean>={...v2.features};delete older["named-warp-destinations-v1"];
+  expect(presetFeatures(parsePlayPreset({...v2,features:older}))["named-warp-destinations-v1"]).toBe(false);
+  expect(presetFeatures(parsePlayPreset({...v2,features:{...older,"named-warp-destinations-v1":true}}))["named-warp-destinations-v1"]).toBe(true);
+  expect(presetFeatures(parsePlayPreset(preset))["named-warp-destinations-v1"]).toBe(false);
+});

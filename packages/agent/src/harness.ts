@@ -11,6 +11,7 @@ import { createAssistantMessageEventStream, streamSimple, type Api, type Assista
 import { LoopDetector, type LoopKind, type LoopPolicy, type LoopMode } from "./loop-detection.js";
 import type { RunRecorder } from "./recorder.js";
 import type { RunEndReason } from "./events.js";
+import type { FeatureSet } from "./features.js";
 
 export interface Chunked {
   readonly max: number;
@@ -25,6 +26,11 @@ export interface Window {
 // Boundaries move in whole chunks so the start of the prompt stays identical
 // for several turns and the inference server can reuse its prompt cache.
 export const WINDOW: Window = { turns: { max: 20, chunk: 10 }, results: { max: 6, chunk: 3 } };
+export const DOUBLE_WINDOW: Window = { turns: { max: 40, chunk: 20 }, results: { max: 12, chunk: 6 } };
+
+export function contextWindow(features: FeatureSet): Window {
+  return features["double-context-window-v1"] ? DOUBLE_WINDOW : WINDOW;
+}
 export const OMITTED_FRAME = "[older screenshot omitted]";
 export const NUDGE = "Keep playing: call observe or press. Only tool calls advance the game.";
 
@@ -177,6 +183,7 @@ export interface PiLoopOptions {
   readonly signal: AbortSignal;
   readonly streamFn?: StreamFn;
   readonly loopDetector?: LoopDetector | undefined;
+  readonly window?: Window;
   // Awaited before every model call (operator pause).
   readonly gate?: (signal?: AbortSignal) => Promise<void>;
 }
@@ -207,7 +214,7 @@ export function piLoop(options: PiLoopOptions): Loop {
     transformContext: async (messages, loopSignal) => {
       await options.gate?.(loopSignal ?? signal);
       const warning = options.loopDetector?.context();
-      const context = slideWindow(messages);
+      const context = slideWindow(messages, options.window ?? WINDOW);
       if (warning) context.push({role:"user",content:warning,timestamp:Date.now()});
       return options.transformContext(context);
     },

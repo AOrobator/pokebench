@@ -25,4 +25,5 @@ The governor already drops an errored reply before retrying (`play` slices it of
 - [x] Pending experiment `experiments/fresh-retry.json` pinned to 7f1bcc2 (parses; candidate flips only fresh-retry-v1); readiness READY recorded
 - [x] Gates at 5f85f32: `pnpm -r lint` clean; `pnpm -r coverage` agent 1033 tests, 97.43/93.88/98 lines/branches/functions; viewer 564 tests, 94.83/90.17/93.6. Python untouched.
 - [x] Reviews on diff sha256 8620061… (base b17a67a, head 5f85f32): Claude CLI LGTM, cursor-grok-4.5-high LGTM. Both flagged PB10 evidence as written before the gate ran (now recorded above). Explainer now states the filter order. Deferred hardening: assert emit still records a text-only reply when ON (architecture verified by both reviewers in pinned pi-agent-core 0.73.1).
-- [ ] Operator approval before merging to main
+- [x] Operator approval before merging to main (the operator, 2026-10-15 01:56 UTC: "yes")
+- [x] Merged main (double-context-window-v1 landed first; fresh-retry-v1 appended after it). State-only presets now reject fresh-retry-v1 ON, since state mode never uses this context path. Shared incumbent copied from next-milestone-hint.json. After merge: agent 1037 tests (97.43/93.89/98.01), viewer 564 (94.83/90.17/93.6), lint clean.

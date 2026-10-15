@@ -47,6 +47,7 @@ export const SWITCHABLE_FEATURES = [
   "loop-guard-supervisor-v1",
   "instruction-ledger-v1",
   "next-milestone-hint-v1",
+  "double-context-window-v1",
   "fresh-retry-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
@@ -163,6 +164,8 @@ export const FEATURES: readonly FeatureInfo[] = [
     "Pins a short ledger before each decision: the last three dialogue pages the model was shown (with the faced character when named), the rooms it visited with the last line heard in each, and contradictions it recorded with note_contradiction, each citing event numbers it was shown. Bounded to 4,000 characters and recorded as ledger_context. Names no goal or route. Off: no ledger and no tool."),
   on("next-milestone-hint-v1", "guidance", "NEXT-MILESTONE HINT", null,
     "HINT ARM: names the next main-story milestone to pursue. Adds get_next_milestone (always callable, named in the system prompt) and, whenever a main-path milestone is earned, pins a message saying what was achieved and what the next milestone is. Milestones follow the order a recorded human run earned them. This tells the model where to go, so results measure hinted play. Off: no tool and no message."),
+  on("double-context-window-v1", "guidance", "DOUBLED CONTEXT WINDOW", null,
+    "Keeps twice as much recent play in the prompt: up to the last 40 turns (older turns drop 20 at a time) and the last 12 tool results in full with their screenshots (older ones collapse to a one-line summary, 6 at a time). The prompt grows to roughly twice the size, so each turn is slower. Presets must keep it OFF with state-only decisions, which send no history. Off: up to the last 20 turns (dropped 10 at a time) and the last 6 full tool results (collapsed 3 at a time)."),
   on("fresh-retry-v1", "guard", "FRESH RETRY", null,
     "When a reply calls no tool, the retry is sent without that reply: the model sees its last tool result and the nudge to keep playing, not its own failed answer and reasoning. The reply is still recorded and still counts toward the failure limit. Off: the failed reply stays in the context and the retry sees it."),
   measured("story-milestones-v2", "STORY MILESTONES",
@@ -242,6 +245,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("loop-guard-supervisor-v1"),
     ...when("instruction-ledger-v1"),
     ...when("next-milestone-hint-v1"),
+    ...when("double-context-window-v1"),
     ...when("fresh-retry-v1"),
   ];
 }
@@ -253,5 +257,5 @@ export function featuresOf(harnessFeatures: readonly string[]): FeatureSet {
 
 export function stateOnlyProblems(features:FeatureSet):string[]{
  if(!features["state-only-decisions-v1"])return [];
- return (["objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","next-milestone-hint-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
+ return (["objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
 }

@@ -31,7 +31,7 @@ export interface CliArgs {
   readonly publicOrigins: readonly string[];
 }
 
-// A Tailscale Serve (or other loopback HTTPS proxy) origin: https, no path, no credentials.
+// An origin a loopback proxy publishes the viewer at (Tailscale Serve https, Mac-edge LAN http): no path, no credentials.
 function publicOrigin(value: string): string {
   let url: URL;
   try {
@@ -39,8 +39,8 @@ function publicOrigin(value: string): string {
   } catch {
     throw new CliError(`not a public origin: ${value}`);
   }
-  if (url.protocol !== "https:" || url.username !== "" || url.password !== "" || url.pathname !== "/" || url.search !== "" || url.hash !== "") {
-    throw new CliError(`a public origin is https://host[:port] only, got ${value}`);
+  if ((url.protocol !== "https:" && url.protocol !== "http:") || url.username !== "" || url.password !== "" || url.pathname !== "/" || url.search !== "" || url.hash !== "") {
+    throw new CliError(`a public origin is http(s)://host[:port] only, got ${value}`);
   }
   return url.origin;
 }

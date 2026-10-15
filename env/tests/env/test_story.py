@@ -26,6 +26,7 @@ def test_story_reader_propagates_exact_game_variables_flags_and_text() -> None:
         "birch_lab_stage": 2,
         "petalburg_gym_stage": 2,
         "woods_stage": 1,
+        "town_stage": 0,
         "clock_set": True,
         "rival_battle_won": True,
         "pokedex_received": True,
@@ -109,6 +110,7 @@ def test_each_flag_bit_is_independently_grounded(field: str, flag: int) -> None:
         ("birch_lab_stage", 0x4084, 2),
         ("petalburg_gym_stage", 0x4085, 2),
         ("woods_stage", 0x4098, 1),
+        ("town_stage", 0x4050, 2),
     ],
 )
 def test_each_story_variable_is_independently_grounded(
@@ -122,6 +124,26 @@ def test_each_story_variable_is_independently_grounded(
     assert {key: body[key] for key in VAR_FIELDS} == {
         key: value if key == field else 0 for key in VAR_FIELDS
     }
+
+
+def test_town_stage_sendoff_is_the_north_exit_commit_not_the_meeting() -> None:
+    from pokebench_env.game_screen import read_screen
+    from pokebench_env.story import read_story
+
+    def stage(value: int) -> tuple[object, str]:
+        m = game(OVERWORLD)
+        m.put(SB1 + 0x139C + 2 * (0x4050 - 0x4000), struct.pack("<H", value))
+        state = read_game_state(m.read, MAPS)
+        return state_json(state)["story"]["town_stage"], format_readout(state)
+
+    assert stage(1)[0] == 1 and "sent to save Birch" not in stage(1)[1]
+    assert stage(2)[0] == 2 and "sent to save Birch" in stage(2)[1]
+    assert stage(4)[0] == 4 and "sent to save Birch" in stage(4)[1]
+    # The next save variable is not town state. An out-of-range value stays unknown.
+    m = game(OVERWORLD)
+    m.put(SB1 + 0x139C + 2 * (0x4051 - 0x4000), struct.pack("<H", 2))
+    m.put(SB1 + 0x139C + 2 * (0x4050 - 0x4000), struct.pack("<H", 5))
+    assert read_story(m.read, read_screen(m.read)).town_stage is None
 
 
 # Exact US-ROM roots from the qualified main_menu.c graph. These precede the

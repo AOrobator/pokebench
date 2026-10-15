@@ -227,6 +227,45 @@ it("does not use historical clock recovery over modern story evidence", () => {
   expect(v.milestones).toEqual([{name:"CLOCK_SET",ms:BASE_MS+1001,seq:mark.seq,kind:"story",origin:"present_at_start",evidence:[1]}]);
 });
 
+it("recovers leave-home and rival house from a Clock set save without rewriting a later native receipt", () => {
+  const clocked = { name_confirmed: true, intro_stage: 7 as const, rival_stage: 0 as const, birch_lab_stage: 0 as const, petalburg_gym_stage: 0 as const, woods_stage: 0 as const, clock_set: true, rival_battle_won: false, pokedex_received: false, running_shoes_received: false, starter_tutorial_complete: false, rustboro_gym_complete: false, stone_badge: false, rock_tomb_received: false };
+  const log = new Log();
+  log.add(0, { ...START, start_state: { kind: "save_state", path: "/saves/CLOCK_SET.state", sha1: "a".repeat(40) } });
+  const bedroom = log.add(1000, state({ location: "LITTLEROOT TOWN BRENDANS HOUSE 2F", story: clocked, badges: [], party: [] }));
+  const downstairs = log.add(2000, state({ location: "LITTLEROOT TOWN BRENDANS HOUSE 1F", story: clocked, badges: [], party: [] }));
+  const town = log.add(3000, state({ location: "LITTLEROOT TOWN", story: clocked, badges: [], party: [] }));
+  const rival = log.add(4000, state({ location: "LITTLEROOT TOWN MAYS HOUSE 1F", story: clocked, badges: [], party: [] }));
+  const view = fold(log);
+  expect(view.milestones.filter(m => m.name === "PLAYER_HOUSE_EXITED_AFTER_CLOCK" || m.name === "RIVAL_HOUSE_ENTERED")).toEqual([
+    { name: "PLAYER_HOUSE_EXITED_AFTER_CLOCK", ms: BASE_MS + 3000, seq: town.seq, derived: true, kind: "navigation", origin: "observed", evidence: [bedroom.seq, downstairs.seq, town.seq] },
+    { name: "RIVAL_HOUSE_ENTERED", ms: BASE_MS + 4000, seq: rival.seq, derived: true, kind: "navigation", origin: "observed", evidence: [bedroom.seq, rival.seq] },
+  ]);
+  const recorded = new Log();
+  recorded.events.push(...log.events);
+  const mark = recorded.add(4100, { type: "milestone", turn: 1, name: "RIVAL_HOUSE_ENTERED", kind: "navigation", origin: "observed", server_timestamp: 1, evidence: [bedroom.seq, rival.seq] });
+  const replaced = fold(recorded).milestones.find(m => m.name === "RIVAL_HOUSE_ENTERED");
+  expect(replaced?.seq).toBe(mark.seq);
+  expect(replaced?.derived).toBeUndefined();
+  expect(view.milestones.find(m => m.name === "CLOCK_SET")).toMatchObject({ seq: bedroom.seq, derived: true, origin: "observed", evidence: [bedroom.seq] });
+  expect(view.milestones.find(m => m.name === "PLAYER_BEDROOM")).toMatchObject({ seq: bedroom.seq, derived: true, evidence: [bedroom.seq] });
+  const rivalRoom = new Log();
+  rivalRoom.add(0, { ...START, start_state: { kind: "save_state", path: "/saves/CLOCK_SET.state", sha1: "b".repeat(40) } });
+  rivalRoom.add(1000, state({ location: "LITTLEROOT TOWN BRENDANS HOUSE 2F", story: clocked, badges: [], party: [] }));
+  rivalRoom.add(2000, state({ location: "LITTLEROOT TOWN MAYS HOUSE 2F", story: clocked, badges: [], party: [] }));
+  expect(fold(rivalRoom).milestones.filter(m => m.name === "PLAYER_BEDROOM")).toHaveLength(1);
+  const upstairs = new Log();
+  upstairs.add(0, START);
+  const beforeClock = { ...clocked, clock_set: false, intro_stage: 5 as const };
+  upstairs.add(1000, state({ location: "LITTLEROOT TOWN BRENDANS HOUSE 2F", screen: "field_transition", story: beforeClock, badges: [], party: [] }));
+  const room = upstairs.add(2000, state({ location: "LITTLEROOT TOWN BRENDANS HOUSE 2F", story: beforeClock, badges: [], party: [] }));
+  expect(fold(upstairs).milestones.find(m => m.name === "PLAYER_BEDROOM")).toMatchObject({ seq: room.seq, derived: true });
+  const receipt = new Log();
+  receipt.add(0, START);
+  receipt.add(1000, state({ location: "LITTLEROOT TOWN BRENDANS HOUSE 2F", story: clocked, badges: [], party: [] }));
+  const nativeClock = receipt.add(1500, { type: "milestone", turn: 1, name: "CLOCK_SET", kind: "story", origin: "observed", server_timestamp: 1, evidence: [1] });
+  expect(fold(receipt).milestones.find(m => m.name === "CLOCK_SET")).toMatchObject({ seq: nativeClock.seq });
+  expect(fold(receipt).milestones.find(m => m.name === "CLOCK_SET")?.derived).toBeUndefined();
+});
 it("the split ordering matches the production milestone owner", async () => {
   const {MILESTONE_ORDER: recorded} = await import("../../agent/src/milestones.js");
   const {MILESTONE_ORDER: displayed} = await import("./model.js");

@@ -60,6 +60,14 @@ describe("read-only workbench snapshot", () => {
     expect(() => parseWorkbench({ ...d, runs: [{ ...run, splits: run.splits.map(s => ({ ...s, seq: 1.5 })) }] })).toThrow("Invalid workbench");
     expect(() => parseWorkbench({ ...d, runs: [{ ...run, config: { ...run.config, maxTurns: 1.5 } }] })).toThrow("Invalid workbench");
   });
+  it("accepts a recorded config that omits resume and rejects a corrupt resume", async () => {
+    const r = root(); write(r, "integer", named()); const d = await workbenchSnapshot(r, () => Promise.resolve(false), { state: "idle" }, 42);
+    const run = d.runs[0]; if (run?.config === null || run === undefined) throw new Error("missing fixture");
+    const config = { ...run.config }; delete config.resume;
+    expect(parseWorkbench({ ...d, runs: [{ ...run, config }] }).runs[0]?.config?.resume).toBeUndefined();
+    expect(parseWorkbench({ ...d, runs: [{ ...run, config: { ...config, resume: "CLOCK_SET" } }] }).runs[0]?.config?.resume).toBe("CLOCK_SET");
+    expect(() => parseWorkbench({ ...d, runs: [{ ...run, config: { ...config, resume: false } }] })).toThrow("Invalid workbench");
+  });
   it.each(["operator_abort", "operator_stop"] as const)("preserves %s history while enforcing existing abort eligibility", async reason => {
     const r = root(), log = named(); log.add(5000, { type: "run_end", turn: 1, reason, furthest_milestone: "PLAYER_NAME_CONFIRMED", turns: 1, wall_ms: 5000, tokens: { input: 500, output: 100 }, frames: { saved: 0, bytes: 0 } }); write(r, "stopped", log);
     const d = await workbenchSnapshot(r, () => Promise.resolve(false), { state: "idle" }, 42);

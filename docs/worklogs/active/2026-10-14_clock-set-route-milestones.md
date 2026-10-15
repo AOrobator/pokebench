@@ -36,12 +36,13 @@ Recording only. No new process, port, or path. The model-visible hint stays behi
 
 ## Closing the Loop
 
-The live run `26e0` is not restarted. Missed rows in that log stay missed.
+The live run `26e0` is not restarted. Original `events.jsonl` rows stay as recorded. The viewer derives a missing leave-home or rival-house observation when it reads the log, and labels that time as a first-observation upper bound.
 
 ## Session Log
 
 - 2026-10-14: Checkpoint-start test written. It failed before the proof change because home stayed unset. RED `2e92c34`.
 - 2026-10-14: Home for a resumed run is the first stable house before any other map. Fresh boot still uses the pre-clock witness. Agent coverage stays above 90. GREEN `4e4fa06`.
+- 2026-10-14: Viewer read path recovers `PLAYER_HOUSE_EXITED_AFTER_CLOCK`, `RIVAL_HOUSE_ENTERED`, `CLOCK_SET`, and `PLAYER_BEDROOM` from recorded RAM when the log omitted them, including the bedroom a transition frame could not grade. Derived rows are first-observation upper bounds. `events.jsonl` is not rewritten. Comparisons validation accepts `config.resume` omitted, null, or a string; a non-string still fails. Screenshot audit found no milestone that images proved beyond RAM, so no screenshot receipt was added. The earlier uncommitted Clock-set chart (dashed, not from zero) and the 64 MiB log-bound edit stay out of this commit. Proved checkpoints already connect on the existing plot, and a real miss still breaks the line; the new chart test stays with that uncommitted chart because it does not pass without it.
 
 ## Surprises
 

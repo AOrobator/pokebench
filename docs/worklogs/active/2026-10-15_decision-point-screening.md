@@ -100,6 +100,10 @@ feature-worklog, feature-switch, agent-observability, pokebench-game-state, poke
   Codex gpt-5.6-sol's round-1 run exited without output, so its single review runs on the full packet at da0e682;
   grok re-reviews only 18fb078..da0e682.
 - Grok delta re-review (18fb078..da0e682): VERDICT: LGTM ("Round-1 blockers are fixed in-contract").
+- Codex gpt-5.6-sol xhigh full review (5d8681d..da0e682, diff sha256 2341157…): VERDICT: BLOCKING, eight findings.
+  Triage under the operator rule: none blocks. All eight concern the offline probe/replay tool or its test evidence;
+  none crashes play, changes control-arm behavior, gives the model false facts on CLOCK_SET→RIVAL_MET, or corrupts
+  recorded trial outcomes (the probe never touches a game or a trial record). All deferred below.
 
 ## Deferred review findings (operator rule: not blocking)
 - rerender.py: no post-join symlink-escape check under run_dir (absolute and `..` already refused). (grok r1)
@@ -108,6 +112,15 @@ feature-worklog, feature-switch, agent-observability, pokebench-game-state, poke
 - test_rerender.py skips its ROM tests when POKEBENCH_ROM is unset. (grok r1, speculation)
 - filePorts.frame: containment is resolve/relative only (no realpath symlink check); `rel.startsWith("..")` also
   rejects an in-root `..foo` name (unreachable: schema fixes `frames/NNNNNN_N.png`); frame cache is unbounded. (grok delta)
+- Probe fidelity, first priority before probe results are trusted (codex): (1) text-only supervisor notes attach to
+  the first preceding tool-less reply, misplacing them when several replies are tool-less (cd66 T337–339) while sizes
+  still match, so `fidelity` can read true falsely; (2) frame SHA-1 from events is not checked on read; (3) a
+  server-switch flip re-renders only full results, collapsed summaries keep recorded readout facts; (4) stall replay
+  uses pausedMs 0, ignoring recorded operator pauses.
+- Live fidelity suite still rebuilds the whole prefix per turn (O(T²) compute; frame I/O now linear). (codex)
+- test_rerender.py golden skips without POKEBENCH_ROM; no late-failure two-ref renderer test. (codex)
+- Live sampling path (discovery → completeSimple → report) has no real receipt; sampling pending (GPUs reserved). (codex)
+- Reports omit sampled model identity; tool args with different key order bucket separately. (codex)
 
 ## Decisions
 - R1 is a bug fix (false model-facing facts in the supervisor briefing), under the M1 operator exception.

@@ -17,5 +17,10 @@ Landing note: the 8790 viewer runs the queue with the code it loaded at start, s
   COMMIT: `feat(viewer): experiments pin agent and env sources, so viewer-only merges keep them running` (see git log)
   Tests: agent 1083, viewer 656, python 1877 passed. Coverage: agent 97.5/93.87/98.15, viewer 95.39/91.19/94.4 (gate 90). Lint: tsc, eslint, ruff clean; mypy fails only on the unbuilt mGBA binding in this worktree's env (no Python touched).
   Note: the main checkout's existing dist stamp names a commit, so the first verify after landing rebuilds the agent once (under the lease, never during a live run).
-- [ ] Review (Claude CLI, Cursor Grok)
+- [x] Review round 1 (Claude CLI; Cursor grok-4.7-high): both LGTM. Real-repo identities: 74ad319 and 6cc5394 both e66b7541…fc728; codex/dialog-loop-recovery fb275279…21f7.
+  - Medium (Claude, pre-existing): untracked files are ignored, so an untracked env/ module would run under a matching identity. Fix: refuse untracked files under any build source before the fresh-stamp shortcut.
+  - Low: the experiments.ts schema comment still says commit equality; the ledger `commit` now means the commit whose sources the trials run. Fix: comments.
+  - Low: the rev guard has no test. Fix: assertions that a non-hex rev never reaches git.
+  - Noted, no change: lockfile or root manifest bumps hold (conservative by design); re-approval after a definition change still compares commits (outside this change); git's own stderr on an unknown commit; build-mgba.sh output in env/.venv is outside the identity (never rebuilt by the runner).
+- [x] RED round 2: `test(viewer): RED untracked build sources hold; the rev guard never reaches git` (see git log)
 - [ ] Operator approves the local merge; restart the 8790 viewer on main.

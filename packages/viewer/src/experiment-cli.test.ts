@@ -173,6 +173,13 @@ describe("production host", () => {
     writeFileSync(join(root, "tracked.txt"), "uncommitted\n");
     expect(await host.verifySource(experiment(pinned), pinned)).toBeNull();
     git(root, ["checkout", "--", "packages/viewer/src/v.ts", "tracked.txt"]);
+    // A fresh build does not make an untracked source harmless: the game server imports env/ as it is.
+    writeFileSync(join(root, "env", "stray.py"), "");
+    expect(await host.verifySource(experiment(pinned), pinned)).toBe("untracked files in the agent or env sources: env/stray.py");
+    rmSync(join(root, "env", "stray.py"));
+    writeFileSync(join(root, "packages", "viewer", "src", "stray.ts"), "");
+    expect(await host.verifySource(experiment(pinned), pinned)).toBeNull();
+    rmSync(join(root, "packages", "viewer", "src", "stray.ts"));
     const refused = (head: string): string => `the agent or env sources changed since earlier trials ran on ${pinned.slice(0, 7)} (main is at ${head.slice(0, 7)}); both arms must run on one build`;
     for (const [path, body] of [["packages/agent/src/a.ts", "a2\n"], ["env/e.py", "e2\n"], ["pnpm-lock.yaml", "l2\n"], ["package.json", "{\"x\":1}\n"], ["pnpm-workspace.yaml", "w2\n"], ["packages/agent/src/new.ts", "n\n"]] as const) {
       const head = commit(root, path, body);
@@ -193,6 +200,8 @@ describe("production host", () => {
     expect(sourceIdentity(gitHere, pinned)).toMatch(/^[0-9a-f]{64}$/);
     expect(sourceIdentity(gitHere, "HEAD")).toBe(sourceIdentity(gitHere, pinned));
     expect(sourceIdentity(gitHere, "c".repeat(40))).toBeNull();
+    expect(sourceIdentity(() => { throw new Error("git must not run"); }, "--all")).toBeNull();
+    expect(sourceIdentity(() => { throw new Error("git must not run"); }, "main")).toBeNull();
   });
 
   it("never rebuilds under a live run, and never trusts a failed or empty build", async () => {
@@ -210,7 +219,7 @@ describe("production host", () => {
     rmSync(join(root, "runs", HUMAN_GAMEPLAY_LEASE_NAME), { recursive: true });
     mkdirSync(join(root, "packages", "agent", "src"), { recursive: true });
     writeFileSync(join(root, "packages", "agent", "src", "stray.ts"), "");
-    expect(await make(() => Promise.resolve(null)).verifySource(experiment(head), head)).toBe("untracked files would enter the agent build: packages/agent/src/stray.ts");
+    expect(await make(() => Promise.resolve(null)).verifySource(experiment(head), head)).toBe("untracked files in the agent or env sources: packages/agent/src/stray.ts");
     rmSync(join(root, "packages", "agent", "src", "stray.ts"));
     expect(builds).toBe(0);
     const failing = make(() => { writeFileSync(join(dist, "live.js"), ""); return Promise.resolve("src/x.ts(1,1): error TS2322"); });

@@ -76,7 +76,9 @@ function anchorOf(box: HTMLElement, held: boolean): { readonly find: () => HTMLE
 
 // Updates the list turn by turn: unchanged turns keep their elements, so a click
 // or keyboard focus is never lost to a live update, and the reader's row stays put.
-function reconcile(box: HTMLElement, groups: readonly TraceGroup[], tail: string, stamps: WeakMap<HTMLElement, string>, held: boolean, state: RowState): void {
+// `scrollTo` records a position as the viewer's own before setting it, so the scroll event it causes,
+// whenever the browser fires it, is not mistaken for the reader's.
+function reconcile(box: HTMLElement, groups: readonly TraceGroup[], tail: string, stamps: WeakMap<HTMLElement, string>, held: boolean, state: RowState, scrollTo: (top: number) => void): void {
   const anchor = anchorOf(box, held);
   const existing = new Map<string, HTMLElement>();
   for (const child of [...box.children] as HTMLElement[]) {
@@ -103,7 +105,7 @@ function reconcile(box: HTMLElement, groups: readonly TraceGroup[], tail: string
   });
   for (const stale of existing.values()) stale.remove();
   const moved = anchor?.find();
-  if (anchor !== null && moved !== null && moved !== undefined) box.scrollTop += moved.getBoundingClientRect().top - box.getBoundingClientRect().top - anchor.offset;
+  if (anchor !== null && moved !== null && moved !== undefined) scrollTo(box.scrollTop + moved.getBoundingClientRect().top - box.getBoundingClientRect().top - anchor.offset);
 }
 
 const LIVE_RETRY_MS = 5_000;
@@ -382,13 +384,11 @@ export class App {
       // A list held at the top goes back to following the newest turn, unless the reader scrolled away.
       list.addEventListener("mouseleave", () => {
         this.held.delete(list);
-        if (this.heldAtTop.delete(list)) {
-          list.scrollTop = 0;
-          this.autoScroll.set(list, 0);
-        }
+        if (this.heldAtTop.delete(list)) this.scrollTo(list, 0);
       });
       // Any scroll the reader makes (not one reconcile made) cancels the return to the top.
       list.addEventListener("scroll", () => { if (Math.abs(list.scrollTop - (this.autoScroll.get(list) ?? 0)) > 1) this.heldAtTop.delete(list); });
+      for (const type of ["wheel", "touchmove"]) list.addEventListener(type, () => { this.heldAtTop.delete(list); }, { passive: true });
       // Recorded on click, before the toggle event, so a redraw in between cannot lose it.
       list.addEventListener("click", (event) => {
         const summary = (event.target as HTMLElement).closest("summary");
@@ -410,7 +410,7 @@ export class App {
       const all = target.closest("[data-trace-expand],[data-trace-collapse]");
       if (all !== null) {
         const open = all.hasAttribute("data-trace-expand");
-        for (const row of this.ui("trace").querySelectorAll<HTMLDetailsElement>("details[data-key]")) {
+        for (const row of this.doc.querySelectorAll<HTMLDetailsElement>('[data-ui="trace"] details[data-key], [data-ui="side-trace"] details[data-key]')) {
           this.remember(row, open);
           row.open = open;
         }
@@ -645,6 +645,13 @@ export class App {
     for (const name of ["trace", "side-trace"]) this.doc.querySelector<HTMLElement>(`[data-ui="${name}"]`)?.replaceChildren();
   }
 
+  private scrollTo(list: HTMLElement, top: number): void {
+    this.autoScroll.set(list, top);
+    list.scrollTop = top;
+    // The browser may clamp the value; record where the list really is.
+    this.autoScroll.set(list, list.scrollTop);
+  }
+
   // `mirror` only once the state has changed (a toggle event); a click arrives before its own toggle.
   private remember(details: HTMLDetailsElement, open: boolean, mirror = false): void {
     const key = details.closest<HTMLElement>("[data-key]")?.dataset.key;
@@ -655,7 +662,8 @@ export class App {
     else set.delete(key);
     if (!mirror) return;
     // Keep the side panel's and the trace page's copies of this row in step.
-    for (const row of this.doc.querySelectorAll<HTMLDetailsElement>(`details[data-key="${key}"]`)) {
+    const other = details.closest("[data-ui]")?.getAttribute("data-ui") === "trace" ? "side-trace" : "trace";
+    for (const row of this.doc.querySelectorAll<HTMLDetailsElement>(`[data-ui="${other}"] details[data-key="${key}"]`)) {
       const target = result ? row.querySelector<HTMLDetailsElement>("details.res-d") : row;
       if (target !== null && target !== details && target.open !== open) target.open = open;
     }
@@ -703,14 +711,12 @@ export class App {
         this.sideBox = boxTurn;
         const side = this.ui("side-trace");
         const groups = sideGroups(this.trace.turns, SIDE_TURNS, boxTurn);
-        reconcile(side, groups, groups.length === 0 ? '<p class="nodata">no steps yet</p>' : "", this.stamps, this.held.has(side), this.rows);
-        this.autoScroll.set(side, side.scrollTop);
+        reconcile(side, groups, groups.length === 0 ? '<p class="nodata">no steps yet</p>' : "", this.stamps, this.held.has(side), this.rows, (top) => { this.scrollTo(side, top); });
       }
       const startMs = this.shown.startMs;
       const elapsed = startMs === null ? null : (ms: number): number => (ms - startMs - this.shown.control.pausedBefore(ms)) / 1000;
       const { groups, more } = traceGroups(this.trace.turns, this.traceOn, { elapsed, live, limit: this.traceLimit, page: TRACE_TURNS });
-      reconcile(box, groups, groups.length === 0 ? '<p class="nodata">no recorded events</p>' : moreButton(more, TRACE_TURNS), this.stamps, this.held.has(box), this.rows);
-      this.autoScroll.set(box, box.scrollTop);
+      reconcile(box, groups, groups.length === 0 ? '<p class="nodata">no recorded events</p>' : moreButton(more, TRACE_TURNS), this.stamps, this.held.has(box), this.rows, (top) => { this.scrollTo(box, top); });
     }
     if (live !== null) {
       const { thinking, text } = this.shown.streaming;

@@ -158,6 +158,25 @@ Browser verification so far, at 1440×900:
 
 ## Multi-Model Review Log
 
+**Round 7 (032d206..e71f9f0)**
+
+Claude: **LGTM** (minor items).
+
+Grok: BLOCKING. The viewer recorded its own scroll position only after setting `scrollTop`. A browser that fires `scroll` synchronously would cancel the hold-at-top, and the test only fired `scroll` afterwards.
+
+Fixed in `fix(viewer): agent trace review round 7`:
+- `scrollTo(list, top)` records the position before setting it, then records the clamped value. `reconcile` and the snap back both use it.
+- The test list's `scrollTop` setter fires `scroll` synchronously. The test also covers the late scroll event after a snap back and the reader's wheel cancelling the snap.
+- `wheel`/`touchmove` cancel the snap too.
+- COLLAPSE/EXPAND ALL loop over both lists. The test now blocks toggle events, so the per-row record is really what keeps the state (correcting my round-6 note that this couldn't be shown in happy-dom).
+- The mirror searches only the other list. Test added for a folded result.
+- Guards deleted once, each test went red, then restored:
+  - order of record vs set (1 red)
+  - bulk record (1 red)
+  - wheel (1 red)
+  - no own-scroll record (1 red)
+- Gates: viewer 642 passed (95.4/91.1/94.4), agent 1066 passed, lint clean, build ok.
+
 **Round 6 (032d206..19a273a)**
 
 Grok: **LGTM** (minor items only).

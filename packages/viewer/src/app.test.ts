@@ -964,8 +964,10 @@ describe("agent trace page", () => {
     const spy = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
       return this === box ? rect(0) : rect(items().indexOf(this) * 20 - box.scrollTop);
     });
+    // A browser may fire scroll as soon as scrollTop is set; this list does exactly that.
+    let top = 0;
+    Object.defineProperty(box, "scrollTop", { configurable: true, get: () => top, set: (value: number) => { top = value; box.dispatchEvent(new Event("scroll")); } });
     try {
-      box.scrollTop = 0;
       box.dispatchEvent(new Event("mouseenter"));
       feed(must(streams[0]), [log.add(800, assistantAt(6))], false);
       app.tick(10);
@@ -973,6 +975,20 @@ describe("agent trace page", () => {
       box.dispatchEvent(new Event("scroll"));
       box.dispatchEvent(new Event("mouseleave"));
       expect(box.scrollTop).toBe(0);
+      // The snap back is the viewer's own scroll too: a new hold at the top survives its late scroll event.
+      box.dispatchEvent(new Event("mouseenter"));
+      box.dispatchEvent(new Event("scroll"));
+      feed(must(streams[0]), [log.add(810, assistantAt(7))], false);
+      app.tick(10);
+      box.dispatchEvent(new Event("mouseleave"));
+      expect(box.scrollTop).toBe(0);
+      // The reader's own wheel cancels the return.
+      box.dispatchEvent(new Event("mouseenter"));
+      box.dispatchEvent(new Event("wheel"));
+      feed(must(streams[0]), [log.add(820, assistantAt(8))], false);
+      app.tick(10);
+      box.dispatchEvent(new Event("mouseleave"));
+      expect(box.scrollTop).toBe(40);
     } finally {
       spy.mockRestore();
     }
@@ -984,13 +1000,19 @@ describe("agent trace page", () => {
     feed(must(streams[0]), events.slice(0, 10));
     setNow(BASE_MS + 3_300);
     app.tick(100);
+    // Stand-in for the browser's queued toggle events: none reach the lists before the redraw.
+    const hold = (event: Event): void => { event.stopImmediatePropagation(); };
+    window.addEventListener("toggle", hold, true);
     must(ui("trace-chips").querySelector<HTMLButtonElement>("[data-trace-expand]")).click();
+    window.removeEventListener("toggle", hold, true);
     const late = new Log();
     late.events.push(...events.slice(0, 10));
     feed(must(streams[0]), [late.add(3_400, { type: "retry", turn: 1, reason: "late", attempt: 1, limit: 3 })], false);
     app.tick(100);
     expect(must(ui("trace").querySelector<HTMLDetailsElement>('details[data-key="5"]')).open).toBe(true);
+    window.addEventListener("toggle", hold, true);
     must(ui("trace-chips").querySelector<HTMLButtonElement>("[data-trace-collapse]")).click();
+    window.removeEventListener("toggle", hold, true);
     feed(must(streams[0]), [late.add(3_500, { type: "retry", turn: 1, reason: "later", attempt: 2, limit: 3 })], false);
     app.tick(100);
     expect(must(ui("trace").querySelector<HTMLDetailsElement>('details[data-key="5"]')).open).toBe(false);
@@ -1004,6 +1026,9 @@ describe("agent trace page", () => {
     must(ui("trace").querySelector<HTMLElement>('details[data-key="5"] > summary')).click();
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(must(ui("side-trace").querySelector<HTMLDetailsElement>('details[data-key="5"]')).open).toBe(true);
+    must(ui("trace").querySelector<HTMLElement>('details[data-key="5"] details.res-d > summary')).click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(must(ui("side-trace").querySelector<HTMLDetailsElement>('details[data-key="5"] details.res-d')).open).toBe(false);
   });
 
   it("goes back to the newest turn when the pointer leaves a list it held at the top", async () => {

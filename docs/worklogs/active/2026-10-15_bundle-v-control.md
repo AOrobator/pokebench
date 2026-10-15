@@ -183,6 +183,7 @@ Any valid trial that still ends before the wall cap is listed in a WARNING table
 - 2026-10-15 19:40 EDT: Re-review of `19f3784` + `a0092a1..4cdb29a`: Codex `VERDICT: BLOCKING` (2), grok `VERDICT: LGTM`. Operator triage: BLOCK Codex 1 (started-record I/O in the spawn listener escapes every catch and can kill the runner; with it, grok's residual: a throw inside `pause()` rejects `Promise.all` and drops the lease while the other lane runs; rule 1) and Codex 2 (the cap classifier must use paused-time-excluded elapsed time like the production `BudgetTimer`; rules 2/4). Merged main `3c4c26f` (auto-advance `0d589f1`). RED: three failing tests in fixed-runner/fixed-ledger.
 - 2026-10-15 19:50 EDT: GREEN: the started callback sets the child first and catches its ledger/runner-file writes (reason in `lastError` and the lane); every runner log line goes through a non-throwing `say`, so `pause()` and status writes cannot reject a lane loop; `classifyTrial` subtracts applied `paused_ms` before comparing a milestone with the cap and reports unpaused `primaryMs`/`furthestMs`.
 - 2026-10-15 20:00 EDT: Gates at `219f7c9` + test-type fix: `just test` agent 80 / 1263, viewer 58 / 762, env 1962; `just lint` 0 (after adding `turn` to the pause fixture events); `just build` 0; `just coverage` agent 97.61 / 94.19 / 97.85 / 99.02, viewer 95.35 / 90.54 / 94.19 / 97.89, env 97.03 / 92.57 / 100; `just verify-vendor` OK. Delta re-review `cc6372d..219f7c9` (sha256 `faca790f…`) running: Codex gpt-5.6-sol, grok.
+- 2026-10-15 19:26 EDT: Delta re-review `cc6372d..219f7c9`: grok `VERDICT: LGTM` (both blockers cleared; non-blocking: bare `host.log`/post-exit `writeRunner` in `play`/`record` now only cost a backoff; a lost `started` pid degrades only restart adoption; open pauses lack `paused_ms`). Codex `VERDICT: BLOCKING` on one item only: the pause fixtures omitted `turn` (TS2345, `just lint` exit 2), already fixed test-only in `f17700b` with `just lint` 0; not an operator-rule blocker. Merging into main.
 
 ## Deferred
 
@@ -197,6 +198,10 @@ Any valid trial that still ends before the wall cap is listed in a WARNING table
 - grok: `controlBaseProblems` compares sampling by `JSON.stringify` without sorting keys; a key-order change fails closed.
 - grok: analysis re-caps the primary but not `furthest*` for ledger rows written before the classifier fix; no such rows exist.
 - Codex/grok: the review bundle lacked `finals-incumbent.json` (it lives under gitignored `runs/`); `check` from `~/dev/pokebench` re-hashes it.
+- grok: `play`/`record` bare `host.log` and post-exit `writeRunner` throws cost the lane one backoff after a recorded trial.
+- grok: a failed `started` append leaves no pid, so only a mid-trial runner restart adopts without it.
+- grok: an open pause (no `paused_ms` yet) is not subtracted; completed trials always close it.
+- Codex: the two new runner tests run the full 12-trial fixture; a smaller plan would be faster.
 
 ## Surprises
 

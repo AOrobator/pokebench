@@ -8,6 +8,7 @@ are written from pokeemerald 731ad5bf source data (species_info.h, battle_moves.
 import json
 import struct
 from dataclasses import replace
+from functools import cache
 from pathlib import Path
 
 import pytest
@@ -84,12 +85,20 @@ def rom(m: Memory) -> Memory:
     return m
 
 
-def recorded(name: str) -> Memory:
+@cache
+def _recorded_cells(name: str) -> tuple[tuple[int, int], ...]:
+    # Parsed once per fixture; every test gets its own mutable copy of the cells.
     data = json.loads((FIXTURES / name).read_text())
     m = Memory()
     for window in data["windows"]:
         m.put(int(window["address"], 16), bytes.fromhex(window["hex"]))
-    return rom(m)
+    return tuple(rom(m).cells.items())
+
+
+def recorded(name: str) -> Memory:
+    m = Memory()
+    m.cells = dict(_recorded_cells(name))
+    return m
 
 
 def bag(*items: int) -> Resources:
@@ -199,7 +208,7 @@ def test_trainer_battle_refuses_run_and_warns_balls_are_lost() -> None:
     assert "stages Atk -1 · moves: TACKLE" in observed[1] and "PP 39/40" in observed[1]
     assert observed[2] == (
         "Actions (2×2 FIGHT BAG / POKéMON RUN; menu open, highlighted ▶ BAG): FIGHT · "
-        "BAG allowed — usable here: POTION ×5; balls POKé BALL ×5: the TRAINER blocks the BALL "
+        "BAG allowed — has a battle use (whether it does anything now is not checked): POTION ×5; balls POKé BALL ×5: the TRAINER blocks the BALL "
         '("Don\'t be a thief!") and the ball is used up; not usable in battle: MACH BIKE ×5 · '
         "POKéMON switching allowed — no other Pokémon can battle · "
         'RUN REFUSED — "No! There\'s no running from a TRAINER battle!"'
@@ -214,7 +223,11 @@ def test_wild_run_odds_balls_and_speed_from_game_stats() -> None:
     assert "RUN allowed — escape guaranteed (your Spe 10 ≥ foe Spe 7)" in actions
     m.put(MONS + 0x58 + 6, struct.pack("<H", 12))
     actions = battle_lines(format_readout(state(m)))[2]
-    assert "escape not guaranteed: your Spe 10 < foe Spe 12; succeeds if 10×128÷12" in actions
+    assert (
+        "RUN allowed — escape not guaranteed: your Spe 10 < foe Spe 12; a failed try uses your turn"
+        in actions
+    )
+    assert "×128" not in actions
     full = Resources(bag=bag(4).bag, storage=PokemonStorage(0, ()))
     six = state(m, full)
     six = replace(six, party=six.party * 6)
@@ -485,3 +498,42 @@ def test_party_ability_slot_plaintext_and_unreadable_members() -> None:
     text_ = "\n".join(details.lines(base.battle))
     assert "ability FLASH FIRE" in text_
     assert "BAG allowed — not usable in battle: MACH BIKE ×5" in text_
+
+
+def test_a_full_hp_party_never_hears_a_potion_is_usable_here() -> None:
+    # c406 seq 1266: one TORCHIC at 20/20; the game's item-effect check would reject a POTION.
+    actions = battle_lines(format_readout(state(recorded("battle-c406-00001266.json"), bag(13))))[2]
+    assert "usable here" not in actions
+    assert "has a battle use (whether it does anything now is not checked): POTION ×5" in actions
+
+
+def test_battle_pyramid_bag_is_reported_unread_not_the_ordinary_bag() -> None:
+    m = trainer()
+    m.put(TYPE_FLAGS, struct.pack("<I", 0x04 | (1 << 21)))
+    actions = battle_lines(format_readout(state(m, bag(13, 4))))[2]
+    assert "BAG allowed — Battle Pyramid bag not read" in actions
+    assert "POTION" not in actions and "POKé BALL" not in actions
+
+
+def test_an_emulator_read_error_is_reported_not_raised() -> None:
+    m = trainer()
+
+    def broken(address: int, length: int) -> bytes:
+        if ITEMS <= address < ITEMS + 44 * 400:
+            raise OSError("emulator gone")
+        return m.read(address, length)
+
+    current = state(m, bag(13))
+    details = read_battle_details(broken, current.battle, current.party, bag(13))
+    assert details is not None and details.diagnostic == "harness bug: emulator gone"
+
+
+def test_the_recorded_fixture_is_parsed_once(monkeypatch: pytest.MonkeyPatch) -> None:
+    _recorded_cells.cache_clear()
+    loads: list[str] = []
+    real = json.loads
+    monkeypatch.setattr(json, "loads", lambda raw: loads.append("x") or real(raw))
+    first, second = trainer(), trainer()
+    assert len(loads) == 1
+    first.put(TYPE_FLAGS, b"\xff")
+    assert second.read(TYPE_FLAGS, 1) != b"\xff"

@@ -18,14 +18,14 @@ const TOWN={location:"TOWN",map_id:[0,9]};
 const LOADING={location:null,map_id:null};
 
 // A production-shaped run: the real recorder's synchronous fan-out, the real loop guard and the factories live.ts calls.
-function rig(features:FeatureSet){
+function rig(features:FeatureSet,wire=true){
  const observers:{fn:(e:RunEvent)=>void}[]=[];const events:RunEvent[]=[];
  let seq=0,turn=0,clock=0,paused=0,call=0,stateSeq=0;
  const emit=(body:Record<string,unknown>):RunEvent=>{const e=checkEvent({v:1,run:"stall",t:"2026-10-15T12:00:00.000-04:00",turn,seq:++seq,...body});events.push(e);for(const o of observers)o.fn(e);return e;};
  const recorder={subscribe:(fn:(e:RunEvent)=>void)=>{observers.push({fn});},recordLoopGuard:(n:LoopNotice)=>{emit({type:"loop_guard",...n,evidence:[...n.evidence]});}};
  const governor=new Governor({limits:{maxTurns:5000,maxWallMs:6*3_600_000,failureLimit:3},retry:()=>undefined,abort:()=>undefined,now:()=>clock});
  const detector=attachLoopGuard(recorder,governor,undefined,"enforced",features["interaction-loop-detection-v1"],loopSupervisor(features,recorder));
- const wired=stallBriefing(features,recorder,detector,{pausedMs:()=>paused},()=>clock);
+ const wired=wire?stallBriefing(features,recorder,detector,{pausedMs:()=>paused},()=>clock):null;
  const contexts:(string|null)[]=[];
  // One model turn: the context it is shown, then one press and the observed state after it.
  const press=(buttons:string[],after:Record<string,unknown>,ms=10_000,before:Record<string,unknown>[]=[]):void=>{
@@ -149,26 +149,24 @@ it("leaves an open loop-guard briefing alone and briefs the stall once that loop
  expect(r.guards().map(g=>g.kind)).toContain("milestone_drought");
 });
 
-it("with the switch OFF records the same events and shows the model the same context as before",()=>{
- const run=(features:FeatureSet,withStall:boolean)=>{
-  const r=rig(features);
+it("with the switch OFF records the same events and shows the model the same context as the incumbent wiring",()=>{
+ const script=(r:ReturnType<typeof rig>)=>{
   stairs(r,6);
   for(let i=0;i<12;i++)r.press(["A"],{in_battle:true},30_000);
   for(let i=0;i<4;i++)r.press(["A"],{},10_000);
-  return {events:r.events.map(e=>JSON.stringify(e)),contexts:r.contexts,wired:r.wired,subscribers:r.observers.length,withStall};
+  return {events:r.events.map(e=>JSON.stringify(e)),contexts:r.contexts,subscribers:r.observers.length};
  };
- const off=run(OFF,false);
- expect(off.wired).toBeNull();
- expect(off.events.join("\n")).not.toMatch(/map_cycle|milestone_drought|You are stalling/);
- expect(off.contexts.some(c=>c?.startsWith("SUPERVISOR: You are stalling")===true)).toBe(false);
- // The same run without the factory call at all (the incumbent wiring) is byte-identical.
- const incumbent=(()=>{
-  const r=rig({...OFF,"stall-briefing-v1":false});
-  return r;
- })();
- expect(incumbent.observers.length).toBe(off.subscribers);
- const on=run(ON,true);
- expect(on.wired).not.toBeNull();
+ const offRig=rig(OFF);
+ const off=script(offRig);
+ expect(offRig.wired).toBeNull();
+ // The golden: the same run on the incumbent wiring, where live.ts never calls the factory.
+ const incumbent=script(rig(OFF,false));
+ expect(off).toEqual(incumbent);
+ expect(incumbent.events.join("\n")).not.toMatch(/map_cycle|milestone_drought|You are stalling/);
+ expect(incumbent.contexts.some(c=>c?.startsWith("SUPERVISOR: You are stalling")===true)).toBe(false);
+ const onRig=rig(ON);
+ const on=script(onRig);
+ expect(onRig.wired).not.toBeNull();
  expect(on.subscribers).toBeGreaterThan(off.subscribers);
  expect(on.events.join("\n")).toMatch(/map_cycle/);
  expect(on.events.join("\n")).toMatch(/milestone_drought/);
@@ -186,9 +184,38 @@ it("adds no subscriber with the switch OFF, and never briefs in diagnostic mode"
  expect(notices).toEqual([]);
 });
 
+it("cites the deferred map cycle's own transition, not a later move between other maps",()=>{
+ let accept=false;const notes:{kind:string;evidence:readonly number[];text:string}[]=[];
+ const b=new StallBriefing(ON,()=>0,{stall:(kind,text,evidence)=>{if(!accept)return false;notes.push({kind,evidence,text:text(1)});return true;}},s=>JSON.stringify(s));
+ const at=(seq:number,body:Record<string,unknown>)=>checkEvent({v:1,run:"m",t:"2026-10-15T12:00:00.000-04:00",turn:seq,seq,...body});
+ const go=(seq:number,place:Record<string,unknown>)=>{b.observe(at(seq,{type:"state",...IN_GAME,started:true,screen:"overworld",position:{x:1,y:1},facing:"up",...place}));};
+ const done=(seq:number)=>{b.observe(at(seq,{type:"tool_result",id:`c${String(seq)}`,name:"press",is_error:false,duration_ms:1,text:"ok",frames:[]}));};
+ go(1,HOUSE_1F);go(2,HOUSE_2F);go(3,HOUSE_1F);go(4,HOUSE_2F);go(5,HOUSE_1F);
+ done(6);
+ expect(notes).toEqual([]);
+ go(7,TOWN);
+ accept=true;done(8);
+ expect(notes[0]?.kind).toBe("map_cycle");
+ expect(notes[0]?.evidence).toEqual([5,8]);
+});
+
+it("does not call trips out and back when other maps came between them",()=>{
+ const r=rig(ON);
+ r.state(HOUSE_1F);
+ r.press(["UP"],HOUSE_2F);r.press(["DOWN"],HOUSE_1F);
+ r.press(["DOWN"],TOWN);r.press(["UP"],HOUSE_1F);
+ r.press(["UP"],HOUSE_2F);
+ expect(r.guards()).toEqual([]);
+ r.press(["DOWN"],HOUSE_1F);
+ const [note]=r.guards();
+ expect(note?.message).toMatch(/^SUPERVISOR: You are stalling\. You have walked between HOUSE 1F \(map 1\/0\) and HOUSE 2F \(map 1\/1\) 2 times \(with other maps in between\), with no new story milestone/);
+ expect(note?.message).not.toContain("out and back");
+});
+
 it("states which stall it is in the headline and keeps the existing loop briefing byte-identical",()=>{
  const b=new SupervisorBriefing(BASE);
- expect(b.stallText({kind:"map_cycle",from:"A",to:"B",roundTrips:3},7)).toMatch(/^SUPERVISOR: You are stalling\. You have walked between A and B 3 times, out and back, with no new story milestone, and the game is not moving forward \(stall briefing, 7 calls into the run\)\./);
+ expect(b.stallText({kind:"map_cycle",from:"A",to:"B",roundTrips:3,consecutive:true},7)).toMatch(/^SUPERVISOR: You are stalling\. You have walked between A and B 3 times, out and back, with no new story milestone, and the game is not moving forward \(stall briefing, 7 calls into the run\)\./);
+ expect(b.stallText({kind:"map_cycle",from:"A",to:"B",roundTrips:3,consecutive:false},7)).toMatch(/^SUPERVISOR: You are stalling\. You have walked between A and B 3 times \(with other maps in between\), with no new story milestone, and the game/);
  expect(b.stallText({kind:"milestone_drought",minutes:15},9)).toMatch(/^SUPERVISOR: You are stalling\. There has been no new story milestone for 15 minutes of play, and the game is not moving forward \(stall briefing, 9 calls into the run\)\./);
  const loop=b.text("cycle",4);
  expect(loop).toMatch(/^SUPERVISOR: You are currently looping\. You keep repeating the same short cycle of actions, and the game is not moving forward \(loop guard, 4 calls into the run\)\. What you have been trying is not working, so do not try it again\.\nStop and get your bearings:\n- Where you are: no observation yet\n/);

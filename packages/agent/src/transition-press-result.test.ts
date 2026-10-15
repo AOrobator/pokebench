@@ -87,6 +87,18 @@ describe("scripted movement (504f s1512)", () => {
     );
     expect(pressResult(free, { ...scripted, field_controls_locked: false }, ["A"], ALL_PRESS_FACTS)).toBe("moved (5,9) -> (5,8)");
   });
+  it("does not deny a held direction moved the player when the lock ended during the press", () => {
+    // The button is held for PRESS_TIMING.hold_frames (10) frames; a script can unlock mid-hold.
+    const unlocked = { ...scripted, field_controls_locked: false };
+    expect(pressResult(lockedTown, unlocked, ["UP"], ON, shownAfter(lockedTown))).toBe(
+      "moved (5,9) -> (5,8); field controls were locked when the press began",
+    );
+    expect(pressResult(lockedTown, unlocked, ["UP"], { ...ON, position: false })).toBe("moved; field controls were locked when the press began");
+    expect(pressResult(lockedTown, { ...scripted, field_controls_locked: null }, ["UP"], ON)).toBe(
+      "moved (5,9) -> (5,8); field controls were locked when the press began",
+    );
+    expect(pressResult(lockedTown, unlocked, ["UP"], ALL_PRESS_FACTS)).toBe("moved (5,9) -> (5,8)");
+  });
   it("keeps a free direction press as an ordinary move", () => {
     const free = { ...lockedTown, field_controls_locked: false };
     expect(pressResult(free, { ...scripted, field_controls_locked: false }, ["UP"], ON)).toBe("moved (5,9) -> (5,8)");
@@ -116,10 +128,23 @@ describe("restarted conversations", () => {
   });
   it("counts a page that stays on screen once, and pages separately", () => {
     const shown = shownAfter(talk(MOM), talk(MOM), talk("MOM: page two"), talk(null));
-    expect(shown.timesShown(MOM)).toBe(1);
-    expect(shown.timesShown("MOM: page two")).toBe(1);
-    expect(shown.timesShown("never")).toBe(0);
+    expect(shown.timesShown(talk(MOM))).toBe(1);
+    expect(shown.timesShown(talk("MOM: page two"))).toBe(1);
+    expect(shown.timesShown(talk("never"))).toBe(0);
+    expect(shown.timesShown(talk(null))).toBe(0);
     expect(shown.lastShown).toEqual(talk(null));
+  });
+  it("keys each opening by its text and its place, so the same sign at another tile is not a restart", () => {
+    const sign = "LITTLEROOT TOWN: A town that can't be shaded any hue.";
+    const at = (x: number, map: readonly [number, number] = [0, 9]): GameStateSnapshot => ({ ...talk(null), map_id: map, position: { x, y: 4 }, world_context: { objects: [], triggers: [], dialogue: null } });
+    const reading = (x: number, map: readonly [number, number] = [0, 9]): GameStateSnapshot => ({ ...at(x, map), world_context: { objects: [], triggers: [], dialogue: sign } });
+    const shown = shownAfter(reading(4), at(4));
+    const today = pressResult(at(9), reading(9), ["A"], ALL_PRESS_FACTS);
+    expect(pressResult(at(9), reading(9), ["A"], ON, shown)).toBe(today);
+    expect(pressResult(at(4, [1, 0]), reading(4, [1, 0]), ["A"], ON, shown)).toBe(today);
+    expect(pressResult(at(4), reading(4), ["A"], ON, shown)).toBe("conversation restarted: this text was already shown (2nd time)");
+    expect(shown.timesShown(reading(9))).toBe(0);
+    expect(shown.timesShown(reading(4))).toBe(1);
   });
   it("names ordinals", () => {
     expect([1, 2, 3, 4, 11, 12, 13, 21, 22, 23, 101, 111].map(ordinal)).toEqual(["1st", "2nd", "3rd", "4th", "11th", "12th", "13th", "21st", "22nd", "23rd", "101st", "111th"]);

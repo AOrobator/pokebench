@@ -14,7 +14,7 @@ from pokebench_env.observation import install_observation
 from pokebench_env.readout import SERVER_FEATURES, features_off_from_env, format_readout
 from pokebench_env.world import InteractionTarget
 from tests.env.test_feature_switches import _Shot, map_memory
-from tests.env.test_game_state import MAPS
+from tests.env.test_game_state import MAPS, SB1
 
 DOOR = "[door: approach from below and press UP toward door]"
 NAMED = f"Warps: (0,1) -> LITTLEROOT TOWN (map 0/9) {DOOR}"
@@ -154,3 +154,67 @@ def test_json_state_is_unchanged_by_the_switch(monkeypatch: pytest.MonkeyPatch) 
 def test_memory_fixture_has_the_one_warp_these_tests_rely_on() -> None:
     m = map_memory()
     assert m.read(0x02009000, 8) == struct.pack("<hhBBBB", 0, 1, 0, 0, 9, 0)
+
+
+EXIT = "[directional exit: stand on tile, then press RIGHT]"
+DYNAMIC = "LITTLEROOT TOWN (dynamic warp; map 0/9)"
+
+
+def truck(dynamic: tuple[int, int, int] | None = (0, 9, -1), location: tuple[int, int] = (25, 40)):  # type: ignore[no-untyped-def]
+    # InsideOfTruck: its exit warps are MAP_DYNAMIC (map.json); the intro script runs
+    # `setdynamicwarp MAP_LITTLEROOT_TOWN, 3, 10` (InsideOfTruck/scripts.inc:33), which
+    # SetDynamicWarpWithCoords stores in SaveBlock1.dynamicWarp (0x14, include/global.h).
+    m = map_memory()
+    m.put(SB1, struct.pack("<hhbb", 1, 1, *location))
+    m.put(0x02009000, struct.pack("<hhBBBB", 0, 1, 0, 127, 127, 127))
+    m.put(0x02007000, struct.pack("<H", 0x62))
+    if dynamic is not None:
+        m.put(SB1 + 0x14, struct.pack("<bbbhh", *dynamic, 3, 10))
+    return m
+
+
+def test_the_truck_exit_names_the_dynamic_warp_the_game_holds() -> None:
+    maps = MapNames.load(VENDOR_MAPS)
+    state = read_game_state(truck().read, maps)
+    assert state.location == "INSIDE OF TRUCK"
+    assert state.dynamic_warp == (0, 9, "LITTLEROOT TOWN")
+    text = format_readout(state, named_warps=True, world_destinations=True)
+    assert f"Warps: (0,1) -> {DYNAMIC} {EXIT}" in lines(text)
+    assert (
+        "warp at (0,1), elevation 0; movement; activation depends on metatile (see local map);"
+        f" conditional; destination {DYNAMIC}" in lines(text)
+    )
+    assert f"Warp destination at (0,1): {DYNAMIC}" in lines(text)
+    named = format_readout(state, named_warps=True, named_interactions=True)
+    assert any(line.startswith(f"Warp to {DYNAMIC} at (0,1)") for line in lines(named)), named
+    full = read_game_state(truck().read, maps, full_map_enabled=True)
+    assert f"Warps: (0,1) -> {DYNAMIC} {EXIT}" in lines(format_readout(full, named_warps=True))
+
+
+def test_switch_off_keeps_dynamic_destination_byte_for_byte() -> None:
+    maps = MapNames.load(VENDOR_MAPS)
+    state = read_game_state(truck().read, maps)
+    plain = replace(state, dynamic_warp=None)
+    for kw in ({}, {"named_interactions": True, "world_destinations": True}):
+        off = format_readout(state, frozenset({"named-warp-destinations-v1"}), named_warps=True, **kw)
+        assert off == format_readout(plain, **kw)
+        assert f"Warps: (0,1) -> dynamic destination {EXIT}" in lines(off)
+        assert DYNAMIC not in off
+
+
+def test_an_unset_or_unknown_dynamic_warp_keeps_dynamic_destination() -> None:
+    maps = MapNames.load(VENDOR_MAPS)
+    for dynamic in ((-1, -1, -1), (127, 127, 127), (60, 1, 0)):
+        state = read_game_state(truck(dynamic).read, maps)
+        assert state.dynamic_warp is None, dynamic
+        text = format_readout(state, named_warps=True, world_destinations=True)
+        assert f"Warps: (0,1) -> dynamic destination {EXIT}" in lines(text)
+        assert "Warp destination at (0,1): dynamic destination" in lines(text)
+        assert any(line.endswith("; dynamic destination") for line in lines(text)), text
+
+
+def test_the_dynamic_warp_is_read_only_where_a_dynamic_warp_exists() -> None:
+    maps = MapNames.load(VENDOR_MAPS)
+    m = map_memory()
+    m.put(SB1 + 0x14, struct.pack("<bbbhh", 0, 9, 0, 3, 10))
+    assert read_game_state(m.read, maps).dynamic_warp is None

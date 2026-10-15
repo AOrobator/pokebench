@@ -61,6 +61,23 @@ it("grades reading a conversation with B as progress, and a repeat A as a restar
  expect(text).not.toMatch(/press B[^;]*→ no change/);
 });
 
+it("calls the same text at another tile or map a new conversation, not a restart",()=>{
+ const b=new SupervisorBriefing(ALL_ON);
+ result(b,1,msg(null,null));
+ press(b,3,["A"],msg(AIDE,"printing",9),"a1");
+ press(b,6,["B"],msg(null,null),"b1");
+ press(b,9,["UP"],{...msg(null,null),position:{x:9,y:7}},"u1");
+ press(b,12,["A"],{...msg(AIDE,"printing",9),position:{x:9,y:7}},"a2");
+ press(b,15,["B"],{...msg(null,null),position:{x:9,y:7}},"b2");
+ press(b,18,["A"],{...msg(AIDE,"printing",9),position:{x:9,y:7},location:"LAB 2F",map_id:[1,5]},"a3");
+ const text=b.text("cycle",20);
+ expect(text).not.toMatch(/restarted a conversation already shown/);
+ expect(text).toMatch(/→ dialogue changed/);
+ press(b,21,["B"],{...msg(null,null),position:{x:9,y:7},location:"LAB 2F",map_id:[1,5]},"b3");
+ press(b,24,["A"],{...msg(AIDE,"printing",9),position:{x:9,y:7},location:"LAB 2F",map_id:[1,5]},"a4");
+ expect(b.text("cycle",26)).toMatch(/restarted a conversation already shown/);
+});
+
 it("counts only actions as tried: standing on a door mat leaves that exit untried, and story progress clears the list",()=>{
  const b=new SupervisorBriefing(ALL_ON);
  result(b,1,{position:{x:8,y:8}});

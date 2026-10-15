@@ -3,7 +3,7 @@ import { Window } from "happy-dom";
 import { BASE_MS, Log, RUN, START, assistant, fullRun, must, state } from "../test-support/events.js";
 import { RunView, foldUntil } from "./model.js";
 import { stepOf } from "../test-support/trace.js";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
   FEATURE_EXPLAINERS,
@@ -550,6 +550,16 @@ it("links the elevation transitions card to its tracked explainer",()=>{
 it("maps game evidence priority to a tracked explainer, like every other mapped card",()=>{
  expect(FEATURE_EXPLAINERS["game-evidence-priority-v1"]).toBe("game-evidence-priority-v1.html");
  for(const file of Object.values(FEATURE_EXPLAINERS))expect(existsSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url)))).toBe(true);
+});
+
+it("renders every mapped explainer's body as a page, not as stylesheet text",()=>{
+ for(const file of new Set(Object.values(FEATURE_EXPLAINERS))){
+  const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url)),"utf8");
+  const doc=new Window().document;doc.write(html);
+  const heading=doc.querySelector("body h1");
+  expect(heading?.textContent?.trim(),file).toBeTruthy();
+  for(const style of doc.querySelectorAll("style"))expect(style.textContent,file).not.toMatch(/<body|<h1/);
+ }
 });
 
 it("links the battle details v2 card to its tracked explainer",()=>{

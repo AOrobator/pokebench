@@ -126,6 +126,8 @@ it("registers named warp destinations as a default-off server readout treatment 
  expect(featureInfo("named-warp-destinations-v1")).toMatchObject({group:"observation",needs:"live-map-v1",switchable:true});
  expect(featureInfo("named-warp-destinations-v1").description).toContain(" Off: ");
  expect(featureInfo("named-warp-destinations-v1").description).toMatch(/map 1\/2/);
+ expect(featureInfo("named-warp-destinations-v1").description).toContain("LITTLEROOT TOWN (dynamic warp; map 0/9)");
+ expect(featureInfo("named-warp-destinations-v1").description).not.toContain("Unknown and dynamic destinations keep their ID");
  expect(playHarnessFeatures(ALL_ON,null).at(-9)).toBe("named-warp-destinations-v1");
  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("");
  expect(serverFeatureEnv(off("named-warp-destinations-v1")).POKEBENCH_FEATURES_OFF).toBe("named-warp-destinations-v1");

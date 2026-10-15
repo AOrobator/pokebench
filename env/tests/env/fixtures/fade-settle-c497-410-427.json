@@ -1,6 +1,6 @@
 {
  "run": "2026-10-15T07-42-49_think-fast_c497",
- "note": "turns 410-427 press results: gPaletteFade (0x02037FD4) bytes from the paired raw-RAM archive and whether the recorded frame is all black",
+ "note": "turns 410-427 press results: gPaletteFade (0x02037FD4) bytes and whether palette RAM (0x05000000, 0x400) is all zero, from the paired raw-RAM archive, and whether the recorded frame is all black",
  "rows": [
   {
    "turn": 410,
@@ -10,7 +10,8 @@
    "screen": "unknown (callback2 0x081AAD8D)",
    "palette_fade_hex": "0000000000000000",
    "frame_sha1": "cf21bb4a34b28cbcb7809d05703574e20284147a",
-   "frame_black": true
+   "frame_black": true,
+   "palette_ram_zero": true
   },
   {
    "turn": 411,
@@ -20,7 +21,8 @@
    "screen": "unknown (callback2 0x080A933D)",
    "palette_fade_hex": "0000000000000000",
    "frame_sha1": "cf21bb4a34b28cbcb7809d05703574e20284147a",
-   "frame_black": true
+   "frame_black": true,
+   "palette_ram_zero": true
   },
   {
    "turn": 412,
@@ -30,7 +32,8 @@
    "screen": "bag_menu",
    "palette_fade_hex": "ffffffff80020080",
    "frame_sha1": "447bb9fc71d9e1694741659c4a6b551f7b2a80cf",
-   "frame_black": false
+   "frame_black": false,
+   "palette_ram_zero": false
   },
   {
    "turn": 413,
@@ -40,7 +43,8 @@
    "screen": "unknown (callback2 0x080A933D)",
    "palette_fade_hex": "0000000000000000",
    "frame_sha1": "cf21bb4a34b28cbcb7809d05703574e20284147a",
-   "frame_black": true
+   "frame_black": true,
+   "palette_ram_zero": true
   },
   {
    "turn": 414,
@@ -50,7 +54,8 @@
    "screen": "bag_menu",
    "palette_fade_hex": "ffffffff80030080",
    "frame_sha1": "cf21bb4a34b28cbcb7809d05703574e20284147a",
-   "frame_black": true
+   "frame_black": true,
+   "palette_ram_zero": true
   },
   {
    "turn": 415,
@@ -60,7 +65,8 @@
    "screen": "unknown (callback2 0x080A933D)",
    "palette_fade_hex": "0000000000000000",
    "frame_sha1": "cf21bb4a34b28cbcb7809d05703574e20284147a",
-   "frame_black": true
+   "frame_black": true,
+   "palette_ram_zero": true
   },
   {
    "turn": 416,
@@ -70,7 +76,8 @@
    "screen": "bag_menu",
    "palette_fade_hex": "ffffffff80030080",
    "frame_sha1": "cf21bb4a34b28cbcb7809d05703574e20284147a",
-   "frame_black": true
+   "frame_black": true,
+   "palette_ram_zero": true
   },
   {
    "turn": 417,
@@ -80,7 +87,8 @@
    "screen": "unknown (callback2 0x080A933D)",
    "palette_fade_hex": "0000000000000000",
    "frame_sha1": "cf21bb4a34b28cbcb7809d05703574e20284147a",
-   "frame_black": true
+   "frame_black": true,
+   "palette_ram_zero": true
   },
   {
    "turn": 418,
@@ -90,7 +98,8 @@
    "screen": "unknown (callback2 0x081AAD8D)",
    "palette_fade_hex": "0000000000000000",
    "frame_sha1": "cf21bb4a34b28cbcb7809d05703574e20284147a",
-   "frame_black": true
+   "frame_black": true,
+   "palette_ram_zero": true
   },
   {
    "turn": 419,
@@ -100,7 +109,8 @@
    "screen": "unknown (callback2 0x080A933D)",
    "palette_fade_hex": "0000000000000000",
    "frame_sha1": "cf21bb4a34b28cbcb7809d05703574e20284147a",
-   "frame_black": true
+   "frame_black": true,
+   "palette_ram_zero": true
   },
   {
    "turn": 420,
@@ -110,7 +120,8 @@
    "screen": "bag_menu",
    "palette_fade_hex": "ffffffff00040080",
    "frame_sha1": "cf21bb4a34b28cbcb7809d05703574e20284147a",
-   "frame_black": true
+   "frame_black": true,
+   "palette_ram_zero": true
   },
   {
    "turn": 421,
@@ -120,7 +131,8 @@
    "screen": "unknown (callback2 0x080A933D)",
    "palette_fade_hex": "0000000000000000",
    "frame_sha1": "cf21bb4a34b28cbcb7809d05703574e20284147a",
-   "frame_black": true
+   "frame_black": true,
+   "palette_ram_zero": true
   },
   {
    "turn": 422,
@@ -130,7 +142,8 @@
    "screen": "bag_menu",
    "palette_fade_hex": "ffffffff80030080",
    "frame_sha1": "cf21bb4a34b28cbcb7809d05703574e20284147a",
-   "frame_black": true
+   "frame_black": true,
+   "palette_ram_zero": true
   },
   {
    "turn": 423,
@@ -140,7 +153,8 @@
    "screen": "unknown (callback2 0x080A933D)",
    "palette_fade_hex": "0000000000000000",
    "frame_sha1": "cf21bb4a34b28cbcb7809d05703574e20284147a",
-   "frame_black": true
+   "frame_black": true,
+   "palette_ram_zero": true
   },
   {
    "turn": 424,
@@ -150,7 +164,8 @@
    "screen": "bag_menu",
    "palette_fade_hex": "ffffffff80030080",
    "frame_sha1": "cf21bb4a34b28cbcb7809d05703574e20284147a",
-   "frame_black": true
+   "frame_black": true,
+   "palette_ram_zero": true
   },
   {
    "turn": 425,
@@ -160,7 +175,8 @@
    "screen": "unknown (callback2 0x080A933D)",
    "palette_fade_hex": "0000000000000000",
    "frame_sha1": "cf21bb4a34b28cbcb7809d05703574e20284147a",
-   "frame_black": true
+   "frame_black": true,
+   "palette_ram_zero": true
   },
   {
    "turn": 426,
@@ -170,7 +186,8 @@
    "screen": "unknown (callback2 0x081AAD8D)",
    "palette_fade_hex": "0000000000000000",
    "frame_sha1": "cf21bb4a34b28cbcb7809d05703574e20284147a",
-   "frame_black": true
+   "frame_black": true,
+   "palette_ram_zero": true
   },
   {
    "turn": 427,
@@ -180,7 +197,8 @@
    "screen": "unknown (callback2 0x080A933D)",
    "palette_fade_hex": "0000000000000000",
    "frame_sha1": "cf21bb4a34b28cbcb7809d05703574e20284147a",
-   "frame_black": true
+   "frame_black": true,
+   "palette_ram_zero": true
   }
  ]
 }

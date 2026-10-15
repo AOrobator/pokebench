@@ -188,3 +188,13 @@ it("does not recover a rival-house exit before the meeting or from the player's 
   const result = readNativeRecording(write(log.events.map(e => JSON.stringify(e)).join("\n") + "\n"), bedroom.run, qualifiedNativeMilestone);
   expect(result.splits.some(s => s.name === "RIVAL_HOUSE_EXITED")).toBe(false);
 });
+it("does not recover a rival-house exit for a save whose home already shows the rival met", () => {
+  const met = { ...clocked, rival_stage: 3 as const };
+  const log = new Log();
+  log.add(0, { ...START, start_state: { kind: "save_state", path: "/saves/after-rival.state", sha1: "b".repeat(40) }, harness_features: ["post-clock-navigation-milestones-v1"] });
+  const first = log.add(1000, state({ ...quiet, location: "LITTLEROOT TOWN MAYS HOUSE 2F", story: met }));
+  log.add(2000, state({ ...quiet, location: "LITTLEROOT TOWN BRENDANS HOUSE 1F", story: met }));
+  log.add(3000, state({ ...quiet, location: "LITTLEROOT TOWN", story: met }));
+  const result = readNativeRecording(write(log.events.map(e => JSON.stringify(e)).join("\n") + "\n"), first.run, qualifiedNativeMilestone);
+  expect(result.splits.some(s => s.name === "RIVAL_HOUSE_EXITED")).toBe(false);
+});

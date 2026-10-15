@@ -141,3 +141,19 @@ it("records the rival-house exit after a Clock set save that starts inside the p
  const found=seq.flatMap((s,i)=>tracker.observe(s,i+1)).filter(m=>m.name==="RIVAL_HOUSE_EXITED");
  expect(found).toMatchObject([{origin:"observed",kind:"navigation",evidence:[1,6,7]}]);
 });
+it("gives no rival-house exit credit to a save whose home already shows the rival met",()=>{
+ for(const [start,home] of [["LITTLEROOT TOWN MAYS HOUSE 2F","MAYS"],["LITTLEROOT TOWN BRENDANS HOUSE 2F","BRENDANS"]] as const){
+  const rival=home==="BRENDANS"?"MAYS":"BRENDANS";
+  const tracker=new StateMilestones({read:()=>Promise.resolve(state("LITTLEROOT TOWN"))});tracker.initialize("save_state");
+  const seq=[state(start,{story:met}),state(`LITTLEROOT TOWN ${home} HOUSE 1F`,{story:met}),state("LITTLEROOT TOWN",{story:met}),state(`LITTLEROOT TOWN ${rival} HOUSE 1F`,{story:met}),state("LITTLEROOT TOWN",{story:met})];
+  expect(seq.flatMap((s,i)=>tracker.observe(s,i+1)).map(m=>m.name)).not.toContain("RIVAL_HOUSE_EXITED");
+ }
+ const events:(Extract<RunEvent,{type:"state"}> & GameStateSnapshot)[]=[state("LITTLEROOT TOWN MAYS HOUSE 2F",{story:met}),state("LITTLEROOT TOWN BRENDANS HOUSE 1F",{story:met}),state("LITTLEROOT TOWN",{story:met})].map((game,i)=>({...game,type:"state",run:"r",seq:i+1,turn:1,v:1,t:"2026-10-15T00:00:00.000-04:00"}));
+ const mark:Extract<RunEvent,{type:"milestone"}>={type:"milestone",run:"r",seq:9,turn:1,v:1,t:"2026-10-15T00:00:00.000-04:00",name:"RIVAL_HOUSE_EXITED",kind:"navigation",origin:"observed",evidence:[1,2,3],server_timestamp:1};
+ expect(qualifiedNativeMilestone(mark,events)).toBe(false);
+ const [, inside, town]=events;if(inside===undefined||town===undefined)throw new Error("fixture");
+ const home={...state("LITTLEROOT TOWN MAYS HOUSE 2F",{story:clocked}),type:"state" as const,run:"r",seq:1,turn:1,v:1,t:mark.t};
+ expect(qualifiedNativeMilestone(mark,[home,inside,town])).toBe(true);
+ expect(qualifiedNativeMilestone(mark,[home,inside,{...town,story:{...clocked,rival_stage:2}}])).toBe(false);
+ expect(qualifiedNativeMilestone(mark,[{...home,location:"LITTLEROOT TOWN"},inside,town])).toBe(false);
+});

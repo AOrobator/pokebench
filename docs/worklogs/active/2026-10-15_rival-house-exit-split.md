@@ -14,13 +14,14 @@ granular view into how runs are going". Branch `claude/rival-house-exit-split`, 
   Littleroot and Birch's lab. No split marks leaving the rival's house.
 
 ## Spec
-1. `finalsPreset` no longer forces `milestone-stall-stop-v1` on. Finals keep the incumbent's
-   value (OFF in every current preset). The switch stays registered, default OFF.
+1. `finalsPreset` forces `milestone-stall-stop-v1` OFF for every finals arm, whatever the
+   incumbent or finalist sets. The switch stays registered, default OFF.
 2. New navigation split `RIVAL_HOUSE_EXITED`: the first stable Littleroot Town state, with
    `rival_stage` 3 or 4, directly after a stable state in the other family's 1F with
    `rival_stage` 3 or 4. Home is the post-clock route home (fresh-boot witness or the house a
    Clock set save starts in), so the player's own house never counts. Evidence is
-   [home, rival-house 1F, town]; always `observed`, never credited from a save that starts after it.
+   [home, rival-house 1F, town]; always `observed`. The home state must still show the rival unmet
+   (rival state 0-2), so a save that starts after the meeting gets no credit.
    Recorded under its own measured feature `rival-house-exit-v1`; the viewer derives it for
    older runs from recorded state, like the other post-clock route splits.
 
@@ -37,3 +38,5 @@ granular view into how runs are going". Branch `claude/rival-house-exit-split`, 
 - M1 RED: 7 failing tests (agent: finals preset, tracker fresh boot and Clock set save, features registry x2; viewer: recovery, frontier axis). Withholding cases pass already.
 - COMMIT: `test: finals keep the stall stop off; rival-house exit split after the rival meeting` (44d472e)
 - M2 GREEN: finals force milestone-stall-stop-v1 off; RIVAL_HOUSE_EXITED in tracker (routeProof, evidence [home, rival 1F, town]), feature rival-house-exit-v1, viewer order/frontier/status/derived recovery (frontier-recording keeps it for resumed runs). Updated expectations: frontier zoom counts (+1 checkpoint), milestone order list, finals incumbent-reuse fixture (stall off). Not added to next-milestone-hint list (would change the hint switch's behavior). Gates: agent 1070 tests (97.5/93.84/98.13), viewer 644 (95.35/91.14/94.38), lint clean; Python untouched.
+- COMMIT: `feat: finals play the full wall limit; record leaving the rival's house after the meeting` (4ae121f)
+- M3: viewer recovery over the 32 recorded 2×2 runs finds RIVAL_HOUSE_EXITED in 15 of the 16 RIVAL_MET runs, matching the location trace; the 16th (trial 04) ended inside the rival's 2F. Claude CLI review: no blockers; medium finding (a save starting after the meeting could misname home and earn credit) taken as RED below; spec text for item 1 corrected.

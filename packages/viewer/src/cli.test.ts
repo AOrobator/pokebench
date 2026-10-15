@@ -94,10 +94,19 @@ describe("shutdown", () => {
       closeOnSignals({ close }, (name, handler) => { handlers.set(name, handler); }, (code) => { exits.push(code); });
       expect([...handlers.keys()].sort()).toEqual(["SIGINT", "SIGTERM"]);
       handlers.get(signal)?.();
-      handlers.get(signal)?.();
       await vi.waitFor(() => { expect(exits).toEqual([0]); });
       expect(close).toHaveBeenCalledTimes(1);
     }
+  });
+
+  it("exits at once on a second signal when closing hangs", () => {
+    const handlers = new Map<string, () => void>();
+    const exits: number[] = [];
+    closeOnSignals({ close: () => new Promise<void>(() => undefined) }, (name, handler) => { handlers.set(name, handler); }, (code) => { exits.push(code); });
+    handlers.get("SIGTERM")?.();
+    expect(exits).toEqual([]);
+    handlers.get("SIGINT")?.();
+    expect(exits).toEqual([1]);
   });
 
   it("still exits when closing fails", async () => {

@@ -207,3 +207,14 @@ it("repeats every staged Story line the readout prints, word for word (INV-2)",(
  const lines=["Story: no completion confirmed","Story: player name confirmed; Mom clock instruction received","Story: player name confirmed; Mom clock instruction received; clock set","Story: player name confirmed; Mom clock instruction received; clock set; Mom rival instruction received",STORY_RIVAL,`${STORY_RIVAL}; sent to save Birch; Birch rescue complete; Birch starter handoff complete`];
  for(const line of lines){const b=new SupervisorBriefing(ALL_ON);result(b,1,{},"t",`ok\n${line}`);expect(b.text("cycle",2)).toContain(`- Story steps the game confirms are done: ${line.slice("Story: ".length)}\n`);}
 });
+
+it("lists a room's exits before its objects among the targets not tried yet (truck run dc0e)",()=>{
+ const box=(x:number,y:number)=>({...SCIENTIST,name:"MOVING_BOX",x,y});
+ const exit=(y:number)=>({...EXIT,name:"Dynamic warp",x:4,y,destination:[127,127,0]});
+ const b=new SupervisorBriefing(ALL_ON);
+ result(b,1,{location:"INSIDE OF TRUCK",map_id:[25,40],position:{x:3,y:3},interaction_targets:[box(0,0),box(0,3),box(2,3),exit(1),exit(2),exit(3)]});
+ const listed=b.text("cycle",2).split("not tried yet: ")[1]?.split("\n")[0]??"";
+ expect(listed.indexOf("Dynamic warp at 4,1")).toBe(0);
+ expect(listed.indexOf("Dynamic warp at 4,3")).toBeLessThan(listed.indexOf("MOVING_BOX at 0,0"));
+ expect(listed).toContain("MOVING_BOX at 2,3");
+});

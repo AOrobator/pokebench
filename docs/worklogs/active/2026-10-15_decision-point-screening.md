@@ -84,6 +84,12 @@ feature-worklog, feature-switch, agent-observability, pokebench-game-state, poke
   Gates: just test agent 1237 / viewer 686 / pytest 1929; just lint clean; just build ok; just verify-vendor OK;
   just coverage agent 97.62/94.22/97.74 (lines 99.04), viewer 95.25/90.95/94.18 (lines 98.01), env lines 96.94 /
   branches 92.44 / functions 100 (floor 90).
+- Review round 1 (cloud lanes; packet ~/.hermes/cache/scratch/dp/review, base 5d8681d head 18fb078): grok-4.5-high
+  BLOCKING on (1) `filePorts.frame` joining an absolute or `..` path from events.jsonl, so a frame outside the run dir
+  could be read and sent to the gateway; (2) the live fidelity suite re-reading every prior frame on every turn
+  (triangular I/O). RED: decision-probe.test.ts "reads a recorded frame once, and only from inside the run directory";
+  the live suite now uses the real `filePorts` with a counting reader and asserts each frame is read once (276 reads of
+  13 frames on base). The console.error hang-breaker now matches any `<command> FAILED:` line.
 
 ## Decisions
 - R1 is a bug fix (false model-facing facts in the supervisor briefing), under the M1 operator exception.

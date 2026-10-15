@@ -135,8 +135,8 @@ async function recordRun(features: Record<string, boolean>, maxTurns = 9): Promi
   });
   vi.stubGlobal("process", Object.assign(Object.create(process) as NodeJS.Process, { argv: [...process.argv.slice(0, 2), "play"] }));
   vi.spyOn(console, "log").mockImplementation(() => undefined);
-  // live.ts reports a failed start (e.g. a rejected preset) only as "play FAILED: ..."; end the wait on it instead of hanging.
-  vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => { const line = args.map(String).join(" "); if (line.startsWith("play FAILED:")) owner.reject?.(new Error(line)); });
+  // live.ts reports any failed start (e.g. a rejected preset) only as "<command> FAILED: ..."; end the wait on it instead of hanging.
+  vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => { const line = args.map(String).join(" "); if (/^\S* FAILED: /.test(line)) owner.reject?.(new Error(line)); });
   // Each press closes the box and the same conversation prints again from the top (the 6684 shape).
   let presses = 0, free = false;
   vi.stubGlobal("fetch", vi.fn<typeof fetch>().mockImplementation((input, init) => {
@@ -162,6 +162,12 @@ async function recordRun(features: Record<string, boolean>, maxTurns = 9): Promi
 }
 
 // What the provider sees: roles and content, minus wall-clock timestamps and provider bookkeeping.
+// The real file adapter (it reads each frame once), with a renderer that must never be reached here.
+async function framePorts(dir: string, reads: string[] = []) {
+  const { filePorts } = await import("./probe-decision-cli.js");
+  return filePorts(dir, join(dir, "no-env"), "reasoning_content", () => { throw new Error("no server switch flipped"); }, (path) => { reads.push(path); return readFileSync(path); });
+}
+
 const sent = (c: Context) => ({ systemPrompt: c.systemPrompt, tools: (c.tools ?? []).map((t) => ({ name: t.name, description: t.description, parameters: t.parameters })), messages: c.messages.map((m) => (m.role === "toolResult" ? { role: m.role, toolCallId: m.toolCallId, toolName: m.toolName, content: m.content, isError: m.isError } : m.role === "assistant" ? { role: m.role, content: m.content, provider: m.provider, api: m.api } : { role: m.role, content: m.content })) });
 
 it.each([
@@ -173,7 +179,8 @@ it.each([
   const dir = await recordRun(features, 14);
   const probe = await import("./decision-probe.js");
   const run = probe.parseRun(readFileSync(join(dir, "events.jsonl"), "utf8"));
-  const ports = { thinkingSignature: "reasoning_content", frame: (p: string) => readFileSync(join(dir, p)).toString("base64"), rerender: () => Promise.reject(new Error("no server switch flipped")) };
+  const reads: string[] = [];
+  const ports = await framePorts(dir, reads);
   const turns = run.events.flatMap((e) => (e.type === "turn_start" ? [e] : []));
   expect(turns.length).toBe(owner.contexts.length);
   expect(turns.length).toBeGreaterThan(5);
@@ -186,6 +193,9 @@ it.each([
       expect(rebuilt.size).toEqual(start.context);
     }
   }
+  // Rebuilding every turn re-reads the growing history, but each frame file is read from disk once.
+  expect(reads.length).toBeGreaterThan(0);
+  expect(new Set(reads).size).toBe(reads.length);
   if (features["loop-guard-supervisor-v1"]) expect(owner.contexts.at(-1)?.messages.some((m) => m.role === "user" && typeof m.content === "string" && m.content.startsWith("SUPERVISOR"))).toBe(true);
   if (features["dialogue-auto-advance-v1"]) {
     expect(run.events.some((e) => e.type === "dialogue_auto_advance")).toBe(true);
@@ -203,7 +213,7 @@ it("re-derives press results under a flipped switch and reports how the next cal
   const probe = await import("./decision-probe.js");
   const cli = await import("./probe-decision-cli.js");
   const run = probe.parseRun(readFileSync(join(dir, "events.jsonl"), "utf8"));
-  const ports = { thinkingSignature: "reasoning_content", frame: (p: string) => readFileSync(join(dir, p)).toString("base64"), rerender: () => Promise.reject(new Error("no server switch flipped")) };
+  const ports = await framePorts(dir);
   const last = run.events.filter((e) => e.type === "turn_start").at(-1)?.turn ?? 0;
   const args = cli.parseArgs([dir, String(last), "--switch", "transition-press-result-v1=on", "--samples", "2"]);
   let n = 0;

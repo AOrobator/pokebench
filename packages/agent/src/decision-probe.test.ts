@@ -84,6 +84,15 @@ it("resolves a run by id or by its unique suffix", () => {
   expect(() => resolveRun("/r", "b000", () => ids, exists)).toThrow(/no run b000/);
 });
 
+it("reads a recorded frame once, and only from inside the run directory", () => {
+  const reads: string[] = [];
+  const ports = filePorts("/runs/x", "/repo/env", "s", () => "", (path) => { reads.push(path); return Buffer.from(path); });
+  expect(ports.frame("frames/1.png")).toBe(ports.frame("frames/1.png"));
+  expect(reads).toEqual(["/runs/x/frames/1.png"]);
+  for (const bad of ["/etc/hosts", "../outside.png", "frames/../../x.png", ""]) expect(() => ports.frame(bad)).toThrow(/frame path .* is not inside the run directory/);
+  expect(reads).toHaveLength(1);
+});
+
 it("re-renders through the env renderer with argv only and the server switch environment", async () => {
   const calls: { file: string; args: readonly string[]; cwd: string; off: string | undefined; input: string }[] = [];
   const ports = filePorts("/runs/x", "/repo/env", "reasoning_content", (file, args, options) => {

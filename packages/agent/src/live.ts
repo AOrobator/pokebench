@@ -1,4 +1,4 @@
-import {contextTools,loopSupervisor,stallStop,textOnlySupervisor} from "./play-wiring.js";
+import {contextTools,loopSupervisor,playGameTools,stallBriefing,stallStop,textOnlySupervisor} from "./play-wiring.js";
 import {CheckpointCapture,checkpointTarget} from "./checkpoint-capture.js";
 import {experimentFromEnv} from "./play-experiment.js";
 // Live entrypoint for real, recorded runs: pi-agent-core on the local stack
@@ -24,13 +24,12 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runAgentLoop, type AgentMessage } from "@mariozechner/pi-agent-core";
 import { loadConfig } from "./config.js";
-import { checkSmoke, observeTool, pressTool, serverHealthy } from "./game-tools.js";
+import { checkSmoke, gameTools, observeTool, pressTool, serverHealthy } from "./game-tools.js";
 import { discoverModels, selectModel, type GatewayModel } from "./gateway.js";
 import { FrameStore } from "./frames.js";
 import { StateWatcher } from "./game-state.js";
 import {flagFeatures,parsePlayPreset,presetFeatures,presetFlags,presetStart} from "./play-preset.js";
 import {runStateMode,stateOnlyPrompt,stateOnlyProblems} from "./state-runtime.js";
-import {withNavigation} from "./navigation.js";
 import {NativeTargetStop} from "./target-stop.js";
 import { BudgetTimer, ControlFile, RunControl, freezeGame, watchControl, controlLine } from "./run-control.js";
 import {RUN_ID_PATTERN} from "./events.js";
@@ -300,6 +299,7 @@ async function playAgent(): Promise<void> {
       const stall = stallStop(features, recorder, runControl, () => elapsed() - (preset===null?startedAt:0), () => {
         governor.abort("stalled");
       });
+      stallBriefing(features, recorder, loopDetector, runControl, () => elapsed() - (preset===null?startedAt:0));
       const stopWatching = watchControl(controlFile, runControl);
       const interrupt = (): void => {
         console.log("operator abort: finishing the run record");
@@ -307,8 +307,8 @@ async function playAgent(): Promise<void> {
       };
       process.once("SIGINT", interrupt);
       const objectives = features["objective-tracking-v1"] ? objectiveHarness(goal, recorder, gameServerUrl, fetch, { ...objectiveSwitches(features), ...toolSwitches(features) }) : null;
-      const baseTools=objectives?.tools ?? [observeTool(gameServerUrl, fetch, toolSwitches(features)), pressTool(gameServerUrl, pressHooks(recorder), fetch, undefined, toolSwitches(features))];
-      const tools=withNavigation(baseTools,features,new StateWatcher(gameServerUrl),signal=>runControl.gate(signal));
+      const baseTools=objectives?.tools ?? gameTools(gameServerUrl, pressHooks(recorder), fetch, toolSwitches(features));
+      const tools=playGameTools(baseTools,features,new StateWatcher(gameServerUrl),recorder,signal=>runControl.gate(signal));
       const context=contextTools(features,recorder,objectives?.transformContext??recorder.transformContext);
       tools.push(...context.tools);
       const loop = piLoop({

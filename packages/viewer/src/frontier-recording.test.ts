@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { parseEvent } from "@pokebench/agent/events";
 import { StateMilestones, qualifiedNativeMilestone } from "../../agent/src/milestones.js";
 import { readNativeRecording } from "./frontier-recording.js";
+import { RunView } from "./model.js";
 import { Log, START, assistant, state } from "../test-support/events.js";
 function write(raw: string): string { const path = join(mkdtempSync(join(tmpdir(), "native-frontier-")), "events.jsonl"); writeFileSync(path, raw); return path; }
 describe("bounded native recording reduction", () => {
@@ -197,4 +198,59 @@ it("does not recover a rival-house exit for a save whose home already shows the 
   log.add(3000, state({ ...quiet, location: "LITTLEROOT TOWN", story: met }));
   const result = readNativeRecording(write(log.events.map(e => JSON.stringify(e)).join("\n") + "\n"), first.run, qualifiedNativeMilestone);
   expect(result.splits.some(s => s.name === "RIVAL_HOUSE_EXITED")).toBe(false);
+});
+const atLab = (lab: number) => ({ ...clocked, rival_stage: 4 as const, birch_lab_stage: lab as 0 });
+it("recovers the first Route 101 entry after the Birch handoff from a log that predates the split, matching the tracker", () => {
+  const log = new Log();
+  log.add(0, START);
+  log.add(1000, state({ ...quiet, location: "LITTLEROOT TOWN", map_id: [0, 9], story: atLab(0) }));
+  log.add(2000, state({ ...quiet, location: "ROUTE101", map_id: [0, 16], story: atLab(0) }));
+  const witness = log.add(3000, state({ ...quiet, location: "LITTLEROOT TOWN PROFESSOR BIRCHS LAB", map_id: [1, 4], story: atLab(2) }));
+  log.add(4000, state({ ...quiet, location: "LITTLEROOT TOWN PROFESSOR BIRCHS LAB", map_id: [1, 4], story: atLab(3) }));
+  const town = log.add(5000, state({ ...quiet, location: "LITTLEROOT TOWN", map_id: [0, 9], story: atLab(3) }));
+  log.add(5200, state({ ...quiet, location: "ROUTE101", map_id: [0, 16], screen: "field_transition", story: atLab(3) }));
+  const route = log.add(6000, state({ ...quiet, location: "ROUTE101", map_id: [0, 16], story: atLab(3) }));
+  log.add(7000, state({ ...quiet, location: "LITTLEROOT TOWN", map_id: [0, 9], story: atLab(3) }));
+  log.add(8000, state({ ...quiet, location: "ROUTE101", map_id: [0, 16], story: atLab(3) }));
+  const result = readNativeRecording(write(log.events.map(e => JSON.stringify(e)).join("\n") + "\n"), witness.run, qualifiedNativeMilestone);
+  expect(result.splits.filter(s => s.name === "ROUTE_101_AFTER_HANDOFF")).toMatchObject([{ derived: true, seq: route.seq, elapsedMs: 6000 }]);
+  expect(result.measurement.rawSplits.find(s => s.name === "ROUTE_101_AFTER_HANDOFF")?.evidence).toEqual([witness.seq, town.seq, route.seq]);
+  const tracker = new StateMilestones({ read: () => Promise.resolve(state({ location: "LITTLEROOT TOWN" }) as never) });
+  const detected: { name: string; evidence?: readonly number[] }[] = [];
+  for (const event of log.events) if (event.type === "state" && "started" in event) detected.push(...tracker.observe(event, event.seq));
+  expect(detected.filter(m => m.name === "ROUTE_101_AFTER_HANDOFF").map(m => m.evidence)).toEqual([[witness.seq, town.seq, route.seq]]);
+  const native = new Log();
+  for (const event of log.events) native.events.push(event);
+  native.add(8100, { type: "milestone", turn: 1, name: "ROUTE_101_AFTER_HANDOFF", kind: "navigation", origin: "observed", server_timestamp: 1, evidence: [witness.seq, town.seq, route.seq] });
+  const receipt = readNativeRecording(write(native.events.map(e => JSON.stringify(e)).join("\n") + "\n"), witness.run, qualifiedNativeMilestone);
+  expect(receipt.splits.filter(s => s.name === "ROUTE_101_AFTER_HANDOFF")).toMatchObject([{ seq: native.events.at(-1)?.seq }]);
+  expect(receipt.splits.find(s => s.name === "ROUTE_101_AFTER_HANDOFF")?.derived).toBeUndefined();
+});
+it("does not recover a post-handoff Route 101 entry without a return, a pre-handoff witness, or a connected map", () => {
+  const cases: [string, number][][] = [
+    [["LITTLEROOT TOWN PROFESSOR BIRCHS LAB", 2], ["LITTLEROOT TOWN PROFESSOR BIRCHS LAB", 3], ["LITTLEROOT TOWN", 3], ["LITTLEROOT TOWN BRENDANS HOUSE 1F", 3], ["LITTLEROOT TOWN", 3]],
+    [["ROUTE101", 3], ["LITTLEROOT TOWN", 3], ["ROUTE101", 3]],
+    [["LITTLEROOT TOWN", 2], ["LITTLEROOT TOWN PROFESSOR BIRCHS LAB", 3], ["ROUTE101", 3]],
+  ];
+  for (const rows of cases) {
+    const log = new Log();
+    log.add(0, { ...START, start_state: { kind: "save_state", path: "/saves/CLOCK_SET.state", sha1: "a".repeat(40) } });
+    rows.forEach(([location, lab], i) => log.add(1000 * (i + 1), state({ ...quiet, location, story: atLab(lab) })));
+    const view = new RunView();
+    for (const event of log.events) view.apply(event);
+    expect(view.milestones.some(m => m.name === "ROUTE_101_AFTER_HANDOFF")).toBe(false);
+  }
+});
+it("does not recover a Route 101 return for a run whose recorder declares route-101-after-handoff-v1 (a missing native event stays missing)", () => {
+  const log = new Log();
+  log.add(0, { ...START, harness_features: [...START.harness_features, "route-101-after-handoff-v1"] });
+  const witness = log.add(1000, state({ ...quiet, location: "LITTLEROOT TOWN PROFESSOR BIRCHS LAB", map_id: [1, 4], story: atLab(2) }));
+  const town = log.add(2000, state({ ...quiet, location: "LITTLEROOT TOWN", map_id: [0, 9], story: atLab(3) }));
+  const route = log.add(3000, state({ ...quiet, location: "ROUTE101", map_id: [0, 16], story: atLab(3) }));
+  const missing = readNativeRecording(write(log.events.map(e => JSON.stringify(e)).join("\n") + "\n"), witness.run, qualifiedNativeMilestone);
+  expect(missing.splits.some(s => s.name === "ROUTE_101_AFTER_HANDOFF")).toBe(false);
+  log.add(3100, { type: "milestone", turn: 1, name: "ROUTE_101_AFTER_HANDOFF", kind: "navigation", origin: "observed", server_timestamp: 1, evidence: [witness.seq, town.seq, route.seq] });
+  const native = readNativeRecording(write(log.events.map(e => JSON.stringify(e)).join("\n") + "\n"), witness.run, qualifiedNativeMilestone);
+  expect(native.splits.filter(s => s.name === "ROUTE_101_AFTER_HANDOFF")).toMatchObject([{ seq: log.events.at(-1)?.seq }]);
+  expect(native.splits.find(s => s.name === "ROUTE_101_AFTER_HANDOFF")?.derived).toBeUndefined();
 });

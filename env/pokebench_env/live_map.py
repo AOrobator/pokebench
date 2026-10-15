@@ -98,6 +98,7 @@ class LocalMap:
         edge_walls: bool = True,
         counters: bool = True,
         destinations: Mapping[tuple[int, int], str] | None = None,
+        dynamic: str | None = None,
     ) -> str:
         x, y = self.origin
         cells = _cells(
@@ -131,6 +132,7 @@ class LocalMap:
                 edge_walls=edge_walls,
                 counters=counters and any("=" in row for row in cells),
                 destinations=destinations,
+                dynamic=dynamic,
             )
         )
 
@@ -155,6 +157,7 @@ class FullMap:
         edge_walls: bool = True,
         counters: bool = True,
         destinations: Mapping[tuple[int, int], str] | None = None,
+        dynamic: str | None = None,
     ) -> str:
         cells = _cells(
             self.rows,
@@ -192,6 +195,7 @@ class FullMap:
                 edge_walls=edge_walls,
                 counters=counters and any("=" in row for row in cells),
                 destinations=destinations,
+                dynamic=dynamic,
             )
         )
 
@@ -245,6 +249,7 @@ def _details(
     edge_walls: bool,
     counters: bool,
     destinations: Mapping[tuple[int, int], str] | None = None,
+    dynamic: str | None = None,
 ) -> str:
     walled = "; ".join(
         f"({tile.x},{tile.y}) " + "+".join(EDGE_WALLS[tile.behavior])
@@ -257,7 +262,7 @@ def _details(
     listed_warps = (
         ", ".join(
             (
-                f"({a},{b}) -> dynamic destination"
+                f"({a},{b}) -> {dynamic or 'dynamic destination'}"
                 if (g, n) == (127, 127)
                 else f"({a},{b}) -> {destinations[(g, n)]} (map {g}/{n})"
                 if destinations is not None and (g, n) in destinations

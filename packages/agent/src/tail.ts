@@ -71,6 +71,7 @@ function body(event: RunEvent): [string, string] {
     case "milestone":
       return ["MILESTONE", event.name];
     case "loop_guard": return ["LOOP", `${event.kind} ${event.phase}: ${event.message}`];
+    case "dialogue_auto_advance": return ["DIALOGUE", `auto-advanced ${String(event.auto_presses)} B (${event.tool}) · ${String(event.pages.length)} pages · stop ${event.stop}${event.dropped.length===0?"":` · ${String(event.dropped.length)} inputs not sent`}`];
     case "text_only_supervisor": return ["SUPERVISOR", `text-only note ${String(event.note)}/${String(event.limit)} after ${String(event.replies)} replies · ${clip(event.text,80)}`];
     case "retry":
       return ["RETRY", `${String(event.attempt)}/${String(event.limit)} ${event.reason}`];

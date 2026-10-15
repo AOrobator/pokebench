@@ -120,9 +120,12 @@ export class RunRecorder {
   }
 
   private readonly observers: ((event: RunEvent) => void)[] = [];
-  subscribe(observer: (event: RunEvent) => void): void { this.observers.push(observer); }
+  private readonly milestoneEvents: RunEvent[] = [];
+  // Late subscribers still learn the milestones already recorded, such as those present at a checkpoint start.
+  subscribe(observer: (event: RunEvent) => void, replayMilestones = false): void { this.observers.push(observer); if (replayMilestones) for (const event of this.milestoneEvents) observer(event); }
   private append(body: EventBody): RunEvent {
     const event = this.log.append(body);
+    if (event.type === "milestone") this.milestoneEvents.push(event);
     for (const observer of this.observers) observer(event);
     return event;
   }
@@ -424,6 +427,8 @@ export class RunRecorder {
   retry(reason: string, attempt: number, limit: number): void {
     this.append({ type: "retry", turn: this.turn, reason, attempt, limit });
   }
+
+  recordDialogueAutoAdvance(body: Omit<BodyOf<"dialogue_auto_advance">, "type" | "turn">): RunEvent { return this.append({ type: "dialogue_auto_advance", turn: this.turn, ...body }); }
 
   textOnlySupervisor(replies: number, note: number, limit: number, text: string): void {
     this.append({ type: "text_only_supervisor", turn: this.turn, replies, note, limit, text });

@@ -373,3 +373,10 @@ def test_initial_trainer_flag_exact_bit_and_adjacent_negative(field, trainer_id)
     assert story[field] is True
     assert all(story[key] is False for key in INITIAL_TRAINER_FLAGS if key != field)
     assert state_json(read_game_state(game(NAMING).read, MAPS))["story"][field] is None
+
+
+def test_story_line_says_unavailable_when_no_field_is_readable() -> None:
+    from pokebench_env.story import StoryState
+
+    assert StoryState().text() == "Story: unavailable (story state not readable right now)"
+    assert StoryState(name_confirmed=False).text() == "Story: no completion confirmed"

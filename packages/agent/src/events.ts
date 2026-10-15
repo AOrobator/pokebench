@@ -130,9 +130,9 @@ const HumanSample = event("human_sample", {
   screenshot: Type.Object({path: Type.String({pattern:"^frames/\\d{6}_\\d+\\.png$"}), sha1: Sha1}, closed),
 });
 
-const NavigationContext = event("navigation_context", {text:Type.String({maxLength:6500}),evidence:Type.Array(NonNegativeInt,{maxItems:36,uniqueItems:true})});
+const NavigationContext = event("navigation_context", {text:Type.String(),evidence:Type.Array(NonNegativeInt,{maxItems:36,uniqueItems:true})});
 const MilestoneHintContext = event("milestone_hint", {text:Type.String({maxLength:1000}),milestone:Type.String({minLength:1})});
-const LedgerContext = event("ledger_context", {text:Type.String({maxLength:4000}),evidence:Type.Array(NonNegativeInt,{maxItems:64,uniqueItems:true})});
+const LedgerContext = event("ledger_context", {text:Type.String(),evidence:Type.Array(NonNegativeInt,{maxItems:64,uniqueItems:true})});
 
 const ToolResult = event("tool_result", {
   state_seq: Type.Optional(NonNegativeInt),
@@ -184,7 +184,7 @@ const Activity = event("activity", {
 });
 
 const LoopFields = {
-  kind: Type.Enum(["planning", "observation", "ineffective", "cycle", "rejection"] as const),
+  kind: Type.Enum(["planning", "observation", "ineffective", "cycle", "rejection", "map_cycle", "milestone_drought"] as const),
   message: Type.String(), calls: NonNegativeInt,
   evidence: Type.Array(NonNegativeInt, {minItems:1,maxItems:2}),
 };
@@ -197,6 +197,30 @@ const LoopGuard = Type.Union([
 const Retry = event("retry", { reason: Type.String(), attempt: Type.Integer({ minimum: 1 }), limit: Type.Integer({ minimum: 1 }) });
 // text-only-supervisor-v1: the note sent to the model instead of ending the run at the failure limit.
 const TextOnlySupervisor = event("text_only_supervisor", { replies: Type.Integer({ minimum: 1 }), note: Type.Integer({ minimum: 1 }), limit: Type.Integer({ minimum: 1 }), text: Type.String({ minLength: 1 }) });
+
+// dialogue-auto-advance-v1: the harness advanced field dialogue to the next decision point within one tool call.
+export const DIALOGUE_AUTO_ADVANCE_STOPS = ["field_free", "menu", "naming", "battle", "screen_change", "locked_no_message", "interface_not_ready", "message_not_ready", "press_cap", "time_cap", "error"] as const;
+const DialoguePageSchema = Type.Object({
+  state_seq: Type.Union([NonNegativeInt, Type.Null()]),
+  map: Type.Union([Type.String(), Type.Null()]),
+  map_id: Type.Union([Type.Tuple([Type.Integer(), Type.Integer()]), Type.Null()]),
+  position: Type.Union([Type.Object({ x: Type.Integer(), y: Type.Integer() }, closed), Type.Null()]),
+  speaker: Type.Union([Type.String(), Type.Null()]),
+  speaker_source: Type.Union([Type.Enum(["name_prefix", "faced_sprite", "faced_target"] as const), Type.Null()]),
+  text: Type.String({ minLength: 1 }),
+}, closed);
+const DialogueAutoAdvance = event("dialogue_auto_advance", {
+  tool_call_id: Type.String(),
+  tool: Type.Enum(["press", "navigate_to"] as const),
+  requested: Type.Array(ButtonSchema),
+  sent: Type.Array(ButtonSchema),
+  dropped: Type.Array(ButtonSchema),
+  auto_presses: NonNegativeInt,
+  pages: Type.Array(DialoguePageSchema),
+  stop: Type.Enum(DIALOGUE_AUTO_ADVANCE_STOPS),
+  detail: Type.String(),
+  duration_ms: NonNegativeInt,
+});
 
 const DiskUsage = event("disk_usage", {
   bytes: NonNegativeInt,
@@ -456,6 +480,7 @@ export const RunEventSchema = Type.Union([
   BattleChoice,
   Retry,
   TextOnlySupervisor,
+  DialogueAutoAdvance,
   DiskUsage,
   FramesEvicted,
   RunEnd,

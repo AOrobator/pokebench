@@ -130,7 +130,8 @@ Warp to LITTLEROOT TOWN MAYS HOUSE 1F (map 1/2) at (14,8), elevation 0; movement
 <tr><td><code>1/0</code></td><td>gMapGroup_IndoorLittleroot[0]</td><td>LITTLEROOT TOWN BRENDANS HOUSE 1F</td></tr>
 <tr><td><code>1/2</code></td><td>gMapGroup_IndoorLittleroot[2]</td><td>LITTLEROOT TOWN MAYS HOUSE 1F</td></tr>
 <tr><td><code>1/4</code></td><td>gMapGroup_IndoorLittleroot[4]</td><td>LITTLEROOT TOWN PROFESSOR BIRCHS LAB</td></tr>
-<tr><td><code>127/127</code></td><td>dynamic warp (decided at run time)</td><td>unchanged: "dynamic destination"</td></tr>
+<tr><td><code>127/127</code>, game's dynamic warp set</td><td>dynamic warp: the game takes the destination from <code>SaveBlock1.dynamicWarp</code> (offset 0x14, <code>struct WarpData</code>, include/global.h), which map scripts set with <code>setdynamicwarp</code> (InsideOfTruck/scripts.inc sets MAP_LITTLEROOT_TOWN)</td><td>named from that warp: <code>(4,3) -&gt; LITTLEROOT TOWN (dynamic warp; map 0/9)</code>, in the Warps line, the interaction candidate and the warp destination line</td></tr>
+<tr><td><code>127/127</code>, dynamic warp unset or not in the map table</td><td>nothing to name</td><td>unchanged: "dynamic destination"</td></tr>
 <tr><td>not in the list</td><td>—</td><td>unchanged: bare ID</td></tr>
 </table>
 <p>It does not say that Birch lives in May's house. The game itself only says "next door"; connecting the two is still the model's job.</p>

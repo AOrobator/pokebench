@@ -102,10 +102,10 @@ describe("switchboard", () => {
   it("renders every group, switch, description, dependency and the locked measurement rows", () => {
     const html = switchboard({ features: FEATURES, draft, live: null, history: {}, expanded: new Set() });
     for (const f of FEATURES) expect(html).toContain(f.id);
-    expect(html).toContain("15/15 ON");
+    expect(html).toContain("17/17 ON");
     expect(html).toContain("needs live-map-v1");
     expect(html).toContain("MEASUREMENT · ALWAYS ON");
-    expect(html.match(/No matching runs yet/g)).toHaveLength(46);
+    expect(html.match(/No matching runs yet/g)).toHaveLength(52);
     expect(html.match(/🔒/g)).toHaveLength(FEATURES.filter(feature=>feature.group === "measurement").length);
   });
 

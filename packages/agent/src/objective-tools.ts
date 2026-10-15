@@ -5,7 +5,7 @@ import { ButtonSchema, type Button } from "./events.js";
 import { CompletionInputSchema, CompletionSchema, NATIVE_OBJECTIVES, EvidenceSchema, ObjectiveStatusSchema, validateCompletionType } from "./objective-schema.js";
 import { ALL_OBJECTIVE_SWITCHES, ObjectiveTracker, type ObjectiveSwitches } from "./objectives.js";
 export { ALL_OBJECTIVE_SWITCHES, type ObjectiveSwitches };
-import { ALL_TOOL_SWITCHES, observeTool, pressTool, submittedButtons, type ToolSwitches, type BeforePressCheck, type CheckedPressTool } from "./game-tools.js";
+import { ALL_TOOL_SWITCHES, gameTools, submittedButtons, type ToolSwitches, type BeforePressCheck, type CheckedPressTool } from "./game-tools.js";
 import { parseGameState, StateWatcher } from "./game-state.js";
 import type { RunRecorder } from "./recorder.js";
 
@@ -73,9 +73,8 @@ function resultState(result: AgentToolResult<unknown>) {
   return parseGameState(details.state);
 }
 export function objectiveGameTools(tracker: ObjectiveTracker, recorder: Pick<RunRecorder, "recordState" | "buttonPress" | "afterPress">, url: string, fetchFn: typeof fetch = fetch, switches: ToolSwitches = ALL_TOOL_SWITCHES): AgentTool[] {
-  const observe = observeTool(url, fetchFn, switches);
   const submissions = { count: 0, buttons: [] as readonly Button[] };
-  const press = pressTool(url, { beforePress: (id, buttons, timing, before, modifiers) => { submissions.count += 1; submissions.buttons=buttons; recorder.buttonPress(id, buttons, timing, before, modifiers); }, afterPress: () => recorder.afterPress() }, fetchFn, undefined, switches);
+  const [observe, press] = gameTools(url, { beforePress: (id, buttons, timing, before, modifiers) => { submissions.count += 1; submissions.buttons=buttons; recorder.buttonPress(id, buttons, timing, before, modifiers); }, afterPress: () => recorder.afterPress() }, fetchFn, switches);
   const perform=async(id:string,params:Parameters<CheckedPressTool["execute"]>[1],signal?:AbortSignal,update?:Parameters<CheckedPressTool["execute"]>[3],check?:BeforePressCheck)=>{
       signal?.throwIfAborted();
       if (!Value.Check(PressArgs, params)) throw new Error("Invalid press parameters");

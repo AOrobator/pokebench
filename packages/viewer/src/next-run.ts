@@ -13,7 +13,7 @@ import { controlLine, type ControlAction } from "@pokebench/agent/run-control";
 import { newRunId } from "@pokebench/agent/run";
 import { RUN_ID_PATTERN } from "@pokebench/agent/events";
 import { spawnDetached } from "./detached.js";
-import { LEASE, LeaseHeldError, leaseStale, pidAlive, takeLease } from "./lease.js";
+import { LEASE, LeaseHeldError, leaseStale, nameLeaseRun, pidAlive, takeLease } from "./lease.js";
 import { listRuns, readStart, readFrom, runDir } from "./runs.js";
 
 const positive = Type.Integer({ minimum: 1 });
@@ -196,7 +196,6 @@ export class RunQueue {
     }
     this.current = { state: "launching", runId };
     try {
-      const owner = join(lease, "owner.json");
       const presets = join(viewerDir(runsRoot), "presets");
       const receipts = join(runsRoot, "launch-receipts", "viewer-queue");
       mkdirSync(presets, { recursive: true });
@@ -204,13 +203,7 @@ export class RunQueue {
       const presetPath = join(presets, `${runId}.json`);
       writeFileSync(presetPath, `${JSON.stringify(presetFor(draft, runId), null, 2)}\n`, { flag: "wx" });
       const env: Record<string, string> = { POKEBENCH_PLAY_PRESET: presetPath, POKEBENCH_RUN_ID: runId, POKEBENCH_MODEL: draft.model, POKEBENCH_ENDPOINT_FILE: this.host.endpointFile ?? "", POKEBENCH_GAME_SERVER_URL: `http://127.0.0.1:${String(this.host.gamePort)}` };
-      const started = (child: number): void => {
-        try {
-          writeFileSync(owner, JSON.stringify({ pid: process.pid, owner: "viewer-queue", run: runId, child }));
-        } catch {
-          // The lease still names this viewer and run; only the pid is missing.
-        }
-      };
+      const started = (child: number): void => { nameLeaseRun(lease, { pid: process.pid, owner: "viewer-queue", run: runId, child }); };
       const launched = this.host.launch({ runId, argv: [this.host.liveJs, "play"], env, stdout: join(receipts, `${runId}.stdout.log`), stderr: join(receipts, `${runId}.stderr.log`), started });
       this.current = { state: "running", runId };
       const exit = await launched;

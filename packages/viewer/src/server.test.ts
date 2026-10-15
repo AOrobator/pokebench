@@ -3,6 +3,7 @@ import { createServer, request, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import { Log, START, fullRun } from "../test-support/events.js";
 import { QUEUE_FEATURES } from "../test-support/experiments.js";
@@ -114,7 +115,7 @@ describe("viewer server", () => {
   });
 
   it("gives every page the local Poké Ball favicon", async () => {
-    const staticDir = new URL("../static/", import.meta.url).pathname;
+    const staticDir = fileURLToPath(new URL("../static/", import.meta.url));
     for (const page of ["index.html", "workbench.html", "play.html"]) {
       expect(readFileSync(join(staticDir, page), "utf8"), page).toContain('<link rel="icon" href="/favicon.svg" type="image/svg+xml">');
     }

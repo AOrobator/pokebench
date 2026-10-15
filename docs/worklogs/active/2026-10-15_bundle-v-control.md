@@ -178,6 +178,7 @@ Any valid trial that still ends before the wall cap is listed in a WARNING table
 - 2026-10-15 23:05 EDT: Merged main (bundle 4b5b8bf and decision-point screening 954d74f) into the branch. RED for grok (a) a lane survives an unexpected I/O throw, (b) the definition requires both loop-guard switches on and the analysis prints a WARNING table of valid trials that ended before the wall cap, (c) run_start records `evaluation.features` and the classifier checks the eight switches and the off-in-both flags against the arm.
 - 2026-10-15 23:40 EDT: GREEN for the five blockers (RED `19f3784`, `8ea1018`): ledger drops milestones after the wall cap; Fisher counts a late primary as a miss; one pinned commit per run; lanes survive unexpected I/O throws (pause, write status, retry); definition requires both loop-guard switches; analysis WARNING table for valid trials ending before the cap; run_start `evaluation.features` checked against the arm. Plan re-frozen with seed `b70b39b399e5bbae`.
 - 2026-10-15 23:50 EDT: Control base pinned to the finals incumbent (Pre-registration). RED: `controlBaseProblems` (sha256, preset id, sampling, limits, every non-switch flag) and CLI refusal when the preset is missing or drifted (12 failing in fixed-design/fixed-cli).
+- 2026-10-15 23:55 EDT: GREEN: `controlBase` in the schema and definition; `controlBaseProblems` in fixed-design; every CLI load checks it; `check` prints the matched control base. Verified the real definition against the real `finals-incumbent.json` (definition sha256 `b98add43…`, pre-merge).
 
 ## Deferred
 

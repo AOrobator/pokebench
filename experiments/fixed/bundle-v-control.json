@@ -9,6 +9,11 @@
   "path": "runs/launch-receipts/rival-push-checkpoint/CLOCK_SET.state",
   "sha1": "51007c05068f4059f7d97c34541e29a93bedd80b"
  },
+ "controlBase": {
+  "path": "runs/experiments/full-map-navigation/presets/finals-incumbent.json",
+  "presetId": "full-map-navigation-finals-incumbent",
+  "sha256": "2a7a2a0fd7cba935ce8631c6ca67770e3cc6833447cc1b3a037e3c46039e0161"
+ },
  "base": {
   "target": null,
   "limits": {

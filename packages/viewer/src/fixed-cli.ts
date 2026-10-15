@@ -14,7 +14,7 @@ import { newRunId } from "@pokebench/agent/run";
 import { spawnDetached } from "./detached.js";
 import { mainCheckout, productionHost, sourceIdentity } from "./experiment-cli.js";
 import { analyze, renderAnalysis, trialsFromLedger, type AnalysisTrial } from "./fixed-analysis.js";
-import { dryRunDefinition, FixedDraftSchema, generatePlan, parseFixedDefinition, phaseOf, type FixedDefinition } from "./fixed-design.js";
+import { controlBaseProblems, dryRunDefinition, FixedDraftSchema, generatePlan, parseFixedDefinition, phaseOf, type FixedDefinition } from "./fixed-design.js";
 import { classifyTrial, readLedger } from "./fixed-ledger.js";
 import { runFixed, type FixedHost, type FixedRunOptions, type ServingReceipt } from "./fixed-runner.js";
 import { fixedStatusPath, parseFixedStatus } from "./fixed-status.js";
@@ -77,6 +77,11 @@ function load(deps: FixedCliDeps, id: string): { definition: FixedDefinition; sh
   const actual = deps.sha1File(join(deps.root, start.path));
   if (actual === null) throw new CliError(`start save ${start.path} is missing`);
   if (actual !== start.sha1) throw new CliError(`start save ${start.path} has sha1 ${actual}, the definition records ${start.sha1}`);
+  const base = loaded.definition.controlBase;
+  const basePath = join(deps.root, base.path);
+  if (!existsSync(basePath)) throw new CliError(`control base ${base.path} is missing`);
+  const problems = controlBaseProblems(loaded.definition, readFileSync(basePath, "utf8"));
+  if (problems.length > 0) throw new CliError(problems.join("\n"));
   return loaded;
 }
 
@@ -116,6 +121,7 @@ function check(deps: FixedCliDeps, id: string): void {
   }
   for (const lane of def.lanes) deps.out(`lane ${lane.id}: ${lane.gpu}, game port ${String(lane.gamePort)}, model ${lane.modelUrl}`);
   deps.out(`bundle switches: ${def.switches.join(", ")}; off in both: ${def.offInBoth.join(", ")}`);
+  deps.out(`control base: ${def.controlBase.presetId} (${def.controlBase.path}, sha256 ${def.controlBase.sha256}) matches outside the switches and off-in-both flags`);
   const approval = readApproval(deps, id);
   deps.out(`approval: ${approval === null ? "none" : approval.definitionSha256 === digest ? `${approval.approvedBy} at ${approval.approvedAt}` : "stale (the definition changed since)"}`);
 }

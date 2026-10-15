@@ -29,6 +29,8 @@ const draftShape = {
   worklog: Type.String({ minLength: 1 }),
   primaryMilestone: Type.String({ minLength: 1 }),
   start: Type.Object({ kind: Type.Literal("save_state"), path: Type.String({ minLength: 1 }), sha1: Type.String({ pattern: "^[0-9a-f]{40}$" }) }, closed),
+  // The preset the control arm reproduces outside the switches and off-in-both flags, pinned by bytes.
+  controlBase: Type.Object({ path: Type.String({ minLength: 1 }), presetId: Name, sha256: Type.String({ pattern: "^[0-9a-f]{64}$" }) }, closed),
   base: Type.Object({
     target: Type.Null(),
     // Reply failures never end a trial: the wall cap is the only behavioral end.
@@ -144,6 +146,36 @@ function featureProblems(def: FixedDefinition): string[] {
         problems.push(`${phase.id} ${arm} preset: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
+  }
+  return problems;
+}
+
+const shown = (value: unknown): string => (value === undefined ? "unset" : JSON.stringify(value));
+
+// The control base must equal the recorded preset, byte-pinned, in every flag but the switches and
+// off-in-both flags, and in sampling and turn/failure limits, so the control cannot drift silently.
+export function controlBaseProblems(def: FixedDefinition, presetText: string): string[] {
+  const { path, presetId, sha256 } = def.controlBase;
+  const actual = createHash("sha256").update(presetText).digest("hex");
+  if (actual !== sha256) return [`control base ${path} has sha256 ${actual}, the definition records ${sha256}`];
+  let preset: { id?: unknown; target?: unknown; limits?: Record<string, unknown>; sampling?: unknown; features?: Record<string, unknown> };
+  try {
+    preset = JSON.parse(presetText) as typeof preset;
+  } catch {
+    return [`control base ${path} is not a preset`];
+  }
+  const problems: string[] = [];
+  if (preset.id !== presetId) problems.push(`control base preset id is ${typeof preset.id === "string" ? preset.id : shown(preset.id)}, the definition records ${presetId}`);
+  if (preset.target !== def.base.target) problems.push(`base target is ${shown(def.base.target)}, the control base has ${shown(preset.target)}`);
+  if (JSON.stringify(preset.sampling) !== JSON.stringify(def.base.sampling)) problems.push("base sampling differs from the control base");
+  for (const key of ["maxTurns", "failureLimit"] as const) {
+    if (preset.limits?.[key] !== def.base.limits[key]) problems.push(`base limits.${key} is ${String(def.base.limits[key])}, the control base has ${shown(preset.limits?.[key])}`);
+  }
+  const features = preset.features ?? {};
+  const designed = new Set([...def.switches, ...def.offInBoth]);
+  for (const key of [...new Set([...Object.keys(def.base.features), ...Object.keys(features)])].sort()) {
+    if (designed.has(key) || def.base.features[key] === features[key]) continue;
+    problems.push(`base feature ${key} is ${shown(def.base.features[key])}, the control base has ${shown(features[key])}`);
   }
   return problems;
 }

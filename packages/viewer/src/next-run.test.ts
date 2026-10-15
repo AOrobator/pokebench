@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { ALL_ON } from "@pokebench/agent/features";
 import { Log, START } from "../test-support/events.js";
+import { processGroup } from "../test-support/process-group.js";
 import { DEFAULT_NEXT_RUN, LEASE, NextRunError, RunQueue, appendControl, healthProbe, liveRuns, presetFor, readDraft, spawnLaunch, writeDraft, type LaunchSpec, type QueueHost } from "./next-run.js";
 
 const NOW = new Date("2026-10-13T16:00:00.000Z");
@@ -68,7 +69,13 @@ function host(runsRoot: string, endpointFile: string | null = "/tmp/endpoint.jso
   const launches: LaunchSpec[] = [];
   let finish: (code: number | null) => void = () => undefined;
   const h: QueueHost = { runsRoot, liveJs: "/repo/packages/agent/dist/live.js", endpointFile, gamePort: 8076, healthy, now: () => NOW, random: () => "ab12",
-    launch: (spec) => { launches.push(spec); expect(existsSync(join(runsRoot, LEASE, "owner.json"))).toBe(true); return new Promise((resolve) => { finish = resolve; }); } };
+    launch: (spec) => {
+      launches.push(spec);
+      expect(existsSync(join(runsRoot, LEASE, "owner.json"))).toBe(true);
+      spec.started?.(777);
+      expect(JSON.parse(readFileSync(join(runsRoot, LEASE, "owner.json"), "utf8"))).toMatchObject({ owner: "viewer-queue", run: spec.runId, child: 777 });
+      return new Promise((resolve) => { finish = resolve; });
+    } };
   return { h, launches, finish: (code: number | null) => { finish(code); } };
 }
 
@@ -101,6 +108,39 @@ describe("run queue", () => {
     expect(existsSync(join(runsRoot, LEASE))).toBe(false);
   });
 
+  it("launches past a lease a dead viewer left once its run has ended, but never past a live owner", async () => {
+    const runsRoot = root();
+    mkdirSync(join(runsRoot, LEASE));
+    writeFileSync(join(runsRoot, LEASE, "owner.json"), JSON.stringify({ pid: 300, owner: "viewer-queue", run: "older", child: 301 }));
+    const { h, launches, finish } = host(runsRoot);
+    let living = new Set([300]);
+    const queue = new RunQueue({ ...h, alive: (pid) => living.has(pid) });
+    queue.enqueue(draft);
+    await queue.tick();
+    expect(queue.status()).toMatchObject({ state: "queued", waitingFor: "the gameplay lease (a benchmark cohort is running)" });
+    living = new Set([301]);
+    await queue.tick();
+    expect(queue.status()).toMatchObject({ state: "queued", waitingFor: "the gameplay lease (a benchmark cohort is running)" });
+    living = new Set();
+    const running = queue.tick();
+    await vi.waitFor(() => { expect(launches).toHaveLength(1); });
+    finish(0);
+    await running;
+    expect(queue.status()).toEqual({ state: "idle" });
+  });
+
+  it("keeps waiting on an experiment lease a dead viewer left while its trial still plays", async () => {
+    const runsRoot = root();
+    mkdirSync(join(runsRoot, LEASE));
+    writeFileSync(join(runsRoot, LEASE, "owner.json"), JSON.stringify({ pid: 300, owner: "experiment-queue", experiment: "full-map", run: "t0", child: 200 }));
+    const { h, launches } = host(runsRoot);
+    const queue = new RunQueue({ ...h, healthy: () => Promise.resolve(false), alive: (pid) => pid === 200 });
+    queue.enqueue(draft);
+    await queue.tick();
+    expect(queue.status()).toMatchObject({ state: "queued", waitingFor: "the gameplay lease (a benchmark cohort is running)" });
+    expect(launches).toEqual([]);
+  });
+
   it("reports a failed launch and still releases the lease", async () => {
     const runsRoot = root();
     const { h, finish, launches } = host(runsRoot);
@@ -128,8 +168,10 @@ describe("run queue", () => {
 
   it("spawns node with an argv list and writes both logs", async () => {
     const dir = root();
-    const code = await spawnLaunch({ runId: "x", argv: ["-e", "console.log(process.env.POKEBENCH_RUN_ID); console.error('e')"], env: { POKEBENCH_RUN_ID: "x" }, stdout: join(dir, "out.log"), stderr: join(dir, "err.log") });
+    const groups: [number, string][] = [];
+    const code = await spawnLaunch({ runId: "x", argv: ["-e", "console.log(process.env.POKEBENCH_RUN_ID); console.error('e'); setTimeout(() => undefined, 500)"], env: { POKEBENCH_RUN_ID: "x" }, stdout: join(dir, "out.log"), stderr: join(dir, "err.log"), started: (pid) => { groups.push([pid, processGroup(pid)]); } });
     expect(code).toBe(0);
+    expect(groups.map(([pid, group]) => group === String(pid))).toEqual([true]);
     expect(readFileSync(join(dir, "out.log"), "utf8")).toBe("x\n");
     expect(readFileSync(join(dir, "err.log"), "utf8")).toBe("e\n");
   });

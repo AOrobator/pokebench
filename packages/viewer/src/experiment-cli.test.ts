@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import { definitionHash, parseExperiment, type ReadinessRun } from "@pokebench/agent/experiments";
 import { HUMAN_GAMEPLAY_LEASE_NAME } from "@pokebench/agent/run";
 import { QUEUE_FEATURES, definition, writeDefinition } from "../test-support/experiments.js";
+import { processGroup } from "../test-support/process-group.js";
 import { EXPERIMENT_GAME_PORT, GATEWAY, buildAgent, main, mainCheckout, productionHost, type CliDeps } from "./experiment-cli.js";
 import { experimentDir, type QueuePaths } from "./experiment-store.js";
 import type { RunnerHost } from "./experiment-runner.js";
@@ -194,11 +195,13 @@ describe("production host", () => {
   it("launches play from the main checkout with the trial's preset, run id and an isolated port", async () => {
     const { root } = repo();
     mkdirSync(join(root, "packages", "agent", "dist"), { recursive: true });
-    writeFileSync(join(root, "packages", "agent", "dist", "live.js"), "const e=process.env;require('node:fs').writeFileSync(process.argv[2]+'.env',JSON.stringify({argv:process.argv.slice(2),model:e.POKEBENCH_MODEL,url:e.POKEBENCH_GAME_SERVER_URL,preset:e.POKEBENCH_PLAY_PRESET,run:e.POKEBENCH_RUN_ID,gateway:e.POKEBENCH_GATEWAY_URL,endpoint:e.POKEBENCH_ENDPOINT_FILE??null,keep:e.KEEP}));process.exit(Number(e.EXIT_CODE??0));".replace("process.argv[2]+'.env'", JSON.stringify(join(root, "seen.json"))));
+    writeFileSync(join(root, "packages", "agent", "dist", "live.js"), "const e=process.env;require('node:fs').writeFileSync(process.argv[2]+'.env',JSON.stringify({argv:process.argv.slice(2),model:e.POKEBENCH_MODEL,url:e.POKEBENCH_GAME_SERVER_URL,preset:e.POKEBENCH_PLAY_PRESET,run:e.POKEBENCH_RUN_ID,gateway:e.POKEBENCH_GATEWAY_URL,endpoint:e.POKEBENCH_ENDPOINT_FILE??null,keep:e.KEEP}));setTimeout(()=>process.exit(Number(e.EXIT_CODE??0)),500);".replace("process.argv[2]+'.env'", JSON.stringify(join(root, "seen.json"))));
     const children: unknown[] = [];
     const host = productionHost({ root, runsRoot: join(root, "runs"), git: () => "", fetchFn: fetch, node: process.execPath, env: { KEEP: "yes", POKEBENCH_ENDPOINT_FILE: "/x", POKEBENCH_PLAY_PRESET: "/stale", EXIT_CODE: undefined }, log: () => undefined, onChild: (c) => { children.push(c === null ? null : "child"); } });
-    const code = await host.launch({ runId: "2026-10-14T21-00-00_think-fast_beef", presetPath: "/p/incumbent.json", model: "think-fast", stdout: join(root, "out.log"), stderr: join(root, "err.log") });
+    const groups: boolean[] = [];
+    const code = await host.launch({ runId: "2026-10-14T21-00-00_think-fast_beef", presetPath: "/p/incumbent.json", model: "think-fast", stdout: join(root, "out.log"), stderr: join(root, "err.log"), started: (pid) => { groups.push(processGroup(pid) === String(pid)); } });
     expect(code).toBe(0);
+    expect(groups).toEqual([true]);
     expect(JSON.parse(readFileSync(join(root, "seen.json"), "utf8"))).toEqual({ argv: ["play"], model: "think-fast", url: `http://127.0.0.1:${String(EXPERIMENT_GAME_PORT)}`, preset: "/p/incumbent.json", run: "2026-10-14T21-00-00_think-fast_beef", gateway: GATEWAY, endpoint: null, keep: "yes" });
     expect(children).toEqual(["child", null]);
     const failing = productionHost({ root, runsRoot: join(root, "runs"), git: () => "", fetchFn: fetch, node: join(root, "no-such-node"), env: {}, log: () => undefined });

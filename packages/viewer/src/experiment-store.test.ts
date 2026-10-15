@@ -46,6 +46,10 @@ describe("experiment queue store", () => {
     writeFileSync(runnerPath(runsRoot), JSON.stringify({ pid: 42, experiment: "x", trial: 2 }));
     expect(readRunner(runsRoot, () => false)).toBeNull();
     expect(readRunner(runsRoot, () => true)).toEqual({ experiment: "x", trial: 2 });
+    // The viewer that launched the trial died, but the trial still plays.
+    writeFileSync(runnerPath(runsRoot), JSON.stringify({ pid: 42, experiment: "x", trial: 2, run: "r", child: 43 }));
+    expect(readRunner(runsRoot, (pid) => pid === 43)).toEqual({ experiment: "x", trial: 2 });
+    expect(readRunner(runsRoot, () => false)).toBeNull();
     expect(pidAlive(process.pid)).toBe(true);
     expect(pidAlive(2 ** 22 + 7)).toBe(false);
   });

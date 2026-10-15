@@ -12,12 +12,12 @@ import { parseEvent, type RunEvent } from "@pokebench/agent/events";
 import { Value } from "typebox/value";
 import type { PlayPresetV2 } from "@pokebench/agent/play-preset";
 import { finalsPreset, type FinalsEntry, type Nomination } from "@pokebench/agent/experiment-gate";
-import { experimentDir, loadExperiments, queueSnapshot, runnerPath, type ExperimentView, type QueuePaths, type QueueSnapshot, type RunSource } from "./experiment-store.js";
+import { experimentDir, loadExperiments, queueSnapshot, readRunnerFile, runnerPath, type ExperimentView, type QueuePaths, type QueueSnapshot, type RunSource } from "./experiment-store.js";
 import { cohortNomination, decide, effectiveExperiment, finalsLedger, finalsLedgerPath, finalsResultPath, finalsRunner, finalsTrials, finalsWithdrawnPath, findCohort, nominationPath, promotionsPath, queueNomination, readNomination, readPromotions, type FinalsResult } from "./experiment-gate-store.js";
-import { LEASE } from "./next-run.js";
+import { nameLeaseRun, pidAlive, takeLease } from "./lease.js";
 
 export interface DiscoveredModel { readonly id: string; readonly fingerprint: string }
-export interface TrialLaunch { readonly runId: string; readonly presetPath: string; readonly model: string; readonly stdout: string; readonly stderr: string }
+export interface TrialLaunch { readonly runId: string; readonly presetPath: string; readonly model: string; readonly stdout: string; readonly stderr: string; readonly started?: (pid: number) => void }
 export interface RunnerHost {
   now(): Date;
   runId(model: string): string;
@@ -32,6 +32,9 @@ export interface RunnerHost {
   log(line: string): void;
   // A hand-run cohort driver or chain still alive (it frees the lease between steps), or null.
   activeCohort?(): Promise<string | null>;
+  // Whether a pid lives (default: signal 0), and a pause between checks on an adopted trial.
+  alive?(pid: number): boolean;
+  wait?(ms: number): Promise<void>;
 }
 export interface RunnerOptions { readonly paths: QueuePaths; readonly source: RunSource; readonly host: RunnerHost; readonly dryRun?: boolean; readonly once?: boolean; readonly stopRequested?: () => boolean }
 export interface RunnerOutcome { readonly ran: number; readonly stopped: string }
@@ -91,25 +94,42 @@ function endReason(runsRoot: string, runId: string): string {
   }
 }
 
-// INV-Q3: one measured run machine-wide; the lease is the same one NEXT RUN and cohorts use.
-function takeLease(runsRoot: string, owner: Record<string, unknown>): string {
-  const lease = join(runsRoot, LEASE);
-  try {
-    mkdirSync(lease);
-  } catch {
-    throw new RunnerError("the gameplay lease is held (another run, cohort or queue is active)");
+export const ADOPT_POLL_MS = 5_000;
+interface Holder { readonly lease: string; readonly owner: Readonly<Record<string, unknown>> }
+// Trials a viewer launched and never recorded: a restarted viewer adopts them instead of relaunching.
+const orphans = (todo: readonly { state: string; run: string | null }[]): Set<string> => new Set(todo.flatMap((t) => (t.run !== null && (t.state === "interrupted" || t.state === "running") ? [t.run] : [])));
+
+// Waits under the lease until an adopted trial stops playing, then reads how it ended (null: stop requested).
+async function settleOrphan(runsRoot: string, host: RunnerHost, run: string, position: Readonly<Record<string, unknown>>, holder: Holder, stopRequested: () => boolean): Promise<string | null> {
+  const alive = (pid: number): boolean => (host.alive ?? pidAlive)(pid);
+  const file = readRunnerFile(runsRoot);
+  const child = file?.run === run ? (file.child ?? null) : null;
+  const named = { run, ...(child === null ? {} : { child }) };
+  writeFileSync(runnerPath(runsRoot), JSON.stringify({ ...position, ...named }));
+  nameLeaseRun(holder.lease, { ...holder.owner, ...named });
+  for (;;) {
+    const playing = (await host.liveRuns()).includes(run) || (child !== null && alive(child) && endReason(runsRoot, run) === "incomplete");
+    if (!playing) return endReason(runsRoot, run);
+    if (stopRequested()) return null;
+    await (host.wait ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))))(ADOPT_POLL_MS);
   }
-  try {
-    writeFileSync(join(lease, "owner.json"), JSON.stringify(owner), { flag: "wx" });
-  } catch (error) {
-    rmSync(lease, { recursive: true, force: true });
-    throw error;
-  }
-  return lease;
 }
 
+// The detached play pid joins the runner position and the lease; a failed write only loses that pid.
+function noteChild(runsRoot: string, position: Readonly<Record<string, unknown>>, holder: Holder, child: number): void {
+  try {
+    writeFileSync(runnerPath(runsRoot), JSON.stringify({ ...position, child }));
+  } catch {
+    // The position still names the run, which adoption falls back to.
+  }
+  nameLeaseRun(holder.lease, { ...holder.owner, run: position["run"], child });
+}
+
+// A queue trial still playing, maybe launched by a viewer that is gone, is picked up so the runner
+// can adopt it; a live runner keeps the lease, so a second viewer only waits. Running in an
+// external cohort is not the queue's to run.
 export function nextExperiment(queue: readonly ExperimentView[]): ExperimentView | null {
-  return queue.find((v) => v.state === "approved" || v.state === "held") ?? null;
+  return queue.find((v) => v.state === "approved" || v.state === "held" || (v.state === "running" && v.trials.some((t) => t.state === "running"))) ?? null;
 }
 
 export type Step = { readonly kind: "experiment"; readonly view: ExperimentView } | { readonly kind: "nominate"; readonly id: string } | { readonly kind: "finals"; readonly id: string } | { readonly kind: "blocked"; readonly reason: string };
@@ -174,38 +194,66 @@ async function runNext(options: RunnerOptions): Promise<RunnerOutcome & { finish
   // Every trial already finished: grading reads only the ledger and run logs, so no build, model or lease is needed.
   if (todo.length === 0) return finish(paths, source, experiment, 0);
   const commit = await buildCommit(paths, experiment, host);
-  const live = await host.liveRuns();
+  const adoptable = orphans(todo);
+  const live = (await host.liveRuns()).filter((run) => !adoptable.has(run));
   if (live.length > 0) throw new RunnerError(`live run ${live[0] ?? ""} is still running`);
   // The lease comes first: verifying the source may rebuild the agent dist every gameplay launcher loads.
-  const lease = takeLease(paths.runsRoot, { pid: process.pid, owner: "experiment-queue", experiment: experiment.id });
+  const owner = { pid: process.pid, owner: "experiment-queue", experiment: experiment.id };
+  const lease = takeLease(paths.runsRoot, owner, (pid) => (host.alive ?? pidAlive)(pid), adoptable);
+  const holder: Holder = { lease, owner };
   let ran = 0;
   try {
-    const problem = await host.verifySource(experiment, commit);
-    if (problem !== null) throw new RunnerError(`${experiment.id}: ${problem}`);
-    const model = await host.discover(experiment.modelLane);
     // The ledger is read once; appends go to disk and to this copy.
     const entries = ledgerEntries(paths, experiment.id);
     const record = (entry: LedgerEntry): void => { append(paths, experiment.id, entry); entries.push(entry); };
+    // Recording a trial a gone viewer launched launches nothing, so it precedes every source check.
+    const settled = new Set<number>();
+    for (const trial of todo) {
+      if (trial.run === null || !adoptable.has(trial.run)) continue;
+      const at = (): string => host.now().toISOString();
+      const ended = await settleOrphan(paths.runsRoot, host, trial.run, { pid: process.pid, experiment: experiment.id, trial: trial.index }, holder, stopRequested);
+      if (ended === null) return hold(ran, "stop requested");
+      if (ended === "operator_abort") {
+        record({ type: "launcher_error", trial: trial.index, arm: trial.arm, run: trial.run, at: at(), message: "operator stopped the trial" });
+        return hold(ran, `held: trial ${String(trial.index + 1)} was stopped by the operator; it will be rerun`);
+      }
+      if (ended === "incomplete") {
+        record({ type: "launcher_error", trial: trial.index, arm: trial.arm, run: trial.run, at: at(), message: "interrupted: no outcome was recorded" });
+        continue;
+      }
+      record({ type: "outcome", trial: trial.index, arm: trial.arm, run: trial.run, at: at(), reason: ended });
+      settled.add(trial.index);
+      ran += 1;
+      host.log(`${experiment.id}: adopted trial ${String(trial.index + 1)} (${trial.arm}) finished as ${trial.run}`);
+    }
+    const remaining = todo.filter((t) => !settled.has(t.index));
+    if (remaining.length === 0) return finish(paths, source, experiment, ran);
+    if (once && ran > 0) return hold(ran, "one trial run (--once)");
+    const problem = await host.verifySource(experiment, commit);
+    if (problem !== null) throw new RunnerError(`${experiment.id}: ${problem}`);
+    const model = await host.discover(experiment.modelLane);
     const presets = new Map<Arm, string>();
     const logs = join(experimentDir(paths.runsRoot, experiment.id), "logs");
     mkdirSync(logs, { recursive: true });
-    for (const trial of todo) {
+    for (const trial of remaining) {
       if (stopRequested()) return hold(ran, "stop requested");
       if (!approved(paths, experiment)) return hold(ran, "held: the approval no longer matches the definition");
       const recheck = await host.verifySource(experiment, commit);
       if (recheck !== null) return hold(ran, `held: ${recheck}`);
+      const at = (): string => host.now().toISOString();
+      // Only a new launch spends budget; an adopted trial already ran.
       const used = entries.flatMap((e) => (e.type === "launch" ? [e.run] : [])).reduce((sum, run) => sum + (source.trial(run)?.wallMs ?? 0), 0);
       if (used + experiment.incumbent.limits.maxWallMs > experiment.budget.maxWallMs) return hold(ran, "held: the next trial could exceed the experiment budget");
-      const at = (): string => host.now().toISOString();
-      if (trial.state === "interrupted" && trial.run !== null) record({ type: "launcher_error", trial: trial.index, arm: trial.arm, run: trial.run, at: at(), message: "interrupted: no outcome was recorded" });
       const presetPath = presets.get(trial.arm) ?? presetFile(paths, experiment, trial.arm);
       presets.set(trial.arm, presetPath);
       const runId = host.runId(model.id);
       record({ type: "launch", trial: trial.index, arm: trial.arm, run: runId, at: at(), model: model.id, environment: model.fingerprint, commit, ...promotion });
-      writeFileSync(runnerPath(paths.runsRoot), JSON.stringify({ pid: process.pid, experiment: experiment.id, trial: trial.index }));
+      const position = { pid: process.pid, experiment: experiment.id, trial: trial.index, run: runId };
+      writeFileSync(runnerPath(paths.runsRoot), JSON.stringify(position));
+      nameLeaseRun(lease, { ...owner, run: runId });
       let code: number | null;
       try {
-        code = await host.launch({ runId, presetPath, model: model.id, stdout: join(logs, `${runId}.stdout.log`), stderr: join(logs, `${runId}.stderr.log`) });
+        code = await host.launch({ runId, presetPath, model: model.id, stdout: join(logs, `${runId}.stdout.log`), stderr: join(logs, `${runId}.stderr.log`), started: (child) => { noteChild(paths.runsRoot, position, holder, child); } });
       } catch (error) {
         record({ type: "launcher_error", trial: trial.index, arm: trial.arm, run: runId, at: at(), message: error instanceof Error ? error.message : String(error) });
         return hold(ran, `held: trial ${String(trial.index + 1)} failed to launch`);
@@ -225,7 +273,7 @@ async function runNext(options: RunnerOptions): Promise<RunnerOutcome & { finish
       record({ type: "outcome", trial: trial.index, arm: trial.arm, run: runId, at: at(), reason });
       ran += 1;
       host.log(`${experiment.id}: trial ${String(trial.index + 1)} (${trial.arm}) finished as ${runId}`);
-      if (once && trial !== todo.at(-1)) return hold(ran, "one trial run (--once)");
+      if (once && trial !== remaining.at(-1)) return hold(ran, "one trial run (--once)");
     }
     return finish(paths, source, experiment, ran);
   } finally {
@@ -274,35 +322,62 @@ async function runFinals({ paths, source, host, once = false, stopRequested = ()
   host.log(`${id}: finals; ${String(todo.length)} run(s) from boot to go (${todo.map((t) => `${String(t.index + 1)}${t.arm}`).join(" ")})`);
   if (todo.length === 0) return settleFinals(paths, source, host, n, file, entries);
   const commit = entries.find((e) => e.type === "launch")?.type === "launch" ? (entries.find((e) => e.type === "launch") as Extract<FinalsEntry, { type: "launch" }>).commit : await host.head();
-  const live = await host.liveRuns();
+  const adoptable = orphans(todo);
+  const live = (await host.liveRuns()).filter((run) => !adoptable.has(run));
   if (live.length > 0) throw new RunnerError(`live run ${live[0] ?? ""} is still running`);
-  const lease = takeLease(paths.runsRoot, { pid: process.pid, owner: "experiment-queue", experiment: id, finals: true });
+  const owner = { pid: process.pid, owner: "experiment-queue", experiment: id, finals: true };
+  const lease = takeLease(paths.runsRoot, owner, (pid) => (host.alive ?? pidAlive)(pid), adoptable);
+  const holder: Holder = { lease, owner };
   let ran = 0;
   try {
+    const record = (entry: FinalsEntry): void => { appendFileSync(finalsLedgerPath(paths.runsRoot, id), `${JSON.stringify(entry)}\n`); entries.push(entry); };
+    // Recording a run a gone viewer launched launches nothing, so it precedes every source check.
+    const settled = new Set<number>();
+    for (const trial of todo) {
+      if (trial.run === null || !adoptable.has(trial.run)) continue;
+      const at = (): string => host.now().toISOString();
+      const ended = await settleOrphan(paths.runsRoot, host, trial.run, { pid: process.pid, experiment: finalsRunner(id), trial: trial.index }, holder, stopRequested);
+      if (ended === null) return hold(ran, "stop requested");
+      if (ended === "operator_abort") {
+        record({ type: "launcher_error", trial: trial.index, arm: trial.arm, run: trial.run, at: at(), message: "operator stopped the run" });
+        return hold(ran, `held: finals run ${String(trial.index + 1)} was stopped by the operator; it will be rerun`);
+      }
+      if (ended === "incomplete") {
+        record({ type: "launcher_error", trial: trial.index, arm: trial.arm, run: trial.run, at: at(), message: "interrupted: no outcome was recorded" });
+        continue;
+      }
+      record({ type: "outcome", trial: trial.index, arm: trial.arm, run: trial.run, at: at(), reason: ended });
+      settled.add(trial.index);
+      ran += 1;
+      host.log(`${id}: adopted finals run ${String(trial.index + 1)} (${trial.arm}) finished as ${trial.run}`);
+    }
+    const remaining = todo.filter((t) => !settled.has(t.index));
+    if (remaining.length > 0 && once && ran > 0) return hold(ran, "one finals run (--once)");
+    if (remaining.length > 0) {
     const problem = await host.verifySource(file, commit);
     if (problem !== null) throw new RunnerError(`${id}: ${problem}`);
     const model = await host.discover(file.modelLane);
-    const record = (entry: FinalsEntry): void => { appendFileSync(finalsLedgerPath(paths.runsRoot, id), `${JSON.stringify(entry)}\n`); entries.push(entry); };
     const dir = join(experimentDir(paths.runsRoot, id), "presets"), logs = join(experimentDir(paths.runsRoot, id), "logs");
     mkdirSync(dir, { recursive: true });
     mkdirSync(logs, { recursive: true });
-    for (const trial of todo) {
+    for (const trial of remaining) {
       if (stopRequested()) return hold(ran, "stop requested");
       if (existsSync(finalsWithdrawnPath(paths.runsRoot, id))) return hold(ran, "held: the finals were withdrawn");
       const recheck = await host.verifySource(file, commit);
       if (recheck !== null) return hold(ran, `held: ${recheck}`);
       const at = (): string => host.now().toISOString();
-      if (trial.state === "interrupted" && trial.run !== null) record({ type: "launcher_error", trial: trial.index, arm: trial.arm, run: trial.run, at: at(), message: "interrupted: no outcome was recorded" });
       const presetPath = join(dir, `finals-${trial.arm}.json`);
       const body = `${JSON.stringify(finalsPresetOf(n, trial.arm), null, 1)}\n`;
       if (existsSync(presetPath) && readFileSync(presetPath, "utf8") !== body) throw new RunnerError(`${id}: finals ${trial.arm} preset on disk differs from the nomination`);
       writeFileSync(presetPath, body);
       const runId = host.runId(model.id);
       record({ type: "launch", trial: trial.index, arm: trial.arm, run: runId, at: at(), model: model.id, commit });
-      writeFileSync(runnerPath(paths.runsRoot), JSON.stringify({ pid: process.pid, experiment: finalsRunner(id), trial: trial.index }));
+      const position = { pid: process.pid, experiment: finalsRunner(id), trial: trial.index, run: runId };
+      writeFileSync(runnerPath(paths.runsRoot), JSON.stringify(position));
+      nameLeaseRun(lease, { ...owner, run: runId });
       let code: number | null;
       try {
-        code = await host.launch({ runId, presetPath, model: model.id, stdout: join(logs, `${runId}.stdout.log`), stderr: join(logs, `${runId}.stderr.log`) });
+        code = await host.launch({ runId, presetPath, model: model.id, stdout: join(logs, `${runId}.stdout.log`), stderr: join(logs, `${runId}.stderr.log`), started: (child) => { noteChild(paths.runsRoot, position, holder, child); } });
       } catch (error) {
         record({ type: "launcher_error", trial: trial.index, arm: trial.arm, run: runId, at: at(), message: error instanceof Error ? error.message : String(error) });
         return hold(ran, `held: finals run ${String(trial.index + 1)} failed to launch`);
@@ -315,7 +390,8 @@ async function runFinals({ paths, source, host, once = false, stopRequested = ()
       record({ type: "outcome", trial: trial.index, arm: trial.arm, run: runId, at: at(), reason });
       ran += 1;
       host.log(`${id}: finals run ${String(trial.index + 1)} (${trial.arm}) finished as ${runId}`);
-      if (once && trial !== todo.at(-1)) return hold(ran, "one finals run (--once)");
+      if (once && trial !== remaining.at(-1)) return hold(ran, "one finals run (--once)");
+    }
     }
   } finally {
     rmSync(runnerPath(paths.runsRoot), { force: true });

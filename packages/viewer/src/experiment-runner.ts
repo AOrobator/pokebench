@@ -67,6 +67,7 @@ const approved = (paths: QueuePaths, experiment: Experiment): boolean => approva
 // The build trials run on: the one the operator approved (older approvals: the definition's pin).
 // Both arms run on one build: the commit the first trial launched on. Before any trial, main as
 // it is now, so an approval holds across merges instead of pinning the commit it was given on.
+// The ledger's commit names the sources trials run, not main's HEAD: later merges that leave them alone run on.
 async function buildCommit(paths: QueuePaths, experiment: Experiment, host: RunnerHost): Promise<string> {
   for (const e of ledgerEntries(paths, experiment.id)) if (e.type === "launch" && e.commit !== undefined) return e.commit;
   return host.head();

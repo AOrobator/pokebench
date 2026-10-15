@@ -226,6 +226,7 @@ VERDICT: LGTM
 - 19:45 gates (fixture typing fix on top, test-only; dist unchanged): test agent 1256, viewer 686, python 1962
   passed; lint 0; coverage agent 97.6/94.19/97.85/99.02, viewer 95.25/90.95/94.18/98.01, python 96%;
   verify-vendor OK; build OK.
+- 19:50 merged into main with --no-ff at 0d589f1 (main was 1bb327e, already in the branch); `just build` OK on main.
 
 ## Invariants
 

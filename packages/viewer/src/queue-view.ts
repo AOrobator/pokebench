@@ -1,6 +1,6 @@
 // The experiment queue as party slots (design 11) that open in place into a
-// battle card (design 18), with status chips that filter and a separate
-// PENDING box. Used on the PokéNav page and on Runs & Comparisons. Read only:
+// battle card (design 18), with status chips that filter and a PENDING group
+// on the same card. Used on the PokéNav page and on Runs & Comparisons. Read only:
 // approval and running stay in the CLI.
 import type { ArmSummary, ExperimentView, QueueSnapshot, TrialView } from "./experiment-store.js";
 import { esc } from "./format.js";

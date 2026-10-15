@@ -221,7 +221,7 @@ it("recovers the first Route 101 entry after the Birch handoff from a log that p
   expect(detected.filter(m => m.name === "ROUTE_101_AFTER_HANDOFF").map(m => m.evidence)).toEqual([[witness.seq, town.seq, route.seq]]);
   const native = new Log();
   for (const event of log.events) native.events.push(event);
-  native.add(6100, { type: "milestone", turn: 1, name: "ROUTE_101_AFTER_HANDOFF", kind: "navigation", origin: "observed", server_timestamp: 1, evidence: [witness.seq, town.seq, route.seq] });
+  native.add(8100, { type: "milestone", turn: 1, name: "ROUTE_101_AFTER_HANDOFF", kind: "navigation", origin: "observed", server_timestamp: 1, evidence: [witness.seq, town.seq, route.seq] });
   const receipt = readNativeRecording(write(native.events.map(e => JSON.stringify(e)).join("\n") + "\n"), witness.run, qualifiedNativeMilestone);
   expect(receipt.splits.filter(s => s.name === "ROUTE_101_AFTER_HANDOFF")).toMatchObject([{ seq: native.events.at(-1)?.seq }]);
   expect(receipt.splits.find(s => s.name === "ROUTE_101_AFTER_HANDOFF")?.derived).toBeUndefined();

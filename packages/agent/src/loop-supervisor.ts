@@ -1,5 +1,6 @@
 import {DialogueLog,roomKey,roomOf} from "./dialogue-log.js";
 import {NextMilestoneHint} from "./milestone-hint.js";
+import {MEASUREMENT_ONLY_MILESTONES} from "./milestones.js";
 import type {RunEvent} from "./events.js";
 import type {FeatureSet} from "./features.js";
 import type {LoopKind} from "./loop-detection.js";
@@ -36,7 +37,7 @@ export class SupervisorBriefing {
   this.dialogue.observe(event);
   this.hint?.observe(event);
   this.turn=Math.max(this.turn,event.turn);
-  if(event.type==="milestone"){if(event.origin!=="present_at_start"&&event.name!=="GAME_RUNNING")this.progress={turn:event.turn,name:event.name};return;}
+  if(event.type==="milestone"){if(event.origin!=="present_at_start"&&event.name!=="GAME_RUNNING"&&!MEASUREMENT_ONLY_MILESTONES.has(event.name))this.progress={turn:event.turn,name:event.name};return;}
   if(event.type==="state"&&"started"in event){this.measured=event;return;}
   if(event.type==="tool_call"&&(event.name==="press"||event.name==="navigate_to")){
    this.calls.set(event.id,{name:event.name,args:event.args,before:this.latest});

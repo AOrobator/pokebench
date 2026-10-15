@@ -98,7 +98,7 @@ Readout text only. No new inputs, subprocesses, network or file paths. The ROM i
       Incumbent copied from fresh-retry plus this switch OFF. Readiness READY in `docs/experiments/readiness.md`.
       The queue CLI reads main's checkout, so the entry appears in `just experiments` only after landing;
       loaded from the worktree it validates with no problems.
-- [ ] COMMIT: `docs(explainers): named warp destinations explainer and queued experiment`
+- [x] COMMIT: `docs(explainers): named warp destinations explainer and queued experiment` (5d42f8b)
 - [ ] Live viewer click-through of READ EXPLAINER (after landing; the shared viewer serves main)
 - [ ] Gates and review (round 2 covers 5ae6acb and this commit)
 

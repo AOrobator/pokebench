@@ -12,6 +12,11 @@ function change(name: string, value: string): void { (ui(name) as HTMLSelectElem
 function mount(value: unknown = data()): { wb: Workbench; fetch: ReturnType<typeof vi.fn> } { const fetch = vi.fn(() => Promise.resolve(value)); return { wb: new Workbench(document, { fetchSnapshot: fetch, now: () => 6000, width: () => 340 }, "run_01"), fetch }; }
 beforeEach(() => { document.documentElement.innerHTML = html.replace(/<!doctype html>/i, "").replace(/<link[^>]+>/g, "").replace(/<script[^>]*>[\s\S]*?<\/script>/g, ""); });
 describe("mounted split ribbon workbench", () => {
+  it("warns when the completion summary mixes New game and Clock set starts", async () => {
+    const saved = run({ id: "saved" }); if (saved.config === null) throw new Error("config"); saved.config = { ...saved.config, start: "save_state", resume: "CLOCK_SET" };
+    const mixed = mount({ ...data(), runs: [run(), saved] }); await mixed.wb.refresh(); expect(ui("summary").textContent).toContain("mixes New game and Clock set starts"); mixed.wb.destroy();
+    const same = mount({ ...data(), runs: [saved] }); await same.wb.refresh(); expect(ui("summary").textContent).not.toContain("mixes"); same.wb.destroy();
+  });
   it("loads native timings, actual configuration options and bottom queue without a top execution strip", async () => {
     const { wb } = mount(); await wb.refresh(); expect(ui("summary").textContent).toContain("1 / 1"); expect(ui("ribbons").querySelector('[data-run="run_01"][data-split="PLAYER_NAME_CONFIRMED"]')).not.toBeNull(); expect(ui("timing").querySelector("svg")?.getAttribute("viewBox")).toContain("0 0 340"); expect(ui("queue").textContent).toContain("WITHHELD"); expect(ui("queue").textContent).toContain("QUEUED"); expect(ui("current").textContent).not.toContain("QUEUED"); expect(ui("cohort").textContent).toContain("cohort"); wb.destroy();
   });

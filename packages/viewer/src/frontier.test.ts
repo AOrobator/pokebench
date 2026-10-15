@@ -126,6 +126,16 @@ describe("persistent actual native frontier", () => {
     expect(document.querySelector('[data-run="clock"]')?.getAttribute("aria-label")).toContain("not from New game");
     expect(document.body.textContent).toContain("NOT FROM ZERO");
     expect(document.querySelector('[data-resume-origin="CLOCK_SET"]')).not.toBeNull();
+    const liveMark = document.querySelector('[data-live-run="clock"] .wb-mark circle');
+    expect(liveMark?.getAttribute("fill")).toBe("#fff");
+    expect(liveMark?.getAttribute("stroke")).not.toBe("#fff");
+    expect(liveMark?.getAttribute("stroke")).toMatch(/^#|^hsl/);
+    resumed.status = "ended";
+    resumed.splits.push({ name: "PLAYER_BEDROOM", elapsedMs: 50 * 60000, segmentMs: 0, seq: 10, turn: 1, inputTokens: 0, outputTokens: 0, derived: true });
+    document.body.innerHTML = frontierPlot({ human: null, best: null }, [resumed], 900);
+    expect(document.querySelector(`[data-model="${resumed.model ?? ""}"]`)).not.toBeNull();
+    expect(document.querySelector('[data-run="clock"][data-split="PLAYER_BEDROOM"]')).toBeNull();
+    expect(Math.max(...Array.from(document.querySelectorAll("text.wb-axis")).map(t => Number(t.textContent)).filter(Number.isFinite))).toBeLessThan(10);
     const other = measured("other-save", [1000, 2000, 3000]);
     if (other.config === null) throw new Error("config");
     other.config = { ...other.config, start: "save_state", resume: null };

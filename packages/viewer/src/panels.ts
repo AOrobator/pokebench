@@ -326,25 +326,6 @@ export function fieldContext(view: RunView): string {
   return storyHtml + `<pre>${esc(objects)}\n${esc(triggers)}\n${esc(dialogue)}${esc(message)}${esc(activity)}${esc(diagnostic)}</pre>`;
 }
 
-export function objectiveStatus(objective: NonNullable<RunView["objective"]>): string {
-  if (objective.status === "completed") return objective.verification === undefined ? "historical completion (not native verified)" : `game verified (${objective.verification.origin.replaceAll("_", " ")})`;
-  return objective.status === "reported_complete" ? "reported complete (provisional local plan)" : objective.status;
-}
-
-export function objectivePanel(view: RunView): string {
-  const objective = view.objective;
-  if (objective === null) return '<p class="nodata">No objective recorded for this run.</p>';
-  const history = view.attempts.map((attempt) => `<li>${esc(attempt.buttons.join(", "))}: ${esc(attempt.outcome)} · evidence #${String(attempt.before_seq)}→#${attempt.after_seq === null ? "unavailable" : String(attempt.after_seq)}${attempt.failure_count > 1 ? ` · ${String(attempt.failure_count)} matching failures` : ""}${attempt.warning === null ? "" : `<br>${esc(attempt.warning)}`}${attempt.retry_justification === null ? "" : `<br>Reassessment: ${esc(attempt.retry_justification)}`}</li>`).join("");
-  return `<p><strong>${esc(objective.title)}</strong> · ${esc(objectiveStatus(objective))}</p>` + kv([
-    ["GOAL", esc(objective.goal)], ["SUPPORTS", esc(objective.supports_goal)],
-    ["EVIDENCE", objective.evidence.map((seq) => `#${String(seq)}`).join(", ")],
-    ["COMPLETION", esc(objective.completion.kind === "milestone" ? `Native milestone ${objective.completion.name}` : objective.completion.kind === "state" ? `${objective.completion.field} = ${String(objective.completion.value)}` : `${objective.completion.description} (visual report)`)],
-    ["OBSTACLE", esc(objective.obstacle || "none recorded")], ["NEXT DECISION", esc(objective.next_decision)],
-    ["COMPLETION EVIDENCE", objective.completion_evidence.map((seq) => `#${String(seq)}`).join(", ") || "not completed"],
-  ]) + `<details><summary>Attempt history (${String(view.attempts.length)})</summary><ol class="attempts">${history}</ol></details>`;
-}
-
-
 // Viewer reference summaries, source-checked against game-tools.ts,
 // navigation.ts, navigation-memory.ts, objective-tools.ts and state-decision.ts.
 // Historical run headers contain tool names, not versioned tool schemas.

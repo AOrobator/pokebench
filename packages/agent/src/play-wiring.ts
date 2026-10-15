@@ -3,8 +3,9 @@ import {dialogueLog} from "./dialogue-log.js";
 import type {FeatureSet} from "./features.js";
 import {instructionLedger} from "./instruction-ledger.js";
 import {nextMilestoneHint} from "./milestone-hint.js";
-import type {LoopKind} from "./loop-detection.js";
+import type {LoopDetector,LoopKind} from "./loop-detection.js";
 import {SupervisorBriefing} from "./loop-supervisor.js";
+import {StallBriefing} from "./stall-briefing.js";
 import {navigationMemory} from "./navigation-memory.js";
 import type {RunRecorder} from "./recorder.js";
 import {STALL_STOP_MS,StallStop,type RunControl} from "./run-control.js";
@@ -33,6 +34,15 @@ export function loopSupervisor(features:FeatureSet,recorder:Pick<RunRecorder,"su
  if(!features["loop-guard-supervisor-v1"])return undefined;
  const briefing=new SupervisorBriefing(features);recorder.subscribe(event=>{briefing.observe(event);},true);
  return (kind,calls)=>briefing.text(kind,calls);
+}
+
+// stall-briefing-v1: supervisor notes for map ping-pong and milestone droughts, timed on unpaused play.
+export function stallBriefing(features:FeatureSet,recorder:Pick<RunRecorder,"subscribe">,detector:Pick<LoopDetector,"stall">,control:Pick<RunControl,"pausedMs">,elapsed:()=>number):StallBriefing|null {
+ if(!features["stall-briefing-v1"])return null;
+ const briefing=new SupervisorBriefing(features);recorder.subscribe(event=>{briefing.observe(event);},true);
+ const stall=new StallBriefing(features,()=>elapsed()-control.pausedMs(),detector,(kind,calls)=>briefing.stallText(kind,calls));
+ recorder.subscribe(event=>{stall.observe(event);});
+ return stall;
 }
 
 // text-only-supervisor-v1: the recorded note the governor sends instead of ending the run.

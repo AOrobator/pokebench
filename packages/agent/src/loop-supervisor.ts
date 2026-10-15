@@ -4,6 +4,10 @@ import type {RunEvent} from "./events.js";
 import type {FeatureSet} from "./features.js";
 import type {LoopKind} from "./loop-detection.js";
 
+export type Stall=
+ | {readonly kind:"map_cycle";readonly from:string;readonly to:string;readonly roundTrips:number}
+ | {readonly kind:"milestone_drought";readonly minutes:number};
+
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
 interface Tried {readonly key:string;readonly room:string;readonly label:string;count:number;outcome:string}
 
@@ -143,9 +147,19 @@ export class SupervisorBriefing {
   return open.map(t=>`${this.features["named-interactions-v1"]&&t.name!=null?t.name:t.kind} at ${at(t.x,t.y)} (${t.activation})`).join("; ");
  }
  text(kind:LoopKind,calls:number):string {
+  return this.bearings(`SUPERVISOR: You are currently looping. You keep repeating ${PATTERN[kind]}, and the game is not moving forward (loop guard, ${String(calls)} calls into the run).`);
+ }
+
+ // stall-briefing-v1: the same facts, headed by which stall it is.
+ stallText(stall:Stall,calls:number):string {
+  const what=stall.kind==="map_cycle"?`You have walked between ${stall.from} and ${stall.to} ${String(stall.roundTrips)} times, out and back, with no new story milestone`:`There has been no new story milestone for ${String(stall.minutes)} minutes of play`;
+  return this.bearings(`SUPERVISOR: You are stalling. ${what}, and the game is not moving forward (stall briefing, ${String(calls)} calls into the run).`);
+ }
+
+ private bearings(headline:string):string {
   const tried=this.tried.length===0?"nothing recorded":this.tried.slice().reverse().map(t=>`${t.label}${t.count>1?` ×${String(t.count)}`:""} in ${t.room} → ${t.outcome}`).join("; ");
   const recall=this.features["dialogue-log-v1"]?" (use recall_dialogue to check exactly what characters said)":"";
-  const text=`SUPERVISOR: You are currently looping. You keep repeating ${PATTERN[kind]}, and the game is not moving forward (loop guard, ${String(calls)} calls into the run). What you have been trying is not working, so do not try it again.
+  return `${headline} What you have been trying is not working, so do not try it again.
 Stop and get your bearings:
 - Where you are: ${this.where()}
 - Last story progress: ${this.lastProgress()}
@@ -155,7 +169,6 @@ ${this.hint===null?"":`- Next milestone (hint): ${this.hint.describe()}\n`}- Cha
 - What you tried recently, newest first: ${tried}
 - Listed here that you have not tried yet: ${this.untried()}
 Before your next action, look back at your goal and at what the game has told you${recall}. If anything you believe disagrees with the dialogue or the readout above, believe the game. Make a new plan that is different from what you have been trying, and say which untried option you will try first. The run continues.`;
-  return text;
  }
 
  textOnly(replies:number,note:number,limit:number):string {

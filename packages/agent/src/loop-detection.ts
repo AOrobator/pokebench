@@ -16,6 +16,8 @@ export type LoopKind =
   | "ineffective"
   | "cycle"
   | "rejection";
+// stall-briefing-v1: stalls the loop checks above do not see.
+export type StallKind = "map_cycle" | "milestone_drought";
 export type LoopMode = "enforced" | "diagnostic";
 export function readLoopMode(env: NodeJS.ProcessEnv = process.env): LoopMode {
   const flag = env["POKEBENCH_LOOP_GUARD"];
@@ -24,7 +26,7 @@ export function readLoopMode(env: NodeJS.ProcessEnv = process.env): LoopMode {
   return flag === "0" ? "diagnostic" : "enforced";
 }
 interface NoticeFields {
-  readonly kind: LoopKind;
+  readonly kind: LoopKind | StallKind;
   readonly message: string;
   readonly calls: number;
   readonly evidence: readonly number[];
@@ -188,6 +190,7 @@ export class LoopDetector {
     window: number;
     briefing: string | null;
   } | null = null;
+  private stallNote: { text: string; exposed: boolean } | null = null;
   private run: string | null = null;
   private eventSeq = -1;
   private nativeState: GameStateSnapshot | undefined;
@@ -270,7 +273,12 @@ export class LoopDetector {
   }
 
   context(): string | null {
-    if (this.mode === "diagnostic" || this.episode === null) return null;
+    if (this.mode === "diagnostic") return null;
+    if (this.episode === null) {
+      if (this.stallNote === null) return null;
+      this.stallNote.exposed = true;
+      return this.stallNote.text;
+    }
     this.episode.exposed = true;
     if (this.episode.briefing !== null) return this.episode.briefing;
     return `LOOP GUARD (${this.episode.kind}): ${this.episode.message} Recovery is bounded; objective wording and new evidence IDs alone do not establish progress.`;
@@ -299,6 +307,7 @@ export class LoopDetector {
   complete(call: CompletedCall): void {
     if (this.stopped) return;
     this.completed++;
+    if (this.stallNote?.exposed === true) this.stallNote = null;
     const seq = call.seq ?? this.completed;
     const rejection = rejectionKey(call);
     if (call.isError && rejection === null) return;
@@ -416,6 +425,16 @@ export class LoopDetector {
         this.notice("supervisor", seq);
       }
     }
+  }
+
+  // stall-briefing-v1: a supervisor note for a stall, shown at the next model calls until a call completes.
+  // Refused while a loop briefing or an earlier note is open, in diagnostic mode, and after a stop.
+  stall(kind: StallKind, text: (calls: number) => string, evidence: readonly number[]): boolean {
+    if (this.stopped || this.mode === "diagnostic" || this.episode !== null || this.stallNote !== null) return false;
+    const message = text(this.completed);
+    this.stallNote = { text: message, exposed: false };
+    this.notify({ kind, message, calls: this.completed, evidence: evidence.filter((value, index, all) => all.indexOf(value) === index), mode: "enforced", phase: "supervisor" });
+    return true;
   }
 
   private nativeProgress(state: GameStateSnapshot, seq: number): void {

@@ -184,7 +184,7 @@ const Activity = event("activity", {
 });
 
 const LoopFields = {
-  kind: Type.Enum(["planning", "observation", "ineffective", "cycle", "rejection"] as const),
+  kind: Type.Enum(["planning", "observation", "ineffective", "cycle", "rejection", "map_cycle", "milestone_drought"] as const),
   message: Type.String(), calls: NonNegativeInt,
   evidence: Type.Array(NonNegativeInt, {minItems:1,maxItems:2}),
 };

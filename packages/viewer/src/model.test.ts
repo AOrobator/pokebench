@@ -354,3 +354,12 @@ it("shows a text-only supervisor note in the error lane", () => {
   log.add(5000, { type: "text_only_supervisor", turn: 4, replies: 3, note: 2, limit: 3, text: "SUPERVISOR: Your last 3 replies called no tool." });
   expect(fold(log).errors).toEqual([{ ms: expect.any(Number) as number, kind: "loop", label: "Text-only supervisor 2/3 · turn 4: SUPERVISOR: Your last 3 replies called no tool." }]);
 });
+
+it("labels stall-briefing-v1 notes in the activity history by stall",()=>{
+ const log=new Log();log.add(0,START);
+ const cycle=log.add(100,{type:"loop_guard",turn:3,kind:"map_cycle",mode:"enforced",phase:"supervisor",message:"SUPERVISOR: You are stalling.",calls:9,evidence:[1,2]});
+ const drought=log.add(200,{type:"loop_guard",turn:4,kind:"milestone_drought",mode:"enforced",phase:"supervisor",message:"SUPERVISOR: no new story milestone",calls:12,evidence:[2]});
+ const view=fold(log);
+ expect(view.loopLabel(cycle as Extract<typeof cycle,{type:"loop_guard"}>)).toMatch(/^Map back-and-forth supervisor message sent to the model/);
+ expect(view.loopLabel(drought as Extract<typeof drought,{type:"loop_guard"}>)).toMatch(/^Milestone drought supervisor message sent to the model/);
+});

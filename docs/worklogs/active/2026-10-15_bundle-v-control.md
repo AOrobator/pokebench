@@ -12,6 +12,7 @@ The full-map-navigation finals were withdrawn by the operator: every arm was dom
 - Fixed N. No interim analysis, no early stopping for efficacy or futility, no automatic experiment ejects.
 - Both RTX 4090s run trials in parallel, one runner per GPU. The chat bot stays offline for the duration.
 - Primary milestone RIVAL_MET; ranking stays furthest-milestone-first.
+- Review lanes (operator directive, 2026-10-15 ~20:45 EDT): no local-model review lanes at all, think-swarm included. Review uses cloud lanes only: Codex `gpt-5.6-sol` and grok (Cursor), with opus/fable as fallbacks. Both 4090s stay with the experiment.
 - The two battle switches (`expanded-menu-battle-information-v1`, `battle-details-v2`) are out; they get their own experiment from a Birch-rescue save.
 
 ## Pre-registration (frozen before the first trial)
@@ -84,6 +85,7 @@ All 5 `model_error` ends in the 2×2 cohort (`factorial-2x2-think-fast-*`, 32 gr
 - 2026-10-15 17:45 EDT: Finals confirmed stopped (`finals-withdrawn.json`; the last trials record "operator stopped the run"; no runner). GPU0 cleared and a twin think-fast started; the bot stack disabled; the lane-B tunnel added. Power analysis and plan B chosen by the operator.
 
 - 2026-10-15 20:30 EDT: M2 traced (table above). Agent RED: Governor tests for `replyFailuresEndRun: false`, preset schema, run_start record, single-model llama-server discovery (7 failing, 95 passing in the four files).
+- 2026-10-15 20:50 EDT: Agent GREEN: `limits.replyFailuresEndRun` (Governor, preset schema, `run_start.evaluation.reply_failures_end_run`, `schemas/events.v1.json` regenerated), single-model llama-server discovery in `discoverLocal`. Agent vitest 70 files / 1090 tests pass; agent tsc and eslint clean. The RED live-objectives test was narrowed to the run_start record: the mocked run has ended by the time a test can drive its Governor, and harness.test covers the Governor behavior.
 
 ## Surprises
 

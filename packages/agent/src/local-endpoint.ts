@@ -28,6 +28,28 @@ const RouterSchema = Type.Object({
   ),
 });
 
+// A llama-server serving one model (no router): the id is its --alias or, without one, the model path.
+const SingleModelSchema = Type.Object({
+  models: Type.Array(Type.Object({ model: Type.String(), capabilities: Type.Array(Type.String()) })),
+  data: Type.Array(Type.Object({ id: Type.String({ minLength: 1 }), meta: Type.Object({ n_ctx: Type.Integer({ minimum: 1 }) }) }), { minItems: 1 }),
+});
+
+function localModel(endpoint: LocalEndpoint, id: string, contextWindow: number, vision: boolean): GatewayModel {
+  return {
+    id,
+    name: id,
+    api: "openai-completions",
+    provider: LOCAL_PROVIDER,
+    baseUrl: endpoint.baseUrl,
+    reasoning: true,
+    input: vision ? ["text", "image"] : ["text"],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow,
+    maxTokens: contextWindow,
+    compat: GATEWAY_COMPAT,
+  };
+}
+
 function loopback(raw: string): boolean {
   try {
     const url = new URL(raw);
@@ -65,6 +87,9 @@ export async function discoverLocal(endpoint: LocalEndpoint, fetchFn: typeof fet
   }
   if (!response.ok) throw new LocalEndpointError(`GET ${url} returned HTTP ${String(response.status)}`);
   const body: unknown = await response.json();
+  if (Value.Check(SingleModelSchema, body)) {
+    return body.data.map((model) => localModel(endpoint, model.id, model.meta.n_ctx, body.models.some((m) => m.model === model.id && m.capabilities.includes("multimodal"))));
+  }
   if (!Value.Check(RouterSchema, body)) throw new LocalEndpointError(`malformed ${url} payload`);
   return body.data
     .filter((model) => model.status.value === "loaded")
@@ -73,18 +98,6 @@ export async function discoverLocal(endpoint: LocalEndpoint, fetchFn: typeof fet
       if (!Number.isInteger(contextWindow) || contextWindow < 1) {
         throw new LocalEndpointError(`model ${model.id} has no usable --ctx-size`);
       }
-      return {
-        id: model.id,
-        name: model.id,
-        api: "openai-completions",
-        provider: LOCAL_PROVIDER,
-        baseUrl: endpoint.baseUrl,
-        reasoning: true,
-        input: model.status.args.includes("--mmproj") ? ["text", "image"] : ["text"],
-        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-        contextWindow,
-        maxTokens: contextWindow,
-        compat: GATEWAY_COMPAT,
-      };
+      return localModel(endpoint, model.id, contextWindow, model.status.args.includes("--mmproj"));
     });
 }

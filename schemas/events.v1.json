@@ -821,6 +821,9 @@
               "type": "integer",
               "minimum": 1
             },
+            "reply_failures_end_run": {
+              "type": "boolean"
+            },
             "flags": {
               "type": "object",
               "required": [

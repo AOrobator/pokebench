@@ -82,6 +82,8 @@ export interface Limits {
   readonly maxTurns: number;
   readonly maxWallMs: number;
   readonly failureLimit: number;
+  // false: only consecutive model errors end the run; text-only, cut-off and invalid replies never do.
+  readonly replyFailuresEndRun?: boolean;
 }
 
 export interface GovernorDeps {
@@ -100,6 +102,7 @@ export interface GovernorDeps {
 export class Governor {
   private turns = 0;
   private failures = 0;
+  private modelErrors = 0;
   private nudgeDue = false;
   private silent = 0;
   private notes = 0;
@@ -113,6 +116,7 @@ export class Governor {
 
   readonly afterTurn = (message: AssistantMessage, toolResults: readonly ToolResultMessage[]): boolean => {
     if(this.stopReason!==null)return true;
+    this.modelErrors = 0;
     const calls = message.content.filter((part) => part.type === "toolCall").length;
     this.nudgeDue = calls === 0;
     const invalid = toolResults.length > 0 && toolResults.every((result) => result.isError);
@@ -127,6 +131,7 @@ export class Governor {
   modelError(message: AssistantMessage): boolean {
     if(this.stopReason!==null)return true;
     this.silent = 0;
+    this.modelErrors += 1;
     this.fail(`model error: ${message.errorMessage ?? message.stopReason}`);
     return this.countTurn();
   }
@@ -160,6 +165,12 @@ export class Governor {
       this.notes += 1;
       this.note = { replies: this.silent, note: this.notes };
       this.failures = 0;
+      this.silent = 0;
+      return;
+    }
+    if (this.deps.limits.replyFailuresEndRun === false && this.modelErrors < this.failures) {
+      // The trailing model errors stay counted, so three in a row still end the run.
+      this.failures = this.modelErrors;
       this.silent = 0;
       return;
     }

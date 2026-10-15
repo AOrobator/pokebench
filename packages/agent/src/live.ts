@@ -240,7 +240,7 @@ async function playAgent(): Promise<void> {
       port,
       model: { id: model.id, context_window: model.contextWindow, max_tokens: model.maxTokens, vision: true },
       sampling: { thinking_level: thinking, max_tokens: maxTokens },
-      ...(preset===null?{}:{evaluation:{preset_id:preset.id,target:preset.target,failure_limit:limits.failureLimit,flags:presetFlags(preset),...(experiment===null?{}:{experiment})}}),
+      ...(preset===null?{}:{evaluation:{preset_id:preset.id,target:preset.target,failure_limit:limits.failureLimit,...(limits.replyFailuresEndRun===undefined?{}:{reply_failures_end_run:limits.replyFailuresEndRun}),flags:presetFlags(preset),...(experiment===null?{}:{experiment})}}),
       systemPrompt,
       tools: stateMode?["act"]:playTools(features),
       startState: start,

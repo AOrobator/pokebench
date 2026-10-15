@@ -43,7 +43,7 @@ function event<T extends string, P extends Record<string, TSchema>>(type: T, pay
 const closed = { additionalProperties: false } as const;
 const Args = Type.Record(Type.String(), Type.Unknown());
 
-const Evaluation = Type.Object({preset_id:Type.String({minLength:1}),target:Type.Union([Type.String({minLength:1}),Type.Null()]),failure_limit:Type.Integer({minimum:1}),flags:Type.Object({loopGuard:Type.Boolean(),activeUi:Type.Boolean(),interfaceDocs:Type.Boolean(),objectives:Type.Boolean()},closed),experiment:Type.Optional(Type.Object({id:Type.String({minLength:1,maxLength:100}),arm:Type.String({minLength:1,maxLength:60}),trial:Type.Integer({minimum:1}),of:Type.Integer({minimum:1})},closed))},closed);
+const Evaluation = Type.Object({preset_id:Type.String({minLength:1}),target:Type.Union([Type.String({minLength:1}),Type.Null()]),failure_limit:Type.Integer({minimum:1}),reply_failures_end_run:Type.Optional(Type.Boolean()),flags:Type.Object({loopGuard:Type.Boolean(),activeUi:Type.Boolean(),interfaceDocs:Type.Boolean(),objectives:Type.Boolean()},closed),experiment:Type.Optional(Type.Object({id:Type.String({minLength:1,maxLength:100}),arm:Type.String({minLength:1,maxLength:60}),trial:Type.Integer({minimum:1}),of:Type.Integer({minimum:1})},closed))},closed);
 const TargetProof = Type.Object({name:Type.String({minLength:1}),milestone_seq:NonNegativeInt,state_evidence:Type.Array(NonNegativeInt,{minItems:1,maxItems:3})},closed);
 const RunStart = event("run_start", {
   rom_sha1: Type.Optional(Sha1),

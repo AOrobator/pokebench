@@ -12,7 +12,7 @@ import { ApprovalError, setFinalsWithdrawn } from "./experiment-approval.js";
 import { ExperimentAutoRun } from "./experiment-autorun.js";
 import { effectiveExperiment, findCohort, finalsLedgerPath, finalsRunLabels, finalsResultPath, nominationPath, pinnedPromotion, promotionOverlay, promotionsPath, readPromotions, reusableRuns } from "./experiment-gate-store.js";
 import { nextStep, runQueue, type RunnerHost, type TrialLaunch } from "./experiment-runner.js";
-import { experimentDir, queueSnapshot, winnerGateOn, type QueuePaths, type RunSource, type TrialMetrics } from "./experiment-store.js";
+import { experimentDir, queueSnapshot, runnerPath, winnerGateOn, type QueuePaths, type RunSource, type TrialMetrics } from "./experiment-store.js";
 import { LEASE } from "./next-run.js";
 
 const FINALS = { runsPerArm: 4, maxWallMs: 600_000 };
@@ -73,6 +73,8 @@ function host(w: World, over: Partial<RunnerHost> = {}, outcome: (features: Feat
     launch: (trial) => {
       launches.push(trial);
       expect(existsSync(join(w.paths.runsRoot, LEASE, "owner.json"))).toBe(true);
+      trial.started?.(4321);
+      expect(JSON.parse(readFileSync(runnerPath(w.paths.runsRoot), "utf8"))).toMatchObject({ run: trial.runId, child: 4321 });
       const preset = JSON.parse(readFileSync(trial.presetPath, "utf8")) as { features: FeatureSet };
       writeRun(w.paths, trial.runId, preset.features);
       w.metrics.set(trial.runId, outcome(preset.features));

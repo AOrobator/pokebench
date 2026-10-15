@@ -57,7 +57,9 @@ function host(paths: QueuePaths, metrics: Map<string, TrialMetrics>, over: Parti
     launch: (trial) => {
       launches.push(trial);
       expect(existsSync(join(paths.runsRoot, LEASE, "owner.json"))).toBe(true);
-      expect(JSON.parse(readFileSync(runnerPath(paths.runsRoot), "utf8"))).toMatchObject({ trial: expect.any(Number) as number });
+      expect(JSON.parse(readFileSync(runnerPath(paths.runsRoot), "utf8"))).toMatchObject({ trial: expect.any(Number) as number, run: trial.runId });
+      trial.started?.(4321);
+      expect(JSON.parse(readFileSync(runnerPath(paths.runsRoot), "utf8"))).toMatchObject({ run: trial.runId, child: 4321 });
       writeRun(paths, trial.runId, (JSON.parse(readFileSync(trial.presetPath, "utf8")) as { features: typeof QUEUE_FEATURES }).features);
       metrics.set(trial.runId, { reached: [], milestoneMs: {}, turns: 9, wallMs: 60_000 });
       return Promise.resolve(0);

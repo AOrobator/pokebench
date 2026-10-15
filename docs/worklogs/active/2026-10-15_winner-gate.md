@@ -10,7 +10,7 @@ Today (main 46b4788):
 
 ## Spec (operator-approved direction; open choices marked)
 1. **Nominate, don't promote.** A finished experiment nominates up to three finalists (operator 2026-10-15: "I don't think it would make sense to have more than a total of three finalists"): the best arm, plus up to two runners-up when the experiment has more than two arms (the 2×2 can nominate all three non-control arms). An arm that does not beat the incumbent arm on primary-milestone reach is dropped. Nothing changes the incumbent yet. A two-arm experiment whose candidate is not preferred nominates nothing and is recorded as no change.
-2. **Finals from boot.** Each finalist and the current incumbent run from boot with equal limits, alternating (ABBA for one finalist, Williams-balanced order for two or three), N runs each. N = **OPEN: 4 or 8 (being answered in the Experiment queue thread)**. Limit: a fixed **45 minutes** wall clock per run, no target milestone (operator 2026-10-15: "there's no guarantee that it'll actually reach a particular milestone ... we'll give the full run 45 minutes"). The turn cap is raised so the wall clock is what ends a run.
+2. **Finals from boot.** Each finalist and the current incumbent run from boot with equal limits, alternating (ABBA for one finalist, Williams-balanced order for two or three), N runs each. N = **8** (operator 2026-10-15: four "would get less information and less certainty"). Limit: a fixed **45 minutes** wall clock per run, no target milestone (operator 2026-10-15: "there's no guarantee that it'll actually reach a particular milestone ... we'll give the full run 45 minutes"). The turn cap is raised so the wall clock is what ends a run.
 3. **Declare.** A finalist passes when, on the finals, its median furthest native milestone is further than the incumbent's, or the same with a median turn count to it at least `speedMarginPercent` lower, and no earlier milestone the incumbent reached in k runs is reached in fewer than k − `completionTolerance` runs. The best passing finalist wins (best first, then runner-up). None pass: the incumbent stays, the experiment is recorded inconclusive.
 4. **Only a declared winner changes anything.** Its switches become the incumbent for every queued experiment that has not started; approvals carry over. Its finals are the best recorded boot runs (input for the later checkpoint-start step, not built here). New experiments wait until the nomination is settled.
 
@@ -52,7 +52,7 @@ Defaults picked where the spec forks (say so in the reply):
 - INV-G6: Nothing writes under `runs/launch-receipts/`. Test with a read-only fixture.
 
 ## Milestones
-- [ ] M0 Worklog approved; operator settles N (finals limit settled: 45 min).
+- [x] M0 Spec settled by the operator: 8 runs each, 45 min, up to three finalists.
 - [ ] M1 Pure gate logic: nomination (queue result + cohort ranking), finals order, decision rule, incumbent overlay. RED then GREEN.
 - [ ] M2 Store and runner: gate states, finals execution, blocking, promotion with approval carry-over, superseded, switch off path. RED then GREEN.
 - [ ] M3 Viewer GATE card, skills, explainer.
@@ -61,3 +61,4 @@ Defaults picked where the spec forks (say so in the reply):
 ## Log
 - 2026-10-15: worklog drafted; holding implementation until the two open choices are settled.
 - 2026-10-15: operator set finals to a fixed 45 minutes and up to three finalists; run count still open.
+- 2026-10-15: run count settled at 8; building. Worst case (three finalists) is 32 finals runs × 45 min ≈ 24 h.

@@ -1,11 +1,12 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, utimesSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { definitionHash, parseExperiment, type ReadinessRun } from "@pokebench/agent/experiments";
+import { HUMAN_GAMEPLAY_LEASE_NAME } from "@pokebench/agent/run";
 import { QUEUE_FEATURES, definition, writeDefinition } from "../test-support/experiments.js";
-import { EXPERIMENT_GAME_PORT, GATEWAY, main, mainCheckout, productionHost, type CliDeps } from "./experiment-cli.js";
+import { EXPERIMENT_GAME_PORT, GATEWAY, buildAgent, main, mainCheckout, productionHost, type CliDeps } from "./experiment-cli.js";
 import { experimentDir, type QueuePaths } from "./experiment-store.js";
 import type { RunnerHost } from "./experiment-runner.js";
 
@@ -95,25 +96,86 @@ describe("production host", () => {
     expect(mainCheckout(join(root, "packages", "viewer", "dist"), git)).toBe(execFileSync("realpath", [root], { encoding: "utf8" }).trim());
   });
 
-  it("verifies the approved commit, a clean tree and a fresh build", async () => {
+  it("verifies the approved commit and a clean tree, and rebuilds an agent build not stamped with that commit", async () => {
     const { root, head } = repo();
-    const host = productionHost({ root, runsRoot: join(root, "runs"), git: (args) => git(root, args), fetchFn: fetch, node: process.execPath, env: {}, log: () => undefined });
+    const dist = join(root, "packages", "agent", "dist"), stamp = join(dist, ".build-commit");
+    const calls: string[] = [];
+    const build = (): Promise<string | null> => {
+      calls.push(existsSync(stamp) ? "build over a stamp" : existsSync(join(root, "runs", HUMAN_GAMEPLAY_LEASE_NAME)) ? "build" : "build without holding the human lock");
+      mkdirSync(dist, { recursive: true });
+      writeFileSync(join(dist, "live.js"), "");
+      return Promise.resolve(null);
+    };
+    const host = productionHost({ root, runsRoot: join(root, "runs"), git: (args) => git(root, args), fetchFn: fetch, node: process.execPath, env: {}, log: (line) => { calls.push(line); }, build });
     expect(await host.head()).toBe(head);
     expect(await host.verifySource(experiment("c".repeat(40)), "c".repeat(40))).toMatch(/^earlier trials ran on ccccccc but main is at [0-9a-f]{7}; both arms must run on one build$/);
     writeFileSync(join(root, "tracked.txt"), "two\n");
     expect(await host.verifySource(experiment(head), head)).toBe("the main checkout has uncommitted changes");
     git(root, ["checkout", "--", "tracked.txt"]);
-    expect(await host.verifySource(experiment(head), head)).toBe("packages/agent/dist/live.js is missing; run just build");
-    const live = join(root, "packages", "agent", "dist", "live.js");
-    mkdirSync(join(root, "packages", "agent", "dist"), { recursive: true });
-    writeFileSync(live, "");
-    utimesSync(live, new Date(0), new Date(0));
-    expect(await host.verifySource(experiment(head), head)).toBe("the agent build is older than the approved commit; run just build");
-    utimesSync(live, new Date(), new Date());
+    expect(calls).toEqual([]);
     expect(await host.verifySource(experiment(head), head)).toBeNull();
+    expect(calls).toEqual([`building the agent for ${head.slice(0, 7)}`, "build"]);
+    expect(readFileSync(stamp, "utf8")).toBe(`${head} ${String(statSync(join(dist, "live.js")).mtimeMs)}\n`);
+    expect(await host.verifySource(experiment(head), head)).toBeNull();
+    expect(calls).toHaveLength(2);
+    const rebuilt = [`building the agent for ${head.slice(0, 7)}`, "build"];
+    // Any other build of dist (just build, a branch checkout's build) rewrites live.js and voids the stamp.
+    utimesSync(join(dist, "live.js"), new Date(0), new Date(0));
+    expect(await host.verifySource(experiment(head), head)).toBeNull();
+    expect(calls).toEqual([...rebuilt, ...rebuilt]);
+    writeFileSync(stamp, `${"d".repeat(40)} ${String(statSync(join(dist, "live.js")).mtimeMs)}\n`);
+    expect(await host.verifySource(experiment(head), head)).toBeNull();
+    expect(calls).toEqual([...rebuilt, ...rebuilt, ...rebuilt]);
+    rmSync(join(dist, "live.js"));
+    expect(await host.verifySource(experiment(head), head)).toBeNull();
+    expect(calls).toEqual([...rebuilt, ...rebuilt, ...rebuilt, ...rebuilt]);
+    expect(existsSync(join(root, "runs", HUMAN_GAMEPLAY_LEASE_NAME))).toBe(false);
+    rmSync(join(dist, "live.js"));
+    await expect(productionHost({ root, runsRoot: join(root, "runs"), git: (args) => git(root, args), fetchFn: fetch, node: process.execPath, env: {}, log: () => undefined, build: () => Promise.reject(new Error("tsc crashed")) }).verifySource(experiment(head), head)).rejects.toThrow("tsc crashed");
+    expect(existsSync(join(root, "runs", HUMAN_GAMEPLAY_LEASE_NAME))).toBe(false);
     expect(await host.liveRuns()).toEqual([]);
     expect(host.runId("think-fast")).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}_think-fast_[0-9a-f]{4}$/);
     expect(host.now()).toBeInstanceOf(Date);
+  });
+
+  it("never rebuilds under a live run, and never trusts a failed or empty build", async () => {
+    const { root, head } = repo();
+    const dist = join(root, "packages", "agent", "dist"), stamp = join(dist, ".build-commit");
+    mkdirSync(dist, { recursive: true });
+    writeFileSync(stamp, `${"d".repeat(40)}\n`);
+    let builds = 0;
+    const make = (build: () => Promise<string | null>, running: string[] = []) => productionHost({ root, runsRoot: join(root, "runs"), git: (args) => git(root, args), fetchFn: fetch, node: process.execPath, env: {}, log: () => undefined, build: () => { builds += 1; return build(); }, live: () => Promise.resolve(running) });
+    expect(await make(() => Promise.resolve(null), ["run-a"]).verifySource(experiment(head), head)).toBe("live run run-a is still running; the agent is rebuilt once it ends");
+    expect(builds).toBe(0);
+    expect(await make(() => Promise.resolve(null), ["run-a"]).liveRuns()).toEqual(["run-a"]);
+    mkdirSync(join(root, "runs", HUMAN_GAMEPLAY_LEASE_NAME), { recursive: true });
+    expect(await make(() => Promise.resolve(null)).verifySource(experiment(head), head)).toBe("a human play session is still running; the agent is rebuilt once it ends");
+    rmSync(join(root, "runs", HUMAN_GAMEPLAY_LEASE_NAME), { recursive: true });
+    mkdirSync(join(root, "packages", "agent", "src"), { recursive: true });
+    writeFileSync(join(root, "packages", "agent", "src", "stray.ts"), "");
+    expect(await make(() => Promise.resolve(null)).verifySource(experiment(head), head)).toBe("untracked files would enter the agent build: packages/agent/src/stray.ts");
+    rmSync(join(root, "packages", "agent", "src", "stray.ts"));
+    expect(builds).toBe(0);
+    const failing = make(() => { writeFileSync(join(dist, "live.js"), ""); return Promise.resolve("src/x.ts(1,1): error TS2322"); });
+    expect(await failing.verifySource(experiment(head), head)).toBe("the agent build failed: src/x.ts(1,1): error TS2322");
+    expect(existsSync(stamp)).toBe(false);
+    expect(await failing.verifySource(experiment(head), head)).toBe("the agent build failed: src/x.ts(1,1): error TS2322");
+    rmSync(join(dist, "live.js"));
+    expect(await make(() => Promise.resolve(null)).verifySource(experiment(head), head)).toBe("the agent build produced no packages/agent/dist/live.js");
+    expect(existsSync(stamp)).toBe(false);
+    expect(builds).toBe(3);
+  });
+
+  it("builds the agent package with its own TypeScript compiler and refuses to emit on errors", async () => {
+    const root = mkdtempSync(join(tmpdir(), "pokebench-build-"));
+    const bin = join(root, "packages", "agent", "node_modules", "typescript", "bin");
+    mkdirSync(bin, { recursive: true });
+    writeFileSync(join(bin, "tsc"), "const e=process.env;process.getBuiltinModule('node:fs').writeFileSync('argv.json',JSON.stringify(process.argv.slice(2)));if(e.OUT)console.log(e.OUT);if(e.ERR)console.error(e.ERR);process.exit(e.OUT||e.ERR?2:0)");
+    expect(await buildAgent(root, process.execPath, {})).toBeNull();
+    expect(JSON.parse(readFileSync(join(root, "packages", "agent", "argv.json"), "utf8"))).toEqual(["-p", "tsconfig.build.json", "--noEmitOnError"]);
+    expect(await buildAgent(root, process.execPath, { OUT: "src/a.ts(1,1): error TS1\nsrc/b.ts(2,2): error TS2\nsrc/c.ts(3,3): error TS3\nsrc/d.ts(4,4): error TS4" })).toBe("src/a.ts(1,1): error TS1; src/b.ts(2,2): error TS2; src/c.ts(3,3): error TS3");
+    expect(await buildAgent(root, process.execPath, { ERR: "Cannot find module" })).toBe("Cannot find module");
+    expect(await buildAgent(root, join(root, "no-such-node"), {})).toMatch(/ENOENT/);
   });
 
   it("discovers only a vision lane and fingerprints its serving metadata", async () => {

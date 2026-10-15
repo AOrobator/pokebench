@@ -87,6 +87,8 @@ VAR_FIELDS = {
     "birch_lab_stage": (0x4084, 5),
     "petalburg_gym_stage": (0x4085, 8),
     "woods_stage": (0x4098, 1),
+    # 0 blocked, 1 rival met, 2 sent to save Birch, 3 Pokédex, 4 running shoes.
+    "town_stage": (0x4050, 4),
 }
 
 
@@ -98,6 +100,7 @@ class StoryState:
     birch_lab_stage: int | None = None
     petalburg_gym_stage: int | None = None
     woods_stage: int | None = None
+    town_stage: int | None = None
     clock_set: bool | None = None
     rival_battle_won: bool | None = None
     pokedex_received: bool | None = None
@@ -152,6 +155,8 @@ class StoryState:
             completed.append("Mom rival instruction received")
         if self.rival_stage in (3, 4):
             completed.append("rival met")
+        if self.town_stage in (2, 3, 4):
+            completed.append("sent to save Birch")
         if self.birch_lab_stage in (2, 3, 4, 5):
             completed.append("Birch rescue complete")
         if self.birch_lab_stage in (3, 4, 5):
@@ -239,6 +244,7 @@ def read_story(read: ReadMemory, screen: Screen, save1: int | None = None) -> St
         birch_lab_stage=variable_values["birch_lab_stage"],
         petalburg_gym_stage=variable_values["petalburg_gym_stage"],
         woods_stage=variable_values["woods_stage"],
+        town_stage=variable_values["town_stage"],
         clock_set=flag_values["clock_set"],
         rival_battle_won=flag_values["rival_battle_won"],
         pokedex_received=flag_values["pokedex_received"],

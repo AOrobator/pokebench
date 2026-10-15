@@ -11,8 +11,9 @@ Takeover note: the fix was found as idle uncommitted edits in the main checkout 
 
 ## M1: Birch send-off measurement (`birch-rescue-requested-v1`)
 
-- [ ] RED: env/agent tests for town state 0x4050 in 2/3/4
-- [ ] GREEN: story reader, schema, milestone, hint step, viewer lists
+- [x] RED: env/agent tests for town state 0x4050 in 2/3/4
+  COMMIT: `test(milestones): Birch send-off is town state 2-4, not the rival meeting (RED)` (5634231)
+- [x] GREEN: story reader, schema, milestone, hint step, switchboard/target/split lists. Agent 1037, Python 1868 pass.
 - Measurement feature, not a behavior switch. The hint text only changes model input when `next-milestone-hint-v1` is ON (pending experiment; the running hint batch uses its own frozen build).
 
 ## M2: frontier shows Clock set resumes (viewer only, no switch)

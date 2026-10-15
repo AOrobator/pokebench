@@ -47,7 +47,7 @@ const gymTrainer = (field: "rustboro_josh_defeated" | "rustboro_tommy_defeated" 
 const trainer = (field: "petalburg_woods_lyle_defeated" | "petalburg_woods_james_defeated" | "petalburg_woods_aqua_grunt_defeated" | "route116_joey_defeated" | "route116_jose_defeated" | "route116_jerry_defeated" | "route116_clark_defeated" | "route116_janice_defeated" | "route116_karen_defeated" | "route116_sarah_defeated" | "route116_dawson_defeated" | "route116_devan_defeated" | "route116_johnson_defeated" | "roxanne_defeated" | "route102_calvin_defeated" | "route102_rick_defeated" | "route102_tiana_defeated" | "route102_allen_defeated" | "route104_ivan_defeated" | "route104_billy_defeated" | "route104_haley_defeated" | "route104_winston_defeated" | "route104_cindy_defeated" | "route104_gina_mia_defeated" | "route104_darian_defeated") => (s:GameStateSnapshot):boolean|null => savedWorld(s) ? s.story?.[field] ?? null : null;
 const countReached = (field:"pokemon_captures"|"evolved_pokemon") => (s:GameStateSnapshot):boolean|null => savedWorld(s) && s.game_stats?.[field]!=null ? s.game_stats[field]>0 : null;
 const stage = (field:
-  | "intro_stage" | "rival_stage" | "birch_lab_stage" | "petalburg_gym_stage" | "woods_stage",
+  | "intro_stage" | "rival_stage" | "birch_lab_stage" | "petalburg_gym_stage" | "woods_stage" | "town_stage",
   values: readonly number[],
 ) => (s: GameStateSnapshot): boolean | null =>
   savedWorld(s) && s.story?.[field] != null ? values.includes(s.story[field]) : null;
@@ -106,6 +106,8 @@ export const MILESTONES: readonly Milestone[] = [
   { name: "RIVAL_HOUSE_ENTERED", kind: "navigation", reached: (s) => clockSet(s) === true ? place(s, (location) => house(location, "1F") !== null) : null },
   { name: "RIVAL_BEDROOM_REACHED", kind: "navigation", reached: (s) => stableRoute(s) ? stage("rival_stage", [2, 3, 4])(s) : null },
   { name: "RIVAL_MET", kind: "story", reached: stage("rival_stage", [3, 4]) },
+  // Town state 2 is the north-exit send-off. 3 and 4 are later commits that pass through it.
+  { name: "BIRCH_RESCUE_REQUESTED", kind: "story", reached: stage("town_stage", [2, 3, 4]) },
   { name: "ROUTE_101", kind: "navigation", reached: at("ROUTE 101") },
   { name: "STARTER_CHOSEN", kind: "story", reached: (s) => savedWorld(s) ? s.party.length > 0 : null },
   { name: "BIRCH_RESCUE_COMPLETE", kind: "story", reached: stage("birch_lab_stage", [2, 3, 4, 5]) },

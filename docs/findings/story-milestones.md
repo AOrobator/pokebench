@@ -12,6 +12,7 @@ New state `story` comes from the same snapshot lock as the screenshot/readout an
 | CLOCK_SET | FLAG_SET_WALL_CLOCK0x51, after clock interaction returns. Modern explicit flag overrides legacy nearby-trigger inference. |
 | MOM_RIVAL_INSTRUCTION | Intro state7 after Mom's follow-up, players_house.inc. |
 | RIVAL_MET | VAR_LITTLEROOT_RIVAL_STATE0x408D in3/4, following either genuine first-meeting script;4 follows lab tutorial. |
+| BIRCH_RESCUE_REQUESTED | VAR_LITTLEROOT_TOWN_STATE0x4050 in2/3/4. LittlerootTown_EventScript_GoSaveBirch and GoSaveBirchTrigger set2 when the north exit sends the player toward Birch.1 is the rival meeting and does not count.3 is the lab Pokédex commit and4 is the running-shoes commit; both are later values of the same variable. |
 | STARTER_CHOSEN | Verified initialized party nonempty; existing game-derived split retained. |
 | BIRCH_RESCUE_COMPLETE | VAR_BIRCH_LAB_STATE0x4084 in2/3/4/5; Route101 bag script sets2 after ChooseStarter/battle returns and rescue dialogue. FLAG_RESCUED_BIRCH0x52 is set BEFORE choosing, so not used as completion. |
 | BIRCH_STARTER_HANDOFF_COMPLETE | Lab stage3/4/5;3 follows agreeing to see rival after lab starter dialogue. |

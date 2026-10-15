@@ -201,6 +201,20 @@ describe("zoom to frontier", () => {
     expect(document.querySelector('[data-run="stopped"][data-split="RIVAL_HOUSE_ENTERED"]')).toBeNull();
     expect(document.querySelector('[data-run="stopped"][data-split="PLAYER_HOUSE_EXITED_AFTER_CLOCK"]')).not.toBeNull();
   });
+  it("bridges a checkpoint the run's build never recorded and breaks one it recorded but missed", () => {
+    const points = (id: string): number[] => Array.from(document.querySelectorAll(`polyline[data-series="${id}"]`)).map(line => (line.getAttribute("points") ?? "").trim().split(/\s+/).filter(point => point !== "").length);
+    const route = (id: string, features: readonly string[]) => {
+      const run = measured(id, []);
+      if (run.measurement !== undefined) run.measurement = { ...run.measurement, features: [...run.measurement.features, "ram-state-v1", ...features] };
+      run.splits = ["RIVAL_BEDROOM_REACHED", "RIVAL_MET", "ROUTE_101", "STARTER_CHOSEN"].map((name, i) => ({ name, elapsedMs: (i + 1) * 1000, segmentMs: 1000, seq: i + 1, turn: 1, inputTokens: 0, outputTokens: 0 }));
+      return run;
+    };
+    document.body.innerHTML = frontierPlot({ human: null, best: null }, [route("older", [])], 900);
+    expect(points("older")).toEqual([4]);
+    expect(document.querySelector('[data-run="older"][data-split="BIRCH_RESCUE_REQUESTED"]')).toBeNull();
+    document.body.innerHTML = frontierPlot({ human: null, best: null }, [route("newer", ["birch-rescue-requested-v1"])], 900);
+    expect(points("newer")).toEqual([2, 2]);
+  });
   it("connects proved Clock-set checkpoints and keeps a real missing rival house broken", () => {
     const points = (id: string): number[] => Array.from(document.querySelectorAll(`polyline[data-series="${id}"]`)).map(line => (line.getAttribute("points") ?? "").trim().split(/\s+/).filter(point => point !== "").length);
     const resumed = (id: string, names: readonly string[]) => {
@@ -226,7 +240,8 @@ describe("zoom to frontier", () => {
     const around = ["PLAYER_HOUSE_ENTERED", "MOM_CLOCK_INSTRUCTION", "PLAYER_BEDROOM", "CLOCK_SET"];
     document.body.innerHTML = frontierPlot({ human: human(), best: best() }, [bedroom("room", around)], 900);
     expect(points("room")).toEqual([around.length]);
-    document.body.innerHTML = frontierPlot({ human: human(), best: best() }, [bedroom("gap", around.filter(name => name !== "PLAYER_BEDROOM"))], 900);
+    const gap = bedroom("gap", around.filter(name => name !== "PLAYER_BEDROOM")); gap.measurement?.features.push("ram-state-v1");
+    document.body.innerHTML = frontierPlot({ human: human(), best: best() }, [gap], 900);
     expect(points("gap")).toEqual([2]);
     expect(document.querySelector('[data-run="gap"][data-split="CLOCK_SET"]')).not.toBeNull();
   });

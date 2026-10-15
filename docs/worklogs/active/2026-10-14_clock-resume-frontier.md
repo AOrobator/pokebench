@@ -35,3 +35,8 @@ Takeover note: the fix was found as idle uncommitted edits in the main checkout 
   - [x] RED: stylesheet must carve resumed live marks out of the white stroke
   - [x] GREEN: `.wb-live-run.wb-resumed-run .wb-mark` keeps `--wb-run-color` (30c98b3 RED)
   - Moved test imports below the vitest environment directive.
+
+## M3: no line gaps at checkpoints a build never recorded (operator report 2026-10-14)
+
+Operator saw gaps in the graph. Cause: the new Sent to Birch column breaks every line that reaches Rival met and Route 101, because no existing run (or the human baseline) recorded that measurement. Fix: a column whose measurement the run's build did not declare (`milestoneStatus` = unsupported) is bridged; a declared-but-missing checkpoint still breaks the line.
+- [x] RED: older build bridges Sent to Birch; newer build that missed it breaks. Gap fixture now declares ram-state-v1 so it still tests a real miss.

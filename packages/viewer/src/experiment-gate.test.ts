@@ -7,7 +7,7 @@ import { FINALS_MAX_TURNS, finalsOrder } from "@pokebench/agent/experiment-gate"
 import { playHarnessFeatures, type FeatureSet } from "@pokebench/agent/features";
 import { Log, START } from "../test-support/events.js";
 import { QUEUE_FEATURES, definition, writeDefinition } from "../test-support/experiments.js";
-import { activeCohort } from "./experiment-cli.js";
+import { activeCohort, pidCommand, productionHost } from "./experiment-cli.js";
 import { ApprovalError, setFinalsWithdrawn } from "./experiment-approval.js";
 import { ExperimentAutoRun } from "./experiment-autorun.js";
 import { effectiveExperiment, findCohort, finalsLedgerPath, finalsResultPath, nominationPath, pinnedPromotion, promotionOverlay, promotionsPath, readPromotions, reusableRuns } from "./experiment-gate-store.js";
@@ -83,7 +83,7 @@ function host(w: World, over: Partial<RunnerHost> = {}, outcome: (features: Feat
     ...over,
   };
 }
-const read = <T>(path: string): T => JSON.parse(readFileSync(path, "utf8")) as T;
+const read = (path: string): unknown => JSON.parse(readFileSync(path, "utf8"));
 const lines = <T>(path: string): T[] => readFileSync(path, "utf8").trim().split("\n").map((l) => JSON.parse(l) as T);
 
 // The full-map experiment measured in the 2×2, an approved hint experiment behind it, and one that tests whole-map again.
@@ -125,7 +125,7 @@ describe("winner gate", () => {
     const busy = host(w, { activeCohort: () => Promise.resolve("factorial-chain") });
     await expect(runQueue({ paths: w.paths, source: w.source, host: busy })).rejects.toThrow("cohort factorial-chain is still running");
     expect(busy.launches).toEqual([]);
-    const nomination = read<{ finalists: { arm: string; switches: Record<string, boolean> }[]; ranking: { arm: string }[]; incumbent: { limits: { maxTurns: number; maxWallMs: number }; start?: unknown; target: unknown }; reusedIncumbent: string[] }>(nominationPath(w.paths.runsRoot, "full-map"));
+    const nomination = (read(nominationPath(w.paths.runsRoot, "full-map")) as { finalists: { arm: string; switches: Record<string, boolean> }[]; ranking: { arm: string }[]; incumbent: { limits: { maxTurns: number; maxWallMs: number }; start?: unknown; target: unknown }; reusedIncumbent: string[] });
     expect(nomination.ranking.map((r) => r.arm)).toEqual(["whole", "both", "control", "memory"]);
     expect(nomination.finalists).toEqual([{ arm: "whole", switches: { "full-map-navigation-v1": true } }, { arm: "both", switches: { "full-map-navigation-v1": true, "navigation-evidence-memory-v1": true } }]);
     expect(nomination.incumbent).toMatchObject({ target: null, limits: { maxTurns: FINALS_MAX_TURNS, maxWallMs: 600_000 } });
@@ -138,9 +138,9 @@ describe("winner gate", () => {
     const fake = host(w);
     const outcome = await runQueue({ paths: w.paths, source: w.source, host: fake, stopRequested: () => fake.launches.length >= 14 });
     expect(fake.launches.slice(0, 12).map((l) => l.presetPath.replace(/.*finals-/, "").replace(".json", ""))).toEqual(finalsOrder(["incumbent", "whole", "both"], 4));
-    const finalsPreset = read<{ features: Record<string, boolean>; limits: { maxWallMs: number } }>(join(experimentDir(w.paths.runsRoot, "full-map"), "presets", "finals-both.json"));
+    const finalsPreset = (read(join(experimentDir(w.paths.runsRoot, "full-map"), "presets", "finals-both.json")) as { features: Record<string, boolean>; limits: { maxWallMs: number } });
     expect(finalsPreset).toMatchObject({ limits: { maxWallMs: 600_000 }, features: { "navigation-evidence-memory-v1": true, "full-map-navigation-v1": true } });
-    const result = read<{ decision: { winner: string; verdicts: { arm: string; pass: boolean }[] }; promotion: string }>(finalsResultPath(w.paths.runsRoot, "full-map"));
+    const result = (read(finalsResultPath(w.paths.runsRoot, "full-map")) as { decision: { winner: string; verdicts: { arm: string; pass: boolean }[] }; promotion: string });
     expect(result).toMatchObject({ promotion: "full-map:whole", decision: { winner: "whole", verdicts: [{ arm: "whole", pass: true }, { arm: "both", pass: true }] } });
     expect(readPromotions(w.paths.runsRoot)).toMatchObject([{ id: "full-map:whole", from: "full-map", arm: "whole", features: { "full-map-navigation-v1": true } }]);
     expect(readPromotions(w.paths.runsRoot)[0]?.finals).toHaveLength(4);
@@ -149,7 +149,7 @@ describe("winner gate", () => {
     // The approved hint experiment then runs on the promoted incumbent; its approval carried over (INV-G4).
     const hintLaunch = fake.launches[12];
     expect(hintLaunch?.presetPath).toMatch(/hint[/\\]presets[/\\]incumbent\.json$/);
-    expect(read<{ features: Record<string, boolean> }>(hintLaunch?.presetPath ?? "").features["full-map-navigation-v1"]).toBe(true);
+    expect((read(hintLaunch?.presetPath ?? "") as { features: Record<string, boolean> }).features["full-map-navigation-v1"]).toBe(true);
     expect(lines<{ type: string; promotion?: string }>(join(experimentDir(w.paths.runsRoot, "hint"), "trials.jsonl"))[0]).toMatchObject({ type: "launch", promotion: "full-map:whole" });
     s = queueSnapshot(w.paths, w.source);
     expect(s.gate[0]).toMatchObject({ state: "declared", winner: "whole", reason: "whole won the finals and is now the incumbent" });
@@ -169,7 +169,7 @@ describe("winner gate", () => {
     cohort(w, "done", COHORT);
     const fake = host(w, {}, () => reach(HOUSE));
     await runQueue({ paths: w.paths, source: w.source, host: fake, stopRequested: () => fake.launches.length >= 12 });
-    expect(read<{ decision: { winner: null }; promotion: null }>(finalsResultPath(w.paths.runsRoot, "full-map"))).toMatchObject({ promotion: null, decision: { winner: null } });
+    expect((read(finalsResultPath(w.paths.runsRoot, "full-map")) as { decision: { winner: null }; promotion: null })).toMatchObject({ promotion: null, decision: { winner: null } });
     expect(existsSync(promotionsPath(w.paths.runsRoot))).toBe(false);
     const s = queueSnapshot(w.paths, w.source);
     expect(s.gate[0]).toMatchObject({ state: "inconclusive", reason: "no finalist beat the incumbent from boot; the incumbent stays" });
@@ -203,7 +203,7 @@ describe("winner gate", () => {
       w.metrics.set("old-b", reach(HOUSE));
       const fake = host(w, {}, (f) => (f["full-map-navigation-v1"] === better ? reach(MET) : reach(HOUSE)));
       await runQueue({ paths: w.paths, source: w.source, host: fake });
-      const nomination = read<{ finalists: { arm: string }[]; reusedIncumbent: string[]; reason: string }>(nominationPath(w.paths.runsRoot, "full-map"));
+      const nomination = (read(nominationPath(w.paths.runsRoot, "full-map")) as { finalists: { arm: string }[]; reusedIncumbent: string[]; reason: string });
       const s = queueSnapshot(w.paths, w.source);
       if (better) {
         expect(nomination).toMatchObject({ finalists: [{ arm: "candidate" }], reusedIncumbent: ["old-b", "old-a"] });
@@ -351,6 +351,10 @@ describe("winner gate", () => {
     const commands: Record<number, string> = { 41: `/bin/bash runs/launch-receipts/chain/run-all-2.sh`, 42: "/usr/bin/some-other-process" };
     expect(activeCohort(w.paths.runsRoot, (pid) => commands[pid] ?? null)).toBe("chain");
     expect(activeCohort(w.paths.runsRoot, (pid) => (pid === 42 ? commands[42] ?? null : null))).toBeNull();
+    expect(pidCommand(process.pid)).toMatch(/node|vitest/);
+    expect(pidCommand(2 ** 30)).toBeNull();
+    const prod = productionHost({ root: w.root, runsRoot: w.paths.runsRoot, git: () => "", fetchFn: fetch, node: process.execPath, env: {}, log: () => undefined, pidCommand: (pid) => commands[pid] ?? null });
+    return expect(prod.activeCohort?.()).resolves.toBe("chain");
   });
 
   it("keeps the lease free and blocked trials untouched while waiting", () => {

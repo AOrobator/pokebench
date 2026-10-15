@@ -67,12 +67,12 @@ export function finalsPlan(arms:readonly string[],perArm:number,reused:number):s
  return finalsOrder(arms,perArm).filter(arm=>arm!=="incumbent"||skip--<=0);
 }
 
+// Every finals arm ends a run after 10 minutes without a new milestone (operator 2026-10-15).
 export function finalsPreset(base:PlayPresetV2,experiment:string,arm:string,switches:Partial<Record<SwitchableFeature,boolean>>,config:FinalsConfig):PlayPresetV2 {
- const features:FeatureSet={...base.features,...switches};
+ const features:FeatureSet={...base.features,...switches,"milestone-stall-stop-v1":true};
  const problems=[...dependencyProblems(features),...stateOnlyProblems(features)];
  if(problems.length>0)throw new Error(`Invalid finals preset ${arm}: ${problems.join("; ")}`);
- const {start:_start,...rest}=base;
- return {...rest,id:`${experiment}-finals-${arm}`,target:config.target,limits:{maxTurns:FINALS_MAX_TURNS,maxWallMs:config.maxWallMs,failureLimit:base.limits.failureLimit},features};
+ return {version:2,sampling:base.sampling,id:`${experiment}-finals-${arm}`,target:config.target,limits:{maxTurns:FINALS_MAX_TURNS,maxWallMs:config.maxWallMs,failureLimit:base.limits.failureLimit},features};
 }
 
 export interface FinalsVerdict {readonly arm:string;readonly pass:boolean;readonly reasons:readonly string[];readonly medianFurthest:number;readonly medianMs:number|null}

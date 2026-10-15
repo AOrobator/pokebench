@@ -36,9 +36,8 @@ export function promotionOverlay(promotions: readonly Promotion[], upTo?: string
 // The promotion a started experiment runs under is the one its first trial recorded (none for
 // trials launched before the gate existed); an unstarted one takes the latest.
 export function pinnedPromotion(ledger: readonly LedgerEntry[]): string | null | undefined {
-  const first = ledger.find((e) => e.type === "launch");
-  if (first === undefined) return undefined;
-  return first.type === "launch" ? (first.promotion ?? null) : null;
+  const first = ledger.find((e): e is Extract<LedgerEntry, { type: "launch" }> => e.type === "launch");
+  return first === undefined ? undefined : (first.promotion ?? null);
 }
 export function effectiveExperiment(experiment: Experiment, ledger: readonly LedgerEntry[], promotions: readonly Promotion[]): { experiment: Experiment; superseded: string | null; promotion: string | null } {
   const overlay = promotionOverlay(promotions, pinnedPromotion(ledger));
@@ -103,7 +102,7 @@ function nomination(experiment: Experiment, source: RunSource, from: "queue" | "
   const incumbent = finalsPreset(base, experiment.id, "incumbent", {}, finals);
   const reason = finalists.length === 0 ? "no arm ranked above the incumbent; the incumbent stays" : `${finalists.map((f) => f.arm).join(", ")} ranked above the incumbent`;
   const reusedIncumbent = finalists.length === 0 ? [] : reusableRuns(incumbent, experiment.modelLane, source.recent(), finals.runsPerArm);
-  return { experiment: experiment.id, source: from, ...(cohort === undefined ? {} : { cohort }), at: now.toISOString(), incumbent, finals, ranking, reusedIncumbent, finalists: finalists as Nomination["finalists"], reason };
+  return { experiment: experiment.id, source: from, ...(cohort === undefined ? {} : { cohort }), at: now.toISOString(), incumbent, finals, ranking, reusedIncumbent, finalists, reason };
 }
 // The cohort's arm named "control" is its incumbent; each finalist is the switches it differs in.
 export function cohortNomination(experiment: Experiment, cohort: CohortRecord, source: RunSource, now: Date): Nomination {
@@ -204,8 +203,8 @@ export function gateView(experiment: Experiment, runsRoot: string, runner: Runne
   }
   const done = trials.filter((t) => t.state === "done").length, total = String(trials.length);
   if (existsSync(finalsWithdrawnPath(runsRoot, experiment.id))) return { ...common, trials, state: "withdrawn", reason: `finals withdrawn after ${String(done)} of ${total} runs; resume them, or discard the experiment to unblock the queue` };
-  const running = runner?.experiment === finalsRunner(experiment.id);
-  return { ...common, trials, state: running ? "finals" : done === 0 ? "finals" : "held", reason: running ? `finals run ${String((runner?.trial ?? 0) + 1)} of ${total} running` : done === 0 ? `${String(n.finalists.length)} finalist(s) wait for ${total} runs from boot` : `finals stopped after ${String(done)} of ${total} runs; the queue resumes them` };
+  const running = runner?.experiment === finalsRunner(experiment.id) ? runner : null;
+  return { ...common, trials, state: running !== null || done === 0 ? "finals" : "held", reason: running !== null ? `finals run ${String(running.trial + 1)} of ${total} running` : done === 0 ? `${String(n.finalists.length)} finalist(s) wait for ${total} runs from boot` : `finals stopped after ${String(done)} of ${total} runs; the queue resumes them` };
 }
 
 // Unsettled gate entries hold back every new experiment.

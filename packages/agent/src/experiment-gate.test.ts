@@ -52,13 +52,13 @@ it("runs only the incumbent slots that recorded runs do not already fill",()=>{
 });
 
 it("builds a finals preset: boot start, the finals wall limit and stop milestone, the finalist's switches over the incumbent",()=>{
- const withStart={...preset,target:"RIVAL_MET",start:{kind:"save_state",path:"/x/CLOCK_SET.state",sha1:"a".repeat(40)}};
+ const withStart={...preset,target:"RIVAL_MET",start:{kind:"save_state" as const,path:"/x/CLOCK_SET.state",sha1:"a".repeat(40)}};
  const p=finalsPreset(withStart,"exp","whole",{"full-map-navigation-v1":true},DEFAULT_FINALS);
  expect(p).toMatchObject({id:"exp-finals-whole",target:null,limits:{maxTurns:FINALS_MAX_TURNS,maxWallMs:45*60_000,failureLimit:3}});
  expect(DEFAULT_FINALS).toEqual({runsPerArm:8,maxWallMs:45*60_000,target:null});
  expect("start" in p).toBe(false);
  expect(p.features["full-map-navigation-v1"]).toBe(true);
- expect(finalsPreset(preset,"exp","incumbent",{},DEFAULT_FINALS).features).toEqual(features);
+ expect(finalsPreset(preset,"exp","incumbent",{},DEFAULT_FINALS).features).toEqual({...features,"milestone-stall-stop-v1":true});
  // An experiment can stop its finals early, at a milestone or a shorter wall limit.
  expect(finalsPreset(preset,"exp","whole",{},{runsPerArm:4,maxWallMs:20*60_000,target:"RIVAL_MET"})).toMatchObject({target:"RIVAL_MET",limits:{maxWallMs:20*60_000}});
  expect(()=>finalsPreset(preset,"exp","bad",{"bounded-navigation-v1":true,"live-map-v1":false},DEFAULT_FINALS)).toThrow(/finals preset bad/);

@@ -137,7 +137,8 @@ function experimentCohorts(root: string, failures: Map<string, string>, membersh
       if (!existsSync(path)) continue;
       try {
         if (lstatSync(path).isSymbolicLink() || statSync(path).size > MAX_PLAN_BYTES) throw new Error("Experiment ledger exceeds metadata bounds");
-        const text = readFileSync(path, "utf8");
+        // The runner may be mid-append: an unterminated last line is not read yet.
+        const raw = readFileSync(path, "utf8"), text = raw.endsWith("\n") ? raw : raw.slice(0, raw.lastIndexOf("\n") + 1);
         const { entries, problems: bad } = file === "trials.jsonl" ? parseLedger(text) : parseFinalsLedger(text);
         // All or nothing: a ledger with any unreadable row contributes no cohort annotations.
         if (bad.length > 0) { problems.push(...bad.map(p => `Experiment ${entry.name} ${label} ${p}`)); continue; }
@@ -187,25 +188,29 @@ function jsonRows(path: string): Record<string, unknown>[] {
 }
 // Hand-run cohorts under runs/launch-receipts/<dir>/ that no verified receipt claimed: runs named by
 // trials.jsonl rows or manifest.json attempts join the manifest's id (else the directory name).
-// They never relabel a run that a verified receipt or the experiment queue already owns.
+// They never relabel a run that a verified receipt or the experiment queue already owns, never take
+// a verified cohort's name, and a directory with plan.json is left to historical provenance.
 function handRunCohorts(root: string, claimed: ReadonlySet<string>, failures: Map<string, string>, membership: Map<string, string>, problems: string[]): void {
   const base = join(root, "launch-receipts");
   if (!existsSync(base)) return;
-  const owned = new Set(membership.keys());
-  for (const entry of readdirSync(base, { withFileTypes: true })) {
+  const owned = new Set(membership.keys()), verified = new Set(membership.values()), source = new Map<string, string>();
+  for (const entry of readdirSync(base, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
     const here = join(base, entry.name);
-    if (!entry.isDirectory() || claimed.has(here)) continue;
+    if (!entry.isDirectory() || claimed.has(here) || existsSync(join(here, "plan.json"))) continue;
     try {
       const manifestPath = join(here, "manifest.json"), ledgerPath = join(here, "trials.jsonl");
       const manifest = existsSync(manifestPath) ? metadata(manifestPath).value : null;
       const rows = existsSync(ledgerPath) ? jsonRows(ledgerPath) : [];
       if (record(manifest) && Array.isArray(manifest.attempts)) rows.push(...manifest.attempts.filter(record));
       const cohort = record(manifest) && typeof manifest.id === "string" && manifest.id !== "" ? manifest.id : entry.name;
+      if (verified.has(cohort) || cohort.startsWith("experiment:")) throw new Error(`cohort id ${cohort} belongs to a verified receipt or the experiment queue`);
       for (const row of rows) {
         const run = runOf(row);
-        if (run === null || owned.has(run) || (membership.has(run) && membership.get(run) !== cohort)) continue;
+        if (run === null || owned.has(run)) continue;
+        const prior = source.get(run);
+        if (prior !== undefined && prior !== entry.name) { problems.push(`Launch receipts ${prior} and ${entry.name} both name run ${run}; it stays in ${membership.get(run) ?? prior}`); continue; }
         try { readStart(root, run); } catch { continue; }
-        membership.set(run, cohort);
+        membership.set(run, cohort); source.set(run, entry.name);
         const failure = rowFailure(row);
         if (failure !== null && !failures.has(run)) failures.set(run, failure);
       }

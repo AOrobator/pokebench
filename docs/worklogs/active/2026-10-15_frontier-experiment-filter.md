@@ -24,6 +24,10 @@ attempt (30b2, 2126, 5521) is excluded from the 2×2 by its README; early baseli
 - [x] RED: finals cohort, hand-run cohorts, no relabeling of owned runs
   COMMIT: `test: story frontier experiment filter lists finals and hand-run cohorts` (d9a7a49)
 - [x] GREEN: viewer 650/650 tests, coverage gate passes (all files 95.36 / 91.14 / 94.41), lint clean
-- [ ] Review: Claude CLI, Grok
+- [x] GREEN COMMIT: `fix: story frontier experiment filter lists finals and hand-run cohorts` (80ec7d7)
+- [x] Claude CLI review: LGTM with hardening notes. Applied: plan.json dirs left to provenance, hand-run
+  ids may not take a verified or experiment: name, duplicate runs across receipts reported, finals and
+  queue ledgers tolerate a torn last line, plus tests (viewer 652/652, coverage 95.39 / 91.16 / 94.41, lint clean)
+- [ ] Grok review
 - [ ] Operator merge approval; rebase onto main first (three parallel viewer sessions)
 - [ ] 8790 restart only with operator OK: the finals runner lives in that process

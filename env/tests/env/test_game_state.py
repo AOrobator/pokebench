@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from pokebench_env.character_presence import StoryCharacters
 from pokebench_env.game_state import (
     GBA_TEXT,
     SPECIES_NAMES,
@@ -175,6 +176,10 @@ def test_overworld_reports_every_field_from_the_save_blocks() -> None:
             "evolved_pokemon": 0,
             "used_pokecenter": 0,
         },
+        story_characters=StoryCharacters(
+            here=(),
+            absent=("PROF. BIRCH", "MAY", "BRENDAN", "MOM", "NORMAN", "WALLY", "ROXANNE", "STEVEN"),
+        ),
     )
 
 

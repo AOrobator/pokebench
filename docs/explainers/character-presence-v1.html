@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Story Character Presence</title>
+<style>
+:root{--bg:#f8f7f3;--ink:#1d1c1a;--muted:#67635b;--panel:#fff;--edge:#ddd8ce;--accent:#2f5d9e;--bad:#b3352b;--good:#2e7d4f}
+@media(prefers-color-scheme:dark){:root{--bg:#151514;--ink:#ecebe7;--muted:#a19d94;--panel:#1f1f1d;--edge:#35342f;--accent:#7fa8e6;--bad:#ee7d72;--good:#6cc495}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+main{max-width:900px;margin:0 auto;padding:24px 16px 60px}h1{font-size:24px;margin:0 0 4px}h2{font-size:18px;margin:30px 0 8px}
+.tag{font-size:12px;color:var(--accent);letter-spacing:.05em}.muted{color:var(--muted)}
+pre{background:var(--panel);border:1px solid var(--edge);border-radius:8px;padding:12px;overflow-x:auto;font:12.5px/1.45 ui-monospace,Menlo,monospace;white-space:pre-wrap}
+table{border-collapse:collapse;width:100%;font-size:13.5px;background:var(--panel)}th,td{border:1px solid var(--edge);padding:6px 8px;text-align:left;vertical-align:top}
+.fig{overflow-x:auto;background:var(--panel);border:1px solid var(--edge);border-radius:8px;padding:10px}figcaption{font-size:13px;color:var(--muted);margin-top:6px}
+svg text{fill:var(--ink);font:12px -apple-system,sans-serif}
+</style></head><body><main>
+<div class="tag">POKEBENCH · FEATURE EXPLAINER · character-presence-v1 (default OFF)</div>
+<h1>Who is actually here</h1>
+<p>The model keeps seeing PROF. BIRCH where he is not. In the stalled Think Fast runs, 14% of turns claimed Birch was present, but no readout ever listed him. The lab aide's sprite kind SCIENTIST_1, FAT_MAN, TWIN and BOY_2 were each called "Professor Birch". This switch adds one line that says which story characters the game itself places on the current map, and which it does not. It names no destination and says nothing about where an absent character is.</p>
+
+<h2>Before and after, in Birch's lab before the rescue</h2>
+<figure class="fig"><svg viewBox="0 0 640 170" width="640" height="170" role="img" aria-label="Lab with SCIENTIST_1 and no Birch">
+<rect x="10" y="10" width="190" height="150" fill="none" stroke="currentColor" opacity=".35"/>
+<text x="20" y="30">BIRCHS LAB (map 1/4)</text>
+<circle cx="110" cy="80" r="10" fill="#c58b2b"/><text x="125" y="84">SCIENTIST_1 (9,7)</text>
+<circle cx="110" cy="125" r="8" fill="#2f5d9e"/><text x="125" y="129">you (9,8)</text>
+<text x="230" y="40" style="font-weight:600">OFF</text>
+<text x="230" y="60">"Professor Birch is at (9,7)" — model, 0c40 T540</text>
+<text x="230" y="80" opacity=".7">Readout lists only: SCIENTIST_1 at 9,7</text>
+<text x="230" y="115" style="font-weight:600">ON (adds one line)</text>
+<text x="230" y="135">Story characters here: none. Not on this map:</text>
+<text x="230" y="152">PROF. BIRCH, MAY, BRENDAN, MOM, NORMAN, WALLY, ROXANNE, STEVEN.</text>
+</svg><figcaption>The same room with the switch off and on. The sprite is still listed as SCIENTIST_1; the new line rules out reading it as Birch.</figcaption></figure>
+
+<h2>The line, exactly</h2>
+<pre>Story characters here (from this map's own object list): MOM at 3,5. Not on this map: PROF. BIRCH, MAY, BRENDAN, NORMAN, WALLY, ROXANNE, STEVEN. Sprite kinds such as SCIENTIST_1 or FAT_MAN are not these characters.</pre>
+<p>A character on the map but more than 7 tiles away is shown as <code>NAME (on this map, out of view)</code>.</p>
+
+<h2>Game grounding</h2>
+<table>
+<tr><th>Fact</th><th>Where it comes from (pret/pokeemerald 731ad5bf)</th></tr>
+<tr><td>Objects on the loaded map</td><td><code>SaveBlock1.objectEventTemplates</code> at offset 0xC70, 64 entries of 24 bytes (<code>include/global.h</code>, <code>struct ObjectEventTemplate</code> in <code>include/global.fieldmap.h</code>)</td></tr>
+<tr><td>Hidden objects</td><td>a template whose <code>flagId</code> (offset 0x14) is set in the save flags (SaveBlock1 + 0x1270) is not spawned, as <code>FlagGet</code> decides in the field object code</td></tr>
+<tr><td>Variable sprites</td><td>graphics ids from 240 (<code>OBJ_EVENT_GFX_VAR_0</code>) resolve through <code>VAR_OBJ_GFX_ID_0</code> (0x4010) and up</td></tr>
+<tr><td>Which graphics are which character</td><td>PROF_BIRCH 64; RIVAL_MAY 105–109; RIVAL_BRENDAN 100–104; MOM 215; NORMAN 129; WALLY 135; ROXANNE 125; STEVEN 134 (<code>env/pokebench_env/event-graphics.json</code>). Generic sprites such as SCIENTIST_1 (46) never count.</td></tr>
+<tr><td>Where each character can be named</td><td>A graphics id alone is not an identity: Battle Tent, Battle Frontier and Contest Hall scripts, link play and Route 111's falling-player scene reuse the rival's graphics for other people (for example <code>SlateportCity_BattleTentBattleRoom/scripts.inc</code> sets <code>VAR_OBJ_GFX_ID_1</code> to <code>OBJ_EVENT_GFX_RIVAL_MAY_NORMAL</code> for the opponent). A character is named only on the maps where pret places that story character: map.json object events with its graphics, and for the rival the maps whose scripts call <code>Common_EventScript_SetupRivalGfxId</code> (Littleroot, Birch's lab, Oldale, Routes 103/104/110/119, Rustboro, Lavaridge, Lilycove, the Champion's room) plus the two houses. Elsewhere the same sprite names nobody.</td></tr>
+<tr><td>Failed reads</td><td>An emulator read error or a short read gives no line rather than a guess. With the switch OFF the server does not read the object list at all.</td></tr>
+<tr><td>Live position</td><td>the spawned object with the same local id within 7 tiles (<code>world_context.objects</code>)</td></tr>
+</table>
+
+<h2>Wiring</h2>
+<pre>preset / switchboard  →  serverFeatureEnv (POKEBENCH_FEATURES_OFF)  →  game server readout
+read_game_state(): story_characters = read_story_characters(save1, map_id, live objects)
+format_readout(): prints the line only when "character-presence-v1" is not switched off</pre>
+
+<h2>Status</h2>
+<p>Branch <code>claude/bundle-switches</code>. Python tests cover hidden characters, live versus out-of-view positions, variable graphics, an unreadable save block, and byte-identical OFF. Not yet measured; it is part of the strong-bundle cohort, from the CLOCK_SET save.</p>
+</main></body></html>

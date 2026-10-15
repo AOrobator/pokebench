@@ -23,6 +23,12 @@ Each experiment is one tracked file, `experiments/<id>.json`, validated by `Expe
 
 An entry is never on both lists. It leaves pending when it is queued, finished or discarded.
 
+## Design before queueing
+
+Before an entry is queued, or driven as a cohort, design it with `pokebench-experiment-design`. That skill sets the tier, the start (checkpoint first, as of 2026-10-15), the primary outcome, the cap, and a power-sized N within the operator's GPU-hour budget. It also writes the HTML overview at `docs/experiments/<id>.html`.
+
+The queue itself runs boot starts at 4–8 trials per arm. Checkpoint cohorts and larger confirmations therefore run as an external cohort driver: set `externalCohort` so the queue tracks the entry without running it again, as the navigation 2×2 did. Put the design's start state, cap source and `power.py` command in `notes`.
+
 ## When a switch merges: register it as pending (same merge)
 
 The feature-switch skill requires this. Add `experiments/<id>.json` with no `queuePosition`, containing:

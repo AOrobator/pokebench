@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Battle Details v2</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --bld:#d9d5ca; --ground:#eef0e6;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --bld:#3a3c40; --ground:#1f2420; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --bld:#3a3c40; --ground:#1f2420; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:740px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navb{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.bld{fill:var(--bld);stroke:var(--rule)}
+.ground{fill:var(--ground);stroke:var(--rule)}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.arr.g{stroke:var(--game)} .arr.p{stroke:var(--prior);stroke-dasharray:5 4}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tag{display:inline-block;font:500 .72rem var(--mono);border-radius:99px;padding:1px 8px;border:1px solid var(--rule);color:var(--soft)}
+</style>
+</head>
+<body>
+<main>
+<div>
+<div class="eyebrow">Harness switch · observation · <code>battle-details-v2</code> · needs <code>expanded-menu-battle-information-v1</code> · off by default</div>
+<h1>Battle details v2</h1>
+</div>
+<p class="lede">In a battle, the readout today lists raw numbers: <code>status 0/0/0</code>, <code>stages (6, 6, 6, 6, 6, 6, 6, 6)</code>, move names with PP and nothing else. With this switch on it says what each of FIGHT, BAG, POKéMON and RUN will do, gives the game's own refusal message for actions the game can refuse, and spells out types, abilities, items, stats, stages and every move's type, category, power and accuracy for the foe, your Pokémon and the whole party.</p>
+
+<section>
+<h2>Exact readout, before and after</h2>
+<p>Both blocks come from the same recorded game memory: run <code>2026-10-14T22-13-05_think-fast_c406</code>, raw-RAM archive <code>00001266</code>, the PROF. BIRCH rescue with the action menu open on FIGHT. ROM table rows in the test are written from pokeemerald source data because the ROM never enters git.</p>
+<pre>OFF (today, byte for byte; tests/env/fixtures/battle-details-v2-off-c406-00001266.txt)
+Bag: 
+Battle state: input; input True; turn 1; outcome ongoing
+Battler 0 TORCHIC Lv5 HP 20/20; status 0/0/0; stages (6, 6, 6, 6, 6, 6, 6, 6); moves SCRATCH PP 35/35, GROWL PP 40/40
+Battler 1 ZIGZAGOON Lv2 HP 13/13; status 0/0/0; stages (6, 6, 6, 6, 6, 6, 6, 6); moves TACKLE PP 35/35, GROWL PP 40/40
+Battle input 0: action; ready True; selected FIGHT; target None
+
+ON
+Bag: empty
+Battle details: WILD single · first battle (PROF. BIRCH rescue) · turn 1 · input ready (action select)
+Foe ZIGZAGOON Lv2 · NORMAL · HP 13/13 · status OK · ability PICKUP · item none · stats Atk 6 Def 6 Spe 7 SpA 6 SpD 6 · stages neutral · moves: TACKLE NORMAL physical pow 35 acc 95 PP 35/35; GROWL NORMAL status acc 100 PP 40/40
+Actions (2×2 FIGHT BAG / POKéMON RUN; menu open, highlighted ▶ FIGHT): FIGHT · BAG allowed — bag empty · POKéMON switching allowed — no other Pokémon can battle · RUN REFUSED — "PROF. BIRCH: Don't leave me like this!" (first battle)
+You TORCHIC Lv5 · FIRE · HP 20/20 · status OK · ability BLAZE · item none · stats Atk 11 Def 10 Spe 8 SpA 13 SpD 10 · stages neutral
+Your moves (2×2 1 2 / 3 4; menu not open):
+  1 SCRATCH NORMAL physical pow 40 acc 100 PP 35/35
+  2 GROWL NORMAL status acc 100 PP 40/40
+Party (game party slots):
+  1 TORCHIC Lv5 FIRE · HP 20/20 · status OK · ability BLAZE · item none · in battle · moves SCRATCH NORMAL physical pow 40 acc 100 PP 35/35; GROWL NORMAL status acc 100 PP 40/40</pre>
+<p>Bag items with a nonzero battle use are listed as "has a battle use (whether it does anything now is not checked)": the game's item-effect check (for example a POTION on a Pokémon at full HP) is not run, so nothing is called usable. In a Battle Pyramid battle the game opens the Pyramid's own bag (<code>CB2_BagMenuFromBattle</code>, item_menu.c), so the BAG action says "Battle Pyramid bag not read" instead of listing the ordinary bag.</p>
+<p>Only the battle lines and the empty-bag line change. Battle playback and battle execution lines, the overworld readout and the JSON state used for grading are unchanged. Nothing is shortened.</p>
+</section>
+
+<section>
+<h2>The action menu and who can refuse what</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 300" width="700" role="img" aria-label="The 2 by 2 battle action menu with the rule that can refuse each action">
+<text x="20" y="20" class="t">The game always draws all four options (gText_BattleMenu)</text>
+<rect x="20" y="34" width="150" height="56" rx="6" class="navb hot"/><text x="32" y="58" class="t">▶ FIGHT</text><text x="32" y="78" class="s">no action-level refusal</text>
+<rect x="180" y="34" width="150" height="56" rx="6" class="box"/><text x="192" y="58" class="t">BAG</text><text x="192" y="78" class="s">refused in link/Frontier</text>
+<rect x="20" y="100" width="150" height="56" rx="6" class="box"/><text x="32" y="124" class="t">POKéMON</text><text x="32" y="144" class="s">opens; switch can be refused</text>
+<rect x="180" y="100" width="150" height="56" rx="6" class="prior"/><text x="192" y="124" class="t">RUN</text><text x="192" y="144" class="s">refused here (first battle)</text>
+<text x="360" y="44" class="t">FIGHT</text>
+<text x="360" y="62" class="s">Skipped if a multi-turn move or recharge is due.</text>
+<text x="360" y="76" class="s">Every move at 0 PP: the game uses STRUGGLE.</text>
+<text x="360" y="90" class="s">A 0-PP move is REFUSED in the move menu.</text>
+<text x="360" y="114" class="t">BAG</text>
+<text x="360" y="132" class="s">"Items can't be used now." for LINK, Frontier (not Pyramid),</text>
+<text x="360" y="146" class="s">e-Reader and recorded-link battles. Balls: blocked and lost</text>
+<text x="360" y="160" class="s">in trainer battles; refused when party and every BOX are full.</text>
+<text x="360" y="184" class="t">POKéMON (switching)</text>
+<text x="360" y="202" class="s">"X can't be switched out!": wrapped, MEAN LOOK/BLOCK, INGRAIN, Arena.</text>
+<text x="360" y="216" class="s">"Y's SHADOW TAG/ARENA TRAP/MAGNET PULL prevents switching!"</text>
+<text x="360" y="230" class="s">Per member: fainted, EGG, already in battle.</text>
+<text x="20" y="190" class="t">Cursor</text>
+<text x="20" y="208" class="m">gActionSelectionCursor 0x020244AC</text>
+<text x="20" y="224" class="s">0 FIGHT · 1 BAG · 2 POKéMON · 3 RUN</text>
+<text x="20" y="262" class="s">Refusals happen after the choice, in HandleTurnActionSelectionState</text>
+<text x="20" y="278" class="s">(battle_main.c), so the readout says it before the model presses A.</text>
+</svg>
+</div>
+<figcaption>Each action shows a verdict only when the game has a rule that can refuse it. FIGHT never gets one; its notes say when the game takes the choice away.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>RUN, step by step</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 360" width="700" role="img" aria-label="The order of checks the game runs when RUN is chosen">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>
+<g>
+<rect x="20" y="14" width="300" height="34" rx="6" class="box"/><text x="30" y="36" class="s">1. Trainer battle in Frontier or Trainer Hill?</text>
+<rect x="380" y="14" width="300" height="34" rx="6" class="navb"/><text x="390" y="36" class="s">asks whether to forfeit</text>
+<rect x="20" y="62" width="300" height="34" rx="6" class="box"/><text x="30" y="84" class="s">2. Trainer battle (not link)?</text>
+<rect x="380" y="62" width="300" height="34" rx="6" class="prior"/><text x="390" y="84" class="s">REFUSED "No! There's no running from a TRAINER battle!"</text>
+<rect x="20" y="110" width="300" height="34" rx="6" class="box"/><text x="30" y="132" class="s">3. SMOKE BALL, link battle or RUN AWAY?</text>
+<rect x="380" y="110" width="300" height="34" rx="6" class="game"/><text x="390" y="132" class="s">allowed — always escapes</text>
+<rect x="20" y="158" width="300" height="34" rx="6" class="box"/><text x="30" y="180" class="s">4. Foe SHADOW TAG / ARENA TRAP / MAGNET PULL?</text>
+<rect x="380" y="158" width="300" height="34" rx="6" class="prior"/><text x="390" y="180" class="s">REFUSED "Wild X prevents escape with …!"</text>
+<rect x="20" y="206" width="300" height="34" rx="6" class="box"/><text x="30" y="228" class="s">5. Wrapped, MEAN LOOK/BLOCK or INGRAIN?</text>
+<rect x="380" y="206" width="300" height="34" rx="6" class="prior"/><text x="390" y="228" class="s">REFUSED "Can't escape!"</text>
+<rect x="20" y="254" width="300" height="34" rx="6" class="box"/><text x="30" y="276" class="s">6. First battle (PROF. BIRCH rescue)?</text>
+<rect x="380" y="254" width="300" height="34" rx="6" class="prior hot"/><text x="390" y="276" class="s">REFUSED "PROF. BIRCH: Don't leave me like this!"</text>
+<rect x="20" y="302" width="300" height="44" rx="6" class="box"/><text x="30" y="320" class="s">7. Wild single battle: your Spe ≥ foe Spe?</text><text x="30" y="336" class="s">yes: guaranteed · no: not guaranteed (odds not computed)</text>
+<rect x="380" y="302" width="300" height="44" rx="6" class="game"/><text x="390" y="320" class="s">allowed — guaranteed, or not guaranteed</text><text x="390" y="336" class="s">(odds not computed; the try counter is not read)</text>
+</g>
+<path d="M320 31H378" class="arr" marker-end="url(#a)"/><path d="M320 79H378" class="arr" marker-end="url(#a)"/><path d="M320 127H378" class="arr" marker-end="url(#a)"/><path d="M320 175H378" class="arr" marker-end="url(#a)"/><path d="M320 223H378" class="arr" marker-end="url(#a)"/><path d="M320 271H378" class="arr" marker-end="url(#a)"/><path d="M320 324H378" class="arr" marker-end="url(#a)"/>
+</svg>
+</div>
+<figcaption>The readout walks the same order as battle_main.c:4319-4350 and IsRunningFromBattleImpossible (battle_main.c:4021-4083) and stops at the first rule that applies. The red-outlined row is the recorded Birch rescue.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>What it reads</h2>
+<table>
+<tr><th>Fact</th><th>Where</th><th>Status</th></tr>
+<tr><td>Battle kind (trainer, first battle, link, Frontier, double…)</td><td>gBattleTypeFlags 0x02022FEC</td><td>verified</td></tr>
+<tr><td>Types, ability, item, stats, stages, status, volatile status</td><td>gBattleMons 0x02024084 (0x58 bytes each), gStatuses3 0x020242AC</td><td>verified</td></tr>
+<tr><td>Move type, power, accuracy</td><td>gBattleMoves 0x0831C898 (12-byte rows)</td><td>verified</td></tr>
+<tr><td>Party types and ability</td><td>gSpeciesInfo 0x083203CC (28-byte rows) + abilityNum bit 31 of the party Pokémon's misc word</td><td>verified</td></tr>
+<tr><td>Bag item battle use, held-item effect (SMOKE BALL)</td><td>gItems 0x085839A0 (44-byte rows), battleUsage +0x20, holdEffect +0x12</td><td>verified table; offsets from struct Item</td></tr>
+<tr><td>Action and move cursors</td><td>0x020244AC, 0x020244B0</td><td>verified</td></tr>
+<tr><td>Type and ability names</td><td>include/constants/pokemon.h, src/data/text/abilities.h at 731ad5bf</td><td>source tables</td></tr>
+</table>
+</section>
+
+<section>
+<h2>Not read yet (deferred, never guessed)</h2>
+<table>
+<tr><th>Game rule</th><th>Why it is not shown</th></tr>
+<tr><td>Disable, Taunt, Torment, Imprison, Encore, Choice Band lock on a move</td><td>Kept in gDisableStructs and gBattleStruct at derived addresses with no ROM literal or raw-RAM receipt.</td></tr>
+<tr><td>Escape-try counter (runTries) for the odds</td><td>gBattleStruct field, derived address. The readout gives only the speed comparison: TryRunFromBattle keeps the odds in a u8 that wraps (battle_util.c:412-466), so a formula without runTries would mislead.</td></tr>
+<tr><td>ENIGMA BERRY effect for escape</td><td>gEnigmaBerries, derived address. RUN says "unknown" when it is held.</td></tr>
+<tr><td>Battle text box (gDisplayedStringBattle)</td><td>Derived address.</td></tr>
+<tr><td>Script-owned YES/NO prompts ("Use next POKéMON?", learning a move)</td><td>Still read as resolving; the script-owned cursor needs a verified owner check first.</td></tr>
+<tr><td>Battle Pyramid run odds, multi-battle party slots, Safari actions, opponent party size</td><td>Need pyramid location, partner slot mapping and enemy party count from unverified addresses.</td></tr>
+</table>
+</section>
+
+<section>
+<h2>How the switch reaches the readout</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 120" width="700" role="img" aria-label="Switch wiring from preset to readout">
+<defs><marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>
+<rect x="10" y="30" width="140" height="50" rx="6" class="box"/><text x="20" y="52" class="s">run preset /</text><text x="20" y="68" class="s">switchboard</text>
+<rect x="190" y="30" width="150" height="50" rx="6" class="box"/><text x="200" y="52" class="m">serverFeatureEnv</text><text x="200" y="68" class="s">POKEBENCH_FEATURES_OFF</text>
+<rect x="380" y="30" width="140" height="50" rx="6" class="box"/><text x="390" y="52" class="s">game server</text><text x="390" y="68" class="m">features_off_from_env</text>
+<rect x="560" y="30" width="130" height="50" rx="6" class="game hot"/><text x="570" y="52" class="m">format_readout</text><text x="570" y="68" class="s">battle lines</text>
+<path d="M150 55H188" class="arr" marker-end="url(#b)"/><path d="M340 55H378" class="arr" marker-end="url(#b)"/><path d="M520 55H558" class="arr" marker-end="url(#b)"/>
+<text x="10" y="108" class="s">Default off everywhere (presets, DEFAULT_NEXT_RUN, the server's default-off list). Recorded last in harness_features.</text>
+</svg>
+</div>
+<figcaption>Only the highlighted box behaves differently; the facts are read only while the switch is on (off, the reader is skipped).</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>Status</h2>
+<p>Branch <code>claude/battle-details-v2</code>. Tests on recorded raw RAM from runs c406 and c497; the trainer case flips the recorded battle-type flags because no recorded run has reached a trainer battle. Not done: multi-model review, a native probe through a real trainer battle, measured runs. The pending experiment <code>experiments/battle-details-v2.json</code> waits on readiness: models must reliably reach battles beyond the Birch rescue.</p>
+</section>
+</main>
+</body>
+</html>

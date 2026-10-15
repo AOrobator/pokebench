@@ -7,8 +7,7 @@ import type {RunRecorder} from "./recorder.js";
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
 export interface DialogueEntry {readonly seq:number;readonly turn:number;readonly key:string;readonly room:string;readonly position:string|null;readonly facing:string|null;readonly text:string}
 
-const REPLY_LIMIT=6000,ENTRY_LIMIT=650,DEFAULT_LAST=8;
-const clip=(text:string,max:number)=>text.length<=max?text:`${text.slice(0,max-14)}… [truncated]`;
+const DEFAULT_LAST=8;
 type Place={location:string|null;map_id:readonly number[]|null};
 // Location labels can repeat or be missing across maps, so identity always includes the map id.
 export function roomKey(state:Place):string {return `${state.location??"unknown room"}|${state.map_id?.join("/")??"none"}`;}
@@ -27,17 +26,37 @@ const Args=Type.Object({
 export class DialogueLog {
  private measured:State|null=null;
  private readonly log:DialogueEntry[]=[];
+ // dialogue-auto-advance-v1 pages per tool call, kept until that call's result reaches the model.
+ private readonly pending=new Map<string,DialogueEntry[]>();
  constructor(private readonly features:FeatureSet){}
  observe(event:RunEvent):void {
   if(event.type==="state"&&"started"in event){this.measured=event;return;}
-  if(event.type!=="tool_result"||event.state_seq===undefined||this.measured?.seq!==event.state_seq)return;
+  // dialogue-auto-advance-v1 hands the model its pages in the result; each page cites its own recorded state (else the event).
+  if(event.type==="dialogue_auto_advance"){
+   this.pending.set(event.tool_call_id,event.pages.map(page=>{
+    const place={location:page.map,map_id:page.map_id};
+    return {seq:page.state_seq??event.seq,turn:event.turn,key:roomKey(place),room:roomOf(place,this.features),position:this.features["live-player-position-v1"]&&page.position!==null?`${String(page.position.x)},${String(page.position.y)}`:null,facing:null,text:page.text};
+   }));
+   if(this.pending.size>16)this.pending.delete(this.pending.keys().next().value??"");
+   return;
+  }
+  if(event.type!=="tool_result")return;
+  // Pages count as shown only when their result reached the model; they already cover the paired state's buffer.
+  const pages=this.pending.get(event.id);this.pending.delete(event.id);
+  const delivered=!event.is_error&&pages!==undefined&&pages.length>0;
+  // Each page was shown once; only the first is compared with what the log already holds.
+  if(delivered)pages.forEach((entry,i)=>{if(i===0)this.add(entry);else this.log.push(entry);});
+  if(event.state_seq===undefined||this.measured?.seq!==event.state_seq)return;
   const state=this.measured;this.measured=null;
+  if(delivered)return;
   const text=state.world_context?.dialogue;
   if(!state.started||state.screen!=="overworld"||!text)return;
-  const key=roomKey(state),room=roomOf(state,this.features);
+  this.add({seq:state.seq,turn:state.turn,key:roomKey(state),room:roomOf(state,this.features),position:this.position(state),facing:this.faced(state),text});
+ }
+ private add(entry:DialogueEntry):void {
   const previous=this.log.at(-1);
-  if(previous!==undefined&&previous.text===text&&previous.key===key)return;
-  this.log.push({seq:state.seq,turn:state.turn,key,room,position:this.position(state),facing:this.faced(state),text});
+  if(previous!==undefined&&previous.text===entry.text&&previous.key===entry.key)return;
+  this.log.push(entry);
  }
  entries():readonly DialogueEntry[]{return this.log;}
  private position(state:State):string|null {
@@ -59,15 +78,8 @@ export class DialogueLog {
   if(matches.length===0)return `No recorded dialogue matches (${String(this.log.length)} pages recorded this run).`;
   const chosen=matches.slice(-last).reverse();
   let text=`DIALOGUE LOG: quoted game text you were shown, newest first. Past text; the current screen overrides it. ${String(matches.length)} of ${String(this.log.length)} entries match.`;
-  let shown=0;
-  for(const e of chosen){
-   const head=`\n#${String(e.seq)} turn ${String(e.turn)} · ${e.room}${e.position===null?"":` · at ${e.position}`}${e.facing===null?"":` · facing ${e.facing}`}: `;
-   const room=REPLY_LIMIT-120-text.length-head.length;
-   if(room<60)break;
-   text+=`${head}"${clip(e.text,Math.min(ENTRY_LIMIT,room))}"`;shown++;
-  }
-  const omitted=chosen.length-shown;
-  return `${text}\n${String(shown)} shown${omitted>0?`; ${String(omitted)} omitted to keep this reply bounded (narrow with contains, room or last)`:""}.`;
+  for(const e of chosen)text+=`\n#${String(e.seq)} turn ${String(e.turn)} · ${e.room}${e.position===null?"":` · at ${e.position}`}${e.facing===null?"":` · facing ${e.facing}`}: "${e.text}"`;
+  return `${text}\n${String(chosen.length)} shown.`;
  }
  tool():AgentTool<typeof Args> {
   return {name:"recall_dialogue",label:"Recall dialogue",description:"Search every dialogue page you have been shown this run: quoted game text with its turn, location, your position and the character you were facing when known. Filters: contains (words), room (location name), last (1–20, default 8). It reads past observations only; it does not press buttons.",parameters:Args,execute:(_id,args)=>Promise.resolve({content:[{type:"text",text:this.recall(args)}],details:undefined})};

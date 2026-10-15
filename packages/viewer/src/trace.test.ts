@@ -61,6 +61,7 @@ const SAMPLES: { [K in RunEvent["type"]]: Extract<Body, { type: K }> } = {
   loop_guard: { type: "loop_guard", turn: 1, kind: "cycle", phase: "supervisor", mode: "enforced", calls: 3, message: X, evidence: [1] },
   retry: { type: "retry", turn: 1, reason: X, attempt: 1, limit: 3 },
   text_only_supervisor: { type: "text_only_supervisor", turn: 1, replies: 3, note: 1, limit: 3, text: X },
+  dialogue_auto_advance: { type: "dialogue_auto_advance", turn: 1, tool_call_id: "c1", tool: "press", requested: ["A", "A"], sent: ["A"], dropped: ["A"], auto_presses: 2, pages: [{ state_seq: 3, map: X, map_id: [1, 4], position: { x: 1, y: 2 }, speaker: X, speaker_source: "faced_sprite", text: X }], stop: "field_free", detail: X, duration_ms: 400 },
   telemetry_error: { type: "telemetry_error", turn: 1, source: "state", message: X },
   compaction: { type: "compaction", turn: 1, from_tokens: 9000, to_tokens: 1000 },
   disk_usage: { type: "disk_usage", turn: 1, bytes: 1, cap_bytes: 10, percent: 10 },
@@ -184,6 +185,16 @@ describe("traceRow", () => {
     expect(sup.querySelector(".tl-res")?.textContent).toBe("You are looping.");
     expect(sup.querySelector(".tl-body")?.textContent).toContain("Stop and get your bearings.");
     expect(sup.hasAttribute("open")).toBe(false);
+  });
+
+  it("shows stall-briefing-v1 notes as supervisor rows with their full headline", () => {
+    const log = new Log();
+    log.add(0, { type: "loop_guard", turn: 1, kind: "map_cycle", phase: "supervisor", mode: "enforced", calls: 9, message: "SUPERVISOR: You are stalling. You have walked between A and B 2 times.\nStop and get your bearings:", evidence: [1, 2] });
+    log.add(1, { type: "loop_guard", turn: 2, kind: "milestone_drought", phase: "supervisor", mode: "enforced", calls: 12, message: "SUPERVISOR: You are stalling. There has been no new story milestone for 5 minutes of play.", evidence: [3] });
+    const rows = steps(build(log.events)).map((step) => dom(traceRow(step)).firstElementChild as HTMLElement);
+    expect(rows.map((row) => row.querySelector(".tl-title")?.textContent)).toEqual(["Supervisor note", "Supervisor note"]);
+    expect(rows[0]?.querySelector(".tl-res")?.textContent).toBe("You are stalling. You have walked between A and B 2 times.");
+    expect(rows[1]?.querySelector(".tl-body")?.textContent).toContain("no new story milestone for 5 minutes of play");
   });
 
   it("folds a tool call's full result, and the result folds on its own", () => {

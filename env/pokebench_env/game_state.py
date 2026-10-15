@@ -11,7 +11,9 @@ import struct
 from dataclasses import dataclass
 from pathlib import Path
 
+from pokebench_env.battle_details import BattleDetails, read_battle_details
 from pokebench_env.battle_state import BattleState, read_battle_state
+from pokebench_env.character_presence import StoryCharacters, read_story_characters
 from pokebench_env.game_screen import ReadMemory, read_screen
 from pokebench_env.gba_text import GBA_TEXT, decode_text
 from pokebench_env.live_map import MAP_OFFSET, FullMap, LocalMap, read_full_map, read_local_map
@@ -96,6 +98,21 @@ class GameState:
     game_stats: dict[str, int | None] | None = None
     blackout_active: bool | None = None
     destination_names: tuple[tuple[int, int, str], ...] = ()
+    story_characters: StoryCharacters | None = None
+    battle_details: BattleDetails | None = None
+    # SaveBlock1.dynamicWarp (group, number, map name) when this map has a MAP_DYNAMIC warp.
+    dynamic_warp: tuple[int, int, str] | None = None
+
+
+DYNAMIC_WARP = 0x14
+
+
+def _dynamic_warp(read: ReadMemory, save1: int, maps: MapNames) -> tuple[int, int, str] | None:
+    # struct WarpData {s8 mapGroup; s8 mapNum; s8 warpId; ...} (include/global.h), set by
+    # setdynamicwarp / SetDynamicWarp and used by SetWarpDestinationToDynamicWarp (overworld.c).
+    group, number = struct.unpack("<bb", read(save1 + DYNAMIC_WARP, 2))
+    name = maps.name((group, number)) if (group, number) != (127, 127) else None
+    return None if name is None else (group, number, name)
 
 
 def _u32(read: ReadMemory, address: int) -> int:
@@ -151,6 +168,9 @@ def read_game_state(
     active_ui_enabled: bool = True,
     message_phase_enabled: bool = False,
     full_map_enabled: bool = False,
+    story_characters_enabled: bool = True,
+    battle_details_enabled: bool = True,
+    dynamic_warp_enabled: bool = True,
 ) -> GameState:
     screen = read_screen(read)
     in_battle = bool(read(IN_BATTLE, 1)[0] & 0x02)
@@ -221,12 +241,29 @@ def read_game_state(
     )
     targets = read_targets(read, map_id) if nearby is not None else None
     party = _party(read)
+    resources = read_resources(read, save1, save2)
     ownership = read_party_ownership(read, party)
+    context = (
+        read_world_context(
+            read,
+            (x, y),
+            map_id,
+            save1,
+            decode_text,
+            message_phase=message_phase_enabled,
+            native_ui=native_ui,
+        )
+        if screen.kind == "overworld" and not in_battle
+        else None
+    )
     return GameState(
         blackout_active=screen.callback2 == 0x08085F59,
         game_stats=_game_stats(read, save1, save2),
-        resources=read_resources(read, save1, save2),
+        resources=resources,
         battle=battle,
+        battle_details=read_battle_details(read, battle, party, resources)
+        if battle_details_enabled
+        else None,
         running=read_running_permission(read),
         screen=screen.label,
         started=True,
@@ -267,16 +304,22 @@ def read_game_state(
             for t in targets or ()
             if t.destination is not None and t.destination[:2] != (127, 127)
         ),
-        world_context=read_world_context(
+        world_context=context,
+        story_characters=read_story_characters(
             read,
-            (x, y),
-            map_id,
             save1,
-            decode_text,
-            message_phase=message_phase_enabled,
-            native_ui=native_ui,
+            map_id,
+            () if context is None else context.objects,
+            location=maps.name(map_id),
         )
-        if screen.kind == "overworld" and not in_battle
+        if story_characters_enabled and screen.kind == "overworld" and not in_battle
+        else None,
+        # named-warp-destinations-v1 OFF never reads SaveBlock1.dynamicWarp.
+        dynamic_warp=_dynamic_warp(read, save1, maps)
+        if dynamic_warp_enabled
+        and any(
+            t.destination is not None and t.destination[:2] == (127, 127) for t in targets or ()
+        )
         else None,
         interaction_targets=targets,
         field_controls_locked=bool(read(FIELD_CONTROLS_LOCK, 1)[0])

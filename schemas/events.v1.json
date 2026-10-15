@@ -121,7 +121,9 @@
                 "observation",
                 "ineffective",
                 "cycle",
-                "rejection"
+                "rejection",
+                "map_cycle",
+                "milestone_drought"
               ]
             },
             "message": {
@@ -197,7 +199,9 @@
                 "observation",
                 "ineffective",
                 "cycle",
-                "rejection"
+                "rejection",
+                "map_cycle",
+                "milestone_drought"
               ]
             },
             "message": {
@@ -278,7 +282,9 @@
                 "observation",
                 "ineffective",
                 "cycle",
-                "rejection"
+                "rejection",
+                "map_cycle",
+                "milestone_drought"
               ]
             },
             "message": {
@@ -1504,8 +1510,7 @@
           "const": "navigation_context"
         },
         "text": {
-          "type": "string",
-          "maxLength": 6500
+          "type": "string"
         },
         "evidence": {
           "type": "array",
@@ -1557,8 +1562,7 @@
           "const": "ledger_context"
         },
         "text": {
-          "type": "string",
-          "maxLength": 4000
+          "type": "string"
         },
         "evidence": {
           "type": "array",
@@ -2773,6 +2777,244 @@
         "text": {
           "type": "string",
           "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "run",
+        "seq",
+        "t",
+        "turn",
+        "type",
+        "tool_call_id",
+        "tool",
+        "requested",
+        "sent",
+        "dropped",
+        "auto_presses",
+        "pages",
+        "stop",
+        "detail",
+        "duration_ms"
+      ],
+      "properties": {
+        "v": {
+          "type": "number",
+          "const": 1
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type": {
+          "type": "string",
+          "const": "dialogue_auto_advance"
+        },
+        "tool_call_id": {
+          "type": "string"
+        },
+        "tool": {
+          "enum": [
+            "press",
+            "navigate_to"
+          ]
+        },
+        "requested": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "A",
+              "B",
+              "START",
+              "SELECT",
+              "UP",
+              "DOWN",
+              "LEFT",
+              "RIGHT"
+            ]
+          }
+        },
+        "sent": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "A",
+              "B",
+              "START",
+              "SELECT",
+              "UP",
+              "DOWN",
+              "LEFT",
+              "RIGHT"
+            ]
+          }
+        },
+        "dropped": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "A",
+              "B",
+              "START",
+              "SELECT",
+              "UP",
+              "DOWN",
+              "LEFT",
+              "RIGHT"
+            ]
+          }
+        },
+        "auto_presses": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "state_seq",
+              "map",
+              "map_id",
+              "position",
+              "speaker",
+              "speaker_source",
+              "text"
+            ],
+            "properties": {
+              "state_seq": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "map": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "map_id": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "additionalItems": false,
+                    "items": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "integer"
+                      }
+                    ],
+                    "minItems": 2
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "position": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "required": [
+                      "x",
+                      "y"
+                    ],
+                    "properties": {
+                      "x": {
+                        "type": "integer"
+                      },
+                      "y": {
+                        "type": "integer"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "speaker": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "speaker_source": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "name_prefix",
+                      "faced_sprite",
+                      "faced_target"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "stop": {
+          "enum": [
+            "field_free",
+            "menu",
+            "naming",
+            "battle",
+            "screen_change",
+            "locked_no_message",
+            "interface_not_ready",
+            "message_not_ready",
+            "press_cap",
+            "time_cap",
+            "error"
+          ]
+        },
+        "detail": {
+          "type": "string"
+        },
+        "duration_ms": {
+          "type": "integer",
+          "minimum": 0
         }
       },
       "additionalProperties": false

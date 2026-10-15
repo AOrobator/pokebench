@@ -56,7 +56,7 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 
 <section>
 <h2>Why</h2>
-<p>Recent runs lose instructions to context pruning. By the time a run has been wandering Littleroot for 300 turns, Mom's line about the neighbors is long gone from the model's context. Navigation evidence memory pins the newest few pages (at most 5, each clipped). This log keeps all of them and lets the model ask.</p>
+<p>Recent runs lose instructions to context pruning. By the time a run has been wandering Littleroot for 300 turns, Mom's line about the neighbors is long gone from the model's context. Navigation evidence memory pins the newest few pages (at most 5, each quoted whole). This log keeps all of them and lets the model ask.</p>
 </section>
 
 <section>
@@ -88,7 +88,7 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
  <path d="M285 86 V138" class="arr p" marker-end="url(#a)"/>
  <rect x="410" y="140" width="280" height="60" rx="10" class="navb"/>
  <text x="424" y="164" class="t">recall_dialogue</text>
- <text x="424" y="182" class="s">filter, newest first, bounded reply</text>
+ <text x="424" y="182" class="s">filter, newest first, every page whole</text>
  <path d="M635 86 V138" class="arr g" marker-end="url(#a)"/>
  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" style="fill:var(--soft)"/></marker></defs>
 </svg>
@@ -108,7 +108,7 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 
 <section>
 <h2>The tool</h2>
-<p>Arguments are all optional: <code>contains</code> (words, up to 80 characters, case-insensitive), <code>room</code> (location text, up to 80 characters) and <code>last</code> (1 to 20, default 8). Each page is clipped to 650 characters and the whole reply stays under 6,000. The reply always says how many pages matched, how many were shown and how many were left out.</p>
+<p>Arguments are all optional: <code>contains</code> (words, up to 80 characters, case-insensitive), <code>room</code> (location text, up to 80 characters) and <code>last</code> (1 to 20, default 8). Every matching page is returned whole (no clipping since 2026-10-15; operator rule: nothing sent to the model is truncated). The reply says how many pages matched and how many it shows; last picks how many of the newest matches to return.</p>
 <p>Illustrative reply shape (not from a recorded run yet):</p>
 <pre>DIALOGUE LOG: quoted game text you were shown, newest first. Past text; the current screen overrides it. 2 of 41 entries match.
 #3120 turn 286 · LITTLEROOT TOWN BRENDANS HOUSE 1F · at 8,4 · facing MOM at 8,5: "…"

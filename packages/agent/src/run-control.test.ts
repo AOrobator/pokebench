@@ -388,6 +388,17 @@ describe("milestone stall stop", () => {
     } finally { vi.useRealTimers(); }
   });
 
+  it("does not restart the clock for a measurement-only split", () => {
+    try {
+      const { expired, step, stop } = clocked();
+      step(5 * 60_000);
+      stop.observe(milestone(1, "ROUTE_101_AFTER_HANDOFF", "observed"));
+      step(5 * 60_000);
+      expect(expired).toHaveBeenCalledOnce();
+      stop.clear();
+    } finally { vi.useRealTimers(); }
+  });
+
   it("excludes operator pauses, like the wall budget", async () => {
     try {
       const { h, expired, step, stop } = clocked();

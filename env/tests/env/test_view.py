@@ -87,6 +87,7 @@ def test_production_main_registers_view_pcm_and_browser_module_before_vendor_mai
     memory_lock = threading.Lock()
     memory_reads = []
     raw = {0x030022C0 + i: b for i, b in enumerate(struct.pack("<II", 0, 0x080E4F59))}
+    raw[0x05000000] = 0xFF  # a lit palette: the screen is not mid-transition
 
     class ByteView:
         def __getitem__(self, span):
@@ -163,6 +164,21 @@ def test_production_main_registers_view_pcm_and_browser_module_before_vendor_mai
     assert payload["state"]["screen"] == "naming"
     image = Image.open(BytesIO(base64.b64decode(payload["screenshot_base64"])))
     assert image.size == (240, 160) and image.getpixel((0, 0)) == (22, 33, 44)
+    # Production main wires the frame settle: with a black palette the
+    # observation waits for the next emulated frame with a lit palette.
+    raw[0x05000000] = 0
+    waited: dict[str, object] = {}
+    waiter = threading.Thread(
+        target=lambda: waited.update(r=get(app, "/pokebench/observation")), daemon=True
+    )
+    waiter.start()
+    waiter.join(0.2)
+    assert waiter.is_alive()
+    raw[0x05000000] = 0xFF
+    with memory_lock:
+        emu.run_frame_with_buttons([])
+    waiter.join(5)
+    assert not waiter.is_alive() and waited["r"][0] == 200
     status, headers, wav = get(app, "/audio.wav", b"since=0&max_frames=2")
     assert status == 200
     assert wav[44:] == pcm(123)[:2] + (-456).to_bytes(2, "little", signed=True)

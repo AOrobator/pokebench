@@ -33,13 +33,15 @@ SERVER_FEATURES = (
     "full-map-navigation-v1",
     "counter-talk-v1",
     "named-warp-destinations-v1",
+    "character-presence-v1",
+    "battle-details-v2",
 )
 
 
 def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
     raw = env.get(
         "POKEBENCH_FEATURES_OFF",
-        "named-interactions-v1,world-destinations-v1,bounded-navigation-v1,expanded-menu-battle-information-v1,field-dialogue-phase-v1,full-map-navigation-v1,named-warp-destinations-v1",
+        "named-interactions-v1,world-destinations-v1,bounded-navigation-v1,expanded-menu-battle-information-v1,field-dialogue-phase-v1,full-map-navigation-v1,named-warp-destinations-v1,character-presence-v1,battle-details-v2",
     )
     if raw == "":
         return frozenset()
@@ -92,7 +94,14 @@ def format_readout(
         if named_warps and "named-warp-destinations-v1" not in off
         else None
     )
+    # The game's own dynamic warp (SaveBlock1.dynamicWarp) for MAP_DYNAMIC warps; ON side only.
+    dynamic = None
+    if destinations is not None and state.dynamic_warp is not None:
+        group, number, place = state.dynamic_warp
+        dynamic = f"{place} (dynamic warp; map {group}/{number})"
     expanded = "expanded-menu-battle-information-v1" not in off
+    # battle-details-v2 replaces the raw battler/input lines; OFF keeps them byte for byte.
+    details = state.battle_details if expanded and "battle-details-v2" not in off else None
     ui = state.active_ui
     from pokebench_env.ui_state import BIRCH_PHASES, CLOCK_PHASES
 
@@ -121,6 +130,7 @@ def format_readout(
         if expanded and state.resources.bag is not None:
             lines.append(
                 "Bag: "
+                + ("empty" if details is not None and not state.resources.bag else "")
                 + "; ".join(
                     f"{item.name or 'item #' + str(item.item_id)} ×{item.quantity}"
                     for item in state.resources.bag
@@ -143,16 +153,34 @@ def format_readout(
         battle = state.battle
         if battle.diagnostic:
             lines.append(f"HARNESS BUG (battle): {battle.diagnostic}")
-        if expanded:
+        playback = (
+            []
+            if battle.playback is None
+            else [
+                f"Battle playback: {battle.playback.controls}; "
+                f"stoppable {battle.playback.stoppable}; finished {battle.playback.finished}"
+            ]
+        )
+        execution = (
+            []
+            if battle.current_execution is None
+            else [
+                f"Battle execution: {battle.current_execution.phase}; "
+                f"attacker {battle.current_execution.attacker}; "
+                f"target {battle.current_execution.target}; "
+                f"move ID {battle.current_execution.move_id}; "
+                f"result flags {battle.current_execution.move_result_flags}. "
+                "Completion and damage are separate recorded signals."
+            ]
+        )
+        if details is not None:
+            lines += [*details.lines(battle), *playback, *execution]
+        elif expanded:
             lines.append(
                 f"Battle state: {battle.phase}; input {battle.ready}; "
                 f"turn {battle.turn}; outcome {battle.outcome}"
             )
-            if battle.playback is not None:
-                lines.append(
-                    f"Battle playback: {battle.playback.controls}; "
-                    f"stoppable {battle.playback.stoppable}; finished {battle.playback.finished}"
-                )
+            lines += playback
             for actor in battle.battlers or ():
                 lines.append(
                     f"Battler {actor.battler} {actor.species} Lv{actor.level} "
@@ -171,14 +199,7 @@ def format_readout(
                     f"ready {selection.ready}; selected {selection.selected}; "
                     f"target {selection.target_cursor}"
                 )
-            if battle.current_execution is not None:
-                execution = battle.current_execution
-                lines.append(
-                    f"Battle execution: {execution.phase}; attacker {execution.attacker}; "
-                    f"target {execution.target}; move ID {execution.move_id}; "
-                    f"result flags {execution.move_result_flags}. "
-                    "Completion and damage are separate recorded signals."
-                )
+            lines += execution
         else:
             lines.append("Battle details: unprovided")
     if state.story is not None and "story-state-v1" not in off:
@@ -247,6 +268,7 @@ def format_readout(
                 edge_walls="one-way-tiles-v1" not in off,
                 counters="counter-talk-v1" not in off,
                 destinations=destinations,
+                dynamic=dynamic,
             )
             if shown is not None
             else state.local_map
@@ -260,12 +282,15 @@ def format_readout(
         )
         if context != "":
             lines.append(context)
+    if state.story_characters is not None and "character-presence-v1" not in off:
+        lines.append(state.story_characters.text())
     if state.interaction_targets is not None and "world-targets-v1" not in off:
         lines.append("Map interaction candidates (world coordinates; flags/scripts may gate use):")
         lines.extend(
             t.text(
                 named=named_interactions and "named-interactions-v1" not in off,
                 destinations=destinations,
+                dynamic=dynamic,
             )
             for t in state.interaction_targets
         )
@@ -281,7 +306,7 @@ def format_readout(
                 if target.destination is not None:
                     g, n, _ = target.destination
                     name = (
-                        "dynamic destination"
+                        dynamic or "dynamic destination"
                         if (g, n) == (127, 127)
                         else names.get((g, n), f"unknown map {g}/{n}")
                     )

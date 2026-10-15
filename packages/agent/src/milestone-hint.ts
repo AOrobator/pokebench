@@ -75,7 +75,7 @@ export class NextMilestoneHint {
 type HintRecorder=Pick<RunRecorder,"subscribe"|"recordMilestoneHint">;
 export function nextMilestoneHint(features:FeatureSet,recorder:HintRecorder,transform:(messages:AgentMessage[])=>Promise<AgentMessage[]>):{tool:AgentTool;transformContext:(messages:AgentMessage[])=>Promise<AgentMessage[]>}|null {
  if(!features["next-milestone-hint-v1"])return null;
- const hint=new NextMilestoneHint();recorder.subscribe(event=>{hint.observe(event);});
+ const hint=new NextMilestoneHint();recorder.subscribe(event=>{hint.observe(event);},true);
  // The latest milestone message stays pinned until the next one, so context pruning cannot drop it.
  let pinned:string|null=null;
  return {tool:hint.tool(),transformContext:messages=>{

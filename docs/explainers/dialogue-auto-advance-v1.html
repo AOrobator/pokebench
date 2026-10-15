@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dialogue Auto-Advance</title>
+<style>
+:root{--bg:#f8f7f3;--ink:#1d1c1a;--muted:#67635b;--panel:#fff;--edge:#ddd8ce;--accent:#2f5d9e;--bad:#b3352b;--good:#2e7d4f;--warn:#a8701a}
+@media(prefers-color-scheme:dark){:root{--bg:#151514;--ink:#ecebe7;--muted:#a19d94;--panel:#1f1f1d;--edge:#35342f;--accent:#7fa8e6;--bad:#ee7d72;--good:#6cc495;--warn:#e0b060}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+main{max-width:920px;margin:0 auto;padding:24px 16px 60px}h1{font-size:24px;margin:0 0 4px}h2{font-size:18px;margin:30px 0 8px}
+.tag{font-size:12px;color:var(--accent);letter-spacing:.05em}.muted{color:var(--muted)}
+pre{background:var(--panel);border:1px solid var(--edge);border-radius:8px;padding:12px;overflow-x:auto;font:12.5px/1.45 ui-monospace,Menlo,monospace;white-space:pre-wrap}
+table{border-collapse:collapse;width:100%;font-size:13.5px;background:var(--panel)}th,td{border:1px solid var(--edge);padding:6px 8px;text-align:left;vertical-align:top}
+.fig{overflow-x:auto;background:var(--panel);border:1px solid var(--edge);border-radius:8px;padding:10px;margin:0}figcaption{font-size:13px;color:var(--muted);margin-top:6px}
+svg text{fill:var(--ink);font:12px -apple-system,sans-serif}svg .m{fill:var(--muted)}svg .b{fill:var(--bad)}svg .g{fill:var(--good)}
+svg .box{fill:none;stroke:var(--edge);stroke-width:1.5}svg .hl{fill:none;stroke:var(--accent);stroke-width:2.5}svg .ln{stroke:var(--muted);stroke-width:1.5;fill:none}
+</style></head><body><main>
+<div class="tag">POKEBENCH · FEATURE EXPLAINER · dialogue-auto-advance-v1 (default OFF)</div>
+<h1>Dialogue reads itself to the next decision</h1>
+<p>About half of Think Fast's turns are a single A or B press through dialogue. Worse, batches of A re-open the conversation they just closed: the live finals run <code>2026-10-15T14-21-06_think-fast_6684</code> has sent A×8 at the lab scientist since turn 494, so every turn ends mid-print in the same two-page line. With this switch on, once a press or <code>navigate_to</code> opens or continues a field message, the harness presses B itself, page by page, until the game asks the model for a decision. Leftover buttons from the model's batch are dropped, and the model gets every page it passed, whole.</p>
+
+<h2>Before and after: A×8 at the scientist</h2>
+<figure class="fig"><svg viewBox="0 0 860 230" width="860" height="230" role="img" aria-label="Off: eight A presses reopen the conversation. On: one A, B through two pages, seven A dropped">
+<text x="10" y="20" font-weight="600">OFF (today)</text>
+<g transform="translate(10,32)">
+<rect class="box" x="0" y="0" width="60" height="34"/><text x="22" y="22">A</text>
+<rect class="box" x="68" y="0" width="60" height="34"/><text x="90" y="22">A</text>
+<rect class="box" x="136" y="0" width="60" height="34"/><text x="158" y="22">A</text>
+<rect class="box" x="204" y="0" width="60" height="34" stroke="var(--bad)"/><text x="226" y="22" class="b">A</text>
+<rect class="box" x="272" y="0" width="60" height="34" stroke="var(--bad)"/><text x="294" y="22" class="b">A</text>
+<rect class="box" x="340" y="0" width="60" height="34" stroke="var(--bad)"/><text x="362" y="22" class="b">A</text>
+<rect class="box" x="408" y="0" width="60" height="34" stroke="var(--bad)"/><text x="430" y="22" class="b">A</text>
+<rect class="box" x="476" y="0" width="60" height="34" stroke="var(--bad)"/><text x="498" y="22" class="b">A</text>
+<text x="0" y="52" class="m">opens · page 2 · closes</text><text x="204" y="52" class="b">re-opens the same line, pages again, re-opens …</text>
+<text x="550" y="22" class="b">turn ends mid-print; repeat next turn</text>
+</g>
+<text x="10" y="120" font-weight="600">ON</text>
+<g transform="translate(10,132)">
+<rect class="hl" x="0" y="0" width="60" height="34"/><text x="22" y="22">A</text>
+<rect class="box" x="68" y="0" width="76" height="34" stroke="var(--good)"/><text x="76" y="22" class="g">wait print</text>
+<rect class="box" x="152" y="0" width="60" height="34" stroke="var(--good)"/><text x="160" y="22" class="g">B auto</text>
+<rect class="box" x="220" y="0" width="76" height="34" stroke="var(--good)"/><text x="228" y="22" class="g">wait print</text>
+<rect class="box" x="304" y="0" width="60" height="34" stroke="var(--good)"/><text x="312" y="22" class="g">B auto</text>
+<text x="380" y="14">field free → stop</text><text x="380" y="30" class="m">7 A not sent; result lists 2 pages</text>
+<text x="0" y="58" class="m">model's input</text><text x="152" y="58" class="m">harness presses B only when the page waits for input (never while printing)</text>
+</g>
+</svg><figcaption>The same request with the switch off and on. Off, every button is sent and the extra A presses restart the conversation. On, the first A opens it, the harness advances it with B, and the conversation's close drops the remaining seven A presses.</figcaption></figure>
+
+<h2>When it stops</h2>
+<figure class="fig"><svg viewBox="0 0 860 300" width="860" height="300" role="img" aria-label="Decision order for each state read">
+<rect class="hl" x="10" y="10" width="190" height="40" rx="6"/><text x="22" y="34">read game state</text>
+<path class="ln" d="M200 30 H240"/>
+<g transform="translate(240,0)">
+<text x="10" y="24">in_battle → <tspan class="b">stop: battle</tspan></text>
+<text x="10" y="46">naming screen → <tspan class="b">stop: naming</tspan></text>
+<text x="10" y="68">active_ui ready → <tspan class="b">stop: menu</tspan> (options + highlighted named)</text>
+<text x="10" y="90">active_ui not ready (field_transition …) → wait</text>
+<text x="10" y="112">screen not overworld → <tspan class="b">stop: screen change</tspan></text>
+<text x="10" y="134">message ready (page_wait, scroll_wait, button_wait, dismiss_wait) → <tspan class="g">capture page, press B</tspan></text>
+<text x="10" y="156">message printing / scrolling / initializing → wait 100 ms, read again</text>
+<text x="10" y="178">no message, field controls locked (cutscene, script) → wait</text>
+<text x="10" y="200">no message, controls free → <tspan class="b">stop: conversation closed</tspan></text>
+<text x="10" y="236" class="m">Loud caps (each stop is named in the result and the event):</text>
+<text x="10" y="256" class="m">50 automatic B presses per call · 90 s per call · 10 s in one wait kind (locked, not-ready interface, never-ready message)</text>
+</g>
+</svg><figcaption>The order in which each state read is classified. The first matching row decides. Stops at a menu, naming, battle or screen change leave the decision to the model.</figcaption></figure>
+
+<table><tr><th>Bound</th><th>Value</th><th>Stop reason recorded</th></tr>
+<tr><td>Automatic presses per call</td><td>50</td><td><code>press_cap</code>: "AUTO-ADVANCE CAP: stopped after 50 automatic presses; the message is still open"</td></tr>
+<tr><td>Time per call</td><td>90 s</td><td><code>time_cap</code></td></tr>
+<tr><td>Locked with no message</td><td>10 s</td><td><code>locked_no_message</code></td></tr>
+<tr><td>Interface not ready</td><td>10 s</td><td><code>interface_not_ready</code></td></tr>
+<tr><td>Message never ready</td><td>10 s</td><td><code>message_not_ready</code></td></tr>
+<tr><td>Poll interval while waiting</td><td>100 ms</td><td>(none)</td></tr></table>
+
+<h2>How pages are cut</h2>
+<p>The game holds the whole message in its buffer (<code>world_context.dialogue</code>). When a page reaches a wait phase, the printer cursor (<code>world_context.message.cursor</code>) marks where that page ends; the page is the text from the previous cut to the last line break before the cursor. When the message closes, whatever remains is recorded too, because closing passes the last page. A new buffer (new identity) starts a new message. Nothing is clipped. Stops at a cap, a never-ready message or an error record only pages already shown.</p>
+<p>Speaker: the game's own <code>NAME:</code> prefix when the message starts with one (MOM:), carried over to later pages of the conversation; otherwise the object the player faces, from the readout: a person's sprite kind labelled "sprite kind, not a name" (SCIENTIST_1 is not Birch), or a named object such as the PC or Notebook labelled "faced object".</p>
+
+<h2>Recorded example (real game server, CLOCK_SET save)</h2>
+<p class="muted">From an isolated smoke on port 8871 in this worktree's runs/ (not a measured run). The model asked for A×8 facing the notebook in the player's bedroom.</p>
+<pre>pressed A
+Press result: unchanged world position/facing (batch or non-direction input; intermediate effects unknown)
+Dialogue auto-advance: the harness pressed B 4 times to advance the dialogue; stopped: the conversation closed and field controls are free.
+dialogue closed; 7 remaining inputs not sent: A, A, A, A, A, A, A.
+Dialogue shown during this call (4 pages, in order, whole):
+1. turn 1 · LITTLEROOT TOWN BRENDANS HOUSE 2F (map 1/1) · at 1,2 · Notebook (faced object): "AAA flipped open the notebook."
+2. turn 1 · LITTLEROOT TOWN BRENDANS HOUSE 2F (map 1/1) · at 1,2 · Notebook (faced object): "ADVENTURE RULE NO. 1
+Open the MENU with START."
+3. turn 1 · LITTLEROOT TOWN BRENDANS HOUSE 2F (map 1/1) · at 1,2 · Notebook (faced object): "ADVENTURE RULE NO. 2
+Record your progress with SAVE."
+4. turn 1 · LITTLEROOT TOWN BRENDANS HOUSE 2F (map 1/1) · at 1,2 · Notebook (faced object): "The remaining pages are blank…"
+
+&lt;the ordinary screenshot and readout follow&gt;</pre>
+<p>The same smoke at the PC stopped at its menu: <code>stopped: menu pc_player_menu is open: options ITEM STORAGE, MAILBOX, DECORATION, TURN OFF; highlighted ITEM STORAGE.</code> with <code>dialogue reached a decision point; 2 remaining inputs not sent: A, A.</code> Mom's post-clock talk (four pages after the one already on screen) was read with the speaker MOM from her <code>MOM:</code> prefix and stopped once field control returned; she had left the room by then.</p>
+
+<h2>What is recorded</h2>
+<pre>{"type":"dialogue_auto_advance","turn":1,"tool_call_id":"…","tool":"press" | "navigate_to",
+ "requested":["A",…],"sent":["A"],"dropped":["A",…],"auto_presses":4,
+ "pages":[{"state_seq":12,"map":"…","map_id":[1,1],"position":{"x":1,"y":2},
+           "speaker":"Notebook","speaker_source":"name_prefix" | "faced_sprite" | "faced_target" | null,"text":"…whole page…"}],
+ "stop":"field_free" | "menu" | "naming" | "battle" | "screen_change" | "locked_no_message" | "interface_not_ready" | "message_not_ready" | "press_cap" | "time_cap" | "error",
+ "detail":"…","duration_ms":16697}</pre>
+<p>Every automatic B is an ordinary <code>button_press</code> under the same tool call, so replay and the native input history see it. Each page's <code>state_seq</code> points at the recorded state it was cut from. The viewer shows the event in the timeline (a tool-lane marker), the agent trace and Activity History (all pages, whole), and <code>just tail-run</code> prints a DIALOGUE line. <code>get_dialogue</code> searches the same pages by speaker, words, map name or id, newest first (default 10), never clipped.</p>
+
+<h2>Wiring</h2>
+<figure class="fig"><svg viewBox="0 0 860 120" width="860" height="120" role="img" aria-label="Switch wiring">
+<rect class="box" x="10" y="40" width="150" height="40" rx="6"/><text x="22" y="64">preset / switchboard</text>
+<path class="ln" d="M160 60 H200"/>
+<rect class="box" x="200" y="40" width="120" height="40" rx="6"/><text x="214" y="64">FeatureSet</text>
+<path class="ln" d="M320 60 H360"/>
+<rect class="box" x="360" y="40" width="140" height="40" rx="6"/><text x="372" y="64">playGameTools()</text>
+<path class="ln" d="M500 60 H540"/>
+<rect class="hl" x="540" y="30" width="200" height="60" rx="6"/><text x="550" y="54">withDialogueAutoAdvance</text><text x="550" y="74" class="m">wraps press + navigate_to, adds get_dialogue</text>
+<text x="360" y="110" class="m">also: system prompt section and tool list (play-config), dependency + state-only checks (features)</text>
+</svg><figcaption>The one box that changes behavior is highlighted. OFF returns the tool list unchanged: the same press tool object, prompt and tool names.</figcaption></figure>
+<ul>
+<li>Needs <code>active-field-message-buffer-v1</code> (the text) and <code>field-dialogue-phase-v1</code> (the wait phase); presets missing either are refused.</li>
+<li>Works with <code>dialogue-safe-batches-v1</code>: that switch still submits only the first input outside free walking, then this one advances any dialogue it opened. Inputs either switch held back are listed in <code>dropped</code>, so <code>requested</code> = <code>sent</code> + <code>dropped</code>.</li>
+<li>With <code>transition-press-result-v1</code> the Press result line is each sent input's own result, computed on the shared observe/press tracker (several inputs read <code>LEFT: … | then A: …</code>), so a carried-over warp or a restarted conversation is still named.</li>
+<li>The loop supervisor and stall briefing grade an auto-advanced call from its pages (<code>dialogue shown (N pages, advanced automatically)</code>, or <code>restarted a conversation already shown (…)</code> for the same first page at the same map and tile), and the pages count as dialogue shown for the supervisor, <code>recall_dialogue</code> and the instruction ledger (each page cites its own state event).</li>
+<li>Refused with <code>state-only-decisions-v1</code>, which has no press tool to wrap.</li>
+<li>A free-field walking batch is sent whole as before; any other batch is sent one input at a time so the harness can stop the moment a conversation opens.</li>
+</ul>
+
+<h2>Status</h2>
+<p>Branch <code>claude/dialogue-auto-advance</code>. Agent and viewer tests, lint, build and both coverage gates pass; one live smoke against the real game server (above). Not done: the multi-model review, and any measured runs. Pending experiment <code>experiments/dialogue-auto-advance.json</code> (activation NEW_GAME_CREATED) joins the strong-bundle cohort only with the operator's approval. The Birch intro speech and battle text are separate screens and are not advanced.</p>
+</main></body></html>

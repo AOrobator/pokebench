@@ -42,10 +42,10 @@ it("records contradictions only with evidence the model was shown",async()=>{
  expect(l.text().match(/expected:/g)).toHaveLength(8);
 });
 
-it("stays bounded and honest when position, names or dialogue are unavailable",()=>{
+it("keeps every pinned entry whole and stays honest when position, names or dialogue are unavailable",()=>{
  const big=new InstructionLedger(ALL_ON);
  for(let i=0;i<50;i++)deliver(big,i*2+1,{...said(`${String(i)} ${"x".repeat(2000)}`),location:`ROOM ${String(i)}`});
- expect(big.text().length).toBeLessThanOrEqual(4000);
+ expect(big.text()).toContain(`49 ${"x".repeat(2000)}`);expect(big.text()).not.toContain("truncated");
  const plain=new InstructionLedger({...ALL_ON,"named-interactions-v1":false,"live-player-position-v1":false});
  deliver(plain,1,said("Hi."));
  expect(plain.text()).not.toContain("MOM");expect(plain.text()).not.toContain("3,4");

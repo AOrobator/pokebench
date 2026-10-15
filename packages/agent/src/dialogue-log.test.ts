@@ -54,13 +54,13 @@ it("filters by words and room, case-insensitively, and limits how many entries c
  expect(await recall(log,{contains:"nothing like this"})).toContain("No recorded dialogue matches");
 });
 
-it("bounds a reply even when single pages are huge",async()=>{
+it("returns every requested page whole, however long",async()=>{
  const log=new DialogueLog(ALL_ON);
  for(let i=0;i<20;i++)deliver(log,i*2+1,{world_context:{objects:[],triggers:[],dialogue:`${String(i)} ${"x".repeat(3000)}`}});
  const text=await recall(log,{last:20});
- expect(text.length).toBeLessThanOrEqual(6000);
- expect(text).toContain("truncated");
- expect(text).toMatch(/omitted/);
+ for(let i=0;i<20;i++)expect(text).toContain(`${String(i)} ${"x".repeat(3000)}`);
+ expect(text).not.toMatch(/truncated|omitted/);
+ expect(text).toContain("20 shown.");
 });
 
 it("states the faced character only when the readout supports it",async()=>{

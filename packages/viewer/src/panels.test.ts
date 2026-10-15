@@ -3,7 +3,7 @@ import { Window } from "happy-dom";
 import { BASE_MS, Log, RUN, START, assistant, fullRun, must, state } from "../test-support/events.js";
 import { RunView, foldUntil } from "./model.js";
 import { stepOf } from "../test-support/trace.js";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
   FEATURE_EXPLAINERS,
@@ -552,6 +552,28 @@ it("maps game evidence priority to a tracked explainer, like every other mapped 
  for(const file of Object.values(FEATURE_EXPLAINERS))expect(existsSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url)))).toBe(true);
 });
 
+it("renders every mapped explainer's body as a page, not as stylesheet text",()=>{
+ for(const file of new Set(Object.values(FEATURE_EXPLAINERS))){
+  const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url)),"utf8");
+  const doc=new Window().document;doc.write(html);
+  const heading=doc.querySelector("body h1");
+  expect(heading?.textContent.trim(),file).toBeTruthy();
+  for(const style of doc.querySelectorAll("style"))expect(style.textContent,file).not.toMatch(/<body|<h1/);
+ }
+});
+
+it("links the battle details v2 card to its tracked explainer",()=>{
+ expect(FEATURE_EXPLAINERS["battle-details-v2"]).toBe("battle-details-v2.html");
+});
+
+it("keeps the battle details v2 explainer to what the readout does: no escape formula, no reads while off",()=>{
+ const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/battle-details-v2.html",import.meta.url)),"utf8");
+ expect(html).not.toMatch(/the formula with/);
+ expect(html).not.toMatch(/gathered every battle poll/);
+ expect(html).toContain("allowed — guaranteed, or not guaranteed");
+ expect(html).toContain("the facts are read only while the switch is on");
+});
+
 it("documents recall_dialogue and links the dialogue log explainer",()=>{
  const log=new Log();log.add(0,{...START,tools:["observe","press","recall_dialogue"]});
  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log));
@@ -609,6 +631,12 @@ it("links the fresh retry card to its explainer",()=>{
 
 it("links the named warp destinations card to its explainer",()=>{
  expect(FEATURE_EXPLAINERS["named-warp-destinations-v1"]).toBe("named-warp-destinations-v1.html");
+ expect(FEATURE_EXPLAINERS["character-presence-v1"]).toBe("character-presence-v1.html");
+ expect(FEATURE_EXPLAINERS["dialogue-auto-advance-v1"]).toBe("dialogue-auto-advance-v1.html");
+});
+
+it("links the stall briefing card to its explainer",()=>{
+ expect(FEATURE_EXPLAINERS["stall-briefing-v1"]).toBe("stall-briefing-v1.html");
 });
 
 it("links the text-only supervisor card to its explainer",()=>{
@@ -616,6 +644,9 @@ it("links the text-only supervisor card to its explainer",()=>{
 });
 it("links the milestone stall stop card to its explainer",()=>{
  expect(FEATURE_EXPLAINERS["milestone-stall-stop-v1"]).toBe("milestone-stall-stop-v1.html");
+});
+it("links the navigation refusal reasons card to its explainer",()=>{
+ expect(FEATURE_EXPLAINERS["navigation-refusal-reasons-v1"]).toBe("navigation-refusal-reasons-v1.html");
 });
 
 it("shows the experiment, arm and trial strip, the preset, or just the model and run",()=>{
@@ -631,4 +662,8 @@ it("shows the experiment, arm and trial strip, the preset, or just the model and
  expect(cells(runIdentity(view(presetOnly))).out).toEqual(["PRESET=checkpoint-clock-set","MODEL · THINKING=think-swarm · medium",`RUN=…${RUN.slice(-4)}`]);
  expect(cells(runIdentity(view(fullRun()))).out).toEqual(["MODEL · THINKING=think-swarm · medium",`RUN=…${RUN.slice(-4)}`]);
  expect(runIdentity(new RunView())).toBe("");
+});
+
+it("links the transition press results card to its explainer",()=>{
+ expect(FEATURE_EXPLAINERS["transition-press-result-v1"]).toBe("transition-press-result-v1.html");
 });

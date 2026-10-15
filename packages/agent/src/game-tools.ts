@@ -235,7 +235,7 @@ export function pressTool(
       await clock.sleep(STATE_CACHE_SETTLE_MS);
       await hooks.afterPress();
       const content = await observation(gameServerUrl, fetchFn, signal, (after) => `pressed ${buttons.join(", ")}\n${buttons.length < params.buttons.length ? `Interface safety: submitted 1 of ${String(params.buttons.length)} requested inputs; remaining inputs were not sent. Inspect the new state before another input.\n` : ""}${switches.pressResult ? `Press result: ${pressResult(before, after, buttons, switches, shown)}\n` : ""}\n`);
-      shown.record(content.state);
+      shown.record(content.state, before);
       return { content: content.content, details: { state: content.state } };
   };
   return {

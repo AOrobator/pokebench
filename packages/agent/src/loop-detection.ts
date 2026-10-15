@@ -284,10 +284,11 @@ export class LoopDetector {
     return `LOOP GUARD (${this.episode.kind}): ${this.episode.message} Recovery is bounded; objective wording and new evidence IDs alone do not establish progress.`;
   }
 
-  private restartedConversation(state: GameStateSnapshot | undefined): boolean {
+  private restartedConversation(state: GameStateSnapshot | undefined, before: GameStateSnapshot | undefined): boolean {
     if (state === undefined || state.screen !== "overworld") return false;
     const c = this.conversation;
-    const place = JSON.stringify([state.location, state.map_id, state.position]);
+    const placeOf = (s: GameStateSnapshot): string => JSON.stringify([s.location, s.map_id, s.position]);
+    const place = placeOf(state);
     const text = state.world_context?.dialogue ?? null;
     const cursor = state.world_context?.message?.cursor ?? null;
     if (text === null || text === "") {
@@ -296,8 +297,11 @@ export class LoopDetector {
       if (place !== c.place) Object.assign(c, { text: "", place, restarts: 0 });
       return false;
     }
+    // The press itself printed the text again: the pre-press snapshot showed it further along in the same place.
+    const was = before?.world_context?.message?.cursor ?? null;
+    const reprinted = before !== undefined && before.world_context?.dialogue === text && placeOf(before) === place && cursor !== null && was !== null && cursor < was;
     if (text === c.text && place === c.place) {
-      if (!c.open || (cursor !== null && c.cursor !== null && cursor < c.cursor)) c.restarts++;
+      if (!c.open || (cursor !== null && c.cursor !== null && cursor < c.cursor) || reprinted) c.restarts++;
     } else Object.assign(c, { text, place, restarts: 0 });
     c.open = true;
     c.cursor = cursor;
@@ -367,7 +371,7 @@ export class LoopDetector {
           if (this.messageVisits.length > 12) this.messageVisits.shift();
         }
         if(messageKey !== "" && this.messageVisits.filter(item=>item===messageKey).length >= this.policy.ineffective) hit ??= "cycle";
-        if (this.interactions && this.restartedConversation(call.state)) hit ??= "cycle";
+        if (this.interactions && this.restartedConversation(call.state, call.beforeState)) hit ??= "cycle";
         if (this.ineffective.count >= this.policy.ineffective)
           hit ??= "ineffective";
         if (eligible && fingerprint !== null && before !== null) {

@@ -10,6 +10,7 @@ export type Stall=
  | {readonly kind:"milestone_drought";readonly minutes:number};
 
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
+interface Call {readonly name:string;readonly args:Record<string,unknown>;before:State|null;pressed:boolean}
 type Advance=Extract<RunEvent,{type:"dialogue_auto_advance"}>;
 type Page=Advance["pages"][number];
 interface Tried {readonly key:string;readonly room:string;readonly label:string;count:number;outcome:string}
@@ -28,7 +29,7 @@ export class SupervisorBriefing {
  private progress:{turn:number;name:string}|null=null;
  private turn=0;
  private readonly dialogue:DialogueLog;
- private readonly calls=new Map<string,{name:string;args:Record<string,unknown>;before:State|null}>();
+ private readonly calls=new Map<string,Call>();
  private readonly tried:Tried[]=[];
  private readonly touched=new Map<string,Set<string>>();
  private readonly hint:NextMilestoneHint|null;
@@ -49,8 +50,15 @@ export class SupervisorBriefing {
    return;
   }
   if(event.type==="tool_call"&&(event.name==="press"||event.name==="navigate_to")){
-   this.calls.set(event.id,{name:event.name,args:event.args,before:this.latest});
+   this.calls.set(event.id,{name:event.name,args:event.args,before:this.latest,pressed:false});
    if(this.calls.size>16)this.calls.delete(this.calls.keys().next().value??"");
+   return;
+  }
+  // The snapshot taken just before the first button is what the press acted on; the earlier shown state may be stale.
+  if(event.type==="button_press"){
+   const call=this.calls.get(event.tool_call_id);
+   const pre=this.measured;
+   if(call!==undefined&&!call.pressed&&pre!==null&&pre.seq===event.before_state_seq&&pre.started&&pre.screen==="overworld"){call.before=pre;call.pressed=true;}
    return;
   }
   if(event.type!=="tool_result"||event.state_seq===undefined||this.measured?.seq!==event.state_seq)return;
@@ -64,6 +72,7 @@ export class SupervisorBriefing {
   if(call!==undefined&&label!==null){
    const where=call.before??after;
    this.remember(this.room(where),roomOf(where,this.features),label,this.outcome(call.before,after,auto?.pages??[]));
+   if(call.before!==null&&this.room(call.before)===this.room(after)&&this.moved(call.before,after))this.touchSteppedTrigger(after);
   }
   for(const page of auto?.pages??[])this.heard.add(this.pageOpening(page));
   const dialogue=after.world_context?.dialogue;
@@ -83,7 +92,7 @@ export class SupervisorBriefing {
  private touch(room:string,tile:string):void {
   const tiles=this.touched.get(room)??new Set<string>();tiles.add(tile);this.touched.set(room,tiles);
  }
- private label(call:{name:string;args:Record<string,unknown>;before:State|null}):string|null {
+ private label(call:Call):string|null {
   if(call.name==="navigate_to"){
    const x=call.args["x"],y=call.args["y"];
    if(typeof x!=="number"||typeof y!=="number")return "navigate_to (invalid target)";
@@ -115,16 +124,26 @@ export class SupervisorBriefing {
    const shown=`${String(pages.length)} page${pages.length===1?"":"s"}, advanced automatically`;
    return this.heard.has(this.pageOpening(first))?`restarted a conversation already shown (${shown})`:`dialogue shown (${shown})`;
   }
-  if(this.features["live-player-position-v1"]&&before.position!==null&&after.position!==null&&at(before.position.x,before.position.y)!==at(after.position.x,after.position.y))return `moved to ${at(after.position.x,after.position.y)}`;
+  if(this.moved(before,after)&&after.position!==null)return `moved to ${at(after.position.x,after.position.y)}`;
   if(this.features["active-field-message-buffer-v1"]){
    const was=before.world_context?.dialogue??null,now=after.world_context?.dialogue??null;
    if(was!==null&&now===null)return "dialogue closed";
    if(was===null&&now!==null&&this.heard.has(this.opening(after,now)))return "restarted a conversation already shown";
    if(was!==now)return "dialogue changed";
+   // Same text, same tile, and the print cursor went back: the press closed the conversation and opened it again.
+   if(now!==null&&this.heard.has(this.opening(after,now))&&(after.world_context?.message?.cursor??Infinity)<(before.world_context?.message?.cursor??-Infinity))return "restarted a conversation already shown";
    const a=before.world_context?.message??null,b=after.world_context?.message??null;
    if(now!==null&&(a?.cursor!==b?.cursor||a?.phase!==b?.phase))return "dialogue advanced";
   }
   return "no change";
+ }
+ private moved(before:State,after:State):boolean {
+  return this.features["live-player-position-v1"]&&before.position!==null&&after.position!==null&&at(before.position.x,before.position.y)!==at(after.position.x,after.position.y);
+ }
+ // Walking onto a step-activated target is how it is tried; standing on a tile for other reasons is not.
+ private touchSteppedTrigger(after:State):void {
+  const p=after.position;if(p===null||!this.features["world-targets-v1"])return;
+  if((after.interaction_targets??[]).some(t=>t.activation==="step"&&t.x===p.x&&t.y===p.y))this.touch(this.room(after),at(p.x,p.y));
  }
  private remember(key:string,room:string,label:string,outcome:string):void {
   const index=this.tried.findIndex(t=>t.key===key&&t.label===label&&t.outcome===outcome);

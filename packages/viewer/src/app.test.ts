@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {NAME_CONFIRMED} from "../../agent/test-support/events.js";
 import { parseEvent, type RunEvent } from "@pokebench/agent/events";
-import { BASE_MS, Log, START, fullRun, m4Run, must, state } from "../test-support/events.js";
+import { BASE_MS, Log, START, assistant, fullRun, m4Run, must, state } from "../test-support/events.js";
 import { boot, mountApp, type App, type AppDeps, type StreamLike } from "./app.js";
 
 const PAGE = readFileSync(join(import.meta.dirname, "../static/index.html"), "utf8");
@@ -933,6 +933,38 @@ describe("agent trace page", () => {
     }
   });
 
+  it("keeps a row open when a chip hides its turn and shows it again", async () => {
+    const { app, streams } = await harness(`#run=${M4_ID}`);
+    feed(must(streams[0]), m4Run());
+    app.tick(60_000);
+    const row = must(ui("trace").querySelector<HTMLDetailsElement>('details[data-c="think"]'));
+    const key = must(row.dataset.key);
+    row.open = true;
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const on = [...ui("trace-chips").querySelectorAll<HTMLButtonElement>('[data-chip][aria-pressed="true"]')];
+    for (const chip of on) chip.click();
+    expect(ui("trace").querySelector("[data-key]")).toBeNull();
+    must(on.find((chip) => chip.dataset.chip === "think")).click();
+    const again = must(ui("trace").querySelector<HTMLDetailsElement>(`details[data-key="${key}"]`));
+    expect(again).not.toBe(row);
+    expect(again.open).toBe(true);
+  });
+
+  it("goes back to the newest turn when the pointer leaves a list it held at the top", async () => {
+    const { app, streams } = await harness(`#run=${M4_ID}`);
+    feed(must(streams[0]), m4Run());
+    app.tick(60_000);
+    const box = ui("trace");
+    box.dispatchEvent(new Event("mouseenter"));
+    box.scrollTop = 120;
+    box.dispatchEvent(new Event("mouseleave"));
+    expect(box.scrollTop).toBe(0);
+    box.scrollTop = 120;
+    box.dispatchEvent(new Event("mouseenter"));
+    box.dispatchEvent(new Event("mouseleave"));
+    expect(box.scrollTop).toBe(120);
+  });
+
   it("collapses and expands every row", async () => {
     const { app, streams } = await harness(`#run=${M4_ID}`);
     feed(must(streams[0]), m4Run());
@@ -1002,6 +1034,10 @@ describe("side panel", () => {
     expect(order.indexOf("emer")).toBeLessThan(order.indexOf("side-trace trace"));
     const rows = [...ui("side-trace").querySelectorAll<HTMLElement>("[data-key]")];
     expect(rows.map((row) => row.dataset.c)).toEqual(["think", "act", "ms", "ms"]);
+    feed(must(streams[0]), [log.add(4_200, assistant({ turn: 2, thinking: "Next I go up." }))], false);
+    app.tick(100);
+    expect(ui("think-head").textContent).toMatch(/^AGENT thought for/);
+    expect(ui("side-trace").textContent).not.toContain("Next I go up.");
     expect(ui("side-trace").textContent).not.toContain("Disk usage");
     expect(ui("side-trace").querySelector(".tg")?.textContent).toBe("T1");
     must(rows[1]?.querySelector("summary")).click();

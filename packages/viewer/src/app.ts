@@ -42,17 +42,22 @@ const LIVE_SCREEN_MS = 500;
 const TRACE_TURNS = 50;
 const SIDE_TURNS = 30;
 
-// Redrawing a turn keeps what the operator opened, folded or selected in it.
-function replacePreserving(group: HTMLElement, html: string): void {
-  const open = new Set([...group.querySelectorAll<HTMLDetailsElement>("details[data-key][open]")].map((row) => row.dataset.key));
-  const folded = new Set([...group.querySelectorAll<HTMLDetailsElement>("details.res-d:not([open])")].map((result) => result.closest<HTMLElement>("[data-key]")?.dataset.key));
-  const selected = group.querySelector<HTMLElement>("[data-key].sel")?.dataset.key;
-  group.innerHTML = html;
+// What the operator opened, folded or selected, by row key. It is reapplied to
+// every redrawn or newly drawn turn, so a row stays open when its turn is
+// redrawn, hidden by a chip and shown again, or reloaded by SHOW OLDER.
+interface RowState {
+  readonly open: Set<string>;
+  readonly folded: Set<string>;
+  selected: string | null;
+}
+
+function applyState(group: HTMLElement, state: RowState): void {
   for (const row of group.querySelectorAll<HTMLElement>("[data-key]")) {
-    if (row instanceof HTMLDetailsElement && open.has(row.dataset.key)) row.open = true;
+    const key = row.dataset.key ?? "";
+    if (row instanceof HTMLDetailsElement && state.open.has(key)) row.open = true;
     const result = row.querySelector<HTMLDetailsElement>("details.res-d");
-    if (result !== null && folded.has(row.dataset.key)) result.open = false;
-    if (row.dataset.key === selected) row.classList.add("sel");
+    if (result !== null && state.folded.has(key)) result.open = false;
+    row.classList.toggle("sel", key === state.selected);
   }
 }
 
@@ -71,7 +76,7 @@ function anchorOf(box: HTMLElement, held: boolean): { readonly find: () => HTMLE
 
 // Updates the list turn by turn: unchanged turns keep their elements, so a click
 // or keyboard focus is never lost to a live update, and the reader's row stays put.
-function reconcile(box: HTMLElement, groups: readonly TraceGroup[], tail: string, stamps: WeakMap<HTMLElement, string>, held: boolean): void {
+function reconcile(box: HTMLElement, groups: readonly TraceGroup[], tail: string, stamps: WeakMap<HTMLElement, string>, held: boolean, state: RowState): void {
   const anchor = anchorOf(box, held);
   const existing = new Map<string, HTMLElement>();
   for (const child of [...box.children] as HTMLElement[]) {
@@ -88,8 +93,10 @@ function reconcile(box: HTMLElement, groups: readonly TraceGroup[], tail: string
       element.className = "tgroup";
       element.dataset.group = group.key;
       element.innerHTML = group.html();
+      applyState(element, state);
     } else if (stamps.get(element) !== group.stamp) {
-      replacePreserving(element, group.html());
+      element.innerHTML = group.html();
+      applyState(element, state);
     }
     stamps.set(element, group.stamp);
     if (box.children[at] !== element) box.insertBefore(element, box.children[at] ?? null);
@@ -164,6 +171,8 @@ export class App {
   private readonly stamps = new WeakMap<HTMLElement, string>();
   // Lists under the pointer hold still while newer turns arrive, so a click lands where aimed.
   private readonly held = new Set<HTMLElement>();
+  private readonly heldAtTop = new Set<HTMLElement>();
+  private rows: RowState = { open: new Set(), folded: new Set(), selected: null };
   private screenTick = 0;
   private sinceScreen = 0;
   private liveFailedAt: number | null = null;
@@ -364,8 +373,24 @@ export class App {
     this.ui("side-trace").addEventListener("click", (event) => { this.inspectRow(event.target as HTMLElement); });
     for (const name of ["trace", "side-trace"]) {
       const list = this.ui(name);
-      list.addEventListener("mouseenter", () => this.held.add(list));
-      list.addEventListener("mouseleave", () => this.held.delete(list));
+      list.addEventListener("mouseenter", () => {
+        this.held.add(list);
+        if (list.scrollTop <= 0) this.heldAtTop.add(list);
+      });
+      // A list held at the top goes back to following the newest turn.
+      list.addEventListener("mouseleave", () => {
+        this.held.delete(list);
+        if (this.heldAtTop.delete(list)) list.scrollTop = 0;
+      });
+      list.addEventListener("toggle", (event) => {
+        const details = event.target as HTMLDetailsElement;
+        const key = details.closest<HTMLElement>("[data-key]")?.dataset.key;
+        if (key === undefined) return;
+        const set = details.classList.contains("res-d") ? this.rows.folded : this.rows.open;
+        const remember = details.classList.contains("res-d") ? !details.open : details.open;
+        if (remember) set.add(key);
+        else set.delete(key);
+      }, true);
     }
     this.ui("trace-link").addEventListener("click", () => {
       this.showPage("trace");
@@ -603,6 +628,7 @@ export class App {
     this.traced = 0;
     this.traceKey = "";
     this.traceLimit = TRACE_TURNS;
+    this.rows = { open: new Set(), folded: new Set(), selected: null };
     for (const name of ["trace", "side-trace"]) this.doc.querySelector<HTMLElement>(`[data-ui="${name}"]`)?.replaceChildren();
   }
 
@@ -626,6 +652,7 @@ export class App {
     const row = target.closest<HTMLElement>("[data-key]");
     if (row === null) return;
     for (const selected of this.doc.querySelectorAll(".tl.sel")) selected.classList.remove("sel");
+    this.rows.selected = row.dataset.key ?? null;
     for (const same of this.doc.querySelectorAll<HTMLElement>(`[data-key="${row.dataset.key ?? ""}"]`)) same.classList.add("sel");
     const seqs = (row.dataset.seqs ?? "").split(" ").map(Number);
     this.setHtml("inspector", seqs.map((seq) => inspector(this.shown.bySeq(seq))).join(""));
@@ -635,7 +662,7 @@ export class App {
     const events = this.shown.events;
     for (; this.traced < events.length; this.traced += 1) this.trace.add(events[this.traced] as RunEvent);
     const live = this.shown.isThinking ? { turn: this.shown.turn } : null;
-    const key = `${String(this.trace.version)}|${[...this.traceOn].join(",")}|${String(this.traceLimit)}|${String(live?.turn ?? "")}`;
+    const key = `${String(this.trace.version)}|${[...this.traceOn].sort().join(",")}|${String(this.traceLimit)}|${String(live?.turn ?? "")}`;
     const box = this.ui("trace");
     if (key !== this.traceKey) {
       const versionChanged = this.traceKey.split("|")[0] !== String(this.trace.version);
@@ -643,11 +670,13 @@ export class App {
       this.renderChips();
       if (versionChanged) {
         const side = this.ui("side-trace");
-        const groups = sideGroups(this.trace.turns, SIDE_TURNS);
-        reconcile(side, groups, groups.length === 0 ? '<p class="nodata">no steps yet</p>' : "", this.stamps, this.held.has(side));
+        const groups = sideGroups(this.trace.turns, SIDE_TURNS, this.shown.isThinking ? null : this.shown.lastThought?.turn ?? null);
+        reconcile(side, groups, groups.length === 0 ? '<p class="nodata">no steps yet</p>' : "", this.stamps, this.held.has(side), this.rows);
       }
-      const { groups, more } = traceGroups(this.trace.turns, this.traceOn, { startMs: this.shown.startMs, live, limit: this.traceLimit, page: TRACE_TURNS });
-      reconcile(box, groups, groups.length === 0 ? '<p class="nodata">no recorded events</p>' : moreButton(more, TRACE_TURNS), this.stamps, this.held.has(box));
+      const startMs = this.shown.startMs;
+      const elapsed = startMs === null ? null : (ms: number): number => (ms - startMs - this.shown.control.pausedBefore(ms)) / 1000;
+      const { groups, more } = traceGroups(this.trace.turns, this.traceOn, { elapsed, live, limit: this.traceLimit, page: TRACE_TURNS });
+      reconcile(box, groups, groups.length === 0 ? '<p class="nodata">no recorded events</p>' : moreButton(more, TRACE_TURNS), this.stamps, this.held.has(box), this.rows);
     }
     if (live !== null) {
       const { thinking, text } = this.shown.streaming;

@@ -48,7 +48,7 @@ class Entry {
   readonly category: TraceCategory;
   private cached: TraceStep | null = null;
   private row: string | null = null;
-  constructor(first: RunEvent, readonly home: TraceTurn, readonly label: string | null = null) {
+  constructor(first: RunEvent, readonly label: string | null = null) {
     this.events = [first];
     this.category = categoryOf(first);
   }
@@ -57,7 +57,6 @@ class Entry {
     this.events.push(event);
     this.cached = null;
     this.row = null;
-    this.home.version += 1;
   }
 
   // Built once per change: a long run rerenders without re-escaping old results.
@@ -66,16 +65,23 @@ class Entry {
     return this.cached;
   }
 
+  // Keep only the row: the step's body would hold a second copy of the result text.
   html(): string {
-    this.row ??= traceRow(this.step());
+    if (this.row === null) {
+      this.row = traceRow(this.step());
+      this.cached = null;
+    }
     return this.row;
+  }
+
+  // Changes exactly when this entry's row would.
+  get stamp(): string {
+    return `${String(this.events[0]?.seq)}:${String(this.events.length)}`;
   }
 }
 
 export class TraceTurn {
   readonly entries: Entry[] = [];
-  // Bumped whenever this turn's rows change, so the viewer redraws only that turn.
-  version = 0;
   constructor(readonly turn: number, readonly ms: number) {}
   inputTokens: number | null = null;
 
@@ -106,11 +112,10 @@ export class TraceBuilder {
     if (turn?.turn !== event.turn) {
       turn = this.turns.find((t) => t.turn === event.turn) ?? this.insert(new TraceTurn(event.turn, eventMs(event)));
     }
-    const entry = new Entry(event, turn, event.type === "loop_guard" && this.loopLabel !== undefined ? this.loopLabel(event) : null);
+    const entry = new Entry(event, event.type === "loop_guard" && this.loopLabel !== undefined ? this.loopLabel(event) : null);
     if (event.type === "tool_call") this.tools.set(event.id, entry);
     if (event.type === "assistant") turn.inputTokens = event.usage.input;
     turn.entries.push(entry);
-    turn.version += 1;
     this.counts[entry.category] += 1;
   }
 
@@ -222,20 +227,22 @@ function resultSummary(result: Of<"tool_result">): string {
 }
 
 function tool(entry: Entry, call: Of<"tool_call">): TraceStep {
-  const press = entry.events.find((e): e is Of<"button_press"> => e.type === "button_press");
+  // navigate_to records one press per step, all under one call.
+  const presses = entry.events.filter((e): e is Of<"button_press"> => e.type === "button_press");
+  const press = call.name === "press" ? presses[0] : undefined;
   const wait = entry.events.find((e): e is Of<"wait_input"> => e.type === "wait_input");
   const result = entry.events.find((e): e is Of<"tool_result"> => e.type === "tool_result");
   const args = JSON.stringify(call.args ?? null);
   const icon = call.name === "press" ? "BTN" : call.name === "navigate_to" ? "NAV" : call.name === "observe" ? "EYE" : esc(call.name.slice(0, 3).toUpperCase());
   const title = press !== undefined ? `Pressed ${press.buttons.map(chip).join("")}` : `<code>${esc(call.name)}</code> <span class="dim">${esc(args.length > 80 ? `${args.slice(0, 80)}…` : args)}</span>`;
   const status = result === undefined ? null : result.is_error ? "error" : /^Navigation: no supported path|unchanged world position/m.test(result.text) ? "warn" : null;
-  const details = [`${esc(call.name)}(${esc(args)})`, press === undefined ? null : eventText(press), wait === undefined ? null : eventText(wait)].filter((x) => x !== null).join(" · ");
+  const details = [`${esc(call.name)}(${esc(args)})`, ...presses.map((p) => eventText(p)), wait === undefined ? null : eventText(wait)].filter((x) => x !== null).join(" · ");
   const frames = result === undefined || result.frames.length === 0 ? "" : `<div class="args">${result.frames.map((f) => esc(f.path)).join(" · ")}</div>`;
   const body = `<div class="args">${details}</div>${result === undefined ? '<p class="nodata">waiting for result</p>' : `<details class="res-d" open><summary class="res-head"><span class="tog">tool_result · ${esc(result.name)} · ${num(result.text.length)} chars · ${String(result.duration_ms)} ms</span><span>#${String(result.seq)}</span></summary><pre class="res">${esc(result.text)}</pre>${frames}</details>`}`;
   return {
     ...base(entry), category: "act", iconHtml: icon, tone: status === "error" ? "error" : status === "warn" ? "warn" : "ok", titleHtml: title,
     summaryHtml: result === undefined ? "waiting for result" : `→ ${esc(resultSummary(result))}`,
-    desc: `#${String(call.seq)}${result === undefined ? "" : ` · ${String(result.duration_ms)} ms`}`, status, body,
+    desc: `#${String(call.seq)}${presses.length > 1 ? ` · ${String(presses.length)} presses` : ""}${result === undefined ? "" : ` · ${String(result.duration_ms)} ms`}`, status, body,
   };
 }
 
@@ -263,7 +270,8 @@ export function traceRow(step: TraceStep, gutter?: string): string {
 }
 
 export interface TraceOptions {
-  readonly startMs: number | null;
+  // Run time at an event (operator pauses excluded); null before the run starts.
+  readonly elapsed: ((ms: number) => number) | null;
   readonly live: { readonly turn: number } | null;
   // Turns on screen, and how many more each SHOW OLDER click adds.
   readonly limit: number;
@@ -280,8 +288,8 @@ export interface TraceGroup {
 
 const LIVE_ROW = '<div class="tl tl-think live-row" data-c="think"><div class="tl-row"><span class="tl-icon ic-think pulse">THK</span><span class="tl-title shimmer">Thinking</span><span class="tl-res">current turn · always open</span><span class="tl-desc" data-live-secs></span><span class="st running">running</span><span class="chev blank"></span></div><div class="tl-body always"><div class="thought" data-live-text></div></div></div>';
 
-function turnHead(turn: number, ms: number | null, startMs: number | null, tokens: number | null): string {
-  const meta = [startMs === null || ms === null ? null : hms((ms - startMs) / 1000), tokens === null ? null : `${num(tokens)} tok in`].filter((x) => x !== null).join(" · ");
+function turnHead(turn: number, ms: number | null, elapsed: ((ms: number) => number) | null, tokens: number | null): string {
+  const meta = [elapsed === null || ms === null ? null : hms(elapsed(ms)), tokens === null ? null : `${num(tokens)} tok in`].filter((x) => x !== null).join(" · ");
   return `<div class="turn-h">${turn === 0 ? "RUN START" : `TURN ${String(turn)}`} <span class="meta">${meta}</span></div>`;
 }
 
@@ -295,17 +303,18 @@ export function traceGroups(turns: readonly TraceTurn[], on: ReadonlySet<TraceCa
   for (let i = turns.length - 1; i >= 0; i -= 1) {
     const turn = turns[i] as TraceTurn;
     const isLive = live?.turn === turn.turn;
-    const shown = turn.entries.filter((entry) => on.has(entry.category));
-    if (shown.length === 0 && !isLive) continue;
     // Only the turns on screen become HTML; the rest are counted.
     if (groups.length >= options.limit) {
-      more += 1;
+      if (isLive || turn.entries.some((entry) => on.has(entry.category))) more += 1;
       continue;
     }
+    const shown = turn.entries.filter((entry) => on.has(entry.category));
+    if (shown.length === 0 && !isLive) continue;
+    // Rows hidden by a chip never change the stamp, so they never redraw the turn.
     groups.push({
       key: `t${String(turn.turn)}`,
-      stamp: `${String(turn.version)}|${filter}|${String(isLive)}|${String(options.startMs)}`,
-      html: () => turnHead(turn.turn, turn.ms, options.startMs, turn.inputTokens) + shown.map((entry) => entry.html()).join("") + (isLive ? LIVE_ROW : ""),
+      stamp: `${shown.map((entry) => entry.stamp).join(",")}|${String(turn.inputTokens)}|${filter}|${String(isLive)}|${String(options.elapsed !== null)}`,
+      html: () => turnHead(turn.turn, turn.ms, options.elapsed, turn.inputTokens) + shown.map((entry) => entry.html()).join("") + (isLive ? LIVE_ROW : ""),
     });
   }
   return { groups, more };
@@ -323,17 +332,18 @@ export function traceHtml(turns: readonly TraceTurn[], on: ReadonlySet<TraceCate
 }
 
 // The side panel's earlier steps: agent and harness only, newest turn first.
-export function sideGroups(turns: readonly TraceTurn[], limit: number): TraceGroup[] {
+// `boxTurn` is the turn whose thought the Emerald box shows; it is not repeated here.
+export function sideGroups(turns: readonly TraceTurn[], limit: number, boxTurn: number | null = null): TraceGroup[] {
   const groups: TraceGroup[] = [];
   for (let i = turns.length - 1; i >= 0 && groups.length < limit; i -= 1) {
     const turn = turns[i] as TraceTurn;
-    const shown = turn.entries.filter((entry) => SIDE.has(entry.category));
-    if (shown.length > 0) groups.push({ key: `t${String(turn.turn)}`, stamp: String(turn.version), html: () => shown.map((entry, j) => traceRow(entry.step(), j === 0 ? `T${String(turn.turn)}` : "")).join("") });
+    const shown = turn.entries.filter((entry) => SIDE.has(entry.category) && !(entry.category === "think" && turn.turn === boxTurn));
+    if (shown.length > 0) groups.push({ key: `t${String(turn.turn)}`, stamp: shown.map((entry) => entry.stamp).join(","), html: () => shown.map((entry, j) => traceRow(entry.step(), j === 0 ? `T${String(turn.turn)}` : "")).join("") });
   }
   return groups;
 }
 
-export function sideTraceHtml(turns: readonly TraceTurn[], limit: number): string {
-  const groups = sideGroups(turns, limit);
+export function sideTraceHtml(turns: readonly TraceTurn[], limit: number, boxTurn: number | null = null): string {
+  const groups = sideGroups(turns, limit, boxTurn);
   return groups.length === 0 ? '<p class="nodata">no steps yet</p>' : groups.map(groupHtml).join("");
 }

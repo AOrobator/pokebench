@@ -201,7 +201,7 @@ export function thinkingDialog(view: RunView, nowMs: number): { head: string; bo
 }
 
 function chip(button: string): string {
-  return `<span class="chipb">${ARROW[button] ?? ""}${button}</span>`;
+  return `<span class="chipb">${ARROW[button] ?? ""}${esc(button)}</span>`;
 }
 
 const CONTROL_ICON = { pause: "⏸", resume: "▶", stop: "■", cancel_stop: "↺", abort: "✖" } as const;

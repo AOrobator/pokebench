@@ -4,7 +4,7 @@ import type { RunEvent } from "@pokebench/agent/events";
 import { NAME_CONFIRMED } from "../../agent/test-support/events.js";
 import { BASE_MS, Log, START, assistant, fullRun, m4Run, must, state } from "../test-support/events.js";
 import { eventText } from "./panels.js";
-import { STAR_SVG, TRACE_CHIPS, TraceBuilder, moreButton, sideTraceHtml, showsInTrace, traceGroups, traceHtml, traceRow, type TraceCategory, type TraceStep } from "./trace.js";
+import { STAR_SVG, TRACE_CHIPS, TraceBuilder, moreButton, sideGroups, sideTraceHtml, showsInTrace, traceGroups, traceHtml, traceRow, type TraceCategory, type TraceStep } from "./trace.js";
 
 function build(events: readonly RunEvent[]): TraceBuilder {
   const builder = new TraceBuilder();
@@ -228,6 +228,21 @@ describe("traceRow", () => {
     expect(dom(traceRow(byKind("think"), "T1")).querySelector(".tg")?.textContent).toBe("T1");
   });
 
+  it("keeps every press a navigate_to call made, and names the call, not a press", () => {
+    const log = new Log();
+    log.add(0, { type: "tool_call", turn: 1, id: "n", name: "navigate_to", args: { x: 4, y: 2, map_id: [0, 9] } });
+    log.add(1, { type: "button_press", turn: 1, tool_call_id: "n", buttons: ["RIGHT"], hold_frames: 10, release_frames: 8 });
+    log.add(2, { type: "button_press", turn: 1, tool_call_id: "n", buttons: ["UP"], hold_frames: 12, release_frames: 6 });
+    log.add(3, { type: "tool_result", turn: 1, id: "n", name: "navigate_to", is_error: false, duration_ms: 50, text: "Navigation: arrived", frames: [] });
+    const step = must(steps(build(log.events))[0]);
+    const row = dom(traceRow(step));
+    expect(row.querySelector(".tl-title")?.textContent).toContain("navigate_to");
+    expect(step.desc).toBe("#0 · 2 presses · 50 ms");
+    const args = row.querySelector(".args")?.textContent ?? "";
+    expect(args).toContain("→RIGHT hold 10f · release 8f");
+    expect(args).toContain("↑UP hold 12f · release 6f");
+  });
+
   it("escapes a tool name used as its icon", () => {
     const log = new Log();
     log.add(0, { type: "tool_call", turn: 1, id: "q", name: "<b>x", args: {} });
@@ -289,27 +304,27 @@ describe("traceHtml", () => {
   const builder = build(supervisedRun().events);
 
   it("lists turns newest first and filters by chip", () => {
-    const root = dom(traceHtml(builder.turns, ALL, { startMs: BASE_MS, live: null, limit: 50, page: 50 }));
+    const root = dom(traceHtml(builder.turns, ALL, { elapsed: (ms) => (ms - BASE_MS) / 1000, live: null, limit: 50, page: 50 }));
     expect([...root.querySelectorAll(".turn-h")].map((h) => h.firstChild?.textContent?.trim())).toEqual(["TURN 2", "TURN 1"]);
-    const noSup = dom(traceHtml(builder.turns, new Set<TraceCategory>(["think", "act"]), { startMs: BASE_MS, live: null, limit: 50, page: 50 }));
+    const noSup = dom(traceHtml(builder.turns, new Set<TraceCategory>(["think", "act"]), { elapsed: (ms) => (ms - BASE_MS) / 1000, live: null, limit: 50, page: 50 }));
     expect(noSup.textContent).not.toContain("Supervisor note");
     expect(noSup.querySelectorAll(".turn-h")).toHaveLength(1);
   });
 
   it("opens the live turn on its thinking, always expanded (INV-6)", () => {
-    const root = dom(traceHtml(builder.turns, new Set<TraceCategory>(["act"]), { startMs: BASE_MS, live: { turn: 3 }, limit: 50, page: 50 }));
+    const root = dom(traceHtml(builder.turns, new Set<TraceCategory>(["act"]), { elapsed: (ms) => (ms - BASE_MS) / 1000, live: { turn: 3 }, limit: 50, page: 50 }));
     const first = must(root.firstElementChild);
     expect(first.textContent).toContain("TURN 3");
     const live = must(root.querySelector(".live-row"));
     expect(live.tagName).toBe("DIV");
     expect(live.querySelector("[data-live-text]")).not.toBeNull();
-    const ongoing = dom(traceHtml(builder.turns, ALL, { startMs: BASE_MS, live: { turn: 2 }, limit: 50, page: 50 }));
+    const ongoing = dom(traceHtml(builder.turns, ALL, { elapsed: (ms) => (ms - BASE_MS) / 1000, live: { turn: 2 }, limit: 50, page: 50 }));
     expect(ongoing.firstElementChild?.getAttribute("data-group")).toBe("t2");
     expect([...must(ongoing.firstElementChild).children].map((el) => el.classList.contains("live-row") ? "live" : el.className)).toEqual(["turn-h", "tl", "live"]);
   });
 
   it("caps the turns it renders and offers the rest", () => {
-    const root = dom(traceHtml(build(m4Run()).turns, ALL, { startMs: null, live: null, limit: 1, page: 50 }));
+    const root = dom(traceHtml(build(m4Run()).turns, ALL, { elapsed: null, live: null, limit: 1, page: 50 }));
     expect(root.querySelectorAll(".turn-h")).toHaveLength(1);
     expect(root.querySelector("[data-trace-more]")?.textContent).toMatch(/SHOW \d+ OLDER TURNS/);
   });
@@ -322,7 +337,7 @@ describe("traceHtml", () => {
       log.add(turn * 10 + 2, { type: "tool_result", turn, id: `c${String(turn)}`, name: "press", is_error: false, duration_ms: 1, text: "y".repeat(5000), frames: [] });
     }
     const turns = build(log.events).turns;
-    const html = traceHtml(turns, ALL, { startMs: null, live: null, limit: 50, page: 50 });
+    const html = traceHtml(turns, ALL, { elapsed: null, live: null, limit: 50, page: 50 });
     expect(html.match(/class="turn-h"/g)).toHaveLength(50);
     expect(html.length).toBeLessThan(50 * 5000 + 100_000);
     expect(html).toContain("SHOW 50 OLDER TURNS");
@@ -330,13 +345,35 @@ describe("traceHtml", () => {
 
   it("changes a turn's stamp only when that turn's rows or the filter change", () => {
     const builder = build(supervisedRun().events);
-    const stamps = (on: ReadonlySet<TraceCategory>): string[] => traceGroups(builder.turns, on, { startMs: BASE_MS, live: null, limit: 50, page: 50 }).groups.map((g) => g.stamp);
+    const stamps = (on: ReadonlySet<TraceCategory>): string[] => traceGroups(builder.turns, on, { elapsed: (ms) => (ms - BASE_MS) / 1000, live: null, limit: 50, page: 50 }).groups.map((g) => g.stamp);
     const before = stamps(ALL);
     builder.add(new Log().add(0, { type: "retry", turn: 1, reason: "x", attempt: 1, limit: 3 }));
     const after = stamps(ALL);
     expect(after[0]).toBe(before[0]);
     expect(after[1]).not.toBe(before[1]);
     expect(stamps(new Set<TraceCategory>(["think"]))[0]).not.toBe(before[0]);
+  });
+
+  it("keeps a turn's stamp when only a hidden row arrives, on the trace and the side panel", () => {
+    const builder = build(supervisedRun().events);
+    const on = new Set(TRACE_CHIPS.filter((chip) => chip.on).map((chip) => chip.id));
+    const options = { elapsed: null, live: null, limit: 50, page: 50 };
+    const before = traceGroups(builder.turns, on, options).groups.map((g) => g.stamp);
+    const side = sideGroups(builder.turns, 20).map((g) => g.stamp);
+    const log = new Log();
+    builder.add(log.add(0, { type: "native_action", turn: 1, id: 9, kind: "native_input", frame: 130, server_timestamp: 1, details: { buttons: [] } }));
+    builder.add(log.add(1, { type: "navigation_context", turn: 1, text: "more", evidence: [1] }));
+    expect(traceGroups(builder.turns, on, options).groups.map((g) => g.stamp)[1]).not.toBe(before[1]);
+    expect(sideGroups(builder.turns, 20).map((g) => g.stamp)).toEqual(side);
+    const eng = build(supervisedRun().events);
+    const engBefore = traceGroups(eng.turns, on, options).groups.map((g) => g.stamp);
+    eng.add(log.add(2, { type: "native_action", turn: 1, id: 10, kind: "native_input", frame: 131, server_timestamp: 1, details: { buttons: [] } }));
+    expect(traceGroups(eng.turns, on, options).groups.map((g) => g.stamp)).toEqual(engBefore);
+  });
+
+  it("shows turn times from the run clock it is given", () => {
+    const html = traceHtml(build(supervisedRun().events).turns, ALL, { elapsed: () => 3725, live: null, limit: 50, page: 50 });
+    expect(html).toContain("1:02:05");
   });
 
   it("offers one page of older turns at a time", () => {
@@ -355,6 +392,15 @@ describe("sideTraceHtml", () => {
     expect(root.textContent).not.toContain("Emulator input");
     expect([...root.querySelectorAll(".tg")].map((g) => g.textContent).filter(Boolean)).toEqual(["T2", "T1"]);
     expect(root.querySelector("[data-c=sup] .tl-title")?.textContent).toBe("Supervisor note");
+  });
+
+  it("leaves out the thought the Emerald box is already showing", () => {
+    const log = supervisedRun();
+    log.add(4000, assistant({ turn: 2, thinking: "Turn two." }));
+    const turns = build(log.events).turns;
+    expect(dom(sideTraceHtml(turns, 20, 2)).textContent).not.toContain("Turn two.");
+    expect(dom(sideTraceHtml(turns, 20, 2)).querySelector(".tg")?.textContent).toBe("T1");
+    expect(dom(sideTraceHtml(turns, 20)).textContent).toContain("Turn two.");
   });
 
   it("says when there is nothing yet", () => {

@@ -113,7 +113,7 @@ Every recorded string goes through `esc`. Tool result text is shown in `<pre>` o
 - [ ] Implement
 - [ ] Gates
 - [x] COMMIT (GREEN): `feat(viewer): emerald thinking box, earlier steps and run identity strip` (b6a2062)
-- [ ] Review: round 3 covers the whole branch
+- [x] Review round 3 (whole branch): both BLOCKING, fixed. Round 4 runs on the fix.
 
 **M4 — Browser verification + explainer**
 
@@ -157,6 +157,40 @@ Browser verification so far, at 1440×900:
 - The fresh worktree had no vendor submodule (`git submodule update --init` fixed 5 pytest failures) and no mGBA binding in `env/.venv`, so `just lint`'s mypy step can't import `mgba._pylib`. I ran mypy with `~/dev/pokebench/env/.venv/bin/mypy` from the worktree's `env/` instead. No Python changes on this branch.
 
 ## Multi-Model Review Log
+
+**Whole branch round 3 (032d206..ce40d70)**
+
+Claude (BLOCKING):
+- `navigate_to` showed only its first press, titled as a press
+- O(all turns) filter per update
+- step + row caches double-held result text
+- open state lost on newly created groups
+- a hover hold at the top never released
+- turn times included pauses
+- `panels.ts` chip didn't escape the button
+- unsorted chip key
+
+Grok (BLOCKING):
+- stamps bumped by hidden rows (hidden emulator events still redrew the live turn)
+- the stamp test didn't cover hidden rows
+- chip escaping
+- the side list repeated the Emerald box's thought
+- unsorted key
+
+All fixed in `fix(viewer): agent trace review round 3`:
+- every press listed, `· N presses` in the desc
+- stamps built from visible entries only (`TraceTurn.version` removed)
+- turns past the limit counted with `some`
+- step cache dropped once the row is built
+- app-level `RowState` (open/folded/selected) applied to every drawn turn, recorded from `toggle` events
+- mouseleave returns a top-held list to the newest turn
+- pause-aware `elapsed` passed in
+- `esc(button)`
+- sorted key
+- `sideGroups(…, boxTurn)` skips the thought the box shows
+- Guards deleted once, each test went red, then restored: state on new turns (1 red after making the chip test hide the whole turn), side dedupe (2 red), visible stamps (1 red), press title (1 red)
+- Gates: viewer 638 passed (95.3/91.1/94.4); agent 1066 passed; lint clean
+- Browser on live run `…939e`: 21 rows in on-screen turns kept their elements through 10 s of live updates; a `navigate_to` row reads "2 presses"
 
 **M1+M2 round 2 (032d206..92f27d6)**
 

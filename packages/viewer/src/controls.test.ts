@@ -71,7 +71,15 @@ describe("live side panel", () => {
     expect(html).toContain("TURN<b>2</b>of 10");
     expect(html).toContain("TIME<b>0:00:30</b>of 0:01:00");
     expect(html).toContain("FAILURES<b>0</b>of 3");
-    expect(html).toContain("CONTEXT<b>6k</b>of 10k");
+    expect(html).toContain("CONTEXT<b>~6k</b>of 10k");
+  });
+
+  it("shows the prompt size the server measured once the model has answered", () => {
+    const v = view((l) => {
+      l.add(1_000, { type: "turn_start", turn: 1, context: { messages: 3, images: 1, est_tokens: 4_000 } });
+      l.add(2_000, { type: "assistant", turn: 1, thinking: "", text: "", tool_calls: [], usage: { input: 1_500, output: 50, cache_read: 5_600 }, latency_ms: 1_000, ttft_ms: null, stop_reason: "toolUse" });
+    });
+    expect(sideStats(v, BASE_MS + 3_000)).toContain("CONTEXT<b>7k</b>of 10k");
   });
 
   it("lists splits this run against the best run, pauses excluded", () => {

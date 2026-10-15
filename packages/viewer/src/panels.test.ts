@@ -114,8 +114,8 @@ describe("budgets", () => {
   it("draws bars only for budgets that have a cap", () => {
     const html = budgets(view(fullRun()), END);
     expect(html).toContain('<span class="l">CONTEXT</span>');
-    expect(html).toContain("5,000 / 10,000");
-    expect(html).toContain('style="width:50%"');
+    expect(html).toContain("700 / 10,000");
+    expect(html).toContain('style="width:7%"');
     expect(html).toContain("50.0 MB / 500 MB");
     expect(html).toContain("1 / 3");
     expect(html).toContain('<span class="l">TURNS</span>');
@@ -132,6 +132,12 @@ describe("budgets", () => {
     const html = budgets(view(log), BASE_MS + 40_000);
     expect(html).toContain('<i class="low" style="width:90%">');
     expect(html).toContain('<i class="mid" style="width:67%">');
+  });
+
+  it("labels the context as an estimate until the server has measured a prompt", () => {
+    const log = bare();
+    log.add(1, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 2_500 } });
+    expect(budgets(view(log), BASE_MS + 1)).toContain("~2,500 / 10,000");
   });
 
   it("shows a token budget when the run declares one", () => {

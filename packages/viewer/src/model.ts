@@ -177,6 +177,9 @@ export class RunView {
   objective: Of<"objective_update">["objective"] | null = null;
   readonly attempts: Of<"objective_attempt">["attempt"][] = [];
   context: Of<"turn_start">["context"] | null = null;
+  // Prompt tokens the server reported for the latest answered request; the
+  // turn_start estimate omits the system prompt, tool schemas and images.
+  promptTokens: number | null = null;
   disk: { bytes: number; cap_bytes: number; percent: number } | null = null;
   retry: { count: number; attempt: number; limit: number } | null = null;
   tokens = { input: 0, output: 0 };
@@ -320,11 +323,18 @@ export class RunView {
     }
   }
 
+  contextReadout(): { tokens: number; measured: boolean } | null {
+    if (this.promptTokens !== null) return { tokens: this.promptTokens, measured: true };
+    return this.context === null ? null : { tokens: this.context.est_tokens, measured: false };
+  }
+
   private onAssistant(event: Of<"assistant">, ms: number): void {
     const span = this.thinkingSpans.at(-1);
     if (span?.endMs === null) span.endMs = ms;
     this.lastThought = { turn: event.turn, thinking: event.thinking, reply: event.text, latencyMs: event.latency_ms };
     this.tokens = { input: this.tokens.input + event.usage.input, output: this.tokens.output + event.usage.output };
+    const prompt = event.usage.input + event.usage.cache_read;
+    if (prompt > 0) this.promptTokens = prompt;
     if (event.stop_reason === "error") {
       this.modelErrors += 1;
       this.errors.push({ ms, kind: "model", label: `model error: ${event.error ?? "unknown"}` });

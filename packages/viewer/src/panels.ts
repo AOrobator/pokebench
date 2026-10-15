@@ -88,10 +88,11 @@ export function budgets(view: RunView, nowMs: number): string {
   if (start === null) return `<p>${NO_DATA}</p>`;
   const rows: string[] = [];
   const window = start.model.context_window;
+  const context = view.contextReadout();
   rows.push(
-    view.context === null
+    context === null
       ? budgetMissing("CONTEXT", NO_DATA)
-      : budgetBar("CONTEXT", view.context.est_tokens / window, `${num(view.context.est_tokens)} / ${num(window)}`),
+      : budgetBar("CONTEXT", context.tokens / window, `${context.measured ? "" : "~"}${num(context.tokens)} / ${num(window)}`),
   );
   rows.push(
     view.disk === null

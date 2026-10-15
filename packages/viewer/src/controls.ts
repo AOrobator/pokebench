@@ -131,13 +131,14 @@ export function sideStats(view: RunView, nowMs: number): string {
   const seconds = runSeconds(view, nowMs);
   const failures = view.retry === null ? 0 : view.retry.attempt;
   const limit = start?.evaluation?.failure_limit ?? view.retry?.limit ?? 3;
-  const context = view.context?.est_tokens ?? 0;
+  const readout = view.contextReadout();
+  const context = readout?.tokens ?? 0;
   const window = start?.model.context_window ?? 0;
   return [
     bar("TURN", turns === undefined ? 0 : view.turn / turns, String(view.turn), turns === undefined ? "" : `of ${String(turns)}`),
     bar("TIME", wall === undefined ? 0 : (seconds * 1000) / wall, hms(seconds), wall === undefined ? "" : `of ${hms(wall / 1000)}`),
     `<div class="stat">FAILURES<b>${String(failures)}</b>of ${String(limit)}</div>`,
-    bar("CONTEXT", window === 0 ? 0 : context / window, `${num(Math.round(context / 1000))}k`, window === 0 ? "" : `of ${num(Math.round(window / 1000))}k`),
+    bar("CONTEXT", window === 0 ? 0 : context / window, `${readout?.measured === false ? "~" : ""}${num(Math.round(context / 1000))}k`, window === 0 ? "" : `of ${num(Math.round(window / 1000))}k`),
   ].join("");
 }
 

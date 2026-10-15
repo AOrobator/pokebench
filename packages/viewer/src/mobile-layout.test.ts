@@ -19,7 +19,7 @@ function phoneRules(css: string): string {
 
 describe("phone-width watch deck", () => {
   it("keeps the timeline a direct child of the watch deck, after the game stream", () => {
-    document.body.innerHTML = read("index.html");
+    const document = new DOMParser().parseFromString(read("index.html").replace(/<(script|link)\b[^>]*>(<\/script>)?/g, ""), "text/html");
     const deck = document.querySelector(".watch-deck");
     const children = Array.from(deck?.children ?? [], (el) => el.className);
     expect(children).toEqual(["box red objective-strip", "game-stream", "box lanesBox"]);

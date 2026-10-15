@@ -190,7 +190,7 @@ describe("viewer app", () => {
     expect(ui("think-head").textContent).toMatch(/^AGENT (is thinking|thought for)/);
     app.tick(10_000);
     expect(ui("screen").getAttribute("href")).toBe(`/api/runs/${M4_ID}/frames/000015_0.png`);
-    expect(ui("log").querySelectorAll(".ev").length).toBeGreaterThan(5);
+    expect(ui("trace").querySelectorAll("[data-key]").length).toBeGreaterThan(5);
     expect(ui("lanes").innerHTML).toContain("m-milestone");
 
     app.tick(60_000);
@@ -202,7 +202,7 @@ describe("viewer app", () => {
     expect(ui("party").innerHTML).toContain("no data");
     expect(ui("clock").textContent).toBe("0:00:11 / 0:00:11");
     expect((ui("scrub") as HTMLInputElement).value).toBe("1000");
-    expect(ui("log").querySelector('[data-seq="18"]')?.textContent).toContain("run ended: budget");
+    expect(ui("trace").querySelector('[data-seqs~="18"]')?.textContent).toContain("run ended: budget");
   });
 
   it("lights the GBA button while a press is held", async () => {
@@ -229,24 +229,24 @@ describe("viewer app", () => {
     expect(app.clock?.speed).toBe(16);
     ui("play").click();
     app.tick(1_000);
-    expect(ui("log").querySelectorAll(".ev").length).toBeGreaterThan(5);
+    expect(ui("trace").querySelectorAll("[data-key]").length).toBeGreaterThan(5);
     const scrub = ui("scrub") as HTMLInputElement;
     scrub.value = "0";
     scrub.dispatchEvent(new Event("input"));
     expect(app.clock?.fraction).toBe(0);
-    expect(ui("log").querySelectorAll(".ev").length).toBe(0);
+    expect(ui("trace").querySelectorAll("[data-key]").length).toBe(0);
     expect(ui("screen").getAttribute("href")).toBe("");
   });
 
-  it("opens a log row's raw event in the inspector", async () => {
+  it("opens a trace row's raw events in the inspector", async () => {
     const { app, streams } = await harness(`#run=${M4_ID}`);
     feed(must(streams[0]), m4Run());
     app.tick(60_000);
-    const row = must(ui("log").querySelector<HTMLElement>('[data-seq="9"]'));
+    const row = must(ui("trace").querySelector<HTMLElement>('[data-seqs~="9"]'));
     row.click();
     expect(ui("inspector").textContent).toContain('"type": "tool_call"');
     expect(row.classList.contains("sel")).toBe(true);
-    ui("log").click();
+    ui("trace").click();
     expect(ui("inspector").textContent).toContain('"type": "tool_call"');
   });
 
@@ -366,7 +366,7 @@ describe("viewer app", () => {
     pick.dispatchEvent(new Event("change"));
     expect(streams[0]?.closed).toBe(true);
     expect(streams[1]?.url).toBe(`/api/runs/${M4_ID}/events`);
-    expect(ui("log").querySelectorAll(".ev").length).toBe(0);
+    expect(ui("trace").querySelectorAll("[data-key]").length).toBe(0);
     expect(window.location.hash).toBe(`#run=${M4_ID}`);
   });
 
@@ -690,7 +690,7 @@ it("offers only eligible references and preserves none while comparisons are pen
   expect(ui("splits").textContent).toContain("Best historical run: best");
 });
 
-it.each(["planning","cycle"] as const)("shows parsed %s loop phases with attribution on timeline and Activity History", async (kind) => {
+it.each(["planning","cycle"] as const)("shows parsed %s loop phases with attribution on timeline and the agent trace", async (kind) => {
   const { app, streams, setNow } = await harness();
   const log = new Log(); log.add(0, START);
   log.add(100, {type:"tool_call",turn:1,id:"plan-1",name:"update_objective",args:{}});
@@ -700,15 +700,15 @@ it.each(["planning","cycle"] as const)("shows parsed %s loop phases with attribu
   setNow(BASE_MS+3000); feed(must(streams[0]),log.events.map((event) => parseEvent(JSON.stringify(event))));
   for (const label of [`${kind === "planning" ? "Planning stall" : "Short cycle"} warning`,`${kind === "planning" ? "Planning stall" : "Short cycle"} recovered`,`${kind === "planning" ? "Planning stall" : "Short cycle"} stop`]) {
     expect(ui("lanes").innerHTML).toContain(label);
-    expect(ui("log").textContent).toContain(label);
+    expect(ui("trace").textContent).toContain(label);
   }
   for (const fragment of ["update_objective", "6 completed calls", "turn 1", "#1", "0:00:03", "Six plans <without> action"]) {
     expect(ui("lanes").textContent).toContain(fragment);
-    expect(ui("log").textContent).toContain(fragment);
+    expect(ui("trace").textContent).toContain(fragment);
   }
   expect(ui("lanes").querySelectorAll(`[role="img"][aria-label^="${kind === 'planning' ? 'Planning stall' : 'Short cycle'}"]`)).toHaveLength(3);
-  expect(ui("log").querySelector('[data-seq="3"]')?.classList.contains("ev-error")).toBe(false);
-  const stop = ui("log").querySelector<HTMLElement>('[data-seq="4"]');
+  expect(ui("trace").querySelector('[data-seqs~="3"] .st.error')).toBeNull();
+  const stop = ui("trace").querySelector<HTMLElement>('[data-seqs~="4"]');
   if (stop === null) throw new Error("missing stop history row");
   stop.click(); expect(ui("inspector").textContent).toContain('"phase": "stop"');
   expect(app.mode).toBe("live");
@@ -734,22 +734,22 @@ it("clears a future stop inspection when replay rewinds its history", async () =
   if (end === undefined) throw new Error("missing terminal fixture");
   const events=[log.events[0],{...stop,seq:44},{...end,seq:48,t:stop.t}].map((event)=>parseEvent(JSON.stringify(event)));
   feed(must(streams[0]),events,false); must(streams[0]).send("done",{});
-  const row=ui("log").querySelector<HTMLElement>('[data-seq="44"]');
+  const row=ui("trace").querySelector<HTMLElement>('[data-seqs~="44"]');
   if(row===null)throw new Error("missing replay stop"); row.click();
   expect(ui("inspector").textContent).toContain('"seq": 44');
   const scrub=ui("scrub") as HTMLInputElement; scrub.value="0";scrub.dispatchEvent(new Event("input"));
   expect(ui("lanes").textContent).not.toContain("Planning stall stop");
-  expect(ui("log").querySelector('[data-seq="44"]')).toBeNull();
+  expect(ui("trace").querySelector('[data-seqs~="44"]')).toBeNull();
   expect(ui("inspector").textContent).not.toContain('"seq": 44');
-  expect(ui("inspector").textContent).toContain("click a log row");
+  expect(ui("inspector").textContent).toContain("select a trace row");
   expect(app.clock?.fraction).toBe(0);
 });
 
-it("keeps passive would-stop truthful on both Activity History and timeline",async()=>{
+it("keeps passive would-stop truthful on both the agent trace and timeline",async()=>{
  const {app,streams,setNow}=await harness();const log=new Log();log.add(0,START);log.add(100,{type:"tool_call",turn:1,id:"plan",name:"get_objectives",args:{}});
  for(const [index,phase] of (["would_warn","would_stop","would_recover"] as const).entries())log.add(1000+index*1000,{type:"loop_guard",turn:1,kind:"planning",mode:"diagnostic",phase,message:"Counterfactual <threshold>",calls:12,evidence:[1]});
  setNow(BASE_MS+3000);feed(must(streams[0]),log.events.map(e=>parseEvent(JSON.stringify(e))));
- expect(ui("lanes").textContent).toContain("diagnostic: would stop");expect(ui("log").textContent).toContain("diagnostic: would stop");expect(ui("log").querySelectorAll(".ev-error")).toHaveLength(0);expect(ui("inspector").textContent).not.toContain("run ended: stuck");expect(app.mode).toBe("live");
+ expect(ui("lanes").textContent).toContain("diagnostic: would stop");expect(ui("trace").textContent).toContain("diagnostic: would stop");expect(ui("trace").querySelectorAll(".st.error")).toHaveLength(0);expect(ui("inspector").textContent).not.toContain("run ended: stuck");expect(app.mode).toBe("live");
 });
 
 it("shows explicit evaluation target/cap and native terminal proof in history and timeline", async()=>{
@@ -757,7 +757,7 @@ it("shows explicit evaluation target/cap and native terminal proof in history an
  const start=log.add(0,START);const observed=log.add(500,state(NAME_CONFIRMED));const milestone=log.add(600,{type:"milestone",turn:1,name:"PLAYER_NAME_CONFIRMED",kind:"story",origin:"observed",server_timestamp:0,evidence:[observed.seq]});const end=fullRun().events.findLast(event=>event.type==="run_end");if(end===undefined)throw new Error("missing terminal fixture");
  const events=[{...start,evaluation:{preset_id:"name-control",target:"PLAYER_NAME_CONFIRMED",failure_limit:3,flags:{loopGuard:false,activeUi:true,interfaceDocs:true,objectives:true}},budgets:{max_turns:300,max_wall_ms:600000}},observed,milestone,{...end,seq:3,t:milestone.t,reason:"milestone",target_proof:{name:"PLAYER_NAME_CONFIRMED",milestone_seq:milestone.seq,state_evidence:[observed.seq]}}].map(event=>parseEvent(JSON.stringify(event)));
  feed(must(streams[0]),events,false);must(streams[0]).send("done",{});
- expect(ui("log").textContent).toContain("native target PLAYER_NAME_CONFIRMED");expect(ui("lanes").textContent).toContain("native target PLAYER_NAME_CONFIRMED");
+ expect(ui("trace").textContent).toContain("native target PLAYER_NAME_CONFIRMED");expect(ui("lanes").textContent).toContain("native target PLAYER_NAME_CONFIRMED");
  expect(ui("run-details").textContent).toContain('"preset_id": "name-control"');expect(ui("budgets").textContent).toContain("0:10:00");
 });
 
@@ -768,14 +768,14 @@ it("mounts state-input and host-wait history, timeline, selected inspector and f
  log.add(70000,{type:"run_end",turn:1,reason:"budget",furthest_milestone:null,turns:1,wall_ms:70000,tokens:{input:0,output:0},frames:{saved:1,bytes:100}});
  feed(stream,log.events.map(e=>parseEvent(JSON.stringify(e))));stream.send("done",{});app.tick(100);
  expect(ui("screen").getAttribute("href")).toBe(`/api/runs/${M4_ID}/frames/000002_0.png`);
- const inputRow=must(ui("log").querySelector<HTMLElement>(`[data-seq="${String(input.seq)}"]`));expect(inputRow.textContent).toContain("snapshot for decision 1");
+ const inputRow=must(ui("trace").querySelector<HTMLElement>(`[data-seqs~="${String(input.seq)}"]`));expect(inputRow.textContent).toContain("snapshot for decision 1");
  expect(ui("lanes").querySelectorAll('[aria-label*="snapshot for decision 1"]')).toHaveLength(1);
  inputRow.click();expect(ui("inspector").textContent).toContain('"type": "decision_input"');expect(ui("inspector").textContent).toContain("CURRENT <clock> at (5,1)");expect(ui("inspector").querySelector("clock")).toBeNull();
- const waitRow=must(ui("log").querySelector<HTMLElement>(`[data-seq="${String(wait.seq)}"]`));expect(waitRow.textContent).toContain("WAIT 60 ms (host time)");
+ const waitRow=must(ui("trace").querySelector<HTMLElement>(`[data-seqs~="${String(wait.seq)}"]`));expect(waitRow.textContent).toContain("WAIT 60 ms (host time)");
  expect(ui("lanes").querySelectorAll('[aria-label*="WAIT 60 ms (host time)"]')).toHaveLength(1);
  waitRow.click();expect(ui("inspector").textContent).toContain('"type": "wait_input"');expect(ui("inspector").textContent).toContain('"duration_ms": 60');expect(ui("inspector").textContent).toContain("wait-one");expect(waitRow.classList.contains("sel")).toBe(true);
  app.tick(70000);expect(ui("lanes").querySelectorAll('[aria-label*="WAIT 60 ms (host time)"]')).toHaveLength(0);
- expect(ui("log").querySelector(`[data-seq="${String(wait.seq)}"]`)?.textContent).toContain("WAIT 60 ms (host time)");
+ expect(ui("trace").querySelector(`[data-seqs~="${String(wait.seq)}"]`)?.textContent).toContain("WAIT 60 ms (host time)");
 
 });
 it('labels human comparison candidates with unverified ROM provenance',async()=>{
@@ -823,3 +823,108 @@ it("filters harness features by literal name or ID and retains search through li
  filter("");expect(visible()).toContain("bounded-navigation-v1");expect(visible()).toContain("deterministic-loop-guard-v1");
  expect(Array.from(ui("harness-config").querySelectorAll<HTMLElement>(".config-group")).every(group=>!group.hidden)).toBe(true);expect(streams).toHaveLength(1);
 });
+
+describe("agent trace page", () => {
+  const traceRows = (): HTMLElement[] => [...ui("trace").querySelectorAll<HTMLElement>("[data-key]")];
+  const chipButton = (id: string): HTMLButtonElement => must(ui("trace-chips").querySelector<HTMLButtonElement>(`[data-chip="${id}"]`));
+
+  it("replaces ACTIVITY HISTORY with the agent trace, newest turn first, with chip counts", async () => {
+    const { app, streams } = await harness(`#run=${M4_ID}`);
+    feed(must(streams[0]), m4Run());
+    app.tick(60_000);
+    expect(document.querySelector('[data-page="activity"]')).toBeNull();
+    const nav = must(document.querySelector<HTMLButtonElement>('[data-page="trace"]'));
+    expect(nav.textContent).toBe("AGENT TRACE");
+    nav.click();
+    expect(document.querySelector<HTMLElement>('[data-nav-page="trace"]')?.hidden).toBe(false);
+    const heads = [...ui("trace").querySelectorAll(".turn-h")].map((h) => h.firstChild?.textContent?.trim());
+    expect(heads[0]).toBe("TURN 4");
+    expect(heads.at(-1)).toBe("RUN START");
+    const think = chipButton("think");
+    expect(think.textContent).toMatch(/^THINKING \d+$/);
+    expect(think.getAttribute("aria-pressed")).toBe("true");
+    expect(chipButton("eng").getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("filters rows by chip and puts them back", async () => {
+    const { app, streams } = await harness(`#run=${M4_ID}`);
+    feed(must(streams[0]), m4Run());
+    app.tick(60_000);
+    expect(ui("trace").querySelector('[data-c="think"]')).not.toBeNull();
+    chipButton("think").click();
+    expect(chipButton("think").getAttribute("aria-pressed")).toBe("false");
+    expect(ui("trace").querySelector('[data-c="think"]')).toBeNull();
+    chipButton("think").click();
+    expect(ui("trace").querySelector('[data-c="think"]')).not.toBeNull();
+  });
+
+  it("keeps opened rows, folded results and the selection across live updates (INV-5)", async () => {
+    const { app, streams, setNow } = await harness();
+    const events = fullRun().events;
+    feed(must(streams[0]), events.slice(0, 10));
+    setNow(BASE_MS + 3_300);
+    app.tick(100);
+    const tool = must(ui("trace").querySelector<HTMLDetailsElement>('details[data-key="5"]'));
+    tool.open = true;
+    must(tool.querySelector<HTMLDetailsElement>("details.res-d")).open = false;
+    must(tool.querySelector("summary")).click();
+    tool.open = true;
+    expect(ui("inspector").textContent).toContain('"type": "tool_result"');
+    feed(must(streams[0]), events.slice(10, 12), false);
+    setNow(BASE_MS + 8_100);
+    app.tick(100);
+    const again = must(ui("trace").querySelector<HTMLDetailsElement>('details[data-key="5"]'));
+    expect(again).not.toBe(tool);
+    expect(again.open).toBe(true);
+    expect(must(again.querySelector<HTMLDetailsElement>("details.res-d")).open).toBe(false);
+    expect(again.classList.contains("sel")).toBe(true);
+  });
+
+  it("collapses and expands every row", async () => {
+    const { app, streams } = await harness(`#run=${M4_ID}`);
+    feed(must(streams[0]), m4Run());
+    app.tick(60_000);
+    must(ui("trace-chips").querySelector<HTMLButtonElement>("[data-trace-expand]")).click();
+    const rows = [...ui("trace").querySelectorAll<HTMLDetailsElement>("details[data-key]")];
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.every((row) => row.open)).toBe(true);
+    must(ui("trace-chips").querySelector<HTMLButtonElement>("[data-trace-collapse]")).click();
+    expect(rows.every((row) => !row.open)).toBe(true);
+  });
+
+  it("renders the newest 50 turns and shows older turns on demand", async () => {
+    const { app, streams, setNow } = await harness();
+    const log = new Log();
+    log.add(0, START);
+    for (let turn = 1; turn <= 60; turn += 1) log.add(turn * 10, assistantAt(turn));
+    feed(must(streams[0]), log.events);
+    setNow(BASE_MS + 1_000);
+    app.tick(10);
+    expect(ui("trace").querySelectorAll(".turn-h")).toHaveLength(50);
+    must(ui("trace").querySelector<HTMLButtonElement>("[data-trace-more]")).click();
+    expect(ui("trace").querySelectorAll(".turn-h")).toHaveLength(60);
+    expect(traceRows().length).toBe(60);
+  });
+
+  it("streams the live turn's thinking open at the top of the trace", async () => {
+    const { app, streams, setNow } = await harness();
+    const log = new Log();
+    log.add(0, START);
+    log.add(1000, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 10 } });
+    log.add(1100, { type: "assistant_delta", turn: 1, thinking: "Look <left> first.", text: "" });
+    feed(must(streams[0]), log.events);
+    setNow(BASE_MS + 2_500);
+    app.tick(100);
+    const first = must(ui("trace").firstElementChild);
+    expect(first.textContent).toContain("TURN 1");
+    expect(ui("trace").querySelector("[data-live-text]")?.textContent).toBe("Look <left> first.");
+    expect(ui("trace").querySelector("[data-live-secs]")?.textContent).toBe("1.5s");
+    feed(must(streams[0]), [log.add(1200, { type: "assistant_delta", turn: 1, thinking: " Then up.", text: "" })], false);
+    app.tick(100);
+    expect(ui("trace").querySelector("[data-live-text]")?.textContent).toBe("Look <left> first. Then up.");
+  });
+});
+
+function assistantAt(turn: number): Parameters<Log["add"]>[1] {
+  return { type: "assistant", turn, thinking: `Turn ${String(turn)}.`, text: "", tool_calls: [], usage: { input: 1, output: 1, cache_read: 0 }, latency_ms: 5, ttft_ms: null, stop_reason: "stop" };
+}

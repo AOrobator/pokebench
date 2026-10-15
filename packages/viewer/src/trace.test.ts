@@ -66,6 +66,13 @@ describe("TraceBuilder", () => {
     expect(builder.version).toBe(1);
   });
 
+  it("adds the viewer's loop-guard attribution to guard rows when given one", () => {
+    const builder = new TraceBuilder((event) => `label for #${String(event.seq)}`);
+    for (const event of supervisedRun().events) builder.add(event);
+    const guards = steps(builder).filter((step) => step.category === "guard" || step.category === "sup");
+    expect(guards.map((step) => dom(traceRow(step)).querySelector(".tl-body")?.textContent)).toEqual([expect.stringContaining("label for #7"), expect.stringContaining("label for #8")]);
+  });
+
   it("keeps an orphan press or result as its own action step", () => {
     const log = new Log();
     log.add(0, { type: "button_press", turn: 1, tool_call_id: "gone", buttons: ["B"] });

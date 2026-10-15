@@ -78,11 +78,12 @@ Every recorded string goes through `esc`. Tool result text is shown in `<pre>` o
 - [ ] COMMIT: `test(viewer): agent trace model and rows` (RED)
 - [ ] Implement
 - [ ] Gates: `just test`, `just lint`, `just build`, `just coverage` (≥90)
-- [ ] COMMIT: `feat(viewer): agent trace model and uniform rows` (GREEN)
+- [x] COMMIT: `feat(viewer): agent trace model and uniform rows` (GREEN) (af6a3fb)
+- [ ] Review: Claude CLI + Cursor `cursor-grok-4.5-high` running on 032d206..af6a3fb
 - [ ] Review
 
 **M2 — AGENT TRACE page replaces ACTIVITY HISTORY**
-- [ ] Write tests:
+- [x] Write tests (also migrated 11 app tests from `ui("log")`/`.ev`/`data-seq` to `ui("trace")`/`[data-key]`/`data-seqs`; added loop-label unit test). RED: 17 failing:
   - chips toggle, with counts
   - newest first
   - row click fills the inspector

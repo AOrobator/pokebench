@@ -3,7 +3,7 @@
 // samples the next tool call K times in each (K ≤ 8, to keep the GPU mostly free).
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { completeSimple, type AssistantMessage, type ThinkingLevel } from "@mariozechner/pi-ai";
 import { loadConfig } from "./config.js";
@@ -50,9 +50,22 @@ export type Exec = (file: string, args: readonly string[], options: { cwd: strin
 const execArgv: Exec = (file, args, options) => execFileSync(file, [...args], { ...options, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 });
 
 export function filePorts(runDir: string, envDir: string, thinkingSignature: string, exec: Exec = execArgv, read: (path: string) => Buffer = readFileSync, env: NodeJS.ProcessEnv = process.env): ProbePorts {
+  // Frame paths come from the run's own events; a recorded path that leaves the run directory is refused, and each
+  // frame is read once however many turns are rebuilt.
+  const frames = new Map<string, string>();
+  const root = resolve(runDir);
   return {
     thinkingSignature,
-    frame: (path) => read(join(runDir, path)).toString("base64"),
+    frame: (path) => {
+      const full = resolve(root, path);
+      const rel = relative(root, full);
+      if (path === "" || isAbsolute(path) || rel === "" || rel.startsWith("..") || isAbsolute(rel)) throw new Error(`frame path ${JSON.stringify(path)} is not inside the run directory`);
+      const cached = frames.get(full);
+      if (cached !== undefined) return cached;
+      const body = read(full).toString("base64");
+      frames.set(full, body);
+      return body;
+    },
     rerender: (refs: readonly RawRef[], features: FeatureSet) => {
       const out = exec("uv", ["run", "--project", envDir, "python", "-m", "pokebench_env.rerender"], { cwd: envDir, env: { ...env, ...serverFeatureEnv(features) }, input: JSON.stringify({ run_dir: runDir, raw_ram: refs }) });
       const body: unknown = JSON.parse(out);

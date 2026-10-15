@@ -90,6 +90,9 @@ feature-worklog, feature-switch, agent-observability, pokebench-game-state, poke
   (triangular I/O). RED: decision-probe.test.ts "reads a recorded frame once, and only from inside the run directory";
   the live suite now uses the real `filePorts` with a counting reader and asserts each frame is read once (276 reads of
   13 frames on base). The console.error hang-breaker now matches any `<command> FAILED:` line.
+  GREEN: `filePorts.frame` resolves against the run dir, refuses empty/absolute/escaping paths, and caches each frame.
+  Gates: lint, build, verify-vendor clean; coverage run agent 1238 tests 97.63/94.24/97.74 (lines 99.04), viewer 686
+  95.25/90.95/94.18 (lines 98.01), env 1929 lines 96.94 branches 92.44 functions 100.
 
 ## Decisions
 - R1 is a bug fix (false model-facing facts in the supervisor briefing), under the M1 operator exception.

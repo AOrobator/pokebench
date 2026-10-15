@@ -62,6 +62,8 @@ export interface ExperimentView {
   readonly notes: string | null;
   // The graded comparison, once result.json holds one.
   readonly result: ResultSummary | null;
+  // The commit the first trial launched on; null until then (trials then run on main as it is).
+  readonly buildCommit: string | null;
 }
 export interface QueueSnapshot {
   readonly queue: readonly ExperimentView[];
@@ -171,6 +173,7 @@ export function experimentView(e: Experiment, input: { approval: Approval | null
     state: status.state, reason: status.reason, approved: input.approval !== null && input.approval.sha256 === definitionHash(e), readiness, recorded: input.recorded, trials,
     arms: { incumbent: arm(trials.filter((t) => t.arm === "incumbent")), candidate: arm(trials.filter((t) => t.arm === "candidate")) },
     notes: e.notes ?? null, result: input.result,
+    buildCommit: input.ledger.flatMap((l) => (l.type === "launch" && l.commit !== undefined ? [l.commit] : []))[0] ?? null,
   };
 }
 
@@ -227,7 +230,7 @@ function newerView(n: NewerExperiment, recorded: RecordedReadiness | null): Expe
     source: n.source, trialsPerArm: n.trialsPerArm, modelLane: n.modelLane, budgetMs: n.budget.maxWallMs, usedMs: 0,
     ...(n.discarded !== undefined ? { state: "discarded", reason: n.discarded } : { state: "blocked", reason: n.blocked ?? `uses ${n.unknownSwitches.join(", ")}, which landed after this viewer was built; restart the viewer with just viewer-main to check readiness or run it` }),
     approved: false, readiness: { ready: false, basis: "recent", milestone: n.activationMilestone, window: n.readiness.window, minReached: n.readiness.minReached, reached: 0, considered: [] },
-    recorded, trials: [], arms: { incumbent: NO_TRIALS, candidate: NO_TRIALS }, notes: n.notes ?? null, result: null,
+    recorded, trials: [], arms: { incumbent: NO_TRIALS, candidate: NO_TRIALS }, notes: n.notes ?? null, result: null, buildCommit: null,
   };
 }
 

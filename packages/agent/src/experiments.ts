@@ -145,7 +145,7 @@ export function parseLedger(text:string):{entries:LedgerEntry[];problems:string[
 }
 
 export const ApprovalSchema=Type.Object({experiment:Type.String({minLength:1}),sha256:Type.String({pattern:"^[0-9a-f]{64}$"}),approvedAt:Type.String({minLength:1}),approvedBy:Type.String({minLength:1}),
- // The main build the operator approved; trials run only on it. Older approvals fall back to source.commit.
+ // Main's commit when the operator approved, kept as a record. Trials run on the first trial's build, else main as it is.
  commit:Type.Optional(Type.String({pattern:"^[0-9a-f]{40}$"}))},closed);
 export type Approval=Static<typeof ApprovalSchema>;
 export interface RunnerPosition {readonly experiment:string;readonly trial:number}

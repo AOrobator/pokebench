@@ -80,5 +80,5 @@
     "window": 4,
     "minReached": 3
   },
-  "notes": "Operator idea (2026-10-15): a longer window should reduce looping. The window first differs on turn 21 of any run, so it acts from the start of play. Run it on top of the 2×2 winner once the factorial finishes."
+  "notes": "Operator idea (2026-10-15): a longer window should reduce looping. The window first differs once a run has 7 tool results (ON keeps up to 12 in full, OFF 6), and in turns from turn 21, so it acts from the start of play. Run it on top of the 2×2 winner once the factorial finishes."
 }

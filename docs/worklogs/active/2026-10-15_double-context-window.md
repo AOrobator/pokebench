@@ -26,3 +26,4 @@ slower turns and fewer turns per 30-minute run.
 - [ ] Review: principles self-review, Claude CLI, independent lane
 - [ ] Local merge into main (approved by the operator 2026-10-15 01:22 UTC)
 - Explainer: moved the OFF label off the line, corrected the wiring box source (checked in a browser).
+- Corrected activation note: full results differ from the 7th tool result, turns from turn 21.

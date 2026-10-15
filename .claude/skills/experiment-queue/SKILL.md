@@ -55,4 +55,15 @@ Then run `just experiments-check` and record the readiness verdict in `docs/expe
 
 `runs/experiments/<id>/result.json` holds the `comparePatchResults` report: reach, median time among completers, target turns, verdict and recommendation. The views and `just experiments` also show median turns and primary-milestone reach per 1,000 turns per arm, because the operator wants run efficiency judged as well as milestones.
 
-A recommendation is never a promotion. Changing a default or the incumbent is a separate, reviewed change. Discard an experiment by setting `discarded` with the reason, in a commit.
+A screening recommendation is never a promotion. Discard an experiment by setting `discarded` with the reason, in a commit.
+
+## The winner gate (operator 2026-10-15)
+
+With the gate on (the default; `POKEBENCH_WINNER_GATE=off` restores the old queue), the only way the incumbent changes is a finals win. See `docs/explainers/winner-gate.html`.
+
+- **Nominate.** A finished queue experiment, or an `externalCohort` whose `runs/launch-receipts/<dir>/queue.json` says `done`, writes `runs/experiments/<id>/nomination.json`: up to three finalists, the arms ranked above the incumbent arm (a cohort's incumbent arm is the one named `control`).
+- **Finals.** Each finalist and the incumbent run from boot, 8 runs each, 45 minutes, with `milestone-stall-stop-v1` on, in balanced order. Recorded boot runs matching the finals incumbent fill its slots first. All runs complete; there is no early decision. An experiment may shorten its finals with `finals: {runsPerArm, maxWallMs, target}` (part of the approved definition).
+- **Declare.** A finalist wins if it reaches further at the median, or the same milestone `speedMarginPercent` faster, without reaching any earlier milestone in fewer runs than the incumbent minus `completionTolerance`. Only a winner is appended to `runs/experiments/promotions.jsonl`.
+- **Carry over.** Unstarted experiments run on the incumbent plus every promotion; their approvals stay valid. A started experiment keeps the promotion its first trial recorded. An experiment testing a switch a winner decided is blocked as superseded.
+- **Wait.** While a cohort is unfinished, a nomination is pending or finals are unfinished or withdrawn, nothing new starts. The runner also waits while any `runs/launch-receipts/*/{driver,chain}-pid.txt` names a live process running that script, because cohort drivers free the lease between steps.
+- Finals need no second approval. The operator may WITHDRAW FINALS / RESUME FINALS on the queue page; agents never press them or POST to `/finals-withdraw|finals-resume`.

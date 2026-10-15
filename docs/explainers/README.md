@@ -28,3 +28,4 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 
 - [Current-run harness configuration](current-run-harness-config.html)
 - [Story frontier zoom](frontier-zoom.html)
+- [Winner gate](winner-gate.html)

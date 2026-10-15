@@ -73,7 +73,7 @@ Resolve the preset into the recorded effective configuration and validate it bef
 
 ## Report results and expose harness bugs
 
-Every completed or interrupted evaluation produces a report, even when the candidate fails or no recommendation is possible. Lead with improve/regress/inconclusive and a keep/discard/improve recommendation, qualified by model and validated milestone frontier. Distinguish a recommendation from an executed promotion or rollback. A report never promotes a preset automatically; apply any preset/ledger mutation only within the user-authorized implementation and promotion scope.
+Every completed or interrupted evaluation produces a report, even when the candidate fails or no recommendation is possible. Lead with improve/regress/inconclusive and a keep/discard/improve recommendation, qualified by model and validated milestone frontier. Distinguish a recommendation from an executed promotion or rollback. A report never promotes a preset automatically; apply any preset/ledger mutation only within the user-authorized implementation and promotion scope. The one sanctioned automatic promotion is the experiment queue's winner gate (operator 2026-10-15): a screening result only nominates finalists, and a finalist becomes the incumbent only by winning predeclared finals from boot (see the experiment-queue skill).
 
 Include:
 

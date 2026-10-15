@@ -194,14 +194,16 @@ describe("winner gate", () => {
     cohort(w, "done", COHORT);
     const fake = host(w);
     await runQueue({ paths: w.paths, source: w.source, host: fake, stopRequested: () => fake.launches.length >= 1 });
-    writeFileSync(finalsLedgerPath(w.paths.runsRoot, "full-map"), ['{"type":"launch","trial":0,"arm":"incumbent","run":"aborted","at":"t","model":"m","commit":"c"}', '{"type":"launcher_error","trial":0,"arm":"incumbent","run":"aborted","at":"t","message":"interrupted"}', '{"type":"launch","trial":0,"arm":"incumbent","run":"relaunch","at":"t","model":"m","commit":"c"}'].join("\n") + "\n");
+    const launch = (run: string, arm = "incumbent", trial = 0): string => JSON.stringify({ type: "launch", trial, arm, run, at: "t", model: "m", commit: "c".repeat(40) });
+    writeFileSync(finalsLedgerPath(w.paths.runsRoot, "full-map"), [launch("aborted"), JSON.stringify({ type: "launcher_error", trial: 0, arm: "incumbent", run: "aborted", at: "t", message: "interrupted" }), launch("relaunch"), launch("beyond", "incumbent", 99)].join("\n") + "\n");
     mkdirSync(experimentDir(w.paths.runsRoot, "broken"), { recursive: true });
-    writeFileSync(finalsLedgerPath(w.paths.runsRoot, "broken"), '{"type":"launch","trial":0,"arm":"x","run":"orphan","at":"t","model":"m","commit":"c"}\n');
+    writeFileSync(finalsLedgerPath(w.paths.runsRoot, "broken"), `${launch("orphan", "x")}\n`);
     writeFileSync(nominationPath(w.paths.runsRoot, "broken"), "{");
     const labels = finalsRunLabels(w.paths.runsRoot);
     expect(labels.get("relaunch")).toBe("full-map finals · incumbent · run 1/12");
     expect(labels.get("aborted")).toBe("full-map finals · incumbent · run 1/12");
     expect(labels.has("orphan")).toBe(false);
+    expect(labels.has("beyond")).toBe(false);
   });
 
   it("with the gate off, runs the queue exactly as before (INV-G5)", async () => {

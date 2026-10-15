@@ -1,0 +1,15 @@
+# Finals run labels
+
+Operator report (2026-10-15 15:27 UTC): the viewer said "trial 12 of 32" during the full-map-navigation finals, which had just started.
+
+Cause: the page was replaying `2026-10-14T23-43-18_think-fast_d116`, run 12 of 32 of the overnight 2×2 cohort. The green live chip above it named the finals preset, so the replay's TRIAL strip read as the finals' trial. The finals ledger was correct (run 1 of 32).
+
+Viewer-only; no harness behavior change, so no feature switch.
+
+- [x] RED: finals runs carry "<experiment> finals · <arm> · run n/total"; a relaunched slot labels both runs; unreadable finals are skipped; a live chip for another run reads "LIVE ELSEWHERE · … · WATCH ▸"
+  COMMIT: `test: finals runs carry their own finals place, and a live chip for another run says so` (e803880)
+- [x] GREEN: `finalsRunLabels` in experiment-gate-store; `/api/runs` uses it for the run's experiment label; app chip text
+  Tests: agent 1083, viewer 648 passed. TS coverage over 90 on every metric; tsc + eslint clean. Python gates not run in this worktree (no mGBA binding built here; nothing Python changed).
+- [ ] Review: Claude CLI, Grok
+- [ ] Operator approval, rebase onto main, local merge
+- [ ] Restart 8790 only when no finals run is live (the runner lives in the viewer process)

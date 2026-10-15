@@ -108,6 +108,27 @@ describe("run queue", () => {
     expect(existsSync(join(runsRoot, LEASE))).toBe(false);
   });
 
+  it("launches past a lease a dead viewer left once its run has ended, but never past a live owner", async () => {
+    const runsRoot = root();
+    mkdirSync(join(runsRoot, LEASE));
+    writeFileSync(join(runsRoot, LEASE, "owner.json"), JSON.stringify({ pid: 300, owner: "viewer-queue", run: "older", child: 301 }));
+    const { h, launches, finish } = host(runsRoot);
+    let living = new Set([300]);
+    const queue = new RunQueue({ ...h, alive: (pid) => living.has(pid) });
+    queue.enqueue(draft);
+    await queue.tick();
+    expect(queue.status()).toMatchObject({ state: "queued", waitingFor: "the gameplay lease (a benchmark cohort is running)" });
+    living = new Set([301]);
+    await queue.tick();
+    expect(queue.status()).toMatchObject({ state: "queued", waitingFor: "the gameplay lease (a benchmark cohort is running)" });
+    living = new Set();
+    const running = queue.tick();
+    await vi.waitFor(() => { expect(launches).toHaveLength(1); });
+    finish(0);
+    await running;
+    expect(queue.status()).toEqual({ state: "idle" });
+  });
+
   it("reports a failed launch and still releases the lease", async () => {
     const runsRoot = root();
     const { h, finish, launches } = host(runsRoot);

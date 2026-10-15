@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -22,6 +23,14 @@ describe("detached launches", () => {
     expect(seen[0]?.group).not.toBe(processGroup(process.pid));
     expect(readFileSync(join(d, "out.log"), "utf8")).toBe("m\n");
     expect(readFileSync(join(d, "err.log"), "utf8")).toBe("e\n");
+  });
+
+  it("keeps a launcher with nothing else to do alive until its run exits", () => {
+    const d = dir();
+    const script = `const { spawnDetached } = await import(${JSON.stringify(join(import.meta.dirname, "detached.ts"))});
+const code = await spawnDetached(process.execPath, ["-e", "setTimeout(() => process.exit(4), 300)"], { env: {}, stdout: ${JSON.stringify(join(d, "o.log"))}, stderr: ${JSON.stringify(join(d, "e.log"))} });
+console.log("parent saw exit " + String(code));`;
+    expect(execFileSync(process.execPath, ["--input-type=module", "-e", script], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] })).toBe("parent saw exit 4\n");
   });
 
   it("resolves null for a signal, rejects a command that cannot start, and never overwrites logs", async () => {

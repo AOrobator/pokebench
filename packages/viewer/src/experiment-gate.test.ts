@@ -10,7 +10,7 @@ import { QUEUE_FEATURES, definition, writeDefinition } from "../test-support/exp
 import { activeCohort, pidCommand, productionHost } from "./experiment-cli.js";
 import { ApprovalError, setFinalsWithdrawn } from "./experiment-approval.js";
 import { ExperimentAutoRun } from "./experiment-autorun.js";
-import { effectiveExperiment, findCohort, finalsLedgerPath, finalsRunLabels, finalsResultPath, nominationPath, pinnedPromotion, promotionOverlay, promotionsPath, readPromotions, reusableRuns } from "./experiment-gate-store.js";
+import { effectiveExperiment, findCohort, finalsLedgerPath, finalsRunLabels, finalsRunner, finalsResultPath, nominationPath, pinnedPromotion, promotionOverlay, promotionsPath, readPromotions, reusableRuns } from "./experiment-gate-store.js";
 import { nextStep, runQueue, type RunnerHost, type TrialLaunch } from "./experiment-runner.js";
 import { experimentDir, queueSnapshot, runnerPath, winnerGateOn, type QueuePaths, type RunSource, type TrialMetrics } from "./experiment-store.js";
 import { LEASE } from "./next-run.js";
@@ -252,6 +252,27 @@ describe("winner gate", () => {
         expect(s.gateBlock).toBeNull();
       }
     }
+  });
+
+  it("adopts a finals run a dead viewer left playing instead of relaunching it", async () => {
+    const w = world();
+    gated(w);
+    cohort(w, "done", COHORT);
+    await runQueue({ paths: w.paths, source: w.source, host: host(w), stopRequested: () => true });
+    writeFileSync(finalsLedgerPath(w.paths.runsRoot, "full-map"), `${JSON.stringify({ type: "launch", trial: 0, arm: "incumbent", run: "orphanF", at: "t", model: "think-fast", commit: "e".repeat(40) })}\n`);
+    writeFileSync(runnerPath(w.paths.runsRoot), JSON.stringify({ pid: 300, experiment: finalsRunner("full-map"), trial: 0 }));
+    mkdirSync(join(w.paths.runsRoot, LEASE));
+    writeFileSync(join(w.paths.runsRoot, LEASE, "owner.json"), JSON.stringify({ pid: 300, owner: "experiment-queue", experiment: "full-map", finals: true }));
+    let polls = 0;
+    const fake = host(w, {
+      alive: () => false,
+      liveRuns: () => Promise.resolve(polls < 1 ? ["orphanF"] : []),
+      wait: () => { polls += 1; writeRun(w.paths, "orphanF", QUEUE_FEATURES); w.metrics.set("orphanF", reach(HOUSE)); return Promise.resolve(); },
+    });
+    expect((await runQueue({ paths: w.paths, source: w.source, host: fake, once: true })).stopped).toBe("one finals run (--once)");
+    expect(polls).toBe(1);
+    expect(fake.launches).toEqual([]);
+    expect(lines<{ type: string; run: string }>(finalsLedgerPath(w.paths.runsRoot, "full-map")).map((e) => [e.type, e.run])).toEqual([["launch", "orphanF"], ["outcome", "orphanF"]]);
   });
 
   it("holds finals on a failed launch or an operator stop and resumes them; withdrawing them keeps the queue waiting", async () => {

@@ -26,10 +26,13 @@ No feature switch: this changes process supervision, not what the model sees, it
 - [x] RED (19 failing: new detached.test.ts plus runner/finals/queue/launcher fakes). RED: the launchers spawn with `detached: true` in their own process group and `unref()`. The child pid is recorded next to the trial (`runner.json` gains `pid` and `run`; NEXT RUN and human-restart leases gain `run` and `pid`).
 - [x] RED COMMIT: `test: launched runs are detached process-group leaders and name their child pid` (02be7f6)
 - [x] GREEN: new `detached.ts` `spawnDetached` (detached, unref, wx logs, `started(pid)`); experiment trials, finals, NEXT RUN and human restarts all launch through it. runner.json carries `run` then `child`; the NEXT RUN lease owner carries `child`. The experiments CLI forwards Ctrl-C to the detached pid explicitly. Viewer 51 files / 648 tests; coverage 95.36 / 91.05 / 94.38; tsc + eslint clean.
-- [ ] Review (Claude + Grok).
+- [x] GREEN COMMIT: `feat(viewer): launch every run detached in its own process group` (437a800)
+- [x] Review 1 on 437a800: Claude BLOCKING. `child.unref()` lets `experiments run` exit as soon as a trial launches when stdin is not a TTY, which abandons the trial (reproduced with a real-process test). Grok hung for more than 10 minutes with no output and was stopped; it re-runs on the fix. Accepted hardening: no `unref`; try/catch around the SIGINT forward and the `started` writes; keep-alive in the CLI launch test; check the pid's command before treating a recorded child as our run (pid reuse).
+- [ ] Re-review of the M1 fix together with M2.
 
 ### M2: a fresh viewer adopts an in-flight or finished trial
-- [ ] RED (fixtures): the lease and `runner.json` are left by a dead viewer pid.
+- [x] RED: 6 failing (lease.test.ts, adoption of a trial and a finals run, a trial that ended while no viewer was up, runner position with a dead viewer and a live child, NEXT RUN past a dead lease) plus the M1 regression (a launcher with nothing else to do stays alive until its run exits).
+- RED (fixtures): the lease and `runner.json` are left by a dead viewer pid.
   - (a) Trial still live: the new runner waits for it, records exactly one `outcome` from its `run_end`, and never relaunches it.
   - (b) Trial ended while no viewer was up: the outcome is recorded from `run_end`, not `launcher_error interrupted`.
   - (c) Trial ended with no `run_end` and its pid is gone: today's interrupted path is unchanged.

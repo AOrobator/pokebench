@@ -14,6 +14,7 @@ import { parseNavigationReceipt } from "./frontier-queue.js";
 import { dirname } from "node:path";
 import { eventsPath, listRuns, readStart } from "./runs.js";
 import { parseLedger } from "@pokebench/agent/experiments";
+import { parseFinalsLedger } from "@pokebench/agent/experiment-gate";
 import type { HealthProbe } from "./next-run.js";
 import type { WorkbenchConfig, WorkbenchData, WorkbenchRun } from "./workbench-data.js";
 const MAX_PLAN_BYTES = 1024 * 1024;
@@ -78,11 +79,12 @@ function plans(root: string): string[] {
   }; visit(join(root, "launch-receipts"), 0); return found;
 }
 async function cohortMembership(root: string): Promise<{ failures: Map<string, string>; membership: Map<string, string>; problems: string[] }> {
-  const failures = new Map<string, string>(), membership = new Map<string, string>(), problems: string[] = [], accepted = new Set<string>();
+  const failures = new Map<string, string>(), membership = new Map<string, string>(), problems: string[] = [], accepted = new Set<string>(), claimed = new Set<string>();
   for (const path of plans(root)) {
     try {
       const receipt = metadata(path), raw = receipt.value;
       if (record(raw) && raw.id === "navigation-memory-think-fast-n4" && Array.isArray(raw.order)) {
+        claimed.add(dirname(path));
         const ledgerPath = join(dirname(path), "trials.jsonl");
         const rows: unknown[] = existsSync(ledgerPath) ? boundedLedger(ledgerPath) : [];
         if (typeof raw.root !== "string" || realpathSync(join(raw.root, "runs")) !== realpathSync(root)) throw new Error("Navigation receipt root does not own this run store");
@@ -96,6 +98,7 @@ async function cohortMembership(root: string): Promise<{ failures: Map<string, s
         continue;
       }
       if (!record(raw) || !Array.isArray(raw.trials) || !Array.isArray(raw.lanes)) continue;
+      claimed.add(dirname(path)); if (typeof raw.id === "string") claimed.add(join(root, "launch-receipts", raw.id));
       const m = prepareComparison(raw), ledgerPath = join(root, "launch-receipts", m.id, "trials.jsonl");
       if (join(m.repoRoot, "runs") !== root || !existsSync(ledgerPath)) continue;
       if (lstatSync(ledgerPath).isSymbolicLink() || statSync(ledgerPath).size > MAX_PLAN_BYTES) throw new Error("Cohort ledger exceeds metadata bounds");
@@ -118,30 +121,95 @@ async function cohortMembership(root: string): Promise<{ failures: Map<string, s
     } catch (error) { problems.push(`Comparison receipt: ${errorText(error)}`); }
   }
   experimentCohorts(root, failures, membership, problems);
+  handRunCohorts(root, claimed, failures, membership, problems);
   return { failures, membership, problems };
 }
-// Experiment-queue ledgers (runs/experiments/<id>/trials.jsonl): every launched run joins the
-// experiment's cohort and launcher errors are excluded.
+// Experiment-queue ledgers under runs/experiments/<id>/: trials.jsonl joins cohort experiment:<id>
+// and finals.jsonl (every finals arm: the incumbent and each finalist) joins experiment:<id>:finals.
+// Every launched run joins its cohort and launcher errors are excluded.
 function experimentCohorts(root: string, failures: Map<string, string>, membership: Map<string, string>, problems: string[]): void {
   const base = join(root, "experiments");
   if (!existsSync(base)) return;
   for (const entry of readdirSync(base, { withFileTypes: true })) {
-    const path = join(base, entry.name, "trials.jsonl");
-    if (!entry.isDirectory() || !existsSync(path)) continue;
+    if (!entry.isDirectory()) continue;
+    for (const [file, cohort, label] of [["trials.jsonl", `experiment:${entry.name}`, "ledger"], ["finals.jsonl", `experiment:${entry.name}:finals`, "finals ledger"]] as const) {
+      const path = join(base, entry.name, file);
+      if (!existsSync(path)) continue;
+      try {
+        if (lstatSync(path).isSymbolicLink() || statSync(path).size > MAX_PLAN_BYTES) throw new Error("Experiment ledger exceeds metadata bounds");
+        const text = readFileSync(path, "utf8");
+        const { entries, problems: bad } = file === "trials.jsonl" ? parseLedger(text) : parseFinalsLedger(text);
+        // All or nothing: a ledger with any unreadable row contributes no cohort annotations.
+        if (bad.length > 0) { problems.push(...bad.map(p => `Experiment ${entry.name} ${label} ${p}`)); continue; }
+        const launched = new Set<string>(), errors = new Map<string, string>();
+        for (const e of entries) {
+          if (e.type === "launch") launched.add(e.run);
+          else if (!launched.has(e.run)) throw new Error(`run ${e.run} has an ${e.type} without a launch`);
+          else if (e.type === "launcher_error") errors.set(e.run, `Launcher outcome: ${e.message}`);
+        }
+        for (const run of launched) membership.set(run, cohort);
+        for (const [run, message] of errors) failures.set(run, message);
+      } catch (error) { problems.push(`Experiment ${entry.name} ${label}: ${errorText(error)}`); }
+    }
+  }
+}
+const RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+function runOf(row: Record<string, unknown>): string | null {
+  const run = row.run ?? row.run_id;
+  return typeof run === "string" && RUN_ID.test(run) && !run.includes("..") ? run : null;
+}
+// The infrastructure failure a hand-run ledger row records for its run, if any.
+function rowFailure(row: Record<string, unknown>): string | null {
+  if (row.type === "launcher_error") {
+    const why = [row.message, row.error].find((v): v is string => typeof v === "string") ?? "launcher error";
+    return `Launcher outcome: ${why}`.slice(0, 500);
+  }
+  const code = row.exit ?? row.code ?? row.exit_code;
+  if (typeof code === "number" && code !== 0) return `Infrastructure outcome: exit ${String(code)}`;
+  if (typeof row.signal === "string") return `Infrastructure outcome: ${row.signal}`;
+  return null;
+}
+function jsonRows(path: string): Record<string, unknown>[] {
+  if (lstatSync(path).isSymbolicLink() || statSync(path).size > MAX_PLAN_BYTES) throw new Error("ledger exceeds metadata bounds");
+  const lines = readFileSync(path, "utf8").split("\n"), rows: Record<string, unknown>[] = [];
+  for (const [index, line] of lines.entries()) {
+    if (line.trim() === "") continue;
+    let row: unknown;
+    try { row = JSON.parse(line); } catch {
+      // A driver may be mid-write: only an unterminated last line is tolerated.
+      if (index === lines.length - 1) continue;
+      throw new Error(`line ${String(index + 1)} is not JSON`);
+    }
+    if (!record(row)) throw new Error(`line ${String(index + 1)} is not an object`);
+    rows.push(row);
+  }
+  return rows;
+}
+// Hand-run cohorts under runs/launch-receipts/<dir>/ that no verified receipt claimed: runs named by
+// trials.jsonl rows or manifest.json attempts join the manifest's id (else the directory name).
+// They never relabel a run that a verified receipt or the experiment queue already owns.
+function handRunCohorts(root: string, claimed: ReadonlySet<string>, failures: Map<string, string>, membership: Map<string, string>, problems: string[]): void {
+  const base = join(root, "launch-receipts");
+  if (!existsSync(base)) return;
+  const owned = new Set(membership.keys());
+  for (const entry of readdirSync(base, { withFileTypes: true })) {
+    const here = join(base, entry.name);
+    if (!entry.isDirectory() || claimed.has(here)) continue;
     try {
-      if (lstatSync(path).isSymbolicLink() || statSync(path).size > MAX_PLAN_BYTES) throw new Error("Experiment ledger exceeds metadata bounds");
-      const { entries, problems: bad } = parseLedger(readFileSync(path, "utf8"));
-      // All or nothing: a ledger with any unreadable row contributes no cohort annotations.
-      if (bad.length > 0) { problems.push(...bad.map(p => `Experiment ${entry.name} ledger ${p}`)); continue; }
-      const cohort = `experiment:${entry.name}`, launched = new Set<string>(), errors = new Map<string, string>();
-      for (const e of entries) {
-        if (e.type === "launch") launched.add(e.run);
-        else if (!launched.has(e.run)) throw new Error(`run ${e.run} has an ${e.type} without a launch`);
-        else if (e.type === "launcher_error") errors.set(e.run, `Launcher outcome: ${e.message}`);
+      const manifestPath = join(here, "manifest.json"), ledgerPath = join(here, "trials.jsonl");
+      const manifest = existsSync(manifestPath) ? metadata(manifestPath).value : null;
+      const rows = existsSync(ledgerPath) ? jsonRows(ledgerPath) : [];
+      if (record(manifest) && Array.isArray(manifest.attempts)) rows.push(...manifest.attempts.filter(record));
+      const cohort = record(manifest) && typeof manifest.id === "string" && manifest.id !== "" ? manifest.id : entry.name;
+      for (const row of rows) {
+        const run = runOf(row);
+        if (run === null || owned.has(run) || (membership.has(run) && membership.get(run) !== cohort)) continue;
+        try { readStart(root, run); } catch { continue; }
+        membership.set(run, cohort);
+        const failure = rowFailure(row);
+        if (failure !== null && !failures.has(run)) failures.set(run, failure);
       }
-      for (const run of launched) membership.set(run, cohort);
-      for (const [run, message] of errors) failures.set(run, message);
-    } catch (error) { problems.push(`Experiment ${entry.name} ledger: ${errorText(error)}`); }
+    } catch (error) { problems.push(`Launch receipt ${entry.name}: ${errorText(error)}`); }
   }
 }
 export async function workbenchSnapshot(root: string, healthy: HealthProbe, now: number): Promise<WorkbenchData> {

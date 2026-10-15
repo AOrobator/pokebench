@@ -24,7 +24,7 @@ slower turns and fewer turns per 30-minute run.
 - [x] Explainer `docs/explainers/double-context-window-v1.html`, `FEATURE_EXPLAINERS` mapping, `experiments/double-context-window.json` (pending), readiness row (READY). Other incumbents list the switch OFF. All 12 entries parse.
 - [x] Gates: test, coverage ≥90, lint
 - [x] Review: principles self-review (0 FAIL), Claude CLI LGTM, Grok LGTM, subagent fallback LGTM ×2
-- [ ] Local merge into main (approved by the operator 2026-10-15 01:22 UTC)
+- [x] Local merge into main (approved by the operator 2026-10-15 01:22 UTC): merge b8ba6e012c873a912ed079e1838d31706be1e1c0; experiment source.commit repinned to it. (A stray empty-worklog commit 9a6e024 landed on main first by mistake; the merge replaced it with the real worklog.)
 - Explainer: moved the OFF label off the line, corrected the wiring box source (checked in a browser).
 - Corrected activation note: full results differ from the 7th tool result, turns from turn 21.
 - Review r1 (runs/window-double-review/r1 in the main checkout): Claude CLI LGTM, Cursor Grok LGTM, Cursor GPT lane unavailable (usage limit until 2026-10-17), Codex also unavailable (gpt-6.1-sol unsupported on the ChatGPT account; gpt-5.6-sol usage limit until 2026-10-20), so the standing subagent fallback replaced the GPT lane: fresh read-only Sonnet and Fable reviewers on frozen packet 8ce2334d (head 8f2aa9d), both LGTM with LOW/NIT findings only (repin source.commit after merge; untested live.ts line, deferred above). Reduced vendor diversity: no GPT-family reviewer this round. Local think_fast/think_swarm lanes skipped: the 2×2 chain is using think-fast.

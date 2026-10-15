@@ -37,5 +37,7 @@ attempt (30b2, 2126, 5521) is excluded from the 2×2 by its README; early baseli
 - [x] Round 3: Grok 4.7 high LGTM, Claude CLI LGTM. Viewer 652/652, coverage 95.38 / 91.16 / 94.39, lint clean.
   Real store: every cohort listed, problems []. Deferred (non-blocking): hand-run ids not checked against
   provenance directory names; a cohort literally named "all" would collide with the dropdown default.
-- [ ] Operator merge approval; rebase onto main first (three parallel viewer sessions)
+- [x] Operator approved merge and restart (2026-10-15 16:43 UTC); rebased onto main fb4b6df, viewer 655/655, lint clean
+- Standing expectation: new experiments appear in the dropdown without being asked. Queue and finals
+  ledgers and any new launch-receipts/<dir>/ with trials.jsonl or manifest attempts are picked up automatically.
 - [ ] 8790 restart only with operator OK: the finals runner lives in that process

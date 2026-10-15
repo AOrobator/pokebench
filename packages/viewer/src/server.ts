@@ -10,6 +10,7 @@ import { Type } from "typebox";
 import { Value } from "typebox/value";
 import { FEATURES } from "@pokebench/agent/features";
 import { CONTROL_ACTIONS } from "@pokebench/agent/events";
+import { finalsRunLabels } from "./experiment-gate-store.js";
 import { BaselineError, RunsError, createBaselineReader, comparisonsOf, eventsPath, listRuns, liveScreenPort, readStart, readFrom, runDir, type BaselineReader } from "./runs.js";
 import { featureHistory } from "./history.js";
 import { localModels } from "./models.js";
@@ -358,7 +359,8 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
   }
   if (parts.length === 2) {
     const live = new Set(await liveRuns(options.runsRoot, healthProbe(options.fetchFn ?? fetch)));
-    sendJson(res, 200, listRuns(options.runsRoot).map((run) => ({ ...run, live: live.has(run.id) })));
+    const finals = finalsRunLabels(options.runsRoot);
+    sendJson(res, 200, listRuns(options.runsRoot).map((run) => ({ ...run, ...(finals.has(run.id) ? { experiment: finals.get(run.id) } : {}), live: live.has(run.id) })));
     return;
   }
   try {

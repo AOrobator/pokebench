@@ -288,7 +288,7 @@ export class App {
     for (const button of this.ui("live-runs").querySelectorAll<HTMLButtonElement>("button")) {
       const selected = button.dataset.run === this.runId;
       button.setAttribute("aria-pressed", String(selected));
-      button.textContent = `${selected ? "WATCHING" : "LIVE"} · ${button.dataset.label ?? ""}`;
+      button.textContent = selected ? `WATCHING · ${button.dataset.label ?? ""}` : `LIVE ELSEWHERE · ${button.dataset.label ?? ""} · WATCH ▸`;
     }
   }
 

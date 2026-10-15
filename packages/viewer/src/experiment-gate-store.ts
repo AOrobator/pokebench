@@ -176,6 +176,31 @@ export function finalsTrials(n: Nomination, ledger: readonly FinalsEntry[], runn
     return { index, arm, state, run };
   });
 }
+// Each finals run's own place, "<experiment> finals · <arm> · run <n>/<total>", keyed by run id, with
+// the arm the ledger recorded. A relaunched slot labels every run it launched with that slot's place.
+// Reused incumbent runs keep their cohort label; <total> counts only finals launches, as the gate view does.
+export function finalsRunLabels(runsRoot: string): Map<string, string> {
+  const labels = new Map<string, string>();
+  const root = join(runsRoot, "experiments");
+  if (!existsSync(root)) return labels;
+  for (const id of readdirSync(root)) {
+    if (!existsSync(finalsLedgerPath(runsRoot, id))) continue;
+    const n = readNomination(runsRoot, id, []);
+    if (n === null) continue;
+    let ledger: FinalsEntry[];
+    try {
+      ledger = finalsLedger(runsRoot, id);
+    } catch {
+      continue; // an unreadable ledger never empties the run list
+    }
+    const trials = finalsTrials(n, ledger, null);
+    for (const e of ledger) {
+      const t = e.type === "launch" ? trials[e.trial] : undefined;
+      if (e.type === "launch" && t !== undefined) labels.set(e.run, `${n.experiment} finals · ${e.arm} · run ${String(t.index + 1)}/${String(trials.length)}`);
+    }
+  }
+  return labels;
+}
 // The decision over the latest outcome of every finals trial, once all of them finished.
 export function decide(n: Nomination, ledger: readonly FinalsEntry[], source: RunSource): FinalsDecision | null {
   const trials = finalsTrials(n, ledger, null);

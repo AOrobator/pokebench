@@ -580,11 +580,15 @@ it("marks only the selected live run and retains the mark after discovery refres
   expect(ui("live-runs").textContent).toContain("WATCHING");
   (ui("live-runs").querySelector('[data-run="second_live"]') as HTMLButtonElement).click();
   expect(selected()).toEqual(["second_live"]);
+  expect((ui("live-runs").querySelector('[data-run="first_live"]') as HTMLButtonElement).textContent).toMatch(/^LIVE ELSEWHERE · .* · WATCH ▸$/);
+  expect((ui("live-runs").querySelector('[data-run="second_live"]') as HTMLButtonElement).textContent).toMatch(/^WATCHING · /);
   await app.refreshRuns();
   expect(selected()).toEqual(["second_live"]);
   app.select(M4_ID);
   expect(selected()).toEqual([]);
   expect((ui("run") as HTMLSelectElement).value).toBe(M4_ID);
+  // Replaying an ended run: every live chip says it is another run, none says WATCHING.
+  expect([...ui("live-runs").querySelectorAll("button")].map((b) => b.textContent)).toEqual([expect.stringMatching(/^LIVE ELSEWHERE · .* · WATCH ▸$/), expect.stringMatching(/^LIVE ELSEWHERE · .* · WATCH ▸$/)]);
 });
 
 

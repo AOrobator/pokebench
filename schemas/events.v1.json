@@ -121,7 +121,9 @@
                 "observation",
                 "ineffective",
                 "cycle",
-                "rejection"
+                "rejection",
+                "map_cycle",
+                "milestone_drought"
               ]
             },
             "message": {
@@ -197,7 +199,9 @@
                 "observation",
                 "ineffective",
                 "cycle",
-                "rejection"
+                "rejection",
+                "map_cycle",
+                "milestone_drought"
               ]
             },
             "message": {
@@ -278,7 +282,9 @@
                 "observation",
                 "ineffective",
                 "cycle",
-                "rejection"
+                "rejection",
+                "map_cycle",
+                "milestone_drought"
               ]
             },
             "message": {

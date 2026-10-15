@@ -81,9 +81,11 @@ Local-only harness. No new network surface, subprocesses keep argv lists, and no
 - [ ] Gates, GREEN, explainers, pending entries, review loop
 
 **M4 — `stall-briefing-v1`**
-- [ ] RED tests: map A→B→A→B cycle briefs on the second round trip; N minutes with no new milestone briefs once per window; identical multi-button batches
-- [ ] Implement (extends the supervisor triggers; the briefing text uses the M1-fixed facts)
-- [ ] Gates, GREEN, explainer, pending entry, review loop
+- [x] RED tests: map A→B→A→B cycle briefs on the second round trip; N minutes with no new milestone briefs once per window; identical multi-button batches
+- [x] COMMIT (RED) `test: stall-briefing-v1 briefs on map ping-pong and milestone droughts` (81a6b3c)
+- [x] Implement (extends the supervisor triggers; the briefing text uses the M1-fixed facts)
+- [x] Gates, GREEN, explainer, pending entry
+- [ ] Review loop
 
 **M5 — Strong-bundle cohort launch (needs the operator)**
 - [ ] ASK USER: approve the merge of M1–M4 into main
@@ -132,3 +134,6 @@ Cohort report: furthest milestones first; reach counts and survivor medians per 
 - M3 RED: env/tests/env/test_character_presence.py (hidden characters not on map, live position vs out of view, VAR graphics, unreadable save, readout gated by character-presence-v1).
 - M3 character-presence-v1 GREEN (Python): pokebench_env/character_presence.py reads SaveBlock1 objectEventTemplates (0xC70, 64x24) with hide flags and VAR graphics; GameState.story_characters; readout line gated by character-presence-v1. pytest 1883 green, ruff clean. TODO: explainer, pending experiment entry, TS coverage/gates, review. Paused at usage limit 2026-10-15.
 - M4 RED: packages/agent/src/stall-briefing.test.ts (map ping-pong on the second round trip with map-load gaps, per-pair counts reset by a new milestone, 5-minute active-play drought once per window ignoring pauses and start milestones, dea1 multi-button batches, c497 battle-bag A presses, deferral while a loop briefing is open, OFF byte-identity, factory wiring, diagnostic mode, headline text). Fails: stall-briefing.ts and the stallBriefing factory do not exist yet.
+- M4 GREEN stall-briefing-v1: stall-briefing.ts StallBriefing counts map changes per unordered pair of maps (location+map id, map-load states skipped) and active play time (elapsed minus RunControl.pausedMs) since the last observed milestone (present_at_start and GAME_RUNNING ignored; a new milestone clears the pairs and the clock); checked after each tool_result. Briefs at 2 round trips per pair (4 moves) then every 2 more, and at 5, 10, … minutes of drought. LoopDetector.stall(kind, text, evidence) records loop_guard phase supervisor with new kinds map_cycle / milestone_drought (schema regenerated) and shows the note via context() until the next completed call; refused while a loop episode or an earlier note is open (fires after recovery), in diagnostic mode and after a stop. SupervisorBriefing.stallText shares the fact block with text() (loop text byte-identical). Wiring: play-wiring stallBriefing(features, recorder, detector, runControl, elapsed), called in live.ts after the budget timers. Viewer: Activity History labels "Map back-and-forth" / "Milestone drought"; timeline shows Supervisor note rows (tests added). Explainer docs/explainers/stall-briefing-v1.html mapped in FEATURE_EXPLAINERS; experiments/stall-briefing.json pending on the finals incumbent (504f switch set; the shared incumbent has loop-guard-supervisor-v1 off so its candidate fails dependency validation), source.commit = RED SHA until landing (repin at merge); readiness READY 4/4 PLAYER_NAME_CONFIRMED (checked with the worktree's experiment store against main's runs; `just experiments-check` reads main's checkout so it does not see this branch's file).
+  Wiring check: removing the StallBriefing subscribe in stallBriefing() turned 8 of 11 stall-briefing tests red; restored green.
+  Gates: agent 1109 (97.59/94.07/98.15), viewer 652 (95.36/91.18/94.36), pytest 1883 (96.75/91.98/100), lint clean, build ok. Explainer not visually checked in a browser (the pane cannot render local files here).

@@ -186,6 +186,16 @@ describe("traceRow", () => {
     expect(sup.hasAttribute("open")).toBe(false);
   });
 
+  it("shows stall-briefing-v1 notes as supervisor rows with their full headline", () => {
+    const log = new Log();
+    log.add(0, { type: "loop_guard", turn: 1, kind: "map_cycle", phase: "supervisor", mode: "enforced", calls: 9, message: "SUPERVISOR: You are stalling. You have walked between A and B 2 times.\nStop and get your bearings:", evidence: [1, 2] });
+    log.add(1, { type: "loop_guard", turn: 2, kind: "milestone_drought", phase: "supervisor", mode: "enforced", calls: 12, message: "SUPERVISOR: You are stalling. There has been no new story milestone for 5 minutes of play.", evidence: [3] });
+    const rows = steps(build(log.events)).map((step) => dom(traceRow(step)).firstElementChild as HTMLElement);
+    expect(rows.map((row) => row.querySelector(".tl-title")?.textContent)).toEqual(["Supervisor note", "Supervisor note"]);
+    expect(rows[0]?.querySelector(".tl-res")?.textContent).toBe("You are stalling. You have walked between A and B 2 times.");
+    expect(rows[1]?.querySelector(".tl-body")?.textContent).toContain("no new story milestone for 5 minutes of play");
+  });
+
   it("folds a tool call's full result, and the result folds on its own", () => {
     const row = dom(traceRow(byKind("act"))).firstElementChild as HTMLDetailsElement;
     expect(row.tagName).toBe("DETAILS");

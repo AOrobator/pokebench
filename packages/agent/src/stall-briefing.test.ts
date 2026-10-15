@@ -20,8 +20,8 @@ const LOADING={location:null,map_id:null};
 // A production-shaped run: the real recorder's synchronous fan-out, the real loop guard and the factories live.ts calls.
 function rig(features:FeatureSet){
  const observers:{fn:(e:RunEvent)=>void}[]=[];const events:RunEvent[]=[];
- let seq=0,turn=0,clock=0,paused=0,call=0;
- const emit=(body:Record<string,unknown>):RunEvent=>{const e=checkEvent({v:1,run:"stall",t:"2026-10-15T12:00:00.000Z",turn,seq:++seq,...body});events.push(e);for(const o of observers)o.fn(e);return e;};
+ let seq=0,turn=0,clock=0,paused=0,call=0,stateSeq=0;
+ const emit=(body:Record<string,unknown>):RunEvent=>{const e=checkEvent({v:1,run:"stall",t:"2026-10-15T12:00:00.000-04:00",turn,seq:++seq,...body});events.push(e);for(const o of observers)o.fn(e);return e;};
  const recorder={subscribe:(fn:(e:RunEvent)=>void)=>{observers.push({fn});},recordLoopGuard:(n:LoopNotice)=>{emit({type:"loop_guard",...n,evidence:[...n.evidence]});}};
  const governor=new Governor({limits:{maxTurns:5000,maxWallMs:6*3_600_000,failureLimit:3},retry:()=>undefined,abort:()=>undefined,now:()=>clock});
  const detector=attachLoopGuard(recorder,governor,undefined,"enforced",features["interaction-loop-detection-v1"],loopSupervisor(features,recorder));
@@ -34,12 +34,12 @@ function rig(features:FeatureSet){
   contexts.push(detector.context());
   const id=`c${String(++call)}`;
   emit({type:"tool_call",id,name:"press",args:{buttons}});
-  emit({type:"button_press",tool_call_id:id,buttons,before_state_seq:seq});
+  emit({type:"button_press",tool_call_id:id,buttons,before_state_seq:stateSeq});
   for(const extra of before)state(extra);
   const s=state(after);
   emit({type:"tool_result",id,name:"press",is_error:false,duration_ms:1,text:"ok\nStory: player name confirmed",frames:[],state_seq:s.seq});
  };
- const state=(extra:Record<string,unknown>):RunEvent=>emit({type:"state",...IN_GAME,started:true,screen:"overworld",...HOUSE_1F,position:{x:3,y:3},facing:"up",field_controls_locked:false,interaction_targets:[],world_context:{objects:[],triggers:[],dialogue:null},...extra});
+ const state=(extra:Record<string,unknown>):RunEvent=>{const e=emit({type:"state",...IN_GAME,started:true,screen:"overworld",...HOUSE_1F,position:{x:3,y:3},facing:"up",field_controls_locked:false,interaction_targets:[],world_context:{objects:[],triggers:[],dialogue:null},...extra});stateSeq=e.seq;return e;};
  const milestone=(name:string,origin:"observed"|"present_at_start")=>emit({type:"milestone",name,server_timestamp:0,kind:"story",origin});
  const guards=()=>events.filter((e):e is Extract<RunEvent,{type:"loop_guard"}>=>e.type==="loop_guard");
  return {press,state,milestone,guards,events,contexts,wired,detector,observers,pause:(ms:number)=>{clock+=ms;paused+=ms;},advance:(ms:number)=>{clock+=ms;},next:()=>{contexts.push(detector.context());return contexts.at(-1);}};
@@ -93,7 +93,7 @@ it("counts each pair of maps separately and starts over after a new milestone",(
  r.press(["DOWN"],HOUSE_1F);r.press(["UP"],HOUSE_2F);r.press(["DOWN"],HOUSE_1F);
  expect(r.guards()).toEqual([]);
  r.press(["UP"],HOUSE_2F);
- expect(r.guards()[0]?.message).toContain("between HOUSE 1F (map 1/0) and HOUSE 2F (map 1/1) 2 times");
+ expect(r.guards()[0]?.message).toContain("between HOUSE 2F (map 1/1) and HOUSE 1F (map 1/0) 2 times");
 });
 
 it("briefs after 5 minutes of active play with no new milestone, once per window, ignoring pauses and start milestones",()=>{

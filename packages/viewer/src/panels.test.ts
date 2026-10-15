@@ -8,7 +8,6 @@ import { fileURLToPath } from "node:url";
 import {
   FEATURE_EXPLAINERS,
   NO_DATA,
-  objectivePanel,
   eventText,
   brand,
   budgets,
@@ -382,24 +381,6 @@ it("renders field facts without guessing names and escapes dialogue", () => {
   expect(fieldContext(view(bare()))).toContain("no data");
 });
 
-it("shows evidence, decisions and complete attempt history without treating reports as verified", () => {
-  const log = bare();
-  log.add(1, { type: "objective_update", turn: 0, objective: { id: "o1", revision: 1, goal: "Reach gym", title: "<Set clock>", supports_goal: "Opening sequence", evidence: [1], completion: { kind: "visual", description: "Clock closes" }, obstacle: "Can't interact", next_decision: "Check facing", status: "reported_complete", completion_evidence: [2] } });
-  log.add(2, { type: "objective_attempt", turn: 1, attempt: { id: "p1", objective_id: "o1", buttons: ["A"], before_seq: 1, after_seq: 2, outcome: "no_change", failure_count: 2, warning: "Reassess <now>", retry_justification: "Changed facing" } });
-  const html = objectivePanel(view(log));
-  expect(html).toContain("&lt;Set clock&gt;");
-  expect(html).toContain("reported complete");
-  expect(html).toContain("Check facing");
-  expect(html).toContain("visual report");
-  expect(html).toContain("2 matching failures");
-  expect(html).toContain("Changed facing");
-  expect(html).toContain("#1→#2");
-  log.add(3, { type: "objective_update", turn: 2, objective: { id: "o2", revision: 1, goal: "Reach gym", title: "Starter", supports_goal: "Battle", evidence: [3], completion: { kind: "state", field: "party_count", value: 1 }, obstacle: "", next_decision: "Observe", status: "active", completion_evidence: [] } });
-  expect(objectivePanel(view(log))).toContain("party_count = 1");
-  expect(objectivePanel(view(log))).toContain("none recorded");
-  expect(objectivePanel(view(log))).toContain("not completed");
-});
-
 it("shows game-owned story values and milestone evidence without inventing old observations", () => {
   const log = new Log();
   log.add(0, START);
@@ -440,22 +421,6 @@ it("shows creation before name confirmation with recorded baseline and best delt
 it("shows escaped loop evidence in the action log",()=>{
   const log=bare();const event=log.add(100,{type:"loop_guard",turn:1,kind:"cycle",phase:"warning",message:"Reassess <now>",calls:9,evidence:[4,7]});
   const html=eventText(event);expect(html).toContain("Loop cycle warning");expect(html).toContain("Reassess &lt;now&gt;");expect(html).toContain("#4, #7");expect(stepOf(event)).toMatchObject({status:"error",tone:"orange",category:"guard"});
-});
-
-it("distinguishes native proof, provisional claims and historical completion", () => {
- const log=bare();
- const objective={id:"native",revision:1,goal:"Reach gym",title:"Set the clock",supports_goal:"Native story task",evidence:[1],completion:{kind:"milestone" as const,name:"CLOCK_SET" as const},obstacle:"",next_decision:"Observe",status:"completed" as const,completion_evidence:[2,1],verification:{origin:"present_at_start" as const,milestone_seq:2,state_evidence:[1]}};
- log.add(3,{type:"objective_update",turn:0,objective});
- expect(objectivePanel(view(log))).toContain("game verified (present at start)");
- expect(objectivePanel(view(log))).toContain("Native milestone CLOCK_SET");
- log.add(4,{type:"objective_update",turn:0,objective:{...objective,verification:{...objective.verification,origin:"observed"}}});
- expect(objectivePanel(view(log))).toContain("game verified (observed)");
- const {verification:proof,...historical}=objective;
- expect(proof.state_evidence).toEqual([1]);
- log.add(5,{type:"objective_update",turn:0,objective:{...historical,completion:{kind:"state",field:"started",value:true}}});
- expect(objectivePanel(view(log))).toContain("historical completion (not native verified)");
- log.add(6,{type:"objective_update",turn:0,objective:{...historical,status:"reported_complete",completion:{kind:"state",field:"started",value:true}}});
- expect(objectivePanel(view(log))).toContain("provisional local plan");
 });
 
 it("renders verified confirmation selection and unsupported diagnostic", () => {

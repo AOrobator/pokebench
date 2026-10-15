@@ -75,6 +75,7 @@ function host(w: World, over: Partial<RunnerHost> = {}, outcome: (features: Feat
       expect(existsSync(join(w.paths.runsRoot, LEASE, "owner.json"))).toBe(true);
       trial.started?.(4321);
       expect(JSON.parse(readFileSync(runnerPath(w.paths.runsRoot), "utf8"))).toMatchObject({ run: trial.runId, child: 4321 });
+      expect(JSON.parse(readFileSync(join(w.paths.runsRoot, LEASE, "owner.json"), "utf8"))).toMatchObject({ pid: process.pid, owner: "experiment-queue", finals: true, run: trial.runId, child: 4321 });
       const preset = JSON.parse(readFileSync(trial.presetPath, "utf8")) as { features: FeatureSet };
       writeRun(w.paths, trial.runId, preset.features);
       w.metrics.set(trial.runId, outcome(preset.features));

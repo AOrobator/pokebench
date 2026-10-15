@@ -40,7 +40,9 @@ No feature switch: this changes process supervision, not what the model sees, it
   - The same cases hold for finals and for regular experiment trials. The NEXT RUN queue reports the adopted run as running and frees the lease when it ends.
 - [x] RED COMMIT: `test: a fresh viewer adopts the trial a dead viewer left, and launchers outlive their runs` (8505bd7)
 - [x] GREEN: new `lease.ts` (shared `takeLease`, `leaseStale`, `pidAlive`). A dead owner's lease is reclaimed only when its run is gone or is the one being adopted; an unreadable owner never is. Runner and finals loops adopt any interrupted or running trial with a run: wait under the lease while it plays (`liveRuns`, or the recorded child pid with no run_end), then record its outcome once. An operator stop holds; a run with no run_end gets the old interrupted path. The pre-launch live check ignores adoptable runs. `readRunner` keeps the position while the child lives. NEXT RUN waits only on a lease that is not stale. M1 fixes: no `unref`, guarded SIGINT forward and `started` writes. Viewer 52 files / 657 tests; coverage 95.18 / 90.94 / 94.29; tsc + eslint clean.
-- [ ] Review (M1 fix + M2).
+- [x] Review 2 (M1 fix + M2, at 99f1936): Claude BLOCKING with 2 findings. B1: the experiment lease never names its trial's child, so a dead viewer's lease reads stale while the trial plays, and NEXT RUN could launch during its boot window. B2: the budget hold ran before adoption, so a finished orphan was never recorded near the budget edge. Hardening taken: a reclaim mutex so two processes can't both reclaim. Grok produced no output in this round either (lane slow); it re-runs on the fixes.
+- [x] RED for B1, B2 and the reclaim mutex (18 failing).
+- [ ] Re-review.
 
 ### M3: deploys are safe by construction
 - [x] RED: cli.test.ts `shutdown` (2 failing): SIGTERM/SIGINT close the viewer once and exit 0; a failed close still exits 1.

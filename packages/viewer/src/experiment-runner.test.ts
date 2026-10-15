@@ -58,8 +58,10 @@ function host(paths: QueuePaths, metrics: Map<string, TrialMetrics>, over: Parti
       launches.push(trial);
       expect(existsSync(join(paths.runsRoot, LEASE, "owner.json"))).toBe(true);
       expect(JSON.parse(readFileSync(runnerPath(paths.runsRoot), "utf8"))).toMatchObject({ trial: expect.any(Number) as number, run: trial.runId });
+      expect(JSON.parse(readFileSync(join(paths.runsRoot, LEASE, "owner.json"), "utf8"))).toMatchObject({ owner: "experiment-queue", run: trial.runId });
       trial.started?.(4321);
       expect(JSON.parse(readFileSync(runnerPath(paths.runsRoot), "utf8"))).toMatchObject({ run: trial.runId, child: 4321 });
+      expect(JSON.parse(readFileSync(join(paths.runsRoot, LEASE, "owner.json"), "utf8"))).toMatchObject({ pid: process.pid, owner: "experiment-queue", run: trial.runId, child: 4321 });
       writeRun(paths, trial.runId, (JSON.parse(readFileSync(trial.presetPath, "utf8")) as { features: typeof QUEUE_FEATURES }).features);
       metrics.set(trial.runId, { reached: [], milestoneMs: {}, turns: 9, wallMs: 60_000 });
       return Promise.resolve(0);
@@ -153,7 +155,7 @@ describe("experiment runner", () => {
       alive: (pid) => pid === process.pid && polls < 2,
       liveRuns: () => Promise.resolve(polls < 2 ? ["orphan0"] : []),
       wait: () => {
-        expect((JSON.parse(readFileSync(join(paths.runsRoot, LEASE, "owner.json"), "utf8")) as { pid: number }).pid).toBe(process.pid);
+        expect(JSON.parse(readFileSync(join(paths.runsRoot, LEASE, "owner.json"), "utf8"))).toMatchObject({ pid: process.pid, run: "orphan0", child: process.pid });
         expect(JSON.parse(readFileSync(runnerPath(paths.runsRoot), "utf8"))).toMatchObject({ pid: process.pid, trial: 0, run: "orphan0", child: process.pid });
         polls += 1;
         if (polls === 2) { writeRun(paths, "orphan0", QUEUE_FEATURES); metrics.set("orphan0", { reached: [], milestoneMs: {}, turns: 9, wallMs: 60_000 }); }
@@ -179,6 +181,17 @@ describe("experiment runner", () => {
     expect((await runQueue({ paths, source, host: fake, once: true })).stopped).toBe("one trial run (--once)");
     expect(fake.launches).toEqual([]);
     expect(ledger(paths)).toMatchObject([{ type: "launch", run: "ended0" }, { type: "outcome", trial: 0, run: "ended0", reason: "budget" }]);
+  });
+
+  it("records an adopted trial even when one more trial would exceed the budget", async () => {
+    const { paths, metrics, source } = setup({ budget: { maxWallMs: 1_800_000 } });
+    writeFileSync(join(experimentDir(paths.runsRoot, "full-map"), "trials.jsonl"), `${JSON.stringify({ type: "launch", trial: 0, arm: "incumbent", run: "ended0", at: "t" })}\n`);
+    writeRun(paths, "ended0", QUEUE_FEATURES);
+    metrics.set("ended0", { reached: [], milestoneMs: {}, turns: 9, wallMs: 60_000 });
+    const fake = host(paths, metrics);
+    expect((await runQueue({ paths, source, host: fake })).stopped).toBe("held: the next trial could exceed the experiment budget");
+    expect(fake.launches).toEqual([]);
+    expect(ledger(paths)).toMatchObject([{ type: "launch", run: "ended0" }, { type: "outcome", trial: 0, run: "ended0" }]);
   });
 
   it("refuses to start on a source problem, a live run or a held lease", async () => {

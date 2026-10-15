@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -39,6 +39,19 @@ describe("gameplay lease", () => {
       takeLease(root, { pid: 101, owner: "experiment-queue" }, alive, new Set(["orphan"]));
       expect(owner(root)).toEqual({ pid: 101, owner: "experiment-queue" });
     }
+  });
+
+  it("lets one process at a time reclaim a stale lease", () => {
+    const root = runsRoot();
+    held(root, { pid: 300, owner: "experiment-queue" });
+    mkdirSync(join(root, `${LEASE}.reclaim`));
+    expect(() => takeLease(root, { pid: 101, owner: "experiment-queue" }, alive)).toThrow(LeaseHeldError);
+    expect(owner(root)).toEqual({ pid: 300, owner: "experiment-queue" });
+    const old = new Date(Date.now() - 120_000);
+    utimesSync(join(root, `${LEASE}.reclaim`), old, old);
+    takeLease(root, { pid: 101, owner: "experiment-queue" }, alive);
+    expect(owner(root)).toEqual({ pid: 101, owner: "experiment-queue" });
+    expect(existsSync(join(root, `${LEASE}.reclaim`))).toBe(false);
   });
 
   it("reads no owner from a free lease or a torn owner file", () => {

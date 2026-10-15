@@ -129,6 +129,18 @@ describe("run queue", () => {
     expect(queue.status()).toEqual({ state: "idle" });
   });
 
+  it("keeps waiting on an experiment lease a dead viewer left while its trial still plays", async () => {
+    const runsRoot = root();
+    mkdirSync(join(runsRoot, LEASE));
+    writeFileSync(join(runsRoot, LEASE, "owner.json"), JSON.stringify({ pid: 300, owner: "experiment-queue", experiment: "full-map", run: "t0", child: 200 }));
+    const { h, launches } = host(runsRoot);
+    const queue = new RunQueue({ ...h, healthy: () => Promise.resolve(false), alive: (pid) => pid === 200 });
+    queue.enqueue(draft);
+    await queue.tick();
+    expect(queue.status()).toMatchObject({ state: "queued", waitingFor: "the gameplay lease (a benchmark cohort is running)" });
+    expect(launches).toEqual([]);
+  });
+
   it("reports a failed launch and still releases the lease", async () => {
     const runsRoot = root();
     const { h, finish, launches } = host(runsRoot);

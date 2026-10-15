@@ -632,3 +632,7 @@ it("shows the experiment, arm and trial strip, the preset, or just the model and
  expect(cells(runIdentity(view(fullRun()))).out).toEqual(["MODEL · THINKING=think-swarm · medium",`RUN=…${RUN.slice(-4)}`]);
  expect(runIdentity(new RunView())).toBe("");
 });
+
+it("links the transition press results card to its explainer",()=>{
+ expect(FEATURE_EXPLAINERS["transition-press-result-v1"]).toBe("transition-press-result-v1.html");
+});

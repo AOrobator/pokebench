@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transition Press Results</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --bld:#d9d5ca; --ground:#eef0e6;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --bld:#3a3c40; --ground:#1f2420; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --bld:#3a3c40; --ground:#1f2420; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:740px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navb{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.bld{fill:var(--bld);stroke:var(--rule)}
+.ground{fill:var(--ground);stroke:var(--rule)}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.arr.g{stroke:var(--game)} .arr.p{stroke:var(--prior);stroke-dasharray:5 4}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tag{display:inline-block;font:500 .72rem var(--mono);border-radius:99px;padding:1px 8px;border:1px solid var(--rule);color:var(--soft)}
+</style>
+</head>
+<body>
+<main>
+<div>
+<div class="eyebrow">Harness switch · guidance · <code>transition-press-result-v1</code> · needs <code>press-result-v1</code> · off by default</div>
+<h1>Transition press results</h1>
+</div>
+<p class="lede">The "Press result:" line compares the game state read just before a press with the state after it. Three things went unsaid at transitions: a warp that finished before the press, a script moving the player, and a conversation starting over. With this switch on, the line names each of them. Nothing else in the result changes.</p>
+
+<section>
+<h2>1. A warp the model was never shown</h2>
+<p>Recorded in <code>2026-10-15T01-12-21_think-fast_258d</code>, turns 51 and 52. Turn 51 stepped onto the stairs on 2F. Its result was read while the warp was still running, so it still said 2F at (7,1). By the next press the game was already on 1F at (8,3), and that was the "before" snapshot. Today's result compared 1F with 1F and said only <code>moved (8,3) -&gt; (8,2)</code>. The model was never told it changed floors.</p>
+<figure><div class="scroll">
+<svg viewBox="0 0 700 250" width="700" role="img" aria-label="Three snapshots: shown on 2F, before on 1F, after on 1F">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--soft)"/></marker></defs>
+<rect class="prior" x="10" y="20" width="200" height="80" rx="8"/>
+<text class="t" x="22" y="44">Last result shown (seq 683)</text><text x="22" y="66">BRENDANS HOUSE 2F [map 1/1]</text><text class="m" x="22" y="86">(7,1), controls locked</text>
+<rect class="box" x="250" y="20" width="200" height="80" rx="8"/>
+<text class="t" x="262" y="44">Before this press (seq 690)</text><text x="262" y="66">BRENDANS HOUSE 1F [map 1/0]</text><text class="m" x="262" y="86">(8,3)</text>
+<rect class="box" x="490" y="20" width="200" height="80" rx="8"/>
+<text class="t" x="502" y="44">After this press (seq 697)</text><text x="502" y="66">BRENDANS HOUSE 1F [map 1/0]</text><text class="m" x="502" y="86">(8,2)</text>
+<path class="arr p" d="M210,60 L248,60" marker-end="url(#a)"/><path class="arr" d="M450,60 L488,60" marker-end="url(#a)"/>
+<text class="s" x="140" y="125">map changed between results: off never compares these</text>
+<text class="s" x="440" y="125">today's comparison</text>
+<rect class="prior" x="10" y="150" width="680" height="34" rx="6"/><text class="m" x="20" y="172">Off: moved (8,3) -&gt; (8,2)</text>
+<rect class="game" x="10" y="192" width="680" height="50" rx="6"/>
+<text class="m" x="20" y="212">On: warped before this press (carried over from your previous action; your last result still</text>
+<text class="m" x="20" y="230">showed the old map): ... 2F [map 1/1] (7,1) -&gt; ... 1F [map 1/0] (8,3); this press: moved (8,3) -&gt; (8,2)</text>
+</svg></div>
+<figcaption>The on arm also compares the last state the model was shown with the pre-press snapshot. Both outputs are replayed from the recorded states.</figcaption></figure>
+<p>A warp during the press itself now reads <code>warped during this press: A [map g/n] (x,y) -&gt; B [map g/n] (x,y)</code> instead of <code>transitioned (map or screen changed)</code>. A screen change on the same map keeps today's wording.</p>
+</section>
+
+<section>
+<h2>2. A script moved the player</h2>
+<p>Recorded in <code>2026-10-15T11-08-31_think-fast_504f</code>, s1512. Field controls were locked before the press (a script was running), the model pressed UP, and the player moved from (5,9) to (5,8). Today's result said <code>moved (5,9) -&gt; (5,8)</code>, as if the press had done it.</p>
+<table>
+<tr><th>Situation (same map, position changed)</th><th>Off</th><th>On</th></tr>
+<tr><td>Controls locked in the before snapshot</td><td><code>moved (5,9) -&gt; (5,8)</code></td><td><code>moved by a script while field controls were locked (not by your press): (5,9) -&gt; (5,8)</code></td></tr>
+<tr><td>No direction button pressed, locked after</td><td><code>moved …</code></td><td>same as above</td></tr>
+<tr><td>No direction button pressed, never locked</td><td><code>moved …</code></td><td><code>moved by a script (not by your press; no direction was pressed): …</code></td></tr>
+<tr><td>Direction pressed, controls free</td><td><code>moved …</code></td><td><code>moved …</code> (unchanged)</td></tr>
+</table>
+<p>The lock is only used when <code>field-control-lock</code> is on, and coordinates are left out when <code>live-player-position-v1</code> is off, as today.</p>
+</section>
+
+<section>
+<h2>3. A conversation started over</h2>
+<figure><div class="scroll">
+<svg viewBox="0 0 700 150" width="700" role="img" aria-label="Dialogue counter across shown states">
+<defs><marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--soft)"/></marker></defs>
+<rect class="game" x="10" y="20" width="150" height="56" rx="8"/><text class="t" x="22" y="42">"MOM: Oh! …"</text><text class="s" x="22" y="62">shown: count 1</text>
+<rect class="box" x="200" y="20" width="130" height="56" rx="8"/><text class="t" x="212" y="42">box closed</text><text class="s" x="212" y="62">no text</text>
+<rect class="hot game" x="370" y="20" width="150" height="56" rx="8"/><text class="t" x="382" y="42">"MOM: Oh! …"</text><text class="s" x="382" y="62">already 1 → 2nd time</text>
+<path class="arr" d="M160,48 L198,48" marker-end="url(#b)"/><path class="arr" d="M330,48 L368,48" marker-end="url(#b)"/>
+<text class="m" x="10" y="110">On:  conversation restarted: this text was already shown (2nd time)</text>
+<text class="m" x="10" y="132">Off: interface changed (… input acceptance per frame unproven) or the field result</text>
+</svg></div>
+<figcaption>Each shown page counts once when it appears; a page left on screen is not counted again.</figcaption></figure>
+<p>The rule needs no open dialogue before the press and an after-state whose <code>world_context.dialogue</code> text was already shown earlier in the run.</p>
+</section>
+
+<section>
+<h2>Wiring</h2>
+<figure><div class="scroll">
+<svg viewBox="0 0 700 120" width="700" role="img" aria-label="Wiring from FeatureSet to press result">
+<defs><marker id="c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--soft)"/></marker></defs>
+<rect class="box" x="10" y="30" width="130" height="50" rx="8"/><text class="t" x="22" y="52">FeatureSet</text><text class="s" x="22" y="70">run preset</text>
+<rect class="box" x="175" y="30" width="140" height="50" rx="8"/><text class="t" x="187" y="52">toolSwitches</text><text class="s" x="187" y="70">transitions</text>
+<rect class="box" x="350" y="30" width="150" height="50" rx="8"/><text class="t" x="362" y="52">gameTools</text><text class="s" x="362" y="70">observe + press share ShownStates</text>
+<rect class="hot game" x="535" y="30" width="155" height="50" rx="8"/><text class="t" x="547" y="52">pressResult</text><text class="s" x="547" y="70">the only changed box</text>
+<path class="arr" d="M140,55 L173,55" marker-end="url(#c)"/><path class="arr" d="M315,55 L348,55" marker-end="url(#c)"/><path class="arr" d="M500,55 L533,55" marker-end="url(#c)"/>
+</svg></div>
+<figcaption>The objective-tracking tools use the same gameTools pair. ShownStates records every observe and press result the model is given.</figcaption></figure>
+</section>
+
+<section>
+<h2>Status</h2>
+<p>Branch <code>claude/transition-press-result</code>. Off is byte-identical to today's results (tests, plus the recorded 258d and 504f replays). Checks run: <code>just test</code>, <code>just lint</code>, <code>just build</code>, <code>just coverage</code>. Not done: the multi-model review and any measured runs. The experiment is registered as pending, with activation at <code>PLAYER_HOUSE_ENTERED</code>.</p>
+</section>
+</main>
+</body>
+</html>

@@ -105,7 +105,7 @@ export function objectiveSwitches(features: FeatureSet): Required<ObjectiveSwitc
 }
 
 export function toolSwitches(features: FeatureSet): ToolSwitches {
-  return { safeInterfaces:features["dialogue-safe-batches-v1"], automaticRunning:features["automatic-running-v1"], readout: features["ram-state-v1"], pressResult: features["press-result-v1"], position: features["live-player-position-v1"], fieldLock: features["field-control-lock"] };
+  return { safeInterfaces:features["dialogue-safe-batches-v1"], automaticRunning:features["automatic-running-v1"], readout: features["ram-state-v1"], pressResult: features["press-result-v1"], position: features["live-player-position-v1"], fieldLock: features["field-control-lock"], transitions: features["transition-press-result-v1"] };
 }
 
 export function playTools(features: FeatureSet): string[] {

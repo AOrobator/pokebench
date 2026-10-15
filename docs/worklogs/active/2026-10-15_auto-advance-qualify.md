@@ -219,6 +219,13 @@ VERDICT: LGTM
   a later frame and each engaged turn waited out the 10 s settle timeout (`field_free`, "did not reach a later
   frame"); 14 turns > 60 s. The wrapper is bounded (waitMs 10 s, callMs 90 s), not a hang; no product change.
   Fix in the fixture only: each free-field read is a later frame, like the real server. Test 7.3 s.
+- 19:40 real-ROM re-qualification on the committed build c1127a9 (clean, dist/dialogue-auto-advance.js sha256
+  b4d47a10…), port 8873, run dir `aaq-explore-5`, `out/r5/`: lab-1 menu 15 pages B×12 "PROF. BIRCH: Whew…";
+  truck-late field_free 12 pages B×11 "MOM: AA, we're here, honey!"; nickname-no menu 4 pages B×3; help-me
+  field_free 3 pages B×2 ["H-help me!", …]. ramcheck problems 0 in all four. Same as r3 on ee890b4.
+- 19:45 gates (fixture typing fix on top, test-only; dist unchanged): test agent 1256, viewer 686, python 1962
+  passed; lint 0; coverage agent 97.6/94.19/97.85/99.02, viewer 95.25/90.95/94.18/98.01, python 96%;
+  verify-vendor OK; build OK.
 
 ## Invariants
 

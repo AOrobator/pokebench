@@ -141,7 +141,11 @@ async function recordRun(features: Record<string, boolean>, maxTurns = 9): Promi
   // Like the real server, the game keeps running between reads: each free-field snapshot is a later frame,
   // so auto-advance confirms free field instead of waiting out its settle timeout on every turn.
   let presses = 0, free = false, frame = 0;
-  const freeAt = () => ({ ...FREE, raw_ram: { ...(FREE.raw_ram as Record<string, unknown>), frame: (FREE.raw_ram as { frame: number }).frame + ++frame } });
+  const raw = PC.before.raw_ram as { frame: number };
+  const freeAt = () => {
+    frame += 1;
+    return { ...FREE, raw_ram: { ...raw, frame: raw.frame + frame } };
+  };
   vi.stubGlobal("fetch", vi.fn<typeof fetch>().mockImplementation((input, init) => {
     const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
     const route = new URL(url).pathname;

@@ -23,4 +23,8 @@ Landing note: the 8790 viewer runs the queue with the code it loaded at start, s
   - Low: the rev guard has no test. Fix: assertions that a non-hex rev never reaches git.
   - Noted, no change: lockfile or root manifest bumps hold (conservative by design); re-approval after a definition change still compares commits (outside this change); git's own stderr on an unknown commit; build-mgba.sh output in env/.venv is outside the identity (never rebuilt by the runner).
 - [x] RED round 2: `test(viewer): RED untracked build sources hold; the rev guard never reaches git` (see git log)
+- [x] GREEN round 2: untracked files under any build source hold before the fresh-stamp shortcut (replaces the agent-src-only check); schema and ledger comments say sources, not HEAD; the test repo ignores dist/ like the real one.
+  COMMIT: `fix(viewer): untracked agent or env sources hold experiments; comments say sources, not HEAD` (see git log)
+  Tests: agent 1083, viewer 656 passed. Coverage: agent 97.5/93.84/98.15, viewer 95.4/91.2/94.4. TS lint clean. Main checkout has no untracked files under the build sources (checked).
+- [ ] Review round 2 (Claude CLI, Grok)
 - [ ] Operator approves the local merge; restart the 8790 viewer on main.

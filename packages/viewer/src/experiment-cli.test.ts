@@ -93,7 +93,7 @@ describe("production host", () => {
     git(root, ["commit", "-q", "-m", "init"]);
     return { root, head: git(root, ["rev-parse", "HEAD"]).trim() };
   }
-  const SOURCES: Record<string, string> = { "packages/agent/src/a.ts": "a\n", "packages/viewer/src/v.ts": "v\n", "env/e.py": "e\n", "package.json": "{}\n", "pnpm-lock.yaml": "l\n", "pnpm-workspace.yaml": "w\n" };
+  const SOURCES: Record<string, string> = { ".gitignore": "dist/\n", "packages/agent/src/a.ts": "a\n", "packages/viewer/src/v.ts": "v\n", "env/e.py": "e\n", "package.json": "{}\n", "pnpm-lock.yaml": "l\n", "pnpm-workspace.yaml": "w\n" };
   const commit = (root: string, path: string, body: string): string => {
     mkdirSync(join(root, path, ".."), { recursive: true });
     writeFileSync(join(root, path), body);

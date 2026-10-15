@@ -22,7 +22,7 @@ export const ExperimentSchema=Type.Object({
  primaryMilestone:Type.String({minLength:1}),
  // Absent: a pending experiment, registered but not in the queue.
  queuePosition:Type.Optional(positive),
- // Trials run from the main checkout, which must be at this commit with a clean tree and a fresh build.
+ // Trials run from the main checkout, whose agent and env sources must match this commit's, clean, with a fresh build.
  source:Type.Object({checkout:Type.Literal("main"),commit:Type.String({pattern:"^[0-9a-f]{40}$"})},closed),
  incumbent:PlayPresetV2Schema,
  trialsPerArm:Type.Integer({minimum:4,maximum:8}),

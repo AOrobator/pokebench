@@ -160,12 +160,13 @@ export function productionHost(deps: HostDeps): RunnerHost {
       if (sources === null) return `earlier trials ran on ${commit.slice(0, 7)}, which this checkout does not have; both arms must run on one build`;
       if (sourceIdentity(deps.git, head) !== sources) return `the agent or env sources changed since earlier trials ran on ${commit.slice(0, 7)} (main is at ${head.slice(0, 7)}); both arms must run on one build`;
       if (deps.git(["status", "--porcelain", "--untracked-files=no", "--", ...BUILD_SOURCES]).trim() !== "") return "the main checkout has uncommitted agent or env changes";
+      // A fresh build does not cover them: the game server imports env/ as it is on disk.
+      const untracked = deps.git(["ls-files", "--others", "--exclude-standard", "--", ...BUILD_SOURCES]).trim();
+      if (untracked !== "") return `untracked files in the agent or env sources: ${untracked.split("\n").join(", ")}`;
       if (fresh(sources)) return null;
       // A live run or a human session may still be loading modules from this dist.
       const running = await live();
       if (running.length > 0) return `live run ${running[0] ?? ""} is still running; the agent is rebuilt once it ends`;
-      const untracked = deps.git(["ls-files", "--others", "--exclude-standard", "--", "packages/agent/src"]).trim();
-      if (untracked !== "") return `untracked files would enter the agent build: ${untracked.split("\n").join(", ")}`;
       // Human play takes its own lock, not the gameplay lease; holding it keeps a session from starting mid-build.
       const humanLock = join(deps.runsRoot, HUMAN_GAMEPLAY_LEASE_NAME);
       mkdirSync(deps.runsRoot, { recursive: true });

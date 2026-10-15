@@ -40,7 +40,7 @@ export interface TraceStep {
 
 class Entry {
   readonly events: RunEvent[];
-  constructor(first: RunEvent) {
+  constructor(first: RunEvent, readonly label: string | null = null) {
     this.events = [first];
   }
 }
@@ -60,6 +60,9 @@ export class TraceBuilder {
   version = 0;
   private readonly tools = new Map<string, Entry>();
 
+  // The viewer's loop-guard attribution (preceding tool, elapsed) is computed once, when the event arrives.
+  constructor(private readonly loopLabel?: (event: Of<"loop_guard">) => string) {}
+
   add(event: RunEvent): void {
     if (eventText(event) === null) return;
     this.version += 1;
@@ -68,7 +71,7 @@ export class TraceBuilder {
       owner.events.push(event);
       return;
     }
-    const entry = new Entry(event);
+    const entry = new Entry(event, event.type === "loop_guard" && this.loopLabel !== undefined ? this.loopLabel(event) : null);
     if (event.type === "tool_call") this.tools.set(event.id, entry);
     let turn = this.turns.at(-1);
     if (turn?.turn !== event.turn) {
@@ -192,7 +195,7 @@ function tool(entry: Entry, call: Of<"tool_call">): TraceStep {
 function guard(entry: Entry, event: Of<"loop_guard">): TraceStep {
   const diagnostic = "mode" in event && event.mode === "diagnostic";
   const supervisor = event.phase === "supervisor";
-  const body = `<div class="thought">${esc(event.message)}</div><div class="args">evidence ${event.evidence.map((s) => `#${String(s)}`).join(", ")}${"mode" in event ? ` · ${event.mode}` : ""}</div>`;
+  const body = `<div class="thought">${esc(event.message)}</div><div class="args">${entry.label === null ? `evidence ${event.evidence.map((s) => `#${String(s)}`).join(", ")}${"mode" in event ? ` · ${event.mode}` : ""}` : esc(entry.label)}</div>`;
   return {
     ...base(entry), category: supervisor ? "sup" : "guard",
     icon: supervisor ? "SUP" : "LG", tone: supervisor ? "red" : diagnostic ? "engine" : event.phase === "recovered" ? "ok" : "orange",

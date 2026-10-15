@@ -4,9 +4,10 @@ import type { RunEvent } from "@pokebench/agent/events";
 import { esc, eventMs, hms } from "./format.js";
 import { gbaSvg, litButtons } from "./gba.js";
 import { RunView, isRunEvent } from "./model.js";
-import { actionRow, brand, budgets, counters, fieldContext, harnessConfig, objectivePanel, objectiveStatus, inspector, party, splits, thinkingDialog, trainerCard, type Baseline } from "./panels.js";
+import { brand, budgets, counters, fieldContext, harnessConfig, objectivePanel, objectiveStatus, inspector, party, splits, thinkingDialog, trainerCard, type Baseline } from "./panels.js";
 import { ReplayClock } from "./replay.js";
 import { lanesSvg } from "./timeline.js";
+import { TRACE_CHIPS, TraceBuilder, chipCounts, traceHtml, type TraceCategory } from "./trace.js";
 import { ABORT_HOLD_MS, availableActions, controlBar, overlay, overlayKind, runSeconds, sideStats, splitStrip, stateLabel, type ControlAction } from "./controls.js";
 import { NextRunPanel } from "./nextpanel.js";
 import { QueuePanel } from "./queue-view.js";
@@ -38,6 +39,25 @@ interface RunChoice {
 }
 
 const LIVE_SCREEN_MS = 500;
+const TRACE_TURNS = 50;
+
+// Rerendering rows keeps what the operator opened, folded or selected, and
+// keeps the rows they were reading in place while newer turns arrive above.
+function replacePreserving(box: HTMLElement, html: string): void {
+  const open = new Set([...box.querySelectorAll<HTMLDetailsElement>("details[data-key][open]")].map((row) => row.dataset.key));
+  const folded = new Set([...box.querySelectorAll<HTMLDetailsElement>("details.res-d:not([open])")].map((result) => result.closest<HTMLElement>("[data-key]")?.dataset.key));
+  const selected = box.querySelector<HTMLElement>("[data-key].sel")?.dataset.key;
+  const { scrollTop, scrollHeight } = box;
+  box.innerHTML = html;
+  for (const row of box.querySelectorAll<HTMLDetailsElement>("details[data-key]")) {
+    if (open.has(row.dataset.key)) row.open = true;
+    const result = row.querySelector<HTMLDetailsElement>("details.res-d");
+    if (result !== null && folded.has(row.dataset.key)) result.open = false;
+    if (row.dataset.key === selected) row.classList.add("sel");
+  }
+  if (selected !== undefined) box.querySelector<HTMLElement>(`div[data-key="${selected}"]`)?.classList.add("sel");
+  if (scrollTop > 0) box.scrollTop = scrollTop + box.scrollHeight - scrollHeight;
+}
 const LIVE_RETRY_MS = 5_000;
 export const RUN_LIST_MS = 3_000;
 const MODE_TEXT: Record<Mode, string> = { loading: "LOADING", live: "LIVE", replay: "REPLAY", idle: "NO RUNS" };
@@ -95,7 +115,11 @@ export class App {
   private comparisonRequest = 0;
   private comparisonsRun: string | null = null;
   private problems: string[] = [];
-  private logged = 0;
+  private trace = this.newTrace();
+  private traced = 0;
+  private traceKey = "";
+  private traceOn = new Set<TraceCategory>(TRACE_CHIPS.filter((chip) => chip.on).map((chip) => chip.id));
+  private traceLimit = TRACE_TURNS;
   private screenTick = 0;
   private sinceScreen = 0;
   private liveFailedAt: number | null = null;
@@ -284,12 +308,27 @@ export class App {
       this.clock?.seekFraction(Number((event.target as HTMLInputElement).value) / 1000);
       this.render();
     });
-    this.ui("log").addEventListener("click", (event) => {
-      const row = (event.target as HTMLElement).closest<HTMLElement>(".ev");
-      if (row === null) return;
-      for (const selected of this.ui("log").querySelectorAll(".ev.sel")) selected.classList.remove("sel");
-      row.classList.add("sel");
-      this.setHtml("inspector", inspector(this.view.bySeq(Number(row.dataset.seq))));
+    this.ui("trace").addEventListener("click", (event) => {
+      const target = event.target as HTMLElement;
+      if (target.closest("[data-trace-more]") !== null) {
+        this.traceLimit += TRACE_TURNS;
+        this.render();
+        return;
+      }
+      this.inspectRow(target);
+    });
+    this.ui("trace-chips").addEventListener("click", (event) => {
+      const target = event.target as HTMLElement;
+      const all = target.closest("[data-trace-expand],[data-trace-collapse]");
+      if (all !== null) {
+        const open = all.hasAttribute("data-trace-expand");
+        for (const row of this.ui("trace").querySelectorAll<HTMLDetailsElement>("details[data-key]")) row.open = open;
+        return;
+      }
+      const chip = target.closest<HTMLElement>("[data-chip]")?.dataset.chip as TraceCategory | undefined;
+      if (chip === undefined) return;
+      if (!this.traceOn.delete(chip)) this.traceOn.add(chip);
+      this.render();
     });
     this.picker("baseline").addEventListener("change", (event) => {
       void this.pickBaseline((event.target as HTMLSelectElement).value);
@@ -384,14 +423,13 @@ export class App {
     this.problems = [];
     this.ui("problems").hidden = true;
     this.ui("problems").textContent = "";
-    this.logged = 0;
+    this.resetTrace();
     this.followThinking = true;
     this.holdStart = null;
     this.overlayClosed = false;
     this.wasLive = false;
     this.ui("follow-thinking").setAttribute("aria-pressed", "true");
     this.liveFailedAt = null;
-    this.ui("log").replaceChildren();
     this.setHtml("inspector", inspector(undefined));
     this.picker("run").value = runId;
     this.markSelectedRun();
@@ -468,8 +506,7 @@ export class App {
     else this.clock.play();
     this.mode = "replay";
     this.shown = new RunView();
-    this.ui("log").replaceChildren();
-    this.logged = 0;
+    this.resetTrace();
   }
 
   tick(realMs: number): void {
@@ -491,8 +528,7 @@ export class App {
       // Rewinding removes the selected row; discard its now-future raw event.
       this.setHtml("inspector", inspector(undefined));
       this.shown = new RunView();
-      this.ui("log").replaceChildren();
-      this.logged = 0;
+      this.resetTrace();
     }
     const events: readonly RunEvent[] = this.view.events;
     for (let i = this.shown.events.length; i < events.length; i += 1) {
@@ -502,18 +538,54 @@ export class App {
     }
   }
 
-  private renderLog(): void {
-    const log = this.ui("log");
-    const atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
-    const rows: string[] = [];
-    for (const event of this.shown.events.slice(this.logged)) {
-      const row = actionRow(event, this.shown);
-      if (row !== null) rows.push(row);
+  private newTrace(): TraceBuilder {
+    return new TraceBuilder((event) => this.shown.loopLabel(event));
+  }
+
+  private resetTrace(): void {
+    this.trace = this.newTrace();
+    this.traced = 0;
+    this.traceKey = "";
+    this.traceLimit = TRACE_TURNS;
+    const box = this.doc.querySelector<HTMLElement>('[data-ui="trace"]');
+    box?.replaceChildren();
+    if (box !== null) this.html.delete(box);
+  }
+
+  // Selecting a row (but not text inside its expanded body) shows every event it groups.
+  private inspectRow(target: HTMLElement): void {
+    if (target.closest(".tl-body") !== null) return;
+    const row = target.closest<HTMLElement>("[data-key]");
+    if (row === null) return;
+    for (const selected of this.doc.querySelectorAll(".tl.sel")) selected.classList.remove("sel");
+    for (const same of this.doc.querySelectorAll<HTMLElement>(`[data-key="${row.dataset.key ?? ""}"]`)) same.classList.add("sel");
+    const seqs = (row.dataset.seqs ?? "").split(" ").map(Number);
+    this.setHtml("inspector", seqs.map((seq) => inspector(this.shown.bySeq(seq))).join(""));
+  }
+
+  private renderTrace(nowMs: number): void {
+    const events = this.shown.events;
+    for (; this.traced < events.length; this.traced += 1) this.trace.add(events[this.traced] as RunEvent);
+    const live = this.shown.isThinking ? { turn: this.shown.turn } : null;
+    const key = `${String(this.trace.version)}|${[...this.traceOn].join(",")}|${String(this.traceLimit)}|${String(live?.turn ?? "")}`;
+    const box = this.ui("trace");
+    if (key !== this.traceKey) {
+      if (this.traceKey.split("|")[0] !== String(this.trace.version) || this.traceKey === "") {
+        const counts = chipCounts(this.trace.turns);
+        this.setHtml("trace-chips", TRACE_CHIPS.map((chip) => `<button type="button" data-chip="${chip.id}" aria-pressed="${String(this.traceOn.has(chip.id))}">${chip.label} <small>${String(counts[chip.id])}</small></button>`).join("") + '<span class="spacer"></span><button type="button" class="act" data-trace-collapse>▸ COLLAPSE ALL</button><button type="button" class="act" data-trace-expand>▾ EXPAND ALL</button>');
+      } else {
+        for (const chip of this.ui("trace-chips").querySelectorAll<HTMLElement>("[data-chip]")) chip.setAttribute("aria-pressed", String(this.traceOn.has(chip.dataset.chip as TraceCategory)));
+      }
+      this.traceKey = key;
+      replacePreserving(box, traceHtml(this.trace.turns, this.traceOn, { startMs: this.shown.startMs, live, limit: this.traceLimit }));
     }
-    this.logged = this.shown.events.length;
-    if (rows.length === 0) return;
-    log.insertAdjacentHTML("beforeend", rows.join(""));
-    if (atBottom) log.scrollTop = log.scrollHeight;
+    if (live !== null) {
+      const { thinking, text } = this.shown.streaming;
+      const liveText = box.querySelector<HTMLElement>("[data-live-text]");
+      if (liveText !== null && liveText.textContent !== thinking + text) liveText.textContent = thinking + text;
+      const secs = box.querySelector<HTMLElement>("[data-live-secs]");
+      if (secs !== null && this.shown.turnStartMs !== null) secs.textContent = `${((nowMs - this.shown.turnStartMs) / 1000).toFixed(1)}s`;
+    }
   }
 
   private renderScreen(nowMs: number): void {
@@ -580,7 +652,7 @@ export class App {
     this.setHtml("splits-summary", split.summary);
     this.setHtml("splits", split.table);
     this.setHtml("lanes", lanesSvg(view, nowMs));
-    this.renderLog();
+    this.renderTrace(nowMs);
     this.renderScreen(nowMs);
     const lit = litButtons(view.presses, nowMs);
     for (const button of this.ui("gba").querySelectorAll<SVGElement>("[data-btn]")) {

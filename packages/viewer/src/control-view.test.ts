@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { BASE_MS, Log, START } from "../test-support/events.js";
+import { BASE_MS, Log, START, must } from "../test-support/events.js";
 import { RunView } from "./model.js";
-import { actionRow } from "./panels.js";
+import { eventText } from "./panels.js";
+import { stepOf } from "../test-support/trace.js";
 import { lanesSvg } from "./timeline.js";
 
 function controlled(): Log {
@@ -50,17 +51,17 @@ describe("operator control in the run view", () => {
     expect(svg.match(/class="m-paused"/g)).toHaveLength(1);
     expect(svg).toContain("<title>paused 10s (operator)</title>");
     expect(lanesSvg(view, BASE_MS + 80_000)).not.toContain("m-paused");
-    const rows = view.events.map((e) => actionRow(e, view)).filter((r) => r !== null);
+    const rows = view.events.map((e) => eventText(e, view)).filter((r) => r !== null);
     expect(rows).toHaveLength(4);
     expect(rows[1]).toContain("⏸ pause applied · emulator frozen");
     expect(rows[2]).toContain("▶ resume applied · paused 10s");
     expect(rows[3]).toContain("■ stop requested · ends after the current turn");
     const unfrozen = new Log(); unfrozen.add(0, START);
-    const row = actionRow(unfrozen.add(1, { type: "operator_control", turn: 0, action: "pause", status: "applied", request: 1, emulator_frozen: false }));
+    const row = eventText(unfrozen.add(1, { type: "operator_control", turn: 0, action: "pause", status: "applied", request: 1, emulator_frozen: false }));
     expect(row).toContain("emulator NOT frozen");
-    expect(row).toContain("ev-error");
-    expect(actionRow(unfrozen.add(2, { type: "operator_control", turn: 0, action: "abort", status: "applied", request: 2, paused_ms: 0 }))).toContain("✖ abort applied");
-    expect(actionRow(unfrozen.add(3, { type: "operator_control", turn: 0, action: "cancel_stop", status: "ignored", request: 3 }))).toContain("cancel stop ignored");
+    expect(stepOf(must(unfrozen.events[1])).status).toBe("error");
+    expect(eventText(unfrozen.add(2, { type: "operator_control", turn: 0, action: "abort", status: "applied", request: 2, paused_ms: 0 }))).toContain("✖ abort applied");
+    expect(eventText(unfrozen.add(3, { type: "operator_control", turn: 0, action: "cancel_stop", status: "ignored", request: 3 }))).toContain("cancel stop ignored");
   });
 });
 
@@ -81,7 +82,7 @@ it("keeps a run paused and flags a failed resume", () => {
   const failed = log.add(2_000, { type: "operator_control", turn: 1, action: "resume", status: "failed", request: 2, emulator_frozen: true });
   const view = fold(log);
   expect(view.control.state).toBe("paused");
-  const row = actionRow(failed, view);
+  const row = eventText(failed, view);
   expect(row).toContain("resume FAILED · emulator still frozen; the run stays paused");
-  expect(row).toContain("ev-error");
+  expect(stepOf(failed, view).status).toBe("error");
 });

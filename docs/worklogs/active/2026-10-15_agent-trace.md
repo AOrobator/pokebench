@@ -79,7 +79,7 @@ Every recorded string goes through `esc`. Tool result text is shown in `<pre>` o
 - [ ] Implement
 - [ ] Gates: `just test`, `just lint`, `just build`, `just coverage` (≥90)
 - [x] COMMIT: `feat(viewer): agent trace model and uniform rows` (GREEN) (af6a3fb)
-- [ ] Review: Claude CLI + Cursor `cursor-grok-4.5-high` running on 032d206..af6a3fb
+- [ ] Review round 1 (032d206..af6a3fb): Claude CLI BLOCKING, Grok 4.5 BLOCKING. Findings and fixes are in the Multi-Model Review Log.
 - [ ] Review
 
 **M2 — AGENT TRACE page replaces ACTIVITY HISTORY**
@@ -90,9 +90,17 @@ Every recorded string goes through `esc`. Tool result text is shown in `<pre>` o
   - open state survives live updates
   - collapse all / expand all
   - nav button renamed
-- [ ] COMMIT (RED)
-- [ ] Implement in app.ts, index.html and style.css
-- [ ] Gates
+- [x] COMMIT (RED): `test(viewer): agent trace page replaces activity history` (dbcaf25)
+- [x] Implement:
+  - `app.ts`: `renderTrace`, `replacePreserving`, chip/collapse/expand/more handlers, `inspectRow` shows every grouped event
+  - `index.html`: AGENT TRACE nav button first, `page-trace` replaces `page-activity`
+  - `style.css`: `.ev`/`.history-note` rules replaced by trace row + chip rules
+  - `actionRow` removed; its tests moved to `eventText` + `test-support/trace.ts` `stepOf().status`
+  - `trace` added to `BROWSER_MODULES`
+- [x] Gates:
+  - build ok; `pnpm -r lint` clean
+  - agent 1066 passed; viewer 615 passed (95.2/91.0/94.3), `app.ts` 95.1/84.9/94.6, `trace.ts` 99.3/92.9/100
+  - Python unchanged since M1 (1877 passed)
 - [ ] COMMIT (GREEN)
 - [ ] Review
 
@@ -130,6 +138,28 @@ Every recorded string goes through `esc`. Tool result text is shown in `<pre>` o
 - The fresh worktree had no vendor submodule (`git submodule update --init` fixed 5 pytest failures) and no mGBA binding in `env/.venv`, so `just lint`'s mypy step can't import `mgba._pylib`. I ran mypy with `~/dev/pokebench/env/.venv/bin/mypy` from the worktree's `env/` instead. No Python changes on this branch.
 
 ## Multi-Model Review Log
+
+**M1 round 1 (032d206..af6a3fb)**
+
+Claude CLI (BLOCKING, 11 findings):
+- INV-1 test doesn't cover all types
+- per-render rebuild cost
+- unescaped tool-name icon
+- html/plain field naming
+- loop-guard error status lost
+- `#seq` and "first observed" lost
+- orphan tool_result body
+- `tools` map growth
+- "Replied" on an error-only answer
+- magic-number test
+- INV-3 test only compares the outer class
+
+Grok 4.5 (BLOCKING, 7 findings, overlapping):
+- `activity` hidden behind the EMULATOR chip
+- loop-guard attribution lost (already added in M2 via the `TraceBuilder` labeler)
+- more escaping tests
+
+All are being fixed in one follow-up commit after M2 GREEN.
 
 ## Boy Scout Log
 

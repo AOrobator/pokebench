@@ -3,7 +3,9 @@ import {Window} from "happy-dom";
 import {parseEvent} from "@pokebench/agent/events";
 import {BASE_MS,Log,START,state} from "../test-support/events.js";
 import {RunView,foldUntil} from "./model.js";
-import {actionRow,inspector} from "./panels.js";
+import {eventText,inspector} from "./panels.js";
+import {traceRow} from "./trace.js";
+import {stepOf} from "../test-support/trace.js";
 import {lanesSvg} from "./timeline.js";
 it("renders recorded state inputs and waits in history, raw inspection and timeline",()=>{
  const log=new Log();log.add(0,START);const s=log.add(10,state());
@@ -11,12 +13,12 @@ it("renders recorded state inputs and waits in history, raw inspection and timel
  const wait=log.add(30,{type:"wait_input",turn:1,tool_call_id:"wait-one",duration_ms:60});
  const view=new RunView();for(const e of log.events)view.apply(parseEvent(JSON.stringify(e)));
  expect(view.frame).toBe("frames/000002_0.png");expect(view.presses).toEqual([]);expect(view.toolSpans).toEqual([]);
- const window=new Window();const root=window.document.createElement("div");root.innerHTML=(actionRow(input)??"")+(actionRow(wait)??"")+lanesSvg(view,BASE_MS+50);
- expect(root.textContent).toContain("snapshot for decision 1");const waitRow=root.querySelector(`[data-seq="${String(wait.seq)}"]`);expect(waitRow?.textContent).toContain("WAIT 60 ms (host time)");expect(root.querySelector("clock")).toBeNull();
+ const window=new Window();const root=window.document.createElement("div");root.innerHTML=traceRow(stepOf(input))+traceRow(stepOf(wait))+lanesSvg(view,BASE_MS+50);
+ expect(root.textContent).toContain("snapshot for decision 1");const waitRow=root.querySelector(`[data-seqs~="${String(wait.seq)}"]`);expect(waitRow?.textContent).toContain("WAIT 60 ms (host time)");expect(root.querySelector("clock")).toBeNull();
  expect(root.querySelectorAll('svg [aria-label*="snapshot for decision 1"]')).toHaveLength(1);
  expect(root.querySelectorAll('svg [aria-label*="WAIT 60 ms (host time)"]')).toHaveLength(1);
  expect(inspector(input)).toContain("CURRENT &lt;clock&gt; at (5,1)");expect(inspector(wait)).toContain("wait-one");
  expect(foldUntil(log.events,BASE_MS+15).frame).toBeNull();expect(foldUntil(log.events,BASE_MS+25).frame).toBe("frames/000002_0.png");
- expect(lanesSvg(view,BASE_MS+61000)).not.toContain("snapshot for decision 1");expect(actionRow(input)).toContain("snapshot for decision 1");
+ expect(lanesSvg(view,BASE_MS+61000)).not.toContain("snapshot for decision 1");expect(eventText(input)).toContain("snapshot for decision 1");
  void window.happyDOM.abort();
 });

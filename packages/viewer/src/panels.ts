@@ -270,15 +270,8 @@ export function eventText(event: RunEvent, view?: RunView): string | null {
   }
 }
 
-export function actionRow(event: RunEvent, view?: RunView): string | null {
-  const body = eventText(event, view);
-  if (body === null) return null;
-  const error = (event.type === "tool_result" && event.is_error) || event.type === "retry" || (event.type === "loop_guard" && event.phase !== "recovered" && !("mode" in event && event.mode === "diagnostic")) || event.type === "telemetry_error" || (event.type === "operator_control" && (event.emulator_frozen === false || event.status === "failed")) ? " ev-error" : "";
-  return `<div class="ev ev-${event.type}${error}" data-seq="${String(event.seq)}"><span class="seq">#${String(event.seq)}</span><span class="tag">${event.type}</span><span class="body">${body}</span></div>`;
-}
-
 export function inspector(event: RunEvent | undefined): string {
-  if (event === undefined) return '<p class="nodata">click a log row to see its raw event</p>';
+  if (event === undefined) return '<p class="nodata">select a trace row to see its complete recorded events</p>';
   const record = event as unknown as Record<string, unknown>;
   const sections = ["thinking", "text", "message", "reason", "system_prompt"].flatMap((key) => {
     const value = record[key];

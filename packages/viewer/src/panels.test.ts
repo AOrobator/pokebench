@@ -2,13 +2,14 @@ import { describe, expect, it } from "vitest";
 import { Window } from "happy-dom";
 import { BASE_MS, Log, RUN, START, assistant, fullRun, must, state } from "../test-support/events.js";
 import { RunView, foldUntil } from "./model.js";
+import { stepOf } from "../test-support/trace.js";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
   FEATURE_EXPLAINERS,
   NO_DATA,
   objectivePanel,
-  actionRow,
+  eventText,
   brand,
   budgets,
   counters,
@@ -284,14 +285,12 @@ describe("thinkingDialog", () => {
   });
 });
 
-describe("actionRow", () => {
+describe("eventText", () => {
   const events = fullRun().events;
-  const row = (seq: number): string => actionRow(must(events[seq])) ?? "";
+  const row = (seq: number): string => eventText(must(events[seq])) ?? "";
 
   it("formats tool calls, results, presses, milestones, retries and the run end", () => {
-    expect(row(5)).toBe(
-      '<div class="ev ev-tool_call" data-seq="5"><span class="seq">#5</span><span class="tag">tool_call</span><span class="body">press({&quot;buttons&quot;:[&quot;A&quot;]})</span></div>',
-    );
+    expect(row(5)).toBe("press({&quot;buttons&quot;:[&quot;A&quot;]})");
     expect(row(6)).toContain('<span class="chipb">A</span><span class="chipb">↑UP</span> hold 10f · release 8f');
     expect(row(7)).toContain("★ PLAYER_NAME_SET");
     expect(row(9)).toContain("ok 199ms → pressed A, UP · frames/000009_0.png");
@@ -303,15 +302,15 @@ describe("actionRow", () => {
   it("keeps completed thinking in activity history and full text in the inspector", () => {
     const log = bare();
     const event = log.add(1, assistant({ thinking: "Reason <carefully> " + "detail ".repeat(100), text: "Reply" }));
-    expect(actionRow(event)).toContain("thinking");
-    expect(actionRow(event)).toContain("&lt;carefully&gt;");
+    expect(eventText(event)).toContain("thinking");
+    expect(eventText(event)).toContain("&lt;carefully&gt;");
     expect(inspector(event)).toContain("detail ".repeat(100));
     const reply = log.add(2, assistant({ thinking: "", text: "Response only" }));
-    expect(actionRow(reply)).toContain("Response only");
+    expect(eventText(reply)).toContain("Response only");
   });
 
   it("leaves turn, state and run_start events to their panels", () => {
-    for (const seq of [0, 3, 8]) expect(actionRow(must(events[seq]))).toBeNull();
+    for (const seq of [0, 3, 8]) expect(eventText(must(events[seq]))).toBeNull();
   });
 
   it("formats an untimed press, a failed tool, a compaction, an eviction and an unfinished run", () => {
@@ -322,14 +321,14 @@ describe("actionRow", () => {
     log.add(4, { type: "frames_evicted", turn: 0, from_run: "old", files: 3, bytes: 1500 });
     log.add(4.5, { type: "telemetry_error", turn: 0, source: "milestones", message: "down" });
     log.add(5, { type: "run_end", turn: 0, reason: "crash", furthest_milestone: null, turns: 0, wall_ms: 5, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } });
-    const rows = log.events.slice(1).map((event) => actionRow(event) ?? "");
+    const rows = log.events.slice(1).map((event) => eventText(event) ?? "");
     expect(rows[0]).toContain("START</span> timing not logged (assumed hold 10f · release 8f)");
     expect(rows[1]).toContain("ERROR 3ms → boom");
-    expect(rows[1]).toContain("ev-error");
+    expect(stepOf(must(log.events[2])).status).toBe("error");
     expect(rows[2]).toContain("context compacted 9,000 → 1,000 tokens");
     expect(rows[3]).toContain("evicted 3 frames (1.5 KB) from old");
     expect(rows[4]).toContain("✗ milestones read failed: down");
-    expect(rows[4]).toContain("ev-error");
+    expect(stepOf(must(log.events[5])).status).toBe("error");
     expect(rows[5]).toContain("run ended: crash · furthest none · 0 turns");
   });
 });
@@ -340,7 +339,7 @@ describe("inspector and brand", () => {
     const document = new Window().document; document.body.innerHTML = inspector(event);
     expect(document.querySelector(".raw-event pre")?.textContent).toBe(JSON.stringify(event, null, 2));
     expect(document.querySelector(".json-key")).not.toBeNull();
-    expect(inspector(undefined)).toBe('<p class="nodata">click a log row to see its raw event</p>');
+    expect(inspector(undefined)).toBe('<p class="nodata">select a trace row to see its complete recorded events</p>');
   });
 
   it("decodes Markdown and newlines inside structured tool arguments", () => {
@@ -411,8 +410,8 @@ it("shows game-owned story values and milestone evidence without inventing old o
   expect(fieldContext(v)).toContain("clock set: yes");
   expect(fieldContext(v)).toContain("rival battle won: no");
   expect(fieldContext(v)).toContain("birch lab stage: unknown");
-  expect(actionRow(mark)).toContain("already present when run started");
-  expect(actionRow(mark)).toContain("evidence #1");
+  expect(eventText(mark)).toContain("already present when run started");
+  expect(eventText(mark)).toContain("evidence #1");
   const comparison = splits(v,{run:"reference",milestones:[{name:"CLOCK_SET",offsetMs:1000}]},BASE_MS+300);
   expect(comparison.table).toContain("already<br>present");
   expect(comparison.table).not.toContain("d-ahead");
@@ -439,7 +438,7 @@ it("shows creation before name confirmation with recorded baseline and best delt
 
 it("shows escaped loop evidence in the action log",()=>{
   const log=bare();const event=log.add(100,{type:"loop_guard",turn:1,kind:"cycle",phase:"warning",message:"Reassess <now>",calls:9,evidence:[4,7]});
-  const html=actionRow(event);expect(html).toContain("Loop cycle warning");expect(html).toContain("Reassess &lt;now&gt;");expect(html).toContain("#4, #7");expect(html).toContain("ev-error");
+  const html=eventText(event);expect(html).toContain("Loop cycle warning");expect(html).toContain("Reassess &lt;now&gt;");expect(html).toContain("#4, #7");expect(stepOf(event)).toMatchObject({status:null,tone:"orange",category:"guard"});
 });
 
 it("distinguishes native proof, provisional claims and historical completion", () => {
@@ -473,7 +472,7 @@ it("renders verified confirmation selection and unsupported diagnostic", () => {
 });
 
 it("renders passive would-stop as a diagnostic rather than execution error",()=>{
- const log=bare();const event=log.add(100,{type:"loop_guard",turn:1,kind:"planning",mode:"diagnostic",phase:"would_stop",message:"No action <yet>",calls:12,evidence:[1]});const html=actionRow(event);expect(html).toContain("diagnostic: would stop");expect(html).not.toContain("ev-error");expect(html).toContain("No action &lt;yet&gt;");
+ const log=bare();const event=log.add(100,{type:"loop_guard",turn:1,kind:"planning",mode:"diagnostic",phase:"would_stop",message:"No action <yet>",calls:12,evidence:[1]});const html=eventText(event);expect(html).toContain("diagnostic: would stop");expect(stepOf(event).status).toBeNull();expect(html).toContain("No action &lt;yet&gt;");
 });
 
 
@@ -486,7 +485,7 @@ it("shows recorded named topology even when story or field message data is unava
 it("shows the three post-clock splits and labels unsupported historical runs",()=>{
  const log=new Log();log.add(0,{...START,harness_features:["post-clock-navigation-milestones-v1"]});
  const names=["PLAYER_HOUSE_EXITED_AFTER_CLOCK","RIVAL_HOUSE_ENTERED","RIVAL_BEDROOM_REACHED"];
- for(const [index,name] of names.entries()){const mark=log.add(1000*(index+1),{type:"milestone",turn:index,name,server_timestamp:index+1,kind:"navigation",origin:"observed",evidence:[1]});expect(actionRow(mark)).toContain(`${name} · navigation · evidence #1`);}
+ for(const [index,name] of names.entries()){const mark=log.add(1000*(index+1),{type:"milestone",turn:index,name,server_timestamp:index+1,kind:"navigation",origin:"observed",evidence:[1]});expect(eventText(mark)).toContain(`${name} · navigation · evidence #1`);}
  const html=splits(view(log),null,BASE_MS+5000).table;
  for(const [index,name] of names.entries())expect(html).toContain(`<td class="n">${name.toLowerCase().replaceAll("_"," ")}</td><td class="t">0:00:0${String(index+1)}</td>`);
  const old=splits(view(bare()),null,BASE_MS+5000).table;
@@ -507,7 +506,7 @@ it('shows individual Gym trainers as unsupported for old logs and as recorded sp
 it('shows native repeated activity receipts without inventing historical support',()=>{
  const log=new Log();log.add(0,START);
  const activity=log.add(100,{type:'activity',turn:0,kind:'save_attempt',count:2,server_timestamp:1,evidence:[1,2]});
- expect(actionRow(activity)).toContain('save attempt ×2 · evidence #1, #2 · first observation (upper bound)');
+ expect(eventText(activity)).toContain('save attempt ×2 · evidence #1, #2 · first observation (upper bound)');
  const historical=new RunView();log.events.forEach(event=>{historical.apply(event);});
  expect(splits(historical,null,BASE_MS+1000).table).toContain('first pokemon caught</td><td class="t">not<br>recorded');
  const modern=new RunView();const native=new Log();native.add(0,{...START,harness_features:['native-progress-activity-v1']});native.events.forEach(event=>{modern.apply(event);});
@@ -538,7 +537,7 @@ it("shows qualified automatic field activity separately from input-ready message
 describe("navigation memory delivery",()=>{
  it("retains exact payload for raw inspection and shows delivery in activity history",()=>{
   const log=bare();const event=log.add(100,{type:"navigation_context",turn:1,text:"NAVIGATION EVIDENCE MEMORY <observed> #1",evidence:[1]});
-  const result=view(log);expect(actionRow(event,result)).toContain("Navigation memory delivered");expect(actionRow(event,result)).toContain("1 retained references");expect(actionRow(event,result)).toContain("&lt;observed&gt;");
+  const result=view(log);expect(eventText(event,result)).toContain("Navigation memory delivered");expect(eventText(event,result)).toContain("1 retained references");expect(eventText(event,result)).toContain("&lt;observed&gt;");
   expect(inspector(event)).toContain("NAVIGATION EVIDENCE MEMORY");
  });
 });
@@ -604,7 +603,7 @@ it("links the new rival-push feature cards to their explainers in Harness Config
 describe("instruction ledger delivery",()=>{
  it("retains exact payload for raw inspection, shows delivery and documents note_contradiction",()=>{
   const log=bare();const event=log.add(100,{type:"ledger_context",turn:1,text:"INSTRUCTION LEDGER <quoted> #1",evidence:[1,3]});
-  const result=view(log);expect(actionRow(event,result)).toContain("Instruction ledger delivered");expect(actionRow(event,result)).toContain("2 references");expect(actionRow(event,result)).toContain("&lt;quoted&gt;");
+  const result=view(log);expect(eventText(event,result)).toContain("Instruction ledger delivered");expect(eventText(event,result)).toContain("2 references");expect(eventText(event,result)).toContain("&lt;quoted&gt;");
   expect(inspector(event)).toContain("INSTRUCTION LEDGER");
   const tools=new Log();tools.add(0,{...START,tools:["observe","note_contradiction"]});
   const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(tools));
@@ -623,14 +622,14 @@ it("names the experiment, arm and trial, or the preset, in the run header",()=>{
 
 it("labels a supervisor loop event as a message sent to the model, with its full text",()=>{
  const log=bare();const event=log.add(100,{type:"loop_guard",turn:3,kind:"cycle",message:"SUPERVISOR: You are currently looping.",calls:40,evidence:[1,2],mode:"enforced",phase:"supervisor"});
- const row=actionRow(event,view(log));
+ const row=eventText(event,view(log));
  expect(row).toContain("supervisor message sent to the model");
  expect(row).toContain("SUPERVISOR: You are currently looping.");
 });
 
 it("shows milestone hints as messages sent to the model and documents get_next_milestone",()=>{
  const log=bare();const event=log.add(100,{type:"milestone_hint",turn:2,text:"MILESTONE REACHED: You set the clock. Next milestone: Go back downstairs and listen to Mom.",milestone:"CLOCK_SET"});
- expect(actionRow(event,view(log))).toContain("Milestone hint sent to the model");
+ expect(eventText(event,view(log))).toContain("Milestone hint sent to the model");
  const tools=new Log();tools.add(0,{...START,tools:["observe","get_next_milestone"]});
  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(tools));
  expect(doc.querySelector('[data-tool="get_next_milestone"]')?.textContent).toContain("HINT ARM");

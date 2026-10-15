@@ -15,7 +15,8 @@ it("follows the main story path in the order a human playthrough earned it, usin
  for(const name of names)expect(MILESTONES.some(m=>m.name===name)).toBe(true);
  expect(new Set(names).size).toBe(names.length);
  expect(names.indexOf("CLOCK_SET")).toBeLessThan(names.indexOf("RIVAL_HOUSE_ENTERED"));
- expect(names.indexOf("RIVAL_MET")).toBeLessThan(names.indexOf("STARTER_CHOSEN"));
+ expect(names.indexOf("RIVAL_MET")).toBeLessThan(names.indexOf("BIRCH_RESCUE_REQUESTED"));
+ expect(names.indexOf("BIRCH_RESCUE_REQUESTED")).toBeLessThan(names.indexOf("STARTER_CHOSEN"));
  expect(names.at(-1)).toBe("STONE_BADGE");
  for(const h of MILESTONE_HINTS)expect(h.goal.length).toBeGreaterThan(5);
 });

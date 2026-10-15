@@ -84,6 +84,7 @@ describe("StateMilestones", () => {
       "RIVAL_HOUSE_ENTERED",
       "RIVAL_BEDROOM_REACHED",
       "RIVAL_MET",
+      "BIRCH_RESCUE_REQUESTED",
       "ROUTE_101",
       "STARTER_CHOSEN",
       "BIRCH_RESCUE_COMPLETE",
@@ -192,13 +193,17 @@ it("counts a confirmed clock from the existing intro script variable, once", asy
 });
 
 it("records each verified story predicate, withholds unknown/pre-event values and deduplicates", () => {
-  const story = {name_confirmed:false,intro_stage:0,rival_stage:0,birch_lab_stage:0,petalburg_gym_stage:0,woods_stage:0,clock_set:false,rival_battle_won:false,pokedex_received:false,running_shoes_received:false,starter_tutorial_complete:false,rustboro_gym_complete:false,stone_badge:false,rock_tomb_received:false};
+  const story = {name_confirmed:false,intro_stage:0,rival_stage:0,birch_lab_stage:0,petalburg_gym_stage:0,woods_stage:0,town_stage:0,clock_set:false,rival_battle_won:false,pokedex_received:false,running_shoes_received:false,starter_tutorial_complete:false,rustboro_gym_complete:false,stone_badge:false,rock_tomb_received:false};
   const cases: readonly [Partial<typeof story>, readonly string[]][] = [
     [{name_confirmed:true},["PLAYER_NAME_CONFIRMED"]],
     [{intro_stage:4},["MOM_CLOCK_INSTRUCTION"]],
     [{clock_set:true},["CLOCK_SET"]],
     [{intro_stage:7},["MOM_CLOCK_INSTRUCTION","MOM_RIVAL_INSTRUCTION"]],
     [{rival_stage:3},["RIVAL_BEDROOM_REACHED","RIVAL_MET"]],
+    [{town_stage:1},[]],
+    [{town_stage:2},["BIRCH_RESCUE_REQUESTED"]],
+    [{town_stage:3},["BIRCH_RESCUE_REQUESTED"]],
+    [{town_stage:4},["BIRCH_RESCUE_REQUESTED"]],
     [{birch_lab_stage:2},["BIRCH_RESCUE_COMPLETE"]],
     [{birch_lab_stage:3},["BIRCH_RESCUE_COMPLETE","BIRCH_STARTER_HANDOFF_COMPLETE"]],
     [{rival_battle_won:true},["RIVAL_BATTLE_WON"]],
@@ -222,6 +227,12 @@ it("records each verified story predicate, withholds unknown/pre-event values an
   expect(modern.observe(at("ROUTE 101",{story,world_context:{objects:[],triggers:[trigger],dialogue:null}}),1).map((m)=>m.name)).not.toContain("CLOCK_SET");
   const nonField = source([]);
   expect(nonField.observe(at(null,{story:{...story,clock_set:true,rival_battle_won:true,pokedex_received:true,running_shoes_received:true,starter_tutorial_complete:true,rustboro_gym_complete:true,rock_tomb_received:true}}),1).map((m)=>m.name)).toEqual(["GAME_RUNNING"]);
+  const {town_stage, ...withoutTown} = story; expect(town_stage).toBe(0);
+  expect(source([]).observe(at("LITTLEROOT TOWN",{story:withoutTown}),1).map((m)=>m.name)).not.toContain("BIRCH_RESCUE_REQUESTED");
+  expect(source([]).observe(at("LITTLEROOT TOWN",{story:{...story,town_stage:null}}),1).map((m)=>m.name)).not.toContain("BIRCH_RESCUE_REQUESTED");
+  const sent = source([]);
+  sent.observe(at("LITTLEROOT TOWN",{story}),1);
+  expect(sent.observe(at("LITTLEROOT TOWN",{story:{...story,town_stage:2}}),2)).toEqual([{name:"BIRCH_RESCUE_REQUESTED",kind:"story",origin:"observed",serverTimestamp:3,evidence:[2]}]);
 });
 
 it("keeps unknown resumed baselines unresolved per predicate until readable", () => {

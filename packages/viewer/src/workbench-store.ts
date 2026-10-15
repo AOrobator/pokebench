@@ -28,6 +28,11 @@ function metadata(path: string): { value: unknown; digest: string } {
 }
 function json(path: string): unknown { return metadata(path).value;
 }
+function resumeCheckpoint(start: Extract<RunEvent, { type: "run_start" }>): string | null {
+  if (start.start_state.kind !== "save_state") return null;
+  const file = start.start_state.path.split(/[/\\]/).pop() ?? "";
+  return file === "CLOCK_SET.state" ? "CLOCK_SET" : null;
+}
 function configuration(start: Extract<RunEvent, { type: "run_start" }>): WorkbenchConfig {
   const known = configOf(start);
   return {
@@ -35,7 +40,7 @@ function configuration(start: Extract<RunEvent, { type: "run_start" }>): Workben
     preset: start.evaluation?.preset_id ?? null, target: start.evaluation?.target ?? null, thinking: start.sampling.thinking_level,
     maxTokens: start.sampling.max_tokens, maxTurns: start.budgets.max_turns ?? null, maxWallMs: start.budgets.max_wall_ms ?? null,
     failureLimit: start.evaluation?.failure_limit ?? null, context: start.model.context_window, vision: start.model.vision,
-    start: start.start_state.kind, tools: start.tools,
+    start: start.start_state.kind, resume: resumeCheckpoint(start), tools: start.tools,
     features: FEATURES.filter(f => f.switchable).map(f => ({ id: f.id, label: f.title, on: known === null ? (start.harness_features.includes(f.id) ? true : null) : known.features[f.id as keyof typeof known.features] })),
   };
 }

@@ -38,9 +38,9 @@ export const THINKING_LEVELS = ["off", "minimal", "low", "medium", "high", "xhig
 // Splits shown on the switchboard bars, in story order.
 export const BAR_MILESTONES: readonly (readonly [string, string])[] = [
   ["NEW_GAME_CREATED", "NEW GAME"], ["PLAYER_NAME_CONFIRMED", "NAMED"], ["FIRST_TRUCK_EXIT", "TRUCK"], ["CLOCK_SET", "CLOCK"],
-  ["RIVAL_MET", "RIVAL"], ["ROUTE_101", "RT 101"], ["STARTER_CHOSEN", "STARTER"],
+  ["RIVAL_MET", "RIVAL"], ["BIRCH_RESCUE_REQUESTED", "SEND-OFF"], ["ROUTE_101", "RT 101"], ["STARTER_CHOSEN", "STARTER"],
 ];
-export const TARGETS = ["NEW_GAME_CREATED", "PLAYER_NAME_CONFIRMED", "CLOCK_SET", "RIVAL_MET", "STARTER_CHOSEN", "RIVAL_BATTLE_WON", "RECEIVED_POKEDEX", "PETALBURG_CITY", "RUSTBORO_CITY", "STONE_BADGE"] as const;
+export const TARGETS = ["NEW_GAME_CREATED", "PLAYER_NAME_CONFIRMED", "CLOCK_SET", "RIVAL_MET", "BIRCH_RESCUE_REQUESTED", "STARTER_CHOSEN", "RIVAL_BATTLE_WON", "RECEIVED_POKEDEX", "PETALBURG_CITY", "RUSTBORO_CITY", "STONE_BADGE"] as const;
 
 const GROUPS = [["observation", "OBSERVATION · WHAT THE MODEL SEES"], ["guidance", "GUIDANCE · HOW THE HARNESS HELPS"], ["guard", "GUARDS · WHAT CAN INTERVENE"]] as const;
 

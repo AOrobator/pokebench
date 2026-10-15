@@ -3263,6 +3263,18 @@
                     }
                   ]
                 },
+                "town_stage": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 4
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
                 "clock_set": {
                   "anyOf": [
                     {

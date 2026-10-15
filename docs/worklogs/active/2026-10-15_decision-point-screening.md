@@ -59,4 +59,4 @@ feature-worklog, feature-switch, agent-observability, pokebench-game-state, poke
   by design.
 
 ## Status
-R0–R2 done. Next: probe tool.
+R0–R2 done (R1 = 7cc96c9). Next: probe tool.

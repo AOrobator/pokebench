@@ -57,7 +57,16 @@ A fade-only wait would have missed those 12.
   bound it captures anyway.
 - No wall-clock sleeps or polls. The hook does nothing while no observation
   waits. An operator pause parks the frame loop; parking releases waiters
-  (`install_pause(on_park=...)`), which then capture immediately.
+  (`install_pause(on_park=FrameSettle.park)`), which then capture immediately,
+  and observations during the pause capture at once. Ending the pause (or a
+  pause that could not park) calls `on_resume=FrameSettle.resume` before the
+  loop wakes, so the next observation waits for frames again.
+- A fade read that raises on the game thread is handed to the waiting
+  observations; it never propagates into the vendor frame loop.
+- Human server: no settle. Its `/pokebench/human/snapshot` records the
+  observation under the journal lock that each human frame step also takes,
+  so waiting for a frame there would stop the frame loop. Human snapshots
+  capture at once, as before (the readout still labels fading/black frames).
 - The readout gets a first line when the captured frame is still fading
   ("Frame: captured while the screen was still fading …") or the PNG is all
   black without a fade ("Frame: the screen is black in this frame …").

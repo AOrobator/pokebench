@@ -92,18 +92,23 @@ def run(
     agent_checkpoint: tuple[FastAPI, Callable[[], bytes | None]] | None = None,
     frames: type[SteppedEmulator] | None = None,
 ) -> None:
-    # Observations wait out screen fades on emulated frames (never wall time).
+    # Agent observations wait out screen fades on emulated frames (never wall
+    # time). The human server records its snapshot observation under the
+    # journal lock that the frame step also takes, so it captures at once.
     settle = None
-    if observation is not None and frames is not None:
+    if observation is not None and frames is not None and human is None:
         settle = FrameSettle(observation[2])
         install_frame_settle(frames, settle)
-    on_park = None if settle is None else settle.release
     if actions is not None:
         install_action_history(*actions)
     if travel is not None:
         install_travel(*travel)
     if pause is not None:
-        install_pause(*pause, on_park=on_park)
+        install_pause(
+            *pause,
+            on_park=None if settle is None else settle.park,
+            on_resume=None if settle is None else settle.resume,
+        )
     if agent_checkpoint is not None:
         install_checkpoint(*agent_checkpoint)
     if spectator is not None:
@@ -116,7 +121,7 @@ def run(
     if human is not None:
         api, server, token = human
         controller = install_human(api, server, token, observe=capture, checkpoint=checkpoint)
-        install_pause(api, server, input_pause=controller.set_paused, on_park=on_park)
+        install_pause(api, server, input_pause=controller.set_paused)
     pin_localhost(uvicorn)
     sys.argv = ["server.app", *argv]
     vendor_main()

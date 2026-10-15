@@ -27,8 +27,10 @@ from pokebench_env.menus import PALETTE_FADE
 
 PALETTE_RAM = 0x05000000
 PALETTE_SIZE = 0x400
-# BeginNormalPaletteFade: deltaY 2, so 0->16 takes 8 steps of (delay + 1)
-# frames plus the finishing frames. Bound: a full fade at delay 15.
+# BeginNormalPaletteFade: deltaY 2, so 0->16 takes 8 steps plus the step
+# that clears `active`, each (delay + 1) frames, plus 2 frames of slack.
+# Bound: a full fade at delay 15. Longer fades (delayCounter is 6 bits) hit
+# the bound and the readout says the capture was still fading.
 SETTLE_BOUND_FRAMES = (15 + 1) * 9 + 2
 
 FADING_NOTE = (
@@ -95,7 +97,14 @@ class FrameSettle:
             self._parked = False
             if not self._waiters:
                 return
-            moving = transitioning(self.read)
+            try:
+                moving = transitioning(self.read)
+            except Exception as error:  # noqa: BLE001 - re-raised on the callers' threads
+                for waiter in self._waiters:
+                    waiter.error = error
+                    waiter.done.set()
+                self._waiters = []
+                return
             waiting: list[_Waiter[object]] = []
             for waiter in self._waiters:
                 waiter.frames += 1
@@ -109,7 +118,7 @@ class FrameSettle:
                 waiter.done.set()
             self._waiters = waiting
 
-    def release(self) -> None:
+    def park(self) -> None:
         """The frame loop is parking (operator pause): no frames will come."""
         with self._lock:
             self._parked = True
@@ -117,6 +126,11 @@ class FrameSettle:
                 waiter.released = True
                 waiter.done.set()
             self._waiters = []
+
+    def resume(self) -> None:
+        """The pause ended: frames come again, so observations wait for them."""
+        with self._lock:
+            self._parked = False
 
     def settle(
         self,

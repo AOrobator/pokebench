@@ -313,6 +313,7 @@ async function playAgent(): Promise<void> {
         base: { ...gatewayLoopConfig(model, thinking, apiKey), maxTokens },
         governor,
         transformContext: context.transformContext,
+        window: context.window,
         emit: recorder.emit,
         signal: controller.signal,
         gate: (signal) => runControl.gate(signal),

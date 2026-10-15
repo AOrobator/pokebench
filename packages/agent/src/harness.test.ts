@@ -13,7 +13,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ControlFile, RunControl, controlLine } from "./run-control.js";
 import { PRESS_TIMING, pressTool } from "./game-tools.js";
-import { Governor, NUDGE, OMITTED_FRAME, keepCount, piLoop, play, slideWindow, type Loop, type Window } from "./harness.js";
+import { DOUBLE_WINDOW, Governor, NUDGE, OMITTED_FRAME, WINDOW, contextWindow, keepCount, piLoop, play, slideWindow, withoutTextOnlyReplies, type Loop, type Window } from "./harness.js";
+import { ALL_ON } from "./features.js";
 
 const usage = {
   input: 0,
@@ -79,6 +80,20 @@ function turnsOf(n: number): AgentMessage[] {
 function resultTexts(messages: AgentMessage[]): string[] {
   return messages.flatMap((m) => (m.role === "toolResult" ? [m.content.map((p) => (p.type === "text" ? p.text : "<img>")).join(" | ")] : []));
 }
+
+describe("withoutTextOnlyReplies", () => {
+  it("drops replies without a tool call and keeps everything else, nudges included", () => {
+    const nudge: AgentMessage = { role: "user", content: NUDGE, timestamp: 0 };
+    const kept = [TASK, reply(), toolResult()];
+    const dropped = [reply([]), reply([], "length")];
+    expect(withoutTextOnlyReplies([...kept, dropped[0] as AgentMessage, nudge, dropped[1] as AgentMessage, nudge])).toEqual([...kept, nudge, nudge]);
+  });
+
+  it("returns the same messages when every reply called a tool", () => {
+    const messages = [TASK, ...turnsOf(3)];
+    expect(withoutTextOnlyReplies(messages)).toEqual(messages);
+  });
+});
 
 describe("slideWindow", () => {
   const window: Window = { turns: { max: 20, chunk: 10 }, results: { max: 6, chunk: 3 } };
@@ -420,6 +435,27 @@ describe("piLoop on the pinned pi-agent-core loop", () => {
     expect(retries).toEqual([{ reason: "text-only reply", attempt: 1, limit: 3 }]);
   });
 
+  it("retries without the text-only reply when the context drops it", async () => {
+    const controller = new AbortController();
+    const { g, retries } = governor({ maxTurns: 3 });
+    const seen: Message[][] = [];
+    const loop = piLoop({
+      systemPrompt: "play",
+      tools: [fakePress(() => undefined)],
+      base: { model: MODEL, convertToLlm: (messages) => messages as Message[] },
+      governor: g,
+      transformContext: (messages) => Promise.resolve(withoutTextOnlyReplies(messages)),
+      emit: () => undefined,
+      signal: controller.signal,
+      streamFn: scriptedModel([pressReply(["A"]), reply([]), pressReply(["B"])], seen),
+    });
+    expect(await play(TASK, g, loop)).toBe("budget");
+    expect(retries).toEqual([{ reason: "text-only reply", attempt: 1, limit: 3 }]);
+    expect(seen[2]?.at(-1)).toMatchObject({ role: "user", content: NUDGE });
+    expect(seen[2]?.at(-2)?.role).toBe("toolResult");
+    expect(seen[2]?.filter((m) => m.role === "assistant")).toHaveLength(1);
+  });
+
   it("drops an errored reply, logs a retry and resumes from the last good message", async () => {
     const controller = new AbortController();
     const { g, retries } = governor({ maxTurns: 3 });
@@ -610,5 +646,49 @@ describe("control-file requests at the turn boundary", () => {
     const run = fileControlled("stop");
     expect(await run.result).toBe("operator_stop");
     expect(run.seen).toHaveLength(1);
+  });
+});
+
+describe("double-context-window-v1", () => {
+  const off = { ...ALL_ON, "double-context-window-v1": false };
+  const on = { ...ALL_ON, "double-context-window-v1": true };
+  const assistants = (window: Window, n: number) => slideWindow([TASK, ...turnsOf(n)], window).filter((m) => m.role === "assistant").length;
+  const whole = (window: Window, n: number) => resultTexts(slideWindow([TASK, ...turnsOf(n)], window)).filter((t) => !t.endsWith(OMITTED_FRAME)).length;
+
+  it("OFF is the incumbent window; ON doubles both limits and their chunks", () => {
+    expect(WINDOW).toEqual({ turns: { max: 20, chunk: 10 }, results: { max: 6, chunk: 3 } });
+    expect(contextWindow(off)).toBe(WINDOW);
+    expect(contextWindow(on)).toBe(DOUBLE_WINDOW);
+    expect(DOUBLE_WINDOW).toEqual({ turns: { max: 40, chunk: 20 }, results: { max: 12, chunk: 6 } });
+  });
+
+  it("ON keeps twice the turns and full results that OFF keeps", () => {
+    expect([40, 41, 60, 61].map((n) => assistants(WINDOW, n))).toEqual([20, 11, 20, 11]);
+    expect([40, 41, 60, 61].map((n) => assistants(DOUBLE_WINDOW, n))).toEqual([40, 21, 40, 21]);
+    expect([6, 12, 13].map((n) => whole(WINDOW, n))).toEqual([6, 6, 4]);
+    expect([6, 12, 13].map((n) => whole(DOUBLE_WINDOW, n))).toEqual([6, 12, 7]);
+  });
+
+  it("piLoop slides the window it is given, and the incumbent one by default", async () => {
+    const run = async (window: Window | undefined) => {
+      const controller = new AbortController();
+      const { g } = governor({ maxTurns: 4 });
+      const seen: Message[][] = [];
+      const loop = piLoop({
+        systemPrompt: "play",
+        tools: [fakePress(() => undefined)],
+        base: { model: MODEL, convertToLlm: (messages) => messages as Message[] },
+        governor: g,
+        transformContext: (messages) => Promise.resolve(messages),
+        emit: () => undefined,
+        signal: controller.signal,
+        streamFn: scriptedModel([pressReply(["A"]), pressReply(["A"]), pressReply(["A"]), pressReply(["A"])], seen),
+        ...(window === undefined ? {} : { window }),
+      });
+      await play(TASK, g, loop);
+      return seen.at(-1)?.filter((m) => m.role === "assistant").length;
+    };
+    expect(await run({ turns: { max: 1, chunk: 1 }, results: { max: 6, chunk: 3 } })).toBe(1);
+    expect(await run(undefined)).toBe(3);
   });
 });

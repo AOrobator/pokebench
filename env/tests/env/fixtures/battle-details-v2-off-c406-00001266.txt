@@ -1,0 +1,16 @@
+Screen: battle
+Dialog: none
+Menu: unavailable (active owner not verified)
+Bag: 
+Battle state: input; input True; turn 1; outcome ongoing
+Battler 0 TORCHIC Lv5 HP 20/20; status 0/0/0; stages (6, 6, 6, 6, 6, 6, 6, 6); moves SCRATCH PP 35/35, GROWL PP 40/40
+Battler 1 ZIGZAGOON Lv2 HP 13/13; status 0/0/0; stages (6, 6, 6, 6, 6, 6, 6, 6); moves TACKLE PP 35/35, GROWL PP 40/40
+Battle input 0: action; ready True; selected FIGHT; target None
+Player: MAY
+Location: ROUTE 101
+Position: X=7, Y=9, facing right
+Party (player): TORCHIC Lv5 HP 20/20 · moves SCRATCH PP 35, GROWL PP 40 · nickname TORCHIC
+Money: ₽3000
+Badges: STONE
+In battle: yes
+Play time: 1:02:03

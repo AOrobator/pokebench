@@ -158,6 +158,26 @@ Browser verification so far, at 1440×900:
 
 ## Multi-Model Review Log
 
+**Round 4 (032d206..73d7a12)**
+
+Claude and Grok, both BLOCKING on the same regression: the side list redrew only on trace version bumps, so when `turn_start` moved the Emerald box on, the previous thought vanished from both panels until thinking ended.
+
+Minor:
+- side rows re-described entries and re-held the step
+- leaving a list after scrolling could snap to the top
+- a toggle racing a redraw could lose state
+- (Grok) hidden events still bump the version, so groups are recomputed (but not redrawn)
+
+Fixed in `fix(viewer): agent trace review round 4`:
+- the side list redraws when `boxTurn` changes (`sideBox`), with an app test feeding `turn_start` after an answer; reverting the fix turns 1 test red
+- `Entry.sideHtml(gutter)` caches the side row
+- wheel/keydown/scrollbar pointerdown cancel the snap back to the top (test)
+- the toggle handler syncs every copy of the row
+
+DEFERRED (Grok r4 #2): hidden-category events still bump `version`, so `traceGroups` runs one O(turns) pass per event. Stamps already prevent any DOM change, and the pass is cheap next to the stream parse, so a separate dirty flag isn't worth the extra state now.
+
+Gates: viewer 638 passed (95.3/91.1/94.4), agent 1066 passed, lint clean.
+
 **Whole branch round 3 (032d206..ce40d70)**
 
 Claude (BLOCKING):

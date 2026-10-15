@@ -963,6 +963,12 @@ describe("agent trace page", () => {
     box.dispatchEvent(new Event("mouseenter"));
     box.dispatchEvent(new Event("mouseleave"));
     expect(box.scrollTop).toBe(120);
+    box.scrollTop = 0;
+    box.dispatchEvent(new Event("mouseenter"));
+    box.scrollTop = 300;
+    box.dispatchEvent(new Event("wheel"));
+    box.dispatchEvent(new Event("mouseleave"));
+    expect(box.scrollTop).toBe(300);
   });
 
   it("collapses and expands every row", async () => {
@@ -1034,14 +1040,19 @@ describe("side panel", () => {
     expect(order.indexOf("emer")).toBeLessThan(order.indexOf("side-trace trace"));
     const rows = [...ui("side-trace").querySelectorAll<HTMLElement>("[data-key]")];
     expect(rows.map((row) => row.dataset.c)).toEqual(["think", "act", "ms", "ms"]);
-    feed(must(streams[0]), [log.add(4_200, assistant({ turn: 2, thinking: "Next I go up." }))], false);
-    app.tick(100);
-    expect(ui("think-head").textContent).toMatch(/^AGENT thought for/);
-    expect(ui("side-trace").textContent).not.toContain("Next I go up.");
     expect(ui("side-trace").textContent).not.toContain("Disk usage");
     expect(ui("side-trace").querySelector(".tg")?.textContent).toBe("T1");
     must(rows[1]?.querySelector("summary")).click();
     expect(ui("inspector").textContent).toContain('"type": "tool_result"');
+    feed(must(streams[0]), [log.add(4_200, assistant({ turn: 2, thinking: "Next I go up." }))], false);
+    app.tick(100);
+    expect(ui("think-head").textContent).toMatch(/^AGENT thought for/);
+    expect(ui("side-trace").textContent).not.toContain("Next I go up.");
+    // When the next turn starts, the box streams again and that thought is back under EARLIER.
+    feed(must(streams[0]), [log.add(4_300, { type: "turn_start", turn: 3, context: { messages: 5, images: 1, est_tokens: 6000 } })], false);
+    app.tick(100);
+    expect(ui("think-head").textContent).toMatch(/^AGENT is thinking/);
+    expect(ui("side-trace").textContent).toContain("Next I go up.");
   });
 
   it("jumps from the side panel to the full agent trace", async () => {

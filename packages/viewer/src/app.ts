@@ -172,6 +172,7 @@ export class App {
   // Lists under the pointer hold still while newer turns arrive, so a click lands where aimed.
   private readonly held = new Set<HTMLElement>();
   private readonly heldAtTop = new Set<HTMLElement>();
+  private sideBox: number | null = null;
   private rows: RowState = { open: new Set(), folded: new Set(), selected: null };
   private screenTick = 0;
   private sinceScreen = 0;
@@ -377,11 +378,12 @@ export class App {
         this.held.add(list);
         if (list.scrollTop <= 0) this.heldAtTop.add(list);
       });
-      // A list held at the top goes back to following the newest turn.
+      // A list held at the top goes back to following the newest turn, unless the reader scrolled away.
       list.addEventListener("mouseleave", () => {
         this.held.delete(list);
         if (this.heldAtTop.delete(list)) list.scrollTop = 0;
       });
+      for (const type of ["wheel", "keydown", "pointerdown"]) list.addEventListener(type, (event) => { if (type !== "pointerdown" || event.target === list) this.heldAtTop.delete(list); });
       list.addEventListener("toggle", (event) => {
         const details = event.target as HTMLDetailsElement;
         const key = details.closest<HTMLElement>("[data-key]")?.dataset.key;
@@ -390,6 +392,11 @@ export class App {
         const remember = details.classList.contains("res-d") ? !details.open : details.open;
         if (remember) set.add(key);
         else set.delete(key);
+        // A redraw may have replaced the row between the click and this event: make every copy match.
+        for (const row of this.doc.querySelectorAll<HTMLDetailsElement>(`details[data-key="${key}"]`)) {
+          const target = details.classList.contains("res-d") ? row.querySelector<HTMLDetailsElement>("details.res-d") : row;
+          if (target !== null && target !== details && target.open !== details.open) target.open = details.open;
+        }
       }, true);
     }
     this.ui("trace-link").addEventListener("click", () => {
@@ -629,6 +636,7 @@ export class App {
     this.traceKey = "";
     this.traceLimit = TRACE_TURNS;
     this.rows = { open: new Set(), folded: new Set(), selected: null };
+    this.sideBox = null;
     for (const name of ["trace", "side-trace"]) this.doc.querySelector<HTMLElement>(`[data-ui="${name}"]`)?.replaceChildren();
   }
 
@@ -668,9 +676,12 @@ export class App {
       const versionChanged = this.traceKey.split("|")[0] !== String(this.trace.version);
       this.traceKey = key;
       this.renderChips();
-      if (versionChanged) {
+      // The side list leaves out the thought the Emerald box shows, so it also redraws when the box moves on.
+      const boxTurn = this.shown.isThinking ? null : this.shown.lastThought?.turn ?? null;
+      if (versionChanged || boxTurn !== this.sideBox) {
+        this.sideBox = boxTurn;
         const side = this.ui("side-trace");
-        const groups = sideGroups(this.trace.turns, SIDE_TURNS, this.shown.isThinking ? null : this.shown.lastThought?.turn ?? null);
+        const groups = sideGroups(this.trace.turns, SIDE_TURNS, boxTurn);
         reconcile(side, groups, groups.length === 0 ? '<p class="nodata">no steps yet</p>' : "", this.stamps, this.held.has(side), this.rows);
       }
       const startMs = this.shown.startMs;

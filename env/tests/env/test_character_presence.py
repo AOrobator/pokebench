@@ -193,14 +193,17 @@ def test_off_the_reader_is_not_called_on_the_observation_route(monkeypatch) -> N
 
 
 def test_the_pending_experiment_activates_where_the_line_first_appears() -> None:
-    # The line is printed on every readable overworld map, the truck included (PLAYER_NAME_CONFIRMED).
+    # The line is printed on every readable overworld map, the truck included
+    # (PLAYER_NAME_CONFIRMED).
     import json
     from pathlib import Path
 
     from pokebench_env.character_presence import StoryCharacters
 
-    assert StoryCharacters(here=(), absent=("MOM",)).text().startswith(
-        "Story characters here (from this map's own object list): none."
+    assert (
+        StoryCharacters(here=(), absent=("MOM",))
+        .text()
+        .startswith("Story characters here (from this map's own object list): none.")
     )
     entry = json.loads(
         (Path(__file__).parents[3] / "experiments" / "character-presence.json").read_text()

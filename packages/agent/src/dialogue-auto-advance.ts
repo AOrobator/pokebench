@@ -162,6 +162,16 @@ function pressLineOf(result:Result):string|null {
  for(const part of result.content)if(part.type==="text"){const line=/^Press result: (.*)$/m.exec(part.text)?.[1];if(line!==undefined)return line;}
  return null;
 }
+// What the inner press really submitted: it re-reads state and may apply the safe-batch rule itself.
+function pressedOf(result:Result,asked:readonly Button[]):Button[] {
+ for(const part of result.content)if(part.type==="text"){
+  const line=/^pressed (.*)$/m.exec(part.text)?.[1];
+  if(line===undefined)continue;
+  const names=line.split(", ");
+  if(names.length<=asked.length&&names.every((name,i)=>name===asked[i]))return asked.slice(0,names.length);
+ }
+ return [...asked];
+}
 // Text the ordinary tools append after their observation (objective warnings).
 function extraText(result:Result):TextContent[] {
  return result.content.slice(2).filter((part):part is TextContent=>part.type==="text");
@@ -214,7 +224,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
   const extras:TextContent[]=[];const sent:Button[]=[];const results:{buttons:readonly Button[];line:string|null}[]=[];
   const walk=before!==undefined&&freeField(before)&&plan.every(b=>DIRECTIONS.has(b));
   let last:Result;
-  if(walk){last=await run([...plan],true);sent.push(...plan);results.push({buttons:[...plan],line:pressLineOf(last)});}
+  if(walk){last=await run([...plan],true);const went=pressedOf(last,plan);sent.push(...went);results.push({buttons:went,line:pressLineOf(last)});}
   else{
    let result:Result|undefined;
    for(const button of plan){result=await run([button],sent.length===0);sent.push(button);results.push({buttons:[button],line:pressLineOf(result)});extras.push(...extraText(result));if(dialogueEngaged(stateOf(result)))break;}
@@ -236,7 +246,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
   const finalState=stateOf(final);
   const seen=observation(final);
   const head=[`pressed ${sent.join(", ")}`,
-   ...(plan.length<params.buttons.length?[`Interface safety: submitted ${String(plan.length)} of ${String(params.buttons.length)} requested inputs; remaining inputs were not sent. Inspect the new state before another input.`]:[]),
+   ...(plan.length<params.buttons.length||(walk&&sent.length<plan.length)?[`Interface safety: submitted ${String(walk?sent.length:plan.length)} of ${String(params.buttons.length)} requested inputs; remaining inputs were not sent. Inspect the new state before another input.`]:[]),
    ...(switches.pressResult?[`Press result: ${results.every(r=>r.line!==null)?results.length===1?results[0]?.line??"":results.map((r,i)=>`${i===0?"":"then "}${r.buttons.join(", ")}: ${r.line??""}`).join(" | "):pressResult(before,finalState,sent,switches)}`]:[]),
    ...(block===null?[]:[block])];
   return {content:[...seen.images,{type:"text",text:`${head.join("\n")}\n\n${seen.text}`},...extras],details:{state:finalState}};

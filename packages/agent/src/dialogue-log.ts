@@ -26,19 +26,28 @@ const Args=Type.Object({
 export class DialogueLog {
  private measured:State|null=null;
  private readonly log:DialogueEntry[]=[];
+ // dialogue-auto-advance-v1 pages per tool call, kept until that call's result reaches the model.
+ private readonly pending=new Map<string,DialogueEntry[]>();
  constructor(private readonly features:FeatureSet){}
  observe(event:RunEvent):void {
   if(event.type==="state"&&"started"in event){this.measured=event;return;}
   // dialogue-auto-advance-v1 hands the model its pages in the result; each page cites its own recorded state (else the event).
   if(event.type==="dialogue_auto_advance"){
-   for(const page of event.pages){
+   this.pending.set(event.tool_call_id,event.pages.map(page=>{
     const place={location:page.map,map_id:page.map_id};
-    this.add({seq:page.state_seq??event.seq,turn:event.turn,key:roomKey(place),room:roomOf(place,this.features),position:this.features["live-player-position-v1"]&&page.position!==null?`${String(page.position.x)},${String(page.position.y)}`:null,facing:null,text:page.text});
-   }
+    return {seq:page.state_seq??event.seq,turn:event.turn,key:roomKey(place),room:roomOf(place,this.features),position:this.features["live-player-position-v1"]&&page.position!==null?`${String(page.position.x)},${String(page.position.y)}`:null,facing:null,text:page.text};
+   }));
+   if(this.pending.size>16)this.pending.delete(this.pending.keys().next().value??"");
    return;
   }
-  if(event.type!=="tool_result"||event.state_seq===undefined||this.measured?.seq!==event.state_seq)return;
+  if(event.type!=="tool_result")return;
+  // Pages count as shown only when their result reached the model; they already cover the paired state's buffer.
+  const pages=this.pending.get(event.id);this.pending.delete(event.id);
+  const delivered=!event.is_error&&pages!==undefined&&pages.length>0;
+  if(delivered)for(const entry of pages)this.add(entry);
+  if(event.state_seq===undefined||this.measured?.seq!==event.state_seq)return;
   const state=this.measured;this.measured=null;
+  if(delivered)return;
   const text=state.world_context?.dialogue;
   if(!state.started||state.screen!=="overworld"||!text)return;
   this.add({seq:state.seq,turn:state.turn,key:roomKey(state),room:roomOf(state,this.features),position:this.position(state),facing:this.faced(state),text});

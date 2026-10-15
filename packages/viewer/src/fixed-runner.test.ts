@@ -182,7 +182,7 @@ describe("runFixed", () => {
     const result = await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77 });
     expect(result).toBe("finished");
     expect(host.statuses.some((st) => st.lanes.find((l) => l.id === "B")?.state === "paused" && st.lanes.find((l) => l.id === "B")?.reason.includes("EIO") === true && st.lastError?.includes("EIO") === true)).toBe(true);
-    expect(host.statuses.at(-1)?.valid).toBe(def.plan.length);
+    expect(parseFixedStatus(JSON.parse(readFileSync(join(runsRoot, "experiments", def.id, "status.json"), "utf8"))).valid).toBe(def.plan.length);
   });
 
   it("pins one commit for the whole run: every build check and every launch uses the commit read at start", async () => {

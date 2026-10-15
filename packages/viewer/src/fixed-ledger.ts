@@ -146,6 +146,8 @@ export function progress(def: FixedDefinition, state: QueueState): Progress {
   };
 }
 
+export const WALL_CAP = "wall cap";
+
 export interface TrialExpectation {
   readonly maxWallMs: number;
   readonly primary: string;
@@ -154,6 +156,8 @@ export interface TrialExpectation {
   readonly startSha1?: string;
   readonly port?: number;
   readonly model?: string;
+  // The arm's value of every switch and every off-in-both flag.
+  readonly features?: Readonly<Record<string, boolean>>;
 }
 
 interface Parsed { readonly type?: unknown; readonly t?: unknown; readonly [key: string]: unknown }
@@ -174,6 +178,15 @@ function configProblems(start: Parsed, expect: TrialExpectation): string[] {
   if (startState["sha1"] !== expect.startSha1) problems.push(`start ${String(startState["kind"])}${typeof startState["sha1"] === "string" ? ` ${startState["sha1"]}` : ""} (planned save_state ${expect.startSha1 ?? ""})`);
   if (expect.port !== undefined && isolation["port"] !== expect.port) problems.push(`port ${String(isolation["port"])} (planned ${String(expect.port)})`);
   if (expect.model !== undefined && model["id"] !== expect.model) problems.push(`model ${String(model["id"])} (planned ${expect.model})`);
+  if (expect.features !== undefined) {
+    const recorded = evaluation["features"];
+    if (typeof recorded !== "object" || recorded === null) problems.push("run_start does not record its feature set");
+    else {
+      const bits = record(recorded);
+      const onOff = (on: unknown): string => (on === true ? "on" : on === false ? "off" : "unrecorded");
+      for (const [name, planned] of Object.entries(expect.features)) if (bits[name] !== planned) problems.push(`${name} ${onOff(bits[name])} (planned ${onOff(planned)})`);
+    }
+  }
   return problems;
 }
 
@@ -197,7 +210,8 @@ export function classifyTrial(text: string | null, expect: TrialExpectation, exi
   const reached = new Map<string, number>();
   for (const e of events) {
     if (e.type !== "milestone" || e["origin"] === "present_at_start" || typeof e["name"] !== "string" || reached.has(e["name"])) continue;
-    reached.set(e["name"], Date.parse(String(e.t)) - t0);
+    const ms = Date.parse(String(e.t)) - t0;
+    if (ms <= expect.maxWallMs) reached.set(e["name"], ms);
   }
   const furthest = [...reached.keys()].filter((n) => MILESTONE_ORDER.includes(n)).sort((a, b) => MILESTONE_ORDER.indexOf(b) - MILESTONE_ORDER.indexOf(a))[0] ?? null;
   const primaryMs = reached.get(expect.primary) ?? null;
@@ -214,7 +228,7 @@ export function classifyTrial(text: string | null, expect: TrialExpectation, exi
   const verdict = (valid: boolean, why: string): FixedOutcome => ({ valid, reason: why, endReason: reason, ...metrics });
   if (reason === "budget") {
     if (metrics.wallMs !== null && metrics.wallMs < expect.maxWallMs * 0.98) return verdict(true, `turn cap (${String(metrics.turns)} turns) before the wall cap`);
-    return verdict(true, "wall cap");
+    return verdict(true, WALL_CAP);
   }
   if (reason === "model_error") {
     const lastRetry = events.filter((e) => e.type === "retry").at(-1);

@@ -88,6 +88,11 @@ export function armFeatures(def: Pick<FixedDefinition, "base" | "switches">, arm
   return { ...def.base.features, ...Object.fromEntries(def.switches.map((s) => [s, arm === "bundle"])) };
 }
 
+// The bits that tell the arms apart, and the flags off in both, as each arm should record them.
+export function armFeatureBits(def: FixedDefinition, arm: FixedArm): Record<string, boolean> {
+  return Object.fromEntries([...def.switches.map((s) => [s, arm === "bundle"] as const), ...def.offInBoth.map((s) => [s, false] as const)]);
+}
+
 export function armPreset(def: FixedDefinition, phaseId: string, arm: FixedArm): PlayPresetV2 {
   const phase = phaseOf(def, phaseId);
   const { maxTurns, failureLimit, replyFailuresEndRun } = def.base.limits;
@@ -124,8 +129,8 @@ function featureProblems(def: FixedDefinition): string[] {
   const problems: string[] = [];
   const known = new Set(Object.keys(FeatureSetSchema.properties));
   for (const s of [...def.switches, ...def.offInBoth, ...Object.keys(def.base.features)]) if (!known.has(s)) problems.push(`unknown feature ${s}`);
-  // An enforced loop guard without its supervisor ends a run "stuck"; only the wall cap may end a trial.
-  if (def.base.features["deterministic-loop-guard-v1"] === true && def.base.features["loop-guard-supervisor-v1"] !== true) problems.push("deterministic-loop-guard-v1 without loop-guard-supervisor-v1 can end a trial before its wall cap");
+  // Without the enforced guard's supervisor the loop guard's stop notice ends a run "stuck"; only the wall cap may end a trial.
+  if (def.base.features["deterministic-loop-guard-v1"] !== true || def.base.features["loop-guard-supervisor-v1"] !== true) problems.push("deterministic-loop-guard-v1 and loop-guard-supervisor-v1 must both be on: otherwise the loop guard can end a trial stuck before its wall cap");
   for (const s of def.switches) if (def.base.features[s] === true) problems.push(`bundle switch ${s} must be off in the base (control) features`);
   for (const s of def.offInBoth) {
     if (def.switches.includes(s)) problems.push(`${s} is both a bundle switch and off in both arms`);

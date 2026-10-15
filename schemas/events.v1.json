@@ -854,6 +854,14 @@
               },
               "additionalProperties": false
             },
+            "features": {
+              "type": "object",
+              "patternProperties": {
+                "^[a-z0-9-]+$": {
+                  "type": "boolean"
+                }
+              }
+            },
             "experiment": {
               "type": "object",
               "required": [

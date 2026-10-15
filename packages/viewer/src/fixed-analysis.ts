@@ -2,7 +2,7 @@
 // primary milestone, log-rank on time to it (censored at the wall cap), and Mann-Whitney on
 // furthest milestone depth then time; pooled and per lane, over valid trials only.
 import { phaseOf, type FixedArm, type FixedDefinition } from "./fixed-design.js";
-import { queueState, type FixedLedgerEntry } from "./fixed-ledger.js";
+import { queueState, WALL_CAP, type FixedLedgerEntry } from "./fixed-ledger.js";
 
 export interface AnalysisTrial {
   readonly slot: number;
@@ -131,13 +131,16 @@ export interface GroupResult {
 export interface AnalysisReport {
   readonly groups: readonly GroupResult[];
   readonly invalid: readonly Pick<AnalysisTrial, "slot" | "lane" | "arm" | "run" | "reason">[];
+  readonly endedEarly: readonly Pick<AnalysisTrial, "slot" | "lane" | "arm" | "run" | "reason">[];
 }
+
+const reachedInCap = (t: AnalysisTrial): boolean => t.primaryReached && t.primaryMs !== null && t.primaryMs <= t.capMs;
 
 function group(name: string, trials: readonly AnalysisTrial[]): GroupResult {
   const arm = (a: FixedArm): AnalysisTrial[] => trials.filter((t) => t.arm === a);
-  const count = (ts: readonly AnalysisTrial[]): ArmCount => ({ n: ts.length, reached: ts.filter((t) => t.primaryReached).length });
+  const count = (ts: readonly AnalysisTrial[]): ArmCount => ({ n: ts.length, reached: ts.filter(reachedInCap).length });
   const bundle = count(arm("bundle")), control = count(arm("control"));
-  const survival = (ts: readonly AnalysisTrial[]): Survival[] => ts.map((t) => (t.primaryReached && t.primaryMs !== null && t.primaryMs <= t.capMs ? { time: t.primaryMs, event: true } : { time: t.capMs, event: false }));
+  const survival = (ts: readonly AnalysisTrial[]): Survival[] => ts.map((t) => (reachedInCap(t) && t.primaryMs !== null ? { time: t.primaryMs, event: true } : { time: t.capMs, event: false }));
   return {
     name, bundle, control,
     fisherP: fisherExact(bundle.reached, bundle.n - bundle.reached, control.reached, control.n - control.reached),
@@ -151,6 +154,7 @@ export function analyze(trials: readonly AnalysisTrial[], lanes: readonly string
   return {
     groups: [group("pooled", valid), ...lanes.map((l) => group(l, valid.filter((t) => t.lane === l)))],
     invalid: trials.filter((t) => !t.valid).map(({ slot, lane, arm, run, reason }) => ({ slot, lane, arm, run, reason })),
+    endedEarly: valid.filter((t) => t.reason !== WALL_CAP).map(({ slot, lane, arm, run, reason }) => ({ slot, lane, arm, run, reason })),
   };
 }
 
@@ -161,6 +165,12 @@ const below = (p: number, alpha: number): string => (p < alpha ? "yes" : "no");
 export function renderAnalysis(report: AnalysisReport, title: string): string {
   const lines = [
     `# ${title}`, "",
+    ...(report.endedEarly.length === 0 ? ["Every valid trial ended at its wall cap.", ""] : [
+      `## WARNING: ${String(report.endedEarly.length)} valid trial${report.endedEarly.length === 1 ? "" : "s"} ended before ${report.endedEarly.length === 1 ? "its" : "their"} wall cap`, "",
+      "The pre-registration lets only the wall cap end a trial. These are counted below as they ended; review them before reading the tests.", "",
+      "| Slot | Lane | Arm | Run | Reason |", "|---|---|---|---|---|",
+      ...report.endedEarly.map((t) => `| ${String(t.slot)} | ${t.lane} | ${t.arm} | ${t.run} | ${t.reason} |`), "",
+    ]),
     "Valid trials only. Two-sided tests; the pre-registered thresholds are p < 0.05 and p < 0.10.", "",
     "## Fisher exact on reaching the primary milestone", "",
     "| Group | Bundle | Control | p | p < 0.05 | p < 0.10 |", "|---|---|---|---|---|---|",

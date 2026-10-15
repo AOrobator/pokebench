@@ -23,7 +23,7 @@ coverage gate is untouched.
 ## Milestones
 - [x] M1 Draft skill and helper; verify the helper against the live viewer.
 - [x] M2 Claude CLI and Grok (cursor-grok-4.5-high) reviews; fix findings.
-- [ ] M3 Ask the operator before merging to main.
+- [x] M3 Ask the operator before merging to main.
 
 ## Log
 - Raw events.jsonl scans are unsafe: `2026-10-13T17-07-50_think-fast_805e` shows PETALBURG_CITY
@@ -38,3 +38,5 @@ coverage gate is untouched.
   recent-basis wording, `just experiments` rebuilds). Fixed.
 - COMMIT: `fix: pokebench-review labels boot runs and lane-scoped readiness fallback correctly` (6292205)
 - Grok round 2: 5 findings (imports outside the error path, in-progress list not limited to boot or CLOCK_SET runs like the viewer, winner gate missing from promotion guidance, CLOCK_SET guard, queue readiness does not check source commit). Fixed.
+- COMMIT: `fix: pokebench-review fails clearly without a built viewer and follows the winner gate` (6c05c45)
+- M3: The operator approved the merge (2026-10-15 15:36 UTC).

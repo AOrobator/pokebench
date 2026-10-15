@@ -143,16 +143,18 @@ describe("experiment runner", () => {
   it("adopts a trial a dead viewer left playing: waits for it under the lease, records its outcome once and never relaunches it", async () => {
     const { paths, metrics, source } = setup();
     writeFileSync(join(experimentDir(paths.runsRoot, "full-map"), "trials.jsonl"), `${JSON.stringify({ type: "launch", trial: 0, arm: "incumbent", run: "orphan0", at: "t" })}\n`);
-    writeFileSync(runnerPath(paths.runsRoot), JSON.stringify({ pid: 300, experiment: "full-map", trial: 0, run: "orphan0", child: 200 }));
+    // A pid no process has (the dead viewer) and this test process standing in for the trial still playing.
+    const gone = 2 ** 22 + 7;
+    writeFileSync(runnerPath(paths.runsRoot), JSON.stringify({ pid: gone, experiment: "full-map", trial: 0, run: "orphan0", child: process.pid }));
     mkdirSync(join(paths.runsRoot, LEASE));
-    writeFileSync(join(paths.runsRoot, LEASE, "owner.json"), JSON.stringify({ pid: 300, owner: "experiment-queue", experiment: "full-map" }));
+    writeFileSync(join(paths.runsRoot, LEASE, "owner.json"), JSON.stringify({ pid: gone, owner: "experiment-queue", experiment: "full-map" }));
     let polls = 0;
     const fake = host(paths, metrics, {
-      alive: (pid) => pid === 200 && polls < 2,
+      alive: (pid) => pid === process.pid && polls < 2,
       liveRuns: () => Promise.resolve(polls < 2 ? ["orphan0"] : []),
       wait: () => {
         expect((JSON.parse(readFileSync(join(paths.runsRoot, LEASE, "owner.json"), "utf8")) as { pid: number }).pid).toBe(process.pid);
-        expect(JSON.parse(readFileSync(runnerPath(paths.runsRoot), "utf8"))).toMatchObject({ pid: process.pid, trial: 0, run: "orphan0", child: 200 });
+        expect(JSON.parse(readFileSync(runnerPath(paths.runsRoot), "utf8"))).toMatchObject({ pid: process.pid, trial: 0, run: "orphan0", child: process.pid });
         polls += 1;
         if (polls === 2) { writeRun(paths, "orphan0", QUEUE_FEATURES); metrics.set("orphan0", { reached: [], milestoneMs: {}, turns: 9, wallMs: 60_000 }); }
         return Promise.resolve();

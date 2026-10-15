@@ -51,6 +51,7 @@ No feature switch: this changes process supervision, not what the model sees, it
 - [ ] Review.
 
 ### M4: proof on an owned server, never 8790
+- [x] First real-process proof (scratchpad harness: this branch's runner + stub play with a /health grandchild) found a bug: with the trial still playing, the experiment shows `running`, and `nextExperiment` only picks approved/held, so the restarted runner said "nothing to run: survive is running" until the trial ended. RED: the adoption test now uses a really-live child pid.
 - [ ] Owned test viewer on a spare port with an isolated runs root and a stub `live.js` that plays for a few minutes and writes `run_end`. Restart that viewer mid-trial with `kill`, Ctrl-C-style group signal and `viewer-main`-style restart. Show the trial finishes, is recorded once and the next trial starts.
 - [ ] Report to the operator. Merge on approval. Restarting 8790 onto the new build waits for the operator's go-ahead (the first restart still kills an old-code trial if it is group-signalled; a pid-only SIGTERM plus adoption should carry it, but that is decided with the operator).
 

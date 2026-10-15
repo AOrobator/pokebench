@@ -172,6 +172,9 @@ it("registers battle details v2 as a default-off server readout treatment that n
  expect(featureInfo("battle-details-v2")).toMatchObject({group:"observation",needs:"expanded-menu-battle-information-v1",switchable:true});
  expect(featureInfo("battle-details-v2").description).toContain(" Off: ");
  expect(featureInfo("battle-details-v2").description).toMatch(/PROF\. BIRCH/);
+ // The RUN odds formula was dropped (runTries unread, u8 wrap): the card promises only the speed check.
+ expect(featureInfo("battle-details-v2").description).not.toMatch(/formula/);
+ expect(featureInfo("battle-details-v2").description).toContain("RUN also says whether escape is guaranteed by speed (the odds are not computed).");
  expect(playHarnessFeatures(ALL_ON,null).at(-2)).toBe("battle-details-v2");
  expect(playHarnessFeatures(off("battle-details-v2"),null)).not.toContain("battle-details-v2");
  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("");

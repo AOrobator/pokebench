@@ -235,3 +235,34 @@ it("lists a room's exits before its objects among the targets not tried yet (tru
  expect(listed.indexOf("Dynamic warp at 4,3")).toBeLessThan(listed.indexOf("MOVING_BOX at 0,0"));
  expect(listed).toContain("MOVING_BOX at 2,3");
 });
+
+// dialogue-auto-advance-v1: the paired result state is after the conversation, so the pages come from its event.
+const autoAdvance=(b:{observe:(e:RunEvent)=>void},seq:number,id:string,texts:string[])=>{
+ b.observe(ev({type:"tool_call",id,name:"press",args:{buttons:["A"]}},seq));
+ const pages=texts.map((text,i)=>{b.observe(st(seq+1+i,msg(AIDE,"page_wait",9)));return {state_seq:seq+1+i,map:"LAB",map_id:[1,4],position:{x:9,y:8},speaker:"SCIENTIST_1",speaker_source:"faced_target",text};});
+ const at=seq+1+texts.length;
+ b.observe(ev({type:"dialogue_auto_advance",tool_call_id:id,tool:"press",requested:["A"],sent:["A"],dropped:[],auto_presses:texts.length,pages,stop:"field_free",detail:"the conversation closed and field controls are free",duration_ms:5},at));
+ result(b,at+1,msg(null,null),id);
+ return at+3;
+};
+it("grades an auto-advanced conversation from its pages, and a repeat as a restarted conversation",()=>{
+ const b=new SupervisorBriefing(ALL_ON);
+ result(b,1,msg(null,null));
+ const next=autoAdvance(b,3,"a1",["The PROF isn't one for doing desk work.","He's the type of person who would rather go outside."]);
+ let text=b.text("cycle",20);
+ expect(text).toMatch(/A facing SCIENTIST_1 at 9,7 in LAB \(map 1\/4\) → dialogue shown \(2 pages, advanced automatically\)/);
+ expect(text).toContain(`- Recent dialogue you were shown, newest first: turn 1, LAB (map 1/4): "He's the type of person who would rather go outside." | turn 1, LAB (map 1/4): "The PROF isn't one for doing desk work."`);
+ autoAdvance(b,next,"a2",["The PROF isn't one for doing desk work.","He's the type of person who would rather go outside."]);
+ text=b.text("cycle",30);
+ expect(text).toMatch(/A facing SCIENTIST_1 at 9,7 in LAB \(map 1\/4\) → restarted a conversation already shown \(2 pages, advanced automatically\)/);
+ expect(text).not.toMatch(/A facing SCIENTIST_1[^;]*→ no change/);
+});
+it("lets the dialogue log and the instruction ledger cite auto-advanced pages",()=>{
+ const log=new DialogueLog(ALL_ON);const ledger=new InstructionLedger(ALL_ON);
+ const both={observe:(e:RunEvent)=>{log.observe(e);ledger.observe(e);}};
+ result(both,1,msg(null,null));
+ autoAdvance(both,3,"a1",["Go see your father at the GYM."]);
+ expect(log.entries().map(e=>[e.seq,e.room,e.text])).toEqual([[4,"LAB (map 1/4)","Go see your father at the GYM."]]);
+ expect(()=>{ledger.note("dad at home","dad at the GYM",[4]);}).not.toThrow();
+ expect(ledger.text()).toContain(`#4 turn 1 · LAB (map 1/4): "Go see your father at the GYM."`);
+});

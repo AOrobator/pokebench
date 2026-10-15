@@ -57,11 +57,12 @@ Owns what the model sees and can do, and whether the harness tells the truth.
 
 Owns whether a claim is supported by the numbers.
 
-- Readiness first, using the full patch-evaluation rule: at least 3 of the last 4 qualifying incumbent runs reach the activation milestone, where qualifying means recorded, non-probe, non-human, not aborted, same model lane, a build compatible with the incumbent, the planned common start and the planned budget. Checkpoint starts never count. Quote reached/total and run ids, and cross-check against the queue's verdict; say so when that verdict used the recent-basis fallback (the lane's latest runs in any configuration, because too few match the incumbent), since it is then weaker than it looks.
+- Readiness first, using the full patch-evaluation rule: at least 3 of the last 4 qualifying incumbent runs reach the activation milestone, where qualifying means recorded, non-probe, non-human, not aborted, same model lane, a build compatible with the incumbent, the planned common start and the planned budget. The queue's own check matches lane, boot start, limits and features but not the source commit, so check build compatibility yourself. Checkpoint starts never count. Quote reached/total and run ids, and cross-check against the queue's verdict; say so when that verdict used the recent-basis fallback (the lane's latest runs in any configuration, because too few match the incumbent), since it is then weaker than it looks.
 - Design: one effective difference per comparison, eight trials per arm per model, counterbalanced order, predeclared target and budgets, same build.
 - Reporting: completion counts beside times, DNFs and censored runs kept (PB2), missing splits not treated as zero, human, prior baseline and best valid run shown as references.
 - Overclaiming: survivor medians, a single best run, checkpoint progress presented as fresh-boot progress, a cohort compared against stale or incompatible controls.
 - What sample would actually settle the question, and whether it fits the queue.
+- Promotion: a screening result only nominates finalists. A finalist becomes the incumbent only by winning the predeclared finals from boot (the winner gate in the experiment-queue skill), so never read a screening KEEP as a new incumbent.
 
 ### Machine learning engineer
 

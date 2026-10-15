@@ -36,3 +36,5 @@ coverage gate is untouched.
 - COMMIT: `feat: pokebench-review skill with three personas and a validated frontier helper` (b5eab1b)
 - Claude round 3: LGTM with 4 LOW (boot-run label, mixed clocks in in-progress list, lane-scoped
   recent-basis wording, `just experiments` rebuilds). Fixed.
+- COMMIT: `fix: pokebench-review labels boot runs and lane-scoped readiness fallback correctly` (6292205)
+- Grok round 2: 5 findings (imports outside the error path, in-progress list not limited to boot or CLOCK_SET runs like the viewer, winner gate missing from promotion guidance, CLOCK_SET guard, queue readiness does not check source commit). Fixed.

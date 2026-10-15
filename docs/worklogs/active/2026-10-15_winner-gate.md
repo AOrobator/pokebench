@@ -63,3 +63,4 @@ Defaults picked where the spec forks (say so in the reply):
 - 2026-10-15: operator set finals to a fixed 45 minutes and up to three finalists; run count still open.
 - 2026-10-15: run count settled at 8; building. Worst case (three finalists) is 32 finals runs × 45 min ≈ 24 h.
 - M1 RED: experiment-gate.test.ts (ranking, nomination cap, finals order, finals preset/config, decision rule, promotion overlay, records).
+- M1 GREEN: experiment-gate.ts + experiments.ts finals config, promotion pin, cohortFinished/superseded states; agent tests 23/23 in the two files.

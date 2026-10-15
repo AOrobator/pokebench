@@ -37,6 +37,8 @@ export const ExperimentSchema=Type.Object({
  notes:Type.Optional(Type.String()),
  // Being measured by another cohort right now: shown as running, never launched again by the queue.
  externalCohort:Type.Optional(Type.String({minLength:1})),
+ // The winner gate's runs from boot (see experiment-gate.ts); absent fields take its defaults.
+ finals:Type.Optional(Type.Object({runsPerArm:Type.Optional(Type.Integer({minimum:4,maximum:8})),maxWallMs:Type.Optional(positive),target:Type.Optional(Type.Union([Type.String({minLength:1}),Type.Null()]))},closed)),
 },closed);
 // definitionSha256 is the hash of the definition as written (see definitionHash).
 export type Experiment=Omit<Static<typeof ExperimentSchema>,"incumbent"|"changedFeature"> & {readonly changedFeature:SwitchableFeature;readonly incumbent:PlayPresetV2;readonly definitionSha256:string};
@@ -70,6 +72,8 @@ export function parseExperiment(value:unknown):Experiment {
  const incumbent=parsePlayPreset(value.incumbent);
  if(incumbent.version!==2)throw new Error("Invalid experiment: incumbent must be a version 2 preset");
  for(const field of ["activationMilestone","primaryMilestone"] as const)if(!native(value[field]))throw new Error(`Invalid experiment: ${field} ${value[field]} is not a native milestone`);
+ const finalsTarget=value.finals?.target;
+ if(typeof finalsTarget==="string"&&!native(finalsTarget))throw new Error(`Invalid experiment: finals target ${finalsTarget} is not a native milestone`);
  if(value.criteria.completionTolerance>value.trialsPerArm)throw new Error("Invalid experiment: criteria completionTolerance exceeds trialsPerArm");
  const order=MILESTONES.filter(m=>m.kind!=="legacy").map(m=>m.name);
  if(order.indexOf(value.activationMilestone)>order.indexOf(value.primaryMilestone))throw new Error(`Invalid experiment: activationMilestone ${value.activationMilestone} comes after primaryMilestone ${value.primaryMilestone}, so the switch cannot change the graded result`);
@@ -129,7 +133,9 @@ export function readinessOf(experiment:Experiment,runs:readonly ReadinessRun[]):
  return {ready:latest.length===window&&reached>=minReached,basis,milestone,window,minReached,reached,considered:latest.map(r=>r.id)};
 }
 
-const LaunchSchema=Type.Object({type:Type.Literal("launch"),trial:Type.Integer({minimum:0}),arm:Type.Enum(["incumbent","candidate"] as const),run:Type.String({minLength:1}),at:Type.String(),model:Type.Optional(Type.String({minLength:1})),environment:Type.Optional(Type.String({pattern:"^[0-9a-f]{64}$"})),commit:Type.Optional(Type.String({pattern:"^[0-9a-f]{40}$"}))},closed);
+const LaunchSchema=Type.Object({type:Type.Literal("launch"),trial:Type.Integer({minimum:0}),arm:Type.Enum(["incumbent","candidate"] as const),run:Type.String({minLength:1}),at:Type.String(),model:Type.Optional(Type.String({minLength:1})),environment:Type.Optional(Type.String({pattern:"^[0-9a-f]{64}$"})),commit:Type.Optional(Type.String({pattern:"^[0-9a-f]{40}$"})),
+ // The winner-gate promotion this trial's incumbent included; later trials keep the first trial's.
+ promotion:Type.Optional(Type.Union([Type.String({minLength:1}),Type.Null()]))},closed);
 const OutcomeSchema=Type.Object({type:Type.Literal("outcome"),trial:Type.Integer({minimum:0}),arm:Type.Enum(["incumbent","candidate"] as const),run:Type.String({minLength:1}),at:Type.String(),reason:Type.String()},closed);
 const ErrorSchema=Type.Object({type:Type.Literal("launcher_error"),trial:Type.Integer({minimum:0}),arm:Type.Enum(["incumbent","candidate"] as const),run:Type.String({minLength:1}),at:Type.String(),message:Type.String()},closed);
 export const LedgerEntrySchema=Type.Union([LaunchSchema,OutcomeSchema,ErrorSchema]);
@@ -165,7 +171,9 @@ export function trialProgress(experiment:Experiment,ledger:readonly LedgerEntry[
 export type ExperimentState="discarded"|"pending"|"blocked"|"not-ready"|"draft"|"stale"|"approved"|"running"|"held"|"done";
 export interface ExperimentStatus {readonly state:ExperimentState;readonly reason:string;readonly trials:readonly TrialProgress[];readonly completed:number}
 // graded: result.json holds a comparison result (not only a grading problem).
-export interface StatusInput {readonly experiment:Experiment;readonly approval:Approval|null;readonly ledger:readonly LedgerEntry[];readonly runner:RunnerPosition|null;readonly readiness:Readiness;readonly graded?:boolean}
+// cohortFinished: its externalCohort finished, so the winner gate has taken it over.
+// superseded: a winner-gate promotion already decided its switch.
+export interface StatusInput {readonly experiment:Experiment;readonly approval:Approval|null;readonly ledger:readonly LedgerEntry[];readonly runner:RunnerPosition|null;readonly readiness:Readiness;readonly graded?:boolean;readonly cohortFinished?:boolean;readonly superseded?:string|null}
 
 export function readinessText(r:Readiness):string {
  return r.basis==="comparable"
@@ -173,16 +181,18 @@ export function readinessText(r:Readiness):string {
   : `${String(r.reached)} of the last ${String(r.considered.length)} runs of any configuration reached ${r.milestone} (needs ${String(r.minReached)} of ${String(r.window)}; too few runs match the incumbent)`;
 }
 
-export function deriveStatus({experiment,approval,ledger,runner,readiness,graded=false}:StatusInput):ExperimentStatus {
+export function deriveStatus({experiment,approval,ledger,runner,readiness,graded=false,cohortFinished=false,superseded=null}:StatusInput):ExperimentStatus {
  const trials=trialProgress(experiment,ledger,runner),completed=trials.filter(t=>t.state==="done").length,total=String(trials.length);
  const at=(state:ExperimentState,reason:string):ExperimentStatus=>({state,reason,trials,completed});
  if(experiment.discarded!==undefined)return at("discarded",experiment.discarded);
  if(experiment.blocked!==undefined)return at("blocked",experiment.blocked);
+ if(experiment.externalCohort!==undefined&&cohortFinished)return at("done",`measured in the ${experiment.externalCohort} cohort; its finalists go to the winner gate`);
  if(experiment.externalCohort!==undefined&&completed<trials.length)return at("running",`being measured in the ${experiment.externalCohort} cohort; the queue will not run it again`);
  if(completed===trials.length&&graded)return at("done",`all ${total} trials finished`);
  if(completed===trials.length&&(approval===null||approval.sha256!==definitionHash(experiment)))return at("stale","the definition changed after approval; it needs a new approval before its trials are graded");
  if(completed===trials.length)return at("held",`all ${total} trials finished; running the queue grades it`);
  if(runner?.experiment===experiment.id)return at("running",`trial ${String(runner.trial+1)} of ${total} running`);
+ if(superseded!==null&&ledger.length===0)return at("blocked",superseded);
  if(approval!==null&&approval.sha256!==definitionHash(experiment))return at("stale","the definition changed after approval; it needs a new approval");
  if(ledger.length>0&&approval===null)return at("stale","trials have started but there is no valid approval; it needs a new approval to resume");
  if(ledger.length>0)return at("held",`stopped after ${String(completed)} of ${total} trials; running the queue resumes it`);

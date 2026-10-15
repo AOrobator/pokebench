@@ -23,6 +23,6 @@ The governor already drops an errored reply before retrying (`play` slices it of
 - [x] RED: tests for the filter, the wiring and the registry (7 failing, 51 passing in harness, play-wiring, features)
 - [x] GREEN: switch registered, wired through `contextTools`, explainer (agent 1033 + viewer 563 tests pass; wiring removed once → play-wiring test red, restored)
 - [x] Pending experiment `experiments/fresh-retry.json` pinned to 7f1bcc2 (parses; candidate flips only fresh-retry-v1); readiness READY recorded
-- [ ] Gates: test, lint, coverage ≥90
-- [ ] Reviews: Claude CLI, Grok (Codex out of credits; no local models)
+- [x] Gates at 5f85f32: `pnpm -r lint` clean; `pnpm -r coverage` agent 1033 tests, 97.43/93.88/98 lines/branches/functions; viewer 564 tests, 94.83/90.17/93.6. Python untouched.
+- [x] Reviews on diff sha256 8620061… (base b17a67a, head 5f85f32): Claude CLI LGTM, cursor-grok-4.5-high LGTM. Both flagged PB10 evidence as written before the gate ran (now recorded above). Explainer now states the filter order. Deferred hardening: assert emit still records a text-only reply when ON (architecture verified by both reviewers in pinned pi-agent-core 0.73.1).
 - [ ] Operator approval before merging to main

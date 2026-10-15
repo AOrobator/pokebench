@@ -92,7 +92,7 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 
 <section>
 <h2>Exact rule</h2>
-<p>Before each model call, every assistant message with no tool call is removed from the messages sent. Tool results, the task, nudges and pinned memory or ledger messages stay. It runs before the navigation memory, ledger and hint contexts are added. This mirrors what the harness already does for a reply that errors at the server, which is dropped before the retry.</p>
+<p>Before each model call, every assistant message with no tool call is removed from the messages sent. Tool results, the task, nudges and pinned memory or ledger messages stay. It runs after the 20-turn window and any loop-guard warning are applied, and before the navigation memory, ledger and hint messages are added, so none of those are removed. This mirrors what the harness already does for a reply that errors at the server, which is dropped before the retry.</p>
 <pre>withoutTextOnlyReplies(messages) =
   messages.filter(m => m.role !== "assistant" || m.content.some(part => part.type === "toolCall"))</pre>
 <p>What does not change: the reply is recorded, it raises a <code>retry</code> event, and three in a row still end the run as <code>model_error</code>.</p>

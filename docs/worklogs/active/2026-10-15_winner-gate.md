@@ -59,10 +59,10 @@ Defaults picked where the spec forks (say so in the reply):
 
 ## Milestones
 - [x] M0 Spec settled by the operator: 8 runs each, 45 min, up to three finalists.
-- [ ] M1 Pure gate logic: nomination (queue result + cohort ranking), finals order, decision rule, incumbent overlay. RED then GREEN.
-- [ ] M2 Store and runner: gate states, finals execution, blocking, promotion with approval carry-over, superseded, switch off path. RED then GREEN.
-- [ ] M3 Viewer GATE card, skills, explainer.
-- [ ] M4 Coverage ≥90, lint, Claude + Grok review clean; ask to merge; `just viewer-main`.
+- [x] M1 Pure gate logic: nomination (queue result + cohort ranking), finals order, decision rule, incumbent overlay. RED then GREEN.
+- [x] M2 Store and runner: gate states, finals execution, blocking, promotion with approval carry-over, superseded, switch off path. RED then GREEN.
+- [x] M3 Viewer GATE card, skills, explainer.
+- [x] M4 Coverage ≥90, lint, Claude + Grok review clean; ask to merge; `just viewer-main`.
 
 ## Log
 - 2026-10-15: worklog drafted; holding implementation until the two open choices are settled.
@@ -76,3 +76,4 @@ Defaults picked where the spec forks (say so in the reply):
 - Finals presets turn milestone-stall-stop-v1 on for every arm; lint clean both packages. Coverage: agent 97.5/93.74/98.15 (1066 tests), viewer 95.08/90.94/93.97 (588 tests). Probe against the real runs dir (read only): full-map-navigation shows 'waiting for the factorial-2x2-think-fast cohort to finish (running)' and the queue is blocked; a nomination from the 14 finished 2x2 trials parses the frozen presets.
 - Explainer docs/explainers/winner-gate.html (README linked); experiment-queue and patch-evaluation skills describe the gate. Not a harness switch, so no Harness Config card; the queue page shows the gate card.
 - Review round 1 (Claude CLI, Grok 4.5): both BLOCKING on one shared finding, a discarded experiment stayed in the gate (finals could run; withdraw-then-discard never unblocked). Fixed: gateView ignores discarded experiments (red-checked). Also took the hardening note: an unreadable finals run scores as reaching nothing instead of being dropped. Viewer 590/590.
+- Review round 2: Claude CLI LGTM, Grok 4.5 LGTM (packets in runs/reviews/winner-gate/r2). Deferred hardening: discard check right before settling finals; missing pinned promotion id gives a null overlay; auto-unblock when a cohort's process died but queue.json says running (scope expansion). M4 done; waiting for the operator's merge approval.

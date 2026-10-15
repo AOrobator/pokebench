@@ -80,14 +80,14 @@ export function frontierCoverage(runs: readonly WorkbenchRun[], name: string): s
   const total = runs.length - (counts.get("excluded") ?? 0), reached = counts.get("reached") ?? 0;
   return `<span><b>${String(reached)} / ${String(total)}</b> reached${["not reached", "pending", "censored", "unsupported", "excluded"].flatMap(status => { const n = counts.get(status) ?? 0; return n === 0 ? [] : [` · ${String(n)} ${status}`]; }).join("")}</span>`;
 }
-function markerShape(shape: "human" | "best" | "overlay" | "resumed", x: number, y: number): string {
-  return shape === "best" ? `<path d="M ${String(x)} ${String(y - 6)} l 6 6 -6 6 -6 -6 Z"/>` : shape === "human" ? `<path d="M ${String(x)} ${String(y - 7)} l 2 5 5 0 -4 3 2 5 -5 -3 -5 3 2 -5 -4 -3 5 0 Z"/>` : shape === "resumed" ? `<circle cx="${String(x)}" cy="${String(y)}" r="5" fill="#fff"/>` : `<circle cx="${String(x)}" cy="${String(y)}" r="4"/>`;
+function markerShape(shape: "human" | "best" | "overlay" | "resumed", x: number, y: number, color = "currentColor"): string {
+  return shape === "best" ? `<path d="M ${String(x)} ${String(y - 6)} l 6 6 -6 6 -6 -6 Z"/>` : shape === "human" ? `<path d="M ${String(x)} ${String(y - 7)} l 2 5 5 0 -4 3 2 5 -5 -3 -5 3 2 -5 -4 -3 5 0 Z"/>` : shape === "resumed" ? `<circle cx="${String(x)}" cy="${String(y)}" r="5" fill="#fff" stroke="${color}" stroke-width="2"/>` : `<circle cx="${String(x)}" cy="${String(y)}" r="4"/>`;
 }
 function mark(run: WorkbenchRun, name: string, x: number, y: number, color: string, shape: "human" | "best" | "overlay" | "resumed"): string {
   const split = run.splits.find(s => s.name === name); if (split === undefined) return "";
   const sinceSave = run.config?.resume === "CLOCK_SET" ? " · resumed at Clock set, not from New game; minutes since the save loaded" : "";
   const title = `${run.id} · ${name} · active ${split.derived === true ? "≤ " : ""}${preciseTime(split.elapsedMs)} · ${split.derived === true ? (split.screenshotEvidence === undefined ? "recovered native state (first observation upper bound)" : "reviewed screenshot (observation upper bound)") : "native milestone"} #${String(split.seq)}${sinceSave}`;
-  const body = markerShape(shape, x, y);
+  const body = markerShape(shape, x, y, color);
   return `<g class="wb-mark" role="button" tabindex="0" data-run="${esc(run.id)}" data-split="${esc(name)}" aria-label="${esc(title)}" fill="${color}" stroke="${color}" stroke-width="${shape === "best" ? "2" : "1"}"><title>${esc(title)}</title>${body}</g>`;
 }
 function zoomEnd(agents: readonly WorkbenchRun[], human: WorkbenchRun | null): number {
@@ -108,7 +108,9 @@ export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRu
   const milestones = zoom ? FRONTIER_MILESTONES.slice(0, zoomEnd(series.filter(s => s.kind !== "human").map(s => s.run), refs.human) + 1) : FRONTIER_MILESTONES;
   const hidden = FRONTIER_MILESTONES.length - milestones.length, last = milestones[milestones.length - 1]?.label ?? "";
   const left = 43, right = width - 15, top = 20, bottom = 490, height = 635;
-  const values = series.flatMap(s => milestones.flatMap(m => s.run.splits.filter(p => p.name === m.id).map(p => p.elapsedMs / 60000)));
+  const clockAt = FRONTIER_MILESTONES.findIndex(m => m.id === "CLOCK_SET");
+  const onChart = (resumed: boolean, name: string): boolean => !resumed || FRONTIER_MILESTONES.findIndex(m => m.id === name) >= clockAt;
+  const values = series.flatMap(s => milestones.flatMap(m => onChart(s.resumed, m.id) ? s.run.splits.filter(p => p.name === m.id).map(p => p.elapsedMs / 60000) : []));
   const peak = Math.max(0, ...values) * 1.08, step = peak > 60 ? 20 : peak > 20 ? 5 : peak > 10 ? 2 : 1;
   const max = Math.max(1, Math.ceil(peak / step) * step);
   const x = (i: number): number => left + (right - left) * i / (milestones.length - 1);
@@ -116,8 +118,6 @@ export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRu
   let body = '<text x="0" y="10" class="wb-axis">Active minutes from that run\'s start · lower is faster</text>';
   for (let i = 0; i <= 4; i++) { const value = max * i / 4, at = y(value); body += `<line class="wb-gridline" x1="${String(left)}" x2="${String(right)}" y1="${String(at)}" y2="${String(at)}"/><text class="wb-axis" x="${String(left - 7)}" y="${String(at + 4)}" text-anchor="end">${String(Number(value.toFixed(1)))}</text>`; }
   const labelEvery = Math.ceil(milestones.length / Math.max(2, Math.floor((right - left) / 28)));
-  const clockAt = FRONTIER_MILESTONES.findIndex(m => m.id === "CLOCK_SET");
-  const onChart = (resumed: boolean, name: string): boolean => !resumed || FRONTIER_MILESTONES.findIndex(m => m.id === name) >= clockAt;
   const mustLabel = new Set<number>([milestones.length - 1]);
   for (const { run, resumed } of series) {
     let previous = false;
@@ -154,7 +154,7 @@ export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRu
   }
   const unavailable = `${refs.human === null ? '<p class="wb-notice">Human reference unavailable: recorded baseline is missing or invalid.</p>' : ""}${refs.best === null ? '<p class="wb-notice">Agent frontier unavailable: no eligible finished fresh-boot agent run.</p>' : ""}`;
   const resumeNotice = series.some(s => s.resumed) ? '<p class="wb-notice" data-resume-notice="CLOCK_SET">Dashed runs loaded a Clock set save. They did not start from New game. Minutes on a dashed line start when that save loaded, so a low line is not a faster fresh start.</p>' : "";
-  const models = Array.from(new Set(series.filter(s => s.kind === "overlay").map(s => modelName(s.run))));
+  const models = Array.from(new Set(series.filter(s => s.kind === "overlay" || s.kind === "resumed").map(s => modelName(s.run))));
   const references = series.filter(s => s.kind === "human" || s.kind === "best").map(s => `<span data-reference="${s.kind}"><svg aria-hidden="true" viewBox="0 0 40 18" fill="${s.color}" stroke="${s.color}" stroke-width="2"><line x1="0" x2="40" y1="9" y2="9"/>${markerShape(s.kind === "human" ? "human" : "best", 20, 9)}</svg>${s.kind === "human" ? "Human baseline" : `Agent frontier · ${esc(modelName(s.run))}`}</span>`).join("");
   const resumeKey = series.some(s => s.resumed) ? '<span data-resume="CLOCK_SET"><svg aria-hidden="true" viewBox="0 0 40 18" fill="none" stroke="#b36b00" stroke-width="2"><line x1="0" x2="40" y1="9" y2="9" stroke-dasharray="4 3"/><circle cx="20" cy="9" r="4" fill="#fff"/></svg>Not from zero · Clock set save</span>' : "";
   const currentKeys = current.map(run => `<span class="wb-current-key ${run.status === "live" ? "wb-live-key" : ""}" style="--wb-run-color:${colors.get(modelName(run)) ?? "#536d85"}" title="${esc(run.id)}"><i style="background:${colors.get(modelName(run)) ?? "#536d85"}"></i>${run.status === "live" ? "LIVE" : "PAUSED"}${clockSetResume(run) ? " · NOT FROM ZERO" : ""} · ${esc(modelName(run))} · ${esc(run.id.slice(-4))}${run.splits.some(s => milestones.some(m => m.id === s.name)) ? "" : " · waiting for first story checkpoint"}</span>`).join("");

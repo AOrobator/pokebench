@@ -26,5 +26,7 @@ Takeover note: the fix was found as idle uncommitted edits in the main checkout 
 - [x] Gates: viewer 577 / agent 1037 / Python 1868 pass; coverage viewer 97.72/90.59/93.78, agent 98.86/93.9/98.01, Python 96.72/91.93/100; lint (mypy needs the native mGBA binding, absent in this worktree's fresh venv)
 - [ ] Review: Claude CLI + Cursor Grok
   - Round 1 (packet runs/reviews/clock-resume-frontier): Claude CLI failed auth (OAuth session expired, exit 1). Grok BLOCKING: live resumed marks white-on-white; resumed-only overlays missing from model legend; y-scale counted off-chart pre-clock splits; summary medians mix New game and Clock set starts in mixed selections. All accepted.
-  - [x] RED for round-1 fixes (2 failing against HEAD source)
+  - [x] RED for round-1 fixes (2 failing against HEAD source) (c5bb8f5)
+  - [x] GREEN: hollow marks stroke the series color, legend lists resumed models, scale uses only plotted points, summary warns on mixed starts
 - [ ] Operator approval, then local merge to main
+

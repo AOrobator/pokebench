@@ -121,8 +121,11 @@ function noteChild(runsRoot: string, position: Readonly<Record<string, unknown>>
   }
 }
 
+// A queue trial still playing, maybe launched by a viewer that is gone, is picked up so the runner
+// can adopt it; a live runner keeps the lease, so a second viewer only waits. Running in an
+// external cohort is not the queue's to run.
 export function nextExperiment(queue: readonly ExperimentView[]): ExperimentView | null {
-  return queue.find((v) => v.state === "approved" || v.state === "held") ?? null;
+  return queue.find((v) => v.state === "approved" || v.state === "held" || (v.state === "running" && v.trials.some((t) => t.state === "running"))) ?? null;
 }
 
 export type Step = { readonly kind: "experiment"; readonly view: ExperimentView } | { readonly kind: "nominate"; readonly id: string } | { readonly kind: "finals"; readonly id: string } | { readonly kind: "blocked"; readonly reason: string };

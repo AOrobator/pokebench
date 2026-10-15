@@ -13,4 +13,5 @@ Operator request (via coordinator): every viewer page, the stats/comparisons pag
 - [x] Review: Claude + Grok.
   Round 1 (diff e0a0552..d075b8f, sha256 99a0b2c666dea0ee89f0c10bf924044b5d896d5c62b35e4a34874098edfa9694): Claude CLI LGTM. Grok (cursor-grok-4.5-high) BLOCKING: PB13 scored PASS while the browser box was unchecked. Fixed: browser check recorded above; test uses fileURLToPath (Claude hardening note): `test(viewer): record the favicon browser check; resolve the static dir with fileURLToPath` (2c8b1d1).
   Round 2 (fix delta d075b8f..2c8b1d1, sha256 70e1e1a6b80d21bbf70b07b8cf3ab99edb956fefff7de6c5360fd42631be48b8): Claude CLI LGTM, Grok LGTM.
-- [ ] Operator approval, local merge into main. 8790 not restarted.
+- [x] Rebased onto main d9f0065 (finals trial label), clean. After rebase: viewer vitest 649 passed, coverage 95.36/91.18/94.36, tsc + eslint clean.
+- [x] Operator approval (2026-10-15 16:20Z: "it looks good, u can merge after review, don't restart the viewer"), local merge into main. 8790 not restarted; it serves the favicon only after its next restart, which only the operator calls.

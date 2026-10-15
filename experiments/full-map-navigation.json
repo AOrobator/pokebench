@@ -75,5 +75,6 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "The whole-map readout starts in the moving truck, right after naming."
+ "notes": "The whole-map readout starts in the moving truck, right after naming.",
+ "externalCohort": "factorial-2x2-think-fast"
 }

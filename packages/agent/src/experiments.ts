@@ -35,6 +35,8 @@ export const ExperimentSchema=Type.Object({
  // Set when the operator drops the experiment; it then leaves both the queue and the pending list.
  discarded:Type.Optional(Type.String({minLength:1})),
  notes:Type.Optional(Type.String()),
+ // Being measured by another cohort right now: shown as running, never launched again by the queue.
+ externalCohort:Type.Optional(Type.String({minLength:1})),
 },closed);
 export type Experiment=Omit<Static<typeof ExperimentSchema>,"incumbent"|"changedFeature"> & {readonly changedFeature:SwitchableFeature;readonly incumbent:PlayPresetV2};
 export type Arm="incumbent"|"candidate";
@@ -74,7 +76,7 @@ function canonical(value:unknown):string {
 }
 // Reordering the queue or editing notes keeps an approval valid; anything else invalidates it.
 export function definitionHash(experiment:Experiment):string {
- return createHash("sha256").update(canonical({...experiment,queuePosition:undefined,notes:undefined})).digest("hex");
+ return createHash("sha256").update(canonical({...experiment,queuePosition:undefined,notes:undefined,externalCohort:undefined})).digest("hex");
 }
 
 export interface ReadinessRun {readonly id:string;readonly model:string;readonly start:"boot"|"save_state";readonly maxTurns:number|null;readonly maxWallMs:number|null;readonly features:FeatureSet;readonly reached:readonly string[]}
@@ -146,6 +148,7 @@ export function deriveStatus({experiment,approval,ledger,runner,readiness,graded
  const at=(state:ExperimentState,reason:string):ExperimentStatus=>({state,reason,trials,completed});
  if(experiment.discarded!==undefined)return at("discarded",experiment.discarded);
  if(experiment.blocked!==undefined)return at("blocked",experiment.blocked);
+ if(experiment.externalCohort!==undefined&&completed<trials.length)return at("running",`being measured in the ${experiment.externalCohort} cohort; the queue will not run it again`);
  if(completed===trials.length&&graded)return at("done",`all ${total} trials finished`);
  if(completed===trials.length&&(approval===null||approval.sha256!==definitionHash(experiment)))return at("stale","the definition changed after approval; it needs a new approval before its trials are graded");
  if(completed===trials.length)return at("held",`all ${total} trials finished; running the queue grades it`);

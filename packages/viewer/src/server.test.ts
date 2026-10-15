@@ -264,7 +264,7 @@ it("serves only allowlisted tracked feature explainers with existing host and me
 
 it("serves the rival-push explainers through the existing allowlist",async()=>{
  const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
- for(const id of ["game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1"])writeFileSync(join(docs,`${id}.html`),`<h1>${id}</h1>`);
+ for(const id of ["game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1","fresh-retry-v1"])writeFileSync(join(docs,`${id}.html`),`<h1>${id}</h1>`);
  const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
- for(const id of ["game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1"]){const reply=await get(viewer,`/explainers/${id}.html`);expect(reply.status).toBe(200);expect(reply.body.toString()).toContain(id);}
+ for(const id of ["game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1","fresh-retry-v1"]){const reply=await get(viewer,`/explainers/${id}.html`);expect(reply.status).toBe(200);expect(reply.body.toString()).toContain(id);}
 });

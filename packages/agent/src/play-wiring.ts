@@ -1,5 +1,6 @@
 import type {AgentMessage,AgentTool} from "@mariozechner/pi-agent-core";
 import {dialogueLog} from "./dialogue-log.js";
+import {withoutTextOnlyReplies} from "./harness.js";
 import type {FeatureSet} from "./features.js";
 import {instructionLedger} from "./instruction-ledger.js";
 import {nextMilestoneHint} from "./milestone-hint.js";
@@ -22,7 +23,8 @@ export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Tr
  if(ledger!==null)tools.push(ledger.tool);
  const hint=nextMilestoneHint(features,recorder,ledger?.transformContext??memory?.transformContext??base);
  if(hint!==null)tools.push(hint.tool);
- return {tools,transformContext:hint?.transformContext??ledger?.transformContext??memory?.transformContext??base};
+ const chain=hint?.transformContext??ledger?.transformContext??memory?.transformContext??base;
+ return {tools,transformContext:features["fresh-retry-v1"]?messages=>chain(withoutTextOnlyReplies(messages)):chain};
 }
 
 // The loop guard's supervisor briefing, when that switch is on.

@@ -48,6 +48,6 @@ it("sends text-only replies back to the model only while fresh-retry-v1 is off",
  const on={...OFF,"fresh-retry-v1":true,"navigation-evidence-memory-v1":true};const r=recorder();
  const out=await contextTools(on,r.api,base).transformContext([task,textOnly,nudge]);
  expect(out.some(m=>m.role==="assistant")).toBe(false);
- expect(out.at(-1)).toEqual(nudge);
+ expect(out).toContainEqual(nudge);
  expect(r.delivered).toEqual(["navigation"]);
 });

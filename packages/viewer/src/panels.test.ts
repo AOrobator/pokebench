@@ -630,3 +630,7 @@ it("shows milestone hints as messages sent to the model and documents get_next_m
  expect(doc.querySelector('[data-tool="get_next_milestone"]')?.textContent).toContain("HINT ARM");
  expect(FEATURE_EXPLAINERS["next-milestone-hint-v1"]).toBe("next-milestone-hint-v1.html");
 });
+
+it("links the fresh retry card to its explainer",()=>{
+ expect(FEATURE_EXPLAINERS["fresh-retry-v1"]).toBe("fresh-retry-v1.html");
+});

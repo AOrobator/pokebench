@@ -21,7 +21,8 @@ The governor already drops an errored reply before retrying (`play` slices it of
 ## Milestone
 
 - [x] RED: tests for the filter, the wiring and the registry (7 failing, 51 passing in harness, play-wiring, features)
-- [ ] GREEN: switch registered, wired through `contextTools`, explainer, pending experiment
+- [x] GREEN: switch registered, wired through `contextTools`, explainer (agent 1033 + viewer 563 tests pass; wiring removed once → play-wiring test red, restored)
+- [ ] Pending experiment entry pinned to the GREEN commit
 - [ ] Gates: test, lint, coverage ≥90
 - [ ] Reviews: Claude CLI, Grok (Codex out of credits; no local models)
 - [ ] Operator approval before merging to main

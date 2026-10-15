@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fresh Retry</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:740px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navb{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.arr.g{stroke:var(--game)} .arr.p{stroke:var(--prior);stroke-dasharray:5 4}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tag{display:inline-block;font:500 .72rem var(--mono);border-radius:99px;padding:1px 8px;border:1px solid var(--rule);color:var(--soft)}
+</style>
+</head>
+<body>
+<main>
+<div>
+<div class="eyebrow">Harness switch · guard · <code>fresh-retry-v1</code> · off by default</div>
+<h1>Fresh retry</h1>
+</div>
+<p class="lede">When the model answers without calling a tool, the harness nudges it and asks again. With this switch on, the second ask does not include the failed answer, so the model gets a clean try instead of a copy of what just failed.</p>
+
+<section>
+<h2>Why it exists</h2>
+<p>Two of the first six trials in the Think Fast 2×2 ended early as <code>model_error</code>. Both were three replies in a row with no tool call. No server error, timeout, malformed call or context overflow was involved. In both, the model was stuck in the game, thought at length, and stopped without acting. Each retry then repeated the failed reply, sometimes word for word.</p>
+<table>
+<tr><th>Run</th><th>Turns</th><th>What the three failed replies were</th></tr>
+<tr><td><code>…19-30-06_26e0</code></td><td>268–270</td><td>Stuck at Littleroot's north exit by the twin. A 4,000-token reply, then two replies whose thinking is cut mid-sentence and reuses passages from the first.</td></tr>
+<tr><td><code>…19-59-09_0c89</code></td><td>217–219</td><td>Stuck on May's 2F. Thinking degenerates into "(8,N) is clear" lines. Turns 217 and 218 are byte-identical 1,178-token replies.</td></tr>
+<tr><td><code>…15-23-36_965d</code></td><td>219–221</td><td>Stuck in Birch's lab; long thinking cut mid-sentence, then prose only.</td></tr>
+<tr><td><code>…09-50-13_8e5d</code></td><td>289–291</td><td>Naming screen; one 221-token reply repeated 14 times over the run.</td></tr>
+</table>
+<p>Across Think Fast runs since 10-13: 64 text-only replies in 25,085 turns, and 4 runs ended this way, all on 10-14. Sampling is not greedy (first turns differ run to run), so identical replies are copies of the reply left in the context.</p>
+</section>
+
+<section>
+<h2>What the retry sees</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 300" width="700" role="img" aria-label="Context sent on the retry, off versus on">
+<text x="20" y="22" class="t">OFF (today)</text>
+<text x="370" y="22" class="t">ON</text>
+<rect x="20" y="36" width="310" height="34" rx="6" class="box"/><text x="32" y="58">… last tool result (screen + readout)</text>
+<rect x="20" y="80" width="310" height="62" rx="6" class="prior hot"/><text x="32" y="102">failed reply: long reasoning,</text><text x="32" y="120">no tool call</text><text x="32" y="136" class="s">sent back with its thinking (preserve_thinking)</text>
+<rect x="20" y="152" width="310" height="34" rx="6" class="navb"/><text x="32" y="174">nudge: "Keep playing: call observe or press…"</text>
+<path d="M175 196 v26" class="arr p"/><text x="185" y="214" class="s">model continues its own reply</text>
+<rect x="20" y="230" width="310" height="44" rx="6" class="prior"/><text x="32" y="250">often the same reply again</text><text x="32" y="266" class="s">0c89: 217 and 218 identical</text>
+<rect x="370" y="36" width="310" height="34" rx="6" class="box"/><text x="382" y="58">… last tool result (screen + readout)</text>
+<rect x="370" y="80" width="310" height="62" rx="6" fill="none" stroke="var(--rule)" stroke-dasharray="5 4"/><text x="382" y="106" class="s">failed reply left out of the context</text><text x="382" y="124" class="s">(still recorded in events.jsonl)</text>
+<rect x="370" y="152" width="310" height="34" rx="6" class="navb"/><text x="382" y="174">nudge: "Keep playing: call observe or press…"</text>
+<path d="M525 196 v26" class="arr g"/><text x="535" y="214" class="s">new sample from the same state</text>
+<rect x="370" y="230" width="310" height="44" rx="6" class="game"/><text x="382" y="250">independent second try</text><text x="382" y="266" class="s">same nudge, same failure limit</text>
+</svg>
+</div>
+<figcaption>The only difference is the red box. Everything else, including the nudge and the three-strike limit, is unchanged.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>Exact rule</h2>
+<p>Before each model call, every assistant message with no tool call is removed from the messages sent. Tool results, the task, nudges and pinned memory or ledger messages stay. It runs before the navigation memory, ledger and hint contexts are added. This mirrors what the harness already does for a reply that errors at the server, which is dropped before the retry.</p>
+<pre>withoutTextOnlyReplies(messages) =
+  messages.filter(m => m.role !== "assistant" || m.content.some(part => part.type === "toolCall"))</pre>
+<p>What does not change: the reply is recorded, it raises a <code>retry</code> event, and three in a row still end the run as <code>model_error</code>.</p>
+</section>
+
+<section>
+<h2>Wiring</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 110" width="700" role="img" aria-label="Switch wiring">
+<rect x="10" y="30" width="140" height="44" rx="6" class="box"/><text x="22" y="50">preset / switchboard</text><text x="22" y="66" class="s">fresh-retry-v1</text>
+<path d="M150 52 h30" class="arr"/>
+<rect x="180" y="30" width="150" height="44" rx="6" class="box"/><text x="192" y="50">FeatureSet</text><text x="192" y="66" class="s">live.ts play run</text>
+<path d="M330 52 h30" class="arr"/>
+<rect x="360" y="30" width="170" height="44" rx="6" class="navb hot"/><text x="372" y="50">contextTools()</text><text x="372" y="66" class="s">play-wiring.ts filter</text>
+<path d="M530 52 h30" class="arr"/>
+<rect x="560" y="30" width="130" height="44" rx="6" class="box"/><text x="572" y="50">piLoop context</text><text x="572" y="66" class="s">sent to the model</text>
+</svg>
+</div>
+<figcaption>The highlighted box is the one place behavior changes. State-only decision mode does not use this path.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>Not this switch's job</h2>
+<p>The root of most failures is the model being stuck and over-thinking. The think-fast server also cuts thinking at 1,024 tokens (<code>--reasoning-budget 1024</code> in local-inference-stack's launcher), which leaves replies mid-sentence. That setting belongs to the inference lane and is unchanged here.</p>
+</section>
+
+<section>
+<h2>Status</h2>
+<p><span class="tag">branch claude/fresh-retry</span> <span class="tag">default OFF</span> <span class="tag">pending experiment</span></p>
+<p>Unit and wiring tests pass. No measured runs yet; whether it reduces <code>model_error</code> endings is for the experiment queue.</p>
+</section>
+</main>
+</body>
+</html>

@@ -144,6 +144,11 @@ class StoryState:
         return asdict(self)
 
     def text(self) -> str:
+        if all(value is None for value in asdict(self).values()):
+            return (
+                "Story: unavailable while the game state reloads; "
+                "progress already confirmed still stands"
+            )
         completed = []
         if self.name_confirmed is True:
             completed.append("player name confirmed")

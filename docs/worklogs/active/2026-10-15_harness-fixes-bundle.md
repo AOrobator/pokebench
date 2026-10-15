@@ -59,11 +59,11 @@ Local-only harness. No new network surface, subprocesses keep argv lists, and no
 
 **M1 — Harness bug fixes (no switch, operator exception)**
 - [x] RED tests: supervisor story steps (staged values); B/page grading; action-only tried targets plus reset on story change; no-truncation property across supervisor/memory/ledger/dialogue-log/objectives; hint/supervisor subscription order from a CLOCK_SET save; story line during map load; navigate_to description text.
-- [ ] COMMIT (RED)
-- [ ] Implement
-- [ ] Gates: `just test`, `just lint`, `just build`, `just coverage` (≥90 both stacks)
-- [ ] COMMIT (GREEN)
-- [ ] Observability check: replay `0c40` T520–540 and `504f` T252 states through the fixed supervisor; record the new note text
+- [x] COMMIT (RED) `test: supervisor matches the readout story, …` (e14d8ec)
+- [x] Implement
+- [x] Gates: `just test`, `just lint`, `just build`, `just coverage` (≥90 both stacks)
+- [x] COMMIT (GREEN)
+- [x] Observability check: replay `0c40` T520–540 and `504f` T252 states through the fixed supervisor; record the new note text
 - [ ] Multi-model review loop until clean
 
 **M2 — `battle-details-v2` (needs expanded-menu-battle-information-v1)**
@@ -116,3 +116,9 @@ Cohort report: furthest milestones first; reach counts and survivor medians per 
 - Baseline: agent vitest 1083 passed; pytest 1877 passed (worktree, submodule initialised from local checkout).
 - 2026-10-15 16:50 UTC: The operator decided the finals run now to keep the GPU busy; when fixes + bundle are ready, deploy and stop the finals (one bundle, all switches). Coordinate with the "Resume the finals" thread before merging (build pin).
 - M1 RED: packages/agent/src/harness-fixes.test.ts 8 failing (story steps, map-load story, B grading/restart, action-only tried + reset, no truncation supervisor/ledger/log/memory, milestone replay, navigate_to rules); env test_story 1 failing (all-unavailable story line).
+- M1 GREEN: supervisor reads the readout's own Story line (keeps last on reload; story change clears tried); outcomes: dialogue advanced / closed / restarted a conversation already shown, attempts keyed by outcome; tried = navigate_to target or A facing only (no stood-on tiles); no clip anywhere in supervisor, instruction ledger, dialogue log (recall returns all requested pages), navigation memory (whole entries; all targets), objectives evidence; recorder.subscribe(observer, replayMilestones) used by hint + both supervisors; story.py all-None -> "Story: unavailable while the game state reloads; progress already confirmed still stands"; NAVIGATE_RULES in both navigate_to tool descriptions and system prompt lines.
+- Found during M1 (fixed, test added): context-window collapse summary matched only the vendor "Current Location:" line, so every collapsed PokeBench result read just "pressed A"; now matches "Location:" too and no longer slices the first line.
+- Updated old tests whose expectations encoded truncation/bounds (supervisor ≤2500, ledger ≤4000, dialogue-log ≤6000 + "truncated", memory ≤6500 + "first 8 of") and stood-on tried tiles.
+- Wiring check: removing replay from loopSupervisor turned "wires the hint and both supervisors…" red; restored green.
+- Gates: agent 1093 (97.55/93.95/98.12), viewer 649 (95.36/91.18/94.36), pytest 1878 (lines 96.73 / branches 91.94 / functions 100), lint clean (worktree venv needed the built mgba binding copied from the main checkout), build ok.
+- Observability: replayed 0c40 up to s8000 through the fixed supervisor: story line now includes rival met; tried shows "press B ×45 → dialogue advanced", "A facing SCIENTIST_1 ×7 → restarted a conversation already shown"; untried now lists the lab exit warps (6,12)/(7,12) first, which the old stood-on marking hid.

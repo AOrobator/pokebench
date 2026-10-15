@@ -11,6 +11,8 @@ import {InstructionLedger} from "./instruction-ledger.js";
 import {SupervisorBriefing} from "./loop-supervisor.js";
 import {NavigationMemory} from "./navigation-memory.js";
 import {playSystemPrompt} from "./play-config.js";
+import {loopSupervisor,textOnlySupervisor} from "./play-wiring.js";
+import {nextMilestoneHint} from "./milestone-hint.js";
 import {RunRecorder} from "./recorder.js";
 import {RunLog} from "./run-log.js";
 
@@ -50,7 +52,7 @@ it("grades reading a conversation with B as progress, and a repeat A as a restar
  const text=b.text("cycle",20);
  expect(text).toMatch(/press B ×2 in LAB \(map 1\/4\) → dialogue advanced/);
  expect(text).toMatch(/press B in LAB \(map 1\/4\) → dialogue closed/);
- expect(text).toMatch(/A facing SCIENTIST_1 at 9,7 ×2 in LAB \(map 1\/4\) → restarted a conversation already shown/);
+ expect(text).toMatch(/A facing SCIENTIST_1 at 9,7 in LAB \(map 1\/4\) → restarted a conversation already shown/);
  expect(text).not.toMatch(/press B[^;]*→ no change/);
 });
 
@@ -60,6 +62,7 @@ it("counts only actions as tried: standing on a door mat leaves that exit untrie
  const untried=(t:string)=>t.slice(t.indexOf("not tried yet"));
  expect(untried(b.text("cycle",3))).toContain("warp at 8,8");
  b.observe(ev({type:"tool_call",id:"n",name:"navigate_to",args:{x:8,y:8,map_id:[1,4]}},4));result(b,5,{position:{x:8,y:8}},"n");
+ result(b,6,{position:{x:9,y:8},facing:"up"});
  press(b,7,["A"],{position:{x:9,y:8},facing:"up"},"a");
  expect(untried(b.text("cycle",9))).not.toContain("8,8");
  expect(untried(b.text("cycle",9))).not.toContain("9,7");
@@ -107,8 +110,10 @@ it("replays milestones present at the start to observers that subscribe later",a
  const recorder=new RunRecorder({log,frames:new FrameStore(runsRoot,1_000_000,()=>undefined),milestones:{poll:()=>Promise.resolve(polls.shift()??[])},gameState:{read:()=>Promise.resolve({screen:"overworld" as const,started:true,name:"AAA",location:"LITTLEROOT TOWN",map_id:[0,9] as [number,number],position:{x:5,y:8},facing:"down" as const,in_battle:false,party:[],money:0,badges:[],play_time_s:12})}});
  await recorder.start(RUN_START_META);
  const seen:string[]=[];
- recorder.subscribe(e=>{if(e.type==="milestone")seen.push(`${e.name}:${e.origin}`);});
+ recorder.subscribe(e=>{if(e.type==="milestone")seen.push(`${e.name}:${e.origin ?? "none"}`);},true);
  expect(seen).toEqual(["CLOCK_SET:present_at_start"]);
+ const plain:string[]=[];recorder.subscribe(e=>{plain.push(e.type);});
+ expect(plain).toEqual([]);
 });
 
 it("tells the model how navigate_to targets work, in the prompt and the tool",()=>{
@@ -118,4 +123,11 @@ it("tells the model how navigate_to targets work, in the prompt and the tool",()
   expect(prompt).toContain("cannot walk while a message is open");
   expect(prompt).toContain("target the warp's own coordinates");
  }
+});
+
+it("wires the hint and both supervisors to receive start milestones",()=>{
+ const replays:boolean[]=[];
+ const recorder={subscribe:(_fn:(e:RunEvent)=>void,replay?:boolean)=>{replays.push(replay===true);},textOnlySupervisor:()=>undefined,recordMilestoneHint:()=>undefined};
+ loopSupervisor(ALL_ON,recorder);textOnlySupervisor(ALL_ON,recorder);nextMilestoneHint(ALL_ON,recorder,m=>Promise.resolve(m));
+ expect(replays).toEqual([true,true,true]);
 });

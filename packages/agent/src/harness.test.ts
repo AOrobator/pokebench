@@ -128,6 +128,12 @@ describe("slideWindow", () => {
     ]);
   });
 
+  it("summarizes PokeBench readouts, whose location line is Location:, not only vendor readouts", () => {
+    const ours = toolResult(1, false, "pressed A\nPress result: moved (5,9) -> (5,8)\n\nScreen: overworld\nLocation: LITTLEROOT TOWN\nPosition: X=5, Y=8, facing up");
+    const out = slideWindow([TASK, reply(), ours, ...turnsOf(6)], window);
+    expect(resultTexts(out)[0]).toBe(`pressed A · LITTLEROOT TOWN (X=5, Y=8, facing up) ${OMITTED_FRAME}`);
+  });
+
   it("leaves the start of the prompt unchanged between chunk boundaries (prompt cache)", () => {
     const at = (n: number) => slideWindow([TASK, ...turnsOf(n)], window);
     for (const n of [7, 8]) {

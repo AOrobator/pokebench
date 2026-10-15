@@ -120,9 +120,12 @@ export class RunRecorder {
   }
 
   private readonly observers: ((event: RunEvent) => void)[] = [];
-  subscribe(observer: (event: RunEvent) => void): void { this.observers.push(observer); }
+  private readonly milestoneEvents: RunEvent[] = [];
+  // Late subscribers still learn the milestones already recorded, such as those present at a checkpoint start.
+  subscribe(observer: (event: RunEvent) => void, replayMilestones = false): void { this.observers.push(observer); if (replayMilestones) for (const event of this.milestoneEvents) observer(event); }
   private append(body: EventBody): RunEvent {
     const event = this.log.append(body);
+    if (event.type === "milestone") this.milestoneEvents.push(event);
     for (const observer of this.observers) observer(event);
     return event;
   }

@@ -73,7 +73,7 @@ const DOOR={name:"DOOR",kind:"warp",x:5,y:1,elevation:0,activation:"walk into it
 const MOM={name:"MOM",kind:"object",x:2,y:6,elevation:0,activation:"press_a",availability:"live",facing:null,local_id:1,destination:null};
 const TV={name:"TV",kind:"bg",x:4,y:1,elevation:0,activation:"press_a",availability:"observed",facing:null,local_id:null,destination:null};
 const st=(seq:number,extra:Record<string,unknown>={})=>ev({type:"state",...IN_GAME,started:true,screen:"overworld",location:"HOUSE 1F",map_id:[1,0],position:{x:3,y:3},facing:"up",field_controls_locked:false,interaction_targets:[DOOR,MOM,TV],world_context:{objects:[],triggers:[],dialogue:null},...extra},seq);
-const delivered=(b:SupervisorBriefing,seq:number,extra:Record<string,unknown>={},id="t")=>{b.observe(st(seq,extra));b.observe(ev({type:"tool_result",id,name:"press",is_error:false,duration_ms:1,text:"ok",frames:[],state_seq:seq},seq+1));};
+const delivered=(b:SupervisorBriefing,seq:number,extra:Record<string,unknown>={},id="t",text="ok")=>{b.observe(st(seq,extra));b.observe(ev({type:"tool_result",id,name:"press",is_error:false,duration_ms:1,text,frames:[],state_seq:seq},seq+1));};
 
 it("briefs where the agent is, what it was told, what it tried and what it has not tried",()=>{
  const b=new SupervisorBriefing(ALL_ON);
@@ -96,7 +96,7 @@ it("briefs where the agent is, what it was told, what it tried and what it has n
  expect(text).not.toMatch(/go to|next door|rival|lab/i);
 });
 
-it("stays honest when the readout lacks positions, targets or dialogue, and stays bounded",()=>{
+it("stays honest when the readout lacks positions, targets or dialogue, and never cuts what it lists",()=>{
  const bare=new SupervisorBriefing({...ALL_ON,"world-targets-v1":false,"live-player-position-v1":false,"dialogue-log-v1":false});
  delivered(bare,1,{world_context:{objects:[],triggers:[],dialogue:"Hello."}});
  const text=bare.text("ineffective",3);
@@ -107,7 +107,8 @@ it("stays honest when the readout lacks positions, targets or dialogue, and stay
  const many=Array.from({length:60},(_,i)=>({...MOM,name:`NPC${String(i)}`,x:i,y:i}));
  delivered(big,1,{interaction_targets:many,world_context:{objects:[],triggers:[],dialogue:"x".repeat(5000)}});
  for(let i=0;i<40;i++){big.observe(ev({type:"tool_call",id:`c${String(i)}`,name:"navigate_to",args:{x:i,y:0,map_id:[1,0]}},10+i*3));delivered(big,11+i*3,{interaction_targets:many},`c${String(i)}`);}
- expect(big.text("cycle",200).length).toBeLessThanOrEqual(2500);
+ const whole=big.text("cycle",200);
+ expect(whole).toContain("x".repeat(5000));expect(whole).toContain("NPC59 at 59,59");expect(whole).not.toContain("truncated");
 });
 
 it("registers the switch as a guard that needs the loop guard, with a prompt line",()=>{
@@ -132,7 +133,8 @@ it("labels odd calls and outcomes truthfully",()=>{
  const text=b.text("ineffective",40);
  expect(text).toContain("press B in HOUSE 1F (map 1/0) → result unverified");
  expect(text).toContain("navigate_to (invalid target)");
- expect(text).toContain("A facing tile at 3,2 ×2 in HOUSE 1F (map 1/0) → dialogue changed");
+ expect(text).toContain("A facing tile at 3,2 in HOUSE 1F (map 1/0) → dialogue changed");
+ expect(text).toContain("A facing tile at 3,2 in HOUSE 1F (map 1/0) → dialogue closed");
  expect(text).toContain("press A in HOUSE 1F (map 1/0) → no change");
  expect(text).toContain("press UP,UP in HOUSE 1F (map 1/0) → entered TOWN (map 0/9)");
  expect(text).toContain("Where you are: TOWN (map 0/9) at 3,3 facing up");
@@ -142,6 +144,8 @@ it("labels odd calls and outcomes truthfully",()=>{
  expect(unnamed.text("cycle",5)).toContain("A facing bg at 4,1");
  expect(unnamed.text("cycle",5)).toContain("warp at 5,1");
  const done=new SupervisorBriefing(ALL_ON);delivered(done,1,{interaction_targets:[{...MOM,x:3,y:3}]});
+ expect(done.text("cycle",2)).toContain("MOM at 3,3");
+ done.observe(ev({type:"tool_call",id:"go",name:"navigate_to",args:{x:3,y:3,map_id:[1,0]}},3));delivered(done,4,{interaction_targets:[{...MOM,x:3,y:3}]},"go");
  expect(done.text("cycle",2)).toContain("every listed target here has been tried");
  const quiet=new SupervisorBriefing({...ALL_ON,"active-field-message-buffer-v1":false});delivered(quiet,1);
  expect(quiet.text("cycle",2)).toContain("dialogue text is off");
@@ -185,7 +189,7 @@ it("gives only deterministic facts: recent dialogue, last story progress, named 
  b.observe(ev({type:"milestone",name:"CLOCK_SET",server_timestamp:1,kind:"story",origin:"present_at_start",evidence:[1]},2,0));
  b.observe(ev({type:"milestone",name:"MOM_RIVAL_INSTRUCTION",server_timestamp:1,kind:"story",origin:"observed",evidence:[1]},3,5));
  delivered(b,4,{world_context:{objects:[],triggers:[],dialogue:"First."}});
- delivered(b,6,{world_context:{objects:[],triggers:[],dialogue:"Second."},story:{name_confirmed:true,intro_stage:null,rival_stage:null,birch_lab_stage:null,petalburg_gym_stage:null,woods_stage:null,clock_set:true,rival_battle_won:null,pokedex_received:null,running_shoes_received:null,starter_tutorial_complete:null,rustboro_gym_complete:null,stone_badge:null,rock_tomb_received:null}});
+ delivered(b,6,{world_context:{objects:[],triggers:[],dialogue:"Second."},story:{name_confirmed:true,intro_stage:null,rival_stage:null,birch_lab_stage:null,petalburg_gym_stage:null,woods_stage:null,clock_set:true,rival_battle_won:null,pokedex_received:null,running_shoes_received:null,starter_tutorial_complete:null,rustboro_gym_complete:null,stone_badge:null,rock_tomb_received:null}},"t","ok\nStory: player name confirmed; clock set");
  b.observe(ev({type:"turn_start",context:{messages:1,images:0,est_tokens:1}},8,12));
  const text=b.text("cycle",9);
  expect(text).not.toContain("Professor Birch");

@@ -7,8 +7,7 @@ import type {RunRecorder} from "./recorder.js";
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
 export interface DialogueEntry {readonly seq:number;readonly turn:number;readonly key:string;readonly room:string;readonly position:string|null;readonly facing:string|null;readonly text:string}
 
-const REPLY_LIMIT=6000,ENTRY_LIMIT=650,DEFAULT_LAST=8;
-const clip=(text:string,max:number)=>text.length<=max?text:`${text.slice(0,max-14)}… [truncated]`;
+const DEFAULT_LAST=8;
 type Place={location:string|null;map_id:readonly number[]|null};
 // Location labels can repeat or be missing across maps, so identity always includes the map id.
 export function roomKey(state:Place):string {return `${state.location??"unknown room"}|${state.map_id?.join("/")??"none"}`;}
@@ -59,15 +58,8 @@ export class DialogueLog {
   if(matches.length===0)return `No recorded dialogue matches (${String(this.log.length)} pages recorded this run).`;
   const chosen=matches.slice(-last).reverse();
   let text=`DIALOGUE LOG: quoted game text you were shown, newest first. Past text; the current screen overrides it. ${String(matches.length)} of ${String(this.log.length)} entries match.`;
-  let shown=0;
-  for(const e of chosen){
-   const head=`\n#${String(e.seq)} turn ${String(e.turn)} · ${e.room}${e.position===null?"":` · at ${e.position}`}${e.facing===null?"":` · facing ${e.facing}`}: `;
-   const room=REPLY_LIMIT-120-text.length-head.length;
-   if(room<60)break;
-   text+=`${head}"${clip(e.text,Math.min(ENTRY_LIMIT,room))}"`;shown++;
-  }
-  const omitted=chosen.length-shown;
-  return `${text}\n${String(shown)} shown${omitted>0?`; ${String(omitted)} omitted to keep this reply bounded (narrow with contains, room or last)`:""}.`;
+  for(const e of chosen)text+=`\n#${String(e.seq)} turn ${String(e.turn)} · ${e.room}${e.position===null?"":` · at ${e.position}`}${e.facing===null?"":` · facing ${e.facing}`}: "${e.text}"`;
+  return `${text}\n${String(chosen.length)} shown.`;
  }
  tool():AgentTool<typeof Args> {
   return {name:"recall_dialogue",label:"Recall dialogue",description:"Search every dialogue page you have been shown this run: quoted game text with its turn, location, your position and the character you were facing when known. Filters: contains (words), room (location name), last (1–20, default 8). It reads past observations only; it does not press buttons.",parameters:Args,execute:(_id,args)=>Promise.resolve({content:[{type:"text",text:this.recall(args)}],details:undefined})};

@@ -30,11 +30,11 @@ it("does not resurrect fields disabled for original model observations",()=>{
  const memory=new NavigationMemory({...ALL_ON,"active-field-message-buffer-v1":false,"live-player-position-v1":false,"named-interactions-v1":false});memory.delivered(state(1));
  expect(memory.text()).not.toContain("calling for help");expect(memory.text()).not.toContain("3,4");
 });
-it("bounds dialogue, room and attempt history and deduplicates retained dialogue",()=>{
+it("keeps a bounded number of whole dialogue, room and attempt entries and deduplicates retained dialogue",()=>{
  const memory=new NavigationMemory(ALL_ON);
  for(let i=1;i<=80;i++)memory.delivered(state(i,{map_id:[1,i],location:`Room${String(i)}`,world_context:{objects:[],triggers:[],dialogue:"x".repeat(5000)}}));
- expect(memory.text().length).toBeLessThanOrEqual(6500);expect(memory.text()).not.toContain("Room1 ·");
- expect(memory.text()).toContain("truncated");
+ expect(memory.text()).not.toContain("Room1 ·");
+ expect(memory.text()).not.toContain("truncated");
 });
 it("handles unknown field ownership, missing state, tool rejection, movements and screen transitions truthfully",()=>{
  for(const [extra,result] of [[{field_controls_locked:true},"A input owned"],[{position:null},"A interaction target unverified"],[{facing:null},"A interaction target unverified"]] as const){
@@ -71,9 +71,9 @@ it("expires a model hypothesis when its bounded supporting observations are evic
  for(let n=2;n<12;n++)m.delivered(state(n,{location:`Room${String(n)}`,map_id:[1,n],world_context:null}));
  expect(m.text()).not.toContain("MODEL HYPOTHESIS");expect(m.text()).toContain("expired");expect(m.evidence()).not.toContain(1);
 });
-it("hides direct map_id when bounded navigation is off and labels incomplete target summaries",()=>{
+it("hides direct map_id when bounded navigation is off and lists every target",()=>{
  const m=new NavigationMemory({...ALL_ON,"bounded-navigation-v1":false,"world-destinations-v1":false});m.delivered(state(1,{interaction_targets:Array.from({length:10},(_,i)=>({name:`Object${String(i)}`,kind:"object",x:i,y:4,elevation:0,activation:"A",availability:"live",facing:null,local_id:i,destination:null}))}));
- expect(m.text()).not.toContain("map 1/1");expect(m.text()).toContain("first 8 of 10");expect(m.text()).toContain("2 omitted");
+ expect(m.text()).not.toContain("map 1/1");expect(m.text()).toContain("Object9 at 9,4");expect(m.text()).not.toContain("omitted");
 });
 it("withholds targets for broken pre-input references and leaves no-input navigation outcomes ungraded",()=>{
  const m=new NavigationMemory(ALL_ON);m.delivered(state(1));m.observe(event({type:"tool_call",id:"bad",name:"press",args:{buttons:["A"]}},2));m.delivered(state(3));m.observe(event({type:"button_press",tool_call_id:"bad",before_state_seq:999,buttons:["A"]},4));m.delivered(state(5));m.observe(event({type:"tool_result",id:"bad",name:"press",is_error:false,duration_ms:0,text:"ok",frames:[]},6));expect(m.text()).toContain("no linked pre-input state");expect(m.text()).toContain("result state unavailable");
@@ -81,7 +81,7 @@ it("withholds targets for broken pre-input references and leaves no-input naviga
 });
 it("keeps multi-input navigation outcome after the final input and bounds long-run evidence",()=>{
  const m=new NavigationMemory(ALL_ON);m.delivered(state(1));m.observe(event({type:"tool_call",id:"nav",name:"navigate_to",args:{x:4,y:4,map_id:[1,1]}},2));m.observe(event({type:"button_press",tool_call_id:"nav",before_state_seq:1,buttons:["RIGHT"]},3));m.delivered(state(4));m.observe(event({type:"button_press",tool_call_id:"nav",before_state_seq:4,buttons:["RIGHT"]},5));m.observe(event({type:"tool_result",state_seq:4,id:"nav",name:"navigate_to",is_error:false,duration_ms:0,text:"no final sample",frames:[]},6));expect(m.text()).toContain("result state unavailable");
- for(let i=7;i<2007;i++)m.delivered(state(i,{location:`Room${String(i)}`,map_id:[1,i],world_context:{objects:[],triggers:[],dialogue:`Observed ${String(i)}`}}));expect(m.text().length).toBeLessThanOrEqual(6500);expect(m.evidence().length).toBeLessThanOrEqual(36);
+ for(let i=7;i<2007;i++)m.delivered(state(i,{location:`Room${String(i)}`,map_id:[1,i],world_context:{objects:[],triggers:[],dialogue:`Observed ${String(i)}`}}));expect(m.evidence().length).toBeLessThanOrEqual(36);
 });
 it("prioritizes every recent outcome and explicitly qualifies all omitted source references when sections fill together",()=>{
  const m=new NavigationMemory(ALL_ON);let seq=0;
@@ -90,8 +90,8 @@ it("prioritizes every recent outcome and explicitly qualifies all omitted source
   m.observe(event({type:"tool_call",id:`try${String(i)}`,name:"press",args:{buttons:["A"]}},++seq));
   m.observe(event({type:"tool_result",id:`try${String(i)}`,name:"press",is_error:true,duration_ms:1,text:`Result ${String(i)} ${"failure ".repeat(40)}`,frames:[]},++seq));
  }
- const text=m.text();expect(text.length).toBeLessThanOrEqual(6500);for(let i=0;i<8;i++)expect(text).toContain(`Result ${String(i)}`);
- expect(text).toContain("Omitted retained facts/source references (bounded display");for(const id of m.evidence())expect(text).toMatch(new RegExp(`#${String(id)}(?!\\d)`));
+ const text=m.text();for(let i=0;i<8;i++)expect(text).toContain(`Result ${String(i)}`);
+ expect(text).not.toContain("Omitted");for(const id of m.evidence())expect(text).toMatch(new RegExp(`#${String(id)}(?!\\d)`));
 });
 it("keeps outcomes and reference qualifications bounded with long targets, a full hypothesis and large sequence IDs",()=>{
  const m=new NavigationMemory(ALL_ON);let seq=2**52;
@@ -99,7 +99,7 @@ it("keeps outcomes and reference qualifications bounded with long targets, a ful
  for(let i=0;i<6;i++)m.delivered(state(++seq,{location:`Room${String(i)}${"r".repeat(150)}`,map_id:[1,i],interaction_targets:targets,world_context:{objects:[],triggers:[],dialogue:`Instruction ${String(i)} ${"d".repeat(650)}`}}));
  m.remember("h".repeat(300),[seq]);
  for(let i=0;i<8;i++){const id=`try${String(i)}`;m.observe(event({type:"tool_call",id,name:"press",args:{buttons:["A"]}},++seq));m.observe(event({type:"tool_result",id,name:"press",is_error:true,duration_ms:1,text:`Outcome ${String(i)} ${"failure ".repeat(40)}`,frames:[]},++seq));}
- const text=m.text();expect(text.length).toBeLessThanOrEqual(6500);expect(text).toContain("MODEL HYPOTHESIS");expect(text.indexOf("Outcome 7")).toBeLessThan(text.indexOf("Target0"));for(let i=0;i<8;i++)expect(text).toContain(`Outcome ${String(i)}`);for(const id of m.evidence())expect(text).toMatch(new RegExp(`#${String(id)}(?!\\d)`));
+ const text=m.text();expect(text).toContain("MODEL HYPOTHESIS");expect(text.indexOf("Outcome 7")).toBeLessThan(text.indexOf("Target0"));for(let i=0;i<8;i++)expect(text).toContain(`Outcome ${String(i)}`);for(const id of m.evidence())expect(text).toMatch(new RegExp(`#${String(id)}(?!\\d)`));
 });
 
 it("refreshes a returning quote while deduplicating consecutive polls and preserving their hypothesis",()=>{
@@ -121,7 +121,7 @@ it("keeps returning dialogue latest under full outcome and room pressure",()=>{
  for(let i=0;i<6;i++)m.delivered(state(++seq,{location:`Room${String(i)}${"r".repeat(150)}`,map_id:[1,i],world_context:{objects:[],triggers:[],dialogue:`Instruction ${String(i)} ${"d".repeat(650)}`}}));
  m.delivered(observed("Quote A"));m.delivered(observed("Quote B"));m.delivered(observed("Quote A"));
  for(let i=0;i<8;i++){const id=`try${String(i)}`;m.observe(event({type:"tool_call",id,name:"press",args:{buttons:["A"]}},++seq));m.observe(event({type:"tool_result",id,name:"press",is_error:true,duration_ms:1,text:`Outcome ${String(i)} ${"failure ".repeat(40)}`,frames:[]},++seq));}
- const text=m.text();expect(text.length).toBeLessThanOrEqual(6500);expect(text.split("Last observed dialogue")[1]?.split("Rooms visited")[0]).toContain("Quote A");
+ const text=m.text();expect(text.split("Last observed dialogue")[1]?.split("Rooms visited")[0]).toContain("Quote A");
  for(let i=0;i<8;i++)expect(text).toContain(`Outcome ${String(i)}`);for(const id of m.evidence())expect(text).toMatch(new RegExp(`#${String(id)}(?!\\d)`));
 });
 

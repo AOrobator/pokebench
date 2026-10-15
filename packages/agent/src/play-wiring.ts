@@ -31,14 +31,14 @@ export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Tr
 // The loop guard's supervisor briefing, when that switch is on.
 export function loopSupervisor(features:FeatureSet,recorder:Pick<RunRecorder,"subscribe">):((kind:LoopKind,calls:number)=>string)|undefined {
  if(!features["loop-guard-supervisor-v1"])return undefined;
- const briefing=new SupervisorBriefing(features);recorder.subscribe(event=>{briefing.observe(event);});
+ const briefing=new SupervisorBriefing(features);recorder.subscribe(event=>{briefing.observe(event);},true);
  return (kind,calls)=>briefing.text(kind,calls);
 }
 
 // text-only-supervisor-v1: the recorded note the governor sends instead of ending the run.
 export function textOnlySupervisor(features:FeatureSet,recorder:Pick<RunRecorder,"subscribe"|"textOnlySupervisor">):((replies:number,note:number)=>string)|undefined {
  if(!features["text-only-supervisor-v1"])return undefined;
- const briefing=new SupervisorBriefing(features);recorder.subscribe(event=>{briefing.observe(event);});
+ const briefing=new SupervisorBriefing(features);recorder.subscribe(event=>{briefing.observe(event);},true);
  return (replies,note)=>{const text=briefing.textOnly(replies,note,TEXT_ONLY_NOTE_LIMIT);recorder.textOnlySupervisor(replies,note,TEXT_ONLY_NOTE_LIMIT,text);return text;};
 }
 

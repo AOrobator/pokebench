@@ -9,8 +9,7 @@ type State=Extract<RunEvent,{type:"state";started:boolean}>;
 interface Room {readonly name:string;readonly firstTurn:number;readonly seq:number;heard:DialogueEntry|null}
 interface Contradiction {readonly expected:string;readonly observed:string;readonly evidence:readonly number[]}
 
-const LIMIT=4000,INSTRUCTIONS=3,ROOMS=8,CONTRADICTIONS=8;
-const clip=(text:string,max:number)=>text.length<=max?text:`${text.slice(0,max-14)}… [truncated]`;
+const INSTRUCTIONS=3,ROOMS=8,CONTRADICTIONS=8;
 const Args=Type.Object({
  expected:Type.String({maxLength:200,description:"What you expected, in one sentence."}),
  observed:Type.String({maxLength:300,description:"What the game actually showed instead."}),
@@ -54,15 +53,15 @@ export class InstructionLedger {
  }
  private instructions():DialogueEntry[]{return this.log.entries().slice(-INSTRUCTIONS).reverse();}
  text():string {
-  const entry=(e:DialogueEntry)=>`#${String(e.seq)} turn ${String(e.turn)} · ${e.room}${e.facing===null?"":` · facing ${e.facing}`}: "${clip(e.text,500)}"`;
+  const entry=(e:DialogueEntry)=>`#${String(e.seq)} turn ${String(e.turn)} · ${e.room}${e.facing===null?"":` · facing ${e.facing}`}: "${e.text}"`;
   const told=this.instructions();
   const rooms=[...this.rooms.values()].slice(-ROOMS).reverse();
   const notes=[...this.contradictions].reverse();
   const text=`INSTRUCTION LEDGER: quoted dialogue you were shown, rooms you visited and contradictions you recorded. It is not a walkthrough; the harness does not know your next goal. The current screen overrides it.
 Received instructions${told.length===0?": none recorded":`, newest first:\n${told.map(entry).join("\n")}`}
-Rooms visited${rooms.length===0?": none recorded":`, newest first:\n${rooms.map(r=>`${r.name} (first turn ${String(r.firstTurn)}): ${r.heard===null?"nothing heard":`last heard "${clip(r.heard.text,160)}"`}`).join("\n")}`}
+Rooms visited${rooms.length===0?": none recorded":`, newest first:\n${rooms.map(r=>`${r.name} (first turn ${String(r.firstTurn)}): ${r.heard===null?"nothing heard":`last heard "${r.heard.text}"`}`).join("\n")}`}
 Contradictions you recorded: ${notes.length===0?"none (use note_contradiction when the game differs from what you expected)":`\n${notes.map(c=>`expected: ${c.expected}; observed: ${c.observed}; evidence ${c.evidence.map(s=>`#${String(s)}`).join(",")}`).join("\n")}`}`;
-  return clip(text,LIMIT);
+  return text;
  }
  tool():AgentTool<typeof Args> {
   return {name:"note_contradiction",label:"Note contradiction",description:"Record that the game differed from what you expected, citing 1–4 event numbers you were shown. It is pinned in the instruction ledger so you do not repeat the same wrong assumption. It changes nothing in the game.",parameters:Args,execute:async(_id,args)=>{

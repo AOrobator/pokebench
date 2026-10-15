@@ -43,10 +43,10 @@ export function keepCount(n: number, { max, chunk }: Chunked): number {
 }
 
 function summary(text: string): string {
-  const location = /^Current Location: (.+)$/m.exec(text)?.[1];
+  const location = /^(?:Current )?Location: (.+)$/m.exec(text)?.[1];
   const position = /^Position: (.+)$/m.exec(text)?.[1];
   const [first = ""] = text.split("\n");
-  if (location === undefined) return first.slice(0, 200);
+  if (location === undefined) return first;
   const action = first.startsWith("pressed ") ? first : "observed";
   return `${action} · ${location}${position === undefined ? "" : ` (${position})`}`;
 }

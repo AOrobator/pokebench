@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { ALL_ON, FEATURES, MEASUREMENT_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, featuresOf, playHarnessFeatures, serverFeatureEnv, type FeatureSet } from "./features.js";
+import { ALL_ON, FEATURES, stateOnlyProblems, MEASUREMENT_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, featuresOf, playHarnessFeatures, serverFeatureEnv, type FeatureSet } from "./features.js";
 
 // Literal run_start lists written by live.ts at 0632fc0 with every flag on.
 const LEGACY_DEFAULT = ["ram-state-v1", "live-map-v1", "field-control-lock", "naming-cursor-v1", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "world-targets-v1", "live-player-position-v1", "world-coordinate-grid-v1", "press-result-v1", "warp-activation-guidance-v1", "clock-milestone-v1", "story-state-v1", "active-ui-ownership-v1", "story-milestones-v2", "new-game-created-v1", "post-clock-navigation-milestones-v1", "rustboro-gym-trainer-milestones-v1", "native-progress-activity-v1", "battle-choices-v1", "continuous-battle-state-v1", "validated-pokemon-v1", "menu-observability-v1", "native-action-history-v1", "remaining-native-milestones-v1", "deterministic-loop-diagnostics-v1", "deterministic-loop-policy-v1:p6:o3:a3:c3:r2:recovery6", "deterministic-loop-guard-v1", "contextual-interface-docs-v1", "objective-tracking-v1", "repeat-attempt-guard-v1", "native-objective-completion-v1"];
@@ -153,4 +153,8 @@ it("registers the text-only supervisor as a default-off guard recorded last",()=
  expect(featureInfo("text-only-supervisor-v1").description).toContain(" Off: ");
  expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe("text-only-supervisor-v1");
  expect(playHarnessFeatures({...ALL_ON,"text-only-supervisor-v1":false},null)).not.toContain("text-only-supervisor-v1");
+});
+
+it("keeps the text-only supervisor out of state-only decisions, which deliver no follow-up messages",()=>{
+ expect(stateOnlyProblems({...ALL_ON,"state-only-decisions-v1":true})).toContain("state-only-decisions-v1 requires text-only-supervisor-v1 OFF");
 });

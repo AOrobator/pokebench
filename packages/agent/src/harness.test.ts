@@ -283,31 +283,50 @@ describe("text-only supervisor (text-only-supervisor-v1)", () => {
     g.afterTurn(reply([]), []); await g.followUps();
     expect(g.afterTurn(reply([]), [])).toBe(false);
     expect(g.stopReason).toBeNull();
-    expect(notes).toEqual([[3, 1]]);
+    // The note is built and recorded only when it is delivered.
+    expect(notes).toEqual([]);
     expect(await g.followUps()).toEqual([expect.objectContaining({ role: "user", content: "SUPERVISOR note 1" })]);
+    expect(notes).toEqual([[3, 1]]);
     expect(await g.followUps()).toEqual([]);
     g.afterTurn(reply([]), []);
     expect(retries.at(-1)).toEqual({ reason: "text-only reply", attempt: 1, limit: 3 });
   });
-  it("treats a reply cut off at max_tokens with no tool call like a text-only reply", () => {
+  it("treats a reply cut off at max_tokens with no tool call like a text-only reply", async () => {
     const { g, notes } = supervised();
-    for (let i = 0; i < 3; i++) g.afterTurn(reply([], "length"), []);
+    for (let i = 0; i < 3; i++) { g.afterTurn(reply([], "length"), []); await g.followUps(); }
     expect(g.stopReason).toBeNull();
     expect(notes).toEqual([[3, 1]]);
   });
-  it("ends the run after the bounded number of notes in a row with no tool call between them", () => {
+  it("needs the whole streak to be replies with no tool call", async () => {
+    const mixed = supervised();
+    mixed.g.modelError(reply([], "error", "HTTP 502")); mixed.g.modelError(reply([], "error", "HTTP 502"));
+    mixed.g.afterTurn(reply([]), []); await mixed.g.followUps();
+    expect(mixed.g.stopReason).toBe("model_error");
+    const cut = supervised();
+    cut.g.afterTurn(reply([]), []); cut.g.afterTurn(reply(["press"], "length"), [toolResult()]); cut.g.afterTurn(reply([]), []);
+    expect(cut.g.stopReason).toBe("model_error");
+    expect([...mixed.notes, ...cut.notes]).toEqual([]);
+  });
+  it("records no note when the run stops before the note is delivered", async () => {
     const { g, notes } = supervised();
-    for (let i = 0; i < 3 * TEXT_ONLY_NOTE_LIMIT; i++) g.afterTurn(reply([]), []);
+    for (let i = 0; i < 3; i++) g.afterTurn(reply([]), []);
+    g.abort("operator_abort");
+    expect(await g.followUps()).toEqual([]);
+    expect(notes).toEqual([]);
+  });
+  it("ends the run after the bounded number of notes in a row with no tool call between them", async () => {
+    const { g, notes } = supervised();
+    for (let i = 0; i < 3 * TEXT_ONLY_NOTE_LIMIT; i++) { g.afterTurn(reply([]), []); await g.followUps(); }
     expect(notes.map(([, n]) => n)).toEqual(Array.from({ length: TEXT_ONLY_NOTE_LIMIT }, (_, i) => i + 1));
     expect(g.stopReason).toBeNull();
     for (let i = 0; i < 3; i++) g.afterTurn(reply([]), []);
     expect(g.stopReason).toBe("model_error");
     expect(notes).toHaveLength(TEXT_ONLY_NOTE_LIMIT);
   });
-  it("a successful tool call resets the note count", () => {
+  it("a successful tool call resets the note count", async () => {
     const { g, notes } = supervised();
     for (let r = 0; r < TEXT_ONLY_NOTE_LIMIT + 1; r++) {
-      for (let i = 0; i < 3; i++) g.afterTurn(reply([]), []);
+      for (let i = 0; i < 3; i++) { g.afterTurn(reply([]), []); await g.followUps(); }
       g.afterTurn(reply(), [toolResult()]);
     }
     expect(g.stopReason).toBeNull();

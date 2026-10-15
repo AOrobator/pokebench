@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Winner gate</title>
+<style>
+:root { --bg:#f7f8fb; --card:#fff; --ink:#1f2a36; --muted:#5d6b7a; --line:#c9d2dc; --blue:#2f6fb5; --blue-bg:#e6f0fb; --green:#24804a; --green-bg:#e3f5ea; --amber:#9a6200; --amber-bg:#fff2d6; --red:#b23434; --red-bg:#fbe5e5; --gray-bg:#eef1f4; }
+@media (prefers-color-scheme: dark) { :root { --bg:#12161c; --card:#1b2129; --ink:#e4e9ef; --muted:#9aa7b4; --line:#34404d; --blue:#7fb2ea; --blue-bg:#1d2d40; --green:#6fd09a; --green-bg:#173325; --amber:#f0c060; --amber-bg:#3a2e14; --red:#f08a8a; --red-bg:#3a1c1c; --gray-bg:#252c35; } }
+body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+main { max-width:900px; margin:0 auto; padding:24px 16px 48px; }
+h1 { font-size:26px; margin:0 0 4px; } h2 { font-size:18px; margin:32px 0 8px; }
+p.lead { color:var(--muted); margin:0 0 16px; }
+figure { margin:12px 0 20px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; overflow-x:auto; }
+figcaption { color:var(--muted); font-size:13px; margin-top:8px; }
+svg text { fill:var(--ink); font:13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+svg .small { font-size:11px; fill:var(--muted); }
+.box { stroke:var(--line); stroke-width:1.5; fill:var(--card); }
+.b-blue { fill:var(--blue-bg); stroke:var(--blue); } .b-green { fill:var(--green-bg); stroke:var(--green); } .b-amber { fill:var(--amber-bg); stroke:var(--amber); } .b-gray { fill:var(--gray-bg); stroke:var(--line); } .b-red { fill:var(--red-bg); stroke:var(--red); }
+.arrow { stroke:var(--muted); stroke-width:1.5; fill:none; marker-end:url(#a); }
+table { border-collapse:collapse; width:100%; background:var(--card); border:1px solid var(--line); border-radius:12px; overflow:hidden; font-size:14px; }
+th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+th { background:var(--gray-bg); }
+code { font:13px ui-monospace, SFMono-Regular, Menlo, monospace; background:var(--gray-bg); padding:1px 4px; border-radius:4px; }
+.wrap { overflow-x:auto; }
+</style>
+</head>
+<body>
+<main>
+<h1>Winner gate</h1>
+<p class="lead">An experiment's result only nominates finalists. The finalists and the incumbent then run from boot, and only a finalist that wins those runs becomes the new incumbent. Nothing new starts until that is settled.</p>
+
+<h2>1. From experiment to new incumbent</h2>
+<figure>
+<svg viewBox="0 0 860 300" width="860" height="300" role="img" aria-label="Flow from finished experiment to nomination, finals from boot, and decision">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="currentColor" style="fill:var(--muted)"/></marker></defs>
+<rect class="box b-gray" x="10" y="40" width="160" height="80" rx="10"/><text x="24" y="66">Experiment finishes</text><text class="small" x="24" y="86">queue A/B (8 per arm), or</text><text class="small" x="24" y="102">an external cohort (2×2)</text>
+<rect class="box b-blue" x="210" y="40" width="170" height="80" rx="10"/><text x="224" y="66">Nominate</text><text class="small" x="224" y="86">arms beating the incumbent</text><text class="small" x="224" y="102">arm in &gt;50% of pairs, max 3</text>
+<rect class="box b-amber" x="420" y="40" width="190" height="80" rx="10"/><text x="434" y="66">Finals from boot</text><text class="small" x="434" y="86">8 runs per arm, 45 min cap,</text><text class="small" x="434" y="102">10 min stall stop, balanced</text>
+<rect class="box b-green" x="660" y="10" width="190" height="70" rx="10"/><text x="674" y="36">Winner declared</text><text class="small" x="674" y="56">its switches become the</text><text class="small" x="674" y="72">incumbent; approvals kept</text>
+<rect class="box b-gray" x="660" y="96" width="190" height="56" rx="10"/><text x="674" y="120">No finalist passes</text><text class="small" x="674" y="140">incumbent stays (no winner)</text>
+<path class="arrow" d="M170,80 H206"/><path class="arrow" d="M380,80 H416"/><path class="arrow" d="M610,70 L656,46"/><path class="arrow" d="M610,92 L656,122"/>
+<path class="arrow" d="M295,120 V200 H140"/><rect class="box b-gray" x="10" y="176" width="130" height="50" rx="10"/><text x="22" y="198">No finalists</text><text class="small" x="22" y="216">incumbent stays</text>
+<rect class="box b-red" x="210" y="236" width="400" height="50" rx="10"/><text x="224" y="258">The queue waits: no new experiment starts</text><text class="small" x="224" y="276">while a cohort runs, a nomination is pending, or finals are unfinished</text>
+<path class="arrow" d="M515,120 V232"/>
+</svg>
+<figcaption>Only the green box changes what later experiments run. A screening result alone never promotes anything.</figcaption>
+</figure>
+
+<h2>2. Finals for the Think Fast 2×2</h2>
+<figure>
+<svg viewBox="0 0 860 170" width="860" height="170" role="img" aria-label="Finals order for incumbent and two finalists">
+<text x="10" y="22">Example: 2 finalists, 8 runs each = 24 runs, in Williams-balanced blocks</text>
+<g transform="translate(10,40)">
+<rect class="box b-gray" x="0" y="0" width="30" height="30" rx="6"/><text x="11" y="20">A</text>
+<rect class="box b-amber" x="34" y="0" width="30" height="30" rx="6"/><text x="45" y="20">1</text>
+<rect class="box b-amber" x="68" y="0" width="30" height="30" rx="6"/><text x="79" y="20">2</text>
+<rect class="box b-amber" x="110" y="0" width="30" height="30" rx="6"/><text x="121" y="20">1</text>
+<rect class="box b-amber" x="144" y="0" width="30" height="30" rx="6"/><text x="155" y="20">2</text>
+<rect class="box b-gray" x="178" y="0" width="30" height="30" rx="6"/><text x="189" y="20">A</text>
+<rect class="box b-amber" x="220" y="0" width="30" height="30" rx="6"/><text x="231" y="20">2</text>
+<rect class="box b-gray" x="254" y="0" width="30" height="30" rx="6"/><text x="265" y="20">A</text>
+<rect class="box b-amber" x="288" y="0" width="30" height="30" rx="6"/><text x="299" y="20">1</text>
+<text class="small" x="330" y="20">… 8 blocks; each block runs every arm once</text>
+</g>
+<text class="small" x="10" y="100">A = incumbent (the cohort's control arm, now from boot). 1, 2 = finalists, each the control preset plus only the switches its arm changed.</text>
+<text class="small" x="10" y="120">Recorded boot runs that already match the incumbent's switches and limits fill incumbent slots first, so only the shortfall runs.</text>
+<text class="small" x="10" y="140">All 8 runs per arm always complete (no early decision). Each run ends at 45 minutes, or 10 minutes after its last new milestone.</text>
+</svg>
+<figcaption>The finals start only once the chain behind the 2×2 has exited, so the unattended chain is never interrupted.</figcaption>
+</figure>
+
+<h2>3. One order for every run</h2>
+<div class="wrap"><table>
+<tr><th>Compare two runs</th><th>Better run</th></tr>
+<tr><td>Different furthest main-story milestone</td><td>The one that got further along the path the recorded human run took (side milestones do not count).</td></tr>
+<tr><td>Same furthest milestone</td><td>The one that reached it sooner.</td></tr>
+<tr><td>Same milestone, same time, or neither reached anything</td><td>A tie.</td></tr>
+</table></div>
+
+<h2>4. Probability of superiority</h2>
+<figure>
+<svg viewBox="0 0 860 210" width="860" height="210" role="img" aria-label="Every finalist run compared with every incumbent run">
+<text x="10" y="22">Every finalist run against every incumbent run: 8 × 8 = 64 pairs</text>
+<g transform="translate(10,36)">
+<rect class="box b-amber" x="0" y="0" width="150" height="30" rx="6"/><text x="10" y="20">finalist run → Oldale</text>
+<rect class="box b-gray" x="250" y="0" width="190" height="30" rx="6"/><text x="260" y="20">incumbent run → rival's house</text>
+<path class="arrow" d="M150,15 H246"/><text class="small" x="164" y="10">win (1)</text>
+<rect class="box b-amber" x="0" y="44" width="150" height="30" rx="6"/><text x="10" y="64">finalist run → house 5:10</text>
+<rect class="box b-gray" x="250" y="44" width="190" height="30" rx="6"/><text x="260" y="64">incumbent run → house 6:00</text>
+<path class="arrow" d="M150,59 H246"/><text class="small" x="164" y="54">win (1)</text>
+<rect class="box b-amber" x="0" y="88" width="150" height="30" rx="6"/><text x="10" y="108">finalist run → nothing</text>
+<rect class="box b-gray" x="250" y="88" width="190" height="30" rx="6"/><text x="260" y="108">incumbent run → nothing</text>
+<path class="arrow" d="M150,103 H246"/><text class="small" x="164" y="98">tie (½)</text>
+</g>
+<rect class="box b-green" x="480" y="40" width="370" height="110" rx="10"/>
+<text x="494" y="64">share = (wins + ½ ties) ÷ 64</text>
+<text class="small" x="494" y="88">Finalist: beats the incumbent arm in more than 0.5.</text>
+<text class="small" x="494" y="108">Winner: highest share, at least 0.71 (about 46 of 64).</text>
+<text class="small" x="494" y="128">0.71 is the usual "large effect" cutoff.</text>
+<text class="small" x="10" y="190">Every run counts, a single lucky run cannot dominate, and runs cut off by the 45-minute cap or the stall stop are ranked by how far they got.</text>
+</svg>
+<figcaption>The same share picks the finalists (against the cohort's control arm) and the winner (against the incumbent's finals runs from boot). When picking finalists, equal shares go to the simpler arm; when picking the winner, to nomination order.</figcaption>
+</figure>
+
+<h2>5. What changes for queued experiments</h2>
+<div class="wrap"><table>
+<tr><th>Experiment</th><th>After a promotion</th></tr>
+<tr><td>Not started</td><td>Its incumbent gains the winner's switches. Its approval still counts (it matches the file as written).</td></tr>
+<tr><td>Already started</td><td>Keeps the incumbent its first trial ran under, recorded in the ledger, like the build commit.</td></tr>
+<tr><td>Tests a switch the winner decided</td><td>Blocked with the reason on its card, so its arms never change underneath its approval.</td></tr>
+</table></div>
+
+<h2>6. Records and controls</h2>
+<div class="wrap"><table>
+<tr><th>File (under <code>runs/experiments/</code>)</th><th>Holds</th></tr>
+<tr><td><code>&lt;id&gt;/nomination.json</code></td><td>Ranking, finalists and their switches, the finals incumbent preset, finals settings, reused incumbent runs.</td></tr>
+<tr><td><code>&lt;id&gt;/finals.jsonl</code></td><td>Append-only launch / outcome / launcher_error for each finals run.</td></tr>
+<tr><td><code>&lt;id&gt;/finals-result.json</code></td><td>Per finalist: wins, ties and pairs, its share, pass/fail, and the winner.</td></tr>
+<tr><td><code>promotions.jsonl</code></td><td>One line per declared winner. Their switches, in order, are the incumbent overlay.</td></tr>
+</table></div>
+<p>The queue page shows a <b>WINNER GATE</b> card with the finalists, finals pips and verdicts, plus WITHDRAW FINALS and RESUME FINALS. A withdrawal stops before the next run and keeps new experiments waiting. An experiment can shorten its finals with <code>finals: {runsPerArm, maxWallMs, target}</code>. Setting <code>POKEBENCH_WINNER_GATE=off</code> restores the queue exactly as it was.</p>
+
+<h2>7. Status</h2>
+<p>Branch <code>claude/winner-gate</code>. Agent and viewer tests, lint and the 90% coverage floor pass. Checked read-only against the real runs folder: the queue now waits for the Think Fast 2×2. No finals have run yet.</p>
+</main>
+</body>
+</html>

@@ -136,7 +136,7 @@ describe("experiment queue store", () => {
 
   it("is empty without an experiments directory and summarizes unfinished arms as empty", () => {
     const paths = roots();
-    expect(queueSnapshot(paths, fake({}))).toEqual({ queue: [], pending: [], closed: [], runner: null, problems: [] });
+    expect(queueSnapshot(paths, fake({}))).toEqual({ queue: [], pending: [], closed: [], runner: null, problems: [], gate: [], incumbent: null, gateBlock: null });
     writeDefinition(paths.experimentsDir, definition("solo", { notes: "n" }));
     const [view] = queueSnapshot(paths, fake({}, [])).queue;
     expect(view).toMatchObject({ state: "not-ready", notes: "n", recorded: null, usedMs: 0, arms: { incumbent: { finished: 0, reached: 0, medianPrimaryMs: null, medianTurns: null, reachedPer1kTurns: null } } });

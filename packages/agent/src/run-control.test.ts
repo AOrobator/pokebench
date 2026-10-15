@@ -2,7 +2,8 @@ import { appendFileSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { BudgetTimer, ControlFile, RunControl, controlLine, freezeGame, parseControlRequest, watchControl, type ControlBody } from "./run-control.js";
+import { checkEvent, type RunEvent } from "./events.js";
+import { BudgetTimer, STALL_STOP_MS, StallStop, ControlFile, RunControl, controlLine, freezeGame, parseControlRequest, watchControl, type ControlBody } from "./run-control.js";
 
 function harness(start = 1_000) {
   let now = start;
@@ -331,5 +332,102 @@ describe("review round 3 behaviours", () => {
     other.apply(req(2, "resume"));
     await held;
     expect(signalled.map((r) => [r.action, r.status, r.request])).toEqual([["pause", "pending", 1], ["resume", "ignored", 2]]);
+  });
+});
+
+describe("milestone stall stop", () => {
+  const milestone = (seq: number, name: string, origin?: "observed" | "present_at_start"): RunEvent =>
+    checkEvent({ v: 1, run: "r", t: "2026-10-15T12:00:00.000-04:00", turn: 1, seq, type: "milestone", name, server_timestamp: 0, ...(origin === undefined ? {} : { origin }) });
+  function clocked() {
+    vi.useFakeTimers();
+    let elapsed = 0;
+    const h = harness(0);
+    const expired = vi.fn();
+    const step = (ms: number): void => { h.advance(ms); elapsed += ms; vi.advanceTimersByTime(ms); };
+    return { h, expired, step, stop: new StallStop(h.control, STALL_STOP_MS, () => elapsed, expired) };
+  }
+
+  it("is ten minutes", () => { expect(STALL_STOP_MS).toBe(600_000); });
+
+  it("expires after ten minutes from run start with no milestone", () => {
+    try {
+      const { expired, step, stop } = clocked();
+      step(STALL_STOP_MS - 1);
+      expect(expired).not.toHaveBeenCalled();
+      step(1);
+      expect(expired).toHaveBeenCalledOnce();
+      stop.clear();
+    } finally { vi.useRealTimers(); }
+  });
+
+  it("restarts the ten minutes at each newly observed milestone, legacy events without an origin included", () => {
+    try {
+      const { expired, step, stop } = clocked();
+      step(9 * 60_000);
+      stop.observe(milestone(1, "NEW_GAME_CREATED", "observed"));
+      step(STALL_STOP_MS - 1);
+      expect(expired).not.toHaveBeenCalled();
+      stop.observe(milestone(2, "PLAYER_NAME_CONFIRMED"));
+      step(STALL_STOP_MS - 1);
+      expect(expired).not.toHaveBeenCalled();
+      step(1);
+      expect(expired).toHaveBeenCalledOnce();
+      stop.clear();
+    } finally { vi.useRealTimers(); }
+  });
+
+  it("ignores milestones present at start and events that are not milestones", () => {
+    try {
+      const { expired, step, stop } = clocked();
+      step(5 * 60_000);
+      stop.observe(milestone(1, "LITTLEROOT_TOWN", "present_at_start"));
+      stop.observe(checkEvent({ v: 1, run: "r", t: "2026-10-15T12:00:00.000-04:00", turn: 1, seq: 2, type: "turn_start", context: { messages: 1, images: 0, est_tokens: 10 } }));
+      step(5 * 60_000);
+      expect(expired).toHaveBeenCalledOnce();
+      stop.clear();
+    } finally { vi.useRealTimers(); }
+  });
+
+  it("excludes operator pauses, like the wall budget", async () => {
+    try {
+      const { h, expired, step, stop } = clocked();
+      step(4 * 60_000);
+      h.control.apply(req(1, "pause"));
+      void h.control.gate();
+      for (let i = 0; i < 5; i += 1) await Promise.resolve();
+      expect(h.control.holding).toBe(true);
+      step(60 * 60_000);
+      expect(expired).not.toHaveBeenCalled();
+      h.control.apply(req(2, "resume"));
+      for (let i = 0; i < 5; i += 1) await Promise.resolve();
+      expect(h.control.state).toBe("running");
+      step(6 * 60_000 - 1);
+      expect(expired).not.toHaveBeenCalled();
+      step(1);
+      expect(expired).toHaveBeenCalledOnce();
+      stop.clear();
+    } finally { vi.useRealTimers(); }
+  });
+
+  it("never fires once cleared, even if a milestone arrives afterwards", () => {
+    try {
+      const { expired, step, stop } = clocked();
+      step(60_000);
+      stop.clear();
+      stop.observe(milestone(1, "NEW_GAME_CREATED", "observed"));
+      step(2 * STALL_STOP_MS);
+      expect(expired).not.toHaveBeenCalled();
+    } finally { vi.useRealTimers(); }
+  });
+
+  it("does not arm once the run has ended", () => {
+    try {
+      const { h, expired, step, stop } = clocked();
+      h.control.apply(req(1, "abort"));
+      stop.observe(milestone(1, "NEW_GAME_CREATED", "observed"));
+      step(2 * STALL_STOP_MS);
+      expect(expired).not.toHaveBeenCalled();
+      stop.clear();
+    } finally { vi.useRealTimers(); }
   });
 });

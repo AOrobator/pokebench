@@ -22,7 +22,7 @@ export const HUMAN_BUTTONS = [...BUTTONS, "L", "R"] as const;
 export const HumanButtonSchema = Type.Enum(HUMAN_BUTTONS);
 export type HumanButton = Static<typeof HumanButtonSchema>;
 
-export const RUN_END_REASONS = ["completed", "milestone", "budget", "stuck", "crash", "model_error", "operator_abort", "operator_stop"] as const;
+export const RUN_END_REASONS = ["completed", "milestone", "budget", "stuck", "crash", "model_error", "operator_abort", "operator_stop", "stalled"] as const;
 const RunEndReason = Type.Enum(RUN_END_REASONS);
 export type RunEndReason = Static<typeof RunEndReason>;
 

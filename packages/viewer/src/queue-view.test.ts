@@ -2,6 +2,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import type { GateView } from "./experiment-gate-store.js";
 import type { ExperimentView, QueueSnapshot, TrialView } from "./experiment-store.js";
 import { QueuePanel, countsOf, queueSnapshotOf, renderQueue } from "./queue-view.js";
 
@@ -22,7 +23,7 @@ const SNAPSHOT: QueueSnapshot = {
   queue: [view("full"), view("elev", { queuePosition: 2, state: "draft", reason: "queued; needs the operator's approval", approved: false, trials: [trial(0, "waiting")], arms: { incumbent: arm(0, 0, null, null), candidate: arm(0, 0, null, null) } })],
   pending: [view("ledge", { queuePosition: null, activationMilestone: "ROUTE_101", state: "pending", reason: "not ready: 0 of 4", recorded: null, readiness: { ready: false, basis: "recent", milestone: "ROUTE_101", window: 4, minReached: 3, reached: 0, considered: [] } })],
   closed: [view("old", { queuePosition: 9, state: "done", reason: "all 16 trials finished", result: { verdict: "improve", recommendation: "confirm", eligible: true, problems: [] } })],
-  runner: { experiment: "full", trial: 2 },
+  runner: { experiment: "full", trial: 2 }, gate: [], incumbent: null, gateBlock: null,
   problems: ["bad.json: Invalid experiment"],
 };
 
@@ -142,7 +143,7 @@ describe("experiment queue view", () => {
     expect(done.queue).toContain("EXPERIMENT OLD");
     expect(done.queue).not.toContain("EXPERIMENT FULL");
     expect(renderQueue(SNAPSHOT, "held", new Set()).queue).toContain("No experiments in this state.");
-    const empty = renderQueue({ queue: [], pending: [], closed: [], runner: null, problems: [] }, "all", new Set());
+    const empty = renderQueue({ queue: [], pending: [], closed: [], runner: null, problems: [], gate: [], incumbent: null, gateBlock: null }, "all", new Set());
     expect(empty.queue).toContain("Nothing is queued.");
     expect(empty.pending).toContain("No pending experiments.");
   });
@@ -234,5 +235,52 @@ describe("experiment queue view", () => {
     root.querySelector<HTMLElement>('[data-approve="elev"]')?.click();
     await new Promise((r) => setTimeout(r, 0));
     expect(root.querySelector('[data-eq="queue"]')?.textContent).toContain("elev is approved");
+  });
+
+  it("shows the winner gate: finalists, finals pips, verdicts, the promoted incumbent and why the queue waits", async () => {
+    const finals = { runsPerArm: 4, maxWallMs: 2_700_000, target: null };
+    const running: GateView = { experiment: "full", title: "Whole <map>", state: "held", reason: "finals stopped after 1 of 12 runs", source: "cohort", finals, finalists: [{ arm: "whole", switches: { "full-map-navigation-v1": true } }, { arm: "both", switches: {} }], ranking: [], trials: [{ index: 0, arm: "incumbent", state: "done", run: "r" }, { index: 1, arm: "whole", state: "running", run: "s" }, { index: 2, arm: "both", state: "waiting", run: null }], decision: null, winner: null };
+    const done: GateView = { ...running, experiment: "old", title: "Old", state: "declared", reason: "whole won", finals: { ...finals, target: "RIVAL_MET" }, trials: [], decision: { winner: "whole", verdicts: [{ arm: "whole", pass: true, reasons: [], share: 0.8, wins: 50, ties: 4, pairs: 64 }, { arm: "both", pass: false, reasons: ["not <further>"], share: 0.4, wins: 20, ties: 11, pairs: 64 }] } };
+    const withdrawn: GateView = { ...running, experiment: "w", state: "withdrawn", finalists: [] };
+    const gated: QueueSnapshot = { ...SNAPSHOT, gate: [running, done, withdrawn], gateBlock: "full: finals stopped", incumbent: { id: "old:whole", from: "old", arm: "whole", features: { "full-map-navigation-v1": true }, at: "t", finals: [] } };
+    expect(queueSnapshotOf(JSON.parse(JSON.stringify(gated)))).toEqual(gated);
+    expect(() => queueSnapshotOf({ ...gated, gate: [{ ...running, state: "nope" }] })).toThrow("malformed /api/experiments gate");
+    expect(() => queueSnapshotOf({ ...gated, gateBlock: 1 })).toThrow("malformed /api/experiments gate");
+    expect(() => queueSnapshotOf({ ...gated, incumbent: { from: "x" } })).toThrow("malformed /api/experiments incumbent");
+    const html = renderQueue(gated, "all", new Set(), true).queue;
+    expect(html).toContain("WINNER GATE · FINALISTS RUN FROM BOOT");
+    expect(html).toContain("New experiments wait: full: finals stopped");
+    expect(html).toContain("INCUMBENT · whole from the old finals: <code>full-map-navigation-v1</code> ON");
+    expect(html).toContain("WHOLE &lt;MAP&gt;");
+    expect(html).toContain("1 · whole: <code>full-map-navigation-v1</code> ON<br>2 · both: no switch change");
+    expect(html).toContain("4 runs each from boot, 45 min");
+    expect(html).toContain("stop at RIVAL_MET");
+    expect(html).toContain("both: FAIL (not &lt;further&gt;)");
+    expect(html).toContain("whole: PASS, better in 50 and tied in 4 of 64 pairs");
+    expect(html).toContain('data-finals-withdraw="full"');
+    expect(html).toContain('data-finals-resume="w"');
+    expect(html).toContain(">WINNER<");
+    expect(renderQueue(gated, "all", new Set(), false).queue).not.toContain("data-finals-");
+    expect(renderQueue(gated, "pending", new Set()).queue).not.toContain("WINNER GATE");
+
+    document.body.innerHTML = readFileSync(join(import.meta.dirname, "../static/index.html"), "utf8").replace(/<script[^>]*><\/script>|<link[^>]*>/g, "");
+    const root = document.querySelector<HTMLElement>('[data-ui="experiment-queue"]');
+    if (root === null) throw new Error("page is missing the queue");
+    const sent: string[] = [], asked: string[] = [];
+    let fail = false;
+    const panel = new QueuePanel(root, { fetchJson: () => Promise.resolve(gated), problem: () => undefined, sendJson: (_m, url) => { sent.push(url); return fail ? Promise.reject(new Error("no finals")) : Promise.resolve(gated); }, confirm: (text) => { asked.push(text); return true; } });
+    await panel.load();
+    root.querySelector<HTMLElement>('[data-finals-withdraw="full"]')?.click();
+    await new Promise((r) => setTimeout(r, 0));
+    root.querySelector<HTMLElement>('[data-finals-resume="w"]')?.click();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(sent).toEqual(["/api/experiments/full/finals-withdraw", "/api/experiments/w/finals-resume"]);
+    expect(asked[0]).toContain("new experiments keep waiting");
+    fail = true;
+    root.querySelector<HTMLElement>('[data-finals-withdraw="full"]')?.click();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(root.querySelector('[data-eq="queue"]')?.textContent).toContain("no finals");
+    await panel.finals("missing", true);
+    expect(sent).toHaveLength(3);
   });
 });

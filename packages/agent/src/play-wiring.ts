@@ -7,6 +7,7 @@ import type {LoopKind} from "./loop-detection.js";
 import {SupervisorBriefing} from "./loop-supervisor.js";
 import {navigationMemory} from "./navigation-memory.js";
 import type {RunRecorder} from "./recorder.js";
+import {STALL_STOP_MS,StallStop,type RunControl} from "./run-control.js";
 import {contextWindow,withoutTextOnlyReplies,type Window} from "./harness.js";
 
 type Transform=(messages:AgentMessage[])=>Promise<AgentMessage[]>;
@@ -32,4 +33,12 @@ export function loopSupervisor(features:FeatureSet,recorder:Pick<RunRecorder,"su
  if(!features["loop-guard-supervisor-v1"])return undefined;
  const briefing=new SupervisorBriefing(features);recorder.subscribe(event=>{briefing.observe(event);});
  return (kind,calls)=>briefing.text(kind,calls);
+}
+
+// milestone-stall-stop-v1: ends the run as stalled after STALL_STOP_MS of unpaused play
+// with no new observed milestone. elapsed is the same run clock the wall budget uses.
+export function stallStop(features:FeatureSet,recorder:Pick<RunRecorder,"subscribe">,control:RunControl,elapsed:()=>number,stalled:()=>void):StallStop|null{
+ if(!features["milestone-stall-stop-v1"])return null;
+ const stop=new StallStop(control,STALL_STOP_MS,elapsed,stalled);recorder.subscribe(event=>{stop.observe(event);});
+ return stop;
 }

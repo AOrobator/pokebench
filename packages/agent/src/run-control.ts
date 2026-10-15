@@ -8,7 +8,7 @@
 import { readFileSync } from "node:fs";
 import { Type, type Static } from "typebox";
 import { Value } from "typebox/value";
-import { CONTROL_ACTIONS, type BodyOf } from "./events.js";
+import { CONTROL_ACTIONS, type BodyOf, type RunEvent } from "./events.js";
 
 export type ControlAction = (typeof CONTROL_ACTIONS)[number];
 export const ControlRequestSchema = Type.Object(
@@ -289,7 +289,45 @@ export class BudgetTimer {
   }
 }
 
-const PausedSchema = Type.Object({ paused: Type.Boolean() });
+export const STALL_STOP_MS = 10 * 60_000;
+
+// milestone-stall-stop-v1: ends the run after limitMs of unpaused play with no new
+// observed milestone. The clock starts at run start; a milestone that was already
+// present at start does not reset it.
+export class StallStop {
+  private timer: ReturnType<typeof setTimeout> | null = null;
+  private lastProgress = 0;
+  private done = false;
+  constructor(private readonly control: RunControl, private readonly limitMs: number, private readonly elapsed: () => number, private readonly expire: () => void) {
+    control.onChange(() => { this.arm(); });
+    this.arm();
+  }
+
+  private active(): number {
+    return this.elapsed() - this.control.pausedMs();
+  }
+
+  observe(event: RunEvent): void {
+    if (this.done || event.type !== "milestone" || event.origin === "present_at_start") return;
+    this.lastProgress = this.active();
+    this.arm();
+  }
+
+  private arm(): void {
+    if (this.timer !== null) clearTimeout(this.timer);
+    this.timer = null;
+    if (this.done || this.control.holding || this.control.state === "ended") return;
+    this.timer = setTimeout(this.expire, Math.max(0, this.lastProgress + this.limitMs - this.active()));
+  }
+
+  clear(): void {
+    this.done = true;
+    if (this.timer !== null) clearTimeout(this.timer);
+    this.timer = null;
+  }
+}
+
+const PausedSchema =Type.Object({ paused: Type.Boolean() });
 
 // Freeze or release the emulator on this run's game server.
 export async function freezeGame(gameServerUrl: string, paused: boolean, fetchFn: typeof fetch = fetch): Promise<void> {

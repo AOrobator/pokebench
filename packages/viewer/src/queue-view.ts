@@ -2,6 +2,7 @@
 // battle card (design 18), with status chips that filter and a PENDING group
 // on the same card. Used on the PokéNav page and on Runs & Comparisons. Read only:
 // approval and running stay in the CLI.
+import type { GateView } from "./experiment-gate-store.js";
 import type { ArmSummary, ExperimentView, QueueSnapshot, TrialView } from "./experiment-store.js";
 import { esc } from "./format.js";
 
@@ -44,6 +45,18 @@ function viewOk(v: unknown): boolean {
     readinessOk(v["readiness"]) && (recorded === null || (isRecord(recorded) && typeof recorded["verdict"] === "string" && typeof recorded["evidence"] === "string")) &&
     (v["notes"] === null || typeof v["notes"] === "string") && resultOk(v["result"]) && (v["buildCommit"] === null || typeof v["buildCommit"] === "string");
 }
+const GATE_STATES = ["waiting", "nominating", "finals", "held", "withdrawn", "declared", "inconclusive", "no-finalists"];
+const isSwitches = (v: unknown): boolean => isRecord(v) && Object.values(v).every((x) => typeof x === "boolean");
+function gateOk(g: unknown): boolean {
+  if (!isRecord(g)) return false;
+  const finals = g["finals"], decision = g["decision"];
+  return typeof g["experiment"] === "string" && typeof g["title"] === "string" && oneOf(g["state"], GATE_STATES) && typeof g["reason"] === "string" &&
+    isRecord(finals) && isNum(finals["runsPerArm"]) && isNum(finals["maxWallMs"]) &&
+    Array.isArray(g["finalists"]) && g["finalists"].every((f) => isRecord(f) && typeof f["arm"] === "string" && isSwitches(f["switches"])) &&
+    Array.isArray(g["trials"]) && g["trials"].every((t) => isRecord(t) && isNum(t["index"]) && typeof t["arm"] === "string" && oneOf(t["state"], TRIAL_STATES)) &&
+    (g["winner"] === null || typeof g["winner"] === "string") &&
+    (decision === null || (isRecord(decision) && Array.isArray(decision["verdicts"]) && decision["verdicts"].every((v) => isRecord(v) && typeof v["arm"] === "string" && typeof v["pass"] === "boolean" && isStrings(v["reasons"]) && isNum(v["wins"]) && isNum(v["ties"]) && isNum(v["pairs"]))));
+}
 // JSON from /api/experiments into a typed snapshot.
 export function queueSnapshotOf(value: unknown): QueuePayload {
   if (!isRecord(value)) throw new Error("malformed /api/experiments payload");
@@ -53,6 +66,9 @@ export function queueSnapshotOf(value: unknown): QueuePayload {
     if (!Array.isArray(list) || !list.every(viewOk)) throw new Error(`malformed /api/experiments ${key}`);
   }
   if (!Array.isArray(value["problems"]) || !value["problems"].every((p) => typeof p === "string")) throw new Error("malformed /api/experiments problems");
+  if (!Array.isArray(value["gate"]) || !value["gate"].every(gateOk) || !(value["gateBlock"] === null || typeof value["gateBlock"] === "string")) throw new Error("malformed /api/experiments gate");
+  const incumbent = value["incumbent"];
+  if (incumbent !== null && !(isRecord(incumbent) && typeof incumbent["from"] === "string" && typeof incumbent["arm"] === "string" && isSwitches(incumbent["features"]))) throw new Error("malformed /api/experiments incumbent");
   const autorun = value["autorun"];
   if (autorun !== undefined && autorun !== null && !(isRecord(autorun) && oneOf(autorun["state"], ["idle", "running", "error"]) && typeof autorun["message"] === "string")) throw new Error("malformed /api/experiments autorun");
   const runner = value["runner"];
@@ -120,6 +136,29 @@ function pendingCard(v: ExperimentView, open: boolean): string {
     (open ? `<div class="eq-battle"><p class="eq-why">${esc(v.reason)}</p><dl class="eq-facts"><dt>hypothesis</dt><dd>${esc(v.hypothesis)}</dd>${v.recorded === null ? "" : `<dt>readiness.md</dt><dd>${esc(v.recorded.verdict)}</dd>`}<dt>runs checked</dt><dd>${v.readiness.considered.map(esc).join(", ") || "none yet"}</dd></dl></div>` : "") + `</article>`;
 }
 
+const switchList = (switches: Readonly<Record<string, boolean>>): string => Object.entries(switches).map(([id, on]) => `<code>${esc(id)}</code> ${on ? "ON" : "OFF"}`).join(", ") || "no switch change";
+const GATE_LABEL: Readonly<Record<string, string>> = { waiting: "WAITING", nominating: "NOMINATING", finals: "FINALS", held: "HELD", withdrawn: "WITHDRAWN", declared: "WINNER", inconclusive: "NO WINNER", "no-finalists": "NO FINALISTS" };
+function gatePip(t: GateView["trials"][number], finalists: readonly string[]): string {
+  const label = t.arm === "incumbent" ? "A" : String(finalists.indexOf(t.arm) + 1);
+  return `<span class="tp ${t.arm === "incumbent" ? "A" : "B"} ${esc(t.state === "done" ? "ok" : t.state)}" title="finals run ${String(t.index + 1)} · ${esc(t.arm)} · ${esc(t.state)}">${esc(label)}</span>`;
+}
+// The winner gate (operator 2026-10-15): finalists run from boot before anything new starts.
+function gateCard(s: QueueSnapshot, controls: boolean): string {
+  if (s.gate.length === 0 && s.incumbent === null) return "";
+  const rows = s.gate.map((g) => {
+    const arms = g.finalists.map((f) => f.arm);
+    const verdicts = g.decision === null ? "" : `<dt>verdicts</dt><dd>${g.decision.verdicts.map((v) => `${esc(v.arm)}: ${v.pass ? `PASS, better in ${String(v.wins)} and tied in ${String(v.ties)} of ${String(v.pairs)} pairs` : `FAIL (${v.reasons.map(esc).join("; ")})`}`).join("<br>")}</dd>`;
+    const button = !controls ? "" : g.state === "finals" || g.state === "held" ? `<button type="button" class="eq-revoke" data-finals-withdraw="${esc(g.experiment)}">WITHDRAW FINALS</button>` : g.state === "withdrawn" ? `<button type="button" class="eq-approve" data-finals-resume="${esc(g.experiment)}">RESUME FINALS</button>` : "";
+    return `<article class="eq-gate eq-g-${esc(g.state)}" data-gate="${esc(g.experiment)}"><div class="eq-gate-head"><span class="eq-name">${esc(g.title.toUpperCase())} <span class="eq-st eq-${esc(g.state)}">${esc(GATE_LABEL[g.state] ?? g.state.toUpperCase())}</span></span>${button === "" ? "" : `<span class="eq-actions">${button}</span>`}</div>` +
+      `<p class="eq-why">${esc(g.reason)}</p>${g.trials.length === 0 ? "" : `<span class="pipset">${g.trials.map((t) => gatePip(t, arms)).join("")}</span>`}` +
+      `<dl class="eq-facts"><dt>finalists</dt><dd>${g.finalists.length === 0 ? "none" : g.finalists.map((f, i) => `${String(i + 1)} · ${esc(f.arm)}: ${switchList(f.switches)}`).join("<br>")}</dd>` +
+      `<dt>finals</dt><dd>${String(g.finals.runsPerArm)} runs each from boot, ${String(Math.round(g.finals.maxWallMs / 60_000))} min${g.finals.target === null ? "" : `, stop at ${esc(g.finals.target)}`}</dd>${verdicts}</dl></article>`;
+  }).join("");
+  const incumbent = s.incumbent === null ? "" : `<p class="eq-why">INCUMBENT · ${esc(s.incumbent.arm)} from the ${esc(s.incumbent.from)} finals: ${switchList(s.incumbent.features)}</p>`;
+  const block = s.gateBlock === null ? "" : `<p class="eq-notice">New experiments wait: ${esc(s.gateBlock)}</p>`;
+  return `<section class="eq-gates"><h4 class="eq-sub">WINNER GATE · FINALISTS RUN FROM BOOT</h4>${block}${incumbent}${rows}</section>`;
+}
+
 // Operator-approved or running work lists above drafts; the stable sort keeps queue order within each group.
 const approvedFirst = (v: ExperimentView): number => (v.approved || v.state === "running" ? 0 : 1);
 
@@ -140,7 +179,7 @@ export function renderQueue(s: QueuePayload, filter: QueueFilter, open: Readonly
   const queued = s.queue.filter((v) => filter === "all" || v.state === filter).sort((a, b) => approvedFirst(a) - approvedFirst(b));
   const closed = filter === "all" || filter === "closed" ? s.closed : [];
   const runner = s.autorun === undefined || s.autorun === null ? "" : `<p class="eq-runner eq-runner-${s.autorun.state}">QUEUE RUNNER · ${s.autorun.state.toUpperCase()} · ${esc(s.autorun.message)}</p>`;
-  const queue = runner + (notice === null ? "" : `<p class="eq-notice" role="alert">${esc(notice)}</p>`) + (showQueue ? (queued.length === 0 ? `<p class="eq-empty">${filter === "all" ? "Nothing is queued. Experiments join the queue once models reliably reach the milestone each one acts on." : "No experiments in this state."}</p>` : queued.map((v) => slot(v, open.has(v.id), controls)).join("")) : "") +
+  const queue = runner + (notice === null ? "" : `<p class="eq-notice" role="alert">${esc(notice)}</p>`) + (showQueue ? gateCard(s, controls) : "") + (showQueue ? (queued.length === 0 ? `<p class="eq-empty">${filter === "all" ? "Nothing is queued. Experiments join the queue once models reliably reach the milestone each one acts on." : "No experiments in this state."}</p>` : queued.map((v) => slot(v, open.has(v.id), controls)).join("")) : "") +
     (closed.length === 0 ? "" : `<h4 class="eq-sub">DONE</h4>${closed.map((v) => slot(v, open.has(v.id))).join("")}`) +
     (s.problems.length === 0 ? "" : `<pre class="eq-problems">${s.problems.map(esc).join("\n")}</pre>`);
   const showPending = filter === "all" || filter === "pending" || (filter === "blocked" && s.pending.some((v) => v.state === "blocked"));
@@ -173,6 +212,12 @@ export class QueuePanel {
         this.render();
         return;
       }
+      const withdraw = target.closest<HTMLElement>("[data-finals-withdraw]")?.dataset["finalsWithdraw"];
+      const resume = target.closest<HTMLElement>("[data-finals-resume]")?.dataset["finalsResume"];
+      if (withdraw !== undefined || resume !== undefined) {
+        void this.finals(withdraw ?? resume ?? "", withdraw !== undefined);
+        return;
+      }
       const approve = target.closest<HTMLElement>("[data-approve]")?.dataset["approve"];
       const revoke = target.closest<HTMLElement>("[data-revoke]")?.dataset["revoke"];
       if (approve !== undefined || revoke !== undefined) {
@@ -200,6 +245,20 @@ export class QueuePanel {
     if (!this.deps.confirm(question)) return;
     try {
       this.snapshot = queueSnapshotOf(await this.deps.sendJson("POST", `/api/experiments/${encodeURIComponent(id)}/${action}`, {}));
+      this.notice = null;
+    } catch (error) {
+      this.notice = error instanceof Error ? error.message : String(error);
+    }
+    this.render();
+  }
+
+  async finals(id: string, withdraw: boolean): Promise<void> {
+    const gate = this.snapshot?.gate.find((g) => g.experiment === id);
+    if (gate === undefined || this.deps.sendJson === undefined || this.deps.confirm === undefined) return;
+    const question = withdraw ? `Withdraw the ${gate.title} finals? The run in progress finishes; new experiments keep waiting until you resume the finals or discard the experiment.` : `Resume the ${gate.title} finals from boot?`;
+    if (!this.deps.confirm(question)) return;
+    try {
+      this.snapshot = queueSnapshotOf(await this.deps.sendJson("POST", `/api/experiments/${encodeURIComponent(id)}/${withdraw ? "finals-withdraw" : "finals-resume"}`, {}));
       this.notice = null;
     } catch (error) {
       this.notice = error instanceof Error ? error.message : String(error);

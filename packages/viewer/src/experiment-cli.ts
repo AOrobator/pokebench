@@ -2,13 +2,13 @@
 // `just experiment-run [--dry-run] [--once]`: the experiment queue from the
 // main checkout. Approval is interactive so an agent can never grant it.
 import { execFile, execFileSync, spawn, type ChildProcess } from "node:child_process";
-import { closeSync, existsSync, mkdirSync, openSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { userInfo } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 import { HUMAN_GAMEPLAY_LEASE_NAME, newRunId } from "@pokebench/agent/run";
-import { experimentDir, queueSnapshot, recordedRuns, type ExperimentView, type QueuePaths, type RunSource } from "./experiment-store.js";
+import { experimentDir, queueSnapshot, recordedRuns, winnerGateOn, type ExperimentView, type QueuePaths, type RunSource } from "./experiment-store.js";
 import { approveExperiment } from "./experiment-approval.js";
 import { RunnerError, runQueue, sha256, type DiscoveredModel, type RunnerHost, type TrialLaunch } from "./experiment-runner.js";
 import { healthProbe, liveRuns, randomSuffix } from "./next-run.js";
@@ -108,6 +108,7 @@ export interface HostDeps {
   readonly onChild?: (child: ChildProcess | null) => void;
   readonly build?: () => Promise<string | null>;
   readonly live?: () => Promise<string[]>;
+  readonly pidCommand?: (pid: number) => string | null;
 }
 
 // The agent package's own tsc, the same compile `just build` runs for it but emitting nothing on errors;
@@ -193,14 +194,42 @@ export function productionHost(deps: HostDeps): RunnerHost {
       child.once("exit", (code) => { deps.onChild?.(null); resolveExit(code); });
     }),
     log: deps.log,
+    activeCohort: () => Promise.resolve(activeCohort(deps.runsRoot, deps.pidCommand ?? pidCommand)),
   };
+}
+
+// The command line of a live pid, or null.
+export function pidCommand(pid: number): string | null {
+  try {
+    const out = execFileSync("ps", ["-p", String(pid), "-o", "command="], { encoding: "utf8" }).trim();
+    return out === "" ? null : out;
+  } catch {
+    return null;
+  }
+}
+// A cohort driver or chain under runs/launch-receipts/<name>/ whose recorded pid still runs that
+// script. Cohort drivers free the lease between steps; the queue must not take it then.
+export function activeCohort(runsRoot: string, command: (pid: number) => string | null): string | null {
+  const root = join(runsRoot, "launch-receipts");
+  if (!existsSync(root)) return null;
+  for (const name of readdirSync(root).sort()) {
+    for (const file of ["chain-pid.txt", "driver-pid.txt"]) {
+      const path = join(root, name, file);
+      if (!existsSync(path)) continue;
+      const pid = Number.parseInt(readFileSync(path, "utf8").trim(), 10);
+      if (!Number.isInteger(pid) || pid <= 0) continue;
+      const line = command(pid);
+      if (line !== null && line.includes(join("launch-receipts", name))) return name;
+    }
+  }
+  return null;
 }
 
 if (import.meta.main) {
   const here = fileURLToPath(new URL(".", import.meta.url));
   const gitIn = (cwd: string, args: readonly string[]): string => execFileSync("git", [...args], { cwd, encoding: "utf8" });
   const root = mainCheckout(here, gitIn), runsRoot = join(root, "runs");
-  const paths: QueuePaths = { experimentsDir: join(root, "experiments"), runsRoot, readinessPath: join(root, "docs", "experiments", "readiness.md") };
+  const paths: QueuePaths = { experimentsDir: join(root, "experiments"), runsRoot, readinessPath: join(root, "docs", "experiments", "readiness.md"), winnerGate: winnerGateOn(process.env) };
   let child: ChildProcess | null = null, stop = false;
   for (const signal of ["SIGINT", "SIGTERM"] as const) process.on(signal, () => { stop = true; child?.kill("SIGINT"); });
   const git = (args: readonly string[]): string => gitIn(root, args);

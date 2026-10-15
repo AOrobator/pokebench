@@ -1,4 +1,4 @@
-import {contextTools,loopSupervisor,stallStop} from "./play-wiring.js";
+import {contextTools,loopSupervisor,stallStop,textOnlySupervisor} from "./play-wiring.js";
 import {CheckpointCapture,checkpointTarget} from "./checkpoint-capture.js";
 import {experimentFromEnv} from "./play-experiment.js";
 // Live entrypoint for real, recorded runs: pi-agent-core on the local stack
@@ -255,6 +255,7 @@ async function playAgent(): Promise<void> {
       const controller = new AbortController();
       const elapsed = preset===null?(()=>Date.now()):()=>recorder.elapsedMs();
       let control: RunControl | null = null;
+      const textOnly = textOnlySupervisor(features, recorder);
       const governor = new Governor({
         limits,
         retry: (why, attempt, limit) => {
@@ -268,6 +269,7 @@ async function playAgent(): Promise<void> {
         ...(preset===null?{}:{startedAt:0}),
         takeStop: () => control?.takeStop() ?? false,
         pausedMs: () => control?.pausedMs() ?? 0,
+        ...(textOnly === undefined ? {} : { textOnlySupervisor: textOnly }),
       });
       const controlFile = new ControlFile(join(RUNS_ROOT, runId, "control.jsonl"));
       const runControl = new RunControl({

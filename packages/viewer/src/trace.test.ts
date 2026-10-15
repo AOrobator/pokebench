@@ -60,6 +60,7 @@ const SAMPLES: { [K in RunEvent["type"]]: Extract<Body, { type: K }> } = {
   battle_choice: { type: "battle_choice", turn: 1, id: 1, frame: 120, recorded_ms: BASE_MS + 200, battle: 2, battle_turn: 3, action: "move", action_id: 0, origin: "selected", actor: { battler: 0, position: 0, party_slot: 0, species_id: 25, species: "PIKACHU", identity: "1:2", level: 10, hp: 20, max_hp: 30 }, move: { id: 55, name: "WATER GUN", slot: 0, pp: 25 }, target: null, item_id: null, switch_party_slot: null, source: { main_func: 0x0803d2e9, communication: [5, 5], battle_type: 0 } },
   loop_guard: { type: "loop_guard", turn: 1, kind: "cycle", phase: "supervisor", mode: "enforced", calls: 3, message: X, evidence: [1] },
   retry: { type: "retry", turn: 1, reason: X, attempt: 1, limit: 3 },
+  text_only_supervisor: { type: "text_only_supervisor", turn: 1, replies: 3, note: 1, limit: 3, text: X },
   telemetry_error: { type: "telemetry_error", turn: 1, source: "state", message: X },
   compaction: { type: "compaction", turn: 1, from_tokens: 9000, to_tokens: 1000 },
   disk_usage: { type: "disk_usage", turn: 1, bytes: 1, cap_bytes: 10, percent: 10 },

@@ -51,6 +51,7 @@ export const SWITCHABLE_FEATURES = [
   "fresh-retry-v1",
   "named-warp-destinations-v1",
   "milestone-stall-stop-v1",
+  "text-only-supervisor-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -176,6 +177,8 @@ export const FEATURES: readonly FeatureInfo[] = [
     "Names the map each warp leads to, using the game's own map table, in the Warps line and in the warp's interaction candidate: (14,8) -> LITTLEROOT TOWN MAYS HOUSE 1F (map 1/2). The name is the same one the Location line shows after walking through. Unknown and dynamic destinations keep their ID. Off: warps show only the map ID, such as map 1/2."),
   on("milestone-stall-stop-v1", "guard", "MILESTONE STALL STOP", null,
     "Ends the run as stalled after 10 minutes of play with no new milestone. The clock starts at run start and restarts at each newly observed milestone; milestones already present at the start do not count, and operator pauses are excluded, as for the wall budget. The wall budget stays the hard cap. The model is not told. Off: the run continues until the wall budget, turn limit or another stop ends it."),
+  on("text-only-supervisor-v1", "guard", "TEXT-ONLY SUPERVISOR", null,
+    "When the model's replies call no tool often enough to reach the failure limit (three in a row by default), the run does not end. The model gets a SUPERVISOR note instead of the usual nudge: where it is, its last story progress, the recent dialogue, what is listed here that it has not tried, and that only a tool call (observe, press or another listed tool) changes the game. The streak then restarts. Three notes in a row with no successful tool call between them still end the run as a model error. Invalid tool calls and gateway errors still end the run at the limit. Each note is recorded. Off: three replies in a row with no tool call end the run as a model error."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",
@@ -259,6 +262,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("fresh-retry-v1"),
     ...when("named-warp-destinations-v1"),
     ...when("milestone-stall-stop-v1"),
+    ...when("text-only-supervisor-v1"),
   ];
 }
 

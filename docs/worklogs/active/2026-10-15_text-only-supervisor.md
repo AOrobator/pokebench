@@ -27,8 +27,11 @@ at 11.2 min and stopped at 13.7.
 
 ## Milestones
 - [x] M1 RED: governor, wiring, features registry, finals preset, live factory path, viewer lane.
-- [ ] M2 GREEN + gates (lint, coverage ≥ 90, schema regenerated).
+- [x] M2 GREEN + gates (lint, coverage ≥ 90, schema regenerated).
 - [ ] M3 Explainer, pending experiment, Claude CLI review, report, merge on approval.
 
 ## Log
 - M1 RED: 9 agent tests fail as intended plus the viewer lane test.
+- COMMIT: `test: text-only-supervisor-v1 sends a bounded supervisor note instead of ending the run` (557258e)
+- M2 GREEN: registry (guard, needs null, last in playHarnessFeatures), presets default off, DEFAULT_NEXT_RUN off, Governor note + TEXT_ONLY_NOTE_LIMIT 3, SupervisorBriefing.textOnly, text_only_supervisor event (schema regenerated), recorder, live wiring, tail, viewer error lane/activity/trace, finals force ON. Wiring check: removing the live.ts textOnlySupervisor dep turns the live ON test red; restored green. Gates: agent 1080 (97.49/93.86/98.15), viewer 647 (95.36/91.13/94.38), pytest 1877, lint clean, experiments-check ok (39).
+- M3: explainer docs/explainers/text-only-supervisor-v1.html (README + FEATURE_EXPLAINERS + server/panels tests), pending experiments/text-only-supervisor.json (no queuePosition; source.commit updated to the merge SHA after merge), readiness row READY.

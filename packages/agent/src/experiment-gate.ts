@@ -84,8 +84,9 @@ export function finalsPlan(arms:readonly string[],perArm:number,reused:number):s
 
 // Finals never stop a run for lack of a milestone; every run plays the full wall limit
 // (operator 2026-10-15 14:02 UTC: the stall stop would have cut a run that later chose a starter).
+// Text-only replies get a supervisor note instead of ending the run (operator 2026-10-15 14:41 UTC).
 export function finalsPreset(base:PlayPresetV2,experiment:string,arm:string,switches:Partial<Record<SwitchableFeature,boolean>>,config:FinalsConfig):PlayPresetV2 {
- const features:FeatureSet={...base.features,...switches,"milestone-stall-stop-v1":false};
+ const features:FeatureSet={...base.features,...switches,"milestone-stall-stop-v1":false,"text-only-supervisor-v1":true};
  const problems=[...dependencyProblems(features),...stateOnlyProblems(features)];
  if(problems.length>0)throw new Error(`Invalid finals preset ${arm}: ${problems.join("; ")}`);
  return {version:2,sampling:base.sampling,id:`${experiment}-finals-${arm}`,target:config.target,limits:{maxTurns:FINALS_MAX_TURNS,maxWallMs:config.maxWallMs,failureLimit:base.limits.failureLimit},features};

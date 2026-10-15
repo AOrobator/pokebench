@@ -425,6 +425,10 @@ export class RunRecorder {
     this.append({ type: "retry", turn: this.turn, reason, attempt, limit });
   }
 
+  textOnlySupervisor(replies: number, note: number, limit: number, text: string): void {
+    this.append({ type: "text_only_supervisor", turn: this.turn, replies, note, limit, text });
+  }
+
   end(reason: RunEndReason): void {
     this.append({
       type: "run_end",

@@ -33,6 +33,8 @@ export function contextWindow(features: FeatureSet): Window {
 }
 export const OMITTED_FRAME = "[older screenshot omitted]";
 export const NUDGE = "Keep playing: call observe or press. Only tool calls advance the game.";
+// text-only-supervisor-v1: notes in a row, with no successful tool call between them, before the run ends.
+export const TEXT_ONLY_NOTE_LIMIT = 3;
 
 export function keepCount(n: number, { max, chunk }: Chunked): number {
   if (n <= max) return n;
@@ -91,12 +93,16 @@ export interface GovernorDeps {
   // Operator control: a stop due at this turn end, and time spent paused.
   readonly takeStop?: () => boolean;
   readonly pausedMs?: () => number;
+  // text-only-supervisor-v1: a recorded note to send instead of ending the run (replies, note number).
+  readonly textOnlySupervisor?: (replies: number, note: number) => string;
 }
 
 export class Governor {
   private turns = 0;
   private failures = 0;
   private nudgeDue = false;
+  private notes = 0;
+  private note: string | null = null;
   private readonly startedAt: number;
   stopReason: RunEndReason | null = null;
 
@@ -109,10 +115,10 @@ export class Governor {
     const calls = message.content.filter((part) => part.type === "toolCall").length;
     this.nudgeDue = calls === 0;
     const invalid = toolResults.length > 0 && toolResults.every((result) => result.isError);
-    if (message.stopReason === "length") this.fail("reply hit max_tokens");
-    else if (calls === 0) this.fail("text-only reply");
+    if (message.stopReason === "length") this.fail("reply hit max_tokens", calls === 0);
+    else if (calls === 0) this.fail("text-only reply", true);
     else if (invalid) this.fail(`invalid tool call: ${firstText(toolResults[0])}`);
-    else this.failures = 0;
+    else { this.failures = 0; this.notes = 0; }
     return this.countTurn();
   };
 
@@ -135,13 +141,23 @@ export class Governor {
   private nudge(): AgentMessage[] {
     if (!this.nudgeDue || this.stopReason !== null) return [];
     this.nudgeDue = false;
-    return [{ role: "user", content: NUDGE, timestamp: Date.now() }];
+    const content = this.note ?? NUDGE;
+    this.note = null;
+    return [{ role: "user", content, timestamp: Date.now() }];
   }
 
-  private fail(reason: string): void {
+  private fail(reason: string, noToolCall = false): void {
     this.failures += 1;
     this.deps.retry(reason, this.failures, this.deps.limits.failureLimit);
-    if (this.failures >= this.deps.limits.failureLimit) this.stopReason ??= "model_error";
+    if (this.failures < this.deps.limits.failureLimit) return;
+    const supervise = this.deps.textOnlySupervisor;
+    if (noToolCall && supervise !== undefined && this.notes < TEXT_ONLY_NOTE_LIMIT) {
+      this.notes += 1;
+      this.note = supervise(this.failures, this.notes);
+      this.failures = 0;
+      return;
+    }
+    this.stopReason ??= "model_error";
   }
 
   private countTurn(): boolean {

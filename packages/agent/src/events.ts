@@ -195,6 +195,8 @@ const LoopGuard = Type.Union([
 ]);
 
 const Retry = event("retry", { reason: Type.String(), attempt: Type.Integer({ minimum: 1 }), limit: Type.Integer({ minimum: 1 }) });
+// text-only-supervisor-v1: the note sent to the model instead of ending the run at the failure limit.
+const TextOnlySupervisor = event("text_only_supervisor", { replies: Type.Integer({ minimum: 1 }), note: Type.Integer({ minimum: 1 }), limit: Type.Integer({ minimum: 1 }), text: Type.String({ minLength: 1 }) });
 
 const DiskUsage = event("disk_usage", {
   bytes: NonNegativeInt,
@@ -453,6 +455,7 @@ export const RunEventSchema = Type.Union([
   NativeAction,
   BattleChoice,
   Retry,
+  TextOnlySupervisor,
   DiskUsage,
   FramesEvicted,
   RunEnd,

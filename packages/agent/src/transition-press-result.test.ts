@@ -110,6 +110,42 @@ describe("scripted movement (504f s1512)", () => {
   });
 });
 
+// 2026-10-15 finals. dc0e INSIDE OF TRUCK T216–T615: A at the MOVING_BOX opened, paged and closed the sign box, 399 results all "locked".
+// 6684 LITTLEROOT TOWN T494–T788: each A×8 began at the page end (cursor 50) and ended with the same text printing again (45–49).
+describe("message boxes the press itself opened, paged, closed or restarted (finals dc0e, 6684)", () => {
+  const BOX = "The box is printed with a POKéMON logo. | It's a POKéMON brand moving and delivery service.";
+  const truck = (dialogue: string | null, cursor: number | null = null): GameStateSnapshot => ({ ...field, location: "INSIDE OF TRUCK", map_id: [25, 40], position: { x: 3, y: 3 }, facing: "left", field_controls_locked: dialogue !== null, world_context: { objects: [], triggers: [], dialogue, message: cursor === null ? null : { phase: "printing", cursor, ready: false } } });
+  const PC = "If you use a PC, you can store items and POKéMON. | The power of science is staggering!";
+  const town = (phase: "printing" | "page_wait", cursor: number): GameStateSnapshot => ({ ...field, location: "LITTLEROOT TOWN", map_id: [0, 9], position: { x: 13, y: 14 }, facing: "right", field_controls_locked: true, world_context: { objects: [], triggers: [], dialogue: PC, message: { phase, cursor, ready: phase === "page_wait" } } });
+  it("was 'locked' for every one of the truck presses when off", () => {
+    expect(pressResult(truck(null), truck(BOX, 9), ["A"], ALL_PRESS_FACTS)).toBe("locked (field controls locked in a snapshot; no net movement)");
+    expect(pressResult(truck(BOX, 40), truck(null), ["A"], ALL_PRESS_FACTS)).toBe("locked (field controls locked in a snapshot; no net movement)");
+    expect(pressResult(town("page_wait", 50), town("printing", 47), Array(8).fill("A"), ALL_PRESS_FACTS)).toBe("locked (field controls locked in a snapshot; no net movement)");
+  });
+  it("names the box as the lock, and says controls are free once it closes", () => {
+    expect(pressResult(truck(null), truck(BOX, 9), ["A"], ON)).toBe("dialogue opened (the message box locks field controls until it closes)");
+    expect(pressResult(truck(BOX, 9), truck(BOX, 40), ["A"], ON)).toBe("dialogue advanced (message box still open; it locks field controls until it closes)");
+    expect(pressResult(truck(BOX, 40), truck(null), ["A"], ON)).toBe("dialogue closed; field controls are free now");
+    expect(pressResult(truck(BOX, 40), { ...truck(null), field_controls_locked: true }, ["A"], ON)).toBe("dialogue closed; field controls are still locked");
+    expect(pressResult(truck(BOX, 40), truck(null), ["A"], { ...ON, fieldLock: false })).toBe("dialogue closed");
+    expect(pressResult(truck(null), truck(BOX, 9), ["A"], { ...ON, fieldLock: false })).toBe("dialogue opened");
+  });
+  it("counts a conversation restarted inside one A batch, each batch once more", () => {
+    const shown = shownAfter(town("printing", 47));
+    const A8 = Array<"A">(8).fill("A");
+    expect(pressResult(town("page_wait", 50), town("printing", 48), A8, ON, shown)).toBe("conversation restarted: this text was already shown (2nd time)");
+    shown.record(town("printing", 48), town("page_wait", 50));
+    expect(pressResult(town("page_wait", 50), town("printing", 47), A8, ON, shown)).toBe("conversation restarted: this text was already shown (3rd time)");
+    shown.record(town("printing", 47), town("printing", 30));
+    expect(shown.timesShown(town("printing", 47))).toBe(2);
+  });
+  it("leaves moves, warps and an unchanged box to the other results", () => {
+    expect(pressResult(truck(BOX, 40), truck(BOX, 40), ["A"], ON)).toBe("locked (field controls locked in a snapshot; no net movement)");
+    expect(pressResult(truck(null), { ...truck(BOX, 9), position: { x: 3, y: 2 } }, ["UP"], ON)).toBe("moved (3,3) -> (3,2)");
+    expect(pressResult(truck(null), { ...truck(BOX, 9), map_id: [0, 9] }, ["RIGHT"], ON)).toContain("warped during this press");
+  });
+});
+
 describe("restarted conversations", () => {
   it("counts each time the same text was shown after a closed box", () => {
     const shown = shownAfter(talk(MOM), talk(null));
@@ -118,12 +154,12 @@ describe("restarted conversations", () => {
     shown.record(talk(null));
     expect(pressResult(talk(null), talk(MOM), ["A"], ON, shown)).toBe("conversation restarted: this text was already shown (3rd time)");
   });
-  it("is off, new text, or an open box: today's result", () => {
+  it("is off: today's result; new text or a box already open is not a restart", () => {
     const shown = shownAfter(talk(MOM), talk(null));
     const today = pressResult(talk(null), talk(MOM), ["A"], ALL_PRESS_FACTS);
     expect(pressResult(talk(null), talk(MOM), ["A"], ALL_PRESS_FACTS, shown)).toBe(today);
-    expect(pressResult(talk(null), talk("MOM: something new"), ["A"], ON, shown)).toBe(today);
-    expect(pressResult(talk("MOM: page one"), talk(MOM), ["A"], ON, shown)).toBe(today);
+    expect(pressResult(talk(null), talk("MOM: something new"), ["A"], ON, shown)).toBe("dialogue opened");
+    expect(pressResult(talk("MOM: page one"), talk(MOM), ["A"], ON, shown)).toBe("dialogue advanced");
     expect(pressResult(talk(null), talk(null), ["A"], ON, shown)).toBe(pressResult(talk(null), talk(null), ["A"], ALL_PRESS_FACTS));
   });
   it("counts a page that stays on screen once, and pages separately", () => {
@@ -139,8 +175,7 @@ describe("restarted conversations", () => {
     const at = (x: number, map: [number, number] = [0, 9]): GameStateSnapshot => ({ ...talk(null), map_id: map, position: { x, y: 4 }, world_context: { objects: [], triggers: [], dialogue: null } });
     const reading = (x: number, map: [number, number] = [0, 9]): GameStateSnapshot => ({ ...at(x, map), world_context: { objects: [], triggers: [], dialogue: sign } });
     const shown = shownAfter(reading(4), at(4));
-    const today = pressResult(at(9), reading(9), ["A"], ALL_PRESS_FACTS);
-    expect(pressResult(at(9), reading(9), ["A"], ON, shown)).toBe(today);
+    expect(pressResult(at(9), reading(9), ["A"], ON, shown)).toBe("dialogue opened");
     expect(pressResult(at(4, [1, 0]), reading(4, [1, 0]), ["A"], ON, shown)).not.toContain("conversation restarted");
     expect(pressResult(at(4), reading(4), ["A"], ON, shown)).toBe("conversation restarted: this text was already shown (2nd time)");
     expect(shown.timesShown(reading(9))).toBe(0);

@@ -241,3 +241,16 @@ it("does not recover a post-handoff Route 101 entry without a return, a pre-hand
     expect(view.milestones.some(m => m.name === "ROUTE_101_AFTER_HANDOFF")).toBe(false);
   }
 });
+it("does not recover a Route 101 return for a run whose recorder declares route-101-after-handoff-v1 (a missing native event stays missing)", () => {
+  const log = new Log();
+  log.add(0, { ...START, harness_features: [...START.harness_features, "route-101-after-handoff-v1"] });
+  const witness = log.add(1000, state({ ...quiet, location: "LITTLEROOT TOWN PROFESSOR BIRCHS LAB", map_id: [1, 4], story: atLab(2) }));
+  const town = log.add(2000, state({ ...quiet, location: "LITTLEROOT TOWN", map_id: [0, 9], story: atLab(3) }));
+  const route = log.add(3000, state({ ...quiet, location: "ROUTE101", map_id: [0, 16], story: atLab(3) }));
+  const missing = readNativeRecording(write(log.events.map(e => JSON.stringify(e)).join("\n") + "\n"), witness.run, qualifiedNativeMilestone);
+  expect(missing.splits.some(s => s.name === "ROUTE_101_AFTER_HANDOFF")).toBe(false);
+  log.add(3100, { type: "milestone", turn: 1, name: "ROUTE_101_AFTER_HANDOFF", kind: "navigation", origin: "observed", server_timestamp: 1, evidence: [witness.seq, town.seq, route.seq] });
+  const native = readNativeRecording(write(log.events.map(e => JSON.stringify(e)).join("\n") + "\n"), witness.run, qualifiedNativeMilestone);
+  expect(native.splits.filter(s => s.name === "ROUTE_101_AFTER_HANDOFF")).toMatchObject([{ seq: log.events.at(-1)?.seq }]);
+  expect(native.splits.find(s => s.name === "ROUTE_101_AFTER_HANDOFF")?.derived).toBeUndefined();
+});

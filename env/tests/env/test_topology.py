@@ -62,7 +62,7 @@ def test_observation_delivers_named_topology_only_when_enabled(monkeypatch):
             InteractionTarget("warp", 5, 1, 0, "movement", destination=(0, 16, 0)),
         ),
     )
-    monkeypatch.setattr("pokebench_env.observation.read_game_state", lambda *args, **kwargs: field)
+    monkeypatch.setattr("pokebench_env.rerender.read_game_state", lambda *args, **kwargs: field)
 
     class Shot(BaseModel):
         screenshot_base64: str = "aA=="

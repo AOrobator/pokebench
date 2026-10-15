@@ -53,6 +53,8 @@ describe("navigation-refusal-reasons-v1: why navigate_to cannot start",()=>{
   expect(await status({...field,started:false},{x:2,y:0},on)).toBe("the game has not started yet; navigate_to walks only on the field");
   expect(await status({...field,active_ui:{phase:"start_menu",selected:null,ready:false,controls:"menu",diagnostic:null}},{x:2,y:0},on)).toBe(UI);
   expect(await status({...field,active_ui:{phase:"bag",selected:null,ready:true,controls:"menu",diagnostic:"unsupported"}},{x:2,y:0},on)).toBe("a menu or other interface is open (bag); close it before calling navigate_to");
+  // Round-6 review: a healthy field menu locks controls; it is the menu, not a script.
+  expect(await status({...field,field_controls_locked:true,active_ui:{phase:"start_menu",selected:"BAG",ready:true,controls:"menu",diagnostic:null}},{x:2,y:0},on)).toBe("a menu or other interface is open (start_menu); close it before calling navigate_to");
   expect(await status({...field,navigation_grid:null},{x:2,y:0},on)).toBe(GEOMETRY);
   expect(await status({...field,position:null},{x:2,y:0},on)).toBe(GEOMETRY);
   expect(await status({...field,map_grid:null},{x:2,y:0},{...on,fullMap:true})).toBe(GEOMETRY);

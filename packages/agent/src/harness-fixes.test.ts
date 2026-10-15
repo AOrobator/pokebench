@@ -235,3 +235,67 @@ it("lists a room's exits before its objects among the targets not tried yet (tru
  expect(listed.indexOf("Dynamic warp at 4,3")).toBeLessThan(listed.indexOf("MOVING_BOX at 0,0"));
  expect(listed).toContain("MOVING_BOX at 2,3");
 });
+
+// dialogue-auto-advance-v1: the paired result state is after the conversation, so the pages come from its event.
+const autoAdvance=(b:{observe:(e:RunEvent)=>void},seq:number,id:string,texts:string[])=>{
+ b.observe(ev({type:"tool_call",id,name:"press",args:{buttons:["A"]}},seq));
+ const pages=texts.map((text,i)=>{b.observe(st(seq+1+i,msg(AIDE,"page_wait",9)));return {state_seq:seq+1+i,map:"LAB",map_id:[1,4],position:{x:9,y:8},speaker:"SCIENTIST_1",speaker_source:"faced_target",text};});
+ const at=seq+1+texts.length;
+ b.observe(ev({type:"dialogue_auto_advance",tool_call_id:id,tool:"press",requested:["A"],sent:["A"],dropped:[],auto_presses:texts.length,pages,stop:"field_free",detail:"the conversation closed and field controls are free",duration_ms:5},at));
+ result(b,at+1,msg(null,null),id);
+ return at+3;
+};
+it("grades an auto-advanced conversation from its pages, and a repeat as a restarted conversation",()=>{
+ const b=new SupervisorBriefing(ALL_ON);
+ result(b,1,msg(null,null));
+ const next=autoAdvance(b,3,"a1",["The PROF isn't one for doing desk work.","He's the type of person who would rather go outside."]);
+ let text=b.text("cycle",20);
+ expect(text).toMatch(/A facing SCIENTIST_1 at 9,7 in LAB \(map 1\/4\) → dialogue shown \(2 pages, advanced automatically\)/);
+ expect(text).toContain(`- Recent dialogue you were shown, newest first: turn 1, LAB (map 1/4): "He's the type of person who would rather go outside." | turn 1, LAB (map 1/4): "The PROF isn't one for doing desk work."`);
+ autoAdvance(b,next,"a2",["The PROF isn't one for doing desk work.","He's the type of person who would rather go outside."]);
+ text=b.text("cycle",30);
+ expect(text).toMatch(/A facing SCIENTIST_1 at 9,7 in LAB \(map 1\/4\) → restarted a conversation already shown \(2 pages, advanced automatically\)/);
+ expect(text).not.toMatch(/A facing SCIENTIST_1[^;]*→ no change/);
+});
+it("lets the dialogue log and the instruction ledger cite auto-advanced pages",()=>{
+ const log=new DialogueLog(ALL_ON);const ledger=new InstructionLedger(ALL_ON);
+ const both={observe:(e:RunEvent)=>{log.observe(e);ledger.observe(e);}};
+ result(both,1,msg(null,null));
+ autoAdvance(both,3,"a1",["Go see your father at the GYM."]);
+ expect(log.entries().map(e=>[e.seq,e.room,e.text])).toEqual([[4,"LAB (map 1/4)","Go see your father at the GYM."]]);
+ expect(()=>{ledger.note("dad at home","dad at the GYM",[4]);}).not.toThrow();
+ expect(ledger.text()).toContain(`#4 turn 1 · LAB (map 1/4): "Go see your father at the GYM."`);
+});
+
+it("counts auto-advanced pages as shown only when their result reached the model",()=>{
+ const b=new SupervisorBriefing(ALL_ON);const log=new DialogueLog(ALL_ON);const ledger=new InstructionLedger(ALL_ON);
+ const all={observe:(e:RunEvent)=>{b.observe(e);log.observe(e);ledger.observe(e);}};
+ result(all,1,msg(null,null));
+ all.observe(ev({type:"tool_call",id:"a1",name:"press",args:{buttons:["A"]}},3));
+ all.observe(st(4,msg(AIDE,"page_wait",9)));
+ all.observe(ev({type:"dialogue_auto_advance",tool_call_id:"a1",tool:"press",requested:["A"],sent:["A"],dropped:[],auto_presses:1,pages:[{state_seq:4,map:"LAB",map_id:[1,4],position:{x:9,y:8},speaker:null,speaker_source:null,text:"Go see your father at the GYM."}],stop:"field_free",detail:"the conversation closed and field controls are free",duration_ms:5},5));
+ all.observe(ev({type:"tool_result",id:"a1",name:"press",is_error:true,duration_ms:1,text:"Error: GET /pokebench/observation failed",frames:[]},6));
+ expect(log.entries()).toEqual([]);
+ expect(()=>{ledger.note("dad at home","dad at the GYM",[4]);}).toThrow();
+ autoAdvance(all,7,"a2",["Go see your father at the GYM."]);
+ expect(b.text("cycle",20)).toMatch(/A facing SCIENTIST_1 at 9,7 in LAB \(map 1\/4\) → dialogue shown \(1 page, advanced automatically\)/);
+});
+it("does not log the whole message buffer again when auto-advance stops at a decision with the pages already listed",()=>{
+ const log=new DialogueLog(ALL_ON);
+ result(log,1,msg(null,null));
+ log.observe(ev({type:"tool_call",id:"a1",name:"press",args:{buttons:["A"]}},3));
+ log.observe(st(4,msg("Will you help?",null)));
+ log.observe(ev({type:"dialogue_auto_advance",tool_call_id:"a1",tool:"press",requested:["A"],sent:["A"],dropped:[],auto_presses:1,pages:[{state_seq:4,map:"LAB",map_id:[1,4],position:{x:9,y:8},speaker:null,speaker_source:null,text:"I need a hand."},{state_seq:4,map:"LAB",map_id:[1,4],position:{x:9,y:8},speaker:null,speaker_source:null,text:"Will you help?"}],stop:"menu",detail:"a menu is open",duration_ms:5},5));
+ result(log,6,msg("I need a hand.\nWill you help?","page_wait"),"a1");
+ expect(log.entries().map(e=>e.text)).toEqual(["I need a hand.","Will you help?"]);
+});
+
+it("logs every auto-advanced page, even two pages with the same text on the same map",()=>{
+ const log=new DialogueLog(ALL_ON);
+ result(log,1,msg(null,null));
+ log.observe(ev({type:"tool_call",id:"a1",name:"press",args:{buttons:["A"]}},3));
+ const page=(seq:number)=>({state_seq:seq,map:"LAB",map_id:[1,4] as [number,number],position:{x:9,y:8},speaker:null,speaker_source:null,text:"..."});
+ log.observe(ev({type:"dialogue_auto_advance",tool_call_id:"a1",tool:"press",requested:["A"],sent:["A"],dropped:[],auto_presses:2,pages:[page(4),page(5)],stop:"field_free",detail:"the conversation closed and field controls are free",duration_ms:5},6));
+ result(log,7,msg(null,null),"a1");
+ expect(log.entries().map(e=>e.seq)).toEqual([4,5]);
+});

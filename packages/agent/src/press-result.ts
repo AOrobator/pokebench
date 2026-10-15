@@ -25,6 +25,13 @@ const openingOf = (state: GameStateSnapshot): string | null => {
   return JSON.stringify([map, tile, text]);
 };
 
+const cursorOf = (state: GameStateSnapshot): number | null => state.world_context?.message?.cursor ?? null;
+// The same opening before and after, with the print cursor moved back: the box closed and the same text began again.
+const reprinted = (before: GameStateSnapshot, after: GameStateSnapshot): boolean => {
+  const key = openingOf(after), was = cursorOf(before), now = cursorOf(after);
+  return key !== null && key === openingOf(before) && was !== null && now !== null && now < was;
+};
+
 // The states the model was actually given (observe and press results), so a
 // press can be compared with what the model last saw, not only the pre-press read.
 export class ShownStates {
@@ -32,9 +39,11 @@ export class ShownStates {
   readonly #openings = new Map<string, number>();
   get lastShown(): GameStateSnapshot | undefined { return this.#last; }
   timesShown(state: GameStateSnapshot): number { const key = openingOf(state); return key === null ? 0 : this.#openings.get(key) ?? 0; }
-  record(state: GameStateSnapshot): void {
+  // `before` is the snapshot the press started from: a conversation that began printing again
+  // inside one press (same text, cursor back) is another showing even though the last shown state had it too.
+  record(state: GameStateSnapshot, before?: GameStateSnapshot): void {
     const key = openingOf(state);
-    if (key !== null && (this.#last === undefined || key !== openingOf(this.#last))) this.#openings.set(key, this.timesShown(state) + 1);
+    if (key !== null && (this.#last === undefined || key !== openingOf(this.#last) || (before !== undefined && reprinted(before, state)))) this.#openings.set(key, this.timesShown(state) + 1);
     this.#last = state;
   }
 }
@@ -53,7 +62,7 @@ const place = (state: Placed, show: PressFacts): string => `${state.location ?? 
 const DIRECTIONS: readonly Button[] = ["UP", "DOWN", "LEFT", "RIGHT"];
 
 function duringPress(before: GameStateSnapshot, after: GameStateSnapshot, buttons: readonly Button[], show: PressFacts, shown: ShownStates): string {
-  if (dialogueOf(before) === null && shown.timesShown(after) > 0) {
+  if ((dialogueOf(before) === null || reprinted(before, after)) && shown.timesShown(after) > 0) {
     return `conversation restarted: this text was already shown (${ordinal(shown.timesShown(after) + 1)} time)`;
   }
   if (placed(before) && placed(after) && before.active_ui == null && after.active_ui == null && before.naming == null && after.naming == null) {
@@ -71,7 +80,22 @@ function duringPress(before: GameStateSnapshot, after: GameStateSnapshot, button
       if (lockedBefore) return `${show.position ? `moved (${String(before.position.x)},${String(before.position.y)}) -> (${String(after.position.x)},${String(after.position.y)})` : "moved"}; field controls were locked when the press began`;
     }
   }
-  return basePressResult(before, after, buttons, show);
+  return dialogueChange(before, after, show) ?? basePressResult(before, after, buttons, show);
+}
+
+// A message box opening, moving on or closing in place is what the press did; the field lock it
+// causes is a consequence, so it is named as the box's and never as the press being locked out.
+function dialogueChange(before: GameStateSnapshot, after: GameStateSnapshot, show: PressFacts): string | null {
+  if (!placed(before) || !placed(after) || !sameMap(before, after) || before.active_ui != null || after.active_ui != null || before.naming != null || after.naming != null) return null;
+  if (before.position.x !== after.position.x || before.position.y !== after.position.y) return null;
+  const was = dialogueOf(before), now = dialogueOf(after);
+  const lock = (state: GameStateSnapshot): boolean | null => show.fieldLock ? state.field_controls_locked ?? null : null;
+  if (was === null && now !== null) return `dialogue opened${lock(after) === true ? " (the message box locks field controls until it closes)" : ""}`;
+  if (was !== null && now === null) return `dialogue closed${lock(after) === false ? "; field controls are free now" : lock(after) === true ? "; field controls are still locked" : ""}`;
+  if (was !== null && now !== null && (was !== now || cursorOf(before) !== cursorOf(after) || before.world_context?.message?.phase !== after.world_context?.message?.phase)) {
+    return `dialogue advanced${lock(after) === true ? " (message box still open; it locks field controls until it closes)" : ""}`;
+  }
+  return null;
 }
 
 export function pressResult(before: GameStateSnapshot | undefined, after: GameStateSnapshot, buttons: readonly Button[], show: PressFacts = ALL_PRESS_FACTS, shown: ShownStates = new ShownStates()): string {

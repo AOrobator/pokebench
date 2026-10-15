@@ -111,7 +111,18 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 <text class="m" x="10" y="132">Off: interface changed (… input acceptance per frame unproven) or the field result</text>
 </svg></div>
 <figcaption>Each shown page counts once when it appears; a page left on screen is not counted again.</figcaption></figure>
-<p>The rule needs no open dialogue before the press and an after-state whose <code>world_context.dialogue</code> text was already shown earlier in the run at the same place (same map and player tile). The same sign text read at another tile, or on another map, is a new conversation, not a restart. The loop supervisor's "restarted a conversation already shown" outcome uses the same place-and-text key.</p>
+<p>The rule needs no open dialogue before the press and an after-state whose <code>world_context.dialogue</code> text was already shown earlier in the run at the same place (same map and player tile). The same sign text read at another tile, or on another map, is a new conversation, not a restart. The loop supervisor's "restarted a conversation already shown" outcome uses the same place-and-text key. A batch that begins with the text open and ends with the same text printing again from an earlier cursor (finals run 6684: page end at cursor 50, then 45–49 after eight A presses) is also a restart, and counts one more showing.</p>
+</section>
+
+<section>
+<h2>4. A message box the press opened, paged or closed</h2>
+<p>A sign or person's message box locks field controls while it is open. Off, a press that opens, pages or closes a box in place reads <code>locked (field controls locked in a snapshot; no net movement)</code>, which says nothing about the box. In finals run dc0e every one of 399 presses at the MOVING_BOX inside the truck read that way, although the controls were free between boxes and the exit was one step to the right. With this switch on the same presses read:</p>
+<ul>
+<li><code>dialogue opened (the message box locks field controls until it closes)</code></li>
+<li><code>dialogue advanced (message box still open; it locks field controls until it closes)</code></li>
+<li><code>dialogue closed; field controls are free now</code> (or <code>; field controls are still locked</code> when the after-state is still locked)</li>
+</ul>
+<p>The lock wording appears only when field-lock facts are shown. A press that moved or warped the player keeps those results, and a box that did not change keeps today's result.</p>
 </section>
 
 <section>

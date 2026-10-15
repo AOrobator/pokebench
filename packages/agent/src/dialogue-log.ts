@@ -26,17 +26,37 @@ const Args=Type.Object({
 export class DialogueLog {
  private measured:State|null=null;
  private readonly log:DialogueEntry[]=[];
+ // dialogue-auto-advance-v1 pages per tool call, kept until that call's result reaches the model.
+ private readonly pending=new Map<string,DialogueEntry[]>();
  constructor(private readonly features:FeatureSet){}
  observe(event:RunEvent):void {
   if(event.type==="state"&&"started"in event){this.measured=event;return;}
-  if(event.type!=="tool_result"||event.state_seq===undefined||this.measured?.seq!==event.state_seq)return;
+  // dialogue-auto-advance-v1 hands the model its pages in the result; each page cites its own recorded state (else the event).
+  if(event.type==="dialogue_auto_advance"){
+   this.pending.set(event.tool_call_id,event.pages.map(page=>{
+    const place={location:page.map,map_id:page.map_id};
+    return {seq:page.state_seq??event.seq,turn:event.turn,key:roomKey(place),room:roomOf(place,this.features),position:this.features["live-player-position-v1"]&&page.position!==null?`${String(page.position.x)},${String(page.position.y)}`:null,facing:null,text:page.text};
+   }));
+   if(this.pending.size>16)this.pending.delete(this.pending.keys().next().value??"");
+   return;
+  }
+  if(event.type!=="tool_result")return;
+  // Pages count as shown only when their result reached the model; they already cover the paired state's buffer.
+  const pages=this.pending.get(event.id);this.pending.delete(event.id);
+  const delivered=!event.is_error&&pages!==undefined&&pages.length>0;
+  // Each page was shown once; only the first is compared with what the log already holds.
+  if(delivered)pages.forEach((entry,i)=>{if(i===0)this.add(entry);else this.log.push(entry);});
+  if(event.state_seq===undefined||this.measured?.seq!==event.state_seq)return;
   const state=this.measured;this.measured=null;
+  if(delivered)return;
   const text=state.world_context?.dialogue;
   if(!state.started||state.screen!=="overworld"||!text)return;
-  const key=roomKey(state),room=roomOf(state,this.features);
+  this.add({seq:state.seq,turn:state.turn,key:roomKey(state),room:roomOf(state,this.features),position:this.position(state),facing:this.faced(state),text});
+ }
+ private add(entry:DialogueEntry):void {
   const previous=this.log.at(-1);
-  if(previous!==undefined&&previous.text===text&&previous.key===key)return;
-  this.log.push({seq:state.seq,turn:state.turn,key,room,position:this.position(state),facing:this.faced(state),text});
+  if(previous!==undefined&&previous.text===entry.text&&previous.key===entry.key)return;
+  this.log.push(entry);
  }
  entries():readonly DialogueEntry[]{return this.log;}
  private position(state:State):string|null {

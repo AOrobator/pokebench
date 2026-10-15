@@ -78,6 +78,11 @@ runs-disk: build
 runs-summary *run_ids: build
     node packages/agent/dist/runs-cli.js summary {{run_ids}}
 
+# Decision-point probe: rebuild a recorded turn's exact context, flip switches (--switch <id>=on|off),
+# and sample the next tool call K≤8 times per arm (--samples K, --context-only, --runs-root DIR, --model ID).
+probe-decision run turn *flags: build
+    node packages/agent/dist/probe-decision-cli.js {{quote(run)}} {{quote(turn)}} {{flags}}
+
 # Delete the oldest frames until usage is at or below <percent> of the cap.
 runs-prune percent: build
     node packages/agent/dist/runs-cli.js prune {{percent}}

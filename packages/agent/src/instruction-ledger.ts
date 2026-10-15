@@ -22,10 +22,14 @@ export class InstructionLedger {
  private readonly log:DialogueLog;
  private readonly rooms=new Map<string,Room>();
  private readonly known=new Set<number>();
+ // dialogue-auto-advance-v1 page seqs per tool call, citable once that call's result reached the model.
+ private readonly pages=new Map<string,number[]>();
  private readonly contradictions:Contradiction[]=[];
  constructor(private readonly features:FeatureSet){this.log=new DialogueLog(features);}
  observe(event:RunEvent):void {
   this.log.observe(event);
+  if(event.type==="dialogue_auto_advance"){this.pages.set(event.tool_call_id,event.pages.map(page=>page.state_seq??event.seq));if(this.pages.size>16)this.pages.delete(this.pages.keys().next().value??"");return;}
+  if(event.type==="tool_result"){const seqs=this.pages.get(event.id);this.pages.delete(event.id);if(!event.is_error)for(const seq of seqs??[])this.known.add(seq);}
   if(event.type==="state"&&"started"in event){this.measured=event;return;}
   if(event.type!=="tool_result"||event.state_seq===undefined||this.measured?.seq!==event.state_seq)return;
   const state=this.measured;this.measured=null;

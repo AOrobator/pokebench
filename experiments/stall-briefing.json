@@ -4,7 +4,7 @@
  "title": "Stall briefing",
  "changedFeature": "stall-briefing-v1",
  "hypothesis": "Briefing the model when it walks back and forth between the same two maps, or plays 5 minutes without a new milestone, breaks the stalls the loop guard never flags (258d: about 20 trips between the house floors; dea1: 140 turns of repeated walking batches; c497: 102 A presses in the battle bag), so more runs reach the rival house and they reach it in fewer turns.",
- "activationMilestone": "PLAYER_NAME_CONFIRMED",
+ "activationMilestone": "NEW_GAME_CREATED",
  "primaryMilestone": "RIVAL_HOUSE_ENTERED",
  "source": {
   "checkout": "main",

@@ -5,11 +5,11 @@ import {tmpdir} from "node:os";
 import {join} from "node:path";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {AUTO_ADVANCE_LIMITS,DialogueRecord,withDialogueAutoAdvance,type AutoAdvanceRecorder} from "./dialogue-auto-advance.js";
-import {isCheckedPress,observeTool,pressTool,type CheckedPressTool,type Clock} from "./game-tools.js";
+import {gameTools,isCheckedPress,observeTool,pressTool,type CheckedPressTool,type Clock} from "./game-tools.js";
 import {withNavigation} from "./navigation.js";
 import {playGameTools} from "./play-wiring.js";
 import {flagFeatures} from "./play-preset.js";
-import {playSystemPrompt,playTools} from "./play-config.js";
+import {playSystemPrompt,playTools,toolSwitches} from "./play-config.js";
 import {dependencyProblems,featureInfo,playHarnessFeatures,stateOnlyProblems,ALL_ON,type FeatureSet} from "./features.js";
 import {checkEvent,type Button,type RunEvent} from "./events.js";
 import {RunRecorder} from "./recorder.js";
@@ -33,6 +33,7 @@ const ID=(text:string)=>Buffer.from(text).toString("hex").padEnd(64,"0").slice(0
 // A game server that prints each page over several reads and only accepts A/B once a page waits.
 class FakeGame{
  posts:{buttons:Button[];phase:string|null}[]=[];reads=0;opened=0;
+ place:{location:string;map_id:[number,number]}={location:"LITTLEROOT TOWN PROFESSOR BIRCHS LAB",map_id:[1,4]};
  private mode:"free"|"message"|"yesno"|"locked"|"battle"|"naming"="free";
  private convo:Convo|null=null;private page=0;private printing=0;private locked=0;private position={x:13,y:14};private facing="right";
  constructor(private readonly npc:Convo,private readonly printReads=2,private readonly lockReads=3){}
@@ -73,7 +74,7 @@ class FakeGame{
  }
  state():GameStateSnapshot{
   const npc={local_id:2,map_id:[0,9] as [number,number],graphics_id:17,sprite_kind:"SCIENTIST_1",x:14,y:14};
-  const base:GameStateSnapshot={...IN_GAME,location:"LITTLEROOT TOWN PROFESSOR BIRCHS LAB",map_id:[1,4],position:this.position,facing:this.facing,active_ui:null,naming:null,field_controls_locked:false,
+  const base:GameStateSnapshot={...IN_GAME,location:this.place.location,map_id:this.place.map_id,position:this.position,facing:this.facing,active_ui:null,naming:null,field_controls_locked:false,
    interaction_targets:[{kind:"object",x:14,y:14,elevation:3,activation:"A",availability:"conditional",facing:null,local_id:2,destination:null,name:"SCIENTIST_1"}],
    world_context:{objects:[npc],triggers:[],dialogue:null,message:null}};
   const c=this.convo;
@@ -653,5 +654,86 @@ describe("dialogue-auto-advance-v1 real-game replays",()=>{
   const {press,rec}=scriptedTools(game);
   await press.execute("k",{buttons:["A"]});
   expect(rec.advances()[0]?.pages.map(p=>p.text)).toEqual(["You saved me.","PROF. BIRCH: So, AA.","I've heard so much about you from\nyour father."]);
+ });
+});
+
+// The strong bundle runs transition-press-result-v1 and dialogue-auto-advance-v1 together on the shared observe/press tracker.
+describe("dialogue-auto-advance-v1 with transition-press-result-v1 (strong-bundle composition)",()=>{
+ const BUNDLE:FeatureSet={...ON,"transition-press-result-v1":true};
+ function bundle(game:FakeGame,features:FeatureSet=BUNDLE){
+  const rec=memoryRecorder();const clock=fakeClock();
+  const base=gameTools(URL_BASE,{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},game.fetch,toolSwitches(features),{now:()=>clock.t,sleep:()=>Promise.resolve()});
+  const tools=playGameTools(base,features,game.read,rec.api);
+  const tool=(name:string):AgentTool=>{const t=tools.find(x=>x.name===name);if(t===undefined)throw new Error(`missing ${name}`);return t;};
+  return {tool,rec};
+ }
+ const pressLine=(r:AgentToolResult<unknown>)=>textOf(r).split("\n").filter(l=>l.startsWith("Press result:"));
+ it("names a conversation restarted at the same place when auto-advance read it to the end",async()=>{
+  const game=new FakeGame(SCIENTIST);const {tool}=bundle(game);
+  await tool("press").execute("c1",{buttons:["A"]});
+  const again=await tool("press").execute("c2",{buttons:["A"]});
+  expect(pressLine(again)).toEqual(["Press result: conversation restarted: this text was already shown (2nd time)"]);
+  expect(textOf(again)).toContain("Dialogue auto-advance: the harness pressed B 2 times");
+ });
+ it("keeps the carried-over warp when the press opens dialogue",async()=>{
+  const game=new FakeGame(SCIENTIST);const {tool}=bundle(game);
+  await tool("observe").execute("o1",{});
+  game.place={location:"LITTLEROOT TOWN",map_id:[0,9]};
+  const result=await tool("press").execute("c1",{buttons:["A"]});
+  expect(pressLine(result)).toHaveLength(1);
+  expect(pressLine(result)[0]).toMatch(/^Press result: warped before this press \(carried over from your previous action; your last result still showed the old map\): LITTLEROOT TOWN PROFESSOR BIRCHS LAB \[map 1\/4\] \(13,14\) -> LITTLEROOT TOWN \[map 0\/9\] \(13,14\); this press: /);
+ });
+ it("keeps the carried-over warp on a batch sent one input at a time without dialogue",async()=>{
+  const game=new FakeGame(SCIENTIST);const {tool}=bundle(game);
+  await tool("observe").execute("o1",{});
+  game.place={location:"LITTLEROOT TOWN",map_id:[0,9]};
+  const result=await tool("press").execute("c1",{buttons:["LEFT","A"]});
+  expect(game.posts.map(p=>p.buttons[0])).toEqual(["LEFT","A"]);
+  const lines=pressLine(result);
+  expect(lines).toHaveLength(1);
+  expect(lines[0]).toMatch(/^Press result: LEFT: warped before this press \(carried over[^)]*\): LITTLEROOT TOWN PROFESSOR BIRCHS LAB \[map 1\/4\] \(13,14\) -> LITTLEROOT TOWN \[map 0\/9\] \(13,14\); this press: moved \(13,14\) -> \(12,14\) \| then A: /);
+ });
+ it("records inputs the safe-batch rule withheld as dropped, so requested = sent + dropped",async()=>{
+  const game=new FakeGame(SCIENTIST);const features:FeatureSet={...ON,"dialogue-safe-batches-v1":true};const {tool,rec}=wire(game,features);
+  await tool("press").execute("c1",{buttons:["A","A","A"]});
+  const [event]=rec.advances();
+  expect(event).toMatchObject({requested:["A","A","A"],sent:["A"],dropped:["A","A"]});
+ });
+});
+
+describe("dialogue-auto-advance-v1 records what the press tool really sent",()=>{
+ it("takes sent from the inner press when the state changed between the two reads",async()=>{
+  const game=new FakeGame(SCIENTIST);
+  const free=await game.read.read();
+  await game.fetch(`${URL_BASE}/action`,{method:"POST",body:JSON.stringify({buttons:["A"]})});
+  game.posts.length=0;
+  const features:FeatureSet={...ON,"dialogue-safe-batches-v1":true};
+  const rec=memoryRecorder();const clock=fakeClock();
+  const base=[observeTool(URL_BASE,game.fetch),pressTool(URL_BASE,{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},game.fetch,{now:()=>clock.t,sleep:()=>Promise.resolve()},toolSwitches(features))];
+  const tools=withDialogueAutoAdvance(base,features,{state:{read:()=>Promise.resolve(free)},recorder:rec.api,clock});
+  const press=tools.find(t=>t.name==="press");if(press===undefined)throw new Error("missing press");
+  const result=await press.execute("c1",{buttons:["UP","UP"]});
+  expect(game.posts[0]?.buttons).toEqual(["UP"]);
+  const [event]=rec.advances();
+  expect(event).toMatchObject({requested:["UP","UP"],sent:["UP"],dropped:["UP"]});
+  expect(textOf(result).split("\n")[0]).toBe("pressed UP");
+ });
+});
+
+describe("dialogue-auto-advance-v1 keeps what the inner tools appended",()=>{
+ it("keeps the text a wrapped press appended after its observation on the walk path",async()=>{
+  const game=new FakeGame(SCIENTIST);
+  const free=await game.read.read();
+  await game.fetch(`${URL_BASE}/action`,{method:"POST",body:JSON.stringify({buttons:["A"]})});
+  const features:FeatureSet={...ON,"dialogue-safe-batches-v1":true};
+  const rec=memoryRecorder();const clock=fakeClock();
+  const inner=pressTool(URL_BASE,{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},game.fetch,{now:()=>clock.t,sleep:()=>Promise.resolve()},toolSwitches(features));
+  const execute=inner.execute.bind(inner);
+  inner.execute=async(...args)=>{const r=await execute(...args);return {...r,content:[...r.content,{type:"text" as const,text:"Objective warning: fixture"}]};};
+  const tools=withDialogueAutoAdvance([observeTool(URL_BASE,game.fetch),inner],features,{state:{read:()=>Promise.resolve(free)},recorder:rec.api,clock});
+  const press=tools.find(t=>t.name==="press");if(press===undefined)throw new Error("missing press");
+  const result=await press.execute("c1",{buttons:["UP","UP"]});
+  expect(rec.advances()).toHaveLength(1);
+  expect(textOf(result)).toContain("Objective warning: fixture");
  });
 });

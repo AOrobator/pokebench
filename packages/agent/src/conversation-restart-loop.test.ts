@@ -16,6 +16,15 @@ it("catches a conversation that A-batches keep restarting, however the print cur
  expect(notices.some(n=>n.phase==="supervisor")).toBe(true);
 });
 
+it("catches a conversation every batch restarts to the same print cursor (the batch itself moves the cursor back)",()=>{
+ const {d,notices}=detector();
+ // Recorded shape (6684 T600): the pre-press snapshot waits at the end of the text, the batch closes the box and
+ // the same text prints again from the top; here every batch happens to stop at the same cursor.
+ const waiting=talking(50),reprinted=talking(48);
+ for(let i=0;i<8;i++){d.complete(press(waiting,reprinted,["A","A","A","A","A","A","A","A"]));d.context();}
+ expect(notices.some(n=>n.kind==="cycle"&&n.phase==="warning")).toBe(true);
+});
+
 it("catches talk, read to the end, talk again at the same person (run 0c40, turns 520–540)",()=>{
  const {d,notices}=detector();
  let before=talking(null,null);

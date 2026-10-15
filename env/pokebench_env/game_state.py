@@ -170,6 +170,7 @@ def read_game_state(
     full_map_enabled: bool = False,
     story_characters_enabled: bool = True,
     battle_details_enabled: bool = True,
+    dynamic_warp_enabled: bool = True,
 ) -> GameState:
     screen = read_screen(read)
     in_battle = bool(read(IN_BATTLE, 1)[0] & 0x02)
@@ -313,8 +314,12 @@ def read_game_state(
         )
         if story_characters_enabled and screen.kind == "overworld" and not in_battle
         else None,
+        # named-warp-destinations-v1 OFF never reads SaveBlock1.dynamicWarp.
         dynamic_warp=_dynamic_warp(read, save1, maps)
-        if any(t.destination is not None and t.destination[:2] == (127, 127) for t in targets or ())
+        if dynamic_warp_enabled
+        and any(
+            t.destination is not None and t.destination[:2] == (127, 127) for t in targets or ()
+        )
         else None,
         interaction_targets=targets,
         field_controls_locked=bool(read(FIELD_CONTROLS_LOCK, 1)[0])

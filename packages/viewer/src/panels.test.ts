@@ -566,6 +566,14 @@ it("links the battle details v2 card to its tracked explainer",()=>{
  expect(FEATURE_EXPLAINERS["battle-details-v2"]).toBe("battle-details-v2.html");
 });
 
+it("keeps the battle details v2 explainer to what the readout does: no escape formula, no reads while off",()=>{
+ const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/battle-details-v2.html",import.meta.url)),"utf8");
+ expect(html).not.toMatch(/the formula with/);
+ expect(html).not.toMatch(/gathered every battle poll/);
+ expect(html).toContain("allowed — guaranteed, or not guaranteed");
+ expect(html).toContain("the facts are read only while the switch is on");
+});
+
 it("documents recall_dialogue and links the dialogue log explainer",()=>{
  const log=new Log();log.add(0,{...START,tools:["observe","press","recall_dialogue"]});
  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log));

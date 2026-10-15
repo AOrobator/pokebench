@@ -139,7 +139,17 @@ Triage by the operator merge rule (blocks only on crash / OFF drift / false info
 - 18:15 server on 8811 hung mid re-qualification (another client was holding connections to 8811); restarted
   as `aaq-explore-2` on port 8873 and re-ran the remaining scenarios.
 - 18:35 round 3 RED: 3 new tests fail on fa2497a (B1–B3).
-- 18:40 round 3 GREEN: 43/43.
+- 18:40 round 3 GREEN: 43/43 (ee890b4). Gates on ee890b4: test agent 1215, viewer 684, python 1917 passed; lint 0;
+  coverage agent 97.69/94.67/98.12/98.99, viewer 95.25/90.94/94.18/98.01, python 96%; verify-vendor OK.
+- 18:55 B4 evidence binding: `qualify.mjs` records `build` {head, clean, dist_sha256}. Re-ran lab-1, truck-late,
+  nickname-no and help-me on ee890b4 (clean, dist sha256 124f568b…) on port 8873, run dir `aaq-explore-3`
+  (`aaq-explore-2` cannot be reused: a run directory is used once). `out/r3/`: lab-1 15 pages, B×12, stop menu at the
+  nickname YES/NO (task live, result 0xFF), first page "PROF. BIRCH: Whew…"; truck-late 12 pages, B×11, field_free,
+  first page MOM's "AA, we're here, honey!"; nickname-no 4 pages, B×3, stop menu, YES/NO live; help-me 3 pages
+  ["H-help me!", …], B×2, field_free. ramcheck problems 0 in all four.
+- 19:05 merged main (bundle 4b5b8bf + decision-point 954d74f): conflicts only in dialogue-auto-advance.ts/test.ts
+  (main's round 4–6 pressedOf/pressLineOf/results vs round-3 carried `open`); both kept. observation.py untouched
+  by this branch.
 
 ## Invariants
 

@@ -4,7 +4,7 @@
   "title": "Story character presence",
   "changedFeature": "character-presence-v1",
   "hypothesis": "Saying which story characters the map itself places here (and that PROF. BIRCH is not on it) stops the model treating SCIENTIST_1, FAT_MAN or TWIN sprites as Birch, so fewer runs stall in the lab or chase a phantom Birch, and more reach Route 101 and choose a starter.",
-  "activationMilestone": "PLAYER_HOUSE_EXITED_AFTER_CLOCK",
+  "activationMilestone": "PLAYER_NAME_CONFIRMED",
   "primaryMilestone": "RIVAL_HOUSE_ENTERED",
   "source": {
     "checkout": "main",

@@ -43,6 +43,7 @@ No feature switch: this changes process supervision, not what the model sees, it
 - [ ] Review (M1 fix + M2).
 
 ### M3: deploys are safe by construction
+- [x] RED: cli.test.ts `shutdown` (2 failing): SIGTERM/SIGINT close the viewer once and exit 0; a failed close still exits 1.
 - [ ] The viewer handles SIGTERM and SIGINT by closing the server and stopping the autorun only. It never signals launched runs.
 - [ ] `just viewer-main` refuses to report success unless every run that was live before the restart is still live after it, and the new viewer's autorun reports it adopted.
 - [ ] Explainer page with a diagram (before and after process tree, adoption flow), per the feature-explainer skill.

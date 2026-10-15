@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { CliError, DEFAULT_PORT, main, parseArgs, viewUrl } from "./cli.js";
+import { CliError, DEFAULT_PORT, closeOnSignals, main, parseArgs, viewUrl } from "./cli.js";
 import { RunQueue } from "./next-run.js";
 
 describe("parseArgs", () => {
@@ -82,5 +82,29 @@ describe("main", () => {
     await main(["abc"], { repoRunsRoot: "/repo/runs", defaultEndpoint: null, defaultPublicOrigins: "https://studio.example.ts.net:8447", liveJs: "/l.js", staticDir: "/s", appDir: "/a", start, print: (line) => lines.push(line) });
     expect(start).toHaveBeenCalledWith(expect.objectContaining({ publicOrigins: ["https://studio.example.ts.net:8447"] }));
     expect(lines.slice(0, 2)).toEqual(["PokeBench viewer: http://127.0.0.1:8790/#run=abc", "also published at: https://studio.example.ts.net:8447/#run=abc"]);
+  });
+});
+
+describe("shutdown", () => {
+  it("closes the viewer on SIGTERM or SIGINT and exits without touching the runs it launched", async () => {
+    for (const signal of ["SIGTERM", "SIGINT"] as const) {
+      const handlers = new Map<string, () => void>();
+      const close = vi.fn(() => Promise.resolve());
+      const exits: number[] = [];
+      closeOnSignals({ close }, (name, handler) => { handlers.set(name, handler); }, (code) => { exits.push(code); });
+      expect([...handlers.keys()].sort()).toEqual(["SIGINT", "SIGTERM"]);
+      handlers.get(signal)?.();
+      handlers.get(signal)?.();
+      await vi.waitFor(() => { expect(exits).toEqual([0]); });
+      expect(close).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  it("still exits when closing fails", async () => {
+    const handlers = new Map<string, () => void>();
+    const exits: number[] = [];
+    closeOnSignals({ close: () => Promise.reject(new Error("busy")) }, (name, handler) => { handlers.set(name, handler); }, (code) => { exits.push(code); });
+    handlers.get("SIGTERM")?.();
+    await vi.waitFor(() => { expect(exits).toEqual([1]); });
   });
 });

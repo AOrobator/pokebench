@@ -641,3 +641,7 @@ it("shows milestone hints as messages sent to the model and documents get_next_m
 it("links the fresh retry card to its explainer",()=>{
  expect(FEATURE_EXPLAINERS["fresh-retry-v1"]).toBe("fresh-retry-v1.html");
 });
+
+it("links the named warp destinations card to its explainer",()=>{
+ expect(FEATURE_EXPLAINERS["named-warp-destinations-v1"]).toBe("named-warp-destinations-v1.html");
+});

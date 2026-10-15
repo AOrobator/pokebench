@@ -89,11 +89,18 @@ Readout text only. No new inputs, subprocesses, network or file paths. The ROM i
 - [ ] Multi-model review loop until clean
 
 **M2 — Explainer and pending experiment**
-- [ ] Explainer with before/after readout diagram (feature-explainer), mapped in `FEATURE_EXPLAINERS`
-- [ ] `experiments/named-warp-destinations.json` as pending: incumbent with this switch flipped, activation
-      milestone `MOM_RIVAL_INSTRUCTION`, graded on `RIVAL_HOUSE_ENTERED` and `RIVAL_MET`; readiness verdict in
-      `docs/experiments/readiness.md` (leaving home is 8/8 in the 2x2, so readiness should pass)
-- [ ] Gates and review
+- [x] Explainer `docs/explainers/named-warp-destinations-v1.html` (Littleroot door diagram, exact OFF/ON
+      readout from the live smoke, map-table grounding, wiring, overlap with world-destinations), README entry,
+      `FEATURE_EXPLAINERS` mapping, panels/server tests (viewer 574 pass)
+- [x] `experiments/named-warp-destinations.json` with `queuePosition` 4, ahead of the unpositioned
+      world-destinations entry (operator). Activation `FIRST_TRUCK_EXIT`: the truck's warps are dynamic
+      (pokeemerald InsideOfTruck/map.json `MAP_DYNAMIC`) and stay unnamed. Graded on `RIVAL_HOUSE_ENTERED`.
+      Incumbent copied from fresh-retry plus this switch OFF. Readiness READY in `docs/experiments/readiness.md`.
+      The queue CLI reads main's checkout, so the entry appears in `just experiments` only after landing;
+      loaded from the worktree it validates with no problems.
+- [ ] COMMIT: `docs(explainers): named warp destinations explainer and queued experiment`
+- [ ] Live viewer click-through of READ EXPLAINER (after landing; the shared viewer serves main)
+- [ ] Gates and review (round 2 covers 5ae6acb and this commit)
 
 **M3 — Landing (ASK USER)**
 - [ ] ASK USER: approve local merge into main

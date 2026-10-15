@@ -180,12 +180,15 @@ export function finalsTrials(n: Nomination, ledger: readonly FinalsEntry[], runn
 export function decide(n: Nomination, ledger: readonly FinalsEntry[], source: RunSource, criteria: { readonly speedMarginPercent: number; readonly completionTolerance: number }): FinalsDecision | null {
   const trials = finalsTrials(n, ledger, null);
   if (trials.some((t) => t.state !== "done")) return null;
-  const runsOf = (arm: string): RunOutcome[] => outcomesOf(source, [...(arm === "incumbent" ? n.reusedIncumbent : []), ...trials.filter((t) => t.arm === arm).map((t) => t.run ?? "")]);
+  // Every finals run counts (PB2): one whose log can no longer be read scores as reaching nothing.
+  const runsOf = (arm: string): RunOutcome[] => [...(arm === "incumbent" ? n.reusedIncumbent : []), ...trials.filter((t) => t.arm === arm).map((t) => t.run ?? "")].map((run) => { const m = source.trial(run); return m === null ? { reached: [], milestoneMs: {} } : { reached: m.reached, milestoneMs: m.milestoneMs }; });
   return decideFinals({ incumbent: runsOf("incumbent"), finalists: n.finalists.map((f) => ({ arm: f.arm, runs: runsOf(f.arm) })), ...criteria });
 }
 
 // cohort: for an experiment measured in an external cohort, whether that cohort finished and, if not, why it is waited for.
 export function gateView(experiment: Experiment, runsRoot: string, runner: RunnerPosition | null, problems: string[], cohort: { readonly done: boolean; readonly waiting: string } | null): GateView | null {
+  // A discarded experiment is closed: it never nominates, runs finals or holds the queue.
+  if (experiment.discarded !== undefined) return null;
   const n = readNomination(runsRoot, experiment.id, problems);
   const base = { experiment: experiment.id, title: experiment.title, finals: n?.finals ?? finalsConfig(experiment), decision: null, winner: null };
   if (n === null) {

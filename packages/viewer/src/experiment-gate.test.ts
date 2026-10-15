@@ -256,6 +256,38 @@ describe("winner gate", () => {
     expect((await runQueue({ paths: w.paths, source: w.source, host: stopper })).stopped).toBe("held: the finals were withdrawn");
   });
 
+  it("drops a discarded experiment from the gate whatever stage it reached, so its finals never run", async () => {
+    for (const stage of ["waiting", "finals", "withdrawn"] as const) {
+      const w = world();
+      gated(w);
+      cohort(w, stage === "waiting" ? "running" : "done", COHORT);
+      if (stage !== "waiting") await runQueue({ paths: w.paths, source: w.source, host: host(w), stopRequested: () => true });
+      if (stage === "withdrawn") setFinalsWithdrawn(w.paths, w.source, "full-map", true, "op", new Date());
+      expect(queueSnapshot(w.paths, w.source).gateBlock).not.toBeNull();
+      writeDefinition(w.paths.experimentsDir, definition("full-map", { externalCohort: "cohort-2x2", finals: FINALS, discarded: "dropped" }));
+      const s = queueSnapshot(w.paths, w.source);
+      expect(s.gate).toEqual([]);
+      expect(nextStep(s)).toMatchObject({ kind: "experiment", view: { id: "hint" } });
+      const fake = host(w);
+      await runQueue({ paths: w.paths, source: w.source, host: fake, once: true });
+      expect(fake.launches.map((l) => l.presetPath)).toEqual([expect.stringMatching(/hint[/\\]presets[/\\]incumbent\.json$/) as string]);
+    }
+  });
+
+  it("scores a finals run whose log is gone as reaching nothing", async () => {
+    const w = world();
+    gated(w);
+    cohort(w, "done", COHORT);
+    const fake = host(w);
+    await runQueue({ paths: w.paths, source: w.source, host: fake, stopRequested: () => fake.launches.length >= 11 });
+    // Every whole-map run's log disappears before the last run: whole fails, both still wins.
+    for (const l of fake.launches) if (l.presetPath.endsWith("finals-whole.json")) w.metrics.delete(l.runId);
+    const last = host(w, {}, (f) => (f["full-map-navigation-v1"] && !f["navigation-evidence-memory-v1"] ? nothing : reach(f["full-map-navigation-v1"] ? MET : HOUSE)));
+    await runQueue({ paths: w.paths, source: w.source, host: last, once: true });
+    expect(last.launches).toHaveLength(1);
+    expect((read(finalsResultPath(w.paths.runsRoot, "full-map")) as { decision: { winner: string } }).decision.winner).toBe("both");
+  });
+
   it("refuses finals that cannot run on one build or with a live run or a changed preset", async () => {
     const w = world();
     gated(w);

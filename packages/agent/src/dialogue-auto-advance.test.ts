@@ -147,13 +147,24 @@ describe("dialogue-auto-advance-v1 press path",()=>{
   expect(rec.advances()[0]).toMatchObject({requested:["A","A","A","A","A","A","A","A"],sent:["A"],dropped:["A","A","A","A","A","A","A"]});
  });
 
- it("continues a conversation already open and does not repeat the page already shown",async()=>{
+ it("records the page already waiting when the call begins, then continues the conversation",async()=>{
   const game=new FakeGame(SCIENTIST,0);game.openNow();const {tool,rec}=wire(game);
   const result=await tool("press").execute("c3",{buttons:["B","B","B"]});
   expect(game.posts.map(p=>p.buttons[0])).toEqual(["B","B"]);
-  expect(rec.advances()[0]?.pages.map(p=>p.text)).toEqual(["The power of science is staggering!"]);
+  expect(rec.advances()[0]?.pages.map(p=>p.text)).toEqual(["If you use a PC, you can store items\nand POKéMON.","The power of science is staggering!"]);
   expect(textOf(result)).toContain("dialogue closed; 2 remaining inputs not sent: B, B.");
  });
+
+ it("does not repeat the page an earlier capped call already recorded",async()=>{
+  const game=new FakeGame({...SCIENTIST,then:"endless"});const {tool,rec}=wire(game);
+  await tool("press").execute("k1",{buttons:["A"]});
+  await tool("press").execute("k2",{buttons:["B"]});
+  const [first,second]=rec.advances();
+  expect(first?.stop).toBe("press_cap");expect(second?.stop).toBe("press_cap");
+  expect(first?.pages.at(-1)?.text).toBe("If you use a PC, you can store items\nand POKéMON.");
+  expect(second?.pages[0]?.text).toBe("The power of science is staggering!");
+ });
+
 
  it("stops at a YES/NO question, names the options and the highlighted one, and keeps the question page",async()=>{
   const game=new FakeGame({...SCIENTIST,then:"yesno"});const {tool,rec}=wire(game);
@@ -499,4 +510,66 @@ it("falls back to the faced object's sprite kind when no interaction target is l
  const nobody=new Scripted([{...FREE,...at},{...FREE,...at},{...MSG("page_wait","Hm?"),...at},{...FREE,...at}]);const n=scriptedTools(nobody);
  await n.press.execute("g",{buttons:["A"]});
  expect(n.rec.advances()[0]?.pages.map(p=>[p.speaker,p.speaker_source])).toEqual([[null,null]]);
+});
+
+// Recorded from the real ROM on an isolated server (runs/auto-advance-qualify); states trimmed to the
+// fields the wrapper reads. Expected pages are the game's own message buffers (gStringVar4) cut at its waits.
+interface RealReplay {source:string;calls:{buttons:Button[]}[];actions:Button[][];states:GameStateSnapshot[]}
+const realReplay=(name:string):RealReplay=>JSON.parse(readFileSync(new URL(`../test-support/auto-advance-replays/${name}.json`,import.meta.url),"utf8")) as RealReplay;
+async function replayCalls(name:string){
+ const replay=realReplay(name);const game=new Scripted(replay.states);const {press,rec}=scriptedTools(game);
+ const results=[];for(const [i,call] of replay.calls.entries())results.push(await press.execute(`r${String(i)}`,{buttons:call.buttons}));
+ return {results,rec,game,replay};
+}
+
+describe("dialogue-auto-advance-v1 real-game replays",()=>{
+ it("records MOM's first page when it was already waiting as the model pressed A outside the truck",async()=>{
+  const {rec}=await replayCalls("truck-late");
+  const [event]=rec.advances();
+  expect(event?.pages.map(p=>p.text).slice(0,3)).toEqual(["MOM: AA, we're here, honey!","It must be tiring riding with our things\nin the moving truck.","Well, this is LITTLEROOT TOWN."]);
+  expect(event?.pages.map(p=>p.text).at(-1)).toBe("Don't forget to set it!");
+  expect(event?.pages).toHaveLength(12);
+  expect(new Set(event?.pages.map(p=>p.text)).size).toBe(12);
+ });
+
+ it("records a single page the model's own press closed into a locked cutscene, without pressing into the lock",async()=>{
+  const {rec,game,results}=await replayCalls("helpme");
+  const [event]=rec.advances();
+  expect(event?.pages.map(p=>p.text)).toEqual(["H-help me!"]);
+  expect(game.posts).toEqual([["A"]]);
+  expect(event?.auto_presses).toBe(0);
+  expect(event?.stop).toBe("locked_no_message");
+  expect(textOf(results[0] as AgentToolResult<unknown>)).toContain("H-help me!");
+ });
+
+ it("records BIRCH's whole route and lab talk once each and stops at the nickname YES/NO without answering",async()=>{
+  const {rec,game}=await replayCalls("lab");
+  const [event]=rec.advances();
+  const pages=event?.pages.map(p=>p.text)??[];
+  expect(pages[0]).toBe("PROF. BIRCH: Whew…");
+  expect(pages.at(-1)).toBe("PROF. BIRCH: While you're at it, why not\ngive a nickname to that TORCHIC?");
+  expect(pages.join("\n")).toBe(["PROF. BIRCH: Whew…\nI was in the tall grass studying wild\nPOKéMON when I was jumped.\nYou saved me.\nThanks a lot!\nOh?\nHi, you're AA!\nThis is not the place to chat, so come\nby my POKéMON LAB later, okay?","PROF. BIRCH: So, AA.\nI've heard so much about you from\nyour father.\nI've heard that you don't have your\nown POKéMON yet.\nBut the way you battled earlier,\nyou pulled it off with aplomb!\nI guess you have your father's blood\nin your veins after all!\nOh, yes. As thanks for rescuing me,\nI'd like you to have the POKéMON you\nused earlier.\nAA received the TORCHIC!","PROF. BIRCH: While you're at it, why not\ngive a nickname to that TORCHIC?"].join("\n"));
+  expect(event?.stop).toBe("menu");
+  expect(event?.detail).toContain("YES");
+  expect(game.posts.slice(1).every(b=>b.length===1&&b[0]==="B")).toBe(true);
+ });
+
+ it("does not stop as free field on the one unlocked frame between the lab warp and the lab's ON_FRAME script",async()=>{
+  const {rec}=await replayCalls("lab-warp");
+  const [event]=rec.advances();
+  expect(event?.stop).not.toBe("field_free");
+  expect(event?.pages[0]?.text).toBe("PROF. BIRCH: Whew…");
+ });
+
+ it("keeps one message when its buffer is readable a frame before its identity",async()=>{
+  const text="PROF. BIRCH: So, AA.\nI've heard so much about you from\nyour father.";
+  const at=(phase:"printing"|"page_wait"|"dismiss_wait",cursor:number,identity:string|undefined):GameStateSnapshot=>({...MSG("printing",text),world_context:{objects:[],triggers:[],dialogue:text,message:{phase,cursor,ready:phase!=="printing",...(identity===undefined?{}:{identity})}}});
+  const id="d300a8ee9a970b1e5c4e716109d7242d4c7495f96db11a0259e5bec04117976d";
+  const before=MSG("page_wait","You saved me.");
+  const noId={...before,world_context:{objects:[],triggers:[],dialogue:text,message:null}};
+  const game=new Scripted([before,noId,at("printing",11,id),at("page_wait",20,id),at("printing",40,id),at("dismiss_wait",text.length,id),FREE]);
+  const {press,rec}=scriptedTools(game);
+  await press.execute("k",{buttons:["A"]});
+  expect(rec.advances()[0]?.pages.map(p=>p.text)).toEqual(["You saved me.","PROF. BIRCH: So, AA.","I've heard so much about you from\nyour father."]);
+ });
 });

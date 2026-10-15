@@ -43,7 +43,7 @@ function freeField(s:GameStateSnapshot):boolean {
 export function dialogueEngaged(s:GameStateSnapshot):boolean {
  return s.screen==="overworld"&&!s.in_battle&&s.active_ui==null&&s.naming==null&&(s.world_context?.message!=null||s.world_context?.field_activity?.phase==="message_initializing");
 }
-type Wait="printing"|"locked"|"interface";
+type Wait="printing"|"locked"|"interface"|"settling";
 type Message=NonNullable<NonNullable<GameStateSnapshot["world_context"]>["message"]>;
 type Decision={kind:"press";message:Message}|{kind:"wait";why:Wait}|{kind:"stop";stop:Stop;detail:string};
 function menuDetail(ui:NonNullable<GameStateSnapshot["active_ui"]>):string {
@@ -61,9 +61,11 @@ function classify(s:GameStateSnapshot):Decision {
  if(message!=null)return message.ready?{kind:"press",message}:{kind:"wait",why:"printing"};
  if(s.world_context?.field_activity?.phase==="message_initializing")return {kind:"wait",why:"printing"};
  if(s.field_controls_locked===true)return {kind:"wait",why:"locked"};
- return {kind:"stop",stop:"field_free",detail:"the conversation closed and field controls are free"};
+ return {kind:"stop",stop:"field_free",detail:FIELD_FREE};
 }
+const FIELD_FREE="the conversation closed and field controls are free";
 const WAIT_STOP:Readonly<Record<Wait,{stop:Stop;detail:string}>>={
+ settling:{stop:"field_free",detail:FIELD_FREE},
  printing:{stop:"message_not_ready",detail:`the message stayed printing or waiting without accepting input for ${String(AUTO_ADVANCE_LIMITS.waitMs/1000)} s; inspect it before pressing`},
  locked:{stop:"locked_no_message",detail:`field controls stayed locked with no message for ${String(AUTO_ADVANCE_LIMITS.waitMs/1000)} s (a cutscene or script may still be running); inspect before acting`},
  interface:{stop:"interface_not_ready",detail:`an interface stayed not ready for ${String(AUTO_ADVANCE_LIMITS.waitMs/1000)} s; inspect before acting`},
@@ -86,24 +88,34 @@ function speakerOf(text:string,s:GameStateSnapshot):Speaker|null {
 
 // Pages are cut from the game's own message buffer at the printer's cursor when
 // each page reaches a wait phase; a closed message contributes its remainder.
+// Where a call left a message still on screen, so the next call neither repeats nor drops its pages.
+export interface OpenMessage {readonly text:string;readonly offset:number;readonly cursor:number}
 class Pages {
  readonly pages:DialoguePage[]=[];
- private key:string|null=null;private text="";private offset=0;private cursor=0;private speaker:Speaker|null=null;private last:GameStateSnapshot|null=null;
- constructor(private readonly record:(s:GameStateSnapshot)=>Recorded){}
+ private opened=false;private id:string|null=null;private text="";private offset=0;private cursor=0;private speaker:Speaker|null=null;private last:GameStateSnapshot|null=null;
+ constructor(private readonly record:(s:GameStateSnapshot)=>Recorded,private readonly open:OpenMessage|null=null){}
+ // A page already waiting when the call begins is recorded now unless an earlier call recorded it.
  prime(s:GameStateSnapshot):void {
   this.see(s);
+  if(this.opened&&this.open?.text===this.text){this.offset=this.open.offset;this.cursor=this.open.cursor;}
   const m=s.world_context?.message;
-  if(m?.ready===true){this.offset=this.end(m.phase,m.cursor);this.cursor=m.cursor;}
+  if(m?.ready===true)this.capture(s,m);
  }
  see(s:GameStateSnapshot):void {
   const text=s.world_context?.dialogue;
   if(text==null)return;
-  const key=s.world_context?.message?.identity??text;
-  if(key!==this.key){
+  // The buffer is readable a few frames before its message identity; the same text is the same message.
+  const id=s.world_context?.message?.identity??null;
+  const same=this.opened&&text===this.text&&(id===null||this.id===null||id===this.id);
+  if(!same){
    if(this.last!==null)this.flush(this.last);
-   this.key=key;this.text=text;this.offset=0;this.cursor=0;this.speaker=speakerOf(text,s)??this.speaker;
+   this.opened=true;this.text=text;this.offset=0;this.cursor=0;this.speaker=speakerOf(text,s)??this.speaker;this.id=null;
   }
+  if(id!==null)this.id=id;
   this.last=s;
+ }
+ openAt(s:GameStateSnapshot):OpenMessage|null {
+  return this.opened&&s.world_context?.dialogue===this.text?{text:this.text,offset:this.offset,cursor:this.cursor}:null;
  }
  capture(s:GameStateSnapshot,m:Message):void {
   this.see(s);
@@ -114,7 +126,7 @@ class Pages {
   if(end>this.offset){this.add(this.text.slice(this.offset,end),s);this.offset=end;}
  }
  flush(s:GameStateSnapshot):void {
-  if(this.key!==null&&this.offset<this.text.length){this.add(this.text.slice(this.offset),s);this.offset=this.text.length;}
+  if(this.opened&&this.offset<this.text.length){this.add(this.text.slice(this.offset),s);this.offset=this.text.length;}
  }
  private end(phase:string,cursor:number):number {
   if(phase==="dismiss_wait"||cursor>=this.text.length)return this.text.length;
@@ -131,13 +143,20 @@ class Pages {
 interface Outcome {readonly state:GameStateSnapshot;readonly stop:Stop;readonly detail:string;readonly presses:number;readonly extras:readonly TextContent[]}
 async function advance(start:GameStateSnapshot,pages:Pages,press:(signal?:AbortSignal)=>Promise<Result>,ports:Required<AutoAdvancePorts>,signal?:AbortSignal):Promise<Outcome> {
  const {clock}=ports;const began=clock.now();
- let s=start,presses=0,waiting:Wait|null=null,waitSince=began;
+ let s=start,presses=0,waiting:Wait|null=null,waitSince=began,free:number|null=null;
  const extras:TextContent[]=[];
  const done=(stop:Stop,detail:string):Outcome=>{if(!UNSHOWN.has(stop))pages.flush(s);return {state:s,stop,detail,presses,extras};};
  const failed=(error:unknown):Outcome=>{if(signal?.aborted===true)throw error;return done("error",`auto-advance stopped: ${error instanceof Error?error.message:String(error)}`);};
  for(;;){
   pages.see(s);
-  const decision=classify(s);
+  let decision=classify(s);
+  // Free field is final only when a later frame still shows it: on the first field frame after a
+  // release or warp fade, ProcessPlayerFieldInput runs trainer sight and ON_FRAME map scripts before input.
+  if(decision.kind==="stop"&&decision.stop==="field_free"){
+   const frame=frameOf(s);
+   if(free!==null&&(frame===null||frame>free))return done(decision.stop,decision.detail);
+   free??=frame??-1;decision={kind:"wait",why:"settling"};
+  }else free=null;
   if(decision.kind==="stop")return done(decision.stop,decision.detail);
   if(clock.now()-began>=AUTO_ADVANCE_LIMITS.callMs)return done("time_cap",`AUTO-ADVANCE CAP: stopped after ${String(AUTO_ADVANCE_LIMITS.callMs/1000)} s of automatic advancing; the message is still open`);
   if(decision.kind==="press"){
@@ -156,6 +175,7 @@ async function advance(start:GameStateSnapshot,pages:Pages,press:(signal?:AbortS
  }
 }
 
+const frameOf=(s:GameStateSnapshot):number|null=>s.raw_ram?.frame??null;
 // Text the ordinary tools append after their observation (objective warnings).
 function extraText(result:Result):TextContent[] {
  return result.content.slice(2).filter((part):part is TextContent=>part.type==="text");
@@ -196,6 +216,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
   const seen=await observe.execute(id,{},signal);
   return {seen,state:stateOf(seen),block:summary(outcome,pages.pages,dropped,event.turn)};
  };
+ let open:OpenMessage|null=null;
  const execute=async(id:string,params:PressParams,signal?:AbortSignal,update?:Parameters<CheckedPressTool["execute"]>[3],check?:BeforePressCheck):Promise<AgentToolResult<{state:GameStateSnapshot|undefined}>>=>{
   signal?.throwIfAborted();
   const began=full.clock.now();
@@ -204,24 +225,26 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
   const plan=submittedButtons(params.buttons,before,switches);
   const walking=params.walking===undefined?{}:{walking:params.walking};
   const run=(buttons:Button[],first:boolean)=>first&&check!==undefined?press.executeChecked(id,{buttons,...walking},check,signal,update):press.execute(id,{buttons,...walking},signal,update);
-  const pages=new Pages(record);if(before!==undefined)pages.prime(before);
+  const pages=new Pages(record,open);if(before!==undefined)pages.prime(before);open=null;
+  const shownBefore=pages.pages.length>0;
   const extras:TextContent[]=[];const sent:Button[]=[];
   const walk=before!==undefined&&freeField(before)&&plan.every(b=>DIRECTIONS.has(b));
   let last:Result;
   if(walk){last=await run([...plan],true);sent.push(...plan);}
   else{
    let result:Result|undefined;
-   for(const button of plan){result=await run([button],sent.length===0);sent.push(button);extras.push(...extraText(result));if(dialogueEngaged(stateOf(result)))break;}
+   for(const button of plan){result=await run([button],sent.length===0);sent.push(button);extras.push(...extraText(result));if(shownBefore||dialogueEngaged(stateOf(result)))break;}
    if(result===undefined)throw new Error("press requires at least one button");
    last=result;
   }
   const after=stateOf(last);
-  const engaged=dialogueEngaged(after);
+  const engaged=dialogueEngaged(after)||shownBefore;
   if(!engaged&&(walk||plan.length===1)&&plan.length===params.buttons.length)return last as AgentToolResult<{state:GameStateSnapshot|undefined}>;
   const dropped=plan.slice(sent.length);
   let block:string|null=null,final:Result;
   if(engaged){
    const outcome=await advance(after,pages,autoPress(id),full,signal);
+   open=pages.openAt(outcome.state);
    extras.push(...outcome.extras);
    const done=await finish(id,"press",outcome,pages,params.buttons,sent,dropped,began,signal);
    final=done.seen;block=done.block;
@@ -242,9 +265,11 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
    const began=full.clock.now();
    const result=await tool.execute(id,params,signal,update);
    const state=stateOf(result);
+   open=null;
    if(!dialogueEngaged(state))return result;
    const pages=new Pages(record);
    const outcome=await advance(state,pages,autoPress(id),full,signal);
+   open=pages.openAt(outcome.state);
    const done=await finish(id,"navigate_to",outcome,pages,[],[],[],began,signal);
    const seen=observation(done.seen);
    // navigate_to's own status line comes first; its last frame is replaced by the fresh observation.

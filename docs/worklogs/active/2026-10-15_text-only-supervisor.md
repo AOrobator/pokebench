@@ -28,7 +28,7 @@ at 11.2 min and stopped at 13.7.
 ## Milestones
 - [x] M1 RED: governor, wiring, features registry, finals preset, live factory path, viewer lane.
 - [x] M2 GREEN + gates (lint, coverage ≥ 90, schema regenerated).
-- [ ] M3 Explainer, pending experiment, Claude CLI review, report, merge on approval.
+- [x] M3 Explainer, pending experiment, Claude CLI review, report, merge on approval.
 
 ## Log
 - M1 RED: 9 agent tests fail as intended plus the viewer lane test.
@@ -37,3 +37,4 @@ at 11.2 min and stopped at 13.7.
 - M3: explainer docs/explainers/text-only-supervisor-v1.html (README + FEATURE_EXPLAINERS + server/panels tests), pending experiments/text-only-supervisor.json (no queuePosition; source.commit updated to the merge SHA after merge), readiness row READY.
 - COMMIT: `feat: text-only-supervisor-v1 sends a SUPERVISOR note instead of ending on text-only replies` (6417f03)
 - Claude CLI review: high: state-only mode would record undelivered notes (no follow-ups there); medium: a mixed failure streak could earn a note and the reply count was wrong; low: a note was recorded even when the run stopped before delivery; low: last-note wording; low: in-flight finals would mix (none started: runs/experiments/full-map-navigation has no finals ledger). RED for the first three.
+- GREEN (review fix): a separate all-silent streak decides note vs stop (replies recorded = that streak); the note is built and recorded in nudge(), only when delivered; stateOnlyProblems forbids the switch with state-only decisions and finals force it on only for non-state-only arms; last-note wording fixed. Gates: agent 1083 (97.5/93.87/98.15), viewer 647 (95.36/91.13/94.38), lint clean, experiments-check ok.

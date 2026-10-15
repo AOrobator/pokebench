@@ -151,7 +151,7 @@ Get your bearings:
 - Story steps the game confirms are done: ${this.done()}
 - Recent dialogue you were shown, newest first: ${this.told()}
 - Listed here that you have not tried yet: ${this.untried()}
-Keep your thinking short and end this reply with one tool call: observe to look again, or press, navigate_to or another listed tool to act. After ${String(limit)} notes in a row with no tool call, the run ends.`;
+Keep your thinking short and end this reply with one tool call: observe to look again, or press, navigate_to or another listed tool to act. If replies keep calling no tool after note ${String(limit)} of ${String(limit)}, the run ends.`;
   return clip(text,LIMIT);
  }
 

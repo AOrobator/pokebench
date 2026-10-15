@@ -94,7 +94,7 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 <rect class="prior hot" x="480" y="40" width="210" height="44" rx="6"/><text x="492" y="60">3 more: model_error</text><text x="492" y="76" class="s">12 text-only replies in a row</text>
 <path class="arr g" d="M225 84 V120 H75 V84"/><text x="90" y="138" class="s">a successful tool call resets the note count to 0</text>
 </svg></div>
-<figcaption>At most 3 notes in a row (<code>TEXT_ONLY_NOTE_LIMIT</code>). A model that never calls a tool still ends after 12 replies, so it cannot burn the whole budget. Invalid tool calls and gateway errors still end the run at the limit, as before.</figcaption></figure>
+<figcaption>At most 3 notes in a row (<code>TEXT_ONLY_NOTE_LIMIT</code>). A model that never calls a tool still ends after 12 replies, so it cannot burn the whole budget. Only a streak made entirely of replies with no tool call earns a note; if a gateway error or an invalid tool call is part of the streak, the run ends at the limit as before. The note is recorded when it is delivered, so a run that stops on that turn records none. State-only decision runs send no follow-up messages and must keep the switch off.</figcaption></figure>
 </section>
 
 <section>
@@ -107,14 +107,14 @@ Get your bearings:
 - Story steps the game confirms are done: …
 - Recent dialogue you were shown, newest first: …
 - Listed here that you have not tried yet: …
-Keep your thinking short and end this reply with one tool call: observe to look again, or press, navigate_to or another listed tool to act. After 3 notes in a row with no tool call, the run ends.</pre>
+Keep your thinking short and end this reply with one tool call: observe to look again, or press, navigate_to or another listed tool to act. If replies keep calling no tool after note 3 of 3, the run ends.</pre>
 </section>
 
 <section>
 <h2>Recording and wiring</h2>
 <table>
 <tr><th>Piece</th><th>What it does</th></tr>
-<tr><td>Preset or switchboard</td><td><code>text-only-supervisor-v1</code>, default off. Winner-gate finals turn it on for every arm, the incumbent included.</td></tr>
+<tr><td>Preset or switchboard</td><td><code>text-only-supervisor-v1</code>, default off. Winner-gate finals turn it on for every arm, the incumbent included, except state-only decision arms.</td></tr>
 <tr><td>Governor (<code>harness.ts</code>)</td><td>At the failure limit on a reply with no tool call (text only, or cut off at max_tokens with none), it sends the note instead of stopping.</td></tr>
 <tr><td>Event</td><td><code>text_only_supervisor</code>: replies, note number, limit and the exact note text the model received.</td></tr>
 <tr><td>Viewer</td><td>Error lane, Activity History and trace show each note.</td></tr>

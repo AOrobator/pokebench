@@ -22,8 +22,12 @@ class Memory:
         return bytes(self.bytes.get(address + i, 0) for i in range(length))
 
 
-def template(slot: int, local_id: int, graphics: int, x: int, y: int, flag: int) -> tuple[int, bytes]:
-    body = struct.pack("<BBBxhhBBHHHIH2x", local_id, graphics, 0, x, y, 0, 0, 0, 0, 0, 0x08100000, flag)
+def template(
+    slot: int, local_id: int, graphics: int, x: int, y: int, flag: int
+) -> tuple[int, bytes]:
+    body = struct.pack(
+        "<BBBxhhBBHHHIH2x", local_id, graphics, 0, x, y, 0, 0, 0, 0, 0, 0x08100000, flag
+    )
     return SAVE1 + TEMPLATES + slot * 24, body
 
 
@@ -32,17 +36,24 @@ def lab(memory: Memory, *, birch_hidden: bool) -> None:
         memory.put(*template(slot, *args))
     if birch_hidden:
         memory.put(SAVE1 + FLAGS + 0x2D0 // 8, bytes([1 << (0x2D0 % 8)]))
-    memory.put(SAVE1 + FLAGS + 0x2D1 // 8, bytes([memory.read(SAVE1 + FLAGS + 0x2D1 // 8, 1)[0] | 1 << (0x2D1 % 8)]))
+    memory.put(
+        SAVE1 + FLAGS + 0x2D1 // 8,
+        bytes([memory.read(SAVE1 + FLAGS + 0x2D1 // 8, 1)[0] | 1 << (0x2D1 % 8)]),
+    )
 
 
-def test_hidden_story_characters_are_not_on_this_map_and_sprite_kinds_are_never_named_as_them() -> None:
+def test_hidden_story_characters_are_not_on_this_map_and_sprite_kinds_are_never_named_as_them() -> (
+    None
+):
     memory = Memory()
     lab(memory, birch_hidden=True)
     found = read_story_characters(memory.read, SAVE1, (1, 4), ())
     assert found is not None
     text = found.text()
     assert text.startswith("Story characters here (from this map's own object list): none.")
-    assert "Not on this map: PROF. BIRCH, MAY, BRENDAN, MOM, NORMAN, WALLY, ROXANNE, STEVEN." in text
+    assert (
+        "Not on this map: PROF. BIRCH, MAY, BRENDAN, MOM, NORMAN, WALLY, ROXANNE, STEVEN." in text
+    )
     assert "SCIENTIST_1" not in text.split("Not on this map")[0]
     assert "Sprite kinds such as SCIENTIST_1 or FAT_MAN are not these characters." in text
 
@@ -74,9 +85,9 @@ def test_unreadable_save_block_gives_no_line() -> None:
 def test_readout_prints_the_line_only_when_the_switch_is_on() -> None:
     from dataclasses import replace
 
+    from pokebench_env.game_state import read_game_state
     from pokebench_env.readout import format_readout
     from tests.env.test_feature_switches import map_memory
-    from pokebench_env.game_state import read_game_state
     from tests.env.test_game_state import MAPS
 
     state = read_game_state(map_memory().read, MAPS)

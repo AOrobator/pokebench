@@ -47,7 +47,10 @@ def test_off_equals_the_readout_rendered_by_the_previous_commit() -> None:
     for kw, golden in (({}, "local"), ({"full_map_enabled": True}, "whole")):
         state = read_game_state(map_memory().read, MAPS, **kw)
         expected = (FIXTURES / f"named-warps-off-{golden}-224ee68.txt").read_text()
-        for off, named in ((frozenset(), False), (frozenset({"named-warp-destinations-v1"}), True)):
+        for off, named in (
+            (frozenset({"character-presence-v1"}), False),
+            (frozenset({"named-warp-destinations-v1", "character-presence-v1"}), True),
+        ):
             text = format_readout(state, off, named_interactions=True, named_warps=named)
             assert text == expected
         assert OFF_GUIDANCE in lines(expected) and PLAIN in lines(expected)

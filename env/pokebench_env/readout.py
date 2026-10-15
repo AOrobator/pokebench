@@ -261,6 +261,8 @@ def format_readout(
         )
         if context != "":
             lines.append(context)
+    if state.story_characters is not None and "character-presence-v1" not in off:
+        lines.append(state.story_characters.text())
     if state.interaction_targets is not None and "world-targets-v1" not in off:
         lines.append("Map interaction candidates (world coordinates; flags/scripts may gate use):")
         lines.extend(

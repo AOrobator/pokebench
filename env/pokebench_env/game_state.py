@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from pokebench_env.battle_state import BattleState, read_battle_state
+from pokebench_env.character_presence import StoryCharacters, read_story_characters
 from pokebench_env.game_screen import ReadMemory, read_screen
 from pokebench_env.gba_text import GBA_TEXT, decode_text
 from pokebench_env.live_map import MAP_OFFSET, FullMap, LocalMap, read_full_map, read_local_map
@@ -96,6 +97,7 @@ class GameState:
     game_stats: dict[str, int | None] | None = None
     blackout_active: bool | None = None
     destination_names: tuple[tuple[int, int, str], ...] = ()
+    story_characters: StoryCharacters | None = None
 
 
 def _u32(read: ReadMemory, address: int) -> int:
@@ -222,6 +224,19 @@ def read_game_state(
     targets = read_targets(read, map_id) if nearby is not None else None
     party = _party(read)
     ownership = read_party_ownership(read, party)
+    context = (
+        read_world_context(
+            read,
+            (x, y),
+            map_id,
+            save1,
+            decode_text,
+            message_phase=message_phase_enabled,
+            native_ui=native_ui,
+        )
+        if screen.kind == "overworld" and not in_battle
+        else None
+    )
     return GameState(
         blackout_active=screen.callback2 == 0x08085F59,
         game_stats=_game_stats(read, save1, save2),
@@ -267,14 +282,9 @@ def read_game_state(
             for t in targets or ()
             if t.destination is not None and t.destination[:2] != (127, 127)
         ),
-        world_context=read_world_context(
-            read,
-            (x, y),
-            map_id,
-            save1,
-            decode_text,
-            message_phase=message_phase_enabled,
-            native_ui=native_ui,
+        world_context=context,
+        story_characters=read_story_characters(
+            read, save1, map_id, () if context is None else context.objects
         )
         if screen.kind == "overworld" and not in_battle
         else None,

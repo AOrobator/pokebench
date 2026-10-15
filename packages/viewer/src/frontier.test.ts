@@ -36,7 +36,9 @@ describe("persistent actual native frontier", () => {
     expect(FRONTIER_MILESTONES.map(m => m.id)).toContain("RIVAL_BEDROOM_REACHED");
     expect(FRONTIER_MILESTONES.map(m => m.id)).toContain("RIVAL_MET");
     const axis = FRONTIER_MILESTONES.map(m => m.id);
-    expect(axis.indexOf("RIVAL_MET")).toBeLessThan(axis.indexOf("BIRCH_RESCUE_REQUESTED"));
+    expect(axis.indexOf("RIVAL_MET")).toBeLessThan(axis.indexOf("RIVAL_HOUSE_EXITED"));
+    expect(axis.indexOf("RIVAL_HOUSE_EXITED")).toBeLessThan(axis.indexOf("BIRCH_RESCUE_REQUESTED"));
+    expect(FRONTIER_MILESTONES.find(m => m.id === "RIVAL_HOUSE_EXITED")?.label).toBe("Left rival house");
     expect(axis.indexOf("BIRCH_RESCUE_REQUESTED")).toBeLessThan(axis.indexOf("ROUTE_101"));
     expect(FRONTIER_MILESTONES.some(m => /LAB|AIDE/.test(m.id))).toBe(false);
     const optional = measured("optional", [1000]);

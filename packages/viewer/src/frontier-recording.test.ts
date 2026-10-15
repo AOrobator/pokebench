@@ -150,3 +150,41 @@ it("does not recover unsupported modern, resumed, transitioning, battle, or inco
     expect(result.splits.some(s=>s.name==="ROXANNE_DEFEATED")).toBe(false);
   }
 });
+it("recovers leaving the rival's house after the rival meeting from a log that predates the split", () => {
+  const met = { ...clocked, rival_stage: 3 as const };
+  for (const home of ["BRENDANS", "MAYS"] as const) {
+    const rival = home === "BRENDANS" ? "MAYS" : "BRENDANS";
+    const log = new Log();
+    log.add(0, { ...START, start_state: { kind: "save_state", path: "/saves/CLOCK_SET.state", sha1: "a".repeat(40) }, harness_features: ["post-clock-navigation-milestones-v1"] });
+    const bedroom = log.add(1000, state({ ...quiet, location: `LITTLEROOT TOWN ${home} HOUSE 2F`, story: clocked }));
+    log.add(2000, state({ ...quiet, location: `LITTLEROOT TOWN ${home} HOUSE 1F`, story: clocked }));
+    log.add(3000, state({ ...quiet, location: "LITTLEROOT TOWN", story: clocked }));
+    log.add(4000, state({ ...quiet, location: `LITTLEROOT TOWN ${rival} HOUSE 1F`, story: clocked }));
+    log.add(5000, state({ ...quiet, location: `LITTLEROOT TOWN ${rival} HOUSE 2F`, story: met }));
+    const downstairs = log.add(6000, state({ ...quiet, location: `LITTLEROOT TOWN ${rival} HOUSE 1F`, story: met }));
+    log.add(6200, state({ ...quiet, location: `LITTLEROOT TOWN ${rival} HOUSE 1F`, screen: "field_transition", story: met }));
+    const town = log.add(7000, state({ ...quiet, location: "LITTLEROOT TOWN", story: met }));
+    log.add(8000, state({ ...quiet, location: `LITTLEROOT TOWN ${home} HOUSE 1F`, story: met }));
+    log.add(9000, state({ ...quiet, location: "LITTLEROOT TOWN", story: met }));
+    const result = readNativeRecording(write(log.events.map(e => JSON.stringify(e)).join("\n") + "\n"), bedroom.run, qualifiedNativeMilestone);
+    expect(result.splits.filter(s => s.name === "RIVAL_HOUSE_EXITED")).toMatchObject([{ derived: true, seq: town.seq, elapsedMs: 7000 }]);
+    expect(result.measurement.rawSplits.find(s => s.name === "RIVAL_HOUSE_EXITED")?.evidence).toEqual([bedroom.seq, downstairs.seq, town.seq]);
+    const tracker = new StateMilestones({ read: () => Promise.resolve(state({ location: "LITTLEROOT TOWN" }) as never) });
+    tracker.initialize("save_state");
+    const detected: { name: string; evidence?: readonly number[] }[] = [];
+    for (const event of log.events) if (event.type === "state" && "started" in event) detected.push(...tracker.observe(event, event.seq));
+    expect(detected.filter(m => m.name === "RIVAL_HOUSE_EXITED").map(m => m.evidence)).toEqual([[bedroom.seq, downstairs.seq, town.seq]]);
+  }
+});
+it("does not recover a rival-house exit before the meeting or from the player's own house", () => {
+  const met = { ...clocked, rival_stage: 3 as const };
+  const log = new Log();
+  log.add(0, { ...START, start_state: { kind: "save_state", path: "/saves/CLOCK_SET.state", sha1: "a".repeat(40) }, harness_features: ["post-clock-navigation-milestones-v1"] });
+  const bedroom = log.add(1000, state({ ...quiet, location: "LITTLEROOT TOWN BRENDANS HOUSE 2F", story: clocked }));
+  log.add(2000, state({ ...quiet, location: "LITTLEROOT TOWN MAYS HOUSE 1F", story: { ...clocked, rival_stage: 2 as const } }));
+  log.add(3000, state({ ...quiet, location: "LITTLEROOT TOWN", story: { ...clocked, rival_stage: 2 as const } }));
+  log.add(4000, state({ ...quiet, location: "LITTLEROOT TOWN BRENDANS HOUSE 1F", story: met }));
+  log.add(5000, state({ ...quiet, location: "LITTLEROOT TOWN", story: met }));
+  const result = readNativeRecording(write(log.events.map(e => JSON.stringify(e)).join("\n") + "\n"), bedroom.run, qualifiedNativeMilestone);
+  expect(result.splits.some(s => s.name === "RIVAL_HOUSE_EXITED")).toBe(false);
+});

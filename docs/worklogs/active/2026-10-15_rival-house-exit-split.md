@@ -1,0 +1,37 @@
+# Rival-house exit split; finals without the stall stop
+
+Requested by the operator in the "Navigation and memory experiment" thread (2026-10-15 14:02 UTC):
+"might as well not even do the stall, doesn't seem worth it. and it seems like we should be
+tracking the time it takes to leave the rival's house after meeting the rival so we get a more
+granular view into how runs are going". Branch `claude/rival-house-exit-split`, worktree
+`/private/tmp/pokebench-rival-exit`. Local only, no push; ask before merging.
+
+## Evidence
+- On the 32 Think Fast 2×2 trials, a 10/15/20-minute stall stop would have cut 5/1/1 runs; 20
+  minutes still ends trial 17 (21.1 min from RIVAL_MET to ROUTE_101, then STARTER_CHOSEN at
+  29.3). 25 minutes cuts none and saves ~3% of play. Operator: drop the stall stop from finals.
+- After RIVAL_MET, runs leave the rival's house in 0.2-3.5 min, then spend most of the gap in
+  Littleroot and Birch's lab. No split marks leaving the rival's house.
+
+## Spec
+1. `finalsPreset` no longer forces `milestone-stall-stop-v1` on. Finals keep the incumbent's
+   value (OFF in every current preset). The switch stays registered, default OFF.
+2. New navigation split `RIVAL_HOUSE_EXITED`: the first stable Littleroot Town state, with
+   `rival_stage` 3 or 4, directly after a stable state in the other family's 1F with
+   `rival_stage` 3 or 4. Home is the post-clock route home (fresh-boot witness or the house a
+   Clock set save starts in), so the player's own house never counts. Evidence is
+   [home, rival-house 1F, town]; always `observed`, never credited from a save that starts after it.
+   Recorded under its own measured feature `rival-house-exit-v1`; the viewer derives it for
+   older runs from recorded state, like the other post-clock route splits.
+
+## Milestones
+- [x] M1 RED: finals preset keeps the stall switch as the incumbent has it; tracker,
+  qualification and viewer recovery tests for RIVAL_HOUSE_EXITED (both genders, fresh boot and
+  Clock set save, own house, before RIVAL_MET, transition/unknown screens).
+- [ ] M2 GREEN: experiment-gate, milestones, features, milestone hint, viewer order/frontier/
+  recovery, findings, explainers. Gates: lint, tests, coverage ≥ 90.
+- [ ] M3 Verify on recorded 2×2 runs (viewer replay shows the split); principles self-review;
+  Claude CLI review; report to operator; merge only on approval.
+
+## Log
+- M1 RED: 7 failing tests (agent: finals preset, tracker fresh boot and Clock set save, features registry x2; viewer: recovery, frontier axis). Withholding cases pass already.

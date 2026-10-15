@@ -192,4 +192,65 @@ describe("durable cohort membership and metadata boundaries", () => {
     expect(fixed.runs.find(x => x.id === "2026-10-14T20-00-00_think-fast_aaaa")?.cohort).toBe("experiment:full-map");
     expect(fixed.runs.find(x => x.id === "2026-10-14T20-30-00_think-fast_bbbb")?.cohort).toBeNull();
   });
+  it("puts every finals arm, the incumbent and each finalist, in the experiment's finals cohort", async () => {
+    const r = root(), ids = ["2026-10-15T11-03-44_think-fast_ab87", "2026-10-15T11-08-31_think-fast_504f", "2026-10-15T11-38-31_think-fast_c0de"];
+    for (const id of ids) write(r, id, named());
+    mkdirSync(join(r, "experiments", "full-map-navigation"), { recursive: true });
+    const commit = "a".repeat(40);
+    writeFileSync(join(r, "experiments", "full-map-navigation", "finals.jsonl"), [
+      { type: "launch", trial: 0, arm: "incumbent", run: ids[0], at: "t", model: "think-fast", commit }, { type: "launcher_error", trial: 0, arm: "incumbent", run: ids[0], at: "t", message: "interrupted: no outcome was recorded" },
+      { type: "launch", trial: 0, arm: "incumbent", run: ids[1], at: "t", model: "think-fast", commit }, { type: "outcome", trial: 0, arm: "incumbent", run: ids[1], at: "t", reason: "budget" },
+      { type: "launch", trial: 1, arm: "whole", run: ids[2], at: "t", model: "think-fast", commit },
+    ].map(e => JSON.stringify(e)).join("\n") + "\n");
+    const d = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000));
+    expect(ids.map(id => d.runs.find(x => x.id === id)?.cohort)).toEqual(Array(3).fill("experiment:full-map-navigation:finals"));
+    expect(d.runs.find(x => x.id === ids[0])?.excluded).toContain("interrupted");
+    expect(d.runs.find(x => x.id === ids[2])?.excluded).toBeNull();
+    writeFileSync(join(r, "experiments", "full-map-navigation", "finals.jsonl"), "not json\n");
+    const broken = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000));
+    expect(broken.runs.filter(x => x.cohort !== null)).toEqual([]);
+    expect(broken.problems.some(p => p.includes("full-map-navigation finals"))).toBe(true);
+  });
+  it("names hand-run cohorts from their launch-receipt ledgers and manifests", async () => {
+    const r = root(), receipts = join(r, "launch-receipts");
+    const a = "2026-10-14T18-29-33_think-fast_0dda", b = "2026-10-14T19-00-02_think-fast_fa38", c = "2026-10-14T19-30-06_think-fast_26e0", q = "2026-10-12T17-02-42_Qwen3.8-Flash-Next-UD-IQ4_XS_eece", o = "2026-10-13T16-22-31_think-fast_fc9b";
+    for (const id of [a, b, c, q, o]) write(r, id, named());
+    mkdirSync(join(receipts, "navigation-factorial-think-fast-n4"), { recursive: true });
+    writeFileSync(join(receipts, "navigation-factorial-think-fast-n4", "manifest.json"), JSON.stringify({ id: "factorial-2x2-think-fast", presets: { control: "x", whole: "y" } }));
+    writeFileSync(join(receipts, "navigation-factorial-think-fast-n4", "trials.jsonl"), [
+      { type: "launch", trial: "01", arm: "control", at: 1 }, { type: "outcome", trial: "01", arm: "control", run: a, exit: 0, adopted: true, at: 2 },
+      { type: "launch", trial: "02", arm: "whole", at: 3 }, { type: "outcome", trial: "02", arm: "whole", run: b, exit: 1, at: 4 },
+      { type: "outcome", trial: "03", arm: "whole", run: "2026-10-14T20-00-00_think-fast_gone", exit: 0, at: 5 },
+    ].map(e => JSON.stringify(e)).join("\n") + "\n" + '{"type": "launch", "tri');
+    mkdirSync(join(receipts, "dialogue-information-think-fast-n4"), { recursive: true });
+    writeFileSync(join(receipts, "dialogue-information-think-fast-n4", "trials.jsonl"), [
+      { type: "launch", trial: 1, arm: "dialogue", run: c }, { type: "process_outcome", trial: 1, arm: "dialogue", run: c, code: null, signal: "SIGTERM" }, { type: "launcher_error", error: "no run named" },
+    ].map(e => JSON.stringify(e)).join("\n") + "\n");
+    mkdirSync(join(receipts, "interface-docs-resumed"), { recursive: true });
+    writeFileSync(join(receipts, "interface-docs-resumed", "manifest.json"), JSON.stringify({ status: "complete", attempts: [{ run_id: q, exit_code: 0 }, { run_id: "../escape" }] }));
+    mkdirSync(join(receipts, "think-fast-objectives-off-30m"), { recursive: true });
+    writeFileSync(join(receipts, "think-fast-objectives-off-30m", "trials.jsonl"), [{ type: "launch", trial: 1, run: o }, { type: "launcher_error", trial: 1, run: o, error: "gateway down" }].map(e => JSON.stringify(e)).join("\n") + "\n");
+    mkdirSync(join(receipts, "review-notes"), { recursive: true });
+    writeFileSync(join(receipts, "review-notes", "notes.md"), `mentions ${a}`);
+    const d = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000)), of = (id: string) => d.runs.find(x => x.id === id);
+    expect([a, b].map(id => of(id)?.cohort)).toEqual(["factorial-2x2-think-fast", "factorial-2x2-think-fast"]);
+    expect(of(a)?.excluded).toBeNull(); expect(of(b)?.excluded).toContain("exit 1");
+    expect(of(c)).toMatchObject({ cohort: "dialogue-information-think-fast-n4" }); expect(of(c)?.excluded).toContain("SIGTERM");
+    expect(of(q)).toMatchObject({ cohort: "interface-docs-resumed", excluded: null });
+    expect(of(o)?.cohort).toBe("think-fast-objectives-off-30m"); expect(of(o)?.excluded).toContain("gateway down");
+    expect(d.problems).toEqual([]);
+    writeFileSync(join(receipts, "dialogue-information-think-fast-n4", "trials.jsonl"), "not json\n" + JSON.stringify({ type: "launch", run: c }) + "\n");
+    const broken = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000));
+    expect(broken.runs.find(x => x.id === c)?.cohort).toBeNull();
+    expect(broken.problems.some(p => p.includes("dialogue-information-think-fast-n4"))).toBe(true);
+  });
+  it("never lets a hand-run ledger relabel a run a verified receipt or the experiment queue already owns", async () => {
+    const r = root(), id = "2026-10-14T20-00-00_think-fast_aaaa"; write(r, id, named());
+    mkdirSync(join(r, "experiments", "full-map"), { recursive: true });
+    writeFileSync(join(r, "experiments", "full-map", "trials.jsonl"), JSON.stringify({ type: "launch", trial: 0, arm: "incumbent", run: id, at: "t" }) + "\n");
+    mkdirSync(join(r, "launch-receipts", "copy"), { recursive: true });
+    writeFileSync(join(r, "launch-receipts", "copy", "trials.jsonl"), JSON.stringify({ type: "launcher_error", run: id, error: "not mine" }) + "\n");
+    const d = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000));
+    expect(d.runs[0]).toMatchObject({ cohort: "experiment:full-map", excluded: null });
+  });
 });

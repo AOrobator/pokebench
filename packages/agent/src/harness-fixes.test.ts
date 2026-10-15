@@ -289,3 +289,13 @@ it("does not log the whole message buffer again when auto-advance stops at a dec
  result(log,6,msg("I need a hand.\nWill you help?","page_wait"),"a1");
  expect(log.entries().map(e=>e.text)).toEqual(["I need a hand.","Will you help?"]);
 });
+
+it("logs every auto-advanced page, even two pages with the same text on the same map",()=>{
+ const log=new DialogueLog(ALL_ON);
+ result(log,1,msg(null,null));
+ log.observe(ev({type:"tool_call",id:"a1",name:"press",args:{buttons:["A"]}},3));
+ const page=(seq:number)=>({state_seq:seq,map:"LAB",map_id:[1,4] as [number,number],position:{x:9,y:8},speaker:null,speaker_source:null,text:"..."});
+ log.observe(ev({type:"dialogue_auto_advance",tool_call_id:"a1",tool:"press",requested:["A"],sent:["A"],dropped:[],auto_presses:2,pages:[page(4),page(5)],stop:"field_free",detail:"the conversation closed and field controls are free",duration_ms:5},6));
+ result(log,7,msg(null,null),"a1");
+ expect(log.entries().map(e=>e.seq)).toEqual([4,5]);
+});

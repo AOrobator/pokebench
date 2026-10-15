@@ -137,7 +137,7 @@ it("catches the dea1 shape: identical multi-button batches that the loop guard n
  const r=rig(ON);
  r.state({position:{x:5,y:5}});
  for(let i=0;i<40;i++)r.press(i%2===0?["RIGHT","RIGHT","RIGHT","UP","UP","UP","UP"]:["LEFT","LEFT","LEFT","UP","UP","UP","UP"],{position:{x:i%2===0?8:5,y:5-(i%7)}},8_000);
- expect(r.guards().filter(g=>g.kind==="milestone_drought"&&g.phase==="supervisor")).toHaveLength(1);
+ expect(r.guards().map(g=>g.kind)).toEqual(["milestone_drought"]);
 });
 
 it("leaves an open loop-guard briefing alone and briefs the stall once that loop recovers",()=>{
@@ -250,7 +250,7 @@ it("can brief before the name is confirmed, so its pending experiment activates 
  r.milestone("NEW_GAME_CREATED","observed");
  r.state(HOUSE_1F);
  for(let i=0;i<31;i++)r.press(["RIGHT"],{...HOUSE_1F,position:{x:i,y:3}},10_000);
- expect(r.guards().filter(g=>g.kind==="milestone_drought"&&g.phase==="supervisor")).toHaveLength(1);
+ expect(r.guards().map(g=>g.kind)).toEqual(["milestone_drought"]);
  expect(r.events.some(e=>e.type==="milestone"&&e.name==="PLAYER_NAME_CONFIRMED")).toBe(false);
  const entry:unknown=JSON.parse(readFileSync(fileURLToPath(new URL("../../../experiments/stall-briefing.json",import.meta.url)),"utf8"));
  expect(entry).toMatchObject({activationMilestone:"NEW_GAME_CREATED"});

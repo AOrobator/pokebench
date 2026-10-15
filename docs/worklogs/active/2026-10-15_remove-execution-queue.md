@@ -13,4 +13,4 @@ Operator request (2026-10-15): the Runs & Comparisons execution queue duplicates
 - [x] Review round 2: Claude CLI LGTM, Grok LGTM. Shared advisory: the late-invalid navigation ledger test now also asserts no cohort is assigned. Remaining nits deferred: the malformed-ledger table has no on-disk run (rollback is covered by neighbouring tests); no two-cohort crossover test (membership is keyed by run id).
 - [x] COMMIT: `test(viewer): a late-invalid navigation ledger assigns no cohort` (e29e255)
 - [x] Merge main (stats cleanup removed the sections below the frontier): conflicts in `workbench.ts`, `workbench.test.ts`, `style.css` resolved to main's layout without the execution queue. Viewer 573 tests; coverage 94.83 / 90.80 / 93.42 (gate 90 green); lint clean.
-- [ ] Operator approval, local merge into main, restart viewer on 8790.
+- [x] Operator approved (2026-10-15); merged into main (46b4788); viewer restarted on 8790 at 46b4788: /api/workbench has no queue, 184 runs, 0 problems; /comparisons has no EXECUTION QUEUE.

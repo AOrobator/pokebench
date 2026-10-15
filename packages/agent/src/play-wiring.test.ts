@@ -1,6 +1,8 @@
-import {expect,it} from "vitest";
+import {expect,it,vi} from "vitest";
 import type {AgentMessage} from "@mariozechner/pi-agent-core";
-import {contextTools,loopSupervisor} from "./play-wiring.js";
+import {contextTools,loopSupervisor,stallStop} from "./play-wiring.js";
+import {RunControl,STALL_STOP_MS} from "./run-control.js";
+import {Governor} from "./harness.js";
 import {ALL_ON,type FeatureSet} from "./features.js";
 import {parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {playTools} from "./play-config.js";
@@ -8,7 +10,7 @@ import {checkEvent,type RunEvent} from "./events.js";
 import {DOUBLE_WINDOW,WINDOW} from "./harness.js";
 import {featureInfo,stateOnlyProblems} from "./features.js";
 
-const NEW=["game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1","instruction-ledger-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1"] as const;
+const NEW=["game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1","instruction-ledger-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","milestone-stall-stop-v1"] as const;
 const OFF:FeatureSet={...ALL_ON,"navigation-evidence-memory-v1":false,...Object.fromEntries(NEW.map(id=>[id,false]))};
 function recorder(){
  const subscribers:((e:RunEvent)=>void)[]=[];const delivered:string[]=[];
@@ -64,4 +66,32 @@ it("sends text-only replies back to the model only while fresh-retry-v1 is off",
  expect(out).toContainEqual(nudge);
  expect(r.delivered).toEqual(["navigation"]);
  expect(stateOnlyProblems({...ALL_ON,"state-only-decisions-v1":true})).toContain("state-only-decisions-v1 requires fresh-retry-v1 OFF");
+});
+
+it("ends a run as stalled after ten minutes without a new milestone only while milestone-stall-stop-v1 is on",()=>{
+ vi.useFakeTimers();
+ try{
+  let elapsed=0;
+  const aborted=vi.fn();
+  const governor=new Governor({limits:{maxTurns:300,maxWallMs:45*60_000,failureLimit:3},retry:()=>undefined,abort:aborted,now:()=>elapsed,startedAt:0});
+  const control=new RunControl({record:()=>undefined,freeze:()=>Promise.resolve(),end:reason=>{governor.abort(reason);},now:()=>elapsed});
+  const step=(ms:number):void=>{elapsed+=ms;vi.advanceTimersByTime(ms);};
+  const off=recorder();
+  expect(stallStop(OFF,off.api,control,()=>elapsed,()=>{governor.abort("stalled");})).toBeNull();
+  expect(off.subscribers).toHaveLength(0);
+  expect(stallStop({...ALL_ON,"milestone-stall-stop-v1":false},off.api,control,()=>elapsed,()=>{governor.abort("stalled");})).toBeNull();
+  const on=recorder();
+  const stop=stallStop({...OFF,"milestone-stall-stop-v1":true},on.api,control,()=>elapsed,()=>{governor.abort("stalled");});
+  expect(stop).not.toBeNull();expect(on.subscribers).toHaveLength(1);
+  const milestone=(seq:number,origin:"observed"|"present_at_start"):RunEvent=>checkEvent({v:1,run:"w",t:"2026-10-15T12:00:00.000-04:00",turn:1,seq,type:"milestone",name:"NEW_GAME_CREATED",server_timestamp:0,origin});
+  step(8*60_000);
+  on.subscribers[0]?.(milestone(1,"present_at_start"));
+  on.subscribers[0]?.(milestone(2,"observed"));
+  step(STALL_STOP_MS-1);
+  expect(governor.stopReason).toBeNull();
+  step(1);
+  expect(governor.stopReason).toBe("stalled");
+  expect(aborted).toHaveBeenCalledOnce();
+  stop?.clear();
+ }finally{vi.useRealTimers();}
 });

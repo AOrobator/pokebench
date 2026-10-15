@@ -21,6 +21,7 @@ Tracked, local HTML documentation. Open an explainer directly; no server or exte
 - [Walkable floor v1](walkable-floor-v1.html)
 - [One-way tiles v1](one-way-tiles-v1.html)
 - [Named warp destinations v1](named-warp-destinations-v1.html)
+- [Milestone stall stop v1](milestone-stall-stop-v1.html)
 - [Experiment queue](experiment-queue.html)
 
 The original ignored runs/explainers copies remain for existing links. Make future updates here. Runtime probes, generated measurement data and helper scripts remain under runs/.

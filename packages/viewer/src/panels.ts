@@ -372,6 +372,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "double-context-window-v1":"double-context-window-v1.html",
  "fresh-retry-v1":"fresh-retry-v1.html",
  "named-warp-destinations-v1":"named-warp-destinations-v1.html",
+ "milestone-stall-stop-v1":"milestone-stall-stop-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

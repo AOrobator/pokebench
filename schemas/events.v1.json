@@ -2911,7 +2911,8 @@
             "crash",
             "model_error",
             "operator_abort",
-            "operator_stop"
+            "operator_stop",
+            "stalled"
           ]
         },
         "furthest_milestone": {

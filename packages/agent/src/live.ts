@@ -1,4 +1,4 @@
-import {contextTools,loopSupervisor} from "./play-wiring.js";
+import {contextTools,loopSupervisor,stallStop} from "./play-wiring.js";
 import {CheckpointCapture,checkpointTarget} from "./checkpoint-capture.js";
 import {experimentFromEnv} from "./play-experiment.js";
 // Live entrypoint for real, recorded runs: pi-agent-core on the local stack
@@ -295,6 +295,9 @@ async function playAgent(): Promise<void> {
       const wall = new BudgetTimer(runControl, limits.maxWallMs, () => elapsed() - (preset===null?startedAt:0), () => {
         governor.abort("budget");
       });
+      const stall = stallStop(features, recorder, runControl, () => elapsed() - (preset===null?startedAt:0), () => {
+        governor.abort("stalled");
+      });
       const stopWatching = watchControl(controlFile, runControl);
       const interrupt = (): void => {
         console.log("operator abort: finishing the run record");
@@ -325,6 +328,7 @@ async function playAgent(): Promise<void> {
       } finally {
         await capture?.close().catch((error: unknown) => { console.error(`checkpoint capture failed: ${String(error)}`); });
         wall.clear();
+        stall?.clear();
         stopWatching();
         process.off("SIGINT", interrupt);
       }

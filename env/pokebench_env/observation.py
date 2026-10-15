@@ -12,9 +12,10 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from pokebench_env.game_screen import ReadMemory
-from pokebench_env.game_state import MapNames, read_game_state
+from pokebench_env.game_state import MapNames
 from pokebench_env.raw_ram import RawRamArchive, raw_reference
-from pokebench_env.readout import features_off_from_env, format_readout, state_json
+from pokebench_env.readout import features_off_from_env, state_json
+from pokebench_env.rerender import read_state, render
 from pokebench_env.ui_state import active_ui_enabled_from_env
 
 ScreenshotFn = Callable[[], BaseModel]
@@ -36,15 +37,7 @@ def install_observation(
     def snapshot() -> dict[str, object]:
         with memory_lock if memory_lock is not None else nullcontext():
             receipt = None if raw_capture is None else raw_capture()
-            decoded = read_game_state(
-                read_memory,
-                maps,
-                active_ui_enabled=enabled,
-                message_phase_enabled="field-dialogue-phase-v1" not in off,
-                full_map_enabled="full-map-navigation-v1" not in off,
-                story_characters_enabled="character-presence-v1" not in off,
-                battle_details_enabled="battle-details-v2" not in off,
-            )
+            decoded = read_state(read_memory, maps, active_ui=enabled, off=off)
             serialized = state_json(decoded)
             if receipt is not None:
                 serialized["raw_ram"] = raw_reference(receipt)
@@ -56,15 +49,7 @@ def install_observation(
     def observation() -> dict[str, object]:
         with memory_lock if memory_lock is not None else nullcontext():
             receipt = None if raw_capture is None else raw_capture()
-            state = read_game_state(
-                read_memory,
-                maps,
-                active_ui_enabled=enabled,
-                message_phase_enabled="field-dialogue-phase-v1" not in off,
-                full_map_enabled="full-map-navigation-v1" not in off,
-                story_characters_enabled="character-presence-v1" not in off,
-                battle_details_enabled="battle-details-v2" not in off,
-            )
+            state = read_state(read_memory, maps, active_ui=enabled, off=off)
             serialized = state_json(state)
             if receipt is not None:
                 serialized["raw_ram"] = raw_reference(receipt)
@@ -76,15 +61,7 @@ def install_observation(
             raise HTTPException(status_code=503, detail="no screenshot available")
         return {
             **({"raw_ram": receipt} if receipt is not None else {}),
-            "state_text": format_readout(
-                state,
-                off,
-                named_interactions="named-interactions-v1" not in off,
-                world_destinations="world-destinations-v1" not in off,
-                bounded_navigation="bounded-navigation-v1" not in off,
-                message_phase="field-dialogue-phase-v1" not in off,
-                named_warps="named-warp-destinations-v1" not in off,
-            ),
+            "state_text": render(state, off),
             "screenshot_base64": screenshot,
             "state": serialized,
         }

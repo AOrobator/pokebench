@@ -205,7 +205,7 @@ def test_raw_archive_precedes_decode_and_shares_frame_lock(tmp_path, monkeypatch
 
     from test_raw_ram import reader
 
-    import pokebench_env.observation as module
+    import pokebench_env.rerender as rerender_module
     from pokebench_env.raw_ram import RawRamArchive, load_raw_ram
 
     lock = threading.Lock()
@@ -229,7 +229,7 @@ def test_raw_archive_precedes_decode_and_shares_frame_lock(tmp_path, monkeypatch
     def failed_decode(*args, **kwargs):
         raise ValueError("decoder defect")
 
-    monkeypatch.setattr(module, "read_game_state", failed_decode)
+    monkeypatch.setattr(rerender_module, "read_game_state", failed_decode)
     with pytest.raises(ValueError, match="decoder defect"):
         observe()
     receipts = [json.loads(line) for line in (tmp_path / "index.jsonl").read_text().splitlines()]

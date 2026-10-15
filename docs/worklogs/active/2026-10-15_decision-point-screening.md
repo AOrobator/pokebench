@@ -83,4 +83,4 @@ feature-worklog, feature-switch, agent-observability, pokebench-game-state, poke
   reuses the recorded notes and tool texts and is the fidelity check.
 
 ## Status
-R0–R3 and the probe done (R1 = 7cc96c9). Merge into main pending: the bundle is not yet in main.
+R0–R3 and the probe done (R1 = 7cc96c9, R2 = e8f3b70, R3 = 8a219b0). Merge into main pending: the bundle is not yet in main.

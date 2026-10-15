@@ -29,6 +29,9 @@ it("rejects malformed definitions, unknown milestones, short arms, tiny budgets 
  expect(()=>parseExperiment({...base,activationMilestone:"NOWHERE"})).toThrow(/activationMilestone NOWHERE/);
  expect(()=>parseExperiment({...base,primaryMilestone:"GAME_RUNNING"})).toThrow(/primaryMilestone GAME_RUNNING/);
  expect(()=>parseExperiment({...base,trialsPerArm:3})).toThrow(/Invalid experiment/);
+ // A switch that only acts after the graded milestone cannot change the result (running shoes come after the rival house).
+ expect(()=>parseExperiment({...base,activationMilestone:"RUNNING_SHOES_RECEIVED",primaryMilestone:"RIVAL_HOUSE_ENTERED"})).toThrow("Invalid experiment: activationMilestone RUNNING_SHOES_RECEIVED comes after primaryMilestone RIVAL_HOUSE_ENTERED, so the switch cannot change the graded result");
+ expect(parseExperiment({...base,activationMilestone:"RUNNING_SHOES_RECEIVED",primaryMilestone:"ROUTE_102"}).primaryMilestone).toBe("ROUTE_102");
  expect(()=>parseExperiment({...base,trialsPerArm:9})).toThrow(/Invalid experiment/);
  // Every accepted definition must be gradeable by comparePatchResults.
  expect(()=>parseExperiment({...base,criteria:{completionTolerance:0,speedMarginPercent:0}})).toThrow(/Invalid experiment/);

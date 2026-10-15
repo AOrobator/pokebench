@@ -232,3 +232,8 @@ Pending.
 - GREEN: deriveStatus leaves only not-ready unnumbered experiments pending; the store queues ready ones after the numbered entries; approval refuses only pending (not ready). 24 new definitions under experiments/; readiness.md rows added for them (all READY, 3 of the last 4 boot think-fast runs). Real data: queue 34 (3 numbered + 31 joined by readiness), pending 3 (counter talk, grass cost, ledge hops). Gates: agent 1037, viewer 573, lint clean.
 - Operator (02:30): "yes, but mark whole map is approved. i dont wanna re-enqueue it when i click approve" — whole map is being measured in the factorial-2×2 cohort. RED: optional `externalCohort` derives `running` ("being measured in the <cohort> cohort; the queue will not run it again"), is excluded from the definition hash, and the runner never picks it.
 - GREEN: externalCohort (schema, excluded from the hash, derives running until all trials are done); experiments/full-map-navigation.json marked externalCohort factorial-2x2-think-fast. Gates: agent 1037, viewer 573, lint clean.
+
+## Pending audit (2026-10-15, branch claude/experiment-pending-audit from main ab6eecb)
+- Operator (02:35): still seeing the schema errors; "the running shoes experiment can't run until we actually get running shoes, you need to do an audit of the pending experiments cuz i don't think its accurate".
+- Errors: 8790 (Tailscale [private port]) reports none; ports 8793 (runs/reference-coverage-proof/serve-main.mjs) and 8811 (an inline startViewer from packages/viewer) are other threads' viewers started before the new switches, so their in-memory code rejects the newer definitions.
+- RED: a definition whose activation milestone comes after its graded milestone is invalid (the switch cannot change the result).

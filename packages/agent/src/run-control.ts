@@ -9,6 +9,7 @@ import { readFileSync } from "node:fs";
 import { Type, type Static } from "typebox";
 import { Value } from "typebox/value";
 import { CONTROL_ACTIONS, type BodyOf, type RunEvent } from "./events.js";
+import { MEASUREMENT_ONLY_MILESTONES } from "./milestones.js";
 
 export type ControlAction = (typeof CONTROL_ACTIONS)[number];
 export const ControlRequestSchema = Type.Object(
@@ -308,7 +309,7 @@ export class StallStop {
   }
 
   observe(event: RunEvent): void {
-    if (this.done || event.type !== "milestone" || event.origin === "present_at_start") return;
+    if (this.done || event.type !== "milestone" || event.origin === "present_at_start" || MEASUREMENT_ONLY_MILESTONES.has(event.name)) return;
     this.lastProgress = this.active();
     this.arm();
   }

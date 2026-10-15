@@ -194,6 +194,27 @@ describe("experiment runner", () => {
     expect(ledger(paths)).toMatchObject([{ type: "launch", run: "ended0" }, { type: "outcome", trial: 0, run: "ended0" }]);
   });
 
+  it("adopts the trial in flight even when the source check fails, and holds the lease until it is recorded", async () => {
+    const { paths, metrics, source } = setup();
+    writeFileSync(join(experimentDir(paths.runsRoot, "full-map"), "trials.jsonl"), `${JSON.stringify({ type: "launch", trial: 0, arm: "incumbent", run: "orphan0", at: "t" })}\n`);
+    let polls = 0;
+    const fake = host(paths, metrics, {
+      verifySource: () => Promise.resolve("the main checkout has uncommitted changes"),
+      liveRuns: () => Promise.resolve(polls < 1 ? ["orphan0"] : []),
+      wait: () => {
+        expect(existsSync(join(paths.runsRoot, LEASE, "owner.json"))).toBe(true);
+        polls += 1;
+        writeRun(paths, "orphan0", QUEUE_FEATURES);
+        metrics.set("orphan0", { reached: [], milestoneMs: {}, turns: 9, wallMs: 60_000 });
+        return Promise.resolve();
+      },
+    });
+    await expect(runQueue({ paths, source, host: fake })).rejects.toThrow("full-map: the main checkout has uncommitted changes");
+    expect(polls).toBe(1);
+    expect(fake.launches).toEqual([]);
+    expect(ledger(paths)).toMatchObject([{ type: "launch", run: "orphan0" }, { type: "outcome", trial: 0, run: "orphan0", reason: "budget" }]);
+  });
+
   it("refuses to start on a source problem, a live run or a held lease", async () => {
     const a = setup();
     await expect(runQueue({ paths: a.paths, source: a.source, host: host(a.paths, a.metrics, { verifySource: () => Promise.resolve("main moved") }) })).rejects.toThrow("full-map: main moved");

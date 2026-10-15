@@ -45,7 +45,9 @@ No feature switch: this changes process supervision, not what the model sees, it
 - [x] RED COMMIT (115c5bc). GREEN: the experiment and finals lease owner names `run` at launch and `child` once spawned (and the adopted run and child on adoption) through `nameLeaseRun`. The budget hold moved below adoption, so it only gates new launches. `takeLease` reclaims under a `.reclaim` mutex (cleared after 60 s if a reclaimer died). 662 tests; coverage 95.16 / 90.95 / 94.09.
 - [x] Review 3 (whole branch at 73c8189): Claude LGTM. Checked: no caller tests `instanceof RunnerError`, and the autorun matches the held-lease message, so `LeaseHeldError` is safe. Hardening taken: a second signal exits at once (RED now); stub children in the process-group tests live longer. Deferred: a non-held `takeLease` error in RunQueue (filesystem errors only); releasing the lease on early exits while an orphan plays (liveRuns still guards); `buildCommit` before adoption (agent dist only rebuilds when stale, and verifySource refuses to rebuild while a run is live). Grok: pending.
 - [x] GREEN: a second SIGTERM or SIGINT exits 1 at once; the process-group test children now live 500 ms. 663 tests; coverage 95.16 / 90.95 / 94.09; tsc + eslint clean.
-- [ ] Grok lane on the whole branch.
+- [x] Grok (whole branch at 73c8189): BLOCKING. Adoption ran after `verifySource`, so a dirty or moved main checkout (allowed; viewer-main never builds there) threw before the in-flight trial was recorded and dropped its lease. Hardening taken: write the lease owner atomically. Not taken: the plain-mkdir vs reclaim window (whichever mkdir wins owns the lease, and the loser throws held).
+- [x] RED: trial and finals adoption with a failing source check (2 failing).
+- [ ] Re-review.
 
 ### M3: deploys are safe by construction
 - [x] RED: cli.test.ts `shutdown` (2 failing): SIGTERM/SIGINT close the viewer once and exit 0; a failed close still exits 1.

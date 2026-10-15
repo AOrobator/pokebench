@@ -270,7 +270,8 @@ describe("winner gate", () => {
       liveRuns: () => Promise.resolve(polls < 1 ? ["orphanF"] : []),
       wait: () => { polls += 1; writeRun(w.paths, "orphanF", QUEUE_FEATURES); w.metrics.set("orphanF", reach(HOUSE)); return Promise.resolve(); },
     });
-    expect((await runQueue({ paths: w.paths, source: w.source, host: fake, once: true })).stopped).toBe("one finals run (--once)");
+    const moved = host(w, { ...fake, verifySource: () => Promise.resolve("main moved") });
+    await expect(runQueue({ paths: w.paths, source: w.source, host: moved, once: true })).rejects.toThrow("full-map: main moved");
     expect(polls).toBe(1);
     expect(fake.launches).toEqual([]);
     expect(lines<{ type: string; run: string }>(finalsLedgerPath(w.paths.runsRoot, "full-map")).map((e) => [e.type, e.run])).toEqual([["launch", "orphanF"], ["outcome", "orphanF"]]);

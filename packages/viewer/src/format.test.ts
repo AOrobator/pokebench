@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clip, esc, eventMs, hms, num, signedDelta } from "./format.js";
+import { esc, eventMs, hms, num, signedDelta } from "./format.js";
 
 describe("format", () => {
   it.each([
@@ -17,11 +17,6 @@ describe("format", () => {
 
   it("groups thousands", () => {
     expect(num(1234567)).toBe("1,234,567");
-  });
-
-  it("clips and flattens whitespace", () => {
-    expect(clip("a  b\nc", 10)).toBe("a b c");
-    expect(clip("abcdefghijk", 5)).toBe("abcd…");
   });
 
   it("signs a delta in m:ss and drops a zero hour", () => {

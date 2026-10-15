@@ -4,7 +4,7 @@
  "title": "Without Named interactions",
  "changedFeature": "named-interactions-v1",
  "hypothesis": "Turning named interactions off makes runs reach the rival house less often or in more turns; it is ON in the incumbent but has no recorded A/B. Names verified background scripts, live object sprite kinds and metatile interactions beside their current positions. Unresolved identities remain explicit.",
- "activationMilestone": "NEW_GAME_CREATED",
+ "activationMilestone": "PLAYER_NAME_CONFIRMED",
  "primaryMilestone": "RIVAL_HOUSE_ENTERED",
  "source": {
   "checkout": "main",
@@ -74,5 +74,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Registered 2026-10-15 in the switch audit: merged behind a switch with no experiment. Earlier evidence: named-interactions-think-fast-full-n4 cohort."
+ "notes": "Registered 2026-10-15 in the switch audit: merged behind a switch with no experiment. Earlier evidence: named-interactions-think-fast-full-n4 cohort. Activation (2026-10-15 audit): Field interactions first exist in the moving truck."
 }

@@ -4,7 +4,7 @@
  "title": "Without Script triggers",
  "changedFeature": "coordinate-script-conditions-v1",
  "hypothesis": "Turning script triggers off makes runs reach the rival house less often or in more turns; it is ON in the incumbent but has no recorded A/B. Lists nearby tiles that start a script when stepped on, the game variable each one checks, and whether its condition matches now.",
- "activationMilestone": "NEW_GAME_CREATED",
+ "activationMilestone": "PLAYER_NAME_CONFIRMED",
  "primaryMilestone": "RIVAL_HOUSE_ENTERED",
  "source": {
   "checkout": "main",
@@ -74,5 +74,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Registered 2026-10-15 in the switch audit: merged behind a switch with no experiment."
+ "notes": "Registered 2026-10-15 in the switch audit: merged behind a switch with no experiment. Activation (2026-10-15 audit): Step-on scripts first exist in the field, from the truck on."
 }

@@ -5,7 +5,7 @@
  "changedFeature": "counter-talk-v1",
  "hypothesis": "Drawing counters and saying where to stand to talk across one lets the model use the first Pok\u00e9mon Center.",
  "activationMilestone": "OLDALE_TOWN",
- "primaryMilestone": "RIVAL_HOUSE_ENTERED",
+ "primaryMilestone": "ROUTE_103",
  "source": {
   "checkout": "main",
   "commit": "a3c343bdbe245dbe4d22dd2fe413a1bed66fa36d"

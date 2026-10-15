@@ -5,7 +5,7 @@
  "changedFeature": "ledge-hops-v1",
  "hypothesis": "Planning one-way ledge hops shortens Route 101 to 103 walks.",
  "activationMilestone": "ROUTE_101",
- "primaryMilestone": "RIVAL_HOUSE_ENTERED",
+ "primaryMilestone": "OLDALE_TOWN",
  "source": {
   "checkout": "main",
   "commit": "a3c343bdbe245dbe4d22dd2fe413a1bed66fa36d"

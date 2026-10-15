@@ -4,7 +4,7 @@
  "title": "Without Field control lock",
  "changedFeature": "field-control-lock",
  "hypothesis": "Turning field control lock off makes runs reach the rival house less often or in more turns; it is ON in the incumbent but has no recorded A/B. Says whether a dialog, menu or script has locked field controls, so direction presses cannot walk.",
- "activationMilestone": "NEW_GAME_CREATED",
+ "activationMilestone": "PLAYER_NAME_CONFIRMED",
  "primaryMilestone": "RIVAL_HOUSE_ENTERED",
  "source": {
   "checkout": "main",
@@ -74,5 +74,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Registered 2026-10-15 in the switch audit: merged behind a switch with no experiment."
+ "notes": "Registered 2026-10-15 in the switch audit: merged behind a switch with no experiment. Activation (2026-10-15 audit): Field controls first exist in the truck."
 }

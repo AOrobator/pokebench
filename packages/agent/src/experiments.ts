@@ -48,6 +48,8 @@ export function parseExperiment(value:unknown):Experiment {
  if(incumbent.version!==2)throw new Error("Invalid experiment: incumbent must be a version 2 preset");
  for(const field of ["activationMilestone","primaryMilestone"] as const)if(!native(value[field]))throw new Error(`Invalid experiment: ${field} ${value[field]} is not a native milestone`);
  if(value.criteria.completionTolerance>value.trialsPerArm)throw new Error("Invalid experiment: criteria completionTolerance exceeds trialsPerArm");
+ const order=MILESTONES.filter(m=>m.kind!=="legacy").map(m=>m.name);
+ if(order.indexOf(value.activationMilestone)>order.indexOf(value.primaryMilestone))throw new Error(`Invalid experiment: activationMilestone ${value.activationMilestone} comes after primaryMilestone ${value.primaryMilestone}, so the switch cannot change the graded result`);
  if(value.readiness.minReached>value.readiness.window)throw new Error("Invalid experiment: readiness minReached exceeds its window");
  if(value.budget.maxWallMs<incumbent.limits.maxWallMs)throw new Error("Invalid experiment: budget is shorter than one trial");
  const experiment:Experiment={...value,changedFeature:value.changedFeature,incumbent};

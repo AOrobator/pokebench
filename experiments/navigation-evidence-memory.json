@@ -4,7 +4,7 @@
  "title": "Navigation evidence memory",
  "changedFeature": "navigation-evidence-memory-v1",
  "hypothesis": "Turning navigation evidence memory on helps runs reach the rival house more often or in fewer turns. Pins bounded observed dialogue, visited rooms and attempted-target outcomes before each turn; optional remember_destination retains a model hypothesis with evidence references. No route or objective enforcement.",
- "activationMilestone": "PLAYER_NAME_CONFIRMED",
+ "activationMilestone": "NEW_GAME_CREATED",
  "primaryMilestone": "RIVAL_HOUSE_ENTERED",
  "source": {
   "checkout": "main",
@@ -74,5 +74,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Registered 2026-10-15 in the switch audit: merged behind a switch with no experiment. Being measured now inside the factorial-2x2-think-fast cohort (whole map \u00d7 navigation memory), from the CLOCK_SET checkpoint."
+ "notes": "Registered 2026-10-15 in the switch audit: merged behind a switch with no experiment. Being measured now inside the factorial-2x2-think-fast cohort (whole map \u00d7 navigation memory), from the CLOCK_SET checkpoint. Activation (2026-10-15 audit): Pins observed dialogue from Birch's speech on, and rooms from the truck on."
 }

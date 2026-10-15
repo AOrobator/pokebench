@@ -4,7 +4,7 @@
  "title": "Without Dialogue phase",
  "changedFeature": "field-dialogue-phase-v1",
  "hypothesis": "Turning dialogue phase off makes runs reach the rival house less often or in more turns; it is ON in the incumbent but has no recorded A/B. Reports a qualified field-message printer phase, buffer position and whether A/B can advance a page, or the qualified script/interface activity retaining its window. Unknown ownership stays unavailable; no story route is supplied.",
- "activationMilestone": "NEW_GAME_CREATED",
+ "activationMilestone": "FIRST_TRUCK_EXIT",
  "primaryMilestone": "RIVAL_HOUSE_ENTERED",
  "source": {
   "checkout": "main",
@@ -74,5 +74,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Registered 2026-10-15 in the switch audit: merged behind a switch with no experiment."
+ "notes": "Registered 2026-10-15 in the switch audit: merged behind a switch with no experiment. Activation (2026-10-15 audit): Field messages start when Mom speaks outside the truck; Birch's speech is not a field message."
 }

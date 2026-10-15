@@ -4,8 +4,8 @@
  "title": "Walkable floor",
  "changedFeature": "walkable-floor-v1",
  "hypothesis": "Turning walkable floor on helps runs reach the rival house more often or in fewer turns. Only matters when bounded navigation is on. Lets navigate_to walk every collision-free tile the game lets you walk on, such as sand, cave floor, mountain tops, puddles, shallow water and bridges, and still refuses surfable water, sliding and ice tiles, holes, one-way tiles, ledges and Acro Bike rails.",
- "activationMilestone": "PLAYER_NAME_CONFIRMED",
- "primaryMilestone": "RIVAL_HOUSE_ENTERED",
+ "activationMilestone": "ROUTE_103",
+ "primaryMilestone": "ROUTE_102",
  "source": {
   "checkout": "main",
   "commit": "a3c343bdbe245dbe4d22dd2fe413a1bed66fa36d"
@@ -74,5 +74,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Registered 2026-10-15 in the switch audit: merged behind a switch with no experiment."
+ "notes": "Registered 2026-10-15 in the switch audit: merged behind a switch with no experiment. Activation (2026-10-15 audit): Plain ground, grass and doors cover everything up to Oldale; the first sand, puddle or bridge tiles on the main path are on Route 103 (inferred from the switch description, not checked tile by tile)."
 }

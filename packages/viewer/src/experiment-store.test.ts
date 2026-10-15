@@ -54,7 +54,7 @@ describe("experiment queue store", () => {
     const paths = roots();
     writeDefinition(paths.experimentsDir, definition("full-map"));
     writeDefinition(paths.experimentsDir, definition("second", { queuePosition: 1 }));
-    writeDefinition(paths.experimentsDir, definition("counter", { changedFeature: "counter-talk-v1", activationMilestone: "OLDALE_TOWN", queuePosition: undefined }));
+    writeDefinition(paths.experimentsDir, definition("counter", { changedFeature: "counter-talk-v1", activationMilestone: "OLDALE_TOWN", primaryMilestone: "ROUTE_103", queuePosition: undefined }));
     writeDefinition(paths.experimentsDir, definition("misnamed"), "wrong.json");
     writeDefinition(paths.experimentsDir, definition("dropped", { queuePosition: undefined, discarded: "no longer needed" }));
     writeDefinition(paths.experimentsDir, definition("halted", { queuePosition: undefined, blocked: "needs a fix" }));

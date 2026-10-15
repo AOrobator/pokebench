@@ -4,8 +4,8 @@
  "title": "Automatic running",
  "changedFeature": "automatic-running-v1",
  "hypothesis": "Turning automatic running on helps runs reach the rival house more often or in fewer turns. Adds simultaneous B to ordinary directional travel only when native running permission and controls are verified each frame. walking=true overrides it.",
- "activationMilestone": "PLAYER_NAME_CONFIRMED",
- "primaryMilestone": "RIVAL_HOUSE_ENTERED",
+ "activationMilestone": "RUNNING_SHOES_RECEIVED",
+ "primaryMilestone": "ROUTE_102",
  "source": {
   "checkout": "main",
   "commit": "a3c343bdbe245dbe4d22dd2fe413a1bed66fa36d"
@@ -74,5 +74,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Registered 2026-10-15 in the switch audit: merged behind a switch with no experiment."
+ "notes": "Registered 2026-10-15 in the switch audit: merged behind a switch with no experiment. Activation (2026-10-15 audit): Native running needs the Running Shoes, which Mom gives after the Pok\u00e9dex; before that the switch never adds B."
 }

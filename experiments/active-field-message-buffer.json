@@ -4,7 +4,7 @@
  "title": "Without Dialogue as text",
  "changedFeature": "active-field-message-buffer-v1",
  "hypothesis": "Turning dialogue as text off makes runs reach the rival house less often or in more turns; it is ON in the incumbent but has no recorded A/B. Copies the game's active field-message buffer into the readout. It can include pages not yet shown on screen.",
- "activationMilestone": "NEW_GAME_CREATED",
+ "activationMilestone": "FIRST_TRUCK_EXIT",
  "primaryMilestone": "RIVAL_HOUSE_ENTERED",
  "source": {
   "checkout": "main",
@@ -74,5 +74,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Registered 2026-10-15 in the switch audit: merged behind a switch with no experiment."
+ "notes": "Registered 2026-10-15 in the switch audit: merged behind a switch with no experiment. Activation (2026-10-15 audit): Field messages start when Mom speaks outside the truck."
 }

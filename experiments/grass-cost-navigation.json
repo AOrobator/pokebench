@@ -5,7 +5,7 @@
  "changedFeature": "grass-cost-navigation-v1",
  "hypothesis": "Making tall grass cost 1.5 steps lets navigate_to route around wild encounters when a detour is cheap, so runs lose less time to battles on the way to Oldale.",
  "activationMilestone": "ROUTE_101",
- "primaryMilestone": "RIVAL_HOUSE_ENTERED",
+ "primaryMilestone": "OLDALE_TOWN",
  "source": {
   "checkout": "main",
   "commit": "a3c343bdbe245dbe4d22dd2fe413a1bed66fa36d"

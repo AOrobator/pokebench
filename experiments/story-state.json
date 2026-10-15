@@ -3,8 +3,8 @@
  "id": "story-state",
  "title": "Without Story flags",
  "changedFeature": "story-state-v1",
- "hypothesis": "Turning story flags off makes runs reach the rival house less often or in more turns; it is ON in the incumbent but has no recorded A/B. Lists story steps the game's own flags and variables say are done (name confirmed, clock set, rival met, starter received…).",
- "activationMilestone": "NEW_GAME_CREATED",
+ "hypothesis": "Turning story flags off makes runs reach the rival house less often or in more turns; it is ON in the incumbent but has no recorded A/B. Lists story steps the game's own flags and variables say are done (name confirmed, clock set, rival met, starter received\u2026).",
+ "activationMilestone": "PLAYER_NAME_CONFIRMED",
  "primaryMilestone": "RIVAL_HOUSE_ENTERED",
  "source": {
   "checkout": "main",
@@ -74,5 +74,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Registered 2026-10-15 in the switch audit: merged behind a switch with no experiment."
+ "notes": "Registered 2026-10-15 in the switch audit: merged behind a switch with no experiment. Activation (2026-10-15 audit): The first story step it can list is the confirmed name."
 }

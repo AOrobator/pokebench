@@ -15,7 +15,7 @@ function deps(over: Partial<CliDeps> = {}): CliDeps & { lines: string[]; paths: 
   const paths = { experimentsDir: join(root, "experiments"), runsRoot: join(root, "runs"), readinessPath: join(root, "readiness.md") };
   mkdirSync(paths.runsRoot, { recursive: true });
   writeDefinition(paths.experimentsDir, definition("full-map"));
-  writeDefinition(paths.experimentsDir, definition("pending-one", { queuePosition: undefined, changedFeature: "counter-talk-v1", activationMilestone: "OLDALE_TOWN" }));
+  writeDefinition(paths.experimentsDir, definition("pending-one", { queuePosition: undefined, changedFeature: "counter-talk-v1", activationMilestone: "OLDALE_TOWN", primaryMilestone: "ROUTE_103" }));
   const lines: string[] = [];
   const host = { log: (line: string) => { lines.push(line); } } as unknown as RunnerHost;
   return { paths, lines, source: { recent: () => READY, trial: () => null }, host, git: () => `${"b".repeat(40)}\n`, print: (line) => { lines.push(line); }, interactive: true, ask: () => Promise.resolve("full-map"), now: () => new Date("2026-10-14T21:00:00Z"), user: "operator", ...over };

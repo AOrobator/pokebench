@@ -15,7 +15,9 @@ describe("workbench visual contract", () => {
     const html = timingPlot([run()], "PLAYER_NAME_CONFIRMED", "objective-tracking-v1", metric, 800); expect(html).toContain("data-split"); expect(html).toContain('role="button"'); expect(html).toContain('tabindex="0"');
   });
   it("shows live clocks, caps, objective and fixed target separately, linking to that run", () => {
-    const html = currentRunHtml([run({ status: "live" })], 1000, 6000, "older"); expect(html).toContain('/#run=run_01'); expect(html).toContain("0:02:05"); expect(html).toContain("0:10:00"); expect(html).toContain("CURRENT OBJECTIVE"); expect(html).toContain("PLAYER NAME CONFIRMED"); expect(html).toContain("&lt;script&gt;"); expect(html).not.toContain("<script>");
+    const html = currentRunHtml([run({ status: "live" })], 1000, 6000, "older"); expect(html).toContain('/#run=run_01'); expect(html).toContain("0:02:05"); expect(html).toContain("0:10:00"); expect(html).toContain("CURRENT OBJECTIVE"); expect(html).toContain("PLAYER NAME CONFIRMED"); expect(html).toContain("&lt;script&gt;"); expect(html).not.toContain("<script>"); expect(html).not.toContain("NOT FROM ZERO");
+    const saved = run({ status: "live" }); if (saved.config === null) throw new Error("config"); saved.config = { ...saved.config, resume: "CLOCK_SET" };
+    expect(currentRunHtml([saved], 1000, 6000, null)).toContain("NOT FROM ZERO · Clock set save"); expect(runDetails(saved, null)).toContain("did not start from New game"); expect(ribbonPlot([saved], 800)).toContain("not from zero");
   });
   it("does not tick a paused run or mistake unresponsive/ended logs for live, and retains the viewer return selection", () => {
     expect(currentRunHtml([run({ status: "paused" })], 1000, 6000, null)).toContain("0:02:00"); expect(currentRunHtml([run({ status: "unresponsive" })], 1000, 6000, "old/run")).toContain('/#run=old%2Frun'); expect(currentRunHtml([], 0, 0, null)).toContain("BACK TO VIEWER");

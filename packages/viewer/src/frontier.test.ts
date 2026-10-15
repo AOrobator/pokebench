@@ -33,6 +33,9 @@ describe("persistent actual native frontier", () => {
     expect(FRONTIER_MILESTONES.map(m => m.id)).toContain("RIVAL_HOUSE_ENTERED");
     expect(FRONTIER_MILESTONES.map(m => m.id)).toContain("RIVAL_BEDROOM_REACHED");
     expect(FRONTIER_MILESTONES.map(m => m.id)).toContain("RIVAL_MET");
+    const axis = FRONTIER_MILESTONES.map(m => m.id);
+    expect(axis.indexOf("RIVAL_MET")).toBeLessThan(axis.indexOf("BIRCH_RESCUE_REQUESTED"));
+    expect(axis.indexOf("BIRCH_RESCUE_REQUESTED")).toBeLessThan(axis.indexOf("ROUTE_101"));
     expect(FRONTIER_MILESTONES.some(m => /LAB|AIDE/.test(m.id))).toBe(false);
     const optional = measured("optional", [1000]);
     optional.splits.push({ name: "LAB_ENTERED", elapsedMs: 2000, segmentMs: 1000, seq: 2, turn: 2, inputTokens: 0, outputTokens: 0 });
@@ -107,6 +110,29 @@ describe("persistent actual native frontier", () => {
     expect(frontierCoverage([best(), human(), resumed], "RIVAL_MET")).toContain("1 / 1");
     expect(frontierCoverage([best(), human(), resumed], "RIVAL_MET")).toContain("2 excluded");
   });
+  it("draws a Clock set resume as a dashed not-from-zero line and keeps it out of the fresh-boot record", () => {
+    const resumed = measured("clock", [90000, null, 5000, 120000]);
+    if (resumed.config === null) throw new Error("config");
+    resumed.config = { ...resumed.config, start: "save_state", resume: "CLOCK_SET" };
+    resumed.splits.push({ name: "MOM_RIVAL_INSTRUCTION", elapsedMs: 8000, segmentMs: 3000, seq: 9, turn: 1, inputTokens: 0, outputTokens: 0 });
+    resumed.status = "live";
+    expect(frontierReferences([human(), best(), resumed]).best?.id).toBe("dea1");
+    document.body.innerHTML = frontierPlot(frontierReferences([human(), best()]), [resumed], 900, undefined, [resumed], false);
+    expect(document.querySelector('[data-resume-notice="CLOCK_SET"]')?.textContent).toContain("did not start from New game");
+    expect(document.querySelector('[data-live-run="clock"]')?.getAttribute("data-resume")).toBe("CLOCK_SET");
+    expect(document.querySelector('polyline[data-series="clock"]')?.getAttribute("stroke-dasharray")).toBe("8 5");
+    expect(document.querySelector('[data-run="clock"][data-split="PLAYER_NAME_CONFIRMED"]')).toBeNull();
+    expect(document.querySelector('[data-run="clock"][data-split="PLAYER_HOUSE_EXITED_AFTER_CLOCK"]')).not.toBeNull();
+    expect(document.querySelector('[data-run="clock"]')?.getAttribute("aria-label")).toContain("not from New game");
+    expect(document.body.textContent).toContain("NOT FROM ZERO");
+    expect(document.querySelector('[data-resume-origin="CLOCK_SET"]')).not.toBeNull();
+    const other = measured("other-save", [1000, 2000, 3000]);
+    if (other.config === null) throw new Error("config");
+    other.config = { ...other.config, start: "save_state", resume: null };
+    document.body.innerHTML = frontierPlot(frontierReferences([human(), best()]), [other], 900);
+    expect(document.querySelector('[data-series="other-save"]')).toBeNull();
+    expect(document.querySelector("[data-resume-notice]")).toBeNull();
+  });
   it("shows unavailable persistent references explicitly instead of silently substituting another human", () => {
     document.body.innerHTML = frontierPlot(frontierReferences([measured("other-human", [1], "human")]), [], NaN);
     expect(document.body.textContent).toContain("Human reference unavailable");
@@ -124,7 +150,7 @@ describe("zoom to frontier", () => {
     expect(axis()).toContain("Starter"); expect(axis()).not.toContain("Oldale"); expect(axis()).not.toContain("Badge");
     expect(axis()).toContain("30"); expect(axis()).not.toContain("120");
     expect(document.querySelector(".wb-frontier-chart")?.getAttribute("aria-label")).toBe("Story frontier zoomed to New game through Starter");
-    expect(document.body.textContent).toContain("Zoomed to the frontier: New game → Starter, 15 of 36 checkpoints");
+    expect(document.body.textContent).toContain("Zoomed to the frontier: New game → Starter, 16 of 37 checkpoints");
     expect(document.body.textContent).toContain("21 later checkpoints hidden");
     document.body.innerHTML = frontierPlot(refs, [], 2000);
     expect(document.querySelectorAll(`[data-run="${HUMAN_REFERENCE}"]`)).toHaveLength(10);
@@ -140,23 +166,63 @@ describe("zoom to frontier", () => {
     expect(document.body.textContent).not.toContain("Zoomed");
     document.body.innerHTML = frontierPlot({ human: human(), best: null }, [], 2000, undefined, [], true);
     expect(axis()).toContain("New game"); expect(axis()).toContain("Name"); expect(axis()).not.toContain("Truck exit");
-    expect(document.body.textContent).toContain("2 of 36 checkpoints");
+    expect(document.body.textContent).toContain("2 of 37 checkpoints");
   });
   it("ends at the next dense human checkpoint and widens for paused runs, keeping narrow labels honest", () => {
     const dense = human(); dense.splits = FRONTIER_MILESTONES.map((m, i) => ({ name: m.id, elapsedMs: (i + 1) * 1000, segmentMs: 1000, seq: i, turn: 0, inputTokens: 0, outputTokens: 0 }));
     document.body.innerHTML = frontierPlot({ human: dense, best: best() }, [], 2000, undefined, [], true);
-    expect(document.body.textContent).toContain("New game → Route 101, 14 of 36 checkpoints");
+    expect(document.body.textContent).toContain("New game → Sent to Birch, 14 of 37 checkpoints");
     const paused = { ...measured("paused", [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000]), status: "paused" as const };
     document.body.innerHTML = frontierPlot({ human: dense, best: best() }, [], 300, undefined, [paused], true);
-    expect(document.body.textContent).toContain("New game → Birch rescue, 16 of 36 checkpoints");
+    expect(document.body.textContent).toContain("New game → Birch rescue, 17 of 37 checkpoints");
     expect(document.body.textContent).toContain("all visible points remain plotted");
+  });
+  it("labels the checkpoint where lines stop between rival instruction and rival house", () => {
+    const names = FRONTIER_MILESTONES.map(m => m.id);
+    const leave = names.indexOf("PLAYER_HOUSE_EXITED_AFTER_CLOCK");
+    const stopped = measured("stopped", []);
+    stopped.splits = names.slice(0, leave + 1).map((name, i) => ({ name, elapsedMs: (i + 1) * 1000, segmentMs: 1000, seq: i, turn: 0, inputTokens: 0, outputTokens: 0 }));
+    document.body.innerHTML = frontierPlot({ human: human(), best: best() }, [stopped], 340, undefined, [], true);
+    const labels = Array.from(document.querySelectorAll(".wb-frontier-chart text.wb-axis")).map(t => t.textContent);
+    expect(labels).toContain("Leave home");
+    expect(document.querySelector('[data-run="stopped"][data-split="RIVAL_HOUSE_ENTERED"]')).toBeNull();
+    expect(document.querySelector('[data-run="stopped"][data-split="PLAYER_HOUSE_EXITED_AFTER_CLOCK"]')).not.toBeNull();
+  });
+  it("connects proved Clock-set checkpoints and keeps a real missing rival house broken", () => {
+    const points = (id: string): number[] => Array.from(document.querySelectorAll(`polyline[data-series="${id}"]`)).map(line => (line.getAttribute("points") ?? "").trim().split(/\s+/).filter(point => point !== "").length);
+    const resumed = (id: string, names: readonly string[]) => {
+      const run = measured(id, []);
+      if (run.config === null) throw new Error("config");
+      run.config = { ...run.config, start: "save_state", resume: "CLOCK_SET" };
+      run.splits = names.map((name, i) => ({ name, elapsedMs: (i + 1) * 1000, segmentMs: 1000, seq: i + 1, turn: 1, inputTokens: 0, outputTokens: 0, derived: true }));
+      return run;
+    };
+    const proved = ["CLOCK_SET", "MOM_RIVAL_INSTRUCTION", "PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_BEDROOM_REACHED", "RIVAL_MET"];
+    document.body.innerHTML = frontierPlot({ human: human(), best: best() }, [resumed("proved", proved)], 900);
+    expect(points("proved")).toEqual([proved.length]);
+    expect(document.querySelector('[data-run="proved"][data-split="CLOCK_SET"]')?.getAttribute("aria-label")).toContain("first observation upper bound");
+    const missed = ["CLOCK_SET", "MOM_RIVAL_INSTRUCTION", "PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_BEDROOM_REACHED", "RIVAL_MET"];
+    document.body.innerHTML = frontierPlot({ human: human(), best: best() }, [resumed("missed", missed)], 900);
+    expect(points("missed")).toEqual([3, 2]);
+    expect(document.querySelector('[data-run="missed"][data-split="RIVAL_HOUSE_ENTERED"]')).toBeNull();
+    const bedroom = (id: string, names: readonly string[]) => {
+      const run = measured(id, []);
+      run.splits = names.map((name, i) => ({ name, elapsedMs: (i + 1) * 1000, segmentMs: 1000, seq: i + 1, turn: 1, inputTokens: 0, outputTokens: 0 }));
+      return run;
+    };
+    const around = ["PLAYER_HOUSE_ENTERED", "MOM_CLOCK_INSTRUCTION", "PLAYER_BEDROOM", "CLOCK_SET"];
+    document.body.innerHTML = frontierPlot({ human: human(), best: best() }, [bedroom("room", around)], 900);
+    expect(points("room")).toEqual([around.length]);
+    document.body.innerHTML = frontierPlot({ human: human(), best: best() }, [bedroom("gap", around.filter(name => name !== "PLAYER_BEDROOM"))], 900);
+    expect(points("gap")).toEqual([2]);
+    expect(document.querySelector('[data-run="gap"][data-split="CLOCK_SET"]')).not.toBeNull();
   });
   it("uses the next checkpoint when the human baseline is missing or has nothing later", () => {
     document.body.innerHTML = frontierPlot({ human: null, best: best() }, [], 2000, undefined, [], true);
-    expect(axis()).toContain("Route 101"); expect(axis()).not.toContain("Starter");
+    expect(axis()).toContain("Sent to Birch"); expect(axis()).not.toContain("Route 101");
     const short = measured(HUMAN_REFERENCE, [1000, 2000], "human");
     document.body.innerHTML = frontierPlot({ human: short, best: best() }, [], 2000, undefined, [], true);
-    expect(axis()).toContain("Route 101"); expect(axis()).not.toContain("Starter");
+    expect(axis()).toContain("Sent to Birch"); expect(axis()).not.toContain("Route 101");
   });
 });
 

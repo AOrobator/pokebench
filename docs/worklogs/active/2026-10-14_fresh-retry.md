@@ -22,7 +22,7 @@ The governor already drops an errored reply before retrying (`play` slices it of
 
 - [x] RED: tests for the filter, the wiring and the registry (7 failing, 51 passing in harness, play-wiring, features)
 - [x] GREEN: switch registered, wired through `contextTools`, explainer (agent 1033 + viewer 563 tests pass; wiring removed once → play-wiring test red, restored)
-- [ ] Pending experiment entry pinned to the GREEN commit
+- [x] Pending experiment `experiments/fresh-retry.json` pinned to 7f1bcc2 (parses; candidate flips only fresh-retry-v1); readiness READY recorded
 - [ ] Gates: test, lint, coverage ≥90
 - [ ] Reviews: Claude CLI, Grok (Codex out of credits; no local models)
 - [ ] Operator approval before merging to main

@@ -20,7 +20,7 @@ slower turns and fewer turns per 30-minute run.
 ## Milestone
 
 - [x] RED: registry, preset default, window selection, piLoop honors the window, wiring (4 failing in harness/play-wiring tests)
-- [ ] GREEN: switch through `contextTools` → `piLoop`
+- [x] GREEN: switch through `contextTools` → `piLoop`. Wiring-deletion check: forcing OFF in `contextTools` and dropping `options.window` in `piLoop` each turned one test red, then restored. Agent 1032 tests, viewer 563 tests. Coverage agent 97.43/93.88/98 (stmts/branches/funcs), viewer 94.83/90.17/93.6. Lint clean.
 - [ ] Explainer, feature-card link, pending experiment entry, readiness note
 - [ ] Gates: test, coverage ≥90, lint
 - [ ] Review: principles self-review, Claude CLI, independent lane

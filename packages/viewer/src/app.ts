@@ -382,7 +382,10 @@ export class App {
       // A list held at the top goes back to following the newest turn, unless the reader scrolled away.
       list.addEventListener("mouseleave", () => {
         this.held.delete(list);
-        if (this.heldAtTop.delete(list)) list.scrollTop = 0;
+        if (this.heldAtTop.delete(list)) {
+          list.scrollTop = 0;
+          this.autoScroll.set(list, 0);
+        }
       });
       // Any scroll the reader makes (not one reconcile made) cancels the return to the top.
       list.addEventListener("scroll", () => { if (Math.abs(list.scrollTop - (this.autoScroll.get(list) ?? 0)) > 1) this.heldAtTop.delete(list); });
@@ -395,7 +398,7 @@ export class App {
       }, true);
       list.addEventListener("toggle", (event) => {
         const details = event.target as HTMLDetailsElement;
-        this.remember(details, details.open);
+        this.remember(details, details.open, true);
       }, true);
     }
     this.ui("trace-link").addEventListener("click", () => {
@@ -407,7 +410,10 @@ export class App {
       const all = target.closest("[data-trace-expand],[data-trace-collapse]");
       if (all !== null) {
         const open = all.hasAttribute("data-trace-expand");
-        for (const row of this.ui("trace").querySelectorAll<HTMLDetailsElement>("details[data-key]")) row.open = open;
+        for (const row of this.ui("trace").querySelectorAll<HTMLDetailsElement>("details[data-key]")) {
+          this.remember(row, open);
+          row.open = open;
+        }
         return;
       }
       const raw = target.closest<HTMLElement>("[data-chip]")?.dataset.chip;
@@ -639,13 +645,20 @@ export class App {
     for (const name of ["trace", "side-trace"]) this.doc.querySelector<HTMLElement>(`[data-ui="${name}"]`)?.replaceChildren();
   }
 
-  private remember(details: HTMLDetailsElement, open: boolean): void {
+  // `mirror` only once the state has changed (a toggle event); a click arrives before its own toggle.
+  private remember(details: HTMLDetailsElement, open: boolean, mirror = false): void {
     const key = details.closest<HTMLElement>("[data-key]")?.dataset.key;
     if (key === undefined) return;
     const result = details.classList.contains("res-d");
     const set = result ? this.rows.folded : this.rows.open;
     if (result ? !open : open) set.add(key);
     else set.delete(key);
+    if (!mirror) return;
+    // Keep the side panel's and the trace page's copies of this row in step.
+    for (const row of this.doc.querySelectorAll<HTMLDetailsElement>(`details[data-key="${key}"]`)) {
+      const target = result ? row.querySelector<HTMLDetailsElement>("details.res-d") : row;
+      if (target !== null && target !== details && target.open !== open) target.open = open;
+    }
   }
 
   // The chip buttons are built once and updated in place, so focus and clicks survive live updates.

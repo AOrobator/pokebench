@@ -950,6 +950,62 @@ describe("agent trace page", () => {
     expect(again.open).toBe(true);
   });
 
+  it("ignores the scroll its own redraw makes while holding a list at the top", async () => {
+    const { app, streams, setNow } = await harness();
+    const log = new Log();
+    log.add(0, START);
+    for (let turn = 1; turn <= 5; turn += 1) log.add(turn * 10, assistantAt(turn));
+    feed(must(streams[0]), log.events);
+    setNow(BASE_MS + 1_000);
+    app.tick(10);
+    const box = ui("trace");
+    const items = (): HTMLElement[] => [...box.querySelectorAll<HTMLElement>(".turn-h, [data-key]")];
+    const rect = (top: number): DOMRect => ({ top, bottom: top + 20, left: 0, right: 0, width: 0, height: 20, x: 0, y: top, toJSON: () => ({}) });
+    const spy = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+      return this === box ? rect(0) : rect(items().indexOf(this) * 20 - box.scrollTop);
+    });
+    try {
+      box.scrollTop = 0;
+      box.dispatchEvent(new Event("mouseenter"));
+      feed(must(streams[0]), [log.add(800, assistantAt(6))], false);
+      app.tick(10);
+      expect(box.scrollTop).toBe(40);
+      box.dispatchEvent(new Event("scroll"));
+      box.dispatchEvent(new Event("mouseleave"));
+      expect(box.scrollTop).toBe(0);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("keeps COLLAPSE ALL and EXPAND ALL through a redraw", async () => {
+    const { app, streams, setNow } = await harness();
+    const events = fullRun().events;
+    feed(must(streams[0]), events.slice(0, 10));
+    setNow(BASE_MS + 3_300);
+    app.tick(100);
+    must(ui("trace-chips").querySelector<HTMLButtonElement>("[data-trace-expand]")).click();
+    const late = new Log();
+    late.events.push(...events.slice(0, 10));
+    feed(must(streams[0]), [late.add(3_400, { type: "retry", turn: 1, reason: "late", attempt: 1, limit: 3 })], false);
+    app.tick(100);
+    expect(must(ui("trace").querySelector<HTMLDetailsElement>('details[data-key="5"]')).open).toBe(true);
+    must(ui("trace-chips").querySelector<HTMLButtonElement>("[data-trace-collapse]")).click();
+    feed(must(streams[0]), [late.add(3_500, { type: "retry", turn: 1, reason: "later", attempt: 2, limit: 3 })], false);
+    app.tick(100);
+    expect(must(ui("trace").querySelector<HTMLDetailsElement>('details[data-key="5"]')).open).toBe(false);
+  });
+
+  it("opens the side panel's copy of a row opened on the trace page", async () => {
+    const { app, streams, setNow } = await harness();
+    feed(must(streams[0]), fullRun().events.slice(0, 10));
+    setNow(BASE_MS + 3_300);
+    app.tick(100);
+    must(ui("trace").querySelector<HTMLElement>('details[data-key="5"] > summary')).click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(must(ui("side-trace").querySelector<HTMLDetailsElement>('details[data-key="5"]')).open).toBe(true);
+  });
+
   it("goes back to the newest turn when the pointer leaves a list it held at the top", async () => {
     const { app, streams } = await harness(`#run=${M4_ID}`);
     feed(must(streams[0]), m4Run());

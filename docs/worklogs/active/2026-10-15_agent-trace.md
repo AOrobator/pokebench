@@ -158,6 +158,22 @@ Browser verification so far, at 1440×900:
 
 ## Multi-Model Review Log
 
+**Round 6 (032d206..19a273a)**
+
+Grok: **LGTM** (minor items only).
+
+Claude: BLOCKING. Round 5's claim that the scroll comparison was guarded was wrong: my deletion check had disabled the cancel itself rather than removing the comparison, so no test covered ignoring a redraw's own scroll. Correction recorded here.
+
+Fixed in `fix(viewer): agent trace review round 6`:
+- New test: hold at the top → a redraw shifts `scrollTop` → its `scroll` event is ignored → mouseleave snaps to 0. Replacing the comparison with an unconditional cancel turns it red.
+- COLLAPSE ALL / EXPAND ALL record row state per row, with a test that both survive a redraw. happy-dom fires toggle synchronously, so removing the per-row record can't be shown red there; the race exists only in browsers.
+- `autoScroll` set to 0 on the snap back.
+- Copies of a row on the trace page and side panel mirror each other, from the toggle event only (mirroring from the click fought the native toggle and was caught by 2 tests). Disabling the mirror turns its test red.
+
+DEFERRED (Claude r6 #5): after many SHOW OLDER clicks, `anchorOf` and stamp building scale with the turns on screen. That only bites with thousands of turns opened by hand; revisit if someone pages that deep on a live run.
+
+Gates: viewer 642 passed (95.3/91.1/94.4; `app.ts` branches 86.0), agent 1066 passed, lint clean, build ok.
+
 **Round 5 (032d206..62b4c67)**
 
 Claude: **LGTM**. It verified the round-4 fixes and judged the deferral acceptable.

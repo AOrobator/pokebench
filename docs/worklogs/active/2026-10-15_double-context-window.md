@@ -21,7 +21,7 @@ slower turns and fewer turns per 30-minute run.
 
 - [x] RED: registry, preset default, window selection, piLoop honors the window, wiring (4 failing in harness/play-wiring tests)
 - [x] GREEN: switch through `contextTools` → `piLoop`. Wiring-deletion check: forcing OFF in `contextTools` and dropping `options.window` in `piLoop` each turned one test red, then restored. Agent 1032 tests, viewer 563 tests. Coverage agent 97.43/93.88/98 (stmts/branches/funcs), viewer 94.83/90.17/93.6. Lint clean.
-- [ ] Explainer, feature-card link, pending experiment entry, readiness note
+- [x] Explainer `docs/explainers/double-context-window-v1.html`, `FEATURE_EXPLAINERS` mapping, `experiments/double-context-window.json` (pending), readiness row (READY). Other incumbents list the switch OFF. All 12 entries parse.
 - [ ] Gates: test, coverage ≥90, lint
 - [ ] Review: principles self-review, Claude CLI, independent lane
 - [ ] Local merge into main (approved by the operator 2026-10-15 01:22 UTC)

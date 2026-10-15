@@ -33,6 +33,9 @@ attempt (30b2, 2126, 5521) is excluded from the 2×2 by its README; early baseli
   verified names reserved only after membership). Claude re-review: CHANGES REQUESTED (plan.json skip
   dropped think-fast-objectives-off-30m). Fixed: only provenance-shaped plans skip, a last line is dropped
   only when it is not JSON yet, ids claim a dir only as one safe segment, every strict receipt id is reserved.
-- [ ] Re-review round 3
+- [x] FIX COMMIT: `fix: address Grok and Claude re-review of hand-run cohorts` (993570b), rebased on main e0a0552
+- [x] Round 3: Grok 4.7 high LGTM, Claude CLI LGTM. Viewer 652/652, coverage 95.38 / 91.16 / 94.39, lint clean.
+  Real store: every cohort listed, problems []. Deferred (non-blocking): hand-run ids not checked against
+  provenance directory names; a cohort literally named "all" would collide with the dropdown default.
 - [ ] Operator merge approval; rebase onto main first (three parallel viewer sessions)
 - [ ] 8790 restart only with operator OK: the finals runner lives in that process

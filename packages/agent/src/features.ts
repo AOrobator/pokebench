@@ -52,6 +52,10 @@ export const SWITCHABLE_FEATURES = [
   "named-warp-destinations-v1",
   "milestone-stall-stop-v1",
   "text-only-supervisor-v1",
+  "character-presence-v1",
+  "navigation-refusal-reasons-v1",
+  "transition-press-result-v1",
+  "stall-briefing-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -179,6 +183,10 @@ export const FEATURES: readonly FeatureInfo[] = [
     "Ends the run as stalled after 10 minutes of play with no new milestone. The clock starts at run start and restarts at each newly observed milestone; milestones already present at the start do not count, and operator pauses are excluded, as for the wall budget. The wall budget stays the hard cap. The model is not told. Off: the run continues until the wall budget, turn limit or another stop ends it."),
   on("text-only-supervisor-v1", "guard", "TEXT-ONLY SUPERVISOR", null,
     "When the model's replies call no tool often enough to reach the failure limit (three in a row by default), the run does not end. The model gets a SUPERVISOR note instead of the usual nudge: where it is, its last story progress, the recent dialogue, what is listed here that it has not tried, and that only a tool call (observe, press or another listed tool) changes the game. The streak then restarts. After the third note in a row with no successful tool call between them, the next streak ends the run as a model error. State-only decisions, which send no follow-up messages, require it off. Invalid tool calls and gateway errors still end the run at the limit. Each note is recorded. Off: three replies in a row with no tool call end the run as a model error."),
+  on("character-presence-v1", "observation", "STORY CHARACTER PRESENCE", RAM, "Lists which of the game's story characters (PROF. BIRCH, the rival, MOM, NORMAN, WALLY, ROXANNE, STEVEN) the current map's own object list places here, with live positions when they are on screen, and names those that are not on this map. A sprite kind such as SCIENTIST_1 or FAT_MAN is never one of these characters. Says nothing about where an absent character is. Off: no such line."),
+  on("navigation-refusal-reasons-v1", "guidance", "NAVIGATION REFUSAL REASONS", "bounded-navigation-v1", "When navigate_to cannot walk, it says why and what would work: a message is waiting for A or B (dismiss it first); the target is a person or object (stand on a named free neighbouring tile, face it and press A); the target is a wall, water or other blocked tile; or the target is outside this map. Off: the generic refusal text."),
+  on("transition-press-result-v1", "guidance", "TRANSITION PRESS RESULTS", "press-result-v1", "Press results name what really happened at transitions: warped from one map and tile to another (with both map names), moved by a script while field controls were locked (not by the press), and a conversation restarted with text already shown. Off: warps read as ordinary moves, scripted motion is reported as the press's movement, and a restarted conversation reads as an interface change."),
+  on("stall-briefing-v1", "guard", "STALL BRIEFING", "loop-guard-supervisor-v1", "Posts the loop supervisor's briefing for stalls the loop guard does not detect: walking back and forth between the same two maps (on the second round trip), and every 5 minutes of play without a new milestone. The run continues. Off: briefings only when the loop guard detects a loop."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",
@@ -226,7 +234,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "ram-state-v1", "live-map-v1", "live-player-position-v1", "world-coordinate-grid-v1", "live-object-sprites-v1",
   "world-targets-v1", "named-interactions-v1", "world-destinations-v1", "bounded-navigation-v1", "field-dialogue-phase-v1", "active-field-message-buffer-v1", "naming-cursor-v1", "story-state-v1",
   "coordinate-script-conditions-v1", "field-control-lock", "warp-activation-guidance-v1", "ledge-hops-v1", "one-way-tiles-v1",
-  "full-map-navigation-v1", "counter-talk-v1", "named-warp-destinations-v1",
+  "full-map-navigation-v1", "counter-talk-v1", "named-warp-destinations-v1", "character-presence-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -263,6 +271,10 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("named-warp-destinations-v1"),
     ...when("milestone-stall-stop-v1"),
     ...when("text-only-supervisor-v1"),
+    ...when("character-presence-v1"),
+    ...when("navigation-refusal-reasons-v1"),
+    ...when("transition-press-result-v1"),
+    ...when("stall-briefing-v1"),
   ];
 }
 

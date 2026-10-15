@@ -259,7 +259,8 @@ function nominateCohort(paths: QueuePaths, source: RunSource, host: RunnerHost, 
 
 const finalsPresetOf = (n: Nomination, arm: string): PlayPresetV2 => {
   const f = n.finalists.find((x) => x.arm === arm);
-  return f === undefined ? n.incumbent : finalsPreset(n.incumbent, n.experiment, arm, f.switches, n.finals);
+  // Rebuild the incumbent too, so a nomination recorded under older finals rules plays by the current ones.
+  return finalsPreset(n.incumbent, n.experiment, f === undefined ? "incumbent" : arm, f?.switches ?? {}, n.finals);
 };
 
 // INV-G2: every finals arm starts from boot with the same limits; the ledger resumes like trials.jsonl.

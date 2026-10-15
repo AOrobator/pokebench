@@ -338,6 +338,10 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
   if(parts.length===1 && head==="human.css") {
     sendFile(res,join(options.staticDir,"human.css"),"text/css; charset=utf-8");return;
   }
+  if (parts.length === 1 && (head === "favicon.svg" || head === "favicon.ico")) {
+    sendFile(res, join(options.staticDir, "favicon.svg"), "image/svg+xml");
+    return;
+  }
   if (parts.length === 1 && head === "style.css") {
     sendFile(res, join(options.staticDir, "style.css"), "text/css; charset=utf-8");
     return;

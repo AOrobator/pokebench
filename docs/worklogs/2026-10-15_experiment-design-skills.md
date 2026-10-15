@@ -39,8 +39,8 @@ coverage gate is untouched; `power.py` is a skill helper tested by its own cross
 ## Milestones
 - [x] M1 Draft the skills and helpers; run the power cross-check; render a sample overview and
   check it visually.
-- [ ] M2 Claude CLI and Grok reviews; fix findings.
-- [ ] M3 Ask the operator before merging to main.
+- [x] M2 Claude CLI and Grok reviews; fix findings.
+- [x] M3 Merge to main (operator allowed merging after one review round plus fixes).
 
 ## Log
 - 2026-10-15 M1: wrote the experiment-design skill (SKILL.md, power.py, power_test.py, overview template), the trace-forensics skill, the review coordinator with four persona files, checkpoint-first edits to patch-evaluation and experiment-queue, CLAUDE.md pointers and docs/experiments/README.md.
@@ -64,3 +64,4 @@ coverage gate is untouched; `power.py` is a skill helper tested by its own cross
     - The capture milestone must come before activation.
     - Overviews are not registered in `FEATURE_EXPLAINERS`.
     - The forensics event list and the `harness-stop` class are complete; the persona brief says read-only except its own section.
+- 2026-10-15: merged to local main as 96990d3; operator approved archiving.

@@ -100,7 +100,7 @@ function nomination(experiment: Experiment, source: RunSource, from: "queue" | "
   const finals = finalsConfig(experiment);
   for (const f of finalists) finalsPreset(base, experiment.id, f.arm, f.switches, finals);
   const incumbent = finalsPreset(base, experiment.id, "incumbent", {}, finals);
-  const reason = finalists.length === 0 ? "no arm ranked above the incumbent; the incumbent stays" : `${finalists.map((f) => f.arm).join(", ")} ranked above the incumbent`;
+  const reason = finalists.length === 0 ? "no arm beat the incumbent in more than half of all run pairs; the incumbent stays" : `${finalists.map((f) => f.arm).join(", ")} beat the incumbent in more than half of all run pairs`;
   const reusedIncumbent = finalists.length === 0 ? [] : reusableRuns(incumbent, experiment.modelLane, source.recent(), finals.runsPerArm);
   return { experiment: experiment.id, source: from, ...(cohort === undefined ? {} : { cohort }), at: now.toISOString(), incumbent, finals, ranking, reusedIncumbent, finalists, reason };
 }

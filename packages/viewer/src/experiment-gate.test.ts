@@ -212,7 +212,7 @@ describe("winner gate", () => {
         expect(s.gate[0]).toMatchObject({ state: "declared", winner: "candidate" });
         expect(readPromotions(w.paths.runsRoot)[0]?.features).toEqual({ "full-map-navigation-v1": true });
       } else {
-        expect(nomination).toMatchObject({ finalists: [], reusedIncumbent: [], reason: "no arm ranked above the incumbent; the incumbent stays" });
+        expect(nomination).toMatchObject({ finalists: [], reusedIncumbent: [], reason: "no arm beat the incumbent in more than half of all run pairs; the incumbent stays" });
         expect(fake.launches).toHaveLength(8);
         expect(s.gate[0]).toMatchObject({ state: "no-finalists" });
         expect(s.gateBlock).toBeNull();

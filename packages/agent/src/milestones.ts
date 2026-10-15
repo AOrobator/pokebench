@@ -80,10 +80,17 @@ const routeProof = (name: string, states: readonly GameStateSnapshot[]): boolean
       && house(previous.location, "1F") === home && clockSet(previous) === true
       && stableRoute(last) && last.location === "LITTLEROOT TOWN" && clockSet(last) === true;
   }
+  if (name === "RIVAL_HOUSE_EXITED") {
+    const previous = states[1];
+    const rival = previous === undefined ? null : house(previous.location, "1F");
+    return states.length === 3 && home !== null && previous !== undefined && stableRoute(previous)
+      && rival !== null && rival !== home && stage("rival_stage", [3, 4])(previous) === true
+      && stableRoute(last) && last.location === "LITTLEROOT TOWN" && stage("rival_stage", [3, 4])(last) === true;
+  }
   return states.length === 2 && home !== null && stableRoute(last) && clockSet(last) === true
     && house(last.location, "1F") !== null && house(last.location, "1F") !== home;
 };
-const routeNames = new Set(["PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED"]);
+const routeNames = new Set(["PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_HOUSE_EXITED"]);
 
 // Legacy names retain their old meaning; exact confirmation/exit have new IDs.
 // Flags and stage meanings are traced in docs/findings/story-milestones.md.
@@ -106,6 +113,8 @@ export const MILESTONES: readonly Milestone[] = [
   { name: "RIVAL_HOUSE_ENTERED", kind: "navigation", reached: (s) => clockSet(s) === true ? place(s, (location) => house(location, "1F") !== null) : null },
   { name: "RIVAL_BEDROOM_REACHED", kind: "navigation", reached: (s) => stableRoute(s) ? stage("rival_stage", [2, 3, 4])(s) : null },
   { name: "RIVAL_MET", kind: "story", reached: stage("rival_stage", [3, 4]) },
+  // Back in town straight from the rival family's 1F after the meeting; routeProof checks the house.
+  { name: "RIVAL_HOUSE_EXITED", kind: "navigation", reached: (s) => stage("rival_stage", [3, 4])(s) === true ? at("LITTLEROOT TOWN")(s) : null },
   // Town state 2 is the north-exit send-off. 3 and 4 are later commits that pass through it.
   { name: "BIRCH_RESCUE_REQUESTED", kind: "story", reached: stage("town_stage", [2, 3, 4]) },
   { name: "ROUTE_101", kind: "navigation", reached: at("ROUTE 101") },
@@ -195,6 +204,7 @@ export class StateMilestones implements MilestoneSource {
     if (seq !== undefined && this.home !== null) {
       if (routeProof("RIVAL_HOUSE_ENTERED", [this.home.state, state])) routeEvidence.set("RIVAL_HOUSE_ENTERED", [this.home.seq, seq]);
       if (this.previous !== null && routeProof("PLAYER_HOUSE_EXITED_AFTER_CLOCK", [this.home.state, this.previous.state, state])) routeEvidence.set("PLAYER_HOUSE_EXITED_AFTER_CLOCK", [this.home.seq, this.previous.seq, seq]);
+      if (this.previous !== null && routeProof("RIVAL_HOUSE_EXITED", [this.home.state, this.previous.state, state])) routeEvidence.set("RIVAL_HOUSE_EXITED", [this.home.seq, this.previous.seq, seq]);
     }
     const fresh = MILESTONES.filter((m) => {
       if (this.seen.has(m.name)) return false;

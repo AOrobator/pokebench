@@ -28,10 +28,12 @@ granular view into how runs are going". Branch `claude/rival-house-exit-split`, 
 - [x] M1 RED: finals preset keeps the stall switch as the incumbent has it; tracker,
   qualification and viewer recovery tests for RIVAL_HOUSE_EXITED (both genders, fresh boot and
   Clock set save, own house, before RIVAL_MET, transition/unknown screens).
-- [ ] M2 GREEN: experiment-gate, milestones, features, milestone hint, viewer order/frontier/
+- [x] M2 GREEN: experiment-gate, milestones, features, milestone hint, viewer order/frontier/
   recovery, findings, explainers. Gates: lint, tests, coverage ≥ 90.
 - [ ] M3 Verify on recorded 2×2 runs (viewer replay shows the split); principles self-review;
   Claude CLI review; report to operator; merge only on approval.
 
 ## Log
 - M1 RED: 7 failing tests (agent: finals preset, tracker fresh boot and Clock set save, features registry x2; viewer: recovery, frontier axis). Withholding cases pass already.
+- COMMIT: `test: finals keep the stall stop off; rival-house exit split after the rival meeting` (44d472e)
+- M2 GREEN: finals force milestone-stall-stop-v1 off; RIVAL_HOUSE_EXITED in tracker (routeProof, evidence [home, rival 1F, town]), feature rival-house-exit-v1, viewer order/frontier/status/derived recovery (frontier-recording keeps it for resumed runs). Updated expectations: frontier zoom counts (+1 checkpoint), milestone order list, finals incumbent-reuse fixture (stall off). Not added to next-milestone-hint list (would change the hint switch's behavior). Gates: agent 1070 tests (97.5/93.84/98.13), viewer 644 (95.35/91.14/94.38), lint clean; Python untouched.

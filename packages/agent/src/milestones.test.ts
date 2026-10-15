@@ -84,6 +84,7 @@ describe("StateMilestones", () => {
       "RIVAL_HOUSE_ENTERED",
       "RIVAL_BEDROOM_REACHED",
       "RIVAL_MET",
+      "RIVAL_HOUSE_EXITED",
       "BIRCH_RESCUE_REQUESTED",
       "ROUTE_101",
       "STARTER_CHOSEN",

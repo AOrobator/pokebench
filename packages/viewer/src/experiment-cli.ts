@@ -114,9 +114,10 @@ export function productionHost(deps: HostDeps): RunnerHost {
   return {
     now: () => new Date(),
     runId: (model) => newRunId(new Date(), model, randomSuffix),
+    head: () => Promise.resolve(deps.git(["rev-parse", "HEAD"]).trim()),
     verifySource: (experiment, commit) => {
       const head = deps.git(["rev-parse", "HEAD"]).trim();
-      if (head !== commit) return Promise.resolve(`main is at ${head.slice(0, 7)}, not the approved ${commit.slice(0, 7)}; withdraw its approval and approve it again on the current build`);
+      if (head !== commit) return Promise.resolve(`earlier trials ran on ${commit.slice(0, 7)} but main is at ${head.slice(0, 7)}; both arms must run on one build`);
       if (deps.git(["status", "--porcelain", "--untracked-files=no"]).trim() !== "") return Promise.resolve("the main checkout has uncommitted changes");
       if (!existsSync(liveJs)) return Promise.resolve("packages/agent/dist/live.js is missing; run just build");
       const committed = Number(deps.git(["log", "-1", "--format=%ct", head]).trim()) * 1000;

@@ -51,8 +51,7 @@ it("hashes the definition as written, so a switch added to the registry later ke
  const written={...base,incumbent:{...base.incumbent,features:older}};
  const e=parseExperiment(written);
  expect(Object.keys(e.incumbent.features)).toContain("named-warp-destinations-v1");
- const {queuePosition:_q,...hashed}=written;
- expect(definitionHash(e)).toBe(createHash("sha256").update(stable(hashed)).digest("hex"));
+ expect(definitionHash(e)).toBe(createHash("sha256").update(stable({...written,queuePosition:undefined})).digest("hex"));
  expect(definitionHash(parseExperiment({...written,notes:"n",externalCohort:"c",queuePosition:4}))).toBe(definitionHash(e));
 });
 

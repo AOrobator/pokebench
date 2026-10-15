@@ -8,7 +8,7 @@ import {SupervisorBriefing} from "./loop-supervisor.js";
 import {navigationMemory} from "./navigation-memory.js";
 import type {RunRecorder} from "./recorder.js";
 import {STALL_STOP_MS,StallStop,type RunControl} from "./run-control.js";
-import {contextWindow,withoutTextOnlyReplies,type Window} from "./harness.js";
+import {TEXT_ONLY_NOTE_LIMIT,contextWindow,withoutTextOnlyReplies,type Window} from "./harness.js";
 
 type Transform=(messages:AgentMessage[])=>Promise<AgentMessage[]>;
 type WiringRecorder=Pick<RunRecorder,"subscribe"|"recordNavigationContext"|"recordLedgerContext"|"recordMilestoneHint">;
@@ -33,6 +33,13 @@ export function loopSupervisor(features:FeatureSet,recorder:Pick<RunRecorder,"su
  if(!features["loop-guard-supervisor-v1"])return undefined;
  const briefing=new SupervisorBriefing(features);recorder.subscribe(event=>{briefing.observe(event);});
  return (kind,calls)=>briefing.text(kind,calls);
+}
+
+// text-only-supervisor-v1: the recorded note the governor sends instead of ending the run.
+export function textOnlySupervisor(features:FeatureSet,recorder:Pick<RunRecorder,"subscribe"|"textOnlySupervisor">):((replies:number,note:number)=>string)|undefined {
+ if(!features["text-only-supervisor-v1"])return undefined;
+ const briefing=new SupervisorBriefing(features);recorder.subscribe(event=>{briefing.observe(event);});
+ return (replies,note)=>{const text=briefing.textOnly(replies,note,TEXT_ONLY_NOTE_LIMIT);recorder.textOnlySupervisor(replies,note,TEXT_ONLY_NOTE_LIMIT,text);return text;};
 }
 
 // milestone-stall-stop-v1: ends the run as stalled after STALL_STOP_MS of unpaused play

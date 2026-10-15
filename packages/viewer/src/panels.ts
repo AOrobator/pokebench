@@ -228,6 +228,7 @@ export function eventText(event: RunEvent, view?: RunView): string | null {
     }
     case "navigation_context":return `Navigation memory delivered · ${String(event.evidence.length)} retained references · ${esc(event.text.slice(0,200))}`;
     case "milestone_hint":return `Milestone hint sent to the model · ${esc(event.text)}`;
+    case "text_only_supervisor":return `Text-only supervisor note ${String(event.note)}/${String(event.limit)} sent after ${String(event.replies)} replies with no tool call · ${esc(event.text)}`;
     case "ledger_context":return `Instruction ledger delivered · ${String(event.evidence.length)} references · ${esc(event.text.slice(0,200))}`;
     case "decision_input":return `snapshot for decision ${String(event.decision_turn)} · state #${String(event.state_seq)} · ${esc(event.text.slice(0,200))}`;
     case "wait_input":return `WAIT ${String(event.duration_ms)} ms (host time) · action ${esc(event.tool_call_id)}`;
@@ -384,6 +385,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "fresh-retry-v1":"fresh-retry-v1.html",
  "named-warp-destinations-v1":"named-warp-destinations-v1.html",
  "milestone-stall-stop-v1":"milestone-stall-stop-v1.html",
+ "text-only-supervisor-v1":"text-only-supervisor-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

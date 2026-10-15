@@ -143,4 +143,16 @@ Before your next action, look back at your goal and at what the game has told yo
   return clip(text,LIMIT);
  }
 
+ textOnly(replies:number,note:number,limit:number):string {
+  const text=`SUPERVISOR: Your last ${String(replies)} replies called no tool, so nothing happened in the game (text-only supervisor, note ${String(note)} of ${String(limit)}). Writing out a plan or a list of coordinates does not move you; only a tool call does.
+Get your bearings:
+- Where you are: ${this.where()}
+- Last story progress: ${this.lastProgress()}
+- Story steps the game confirms are done: ${this.done()}
+- Recent dialogue you were shown, newest first: ${this.told()}
+- Listed here that you have not tried yet: ${this.untried()}
+Keep your thinking short and end this reply with one tool call: observe to look again, or press, navigate_to or another listed tool to act. If replies keep calling no tool after note ${String(limit)} of ${String(limit)}, the run ends.`;
+  return clip(text,LIMIT);
+ }
+
 }

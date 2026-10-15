@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Text-Only Supervisor</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:740px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navb{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.arr.g{stroke:var(--game)} .arr.p{stroke:var(--prior);stroke-dasharray:5 4}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tag{display:inline-block;font:500 .72rem var(--mono);border-radius:99px;padding:1px 8px;border:1px solid var(--rule);color:var(--soft)}
+</style>
+</head>
+<body>
+<main>
+<div class="eyebrow">Harness switch · guard · <code>text-only-supervisor-v1</code> · off by default</div>
+<h1>Text-only supervisor</h1>
+<p class="lede">Without this switch, three replies in a row that call no tool end the run as a model error. With it on, the run gets a SUPERVISOR note instead and keeps going. The note says where the player is and what the game has shown, and that only a tool call changes the game. The run still ends after three notes in a row with no tool call between them.</p>
+
+<section>
+<h2>Why</h2>
+<p>On the 32 Think Fast 2×2 runs, this stop ended 5 runs. All 5 ended on three replies in a row with no tool call, often long lists of coordinates. Four had made no progress since about minute 2. One, trial 04, had met the rival at 11.2 minutes and stopped at 13.7. Winner-gate finals give each run 45 minutes, so each early stop throws away more play.</p>
+</section>
+
+<section>
+<h2>Off and on, side by side</h2>
+<figure><div class="scroll">
+<svg viewBox="0 0 720 230" width="720" role="img" aria-label="Two rows of replies. Off: tool call, then three text-only replies, then run ends model_error. On: same three text-only replies, then a SUPERVISOR note, then a tool call and the run continues.">
+<text x="10" y="22" class="t">OFF</text>
+<rect class="game" x="60" y="40" width="80" height="40" rx="6"/><text x="70" y="64">tool call</text>
+<rect class="prior" x="160" y="40" width="80" height="40" rx="6"/><text x="170" y="58">text only</text><text x="170" y="73" class="s">retry 1/3</text>
+<rect class="prior" x="260" y="40" width="80" height="40" rx="6"/><text x="270" y="58">text only</text><text x="270" y="73" class="s">retry 2/3</text>
+<rect class="prior" x="360" y="40" width="80" height="40" rx="6"/><text x="370" y="58">text only</text><text x="370" y="73" class="s">retry 3/3</text>
+<path class="arr p" d="M440 60 H500"/>
+<rect class="prior hot" x="500" y="40" width="190" height="40" rx="6"/><text x="512" y="64">run ends: model_error</text>
+<text x="10" y="132" class="t">ON</text>
+<rect class="game" x="60" y="150" width="80" height="40" rx="6"/><text x="70" y="174">tool call</text>
+<rect class="prior" x="160" y="150" width="80" height="40" rx="6"/><text x="170" y="168">text only</text><text x="170" y="183" class="s">retry 1/3</text>
+<rect class="prior" x="260" y="150" width="80" height="40" rx="6"/><text x="270" y="168">text only</text><text x="270" y="183" class="s">retry 2/3</text>
+<rect class="prior" x="360" y="150" width="80" height="40" rx="6"/><text x="370" y="168">text only</text><text x="370" y="183" class="s">retry 3/3</text>
+<path class="arr g" d="M440 170 H470"/>
+<rect class="navb hot" x="470" y="150" width="120" height="40" rx="6"/><text x="480" y="168">SUPERVISOR</text><text x="480" y="183" class="s">note 1 of 3</text>
+<path class="arr g" d="M590 170 H610"/>
+<rect class="game" x="610" y="150" width="90" height="40" rx="6"/><text x="620" y="168">tool call</text><text x="620" y="183" class="s">run goes on</text>
+</svg></div>
+<figcaption>Same three text-only replies. Off ends the run at the failure limit. On sends one recorded SUPERVISOR note in place of the usual "Keep playing" nudge, restarts the count and waits for a tool call.</figcaption></figure>
+</section>
+
+<section>
+<h2>The bound</h2>
+<figure><div class="scroll">
+<svg viewBox="0 0 720 150" width="720" role="img" aria-label="Note counter: notes 1, 2 and 3 each follow three text-only replies; a successful tool call resets the counter to zero; the next limit after note 3 ends the run.">
+<rect class="navb" x="20" y="40" width="110" height="44" rx="6"/><text x="32" y="60">note 1</text><text x="32" y="76" class="s">after 3 replies</text>
+<path class="arr" d="M130 62 H170"/>
+<rect class="navb" x="170" y="40" width="110" height="44" rx="6"/><text x="182" y="60">note 2</text><text x="182" y="76" class="s">after 3 more</text>
+<path class="arr" d="M280 62 H320"/>
+<rect class="navb" x="320" y="40" width="110" height="44" rx="6"/><text x="332" y="60">note 3</text><text x="332" y="76" class="s">after 3 more</text>
+<path class="arr p" d="M430 62 H480"/>
+<rect class="prior hot" x="480" y="40" width="210" height="44" rx="6"/><text x="492" y="60">3 more: model_error</text><text x="492" y="76" class="s">12 text-only replies in a row</text>
+<path class="arr g" d="M225 84 V120 H75 V84"/><text x="90" y="138" class="s">a successful tool call resets the note count to 0</text>
+</svg></div>
+<figcaption>At most 3 notes in a row (<code>TEXT_ONLY_NOTE_LIMIT</code>). A model that never calls a tool still ends after 12 replies, so it cannot burn the whole budget. Only a streak made entirely of replies with no tool call earns a note; if a gateway error or an invalid tool call is part of the streak, the run ends at the limit as before. The note is recorded when it is delivered, so a run that stops on that turn records none. State-only decision runs send no follow-up messages and must keep the switch off.</figcaption></figure>
+</section>
+
+<section>
+<h2>What the model sees</h2>
+<p>The note is built from the loop supervisor's recorded facts. Illustrative example, not a recorded run:</p>
+<pre>SUPERVISOR: Your last 3 replies called no tool, so nothing happened in the game (text-only supervisor, note 1 of 3). Writing out a plan or a list of coordinates does not move you; only a tool call does.
+Get your bearings:
+- Where you are: LITTLEROOT TOWN MAYS HOUSE 2F at (7,2) facing up
+- Last story progress: …
+- Story steps the game confirms are done: …
+- Recent dialogue you were shown, newest first: …
+- Listed here that you have not tried yet: …
+Keep your thinking short and end this reply with one tool call: observe to look again, or press, navigate_to or another listed tool to act. If replies keep calling no tool after note 3 of 3, the run ends.</pre>
+</section>
+
+<section>
+<h2>Recording and wiring</h2>
+<table>
+<tr><th>Piece</th><th>What it does</th></tr>
+<tr><td>Preset or switchboard</td><td><code>text-only-supervisor-v1</code>, default off. Winner-gate finals turn it on for every arm, the incumbent included, except state-only decision arms.</td></tr>
+<tr><td>Governor (<code>harness.ts</code>)</td><td>At the failure limit on a reply with no tool call (text only, or cut off at max_tokens with none), it sends the note instead of stopping.</td></tr>
+<tr><td>Event</td><td><code>text_only_supervisor</code>: replies, note number, limit and the exact note text the model received.</td></tr>
+<tr><td>Viewer</td><td>Error lane, Activity History and trace show each note.</td></tr>
+</table>
+</section>
+
+<section>
+<h2>Status</h2>
+<p>Branch <code>claude/text-only-supervisor</code>. Unit, live-path and viewer tests pass. Not yet measured on its own; it has a pending experiment entry. Finals use it in every arm, so it does not favor any finalist.</p>
+</section>
+</main>
+</body>
+</html>

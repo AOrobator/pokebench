@@ -75,6 +75,7 @@ const KNOWN: Record<RunEvent["type"], true> = {
   activity: true,
   native_action:true, battle_choice:true,
   retry: true,
+  text_only_supervisor: true,
   disk_usage: true,
   frames_evicted: true,
   run_end: true,
@@ -294,6 +295,9 @@ export class RunView {
       }
       case "loop_guard":
         this.errors.push({ms,kind:"loop",label:this.loopLabel(event)});
+        break;
+      case "text_only_supervisor":
+        this.errors.push({ ms, kind: "loop", label: `Text-only supervisor ${String(event.note)}/${String(event.limit)} · turn ${String(event.turn)}: ${event.text}` });
         break;
       case "retry":
         this.retry = { count: (this.retry?.count ?? 0) + 1, attempt: event.attempt, limit: event.limit };

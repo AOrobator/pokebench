@@ -1,6 +1,6 @@
 import {expect,it,vi} from "vitest";
 import type {AgentMessage} from "@mariozechner/pi-agent-core";
-import {contextTools,loopSupervisor,stallStop} from "./play-wiring.js";
+import {contextTools,loopSupervisor,stallStop,textOnlySupervisor} from "./play-wiring.js";
 import {RunControl,STALL_STOP_MS} from "./run-control.js";
 import {Governor} from "./harness.js";
 import {ALL_ON,type FeatureSet} from "./features.js";
@@ -94,4 +94,17 @@ it("ends a run as stalled after ten minutes without a new milestone only while m
   expect(aborted).toHaveBeenCalledOnce();
   stop?.clear();
  }finally{vi.useRealTimers();}
+});
+
+it("text-only-supervisor-v1 wires a recorded supervisor note only when on",()=>{
+ const subscribers:((e:RunEvent)=>void)[]=[];const recorded:[number,number,number,string][]=[];
+ const api={subscribe:(fn:(e:RunEvent)=>void)=>{subscribers.push(fn);},textOnlySupervisor:(replies:number,note:number,limit:number,text:string)=>{recorded.push([replies,note,limit,text]);}};
+ expect(textOnlySupervisor({...ALL_ON,"text-only-supervisor-v1":false},api)).toBeUndefined();expect(subscribers).toHaveLength(0);
+ const note=textOnlySupervisor(ALL_ON,api);if(note===undefined)throw new Error("missing wiring");
+ expect(subscribers).toHaveLength(1);
+ const text=note(3,1);
+ expect(text).toMatch(/^SUPERVISOR: Your last 3 replies called no tool/);
+ expect(text).toContain("Where you are:");
+ expect(text).toContain("note 1 of 3");
+ expect(recorded).toEqual([[3,1,3,text]]);
 });

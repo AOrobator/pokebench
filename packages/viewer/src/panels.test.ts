@@ -646,6 +646,9 @@ it("links the named warp destinations card to its explainer",()=>{
  expect(FEATURE_EXPLAINERS["named-warp-destinations-v1"]).toBe("named-warp-destinations-v1.html");
 });
 
+it("links the text-only supervisor card to its explainer",()=>{
+ expect(FEATURE_EXPLAINERS["text-only-supervisor-v1"]).toBe("text-only-supervisor-v1.html");
+});
 it("links the milestone stall stop card to its explainer",()=>{
  expect(FEATURE_EXPLAINERS["milestone-stall-stop-v1"]).toBe("milestone-stall-stop-v1.html");
 });

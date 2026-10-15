@@ -41,6 +41,7 @@ describe("strict per-feature history", () => {
     expect(before.length).toBe(start.harness_features.length - 1);
     expect(configOf({ ...start, harness_features: before })).toEqual(configOf(start));
     expect(configOf({ ...start, harness_features: [...before, "something-new-v9"] })).toBeNull();
+    expect(configOf({ ...start, harness_features: start.harness_features.filter((id) => id !== "native-target-stop-v1") })).toBeNull();
   });
 
   it("pairs only runs identical except for the one feature, counting reach and median splits without paused time", () => {

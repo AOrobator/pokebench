@@ -32,7 +32,8 @@ type Start = Extract<RunEvent, { type: "run_start" }>;
 
 // A run whose recorded features are not exactly a registry play set (probes,
 // smoke runs, older harness revisions) has no comparable configuration.
-const MEASURED: ReadonlySet<string> = new Set(MEASUREMENT_FEATURES);
+// The target stop changes how a run ends, so it is matched like a behavior feature.
+const MEASURED: ReadonlySet<string> = new Set(MEASUREMENT_FEATURES.filter((id) => id !== "native-target-stop-v1"));
 const behaviorOnly = (ids: readonly string[]): string[] => ids.filter((id) => !MEASURED.has(id));
 
 export function configOf(start: Start): RunConfig | null {

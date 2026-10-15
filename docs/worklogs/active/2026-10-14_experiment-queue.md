@@ -262,3 +262,5 @@ Pending.
 - RED: configOf matches a run recorded without a measurement-only feature; an unknown id still rejects.
 - COMMIT: `test(viewer): RED runs recorded before a measurement feature keep their configuration` (0afe0c0)
 - GREEN: configOf compares only behavior features (measurement ids dropped from both lists; order kept). Real data: queue 33, pending 5 (automatic running, counter talk, grass cost, ledge hops, walkable floor), no problems. Gates: viewer 581 (94.95/90.65/93.81; history.ts 98.03/90/100), lint clean.
+- COMMIT: `fix(viewer): ignore measurement-only features when matching a run to its configuration` (bd21e5a)
+- Review (claude -p): safe; native-target-stop-v1 changes how a run ends, so keep it strict (patch-results already treats a missing target stop as a provenance problem). Done, with a test.

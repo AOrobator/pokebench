@@ -169,7 +169,7 @@ describe("run queue", () => {
   it("spawns node with an argv list and writes both logs", async () => {
     const dir = root();
     const groups: [number, string][] = [];
-    const code = await spawnLaunch({ runId: "x", argv: ["-e", "console.log(process.env.POKEBENCH_RUN_ID); console.error('e'); setTimeout(() => undefined, 100)"], env: { POKEBENCH_RUN_ID: "x" }, stdout: join(dir, "out.log"), stderr: join(dir, "err.log"), started: (pid) => { groups.push([pid, processGroup(pid)]); } });
+    const code = await spawnLaunch({ runId: "x", argv: ["-e", "console.log(process.env.POKEBENCH_RUN_ID); console.error('e'); setTimeout(() => undefined, 500)"], env: { POKEBENCH_RUN_ID: "x" }, stdout: join(dir, "out.log"), stderr: join(dir, "err.log"), started: (pid) => { groups.push([pid, processGroup(pid)]); } });
     expect(code).toBe(0);
     expect(groups.map(([pid, group]) => group === String(pid))).toEqual([true]);
     expect(readFileSync(join(dir, "out.log"), "utf8")).toBe("x\n");

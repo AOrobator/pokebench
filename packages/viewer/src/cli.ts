@@ -121,7 +121,8 @@ export async function main(argv: readonly string[], deps: MainDeps): Promise<Vie
 export function closeOnSignals(viewer: Pick<Viewer, "close">, on: (signal: "SIGTERM" | "SIGINT", handler: () => void) => void, exit: (code: number) => void): void {
   let closing = false;
   const shutdown = (): void => {
-    if (closing) return;
+    // A second signal means the operator won't wait for a hung close.
+    if (closing) { exit(1); return; }
     closing = true;
     viewer.close().then(() => { exit(0); }, () => { exit(1); });
   };

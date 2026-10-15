@@ -12,7 +12,7 @@ describe("detached launches", () => {
   it("starts the child as its own process-group leader, reports its pid, logs to files and resolves its exit code", async () => {
     const d = dir();
     const seen: { pid: number; group: string }[] = [];
-    const code = await spawnDetached(process.execPath, ["-e", "console.log(process.env.MARK); console.error('e'); setTimeout(() => process.exit(3), 100)"], {
+    const code = await spawnDetached(process.execPath, ["-e", "console.log(process.env.MARK); console.error('e'); setTimeout(() => process.exit(3), 500)"], {
       cwd: d, env: { MARK: "m" }, stdout: join(d, "out.log"), stderr: join(d, "err.log"),
       started: (pid) => { seen.push({ pid, group: processGroup(pid) }); },
     });

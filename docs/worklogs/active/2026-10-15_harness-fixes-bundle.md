@@ -58,7 +58,7 @@ Local-only harness. No new network surface, subprocesses keep argv lists, and no
 ## Milestones
 
 **M1 — Harness bug fixes (no switch, operator exception)**
-- [ ] RED tests: supervisor story steps (staged values); B/page grading; action-only tried targets plus reset on story change; no-truncation property across supervisor/memory/ledger/dialogue-log/objectives; hint/supervisor subscription order from a CLOCK_SET save; story line during map load; navigate_to description text.
+- [x] RED tests: supervisor story steps (staged values); B/page grading; action-only tried targets plus reset on story change; no-truncation property across supervisor/memory/ledger/dialogue-log/objectives; hint/supervisor subscription order from a CLOCK_SET save; story line during map load; navigate_to description text.
 - [ ] COMMIT (RED)
 - [ ] Implement
 - [ ] Gates: `just test`, `just lint`, `just build`, `just coverage` (≥90 both stacks)
@@ -114,3 +114,5 @@ Cohort report: furthest milestones first; reach counts and survivor medians per 
 ## Archive Milestone (user-gated)
 - [ ] ASK USER: archive this worklog
 - Baseline: agent vitest 1083 passed; pytest 1877 passed (worktree, submodule initialised from local checkout).
+- 2026-10-15 16:50 UTC: The operator decided the finals run now to keep the GPU busy; when fixes + bundle are ready, deploy and stop the finals (one bundle, all switches). Coordinate with the "Resume the finals" thread before merging (build pin).
+- M1 RED: packages/agent/src/harness-fixes.test.ts 8 failing (story steps, map-load story, B grading/restart, action-only tried + reset, no truncation supervisor/ledger/log/memory, milestone replay, navigate_to rules); env test_story 1 failing (all-unavailable story line).

@@ -10,7 +10,7 @@ import { QUEUE_FEATURES, definition, writeDefinition } from "../test-support/exp
 import { activeCohort, pidCommand, productionHost } from "./experiment-cli.js";
 import { ApprovalError, setFinalsWithdrawn } from "./experiment-approval.js";
 import { ExperimentAutoRun } from "./experiment-autorun.js";
-import { effectiveExperiment, findCohort, finalsLedgerPath, finalsResultPath, nominationPath, pinnedPromotion, promotionOverlay, promotionsPath, readPromotions, reusableRuns } from "./experiment-gate-store.js";
+import { effectiveExperiment, findCohort, finalsLedgerPath, finalsRunLabels, finalsResultPath, nominationPath, pinnedPromotion, promotionOverlay, promotionsPath, readPromotions, reusableRuns } from "./experiment-gate-store.js";
 import { nextStep, runQueue, type RunnerHost, type TrialLaunch } from "./experiment-runner.js";
 import { experimentDir, queueSnapshot, winnerGateOn, type QueuePaths, type RunSource, type TrialMetrics } from "./experiment-store.js";
 import { LEASE } from "./next-run.js";
@@ -179,6 +179,29 @@ describe("winner gate", () => {
     const s = queueSnapshot(w.paths, w.source);
     expect(s.gate[0]).toMatchObject({ state: "inconclusive", reason: "no finalist beat the incumbent from boot; the incumbent stays" });
     expect(s.queue.find((v) => v.id === "again")?.state).not.toBe("blocked");
+    // Each finals run is labelled with its own place in the finals, never a cohort or trial number.
+    const labels = finalsRunLabels(w.paths.runsRoot);
+    const arms = fake.launches.slice(0, 12).map((l) => /finals-(\w+)\.json$/.exec(l.presetPath)?.[1]);
+    expect(labels.get(fake.launches[0]?.runId ?? "")).toBe(`full-map finals · ${arms[0] ?? ""} · run 1/12`);
+    expect(labels.get(fake.launches[11]?.runId ?? "")).toBe(`full-map finals · ${arms[11] ?? ""} · run 12/12`);
+    expect(labels.size).toBe(12);
+  });
+
+  it("labels a relaunched finals slot's runs with the same place, and ignores unreadable finals", async () => {
+    const w = world();
+    expect(finalsRunLabels(w.paths.runsRoot).size).toBe(0);
+    gated(w);
+    cohort(w, "done", COHORT);
+    const fake = host(w);
+    await runQueue({ paths: w.paths, source: w.source, host: fake, stopRequested: () => fake.launches.length >= 1 });
+    writeFileSync(finalsLedgerPath(w.paths.runsRoot, "full-map"), ['{"type":"launch","trial":0,"arm":"incumbent","run":"aborted","at":"t","model":"m","commit":"c"}', '{"type":"launcher_error","trial":0,"arm":"incumbent","run":"aborted","at":"t","message":"interrupted"}', '{"type":"launch","trial":0,"arm":"incumbent","run":"relaunch","at":"t","model":"m","commit":"c"}'].join("\n") + "\n");
+    mkdirSync(experimentDir(w.paths.runsRoot, "broken"), { recursive: true });
+    writeFileSync(finalsLedgerPath(w.paths.runsRoot, "broken"), '{"type":"launch","trial":0,"arm":"x","run":"orphan","at":"t","model":"m","commit":"c"}\n');
+    writeFileSync(nominationPath(w.paths.runsRoot, "broken"), "{");
+    const labels = finalsRunLabels(w.paths.runsRoot);
+    expect(labels.get("relaunch")).toBe("full-map finals · incumbent · run 1/12");
+    expect(labels.get("aborted")).toBe("full-map finals · incumbent · run 1/12");
+    expect(labels.has("orphan")).toBe(false);
   });
 
   it("with the gate off, runs the queue exactly as before (INV-G5)", async () => {

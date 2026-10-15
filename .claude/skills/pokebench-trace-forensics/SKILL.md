@@ -14,8 +14,8 @@ Explain recorded runs from their evidence. This skill is read-only: no runs, no 
 ## Evidence per run
 
 All under `runs/<id>/`:
-- `events.jsonl`: `run_start` (features, limits, start kind and save SHA-1), `turn_start`, `assistant` and `assistant_delta`, `tool_call`, `tool_result`, `button_press`, `native_action`, `state`, `milestone` (with `origin`, where `present_at_start` means it was already true at load), `loop_guard`, `operator_control` and `run_end`.
-- `frames/<seq>_<index>.png`: the frames recorded with each tool result.
+- `events.jsonl`: `run_start` (features, limits, start kind and save SHA-1), `turn_start`, `assistant` and `assistant_delta`, `tool_call`, `tool_result`, `button_press`, `native_action`, `state`, `milestone` (with `origin`, where `present_at_start` means it was already true at load), `loop_guard`, `text_only_supervisor`, `milestone_hint`, `navigation_context`, `ledger_context`, `decision_input`, `compaction`, `retry`, `frames_evicted`, `operator_control` and `run_end`, whose reason is one of `completed`, `milestone`, `budget`, `stuck`, `crash`, `model_error`, `operator_abort`, `operator_stop` or `stalled`.
+- `frames/<seq padded to 6>_<index>.png`: the frames recorded with each tool result.
 - `raw-ram/`: raw memory archives, validated through `pokebench_env.raw_ram.load_raw_ram`.
 - `control.jsonl`: operator control.
 
@@ -26,10 +26,10 @@ Reasoning text is not evidence of cause. What the model wrote it was thinking do
 1. **Pick runs without cherry-picking.** For a cohort, take every failure, the best and worst success, and every run whose outcome surprised you. Say which runs you left out and why.
 2. **Build a timeline.** For each run, list turn, seq, time, map and coordinates, milestones, tool calls with their arguments, harness or supervisor messages, model errors and the end reason. Mark the first turn of the stall, meaning the last new milestone plus the first turn the model started repeating itself.
 3. **Audit what the model saw.** For the stall window, compare the delivered observation with RAM truth:
-   - **Frames:** count blank or near-uniform frames in the window and the longest consecutive run of them. Use `uv run --with pillow python`, then check each frame's luminance spread. Frames recorded with a tool result are the ones the model received.
+   - **Frames:** count blank or near-uniform frames in the window and the longest consecutive run of them. Use `uv run --with pillow python`, then check each frame's luminance spread. Frames recorded with a tool result are the ones the model received. If `frames_evicted` appears, the count is incomplete: say so.
    - **Readouts:** check that text readouts (map, position, menu, battle, story state) match decoded RAM at the same seq. Note readouts that say "unavailable" or go stale.
    - **Verdict:** did the model have what it needed to act correctly? If not, the cause is the harness, not the model.
-4. **Audit whether harness messages were true.** Check every supervisor, loop-guard and press-result message the model received against RAM at that seq. Common lies:
+4. **Audit whether harness messages were true.** Check every supervisor (`text_only_supervisor`), loop-guard, milestone-hint and press-result message the model received against RAM at that seq. Common lies:
    - A story-stage boolean contradicting the map.
    - "no change" after a press that changed state.
    - A stood-on tile marked as tried.
@@ -49,6 +49,7 @@ Reasoning text is not evidence of cause. What the model wrote it was thinking do
    | `spatial` | Misread the map, coordinates, warps or elevation. |
    | `interface-mechanics` | Menus, battle UI, dialogue or naming input. |
    | `infrastructure` | Model error, emulator crash, gateway outage. Exclude it from behavior conclusions. |
+   | `harness-stop` | A loop-guard `stuck` or stall `stalled` stop ended a run that might still have progressed. Check whether the stop was right. |
    | `budget` | The run was progressing and hit the cap. |
 
 6. **Find hidden progress and grading blind spots.**

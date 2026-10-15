@@ -34,16 +34,38 @@ def test_power_matches_scipy_enumeration(runs: int, control_rate: float, variant
 
 
 def test_power_reproduces_the_recorded_planning_numbers() -> None:
-    # 2026-10-15 Hermes sizing (scipy, either-direction): 8/arm 37.5->62.5 was 9.5%; 64/arm 50->75 at 0.05 was 80%.
+    # 2026-10-15 Hermes sizing used scipy and counted significance in either direction; wrong-direction
+    # rejections are negligible at these sizes, so the variant-ahead power must agree.
     assert power.exact_power(8, 0.375, 0.625, 0.05) == pytest.approx(0.095, abs=0.005)
     assert power.exact_power(64, 0.5, 0.75, 0.05) == pytest.approx(0.80, abs=0.01)
 
 
-def test_runs_for_power_is_the_first_crossing() -> None:
-    runs = power.runs_for_power(0.5, 0.75, 0.05, 0.8)
-    assert runs is not None
-    assert power.exact_power(runs, 0.5, 0.75, 0.05) >= 0.8
-    assert power.exact_power(runs - 1, 0.5, 0.75, 0.05) < 0.8
+def brute_first(control_rate: float, variant_rate: float, alpha: float, target: float, ceiling: int) -> int | None:
+    return next((n for n in range(2, ceiling + 1) if scipy_power(n, control_rate, variant_rate, alpha) >= target), None)
+
+
+@pytest.mark.parametrize("control_rate,variant_rate,alpha,target,ceiling", [
+    (0.375, 0.575, 0.05, 0.8, 130),  # a crossing behind a dip: true first crossing is 102, a stepped search said 108
+    (0.3, 0.6, 0.05, 0.5, 60),
+    (0.5, 0.75, 0.05, 0.8, 90),
+    (0.25, 0.5, 0.1, 0.8, 80),
+])
+def test_runs_for_power_is_the_true_first_crossing(control_rate: float, variant_rate: float, alpha: float, target: float, ceiling: int) -> None:
+    assert power.runs_for_power(control_rate, variant_rate, alpha, target, ceiling) == brute_first(control_rate, variant_rate, alpha, target, ceiling)
+
+
+def test_runs_for_power_checks_up_to_the_ceiling() -> None:
+    first = power.runs_for_power(0.2, 0.35, 0.05, 0.9)
+    assert first is not None
+    assert power.runs_for_power(0.2, 0.35, 0.05, 0.9, ceiling=first) == first
+    assert power.runs_for_power(0.2, 0.35, 0.05, 0.9, ceiling=first - 1) is None
+
+
+def test_stable_runs_stay_above_target() -> None:
+    stable = power.stable_runs_for_power(0.375, 0.575, 0.05, 0.8)
+    assert stable is not None and stable >= power.runs_for_power(0.375, 0.575, 0.05, 0.8)
+    assert all(power.exact_power(n, 0.375, 0.575, 0.05) >= 0.8 for n in range(stable, stable + power.STABLE_WINDOW))
+    assert power.exact_power(stable - 1, 0.375, 0.575, 0.05) < 0.8 or stable == 2
 
 
 def test_newcombe_matches_the_reviewed_interval() -> None:
@@ -55,3 +77,4 @@ def test_budget_arithmetic() -> None:
     assert power.gpu_hours(64, 15, 0.0) == pytest.approx(32)
     assert power.runs_within_budget(48, 15, 0.0) == 96
     assert power.runs_within_budget(48, 15, 0.2) == math.floor(48 * 4 * 0.8 / 2)
+    assert power.runs_within_budget(0.1, 15, 0.0) == 0

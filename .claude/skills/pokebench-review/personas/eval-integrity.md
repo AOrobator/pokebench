@@ -18,7 +18,7 @@ You own one question: could the measurement have moved without the play moving? 
   - Credit without the matching play: a milestone that fires from a flag the harness set, or from a state the harness walked the player into.
 - **Instrumentation that feeds the grade.** Does any new readout, supervisor or guard produce evidence the grader also uses? Can the harness satisfy a milestone condition on the model's behalf?
 - **Selection and provenance.**
-  - Were runs excluded, retried or replaced by a rule written before the data? Is every invalid trial reported with its reason?
+  - Were runs excluded, retried or replaced by a rule written before the data? Is every invalid trial reported with its reason, per arm? Were any failures the treatment could have caused (model errors, crashes, `stuck`) excluded or re-run? That is survivorship bias.
   - Does each cited run's `run_start` record the features, limits, start SHA-1 and build the subject claims?
   - Watch for cherry-picked examples and for reports that show only the best run.
 - **Frozen during measurement.** Did grading, the recorder or the viewer build change while the cohort ran? Compare the `run_start` builds across the cohort.

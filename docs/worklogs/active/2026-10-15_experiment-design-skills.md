@@ -48,3 +48,19 @@ coverage gate is untouched; `power.py` is a skill helper tested by its own cross
   - Caching rejection regions per (n, alpha), and scoring each hit total's hypergeometric once, took `plan` for four lifts plus the SVG from 53 s to 2.2 s with identical output.
   - Power is direction-aware (variant ahead), so +15 pts at 80% needs 183/arm here against 184 in the either-direction sizing.
   - A sample overview rendered in headless Chrome, light and dark. Fixed the template comment, which contained the very placeholder the skill's own grep checks for. Moved the start label above the strip, because it overlapped the activation label when the points are close. Narrowed the fact tiles so six fit on one row.
+- 2026-10-15 M2, one review round, which is all the operator allows before merging. The diff SHA-256 was 5a0c2489.
+  - **Reviewers.** The Claude CLI was at its session limit and Cursor's Opus and Sonnet were at their usage limits, so the Claude lane ran as a Hermes subagent on Opus, which leaves less vendor diversity. Grok 4.7 high ran through Cursor. Both returned BLOCKING.
+  - **Fixed:**
+    - `runs_for_power` now finds the true first crossing by linear scan; it had missed 102 for 37.5 to 57.5 and the values near the ceiling. Plans now use the first N whose power stays at the target for 10 consecutive N. Tests compare against a scipy brute force (17 pass).
+    - The skills now declare every way a trial ends: target, cap, `maxTurns`, loop-guard `stuck`, `milestone-stall-stop-v1`. The overviews had said only the cap ends a trial.
+    - Failures are now kept as results, per PB2, replacing the rule that replaced them. Only outages outside the arm are re-run, by external drivers. The skill records what the queue runner actually does.
+    - Checkpoint designs get their own READY (checkpoint) verdict.
+    - `budget.maxWallMs` is the cohort budget, at least trials × cap.
+    - Factorials run as external cohorts, with each switch then confirmed alone.
+    - `--comparisons` sizes for Holm.
+    - Censoring wording fixed; 0.05 is the only decision threshold.
+    - GPU-hours are labelled an upper bound.
+    - `externalCohort` is set at launch.
+    - The capture milestone must come before activation.
+    - Overviews are not registered in `FEATURE_EXPLAINERS`.
+    - The forensics event list and the `harness-stop` class are complete; the persona brief says read-only except its own section.

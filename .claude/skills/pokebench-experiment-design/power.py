@@ -75,17 +75,26 @@ def exact_power(runs_per_arm: int, control_rate: float, variant_rate: float, alp
     return sum(control[a] * variant[b] for a, b in favourable_rejections(runs_per_arm, alpha))
 
 
+STABLE_WINDOW = 10
+
+
 def runs_for_power(control_rate: float, variant_rate: float, alpha: float, target: float, ceiling: int = 400) -> int | None:
-    """Smallest runs per arm whose exact power reaches target. Exact power saw-tooths, so this is the first crossing."""
-    coarse = 4
-    while coarse <= ceiling and exact_power(coarse, control_rate, variant_rate, alpha) < target:
-        coarse += 8
-    if coarse > ceiling:
-        return None
-    runs = coarse
-    while runs > 1 and exact_power(runs - 1, control_rate, variant_rate, alpha) >= target:
-        runs -= 1
-    return runs
+    """Smallest runs per arm whose exact power reaches target (the first crossing; a linear scan)."""
+    return next((runs for runs in range(2, ceiling + 1) if exact_power(runs, control_rate, variant_rate, alpha) >= target), None)
+
+
+def stable_runs_for_power(control_rate: float, variant_rate: float, alpha: float, target: float, ceiling: int = 400) -> int | None:
+    """Smallest N whose power stays at or above target for N..N+STABLE_WINDOW-1.
+
+    Exact power saw-tooths, so a lucky first crossing can dip below target at N+1. Size plans on this.
+    """
+    streak = 0
+    for runs in range(2, ceiling + STABLE_WINDOW):
+        streak = streak + 1 if exact_power(runs, control_rate, variant_rate, alpha) >= target else 0
+        if streak == STABLE_WINDOW:
+            start = runs - STABLE_WINDOW + 1
+            return start if start <= ceiling else None
+    return None
 
 
 def wilson(hits: int, runs: int) -> tuple[float, float]:
@@ -110,6 +119,7 @@ def newcombe_difference(control_hits: int, control_runs: int, variant_hits: int,
 class LiftPlan:
     lift: float
     runs_per_arm_for_half: int | None
+    first_crossing_for_target: int | None
     runs_per_arm_for_target: int | None
     gpu_hours_for_target: float | None
     wall_hours_for_target: float | None
@@ -117,6 +127,7 @@ class LiftPlan:
 
 
 def gpu_hours(runs_per_arm: int, cap_minutes: float, failure_rate: float) -> float:
+    """Upper bound on trial time: every launched trial runs to the cap. Boot and save-load overhead are not counted."""
     launched = 2 * runs_per_arm / (1 - failure_rate)
     return launched * cap_minutes / 60
 
@@ -126,21 +137,22 @@ def runs_within_budget(budget_gpu_hours: float, cap_minutes: float, failure_rate
 
 
 def plan(args: argparse.Namespace) -> tuple[int | None, list[LiftPlan]]:
-    budget_runs = runs_within_budget(args.budget_gpu_hours, args.cap_min, args.failure_rate) if args.budget_gpu_hours else None
+    budget_runs = runs_within_budget(args.budget_gpu_hours, args.cap_min, args.failure_rate) if args.budget_gpu_hours is not None else None
     rows = []
     for lift in args.lifts:
         variant = args.control + lift
         if not 0 < variant <= 1:
             raise SystemExit(f"control {args.control} + lift {lift} is not a rate in (0, 1]")
-        target_runs = runs_for_power(args.control, variant, args.alpha, args.power)
+        target_runs = stable_runs_for_power(args.control, variant, args.alpha, args.power)
         hours = gpu_hours(target_runs, args.cap_min, args.failure_rate) if target_runs else None
         rows.append(LiftPlan(
             lift=lift,
-            runs_per_arm_for_half=runs_for_power(args.control, variant, args.alpha, 0.5),
+            runs_per_arm_for_half=stable_runs_for_power(args.control, variant, args.alpha, 0.5),
+            first_crossing_for_target=runs_for_power(args.control, variant, args.alpha, args.power),
             runs_per_arm_for_target=target_runs,
             gpu_hours_for_target=hours,
             wall_hours_for_target=hours / args.executors if hours else None,
-            power_at_budget=exact_power(budget_runs, args.control, variant, args.alpha) if budget_runs else None,
+            power_at_budget=None if budget_runs is None else (exact_power(budget_runs, args.control, variant, args.alpha) if budget_runs >= 1 else 0.0),
         ))
     return budget_runs, rows
 
@@ -191,11 +203,12 @@ def main(argv: list[str]) -> int:
     sizing = commands.add_parser("plan", help="runs per arm, GPU-hours and power at a budget")
     sizing.add_argument("--control", type=float, required=True, help="control rate on the primary milestone, from a recent comparable cohort")
     sizing.add_argument("--lifts", type=lambda text: [float(part) for part in text.split(",")], required=True, help="absolute lifts, e.g. 0.15,0.25")
-    sizing.add_argument("--alpha", type=float, default=0.05)
+    sizing.add_argument("--alpha", type=float, default=0.05, help="family alpha; divided by --comparisons")
+    sizing.add_argument("--comparisons", type=int, default=1, help="primary comparisons in the Holm family; sizes at alpha/m, the most stringent Holm step")
     sizing.add_argument("--power", type=float, default=0.8)
     sizing.add_argument("--cap-min", type=float, required=True, help="trial cap in minutes")
     sizing.add_argument("--executors", type=int, default=1, help="independent GPUs running trials at once")
-    sizing.add_argument("--failure-rate", type=float, default=0.0, help="share of launched trials lost to infrastructure and replaced")
+    sizing.add_argument("--failure-rate", type=float, default=0.0, help="share of trials lost to outages outside the arm (re-run); model errors and crashes are outcomes, not this")
     sizing.add_argument("--budget-gpu-hours", type=float)
     sizing.add_argument("--svg", help="write a linear-axis power curve to this file")
     sizing.add_argument("--json", action="store_true")
@@ -215,6 +228,9 @@ def main(argv: list[str]) -> int:
 
     if not 0 <= args.failure_rate < 1:
         raise SystemExit("--failure-rate must be in [0, 1)")
+    if args.comparisons < 1:
+        raise SystemExit("--comparisons must be at least 1")
+    args.family_alpha, args.alpha = args.alpha, args.alpha / args.comparisons
     budget_runs, rows = plan(args)
     if args.svg:
         largest = max(row.runs_per_arm_for_target or 0 for row in rows)
@@ -222,7 +238,7 @@ def main(argv: list[str]) -> int:
             handle.write(power_curve_svg(args, max(largest, budget_runs or 0, 16)))
     if args.json:
         print(json.dumps({
-            "control": args.control, "alpha": args.alpha, "power": args.power, "capMinutes": args.cap_min,
+            "control": args.control, "familyAlpha": args.family_alpha, "comparisons": args.comparisons, "alpha": args.alpha, "power": args.power, "capMinutes": args.cap_min,
             "executors": args.executors, "failureRate": args.failure_rate, "budgetGpuHours": args.budget_gpu_hours,
             "runsPerArmWithinBudget": budget_runs, "lifts": [asdict(row) for row in rows],
         }, indent=1))
@@ -231,13 +247,14 @@ def main(argv: list[str]) -> int:
     def show(value: float | None, form: str) -> str:
         return "none<=400" if value is None else format(value, form)
 
-    print(f"control {args.control:.0%}, alpha {args.alpha}, target power {args.power:.0%}, cap {args.cap_min:g} min, "
-          f"{args.executors} executor(s), {args.failure_rate:.0%} replaced for infrastructure")
+    print(f"control {args.control:.0%}, alpha {args.family_alpha} over {args.comparisons} comparison(s) = {args.alpha:.4g} per test, target power {args.power:.0%}, cap {args.cap_min:g} min, "
+          f"{args.executors} executor(s), {args.failure_rate:.0%} of trials re-run for outages outside the arm")
     if budget_runs is not None:
-        print(f"budget {args.budget_gpu_hours:g} GPU-h buys {budget_runs} valid runs per arm")
-    print("lift     | n/arm 50% | n/arm target | GPU-h | wall h | power at budget")
+        print(f"budget {args.budget_gpu_hours:g} GPU-h buys {budget_runs} runs per arm (expected; outages can push spend over)")
+    print(f"n/arm = smallest N whose power stays at target for {STABLE_WINDOW} consecutive N; first = first crossing. GPU-h is an upper bound (every trial runs to the cap; no boot or load overhead).")
+    print("lift     | n/arm 50% | first | n/arm target | GPU-h | wall h | power at budget")
     for row in rows:
-        print(f"+{row.lift * 100:5.1f}   | {show(row.runs_per_arm_for_half, 'd'):>9} | {show(row.runs_per_arm_for_target, 'd'):>12} | "
+        print(f"+{row.lift * 100:5.1f}   | {show(row.runs_per_arm_for_half, 'd'):>9} | {show(row.first_crossing_for_target, 'd'):>5} | {show(row.runs_per_arm_for_target, 'd'):>12} | "
               f"{show(row.gpu_hours_for_target, '.0f'):>5} | {show(row.wall_hours_for_target, '.0f'):>6} | "
               f"{'-' if row.power_at_budget is None else format(row.power_at_budget, '.0%')}")
     return 0

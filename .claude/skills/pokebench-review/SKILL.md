@@ -52,7 +52,7 @@ The personas live in `personas/`, one file each:
 
 Launch all four at once, one subagent each: Claude Code's `Task` tool, Hermes `delegate_task` with four tasks, or the harness's equivalent. Give every subagent the same brief, changing only the persona file:
 
-> You are the <persona> in a PokeBench review. Read `<repo>/.claude/skills/pokebench-review/personas/<file>.md` and follow it. The subject: <one line>. The shared evidence packet: `<packet path>`. Read the subject in full and any further evidence you need. You are read-only: no runs, no viewer restarts, no `just viewer-main`, no source edits, no queue or approval actions. Write your section to `<packet dir>/<persona>.md` in the format the persona file gives, and return it.
+> You are the <persona> in a PokeBench review. Read `<repo>/.claude/skills/pokebench-review/personas/<file>.md` and follow it. The subject: <one line>. The shared evidence packet: `<packet path>`. Read the subject in full and any further evidence you need. You are read-only except for your own section file: no runs, no viewer restarts, no `just viewer-main`, no source edits, no queue or approval actions. Write your section to `<packet dir>/<persona>.md` in the format the persona file gives, and return it.
 
 Independence rules:
 - No persona sees another's output. Do not paste one persona's findings into another's brief, and do not run them in sequence.

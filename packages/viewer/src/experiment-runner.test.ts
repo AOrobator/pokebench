@@ -7,7 +7,7 @@ import { playHarnessFeatures } from "@pokebench/agent/features";
 import { Log, START } from "../test-support/events.js";
 import { QUEUE_FEATURES, definition, writeDefinition } from "../test-support/experiments.js";
 import { experimentDir, runnerPath, type QueuePaths, type RunSource, type TrialMetrics } from "./experiment-store.js";
-import { RunnerError, gradeExperiment, nextExperiment, runQueue, type RunnerHost, type TrialLaunch } from "./experiment-runner.js";
+import { gradeExperiment, nextExperiment, runQueue, type RunnerHost, type TrialLaunch } from "./experiment-runner.js";
 import { LEASE } from "./next-run.js";
 
 function setup(over: Record<string, unknown> = {}, approve = true): { paths: QueuePaths; metrics: Map<string, TrialMetrics>; source: RunSource } {
@@ -142,8 +142,11 @@ describe("experiment runner", () => {
     const a = setup();
     await expect(runQueue({ paths: a.paths, source: a.source, host: host(a.paths, a.metrics, { verifySource: () => Promise.resolve("main moved") }) })).rejects.toThrow("full-map: main moved");
     await expect(runQueue({ paths: a.paths, source: a.source, host: host(a.paths, a.metrics, { liveRuns: () => Promise.resolve(["someone"]) }) })).rejects.toThrow("live run someone is still running");
+    expect(existsSync(join(a.paths.runsRoot, LEASE))).toBe(false);
     mkdirSync(join(a.paths.runsRoot, LEASE));
-    await expect(runQueue({ paths: a.paths, source: a.source, host: host(a.paths, a.metrics) })).rejects.toThrow(RunnerError);
+    let verified = 0;
+    await expect(runQueue({ paths: a.paths, source: a.source, host: host(a.paths, a.metrics, { verifySource: () => { verified += 1; return Promise.resolve(null); } }) })).rejects.toThrow("the gameplay lease is held");
+    expect(verified).toBe(0);
     expect(existsSync(join(a.paths.runsRoot, "experiments", "full-map", "trials.jsonl"))).toBe(false);
   });
 

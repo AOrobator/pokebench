@@ -203,37 +203,44 @@ async function runNext(options: RunnerOptions): Promise<RunnerOutcome & { finish
   const holder: Holder = { lease, owner };
   let ran = 0;
   try {
-    const problem = await host.verifySource(experiment, commit);
-    if (problem !== null) throw new RunnerError(`${experiment.id}: ${problem}`);
-    const model = await host.discover(experiment.modelLane);
     // The ledger is read once; appends go to disk and to this copy.
     const entries = ledgerEntries(paths, experiment.id);
     const record = (entry: LedgerEntry): void => { append(paths, experiment.id, entry); entries.push(entry); };
+    // Recording a trial a gone viewer launched launches nothing, so it precedes every source check.
+    const settled = new Set<number>();
+    for (const trial of todo) {
+      if (trial.run === null || !adoptable.has(trial.run)) continue;
+      const at = (): string => host.now().toISOString();
+      const ended = await settleOrphan(paths.runsRoot, host, trial.run, { pid: process.pid, experiment: experiment.id, trial: trial.index }, holder, stopRequested);
+      if (ended === null) return hold(ran, "stop requested");
+      if (ended === "operator_abort") {
+        record({ type: "launcher_error", trial: trial.index, arm: trial.arm, run: trial.run, at: at(), message: "operator stopped the trial" });
+        return hold(ran, `held: trial ${String(trial.index + 1)} was stopped by the operator; it will be rerun`);
+      }
+      if (ended === "incomplete") {
+        record({ type: "launcher_error", trial: trial.index, arm: trial.arm, run: trial.run, at: at(), message: "interrupted: no outcome was recorded" });
+        continue;
+      }
+      record({ type: "outcome", trial: trial.index, arm: trial.arm, run: trial.run, at: at(), reason: ended });
+      settled.add(trial.index);
+      ran += 1;
+      host.log(`${experiment.id}: adopted trial ${String(trial.index + 1)} (${trial.arm}) finished as ${trial.run}`);
+    }
+    const remaining = todo.filter((t) => !settled.has(t.index));
+    if (remaining.length === 0) return finish(paths, source, experiment, ran);
+    if (once && ran > 0) return hold(ran, "one trial run (--once)");
+    const problem = await host.verifySource(experiment, commit);
+    if (problem !== null) throw new RunnerError(`${experiment.id}: ${problem}`);
+    const model = await host.discover(experiment.modelLane);
     const presets = new Map<Arm, string>();
     const logs = join(experimentDir(paths.runsRoot, experiment.id), "logs");
     mkdirSync(logs, { recursive: true });
-    for (const trial of todo) {
+    for (const trial of remaining) {
       if (stopRequested()) return hold(ran, "stop requested");
       if (!approved(paths, experiment)) return hold(ran, "held: the approval no longer matches the definition");
       const recheck = await host.verifySource(experiment, commit);
       if (recheck !== null) return hold(ran, `held: ${recheck}`);
       const at = (): string => host.now().toISOString();
-      if (trial.run !== null && adoptable.has(trial.run)) {
-        const ended = await settleOrphan(paths.runsRoot, host, trial.run, { pid: process.pid, experiment: experiment.id, trial: trial.index }, holder, stopRequested);
-        if (ended === null) return hold(ran, "stop requested");
-        if (ended === "operator_abort") {
-          record({ type: "launcher_error", trial: trial.index, arm: trial.arm, run: trial.run, at: at(), message: "operator stopped the trial" });
-          return hold(ran, `held: trial ${String(trial.index + 1)} was stopped by the operator; it will be rerun`);
-        }
-        if (ended !== "incomplete") {
-          record({ type: "outcome", trial: trial.index, arm: trial.arm, run: trial.run, at: at(), reason: ended });
-          ran += 1;
-          host.log(`${experiment.id}: adopted trial ${String(trial.index + 1)} (${trial.arm}) finished as ${trial.run}`);
-          if (once && trial !== todo.at(-1)) return hold(ran, "one trial run (--once)");
-          continue;
-        }
-        record({ type: "launcher_error", trial: trial.index, arm: trial.arm, run: trial.run, at: at(), message: "interrupted: no outcome was recorded" });
-      }
       // Only a new launch spends budget; an adopted trial already ran.
       const used = entries.flatMap((e) => (e.type === "launch" ? [e.run] : [])).reduce((sum, run) => sum + (source.trial(run)?.wallMs ?? 0), 0);
       if (used + experiment.incumbent.limits.maxWallMs > experiment.budget.maxWallMs) return hold(ran, "held: the next trial could exceed the experiment budget");
@@ -266,7 +273,7 @@ async function runNext(options: RunnerOptions): Promise<RunnerOutcome & { finish
       record({ type: "outcome", trial: trial.index, arm: trial.arm, run: runId, at: at(), reason });
       ran += 1;
       host.log(`${experiment.id}: trial ${String(trial.index + 1)} (${trial.arm}) finished as ${runId}`);
-      if (once && trial !== todo.at(-1)) return hold(ran, "one trial run (--once)");
+      if (once && trial !== remaining.at(-1)) return hold(ran, "one trial run (--once)");
     }
     return finish(paths, source, experiment, ran);
   } finally {
@@ -323,35 +330,42 @@ async function runFinals({ paths, source, host, once = false, stopRequested = ()
   const holder: Holder = { lease, owner };
   let ran = 0;
   try {
+    const record = (entry: FinalsEntry): void => { appendFileSync(finalsLedgerPath(paths.runsRoot, id), `${JSON.stringify(entry)}\n`); entries.push(entry); };
+    // Recording a run a gone viewer launched launches nothing, so it precedes every source check.
+    const settled = new Set<number>();
+    for (const trial of todo) {
+      if (trial.run === null || !adoptable.has(trial.run)) continue;
+      const at = (): string => host.now().toISOString();
+      const ended = await settleOrphan(paths.runsRoot, host, trial.run, { pid: process.pid, experiment: finalsRunner(id), trial: trial.index }, holder, stopRequested);
+      if (ended === null) return hold(ran, "stop requested");
+      if (ended === "operator_abort") {
+        record({ type: "launcher_error", trial: trial.index, arm: trial.arm, run: trial.run, at: at(), message: "operator stopped the run" });
+        return hold(ran, `held: finals run ${String(trial.index + 1)} was stopped by the operator; it will be rerun`);
+      }
+      if (ended === "incomplete") {
+        record({ type: "launcher_error", trial: trial.index, arm: trial.arm, run: trial.run, at: at(), message: "interrupted: no outcome was recorded" });
+        continue;
+      }
+      record({ type: "outcome", trial: trial.index, arm: trial.arm, run: trial.run, at: at(), reason: ended });
+      settled.add(trial.index);
+      ran += 1;
+      host.log(`${id}: adopted finals run ${String(trial.index + 1)} (${trial.arm}) finished as ${trial.run}`);
+    }
+    const remaining = todo.filter((t) => !settled.has(t.index));
+    if (remaining.length > 0 && once && ran > 0) return hold(ran, "one finals run (--once)");
+    if (remaining.length > 0) {
     const problem = await host.verifySource(file, commit);
     if (problem !== null) throw new RunnerError(`${id}: ${problem}`);
     const model = await host.discover(file.modelLane);
-    const record = (entry: FinalsEntry): void => { appendFileSync(finalsLedgerPath(paths.runsRoot, id), `${JSON.stringify(entry)}\n`); entries.push(entry); };
     const dir = join(experimentDir(paths.runsRoot, id), "presets"), logs = join(experimentDir(paths.runsRoot, id), "logs");
     mkdirSync(dir, { recursive: true });
     mkdirSync(logs, { recursive: true });
-    for (const trial of todo) {
+    for (const trial of remaining) {
       if (stopRequested()) return hold(ran, "stop requested");
       if (existsSync(finalsWithdrawnPath(paths.runsRoot, id))) return hold(ran, "held: the finals were withdrawn");
       const recheck = await host.verifySource(file, commit);
       if (recheck !== null) return hold(ran, `held: ${recheck}`);
       const at = (): string => host.now().toISOString();
-      if (trial.run !== null && adoptable.has(trial.run)) {
-        const ended = await settleOrphan(paths.runsRoot, host, trial.run, { pid: process.pid, experiment: finalsRunner(id), trial: trial.index }, holder, stopRequested);
-        if (ended === null) return hold(ran, "stop requested");
-        if (ended === "operator_abort") {
-          record({ type: "launcher_error", trial: trial.index, arm: trial.arm, run: trial.run, at: at(), message: "operator stopped the run" });
-          return hold(ran, `held: finals run ${String(trial.index + 1)} was stopped by the operator; it will be rerun`);
-        }
-        if (ended !== "incomplete") {
-          record({ type: "outcome", trial: trial.index, arm: trial.arm, run: trial.run, at: at(), reason: ended });
-          ran += 1;
-          host.log(`${id}: adopted finals run ${String(trial.index + 1)} (${trial.arm}) finished as ${trial.run}`);
-          if (once && trial !== todo.at(-1)) return hold(ran, "one finals run (--once)");
-          continue;
-        }
-        record({ type: "launcher_error", trial: trial.index, arm: trial.arm, run: trial.run, at: at(), message: "interrupted: no outcome was recorded" });
-      }
       const presetPath = join(dir, `finals-${trial.arm}.json`);
       const body = `${JSON.stringify(finalsPresetOf(n, trial.arm), null, 1)}\n`;
       if (existsSync(presetPath) && readFileSync(presetPath, "utf8") !== body) throw new RunnerError(`${id}: finals ${trial.arm} preset on disk differs from the nomination`);
@@ -376,7 +390,8 @@ async function runFinals({ paths, source, host, once = false, stopRequested = ()
       record({ type: "outcome", trial: trial.index, arm: trial.arm, run: runId, at: at(), reason });
       ran += 1;
       host.log(`${id}: finals run ${String(trial.index + 1)} (${trial.arm}) finished as ${runId}`);
-      if (once && trial !== todo.at(-1)) return hold(ran, "one finals run (--once)");
+      if (once && trial !== remaining.at(-1)) return hold(ran, "one finals run (--once)");
+    }
     }
   } finally {
     rmSync(runnerPath(paths.runsRoot), { force: true });

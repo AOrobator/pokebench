@@ -1,7 +1,7 @@
 // The one gameplay lease (INV-Q3) that NEXT RUN, the experiment queue and cohorts share.
 // A viewer that dies mid-run leaves it behind; a fresh viewer may take it back only
 // once its owner is gone and its run no longer plays, or to adopt that very run.
-import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Type, type Static } from "typebox";
 import { Value } from "typebox/value";
@@ -90,7 +90,10 @@ export function takeLease(runsRoot: string, owner: Readonly<Record<string, unkno
 // viewer stays held while that run plays. A failed write keeps the previous owner.
 export function nameLeaseRun(lease: string, owner: Readonly<Record<string, unknown>>): void {
   try {
-    writeFileSync(join(lease, "owner.json"), JSON.stringify(owner));
+    // Written whole then renamed: a torn owner would read as never stale.
+    const path = join(lease, "owner.json");
+    writeFileSync(`${path}.tmp`, JSON.stringify(owner));
+    renameSync(`${path}.tmp`, path);
   } catch {
     // The lease still names this process; only the run or pid is missing.
   }

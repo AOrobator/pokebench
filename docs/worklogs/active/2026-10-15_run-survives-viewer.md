@@ -47,6 +47,7 @@ No feature switch: this changes process supervision, not what the model sees, it
 - [x] GREEN: a second SIGTERM or SIGINT exits 1 at once; the process-group test children now live 500 ms. 663 tests; coverage 95.16 / 90.95 / 94.09; tsc + eslint clean.
 - [x] Grok (whole branch at 73c8189): BLOCKING. Adoption ran after `verifySource`, so a dirty or moved main checkout (allowed; viewer-main never builds there) threw before the in-flight trial was recorded and dropped its lease. Hardening taken: write the lease owner atomically. Not taken: the plain-mkdir vs reclaim window (whichever mkdir wins owns the lease, and the loser throws held).
 - [x] RED: trial and finals adoption with a failing source check (2 failing).
+- [x] GREEN: both runners settle every adoptable trial right after taking the lease, before `verifySource`, discovery or the approval and budget checks. A finished orphan is recorded; with nothing left to run, the experiment is graded. `--once` counts an adopted trial. `nameLeaseRun` writes through tmp + rename. 664 tests; coverage 95.16 / 90.94 / 94.11.
 - [ ] Re-review.
 
 ### M3: deploys are safe by construction

@@ -225,7 +225,7 @@ function newerView(n: NewerExperiment, recorded: RecordedReadiness | null): Expe
     id: n.id, title: n.title, changedFeature: n.changedFeature, incumbentOn: n.incumbentOn, hypothesis: n.hypothesis,
     activationMilestone: n.activationMilestone, primaryMilestone: n.primaryMilestone, queuePosition: n.queuePosition ?? null,
     source: n.source, trialsPerArm: n.trialsPerArm, modelLane: n.modelLane, budgetMs: n.budget.maxWallMs, usedMs: 0,
-    state: "blocked", reason: `uses ${n.unknownSwitches.join(", ")}, which landed after this viewer was built; restart the viewer with just viewer-main to check readiness or run it`,
+    ...(n.discarded !== undefined ? { state: "discarded", reason: n.discarded } : { state: "blocked", reason: n.blocked ?? `uses ${n.unknownSwitches.join(", ")}, which landed after this viewer was built; restart the viewer with just viewer-main to check readiness or run it` }),
     approved: false, readiness: { ready: false, basis: "recent", milestone: n.activationMilestone, window: n.readiness.window, minReached: n.readiness.minReached, reached: 0, considered: [] },
     recorded, trials: [], arms: { incumbent: NO_TRIALS, candidate: NO_TRIALS }, notes: n.notes ?? null, result: null,
   };

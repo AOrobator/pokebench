@@ -101,7 +101,7 @@ function actions(v: ExperimentView): string {
 
 function battle(v: ExperimentView, controls: boolean): string {
   return `<div class="eq-battle">${controls ? actions(v) : ""}<div class="eq-vs">${side(v, "incumbent")}<b class="eq-vsb">VS</b>${side(v, "candidate")}</div>` +
-    `<p class="eq-why">${esc(v.reason)}</p><dl class="eq-facts"><dt>hypothesis</dt><dd>${esc(v.hypothesis)}</dd><dt>graded on</dt><dd>${esc(v.primaryMilestone)}</dd><dt>acts at</dt><dd>${esc(v.activationMilestone)} · ${readinessLine(v)}</dd>` +
+    `<p class="eq-why">${esc(v.reason)}</p><dl class="eq-facts"><dt>hypothesis</dt><dd>${esc(v.hypothesis)}</dd><dt>graded on</dt><dd>${esc(v.primaryMilestone)}</dd><dt>acts at</dt><dd>${esc(v.activationMilestone)}${v.state === "blocked" ? "" : ` · ${readinessLine(v)}`}</dd>` +
     `${v.result === null ? "" : `<dt>verdict</dt><dd>${esc(v.result.verdict.toUpperCase())} → ${esc(v.result.recommendation.toUpperCase().replace(/_/g, " "))}${v.result.eligible ? "" : ` (not eligible: ${v.result.problems.map(esc).join("; ")})`}</dd>`}<dt>build</dt><dd>main @ ${esc(v.source.commit.slice(0, 7))}</dd><dt>budget</dt><dd>${(v.usedMs / 3_600_000).toFixed(1)} of ${(v.budgetMs / 3_600_000).toFixed(1)} h</dd>${v.recorded === null ? "" : `<dt>readiness.md</dt><dd>${esc(v.recorded.verdict)}</dd>`}</dl></div>`;
 }
 
@@ -116,7 +116,7 @@ function slot(v: ExperimentView, open: boolean, controls = false): string {
 
 function pendingCard(v: ExperimentView, open: boolean): string {
   return `<article class="eq-mon${open ? " open" : ""}" data-experiment="${esc(v.id)}"><button type="button" class="eq-head" data-toggle="${esc(v.id)}" aria-expanded="${String(open)}">` +
-    `<span class="eq-ball dim" aria-hidden="true"></span><span class="eq-name">${esc(v.title.toUpperCase())} ${chip(v.state)}<code>${esc(v.changedFeature)}</code><span class="eq-why">Waits for ${esc(v.activationMilestone)}: ${readinessLine(v)}</span></span></button>` +
+    `<span class="eq-ball dim" aria-hidden="true"></span><span class="eq-name">${esc(v.title.toUpperCase())} ${chip(v.state)}<code>${esc(v.changedFeature)}</code><span class="eq-why">${v.state === "blocked" ? esc(v.reason) : `Waits for ${esc(v.activationMilestone)}: ${readinessLine(v)}`}</span></span></button>` +
     (open ? `<div class="eq-battle"><p class="eq-why">${esc(v.reason)}</p><dl class="eq-facts"><dt>hypothesis</dt><dd>${esc(v.hypothesis)}</dd>${v.recorded === null ? "" : `<dt>readiness.md</dt><dd>${esc(v.recorded.verdict)}</dd>`}<dt>runs checked</dt><dd>${v.readiness.considered.map(esc).join(", ") || "none yet"}</dd></dl></div>` : "") + `</article>`;
 }
 

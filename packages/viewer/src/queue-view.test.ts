@@ -97,6 +97,12 @@ describe("experiment queue view", () => {
     expect(renderQueue(blocked, "all", new Set()).chips).toContain('data-filter="blocked"');
     const pendingBlocked = { ...SNAPSHOT, pending: [...SNAPSHOT.pending, view("held-back", { queuePosition: null, state: "blocked", reason: "needs a fix" })] };
     expect(countsOf(pendingBlocked).blocked).toBe(1);
+    // A blocked entry says why it is blocked, not a readiness count that never ran.
+    const only = { ...SNAPSHOT, queue: [view("stuck", { state: "blocked", reason: "needs a fix" })], pending: [view("held-back", { queuePosition: null, state: "blocked", reason: "needs a fix" })], closed: [] };
+    const html = renderQueue(only, "all", new Set(["stuck"])).queue;
+    expect(html).not.toContain("Waits for");
+    expect(html).not.toContain("of the last");
+    expect(html.match(/needs a fix/g)?.length).toBeGreaterThanOrEqual(2);
     const onlyPending = renderQueue(pendingBlocked, "blocked", new Set());
     expect(onlyPending.pending).toContain("EXPERIMENT HELD-BACK");
     expect(onlyPending.pending).not.toContain("EXPERIMENT LEDGE");

@@ -61,6 +61,11 @@ describe("experiment queue store", () => {
     const view = s.pending[0];
     expect(view?.reason).toBe("uses future-switch-v1, which landed after this viewer was built; restart the viewer with just viewer-main to check readiness or run it");
     expect([view?.changedFeature, view?.incumbentOn, view?.approved, view?.trials, view?.notes, view?.readiness.ready]).toEqual(["future-switch-v1", false, false, [], "n", false]);
+    writeDefinition(paths.experimentsDir, definition("newer-dropped", { changedFeature: "future-switch-v1", queuePosition: undefined, discarded: "not needed" }));
+    writeDefinition(paths.experimentsDir, definition("newer-held", { changedFeature: "future-switch-v1", queuePosition: undefined, blocked: "needs a fix" }));
+    const later = queueSnapshot(paths, fake({}));
+    expect(later.closed.map((v) => [v.id, v.state, v.reason])).toEqual([["newer-dropped", "discarded", "not needed"]]);
+    expect(later.pending.find((v) => v.id === "newer-held")?.reason).toBe("needs a fix");
   });
 
   it("splits queued from pending entries, folds trials and reports bad records", () => {

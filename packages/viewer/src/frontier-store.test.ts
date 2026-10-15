@@ -30,7 +30,7 @@ describe("recorded reference ingestion", () => {
       hashes.set(first.run, createHash("sha256").update(bytes).digest("hex"));
       writeFileSync(join(directory, "events.jsonl"), bytes);
     }
-    const data = parseWorkbench(await workbenchSnapshot(root, () => Promise.resolve(false),  Date.parse("2026-10-14T13:00:00Z")));
+    const data = parseWorkbench(await workbenchSnapshot(root, () => Promise.resolve(false), Date.parse("2026-10-14T13:00:00Z")));
     const refs = frontierReferences(data.runs);
     expect(refs.human?.splits.find(s => s.name === "RIVAL_MET")?.elapsedMs).toBe(317885);
     expect(refs.human?.measurement?.pausedMs).toBe(53869);
@@ -54,7 +54,7 @@ it("accepts the common baseline's typed raw RAM references in new recordings wit
     ...(event.type === "state" && "started" in event ? { raw_ram: { v: 1, sequence: 0, frame: 100, path: "raw-ram/00000000.json.gz", sha256: "a".repeat(64) } } : {}),
   }));
   mkdirSync(join(root, id)); const bytes = events.map(event => JSON.stringify(event)).join("\n") + "\n"; writeFileSync(join(root, id, "events.jsonl"), bytes);
-  const data = parseWorkbench(await workbenchSnapshot(root, () => Promise.resolve(false),  Date.now()));
+  const data = parseWorkbench(await workbenchSnapshot(root, () => Promise.resolve(false), Date.now()));
   expect(data.runs).toHaveLength(1); expect(data.runs[0]).toMatchObject({ id, status: "ended", problem: null });
   expect(data.runs[0]?.measurement?.features).toContain("full-raw-ram-v1");
   expect(data.runs[0]?.measurement?.logSha256).toBe(createHash("sha256").update(bytes).digest("hex"));

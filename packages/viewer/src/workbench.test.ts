@@ -81,7 +81,7 @@ describe("mounted split ribbon workbench", () => {
   it("coalesces polling and ignores late responses after disposal", async () => {
     let resolve: (value: unknown) => void = () => { throw new Error("not captured"); }; const fetch = vi.fn(() => new Promise<unknown>(r => { resolve = r; })); const wb = new Workbench(document, { fetchSnapshot: fetch, now: () => 6000, width: () => 340 }); const first = wb.refresh(); await wb.refresh(); expect(fetch).toHaveBeenCalledTimes(1); wb.destroy(); resolve(data()); await first; expect(ui("summary").textContent).toBe(""); await wb.refresh(); wb.clock(); wb.resize(); expect(fetch).toHaveBeenCalledTimes(1);
   });
-  it("handles empty records, missing current objective, no queue and missing selected run on refresh", async () => {
+  it("handles empty records, missing current objective and missing selected run on refresh", async () => {
     const { wb, fetch } = mount(); await wb.refresh(); ui("outcomes").querySelector<HTMLButtonElement>("button")?.click(); fetch.mockResolvedValue({ ...data(), at: 2000, runs: [], problems: ["Unreadable receipt"] }); await wb.refresh(); expect(ui("detail-body").textContent).toContain("no longer available"); expect(ui("data-problems").textContent).toContain("Unreadable"); expect(ui("timing").textContent).toContain("No verified"); ui("detail").dispatchEvent(new MouseEvent("click", { bubbles: true })); expect(ui("detail").hidden).toBe(true); wb.destroy();
   });
 });

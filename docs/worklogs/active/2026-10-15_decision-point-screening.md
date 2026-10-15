@@ -29,8 +29,10 @@ feature-worklog, feature-switch, agent-observability, pokebench-game-state, poke
 - [x] R0 replay of dc0e and 6684 through the fixed guard and supervisor.
 - [x] R1 supervisor fixes (bug fix, no switch): restart inside a batch graded as restart; a walked-onto step trigger counts as tried.
 - [x] R2 transition-press-result-v1 scope extension (behind the existing default-off switch): box opened/paged/closed.
-- [ ] M6a context rebuild + raw-RAM re-render (spike done: byte-identical re-render of dc0e T212).
-- [ ] M6b `just probe-decision`, RED/GREEN, small samples.
+- [x] R3 interaction-loop-detection-v1 (inside the existing switch, OFF unchanged): a batch that itself reprints the
+  conversation counts as a restart even when every batch stops at the same print cursor.
+- [x] M6a context rebuild + raw-RAM re-render (`env/pokebench_env/rerender.py`, `decision-probe.ts`).
+- [x] M6b `just probe-decision`, tests, small samples.
 - [ ] Merge into main after the bundle (pending conditions above).
 
 ## Progress Log
@@ -50,6 +52,23 @@ feature-worklog, feature-switch, agent-observability, pokebench-game-state, poke
   `dialogueChange` plus `reprinted`; ShownStates.record(state, before) counts a restart inside one batch. OFF unchanged
   (test asserts the OFF "locked" bytes). Description + explainer section 4 updated.
 
+- R3 RED (`conversation-restart-loop.test.ts`, "same print cursor"): found by the probe's own live-path test, whose
+  fixture server replays 6684 T600's recorded before/after snapshots with no cursor jitter: 14 identical restarting
+  batches, zero loop_guard events. fc06571 compared each result's cursor with the previous result's only, so it
+  counted 6684 only because its cursor jittered. GREEN: also count a restart when the call's own pre-press snapshot
+  showed the same text, in the same place, further along. Replaying 6684 after: unchanged (T491, every 6 calls).
+- M6a fidelity: built against the run's own commit 74ad319 (scratch worktree), the rebuilt context of dc0e
+  T172/176/200/219/400 and a 1-in-5 sweep of both runs matched the recorded turn_start sizes exactly. Against today's
+  harness the sizes differ by design (today's guard and supervisor text). The live-path test
+  (`decision-probe-live.test.ts`) drives live.ts with a fixture model, then requires the rebuilt context of every
+  turn to equal what the model was sent (system prompt, tools, every message, image order) in three presets.
+  It caught one fidelity bug (image before text in observations) before commit.
+- M6b CLI: `just probe-decision <run> <turn> [--switch id=on|off]... [--samples K≤8] [--context-only]
+  [--runs-root DIR] [--model ID]`. Both arms rebuild with today's harness (system prompt, tools, guard, supervisor,
+  notes, press results); a flipped server switch re-renders the window's readouts from raw RAM in both arms through
+  the server's own `read_state`/`render`, so the arms differ only by the switch. Sampling uses pi `completeSimple`
+  with the run's thinking level and token budget on the gateway model (discovered, not hardcoded).
+
 ## Decisions
 - R1 is a bug fix (false model-facing facts in the supervisor briefing), under the M1 operator exception.
 - R2 changes wording that was literally true but incomplete. It goes behind the existing, not yet landed,
@@ -58,5 +77,10 @@ feature-worklog, feature-switch, agent-observability, pokebench-game-state, poke
 - milestone-stall-stop-v1 is forced off for experiment arms (experiment-gate.ts:90), so dc0e's 40-minute stall was
   by design.
 
+- R3 stays inside interaction-loop-detection-v1 (default-off: an omitted preset key reads false); it completes fc06571's
+  stated intent ("however the print cursor jitters"), and OFF bytes are unchanged.
+- The probe's replayed derivation is today's code; the recorded derivation (only under the run's own switches)
+  reuses the recorded notes and tool texts and is the fidelity check.
+
 ## Status
-R0–R2 done (R1 = 7cc96c9). Next: probe tool.
+R0–R3 and the probe done (R1 = 7cc96c9). Merge into main pending: the bundle is not yet in main.

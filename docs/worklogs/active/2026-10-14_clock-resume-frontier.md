@@ -47,3 +47,4 @@ Operator saw gaps in the graph. Cause: the new Sent to Birch column breaks every
 - Round 4: Grok LGTM on the 5dbef8f..f9bc0c5 delta. Claude-family review subagent (fallback; CLI auth expired, Cursor Opus/Sonnet at quota) LGTM on f9bc0c5. Its MEDIUM: a live log over 64 MiB is now fully re-parsed on every 5 s poll (78 MB parse measured at 4.2 s, synchronous). Logs up to 64 MiB already behaved this way; deferred to a follow-up throttle.
 - [x] Review: Claude-family + Grok LGTM.
 - [x] Operator approved merge 2026-10-14 ("yes").
+- Merged to main as 990ffaa. Operator then asked to commit the three other threads' uncommitted worklog notes in main as-is so the queue runner sees a clean checkout.

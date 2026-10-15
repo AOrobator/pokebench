@@ -56,6 +56,12 @@ describe("mounted runs and comparisons workbench", () => {
     ui("detail-body").querySelector<HTMLAnchorElement>("a")?.focus(); fetch.mockResolvedValue({ ...data(), at: 2000, runs: [] }); await wb.refresh();
     expect(document.activeElement).toBe(ui("detail-body").querySelector("[data-close-detail]")); wb.destroy();
   });
+  it("returns focus to the same frontier point after a refresh replaced the one that opened the drawer", async () => {
+    const { wb, fetch } = mount(); await wb.refresh(); const mark = ui("frontier-full").querySelector<HTMLElement>('[data-run="run_01"][data-split="PLAYER_NAME_CONFIRMED"]'); mark?.focus(); mark?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    fetch.mockResolvedValue({ ...data(), at: 2000 }); await wb.refresh(); expect(mark?.isConnected).toBe(false);
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); expect(document.activeElement?.getAttribute("data-split")).toBe("PLAYER_NAME_CONFIRMED"); expect(document.activeElement?.getAttribute("data-run")).toBe("run_01");
+    open(); fetch.mockResolvedValue({ ...data(), at: 3000, runs: [] }); await wb.refresh(); ui("detail").dispatchEvent(new MouseEvent("click", { bubbles: true })); expect(ui("detail").hidden).toBe(true); wb.destroy();
+  });
   it("renders a ticking live-run meta card, then a normal back link when the run ends", async () => {
     const { wb, fetch } = mount({ ...data(), runs: [run({ status: "live" })] }); await wb.refresh(); wb.clock(); expect(ui("current").textContent).toContain("0:02:05"); expect(ui("current").textContent).toContain("CURRENT OBJECTIVE"); expect(ui("current").querySelector("a")?.getAttribute("href")).toBe("/#run=run_01"); fetch.mockResolvedValue({ ...data(), at: 2000 }); await wb.refresh(); expect(ui("current").textContent).toContain("BACK TO VIEWER"); wb.destroy();
   });

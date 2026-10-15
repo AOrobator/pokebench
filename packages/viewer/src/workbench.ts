@@ -105,7 +105,12 @@ export class Workbench {
     body.scrollTop = focus ? 0 : scrollTop;
   }
 
-  private close(): void { this.ui("detail").hidden = true; this.selected = null; if (this.restoreFocus?.isConnected === true) this.restoreFocus.focus(); }
+  private close(): void {
+    const selected = this.selected; this.ui("detail").hidden = true; this.selected = null;
+    if (this.restoreFocus?.isConnected === true) { this.restoreFocus.focus(); return; }
+    const marks = Array.from(this.ui("frontier-full").querySelectorAll<HTMLElement>("[data-run]")).filter(m => m.dataset.run === selected?.run);
+    (marks.find(m => (m.dataset.split ?? null) === selected?.split) ?? marks[0])?.focus();
+  }
   private onClick = (event: Event): void => {
     const target = event.target as Element | null; if (target?.nodeType !== 1) return;
     if (target.closest("[data-close-detail]") !== null || target === this.ui("detail")) { this.close(); return; }

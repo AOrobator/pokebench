@@ -98,6 +98,7 @@ describe("persistent actual native frontier", () => {
     const trainer = measured("trainer", [1000]);
     trainer.splits.push({name:"RUSTBORO_GYM_TRAINER_JOSH_DEFEATED",elapsedMs:2000,segmentMs:1000,seq:20,turn:2,inputTokens:0,outputTokens:0});
     document.body.innerHTML=frontierPlot({human:human(),best:best()},[trainer],900);
+    expect(document.body.textContent).not.toContain("exact times");
     expect(document.body.textContent).not.toContain("GYM TRAINER BATTLES");
     expect(document.querySelector('.wb-gym-checkpoints')).toBeNull();
     expect(frontierReferences([trainer,best()]).best?.id).toBe("dea1");

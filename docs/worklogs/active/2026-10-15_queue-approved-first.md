@@ -7,5 +7,8 @@ Operator request (2026-10-15): in the viewer's experiment queue, list approved e
 - [x] RED: `queue-view.test.ts` renders approved/held/running cards before draft/stale ones, keeping queue order within each group.
   COMMIT: `test(viewer): RED approved experiments list above drafts in the queue` (e49d526)
 - [x] GREEN: `renderQueue` stable-sorts running, held and approved ahead of the rest. Viewer 582 tests pass; viewer coverage 94.95 lines / 90.67 branches / 93.82 functions (gate 90 green).
-- [ ] Review: Claude CLI + Grok (Cursor) per the operator's choice for this change.
+- [x] GREEN commit: `fix(viewer): list approved experiments above drafts in the queue` (47fdaea)
+- [x] Claude CLI review 1: no bugs; asked whether an operator-approved experiment that lapses to not-ready should stay on top. Decision: yes, the group is `approved || running` (the view's `approved` is true only for a valid approval hash, so stale drops below).
+- [x] Scope added by the operator (relayed 2026-10-15): pending experiments sit on the same card as the queue. Stats page (`workbench.html`) folds the pending section into the queue box; `.eq-pc` loses its separate card styling on both pages. Viewer 583 tests; coverage 94.95 / 90.67 / 93.82 (gate 90 green).
+- [ ] Review: Claude CLI + Grok (Cursor) on the full diff.
 - [ ] Operator approval, local merge into main, restart viewer on 8790.

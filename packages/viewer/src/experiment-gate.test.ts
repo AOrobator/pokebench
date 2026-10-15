@@ -134,12 +134,17 @@ describe("winner gate", () => {
     s = queueSnapshot(w.paths, w.source);
     expect(s.gate[0]).toMatchObject({ state: "finals", reason: "2 finalist(s) wait for 12 runs from boot" });
     expect(s.gate[0]?.trials).toHaveLength(12);
+    // A nomination recorded while finals still turned the stall stop on plays the full wall limit too.
+    const recorded = read(nominationPath(w.paths.runsRoot, "full-map")) as { incumbent: { features: Record<string, boolean> } };
+    recorded.incumbent.features["milestone-stall-stop-v1"] = true;
+    writeFileSync(nominationPath(w.paths.runsRoot, "full-map"), JSON.stringify(recorded));
 
     const fake = host(w);
     const outcome = await runQueue({ paths: w.paths, source: w.source, host: fake, stopRequested: () => fake.launches.length >= 14 });
     expect(fake.launches.slice(0, 12).map((l) => l.presetPath.replace(/.*finals-/, "").replace(".json", ""))).toEqual(finalsOrder(["incumbent", "whole", "both"], 4));
     const finalsPreset = (read(join(experimentDir(w.paths.runsRoot, "full-map"), "presets", "finals-both.json")) as { features: Record<string, boolean>; limits: { maxWallMs: number } });
     expect(finalsPreset).toMatchObject({ limits: { maxWallMs: 600_000 }, features: { "navigation-evidence-memory-v1": true, "full-map-navigation-v1": true } });
+    for (const arm of ["incumbent", "whole", "both"]) expect((read(join(experimentDir(w.paths.runsRoot, "full-map"), "presets", `finals-${arm}.json`)) as { features: Record<string, boolean> }).features["milestone-stall-stop-v1"]).toBe(false);
     const result = (read(finalsResultPath(w.paths.runsRoot, "full-map")) as { decision: { winner: string; verdicts: { arm: string; pass: boolean }[] }; promotion: string });
     expect(result).toMatchObject({ promotion: "full-map:whole", decision: { winner: "whole", verdicts: [{ arm: "whole", pass: true }, { arm: "both", pass: true }] } });
     expect(readPromotions(w.paths.runsRoot)).toMatchObject([{ id: "full-map:whole", from: "full-map", arm: "whole", features: { "full-map-navigation-v1": true } }]);

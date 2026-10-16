@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Battle Message Waiting</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:760px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.1rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+ul{margin:0;padding-left:20px}
+code{font-family:var(--mono);font-size:.88em}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.nav{fill:var(--nav-bg);stroke:var(--nav)}
+.arrow{stroke:var(--soft);fill:none;stroke-width:1.4}
+pre{margin:0;padding:12px 14px;background:var(--panel);border:1px solid var(--rule);border-radius:6px;overflow-x:auto;font:12px/1.5 var(--mono);white-space:pre}
+.off{border-left:4px solid var(--prior)}
+.on{border-left:4px solid var(--game)}
+table{border-collapse:collapse;font-size:.9rem;width:100%}
+th,td{border-bottom:1px solid var(--rule);padding:6px 8px;text-align:left;vertical-align:top}
+th{font-weight:600}
+.tw{overflow-x:auto}
+</style>
+</head>
+<body>
+<main>
+<header>
+ <p class="eyebrow">Feature switch · observation · <code>battle-message-waiting-v1</code> · default OFF</p>
+ <h1>Battle message waiting</h1>
+ <p class="lede">In a battle with no menu open, the readout now says what the battle is waiting for. When a message page waits for A or B, the readout says so and quotes the page whole.</p>
+</header>
+
+<section>
+ <h2>Why</h2>
+ <p>Cook run #2 (<code>2026-10-16T02-23-17_qwen36-gpu1_sh02</code>) called <code>observe</code> 272 times in a row, from turn 445 to turn 716. The screen showed "Wild WINGULL fainted!" with the down arrow blinking. The game was waiting for A or B. The readout told the model the opposite: <code>resolving (no input until the game asks)</code>. The model believed it and waited. Its first A press after the loop (turn 717) moved the battle on.</p>
+ <p>The detector behind this switch (<code>env/pokebench_env/battle_text.py</code>) reads the battle message window's text printer in RAM. Over the states behind those turns it reports 5 states with the printer idle (the HP bar draining after "TORCH used SCRATCH!") and then 270 states waiting for input on "Wild WINGULL fainted!".</p>
+</section>
+
+<section>
+ <h2>Before and after, on the recorded RAM</h2>
+ <figure>
+  <pre class="off">OFF (turn 450, raw RAM 4700; byte-identical to what the model received)
+Interface: battle_resolving; input not ready; Use the game-owned battle input and selected control when ready
+Battle details: WILD single · turn 3 · resolving (no input until the game asks)</pre>
+  <pre class="on">ON (the same RAM, re-rendered on the real ROM)
+Interface: battle_resolving; input not ready; Use the game-owned battle input and selected control when ready
+Battle details: WILD single · turn 3 · battle message waiting: &quot;Wild WINGULL fainted!&quot; — press A or B to continue</pre>
+  <figcaption>Only the input clause of the Battle details line changes. Every other line is the same. The Interface line is not owned by this switch.</figcaption>
+ </figure>
+ <figure>
+  <pre class="off">OFF, bundle-v-control's control arm (battle-details-v2 and expanded battle information off)
+Battle details: unprovided</pre>
+  <pre class="on">ON, the same arm
+Battle details: unprovided
+Battle input: battle message waiting: &quot;Wild WINGULL fainted!&quot; — press A or B to continue</pre>
+  <figcaption>Without battle-details-v2 there is no input clause to change, so the switch adds its own line. It adds it only when a message or a YES/NO box is shown and no battle menu is ready. With expanded battle information on, the line follows <code>Battle state:</code>.</figcaption>
+ </figure>
+</section>
+
+<section>
+ <h2>What decides the text</h2>
+ <figure>
+  <div class="scroll">
+  <svg viewBox="0 0 720 400" width="720" role="img" aria-label="Decision chain for the battle input clause">
+   <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="currentColor" style="fill:var(--soft)"/></marker></defs>
+   <rect class="box" x="10" y="10" width="250" height="44" rx="6"/>
+   <text class="t" x="22" y="30">A player battle menu is ready?</text>
+   <text class="s" x="22" y="46">action, move, target, controller YES/NO</text>
+   <path class="arrow" d="M260 32 H330" marker-end="url(#a)"/><text class="s" x="282" y="26">yes</text>
+   <rect class="box" x="330" y="10" width="380" height="44" rx="6"/>
+   <text class="m" x="342" y="36">input ready (action select)   — unchanged</text>
+   <path class="arrow" d="M135 54 V80" marker-end="url(#a)"/><text class="s" x="142" y="72">no</text>
+
+   <rect class="box" x="10" y="80" width="250" height="44" rx="6"/>
+   <text class="t" x="22" y="100">Battle outcome set, or playback?</text>
+   <text class="s" x="22" y="116">finishing / replay</text>
+   <path class="arrow" d="M260 102 H330" marker-end="url(#a)"/><text class="s" x="282" y="96">yes</text>
+   <rect class="box" x="330" y="80" width="380" height="44" rx="6"/>
+   <text class="m" x="342" y="99">finishing (outcome won) · &lt;message clause&gt;</text>
+   <text class="m" x="342" y="115">recorded playback   — unchanged</text>
+   <path class="arrow" d="M135 124 V150" marker-end="url(#a)"/><text class="s" x="142" y="142">no</text>
+
+   <rect class="game" x="10" y="204" width="250" height="44" rx="6"/>
+   <text class="t" x="22" y="224">Printer 0 waits, autoScroll clear</text>
+   <text class="s" x="22" y="240">render state 1, 2 or 3</text>
+   <path class="arrow" d="M260 226 H330" marker-end="url(#a)"/>
+   <rect class="game" x="330" y="204" width="380" height="44" rx="6"/>
+   <text class="m" x="342" y="230">battle message waiting: "&lt;page&gt;" — press A or B to continue</text>
+
+   <rect class="game" x="10" y="258" width="250" height="44" rx="6"/>
+   <text class="t" x="22" y="278">Printer 0 writing the page</text>
+   <text class="s" x="22" y="294">render state 0, 4, 5 or 6</text>
+   <path class="arrow" d="M260 280 H330" marker-end="url(#a)"/>
+   <rect class="game" x="330" y="258" width="380" height="44" rx="6"/>
+   <text class="m" x="342" y="284">battle message printing: "&lt;page&gt;" — still being written; …</text>
+
+   <rect class="nav" x="10" y="150" width="250" height="44" rx="6"/>
+   <text class="t" x="22" y="170">Battle-script YES/NO box ready</text>
+   <text class="s" x="22" y="186">yesnobox, learn move, nickname</text>
+   <path class="arrow" d="M260 172 H330" marker-end="url(#a)"/>
+   <rect class="nav" x="330" y="150" width="380" height="44" rx="6"/>
+   <text class="m" x="342" y="168">battle YES/NO box open (…), cursor on YES — UP or DOWN</text>
+   <text class="m" x="342" y="184">moves the cursor, A answers it, B answers NO</text>
+
+   <rect class="box" x="10" y="312" width="250" height="44" rx="6"/>
+   <text class="t" x="22" y="332">Printer idle, battle callback busy</text>
+   <text class="s" x="22" y="348">animations, HP bars, auto messages</text>
+   <path class="arrow" d="M260 334 H330" marker-end="url(#a)"/>
+   <rect class="box" x="330" y="312" width="380" height="44" rx="6"/>
+   <text class="m" x="342" y="330">resolving (the game is playing animations or a message</text>
+   <text class="m" x="342" y="346">that closes on its own; no input until the game asks)</text>
+
+   <text class="s" x="10" y="380">Another screen over the battle (bag, party, evolution) keeps the OFF text. A reader error reads "battle message state unknown (…); check the screen" unless another screen or a ready menu owns input.</text>
+  </svg>
+  </div>
+  <figcaption>Checked top to bottom, after two earlier checks: another screen or a ready menu owning input keeps the OFF text, and a failed read says the message state is unknown. The clause replaces only OFF's "resolving (no input until the game asks)". Each case follows the detector's phase: a page printed while another screen owns the battle callback (evolution, bag, party) keeps the OFF text. Under auto-scroll (link and recorded battles) a held page reads "battle message shown: … it moves on by itself".</figcaption>
+ </figure>
+</section>
+
+<section>
+ <h2>Game grounding</h2>
+ <p>pret/pokeemerald <code>731ad5bf</code>, US ROM SHA-1 <code>f3ae0881</code>. Addresses and receipts: <code>docs/findings/2026-10-16_battle-text.md</code>.</p>
+ <div class="tw"><table>
+  <tr><th>Fact</th><th>Source</th><th>RAM read</th></tr>
+  <tr><td>Battle messages print in window <code>B_WIN_MSG</code> (0) through printer 0</td><td><code>src/battle_message.c</code> BattlePutTextOnWindow</td><td><code>sTextPrinters[0]</code> at 0x020201B0: active +0x1B, window +4, cursor +0, state +0x1C</td></tr>
+  <tr><td><code>\p</code> waits, then clears the window; <code>\l</code> waits, then scrolls; FC 09 waits in place</td><td><code>src/text.c</code> RenderText: RENDER_STATE_CLEAR, _SCROLL_START, _WAIT</td><td>state 2, 3, 1</td></tr>
+  <tr><td>Those waits end on <code>JOY_NEW(A_BUTTON | B_BUTTON)</code> unless autoScroll (link and recorded battles)</td><td><code>src/text.c</code> TextPrinterWait, TextPrinterWaitWithDownArrow</td><td><code>gTextFlags</code> 0x03003014 bit 2</td></tr>
+  <tr><td>"Wild WINGULL fainted!" ends in <code>\p</code></td><td><code>src/battle_message.c</code> sText_TargetFainted (<code>{B_DEF_NAME_WITH_PREFIX}\nfainted!\p</code>)</td><td>buffer <code>d1dde0d800…abfb</code>, cursor 22, state 2</td></tr>
+  <tr><td>A battle-script YES/NO box: UP/DOWN move, A answers, B answers NO</td><td><code>src/battle_script_commands.c</code> Cmd_yesnobox</td><td><code>gBattleCommunication</code> 0x02024332</td></tr>
+  <tr><td>The buffer also holds healthbox names; that is not a message</td><td><code>src/battle_interface.c</code> UpdateNickInHealthbox (speed 0, printer stays idle)</td><td>text is read only while printer 0 is active on the buffer</td></tr>
+ </table></div>
+ <p><strong>The page.</strong> The quoted page is the text written since the window was last cleared (<code>\p</code>), up to the next wait the player has not answered yet, or to the message's end. Just after A or B, while the printer starts the next page, the quoted page is that next page. Line breaks become spaces. Control arguments are skipped, so an argument byte is never taken for a page break. Nothing is clipped. The page is recorded in the state JSON as <code>battle.message.page</code>; the state JSON is the same with the switch on or off.</p>
+ <p><strong>"Closes on its own" is not read from the script.</strong> The showcase run's raw RAM shows auto messages stay on screen during <code>waitanimation</code> as well as <code>waitmessage</code>, and an idle printer cannot tell a shown message from a healthbox name in the buffer. So the idle clause states the general fact and quotes no text.</p>
+</section>
+
+<section>
+ <h2>Proof on recorded runs (real ROM)</h2>
+ <p>Every in-battle state with raw RAM was re-rendered with the run's own switches, with this switch off and on.</p>
+ <div class="tw"><table>
+  <tr><th>Run</th><th>OFF equals what the model got</th><th>What ON changed</th></tr>
+  <tr><td>cook run #2 <code>…_sh02</code> (battle-details-v2 on)</td><td>435 of 435 readouts (288 observe equal, 147 press results contain it)</td><td>270 states: <code>battle message waiting: "Wild WINGULL fainted!"</code> (T449–T716). Also waits on "Wild WINGULL appeared!", "Wild POOCHYENA appeared!", "TORCH gained 18 EXP. Points!", "TORCH grew to LV. 6!", "Got away safely!", "Player defeated PKMN TRAINER MAY!", "GMREEN got ¥300 for winning!"; printing pages such as "TORCH grew to LV. 6!"; idle states read the new resolving text; 118 input-ready states unchanged.</td></tr>
+  <tr><td>showcase <code>2026-10-16T00-34-26_qwen36-gpu1_show</code> (battle-details-v2 off)</td><td>191 of 191 readouts</td><td>A <code>Battle input:</code> line on waiting and printing pages, e.g. "Wild ZIGZAGOON appeared!" (T221), "Wild WURMPLE fainted!" (T517), "ASH whited out!" (T766); 487 states unchanged.</td></tr>
+ </table></div>
+ <p>The golden test <code>env/tests/env/test_battle_message_waiting.py</code> holds the RAM windows of raw RAM 4696, 4700 and 4850 (turns 446, 450, 600) and checks OFF byte for byte and ON line by line.</p>
+</section>
+
+<section>
+ <h2>Wiring</h2>
+ <figure>
+  <div class="scroll">
+  <svg viewBox="0 0 720 120" width="720" role="img" aria-label="Switch wiring">
+   <defs><marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--soft)"/></marker></defs>
+   <rect class="box" x="10" y="20" width="150" height="56" rx="6"/><text class="t" x="22" y="42">Preset / switchboard</text><text class="s" x="22" y="60">FeatureSet</text>
+   <path class="arrow" d="M160 48 H190" marker-end="url(#b)"/>
+   <rect class="box" x="190" y="20" width="160" height="56" rx="6"/><text class="t" x="202" y="42">serverFeatureEnv</text><text class="s" x="202" y="60">POKEBENCH_FEATURES_OFF</text>
+   <path class="arrow" d="M350 48 H380" marker-end="url(#b)"/>
+   <rect class="box" x="380" y="20" width="140" height="56" rx="6"/><text class="t" x="392" y="42">format_readout</text><text class="s" x="392" y="60">readout.py</text>
+   <path class="arrow" d="M520 48 H550" marker-end="url(#b)"/>
+   <rect class="game" x="550" y="20" width="160" height="56" rx="6"/><text class="t" x="562" y="42">input clause</text><text class="s" x="562" y="60">battle_message_waiting.py</text>
+   <text class="s" x="10" y="104">The reader runs whether the switch is on or off; the switch only decides the text. It does not need battle-details-v2 or battle-text-auto-advance-v1.</text>
+  </svg>
+  </div>
+  <figcaption>The highlighted box is the only one whose output changes.</figcaption>
+ </figure>
+</section>
+
+<section>
+ <h2>Status</h2>
+ <ul>
+  <li>Branch <code>claude/battle-message-waiting</code>, default OFF. Meant to be ON in both arms of bundle-v-control (the bundle file is owned by the readiness thread).</li>
+  <li>Tests, coverage (≥90 on both stacks), lint (known mypy <code>mgba._pylib</code> only), build and verify-vendor run; the real-ROM tests ran with the operator ROM.</li>
+  <li>Not done here: measured runs; the loop guard's battle blind spot (another thread); the Interface line's "input not ready", which is not owned by this switch.</li>
+  <li>The YES/NO box clause rests on pokeemerald source (<code>Cmd_yesnobox</code>, <code>Cmd_yesnoboxlearnmove</code>, <code>Cmd_yesnoboxstoplearningmove</code>, <code>Cmd_trygivecaughtmonnick</code>) and synthetic tests only: no recorded run has shown a learn-move, nickname or switch-offer box. It is kept because without it such a box would read "no input until the game asks", the same observe-loop bug.</li>
+ </ul>
+</section>
+</main>
+</body>
+</html>

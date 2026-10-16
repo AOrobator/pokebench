@@ -14,6 +14,11 @@ describe("static/style.css", () => {
   it("closes every block it opens", () => {
     expect(unclosed(readFileSync(join(import.meta.dirname, "../static/style.css"), "utf8"))).toEqual([]);
   });
+  it("puts each collapsed legend bar on its own line and spaces the legend from the range toggle", () => {
+    const css = readFileSync(join(import.meta.dirname, "../static/style.css"), "utf8");
+    expect(css).toMatch(/\.wb-fgx details\.wb-bar \{[^}]*flex:0 0 100%/);
+    expect(css).toMatch(/\.wb-fgx \{[^}]*margin-top:14px/);
+  });
   it("finds an unclosed media block and a stray close", () => {
     expect(unclosed("@media(x){\n.a{b:c}\n.d{e:f}")).toEqual([1]);
     expect(unclosed(".a{}\n}")).toEqual([-2]);

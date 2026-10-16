@@ -13,4 +13,6 @@ Viewer-only removal plus docs; no feature switch (viewer-only). Battle choices s
 - [x] the operator, 03:34 New York: "In general, just seeing the button presses should be sufficient." The only other non-button mark on the presses lane is the host WAIT (`wait_input`), so it leaves too; WAITs stay in Activity History and the inspector.
 - [x] RED: `state-decision-events.test.ts` asserts no WAIT mark and no bare `m-press` on the timeline; fails (1 WAIT mark). COMMIT: `test(viewer): RED the presses lane shows only button presses, no WAIT marks` (dbcf3db8)
 - [x] GREEN: `wait_input` no longer draws on the timeline; `app.test.ts` mount test updated to expect no WAIT lane mark while the trace row keeps it. Viewer: 60 files, 821 tests pass; coverage 95.19 / 90.65 / 93.55; tsc and eslint clean.
-- [ ] Review (Claude, Grok, Codex; no local reviewers), land, restart viewer, live check.
+- [x] Review round 2 on 70453992 (base d339b5e7): Claude CLI LGTM, Grok LGTM, Codex (gpt-5.6-sol) LGTM. (Round 1 on 2d658934, before the WAIT change: all three LGTM.)
+- [x] main moved to 755da34e; synced; `git diff --binary main HEAD` sha256 01912004… equals the reviewed packet; viewer 821 tests pass. Landed fast-forward: main = ad9171b8.
+- [x] `just viewer-main`: viewer at ad9171b8, 0 live gameplay processes (cook run #2 had ended). Live: cook run's final window has 20 presses-lane marks, all button presses, 0 battle, 0 WAIT; 4 red errors. The live build renders 0 battle-choice marks across all 6 recorded choices.

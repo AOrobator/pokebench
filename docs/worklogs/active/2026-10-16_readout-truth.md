@@ -26,8 +26,8 @@ feature-worklog, execute-worklog (incl. Landing on main), feature-switch, featur
 Three server switches (env readout; registry + preset plumbing in TS only):
 
 - **`readout-truth-v1`** (observation, items 1–8). Correctness fixes, intended **ON in both arms** of bundle-v-control (`onInBoth`, wired by the bundle owner, not here). Default OFF in presets so recorded presets and the OFF arm reproduce today's bytes exactly.
-- **`birch-speech-pages-v1`** (observation, item 9). Behavior change: the Birch page waiting for A reads input-ready with the page text as the interface value, so press results see page turns. Bundle arm only.
-- **`blackout-readout-v1`** (observation, item 10). Behavior change: a whiteout is said once in the readout. Bundle arm only.
+- **`birch-speech-pages-v1`** (observation, item 9). Correctness fix (operator decision 2026-10-16): the Birch page waiting for A reads input-ready with the page text as the interface value, so press results see page turns. Intended **ON in both arms** (`onInBoth`, wired by the bundle owner).
+- **`blackout-readout-v1`** (observation, item 10). Behavior change: a whiteout is said once in the readout. Bundle arm only. Frame scope: game-loop frames through `run_frame_with_buttons` (operator amendment, INV-5).
 
 Flow: `features.ts` SERVER_FEATURES → `POKEBENCH_FEATURES_OFF` → `readout.features_off_from_env` → `rerender.read_state` (reader kwargs) / `rerender.render` (text kwargs). No new state-JSON fields (the TS event schema is closed and is not edited here); the extra facts the text uses stay internal to `GameState`/`WorldContext`, and the raw-RAM archive reproduces them through `rerender`.
 
@@ -47,7 +47,7 @@ Game grounding (pret/pokeemerald 731ad5bf, US ROM f3ae0881):
 - INV-2 "Closed / none open" is said only when the game state proves it; any read failure or unknown owner keeps "unavailable" or the old unverified text. Test: synthetic window-drawn / owner-unknown cases keep the old lines.
 - INV-3 Every new owner address is grounded in source plus ROM bytes and a recorded frame. Test: real-ROM re-render of the recorded states.
 - INV-4 No new state-JSON fields; no TS schema edits. Test: JSON equality ON vs OFF except fields that already exist (active_ui ready/value/phase, field_activity).
-- INV-5 The whiteout line comes from the game's own callback (CB2_WhiteOut seen on an emulated frame) and appears once on the field; waits stay frame-driven (no sleeps or polling).
+- INV-5 The whiteout line comes from the game's own callback (CB2_WhiteOut seen on an emulated frame) and appears once on the field; waits stay frame-driven (no sleeps or polling). Operator amendment (the operator, 2026-10-16, round-4 B3): "emulated frame" here means a game-loop frame advanced through `run_frame_with_buttons`; frames the vendor advances directly (`tick`, the frame `load_state` runs) are out of scope, as they already are for the frame settle and battle wait that share the hook.
 
 ## Security Review
 
@@ -133,6 +133,9 @@ Report branch, frozen head, packet SHA-256, verdict lines, gate counts and cover
   COMMIT: `test(RED): review round 4 — whiteout delivery is one observation at a time; OFF oracle anchored at Screen:` (854b2bca)
 - 2026-10-16 07:49 AM EDT: Round-4 GREEN (not yet reviewed). `WhiteoutLatch.delivering` lock held by `observation()` from `take` through `render` (put back on failure), so concurrent observations deliver one at a time, oldest first. receipt-21: drop the lock → 1 failed. Gates (ROM set): agent 1705, viewer 925, Python 2382 passed, 0 skipped; coverage agent 97.98/94.52/98.49/99.12, viewer 95.32/91.09/93.68/97.63, Python 97.45/93.43/100; lint, build, verify-vendor OK. STOP: round-4 B3 (frames the vendor advances outside `run_frame_with_buttons`) needs an operator scope decision; round 5 not started.
   COMMIT: `fix: review round 4 — whiteout delivery is one observation at a time`
+- 2026-10-16 01:13 PM EDT: Operator decisions (the operator, 1:11 PM New York time, "yes to all", relayed by the thread owner). (1) Round-4 B3 resolved by NARROWING the frozen boundary: the whiteout latch, and the frame settle and battle wait that share its hook, are specified over game-loop frames that go through `run_frame_with_buttons`; frames the vendor advances directly (`tick`, the one frame `load_state` runs) are out of scope. INV-5 amended below; recorded in blackout-readout-v1's switch copy and explainer limits, and handed to reviewers in the round-5 packet. (2) birch-speech-pages-v1 is a correctness fix, intended ON IN BOTH ARMS (not bundle-only). blackout-readout-v1 stays bundle arm only; readout-truth-v1 ON in both arms.
+  - RED: `readout-truth.test.ts` requires the birch copy, experiment notes, explainer and readiness row to say ON in both arms (no "bundle arm only"), and the blackout copy and explainer to state the frame scope and the amendment. 1 failing.
+  COMMIT: `test(RED): operator amendment — whiteout frame scope, birch speech pages ON in both arms`
 
 ## Surprises
 

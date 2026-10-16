@@ -120,7 +120,8 @@ Report per switch: id, model-facing before/after excerpts from this run, precisi
 
 - Claude CLI: LGTM. Grok: LGTM.
 - Codex: BLOCKING. (1) denials and hypotheticals outside the hedge list ("I doubt …", "There is no evidence …", "It is false that …", "Suppose …") still make claims: needs a positive assertion grammar; (2) a navigate_to push-back's direction is inferred from the script's move, not bound to the step the walk sent; (3) an overworld `active_ui` with a diagnostic or not ready still qualifies as a same-plan state.
-- Accepted all three. 2026-10-16 07:45 AM EDT round-4 RED: 3 failing tests.
+- Accepted all three. 2026-10-16 07:45 AM EDT round-4 RED: 3 failing tests. COMMIT (d250a663).
+- 2026-10-16 08:00 AM EDT round-4 GREEN: a claim is a plain assertion: the sentence opens with the name (or "The" and the name) as its subject, then is/stands/sits/waits/was (an appositive between commas allowed), then at (x,y); a navigate_to push-back needs the walk's last sent direction to be the direction pushed back; an overworld state whose active_ui has a diagnostic or is not ready withholds the same-plan note. Description and explainer updated. Full-run replay unchanged: 4 entries (all true), 206 deliveries; 28 same-plan notes. Gates: agent 1541 tests 97.94/94.29/98.33/99.12; viewer 868 tests 95.36/90.97/93.57/97.71; Python 2209 passed 97.26/93.01/100; lint clean (TS/eslint); pages-check silent.
 
 ## Surprises
 

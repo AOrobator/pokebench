@@ -46,8 +46,9 @@ export function nameMatcher(name:string):RegExp {
  return new RegExp(`(?<![A-Za-z0-9_])${words.join(" ")}(?![A-Za-z0-9_'’])`,"g");
 }
 
-// The model's sentences that place `name` on a tile: the name, not in parentheses, then "at (x,y)" in the same
-// sentence, and no negation, hedge or question mark anywhere in that sentence. Returns each whole sentence.
+// The model's sentences that place `name` on a tile, as a plain assertion: the sentence opens with the name (or "The"
+// and the name) as its subject, the verb is is/stands/sits/waits/was (an appositive between commas may come first),
+// then "at (x,y)", and nothing in the sentence negates, hedges or asks. Returns each whole sentence.
 export function locatingClaims(text:string,name:string):string[] {
  const claims:string[]=[];
  // Where each sentence ends: after . ! or ? followed by a space (not the "." of "Prof."), or before a line break.
@@ -61,7 +62,9 @@ export function locatingClaims(text:string,name:string):string[] {
   const rest=text.slice(after,sentenceEnd);
   const coordinate=/\bat \(\s*-?\d+\s*,\s*-?\d+\s*\)/.exec(rest);
   const sentence=text.slice(sentenceStart,sentenceEnd).trim();
-  if(coordinate===null||NEGATION.test(sentence)||MODAL.test(sentence))continue;
+  if(!/^(?:the)?$/i.test(text.slice(sentenceStart,start).trim()))continue;
+  if(coordinate===null||!/^(?:,[^,]*,)?\s*(?:is|stands|sits|waits|was)\b/.test(rest.slice(0,coordinate.index)))continue;
+  if(NEGATION.test(sentence)||MODAL.test(sentence))continue;
   if(!claims.includes(sentence))claims.push(sentence);
  }
  return claims;
@@ -69,7 +72,7 @@ export function locatingClaims(text:string,name:string):string[] {
 
 export class DisprovedBeliefs {
  private readonly states=new Map<number,State>();
- private readonly calls=new Map<string,{name:string;args:Record<string,unknown>;before:State|null;pressed:boolean;seq:number}>();
+ private readonly calls=new Map<string,{name:string;args:Record<string,unknown>;before:State|null;pressed:boolean;seq:number;last:string|null}>();
  private readonly pages=new Map<string,Advance>();
  private readonly entries=new Map<string,Entry>();
  // The latest conversation shown on each map, by map key, for evidence that names a character.
@@ -86,13 +89,16 @@ export class DisprovedBeliefs {
    return;
   }
   if(event.type==="tool_call"&&(event.name==="press"||event.name==="navigate_to")){
-   this.calls.set(event.id,{name:event.name,args:event.args,before:null,pressed:false,seq:event.seq});
+   this.calls.set(event.id,{name:event.name,args:event.args,before:null,pressed:false,seq:event.seq,last:null});
    if(this.calls.size>16)this.calls.delete(this.calls.keys().next().value??"");
    return;
   }
   if(event.type==="button_press"){
    const call=this.calls.get(event.tool_call_id);
    if(call!==undefined&&!call.pressed){call.pressed=true;call.before=event.before_state_seq===undefined?null:this.states.get(event.before_state_seq)??null;}
+   // The latest direction the harness sent for this call (auto-advance presses are A or B).
+   const step=[...event.buttons].reverse().find(b=>STEP[b]!==undefined);
+   if(call!==undefined&&step!==undefined)call.last=step;
    return;
   }
   if(event.type==="dialogue_auto_advance"){
@@ -155,7 +161,7 @@ export class DisprovedBeliefs {
  // A script showed dialogue that began with the player on tile Q, and the call ended one tile away on the same map,
  // back against the way the model was going. While a message is open the harness presses only A or B, so the move
  // is the game's.
- private pushBack(event:Extract<RunEvent,{type:"tool_result"}>,call:{name:string;args:Record<string,unknown>;before:State|null;seq:number},advance:Advance,state:State):void {
+ private pushBack(event:Extract<RunEvent,{type:"tool_result"}>,call:{name:string;args:Record<string,unknown>;before:State|null;seq:number;last:string|null},advance:Advance,state:State):void {
   const first=advance.pages[0];
   if(first===undefined||first.position===null||first.map_id===null||state.position===null||state.map_id===null)return;
   if(first.map_id.join("/")!==state.map_id.join("/"))return;
@@ -175,8 +181,9 @@ export class DisprovedBeliefs {
    if(!same(start,from)&&!same({x:start.x+step.x,y:start.y+step.y},from))return;
    action=`press ${buttons.join(",")}`;
   } else {
+   // Bound to the walk's last step before the script, which must be the direction the script pushed back.
    const start=call.before?.position??null;
-   if(start===null||call.before?.map_id?.join("/")!==state.map_id.join("/")||distance(to,start)>=distance(from,start))return;
+   if(call.last!==direction||start===null||call.before?.map_id?.join("/")!==state.map_id.join("/")||distance(to,start)>=distance(from,start))return;
    action=`navigate_to (${String(call.args["x"])},${String(call.args["y"])})`;
   }
   const map=roomKey(state),key=`push|${map}|${at(from)}|${direction}`;

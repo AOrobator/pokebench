@@ -63,7 +63,9 @@ describe("locating claims: the readout's own names only, conservatively",()=>{
  it("finds sentences that place a story character on a tile, whole",()=>{
   expect(locatingClaims("I moved to (7,8). Prof. Birch is at (7,7). I'll move to (7,7) to talk to him.","PROF. BIRCH")).toEqual(["Prof. Birch is at (7,7)."]);
   expect(locatingClaims("I am at (7,9). Professor Birch is standing next to the red carpet at (7,8). I need to face him.","PROF. BIRCH")).toEqual(["Professor Birch is standing next to the red carpet at (7,8)."]);
-  expect(locatingClaims("PROF. BIRCH at ( 4 , 13 )\nthen talk","PROF. BIRCH")).toEqual(["PROF. BIRCH at ( 4 , 13 )"]);
+  expect(locatingClaims("PROF. BIRCH is at ( 4 , 13 )\nthen talk","PROF. BIRCH")).toEqual(["PROF. BIRCH is at ( 4 , 13 )"]);
+  // No verb: a target, not a claim about where he is (review round 4).
+  expect(locatingClaims("PROF. BIRCH at ( 4 , 13 )\nthen talk","PROF. BIRCH")).toEqual([]);
  });
  it("ignores possessives, sprite kinds, parenthetical labels, negations, other names and sentences with no tile",()=>{
   expect(locatingClaims("I will go to Professor Birch's lab at (7,16).","PROF. BIRCH")).toEqual([]);

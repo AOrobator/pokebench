@@ -42,6 +42,8 @@ export function planState(state:State,features:FeatureSet):Snapshot|null {
   return {key:JSON.stringify({...common,battle:fight}),free:true,label:`in battle (${ui.phase}${ui.selected===null?"":`, ${ui.selected} selected`})`};
  }
  if(state.screen!=="overworld"||state.map_id===null||state.position===null||state.facing===null)return null;
+ // An interface the readout cannot qualify is not evidence that nothing changed.
+ if(ui!==null&&(ui.diagnostic!==null||ui.ready!==true))return null;
  const free=state.field_controls_locked===false;
  return {key:JSON.stringify(common),free,label:`${roomOf(state,features)} at ${at(state.position)} facing ${state.facing.toLowerCase()}${free?"":", field controls locked"}`};
 }

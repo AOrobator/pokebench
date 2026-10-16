@@ -16,7 +16,7 @@ interface Shown {readonly turn:number;readonly seq:number;readonly text:string}
 interface Conversation {readonly turn:number;readonly seq:number;readonly pages:readonly Page[]}
 interface Base {readonly key:string;readonly map:string;readonly room:string;readonly story:string|null;readonly order:number;readonly turns:number[];readonly seqs:number[]}
 interface PushBack extends Base {readonly kind:"push_back";readonly from:Point;readonly to:Point;readonly direction:string;action:string;conversation:Conversation}
-interface Absent extends Base {readonly kind:"absent";readonly name:string;claim:Shown;readout:Readout;conversation:Conversation|null}
+interface Absent extends Base {readonly kind:"absent";readonly name:string;claim:Shown&{readonly action:string};readout:Readout;conversation:Conversation|null}
 type Entry=PushBack|Absent;
 interface Readout {readonly turn:number;readonly seq:number;readonly map:string;readonly room:string;readonly absent:readonly string[];readonly line:string}
 
@@ -109,7 +109,7 @@ export class DisprovedBeliefs {
    if(this.pages.size>16)this.pages.delete(this.pages.keys().next().value??"");
    return;
   }
-  if(event.type==="assistant"){this.claims(event.turn,event.seq,[event.thinking,event.text].filter(t=>t!=="").join("\n"));return;}
+  if(event.type==="assistant"){this.claims(event.turn,event.seq,[event.thinking,event.text].filter(t=>t!=="").join("\n"),event.tool_calls);return;}
   if(event.type==="tool_result")this.result(event);
  }
 
@@ -196,15 +196,27 @@ export class DisprovedBeliefs {
   this.entries.set(key,{kind:"push_back",key,map,room:roomOf(state,this.features),story:storyKey(state),order:this.order++,turns:[event.turn],seqs:[call.seq,...call.presses,event.seq],from,to,direction,action,conversation});
  }
 
- private claims(turn:number,seq:number,text:string):void {
+ // A claim counts only when the same reply acts on it: a navigate_to to the claimed tile or a tile next to it. Words
+ // alone (which a later sentence may retract) are never the pursuit.
+ private claims(turn:number,seq:number,text:string,calls:readonly {readonly name:string;readonly args:unknown}[]):void {
   const readout=this.readout;
   if(readout===null||text==="")return;
+  const walks=calls.flatMap(c=>{
+   if(c.name!=="navigate_to"||typeof c.args!=="object"||c.args===null)return [];
+   const args=c.args as Record<string,unknown>,x=args["x"],y=args["y"];
+   return typeof x==="number"&&typeof y==="number"?[{x,y}]:[];
+  });
   for(const name of readout.absent){
-   const claims=locatingClaims(text,name);
-   const latest=claims.at(-1);
+   const pursued=locatingClaims(text,name).flatMap(sentence=>{
+    const m=/\bat \(\s*(-?\d+)\s*,\s*(-?\d+)\s*\)/.exec(sentence);
+    const tile={x:Number(m?.[1]),y:Number(m?.[2])};
+    const walk=walks.find(w=>distance(w,tile)<=1);
+    return walk===undefined?[]:[{sentence,walk}];
+   });
+   const latest=pursued.at(-1);
    if(latest===undefined)continue;
    const key=`absent|${readout.map}|${name}`;
-   const claim={turn,seq,text:latest};
+   const claim={turn,seq,text:latest.sentence,action:`navigate_to ${at(latest.walk)}`};
    const existing=this.entries.get(key);
    if(existing?.kind==="absent"){existing.turns.push(turn);existing.seqs.push(seq);existing.claim=claim;existing.readout=readout;existing.conversation=this.naming(readout.map,name)??existing.conversation;continue;}
    this.entries.set(key,{kind:"absent",key,map:readout.map,room:readout.room,story:this.story,order:this.order++,turns:[turn],seqs:[seq],name,claim,readout,conversation:this.naming(readout.map,name)});
@@ -229,7 +241,7 @@ export class DisprovedBeliefs {
    const turns=entry.turns.map(String).join(", ");
    if(entry.kind==="push_back")return `- Moving ${entry.direction} from ${at(entry.from)} in ${entry.room}: you tried it ${String(entry.turns.length)} time${entry.turns.length===1?"":"s"}, at turn${entry.turns.length===1?"":"s"} ${turns} (latest: ${entry.action}). Each time a script moved you back to ${at(entry.to)}; the latest time (turn ${String(entry.conversation.turn)}) it showed: ${quotePages(entry.conversation)}`;
    const said=entry.conversation===null?"":` On that map at turn ${String(entry.conversation.turn)} you were shown: ${quotePages(entry.conversation)}`;
-   return `- ${entry.name} on ${entry.room}: you wrote at turn ${String(entry.claim.turn)}: "${entry.claim.text}"${entry.turns.length>1?` (you placed ${entry.name} on this map at turns ${turns})`:""}. The readout on that map said at turn ${String(entry.readout.turn)}: "${entry.readout.line}"${said}`;
+   return `- ${entry.name} on ${entry.room}: you wrote at turn ${String(entry.claim.turn)}: "${entry.claim.text}" and called ${entry.claim.action}${entry.turns.length>1?` (you placed ${entry.name} on this map at turns ${turns})`:""}. The readout on that map said at turn ${String(entry.readout.turn)}: "${entry.readout.line}"${said}`;
   });
   return `Things the game has contradicted (from this run's own readouts and dialogue; an entry is dropped when a story flag changes or the game shows otherwise):\n${lines.join("\n")}`;
  }

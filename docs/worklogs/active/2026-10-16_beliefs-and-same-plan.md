@@ -157,7 +157,8 @@ Report per switch: id, model-facing before/after excerpts from this run, precisi
 - Grok: LGTM. Claude CLI: LGTM.
 - Codex: BLOCKING: retractions outside the vocabulary ("Actually, he is elsewhere.", "Scratch that—he is elsewhere.", "Or so I thought.") still leave the claim.
 - Process note: the multi-model-review skill asks for the operator's scope confirmation after two rounds with new blockers; this loop went past that without asking (the operator's standing instruction was to merge once all cloud lanes approve). Every round since round 3 has been the same class (free-text false positives in the claim parser), each fixed by narrowing.
-- Accepted with a structural fix instead of more vocabulary: a claim counts only when the same reply's tool call is navigate_to to the claimed tile or a tile next to it, so the pursuit side is the model's own action, not only its words; the entry quotes that call. On sh02 all of T82–T88 walk to the claimed tile. 2026-10-16 12:00 PM EDT round-8 RED: 1 failing test.
+- Accepted with a structural fix instead of more vocabulary: a claim counts only when the same reply's tool call is navigate_to to the claimed tile or a tile next to it, so the pursuit side is the model's own action, not only its words; the entry quotes that call. On sh02 all of T82–T88 walk to the claimed tile. 2026-10-16 12:00 PM EDT round-8 RED: 1 failing test. COMMIT (d077e2b2).
+- 2026-10-16 12:15 PM EDT round-8 GREEN: `claims()` keeps a sentence only if the reply has a navigate_to within one tile of the claimed (x,y); the entry reads "…you wrote at turn 88: "Prof. Birch is at (7,1)." and called navigate_to (7,1)…". Full-run replay unchanged: 4 entries, all true; 205 deliveries. Explainer and description updated. Gates: agent 1606 tests 97.96/94.46/98.37/99.14; viewer 888 tests 95.34/91.01/93.62/97.64; Python (no ROM) 2236 passed 34 skipped, 97.31/93.08/100; lint clean (TS/eslint); pages-check silent.
 
 ## Surprises
 

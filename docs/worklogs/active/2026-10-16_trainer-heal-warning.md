@@ -34,14 +34,15 @@ Game grounding (pret/pokeemerald 731ad5bf): Route 103 rival script `data/maps/Ro
 ## Milestones
 
 **M1 — trainer-heal-guidance-v1 (A)**
+- [x] Deletion receipt: removing the prompt line turns 2/6 tests red; restored, 6/6 green.
 - [x] RED: registry/presets/defaults, OFF prompt byte-identical (54a7 run_start), ON appends exactly the section after battle triage, factory path. 6/6 fail: unknown feature.
 - [x] COMMIT RED: `test(RED): trainer-heal-guidance-v1 ...` (sha in git log; this line written before the commit)
 - [x] GREEN + registry count updates (positional `.at(-N)`, preset lists, guidance count 33, switchboard rows 71). vitest agent 1561 passed, viewer 885 passed; pytest 2236 passed, 34 skipped (ROM unset in bare uv run; full gate later with .env).
 - [x] COMMIT GREEN: `feat: trainer-heal-guidance-v1 ...` (sha in git log)
 
 **M2 — low-hp-trainer-warning-v1 (B)**
-- [ ] RED: wrapper fires on 54a7-shaped state (T363), not when HP ≥ half, not off Route 103, not after rival won, not in battle, not twice, re-arms after heal / map change; bag items; recorded event; viewer Activity History row and SUP chip, no timeline mark; factory path through playGameTools
-- [ ] COMMIT RED
+- [x] RED: wrapper fires on 54a7-shaped state (T363), not when HP ≥ half, not off Route 103, not after rival won, not in battle, not twice, re-arms after heal / map change; bag items; recorded event; viewer Activity History row and SUP chip, no timeline mark; factory path through playGameTools
+- [x] RED written (module missing). COMMIT RED: `test(RED): low-hp-trainer-warning-v1 ...`
 - [ ] GREEN, schema regenerated
 - [ ] COMMIT GREEN; deletion receipts
 

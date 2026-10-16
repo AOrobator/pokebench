@@ -169,6 +169,8 @@ describe("phone header in the viewer", () => {
     expect(stage.contains(ui("replay-controls"))).toBe(true);
     expect(ui("run-sheet").contains(ui("run"))).toBe(true);
     expect(ui("run-sheet").contains(ui("comparisons-link"))).toBe(true);
+    const all = Array.from(must(document.querySelector('[data-slot="phone-picker"]')).children, (el) => el.getAttribute("data-ui") ?? (el.className || el.tagName));
+    expect(all).toEqual(["H4", "run-choice", "comparisons-link"]);
   });
 
   it("opens the sheet from anywhere on the header and switches runs from it", async () => {
@@ -184,6 +186,16 @@ describe("phone header in the viewer", () => {
     expect(ui("run-sheet").hidden).toBe(true);
     expect(head.getAttribute("aria-expanded")).toBe("false");
     expect(streams.at(-1)?.url).toBe(`/api/runs/${encodeURIComponent(OTHER_ID)}/events`);
+  });
+
+  it("closes the sheet when a run is picked from the full list in it", async () => {
+    const { streams } = await mount(375);
+    ui("run-head").click();
+    const picker = ui("run") as HTMLSelectElement;
+    picker.value = ENDED_ID;
+    picker.dispatchEvent(new Event("change"));
+    expect(ui("run-sheet").hidden).toBe(true);
+    expect(streams.at(-1)?.url).toBe(`/api/runs/${encodeURIComponent(ENDED_ID)}/events`);
   });
 
   it("closes the sheet from the shade and the grab handle", async () => {

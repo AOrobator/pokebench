@@ -18,5 +18,5 @@ Viewer only, phone widths (`max-width: 700px`, the existing phone breakpoint); t
 **M1 — phone header Q**
 - [x] RED: run-list cohort; head/sheet model; phone mount moves controls and picker; sheet opens from anywhere on the header and switches runs; desktop keeps everything in the header; CSS hides old pieces on phones
 - [x] GREEN, gates: `pnpm -r build`, `pnpm -r lint`, `pnpm -r coverage` pass (viewer 945 tests; 95.36 stmts / 91.11 branches / 93.76 funcs / 97.66 lines; agent 1867). `run-head` added to `BROWSER_MODULES` so the server serves it.
-- [ ] Browser proof at phone width (viewer-e2e)
+- [x] Browser proof at phone width (viewer-e2e): `runs/reviews/2026-10-16-header-q-e2e/receipt.md`. Fixed four bugs it found: `.bar button` styles turned the header white, the sheet stayed open after a picker change, disabled controls under the screen looked enabled, picker came after the link. Gates rerun: viewer 946 tests, 95.36 / 91.1 / 93.76 / 97.66.
 - [ ] Review: Claude, Grok, GPT on one frozen packet; land ff-only

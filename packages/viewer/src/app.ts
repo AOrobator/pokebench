@@ -262,8 +262,9 @@ export class App {
     const phone = this.doc.defaultView?.matchMedia(PHONE).matches === true;
     for (const [element, home] of this.homes) {
       const slot = this.doc.querySelector(`[data-slot="${element.matches(".tb-ctl, .replay-controls") ? "phone-controls" : "phone-picker"}"]`);
-      if (phone && slot !== null) slot.append(element);
-      else home.after(element);
+      if (!phone || slot === null) home.after(element);
+      else if (element.matches(".run-choice")) (slot.querySelector("h4") ?? slot).after(element);
+      else slot.append(element);
     }
   }
 
@@ -291,6 +292,7 @@ export class App {
     head.addEventListener("click", () => { show(true); });
     shade.addEventListener("click", () => { show(false); });
     this.ui("run-sheet-close").addEventListener("click", () => { show(false); });
+    this.picker("run").addEventListener("change", () => { show(false); });
     this.ui("run-sheet-body").addEventListener("click", (event) => {
       const watch = (event.target as HTMLElement).closest<HTMLElement>("[data-watch]");
       if (watch === null) return;

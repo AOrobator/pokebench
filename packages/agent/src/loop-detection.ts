@@ -59,6 +59,8 @@ export interface CompletedCall {
   // The state the call's first input started from (later presses of the same call, such as auto-advance's B,
   // replace beforeState but not this).
   readonly startState?: GameStateSnapshot | undefined;
+  // ineffective-loops-v1: the dialogue texts (or message identities) shown in states recorded during the call.
+  readonly dialogue?: readonly string[] | undefined;
 }
 export type LoopPolicy = { readonly [K in keyof typeof LOOP_POLICY]: number };
 const PLANNING = new Set([
@@ -181,6 +183,32 @@ export function scriptHeld(state: GameStateSnapshot): boolean {
   return script != null && (script.script_mode === 1 || script.script_mode === 2) && (script.script_status === 0 || script.script_status === 1);
 }
 
+// ineffective-loops-v1: outside battle, the game waiting for the player's input on an interface the field
+// fingerprint cannot see: a ready menu or prompt (no diagnostic), a ready naming screen, or a locked field holding
+// a message that waits for a button. Null while the game acts (scripts, transitions, the truck ride, printing text),
+// in battle (battle-observation-loop-v1's surface) and on the free field (semanticState's).
+const MESSAGE_WAITS = ["dismiss_wait", "button_wait", "page_wait", "scroll_wait"];
+export function waitingState(state: GameStateSnapshot): string | null {
+  if (state.in_battle || state.screen === "battle") return null;
+  const ui = state.active_ui;
+  const message = state.world_context?.message;
+  const dialogue = state.world_context?.dialogue ?? null;
+  const waiting =
+    ui != null ? ui.ready === true && ui.diagnostic === null
+      : state.screen === "naming" || state.naming != null ? state.naming?.ready === true
+        : state.screen === "overworld" && state.started && state.field_controls_locked === true &&
+          message?.ready === true && MESSAGE_WAITS.includes(message.phase) && Boolean(dialogue || message.identity);
+  if (!waiting) return null;
+  return stable({ screen: state.screen, started: state.started, map: state.map_id, position: state.position, facing: state.facing, locked: state.field_controls_locked, ui: ui ?? null, naming: state.naming ?? null, dialogue, message: message ?? null, name: state.name, party: state.party, money: state.money, badges: state.badges, story: state.story ?? null });
+}
+export const WAITING_MESSAGE =
+  "Repeated observations show the same open menu, prompt or message waiting for your input: observing again does not change it. Decide from the readout which input it needs, or choose a different approach using observed evidence.";
+export const REVISIT_MESSAGE =
+  "Your recent moves name different targets but keep ending on the same tile, with no new map, tile or story milestone in between: switching between these few targets is not getting anywhere. Reassess what stops you there using observed evidence, then choose a different route or destination.";
+const DIRECTIONS = new Set(["UP", "DOWN", "LEFT", "RIGHT"]);
+const interfaceOpen = (state: GameStateSnapshot): boolean =>
+  state.active_ui != null || state.naming != null || (state.world_context?.dialogue ?? "") !== "" || state.world_context?.message != null;
+
 const OPPOSITE: Readonly<Record<string, string>> = { up: "down", down: "up", left: "right", right: "left" };
 const lastDirection = (buttons: unknown): string | null => {
   if (!Array.isArray(buttons)) return null;
@@ -267,6 +295,12 @@ export class LoopDetector {
   // battle-observation-loop-v1: the previous game call's battle readout and the recent ones.
   private previousBattle: string | null = null;
   private readonly battlesSeen: string[] = [];
+  // ineffective-loops-v1: the previous game call's waiting-interface fingerprint and the recent ones; the moves
+  // (navigate_to, or a press with a direction) since the last map change, battle or story milestone.
+  private previousWaiting: string | null = null;
+  private readonly waitingSeen: string[] = [];
+  private readonly moves: { place: string; map: string; target: string; seq: number }[] = [];
+  private readonly movesHeard = new Set<string>();
   // The same conversation reopened in the same place: closed then shown again, or its print cursor jumping back.
   private readonly conversation = { text: "", place: "", cursor: null as number | null, open: false, restarts: 0 };
   private readonly visited: string[] = [];
@@ -281,6 +315,7 @@ export class LoopDetector {
     window: number;
     briefing: string | null;
     pushback: boolean;
+    revisit: boolean;
   } | null = null;
   private stallNote: { text: string; exposed: boolean } | null = null;
   private run: string | null = null;
@@ -301,6 +336,7 @@ export class LoopDetector {
       beforeSeq?: number | undefined;
       navigation?: boolean;
       pressed?: boolean;
+      dialogue?: string[];
     }
   >();
 
@@ -313,6 +349,7 @@ export class LoopDetector {
     private readonly transitions = false,
     private readonly pushback = false,
     private readonly battles = false,
+    private readonly ineffectiveLoops = false,
   ) {}
 
   observe(event: RunEvent): void {
@@ -327,6 +364,9 @@ export class LoopDetector {
       this.latestSeq = event.seq;
       if ("started" in event) {
         if (this.pushback) this.tripState(event);
+        const said = this.ineffectiveLoops ? (event.world_context?.dialogue || event.world_context?.message?.identity) ?? "" : "";
+        if (said !== "")
+          for (const pending of this.calls.values()) if (!(pending.dialogue ??= []).includes(said)) pending.dialogue.push(said);
         this.nativeProgress(event, event.seq);
         this.latest = event;
       } else {
@@ -364,6 +404,7 @@ export class LoopDetector {
         args: pending?.args ?? {},
         requested: pending?.requested,
         startState: pending?.navigation === true ? pending.before : pending?.start,
+        dialogue: pending?.dialogue,
         isError: event.is_error,
         text: event.text,
         seq: event.seq,
@@ -436,22 +477,26 @@ export class LoopDetector {
     const changed =
       game && fingerprint !== null && fingerprint !== this.previous;
     const battle = this.battles && game && call.state !== undefined ? battleState(call.state) : null;
-    const novel = (changed && !this.visited.includes(fingerprint)) || (battle !== null && battle !== this.previousBattle && !this.battlesSeen.includes(battle));
+    const waiting = this.ineffectiveLoops && game && call.state !== undefined ? waitingState(call.state) : null;
+    const novel = (changed && !this.visited.includes(fingerprint)) || (battle !== null && battle !== this.previousBattle && !this.battlesSeen.includes(battle)) ||
+      (waiting !== null && waiting !== this.previousWaiting && !this.waitingSeen.includes(waiting));
     // pushback-loop-detection-v1: a new state on a tile already seen (a menu, a turn, one other button) is not
     // a way out of a push-back; only a new map or tile, or a story milestone, is.
-    const place = this.pushback && game && call.state !== undefined ? placeOf(call.state) : null;
+    const place = (this.pushback || this.ineffectiveLoops) && game && call.state !== undefined ? placeOf(call.state) : null;
     const newPlace = place !== null && !this.places.includes(place);
     if (place !== null) {
       this.places.push(place);
       if (this.places.length > 16) this.places.shift();
     }
-    const held = this.pushback && this.episode?.pushback === true && !newPlace;
+    // ineffective-loops-v1: a few-target loop episode is held to new places the same way.
+    const placeBound = (this.pushback && this.episode?.pushback === true) || this.episode?.revisit === true;
+    const held = placeBound && !newPlace;
     if (novel) {
       this.messageVisits.length = 0;
       if (!this.pushback || newPlace) this.pushbacks.length = 0;
     }
     // A push-back episode ends on a new map or tile even when that place's state was seen before.
-    const escaped = this.pushback && this.episode?.pushback === true && newPlace;
+    const escaped = placeBound && newPlace;
     // Out of the loop: its push-backs no longer count toward the next warning.
     if (escaped) this.pushbacks.length = 0;
     if (
@@ -462,6 +507,8 @@ export class LoopDetector {
     let hit: LoopKind | null = null;
     let pingPong = false;
     let pushed: number[] | null = null;
+    let revisited: number[] | null = null;
+    let waited = false;
     if (!call.isError && PLANNING.has(call.name)) {
       this.planning++;
       if (this.planning >= this.policy.planning) hit = "planning";
@@ -469,10 +516,9 @@ export class LoopDetector {
     if (game) {
       if (call.name === "press" || changed) this.planning = 0;
       if (call.name === "observe") {
-        this.observations =
-          (fingerprint !== null && fingerprint === this.previous) || (battle !== null && battle === this.previousBattle)
-            ? this.observations + 1
-            : 0;
+        const unchanged = (fingerprint !== null && fingerprint === this.previous) || (battle !== null && battle === this.previousBattle);
+        waited = !unchanged && waiting !== null && waiting === this.previousWaiting;
+        this.observations = unchanged || waited ? this.observations + 1 : 0;
         if (this.observations >= this.policy.observation) hit ??= "observation";
       } else {
         this.observations = 0;
@@ -520,6 +566,13 @@ export class LoopDetector {
           pushed = back;
         }
       }
+      if (this.ineffectiveLoops) {
+        const back = this.revisit(call, seq);
+        if (back !== null && hit === null) {
+          hit = "cycle";
+          revisited = back;
+        }
+      }
       if (this.transitions && this.mapMove(call) && hit === null) {
         hit = "cycle";
         pingPong = true;
@@ -530,6 +583,13 @@ export class LoopDetector {
         if (battle !== null) {
           this.battlesSeen.push(battle);
           if (this.battlesSeen.length > 16) this.battlesSeen.shift();
+        }
+      }
+      if (this.ineffectiveLoops) {
+        this.previousWaiting = waiting;
+        if (waiting !== null) {
+          this.waitingSeen.push(waiting);
+          if (this.waitingSeen.length > 16) this.waitingSeen.shift();
         }
       }
       if (fingerprint !== null) {
@@ -565,15 +625,17 @@ export class LoopDetector {
     if (this.episode === null) {
       this.episode = {
         kind: hit,
-        message: pushed !== null ? PUSHBACK_MESSAGE : pingPong ? TRANSITION_MESSAGE : hit === "ineffective" && call.name === "navigate_to" ? "Repeated navigation attempts to the same target produced equivalent states. Inspect the destination and obstacle before trying again." : this.interactions && (hit === "ineffective" || hit === "cycle") ? "The same interaction or input pattern is repeating without new game information. Use a single input, inspect the resulting interface, and choose an evidence-supported different approach. Reopening the same message is not story progress." : MESSAGES[hit],
+        message: pushed !== null ? PUSHBACK_MESSAGE : revisited !== null ? REVISIT_MESSAGE : hit === "observation" && waited ? WAITING_MESSAGE : pingPong ? TRANSITION_MESSAGE : hit === "ineffective" && call.name === "navigate_to" ? "Repeated navigation attempts to the same target produced equivalent states. Inspect the destination and obstacle before trying again." : this.interactions && (hit === "ineffective" || hit === "cycle") ? "The same interaction or input pattern is repeating without new game information. Use a single input, inspect the resulting interface, and choose an evidence-supported different approach. Reopening the same message is not story progress." : MESSAGES[hit],
         exposed: false,
         recovery: 0,
         threshold: false,
-        // The first push-back of the repeated input; the notice adds the call that completed the count.
-        evidence: pushed === null ? [seq] : pushed.slice(0, 1),
+        // The first push-back of the repeated input, or the first of the moves ending on the loop's tile; the notice
+        // adds the call that completed the count.
+        evidence: (pushed ?? revisited)?.slice(0, 1) ?? [seq],
         window: this.policy.recovery,
         briefing: null,
         pushback: pushed !== null,
+        revisit: revisited !== null,
       };
       this.notice("warning", seq);
       // Speedrun: the supervisor briefs as soon as a loop is found, then again every window while it lasts.
@@ -620,6 +682,8 @@ export class LoopDetector {
     this.visited.length = 0;
     this.trip = null;
     this.pushbacks.length = 0;
+    this.moves.length = 0;
+    this.movesHeard.clear();
   }
 
   // pushback-loop-detection-v1: what a state since the last settled result says about the trip away from it.
@@ -681,6 +745,47 @@ export class LoopDetector {
     if (this.pushbacks.length > 12) this.pushbacks.shift();
     const same = this.pushbacks.filter((p) => p.key === key);
     return same.length >= this.policy.cycleRepeats ? same.map((p) => p.seq) : null;
+  }
+
+  // ineffective-loops-v1: records a move (a navigate_to, or a press with a direction button, whose input went to the
+  // field and during which no message or dialogue appeared) by the tile it ended on and its target. When the newest
+  // move's tile has ended `cycleRepeats` moves, the loop is the moves from the first of those to now: if they ended on
+  // at most two tiles and their targets alternate (one named again after a different one), returns the seqs of the
+  // moves that ended on the newest tile. A battle, an open menu or naming screen, or a conversation not heard
+  // since the moves began clears them (new information); the same conversation again only makes that call not a move.
+  // A map change starts them again; a story milestone clears them in nativeProgress.
+  private revisit(call: CompletedCall, seq: number): number[] | null {
+    const state = call.state;
+    if (state === undefined) return null;
+    const said = call.dialogue ?? [];
+    if (state.in_battle || state.active_ui != null || state.naming != null || said.some((text) => !this.movesHeard.has(text))) {
+      this.moves.length = 0;
+      this.movesHeard.clear();
+      for (const text of said) this.movesHeard.add(text);
+      return null;
+    }
+    const asked = call.requested ?? call.args;
+    const buttons = asked["buttons"];
+    const target = call.name === "navigate_to" ? JSON.stringify([asked["map_id"], asked["x"], asked["y"]])
+      : call.name === "press" && Array.isArray(buttons) && buttons.some((b: unknown) => typeof b === "string" && DIRECTIONS.has(b.toUpperCase())) ? JSON.stringify(buttons)
+        : null;
+    const start = call.startState ?? call.beforeState;
+    const place = placeOf(state);
+    if (target === null || place === null || state.screen !== "overworld" || said.length > 0 || interfaceOpen(state) || (start !== undefined && interfaceOpen(start)))
+      return null;
+    const map = JSON.stringify(state.map_id);
+    if (this.moves.length > 0 && this.moves[this.moves.length - 1]?.map !== map) {
+      this.moves.length = 0;
+      this.movesHeard.clear();
+    }
+    this.moves.push({ place, map, target, seq });
+    if (this.moves.length > 12) this.moves.shift();
+    const ends = this.moves.filter((m) => m.place === place).slice(-this.policy.cycleRepeats);
+    if (ends.length < this.policy.cycleRepeats) return null;
+    const loop = this.moves.slice(this.moves.indexOf(ends[0] ?? this.moves[0] ?? { place, map, target, seq }));
+    const targets = loop.map((m) => m.target);
+    const alternates = targets.some((t, i) => targets.some((u, k) => k > i && u === t && targets.slice(i + 1, k).some((v) => v !== t)));
+    return new Set(loop.map((m) => m.place)).size <= 2 && alternates ? ends.map((m) => m.seq) : null;
   }
 
   // A state that either has a fingerprint or is only a transient lock; skipped instead of clearing the history.

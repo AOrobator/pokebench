@@ -6,8 +6,7 @@ import {attachLoopGuard,Governor} from "./harness.js";
 import {ALL_ON,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures} from "./features.js";
 import {flagFeatures} from "./play-preset.js";
 import {checkEvent,type RunEvent} from "./events.js";
-import * as loops from "./loop-detection.js";
-import {LOOP_POLICY,LoopDetector,type CompletedCall,type LoopNotice} from "./loop-detection.js";
+import {LOOP_POLICY,LoopDetector,REVISIT_MESSAGE,WAITING_MESSAGE,semanticState,type CompletedCall,type LoopNotice} from "./loop-detection.js";
 import type {GameStateSnapshot} from "./game-state.js";
 
 // Recorded events of runs 2026-10-16T12-42-29_qwen36-gpu0_4caa, 2026-10-16T07-53-43_qwen36-gpu0_7ccf and
@@ -21,17 +20,9 @@ function recorded(name:string):RunEvent[]{
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
 interface Seen {readonly turn:number;readonly seq:number;readonly kind:string;readonly phase:string;readonly message:string;readonly evidence:readonly number[]}
 
-const ID="ineffective-loops-v1";
-const MESSAGE=():string=>{
- const message=(loops as Record<string,unknown>)["REVISIT_MESSAGE"];
- if(typeof message!=="string")throw new Error("loop-detection.ts exports no REVISIT_MESSAGE");
- return message;
-};
-const WAITING=():string=>{
- const message=(loops as Record<string,unknown>)["WAITING_MESSAGE"];
- if(typeof message!=="string")throw new Error("loop-detection.ts exports no WAITING_MESSAGE");
- return message;
-};
+const ID="ineffective-loops-v1" as const;
+const MESSAGE=():string=>REVISIT_MESSAGE;
+const WAITING=():string=>WAITING_MESSAGE;
 
 // The production path: attachLoopGuard on a recorder fan-out with the run's own switches and a supervisor; only this
 // switch is set by the test.
@@ -43,8 +34,7 @@ function replay(events:readonly RunEvent[],on:boolean):{seen:Seen[];contexts:{tu
  const features=featuresOf(start.harness_features);
  const recorder={subscribe:(o:(e:RunEvent)=>void)=>{observers.push(o);},recordLoopGuard:(n:LoopNotice)=>{checkEvent({v:1,run:"replay",seq:current?.seq??0,t:"2026-10-16T15:00:00.000-04:00",turn:current?.turn??0,type:"loop_guard",...n,evidence:[...n.evidence]});seen.push({turn:current?.turn??-1,seq:current?.seq??-1,kind:n.kind,phase:n.phase,message:n.message,evidence:n.evidence});}};
  const governor=new Governor({limits:{maxTurns:5000,maxWallMs:6*3_600_000,failureLimit:3},retry:()=>undefined,abort:()=>undefined,now:()=>0});
- const guard=attachLoopGuard as (...args:unknown[])=>LoopDetector;
- const detector=guard(recorder,governor,undefined,"enforced",features["interaction-loop-detection-v1"],(kind:string,calls:number)=>`SUPERVISOR: ${kind} at ${String(calls)} calls`,features["transition-loop-detection-v1"],features["pushback-loop-detection-v1"],features["battle-observation-loop-v1"],on);
+ const detector=attachLoopGuard(recorder,governor,undefined,"enforced",features["interaction-loop-detection-v1"],(kind,calls)=>`SUPERVISOR: ${kind} at ${String(calls)} calls`,features["transition-loop-detection-v1"],features["pushback-loop-detection-v1"],features["battle-observation-loop-v1"],on);
  for(const e of events){
   if(e.type==="loop_guard")continue;
   current=e;
@@ -69,20 +59,18 @@ describe("ineffective-loops-v1 on recorded run 4caa: navigate_to targets across 
   expect(warnings(seen)).toEqual(recordedWarnings(events).filter(w=>w.kind!=="milestone_drought"));
   expect(warnings(seen)).toEqual([{turn:219,kind:"ineffective"}]);
  });
- it("ON: the third return to (23,12) with different targets raises a cycle warning and the supervisor briefing at T206, 13 turns before today's",()=>{
+ it("ON: (45,6) three times, LEFT x5, then (45,6) again, all ending on (21,8) but the LEFT walk: a cycle warning and the supervisor briefing at T212, 7 turns before today's",()=>{
   const {seen,contexts}=replay(events,true);
   const warning=seen.find(n=>n.phase==="warning");
-  expect(warning).toMatchObject({kind:"cycle",turn:206,message:MESSAGE()});
+  // Evidence: the first of the last three moves ending on (21,8) (T209) and the move that completed the count.
+  expect(warning).toMatchObject({kind:"cycle",turn:212,seq:5121,evidence:[5057,5121],message:MESSAGE()});
   expect(seen.find(n=>n.phase==="supervisor")).toMatchObject({kind:"cycle",seq:warning?.seq});
   expect(contexts.find(c=>c.turn>(warning?.turn??Infinity))?.text).toMatch(/^SUPERVISOR: cycle at \d+ calls$/);
   expect(seen.some(n=>n.phase==="stop")).toBe(false);
  });
- it("ON: a new facing or a nudge onto a tile already seen does not end the episode; the briefing repeats while it lasts",()=>{
+ it("ON: moves back onto tiles already seen ((23,12) at T213, (23,13) at T214) keep the episode; (20,10) at T215 recovers it, then today's T219 warning follows",()=>{
   const {seen}=replay(events,true);
-  const warning=seen.find(n=>n.phase==="warning");
-  const recovered=seen.find(n=>n.phase==="recovered");
-  expect(recovered?.turn).toBeGreaterThan((warning?.turn??0)+1);
-  expect(seen.filter(n=>n.phase==="supervisor"&&n.turn>(warning?.turn??0)&&n.turn<(recovered?.turn??0)).length).toBeGreaterThanOrEqual(1);
+  expect(seen.filter(n=>n.phase!=="supervisor").map(n=>[n.turn,n.kind,n.phase])).toEqual([[212,"cycle","warning"],[215,"cycle","recovered"],[219,"ineffective","warning"],[221,"ineffective","recovered"]]);
  });
 });
 
@@ -95,7 +83,7 @@ describe("ineffective-loops-v1 on recorded run 4caa: alternating presses at the 
   const {seen}=replay(events,true);
   expect(warnings(seen)).toEqual([{turn:555,kind:"cycle"},{turn:571,kind:"cycle"}]);
   const second=seen.filter(n=>n.phase==="warning")[1];
-  expect(second?.evidence).toEqual([15264,15298,15332]);
+  expect(second?.evidence).toEqual([15264,15332]);
  });
 });
 
@@ -104,9 +92,11 @@ describe("ineffective-loops-v1 on recorded run 7ccf: the Oldale Maniac stops the
  it("OFF: reproduces today's notices (one warning at T244), with push-back detection on as replayed",()=>{
   expect(warnings(replay(events,false).seen)).toEqual([{turn:244,kind:"ineffective"}]);
  });
- it("ON: warns at T202, the third end on (1,10) after navigate_to (0,10) twice and DOWN, 42 turns before today's",()=>{
+ it("ON: warns at T215 (LEFT T210, navigate_to (0,11) T212 and again T215, each ending on (1,10)), 29 turns before today's; the episode holds until T245 leaves for Oldale's north",()=>{
   const {seen}=replay(events,true);
-  expect(seen.find(n=>n.phase==="warning")).toMatchObject({kind:"cycle",turn:202,message:MESSAGE()});
+  expect(seen.filter(n=>n.phase!=="supervisor").map(n=>[n.turn,n.kind,n.phase])).toEqual([[215,"cycle","warning"],[245,"cycle","recovered"]]);
+  expect(seen.find(n=>n.phase==="warning")).toMatchObject({seq:5334,evidence:[5222,5334],message:MESSAGE()});
+  expect(seen.filter(n=>n.phase==="supervisor").length).toBeGreaterThanOrEqual(4);
  });
 });
 
@@ -116,8 +106,7 @@ const FREE=(()=>{const s=route103.find(e=>e.type==="state"&&e.seq===4954);if(s?.
 const at=(x:number,y:number,more:Partial<State>={}):State=>({...FREE,position:{x,y},...more});
 function detector(on:boolean,interactions=true){
  const notices:LoopNotice[]=[];
- const make=LoopDetector as unknown as new (...args:unknown[])=>LoopDetector;
- const d=new make((n:LoopNotice)=>notices.push(n),LOOP_POLICY,"enforced",interactions,undefined,true,true,true,on);
+ const d=new LoopDetector(n=>notices.push(n),LOOP_POLICY,"enforced",interactions,undefined,true,true,true,on);
  let seq=0;
  const nav=(x:number,y:number,end:GameStateSnapshot,extra:Partial<CompletedCall>={})=>{d.complete({name:"navigate_to",args:{map_id:[0,18],x,y},isError:false,text:"ok",acted:true,beforeState:end,startState:FREE,state:end,seq:++seq,...extra});};
  const press=(buttons:string[],end:GameStateSnapshot,extra:Partial<CompletedCall>={})=>{d.complete({name:"press",args:{buttons},isError:false,text:"ok",acted:true,beforeState:FREE,startState:FREE,state:end,seq:++seq,...extra});};
@@ -132,12 +121,18 @@ describe("ineffective-loops-v1 few-target loops versus progress",()=>{
    const t=detector(on);
    t.nav(79,9,at(23,12));t.nav(40,12,at(23,13));t.nav(79,9,at(23,12));t.nav(40,12,at(23,13));t.nav(79,9,at(23,12));
    expect(kinds(t.notices)).toEqual(on?[["cycle","warning"]]:[]);
-   if(on)expect(t.notices[0]?.evidence).toEqual([1,3,5]);
+   if(on)expect(t.notices[0]?.evidence).toEqual([1,5]);
   }
  });
  it("ON: one target repeated never counts here (the existing check owns it)",()=>{
   const t=detector(true);
   for(let i=0;i<3;i++){t.nav(79,9,at(23,12));t.nav(79,9,at(23,13));}
+  expect(t.notices.filter(n=>n.message===MESSAGE())).toEqual([]);
+ });
+ it("ON: three moves on one tile that never return to a target are not a loop (arrive, then bump twice: 960a T5-T7; arrive, refused, turn to a sign: 4caa T479-T481)",()=>{
+  const t=detector(true);
+  t.press(["RIGHT"],at(6,2));t.press(["UP"],at(6,2));t.press(["UP"],at(6,2));
+  t.nav(30,30,at(7,9));t.nav(7,8,at(7,9));t.press(["UP"],at(7,9,{facing:"UP"}));
   expect(t.notices.filter(n=>n.message===MESSAGE())).toEqual([]);
  });
  it("ON: exploring out of a hub tile (three or more end tiles) never counts",()=>{
@@ -152,11 +147,25 @@ describe("ineffective-loops-v1 few-target loops versus progress",()=>{
  });
  it("ON: A or B presses, menu cursor presses and conversations are not moves",()=>{
   const t=detector(true);
-  const menu={...FREE,active_ui:{phase:"start_menu",selected:"BAG",ready:true,controls:null,diagnostic:null,value:null,details:null}} as State;
+  const menu={...FREE,active_ui:{phase:"start_menu",selected:"BAG",ready:true,controls:"UP/DOWN selects",diagnostic:null,value:null,details:null}} as State;
   t.nav(79,9,at(23,12));
-  for(let i=0;i<4;i++){t.press(["A"],at(23,12));t.press(["DOWN"],at(23,12),{startState:menu});t.press(["UP"],at(23,12),{talked:true} as Partial<CompletedCall>);}
+  for(let i=0;i<4;i++){t.press(["A"],at(23,12));t.press(["DOWN"],at(23,12),{startState:menu});t.press(["UP"],at(23,12),{dialogue:["MAY: Hi!"]});}
   t.press(["DOWN"],menu);
   expect(t.notices.filter(n=>n.message===MESSAGE())).toEqual([]);
+ });
+ it("ON: a conversation not heard since the moves began is new information and clears them (a Pokémon Center heal, 4caa T451-T456)",()=>{
+  const t=detector(true);
+  t.nav(7,3,at(7,8));t.nav(7,4,at(7,4));
+  t.press(["A"],at(7,4),{dialogue:["Hello, and welcome to the POKéMON CENTER."]});
+  t.nav(7,8,at(7,8));t.nav(7,4,at(7,4));t.nav(7,8,at(7,8));
+  expect(t.notices.filter(n=>n.message===MESSAGE())).toEqual([]);
+ });
+ it("ON: the same conversation again only makes that call not a move (the Maniac's line, 7ccf T199-T202)",()=>{
+  const t=detector(true);
+  const line=["Ahead looms a tall tree."];
+  t.nav(0,10,at(1,10),{dialogue:line});
+  t.nav(0,10,at(1,10));t.press(["A"],at(1,10),{dialogue:line});t.nav(2,10,at(2,10));t.nav(0,10,at(1,10));t.press(["DOWN"],at(1,10));
+  expect(kinds(t.notices.filter(n=>n.message===MESSAGE()))).toEqual([["cycle","warning"]]);
  });
  it("ON: a map change, a battle or an errored call breaks the count",()=>{
   const t=detector(true);
@@ -185,7 +194,7 @@ const MENU=(()=>{const s=recorded("waiting-start-menu-b41f.jsonl.gz").find(e=>e.
 describe("ineffective-loops-v1 unchanged observes while the game waits for input",()=>{
  it("the fixture is an open START menu waiting for input, which today's field fingerprint cannot see",()=>{
   expect(MENU.active_ui).toMatchObject({phase:"start_menu",ready:true,diagnostic:null});
-  expect(loops.semanticState(MENU,true)).toBeNull();
+  expect(semanticState(MENU,true)).toBeNull();
  });
  it("ON: the fourth identical observe of the open menu raises an observation warning; OFF never",()=>{
   for(const on of [true,false]){
@@ -221,11 +230,11 @@ describe("ineffective-loops-v1 unchanged observes while the game waits for input
 
 describe("ineffective-loops-v1 registry",()=>{
  it("is a default-off guard with no dependency, recorded last",()=>{
-  expect(featureInfo(ID as never)).toMatchObject({group:"guard",needs:null,switchable:true});
-  expect(featureInfo(ID as never).description).toContain(" Off: ");
+  expect(featureInfo(ID)).toMatchObject({group:"guard",needs:null,switchable:true});
+  expect(featureInfo(ID).description).toContain(" Off: ");
   expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
   expect(dependencyProblems({...ALL_ON,"deterministic-loop-guard-v1":false})).not.toContainEqual(expect.stringContaining(ID));
-  expect((flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true}) as Record<string,boolean>)[ID]).toBe(false);
+  expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[ID]).toBe(false);
  });
 });

@@ -141,7 +141,7 @@ describe("fixed-run check, approve, run, dry-run", () => {
   });
   it("refuses to run or dry-run with a ROM whose bytes differ from the definition's", async () => {
     for (const command of [["run", "bundle-v-control"], ["dry-run", "bundle-v-control"]]) {
-      const other = setup({ sha1File: (path) => (path === "/roms/pokemon-emerald.gba" ? "0".repeat(40) : START_SHA1) });
+      const other = setup({ sha1File: (path) => (path === "/roms/pokemon-emerald.gba" ? "0".repeat(40) : path.endsWith("MAIN_MENU.state") ? MENU_SHA1 : START_SHA1) });
       writeFileSync(other.path, JSON.stringify(definition()));
       expect(await main(command, other.deps)).toBe(1);
       expect(other.runs).toEqual([]);

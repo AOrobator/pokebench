@@ -132,6 +132,12 @@ Merge locally after all lanes LGTM. No pending experiment entry (amendment 2). R
 - 2026-10-16 05:20 AM EDT: review round 2 (frozen 917fd9a1..d204eed7, SHA-256 3b93e489…bbfa). Claude lane: Claude CLI (default logged-in profile, `--permission-mode plan`) ran; BLOCKING only on missing post-fix gate receipts. Grok LGTM. Codex BLOCKING: (1) post-fix gates; (2) explainer route and READ EXPLAINER click-through not proven for the new ids. Both note (non-blocking) that an errored game call leaves the trip open. Coordinator relay (the operator, 07:47 UTC = 03:47 AM EDT): a Claude sub-agent launched with the Agent tool counts as the Claude lane.
 - Merged main (f46346a3: adjacent-tiles-v1, readout-rules-in-prompt-v1, explorer-guidance-v1 and others) into the branch. Conflicts in features.ts, play-preset.ts, next-run.ts and their tests resolved by taking main's side and appending this branch's three switches after main's three (main's landed first; recorded order is append-only). Positional registry assertions recomputed from the built registry; group counts observation 21 / guidance 29 / guard 14; switchboard rows 64. Agent 1489 passed, viewer 825 passed.
 
+- Merge commit 448738a1.
+- Fix batch for round 2 (all accepted):
+  - Errored call (Claude/Codex non-blocking): an errored press or navigate_to ends the push-back trip (what it did is unknown). Test "a return across an errored press"; deleting the reset turns it red; restored.
+  - Codex 2 (explainer delivery): server test serves the three tracked explainers byte for byte with their headings (and keeps the host 403 / method 405 rejections); mounted app test asserts each Harness Config card links to `/explainers/<id>.html` with READ EXPLAINER. Deleting the battle mapping turns both red; restored. Isolated built viewer (127.0.0.1:8798, labelled sh02 copy, the three tracked explainers copied beside its runs root): each new card's READ EXPLAINER click opened `/explainers/<id>.html` with heading "Push-back loop detection", "Push-back press results", "Battle observation loop"; curl 200 for all three. Viewer stopped.
+  - Codex 1 / Claude (post-fix gates): full gates re-run at the new head below.
+
 ## Surprises
 
 - `loop_guard` evidence is capped at 2 items by the event schema (`maxItems:2`); a 3-seq evidence list made the recorder throw in the factory test. Evidence is now [first push-back, completing call]. The replay tests validate every notice through `checkEvent`.

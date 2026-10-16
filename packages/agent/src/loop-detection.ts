@@ -393,6 +393,8 @@ export class LoopDetector {
     if (this.stallNote?.exposed === true) this.stallNote = null;
     const seq = call.seq ?? this.completed;
     const rejection = rejectionKey(call);
+    // pushback-loop-detection-v1: what an errored press or navigate_to did is unknown, so the trip ends.
+    if (this.pushback && call.isError && (call.name === "press" || call.name === "navigate_to")) this.trip = null;
     if (call.isError && rejection === null) return;
     if (this.episode?.exposed) this.episode.recovery++;
     const fingerprint =

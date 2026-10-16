@@ -793,6 +793,16 @@ it("mounts state-input and host-wait history, the snapshot timeline mark, select
  expect(ui("trace").querySelector(`[data-seqs~="${String(wait.seq)}"]`)?.textContent).toContain("WAIT 60 ms (host time)");
 
 });
+it("links the push-back and battle observation cards in Harness Config to their explainers",async()=>{
+ const ids=["pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1"] as const;
+ const {app,streams}=await harness(`#run=${M4_ID}`);const log=new Log();log.add(0,{...START,harness_features:[...ids]});feed(must(streams[0]),log.events);
+ app.next.registry=ids.map(id=>({id,title:id.toUpperCase(),description:`${id} card.`,group:"guard" as const,switchable:true,needs:null}));app.tick(1000);
+ for(const id of ids){
+  const link=must(ui("harness-config").querySelector<HTMLAnchorElement>(`[data-feature="${id}"] a`));
+  expect(link.getAttribute("href"),id).toBe(`/explainers/${id}.html`);expect(link.textContent).toContain("READ EXPLAINER");
+ }
+});
+
 it("mounts the push-back and battle observation guard notices in the timeline, Activity History and inspector, and follows the replay cursor",async()=>{
  const {PUSHBACK_MESSAGE}=await import("../../agent/src/loop-detection.js");
  const {app,streams}=await harness(`#run=${M4_ID}`);const stream=must(streams[0]);const log=new Log();log.add(0,START);

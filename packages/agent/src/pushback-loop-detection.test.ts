@@ -242,6 +242,16 @@ describe("pushback-loop-detection-v1 adds nothing where nothing pushed the playe
    }
   });
  });
+ it("a return across an errored press (what it did is unknown)",()=>{
+  same(r=>{
+   for(let i=0;i<3;i++){
+    r.press(["LEFT"],HOME,[],{...WEST,...SCRIPT});
+    r.emit({type:"tool_call",id:`err${String(i)}`,name:"press",args:{buttons:["A"]}});
+    r.emit({type:"tool_result",id:`err${String(i)}`,name:"press",is_error:true,duration_ms:1,text:"HTTP 500",frames:[]});
+    r.press(["B"],{...WEST,...BIRCH},[],HOME);
+   }
+  });
+ });
  it("errors and planning calls in between change nothing",()=>{
   const on=rig(true);
   pushedBack(on);

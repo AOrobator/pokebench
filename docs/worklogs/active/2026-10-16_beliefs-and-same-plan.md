@@ -203,3 +203,5 @@ Report per switch: id, model-facing before/after excerpts from this run, precisi
 ## Archive Milestone (user-gated)
 
 - [ ] ASK USER: archive
+
+- 2026-10-16 06:10 AM EDT: LANDED: main fast-forwarded to 3d218b98 (reviewed b4519be6). On main after `just build`: agent 1619 (runs-cli timeout flake passed on rerun, 16/16), viewer 904, pytest 2236 passed / 34 ROM-gated skipped. Experiments disproved-beliefs and same-plan-breaker repinned to 3d218b98.

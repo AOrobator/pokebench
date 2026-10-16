@@ -78,7 +78,9 @@ const route101Neighbor = (s: GameStateSnapshot): boolean => settled(s) && (s.loc
 const onRoute101 = (s: GameStateSnapshot): boolean => settled(s) && at("ROUTE 101")(s) === true && handedOff(s) === true;
 // VAR_BIRCH_LAB_STATE 4 is set by Route103_EventScript_RivalEnd; 5 is the Pokédex in the lab.
 const sentBack = stage("birch_lab_stage", [4]);
-const beforeRivalBattle = (s: GameStateSnapshot): boolean => settled(s) && stage("birch_lab_stage", [0, 1, 2, 3])(s) === true;
+// A lab state 3 that already shows the battle running or won is not before the battle.
+const beforeRivalBattle = (s: GameStateSnapshot): boolean => settled(s) && stage("birch_lab_stage", [0, 1, 2, 3])(s) === true
+  && s.route103_rival?.battle_active !== true && s.route103_rival?.defeated !== true;
 const rivalField = (field: "battle_active" | "defeated") => (s: GameStateSnapshot): boolean | null =>
   savedWorld(s) && s.route103_rival != null ? s.route103_rival[field] : null;
 const routeProof = (name: string, states: readonly GameStateSnapshot[]): boolean => {

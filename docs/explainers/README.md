@@ -34,6 +34,7 @@ Tracked, local HTML documentation. Open an explainer directly; no server or exte
 - [Transition press results v1](transition-press-result-v1.html)
 - [Blocked batch results v1](blocked-batch-result-v1.html)
 - [Talk to people v1](explorer-guidance-v1.html)
+- [Talk to people v2](explorer-guidance-v2.html)
 - [Stall briefing v1](stall-briefing-v1.html)
 - [Leave bedroom split v1](bedroom-exit-v1.html)
 - [Route 103 rival splits v1](route103-rival-splits-v1.html)

@@ -113,7 +113,8 @@ it("is a default-off standalone guidance switch, recorded last, that state-only 
 });
 
 it("defaults off in presets and the legacy flag presets",()=>{
- const {[ID]:_omitted,...without}={...INCUMBENT};
+ const {"explorer-guidance-v2":_omitted,...without}=INCUMBENT;
+ expect(_omitted).toBe(false);
  expect(normalizeFeatures(without)[ID]).toBe(false);
  expect(Object.keys(normalizeFeatures(without)).at(-1)).toBe(ID);
  for(const objectives of [true,false])expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives})[ID]).toBe(false);

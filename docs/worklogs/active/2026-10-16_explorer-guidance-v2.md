@@ -14,12 +14,12 @@ Branch `claude/explorer-guidance-v2` in `/private/tmp/pokebench-explorer-v2`, cu
 ## Milestones
 **M1 — RED, GREEN, gates.**
 - [x] RED: `packages/agent/src/explorer-guidance-v2.test.ts` + registry position/count shifts + viewer explainer mapping.
-- [ ] GREEN: registry, presets, defaults, state-only, playSystemPrompt.
-- [ ] Wiring-removal check.
-- [ ] Gates: test, lint, build, coverage >=90, verify-vendor.
+- [x] GREEN: registry, presets, defaults, state-only, playSystemPrompt.
+- [x] Wiring-removal check.
+- [x] Gates: test, lint, build, coverage >=90, verify-vendor.
 
 **M2 — explainer, pending experiment, review.**
-- [ ] `docs/explainers/explorer-guidance-v2.html`, README, FEATURE_EXPLAINERS, `just pages-check`.
+- [x] `docs/explainers/explorer-guidance-v2.html`, README, FEATURE_EXPLAINERS, `just pages-check`.
 - [ ] `experiments/explorer-guidance-v2.json` (pending), readiness row, `just experiments-check`.
 - [ ] Sync main, principles self-review, Claude CLI, Codex, Grok: VERDICT LGTM.
 
@@ -27,3 +27,9 @@ Branch `claude/explorer-guidance-v2` in `/private/tmp/pokebench-explorer-v2`, cu
 - 2026-10-16: worklog drafted from the operator decision relayed by the parent session.
 - OFF golden computed on main 16a9787b before any change (built dist, 90 main switches, fixture `test-support/explorer-guidance-incumbent.json`): incumbent `1c204a888ae4ea34255f699638775240bfd3792b7b10ce02b37559e81163397a`, ALL_ON `6ba62177069b845923d12acae026242bfc8fe23454183293029a5b2e801707f5`.
 - RED: new `explorer-guidance-v2.test.ts` (11 tests: OFF golden from the incumbent and from ALL_ON, exact text, no pointers toward particular people, v1-slot placement, order after map rules/battle triage/trainer heal and before untaken exits, talk-is-cheap pairing, v2 supersedes v1 when both on, v1 unchanged ON and OFF, production preset path, registry/state-only, preset defaults); 52 existing registry assertions shifted by one (`.at(-N)`, `.slice`), guidance count 37 -> 38, ALL_ON-derived sets in 7 test files and the viewer next-run tests name `explorer-guidance-v2: false`, switchboard row count 91 -> 92; viewer: v2 explainer card link and byte-for-byte serving, next-run default off. RED run with main's source: agent 51 failed / 1911 passed (1962), viewer 5 failed / 1003 passed (1008).
+- GREEN: `explorer-guidance-v2` appended last to SWITCHABLE_FEATURES, FEATURES ("TALK TO PEOPLE V2", guidance, needs null) and playHarnessFeatures; optional in FeatureSetSchema, `??false` in normalizeFeatures, false in flagFeatures and DEFAULT_NEXT_RUN; stateOnlyProblems refuses it; playSystemPrompt picks v2, else v1, else nothing for the slot, then the talk-is-cheap sentence with dialogue auto-advance. FEATURE_EXPLAINERS maps it to `explorer-guidance-v2.html`. Not a server switch.
+- Both-on decision: v2 supersedes v1 (the registry has no conflict declarations; navigate-first-prompt-v1 replacing NAVIGATE_TO_USAGE is the precedent; superseding keeps a one-switch flip valid on an incumbent with v1 on).
+- Wiring-removal: forcing the v2 branch off (`const explorer = false ? ...`) turned 6 of 11 v2 tests red (OFF golden since ON==OFF, placement, ordering, talk-is-cheap, supersede, preset path); giving v1 precedence turned the supersede test red. Restored; 11/11 green.
+- Viewer test refinement after RED: the v2 card test reads the v1 quote with the explainer's <mark> highlight tags stripped (the page highlights the two pointer lines).
+- Explainer `docs/explainers/explorer-guidance-v2.html` (v1 vs v2 word for word with the pointer lines highlighted, prompt slot diagram, both-on table, wiring); `just pages-check` silent; README entry.
+- Gates: agent vitest 1962 passed, viewer 1008 passed, pytest 2394 passed / 104 skipped; coverage agent statements 98.01 / branches 94.6 / functions 98.35 / lines 99.24, viewer 95.53 / 91.32 / 93.94 / 97.74, Python lines 97.47 / branches 93.46 / functions 99.39 (floor 90); lint: tsc, eslint, ruff clean, mypy fails only on the missing `mgba._pylib` binding in this worktree; build green; verify-vendor OK.

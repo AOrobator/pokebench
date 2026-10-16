@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Talk To People V2</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:740px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navb{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.arr.g{stroke:var(--game)} .arr.p{stroke:var(--prior);stroke-dasharray:5 4}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tag{display:inline-block;font:500 .72rem var(--mono);border-radius:99px;padding:1px 8px;border:1px solid var(--rule);color:var(--soft)}
+mark{background:var(--prior-bg);color:var(--prior);border-radius:3px;padding:0 2px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:640px){.cols{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.card h3{margin:0;font:600 .9rem var(--body)}
+.card.v1{border-color:var(--prior)} .card.v2{border-color:var(--game)}
+.quote{font:13px/1.55 var(--mono)}
+</style>
+</head>
+<body>
+<main>
+<div>
+<div class="eyebrow">Harness switch · guidance · <code>explorer-guidance-v2</code></div>
+<h1>Talk to people, v2</h1>
+</div>
+<p class="lede">A generic version of the talk-to-people prompt section. It says that talking to people gives the model information and can move the story forward, that talking to the people around it helps when it is unsure where to go or after the story has moved on, and that what people say is evidence. It points toward no particular person. Off by default. <code>explorer-guidance-v1</code> stays registered and unchanged.</p>
+
+<section>
+<h2>Why a v2</h2>
+<p>Operator decision, 2026-10-16 4:18 PM EDT: keep the talk-to-people guidance generic, with no guidance toward any particular NPC. Two v1 lines read as a walkthrough toward particular people: "including the families and neighbours of characters you have met" and "A short remark, such as where someone has gone, is a direction to follow". Both describe the early Emerald story (the rival's family next door, PROF. BIRCH saying where the rival has gone) without naming it. v2 drops them and keeps only the general point.</p>
+</section>
+
+<section>
+<h2>v1 and v2, word for word</h2>
+<div class="cols">
+<div class="card v1">
+<h3>v1 · <code>explorer-guidance-v1</code> (unchanged)</h3>
+<div class="quote">Talk to people: in this game, people tell you where to go next. After each story event, and whenever you are unsure where to go, <mark>talk to everyone in the room you are in before you leave, including the families and neighbours of characters you have met.</mark> People often say something new once the story has moved on, so talk again to people you spoke to before. <mark>A short remark, such as where someone has gone, is a direction to follow, not small talk.</mark></div>
+</div>
+<div class="card v2">
+<h3>v2 · <code>explorer-guidance-v2</code></h3>
+<div class="quote">Talk to people: talking to people gives you information about the world and can move the story forward. When you are unsure where to go, or after the story has moved on, talking to the people around you is a good way to learn more. What people tell you is evidence; use it to decide where to go.</div>
+</div>
+</div>
+<p>Highlighted: the v1 lines the operator read as pointing toward particular people. With dialogue auto-advance on, both versions are followed by the same sentence, in the same paragraph:</p>
+<pre>Talking is cheap: face the person and press A; the harness reads the conversation until your next decision.</pre>
+</section>
+
+<section>
+<h2>Where it goes in the system prompt</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 330" width="700" role="img" aria-label="System prompt order with the talk-to-people slot">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>
+<rect class="box" x="20" y="12" width="300" height="34" rx="6"/><text x="34" y="34">Base prompt, tools, auto-advance sections</text>
+<rect class="box" x="20" y="54" width="300" height="34" rx="6"/><text x="34" y="76">Game evidence first, navigate_to usage</text>
+<rect class="box" x="20" y="96" width="300" height="34" rx="6"/><text x="34" y="118">No nicknames · Map symbols and rules</text>
+<rect class="box" x="20" y="138" width="300" height="34" rx="6"/><text x="34" y="160">Battles and healing · Trainer battles</text>
+<rect class="game hot" x="20" y="180" width="300" height="44" rx="6"/><text x="34" y="200" class="t">Talk to people slot</text><text x="34" y="216" class="s">one section at most (see table below)</text>
+<rect class="box" x="20" y="232" width="300" height="34" rx="6"/><text x="34" y="254">Exits you have not taken</text>
+<rect class="box" x="20" y="274" width="300" height="34" rx="6"/><text x="34" y="296">Objective record (objective tracking)</text>
+<path class="arr g" d="M326 202 H400" marker-end="url(#a)"/>
+<rect class="game" x="404" y="150" width="276" height="104" rx="6"/>
+<text x="418" y="172" class="t">v2 on → v2 section</text>
+<text x="418" y="192">else v1 on → v1 section</text>
+<text x="418" y="212">else → nothing</text>
+<text x="418" y="236" class="s">+ " Talking is cheap: …" when</text>
+<text x="418" y="250" class="s">dialogue-auto-advance-v1 is on</text>
+</svg>
+</div>
+<figcaption>Each section is added only when its own switch is on; the order is fixed. v2 takes v1's slot exactly: after the map rules, battle triage and trainer heal sections, before untaken exits and the objective record; with <code>navigate-first-prompt-v1</code>, its Moving around section also comes after untaken exits (<code>playSystemPrompt</code> in <code>packages/agent/src/play-config.ts</code>).</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>Both switches on</h2>
+<table>
+<tr><th>explorer-guidance-v1</th><th>explorer-guidance-v2</th><th>Section in the prompt</th></tr>
+<tr><td>off</td><td>off</td><td>none (today's prompt, byte for byte)</td></tr>
+<tr><td>on</td><td>off</td><td>v1 text (today's v1 prompt, byte for byte)</td></tr>
+<tr><td>off</td><td>on</td><td>v2 text</td></tr>
+<tr><td>on</td><td>on</td><td>v2 text only, once: v2 supersedes v1</td></tr>
+</table>
+<p>The registry has no way to declare two switches mutually exclusive; its only refusals are dependencies and the state-only list. One switch replacing another's prompt text already happens: <code>navigate-first-prompt-v1</code> drops the <code>navigate_to</code> usage rule. Superseding also keeps a one-switch flip valid on an incumbent that already has v1 on, such as the bundle arm of bundle-v-control. Both ids are still recorded in <code>harness_features</code> when both are on; v2's switchboard description says only its section is shown.</p>
+</section>
+
+<section>
+<h2>Wiring</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 120" width="700" role="img" aria-label="Switch wiring from preset to prompt">
+<defs><marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>
+<rect class="box" x="10" y="30" width="150" height="56" rx="6"/><text x="22" y="54" class="t">Run preset</text><text x="22" y="72" class="s">omitted → off</text>
+<rect class="box" x="190" y="30" width="150" height="56" rx="6"/><text x="202" y="54" class="t">FeatureSet</text><text x="202" y="72" class="s">normalizeFeatures</text>
+<rect class="game hot" x="370" y="30" width="160" height="56" rx="6"/><text x="382" y="54" class="t">playSystemPrompt</text><text x="382" y="72" class="s">the slot choice</text>
+<rect class="box" x="560" y="30" width="130" height="56" rx="6"/><text x="572" y="54" class="t">System prompt</text><text x="572" y="72" class="s">first turn on</text>
+<path class="arr" d="M160 58H186" marker-end="url(#b)"/><path class="arr" d="M340 58H366" marker-end="url(#b)"/><path class="arr g" d="M530 58H556" marker-end="url(#b)"/>
+</svg>
+</div>
+<figcaption>Agent-side only: no game-server switch, no readout change, no tool change. The highlighted box is the only place behavior changes.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>Registration</h2>
+<table>
+<tr><th>Field</th><th>Value</th></tr>
+<tr><td>Id, title</td><td><code>explorer-guidance-v2</code>, TALK TO PEOPLE V2</td></tr>
+<tr><td>Group, needs</td><td>guidance, none</td></tr>
+<tr><td>Defaults</td><td>off in presets, legacy flag presets and the viewer's next-run defaults</td></tr>
+<tr><td>Recorded</td><td>last in <code>harness_features</code></td></tr>
+<tr><td>State-only decisions</td><td>refused with it on, as for v1</td></tr>
+<tr><td>Experiment</td><td><code>experiments/explorer-guidance-v2.json</code>, pending, no queue position; incumbent lists the switch off explicitly</td></tr>
+</table>
+</section>
+
+<section>
+<h2>Status</h2>
+<table>
+<tr><td>Branch</td><td><code>claude/explorer-guidance-v2</code>, worktree <code>/private/tmp/pokebench-explorer-v2</code>, not merged</td></tr>
+<tr><td>Tests</td><td><code>packages/agent/src/explorer-guidance-v2.test.ts</code>: exact text, placement, talking-is-cheap pairing, v1 unchanged on and off, both on, preset path, registry; OFF builds every main prompt byte for byte (sha256 golden from the incumbent and from every switch on, each main switch flipped, two targets)</td></tr>
+<tr><td>Not done</td><td>measured runs (only the operator approves them)</td></tr>
+</table>
+</section>
+</main>
+</body>
+</html>

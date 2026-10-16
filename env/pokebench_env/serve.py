@@ -128,14 +128,15 @@ def run(
     whiteout = None
     if observation is not None and frames is not None and human is None:
         off = features_off_from_env(os.environ)
+        # blackout-readout-v1: installed first, so its hook sees each frame before a settle
+        # capture on that frame; OFF installs no frame hook at all.
+        if BLACKOUT not in off:
+            whiteout = WhiteoutLatch(observation[2])
+            install_whiteout_latch(frames, whiteout)
         settle = FrameSettle(observation[2], warp=WARP_FEATURE not in off)
         install_frame_settle(frames, settle)
         battle_wait = BattleWait(observation[2], levelup_box=LEVELUP_BOX not in off)
         install_battle_wait(frames, battle_wait)
-        # blackout-readout-v1: OFF installs no frame hook at all.
-        if BLACKOUT not in off:
-            whiteout = WhiteoutLatch(observation[2])
-            install_whiteout_latch(frames, whiteout)
     if actions is not None:
         install_action_history(*actions)
     if travel is not None:

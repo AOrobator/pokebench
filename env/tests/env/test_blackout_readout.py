@@ -53,7 +53,8 @@ def test_latch_keeps_the_money_of_the_first_whiteout_frame_and_reports_once() ->
     latch.on_frame()
     set_money(m, 1500)  # DoWhiteOut runs on the last CB2_WhiteOut frame
     latch.on_frame()
-    assert latch.take(field) is None, "still whiting out"
+    whiting = read_game_state(m.read, MAPS)
+    assert whiting.screen != "overworld" and latch.take(whiting) is None, "still whiting out"
     callback(m, OVERWORLD[1])
     latch.on_frame()
     assert latch.take(replace(field, screen="battle")) is None

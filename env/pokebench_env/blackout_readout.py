@@ -77,7 +77,9 @@ class WhiteoutLatch:
     def take(self, state: GameState) -> Whiteout | None:
         """The pending whiteout, once, on the first observation back on the field."""
         with self._lock:
-            if self._pending is None or self._inside or state.position is None:
+            # The observation's own state decides: CB2_WhiteOut is never the overworld screen,
+            # so the line cannot be taken while the whiteout still runs, whatever the hook order.
+            if self._pending is None or state.position is None:
                 return None
             if state.screen != "overworld" or state.in_battle:
                 return None

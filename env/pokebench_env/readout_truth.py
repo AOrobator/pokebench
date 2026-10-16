@@ -32,7 +32,8 @@ def menu_line(state: GameState) -> str | None:
     if not state.active_ui_read:
         return None
     if state.active_ui is not None:
-        return MENU_OTHER
+        # A coverage error is not a verified owner; keep the old text.
+        return MENU_OTHER if state.active_ui.diagnostic is None else None
     if state.field_controls_locked is False or state.menu is None:
         return MENU_NONE
     return None

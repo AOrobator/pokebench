@@ -65,13 +65,7 @@ def install_observation(
             return serialize()
 
     def capture() -> tuple[
-        dict[str, object] | None,
-        GameState,
-        dict[str, object],
-        dict[str, object],
-        bool,
-        bool,
-        Whiteout | None,
+        dict[str, object] | None, GameState, dict[str, object], dict[str, object], bool, bool
     ]:
         receipt = None if raw_capture is None else raw_capture()
         state = read_state(read_memory, maps, active_ui=enabled, off=off)
@@ -83,9 +77,7 @@ def install_observation(
         animation = warp and warp_animating(read_memory)
         if raw_archive is not None and receipt is not None:
             raw_archive.pair(receipt, serialized, str(shot.get("screenshot_base64", "")))
-        # blackout-readout-v1: taken under the same lock as the state it is shown with.
-        event = None if whiteout is None else whiteout.take(state)
-        return receipt, state, serialized, shot, fading, animation, event
+        return receipt, state, serialized, shot, fading, animation
 
     @app.get("/pokebench/observation")
     def observation() -> dict[str, object]:
@@ -93,13 +85,15 @@ def install_observation(
         settled: Settled | None = None
         if settle is not None:
             captured, settled = settle.settle_traced(capture, lock)
-            receipt, state, serialized, shot, fading, animation, event = captured
+            receipt, state, serialized, shot, fading, animation = captured
         else:
             with lock:
-                receipt, state, serialized, shot, fading, animation, event = capture()
+                receipt, state, serialized, shot, fading, animation = capture()
         screenshot = shot.get("screenshot_base64")
         if not isinstance(screenshot, str) or screenshot == "":
             raise HTTPException(status_code=503, detail="no screenshot available")
+        # blackout-readout-v1: taken only once this observation will be delivered.
+        event: Whiteout | None = None if whiteout is None else whiteout.take(state)
         if warp and settled is not None:
             serialized["settle"] = {"frames": settled.frames, "reason": settled.reason}
         note = screen_note(fading=fading, black=frame_is_black(screenshot))

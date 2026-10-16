@@ -22,7 +22,7 @@ export class NavigationMemory {
  private hypothesisExpired=false;
  private hypothesis:{text:string;evidence:number[]}|null=null;
  constructor(private readonly features:FeatureSet){}
- private room(state:GameStateSnapshot):string {return `${state.location??"unknown room"}${this.features["bounded-navigation-v1"]?` · map ${state.map_id?.join("/")??"unavailable"}`:""}`;}
+ private room(state:GameStateSnapshot):string {return `${state.location_display??state.location??"unknown room"}${this.features["bounded-navigation-v1"]?` · map ${state.map_id?.join("/")??"unavailable"}`:""}`;}
  // Accept only an explicitly model-delivered state; raw recorder samples use observe().
  delivered(event:State):void {
    this.latest=event;

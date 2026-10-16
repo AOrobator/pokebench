@@ -5,7 +5,7 @@ import {ALL_ON} from "./features.js";
 import type {GameStateSnapshot} from "./game-state.js";
 import {DialogueLog,roomKey,roomOf} from "./dialogue-log.js";
 import {NavigationMemory} from "./navigation-memory.js";
-import {pressResult} from "./press-result.js";
+import {ALL_PRESS_FACTS,pressResult} from "./press-result.js";
 
 // displayed-place-names-v1, cook #2 (2026-10-16T02-23-17_qwen36-gpu1_sh02): the readout named the house by its sign
 // while the press result (seq 2314) and dialogue pages (seq 2378) kept the map constant. The JSON location stays
@@ -16,9 +16,9 @@ const house:GameStateSnapshot={...town,location:RAW,location_display:SHOWN,map_i
 const event=(body:Record<string,unknown>,seq:number,turn=1):RunEvent=>checkEvent({v:1,run:"names-test",t:"2026-10-16T02:27:00.000-04:00",turn,seq,...body});
 
 it("names the warp destination by its displayed name in the press result (seq 2314)",()=>{
- expect(pressResult(town,house,["UP"])).toBe(`warped during this press: LITTLEROOT TOWN [map 0/9] (14,9) -> ${SHOWN} [map 1/2] (2,8)`);
- const {location_display:_,...off}=house;
- expect(pressResult(town,off,["UP"])).toBe(`warped during this press: LITTLEROOT TOWN [map 0/9] (14,9) -> ${RAW} [map 1/2] (2,8)`);
+ expect(pressResult(town,house,["UP"],{...ALL_PRESS_FACTS,transitions:true,warpArrival:true})).toBe(`warped during this press: LITTLEROOT TOWN [map 0/9] (14,9) -> ${SHOWN} [map 1/2] (2,8)`);
+ const off:GameStateSnapshot={...house};delete off.location_display;
+ expect(pressResult(town,off,["UP"],{...ALL_PRESS_FACTS,transitions:true,warpArrival:true})).toBe(`warped during this press: LITTLEROOT TOWN [map 0/9] (14,9) -> ${RAW} [map 1/2] (2,8)`);
 });
 
 it("shows the displayed room name while identity stays on the source name and map id",()=>{

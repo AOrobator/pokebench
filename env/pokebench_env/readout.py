@@ -336,6 +336,12 @@ def format_readout(
     return "\n".join(lines)
 
 
+def _location_display(state: GameState) -> dict[str, str]:
+    # displayed-place-names-v1: the Location line's name; absent when the switch is off.
+    shown = next((name for g, n, name in state.displayed_places if (g, n) == state.map_id), None)
+    return {} if shown is None else {"location_display": shown}
+
+
 def state_json(state: GameState) -> dict[str, object]:
     # map_grid exists only with full-map-navigation-v1, so switch-off state is unchanged.
     full = (
@@ -374,6 +380,7 @@ def state_json(state: GameState) -> dict[str, object]:
         "started": state.started,
         "name": state.name,
         "location": state.location,
+        **_location_display(state),
         "map_id": None if state.map_id is None else list(state.map_id),
         "position": None
         if state.position is None

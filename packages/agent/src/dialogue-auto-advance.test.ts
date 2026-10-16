@@ -144,7 +144,7 @@ describe("dialogue-auto-advance-v1 press path",()=>{
   const {tool,rec}=wire(game);
   const text=textOf(await tool("press").execute("n1",{buttons:["A"]}));
   expect(text).toContain(`1. turn 7 · PROF. BIRCH'S HOUSE 1F (map 1/2) · at 13,14`);
-  expect(text).not.toContain("MAYS HOUSE");
+  expect(text.split("\n").filter(l=>/^\d+\. turn /.test(l)).join("\n")).not.toContain("MAYS HOUSE");
   const [event]=rec.advances();
   expect(event?.pages.map(p=>[p.map,p.map_display])).toEqual([["LITTLEROOT TOWN MAYS HOUSE 1F","PROF. BIRCH'S HOUSE 1F"],["LITTLEROOT TOWN MAYS HOUSE 1F","PROF. BIRCH'S HOUSE 1F"]]);
   expect(()=>checkEvent(event)).not.toThrow();

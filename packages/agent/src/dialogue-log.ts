@@ -13,12 +13,12 @@ type Page=Extract<RunEvent,{type:"dialogue_auto_advance"}>["pages"][number];
 export function speakerLabel(page:Pick<Page,"speaker"|"speaker_source">):string|null {
  return page.speaker===null?null:page.speaker_source==="faced_sprite"?`${page.speaker} (sprite kind, not a name)`:page.speaker_source==="faced_target"?`${page.speaker} (faced object)`:page.speaker;
 }
-type Place={location:string|null;map_id:readonly number[]|null};
+type Place={location:string|null;location_display?:string;map_id:readonly number[]|null};
 // Location labels can repeat or be missing across maps, so identity always includes the map id.
 export function roomKey(state:Place):string {return `${state.location??"unknown room"}|${state.map_id?.join("/")??"none"}`;}
 // What the model is shown: the map id only when its readout already shows one (bounded navigation).
 export function roomOf(state:Place,features:FeatureSet):string {
- return `${state.location??"unknown room"}${features["bounded-navigation-v1"]&&state.map_id!==null?` (map ${state.map_id.join("/")})`:""}`;
+ return `${state.location_display??state.location??"unknown room"}${features["bounded-navigation-v1"]&&state.map_id!==null?` (map ${state.map_id.join("/")})`:""}`;
 }
 const STEP:Readonly<Record<string,readonly[number,number]>>={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
 const Args=Type.Object({
@@ -39,7 +39,7 @@ export class DialogueLog {
   // dialogue-auto-advance-v1 hands the model its pages in the result; each page cites its own recorded state (else the event).
   if(event.type==="dialogue_auto_advance"){
    this.pending.set(event.tool_call_id,event.pages.map(page=>{
-    const place={location:page.map,map_id:page.map_id};
+    const place={location:page.map,...(page.map_display===undefined?{}:{location_display:page.map_display}),map_id:page.map_id};
     return {seq:page.state_seq??event.seq,turn:event.turn,key:roomKey(place),room:roomOf(place,this.features),position:this.features["live-player-position-v1"]&&page.position!==null?`${String(page.position.x)},${String(page.position.y)}`:null,facing:null,text:page.text};
    }));
    if(this.pending.size>16)this.pending.delete(this.pending.keys().next().value??"");

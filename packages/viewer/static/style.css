@@ -704,6 +704,7 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
   .wb-marks li .wb-kd { display:inline; color:#657c90; overflow-wrap:anywhere; }
   .wb-how-grid { grid-template-columns:minmax(0,1fr); }
   .wb-sw-cols { columns:1; }
+}
 /* Phone header Q (runs/mockups/viewer-header-phone/q-compact-experiment-first.html): experiment and arm first, the time once; the sheet holds the rest. */
 .bar > .run-head { display: none; min-width: 0; border-radius: 0; width: 100%; flex: 1 1 100%; flex-direction: column; gap: 7px; border: 0; padding: 0; background: none; color: #dfe8f5; text-align: left; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .rh-l1, .rh-l2, .rs-row { display: flex; align-items: center; gap: 8px; min-width: 0; }

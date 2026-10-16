@@ -98,3 +98,4 @@ runs listed twice: 0
 
 - [x] Synced with main (merge commit): style.css and BROWSER_MODULES conflicts resolved by keeping both sides (run-head header + version legend). Viewer 992 tests; coverage 95.54 / 91.3 / 93.89 / 97.74; lint clean. Review next.
 - Review 1 (after sync): Codex LGTM; grok and Claude BLOCKING: the sync merge (fa127395) dropped the `}` closing the legend's media block. RED: style-css.test.ts checks every block in static/style.css closes.
+- [x] GREEN: closed the media block. Browser check on a scratch server (startViewer, no queue runner): stats page legend at 1280 fine; run viewer phone header hidden at 1280 and shown at 375, no overflow. Viewer tests/coverage/lint below.

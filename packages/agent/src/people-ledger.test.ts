@@ -57,6 +57,17 @@ describe("people-ledger-v1 on the 2026-10-16T00-34-26_qwen36-gpu1_show recording
   ledger.observe(result);
   expect(ledger.block(stateAt(12680),"Location: X","later")).toContain("NINJA_BOY, at (10,5): last talked to on turn 424");
  });
+ it("names PROF. BIRCH on his own object from the character-presence line at T406, and the lab aide talked to at T204",()=>{
+  const ledger=new PeopleLedger();
+  const result=resultAt(406);
+  replay(ledger,result.seq-1);
+  expect(ledger.block(stateAt(12258),result.text,result.id)).toBe([
+   "People and objects here (this map's live objects; a sprite kind is a graphic, not a name):",
+   "- object 1, sprite SCIENTIST_1, at (9,8): last talked to on turn 204 (202 turns ago; 2 story milestones since)",
+   "- object 2, PROF. BIRCH (sprite PROF_BIRCH), at (6,4): not talked to this run",
+   "Story characters here: PROF. BIRCH at 6,4. Not on this map: MAY, BRENDAN, MOM, NORMAN, WALLY, ROXANNE, STEVEN.",
+  ].join("\n"));
+ });
  it("resolves the faced object the game itself would talk to",()=>{
   expect(facedObject(stateAt(2842))).toMatchObject({local_id:4,sprite_kind:"WOMAN_4",map_id:[1,2]});
   expect(facedObject(stateAt(12680))).toMatchObject({local_id:6,sprite_kind:"NINJA_BOY"});

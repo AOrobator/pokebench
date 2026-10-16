@@ -8,7 +8,6 @@ import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import type {RunRecorder} from "./recorder.js";
 
-type State=Extract<RunEvent,{type:"state";started:boolean}>;
 type Facing=Pick<GameStateSnapshot,"position"|"facing"|"world_context"|"navigation_grid">;
 type LiveObject=NonNullable<GameStateSnapshot["world_context"]>["objects"][number];
 interface Talk {readonly turn:number;readonly seq:number}
@@ -50,27 +49,25 @@ const plural=(n:number,word:string)=>`${String(n)} ${word}${n===1?"":"s"}`;
 
 export class PeopleLedger {
  private turn=0;
- private readonly states=new Map<number,State>();
+ // The object each recorded state shows the player facing; pages cite their state by seq.
+ private readonly faced=new Map<number,LiveObject>();
  private readonly talks=new Map<string,Talk>();
  private readonly pending=new Map<string,{readonly key:string;readonly talk:Talk}>();
  private readonly story:number[]=[];
  observe(event:RunEvent):void {
   this.turn=Math.max(this.turn,event.turn);
-  if(event.type==="state"&&"started" in event){this.states.set(event.seq,event);return;}
+  if(event.type==="state"&&"started" in event){const object=facedObject(event);if(object!==null)this.faced.set(event.seq,object);return;}
   if(event.type==="milestone"){if(event.kind==="story")this.story.push(event.seq);return;}
   if(event.type==="dialogue_auto_advance"){
    const first=event.pages[0];
-   const state=first?.state_seq==null?undefined:this.states.get(first.state_seq);
-   const object=state===undefined?null:facedObject(state);
+   const object=first?.state_seq==null?undefined:this.faced.get(first.state_seq);
    const pressed=event.tool==="press"&&event.sent.at(-1)==="A";
-   if(object!==null&&(pressed||first?.speaker_source==="faced_sprite"))this.pending.set(event.tool_call_id,{key:keyOf(object),talk:{turn:event.turn,seq:event.seq}});
+   if(object!==undefined&&(pressed||first?.speaker_source==="faced_sprite"))this.pending.set(event.tool_call_id,{key:keyOf(object),talk:{turn:event.turn,seq:event.seq}});
    return;
   }
   if(event.type!=="tool_result")return;
   const talk=this.pending.get(event.id);this.pending.delete(event.id);
   if(talk!==undefined&&!event.is_error)this.talks.set(talk.key,talk.talk);
-  // Pages cite states recorded during their own call.
-  this.states.clear();
  }
  private last(key:string,callId:string):Talk|undefined {
   const current=this.pending.get(callId);

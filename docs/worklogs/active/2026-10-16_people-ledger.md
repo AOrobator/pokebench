@@ -41,3 +41,5 @@ Story characters here: none. Not on this map: PROF. BIRCH, MAY, BRENDAN, MOM, NO
 - 2026-10-16 02:10 AM EDT: worklog drafted (approved by the operator).
 - 2026-10-16 02:18 AM EDT: RED committed.
 - 2026-10-16 02:45 AM EDT: GREEN, explainer, pending experiment, gates green; review next.
+  COMMIT: `feat: people-ledger-v1 lists the live objects on the map under Position with when the model last talked to each` (d2842817)
+- 2026-10-16 02:55 AM EDT: pre-review hardening: the ledger indexes the faced object per recorded state seq instead of holding states until the next tool result (no reliance on tool calls running one at a time); fixture gains T127/T204 lab talks and the T406 lab readout, where character presence places PROF. BIRCH at 6,4 (test: Birch named on object 2, SCIENTIST_1 last talked turn 204, 202 turns and 2 story milestones ago).

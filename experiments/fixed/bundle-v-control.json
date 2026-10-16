@@ -109,18 +109,25 @@
    "warp-arrival-settle-v1": true,
    "world-coordinate-grid-v1": true,
    "world-destinations-v1": true,
-   "world-targets-v1": true
+   "world-targets-v1": true,
+   "surf-gated-exits-v1": false,
+   "navigation-truth-v1": true,
+   "navigation-refusal-reasons-v2": false
   }
  },
  "switches": [
-  "blackout-readout-v1"
+  "blackout-readout-v1",
+  "surf-gated-exits-v1",
+  "navigation-refusal-reasons-v2"
  ],
  "offInBoth": [
   "milestone-stall-stop-v1",
   "same-plan-breaker-v1",
   "presence-penalty-v1"
  ],
- "onInBoth": [],
+ "onInBoth": [
+  "navigation-truth-v1"
+ ],
  "phases": [
   {
    "id": "confirmatory",

@@ -7,10 +7,11 @@ import {ExitHistory,mapKey,readoutNames,tileKey,warpsOf} from "./exit-history.js
 import type {FeatureSet} from "./features.js";
 import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
+import {surfBlock} from "./surf-gate.js";
 import type {RunRecorder} from "./recorder.js";
 
 export const UNTAKEN_HEADER="Exits here you have not taken";
-type Snapshot=Pick<GameStateSnapshot,"started"|"screen"|"location"|"map_id"|"position"|"interaction_targets"|"topology">;
+type Snapshot=Pick<GameStateSnapshot,"started"|"screen"|"location"|"map_id"|"position"|"interaction_targets"|"topology"|"surf_gate">;
 const EDGES=new Set(["NORTH","SOUTH","EAST","WEST"]);
 
 export class UntakenExits {
@@ -30,21 +31,25 @@ export class UntakenExits {
   if(!state.started||state.screen!=="overworld"||state.map_id===null||state.interaction_targets==null)return null;
   readoutNames(readout,state.map_id,this.names);
   const map=mapKey(state.map_id);
-  const groups=new Map<string,{tiles:string[];destination:readonly number[];taken:boolean}>();
+  const groups=new Map<string,{tiles:string[];warps:{x:number;y:number}[];destination:readonly number[];taken:boolean}>();
   for(const warp of warpsOf(state)){
    const key=JSON.stringify(warp.destination);
-   const group=groups.get(key)??{tiles:[],destination:warp.destination,taken:false};
-   group.tiles.push(`(${tileKey(warp.x,warp.y)})`);
+   const group=groups.get(key)??{tiles:[],warps:[],destination:warp.destination,taken:false};
+   group.tiles.push(`(${tileKey(warp.x,warp.y)})`);group.warps.push(warp);
    group.taken||=this.history.taken(map,warp.x,warp.y);
    groups.set(key,group);
   }
-  const warps=[...groups.values()];
-  const connections=this.features["world-destinations-v1"]?state.topology?.connections??[]:[];
+  // surf-gated-exits-v1: an exit reachable only across water is not listed while Surf cannot be used; a doorway is
+  // across water only when every one of its tiles is.
+  const block=surfBlock(this.features,state);
+  const all=[...groups.values()],listed=this.features["world-destinations-v1"]?state.topology?.connections??[]:[];
+  const warps=all.filter(g=>!g.warps.every(w=>block.warp(w.x,w.y))),connections=listed.filter(c=>!block.connection(c.direction));
+  const across=all.length-warps.length+listed.length-connections.length;
   const open=[
    ...warps.filter(g=>!g.taken).map(g=>`${g.tiles.join(" or ")} -> ${mapKey(g.destination)==="127/127"?"dynamic destination":this.place(g.destination)}`),
    ...connections.filter(c=>!this.history.crossed(map,mapKey(c.destination))).map(c=>`${c.direction}${EDGES.has(c.direction)?" edge":""} -> ${this.place(c.destination)}`),
   ];
-  const none=warps.length+connections.length===0?"none (no exits are listed on this map)":"none (you have taken every exit on this map this run)";
+  const none=warps.length+connections.length>0?`none (you have taken every exit ${across>0?"you can walk to ":""}on this map this run)`:across>0?"none you can walk to (every exit listed on this map is across water, and you cannot use Surf yet)":"none (no exits are listed on this map)";
   return `${UNTAKEN_HEADER}: ${open.length===0?none:open.join("; ")}`;
  }
  // The readout with the line inserted after its Position line (or Location line when position is off).

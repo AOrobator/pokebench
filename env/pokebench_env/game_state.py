@@ -27,6 +27,7 @@ from pokebench_env.resources import Resources, read_resources
 from pokebench_env.route103_rival import Route103Rival, read_route103_rival
 from pokebench_env.running import RunningPermission, read_running_permission
 from pokebench_env.story import StoryState, read_story
+from pokebench_env.surf_gate import SurfGate, read_surf_gate
 from pokebench_env.topology import Topology, read_topology
 from pokebench_env.trainer_opponent import TrainerOpponent, read_trainer_opponent
 from pokebench_env.transition_coherence import CB2_HANDLE_START_BATTLE, main_loop_idle
@@ -124,6 +125,8 @@ class GameState:
     active_ui_read: bool = False
     # readout-truth-v1: sMenu's window is drawn (even with an invalid cursor); None when off.
     menu_window_drawn: bool | None = None
+    # surf-gated-exits-v1: exits reachable only across water and whether Surf works; None when off.
+    surf_gate: SurfGate | None = None
 
 
 DYNAMIC_WARP = 0x14
@@ -200,6 +203,7 @@ def read_game_state(
     transition_coherence_enabled: bool = False,
     readout_truth_enabled: bool = False,
     birch_pages_enabled: bool = False,
+    surf_gate_enabled: bool = False,
 ) -> GameState:
     screen = read_screen(read)
     coherent = transition_coherence_enabled
@@ -316,6 +320,15 @@ def read_game_state(
         if screen.kind == "overworld" and not in_battle
         else None
     )
+    badges = _badges(read, save1)
+    topology = (
+        read_topology(read, maps, edges=connection_edges_enabled) if nearby is not None else None
+    )
+    surf_gate = (
+        read_surf_gate(read, map_id, (x, y), targets, topology, badges, party)
+        if surf_gate_enabled and nearby is not None
+        else None
+    )
     return GameState(
         blackout_active=screen.callback2 == 0x08085F59,
         game_stats=_game_stats(read, save1, save2),
@@ -344,7 +357,7 @@ def read_game_state(
             else ownership.owner or "unknown"
         ),
         money=_u32(read, save1 + 0x490) ^ _u32(read, save2 + 0xAC),
-        badges=_badges(read, save1),
+        badges=badges,
         play_time=(hours, minutes, seconds),
         dialog=dialog,
         menu=menu,
@@ -359,9 +372,7 @@ def read_game_state(
         if full_map_enabled and nearby is not None
         else None,
         player_elevation=body[0x0B] & 15,
-        topology=read_topology(read, maps, edges=connection_edges_enabled)
-        if nearby is not None
-        else None,
+        topology=topology,
         destination_names=tuple(
             (
                 t.destination[0],
@@ -408,4 +419,5 @@ def read_game_state(
         else None,
         active_ui_read=truth_read,
         menu_window_drawn=window_drawn,
+        surf_gate=surf_gate,
     )

@@ -54,6 +54,8 @@ def render(state: GameState, off: frozenset[str], *, warp_animation: bool = Fals
         message_phase="field-dialogue-phase-v1" not in off,
         named_warps="named-warp-destinations-v1" not in off,
         warp_animation=warp_animation,
+        adjacent_tiles="adjacent-tiles-v1" not in off,
+        rules_in_prompt="readout-rules-in-prompt-v1" not in off,
     )
 
 

@@ -379,11 +379,14 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "navigation-refusal-reasons-v1":"navigation-refusal-reasons-v1.html",
  "transition-press-result-v1":"transition-press-result-v1.html",
  "blocked-batch-result-v1":"blocked-batch-result-v1.html",
+ "explorer-guidance-v1":"explorer-guidance-v1.html",
  "stall-briefing-v1":"stall-briefing-v1.html",
  "bedroom-exit-v1":"bedroom-exit-v1.html",
  "battle-details-v2":"battle-details-v2.html",
  "displayed-place-names-v1":"displayed-place-names-v1.html",
+ "readout-rules-in-prompt-v1":"readout-rules-in-prompt-v1.html",
  "battle-triage-guidance-v1":"battle-triage-guidance-v1.html",
+ "adjacent-tiles-v1":"adjacent-tiles-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

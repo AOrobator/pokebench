@@ -781,6 +781,8 @@ it("links the three navigation-guidance cards to their tracked explainers",()=>{
   ["offscreen-objects-v1",["MAY at 10,3 (out of view; where the map places this character, it may have moved)","546"]],
   ["navigate-first-prompt-v1",["Reminder: to walk two or more tiles, call navigate_to with the destination; it finds the route for you.","# Tools"]],
   ["presence-penalty-v1",["presence_penalty","1.5"]],
+  ["navigation-truth-v1",["it is not listed as something you can talk to or use, so navigate_to offers no tile to talk to it from","RENDER_STATE_SCROLL_START","TryRunCoordEventScript"]],
+  ["navigation-refusal-reasons-v2",["no route to (6,4) lies inside the 15x15 local map navigate_to plans over","(14,9) on the east edge"]],
  ];
  for(const [id,quotes] of cases){
   expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);

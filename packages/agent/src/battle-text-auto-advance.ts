@@ -153,5 +153,5 @@ export async function advanceBattle(start:GameStateSnapshot,run:BattleRun,signal
 
 // A journal entry as a listed page: the map from the state it was read with; no speaker or position.
 export function battlePage(entry:BattleTextEntry,s:GameStateSnapshot,stateSeq:number):BattlePage {
- return {state_seq:stateSeq,map:s.location,map_id:s.map_id,position:null,speaker:null,speaker_source:null,text:entry.text,battle_turn:entry.battle_turn,battle_message_id:entry.id};
+ return {state_seq:stateSeq,map:s.location,...(s.location_display===undefined?{}:{map_display:s.location_display}),map_id:s.map_id,position:null,speaker:null,speaker_source:null,text:entry.text,battle_turn:entry.battle_turn,battle_message_id:entry.id};
 }

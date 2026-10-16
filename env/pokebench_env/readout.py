@@ -2,13 +2,18 @@
 
 Observation switches (harness feature ids, set per run) remove their own text
 from the readout only; the typed JSON state used for measurement is unchanged.
-The one addition is full-map-navigation-v1, which adds `map_grid` when on.
+The additions are full-map-navigation-v1's `map_grid` and displayed-place-names-v1's
+`location_display`, each present only when its switch is on.
 """
 
 from collections.abc import Mapping
 from dataclasses import asdict, replace
 
+from pokebench_env.adjacent_tiles import next_tiles, walking
+from pokebench_env.battle_triage import SWITCH as TRIAGE
+from pokebench_env.battle_triage import battle_triage_lines, field_triage_line
 from pokebench_env.game_state import GameState
+from pokebench_env.map_rules import FEATURE as RULES_FEATURE
 
 SERVER_FEATURES = (
     "expanded-menu-battle-information-v1",
@@ -37,13 +42,19 @@ SERVER_FEATURES = (
     "battle-details-v2",
     "warp-arrival-settle-v1",
     "displayed-place-names-v1",
+    "battle-triage-guidance-v1",
+    "adjacent-tiles-v1",
+    "readout-rules-in-prompt-v1",
 )
 
 
 def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
     raw = env.get(
         "POKEBENCH_FEATURES_OFF",
-        "named-interactions-v1,world-destinations-v1,bounded-navigation-v1,expanded-menu-battle-information-v1,field-dialogue-phase-v1,full-map-navigation-v1,named-warp-destinations-v1,character-presence-v1,battle-details-v2,warp-arrival-settle-v1,displayed-place-names-v1",
+        "named-interactions-v1,world-destinations-v1,bounded-navigation-v1,expanded-menu-battle-information-v1,field-dialogue-phase-v1,full-map-navigation-v1,named-warp-destinations-v1,character-presence-v1,battle-details-v2,warp-arrival-settle-v1,displayed-place-names-v1,"
+        "battle-triage-guidance-v1,"
+        "adjacent-tiles-v1,"
+        "readout-rules-in-prompt-v1",
     )
     if raw == "":
         return frozenset()
@@ -92,9 +103,13 @@ def format_readout(
     message_phase: bool = False,
     named_warps: bool = False,
     warp_animation: bool = False,
+    adjacent_tiles: bool = False,
+    rules_in_prompt: bool = False,
 ) -> str:
     if "ram-state-v1" in off:
         return ""
+    # readout-rules-in-prompt-v1: the fixed map rules are in the system prompt instead.
+    rules = rules_in_prompt and RULES_FEATURE not in off
     # displayed-place-names-v1: buildings the game names on their signs, for this save's player.
     places = (
         {(g, n): name for g, n, name in state.displayed_places}
@@ -219,6 +234,8 @@ def format_readout(
             lines += execution
         else:
             lines.append("Battle details: unprovided")
+        if TRIAGE not in off:
+            lines += battle_triage_lines(battle, state.battle_details)
     if state.story is not None and "story-state-v1" not in off:
         lines.append(state.story.text())
     if state.naming is not None and "naming-cursor-v1" not in off:
@@ -259,8 +276,15 @@ def format_readout(
     lines += [f"Player: {state.name}", f"Location: {location or state.location}"]
     if "live-player-position-v1" not in off:
         lines.append(f"Position: X={x}, Y={y}{facing}")
+    lines.append(f"Party ({state.party_owner}): {party or 'none'}")
+    triage = (
+        field_triage_line(state.party, state.party_owner)
+        if TRIAGE not in off and not state.in_battle and state.battle is None
+        else None
+    )
+    if triage is not None:
+        lines.append(triage)
     lines += [
-        f"Party ({state.party_owner}): {party or 'none'}",
         f"Money: ₽{state.money}",
         f"Badges: {', '.join(state.badges or ()) or 'none'}",
         f"In battle: {'yes' if state.in_battle else 'no'}",
@@ -277,20 +301,43 @@ def format_readout(
             else "Field controls: available (terrain and objects can still block a direction)"
         )
     if state.local_map is not None and "live-map-v1" not in off:
-        shown = (
-            state.full_map
-            if state.full_map is not None and "full-map-navigation-v1" not in off
-            else state.nearby
+        configured_whole = "full-map-navigation-v1" not in off
+        whole = state.full_map is not None and configured_whole
+        shown = state.full_map if whole else state.nearby
+        warp_guidance = "warp-activation-guidance-v1" not in off
+        ledges = "ledge-hops-v1" not in off
+        edge_walls = "one-way-tiles-v1" not in off
+        counters = "counter-talk-v1" not in off
+        # adjacent-tiles-v1: the four neighbours in words, from the same cells the map draws.
+        neighbours = (
+            next_tiles(
+                shown,
+                state.position,
+                coordinates="live-player-position-v1" not in off,
+                ledges=ledges,
+                edge_walls=edge_walls,
+                counters=counters,
+                warp_guidance=warp_guidance,
+                topology=state.topology
+                if world_destinations and "world-destinations-v1" not in off
+                else None,
+                on_foot=walking(None if state.running is None else state.running.avatar_flags),
+            )
+            if shown is not None and adjacent_tiles and "adjacent-tiles-v1" not in off
+            else None
         )
         lines.append(
             shown.text(
                 grid="world-coordinate-grid-v1" not in off,
-                warp_guidance="warp-activation-guidance-v1" not in off,
-                ledges="ledge-hops-v1" not in off,
-                edge_walls="one-way-tiles-v1" not in off,
-                counters="counter-talk-v1" not in off,
+                warp_guidance=warp_guidance,
+                ledges=ledges,
+                edge_walls=edge_walls,
+                counters=counters,
                 destinations=destinations,
                 dynamic=dynamic,
+                next_tiles=neighbours,
+                # A local-map fallback keeps its legend: the prompt describes the whole map.
+                rules_in_prompt=rules and whole == configured_whole,
             )
             if shown is not None
             else state.local_map
@@ -301,6 +348,7 @@ def format_readout(
             triggers="coordinate-script-conditions-v1" not in off,
             dialogue="active-field-message-buffer-v1" not in off,
             message=message_phase and "field-dialogue-phase-v1" not in off,
+            rules_in_prompt=rules,
         )
         if context != "":
             lines.append(context)
@@ -334,6 +382,12 @@ def format_readout(
                     )
                     lines.append(f"Warp destination at ({target.x},{target.y}): {name}")
     return "\n".join(lines)
+
+
+def _location_display(state: GameState) -> dict[str, str]:
+    # displayed-place-names-v1: the Location line's name; absent when the switch is off.
+    shown = next((name for g, n, name in state.displayed_places if (g, n) == state.map_id), None)
+    return {} if shown is None else {"location_display": shown}
 
 
 def state_json(state: GameState) -> dict[str, object]:
@@ -374,6 +428,7 @@ def state_json(state: GameState) -> dict[str, object]:
         "started": state.started,
         "name": state.name,
         "location": state.location,
+        **_location_display(state),
         "map_id": None if state.map_id is None else list(state.map_id),
         "position": None
         if state.position is None

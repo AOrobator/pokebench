@@ -73,7 +73,15 @@
    "warp-activation-guidance-v1": true,
    "world-coordinate-grid-v1": true,
    "world-destinations-v1": false,
-   "world-targets-v1": true
+   "world-targets-v1": true,
+   "transition-loop-detection-v1": true,
+   "displayed-place-names-v1": true,
+   "dialogue-context-kept-v1": true,
+   "blocked-batch-result-v1": false,
+   "warp-arrival-settle-v1": false,
+   "battle-triage-guidance-v1": false,
+   "adjacent-tiles-v1": false,
+   "readout-rules-in-prompt-v1": false
   }
  },
  "switches": [
@@ -84,12 +92,23 @@
   "navigation-refusal-reasons-v1",
   "transition-press-result-v1",
   "stall-briefing-v1",
-  "dialogue-auto-advance-v1"
+  "dialogue-auto-advance-v1",
+  "blocked-batch-result-v1",
+  "warp-arrival-settle-v1",
+  "expanded-menu-battle-information-v1",
+  "battle-details-v2",
+  "battle-triage-guidance-v1",
+  "walkable-floor-v1",
+  "adjacent-tiles-v1",
+  "readout-rules-in-prompt-v1"
  ],
  "offInBoth": [
-  "milestone-stall-stop-v1",
-  "battle-details-v2",
-  "expanded-menu-battle-information-v1"
+  "milestone-stall-stop-v1"
+ ],
+ "onInBoth": [
+  "transition-loop-detection-v1",
+  "displayed-place-names-v1",
+  "dialogue-context-kept-v1"
  ],
  "phases": [
   {

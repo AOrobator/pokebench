@@ -2,7 +2,18 @@ import { frontierReferences, frontierPlot, frontierModelColors } from "./frontie
 import { esc } from "./format.js";
 import { QUEUE_POLL_MS, QueuePanel } from "./queue-view.js";
 import { WORKBENCH_POLL_MS, parseWorkbench, type WorkbenchData, type WorkbenchRun } from "./workbench-data.js";
-import { currentRunHtml, runDetails } from "./workbench-view.js";
+import { currentRunHtml, runDetails, runLanes, type LaneUnknown, type RunLanes } from "./workbench-view.js";
+// Copies changed [data-current-field] content and styles from `next` onto `root`; false when their fields differ.
+function patchFields(root: Element, next: Element): boolean {
+  const was = [...root.querySelectorAll<HTMLElement>("[data-current-field]")], now = [...next.querySelectorAll<HTMLElement>("[data-current-field]")];
+  if (was.length !== now.length || was.some((field, i) => field.dataset.currentField !== now[i]?.dataset.currentField)) return false;
+  was.forEach((field, i) => {
+    const fresh = now[i] ?? field, style = fresh.getAttribute("style");
+    if (field.innerHTML !== fresh.innerHTML) field.innerHTML = fresh.innerHTML;
+    if (style !== null && field.getAttribute("style") !== style) field.setAttribute("style", style);
+  });
+  return true;
+}
 export interface WorkbenchDeps { fetchSnapshot(): Promise<unknown>; now(): number; width(): number }
 export class Workbench {
   private data: WorkbenchData = { version: 1, at: 0, milestones: [], runs: [], problems: [] };
@@ -19,6 +30,7 @@ export class Workbench {
   private model = "all";
   private preset = "all";
   private zoom = true;
+  private runLanes: RunLanes | LaneUnknown = "loading";
   constructor(private readonly doc: Document, private readonly deps: WorkbenchDeps, private readonly back: string | null = null) {
     doc.addEventListener("change", this.onChange); doc.addEventListener("click", this.onClick); doc.addEventListener("keydown", this.onKey);
   }
@@ -52,17 +64,31 @@ export class Workbench {
   clock(): void {
     if (!this.active()) return;
     const host = this.ui("current"), template = this.doc.createElement("template");
-    template.innerHTML = (this.verified ? "" : '<p class="wb-notice">Live status unavailable; charts retain the last verified snapshot.</p>') + currentRunHtml(this.verified ? this.data.runs : [], this.data.at, this.deps.now(), this.back);
-    const before = [...host.querySelectorAll<HTMLAnchorElement>(".wb-current")], after = [...template.content.querySelectorAll<HTMLAnchorElement>(".wb-current")];
-    if (before.length > 0 && before.length === after.length && before.every((link, i) => link.getAttribute("href") === after[i]?.getAttribute("href"))) {
-      before.forEach((link, i) => {
-        for (const field of after[i]?.querySelectorAll<HTMLElement>("[data-current-field]") ?? []) {
-          const target = link.querySelector<HTMLElement>(`[data-current-field="${field.dataset.currentField ?? ""}"]`);
-          if (target !== null && target.textContent !== field.textContent) target.textContent = field.textContent;
-        }
-      });
-    } else if (host.innerHTML !== template.innerHTML) host.replaceChildren(template.content);
+    template.innerHTML = (this.verified ? "" : '<p class="wb-notice">Live status unavailable; charts retain the last verified snapshot.</p>') + currentRunHtml(this.verified ? this.data.runs : [], this.data.at, this.deps.now(), this.back, this.runLanes);
+    // Plates are reconciled by run id and patched field by field, so a focused plate link survives clock
+    // ticks and other runs joining or leaving, and the blinking NEW MILESTONE! chip is not re-created
+    // (restarting its animation) every tick.
+    const list = host.querySelector(".wb-plates"), nextList = template.content.querySelector(".wb-plates");
+    const head = host.querySelector(".wb-party-head"), nextHead = template.content.querySelector(".wb-party-head");
+    if (list === null || nextList === null || head === null || nextHead === null || this.verified !== (host.querySelector(".wb-notice") === null)) {
+      if (host.innerHTML !== template.innerHTML) host.replaceChildren(template.content);
+      return;
+    }
+    patchFields(head, nextHead);
+    const wanted = [...nextList.querySelectorAll<HTMLAnchorElement>(".wb-plate")], keep = new Set(wanted.map(p => p.getAttribute("href")));
+    const existing = new Map<string | null, HTMLAnchorElement>();
+    for (const plate of list.querySelectorAll<HTMLAnchorElement>(".wb-plate")) { if (keep.has(plate.getAttribute("href"))) existing.set(plate.getAttribute("href"), plate); else plate.remove(); }
+    let cursor = list.firstElementChild;
+    for (const fresh of wanted) {
+      const old = existing.get(fresh.getAttribute("href"));
+      if (old === undefined) { list.insertBefore(fresh, cursor); continue; }
+      if (old.className !== fresh.className) old.className = fresh.className;
+      if (!patchFields(old, fresh)) old.replaceChildren(...fresh.childNodes);
+      if (cursor === old) cursor = old.nextElementSibling; else list.insertBefore(old, cursor);
+    }
   }
+  // Lane, GPU and arm per run from the experiment queue's /api/experiments poll, or "unavailable" when it fails.
+  lanes(lanes: RunLanes | "unavailable"): void { this.runLanes = lanes; this.clock(); }
   resize(): void { if (this.active()) this.renderCharts(); }
   destroy(): void { this.disposed = true; this.doc.removeEventListener("change", this.onChange); this.doc.removeEventListener("click", this.onClick); this.doc.removeEventListener("keydown", this.onKey); }
   private filtered(): WorkbenchRun[] {
@@ -139,7 +165,7 @@ export function bootWorkbench(win: Window): Workbench {
     now: () => Date.now(), width: () => win.document.querySelector('[data-wb="frontier-full"]')?.getBoundingClientRect().width || win.document.documentElement.clientWidth || 640,
   }, from);
   const queueRoot = win.document.querySelector<HTMLElement>('[data-ui="experiment-queue"]');
-  const experiments = queueRoot === null ? null : new QueuePanel(queueRoot, { fetchJson: async (url) => { const response = await win.fetch(url); if (!response.ok) throw new Error(`GET ${url} returned HTTP ${String(response.status)}`); return response.json() as Promise<unknown>; }, sendJson: async (method, url, body) => { const response = await win.fetch(url, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) }); const reply: unknown = await response.json(); if (!response.ok) throw new Error(typeof reply === "object" && reply !== null && "error" in reply ? String(reply.error) : `${method} ${url} returned HTTP ${String(response.status)}`); return reply; }, confirm: (text) => win.confirm(text), problem: (text) => { const el = queueRoot.querySelector('[data-eq="queue"]'); if (el !== null) el.innerHTML = `<pre class="eq-problems">${esc(text)}</pre>`; } });
+  const experiments = queueRoot === null ? null : new QueuePanel(queueRoot, { fetchJson: async (url) => { const response = await win.fetch(url); if (!response.ok) throw new Error(`GET ${url} returned HTTP ${String(response.status)}`); return response.json() as Promise<unknown>; }, sendJson: async (method, url, body) => { const response = await win.fetch(url, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) }); const reply: unknown = await response.json(); if (!response.ok) throw new Error(typeof reply === "object" && reply !== null && "error" in reply ? String(reply.error) : `${method} ${url} returned HTTP ${String(response.status)}`); return reply; }, confirm: (text) => win.confirm(text), loaded: (snapshot) => { wb.lanes(runLanes(snapshot.fixedRuns ?? [])); }, unavailable: () => { wb.lanes("unavailable"); }, problem: (text) => { const el = queueRoot.querySelector('[data-eq="queue"]'); if (el !== null) el.innerHTML = `<pre class="eq-problems">${esc(text)}</pre>`; } });
   void experiments?.load();
   const queuePoll = win.setInterval(() => { void experiments?.load(); }, QUEUE_POLL_MS);
   void wb.refresh(); const poll = win.setInterval(() => { void wb.refresh(); }, WORKBENCH_POLL_MS), clock = win.setInterval(() => { wb.clock(); }, 1000);

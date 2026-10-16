@@ -5,7 +5,7 @@ import {mkdtempSync,readFileSync,rmSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
-import {BATTLE_BUSY_BOUNDS,BattleJournal,advanceBattle,battleEngaged,classifyBattle,type BattleRun,type BattleTextEntry,type BattleTextSource} from "./battle-text-auto-advance.js";
+import {BATTLE_BUSY_BOUNDS,BattleJournal,advanceBattle,battleEngaged,battlePage,classifyBattle,type BattleRun,type BattleTextEntry,type BattleTextSource} from "./battle-text-auto-advance.js";
 import {AUTO_ADVANCE_LIMITS,DialogueRecord,withDialogueAutoAdvance,type AutoAdvanceRecorder} from "./dialogue-auto-advance.js";
 import {DialogueLog} from "./dialogue-log.js";
 import {observeTool,pressTool,type Clock} from "./game-tools.js";
@@ -49,7 +49,7 @@ const identity=(s:GameStateSnapshot)=>JSON.stringify([s.screen,s.battle?.message
 // different state; a battle wait skips busy states (bounded); a field read moves past a printing page; the
 // journal shows the entries recorded at or before the current position.
 class ScriptServer{
- i:number;posts:{button:Button;phase:Phase}[]=[];paths:string[]=[];waitBound=30;
+ i:number;posts:{button:Button;phase:Phase}[]=[];paths:string[]=[];waitBound=30;readout:(s:GameStateSnapshot)=>string=s=>`Screen: ${s.screen}`;
  constructor(private readonly states:readonly GameStateSnapshot[],private readonly entries:readonly BattleTextEntry[],start=0){this.i=start;}
  get now():GameStateSnapshot{const s=this.states[this.i];if(s===undefined)throw new Error("past the script");return s;}
  private next(){const from=identity(this.now);while(this.i<this.states.length-1&&identity(this.states[this.i]??this.now)===from)this.i++;}
@@ -76,7 +76,7 @@ class ScriptServer{
   this.paths.push(new URL(url).pathname);
   if(url.endsWith("/action")){if(typeof init?.body!=="string")throw new Error("body");for(const b of (JSON.parse(init.body) as {buttons:Button[]}).buttons)this.press(b);body={status:"success"};}
   else if(url.endsWith("/queue_status"))body={queue_empty:true};
-  else if(url.endsWith("/pokebench/observation"))body={state_text:`Screen: ${this.now.screen}`,screenshot_base64:png,state:this.now};
+  else if(url.endsWith("/pokebench/observation"))body={state_text:this.readout(this.now),screenshot_base64:png,state:this.now};
   else if(url.endsWith("/pokebench/state")){body=this.now;const p=phaseOf(this.now);if(p==="field_printing"||p==="field_locked")this.i++;}
   else if(url.endsWith("/pokebench/battle/wait"))body=this.wait();
   else if(url.includes("/pokebench/battle/messages?after=")){body=this.messages(Number(new URL(url).searchParams.get("after")));if(body===null)return Promise.resolve(new Response("{}",{status:409}));}
@@ -141,6 +141,26 @@ describe("battle-text-auto-advance-v1 on the recorded showcase battle",()=>{
   expect(textOf(result)).toContain("stopped: the battle ended and field controls are free.");
  });
 
+ it("composes with battle-triage-guidance-v1: the stop's summary comes first, then the readout with its triage line, unchanged",async()=>{
+  // The game server's readout for raw RAM 7782 with the player's HP set to 7/23, battle-triage-guidance-v1 and
+  // battle-details-v2 on (rendered by pokebench_env.rerender.render).
+  const triage=readFileSync(new URL("./fixtures/battle-text-triage-7782.txt",import.meta.url),"utf8");
+  const line="Your TORCHIC has 7/23 HP (below half). This is a wild battle: RUN is allowed (bottom-right of the battle menu).";
+  expect(triage).toContain(line);
+  const server=showServer(7765);server.readout=s=>s===show(7782)?triage:`Screen: ${s.screen}`;
+  const features={...ON,"battle-triage-guidance-v1":true};
+  const result=await wire(server,features).tool("press").execute("t722",{buttons:["A"]});
+  const text=textOf(result);
+  const block=text.indexOf("Battle text auto-advance: the harness pressed B 1 time");
+  expect(block).toBeGreaterThan(0);
+  expect(text.indexOf(`\n\n${triage}`)).toBeGreaterThan(block);
+  expect(text.endsWith(triage)).toBe(true);
+  expect(text.split(line)).toHaveLength(2);
+  const prompt=playSystemPrompt(features,null);
+  expect(prompt).toContain("Battle text auto-advance: in a battle");
+  expect(prompt.indexOf("Battle text auto-advance:")).toBeGreaterThan(prompt.indexOf("Dialogue auto-advance:"));
+ });
+
  it("OFF: the same press sends every requested button and calls no battle endpoint, as before",async()=>{
   const off=showServer(7765);const {tool:offTool}=wire(off,OFF);
   const plain=showServer(7765);const {base}=wire(plain,OFF);
@@ -200,6 +220,14 @@ describe("battle-text-auto-advance-v1 hand-offs",()=>{
   const {tool,rec}=wire(server);
   await tool("press").execute("s",{buttons:["A"]});
   expect(rec.advances()[0]).toMatchObject({stop:kind,detail,pages:[{text:"Use next POKéMON?"}]});
+ });
+});
+
+describe("battlePage",()=>{
+ it("carries the displayed place name when the readout has one, as field pages do",()=>{
+  const e=SHOW.journal.entries[0];if(e===undefined)throw new Error("entry");
+  expect(battlePage(e,show(7772),3)).not.toHaveProperty("map_display");
+  expect(battlePage(e,{...show(7772),location_display:"ROUTE 101"},3)).toMatchObject({map:"ROUTE101",map_display:"ROUTE 101",battle_turn:1});
  });
 });
 

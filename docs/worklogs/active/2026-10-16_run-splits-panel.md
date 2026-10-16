@@ -15,7 +15,7 @@ The live side panel's SPLITS THIS RUN strip and SPLIT TIMES VS BEST rows render 
 ## M1
 
 - [x] RED: controls.test.ts covers post-starter splits, unknown names, next after the deepest, resumed runs (3 failing, 12 passing)
-- [ ] GREEN
-- [ ] Gates: viewer coverage ≥90, lint, build
+- [x] GREEN: splitStrip/splitTimes use runSplits (recorded milestones in MILESTONE_ORDER + next frontier checkpoint). Read-only replay of the live showcase log renders 25 done chips through OLDALE, next ROUTE 103.
+- [x] Gates: viewer 792 tests pass, coverage 95.10/90.45/93.59 (lines/branches/functions), controls.ts 99.38/97.04/100; viewer lint clean; pnpm -r build ok
 - [ ] Review: Claude CLI, Codex, Cursor grok
 - [ ] Operator approves local merge

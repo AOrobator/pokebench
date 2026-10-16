@@ -3,7 +3,8 @@
 // ★ NEXT RUN page. app.ts owns state, keys and requests.
 import type { FeatureInfo, SwitchableFeature } from "@pokebench/agent/features";
 import { esc, hms, num } from "./format.js";
-import type { RunView } from "./model.js";
+import { FRONTIER_MILESTONES } from "./frontier.js";
+import { MILESTONE_ORDER, type RunView } from "./model.js";
 
 export type ControlAction = "pause" | "resume" | "stop" | "cancel_stop" | "abort";
 export type Overlay = "pausing" | "paused" | "stopping" | "ended" | "abort_hold" | "aborted" | null;
@@ -144,26 +145,36 @@ export function sideStats(view: RunView, nowMs: number): string {
 
 export interface BestSplits { readonly run: string; readonly milestones: readonly { readonly name: string; readonly offsetMs: number }[] }
 
-function reachedSplits(view: RunView): { reached: Map<string, number>; next: string | undefined } {
+const STORY_ORDER: readonly string[] = MILESTONE_ORDER;
+const FRONTIER_LABELS = new Map<string, string>(FRONTIER_MILESTONES.map((m) => [m.id, m.label]));
+const splitLabel = (name: string): string => (FRONTIER_LABELS.get(name) ?? name.replaceAll("_", " ")).toUpperCase();
+const storyIndex = (name: string): number => { const at = STORY_ORDER.indexOf(name); return at < 0 ? STORY_ORDER.length : at; };
+
+// Every split this run recorded, in story order, then the next required checkpoint.
+function runSplits(view: RunView): { splits: { name: string; label: string; at: number | null }[]; next: string | undefined } {
   const startMs = view.startMs;
-  const reached = new Map(startMs === null ? [] : view.milestones.filter((m) => m.origin !== "present_at_start").map((m) => [m.name, (m.ms - startMs - view.control.pausedBefore(m.ms)) / 1000]));
-  return { reached, next: BAR_MILESTONES.find(([name]) => !reached.has(name))?.[0] };
+  const reached = startMs === null ? [] : view.milestones.filter((m) => m.origin !== "present_at_start").map((m, i) => ({ m, i }))
+    .sort((a, b) => storyIndex(a.m.name) - storyIndex(b.m.name) || a.i - b.i)
+    .map(({ m }) => ({ name: m.name, label: splitLabel(m.name), at: (m.ms - startMs - view.control.pausedBefore(m.ms)) / 1000 }));
+  const deepest = Math.max(-1, ...view.milestones.map((m) => STORY_ORDER.indexOf(m.name)));
+  const recorded = new Set(view.milestones.map((m) => m.name));
+  const next = FRONTIER_MILESTONES.find((m) => STORY_ORDER.indexOf(m.id) > deepest && !recorded.has(m.id))?.id;
+  return { splits: next === undefined ? reached : [...reached, { name: next, label: splitLabel(next), at: null }], next };
 }
 
 export function splitStrip(view: RunView): string {
-  const { reached, next } = reachedSplits(view);
-  return `<div class="mspl">${BAR_MILESTONES.map(([name, label]) => `<span class="${reached.has(name) ? "done" : name === next ? "next" : ""}">${label}${reached.has(name) ? " ✔" : ""}</span>`).join("")}</div>`;
+  const { splits } = runSplits(view);
+  return `<div class="mspl">${splits.map(({ label, at }) => `<span class="${at === null ? "next" : "done"}">${esc(label)}${at === null ? "" : " ✔"}</span>`).join("")}</div>`;
 }
 
 // This run's split times against the best comparable run.
 export function splitTimes(view: RunView, best: BestSplits | null): string {
-  const { reached, next } = reachedSplits(view);
+  const { splits } = runSplits(view);
   const bests = new Map(best?.milestones.map((m) => [m.name, m.offsetMs / 1000]) ?? []);
-  const rows = BAR_MILESTONES.map(([name, label]) => {
-    const at = reached.get(name);
+  const rows = splits.map(({ name, label, at }) => {
     const ref = bests.get(name);
-    const delta = at === undefined || ref === undefined ? `<span class="d na">${name === next ? "next" : ""}</span>` : `<span class="d ${at <= ref ? "g" : "r"}">${at <= ref ? "−" : "+"}${hms(Math.abs(at - ref))}</span>`;
-    return `<span>${label}</span><span class="t${at === undefined ? " na" : ""}">${at === undefined ? "—" : hms(at)}</span>${delta}`;
+    const delta = at === null || ref === undefined ? `<span class="d na">${at === null ? "next" : ""}</span>` : `<span class="d ${at <= ref ? "g" : "r"}">${at <= ref ? "−" : "+"}${hms(Math.abs(at - ref))}</span>`;
+    return `<span>${esc(label)}</span><span class="t${at === null ? " na" : ""}">${at === null ? "—" : hms(at)}</span>${delta}`;
   }).join("");
   return `<div class="splitrows"><span class="small muted">SPLIT</span><span class="small muted t">THIS RUN</span><span class="small muted d">VS BEST</span>${rows}</div>${best === null ? '<p class="small muted">no comparable best run yet</p>' : ""}`;
 }

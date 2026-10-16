@@ -666,6 +666,7 @@ it("shows the experiment, arm and trial strip, the preset, or just the model and
 
 it("links the transition press results card to its explainer",()=>{
  expect(FEATURE_EXPLAINERS["transition-press-result-v1"]).toBe("transition-press-result-v1.html");
+ expect(FEATURE_EXPLAINERS["blocked-batch-result-v1"]).toBe("blocked-batch-result-v1.html");
 });
 
 it("links the bedroom exit measurement card to its explainer in Harness Config",()=>{

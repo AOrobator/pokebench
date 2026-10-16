@@ -48,6 +48,7 @@ Game grounding (pret/pokeemerald 731ad5bf): Route 103 rival script `data/maps/Ro
 - [x] COMMIT GREEN: `feat: low-hp-trainer-warning-v1 ...` (sha in git log)
 
 **M3 — explainers, pending experiments, review, land**
+- [x] RED: panels/server explainer-link tests for both ids (2 fail: no mapping, no file). COMMIT RED.
 - [ ] Explainers `docs/explainers/<id>.html` + FEATURE_EXPLAINERS + README
 - [ ] `experiments/<id>.json` pending entries + readiness.md
 - [ ] Gates on main-merged tip: test, lint, build, coverage ≥90, verify-vendor

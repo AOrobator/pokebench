@@ -166,7 +166,17 @@ export function transientLock(state: GameStateSnapshot): boolean {
     script != null && script.script_mode === 0 && script.script_status === 2;
 }
 
-// pushback-loop-detection-v1
+// pushback-loop-detection-v1: field controls held by a message or by a running script, with no menu or other
+// interface owning the lock. The game's global script context is running when its mode is bytecode or native
+// (1 or 2) and its status is not CONTEXT_SHUTDOWN (2), as in pokeemerald src/script.c. A start menu, a door
+// animation or an unknown lock is not a script.
+export function scriptHeld(state: GameStateSnapshot): boolean {
+  if (state.field_controls_locked !== true || state.active_ui != null || state.naming != null) return false;
+  if ((state.world_context?.dialogue ?? "") !== "" || state.world_context?.message != null) return true;
+  const script = state.resources;
+  return script != null && (script.script_mode === 1 || script.script_mode === 2) && script.script_status !== 2;
+}
+
 export const PUSHBACK_MESSAGE =
   "A game script keeps returning the player to the same place after the same input: each attempt ends back where it started, so repeating it will not get past the script. Read what the script's dialogue says, then choose a different target or approach using observed evidence.";
 const placeOf = (state: GameStateSnapshot): string | null =>
@@ -582,7 +592,7 @@ export class LoopDetector {
   private tripState(state: GameStateSnapshot): void {
     const trip = this.trip;
     if (trip === null) return;
-    if (state.field_controls_locked === true && !transientLock(state)) trip.scripted = true;
+    if (scriptHeld(state)) trip.scripted = true;
     const place = placeOf(state);
     if (place !== null && place !== trip.place) trip.left = true;
   }

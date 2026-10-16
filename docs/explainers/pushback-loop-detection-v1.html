@@ -98,7 +98,7 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 <table>
 <tr><th>Rule</th><th>Value</th></tr>
 <tr><td>Settled state</td><td>fingerprint known, <code>field_controls_locked</code> false, no dialogue, no message</td></tr>
-<tr><td>Push-back</td><td>a press or <code>navigate_to</code> result settled and equal to the anchor, after the player left the anchor tile <b>and</b> a script or message held the controls (a door or stairs animation lock does not count)</td></tr>
+<tr><td>Push-back</td><td>a press or <code>navigate_to</code> result settled and equal to the anchor, after the player left the anchor tile <b>and</b> a script or message held the controls (an open message, or the game's script context running; a door or stairs animation, a menu or a lock of unknown origin does not count)</td></tr>
 <tr><td>Input key</td><td>the model's own buttons or <code>navigate_to</code> target for every call since the anchor, never auto-advance's B</td></tr>
 <tr><td>Warning</td><td>the same key 3 times (<code>cycleRepeats</code>) among the last 12 push-backs → <code>cycle</code> warning, then the supervisor briefing</td></tr>
 <tr><td>Reset</td><td>a settled result elsewhere moves the anchor; more than 8 calls with no settled result drop it; a new state or a story milestone clears the push-back list</td></tr>

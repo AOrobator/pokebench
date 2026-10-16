@@ -146,6 +146,8 @@ Merge locally after all lanes LGTM. No pending experiment entry (amendment 2). R
 
 - Merge commit 2cc874d5 (main parent 1e1feec9). Gates at 2cc874d5, all exit 0: build; test agent 1507, viewer 853, pytest 2180 passed; lint incl. mypy "no issues found in 75 source files"; coverage agent lines 99.11 / branches 94.74 / functions 98.11 (loop-detection.ts 98.52 / 97.37 / 100), viewer 97.61 / 90.69 / 93.41, python 97.16 / 92.88 / 100; verify-vendor OK. Coordinator lane freeze until 10 AM EDT noted: nothing here touches 8091/8098/8075/8076.
 
+- 2026-10-16 06:40 AM EDT: review round 4 (packet 1e1feec9..031a0717, SHA-256 390e2133…36d3). Claude CLI LGTM, Grok LGTM. Codex BLOCKING: any non-transient lock counted as "a script or message held the controls", so an open start menu (pokeemerald locks field controls for it) or a lock of unknown origin could make a voluntary return look like a push-back. Fix: `scriptHeld()` requires a lock with no active UI or naming screen and either a dialogue/message or the game's script context running (mode 1 or 2, status not CONTEXT_SHUTDOWN, src/script.c). Tests: start-menu and unknown-lock round trips match OFF (both red with the old rule; restored). Replay receipts unchanged (sh02 twin/Birch states are message or script mode 2 status 0). Switch copy and explainer say menus and unknown locks do not count. Agent 1509, viewer 853 passed; lint clean.
+
 ## Surprises
 
 - `loop_guard` evidence is capped at 2 items by the event schema (`maxItems:2`); a 3-seq evidence list made the recorder throw in the factory test. Evidence is now [first push-back, completing call]. The replay tests validate every notice through `checkEvent`.

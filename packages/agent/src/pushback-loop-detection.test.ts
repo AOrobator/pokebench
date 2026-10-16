@@ -242,6 +242,12 @@ describe("pushback-loop-detection-v1 adds nothing where nothing pushed the playe
    }
   });
  });
+ it.each([
+  ["an open start menu (the menu, not a script, locks the field)",{...ANIMATION,active_ui:{phase:"start_menu",selected:"BAG",ready:true,controls:"UP/DOWN selects; A accepts; B closes",diagnostic:null,value:null}}],
+  ["a lock with unknown script state",{field_controls_locked:true}],
+ ] as const)("leaving and coming back through %s",(_label,lock)=>{
+  same(r=>{for(let i=0;i<4;i++){r.press(["LEFT","START"],HOME,[],{...WEST,...lock});r.press(["B","RIGHT"],{...WEST,...lock},[],HOME);}});
+ });
  it("a return across an errored press (what it did is unknown)",()=>{
   same(r=>{
    for(let i=0;i<3;i++){

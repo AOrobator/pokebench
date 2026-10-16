@@ -216,6 +216,9 @@ Merge locally after all lanes LGTM. No pending experiment entry (amendment 2). R
 
 - Merge commit c95e8f50 (main parent be428cdb). Gates at c95e8f50, all exit 0: build; test agent 1786, viewer 918, pytest 2299; lint incl. mypy (80 files); coverage agent lines 99.14 / branches 94.61 / functions 98.52 (loop-detection.ts 98.62 / 96.92 / 100; press-result.ts 100 / 98.15 / 100), viewer 97.62 / 91.12 / 93.63, python 97.36 / 93.22 / 100; verify-vendor OK.
 
+- Round 12 (merge delta, packet be428cdb..e59b7aac): Claude CLI, Grok and Codex LGTM. Reviewed head e59b7aac.
+- 2026-10-16 merge slot: merged main 29da5591 (blocked-exit-and-loss: briefing-battle-outcomes-v1, blocked-exit-fact-v1, battle-loss-recap-v1, trainer-heal-guidance-v1, low-hp-trainer-warning-v1). Registry recipe again (this branch's three after `battle-loss-recap-v1`). Description drift check: this branch's three `on(...)` lines are byte-identical to the reviewed head e59b7aac (sha1 of each line compared), and `features.ts`, `play-preset.ts` and `next-run.ts` differ from main only by inserting this branch's keys/lines (no main line removed or rewritten except the three list lines that gained the keys). Positions recomputed; battle-text tail slices `(-20,-14)`; people-ledger `.at(-9)`; switchboard rows 84. Agent 1867, viewer 932 passed.
+
 ## Multi-Model Review Log (summary)
 
 | Round | Packet | Claude | Grok | Codex |

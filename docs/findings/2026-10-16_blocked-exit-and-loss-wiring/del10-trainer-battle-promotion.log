@@ -1,0 +1,14 @@
+attempt del10-trainer-battle-promotion
+file src/battle-outcomes.ts sha256 before 8235ae1e4a0283761c8a76c12374fbd891d4c03be04fe4f240ce36febc07a3af
+mutation: a running battle is never promoted to a trainer battle after its first state
+63d62
+<    if(((b?.battle_type??0)&BATTLE_TYPE_TRAINER)!==0||s.trainer_opponent?.battle_active===true)run.trainerBattle=true;
+--- broken run
+     × a trainer loss that left the player on the same map is pinned without a whiteout 3ms
+     × a trainer battle whose first state is still initializing (no battle type yet) is a trainer battle once a later state or the opponent reading says so (review round 4) 0ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected null to be 'Battle recap: you lost to SAWYER (tra…' // Object.is equality
+AssertionError: expected null to be 'Battle recap: you lost to SAWYER (tra…' // Object.is equality
+      Tests  2 failed | 9 passed (11)
+--- restored sha256 8235ae1e4a0283761c8a76c12374fbd891d4c03be04fe4f240ce36febc07a3af (equal: yes)
+restored run:       Tests  11 passed (11)

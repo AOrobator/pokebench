@@ -1,0 +1,12 @@
+attempt del9-no-standing-rule
+file src/blocked-exit-fact.ts sha256 before 91aa96d99ca40d7588c283a2eaa0b75c2166f3955e68ba63d66d5f4ef5fdbf9c
+mutation: aimed() again counts any press that starts on the trigger
+115a116
+>   if(same(from,t))return true;
+--- broken run
+     × a call that starts on the trigger with free controls and presses A or B is no refusal, even if a script moves the player off (review round 3) 3ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected 'Blocked exit: WEST -> ROUTE102 (map 0…' to be null
+      Tests  1 failed | 19 passed (20)
+--- restored sha256 91aa96d99ca40d7588c283a2eaa0b75c2166f3955e68ba63d66d5f4ef5fdbf9c (equal: yes)
+restored run:       Tests  20 passed (20)

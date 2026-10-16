@@ -413,6 +413,9 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "blocked-exit-fact-v1":"blocked-exit-fact-v1.html",
  "battle-loss-recap-v1":"battle-loss-recap-v1.html",
  "transition-coherence-v1":"transition-coherence-v1.html",
+ "readout-truth-v1":"readout-truth-v1.html",
+ "birch-speech-pages-v1":"birch-speech-pages-v1.html",
+ "blackout-readout-v1":"blackout-readout-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

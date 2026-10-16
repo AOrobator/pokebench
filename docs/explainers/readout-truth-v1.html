@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Readout Truth</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:760px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.1rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+ul{margin:0;padding-left:20px}
+code{font-family:var(--mono);font-size:.88em}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.nav{fill:var(--nav-bg);stroke:var(--nav)}
+.arrow{stroke:var(--soft);fill:none;stroke-width:1.4}
+pre{margin:0;padding:12px 14px;background:var(--panel);border:1px solid var(--rule);border-radius:6px;overflow-x:auto;font:12px/1.5 var(--mono);white-space:pre}
+.off{border-left:4px solid var(--prior)}
+.on{border-left:4px solid var(--game)}
+table{border-collapse:collapse;font-size:.9rem;width:100%}
+th,td{border-bottom:1px solid var(--rule);padding:6px 8px;text-align:left;vertical-align:top}
+th{font-weight:600}
+.tw{overflow-x:auto}
+</style>
+</head>
+<body>
+<main>
+<header>
+ <p class="eyebrow">Feature switch · observation · <code>readout-truth-v1</code> · default OFF · meant to be ON in both arms</p>
+ <h1>Readout truth</h1>
+ <p class="lede">Correctness fixes to readout lines that hedged or were wrong. When the game state proves that no message box or menu is open, the readout says so. When something holds the field controls, it says what. These are fixes, not a treatment: the switch is meant to be ON in both arms of a comparison. OFF keeps today's bytes so recorded runs and older presets re-render the same.</p>
+</header>
+
+<section>
+ <h2>Why</h2>
+ <p>The cook harness audit of 2026-10-16 (<code>runs/reports/2026-10-16-cook-harness-audit/</code>) found these lines on almost every field readout of every run:</p>
+ <ul>
+  <li><code>Field-message text: unavailable; do not infer that the dialogue box is closed.</code> and <code>Field-message phase: unavailable; do not infer a cutscene or an input-ready dialogue.</code> next to <code>Dialog: none</code> and <code>Field controls: available</code> (687e: 834 results; e588: 480 of 480). In 2919 the model read this as "a dialogue is active" and pressed A×5 for 11 turns.</li>
+  <li><code>Menu: unavailable (active owner not verified)</code> on 1,028 of 1,036 results in 687e, with no menu open.</li>
+  <li><code>Unverified menu buffer: cursor 1 of 2; active menu owner unavailable</code> in battle (sh02, 363 readouts) and <code>cursor 4 of 4</code> on the free field: the stale <code>sMenu</code> struct, quoted as if it were a menu.</li>
+  <li><code>STATE COVERAGE ERROR: field-message owner unqualified …</code> while a field YES/NO box was open and read correctly (14 times in 5 runs).</li>
+  <li><code>Bag: </code> with nothing after it on the field when the bag is empty (battle says <code>Bag: empty</code>).</li>
+  <li><code>Mom rival instruction received</code> at story stage 7, before any rival exists. 687e cited it while hunting "the rival".</li>
+  <li>The START menu redrawn after the party or bag (or another screen opened from it) closes read as <code>Screen: overworld / Dialog: none</code> (show T526–541).</li>
+  <li>The party menu's Cancel button (slot 7) raised a coverage error, and slot 6 was called CANCEL.</li>
+  <li><code>Not on this map: … MAY</code> while RIVAL_MAY_NORMAL was live and on screen (54a7 T153–154).</li>
+ </ul>
+</section>
+
+<section>
+ <h2>Before and after, on recorded RAM</h2>
+ <figure>
+  <pre class="off">OFF  sh02 T143 (state 2984): a push-back script walks the player back
+Menu: unavailable (active owner not verified)
+Bag: <span style="color:var(--soft)">(nothing after the colon)</span>
+Story: player name confirmed; Mom clock instruction received; clock set; Mom rival instruction received
+Field controls: locked (dialog, menu, or script; direction presses cannot move)
+Field-message text: unavailable; do not infer that the dialogue box is closed.
+Field-message phase: unavailable; do not infer a cutscene or an input-ready dialogue.</pre>
+  <pre class="on">ON   the same RAM, re-rendered on the real ROM
+Menu: none open
+Bag: empty
+Story: player name confirmed; Mom clock instruction received; clock set; Mom told you PROF. BIRCH lives next door (after the Petalburg Gym TV report)
+Field controls: locked (a script is running with no message or menu open, for example moving the player or a person; direction presses cannot move)
+Field-message text: none (no message box is open).
+Field-message phase: no message is open; a script is running (movement_wait).</pre>
+  <figcaption>Only these six lines change; every other line of the readout is the same. The OFF text is contained byte for byte in the tool result the model received.</figcaption>
+ </figure>
+ <figure>
+  <pre class="off">OFF  2919 T65 (state 941): the moving truck
+Field controls: locked (dialog, menu, or script; direction presses cannot move)</pre>
+  <pre class="on">ON
+Field controls: locked (no message, menu or script is open; a game animation or sequence holds them; direction presses cannot move; observe again)
+Field-message phase: no message is open and no script is running.</pre>
+  <figcaption>The truck holds the controls from a task (<code>ExecuteTruckSequence</code> calls <code>LockPlayerFieldControls</code>, field_special_scene.c), not from a script, so the line says no script is running.</figcaption>
+ </figure>
+ <figure>
+  <pre class="off">OFF  sh02 T334 (state 7780): Birch's nickname question, field YES/NO box open
+Field-message phase: unavailable; do not infer a cutscene or an input-ready dialogue.
+STATE COVERAGE ERROR: field-message owner unqualified; mode 0; printer active 0, state 0, cursor 0x0202200E; script status 1, mode 1, native 0x0809833D; tasks 0x080AB1B1,0x0809D88D,0x0809E639,0x0809D909,0x080E215D</pre>
+  <pre class="on">ON
+Field activity: other_interface; not an input-ready field message. Inspect the active interface and control lock before acting.</pre>
+  <figcaption>The YES/NO task <code>0x080E215D</code> (Task_HandleYesNoInput, already read by the Interface line) is a valid owner with the message printer idle.</figcaption>
+ </figure>
+ <figure>
+  <pre class="off">OFF  sh02 T317 (state 7443), battle_resolving
+Unverified menu buffer: cursor 1 of 2; active menu owner unavailable</pre>
+  <pre class="on">ON
+Menu: no menu choice open (the Interface line says what owns input)</pre>
+ </figure>
+ <figure>
+  <pre class="off">OFF  54a7 T153 (state 3380): MAY live at (1,3)
+Story characters here (from this map's own object list): none. Not on this map: PROF. BIRCH, MAY, BRENDAN, MOM, NORMAN, WALLY, ROXANNE, STEVEN. …</pre>
+  <pre class="on">ON
+Story characters here (from this map's own object list): MAY at 1,3. Not on this map: PROF. BIRCH, BRENDAN, MOM, NORMAN, WALLY, ROXANNE, STEVEN. …</pre>
+  <figcaption>Her template's hide flag was still set while a script had the object live. A live object with that local id wins.</figcaption>
+ </figure>
+</section>
+
+<section>
+ <h2>When "none open" is said</h2>
+ <figure>
+  <div class="scroll">
+  <svg viewBox="0 0 720 300" role="img" aria-label="Decision for the field-message and menu lines">
+   <rect class="box" x="10" y="10" width="220" height="70" rx="6"/>
+   <text class="t" x="22" y="32">Field message box</text>
+   <text class="s" x="22" y="50">mode 0x020375BC = 0 (hidden)</text>
+   <text class="s" x="22" y="66">window 0 not drawn, printer 0 idle</text>
+   <text class="s" x="22" y="78">no Task_DrawFieldMessage, no read failure</text>
+   <rect class="game" x="270" y="10" width="200" height="40" rx="6"/>
+   <text x="282" y="34">"none (no message box is open)"</text>
+   <rect class="prior" x="270" y="60" width="200" height="40" rx="6"/>
+   <text x="282" y="84">otherwise: today's "unavailable"</text>
+   <path class="arrow" d="M230 35 L270 30"/><path class="arrow" d="M230 60 L270 80"/>
+   <rect class="box" x="510" y="10" width="200" height="90" rx="6"/>
+   <text class="t" x="522" y="32">Script context</text>
+   <text class="s" x="522" y="50">status 0x03000E38, mode 0x03000E41</text>
+   <text class="s" x="522" y="66">SHUTDOWN or STOPPED: no script</text>
+   <text class="s" x="522" y="82">NATIVE 0x0809A671: movement_wait</text>
+   <path class="arrow" d="M470 30 L510 40"/>
+   <rect class="box" x="10" y="150" width="220" height="80" rx="6"/>
+   <text class="t" x="22" y="172">Menu line (no selection)</text>
+   <text class="s" x="22" y="190">needs active-ui-ownership-v1</text>
+   <text class="s" x="22" y="206">an interface owns input?</text>
+   <text class="s" x="22" y="222">field free, or no sMenu window drawn?</text>
+   <rect class="nav" x="270" y="140" width="250" height="36" rx="6"/>
+   <text x="282" y="162">owner: "no menu choice open (…Interface…)"</text>
+   <rect class="game" x="270" y="184" width="250" height="36" rx="6"/>
+   <text x="282" y="206">free field or no window: "Menu: none open"</text>
+   <rect class="prior" x="270" y="228" width="250" height="52" rx="6"/>
+   <text x="282" y="248">locked + drawn sMenu window, no owner:</text>
+   <text x="282" y="266">today's "Unverified menu buffer" (could be real)</text>
+   <path class="arrow" d="M230 170 L270 158"/><path class="arrow" d="M230 190 L270 202"/><path class="arrow" d="M230 215 L270 250"/>
+  </svg>
+  </div>
+  <figcaption>Each "none" claim rests on game state. Any read failure (a short read of a buffer, a window header or its pixels included) or unknown owner keeps the old hedged line. The sMenu window is checked directly: a drawn menu window with the controls locked and no recognised owner keeps the old text even when its cursor does not decode, and an interface that reports a coverage error keeps the old Menu line.</figcaption>
+ </figure>
+</section>
+
+<section>
+ <h2>Game grounding (pret/pokeemerald 731ad5bf, US ROM f3ae0881)</h2>
+ <div class="tw"><table>
+  <tr><th>Fact</th><th>Source</th><th>Value read</th></tr>
+  <tr><td>Field message box hidden</td><td><code>sFieldMessageBoxMode</code> (field_message_box.c)</td><td>0x020375BC = 0</td></tr>
+  <tr><td>Script running or not</td><td><code>sGlobalScriptContextStatus</code>, <code>sGlobalScriptContext.mode</code> (script.c)</td><td>RUNNING 0 / WAITING 1 / SHUTDOWN 2; STOPPED 0 / BYTECODE 1 / NATIVE 2</td></tr>
+  <tr><td>Push-back wait</td><td>native <code>WaitForMovementFinish</code> (scrcmd.c:1015), set by <code>waitmovement</code></td><td>0x0809A671 (sh02 states 2984, 18282)</td></tr>
+  <tr><td>Field YES/NO owner</td><td><code>Task_HandleYesNoInput</code> (script_menu.c); multichoice 0x080E2059, grid 0x080E2309, callback YES/NO 0x08121FDD</td><td>0x080E215D</td></tr>
+  <tr><td>START menu reopen</td><td><code>ReturnToFieldOpenStartMenu</code> → <code>Task_WaitForFadeShowStartMenu</code> → <code>Task_ShowStartMenu</code> (field_screen_effect.c:424–438)</td><td>wait task 0x080AF661; ROM 0x080AF660: bl WaitForWeatherFadeIn, bl DestroyTask, literal 0x0809FA35 (Task_ShowStartMenu), movs r1,#0x50, bl CreateTask</td></tr>
+  <tr><td>Party buttons</td><td><code>PARTY_SIZE</code> Confirm, <code>PARTY_SIZE + 1</code> Cancel (party_menu.c:1141, 1401, 1525)</td><td>slot 6 CONFIRM, 7 CANCEL</td></tr>
+  <tr><td>Story stage 7</td><td><code>PlayersHouse_1F_EventScript_SetWatchedBroadcast</code> after <code>PlayersHouse_1F_Text_GoIntroduceYourselfNextDoor</code> (players_house.inc:132–153)</td><td>VAR_LITTLEROOT_INTRO_STATE 0x4092 = 7</td></tr>
+ </table></div>
+ <p>The START menu redrawn when a screen opened from it closes is drawn but its input task is not running yet, so it reads <code>start_menu</code>, the highlighted item, input not ready. The next observation (after the fade) reads the ordinary ready START menu. In an arm with expanded menu text off it shows as <code>Menu: detailed controls unprovided</code>, like every START menu there.</p>
+</section>
+
+<section>
+ <h2>Proof on recorded runs</h2>
+ <p>Every tool result with raw RAM in seven cook runs, re-rendered with that run's switches and this switch OFF, is contained byte for byte in what the model received: 5,642 of 5,642 (sh02 1100, show 864, 2919 247, 3f21 198, 54a7 655, 687e 1036, e588 1542). With it ON, for example in 687e: 1011 results gain <code>Menu: none open</code>, 830 <code>Field-message text: none (no message box is open).</code>, 815 <code>Field-message phase: no message is open and no script is running.</code>, 50 the task-lock line and 15 the script-lock line.</p>
+</section>
+
+<section>
+ <h2>Wiring</h2>
+ <figure>
+  <div class="scroll">
+  <svg viewBox="0 0 720 90" role="img" aria-label="Switch wiring">
+   <rect class="box" x="10" y="20" width="150" height="46" rx="6"/><text x="20" y="40">preset features</text><text class="s" x="20" y="56">readout-truth-v1</text>
+   <rect class="box" x="190" y="20" width="160" height="46" rx="6"/><text x="200" y="40">serverFeatureEnv</text><text class="s" x="200" y="56">POKEBENCH_FEATURES_OFF</text>
+   <rect class="box" x="380" y="20" width="150" height="46" rx="6"/><text x="390" y="40">rerender.read_state</text><text class="s" x="390" y="56">readout_truth_enabled</text>
+   <rect class="game" x="560" y="20" width="150" height="46" rx="6"/><text x="570" y="40">format_readout</text><text class="s" x="570" y="56">lines above</text>
+   <path class="arrow" d="M160 43 L190 43"/><path class="arrow" d="M350 43 L380 43"/><path class="arrow" d="M530 43 L560 43"/>
+  </svg>
+  </div>
+  <figcaption>The game server reads the switch from its feature-off list; the state JSON is unchanged except where an interface owner is now recognized (the reopened START menu, a field YES/NO box's field_activity).</figcaption>
+ </figure>
+</section>
+
+<section>
+ <h2>Status</h2>
+ <p>Branch <code>claude/readout-truth</code>. Gates and real-ROM checks are recorded in <code>docs/worklogs/active/2026-10-16_readout-truth.md</code>. Not measured: no runs use it yet. The bundle owner puts it ON in both arms of bundle-v-control (<code>onInBoth</code>).</p>
+</section>
+</main>
+</body>
+</html>

@@ -12,6 +12,7 @@ from pathlib import Path
 import pytest
 
 from pokebench_env import rerender
+from pokebench_env.blackout_readout import Whiteout
 from pokebench_env.game_state import MapNames
 from pokebench_env.readout import SERVER_FEATURES
 from pokebench_env.rom import EMERALD_SHA1, RomError, resolve_rom
@@ -28,6 +29,9 @@ RECORDED_OFF = [
     "readout-rules-in-prompt-v1",
     "battle-message-waiting-v1",
     "offscreen-objects-v1",
+    "readout-truth-v1",
+    "birch-speech-pages-v1",
+    "blackout-readout-v1",
 ]
 
 
@@ -115,6 +119,8 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "in_game_naming_enabled": False,
         "offscreen_objects_enabled": False,
         "transition_coherence_enabled": False,
+        "readout_truth_enabled": False,
+        "birch_pages_enabled": False,
         "fmt_named_interactions": False,
         "fmt_world_destinations": False,
         "fmt_bounded_navigation": False,
@@ -123,12 +129,16 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "fmt_warp_animation": False,
         "fmt_rules_in_prompt": False,
         "fmt_adjacent_tiles": False,
+        "fmt_whiteout": None,
     }
+    event = Whiteout(3000)
     rerender.render(
         rerender.read_state(lambda a, n: b"", MapNames({}), active_ui=True, off=frozenset()),
         frozenset(),
         warp_animation=True,
+        whiteout=event,
     )
+    assert seen.pop("fmt_whiteout") is event
     assert all(value is True for value in seen.values())
 
 

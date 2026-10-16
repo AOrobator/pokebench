@@ -30,7 +30,14 @@ from pokebench_env.story import StoryState, read_story
 from pokebench_env.topology import Topology, read_topology
 from pokebench_env.trainer_opponent import TrainerOpponent, read_trainer_opponent
 from pokebench_env.transition_coherence import CB2_HANDLE_START_BATTLE, main_loop_idle
-from pokebench_env.ui_state import ActiveUi, Menu, read_active_ui, read_dialog, read_menu
+from pokebench_env.ui_state import (
+    ActiveUi,
+    Menu,
+    menu_window_drawn,
+    read_active_ui,
+    read_dialog,
+    read_menu,
+)
 from pokebench_env.world_context import WorldContext, read_world_context
 
 __all__ = ["GBA_TEXT", "GameState", "MapNames", "PartyMon", "decode_text", "read_game_state"]
@@ -113,6 +120,10 @@ class GameState:
     displayed_places: tuple[tuple[int, int, str], ...] = ()
     # offscreen-objects-v1: this map's objects outside the readout's window; None when off.
     offscreen_objects: tuple[MapObject, ...] | None = None
+    # readout-truth-v1: the active interface was read (active-ui-ownership-v1 on); text only.
+    active_ui_read: bool = False
+    # readout-truth-v1: sMenu's window is drawn (even with an invalid cursor); None when off.
+    menu_window_drawn: bool | None = None
 
 
 DYNAMIC_WARP = 0x14
@@ -187,6 +198,8 @@ def read_game_state(
     in_game_naming_enabled: bool = False,
     offscreen_objects_enabled: bool = False,
     transition_coherence_enabled: bool = False,
+    readout_truth_enabled: bool = False,
+    birch_pages_enabled: bool = False,
 ) -> GameState:
     screen = read_screen(read)
     coherent = transition_coherence_enabled
@@ -199,8 +212,16 @@ def read_game_state(
     in_battle = bool(read(IN_BATTLE, 1)[0] & 0x02)
     battle = read_battle_state(read, current_battle_only=coherent) if in_battle else None
     dialog, menu = read_dialog(read, screen.kind), read_menu(read)
-    native_ui = read_active_ui(read, screen, transition_coherence=coherent)
+    native_ui = read_active_ui(
+        read,
+        screen,
+        truth=readout_truth_enabled,
+        birch_pages=birch_pages_enabled,
+        transition_coherence=coherent,
+    )
     active_ui = native_ui if active_ui_enabled else None
+    truth_read = readout_truth_enabled and active_ui_enabled
+    window_drawn = menu_window_drawn(read) if readout_truth_enabled else None
     if native_ui and native_ui.details and isinstance(native_ui.details.get("message"), str):
         dialog = str(native_ui.details["message"])
     player_object = 0
@@ -251,6 +272,8 @@ def read_game_state(
             dialog=dialog,
             menu=menu,
             active_ui=active_ui,
+            active_ui_read=truth_read,
+            menu_window_drawn=window_drawn,
         )
     _, _, group, number = struct.unpack("<hhBB", read(save1, 6))
     body = read(OBJECT_EVENTS + 0x24 * player_object, 0x24)
@@ -288,6 +311,7 @@ def read_game_state(
             decode_text,
             message_phase=message_phase_enabled,
             native_ui=native_ui,
+            truth=readout_truth_enabled,
         )
         if screen.kind == "overworld" and not in_battle
         else None
@@ -355,6 +379,7 @@ def read_game_state(
             map_id,
             () if context is None else context.objects,
             location=maps.name(map_id),
+            live_wins=readout_truth_enabled,
         )
         if story_characters_enabled and screen.kind == "overworld" and not in_battle
         else None,
@@ -381,4 +406,6 @@ def read_game_state(
         field_controls_locked=bool(read(FIELD_CONTROLS_LOCK, 1)[0])
         if screen.kind == "overworld" and not in_battle
         else None,
+        active_ui_read=truth_read,
+        menu_window_drawn=window_drawn,
     )

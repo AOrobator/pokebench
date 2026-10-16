@@ -32,7 +32,13 @@ from pokebench_env.rom import EMERALD_SHA1, RomError, resolve_rom
 
 FIXTURE = json.loads((Path(__file__).parent / "fixtures/levelup-box-54a7.json").read_text())
 ROM_START = 0x08000000
-RECORDED_OFF = frozenset(FIXTURE["recorded_off"]) | {SWITCH}
+# Switches registered after cook run #2 were off for it.
+RECORDED_OFF = frozenset(FIXTURE["recorded_off"]) | {
+    SWITCH,
+    "readout-truth-v1",
+    "birch-speech-pages-v1",
+    "blackout-readout-v1",
+}
 ON = RECORDED_OFF - {SWITCH}
 OFF_TEXT = "Battle details: WILD single · turn 6 · resolving (no input until the game asks)"
 WAIT = "waiting for a button: press A or B to continue (the game takes any new button press)"
@@ -206,7 +212,7 @@ def test_production_observation_route_honours_the_switch(monkeypatch: pytest.Mon
 
 
 def test_switch_is_a_default_off_server_feature() -> None:
-    assert SERVER_FEATURES[-2] == SWITCH
+    assert SERVER_FEATURES[-5] == SWITCH
     assert SWITCH in features_off_from_env({})
 
 

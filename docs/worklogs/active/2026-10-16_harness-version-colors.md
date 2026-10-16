@@ -96,3 +96,4 @@ snapshot runs 267; frontier-drawn agent runs 178; versions 51; frontier 2026-10-
 | think-swarm · legacy untagged | 15 | unknown | — | 38e4011, 63e9aab, 9358c3d, a467f5c, de2f9f4, f44011f, f779368 | hsl(200 10% 42%) |
 runs listed twice: 0
 
+- [x] Synced with main (merge commit): style.css and BROWSER_MODULES conflicts resolved by keeping both sides (run-head header + version legend). Viewer 992 tests; coverage 95.54 / 91.3 / 93.89 / 97.74; lint clean. Review next.

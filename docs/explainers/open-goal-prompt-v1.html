@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Open Goal Prompt</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:740px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+ul{margin:0;padding-left:20px}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.nav{fill:var(--nav-bg);stroke:var(--nav)}
+.barp{fill:var(--prior)}
+.barg{fill:var(--rule)}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.tick{stroke:var(--soft);stroke-width:1}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+pre.off{border-color:var(--prior)}
+pre.on{border-color:var(--game)}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tablewrap{overflow-x:auto}
+.label{font:600 .8rem var(--mono);letter-spacing:.05em}
+.offl{color:var(--prior)}
+@media (max-width:560px){.stack tr{display:block;border-bottom:1px solid var(--rule);padding:8px 0}.stack tr:first-child{display:none}.stack td{display:block;border:0;padding:2px 0}.stack td:nth-child(2)::before{content:"In the bundle: ";color:var(--soft)}}
+.onl{color:var(--game)}
+</style>
+</head>
+<body>
+<main>
+<div>
+<div class="eyebrow">Harness switch · guidance · <code>open-goal-prompt-v1</code> · needs nothing · off by default</div>
+<h1>Open goal prompt</h1>
+</div>
+<p class="lede">One sentence of the system prompt changes. Today the goal sends the model toward "the first Gym Leader in Rustboro City", a town the game itself does not name until Route 104. With the switch on, the goal names no town, gym or leader: play the game, and the people in it will say what to do next. Every other byte of the prompt stays the same.</p>
+
+<section>
+<h2>Why: run 4caa, turn 273</h2>
+<p>Run <code>2026-10-16T12-42-29_qwen36-gpu0_4caa</code> (bundle arm, cook phase) had just beaten MAY on Route 103, 9/25 HP left. Its reasoning at turn 273:</p>
+<pre>I have defeated MAY. My Torchic is at 9/25 HP. The dialogue indicated I should head back to the LAB (Rustboro City).</pre>
+<p>The lab is in Littleroot. No tool result or dialogue page in that run ever named Rustboro. Its first turn already read "head towards the first Gym Leader in Rustboro City": the goal sentence was the only source. The operator (2026-10-16): "I have a feeling that this is because of the system prompt where we're telling it to reach the first gym."</p>
+</section>
+
+<section>
+<h2>The one sentence that changes</h2>
+<div class="label offl">OFF (today)</div>
+<pre class="off">You are playing Pokémon Emerald on a Game Boy Advance emulator. Your goal is to make as much story progress as you can: start a new game, get your first Pokémon, and work toward defeating the first Gym Leader in Rustboro City.</pre>
+<div class="label onl">ON</div>
+<pre class="on">You are playing Pokémon Emerald on a Game Boy Advance emulator. Your goal is to play the game and make as much story progress as you can; the people in the game will tell you what to do next.</pre>
+<p>The rest of the prompt (tools, controls, dialogue, warps, game evidence, moving around, map rules, battles, trainer heal, explorer, untaken exits) is unchanged; a test checks that ON equals OFF with only this sentence replaced, on run 4caa's recorded prompt. A run with a target milestone keeps "Your goal is: Reach the native game milestone …" either way.</p>
+</section>
+
+<section>
+<h2>When the game itself names these places</h2>
+<figure><div class="scroll"><svg viewBox="0 0 700 200" width="700" role="img" aria-label="Story strip with where the game first names a gym and Rustboro, and where the prompt names them">
+<line x1="20" y1="100" x2="680" y2="100" class="arr"/>
+<g><line x1="30" y1="92" x2="30" y2="108" class="tick"/><text x="30" y="126" class="s" text-anchor="middle">boot</text></g>
+<g><line x1="150" y1="92" x2="150" y2="108" class="tick"/><text x="150" y="126" class="s" text-anchor="middle">house (TV)</text></g>
+<g><line x1="290" y1="92" x2="290" y2="108" class="tick"/><text x="290" y="126" class="s" text-anchor="middle">rival battle</text></g>
+<g><line x1="400" y1="92" x2="400" y2="108" class="tick"/><text x="400" y="126" class="s" text-anchor="middle">Petalburg (Dad)</text></g>
+<g><line x1="520" y1="92" x2="520" y2="108" class="tick"/><text x="520" y="126" class="s" text-anchor="middle">Route 104</text></g>
+<g><line x1="600" y1="92" x2="600" y2="108" class="tick"/><text x="600" y="126" class="s" text-anchor="middle">Petalburg Woods</text></g>
+<rect x="20" y="30" width="190" height="44" rx="6" class="prior"/>
+<text x="30" y="49" class="t">prompt, turn 1</text>
+<text x="30" y="65" class="s">"Gym Leader in Rustboro City"</text>
+<line x1="30" y1="74" x2="30" y2="92" class="arr"/>
+<rect x="110" y="140" width="190" height="44" rx="6" class="game"/>
+<text x="120" y="159" class="t">first "GYM" from the game</text>
+<text x="120" y="175" class="s">MOM: "It's PETALBURG GYM!"</text>
+<line x1="150" y1="140" x2="150" y2="108" class="arr"/>
+<rect x="455" y="140" width="235" height="44" rx="6" class="game"/>
+<text x="465" y="159" class="t">first "RUSTBORO" from the game</text>
+<text x="465" y="175" class="s">map edge, then Woods dialogue</text>
+<line x1="520" y1="140" x2="520" y2="108" class="arr"/>
+<rect x="230" y="30" width="200" height="44" rx="6" class="prior"/>
+<text x="240" y="49" class="t">4caa T273</text>
+<text x="240" y="65" class="s">"the LAB (Rustboro City)"</text>
+<line x1="290" y1="74" x2="290" y2="92" class="arr"/>
+</svg></div>
+<figcaption>Story order, not to scale. Game sources from the human run <code>human/2026-10-13T23-50-13_human_1848</code>: Route 104's north connection reads RUSTBORO CITY at 12:20 AM, and Petalburg Woods dialogue says "…they were after something in RUSTBORO, too?" at 12:32 AM. No model run has got that far yet.</figcaption></figure>
+</section>
+
+<section>
+<h2>How often models named Rustboro before the game did</h2>
+<p>Every model run on 2026-10-15 and 2026-10-16 (lanes qwen36-gpu0, qwen36-gpu1, think-fast): 67 runs, 32,174 turns. All had the Rustboro goal sentence. No tool result or dialogue page in any of them named Rustboro, so every mention below came before the game named it. Model reasoning named Rustboro in <strong>25 of 67 runs</strong> (847 turns).</p>
+<figure><div class="scroll"><svg viewBox="0 0 700 200" width="700" role="img" aria-label="Runs whose reasoning named Rustboro, by cohort">
+<text x="20" y="20" class="t">Runs whose reasoning named Rustboro (bar = share of runs)</text>
+<g transform="translate(0,40)">
+<text x="20" y="14">cook bundle (60 min)</text><rect x="210" y="2" width="320" height="16" class="barg"/><rect x="210" y="2" width="293" height="16" class="barp"/><text x="540" y="14" class="m">11/12 · 693 turns</text>
+<text x="20" y="44">cook control (60 min)</text><rect x="210" y="32" width="320" height="16" class="barg"/><rect x="210" y="32" width="64" height="16" class="barp"/><text x="540" y="44" class="m">2/10 · 5 turns</text>
+<text x="20" y="74">factorial (CLOCK_SET)</text><rect x="210" y="62" width="320" height="16" class="barg"/><rect x="210" y="62" width="107" height="16" class="barp"/><text x="540" y="74" class="m">8/24 · 144 turns</text>
+<text x="20" y="104">finals (boot)</text><rect x="210" y="92" width="320" height="16" class="barg"/><rect x="210" y="92" width="142" height="16" class="barp"/><text x="540" y="104" class="m">4/9 · 5 turns</text>
+<text x="20" y="134">dry runs (short)</text><rect x="210" y="122" width="320" height="16" class="barg"/><text x="540" y="134" class="m">0/12 · 0 turns</text>
+</g>
+</svg></div>
+<figcaption>Counts from the runs' own events (assistant thinking and text versus tool results and dialogue pages). "Lab in Rustboro" outright: 2 runs, 113 turns (think-fast <code>0875</code>: "Professor Birch's lab in Rustboro City?", and 4caa T273). A gym was named before the game's TV line in 8 of 67 runs, 4 of them at turn 1. The cohorts differ in many switches, so the bundle/control gap is descriptive only.</figcaption></figure>
+</section>
+
+<section>
+<h2>What to watch in the bundle arm (pre-registered)</h2>
+<p>This switch joins the bundle arm of bundle-v-control (the operator, 2026-10-16). The diagnostic below was fixed before any run with the switch on. It checks the mechanism; it is not causal evidence and it grades nothing.</p>
+<ul>
+<li><strong>Rustboro before the game:</strong> per run, the number of turns whose reasoning names Rustboro before any tool result or dialogue page did. Baseline: bundle cook runs, 11 of 12 runs, 693 turns. Expected with the switch: near zero; any left come from the model's own memory of the series.</li>
+<li><strong>Gym before the game:</strong> runs whose reasoning names a gym before Mom's TV line. Baseline 8 of 67 runs.</li>
+<li><strong>After the rival battle:</strong> what the reasoning names as the next destination once MAY is beaten (Birch's lab in Littleroot is the game's next step).</li>
+</ul>
+<p>Grading cannot depend on the wording: milestones come only from native game flags and variables (<code>story.py</code>, <code>milestones.ts</code>), never from the prompt.</p>
+</section>
+
+<section>
+<h2>Other places the model can read Rustboro or a gym</h2>
+<div class="tablewrap"><table class="stack">
+<tr><th>Where</th><th>On in the bundle?</th><th>Decision</th></tr>
+<tr><td>System prompt goal sentence</td><td>yes</td><td>Replaced by this switch.</td></tr>
+<tr><td>The goal the objective record carries (<code>objective-tracking-v1</code>) and the state-only prompt (<code>state-only-decisions-v1</code>)</td><td>no</td><td>Replaced too, so ON never names a town, gym or leader as the goal whatever else is on.</td></tr>
+<tr><td><code>next-milestone-hint-v1</code> ladder (Petalburg Gym, Rustboro City, Roxanne)</td><td>no</td><td>Left alone: a walkthrough treatment by design, shown one milestone at a time.</td></tr>
+<tr><td>Objective completion vocabulary (<code>RUSTBORO_GYM_COMPLETE</code> …)</td><td>no</td><td>Left alone: a grading vocabulary in a tool schema, not a goal.</td></tr>
+<tr><td>Readout story lines, character presence, sign names ("Petalburg Gym TV report", "Gym Sign", ROXANNE in her gym)</td><td>yes</td><td>Left alone: each appears only after the game state or the current map shows it. The scan found no tool result naming Rustboro in 67 runs.</td></tr>
+<tr><td>Every other prompt section</td><td>yes</td><td>No Rustboro, gym, leader or badge (checked on run 4caa's recorded prompt).</td></tr>
+</table></div>
+</section>
+
+<section>
+<h2>Wiring</h2>
+<figure><div class="scroll"><svg viewBox="0 0 700 120" width="700" role="img" aria-label="Wiring from preset to prompt">
+<rect x="20" y="40" width="150" height="44" rx="6" class="box"/><text x="32" y="59" class="t">preset / switchboard</text><text x="32" y="75" class="s m">open-goal-prompt-v1</text>
+<line x1="170" y1="62" x2="210" y2="62" class="arr"/>
+<rect x="210" y="40" width="150" height="44" rx="6" class="box"/><text x="222" y="59" class="t">FeatureSet</text><text x="222" y="75" class="s">normalizeFeatures</text>
+<line x1="360" y1="62" x2="400" y2="62" class="arr"/>
+<rect x="400" y="20" width="280" height="36" rx="6" class="nav"/><text x="412" y="43" class="t">playSystemPrompt: goal sentence</text>
+<rect x="400" y="66" width="280" height="36" rx="6" class="box"/><text x="412" y="89">playGoal: objective record, state-only</text>
+</svg></div>
+<figcaption>Agent side only; the game server is untouched. The switch is recorded last in the run's harness features.</figcaption></figure>
+</section>
+
+<section>
+<h2>Status</h2>
+<ul>
+<li>Branch <code>claude/open-goal-prompt</code>. Tests: registry and presets default OFF, OFF equals run 4caa's recorded prompt byte for byte, ON replaces only the goal sentence, target runs unchanged, objective and state-only goals, factory path, the pending entry's incumbent equals the bundle arm.</li>
+<li>Pending experiment <code>experiments/open-goal-prompt.json</code> (incumbent: the bundle-v-control bundle arm). Not measured. Adding it to the bundle arm is an edit to <code>experiments/fixed/bundle-v-control.json</code> that this branch does not make.</li>
+</ul>
+</section>
+</main>
+</body>
+</html>

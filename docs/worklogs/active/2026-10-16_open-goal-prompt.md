@@ -51,9 +51,13 @@ Grading never reads the prompt: milestones come from native game flags (`milesto
 ### M1 switch + tests + explainer + pending entry
 
 - [x] RED: tests for registry, presets, OFF = run 4caa prompt bytes, ON = one-sentence diff, playGoal, factory path, pending experiment (agent `open-goal-prompt.test.ts`: 9 of 10 fail; viewer `open-goal-prompt.test.ts`: 2 of 2 fail). Fixture `test-support/open-goal-4caa.json` = run 4caa run_start + T273 thinking.
-  COMMIT: `test(RED): open-goal-prompt-v1` (sha in next entry)
-- [ ] GREEN: implementation, explainer, FEATURE_EXPLAINERS, experiments/open-goal-prompt.json, readiness.md
-- [ ] Gates: just test, just coverage, just lint, just build
+  COMMIT: `test(RED): open-goal-prompt-v1 goal sentence without a town, gym or leader` (4f2834b0)
+- [x] GREEN: implementation, explainer, FEATURE_EXPLAINERS, experiments/open-goal-prompt.json, readiness.md
+  - `playGoal(target, features)`; `targetGoal(target)` for the decision probe's target-only path. Registry shift in 21 agent test files and 2 viewer test files is mechanical (negative indices +1, the new id OFF in ALL_ON-minus lists, guidance count 35→36, controls 88→89).
+  - Wiring deletion check: removing the `else if (features["open-goal-prompt-v1"])` line turns 2 tests red (ON replacement, factory path); restored, 10/10 green.
+  - Explainer checked at 1280×900, 1440×900, 375×812 and dark mode via a scratch static server (not 8791; runs/ left untouched). Fixed: bar labels clipped at the right edge; the decisions table squeezed at 375 (now stacks).
+  - Worktree setup: `pnpm install`, `uv sync`, submodule init (`just verify-vendor` OK), `.env` copied from the main checkout, mgba binding copied from the main venv (mypy needs `mgba._pylib`).
+- [x] Gates (pre-review tip): `just test` vitest agent 1890/1890, viewer 974/974, pytest 2465 passed; `just coverage` agent 97.99/94.7/98.4 (stmts/branches/funcs), viewer 95.41/91.17/93.79, python lines 97.52 branches 93.55 functions 100 (floor 90); `just lint` clean; `just build` clean; `just experiments-check` ok (80 experiments).
 - [ ] Principles self-review
 - [ ] Review: Claude, Grok cursor-grok-4.5-high, Codex gpt-5.6-sol; synced with main before the final round
 

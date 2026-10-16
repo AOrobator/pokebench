@@ -842,7 +842,7 @@ it("mounts the ineffective loops notices in Activity History and the inspector a
  expect(ui("trace").querySelector(`[data-seqs~="${String(warning.seq)}"]`)).toBeNull();
  app.tick(9000);
  const row=must(ui("trace").querySelector<HTMLElement>(`[data-seqs~="${String(warning.seq)}"]`));
- expect(row.textContent).toContain("Loop guard · cycle warning");expect(row.textContent).toContain("keep ending on the same tile");
+ expect(row.textContent).toContain("Loop guard · cycle warning");expect(row.textContent).toContain("keep ending on the same one or two tiles");
  expect(must(ui("trace").querySelector<HTMLElement>(`[data-seqs~="${String(recovered.seq)}"]`)).textContent).toContain("cycle recovered");
  expect(must(ui("trace").querySelector<HTMLElement>(`[data-seqs~="${String(waiting.seq)}"]`)).textContent).toContain("open menu, prompt or message waiting for your input");
  row.click();expect(ui("inspector").textContent).toContain('"type": "loop_guard"');expect(ui("inspector").textContent).toContain("5057");expect(ui("inspector").textContent).toContain("5121");expect(row.classList.contains("sel")).toBe(true);

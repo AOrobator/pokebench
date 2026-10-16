@@ -175,5 +175,5 @@ it.each([true,false])("play hands the loop guard ineffective-loops-v1 from its p
  vi.spyOn(console,"log").mockImplementation(()=>undefined);await import("./live.js");const start=await receipt;
  if(start.type!=="run_start")throw new Error("Missing run_start");expect(start.harness_features.includes("ineffective-loops-v1")).toBe(enabled);
  expect(context.interactionWarnings).toHaveLength(1);
- if(enabled)expect(context.interactionWarnings[0]).toContain("keep ending on the same tile");else expect(context.interactionWarnings).toEqual([null]);
+ if(enabled)expect(context.interactionWarnings[0]).toContain("keep ending on the same one or two tiles");else expect(context.interactionWarnings).toEqual([null]);
 });

@@ -74,6 +74,11 @@ describe("people-ledger-v1 on the 2026-10-16T00-34-26_qwen36-gpu1_show recording
   expect(mapObjects(s)?.map(o=>`${String(o.local_id)} ${o.sprite ?? ""}`)).toEqual(["3 BOY_2","4 MOM"]);
   expect(new PeopleLedger().block(s,"Location: LITTLEROOT TOWN","x")).toBe(`${PEOPLE_HEADER}\n- object 3, sprite BOY_2, at (14,17): not talked to this run\n- object 4, sprite MOM, at (5,9): not talked to this run`);
  });
+ it("counts nobody for a scriptless cutscene object: May walking up at T161 has no object script, so she is not a listed object",()=>{
+  expect(facedObject(stateAt(3183))).toBeNull();
+  expect(stateAt(3183).world_context?.objects.some(o=>o.local_id===7&&o.sprite_kind==="RIVAL_MAY_NORMAL")).toBe(true);
+  expect(mapObjects(stateAt(3183))?.map(o=>o.local_id)).toEqual([4,6]);
+ });
  it("resolves the faced object the game itself would talk to",()=>{
   expect(facedObject(stateAt(2842))).toMatchObject({key:"1/2#4",local_id:4,sprite:"WOMAN_4"});
   expect(facedObject(stateAt(12680))).toMatchObject({key:"1/2#6",local_id:6,sprite:"NINJA_BOY"});

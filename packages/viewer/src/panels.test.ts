@@ -682,6 +682,14 @@ it("links the transition press results card to its explainer",()=>{
  expect(FEATURE_EXPLAINERS["blocked-batch-result-v1"]).toBe("blocked-batch-result-v1.html");
 });
 
+it("links the battle text auto-advance card to its explainer in Harness Config",()=>{
+ expect(FEATURE_EXPLAINERS["battle-text-auto-advance-v1"]).toBe("battle-text-auto-advance-v1.html");
+ const log=new Log();log.add(0,{...START,harness_features:["battle-text-auto-advance-v1"]});
+ const registry=(["battle-text-auto-advance-v1"] as const).map(id=>({id,title:"BATTLE TEXT AUTO-ADVANCE",description:"d",group:"guidance" as const,switchable:true,needs:"dialogue-auto-advance-v1" as const}));
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),registry);
+ expect(doc.querySelector('[data-feature="battle-text-auto-advance-v1"] a')?.getAttribute("href")).toBe("/explainers/battle-text-auto-advance-v1.html");
+});
+
 it("links the bedroom exit measurement card to its explainer in Harness Config",()=>{
  const log=new Log();log.add(0,{...START,harness_features:["bedroom-exit-v1"]});
  const registry=(["bedroom-exit-v1"] as const).map(id=>({id,title:"LEFT BEDROOM",description:"d",group:"measurement" as const,switchable:false,needs:null}));

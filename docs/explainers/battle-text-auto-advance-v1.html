@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Battle Text Auto-Advance</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:740px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+ul{margin:0;padding-left:20px}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.nav{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tablewrap{overflow-x:auto}
+</style>
+</head>
+<body>
+<main>
+<div>
+<div class="eyebrow">Harness switch · guidance · <code>battle-text-auto-advance-v1</code> · needs <code>dialogue-auto-advance-v1</code> · off by default</div>
+<h1>Battle text auto-advance</h1>
+</div>
+<p class="lede">Battle messages advance the way field dialogue already does. The harness presses B on each battle message that waits for a button, and the game server holds every other wait until the first emulated frame the battle needs the model again. The model sees one result per decision, with every battle message listed.</p>
+
+<section>
+<h2>Why</h2>
+<p>In the showcase run <code>2026-10-16T00-34-26_qwen36-gpu1_show</code>, seven wild battles took 19 to 37 turns each. Most turns were a single A press answered <code>interface unchanged</code> while the battle phase read <code>resolving</code>: the model was pressing into messages that advance on their own. Field auto-advance stopped at "a battle started" and did nothing inside the battle.</p>
+</section>
+
+<section>
+<h2>Off and on, one battle turn</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 250" width="700" role="img" aria-label="Off: five model turns for one battle turn. On: one model turn.">
+ <text x="10" y="20" class="t">OFF: the model presses through the turn itself</text>
+ <g>
+  <rect x="10" y="32" width="120" height="44" rx="6" class="prior"/><text x="18" y="50">turn 722: A</text><text x="18" y="66" class="s">resolving · unchanged</text>
+  <rect x="140" y="32" width="120" height="44" rx="6" class="prior"/><text x="148" y="50">turn 723: A</text><text x="148" y="66" class="s">resolving · unchanged</text>
+  <rect x="270" y="32" width="120" height="44" rx="6" class="prior"/><text x="278" y="50">turn 724: A</text><text x="278" y="66" class="s">page waits · advanced</text>
+  <rect x="400" y="32" width="120" height="44" rx="6" class="prior"/><text x="408" y="50">turn 725: A</text><text x="408" y="66" class="s">resolving · unchanged</text>
+  <rect x="530" y="32" width="160" height="44" rx="6" class="prior"/><text x="538" y="50">turn 726: action menu</text><text x="538" y="66" class="s">FIGHT highlighted</text>
+ </g>
+ <text x="10" y="120" class="t">ON: one call, the harness advances and lists the messages</text>
+ <rect x="10" y="132" width="680" height="104" rx="8" class="game"/>
+ <text x="22" y="152" class="m">press ["A","A","A"]  →  sent A; 2 inputs not sent</text>
+ <text x="22" y="172" class="m">  wait (server, per frame) → "Wild WURMPLE appeared!" waits → B</text>
+ <text x="22" y="192" class="m">  wait (server, per frame) → action menu ready → stop</text>
+ <text x="22" y="214" class="m">result: pages listed whole; stopped at FIGHT/BAG/POKEMON/RUN, FIGHT highlighted</text>
+</svg>
+</div>
+<figcaption>The recorded turns 722–726 (event seqs 18431–18487) and the same start replayed with the switch on (test <code>battle-text-auto-advance.test.ts</code>, raw RAM 7765 → 7782). One B press, two inputs dropped, a stop at the action menu.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>What the game does (pret/pokeemerald 731ad5bf)</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 270" width="700" role="img" aria-label="Battle messages go through printer 0 on gDisplayedStringBattle; healthbox names reuse the buffer without a printer.">
+ <rect x="10" y="20" width="200" height="60" rx="6" class="box"/><text x="20" y="42" class="t">PlayerHandlePrintString</text><text x="20" y="62" class="s">BufferStringBattle(id)</text>
+ <rect x="250" y="20" width="200" height="60" rx="6" class="nav"/><text x="260" y="42" class="t">gDisplayedStringBattle</text><text x="260" y="62" class="m">0x02022E2C · 300 bytes</text>
+ <rect x="490" y="20" width="200" height="60" rx="6" class="game"/><text x="500" y="42" class="t">sTextPrinters[0]</text><text x="500" y="62" class="m">0x020201B0 · B_WIN_MSG</text>
+ <path d="M210 50 H250" class="arr"/><path d="M450 50 H490" class="arr"/>
+ <text x="214" y="44" class="s">writes</text><text x="454" y="44" class="s">prints</text>
+ <rect x="250" y="110" width="200" height="56" rx="6" class="prior"/><text x="260" y="132" class="t">Healthbox, move, PP, type</text><text x="260" y="150" class="s">same buffer, speed 0, other window</text>
+ <path d="M350 110 V80" class="arr"/><text x="356" y="100" class="s">overwrites</text>
+ <text x="470" y="132" class="s">no printer stays active,</text><text x="470" y="148" class="s">so the reader reports "idle"</text>
+ <rect x="10" y="190" width="680" height="66" rx="6" class="box"/>
+ <text x="20" y="210" class="m">printer 0 active, windowId 0, cursor inside the buffer, state 1/2/3, no autoScroll → waiting_for_input (A or B advances)</text>
+ <text x="20" y="228" class="m">printer 0 active, other state → printing (the battle script's waitmessage advances it on its own)</text>
+ <text x="20" y="246" class="m">printer 0 idle → idle: no text is reported, whatever the buffer holds</text>
+</svg>
+</div>
+<figcaption>Recorded evidence from the showcase run's raw RAM: at 7765 the buffer holds <code>WURMPLE♀</code> (healthbox) with printer 0 idle; at 7772 printer 0 waits at cursor 23 on <code>Wild WURMPLE appeared!</code>. A and B both advance (<code>JOY_NEW(A_BUTTON | B_BUTTON)</code> in <code>text.c</code>); B is used, as field auto-advance does. Findings: <code>docs/findings/2026-10-16_battle-text.md</code>.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>Where it stops</h2>
+<div class="tablewrap"><table>
+<tr><th>Game state</th><th>Stop</th><th>Result says</th></tr>
+<tr><td>Action or move menu owner ready</td><td><code>battle_input</code></td><td>the battle action menu is ready (FIGHT, BAG, POKEMON, RUN); highlighted FIGHT</td></tr>
+<tr><td>Battle-script YES/NO in state 1 (<code>yesnobox</code>, learn move, stop learning, nickname a catch)</td><td><code>battle_prompt</code></td><td>a battle YES/NO question is open (…); highlighted NO; B answers NO</td></tr>
+<tr><td>Bag, party, summary or naming screen; evolution</td><td><code>menu</code> / <code>naming</code> / <code>screen_change</code></td><td>the open menu or screen</td></tr>
+<tr><td>Battle over, field back (CB2_Overworld, no fade)</td><td>field auto-advance continues</td><td>Birch's thanks, a blackout message, then field free</td></tr>
+<tr><td>50 presses or 90 s in the call (shared with field auto-advance)</td><td><code>press_cap</code> / <code>time_cap</code></td><td>AUTO-ADVANCE CAP …</td></tr>
+<tr><td>3 waits of 600 emulated frames in a row with nothing to press</td><td><code>battle_busy</code></td><td>the battle kept running on its own …</td></tr>
+<tr><td>Operator pause</td><td><code>paused</code></td><td>the game is paused …</td></tr>
+</table></div>
+</section>
+
+<section>
+<h2>Waits come from game frames</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 200" width="700" role="img" aria-label="Server frame hooks: journal then wait; agent calls wait, messages, and presses B.">
+ <rect x="10" y="20" width="320" height="160" rx="8" class="box"/><text x="22" y="42" class="t">Game server (each emulated frame)</text>
+ <rect x="24" y="56" width="292" height="44" rx="6" class="nav"/><text x="34" y="76">battle text journal</text><text x="34" y="92" class="s">cuts a page at each wait and at message end</text>
+ <rect x="24" y="114" width="292" height="52" rx="6" class="game"/><text x="34" y="134">battle wait</text><text x="34" y="152" class="s">releases on the first frame that needs input</text>
+ <rect x="380" y="20" width="310" height="160" rx="8" class="box"/><text x="392" y="42" class="t">Agent (switch ON)</text>
+ <text x="392" y="70" class="m">GET /pokebench/battle/wait</text>
+ <text x="392" y="94" class="m">GET /pokebench/battle/messages?after=N</text>
+ <text x="392" y="118" class="m">press B (only on a waiting page)</text>
+ <text x="392" y="142" class="m">record dialogue_auto_advance</text>
+ <path d="M330 140 H380" class="arr"/><path d="M330 78 H380" class="arr"/>
+</svg>
+</div>
+<figcaption>No sleeps or polling inside a battle: the server holds each wait until a frame where a page waits, an input or YES/NO owner is ready, another screen opens, or the field is back, bounded at 600 frames. Field waits after the battle are field auto-advance's, unchanged.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>Real ROM: Birch rescue battle (recorded)</h2>
+<p>Production tools from the built branch, from a save at the starter confirmation; calls <code>A</code>, then <code>A,A</code> three times. Receipts: <code>runs/battle-text-qualify/m3-birch.json</code>.</p>
+<pre>call 1  A    → B ×1 · stop: action menu ready, FIGHT
+             1. battle turn 1: "Wild ZIGZAGOON appeared!"
+             2. battle turn 1: "Go! TORCHIC!"
+call 2  A,A  → B ×0 · stop: action menu · "TORCHIC used SCRATCH!" · "Wild ZIGZAGOON used GROWL!" · "TORCHIC's ATTACK fell!"
+call 3  A,A  → B ×0 · stop: action menu · "TORCHIC used SCRATCH!" · "Wild ZIGZAGOON used TACKLE!"
+call 4  A,A  → B ×2 in battle, 13 in the field · stop: menu field_yes_no (YES, NO; YES highlighted)
+             "TORCHIC used SCRATCH!" · "Wild ZIGZAGOON fainted!" · "TORCHIC gained 17 EXP. Points!"
+             then 15 field pages: Birch's thanks on Route 101, the lab, "AA received the TORCHIC!",
+             "PROF. BIRCH: While you're at it, why not give a nickname to that TORCHIC?"</pre>
+</section>
+
+<section>
+<h2>Real ROM: wild battle on Route 101 (recorded)</h2>
+<p>From a save in the Route 101 grass with TORCHIC; walking LEFT/RIGHT one step per call until the 14th step started a battle, then <code>A,A</code> per turn. Receipts: <code>runs/battle-text-qualify/m3-wild.json</code>.</p>
+<pre>RIGHT → B ×1 · stop: action menu · "Wild POOCHYENA appeared!" · "Go! TORCHIC!"
+A,A   → B ×0 · stop: action menu · "TORCHIC used SCRATCH!" · "Wild POOCHYENA used TACKLE!"   (twice)
+A,A   → B ×2 · stop: the battle ended and field controls are free
+        "TORCHIC used SCRATCH!" · "Wild POOCHYENA fainted!" · "TORCHIC gained 15 EXP. Points!"</pre>
+<p>The whole battle took 4 model calls.</p>
+</section>
+
+<section>
+<h2>What the model is told</h2>
+<ul>
+<li>System prompt (ON only): a "Battle text auto-advance:" paragraph.</li>
+<li>press and navigate_to descriptions (ON only) say battle text advances the same way.</li>
+<li>Each result: <code>Battle text auto-advance: the harness pressed B N times …; stopped: …</code>, dropped inputs, and every page as <code>N. turn T · MAP (map a/b) · battle turn K: "text"</code>, whole and in order.</li>
+<li>get_dialogue finds battle pages; the dialogue log, instruction ledger and supervisors skip them.</li>
+</ul>
+</section>
+
+<section>
+<h2>Status</h2>
+<ul>
+<li>Branch <code>claude/battle-text-auto-advance</code>. Gates: test, lint, build, coverage (≥90 both stacks), verify-vendor green.</li>
+<li>Pending experiment <code>experiments/battle-text-auto-advance.json</code> (activation STARTER_CHOSEN, primary OLDALE_TOWN); joins the bundle arm of bundle-v-control by operator decision.</li>
+<li>Not visited on the real ROM: learn-move and nickname YES/NO boxes, the switch offer, a double battle, a blackout. Covered by source reading and tests only.</li>
+<li>No measured runs yet.</li>
+</ul>
+</section>
+</main>
+</body>
+</html>

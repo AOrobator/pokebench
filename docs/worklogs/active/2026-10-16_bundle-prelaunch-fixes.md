@@ -23,16 +23,21 @@ Forensics of bundle qualification run `2026-10-15T23-47-41_qwen36-gpu1_3f21` (`r
 
 **M5 — F5–F8**
 - [x] RED: tests from real 3f21 events (fixtures under `packages/agent/test-support/bundle-3f21/`): `packages/agent/src/bundle-3f21-fixes.test.ts`, 10 failing / 2 passing (the two passing pin the both-arm supervisor T65 note byte for byte and the recorded generic refusal with the switch OFF). Replays reproduce the recorded text exactly before the fix (T95 press line, T98 navigate line, T166 briefing lines, T56 pages).
-- [ ] GREEN F5–F8
+- [x] GREEN F5–F8: agent 82 files / 1278 tests pass; lint + build clean. Two existing ON-switch tests updated on purpose (door warp now has a specific reason; stall briefing adds three lines, all other lines still equal the loop briefing).
 - [ ] Gates: test, lint, build, coverage (90%), verify-vendor
 - [ ] Explainer updates (local)
 - [ ] Review: Codex + grok
 
 ## Session Log
 
+- 2026-10-16: GREEN F5–F8 committed. Scope addition from coordinator: F12 (naming-editor/owned-interface awareness + interface-dwell stall) inside stall-briefing-v1.
 - 2026-10-16: RED committed (see COMMIT lines below).
 - 2026-10-16: worktree created from main `fa09dbe6`; worklog written.
 
 ## Multi-Model Review Log
 
 ## Surprises
+
+## Commits
+
+- COMMIT: `test(bundle): RED for F5–F8 replayed from bundle run 3f21` (b718b137)

@@ -121,8 +121,8 @@ describe("navigation-refusal-reasons-v1: why the target cannot be walked to",()=
   expect(await status(full,{x:1,y:1},{fullMap:true})).toBe(NO_FULL);
  });
  it("keeps the generic text when it has no specific reason: warps, enclosed floor, unknown tiles, broken geometry",async()=>{
-  const door={...field,navigation_grid:{elevation:3,tiles:square(3,(x,y)=>x===2&&y===0?tile(2,0,1,0x69):x===2&&y===1?tile(2,1,1):null),objects:[],warps:[{x:2,y:0}]}};
-  expect(await status({...door,position:{x:0,y:2}},{x:2,y:0},on)).toBe(NO_LOCAL);
+  const stepWarp={...field,navigation_grid:{elevation:3,tiles:square(3,(x,y)=>x===2&&y===0?tile(2,0,0,0x60):x===2&&y===1||x===1&&y===0?tile(x,y,1):null),objects:[],warps:[{x:2,y:0}]}};
+  expect(await status({...stepWarp,position:{x:0,y:2}},{x:2,y:0},on)).toBe(NO_LOCAL);
   const enclosed={...field,navigation_grid:{elevation:3,tiles:[tile(0,0),tile(1,0,1),tile(2,0)],objects:[],warps:[]}};
   expect(await status(enclosed,{x:2,y:0},on)).toBe(NO_LOCAL);
   expect(await status(field,{x:9,y:9},on)).toBe(NO_LOCAL);

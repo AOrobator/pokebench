@@ -416,6 +416,9 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "readout-truth-v1":"readout-truth-v1.html",
  "birch-speech-pages-v1":"birch-speech-pages-v1.html",
  "blackout-readout-v1":"blackout-readout-v1.html",
+ "surf-gated-exits-v1":"surf-gated-exits-v1.html",
+ "navigation-truth-v1":"navigation-truth-v1.html",
+ "navigation-refusal-reasons-v2":"navigation-refusal-reasons-v2.html",
  "open-goal-prompt-v1":"open-goal-prompt-v1.html",
 });
 

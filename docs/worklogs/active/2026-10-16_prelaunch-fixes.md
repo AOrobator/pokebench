@@ -77,6 +77,7 @@ Done when every milestone is merged, qualification shows none of F1–F8, the fo
 
 ## Session Log
 
+- 2026-10-16 03:57 PM EDT: surf-gated-exits-v1 landed (49e18c58, main 54a525b5); added to the bundle switches (off in base and in the frontier control base).
 - 2026-10-16 02:47 PM EDT: Control follows the frontier (the operator, 2:43 PM EDT). New control base `experiments/fixed/control-bases/frontier-incumbent-4caa.json` (sha256 9d6f9e98…) = the bundle-arm features recorded by run `2026-10-16T12-42-29_qwen36-gpu0_4caa` (pin 6603d64f), with same-plan-breaker-v1 and presence-penalty-v1 off (the operator: drop both), plus the both-arm fixes landed since (transition-coherence-v1, readout-truth-v1, birch-speech-pages-v1). base.features = that preset; bundle switches = blackout-readout-v1 (the one bundle switch landed after 6603d64f); offInBoth = milestone-stall-stop-v1, same-plan-breaker-v1, presence-penalty-v1; onInBoth empty. warp-arrival-settle-v1 is now in control. Definition sha256 798e11ae…; plan unchanged.
 - 2026-10-16 02:23 PM EDT: readout-truth landed (173fcd4b, pins 4996fb96): readout-truth-v1 and birch-speech-pages-v1 added to onInBoth (on in base); blackout-readout-v1 added to the bundle switches (off in base).
 - 2026-10-16 01:30 PM EDT: transition-coherence-v1 (correctness fix, landed 7334cfda, pin 58a6d06c) added to onInBoth (on in base).

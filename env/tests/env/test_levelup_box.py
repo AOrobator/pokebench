@@ -38,6 +38,7 @@ RECORDED_OFF = frozenset(FIXTURE["recorded_off"]) | {
     "readout-truth-v1",
     "birch-speech-pages-v1",
     "blackout-readout-v1",
+    "surf-gated-exits-v1",
 }
 ON = RECORDED_OFF - {SWITCH}
 OFF_TEXT = "Battle details: WILD single · turn 6 · resolving (no input until the game asks)"
@@ -212,7 +213,7 @@ def test_production_observation_route_honours_the_switch(monkeypatch: pytest.Mon
 
 
 def test_switch_is_a_default_off_server_feature() -> None:
-    assert SERVER_FEATURES[-5] == SWITCH
+    assert SERVER_FEATURES[-6] == SWITCH
     assert SWITCH in features_off_from_env({})
 
 

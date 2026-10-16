@@ -8,7 +8,7 @@
  "primaryMilestone": "ROUTE_103",
  "source": {
   "checkout": "main",
-  "commit": "a85b5915a6481c830372711a3a345da5a70c434f"
+  "commit": "2124e9dbbd0f1072b14cf49349397a04a0a1d9ed"
  },
  "incumbent": {
   "version": 2,
@@ -67,7 +67,8 @@
    "double-context-window-v1": false,
    "fresh-retry-v1": false,
    "text-only-supervisor-v1": false,
-   "navigation-refusal-reasons-v1": false
+   "navigation-refusal-reasons-v1": false,
+   "in-game-naming-readout-v1": false
   }
  },
  "trialsPerArm": 8,

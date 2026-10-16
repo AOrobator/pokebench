@@ -77,6 +77,7 @@ Done when every milestone is merged, qualification shows none of F1–F8, the fo
 
 ## Session Log
 
+- 2026-10-16 05:12 AM EDT: Repinned pending experiments to their merges (connection-edge-tiles → fb6fa7c7; in-game-naming-readout, no-nickname-guidance → 2124e9db) and listed each changed switch explicitly (false) in its incumbent.
 - 2026-10-16 05:08 AM EDT: in-game-naming-readout-v1 and no-nickname-guidance-v1 (F10/F11) merged on main (2124e9db) by the Route 101 thread; both added to the bundle switches (off in base).
 - 2026-10-16 04:57 AM EDT: connection-edge-tiles-v1 (F9) merged on main (fb6fa7c7) by the Route 101 thread; added to the bundle switches (off in base).
 - 2026-10-16 04:45 AM EDT: explorer-guidance-v1 merged on main (20478f28, pinned 735d307d); added to the bundle switches (off in base).

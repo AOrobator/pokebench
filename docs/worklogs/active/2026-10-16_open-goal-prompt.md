@@ -57,8 +57,27 @@ Grading never reads the prompt: milestones come from native game flags (`milesto
   - Wiring deletion check: removing the `else if (features["open-goal-prompt-v1"])` line turns 2 tests red (ON replacement, factory path); restored, 10/10 green.
   - Explainer checked at 1280×900, 1440×900, 375×812 and dark mode via a scratch static server (not 8791; runs/ left untouched). Fixed: bar labels clipped at the right edge; the decisions table squeezed at 375 (now stacks).
   - Worktree setup: `pnpm install`, `uv sync`, submodule init (`just verify-vendor` OK), `.env` copied from the main checkout, mgba binding copied from the main venv (mypy needs `mgba._pylib`).
-- [x] Gates (pre-review tip): `just test` vitest agent 1890/1890, viewer 974/974, pytest 2465 passed; `just coverage` agent 97.99/94.7/98.4 (stmts/branches/funcs), viewer 95.41/91.17/93.79, python lines 97.52 branches 93.55 functions 100 (floor 90); `just lint` clean; `just build` clean; `just experiments-check` ok (80 experiments).
-- [ ] Principles self-review
+- [x] Gates (pre-review tip): `just test` vitest agent 1890/1890, viewer 974/974, pytest 2465 passed; `just coverage` agent 97.99/94.7/98.4 (stmts/branches/funcs), viewer 95.41/91.17/93.79, python lines 97.52 branches 93.55 functions 100 (floor 90); `just lint` clean; `just build` clean; `just experiments-check` ok (79 experiments).
+- [x] Synced with main at 4c805958 (merge, no conflicts). Gates on the merged tip: `just build` ok; `just test` agent 1890/1890, viewer 996/996, pytest 2465 passed; `just coverage` agent 97.98/94.69/98.33/99.14 (stmts/branches/funcs/lines), viewer 95.54/91.3/93.89/97.74, python lines 97.52 branches 93.55 functions 100 (floor 90); `just lint` clean; `just experiments-check` ok (79).
+- [x] Principles self-review (docs/agent-principles.md):
+
+| ID | Score | Evidence |
+|---|---|---|
+| PB1 | PASS | Grading untouched; milestones still come from native flags. The diagnostic is labelled mechanism-only and grades nothing. |
+| PB2 | PASS | No run-accounting change; the diagnostic counts every run in scope (67), short dry runs included. |
+| PB3 | PASS | No improvement claimed; pending experiment uses 8 per arm; counts reported as descriptive with the cohort confound named. |
+| PB4 | PASS | Behavior change is a named switch recorded in `harness_features`, default OFF, ablatable. |
+| PB5 | PASS | One variable (the goal sentence, plus the same goal in objective/state-only paths); hypothesis in experiments/open-goal-prompt.json and the worklog. |
+| PB6 | PASS | Prompt is shorter by a few words; no context growth. |
+| PB7 | PASS | Prompt and switch recorded in run_start (system_prompt, harness_features); evidence from events.jsonl only. |
+| PB8 | N/A | No tool-call or retry path touched. |
+| PB9 | PASS | Bundle placement and no standalone design came from the operator via the coordinator; bundle-v-control.json not edited (owner edits it). Replacement wording is the operator's own suggestion. |
+| PB10 | PASS | No skipped tests, no threshold or exclude change, no --no-verify; registry test shifts are mechanical index updates. |
+| PB11 | N/A | No dependency integration changed. |
+| PB12 | PASS | ROM only via POKEBENCH_ROM (`.env` copied, not the ROM). |
+| PB13 | PASS | RED→GREEN commits with worklog updates; gates on the merged tip; review below. |
+
+Zero FAIL rows.
 - [ ] Review: Claude, Grok cursor-grok-4.5-high, Codex gpt-5.6-sol; synced with main before the final round
 
 ## Multi-Model Review Log

@@ -71,7 +71,7 @@ Read-only RAM decoding and text. No subprocesses, no network, no new endpoints. 
 
 **M3 — review**
 - [x] Merge main, gates
-- [ ] Principles self-review PB1–PB13, zero FAIL
+- [x] Principles self-review PB1–PB13, zero FAIL
 - [ ] Claude, Grok, GPT lanes `VERDICT: LGTM` on one frozen packet
 - [ ] STOP: report to the thread owner (no self-merge)
 
@@ -140,6 +140,8 @@ Report branch, frozen head, packet SHA-256, verdict lines, gate counts and cover
   COMMIT: `docs: operator amendment — whiteout frame scope, birch speech pages ON in both arms`
 - 2026-10-16 01:35 PM EDT: Merged local main 6603d64f (trainer-heal-guidance-v1, low-hp-trainer-warning-v1, briefing-battle-outcomes-v1, trainer-opponent-v1, blocked-exit-fact-v1, battle-loss-recap-v1, pushback-loop-detection-v1, pushback-press-result-v1, battle-observation-loop-v1). Registries: this branch's three ids follow battle-observation-loop-v1 in SWITCHABLE/FEATURES/playHarnessFeatures and after battle-loss-recap-v1 in the preset, flag, normalize and DEFAULT_NEXT_RUN literals; SERVER_FEATURES unchanged (main's are agent-side); FEATURE_EXPLAINERS, README and readiness rows after main's. game_state imports both `read_trainer_opponent` and `menu_window_drawn`. Test hunks take main's version, then every end-relative registry index recomputed from the built registry (19 files), this branch's ids added to features.test's off() lists and the flag-preset expectations; observation count 34; switchboard rows 87. Also rewrapped the `blackout_readout.py` docstring from dd23552a (ruff E501). Gates (ROM set): agent 1873, viewer 933, Python 2396 passed, 0 skipped; coverage agent 97.99/94.68/98.4/99.14 (stmts/branches/funcs/lines), viewer 95.33/91.09/93.68/97.63, Python lines 97.46 branches 93.44 functions 100; lint, build, verify-vendor OK; pages-check clean; experiments-check ok (75). OFF sweep on the merged code: 5,642 of 5,642 identical (sh02 1100, show 864, 2919 247, 3f21 198, 54a7 655, 687e 1036, e588 1542; 0 errors).
   COMMIT: `Merge branch 'main' into claude/readout-truth`
+- 2026-10-16 01:40 PM EDT: Principles self-review PB1–PB13 for round 5 (`/tmp/review-readout-truth-r5.principles.md`): PB2, PB8 N/A; all others PASS; zero FAIL. PB5/PB9 updated for the operator decisions (birch-speech-pages-v1 now a both-arms correctness fix; round-4 B3 taken to the operator, boundary narrowed by amendment A1). Round-5 frozen boundary `/tmp/review-readout-truth-r5.boundary.md` carries amendments A1 (frame scope) and A2 (arms) as frozen input. Packet for round 5 sealed on this commit: `git diff --binary 6603d64f <this commit>`.
+  COMMIT: `docs(worklog): readout-truth round 5 principles self-review; packet sealed`
 
 ## Surprises
 

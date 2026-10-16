@@ -51,19 +51,22 @@ def _u32(read: ReadMemory, address: int) -> int:
     return int.from_bytes(read(address, 4), "little")
 
 
+# pokeemerald field_control_avatar.c and metatile_behavior.c, revision731ad5b: warps that
+# activate when the player, standing on them, presses this direction.
+WARP_PRESSES = {
+    0x62: "RIGHT",
+    0x63: "LEFT",
+    0x64: "UP",
+    0x65: "DOWN",
+    0x1B: "UP",
+    0x1C: "DOWN",
+    0x6D: "DOWN",
+}
+
+
 def _warp_trigger(behavior: int | None) -> str:
-    # pokeemerald field_control_avatar.c and metatile_behavior.c, revision731ad5b.
-    directions = {
-        0x62: "RIGHT",
-        0x63: "LEFT",
-        0x64: "UP",
-        0x65: "DOWN",
-        0x1B: "UP",
-        0x1C: "DOWN",
-        0x6D: "DOWN",
-    }
-    if behavior in directions:
-        return f"directional exit: stand on tile, then press {directions[behavior]}"
+    if behavior in WARP_PRESSES:
+        return f"directional exit: stand on tile, then press {WARP_PRESSES[behavior]}"
     if behavior == 0x69:
         return "door: approach from below and press UP toward door"
     if behavior in {0x0E, 0x0F, 0x29, 0x60, 0x61, 0x67, 0x68, 0x6A, 0x6B, 0x6C, 0x6E}:
@@ -89,6 +92,17 @@ class LocalMap:
     objects: tuple[tuple[int, int, int], ...]
     warps: tuple[tuple[int, int, int, int], ...]
 
+    def cells(self, *, ledges: bool, edge_walls: bool, counters: bool) -> tuple[str, ...]:
+        """The rows as drawn for the model under the given tile switches."""
+        return _cells(
+            self.rows,
+            self.tiles,
+            self.origin,
+            ledges=ledges,
+            edge_walls=edge_walls,
+            counters=counters,
+        )
+
     def text(
         self,
         *,
@@ -99,16 +113,10 @@ class LocalMap:
         counters: bool = True,
         destinations: Mapping[tuple[int, int], str] | None = None,
         dynamic: str | None = None,
+        next_tiles: str | None = None,
     ) -> str:
         x, y = self.origin
-        cells = _cells(
-            self.rows,
-            self.tiles,
-            self.origin,
-            ledges=ledges,
-            edge_walls=edge_walls,
-            counters=counters,
-        )
+        cells = self.cells(ledges=ledges, edge_walls=edge_walls, counters=counters)
         rows = (
             "     "
             + " ".join(f"{x + i:3}" for i in range(len(cells[0])))
@@ -122,6 +130,7 @@ class LocalMap:
         return (
             f"Local map from live memory; top-left ({x},{y}), north is up:\n"
             + rows
+            + ("" if next_tiles is None else f"\n{next_tiles}")
             + _details(
                 self.tiles,
                 self.objects,
@@ -148,6 +157,21 @@ class FullMap:
     objects: tuple[tuple[int, int, int], ...]
     warps: tuple[tuple[int, int, int, int], ...]
 
+    @property
+    def origin(self) -> tuple[int, int]:
+        return (0, 0)
+
+    def cells(self, *, ledges: bool, edge_walls: bool, counters: bool) -> tuple[str, ...]:
+        """The rows as drawn for the model under the given tile switches."""
+        return _cells(
+            self.rows,
+            self.tiles,
+            self.origin,
+            ledges=ledges,
+            edge_walls=edge_walls,
+            counters=counters,
+        )
+
     def text(
         self,
         *,
@@ -158,15 +182,9 @@ class FullMap:
         counters: bool = True,
         destinations: Mapping[tuple[int, int], str] | None = None,
         dynamic: str | None = None,
+        next_tiles: str | None = None,
     ) -> str:
-        cells = _cells(
-            self.rows,
-            self.tiles,
-            (0, 0),
-            ledges=ledges,
-            edge_walls=edge_walls,
-            counters=counters,
-        )
+        cells = self.cells(ledges=ledges, edge_walls=edge_walls, counters=counters)
         if grid:
             tens = [" "] * self.width
             for column in range(0, self.width, 10):
@@ -185,6 +203,7 @@ class FullMap:
             f"Whole current map from live memory ({self.width}x{self.height}),"
             " top-left (0,0), north is up:\n"
             + rows
+            + ("" if next_tiles is None else f"\n{next_tiles}")
             + _details(
                 self.tiles,
                 self.objects,

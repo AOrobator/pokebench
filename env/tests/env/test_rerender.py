@@ -18,9 +18,14 @@ from pokebench_env.rom import EMERALD_SHA1, RomError, resolve_rom
 
 FIXTURE = json.loads((Path(__file__).parent / "fixtures" / "rerender-dc0e-t212.json").read_text())
 ROM_START = 0x08000000
-# Run dc0e predates displayed-place-names-v1 and battle-triage-guidance-v1, so its recorded
-# harness features leave them off.
-RECORDED_OFF = [*FIXTURE["recorded_off"], "displayed-place-names-v1", "battle-triage-guidance-v1"]
+# Run dc0e predates displayed-place-names-v1, battle-triage-guidance-v1 and
+# adjacent-tiles-v1, so its recorded harness features leave them off.
+RECORDED_OFF = [
+    *FIXTURE["recorded_off"],
+    "displayed-place-names-v1",
+    "battle-triage-guidance-v1",
+    "adjacent-tiles-v1",
+]
 
 
 def windows_reader(rom: bytes):
@@ -109,6 +114,7 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "fmt_message_phase": False,
         "fmt_named_warps": False,
         "fmt_warp_animation": False,
+        "fmt_adjacent_tiles": False,
     }
     rerender.render(
         rerender.read_state(lambda a, n: b"", MapNames({}), active_ui=True, off=frozenset()),

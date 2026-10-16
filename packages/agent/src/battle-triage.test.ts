@@ -21,10 +21,10 @@ it("registers a default-off guidance switch the game server applies, recorded la
   expect(description).toContain(" Off: ");
   expect(description).toContain("below half");
   expect(description).toContain("RUN");
-  expect(SWITCHABLE_FEATURES.at(-1)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON, null).at(-1)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-2)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON, null).at(-2)).toBe(ID);
   expect(playHarnessFeatures(with_(ALL_ON, false), null)).not.toContain(ID);
-  expect(SERVER_FEATURES.at(-1)).toBe(ID);
+  expect(SERVER_FEATURES.at(-2)).toBe(ID);
   expect(serverFeatureEnv(with_(ALL_ON, false)).POKEBENCH_FEATURES_OFF).toBe(ID);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("");
   expect(dependencyProblems(with_(ALL_ON, true))).toEqual([]);

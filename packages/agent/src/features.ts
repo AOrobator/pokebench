@@ -64,6 +64,7 @@ export const SWITCHABLE_FEATURES = [
   "transition-loop-detection-v1",
   "blocked-batch-result-v1",
   "battle-triage-guidance-v1",
+  "adjacent-tiles-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -205,6 +206,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("transition-loop-detection-v1", "guard", "TRANSITION LOOP DETECTION", null, "Lets the loop guard see door, stairs and warp bounces. A press that lands mid-animation (field controls locked, no message, the game's script context stopped) no longer wipes the guard's cycle history; that step is skipped. Walking back and forth between the same maps with no new story, party, money, badge or item change and no new milestone counts as a cycle on the third repeat of the same 2-4 map changes, through the usual warning and supervisor briefing; the warning says the map moves are repeating. Locks with a message or a running script still reset the history as before. Off: any locked step clears the cycle history and map changes are not counted."),
   on("blocked-batch-result-v1", "guidance", "BLOCKED BATCH RESULTS", "press-result-v1", "When a press batch of one repeated direction (two or more presses) leaves the player on the same tile with field controls free before and after, and the player ends facing that direction, the press result says so: \"blocked: LEFT ×3 did not move you; you are still at (10,16) facing left\" (or \"turned down -> left but did not move\"), then names what the model's own local map shows on the next tile. Terrain that cannot be entered from here (a collision tile, a counter, a ledge that only hops another way, ~ water while on foot, an edge wall, the map edge with no connection that way) reads \"blocked\" and says the direction cannot move the player from here. A person, object or warp on the next tile is described, but the result reads \"no movement\", because object height is not read and a warp is not an obstacle. Anything else reads \"no movement\" with the cause not known; height differences are never named. Each fact follows the switch that draws it: tiles only with the live map, ledges with ledge hops, edge walls with one-way tiles, counters with counter talk, map connections with world destinations, coordinates and facing with player position. Single presses, mixed or non-direction batches and locked or unverified states keep their usual text. Off: the batch reads \"unchanged world position/facing (batch or non-direction input; intermediate effects unknown)\", and a batch that only turned reads \"turned <from> -> <to>; no net movement\"."),
   on("battle-triage-guidance-v1", "guidance", "BATTLE TRIAGE GUIDANCE", null, "Adds a system-prompt section: a wild battle can be left with RUN, the bottom-right option of the FIGHT BAG / POKéMON RUN menu (from FIGHT: RIGHT, DOWN, A); trainer and some story battles cannot be fled; run when your active Pokémon is below half its maximum HP or the fight is not needed for a story goal; heal before tall grass with a weak Pokémon (a POKéMON CENTER nurse heals the whole party, and so does MOM at home). With the RAM readout on, the game server adds one line from RAM: in a wild battle with the battle menu open (action or move select) when your active Pokémon is below half its max HP and battle-details-v2's RUN rule allows RUN (\"Your TORCHIC has 5/20 HP (below half). This is a wild battle: RUN is allowed (bottom-right of the battle menu).\"); nothing in trainer battles, the PROF. BIRCH rescue or when trapped. On the field, when the first party Pokémon able to battle is below half HP, one line names the POKéMON CENTER nurse and MOM at home. Tools are unchanged. Off: no prompt section and no lines; prompt and readouts are byte-for-byte today's."),
+  on("adjacent-tiles-v1", "observation", "ADJACENT TILES", "live-map-v1", "Adds one line directly under the map grid that names the four tiles next to the player in words, in the order up, down, left, right, with each tile's coordinates (only when the position line is shown) and its map glyph in brackets: \"Next tiles: up (8,6) ledge (v), hops down only, cannot be entered from here; down (8,8) clear (.); left (7,7) clear (.); right (9,7) clear (.)\". Each tile is named by the glyph the map draws for it under the run's other switches (ledges with ledge hops, edge walls with one-way tiles, counters with counter talk; otherwise # or .), from the same live tiles. \"Cannot be entered from here\" is said only where the game always refuses the step: a collision tile, a ledge pressed from a side other than its hop direction, an edge wall on that side, or a map edge with no connection (named only when map topology is shown). A ledge pressed its own way is named as the hop. Water is called not walkable on foot only when the game says the player is on foot. People, objects and warps are described, never called blockers, and height is never named. Off: no Next tiles line; the map block is unchanged."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",
@@ -258,6 +260,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "coordinate-script-conditions-v1", "field-control-lock", "warp-activation-guidance-v1", "ledge-hops-v1", "one-way-tiles-v1",
   "full-map-navigation-v1", "counter-talk-v1", "named-warp-destinations-v1", "character-presence-v1",
   "battle-details-v2", "warp-arrival-settle-v1", "displayed-place-names-v1", "battle-triage-guidance-v1",
+  "adjacent-tiles-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -306,6 +309,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("transition-loop-detection-v1"),
     ...when("blocked-batch-result-v1"),
     ...when("battle-triage-guidance-v1"),
+    ...when("adjacent-tiles-v1"),
   ];
 }
 

@@ -52,3 +52,4 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Winner gate](winner-gate.html)
 - [Transition loop detection](transition-loop-detection-v1.html)
 - [Battle triage guidance](battle-triage-guidance-v1.html)
+- [Battle text auto-advance](battle-text-auto-advance-v1.html)

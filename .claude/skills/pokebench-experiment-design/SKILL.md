@@ -53,6 +53,7 @@ Use a boot start when the question is about the whole route, when the change act
 Plumbing limits today:
 - The queue runs boot starts only, and its schema caps `trialsPerArm` at 4–8.
 - Checkpoint cohorts and power-sized confirmations run as an external cohort driver. The navigation 2×2 from the `CLOCK_SET` save is the precedent: register the experiment with `externalCohort` so the queue tracks it but does not run it again (`experiment-queue`).
+- Every trial a design launches must carry `evaluation.experiment` (the driver sets `POKEBENCH_EXPERIMENT`). That tag alone puts it in the viewer's EXPERIMENT dropdown, one entry per experiment id and build, labelled with the definition title; dry runs (`<id>-dryrun-<phase>`) get their own entries. No ledger folder needs to stay put for that, and `just experiments-audit` must print nothing after launch.
 - Do not claim the queue can do more than this. A missing capability is a follow-up for the operator, not a workaround.
 
 Readiness changes meaning for a checkpoint start. The question is whether the save exists, sits before the activation milestone and loads reliably on the current build, not whether boot runs reach the activation milestone. Boot comparisons keep the `pokebench-patch-evaluation` readiness rule.

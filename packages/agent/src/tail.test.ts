@@ -45,6 +45,7 @@ describe("formatEvent", () => {
     const base = { ...ENVELOPE, seq: 1, turn: 2, type: "dialogue_auto_advance" as const, tool_call_id: "c", tool: "press" as const, requested: ["A" as const, "A" as const], sent: ["A" as const], auto_presses: 2, pages: [{ state_seq: 1, map: null, map_id: null, position: null, speaker: null, speaker_source: null, text: "Hi" }], stop: "field_free" as const, detail: "closed", duration_ms: 5 };
     expect(formatEvent({ ...base, dropped: ["A"] })).toBe("21:40:05   t2 DIALOGUE   auto-advanced 2 B (press) · 1 pages · stop field_free · 1 inputs not sent");
     expect(formatEvent({ ...base, dropped: [] })).toBe("21:40:05   t2 DIALOGUE   auto-advanced 2 B (press) · 1 pages · stop field_free");
+    expect(formatEvent({ ...base, dropped: [], battle_auto_presses: 1, stop: "battle_input" })).toBe("21:40:05   t2 DIALOGUE   auto-advanced 2 B (1 in battle) (press) · 1 pages · stop battle_input");
   });
 
   it("shortens long thinking and marks errors", () => {

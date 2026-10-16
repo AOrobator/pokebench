@@ -22,6 +22,13 @@ from pokebench_env.battle_choices import (
     exact,
     number,
 )
+from pokebench_env.battle_text import (
+    BattleMessage,
+    BattlePrompt,
+    battle_text_phase,
+    read_battle_message,
+    read_battle_prompt,
+)
 from pokebench_env.game_screen import GMAIN, ReadMemory
 from pokebench_env.gba_text import decode_text
 from pokebench_env.pokemon import BATTLE_MOVES, MOVE_NAMES, SPECIES_NAMES
@@ -176,9 +183,21 @@ class BattleState:
     playback: BattlePlayback | None = None
     diagnostic: str | None = None
     raw_hex: str | None = None
+    # The battle message window (battle_text.py); recorded, shown only by its switch.
+    message: BattleMessage | None = None
+    prompt: BattlePrompt | None = None
+    text_phase: str | None = None
 
     def json(self) -> dict[str, object]:
         return asdict(self)
+
+
+def _text_fields(read: ReadMemory) -> tuple[BattleMessage, BattlePrompt | None, str | None]:
+    """Message window, YES/NO prompt and advance phase; a failed read stays local."""
+    try:
+        return read_battle_message(read), read_battle_prompt(read), battle_text_phase(read)
+    except (ValueError, OSError, IndexError) as error:
+        return BattleMessage("idle", diagnostic=f"harness bug: battle text: {error}"), None, None
 
 
 def _move(read: ReadMemory, slot: int, move: int, pp: int, bonuses: int) -> BattleMove:
@@ -256,6 +275,19 @@ def _battler(
     )
 
 
+def _initializing(read: ReadMemory, main: int) -> BattleState:
+    message, prompt, text_phase = _text_fields(read)
+    return BattleState(
+        True,
+        phase="initializing",
+        ready=False,
+        main_func=main,
+        message=message,
+        prompt=prompt,
+        text_phase=text_phase,
+    )
+
+
 def read_battle_state(read: ReadMemory) -> BattleState:
     active = bool(number(read, IN_BATTLE, 1) & 2)
     if not active:
@@ -267,7 +299,7 @@ def read_battle_state(read: ReadMemory) -> BattleState:
         # Before BattleIntro has copied party/enemy data, an empty battle is a
         # genuine initialization phase, not a decoded Pokémon with species0.
         if count == 0 or main == 0:
-            return BattleState(True, phase="initializing", ready=False, main_func=main)
+            return _initializing(read, main)
         if count not in (2, 4) or not 0x08000001 <= main < 0x0A000000 or not main & 1:
             raise ValueError("invalid battle count or main owner")
         battle_type = number(read, TYPE_FLAGS)
@@ -290,7 +322,7 @@ def read_battle_state(read: ReadMemory) -> BattleState:
             if index not in trainer_banks
         ):
             if main not in (SELECT_ACTION, 0x0803D2E9, 0x0803D819, *SCRIPT_OWNERS):
-                return BattleState(True, phase="initializing", ready=False, main_func=main)
+                return _initializing(read, main)
         absent = number(read, 0x02024210, 1)
         battlers = tuple(
             _battler(read, index, position, raw[index * 0x58 : (index + 1) * 0x58], absent)
@@ -481,6 +513,9 @@ def read_battle_state(read: ReadMemory) -> BattleState:
             execution,
             trainer_banks,
             playback,
+            None,
+            None,
+            *_text_fields(read),
         )
     except (ValueError, OSError, struct.error) as error:
         return BattleState(

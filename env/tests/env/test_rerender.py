@@ -18,8 +18,15 @@ from pokebench_env.rom import EMERALD_SHA1, RomError, resolve_rom
 
 FIXTURE = json.loads((Path(__file__).parent / "fixtures" / "rerender-dc0e-t212.json").read_text())
 ROM_START = 0x08000000
-# Run dc0e predates displayed-place-names-v1, so its recorded harness features leave it off.
-RECORDED_OFF = [*FIXTURE["recorded_off"], "displayed-place-names-v1"]
+# Run dc0e predates displayed-place-names-v1, battle-triage-guidance-v1 and
+# adjacent-tiles-v1, so its recorded harness features leave them off.
+RECORDED_OFF = [
+    *FIXTURE["recorded_off"],
+    "displayed-place-names-v1",
+    "battle-triage-guidance-v1",
+    "adjacent-tiles-v1",
+    "readout-rules-in-prompt-v1",
+]
 
 
 def windows_reader(rom: bytes):
@@ -45,9 +52,8 @@ def operator_rom() -> bytes:
 
 
 def env_with(off: list[str]) -> dict[str, str]:
-    # The recorded run predates warp-arrival-settle-v1 and readout-rules-in-prompt-v1, so it
-    # ran with both off.
-    off = [*off, "warp-arrival-settle-v1", "readout-rules-in-prompt-v1"]
+    # The recorded run predates warp-arrival-settle-v1, so it ran with that switch off.
+    off = [*off, "warp-arrival-settle-v1"]
     return {"POKEBENCH_FEATURES_OFF": ",".join(off), "POKEBENCH_ACTIVE_UI": "1"}
 
 
@@ -110,6 +116,7 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "fmt_named_warps": False,
         "fmt_warp_animation": False,
         "fmt_rules_in_prompt": False,
+        "fmt_adjacent_tiles": False,
     }
     rerender.render(
         rerender.read_state(lambda a, n: b"", MapNames({}), active_ui=True, off=frozenset()),

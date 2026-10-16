@@ -1,5 +1,6 @@
 """readout-rules-in-prompt-v1: the fixed map rules leave the readout for the system prompt."""
 
+import itertools
 import json
 import re
 import struct
@@ -88,6 +89,9 @@ def observe(name: str, off: frozenset[str]) -> str:
 GOLDEN = Path(__file__).resolve().parent / "fixtures/readout-rules-off-ef9244e2.json"
 GENERATED = Path(__file__).resolve().parents[3] / "packages/agent/src/map-rules.generated.ts"
 LEGEND = "@ player; N live object; "
+# Switches registered after the goldens were rendered at ef9244e2; OFF is their previous behavior.
+ADJACENT = "adjacent-tiles-v1"
+LATER = frozenset({"battle-triage-guidance-v1", ADJACENT})
 
 
 def golden() -> list[tuple[str, frozenset[str], str]]:
@@ -104,13 +108,16 @@ def test_off_is_byte_identical_to_the_readout_before_the_switch() -> None:
     assert len(cases) == len(MEMORIES) * len(OFF_SETS)
     for name, off, text in cases:
         assert FEATURE in off
-        assert observe(name, off) == text, (name, sorted(off))
+        assert observe(name, off | LATER) == text, (name, sorted(off))
 
 
 def test_on_replaces_the_legend_with_the_pointer_and_drops_the_fixed_rules() -> None:
-    # Every golden case, ON: the same readout minus exactly the fixed blocks, pointer in place.
-    for name, off, before in golden():
-        after = observe(name, off - {FEATURE})
+    # Every golden case, ON: the same readout minus exactly the fixed blocks, pointer in place,
+    # with adjacent-tiles-v1 off (the goldens) and on (its Next tiles line stays above the pointer).
+    for (name, off, golden_text), later in itertools.product(golden(), (LATER, LATER - {ADJACENT})):
+        before = observe(name, off | later)
+        assert later != LATER or before == golden_text
+        after = observe(name, (off | later) - {FEATURE})
         section = prompt_section(off - {FEATURE})
         expected = []
         for line in before.split("\n"):
@@ -128,7 +135,7 @@ def test_on_replaces_the_legend_with_the_pointer_and_drops_the_fixed_rules() -> 
 
 
 def test_on_door_readout_lacks_all_three_map_blocks_and_keeps_the_rest() -> None:
-    off = frozenset({"named-warp-destinations-v1"})
+    off = frozenset({"named-warp-destinations-v1"}) | LATER
     before, after = observe("door", off | {FEATURE}), observe("door", off)
     assert legend_of(before) is not None and legend_of(after) is None
     for block in (TERRAIN_RULE, "Warp destinations are", "see activation below"):
@@ -245,3 +252,19 @@ def test_the_observation_route_follows_the_env_switch(monkeypatch: pytest.Monkey
         texts[raw] = json.loads(body)["state_text"]
     assert POINTER in texts[""] and TERRAIN_RULE not in texts[""]
     assert POINTER not in texts[FEATURE] and TERRAIN_RULE in texts[FEATURE]
+
+
+def test_with_adjacent_tiles_on_the_map_reads_grid_then_next_tiles_then_the_pointer() -> None:
+    # Both switches on: the Next tiles line stays directly under the grid, the pointer follows it.
+    both_on, rules_off = observe("door", frozenset()), observe("door", frozenset({FEATURE}))
+    rows, plain = both_on.split("\n"), rules_off.split("\n")
+    nxt = next(i for i, line in enumerate(rows) if line.startswith("Next tiles"))
+    assert rows[nxt - 1].startswith("   4 ") and rows[nxt + 1] == POINTER
+    assert rows[nxt + 2].startswith("Live objects: ")
+    # rules OFF with adjacent tiles ON keeps the legend right after the Next tiles line.
+    nxt_off = next(i for i, line in enumerate(plain) if line.startswith("Next tiles"))
+    assert plain[nxt_off] == rows[nxt] and plain[nxt_off + 1].startswith(LEGEND)
+    assert plain[nxt_off + 2] == TERRAIN_RULE
+    # Both off is the golden readout from before either switch.
+    goldens = {(n, o): t for n, o, t in golden()}
+    assert observe("door", frozenset({FEATURE}) | LATER) == goldens[("door", frozenset({FEATURE}))]

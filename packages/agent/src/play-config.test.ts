@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { expect, it } from "vitest";
 import { ALL_ON as REGISTRY_ALL_ON, type FeatureSet, type SwitchableFeature } from "./features.js";
-const ALL_ON={...REGISTRY_ALL_ON,"readout-rules-in-prompt-v1":false,"dialogue-auto-advance-v1":false,"warp-arrival-settle-v1":false,"navigation-evidence-memory-v1":false,"world-destinations-v1":false,"bounded-navigation-v1":false,"game-evidence-priority-v1":false,"dialogue-log-v1":false,"loop-guard-supervisor-v1":false,"instruction-ledger-v1":false,"next-milestone-hint-v1":false};
+const ALL_ON={...REGISTRY_ALL_ON,"readout-rules-in-prompt-v1":false,"battle-triage-guidance-v1":false,"dialogue-auto-advance-v1":false,"warp-arrival-settle-v1":false,"navigation-evidence-memory-v1":false,"world-destinations-v1":false,"bounded-navigation-v1":false,"game-evidence-priority-v1":false,"dialogue-log-v1":false,"loop-guard-supervisor-v1":false,"instruction-ledger-v1":false,"next-milestone-hint-v1":false};
 import { CONTEXTUAL_CONTROLS, GAME_EVIDENCE_SECTION, NAVIGATE_TO_USAGE, PLAY_SYSTEM_PROMPT, objectiveSwitches, playGoal, playSystemPrompt, playTools, toolSwitches } from "./play-config.js";
 import { OBJECTIVE_PROMPT, objectivePrompt } from "./objective-tools.js";
 

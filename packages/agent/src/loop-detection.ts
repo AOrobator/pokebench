@@ -418,7 +418,7 @@ export class LoopDetector {
         if(messageKey !== "" && this.messageVisits.filter(item=>item===messageKey).length >= this.policy.ineffective) hit ??= "cycle";
         const restarted = this.interactions && this.restartedConversation(call.state, call.beforeState);
         if (restarted) hit ??= "cycle";
-        reopened = messageKey !== "" || restarted;
+        reopened = call.state?.world_context?.message?.ready === true || restarted;
         if (this.ineffective.count >= this.policy.ineffective)
           hit ??= "ineffective";
         if (eligible && fingerprint !== null && before !== null) {

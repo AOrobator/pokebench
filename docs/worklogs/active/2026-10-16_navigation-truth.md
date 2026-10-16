@@ -106,6 +106,7 @@ Zero FAIL rows.
   - All three: v2 refusal fired for non-standable goals when refusal-reasons-v1 is off (the pending experiment's arm). Accepted: windowReason now requires a walkable goal with no person, object or warp.
   - Codex: counter talk bypassed the no-script rule (accepted: counterHint skips scriptless people when targets are known); a named speaker was carried with nothing faced (accepted: dropped, matches boundary item 7); the reopened sentence ignored navigate_to ending on a ready message (accepted: reopened = the call's state has a ready message or a conversation restarted); decision-probe wiring untested (accepted: synthetic recorded run through decisionContext, ON/OFF); Harness Config click-through unproven (done: isolated worktree viewer on 127.0.0.1:8797 with a synthetic run; both READ EXPLAINER links opened the right pages; viewer stopped).
   - Hardening taken in the same batch: e588 assertion exact; 54a7 T213 pinned; explainer wiring caption corrected.
+  - RED 07fb5bec (4 of 36 fail). GREEN gates: agent 1667, viewer 906, pytest 2297; lint, build, verify-vendor OK; coverage agent 99.17/94.35/98.28, viewer 97.62/91.10/93.63, python 97.36/93.22/100. Feature copy and both explainers updated for the new rules.
   - Deletion receipts r1-v2-standable, r1-counter, r1-reopen-nav, r1-speaker-drop, r1-probe-wiring: each red once, green restored.
 
 ## Boy Scout Log

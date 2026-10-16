@@ -83,7 +83,7 @@ function fullGeometry(state:GameStateSnapshot):Geometry|null {
 
 // pokeemerald GetInteractedObjectEventScript talks across a faced counter to the object beyond it.
 // A stand tile is named only when the planner itself would reach it.
-function counterHint(state:GameStateSnapshot,goal:Point,options:NavigationOptions):string|null {
+function counterHint(state:GameStateSnapshot,goal:Point,options:NavigationOptions,truth=false):string|null {
  const geometry=options.mode==="full"?fullGeometry(state):localGeometry(state);if(geometry===null)return null;
  const at=(p:Point)=>(t:Point):boolean=>t.x===p.x&&t.y===p.y;
  const counter=(p:Point):boolean=>{const tile=geometry.tile(p);return tile!==undefined&&tile.behavior===COUNTER&&tile.collision!==0;};
@@ -92,6 +92,8 @@ function counterHint(state:GameStateSnapshot,goal:Point,options:NavigationOption
  for(const [direction,dx,dy] of DIRECTIONS){
   const across=occupied(goal)?{counter:{x:goal.x-dx,y:goal.y-dy},person:goal}:{counter:goal,person:{x:goal.x+dx,y:goal.y+dy}};
   if(!counter(across.counter)||!occupied(across.person))continue;
+  // navigation-truth-v1: someone behind a counter is talked to only if it has a script (a listed interaction target).
+  if(truth&&state.interaction_targets!=null&&!state.interaction_targets.some(t=>t.kind==="object"&&at(across.person)(t)))continue;
   involved=true;
   const stand={x:across.counter.x-dx,y:across.counter.y-dy};
   if(geometry.tile(stand)===undefined||planNavigation(state,stand,options)===null)continue;
@@ -199,14 +201,16 @@ function triggerReason(state:GameStateSnapshot,goal:Point,options:NavigationOpti
 }
 // navigation-refusal-reasons-v2: an in-window goal with no route inside the local window. The tiles named are
 // reachable window-edge tiles with an unseen neighbour inside the map, one per side, nearest the goal first.
+// Only a goal the player could stand on: walkable, with no person, object or warp on it.
 const SIDES:Readonly<Record<Direction,string>>={UP:"north",DOWN:"south",LEFT:"west",RIGHT:"east"};
 function windowReason(state:GameStateSnapshot,goal:Point,options:NavigationOptions):string|null {
  if(options.mode==="full")return null;
  const geometry=localGeometry(state),grid=state.navigation_grid;
  if(geometry===null||grid==null||geometry.bounds===null)return null;
  const bounds=geometry.bounds;
- if(geometry.tile(goal)===undefined)return null;
  const standable=standableTile(options);
+ const same=(p:Point):boolean=>p.x===goal.x&&p.y===goal.y;
+ if(!standable(geometry.tile(goal))||geometry.objects.some(same)||geometry.warps.some(same)||(state.interaction_targets??[]).some(t=>t.kind==="object"&&same(t))||(state.world_context?.objects??[]).some(o=>same(o)&&o.map_id[0]===state.map_id?.[0]&&o.map_id[1]===state.map_id[1]))return null;
  const best=new Map<Direction,Point>();
  for(const t of grid.tiles){
   const sides=DIRECTIONS.filter(([,dx,dy])=>{const n={x:t.x+dx,y:t.y+dy};return n.x>=0&&n.y>=0&&n.x<bounds.width&&n.y<bounds.height&&geometry.tile(n)===undefined;});
@@ -402,7 +406,7 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
    const options:NavigationOptions={mode,ledges:ports.ledges===true,oneWay:ports.oneWay===true,grassCost:ports.grassCost===true,floor:ports.floor===true,elevation:ports.elevation??"game",...(truth&&ports.triggers===true?{triggers:matchingTriggers(state)}:{})};
    const path=planNavigation(state,goal,options);
    if(path===null){
-    status=(ports.counters===true?counterHint(state,goal,options):null)??(ports.refusalReasons===true?targetReason(state,goal,options,ports.connectionEdges===true,truth):null)??(truth?triggerReason(state,goal,options):null)??(ports.windowReasons===true?windowReason(state,goal,options):null)??(mode==="full"?"no supported path on the current map; choose a reachable waypoint":"no supported local path; choose a reachable local waypoint");
+    status=(ports.counters===true?counterHint(state,goal,options,truth):null)??(ports.refusalReasons===true?targetReason(state,goal,options,ports.connectionEdges===true,truth):null)??(truth?triggerReason(state,goal,options):null)??(ports.windowReasons===true?windowReason(state,goal,options):null)??(mode==="full"?"no supported path on the current map; choose a reachable waypoint":"no supported local path; choose a reachable local waypoint");
     const here=state.position;
     if(truth&&commands>0&&origin!==null&&here!==null&&distance(origin,here)!==0)status=`walked from ${at(origin)} to ${at(here)}, then stopped: ${status}`;
     break;

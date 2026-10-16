@@ -139,7 +139,7 @@ class Pages {
  private speakerFor(text:string,s:GameStateSnapshot):Speaker|null {
   const named=NAME_PREFIX.exec(text)?.[1],face=facedKey(s);
   if(named!==undefined){this.namedFace=face;return {name:named,source:"name_prefix"};}
-  if(this.speaker?.source==="name_prefix"&&face!==null&&face===this.namedFace)return this.speaker;
+  if(this.speaker?.source==="name_prefix")return face!==null&&face===this.namedFace?this.speaker:faced(s);
   return faced(s)??this.speaker;
  }
  openAt(s:GameStateSnapshot):OpenMessage|null {

@@ -61,3 +61,5 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [navigate_to first prompting](navigate-first-prompt-v1.html)
 - [Presence penalty 1.5](presence-penalty-v1.html)
 - [Level-up stats box](levelup-box-v1.html)
+- [Briefing exit facts](briefing-exits-v1.html)
+- [Untaken exits](untaken-exits-v1.html)

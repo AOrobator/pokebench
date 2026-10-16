@@ -4,6 +4,7 @@ import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {Type} from "typebox";
 import {PEOPLE_HEADER,PeopleLedger,facedObject,mapObjects,withPeopleLedger} from "./people-ledger.js";
 import {playGameTools} from "./play-wiring.js";
+import {REMINDER,REMINDER_EVERY} from "./navigate-first.js";
 import {checkEvent,type RunEvent} from "./events.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {ALL_ON,dependencyProblems,featureInfo,playHarnessFeatures,SWITCHABLE_FEATURES,type FeatureSet} from "./features.js";
@@ -257,6 +258,27 @@ describe("people-ledger-v1 switch",()=>{
   expect(textOf(await beside[0]?.execute("o",{}) ?? {content:[],details:undefined})).toBe(textOf(await on[0]?.execute("o",{}) ?? {content:[],details:undefined}));
   const off=playGameTools(base,OFF,reader,recorder);
   expect(textOf(await off[0]?.execute("o",{}) ?? {content:[],details:undefined})).toBe(`|${READOUT}`);
+ });
+ it("composes with untaken-exits-v1 and navigate-first-prompt-v1 in the production factory",async()=>{
+  const recorder={subscribe:()=>undefined,recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1})} as unknown as Parameters<typeof playGameTools>[3];
+  const reader={read:()=>Promise.resolve(state)};
+  const both=playGameTools([fakeObserve(state)],{...OFF,"people-ledger-v1":true,"untaken-exits-v1":true},reader,recorder);
+  const lines=(textOf(await both[0]?.execute("o",{}) ?? {content:[],details:undefined})).split("\n");
+  const at=lines.indexOf("Position: X=2, Y=2, facing up");
+  // Position, then the Untaken exits line, then the people block, then the rest unchanged.
+  expect(lines[at+1]).toMatch(/^Exits here you have not taken: /);
+  expect(lines[at+2]).toBe(PEOPLE_HEADER);
+  expect(lines.at(-1)).toBe("Party (player): none");
+  // navigate-first's reminder is its own text part; the ledger never edits it.
+  const free={...state,field_controls_locked:false} as GameStateSnapshot;
+  const nav=playGameTools([fakeObserve(free),fakePress(free)],{...OFF,"people-ledger-v1":true,"navigate-first-prompt-v1":true},reader,recorder);
+  const press=nav.find(t=>t.name==="press");
+  let last:AgentToolResult<unknown>|undefined;
+  for(let i=0;i<REMINDER_EVERY;i++)last=await press?.execute(`p${String(i)}`,{buttons:["UP"]});
+  const parts=(last?.content??[]).flatMap(c=>c.type==="text"?[c.text]:[]);
+  expect(parts.some(t=>t.includes(PEOPLE_HEADER))).toBe(true);
+  expect(parts.filter(t=>t.includes(PEOPLE_HEADER))).toHaveLength(1);
+  expect(parts.at(-1)).toBe(REMINDER);
  });
  it("is registered default-off, needs dialogue auto-advance and records its id last",()=>{
   expect(featureInfo("people-ledger-v1")).toMatchObject({group:"observation",needs:"dialogue-auto-advance-v1",switchable:true});

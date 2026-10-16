@@ -22,6 +22,8 @@ Every behavior change is a registered switch whose OFF state reproduces today. F
 | F6 navigate_to/press results never say "a message is waiting, press B" after auto-advance closed it | bundle | navigation result text after auto-advance | inside `dialogue-auto-advance-v1` |
 | F7 A reachable warp-door target gets its real reason (approach tile, blocker) instead of "no supported local path" | bundle message on a both-arm planner limit | `navigation.ts` `targetReason` (l.126) | inside `navigation-refusal-reasons-v1` |
 | F9 Map connections list the crossable edge tiles per direction (Littleroot NORTH -> ROUTE 101 from (10,0)/(11,0)); bearings and edge refusals name them (showcase run `2026-10-16T00-34-26_qwen36-gpu1_show` turns 175–212, seq 3580–3745) | bundle (operator decision 12:54 AM EDT) | readout, navigation refusal, supervisor/briefing bearings | `connection-edge-tiles-v1` (branch `claude/connection-edge-tiles`) |
+| F10 In-game naming (nicknames) gets the same naming readout as the pre-game editor (showcase turns 252–330 stuck in the editor) | bundle (the operator 1:01 AM EDT) | env game_state/readout | `in-game-naming-readout-v1` (branch `claude/nickname-naming`) |
+| F11 Speed-run guidance: answer NO to nickname offers; START then A keeps the species name | bundle (the operator 1:01 AM EDT) | prompt/readout | `no-nickname-guidance-v1` (branch `claude/nickname-naming`) |
 | F8 Auto-advance never sends a queued button after a message has appeared | bundle | `dialogue-auto-advance.ts` | inside `dialogue-auto-advance-v1` |
 
 ## Invariants
@@ -74,6 +76,7 @@ Done when every milestone is merged, qualification shows none of F1–F8, the fo
 
 ## Session Log
 
+- 2026-10-16 01:01 AM EDT: The operator put the nickname readout fix and the no-nickname line in the bundle (F10, F11); branch started.
 - 2026-10-16 12:54 AM EDT: Showcase bundle run reached BIRCH_RESCUE_COMPLETE at 15.4 min from the main-menu save (RIVAL_MET 10.3, ROUTE_101 13.9). The operator added F9 `connection-edge-tiles-v1` to the bundle; branch started.
 - 2026-10-16 01:10 AM EDT: M6 GREEN for `b9977c5`: `onInBoth` in the schema, `featureProblems`, `armFeatureBits` and `controlBaseProblems`; `check` prints the list; bundle-v-control.json gets `onInBoth: []` until the fix branches merge. Fixed-run tests 69 pass; tsc and eslint clean.
 - 2026-10-16 01:00 AM EDT: M1–M5 and blocked-batch-result-v1 running as parallel branches (claude/transition-loop-detection, claude/displayed-place-names, claude/dialogue-context-kept, claude/warp-arrival-settle, claude/bundle-prelaunch-fixes, claude/blocked-batch-result). M6 RED: `onInBoth` required in the definition; control base accepts exactly those flags; armFeatureBits/armPreset carry them true in both arms; definitionProblems refuses off/unknown/switch/off-in-both overlaps.

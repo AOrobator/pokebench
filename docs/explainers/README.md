@@ -34,6 +34,7 @@ Tracked, local HTML documentation. Open an explainer directly; no server or exte
 - [Battle details v2](battle-details-v2.html)
 - [Warp arrival settle v1](warp-arrival-settle-v1.html)
 - [Displayed place names v1](displayed-place-names-v1.html)
+- [Adjacent tiles v1](adjacent-tiles-v1.html)
 - [Experiment queue](experiment-queue.html)
 - [Runs survive viewer restarts](run-survives-viewer.html)
 
@@ -43,3 +44,4 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Story frontier zoom](frontier-zoom.html)
 - [Winner gate](winner-gate.html)
 - [Transition loop detection](transition-loop-detection-v1.html)
+- [Battle triage guidance](battle-triage-guidance-v1.html)

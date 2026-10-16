@@ -216,6 +216,7 @@ Any valid trial that still ends before the wall cap is listed in a WARNING table
 - 2026-10-15 22:05–22:18 EDT: Relaunch at `f3f4b3b` (slots 1–2, lane A/B bundle, `…22-05-18_qwen36-gpu1_8292` / `…gpu0_6ba4`, both in the EXPERIMENT dropdown). Operator asked whether viewer changes can restart the experiment. Finding: trials ran `packages/agent/dist/live.js` from the main checkout (`fixed-cli.ts:258`), so any `just build` or `just fixed-run …` rebuilt it mid-trial (voiding the build stamp and pausing lanes), and `run_start.harness.commit` recorded main's HEAD at launch (`run.ts:57`), not the pinned commit. Operator (the operator, 02:17Z): do the proper fix, restart is fine, and run a PokeBench review on starting every trial from New Game. Stopped; both runs moved to `runs/aborted/bundle-v-control-20261016T0218Z-checkpoint-question/`.
 - 2026-10-15 22:40 EDT: Branch `claude/fixed-run-isolated-tree`. RED: `fixed-tree.test.ts`: the runner prepares a detached checkout at the pinned commit (`/private/tmp/pokebench-fixed-<commit12>`), installs (pnpm frozen, uv sync frozen), copies the native mGBA binding from the main venv, verifies `import mgba.core`, builds the agent and stamps `<commit> <sources>`; a stamped checkout is reused without a build; a moved or dirty checkout is refused, not repaired; each failing step is named.
 - 2026-10-15 22:55 EDT: GREEN `fixed-tree.ts` (7 tests). RED: `fixedLaunchSpec`: each trial runs the experiment checkout's `live.js` with cwd = main checkout (relative preset start paths) and `POKEBENCH_RUNS_ROOT` = main runs root, overriding any inherited value.
+- 2026-10-15 23:10 EDT: GREEN for `4c74e3e`: `fixedLaunchSpec` and `productionFixedHost` (verifyBuild prepares the experiment checkout; launch runs its `live.js`, cwd main checkout, `POKEBENCH_RUNS_ROOT` = main runs); `live.ts` `RUNS_ROOT` honors `POKEBENCH_RUNS_ROOT`. Viewer fixed-cli/tree/runner 36 tests pass; tsc and eslint clean. Skill updated.
 
 ## Deferred
 
@@ -235,6 +236,7 @@ Any valid trial that still ends before the wall cap is listed in a WARNING table
 - grok: an open pause (no `paused_ms` yet) is not subtracted; completed trials always close it.
 - Codex: the two new runner tests run the full 12-trial fixture; a smaller plan would be faster.
 - M4: `analyze` with an empty ledger prints a full report (0/0, p = 1.000, "Every valid trial ended at its wall cap.") instead of refusing; `analyze` cannot read a `-dryrun` ledger (no definition file).
+- Eval-integrity review: a trial stopped by signals (runner SIGKILL, server pkill) records `run_end.reason: crash` / "emulator or game server crash", not an operator stop. Aborted launches are moved aside so it did not enter a cohort; mid-cohort trial aborts should go through the viewer's stop control. Not fixed now.
 
 ## Surprises
 

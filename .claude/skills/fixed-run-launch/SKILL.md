@@ -25,12 +25,14 @@ A launch is not done until every check below passes. A check that fails means st
   ```
 
 - The CLI refuses to start without a readable POKEBENCH_ROM; if it does, fix the environment, never the check.
+- Trials never run the main checkout's build. Before the first trial the runner prepares a detached experiment checkout at the pinned commit, `/private/tmp/pokebench-fixed-<commit12>` (pnpm and uv installs, the native mGBA binding copied from main's venv, agent built, stamped), and launches every trial's `live.js` from it into the main `runs/`. Merges, `just build` and viewer restarts on main cannot reach a running trial. Never edit, rebuild or check out anything inside that directory while the experiment runs.
 
 ## 3. Prove it is live (all required)
 
 - `runs/experiments/runner.json` names the runner pid and a trial; `just fixed-run status <id>` shows every lane `running` and `0 invalid`.
 - Each first trial's `runs/<run>/events.jsonl` has a `run_start` whose `evaluation.experiment.id` is the experiment, `evaluation.features` matches its arm, `budgets.max_wall_ms` is the phase cap, `harness.dirty` is false, `harness.commit` is main, and `start_state.sha1` is the definition's start sha1. Milestones up to the checkpoint arrive as `present_at_start`.
 - `runs/experiments/<id>/logs/<run>.err` has no `FAILED`.
+- The runner log says `preparing the experiment checkout for <commit7>`, and each run_start's `harness.commit` equals the ledger's pinned launch commit.
 - **EXPERIMENT dropdown (hard requirement):** `GET http://127.0.0.1:8790/api/workbench` lists each launched run with `cohort: "experiment:<id>"` and `problems` mentions no `Experiment <id>` line. Then open `http://127.0.0.1:8790/comparisons` in the browser, wait for the dropdown to fill (the workbench can take minutes), and confirm the experiment is an option and selecting it shows the live runs. If either fails, the launch is not done.
 
 ## 4. If a launch went wrong

@@ -1,9 +1,9 @@
 // `just fixed-run <command>`: the fixed-N two-arm experiment driver. Definitions live in
 // experiments/fixed/<id>.json; their ledgers, status and approvals in runs/experiments/<id>/.
 // Approval is interactive so an agent can never grant it.
-import { execFileSync } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { userInfo } from "node:os";
 import { join } from "node:path";
@@ -12,12 +12,13 @@ import { fileURLToPath } from "node:url";
 import { Value } from "typebox/value";
 import { newRunId } from "@pokebench/agent/run";
 import { spawnDetached } from "./detached.js";
-import { mainCheckout, productionHost, sourceIdentity } from "./experiment-cli.js";
+import { mainCheckout, sourceIdentity } from "./experiment-cli.js";
 import { analyze, renderAnalysis, trialsFromLedger, type AnalysisTrial } from "./fixed-analysis.js";
 import { controlBaseProblems, dryRunDefinition, FixedDraftSchema, generatePlan, parseFixedDefinition, phaseOf, type FixedDefinition } from "./fixed-design.js";
 import { classifyTrial, readLedger } from "./fixed-ledger.js";
 import { runFixed, type FixedHost, type FixedRunOptions, type ServingReceipt } from "./fixed-runner.js";
 import { fixedStatusPath, parseFixedStatus } from "./fixed-status.js";
+import { fixedTreeDir, fixedTreeLiveJs, prepareFixedTree, type FixedTreeDeps } from "./fixed-tree.js";
 import { pidAlive } from "./lease.js";
 import { randomSuffix } from "./next-run.js";
 
@@ -261,18 +262,54 @@ export interface FixedHostDeps {
 }
 
 // Variables a trial gets from its lane, never from the runner's own environment.
-const LANE_VARIABLES = new Set(["POKEBENCH_ENDPOINT_FILE", "POKEBENCH_PLAY_PRESET", "POKEBENCH_GATEWAY_URL", "POKEBENCH_MODEL", "POKEBENCH_RUN_ID", "POKEBENCH_EXPERIMENT", "POKEBENCH_GAME_SERVER_URL"]);
+const LANE_VARIABLES = new Set(["POKEBENCH_RUNS_ROOT", "POKEBENCH_ENDPOINT_FILE", "POKEBENCH_PLAY_PRESET", "POKEBENCH_GATEWAY_URL", "POKEBENCH_MODEL", "POKEBENCH_RUN_ID", "POKEBENCH_EXPERIMENT", "POKEBENCH_GAME_SERVER_URL"]);
+
+export interface FixedLaunchSpec { readonly command: string; readonly argv: readonly string[]; readonly cwd: string; readonly env: Record<string, string> }
+
+// A trial runs the agent of the experiment checkout at the pinned commit; cwd stays the main checkout so
+// relative preset paths (the start save) resolve there, and the run is recorded in the main runs root.
+export function fixedLaunchSpec(deps: Pick<FixedHostDeps, "root" | "runsRoot" | "node" | "env">, commit: string, laneEnv: Readonly<Record<string, string>>): FixedLaunchSpec {
+  const env: Record<string, string> = {};
+  for (const [k, v] of Object.entries(deps.env)) if (v !== undefined && !LANE_VARIABLES.has(k)) env[k] = v;
+  Object.assign(env, laneEnv, { POKEBENCH_RUNS_ROOT: deps.runsRoot });
+  return { command: deps.node, argv: [fixedTreeLiveJs(fixedTreeDir(commit)), "play"], cwd: deps.root, env };
+}
 
 export function productionFixedHost(deps: FixedHostDeps): FixedHost {
-  const builds = productionHost(deps);
-  const liveJs = join(deps.root, "packages", "agent", "dist", "live.js");
+  let prepared: string | null = null;
+  const treeDeps: FixedTreeDeps = {
+    root: deps.root, node: deps.node,
+    git: (cwd, args) => execFileSync("git", [...args], { cwd, encoding: "utf8" }),
+    exec: (cmd, args, cwd) => new Promise((resolveExec) => {
+      execFile(cmd, [...args], { cwd, env: { ...deps.env, VIRTUAL_ENV: undefined }, encoding: "utf8", timeout: 1_200_000, maxBuffer: 64 * 1024 * 1024 }, (error, stdout, stderr) => {
+        if (error === null) { resolveExec(null); return; }
+        const lines = `${stdout}\n${stderr}`.split("\n").filter((line) => line.trim() !== "").slice(-3);
+        resolveExec(lines.length > 0 ? lines.join("; ") : error.message);
+      });
+    }),
+    exists: existsSync,
+    read: (path) => (existsSync(path) ? readFileSync(path, "utf8") : null),
+    write: (path, text) => { writeFileSync(path, text); },
+    copyDir: (from, to) => { rmSync(to, { recursive: true, force: true }); cpSync(from, to, { recursive: true }); },
+    sources: (commit) => sourceIdentity(deps.git, commit),
+    sitePackages: (venv) => {
+      const lib = join(venv, "lib");
+      if (!existsSync(lib)) return null;
+      const python = readdirSync(lib).find((name) => /^python3\.\d+$/.test(name));
+      return python === undefined ? null : join(lib, python, "site-packages");
+    },
+  };
   return {
     now: () => new Date(),
     sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
     head: () => deps.git(["rev-parse", "HEAD"]).trim(),
     sources: (commit) => sourceIdentity(deps.git, commit),
-    // verifySource never reads its experiment argument.
-    verifyBuild: (commit) => builds.verifySource(undefined as never, commit),
+    verifyBuild: async (commit) => {
+      deps.log(`preparing the experiment checkout for ${commit.slice(0, 7)}`);
+      const problem = await prepareFixedTree(treeDeps, commit);
+      prepared = problem === null ? commit : null;
+      return problem;
+    },
     serving: (lane) => servingReceipt(lane.modelUrl, deps.fetchFn),
     portInUse: (port) => new Promise((resolvePort) => {
       const probe = createServer();
@@ -281,10 +318,10 @@ export function productionFixedHost(deps: FixedHostDeps): FixedHost {
     }),
     runId: (lane) => newRunId(new Date(), `qwen36-${lane.gpu.toLowerCase()}`, randomSuffix),
     launch: (l) => {
-      const env: Record<string, string> = {};
-      for (const [k, v] of Object.entries(deps.env)) if (v !== undefined && !LANE_VARIABLES.has(k)) env[k] = v;
-      Object.assign(env, l.env);
-      return spawnDetached(deps.node, [liveJs, "play"], { cwd: deps.root, env, stdout: l.stdout, stderr: l.stderr, started: (pid) => { l.started(pid); } });
+      // The runner checks the build before every launch, so a launch always follows a prepared checkout.
+      if (prepared === null) return Promise.reject(new Error("no prepared experiment checkout"));
+      const spec = fixedLaunchSpec(deps, prepared, l.env);
+      return spawnDetached(spec.command, [...spec.argv], { cwd: spec.cwd, env: spec.env, stdout: l.stdout, stderr: l.stderr, started: (pid) => { l.started(pid); } });
     },
     alive: pidAlive,
     log: deps.log,

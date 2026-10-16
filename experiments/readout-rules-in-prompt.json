@@ -74,6 +74,13 @@
    "navigation-refusal-reasons-v1": false,
    "transition-press-result-v1": false,
    "stall-briefing-v1": false,
+   "battle-details-v2": false,
+   "dialogue-auto-advance-v1": false,
+   "warp-arrival-settle-v1": false,
+   "dialogue-context-kept-v1": false,
+   "displayed-place-names-v1": false,
+   "transition-loop-detection-v1": false,
+   "blocked-batch-result-v1": false,
    "readout-rules-in-prompt-v1": false
   }
  },

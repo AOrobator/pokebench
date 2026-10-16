@@ -46,6 +46,8 @@ State-only decisions get no system-prompt section, so `state-only-decisions-v1` 
 - [x] pending `experiments/readout-rules-in-prompt.json` (no queuePosition; activation PLAYER_NAME_CONFIRMED; provisional source.commit ecc487e9, repin at merge), readiness line, `just experiments-check`: ok, 51 experiments
 - [x] principles self-review (docs/agent-principles.md PB1-PB13): 10 PASS / 3 N/A / 0 FAIL (artifact /private/tmp/rr-review/principles.md)
 - [ ] Claude CLI, Codex, Grok: VERDICT LGTM
+  - Round 1 (frozen ef9244e2..5e67c0df, diff SHA-256 8f173f27…): Grok (cursor-grok-4.5-high) LGTM; Codex (gpt-5.6-sol, read-only codex exec) BLOCKING (3); Claude family: `~/.claude-review` OAuth expired, Cursor claude-opus-5-5-high and claude-sonnet-5-thinking-xhigh both at usage limit, so the standing subagent fallback ran two fresh read-only reviewers (opus, sonnet): both LGTM (opus independently re-rendered all 35 goldens with the ef9244e2 code: 0 mismatches). The parent later reported the Claude CLI works on the default profile; round 2 uses it.
+  - Codex blockers, all accepted: (1) `render_ts` dedup used list membership + `list.index` (quadratic in distinct texts): now a dict `setdefault`, output byte-identical (generated file unchanged); (2) pending experiment incumbent omitted 7 switches: now names every SWITCHABLE_FEATURES id in registry order, the 7 at their normalized default (false); RED test `names every registry switch explicitly in its incumbent` failed on the old JSON and passes now; (3) no real-browser click-through: candidate viewer (worktree dist, `startViewer` only, no queue/autorun, port 8841, scratch runs root holding only the showcase run_start) → HARNESS CONFIG → `READ EXPLAINER ↗` on READOUT RULES IN PROMPT, pointer click and keyboard Enter on the focused link both opened http://127.0.0.1:8841/explainers/readout-rules-in-prompt-v1.html with the page title "Readout Rules In Prompt"; viewer stopped afterwards.
 
 ## Session Log
 - 2026-10-16 02:29 AM EDT: constancy audit, design and RED written.
@@ -53,6 +55,7 @@ State-only decisions get no system-prompt section, so `state-only-decisions-v1` 
 - 2026-10-16 02:41 AM EDT: real-ROM proof and measurement.
 - 2026-10-16 02:50 AM EDT: explainer and pending experiment.
   COMMIT: `docs(readout-rules): explainer, harness-config link and pending experiment entry` (1fe18aa6)
+- 2026-10-16 03:12 AM EDT: round-1 fixes (dict dedup, explicit incumbent, browser click-through).
 - 2026-10-16 02:58 AM EDT: principles self-review clean; review round 1 frozen at this commit, base ef9244e2.
 - 2026-10-16 02:53 AM EDT: with $POKEBENCH_ROM set, the two ROM-gated rerender tests (recorded truck readout byte-for-byte) failed because their recorded run predates this switch; `env_with` now marks it off like warp-arrival-settle-v1, and the recorded readout reproduces byte-for-byte (real-ROM OFF identity). pytest with ROM: 2031 passed.
 - 2026-10-16 02:18 AM EDT: worklog drafted (the operator's proposal).

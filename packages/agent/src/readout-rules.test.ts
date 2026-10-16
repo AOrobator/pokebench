@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { ALL_ON, SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, playHarnessFeatures, serverFeatureEnv, stateOnlyProblems, type FeatureSet, type SwitchableFeature } from "./features.js";
 import { MAP_RULE_INDEX, MAP_RULE_SWITCHES, MAP_RULE_TEXTS } from "./map-rules.generated.js";
@@ -84,5 +85,14 @@ describe("readout-rules-in-prompt-v1 system prompt", () => {
     expect(Object.values(MAP_RULE_INDEX).every((index) => index >= 0 && index < MAP_RULE_TEXTS.length)).toBe(true);
     expect(() => mapRulesSection(SHOWCASE, {}, MAP_RULE_TEXTS)).toThrow(/no map-rules section for off set "full-map-navigation-v1"/);
     expect(() => mapRulesSection(SHOWCASE, { "full-map-navigation-v1": 99 }, MAP_RULE_TEXTS)).toThrow(/no map-rules section/);
+  });
+});
+
+describe("readout-rules-in-prompt-v1 pending experiment", () => {
+  it("names every registry switch explicitly in its incumbent, with this switch off", () => {
+    const entry = JSON.parse(readFileSync(new URL("../../../experiments/readout-rules-in-prompt.json", import.meta.url), "utf8")) as { changedFeature: string; incumbent: { features: Record<string, boolean> } };
+    expect(entry.changedFeature).toBe(ID);
+    expect(Object.keys(entry.incumbent.features)).toEqual([...SWITCHABLE_FEATURES]);
+    expect(entry.incumbent.features[ID]).toBe(false);
   });
 });

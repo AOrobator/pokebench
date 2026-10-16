@@ -704,6 +704,19 @@ it("links the talk to people card to its tracked explainer, which quotes the exa
  expect(html).toContain("Talking is cheap: face the person and press A; the harness reads the conversation until your next decision.");
 });
 
+it("links the talk to people v2 card to its tracked explainer, which quotes v1 and the exact v2 model text",()=>{
+ expect(FEATURE_EXPLAINERS["explorer-guidance-v2"]).toBe("explorer-guidance-v2.html");
+ const log=new Log();log.add(0,{...START,harness_features:["explorer-guidance-v2"]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector('[data-feature="explorer-guidance-v2"] a')?.getAttribute("href")).toBe("/explainers/explorer-guidance-v2.html");
+ const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/explorer-guidance-v2.html",import.meta.url)),"utf8");
+ expect(html).toContain("explorer-guidance-v2");
+ const text=html.replace(/<\/?mark>/g,"");
+ expect(html).toContain("Talk to people: talking to people gives you information about the world and can move the story forward. When you are unsure where to go, or after the story has moved on, talking to the people around you is a good way to learn more. What people tell you is evidence; use it to decide where to go.");
+ expect(text).toContain("Talk to people: in this game, people tell you where to go next. After each story event, and whenever you are unsure where to go, talk to everyone in the room you are in before you leave, including the families and neighbours of characters you have met. People often say something new once the story has moved on, so talk again to people you spoke to before. A short remark, such as where someone has gone, is a direction to follow, not small talk.");
+ expect(html).toContain("Talking is cheap: face the person and press A; the harness reads the conversation until your next decision.");
+});
+
 it("links the battle text auto-advance card to its explainer in Harness Config",()=>{
  expect(FEATURE_EXPLAINERS["battle-text-auto-advance-v1"]).toBe("battle-text-auto-advance-v1.html");
  const log=new Log();log.add(0,{...START,harness_features:["battle-text-auto-advance-v1"]});

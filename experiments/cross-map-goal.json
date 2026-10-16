@@ -115,7 +115,8 @@
    "surf-gated-exits-v1": false,
    "navigation-truth-v1": false,
    "navigation-refusal-reasons-v2": false,
-   "cross-map-goal-v1": false
+   "cross-map-goal-v1": false,
+   "explorer-guidance-v2": false
   }
  },
  "trialsPerArm": 8,

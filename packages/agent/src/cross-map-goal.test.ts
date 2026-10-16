@@ -109,7 +109,8 @@ describe("cross-map-goal-v1 production wiring",()=>{
 describe("cross-map-goal-v1 pending experiment",()=>{
  const raw=JSON.parse(readFileSync(new URL("../../../experiments/cross-map-goal.json",import.meta.url),"utf8")) as {incumbent:{features:Record<string,boolean>}};
  it("names every switch explicitly and flips only cross-map-goal-v1",()=>{
-  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.slice(0,SWITCHABLE_FEATURES.indexOf("cross-map-goal-v1")+1));
+  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.slice(0,Object.keys(raw.incumbent.features).length));
+  expect(Object.keys(raw.incumbent.features)).toContain("cross-map-goal-v1");
   const {incumbent,candidate}=experimentArms(parseExperiment(raw));
   expect(incumbent.features["cross-map-goal-v1"]).toBe(false);expect(incumbent.features["bounded-navigation-v1"]).toBe(true);
   expect(SWITCHABLE_FEATURES.filter(id=>incumbent.features[id]!==candidate.features[id])).toEqual(["cross-map-goal-v1"]);

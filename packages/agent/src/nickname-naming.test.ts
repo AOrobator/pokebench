@@ -36,14 +36,14 @@ describe("no-nickname-guidance-v1",()=>{
   expect(playHarnessFeatures(OFF,null)).not.toContain(GUIDANCE);
  });
  it("OFF leaves the system prompt unchanged; ON appends one paragraph",()=>{
-  const plain:FeatureSet={...OFF,"objective-tracking-v1":false,"readout-rules-in-prompt-v1":false,"battle-triage-guidance-v1":false,"explorer-guidance-v1":false,"untaken-exits-v1":false,"people-ledger-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false};
+  const plain:FeatureSet={...OFF,"objective-tracking-v1":false,"readout-rules-in-prompt-v1":false,"battle-triage-guidance-v1":false,"explorer-guidance-v1":false,"explorer-guidance-v2":false,"untaken-exits-v1":false,"people-ledger-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false};
   const off=playSystemPrompt(plain,null),on=playSystemPrompt({...plain,[GUIDANCE]:true},null);
   expect(off).not.toContain("nickname only costs time");
   expect(on).toBe(`${off}\n\n${NO_NICKNAME_SECTION}`);
   expect(NO_NICKNAME_SECTION).toBe("Nicknames: this is a speed run, and naming a Pokémon only costs time. When the game offers to give a Pokémon a nickname, answer NO. If you are already on the naming screen for a Pokémon's nickname, do not type or fix letters: press START to move the cursor to OK, then A. Any nickname is fine, and with nothing typed the Pokémon keeps its own name.");
  });
  it("the objective record still follows the guidance paragraph",()=>{
-  const features:FeatureSet={...OFF,[GUIDANCE]:true,"objective-tracking-v1":true,"readout-rules-in-prompt-v1":false,"battle-triage-guidance-v1":false,"explorer-guidance-v1":false,"untaken-exits-v1":false,"people-ledger-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false};
+  const features:FeatureSet={...OFF,[GUIDANCE]:true,"objective-tracking-v1":true,"readout-rules-in-prompt-v1":false,"battle-triage-guidance-v1":false,"explorer-guidance-v1":false,"explorer-guidance-v2":false,"untaken-exits-v1":false,"people-ledger-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false};
   expect(playSystemPrompt(features,null)).toBe(`${playSystemPrompt({...features,"objective-tracking-v1":false},null)}\n\n${objectivePrompt(objectiveSwitches(features))}`);
   expect(playSystemPrompt({...features,"objective-tracking-v1":false},null).endsWith(NO_NICKNAME_SECTION)).toBe(true);
  });

@@ -384,6 +384,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "transition-press-result-v1":"transition-press-result-v1.html",
  "blocked-batch-result-v1":"blocked-batch-result-v1.html",
  "explorer-guidance-v1":"explorer-guidance-v1.html",
+ "explorer-guidance-v2":"explorer-guidance-v2.html",
  "in-game-naming-readout-v1":"in-game-naming-readout-v1.html",
  "no-nickname-guidance-v1":"no-nickname-guidance-v1.html",
  "battle-text-auto-advance-v1":"battle-text-auto-advance-v1.html",

@@ -637,7 +637,12 @@ def read_active_ui(
         if birch_pages:
             from pokebench_env.birch_pages import read_birch_page
 
-            page = read_birch_page(read, owners[0])
+            task = next(
+                tasks[i : i + 0x28]
+                for i in range(0, len(tasks), 0x28)
+                if tasks[i + 4] == 1 and int.from_bytes(tasks[i : i + 4], "little") == owners[0]
+            )
+            page = read_birch_page(read, task)
             if page is not None:
                 return page
         ready = phase == "name_entry_prompt"

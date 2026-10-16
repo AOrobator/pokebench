@@ -109,7 +109,10 @@ def test_a_page_before_the_sprite_fade_is_done_is_not_ready() -> None:
     assert read_birch_page(page_memory().read, task_record(0x080314C5, faded=0)) is None
     screen = Screen("birch_speech", 0, BIRCH_SPEECH)
     fading = read_active_ui(page_memory(faded=0).read, screen, birch_pages=True)
-    assert fading is not None and (fading.phase, fading.ready) == ("name_confirmed_transition", False)
+    assert fading is not None and (fading.phase, fading.ready) == (
+        "name_confirmed_transition",
+        False,
+    )
     # A short task record cannot prove the fade is done.
     assert read_birch_page(page_memory().read, task_record()[:18]) is None
 

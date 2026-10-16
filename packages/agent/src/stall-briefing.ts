@@ -3,12 +3,19 @@ import {MEASUREMENT_ONLY_MILESTONES} from "./milestones.js";
 import type {RunEvent} from "./events.js";
 import type {FeatureSet} from "./features.js";
 import type {LoopDetector} from "./loop-detection.js";
-import type {Stall} from "./loop-supervisor.js";
+import {interfaceOf,type Stall} from "./loop-supervisor.js";
 
 // A pair of maps briefs on this many round trips between them, then again every as many more.
 export const STALL_ROUND_TRIPS=2;
 // Active play (operator pauses excluded) with no new milestone before each briefing.
 export const STALL_DROUGHT_MS=5*60_000;
+// Calls in one owned interface (a naming editor, a menu) before a dwell briefing, then again every as many more.
+// Evidence (runs 2026-10-13..16, 133 runs, 23 naming episodes): every naming episode that ended normally took at
+// most 25 calls (player names: median 7; nicknames 3 and 19); stuck ones took 48, 79, 97 and 153 calls.
+export const INTERFACE_DWELL_CALLS=30;
+
+type State=Extract<RunEvent,{type:"state";started:boolean}>;
+interface Dwell {readonly key:string;readonly name:string;readonly firstSeq:number;calls:number;briefed:number}
 
 // lastSeq: the state event of this pair's own latest move (its note's evidence); consecutive: no other pair's move came between.
 interface Pair {readonly from:string;readonly to:string;moves:number;briefed:number;lastSeq:number;consecutive:boolean}
@@ -21,6 +28,8 @@ export class StallBriefing {
  private progressAt=0;
  private progressSeq:number|null=null;
  private droughts=0;
+ private last:State|null=null;
+ private dwell:Dwell|null=null;
  constructor(
   private readonly features:FeatureSet,
   private readonly active:()=>number,
@@ -31,10 +40,11 @@ export class StallBriefing {
  observe(event:RunEvent):void {
   if(event.type==="milestone"){
    if(event.origin==="present_at_start"||event.name==="GAME_RUNNING"||MEASUREMENT_ONLY_MILESTONES.has(event.name))return;
-   this.progressAt=this.active();this.progressSeq=event.seq;this.droughts=0;this.pairs.clear();
+   this.progressAt=this.active();this.progressSeq=event.seq;this.droughts=0;this.pairs.clear();this.dwell=null;
    return;
   }
   if(event.type==="state"&&"started"in event){
+   this.last=event;
    if(!event.started||event.location===null||event.map_id===null)return;
    const key=roomKey(event),name=roomOf(event,this.features);
    if(this.room!==null&&this.room.key!==key){
@@ -46,7 +56,16 @@ export class StallBriefing {
    this.room={key,name};
    return;
   }
-  if(event.type==="tool_result")this.check(event.seq);
+  if(event.type==="tool_result"){
+   // Calls whose result showed the same owned interface count as dwelling there, however its text churns.
+   if(event.state_seq!==undefined&&this.last?.seq===event.state_seq){
+    const ui=interfaceOf(this.last);
+    if(ui===null)this.dwell=null;
+    else if(this.dwell?.key===ui.key)this.dwell.calls++;
+    else this.dwell={key:ui.key,name:ui.name,firstSeq:this.last.seq,calls:1,briefed:0};
+   }
+   this.check(event.seq);
+  }
  }
 
  private check(seq:number):void {
@@ -55,6 +74,12 @@ export class StallBriefing {
    if(level<=pair.briefed)continue;
    const stall:Stall={kind:"map_cycle",from:pair.from,to:pair.to,roundTrips:Math.floor(pair.moves/2),consecutive:pair.consecutive};
    if(this.detector.stall("map_cycle",calls=>this.text(stall,calls),[pair.lastSeq,seq]))pair.briefed=level;
+   return;
+  }
+  const dwell=this.dwell;
+  if(dwell!==null&&Math.floor(dwell.calls/INTERFACE_DWELL_CALLS)>dwell.briefed){
+   const stall:Stall={kind:"interface_dwell",name:dwell.name,calls:dwell.calls};
+   if(this.detector.stall("interface_dwell",calls=>this.text(stall,calls),[dwell.firstSeq,seq]))dwell.briefed=Math.floor(dwell.calls/INTERFACE_DWELL_CALLS);
    return;
   }
   const level=Math.floor((this.active()-this.progressAt)/STALL_DROUGHT_MS);

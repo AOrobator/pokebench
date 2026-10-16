@@ -25,7 +25,7 @@ Forensics of bundle qualification run `2026-10-15T23-47-41_qwen36-gpu1_3f21` (`r
 - [x] RED: tests from real 3f21 events (fixtures under `packages/agent/test-support/bundle-3f21/`): `packages/agent/src/bundle-3f21-fixes.test.ts`, 10 failing / 2 passing (the two passing pin the both-arm supervisor T65 note byte for byte and the recorded generic refusal with the switch OFF). Replays reproduce the recorded text exactly before the fix (T95 press line, T98 navigate line, T166 briefing lines, T56 pages).
 - [x] GREEN F5–F8: agent 82 files / 1278 tests pass; lint + build clean. Two existing ON-switch tests updated on purpose (door warp now has a specific reason; stall briefing adds three lines, all other lines still equal the loop briefing).
 - [x] RED F12 (scope addition): `packages/agent/src/stall-interface.test.ts` from showcase run `2026-10-16T00-34-26_qwen36-gpu1_show` (fixture `test-support/showcase-nickname/events.jsonl.gz`, events to seq 9563): 3 failing, 1 passing (the both-arm supervisor reproduces recorded notes T59 seq 855 and T158 seq 3118 byte for byte). Dwell threshold N=30 from evidence: 23 naming episodes in 133 runs (2026-10-13..16); every episode that ended normally took <=25 calls (player naming p50 7, max normal 25; nickname 3 and 19); the stuck ones took 48, 79, 97, 153.
-- [ ] GREEN F12
+- [x] GREEN F12: `interfaceOf` + interface bearings in `SupervisorBriefing.stallText` only; `interface_dwell` stall (N=30) in `StallBriefing`; loop_guard kind enum, schema and viewer labels extended. Agent 1282 tests, viewer 787 tests pass; lint clean.
 - [ ] Gates: test, lint, build, coverage (90%), verify-vendor
 - [ ] Explainer updates (local)
 - [ ] Review: Codex + grok
@@ -41,6 +41,8 @@ Forensics of bundle qualification run `2026-10-15T23-47-41_qwen36-gpu1_3f21` (`r
 ## Surprises
 
 ## Commits
+
+- COMMIT: `test(bundle): RED for F12 stall briefing in an owned interface` (51006938)
 
 - COMMIT: `fix(bundle): F5–F8 inside stall-briefing, auto-advance and refusal-reason switches` (47aa276c); agent 1278 tests pass
 

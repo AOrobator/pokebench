@@ -33,3 +33,4 @@ Viewer-only change: no harness behavior, so no feature switch.
 
 - GREEN: viewer 952 tests pass; coverage all files 95.46 / 91.22 / 93.78 / 97.7 (stmts/branches/funcs/lines); `frontier-versions.ts` 100/91.4/100, `frontier-legend.ts` 100/95.3/100; `pnpm lint` (tsc + eslint) clean.
 - RED (browser finding): clicking the Human baseline or Agent frontier item in the mark key did nothing, because the click guard skipped anything inside a <details> and the key lives inside the What the marks mean bar. New workbench test fails at this commit.
+- RED (browser findings): switch titles with a hyphenated acronym read "Low-hp"; on a phone the isolated chip squeezed the version name to "qwen3…" behind the bar title, so the chip gets a short arm-only label ("bundle v7").

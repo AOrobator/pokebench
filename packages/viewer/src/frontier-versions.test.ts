@@ -15,6 +15,8 @@ describe("harness versions", () => {
     expect(switchLabel("RAM GAME-STATE READOUT")).toBe("RAM game-state readout");
     expect(switchLabel("NPCS + OBJECTS")).toBe("NPCs + objects");
     expect(switchLabel("BATTLE DETAILS V2")).toBe("Battle details v2");
+    expect(switchLabel("LOW-HP TRAINER WARNING")).toBe("Low-HP trainer warning");
+    expect(switchLabel("NPC-AWARE ROUTES")).toBe("NPC-aware routes");
     expect(switchLabel("Already readable UI")).toBe("Already readable UI");
     expect(switchLabel("")).toBe("");
   });

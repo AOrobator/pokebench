@@ -98,10 +98,12 @@ describe("story frontier version legend", () => {
     expect(document.querySelectorAll(".wb-sel")).toHaveLength(1);
     expect(document.querySelector(".wb-vlegend")?.classList.contains("wb-isolating")).toBe(true);
     expect(document.querySelector(".wb-iso b")?.textContent).toBe("qwen36 · bundle v2");
+    expect(document.querySelector(".wb-iso .wb-iso-short")?.textContent).toBe("bundle v2");
     expect(document.querySelector(".wb-iso [data-show-all]")?.textContent).toBe("Show all");
     document.body.innerHTML = frontierLegend({ human: human(), best }, runs, versions, { ...closed, isolated: HUMAN_VERSION });
     expect(document.querySelector('[data-reference="human"]')?.classList.contains("wb-sel")).toBe(true);
     expect(document.querySelector(".wb-iso b")?.textContent).toBe("Human baseline");
+    expect(document.querySelector(".wb-iso .wb-iso-short")?.textContent).toBe("Human baseline");
     document.body.innerHTML = frontierLegend({ human: human(), best }, runs, versions, { ...closed, isolated: FRONTIER_VERSION });
     expect(document.querySelector(".wb-iso b")?.textContent).toBe("Agent frontier");
     document.body.innerHTML = frontierLegend({ human: human(), best }, runs, versions, { ...closed, isolated: "hv-gone" });

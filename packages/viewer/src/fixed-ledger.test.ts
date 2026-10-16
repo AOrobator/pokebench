@@ -2,6 +2,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { DEPTH_ORDER } from "@pokebench/agent/milestones";
 import { appendLedger, classifyTrial, FixedLedgerError, nextFor, progress, queueState, readLedger, type FixedLedgerEntry, type FixedOutcome, type TrialExpectation } from "./fixed-ledger.js";
 import { definition, MODEL_PATH, ROM_SHA1, START_SHA1 } from "../test-support/fixed.js";
 import { Log, START } from "../test-support/events.js";
@@ -104,6 +105,15 @@ describe("classifyTrial", () => {
   function classify(build: (log: Log) => void, exit: number | null = 0): FixedOutcome {
     return classifyTrial(text(build), expectation, exit);
   }
+
+  it("ranks the furthest milestone by story depth, so an early heal or catch never outranks the story", () => {
+    const outcome = classify((log) => {
+      log.add(0, goodStart);
+      for (const [at, name] of [[1000, "ROUTE_103"], [2000, "FIRST_POKECENTER_HEAL"], [3000, "FIRST_POKEMON_CAUGHT"]] as const) log.add(at, { type: "milestone", turn: 1, name, kind: "story", origin: "observed", server_timestamp: 1, evidence: [1] });
+      log.add(900_000, { ...end, reason: "budget" });
+    });
+    expect(outcome).toMatchObject({ furthest: "ROUTE_103", furthestDepth: DEPTH_ORDER.indexOf("ROUTE_103"), furthestMs: 1000 });
+  });
 
   it("checks a New Game phase's trials booted, and every trial's ROM, with no vacuous start check", () => {
     const boot: TrialExpectation = { ...expectation, presetId: "bundle-v-control-cook-bundle", maxWallMs: 900_000, start: { kind: "boot" } };

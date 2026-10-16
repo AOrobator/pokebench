@@ -97,7 +97,7 @@ const STORY_BATTLES:readonly StoryBattle[]=[
 const onMap=(id:readonly number[]|null|undefined,map:readonly [number,number]):boolean=>id?.[0]===map[0]&&id[1]===map[1];
 const hurt=(s:GameStateSnapshot):StoryBattleWarningFacts["party"]=>s.party.flatMap(m=>m.is_egg!==true&&m.species!==null&&m.hp!=null&&m.max_hp!=null&&m.hp<m.max_hp?[{species:m.species,hp:m.hp,max_hp:m.max_hp}]:[]);
 // Positive evidence only: every Pokémon (not an egg) reads its HP and max HP, and each is at max.
-const fullParty=(s:GameStateSnapshot):boolean=>{const mons=s.party.filter(m=>m.is_egg!==true);return mons.length>0&&mons.every(m=>m.species!==null&&m.hp!=null&&m.max_hp!=null&&m.hp===m.max_hp);};
+const fullParty=(s:GameStateSnapshot):boolean=>{const mons=s.party.filter(m=>m.is_egg!==true);return mons.length>0&&mons.every(m=>m.hp!=null&&m.max_hp!=null&&m.hp===m.max_hp);};
 // v2 also lists fainted Pokémon, so it names the field revival medicine too (pokeemerald src/data/items.h:
 // REVIVE, MAX REVIVE, REVIVAL HERB use ItemUseOutOfBattle_Medicine). Each kind is named only when it has a target:
 // src/pokemon.c refuses ordinary HP medicine on a fainted Pokémon and revival medicine on a conscious one. v1's list

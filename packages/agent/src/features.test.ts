@@ -30,9 +30,11 @@ it("retains the legacy information list while adding mandatory raw recording", (
 });
 
 it("drops exactly the switched-off id and round-trips through recorded features", () => {
+  const all = playHarnessFeatures(ALL_ON, null);
   for (const id of SWITCHABLE_FEATURES) {
     const list = playHarnessFeatures(off(id), null);
-    expect(playHarnessFeatures(ALL_ON,null).filter((item) => !list.includes(item))).toEqual([id]);
+    const kept = new Set(list);
+    expect(all.filter((item) => !kept.has(item))).toEqual([id]);
     expect(featuresOf(list)).toEqual(off(id));
   }
 });

@@ -70,6 +70,9 @@ class WhiteoutLatch:
     def __init__(self, read: ReadMemory) -> None:
         self.read = read
         self._lock = threading.Lock()
+        # Held by one observation from take() until its text is rendered or put back, so
+        # concurrent observations deliver whiteouts one at a time, oldest first.
+        self.delivering = threading.Lock()
         self._inside = False
         self._frames = 0
         # Oldest first: a second whiteout before the first is shown queues behind it.

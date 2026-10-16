@@ -94,17 +94,19 @@ def install_observation(
         screenshot = shot.get("screenshot_base64")
         if not isinstance(screenshot, str) or screenshot == "":
             raise HTTPException(status_code=503, detail="no screenshot available")
-        # blackout-readout-v1: taken only once this observation will be delivered.
-        event: Whiteout | None = None if whiteout is None else whiteout.take(state, seen)
         if warp and settled is not None:
             serialized["settle"] = {"frames": settled.frames, "reason": settled.reason}
         note = screen_note(fading=fading, black=frame_is_black(screenshot))
-        try:
-            text = render(state, off, warp_animation=animation, whiteout=event)
-        except BaseException:
-            if whiteout is not None and event is not None:
-                whiteout.put_back(event)
-            raise
+        # blackout-readout-v1: taken only once this observation will be delivered, and
+        # rendered before another observation may take one (put back if rendering fails).
+        with whiteout.delivering if whiteout is not None else nullcontext():
+            event: Whiteout | None = None if whiteout is None else whiteout.take(state, seen)
+            try:
+                text = render(state, off, warp_animation=animation, whiteout=event)
+            except BaseException:
+                if whiteout is not None and event is not None:
+                    whiteout.put_back(event)
+                raise
         return {
             **({"raw_ram": receipt} if receipt is not None else {}),
             "state_text": (f"{note}\n" if note else "") + text,

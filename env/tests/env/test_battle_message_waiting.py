@@ -214,7 +214,7 @@ def test_clause_for_every_message_state() -> None:
     )
     broken = bt.BattleMessage("printing", "printing", None, 3, None, "harness bug: battle text: x")
     assert input_clause(replace(BASE, message=broken)) == (
-        "battle message unreadable (harness bug: battle text: x)"
+        "battle message state unknown (harness bug: battle text: x); check the screen"
     )
     idle = replace(BASE, message=bt.BattleMessage("idle"))
     assert input_clause(idle) == RESOLVING
@@ -389,13 +389,13 @@ def test_clauses_follow_the_detector_phase() -> None:
 
 
 def test_a_reader_diagnostic_is_shown_unless_another_owner_holds_the_battle() -> None:
-    """Review round 2: a diagnostic under phase screen or input keeps the OFF text; with the
-    detector itself failed (phase None) it stays loud, since ownership is then unknown."""
+    """Review round 2: a diagnostic under phase screen or input keeps the OFF text; otherwise
+    the message state is reported as unknown (INV-5), never as "no input" and never as a guess."""
     broken = bt.BattleMessage("idle", diagnostic="harness bug: battle text: x")
     for phase in ("screen", "input"):
         assert message_clause(replace(BASE, message=broken, text_phase=phase)) is None
         assert input_clause(replace(BASE, message=broken, text_phase=phase)) is None
-    unread = "battle message unreadable (harness bug: battle text: x)"
+    unread = "battle message state unknown (harness bug: battle text: x); check the screen"
     assert input_clause(replace(BASE, message=broken, text_phase=None)) == unread
     assert input_clause(replace(BASE, message=broken, text_phase="busy")) == unread
     # A printing page while the detector reads a wait (or a prompt still drawing) says nothing.

@@ -244,6 +244,19 @@ it.each([
   expect(results).toBe(all.filter((line) => line.trim() !== "").length);
 });
 
+it("copies a line many chunks long a bounded number of times", () => {
+  const base = mkdtempSync(join(tmpdir(), "viewer-stream-"));
+  roots.push(base);
+  const path = join(base, "events.jsonl");
+  const size = 8 << 20;
+  writeFileSync(path, `${"z".repeat(size)}\n`);
+  const concat = vi.spyOn(Buffer, "concat");
+  const step = new LogReader(path, 65536).next(2000);
+  expect(step.lines).toBe(1);
+  const copied = concat.mock.results.reduce((sum, r) => sum + (r.type === "return" ? r.value.length : 0), 0);
+  expect(copied).toBeLessThanOrEqual(2 * (size + 1));
+});
+
 it("rejects a chunk size that is not a positive integer", async () => {
   await expect(serve("bad", longRun(1), 0)).rejects.toThrow(RangeError);
 });

@@ -105,6 +105,7 @@ export function readFrom(path: string, offset: number, lineNo: number): ReadResu
 // newline lands.
 export class LogReader {
   private buffer: Buffer = Buffer.alloc(0);
+  private pieces: Buffer[] = [];
   private fileEnd = 0;
   private lineNo = 0;
 
@@ -112,12 +113,18 @@ export class LogReader {
 
   // The parsed lines (blank ones skipped) and how many lines were consumed: 0 means nothing new.
   next(maxLines: number): { readonly results: LineResult[]; readonly lines: number } {
-    while (this.buffer.indexOf(0x0a) < 0) {
-      const more = readBytes(this.path, this.fileEnd, this.chunkBytes);
-      if (more.length === 0) return { results: [], lines: 0 };
-      this.fileEnd += more.length;
-      this.buffer = this.buffer.length === 0 ? more : Buffer.concat([this.buffer, more]);
-      if (more.length < this.chunkBytes && this.buffer.indexOf(0x0a) < 0) return { results: [], lines: 0 };
+    // Pieces of a line longer than a chunk are kept apart and joined once, when its newline arrives.
+    if (this.buffer.indexOf(0x0a) < 0) {
+      for (;;) {
+        const more = readBytes(this.path, this.fileEnd, this.chunkBytes);
+        if (more.length === 0) return { results: [], lines: 0 };
+        this.fileEnd += more.length;
+        this.pieces.push(more);
+        if (more.indexOf(0x0a) >= 0) break;
+        if (more.length < this.chunkBytes) return { results: [], lines: 0 };
+      }
+      this.buffer = Buffer.concat([this.buffer, ...this.pieces]);
+      this.pieces = [];
     }
     const results: LineResult[] = [];
     let start = 0, parsed = 0;

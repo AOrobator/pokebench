@@ -54,3 +54,5 @@ OFF: no skip, no map moves; byte-identical to today.
 - Round 1 (full diff): grok LGTM; Codex BLOCKING (map moves ignored genuine locks; stale receipt). Fixed RED 30b61440/e3e46059, GREEN e346916b/7b7462bf.
 - Round 2 (delta): grok LGTM; Codex BLOCKING (last-map bridge after a scripted crossing). Fixed RED + GREEN def964d5.
 - Round 3 (delta): Codex LGTM, grok LGTM.
+
+- 2026-10-16 01:45 AM EDT (integrator): merged main (blocked-batch-result-v1, bedroom-exit split) into the branch; registry tails resolved keeping both switches (blocked-batch-result-v1 recorded last, this switch second to last); `.at(-N)` registry tests bumped by one; switchboard row count 54. Agent 1348 and viewer 793 pass. Registered `experiments/transition-loop-detection.json` as pending plus its readiness row.

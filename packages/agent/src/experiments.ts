@@ -6,7 +6,7 @@ import {createHash} from "node:crypto";
 import {Type,type Static} from "typebox";
 import {Value} from "typebox/value";
 import {MEASUREMENT_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,stateOnlyProblems,type FeatureSet,type SwitchableFeature} from "./features.js";
-import {MILESTONES} from "./milestones.js";
+import {MEASUREMENT_ONLY_MILESTONES,MILESTONES} from "./milestones.js";
 import {PlayPresetV2Schema,parsePlayPreset,type PlayPresetV2} from "./play-preset.js";
 
 const closed={additionalProperties:false} as const;
@@ -74,6 +74,7 @@ export function parseExperiment(value:unknown):Experiment {
  for(const field of ["activationMilestone","primaryMilestone"] as const)if(!native(value[field]))throw new Error(`Invalid experiment: ${field} ${value[field]} is not a native milestone`);
  const finalsTarget=value.finals?.target;
  if(typeof finalsTarget==="string"&&!native(finalsTarget))throw new Error(`Invalid experiment: finals target ${finalsTarget} is not a native milestone`);
+ if(typeof finalsTarget==="string"&&MEASUREMENT_ONLY_MILESTONES.has(finalsTarget))throw new Error(`Invalid experiment: finals target ${finalsTarget} is measurement-only; a target is written into the model's goal`);
  if(value.criteria.completionTolerance>value.trialsPerArm)throw new Error("Invalid experiment: criteria completionTolerance exceeds trialsPerArm");
  const order=MILESTONES.filter(m=>m.kind!=="legacy").map(m=>m.name);
  if(order.indexOf(value.activationMilestone)>order.indexOf(value.primaryMilestone))throw new Error(`Invalid experiment: activationMilestone ${value.activationMilestone} comes after primaryMilestone ${value.primaryMilestone}, so the switch cannot change the graded result`);

@@ -73,6 +73,7 @@ Done when every milestone is merged, qualification shows none of F1–F8, the fo
 
 ## Session Log
 
+- 2026-10-16 01:00 AM EDT: M1–M5 and blocked-batch-result-v1 running as parallel branches (claude/transition-loop-detection, claude/displayed-place-names, claude/dialogue-context-kept, claude/warp-arrival-settle, claude/bundle-prelaunch-fixes, claude/blocked-batch-result). M6 RED: `onInBoth` required in the definition; control base accepts exactly those flags; armFeatureBits/armPreset carry them true in both arms; definitionProblems refuses off/unknown/switch/off-in-both overlaps.
 - 2026-10-16 12:46 AM EDT: Approved by the operator. F1 goes in the bundle as `warp-arrival-settle-v1`; F2–F4 switches ON in both arms; `blocked-batch-result-v1` (branch `claude/blocked-batch-result`) joins the bundle. M1–M5 run in parallel worktrees, one branch each; M6 integrates.
 - 2026-10-16 12:45 AM EDT: Worklog drafted from the two forensics reports; awaiting operator approval. Estimate: about a day of work for M1–M6, then qualification and review.
 

@@ -673,6 +673,6 @@ it("links the displayed place names card to its tracked explainer, which shows t
  const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/displayed-place-names-v1.html",import.meta.url)),"utf8");
  expect(html).toContain("displayed-place-names-v1");
  expect(html).toContain("Mays House Sign at (12,8)");
- expect(html).toContain("Sign text &quot;PROF. BIRCH'S HOUSE&quot; at (12,8)");
+ expect(html).toContain("Sign text \"PROF. BIRCH'S HOUSE\" at (12,8)");
  expect(html).toContain("Warp to PROF. BIRCH'S HOUSE 1F (map 1/2) at (14,8)");
 });

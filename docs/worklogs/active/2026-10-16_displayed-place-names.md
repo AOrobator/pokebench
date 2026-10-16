@@ -44,3 +44,6 @@ For a male player the sign at Littleroot (12,8) prints "PROF. BIRCH'S HOUSE" (po
   facing the sign: game Dialog "PROF. BIRCH'S HOUSE". OFF run `runs/2026-10-16T01-15-26_probe_1094` seq 166, identical presses. Control-arm rerender of the same raw RAM
   (00000026) and Route 101 rerender from c406 raw-ram/00001200 (sign (5,9) "ROUTE 101 | ↑ OLDALE TOWN", previously identity unavailable).
 - RED: viewer panels.test (explainer mapping + content) and server.test (allowlist serves it); 2 red.
+- GREEN: explainer `docs/explainers/displayed-place-names-v1.html` (+README), FEATURE_EXPLAINERS mapping, pending `experiments/displayed-place-names.json`
+  (provisional source.commit 37896367, repin at merge), readiness row. test_rerender: the dc0e fixture predates the switch, so its recorded off list gains it
+  (production decision probes derive OFF from the recorded harness features). just test: agent 1268, viewer 787, python 1986 passed.

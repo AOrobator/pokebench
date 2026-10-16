@@ -7,7 +7,7 @@ import {eventText,inspector} from "./panels.js";
 import {traceRow} from "./trace.js";
 import {stepOf} from "../test-support/trace.js";
 import {lanesSvg} from "./timeline.js";
-it("renders recorded state inputs and waits in history, raw inspection and timeline",()=>{
+it("renders recorded state inputs and waits in history and raw inspection; only the snapshot reaches the timeline",()=>{
  const log=new Log();log.add(0,START);const s=log.add(10,state());
  const input=log.add(20,{type:"decision_input",turn:0,decision_turn:1,state_seq:s.seq,text:"CURRENT <clock> at (5,1)",frames:[{path:"frames/000002_0.png",sha1:"a".repeat(40)}]});
  const wait=log.add(30,{type:"wait_input",turn:1,tool_call_id:"wait-one",duration_ms:60});
@@ -16,7 +16,7 @@ it("renders recorded state inputs and waits in history, raw inspection and timel
  const window=new Window();const root=window.document.createElement("div");root.innerHTML=traceRow(stepOf(input))+traceRow(stepOf(wait))+lanesSvg(view,BASE_MS+50);
  expect(root.textContent).toContain("snapshot for decision 1");const waitRow=root.querySelector(`[data-seqs~="${String(wait.seq)}"]`);expect(waitRow?.textContent).toContain("WAIT 60 ms (host time)");expect(root.querySelector("clock")).toBeNull();
  expect(root.querySelectorAll('svg [aria-label*="snapshot for decision 1"]')).toHaveLength(1);
- expect(root.querySelectorAll('svg [aria-label*="WAIT 60 ms (host time)"]')).toHaveLength(1);
+ expect(root.querySelectorAll('svg [aria-label*="WAIT 60 ms (host time)"]')).toHaveLength(0);expect(root.querySelectorAll('svg .m-press')).toHaveLength(0);
  expect(inspector(input)).toContain("CURRENT &lt;clock&gt; at (5,1)");expect(inspector(wait)).toContain("wait-one");
  expect(foldUntil(log.events,BASE_MS+15).frame).toBeNull();expect(foldUntil(log.events,BASE_MS+25).frame).toBe("frames/000002_0.png");
  expect(lanesSvg(view,BASE_MS+61000)).not.toContain("snapshot for decision 1");expect(eventText(input)).toContain("snapshot for decision 1");

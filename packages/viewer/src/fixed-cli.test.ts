@@ -228,6 +228,9 @@ describe("fixed-run status and analyze", () => {
       { kind: "launch", slot: s.slot, lane: s.lane, phase: s.phase, arm: s.arm, run: "../gone", at: "x", commit: "c", sources: "s", presetSha256: "p", serving: "f" },
       { kind: "outcome", slot: s.slot, run: "../gone", at: "x", valid: true, reason: "wall cap", endReason: "budget", primaryReached: true, primaryMs: 5, furthest: "FIRST_POKECENTER_HEAL", furthestDepth: 37, furthestMs: 5, wallMs: 900_000, turns: 3 },
     ].map((e) => JSON.stringify(e)).join("\n") + "\n");
+    // A complete log just outside runs/ must not be read through the ledger's run id.
+    mkdirSync(join(runsRoot, "..", "gone"), { recursive: true });
+    writeFileSync(join(runsRoot, "..", "gone", "events.jsonl"), [{ v: 1, run: "../gone", seq: 1, turn: 0, t: "2026-10-16T10:00:00.000-04:00", type: "run_start" }, { v: 1, run: "../gone", seq: 2, turn: 0, t: "2026-10-16T10:00:01.000-04:00", type: "run_end" }].map((e) => JSON.stringify(e)).join("\n") + "\n");
     expect(await main(["analyze", "bundle-v-control"], deps)).toBe(0);
     expect(err).toContain("depth not re-graded (no usable log, stored furthest is an optional activity): ../gone");
   });

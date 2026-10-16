@@ -96,7 +96,8 @@
    "same-plan-breaker-v1": false,
    "levelup-box-v1": true,
    "briefing-exits-v1": true,
-   "untaken-exits-v1": false
+   "untaken-exits-v1": false,
+   "people-ledger-v1": false
   }
  },
  "switches": [
@@ -127,7 +128,8 @@
   "presence-penalty-v1",
   "disproved-beliefs-v1",
   "same-plan-breaker-v1",
-  "untaken-exits-v1"
+  "untaken-exits-v1",
+  "people-ledger-v1"
  ],
  "offInBoth": [
   "milestone-stall-stop-v1"

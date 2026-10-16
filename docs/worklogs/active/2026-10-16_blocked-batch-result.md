@@ -1,6 +1,6 @@
 # blocked-batch-result-v1: blocked direction batches say they were blocked
 
-From forensics of control run `2026-10-15T23-47-41_qwen36-gpu0_2919` (`runs/reviews/2026-10-16-qualification-forensics/control-2919.md`, bug 5). A pure direction batch into a wall (LEFT×3 from (10,16), lab wall at (9,16)) got the press result `unchanged world position/facing (batch or non-direction input; intermediate effects unknown)` (seqs 2061–2840). The model repeated the same blocked LEFT×3 eleven times (T163–T183).
+From forensics of control run `2026-10-15T23-47-41_qwen36-gpu0_2919` (`runs/reviews/2026-10-16-qualification-forensics/control-2919.md`, bug 5). A pure direction batch into a wall (LEFT×3 from (10,16), lab wall at (9,16)) got the press result `unchanged world position/facing (batch or non-direction input; intermediate effects unknown)` (seqs 2061–2840). The recorded run has nine LEFT batches from (10,16) (eight LEFT×3, one LEFT×2; turns 163–183, the first one turned down->left) and three DOWN×3 batches into the house row (turns 146–151), twelve in all.
 
 Branch `claude/blocked-batch-result` in `/private/tmp/pokebench-blocked-batch`. Unmerged; the operator decides landing. The switch is meant to join the bundle-v-control bundle arm later; this branch does not edit `experiments/` (no pending entry, per the dispatching instruction not to touch experiments).
 
@@ -23,3 +23,11 @@ Branch `claude/blocked-batch-result` in `/private/tmp/pokebench-blocked-batch`. 
 
 - [ ] Codex (gpt-5.6-sol) and Grok (cursor-grok-4.5-high) review.
 - [ ] Explainer `docs/explainers/blocked-batch-result-v1.html`, README entry, `FEATURE_EXPLAINERS` mapping.
+
+## M2: review round 1 (diff main..4d211bd7)
+
+- [x] Grok (cursor-grok-4.5-high): BLOCKING. Ledge, edge-wall and counter names leak when ledge-hops-v1 / one-way-tiles-v1 / counter-talk-v1 are off (the map draws them as # or .); numeric elevations are not in the readout; "no connection" uses topology, which the readout shows only with world-destinations-v1; non-~ water behaviors. Non-blocking: stale `Exclude` cast in play-preset; no experiment entry.
+- [x] Codex (gpt-5.6-sol): BLOCKING. Objects and warps are not proven blockers (object elevation not read; a warp is not an obstacle); water is passable while surfing (check `running.avatar_flags`); no pending experiment entry; worklog miscounted the repeats.
+- [x] Taken: objects and warps head "no movement" and only describe the tile; ledge/edge-wall/counter naming follows the same switches as the map glyphs; elevation never named (falls to "not known"); map edge only with topology shown; water only for the ~ behaviors 0x10–0x15 with ON_FOOT set and SURFING clear in `running.avatar_flags`. Worklog count fixed.
+- [x] Not taken: experiment entry. The dispatching instruction for this branch said not to touch experiments; the switch is to join the bundle-v-control bundle arm by the operator. Flagged as required before merge.
+- [x] RED for round 1 fixes: 11 failing tests (COMMIT below).

@@ -73,44 +73,63 @@ const grid = (overrides: readonly Tile[] = [], extra: { objects?: { x: number; y
 };
 const field = (facing: string, navigation_grid: GameStateSnapshot["navigation_grid"] = grid(), more: Partial<GameStateSnapshot> = {}): GameStateSnapshot =>
   ({ ...IN_GAME, screen: "overworld", field_controls_locked: false, position: { x: 2, y: 2 }, facing, navigation_grid, ...more });
-const ON: PressFacts = { ...ALL_PRESS_FACTS, blockedBatch: true, liveMap: true };
+const ON: PressFacts = { ...ALL_PRESS_FACTS, blockedBatch: true, liveMap: true, ledges: true, edgeWalls: true, counters: true, topology: true };
+// pokeemerald PLAYER_AVATAR_FLAG_ON_FOOT (1 << 0) and PLAYER_AVATAR_FLAG_SURFING (1 << 3).
+const avatar = (avatar_flags: number | null): Partial<GameStateSnapshot> => ({ running: { permitted: false, controllable: true, reason: "test", shoes: false, allow_running: false, avatar_flags, metatile: null, elevation: null, map_type: null, callback1: null, callback2: null, diagnostic: null, raw_hex: null } });
 const still = (state: GameStateSnapshot, buttons: Button[], show: PressFacts = ON): string => pressResult(state, state, buttons, show);
 const wall = (x: number, y: number, behavior = 0): Tile => ({ x, y, collision: 1, behavior, elevation: 0 });
 
 describe("blockers named only from the readout's own grid and objects", () => {
-  it("a person or object on the tile, by its map-local id", () => {
+  it("a person or object on the tile, by its map-local id, without claiming it blocked (its elevation is not read)", () => {
     const state = field("left", grid([], { objects: [{ x: 1, y: 2 }] }), { world_context: { objects: [{ local_id: 4, map_id: IN_GAME.map_id as [number, number], graphics_id: 9, sprite_kind: "BOY_2", x: 1, y: 2 }, { local_id: 7, map_id: [9, 9], graphics_id: 9, sprite_kind: null, x: 2, y: 1 }], triggers: [], dialogue: null } });
-    expect(still(state, ["LEFT", "LEFT"])).toBe("blocked: LEFT ×2 did not move you; you are still at (2,2) facing left. The tile to the left, (1,2), has a person or object on it (object id 4).");
+    expect(still(state, ["LEFT", "LEFT"])).toBe("no movement: LEFT ×2 did not move you; you are still at (2,2) facing left. The tile to the left, (1,2), has a person or object on it (object id 4).");
     // An object of another map at the tile above is not this map's object.
     expect(still({ ...state, facing: "up" }, ["UP", "UP"])).toBe("no movement: UP ×2 did not move you; you are still at (2,2) facing up. The readout shows nothing blocking the tile above, (2,1); what stopped you is not known.");
   });
   it("an object the grid lists without a world-context id", () => {
-    expect(still(field("right", grid([], { objects: [{ x: 3, y: 2 }] })), ["RIGHT", "RIGHT"])).toBe("blocked: RIGHT ×2 did not move you; you are still at (2,2) facing right. The tile to the right, (3,2), has a person or object on it.");
+    expect(still(field("right", grid([], { objects: [{ x: 3, y: 2 }] })), ["RIGHT", "RIGHT"])).toBe("no movement: RIGHT ×2 did not move you; you are still at (2,2) facing right. The tile to the right, (3,2), has a person or object on it.");
   });
   it("a warp that did not activate from this side", () => {
-    expect(still(field("down", grid([wall(2, 3, 0x69)], { warps: [{ x: 2, y: 3 }] })), ["DOWN", "DOWN"])).toBe("blocked: DOWN ×2 did not move you; you are still at (2,2) facing down. The tile below, (2,3), is a warp (W on the local map) that did not activate from this side.");
+    expect(still(field("down", grid([wall(2, 3, 0x69)], { warps: [{ x: 2, y: 3 }] })), ["DOWN", "DOWN"])).toBe("no movement: DOWN ×2 did not move you; you are still at (2,2) facing down. The tile below, (2,3), is a warp (W on the local map) that did not activate from this side.");
   });
   it("a ledge entered against its arrow; a ledge in the pressed direction is not a known cause", () => {
     expect(still(field("up", grid([{ x: 2, y: 1, collision: 1, behavior: 0x3b, elevation: 3 }])), ["UP", "UP"])).toBe("blocked: UP ×2 did not move you; you are still at (2,2) facing up. The tile above, (2,1), is a ledge you can only hop over moving DOWN, so UP cannot move you from here.");
     expect(still(field("down", grid([{ x: 2, y: 3, collision: 1, behavior: 0x3b, elevation: 3 }])), ["DOWN", "DOWN"])).toBe("no movement: DOWN ×2 did not move you; you are still at (2,2) facing down. The readout shows nothing blocking the tile below, (2,3); what stopped you is not known.");
   });
+  it("with ledge hops off the map draws the ledge as #, and the result says the same", () => {
+    expect(still(field("up", grid([{ x: 2, y: 1, collision: 1, behavior: 0x3b, elevation: 3 }])), ["UP", "UP"], { ...ON, ledges: false })).toBe("blocked: UP ×2 did not move you; you are still at (2,2) facing up. The tile above, (2,1), is a collision tile (# on the local map), so UP cannot move you from here.");
+  });
+  it("with counter talk off a counter is the # it is drawn as", () => {
+    expect(still(field("left", grid([wall(1, 2, 0x80)])), ["LEFT", "LEFT"], { ...ON, counters: false })).toBe("blocked: LEFT ×2 did not move you; you are still at (2,2) facing left. The tile to the left, (1,2), is a collision tile (# on the local map), so LEFT cannot move you from here.");
+  });
   it("a counter", () => {
     expect(still(field("left", grid([wall(1, 2, 0x80)])), ["LEFT", "LEFT"])).toBe("blocked: LEFT ×2 did not move you; you are still at (2,2) facing left. The tile to the left, (1,2), is a counter (collision), so LEFT cannot move you from here.");
   });
-  it("water", () => {
-    expect(still(field("left", grid([{ x: 1, y: 2, collision: 0, behavior: 0x10, elevation: 1 }])), ["LEFT", "LEFT", "LEFT"])).toBe("blocked: LEFT ×3 did not move you; you are still at (2,2) facing left. The tile to the left, (1,2), is water; you cannot walk onto it, so LEFT cannot move you from here.");
+  it("water (~ on the map) only when the player is verified on foot", () => {
+    const pond = grid([{ x: 1, y: 2, collision: 0, behavior: 0x10, elevation: 1 }]);
+    expect(still(field("left", pond, avatar(1)), ["LEFT", "LEFT", "LEFT"])).toBe("blocked: LEFT ×3 did not move you; you are still at (2,2) facing left. The tile to the left, (1,2), is water (~ on the local map); you cannot walk onto it, so LEFT cannot move you from here.");
+    const unknown = "no movement: LEFT ×3 did not move you; you are still at (2,2) facing left. The readout shows nothing blocking the tile to the left, (1,2); what stopped you is not known.";
+    expect(still(field("left", pond, avatar(1 | 8)), ["LEFT", "LEFT", "LEFT"])).toBe(unknown);
+    expect(still(field("left", pond, avatar(8)), ["LEFT", "LEFT", "LEFT"])).toBe(unknown);
+    expect(still(field("left", pond, avatar(null)), ["LEFT", "LEFT", "LEFT"])).toBe(unknown);
+    expect(still(field("left", pond), ["LEFT", "LEFT", "LEFT"])).toBe(unknown);
+    // Surfable behaviors the map does not draw as ~ are not named water.
+    expect(still(field("left", grid([{ x: 1, y: 2, collision: 0, behavior: 0x19, elevation: 1 }]), avatar(1)), ["LEFT", "LEFT", "LEFT"])).toBe(unknown);
   });
   it("edge walls on the player's own tile or on the next tile's facing side", () => {
     expect(still(field("left", grid([{ x: 2, y: 2, collision: 0, behavior: 0x31, elevation: 3 }])), ["LEFT", "LEFT"])).toBe("blocked: LEFT ×2 did not move you; you are still at (2,2) facing left. Your tile, (2,2), has an edge wall on its left side, so LEFT cannot move you from here.");
     expect(still(field("left", grid([{ x: 1, y: 2, collision: 0, behavior: 0x30, elevation: 3 }])), ["LEFT", "LEFT"])).toBe("blocked: LEFT ×2 did not move you; you are still at (2,2) facing left. The tile to the left, (1,2), has an edge wall on its right side, so LEFT cannot move you from here.");
+    // With one-way tiles off the map draws these as ., so no wall is named.
+    for (const t of [{ x: 2, y: 2, collision: 0, behavior: 0x31, elevation: 3 }, { x: 1, y: 2, collision: 0, behavior: 0x30, elevation: 3 }]) expect(still(field("left", grid([t])), ["LEFT", "LEFT"], { ...ON, edgeWalls: false })).toMatch(/^no movement: .*what stopped you is not known\.$/);
   });
-  it("an elevation the game does not let the player step onto; 0 and 15 never mismatch", () => {
-    expect(still(field("right", grid([{ x: 3, y: 2, collision: 0, behavior: 0, elevation: 4 }])), ["RIGHT", "RIGHT"])).toBe("blocked: RIGHT ×2 did not move you; you are still at (2,2) facing right. The tile to the right, (3,2), is at elevation 4 and you are at elevation 3; the game does not let you step between them, so RIGHT cannot move you from here.");
-    for (const elevation of [0, 15]) expect(still(field("right", grid([{ x: 3, y: 2, collision: 0, behavior: 0, elevation }])), ["RIGHT", "RIGHT"])).toMatch(/^no movement: /);
+  it("elevation is not shown to the model, so a height difference is never named", () => {
+    for (const elevation of [0, 4, 15]) expect(still(field("right", grid([{ x: 3, y: 2, collision: 0, behavior: 0, elevation }])), ["RIGHT", "RIGHT"])).toBe("no movement: RIGHT ×2 did not move you; you are still at (2,2) facing right. The readout shows nothing blocking the tile to the right, (3,2); what stopped you is not known.");
   });
   it("the map edge with no connection that way; with a connection the cause is not known", () => {
     const edge = (connections: NonNullable<GameStateSnapshot["topology"]>["connections"]): GameStateSnapshot => field("left", grid(), { position: { x: 0, y: 2 }, topology: { width: 5, height: 5, connections } });
     expect(still(edge([]), ["LEFT", "LEFT"])).toBe("blocked: LEFT ×2 did not move you; you are still at (0,2) facing left. You are at the west edge of this map and it has no connection to the west, so LEFT cannot move you from here.");
+    // Topology is in the readout only with world destinations on.
+    expect(still(edge([]), ["LEFT", "LEFT"], { ...ON, topology: false })).toBe("no movement: LEFT ×2 did not move you; you are still at (0,2) facing left. The tile to the left, (-1,2), is outside the readout's map window; what stopped you is not known.");
     expect(still(edge([{ direction: "WEST", offset: 0, destination: [0, 1], destination_name: "ROUTE 101" }]), ["LEFT", "LEFT"])).toBe("no movement: LEFT ×2 did not move you; you are still at (0,2) facing left. The tile to the left, (-1,2), is outside the readout's map window; what stopped you is not known.");
   });
   it("a tile outside the window, or no grid at all, is not guessed", () => {
@@ -176,6 +195,8 @@ describe("registry, presets and production wiring", () => {
   it("toolSwitches threads the switch and the live-map visibility", () => {
     expect(toolSwitches({ ...ALL_ON, [ID]: true })).toMatchObject({ blockedBatch: true, liveMap: true });
     expect(toolSwitches({ ...ALL_ON, [ID]: false, "live-map-v1": false })).toMatchObject({ blockedBatch: false, liveMap: false });
+    expect(toolSwitches({ ...ALL_ON, [ID]: true })).toMatchObject({ ledges: true, edgeWalls: true, counters: true, topology: true });
+    expect(toolSwitches({ ...ALL_ON, [ID]: true, "ledge-hops-v1": false, "one-way-tiles-v1": false, "counter-talk-v1": false, "world-destinations-v1": false })).toMatchObject({ ledges: false, edgeWalls: false, counters: false, topology: false });
   });
   const SERVER = "http://game.test";
   function png(): string {

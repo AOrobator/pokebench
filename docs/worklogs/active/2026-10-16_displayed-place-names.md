@@ -23,11 +23,11 @@ For a male player the sign at Littleroot (12,8) prints "PROF. BIRCH'S HOUSE" (po
 
 ## Milestones
 
-- [ ] RED: Python tests (sign label male/female, warp (14,8) and Location, OFF byte-identical, unknown gender, observation route) and TS registry tests
-- [ ] GREEN: implementation, registry, preset, defaults, explainer, pending experiment
-- [ ] Gates: test, lint, build, coverage, verify-vendor
-- [ ] Real-ROM probe from fast-text CLOCK_SET.state: ON vs OFF readout at Littleroot
-- [ ] Review: Codex + grok
+- [x] RED: Python tests (sign label male/female, warp (14,8) and Location, OFF byte-identical, unknown gender, observation route) and TS registry tests
+- [x] GREEN: implementation, registry, preset, defaults, explainer, pending experiment
+- [x] Gates: test, lint, build, coverage, verify-vendor
+- [x] Real-ROM probe from fast-text CLOCK_SET.state: ON vs OFF readout at Littleroot
+- [x] Review: Codex + grok
 
 ## Session Log
 - RED: `env/tests/env/test_displayed_place_names.py` (collection fails: no `pokebench_env.displayed_names`), OFF goldens rendered by fa09dbe6
@@ -49,3 +49,6 @@ For a male player the sign at Littleroot (12,8) prints "PROF. BIRCH'S HOUSE" (po
   (production decision probes derive OFF from the recorded harness features). just test: agent 1268, viewer 787, python 1986 passed.
 - Gates: just coverage — agent 97.61/94.2/97.86/99.03 (stmt/branch/func/line), viewer 95.08/90.39/93.55/97.6, python lines 97.04 / branches 92.59 / functions 100 (floor 90);
   added two branch tests (gender values other than 0/1; FC controls in sign text) → displayed_names.py 100%. just lint clean (mypy passes once mgba binding copied into the worktree venv), just build OK, just verify-vendor OK.
+- Review (delta: whole branch): Codex gpt-5.6-sol LGTM (no blocking; notes: provisional experiment pin, worklog boxes); grok cursor-grok-4.5-high LGTM
+  (notes: PLACES table is hardcoded for the pinned ROM, catalog gate is the word "Sign", explainer SVG clipped). Widened the OFF/ON SVG panels; boxes ticked.
+  An earlier review attempt wrote to a shared scratchpad file that another session overwrote (its verdict concerned loop-supervisor.ts in another worktree); re-run in a private dir.

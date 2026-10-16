@@ -57,7 +57,7 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 <body>
 <main>
 <div>
-<div class="eyebrow">Harness switch · observation · <code>warp-arrival-settle-v1</code> · server side · off by default · bundle arm only</div>
+<div class="eyebrow">Harness switch · observation · <code>warp-arrival-settle-v1</code> · server side · off by default · planned for the bundle arm</div>
 <h1>Warp arrival settle</h1>
 </div>
 <p class="lede">After a door, stairs or warp, the observation now waits, one emulated frame at a time, until the game's own door/warp task lets go of the player. The model then sees the arrival tile on the new map with field controls free, instead of a frame from the middle of the animation labelled as a dialog, menu or script lock.</p>
@@ -167,7 +167,7 @@ Field controls: available (terrain and objects can still block a direction)</pre
 </figure>
 </div>
 <figcaption>The off text is identical to what control-2919 recorded at T185. On, the observation waited 82 emulated frames (<code>settle: {frames: 82, reason: "warp"}</code>). The lab exit waited 90 frames and arrived at (7,17) with controls available; the 1F→2F stairs waited 22 frames and arrived at 2F (7,2); 2F→1F waited 36 and arrived at (8,3). With the switch off, the 2F→1F capture was taken at 1F (8,2), locked, mid step.</figcaption>
-<p>The probe's press tool has transition press results off. In the bundle arm, <code>transition-press-result-v1</code> is on as well, so the same press reads <code>warped during this press: LITTLEROOT TOWN [map 0/9] (9,17) -> LITTLEROOT TOWN PROFESSOR BIRCHS LAB [map 1/4] (6,12)</code>. This switch also stops an interface owner in either snapshot from hiding a warp (bundle-3f21 T157, where the press began mid map load): <code>warped during this press (the map change was already under way when it began): LITTLEROOT TOWN [map 0/9] (7,16) -> LITTLEROOT TOWN PROFESSOR BIRCHS LAB [map 1/4] (6,12)</code>.</p>
+<p>The probe's press tool has transition press results off. With <code>transition-press-result-v1</code> also on (as planned for the bundle arm), the same press reads <code>warped during this press: LITTLEROOT TOWN [map 0/9] (9,17) -> LITTLEROOT TOWN PROFESSOR BIRCHS LAB [map 1/4] (6,12)</code>. This switch also stops an interface owner in either snapshot from hiding a warp (bundle-3f21 T157, where the press began mid map load): <code>warped during this press (the map change was already under way when it began): LITTLEROOT TOWN [map 0/9] (7,16) -> LITTLEROOT TOWN PROFESSOR BIRCHS LAB [map 1/4] (6,12)</code>.</p>
 </section>
 
 <section>
@@ -182,7 +182,7 @@ Field controls: available (terrain and objects can still block a direction)</pre
 
 <section>
 <h2>Status</h2>
-<p>Branch <code>claude/warp-arrival-settle</code>. Tests on control-2919 archived RAM (seq 1383, 2010, 2884, 3165/3166 held until the unlocked arrival; MOM's dialogue lock at seq 1126 captured at once), the bound, pause release, the observation route, the press results and the production wiring; real-ROM probes on the lab door and the house stairs with the switch on and off. ON in the bundle arm of bundle-v-control only (operator decision 2026-10-16). No measured runs yet.</p>
+<p>Branch <code>claude/warp-arrival-settle</code>. Tests on control-2919 archived RAM (seq 1383, 2010, 2884, 3165/3166 held until the unlocked arrival; MOM's dialogue lock at seq 1126 captured at once), the bound, pause release, the observation route, the press results and the production wiring; real-ROM probes on the lab door and the house stairs with the switch on and off. Operator decision 2026-10-16: to be ON in the bundle arm of bundle-v-control only. Not wired yet: <code>experiments/fixed/bundle-v-control.json</code> on this branch does not list the switch, so both arms run it off until the M6 integration adds it to the bundle arm's <code>switches</code>. No measured runs yet.</p>
 </section>
 </main>
 </body>

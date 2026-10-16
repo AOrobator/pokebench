@@ -43,6 +43,7 @@ export function draftDefinition(overrides: Partial<Omit<FixedDefinition, "plan">
     base: { target: null, limits: { maxTurns: 20000, failureLimit: 3, replyFailuresEndRun: false }, sampling: { thinkingLevel: "medium", maxTokens: 4096 }, features: INCUMBENT_FEATURES },
     switches: ["world-destinations-v1", "game-evidence-priority-v1", "named-warp-destinations-v1"],
     offInBoth: ["milestone-stall-stop-v1"],
+    onInBoth: [],
     phases: [
       { id: "confirmatory", perArm: 4, maxWallMs: 900_000, primary: true, start: CLOCK_START },
       { id: "cook", perArm: 2, maxWallMs: 3_600_000, primary: false, start: MENU_START },

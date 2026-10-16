@@ -113,3 +113,6 @@ Zero FAIL rows.
 - [x] Main moved to 140e1c82 (people-id-cards-v1 landed); merged; merge-delta review round 6.
   Resolved as before (12 conflicted files; switch re-added after people-id-cards-v1; explorer-guidance-v2.test exclusions re-applied; people-id-cards.test.ts sorted whole-registry key check narrowed to the registry up to people-id-cards-v1; play-config.test ALL_ON and playGoal call re-applied; controls 95->96). Description and play-config.ts lines byte-identical to 27ff5415. Incumbent regenerated (people-id-cards-v1 in the bundle).
   Gates on 76f72164: build ok; lint clean; test agent 2063/2063, viewer 1037/1037, pytest 2498; coverage agent 98.06/94.57/98.29/99.22, viewer 95.55/91.41/93.91/97.75, python 97.55/93.60/100 (floor 90); experiments-check ok (86); pages-check clean; scan.py check 67/67, 0 drifted.
+
+- 2026-10-16 06:10 PM EDT: Review round 6 (140e1c82..2fcb544b, packet sha256 4c8e2507…1fe8): Claude CLI LGTM, Grok cursor-grok-4.5-high LGTM, Codex gpt-5.6-sol LGTM. Round 5 (53448a0d..99a877c4) was also LGTM x3.
+- 2026-10-16 06:11 PM EDT: LANDED: main fast-forwarded to 2fcb544b. On main after `just build`: agent 2063, viewer 1037, pytest 2498 passed. Experiment open-goal-prompt repinned. Bundle arm (the operator); bundle-v-control owner adds it.

@@ -9,7 +9,7 @@
  "primaryMilestone": "RECEIVED_POKEDEX",
  "source": {
   "checkout": "main",
-  "commit": "d2613ced5a9cb17292d8117310186378232f0d78"
+  "commit": "2fcb544b351f966feee02ed7c8e6fd1b3af1ade6"
  },
  "trialsPerArm": 8,
  "modelLane": "think-fast",

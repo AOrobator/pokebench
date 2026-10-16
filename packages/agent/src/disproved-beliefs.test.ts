@@ -202,6 +202,9 @@ describe("leaving the ledger and never clipping",()=>{
   say(l,"Professor Birch is at (8,7). Scratch that, he is elsewhere. The scientist is at (8,8), so I'll walk there.",5,{name:"navigate_to",args:{x:8,y:8,map_id:[1,4]}});
   say(l,"Professor Birch is at (7,7).",6,{name:"navigate_to",args:{x:7,y:8,map_id:[1,4]}});
   expect(l.text()).toBeNull();
+  // The same coordinates on another map are another tile (review round 10).
+  say(l,"Professor Birch is at (7,7).",7,{name:"navigate_to",args:{x:7,y:7,map_id:[0,9]}});
+  expect(l.text()).toBeNull();
   say(l,"Professor Birch is at (7,7).",7,{name:"navigate_to",args:{x:7,y:7,map_id:[1,4]}});
   expect(l.text()).toContain(`you wrote at turn 7: "Professor Birch is at (7,7)." and called navigate_to (7,7).`);
  });

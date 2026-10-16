@@ -166,6 +166,12 @@ Report per switch: id, model-facing before/after excerpts from this run, precisi
 - Codex: BLOCKING: a retracted claim whose reply walks to a neighbouring tile for another reason ("Professor Birch is at (8,7). Scratch that… The scientist is at (8,8), so I'll walk there." + navigate_to (8,8)) still counts.
 - Accepted: the navigate_to target must equal the claimed tile. On sh02 every counted claim (T82–T88) names the exact tile it walks to. 2026-10-16 12:45 PM EDT round-9 RED: 1 failing test. COMMIT (b89b73eb). 12:55 PM EDT GREEN: exact-tile match; full-run replay unchanged (4 entries, all true; 205 deliveries); agent 1606 tests 97.96/94.46/98.37/99.14, viewer 888 tests 95.34/91.01/93.62/97.64, Python (no ROM) 2236 passed 34 skipped 97.31/93.08/100; lint clean; pages-check silent. COMMIT (3aef0c7a). 1:05 PM EDT: merged main 9e84ba4d (viewer event skew; no conflicts): agent 1619, viewer 904 pass; lint clean. If round 10 still blocks on this class, stop and ask the operator (the review skill's scope checkpoint is long past).
 
+### Round 10 (cumulative main 9e84ba4d..93641c9b excluding the fixture, SHA-256 ecfb38d8…ce0b; fix delta 835fa529..3aef0c7a, SHA-256 39cd36bf…5818)
+
+- Grok: LGTM. Claude CLI: LGTM.
+- Codex: BLOCKING: the walk check ignores navigate_to's map_id.
+- Accepted: the walk's map_id must equal the readout's map. 2026-10-16 1:30 PM EDT round-10 RED: 1 failing test.
+
 ## Surprises
 
 - The twin's coordinate trigger leaves the player at (11,1) with field controls locked and no message; the push back to (11,2) happens on the next press. A state-equality rule over one decision never sees this loop; a two-state rule does.

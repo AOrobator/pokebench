@@ -60,3 +60,21 @@ Design (ON):
 - 2026-10-16 04:15 AM EDT: coverage gate after the merge: agent 97.71 st / 94.52 br / 98.05 fn / 99.11 ln; viewer 95.19 / 90.64 / 93.55 / 97.65; Python lines 97.14 / branches 92.80 / functions 100 (floor 90); 2132 pytest passed. `just lint`: tsc, eslint, ruff clean; mypy fails only on the known worktree `mgba._pylib` import in the untouched `memory_reader.py`. verify-vendor OK. Added wrapper edge-case tests (untaken-exits.ts branches 98.0); warps typed with a non-null destination (removes a dead branch).
 - 2026-10-16 04:15 AM EDT scope addition from the coordinator (same switch, ON in both arms): stale "Where you are" in battles. sh02 milestone_drought seq 11928 (T716) said "at 11,21" (last overworld result seq 9644, T417) while RAM at seq 11926 had (11,13), in a wild battle on ROUTE103 (source `runs/reports/cook2-navigation.html`). RED: fixture `briefing-battle-sh02.jsonl.gz` (seq 9630-11928, trimmed); OFF reproduces the recorded line; ON expects "ROUTE103 (map 0/18) in battle at 11,13" in the stall, loop and text-only briefings. Fails as expected.
 - 2026-10-16 04:25 AM EDT GREEN (battle position): SupervisorBriefing keeps the latest matched result state with a map id (`shown`) when the switch is on; `where()` reads it, and says "in battle at x,y" (no facing) when `in_battle` or the battle screen. `loop-supervisor.test.ts` "labels odd calls" pins the switch OFF (its synthetic menu state keeps the fixture's default room). Wiring deletion (never set `shown`): the ON battle test goes red; restored. Feature text and explainer section updated. Agent 1457/1457.
+
+## Principles self-review (PB1-PB13), head eb60d88b
+
+| ID | Score | Note |
+|---|---|---|
+| PB1 | PASS | No grading or milestone code touched; exit history and names only shape model text. |
+| PB2 | N/A | No run accounting touched. |
+| PB3 | N/A | No result claimed; both explainers say no measured runs. |
+| PB4 | PASS | Both switches are named harness features in `harness_features`, switchable, with explainers. A names destinations only as the model's own readout named them, so it adds no privileged name to an arm whose readout lacks it. B lists exits from the game's own warp events (already in the readout's candidates list) plus the run's own history. |
+| PB5 | PASS | Two separate switches; OFF byte-identical (sh02 replay reproduces the recorded seq 2783/3616 messages and the seq 11928 Where line; prompt and tools identical OFF). Pending experiments carry one hypothesis each. |
+| PB6 | PASS | Both bugs come from a 60-minute watched run (cook #2 sh02), fixed with its recorded events as fixtures (T113-T171, T417-T716). |
+| PB7 | PASS | No new event types; briefings land in the existing `loop_guard` events and readout text in `tool_result` text. |
+| PB8 | N/A | No guard thresholds changed. |
+| PB9 | PASS | Two judgment calls are recorded, not hidden: "latest story dialogue that names a direction or place" is read as moving the existing latest-story-step dialogue section up (reorder only, no text classifier); the trigger rule keeps the 2026-10-15 finals rule (arriving or standing does not try a trigger) and adds walked-over-mid-batch. Both flagged in the report. |
+| PB10 | PASS | No test skipped, no threshold or exclude changed. `readout-rules.test.ts` now compares that entry's incumbent with the switches registered up to it (the test otherwise fails for every later switch; the entry's definition is unchanged). `loop-supervisor.test.ts` "labels odd calls" pins this switch OFF for its synthetic menu state. |
+| PB11 | PASS | `just verify-vendor` OK; no vendor change. |
+| PB12 | N/A | No ROM or protected path touched. |
+| PB13 | IN PROGRESS | Gates green; review below. |

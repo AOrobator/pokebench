@@ -78,6 +78,7 @@ Grading never reads the prompt: milestones come from native game flags (`milesto
 | PB13 | PASS | RED→GREEN commits with worklog updates; gates on the merged tip; review below. |
 
 Zero FAIL rows.
+- [x] Main moved to e349269c (depth order) before sealing; merged again (no conflicts). Gates on that tip: build ok; test agent 1893/1893, viewer 1002/1002, pytest 2465; coverage agent 97.99/94.7/98.4/99.14, viewer 95.56/91.32/93.91/97.75, python 97.52/93.55/100 (floor 90); lint clean; experiments-check ok (79).
 - [ ] Review: Claude, Grok cursor-grok-4.5-high, Codex gpt-5.6-sol; synced with main before the final round
 
 ## Multi-Model Review Log

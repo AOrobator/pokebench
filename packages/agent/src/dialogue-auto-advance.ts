@@ -114,8 +114,12 @@ function facedKey(s:GameStateSnapshot):string|null {
 const NARRATION=new Set(["received","obtained","found","got","put","handed","used","wrote","booted","flashed","turned","took","registered","inserted","chose","picked","placed","planted","watered","switched","stepped","saved","returned","removed","memorized","flipped","exchanged","closed","checked","left"]);
 function narrates(text:string,player:string|null):boolean {
  if(player===null||player===""||!text.startsWith(`${player} `))return false;
+ // A page in a character's own voice is not narration ("{PLAYER} turned me down…", apprentice.inc). None of the
+ // 104 pokeemerald pages that start with {PLAYER} and one of these verbs uses first or second person.
+ if(PERSONAL.test(text))return false;
  return NARRATION.has(text.slice(player.length+1).split(/[\s!.,]/,1)[0]??"");
 }
+const PERSONAL=/\b(?:I|I'm|I've|I'll|I'd|me|my|mine|myself|we|we're|us|our|you|you're|your|yours)\b/i;
 
 // Pages are cut from the game's own message buffer at the printer's cursor when
 // each page reaches a wait phase; a closed message contributes its remainder.

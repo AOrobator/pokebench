@@ -167,12 +167,13 @@ function targetReason(state:GameStateSnapshot,goal:Point,options:NavigationOptio
   const fallthrough=scriptless?targets.filter(t=>t.activation==="A"&&t.kind!=="warp"&&t.kind!=="object"):null;
   type Stand={readonly stand:Point;readonly side:Direction};
   const answering=({stand,side}:Stand):typeof person=>(fallthrough??[]).find(t=>{
-   if(!BACKGROUND.has(t.kind))return true;
+   const facing=t.facing==null||t.facing.toUpperCase()===OPPOSITE[side];
+   if(!BACKGROUND.has(t.kind))return facing;
    const elevation=arrival(stand);
-   return elevation!==null&&(t.elevation===0||t.elevation===elevation)&&(t.facing==null||t.facing.toUpperCase()===OPPOSITE[side]);
+   return facing&&elevation!==null&&(t.elevation===0||t.elevation===elevation);
   });
   const answers=(s:Stand):boolean=>answering(s)!==undefined;
-  if(fallthrough!==null&&(fallthrough.length===0||(reachable.length>0&&!reachable.some(answers))))return `${at(goal)} is a person or object${live?.sprite_kind!=null?` (sprite ${live.sprite_kind})`:""}, which navigate_to cannot stand on; it has no script, so facing it and pressing A does not talk to it or use it`;
+  if(fallthrough!==null&&!reachable.some(answers))return `${at(goal)} is a person or object${live?.sprite_kind!=null?` (sprite ${live.sprite_kind})`:""}, which navigate_to cannot stand on; it has no script, so facing it and pressing A does not talk to it or use it`;
   const kind=thing===undefined||thing.kind==="object"?"person or object":thing.kind.replaceAll("_"," ");
   const name=thing?.name;
   const label=name!=null?`${name} (${kind})`:`a ${kind}`;

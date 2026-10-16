@@ -39,6 +39,9 @@ describe("experiment cohort definitions and labels", () => {
     expect(legacyCohort("experiment:exp-dryrun", defs)).toEqual({ id: "experiment:exp-dryrun", label: "Experiment (dry run)", experiment: "exp-dryrun", build: null, dryRun: true });
     expect(legacyCohort("experiment:nope:finals", defs).label).toBe("experiment:nope:finals");
     expect(legacyCohort("exp", defs).label).toBe("Experiment");
-    expect(distinctLabels([{ id: "a", label: "L", experiment: null, build: null, dryRun: false }, { id: "b", label: "L", experiment: null, build: null, dryRun: false }]).map(c => c.label)).toEqual(["L", "L (b)"]);
+    const entry = (id: string, label: string) => ({ id, label, experiment: null, build: null, dryRun: false });
+    expect(distinctLabels([entry("a", "L"), entry("b", "L")]).map(c => c.label)).toEqual(["L", "L (b)"]);
+    const labels = distinctLabels([entry("a", "L"), entry("b", "L"), entry("c", "L (b)"), entry("d", "L (b) (c)"), entry("e", "L (b)")]).map(c => c.label);
+    expect(new Set(labels).size).toBe(5); expect(labels.slice(0, 2)).toEqual(["L", "L (b)"]);
   });
 });

@@ -22,7 +22,10 @@ Operator, 2026-10-16: the stats page's EXPERIMENT dropdown keeps losing runs. `c
 - [x] M2 skills: fixed-run-launch (dropdown check names `experiment:<id>@<commit12>`, adds `just experiments-audit`, explains tag membership and that dry-run ledgers can be archived anywhere), experiment-design and experiment-queue (drivers must set `POKEBENCH_EXPERIMENT`). Follow-up, not in this branch: the queue runner and finals do not tag their trials yet; they still reach the dropdown through their ledgers.
 - [x] Real-data before/after check (read-only `workbenchSnapshot` on `~/dev/pokebench/runs` from a scratch script, base f46346a3 vs e7e3d601). Before 19 entries / 147 runs, after 21 entries / 149 runs; no run left a cohort, no exclusion changed, problems 0 both times. `node packages/viewer/dist/experiments-audit.js ~/dev/pokebench/runs` printed nothing, exit 0.
 - [x] Gates: viewer 830 tests; coverage 95.30 / 90.79 / 93.67 / 97.69; `pnpm -r lint` (tsc + eslint, agent and viewer) clean.
-- [ ] Multi-model review (Codex, grok), then local merge on operator OK.
+- [x] Review 1: grok LGTM; Codex BLOCKING. Blocker: `handRunCohorts` skips provenance-shaped `plan.json` dirs (and verified-name dirs) before `rowFailure`, so a tagged run in a plan-based cohort with a non-zero exit, signal or launcher_error stayed valid. Nits: (a) `distinctLabels` could create a second collision; (b) the audit allocated 8 MiB per run and ran the full snapshot (>2 min CPU); (c) the audit's default runs root was the worktree's; (d) a ledger that fails its all-or-nothing parse contributed no failures, so a tagged invalid trial in it looked valid; (e) options were ordered by first-seen run, not first trial.
+- [x] RED 2: tagged plan-receipt and verified-name receipt failures, unreadable ledgers of every kind (queue, fixed, archived dry run, hand-run, comparison), unique labels under repeated collisions, fast cohort index agreeing with the full snapshot (long first line, identity mismatch, symlinked log), options ordered by first trial newest first. 5 failing.
+- [ ] GREEN 2.
+- [ ] Delta re-review (Codex, grok), then local merge on operator OK.
 
 ### Before → after (runs, excluded)
 

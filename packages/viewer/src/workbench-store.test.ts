@@ -441,4 +441,32 @@ describe("run-tagged experiment cohorts", () => {
     expect(d.runs.find(x => x.id === u)?.cohort).toBe(clash); expect(d.runs.find(x => x.id === t)?.cohort).toBe(clash);
     expect(d.problems).toContain(`Legacy cohort ${clash} has the value of a run-tagged cohort; run ${u} is not tagged`);
   });
+  it("takes a tagged run's failure from a plan-based or verified-name receipt that legacy membership skips", async () => {
+    const r = root(), planned = "2026-10-15T20-00-00_think-fast_plan", signalled = "2026-10-15T20-10-00_think-fast_sigs", errored = "2026-10-15T20-20-00_think-fast_lerr";
+    for (const id of [planned, signalled, errored]) tagged(r, id, "plan-cohort", C1, "2026-10-15T20:00:00.000-04:00");
+    const dir = (name: string): string => { mkdirSync(join(r, "launch-receipts", name), { recursive: true }); return join(r, "launch-receipts", name); };
+    writeFileSync(join(dir("planned"), "plan.json"), JSON.stringify({ order: ["off"], presets: {} }));
+    writeFileSync(join(dir("planned"), "trials.jsonl"), [{ type: "launch", trial: 1, run: planned }, { type: "outcome", trial: 1, run: planned, exit: 1 }, { type: "outcome", trial: 2, run: signalled, code: null, signal: "SIGKILL" }].map(e => JSON.stringify(e)).join("\n") + "\n");
+    writeFileSync(join(dir("impostor"), "manifest.json"), JSON.stringify({ id: "experiment:taken", attempts: [{ run_id: errored }] }));
+    writeFileSync(join(dir("impostor"), "trials.jsonl"), JSON.stringify({ type: "launcher_error", run: errored, error: "gateway down" }) + "\n");
+    const d = await snap(r), of = (id: string) => d.runs.find(x => x.id === id);
+    expect(of(planned)).toMatchObject({ cohort: `experiment:plan-cohort@${C1.slice(0, 12)}` }); expect(of(planned)?.excluded).toContain("exit 1");
+    expect(of(signalled)?.excluded).toContain("SIGKILL"); expect(of(errored)?.excluded).toContain("gateway down");
+  });
+  it("excludes a tagged run that an unreadable ledger names, since its validity cannot be checked", async () => {
+    const r = root(), ids = ["2026-10-15T20-00-00_think-fast_q001", "2026-10-15T20-01-00_think-fast_f001", "2026-10-15T20-02-00_think-fast_d001", "2026-10-15T20-03-00_think-fast_h001", "2026-10-15T20-04-00_think-fast_c001", "2026-10-15T20-05-00_think-fast_free"] as const;
+    for (const id of ids) tagged(r, id, "corrupt", C1, "2026-10-15T20:00:00.000-04:00");
+    const untagged = "2026-10-14T20-00-00_think-fast_untg"; write(r, untagged, named());
+    const at = (path: string, text: string): void => { mkdirSync(join(r, path, ".."), { recursive: true }); writeFileSync(join(r, path), text); };
+    at("experiments/queue/trials.jsonl", JSON.stringify({ type: "launch", trial: 0, arm: "a", run: ids[0], at: "t" }) + "\n" + JSON.stringify({ type: "launch", trial: 0, arm: "a", run: untagged, at: "t" }) + "\nnot json\n");
+    const launch = { kind: "launch", slot: 1, lane: "A", phase: "dry-run", arm: "control", run: ids[1], at: "t", commit: "c", sources: "s", presetSha256: "p", serving: "f" };
+    at("experiments/fixed-one/trials.jsonl", JSON.stringify(launch) + "\n" + JSON.stringify({ kind: "outcome", slot: 9 }) + "\n");
+    at("dryruns/archive/trials.jsonl", JSON.stringify({ ...launch, run: ids[2] }) + "\n" + `{"kind": "outcome", "run": "${ids[2]}", broken\n` + JSON.stringify({ kind: "outcome", slot: 9 }) + "\n");
+    at("launch-receipts/hand/trials.jsonl", `{bad "run_id": "${ids[3]}"\n` + JSON.stringify({ run: ids[3] }) + "\n");
+    cohort(r, [{ type: "outcome", runId: ids[4], run: ids[4], exitCode: 0, reason: "budget" }]);
+    const d = await snap(r), of = (id: string) => d.runs.find(x => x.id === id);
+    for (const id of ids.slice(0, 5)) { expect(of(id)?.cohort).toBe(`experiment:corrupt@${C1.slice(0, 12)}`); expect(of(id)?.excluded).toMatch(/^Unverified: ledger .+ is unreadable/); }
+    expect(of(ids[0])?.excluded).toContain("experiments/queue/trials.jsonl");
+    expect(of(ids[5])?.excluded).toBeNull(); expect(of(untagged)).toMatchObject({ cohort: null, excluded: null });
+  });
 });

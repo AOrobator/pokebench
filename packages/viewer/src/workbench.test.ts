@@ -84,6 +84,13 @@ describe("mounted runs and comparisons workbench", () => {
     expect(options).toEqual([["all", "All recorded runs"], [tagged, "Bundle vs control (dry run, cook)"], ["legacy-cohort", "legacy-cohort"]]);
     change("cohort", tagged); expect([...(ui("overlay") as HTMLSelectElement).options].map(o => o.value)).toEqual(["all", "none", "a"]); wb.destroy();
   });
+  it("orders EXPERIMENT options by each entry's first trial, newest first", async () => {
+    const { wb } = mount({ ...data(), runs: [
+      run({ id: "a", cohort: "old", started: "2026-10-16T12:00:00.000-04:00" }), run({ id: "b", cohort: "new", started: "2026-10-16T11:00:00.000-04:00" }),
+      run({ id: "c", cohort: "old", started: "2026-10-14T09:00:00.000-04:00" }), run({ id: "d", cohort: "undated", started: null }), run({ id: "e", cohort: "also-new", started: "2026-10-16T11:00:00.000-04:00" }),
+    ] }); await wb.refresh();
+    expect([...(ui("cohort") as HTMLSelectElement).options].map(o => o.value)).toEqual(["all", "also-new", "new", "old", "undated"]); wb.destroy();
+  });
   it("rejects a malformed cohort list at the browser boundary", async () => {
     const { wb } = mount({ ...data(), cohorts: [{ id: "x", label: 3 }] }); await wb.refresh(); expect(ui("problem").hidden).toBe(false); wb.destroy();
   });

@@ -1,11 +1,11 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { Log, START, assistant } from "../test-support/events.js";
 import { run } from "../test-support/workbench.js";
 import { auditMain, experimentsAudit } from "./experiments-audit.js";
-import { workbenchSnapshot } from "./workbench-store.js";
+import { cohortIndex, workbenchSnapshot } from "./workbench-store.js";
 import type { WorkbenchData } from "./workbench-data.js";
 const root = (): string => { const p = join(mkdtempSync(join(tmpdir(), "audit-")), "runs"); mkdirSync(p); return p; };
 const evaluation = (experiment: Record<string, unknown>) => ({ preset_id: "p", target: null, failure_limit: 3, flags: { loopGuard: false, activeUi: false, interfaceDocs: false, objectives: false }, experiment });
@@ -39,6 +39,21 @@ describe("experiments audit", () => {
     const findings = experimentsAudit(r, await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000));
     expect(findings.map(f => f.run)).toEqual(["2026-10-16T05-00-02_qwen36-gpu1_bad"]);
     expect(findings[0]?.problem).toContain("in no EXPERIMENT dropdown cohort");
+  });
+  it("reads a long first line and agrees with the full snapshot through the fast cohort index", async () => {
+    const r = root(), long = "2026-10-16T05-00-03_qwen36-gpu1_long";
+    recorded(r, "2026-10-16T05-00-00_qwen36-gpu1_main", { id: "bundle-v-control", arm: "control", trial: 1, of: 2 });
+    recorded(r, "2026-10-16T05-00-02_qwen36-gpu1_bad", { id: "bundle-v-control", arm: "control", trial: 1, of: 2, extra: true });
+    const log = new Log(); log.add(0, { ...START, system_prompt: "x".repeat(300_000), evaluation: evaluation({ id: "bundle-v-control", arm: "bundle", trial: 2, of: 2 }) } as typeof START);
+    mkdirSync(join(r, long)); writeFileSync(join(r, long, "events.jsonl"), log.events.map(e => JSON.stringify({ ...e, run: long })).join("\n") + "\n");
+    recorded(r, "2026-10-16T05-00-04_qwen36-gpu1_twin", { id: "bundle-v-control", arm: "control", trial: 1, of: 2 });
+    writeFileSync(join(r, "2026-10-16T05-00-04_qwen36-gpu1_twin", "events.jsonl"), readFileSync(join(r, "2026-10-16T05-00-00_qwen36-gpu1_main", "events.jsonl")));
+    mkdirSync(join(r, "2026-10-16T05-00-05_qwen36-gpu1_link")); symlinkSync(join(r, long, "events.jsonl"), join(r, "2026-10-16T05-00-05_qwen36-gpu1_link", "events.jsonl"));
+    const fast = cohortIndex(r), full = await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000);
+    const tagged = (runs: readonly { id: string; cohort: string | null }[]) => runs.map(x => [x.id, x.cohort]).sort();
+    expect(tagged(fast.runs)).toEqual(tagged(full.runs));
+    expect(experimentsAudit(r, fast).map(f => f.run)).toEqual(["2026-10-16T05-00-02_qwen36-gpu1_bad", "2026-10-16T05-00-04_qwen36-gpu1_twin", "2026-10-16T05-00-05_qwen36-gpu1_link"]);
+    expect(fast.runs.find(x => x.id === long)?.cohort).toMatch(/^experiment:bundle-v-control@/);
   });
   it("prints nothing and exits zero when complete, one line per finding and exits one otherwise", async () => {
     const r = root(); write(join(r, "orphan"), { type: "run_start", evaluation: { experiment: { id: "x" } } });

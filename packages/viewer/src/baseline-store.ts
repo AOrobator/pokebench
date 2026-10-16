@@ -74,7 +74,9 @@ export function pruneBaselineCaches(runsRoot: string, keep: string, nowMs: numbe
   for (const name of names) {
     if (name === keep || !CODE_ID.test(name)) continue;
     const path = join(parent, name);
-    if (nowMs - statSync(path).mtimeMs > PRUNE_AFTER_MS) rmSync(path, { recursive: true, force: true });
+    try {
+      if (nowMs - statSync(path).mtimeMs > PRUNE_AFTER_MS) rmSync(path, { recursive: true, force: true });
+    } catch { /* gone, unreadable or busy: pruning must never stop the viewer starting */ }
   }
 }
 

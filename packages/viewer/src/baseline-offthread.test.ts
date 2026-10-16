@@ -188,19 +188,21 @@ it("rejects the job of a worker that crashes or exits, and replaces that worker"
   expect(workers).toHaveLength(3);
 });
 
-it("rejects a job whose reply is malformed or reports a failure, and ignores replies for no job", async () => {
+it("rejects a job whose reply is malformed, mismatched or reports a failure, and ignores replies to no job", async () => {
   const workers: FakeWorker[] = [];
   const pool = createBaselinePool(() => { const w = new FakeWorker(); workers.push(w); return w; }, 1);
   const malformed = pool.compute("/runs", "a");
   workers[0]?.emit("message", { id: workers[0].posted[0]?.id, outcome: { baseline: { run: 7 } } });
   await expect(malformed).rejects.toThrow(/invalid reply/);
-  const failed = pool.compute("/runs", "b");
-  workers[0]?.emit("message", { id: 999_999, outcome: OK });
-  workers[0]?.emit("message", { id: workers[0].posted[1]?.id, failure: "TypeError: boom" });
+  const mismatched = pool.compute("/runs", "b");
+  workers[0]?.emit("message", { id: -1, failure: "invalid baseline request" });
+  await expect(mismatched).rejects.toThrow(/reply for another request/);
+  const failed = pool.compute("/runs", "c");
+  workers[0]?.emit("message", { id: workers[0].posted[2]?.id, failure: "TypeError: boom" });
   await expect(failed).rejects.toThrow(/TypeError: boom/);
-  workers[0]?.emit("message", { id: workers[0].posted[1]?.id, outcome: OK });
-  const after = pool.compute("/runs", "c");
-  workers[0]?.reply(2, OK);
+  workers[0]?.emit("message", { id: workers[0].posted[2]?.id, outcome: OK });
+  const after = pool.compute("/runs", "d");
+  workers[0]?.reply(3, OK);
   expect(await after).toEqual(OK);
 });
 

@@ -82,6 +82,10 @@ Done when a restart answers `/api/runs` within seconds, a restart without baseli
 
 ## Multi-Model Review Log
 
+- Round 1 (3:52 AM), packet `git diff --binary da8993aa d5c1a0b3`, SHA-256 d8c70696…04da. Claude CLI (default profile; `~/.claude-review` reports loggedIn false), plan mode: BLOCKING, B1 the 258-run retention test validates real logs (fixture runtime). Codex gpt-5.6-sol read-only: BLOCKING, B1 `pruneBaselineCaches` throws on a vanished/unreadable entry and stops startup; B2 same 258-run test. Grok cursor-grok-4.5-high (ask mode): no verdict; it wrote three scratch files into the worktree (`.tmp_hash_git.sh`, `src/__emit-cmd-out.test.ts`, `runs/_emit.mjs`, all hashing the packet), which made one coverage run fail on a missing `runs/.cmd-out.txt`. Stopped after 25 min, files removed, round discarded for Grok.
+- Fix batch: retention test uses empty logs and a canned compute; prune tolerates per-entry stat/rm failures (new test with a dangling 64-hex symlink and a throwing `rmSync`); a worker reply with another request's id now rejects the job instead of leaving it pending (Claude speculation, cheap to close). Guard deletions: 256 eviction re-added → retention test fails; prune try removed → prune test fails; restored. Viewer 848 tests, coverage 95.16 / 90.69 / 93.41, lint clean.
+- Deferred follow-ups (Claude, non-blocking): warm queue is FIFO, so a cold-cache single-run request waits behind it (no regression); `codeIdentity` hashes bare packages by name only, so a typebox upgrade would not invalidate (lockfile hash would close it); import regex could over-match non-import text (only widens the hash).
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

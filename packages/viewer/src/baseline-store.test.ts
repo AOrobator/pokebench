@@ -114,12 +114,24 @@ it("rejects run ids that are not run ids before touching the cache", () => {
 it("holds every run in memory, with no eviction at the old 256 limit", async () => {
   const dir = root();
   const ids = Array.from({ length: 258 }, (_, i) => `r${String(i).padStart(3, "0")}`);
-  for (const id of ids) write(dir, id);
-  const c = counted();
-  const read = createBaselineReader(dir, { compute: c.compute });
+  // Only the fingerprint stats the log; a canned compute keeps this about retention, not validation.
+  for (const id of ids) { fs.mkdirSync(join(dir, id)); fs.writeFileSync(join(dir, id, "events.jsonl"), ""); }
+  const calls: string[] = [];
+  const read = createBaselineReader(dir, { compute: (_root, id) => { calls.push(id); return Promise.resolve({ baseline: { run: id, milestones: [] } }); } });
   for (const id of ids) await read(id);
   for (const id of ids) await read(id);
-  expect(c.calls).toHaveLength(258);
+  expect(calls).toHaveLength(258);
+});
+
+it("keeps starting when a cache entry vanishes or cannot be inspected while pruning", () => {
+  const dir = root();
+  const parent = join(baselineCacheDir(dir, "c".repeat(64)), "..");
+  fs.mkdirSync(parent, { recursive: true });
+  fs.symlinkSync(join(dir, "nowhere"), join(parent, "f".repeat(64)));
+  expect(() => { pruneBaselineCaches(dir, "c".repeat(64), Date.now()); }).not.toThrow();
+  fs.mkdirSync(join(parent, "e".repeat(64)));
+  vi.spyOn(fs, "rmSync").mockImplementation(() => { throw Object.assign(new Error("busy"), { code: "EBUSY" }); });
+  expect(() => { pruneBaselineCaches(dir, "c".repeat(64), Date.now() + 30 * 86_400_000); }).not.toThrow();
 });
 
 function tree(files: Record<string, string>): string {

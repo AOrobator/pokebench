@@ -84,7 +84,10 @@ export function createBaselinePool(spawn: () => BaselineWorkerLike, size: number
         finish(worker, (j) => { j.reject(new Error(`baseline worker sent an invalid reply for ${j.request.runId}`)); });
         return;
       }
-      if (value.id !== job.request.id) return;
+      if (value.id !== job.request.id) {
+        finish(worker, (j) => { j.reject(new Error(`baseline worker sent a reply for another request while validating ${j.request.runId}`)); });
+        return;
+      }
       finish(worker, (j) => { if ("outcome" in value) j.resolve(value.outcome); else j.reject(new Error(`baseline worker failed on ${j.request.runId}: ${value.failure}`)); });
     });
     worker.on("error", (error) => { retire(worker, `baseline worker failed: ${error.message}`); });

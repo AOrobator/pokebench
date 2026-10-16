@@ -14,6 +14,9 @@ it("registers a default-off observation switch with no dependency, recorded last
   expect(description).toContain('battle message waiting: "Wild WINGULL fainted!" — press A or B to continue');
   expect(description).toContain(" Off: ");
   expect(description).toContain("resolving (no input until the game asks)");
+  // As built: a finishing battle keeps its text and gains the message clause (battle_details._input_text).
+  expect(description).toContain('finishing (outcome won) · battle message waiting: "Got away safely!"');
+  expect(description).not.toContain("finishing and recorded-playback text is unchanged");
   expect(SWITCHABLE_FEATURES.at(-1)).toBe(ID);
   expect(playHarnessFeatures(ALL_ON, null).at(-1)).toBe(ID);
   expect(playHarnessFeatures(off(ID), null)).not.toContain(ID);

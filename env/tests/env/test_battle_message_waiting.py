@@ -10,6 +10,7 @@ T450 (4700) and T600 (4850) are two of the 270 observes the model spent on
 import json
 import os
 from dataclasses import replace
+from functools import cache
 from pathlib import Path
 
 import pytest
@@ -18,7 +19,7 @@ from test_battle_text import Archived, Memory, encode
 
 from pokebench_env import battle_text as bt
 from pokebench_env import rerender
-from pokebench_env.battle_message_waiting import SWITCH, input_clause
+from pokebench_env.battle_message_waiting import SWITCH, input_clause, message_clause
 from pokebench_env.battle_state import BattleState
 from pokebench_env.game_state import MapNames
 from pokebench_env.readout import SERVER_FEATURES, features_off_from_env, format_readout
@@ -39,23 +40,44 @@ RESOLVING = (
 CONTROL_OFF = RECORDED_OFF | {"battle-details-v2", "expanded-menu-battle-information-v1"}
 
 
-def operator_rom() -> bytes:
+@cache
+def _rom() -> bytes | None:
+    # One ROM resolution (hash + read) per session; the resolver has its own tests.
     try:
         return resolve_rom(os.environ, EMERALD_SHA1).read_bytes()
     except RomError:
+        return None
+
+
+def operator_rom() -> bytes:
+    rom = _rom()
+    if rom is None:
         pytest.skip("POKEBENCH_ROM is not set to the Emerald ROM")
+    return rom
+
+
+@cache
+def maps() -> MapNames:
+    return MapNames.load(rerender.PORYMAP_MAPS)
 
 
 def frame(raw: str) -> dict[str, object]:
     return next(f for f in FIXTURE["frames"] if f["raw_ram"] == f"raw-ram/{raw}.json.gz")
 
 
-def reader(raw: str, rom: bytes):  # type: ignore[no-untyped-def]
+@cache
+def _cells(raw: str) -> dict[int, int]:
+    # Expanded once per recorded frame; readers only look cells up.
     cells: dict[int, int] = {}
     for window in frame(raw)["windows"]:  # type: ignore[attr-defined]
         start = int(window["address"], 16)
         for offset, value in enumerate(bytes.fromhex(window["hex"])):
             cells[start + offset] = value
+    return cells
+
+
+def reader(raw: str, rom: bytes):  # type: ignore[no-untyped-def]
+    cells = _cells(raw)
 
     def read(address: int, length: int) -> bytes:
         if address >= ROM_START:
@@ -67,8 +89,7 @@ def reader(raw: str, rom: bytes):  # type: ignore[no-untyped-def]
 
 def render(raw: str, off: frozenset[str]) -> str:
     read = reader(raw, operator_rom())
-    maps = MapNames.load(rerender.PORYMAP_MAPS)
-    return rerender.render(rerender.read_state(read, maps, active_ui=True, off=off), off)
+    return rerender.render(rerender.read_state(read, maps(), active_ui=True, off=off), off)
 
 
 def changed(before: str, after: str) -> tuple[list[str], list[str]]:
@@ -124,9 +145,8 @@ def test_the_state_json_is_the_same_on_and_off() -> None:
     from pokebench_env.readout import state_json
 
     read = reader("00004700", operator_rom())
-    maps = MapNames.load(rerender.PORYMAP_MAPS)
-    on = rerender.read_state(read, maps, active_ui=True, off=RECORDED_OFF - {SWITCH})
-    off = rerender.read_state(read, maps, active_ui=True, off=RECORDED_OFF | {SWITCH})
+    on = rerender.read_state(read, maps(), active_ui=True, off=RECORDED_OFF - {SWITCH})
+    off = rerender.read_state(read, maps(), active_ui=True, off=RECORDED_OFF | {SWITCH})
     assert state_json(on) == state_json(off)
     message = state_json(on)["battle"]["message"]  # type: ignore[index]
     assert message["page"] == "Wild WINGULL fainted!"  # type: ignore[index]
@@ -185,7 +205,7 @@ BASE = BattleState(True, True, "resolving", False, text_phase="busy")
 
 def test_clause_for_every_message_state() -> None:
     waiting = bt.BattleMessage("waiting_for_input", "page_wait", "x", 3, "i", None, "Go! TORCHIC!")
-    assert input_clause(replace(BASE, message=waiting)) == (
+    assert input_clause(replace(BASE, message=waiting, text_phase="message_waiting")) == (
         'battle message waiting: "Go! TORCHIC!" — press A or B to continue'
     )
     printing = bt.BattleMessage("printing", "printing", "x", 3, "i", None, "Go! TORCHIC!")
@@ -235,7 +255,12 @@ def test_details_line_keeps_ready_finishing_and_replay_text() -> None:
     ready = replace(base.battle, message=waiting, text_phase="input")
     assert details.lines(ready, message_waiting=True)[0] == ready_off
     finishing = replace(
-        base.battle, player_inputs=(), phase="finishing", outcome="won", message=waiting
+        base.battle,
+        player_inputs=(),
+        phase="finishing",
+        outcome="won",
+        message=waiting,
+        text_phase="message_waiting",
     )
     assert details.lines(finishing)[0].endswith("· finishing (outcome won)")
     assert details.lines(finishing, message_waiting=True)[0].endswith(
@@ -254,7 +279,11 @@ def test_control_arm_line_is_absent_when_input_is_ready_or_in_replay() -> None:
     assert base.battle is not None
     waiting = bt.BattleMessage("waiting_for_input", "page_wait", "x", 3, "i", None, "Hi!")
     off = CONTROL_OFF - {SWITCH}
-    ready = replace(base, battle_details=None, battle=replace(base.battle, message=waiting))
+    ready = replace(
+        base,
+        battle_details=None,
+        battle=replace(base.battle, message=waiting, text_phase="message_waiting"),
+    )
     assert "Battle input:" not in format_readout(ready, off)
     resolving = replace(ready.battle, player_inputs=(), phase="resolving")  # type: ignore[arg-type]
     shown = format_readout(replace(ready, battle=resolving), off)
@@ -286,13 +315,12 @@ def test_production_observation_route_honours_the_switch(monkeypatch: pytest.Mon
     from pokebench_env.observation import install_observation
 
     read = reader("00004700", operator_rom())
-    maps = MapNames.load(rerender.PORYMAP_MAPS)
     payloads = {}
     for off in (RECORDED_OFF - {SWITCH}, RECORDED_OFF | {SWITCH}):
         monkeypatch.setenv("POKEBENCH_FEATURES_OFF", ",".join(sorted(off)))
         monkeypatch.setenv("POKEBENCH_ACTIVE_UI", "1")
         app = FastAPI()
-        install_observation(app, lambda: _Shot(), read, maps)
+        install_observation(app, lambda: _Shot(), read, maps())
         status, _, body = get(app, "/pokebench/observation")
         assert status == 200, body
         payloads[SWITCH in off] = json.loads(body)
@@ -312,3 +340,49 @@ def test_page_text_needs_the_terminated_payload() -> None:
     )
     assert bt.page_text(encode("Hi") + b"\xff", 0) == "Hi"
     assert Memory  # the synthetic layout is shared with test_battle_text
+
+
+# --- review round 1 ---
+
+
+def test_a_message_on_another_screen_over_the_battle_keeps_the_off_text() -> None:
+    """Evolution, bag or party own the callback (text_phase screen): no message clause."""
+    from test_battle_details_v2 import state, trainer
+
+    waiting = bt.BattleMessage("waiting_for_input", "page_wait", "x", 3, "i", None, "Hi!")
+    screen = replace(BASE, message=waiting, text_phase="screen")
+    assert message_clause(screen) is None and input_clause(screen) is None
+    printing = bt.BattleMessage("printing", "printing", "x", 3, "i", None, "Hi!")
+    assert input_clause(replace(screen, message=printing)) is None
+    base = state(trainer())
+    assert base.battle is not None
+    over = replace(
+        base.battle, player_inputs=(), phase="resolving", message=waiting, text_phase="screen"
+    )
+    with_details = replace(base, battle=over)
+    without = replace(with_details, battle_details=None)
+    for current, arm in ((with_details, frozenset()), (without, CONTROL_OFF)):
+        assert format_readout(current, arm - {SWITCH}) == format_readout(current, arm | {SWITCH})
+    # The detector itself: an active printer-0 page under a non-battle callback is phase screen.
+    m = Memory()
+    m.message(encode("Hi!") + b"\xfb", 4, state=2)
+    m.set(0x030022C4, 0x081AAD5D)
+    assert bt.battle_text_phase(m.read) == "screen"
+    assert bt.read_battle_message(m.read).state == "waiting_for_input"
+
+
+def test_a_page_held_by_auto_scroll_is_not_called_printing() -> None:
+    """Link and recorded battles: gTextFlags.autoScroll turns the A/B wait into a timer."""
+    held = bt.BattleMessage("printing", "page_wait", "x", 3, "i", None, "Hi!")
+    assert input_clause(replace(BASE, message=held)) == (
+        'battle message shown: "Hi!" — it moves on by itself (auto-scroll); no input needed'
+    )
+
+
+def test_clauses_follow_the_detector_phase() -> None:
+    waiting = bt.BattleMessage("waiting_for_input", "page_wait", "x", 3, "i", None, "Hi!")
+    # A waiting page counts only when the detector's phase agrees (message_waiting).
+    assert input_clause(replace(BASE, message=waiting, text_phase="message_waiting")) == (
+        'battle message waiting: "Hi!" — press A or B to continue'
+    )
+    assert input_clause(replace(BASE, message=waiting, text_phase="screen")) is None

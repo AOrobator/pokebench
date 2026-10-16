@@ -207,3 +207,26 @@ it("keeps what the operator opened or closed across polls, and folds everything 
   document.dispatchEvent(new MouseEvent("mouseover"));
   wb.destroy();
 });
+
+it("isolates the human baseline and the agent frontier from the mark key, the frontier with its version's runs", async () => {
+  const measurement = { controller: "agent" as const, features: ["story-milestones-v2"], logSha256: "a".repeat(64), pausedMs: 0, rawSplits: [] };
+  const humanRun = Object.assign(run({ id: HUMAN_REFERENCE, cohort: null, model: "Human · Operator" }), { measurement: { ...measurement, controller: "human" as const } });
+  const lead = Object.assign(run({ id: "lead", arm: "bundle", splits: [...run().splits, { name: "FIRST_TRUCK_EXIT", elapsedMs: 130000, segmentMs: 10000, seq: 20, turn: 21, inputTokens: 0, outputTokens: 0 }] }), { measurement });
+  const twin = Object.assign(run({ id: "twin", arm: "bundle" }), { measurement }), other = Object.assign(run({ id: "other", arm: "control", model: "Other" }), { measurement });
+  const wb = new Workbench(document, { fetchSnapshot: () => Promise.resolve({ version: 1, at: 1000, milestones: [], runs: [humanRun, lead, twin, other], problems: [] }), now: () => 1000, width: () => 900 });
+  await wb.refresh();
+  const legend = ui("frontier-legend"), plot = ui("frontier-full");
+  const on = (): string[] => Array.from(plot.querySelectorAll<SVGGElement>(".wb-series.wb-on")).flatMap(g => g.querySelector("[data-run]")?.getAttribute("data-run") ?? []).sort();
+  legend.querySelector<HTMLElement>('[data-reference="human"] b')?.click();
+  expect(legend.querySelector('[data-reference="human"]')?.classList.contains("wb-sel")).toBe(true);
+  expect(legend.querySelector(".wb-iso b")?.textContent).toBe("Human baseline");
+  expect(on()).toEqual([HUMAN_REFERENCE]);
+  legend.querySelector<HTMLElement>('[data-reference="best"]')?.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true }));
+  expect(legend.querySelector('[data-reference="best"]')?.classList.contains("wb-sel")).toBe(true);
+  expect(on()).toEqual(["lead"]);
+  const twinVersion = legend.querySelector<HTMLElement>(".wb-ver"); twinVersion?.click();
+  expect(on()).toEqual(["lead", "twin"]);
+  legend.querySelector<HTMLElement>("summary")?.click();
+  expect(legend.querySelector(".wb-sel")).not.toBeNull();
+  wb.destroy();
+});

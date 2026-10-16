@@ -145,6 +145,33 @@ describe("exit history",()=>{
   expect(d.observe(place([24,24],3,8,[warp(3,3,[127,127,0])]))).toEqual([]);
  });
 
+ it("takes a two-tile gate whose tiles lead to different warp ids as one doorway (review round 4: Route104 and Petalburg Woods)",()=>{
+  // Warp events in pokeemerald order (data/maps/Route104 and PetalburgWoods map.json); map numbers here are illustrative.
+  const R=[0,20] as [number,number],W=[24,11] as [number,number];
+  const ROUTE=[warp(17,50,[0,30,0]),warp(5,18,[0,31,0]),warp(10,30,[24,11,0]),warp(11,30,[24,11,1]),warp(10,38,[24,11,2]),warp(11,38,[24,11,3]),warp(32,42,[24,11,4]),warp(33,42,[24,11,5])];
+  const WOODS=[warp(14,5,[0,20,2]),warp(15,5,[0,20,3]),warp(16,38,[0,20,4]),warp(17,38,[0,20,5]),warp(36,38,[0,20,6]),warp(37,38,[0,20,7])];
+  const taken=(h:ExitHistory)=>[[R,10,30],[R,11,30],[R,10,38],[W,14,5],[W,15,5],[W,16,38]].map(([m,x,y])=>h.taken((m as number[]).join("/"),x as number,y as number));
+  for(const start of [[10,35],[10,31],[10,30]] as const){
+   const h=new ExitHistory();
+   h.observe(place(R,start[0],start[1],ROUTE));
+   h.observe(place(W,14,5,WOODS));
+   expect(taken(h)).toEqual([true,true,false,true,true,false]);
+  }
+  // Leaving the woods by the same gate from a press batch that ended far from it.
+  const back=new ExitHistory();
+  back.observe(place(W,14,9,WOODS));
+  back.observe(place(R,11,31,ROUTE));
+  expect(taken(back)).toEqual([true,true,false,true,true,false]);
+ });
+
+ it("keeps MtPyre_4F's two stairs apart with their real destination ids",()=>{
+  const F4=[warp(10,1,[24,5,1]),warp(2,5,[24,3,1]),warp(12,10,[24,5,3]),warp(12,12,[24,5,4]),warp(9,10,[24,3,2]),warp(2,12,[24,3,3])];
+  const F5=[warp(2,1,[24,6,0]),warp(10,5,[24,4,0]),warp(1,10,[24,6,1]),warp(12,10,[24,4,2]),warp(12,12,[24,4,3])];
+  const h=new ExitHistory();
+  h.observe(place([24,4],12,11,F4));
+  expect(h.observe(place([24,5],12,10,F5)).map(m=>`${m.map} ${m.tile}`)).toEqual(["24/4 12,10","24/5 12,10"]);
+ });
+
  it("between two stairs one tile apart, takes only the one whose destination the player arrived at (review round 3)",()=>{
   // pokeemerald MtPyre_4F: stairs at (12,10) and (12,12) lead to different 5F warps; the player stands between them.
   const F4=[warp(12,10,[24,5,0]),warp(12,12,[24,5,1])];

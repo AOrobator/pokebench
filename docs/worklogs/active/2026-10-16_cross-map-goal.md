@@ -44,9 +44,12 @@ Text only. No subprocesses, network, files or new endpoints.
 - [x] RED: recorded 4caa fixture (OFF equals received; ON true refusal, no press), mid-walk map change ON, unknown map ON, factory wiring, registry/preset tests. vitest cross-map-goal.test.ts: 5 failed | 5 passed (10); the 5 passing are OFF bytes and real mid-walk map changes.
 - [x] COMMIT RED: `test(cross-map-goal): RED for a false 'map changed' on a goal on another map (run 4caa seq 12549)` (30fee571)
 - [x] GREEN: switch registry, presets, defaults, wiring, explainer, Harness Config link, pending experiment, readiness note. Agent vitest 124 files / 1891 tests pass; viewer controls/next-run/panels/server 163 pass. Registry position assertions in other switch tests bumped by one (new last switch); guidance count 35→36.
-- [x] COMMIT GREEN (SHA in next entry)
+- [x] COMMIT GREEN: `feat(navigation): cross-map-goal-v1 says a navigate_to goal on another map is on another map (default off, bundle arm)` (5b692de9)
 - [x] Wiring deletion check: removing `crossMapGoal:features["cross-map-goal-v1"]` from withNavigation turns `withNavigation reads the switch from the FeatureSet` red (1 failed | 10 passed); restored, 11 pass.
-- [ ] Gates: test, coverage ≥90 both stacks, lint, verify-vendor
-- [ ] Principles self-review PB1–PB13
-- [ ] Merge main, rerun gates, freeze packet
+- [x] Gates (on 5b692de9, main 4070e250 already an ancestor): `just test` agent 1891 / viewer 974 / pytest 2465 passed, 0 skipped; `just coverage` agent lines 99.14 branches 94.72 functions 98.4, viewer 97.67 / 91.17 / 93.79, Python 97.52 / 93.55 / 100; `just lint` ok; `just verify-vendor` ok (submodule initialised in the worktree first); `just pages-check docs/explainers/cross-map-goal-v1.html` prints nothing.
+- [x] Principles self-review PB1–PB13: 0 FAIL (PB2, PB6, PB11 N/A).
+- [x] Merge main (no-op: main 4070e250 is the base), gates above, freeze packet base 4070e250 → this commit
 - [ ] Review: Claude, Grok, GPT lanes LGTM on the frozen packet
+
+## Multi-Model Review Log
+

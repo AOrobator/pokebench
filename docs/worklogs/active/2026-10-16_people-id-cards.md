@@ -132,7 +132,8 @@ No new network surface: the server field rides the existing state endpoint on 12
 
 **M1 — Card model and switch registration**
 - [ ] Write tests (`people-id-cards.test.ts`) on fixtures cut from recorded runs (4caa whole run, f551 T500–T560, trimmed state fields): exact cards at T105 (MAY, name from the table), T211 (MAY on Route 103), T285 (MAY in Oldale, battle text), T56 (MOM, "during this call"), T510 (MOM), T184 and T297 (NURSE), T551 (YOUNGSTER, no trainer facts); f551 Calvin after the battle (battle text only); 38 cards over 4caa; fingerprint ignores turn-only changes; INV-2..INV-8; registry entry, needs, presets, defaults
-- [ ] COMMIT: `test(people-id-cards): RED ...`
+- [x] Tests written: `people-id-cards.test.ts` (20 cases) on `fixtures/people-id-cards-4caa.jsonl.gz` (whole run, 2718 events, 848 states) and `fixtures/people-id-cards-f551.jsonl.gz` (T480–T560, 432 events)
+- [x] COMMIT: `test(people-id-cards): RED card model, triggers and registration on runs 4caa and f551` (see Session Log)
 - [ ] Implement `packages/agent/src/people-id-cards.ts` (card model); registry (`SWITCHABLE_FEATURES`, `FEATURES` with ` Off: `, `...when()` last), presets + `flagFeatures`, `DEFAULT_NEXT_RUN` false; registry counts and end-relative tests shifted
 - [ ] Gates: `just test` (TS + Python counts), `just lint`, `just build`, `just coverage` (≥90 lines/branches/functions, both stacks), `just verify-vendor`
 - [ ] COMMIT: `feat(people-id-cards): ...` (GREEN)
@@ -171,6 +172,9 @@ No new network surface: the server field rides the existing state endpoint on 12
 8. bundle-v-control is a running cohort: joining its bundle arm means a new launch from the new pin. When?
 
 ## Session Log
+
+- 2026-10-16 4:50 PM EDT: worklog with operator decisions committed. COMMIT: `docs(worklog): people-id-cards-v1 design with the operator's decisions (approved 4:47 PM EDT)` (66b6dc0d)
+- 2026-10-16 ~5:05 PM EDT: synced with main cefacbf1 (fast-forward). RED: card model tests on recorded runs; module absent, suite fails to import.
 
 - 2026-10-16 (EDT): discovery and design only; worklog drafted in the worktree, not committed. Card prototype run over 4caa in the session scratchpad (not tracked).
 

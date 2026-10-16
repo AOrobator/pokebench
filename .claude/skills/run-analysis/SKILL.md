@@ -31,9 +31,9 @@ Never call `chat-thread` tools from this skill or its subagents. Quote every tim
    - **Order:** `FRONTIER_MILESTONES` parsed from that file. Never the workbench `milestones` list: it also holds optional milestones such as `FIRST_POKECENTER_HEAL` that would mis-rank.
    - **Eligible for the top N:** `excluded` null, `problem` null, `measurement.controller` is `agent`, and no `measurement.features` matching `probe`, `synthetic` or `replay` (frontier.ts `recordedRun`). Any start kind and any status (ended, live, paused, unresponsive) qualifies, and each is labelled. This is deliberately wider than `frontierCandidate`, which only the agent-frontier bullet below uses.
    - **Rank:** the last index in that order of a split without `screenshotEvidence`.
-   - **Tiebreak:** that split's `elapsedMs` ascending, then `id`.
+   - **Tiebreak:** start-kind group first (fresh starts, meaning boot and `MAIN_MENU`, before `CLOCK_SET` resumes), then that split's `elapsedMs` ascending within the group, then `id`. Minutes are never compared across groups.
    - Take the top N (default 10).
-   - Cross-check against `node .claude/skills/pokebench-review/frontier.mjs`. It uses the same order and tiebreak but different buckets: its best fresh-boot run must equal the agent frontier below, and its fresh-boot and checkpoint lists must agree with your top N for the runs they share. It needs a built viewer in `POKEBENCH_VIEWER_WORKTREE` (default `/private/tmp/pokebench-viewer`). Explain any disagreement before going on.
+   - Cross-check against `node .claude/skills/pokebench-review/frontier.mjs`. It uses the same order and tiebreak but different buckets: its best fresh-boot run must equal the agent frontier below, and its fresh-boot and checkpoint lists must agree with your top N for the runs they share. It needs a built viewer in `POKEBENCH_VIEWER_WORKTREE` (default `/private/tmp/pokebench-viewer`), and gives up on the workbench after 60 s, so run it after step 1 has warmed the viewer and retry once if it times out. Explain any disagreement before going on.
    - State each run's start kind: boot, `MAIN_MENU` save or `CLOCK_SET` save (`config.start`, `config.resume`). The frontier chart only plots boot and `MAIN_MENU` starts. `CLOCK_SET` resumes stay in the list but are flagged: their minutes count from the save, so they are not comparable with boot minutes. Never say one beat another on time across start kinds.
    - Lead the report with the furthest milestones reached.
    - **Agent frontier.** Identify the current frontier run exactly as `frontierReferences` in `frontier.ts` picks `best` (boot or `MAIN_MENU` start, ended, live or paused). Say whether it moved since the previous run-analysis report (`runs/reports/run-analysis/`) or since the night began, which run it replaced, and when it moved, in New York time.
@@ -41,11 +41,11 @@ Never call `chat-thread` tools from this skill or its subagents. Quote every tim
 3. **Harness provenance per run.**
    - Read only the first line of `runs/<id>/events.jsonl` (`run_start`). Files run to ~150 MB: always stream (`head -n 1`, `tail`, `grep`), never load whole.
    - From it: `evaluation.features` (each switch on or off), `evaluation.experiment` (id, arm, trial), sampling, model and preset. The workbench `config.source` is the pinned commit.
-   - Describe each switch from `experiments/fixed/<id>.json` and `experiments/<switch>.json`.
+   - Describe each switch from `experiments/fixed/<id>.json` and `experiments/<switch id without its -vN suffix>.json`, falling back to the registry in `packages/agent/src/features.ts`. A run with no preset has no `evaluation` block: take its features from the workbench `config.features` and say so.
    - Build a round-to-round switch diff for each arm, and the bundle-minus-control diff.
    - Run `git log --oneline A..B` between consecutive pins, so behavior changes outside switches are visible.
 
-4. **Segment table per run.** From `milestone` events (name, seq, turn, `t`), list minutes and turns between consecutive frontier milestones, plus the final segment to `run_end` (or to the snapshot for a LIVE run). The longest segments are the costliest stalls. Skip `present_at_start` milestones as segment ends.
+4. **Segment table per run.** From the workbench splits (`elapsedMs`, `segmentMs`, `seq`), which exclude operator pauses, list active minutes between consecutive frontier milestones, plus the final segment to the run's `elapsedMs`. Take turn numbers for each split's `seq` from that run's `milestone` events. The longest segments are the costliest stalls. Never time segments from raw `t` stamps: they include pauses.
 
 5. **Fan out forensics in parallel.**
    - Write one shared brief at `<scratch>/brief.md`: the snapshot time, the run list, the segment tables and the exact output schema below.
@@ -71,7 +71,7 @@ Never call `chat-thread` tools from this skill or its subagents. Quote every tim
    - Report grading blind spots to `pokebench-story-milestones`, and harness bugs as **harness bug** with trigger and evidence.
 
 8. **PokeBench review.** Every run analysis gets one. Follow `.claude/skills/pokebench-review/SKILL.md`: four personas as parallel subagents on one shared evidence packet.
-   - Build the packet from this analysis: the ranking with start kinds, the arm table, the switch and pin diffs, the stall cards and the hypotheses. Put it where that skill says (`runs/reviews/<YYYY-MM-DD>-run-analysis-<slug>/evidence.md`).
+   - Build the packet from this analysis: the ranking with start kinds, the arm table, the switch and pin diffs, the stall cards and the hypotheses. Put it where that skill says (`runs/reviews/<YYYY-MM-DD>-run-analysis-<slug>/evidence.md`). The review's write-up is the report's PokeBench review section, not a separate `runs/reviews/*.html` page, so the operator gets one link.
    - The review must answer two questions explicitly:
      1. **Are our harness changes helping or hurting?** Per arm, and per switch where the data allows.
      2. **How much confidence does the top-N arm composition give?** For example, 9 of the top 10 from one arm. Weigh selection effects (top-N picks winners from unequal pools), paired rounds, N per arm, start kinds and pin drift between rounds.

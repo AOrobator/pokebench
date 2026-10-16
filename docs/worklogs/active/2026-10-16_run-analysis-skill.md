@@ -1,0 +1,11 @@
+# Worklog: run-analysis skill
+
+Operator ask (the operator, 2026-10-16, project thread "Top runs analysis and skill"): make the top-runs analysis a repeatable skill that writes an HTML report and a chat summary, includes a PokeBench review of whether changes help or hurt, an agent-frontier section and a promote/hold recommendation for control. Docs-only: no application code, so no coverage gate applies.
+
+Branch `claude/run-analysis-skill`, worktree `/private/tmp/pokebench-run-analysis`.
+
+- [x] Draft `.claude/skills/run-analysis/SKILL.md` and the CLAUDE.md pointer. COMMIT: `skills: add run-analysis for top-run reports with a PokeBench review` (c1238435)
+- [x] Review round 1 fixes (Grok BLOCKING): workbench-only ranking, frontier.mjs cross-check, label normalization. COMMIT: (069df9ab)
+- [x] Review round 1 fixes (Claude BLOCKING): segments from workbench splits, start-kind tiebreak, review as a report section, switch-file lookup.
+- [ ] Claude, Grok and GPT lanes `VERDICT: LGTM` on the frozen packet.
+- [ ] Fast-forward merge to local main; report the SHA in the thread.

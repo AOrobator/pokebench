@@ -10,6 +10,8 @@ from collections.abc import Mapping
 from dataclasses import asdict, replace
 
 from pokebench_env.adjacent_tiles import next_tiles, walking
+from pokebench_env.battle_message_waiting import SWITCH as MESSAGE_WAITING
+from pokebench_env.battle_message_waiting import message_clause
 from pokebench_env.battle_triage import SWITCH as TRIAGE
 from pokebench_env.battle_triage import battle_triage_lines, field_triage_line
 from pokebench_env.game_state import GameState
@@ -49,6 +51,7 @@ SERVER_FEATURES = (
     "readout-rules-in-prompt-v1",
     "connection-edge-tiles-v1",
     "in-game-naming-readout-v1",
+    "battle-message-waiting-v1",
     "offscreen-objects-v1",
 )
 
@@ -60,6 +63,7 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "battle-triage-guidance-v1,"
         "adjacent-tiles-v1,"
         "readout-rules-in-prompt-v1,connection-edge-tiles-v1,in-game-naming-readout-v1,"
+        "battle-message-waiting-v1,"
         "offscreen-objects-v1",
     )
     if raw == "":
@@ -211,13 +215,26 @@ def format_readout(
                 "Completion and damage are separate recorded signals."
             ]
         )
+        waiting = MESSAGE_WAITING not in off
+        # battle-message-waiting-v1 without battle-details-v2: its own line, only when no
+        # player input is ready and the battle shows a message or YES/NO box.
+        clause = (
+            message_clause(battle)
+            if waiting
+            and details is None
+            and battle.phase != "replay"
+            and not any(i.ready for i in battle.player_inputs or ())
+            else None
+        )
+        own_line = [] if clause is None else [f"Battle input: {clause}"]
         if details is not None:
-            lines += [*details.lines(battle), *playback, *execution]
+            lines += [*details.lines(battle, message_waiting=waiting), *playback, *execution]
         elif expanded:
             lines.append(
                 f"Battle state: {battle.phase}; input {battle.ready}; "
                 f"turn {battle.turn}; outcome {battle.outcome}"
             )
+            lines += own_line
             lines += playback
             for actor in battle.battlers or ():
                 lines.append(
@@ -240,6 +257,7 @@ def format_readout(
             lines += execution
         else:
             lines.append("Battle details: unprovided")
+            lines += own_line
         if TRIAGE not in off:
             lines += battle_triage_lines(battle, state.battle_details)
     if state.story is not None and "story-state-v1" not in off:

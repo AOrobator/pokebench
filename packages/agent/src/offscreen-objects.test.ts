@@ -3,8 +3,8 @@ import { ALL_ON, SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featu
 import { flagFeatures, normalizeFeatures, parsePlayPreset, presetFeatures } from "./play-preset.js";
 
 const ID = "offscreen-objects-v1";
-const PREVIOUS = "battle-text-auto-advance-v1";
-const PREVIOUS_SERVER = "in-game-naming-readout-v1";
+const PREVIOUS = "battle-message-waiting-v1";
+const PREVIOUS_SERVER = "battle-message-waiting-v1";
 const off = (...ids: (typeof SWITCHABLE_FEATURES)[number][]): FeatureSet => ({ ...ALL_ON, ...Object.fromEntries(ids.map((id) => [id, false])) });
 
 it("registers off-screen objects as a default-off observation switch that needs live object sprites", () => {

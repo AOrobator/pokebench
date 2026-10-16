@@ -187,3 +187,9 @@ Lanes: the think_fast/think_swarm endpoint lanes are not used while overnight tr
 - Merge-resolution review (remerge diff of 8b15f1e5): Grok LGTM (hardening: battle-text test names still say "last"). Codex BLOCKING: battle-text's historical-preset normalization test inherited the three new switches from ALL_ON, so it no longer proved a pre-merge preset gets them OFF and ordered after battle-text. Fix: both battle-text historical fixtures omit the three switches too and assert the last four keys are battle-text then the three, all three false; test names updated. Agent 1519 passed.
   COMMIT: `test: battle-text historical-preset tests also omit the three navigation-guidance switches (merge review)`
 - Merge-resolution re-review: Codex LGTM (a3badf7c). All lanes clean; landing.
+
+### Merge of main 48d6b48f (battle-message-waiting-v1)
+
+- Conflicts: readout.py (SERVER_FEATURES and default-off list keep both, offscreen last) and panels.ts (both explainer mappings) by hand; mechanical files from main and re-applied: the three switches follow battle-message-waiting-v1 (offscreen also after it in SERVER_FEATURES); `.at(-N)` +3 (+1 SERVER_FEATURES); battle-text historical-preset tests again omit the three and assert the tail; battle-message-waiting's readout.py tail check and Python `SERVER_FEATURES[-2]`; counts observation 25, guidance 32, switchboard 69, server 33; rerender recorded-off and pass-through dict; incumbents, readiness rows, README re-applied.
+- Gates: agent 1524, viewer 867, Python 2249; coverage agent 97.87/94.44/98.17/99.13, viewer 95.36/90.98/93.57/97.7, Python 96%; lint green except known mypy; pages-check clean.
+  COMMIT: `Merge branch 'main' into claude/nav-guidance (battle-message-waiting-v1)`

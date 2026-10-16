@@ -20,4 +20,5 @@ The live side panel's SPLITS THIS RUN strip and SPLIT TIMES VS BEST rows render 
 - [ ] Review: Claude CLI, Codex, Cursor grok
   - Round 1 (cf97c308): Claude CLI LGTM; cursor-grok-4.5-high LGTM with medium finding (NEXT skipped Route 102 when a later non-checkpoint milestone was deepest); Codex failed (default model gpt-6.1-sol unsupported on ChatGPT account).
   - [x] RED for grok finding: NEXT after deepest checkpoint + name escaping (1 failing, 15 passing)
+  - [x] GREEN: NEXT = first frontier checkpoint after the deepest recorded checkpoint. Viewer 793 pass, coverage 95.10/90.45/93.59, lint clean; live log replay still ends OLDALE ✔, next ROUTE 103.
 - [ ] Operator approves local merge

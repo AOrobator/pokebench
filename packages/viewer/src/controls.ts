@@ -156,9 +156,9 @@ function runSplits(view: RunView): { splits: { name: string; label: string; at: 
   const reached = startMs === null ? [] : view.milestones.filter((m) => m.origin !== "present_at_start").map((m, i) => ({ m, i }))
     .sort((a, b) => storyIndex(a.m.name) - storyIndex(b.m.name) || a.i - b.i)
     .map(({ m }) => ({ name: m.name, label: splitLabel(m.name), at: (m.ms - startMs - view.control.pausedBefore(m.ms)) / 1000 }));
-  const deepest = Math.max(-1, ...view.milestones.map((m) => STORY_ORDER.indexOf(m.name)));
   const recorded = new Set(view.milestones.map((m) => m.name));
-  const next = FRONTIER_MILESTONES.find((m) => STORY_ORDER.indexOf(m.id) > deepest && !recorded.has(m.id))?.id;
+  const deepest = Math.max(-1, ...FRONTIER_MILESTONES.map((m, i) => (recorded.has(m.id) ? i : -1)));
+  const next = FRONTIER_MILESTONES[deepest + 1]?.id;
   return { splits: next === undefined ? reached : [...reached, { name: next, label: splitLabel(next), at: null }], next };
 }
 

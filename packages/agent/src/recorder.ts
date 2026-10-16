@@ -1,4 +1,4 @@
-import type { LowHpTrainerWarningFacts } from "./low-hp-trainer-warning.js";
+import type { LowHpTrainerWarningFacts, StoryBattleWarningFacts } from "./low-hp-trainer-warning.js";
 import type { PressModifiers } from "./game-tools.js";
 import {StateActivities} from "./activity.js";
 import type {DecisionSnapshot} from "./state-decision.js";
@@ -447,6 +447,11 @@ export class RunRecorder {
   lowHpTrainerWarning(tool: string, facts: LowHpTrainerWarningFacts, text: string): void {
     this.append({ type: "low_hp_trainer_warning", turn: this.turn, tool, ...facts, map_id: [facts.map_id[0], facts.map_id[1]], items: facts.items.map((i) => ({ ...i })), text });
   }
+  // low-hp-trainer-warning-v2: recorded as the story-battle paragraph is added to the tool result.
+  storyBattleWarning(tool: string, facts: StoryBattleWarningFacts, text: string): void {
+    this.append({ type: "story_battle_warning", turn: this.turn, tool, ...facts, map_id: [facts.map_id[0], facts.map_id[1]], party: facts.party.map((p) => ({ ...p })), items: facts.items.map((i) => ({ ...i })), text });
+  }
+
 
   end(reason: RunEndReason): void {
     this.append({

@@ -35,8 +35,9 @@ Condition: free field (overworld, not in battle, field controls unlocked), playe
 **M1 — low-hp-trainer-warning-v2**
 - [x] RED: registry/presets/defaults/needs; condition per row (fires, not when won/unknown/locked/full HP/other map/not loaded); party list; text per row; re-arm; v2 OFF = v1; event schema; viewer Activity History + tail; factory path; pi delivery
 - [x] COMMIT RED: `test(RED): low-hp-trainer-warning-v2 ...` (13 tests fail: unknown feature)
-- [ ] GREEN + schema + legacy positional updates
-- [ ] COMMIT GREEN; deletion receipts
+- [x] GREEN: `low-hp-trainer-warning.ts` (STORY_BATTLES table, storyBattleWarning, storyBattleText, StoryBattleWarning arm keyed by battle, v2 branch in withLowHpTrainerWarning that throws without a storyBattleWarning recorder), `story_battle_warning` event + `just schema`, RunRecorder.storyBattleWarning, tail line, viewer KNOWN/Activity History row/SUP chip, no timeline mark; pi delivery test has a v2 row. Legacy positional and preset-list tests updated (guard 19, switchboard rows 89). vitest agent 1894, viewer 974; lint clean.
+- [x] Deletion receipts: disabling the v2 branch turns 3 tests red (story-battle + wire); removing the tail case turns 1 red; removing the Activity History row turns 2 trace tests red; all restored green.
+- [x] COMMIT GREEN: `feat: low-hp-trainer-warning-v2 ...`
 
 **M2 — explainer, pending experiment, gates, review, land**
 - [ ] Explainer + FEATURE_EXPLAINERS + README; pending experiment + readiness

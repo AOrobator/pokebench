@@ -137,6 +137,7 @@ export class Replay {
   readonly recordState = (): never => { throw new Error("probe tools never execute"); };
   readonly recordDialogueAutoAdvance = (): never => { throw new Error("probe tools never execute"); };
   readonly lowHpTrainerWarning = (): never => { throw new Error("probe tools never execute"); };
+  readonly storyBattleWarning = (): never => { throw new Error("probe tools never execute"); };
 }
 // What the wiring itself records; the replay regenerates these instead of reading them.
 const DERIVED: readonly RunEvent["type"][] = ["loop_guard", "navigation_context", "ledger_context", "milestone_hint", "text_only_supervisor", "belief_ledger"];

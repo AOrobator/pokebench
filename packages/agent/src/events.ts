@@ -209,6 +209,16 @@ const LowHpTrainerWarning = event("low_hp_trainer_warning", {
   text: Type.String({ minLength: 1 }),
 });
 
+// low-hp-trainer-warning-v2: the story-battle SUPERVISOR paragraph a game-tool result gained, with the facts it states.
+const StoryBattleWarningEvent = event("story_battle_warning", {
+  tool: Type.String({ minLength: 1 }), kind: Type.Enum(["rival", "aqua_grunt", "gym_leader"]), opponent: Type.String({ minLength: 1 }),
+  x: Type.Union([Type.Integer(), Type.Null()]), y: Type.Union([Type.Integer(), Type.Null()]), map_id: Type.Tuple([Type.Integer(), Type.Integer()]),
+  party: Type.Array(Type.Object({ species: Type.String({ minLength: 1 }), hp: NonNegativeInt, max_hp: Type.Integer({ minimum: 1 }) }, closed), { minItems: 1, maxItems: 6 }),
+  money: Type.Union([NonNegativeInt, Type.Null()]),
+  items: Type.Array(Type.Object({ name: Type.String({ minLength: 1 }), quantity: Type.Integer({ minimum: 1 }) }, closed), { maxItems: 186 }),
+  text: Type.String({ minLength: 1 }),
+});
+
 // dialogue-auto-advance-v1: the harness advanced field dialogue to the next decision point within one tool call.
 // battle-text-auto-advance-v1 adds the battle_* stops and paused; its pages carry battle_turn and battle_message_id.
 export const DIALOGUE_AUTO_ADVANCE_STOPS = ["field_free", "menu", "naming", "battle", "screen_change", "locked_no_message", "interface_not_ready", "message_not_ready", "press_cap", "time_cap", "error", "battle_input", "battle_prompt", "battle_busy", "battle_unreadable", "paused"] as const;
@@ -525,6 +535,7 @@ export const RunEventSchema = Type.Union([
   Retry,
   TextOnlySupervisor,
   LowHpTrainerWarning,
+  StoryBattleWarningEvent,
   DialogueAutoAdvance,
   DiskUsage,
   FramesEvicted,

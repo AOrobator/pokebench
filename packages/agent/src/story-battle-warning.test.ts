@@ -20,7 +20,7 @@ const ON:FeatureSet={...BUNDLE,"low-hp-trainer-warning-v1":true,[ID]:true};
 const at=(turn:number):GameStateSnapshot=>parseGameState(RUN54A7.states.find(s=>s.turn===turn)?.state);
 const must=<T,>(value:T|null|undefined):T=>{if(value==null)throw new Error("missing");return value;};
 const T363=at(363),T369=at(369),T371=at(371);
-const story=(fields:Partial<NonNullable<GameStateSnapshot["story"]>>):GameStateSnapshot["story"]=>({...must(T363.story),...fields});
+const story=(fields:Partial<NonNullable<GameStateSnapshot["story"]>>):NonNullable<GameStateSnapshot["story"]>=>({...must(T363.story),...fields});
 const withHp=(s:GameStateSnapshot,hp:number):GameStateSnapshot=>({...s,party:s.party.map((m,i)=>i===0?{...m,hp}:m)});
 const FULL=withHp(T363,21);
 const WOODS:GameStateSnapshot={...T363,location:"PETALBURG WOODS",map_id:[24,11],world_context:{...must(T363.world_context),objects:[]},story:story({petalburg_woods_aqua_grunt_defeated:false})};

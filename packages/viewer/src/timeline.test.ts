@@ -150,3 +150,11 @@ it("leaves low-HP trainer warnings off the timeline (closed to new marks, operat
  expect(lanesSvg(view(log),BASE_MS+2000)).toBe(lanesSvg(view(without),BASE_MS+2000));
  expect(view(log).errors).toEqual([]);
 });
+
+it("leaves story battle warnings off the timeline (closed to new marks, operator decision 2026-10-16)",()=>{
+ const log=new Log();log.add(0,START);
+ log.add(1000,{type:"story_battle_warning",turn:2,tool:"press",kind:"aqua_grunt",opponent:"TEAM AQUA grunt",x:null,y:null,map_id:[24,11],party:[{species:"TORCHIC",hp:3,max_hp:21}],money:3000,items:[],text:"SUPERVISOR: heal to full"});
+ const without=new Log();without.add(0,START);
+ expect(lanesSvg(view(log),BASE_MS+2000)).toBe(lanesSvg(view(without),BASE_MS+2000));
+ expect(view(log).errors).toEqual([]);
+});

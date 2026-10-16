@@ -66,10 +66,28 @@ Read-only RAM decoding and text. No subprocesses, no network, no new endpoints. 
 - [x] COMMIT
 
 **M4 — review**
-- [ ] Merge main, gates
-- [ ] Principles self-review PB1–PB13, zero FAIL
+- [x] Merge main (4c805958), gates: `just test` (agent 1894, viewer 995, Python 2496 passed), `just lint` clean, Python coverage gate lines 97.47 / branches 93.46 / functions 99.39, agent coverage 98.05 / 94.8 / 98.41 (viewer coverage: `server-stream.test.ts` "stops reading once a client abandons a long stream" times out at 5 s under coverage instrumentation with load average ~40; it passes in `just test`; the branch does not touch the viewer server)
+- [x] Principles self-review PB1–PB13, zero FAIL (below)
 - [ ] Claude, Grok, GPT lanes `VERDICT: LGTM` on one frozen packet
 - [ ] Report the reviewed head to the coordinator (it lands with --ff-only)
+
+## Principles Adherence
+
+| ID | Verdict | Evidence |
+|---|---|---|
+| PB1 | PASS | Gate reads game RAM (FLAG_BADGE05_GET via SaveBlock1 flags, party moves, gPlayerAvatar.flags, map grid); no model claims used. |
+| PB2 | N/A | No runs launched or graded. |
+| PB3 | PASS | No improvement claimed; experiment registered pending, 8 trials per arm when run. |
+| PB4 | PASS | New declared switch `surf-gated-exits-v1` in harness_features; state field `surf_gate` declared in the schema; vendor untouched; no RAM writes. |
+| PB5 | PASS | One switch, hypothesis in `experiments/surf-gated-exits.json`; bundle arm only per operator. |
+| PB6 | PASS | Adds at most one short note per gated exit; nothing clipped; drops list items only. |
+| PB7 | PASS | `surf_gate` recorded on every state event when ON, so the decision is replayable; tests replay recorded events. |
+| PB8 | N/A | No model tool-call validation change. |
+| PB9 | PASS | Placement choice (drop in lists, note in readout facts) recorded and explained; operator change (bundle arm only) applied when relayed. |
+| PB10 | PASS | No skips, floor unchanged, no excludes, hooks on; existing tests changed only for registry positions/later-switch lists. |
+| PB11 | PASS | Rules checked in pokeemerald 731ad5bf (field_control_avatar.c:448-452, field_player_avatar.c:1297, party_menu.c:119-128) and proved on real 4caa RAM with the pinned ROM. |
+| PB12 | PASS | ROM only via POKEBENCH_ROM; fixtures hold RAM windows only. |
+| PB13 | PASS | RED 6463417f, GREEN 41f60088, docs 5318ea74, gates, guard receipts; review loop next. |
 
 ## Session Log
 

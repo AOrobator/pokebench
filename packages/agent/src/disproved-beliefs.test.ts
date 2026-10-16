@@ -283,6 +283,8 @@ describe("leaving the ledger and never clipping",()=>{
   for(const s of ["Mom is at (8,2), upstairs.","Mom is at (8,2) — downstairs."])expect(locatingClaims(s,"MOM")).toEqual([]);
   expect(locatingClaims("Professor Birch is at (7,7). Actually, the readout says Professor Birch isn't here, so I will leave.","PROF. BIRCH")).toEqual([]);
   expect(locatingClaims("Professor Birch is at (7,7). I will walk to (7,8) and face up.","PROF. BIRCH")).toEqual(["Professor Birch is at (7,7)."]);
+  // A retraction by pronoun, or any negation or hedge elsewhere in the reply, takes no claim from it (review round 7).
+  for(const s of ["Professor Birch is at (7,7). Actually, the readout says he isn't here, so I will leave.","Professor Birch is at (7,7). Hmm, wait: he's not listed on this map.","Professor Birch is at (7,7). I was wrong about that, maybe.","I can't go north. Professor Birch is at (7,7)."])expect(locatingClaims(s,"PROF. BIRCH")).toEqual([]);
  });
  it("accepts only the present tense straight to the tile, with no place after it (review round 5)",()=>{
   for(const s of ["Professor Birch, I think, is at (7,7).","Professor Birch, the professor, is standing at (7,8).","Professor Birch is apparently at (7,7).","Prof. Birch was at (7,7) in his lab.","Professor Birch is standing next to the red carpet at (7,8)."])expect(locatingClaims(s,"PROF. BIRCH")).toEqual([]);

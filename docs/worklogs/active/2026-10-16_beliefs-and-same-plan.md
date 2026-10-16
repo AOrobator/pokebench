@@ -144,6 +144,12 @@ Report per switch: id, model-facing before/after excerpts from this run, precisi
 - 2026-10-16 10:40 AM EDT: merged main 4e81d7a6 (offscreen-objects-v1, navigate-first-prompt-v1, presence-penalty-v1). Same scripted resolution: both switches re-appended after presence-penalty-v1; panels.test keeps both explainer-link tests; end-relative asserts +2; battle-text key-order slices `(-8,-2)`/`.at(-8)`; experiment incumbents regenerated (ok, 64). The character-presence line format is unchanged by offscreen-objects-v1. Gates: agent 1597 tests 97.95/94.40/98.37/99.14; viewer 881 tests 95.32/90.98/93.61/97.63; Python 2250 passed 97.32/93.16/100; lint clean (TS/eslint). COMMIT (c20fd453).
 - 2026-10-16 10:55 AM EDT: merged main 3307db77 (Route 103 rival splits, measurement only). One conflict (features.test.ts legacy list): main's lines plus both ids. TS: agent 1605, viewer 887 pass; lint clean; coverage agent 97.96/94.45/98.38/99.14, viewer 95.34/91.01/93.62/97.64. Python with the operator ROM (.env): 34 ROM-gated re-render tests fail with `KeyError` in `pokebench_env/route103_rival.py` (`read_route103_rival` reads an address the recorded raw-RAM fixtures do not hold), added by main at 3307db77; without the ROM they skip and the rest pass. This branch changes no Python file, so main has the same failures; left for the Route 103 owner and reported.
 
+### Round 7 (cumulative main 3307db77..1c8a7053 excluding the fixture, SHA-256 f5787bae…95de8; fix delta 704d7258..36fa85f5, SHA-256 b2717002…f9b9)
+
+- Grok: LGTM.
+- Codex and Claude CLI: BLOCKING, same finding: a retraction by pronoun ("Actually, the readout says he isn't here") is not checked, because only sentences that repeat the name are.
+- Accepted Claude's simpler option: if any sentence of the reply negates or hedges, the reply yields no claims. 2026-10-16 11:15 AM EDT round-7 RED: 1 failing test.
+
 ## Surprises
 
 - The twin's coordinate trigger leaves the player at (11,1) with field controls locked and no message; the push back to (11,2) happens on the next press. A state-equality rule over one decision never sees this loop; a two-state rule does.

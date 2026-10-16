@@ -667,3 +667,12 @@ it("shows the experiment, arm and trial strip, the preset, or just the model and
 it("links the transition press results card to its explainer",()=>{
  expect(FEATURE_EXPLAINERS["transition-press-result-v1"]).toBe("transition-press-result-v1.html");
 });
+
+it("links the displayed place names card to its tracked explainer, which shows the real-ROM before and after",()=>{
+ expect(FEATURE_EXPLAINERS["displayed-place-names-v1"]).toBe("displayed-place-names-v1.html");
+ const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/displayed-place-names-v1.html",import.meta.url)),"utf8");
+ expect(html).toContain("displayed-place-names-v1");
+ expect(html).toContain("Mays House Sign at (12,8)");
+ expect(html).toContain("Sign text &quot;PROF. BIRCH'S HOUSE&quot; at (12,8)");
+ expect(html).toContain("Warp to PROF. BIRCH'S HOUSE 1F (map 1/2) at (14,8)");
+});

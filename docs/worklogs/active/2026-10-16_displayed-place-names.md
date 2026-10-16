@@ -40,3 +40,7 @@ For a male player the sign at Littleroot (12,8) prints "PROF. BIRCH'S HOUSE" (po
 - First real-ROM look (probe 2026-10-16T01-05-17_probe_aa70, CLOCK_SET, bedroom 2F): Location "AAA's HOUSE 2F", warp (7,1) -> "AAA's HOUSE 1F (map 1/0)", but the
   Notebook and GameCube (MSGBOX_SIGN furniture) were relabelled "Sign text ...". RED: verified non-sign catalog names (Notebook, GameCube) keep their name; 2 red.
 - GREEN: `world._background_name`: a verified catalog name without the word "Sign" keeps its name; signs (and unidentified events) take their text. python 1984 passed.
+- Real-ROM probe (CLOCK_SET fast text, player AAA, male): ON run `runs/2026-10-16T01-13-43_probe_6aac` seq 163 (Littleroot after walking out), seq 203 pressing A at (12,9)
+  facing the sign: game Dialog "PROF. BIRCH'S HOUSE". OFF run `runs/2026-10-16T01-15-26_probe_1094` seq 166, identical presses. Control-arm rerender of the same raw RAM
+  (00000026) and Route 101 rerender from c406 raw-ram/00001200 (sign (5,9) "ROUTE 101 | ↑ OLDALE TOWN", previously identity unavailable).
+- RED: viewer panels.test (explainer mapping + content) and server.test (allowlist serves it); 2 red.

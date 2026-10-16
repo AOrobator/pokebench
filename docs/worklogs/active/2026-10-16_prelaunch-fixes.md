@@ -77,6 +77,7 @@ Done when every milestone is merged, qualification shows none of F1–F8, the fo
 
 ## Session Log
 
+- 2026-10-16 03:18 AM EDT: readout-rules-in-prompt-v1 (safe readout trim: fixed rules moved into the system prompt) joins the upcoming bundle switches; grass cost stays out (the operator).
 - 2026-10-16 03:10 AM EDT: Upcoming bundle switches also include people-ledger-v1 (claude/people-ledger) and explorer-guidance-v1 (claude/explorer-guidance), built by the showcase-analysis thread; the speaker check is dropped; readout trimming is undecided (likely a separate A/B).
 - 2026-10-16 03:04 AM EDT: The operator added adjacent-tiles-v1 (built by the showcase-analysis thread) to the upcoming bundle switches; grass-cost-navigation-v1 stays out pending a PokeBench review.
 - 2026-10-16 02:55 AM EDT: M6 gates: agent 1400, viewer 797 (coverage 97.73/94.55/97.98/99.08 and 95.11/90.43/93.59/97.61); review of main..034510d6: Codex LGTM, grok LGTM (nit: some wording still says "switches and off-in-both"). Merging. Upcoming bundle switches from other threads: F9 connection-edge-tiles-v1, F10 in-game-naming-readout-v1, F11 no-nickname-guidance-v1, F12 (in stall-briefing-v1), battle-text-auto-advance-v1, battle-triage-guidance-v1 (the operator 2:02 AM EDT).

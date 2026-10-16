@@ -188,3 +188,18 @@ def test_reports_malformed_state_lines_and_refuses_a_symlinked_derived_dir(
     with pytest.raises(BackfillError, match="derived must be a plain directory"):
         backfill(other)
     assert list(outside.iterdir()) == []
+
+
+def test_never_follows_a_planted_temp_symlink_and_skips_odd_locations(tmp_path: Path) -> None:
+    run = write_run(tmp_path, [("ROUTE103", False, memory())])
+    lines = (run / "events.jsonl").read_text().splitlines()
+    odd = json.loads(lines[1])
+    odd["seq"], odd["location"] = 99, ["ROUTE103"]
+    (run / "events.jsonl").write_text("\n".join([*lines[:2], json.dumps(odd), *lines[2:]]) + "\n")
+    victim = tmp_path / "victim.txt"
+    victim.write_text("keep")
+    (run / "derived").mkdir()
+    (run / "derived" / "route103_rival.jsonl.tmp").symlink_to(victim)
+    assert [r["seq"] for r in backfill(run)] == [1]
+    assert victim.read_text() == "keep"
+    assert not (run / "derived" / "route103_rival.jsonl").is_symlink()

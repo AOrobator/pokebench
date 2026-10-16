@@ -4325,6 +4325,16 @@
                               "type": "null"
                             }
                           ]
+                        },
+                        "page": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
                         }
                       },
                       "additionalProperties": false

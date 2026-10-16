@@ -156,6 +156,8 @@ Merge locally after all lanes LGTM. No pending experiment entry (amendment 2). R
 
 - Fix commit 7bd60b2d. Merged main (6d2be8af: interface stall briefing, which adds a StallKind and touches loop-supervisor.ts / stall-briefing.ts; merged cleanly) as 5a7a6852. Gates at 5a7a6852, all exit 0: build; test agent 1553, viewer 869, pytest 2209; lint incl. mypy (76 files); coverage agent lines 99.14 / branches 94.55 / functions 98.17 (loop-detection.ts 98.54 / 97.43 / 100; press-result.ts 100 / 99.22 / 100), viewer 97.7 / 90.98 / 93.57, python 97.26 / 93.01 / 100; verify-vendor OK.
 
+- 2026-10-16 08:05 AM EDT: review round 6 (packet 6d2be8af..35d14d24, SHA-256 e7c693e9…6614): Claude CLI LGTM, Grok LGTM, Codex LGTM. HEAD and status unchanged across the round. Main had moved (battle-message-waiting-v1, 48d6b48f), so merged main again: registry/preset/README conflicts resolved as before (this branch's three after `battle-message-waiting-v1`), positional assertions recomputed (including battle-text and battle-message-waiting tests), switchboard rows 69. Agent 1558, viewer 870 passed. A merge-resolution review round follows.
+
 ## Surprises
 
 - `loop_guard` evidence is capped at 2 items by the event schema (`maxItems:2`); a 3-seq evidence list made the recorder throw in the factory test. Evidence is now [first push-back, completing call]. The replay tests validate every notice through `checkEvent`.

@@ -175,6 +175,7 @@ def read_game_state(
     battle_details_enabled: bool = True,
     dynamic_warp_enabled: bool = True,
     displayed_names_enabled: bool = False,
+    connection_edges_enabled: bool = False,
     in_game_naming_enabled: bool = False,
 ) -> GameState:
     screen = read_screen(read)
@@ -312,7 +313,9 @@ def read_game_state(
         if full_map_enabled and nearby is not None
         else None,
         player_elevation=body[0x0B] & 15,
-        topology=read_topology(read, maps) if nearby is not None else None,
+        topology=read_topology(read, maps, edges=connection_edges_enabled)
+        if nearby is not None
+        else None,
         destination_names=tuple(
             (
                 t.destination[0],

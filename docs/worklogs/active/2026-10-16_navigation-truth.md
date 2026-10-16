@@ -88,6 +88,8 @@ Report branch, frozen head, packet sha256, verdicts, gates, switch ids and inten
 
 - 2026-10-16: merged main 57415890 (readout-truth-v1, birch-speech-pages-v1, blackout-readout-v1, run-analysis skill). Registry reapplied after blackout-readout-v1; position tests re-bumped (pushback slice to -9,-7; readout-truth.test.ts slices to -5,-2 since the three readout switches are no longer last). No overlap with navigation.ts, dialogue-auto-advance.ts or loop-detection.ts. Gates: agent 1932, viewer 972, pytest 2465 passed; lint, build, verify-vendor, pages-check, experiments-check OK; coverage agent 99.16/94.49/98.33, viewer 97.67/91.17/93.79, python 97.52/93.55/100.
 
+- 2026-10-16: merged main 4070e250 (bundle-v-control control base, experiments only), clean. experiments-check OK; agent and viewer tests pass (no code changed).
+
 ## Principles Adherence (rounds 1-2; round 2 packet base main be428cdb)
 
 | ID | Score | Evidence |

@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adjacent Tiles</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --wall:#9b968a; --ground:#eef0e6; --grass:#cfe6c0;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --wall:#55585e; --ground:#1f2420; --grass:#24361f; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --wall:#55585e; --ground:#1f2420; --grass:#24361f; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:760px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:68ch}
+ul{margin:0;padding-left:20px}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+svg .big{font-family:var(--mono);font-size:16px;font-weight:600}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navb{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.4}
+.wall{fill:var(--wall);stroke:var(--rule)}
+.ground{fill:var(--ground);stroke:var(--rule)}
+.grass{fill:var(--grass);stroke:var(--rule)}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.arr.p{stroke:var(--prior);stroke-width:2.2}
+.arr.g{stroke:var(--game);stroke-width:2.2}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre;overflow-x:auto;font:12.5px/1.45 var(--mono);margin:0}
+pre .add{background:var(--game-bg);color:var(--game);font-weight:600}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tablewrap{overflow-x:auto}
+</style>
+</head>
+<body>
+<main>
+<div>
+<div class="eyebrow">Harness switch · observation · <code>adjacent-tiles-v1</code> · needs <code>live-map-v1</code> · off by default</div>
+<h1>Adjacent tiles</h1>
+</div>
+<p class="lede">With the switch on, one line directly under the local map names the four tiles next to the player in words: up, down, left and right, each with its coordinates and the glyph the map draws for it. The model no longer has to count columns in a 15×15 grid to know what is in front of it.</p>
+
+<section>
+<h2>1. What went wrong in the showcase run</h2>
+<p>Recorded in <code>2026-10-16T00-34-26_qwen36-gpu1_show</code>, Route 101. The player stood at (8,7) in a pocket below a row of one-way ledges (<code>v</code>, hop down only). Reading the grid, the model wrote at turn 459 that the map shows (8,6) as <code>.</code>; row 6, column 8 is <code>v</code>. At turn 447 it read (10,13) as <code>g</code> where row 13 shows <code>v</code>. It pressed UP into ledges about 40 times in turns 447–498, and again from turn 802.</p>
+<figure><div class="scroll">
+<svg viewBox="0 0 720 270" width="720" role="img" aria-label="Rows 5 to 8, columns 5 to 11 of the recorded local map: ledges v at (7,6) to (10,6), player at (8,7)">
+<defs>
+<marker id="ap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--prior)"/></marker>
+<marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--game)"/></marker>
+</defs>
+<g transform="translate(40,30)">
+<text class="s" x="21" y="-8">5</text><text class="s" x="71" y="-8">6</text><text class="s" x="121" y="-8">7</text><text class="s" x="171" y="-8">8</text><text class="s" x="221" y="-8">9</text><text class="s" x="267" y="-8">10</text><text class="s" x="317" y="-8">11</text>
+<text class="s" x="-24" y="30">5</text><text class="s" x="-24" y="80">6</text><text class="s" x="-24" y="130">7</text><text class="s" x="-24" y="180">8</text>
+<rect class="ground" x="0" y="0" width="50" height="50"/><rect class="ground" x="50" y="0" width="50" height="50"/><rect class="ground" x="100" y="0" width="50" height="50"/><rect class="ground" x="150" y="0" width="50" height="50"/><rect class="ground" x="200" y="0" width="50" height="50"/><rect class="ground" x="250" y="0" width="50" height="50"/><rect class="ground" x="300" y="0" width="50" height="50"/>
+<rect class="ground" x="0" y="50" width="50" height="50"/><rect class="wall" x="50" y="50" width="50" height="50"/><rect class="box" x="100" y="50" width="50" height="50"/><rect class="box hot" x="150" y="50" width="50" height="50"/><rect class="box" x="200" y="50" width="50" height="50"/><rect class="box" x="250" y="50" width="50" height="50"/><rect class="wall" x="300" y="50" width="50" height="50"/>
+<rect class="box" x="0" y="100" width="50" height="50"/><rect class="wall" x="50" y="100" width="50" height="50"/><rect class="ground" x="100" y="100" width="50" height="50"/><rect class="game" x="150" y="100" width="50" height="50"/><rect class="ground" x="200" y="100" width="50" height="50"/><rect class="ground" x="250" y="100" width="50" height="50"/><rect class="wall" x="300" y="100" width="50" height="50"/>
+<rect class="ground" x="0" y="150" width="50" height="50"/><rect class="ground" x="50" y="150" width="50" height="50"/><rect class="ground" x="100" y="150" width="50" height="50"/><rect class="ground" x="150" y="150" width="50" height="50"/><rect class="ground" x="200" y="150" width="50" height="50"/><rect class="ground" x="250" y="150" width="50" height="50"/><rect class="wall" x="300" y="150" width="50" height="50"/>
+<text class="big" x="20" y="30">.</text><text class="big" x="70" y="30">.</text><text class="big" x="120" y="30">.</text><text class="big" x="170" y="30">.</text><text class="big" x="220" y="30">.</text><text class="big" x="270" y="30">.</text><text class="big" x="320" y="30">.</text>
+<text class="big" x="20" y="80">.</text><text class="big" x="70" y="80">#</text><text class="big" x="120" y="80">v</text><text class="big" x="170" y="80">v</text><text class="big" x="220" y="80">v</text><text class="big" x="270" y="80">v</text><text class="big" x="320" y="80">#</text>
+<text class="big" x="20" y="130">v</text><text class="big" x="70" y="130">#</text><text class="big" x="120" y="130">.</text><text class="big" x="169" y="130">@</text><text class="big" x="220" y="130">.</text><text class="big" x="270" y="130">.</text><text class="big" x="320" y="130">#</text>
+<text class="big" x="20" y="180">.</text><text class="big" x="70" y="180">.</text><text class="big" x="120" y="180">.</text><text class="big" x="170" y="180">.</text><text class="big" x="220" y="180">.</text><text class="big" x="270" y="180">.</text><text class="big" x="320" y="180">#</text>
+<path class="arr p" d="M175,108 L175,96" marker-end="url(#ap)"/>
+<text class="t" x="380" y="40">Model, turn 459:</text>
+<text x="380" y="58">"The map shows (8,6) as ."</text>
+<text class="t" x="380" y="96">The map and the game:</text>
+<text x="380" y="114">(8,6) is v, a ledge that hops down only.</text>
+<text x="380" y="132">Pressing UP from (8,7) never moves you.</text>
+<text class="s" x="380" y="170">UP pressed into ledges ≈40 times,</text>
+<text class="s" x="380" y="186">turns 447–498, again from turn 802</text>
+</g>
+</svg></div>
+<figcaption>Rows 5–8, columns 5–11 of the local map recorded at turn 457 (tool_result seq 13512). Outlined in red: the tile the model misread. Arrow: the UP press it kept sending.</figcaption></figure>
+</section>
+
+<section>
+<h2>2. Off and on, from the real ROM</h2>
+<p>Re-rendered by the game server's own code (<code>pokebench_env.rerender</code>) from the real ROM and the run's recorded RAM (<code>raw-ram/00006198</code>, the state the turn 457 result showed), with that run's switches. Off reproduces the delivered readout byte for byte (4,693 bytes). On adds exactly one line, highlighted; nothing else changes.</p>
+<figure><pre>Local map from live memory; top-left (1,0), north is up:
+       1   2   3   4   5   6   7   8   9  10  11  12  13  14  15
+   …
+   5   g   g   g   g   .   .   .   .   .   .   .   g   g   g   g
+   6   #   g   g   .   .   #   v   v   v   v   #   #   g   g   g
+   7   #   v   v   v   v   #   .   @   .   .   #   #   #   #   .
+   8   #   .   .   .   .   .   .   .   .   .   #   #   #   #   .
+   …
+  14   g   g   g   g   .   .   .   .   .   .   .   #   #   g   g
+<span class="add">Next tiles: up (8,6) ledge (v), hops down only, cannot be entered from here; down (8,8) clear (.); left (7,7) clear (.); right (9,7) clear (.)</span>
+@ player; N live object; W warp location (see activation below); # collision; g grass; ~ water; v ^ &lt; &gt; ledge: …</pre>
+<figcaption>Rows 9–13 and the legend's tail are elided here only. Placement: directly under the grid's last row and above the legend. The line decodes the grid, so it sits next to it; it is in words with the glyph in brackets, so it needs no legend before it, and the legend that follows still explains every glyph.</figcaption></figure>
+</section>
+
+<section>
+<h2>3. How each tile is named</h2>
+<p>The line is built from the map's own drawn cells and tiles, after the run's other switches have chosen each glyph. So a tile is named by the glyph the model sees: with ledge hops off, a ledge is drawn and named <code>#</code>; with one-way tiles off, an edge-walled tile is drawn and named <code>.</code>; with counter talk off, a counter is <code>#</code>.</p>
+<div class="tablewrap"><table>
+<tr><th>Glyph</th><th>Words</th><th>Drawn by</th><th>"cannot be entered from here" when</th></tr>
+<tr><td><code>v ^ &lt; &gt;</code></td><td><code>ledge (v), hop over it moving down, landing 2 tiles on</code> pressed its own way; else <code>ledge (v), hops down only</code></td><td><code>ledge-hops-v1</code></td><td>pressed from another side and the tile has collision bits</td></tr>
+<tr><td><code>#</code></td><td><code>collision (#)</code></td><td>always</td><td>always, except a ledge (drawn <code>#</code> with ledge hops off) pressed its own hop way</td></tr>
+<tr><td><code>+</code></td><td><code>edge walls (+) on its south side</code></td><td><code>one-way-tiles-v1</code></td><td>the wall is on the side you would enter</td></tr>
+<tr><td><code>=</code></td><td><code>counter (=), cannot be walked onto, face it and press A to talk to someone behind it</code></td><td><code>counter-talk-v1</code></td><td>(says it cannot be walked onto)</td></tr>
+<tr><td><code>g</code> <code>.</code></td><td><code>grass (g)</code>, <code>clear (.)</code></td><td>always</td><td>never</td></tr>
+<tr><td><code>~</code></td><td><code>water (~)</code>, plus <code>not walkable on foot</code> only when the avatar flags say on foot and not surfing</td><td>always</td><td>never</td></tr>
+<tr><td><code>N</code></td><td><code>person or object (N, object id 6)</code>, the ids the Live objects line lists</td><td>always</td><td>never: object height is not read</td></tr>
+<tr><td><code>W</code></td><td><code>warp (W) [door: approach from below and press UP toward door]</code>, the activation the Warps line gives (just <code>warp (W)</code> with warp guidance off)</td><td>always</td><td>never: a warp is not an obstacle</td></tr>
+<tr><td><code>?</code> / edge</td><td><code>outside this map (?)</code>; with map topology shown, <code>this map's north connection is OLDALE TOWN (map 0/10)</code> or <code>no connection west, cannot be entered from here</code></td><td>always; topology with <code>world-destinations-v1</code></td><td>no connection on that side, and only when topology is shown</td></tr>
+</table></div>
+<p>Your own tile matters too: if it is edge-walled on the side you would leave by (one-way tiles on), that direction ends <code>, but your own tile is walled on its north side, so you cannot move up from here</code>. Coordinates appear only when <code>live-player-position-v1</code> shows the position line. Elevation is never named.</p>
+</section>
+
+<section>
+<h2>4. Why those claims are safe</h2>
+<p>pret/pokeemerald 731ad5b, <code>GetCollisionAtCoords</code> refuses a step, whatever the walker's height, when the tile has collision bits, when <code>IsMetatileDirectionallyImpassable</code> finds an edge wall on the crossed side (leaving or entering), or when <code>GetMapBorderIdAt</code> is <code>CONNECTION_INVALID</code> (off the map with no connection that way). <code>CheckForObjectEventCollision</code> checks <code>ShouldJumpLedge</code> first, so a ledge pressed its own way is the hop, collision bits or not. Those are the only "cannot be entered" cases. Height mismatch, objects and the camera can also refuse a step; the line never claims them, matching the map's own "Terrain rules, elevation and objects can still block movement".</p>
+<figure><div class="scroll">
+<svg viewBox="0 0 720 230" width="720" role="img" aria-label="Switch wiring from preset to the Next tiles line">
+<defs><marker id="aw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--soft)"/></marker></defs>
+<rect class="box" x="10" y="20" width="150" height="56" rx="6"/><text class="t" x="22" y="42">Run preset</text><text class="m" x="22" y="62">adjacent-tiles-v1</text>
+<rect class="box" x="190" y="20" width="160" height="56" rx="6"/><text class="t" x="202" y="42">serverFeatureEnv</text><text class="m" x="202" y="62">POKEBENCH_FEATURES_OFF</text>
+<rect class="box" x="380" y="20" width="150" height="56" rx="6"/><text class="t" x="392" y="42">Game server</text><text class="m" x="392" y="62">rerender.render</text>
+<rect class="box" x="560" y="20" width="150" height="56" rx="6"/><text class="t" x="572" y="42">format_readout</text><text class="m" x="572" y="62">adjacent_tiles=…</text>
+<path class="arr" d="M160,48 L188,48" marker-end="url(#aw)"/><path class="arr" d="M350,48 L378,48" marker-end="url(#aw)"/><path class="arr" d="M530,48 L558,48" marker-end="url(#aw)"/>
+<rect class="game" x="380" y="130" width="330" height="70" rx="6"/><text class="t" x="392" y="152">next_tiles(shown, position, …)</text><text class="m" x="392" y="172">shown.cells(ledges, edge_walls, counters)</text><text class="m" x="392" y="188">+ shown.tiles, objects; topology if shown</text>
+<rect class="box" x="10" y="130" width="330" height="70" rx="6"/><text class="t" x="22" y="152">LocalMap / FullMap .text(next_tiles=line)</text><text class="m" x="22" y="172">grid rows, then the line,</text><text class="m" x="22" y="188">then the legend (unchanged)</text>
+<path class="arr" d="M635,76 L635,128" marker-end="url(#aw)"/><text class="s" x="642" y="106">switch on and live map drawn</text>
+<path class="arr" d="M380,165 L342,165" marker-end="url(#aw)"/>
+</svg></div>
+<figcaption>The switch travels from the preset to the game server as the off-list, like every server switch. The one box that changes behavior is green: it reads the same cells and tiles the map is drawn from. Off, the map text gets no line and is byte-identical.</figcaption></figure>
+</section>
+
+<section>
+<h2>5. The line across the stall, re-rendered</h2>
+<p>All 85 tool-result states of turns 447–500 and 800–830 were re-rendered from the run's raw RAM on the real ROM with the switch on. A sample, at the tiles the model kept pressing UP from:</p>
+<div class="tablewrap"><table>
+<tr><th>Turn</th><th>Player</th><th>Next tiles</th></tr>
+<tr><td>447</td><td>(9,14)</td><td><code>up (9,13) ledge (v), hops down only, cannot be entered from here; down (9,15) clear (.); left (8,14) clear (.); right (10,14) clear (.)</code></td></tr>
+<tr><td>459</td><td>(10,7)</td><td><code>up (10,6) ledge (v), hops down only, cannot be entered from here; down (10,8) clear (.); left (9,7) clear (.); right (11,7) collision (#), cannot be entered from here</code></td></tr>
+<tr><td>802</td><td>(8,7)</td><td><code>up (8,6) ledge (v), hops down only, cannot be entered from here; down (8,8) clear (.); left (7,7) clear (.); right (9,7) clear (.)</code></td></tr>
+<tr><td>822</td><td>(11,19)</td><td><code>up (11,18) clear (.); down (11,20) outside this map (?), this map's south connection is LITTLEROOT TOWN (map 0/9); left (10,19) clear (.); right (12,19) collision (#), cannot be entered from here</code></td></tr>
+</table></div>
+<p>Turn 822's edge names Littleroot because that run had <code>world-destinations-v1</code> on. The line does not say which way to go; it only removes the column-counting step.</p>
+</section>
+
+<section>
+<h2>6. Status</h2>
+<ul>
+<li>Branch <code>claude/adjacent-tiles</code>; default off; registered as the last switchable, server and recorded feature.</li>
+<li>Tests: the showcase pocket fixture (recorded <code>navigation_grid</code>, reproducing the recorded map), OFF byte-identical against main's readout, every glyph named matches the drawn glyph under all 16 tile-switch combinations, edge walls, counters, water on and off foot, objects, warps, map edges with and without topology, the whole-map view, and the production <code>render</code> path.</li>
+<li>Pending experiment <code>experiments/adjacent-tiles.json</code> (activation <code>PLAYER_NAME_CONFIRMED</code>); it is meant for the bundle arm of bundle-v-control.</li>
+<li>Not done: measured runs. No Route 101 save state exists, so the real-ROM proof is the recorded RAM, not a live boot.</li>
+</ul>
+</section>
+</main>
+</body>
+</html>

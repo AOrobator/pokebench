@@ -21,7 +21,7 @@ Branch `claude/adjacent-tiles` in `/private/tmp/pokebench-adjacent-tiles`. Defau
 
 **M2 — explainer and review**
 - [x] Real-ROM readout: no Route 101 save exists (runs/launch-receipts has only MAIN_MENU/CLOCK_SET/truck states; no checkpoints/ dir), so proven with the server's own `pokebench_env.rerender` on the real ROM ($POKEBENCH_ROM) and the showcase run's recorded raw RAM
-- [ ] Explainer, FEATURE_EXPLAINERS mapping, pending `experiments/adjacent-tiles.json`
+- [x] Explainer, FEATURE_EXPLAINERS mapping, pending `experiments/adjacent-tiles.json`
 - [ ] Review: Claude CLI, Codex (gpt-5.6-sol), Grok (cursor-grok-4.5-high) until LGTM
 - [ ] ASK USER: "merge it"
 
@@ -37,3 +37,6 @@ Branch `claude/adjacent-tiles` in `/private/tmp/pokebench-adjacent-tiles`. Defau
   - Gates: `just test` green; `just lint` green except mypy `mgba._pylib` import-not-found in the worktree venv (known, unrelated); `just build` green; `just verify-vendor` OK (submodule initialised in this worktree); `just coverage`: agent 97.73% stmts / 94.55% branches / 97.98% funcs / 99.08% lines, viewer 95.1 / 90.45 / 93.59 / 97.6, Python lines 97.11% branches 92.73% functions 100% (`adjacent_tiles.py` 100%).
 - 2026-10-16 02:33 AM EDT: COMMIT: `feat: adjacent-tiles-v1 adds a Next tiles line under the map naming the four neighbouring tiles from the glyphs it draws (default off)` (d8b076fd)
 - 2026-10-16 02:48 AM EDT: M2 RED: `panels.test.ts` asserts the ADJACENT TILES card links `/explainers/adjacent-tiles-v1.html` and the tracked page carries the real-ROM line; `server.test.ts` serves it through the existing allowlist. Both fail (no `FEATURE_EXPLAINERS` entry).
+- 2026-10-16 02:48 AM EDT: COMMIT: `test: RED adjacent-tiles-v1 explainer link and serving` (76763d6f)
+- 2026-10-16 02:55 AM EDT: M2 GREEN. `docs/explainers/adjacent-tiles-v1.html` (local, inline SVG/CSS, `just pages-check` prints nothing; the showcase pocket, the real-ROM OFF/ON readout, the naming table, the pokeemerald grounding and wiring, the re-rendered stall table, status), README entry, `FEATURE_EXPLAINERS["adjacent-tiles-v1"]`. Pending `experiments/adjacent-tiles.json` (finals incumbent copied from blocked-batch-result, activation `PLAYER_NAME_CONFIRMED`, provisional source.commit d8b076fd), `just experiments-check`: ok, 51 experiments. Readiness row added: PENDING until `just experiments` after landing. Pre-merge copy at main `runs/mockups/adjacent-tiles-v1/adjacent-tiles-v1.html` answers 200 on 127.0.0.1:8791. Live READ EXPLAINER click in the running viewer is not verified: the running viewer is main's build, which lacks the switch until merge and `just viewer-main`.
+  - Tests: pytest 2088 passed, 2 skipped; vitest agent 1403, viewer 795.

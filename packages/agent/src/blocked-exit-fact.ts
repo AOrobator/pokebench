@@ -78,7 +78,9 @@ export class BlockedExits {
 
  private refusal(call:Call,after:Snapshot):void {
   const before=call.before,q=after.position;
-  if(before===null||!field(before)||before.position===null||q===null||call.offMap||mapOf(before)!==mapOf(after)){this.pending=null;return;}
+  // A call that pressed nothing (observe, a refused navigate_to) leaves a pending try as it was.
+  if(before===null)return;
+  if(!field(before)||before.position===null||q===null||call.offMap||mapOf(before)!==mapOf(after)){this.pending=null;return;}
   const exitTriggers=(s:Snapshot)=>(s.world_context?.triggers??[]).filter(t=>readable(t)&&this.exitAt(after,t)!==null);
   // The call ended standing on an exit trigger with its script still running: that script is the one the
   // next call may finish (it began when the player stepped on), and no other trigger is blamed.
@@ -108,16 +110,17 @@ export class BlockedExits {
   if(known!==undefined)known.turn=this.turn;else this.refused.set(key,{map:mapOf(after),trigger:{x:t.x,y:t.y},id:identity(t),exit:exit.key,turn:this.turn});
  }
 
- // Standing on the trigger, the first direction pressed facing it, or navigate_to aimed at it or its exit tiles.
+ // Standing on the trigger, a direction-only press whose first direction faces it, or navigate_to aimed at it or its exit tiles.
  private aimed(call:Call,from:Tile,t:Tile,exit:Exit):boolean {
   if(same(from,t))return true;
   if(call.name==="navigate_to"){
    const x=call.args["x"],y=call.args["y"];
    return typeof x==="number"&&typeof y==="number"&&(same({x,y},t)||exit.tiles.some(e=>same(e,{x,y})));
   }
+  // Direction presses only: with A or B in the batch the script that ran may be a conversation (review round 1).
   const buttons=call.args["buttons"];
-  const first=Array.isArray(buttons)?buttons.find((b):b is string=>typeof b==="string"&&b in STEP):undefined;
-  const step=first===undefined?undefined:STEP[first];
+  if(!Array.isArray(buttons)||buttons.length===0||!buttons.every(b=>typeof b==="string"&&b in STEP))return false;
+  const step=STEP[String(buttons[0])];
   return step!==undefined&&from.x+step[0]===t.x&&from.y+step[1]===t.y;
  }
 

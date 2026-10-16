@@ -6,6 +6,10 @@ import {BattleOutcomes} from "./battle-outcomes.js";
 import {loopSupervisor,textOnlySupervisor} from "./play-wiring.js";
 import type {RunEvent} from "./events.js";
 import {recorded,recordedFeatures} from "../test-support/battle-facts.js";
+import {IN_GAME} from "../test-support/events.js";
+import {parseGameState} from "./game-state.js";
+import {checkEvent} from "./events.js";
+import {semanticState} from "./loop-detection.js";
 
 const ID="briefing-battle-outcomes-v1";
 const LIVE="battle-facts-54a7.jsonl.gz",SH02="battle-facts-sh02.jsonl.gz";
@@ -102,6 +106,14 @@ describe("BattleOutcomes rules",()=>{
   expect(fold([state(90,{...battle("forfeited",8),...opponent(535,"MAY",false,true)}),state(91,{})]).briefingLines()).toContain("you battled MAY (trainer 535) on ROUTE101 (map 0/16) at turn 90; the game's outcome: forfeited");
   expect(fold([state(92,{...battle("drew",8),...opponent(535,"MAY",false,true)}),state(93,{})]).briefingLines()).toContain("you drew with MAY (trainer 535) on ROUTE101 (map 0/16) at turn 92");
  });
+ it("a win is the trainer's flag turning set: a flag already set before the battle, or a blackout, is never a win (review round 1)",()=>{
+  const pre=fold([state(100,{...battle("ongoing",8),...opponent(535,"MAY",true,true)}),state(101,{location:"LITTLEROOT TOWN BRENDANS HOUSE 2F",map_id:[1,1],blackout_active:true,...opponent(535,"MAY",true,false)})]);
+  expect(pre.briefingLines()).toContain("you lost to MAY (trainer 535) on ROUTE101 (map 0/16) at turn 100");
+  const set=fold([state(110,{...battle("ongoing",8),...opponent(535,"MAY",true,true)}),state(111,opponent(535,"MAY",true,false))]);
+  expect(set.briefingLines()).toContain("you battled MAY (trainer 535) on ROUTE101 (map 0/16) at turn 110; the game's outcome was not read");
+  const flip=fold([state(120,{...battle("ongoing",8),...opponent(535,"MAY",false,true)}),state(121,{blackout_active:true,...opponent(535,"MAY",true,false)})]);
+  expect(flip.briefingLines()).toContain("you lost to MAY (trainer 535)");
+ });
  it("a trainer battle without the opponent reading names the battle by its kind",()=>{
   const o=fold([state(80,battle("lost",8)),state(81,{location:"OLDALE TOWN POKEMON CENTER 1F",map_id:[2,2]})]);
   expect(o.briefingLines()).toContain("after losing to a trainer on ROUTE101 (map 0/16)");
@@ -137,5 +149,23 @@ describe("briefing-battle-outcomes-v1 registry",()=>{
   expect(normalizeFeatures(older)[ID]).toBe(false);
   expect(normalizeFeatures({...older,[ID]:true})[ID]).toBe(true);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[ID]).toBe(false);
+ });
+});
+
+describe("trainer-opponent-v1 through the production schema (review round 1)",()=>{
+ const opponent={trainer_id:535,trainer_class:50,name:"MAY",defeated:false,battle_active:false};
+ it("a state with the field parses through parseGameState and the state event schema, and an out-of-range id is refused",()=>{
+  expect(parseGameState({...IN_GAME,trainer_opponent:opponent}).trainer_opponent).toEqual(opponent);
+  expect(parseGameState({...IN_GAME,trainer_opponent:null}).trainer_opponent).toBeNull();
+  expect(()=>parseGameState({...IN_GAME,trainer_opponent:{...opponent,trainer_id:855}})).toThrow();
+  expect(()=>parseGameState({...IN_GAME,trainer_opponent:{...opponent,extra:1}})).toThrow();
+  const outcomes=new BattleOutcomes(FEATURES);
+  outcomes.observe(checkEvent({v:1,run:"r",seq:2,t:"2026-10-16T05:00:00.000-04:00",type:"state",turn:2,...IN_GAME,screen:"battle",in_battle:true,trainer_opponent:{...opponent,battle_active:true}}));
+  outcomes.observe(checkEvent({v:1,run:"r",seq:3,t:"2026-10-16T05:00:00.000-04:00",type:"state",turn:3,...IN_GAME,trainer_opponent:opponent}));
+  expect(outcomes.briefingLines()).toContain("you battled MAY (trainer 535) on LITTLEROOT TOWN (map 0/9) at turn 2");
+ });
+ it("the loop guard's fingerprint is the same with and without the field",()=>{
+  expect(semanticState({...IN_GAME,trainer_opponent:opponent})).toBe(semanticState(IN_GAME));
+  expect(semanticState({...IN_GAME,trainer_opponent:{...opponent,defeated:true}})).toBe(semanticState(IN_GAME));
  });
 });

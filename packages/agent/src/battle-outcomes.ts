@@ -16,6 +16,8 @@ const STORY=new Set(STORY_CHARACTERS.map(c=>c.name));
 interface Running {
  readonly trainerBattle:boolean;readonly key:string;readonly place:string;
  trainer:{readonly id:number;readonly name:string|null}|null;foe:string|null;turn:number;
+ // The trainer's defeated flag as the battle showed it: a win is the flag turning set afterwards.
+ unbeaten:boolean;
  outcome:string|null;blackout:boolean;
 }
 export interface Battle {
@@ -54,11 +56,14 @@ export class BattleOutcomes {
   if(inBattle(s)){
    if(!commit)return null;
    const b=s.battle??null;
-   const run=this.running??{trainerBattle:((b?.battle_type??0)&BATTLE_TYPE_TRAINER)!==0,key:roomKey(s),place:roomOf(s,this.features),trainer:null,foe:null,turn,outcome:null,blackout:false};
+   const run=this.running??{trainerBattle:((b?.battle_type??0)&BATTLE_TYPE_TRAINER)!==0,key:roomKey(s),place:roomOf(s,this.features),trainer:null,foe:null,turn,outcome:null,blackout:false,unbeaten:false};
    this.running=run;
    run.turn=turn;
    const opponent=s.trainer_opponent;
-   if(opponent?.battle_active===true)run.trainer={id:opponent.trainer_id,name:opponent.name};
+   if(opponent?.battle_active===true){
+    if(run.trainer?.id!==opponent.trainer_id)run.unbeaten=!opponent.defeated;
+    run.trainer={id:opponent.trainer_id,name:opponent.name};
+   }
    run.foe??=b?.battlers?.find(x=>x.battler===1)?.species??null;
    if(b?.outcome!=null&&b.outcome!=="ongoing")run.outcome=b.outcome;
    if(s.blackout_active===true)run.blackout=true;
@@ -69,8 +74,10 @@ export class BattleOutcomes {
   if(s.blackout_active===true&&commit)run.blackout=true;
   if(!overworld(s))return null;
   const opponent=run.trainer===null?null:s.trainer_opponent;
-  const won=run.outcome===null&&opponent!=null&&opponent.trainer_id===run.trainer?.id&&opponent.defeated;
-  const outcome=won?"won":run.outcome===null&&(run.blackout||s.blackout_active===true)?"lost":run.outcome;
+  // pokeemerald CB2_EndTrainerBattle sets the trainer flag only when the player was not defeated.
+  const blackout=run.blackout||s.blackout_active===true;
+  const won=!blackout&&run.unbeaten&&opponent!=null&&opponent.trainer_id===run.trainer?.id&&opponent.defeated;
+  const outcome=run.outcome!==null?run.outcome:blackout?"lost":won?"won":null;
   const whiteout=(outcome==="lost"||outcome==="drew")&&roomKey(s)!==run.key?{place:roomOf(s,this.features),turn:run.turn}:null;
   return {trainerBattle:run.trainerBattle,trainer:run.trainer,foe:run.foe,place:run.place,turn:run.turn,seq,outcome,whiteout};
  }

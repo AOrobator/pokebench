@@ -13,9 +13,15 @@ import type {RunEvent} from "../src/events.js";
 // `trainer_opponent` reparsed offline from that state's own raw RAM archive with the run's ROM
 // (gTrainerBattleOpponent_A 0x02038BCA, gTrainers 0x08310030, the trainer flag); other states omit it.
 // Tool result texts are whole. Not parseEvent-valid runs.
-export function recorded(name:string):RunEvent[]{
+// Each fixture is read and parsed once per test worker; callers never mutate the events.
+const cache=new Map<string,readonly RunEvent[]>();
+export function recorded(name:string):readonly RunEvent[]{
+ const hit=cache.get(name);
+ if(hit!==undefined)return hit;
  const path=fileURLToPath(new URL(`../src/fixtures/${name}`,import.meta.url));
- return gunzipSync(readFileSync(path)).toString("utf8").trim().split("\n").map(line=>JSON.parse(line) as RunEvent);
+ const events=gunzipSync(readFileSync(path)).toString("utf8").trim().split("\n").map(line=>JSON.parse(line) as RunEvent);
+ cache.set(name,events);
+ return events;
 }
 
 export function recordedFeatures(events:readonly RunEvent[],overrides:Partial<Record<SwitchableFeature,boolean>>={}):FeatureSet{
@@ -25,8 +31,12 @@ export function recordedFeatures(events:readonly RunEvent[],overrides:Partial<Re
 }
 
 export type RecordedState=Extract<RunEvent,{type:"state";started:boolean}>;
+// States indexed by seq once per events array, so a replay looks each result's state up in O(1).
+const indexes=new WeakMap<readonly RunEvent[],Map<number,RunEvent>>();
 export function stateAt(events:readonly RunEvent[],seq:number):RecordedState{
- const found=events.find(e=>e.seq===seq);
+ let index=indexes.get(events);
+ if(index===undefined){index=new Map(events.map(e=>[e.seq,e]));indexes.set(events,index);}
+ const found=index.get(seq);
  if(found?.type!=="state"||!("started" in found))throw new Error(`no state at ${String(seq)}`);
  return found;
 }

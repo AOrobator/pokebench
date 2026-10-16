@@ -111,16 +111,17 @@ describe("battle-loss-recap-v1 through playGameTools",()=>{
   const result=events.find((e):e is Result=>e.type==="tool_result"&&e.seq===8983);
   if(result===undefined)throw new Error("fixture has seq 8983");
   const press:AgentTool={name:"press",label:"Press",description:"d",parameters:{},execute:()=>Promise.resolve({content:[{type:"text",text:result.text}],details:{state:stateAt(events,8982)}})};
-  const features:FeatureSet={...recordedFeatures(events,{[ID]:on}),"dialogue-auto-advance-v1":false,"battle-text-auto-advance-v1":false,"navigate-first-prompt-v1":false,"bounded-navigation-v1":false};
-  const tools=playGameTools([press],features,{read:()=>Promise.reject(new Error("unused"))},recorder);
+  const features:FeatureSet={...recordedFeatures(events,{[ID]:on}),"dialogue-auto-advance-v1":false,"battle-text-auto-advance-v1":false,"navigate-first-prompt-v1":false};
+  const base=[{name:"observe",label:"Observe",description:"d",parameters:{},execute:()=>Promise.reject(new Error("unused"))} as AgentTool,{...press,executeChecked:(id:string,params:unknown)=>press.execute(id,params)} as AgentTool];
+  const tools=playGameTools(base,features,{read:()=>Promise.reject(new Error("unused"))},recorder);
   for(const e of events){if(e.seq>=8982)break;for(const o of observers)o(e);}
   const wrapped=tools.find(t=>t.name==="press");
   if(wrapped===undefined)throw new Error("no press");
-  return {text:text(await wrapped.execute(result.id,{buttons:["A"]})),same:wrapped===press};
+  return {text:text(await wrapped.execute(result.id,{buttons:["A"]})),same:wrapped===base[1]};
  }
  it("ON appends the recap to the whiteout result; OFF leaves the tool untouched",async()=>{
   const on=await first(true),off=await first(false);
-  expect(on.text.endsWith(`\n${RECAP.replace(" (map 0/18)","").replace(" (map 1/1)","")}`)).toBe(true);
+  expect(on.text.endsWith(`\n${RECAP}`)).toBe(true);
   expect(off.same).toBe(true);
  });
 });

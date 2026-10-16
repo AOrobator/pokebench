@@ -112,11 +112,30 @@ describe("BlockedExits rules on synthetic states",()=>{
   const text=call(exits,"w","press",{buttons:["UP"]},base(near()),[base({...near(),world_context:{objects:[],triggers:[trig(5,8,true)],dialogue:"Wait!"}})],base(near()));
   expect(text).toBe("Blocked exit: (5,7) -> map 2/0. When you last tried it, at turn 10, the game ran a script at (5,8) and kept you on this map. This exit is blocked by a script that runs while a value the game saves still has the setting that script checks for; it has that setting now, so this exit stays blocked for now. Other exits from this map: none listed.");
  });
- it("starting on the trigger with free controls counts; only the latest 16 calls are kept",()=>{
+ it("starting on the trigger with free controls counts, whatever was pressed",()=>{
+  expect(call(new BlockedExits(F),"s","press",{buttons:["A"]},base({position:{x:0,y:10}}),[base({position:{x:0,y:10},field_controls_locked:true})],base({}))).toContain("at (0,10) and kept you on this map");
+ });
+ it("a try that spans two calls is credited to the trigger stood on, even with an observe between them",()=>{
   const exits=new BlockedExits(F);
-  for(let i=0;i<20;i++)exits.begin(`old${String(i)}`,"press",{buttons:["A"]});
-  expect(call(exits,"s","press",{buttons:["A"]},base({position:{x:0,y:10}}),[base({position:{x:0,y:10},field_controls_locked:true})],base({}))).toContain("at (0,10) and kept you on this map");
-  expect(exits.settle("old0",base({}),"")).toContain("Blocked exit");
+  const onT=()=>({position:{x:0,y:10},field_controls_locked:true});
+  expect(call(exits,"n","navigate_to",{x:0,y:10},base({position:{x:4,y:10}}),[base(onT())],base(onT()))).toBeNull();
+  exits.begin("o","observe",{});
+  exits.settle("o",base(onT()),"");
+  expect(call(exits,"p2","press",{buttons:["B"]},base(onT()),[base(onT())],base({position:{x:1,y:10}}))).toContain("When you last tried it, at turn 10, the game ran a script at (0,10)");
+ });
+ it("a press with A or B in it is no refusal: the script may be a conversation (review round 1)",()=>{
+  for(const buttons of [["LEFT","A"],["A"],["LEFT","B"]])expect(call(new BlockedExits(F),"p","press",{buttons},base({}),[base({world_context:{objects:[],triggers:[trig(0,10,true)],dialogue:"Hi!"}})],base({}))).toBeNull();
+  expect(call(new BlockedExits(F),"p","press",{buttons:["LEFT","LEFT"]},base({}),[base({field_controls_locked:true})],base({}))).toContain("Blocked exit");
+ });
+ it("only the latest 16 calls are kept: a call begun before 16 others has no before state, so it records nothing",()=>{
+  const evicted=new BlockedExits(F);
+  evicted.begin("e0","press",{buttons:["LEFT"]});
+  for(let i=0;i<16;i++)evicted.begin(`later${String(i)}`,"observe",{});
+  const before=base({});
+  evicted.observe(before);
+  evicted.observe({v:1,run:"r",seq:++seq,t:"t",type:"button_press",turn:10,tool_call_id:"e0",button:"LEFT",before_state_seq:before.seq} as unknown as RunEvent);
+  evicted.observe(base({field_controls_locked:true}));
+  expect(evicted.settle("e0",base({}),"")).toBeNull();
  });
  it("a trigger that is not on or next to an exit is never a blocked exit",()=>{
   const exits=new BlockedExits(F);
@@ -132,6 +151,10 @@ describe("BlockedExits rules on synthetic states",()=>{
 
 describe("blocked-exit-fact-v1 through playGameTools",()=>{
  const events=recorded(LIVE);
+ // Indexed once: each recorded call's position, its result, and every event's position.
+ const POSITION=new Map(events.map((e,i)=>[e.seq,i]));
+ const CALLS=new Map(events.flatMap((e,at)=>e.type==="tool_call"?[[e.id,{at}]] as const:[]));
+ const RESULTS=new Map(events.flatMap(e=>e.type==="tool_result"?[[e.id,e]] as const:[]));
  const text=(r:AgentToolResult<unknown>)=>r.content.flatMap(c=>c.type==="text"?[c.text]:[]).join("\n");
  // A base press tool that replays the recorded call: the events inside it reach the recorder, and the
  // result carries the recorded readout and after state (recorded only after the tool returns).
@@ -139,25 +162,24 @@ describe("blocked-exit-fact-v1 through playGameTools",()=>{
   const observers:((e:RunEvent)=>void)[]=[];
   const recorder={subscribe:(o:(e:RunEvent)=>void)=>{observers.push(o);},recordState:()=>{throw new Error("unused");},recordDialogueAutoAdvance:()=>{throw new Error("unused");}};
   const emit=(e:RunEvent)=>{for(const o of observers)o(e);};
-  const calls=events.filter((e):e is Extract<RunEvent,{type:"tool_call"}>=>e.type==="tool_call");
   const press:AgentTool={name:"press",label:"Press",description:"d",parameters:{},execute:(id)=>{
-   const result=events.find((e):e is Result=>e.type==="tool_result"&&e.id===id);
-   const call=calls.find(c=>c.id===id);
+   const call=CALLS.get(id),result=RESULTS.get(id);
    if(result===undefined||call===undefined)throw new Error("unknown call");
-   for(const e of events)if(e.seq>call.seq&&e.seq<(result.state_seq??result.seq))emit(e);
+   for(const e of events.slice(call.at+1,POSITION.get(result.state_seq??result.seq)??call.at+1))emit(e);
    return Promise.resolve({content:[{type:"text",text:result.text}],details:{state:stateAt(events,result.state_seq??-1)}});
   }};
-  const features:FeatureSet={...recordedFeatures(events,{[ID]:on}),"dialogue-auto-advance-v1":false,"battle-text-auto-advance-v1":false,"navigate-first-prompt-v1":false,"bounded-navigation-v1":false};
-  const tools=playGameTools([press],features,{read:()=>Promise.reject(new Error("unused"))},recorder);
+  const features:FeatureSet={...recordedFeatures(events,{[ID]:on}),"dialogue-auto-advance-v1":false,"battle-text-auto-advance-v1":false,"navigate-first-prompt-v1":false};
+  const base=[{name:"observe",label:"Observe",description:"d",parameters:{},execute:()=>Promise.reject(new Error("unused"))} as AgentTool,{...press,executeChecked:(id:string,params:unknown)=>press.execute(id,params)} as AgentTool];
+  const tools=playGameTools(base,features,{read:()=>Promise.reject(new Error("unused"))},recorder);
   const wrapped=tools.find(t=>t.name==="press");
   if(wrapped===undefined)throw new Error("no press");
   const texts:string[]=[];
   for(const e of events){
    if(e.turn>turn)break;
-   if(e.type==="tool_call"&&e.name==="press"&&e.turn>=245){emit(e);texts.push(text(await wrapped.execute(e.id,e.args)));const r=events.find(x=>x.type==="tool_result"&&x.id===e.id);if(r!==undefined){emit(stateAt(events,(r as Result).state_seq??-1));emit(r);}}
+   if(e.type==="tool_call"&&e.name==="press"&&e.turn>=245){emit(e);texts.push(text(await wrapped.execute(e.id,e.args)));const r=RESULTS.get(e.id);if(r!==undefined){emit(stateAt(events,r.state_seq??-1));emit(r);}}
    else if(e.turn<245)emit(e);
   }
-  return {texts,same:wrapped===press};
+  return {texts,same:wrapped===base[1]};
  }
  it("ON appends the line as its own text part at T247; OFF leaves the press tool untouched",async()=>{
   const on=await run(true,247),off=await run(false,247);

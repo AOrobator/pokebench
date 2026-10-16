@@ -196,6 +196,8 @@ Merge locally after all lanes LGTM. No pending experiment entry (amendment 2). R
 
 - Fix commit b7379905. Merged main again (76784654: disproved-beliefs-v1, same-plan-breaker-v1): same resolution (this branch's three after `same-plan-breaker-v1`), positions recomputed, battle-text tail slices now `(-11,-5)`, switchboard rows 75. Agent 1704, viewer 908 passed.
 
+- Merge commit a7e95054 (main parent 76784654). Gates: build, lint (mypy 79 files), verify-vendor exit 0; agent 1704, viewer 908 passed; coverage agent 99.17 / 94.57 / 98.41 (loop-detection.ts 98.61 / 96.88 / 100; press-result.ts 100 / 98.41 / 100), viewer 97.62 / 91.1 / 93.62; pytest the same 34 ROM-backed `KeyError: 33786826` failures as main (2236 passed, 34 skipped without the ROM; python 97.31 / 93.08 / 100).
+
 ## Surprises
 
 - `loop_guard` evidence is capped at 2 items by the event schema (`maxItems:2`); a 3-seq evidence list made the recorder throw in the factory test. Evidence is now [first push-back, completing call]. The replay tests validate every notice through `checkEvent`.

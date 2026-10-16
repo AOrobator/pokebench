@@ -450,11 +450,13 @@ export class LoopDetector {
       this.messageVisits.length = 0;
       if (!this.pushback || newPlace) this.pushbacks.length = 0;
     }
+    // A push-back episode ends on a new map or tile even when that place's state was seen before.
+    const escaped = this.pushback && this.episode?.pushback === true && newPlace;
     if (
-      (novel && !held) ||
+      (novel && !held) || escaped ||
       (game && (call.name === "press" || (call.name === "navigate_to" && call.acted===true)) && this.episode?.kind === "planning")
     )
-      this.recover(seq, novel && !held);
+      this.recover(seq, (novel && !held) || escaped);
     let hit: LoopKind | null = null;
     let pingPong = false;
     let pushed: number[] | null = null;

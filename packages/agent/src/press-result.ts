@@ -143,12 +143,15 @@ export function scriptMove(from: GameStateSnapshot, to: GameStateSnapshot, show:
   return `a script moved you${tilePath(from, to, show)} while the dialogue advanced`;
 }
 
-// pushback-press-result-v1: a walk batch is sent at once. When exactly one prefix of it, taken as one tile per
-// input, explains where the player stands when the message opened, the inputs after that prefix were pressed while
-// the message held field controls. Any other shape (a bump, a turn in place, two prefixes that fit) proves nothing.
+// pushback-press-result-v1: a walk batch is sent at once. When a field message is open after it, exactly one prefix
+// of it, taken as one tile per input, explains where the player stands, and the player faces that prefix's last
+// direction (a step faces its way; inputs under a message lock turn no one), the inputs after that prefix were
+// pressed while the message held field controls. Any other shape (a bump, a turn in place, two prefixes that fit, a
+// battle transition or another owner of the lock) proves nothing.
 const STEP: Readonly<Record<string, readonly [number, number]>> = { UP: [0, -1], DOWN: [0, 1], LEFT: [-1, 0], RIGHT: [1, 0] };
 export function ignoredSteps(before: GameStateSnapshot | undefined, after: GameStateSnapshot, sent: readonly Button[]): Button[] {
   if (!placed(before) || !placed(after) || !sameMap(before, after)) return [];
+  if ((after.world_context?.dialogue ?? "") === "" && after.world_context?.message == null) return [];
   const fits: number[] = [];
   let x = before.position.x, y = before.position.y;
   for (let k = 1; k <= sent.length; k++) {
@@ -158,7 +161,8 @@ export function ignoredSteps(before: GameStateSnapshot | undefined, after: GameS
     if (x === after.position.x && y === after.position.y) fits.push(k);
   }
   const k = fits.length === 1 ? fits[0] : undefined;
-  return k === undefined ? [] : sent.slice(k);
+  if (k === undefined || after.facing !== (sent[k - 1] ?? "").toLowerCase()) return [];
+  return sent.slice(k);
 }
 
 // pushback-press-result-v1: what a script did around this press, from the snapshots alone.

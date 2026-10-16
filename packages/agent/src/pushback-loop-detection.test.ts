@@ -84,12 +84,11 @@ describe("pushback-loop-detection-v1 on recorded run sh02: Birch's script stops 
   expect(contexts.some(c=>c.text!==null&&/^SUPERVISOR: cycle at \d+ calls$/.test(c.text))).toBe(true);
   expect(seen.some(n=>n.phase==="stop")).toBe(false);
  });
- it("ON: the episode recovers when the game confirms the next story milestone (T310, STARTER_CHOSEN), not before",()=>{
+ it("ON: the episode recovers at the first result on a new tile (T308, (6,13) in the starter scene), not before",()=>{
   const {seen}=replay(events,true);
   const warning=seen.find(n=>n.phase==="warning");
   const recovered=seen.find(n=>n.phase==="recovered"&&n.seq>(warning?.seq??Infinity));
-  expect(recovered).toMatchObject({turn:310,seq:7333});
-  expect(events.find(e=>e.type==="milestone"&&e.name==="STARTER_CHOSEN")?.turn).toBe(310);
+  expect(recovered).toMatchObject({turn:308,seq:7300});
  });
 });
 
@@ -184,6 +183,24 @@ describe("pushback-loop-detection-v1 synthetic push-backs",()=>{
   expect(on.notices).toEqual([]);
   back("LEFT");
   expect(on.notices.map(n=>[n.kind,n.phase,n.message])).toEqual([["cycle","warning",PUSHBACK_MESSAGE]]);
+ });
+ it("ON: a tile no longer among the last 16 results recovers the episode even when its state was seen before",()=>{
+  const notices:LoopNotice[]=[];
+  const d=new LoopDetector(n=>notices.push(n),LOOP_POLICY,"enforced",true,(kind,calls)=>`SUPERVISOR: ${kind} at ${String(calls)} calls`,true,true);
+  const home=checkState({...IN_GAME,started:true,screen:"overworld",...FREE,...HOME});
+  const north=checkState({...IN_GAME,started:true,screen:"overworld",...FREE,...ROUTE,position:{x:7,y:14},facing:"up"});
+  const west=checkState({...IN_GAME,started:true,screen:"overworld",...WEST,...BIRCH});
+  const held=checkState({...IN_GAME,started:true,screen:"overworld",...HOME,...SCRIPT});
+  const press=(buttons:readonly string[],beforeState:typeof home,state:typeof home)=>{d.complete({name:"press",args:{buttons},isError:false,text:"ok",beforeState,state,acted:true});};
+  d.complete({name:"observe",args:{},isError:false,text:"ok",state:home});
+  press(["UP"],home,north);press(["DOWN"],north,home);
+  for(let i=0;i<3;i++)press(BATCH,west,home);
+  expect(notices.map(n=>n.phase)).toEqual(["warning","supervisor"]);
+  // Results at HOME under a running script: no new fingerprints, but NORTH drops out of the place window.
+  for(let i=0;i<16;i++)press(["B"],held,held);
+  expect(notices.some(n=>n.phase==="recovered")).toBe(false);
+  press(["UP"],home,north);
+  expect(notices.at(-1)).toMatchObject({phase:"recovered",kind:"cycle"});
  });
  it("ON: reaching a new state recovers the episode",()=>{
   const on=rig(true);

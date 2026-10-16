@@ -132,14 +132,23 @@ describe("audit 5: sh02 T264, LEFT×3 UP×3 logged as six sent while five ran in
  it("only a unique one-tile-per-input prefix proves which inputs ran under the lock",()=>{
   const c=call(recorded("pushback-birch-sh02.jsonl.gz"),264);
   const at=(x:number,y:number)=>({...c.before,position:{x,y}});
+  // The message open after the batch (the recorded Birch message state), on a given tile and facing.
+  const msg=(x:number,y:number,facing:string)=>({...c.pressed,position:{x,y},facing});
+  // The recorded case itself: one LEFT step, then the message; the other five ran under its lock.
+  expect(ignoredSteps(at(7,15),msg(6,15,"left"),["LEFT","LEFT","LEFT","UP","UP","UP"])).toEqual(["LEFT","LEFT","UP","UP","UP"]);
   // RIGHT, LEFT, UP all ran: the third input reached the trigger (net displacement is one tile).
-  expect(ignoredSteps(at(7,15),at(7,14),["RIGHT","LEFT","UP"])).toEqual([]);
+  expect(ignoredSteps(at(7,15),msg(7,14,"up"),["RIGHT","LEFT","UP"])).toEqual([]);
   // A bump (LEFT into a wall, then UP) is not explained by any prefix.
-  expect(ignoredSteps(at(7,15),at(7,14),["LEFT","UP","UP"])).toEqual([]);
+  expect(ignoredSteps(at(7,15),msg(7,14,"up"),["LEFT","UP","UP"])).toEqual([]);
   // Two prefixes fit (LEFT, and LEFT,RIGHT,LEFT): unknown.
-  expect(ignoredSteps(at(7,15),at(6,15),["LEFT","RIGHT","LEFT","UP"])).toEqual([]);
+  expect(ignoredSteps(at(7,15),msg(6,15,"left"),["LEFT","RIGHT","LEFT","UP"])).toEqual([]);
   // A non-direction input: unknown.
-  expect(ignoredSteps(at(7,15),at(6,15),["LEFT","A","UP"])).toEqual([]);
+  expect(ignoredSteps(at(7,15),msg(6,15,"left"),["LEFT","A","UP"])).toEqual([]);
+  // A bump that a later prefix happens to fit: LEFT bumps a wall at (6,15), UP to (7,14), LEFT to (6,14) opens the
+  // message. Prefix LEFT,UP lands on (6,14) too, but the player faces left, not up: no claim.
+  expect(ignoredSteps(at(7,15),msg(6,14,"left"),["LEFT","UP","LEFT"])).toEqual([]);
+  // A battle transition (no field message) is not a message holding the controls.
+  expect(ignoredSteps(c.before,{...c.pressed,world_context:{objects:[],triggers:[],dialogue:null,message:null}},c.buttons)).toEqual([]);
  });
  it("a batch whose position is unknown drops nothing it cannot prove",()=>{
   const c=call(recorded("pushback-birch-sh02.jsonl.gz"),264);
@@ -155,10 +164,10 @@ describe("audit 6: 1623 Mom push-back T85-T304, one START must not recover the l
   expect(seen.find(n=>n.phase==="recovered")).toMatchObject({turn:145});
   expect(seen.filter(n=>n.turn>145&&n.turn<293)).toEqual([]);
  });
- it("ON: one episode from T96 that the START does not end; the supervisor keeps briefing; it recovers at a new tile (T305)",()=>{
+ it("ON: one episode from T96 that the START does not end; the supervisor keeps briefing; it recovers on the new map upstairs (T304)",()=>{
   const seen=replay(events,true);
   expect(seen.find(n=>n.phase==="warning")).toMatchObject({turn:96,kind:"cycle",message:PUSHBACK_MESSAGE});
-  expect(seen.filter(n=>n.phase==="recovered").map(n=>n.turn)).toEqual([305]);
+  expect(seen.filter(n=>n.phase==="recovered").map(n=>n.turn)).toEqual([304]);
   const briefs=seen.filter(n=>n.phase==="supervisor").map(n=>n.turn);
   const gaps=briefs.slice(1).map((t,i)=>t-(briefs[i]??t));
   expect(Math.max(...gaps)).toBeLessThanOrEqual(12);

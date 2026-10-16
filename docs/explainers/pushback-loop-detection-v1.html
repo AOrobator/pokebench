@@ -118,7 +118,7 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 <table>
 <tr><th>Window</th><th>OFF</th><th>ON</th></tr>
 <tr><td>sh02 twin</td><td>no notice</td><td>warning + supervisor T146 seq 3062 (evidence 2973, 3062: the push-backs at T142 and T146); re-brief T152, T158, T164, T170; recovered T173 seq 3693 when <code>navigate_to</code> reached (12,9)</td></tr>
-<tr><td>sh02 Birch</td><td>no notice</td><td>warning + supervisor T265 seq 6011 (evidence 5951, 6011); re-brief every 6 calls to T307; recovered T310 seq 7333 at STARTER_CHOSEN</td></tr>
+<tr><td>sh02 Birch</td><td>no notice</td><td>warning + supervisor T265 seq 6011 (evidence 5951, 6011); re-brief every 6 calls to T307; recovered T308 seq 7300 at a new tile ((6,13), the starter scene)</td></tr>
 </table>
 <p>A replay sweep of the 60 most recent runs adds a push-back warning in two more: <code>939e</code> T341 (the twin, without auto-advance: UP then A three or four times) and <code>9d86</code> T470 (BIRCH: LEFT, A, A three times). Both were checked by hand and are real push-back loops. This is a replay of recorded events; it does not say what the model would have done next.</p>
 </section>
@@ -130,7 +130,7 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 <tr><th>Case</th><th>Before</th><th>With the switch</th></tr>
 <tr><td>54a7 T80–T114, Littleroot twin; navigate_to targets vary</td><td>no loop guard</td><td>warning T88 seq 1927; recovered T115</td></tr>
 <tr><td>54a7 T247–T343, Oldale BlockedPath; step-back never in a snapshot</td><td>no loop guard</td><td>warning T254 seq 6212</td></tr>
-<tr><td>1623 T85–T304, Mom in the 1F hall (DOWN,A,A / DOWN,DOWN,A,A)</td><td>warning T142, START "recovered" it at T145, then 147 turns unguarded</td><td>warning T96; START does not recover; supervisor briefings at most 12 turns apart; recovered T305 at a new tile</td></tr>
+<tr><td>1623 T85–T304, Mom in the 1F hall (DOWN,A,A / DOWN,DOWN,A,A)</td><td>warning T142, START "recovered" it at T145, then 147 turns unguarded</td><td>warning T96; START does not recover; supervisor briefings at most 12 turns apart; recovered T304 on the new map upstairs</td></tr>
 <tr><td>sh02 T1068–T1086, Oldale Maniac</td><td>no loop guard</td><td>warning T1075 seq 18360</td></tr>
 </table>
 <p>A sweep of the 70 most recent runs: every added warning that was checked by hand (12 runs, among them 1623 T934, 54a7 T402, e588 T498, show T115, 3f21 T146, 939e T276, d116 T617, ab34 T358, 4fe9 T102/T377, 26e0 T146) is the twin, Birch, Maniac or BlockedPath push-back.</p>

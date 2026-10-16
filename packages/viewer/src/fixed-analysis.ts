@@ -2,7 +2,7 @@
 // primary milestone, log-rank on time to it (censored at the wall cap), and Mann-Whitney on
 // furthest milestone depth then time; pooled and per lane, over valid trials only.
 import { phaseOf, type FixedArm, type FixedDefinition } from "./fixed-design.js";
-import { queueState, WALL_CAP, type FixedLedgerEntry } from "./fixed-ledger.js";
+import { classifyTrial, queueState, WALL_CAP, type FixedLedgerEntry } from "./fixed-ledger.js";
 
 export interface AnalysisTrial {
   readonly slot: number;
@@ -186,6 +186,17 @@ export function renderAnalysis(report: AnalysisReport, title: string): string {
     "",
   ];
   return lines.join("\n");
+}
+
+// Ledger entries keep the depth they were graded with. Re-score each trial from its own events so
+// older entries use today's depth order; validity and its reason stay as the ledger recorded them.
+export function rescoreTrials(trials: readonly AnalysisTrial[], events: (run: string) => string | null, primary: string): AnalysisTrial[] {
+  return trials.map((t) => {
+    const text = events(t.run);
+    if (text === null) return t;
+    const o = classifyTrial(text, { maxWallMs: t.capMs, primary }, undefined);
+    return { ...t, primaryReached: o.primaryReached, primaryMs: o.primaryMs, furthestDepth: o.furthestDepth, furthestMs: o.furthestMs };
+  });
 }
 
 export function trialsFromLedger(def: FixedDefinition, entries: readonly FixedLedgerEntry[], phase: string): AnalysisTrial[] {

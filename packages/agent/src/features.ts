@@ -78,6 +78,7 @@ export const SWITCHABLE_FEATURES = [
   "presence-penalty-v1",
   "disproved-beliefs-v1",
   "same-plan-breaker-v1",
+  "levelup-box-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -234,6 +235,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("presence-penalty-v1", "guidance", "PRESENCE PENALTY 1.5", null, "Adds presence_penalty 1.5 to every chat request the agent sends the model, the value the Qwen3.6-35B-A3B model card recommends for thinking mode on general tasks (the serving lane's own default is 0). A presence penalty lowers the odds of tokens that already appeared in the reply, which discourages repeating the same reasoning word for word. run_start records it under sampling. Nothing the model reads changes. Off: requests carry no presence_penalty, so the server default applies, and run_start sampling has no such field."),
   on("disproved-beliefs-v1", "guidance", "DISPROVED BELIEFS LEDGER", "story-state-v1", "Pins a ledger before each decision, once it has an entry: \"Things the game has contradicted\". Each entry pairs what the model pursued with the game's evidence against it, both from this run's records. Two sources: a move a script pushed back (a press or navigate_to during which dialogue began with the player on one tile and the call ended one tile back on the same map, against the way it was going; for a press, against the first direction it sent, and for navigate_to, against the walk's last step: the tile, every turn it was tried, the latest action and the pages shown, whole); and a story character the model's own sentence placed on a tile (\"Prof. Birch is at (7,7)\") while the readout it had just seen said Not on this map for that character (the sentence, every turn, the whole Story characters line, and any conversation on that map naming the character). The sentence must open with the name (or The and the name) as the subject of is, stands, sits or waits (optionally standing, sitting or waiting), then directly at (x,y), ending the sentence, in a reply where no sentence negates, hedges or asks and whose navigate_to goes to exactly that tile on that map; names are only the readout's own story-character names, in its spelling or title case (MAY or May, never the word may; the game's PROF. also as Prof. or Professor), never possessive, a sprite kind or in parentheses, in a sentence with no negation, hedge or question mark (not, cannot, n't, never, away, might, maybe, probably, if, could, would, should, lower-case may and the like). Needs the story state: a story-flag change retires entries. An entry leaves when any story flag changes, when that map's readout lists the character as here, or when the player reaches the tile the push-back refused. Nothing is clipped; recorded as belief_ledger. Off: no ledger."),
   on("same-plan-breaker-v1", "guard", "SAME-PLAN BREAKER", "deterministic-loop-guard-v1", "Posts a SUPERVISOR note through the loop guard when the model's last 3 plans (each reply's thinking and text) are near-identical (every pair at least 0.80 by token LCS: 2·LCS/(|a|+|b|) over lowercase words, numbers and symbols) and none of those 3 decisions reached a game state outside the two states just before them (screen, map, position, facing, field-control lock, story flags, party species/level/HP/status, battle phase/turn/battlers, menu phase and selection, dialogue text), with field controls free or battle input ready in at least one. The note is factual and quotes the latest plan whole: \"Your last 3 plans (turns a, b, c) were the same and the game state did not change: …\", or names the two states it went back and forth between. Intro, naming and transition states never qualify. It re-arms after 3 more decisions; the run continues. Off: no such note."),
+  on("levelup-box-v1", "observation", "LEVEL-UP STATS BOX", null, "In a battle, names the level-up stats box the game draws after <POKéMON> grew to LV. <n>! (Cmd_drawlvlupbox, its own window, not the battle message printer) while it waits for a button, with the stats it shows read from RAM, whole: page 1 the increases, page 2 the new totals, e.g. level-up stats box open, page 1 of 2 (stat increases): MAX. HP +2, ATTACK +2, DEFENSE +1, SP. ATK +1, SP. DEF +1, SPEED +1 — waiting for a button: press A or B to continue (the game takes any new button press). With BATTLE DETAILS V2 this replaces the details line's input text; without it, a Battle input: line follows the battle block. It takes precedence over the battle message clause. With BATTLE TEXT AUTO-ADVANCE the game server's battle wait also ends on the first emulated frame the box waits, and the harness lists each page (the stat increases, then the new totals) and presses B through both, then carries on to the next decision point. The box is always recorded in the state JSON. Off: the readout says resolving (no input until the game asks) while the box waits, and battle text auto-advance waits out the box (600-frame waits) and stops with the battle busy, as before."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",
@@ -291,6 +293,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "adjacent-tiles-v1", "readout-rules-in-prompt-v1", "connection-edge-tiles-v1", "in-game-naming-readout-v1",
   "battle-message-waiting-v1",
   "offscreen-objects-v1",
+  "levelup-box-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -353,6 +356,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("presence-penalty-v1"),
     ...when("disproved-beliefs-v1"),
     ...when("same-plan-breaker-v1"),
+    ...when("levelup-box-v1"),
   ];
 }
 

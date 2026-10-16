@@ -20,5 +20,22 @@ Operator, 2026-10-16: the stats page's EXPERIMENT dropdown keeps losing runs. `c
 - [x] M1 RED (010bdcee): store, client and audit tests (5 failing + audit module missing; 63 existing pass in the touched files).
 - [x] M1 GREEN (e7e3d601): tagged membership, labels, validity, audit CLI and recipe (`experiment-cohorts.ts`, `experiments-audit.ts`, `just experiments-audit`). Viewer 830 tests (62 files); coverage 95.30 / 90.79 / 93.67 / 97.69; tsc + eslint clean.
 - [x] M2 skills: fixed-run-launch (dropdown check names `experiment:<id>@<commit12>`, adds `just experiments-audit`, explains tag membership and that dry-run ledgers can be archived anywhere), experiment-design and experiment-queue (drivers must set `POKEBENCH_EXPERIMENT`). Follow-up, not in this branch: the queue runner and finals do not tag their trials yet; they still reach the dropdown through their ledgers.
-- [ ] Real-data before/after check (read-only on `~/dev/pokebench/runs`).
-- [ ] Gates: viewer tests, coverage ≥ 90, tsc + eslint.
+- [x] Real-data before/after check (read-only `workbenchSnapshot` on `~/dev/pokebench/runs` from a scratch script, base f46346a3 vs e7e3d601). Before 19 entries / 147 runs, after 21 entries / 149 runs; no run left a cohort, no exclusion changed, problems 0 both times. `node packages/viewer/dist/experiments-audit.js ~/dev/pokebench/runs` printed nothing, exit 0.
+- [x] Gates: viewer 830 tests; coverage 95.30 / 90.79 / 93.67 / 97.69; `pnpm -r lint` (tsc + eslint, agent and viewer) clean.
+- [ ] Multi-model review (Codex, grok), then local merge on operator OK.
+
+### Before → after (runs, excluded)
+
+| Before value | After value | After label | Runs |
+|---|---|---|---|
+| `experiment:bundle-v-control-dryrun-20261015-3bab974` | `experiment:bundle-v-control-dryrun@3bab97465ea8` | Harness-fixes bundle vs fixed control (CLOCK_SET → RIVAL_MET) (dry run) · build 3bab974, first trial Oct 15, 7:42 PM ET | 4 |
+| `experiment:bundle-v-control-dryrun-20261016-ca37a39` | `experiment:bundle-v-control-dryrun@ca37a3925021` | … (dry run) · build ca37a39, first trial Oct 15, 10:33 PM ET | 4 |
+| `experiment:bundle-v-control-dryrun-confirmatory` | `experiment:bundle-v-control-dryrun-confirmatory@c5b7a84b6488` | … (dry run, confirmatory) | 4 |
+| `experiment:bundle-v-control-dryrun-cook` | `experiment:bundle-v-control-dryrun-cook@be38752ffa58` | … (dry run, cook) | 2 |
+| `factorial-2x2-think-fast` | `experiment:factorial-2x2-think-fast@014f18531cbb` | Whole-map navigation × navigation memory (Think Fast) · build 014f185, first trial Oct 14, 6:29 PM ET | 32 |
+| (none: lost) | `experiment:factorial-2x2-think-fast@c1a442ff3598` | … · build c1a442f, first trial Oct 14, 5:56 PM ET | 1 (1 excluded, operator abort) |
+| `hint-on-best-think-fast` | `experiment:hint-on-best-think-fast@42a76aa75898` | Next-milestone hint on the best 2×2 arm (Think Fast) | 4 |
+| (none: lost) | `experiment:checkpoint-start-check@c1a442ff3598` | checkpoint-start-check | 1 |
+| `experiment:full-map-navigation:finals` | unchanged | Whole-map navigation — finals | 7 (2) |
+
+Unchanged legacy entries (same value and run count): bundle-showcase 2, dialogue-information-think-fast-n4 12, interface-docs-experiment 2 (1), interface-docs-resumed 12, loop-guard-name-main-n4 20 (1), loop-guard-name-n4 2 (1), loop-guard-name-n4-corrected 5 (1), named-interactions-think-fast-clock-n4 3 (1), named-interactions-think-fast-full-n4 8, navigation-memory-think-fast-n4 6 (1), navigation-topology-astar-think-fast-n4 16, think-fast-objectives-off-30m 2 (1).

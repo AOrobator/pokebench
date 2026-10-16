@@ -8,7 +8,7 @@
  "primaryMilestone": "RIVAL_BATTLE_WON",
  "source": {
   "checkout": "main",
-  "commit": "cefacbf1f7cbface70dd1651ee2d761930d56d33"
+  "commit": "198a9a9741325ad8f6a32364cf3465ac3ec51838"
  },
  "incumbent": {
   "version": 2,
@@ -134,5 +134,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Uses the finals incumbent with dialogue-auto-advance-v1, people-ledger-v1 and character-presence-v1 ON (the cards need the ledger; names follow character presence). Default OFF. Operator approval of the design 2026-10-16 4:47 PM New York time; not part of bundle-v-control (not launched). Activation: NEW_GAME_CREATED, because the prompt line reaches the model from its first decision (cards themselves start once people come into view after the truck). Provisional source.commit is the branch base (main cefacbf1); repinned to the merge SHA with `just experiment-pin` when it lands."
+ "notes": "Uses the finals incumbent with dialogue-auto-advance-v1, people-ledger-v1 and character-presence-v1 ON (the cards need the ledger; names follow character presence). Default OFF. Operator approval of the design 2026-10-16 4:47 PM New York time; not part of bundle-v-control (not launched). Activation: NEW_GAME_CREATED, because the prompt line reaches the model from its first decision (cards themselves start once people come into view after the truck). source.commit is the reviewed branch commit that contains the switch and this entry; landing is fast-forward, so it lands as is (repin with `just experiment-pin` if the landed SHA differs)."
 }

@@ -89,7 +89,7 @@ No new inputs, endpoints, subprocesses or files outside the repo. RAM fixtures h
 
 **M3 — proof, explainer, experiment entry**
 - [ ] Real-ROM re-render over every battle start and busy archive in the cook runs (OFF equals recorded, ON diffs only where expected); journal replay over archives
-- [ ] Explainer `docs/explainers/transition-coherence-v1.html`, FEATURE_EXPLAINERS, pending `experiments/transition-coherence.json`, readiness row, pages-check
+- [x] Explainer `docs/explainers/transition-coherence-v1.html`, FEATURE_EXPLAINERS, pending `experiments/transition-coherence.json`, readiness row, pages-check
 - [ ] COMMIT
 
 **M4 — review**
@@ -118,7 +118,9 @@ Report: branch, frozen head SHA, sha256 of `git diff --binary main HEAD`, three 
   - Gates (ROM via `.env`): agent 1559 passed, viewer 885 passed; Python 2294 passed, 34 failed. The 34 fail on main 1f4ac74e too (stash check: same list, `route103_rival` reads `OPPONENT_A` outside older real-ROM fixtures, from the `claude/rival-route103-splits` merge); `claude/route103-fixture-windows` (3c237922) adds those windows and is not on main yet. No new failure from this branch. Coverage agent 97.89/94.56/98.2/99.14, viewer 95.34/91.02/93.62/97.64, Python lines 97.39 branches 93.29 functions 100 (transition_coherence.py, battle_state.py, rerender.py 100%). lint green except the known mypy `mgba._pylib`; build green; verify-vendor OK.
   COMMIT: `feat: transition-coherence-v1 reads battle starts, handoffs and mid-callback frames as transitions; journal skips torn frames (default off)` (86230acf)
 - 2026-10-16 06:30 AM EDT: M3 RED: `panels.test.ts` (FEATURE_EXPLAINERS mapping, Harness Config card link, explainer quotes the stale finishing line, the positions coverage error, the ON initializing line and the WaitForVBlank range) and `server.test.ts` (allowlist serves `transition-coherence-v1.html`): 2 failing. Real-ROM proof over the eight cook runs running in the background.
-  COMMIT: `test(RED): transition-coherence-v1 explainer link and serving`
+  COMMIT: `test(RED): transition-coherence-v1 explainer link and serving` (9f250532)
+- 2026-10-16 06:40 AM EDT: M3 GREEN (explainer). `docs/explainers/transition-coherence-v1.html` (battle-start timeline, OFF/ON readouts from sh02 T922 and show T744, save-move figure and the WaitForVBlank rule, handoff table, Activity History fixes, wiring, status), README entry, `FEATURE_EXPLAINERS`; `just pages-check` prints nothing; panels/server tests 103 passed.
+  COMMIT: `docs(transition-coherence): explainer and Harness Config link`
 
 ## Surprises
 

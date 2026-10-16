@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coherent Transition Readouts</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:760px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.1rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+ul{margin:0;padding-left:20px}
+code{font-family:var(--mono);font-size:.88em}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:none;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.nav{fill:var(--nav-bg);stroke:var(--nav)}
+.arrow{stroke:var(--soft);fill:none;stroke-width:1.4}
+pre{margin:0;padding:12px 14px;background:var(--panel);border:1px solid var(--rule);border-radius:6px;overflow-x:auto;font:12px/1.5 var(--mono);white-space:pre}
+.off{border-left:4px solid var(--prior)}
+.on{border-left:4px solid var(--game)}
+table{border-collapse:collapse;font-size:.9rem;width:100%}
+th,td{border-bottom:1px solid var(--rule);padding:6px 8px;text-align:left;vertical-align:top}
+th{font-weight:600}
+.tw{overflow-x:auto}
+</style>
+</head>
+<body>
+<main>
+<header>
+ <p class="eyebrow">Feature switch · observation · <code>transition-coherence-v1</code> · default OFF · meant ON in both arms</p>
+ <h1>Coherent transition readouts</h1>
+ <p class="lede">At a battle start, at a screen handoff and on a frame the game has not finished writing, the readout now says the game is in a transition. It no longer shows the previous battle, a coverage error or half-moved save data.</p>
+</header>
+
+<section>
+ <h2>Why</h2>
+ <p>The cook harness audit (2026-10-16) found the readout wrong at the start of every battle after the first one. In cook run #2 (<code>…_sh02</code>) at turn 922, the trainer battle against MAY was starting. The model was told the battle was finishing, won, against a ZIGZAGOON at HP 0. That ZIGZAGOON was the wild battle that had ended earlier. Run <code>…_e588</code> got the same at turn 1500 as a WINGULL battle started. In the showcase run (<code>…_show</code>) at turn 744 the model got a coverage error instead.</p>
+ <p>This is a correctness fix, so it is meant ON in both arms of bundle-v-control. The bundle file belongs to the readiness thread; this branch does not edit it.</p>
+</section>
+
+<section>
+ <h2>1. Battle start: the previous battle is still in RAM</h2>
+ <figure>
+  <div class="scroll">
+  <svg width="740" height="300" viewBox="0 0 740 300" role="img" aria-label="Battle start timeline">
+   <text x="10" y="18" class="t">What the game does, frame by frame (pokeemerald battle_main.c, battle_controllers.c)</text>
+   <rect x="10" y="34" width="170" height="70" rx="6" class="prior"/>
+   <text x="18" y="52" class="t">CB2_InitBattle</text>
+   <text x="18" y="68" class="s">main ← BeginBattleIntroDummy</text>
+   <text x="18" y="82" class="s">positions ← 0xFF 0xFF</text>
+   <text x="18" y="96" class="s">inBattle ← 1</text>
+   <rect x="190" y="34" width="170" height="70" rx="6" class="prior"/>
+   <text x="198" y="52" class="t">CB2_HandleStartBattle</text>
+   <text x="198" y="68" class="s">state 15: positions, count</text>
+   <text x="198" y="82" class="s">main ← BeginBattleIntro</text>
+   <text x="198" y="96" class="m">callback2 0x08036FAD</text>
+   <rect x="370" y="34" width="170" height="70" rx="6" class="prior"/>
+   <text x="378" y="52" class="t">BeginBattleIntro</text>
+   <text x="378" y="68" class="s">outcome ← 0, turn ← 0</text>
+   <text x="378" y="82" class="s">then GetMonsData,</text>
+   <text x="378" y="96" class="s">PrepareBackgroundSlide</text>
+   <rect x="550" y="34" width="180" height="70" rx="6" class="game"/>
+   <text x="558" y="52" class="t">DrawTrainersOrMonsSprites</text>
+   <text x="558" y="68" class="s">gBattleMons ← new battlers</text>
+   <text x="558" y="82" class="s">main ← DrawPartySummary…</text>
+   <text x="558" y="96" class="m">0x0803AF81: battle is current</text>
+   <path class="arrow" d="M180 69 H190 M360 69 H370 M540 69 H550"/>
+   <text x="10" y="130" class="t">What is still the previous battle's</text>
+   <rect x="10" y="140" width="530" height="22" rx="4" class="prior"/>
+   <text x="18" y="155" class="s">gBattleMons (foe, HP, PP, stages): stale until DrawTrainersOrMonsSprites</text>
+   <rect x="10" y="168" width="360" height="22" rx="4" class="prior"/>
+   <text x="18" y="183" class="s">gBattleOutcome = won, turn counter: stale until BeginBattleIntro</text>
+   <rect x="10" y="196" width="180" height="22" rx="4" class="prior"/>
+   <text x="18" y="211" class="s">gBattlersCount = 2 (never reset)</text>
+   <text x="10" y="244" class="t">OFF reads</text>
+   <text x="90" y="244" class="m">0xFF positions → STATE COVERAGE ERROR · stale outcome → finishing (outcome won)</text>
+   <text x="10" y="266" class="t">ON reads</text>
+   <text x="90" y="266" class="m">main in the five intro functions, or all positions 0xFF → initializing</text>
+   <text x="10" y="288" class="s">Intro functions (US ROM): 0x08039EC9 Dummy · 0x08039ECD BeginBattleIntro · 0x0803ABC1 · 0x0803AC35 · 0x0803AC85</text>
+  </svg>
+  </div>
+  <figcaption>The game clears the old battle in steps. Until BattleIntroDrawTrainersOrMonsSprites copies the new battlers, the battle RAM can still describe the last battle. ON calls that window initializing.</figcaption>
+ </figure>
+ <p>Recorded readout, cook run #2, turn 922 (raw RAM 6167, main = BeginBattleIntro):</p>
+ <pre class="off">Screen: unknown (callback2 0x08036FAD)
+Interface: battle_finishing; input not ready; Use the game-owned battle input and selected control when ready
+Battle details: TRAINER single · turn 3 · finishing (outcome won)
+Foe ZIGZAGOON Lv3 · NORMAL · HP 0/15 · …
+You TORCHIC Lv7 · FIRE · HP 9/25 · …</pre>
+ <p>The same RAM with the switch ON:</p>
+ <pre class="on">Screen: battle_transition
+Interface: battle_initializing; input not ready; Use the game-owned battle input and selected control when ready
+Battle state: initializing; input False; turn None; outcome None</pre>
+ <p>Showcase run, turn 744 (raw RAM 7894, main = BeginBattleIntroDummy, positions 0xFF): OFF printed these lines, ON prints only <code>Screen: battle_transition</code> in their place.</p>
+ <pre class="off">Screen: unknown (callback2 0x08036FAD)
+STATE COVERAGE ERROR: harness bug: invalid battle positions
+HARNESS BUG (battle): harness bug: invalid battle positions</pre>
+ <p>The rest of the readout (player, location, party, money) is unchanged. Once the main function reaches <code>0x0803AF81</code> the ON readout is byte for byte the OFF one. The initializing lines are the ones the first battle has always shown.</p>
+</section>
+
+<section>
+ <h2>2. Frames that end in the middle of the game's work</h2>
+ <figure>
+  <div class="scroll">
+  <svg width="740" height="250" viewBox="0 0 740 250" role="img" aria-label="Save block move across frames">
+   <text x="10" y="18" class="t">MoveSaveBlocks_ResetHeap (load_save.c:84), run at every warp, return to field and battle start</text>
+   <rect x="10" y="34" width="150" height="56" rx="6" class="box"/>
+   <text x="18" y="52" class="t">1 copy blocks</text>
+   <text x="18" y="68" class="s">to gHeap</text>
+   <rect x="170" y="34" width="150" height="56" rx="6" class="prior"/>
+   <text x="178" y="52" class="t">2 move pointers</text>
+   <text x="178" y="68" class="s">gSaveBlock1Ptr = new</text>
+   <text x="178" y="82" class="s">data still at old place</text>
+   <rect x="330" y="34" width="160" height="56" rx="6" class="prior"/>
+   <text x="338" y="52" class="t">3 copy back</text>
+   <text x="338" y="68" class="s">~107 KB, spans a VBlank</text>
+   <rect x="500" y="34" width="230" height="56" rx="6" class="prior"/>
+   <text x="508" y="52" class="t">4 re-key bag, money, stats</text>
+   <text x="508" y="68" class="s">then store the new key</text>
+   <path class="arrow" d="M160 62 H170 M320 62 H330 M490 62 H500"/>
+   <line x1="420" y1="100" x2="420" y2="134" stroke="var(--prior)" stroke-width="2"/>
+   <text x="300" y="148" class="m">frame ends here: PC in memcpy, LR in MoveSaveBlocks</text>
+   <rect x="10" y="166" width="720" height="70" rx="6" class="game"/>
+   <text x="18" y="186" class="t">Coherence rule</text>
+   <text x="18" y="204" class="s">AgbMain runs every callback, then WaitForVBlank (ROM 0x080008AC-0x080008D3) spins on gMain.intrCheck.</text>
+   <text x="18" y="222" class="s">A frame that ends with the main thread there (user/system mode, Thumb) has no callback half done.</text>
+  </svg>
+  </div>
+  <figcaption>A frame boundary inside the move reads new pointers over old data, or data re-keyed with a key not yet stored. A frame that ends with the main loop at its VBlank wait cannot.</figcaption>
+ </figure>
+ <p>In the archived raw RAM of every run, 132,449 of 133,087 polls ended at <code>0x080008C8</code>, the WaitForVBlank loop. The rest were in memcpy inside MoveSaveBlocks_ResetHeap, a BIOS call, an interrupt or other code, never more than 9 polls in a row.</p>
+ <ul>
+  <li><b>ON, model readout:</b> a poll whose frame is not idle reads no save block, so it shows <code>Save-backed world state unavailable: save data is not initialized or valid.</code> instead of a possibly torn <code>Money:</code> or <code>Bag:</code> line. Showcase raw RAM 7893 (CB2_InitBattle, CPU in a BIOS call) is one.</li>
+  <li><b>Always, native action journal (no switch, the model never sees it):</b> it decodes only idle frames, keeps the last idle frame to compare with, and reports a harness bug if 600 frames in a row are busy. The torn archives e588 405 (berry tree 1 <code>dc312c01dc312c01</code>, daycare checksum), 687e 202 and 2a25 394 now give no harness bug.</li>
+ </ul>
+</section>
+
+<section>
+ <h2>3. Handoff callbacks</h2>
+ <p>These callback2 values last one to a few frames between screens the harness already reads. OFF reports them as an unsupported owner with a STATE COVERAGE ERROR; ON names the transition. Each was read from the ROM: its literal pool, its calls and who points at it.</p>
+ <div class="tw"><table>
+  <tr><th>callback2</th><th>function</th><th>ON phase</th></tr>
+  <tr><td><code>0x08085EF9</code></td><td>CB2_NewGame</td><td>field_transition</td></tr>
+  <tr><td><code>0x080860C9</code> · <code>0x08086119</code></td><td>CB2_ReturnToField · CB2_ReturnToFieldLink</td><td>field_transition</td></tr>
+  <tr><td><code>0x08086195</code> · <code>0x080861B1</code> · <code>0x080861CD</code> · <code>0x080861E9</code></td><td>…WithOpenMenu · …ContinueScript · …ContinueScriptPlayMapMusic · …FadeFromBlack</td><td>field_transition</td></tr>
+  <tr><td><code>0x0809E8B5</code></td><td>ReturnFromStartWallClock</td><td>field_transition</td></tr>
+  <tr><td><code>0x081349F5</code></td><td>CB2_StartWallClock</td><td>clock_transition</td></tr>
+  <tr><td><code>0x08133F0D</code></td><td>CB2_ChooseStarter</td><td>starter_opening_transition</td></tr>
+  <tr><td><code>0x080EFE99</code></td><td>ChangePokemonNickname_CB</td><td>field_transition</td></tr>
+  <tr><td><code>0x08036FAD</code></td><td>CB2_HandleStartBattle (before inBattle is set)</td><td>battle_transition; also <code>Screen: battle_transition</code></td></tr>
+ </table></div>
+ <p>Party and bag initialization callbacks (<code>0x081B7F35</code>, <code>0x081B01E1</code>, <code>0x081AAB9D</code>, <code>0x081AAD8D</code>) are not verified and still report the coverage error. Real RAM: showcase 7834 (CB2_ReturnToField) reads <code>Interface: field_transition; input not ready; Returning to the field; field input is not active yet</code>.</p>
+</section>
+
+<section>
+ <h2>4. Activity History fixes (no switch)</h2>
+ <ul>
+  <li><code>battle_started</code> waits for the first frame decoded as the new battle and takes <code>battle_type</code> from it (it was null on every battle). It records <code>activated_frame</code>. A battle that ends before any valid frame still gets its start before <code>battle_ended</code>.</li>
+  <li><code>battle_outcome</code> only from frames of the current battle: no stale "won" right after a battle starts (6 in cook run #2, 6 in the showcase, one for a battle then lost).</li>
+  <li>Battler HP, PP and status changes only between two frames of the same battle: no <code>TORCHIC 13→19</code> against the previous battle.</li>
+  <li><code>harness_bug</code> rows are deduplicated by owner and kind; slot numbers and raw values no longer make a new row. The event carries <code>kind</code>.</li>
+ </ul>
+</section>
+
+<section>
+ <h2>Wiring</h2>
+ <figure>
+  <div class="scroll">
+  <svg width="740" height="120" viewBox="0 0 740 120" role="img" aria-label="Switch wiring">
+   <rect x="10" y="30" width="130" height="50" rx="6" class="box"/><text x="18" y="50" class="t">run preset</text><text x="18" y="66" class="m">FeatureSet</text>
+   <rect x="160" y="30" width="150" height="50" rx="6" class="box"/><text x="168" y="50" class="t">serverFeatureEnv</text><text x="168" y="66" class="m">POKEBENCH_FEATURES_OFF</text>
+   <rect x="330" y="30" width="150" height="50" rx="6" class="box"/><text x="338" y="50" class="t">rerender.read_state</text><text x="338" y="66" class="m">id not in off</text>
+   <rect x="500" y="30" width="230" height="50" rx="6" class="nav"/><text x="508" y="50" class="t">read_game_state(…enabled)</text><text x="508" y="66" class="s">battle state · active UI · save gate · label</text>
+   <path class="arrow" d="M140 55 H160 M310 55 H330 M480 55 H500"/>
+   <text x="10" y="106" class="s">The native action journal calls the same readers with the rules on, whatever the switch.</text>
+  </svg>
+  </div>
+  <figcaption>The switch travels the same server path as the other observation switches; the highlighted box is where behavior changes.</figcaption>
+ </figure>
+</section>
+
+<section>
+ <h2>Proof and status</h2>
+ <ul>
+  <li>Tests re-render the recorded raw RAM of the three battle starts: OFF equals what the model received byte for byte; ON gives the lines above. Post-intro frames are unchanged ON.</li>
+  <li>Branch <code>claude/battle-start-journal</code>; source pret/pokeemerald <code>731ad5bf</code>, US ROM SHA-1 <code>f3ae0881</code>.</li>
+  <li>Not done: measured runs. The experiment entry <code>transition-coherence</code> is pending.</li>
+ </ul>
+</section>
+</main>
+</body>
+</html>

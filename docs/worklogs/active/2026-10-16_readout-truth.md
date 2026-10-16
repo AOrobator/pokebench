@@ -175,3 +175,11 @@ Report branch, frozen head, packet SHA-256, verdict lines, gate counts and cover
 ## Archive Milestone (user-gated)
 
 - [ ] ASK USER: archive this worklog
+
+## Landing
+
+- Round 7 verdicts on packet `git diff --binary 259aeb08 c7619665` (SHA-256 `73fdfea2a90138cef8313f37c9a1d1f7367623b4f79634f07ce484409be6a276`): Claude (`claude -p`, default login) `VERDICT: LGTM`; Grok (Cursor `cursor-grok-4.5-high`, third run; first two killed rc 143 with no output) `VERDICT: LGTM`; GPT (isolated `codex exec` gpt-5.6-sol xhigh) `VERDICT: LGTM`. Artifacts `/tmp/review-readout-truth-r7*`.
+- Note: worklog entries labelled "02:05 PM" onward were actually about 1:45–2:15 PM New York time.
+- Re-merged main three times (1138371b, 008ac3d2 runs-cli fixture, b0a8cfed docs); after each, `git diff --binary main HEAD` stayed `73fdfea2…6a276`, byte-identical to the reviewed packet. Gates on the final tip (ROM set): agent 1880, viewer 972, Python 2465 passed; coverage agent 97.99/94.7/98.4/99.14, viewer 95.41/91.17/93.79/97.67, Python 97.52/93.55/100; lint and verify-vendor clean.
+- Landed 2026-10-16 2:21 PM New York time: `git merge --ff-only` → main `173fcd4b` (operator standing approval, the operator 5:34 AM). Experiments readout-truth, birch-speech-pages and blackout-readout pinned to `173fcd4b` with `just experiment-pin`.
+- Arms for bundle-v-control (handed to its owner): readout-truth-v1 ON in both arms; birch-speech-pages-v1 ON in both arms (A2); blackout-readout-v1 bundle arm only.

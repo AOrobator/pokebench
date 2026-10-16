@@ -8,7 +8,7 @@
  "primaryMilestone": "FIRST_TRUCK_EXIT",
  "source": {
   "checkout": "main",
-  "commit": "f096ae0a8d2926ba03ddb68665e47f56d0461a9a"
+  "commit": "173fcd4b2f735ebc8f6e4f1fa651e21eb98b6d6c"
  },
  "incumbent": {
   "version": 2,

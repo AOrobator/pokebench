@@ -8,7 +8,7 @@
  "primaryMilestone": "OLDALE_TOWN",
  "source": {
   "checkout": "main",
-  "commit": "73a12a86bc2b1a636fbc99f44936c344ec51a5cf"
+  "commit": "4a582a5f68fcf0d826558d5fc636e74b74cd6247"
  },
  "incumbent": {
   "version": 2,
@@ -111,5 +111,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Behavior change for the bundle arm only of bundle-v-control (wired by that file's owner). Does not enable full-map-navigation-v1. Activation: local navigate_to refusals start once the player walks Littleroot; the cases it targets are on Route 101 (show T800, 54a7 T213) and Route 103 (e588). Provisional source.commit is the branch head before merge; repinned to the merge SHA with `just experiment-pin` when it lands."
+ "notes": "Behavior change for the bundle arm only of bundle-v-control (wired by that file's owner). Does not enable full-map-navigation-v1. Activation: local navigate_to refusals start once the player walks Littleroot; the cases it targets are on Route 101 (show T800, 54a7 T213) and Route 103 (e588). Provisional source.commit is branch commit 4a582a5f (it contains both switches and these entries); repinned to the merge SHA with `just experiment-pin` when it lands."
 }

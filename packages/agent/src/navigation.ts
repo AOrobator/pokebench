@@ -58,7 +58,10 @@ export function matchingTriggers(state:GameStateSnapshot):MatchingTrigger[] {
  return (state.world_context?.triggers??[]).filter(t=>t.condition_met===true&&t.variable!==0).map(t=>({x:t.x,y:t.y,elevation:t.elevation,variable:t.variable,required:t.required_value,current:t.current_value}));
 }
 const triggerAt=(triggers:readonly MatchingTrigger[]|undefined,p:Point,elevation:number):MatchingTrigger|undefined=>triggers?.find(t=>t.x===p.x&&t.y===p.y&&(t.elevation===0||t.elevation===elevation));
-const triggerText=(t:MatchingTrigger):string=>`(${String(t.x)},${String(t.y)}), a script-trigger tile whose condition matches now (variable 0x${t.variable.toString(16).toUpperCase().padStart(4,"0")}=${t.current===null?"unknown":String(t.current)}, needs ${String(t.required)})`;
+const condition=(t:MatchingTrigger):string=>`variable 0x${t.variable.toString(16).toUpperCase().padStart(4,"0")}=${t.current===null?"unknown":String(t.current)}, needs ${String(t.required)}`;
+const triggerText=(t:MatchingTrigger):string=>`(${String(t.x)},${String(t.y)}), a script-trigger tile whose condition matches now (${condition(t)})`;
+// Every route crosses some matching trigger (the planner found none without one); the first on one such route is named.
+const crossingText=(t:MatchingTrigger):string=>`a script-trigger tile whose condition matches now; the first one on the route it would take without avoiding them is (${String(t.x)},${String(t.y)}) (${condition(t)})`;
 interface Geometry {readonly elevation:number;readonly tile:(p:Point)=>Tile|undefined;readonly objects:readonly Point[];readonly warps:readonly Point[];readonly bounds:{readonly width:number;readonly height:number}|null}
 
 function localGeometry(state:GameStateSnapshot):Geometry|null {
@@ -88,7 +91,8 @@ function counterHint(state:GameStateSnapshot,goal:Point,options:NavigationOption
  const at=(p:Point)=>(t:Point):boolean=>t.x===p.x&&t.y===p.y;
  const counter=(p:Point):boolean=>{const tile=geometry.tile(p);return tile!==undefined&&tile.behavior===COUNTER&&tile.collision!==0;};
  const occupied=(p:Point):boolean=>geometry.objects.some(at(p));
- let involved=counter(goal);
+ // navigation-truth-v1: with the interaction targets known, only a scripted person behind a counter counts.
+ let involved=counter(goal)&&!(truth&&state.interaction_targets!=null);
  for(const [direction,dx,dy] of DIRECTIONS){
   const across=occupied(goal)?{counter:{x:goal.x-dx,y:goal.y-dy},person:goal}:{counter:goal,person:{x:goal.x+dx,y:goal.y+dy}};
   if(!counter(across.counter)||!occupied(across.person))continue;
@@ -189,7 +193,7 @@ function gatedNearer(state:GameStateSnapshot,geometry:Geometry,goal:Point,sorted
  const crossed=(path===null?null:routeTrigger(state,path,options))??standingTrigger(geometry,options.triggers,gated)??null;
  if(crossed===null)return "";
  const near=nearest===undefined?`within ${String(NEAREST_RADIUS)} steps`:distance(gated,goal)<distance(nearest,goal)?"closer":"as close";
- return crossed.x===gated.x&&crossed.y===gated.y?`; ${at(gated)} is ${near}, but it is ${triggerText(crossed)}`:`; ${at(gated)} is ${near}, but every route navigate_to sees to it crosses ${triggerText(crossed)}`;
+ return crossed.x===gated.x&&crossed.y===gated.y?`; ${at(gated)} is ${near}, but it is ${triggerText(crossed)}`:`; ${at(gated)} is ${near}, but every route navigate_to sees to it crosses ${crossingText(crossed)}`;
 }
 // navigation-truth-v1: the goal is reachable only across a matching trigger.
 function triggerReason(state:GameStateSnapshot,goal:Point,options:NavigationOptions):string|null {
@@ -197,7 +201,7 @@ function triggerReason(state:GameStateSnapshot,goal:Point,options:NavigationOpti
  const open=planNavigation(state,goal,{...options,triggers:[]});
  const crossed=open===null?null:routeTrigger(state,open,options);
  if(crossed===null)return null;
- return `every route navigate_to sees to ${at(goal)} crosses ${triggerText(crossed)}; stepping on it runs a script that can stop you or send you back, so navigate_to does not walk across it; target ${at(crossed)} itself to step on it on purpose`;
+ return `every route navigate_to sees to ${at(goal)} crosses ${crossingText(crossed)}; stepping on such a tile runs a script that can stop you or send you back, so navigate_to does not walk across one; target ${at(crossed)} itself to step on it on purpose`;
 }
 // navigation-refusal-reasons-v2: an in-window goal with no route inside the local window. The tiles named are
 // reachable window-edge tiles with an unseen neighbour inside the map, one per side, nearest the goal first.
@@ -432,8 +436,9 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
    if(after.x!==before.x+delta[1]*span||after.y!==before.y+delta[2]*span){status="unexpected movement; inspect new state";break;}
    if(distance(after,goal)===0){status="arrived at requested coordinate";break;}
   }
-  if(truth&&status==="command limit"&&state.position!==null)status=`command limit: stopped at ${at(state.position)} after ${String(commands)} ordinary button attempts, the most one navigate_to call makes; call navigate_to again to continue to ${at(goal)}`;
   last=await ports.observe(id,signal);state=resultState(last);
+  // The cap text describes the observation returned with it: "call again" only when the walk can go on.
+  if(truth&&status==="command limit"){const here=state.position;status=here!==null&&sameMap()&&ready(state,mode)?`command limit: stopped at ${at(here)} after ${String(commands)} ordinary button attempts, the most one navigate_to call makes; call navigate_to again to continue to ${at(goal)}`:`command limit: stopped after ${String(commands)} ordinary button attempts, the most one navigate_to call makes; the field is no longer free to walk, so inspect the new state`;}
   return {content:[{type:"text",text:`Navigation: ${status}; ${String(commands)} ordinary button attempts.`},...last.content],details:{state,navigation:{status,commands,target:goal,unready}}};
  }};
 }

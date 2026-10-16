@@ -90,6 +90,7 @@ function speakerOf(text:string,s:GameStateSnapshot):Speaker|null {
  return named===undefined?faced(s):{name:named,source:"name_prefix"};
 }
 // navigation-truth-v1: the object the player faces, so a speaker the game named stays named while it talks on.
+// An object is keyed by its map-local id and map, so the same object keeps its key when it moves.
 function facedKey(s:GameStateSnapshot):string|null {
  const step=s.facing===null?undefined:STEP[s.facing.toLowerCase()];
  if(s.position===null||step===undefined)return null;
@@ -97,7 +98,8 @@ function facedKey(s:GameStateSnapshot):string|null {
  const live=s.world_context?.objects.find(o=>o.x===x&&o.y===y);
  if(live!==undefined)return `object ${String(live.local_id)} on ${live.map_id.join("/")}`;
  const target=(s.interaction_targets??[]).find(t=>t.x===x&&t.y===y);
- return target===undefined?null:`${target.kind} at ${String(x)},${String(y)}`;
+ if(target===undefined)return null;
+ return target.kind==="object"&&target.local_id!==null&&s.map_id!==null?`object ${String(target.local_id)} on ${s.map_id.join("/")}`:`${target.kind} at ${String(x)},${String(y)}`;
 }
 // Lines that narrate the player's own action ({PLAYER} received/obtained/put ... in pokeemerald's text) have no speaker.
 const NARRATION=new Set(["received","obtained","found","got","put","handed","used","wrote","booted","flashed","turned","took","registered","inserted","chose","picked","placed","planted","watered","switched","stepped","saved","returned","removed","memorized","flipped","exchanged","closed","checked","left"]);

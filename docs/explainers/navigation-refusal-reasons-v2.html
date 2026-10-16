@@ -37,7 +37,7 @@ code{font:13px ui-monospace,Menlo,monospace;overflow-wrap:anywhere}
 <h2>Rule</h2><div class="card scroll"><table>
 <tr><th>Step</th><th>Condition</th></tr>
 <tr><td>Applies</td><td>Local mode; the planner found no path; no earlier reason (counter, refusal-reasons-v1 target reason, navigation-truth trigger reason) applies; the target tile is in the window and the player could stand on it (walkable, no person, object or warp on it); the map size is known (topology). A wall, water, person or warp target keeps the generic text even with refusal-reasons-v1 off.</td></tr>
-<tr><td>Edge tile</td><td>A window tile with a 4-neighbour inside the map but outside the window; standable, no object, warp or matching trigger on it; the planner reaches it.</td></tr>
+<tr><td>Edge tile</td><td>A window tile with a 4-neighbour inside the map but outside the window; standable, no object or warp on it; the planner reaches it. Matching coordinate triggers are excluded (as stand tiles and on the way) only when navigation-truth-v1 and coordinate-script-conditions-v1 are also on; with v2 alone the planner's ordinary rules apply.</td></tr>
 <tr><td>Listed</td><td>Per side (north, south, east, west) the edge tile nearest the target (Manhattan, then row, then column); sides sorted by that distance.</td></tr>
 <tr><td>Never</td><td>Turns on whole-map navigation (<code>full-map-navigation-v1</code>), walks anywhere, or guesses tiles outside the window.</td></tr>
 </table><p class="cap">The listing is not a route: the nearest edge tile can still be the wrong side (show T800 lists south before east). It names every side so the model can choose.</p></div>

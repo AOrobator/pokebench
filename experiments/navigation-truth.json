@@ -3,12 +3,12 @@
  "id": "navigation-truth",
  "title": "Navigation and dialogue truth",
  "changedFeature": "navigation-truth-v1",
- "hypothesis": "Making navigate_to, the interaction loop warning and dialogue auto-advance say only what the game supports (no talk offer for an object with no script, no route or stand tile through a coordinate trigger whose condition matches now, the blocker named, where a partial walk stopped, whole pages and kept speakers) removes the false leads seen in the 2026-10-16 cook audit (sh02 T260-307: 45 repeats of the Birch push-back after a talk offer for scriptless PROF_BIRCH; 3f21 T121-149: about 28 turns aimed at (10,0) behind the NeedPokemon triggers), so more runs reach STARTER_CHOSEN, in fewer turns.",
+ "hypothesis": "Making navigate_to and the interaction loop warning say only what the game supports (no talk offer for an object with no script, no route or stand tile through a coordinate trigger whose condition matches now, the blocker named, where a partial walk stopped, the reopened-message sentence only when a message reopened) removes the false leads seen in the 2026-10-16 cook audit (sh02 T260-307: 45 repeats of the Birch push-back after a talk offer for scriptless PROF_BIRCH; 3f21 T121-149: about 28 turns aimed at (10,0) behind the NeedPokemon triggers), so more runs reach STARTER_CHOSEN, in fewer turns.",
  "activationMilestone": "LITTLEROOT_TOWN",
  "primaryMilestone": "STARTER_CHOSEN",
  "source": {
   "checkout": "main",
-  "commit": "73a12a86bc2b1a636fbc99f44936c344ec51a5cf"
+  "commit": "4a582a5f68fcf0d826558d5fc636e74b74cd6247"
  },
  "incumbent": {
   "version": 2,
@@ -111,5 +111,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Correctness fix, intended ON in both arms of bundle-v-control (experiments/fixed/bundle-v-control.json is owned by another thread and not edited here). Registered 2026-10-16 on branch claude/navigation-truth (operator the operator approved the cook-audit fixes at 5:34 AM EDT). Activation: the first map with coordinate triggers and talk targets the model walks to after the truck (the NeedPokemon triggers at Littleroot (10,1)/(11,1)). The trigger part needs coordinate-script-conditions-v1, which is on in this incumbent. Provisional source.commit is the branch head before merge; repinned to the merge SHA with `just experiment-pin` when it lands."
+ "notes": "Correctness fix, intended ON in both arms of bundle-v-control (experiments/fixed/bundle-v-control.json is owned by another thread and not edited here). Registered 2026-10-16 on branch claude/navigation-truth (operator the operator approved the cook-audit fixes at 5:34 AM EDT). Activation: the first map with coordinate triggers and talk targets the model walks to after the truck (the NeedPokemon triggers at Littleroot (10,1)/(11,1)). The trigger part needs coordinate-script-conditions-v1, which is on in this incumbent. Provisional source.commit is branch commit 4a582a5f (it contains both switches and these entries); repinned to the merge SHA with `just experiment-pin` when it lands. The switch's dialogue parts (whole pages, kept speakers, narration without a speaker) act only with dialogue-auto-advance-v1, which is off in this incumbent, so this A/B measures the navigation and loop-guard parts; the dialogue parts are covered by tests and act in bundle-v-control, where auto-advance is on."
 }

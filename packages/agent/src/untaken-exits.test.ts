@@ -103,7 +103,7 @@ describe("untaken-exits-v1 production wiring",()=>{
  const snapshot:GameStateSnapshot={...IN_GAME,started:true,screen:"overworld",location:"HALL",map_id:[3,3],position:{x:1,y:1},facing:"up",interaction_targets:[{kind:"warp",x:1,y:0,elevation:0,activation:"movement",availability:"conditional",facing:null,local_id:null,destination:[4,4,0],name:"w"}],topology:null};
  const tool=(name:string):AgentTool=>({name,label:name,description:name,parameters:{},execute:()=>Promise.resolve({content:[{type:"text",text:readout}],details:{state:snapshot}})});
  const checked=():AgentTool=>({...tool("press"),executeChecked:()=>Promise.resolve({content:[{type:"text",text:readout}],details:{state:snapshot}})} as AgentTool);
- const recorder=()=>{const observers:((e:RunEvent)=>void)[]=[];return {observers,recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1}),subscribe:(fn:(e:RunEvent)=>void)=>{observers.push(fn);}};};
+ const recorder=()=>{const observers:((e:RunEvent)=>void)[]=[];return {observers,lowHpTrainerWarning:()=>undefined,recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1}),subscribe:(fn:(e:RunEvent)=>void)=>{observers.push(fn);}};};
  const text=async(tools:readonly AgentTool[],name:string)=>{const r=await tools.find(t=>t.name===name)?.execute("id",{});const part=r?.content[0];return part?.type==="text"?part.text:"";};
  const OFF:FeatureSet={...ALL_ON,[ID]:false,"people-ledger-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"dialogue-auto-advance-v1":false,"bounded-navigation-v1":false,"navigate-first-prompt-v1":false};
 

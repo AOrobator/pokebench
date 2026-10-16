@@ -53,7 +53,7 @@ it("ON appends exactly the battle and healing section; tools and results are unc
     expect(toolSwitches(with_(base, true))).toEqual(toolSwitches(base));
     expect(objectiveSwitches(with_(base, true))).toEqual(objectiveSwitches(base));
   }
-  const plain = { ...ALL_ON, "trainer-heal-guidance-v1": false, "explorer-guidance-v1": false, "untaken-exits-v1": false, "people-ledger-v1": false, "trainer-heal-guidance-v1": false, "low-hp-trainer-warning-v1": false, "navigate-first-prompt-v1": false, "objective-tracking-v1": false, "repeat-attempt-guard-v1": false, "native-objective-completion-v1": false };
+  const plain = { ...ALL_ON, "explorer-guidance-v1": false, "untaken-exits-v1": false, "people-ledger-v1": false, "trainer-heal-guidance-v1": false, "low-hp-trainer-warning-v1": false, "navigate-first-prompt-v1": false, "objective-tracking-v1": false, "repeat-attempt-guard-v1": false, "native-objective-completion-v1": false };
   expect(playSystemPrompt(plain, null)).toBe(`${playSystemPrompt(with_(plain, false), null)}\n\n${BATTLE_TRIAGE_SECTION}`);
   expect(playSystemPrompt(ALL_ON, "RIVAL_MET")).toContain(BATTLE_TRIAGE_SECTION);
 });

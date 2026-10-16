@@ -125,6 +125,16 @@ describe("briefing-exits-v1 audit fixes on recorded runs",()=>{
    expect(run([{buttons:["DOWN"],states:[{facing:"right"}],pages:[{at:[3,3],source:null}]}])).toContain("MANIAC at 4,3 (A)");
    expect(run([{buttons:["DOWN"],states:[{facing:"right"}],pages:[{at:[3,3],source:"faced_sprite"}]}])).not.toContain("MANIAC");
   });
+  it("a trigger crossed while unmet is listed, unlabelled, once a story step enables it (Codex round 10)",()=>{
+   const listed=run([{buttons:["UP"],states:[{position:{x:3,y:2}}]},{buttons:["DOWN"],states:[{position:{x:3,y:3},world_context:live}]}],i=>i>=2?"b":"a",deadCtx);
+   expect(listed).toContain("coordinate_trigger at 3,2 (step)");
+   expect(listed).not.toContain("did not match");
+  });
+  it("a one-shot script that flips its own condition by the arrival state was still tried (Claude round 10)",()=>{
+   // Met before the step; the arrival state already shows it unmet (the script set its variable).
+   const listed=run([{buttons:["UP"],states:[{position:{x:3,y:2},world_context:deadCtx}]}]);
+   expect(listed).not.toContain("coordinate_trigger at 3,2");
+  });
   it("a trigger walked onto while its condition was shown unmet stays listed, labelled, also after a story step (Claude)",()=>{
    const listed=run([{buttons:["UP"],states:[{position:{x:3,y:2}}]},{buttons:["DOWN"],states:[{position:{x:3,y:3}}]}],i=>i>=2?"b":"a",deadCtx);
    expect(listed).toContain("coordinate_trigger at 3,2 (step; its condition did not match when the readout last showed it, so stepping on it then did nothing)");

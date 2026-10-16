@@ -171,8 +171,9 @@ On:  blocked: LEFT ×3 did not move you; you are still at (10,16) facing left. T
 <h2>Status</h2>
 <ul>
 <li>Branch <code>claude/blocked-batch-result</code>, not merged.</li>
-<li>Checks: see the worklog <code>docs/worklogs/active/2026-10-16_blocked-batch-result.md</code> for test counts, coverage and review verdicts.</li>
-<li>Not done: no experiment entry was registered on this branch. It is meant to join the bundle-v-control bundle arm later. No measured runs.</li>
+<li>Checks: agent 1318 tests, viewer 786, pytest 1960 pass; lint and build clean (mypy fails only on the unbuilt <code>mgba._pylib</code> binding in the worktree); coverage agent 99.04 lines / 94.28 branches / 97.89 functions, all above the 90 floor.</li>
+<li>Review: Codex (gpt-5.6-sol) and Grok (cursor-grok-4.5-high) LGTM after two rounds of fixes (map-switch gating, objects and warps not claimed as blockers, surf water, hoppable ledges).</li>
+<li>Not done: no experiment entry on this branch; it is meant to join the bundle-v-control bundle arm. No measured runs.</li>
 </ul>
 </section>
 </main>

@@ -42,3 +42,10 @@ Branch `claude/blocked-batch-result` in `/private/tmp/pokebench-blocked-batch`. 
 - [x] Taken both. RED: 3 tests (ledge own direction with ledges on and off; water not verified on foot). COMMIT (5862bfbf).
 - [x] GREEN: a ledge pressed in its own hop direction is "no movement" (named as a ledge with ledge hops on, "drawn as #" with it off); a ledge against its arrow with ledge hops off falls to the collision wording the # glyph shows; ~ water when not verified on foot says "is water (~ on the local map); what stopped you is not known". Explainer table updated.
   - Gates: agent 82 / 1318, viewer 60 / 786, pytest 1960 passed 2 skipped; lint clean except the known mypy `mgba._pylib`; build clean; coverage agent 97.63 / 94.28 / 97.89 / 99.04, viewer 95.08 / 90.39 / 93.55 / 97.6, Python 97.03 / 92.57 / 100; `blocked-batch.ts` 100 lines, 96.85 branches.
+  - GREEN COMMIT: `fix: blocked-batch-result-v1 leaves a hoppable ledge and water it cannot verify as cause not known` (c7ea41c1)
+
+## M2: review round 3 (delta 6c909440..c7ea41c1)
+
+- [x] Codex (gpt-5.6-sol): LGTM. Grok (cursor-grok-4.5-high): LGTM. Codex could not run vitest in its read-only sandbox; tests were run here.
+- [x] Explainer checked in a browser (served from the worktree on 127.0.0.1, light theme, figures and table render). Harness Config live click not verified: no viewer was started or restarted from this branch.
+- [ ] Before merge (operator): pending `experiments/blocked-batch-result.json` entry and readiness line, or adding the switch to the bundle-v-control bundle arm; `just viewer-main` after merge.

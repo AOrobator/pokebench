@@ -1,4 +1,5 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -114,10 +115,13 @@ describe("runsCli summary", () => {
 
 describe("runs-cli main", () => {
   it("uses the repo runs/ directory and the 500 MB cap", () => {
+    // A fixture root keeps the scan small; the real runs/ holds tens of GB of frames.
     const out: string[] = [];
-    expect(main(["disk"], (line) => out.push(line))).toBe(0);
-    expect(out[0]).toMatch(/of 500\.0 MB cap/);
-    expect(RUNS_ROOT).toMatch(/\/runs\/$/);
+    expect(main(["disk"], (line) => out.push(line), runsWith([300, 100]))).toBe(0);
+    expect(out).toEqual(["frames on disk: 400 B of 500.0 MB cap (0%); runs may start at or below 75%"]);
+    expect(RUNS_ROOT).toBe(fileURLToPath(new URL("../../../runs/", import.meta.url)));
+    expect(existsSync(join(RUNS_ROOT, "..", "justfile"))).toBe(true);
+    expect(main.length).toBe(2);
   });
 });
 

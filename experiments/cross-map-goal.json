@@ -112,6 +112,7 @@
    "readout-truth-v1": false,
    "birch-speech-pages-v1": false,
    "blackout-readout-v1": false,
+   "surf-gated-exits-v1": false,
    "cross-map-goal-v1": false
   }
  },

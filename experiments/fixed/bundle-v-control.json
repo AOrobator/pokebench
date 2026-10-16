@@ -109,11 +109,13 @@
    "warp-arrival-settle-v1": true,
    "world-coordinate-grid-v1": true,
    "world-destinations-v1": true,
-   "world-targets-v1": true
+   "world-targets-v1": true,
+   "surf-gated-exits-v1": false
   }
  },
  "switches": [
-  "blackout-readout-v1"
+  "blackout-readout-v1",
+  "surf-gated-exits-v1"
  ],
  "offInBoth": [
   "milestone-stall-stop-v1",

@@ -32,6 +32,7 @@ RECORDED_OFF = [
     "readout-truth-v1",
     "birch-speech-pages-v1",
     "blackout-readout-v1",
+    "surf-gated-exits-v1",
 ]
 
 
@@ -121,6 +122,7 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "transition_coherence_enabled": False,
         "readout_truth_enabled": False,
         "birch_pages_enabled": False,
+        "surf_gate_enabled": False,
         "fmt_named_interactions": False,
         "fmt_world_destinations": False,
         "fmt_bounded_navigation": False,

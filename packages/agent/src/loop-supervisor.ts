@@ -265,7 +265,7 @@ Stop and get your bearings:
 ${this.hint===null?"":`- Next milestone (hint): ${this.hint.describe()}\n`}- Characters the readout names here: ${this.characters()}
 - Story steps the game confirms are done: ${this.done()}
 - Recent dialogue you were shown, newest first: ${this.told()}
-${stall?`- Dialogue shown with your last story step${this.instructionText()}\n`:""}- What you tried recently, newest first: ${tried}
+${stall?`- Dialogue shown with your latest story step that came with dialogue${this.instructionText()}\n`:""}- What you tried recently, newest first: ${tried}
 - Listed here that you have not tried yet: ${this.untried()}
 ${stall?`- Not tried yet on other maps you have been on since your last story progress: ${this.untriedElsewhere()}\n- Exits to maps you have not entered since your last story progress: ${this.unentered()}\n`:""}Before your next action, look back at your goal and at what the game has told you${recall}. If anything you believe disagrees with the dialogue or the readout above, believe the game. Make a new plan that is different from what you have been trying, and say which untried option you will try first. The run continues.`;
  }

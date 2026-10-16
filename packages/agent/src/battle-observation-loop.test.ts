@@ -9,12 +9,12 @@ import {checkEvent,type RunEvent} from "./events.js";
 import {LOOP_POLICY,LoopDetector,type LoopNotice} from "./loop-detection.js";
 import type {GameStateSnapshot} from "./game-state.js";
 
-// Recorded events of run 2026-10-16T02-23-17_qwen36-gpu1_sh02, seq 9850-11960, trimmed by the test author
-// (navigation grid, interaction targets, local map, raw RAM and heavy resources removed; tool result text cut at
-// its first blank line). Not a parseEvent-valid run.
+// Recorded events of run 2026-10-16T02-23-17_qwen36-gpu1_sh02, seq 9850-11960, as the recorder wrote them, trimmed only where the
+// event schema leaves a field optional (navigation grid, interaction targets, local map, raw RAM, berry/storage
+// resources, map triggers; tool result text cut at its first blank line). Every row passes checkEvent.
 function recorded(name:string):RunEvent[]{
  const path=fileURLToPath(new URL(`./fixtures/${name}`,import.meta.url));
- return gunzipSync(readFileSync(path)).toString("utf8").trim().split("\n").map(line=>JSON.parse(line) as RunEvent);
+ return gunzipSync(readFileSync(path)).toString("utf8").trim().split("\n").map(line=>checkEvent(JSON.parse(line)));
 }
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
 interface Seen {readonly turn:number;readonly seq:number;readonly kind:string;readonly phase:string;readonly message:string}

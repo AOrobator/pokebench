@@ -168,13 +168,14 @@ export function transientLock(state: GameStateSnapshot): boolean {
 
 // pushback-loop-detection-v1: field controls held by a message or by a running script, with no menu or other
 // interface owning the lock. The game's global script context is running when its mode is bytecode or native
-// (1 or 2) and its status is not CONTEXT_SHUTDOWN (2), as in pokeemerald src/script.c. A start menu, a door
+// (1 or 2) and its status is CONTEXT_RUNNING (0) or CONTEXT_WAITING (1), as in pokeemerald src/script.c; any other
+// or missing value is unknown. A start menu, a door
 // animation or an unknown lock is not a script.
 export function scriptHeld(state: GameStateSnapshot): boolean {
   if (state.field_controls_locked !== true || state.active_ui != null || state.naming != null) return false;
   if ((state.world_context?.dialogue ?? "") !== "" || state.world_context?.message != null) return true;
   const script = state.resources;
-  return script != null && (script.script_mode === 1 || script.script_mode === 2) && script.script_status !== 2;
+  return script != null && (script.script_mode === 1 || script.script_mode === 2) && (script.script_status === 0 || script.script_status === 1);
 }
 
 export const PUSHBACK_MESSAGE =

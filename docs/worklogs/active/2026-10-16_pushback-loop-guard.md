@@ -152,6 +152,8 @@ Merge locally after all lanes LGTM. No pending experiment entry (amendment 2). R
 
 - Merge commit 9f7dd74b (main parent 5fd00072). Gates at 9f7dd74b, all exit 0: build; test agent 1547, viewer 869, pytest 2209 passed; lint incl. mypy (76 files, no issues); coverage agent lines 99.13 / branches 94.73 / functions 98.16 (loop-detection.ts 98.54 / 97.42 / 100; press-result.ts 100 / 99.22 / 100), viewer 97.7 / 90.98 / 93.57, python 97.26 / 93.01 / 100; verify-vendor OK.
 
+- Gates commit 506b3661. 2026-10-16 07:25 AM EDT: review round 5 (packet 5fd00072..506b3661, SHA-256 0a92e802…4495). Claude CLI LGTM, Grok LGTM. Codex BLOCKING: (1) `scriptHeld()` accepted any status but 2, so a decoder's null or invalid status counted as a running script; (2) the replay fixtures were not schema-valid (state rows trimmed below the schema), so the replays accepted shapes production rejects. Fixes: status must be CONTEXT_RUNNING (0) or CONTEXT_WAITING (1); negative tests for mode 2 with status null and 3 (both red under the old rule; restored). Fixtures rebuilt by `scratchpad/trim_valid.mjs` from the read-only run: a field is dropped only if the row still passes `checkEvent` (navigation grid, interaction targets, local map, raw RAM, berry/storage resources, map triggers; tool result text after the first blank line); same event counts (499 / 597 / 1,189), 35 / 29 / 60 KB gzipped; the tests load them with `checkEvent(JSON.parse(line))`. All replay receipts unchanged.
+
 ## Surprises
 
 - `loop_guard` evidence is capped at 2 items by the event schema (`maxItems:2`); a 3-seq evidence list made the recorder throw in the factory test. Evidence is now [first push-back, completing call]. The replay tests validate every notice through `checkEvent`.

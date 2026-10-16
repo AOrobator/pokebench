@@ -126,7 +126,7 @@ function check(deps: FixedCliDeps, id: string): void {
     deps.out(`${phase.id}: ${String(n("control"))} control + ${String(n("bundle"))} bundle, ${String(phase.maxWallMs)} ms cap${phase.primary ? ", primary" : ", exploratory"}, ${start}`);
   }
   for (const lane of def.lanes) deps.out(`lane ${lane.id}: ${lane.gpu}, game port ${String(lane.gamePort)}, model ${lane.modelUrl}`);
-  deps.out(`bundle switches: ${def.switches.join(", ")}; off in both: ${def.offInBoth.join(", ")}`);
+  deps.out(`bundle switches: ${def.switches.join(", ")}; off in both: ${def.offInBoth.join(", ")}; on in both: ${def.onInBoth.length === 0 ? "none" : def.onInBoth.join(", ")}`);
   deps.out(`control base: ${def.controlBase.presetId} (${def.controlBase.path}, sha256 ${def.controlBase.sha256}) matches outside the switches and off-in-both flags`);
   const approval = readApproval(deps, id);
   deps.out(`approval: ${approval === null ? "none" : approval.definitionSha256 === digest ? `${approval.approvedBy} at ${approval.approvedAt}` : "stale (the definition changed since)"}`);
@@ -174,7 +174,7 @@ async function dryRun(argv: readonly string[], deps: FixedCliDeps, id: string): 
   const phase = flag(argv, "--phase") ?? def.phases[0]?.id ?? "";
   if (!def.phases.some((p) => p.id === phase)) throw new CliError(`no phase ${phase}; phases: ${def.phases.map((p) => p.id).join(", ")}`);
   const dry = dryRunDefinition(def, wallMs, phase);
-  if (existsSync(join(experimentDir(deps, dry.id), "trials.jsonl"))) throw new CliError(`${dry.id} already has a ledger; move runs/experiments/${dry.id} aside first`);
+  if (existsSync(join(experimentDir(deps, dry.id), "trials.jsonl"))) throw new CliError(`${dry.id} already has a ledger; move runs/experiments/${dry.id} to runs/dryruns/<name> first (the viewer still lists it there)`);
   const result = await deps.run({ def: dry, definitionSha256: sha256(JSON.stringify(dry)), runsRoot: deps.runsRoot, host: deps.host(), stopRequested: deps.stopRequested ?? (() => false), pid: process.pid, dryRun: true });
   deps.out(`${dry.id}: ${result}`);
 }

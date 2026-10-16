@@ -9,6 +9,8 @@ from collections.abc import Mapping
 from dataclasses import asdict, replace
 
 from pokebench_env.adjacent_tiles import next_tiles, walking
+from pokebench_env.battle_triage import SWITCH as TRIAGE
+from pokebench_env.battle_triage import battle_triage_lines, field_triage_line
 from pokebench_env.game_state import GameState
 
 SERVER_FEATURES = (
@@ -38,6 +40,7 @@ SERVER_FEATURES = (
     "battle-details-v2",
     "warp-arrival-settle-v1",
     "displayed-place-names-v1",
+    "battle-triage-guidance-v1",
     "adjacent-tiles-v1",
 )
 
@@ -45,7 +48,9 @@ SERVER_FEATURES = (
 def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
     raw = env.get(
         "POKEBENCH_FEATURES_OFF",
-        "named-interactions-v1,world-destinations-v1,bounded-navigation-v1,expanded-menu-battle-information-v1,field-dialogue-phase-v1,full-map-navigation-v1,named-warp-destinations-v1,character-presence-v1,battle-details-v2,warp-arrival-settle-v1,displayed-place-names-v1,adjacent-tiles-v1",
+        "named-interactions-v1,world-destinations-v1,bounded-navigation-v1,expanded-menu-battle-information-v1,field-dialogue-phase-v1,full-map-navigation-v1,named-warp-destinations-v1,character-presence-v1,battle-details-v2,warp-arrival-settle-v1,displayed-place-names-v1,"
+        "battle-triage-guidance-v1,"
+        "adjacent-tiles-v1",
     )
     if raw == "":
         return frozenset()
@@ -222,6 +227,8 @@ def format_readout(
             lines += execution
         else:
             lines.append("Battle details: unprovided")
+        if TRIAGE not in off:
+            lines += battle_triage_lines(battle, state.battle_details)
     if state.story is not None and "story-state-v1" not in off:
         lines.append(state.story.text())
     if state.naming is not None and "naming-cursor-v1" not in off:
@@ -262,8 +269,15 @@ def format_readout(
     lines += [f"Player: {state.name}", f"Location: {location or state.location}"]
     if "live-player-position-v1" not in off:
         lines.append(f"Position: X={x}, Y={y}{facing}")
+    lines.append(f"Party ({state.party_owner}): {party or 'none'}")
+    triage = (
+        field_triage_line(state.party, state.party_owner)
+        if TRIAGE not in off and not state.in_battle and state.battle is None
+        else None
+    )
+    if triage is not None:
+        lines.append(triage)
     lines += [
-        f"Party ({state.party_owner}): {party or 'none'}",
         f"Money: ₽{state.money}",
         f"Badges: {', '.join(state.badges or ()) or 'none'}",
         f"In battle: {'yes' if state.in_battle else 'no'}",

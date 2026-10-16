@@ -365,43 +365,60 @@ def _bound(actor: BattleBattler) -> bool:
     )
 
 
-def _run(battle: BattleState, actor: BattleBattler, held: HeldItem | None) -> str:
+@dataclass(frozen=True)
+class RunVerdict:
+    """Whether the game lets this battler RUN now: True allowed, False refused, None not read."""
+
+    allowed: bool | None
+    text: str
+
+
+def run_verdict(battle: BattleState, actor: BattleBattler, held: HeldItem | None) -> RunVerdict:
+    """The one RUN rule; battle-details-v2 prints it and battle-triage-guidance-v1 acts on it."""
     flags = battle.battle_type or 0
     battlers = battle.battlers or ()
     if flags & TRAINER and flags & (FRONTIER | TRAINER_HILL):
-        return "RUN asks whether to forfeit the match"
+        return RunVerdict(False, "RUN asks whether to forfeit the match")
     if flags & TRAINER and not flags & (LINK | RECORDED_LINK):
-        return 'RUN REFUSED — "No! There\'s no running from a TRAINER battle!"'
+        return RunVerdict(False, 'RUN REFUSED — "No! There\'s no running from a TRAINER battle!"')
     if held is not None and held.hold_effect is None:
-        return (
+        return RunVerdict(
+            None,
             f"RUN unknown — holds {held.name}, whose battle effect is not read; "
-            "the game checks it before any other escape rule"
+            "the game checks it before any other escape rule",
         )
     if held is not None and held.hold_effect == HOLD_EFFECT_CAN_ALWAYS_RUN:
-        return f"RUN allowed — always escapes (holds {held.name})"
+        return RunVerdict(True, f"RUN allowed — always escapes (holds {held.name})")
     if flags & LINK:
-        return "RUN allowed — link battle (running forfeits)"
+        return RunVerdict(True, "RUN allowed — link battle (running forfeits)")
     if actor.ability == RUN_AWAY:
-        return "RUN allowed — always escapes (RUN AWAY)"
+        return RunVerdict(True, "RUN allowed — always escapes (RUN AWAY)")
     trap = _trap(actor, battlers)
     if trap is not None:
         name = _prefix(trap, flags) if trap.position & 1 else trap.species
-        return f'RUN REFUSED — "{name} prevents escape with {ABILITY_NAMES[trap.ability]}!"'
+        return RunVerdict(
+            False, f'RUN REFUSED — "{name} prevents escape with {ABILITY_NAMES[trap.ability]}!"'
+        )
     if _bound(actor):
-        return 'RUN REFUSED — "Can\'t escape!"'
+        return RunVerdict(False, 'RUN REFUSED — "Can\'t escape!"')
     if flags & FIRST_BATTLE:
-        return 'RUN REFUSED — "PROF. BIRCH: Don\'t leave me like this!" (first battle)'
+        return RunVerdict(
+            False, 'RUN REFUSED — "PROF. BIRCH: Don\'t leave me like this!" (first battle)'
+        )
     foe = next((b for b in battlers if b.battler == actor.battler ^ 1), None)
     if flags & DOUBLE or foe is None:
-        return "RUN allowed — escape chance not worked out for double battles"
+        return RunVerdict(True, "RUN allowed — escape chance not worked out for double battles")
     mine, theirs = actor.stats[2], foe.stats[2]
     if mine >= theirs:
-        return f"RUN allowed — escape guaranteed (your Spe {mine} ≥ foe Spe {theirs})"
+        return RunVerdict(
+            True, f"RUN allowed — escape guaranteed (your Spe {mine} ≥ foe Spe {theirs})"
+        )
     # TryRunFromBattle (battle_util.c:412-466) keeps the odds in a u8 that wraps, and runTries
     # is not read, so only the speed comparison is stated.
-    return (
+    return RunVerdict(
+        True,
         f"RUN allowed — escape not guaranteed: your Spe {mine} < foe Spe {theirs}; "
-        "a failed try uses your turn"
+        "a failed try uses your turn",
     )
 
 
@@ -552,7 +569,7 @@ def battle_details_lines(battle: BattleState, details: BattleDetails) -> list[st
                         _fight(actor),
                         _bag(battle, details),
                         _switch(battle, actor, details, active),
-                        _run(battle, actor, held.get(actor.battler)),
+                        run_verdict(battle, actor, held.get(actor.battler)).text,
                     )
                 )
             )

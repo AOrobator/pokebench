@@ -133,7 +133,7 @@ describe("switchboard", () => {
     expect(html).toContain("20/20 ON");
     expect(html).toContain("needs live-map-v1");
     expect(html).toContain("MEASUREMENT · ALWAYS ON");
-    expect(html.match(/No matching runs yet/g)).toHaveLength(58);
+    expect(html.match(/No matching runs yet/g)).toHaveLength(59);
     expect(html.match(/🔒/g)).toHaveLength(FEATURES.filter(feature=>feature.group === "measurement").length);
   });
 

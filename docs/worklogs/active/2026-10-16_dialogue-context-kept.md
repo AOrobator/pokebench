@@ -42,7 +42,8 @@ Switch `dialogue-context-kept-v1` (guidance, needs nothing, default OFF).
 - [x] Gates: `just test` agent 1283, viewer 786, python 1960 passed (2 ROM skips); `just lint` TS clean, mypy fails only on the missing `mgba._pylib` binding in this worktree; `just build` ok; `just coverage` agent 97.63 stmts / 94.25 branches / 97.88 funcs / 99.03 lines (harness.ts 100/98.3/100/100), viewer 95.08/90.39/93.55/97.6, python lines 97.03 branches 92.57 functions 100; `just verify-vendor` ok
 - [x] Token growth (window rebuilt per turn from recorded events, chars/4): 3f21 199 turns OFF max 11,544 / ON max 11,685, mean 6,199 → 6,408, largest added 985; 2919 248 turns OFF max 11,266 / ON max 11,315, mean 5,268 → 5,445, largest added 1,224. Rebuilt OFF = recorded turn_start within 10 tokens on 195/198 and 242/247 turns (the rest carry an appended loop-guard note). All dialogue in the whole run: ~4,150 (3f21) and ~4,010 (2919) tokens. Mom's next-door pages are in the ON context on 3f21 turns 99–111 (OFF: 99–103), 2919 turns 135–151.
 - [x] Guard check: `contextWindow` reverted to ignore the switch → 5 tests red (incl. the play-wiring factory test); supervisor `kept()` stubbed to "" → 4 red; both restored → 17 green
-- [x] COMMIT GREEN (sha recorded in the next commit)
+- [x] COMMIT: `feat: dialogue-context-kept-v1 keeps every dialogue page in collapsed results and cites the last story instruction in supervisor briefings` (e513c4a6)
+- [x] Pending experiment pinned provisionally to e513c4a6 (repin to the merge SHA on landing)
 - [ ] Review: Codex + grok
 
 ## Session Log

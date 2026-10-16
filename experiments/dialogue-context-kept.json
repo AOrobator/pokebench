@@ -8,7 +8,7 @@
  "primaryMilestone": "RIVAL_HOUSE_ENTERED",
  "source": {
   "checkout": "main",
-  "commit": "fa09dbe61ca4362e7c21ab97c09c814afd46018a"
+  "commit": "e513c4a6f01ebba116c5dc72b3890a696de4e746"
  },
  "incumbent": {
   "version": 2,
@@ -89,5 +89,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Pre-launch fix F4 plus the both-arm half of F5 (worklog docs/worklogs/active/2026-10-16_prelaunch-fixes.md, M3; approved by the operator 2026-10-16 12:46 AM EDT). In bundle-v-control it is ON in both arms (onInBoth), so this standalone entry is for a later single-switch A/B only. Uses the finals incumbent (as stall-briefing does) because the supervisor half needs loop-guard-supervisor-v1. It acts on the first collapsed result that showed dialogue, which can come right after the new game starts. source.commit is set to the merge SHA with `just experiment-pin` when it lands; until then this entry is not reproducible from main."
+ "notes": "Pre-launch fix F4 plus the both-arm half of F5 (worklog docs/worklogs/active/2026-10-16_prelaunch-fixes.md, M3; approved by the operator 2026-10-16 12:46 AM EDT). In bundle-v-control it is ON in both arms (onInBoth), so this standalone entry is for a later single-switch A/B only. Uses the finals incumbent (as stall-briefing does) because the supervisor half needs loop-guard-supervisor-v1. It acts on the first collapsed result that showed dialogue, which can come right after the new game starts. Provisional source.commit e513c4a (branch claude/dialogue-context-kept, the GREEN commit); it is repinned to the merge SHA on main with `just experiment-pin` when it lands, and until then this entry is not reproducible from main."
 }

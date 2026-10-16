@@ -40,6 +40,7 @@ OFF: no skip, no map moves; byte-identical to today.
   - Not done here by brief: experiments/<id>.json pending entry and bundle-v-control wiring belong to the M6 integrator.
 - 2026-10-16: RED (self-review): a press result that still shows the old map mid-door (2919 T185) loses the map change, because the next call's before state is already on the new map. Test: unsettled arrivals.
 - 2026-10-16: GREEN: map moves walk last map → before map → after map. Replay now: 2919 ON warning+supervisor T204 seq 3219 (T185 entry + T200–T204), re-brief T210, recovered T215, warning T216 seq 3516, supervisor every 6 calls to T246; pre-T200 notices byte-identical to OFF. d6bb unchanged (T230 seq 2566, stop T236). Explainer receipts updated.
+- 2026-10-16: Codex review round 1 BLOCKING: (1) map moves ignored genuine locks, so six alternating results inside a running script, dialogue or menu would warn; (2) stale receipt (the T205 seq 3244 entry above predates the unsettled-arrival fix; the current receipt is T204 seq 3219) and the test did not pin it. RED: scripted map-change tests; the 2919 fixture now starts at seq 2860 (includes the T185 entry) and the test pins T204 seq 3219. grok round 1: LGTM.
 
 ## Surprises
 

@@ -635,6 +635,10 @@ it("links the named warp destinations card to its explainer",()=>{
  expect(FEATURE_EXPLAINERS["dialogue-auto-advance-v1"]).toBe("dialogue-auto-advance-v1.html");
 });
 
+it("links the connection edge tiles card to its explainer",()=>{
+ expect(FEATURE_EXPLAINERS["connection-edge-tiles-v1"]).toBe("connection-edge-tiles-v1.html");
+});
+
 it("links the stall briefing card to its explainer",()=>{
  expect(FEATURE_EXPLAINERS["stall-briefing-v1"]).toBe("stall-briefing-v1.html");
 });

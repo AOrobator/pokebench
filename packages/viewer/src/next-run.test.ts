@@ -25,6 +25,7 @@ describe("next-run draft", () => {
   it("defaults, persists and rejects malformed or dependency-breaking drafts", () => {
     const runsRoot = root();
     expect(readDraft(runsRoot)).toEqual(DEFAULT_NEXT_RUN);
+    expect(DEFAULT_NEXT_RUN.features["connection-edge-tiles-v1"]).toBe(false);
     expect(writeDraft(runsRoot, draft)).toEqual(draft);
     expect(readDraft(runsRoot)).toEqual(draft);
     expect(() => writeDraft(runsRoot, { ...draft, features: { ...ALL_ON, "state-only-decisions-v1": false, "live-map-v1": false } })).toThrow(/world-coordinate-grid-v1 needs live-map-v1/);

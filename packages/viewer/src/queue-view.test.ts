@@ -230,6 +230,16 @@ describe("experiment queue view", () => {
     expect(asked.at(-1)).toContain("The trial already running finishes");
   });
 
+  it("hands every verified snapshot, and only verified ones, to a listener such as the current-run plates", async () => {
+    document.body.innerHTML = readFileSync(join(import.meta.dirname, "../static/index.html"), "utf8").replace(/<script[^>]*><\/script>|<link[^>]*>/g, "");
+    const root = document.querySelector<HTMLElement>('[data-ui="experiment-queue"]');
+    if (root === null) throw new Error("page is missing the queue");
+    const seen: unknown[] = []; let reply: unknown = SNAPSHOT;
+    const panel = new QueuePanel(root, { fetchJson: () => Promise.resolve(reply), problem: () => undefined, loaded: (s) => { seen.push(s); } });
+    await panel.load(); expect(seen).toEqual([SNAPSHOT]);
+    reply = { nonsense: true }; await panel.load(); expect(seen).toHaveLength(1);
+  });
+
   it("explains a failed load inside the queue instead of loading forever", async () => {
     document.body.innerHTML = readFileSync(join(import.meta.dirname, "../static/index.html"), "utf8").replace(/<script[^>]*><\/script>|<link[^>]*>/g, "");
     const root = document.querySelector<HTMLElement>('[data-ui="experiment-queue"]');

@@ -63,7 +63,7 @@ describe("mounted runs and comparisons workbench", () => {
     open(); fetch.mockResolvedValue({ ...data(), at: 3000, runs: [] }); await wb.refresh(); ui("detail").dispatchEvent(new MouseEvent("click", { bubbles: true })); expect(ui("detail").hidden).toBe(true); wb.destroy();
   });
   it("renders a ticking live-run meta card, then a normal back link when the run ends", async () => {
-    const { wb, fetch } = mount({ ...data(), runs: [run({ status: "live" })] }); await wb.refresh(); wb.clock(); expect(ui("current").textContent).toContain("0:02:05"); expect(ui("current").textContent).not.toContain("OBJECTIVE"); expect(ui("current").querySelector("a")?.getAttribute("href")).toBe("/#run=run_01"); fetch.mockResolvedValue({ ...data(), at: 2000 }); await wb.refresh(); expect(ui("current").textContent).toContain("BACK TO VIEWER"); wb.destroy();
+    const { wb, fetch } = mount({ ...data(), runs: [run({ status: "live" })] }); await wb.refresh(); wb.clock(); expect(ui("current").textContent).toContain("2:05/ 10:00"); expect(ui("current").textContent).not.toContain("OBJECTIVE"); expect(ui("current").querySelector("a")?.getAttribute("href")).toBe("/#run=run_01"); fetch.mockResolvedValue({ ...data(), at: 2000 }); await wb.refresh(); expect(ui("current").textContent).toContain("BACK TO VIEWER"); wb.destroy();
   });
   it("retains verified data after bad JSON/network/stale snapshots and bounds visible errors", async () => {
     const { wb, fetch } = mount(); await wb.refresh(); fetch.mockResolvedValue({ nonsense: true }); await wb.refresh(); expect(ui("problem").hidden).toBe(false); expect(ui("frontier-full").querySelector('[data-run="run_01"]')).not.toBeNull(); fetch.mockResolvedValue({ ...data(), at: 1 }); await wb.refresh(); expect(ui("problem").textContent).toContain("Outdated"); fetch.mockRejectedValue(new Error("offline")); await wb.refresh(); expect(ui("problem").textContent).toBe("offline"); wb.destroy();
@@ -81,10 +81,20 @@ describe("mounted runs and comparisons workbench", () => {
   });
 });
 
-it("keeps the live watch link and keyboard focus stable through clock ticks and updated run metadata", async () => {
-  const { wb, fetch } = mount({ ...data(), runs: [run({ status: "live" })] }); await wb.refresh();
-  const link=ui("current").querySelector<HTMLAnchorElement>(".wb-current");if(link===null)throw Error("missing watch link");link.focus();
-  wb.clock();wb.clock();expect(ui("current").querySelector(".wb-current")).toBe(link);expect(document.activeElement).toBe(link);
-  fetch.mockResolvedValue({...data(),at:2000,runs:[run({status:"live",turn:77})]});await wb.refresh();
-  expect(ui("current").querySelector(".wb-current")).toBe(link);expect(document.activeElement).toBe(link);expect(link.textContent).toContain("Turn 77");wb.destroy();
+it("keeps the plate link and keyboard focus stable through clock ticks, lane joins, a new milestone and the gold window ending", async () => {
+  let now = 6000; const fetch = vi.fn(() => Promise.resolve<unknown>({ ...data(), runs: [run({ status: "live" })] }));
+  const wb = new Workbench(document, { fetchSnapshot: fetch, now: () => now, width: () => 340 }); await wb.refresh();
+  const link = ui("current").querySelector<HTMLAnchorElement>(".wb-plate"); if (link === null) throw Error("missing watch link"); link.focus();
+  expect(link.className).toBe("wb-plate new"); const chip = link.querySelector(".wb-new-chip"); expect(chip?.textContent).toBe("NEW MILESTONE!");
+  now = 7000; wb.clock(); wb.clock(); expect(ui("current").querySelector(".wb-plate")).toBe(link); expect(document.activeElement).toBe(link);
+  // The blinking chip is not re-created on each tick, so its animation keeps its phase.
+  expect(link.querySelector(".wb-new-chip")).toBe(chip); expect(link.textContent).toContain("2:06/ 10:00");
+  now = 40000; wb.clock(); expect(ui("current").querySelector(".wb-plate")).toBe(link); expect(link.className).toBe("wb-plate"); expect(link.querySelector(".wb-new-chip")).toBeNull(); expect(link.textContent).toContain("2:39/ 10:00");
+  wb.lanes(new Map([["run_01", { lane: "A", gpu: "GPU1", arm: "control" }]])); expect(ui("current").querySelector(".wb-plate")).toBe(link); expect(link.querySelector(".wb-plate-l1")?.textContent).toBe("LANE A · GPU1Lv2"); expect(link.querySelector(".wb-ty em")?.getAttribute("style")).toBe("--tyc:#2f6fb0");
+  const splits = [...run().splits, { name: "RIVAL_MET", elapsedMs: 160000, segmentMs: 1, seq: 30, turn: 109, inputTokens: 1, outputTokens: 1 }];
+  fetch.mockResolvedValue({ ...data(), at: 39000, runs: [run({ status: "live", elapsedMs: 160000, splits })] }); await wb.refresh();
+  expect(ui("current").querySelector(".wb-plate")).toBe(link); expect(document.activeElement).toBe(link); expect(link.className).toBe("wb-plate new");
+  expect(link.querySelector(".wb-ms b")?.textContent).toBe("Rival met"); expect(link.textContent).toContain("14/ 39"); expect(link.querySelector(".wb-plate-l1")?.textContent).toBe("LANE A · GPU1Lv14"); expect(link.querySelector(".wb-br i")?.getAttribute("style")).toBe("width:35.9%");
+  fetch.mockResolvedValue({ ...data(), at: 39001, runs: [run({ status: "live", elapsedMs: 160000, splits }), run({ id: "second", status: "live" })] }); await wb.refresh();
+  expect(ui("current").querySelectorAll(".wb-plate")).toHaveLength(2); expect(ui("current").querySelector(".wb-party .wb-kicker")?.textContent).toContain("2 CURRENT RUNS"); wb.destroy();
 });

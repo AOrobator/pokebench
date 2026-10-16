@@ -1,0 +1,36 @@
+# Current run milestone plates (stats page, variant 36)
+
+Branch: `worktree-agent-a0f796e82f29d42d3` · viewer only, no harness behavior (no feature switch).
+
+## Problem
+
+The Runs & Comparisons "CURRENT RUN" card shows clocks, turn and target per live run, but not how far
+each run has got in the story, which lane/GPU it runs on, or which experiment arm it is. With two
+lanes running bundle vs control at once, the operator cannot tell the runs apart or see a new
+milestone land.
+
+## Decision
+
+The operator picked mockup variant 36 ("Gold plate, MILESTONE inline",
+`runs/mockups/current-run-milestone/variant-36.html`): one party card holding a name plate per live
+run with lane · GPU, Lv = 1-based position of the furthest FRONTIER_MILESTONES entry reached,
+TYPE/ arm badge (control / bundle / none; any other arm gets a stable hashed colour, long ids wrap),
+MILESTONE bar `N/ 39`, the bold milestone name with time and turn reached, a TIME bar (elapsed vs
+wall cap), the whole plate is the watch link, and the plate turns solid gold with a NEW MILESTONE!
+chip while the latest milestone is under 30 s old (live elapsed − split.elapsedMs).
+
+Operator change during implementation: the NEW MILESTONE! chip blinks at a third of the mockup's
+speed: `mk-blink 3.6s steps(2) infinite` (mockup 1.2s), still off under prefers-reduced-motion.
+
+Lane, GPU and arm come from `/api/experiments` `fixedRuns[].lanes[]` joined on `run`; the stats page
+already polls it for the queue, so QueuePanel hands each parsed snapshot to the workbench.
+
+## Checklist
+
+- [x] M1 RED: failing tests for plates, lane join, NEW window, in-place clock patch, CSS contract
+  - viewer: 14 failing (workbench-view 8, workbench 2, queue-view 1, mobile-layout 3), 56 files pass; baseline was 797/797.
+  - COMMIT: `test(viewer): current-run name plates, variant 36 (RED)` (see log)
+- [ ] M1 GREEN: implementation, viewer tests + coverage ≥ 90 + lint
+- [ ] Browser check against a scratch runs copy (desktop + 375 px)
+
+## Log

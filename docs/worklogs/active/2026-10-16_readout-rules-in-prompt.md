@@ -33,11 +33,13 @@ State-only decisions get no system-prompt section, so `state-only-decisions-v1` 
   COMMIT: `test(readout-rules): RED for the fixed map rules moving from the readout to the system prompt` (5e500bbf)
 - [x] GREEN: map_rules.py owner, live_map/world_context/readout/rerender wiring, generator + `just map-rules` (generated table: 128 keys, deduplicated texts, 45.8 KB); TS registry (observation, needs ram-state-v1, last everywhere), presets (absent = OFF), DEFAULT_NEXT_RUN OFF, SERVER_FEATURES (both, Python default-off), play-config wiring through `mapRulesSection(features)`, stateOnlyProblems refusal. Existing position/registry tests shifted by one (same pattern as blocked-batch-result). Tests: agent 1407, viewer 797, pytest 2029 passed + 2 skipped (ROM).
 - [x] wiring-removal check: dropping the play-config append turned `ON states the showcase legend ...` red (1 failed); dropping the `rules_in_prompt` kwarg in rerender.render turned 4 readout-rules ON tests and the rerender pass-through test red (5 failed); both restored and green.
+  COMMIT: `feat(readout-rules): state the fixed map rules once in the system prompt (switch readout-rules-in-prompt-v1, default off)` (ecc487e9)
 - [x] gates: test, build, verify-vendor green; lint green except the known worktree-venv mypy `mgba._pylib`; coverage agent 97.73 stmts / 94.56 branches / 97.98 funcs / 99.08 lines, viewer 95.11 / 90.43 / 93.59 / 97.61, Python lines 97.10 / branches 92.70 / functions 100 (map_rules.py 100%).
-- [ ] real-ROM proof: ON readout lacks the four blocks, ON prompt carries them, measured size change
+- [x] real-ROM proof (02:41 AM EDT): `pokebench_env.serve` booted twice from `runs/launch-receipts/rival-push-checkpoint/CLOCK_SET.state` (Brendan's house 2F, Mom present, edge-wall chair, stairs warp) on $POKEBENCH_ROM, worktree code via the main venv's mGBA binding, with `POKEBENCH_FEATURES_OFF` taken from the agent's own `serverFeatureEnv` of the showcase arm's recorded switches with this switch ON / OFF. `/pokebench/observation` state_text: OFF 4,040 chars, ON 3,196 chars (−844, −20.9%). The diff is exactly: legend + terrain lines → the pointer line; warp-destination note gone; trigger-elevation line gone; nothing else changed (Edge walls, Live objects, Warps, trigger list header, field-message lines intact). `playSystemPrompt` for the same arm: OFF 7,886 chars, ON 8,941 (+1,055, the section once). Projection on the evidence run (451 overworld tool results carrying the legend): median 5,509 → 4,665 chars, −844 per result, 15.2% of those results' characters.
 
 **M2 — explainer, pending experiment, review (Claude CLI, Codex, Grok) until LGTM.**
 - [ ] explainer `docs/explainers/readout-rules-in-prompt-v1.html`, README, FEATURE_EXPLAINERS, `just pages-check`
+  - [x] RED: panels.test (mapping + real-ROM numbers and section header in the page) and server.test (allowlist serves it): 2 failed
 - [ ] pending `experiments/readout-rules-in-prompt.json`, readiness line, `just experiments-check`
 - [ ] principles self-review (docs/agent-principles.md, zero FAIL)
 - [ ] Claude CLI, Codex, Grok: VERDICT LGTM
@@ -45,4 +47,5 @@ State-only decisions get no system-prompt section, so `state-only-decisions-v1` 
 ## Session Log
 - 2026-10-16 02:29 AM EDT: constancy audit, design and RED written.
 - 2026-10-16 02:37 AM EDT: GREEN and gates.
+- 2026-10-16 02:41 AM EDT: real-ROM proof and measurement.
 - 2026-10-16 02:18 AM EDT: worklog drafted (the operator's proposal).

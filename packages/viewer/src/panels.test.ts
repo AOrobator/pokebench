@@ -686,3 +686,13 @@ it("links the displayed place names card to its tracked explainer, which shows t
  expect(html).toContain("Sign text \"PROF. BIRCH'S HOUSE\" at (12,8)");
  expect(html).toContain("Warp to PROF. BIRCH'S HOUSE 1F (map 1/2) at (14,8)");
 });
+
+it("links the readout rules card to its tracked explainer, which shows the real-ROM readout and the prompt section",()=>{
+ expect(FEATURE_EXPLAINERS["readout-rules-in-prompt-v1"]).toBe("readout-rules-in-prompt-v1.html");
+ const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/readout-rules-in-prompt-v1.html",import.meta.url)),"utf8");
+ expect(html).toContain("readout-rules-in-prompt-v1");
+ expect(html).toContain("Map symbols and rules: see the system prompt.");
+ expect(html).toContain("Map symbols and rules (the readout&#39;s map and lists use these every turn; the readout does not repeat them):");
+ expect(html).toContain("4,040");
+ expect(html).toContain("3,196");
+});

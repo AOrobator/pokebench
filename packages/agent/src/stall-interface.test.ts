@@ -46,6 +46,8 @@ describe("F12 stall-briefing-v1 in an owned interface (showcase nickname editor)
   const dwell=stalls.filter(s=>s.kind==="interface_dwell");
   expect(dwell.map(s=>s.stall)).toEqual([1,2,3].map(n=>({kind:"interface_dwell",name:"nickname naming editor",calls:n*INTERFACE_DWELL_CALLS})));
   expect(dwell[0]?.turn).toBeLessThan(302);
+  // Turn 253's A answered the YES/NO prompt and only opened the editor; the 30 calls made inside it are turns 254-283.
+  expect(dwell[0]?.turn).toBe(283);
   expect(stalls.filter(s=>s.turn>=253).every(s=>s.kind==="interface_dwell")).toBe(true);
  });
  it("states the dwell in the headline",()=>{

@@ -27,7 +27,7 @@ Forensics of bundle qualification run `2026-10-15T23-47-41_qwen36-gpu1_3f21` (`r
 - [x] F12 (naming-editor briefing + interface_dwell stall) was added at the coordinator's request (RED 51006938, GREEN 7261cdd6), then dropped on a scope change: another thread owns F12 and builds it on top of F5 after this branch merges. Reverted in one commit; findings for that thread: N=30 calls from 23 naming episodes in 133 runs (normal <=25; stuck 48/79/97/153); pokeemerald naming_screen.c START moves to OK, A on OK saves, SaveInputText keeps the preloaded nickname when the text is empty.
 - [x] Gates: `just test` (agent 1288, viewer 786, env 1960 passed/2 skipped), `just lint` agent/viewer clean, `just build` ok, `just coverage` agent L99.0/B93.8/F97.8, viewer L97.6/B90.4/F93.6, env L97.0/B92.6/F100 (floor 90), `just verify-vendor` ok
 - [x] Explainer updates (local): fix sections in docs/explainers/{stall-briefing-v1,dialogue-auto-advance-v1,navigation-refusal-reasons-v1}.html (already linked from Harness Config cards); rendered and checked in the browser pane
-- [ ] Review: Codex + grok
+- [x] Review: Codex (BLOCKING, fixed, then LGTM) + grok (LGTM)
 
 ## Session Log
 
@@ -38,6 +38,8 @@ Forensics of bundle qualification run `2026-10-15T23-47-41_qwen36-gpu1_3f21` (`r
 
 ## Multi-Model Review Log
 
+- Codex gpt-5.6-sol round 2 (delta): LGTM. Non-blocking: the supervisor no-leak assertions still searched for the old phrase; updated.
+
 - cursor-grok-4.5-high round 1: LGTM. Non-blocking: free-field walk batches still go as one press (F8 scope is the one-at-a-time path); a door whose entry tile is on the map and reachable still gets the generic text (the planner reaches it then); afterAdvance needs a lock note to rewrite.
 
 - Codex gpt-5.6-sol round 1: BLOCKING. The F5 line called the pages of an earlier story milestone "your last story step" when a later story milestone (CLOCK_SET) came with no pages: misattributed evidence. Fix: the line says "your latest story step that came with dialogue" and names that milestone; RED then GREEN.
@@ -45,6 +47,8 @@ Forensics of bundle qualification run `2026-10-15T23-47-41_qwen36-gpu1_3f21` (`r
 ## Surprises
 
 ## Commits
+
+- COMMIT: `test(bundle): no-leak assertions use the new F5 wording`
 
 - COMMIT: `fix(bundle): name the story step the quoted dialogue came with` — agent 1288 tests
 

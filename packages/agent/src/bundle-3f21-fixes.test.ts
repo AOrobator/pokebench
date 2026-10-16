@@ -133,8 +133,8 @@ describe("F5 stall-briefing-v1: the stall briefing cites the last story instruct
  it("leaves the both-arm loop supervisor and text-only notes untouched: T65's recorded note is reproduced byte for byte",()=>{
   const b=upTo(1010);
   expect(b.text("ineffective",65)).toBe(note(1010));
-  expect(b.textOnly(3,1,3)).not.toMatch(/last story step|Exits to maps|other maps/);
-  expect(upTo(3310).text("cycle",166)).not.toMatch(/last story step|Exits to maps|other maps/);
+  expect(b.textOnly(3,1,3)).not.toMatch(/story step that came with dialogue|Exits to maps|other maps/);
+  expect(upTo(3310).text("cycle",166)).not.toMatch(/story step that came with dialogue|Exits to maps|other maps/);
  });
 });
 

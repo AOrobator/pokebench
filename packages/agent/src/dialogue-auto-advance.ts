@@ -11,7 +11,7 @@ import {isCheckedPress,submittedButtons,type BeforePressCheck,type CheckedPressT
 import {toolSwitches} from "./play-config.js";
 import {speakerLabel} from "./dialogue-log.js";
 import {onScreen,type OnScreenObject} from "./script-line-presence.js";
-import {MESSAGE_WAITING} from "./navigation.js";
+import {MESSAGE_WAITING,elevationsMatch} from "./navigation.js";
 import {OPENED_LOCK_NOTE,STILL_LOCKED_NOTE,STILL_OPEN_NOTE,ignoredSteps,pressResult,pushbackPressResult,scriptMove} from "./press-result.js";
 import {BattleJournal,advanceBattle,battleEngaged,battlePage,levelUpListedPage,type BattleTextEntry,type BattleTextSource} from "./battle-text-auto-advance.js";
 
@@ -76,19 +76,52 @@ const WAIT_STOP:Readonly<Record<Wait,{stop:Stop;detail:string}>>={
 };
 
 interface Speaker {readonly name:string;readonly source:"name_prefix"|"faced_sprite"|"faced_target"}
-function faced(s:GameStateSnapshot):Speaker|null {
+// navigation-truth-v1: map-local ids of listed objects on (x,y) at an elevation the player's does not match
+// (GetObjectEventIdByPosition skips them, so pressing A there does not face them).
+function elsewhere(s:GameStateSnapshot,x:number,y:number):ReadonlySet<number> {
+ const elevation=s.navigation_grid?.elevation??s.map_grid?.elevation;
+ if(elevation==null)return new Set();
+ return new Set((s.interaction_targets??[]).filter(t=>t.kind==="object"&&t.x===x&&t.y===y&&t.local_id!=null&&!elevationsMatch(t.elevation,elevation)).flatMap(t=>t.local_id==null?[]:[t.local_id]));
+}
+function faced(s:GameStateSnapshot,truth=false):Speaker|null {
  const step=s.facing===null?undefined:STEP[s.facing.toLowerCase()];
  if(s.position===null||step===undefined)return null;
  const x=s.position.x+step[0],y=s.position.y+step[1];
- const target=(s.interaction_targets??[]).find(t=>t.x===x&&t.y===y&&t.name!=null);
+ const skip=truth?elsewhere(s,x,y):new Set<number>();
+ const target=(s.interaction_targets??[]).find(t=>t.x===x&&t.y===y&&t.name!=null&&!(t.kind==="object"&&t.local_id!=null&&skip.has(t.local_id)));
  if(target?.name!=null)return {name:target.name,source:target.kind==="object"?"faced_sprite":"faced_target"};
- const sprite=s.world_context?.objects.find(o=>o.x===x&&o.y===y)?.sprite_kind;
+ const sprite=s.world_context?.objects.find(o=>o.x===x&&o.y===y&&!skip.has(o.local_id))?.sprite_kind;
  return sprite==null?null:{name:sprite,source:"faced_sprite"};
 }
 function speakerOf(text:string,s:GameStateSnapshot):Speaker|null {
  const named=NAME_PREFIX.exec(text)?.[1];
  return named===undefined?faced(s):{name:named,source:"name_prefix"};
 }
+// navigation-truth-v1: the object the player faces, so a speaker the game named stays named while it talks on.
+// An object is keyed by its map-local id and map, so the same object keeps its key when it moves.
+function facedKey(s:GameStateSnapshot):string|null {
+ const step=s.facing===null?undefined:STEP[s.facing.toLowerCase()];
+ if(s.position===null||step===undefined)return null;
+ const x=s.position.x+step[0],y=s.position.y+step[1];
+ const skip=elsewhere(s,x,y);
+ const live=s.world_context?.objects.find(o=>o.x===x&&o.y===y&&!skip.has(o.local_id));
+ if(live!==undefined)return `object ${String(live.local_id)} on ${live.map_id.join("/")}`;
+ const target=(s.interaction_targets??[]).find(t=>t.x===x&&t.y===y&&!(t.kind==="object"&&t.local_id!=null&&skip.has(t.local_id)));
+ if(target===undefined)return null;
+ return target.kind==="object"&&target.local_id!==null&&s.map_id!==null?`object ${String(target.local_id)} on ${s.map_id.join("/")}`:`${target.kind} at ${String(x)},${String(y)}`;
+}
+// Lines that narrate the player's own action ({PLAYER} received/obtained/put ... in pokeemerald's text) have no speaker.
+const NARRATION=new Set(["received","obtained","found","got","put","handed","used","wrote","booted","flashed","turned","took","registered","inserted","chose","picked","placed","planted","watered","switched","stepped","saved","returned","removed","memorized","flipped","exchanged","closed","checked","left"]);
+function narrates(text:string,player:string|null):boolean {
+ if(player===null||player===""||!text.startsWith(`${player} `))return false;
+ // A page in a character's own voice is not narration ("{PLAYER} turned me down…", apprentice.inc). None of the
+ // 104 pokeemerald pages that start with {PLAYER} and one of these verbs uses first or second person.
+ const body=text.slice(player.length+1);
+ // Only the page after the name: a player may be named "I" or "ME".
+ if(PERSONAL.test(body))return false;
+ return NARRATION.has(body.split(/[\s!.,]/,1)[0]??"");
+}
+const PERSONAL=/\b(?:I|I'm|I've|I'll|I'd|me|my|mine|myself|we|we're|us|our|you|you're|your|yours)\b/i;
 
 // Pages are cut from the game's own message buffer at the printer's cursor when
 // each page reaches a wait phase; a closed message contributes its remainder.
@@ -96,9 +129,10 @@ function speakerOf(text:string,s:GameStateSnapshot):Speaker|null {
 interface OpenMessage {readonly text:string;readonly offset:number;readonly cursor:number}
 class Pages {
  readonly pages:DialoguePage[]=[];
- private opened=false;private id:string|null=null;private text="";private offset=0;private cursor=0;private speaker:Speaker|null=null;private last:GameStateSnapshot|null=null;
+ private opened=false;private id:string|null=null;private text="";private offset=0;private cursor=0;private speaker:Speaker|null=null;private last:GameStateSnapshot|null=null;private namedFace:string|null=null;
  // script-line-presence-v1: who is on screen, recorded on a page with no speaker; null when the switch is off.
- constructor(private readonly record:(s:GameStateSnapshot)=>Recorded,private readonly open:OpenMessage|null=null,private readonly present:((s:GameStateSnapshot)=>OnScreenObject[]|null)|null=null){}
+ // navigation-truth-v1: whole pages (a scroll prompt is not a page end) and speakers kept across a conversation.
+ constructor(private readonly record:(s:GameStateSnapshot)=>Recorded,private readonly open:OpenMessage|null=null,private readonly present:((s:GameStateSnapshot)=>OnScreenObject[]|null)|null=null,private readonly truth=false){}
  // A page already waiting when the call begins is recorded now unless an earlier call recorded it.
  prime(s:GameStateSnapshot):void {
   this.see(s);
@@ -114,10 +148,16 @@ class Pages {
   if(!same){
    if(this.last!==null)this.flush(this.last);
    const resume=!this.opened&&this.open?.text===text;
-   this.opened=true;this.text=text;this.offset=resume?this.open.offset:0;this.cursor=resume?this.open.cursor:0;this.speaker=speakerOf(text,s)??this.speaker;this.id=null;
+   this.opened=true;this.text=text;this.offset=resume?this.open.offset:0;this.cursor=resume?this.open.cursor:0;this.speaker=this.truth?this.speakerFor(text,s):speakerOf(text,s)??this.speaker;this.id=null;
   }
   if(id!==null)this.id=id;
   this.last=s;
+ }
+ private speakerFor(text:string,s:GameStateSnapshot):Speaker|null {
+  const named=NAME_PREFIX.exec(text)?.[1],face=facedKey(s);
+  if(named!==undefined){this.namedFace=face;return {name:named,source:"name_prefix"};}
+  if(this.speaker?.source==="name_prefix")return face!==null&&face===this.namedFace?this.speaker:faced(s,true);
+  return faced(s,true)??this.speaker;
  }
  openAt(s:GameStateSnapshot):OpenMessage|null {
   return this.opened&&s.world_context?.dialogue===this.text?{text:this.text,offset:this.offset,cursor:this.cursor}:null;
@@ -127,6 +167,8 @@ class Pages {
   // The same message shown again from its start (an endless or repeated script line).
   if(m.cursor<this.cursor){this.offset=0;}
   this.cursor=m.cursor;
+  // pokeemerald RENDER_STATE_SCROLL_START (\l): the box scrolls one line and the page goes on.
+  if(this.truth&&m.phase==="scroll_wait")return;
   const end=this.end(m.phase,m.cursor);
   if(end>this.offset){this.add(this.text.slice(this.offset,end),s);this.offset=end;}
  }
@@ -149,8 +191,9 @@ class Pages {
  private add(raw:string,s:GameStateSnapshot):void {
   const text=raw.trim();
   if(text==="")return;
-  const presence=this.speaker===null&&this.present!==null?{on_screen:this.present(s)}:{};
-  this.pages.push({state_seq:this.record(s).seq,map:s.location,...(s.location_display===undefined?{}:{map_display:s.location_display}),map_id:s.map_id,position:s.position,speaker:this.speaker?.name??null,speaker_source:this.speaker?.source??null,text,...presence});
+  const speaker=this.truth&&narrates(text,s.name)?null:this.speaker;
+  const presence=speaker===null&&this.present!==null?{on_screen:this.present(s)}:{};
+  this.pages.push({state_seq:this.record(s).seq,map:s.location,...(s.location_display===undefined?{}:{map_display:s.location_display}),map_id:s.map_id,position:s.position,speaker:speaker?.name??null,speaker_source:speaker?.source??null,text,...presence});
  }
 }
 
@@ -306,6 +349,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
  const full:Required<AutoAdvancePorts>={...ports,clock:ports.clock??realClock};
  const switches=toolSwitches(features);
  const record=(s:GameStateSnapshot):Recorded=>full.recorder.recordState(s);
+ const truth=features["navigation-truth-v1"];
  const present=features["script-line-presence-v1"]?(s:GameStateSnapshot)=>onScreen(s,features["character-presence-v1"]):null;
  const autoPress=(id:string)=>(signal?:AbortSignal)=>press.execute(id,{buttons:["B"]},signal);
  // battle-text-auto-advance-v1: the server's battle wait and page journal; the journal cursor carries across calls.
@@ -328,7 +372,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
   const plan=submittedButtons(params.buttons,before,switches);
   const walking=params.walking===undefined?{}:{walking:params.walking};
   const run=(buttons:Button[],first:boolean)=>first&&check!==undefined?press.executeChecked(id,{buttons,...walking},check,signal,update):press.execute(id,{buttons,...walking},signal,update);
-  const pages=new Pages(record,open,present);if(before!==undefined)pages.prime(before);
+  const pages=new Pages(record,open,present,truth);if(before!==undefined)pages.prime(before);
   const shownBefore=pages.pages.length>0;
   // A batch that starts inside a conversation stops after its first input: the next inputs could land on a
   // YES/NO (B answers NO) or a locked script. Without a read, a message the last call left open counts.
@@ -382,7 +426,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
    const result=await tool.execute(id,params,signal,update);
    const state=stateOf(result);
    if(!dialogueEngaged(state)&&!(battle!==null&&battleEngaged(state)))return result;
-   const pages=new Pages(record,open,present);
+   const pages=new Pages(record,open,present,truth);
    const outcome=await drive(state,pages,autoPress(id),full,battle,signal);
    open=pages.openAt(outcome.state);
    const done=await finish(id,"navigate_to",outcome,pages,[],[],[],began,signal);

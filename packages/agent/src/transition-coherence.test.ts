@@ -18,8 +18,8 @@ it("registers a default-off observation switch with no dependency, recorded last
   expect(description).toContain("field_transition");
   expect(description).toContain("Save-backed world state unavailable");
   expect(description).toContain("both arms");
-  expect(SWITCHABLE_FEATURES.at(-4)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON, null).at(-4)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-7)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON, null).at(-7)).toBe(ID);
   expect(playHarnessFeatures(off(ID), null)).not.toContain(ID);
   expect(featuresOf(playHarnessFeatures(off(ID), null))[ID]).toBe(false);
   // A correctness fix meant for both arms of the bundle, whatever their battle readout switches.
@@ -27,7 +27,7 @@ it("registers a default-off observation switch with no dependency, recorded last
 });
 
 it("hands the switch to the game server, which owns the decoding", () => {
-  expect(SERVER_FEATURES.at(-4)).toBe(ID);
+  expect(SERVER_FEATURES.at(-5)).toBe(ID);
   expect(serverFeatureEnv(off(ID)).POKEBENCH_FEATURES_OFF).toBe(ID);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("");
   const readout = readFileSync(new URL("../../../env/pokebench_env/readout.py", import.meta.url), "utf8");

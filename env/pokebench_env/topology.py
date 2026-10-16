@@ -12,6 +12,7 @@ collision, MAPGRID_UNDEFINED, an edge wall on the crossed side or an elevation m
 """
 
 import struct
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -83,11 +84,14 @@ class Connection:
             body["edges"] = [{"x": x, "y": y} for x, y in self.edges]
         return body
 
-    def line(self) -> str:
+    def line(self, note: str | None = None) -> str:
         head = (
             f"- {self.direction} -> {self.destination_name} "
             f"(map {self.destination[0]}/{self.destination[1]}), offset {self.offset}; "
         )
+        # surf-gated-exits-v1: an edge only reachable across water says so instead of how to cross.
+        if note is not None:
+            return head + note
         if self.direction not in STEPS:
             return head + "requires the corresponding field ability"
         if self.edges is None:
@@ -139,12 +143,14 @@ class Topology:
             "connections": tuple(c.json() for c in self.connections),
         }
 
-    def text(self) -> str:
+    def text(self, notes: Mapping[str, str] | None = None) -> str:
         lines = [f"Current map bounds: X=0..{self.width - 1}, Y=0..{self.height - 1}"]
         lines.append(
             "Map connections (game-defined; terrain and story conditions may block passage):"
         )
-        lines.extend(c.line() for c in self.connections)
+        lines.extend(
+            c.line(None if notes is None else notes.get(c.direction)) for c in self.connections
+        )
         if not self.connections:
             lines.append("- none defined; inspect doors/warps instead")
         return "\n".join(lines)
@@ -170,8 +176,14 @@ def _destination_size(read: ReadMemory, group: int, number: int) -> tuple[int, i
 
 
 def _edges(
-    read: ReadMemory, direction: str, offset: int, destination: tuple[int, int]
+    read: ReadMemory,
+    direction: str,
+    offset: int,
+    destination: tuple[int, int],
+    *,
+    water: bool = False,
 ) -> tuple[Tile, ...] | None:
+    """Edge tiles a player can cross; with water, also surfing ones (surf-gated-exits-v1)."""
     layout = _layout(read)
     size = _destination_size(read, *destination)
     if layout is None or size is None:
@@ -202,15 +214,21 @@ def _edges(
         if not 0 <= along - offset < span:
             continue
         here, beyond = block(x, y), block(x + dx, y + dy)
+        # Surfing onto or off water changes height: a crossing that touches water skips that check.
+        wet = water and (here[3] in SURFABLE or beyond[3] in SURFABLE)
         if (
             MAPGRID_UNDEFINED in (here[0], beyond[0])
             or here[1]
             or beyond[1]
-            or here[3] in SURFABLE
-            or beyond[3] in SURFABLE
+            or (not wet and (here[3] in SURFABLE or beyond[3] in SURFABLE))
             or leaving in EDGE_WALLS.get(here[3], ())
             or entering in EDGE_WALLS.get(beyond[3], ())
-            or (here[2] not in (0, 15) and beyond[2] not in (0, 15) and here[2] != beyond[2])
+            or (
+                not wet
+                and here[2] not in (0, 15)
+                and beyond[2] not in (0, 15)
+                and here[2] != beyond[2]
+            )
         ):
             continue
         found.append((x, y))

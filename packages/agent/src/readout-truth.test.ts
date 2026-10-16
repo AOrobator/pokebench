@@ -9,8 +9,8 @@ const IDS = ["readout-truth-v1", "birch-speech-pages-v1", "blackout-readout-v1"]
 const off = (...ids: (typeof SWITCHABLE_FEATURES)[number][]): FeatureSet => ({ ...ALL_ON, ...Object.fromEntries(ids.map((id) => [id, false])) });
 
 it("registers three default-off observation switches with no dependency, recorded last in this order", () => {
-  expect(SWITCHABLE_FEATURES.slice(-3)).toEqual([...IDS]);
-  expect(playHarnessFeatures(ALL_ON, null).slice(-3)).toEqual([...IDS]);
+  expect(SWITCHABLE_FEATURES.slice(-6,-3)).toEqual([...IDS]);
+  expect(playHarnessFeatures(ALL_ON, null).slice(-6,-3)).toEqual([...IDS]);
   for (const id of IDS) {
     expect(featureInfo(id)).toMatchObject({ group: "observation", needs: null, switchable: true });
     expect(featureInfo(id).description).toContain(" Off: ");
@@ -58,12 +58,12 @@ it("states each switch's intended arms and the whiteout frame scope (operator de
 });
 
 it("hands all three to the game server, whose list and default-off set name them", () => {
-  expect(SERVER_FEATURES.slice(-3)).toEqual([...IDS]);
+  expect(SERVER_FEATURES.slice(-4,-1)).toEqual([...IDS]);
   for (const id of IDS) expect(serverFeatureEnv(off(id)).POKEBENCH_FEATURES_OFF).toBe(id);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("");
   const readout = readFileSync(new URL("../../../env/pokebench_env/readout.py", import.meta.url), "utf8");
-  expect(readout).toContain('    "transition-coherence-v1",\n    "readout-truth-v1",\n    "birch-speech-pages-v1",\n    "blackout-readout-v1",\n)');
-  expect(readout).toContain('"readout-truth-v1,birch-speech-pages-v1,blackout-readout-v1"');
+  expect(readout).toContain('    "transition-coherence-v1",\n    "readout-truth-v1",\n    "birch-speech-pages-v1",\n    "blackout-readout-v1",\n');
+  expect(readout).toContain('"readout-truth-v1,birch-speech-pages-v1,blackout-readout-v1,"');
 });
 
 it("defaults OFF for presets that omit them and for legacy flag presets, so recorded presets keep today's readout", () => {

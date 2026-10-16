@@ -5971,6 +5971,42 @@
             }
           ]
         },
+        "route103_rival": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "battle_active",
+                "defeated",
+                "oldale_stage"
+              ],
+              "properties": {
+                "battle_active": {
+                  "type": "boolean"
+                },
+                "defeated": {
+                  "type": "boolean"
+                },
+                "oldale_stage": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "blackout_active": {
           "anyOf": [
             {

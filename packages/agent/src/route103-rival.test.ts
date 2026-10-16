@@ -4,6 +4,7 @@ import type { RunEvent } from "./events.js";
 import { parseGameState } from "./game-state.js";
 import { featureInfo, playHarnessFeatures, ALL_ON } from "./features.js";
 import { MEASUREMENT_ONLY_MILESTONES, MILESTONES, StateMilestones, qualifiedNativeMilestone } from "./milestones.js";
+import { requireRoute103Field } from "./recorder.js";
 
 const story={name_confirmed:true,intro_stage:7,rival_stage:3,birch_lab_stage:3,petalburg_gym_stage:0,woods_stage:0,clock_set:true,rival_battle_won:false,pokedex_received:false,running_shoes_received:false,starter_tutorial_complete:false,rustboro_gym_complete:false,stone_badge:false,rock_tomb_received:false};
 const NEW=["RIVAL_BATTLE_STARTED","RIVAL_BATTLE_DEFEATED","RIVAL_OLDALE_SEND_OFF","ROUTE_101_AFTER_RIVAL_BATTLE","LITTLEROOT_AFTER_RIVAL_BATTLE"];
@@ -11,7 +12,7 @@ type Rival={battle_active:boolean;defeated:boolean;oldale_stage:number|null};
 const rival=(r:Partial<Rival>={}):Rival=>({battle_active:false,defeated:false,oldale_stage:0,...r});
 const state=(location:string,lab:number,r:Partial<Rival>={},extra:Partial<GameStateSnapshot>={}):GameStateSnapshot=>({screen:"overworld",started:true,name:"X",location,map_id:null,position:{x:1,y:1},facing:"DOWN",in_battle:false,party:[],money:3000,badges:[],play_time_s:1,story:{...story,birch_lab_stage:lab,rival_battle_won:lab>=4},route103_rival:rival(r),...extra});
 const events=(states:readonly GameStateSnapshot[]):(Extract<RunEvent,{type:"state"}>&GameStateSnapshot)[]=>states.map((s,i)=>({...s,type:"state",run:"r",seq:i+1,turn:1,v:1,t:"2026-10-16T03:00:00.000-04:00"}));
-const mark=(name:string,evidence:number[]):Extract<RunEvent,{type:"milestone"}>=>({type:"milestone",run:"r",seq:90,turn:1,v:1,t:"2026-10-16T03:00:00.000-04:00",name,kind:["RIVAL_BATTLE_STARTED","RIVAL_BATTLE_DEFEATED","RIVAL_OLDALE_SEND_OFF"].includes(name)?"story":"navigation",origin:"observed",evidence,server_timestamp:1});
+const mark=(name:string,evidence:number[]):Extract<RunEvent,{type:"milestone"}>=>({type:"milestone",run:"r",seq:90,turn:1,v:1,t:"2026-10-16T03:00:00.000-04:00",name,kind:["RIVAL_BATTLE_STARTED","RIVAL_BATTLE_DEFEATED","RIVAL_BATTLE_WON","RIVAL_OLDALE_SEND_OFF"].includes(name)?"story":"navigation",origin:"observed",evidence,server_timestamp:1});
 // The real return trip from the Route 103 rival, sampled like 2026-10-16T02-23-17_qwen36-gpu1_sh02.
 const trip=():GameStateSnapshot[]=>[
  state("ROUTE103",3),

@@ -347,6 +347,7 @@ export const StateBodySchema = Type.Object(
     party_ownership:Type.Optional(Type.Union([Type.Object({owner:NullableString,source:Type.String(),original_identities:Type.Array(Type.String(),{maxItems:6}),rental_personalities:Type.Array(NonNegativeInt,{maxItems:3}),diagnostic:NullableString,raw_hex:Type.Union([Type.String({maxLength:4096}),Type.Null()])},closed),Type.Null()])),
     battle:Type.Optional(Type.Union([BattleStateSchema,Type.Null()])),
     resources:Type.Optional(Type.Union([ResourcesSchema,Type.Null()])),
+    route103_rival:Type.Optional(Type.Union([Type.Object({battle_active:Type.Boolean(),defeated:Type.Boolean(),oldale_stage:Type.Union([Type.Integer({minimum:0,maximum:2}),Type.Null()])},closed),Type.Null()])),
     blackout_active:Type.Optional(Type.Union([Type.Boolean(),Type.Null()])),
     game_stats: Type.Optional(Type.Union([Type.Object({
       pokemon_captures:Type.Union([NonNegativeInt,Type.Null()]),

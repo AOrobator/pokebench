@@ -42,7 +42,7 @@ code { font-size:13px; }
 </table></div>
 <p>Each split fires once per run, at its first qualifying state. Loading and unknown screens are never used as evidence.</p>
 <p><b>Rival battle starts</b> marks reaching the battle, so it also counts a battle the player then loses. A rematch after a loss gives no second credit. Winning is <b>Rival beaten</b>, which the game sets only on a win (<code>CB2_EndTrainerBattle</code>).</p>
-<p>A run's furthest milestone can now be one of these splits. They sit between <code>RIVAL_BATTLE_WON</code> and <code>RECEIVED_POKEDEX</code>, so compare furthest milestones against older runs with that in mind.</p>
+<p>A run's furthest milestone can now be one of these splits. The two battle splits sit between <code>ROUTE_103</code> and <code>RIVAL_BATTLE_WON</code>, so a run that loses or stalls in the battle now reports <code>RIVAL_BATTLE_STARTED</code> where an older run would report <code>ROUTE_103</code>. The other three sit between <code>RIVAL_BATTLE_WON</code> and <code>RECEIVED_POKEDEX</code>. Compare furthest milestones against older runs with that in mind.</p>
 
 <h2>Where the data comes from</h2>
 <div class="card"><table>

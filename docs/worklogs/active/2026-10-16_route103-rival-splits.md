@@ -50,8 +50,9 @@ Operator ask (the operator, 2026-10-16 02:55 and 03:13 EDT; plan OK 03:44 EDT): 
 
 Branch claude/route103-review-notes. Claude-lane low/info notes from final round 1:
 - [x] Tracker witness requires a location, like the viewer (RED: route103-rival.test.ts null-location witness, 1 failing; GREEN: agent 1868 passed).
-- [x] Explainer: "Rival battle starts" also counts a battle the player then loses; a rematch after a loss gives no second credit; furthest_milestone can now name these splits (between RIVAL_BATTLE_WON and RECEIVED_POKEDEX); status updated to landed.
+- [x] Explainer: "Rival battle starts" also counts a battle the player then loses; a rematch after a loss gives no second credit; furthest_milestone can now name these splits (the two battle splits between ROUTE_103 and RIVAL_BATTLE_WON, the other three between RIVAL_BATTLE_WON and RECEIVED_POKEDEX); status updated to landed.
 - [x] Feature blurb names the defeat split "rival beaten" so it is not confused with RIVAL_BATTLE_WON.
 - Decision (PB9): crediting RIVAL_BATTLE_STARTED for a battle later lost is intended; it marks reaching the battle, and RIVAL_BATTLE_DEFEATED marks winning it.
 - Principles evidence (PB11): the opponent address rests on the sh02 raw-RAM transition (frame 148,843, 0→535 with the trainer bit), the ROM literal-pool count is supporting only.
 - Gates (with .env): agent 1868, viewer 932, pytest 2313 passed; coverage agent 97.99/94.69/98.4, viewer 95.33/91.09/93.68, Python 97.37/93.23/100; lint, ruff, mypy clean; pages-check clean.
+- Review round 1: Claude subagent BLOCKING (medium): the explainer put all five splits after RIVAL_BATTLE_WON; the two battle splits come before it. Fixed in the explainer and this note; code unchanged.

@@ -91,7 +91,9 @@
    "script-line-presence-v1": false,
    "offscreen-objects-v1": false,
    "navigate-first-prompt-v1": false,
-   "presence-penalty-v1": false
+   "presence-penalty-v1": false,
+   "disproved-beliefs-v1": false,
+   "same-plan-breaker-v1": false
   }
  },
  "switches": [
@@ -119,7 +121,9 @@
   "script-line-presence-v1",
   "offscreen-objects-v1",
   "navigate-first-prompt-v1",
-  "presence-penalty-v1"
+  "presence-penalty-v1",
+  "disproved-beliefs-v1",
+  "same-plan-breaker-v1"
  ],
  "offInBoth": [
   "milestone-stall-stop-v1"

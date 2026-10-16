@@ -62,7 +62,7 @@ code{font:13px ui-monospace,Menlo,monospace;overflow-wrap:anywhere}
 <text x="650" y="124" class="nt">first match wins (same grid the planner used)</text>
 <text x="650" y="152" class="ns">0. counter-talk-v1 on and a counter is involved → counter hint (unchanged)</text>
 <text x="650" y="178" class="ns">1. x ≥ width or y ≥ height → outside this map, with its bounds</text>
-<text x="650" y="204" class="ns">2. target is a listed warp → generic text</text>
+<text x="650" y="204" class="ns">2. target is a listed warp → who stands on it, or the door's entry tile (below)</text>
 <g class="node hot"><rect x="440" y="218" width="420" height="58" rx="8"/></g>
 <text x="650" y="240" class="nt">3. a person/object on it, or an A-target on a solid tile</text>
 <text x="650" y="262" class="ns">→ name it; list free reachable neighbours with facing</text>
@@ -112,6 +112,25 @@ code{font:13px ui-monospace,Menlo,monospace;overflow-wrap:anywhere}
 </table><p class="cap">Then: "…, not a walkable tile; the nearest walkable tile navigate_to can reach is (x,y)", searching every tile within 3 steps, nearest first, then top to bottom, left to right. None: "no walkable tile navigate_to can reach lies within 3 steps of it".</p></div>
 </div>
 
+<h2>Warp targets (pre-launch fix F7, bundle run 3f21)</h2>
+<p>Before this fix a warp target always got the generic line. In bundle qualification run <code>2026-10-15T23-47-41_qwen36-gpu1_3f21</code> that cost about eight turns: the lab door and an exit with MOM standing on it were both reachable, but the model was told only "no supported local path" and walked into walls (7,15) and (7,14).</p>
+<div class="card scroll"><svg viewBox="0 0 560 330" role="img" aria-label="Littleroot around the lab door at T107: the local window ends at row 16, the door's only entry tile (7,17) lies below it">
+<rect class="wall" x="200" y="20" width="240" height="160"/><text x="320" y="105" class="t" text-anchor="middle">Birch's lab (walls, rows 13–16)</text>
+<rect class="obj" x="280" y="140" width="40" height="40"/><text x="300" y="165" class="t" text-anchor="middle">door</text><text x="300" y="132" class="tm" text-anchor="middle">(7,16)</text>
+<rect class="goal" x="280" y="140" width="40" height="40"/>
+<line x1="0" y1="190" x2="560" y2="190" stroke="var(--accent2)" stroke-width="2" stroke-dasharray="7 5"/><text x="10" y="206" class="tm">local window edge: rows 2–16 from (5,9)</text>
+<rect class="floor" x="280" y="200" width="40" height="40" style="stroke-dasharray:4 3"/><rect class="stand" x="280" y="200" width="40" height="40"/><text x="300" y="256" class="tg" text-anchor="middle">(7,17) entry tile</text>
+<path d="M300 236 L300 186" stroke="var(--good)" stroke-width="3" marker-end="url(#g)"/><text x="330" y="226" class="t">walk UP into the door</text>
+<circle class="player" cx="120" cy="60" r="14"/><text x="120" y="92" class="tm" text-anchor="middle">player (5,9)</text>
+<text x="10" y="300" class="t">Recorded at T107 (seq 1956), T151 (2998), T153 (3028): the planner cannot reach (7,16) because (7,17) is not in its grid.</text>
+</svg></div>
+<p class="cap">pokeemerald <code>TryDoorWarp</code> starts a door warp only when the player walks north into an <code>MB_ANIMATED_DOOR</code> (0x69) tile, so the entry tile is always the one below. Positions and window from the recorded state of run <code>3f21</code>.</p>
+<div class="card"><table>
+<tr><th>Case (3f21)</th><th>Before</th><th>After</th></tr>
+<tr><td>Lab door (7,16) from (5,9), T107 seq 1956; also T151, T153</td><td><code>Navigation: no supported local path; choose a reachable local waypoint; 0 ordinary button attempts.</code></td><td><code>Navigation: (7,16) is a door to map 1/4; the game enters a door only when you walk UP into it from the tile below, (7,17), which is outside the local map navigate_to can see from here; call navigate_to (7,17) first, then navigate_to (7,16) again; 0 ordinary button attempts.</code></td></tr>
+<tr><td>House exit (9,8) with MOM on it, T57 seq 909; also T61 seq 960</td><td><code>Navigation: no supported local path; choose a reachable local waypoint; 0 ordinary button attempts.</code></td><td><code>Navigation: (9,8) is a warp to map 0/9, but MOM (person or object) is standing on it, so navigate_to cannot walk onto it; wait for it to move, or use another listed warp to map 0/9: (8,8); 0 ordinary button attempts.</code></td></tr>
+</table></div>
+<p class="cap">Other door cases: the entry tile has someone on it ("wait for it to move"), is below the map's last row, is not walkable, or is known but unreachable. A non-door warp with nobody on it still gets the generic text. Destinations are map ids from <code>interaction_targets</code>; the readout names them. Tests: <code>bundle-3f21-fixes.test.ts</code> (real states), <code>navigation-refusal-reasons.test.ts</code> (every branch). Off: unchanged, checked against the recorded text.</p>
 <h2>Every text, OFF and ON</h2>
 <div class="card scroll"><table>
 <tr><th>Case</th><th>OFF (unchanged)</th><th>ON</th></tr>

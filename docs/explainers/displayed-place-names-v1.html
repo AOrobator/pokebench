@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Displayed Place Names</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --bld:#d9d5ca; --ground:#eef0e6;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --bld:#3a3c40; --ground:#1f2420; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --bld:#3a3c40; --ground:#1f2420; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:740px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navb{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.bld{fill:var(--bld);stroke:var(--rule)}
+.ground{fill:var(--ground);stroke:var(--rule)}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.arr.g{stroke:var(--game)} .arr.p{stroke:var(--prior);stroke-dasharray:5 4}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tag{display:inline-block;font:500 .72rem var(--mono);border-radius:99px;padding:1px 8px;border:1px solid var(--rule);color:var(--soft)}
+</style>
+</head>
+<body>
+<main>
+<div>
+<div class="eyebrow">Harness switch · observation · <code>displayed-place-names-v1</code> · off by default</div>
+<h1>Displayed place names</h1>
+</div>
+<p class="lede">Signs and the Littleroot buildings they name used to be labelled from the game's source code: the script symbol <code>LittlerootTown_EventScript_MaysHouseSign</code> became <code>Mays House Sign</code>, and the map constant became <code>LITTLEROOT TOWN MAYS HOUSE 1F</code>. With this switch on they carry the text the game actually prints for this save. For a boy, the house next door is <code>PROF. BIRCH'S HOUSE</code>.</p>
+
+<section>
+<h2>Why it exists</h2>
+<p>Mom says Prof. Birch "lives right next door, so you should go over and introduce yourself". Nothing in the readout tied "Birch" to the house next door: the only Birch-named thing in town was <code>Birchs Lab Sign</code>, and the house was <code>Mays House</code>. Both qualification runs (control <code>…_2919</code>, bundle <code>…_3f21</code>) walked to the lab instead. Forensics: <code>runs/reviews/2026-10-16-qualification-forensics/control-2919.md</code> bug 3, <code>bundle-3f21.md</code> bug 1.</p>
+</section>
+
+<section>
+<h2>Littleroot, off and on</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 760 330" width="760" role="img" aria-label="Littleroot signs and doors with their labels off and on, male save">
+<rect x="20" y="20" width="300" height="300" class="ground"/>
+<text x="20" y="14" class="s">Littleroot Town, 20×20 tiles (15 px per tile)</text>
+<rect x="50" y="95" width="90" height="60" class="bld"/><text x="58" y="115" class="s">player's house</text>
+<rect x="200" y="95" width="90" height="60" class="bld"/><text x="208" y="115" class="s">next door</text>
+<rect x="65" y="215" width="105" height="60" class="bld"/><text x="73" y="235" class="s">lab</text>
+<rect x="95" y="140" width="15" height="15" class="navb"/><text x="97" y="151" class="m">W</text>
+<rect x="230" y="140" width="15" height="15" class="navb hot"/><text x="232" y="151" class="m">W</text>
+<rect x="125" y="260" width="15" height="15" class="navb"/><text x="127" y="271" class="m">W</text>
+<rect x="125" y="140" width="15" height="15" class="box"/><text x="127" y="151" class="m">S</text>
+<rect x="200" y="140" width="15" height="15" class="box hot"/><text x="202" y="151" class="m">S</text>
+<rect x="110" y="275" width="15" height="15" class="box"/><text x="112" y="286" class="m">S</text>
+<text x="340" y="36" class="t">OFF (today): from source symbols</text>
+<rect x="336" y="44" width="410" height="96" rx="6" class="prior"/>
+<text x="344" y="62" class="m">S (12,8)  Mays House Sign</text>
+<text x="344" y="80" class="m">W (14,8)  LITTLEROOT TOWN MAYS HOUSE 1F</text>
+<text x="344" y="98" class="m">S (7,8)   Brendans House Sign</text>
+<text x="344" y="116" class="m">S (6,17)  Birchs Lab Sign</text>
+<text x="344" y="134" class="m">W (7,16)  LITTLEROOT TOWN PROFESSOR BIRCHS LAB</text>
+<text x="340" y="170" class="t">ON: what the game prints (boy named AAA)</text>
+<rect x="336" y="178" width="410" height="96" rx="6" class="game"/>
+<text x="344" y="196" class="m">S (12,8)  Sign text "PROF. BIRCH'S HOUSE"</text>
+<text x="344" y="214" class="m">W (14,8)  PROF. BIRCH'S HOUSE 1F</text>
+<text x="344" y="232" class="m">S (7,8)   Sign text "AAA's HOUSE"</text>
+<text x="344" y="250" class="m">S (6,17)  Sign text "PROF. BIRCH'S POKéMON LAB"</text>
+<text x="344" y="268" class="m">W (7,16)  PROF. BIRCH'S POKéMON LAB</text>
+<text x="340" y="296" class="s">Red: the sign and door next door. Coordinates are exact;</text>
+<text x="340" y="310" class="s">building outlines are approximate.</text>
+</svg>
+</div>
+<figcaption>One claim: on, the sign and the door next door both say Birch, which is what the game shows a boy who reads the sign.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>Exact readout from the real game</h2>
+<p>Recorded probes from the fast-text CLOCK_SET save, player AAA (boy): down the stairs, through Mom's TV scene and her "next door" line, out of the front door. Same presses in both runs. Everything else in the readout was identical except the play-time clock.</p>
+<pre>OFF  runs/2026-10-16T01-15-26_probe_1094 seq 166
+Warps: (5,8) -&gt; LITTLEROOT TOWN BRENDANS HOUSE 1F (map 1/0) [door: approach from below and press UP toward door]
+Warp to LITTLEROOT TOWN MAYS HOUSE 1F (map 1/2) at (14,8), elevation 0; movement; activation depends on metatile (see local map); conditional; destination LITTLEROOT TOWN MAYS HOUSE 1F (map 1/2) warp 1
+Warp to LITTLEROOT TOWN BRENDANS HOUSE 1F (map 1/0) at (5,8), …; destination LITTLEROOT TOWN BRENDANS HOUSE 1F (map 1/0) warp 1
+Warp to LITTLEROOT TOWN PROFESSOR BIRCHS LAB (map 1/4) at (7,16), …; destination LITTLEROOT TOWN PROFESSOR BIRCHS LAB (map 1/4) warp 0
+Town Sign at (15,13), elevation 0; A; conditional
+Birchs Lab Sign at (6,17), elevation 0; A; conditional
+Brendans House Sign at (7,8), elevation 3; A; conditional
+Mays House Sign at (12,8), elevation 3; A; conditional
+Warp destination at (14,8): LITTLEROOT TOWN MAYS HOUSE 1F
+
+ON   runs/2026-10-16T01-13-43_probe_6aac seq 163
+Warps: (5,8) -&gt; AAA's HOUSE 1F (map 1/0) [door: approach from below and press UP toward door]
+Warp to PROF. BIRCH'S HOUSE 1F (map 1/2) at (14,8), elevation 0; movement; activation depends on metatile (see local map); conditional; destination PROF. BIRCH'S HOUSE 1F (map 1/2) warp 1
+Warp to AAA's HOUSE 1F (map 1/0) at (5,8), …; destination AAA's HOUSE 1F (map 1/0) warp 1
+Warp to PROF. BIRCH'S POKéMON LAB (map 1/4) at (7,16), …; destination PROF. BIRCH'S POKéMON LAB (map 1/4) warp 0
+Sign text "LITTLEROOT TOWN | “A town that can't be shaded any hue.”" at (15,13), elevation 0; A; conditional
+Sign text "PROF. BIRCH'S POKéMON LAB" at (6,17), elevation 0; A; conditional
+Sign text "AAA's HOUSE" at (7,8), elevation 3; A; conditional
+Sign text "PROF. BIRCH'S HOUSE" at (12,8), elevation 3; A; conditional
+Warp destination at (14,8): PROF. BIRCH'S HOUSE 1F
+
+Same ON run, seq 203: standing at (12,9) facing the sign and pressing A, the game shows
+Dialog: "PROF. BIRCH'S HOUSE"</pre>
+<p>The lines above are as the bundle arm (named interactions, named warp destinations, world destinations all on) receives them. The control arm has named warp destinations and world destinations off, so its warps stay <code>Warp to map 1/2 at (14,8)</code>; only its four sign lines change (checked by re-rendering the same raw RAM). Inside the houses the Location line follows: <code>Location: AAA's HOUSE 2F</code> in the bedroom.</p>
+</section>
+
+<section>
+<h2>How the text is read</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 250" width="700" role="img" aria-label="Sign script bytes and the gender branch">
+<rect x="10" y="20" width="200" height="56" rx="6" class="box"/>
+<text x="20" y="42" class="t">background event</text>
+<text x="20" y="62" class="m">(12,8) script 0x081E… (ROM)</text>
+<rect x="250" y="10" width="440" height="76" rx="6" class="navb"/>
+<text x="260" y="30" class="t">accepted script shapes (exact bytes)</text>
+<text x="260" y="50" class="m">msgbox T, MSGBOX_SIGN; end   = 0F 00 T 09 03 02</text>
+<text x="260" y="70" class="m">lockall; checkplayergender; 2× call_if_eq …; releaseall; end</text>
+<path d="M210 48 L250 48" class="arr"/>
+<rect x="250" y="110" width="210" height="60" rx="6" class="game"/>
+<text x="260" y="130" class="t">SaveBlock2+0x08 = 0 (MALE)</text>
+<text x="260" y="150" class="m">→ BirchsHouseSignMale sub</text>
+<rect x="480" y="110" width="210" height="60" rx="6" class="box"/>
+<text x="490" y="130" class="t">= 1 (FEMALE)</text>
+<text x="490" y="150" class="m">→ PlayersHouseSignFemale sub</text>
+<path d="M470 86 L360 110" class="arr g"/><path d="M470 86 L585 110" class="arr"/>
+<rect x="250" y="190" width="440" height="50" rx="6" class="game"/>
+<text x="260" y="210" class="m">sub = 0F 00 T 09 04 03; decode T from ROM; {PLAYER} (FD 01) = saved name</text>
+<text x="260" y="228" class="m">T = "PROF. BIRCH'S HOUSE"</text>
+<path d="M360 170 L360 190" class="arr g"/>
+</svg>
+</div>
+<figcaption>The label is whatever text the script at the event's own pointer prints for this save. Anything else keeps today's label.</figcaption>
+</figure>
+<table>
+<tr><th>Thing</th><th>Source (pret/pokeemerald 731ad5b)</th><th>Value used</th></tr>
+<tr><td>Gender sign scripts</td><td><code>data/maps/LittlerootTown/scripts.inc</code> 386–416</td><td>MaysHouseSign: MALE → ProfBirchsHouse, FEMALE → PlayersHouse; BrendansHouseSign the reverse</td></tr>
+<tr><td>Sign texts</td><td>same file 939–950</td><td>"PROF. BIRCH'S POKéMON LAB", "{PLAYER}'s HOUSE", "PROF. BIRCH'S HOUSE"</td></tr>
+<tr><td>Opcodes</td><td><code>data/script_cmd_table.inc</code>, <code>asm/macros/event.inc</code></td><td>end 02, return 03, call_if 07, callstd 09, loadword 0F, compare_var_to_value 21, lockall 69, releaseall 6B, checkplayergender A0; MSGBOX_SIGN 3, MSGBOX_DEFAULT 4; VAR_RESULT 0x800D</td></tr>
+<tr><td>Player gender</td><td><code>include/global.h</code> struct SaveBlock2</td><td>offset 0x08; MALE 0, FEMALE 1; anything else = unknown, nothing changes</td></tr>
+<tr><td>Buildings</td><td>map constants of the Littleroot indoor group</td><td>BRENDANS_HOUSE 1F/2F, MAYS_HOUSE 1F/2F, PROFESSOR_BIRCHS_LAB take their sign's text for this gender, plus the floor</td></tr>
+</table>
+<p>Lines inside one text box are joined with <code> | </code>, as the dialogue readout does. A verified catalog name that is not a sign (Notebook, GameCube, Wall clock, PC, lab Book/Bookshelf/Machine) keeps its name. Signs with no catalog identity, such as the Route 101 sign, now get their text too: re-rendering run <code>…_c406</code>'s raw RAM on Route 101 turns <code>background (identity unavailable) at (5,9)</code> into <code>Sign text "ROUTE 101 | ↑ OLDALE TOWN" at (5,9)</code>.</p>
+</section>
+
+<section>
+<h2>Girl's save</h2>
+<table>
+<tr><th>Map</th><th>Boy (name AAA)</th><th>Girl (name MAY)</th></tr>
+<tr><td>BRENDANS HOUSE 1F / 2F</td><td>AAA's HOUSE 1F / 2F</td><td>PROF. BIRCH'S HOUSE 1F / 2F</td></tr>
+<tr><td>MAYS HOUSE 1F / 2F</td><td>PROF. BIRCH'S HOUSE 1F / 2F</td><td>MAY's HOUSE 1F / 2F</td></tr>
+<tr><td>PROFESSOR BIRCHS LAB</td><td colspan="2">PROF. BIRCH'S POKéMON LAB</td></tr>
+</table>
+</section>
+
+<section>
+<h2>Wiring</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 120" width="700" role="img" aria-label="How the switch reaches the readout">
+<rect x="10" y="30" width="150" height="54" rx="6" class="box"/><text x="20" y="52" class="t">FeatureSet</text><text x="20" y="72" class="m">serverFeatureEnv</text>
+<rect x="190" y="30" width="150" height="54" rx="6" class="box"/><text x="200" y="52" class="t">game server</text><text x="200" y="72" class="m">POKEBENCH_FEATURES_OFF</text>
+<rect x="370" y="30" width="150" height="54" rx="6" class="game hot"/><text x="380" y="52" class="t">read_game_state</text><text x="380" y="72" class="m">displayed_names_enabled</text>
+<rect x="550" y="30" width="140" height="54" rx="6" class="box"/><text x="560" y="52" class="t">readout + JSON</text><text x="560" y="72" class="m">target name</text>
+<path d="M160 57 L190 57" class="arr"/><path d="M340 57 L370 57" class="arr"/><path d="M520 57 L550 57" class="arr"/>
+<text x="370" y="108" class="s">Off: gender is never read and nothing changes.</text>
+</svg>
+</div>
+<figcaption>The highlighted box is the only place behavior changes. The sign label also reaches the loop supervisor's lists through the JSON target name; the JSON <code>location</code> (which milestones read) is unchanged.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>Not changed (audit of the CLOCK_SET → RIVAL_MET → early-route path)</h2>
+<table>
+<tr><th>Name the model sees</th><th>What the game shows</th><th>Status</th></tr>
+<tr><td>Press results, supervisor and dialogue-log room names inside the houses: <code>LITTLEROOT TOWN MAYS HOUSE 1F [map 1/2]</code></td><td>no on-screen name (interiors have no map popup)</td><td>unchanged: they read the JSON location, which milestones depend on. The map ID ties them to the readout's Location.</td></tr>
+<tr><td>Route Location and connections: <code>ROUTE101</code></td><td>map popup "ROUTE 101"</td><td>unchanged, cosmetic</td></tr>
+<tr><td><code>OLDALE TOWN POKEMON CENTER 1F</code>, <code>OLDALE TOWN MART</code></td><td>signs: "POKéMON CENTER", "POKéMON MART" (their sign lines now carry that text)</td><td>building names unchanged, not misleading</td></tr>
+<tr><td><code>OLDALE TOWN HOUSE1</code>, <code>HOUSE2</code></td><td>never named</td><td>unchanged</td></tr>
+<tr><td>Sprite kinds (<code>TWIN</code>, <code>FAT_MAN</code>, the rival's mother <code>WOMAN_4</code>)</td><td>no names</td><td>unchanged; already labelled as sprite kinds</td></tr>
+</table>
+</section>
+
+<section>
+<h2>Status</h2>
+<p>Branch <code>claude/displayed-place-names</code>, unmerged. Python and TypeScript tests, OFF goldens rendered by the previous commit, and the real-ROM probes above. Oldale, Route 102 and Route 103 signs use the same single-text shape but no recorded run has reached them, so they are shape-checked, not seen on the real ROM. No measured runs; the experiment entry is pending.</p>
+</section>
+</main>
+</body>
+</html>

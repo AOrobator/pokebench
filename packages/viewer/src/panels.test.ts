@@ -634,6 +634,7 @@ it("links the named warp destinations card to its explainer",()=>{
  expect(FEATURE_EXPLAINERS["character-presence-v1"]).toBe("character-presence-v1.html");
  expect(FEATURE_EXPLAINERS["dialogue-auto-advance-v1"]).toBe("dialogue-auto-advance-v1.html");
  expect(FEATURE_EXPLAINERS["dialogue-context-kept-v1"]).toBe("dialogue-context-kept-v1.html");
+ expect(FEATURE_EXPLAINERS["transition-loop-detection-v1"]).toBe("transition-loop-detection-v1.html");
 });
 
 it("links the stall briefing card to its explainer",()=>{
@@ -667,6 +668,7 @@ it("shows the experiment, arm and trial strip, the preset, or just the model and
 
 it("links the transition press results card to its explainer",()=>{
  expect(FEATURE_EXPLAINERS["transition-press-result-v1"]).toBe("transition-press-result-v1.html");
+ expect(FEATURE_EXPLAINERS["blocked-batch-result-v1"]).toBe("blocked-batch-result-v1.html");
 });
 
 it("links the bedroom exit measurement card to its explainer in Harness Config",()=>{
@@ -674,4 +676,13 @@ it("links the bedroom exit measurement card to its explainer in Harness Config",
  const registry=(["bedroom-exit-v1"] as const).map(id=>({id,title:"LEFT BEDROOM",description:"d",group:"measurement" as const,switchable:false,needs:null}));
  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),registry);
  expect(doc.querySelector('[data-feature="bedroom-exit-v1"] a')?.getAttribute("href")).toBe("/explainers/bedroom-exit-v1.html");
+});
+
+it("links the displayed place names card to its tracked explainer, which shows the real-ROM before and after",()=>{
+ expect(FEATURE_EXPLAINERS["displayed-place-names-v1"]).toBe("displayed-place-names-v1.html");
+ const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/displayed-place-names-v1.html",import.meta.url)),"utf8");
+ expect(html).toContain("displayed-place-names-v1");
+ expect(html).toContain("Mays House Sign at (12,8)");
+ expect(html).toContain("Sign text \"PROF. BIRCH'S HOUSE\" at (12,8)");
+ expect(html).toContain("Warp to PROF. BIRCH'S HOUSE 1F (map 1/2) at (14,8)");
 });

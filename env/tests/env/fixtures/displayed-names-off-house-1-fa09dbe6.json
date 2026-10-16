@@ -1,0 +1,2409 @@
+{
+ "active_ui": null,
+ "badges": [],
+ "battle": null,
+ "blackout_active": false,
+ "facing": "right",
+ "field_controls_locked": false,
+ "game_stats": {
+  "evolved_pokemon": 0,
+  "pokemon_captures": 0,
+  "saved_game": 0,
+  "used_pokecenter": 0
+ },
+ "in_battle": false,
+ "interaction_targets": [
+  {
+   "activation": "movement; activation depends on metatile (see local map)",
+   "availability": "conditional",
+   "destination": [
+    0,
+    9,
+    1
+   ],
+   "elevation": 0,
+   "facing": null,
+   "kind": "warp",
+   "local_id": null,
+   "name": "Warp to map 0/9",
+   "x": 0,
+   "y": 1
+  },
+  {
+   "activation": "A",
+   "availability": "conditional",
+   "destination": null,
+   "elevation": 3,
+   "facing": null,
+   "kind": "background",
+   "local_id": null,
+   "name": null,
+   "x": 3,
+   "y": 1
+  }
+ ],
+ "local_map": "Local map from live memory; top-left (-6,-6), north is up:\n      -6  -5  -4  -3  -2  -1   0   1   2   3   4   5   6   7   8\n  -6   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?\n  -5   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?\n  -4   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?\n  -3   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?\n  -2   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?\n  -1   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?\n   0   ?   ?   ?   ?   ?   ?   g   #   .   .   .   ?   ?   ?   ?\n   1   ?   ?   ?   ?   ?   ?   W   @   ~   .   .   ?   ?   ?   ?\n   2   ?   ?   ?   ?   ?   ?   .   .   .   .   .   ?   ?   ?   ?\n   3   ?   ?   ?   ?   ?   ?   .   .   .   .   .   ?   ?   ?   ?\n   4   ?   ?   ?   ?   ?   ?   .   .   .   .   .   ?   ?   ?   ?\n   5   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?\n   6   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?\n   7   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?\n   8   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?\n@ player; N live object; W warp location (see activation below); # collision; g grass; ~ water; v ^ < > ledge: a one-way hop in the arrow's direction (move into it that way to jump over it, landing 2 tiles on); impassable from any other side; + edge walls: walkable, but movement across a walled side is refused in both directions (sides listed under Edge walls); . clear terrain (may have script triggers); ? outside current map.\nTerrain rules, elevation and objects can still block movement.\nLive objects: none nearby\nWarps: (0,1) -> map 0/9 [door: approach from below and press UP toward door]\nWarp destinations are map group/number IDs, not warp indexes. Activation also requires matching elevation and available field controls; W alone does not guarantee a transition. After a transition, check the new map and position.\nMetatile behaviors present: 0x02, 0x10, 0x69",
+ "location": "LITTLEROOT TOWN MAYS HOUSE 1F",
+ "map_grid": {
+  "elevation": 0,
+  "height": 5,
+  "objects": [],
+  "rows": [
+   "00021069006900690069",
+   "00690069001000690069",
+   "00690069006900690069",
+   "00690069006900690069",
+   "00690069006900690069"
+  ],
+  "warps": [
+   {
+    "x": 0,
+    "y": 1
+   }
+  ],
+  "width": 5
+ },
+ "map_id": [
+  1,
+  2
+ ],
+ "money": 3000,
+ "name": "MAY",
+ "naming": null,
+ "navigation_grid": {
+  "elevation": 0,
+  "objects": [],
+  "tiles": [
+   {
+    "behavior": 2,
+    "collision": 0,
+    "elevation": 0,
+    "x": 0,
+    "y": 0
+   },
+   {
+    "behavior": 105,
+    "collision": 1,
+    "elevation": 0,
+    "x": 1,
+    "y": 0
+   },
+   {
+    "behavior": 105,
+    "collision": 0,
+    "elevation": 0,
+    "x": 2,
+    "y": 0
+   },
+   {
+    "behavior": 105,
+    "collision": 0,
+    "elevation": 0,
+    "x": 3,
+    "y": 0
+   },
+   {
+    "behavior": 105,
+    "collision": 0,
+    "elevation": 0,
+    "x": 4,
+    "y": 0
+   },
+   {
+    "behavior": 105,
+    "collision": 0,
+    "elevation": 0,
+    "x": 0,
+    "y": 1
+   },
+   {
+    "behavior": 105,
+    "collision": 0,
+    "elevation": 0,
+    "x": 1,
+    "y": 1
+   },
+   {
+    "behavior": 16,
+    "collision": 0,
+    "elevation": 0,
+    "x": 2,
+    "y": 1
+   },
+   {
+    "behavior": 105,
+    "collision": 0,
+    "elevation": 0,
+    "x": 3,
+    "y": 1
+   },
+   {
+    "behavior": 105,
+    "collision": 0,
+    "elevation": 0,
+    "x": 4,
+    "y": 1
+   },
+   {
+    "behavior": 105,
+    "collision": 0,
+    "elevation": 0,
+    "x": 0,
+    "y": 2
+   },
+   {
+    "behavior": 105,
+    "collision": 0,
+    "elevation": 0,
+    "x": 1,
+    "y": 2
+   },
+   {
+    "behavior": 105,
+    "collision": 0,
+    "elevation": 0,
+    "x": 2,
+    "y": 2
+   },
+   {
+    "behavior": 105,
+    "collision": 0,
+    "elevation": 0,
+    "x": 3,
+    "y": 2
+   },
+   {
+    "behavior": 105,
+    "collision": 0,
+    "elevation": 0,
+    "x": 4,
+    "y": 2
+   },
+   {
+    "behavior": 105,
+    "collision": 0,
+    "elevation": 0,
+    "x": 0,
+    "y": 3
+   },
+   {
+    "behavior": 105,
+    "collision": 0,
+    "elevation": 0,
+    "x": 1,
+    "y": 3
+   },
+   {
+    "behavior": 105,
+    "collision": 0,
+    "elevation": 0,
+    "x": 2,
+    "y": 3
+   },
+   {
+    "behavior": 105,
+    "collision": 0,
+    "elevation": 0,
+    "x": 3,
+    "y": 3
+   },
+   {
+    "behavior": 105,
+    "collision": 0,
+    "elevation": 0,
+    "x": 4,
+    "y": 3
+   },
+   {
+    "behavior": 105,
+    "collision": 0,
+    "elevation": 0,
+    "x": 0,
+    "y": 4
+   },
+   {
+    "behavior": 105,
+    "collision": 0,
+    "elevation": 0,
+    "x": 1,
+    "y": 4
+   },
+   {
+    "behavior": 105,
+    "collision": 0,
+    "elevation": 0,
+    "x": 2,
+    "y": 4
+   },
+   {
+    "behavior": 105,
+    "collision": 0,
+    "elevation": 0,
+    "x": 3,
+    "y": 4
+   },
+   {
+    "behavior": 105,
+    "collision": 0,
+    "elevation": 0,
+    "x": 4,
+    "y": 4
+   }
+  ],
+  "warps": [
+   {
+    "x": 0,
+    "y": 1
+   }
+  ]
+ },
+ "party": [],
+ "party_owner": "player",
+ "party_ownership": {
+  "diagnostic": null,
+  "original_identities": [],
+  "owner": "player",
+  "raw_hex": null,
+  "rental_personalities": [],
+  "source": "ordinary_player_party"
+ },
+ "play_time_s": 3723,
+ "position": {
+  "x": 1,
+  "y": 1
+ },
+ "resources": {
+  "bag": [],
+  "berry_script_owner": null,
+  "berry_trees": [
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 0,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 1,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 2,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 3,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 4,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 5,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 6,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 7,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 8,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 9,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 10,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 11,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 12,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 13,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 14,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 15,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 16,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 17,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 18,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 19,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 20,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 21,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 22,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 23,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 24,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 25,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 26,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 27,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 28,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 29,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 30,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 31,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 32,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 33,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 34,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 35,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 36,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 37,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 38,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 39,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 40,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 41,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 42,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 43,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 44,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 45,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 46,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 47,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 48,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 49,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 50,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 51,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 52,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 53,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 54,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 55,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 56,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 57,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 58,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 59,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 60,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 61,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 62,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 63,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 64,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 65,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 66,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 67,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 68,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 69,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 70,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 71,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 72,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 73,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 74,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 75,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 76,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 77,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 78,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 79,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 80,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 81,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 82,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 83,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 84,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 85,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 86,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 87,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 88,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 89,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 90,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 91,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 92,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 93,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 94,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 95,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 96,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 97,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 98,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 99,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 100,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 101,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 102,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 103,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 104,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 105,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 106,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 107,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 108,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 109,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 110,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 111,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 112,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 113,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 114,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 115,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 116,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 117,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 118,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 119,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 120,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 121,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 122,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 123,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 124,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 125,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 126,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   },
+   {
+    "berry": 0,
+    "item_id": null,
+    "minutes_until_next_stage": 0,
+    "regrowth_count": 0,
+    "stage": 0,
+    "stop_growth": false,
+    "tree_id": 127,
+    "watered": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "yield_count": 0
+   }
+  ],
+  "daycare": [],
+  "diagnostics": [],
+  "pc_items": [],
+  "planted_berries": 0,
+  "script_mode": 0,
+  "script_pc": 0,
+  "script_status": 0,
+  "selected_tree_id": null,
+  "storage": {
+   "current_box": 0,
+   "occupied": []
+  }
+ },
+ "running": {
+  "allow_running": null,
+  "avatar_flags": null,
+  "callback1": null,
+  "callback2": null,
+  "controllable": null,
+  "diagnostic": "harness bug: invalid native map-layout pointer",
+  "elevation": null,
+  "map_type": null,
+  "metatile": null,
+  "permitted": null,
+  "raw_hex": "000000000000000001000100000000000200010000000000080008000000000044000000000000000000000000100002002000020000000000000000000000000000000000000000",
+  "reason": "unavailable",
+  "shoes": null
+ },
+ "screen": "overworld",
+ "started": true,
+ "story": {
+  "birch_lab_stage": 0,
+  "clock_set": false,
+  "intro_stage": 0,
+  "name_confirmed": true,
+  "petalburg_gym_stage": 0,
+  "petalburg_woods_aqua_grunt_defeated": false,
+  "petalburg_woods_james_defeated": false,
+  "petalburg_woods_lyle_defeated": false,
+  "pokedex_received": false,
+  "rival_battle_won": false,
+  "rival_stage": 0,
+  "rock_tomb_received": false,
+  "route102_allen_defeated": false,
+  "route102_calvin_defeated": false,
+  "route102_rick_defeated": false,
+  "route102_tiana_defeated": false,
+  "route104_billy_defeated": false,
+  "route104_cindy_defeated": false,
+  "route104_darian_defeated": false,
+  "route104_gina_mia_defeated": false,
+  "route104_haley_defeated": false,
+  "route104_ivan_defeated": false,
+  "route104_winston_defeated": false,
+  "route116_clark_defeated": false,
+  "route116_dawson_defeated": false,
+  "route116_devan_defeated": false,
+  "route116_janice_defeated": false,
+  "route116_jerry_defeated": false,
+  "route116_joey_defeated": false,
+  "route116_johnson_defeated": false,
+  "route116_jose_defeated": false,
+  "route116_karen_defeated": false,
+  "route116_sarah_defeated": false,
+  "roxanne_defeated": false,
+  "running_shoes_received": false,
+  "rustboro_gym_complete": false,
+  "rustboro_josh_defeated": false,
+  "rustboro_marc_defeated": false,
+  "rustboro_tommy_defeated": false,
+  "starter_tutorial_complete": false,
+  "stone_badge": false,
+  "town_stage": 0,
+  "woods_stage": 0
+ },
+ "topology": {
+  "connections": [],
+  "height": 5,
+  "width": 5
+ },
+ "world_context": null
+}

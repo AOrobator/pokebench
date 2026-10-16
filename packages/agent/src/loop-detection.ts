@@ -1,5 +1,5 @@
 import type { RunEvent } from "./events.js";
-import { MILESTONES } from "./milestones.js";
+import { MEASUREMENT_ONLY_MILESTONES, MILESTONES } from "./milestones.js";
 import type { GameStateSnapshot } from "./game-state.js";
 
 export const LOOP_POLICY = {
@@ -141,6 +141,37 @@ export function semanticState(state: GameStateSnapshot, interactions = false): s
   });
 }
 
+// transition-loop-detection-v1: field controls locked by something other than a script or message,
+// such as the door, stairs or warp animation. The game's global script context is stopped
+// (SCRIPT_MODE_STOPPED, CONTEXT_SHUTDOWN in pokeemerald src/script.c); unknown script state is not transient.
+export function transientLock(state: GameStateSnapshot): boolean {
+  const script = state.resources;
+  return state.screen === "overworld" && state.started && !state.in_battle && state.map_id !== null &&
+    state.position !== null && state.facing !== null && state.field_controls_locked === true &&
+    state.active_ui == null && (state.world_context?.dialogue ?? "") === "" && state.world_context?.message == null &&
+    script != null && script.script_mode === 0 && script.script_status === 2;
+}
+
+const TRANSITION_MESSAGE =
+  "Moving back and forth between the same maps is repeating with no new story, party, money, badge or item change. Reassess the objective and choose a different exit or target using observed evidence.";
+
+function mapOf(state: GameStateSnapshot | undefined): string | null {
+  return state !== undefined && state.started && state.screen === "overworld" && !state.in_battle && state.map_id !== null
+    ? JSON.stringify(state.map_id) : null;
+}
+
+// The newest entries repeat a 2-4 entry pattern `repeats` times.
+function repeating(items: readonly string[], repeats: number): boolean {
+  for (let size = 2; size <= 4; size++) {
+    const length = size * repeats;
+    if (items.length < length) continue;
+    const tail = items.slice(-length);
+    if (new Set(tail.slice(0, size)).size < 2) continue;
+    if (tail.every((item, i) => item === tail[i % size])) return true;
+  }
+  return false;
+}
+
 function stable(value: unknown): string {
   return JSON.stringify(value, (_key: string, item: unknown): unknown => {
     if (item !== null && typeof item === "object" && !Array.isArray(item)) {
@@ -175,6 +206,10 @@ export class LoopDetector {
   private readonly rejections = new Map<string, number>();
   private previous: string | null = null;
   private readonly history: string[] = [];
+  // transition-loop-detection-v1: map changes since the last progress, and that progress.
+  private readonly mapMoves: string[] = [];
+  private lastMap: string | null = null;
+  private progress: string | null = null;
   private readonly messageVisits: string[] = [];
   // The same conversation reopened in the same place: closed then shown again, or its print cursor jumping back.
   private readonly conversation = { text: "", place: "", cursor: null as number | null, open: false, restarts: 0 };
@@ -216,6 +251,7 @@ export class LoopDetector {
     readonly mode: LoopMode = "enforced",
     private readonly interactions = false,
     private readonly supervisor?: (kind: LoopKind, calls: number) => string,
+    private readonly transitions = false,
   ) {}
 
   observe(event: RunEvent): void {
@@ -224,6 +260,8 @@ export class LoopDetector {
     this.eventSeq = event.seq;
     if (event.type === "turn_start" && this.episode !== null)
       this.episode.exposed = true;
+    if (this.transitions && event.type === "milestone" && event.origin !== "present_at_start" && event.name !== "GAME_RUNNING" && !MEASUREMENT_ONLY_MILESTONES.has(event.name))
+      this.mapMoves.length = 0;
     if (event.type === "state") {
       this.latestSeq = event.seq;
       if ("started" in event) {
@@ -330,6 +368,7 @@ export class LoopDetector {
     )
       this.recover(seq, novel);
     let hit: LoopKind | null = null;
+    let pingPong = false;
     if (!call.isError && PLANNING.has(call.name)) {
       this.planning++;
       if (this.planning >= this.policy.planning) hit = "planning";
@@ -377,8 +416,13 @@ export class LoopDetector {
         if (eligible && fingerprint !== null && before !== null) {
           this.history.push(JSON.stringify([before, action, fingerprint]));
           if (this.history.length > 12) this.history.shift();
-          if (this.cycle()) hit ??= "cycle";
-        } else this.history.length = 0;
+          if (repeating(this.history, this.policy.cycleRepeats)) hit ??= "cycle";
+        } else if (!(this.transitions && eligible && this.passable(call.state) && this.passable(call.beforeState)))
+          this.history.length = 0;
+      }
+      if (this.transitions && this.mapMove(call) && hit === null) {
+        hit = "cycle";
+        pingPong = true;
       }
       this.previous = fingerprint;
       if (fingerprint !== null) {
@@ -414,7 +458,7 @@ export class LoopDetector {
     if (this.episode === null) {
       this.episode = {
         kind: hit,
-        message: hit === "ineffective" && call.name === "navigate_to" ? "Repeated navigation attempts to the same target produced equivalent states. Inspect the destination and obstacle before trying again." : this.interactions && (hit === "ineffective" || hit === "cycle") ? "The same interaction or input pattern is repeating without new game information. Use a single input, inspect the resulting interface, and choose an evidence-supported different approach. Reopening the same message is not story progress." : MESSAGES[hit],
+        message: pingPong ? TRANSITION_MESSAGE : hit === "ineffective" && call.name === "navigate_to" ? "Repeated navigation attempts to the same target produced equivalent states. Inspect the destination and obstacle before trying again." : this.interactions && (hit === "ineffective" || hit === "cycle") ? "The same interaction or input pattern is repeating without new game information. Use a single input, inspect the resulting interface, and choose an evidence-supported different approach. Reopening the same message is not story progress." : MESSAGES[hit],
         exposed: false,
         recovery: 0,
         threshold: false,
@@ -468,15 +512,41 @@ export class LoopDetector {
     this.visited.length = 0;
   }
 
-  private cycle(): boolean {
-    for (let size = 2; size <= 4; size++) {
-      const length = size * this.policy.cycleRepeats;
-      if (this.history.length < length) continue;
-      const tail = this.history.slice(-length);
-      if (new Set(tail.slice(0, size)).size < 2) continue;
-      if (tail.every((item, i) => item === tail[i % size])) return true;
+  // A state that either has a fingerprint or is only a transient lock; skipped instead of clearing the history.
+  private passable(state: GameStateSnapshot | undefined): boolean {
+    return state !== undefined && (semanticState(state, this.interactions) !== null || transientLock(state));
+  }
+
+  // Records a map change by this call; true when the newest map changes repeat with no progress between them.
+  private mapMove(call: CompletedCall): boolean {
+    const state = call.state;
+    const to = mapOf(state);
+    if (state === undefined || to === null) return false;
+    const progress = stable({ story: state.story ?? null, party: state.party, money: state.money, badges: state.badges, bag: state.resources?.bag ?? null, pc: state.resources?.pc_items ?? null });
+    if (progress !== this.progress) {
+      this.mapMoves.length = 0;
+      this.progress = progress;
     }
-    return false;
+    // Map changes made by a script, inside a message or menu, or with unknown lock state are not the player's
+    // bounce: they restart the count instead of adding to it.
+    if (!this.passable(state) || (call.beforeState !== undefined && !this.passable(call.beforeState))) {
+      this.mapMoves.length = 0;
+      // Where a script left the player is not known until the next settled state; no bridge from here.
+      this.lastMap = null;
+      return false;
+    }
+    // A result can still show the old map mid-door; the change then first appears in the next call's before state.
+    const before = mapOf(call.beforeState);
+    const stops = [this.lastMap, before, to].filter((map): map is string => map !== null);
+    this.lastMap = to;
+    let moved = false;
+    for (let i = 1; i < stops.length; i++) {
+      if (stops[i] === stops[i - 1]) continue;
+      this.mapMoves.push(`${stops[i - 1] ?? ""}>${stops[i] ?? ""}`);
+      if (this.mapMoves.length > 12) this.mapMoves.shift();
+      moved = true;
+    }
+    return moved && repeating(this.mapMoves, this.policy.cycleRepeats);
   }
   private recover(seq: number, novel: boolean): void {
     if (this.episode !== null) this.notice("recovered", seq);

@@ -369,13 +369,16 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "character-presence-v1":"character-presence-v1.html",
  "dialogue-auto-advance-v1":"dialogue-auto-advance-v1.html",
  "dialogue-context-kept-v1":"dialogue-context-kept-v1.html",
+ "transition-loop-detection-v1":"transition-loop-detection-v1.html",
  "milestone-stall-stop-v1":"milestone-stall-stop-v1.html",
  "text-only-supervisor-v1":"text-only-supervisor-v1.html",
  "navigation-refusal-reasons-v1":"navigation-refusal-reasons-v1.html",
  "transition-press-result-v1":"transition-press-result-v1.html",
+ "blocked-batch-result-v1":"blocked-batch-result-v1.html",
  "stall-briefing-v1":"stall-briefing-v1.html",
  "bedroom-exit-v1":"bedroom-exit-v1.html",
  "battle-details-v2":"battle-details-v2.html",
+ "displayed-place-names-v1":"displayed-place-names-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

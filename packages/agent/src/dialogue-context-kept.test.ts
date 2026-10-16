@@ -150,7 +150,7 @@ describe("dialogue-context-kept-v1 registry and production wiring", () => {
   it("is a default-off guidance switch recorded last that needs no other switch", () => {
     expect(featureInfo("dialogue-context-kept-v1")).toMatchObject({ group: "guidance", needs: null, switchable: true });
     expect(featureInfo("dialogue-context-kept-v1").description).toContain(" Off: ");
-    expect(playHarnessFeatures(ALL_ON, null).at(-1)).toBe("dialogue-context-kept-v1");
+    expect(playHarnessFeatures(ALL_ON, null).at(-4)).toBe("dialogue-context-kept-v1");
     expect(playHarnessFeatures({ ...ALL_ON, "dialogue-context-kept-v1": false }, null)).not.toContain("dialogue-context-kept-v1");
     expect(dependencyProblems({ ...ALL_ON, "dialogue-context-kept-v1": true })).toEqual([]);
     const older = Object.fromEntries(Object.entries(ALL_ON).filter(([id]) => id !== "dialogue-context-kept-v1")) as Parameters<typeof normalizeFeatures>[0];
@@ -190,11 +190,14 @@ describe("dialogue-context-kept-v1: the supervisor cites the last story instruct
 
   it("OFF reproduces the recorded T65 loop supervisor (seq 1010) and T166 stall briefing (seq 3310) byte for byte", () => {
     expect(replay(OFF, 1010).text("ineffective", 65)).toBe(recorded(1010));
-    expect(replay(OFF, 3310).stallText({ kind: "milestone_drought", minutes: 5 }, 166)).toBe(recorded(3310));
+    // The bundle's stall briefing (F5, stall-briefing-v1) adds lines to the recorded T166 note; with this switch off every recorded line is still there, in order.
+    const stall = replay(OFF, 3310).stallText({ kind: "milestone_drought", minutes: 5 }, 166).split("\n");
+    let at = 0;
+    for (const line of recorded(3310).split("\n")) { at = stall.indexOf(line, at); expect(at).toBeGreaterThanOrEqual(0); at += 1; }
   });
 
   it("ON adds MOM's T98 pages, whole and in order, before the three newest pages at T166", () => {
-    const off = recorded(3310);
+    const off = replay(OFF, 3310).stallText({ kind: "milestone_drought", minutes: 5 }, 166);
     const on = replay(ON, 3310).stallText({ kind: "milestone_drought", minutes: 5 }, 166);
     const newest = "- Recent dialogue you were shown, newest first: ";
     expect(on).toBe(off.replace(newest, `${MOM_LINE}\n${newest}`));

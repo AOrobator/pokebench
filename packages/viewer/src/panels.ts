@@ -380,6 +380,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "bedroom-exit-v1":"bedroom-exit-v1.html",
  "battle-details-v2":"battle-details-v2.html",
  "displayed-place-names-v1":"displayed-place-names-v1.html",
+ "readout-rules-in-prompt-v1":"readout-rules-in-prompt-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

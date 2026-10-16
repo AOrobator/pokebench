@@ -173,6 +173,19 @@ describe("transition-loop-detection-v1 scripted map changes",()=>{
   for(let i=0;i<6;i++){on.press("UP",{...DOWNSTAIRS,...SCRIPT},UPSTAIRS);on.press("DOWN",{...UPSTAIRS,...SCRIPT},DOWNSTAIRS);}
   expect(on.notices).toEqual([]);
  });
+ it("ON: a scripted crossing whose result still shows the old map does not bridge into the next call",()=>{
+  const on=rig(true);
+  // The script warps after the result was read: the result is still 1F (script running), the next call starts on 2F.
+  on.press("A",DOWNSTAIRS,{...DOWNSTAIRS,...SCRIPT});
+  on.press("DOWN",UPSTAIRS,{...DOWNSTAIRS,...ANIMATION});
+  on.press("UP",DOWNSTAIRS,{...UPSTAIRS,...ANIMATION});
+  on.press("DOWN",UPSTAIRS,{...DOWNSTAIRS,...ANIMATION});
+  on.press("UP",DOWNSTAIRS,{...UPSTAIRS,...ANIMATION});
+  on.press("DOWN",UPSTAIRS,{...DOWNSTAIRS,...ANIMATION});
+  expect(on.notices).toEqual([]);
+  on.press("UP",DOWNSTAIRS,{...UPSTAIRS,...ANIMATION});
+  expect(on.notices).toEqual([expect.objectContaining({kind:"cycle",phase:"warning"})]);
+ });
  it("ON: a scripted map change between bounces restarts the count",()=>{
   const on=rig(true);
   roundTrip(on);roundTrip(on);on.press("UP",DOWNSTAIRS,{...UPSTAIRS,...ANIMATION});

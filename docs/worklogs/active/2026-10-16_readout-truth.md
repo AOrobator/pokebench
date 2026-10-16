@@ -159,6 +159,8 @@ Report branch, frozen head, packet SHA-256, verdict lines, gate counts and cover
   COMMIT: `test(RED): review round 6 — Birch page value is the two lines on screen after a scroll; short reads through the production seam`
 - 2026-10-16 03:25 PM EDT: Round-6 GREEN. `page_text` tracks line starts since the last `\p`: `\n` (0xFE) and `\l` (0xFA) start a line once the printer is past them, and the value is the last two lines (the 27x4-tile window, sNewGameBirchSpeechTextWindows); a break at the cursor has not taken effect (the printer waits on it). 0xF8/0xF9 skip their argument byte; a glyph the decoder does not know gives no page value (old not-ready line, no crash). Explainer diagram and caption updated. Receipts: receipt-26 drop the line tracking → 1 failed; receipt-27 read 0xF8/0xF9 arguments as breaks → 1 failed; restored green. Gates (ROM set): agent 1878, viewer 934, Python 2465 passed, 0 skipped; coverage agent 97.99/94.7/98.4/99.14, viewer 95.33/91.09/93.68/97.63, Python 97.52/93.55/100; lint, verify-vendor, pages-check, experiments-check OK.
   COMMIT: `fix: review round 6 — the Birch page value is the two lines on screen`
+- 2026-10-16 03:35 PM EDT: Merged local main 259aeb08 (viewer phone header only; no conflicts). Viewer 952 passed, coverage 95.38/91.14/93.77/97.66; build and lint OK; agent and Python unchanged by the merge (03:25 PM gates). Principles re-scored for round 7 (`/tmp/review-readout-truth-r7.principles.md`): zero FAIL; PB9 now states that the new reads fail closed and incumbent readers that raise on a short read raise identically in both arms. Packet for round 7 sealed on this commit: `git diff --binary 259aeb08 <this commit>`.
+  COMMIT: `docs(worklog): readout-truth round 7 packet sealed`
 
 ## Surprises
 

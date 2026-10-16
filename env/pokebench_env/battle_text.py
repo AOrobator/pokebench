@@ -322,7 +322,7 @@ def read_levelup_box(read: ReadMemory) -> LevelUpBox | None:
         return box
     try:
         slot, labels, before, after, text = _levelup_stats(read, page)
-    except (ValueError, IndexError, KeyError) as error:
+    except (ValueError, IndexError, KeyError, OSError) as error:
         return replace(box, diagnostic=f"harness bug: level-up box: {error}")
     return replace(box, party_slot=slot, labels=labels, before=before, after=after, text=text)
 

@@ -141,14 +141,14 @@ describe("levelup-box-v1 on the recorded T357 level-up (run 54a7)",()=>{
 
  it("a box wait whose captured state shows no readable box (agent switch ON): counted as busy, never a tight loop",async()=>{
   // Claude review round 1: the server saw the box, but the captured state's text read failed (levelup_box null).
-  class Unreadable extends Replay{override wait(){const w=super.wait();return w.reason==="bound"?{...w,reason:"levelup_box"}:w;}}
+  class Unreadable extends Replay{boxWaits=0;override wait(){const w=super.wait();if(w.reason!=="bound")return w;this.boxWaits++;return {...w,reason:"levelup_box"};}}
   const p1=state(5093);if(p1.battle==null)throw new Error("box");
   const blind:GameStateSnapshot={...p1,battle:{...p1.battle,levelup_box:null}};
   const states=[...STATES.slice(0,at(5088)),...Array.from({length:20},()=>blind)];
   const server=new Unreadable(at(5076),true,5,states);const {press,advance}=wire(server,ON);
   await press.execute("t357",{buttons:["A","A"]});
   expect(advance()).toMatchObject({battle_auto_presses:3,stop:"battle_busy"});
-  expect(server.waits.filter(w=>w==="levelup_box").length).toBeGreaterThanOrEqual(3);
+  expect(server.boxWaits).toBe(3);
  });
 
  it("classifies the box as a page to press only with the switch, and lists a page once",()=>{

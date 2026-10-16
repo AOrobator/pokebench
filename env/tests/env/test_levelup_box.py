@@ -299,6 +299,22 @@ def test_a_bad_stats_read_is_a_diagnostic_not_a_guess(
     )
 
 
+def test_a_failing_stats_read_is_a_diagnostic_and_keeps_the_message_fields() -> None:
+    memory = box_memory(6)
+
+    def failing(address: int, length: int) -> bytes:
+        if address == 0x020244EC + 100 + 0x58:
+            raise OSError("memory read failed")
+        return memory.read(address, length)
+
+    box = bt.read_levelup_box(failing)
+    assert box == bt.LevelUpBox(
+        6, 1, True, diagnostic="harness bug: level-up box: memory read failed"
+    )
+    state = read_battle_state(failing)
+    assert state.levelup_box == box and state.message == bt.BattleMessage("idle")
+
+
 def test_battle_state_records_the_box_and_a_failed_text_read_records_none() -> None:
     memory = box_memory(6)
     memory.set(0x030022C4, 0x08036FAD)  # CB2_HandleStartBattle: initializing

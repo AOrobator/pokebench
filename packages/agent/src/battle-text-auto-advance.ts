@@ -162,8 +162,8 @@ export async function advanceBattle(start:GameStateSnapshot,run:BattleRun,signal
   try{waited=await run.source.battleWait(signal);}catch(error){return failed(error);}
   s=waited.state;
   if(waited.reason==="paused")return done("paused","the game is paused, so the battle did not advance; observe after the pause ends");
-  // A box wait from a server running levelup-box-v1 that this agent does not press through counts as busy.
-  const busy=waited.reason==="bound"||(waited.reason==="levelup_box"&&run.levelupBox!==true);
+  // A box wait this agent does not press through (its switch off, or no readable box in the captured state) counts as busy.
+  const busy=waited.reason==="bound"||(waited.reason==="levelup_box"&&(run.levelupBox!==true||levelUpPage(s.battle)===null));
   if(!busy){bounds=0;continue;}
   if(++bounds>=BATTLE_BUSY_BOUNDS)return done("battle_busy",`the battle kept running on its own for ${String(BATTLE_BUSY_BOUNDS)} waits of 600 emulated frames with no message waiting and no input open; inspect before acting`);
  }

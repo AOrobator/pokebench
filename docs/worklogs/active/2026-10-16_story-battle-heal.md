@@ -41,12 +41,12 @@ Condition: free field (overworld, not in battle, field controls unlocked), playe
 
 **M2 — explainer, pending experiment, gates, review, land**
 - [x] Explainer `docs/explainers/low-hp-trainer-warning-v2.html` (pages-check clean) + FEATURE_EXPLAINERS + README + link test; pending `experiments/low-hp-trainer-warning-v2.json` (incumbent = finals incumbent with v1 ON; raw-key test) + readiness row; experiments-check ok (79).
-- [ ] Gates; live viewer proof (isolated viewer)
+- [x] Gates; live viewer proof (isolated viewer) — see Round 0–3 notes below
 - [ ] Claude, Grok, GPT LGTM on one frozen packet; merge slot; ff-only merge; report SHA
 
 ## Multi-Model Review Log
 
-(none yet)
+Rounds are recorded below in order.
 
 - [x] Gates on b9998d70 (main 4070e250): build, lint, test (vitest agent 1895, viewer 974; pytest 2465), coverage (agent 99.13/94.61/98.29, viewer 97.68/91.17/93.79, Python 97.52/93.55/100; low-hp-trainer-warning.ts 98.67 stmts / 92.04 branches / 100 funcs), verify-vendor, experiments-check (79).
 - [x] Live proof on clean b9998d70, isolated built viewer 127.0.0.1:8794 (startViewer only; stopped after). Two runs made by make-run.mjs (real RunRecorder + pinned pi loop + playGameTools, v1+v2 ON): rival (T363) and woods (T363 moved to PETALBURG WOODS, grunt unbeaten). Woods run in the viewer: timeline errors lane empty (1), Agent Trace SUP 'Story battle warning' row with the paragraph and raw event story_battle_warning seq 5, kind aqua_grunt (2), Harness Config card (3), READ EXPLAINER opened /explainers/low-hp-trainer-warning-v2.html (4 desktop, 5 phone). Receipts in this worktree at `runs/reviews/story-battle-heal/proof/` (gitignored). Digests:
@@ -82,3 +82,5 @@ explainers/low-hp-trainer-warning-v2.html served=ad3ca69d4c46cc46c368f6ec3c32f0f
 - Synced main b0179665 (ledger re-score, viewer; no registry change). Gates green again: vitest agent+viewer pass (viewer 1002), pytest 2465, coverage ≥90 (Python 97.52/93.55/100), lint, experiments-check. Agent code from main merged cleanly; the live receipts above were taken on 944c04f2 and the warning's code is unchanged since.
 
 **Round 2** (base e349269c, head 273d804d, sha bed3862b…c763). Claude: LGTM. Grok: LGTM. GPT (Codex): BLOCKING — (1) a party with one readable hurt member and one unreadable member gave a partial list; (2) revival medicine (REVIVE, MAX REVIVE, REVIVAL HERB; ItemUseOutOfBattle_Medicine in src/data/items.h) was not named though v2 lists fainted Pokémon; (3) live proof was one main sync behind the frozen head and lacked 1280×900/1440×900/375×812 captures. Fixes: v2 stays silent while any non-egg party Pokémon is unreadable (test; deletion receipt red); v2's item list adds the three revival items, v1's list unchanged (test asserts both; deletion receipt red); fullParty uses hp === max_hp; duplicate ids in features.test off() lists removed; copy updated in the registry and explainer. Round 3 live proof is taken on the frozen round-3 head itself (no commit after it): receipts and digests in the gitignored runs/reviews/story-battle-heal/proof-r3/ (head.txt names the commit).
+
+**Round 3** (base 986cb496, head 36829c55, sha 8e0f522c…764c). Claude: LGTM. Grok: LGTM. GPT (Codex): BLOCKING — (1) bag items were named even when no hurt Pokémon could use them (REVIVE with no fainted member, POTION with only a fainted one; src/pokemon.c refuses both); (2) the another-map re-arm path had no test. Fixes: items filtered by target (HP medicine only with a conscious hurt member, revival medicine only with a fainted one), test for both mismatches and the mixed case; new test leave-the-map-and-return fires again; deletion receipts: removing the map branch and removing the filter each turn a test red. Copy updated in the registry and explainer. Round 4 receipts on the frozen round-4 head at runs/reviews/story-battle-heal/proof-r4/.

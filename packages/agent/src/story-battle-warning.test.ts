@@ -108,6 +108,16 @@ describe("condition, from the state alone",()=>{
   expect(storyBattleWarning({...T363,party:[lead,{...lead,species:null,hp:5,max_hp:15}]})).toBeNull();
   expect(storyBattleWarning({...T363,party:[lead,{...lead,species:"EGG",is_egg:true,hp:null,max_hp:null}]})?.party).toEqual([{species:"TORCHIC",hp:3,max_hp:21}]);
  });
+ it("names an item only when a hurt Pokémon can use it: no REVIVE for a conscious party, no POTION for a fainted one",()=>{
+  const lead=must(T363.party[0]);
+  const bag=(...names:string[])=>({...must(T363.resources),bag:names.map((name,slot)=>({slot,item_id:13,quantity:1,pocket:"items",name}))});
+  expect(must(storyBattleWarning({...withHp(T363,20),resources:bag("REVIVE")})).items).toEqual([]);
+  expect(storyBattleText(must(storyBattleWarning({...withHp(T363,20),resources:bag("REVIVE")})))).not.toContain("BAG");
+  const fainted={...T363,party:[{...lead,hp:21},{...lead,species:"WURMPLE",hp:0,max_hp:15}]};
+  expect(must(storyBattleWarning({...fainted,resources:bag("POTION")})).items).toEqual([]);
+  expect(must(storyBattleWarning({...fainted,resources:bag("POTION","REVIVE")})).items).toEqual([{name:"REVIVE",quantity:1}]);
+  expect(must(storyBattleWarning({...withHp(T363,20),resources:bag("POTION","REVIVE")})).items).toEqual([{name:"POTION",quantity:1}]);
+ });
  it("names revival medicine too, for fainted Pokémon (v1's item list is unchanged)",()=>{
   const lead=must(T363.party[0]);
   const bag=[{slot:0,item_id:24,quantity:1,pocket:"items",name:"REVIVE"},{slot:1,item_id:13,quantity:2,pocket:"items",name:"POTION"}];
@@ -150,6 +160,13 @@ describe("delivery",()=>{
   expect(watch.observe({...T363,party:[{...lead,hp:21},{...lead,species:"WURMPLE",hp:null,max_hp:15}]})).toBeNull();
   expect(watch.observe(T363)).toBeNull();
   expect(watch.observe(FULL)).toBeNull();
+  expect(watch.observe(T363)).not.toBeNull();
+ });
+ it("re-arms when the player leaves the map and fires again on return while still hurt",()=>{
+  const watch=new StoryBattleWarning();
+  expect(watch.observe(T363)).not.toBeNull();
+  expect(watch.observe(T363)).toBeNull();
+  expect(watch.observe({...T363,map_id:[0,10],location:"OLDALE TOWN"})).toBeNull();
   expect(watch.observe(T363)).not.toBeNull();
  });
  it("needs a recorder that can record the v2 event",()=>{

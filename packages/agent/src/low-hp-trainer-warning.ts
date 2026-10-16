@@ -99,9 +99,14 @@ const hurt=(s:GameStateSnapshot):StoryBattleWarningFacts["party"]=>s.party.flatM
 // Positive evidence only: every Pokémon (not an egg) reads its HP and max HP, and each is at max.
 const fullParty=(s:GameStateSnapshot):boolean=>{const mons=s.party.filter(m=>m.is_egg!==true);return mons.length>0&&mons.every(m=>m.species!==null&&m.hp!=null&&m.max_hp!=null&&m.hp===m.max_hp);};
 // v2 also lists fainted Pokémon, so it names the field revival medicine too (pokeemerald src/data/items.h:
-// REVIVE, MAX REVIVE, REVIVAL HERB use ItemUseOutOfBattle_Medicine). v1's list is unchanged.
-const STORY_HEALING_ITEMS=new Set([...HEALING_ITEMS,"REVIVE","MAX REVIVE","REVIVAL HERB"]);
-const bagItems=(s:GameStateSnapshot):StoryBattleWarningFacts["items"]=>(s.resources?.bag??[]).flatMap(i=>i.name!=null&&STORY_HEALING_ITEMS.has(i.name)&&i.quantity>0?[{name:i.name,quantity:i.quantity}]:[]);
+// REVIVE, MAX REVIVE, REVIVAL HERB use ItemUseOutOfBattle_Medicine). Each kind is named only when it has a target:
+// src/pokemon.c refuses ordinary HP medicine on a fainted Pokémon and revival medicine on a conscious one. v1's list
+// is unchanged.
+const REVIVAL_ITEMS=new Set(["REVIVE","MAX REVIVE","REVIVAL HERB"]);
+const bagItems=(s:GameStateSnapshot,party:StoryBattleWarningFacts["party"]):StoryBattleWarningFacts["items"]=>{
+ const conscious=party.some(p=>p.hp>0),fainted=party.some(p=>p.hp===0);
+ return (s.resources?.bag??[]).flatMap(i=>i.name!=null&&i.quantity>0&&(conscious&&HEALING_ITEMS.has(i.name)||fainted&&REVIVAL_ITEMS.has(i.name))?[{name:i.name,quantity:i.quantity}]:[]);
+};
 
 // The unbeaten story battle on this map, if the state shows one (its won flag explicitly false and, where the game
 // shows the opponent before the battle, the opponent's object loaded on this map).
@@ -128,7 +133,7 @@ export function storyBattleWarning(state:GameStateSnapshot):StoryBattleWarningFa
  if(state.party.some(m=>m.is_egg!==true&&(m.species===null||m.hp==null||m.max_hp==null)))return null;
  const party=hurt(state);
  if(party.length===0)return null;
- return {kind:here.battle.kind,opponent:here.opponent,x:here.x,y:here.y,map_id:here.battle.map,party,money:state.money,items:bagItems(state)};
+ return {kind:here.battle.kind,opponent:here.opponent,x:here.x,y:here.y,map_id:here.battle.map,party,money:state.money,items:bagItems(state,party)};
 }
 
 export function storyBattleText(f:StoryBattleWarningFacts):string {

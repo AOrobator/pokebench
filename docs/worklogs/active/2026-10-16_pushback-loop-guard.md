@@ -164,6 +164,8 @@ Merge locally after all lanes LGTM. No pending experiment entry (amendment 2). R
 
 - Merge commit 27f9ec28 (main parent bbbee47b). Gates: build, test (agent 1581, viewer 871, pytest 2235), coverage (agent 99.15 / 94.61 / 98.19, loop-detection.ts 98.54 / 97.43 / 100; viewer 97.7 / 90.98 / 93.57; python 97.29 / 93.10 / 100), verify-vendor all exit 0. Lint first failed: the resolver added this branch's keys a second time to one next-run.test.ts object literal that had not conflicted (TS1117 duplicate keys); removed the duplicate; `just lint` then exit 0 (mypy 77 files).
 
+- Fix commit e3fe448c; merged two data-only main commits (08fadf73: worklog and experiments JSON) as 5e81a866. Agent 1581 passed. Viewer full-suite reruns under host load average ~47 (other sessions) showed different 5 s timeouts on each run (next-run restart tests, experiment-cli production host, experiment-gate pid probe, once the new mounted app test); each failing file passes in isolation three times in a row (92/92), and the last full run failed only one unrelated experiment-cli test with "Test timed out in 5000ms". Recorded as host-load timeouts, not regressions; the gate run at 27f9ec28 was fully green.
+
 ## Surprises
 
 - `loop_guard` evidence is capped at 2 items by the event schema (`maxItems:2`); a 3-seq evidence list made the recorder throw in the factory test. Evidence is now [first push-back, completing call]. The replay tests validate every notice through `checkEvent`.

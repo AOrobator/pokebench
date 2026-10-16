@@ -46,8 +46,8 @@ def message_clause(battle: BattleState) -> str | None:
         # Another screen or a ready battle menu owns input; a reader error stays in the state.
         return None
     if message is not None and message.diagnostic is not None:
-        # Phase None means the detector itself failed: ownership unknown, so stay loud.
-        return f"battle message unreadable ({message.diagnostic})"
+        # The reader failed: what the window shows is unknown, and is said to be (INV-5).
+        return f"battle message state unknown ({message.diagnostic}); check the screen"
     if phase == "prompt" and prompt is not None and prompt.ready:
         return (
             f"battle YES/NO box open ({PROMPTS[prompt.kind]}), cursor on {prompt.selected} — "

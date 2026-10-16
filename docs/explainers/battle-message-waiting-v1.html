@@ -136,10 +136,10 @@ Battle input: battle message waiting: &quot;Wild WINGULL fainted!&quot; — pres
    <text class="m" x="342" y="330">resolving (the game is playing animations or a message</text>
    <text class="m" x="342" y="346">that closes on its own; no input until the game asks)</text>
 
-   <text class="s" x="10" y="380">Another screen over the battle (bag, party, evolution) keeps the OFF text. A reader error reads "battle message unreadable (…)" unless another screen or a ready menu owns input.</text>
+   <text class="s" x="10" y="380">Another screen over the battle (bag, party, evolution) keeps the OFF text. A reader error reads "battle message state unknown (…); check the screen" unless another screen or a ready menu owns input.</text>
   </svg>
   </div>
-  <figcaption>Checked top to bottom; a reader diagnostic comes first. The clause replaces only OFF's "resolving (no input until the game asks)". Each case follows the detector's phase: a page printed while another screen owns the battle callback (evolution, bag, party) keeps the OFF text. Under auto-scroll (link and recorded battles) a held page reads "battle message shown: … it moves on by itself".</figcaption>
+  <figcaption>Checked top to bottom, after two earlier checks: another screen or a ready menu owning input keeps the OFF text, and a failed read says the message state is unknown. The clause replaces only OFF's "resolving (no input until the game asks)". Each case follows the detector's phase: a page printed while another screen owns the battle callback (evolution, bag, party) keeps the OFF text. Under auto-scroll (link and recorded battles) a held page reads "battle message shown: … it moves on by itself".</figcaption>
  </figure>
 </section>
 
@@ -196,7 +196,7 @@ Battle input: battle message waiting: &quot;Wild WINGULL fainted!&quot; — pres
   <li>Branch <code>claude/battle-message-waiting</code>, default OFF. Meant to be ON in both arms of bundle-v-control (the bundle file is owned by the readiness thread).</li>
   <li>Tests, coverage (≥90 on both stacks), lint (known mypy <code>mgba._pylib</code> only), build and verify-vendor run; the real-ROM tests ran with the operator ROM.</li>
   <li>Not done here: measured runs; the loop guard's battle blind spot (another thread); the Interface line's "input not ready", which is not owned by this switch.</li>
-  <li>Not visited natively: learn-move and nickname YES/NO boxes; their clause is grounded in source and synthetic tests only.</li>
+  <li>The YES/NO box clause rests on pokeemerald source (<code>Cmd_yesnobox</code>, <code>Cmd_yesnoboxlearnmove</code>, <code>Cmd_yesnoboxstoplearningmove</code>, <code>Cmd_trygivecaughtmonnick</code>) and synthetic tests only: no recorded run has shown a learn-move, nickname or switch-offer box. It is kept because without it such a box would read "no input until the game asks", the same observe-loop bug.</li>
  </ul>
 </section>
 </main>

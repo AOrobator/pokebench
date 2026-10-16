@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { RUN_START, SAMPLES } from "../test-support/events.js";
-import { EventError, eventEnvelope, eventProblem, eventsJsonSchema, parseEvent, renderEventsJsonSchema } from "./events.js";
+import { EventError, eventEnvelope, eventProblem, eventsJsonSchema, parseEvent, renderEventsJsonSchema, startIdentity } from "./events.js";
 
 const ENVELOPE = { v: 1, run: "2026-10-11T21-40-05_think-swarm_a1b2", seq: 0, t: "2026-10-11T21:40:05.123-04:00" };
 
@@ -149,5 +149,39 @@ describe("event envelope", () => {
     ["another schema version", { ...ENVELOPE, v: 2, turn: 0, type: "state" }],
   ])("refuses %s", (_label, value) => {
     expect(eventEnvelope(value)).toBeNull();
+  });
+});
+
+describe("run_start identity read loosely", () => {
+  const start = { ...ENVELOPE, ...RUN_START, turn: 0 } as Record<string, unknown>;
+  const commit = "0123456789abcdef0123456789abcdef01234567";
+  it("reads a newer harness's run_start that the schema rejects", () => {
+    const newer = { ...start, harness: { commit, dirty: true }, surprise: 1 };
+    expect(eventProblem(newer)).toContain("unexpected property surprise");
+    expect(startIdentity(newer)).toEqual({ run: ENVELOPE.run, t: ENVELOPE.t, commit, dirty: true, model: "think-swarm", port: 8000 });
+    expect(startIdentity({ ...start, harness: { commit, dirty: false, branch: "main" } })).toMatchObject({ commit, dirty: false });
+  });
+  it("reads a valid run_start the same way", () => {
+    expect(eventProblem(start)).toBeNull();
+    expect(startIdentity(start)).toEqual({ run: ENVELOPE.run, t: ENVELOPE.t, commit, dirty: false, model: "think-swarm", port: 8000 });
+  });
+  it("leaves the model and port null when they cannot be read", () => {
+    expect(startIdentity({ ...start, model: "x", isolation: { port: 0 } })).toMatchObject({ model: null, port: null });
+    expect(startIdentity({ ...start, model: { id: 3 }, isolation: null })).toMatchObject({ model: null, port: null });
+    expect(startIdentity({ ...start, isolation: { port: 70000 } })).toMatchObject({ port: null });
+    expect(startIdentity({ ...start, isolation: { port: 80.5 } })).toMatchObject({ port: null });
+  });
+  it.each([
+    ["a non-hex commit", { ...start, harness: { commit: "Z".repeat(40), dirty: false } }],
+    ["a short commit", { ...start, harness: { commit: "abc", dirty: false } }],
+    ["a missing harness", { ...start, harness: undefined }],
+    ["a harness that is not an object", { ...start, harness: "0123456" }],
+    ["a dirty flag that is not boolean", { ...start, harness: { commit, dirty: "no" } }],
+    ["another event type", { ...start, type: "state" }],
+    ["a later seq", { ...start, seq: 1 }],
+    ["a broken envelope", { ...start, run: "" }],
+    ["a non-object", "run_start"],
+  ])("refuses %s", (_label, value) => {
+    expect(startIdentity(value)).toBeNull();
   });
 });

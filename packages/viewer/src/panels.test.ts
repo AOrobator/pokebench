@@ -824,6 +824,14 @@ it("links the Surf-gated exits card to its tracked explainer, which quotes the 4
  for(const quote of [id,"bundle arm only","pending experiment","FLAG_BADGE05_GET","PartyHasMonWithSurf","Exits here you have not taken: none (you have taken every exit you can walk to on this map this run)","Warp destination at (45,6): ALTERING CAVE (not an exit you can use now: across water, needs Surf)"])expect(html).toContain(quote);
  expect(html).not.toContain("both arms");
 });
+it("links the cross-map goal card to its tracked explainer, which quotes the recorded 4caa result and the new refusal",()=>{
+ expect(FEATURE_EXPLAINERS["cross-map-goal-v1"]).toBe("cross-map-goal-v1.html");
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","cross-map-goal-v1"]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector('[data-feature="cross-map-goal-v1"] a')?.getAttribute("href")).toBe("/explainers/cross-map-goal-v1.html");
+ const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/cross-map-goal-v1.html",import.meta.url)),"utf8");
+ for(const quote of ["cross-map-goal-v1","Navigation: map changed; inspect destination; 0 ordinary button attempts.","(8,0) on map 0/9 is on another map; you are on map 0/16 (ROUTE101) and navigate_to only walks within the current map","bundle arm"])expect(html).toContain(quote);
+});
 it("links the coherent transition readouts card to its tracked explainer, which quotes the cook runs' battle-start readouts before and after",()=>{
  expect(FEATURE_EXPLAINERS["transition-coherence-v1"]).toBe("transition-coherence-v1.html");
  const log=new Log();log.add(0,{...START,harness_features:["transition-coherence-v1"]});

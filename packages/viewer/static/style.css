@@ -672,7 +672,8 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
   .wb-vtitle { white-space:nowrap; }
   .wb-vlegend.wb-isolating .wb-vlong { display:none; }
   .wb-vtoggle { flex:1 1 auto; min-width:0; }
-  .wb-vtitle { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+  .wb-vtitle { flex:none; }
+  .wb-vlegend.wb-isolating .wb-vtitle { flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; }
   .wb-vlegend.wb-isolating .wb-vtoggle { flex:1 1 0; }
   .wb-iso { flex:0 0 auto; max-width:72%; padding:2px 2px 2px 6px; gap:5px; }
   .wb-iso>b:not(.wb-iso-short) { display:none; }

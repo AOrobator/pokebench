@@ -47,3 +47,5 @@ For a male player the sign at Littleroot (12,8) prints "PROF. BIRCH'S HOUSE" (po
 - GREEN: explainer `docs/explainers/displayed-place-names-v1.html` (+README), FEATURE_EXPLAINERS mapping, pending `experiments/displayed-place-names.json`
   (provisional source.commit 37896367, repin at merge), readiness row. test_rerender: the dc0e fixture predates the switch, so its recorded off list gains it
   (production decision probes derive OFF from the recorded harness features). just test: agent 1268, viewer 787, python 1986 passed.
+- Gates: just coverage — agent 97.61/94.2/97.86/99.03 (stmt/branch/func/line), viewer 95.08/90.39/93.55/97.6, python lines 97.04 / branches 92.59 / functions 100 (floor 90);
+  added two branch tests (gender values other than 0/1; FC controls in sign text) → displayed_names.py 100%. just lint clean (mypy passes once mgba binding copied into the worktree venv), just build OK, just verify-vendor OK.

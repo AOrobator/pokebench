@@ -267,3 +267,19 @@ def test_verified_furniture_keeps_its_name_and_signs_take_their_text(
     off = read_game_state(memory.read, MAPS)
     assert [t.name for t in on.interaction_targets or () if t.kind == "background"] == [shown]
     assert [t.name for t in off.interaction_targets or () if t.kind == "background"] == [catalog]
+
+
+def test_a_gender_check_on_values_other_than_male_and_female_is_not_followed() -> None:
+    m = littleroot(0)
+    script = bytearray(gender_sign(MALE_SUB, FEMALE_SUB))
+    script[16:18] = struct.pack("<H", 2)
+    m.put(SIGN, bytes(script))
+    assert read_sign_text(m.read, SIGN, 0, "RED") is None
+
+
+def test_text_controls_inside_a_sign_are_skipped_whole() -> None:
+    m = littleroot(0)
+    m.put(SIGN, msgbox(0x08006500, 3) + b"\x02")
+    # FC 01 <color> is a text-color control: it prints nothing, and its argument may be any byte.
+    m.put(0x08006500, text("ROUTE") + b"\xfc\x01\xfd" + text(" 101") + b"\xff")
+    assert read_sign_text(m.read, SIGN, 0, "RED") == "ROUTE 101"

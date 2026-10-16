@@ -395,6 +395,8 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "offscreen-objects-v1":"offscreen-objects-v1.html",
  "navigate-first-prompt-v1":"navigate-first-prompt-v1.html",
  "presence-penalty-v1":"presence-penalty-v1.html",
+ "navigation-truth-v1":"navigation-truth-v1.html",
+ "navigation-refusal-reasons-v2":"navigation-refusal-reasons-v2.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

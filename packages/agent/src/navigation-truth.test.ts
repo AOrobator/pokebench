@@ -32,6 +32,19 @@ async function walk(start:GameStateSnapshot,goal:{x:number;y:number},ports:Parti
  return {status:(outcome.details as {navigation:{status:string}}).navigation.status,text,presses};
 }
 
+
+const chars=(row:string):string[]=>Array.from({length:row.length},(_,x)=>row.charAt(x));
+const gridOf=(s:GameStateSnapshot):NonNullable<GameStateSnapshot["navigation_grid"]>=>{if(s.navigation_grid==null)throw new Error("no grid");return s.navigation_grid;};
+const mapOf=(s:GameStateSnapshot):NonNullable<GameStateSnapshot["map_grid"]>=>{if(s.map_grid==null)throw new Error("no map grid");return s.map_grid;};
+const contextOf=(s:GameStateSnapshot):NonNullable<GameStateSnapshot["world_context"]>=>{if(s.world_context==null)throw new Error("no context");return s.world_context;};
+// A synthetic local window from rows: . floor, # wall, T floor with a matching trigger, @ player.
+function ascii(rows:readonly string[],topology:{width:number;height:number}|null=null):GameStateSnapshot {
+ const tiles=rows.flatMap((row,y)=>chars(row).map((c,x)=>({x,y,collision:c==="#"?1:0,behavior:0,elevation:3})));
+ const at=rows.flatMap((row,y)=>chars(row).flatMap((c,x)=>c==="@"?[{x,y}]:[]))[0]??{x:0,y:0};
+ const triggers=rows.flatMap((row,y)=>chars(row).flatMap((c,x)=>c==="T"?[{x,y,elevation:3,variable:0x4002,required_value:0,current_value:0,condition_met:true,script_pointer:0x08100000}]:[]));
+ return {screen:"overworld",started:true,name:"A",location:"ROUTE",map_id:[0,9],position:at,facing:"down",in_battle:false,party:[],money:0,badges:[],play_time_s:0,field_controls_locked:false,navigation_grid:{elevation:3,tiles,objects:[],warps:[]},world_context:{objects:[],triggers,dialogue:null},...(topology===null?{}:{topology:{...topology,connections:[]}})};
+}
+
 describe("navigation-truth-v1: talk offers only for objects with a script (sh02 T260 seq 5861)",()=>{
  const birch=recorded("sh02:5860");
  it("PROF_BIRCH on Route 101 has script 0x0 and is not an interaction target, so no 'press A' offer",async()=>{
@@ -72,10 +85,10 @@ describe("navigation-truth-v1: matching coordinate triggers are not walked acros
  it("connection-edge-tiles-v1 no longer points the model at the gated north exit",async()=>{
   const town=recorded("3f21:2373");
   const edges={...town,topology:{width:20,height:20,connections:[{direction:"NORTH" as const,offset:0,destination:[0,16] as [number,number],destination_name:"ROUTE101",edges:[{x:10,y:0},{x:11,y:0}]}]}};
-  expect((await walk(edges,{x:7,y:0},{...CONTROL,connectionEdges:true})).status).toContain("the nearest walkable tile navigate_to can reach is (10,0), a map edge");
+  expect((await walk(edges,{x:7,y:0},{...CONTROL,connectionEdges:true})).status).toContain("the nearest walkable tile navigate_to can reach is (10,0), an edge tile of this map");
   const on=(await walk(edges,{x:7,y:0},{...TRUTH,connectionEdges:true})).status;
   expect(on).toContain("the nearest walkable tile navigate_to can reach is (6,2);");
-  expect(on).not.toContain("map edge");
+  expect(on).not.toContain("edge tile");
  });
  it("a trigger that runs immediately (variable 0) or does not match is still walkable",async()=>{
   const town=recorded("3f21:2373");
@@ -86,6 +99,36 @@ describe("navigation-truth-v1: matching coordinate triggers are not walked acros
   expect((await walk(unmatched,{x:7,y:0},TRUTH)).status).toBe("(7,0) is a wall or other solid tile, not a walkable tile; the nearest walkable tile navigate_to can reach is (10,0)");
   const otherElevation={...town,world_context:{...ctx,triggers:ctx.triggers.map(t=>({...t,elevation:5}))}};
   expect((await walk(otherElevation,{x:7,y:0},TRUTH)).status).toBe("(7,0) is a wall or other solid tile, not a walkable tile; the nearest walkable tile navigate_to can reach is (10,0)");
+ });
+ it("a ledge hop that lands on a matching trigger is not planned, and the refusal names the landing tile",async()=>{
+  const tile=(x:number,behavior=0)=>({x,y:0,collision:0,behavior,elevation:3});
+  const trigger={x:2,y:0,elevation:0,variable:0x4001,required_value:1,current_value:1,condition_met:true,script_pointer:0x08100000};
+  const row:GameStateSnapshot={screen:"overworld",started:true,name:"A",location:"ROUTE",map_id:[0,9],position:{x:0,y:0},facing:"right",in_battle:false,party:[],money:0,badges:[],play_time_s:0,field_controls_locked:false,navigation_grid:{elevation:3,tiles:[tile(0),tile(1,0x38),tile(2),tile(3)],objects:[],warps:[]},world_context:{objects:[],triggers:[trigger],dialogue:null}};
+  expect((await walk(row,{x:3,y:0},TRUTH)).status).toBe("every route navigate_to sees to (3,0) crosses (2,0), a script-trigger tile whose condition matches now (variable 0x4001=1, needs 1); stepping on it runs a script that can stop you or send you back, so navigate_to does not walk across it; target (2,0) itself to step on it on purpose");
+  expect((await walk(row,{x:2,y:0},{...TRUTH,maxCommands:1},[{...row,position:{x:2,y:0}}])).status).toBe("arrived at requested coordinate");
+  expect((await walk({...row,world_context:{objects:[],triggers:[{...trigger,current_value:null,condition_met:true}],dialogue:null}},{x:3,y:0},TRUTH)).status).toContain("(variable 0x4001=unknown, needs 1)");
+ });
+ it("names a gated tile that is closer, one that is itself a trigger, and one when no free tile is in range",async()=>{
+  // Goal (2,0) is a wall; (2,1) is closer but only reachable through the trigger at (1,1); (4,0) is free.
+  const closer=ascii(["@##..","#T.##","#####"]);
+  expect((await walk({...closer,navigation_grid:{...gridOf(closer),tiles:gridOf(closer).tiles.map(t=>t.x===0&&t.y===1?{...t,collision:0}:t)},position:{x:0,y:0}},{x:2,y:0},TRUTH)).status).toBe("(2,0) is a wall or other solid tile, not a walkable tile; the nearest walkable tile navigate_to can reach is (0,0); (2,1) is closer, but every route navigate_to sees to it crosses (1,1), a script-trigger tile whose condition matches now (variable 0x4002=0, needs 0)");
+  // The only walkable tile beside the wall goal is a trigger itself.
+  const itself=ascii(["#####","##T##","..@.."]);
+  expect((await walk(itself,{x:2,y:0},TRUTH)).status).toBe("(2,0) is a wall or other solid tile, not a walkable tile; the nearest walkable tile navigate_to can reach is (2,2); (2,1) is closer, but it is (2,1), a script-trigger tile whose condition matches now (variable 0x4002=0, needs 0)");
+  // No free tile within 3 steps of the goal; the gated one is named.
+  const none=ascii(["@#####","#T.#..","######"]);
+  const open={...none,navigation_grid:{...gridOf(none),tiles:gridOf(none).tiles.map(t=>t.x===0&&t.y===1?{...t,collision:0}:t)}};
+  expect((await walk(open,{x:4,y:0},TRUTH)).status).toBe("(4,0) is a wall or other solid tile, not a walkable tile; no walkable tile navigate_to can reach lies within 3 steps of it; (2,1) is within 3 steps, but every route navigate_to sees to it crosses (1,1), a script-trigger tile whose condition matches now (variable 0x4002=0, needs 0)");
+ });
+ it("plans around a matching trigger on the whole map (full-map-navigation-v1) and names a blocker there",async()=>{
+  const row="0300".repeat(3),trig="030003000300";
+  const full:GameStateSnapshot={...ascii(["@.."]),navigation_grid:null,position:{x:0,y:0},map_grid:{width:3,height:2,elevation:3,rows:[trig,row],objects:[],warps:[]},world_context:{objects:[],triggers:[{x:1,y:0,elevation:3,variable:0x4003,required_value:2,current_value:2,condition_met:true,script_pointer:0x08100000}],dialogue:null}};
+  const first=await walk(full,{x:2,y:0},{...TRUTH,fullMap:true,maxCommands:1},[{...full,position:{x:0,y:1}}]);
+  expect(first.presses).toBe(1);
+  const blocked={...full,map_grid:{...mapOf(full),objects:[{x:0,y:1}]},world_context:{...contextOf(full),objects:[{local_id:3,map_id:[0,9] as [number,number],graphics_id:7,sprite_kind:"BOY_1",x:0,y:1}]}};
+  expect((await walk(full,{x:2,y:0},{...TRUTH,fullMap:true,maxCommands:1},[blocked])).status).toBe("blocked: a person or object (sprite BOY_1) is now on (0,1), the next tile of the route; wait for it to move or choose another approach");
+  expect((await walk({...full,map_grid:{...mapOf(full),rows:[trig,"130013001300"]}},{x:2,y:0},{...TRUTH,fullMap:true,windowReasons:true})).status).toBe("every route navigate_to sees to (2,0) crosses (1,0), a script-trigger tile whose condition matches now (variable 0x4003=2, needs 2); stepping on it runs a script that can stop you or send you back, so navigate_to does not walk across it; target (1,0) itself to step on it on purpose");
+  expect((await walk({...full,world_context:{objects:[],triggers:[],dialogue:null},map_grid:{...mapOf(full),rows:["030013000300","130013001300"]}},{x:2,y:0},{...TRUTH,fullMap:true,windowReasons:true})).status).toBe("no supported path on the current map; choose a reachable waypoint");
  });
  it("needs coordinate-script-conditions-v1: without the trigger switch the plan is unchanged",async()=>{
   const town=recorded("3f21:2373");
@@ -130,12 +173,21 @@ describe("navigation-refusal-reasons-v2: a route that leaves the 15x15 local map
  it("show T800: Route 101 north is reachable only around the window's east side",async()=>{
   const state=recorded("show:19866");
   expect((await walk(state,{x:6,y:4},TERRAIN)).status).toBe("no supported local path; choose a reachable local waypoint");
-  expect((await walk(state,{x:6,y:4},V2)).status).toBe("no route to (6,4) lies inside the 15x15 local map navigate_to plans over, so any route leaves it; reachable tiles on its edge, nearest (6,4) first: (6,16) on the south edge, (14,9) on the east edge, (0,14) on the west edge; walk to one, then call navigate_to (6,4) again");
+  expect((await walk(state,{x:6,y:4},V2)).status).toBe("no route to (6,4) lies inside the 15x15 local map navigate_to plans over, so any route leaves it; reachable tiles on its edge, nearest (6,4) first: (6,16) on the south edge, (14,9) on the east edge; walk to one, then call navigate_to (6,4) again");
  });
  it("e588 seq 21335: (11,3) beside MAY from (14,10)",async()=>{
   const state=recorded("e588:21334");
   const status=(await walk(state,{x:11,y:3},V2)).status;
   expect(status).toMatch(/^no route to \(11,3\) lies inside the 15x15 local map navigate_to plans over, so any route leaves it; reachable tiles on its edge, nearest \(11,3\) first: .*\(7,\d+\) on the west edge/);
+ });
+ it("says when no edge tile can be reached, and keeps the generic text for a target outside the window",async()=>{
+  const boxed=ascii(["#####","#@#.#","#####"],{width:20,height:20});
+  expect((await walk(boxed,{x:3,y:1},{...TERRAIN,windowReasons:true})).status).toBe("no route to (3,1) lies inside the 15x15 local map navigate_to plans over, and navigate_to can reach no tile on that local map's edge from here; choose another target");
+  expect((await walk(boxed,{x:10,y:10},{...TERRAIN,windowReasons:true})).status).toBe("no supported local path; choose a reachable local waypoint");
+  // An edge tile with someone on it, or a matching trigger, is not listed.
+  const edge=ascii(["@..#.","...#.","T..##"],{width:20,height:20});
+  const occupied={...edge,navigation_grid:{...gridOf(edge),objects:[{x:2,y:2}]}};
+  expect((await walk(occupied,{x:4,y:0},{...TRUTH,windowReasons:true})).status).toBe("no route to (4,0) lies inside the 15x15 local map navigate_to plans over, so any route leaves it; reachable tiles on its edge, nearest (4,0) first: (1,2) on the south edge; walk to one, then call navigate_to (4,0) again");
  });
  it("off keeps the generic text; full-map mode and unknown map bounds keep it too",async()=>{
   const state=recorded("e588:21334");
@@ -170,7 +222,7 @@ class Replay {
  private ready(s:GameStateSnapshot):boolean{return s.world_context?.message?.ready===true||s.active_ui!=null||(s.field_controls_locked===false&&this.pressed&&this.i===this.states.length-1);}
  current():GameStateSnapshot{const s=this.states[this.i];if(s===undefined)throw new Error("replay ended");return s;}
  private tick():GameStateSnapshot{const s=this.current();if(this.pressed&&!this.ready(s)&&this.i<this.states.length-1)this.i++;return s;}
- press(buttons:readonly Button[]){for(const _ of buttons){this.pressed=true;if(this.i<this.states.length-1)this.i++;}}
+ press(buttons:readonly Button[]){for(let n=0;n<buttons.length;n++){this.pressed=true;if(this.i<this.states.length-1)this.i++;}}
  read={read:()=>Promise.resolve(this.tick())};
  fetch:typeof fetch=(input,init)=>{
   const url=typeof input==="string"?input:input instanceof URL?input.href:input.url;let body:unknown;
@@ -219,6 +271,24 @@ describe("navigation-truth-v1: speakers across a conversation",()=>{
   const off=await pages(states,["A"],false);
   expect(off.slice(1).every(p=>p[0]==="RIVAL_MAY_NORMAL"&&p[1]==="faced_sprite")).toBe(true);
  });
+ it("the named speaker follows the faced object, by object, by listed target, or not at all",async()=>{
+  const free=recorded("sh02:15706");
+  const seqs=[15710,15711,15716,15717,15722,15723,15728,15729,15734,15735];
+  const run=async(change:(s:GameStateSnapshot,seq:number)=>GameStateSnapshot)=>(await pages([free,...seqs.map(n=>change(recorded(`sh02:${String(n)}`),n)),later(free,400),later(free,401)],["A"],true)).map(p=>p[0]);
+  const ctx=(s:GameStateSnapshot)=>{if(s.world_context==null)throw new Error("no context");return s.world_context;};
+  // Only the interaction target identifies MAY's tile.
+  expect(await run(s=>({...s,world_context:{...ctx(s),objects:[]}}))).toEqual(["MAY","MAY","MAY","MAY","MAY"]);
+  // Nothing faced at all after the name: the name is kept as before.
+  expect(await run((s,n)=>n>=15716?{...s,facing:null}:s)).toEqual(["MAY","MAY","MAY","MAY","MAY"]);
+  // Another object (id 9) stands on the faced tile for the second message: the name is not carried; the faced target is used.
+  expect(await run((s,n)=>n>=15716?{...s,world_context:{...ctx(s),objects:[{local_id:9,map_id:[0,18],graphics_id:20,sprite_kind:"BOY_1",x:10,y:3}]}}:s)).toEqual(["MAY","RIVAL_MAY_NORMAL","RIVAL_MAY_NORMAL","RIVAL_MAY_NORMAL","RIVAL_MAY_NORMAL"]);
+ });
+ it("a line that starts with the player's name but does not narrate an action keeps its speaker",async()=>{
+  const states=[7733,7740,7741,7746,7747,7752,7753,7758,7759,7764,7765,7770,7776,7778].map(s=>recorded(`sh02:${String(s)}`)).map(s=>{const w=s.world_context;return w?.dialogue==null?s:{...s,world_context:{...w,dialogue:w.dialogue.replace("GMREEN received the TORCHIC!","GMREEN is the type to rush in!")}};});
+  expect((await pages(states,["B"],true)).at(-1)).toEqual(["PROF. BIRCH","name_prefix","GMREEN is the type to rush in!"]);
+  const unnamed=states.map(s=>({...s,name:null}));
+  expect((await pages(unnamed,["B"],true)).at(-1)?.[0]).toBe("PROF. BIRCH");
+ });
  it("sh02 T334: the narration 'GMREEN received the TORCHIC!' has no speaker, and the scroll page is whole",async()=>{
   const states=[7733,7740,7741,7746,7747,7752,7753,7758,7759,7764,7765,7770,7776,7778].map(s=>recorded(`sh02:${String(s)}`));
   const on=await pages(states,["B"],true);
@@ -238,17 +308,20 @@ describe("production wiring",()=>{
   expect(preset["navigation-refusal-reasons-v2"]).toBe(false);
  });
  it("withNavigation reads navigation-truth-v1, coordinate-script-conditions-v1 and navigation-refusal-reasons-v2 from the FeatureSet",async()=>{
-  const state=recorded("sh02:5860");
-  const fetchFn:typeof fetch=(input)=>{const url=typeof input==="string"?input:input instanceof URL?input.href:input.url;const body:unknown=url.endsWith("/pokebench/observation")?{state,state_text:"observed",screenshot_base64:PNG}:url.endsWith("/queue_status")?{queue_empty:true}:state;return Promise.resolve(new Response(JSON.stringify(body)));};
+  let state=recorded("sh02:5860");
+  const fetchFn:typeof fetch=(input)=>{const url=typeof input==="string"?input:input instanceof URL?input.href:input.url;const body:unknown=url.endsWith("/action")?{status:"success"}:url.endsWith("/pokebench/observation")?{state,state_text:"observed",screenshot_base64:PNG}:url.endsWith("/queue_status")?{queue_empty:true}:state;return Promise.resolve(new Response(JSON.stringify(body)));};
   const status=async(features:Partial<FeatureSet>,goal:{x:number;y:number}):Promise<string>=>{
    const all:FeatureSet={...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"bounded-navigation-v1":true,"ledge-hops-v1":true,"one-way-tiles-v1":true,"navigation-refusal-reasons-v1":true,...features};
    const tools=withNavigation([observeTool("http://127.0.0.1",fetchFn),pressTool("http://127.0.0.1",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},fetchFn,{now:()=>0,sleep:()=>Promise.resolve()})],all,{read:()=>Promise.resolve(state)});
    const nav=tools.find(t=>t.name==="navigate_to");if(nav===undefined)throw new Error("no navigation");
-   return ((await nav.execute("n",{...goal,map_id:[0,16]})).details as {navigation:{status:string}}).navigation.status;
+   return ((await nav.execute("n",{...goal,map_id:[state.map_id?.[0]??0,state.map_id?.[1]??0]})).details as {navigation:{status:string}}).navigation.status;
   };
   expect(await status({"navigation-truth-v1":true,"coordinate-script-conditions-v1":true},{x:4,y:13})).toContain("it has no script");
   expect(await status({"navigation-truth-v1":false,"coordinate-script-conditions-v1":true},{x:4,y:13})).toContain("to talk to it or use it");
   expect(await status({"navigation-truth-v1":true,"coordinate-script-conditions-v1":true},{x:4,y:12})).toContain("crosses (6,15)");
   expect(await status({"navigation-truth-v1":true,"coordinate-script-conditions-v1":false},{x:4,y:12})).not.toContain("crosses");
+  state=recorded("show:19866");
+  expect(await status({"navigation-refusal-reasons-v2":true},{x:6,y:4})).toContain("so any route leaves it");
+  expect(await status({"navigation-refusal-reasons-v2":false},{x:6,y:4})).toBe("no supported local path; choose a reachable local waypoint");
  });
 });

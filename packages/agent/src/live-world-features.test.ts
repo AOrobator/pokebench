@@ -5,7 +5,7 @@ import { beforeEach, afterEach, expect, it, vi } from "vitest";
 import { parseEvent, type RunEvent } from "./events.js";
 import type { RunHost, RunPlan } from "./run.js";
 
-const context = vi.hoisted(() => ({ root: "", memory: true, captureRuntime:false, runtimeModes:[] as string[], interactionWarnings:[] as (string|null)[], pingPong:false, files: new Map<string, string[]>(), resolve: undefined as ((event: RunEvent) => void) | undefined, reject: undefined as ((error: unknown) => void) | undefined }));
+const context = vi.hoisted(() => ({ root: "", memory: true, captureRuntime:false, runtimeModes:[] as string[], interactionWarnings:[] as (string|null)[], pingPong:false, noMessage:false, files: new Map<string, string[]>(), resolve: undefined as ((event: RunEvent) => void) | undefined, reject: undefined as ((error: unknown) => void) | undefined }));
 vi.mock("node:fs", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:fs")>();
   return { ...actual,
@@ -67,12 +67,16 @@ vi.mock("./harness.js",async(importOriginal)=>{
    const animation={field_controls_locked:true,resources:{bag:[],pc_items:[],storage:null,berry_trees:null,planted_berries:null,diagnostics:[],script_pc:0,script_mode:0,script_status:2,selected_tree_id:null,berry_script_owner:null}};
    const room=(map:[number,number],locked:boolean)=>({...state,world_context:{objects:[],triggers:[],dialogue:null},map_id:map,...(locked?animation:{field_controls_locked:false})});
    for(let i=0;i<6;i++){const [from,to]:[[number,number],[number,number]]=i%2===0?[[1,0],[1,1]]:[[1,1],[1,0]];options.loopDetector?.complete({name:"press",args:{buttons:[i%2===0?"UP":"DOWN"]},text:"ok",isError:false,acted:true,beforeState:room(from,false),state:room(to,true)});}
-  } else for(let i=0;i<3;i++) options.loopDetector?.complete({name:"press",args:{buttons:["A","A"]},text:"ok",isError:false,state,beforeState:state});
+  } else{
+   // navigation-truth-v1 proof: A presses on an empty tile, no message opened.
+   const pressed=context.noMessage?{...state,field_controls_locked:false,world_context:{objects:[],triggers:[],dialogue:null}}:state;
+   for(let i=0;i<3;i++) options.loopDetector?.complete({name:"press",args:{buttons:["A","A"]},text:"ok",isError:false,state:pressed,beforeState:pressed});
+  }
   context.interactionWarnings.push(options.loopDetector?.context() ?? null);
   return {start:()=>{options.governor.abort("completed");return Promise.resolve([]);},resume:()=>Promise.resolve([])};
  }};
 });
-afterEach(() => { context.captureRuntime=false;context.pingPong=false;context.runtimeModes=[];context.interactionWarnings=[];vi.unstubAllGlobals();vi.unstubAllEnvs(); vi.restoreAllMocks(); if (!context.memory && context.root !== "") rmSync(context.root, { recursive: true, force: true }); context.files.clear(); });
+afterEach(() => { context.captureRuntime=false;context.pingPong=false;context.noMessage=false;context.runtimeModes=[];context.interactionWarnings=[];vi.unstubAllGlobals();vi.unstubAllEnvs(); vi.restoreAllMocks(); if (!context.memory && context.root !== "") rmSync(context.root, { recursive: true, force: true }); context.files.clear(); });
 it.each([["smoke", true], ["play", true], ["probe", true], ["verify-state", true], ["smoke", false]] as const)("%s declares world advantages through publisher (memory=%s)", async (command, memory) => {
   vi.resetModules();
   context.memory = memory; context.files.clear();
@@ -122,4 +126,18 @@ it.each([true,false])("play hands the loop guard transition-loop-detection-v1 fr
  if(start.type!=="run_start")throw new Error("Missing run_start");expect(start.harness_features.includes("transition-loop-detection-v1")).toBe(enabled);
  expect(context.interactionWarnings).toHaveLength(1);
  if(enabled)expect(context.interactionWarnings[0]).toContain("Moving back and forth between the same maps");else expect(context.interactionWarnings).toEqual([null]);
+});
+
+it.each([true,false])("play hands the loop guard navigation-truth-v1 from its preset (%s)",async(enabled)=>{
+ vi.resetModules();context.captureRuntime=true;context.noMessage=true;context.runtimeModes=[];context.interactionWarnings=[];context.memory=true;context.files.clear();context.root=`/test-owned/navigation-truth-${String(enabled)}`;
+ const {flagFeatures}=await import("./play-preset.js");
+ const features={...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"field-dialogue-phase-v1":true,"dialogue-safe-batches-v1":true,"interaction-loop-detection-v1":true,"navigation-truth-v1":enabled};
+ const path="/test-owned/navigation-truth-preset.json";context.files.set(path,[JSON.stringify({version:2,id:"navigation-truth-proof",target:null,limits:{maxTurns:2,maxWallMs:10000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:100},features})]);
+ const receipt=new Promise<RunEvent>((resolve,reject)=>{context.resolve=resolve;context.reject=reject;});
+ vi.stubGlobal("process",Object.assign(Object.create(process) as NodeJS.Process,{argv:[...process.argv.slice(0,2),"play"],env:{...process.env,POKEBENCH_PLAY_PRESET:path}}));
+ vi.spyOn(console,"log").mockImplementation(()=>undefined);await import("./live.js");const start=await receipt;
+ if(start.type!=="run_start")throw new Error("Missing run_start");expect(start.harness_features.includes("navigation-truth-v1")).toBe(enabled);
+ expect(context.interactionWarnings).toHaveLength(1);
+ expect(context.interactionWarnings[0]).toContain("Use a single input");
+ if(enabled)expect(context.interactionWarnings[0]).not.toContain("Reopening the same message");else expect(context.interactionWarnings[0]).toContain("Reopening the same message is not story progress.");
 });

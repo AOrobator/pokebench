@@ -57,3 +57,5 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Off-screen people and objects](offscreen-objects-v1.html)
 - [navigate_to first prompting](navigate-first-prompt-v1.html)
 - [Presence penalty 1.5](presence-penalty-v1.html)
+- [Navigation truth](navigation-truth-v1.html)
+- [Off-window route reasons](navigation-refusal-reasons-v2.html)

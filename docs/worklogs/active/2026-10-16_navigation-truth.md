@@ -44,10 +44,10 @@ No new I/O, subprocesses, network, persistence or permissions. Strings are built
 
 **M1 — navigation-truth-v1 + navigation-refusal-reasons-v2**
 - [x] RED: tests for items 1–8 from recorded states (sh02 5860, 3f21 T123, 54a7 T169, sh02 T806, 54a7 seq 3014–3026, sh02 T922/T334, e588 seq 21335 / 54a7 T213), OFF byte-identity, factory wiring
-- [x] COMMIT RED: `test(agent): RED navigation-truth-v1 and navigation-refusal-reasons-v2 from recorded cook states` (sha in next entry)
-- [ ] GREEN: implement, register switches, presets, next-run defaults, explainers, FEATURE_EXPLAINERS, pending experiments + readiness rows
-- [ ] Wiring deletion check (red once, restored)
-- [ ] Gates: `just test`, `just lint`, `just build`, `just coverage` (≥90), `just verify-vendor`
+- [x] COMMIT RED: `test(agent): RED navigation-truth-v1 and navigation-refusal-reasons-v2 from recorded cook states` (73a12a86)
+- [x] GREEN: implement, register switches, presets, next-run defaults, explainers, FEATURE_EXPLAINERS, pending experiments + readiness rows
+- [x] Wiring deletion check (red once, restored): 16 receipts, see Session Log
+- [x] Gates: `just test`, `just lint`, `just build`, `just coverage` (≥90), `just verify-vendor` (pytest: 34 failures inherited from main, see Surprises)
 - [ ] COMMIT GREEN
 - [ ] Merge main, rerun gates, seal packet
 - [ ] Principles self-review (PB1–PB13)
@@ -64,7 +64,15 @@ Report branch, frozen head, packet sha256, verdicts, gates, switch ids and inten
 
 - 2026-10-16: RED. `navigation-truth.test.ts` (25 tests: 16 fail, the 9 OFF/byte-identity cases pass). Fixture `fixtures/navigation-truth-states.json.gz` (82 recorded state events from sh02, 3f21, 54a7, e588, show; envelope plus resources/running/party_ownership/game_stats stripped). The dialogue replay reproduces the recorded 54a7 seq 3032 pages exactly with the switch off.
 
+- 2026-10-16: GREEN. navigation.ts (talk offer, trigger-aware planner/stand/nearest, triggerReason, windowReason, blocker, partial-walk and command-limit status), loop-detection.ts (message text only; `messageTruth` 7th ctor arg, attachLoopGuard 8th, wired in live.ts and decision-probe.ts), dialogue-auto-advance.ts (Pages only: scroll_wait is not a page end; named speaker kept while the same object is faced; narration pages get no speaker). Registry: `navigation-truth-v1` (guidance, needs null) and `navigation-refusal-reasons-v2` (guidance, needs bounded-navigation-v1) appended last; presets/flagFeatures/next-run default false; registry position tests bumped by 2. Explainers `docs/explainers/navigation-truth-v1.html`, `navigation-refusal-reasons-v2.html` (figures drawn from the recorded local maps), mapped in FEATURE_EXPLAINERS; `just pages-check` prints nothing. Pending experiments `experiments/navigation-truth.json`, `experiments/navigation-refusal-reasons-v2.json` + readiness rows (PENDING).
+  - Wiring/guard deletion receipts (scratchpad nt/receipts, each red once then green): withNavigation truth, triggers, windowReasons; live.ts messageTruth arg; harness.ts pass-through; dialogue truth; scroll guard; narration guard; speaker keep; reopen guard; planner trigger step; blocker; partial walk; command limit; no-script offer; gated nearer.
+  - Gates: agent 1588 passed, viewer 885 passed; pytest 2236 passed / 34 failed (all `KeyError: 33786826` in `pokebench_env/route103_rival.py:34`, inherited from main; env/ untouched); lint clean (mypy needed the main checkout's native mgba binding linked into the worktree venv); build OK; verify-vendor OK. Coverage: agent lines 99.16 / branches 94.35 / functions 98.08; viewer 97.64 / 91.02 / 93.62; python lines 97.31 / branches 93.11 / functions 100.
+  - Evidence outputs (ON): show T800 lists (6,16) south then (14,9) east; e588 (11,3) lists (7,6) west first; 54a7 T213 (10,0) lists (14,9) east first.
+
 ## Surprises
+
+- pytest on main 1f4ac74e has 34 failures: `read_route103_rival` (route103-rival-splits merge) reads 0x0203A1CA, which older recorded raw-RAM fixtures do not contain. Not touched here (Python env belongs to other branches); reported to the thread owner.
+- The worktree needed `git submodule update --init` (from the main checkout's submodule) before pytest; vendor stays at the pin.
 
 ## Multi-Model Review Log
 

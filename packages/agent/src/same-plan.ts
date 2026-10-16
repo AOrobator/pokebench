@@ -95,8 +95,8 @@ export class SamePlanBreaker {
   const latest=window.at(-1);const first=window[0];
   if(latest===undefined||first===undefined)return;
   const turns=window.map(d=>String(d.turn)).join(", ");
-  // What the player went through from just before the first of these decisions: the two states the note names.
-  const distinct=[...new Map(snapshots.slice(1).map(s=>[s.key,s])).values()];
+  // The states the 3 decisions ended in; the two before them only qualify the window.
+  const distinct=[...new Map(snapshots.slice(2).map(s=>[s.key,s])).values()];
   const [a,b]=distinct;
   const change=distinct.length===1||a===undefined||b===undefined?"the game state did not change":`the game state did not change beyond going back and forth between ${a.label} and ${b.label}`;
   const text=`SUPERVISOR: Your last ${String(SAME_PLAN_DECISIONS)} plans (turns ${turns}) were the same and ${change}: ${latest.plan}`;

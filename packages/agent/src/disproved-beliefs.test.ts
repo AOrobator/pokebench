@@ -224,6 +224,8 @@ describe("leaving the ledger and never clipping",()=>{
   expect(l.text()).toBeNull();
  });
 
+ // The inputs a call sends: a press sends its buttons (no message opened before the last one); navigate_to records none.
+ const sentOf=(args:Record<string,unknown>):string[]=>Array.isArray(args["buttons"])?args["buttons"].map(String):[];
  // One press or navigate_to call: the state before, any script pages, and the state it ended in.
  function call(l:DisprovedBeliefs,id:string,name:"press"|"navigate_to",args:Record<string,unknown>,from:Record<string,unknown>|null,pages:Record<string,unknown>[],to:Record<string,unknown>,result:Record<string,unknown>={}):void {
   const base={type:"state",...IN_GAME,...LAB,facing:"up",field_controls_locked:false,story:story(0),world_context:{objects:[],triggers:[],dialogue:null}};
@@ -231,7 +233,7 @@ describe("leaving the ledger and never clipping",()=>{
   if(before!==null)l.observe(before);
   l.observe(ev({type:"tool_call",id,name,args}));
   l.observe(ev({type:"button_press",tool_call_id:id,buttons:["UP"],...(before===null?{}:{before_state_seq:before.seq})}));
-  if(pages.length>0)l.observe(ev({type:"dialogue_auto_advance",tool_call_id:id,tool:name,requested:["UP"],sent:["UP"],dropped:[],auto_presses:1,pages:pages.map(p=>({state_seq:null,map:"LAB",map_id:[1,4],position:{x:2,y:1},speaker:null,speaker_source:null,text:"Wait!",...p})),stop:"field_free",detail:"closed",duration_ms:1}));
+  if(pages.length>0)l.observe(ev({type:"dialogue_auto_advance",tool_call_id:id,tool:name,requested:sentOf(args),sent:sentOf(args),dropped:[],auto_presses:1,pages:pages.map(p=>({state_seq:null,map:"LAB",map_id:[1,4],position:{x:2,y:1},speaker:null,speaker_source:null,text:"Wait!",...p})),stop:"field_free",detail:"closed",duration_ms:1}));
   const after=ev({...base,...to});l.observe(after);
   l.observe(ev({type:"tool_result",id,name,is_error:false,duration_ms:1,text:"ok",frames:[],state_seq:after.seq,...result}));
  }

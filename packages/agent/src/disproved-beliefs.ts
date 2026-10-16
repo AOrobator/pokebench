@@ -24,7 +24,7 @@ const GAME_TOOLS=new Set(["observe","press","navigate_to"]);
 const STEP:Readonly<Record<string,Point>>={UP:{x:0,y:-1},DOWN:{x:0,y:1},LEFT:{x:-1,y:0},RIGHT:{x:1,y:0}};
 const CHARACTERS=/^Story characters here \(from this map's own object list\): .*\. Not on this map: (.*?)\. Sprite kinds .*$/m;
 // A sentence that negates or hedges anywhere is not a claim the model is acting on.
-const NEGATION=/\b(?:not|cannot|never|no longer|away|might|maybe|perhaps|probably|possibly|likely|if|whether|unsure|unclear|could|would|should)\b|n't|\?/i;
+const NEGATION=/\b(?:not|cannot|never|no longer|away|might|maybe|perhaps|probably|possibly|likely|if|whether|unsure|unclear|can|could|would|should)\b|n't|\?|^\s*(?:is|are|was|were|where|does|do|did|will)\b/i;
 // "may" is a hedge only in lower case: May and MAY are the rival's name.
 const MODAL=/\bmay\b/;
 const at=(p:Point):string=>`(${String(p.x)},${String(p.y)})`;
@@ -69,7 +69,7 @@ export function locatingClaims(text:string,name:string):string[] {
 
 export class DisprovedBeliefs {
  private readonly states=new Map<number,State>();
- private readonly calls=new Map<string,{name:string;args:Record<string,unknown>;before:State|null;pressed:boolean}>();
+ private readonly calls=new Map<string,{name:string;args:Record<string,unknown>;before:State|null;pressed:boolean;seq:number}>();
  private readonly pages=new Map<string,Advance>();
  private readonly entries=new Map<string,Entry>();
  // The latest conversation shown on each map, by map key, for evidence that names a character.
@@ -86,7 +86,7 @@ export class DisprovedBeliefs {
    return;
   }
   if(event.type==="tool_call"&&(event.name==="press"||event.name==="navigate_to")){
-   this.calls.set(event.id,{name:event.name,args:event.args,before:null,pressed:false});
+   this.calls.set(event.id,{name:event.name,args:event.args,before:null,pressed:false,seq:event.seq});
    if(this.calls.size>16)this.calls.delete(this.calls.keys().next().value??"");
    return;
   }
@@ -155,7 +155,7 @@ export class DisprovedBeliefs {
  // A script showed dialogue that began with the player on tile Q, and the call ended one tile away on the same map,
  // back against the way the model was going. While a message is open the harness presses only A or B, so the move
  // is the game's.
- private pushBack(event:Extract<RunEvent,{type:"tool_result"}>,call:{name:string;args:Record<string,unknown>;before:State|null},advance:Advance,state:State):void {
+ private pushBack(event:Extract<RunEvent,{type:"tool_result"}>,call:{name:string;args:Record<string,unknown>;before:State|null;seq:number},advance:Advance,state:State):void {
   const first=advance.pages[0];
   if(first===undefined||first.position===null||first.map_id===null||state.position===null||state.map_id===null)return;
   if(first.map_id.join("/")!==state.map_id.join("/"))return;
@@ -166,9 +166,10 @@ export class DisprovedBeliefs {
   let action:string;
   if(call.name==="press"){
    const buttons=Array.isArray(call.args["buttons"])?call.args["buttons"].map(String):[];
-   // Bound to the call's first direction, taken from where the call began: either the script met that first step
-   // on the starting tile, or the first step landed on the tile where the script began.
-   const first=buttons.find(b=>STEP[b]!==undefined);
+   // Bound to the first direction the harness actually sent (requested inputs after a message opened are dropped),
+   // taken from where the call began: either the script met that first step on the starting tile, or the first step
+   // landed on the tile where the script began.
+   const first=advance.sent.find(b=>STEP[b]!==undefined);
    const start=call.before?.position??null,step=STEP[direction];
    if(first!==direction||step===undefined||start===null||call.before?.map_id?.join("/")!==state.map_id.join("/"))return;
    if(!same(start,from)&&!same({x:start.x+step.x,y:start.y+step.y},from))return;
@@ -181,8 +182,8 @@ export class DisprovedBeliefs {
   const map=roomKey(state),key=`push|${map}|${at(from)}|${direction}`;
   const conversation={turn:advance.turn,seq:advance.seq,pages:advance.pages};
   const existing=this.entries.get(key);
-  if(existing?.kind==="push_back"){existing.turns.push(event.turn);existing.seqs.push(event.seq);existing.action=action;existing.conversation=conversation;return;}
-  this.entries.set(key,{kind:"push_back",key,map,room:roomOf(state,this.features),story:storyKey(state),order:this.order++,turns:[event.turn],seqs:[event.seq],from,to,direction,action,conversation});
+  if(existing?.kind==="push_back"){existing.turns.push(event.turn);existing.seqs.push(call.seq,event.seq);existing.action=action;existing.conversation=conversation;return;}
+  this.entries.set(key,{kind:"push_back",key,map,room:roomOf(state,this.features),story:storyKey(state),order:this.order++,turns:[event.turn],seqs:[call.seq,event.seq],from,to,direction,action,conversation});
  }
 
  private claims(turn:number,seq:number,text:string):void {

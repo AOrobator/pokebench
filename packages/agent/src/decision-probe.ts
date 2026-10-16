@@ -262,8 +262,10 @@ export function recordedNotes(prior: readonly RunEvent[], turn: number): string[
     else if (e.phase === "supervisor") guard = e.message;
     else guard = null;
   }
-  const own = prior.filter((e) => e.turn === turn && (e.type === "ledger_context" || e.type === "navigation_context" || e.type === "belief_ledger")).flatMap((e) => (e.type === "ledger_context" || e.type === "navigation_context" || e.type === "belief_ledger" ? [e.text] : []));
-  return [...(guard === null ? [] : [guard]), ...(hint === null ? [] : [hint]), ...own];
+  const own = prior.filter((e) => e.turn === turn && (e.type === "ledger_context" || e.type === "navigation_context")).flatMap((e) => (e.type === "ledger_context" || e.type === "navigation_context" ? [e.text] : []));
+  // disproved-beliefs-v1 wraps the hint in the context chain, so its message comes before the pinned hint.
+  const beliefs = prior.filter((e) => e.turn === turn && e.type === "belief_ledger").flatMap((e) => (e.type === "belief_ledger" ? [e.text] : []));
+  return [...(guard === null ? [] : [guard]), ...beliefs, ...(hint === null ? [] : [hint]), ...own];
 }
 const sameSwitches = (a: FeatureSet, b: FeatureSet): boolean => SWITCHABLE_FEATURES.every((id) => a[id] === b[id]);
 const isMessage = (m: AgentMessage): m is Message => "role" in m;

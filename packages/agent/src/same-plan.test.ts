@@ -78,7 +78,7 @@ describe("same-plan-breaker-v1 on run sh02",()=>{
   expect(twin.map(g=>g.turn)).toEqual([144,147]);
   const plan=FIXTURE.events.find((e):e is Extract<RunEvent,{type:"assistant"}>=>e.type==="assistant"&&e.turn===144);
   expect(twin[0]).toMatchObject({kind:"same_plan",phase:"supervisor",mode:"enforced"});
-  expect(twin[0]?.message).toBe(`SUPERVISOR: Your last 3 plans (turns 142, 143, 144) were the same and the game state did not change beyond going back and forth between LITTLEROOT TOWN (map 0/9) at (11,1) facing up, field controls locked and LITTLEROOT TOWN (map 0/9) at (11,2) facing up: ${plan?.thinking.trim()??""}`);
+  expect(twin[0]?.message).toBe(`SUPERVISOR: Your last 3 plans (turns 142, 143, 144) were the same and the game state did not change beyond going back and forth between LITTLEROOT TOWN (map 0/9) at (11,2) facing up and LITTLEROOT TOWN (map 0/9) at (11,1) facing up, field controls locked: ${plan?.thinking.trim()??""}`);
   // Delivered as the loop guard's context note at the next model call, once.
   expect(contexts.get(145)).toBe(twin[0]?.message);
   expect(contexts.get(146)).toBeNull();

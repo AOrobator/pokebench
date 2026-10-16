@@ -142,6 +142,8 @@ Merge locally after all lanes LGTM. No pending experiment entry (amendment 2). R
 
 - 2026-10-16 05:55 AM EDT: review round 3 (packet f46346a3..e38de393). Claude CLI LGTM. Grok BLOCKING on experiments/*.json, timeline.ts and style.css changes: all of them main-side changes, because the packet base was wrong: merge 448738a1's main parent is da8993aa, not f46346a3 (main had moved between my log check and the merge). Codex BLOCKING: an errored state-only `act` press (outer tool name `act`, normalised to `press` only on success) did not end the trip. Fix: the trip reset also matches `act` with `kind: "press"`; test "a return across an errored state-only act press" (red with the match removed; restored). Next round's packet uses the merged main parent as base.
 
+- Fix commit ec0a2ad3. Merged main again (1e1feec9: connection-edge-tiles-v1, in-game-naming-readout-v1, no-nickname-guidance-v1 and others). Same resolution: main's side, then this branch's three switches appended after `no-nickname-guidance-v1`; FEATURE_EXPLAINERS keeps both sides; positional registry assertions recomputed from the built registry; switchboard rows 67. Agent 1507 passed, viewer 853 passed.
+
 ## Surprises
 
 - `loop_guard` evidence is capped at 2 items by the event schema (`maxItems:2`); a 3-seq evidence list made the recorder throw in the factory test. Evidence is now [first push-back, completing call]. The replay tests validate every notice through `checkEvent`.

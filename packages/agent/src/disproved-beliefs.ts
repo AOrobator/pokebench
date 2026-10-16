@@ -196,7 +196,7 @@ export class DisprovedBeliefs {
   this.entries.set(key,{kind:"push_back",key,map,room:roomOf(state,this.features),story:storyKey(state),order:this.order++,turns:[event.turn],seqs:[call.seq,...call.presses,event.seq],from,to,direction,action,conversation});
  }
 
- // A claim counts only when the same reply acts on it: a navigate_to to the claimed tile or a tile next to it. Words
+ // A claim counts only when the same reply acts on it: a navigate_to to exactly the claimed tile. Words
  // alone (which a later sentence may retract) are never the pursuit.
  private claims(turn:number,seq:number,text:string,calls:readonly {readonly name:string;readonly args:unknown}[]):void {
   const readout=this.readout;
@@ -210,7 +210,7 @@ export class DisprovedBeliefs {
    const pursued=locatingClaims(text,name).flatMap(sentence=>{
     const m=/\bat \(\s*(-?\d+)\s*,\s*(-?\d+)\s*\)/.exec(sentence);
     const tile={x:Number(m?.[1]),y:Number(m?.[2])};
-    const walk=walks.find(w=>distance(w,tile)<=1);
+    const walk=walks.find(w=>same(w,tile));
     return walk===undefined?[]:[{sentence,walk}];
    });
    const latest=pursued.at(-1);

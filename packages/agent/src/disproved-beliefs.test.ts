@@ -212,7 +212,7 @@ describe("leaving the ledger and never clipping",()=>{
   expect(l.text()).toContain("- PROF. BIRCH on LAB (map 1/4)");
   observeResult(l,"o2",LINE("PROF. BIRCH at 3,3","MAY"),{},3);
   expect(l.text()).toBeNull();
-  say(l,"May is at (3,4).",4);
+  say(l,"May is at (3,3).",4);
   expect(l.text()).toContain("- MAY on LAB (map 1/4)");
   observeResult(l,"o3",LINE("PROF. BIRCH at 3,3","MAY"),{story:story(1)},5);
   expect(l.text()).toBeNull();

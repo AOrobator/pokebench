@@ -60,7 +60,8 @@ export function defaultViewerBuild(): ViewerBuild | null {
   return viewerBuildAt(fileURLToPath(new URL(`./${STAMP}`, import.meta.url)));
 }
 
-export interface Skew { readonly head: string; describe(count: number, first: string): string }
+// describe: startless when the run's run_start was among the skipped events, so the run cannot be graded.
+export interface Skew { readonly head: string; describe(count: number, first: string, startless?: boolean): string }
 // A run is skewed when the viewer knows its own build and the run's build is not contained in it: a
 // newer or diverged commit, or the same commit with either side dirty. Null for an unknown viewer
 // build, the identical clean build, or a run whose commit is an ancestor of the viewer's: the viewer's
@@ -71,7 +72,7 @@ export function skewOf(viewer: ViewerBuild | null, run: BuildIdentity): Skew | n
   if (relation === null || relation === "newer") return null;
   const verb = relation === "older" ? "is older than" : relation === "same" ? "is not the same build as" : "differs from";
   const head = `viewer build ${short(viewer.commit)}${viewer.dirty ? " (dirty)" : ""} ${verb} this run's build ${short(run.commit)}${run.dirty ? " (dirty)" : ""}: restart the viewer (just viewer-main)`;
-  return { head, describe: (count, first) => `${head}. It skipped ${String(count)} event${count === 1 ? "" : "s"} it cannot read; first: ${first}` };
+  return { head, describe: (count, first, startless = false) => `${head}.${startless ? " It cannot read this run's run_start, so the run is not graded." : ""} It skipped ${String(count)} event${count === 1 ? "" : "s"} it cannot read; first: ${first}` };
 }
 
 if (import.meta.main) {

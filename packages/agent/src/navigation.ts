@@ -413,6 +413,8 @@ export interface NavigationPorts {
  readonly floor?:boolean;
  // navigate-first-prompt-v1: the description leads with when to use the tool.
  readonly navigateFirst?:boolean;
+ // cross-map-goal-v1: a goal on another map, before any press, is refused as such, not as "map changed".
+ readonly crossMapGoal?:boolean;
 }
 function resultState(result:AgentToolResult<unknown>):GameStateSnapshot {
  const details=result.details;
@@ -420,6 +422,11 @@ function resultState(result:AgentToolResult<unknown>):GameStateSnapshot {
  return parseGameState(details.state);
 }
 class NavigationPreconditionError extends Error {}
+const mapOf=(id:readonly [number,number]):string=>`map ${String(id[0])}/${String(id[1])}`;
+function crossMapReason(state:GameStateSnapshot,here:readonly [number,number],goal:Point&{readonly map_id:readonly [number,number]}):string {
+ const place=state.location_display??state.location;
+ return `${at(goal)} on ${mapOf(goal.map_id)} is on another map; you are on ${mapOf(here)}${place===null?"":` (${place})`} and navigate_to only walks within the current map; to walk on this map, pass map_id [${String(here[0])},${String(here[1])}]; to reach ${mapOf(goal.map_id)}, use a listed warp or a map connection`;
+}
 export const NAVIGATE_RULES="To talk to a person or use an object, target the walkable tile next to it, face it and press A; the person's or object's own tile is not walkable. It cannot walk while a message is open: dismiss the message with B first. For a door, stairs or another listed warp, target the warp's own coordinates.";
 const LOCAL_DESCRIPTION="Walk toward a coordinate on the current map using bounded A*. Supply its map_id. Uses only known local tiles, advancing toward a reachable local frontier for distant in-bounds targets; avoids unsupported terrain and stops on locks, unexpected movement or map changes. Does not press A, choose destinations, or activate a directional exit after arriving. Use walking=true for deliberate walking. Maximum 8 ordinary button attempts; inspect the returned state before continuing. "+NAVIGATE_RULES;
 const FULL_DESCRIPTION="Walk to a coordinate on the current map using A* over the whole current map. Supply its map_id. Walks the full route one ordinary button at a time, re-planning before every press; avoids unsupported terrain and never crosses a warp unless it is the destination. Stops on blocked or unexpected movement, locks, map changes, or when the route stops getting shorter. Does not press A, choose destinations, or activate a directional exit after arriving. Use walking=true for deliberate walking. Inspect the returned state before continuing. "+NAVIGATE_RULES;
@@ -444,7 +451,10 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
   while(commands<bound){
    signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
    state=await ports.read(signal);signal?.throwIfAborted();
-   if(!sameMap()){status="map changed; inspect destination";break;}
+   if(!sameMap()){
+    if(ports.crossMapGoal!==true||commands>0){status="map changed; inspect destination";break;}
+    if(state.map_id!==null){status=crossMapReason(state,state.map_id,goal);break;}
+   }
    if(!ready(state,mode)){status=ports.refusalReasons===true?unreadyReason(state):"field input or navigation geometry unavailable";unready=true;break;}
    const options:NavigationOptions={mode,ledges:ports.ledges===true,oneWay:ports.oneWay===true,grassCost:ports.grassCost===true,floor:ports.floor===true,elevation:ports.elevation??"game",...(truth&&ports.triggers===true?{triggers:matchingTriggers(state)}:{})};
    const path=planNavigation(state,goal,options);
@@ -488,5 +498,5 @@ export function withNavigation(base:readonly AgentTool[],features:FeatureSet,sta
  const tools=[...base];if(!features["bounded-navigation-v1"])return tools;
  const press=base.find(tool=>tool.name==="press"),observe=base.find(tool=>tool.name==="observe");
  if(press===undefined||observe===undefined||!isCheckedPress(press))throw new Error("Navigation requires ordinary game tools");
- tools.push(navigationTool({ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],truth:features["navigation-truth-v1"],triggers:features["coordinate-script-conditions-v1"],windowReasons:features["navigation-refusal-reasons-v2"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],read:signal=>state.read(signal),press:(id,params,signal,check)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"]}));return tools;
+ tools.push(navigationTool({ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],truth:features["navigation-truth-v1"],triggers:features["coordinate-script-conditions-v1"],windowReasons:features["navigation-refusal-reasons-v2"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],crossMapGoal:features["cross-map-goal-v1"],read:signal=>state.read(signal),press:(id,params,signal,check)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"]}));return tools;
 }

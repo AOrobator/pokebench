@@ -130,6 +130,7 @@
    "surf-gated-exits-v1": true,
    "navigation-truth-v1": true,
    "navigation-refusal-reasons-v2": true,
+   "cross-map-goal-v1": true,
    "open-goal-prompt-v1": false
   },
   "start": {

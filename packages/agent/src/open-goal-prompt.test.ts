@@ -11,13 +11,13 @@ import {flagFeatures,normalizeFeatures,parsePlayPreset,presetFeatures} from "./p
 import {stateOnlyPrompt} from "./state-runtime.js";
 
 const ID="open-goal-prompt-v1";
-const PREVIOUS="navigation-refusal-reasons-v2";
+const PREVIOUS="cross-map-goal-v1";
 const RUN4CAA=JSON.parse(readFileSync(new URL("../test-support/open-goal-4caa.json",import.meta.url),"utf8")) as {harness_features:string[];system_prompt:string;turn_273_thinking:string};
 const BUNDLE:FeatureSet=featuresOf(RUN4CAA.harness_features);
 const with_=(features:FeatureSet,value:boolean):FeatureSet=>({...features,[ID]:value});
 const PLACES=/\b(rustboro|petalburg|oldale|littleroot|gym|leader|roxanne|badge|city|town|lab)\b/i;
 
-it("is a default-off agent-side guidance switch recorded right after navigation-refusal-reasons-v2",()=>{
+it("is a default-off agent-side guidance switch recorded right after cross-map-goal-v1",()=>{
  expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:null,switchable:true,title:"OPEN GOAL"});
  expect(featureInfo(ID).description).toContain(" Off: ");
  expect(featureInfo(ID).description).toContain(OPEN_GOAL_SENTENCE);

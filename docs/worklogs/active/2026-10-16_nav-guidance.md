@@ -178,3 +178,9 @@ Lanes: the think_fast/think_swarm endpoint lanes are not used while overnight tr
 - Codex lane (gpt-5.6-sol): VERDICT: LGTM.
 - Grok lane (cursor-grok-4.5-high): VERDICT: LGTM; hardening: registry copy and explainer did not yet name "a press that errors" among the resets. Synced after review (doc/copy only, no code).
   COMMIT: `docs: navigate-first copy names an erroring press among the resets (review round 3)`
+
+### Merge of main 6d2be8af (battle-text-auto-advance-v1)
+
+- Conflicts: play-config.ts resolved by hand (battle-text section kept before the evidence section; navigate-first logic unchanged); mechanical registry/test files taken from main and re-applied: the three switches follow battle-text-auto-advance-v1; `.at(-N)` +3 (+1 SERVER_FEATURES); battle-text "last key" tests now `.at(-4)`; counts observation 24, guidance 32, switchboard 68; my incumbents list switches up to their own; readiness rows and README entries re-appended.
+- Gates: agent 1519, viewer 866, Python 2224; lint green except known mypy; coverage and pages-check below.
+  COMMIT: `Merge branch 'main' into claude/nav-guidance (battle-text-auto-advance-v1)`

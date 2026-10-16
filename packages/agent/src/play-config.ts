@@ -65,6 +65,7 @@ export const DIALOGUE_AUTO_ADVANCE_SECTION = `Dialogue auto-advance: once a pres
 export const EXPLORER_GUIDANCE_SECTION = "Talk to people: in this game, people tell you where to go next. After each story event, and whenever you are unsure where to go, talk to everyone in the room you are in before you leave, including the families and neighbours of characters you have met. People often say something new once the story has moved on, so talk again to people you spoke to before. A short remark, such as where someone has gone, is a direction to follow, not small talk.";
 
 export const EXPLORER_TALK_IS_CHEAP = "Talking is cheap: face the person and press A; the harness reads the conversation until your next decision.";
+export const BATTLE_TEXT_AUTO_ADVANCE_SECTION = `Battle text auto-advance: in a battle the harness also advances the battle messages itself, pressing B on each message that waits, until the action or move menu is ready, a YES/NO question opens, another screen opens (bag, party, summary, naming) or the battle ends. The result lists every battle message shown, whole and in order, with its battle turn, including the ones that pass on their own. Buttons left in your batch once the battle text starts are not sent, so you never need A or B to read battle text; choose from the menu that is open.`;
 
 export const NO_NICKNAME_SECTION = "Nicknames: this is a speed run, and naming a Pokémon only costs time. When the game offers to give a Pokémon a nickname, answer NO. If you are already on the naming screen for a Pokémon's nickname, do not type or fix letters: press START to move the cursor to OK, then A. Any nickname is fine, and with nothing typed the Pokémon keeps its own name.";
 
@@ -99,6 +100,7 @@ export function playSystemPrompt(features: FeatureSet, target: string | null): s
   if (features["instruction-ledger-v1"]) prompt += "\n\nAn INSTRUCTION LEDGER is supplied before each decision: the latest dialogue you were shown, the rooms you visited with what you heard there, and contradictions you recorded. It quotes the game; it is not a walkthrough. When the game turns out different from what you expected, record it with note_contradiction (expected, observed, 1–4 event numbers) so you do not repeat the same wrong assumption.";
   if (features["loop-guard-supervisor-v1"]) prompt += "\n\nLoop supervisor: if you repeat a pattern without new game information, a SUPERVISOR note summarizes where you are, the last dialogue you were shown, what you tried and what is listed here that you have not tried. The run continues; use the note to change strategy.";
   if (features["dialogue-auto-advance-v1"]) prompt += `\n\n${DIALOGUE_AUTO_ADVANCE_SECTION}`;
+  if (features["battle-text-auto-advance-v1"]) prompt += `\n\n${BATTLE_TEXT_AUTO_ADVANCE_SECTION}`;
   // navigate-first-prompt-v1: its Moving around section replaces the one-line usage rule.
   const navigateFirst = features["navigate-first-prompt-v1"] && features["bounded-navigation-v1"];
   if (features["game-evidence-priority-v1"]) prompt += `\n\n${GAME_EVIDENCE_SECTION}${features["bounded-navigation-v1"] && !navigateFirst ? `\n\n${NAVIGATE_TO_USAGE}` : ""}`;

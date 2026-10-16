@@ -3,7 +3,7 @@ import { ALL_ON, SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featu
 import { flagFeatures, normalizeFeatures, parsePlayPreset, presetFeatures } from "./play-preset.js";
 
 const ID = "offscreen-objects-v1";
-const PREVIOUS = "no-nickname-guidance-v1";
+const PREVIOUS = "battle-text-auto-advance-v1";
 const PREVIOUS_SERVER = "in-game-naming-readout-v1";
 const off = (...ids: (typeof SWITCHABLE_FEATURES)[number][]): FeatureSet => ({ ...ALL_ON, ...Object.fromEntries(ids.map((id) => [id, false])) });
 

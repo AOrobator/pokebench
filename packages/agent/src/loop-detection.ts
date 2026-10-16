@@ -2,6 +2,9 @@ import type { RunEvent } from "./events.js";
 import { MEASUREMENT_ONLY_MILESTONES, MILESTONES } from "./milestones.js";
 import type { GameStateSnapshot } from "./game-state.js";
 
+// Story progress that resets the guard; measurement-only splits never change guard behavior.
+export const NATIVE_PROGRESS_MILESTONES = MILESTONES.filter((m) => m.kind === "story" && !MEASUREMENT_ONLY_MILESTONES.has(m.name));
+
 export const LOOP_POLICY = {
   planning: 6,
   observation: 3,
@@ -17,7 +20,7 @@ export type LoopKind =
   | "cycle"
   | "rejection";
 // stall-briefing-v1: stalls the loop checks above do not see.
-export type StallKind = "map_cycle" | "milestone_drought" | "interface_dwell";
+export type StallKind = "map_cycle" | "milestone_drought" | "interface_dwell" | "same_plan";
 export type LoopMode = "enforced" | "diagnostic";
 export function readLoopMode(env: NodeJS.ProcessEnv = process.env): LoopMode {
   const flag = env["POKEBENCH_LOOP_GUARD"];
@@ -487,8 +490,7 @@ export class LoopDetector {
 
   private nativeProgress(state: GameStateSnapshot, seq: number): void {
     let advanced = false;
-    for (const milestone of MILESTONES) {
-      if (milestone.kind !== "story") continue;
+    for (const milestone of NATIVE_PROGRESS_MILESTONES) {
       const current = milestone.reached(state);
       const previous = this.nativeValues.get(milestone.name);
       if (current === true && !this.achieved.has(milestone.name)) {

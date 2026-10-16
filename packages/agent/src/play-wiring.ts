@@ -3,8 +3,11 @@ import {withDialogueAutoAdvance,type AutoAdvanceRecorder} from "./dialogue-auto-
 import {dialogueLog} from "./dialogue-log.js";
 import type {StateSource} from "./game-state.js";
 import {withNavigation,type NavigationPorts} from "./navigation.js";
+import {withNavigateFirst} from "./navigate-first.js";
 import type {FeatureSet} from "./features.js";
 import {instructionLedger} from "./instruction-ledger.js";
+import {disprovedBeliefs} from "./disproved-beliefs.js";
+import {SamePlanBreaker} from "./same-plan.js";
 import {nextMilestoneHint} from "./milestone-hint.js";
 import type {LoopDetector,LoopKind} from "./loop-detection.js";
 import {SupervisorBriefing} from "./loop-supervisor.js";
@@ -16,7 +19,7 @@ import {STALL_STOP_MS,StallStop,type RunControl} from "./run-control.js";
 import {TEXT_ONLY_NOTE_LIMIT,contextWindow,withoutTextOnlyReplies,type Window} from "./harness.js";
 
 type Transform=(messages:AgentMessage[])=>Promise<AgentMessage[]>;
-type WiringRecorder=Pick<RunRecorder,"subscribe"|"recordNavigationContext"|"recordLedgerContext"|"recordMilestoneHint">;
+type WiringRecorder=Pick<RunRecorder,"subscribe"|"recordNavigationContext"|"recordLedgerContext"|"recordMilestoneHint"|"recordBeliefLedger">;
 
 // The switch-dependent memory tools and the context chain a play run delivers to the model.
 export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Transform):{tools:AgentTool[];transformContext:Transform;window:Window}{
@@ -29,7 +32,8 @@ export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Tr
  if(ledger!==null)tools.push(ledger.tool);
  const hint=nextMilestoneHint(features,recorder,ledger?.transformContext??memory?.transformContext??base);
  if(hint!==null)tools.push(hint.tool);
- const chain=hint?.transformContext??ledger?.transformContext??memory?.transformContext??base;
+ const hinted=hint?.transformContext??ledger?.transformContext??memory?.transformContext??base;
+ const chain=disprovedBeliefs(features,recorder,hinted)?.transformContext??hinted;
  return {tools,transformContext:features["fresh-retry-v1"]?messages=>chain(withoutTextOnlyReplies(messages)):chain,window:contextWindow(features)};
 }
 
@@ -41,7 +45,9 @@ export function loopSupervisor(features:FeatureSet,recorder:Pick<RunRecorder,"su
 }
 
 // stall-briefing-v1: supervisor notes for map ping-pong and milestone droughts, timed on unpaused play.
+// same-plan-breaker-v1: a supervisor note when the stated plan repeats while the game does not move on.
 export function stallBriefing(features:FeatureSet,recorder:Pick<RunRecorder,"subscribe">,detector:Pick<LoopDetector,"stall">,control:Pick<RunControl,"pausedMs">,elapsed:()=>number):StallBriefing|null {
+ if(features["same-plan-breaker-v1"]){const plans=new SamePlanBreaker(features,detector);recorder.subscribe(event=>{plans.observe(event);});}
  if(!features["stall-briefing-v1"])return null;
  const briefing=new SupervisorBriefing(features);recorder.subscribe(event=>{briefing.observe(event);},true);
  const stall=new StallBriefing(features,()=>elapsed()-control.pausedMs(),detector,(kind,calls)=>briefing.stallText(kind,calls));
@@ -65,6 +71,7 @@ export function stallStop(features:FeatureSet,recorder:Pick<RunRecorder,"subscri
 }
 
 // The game tools a play run hands the model: ordinary tools, navigate_to, dialogue auto-advance and the people ledger per switch.
-export function playGameTools(base:readonly AgentTool[],features:FeatureSet,state:StateSource,recorder:AutoAdvanceRecorder,gate?:NavigationPorts["gate"]):AgentTool[]{
- return withPeopleLedger(withDialogueAutoAdvance(withNavigation(base,features,state,gate),features,{state,recorder}),features,recorder);
+// extra: the run's other model tools (context tools), wrapped too so any call between presses is seen.
+export function playGameTools(base:readonly AgentTool[],features:FeatureSet,state:StateSource,recorder:AutoAdvanceRecorder,gate?:NavigationPorts["gate"],extra:readonly AgentTool[]=[]):AgentTool[]{
+ return [...withNavigateFirst([...withPeopleLedger(withDialogueAutoAdvance(withNavigation(base,features,state,gate),features,{state,recorder}),features,recorder),...extra],features)];
 }

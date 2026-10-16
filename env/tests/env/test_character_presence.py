@@ -232,3 +232,28 @@ def test_the_line_people_ledger_reads_keeps_its_exact_shape() -> None:
             "Story characters here (from this map's own object list): none. Not on this map: none. "
         )
     )
+
+
+def test_the_offscreen_entries_people_ledger_reads_keep_their_exact_shape() -> None:
+    # offscreen-objects-v1 entries, as packages/agent/src/people-ledger.ts parses them.
+    from types import SimpleNamespace
+
+    out = (
+        "MAY (on this map, out of view)",
+        "PROF. BIRCH (on this map, out of view)",
+    )
+    line = StoryCharacters(
+        here=out, absent=("MOM",), out_of_view=(("MAY", 7), ("PROF. BIRCH", 2))
+    ).text(
+        {
+            7: SimpleNamespace(x=12, y=3, loaded=True),
+            2: SimpleNamespace(x=6, y=4, loaded=False),
+        }
+    )
+    assert line == (
+        "Story characters here (from this map's own object list): "
+        "MAY at 12,3 (out of view), PROF. BIRCH at 6,4 "
+        "(out of view; where the map places this character, it may have moved). "
+        "Not on this map: MOM. "
+        "Sprite kinds such as SCIENTIST_1 or FAT_MAN are not these characters."
+    )

@@ -19,10 +19,12 @@ from pokebench_env.game_screen import ReadMemory, read_screen
 from pokebench_env.gba_text import GBA_TEXT, decode_text
 from pokebench_env.live_map import MAP_OFFSET, FullMap, LocalMap, read_full_map, read_local_map
 from pokebench_env.naming import NamingState, editor_open, read_naming
+from pokebench_env.offscreen_objects import MapObject, read_offscreen_objects
 from pokebench_env.party_ownership import PartyOwnership, read_party_ownership
 from pokebench_env.pokemon import SPECIES_NAMES as SPECIES_NAMES
 from pokebench_env.pokemon import PartyMon, decode_party_mon, pokemon_cpu_context
 from pokebench_env.resources import Resources, read_resources
+from pokebench_env.route103_rival import Route103Rival, read_route103_rival
 from pokebench_env.running import RunningPermission, read_running_permission
 from pokebench_env.story import StoryState, read_story
 from pokebench_env.topology import Topology, read_topology
@@ -100,11 +102,14 @@ class GameState:
     blackout_active: bool | None = None
     destination_names: tuple[tuple[int, int, str], ...] = ()
     story_characters: StoryCharacters | None = None
+    route103_rival: Route103Rival | None = None
     battle_details: BattleDetails | None = None
     # SaveBlock1.dynamicWarp (group, number, map name) when this map has a MAP_DYNAMIC warp.
     dynamic_warp: tuple[int, int, str] | None = None
     # displayed-place-names-v1: (group, number, name the game's own sign gives it for this save).
     displayed_places: tuple[tuple[int, int, str], ...] = ()
+    # offscreen-objects-v1: this map's objects outside the readout's window; None when off.
+    offscreen_objects: tuple[MapObject, ...] | None = None
 
 
 DYNAMIC_WARP = 0x14
@@ -177,6 +182,7 @@ def read_game_state(
     displayed_names_enabled: bool = False,
     connection_edges_enabled: bool = False,
     in_game_naming_enabled: bool = False,
+    offscreen_objects_enabled: bool = False,
 ) -> GameState:
     screen = read_screen(read)
     in_battle = bool(read(IN_BATTLE, 1)[0] & 0x02)
@@ -284,6 +290,7 @@ def read_game_state(
         screen=screen.label,
         started=True,
         story=read_story(read, screen, save1),
+        route103_rival=read_route103_rival(read, save1, in_battle),
         name=player,
         location=maps.name(map_id) or f"unknown map {map_id}",
         map_id=map_id,
@@ -335,6 +342,9 @@ def read_game_state(
             location=maps.name(map_id),
         )
         if story_characters_enabled and screen.kind == "overworld" and not in_battle
+        else None,
+        offscreen_objects=read_offscreen_objects(read, save1, map_id, (x, y))
+        if offscreen_objects_enabled and screen.kind == "overworld" and not in_battle
         else None,
         # named-warp-destinations-v1 OFF never reads SaveBlock1.dynamicWarp.
         dynamic_warp=_dynamic_warp(read, save1, maps)

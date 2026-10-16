@@ -1,6 +1,7 @@
 import { esc } from "./format.js";
 import type { WorkbenchRun } from "./workbench-data.js";
 export const HUMAN_REFERENCE = "2026-10-13T23-50-13_human_1848";
+export const ROUTE103_RIVAL_SPLITS: ReadonlySet<string> = new Set(["RIVAL_BATTLE_STARTED", "RIVAL_BATTLE_DEFEATED", "RIVAL_OLDALE_SEND_OFF", "ROUTE_101_AFTER_RIVAL_BATTLE", "LITTLEROOT_AFTER_RIVAL_BATTLE"]);
 export const FRONTIER_MILESTONES = [
   { id: "NEW_GAME_CREATED", label: "New game" },
   { id: "PLAYER_NAME_CONFIRMED", label: "Name" },
@@ -25,7 +26,12 @@ export const FRONTIER_MILESTONES = [
   { id: "ROUTE_101_AFTER_HANDOFF", label: "Back on Route 101" },
   { id: "OLDALE_TOWN", label: "Oldale" },
   { id: "ROUTE_103", label: "Route 103" },
-  { id: "RIVAL_BATTLE_WON", label: "Rival battle" },
+  { id: "RIVAL_BATTLE_STARTED", label: "Rival battle starts" },
+  { id: "RIVAL_BATTLE_DEFEATED", label: "Rival beaten" },
+  { id: "RIVAL_BATTLE_WON", label: "Rival sends you back" },
+  { id: "RIVAL_OLDALE_SEND_OFF", label: "Rival waits in Oldale" },
+  { id: "ROUTE_101_AFTER_RIVAL_BATTLE", label: "Route 101, heading back" },
+  { id: "LITTLEROOT_AFTER_RIVAL_BATTLE", label: "Back in Littleroot" },
   { id: "RECEIVED_POKEDEX", label: "Pokédex" },
   { id: "STARTER_TUTORIAL_COMPLETE", label: "Starter tutorial" },
   { id: "RUNNING_SHOES_RECEIVED", label: "Running shoes" },
@@ -74,7 +80,7 @@ export function milestoneStatus(run: WorkbenchRun, name: string): "reached" | "u
   if (run.excluded !== null || run.problem !== null) return "excluded";
   if (run.splits.some(s => s.name === name)) return "reached";
   const features = run.measurement?.features;
-  const required = name === "BIRCH_RESCUE_REQUESTED" ? "birch-rescue-requested-v1" : name === "RIVAL_HOUSE_EXITED" ? "rival-house-exit-v1" : name === "ROUTE_101_AFTER_HANDOFF" ? "route-101-after-handoff-v1" : name === "PLAYER_BEDROOM_EXITED_AFTER_CLOCK" ? "bedroom-exit-v1" : name.startsWith("RUSTBORO_GYM_TRAINER_") ? "rustboro-gym-trainer-milestones-v1" : name === "NEW_GAME_CREATED" ? "new-game-created-v1" : name === "ROXANNE_DEFEATED" ? "native-progress-activity-v1" : ["PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_BEDROOM_REACHED"].includes(name) ? "post-clock-navigation-milestones-v1" : name === "CLOCK_SET" ? "clock-milestone-v1" : ["LITTLEROOT_TOWN", "PLAYER_HOUSE_ENTERED", "PLAYER_BEDROOM", "ROUTE_101", "OLDALE_TOWN", "ROUTE_103", "ROUTE_102", "PETALBURG_CITY", "ROUTE_104", "PETALBURG_WOODS", "RUSTBORO_CITY", "RUSTBORO_CITY_GYM", "STONE_BADGE"].includes(name) ? "ram-state-v1" : "story-milestones-v2";
+  const required = name === "BIRCH_RESCUE_REQUESTED" ? "birch-rescue-requested-v1" : name === "RIVAL_HOUSE_EXITED" ? "rival-house-exit-v1" : name === "ROUTE_101_AFTER_HANDOFF" ? "route-101-after-handoff-v1" : name === "PLAYER_BEDROOM_EXITED_AFTER_CLOCK" ? "bedroom-exit-v1" : ROUTE103_RIVAL_SPLITS.has(name) ? "route103-rival-splits-v1" : name.startsWith("RUSTBORO_GYM_TRAINER_") ? "rustboro-gym-trainer-milestones-v1" : name === "NEW_GAME_CREATED" ? "new-game-created-v1" : name === "ROXANNE_DEFEATED" ? "native-progress-activity-v1" : ["PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_BEDROOM_REACHED"].includes(name) ? "post-clock-navigation-milestones-v1" : name === "CLOCK_SET" ? "clock-milestone-v1" : ["LITTLEROOT_TOWN", "PLAYER_HOUSE_ENTERED", "PLAYER_BEDROOM", "ROUTE_101", "OLDALE_TOWN", "ROUTE_103", "ROUTE_102", "PETALBURG_CITY", "ROUTE_104", "PETALBURG_WOODS", "RUSTBORO_CITY", "RUSTBORO_CITY_GYM", "STONE_BADGE"].includes(name) ? "ram-state-v1" : "story-milestones-v2";
   if (features === undefined || !features.includes(required)) return "unsupported";
   return run.status === "ended" ? "not reached" : run.status === "live" || run.status === "paused" ? "pending" : "censored";
 }

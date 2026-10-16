@@ -91,6 +91,17 @@ describe("mounted runs and comparisons workbench", () => {
     ] }); await wb.refresh();
     expect([...(ui("cohort") as HTMLSelectElement).options].map(o => o.value)).toEqual(["all", "also-new", "new", "old", "undated"]); wb.destroy();
   });
+  it("drops a live run of another experiment from the story frontier when an experiment is picked", async () => {
+    const { wb } = mount({ ...data(), runs: [run({ id: "live_aaaa", status: "live", cohort: "exp-a" }), run({ id: "live_bbbb", status: "live", cohort: "exp-b" })] }); await wb.refresh();
+    expect(ui("frontier-full").querySelector('[data-run="live_bbbb"]')).not.toBeNull();
+    expect(ui("frontier-full").textContent).toContain("bbbb");
+    change("cohort", "exp-a");
+    expect(ui("frontier-full").querySelector('[data-run="live_aaaa"]')).not.toBeNull();
+    expect(ui("frontier-full").querySelector('[data-run="live_bbbb"]')).toBeNull();
+    expect(ui("frontier-full").textContent).not.toContain("bbbb");
+    expect(ui("current").textContent).toContain("2 CURRENT RUNS");
+    wb.destroy();
+  });
   it("rejects a malformed cohort list at the browser boundary", async () => {
     const { wb } = mount({ ...data(), cohorts: [{ id: "x", label: 3 }] }); await wb.refresh(); expect(ui("problem").hidden).toBe(false); wb.destroy();
   });
@@ -112,7 +123,7 @@ it("keeps the plate link and keyboard focus stable through clock ticks, lane joi
   const splits = [...run().splits, { name: "RIVAL_MET", elapsedMs: 160000, segmentMs: 1, seq: 30, turn: 109, inputTokens: 1, outputTokens: 1 }];
   fetch.mockResolvedValue({ ...data(), at: 39000, runs: [run({ status: "live", elapsedMs: 160000, splits })] }); await wb.refresh();
   expect(ui("current").querySelector(".wb-plate")).toBe(link); expect(document.activeElement).toBe(link); expect(link.className).toBe("wb-plate new");
-  expect(link.querySelector(".wb-ms b")?.textContent).toBe("Rival met"); expect(link.textContent).toContain("14/ 40"); expect(link.querySelector(".wb-plate-l1")?.textContent).toBe("LANE A · GPU1Lv14"); expect(link.querySelector(".wb-br i")?.getAttribute("style")).toBe("width:35.0%");
+  expect(link.querySelector(".wb-ms b")?.textContent).toBe("Rival met"); expect(link.textContent).toContain("14/ 45"); expect(link.querySelector(".wb-plate-l1")?.textContent).toBe("LANE A · GPU1Lv14"); expect(link.querySelector(".wb-br i")?.getAttribute("style")).toBe("width:31.1%");
   fetch.mockResolvedValue({ ...data(), at: 39001, runs: [run({ status: "live", elapsedMs: 160000, splits }), run({ id: "second", status: "live" })] }); await wb.refresh();
   expect(ui("current").querySelectorAll(".wb-plate")).toHaveLength(2); expect(ui("current").querySelector(".wb-party .wb-kicker")?.textContent).toContain("2 CURRENT RUNS"); wb.destroy();
 });

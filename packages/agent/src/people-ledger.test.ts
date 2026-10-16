@@ -184,6 +184,16 @@ describe("people-ledger-v1 ledger rules",()=>{
   expect(out[3]).toBe(PEOPLE_HEADER);
   expect(out.slice(5)).toEqual(readout.split("\n").slice(3));
  });
+ it("reads offscreen-objects-v1's presence entries: a loaded out-of-view tile names its object, a template tile names no one",()=>{
+  const ledger=new PeopleLedger();
+  const s=world([{local_id:7,x:12,y:3,sprite_kind:"RIVAL_MAY_NORMAL"},{local_id:2,x:6,y:4,sprite_kind:"BOY_1"}]);
+  const here="MAY at 12,3 (out of view), PROF. BIRCH at 6,4 (out of view; where the map places this character, it may have moved)";
+  const readout=`Location: ROOM\nStory characters here (from this map's own object list): ${here}. Not on this map: MOM. Sprite kinds such as SCIENTIST_1 or FAT_MAN are not these characters.`;
+  expect(ledger.block(s,readout,"a")).toBe([PEOPLE_HEADER,
+   "- object 7, MAY (sprite RIVAL_MAY_NORMAL), at (12,3): not talked to this run",
+   "- object 2, sprite BOY_1, at (6,4): not talked to this run",
+   `Story characters here: ${here}. Not on this map: MOM.`].join("\n"));
+ });
  it("adds nothing outside a started overworld readout",()=>{
   const ledger=new PeopleLedger();
   const s=world([{local_id:1,x:2,y:1,sprite_kind:"MAN"}]);

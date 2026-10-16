@@ -13,6 +13,7 @@ from pokebench_env.battle_choices import exact
 from pokebench_env.battle_message_waiting import input_clause, message_clause
 from pokebench_env.battle_state import BattleBattler, BattleInput, BattleState
 from pokebench_env.game_screen import ReadMemory
+from pokebench_env.levelup_box import levelup_clause
 from pokebench_env.pokemon import (
     BATTLE_MOVES,
     ITEMS,
@@ -141,8 +142,12 @@ class BattleDetails:
     storage_full: bool | None
     diagnostic: str | None = None
 
-    def lines(self, battle: BattleState, *, message_waiting: bool = False) -> list[str]:
-        return battle_details_lines(battle, self, message_waiting=message_waiting)
+    def lines(
+        self, battle: BattleState, *, message_waiting: bool = False, levelup_box: bool = False
+    ) -> list[str]:
+        return battle_details_lines(
+            battle, self, message_waiting=message_waiting, levelup_box=levelup_box
+        )
 
 
 def _move_facts(
@@ -322,16 +327,20 @@ def _kind(flags: int) -> str:
     return " · ".join(tags)
 
 
-def _input_text(battle: BattleState, message_waiting: bool) -> str:
+def _input_text(battle: BattleState, message_waiting: bool, levelup_box: bool = False) -> str:
     ready = [i for i in battle.player_inputs or () if i.ready]
     if ready:
         return "input ready (" + ", ".join(PHASES[i.phase] for i in ready) + ")"
+    # levelup-box-v1: the level-up stats box waiting for a button.
+    box = levelup_clause(battle) if levelup_box else None
     if battle.phase == "finishing":
-        clause = message_clause(battle) if message_waiting else None
+        clause = box if box is not None else message_clause(battle) if message_waiting else None
         finishing = f"finishing (outcome {battle.outcome})"
         return finishing if clause is None else f"{finishing} · {clause}"
     if battle.phase == "replay":
         return "recorded playback"
+    if box is not None:
+        return box
     # battle-message-waiting-v1: the message window or YES/NO box, or why nothing is needed.
     clause = input_clause(battle) if message_waiting else None
     return "resolving (no input until the game asks)" if clause is None else clause
@@ -540,12 +549,16 @@ def _actor_text(label: str, actor: BattleBattler, held: HeldItem | None) -> str:
 
 
 def battle_details_lines(
-    battle: BattleState, details: BattleDetails, *, message_waiting: bool = False
+    battle: BattleState,
+    details: BattleDetails,
+    *,
+    message_waiting: bool = False,
+    levelup_box: bool = False,
 ) -> list[str]:
     flags = battle.battle_type or 0
     lines = [
         f"Battle details: {_kind(flags)} · turn {battle.turn} · "
-        + _input_text(battle, message_waiting)
+        + _input_text(battle, message_waiting, levelup_box)
     ]
     if details.diagnostic is not None:
         lines.append(f"HARNESS BUG (battle details): {details.diagnostic}")

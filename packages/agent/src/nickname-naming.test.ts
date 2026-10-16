@@ -10,7 +10,7 @@ import {objectivePrompt} from "./objective-tools.js";
 // prompt with playSystemPrompt(features, target), so these prompt tests exercise the production path.
 const NAMING="in-game-naming-readout-v1";
 const GUIDANCE="no-nickname-guidance-v1";
-const OFF:FeatureSet={...ALL_ON,[NAMING]:false,[GUIDANCE]:false};
+const OFF:FeatureSet={...ALL_ON,[NAMING]:false,[GUIDANCE]:false,"navigate-first-prompt-v1":false};
 const base={version:2,id:"nick",target:null,limits:{maxTurns:10,maxWallMs:60000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096}};
 const without=(features:Record<string,boolean>,...ids:string[])=>Object.fromEntries(Object.entries(features).filter(([k])=>!ids.includes(k)));
 

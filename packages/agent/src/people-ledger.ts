@@ -47,13 +47,26 @@ export function facedObject(s:Snapshot):MapObject|null {
 
 interface Presence {readonly here:readonly string[];readonly absent:string;readonly placed:ReadonlyMap<string,string>}
 // character-presence-v1's own line: who it places here (with live positions) and who is not on this map.
+// ", "-separated entries, keeping commas inside parentheses with their entry.
+function entries(text:string):string[] {
+ const out:string[]=[];let depth=0,start=0;
+ for(let i=0;i<text.length;i++){
+  const c=text[i];
+  if(c==="(")depth++;else if(c===")")depth=Math.max(0,depth-1);
+  else if(depth===0&&c===","&&text[i+1]===" "){out.push(text.slice(start,i));start=i+2;i++;}
+ }
+ out.push(text.slice(start));
+ return out;
+}
 function presence(readout:string):Presence|null {
  const match=PRESENCE.exec(readout);
  if(match===null)return null;
  const [,hereText="",absent=""]=match;
- const here=hereText==="none"?[]:hereText.split(", ");
+ const here=hereText==="none"?[]:entries(hereText);
  const placed=new Map<string,string>();
- for(const item of here){const at=/^(.+) at (-?\d+),(-?\d+)$/.exec(item);if(at!==null)placed.set(`${at[2] ?? ""},${at[3] ?? ""}`,at[1] ?? "");}
+ // A live position, or (offscreen-objects-v1) a loaded object's tile outside the view window.
+ // A template tile ("it may have moved") is not where the object stands, so it names no one.
+ for(const item of here){const at=/^(.+?) at (-?\d+),(-?\d+)(?: \(out of view\))?$/.exec(item);if(at!==null)placed.set(`${at[2] ?? ""},${at[3] ?? ""}`,at[1] ?? "");}
  return {here,absent,placed};
 }
 

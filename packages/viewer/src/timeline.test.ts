@@ -28,9 +28,9 @@ describe("lanesSvg", () => {
   it("draws the five lanes and a 60 s axis ending at now", () => {
     const svg = lanesSvg(view(fullRun()), BASE_MS + 9000);
     expect(LANES).toEqual(["thinking", "tool calls", "presses", "milestones", "errors"]);
-    for (const lane of LANES) expect(svg).toContain(`>${lane}</text>`);
-    expect(svg).toContain(">−60s</text>");
-    expect(svg).toContain(">now</text>");
+    for (const lane of LANES) expect(svg).toContain(`>${lane}</span>`);
+    expect(svg).toContain(">−60s</span>");
+    expect(svg).toContain(">now</span>");
     expect(WINDOW_MS).toBe(60_000);
   });
 
@@ -73,7 +73,7 @@ describe("lanesSvg", () => {
 it('keeps the shared human timeline compact and simultaneous held buttons aligned',()=>{
  const v=new RunView();v.presses.push({seq:1,ms:BASE_MS+1000,endMs:BASE_MS+5000,startFrame:60,endFrame:300,buttons:['A','UP'],hold:240,release:0,assumed:false});
  const svg=lanesSvg(v,BASE_MS+6000,['presses','milestones']);expect(svg).toContain('viewBox="0 0 1000 80"');
- for(const lane of ['thinking','tool calls','errors'])expect(svg).not.toContain(`>${lane}</text>`);
+ for(const lane of ['thinking','tool calls','errors'])expect(svg).not.toContain(`>${lane}</span>`);
  const bars=[...svg.matchAll(/class="m-press b-(?:A|UP)"[^>]* x="([^"]+)"[^>]* width="([^"]+)"/g)];expect(bars).toHaveLength(2);expect(bars[0]?.[1]).toEqual(bars[1]?.[1]);expect(bars[0]?.[2]).toEqual(bars[1]?.[2]);
  expect(lanesSvg(v,BASE_MS+120000,['presses','milestones'])).not.toContain('m-press');
 });
@@ -127,4 +127,16 @@ it('draws loop errors red on the errors lane and gives every presses-lane mark a
  expect(fill('.lanes .m-press')).toBeDefined();
  expect(css.indexOf('.lanes .m-press {')).toBeLessThan(css.indexOf('.lanes .b-UP'));
  expect(css.indexOf('.lanes .m-error {')).toBeLessThan(css.indexOf('.lanes .k-compaction'));
+});
+it('keeps timeline text out of the stretched SVG so it never distorts at wide widths',()=>{
+ const html=lanesSvg(view(fullRun()),BASE_MS+9000);
+ expect(html.startsWith('<div class="lanes-wrap">')).toBe(true);
+ const svg=/<svg[\s\S]*<\/svg>/.exec(html)?.[0]??'';
+ expect(svg).toContain('preserveAspectRatio="none"');
+ expect(svg).not.toContain('<text');
+ for(const cls of ['lab','axis','press-label'])expect(html).toMatch(new RegExp(`<span class="${cls}" style="left:[\\d.]+%;top:[\\d.]+%"`));
+ expect(html).toContain('<span class="lab" style="left:0.8%;top:8.8%">thinking</span>');
+ const css=readFileSync(join(import.meta.dirname,'../static/style.css'),'utf8');
+ expect(css).toMatch(/\.lanes-wrap \{[^}]*position: relative/);
+ expect(css).toMatch(/\.lanes-text span \{[^}]*position: absolute/);
 });

@@ -6,6 +6,7 @@ import {readFileSync} from "node:fs";
 import {expect,it} from "vitest";
 import {ALL_ON,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {GOAL_SENTENCE,OPEN_GOAL_SENTENCE,OPEN_PLAY_GOAL,PLAY_GOAL,PLAY_SYSTEM_PROMPT,objectiveSwitches,playGoal,playSystemPrompt,playTools,toolSwitches} from "./play-config.js";
+import {deriveStatus,parseExperiment} from "./experiments.js";
 import {flagFeatures,normalizeFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {stateOnlyPrompt} from "./state-runtime.js";
 
@@ -102,4 +103,12 @@ it("the pending experiment's incumbent is the bundle-v-control bundle arm and fl
  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.slice(0,SWITCHABLE_FEATURES.indexOf(ID)+1));
  const bundleArm={...bundle.base.features,...Object.fromEntries(bundle.switches.map(s=>[s,true]))};
  for(const [id,value] of Object.entries(raw.incumbent.features))expect([id,value]).toEqual([id,id===ID?false:bundleArm[id]]);
+});
+
+it("the pending entry never joins the queue by itself: it stays blocked as a bundle-arm switch even once readiness passes",()=>{
+ const experiment=parseExperiment(JSON.parse(readFileSync(new URL("../../../experiments/open-goal-prompt.json",import.meta.url),"utf8")));
+ const ready={ready:true,basis:"comparable",milestone:"NEW_GAME_CREATED",window:4,minReached:3,reached:4,considered:["r1","r2","r3","r4"]} as const;
+ const status=deriveStatus({experiment,approval:null,ledger:[],runner:null,readiness:ready});
+ expect(status.state).toBe("blocked");
+ expect(status.reason).toContain("bundle arm of bundle-v-control");
 });

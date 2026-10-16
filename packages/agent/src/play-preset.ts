@@ -82,7 +82,6 @@ export const FeatureSetSchema=Type.Object({
  "blackout-readout-v1":Type.Optional(Type.Boolean()),
  "surf-gated-exits-v1":Type.Optional(Type.Boolean()),
  "cross-map-goal-v1":Type.Optional(Type.Boolean()),
- "ineffective-loops-v1":Type.Optional(Type.Boolean()),
  "navigation-truth-v1":Type.Optional(Type.Boolean()),
  "navigation-refusal-reasons-v2":Type.Optional(Type.Boolean()),
  "ineffective-loops-v1":Type.Optional(Type.Boolean()),

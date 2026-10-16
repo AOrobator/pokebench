@@ -14,6 +14,7 @@ import pytest
 
 from pokebench_env import rerender
 from pokebench_env.game_state import MapNames, read_game_state
+from pokebench_env.naming import NAMING_POINTER
 from pokebench_env.readout import SERVER_FEATURES, features_off_from_env, state_json
 from pokebench_env.rom import EMERALD_SHA1, RomError, resolve_rom
 
@@ -134,3 +135,28 @@ def test_reader_threads_the_switch_into_state_json() -> None:
         "key": "B",
         "ready": True,
     }
+
+
+@pytest.mark.parametrize(
+    ("phase", "shown"), [(0, True), (2, True), (5, True), (6, False), (7, False), (9, False)]
+)
+def test_in_game_readout_stops_once_ok_is_pressed(phase: int, shown: bool) -> None:
+    """naming_screen.c: phases 0-5 are the open editor (fade-in, input, cursor to OK, page swap);
+    from STATE_PRESSED_OK (6) the name is saved and the screen is closing or showing the
+    sent-to-PC message, so an "edited" name and key would be stale."""
+    base = fixture_reader(8548)
+    pointer = int.from_bytes(base(NAMING_POINTER, 4), "little")
+
+    def read(address: int, length: int) -> bytes:
+        data = bytearray(base(address, length))
+        if address <= pointer + 0x1E10 < address + length:
+            data[pointer + 0x1E10 - address] = phase
+        return bytes(data)
+
+    state = read_game_state(
+        read,
+        MapNames.load(rerender.PORYMAP_MAPS),
+        active_ui_enabled=True,
+        in_game_naming_enabled=True,
+    )
+    assert (state.naming is not None) is shown

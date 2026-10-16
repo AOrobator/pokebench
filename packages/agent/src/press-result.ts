@@ -61,7 +61,7 @@ type Placed = GameStateSnapshot & { readonly map_id: readonly [number, number]; 
 const placed = (state: GameStateSnapshot | undefined): state is Placed => state !== undefined && state.started && state.map_id !== null && state.position !== null;
 const sameMap = (a: Placed, b: Placed): boolean => a.map_id[0] === b.map_id[0] && a.map_id[1] === b.map_id[1];
 const tile = (state: Placed, show: PressFacts): string => show.position ? ` (${String(state.position.x)},${String(state.position.y)})` : "";
-const place = (state: Placed, show: PressFacts): string => `${state.location ?? "unknown location"} [map ${String(state.map_id[0])}/${String(state.map_id[1])}]${tile(state, show)}`;
+const place = (state: Placed, show: PressFacts): string => `${state.location_display ?? state.location ?? "unknown location"} [map ${String(state.map_id[0])}/${String(state.map_id[1])}]${tile(state, show)}`;
 const DIRECTIONS: readonly Button[] = ["UP", "DOWN", "LEFT", "RIGHT"];
 
 // warp-arrival-settle-v1: a map change is reported whatever interface owner a snapshot had. A before

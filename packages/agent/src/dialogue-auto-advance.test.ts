@@ -33,7 +33,7 @@ const ID=(text:string)=>Buffer.from(text).toString("hex").padEnd(64,"0").slice(0
 // A game server that prints each page over several reads and only accepts A/B once a page waits.
 class FakeGame{
  posts:{buttons:Button[];phase:string|null}[]=[];reads=0;opened=0;
- place:{location:string;map_id:[number,number]}={location:"LITTLEROOT TOWN PROFESSOR BIRCHS LAB",map_id:[1,4]};
+ place:{location:string;map_id:[number,number];location_display?:string}={location:"LITTLEROOT TOWN PROFESSOR BIRCHS LAB",map_id:[1,4]};
  private mode:"free"|"message"|"yesno"|"locked"|"battle"|"naming"="free";
  private convo:Convo|null=null;private page=0;private printing=0;private locked=0;private position={x:13,y:14};private facing="right";
  constructor(private readonly npc:Convo,private readonly printReads=2,private readonly lockReads=3){}
@@ -74,7 +74,7 @@ class FakeGame{
  }
  state():GameStateSnapshot{
   const npc={local_id:2,map_id:[0,9] as [number,number],graphics_id:17,sprite_kind:"SCIENTIST_1",x:14,y:14};
-  const base:GameStateSnapshot={...IN_GAME,location:this.place.location,map_id:this.place.map_id,position:this.position,facing:this.facing,active_ui:null,naming:null,field_controls_locked:false,
+  const base:GameStateSnapshot={...IN_GAME,...this.place,position:this.position,facing:this.facing,active_ui:null,naming:null,field_controls_locked:false,
    interaction_targets:[{kind:"object",x:14,y:14,elevation:3,activation:"A",availability:"conditional",facing:null,local_id:2,destination:null,name:"SCIENTIST_1"}],
    world_context:{objects:[npc],triggers:[],dialogue:null,message:null}};
   const c=this.convo;
@@ -136,6 +136,28 @@ describe("dialogue-auto-advance-v1 press path",()=>{
   expect(event?.pages.map(p=>[p.speaker,p.speaker_source,p.text])).toEqual([["SCIENTIST_1","faced_sprite","If you use a PC, you can store items\nand POKéMON."],["SCIENTIST_1","faced_sprite","The power of science is staggering!"]]);
   expect(event?.pages.every(p=>typeof p.state_seq==="number")).toBe(true);
   expect(()=>checkEvent(event)).not.toThrow();
+ });
+
+ it("displayed-place-names-v1: page headers and the map filter use the displayed name; identity keeps the source name",async()=>{
+  // Cook #2 (2026-10-16T02-23-17_qwen36-gpu1_sh02) seq 2378: the Location line said PROF. BIRCH'S HOUSE 1F while every page said MAYS HOUSE.
+  const game=new FakeGame(SCIENTIST);game.place={location:"LITTLEROOT TOWN MAYS HOUSE 1F",map_id:[1,2],location_display:"PROF. BIRCH'S HOUSE 1F"};
+  const {tool,rec}=wire(game);
+  const text=textOf(await tool("press").execute("n1",{buttons:["A"]}));
+  expect(text).toContain(`1. turn 7 · PROF. BIRCH'S HOUSE 1F (map 1/2) · at 13,14`);
+  expect(text.split("\n").filter(l=>/^\d+\. turn /.test(l)).join("\n")).not.toContain("MAYS HOUSE");
+  const [event]=rec.advances();
+  expect(event?.pages.map(p=>[p.map,p.map_display])).toEqual([["LITTLEROOT TOWN MAYS HOUSE 1F","PROF. BIRCH'S HOUSE 1F"],["LITTLEROOT TOWN MAYS HOUSE 1F","PROF. BIRCH'S HOUSE 1F"]]);
+  expect(()=>checkEvent(event)).not.toThrow();
+  const recall=textOf(await tool("get_dialogue").execute("g",{map:"birch's house"}));
+  expect(recall).toContain("2 of 2 pages match");expect(recall).not.toContain("MAYS HOUSE");
+ });
+
+ it("displayed-place-names-v1 off: pages carry no displayed name and headers keep the source name",async()=>{
+  const game=new FakeGame(SCIENTIST);game.place={location:"LITTLEROOT TOWN MAYS HOUSE 1F",map_id:[1,2]};
+  const {tool,rec}=wire(game);
+  const text=textOf(await tool("press").execute("n2",{buttons:["A"]}));
+  expect(text).toContain(`1. turn 7 · LITTLEROOT TOWN MAYS HOUSE 1F (map 1/2) · at 13,14`);
+  expect(rec.advances()[0]?.pages.every(p=>!("map_display" in p))).toBe(true);
  });
 
  it("stops an A batch from re-opening the conversation: leftover inputs are not sent",async()=>{
@@ -421,7 +443,7 @@ describe("dialogue-auto-advance-v1 registry and production wiring",()=>{
  it("is a default-off guidance switch recorded last that needs the message buffer and phase",()=>{
   expect(featureInfo("dialogue-auto-advance-v1")).toMatchObject({group:"guidance",needs:"active-field-message-buffer-v1",switchable:true});
   expect(featureInfo("dialogue-auto-advance-v1").description).toContain(" Off: ");
-  expect(playHarnessFeatures(ALL_ON,null).at(-8)).toBe("dialogue-auto-advance-v1");
+  expect(playHarnessFeatures(ALL_ON,null).at(-12)).toBe("dialogue-auto-advance-v1");
   expect(dependencyProblems({...ON,"field-dialogue-phase-v1":false})).toEqual(["dialogue-auto-advance-v1 needs field-dialogue-phase-v1"]);
   expect(dependencyProblems({...ON,"active-field-message-buffer-v1":false})).toContain("dialogue-auto-advance-v1 needs active-field-message-buffer-v1");
   expect(dependencyProblems({...ON,"dialogue-safe-batches-v1":true})).toEqual([]);

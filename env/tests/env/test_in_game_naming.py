@@ -21,15 +21,15 @@ from pokebench_env.rom import EMERALD_SHA1, RomError, resolve_rom
 ID = "in-game-naming-readout-v1"
 FIXTURES = Path(__file__).parent / "fixtures"
 # The showcase run's server-side switches that were off (its run_start features).
-RECORDED_OFF = [
+_RECORDED = [
     "battle-details-v2",
     "counter-talk-v1",
     "expanded-menu-battle-information-v1",
     "full-map-navigation-v1",
-    # Registered after the run was recorded, so not in it.
-    "displayed-place-names-v1",
-    "warp-arrival-settle-v1",
 ]
+# Server switches registered after the run was recorded were not in it.
+_AT_RUN = SERVER_FEATURES[: SERVER_FEATURES.index("battle-details-v2") + 1]
+RECORDED_OFF = [*_RECORDED, *(f for f in SERVER_FEATURES if f not in _AT_RUN and f != ID)]
 ROM_START = 0x08000000
 HINT = "A selects the current key; B deletes; SELECT changes page; START moves to OK."
 

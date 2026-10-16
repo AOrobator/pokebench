@@ -98,7 +98,7 @@ export class ObjectiveTracker {
       if (this.latest === null) throw new Error("Completion is not verified: no current game state is available. Use observe, then cite its state evidence.");
       if (!request.evidence.includes(this.latest.seq)) throw new Error(`Completion is not verified: cite latest state #${String(this.latest.seq)}; supplied evidence is ${JSON.stringify(request.evidence)}. Use observe and cite the current state.`);
       if (!this.matches(completion, this.latest)) {
-        const observed = completion.field === "party_count" ? this.latest.party.length : completion.field === "badge" ? this.latest.badges : this.latest[completion.field];
+        const observed = completion.field === "party_count" ? this.latest.party.length : completion.field === "badge" ? this.latest.badges : completion.field === "location" ? this.latest.location_display ?? this.latest.location : this.latest[completion.field];
         throw new Error(`Completion is not verified: field "${completion.field}" expected ${JSON.stringify(completion.value)} (${typeof completion.value}), observed ${JSON.stringify(observed)} (${observed === null ? "null" : Array.isArray(observed) ? "array" : typeof observed}) at state #${String(this.latest.seq)}. Observe until it matches, or revise the condition with set_objective; a matching local condition is provisional reported_complete, never verified story progress.`);
       }
     }
@@ -114,6 +114,8 @@ export class ObjectiveTracker {
   private matches(rule: Extract<Completion, { kind: "state" }>, state: GameStateSnapshot): boolean {
     if (rule.field === "party_count") return state.party.length === rule.value;
     if (rule.field === "badge") return typeof rule.value === "string" && state.badges.includes(rule.value);
+    // displayed-place-names-v1: the model is shown location_display, so either name satisfies a location condition.
+    if (rule.field === "location" && state.location_display !== undefined && state.location_display === rule.value) return true;
     return state[rule.field] === rule.value;
   }
   checkPress(buttons: readonly Button[], state: GameStateSnapshot): void {
@@ -143,7 +145,7 @@ export class ObjectiveTracker {
     return Object.fromEntries(Object.entries(facts).filter(([key]) => !hidden.includes(key as HideableFact))) as Partial<T>;
   }
   context(messages: AgentMessage[], now = Date.now()): AgentMessage[] {
-    const recent = [...this.evidence.values()].slice(-6).map((e) => ({ seq: e.seq, type: e.type, facts: e.type === "state" && "started" in e ? this.visible({ screen: e.screen, started: e.started, in_battle: e.in_battle, party_count: e.party.length, name: e.name, location: e.location, position: e.position, facing: e.facing, field_controls_locked: e.field_controls_locked, party: e.party, money: e.money, badges: e.badges, naming: e.naming }) : e.type === "tool_result" ? e.text : "" }));
+    const recent = [...this.evidence.values()].slice(-6).map((e) => ({ seq: e.seq, type: e.type, facts: e.type === "state" && "started" in e ? this.visible({ screen: e.screen, started: e.started, in_battle: e.in_battle, party_count: e.party.length, name: e.name, location: e.location_display ?? e.location, position: e.position, facing: e.facing, field_controls_locked: e.field_controls_locked, party: e.party, money: e.money, badges: e.badges, naming: e.naming }) : e.type === "tool_result" ? e.text : "" }));
     const content = `HARNESS OBJECTIVE RECORD\n${JSON.stringify({ goal: this.goal, objective: this.current, native_catalog: NATIVE_OBJECTIVES, ...(this.switches.nativeCompletion ? { recorded_native_milestones: [...this.native.values()].filter(e => !MEASUREMENT_ONLY_MILESTONES.has(e.name)).map(e => ({ name: e.name, seq: e.seq, origin: e.origin, evidence: e.evidence })) } : {}), recent_attempts: this.attempts.slice(-8), available_evidence: recent })}\n${this.switches.nativeCompletion ? "Only native milestone objectives are verified complete; local reported_complete plans are provisional and do not grade the run. Native tasks complete automatically; choose the next grounded task." : "Objectives are never completed automatically; report completion with evidence and choose the next grounded task."} Game evidence outranks remembered walkthroughs. Failure changes the approach, not whether an objective is required. Check the objective against the goal before acting. Use objective tools when evidence, obstacles, or decisions change.`;
     return [...messages, { role: "user", content, timestamp: now }];
   }

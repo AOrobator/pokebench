@@ -6,6 +6,7 @@ import { objectivePrompt, type ObjectiveSwitches } from "./objective-tools.js";
 import type { FeatureSet } from "./features.js";
 import type { ToolSwitches } from "./game-tools.js";
 import { NAVIGATE_RULES } from "./navigation.js";
+import { mapRulesSection } from "./map-rules.js";
 
 export const PLAY_LIMITS: Limits = { maxTurns: 300, maxWallMs: 30 * 60_000, failureLimit: 3 };
 export const PLAY_MAX_TOKENS = 4096;
@@ -60,9 +61,16 @@ export const GAME_EVIDENCE_SECTION = `Game evidence first: this game, as observe
 
 export const DIALOGUE_AUTO_ADVANCE_SECTION = `Dialogue auto-advance: once a press or navigate_to opens or continues a field message, the harness advances it with B itself, page by page, until the next decision point: field control returns, a YES/NO or other menu opens, the naming screen, a battle, a screen change, or a cutscene that keeps controls locked. The result lists every page shown, whole, with speaker, map, position and turn. Buttons left in your batch once the conversation opens are not sent, so you never need A or B to read dialogue; decide your next action from the returned state. A menu is left for you to choose. get_dialogue searches every page recorded this run by speaker, words, map or recency.`;
 
+export const EXPLORER_GUIDANCE_SECTION = "Talk to people: in this game, people tell you where to go next. After each story event, and whenever you are unsure where to go, talk to everyone in the room you are in before you leave, including the families and neighbours of characters you have met. People often say something new once the story has moved on, so talk again to people you spoke to before. A short remark, such as where someone has gone, is a direction to follow, not small talk.";
+
+export const EXPLORER_TALK_IS_CHEAP = "Talking is cheap: face the person and press A; the harness reads the conversation until your next decision.";
+
 export const NO_NICKNAME_SECTION = "Nicknames: this is a speed run, and naming a Pokémon only costs time. When the game offers to give a Pokémon a nickname, answer NO. If you are already on the naming screen for a Pokémon's nickname, do not type or fix letters: press START to move the cursor to OK, then A. Any nickname is fine, and with nothing typed the Pokémon keeps its own name.";
 
 export const NAVIGATE_TO_USAGE = `Use navigate_to for any walk of two or more tiles on the current map, using coordinates from the readout. To go through a door or stairs, give the warp's own coordinates as the destination; at a directional exit, arrive on its tile, then press the direction its activation describes. When navigate_to stops early, read its reason and pick a reachable tile or a different listed exit instead of falling back to long runs of single presses. Use press for talking, menus, dialogue and short adjustments.`;
+
+// battle-triage-guidance-v1: game rules for leaving wild battles and healing; no destinations.
+export const BATTLE_TRIAGE_SECTION = "Battles and healing: you can leave a wild battle with RUN, the bottom-right option of the battle menu (FIGHT BAG / POKéMON RUN); from FIGHT press RIGHT, then DOWN, then A. An escape can fail when the foe is faster; try again. Trainer battles and some story battles cannot be fled. Run from a wild battle when your active Pokémon is below half its maximum HP, or when you are travelling to a story goal and the fight is not needed. Heal before walking into tall grass with a weak Pokémon: talking to the nurse at a POKéMON CENTER heals your whole party, and so does talking to MOM at home.";
 
 const GOAL_SENTENCE = "Your goal is to make as much story progress as you can: start a new game, get your first Pokémon, and work toward defeating the first Gym Leader in Rustboro City.";
 const OBSERVE_LINE = "- observe: shows the current screen and a text readout of the game state read from memory (location, coordinates, party, and an ASCII map of the surroundings).";
@@ -92,6 +100,11 @@ export function playSystemPrompt(features: FeatureSet, target: string | null): s
   if (features["dialogue-auto-advance-v1"]) prompt += `\n\n${DIALOGUE_AUTO_ADVANCE_SECTION}`;
   if (features["game-evidence-priority-v1"]) prompt += `\n\n${GAME_EVIDENCE_SECTION}${features["bounded-navigation-v1"] ? `\n\n${NAVIGATE_TO_USAGE}` : ""}`;
   if (features["no-nickname-guidance-v1"]) prompt += `\n\n${NO_NICKNAME_SECTION}`;
+  // readout-rules-in-prompt-v1: the fixed map rules the server no longer prints in each readout.
+  const mapRules = features["readout-rules-in-prompt-v1"] ? mapRulesSection(features) : "";
+  if (mapRules !== "") prompt += `\n\n${mapRules}`;
+  if (features["battle-triage-guidance-v1"]) prompt += `\n\n${BATTLE_TRIAGE_SECTION}`;
+  if (features["explorer-guidance-v1"]) prompt += `\n\n${EXPLORER_GUIDANCE_SECTION}${features["dialogue-auto-advance-v1"] ? ` ${EXPLORER_TALK_IS_CHEAP}` : ""}`;
   return features["objective-tracking-v1"]
     ? `${prompt}\n\n${objectivePrompt(objectiveSwitches(features))}`
     : prompt;

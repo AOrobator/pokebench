@@ -157,6 +157,16 @@ describe("fixed-run check, approve, run, dry-run", () => {
     expect(await main(["dry-run", "bundle-v-control", "--phase", "nope"], deps)).toBe(1);
   });
 
+  it("refuses a second dry run while the first ledger is in place and names the archive folder", async () => {
+    const { deps, runs, err, path, runsRoot } = setup();
+    writeFileSync(path, JSON.stringify(definition()));
+    mkdirSync(join(runsRoot, "experiments", "bundle-v-control-dryrun-cook"), { recursive: true });
+    writeFileSync(join(runsRoot, "experiments", "bundle-v-control-dryrun-cook", "trials.jsonl"), "");
+    expect(await main(["dry-run", "bundle-v-control", "--phase", "cook"], deps)).toBe(1);
+    expect(runs).toEqual([]);
+    expect(err.at(-1)).toBe("bundle-v-control-dryrun-cook already has a ledger; move runs/experiments/bundle-v-control-dryrun-cook to runs/dryruns/<name> first (the viewer still lists it there)");
+  });
+
   it("dry-runs one trial per arm per lane under its own id, with no approval", async () => {
     const { deps, runs, path } = setup();
     writeFileSync(path, JSON.stringify(definition()));

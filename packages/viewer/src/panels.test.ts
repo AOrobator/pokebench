@@ -633,6 +633,7 @@ it("links the named warp destinations card to its explainer",()=>{
  expect(FEATURE_EXPLAINERS["named-warp-destinations-v1"]).toBe("named-warp-destinations-v1.html");
  expect(FEATURE_EXPLAINERS["character-presence-v1"]).toBe("character-presence-v1.html");
  expect(FEATURE_EXPLAINERS["dialogue-auto-advance-v1"]).toBe("dialogue-auto-advance-v1.html");
+ expect(FEATURE_EXPLAINERS["dialogue-context-kept-v1"]).toBe("dialogue-context-kept-v1.html");
  expect(FEATURE_EXPLAINERS["transition-loop-detection-v1"]).toBe("transition-loop-detection-v1.html");
 });
 

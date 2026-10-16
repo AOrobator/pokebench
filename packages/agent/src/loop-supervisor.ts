@@ -1,4 +1,4 @@
-import {DialogueLog,roomKey,roomOf,speakerLabel} from "./dialogue-log.js";
+import {DialogueLog,roomKey,roomOf,type DialogueEntry,speakerLabel} from "./dialogue-log.js";
 import {NextMilestoneHint} from "./milestone-hint.js";
 import {MEASUREMENT_ONLY_MILESTONES} from "./milestones.js";
 import type {RunEvent} from "./events.js";
@@ -22,6 +22,7 @@ const GAME_TOOLS=new Set(["observe","press","navigate_to"]);
 const STEP:Readonly<Record<string,readonly[number,number]>>={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
 const PATTERN:Readonly<Record<LoopKind,string>>={cycle:"the same short cycle of actions",ineffective:"the same input with no effect",planning:"planning without acting",observation:"observing without acting",rejection:"the same rejected tool call"};
 const at=(x:number,y:number)=>`${String(x)},${String(y)}`;
+const quote=(e:DialogueEntry)=>`turn ${String(e.turn)}, ${e.room}${e.facing===null?"":`, facing ${e.facing}`}: "${e.text.replace(/\s+/g," ")}"`;
 const mapOf=(state:{map_id:readonly number[]|null}):string|null=>state.map_id===null?null:state.map_id.join("/");
 const counted=(event:Extract<RunEvent,{type:"milestone"}>):boolean=>event.origin!=="present_at_start"&&event.name!=="GAME_RUNNING"&&!MEASUREMENT_ONLY_MILESTONES.has(event.name);
 
@@ -30,6 +31,8 @@ export class SupervisorBriefing {
  private measured:State|null=null;
  private latest:State|null=null;
  private progress:{turn:number;name:string}|null=null;
+ // dialogue-context-kept-v1: story milestones the game confirmed during this run, in order.
+ private readonly stories:{seq:number;turn:number;name:string}[]=[];
  private turn=0;
  private readonly dialogue:DialogueLog;
  private readonly calls=new Map<string,Call>();
@@ -54,7 +57,10 @@ export class SupervisorBriefing {
   if(event.type==="milestone"){
    if(!counted(event))return;
    this.progress={turn:event.turn,name:event.name};this.path.clear();this.entered.clear();
-   if(event.kind==="story")this.pendingStory={name:event.name,turn:event.turn,evidence:Math.max(...(event.evidence??[event.seq]))};
+   if(event.kind==="story"){
+    this.pendingStory={name:event.name,turn:event.turn,evidence:Math.max(...(event.evidence??[event.seq]))};
+    this.stories.push({seq:event.seq,turn:event.turn,name:event.name});
+   }
    return;
   }
   if(event.type==="state"&&"started"in event){this.measured=event;return;}
@@ -200,8 +206,22 @@ export class SupervisorBriefing {
  private told():string {
   if(!this.features["active-field-message-buffer-v1"])return "not available (dialogue text is off)";
   const recent=this.dialogue.entries().slice(-3).reverse();
-  return recent.length===0?"none recorded":recent.map(e=>`turn ${String(e.turn)}, ${e.room}${e.facing===null?"":`, facing ${e.facing}`}: "${e.text.replace(/\s+/g," ")}"`).join(" | ");
+  return recent.length===0?"none recorded":recent.map(quote).join(" | ");
  }
+ // dialogue-context-kept-v1: the pages recorded between the previous story milestone and the latest one that has any,
+ // bounded by event order (seq), not turn: a turn can hold pages on both sides of a milestone.
+ private storyContext():string {
+  const head="- Dialogue you were shown leading up to the last story step the game confirmed";
+  if(!this.features["active-field-message-buffer-v1"])return `${head}: not available (dialogue text is off)\n`;
+  const entries=this.dialogue.entries();
+  for(const [i,step] of [...this.stories.entries()].reverse()){
+   const before=this.stories[i-1]?.seq??-Infinity;
+   const pages=entries.filter(e=>e.seq>before&&e.seq<step.seq);
+   if(pages.length>0)return `${head} (${step.name.replaceAll("_"," ").toLowerCase()} at turn ${String(step.turn)}), oldest first: ${pages.map(quote).join(" | ")}\n`;
+  }
+  return `${head}: none recorded\n`;
+ }
+ private kept():string {return this.features["dialogue-context-kept-v1"]?this.storyContext():"";}
 
  private untried():string {
   const s=this.latest;
@@ -264,7 +284,7 @@ Stop and get your bearings:
 - Last story progress: ${this.lastProgress()}
 ${this.hint===null?"":`- Next milestone (hint): ${this.hint.describe()}\n`}- Characters the readout names here: ${this.characters()}
 - Story steps the game confirms are done: ${this.done()}
-- Recent dialogue you were shown, newest first: ${this.told()}
+${this.kept()}- Recent dialogue you were shown, newest first: ${this.told()}
 ${stall?`- Dialogue shown with your latest story step that came with dialogue${this.instructionText()}\n`:""}- What you tried recently, newest first: ${tried}
 - Listed here that you have not tried yet: ${this.untried()}
 ${stall?`- Not tried yet on other maps you have been on since your last story progress: ${this.untriedElsewhere()}\n- Exits to maps you have not entered since your last story progress: ${this.unentered()}\n`:""}Before your next action, look back at your goal and at what the game has told you${recall}. If anything you believe disagrees with the dialogue or the readout above, believe the game. Make a new plan that is different from what you have been trying, and say which untried option you will try first. The run continues.`;
@@ -276,7 +296,7 @@ Get your bearings:
 - Where you are: ${this.where()}
 - Last story progress: ${this.lastProgress()}
 - Story steps the game confirms are done: ${this.done()}
-- Recent dialogue you were shown, newest first: ${this.told()}
+${this.kept()}- Recent dialogue you were shown, newest first: ${this.told()}
 - Listed here that you have not tried yet: ${this.untried()}
 Keep your thinking short and end this reply with one tool call: observe to look again, or press, navigate_to or another listed tool to act. If replies keep calling no tool after note ${String(limit)} of ${String(limit)}, the run ends.`;
   return text;

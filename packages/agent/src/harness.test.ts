@@ -798,8 +798,8 @@ describe("control-file requests at the turn boundary", () => {
 });
 
 describe("double-context-window-v1", () => {
-  const off = { ...ALL_ON, "double-context-window-v1": false };
-  const on = { ...ALL_ON, "double-context-window-v1": true };
+  const off = { ...ALL_ON, "dialogue-context-kept-v1": false, "double-context-window-v1": false };
+  const on = { ...ALL_ON, "dialogue-context-kept-v1": false, "double-context-window-v1": true };
   const assistants = (window: Window, n: number) => slideWindow([TASK, ...turnsOf(n)], window).filter((m) => m.role === "assistant").length;
   const whole = (window: Window, n: number) => resultTexts(slideWindow([TASK, ...turnsOf(n)], window)).filter((t) => !t.endsWith(OMITTED_FRAME)).length;
 

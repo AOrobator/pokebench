@@ -2927,6 +2927,10 @@
                   }
                 ]
               },
+              "map_display": {
+                "type": "string",
+                "minLength": 1
+              },
               "map_id": {
                 "anyOf": [
                   {
@@ -6734,6 +6738,10 @@
               "type": "null"
             }
           ]
+        },
+        "location_display": {
+          "type": "string",
+          "minLength": 1
         },
         "map_id": {
           "anyOf": [

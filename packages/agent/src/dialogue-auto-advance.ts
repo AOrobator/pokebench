@@ -138,7 +138,7 @@ class Pages {
  private add(raw:string,s:GameStateSnapshot):void {
   const text=raw.trim();
   if(text==="")return;
-  this.pages.push({state_seq:this.record(s).seq,map:s.location,map_id:s.map_id,position:s.position,speaker:this.speaker?.name??null,speaker_source:this.speaker?.source??null,text});
+  this.pages.push({state_seq:this.record(s).seq,map:s.location,...(s.location_display===undefined?{}:{map_display:s.location_display}),map_id:s.map_id,position:s.position,speaker:this.speaker?.name??null,speaker_source:this.speaker?.source??null,text});
  }
 }
 
@@ -222,7 +222,7 @@ function extraText(result:Result):TextContent[] {
 }
 const plural=(n:number,word:string)=>`${String(n)} ${word}${n===1?"":"s"}`;
 function place(page:DialoguePage):string {
- return `${page.map??"unknown location"}${page.map_id===null?"":` (map ${page.map_id.join("/")})`}${page.position===null?"":` · at ${String(page.position.x)},${String(page.position.y)}`}`;
+ return `${page.map_display??page.map??"unknown location"}${page.map_id===null?"":` (map ${page.map_id.join("/")})`}${page.position===null?"":` · at ${String(page.position.x)},${String(page.position.y)}`}`;
 }
 function who(page:DialoguePage):string {
  const label=speakerLabel(page);
@@ -352,7 +352,7 @@ export class DialogueRecord {
   const last=args.last??DEFAULT_LAST;
   if(!Number.isInteger(last)||last<1)throw Error("last must be a positive integer");
   const has=(value:string|null,wanted:string|undefined)=>{const w=wanted?.trim().toLowerCase()??"";return w===""||(value??"").toLowerCase().includes(w);};
-  const matches=this.entries.filter(e=>has(e.page.speaker,args.speaker)&&has(e.page.text,args.contains)&&(has(e.page.map,args.map)||has(e.page.map_id?.join("/")??null,args.map)));
+  const matches=this.entries.filter(e=>has(e.page.speaker,args.speaker)&&has(e.page.text,args.contains)&&(has(e.page.map_display??e.page.map,args.map)||has(e.page.map_id?.join("/")??null,args.map)));
   if(matches.length===0)return `No recorded dialogue matches (${plural(this.entries.length,"page")} recorded this run).`;
   const chosen=matches.slice(-last).reverse();
   const lines=[`DIALOGUE RECORD: pages the harness advanced through this run, newest first, whole. Past text; the current screen overrides it. ${String(matches.length)} of ${plural(this.entries.length,"page")} match.`];

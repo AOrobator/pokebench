@@ -203,6 +203,7 @@ export const DIALOGUE_AUTO_ADVANCE_STOPS = ["field_free", "menu", "naming", "bat
 const DialoguePageSchema = Type.Object({
   state_seq: Type.Union([NonNegativeInt, Type.Null()]),
   map: Type.Union([Type.String(), Type.Null()]),
+  map_display: Type.Optional(Type.String({ minLength: 1 })),
   map_id: Type.Union([Type.Tuple([Type.Integer(), Type.Integer()]), Type.Null()]),
   position: Type.Union([Type.Object({ x: Type.Integer(), y: Type.Integer() }, closed), Type.Null()]),
   speaker: Type.Union([Type.String(), Type.Null()]),
@@ -399,6 +400,8 @@ export const StateBodySchema = Type.Object(
     started: Type.Boolean(),
     name: Type.Union([Type.String(), Type.Null()]),
     location: Type.Union([Type.String(), Type.Null()]),
+    // displayed-place-names-v1: the name the readout shows for this map; absent when off. Identity stays on location.
+    location_display: Type.Optional(Type.String({ minLength: 1 })),
     map_id: Type.Union([Type.Tuple([Type.Integer(), Type.Integer()]), Type.Null()]),
     position: Type.Union([Type.Object({ x: Type.Integer(), y: Type.Integer() }, closed), Type.Null()]),
     facing: Type.Union([Type.String(), Type.Null()]),

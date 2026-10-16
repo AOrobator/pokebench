@@ -78,7 +78,10 @@
    "displayed-place-names-v1": true,
    "dialogue-context-kept-v1": true,
    "blocked-batch-result-v1": false,
-   "warp-arrival-settle-v1": false
+   "warp-arrival-settle-v1": false,
+   "battle-triage-guidance-v1": false,
+   "adjacent-tiles-v1": false,
+   "readout-rules-in-prompt-v1": false
   }
  },
  "switches": [
@@ -93,7 +96,11 @@
   "blocked-batch-result-v1",
   "warp-arrival-settle-v1",
   "expanded-menu-battle-information-v1",
-  "battle-details-v2"
+  "battle-details-v2",
+  "battle-triage-guidance-v1",
+  "walkable-floor-v1",
+  "adjacent-tiles-v1",
+  "readout-rules-in-prompt-v1"
  ],
  "offInBoth": [
   "milestone-stall-stop-v1"

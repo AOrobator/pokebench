@@ -37,7 +37,8 @@ def read_state(
         message_phase_enabled="field-dialogue-phase-v1" not in off,
         full_map_enabled="full-map-navigation-v1" not in off,
         story_characters_enabled="character-presence-v1" not in off,
-        battle_details_enabled="battle-details-v2" not in off,
+        # battle-triage-guidance-v1 acts on battle-details-v2's RUN verdict, so either reads it.
+        battle_details_enabled=not {"battle-details-v2", "battle-triage-guidance-v1"} <= off,
         dynamic_warp_enabled="named-warp-destinations-v1" not in off,
         displayed_names_enabled="displayed-place-names-v1" not in off,
         connection_edges_enabled="connection-edge-tiles-v1" not in off,
@@ -54,6 +55,8 @@ def render(state: GameState, off: frozenset[str], *, warp_animation: bool = Fals
         message_phase="field-dialogue-phase-v1" not in off,
         named_warps="named-warp-destinations-v1" not in off,
         warp_animation=warp_animation,
+        adjacent_tiles="adjacent-tiles-v1" not in off,
+        rules_in_prompt="readout-rules-in-prompt-v1" not in off,
     )
 
 

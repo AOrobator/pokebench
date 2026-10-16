@@ -23,6 +23,8 @@ To launch, restart or stop a fixed-N experiment (`just fixed-run`), use `.claude
 
 For viewer navigation, playback or polling interaction changes, use `.claude/skills/viewer-e2e/SKILL.md` and verify the real click through to the selected run and visible frame before claiming it works.
 
+The viewer's timeline (the TIMELINE swimlanes) is closed to additions. Never add new marks, lanes, labels or colors for new kinds of events to it without the operator's explicit permission (operator decision 2026-10-16). New diagnostics go to Activity History and the raw-event inspector. Fixing how an existing mark is drawn is still fine.
+
 ## Project overrides of the global rules
 
 - **Coverage floor is 90%**, enforced independently for lines, branches and functions in TS (vitest thresholds) and Python (`pokebench_gates.coverage_gate`) app code. This is an operator decision (2026-10-11). The floor is 90, not 95; never lower it further or widen excludes to pass.
@@ -66,7 +68,17 @@ just smoke          # boots the real game server on the real ROM and exercises i
 
 The commit author for this repo is `aorobator <orobator.andrew@gmail.com>`, set in the local git config.
 
-The repo is local only (operator decision 2026-10-14). It has no remote. Never push, never open pull requests, never add a remote. Work on a branch in its own worktree; landing means a local merge into `main` after the operator approves it.
+The repo is local only (operator decision 2026-10-14). It has no remote. Never push, never open pull requests, never add a remote. Work on a branch in its own worktree; landing means a local merge into `main`.
+
+An agent may merge its own branch into local `main` once cloud code review approves it (operator decision 2026-10-16). The full gate is in `.claude/skills/execute-worklog/SKILL.md` under "Landing on main":
+
+- Gates pass, and the Claude, Grok and GPT/Codex lanes of the review loop (`~/dev/local-inference-stack/.claude/skills/multi-model-review/SKILL.md`) each return `VERDICT: LGTM` on the frozen packet that is merged.
+- The branch is synced with `main` before review and lands fast-forward only (`git merge --ff-only`), so `main` becomes exactly the reviewed tree.
+- Local inference reviewers (`think_fast`, `think_swarm`, anything on `inference.example`) are never used in PokeBench reviews (operator decision 2026-10-16: they are the models under benchmark, and noisy as reviewers) and never count toward merge approval.
+- A missing or blocked cloud lane means no self-merge; ask the operator.
+- Report each merge SHA in the thread.
+
+The rule never covers pushing, pull requests, approving or launching experiments, or merges the operator has said to hold.
 
 ## Feature switches
 

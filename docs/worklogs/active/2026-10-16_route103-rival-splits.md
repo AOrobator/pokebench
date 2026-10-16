@@ -24,7 +24,8 @@ Operator ask (the operator, 2026-10-16 02:55 and 03:13 EDT; plan OK 03:44 EDT): 
 
 ## Milestones
 
-- [ ] M1 Python reader: RED/GREEN, readout bytes unchanged, coverage ≥90
+- [x] M1 Python reader: RED/GREEN, readout bytes unchanged, coverage ≥90
   - RED: test_route103_rival.py fails at import (no pokebench_env.route103_rival).
+  - GREEN: pytest 2150 passed; Python coverage lines 97.15 / branches 92.80 / functions 100 (route103_rival.py 100%); ruff clean. mypy reports only the pre-existing mgba._pylib import (no native build in this worktree). Updated shape-golden tests: state_json key list, GameState equality, displayed-names json golden pops only route103_rival.
 - [ ] M2 TS schema, tracker, qualification, viewer, frontier, features: RED/GREEN, gates
 - [ ] M3 Explainer, reviews (Codex + grok), operator approval, local merge

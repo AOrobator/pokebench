@@ -79,7 +79,8 @@ def test_game_state_json_carries_the_field_and_the_readout_text_is_unchanged() -
     }
     m.put(IN_BATTLE, bytes([0]))
     assert format_readout(read_game_state(m.read, MAPS)) == before
-    assert state.story is not None and state.story == read_game_state(game(OVERWORLD).read, MAPS).story
+    baseline = read_game_state(game(OVERWORLD).read, MAPS).story
+    assert state.story is not None and state.story == baseline
 
 
 def test_before_the_game_starts_there_is_no_route_103_rival_state() -> None:

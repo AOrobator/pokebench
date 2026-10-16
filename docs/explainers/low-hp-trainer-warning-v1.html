@@ -72,7 +72,7 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 <section>
 <h2>When it fires</h2>
 <figure><div class="scroll"><svg viewBox="0 0 680 250" width="680" role="img" aria-label="Conditions read from the tool result's state">
-<rect x="10" y="14" width="210" height="34" rx="5" class="box"/><text x="20" y="36">Field: overworld, not in battle</text>
+<rect x="10" y="14" width="210" height="34" rx="5" class="box"/><text x="20" y="36">Free field: no battle, unlocked</text>
 <rect x="10" y="56" width="210" height="34" rx="5" class="box"/><text x="20" y="78">Player's party (not tutorial)</text>
 <rect x="10" y="98" width="210" height="34" rx="5" class="box"/><text x="20" y="120">Lead below half HP (3/21)</text>
 <rect x="10" y="140" width="210" height="34" rx="5" class="box"/><text x="20" y="162">Map ROUTE 103, rival battle not won</text>
@@ -84,7 +84,7 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 <rect x="454" y="126" width="210" height="34" rx="5" class="game"/><text x="464" y="148">low_hp_trainer_warning event</text>
 <text x="10" y="238" class="s">Every input is the state the tool result already carries: no timers, no sleeps, no polling.</text>
 </svg></div>
-<figcaption>All five must hold on the same state. 54a7's turn 362 state did not fire (MAY not yet loaded); turn 363 did.</figcaption></figure>
+<figcaption>All five must hold on the same state. "Free field" means overworld, not in battle and field controls unlocked: after a won battle MAY's dialogue runs with controls locked before the game sets the defeat flag, so those states stay silent. 54a7's turn 362 state did not fire (MAY not yet loaded); turn 363 did.</figcaption></figure>
 </section>
 <section>
 <h2>Once, then re-armed by a lasting change</h2>

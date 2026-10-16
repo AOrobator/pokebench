@@ -1,5 +1,5 @@
 // low-hp-trainer-warning-v1: one SUPERVISOR paragraph on a game-tool result when the player's lead Pokémon is
-// below half HP and the Route 103 rival, not yet beaten, is loaded on the map. Talking to the rival there runs
+// below half HP, the field is free, and the Route 103 rival, not yet beaten, is loaded on the map. Talking to the rival there runs
 // trainerbattle_no_intro (pret/pokeemerald data/maps/Route103/scripts.inc), which cannot be fled; a blackout
 // halves money and warps to the last heal location (src/overworld.c DoWhiteOut), which a POKéMON CENTER's
 // setrespawn sets and which is home before that. Fires from the result's own state, once per arm; re-arms when
@@ -25,6 +25,9 @@ const belowHalf=(hp:number,max:number):boolean=>hp>0&&2*hp<max;
 
 export function lowHpTrainerWarning(state:GameStateSnapshot):LowHpTrainerWarningFacts|null {
  if(!state.started||state.screen!=="overworld"||state.in_battle)return null;
+ // Free field only: after a won battle the rival's dialogue and exit run with controls locked before
+ // Route103_EventScript_Rival sets FLAG_DEFEATED_RIVAL_ROUTE103, so a locked state cannot prove a battle is ahead.
+ if(state.field_controls_locked!==false)return null;
  if(state.party_owner!=="player")return null;
  if(state.map_id?.[0]!==ROUTE103[0]||state.map_id[1]!==ROUTE103[1])return null;
  if(state.story?.rival_battle_won!==false)return null;

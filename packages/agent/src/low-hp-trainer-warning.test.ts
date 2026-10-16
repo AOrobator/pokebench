@@ -72,6 +72,15 @@ describe("condition, from the state alone",()=>{
   expect(lowHpTrainerWarning(T369)).toBeNull();
   expect(lowHpTrainerWarning(T371)).toBeNull();
  });
+ it("is silent while field controls are locked or unknown: the post-victory dialogue runs before the defeat flag is set",()=>{
+  expect(T363.field_controls_locked).toBe(false);
+  // Won battle, rival still loaded, flag not yet set, her post-battle text on screen (pokeemerald Route103 scripts.inc).
+  const afterWin={...T363,field_controls_locked:true,world_context:{...must(T363.world_context),dialogue:"MAY: Huh? GREE, you won?"}};
+  expect(lowHpTrainerWarning(afterWin)).toBeNull();
+  expect(lowHpTrainerWarning({...T363,field_controls_locked:null})).toBeNull();
+  const unknown=parseGameState(Object.fromEntries(Object.entries(T363).filter(([key])=>key!=="field_controls_locked")));
+  expect(lowHpTrainerWarning(unknown)).toBeNull();
+ });
  it("needs the lead below half HP: 10/21 fires, 11/21 (not below half) does not",()=>{
   expect(lowHpTrainerWarning(healed(T363,10))?.hp).toBe(10);
   expect(lowHpTrainerWarning(healed(T363,11))).toBeNull();

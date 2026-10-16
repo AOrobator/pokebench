@@ -19,14 +19,14 @@ Branch `claude/battle-message-waiting` in `/private/tmp/pokebench-battle-waiting
 ## Milestones
 
 **M1 — detector, RED, GREEN**
-- [ ] Cherry-pick the detector commits (reviewed here as part of this branch)
-- [ ] RED: OFF byte-identical, ON waiting/printing/auto-closing lines, registry/presets/defaults/SERVER_FEATURES both stacks, factory/wiring test
-- [ ] GREEN + gates (test with ROM, coverage ≥90, lint, build, verify-vendor)
+- [x] Cherry-pick the detector commits (reviewed here as part of this branch)
+- [x] RED: OFF byte-identical, ON waiting/printing/auto-closing lines, registry/presets/defaults/SERVER_FEATURES both stacks, factory/wiring test
+- [x] GREEN + gates (test with ROM, coverage ≥90, lint, build, verify-vendor)
 
 **M2 — proof, explainer, review**
-- [ ] Real-ROM re-render at the WINGULL seqs and the showcase battle seqs
-- [ ] Explainer, FEATURE_EXPLAINERS, pending experiment entry, pages-check
-- [ ] Review: Claude CLI, Codex, Grok until LGTM
+- [x] Real-ROM re-render at the WINGULL seqs and the showcase battle seqs
+- [x] Explainer, FEATURE_EXPLAINERS, pending experiment entry, pages-check
+- [x] Review: Claude CLI, Codex, Grok until LGTM
 
 ## Session Log
 
@@ -94,3 +94,5 @@ Branch `claude/battle-message-waiting` in `/private/tmp/pokebench-battle-waiting
   COMMIT: `Merge branch 'main' into claude/battle-message-waiting` (main 6d2be8af)
 - 2026-10-16 08:20 AM EDT: gates after the merge (ROM): agent 1498, viewer 866, Python 2234 passed / 0 skipped; coverage agent 97.84/94.37/98.15/99.13, viewer 95.36/90.98/93.57/97.7, Python 97.29/93.10/100; lint known mypy only; build OK. Round 4 next: full packet main..HEAD with the round-3 fix delta named.
   COMMIT: `docs(worklog): gates after merging main, round 4 next`
+- 2026-10-16 08:35 AM EDT: Review round 4, full packet `git diff --binary 6d2be8af 3110957c` (SHA-256 d8756364…63de7). Claude CLI (default profile, plan mode): VERDICT: LGTM (exit 0, empty stderr). Codex gpt-5.6-sol: VERDICT: LGTM. Grok cursor-grok-4.5-high: VERDICT: LGTM (exit 0, empty stderr). Non-blocking, recorded and not taken: explainer wording after a `\l` (the page is the same window plus the next line) and after the last page (no quote, idle text); a native capture of the post-answer frames; `FC 0F` (fill window) does not reset the page start; the post-answer delay depends on text speed. Review loop closed; reviewed head 3110957c (this entry is worklog-only). Not merged to main (parent lands it).
+  COMMIT: `docs(worklog): battle-message-waiting-v1 review round 4, all three LGTM`

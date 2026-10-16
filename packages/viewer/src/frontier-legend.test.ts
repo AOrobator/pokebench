@@ -112,6 +112,38 @@ describe("story frontier version legend", () => {
     expect(feature).toContain(".wb-ver.wb-sel, .wb-marks li.wb-sel { background:#f8f8d8; border-color:#283038;");
     expect(feature).not.toMatch(/border-left|inset\s+\d+px\s+0\s/);
   });
+  it("tells what each switch does: a native tooltip and a focusable row with an inline description, escaped, none for unknown ids", () => {
+    const control = agent("c1", 1, ["ram-state-v1", "loop-guard-v1"], "control"), bundle = agent("b1", 2, ["ram-state-v1", "live-map-v1"], "bundle");
+    const versions = frontierVersions([control, bundle]), id = versions.byRun.get("b1")?.id ?? "";
+    const descriptions = new Map([["live-map-v1", 'Draws the <map> & "rooms" around you.'], ["ram-state-v1", "Reads the game's memory."]]);
+    document.body.innerHTML = frontierLegend({ human: null, best: null }, [control, bundle], versions, { ...closed, legendOpen: true, changed: new Set([id]), all: new Set([id]) }, null, descriptions);
+    const what = card("qwen36 · bundle v1")?.querySelector("details.wb-ver-what");
+    const added = what?.querySelector<HTMLElement>(".wb-ver-sets ul li");
+    expect(added?.getAttribute("title")).toBe('Draws the <map> & "rooms" around you.');
+    expect(added?.getAttribute("tabindex")).toBe("0");
+    const describedBy = added?.getAttribute("aria-describedby") ?? "missing";
+    const desc = document.getElementById(describedBy);
+    expect(desc?.classList.contains("wb-sw-desc")).toBe(true);
+    expect(desc?.textContent).toBe('Draws the <map> & "rooms" around you.');
+    expect(added?.contains(desc ?? null)).toBe(true);
+    expect(document.querySelector("map")).toBeNull();
+    const removed = what?.querySelectorAll(".wb-ver-sets ul")[1]?.querySelector<HTMLElement>("li");
+    expect(removed?.textContent).toContain("Loop guard");
+    expect(removed?.hasAttribute("title")).toBe(false); expect(removed?.hasAttribute("tabindex")).toBe(false);
+    expect(removed?.hasAttribute("aria-describedby")).toBe(false); expect(removed?.querySelector(".wb-sw-desc")).toBeNull();
+    const all = Array.from(what?.querySelectorAll<HTMLElement>("details.wb-ver-all li") ?? []);
+    expect(all.map(li => li.getAttribute("title"))).toEqual(['Draws the <map> & "rooms" around you.', "Reads the game's memory."]);
+    const ids = Array.from(document.querySelectorAll("[aria-describedby]")).map(e => e.getAttribute("aria-describedby"));
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids.every(i => i !== null && document.getElementById(i) !== null)).toBe(true);
+    const keys = Array.from(document.querySelectorAll<HTMLElement>("[data-sw]")).map(e => e.dataset.sw);
+    expect(new Set(keys).size).toBe(keys.length);
+    document.body.innerHTML = frontierLegend({ human: null, best: null }, [control, bundle], versions, { ...closed, changed: new Set([id]) });
+    expect(document.querySelector(".wb-sw-desc")).toBeNull(); expect(document.querySelector(".wb-sw-list li[title]")).toBeNull();
+    const css = readFileSync(join(process.cwd(), "static/style.css"), "utf8");
+    expect(css).toMatch(/\.wb-sw-desc \{[^}]*display:none/);
+    expect(css).toMatch(/\.wb-sw-list li:focus \.wb-sw-desc[^{]*\{[^}]*display:block/);
+  });
   it("keys every mark, with the human and frontier isolatable, and folds the marks and how-to bars by state", () => {
     const { runs, best } = fixture(), versions = frontierVersions(runs);
     const resumed = agent("clock", 6, ["ram-state-v1"], "control", { config: { ...(runs[0]?.config ?? run().config), resume: "CLOCK_SET", start: "save_state" } as WorkbenchRun["config"] });

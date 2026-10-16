@@ -123,8 +123,7 @@
                 "cycle",
                 "rejection",
                 "map_cycle",
-                "milestone_drought",
-                "interface_dwell"
+                "milestone_drought"
               ]
             },
             "message": {
@@ -202,8 +201,7 @@
                 "cycle",
                 "rejection",
                 "map_cycle",
-                "milestone_drought",
-                "interface_dwell"
+                "milestone_drought"
               ]
             },
             "message": {
@@ -286,8 +284,7 @@
                 "cycle",
                 "rejection",
                 "map_cycle",
-                "milestone_drought",
-                "interface_dwell"
+                "milestone_drought"
               ]
             },
             "message": {

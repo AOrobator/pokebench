@@ -362,6 +362,4 @@ it("labels stall-briefing-v1 notes in the activity history by stall",()=>{
  const view=fold(log);
  expect(view.loopLabel(cycle as Extract<typeof cycle,{type:"loop_guard"}>)).toMatch(/^Map back-and-forth supervisor message sent to the model/);
  expect(view.loopLabel(drought as Extract<typeof drought,{type:"loop_guard"}>)).toMatch(/^Milestone drought supervisor message sent to the model/);
- const dwell=log.add(300,{type:"loop_guard",turn:5,kind:"interface_dwell",mode:"enforced",phase:"supervisor",message:"SUPERVISOR: You are stalling. You have made 30 calls in the nickname naming editor",calls:30,evidence:[2,3]});
- expect(fold(log).loopLabel(dwell as Extract<typeof dwell,{type:"loop_guard"}>)).toMatch(/^Interface dwell supervisor message sent to the model/);
 });

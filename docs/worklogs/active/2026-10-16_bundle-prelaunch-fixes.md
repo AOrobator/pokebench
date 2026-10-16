@@ -24,14 +24,14 @@ Forensics of bundle qualification run `2026-10-15T23-47-41_qwen36-gpu1_3f21` (`r
 **M5 — F5–F8**
 - [x] RED: tests from real 3f21 events (fixtures under `packages/agent/test-support/bundle-3f21/`): `packages/agent/src/bundle-3f21-fixes.test.ts`, 10 failing / 2 passing (the two passing pin the both-arm supervisor T65 note byte for byte and the recorded generic refusal with the switch OFF). Replays reproduce the recorded text exactly before the fix (T95 press line, T98 navigate line, T166 briefing lines, T56 pages).
 - [x] GREEN F5–F8: agent 82 files / 1278 tests pass; lint + build clean. Two existing ON-switch tests updated on purpose (door warp now has a specific reason; stall briefing adds three lines, all other lines still equal the loop briefing).
-- [x] RED F12 (scope addition): `packages/agent/src/stall-interface.test.ts` from showcase run `2026-10-16T00-34-26_qwen36-gpu1_show` (fixture `test-support/showcase-nickname/events.jsonl.gz`, events to seq 9563): 3 failing, 1 passing (the both-arm supervisor reproduces recorded notes T59 seq 855 and T158 seq 3118 byte for byte). Dwell threshold N=30 from evidence: 23 naming episodes in 133 runs (2026-10-13..16); every episode that ended normally took <=25 calls (player naming p50 7, max normal 25; nickname 3 and 19); the stuck ones took 48, 79, 97, 153.
-- [x] GREEN F12: `interfaceOf` + interface bearings in `SupervisorBriefing.stallText` only; `interface_dwell` stall (N=30) in `StallBriefing`; loop_guard kind enum, schema and viewer labels extended. Agent 1282 tests, viewer 787 tests pass; lint clean.
+- [x] F12 (naming-editor briefing + interface_dwell stall) was added at the coordinator's request (RED 51006938, GREEN 7261cdd6), then dropped on a scope change: another thread owns F12 and builds it on top of F5 after this branch merges. Reverted in one commit; findings for that thread: N=30 calls from 23 naming episodes in 133 runs (normal <=25; stuck 48/79/97/153); pokeemerald naming_screen.c START moves to OK, A on OK saves, SaveInputText keeps the preloaded nickname when the text is empty.
 - [ ] Gates: test, lint, build, coverage (90%), verify-vendor
 - [ ] Explainer updates (local)
 - [ ] Review: Codex + grok
 
 ## Session Log
 
+- 2026-10-16: F12 dropped (coordinator scope change); reverted.
 - 2026-10-16: GREEN F5–F8 committed. Scope addition from coordinator: F12 (naming-editor/owned-interface awareness + interface-dwell stall) inside stall-briefing-v1.
 - 2026-10-16: RED committed (see COMMIT lines below).
 - 2026-10-16: worktree created from main `fa09dbe6`; worklog written.
@@ -42,8 +42,9 @@ Forensics of bundle qualification run `2026-10-15T23-47-41_qwen36-gpu1_3f21` (`r
 
 ## Commits
 
+- COMMIT: `revert(bundle): drop F12` (scope change; removes RED 51006938 and GREEN 7261cdd6)
+- COMMIT: `fix(bundle): F12 stall briefing knows the naming editor and briefs an interface dwell` (7261cdd6)
 - COMMIT: `test(bundle): RED for F12 stall briefing in an owned interface` (51006938)
-
 - COMMIT: `fix(bundle): F5–F8 inside stall-briefing, auto-advance and refusal-reason switches` (47aa276c); agent 1278 tests pass
 
 - COMMIT: `test(bundle): RED for F5–F8 replayed from bundle run 3f21` (b718b137)

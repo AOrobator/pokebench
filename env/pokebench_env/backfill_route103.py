@@ -34,6 +34,8 @@ def backfill(run_dir: Path) -> list[dict[str, object]]:
         raise BackfillError("records route103_rival natively")
     rows: list[dict[str, object]] = []
     for event in events:
+        if not isinstance(event, dict):
+            continue
         ref = event.get("raw_ram")
         if (
             event.get("type") != "state"
@@ -42,7 +44,9 @@ def backfill(run_dir: Path) -> list[dict[str, object]]:
             or not isinstance(ref, dict)
         ):
             continue
-        path, sha256 = str(ref["path"]), str(ref["sha256"])
+        path, sha256, seq = ref.get("path"), ref.get("sha256"), event.get("seq")
+        if not isinstance(path, str) or not isinstance(sha256, str) or type(seq) is not int:
+            raise BackfillError(f"malformed state at seq {seq}")
         if not re.fullmatch(r"raw-ram/[0-9]{8,}\.json\.gz", path):
             raise BackfillError(f"unexpected raw RAM path {path}")
         read = load_raw_ram(run_dir / path, sha256)
@@ -50,10 +54,10 @@ def backfill(run_dir: Path) -> list[dict[str, object]]:
         if not 0x02000000 <= save1 <= 0x02040000 - 0x159C:
             continue
         rival = read_route103_rival(read, save1, event.get("in_battle") is True)
-        rows.append(
-            {"seq": event["seq"], "raw_ram": path, "sha256": sha256, "route103_rival": rival.json()}
-        )
+        rows.append({"seq": seq, "raw_ram": path, "sha256": sha256, "route103_rival": rival.json()})
     derived = run_dir / "derived"
+    if derived.is_symlink() or (derived.exists() and not derived.is_dir()):
+        raise BackfillError("derived must be a plain directory inside the run")
     derived.mkdir(exist_ok=True)
     header = {"v": 1, "run": run_dir.name, "source": SOURCE}
     temp = derived / "route103_rival.jsonl.tmp"

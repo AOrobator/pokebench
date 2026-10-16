@@ -175,7 +175,7 @@ def test_reports_malformed_state_lines_and_refuses_a_symlinked_derived_dir(
     state = json.loads(lines[1])
     del state["raw_ram"]["sha256"]
     (run / "events.jsonl").write_text(
-        "\n".join([lines[0], json.dumps(state), "[1]", *lines[2:]]) + "\n"
+        "\n".join([lines[0], "[1]", json.dumps(state), *lines[2:]]) + "\n"
     )
     with pytest.raises(BackfillError, match="malformed state"):
         backfill(run)

@@ -7,6 +7,7 @@ import { locateRunDir } from "@pokebench/agent/run";
 import type { Baseline } from "./panels.js";
 import { RunView, MILESTONE_ORDER } from "./model.js";
 import type { BaselineStore } from "./baseline-store.js";
+import { loadRecoveredRival, recoveredSignature, withRecovered } from "./recovered-fields.js";
 
 export class RunsError extends Error {
   override readonly name = "RunsError";
@@ -237,7 +238,9 @@ export function baselineOf(runsRoot: string, runId: string): Baseline {
   let expectedSeq = 0;
   let humanEnded = false;
   // A comparison must rest on the baseline run's own, fully valid log (PB1).
-  for (const result of readFrom(eventsPath(runsRoot, runId), 0, 0).results) {
+  const recovered = loadRecoveredRival(runDir(runsRoot, runId));
+  for (const read of readFrom(eventsPath(runsRoot, runId), 0, 0).results) {
+    const result = read.ok ? { ...read, event: withRecovered(read.event, recovered) } : read;
     if (!result.ok) throw new BaselineError(`baseline ${runId} line ${String(result.line)}: ${result.problem}`);
     if (result.event.run !== runId) throw new BaselineError(`baseline ${runId} holds an event for run ${result.event.run}`);
     if (result.event.type === "state" && !("started" in result.event)) throw new BaselineError("baseline uses unverified historical vendor state");
@@ -291,7 +294,7 @@ export function createBaselineReader(runsRoot: string, options: BaselineReaderOp
     const path = eventsPath(runsRoot, runId);
     try {
       const stat = statSync(path, { bigint: true });
-      return [path, stat.dev, stat.ino, stat.size, stat.mtimeNs, stat.ctimeNs].join(":");
+      return [path, stat.dev, stat.ino, stat.size, stat.mtimeNs, stat.ctimeNs].join(":") + recoveredSignature(runDir(runsRoot, runId));
     } catch {
       cache.delete(runId);
       throw new RunsError(`run ${runId} has no readable events.jsonl`);

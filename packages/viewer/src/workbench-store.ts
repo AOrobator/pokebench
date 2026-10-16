@@ -1,4 +1,5 @@
 import { visualEvidenceSignature } from "./frontier-visual.js";
+import { recoveredSignature } from "./recovered-fields.js";
 import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { FEATURES } from "@pokebench/agent/features";
@@ -59,7 +60,7 @@ function startOf(root: string, id: string): Extract<RunEvent, { type: "run_start
 // The log's identity for caching: size, mtime, inode and any verified visual evidence.
 function runSignature(path: string): string {
   const stat = statSync(path);
-  return `${String(stat.size)}:${String(stat.mtimeMs)}:${String(stat.ino)}` + visualEvidenceSignature(path);
+  return `${String(stat.size)}:${String(stat.mtimeMs)}:${String(stat.ino)}` + visualEvidenceSignature(path) + recoveredSignature(dirname(path));
 }
 // True when the log at `now` is the log at `then` with more bytes appended: same inode, larger, and the
 // same visual evidence and viewer build. A rewrite, truncation or replacement is not.

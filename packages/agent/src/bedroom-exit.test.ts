@@ -4,7 +4,7 @@ import type { RunEvent } from "./events.js";
 import { checkEvent } from "./events.js";
 import { ObjectiveTracker } from "./objectives.js";
 import { MEASUREMENT_ONLY_MILESTONES, MILESTONES, StateMilestones, qualifiedNativeMilestone } from "./milestones.js";
-import { NativeTargetStop } from "./target-stop.js";
+import { parsePlayPreset } from "./play-preset.js";
 
 const story={name_confirmed:true,intro_stage:5,rival_stage:0,birch_lab_stage:0,petalburg_gym_stage:0,woods_stage:0,clock_set:false,rival_battle_won:false,pokedex_received:false,running_shoes_received:false,starter_tutorial_complete:false,rustboro_gym_complete:false,stone_badge:false,rock_tomb_received:false};
 const justSet={...story,intro_stage:6,clock_set:true};
@@ -44,10 +44,7 @@ it("records it after a Clock set save that starts in the bedroom, and qualifies 
  const tracker=new StateMilestones({read:()=>Promise.resolve(state("LITTLEROOT TOWN"))});tracker.initialize("save_state");
  const seq=[state("LITTLEROOT TOWN BRENDANS HOUSE 2F",{story:justSet}),state("LITTLEROOT TOWN BRENDANS HOUSE 1F",{story:justSet})];
  expect(run(tracker,seq)).toMatchObject([{origin:"observed",evidence:[1,2]}]);
- const recorded=events(seq);
- expect(qualifiedNativeMilestone(mark([1,2]),recorded)).toBe(true);
- const target=new NativeTargetStop("r",NAME,()=>undefined);for(const e of recorded)target.observe(e);target.observe(mark([1,2]));
- expect(target.proof?.state_evidence).toEqual([1,2]);
+ expect(qualifiedNativeMilestone(mark([1,2]),events(seq))).toBe(true);
 });
 
 it("withholds credit before the clock, after the room was already left, in the rival's house, and on loading frames",()=>{
@@ -97,4 +94,10 @@ it("leaves measurement-only splits out of the objective record the model reads",
  expect(text).toContain('\\"name\\":\\"CLOCK_SET\\"');
  expect(text).not.toContain(NAME);
  expect(text).not.toContain("ROUTE_101_AFTER_HANDOFF");
+});
+
+it("refuses measurement-only splits as STOP AT targets, because the target is written into the model's goal",()=>{
+ const preset={version:1,id:"t",target:"CLOCK_SET",limits:{maxTurns:300,maxWallMs:600000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},flags:{loopGuard:false,activeUi:true,interfaceDocs:true,objectives:true}};
+ expect(parsePlayPreset(preset).target).toBe("CLOCK_SET");
+ for(const target of MEASUREMENT_ONLY_MILESTONES)expect(()=>parsePlayPreset({...preset,target})).toThrow(/measurement-only/);
 });

@@ -203,3 +203,17 @@ def test_never_follows_a_planted_temp_symlink_and_skips_odd_locations(tmp_path: 
     assert [r["seq"] for r in backfill(run)] == [1]
     assert victim.read_text() == "keep"
     assert not (run / "derived" / "route103_rival.jsonl").is_symlink()
+
+
+def test_removes_its_temp_file_when_the_final_rename_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    run = write_run(tmp_path, [("ROUTE103", False, memory())])
+
+    def refuse(*_args: object) -> None:
+        raise OSError("disk full")
+
+    monkeypatch.setattr("pokebench_env.backfill_route103.os.replace", refuse)
+    with pytest.raises(OSError, match="disk full"):
+        backfill(run)
+    assert list((run / "derived").iterdir()) == []

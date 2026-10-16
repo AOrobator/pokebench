@@ -1,10 +1,9 @@
-import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, renameSync, symlinkSync, writeFileSync } from "node:fs";
-import { gzipSync } from "node:zlib";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, it } from "vitest";
 import { Log, START, state } from "../test-support/events.js";
+import { rivalRam, writeArchive } from "../test-support/raw-ram.js";
 import { StateMilestones } from "../../agent/src/milestones.js";
 import { RunView } from "./model.js";
 import { loadRecoveredRival, withRecovered } from "./recovered-fields.js";
@@ -19,7 +18,10 @@ const header = (run = "run-a") => ({ v: 1, run, source: "raw-ram-route103-v1" })
 const row = (seq: number, battle_active: boolean, defeated: boolean, oldale_stage: number) => ({ seq, raw_ram: "raw-ram/00000001.json.gz", sha256: "a".repeat(64), route103_rival: { battle_active, defeated, oldale_stage } });
 
 it("loads recovered route103_rival rows only from a well-formed side file for this run", () => {
-  expect([...loadRecoveredRival(runDir([header(), row(3, true, false, 0)]))]).toEqual([[3, { rival: { battle_active: true, defeated: false, oldale_stage: 0 }, raw_ram: "raw-ram/00000001.json.gz", sha256: "a".repeat(64) }]]);
+  const dir = runDir([header()]);
+  const fight = writeArchive(dir, 1, rivalRam(true, false));
+  writeFileSync(join(dir, "derived", "route103_rival.jsonl"), [header(), { seq: 3, raw_ram: fight.path, sha256: fight.sha256, route103_rival: { battle_active: true, defeated: false, oldale_stage: 0 } }].map((l) => JSON.stringify(l)).join("\n") + "\n");
+  expect([...loadRecoveredRival(dir)]).toEqual([[3, { rival: { battle_active: true, defeated: false, oldale_stage: 0 }, raw_ram: fight.path, sha256: fight.sha256, trainerRival: true }]]);
   expect(loadRecoveredRival(join(tmpdir(), "no-such-run")).size).toBe(0);
   expect(loadRecoveredRival(runDir([header("other-run"), row(3, true, false, 0)])).size).toBe(0);
   expect(loadRecoveredRival(runDir([header(), { ...row(3, true, false, 0), route103_rival: { battle_active: "yes" } }])).size).toBe(0);
@@ -82,25 +84,8 @@ it("derives nothing for a run that records the splits natively, or without a fal
   expect(view.milestones.some((m) => m.name.startsWith("RIVAL_BATTLE_") || m.name === "RIVAL_OLDALE_SEND_OFF")).toBe(false);
 });
 
-// A raw-RAM archive in the recorder's format with the given EWRAM/IWRAM bytes set.
-function archive(dir: string, n: number, set: readonly (readonly [number, readonly number[]])[]): { path: string; sha256: string } {
-  const ewram = Buffer.alloc(0x40000), iwram = Buffer.alloc(0x8000);
-  for (const [address, bytes] of set) (address >= 0x03000000 ? iwram : ewram).set(bytes, address - (address >= 0x03000000 ? 0x03000000 : 0x02000000));
-  const region = (name: string, address: number, data: Buffer) => ({ name, address, size: data.length, data_base64: data.toString("base64"), sha256: createHash("sha256").update(data).digest("hex") });
-  const body = gzipSync(JSON.stringify({ v: 1, sequence: n, frame: n, regions: [region("ewram", 0x02000000, ewram), region("iwram", 0x03000000, iwram)] }));
-  const path = `raw-ram/${String(n).padStart(8, "0")}.json.gz`;
-  mkdirSync(join(dir, "raw-ram"), { recursive: true });
-  writeFileSync(join(dir, path), body);
-  return { path, sha256: createHash("sha256").update(body).digest("hex") };
-}
-const SAVE1 = 0x02025a18;
-const u16 = (v: number) => [v & 255, v >> 8];
-const memory = (fight: boolean, won: boolean): (readonly [number, readonly number[]])[] => [
-  [0x03005d8c, [0x18, 0x5a, 0x02, 0x02]],
-  [0x02038bca, u16(fight ? 535 : 0)],
-  [0x02022fec, [fight ? 8 : 0, 0, 0, 0]],
-  [SAVE1 + 0x1270 + (0x717 >> 3), [won ? 1 << (0x717 & 7) : 0]],
-];
+const archive = writeArchive;
+const memory = (fight: boolean, won: boolean) => rivalRam(fight, won);
 it("re-decodes the snapshot behind every row that changes a value, and voids a file whose values the RAM does not support", () => {
   const dir = runDir([header()]);
   const calm = archive(dir, 1, memory(false, false)), fight = archive(dir, 2, memory(true, false)), won = archive(dir, 3, memory(false, true));
@@ -130,7 +115,7 @@ it("derives exactly what the agent's tracker records for the same states", () =>
   const states = trip().events.filter((e) => e.type === "state" && "started" in e);
   const tracker = new StateMilestones({ read: () => Promise.reject(new Error("unused")) });
   tracker.initialize("save_state");
-  const native = states.flatMap((s) => (s.type === "state" && "started" in s ? tracker.observe(s, s.seq) : [])).filter((m) => ["RIVAL_BATTLE_STARTED", "RIVAL_BATTLE_DEFEATED", "RIVAL_OLDALE_SEND_OFF"].includes(m.name)).map((m) => [m.name, m.evidence]);
+  const native = states.flatMap((s) => ("started" in s ? tracker.observe(s, s.seq) : [])).filter((m) => ["RIVAL_BATTLE_STARTED", "RIVAL_BATTLE_DEFEATED", "RIVAL_OLDALE_SEND_OFF"].includes(m.name)).map((m) => [m.name, m.evidence]);
   const view = new RunView();
   for (const event of trip().events) view.apply(event);
   expect(view.milestones.filter((m) => m.derived === true && m.name.startsWith("RIVAL_")).map((m) => [m.name, m.evidence])).toEqual(native);

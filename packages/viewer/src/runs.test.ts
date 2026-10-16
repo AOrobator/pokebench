@@ -1,8 +1,9 @@
-import { appendFileSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { Log, START, fullRun, state } from "../test-support/events.js";
+import { rivalRam, writeArchive } from "../test-support/raw-ram.js";
 import { RunsError, baselineOf, createBaselineReader, listRuns, liveScreenPort, readFrom, runDir } from "./runs.js";
 
 function root(): string {
@@ -379,7 +380,9 @@ it("carries the experiment, arm and trial as structured fields so the phone head
 
 it("folds rival splits recovered from raw RAM into a comparison baseline, and re-reads it when the side file changes", async () => {
   const r = root();
-  const ram = (n: number) => ({ v: 1 as const, sequence: n, frame: n, path: `raw-ram/${String(n).padStart(8, "0")}.json.gz`, sha256: "a".repeat(64) });
+  const scratch = mkdtempSync(join(tmpdir(), "ram-"));
+  const ram = (n: 1 | 2 | 3) => writeArchive(scratch, n, [rivalRam(false, false), rivalRam(true, false), rivalRam(false, true)][n - 1] ?? []);
+  const copyRam = (dir: string) => { cpSync(join(scratch, "raw-ram"), join(dir, "raw-ram"), { recursive: true }); };
   const log = new Log();
   log.add(0, { ...START, harness_features: ["ram-state-v1"] });
   log.add(1000, state({ location: "ROUTE103", raw_ram: ram(1) }));
@@ -388,6 +391,7 @@ it("folds rival splits recovered from raw RAM into a comparison baseline, and re
   const reader = createBaselineReader(r);
   expect((await reader("rv")).milestones.map((m) => m.name)).not.toContain("RIVAL_BATTLE_STARTED");
   mkdirSync(join(r, "rv", "derived"));
+  copyRam(join(r, "rv"));
   writeFileSync(join(r, "rv", "derived", "route103_rival.jsonl"), [{ v: 1, run: "rv", source: "raw-ram-route103-v1" }, ...([[1, false], [2, true]] as const).map(([n, active]) => ({ seq: n, raw_ram: ram(n).path, sha256: ram(n).sha256, route103_rival: { battle_active: active, defeated: false, oldale_stage: 0 } }))].map((row) => JSON.stringify(row)).join("\n") + "\n");
   expect((await reader("rv")).milestones).toContainEqual({ name: "RIVAL_BATTLE_STARTED", offsetMs: 2000, derived: true });
 });

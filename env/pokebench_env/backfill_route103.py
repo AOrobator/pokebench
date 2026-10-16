@@ -8,6 +8,7 @@ import json
 import os
 import re
 import sys
+import tempfile
 from pathlib import Path
 
 from pokebench_env.raw_ram import load_raw_ram
@@ -40,6 +41,7 @@ def backfill(run_dir: Path) -> list[dict[str, object]]:
         if (
             event.get("type") != "state"
             or event.get("started") is not True
+            or not isinstance(event.get("location"), str)
             or event.get("location") not in PLACES
             or not isinstance(ref, dict)
         ):
@@ -60,9 +62,15 @@ def backfill(run_dir: Path) -> list[dict[str, object]]:
         raise BackfillError("derived must be a plain directory inside the run")
     derived.mkdir(exist_ok=True)
     header = {"v": 1, "run": run_dir.name, "source": SOURCE}
-    temp = derived / "route103_rival.jsonl.tmp"
-    temp.write_text("".join(json.dumps(r) + "\n" for r in [header, *rows]), encoding="utf8")
-    os.replace(temp, derived / "route103_rival.jsonl")
+    # An exclusively created, unpredictable temp file: a planted symlink is never written through.
+    fd, temp = tempfile.mkstemp(dir=derived, prefix=".route103_rival.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf8") as file:
+            file.write("".join(json.dumps(r) + "\n" for r in [header, *rows]))
+        os.replace(temp, derived / "route103_rival.jsonl")
+    except BaseException:
+        Path(temp).unlink(missing_ok=True)
+        raise
     return rows
 
 

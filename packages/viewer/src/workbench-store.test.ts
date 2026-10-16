@@ -1,4 +1,4 @@
-import { appendFileSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, truncateSync, writeFileSync } from "node:fs";
+import { appendFileSync, cpSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, truncateSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -7,6 +7,7 @@ import { workbenchSnapshot } from "./workbench-store.js";
 import { parseWorkbench } from "./workbench-data.js";
 import { ALL_ON, playHarnessFeatures } from "@pokebench/agent/features";
 import { cohort } from "../test-support/workbench-cohort.js";
+import { rivalRam, writeArchive } from "../test-support/raw-ram.js";
 const root = (): string => { const p = join(mkdtempSync(join(tmpdir(), "workbench-")), "runs"); mkdirSync(p); return p; };
 function write(r: string, id: string, log: Log): string {
   mkdirSync(join(r, id)); const p = join(r, id, "events.jsonl");
@@ -473,7 +474,9 @@ describe("run-tagged experiment cohorts", () => {
 });
 
 describe("recovered route103_rival side file", () => {
-  const ram = (n: number) => ({ v: 1 as const, sequence: n, frame: n, path: `raw-ram/${String(n).padStart(8, "0")}.json.gz`, sha256: "a".repeat(64) });
+  const scratch = mkdtempSync(join(tmpdir(), "ram-"));
+  const ram = (n: 1 | 2 | 3) => writeArchive(scratch, n, [rivalRam(false, false), rivalRam(true, false), rivalRam(false, true)][n - 1] ?? []);
+  const copyRam = (dir: string) => { cpSync(join(scratch, "raw-ram"), join(dir, "raw-ram"), { recursive: true }); };
   const battle = (): Log => {
     const l = new Log();
     l.add(0, { ...START, harness_features: ["ram-state-v1"] });
@@ -487,8 +490,9 @@ describe("recovered route103_rival side file", () => {
     const names = async () => (await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000)).runs[0]?.splits.map((s) => s.name) ?? [];
     expect(await names()).not.toContain("RIVAL_BATTLE_STARTED");
     mkdirSync(join(r, "rv", "derived"));
+    copyRam(join(r, "rv"));
     const side = join(r, "rv", "derived", "route103_rival.jsonl");
-    writeFileSync(side, [{ v: 1, run: "rv", source: "raw-ram-route103-v1" }, ...[[1, false], [2, true]].map(([n, active]) => ({ seq: Number(n), raw_ram: ram(Number(n)).path, sha256: ram(Number(n)).sha256, route103_rival: { battle_active: active, defeated: false, oldale_stage: 0 } }))].map((row) => JSON.stringify(row)).join("\n") + "\n");
+    writeFileSync(side, [{ v: 1, run: "rv", source: "raw-ram-route103-v1" }, ...([[1, false], [2, true]] as const).map(([n, active]) => ({ seq: n, raw_ram: ram(n).path, sha256: ram(n).sha256, route103_rival: { battle_active: active, defeated: false, oldale_stage: 0 } }))].map((row) => JSON.stringify(row)).join("\n") + "\n");
     expect(await names()).toContain("RIVAL_BATTLE_STARTED");
     rmSync(side);
     expect(await names()).not.toContain("RIVAL_BATTLE_STARTED");

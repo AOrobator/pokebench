@@ -140,15 +140,25 @@ const OPPOSITE: Readonly<Record<string, string>> = { up: "down", down: "up", lef
 // pushback-press-result-v1: a script moved the player between two snapshots of one call (navigate_to's auto-advance).
 export function scriptMove(from: GameStateSnapshot, to: GameStateSnapshot, show: PressFacts): string | null {
   if (!placed(from) || !placed(to) || sameTile(from, to)) return null;
-  return `a script moved you${tilePath(from, to, show)} while the dialogue advanced (navigate_to did not walk there; calling it again walks back into the same script)`;
+  return `a script moved you${tilePath(from, to, show)} while the dialogue advanced`;
 }
 
-// pushback-press-result-v1: a walk batch is sent at once; the steps the player did not take after the step that
-// opened a message were pressed while the message held field controls. At least the first input took effect.
+// pushback-press-result-v1: a walk batch is sent at once. When exactly one prefix of it, taken as one tile per
+// input, explains where the player stands when the message opened, the inputs after that prefix were pressed while
+// the message held field controls. Any other shape (a bump, a turn in place, two prefixes that fit) proves nothing.
+const STEP: Readonly<Record<string, readonly [number, number]>> = { UP: [0, -1], DOWN: [0, 1], LEFT: [-1, 0], RIGHT: [1, 0] };
 export function ignoredSteps(before: GameStateSnapshot | undefined, after: GameStateSnapshot, sent: readonly Button[]): Button[] {
   if (!placed(before) || !placed(after) || !sameMap(before, after)) return [];
-  const steps = Math.abs(after.position.x - before.position.x) + Math.abs(after.position.y - before.position.y);
-  return sent.slice(Math.max(1, Math.min(steps, sent.length)));
+  const fits: number[] = [];
+  let x = before.position.x, y = before.position.y;
+  for (let k = 1; k <= sent.length; k++) {
+    const step = STEP[sent[k - 1] ?? ""];
+    if (step === undefined) return [];
+    x += step[0]; y += step[1];
+    if (x === after.position.x && y === after.position.y) fits.push(k);
+  }
+  const k = fits.length === 1 ? fits[0] : undefined;
+  return k === undefined ? [] : sent.slice(k);
 }
 
 // pushback-press-result-v1: what a script did around this press, from the snapshots alone.
@@ -166,7 +176,8 @@ function scriptTakeover(line: string, before: GameStateSnapshot | undefined, aft
     out = `${line}; then a script took over: field controls are held by a running script (no message yet), which may move you`;
   }
   const last = shown.lastShown;
-  if (placed(last) && sameMap(last, before) && !sameTile(last, before) && (scriptHeld(before) || scriptHeld(last))) {
+  // The last result itself showed a script holding the controls (the trigger tile), and this press starts elsewhere.
+  if (placed(last) && sameMap(last, before) && !sameTile(last, before) && scriptHeld(last)) {
     out = `a script moved you${tilePath(last, before, show)} after your last result, before this press; this press: ${out}`;
   }
   return out;

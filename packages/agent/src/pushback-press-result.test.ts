@@ -90,7 +90,7 @@ describe("pushback-press-result-v1: navigate_to while the twin's message is open
   expect(status(await wire(twin(),OFF).navigate())).toBe("Navigation: a message was open, so navigate_to did not walk; after auto-advance: the conversation closed and field controls are free; call navigate_to again; 0 ordinary button attempts.");
  });
  it("ON: the script's move replaces the advice",async()=>{
-  expect(status(await wire(twin(),ON).navigate())).toBe("Navigation: a message was open, so navigate_to did not walk; after auto-advance: the conversation closed and field controls are free; a script moved you (11,1) -> (11,2) while the dialogue advanced (navigate_to did not walk there; calling it again walks back into the same script); 0 ordinary button attempts.");
+  expect(status(await wire(twin(),ON).navigate())).toBe("Navigation: a message was open, so navigate_to did not walk; after auto-advance: the conversation closed and field controls are free; a script moved you (11,1) -> (11,2) while the dialogue advanced; 0 ordinary button attempts.");
  });
 });
 
@@ -100,6 +100,12 @@ describe("pushback-press-result-v1: a walk batch cut short by the message it ope
  it("OFF: today's record says all six were sent and none dropped",async()=>{
   const press=wire(birch(),OFF);const text=(await press(batch)).content.flatMap(p=>p.type==="text"?[p.text]:[]).join("\n");
   expect(advance(press)).toMatchObject({sent:batch,dropped:[]});
+  expect(text).not.toContain("had no effect");
+ });
+ it("ON: when every input ran before the message opened (RIGHT, LEFT, UP onto the trigger), nothing is dropped",async()=>{
+  const press=wire(new PushbackGame({x:7,y:15},"right",{x:7,y:14},{x:7,y:15},BIRCH_PAGES),ON);
+  const text=(await press(["RIGHT","LEFT","UP"])).content.flatMap(p=>p.type==="text"?[p.text]:[]).join("\n");
+  expect(advance(press)).toMatchObject({sent:["RIGHT","LEFT","UP"],dropped:[]});
   expect(text).not.toContain("had no effect");
  });
  it("ON: the step that opened the message is sent; the five pressed under its lock count as dropped, and the result says so",async()=>{

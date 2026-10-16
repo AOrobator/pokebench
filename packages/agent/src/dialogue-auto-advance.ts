@@ -234,7 +234,8 @@ export function navigationAfter(raw:unknown,outcome:Pick<Outcome,"stop"|"detail"
  const interrupted=nav.status.startsWith("walk interrupted: ");
  const message=nav.status===MESSAGE_WAITING||nav.status===`walk interrupted: ${MESSAGE_WAITING}`;
  const why=interrupted?`walk interrupted: ${message?"a message opened":"field controls were locked"}`:`${message?"a message was open":"field controls were not free"}, so navigate_to did not walk`;
- // pushback-press-result-v1: a script moved the player while the dialogue advanced; calling again walks back into it.
+ // pushback-press-result-v1: a script moved the player while the dialogue advanced, so the old advice to call again
+ // (from the state before the advance) no longer describes what happened.
  if(moved!==null)return `Navigation: ${why}; after auto-advance: ${outcome.detail}; ${moved}; ${String(nav.commands)} ordinary button attempts.`;
  return `Navigation: ${why}; after auto-advance: ${outcome.detail}${outcome.stop==="field_free"?"; call navigate_to again":""}; ${String(nav.commands)} ordinary button attempts.`;
 }

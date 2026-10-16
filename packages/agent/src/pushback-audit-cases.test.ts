@@ -14,9 +14,12 @@ import {toolSwitches} from "./play-config.js";
 // Acceptance cases from the cook harness audit (runs/reports/2026-10-16-cook-harness-audit/{live,sh02}.md), as
 // schema-valid recorded events: runs 2026-10-16T04-51-03_qwen36-gpu0_54a7 (bundle arm), 2026-10-16T04-51-03_qwen36-gpu1_1623
 // (control arm) and 2026-10-16T02-23-17_qwen36-gpu1_sh02, trimmed only where the event schema leaves a field optional.
+const loaded=new Map<string,RunEvent[]>();
 function recorded(name:string):RunEvent[]{
+ const cached=loaded.get(name);if(cached!==undefined)return cached;
  const path=fileURLToPath(new URL(`./fixtures/${name}`,import.meta.url));
- return gunzipSync(readFileSync(path)).toString("utf8").trim().split("\n").map(line=>checkEvent(JSON.parse(line)));
+ const events=gunzipSync(readFileSync(path)).toString("utf8").trim().split("\n").map(line=>checkEvent(JSON.parse(line)));
+ loaded.set(name,events);return events;
 }
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
 interface Seen {readonly turn:number;readonly seq:number;readonly kind:string;readonly phase:string;readonly message:string}
@@ -71,9 +74,14 @@ describe("audit 2: 54a7 T92 seq 2014, navigate_to says 'call navigate_to again' 
  const raw={navigation:{unready:true,status:MESSAGE_WAITING,commands:0}};
  const outcome={stop:"field_free" as const,detail:"the conversation closed and field controls are free"};
  it("OFF reproduces the recorded line",()=>{expect(navigationAfter(raw,outcome)).toBe(c.navigation);});
+ it("a script move to another map names both places and says nothing about calling again",()=>{
+  const moved=scriptMove(c.before,{...c.final,location:"LITTLEROOT TOWN BRENDANS HOUSE 1F",map_id:[1,0],position:{x:8,y:8}},c.on);
+  expect(moved).toBe("a script moved you LITTLEROOT TOWN [map 0/9] (10,1) -> LITTLEROOT TOWN BRENDANS HOUSE 1F [map 1/0] (8,8) while the dialogue advanced");
+  expect(scriptMove(c.final,c.final,c.on)).toBeNull();
+ });
  it("ON names the script's move and drops the advice to call again",()=>{
   const text=navigationAfter(raw,outcome,scriptMove(c.before,c.final,c.on));
-  expect(text).toBe("Navigation: a message was open, so navigate_to did not walk; after auto-advance: the conversation closed and field controls are free; a script moved you (10,1) -> (10,2) while the dialogue advanced (navigate_to did not walk there; calling it again walks back into the same script); 0 ordinary button attempts.");
+  expect(text).toBe("Navigation: a message was open, so navigate_to did not walk; after auto-advance: the conversation closed and field controls are free; a script moved you (10,1) -> (10,2) while the dialogue advanced; 0 ordinary button attempts.");
   expect(text).not.toContain("call navigate_to again");
  });
 });
@@ -103,6 +111,11 @@ describe("audit 4: sh02 Oldale Maniac T1072, T1073, T1080 and the Route 101 twin
   expect(composed(c,false)).toBe("locked (field controls locked in a snapshot; no net movement)");expect(c.line).toBe(composed(c,false));
   expect(composed(c,true)).toMatch(/^a script took over during your press: you pressed LEFT and now face right on the same tile \(1,10\), with field controls held by a running script;/);
  });
+ it("a move between results is a script's only when the last result showed a script holding the controls",()=>{
+  const c=call(maniac,1073);
+  const shown=new ShownStates();shown.record({...c.shown.lastShown,field_controls_locked:false,resources:null} as typeof c.before);
+  expect(pressResult(c.before,c.pressed,c.buttons,c.on,shown)).toBe("locked (field controls locked in a snapshot; no net movement)");
+ });
  it("T142: the twin's walk-back during auto-advance",()=>{
   const c=call(recorded("pushback-twin-sh02.jsonl.gz"),142);
   expect(composed(c,false)).toBe(c.line);
@@ -115,6 +128,18 @@ describe("audit 5: sh02 T264, LEFT×3 UP×3 logged as six sent while five ran in
   const c=call(recorded("pushback-birch-sh02.jsonl.gz"),264);
   expect(c.buttons).toEqual(["LEFT","LEFT","LEFT","UP","UP","UP"]);
   expect(ignoredSteps(c.before,c.pressed,c.buttons)).toEqual(["LEFT","LEFT","UP","UP","UP"]);
+ });
+ it("only a unique one-tile-per-input prefix proves which inputs ran under the lock",()=>{
+  const c=call(recorded("pushback-birch-sh02.jsonl.gz"),264);
+  const at=(x:number,y:number)=>({...c.before,position:{x,y}});
+  // RIGHT, LEFT, UP all ran: the third input reached the trigger (net displacement is one tile).
+  expect(ignoredSteps(at(7,15),at(7,14),["RIGHT","LEFT","UP"])).toEqual([]);
+  // A bump (LEFT into a wall, then UP) is not explained by any prefix.
+  expect(ignoredSteps(at(7,15),at(7,14),["LEFT","UP","UP"])).toEqual([]);
+  // Two prefixes fit (LEFT, and LEFT,RIGHT,LEFT): unknown.
+  expect(ignoredSteps(at(7,15),at(6,15),["LEFT","RIGHT","LEFT","UP"])).toEqual([]);
+  // A non-direction input: unknown.
+  expect(ignoredSteps(at(7,15),at(6,15),["LEFT","A","UP"])).toEqual([]);
  });
  it("a batch whose position is unknown drops nothing it cannot prove",()=>{
   const c=call(recorded("pushback-birch-sh02.jsonl.gz"),264);

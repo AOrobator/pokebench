@@ -51,19 +51,22 @@ def _u32(read: ReadMemory, address: int) -> int:
     return int.from_bytes(read(address, 4), "little")
 
 
+# pokeemerald field_control_avatar.c and metatile_behavior.c, revision731ad5b: warps that
+# activate when the player, standing on them, presses this direction.
+WARP_PRESSES = {
+    0x62: "RIGHT",
+    0x63: "LEFT",
+    0x64: "UP",
+    0x65: "DOWN",
+    0x1B: "UP",
+    0x1C: "DOWN",
+    0x6D: "DOWN",
+}
+
+
 def _warp_trigger(behavior: int | None) -> str:
-    # pokeemerald field_control_avatar.c and metatile_behavior.c, revision731ad5b.
-    directions = {
-        0x62: "RIGHT",
-        0x63: "LEFT",
-        0x64: "UP",
-        0x65: "DOWN",
-        0x1B: "UP",
-        0x1C: "DOWN",
-        0x6D: "DOWN",
-    }
-    if behavior in directions:
-        return f"directional exit: stand on tile, then press {directions[behavior]}"
+    if behavior in WARP_PRESSES:
+        return f"directional exit: stand on tile, then press {WARP_PRESSES[behavior]}"
     if behavior == 0x69:
         return "door: approach from below and press UP toward door"
     if behavior in {0x0E, 0x0F, 0x29, 0x60, 0x61, 0x67, 0x68, 0x6A, 0x6B, 0x6C, 0x6E}:

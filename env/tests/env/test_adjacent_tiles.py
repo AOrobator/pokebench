@@ -359,13 +359,19 @@ def test_a_directional_exit_under_the_player_is_never_called_unenterable() -> No
     shown = bottom_row_exit()
     text = line(shown, (5, 5), topology=no_south)
     assert part(text, "down") == (
-        "down (5,6) outside this map (?), but you stand on a warp whose listed activation"
-        " is pressing down"
+        "down (5,6) outside this map (?), no connection south, but you stand on a warp whose"
+        " listed activation is pressing down"
     )
     assert SHUT_TEXT not in part(text, "down")
     assert part(text, "left") == "left (4,5) collision (#), cannot be entered from here"
     hidden = line(shown, (5, 5), topology=no_south, warp_guidance=False)
-    assert part(hidden, "down") == "down (5,6) outside this map (?), but you stand on a warp"
+    assert part(hidden, "down") == (
+        "down (5,6) outside this map (?), no connection south, but you stand on a warp"
+    )
+    assert part(line(shown, (5, 5)), "down") == (
+        "down (5,6) outside this map (?), but you stand on a warp whose listed activation"
+        " is pressing down"
+    )
 
 
 def test_a_directional_exit_into_a_collision_tile_is_not_called_unenterable() -> None:

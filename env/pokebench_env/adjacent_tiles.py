@@ -5,13 +5,22 @@ one-way-tiles-v1, counter-talk-v1), so the line never says more than the map sho
 called unenterable only where pokeemerald 731ad5b GetCollisionAtCoords refuses it whatever the
 walker's height: collision bits (CheckForObjectEventCollision hops a ledge pressed its own way
 first), IsMetatileDirectionallyImpassable edge walls, and a map edge with no connection on that
-side (GetMapBorderIdAt == CONNECTION_INVALID). Objects and warps are described, never called
-blockers; elevation is never named.
+side (GetMapBorderIdAt == CONNECTION_INVALID), and never for the press that a directional warp
+under the player answers. A connection is never named for one edge tile: Topology has no
+connected-map size, so it cannot tell whether the tile lies in the connection's span. Objects and
+warps are described, never called blockers; elevation is never named.
 """
 
 from collections.abc import Sequence
 
-from pokebench_env.live_map import EDGE_WALLS, LEDGES, FullMap, LocalMap, _warp_trigger
+from pokebench_env.live_map import (
+    EDGE_WALLS,
+    LEDGES,
+    WARP_PRESSES,
+    FullMap,
+    LocalMap,
+    _warp_trigger,
+)
 from pokebench_env.topology import Topology
 
 # (direction word, step, compass side of a tile facing that way, its opposite)
@@ -33,18 +42,18 @@ def walking(avatar_flags: int | None) -> bool:
     return avatar_flags is not None and bool(avatar_flags & ON_FOOT) and not avatar_flags & SURFING
 
 
-def _outside(glyph: str, compass: str, topology: Topology | None) -> str:
+def _outside(glyph: str, compass: str, topology: Topology | None, shut: bool) -> str:
     text = "outside this map" + (" (?)" if glyph == "?" else "")
     if topology is None:
         return text
-    named = [c for c in topology.connections if c.direction == compass.upper()]
-    if not named:
-        return f"{text}, no connection {compass}, {SHUT}"
-    listed = " and ".join(
-        f"{c.destination_name} (map {c.destination[0]}/{c.destination[1]})" for c in named
-    )
-    plural = "s are" if len(named) > 1 else " is"
-    return f"{text}, this map's {compass} connection{plural} {listed}"
+    if any(c.direction == compass.upper() for c in topology.connections):
+        return f"{text}, see Map connections for where the {compass} edge connects"
+    return f"{text}, no connection {compass}" + (f", {SHUT}" if shut else "")
+
+
+def _hopped(behavior: int, direction: str) -> bool:
+    """CheckForObjectEventCollision: a ledge pressed its own way is jumped, whatever else holds."""
+    return ARROWS.get(LEDGES.get(behavior, "")) == direction
 
 
 def _tile(
@@ -57,6 +66,7 @@ def _tile(
     *,
     warp_guidance: bool,
     on_foot: bool,
+    shut: bool,
 ) -> str:
     if glyph == "N":
         return "person or object (N, object id " + ", ".join(str(i) for i in ids) + ")"
@@ -70,15 +80,14 @@ def _tile(
         way = ARROWS[glyph]
         if way == direction:
             return f"ledge ({glyph}), hop over it moving {way}, landing 2 tiles on"
-        return f"ledge ({glyph}), hops {way} only" + (f", {SHUT}" if collision else "")
+        return f"ledge ({glyph}), hops {way} only" + (f", {SHUT}" if collision and shut else "")
     if glyph == "#":
-        hopped = ARROWS.get(LEDGES.get(behavior, "")) == direction
-        return "collision (#)" + ("" if hopped else f", {SHUT}")
+        return "collision (#)" + (f", {SHUT}" if shut and not _hopped(behavior, direction) else "")
     if glyph == "+":
         sides = EDGE_WALLS[behavior]
         noun = "sides" if len(sides) > 1 else "side"
         return f"edge walls (+) on its {'+'.join(sides)} {noun}" + (
-            f", {SHUT}" if opposite in sides else ""
+            f", {SHUT}" if opposite in sides and shut else ""
         )
     if glyph == "g":
         return "grass (g)"
@@ -110,6 +119,9 @@ def next_tiles(
         if edge_walls and own is not None and own.collision == 0
         else ()
     )
+    # A directional warp under the player answers this press instead of a step.
+    on_warp = any((a, b) == position for a, b, _, _ in shown.warps)
+    warp_press = WARP_PRESSES.get(own.behavior, "").lower() if on_warp and own is not None else ""
     parts = []
     for direction, (dx, dy), compass, opposite in DIRECTIONS:
         x, y = px + dx, py + dy
@@ -117,8 +129,9 @@ def next_tiles(
         inside = 0 <= row < len(cells) and 0 <= column < len(cells[row])
         glyph = cells[row][column] if inside else ""
         tile = tiles.get((x, y))
+        shut = warp_press != direction
         if tile is None:
-            name = _outside(glyph, compass, topology)
+            name = _outside(glyph, compass, topology, shut)
         else:
             name = _tile(
                 glyph,
@@ -129,8 +142,13 @@ def next_tiles(
                 [i for i, a, b in shown.objects if (a, b) == (x, y)],
                 warp_guidance=warp_guidance,
                 on_foot=on_foot,
+                shut=shut,
             )
-        if compass in own_walls:
+        if not shut:
+            name += ", but you stand on a warp" + (
+                f" whose listed activation is pressing {direction}" if warp_guidance else ""
+            )
+        elif compass in own_walls and not (tile is not None and _hopped(tile.behavior, direction)):
             name += (
                 f", but your own tile is walled on its {compass} side,"
                 f" so you cannot move {direction} from here"

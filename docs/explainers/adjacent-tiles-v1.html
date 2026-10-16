@@ -121,16 +121,17 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 <div class="tablewrap"><table>
 <tr><th>Glyph</th><th>Words</th><th>Drawn by</th><th>"cannot be entered from here" when</th></tr>
 <tr><td><code>v ^ &lt; &gt;</code></td><td><code>ledge (v), hop over it moving down, landing 2 tiles on</code> pressed its own way; else <code>ledge (v), hops down only</code></td><td><code>ledge-hops-v1</code></td><td>pressed from another side and the tile has collision bits</td></tr>
-<tr><td><code>#</code></td><td><code>collision (#)</code></td><td>always</td><td>always, except a ledge (drawn <code>#</code> with ledge hops off) pressed its own hop way</td></tr>
+<tr><td><code>#</code></td><td><code>collision (#)</code></td><td>always</td><td>always, except a ledge (drawn <code>#</code> with ledge hops off) pressed its own hop way, or the press a directional warp under you answers</td></tr>
 <tr><td><code>+</code></td><td><code>edge walls (+) on its south side</code></td><td><code>one-way-tiles-v1</code></td><td>the wall is on the side you would enter</td></tr>
 <tr><td><code>=</code></td><td><code>counter (=), cannot be walked onto, face it and press A to talk to someone behind it</code></td><td><code>counter-talk-v1</code></td><td>(says it cannot be walked onto)</td></tr>
 <tr><td><code>g</code> <code>.</code></td><td><code>grass (g)</code>, <code>clear (.)</code></td><td>always</td><td>never</td></tr>
 <tr><td><code>~</code></td><td><code>water (~)</code>, plus <code>not walkable on foot</code> only when the avatar flags say on foot and not surfing</td><td>always</td><td>never</td></tr>
 <tr><td><code>N</code></td><td><code>person or object (N, object id 6)</code>, the ids the Live objects line lists</td><td>always</td><td>never: object height is not read</td></tr>
 <tr><td><code>W</code></td><td><code>warp (W) [door: approach from below and press UP toward door]</code>, the activation the Warps line gives (just <code>warp (W)</code> with warp guidance off)</td><td>always</td><td>never: a warp is not an obstacle</td></tr>
-<tr><td><code>?</code> / edge</td><td><code>outside this map (?)</code>; with map topology shown, <code>this map's north connection is OLDALE TOWN (map 0/10)</code> or <code>no connection west, cannot be entered from here</code></td><td>always; topology with <code>world-destinations-v1</code></td><td>no connection on that side, and only when topology is shown</td></tr>
+<tr><td><code>?</code> / edge</td><td><code>outside this map (?)</code>; with map topology shown, either <code>no connection west, cannot be entered from here</code>, or, when that side has a connection, <code>see Map connections for where the north edge connects</code></td><td>always; topology with <code>world-destinations-v1</code></td><td>no connection on that side, and only when topology is shown</td></tr>
 </table></div>
-<p>Your own tile matters too: if it is edge-walled on the side you would leave by (one-way tiles on), that direction ends <code>, but your own tile is walled on its north side, so you cannot move up from here</code>. Coordinates appear only when <code>live-player-position-v1</code> shows the position line. Elevation is never named.</p>
+<p>Your own tile matters too. If it is edge-walled on the side you would leave by (one-way tiles on), that direction ends <code>, but your own tile is walled on its north side, so you cannot move up from here</code>, unless the next tile is a ledge hopped that way (the hop wins). If you stand on a directional exit warp, the direction it answers never says "cannot be entered" and ends <code>, but you stand on a warp whose listed activation is pressing down</code> (just <code>, but you stand on a warp</code> with warp guidance off). Coordinates appear only when <code>live-player-position-v1</code> shows the position line. Elevation is never named.</p>
+<p>A connection is never named for one edge tile. The topology lists each connection's offset but not the connected map's size, so it cannot tell whether this tile lies inside the connection's span: Ever Grande City's west connection to Route 128 starts at y=40, and at (0,0) the game refuses the step. Review round 1 caught an earlier wording that named the connection for every tile on that edge.</p>
 </section>
 
 <section>
@@ -160,9 +161,9 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 <tr><td>447</td><td>(9,14)</td><td><code>up (9,13) ledge (v), hops down only, cannot be entered from here; down (9,15) clear (.); left (8,14) clear (.); right (10,14) clear (.)</code></td></tr>
 <tr><td>459</td><td>(10,7)</td><td><code>up (10,6) ledge (v), hops down only, cannot be entered from here; down (10,8) clear (.); left (9,7) clear (.); right (11,7) collision (#), cannot be entered from here</code></td></tr>
 <tr><td>802</td><td>(8,7)</td><td><code>up (8,6) ledge (v), hops down only, cannot be entered from here; down (8,8) clear (.); left (7,7) clear (.); right (9,7) clear (.)</code></td></tr>
-<tr><td>822</td><td>(11,19)</td><td><code>up (11,18) clear (.); down (11,20) outside this map (?), this map's south connection is LITTLEROOT TOWN (map 0/9); left (10,19) clear (.); right (12,19) collision (#), cannot be entered from here</code></td></tr>
+<tr><td>822</td><td>(11,19)</td><td><code>up (11,18) clear (.); down (11,20) outside this map (?), see Map connections for where the south edge connects; left (10,19) clear (.); right (12,19) collision (#), cannot be entered from here</code></td></tr>
 </table></div>
-<p>Turn 822's edge names Littleroot because that run had <code>world-destinations-v1</code> on. The line does not say which way to go; it only removes the column-counting step.</p>
+<p>Turn 822's edge points at Map connections because that run had <code>world-destinations-v1</code> on (the readout lists the south connection to Littleroot there). The line does not say which way to go; it only removes the column-counting step.</p>
 </section>
 
 <section>

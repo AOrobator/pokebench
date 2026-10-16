@@ -23,3 +23,11 @@ Root cause: `frontierReferences` (packages/viewer/src/frontier.ts) only accepts 
   - Before (154d905e): `2026-10-15T11-08-31_think-fast_504f` (boot, ended), furthest RIVAL_HOUSE_EXITED at 23:24.372.
   - After (5e01bacf): `2026-10-16T02-23-17_qwen36-gpu1_sh02` (MAIN_MENU save, ended, Qwen3.6-35B-A3B), furthest RIVAL_BATTLE_WON at 50:46.749. Runners-up: `03-50-01_qwen36-gpu0_e588` ROUTE_103 24:58, `04-51-03_qwen36-gpu0_54a7` ROUTE_103 30:47; live `gpu0_7a95` at OLDALE_TOWN 22:20.
 - [ ] Multi-model review, then operator approval to merge.
+
+## Review fix: one source for the frontier's live state (Codex P1)
+
+Codex (BLOCKING, log `runs/reviews/dynamic-frontier-record/codex.log`): `refs.best` comes from every stored run while its glow depended on the filtered, verified `currentRuns`. After a failed poll the glow went away but the legend still read the stale stored status and said LIVE; under a filter that excluded the frontier run it lost its glow while still saying LIVE.
+
+Fix: `frontierPlot` takes the frontier's verified status (`"live" | "paused" | null`) as one explicit argument; the workbench passes the frontier run's status only while polling is verified, regardless of EXPERIMENT/MODEL/CONFIG filters (the gold line is a reference shown under every filter). Label and glow both read only that argument. Unverified → neither LIVE/PAUSED nor glow.
+
+- [x] RED: frontier.test passes the status explicitly and asserts a live stored status with `null` shows no LIVE, glow, current group or plate; new workbench test: the frontier keeps LIVE + glow under a model filter that excludes it, shows PAUSED from a paused poll, and drops both after a failed poll. The existing "highlights the healthy current run inside the filter" test gains a further finished `leader` run so its live `current` run is an ordinary filtered run, not the frontier (under the new rule it would otherwise be the frontier and glow under every filter). 3 fail as expected (the zoom test fails only because the failing new test never reaches `wb.destroy()`).

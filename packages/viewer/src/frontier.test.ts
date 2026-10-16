@@ -209,7 +209,7 @@ describe("data-driven agent frontier", () => {
     const live = Object.assign(menuStart(further("live-run")), { status: "live" as const });
     const refs = frontierReferences([human(), best(), live]);
     expect(refs.best?.id).toBe("live-run");
-    document.body.innerHTML = frontierPlot(refs, [live], 900, undefined, [live]);
+    document.body.innerHTML = frontierPlot(refs, [live], 900, undefined, [], false, "live");
     const lines = Array.from(document.querySelectorAll('polyline[data-series="live-run"]'));
     expect(lines.length).toBeGreaterThan(0);
     expect(lines.every(line => line.getAttribute("stroke") === "#af8915")).toBe(true);
@@ -218,10 +218,15 @@ describe("data-driven agent frontier", () => {
     expect(document.querySelector('[data-live-run="live-run"] .wb-live-head')).not.toBeNull();
     expect(document.querySelector('[data-reference="best"]')?.textContent).toContain("LIVE");
     expect(document.querySelectorAll(".wb-current-key")).toHaveLength(0);
+    // Live state comes only from the verified status passed in, never from the run's stored status or the filtered current set.
+    document.body.innerHTML = frontierPlot(refs, [live], 900, undefined, [live], false, null);
+    expect(document.querySelector('[data-reference="best"]')?.textContent).not.toMatch(/LIVE|PAUSED/);
+    expect(document.querySelector("[data-live-run], [data-current-run], .wb-live-head, .wb-current-key")).toBeNull();
+    expect(document.querySelector('[data-reference="best"]')?.textContent).toContain("live-run");
     const paused = Object.assign(further("paused-run"), { status: "paused" as const });
     const pausedRefs = frontierReferences([best(), paused]);
     expect(pausedRefs.best?.id).toBe("paused-run");
-    document.body.innerHTML = frontierPlot(pausedRefs, [], 900, undefined, [paused]);
+    document.body.innerHTML = frontierPlot(pausedRefs, [], 900, undefined, [], false, "paused");
     expect(document.querySelector('[data-reference="best"]')?.textContent).toContain("PAUSED");
     expect(document.querySelector('[data-current-run="paused-run"]')).not.toBeNull();
     expect(document.querySelector('[data-live-run="paused-run"]')).toBeNull();

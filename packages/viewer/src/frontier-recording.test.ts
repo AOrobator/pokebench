@@ -339,3 +339,27 @@ it("does not recover the return trip without a pre-battle witness or for a run t
     expect(view.milestones.some(m => m.name === "ROUTE_101_AFTER_RIVAL_BATTLE" || m.name === "LITTLEROOT_AFTER_RIVAL_BATTLE")).toBe(false);
   }
 });
+it("grades native Route 103 rival receipts from the compacted recording, which keeps the reader field", () => {
+  const log = new Log();
+  log.add(0, { ...START, start_state: { kind: "save_state", path: "/saves/CLOCK_SET.state", sha1: "a".repeat(40) }, harness_features: [...START.harness_features, "route103-rival-splits-v1"] });
+  const r = (battle_active: boolean, defeated: boolean, oldale_stage: number) => ({ battle_active, defeated, oldale_stage });
+  log.add(1000, state({ ...quiet, location: "ROUTE103", story: atLab(3), route103_rival: r(false, false, 0) }));
+  const fight = log.add(2000, state({ ...quiet, location: "ROUTE103", in_battle: true, story: atLab(3), route103_rival: r(true, false, 0) }));
+  const won = log.add(3000, state({ ...quiet, location: "ROUTE103", story: atLab(3), route103_rival: r(false, true, 0) }));
+  const before = log.add(4000, state({ ...quiet, location: "OLDALE TOWN", story: atLab(4), route103_rival: r(false, true, 1) }));
+  const after = log.add(5000, state({ ...quiet, location: "OLDALE TOWN", story: atLab(4), route103_rival: r(false, true, 2) }));
+  log.add(5100, { type: "milestone", turn: 1, name: "RIVAL_BATTLE_STARTED", kind: "story", origin: "observed", server_timestamp: 1, evidence: [fight.seq] });
+  log.add(5200, { type: "milestone", turn: 1, name: "RIVAL_BATTLE_DEFEATED", kind: "story", origin: "observed", server_timestamp: 1, evidence: [won.seq] });
+  log.add(5300, { type: "milestone", turn: 1, name: "RIVAL_OLDALE_SEND_OFF", kind: "story", origin: "observed", server_timestamp: 1, evidence: [before.seq, after.seq] });
+  const result = readNativeRecording(write(log.events.map(e => JSON.stringify(e)).join("\n") + "\n"), fight.run, qualifiedNativeMilestone);
+  expect(result.splits.map(s => s.name).filter(n => n.startsWith("RIVAL_"))).toEqual(["RIVAL_BATTLE_STARTED", "RIVAL_BATTLE_DEFEATED", "RIVAL_OLDALE_SEND_OFF"]);
+});
+it("does not derive the return trip from a witness that already shows the rival beaten", () => {
+  const log = new Log();
+  log.add(0, { ...START, start_state: { kind: "save_state", path: "/saves/LATER.state", sha1: "a".repeat(40) }, harness_features: [] });
+  log.add(500, state({ ...quiet, location: "ROUTE103", story: atLab(3), route103_rival: { battle_active: false, defeated: true, oldale_stage: 0 } }));
+  for (const [i, location] of ["OLDALE TOWN", "ROUTE101", "LITTLEROOT TOWN"].entries()) log.add(1000 * (i + 1), state({ ...quiet, location, story: atLab(4) }));
+  const view = new RunView();
+  for (const event of log.events) view.apply(event);
+  expect(view.milestones.some(m => m.name.endsWith("AFTER_RIVAL_BATTLE"))).toBe(false);
+});

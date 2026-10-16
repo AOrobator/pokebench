@@ -5,6 +5,7 @@ import { parseGameState } from "./game-state.js";
 import { featureInfo, playHarnessFeatures, ALL_ON } from "./features.js";
 import { MEASUREMENT_ONLY_MILESTONES, MILESTONES, StateMilestones, qualifiedNativeMilestone } from "./milestones.js";
 import { requireRoute103Field } from "./recorder.js";
+import { NATIVE_PROGRESS_MILESTONES } from "./loop-detection.js";
 
 const story={name_confirmed:true,intro_stage:7,rival_stage:3,birch_lab_stage:3,petalburg_gym_stage:0,woods_stage:0,clock_set:true,rival_battle_won:false,pokedex_received:false,running_shoes_received:false,starter_tutorial_complete:false,rustboro_gym_complete:false,stone_badge:false,rock_tomb_received:false};
 const NEW=["RIVAL_BATTLE_STARTED","RIVAL_BATTLE_DEFEATED","RIVAL_OLDALE_SEND_OFF","ROUTE_101_AFTER_RIVAL_BATTLE","LITTLEROOT_AFTER_RIVAL_BATTLE"];
@@ -48,8 +49,8 @@ it("records each split once at its first qualifying state on the return trip",()
   ["RIVAL_BATTLE_DEFEATED","observed",[4]],
   ["RIVAL_BATTLE_WON","observed",[5]],
   ["RIVAL_OLDALE_SEND_OFF","observed",[6,8]],
-  ["ROUTE_101_AFTER_RIVAL_BATTLE","observed",[4,8,10]],
-  ["LITTLEROOT_AFTER_RIVAL_BATTLE","observed",[4,10,11]],
+  ["ROUTE_101_AFTER_RIVAL_BATTLE","observed",[1,8,10]],
+  ["LITTLEROOT_AFTER_RIVAL_BATTLE","observed",[1,10,11]],
  ]);
  const recorded=events(trip());
  const at=(seqs:number[])=>seqs.map(seq=>recorded[seq-1]);
@@ -88,4 +89,19 @@ it("refuses to record a run that declares the splits when the reader omits the f
  expect(()=>{ requireRoute103Field(true,{}); }).toThrow(/route103-rival-splits-v1/);
  expect(()=>{ requireRoute103Field(false,{}); }).not.toThrow();
  expect(()=>{ requireRoute103Field(true,{route103_rival:null}); }).not.toThrow();
+});
+
+it("gives a save made after the win but before the rival's exit no return-trip credit",()=>{
+ const tracker=new StateMilestones({read:()=>Promise.resolve(state("ROUTE103",3))});tracker.initialize("save_state");
+ const seq=[state("ROUTE103",3,{defeated:true}),state("ROUTE103",3,{battle_active:true},{in_battle:true,screen:"battle"}),state("ROUTE103",4,{defeated:true,oldale_stage:1}),state("OLDALE TOWN",4,{defeated:true,oldale_stage:1}),state("ROUTE101",4,{defeated:true,oldale_stage:1}),state("LITTLEROOT TOWN",4,{defeated:true,oldale_stage:2})];
+ expect(seq.flatMap((s,i)=>tracker.observe(s,i+1)).map(m=>m.name).filter(n=>n.endsWith("AFTER_RIVAL_BATTLE"))).toEqual([]);
+ const [won,,,oldale,route]=events(seq);if(won===undefined||oldale===undefined||route===undefined)throw new Error("fixture");
+ expect(qualifiedNativeMilestone(mark("ROUTE_101_AFTER_RIVAL_BATTLE",[1,4,5]),[won,oldale,route])).toBe(false);
+});
+
+it("keeps every measurement-only split out of the loop guard's native progress",()=>{
+ const names=NATIVE_PROGRESS_MILESTONES.map(m=>m.name);
+ for(const name of MEASUREMENT_ONLY_MILESTONES)expect(names).not.toContain(name);
+ expect(names).toContain("RIVAL_BATTLE_WON");
+ expect(names).toEqual(MILESTONES.filter(m=>m.kind==="story"&&!MEASUREMENT_ONLY_MILESTONES.has(m.name)).map(m=>m.name));
 });

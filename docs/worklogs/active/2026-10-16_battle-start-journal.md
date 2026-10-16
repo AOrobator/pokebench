@@ -135,7 +135,9 @@ Report: branch, frozen head SHA, sha256 of `git diff --binary main HEAD`, three 
   COMMIT: `Merge branch 'main' into claude/battle-start-journal (dynamic frontier record, viewer only)` + this worklog line
 
 - 2026-10-16 08:30 AM EDT: review round 2 (see log). Fix: per-episode blind diagnostic. transition-coherence tests 59 passed; Python full suite and coverage gate green.
-  COMMIT: `fix: review round 2: each blind journal episode after a recovery is reported`
+  COMMIT: `fix: review round 2: each blind journal episode after a recovery is reported` (1e29b1a6)
+- 2026-10-16 08:45 AM EDT: merged main be428cdb (people-ledger-v1, agent-side, after untaken-exits-v1). Conflicts in registry/preset/default lines and readiness; resolved as before. Lines where both sides had shifted an index identically merged silently, so 17 agent test files got +1 on SWITCHABLE/playHarness/FEATURES indices (features.test.ts kept its earlier shift), auto-advance `slice(-13,-7)`/`at(-13)`, observation 30, switchboard 77, preset literals. Gates: agent 1704, viewer 915, Python 2358 passed; coverage agent 97.98/94.53/98.49/99.12, viewer 95.32/91.12/93.63/97.62, Python 97.41/93.34/100; experiments-check ok 70; lint known mypy only.
+  COMMIT: `Merge branch 'main' into claude/battle-start-journal (people-ledger)`
 
 ## Surprises
 

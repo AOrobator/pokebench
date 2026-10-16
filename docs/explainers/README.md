@@ -30,6 +30,7 @@ Tracked, local HTML documentation. Open an explainer directly; no server or exte
 - [In-game naming readout v1](in-game-naming-readout-v1.html)
 - [Navigation refusal reasons v1](navigation-refusal-reasons-v1.html)
 - [No nickname guidance v1](no-nickname-guidance-v1.html)
+- [People ledger v1](people-ledger-v1.html)
 - [Transition press results v1](transition-press-result-v1.html)
 - [Blocked batch results v1](blocked-batch-result-v1.html)
 - [Talk to people v1](explorer-guidance-v1.html)

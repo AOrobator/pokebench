@@ -13,7 +13,7 @@ import {speakerLabel} from "./dialogue-log.js";
 import {onScreen,type OnScreenObject} from "./script-line-presence.js";
 import {MESSAGE_WAITING} from "./navigation.js";
 import {OPENED_LOCK_NOTE,STILL_LOCKED_NOTE,STILL_OPEN_NOTE,pressResult} from "./press-result.js";
-import {BattleJournal,advanceBattle,battleEngaged,battlePage,type BattleTextEntry,type BattleTextSource} from "./battle-text-auto-advance.js";
+import {BattleJournal,advanceBattle,battleEngaged,battlePage,levelUpListedPage,type BattleTextEntry,type BattleTextSource} from "./battle-text-auto-advance.js";
 
 export const AUTO_ADVANCE_LIMITS={presses:50,callMs:90_000,waitMs:10_000,pollMs:100} as const;
 
@@ -159,6 +159,8 @@ class Pages {
   if(this.opened&&this.offset<this.text.length){this.add(this.text.slice(this.offset),s);this.offset=this.text.length;}
  }
  // battle-text-auto-advance-v1: battle pages from the server's journal, in the order they were shown.
+ // levelup-box-v1: a level-up stats box page, in the order shown.
+ addLevelUp(text:string,s:GameStateSnapshot):void {this.pages.push(levelUpListedPage(text,s,this.record(s).seq));}
  addBattle(entries:readonly BattleTextEntry[],s:GameStateSnapshot):void {
   if(entries.length===0)return;
   const seq=this.record(s).seq;
@@ -218,7 +220,7 @@ async function advance(start:GameStateSnapshot,pages:Pages,press:(signal?:AbortS
 
 // battle-text-auto-advance-v1: one call may cross field dialogue, a battle and the field again (Birch's
 // rescue, a trainer's challenge, a blackout). The shared caps cover the whole call.
-interface BattleCall {readonly journal:BattleJournal;readonly source:BattleTextSource;readonly known:{last:number}}
+interface BattleCall {readonly journal:BattleJournal;readonly source:BattleTextSource;readonly known:{last:number};readonly levelupBox:boolean}
 async function drive(start:GameStateSnapshot,pages:Pages,press:(signal?:AbortSignal)=>Promise<Result>,ports:Required<AutoAdvancePorts>,battle:BattleCall|null,signal?:AbortSignal):Promise<Outcome> {
  if(battle===null)return advance(start,pages,press,ports,signal);
  const began=ports.clock.now();
@@ -226,7 +228,7 @@ async function drive(start:GameStateSnapshot,pages:Pages,press:(signal?:AbortSig
  const extras:TextContent[]=[];
  for(;;){
   if(battleEngaged(s)||s.in_battle){
-   const b=await advanceBattle(s,{source:battle.source,journal:battle.journal,known:battle.known,clock:ports.clock,limits:AUTO_ADVANCE_LIMITS,began,used:presses,press,stateOf,extraText,addPages:(entries,at)=>{pages.addBattle(entries,at);}},signal);
+   const b=await advanceBattle(s,{source:battle.source,journal:battle.journal,known:battle.known,clock:ports.clock,limits:AUTO_ADVANCE_LIMITS,began,used:presses,press,stateOf,extraText,addPages:(entries,at)=>{pages.addBattle(entries,at);},levelupBox:battle.levelupBox,addLevelUp:(text,at)=>{pages.addLevelUp(text,at);}},signal);
    presses+=b.presses;battlePresses=(battlePresses??0)+b.presses;extras.push(...b.extras);s=b.state;
    if(!b.over)return {state:s,stop:b.stop,detail:b.detail,presses,extras,battlePresses,note:battle.journal.note()};
   }
@@ -332,7 +334,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
  // battle-text-auto-advance-v1: the server's battle wait and page journal; the journal cursor carries across calls.
  const battleSource=features["battle-text-auto-advance-v1"]?battleTextSource(full.state):null;
  const known={last:0};
- const openBattle=async(signal?:AbortSignal):Promise<BattleCall|null>=>battleSource===null?null:{journal:await BattleJournal.open(battleSource,known,signal),source:battleSource,known};
+ const openBattle=async(signal?:AbortSignal):Promise<BattleCall|null>=>battleSource===null?null:{journal:await BattleJournal.open(battleSource,known,signal),source:battleSource,known,levelupBox:features["levelup-box-v1"]};
  const finish=async(id:string,tool:"press"|"navigate_to",outcome:Outcome,pages:Pages,requested:readonly Button[],sent:readonly Button[],dropped:readonly Button[],began:number,signal?:AbortSignal)=>{
   const event=full.recorder.recordDialogueAutoAdvance({tool_call_id:id,tool,requested:[...requested],sent:[...sent],dropped:[...dropped],auto_presses:outcome.presses,...(outcome.battlePresses===undefined?{}:{battle_auto_presses:outcome.battlePresses}),pages:pages.pages,stop:outcome.stop,detail:outcome.detail,duration_ms:Math.max(0,Math.round(full.clock.now()-began))});
   const seen=await observe.execute(id,{},signal);

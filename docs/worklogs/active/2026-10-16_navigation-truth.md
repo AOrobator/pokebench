@@ -70,8 +70,9 @@ Report branch, frozen head, packet sha256, verdicts, gates, switch ids and inten
   - Gates: agent 1588 passed, viewer 885 passed; pytest 2236 passed / 34 failed (all `KeyError: 33786826` in `pokebench_env/route103_rival.py:34`, inherited from main; env/ untouched); lint clean (mypy needed the main checkout's native mgba binding linked into the worktree venv); build OK; verify-vendor OK. Coverage: agent lines 99.16 / branches 94.35 / functions 98.08; viewer 97.64 / 91.02 / 93.62; python lines 97.31 / branches 93.11 / functions 100.
   - Evidence outputs (ON): show T800 lists (6,16) south then (14,9) east; e588 (11,3) lists (7,6) west first; 54a7 T213 (10,0) lists (14,9) east first.
 - 2026-10-16: merged main 154d905e (disproved-beliefs-v1, same-plan-breaker-v1, Route 103 fixture windows). Registry tails: main's two switches first, then navigation-truth-v1, navigation-refusal-reasons-v2; position tests re-bumped by 2 over main's (identical-edit hunks merged silently at main's value and were corrected from the failing assertions); switchboard row count 74. Gates on the merge: agent 1652, viewer 904, pytest 2270 passed (main's fixture-window fix cleared the 34 inherited failures); lint, build, verify-vendor OK; coverage agent 99.16/94.27/98.27, viewer 97.62/91.10/93.62, python 97.33/93.17/100 (lines/branches/functions).
+- 2026-10-16: merged main 36aad5b1 (levelup-box-v1, timeline text). Same resolution: main's switches first, then navigation-truth-v1 and navigation-refusal-reasons-v2; position tests re-bumped from failing assertions; switchboard rows 75; guidance count 35. Gates: agent 1662, viewer 906, pytest 2297 passed; lint, build, verify-vendor, pages-check OK; coverage agent 99.17/94.30/98.27, viewer 97.62/91.10/93.63, python 97.36/93.22/100.
 
-## Principles Adherence (round 1, packet base main 154d905e)
+## Principles Adherence (round 1, packet base main 36aad5b1)
 
 | ID | Score | Evidence |
 |---|---|---|
@@ -87,7 +88,7 @@ Report branch, frozen head, packet sha256, verdicts, gates, switch ids and inten
 | PB10 no carve-outs | PASS | No skipped tests, excludes or threshold changes; coverage agent 99.16/94.27/98.27, viewer 97.62/91.10/93.62, python 97.33/93.17/100. |
 | PB11 pinned dependency | N/A | No new dependency or integration call. |
 | PB12 macOS privacy | PASS | ROM only via `POKEBENCH_ROM` (.env); no protected paths read. |
-| PB13 close the loop | PASS | RED 73a12a86, GREEN 16baa877, merge 5234e6b6, gates recorded; review loop below. |
+| PB13 close the loop | PASS | RED 73a12a86, GREEN 16baa877, merges 5234e6b6 and the main 36aad5b1 merge, gates recorded; review loop below. |
 
 Zero FAIL rows.
 

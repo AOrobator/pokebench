@@ -398,6 +398,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "presence-penalty-v1":"presence-penalty-v1.html",
  "disproved-beliefs-v1":"disproved-beliefs-v1.html",
  "same-plan-breaker-v1":"same-plan-breaker-v1.html",
+ "levelup-box-v1":"levelup-box-v1.html",
  "navigation-truth-v1":"navigation-truth-v1.html",
  "navigation-refusal-reasons-v2":"navigation-refusal-reasons-v2.html",
 });

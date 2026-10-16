@@ -272,6 +272,13 @@ describe("experiment queue view", () => {
     expect(current).toContain('data-finals-resume="full-map-navigation"');
     const busy = renderQueue({ ...stale, fixedRuns: [fixed], autorun: { state: "error", message: "gateway down" } }, "all", new Set()).queue;
     expect(busy).toContain("QUEUE RUNNER · ERROR · gateway down");
+    for (const idle of [{ ...fixed, state: "stopped" as const }, { ...fixed, runnerAlive: false }]) {
+      const quiet = renderQueue({ ...stale, fixedRuns: [idle] }, "all", new Set()).queue;
+      expect(quiet).toContain("New experiments wait: finals withdrawn after 5 of 32 runs");
+      expect(quiet).toContain("QUEUE RUNNER · IDLE · Waiting: full-map-navigation");
+    }
+    expect(renderQueue({ ...stale, fixedRuns: [{ ...fixed, state: "waiting" }] }, "all", new Set()).queue).toContain("Paused while the fixed-run experiment");
+    expect(renderQueue(stale, "all", new Set(["gate:full-map-navigation"]), true).queue).toContain('<details class="eq-gate eq-g-withdrawn eq-past" data-gate="full-map-navigation" open>');
     const finished = renderQueue({ ...stale, fixedRuns: [{ ...fixed, state: "finished" }] }, "all", new Set()).queue;
     expect(finished).toContain("New experiments wait: finals withdrawn after 5 of 32 runs");
     expect(finished).toContain("QUEUE RUNNER · IDLE · Waiting: full-map-navigation");
@@ -313,6 +320,12 @@ describe("experiment queue view", () => {
     await panel.load();
     root.querySelector<HTMLElement>('[data-finals-withdraw="full"]')?.click();
     await new Promise((r) => setTimeout(r, 0));
+    const past = (): HTMLDetailsElement | null => root.querySelector<HTMLDetailsElement>('details[data-gate="w"]');
+    expect(past()?.open).toBe(false);
+    past()?.querySelector<HTMLElement>("summary")?.click();
+    expect(past()?.open).toBe(true);
+    await panel.load();
+    expect(past()?.open).toBe(true);
     root.querySelector<HTMLElement>('[data-finals-resume="w"]')?.click();
     await new Promise((r) => setTimeout(r, 0));
     expect(sent).toEqual(["/api/experiments/full/finals-withdraw", "/api/experiments/w/finals-resume"]);

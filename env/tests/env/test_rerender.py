@@ -18,8 +18,9 @@ from pokebench_env.rom import EMERALD_SHA1, RomError, resolve_rom
 
 FIXTURE = json.loads((Path(__file__).parent / "fixtures" / "rerender-dc0e-t212.json").read_text())
 ROM_START = 0x08000000
-# Run dc0e predates displayed-place-names-v1, so its recorded harness features leave it off.
-RECORDED_OFF = [*FIXTURE["recorded_off"], "displayed-place-names-v1"]
+# Run dc0e predates displayed-place-names-v1 and battle-triage-guidance-v1, so its recorded
+# harness features leave them off.
+RECORDED_OFF = [*FIXTURE["recorded_off"], "displayed-place-names-v1", "battle-triage-guidance-v1"]
 
 
 def windows_reader(rom: bytes):

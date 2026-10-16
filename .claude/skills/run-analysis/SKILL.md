@@ -17,7 +17,7 @@ Never call `chat-thread` tools from this skill or its subagents. Quote every tim
 
 ## Procedure
 
-1. **Snapshot.** Fetch the workbench read-only:
+1. **Pool and snapshot.** First fix the candidate pool, before anything is ranked: the named cohort id(s) when the operator names a cohort or experiment, otherwise an explicit New York start and end window for the night (by run start time). Record both, and the counts of runs included and excluded with reasons. Then fetch the workbench read-only:
 
    ```bash
    curl -s -m 200 http://127.0.0.1:8790/api/workbench -o <scratch>/wb.json
@@ -28,13 +28,13 @@ Never call `chat-thread` tools from this skill or its subagents. Quote every tim
    - Live runs count. Mark each LIVE with the snapshot time, and re-read its `events.jsonl` tail just before reporting, since it moves.
 
 2. **Rank by the story frontier's order and tiebreak** from `packages/viewer/src/frontier.ts`, over a wider pool than the frontier itself.
-   - **Order:** `FRONTIER_MILESTONES` parsed from that file. Never the workbench `milestones` list: it also holds optional milestones such as `FIRST_POKECENTER_HEAL` that would mis-rank.
-   - **Eligible for the top N:** `excluded` null, `problem` null, `measurement.controller` is `agent`, and no `measurement.features` matching `probe`, `synthetic` or `replay` (frontier.ts `recordedRun`). Any start kind and any status (ended, live, paused, unresponsive) qualifies, and each is labelled. This is deliberately wider than `frontierCandidate`, which only the agent-frontier bullet below uses.
+   - **Order:** `FRONTIER_MILESTONES` parsed from that file in the viewer tree that serves 8790 (`POKEBENCH_VIEWER_WORKTREE`, default `/private/tmp/pokebench-viewer`), so the order matches the graded workbench; if it differs from your checkout's copy, say so. Never the workbench `milestones` list: it also holds optional milestones such as `FIRST_POKECENTER_HEAL` that would mis-rank.
+   - **Eligible for the top N:** in the step 1 pool, `excluded` null, `problem` null, `measurement.controller` is `agent`, and no `measurement.features` matching `probe`, `synthetic` or `replay` (frontier.ts `recordedRun`). Any start kind and any status (ended, live, paused, unresponsive) qualifies, and each is labelled. This is deliberately wider than `frontierCandidate`, which only the agent-frontier bullet below uses.
    - **Rank:** the last index in that order of a split without `screenshotEvidence`.
-   - **Start-kind groups**, from `config.start` and `config.resume`: *fresh* is `boot` or a `MAIN_MENU` save; *checkpoint* is a `CLOCK_SET` save; *other save* is any other `save_state` start, including `resume` null. Label every row with its group.
-   - **Tiebreak:** group first (fresh, then checkpoint, then other save), then that split's `elapsedMs` ascending within the group, then `id`. Boot and `MAIN_MENU` share a group because `frontier.ts` ranks them together, but say which each run is. Minutes are never compared across groups.
+   - **Start-kind groups**, from `config.start` and `config.resume`: *fresh* is `boot` or a `MAIN_MENU` save; *checkpoint* is a `CLOCK_SET` save; *other save* is any other `save_state` start, including `resume` null; *unknown start* is a run with `config` null. Label every row with its group.
+   - **Tiebreak:** group first (fresh, then checkpoint, then other save, then unknown start), then that split's `elapsedMs` ascending within the group, then `id`. Boot and `MAIN_MENU` share a group because `frontier.ts` ranks them together, but say which each run is. Minutes are never compared across groups.
    - Take the top N (default 10). Never rank from `run_end.furthest_milestone` or the fixed ledger: they use `MILESTONE_ORDER`, which places optional milestones such as `FIRST_POKECENTER_HEAL` late and mis-ranks runs. Where they disagree with the frontier order, report it as a grading blind spot.
-   - Cross-check against `node .claude/skills/pokebench-review/frontier.mjs`. The one required agreement: its "best valid fresh-boot run" must equal the agent frontier below. Its other lists are a sanity view, not the same rule: they omit `MAIN_MENU` runs, rank `CLOCK_SET` resumes only from after the resume point, and split runs by status, so rows can differ for those reasons. It needs a built viewer in `POKEBENCH_VIEWER_WORKTREE` (default `/private/tmp/pokebench-viewer`), and gives up on the workbench after 60 s, so run it after step 1 has warmed the viewer and retry once if it times out. Explain any disagreement before going on.
+   - Cross-check against `node .claude/skills/pokebench-review/frontier.mjs`. The one required agreement: its "best valid fresh-boot run" must equal the agent frontier below. Its other lists are a sanity view, not the same rule: they omit `MAIN_MENU` runs, rank `CLOCK_SET` resumes only from after the resume point, and split runs by status, so rows can differ for those reasons. It needs a built viewer in `POKEBENCH_VIEWER_WORKTREE` (default `/private/tmp/pokebench-viewer`), and gives up on the workbench after 60 s, so run it after step 1 has warmed the viewer and retry once if it times out. If it times out again, stop and tell the operator. Explain any disagreement before going on.
    - The frontier chart only plots fresh starts. Checkpoint and other-save runs stay in the list but are flagged: their minutes count from the save, so they are not comparable with fresh-start minutes. Never say one beat another on time across groups.
    - Lead the report with the furthest milestones reached.
    - **Agent frontier.** Identify the current frontier run exactly as `frontierReferences` in `frontier.ts` picks `best` (boot or `MAIN_MENU` start, ended, live or paused). Say whether it moved since the previous run-analysis report (`runs/reports/run-analysis/`) or since the night began, which run it replaced, and when it moved, in New York time.
@@ -47,7 +47,10 @@ Never call `chat-thread` tools from this skill or its subagents. Quote every tim
    - Build a round-to-round switch diff for each arm, and the bundle-minus-control diff.
    - Run `git log --oneline A..B` between consecutive pins, so behavior changes outside switches are visible.
 
-4. **Segment table per run.** From the workbench splits (`elapsedMs`, `segmentMs`, `seq`), which exclude operator pauses, list active minutes between consecutive frontier milestones, plus the final segment to the run's `elapsedMs`. Each split carries its own `turn` and `seq`: cite those. A `derived` split was recovered from state events and has no `milestone` event at that seq; label its time as a first-observation upper bound (≤). The longest segments are the costliest stalls. Never time segments from raw `t` stamps: they include pauses.
+4. **Segment table per run.** Use the workbench splits, whose `elapsedMs` excludes operator pauses.
+   - Keep only splits named in `FRONTIER_MILESTONES` and without `screenshotEvidence` (the ranking's splits). Compute each segment as the difference of consecutive kept `elapsedMs` values, and the final segment as the run's `elapsedMs` minus the last kept split. Never use `segmentMs`: it is measured from the previous split of any kind, including optional milestones, so it understates frontier segments.
+   - Each split carries its own `turn` and `seq`: cite those.
+   - Label provenance three ways: a native milestone (no `derived`); a `derived` split without `screenshotEvidence`, recovered from state events, with no `milestone` event at that seq, whose time is a first-observation upper bound (≤); and a reviewed-screenshot split (`screenshotEvidence` present), which is reported but never ranked or timed. The longest segments are the costliest stalls. Never time segments from raw `t` stamps: they include pauses.
 
 5. **Fan out forensics in parallel.**
    - Write one shared brief at `<scratch>/brief.md`: the snapshot time, the run list, the segment tables and the exact output schema below.
@@ -65,11 +68,11 @@ Never call `chat-thread` tools from this skill or its subagents. Quote every tim
 7. **Synthesize.**
    - **(a) What went well**, and the switch or behavior behind it.
    - **(b) What went wrong.**
-   - **(c) Mistakes.** Most common: runs affected and total occurrences. Costliest: summed minutes lost across runs. Show both rankings; they often differ.
+   - **(c) Mistakes.** Normalize the subagents' mistake labels into one set first. Most common: runs affected and total occurrences. Costliest: summed minutes lost across runs. Show both rankings; they often differ.
    - **(d) Hypotheses:** harness changes that would fix the mistakes, switches that seem to help, switches that seem to hurt.
    - Every claim cites run id plus turn or seq.
    - Label each hypothesis **HYPOTHESIS**, with its evidence and its cheapest test:
-     - a decision probe (`just probe-decision <run> <turn> <flags>`), for switches that change what the model reads;
+     - a decision probe (`just probe-decision <run> <turn> --switch <id>=on|off`), for switches that change what the model reads;
      - a correctness fix and test, for false messages and wrong observations;
      - an experiment designed with `pokebench-experiment-design`, behind a switch per `feature-switch`.
    - Mark what the evidence cannot show (confounded pins, N of 1, CLOCK_SET minutes, live runs not finished).
@@ -109,7 +112,9 @@ Operator feedback on a run-analysis report is folded back into this skill. When 
 
 - Workbench fetched read-only; 8790 never restarted; snapshot time in New York time.
 - Agent frontier named, its movement stated, and its own report section covers configuration, wins and misses.
-- Ranking used `FRONTIER_MILESTONES` from `frontier.ts`, the `recordedRun` eligibility and its tiebreak, from the workbench only.
+- Pool fixed first (cohort id or New York window), with included and excluded counts.
+- Ranking used `FRONTIER_MILESTONES` from the viewer's `frontier.ts`, `recordedRun` eligibility with an agent controller, the start-kind group, then `elapsedMs`, then `id`, from the workbench only.
+- Segments recomputed from kept frontier splits, not `segmentMs`; split provenance labelled native, derived (≤) or screenshot.
 - Every run's start kind stated; CLOCK_SET runs flagged and never compared on minutes with boot runs.
 - LIVE runs marked and their tails re-read before reporting.
 - Every run's switches, experiment arm and pinned commit recorded; pin-to-pin `git log` read.

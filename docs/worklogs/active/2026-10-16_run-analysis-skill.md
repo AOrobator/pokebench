@@ -9,6 +9,7 @@ Branch `claude/run-analysis-skill`, worktree `/private/tmp/pokebench-run-analysi
 - [x] Review round 1 fixes (Claude BLOCKING): segments from workbench splits, start-kind tiebreak, review as a report section, switch-file lookup. COMMIT: (9287f167)
 - [x] Lessons from the first run (persona review): never rank from run_end/ledger order; count arm pools; lane, pin-drift and tuning confounds; auto-advance credit per arm.
 - [x] Round 3: Claude LGTM at 217e5b59. Codex (gpt-5.6-sol) BLOCKING: other-save start group, frontier.mjs cross-check scope, derived splits use split.turn/seq, optional evaluation.features. Fixed. COMMIT: (217e5b59 → next)
+- [x] Round 4: Claude LGTM, Grok LGTM at 00129cb2; Codex BLOCKING (cohort pool undefined, segmentMs counts optional splits, screenshot-derived provenance). Fixed with hardening (probe form, viewer-tree order, unknown start, second timeout stops).
 - [ ] GPT lane: Cursor GPT hit its usage limit; Codex CLI with -m gpt-5.6-sol (standing-authorized harness switch).
 - [ ] Claude, Grok and GPT lanes `VERDICT: LGTM` on the frozen packet.
 - [ ] Fast-forward merge to local main; report the SHA in the thread.

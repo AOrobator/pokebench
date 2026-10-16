@@ -21,6 +21,7 @@ Every behavior change is a registered switch whose OFF state reproduces today. F
 | F5 Stall briefing and loop supervisor cite the last story instruction (MOM's "next door"), not only the 3 newest pages, and list untried warps across known maps | bundle (briefing); both (supervisor pages rule) | stall-briefing, loop-supervisor | inside `stall-briefing-v1`; supervisor part under F4's switch |
 | F6 navigate_to/press results never say "a message is waiting, press B" after auto-advance closed it | bundle | navigation result text after auto-advance | inside `dialogue-auto-advance-v1` |
 | F7 A reachable warp-door target gets its real reason (approach tile, blocker) instead of "no supported local path" | bundle message on a both-arm planner limit | `navigation.ts` `targetReason` (l.126) | inside `navigation-refusal-reasons-v1` |
+| F9 Map connections list the crossable edge tiles per direction (Littleroot NORTH -> ROUTE 101 from (10,0)/(11,0)); bearings and edge refusals name them (showcase run `2026-10-16T00-34-26_qwen36-gpu1_show` turns 175–212, seq 3580–3745) | bundle (operator decision 12:54 AM EDT) | readout, navigation refusal, supervisor/briefing bearings | `connection-edge-tiles-v1` (branch `claude/connection-edge-tiles`) |
 | F8 Auto-advance never sends a queued button after a message has appeared | bundle | `dialogue-auto-advance.ts` | inside `dialogue-auto-advance-v1` |
 
 ## Invariants
@@ -73,6 +74,7 @@ Done when every milestone is merged, qualification shows none of F1–F8, the fo
 
 ## Session Log
 
+- 2026-10-16 12:54 AM EDT: Showcase bundle run reached BIRCH_RESCUE_COMPLETE at 15.4 min from the main-menu save (RIVAL_MET 10.3, ROUTE_101 13.9). The operator added F9 `connection-edge-tiles-v1` to the bundle; branch started.
 - 2026-10-16 01:10 AM EDT: M6 GREEN for `b9977c5`: `onInBoth` in the schema, `featureProblems`, `armFeatureBits` and `controlBaseProblems`; `check` prints the list; bundle-v-control.json gets `onInBoth: []` until the fix branches merge. Fixed-run tests 69 pass; tsc and eslint clean.
 - 2026-10-16 01:00 AM EDT: M1–M5 and blocked-batch-result-v1 running as parallel branches (claude/transition-loop-detection, claude/displayed-place-names, claude/dialogue-context-kept, claude/warp-arrival-settle, claude/bundle-prelaunch-fixes, claude/blocked-batch-result). M6 RED: `onInBoth` required in the definition; control base accepts exactly those flags; armFeatureBits/armPreset carry them true in both arms; definitionProblems refuses off/unknown/switch/off-in-both overlaps.
 - 2026-10-16 12:46 AM EDT: Approved by the operator. F1 goes in the bundle as `warp-arrival-settle-v1`; F2–F4 switches ON in both arms; `blocked-batch-result-v1` (branch `claude/blocked-batch-result`) joins the bundle. M1–M5 run in parallel worktrees, one branch each; M6 integrates.

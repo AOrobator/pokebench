@@ -211,10 +211,34 @@ def rom_reader(address: int, length: int) -> bytes:
     return bytes(length)
 
 
+@functools.cache
+def map_data() -> dict[str, tuple[tuple[int, int], dict[str, object]]]:
+    """Each map folder's id and map.json, every file read once for the whole module."""
+    groups = json.loads((rerender.PORYMAP_MAPS / "map_groups.json").read_text())
+    return {
+        folder: (
+            (group, number),
+            json.loads((rerender.PORYMAP_MAPS / folder / "map.json").read_text()),
+        )
+        for group, key in enumerate(groups["group_order"])
+        for number, folder in enumerate(groups[key])
+    }
+
+
+@functools.cache
+def rom_places() -> dict[tuple[int, int], Place]:
+    maps = MapNames(
+        {
+            map_id: str(data["id"]).removeprefix("MAP_").replace("_", " ")
+            for map_id, data in map_data().values()
+        }
+    )
+    return {p.map_id: p for p in PlaceDirectory(rom_reader, maps).places(displayed=False)}
+
+
 def test_the_real_map_table_has_littleroots_doors_and_birchs_lab() -> None:
-    maps = MapNames.load(rerender.PORYMAP_MAPS)
-    places = {p.map_id: p for p in PlaceDirectory(rom_reader, maps).places(displayed=False)}
-    assert len(places) == len(maps.ids())
+    places = rom_places()
+    assert len(places) == len(map_data())
     littleroot = places[(0, 9)]
     assert littleroot.name == "LITTLEROOT TOWN"
     assert littleroot.links == Links(
@@ -225,33 +249,38 @@ def test_the_real_map_table_has_littleroots_doors_and_birchs_lab() -> None:
 
 
 VENDOR_DIFFERS = frozenset({"LavaridgeTown_Gym_1F", "LavaridgeTown_Gym_B1F"})
+SIDES = {
+    "up": "NORTH",
+    "down": "SOUTH",
+    "left": "WEST",
+    "right": "EAST",
+    "dive": "DIVE",
+    "emerge": "EMERGE",
+}
 
 
-def test_every_rom_warp_matches_the_map_data_except_where_the_vendor_copy_differs() -> None:
-    maps = MapNames.load(rerender.PORYMAP_MAPS)
-    groups = json.loads((rerender.PORYMAP_MAPS / "map_groups.json").read_text())
-    ids = {}
-    for group, key in enumerate(groups["group_order"]):
-        for number, folder in enumerate(groups[key]):
-            ids[folder] = (group, number)
-    constants = {
-        json.loads((rerender.PORYMAP_MAPS / folder / "map.json").read_text())["id"]: map_id
-        for folder, map_id in ids.items()
-    }
-    places = {p.map_id: p for p in PlaceDirectory(rom_reader, maps).places(displayed=False)}
+def test_every_rom_warp_and_connection_matches_the_map_data_but_lavaridge_gym() -> None:
+    data = map_data()
+    ids = {folder: map_id for folder, (map_id, _) in data.items()}
+    constants = {str(body["id"]): map_id for map_id, body in data.values()}
+    places = rom_places()
     # The vendor's copy of the map data moves the Lavaridge gym's warps one row; the ROM agrees
     # with pret/pokeemerald 731ad5b (LavaridgeTown_Gym_1F warps at (13,18) and (14,18)).
     assert places[ids["LavaridgeTown_Gym_1F"]].links.warps[:2] == (
         (13, 18, ids["LavaridgeTown"]),
         (14, 18, ids["LavaridgeTown"]),
     )
-    for folder, map_id in ids.items():
+    for folder, (map_id, body) in data.items():
+        connections = tuple(
+            (SIDES[str(c["direction"])], constants[str(c["map"])])
+            for c in body.get("connections") or []  # type: ignore[attr-defined]
+        )
+        assert places[map_id].links.connections == connections, folder
         if folder in VENDOR_DIFFERS:
             continue
-        data = json.loads((rerender.PORYMAP_MAPS / folder / "map.json").read_text())
-        expected = tuple(
+        warps = tuple(
             (w["x"], w["y"], constants[w["dest_map"]])
-            for w in data.get("warp_events") or []
+            for w in body.get("warp_events") or []  # type: ignore[attr-defined]
             if w["dest_map"] in constants
         )
-        assert places[map_id].links.warps == expected, folder
+        assert places[map_id].links.warps == warps, folder

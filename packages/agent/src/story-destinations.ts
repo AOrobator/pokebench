@@ -161,13 +161,14 @@ export class StoryDestinations {
  }
  block(state:GameStateSnapshot,readout:string,callId:string,places:readonly Place[]|Error):string|null {
   if(!state.started||state.screen!=="overworld"||state.in_battle||state.map_id===null)return null;
-  const table=places instanceof Error?null:places;
-  const heads=table===null?null:headsOf(table);
+  // Which line names a place depends on the map table's name endings, so without the table no line is
+  // picked: one plain line instead of a guess or a looser rule.
+  if(places instanceof Error)return this.latest(callId,null,state.name)===null?null:`${STORY_HEADER}: not known; the game's map table could not be read (${places.message}).`;
+  const heads=headsOf(places);
   const line=this.latest(callId,heads,state.name);
   if(line===null)return null;
   const here=state.map_id;
   const out=[`${STORY_HEADER} (turn ${String(line.turn)}, ${line.speaker}): "${line.text}"`];
-  const unread=places instanceof Error?`not resolved: the game's map table could not be read (${places.message}).`:null;
   if(line.lives!==null){
    const {subject,owner,others}=line.lives;
    const quote=`"${subject} lives"`;
@@ -175,11 +176,11 @@ export class StoryDestinations {
    else{
     const why=subject===owner?"":` (${subject} = ${owner}, the one story character named before it in this conversation)`;
     const house=`${owner}'S HOUSE`;
-    out.push(`- ${quote}${why}${unread===null?resolution(nameWords(house),table??[],here,`no map in the game's map table is named ${house}.`):`: ${unread}`}`);
+    out.push(`- ${quote}${why}${resolution(nameWords(house),places,here,`no map in the game's map table is named ${house}.`)}`);
    }
   }
   for(const phrase of placePhrases(line.text,heads,[...NAMES,...(state.name===null?[]:[state.name])]))
-   out.push(`- "${phrase}"${unread===null?resolution(words(phrase.split(" ")),table??[],here,"no map in the game's map table has this name."):`: ${unread}`}`);
+   out.push(`- "${phrase}"${resolution(words(phrase.split(" ")),places,here,"no map in the game's map table has this name.")}`);
   const characters=presence(readout);
   const where=(name:string)=>whereIs(name,characters);
   out.push(`- ${line.speaker} (spoke the line): ${where(line.speaker)}.`);

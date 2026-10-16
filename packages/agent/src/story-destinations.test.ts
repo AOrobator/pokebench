@@ -10,6 +10,7 @@ import {ALL_ON,dependencyProblems,featureInfo,playHarnessFeatures,SWITCHABLE_FEA
 import {parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {Value} from "typebox/value";
+import {experimentArms,parseExperiment} from "./experiments.js";
 
 interface Recording {readonly run:string;readonly events:readonly unknown[]}
 const RECORDED=JSON.parse(readFileSync(new URL("../test-support/story-destinations-recorded.json",import.meta.url),"utf8")) as Record<"4caa"|"sh02",Recording>;
@@ -161,13 +162,15 @@ describe("story-destinations-v1 rules",()=>{
   expect(story.latest("e")?.text).toBe("Go see WALLY.");
   expect(story.latest("other")?.text).toBe("Head back to the LAB.");
  });
- it("says plainly when the map table could not be read, and still places the people",()=>{
-  const story=new StoryDestinations();story.observe(talk("a",3,[page("Head back to the LAB.","MAY")]));story.observe(delivered("a",3));
-  expect(story.block(oldale,READOUT,"x",new Error("HTTP 503"))).toBe([
-   `${STORY_HEADER} (turn 3, MAY): "Head back to the LAB."`,
-   "- \"LAB\": not resolved: the game's map table could not be read (HTTP 503).",
-   "- MAY (spoke the line): on this map at (10,3), out of view.",
-  ].join("\n"));
+ it("says plainly when the map table could not be read, and then picks no line at all rather than a looser one",()=>{
+  const story=new StoryDestinations();
+  story.observe(talk("a",3,[page("Head back to the LAB.","MAY")]));story.observe(delivered("a",3));
+  // A newer line with a capitalised run that ends no map's name (round-1 Codex reproducer).
+  story.observe(talk("b",4,[page("Thanks, POKéMON TRAINER!","MOM")]));story.observe(delivered("b",4));
+  expect(story.block(oldale,READOUT,"x",PLACES.places)).toContain(`${STORY_HEADER} (turn 3, MAY): "Head back to the LAB."`);
+  expect(story.block(oldale,READOUT,"x",new Error("HTTP 503"))).toBe(`${STORY_HEADER}: not known; the game's map table could not be read (HTTP 503).`);
+  // Before any story line there is nothing to say either way.
+  expect(new StoryDestinations().block(oldale,READOUT,"x",new Error("HTTP 503"))).toBeNull();
  });
  it("shows nothing outside a started overworld readout or before any story line, and inserts after Location/Position when there is no Story line",()=>{
   const story=new StoryDestinations();
@@ -221,7 +224,7 @@ describe("story-destinations-v1 switch",()=>{
   expect(textOf(await out[0]?.execute("o",{}) ?? {content:[],details:undefined})).toBe(`|${result.text}`);
   expect(calls).toBe(0);
   subs[0]?.(lab);subs[0]?.(delivered("t",272));
-  expect(textOf(await out[0]?.execute("o",{}) ?? {content:[],details:undefined})).toContain("- \"LAB\": not resolved: the game's map table could not be read (HTTP 503).");
+  expect(textOf(await out[0]?.execute("o",{}) ?? {content:[],details:undefined})).toContain(`${STORY_HEADER}: not known; the game's map table could not be read (HTTP 503).`);
   expect(textOf(await out[0]?.execute("o",{}) ?? {content:[],details:undefined})).toContain(T272_BLOCK);
   const press=out[1];
   if(press===undefined||!isCheckedPress(press))throw Error("press lost executeChecked");
@@ -283,6 +286,18 @@ describe("the game server's map table reader",()=>{
   const result=resultAt(CAAA,272);const state=stateAt(CAAA,result.state_seq ?? -1);
   const [o]=withStoryDestinations([fakeObserve(state,result.text)],ON,{subscribe:fn=>{subs.push(fn);}},{places:()=>Promise.resolve({places:[{map_id:[0,0]}]})});
   subs[0]?.(talk("m",272,[page("Head back to the LAB.","MAY")]));subs[0]?.(delivered("m",272));
-  expect(textOf(await o?.execute("o",{}) ?? {content:[],details:undefined})).toContain("- \"LAB\": not resolved: the game's map table could not be read (malformed /pokebench/places).");
+  expect(textOf(await o?.execute("o",{}) ?? {content:[],details:undefined})).toContain(`${STORY_HEADER}: not known; the game's map table could not be read (malformed /pokebench/places).`);
+ });
+});
+
+describe("the pending experiment",()=>{
+ it("flips only story-destinations-v1, in arms that record story lines and place people (round-1 Claude blocker)",()=>{
+  const entry=parseExperiment(JSON.parse(readFileSync(new URL("../../../experiments/story-destinations.json",import.meta.url),"utf8")));
+  expect(entry.queuePosition).toBeUndefined();
+  const {incumbent,candidate}=experimentArms(entry);
+  expect(Object.keys(candidate.features).filter(id=>candidate.features[id as keyof typeof candidate.features]!==incumbent.features[id as keyof typeof incumbent.features])).toEqual(["story-destinations-v1"]);
+  expect(candidate.features["story-destinations-v1"]).toBe(true);
+  for(const arm of [incumbent,candidate]){expect(arm.features["dialogue-auto-advance-v1"]).toBe(true);expect(arm.features["character-presence-v1"]).toBe(true);}
+  expect(dependencyProblems(presetFeatures(parsePlayPreset(candidate)))).toEqual([]);
  });
 });

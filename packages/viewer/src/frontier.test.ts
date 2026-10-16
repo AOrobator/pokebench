@@ -27,7 +27,7 @@ describe("persistent actual native frontier", () => {
     const advanced = measured("advanced", [1, 2, 3, 4, 5, 6, 7, 8]);
     const config = advanced.config; if (config === null) throw new Error("fixture config");
     const unknown = run({ id: "unknown", splits: advanced.splits });
-    const refs = frontierReferences([human(), best(), unknown, { ...advanced, id: "probe", excluded: "Excluded probe session" }, { ...advanced, id: "infra", problem: "invalid" }, { ...advanced, id: "running", status: "live" }, { ...advanced, id: "resumed", config: { ...config, start: "save_state" } }]);
+    const refs = frontierReferences([human(), best(), unknown, { ...advanced, id: "probe", excluded: "Excluded probe session" }, { ...advanced, id: "infra", problem: "invalid" }, { ...advanced, id: "resumed", config: { ...config, start: "save_state" } }]);
     expect(refs.best?.id).toBe("dea1");
     expect(frontierReferences([])).toMatchObject({ human: null, best: null });
   });
@@ -136,7 +136,7 @@ describe("persistent actual native frontier", () => {
       expect(milestoneStatus(rival, id)).toBe("not reached");
     }
   });
-  it("plots a main-menu-save start as a New Game run, tagged, and keeps it out of the fresh-boot record", () => {
+  it("plots a main-menu-save start as a New Game run, tagged, competing for the frontier only on progress then time", () => {
     const menu = measured("menu", [60000, 90000, 120000]);
     if (menu.config === null) throw new Error("config");
     menu.config = { ...menu.config, start: "save_state", resume: "MAIN_MENU" };
@@ -148,7 +148,7 @@ describe("persistent actual native frontier", () => {
     expect(document.querySelector('polyline[data-series="menu"]')?.getAttribute("stroke-dasharray")).toBeNull();
     expect(document.querySelector('[data-resume="MAIN_MENU"]')).toBeNull();
   });
-  it("draws a Clock set resume as a dashed not-from-zero line and keeps it out of the fresh-boot record", () => {
+  it("draws a Clock set resume as a dashed not-from-zero line and keeps it off the agent frontier", () => {
     const resumed = measured("clock", [90000, null, 5000, 120000]);
     if (resumed.config === null) throw new Error("config");
     resumed.config = { ...resumed.config, start: "save_state", resume: "CLOCK_SET" };
@@ -186,6 +186,93 @@ describe("persistent actual native frontier", () => {
     document.body.innerHTML = frontierPlot(frontierReferences([measured("other-human", [1], "human")]), [], NaN);
     expect(document.body.textContent).toContain("Human reference unavailable");
     expect(document.body.textContent).toContain("Agent frontier unavailable");
+  });
+});
+describe("data-driven agent frontier", () => {
+  const menuStart = (r: WorkbenchRun): WorkbenchRun => { if (r.config === null) throw new Error("config"); r.config = { ...r.config, start: "save_state", resume: "MAIN_MENU" }; return r; };
+  const clockStart = (r: WorkbenchRun): WorkbenchRun => { if (r.config === null) throw new Error("config"); r.config = { ...r.config, start: "save_state", resume: "CLOCK_SET" }; return r; };
+  const further = (id: string): WorkbenchRun => measured(id, [100000, 150000, 400000, 500000, 900000, 950000, 1000000, 1200000]);
+  it("lets a main-menu-save New Game start that went further become the frontier, named and tagged in the legend", () => {
+    const menu = menuStart(further("2026-10-16T01-00-00_cook_ab12"));
+    const refs = frontierReferences([human(), best(), menu]);
+    expect(refs.best?.id).toBe(menu.id);
+    document.body.innerHTML = frontierPlot(refs, [], 900);
+    const label = document.querySelector('[data-reference="best"]')?.textContent ?? "";
+    expect(label).toContain("Agent frontier");
+    expect(label).toContain(menu.id);
+    expect(label).toContain("main-menu save");
+    expect(label).not.toContain("LIVE");
+    expect(document.querySelector('[data-reference="best"]')?.getAttribute("title")).toContain(menu.id);
+    expect(document.body.textContent).not.toMatch(/fresh[- ]boot/i);
+  });
+  it("counts live and paused runs by their splits so far, so the gold line moves while they run, drawn once", () => {
+    const live = Object.assign(menuStart(further("live-run")), { status: "live" as const });
+    const refs = frontierReferences([human(), best(), live]);
+    expect(refs.best?.id).toBe("live-run");
+    document.body.innerHTML = frontierPlot(refs, [live], 900, undefined, [], false, "live");
+    const lines = Array.from(document.querySelectorAll('polyline[data-series="live-run"]'));
+    expect(lines.length).toBeGreaterThan(0);
+    expect(lines.every(line => line.getAttribute("stroke") === "#af8915")).toBe(true);
+    expect(document.querySelectorAll('[data-run="live-run"][data-split="STARTER_CHOSEN"]')).toHaveLength(1);
+    expect(document.querySelector('[data-live-run="live-run"]')).not.toBeNull();
+    expect(document.querySelector('[data-live-run="live-run"] .wb-live-head')).not.toBeNull();
+    expect(document.querySelector('[data-reference="best"]')?.textContent).toContain("LIVE");
+    expect(document.querySelectorAll(".wb-current-key")).toHaveLength(0);
+    // Live state comes only from the verified status passed in, never from the run's stored status or the filtered current set.
+    document.body.innerHTML = frontierPlot(refs, [live], 900, undefined, [live], false, null);
+    expect(document.querySelector('[data-reference="best"]')?.textContent).not.toMatch(/LIVE|PAUSED/);
+    expect(document.querySelector("[data-live-run], [data-current-run], .wb-live-head, .wb-current-key")).toBeNull();
+    expect(document.querySelector('[data-reference="best"]')?.textContent).toContain("live-run");
+    const paused = Object.assign(further("paused-run"), { status: "paused" as const });
+    const pausedRefs = frontierReferences([best(), paused]);
+    expect(pausedRefs.best?.id).toBe("paused-run");
+    document.body.innerHTML = frontierPlot(pausedRefs, [], 900, undefined, [], false, "paused");
+    expect(document.querySelector('[data-reference="best"]')?.textContent).toContain("PAUSED");
+    expect(document.querySelector('[data-current-run="paused-run"]')).not.toBeNull();
+    expect(document.querySelector('[data-live-run="paused-run"]')).toBeNull();
+    expect(document.querySelector('[data-reference="best"]')?.textContent).not.toContain("main-menu save");
+  });
+  it("ranks the furthest milestone first, then the fastest time to it, then id, across boot and main-menu starts", () => {
+    const slowBoot = measured("slow-boot", [1, 2, 3, 4, 5, 6, 7, 2000000]);
+    const fastMenu = menuStart(measured("fast-menu", [1, 2, 3, 4, 5, 6, 7, 1500000]));
+    expect(frontierReferences([slowBoot, fastMenu]).best?.id).toBe("fast-menu");
+    const twin = menuStart(measured("a-twin", [1, 2, 3, 4, 5, 6, 7, 1500000]));
+    expect(frontierReferences([slowBoot, fastMenu, twin]).best?.id).toBe("a-twin");
+    const evidence = menuStart(further("screenshot-only"));
+    const last = evidence.splits[evidence.splits.length - 1]; if (last === undefined) throw new Error("split");
+    last.derived = true; last.screenshotEvidence = [{ seq: 9, path: "frames/000009_1.png", sha1: "c".repeat(40) }];
+    expect(frontierReferences([slowBoot, fastMenu, evidence]).best?.id).toBe("fast-menu");
+    expect(frontierReferences([best(), evidence]).best?.id).toBe("screenshot-only");
+  });
+  it("never makes a Clock set resume the frontier, even when it is further, faster or live", () => {
+    const ended = clockStart(further("clock-ended"));
+    const live = Object.assign(clockStart(further("clock-live")), { status: "live" as const });
+    expect(frontierReferences([human(), best(), ended, live]).best?.id).toBe("dea1");
+    expect(frontierReferences([ended, live]).best).toBeNull();
+  });
+  it("still excludes probes, synthetic and replay runs, excluded runs, problem runs, humans and other save starts", () => {
+    const base = menuStart(further("base"));
+    if (base.measurement === undefined || base.config === null) throw new Error("fixture");
+    const variants: WorkbenchRun[] = [
+      { ...base, id: "probe-feature", measurement: { ...base.measurement, features: [...base.measurement.features, "probe"] } },
+      { ...base, id: "synthetic", measurement: { ...base.measurement, features: [...base.measurement.features, "synthetic-run"] } },
+      { ...base, id: "replay", measurement: { ...base.measurement, features: [...base.measurement.features, "replay-v1"] } },
+      { ...base, id: "excluded", excluded: "Excluded probe session" },
+      { ...base, id: "problem", problem: "invalid" },
+      { ...base, id: "human-run", measurement: { ...base.measurement, controller: "human" } },
+      { ...base, id: "other-save", config: { ...base.config, resume: null } },
+      Object.fromEntries(Object.entries({ ...base, id: "no-measurement" }).filter(([key]) => key !== "measurement")) as unknown as WorkbenchRun,
+    ];
+    expect(frontierReferences([best(), ...variants]).best?.id).toBe("dea1");
+  });
+  it("describes the gold line as the best New Game-start run, not a fresh boot", () => {
+    document.body.innerHTML = frontierPlot(frontierReferences([]), [], 900);
+    expect(document.body.textContent).toContain("Agent frontier unavailable");
+    expect(document.body.textContent).toContain("New Game");
+    expect(document.body.textContent).not.toMatch(/fresh[- ]boot/i);
+    const page = readFileSync(join(process.cwd(), "static/workbench.html"), "utf8");
+    expect(page).not.toMatch(/fresh[- ]boot/i);
+    expect(page).toContain("New Game start");
   });
 });
 describe("zoom to frontier", () => {

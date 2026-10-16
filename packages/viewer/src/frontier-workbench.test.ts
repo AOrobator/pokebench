@@ -35,7 +35,9 @@ it("keeps both reference lines across empty model/cohort filters and exposes rec
 it("highlights the healthy current run inside the filter, drops it outside, and withdraws pulse on pause, end or failed polling", async () => {
   const measurement={controller:"agent" as const,features:["story-milestones-v2"],logSha256:"a".repeat(64),pausedMs:0,rawSplits:[]};
   const current=Object.assign(run({id:"current",model:"Active model",status:"live"}),{measurement});
-  let value: unknown={version:1,at:1000,milestones:[],runs:[current],problems:[]}, fail=false;
+  // A further finished run holds the agent frontier, so "current" is an ordinary filtered live run here.
+  const leader=Object.assign(run({id:"leader",model:"Leader model",splits:[...run().splits,{name:"FIRST_TRUCK_EXIT",elapsedMs:130000,segmentMs:10000,seq:20,turn:21,inputTokens:0,outputTokens:0}]}),{measurement});
+  let value: unknown={version:1,at:1000,milestones:[],runs:[current,leader],problems:[]}, fail=false;
   const wb=new Workbench(document,{fetchSnapshot:()=>fail?Promise.reject(Error("offline")):Promise.resolve(value),now:()=>1000,width:()=>900});
   await wb.refresh();change("overlay","none");change("model","missing");
   expect(ui("frontier-full").querySelector('[data-live-run="current"]')).toBeNull();
@@ -43,11 +45,35 @@ it("highlights the healthy current run inside the filter, drops it outside, and 
   expect(ui("frontier-full").querySelector('[data-live-run="current"]')).not.toBeNull();
   expect(ui("frontier-full").textContent).toContain("LIVE");
   expect(ui("frontier-full").querySelector('.wb-live-head')).not.toBeNull();
-  value={version:1,at:2000,milestones:[],runs:[{...current,status:"paused"}],problems:[]};await wb.refresh();
+  value={version:1,at:2000,milestones:[],runs:[{...current,status:"paused"},leader],problems:[]};await wb.refresh();
   expect(ui("frontier-full").querySelector('[data-live-run]')).toBeNull();expect(ui("frontier-full").textContent).toContain("PAUSED");
-  value={version:1,at:3000,milestones:[],runs:[current],problems:[]};await wb.refresh();fail=true;await wb.refresh();
+  value={version:1,at:3000,milestones:[],runs:[current,leader],problems:[]};await wb.refresh();fail=true;await wb.refresh();
   expect(ui("frontier-full").querySelector('[data-live-run]')).toBeNull();
-  fail=false;value={version:1,at:4000,milestones:[],runs:[{...current,status:"ended"}],problems:[]};await wb.refresh();expect(ui("frontier-full").querySelector('[data-current-run]')).toBeNull();wb.destroy();
+  fail=false;value={version:1,at:4000,milestones:[],runs:[{...current,status:"ended"},leader],problems:[]};await wb.refresh();expect(ui("frontier-full").querySelector('[data-current-run]')).toBeNull();wb.destroy();
+});
+
+it("takes the gold frontier's LIVE label and glow from verified polling only, under every filter", async () => {
+  const measurement={controller:"agent" as const,features:["story-milestones-v2"],logSha256:"a".repeat(64),pausedMs:0,rawSplits:[]};
+  const front=Object.assign(run({id:"front",model:"Front model",status:"live",cohort:"bundle"}),{measurement});
+  const other=Object.assign(run({id:"other",model:"Other model",cohort:"else",splits:run().splits.slice(0,1)}),{measurement});
+  let value: unknown={version:1,at:1000,milestones:[],runs:[front,other],problems:[]}, fail=false;
+  const wb=new Workbench(document,{fetchSnapshot:()=>fail?Promise.reject(Error("offline")):Promise.resolve(value),now:()=>1000,width:()=>900});
+  await wb.refresh();
+  const label=(): string=>ui("frontier-full").querySelector('[data-reference="best"]')?.textContent??"";
+  expect(label()).toContain("front"); expect(label()).toContain("LIVE");
+  expect(ui("frontier-full").querySelector('[data-live-run="front"]')).not.toBeNull();
+  change("model","Other model");
+  expect(label()).toContain("LIVE");
+  expect(ui("frontier-full").querySelector('[data-live-run="front"]')).not.toBeNull();
+  expect(ui("frontier-full").querySelector('[data-live-run="front"] .wb-live-head')).not.toBeNull();
+  change("model","all");
+  value={version:1,at:2000,milestones:[],runs:[{...front,status:"paused"},other],problems:[]};await wb.refresh();
+  expect(label()).toContain("PAUSED"); expect(ui("frontier-full").querySelector('[data-current-run="front"]')).not.toBeNull();
+  expect(ui("frontier-full").querySelector('[data-live-run]')).toBeNull();
+  value={version:1,at:3000,milestones:[],runs:[front,other],problems:[]};await wb.refresh();fail=true;await wb.refresh();
+  expect(label()).toContain("front"); expect(label()).not.toMatch(/LIVE|PAUSED/);
+  expect(ui("frontier-full").querySelector("[data-live-run], [data-current-run], .wb-live-head")).toBeNull();
+  wb.destroy();
 });
 
 it("zooms the story frontier by default and switches to the full human baseline across polling", async () => {

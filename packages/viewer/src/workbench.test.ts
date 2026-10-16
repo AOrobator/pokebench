@@ -91,6 +91,17 @@ describe("mounted runs and comparisons workbench", () => {
     ] }); await wb.refresh();
     expect([...(ui("cohort") as HTMLSelectElement).options].map(o => o.value)).toEqual(["all", "also-new", "new", "old", "undated"]); wb.destroy();
   });
+  it("drops a live run of another experiment from the story frontier when an experiment is picked", async () => {
+    const { wb } = mount({ ...data(), runs: [run({ id: "live_aaaa", status: "live", cohort: "exp-a" }), run({ id: "live_bbbb", status: "live", cohort: "exp-b" })] }); await wb.refresh();
+    expect(ui("frontier-full").querySelector('[data-run="live_bbbb"]')).not.toBeNull();
+    expect(ui("frontier-full").textContent).toContain("bbbb");
+    change("cohort", "exp-a");
+    expect(ui("frontier-full").querySelector('[data-run="live_aaaa"]')).not.toBeNull();
+    expect(ui("frontier-full").querySelector('[data-run="live_bbbb"]')).toBeNull();
+    expect(ui("frontier-full").textContent).not.toContain("bbbb");
+    expect(ui("current").textContent).toContain("2 CURRENT RUNS");
+    wb.destroy();
+  });
   it("rejects a malformed cohort list at the browser boundary", async () => {
     const { wb } = mount({ ...data(), cohorts: [{ id: "x", label: 3 }] }); await wb.refresh(); expect(ui("problem").hidden).toBe(false); wb.destroy();
   });

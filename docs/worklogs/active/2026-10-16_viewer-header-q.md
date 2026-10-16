@@ -17,6 +17,6 @@ Viewer only, phone widths (`max-width: 700px`, the existing phone breakpoint); t
 
 **M1 — phone header Q**
 - [x] RED: run-list cohort; head/sheet model; phone mount moves controls and picker; sheet opens from anywhere on the header and switches runs; desktop keeps everything in the header; CSS hides old pieces on phones
-- [ ] GREEN, gates
+- [x] GREEN, gates: `pnpm -r build`, `pnpm -r lint`, `pnpm -r coverage` pass (viewer 945 tests; 95.36 stmts / 91.11 branches / 93.76 funcs / 97.66 lines; agent 1867). `run-head` added to `BROWSER_MODULES` so the server serves it.
 - [ ] Browser proof at phone width (viewer-e2e)
 - [ ] Review: Claude, Grok, GPT on one frozen packet; land ff-only

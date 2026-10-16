@@ -17,13 +17,8 @@ const LIVE_ID = "2026-10-16T05-51-58_qwen36-gpu0_7a95";
 const OTHER_ID = "2026-10-16T05-51-58_qwen36-gpu1_7f38";
 const ENDED_ID = "2026-10-16T04-51-03_qwen36-gpu0_54a7";
 
-function cohortRun(): Log {
-  const log = new Log();
-  for (const event of fullRun().events.slice(0, 10)) {
-    const { v: _v, run: _run, seq: _seq, t: _t, ...body } = event;
-    log.add(Date.parse(event.t) - BASE_MS, (body.type === "run_start" ? { ...START, evaluation: EVALUATION } : body) as Parameters<Log["add"]>[1]);
-  }
-  return log;
+function cohortRun(): RunEvent[] {
+  return fullRun().events.slice(0, 10).map((event) => (event.type === "run_start" ? { ...event, evaluation: EVALUATION } : event));
 }
 
 function view(events: readonly RunEvent[]): RunView {
@@ -33,12 +28,12 @@ function view(events: readonly RunEvent[]): RunView {
 }
 
 function input(over: Partial<HeadInput> = {}): HeadInput {
-  return { view: view(cohortRun().events), runId: LIVE_ID, label: { cls: "live", text: "RUNNING" }, running: true, time: "0:27:22 / 1:00:00", others: [], ...over };
+  return { view: view(cohortRun()), runId: LIVE_ID, label: { cls: "live", text: "RUNNING" }, running: true, time: "0:27:22 / 1:00:00", others: [], ...over };
 }
 
 describe("phone header model", () => {
   it("titles the run by its experiment, then preset, then model, then id", () => {
-    expect(headTitle(view(cohortRun().events), LIVE_ID)).toBe(EXP);
+    expect(headTitle(view(cohortRun()), LIVE_ID)).toBe(EXP);
     const preset = new Log();
     preset.add(0, { ...START, evaluation: { preset_id: "checkpoint-clock-set", target: null, failure_limit: 3, flags: FLAGS } });
     expect(headTitle(view(preset.events), "x")).toBe("preset checkpoint-clock-set");
@@ -122,7 +117,7 @@ const RUNS = [
 ];
 
 async function mount(width: number): Promise<{ app: App; streams: FakeStream[] }> {
-  window.happyDOM.setInnerWidth(width);
+  setWidth(width);
   document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
   const streams: FakeStream[] = [];
   const deps: AppDeps = {
@@ -146,12 +141,13 @@ async function mount(width: number): Promise<{ app: App; streams: FakeStream[] }
   };
   const app = await mountApp(document, deps);
   const stream = must(streams[0]);
-  for (const event of cohortRun().events) stream.send("ev", { ...event, run: LIVE_ID });
+  for (const event of cohortRun()) stream.send("ev", { ...event, run: LIVE_ID });
   stream.send("caught_up", {});
   app.tick(0);
   return { app, streams };
 }
 
+const setWidth = (width: number): void => { (window as unknown as { happyDOM: { setInnerWidth(width: number): void } }).happyDOM.setInnerWidth(width); };
 const ui = (name: string): HTMLElement => must(document.querySelector<HTMLElement>(`[data-ui="${name}"]`));
 
 describe("phone header in the viewer", () => {
@@ -159,7 +155,7 @@ describe("phone header in the viewer", () => {
     document.body.innerHTML = "";
   });
   afterEach(() => {
-    window.happyDOM.setInnerWidth(1024);
+    setWidth(1024);
   });
 
   it("shows the experiment-first header and moves the controls under the screen and the run picker into the sheet", async () => {
@@ -203,7 +199,7 @@ describe("phone header in the viewer", () => {
 
   it("keeps the desktop header as it is and moves the controls back when the screen widens", async () => {
     await mount(375);
-    window.happyDOM.setInnerWidth(1280);
+    setWidth(1280);
     window.dispatchEvent(new Event("resize"));
     const bar = must(document.querySelector(".bar"));
     expect(bar.contains(ui("run-controls"))).toBe(true);

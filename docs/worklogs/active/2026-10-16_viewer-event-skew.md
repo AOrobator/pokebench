@@ -17,7 +17,7 @@ Branch `claude/viewer-event-skew` in `.claude/worktrees/agent-ac78386488eab5966`
 ## M1: RED, GREEN, gates
 
 - [x] RED tests: agent `events.test.ts` (type-directed `eventProblem`, `eventEnvelope`): 13 of 55 fail. Viewer `src/event-skew.test.ts` (build stamp, `skewOf`, workbench snapshot skew vs same build vs unknown build, broken JSON/envelope/run_end stay invalid, plate problem, single-run stream): file fails to import (`build-stamp.ts` does not exist).
-  - RED COMMIT: `test: RED viewer keeps a newer-build run listed with a restart-the-viewer problem, and event problems name their own type`
+  - RED COMMIT: `test: RED viewer keeps a newer-build run listed with a restart-the-viewer problem, and event problems name their own type` (1fa1d69b)
 - [x] GREEN: `eventProblem` per type + `eventEnvelope` (agent `events.ts`); viewer `build-stamp.ts` (stamp write/read, `gitRelation`, `skewOf`), package build runs `node dist/build-stamp.js` after tsc; `workbench-reader` `skip` hook; `readNativeRecording(…, tolerate)` order-checks skipped envelopes and returns `skipped`; `workbench-store` load passes the build, sets the skew problem, adds `Run <id>: …` to page problems, cache signature includes the build; `server.ts` `build` option (default stamp), single-run stream reports one skew problem (`<head>. First event it cannot read: line N: …`); current-run plate shows `data-current-field="problem"` (`.wb-plate-problem`).
   - Test fixes during GREEN: the stream test's first bad line is the `surprise` one; the stamp written in a clean temp repo is clean; viewer-newer case made strict (test added).
 - [x] Docs: fixed-run-launch skill (precondition: viewer build stamp must be the pin or a descendant; launch check: no skew problem), CLAUDE.md (rule + `just viewer-main` in commands), justfile comments on `viewer-main` and `fixed-run`.
@@ -26,4 +26,9 @@ Branch `claude/viewer-event-skew` in `.claude/worktrees/agent-ac78386488eab5966`
   - Before (old message, old schema): `line 4553: invalid event at : must have required properties action, status, request`; bundle run gpu0_54a7 `invalid`, 0 splits; control gpu1_1623 live.
   - Unknown viewer build (strict) with the new message: gpu0_54a7 `invalid`, `line 4553: invalid state event at /battle: unexpected property message`.
   - Viewer build 308ddd3e: gpu0_54a7 `live`, turn 241, 22 splits through OLDALE_TOWN, problem `viewer build 308ddd3 is older than this run's build 6d2be8a: restart the viewer (just viewer-main). It skipped 83 events it cannot read; first: line 4553: invalid state event at /battle: unexpected property message`; same text in page problems and on its plate. gpu1_1623 live, 11 splits, no problem.
-  - GREEN COMMIT: `fix: a run from a newer harness build stays listed with a restart-the-viewer problem, and event problems name their own type and path`
+  - GREEN COMMIT: `fix: a run from a newer harness build stays listed with a restart-the-viewer problem, and event problems name their own type and path` (9d44a789)
+
+## Before merge (operator)
+
+- [ ] Multi-model review (Codex + Grok) of main..9d44a789.
+- [ ] After merge: `just viewer-main`, then `cat /private/tmp/pokebench-viewer/packages/viewer/dist/build-stamp.json` shows main.

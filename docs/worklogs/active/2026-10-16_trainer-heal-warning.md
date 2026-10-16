@@ -105,3 +105,19 @@ events.jsonl bec601fc54e18935bff93c48043e39364648682cd4f31f724d48b97bd85042d8
 ```
 
 **Round 5** (base 9e27986a, head bc6010f1, sha 852aafdf…f056). Claude: LGTM. Grok: LGTM. GPT (Codex): BLOCKING — (1) proof script wrote a short commit and dirty:true, so the receipt was not source-bound, and the explainer clicks had no page captures; (2) wire test ran ON and OFF through disk and HTTP, explainer test re-read files the mapped-explainer test reads; (3) tail line untested. Fixes: wire test is one ON real-adapter run (OFF/matrix proven in memory); explainer card test checks links only; new tail test asserts the exact SUPERVISOR line (deletion receipt: removing the tail case turns it red); proof script now records the full HEAD and the real dirty state; proof redone below on the committed, clean head with both explainer pages captured.
+
+Gates on 796f59f1: build, lint, test (vitest 1728 + 927, pytest 2299), coverage (agent 99.1/94.57/98.37, viewer 97.63/91.09/93.68, Python 97.36/93.22/100), verify-vendor, experiments-check (70) green.
+Live proof on 796f59f1, clean tree, isolated built viewer 127.0.0.1:8794 (startViewer only; stopped after). Receipts in this worktree at `runs/reviews/trainer-heal-warning/proof-r6/` (gitignored; copy at ~/dev/pokebench/runs/reviews/trainer-heal-warning/proof-r6): make-run.mjs (records the full HEAD and real dirty state; run_start.harness below), viewer.mjs, screenshots 1 (run ended, timeline errors lane empty), 2 (Agent Trace SUP row selected, paragraph, raw event JSON type low_hp_trainer_warning seq 5), 3 and 4 (the explainer pages each READ EXPLAINER click opened), proof-run/events.jsonl. Digests:
+```
+head 796f59f1b80fcd8246f9f0c3cdfb3d7f7dfb454b clean=yes
+run_start.harness {"commit":"796f59f1b80fcd8246f9f0c3cdfb3d7f7dfb454b","dirty":false}
+app/app.js served=53dc71d4c91f61209965ef23571c4887d24653bba79ffae332319a4254b51dd1 built=53dc71d4c91f61209965ef23571c4887d24653bba79ffae332319a4254b51dd1
+app/model.js served=948c66b423a5c7738014beb56838d706464b3576d111b178c96c32b42d44c416 built=948c66b423a5c7738014beb56838d706464b3576d111b178c96c32b42d44c416
+app/trace.js served=c6a8fc971536913cd49fcd75d9f5a3609ca184bd2b9ec7e8916c728e0e3af83f built=c6a8fc971536913cd49fcd75d9f5a3609ca184bd2b9ec7e8916c728e0e3af83f
+app/panels.js served=49e0e8aa7b3221d14d166717e4eed9e6d56757a8d715974208d88e5d5ab7e3bb built=49e0e8aa7b3221d14d166717e4eed9e6d56757a8d715974208d88e5d5ab7e3bb
+app/timeline.js served=967784b1ff61f46b37399e356b52b797c2115670ed7e97907c1d27900ad1a854 built=967784b1ff61f46b37399e356b52b797c2115670ed7e97907c1d27900ad1a854
+app/main.js served=3f2f343764ef68a1ebc9daf52d611383203b8094e98245202f554ef487a34c9d built=3f2f343764ef68a1ebc9daf52d611383203b8094e98245202f554ef487a34c9d
+explainers/trainer-heal-guidance-v1.html served=60d85fbb59d4d32ba2a7b8a495cef4316d23da5d84004fb04a729e59ae74fe3c tracked=60d85fbb59d4d32ba2a7b8a495cef4316d23da5d84004fb04a729e59ae74fe3c
+explainers/low-hp-trainer-warning-v1.html served=d12a3f37b37f64a8be8e13dd4290cc73c41d396a0e910376a7e9e845108394a6 tracked=d12a3f37b37f64a8be8e13dd4290cc73c41d396a0e910376a7e9e845108394a6
+events.jsonl eced4fda02843f528bdb75e976e86fa35717a239802d2b33270921412e1a715e
+```

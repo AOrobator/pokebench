@@ -116,7 +116,7 @@ environment, like fields and mountains," | SCIENTIST_1 (sprite kind, not a name)
 He's the type of person who would" | SCIENTIST_1 (sprite kind, not a name): "rather go outside and experience" | SCIENTIST_1 (sprite kind, not a name): "things than read about them here."`);
   // It stays pinned through the second lab trip (T117-T126) and adds the new claims there.
   for(let turn=99;turn<=124;turn++)expect(byTurn.get(turn)).toBe(t117);
-  expect(byTurn.get(126)).toContain(`you wrote at turn 125: "Professor Birch is at (9,7)." (you placed PROF. BIRCH on this map at turns 82, 83, 84, 85, 86, 87, 88, 124, 125)`);
+  expect(byTurn.get(126)).toContain(`you wrote at turn 125: "Professor Birch is at (9,7)." (you placed PROF. BIRCH on this map at turns 82, 83, 84, 85, 86, 87, 88, 125)`);
   // Not before the first claim: the readout alone is not a belief.
   expect(byTurn.has(82)).toBe(false);
  });
@@ -203,12 +203,15 @@ describe("leaving the ledger and never clipping",()=>{
   expect(l.size()).toBe(0);
  });
 
- it("never clips a long claim",()=>{
+ it("never clips the evidence: long pages and a long readout line are quoted whole",()=>{
   const l=new DisprovedBeliefs(ALL_ON);
-  observeResult(l,"o1",LINE("none","PROF. BIRCH"),{},1);
-  const long=`Prof. Birch is at (3,3) ${"and he is standing very still beside the long table ".repeat(200)}`.trim();
-  say(l,`${long}. Next.`,2);
-  expect(l.text()).toContain(`"${long}."`);
+  const page=`Hunh? PROF. BIRCH? ${"He went out to study the wild POKéMON in the tall grass. ".repeat(100)}`.trim();
+  call(l,"a","press",{buttons:["A"]},{position:{x:5,y:5}},[{text:page,position:{x:5,y:5}}],{position:{x:5,y:5}});
+  const absent=`PROF. BIRCH, ${Array.from({length:200},(_,i)=>`PERSON${String(i)}`).join(", ")}`;
+  observeResult(l,"o1",LINE("none",absent),{},2);
+  say(l,"Prof. Birch is at (3,3).",3);
+  expect(l.text()).toContain(`"${page}"`);
+  expect(l.text()).toContain(LINE("none",absent));
  });
 
  it("drops a push-back entry when the player reaches the refused tile",()=>{
@@ -285,7 +288,8 @@ describe("leaving the ledger and never clipping",()=>{
   for(const s of ["Professor Birch, I think, is at (7,7).","Professor Birch, the professor, is standing at (7,8).","Professor Birch is apparently at (7,7).","Prof. Birch was at (7,7) in his lab.","Professor Birch is standing next to the red carpet at (7,8)."])expect(locatingClaims(s,"PROF. BIRCH")).toEqual([]);
   for(const s of ["May is in her house at (14,8).","May is at (14,8) in her house."])expect(locatingClaims(s,"MAY")).toEqual([]);
   expect(locatingClaims("Mom is downstairs at (8,2).","MOM")).toEqual([]);
-  expect(locatingClaims("Prof. Birch is at (9,8) and the scientist is at (9,9).","PROF. BIRCH")).toEqual(["Prof. Birch is at (9,8) and the scientist is at (9,9)."]);
+  // Anything after the tile ends the claim (review round 6).
+  expect(locatingClaims("Prof. Birch is at (9,8) and the scientist is at (9,9).","PROF. BIRCH")).toEqual([]);
  });
  it("binds a navigate_to push-back to the last step the walk sent (review round 4)",()=>{
   const l=new DisprovedBeliefs(ALL_ON);

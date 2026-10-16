@@ -48,12 +48,16 @@ export function nameMatcher(name:string):RegExp {
 
 // The model's sentences that place `name` on a tile, as a plain present-tense assertion: the sentence opens with the
 // name (or "The" and the name) as its subject, then is/stands/sits/waits (optionally "standing", "sitting" or
-// "waiting"), then directly "at (x,y)", nothing right after the tile places the character elsewhere, and nothing in the
-// sentence negates, hedges or asks. Returns each whole sentence.
+// "waiting"), then directly "at (x,y)", and the sentence ends there; nothing in it negates, hedges or asks; and no other
+// sentence of the same reply names the character with a negation or hedge (a later "he isn't here" retracts it).
+// Returns each whole sentence.
 export function locatingClaims(text:string,name:string):string[] {
  const claims:string[]=[];
  // Where each sentence ends: after . ! or ? followed by a space (not the "." of "Prof."), or before a line break.
  const ends=[...text.matchAll(/(?<!\bprof)[.!?](?=\s|$)|\n/gi)].map(m=>m[0]==="\n"?m.index:m.index+1);
+ const sentenceOf=(at:number):string=>text.slice(Math.max(0,...ends.filter(e=>e<=at)),ends.find(e=>e>at)??text.length);
+ const mentions=[...text.matchAll(nameMatcher(name))].map(m=>sentenceOf(m.index));
+ if(mentions.some(m=>NEGATION.test(m)||MODAL.test(m)))return claims;
  for(const match of text.matchAll(nameMatcher(name))){
   const start=match.index,after=start+match[0].length;
   const opened=text.lastIndexOf("(",start),closed=text.lastIndexOf(")",start);
@@ -65,7 +69,7 @@ export function locatingClaims(text:string,name:string):string[] {
   const sentence=text.slice(sentenceStart,sentenceEnd).trim();
   if(!/^(?:the)?$/i.test(text.slice(sentenceStart,start).trim()))continue;
   if(coordinate===null||!/^\s+(?:is|stands|sits|waits)(?:\s+(?:standing|sitting|waiting))?\s+$/.test(rest.slice(0,coordinate.index)))continue;
-  if(/^\s*(?:in|inside|on|upstairs|downstairs|outside|behind|near|next|of)\b/i.test(rest.slice(coordinate.index+coordinate[0].length)))continue;
+  if(!/^[.!]?\s*$/.test(rest.slice(coordinate.index+coordinate[0].length)))continue;
   if(NEGATION.test(sentence)||MODAL.test(sentence))continue;
   if(!claims.includes(sentence))claims.push(sentence);
  }

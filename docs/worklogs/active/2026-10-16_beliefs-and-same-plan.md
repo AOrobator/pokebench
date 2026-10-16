@@ -139,7 +139,8 @@ Report per switch: id, model-facing before/after excerpts from this run, precisi
 - Codex: BLOCKING: trailing qualifiers ("…at (7,7), I think." / ", apparently." / ", under the table in her house.") and a later retraction in the same reply ("Actually, the readout says he isn't here") still make claims. Non-blocking: the experiment notes say 206 deliveries (205 now).
 - Grok: BLOCKING: a comma before the place word ("May is at (14,8), in her house.") defeats the after-tile check.
 - Claude CLI: BLOCKING: same (comma, dash, bracket, "back in the lab"); non-blocking: "earlier, but he left".
-- Accepted: the claim must end at the tile (only "." or "!" may follow it), and a claim is dropped when the same reply names the character in any sentence with a negation or hedge. This also drops T124's "Professor Birch is at (9,8) and the scientist is at (9,9)." (the entry keeps T125). Experiment notes corrected. 2026-10-16 10:05 AM EDT round-6 RED: 1 failing test.
+- Accepted: the claim must end at the tile (only "." or "!" may follow it), and a claim is dropped when the same reply names the character in any sentence with a negation or hedge. This also drops T124's "Professor Birch is at (9,8) and the scientist is at (9,9)." (the entry keeps T125). Experiment notes corrected. 2026-10-16 10:05 AM EDT round-6 RED: 1 failing test. COMMIT (33971d92).
+- 2026-10-16 10:20 AM EDT round-6 GREEN as accepted; the never-clip test now checks long pages and a long readout line (a claim sentence is short by grammar). Full-run replay: 4 entries, all true; Birch claims at T82–T88 and T125; delivered on 205 model calls; same-plan unchanged. Gates: agent 1571 tests 97.93/94.33/98.35/99.13; viewer 880 tests 95.32/90.98/93.61/97.63; Python 2235 passed 97.29/93.10/100; lint clean (TS/eslint); pages-check silent.
 
 ## Surprises
 

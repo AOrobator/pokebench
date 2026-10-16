@@ -73,6 +73,7 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Push-back loop detection](pushback-loop-detection-v1.html)
 - [Push-back press results](pushback-press-result-v1.html)
 - [Battle observation loop](battle-observation-loop-v1.html)
+- [Ineffective loops](ineffective-loops-v1.html)
 - [Readout truth](readout-truth-v1.html)
 - [Birch speech pages](birch-speech-pages-v1.html)
 - [Whiteout notice](blackout-readout-v1.html)

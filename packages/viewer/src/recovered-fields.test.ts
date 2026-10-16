@@ -6,7 +6,7 @@ import { Log, START, state } from "../test-support/events.js";
 import { rivalRam, writeArchive } from "../test-support/raw-ram.js";
 import { StateMilestones } from "../../agent/src/milestones.js";
 import { RunView } from "./model.js";
-import { loadRecoveredRival, recoveredAttacher, withRecovered } from "./recovered-fields.js";
+import { loadRecoveredRival, recoveredAttacher, recoveredSignature, withRecovered } from "./recovered-fields.js";
 
 const runDir = (rows: readonly unknown[], name = "run-a"): string => {
   const dir = join(mkdtempSync(join(tmpdir(), "pokebench-recovered-")), name);
@@ -146,4 +146,29 @@ it("checks a recovered value even when a native value sits between attachments",
   expect(attach(first)).toMatchObject({ route103_rival: r(true, false, 0) });
   expect(attach(native)).toBe(native);
   expect(attach(forged)).toBe(forged);
+});
+
+it("stops recovering when an eligible state has no row, so leaving one out cannot move a split later", () => {
+  // State 2 really is the start of the battle; the file leaves it out and claims state 3 instead.
+  expect(forgedRun([calmRam, fightRam, fightRam], [[1, 1, false, false], [3, 3, true, false]])).toEqual([r(false, false, 0), null, null]);
+});
+
+it("accepts an explicit empty row for a snapshot with no save block, and checks that it really has none", () => {
+  const dir = runDir([header()]);
+  const blank = writeArchive(dir, 1, []), calm = writeArchive(dir, 2, rivalRam(false, false));
+  const log = new Log();
+  log.add(0, START);
+  const a = log.add(1000, state({ location: "ROUTE103", raw_ram: blank }));
+  const b = log.add(2000, state({ location: "ROUTE103", raw_ram: calm }));
+  const write = (rows: readonly unknown[]) => { writeFileSync(join(dir, "derived", "route103_rival.jsonl"), [header(), ...rows].map((l) => JSON.stringify(l)).join("\n") + "\n"); const attach = recoveredAttacher(dir); return [a, b].map((e) => { const out = attach(e); return out.type === "state" && "started" in out ? out.route103_rival ?? null : null; }); };
+  expect(write([{ seq: a.seq, raw_ram: blank.path, sha256: blank.sha256, route103_rival: null }, { seq: b.seq, raw_ram: calm.path, sha256: calm.sha256, route103_rival: r(false, false, 0) }])).toEqual([null, r(false, false, 0)]);
+  expect(write([{ seq: a.seq, raw_ram: calm.path, sha256: calm.sha256, route103_rival: null }, { seq: b.seq, raw_ram: calm.path, sha256: calm.sha256, route103_rival: r(false, false, 0) }])).toEqual([null, null]);
+});
+
+it("never fingerprints a symlinked side file or derived directory", () => {
+  const dir = runDir([header()]);
+  const real = join(dir, "derived", "route103_rival.jsonl"), moved = join(dir, "elsewhere.jsonl");
+  renameSync(real, moved);
+  symlinkSync(moved, real);
+  expect(recoveredSignature(dir)).toBe(":recovered=refused");
 });

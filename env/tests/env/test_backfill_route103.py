@@ -155,7 +155,9 @@ def test_skips_states_whose_save_block_pointer_is_not_set_and_rejects_bad_logs(
     unset = memory()
     unset.put(0x03005D8C, struct.pack("<I", 0))
     run = write_run(tmp_path, [("ROUTE103", False, unset), ("ROUTE103", False, memory())])
-    assert [r["seq"] for r in backfill(run)] == [2]
+    rows = backfill(run)
+    assert [(r["seq"], r["route103_rival"]) for r in rows][0] == (1, None)
+    assert [r["seq"] for r in rows] == [1, 2]
     bad = tmp_path / "bad"
     bad.mkdir()
     (bad / "events.jsonl").write_text(json.dumps({"type": "state"}) + "\n")
@@ -217,3 +219,23 @@ def test_removes_its_temp_file_when_the_final_rename_fails(
     with pytest.raises(OSError, match="disk full"):
         backfill(run)
     assert list((run / "derived").iterdir()) == []
+
+
+def test_refuses_symlinked_or_oversized_archives_before_reading_them(tmp_path: Path) -> None:
+    run = write_run(tmp_path, [("ROUTE103", False, memory())])
+    archive = next((run / "raw-ram").glob("*.json.gz"))
+    moved = tmp_path / "moved.json.gz"
+    archive.rename(moved)
+    archive.symlink_to(moved)
+    with pytest.raises(BackfillError, match="symlink"):
+        backfill(run)
+    big = write_run(tmp_path / "b", [("ROUTE103", False, memory())])
+    target = next((big / "raw-ram").glob("*.json.gz"))
+    target.write_bytes(target.read_bytes() + bytes(3 * 1024 * 1024))
+    with pytest.raises(BackfillError, match="too large"):
+        backfill(big)
+    linked = write_run(tmp_path / "l", [("ROUTE103", False, memory())])
+    (linked / "raw-ram").rename(tmp_path / "ram-elsewhere")
+    (linked / "raw-ram").symlink_to(tmp_path / "ram-elsewhere")
+    with pytest.raises(BackfillError, match="symlink"):
+        backfill(linked)

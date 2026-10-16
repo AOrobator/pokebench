@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { ServerResponse } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
@@ -52,7 +53,7 @@ it("reads a long log in steps that let the event loop run between them", async (
   setImmediate(tick);
   const seen: number[] = [];
   const read = fs.readSync;
-  vi.spyOn(fs, "readSync").mockImplementation(((...args: Parameters<typeof fs.readSync>) => { seen.push(ticks); return read(...args); }) as typeof fs.readSync);
+  vi.spyOn(fs, "readSync").mockImplementation(((...args: Parameters<typeof fs.readSync>) => { seen.push(ticks); return read(...args); }));
   const text = await (await fetch(new URL("api/runs/long/events", viewer.url))).text();
   running = false;
   expect(text).toContain("event: done");
@@ -82,4 +83,25 @@ it("keeps serving after a client abandons a long stream", async () => {
 
 it("rejects a chunk size that is not a positive integer", async () => {
   await expect(serve("bad", longRun(1), 0)).rejects.toThrow(RangeError);
+});
+
+it("still yields between steps when the socket asks the stream to wait for drain", async () => {
+  const viewer = await serve("long", longRun(3000), 4096);
+  const original = Reflect.get(ServerResponse.prototype, "write") as (this: ServerResponse, ...args: Parameters<ServerResponse["write"]>) => boolean;
+  const write = (self: ServerResponse, ...args: Parameters<ServerResponse["write"]>): boolean => Reflect.apply<ServerResponse, Parameters<ServerResponse["write"]>, boolean>(original, self, args);
+  vi.spyOn(ServerResponse.prototype, "write").mockImplementation(function (this: ServerResponse, ...args: Parameters<ServerResponse["write"]>): boolean {
+    const ok = write(this, ...args);
+    if (this.req.url?.endsWith("/events") === true) { process.nextTick(() => this.emit("drain")); return false; }
+    return ok;
+  });
+  let ticks = 0, running = true;
+  const tick = (): void => { ticks += 1; if (running) setImmediate(tick); };
+  setImmediate(tick);
+  const seen: number[] = [];
+  const read = fs.readSync;
+  vi.spyOn(fs, "readSync").mockImplementation(((...args: Parameters<typeof fs.readSync>) => { seen.push(ticks); return read(...args); }));
+  const text = await (await fetch(new URL("api/runs/long/events", viewer.url))).text();
+  running = false;
+  expect(text).toContain("event: done");
+  expect(new Set(seen).size).toBeGreaterThan(10);
 });

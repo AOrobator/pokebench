@@ -86,8 +86,13 @@ function readBytes(path: string, offset: number, maxBytes: number): Buffer {
 // Complete lines only: a line the writer is still appending stays unread
 // until its newline lands. Splitting on the newline byte keeps multi-byte
 // characters whole.
-export function readFrom(path: string, offset: number, lineNo: number): ReadResult {
-  const bytes = readBytes(path, offset, Number.MAX_SAFE_INTEGER);
+// maxBytes bounds one read; a line longer than it is still read whole.
+export function readFrom(path: string, offset: number, lineNo: number, maxBytes = Number.MAX_SAFE_INTEGER): ReadResult {
+  let bytes = readBytes(path, offset, maxBytes);
+  for (let limit = maxBytes; bytes.lastIndexOf(0x0a) < 0 && bytes.length === limit && limit < Number.MAX_SAFE_INTEGER; ) {
+    limit = Math.min(Number.MAX_SAFE_INTEGER, limit * 4);
+    bytes = readBytes(path, offset, limit);
+  }
   const end = bytes.lastIndexOf(0x0a);
   if (end < 0) return { results: [], offset, lineNo };
   const results: LineResult[] = [];

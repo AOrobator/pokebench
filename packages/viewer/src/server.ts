@@ -49,6 +49,8 @@ export interface ViewerOptions {
   readonly appDir: string;
   readonly port: number;
   readonly pollMs?: number;
+  // Bytes of a run log read and sent per step of an events stream (default 1 MiB).
+  readonly streamChunkBytes?: number;
   readonly fetchFn?: typeof fetch;
   // Next-run controls: the local router's endpoint file and the run queue.
   readonly endpointFile?: string | null;
@@ -71,6 +73,7 @@ export interface ViewerOptions {
 }
 
 const MAX_BODY = 64 * 1024;
+export const STREAM_CHUNK_BYTES = 1024 * 1024;
 const HumanAcceptedSchema=Type.Object({accepted:Type.Literal(true)},{additionalProperties:false});
 const HumanClaimSchema=Type.Object({session:Type.String({pattern:"^[A-Za-z0-9_-]{8,128}$"})},{additionalProperties:false});
 const HumanInputSchema=Type.Object({session:Type.String({pattern:"^[A-Za-z0-9_-]{8,128}$"}),seq:Type.Integer({minimum:1}),release:Type.Optional(Type.Boolean()),buttons:Type.Array(Type.Enum(["A","B","START","SELECT","UP","DOWN","LEFT","RIGHT","L","R"]),{maxItems:10,uniqueItems:true})},{additionalProperties:false});
@@ -221,51 +224,59 @@ function segments(rawUrl: string): string[] | null {
 
 // Under version skew the first rejected line is reported once, as a stale viewer, instead of a
 // misleading problem per line; the same build reports every rejected line.
-function streamEvents(req: IncomingMessage, res: ServerResponse, path: string, pollMs: number, skew: Skew | null): void {
+// A recorded log can be hundreds of MB: it is read, validated and sent a bounded chunk at a time,
+// yielding to the event loop between chunks and waiting for the socket to drain, so opening one
+// run never stalls every other request.
+function streamEvents(req: IncomingMessage, res: ServerResponse, path: string, pollMs: number, skew: Skew | null, chunkBytes: number): void {
   res.writeHead(200, { ...SECURITY_HEADERS, "content-type": "text/event-stream; charset=utf-8", connection: "keep-alive" });
-  const emit = (type: string, data: unknown): void => {
-    res.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`);
-  };
+  let closed = false, timer: NodeJS.Timeout | null = null;
+  const emit = (type: string, data: unknown): boolean => res.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`);
   let offset = 0;
   let lineNo = 0;
   let skewReported = false;
-  // Returns true once run_end has been sent.
-  const pump = (): boolean => {
-    const read = readFrom(path, offset, lineNo);
+  // One bounded read: whether it sent run_end, whether it reached the end of the file, and whether the socket wants a drain.
+  const step = (): { ended: boolean; atEnd: boolean; full: boolean } => {
+    const read = readFrom(path, offset, lineNo, chunkBytes);
+    const atEnd = read.offset === offset;
     offset = read.offset;
     lineNo = read.lineNo;
-    let ended = false;
+    let ended = false, full = false;
     for (const result of read.results) {
       if (result.ok) {
-        emit("ev", result.event);
+        full = !emit("ev", result.event) || full;
         ended ||= result.event.type === "run_end";
       } else if (skew === null) {
-        emit("problem", { line: result.line, problem: result.problem });
+        full = !emit("problem", { line: result.line, problem: result.problem }) || full;
       } else if (!skewReported) {
         skewReported = true;
-        emit("problem", { line: result.line, problem: `${skew.head}. First event it cannot read: line ${String(result.line)}: ${result.problem}` });
+        full = !emit("problem", { line: result.line, problem: `${skew.head}. First event it cannot read: line ${String(result.line)}: ${result.problem}` }) || full;
       }
     }
-    return ended;
+    return { ended, atEnd, full };
   };
   const finish = (): void => {
     emit("done", {});
     res.end();
   };
-  const endedAtStart = pump();
-  emit("caught_up", {});
-  if (endedAtStart) {
-    finish();
-    return;
-  }
-  const timer = setInterval(() => {
-    if (pump()) {
-      clearInterval(timer);
-      finish();
-    }
-  }, pollMs);
+  // Reads until the end of the file or run_end, one chunk per turn of the event loop.
+  const drainLog = (then: (ended: boolean) => void): void => {
+    if (closed) return;
+    const { ended, atEnd, full } = step();
+    if (ended || atEnd) { then(ended); return; }
+    if (full) res.once("drain", () => { setImmediate(() => { drainLog(then); }); });
+    else setImmediate(() => { drainLog(then); });
+  };
+  const tail = (): void => {
+    timer = setTimeout(() => { timer = null; drainLog((ended) => { if (ended) finish(); else tail(); }); }, pollMs);
+  };
+  drainLog((ended) => {
+    emit("caught_up", {});
+    if (ended) finish();
+    else tail();
+  });
   req.on("close", () => {
-    clearInterval(timer);
+    closed = true;
+    if (timer !== null) clearTimeout(timer);
   });
 }
 
@@ -393,7 +404,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
       if (!existsSync(path)) throw new RunsError(`run ${id} has no events.jsonl`);
       let skew: Skew | null = null;
       try { skew = skewOf(options.build ?? null, readStart(options.runsRoot, id).harness); } catch { /* No readable run_start: every problem is reported as is. */ }
-      streamEvents(req, res, path, options.pollMs ?? 250, skew);
+      streamEvents(req, res, path, options.pollMs ?? 250, skew, options.streamChunkBytes ?? STREAM_CHUNK_BYTES);
       return;
     }
     if (parts.length === 4 && leaf === "comparisons") {
@@ -444,6 +455,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
 
 export async function startViewer(given: ViewerOptions): Promise<Viewer> {
   const options: ViewerOptions = { ...given, build: given.build === undefined ? defaultViewerBuild() : given.build };
+  if (options.streamChunkBytes !== undefined && (!Number.isSafeInteger(options.streamChunkBytes) || options.streamChunkBytes < 1)) throw new RangeError("streamChunkBytes must be a positive integer");
   let port = 0;
   let origins: ReadonlyMap<string, string> = new Map();
   const readBaseline = createBaselineReader(options.runsRoot, { ...(options.baselines?.compute === undefined ? {} : { compute: options.baselines.compute }), ...(options.baselines?.store === undefined ? {} : { store: options.baselines.store }) });

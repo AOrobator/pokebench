@@ -5,7 +5,8 @@ import type {AgentToolResult} from "@mariozechner/pi-agent-core";
 import {navigationTool,withNavigation,type NavigationPorts} from "./navigation.js";
 import {observeTool,pressTool} from "./game-tools.js";
 import {flagFeatures} from "./play-preset.js";
-import {featureInfo} from "./features.js";
+import {featureInfo,SWITCHABLE_FEATURES} from "./features.js";
+import {experimentArms,parseExperiment} from "./experiments.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 
 type Goal={x:number;y:number;map_id:[number,number]};
@@ -102,5 +103,15 @@ describe("cross-map-goal-v1 production wiring",()=>{
   expect(await status(true)).toMatch(/^\(8,0\) on map 0\/9 is on another map/);
   expect(await status(false)).toBe("map changed; inspect destination");
   expect(posts).toBe(0);
+ });
+});
+
+describe("cross-map-goal-v1 pending experiment",()=>{
+ const raw=JSON.parse(readFileSync(new URL("../../../experiments/cross-map-goal.json",import.meta.url),"utf8")) as {incumbent:{features:Record<string,boolean>}};
+ it("names every switch explicitly and flips only cross-map-goal-v1",()=>{
+  expect(Object.keys(raw.incumbent.features)).toEqual([...SWITCHABLE_FEATURES]);
+  const {incumbent,candidate}=experimentArms(parseExperiment(raw));
+  expect(incumbent.features["cross-map-goal-v1"]).toBe(false);expect(incumbent.features["bounded-navigation-v1"]).toBe(true);
+  expect(SWITCHABLE_FEATURES.filter(id=>incumbent.features[id]!==candidate.features[id])).toEqual(["cross-map-goal-v1"]);
  });
 });

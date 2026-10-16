@@ -61,8 +61,8 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 
 <section>
 <h2>Why: the showcase run</h2>
-<p>Run <code>2026-10-16T00-34-26_qwen36-gpu1_show</code> had 7 wild battles and fled none. The party line showed its own HP, for example <code>TORCHIC Lv6 HP 12/21</code> at turn 606 and <code>TORCHIC Lv7 HP 3/23</code> at turn 744, when it walked into tall grass again. It was at <code>1/23</code> at turn 760 and blacked out by turn 768. The system prompt said nothing about running or healing. Its one RUN attempt (turn 611, <code>RIGHT, A</code> from FIGHT) opened BAG, because RUN is the bottom-right option. A YOUNGSTER told it three times that a POKéMON CENTER was close by. It never healed.</p>
-<p>With this switch on, turn 744 (3/23 on the field) and turn 760 (1/23) are below half, so each would get a line. Turn 606 (12/21) is not below half: 2 × 12 = 24 is more than 21.</p>
+<p>Run <code>2026-10-16T00-34-26_qwen36-gpu1_show</code> had 7 wild battles and fled none. The party line showed its own HP, for example <code>TORCHIC Lv6 HP 12/21</code> at turn 606 and <code>TORCHIC Lv7 HP 3/23</code> on the field at turns 739–743, just before it walked into tall grass and started another battle at turn 744. It was at <code>1/23</code> at turn 760, fainted at turn 762, and blacked out by turn 768. The system prompt said nothing about running or healing. Its one RUN attempt (turn 611, <code>RIGHT, A</code> from FIGHT) opened BAG, because RUN is the bottom-right option. A YOUNGSTER told it three times that a POKéMON CENTER was close by. It never healed.</p>
+<p>With this switch on, the field line would have appeared in 51 field readouts of that run (turns 637–743, own HP below half), including 3/23 at turns 739–743. Its readouts in battle showed own HP below half 86 times (turns 624–761); the battle line appears in those only while the battle menu is open, which this count does not check. Turn 606 (12/21) is not below half: 2 × 12 = 24 is more than 21.</p>
 </section>
 
 <section>
@@ -135,8 +135,8 @@ Your TORCHIC has 9/20 HP (below half). Talking to the nurse at a POKéMON CENTER
 <tr><td>10/20</td><td>20 = 20</td><td class="no">no (exactly half)</td><td>test</td></tr>
 <tr><td>9/20</td><td>18 &lt; 20</td><td class="yes">yes</td><td>test (field)</td></tr>
 <tr><td>5/20</td><td>10 &lt; 20</td><td class="yes">yes</td><td>test (c497 battle)</td></tr>
-<tr><td>3/23</td><td>6 &lt; 23</td><td class="yes">yes</td><td>showcase T744 (field, before grass)</td></tr>
-<tr><td>1/23</td><td>2 &lt; 23</td><td class="yes">yes</td><td>showcase T760</td></tr>
+<tr><td>3/23</td><td>6 &lt; 23</td><td class="yes">yes</td><td>showcase T739–T743 (field, before the T744 battle)</td></tr>
+<tr><td>1/23</td><td>2 &lt; 23</td><td class="yes">yes, if the battle menu is open</td><td>showcase T760 (battle)</td></tr>
 <tr><td>0/20</td><td>fainted</td><td class="no">no</td><td>the game asks for a switch, or the field skips to the next Pokémon able to battle</td></tr>
 </table>
 </div>
@@ -176,7 +176,8 @@ Your TORCHIC has 9/20 HP (below half). Talking to the nurse at a POKéMON CENTER
 <ul>
 <li>Branch <code>claude/battle-triage-guidance</code>. Default off; it is meant to join the bundle arm of bundle-v-control (that file is edited elsewhere).</li>
 <li>Gates: test, lint (mypy's known <code>mgba._pylib</code> worktree error only), build, coverage ≥ 90 on lines, branches and functions in both stacks, verify-vendor.</li>
-<li>Not done: no measured runs; no live probe of the line on the real game server (tests use recorded raw RAM from runs c406 and c497). The re-render test that needs the ROM was skipped in the worktree. Pending experiment entry <code>experiments/battle-triage-guidance.json</code>, not queued.</li>
+<li>The READ EXPLAINER link was clicked in the worktree's built viewer (Harness Config, isolated port 8796) and opened this page.</li>
+<li>Not done: no measured runs; no live probe of the line on the real game server (tests use recorded raw RAM from runs c406 and c497). The re-render test that needs the ROM was skipped in the worktree. Pending experiment entry <code>experiments/battle-triage-guidance.json</code> (activation NEW_GAME_CREATED), not designed or queued.</li>
 </ul>
 </section>
 </main>

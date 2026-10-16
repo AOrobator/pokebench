@@ -1,0 +1,82 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cross-Map Goal Refusal</title><style>
+:root{--bg:#f6f4ee;--fg:#1f2421;--muted:#6b6f68;--card:#ffffff;--line:#e3dfd3;--accent:#2f6fde;--accent2:#e0802a;--bad:#d2493a;--good:#2e9d63;
+--floor:#f3ead6;--wall:#7d776d;--water:#8cc3ea;--npc:#8c8f86;--obj:#b08a5a;--shadow:rgba(30,30,20,.10)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#121512;--fg:#e9ece6;--muted:#9ba196;--card:#1b1f1b;--line:#2d332d;--accent:#78a8ff;--accent2:#f0a050;--bad:#ff7a6a;--good:#58cf8d;
+--floor:#3a362c;--wall:#5b5750;--water:#3f78a8;--npc:#6d7068;--obj:#8a6a3a;--shadow:rgba(0,0,0,.35)}}
+:root[data-theme=dark]{--bg:#121512;--fg:#e9ece6;--muted:#9ba196;--card:#1b1f1b;--line:#2d332d;--accent:#78a8ff;--accent2:#f0a050;--bad:#ff7a6a;--good:#58cf8d;
+--floor:#3a362c;--wall:#5b5750;--water:#3f78a8;--npc:#6d7068;--obj:#8a6a3a;--shadow:rgba(0,0,0,.35)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Helvetica,Arial,sans-serif}
+main{max-width:960px;margin:0 auto;padding:32px 16px 72px}
+.eyebrow{font:600 12px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;color:var(--accent2);text-transform:uppercase}
+h1{font-size:34px;line-height:1.15;margin:10px 0 8px;letter-spacing:-.02em}h2{font-size:21px;margin:44px 0 6px}h3{margin:0 0 6px;font-size:16px}
+.lead{font-size:18px;color:var(--muted);max-width:720px}.cap{color:var(--muted);font-size:14px;margin:10px 2px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 1px 2px var(--shadow),0 8px 24px var(--shadow)}
+.scroll{overflow-x:auto}svg{display:block;max-width:100%;height:auto}
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media (max-width:760px){.vs{grid-template-columns:1fr}}.vs>*{min-width:0}
+.tag{display:inline-block;font:600 11px/1 ui-monospace,Menlo,monospace;padding:4px 8px;border-radius:6px;margin-right:6px;vertical-align:2px}.tag.off{background:var(--line);color:var(--muted)}.tag.on{background:var(--accent);color:#fff}
+table{border-collapse:collapse;width:100%;font-size:14.5px}td,th{padding:9px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}tr:last-child td{border-bottom:0}
+code{font:13px ui-monospace,Menlo,monospace;overflow-wrap:anywhere}
+.floor{fill:var(--floor);stroke:var(--line)}.wall{fill:var(--wall);stroke:var(--line)}.water{fill:var(--water);stroke:var(--line)}.obj{fill:var(--obj);stroke:var(--line)}
+.npc{fill:var(--npc);stroke:#fff;stroke-width:2.5}.player{fill:var(--accent);stroke:#fff;stroke-width:3}
+.goal{fill:none;stroke:var(--bad);stroke-width:3;stroke-dasharray:5 4}.stand{fill:none;stroke:var(--good);stroke-width:3}
+.t{font:12px -apple-system,Helvetica,sans-serif;fill:var(--fg)}.tm{font:11px ui-monospace,Menlo,monospace;fill:var(--muted)}.tg{font:700 12px -apple-system,Helvetica,sans-serif;fill:var(--good)}
+.node rect{fill:var(--card);stroke:var(--line);stroke-width:1.5}.node.hot rect{fill:color-mix(in srgb,var(--accent2) 22%,var(--card));stroke:var(--accent2);stroke-width:2}
+.nt{font:600 13px -apple-system,Helvetica,sans-serif;fill:var(--fg);text-anchor:middle}.ns{font:11.5px -apple-system,Helvetica,sans-serif;fill:var(--muted);text-anchor:middle}
+.flow{fill:none;stroke:var(--muted);stroke-width:2}.fl{font:11px -apple-system,Helvetica,sans-serif;fill:var(--muted)}
+</style></head><body><main>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker>
+<marker id="g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--good)"/></marker>
+</defs></svg>
+
+<div class="eyebrow">Harness switch · cross-map-goal-v1 · default OFF · bundle arm only</div>
+<h1>A goal on another map is not a map change</h1>
+<p class="lead"><code>navigate_to</code> takes a <code>map_id</code> with every target. When the model passes a map it is not standing on, the tool used to answer <code>map changed; inspect destination</code> with 0 presses. Nothing moved and no map changed, so the model retried the same call. With this switch on, the tool presses nothing and says the target is on another map. It is meant for the bundle arm only (operator decision, 2:53 PM New York time, 2026-10-16).</p>
+
+<h2>What went wrong in recorded runs</h2>
+<div class="card scroll"><table style="min-width:620px">
+<tr><th>Run</th><th>Call</th><th>Where the player was</th><th>What it was told (OFF)</th></tr>
+<tr><td><code>4caa</code> seq 12480, 12503, 12526, 12549</td><td><code>navigate_to(8,0, map_id [0,9])</code> (12480: (0,6))</td><td>ROUTE101, map 0/16, at (10,19)</td><td rowspan="3"><code>Navigation: map changed; inspect destination; 0 ordinary button attempts.</code></td></tr>
+<tr><td><code>4caa</code> seq 14588, 14597, 14607</td><td><code>navigate_to(6,4, map_id [0,10])</code></td><td>ROUTE101, map 0/16, at (11,0)</td></tr>
+<tr><td><code>8b01</code>, 17 results</td><td>12 calls with <code>map_id [0,18]</code> (seqs 10180–10558): 11 to <code>(9,8)</code>, one to (9,0); the longest unbroken run is six</td><td>map 0/10</td></tr>
+</table>
+<p class="cap">Every one of these says 0 ordinary button attempts. A loop-guard "ineffective" warning followed at 4caa seq 12550 and 14608. Results where the map really changed during a walk (4caa seq 981, 1326) all have presses, and keep their wording.</p></div>
+
+<h2>Where the check sits in the walk loop</h2>
+<div class="card scroll">
+<svg viewBox="0 0 900 300" style="min-width:640px" role="img" aria-label="Walk loop decision: read state, compare map_id, then branch on whether any press has been made">
+<g class="node"><rect x="20" y="120" width="150" height="56" rx="10"/><text class="nt" x="95" y="144">read state</text><text class="ns" x="95" y="162">start of each step</text></g>
+<g class="node"><rect x="220" y="120" width="170" height="56" rx="10"/><text class="nt" x="305" y="144">map_id = goal map?</text><text class="ns" x="305" y="162">sameMap()</text></g>
+<g class="node hot"><rect x="440" y="120" width="170" height="56" rx="10"/><text class="nt" x="525" y="144">any press yet?</text><text class="ns" x="525" y="162">ON only: commands = 0</text></g>
+<g class="node"><rect x="670" y="30" width="210" height="64" rx="10"/><text class="nt" x="775" y="56">map changed;</text><text class="ns" x="775" y="76">inspect destination</text></g>
+<g class="node hot"><rect x="670" y="200" width="210" height="64" rx="10"/><text class="nt" x="775" y="226">target is on another map</text><text class="ns" x="775" y="246">0 presses, true reason</text></g>
+<g class="node"><rect x="220" y="230" width="170" height="50" rx="10"/><text class="nt" x="305" y="260">readiness, plan, press</text></g>
+<path class="flow" d="M170 148 H218" marker-end="url(#a)"/>
+<path class="flow" d="M390 148 H438" marker-end="url(#a)"/><text class="fl" x="404" y="140">no</text>
+<path class="flow" d="M305 176 V228" marker-end="url(#a)"/><text class="fl" x="312" y="206">yes</text>
+<path class="flow" d="M610 140 L668 70" marker-end="url(#a)"/><text class="fl" x="520" y="104">yes, or switch OFF</text>
+<path class="flow" d="M610 156 L668 226" marker-end="url(#a)"/><text class="fl" x="652" y="196">no (ON)</text>
+</svg>
+<p class="cap">Only the highlighted boxes are new. OFF goes straight from "no" to <code>map changed</code>, as before. After a press, a different map is a real change, ON or OFF. If the current map is unknown (<code>map_id</code> null), ON skips to the readiness check, which already says why it cannot walk.</p></div>
+
+<h2>Before and after, recorded 4caa seq 12549</h2>
+<div class="vs">
+<div class="card"><span class="tag off">OFF</span><p><code>Navigation: map changed; inspect destination; 0 ordinary button attempts.</code></p><p class="cap">What the model received. False: the player stayed on ROUTE101 at (10,19).</p></div>
+<div class="card"><span class="tag on">ON</span><p><code>Navigation: (8,0) on map 0/9 is on another map; you are on map 0/16 (ROUTE101) and navigate_to only walks within the current map; to walk on this map, pass map_id [0,16]; to reach map 0/9, use a listed warp or a map connection; 0 ordinary button attempts.</code></p><p class="cap">Same recorded state, replayed in <code>cross-map-goal.test.ts</code>. No button is pressed.</p></div>
+</div>
+
+<h2>Data and interface</h2>
+<div class="card"><table>
+<tr><th>Field</th><th>Source</th><th>Meaning</th></tr>
+<tr><td><code>goal.map_id</code></td><td>tool argument, <code>[group, number]</code></td><td>The map the model says the target is on.</td></tr>
+<tr><td><code>state.map_id</code></td><td>game state (gSaveBlock1Ptr-&gt;location mapGroup, mapNum)</td><td>The map the player is on.</td></tr>
+<tr><td><code>location_display</code> or <code>location</code></td><td>game state</td><td>The place name the readout shows, in parentheses when known.</td></tr>
+</table><p class="cap">Nothing is truncated. The tool description and parameters do not change.</p></div>
+
+<h2>Wiring</h2>
+<div class="card"><p>Run preset or switchboard <code>cross-map-goal-v1</code> → <code>FeatureSet</code> → <code>withNavigation</code> → <code>NavigationPorts.crossMapGoal</code> → walk loop in <code>navigationTool</code>. Needs <code>bounded-navigation-v1</code> (no tool without it).</p></div>
+
+<h2>Status</h2>
+<div class="card"><p>Branch <code>claude/cross-map-goal</code>. Unit tests replay the recorded 4caa case (OFF bytes equal what the model received; ON true reason, no press), real map changes after a press at both checks, the unknown-map fallback, and production wiring. Not done: measured runs. Default OFF; the bundle arm turns it on.</p></div>
+</main></body></html>

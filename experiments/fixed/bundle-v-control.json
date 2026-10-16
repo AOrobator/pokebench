@@ -112,13 +112,15 @@
    "world-targets-v1": true,
    "surf-gated-exits-v1": false,
    "navigation-truth-v1": true,
-   "navigation-refusal-reasons-v2": false
+   "navigation-refusal-reasons-v2": false,
+   "cross-map-goal-v1": false
   }
  },
  "switches": [
   "blackout-readout-v1",
   "surf-gated-exits-v1",
-  "navigation-refusal-reasons-v2"
+  "navigation-refusal-reasons-v2",
+  "cross-map-goal-v1"
  ],
  "offInBoth": [
   "milestone-stall-stop-v1",

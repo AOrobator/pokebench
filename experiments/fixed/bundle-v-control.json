@@ -106,7 +106,10 @@
    "battle-observation-loop-v1": true,
    "blocked-exit-fact-v1": false,
    "battle-loss-recap-v1": false,
-   "transition-coherence-v1": true
+   "transition-coherence-v1": true,
+   "readout-truth-v1": true,
+   "birch-speech-pages-v1": true,
+   "blackout-readout-v1": false
   }
  },
  "switches": [
@@ -142,7 +145,8 @@
   "trainer-heal-guidance-v1",
   "low-hp-trainer-warning-v1",
   "blocked-exit-fact-v1",
-  "battle-loss-recap-v1"
+  "battle-loss-recap-v1",
+  "blackout-readout-v1"
  ],
  "offInBoth": [
   "milestone-stall-stop-v1"
@@ -158,7 +162,9 @@
   "pushback-loop-detection-v1",
   "pushback-press-result-v1",
   "battle-observation-loop-v1",
-  "transition-coherence-v1"
+  "transition-coherence-v1",
+  "readout-truth-v1",
+  "birch-speech-pages-v1"
  ],
  "phases": [
   {

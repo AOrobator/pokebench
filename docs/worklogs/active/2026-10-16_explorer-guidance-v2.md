@@ -20,7 +20,7 @@ Branch `claude/explorer-guidance-v2` in `/private/tmp/pokebench-explorer-v2`, cu
 
 **M2 — explainer, pending experiment, review.**
 - [x] `docs/explainers/explorer-guidance-v2.html`, README, FEATURE_EXPLAINERS, `just pages-check`.
-- [ ] `experiments/explorer-guidance-v2.json` (pending), readiness row, `just experiments-check`.
+- [x] `experiments/explorer-guidance-v2.json` (pending), readiness row, `just experiments-check`.
 - [ ] Sync main, principles self-review, Claude CLI, Codex, Grok: VERDICT LGTM.
 
 ## Session Log
@@ -33,3 +33,4 @@ Branch `claude/explorer-guidance-v2` in `/private/tmp/pokebench-explorer-v2`, cu
 - Viewer test refinement after RED: the v2 card test reads the v1 quote with the explainer's <mark> highlight tags stripped (the page highlights the two pointer lines).
 - Explainer `docs/explainers/explorer-guidance-v2.html` (v1 vs v2 word for word with the pointer lines highlighted, prompt slot diagram, both-on table, wiring); `just pages-check` silent; README entry.
 - Gates: agent vitest 1962 passed, viewer 1008 passed, pytest 2394 passed / 104 skipped; coverage agent statements 98.01 / branches 94.6 / functions 98.35 / lines 99.24, viewer 95.53 / 91.32 / 93.94 / 97.74, Python lines 97.47 / branches 93.46 / functions 99.39 (floor 90); lint: tsc, eslint, ruff clean, mypy fails only on the missing `mgba._pylib` binding in this worktree; build green; verify-vendor OK.
+- Pending experiment `experiments/explorer-guidance-v2.json`: the finals incumbent from `experiments/explorer-guidance.json` with `explorer-guidance-v1` and `explorer-guidance-v2` explicitly false; activation NEW_GAME_CREATED, primary RIVAL_HOUSE_ENTERED; provisional source.commit = branch head 378afce2. Parsed with the branch build: candidate differs only by `explorer-guidance-v2`, and its prompt ends with the exact v2 section (the finals incumbent has dialogue auto-advance off, so no talk-is-cheap sentence). `just experiments-check` (reads main) ok. Readiness row added.

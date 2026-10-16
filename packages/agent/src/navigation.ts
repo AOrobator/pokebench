@@ -48,7 +48,22 @@ export const NO_PROGRESS_PRESSES=16;
 export const GRASS_STEP_COST=1.5;
 const GRASS=new Set([2,3]);
 
-export interface NavigationOptions {readonly mode?:NavigationMode;readonly ledges?:boolean;readonly oneWay?:boolean;readonly grassCost?:boolean;readonly floor?:boolean;readonly elevation?:ElevationMode}
+// navigation-truth-v1: a coordinate trigger whose condition matches now (world_context.triggers,
+// read from the map's coord events and the save's variables). pokeemerald 731ad5b
+// GetCoordEventScriptAtPosition runs it on entry when its elevation is 0 or the player's;
+// TryRunCoordEventScript returns no script for TRIGGER_RUN_IMMEDIATELY (variable 0).
+export interface MatchingTrigger {readonly x:number;readonly y:number;readonly elevation:number;readonly variable:number;readonly required:number;readonly current:number|null}
+export interface NavigationOptions {readonly mode?:NavigationMode;readonly ledges?:boolean;readonly oneWay?:boolean;readonly grassCost?:boolean;readonly floor?:boolean;readonly elevation?:ElevationMode;readonly triggers?:readonly MatchingTrigger[]}
+export function matchingTriggers(state:GameStateSnapshot):MatchingTrigger[] {
+ return (state.world_context?.triggers??[]).filter(t=>t.condition_met===true&&t.variable!==0).map(t=>({x:t.x,y:t.y,elevation:t.elevation,variable:t.variable,required:t.required_value,current:t.current_value}));
+}
+// pokeemerald ObjectEventDoesElevationMatch: elevation 0 (transition) matches any; otherwise they must be equal.
+export const elevationsMatch=(a:number,b:number):boolean=>a===0||b===0||a===b;
+const triggerAt=(triggers:readonly MatchingTrigger[]|undefined,p:Point,elevation:number):MatchingTrigger|undefined=>triggers?.find(t=>t.x===p.x&&t.y===p.y&&(t.elevation===0||t.elevation===elevation));
+const condition=(t:MatchingTrigger):string=>`variable 0x${t.variable.toString(16).toUpperCase().padStart(4,"0")}=${t.current===null?"unknown":String(t.current)}, needs ${String(t.required)}`;
+const triggerText=(t:MatchingTrigger):string=>`(${String(t.x)},${String(t.y)}), a script-trigger tile whose condition matches now (${condition(t)})`;
+// Every route crosses some matching trigger (the planner found none without one); the first on one such route is named.
+const crossingText=(t:MatchingTrigger):string=>`a script-trigger tile whose condition matches now; the first one on the route it would take without avoiding them is (${String(t.x)},${String(t.y)}) (${condition(t)})`;
 interface Geometry {readonly elevation:number;readonly tile:(p:Point)=>Tile|undefined;readonly objects:readonly Point[];readonly warps:readonly Point[];readonly bounds:{readonly width:number;readonly height:number}|null}
 
 function localGeometry(state:GameStateSnapshot):Geometry|null {
@@ -73,18 +88,30 @@ function fullGeometry(state:GameStateSnapshot):Geometry|null {
 
 // pokeemerald GetInteractedObjectEventScript talks across a faced counter to the object beyond it.
 // A stand tile is named only when the planner itself would reach it.
-function counterHint(state:GameStateSnapshot,goal:Point,options:NavigationOptions):string|null {
+function counterHint(state:GameStateSnapshot,goal:Point,options:NavigationOptions,truth=false):string|null {
  const geometry=options.mode==="full"?fullGeometry(state):localGeometry(state);if(geometry===null)return null;
  const at=(p:Point)=>(t:Point):boolean=>t.x===p.x&&t.y===p.y;
  const counter=(p:Point):boolean=>{const tile=geometry.tile(p);return tile!==undefined&&tile.behavior===COUNTER&&tile.collision!==0;};
  const occupied=(p:Point):boolean=>geometry.objects.some(at(p));
- let involved=counter(goal);
+ // navigation-truth-v1: with the interaction targets known, only a scripted person behind a counter counts.
+ let involved=counter(goal)&&!(truth&&state.interaction_targets!=null);
  for(const [direction,dx,dy] of DIRECTIONS){
   const across=occupied(goal)?{counter:{x:goal.x-dx,y:goal.y-dy},person:goal}:{counter:goal,person:{x:goal.x+dx,y:goal.y+dy}};
   if(!counter(across.counter)||!occupied(across.person))continue;
-  involved=true;
+  // navigation-truth-v1: someone behind a counter is talked to only if it has a script (a listed interaction target).
+  // The game finds that person at the player's elevation on the stand tile (GetObjectEventIdByPosition), so with the
+  // targets known only a scripted person whose elevation matches the arrival elevation there counts, and the counter
+  // fallback text (which also says to press A) is used only without targets.
+  const scripted=truth&&state.interaction_targets!=null?state.interaction_targets.filter(t=>t.kind==="object"&&at(across.person)(t)):null;
+  if(scripted!==null&&scripted.length===0)continue;
+  if(scripted===null)involved=true;
   const stand={x:across.counter.x-dx,y:across.counter.y-dy};
-  if(geometry.tile(stand)===undefined||planNavigation(state,stand,options)===null)continue;
+  const path=geometry.tile(stand)===undefined?null:planNavigation(state,stand,options);
+  if(path===null)continue;
+  const arrived=scripted!==null||options.triggers!==undefined?walked(state,path,options)?.elevation??geometry.elevation:geometry.elevation;
+  if(scripted!==null&&!scripted.some(t=>elevationsMatch(t.elevation,arrived)))continue;
+  // navigation-truth-v1: a stand tile is never a matching trigger.
+  if(triggerAt(options.triggers,stand,arrived)!==undefined)continue;
   return `target is behind a counter; walk to (${String(stand.x)},${String(stand.y)}), face ${direction} toward the counter at (${String(across.counter.x)},${String(across.counter.y)}) and press A to talk across it`;
  }
  return involved?"target is a counter or behind one; you cannot stand on a counter, but you can face it from a reachable adjacent tile and press A to talk to someone behind it":null;
@@ -105,26 +132,51 @@ function unreadyReason(state:GameStateSnapshot):string {
  if(state.field_controls_locked!==false)return "field control state is unavailable; inspect the new state before calling navigate_to again";
  return "this map's navigation geometry is unavailable; inspect the new state before calling navigate_to again";
 }
-function targetReason(state:GameStateSnapshot,goal:Point,options:NavigationOptions,edges=false):string|null {
+function targetReason(state:GameStateSnapshot,goal:Point,options:NavigationOptions,edges=false,truth=false):string|null {
  const geometry=options.mode==="full"?fullGeometry(state):localGeometry(state);if(geometry===null)return null;
  const bounds=geometry.bounds;
  if(bounds!==null&&(goal.x>=bounds.width||goal.y>=bounds.height))return `${at(goal)} is outside this map; its tiles run from (0,0) to (${String(bounds.width-1)},${String(bounds.height-1)}); to reach another map, use a listed warp or a map connection`;
  const same=(p:Point):boolean=>p.x===goal.x&&p.y===goal.y;
  if(geometry.warps.some(same))return warpReason(state,geometry,goal,options);
  const tile=geometry.tile(goal);if(tile===undefined)return null;
- const walkable=options.floor===true?FLOOR:LEGACY_WALKING;
- const standable=(t:Tile|undefined):boolean=>t!==undefined&&t.collision===0&&t.behavior!==0x69&&(walkable.has(t.behavior)||(options.oneWay===true&&EDGE_WALLS.has(t.behavior)));
- const free=(p:Point):boolean=>standable(geometry.tile(p))&&!geometry.objects.some(o=>o.x===p.x&&o.y===p.y)&&!geometry.warps.some(w=>w.x===p.x&&w.y===p.y)&&planNavigation(state,p,options)!==null;
+ const standable=standableTile(options);
+ // navigation-truth-v1: a stand tile is never a trigger that would run a script on arrival.
+ const reach=(p:Point,plan:NavigationOptions):Direction[]|null=>standable(geometry.tile(p))&&!geometry.objects.some(o=>o.x===p.x&&o.y===p.y)&&!geometry.warps.some(w=>w.x===p.x&&w.y===p.y)?planNavigation(state,p,plan):null;
+ const loose=(p:Point,plan:NavigationOptions):boolean=>reach(p,plan)!==null;
+ // The walker's elevation on arriving at a reachable tile (multi-level tiles keep the elevation the route brought).
+ const arrival=(p:Point):number|null=>{const path=reach(p,options);return path===null?null:walked(state,path,options)?.elevation??geometry.elevation;};
+ const free=(p:Point):boolean=>{const elevation=arrival(p);return elevation!==null&&triggerAt(options.triggers,p,elevation)===undefined;};
  const targets=(state.interaction_targets??[]).filter(same);
  const person=targets.find(t=>t.kind==="object");
- const occupied=geometry.objects.some(same)||person!==undefined||(state.world_context?.objects??[]).some(o=>same(o)&&o.map_id[0]===state.map_id?.[0]&&o.map_id[1]===state.map_id[1]);
+ // navigation-truth-v1: A reaches an object only from a tile whose elevation matches the object's (stacked objects).
+ const scripted=truth&&state.interaction_targets!=null?targets.filter(t=>t.kind==="object"):null;
+ const talker=(p:Point):typeof person=>{if(scripted===null)return person;const elevation=arrival(p);return elevation===null?undefined:scripted.find(t=>elevationsMatch(t.elevation,elevation));};
+ const live=(state.world_context?.objects??[]).find(o=>same(o)&&o.map_id[0]===state.map_id?.[0]&&o.map_id[1]===state.map_id[1]);
+ const occupied=geometry.objects.some(same)||person!==undefined||live!==undefined;
  const thing=person??(standable(tile)?undefined:targets.find(t=>t.activation==="A"&&t.kind!=="warp"));
  if(occupied||thing!==undefined){
+  const reachable=DIRECTIONS.flatMap(([side,dx,dy])=>{const stand={x:goal.x+dx,y:goal.y+dy};return free(stand)?[{stand,side}]:[];});
+  // navigation-truth-v1: an object with no script (absent from the listed interaction targets) cannot be talked to.
+  // GetInteractionScript then tries the tile's background event or metatile, each under its own conditions
+  // (elevation, facing, a hidden item's flag, a secret base's check); those are named as listed, not promised.
+  if(truth&&state.interaction_targets!=null&&person===undefined&&(live!==undefined||geometry.objects.some(same))){
+   const others=targets.filter(t=>t.activation==="A"&&t.kind!=="warp"&&t.kind!=="object").map(t=>{const kind=t.kind.replaceAll("_"," ");return t.name!=null?`${t.name} (${kind})`:`a ${kind}`;});
+   const sprite=live?.sprite_kind!=null?` (sprite ${live.sprite_kind})`:"";
+   return others.length===0?`${at(goal)} is a person or object${sprite}, which navigate_to cannot stand on; it is not listed as something you can talk to or use, so navigate_to offers no tile to talk to it from`:`${at(goal)} is a person or object${sprite}, which navigate_to cannot stand on; it is not listed as something you can talk to, so navigate_to offers no tile to talk to it from; the state also lists ${others.join(" and ")} on that tile, which pressing A may use if the game's own conditions for it are met`;
+  }
   const kind=thing===undefined||thing.kind==="object"?"person or object":thing.kind.replaceAll("_"," ");
   const name=thing?.name;
   const label=name!=null?`${name} (${kind})`:`a ${kind}`;
-  const stands=DIRECTIONS.flatMap(([side,dx,dy])=>{const stand={x:goal.x+dx,y:goal.y+dy};return free(stand)?[`${at(stand)} facing ${OPPOSITE[side]}`]:[];});
-  return stands.length===0?`${at(goal)} is ${label}, which navigate_to cannot stand on, and none of its free neighbouring tiles can be reached from here; choose a reachable waypoint nearer to it`:`${at(goal)} is ${label}, which navigate_to cannot stand on; to talk to it or use it, walk to one of these free tiles, face it and press A: ${stands.join("; ")}`;
+  const usable=scripted===null||scripted.length===0||thing?.kind!=="object"?reachable:reachable.filter(({stand})=>talker(stand)!==undefined);
+  if(scripted!==null&&scripted.length>0&&reachable.length>0&&usable.length===0)return `${at(goal)} is ${label}, which navigate_to cannot stand on; it is at elevation ${[...new Set(scripted.map(t=>String(t.elevation)))].join(" or ")}, and every free neighbouring tile navigate_to can reach puts you at another elevation, where facing it and pressing A does not reach it; choose a waypoint at its elevation`;
+  // Each usable stand reaches the scripted object at its arrival elevation; stacked objects can differ per stand.
+  const reached=scripted!==null&&scripted.length>0&&thing?.kind==="object"?usable.map(({stand})=>talker(stand)):[];
+  const call=(t:typeof person):string=>t?.name??"an unnamed person or object";
+  const several=new Set(reached.map(t=>t?.local_id)).size>1;
+  const first=reached[0];
+  const named=several?`${[...new Set(reached.map(call))].join(" or ")} (persons or objects stacked at different elevations)`:first===undefined?label:first.name!=null?`${first.name} (person or object)`:"a person or object";
+  const stands=usable.map(({stand,side},i)=>`${at(stand)} facing ${OPPOSITE[side]}${several?` (reaches ${call(reached[i])})`:""}`);
+  return stands.length===0?`${at(goal)} is ${label}, which navigate_to cannot stand on, and none of its free neighbouring tiles can be reached from here; choose a reachable waypoint nearer to it`:`${at(goal)} is ${named}, which navigate_to cannot stand on; to talk to ${several?"one":"it or use it"}, walk to one of these free tiles, face it and press A: ${stands.join("; ")}`;
  }
  if(standable(tile))return null;
  const what=LEDGES.has(tile.behavior)?"a ledge, which you can only hop over in its arrow direction":WATER.has(tile.behavior)?"water":tile.collision!==0?"a wall or other solid tile":`terrain navigate_to does not walk on (metatile behavior 0x${tile.behavior.toString(16).padStart(2,"0")})`;
@@ -134,7 +186,96 @@ function targetReason(state:GameStateSnapshot,goal:Point,options:NavigationOptio
  const nearest=sorted.find(free);
  // connection-edge-tiles-v1: an edge tile also says which map it leads to and how to cross.
  const edge=nearest!==undefined&&edges?edgeNote(state.topology,nearest)??"":"";
- return `${at(goal)} is ${what}, not a walkable tile; ${nearest===undefined?`no walkable tile navigate_to can reach lies within ${String(NEAREST_RADIUS)} steps of it`:`the nearest walkable tile navigate_to can reach is ${at(nearest)}${edge}`}`;
+ return `${at(goal)} is ${what}, not a walkable tile; ${nearest===undefined?`no walkable tile navigate_to can reach lies within ${String(NEAREST_RADIUS)} steps of it`:`the nearest walkable tile navigate_to can reach is ${at(nearest)}${edge}`}${gatedNearer(state,geometry,goal,sorted,nearest,loose,options)}`;
+}
+const standableTile=(options:NavigationOptions)=>{
+ const walkable=options.floor===true?FLOOR:LEGACY_WALKING;
+ return (t:Tile|undefined):boolean=>t!==undefined&&t.collision===0&&t.behavior!==0x69&&(walkable.has(t.behavior)||(options.oneWay===true&&EDGE_WALLS.has(t.behavior)));
+};
+// Replays the planner's moves along a path: the first matching trigger stepped on before its last tile, and the
+// walker's elevation at its end (a multi-level tile keeps the elevation the route brought, GAME_RULE.entered).
+function walked(state:GameStateSnapshot,path:readonly Direction[],options:NavigationOptions):{readonly crossed:MatchingTrigger|null;readonly elevation:number}|null {
+ const geometry=options.mode==="full"?fullGeometry(state):localGeometry(state);
+ const start=state.position;if(geometry===null||start===null)return null;
+ let first:MatchingTrigger|null=null;
+ const {entered,jumped}=options.elevation==="legacy"?LEGACY_RULE:GAME_RULE;
+ let p=start,here=geometry.tile(start)?.elevation??geometry.elevation,elevation=geometry.elevation;
+ for(const [i,direction] of path.entries()){
+  const delta=DIRECTIONS.find(([d])=>d===direction);if(delta===undefined)return null;
+  const next={x:p.x+delta[1],y:p.y+delta[2]},tile=geometry.tile(next);if(tile===undefined)return null;
+  if(options.ledges===true&&LEDGES.get(tile.behavior)===direction&&!geometry.warps.some(w=>w.x===next.x&&w.y===next.y)){
+   const landing={x:next.x+delta[1],y:next.y+delta[2]},land=geometry.tile(landing);if(land===undefined)return null;
+   elevation=jumped(elevation,here,tile.elevation,land.elevation);here=land.elevation;p=landing;
+  }else{elevation=entered(elevation,tile.elevation);here=tile.elevation;p=next;}
+  const crossed=i<path.length-1?triggerAt(options.triggers,p,elevation):undefined;
+  first??=crossed??null;
+ }
+ return {crossed:first,elevation};
+}
+// navigation-truth-v1: a nearer walkable tile the planner could reach only by crossing a matching trigger.
+function gatedNearer(state:GameStateSnapshot,geometry:Geometry,goal:Point,sorted:readonly Point[],nearest:Point|undefined,loose:(p:Point,plan:NavigationOptions)=>boolean,options:NavigationOptions):string {
+ if(options.triggers===undefined||options.triggers.length===0)return "";
+ const open:NavigationOptions={...options,triggers:[]};
+ const gated=sorted.slice(0,nearest===undefined?sorted.length:sorted.indexOf(nearest)).find(p=>loose(p,open));
+ if(gated===undefined)return "";
+ const path=planNavigation(state,gated,open);
+ const walk=path===null?null:walked(state,path,options);
+ const crossed=walk?.crossed??triggerAt(options.triggers,gated,walk?.elevation??geometry.elevation)??null;
+ if(crossed===null)return "";
+ const near=nearest===undefined?`within ${String(NEAREST_RADIUS)} steps`:distance(gated,goal)<distance(nearest,goal)?"closer":"as close";
+ return crossed.x===gated.x&&crossed.y===gated.y?`; ${at(gated)} is ${near}, but it is ${triggerText(crossed)}`:`; ${at(gated)} is ${near}, but every route navigate_to sees to it crosses ${crossingText(crossed)}`;
+}
+// navigation-truth-v1: the goal is reachable only across a matching trigger.
+function triggerReason(state:GameStateSnapshot,goal:Point,options:NavigationOptions):string|null {
+ if(options.triggers===undefined||options.triggers.length===0)return null;
+ const open=planNavigation(state,goal,{...options,triggers:[]});
+ const crossed=open===null?null:walked(state,open,options)?.crossed??null;
+ if(crossed===null)return null;
+ return `every route navigate_to sees to ${at(goal)} crosses ${crossingText(crossed)}; stepping on such a tile runs a script that can stop you or send you back, so navigate_to does not walk across one; target ${at(crossed)} itself to step on it on purpose`;
+}
+// navigation-refusal-reasons-v2: an in-window goal with no route inside the local window. The tiles named are
+// reachable window-edge tiles with an unseen neighbour inside the map, one per side, nearest the goal first.
+// Only a goal the player could stand on: walkable, with no person, object or warp on it.
+const SIDES:Readonly<Record<Direction,string>>={UP:"north",DOWN:"south",LEFT:"west",RIGHT:"east"};
+function windowReason(state:GameStateSnapshot,goal:Point,options:NavigationOptions):string|null {
+ if(options.mode==="full")return null;
+ const geometry=localGeometry(state),grid=state.navigation_grid;
+ if(geometry===null||grid==null||geometry.bounds===null)return null;
+ const bounds=geometry.bounds;
+ const standable=standableTile(options);
+ const same=(p:Point):boolean=>p.x===goal.x&&p.y===goal.y;
+ // Only when no route lies inside the window even with every terrain rule the game has (ledge hops, one-way tiles,
+ // walkable floor, the game's elevation rule, matching triggers ignored): a route the configured switches miss is not a route that leaves the window.
+ if(planNavigation(state,goal,{...options,ledges:true,oneWay:true,floor:true,elevation:"game",triggers:[]})!==null)return null;
+ if(!standable(geometry.tile(goal))||geometry.objects.some(same)||geometry.warps.some(same)||(state.interaction_targets??[]).some(t=>t.kind==="object"&&same(t))||(state.world_context?.objects??[]).some(o=>same(o)&&o.map_id[0]===state.map_id?.[0]&&o.map_id[1]===state.map_id[1]))return null;
+ const best=new Map<Direction,Point>();
+ for(const t of grid.tiles){
+  const sides=DIRECTIONS.filter(([,dx,dy])=>{const n={x:t.x+dx,y:t.y+dy};return n.x>=0&&n.y>=0&&n.x<bounds.width&&n.y<bounds.height&&geometry.tile(n)===undefined;});
+  if(sides.length===0||!standable(t)||geometry.objects.some(o=>o.x===t.x&&o.y===t.y)||geometry.warps.some(w=>w.x===t.x&&w.y===t.y))continue;
+  const path=planNavigation(state,t,options);
+  if(path===null||triggerAt(options.triggers,t,walked(state,path,options)?.elevation??geometry.elevation)!==undefined)continue;
+  for(const [side] of sides){const held=best.get(side);if(held===undefined||distance(t,goal)<distance(held,goal)||(distance(t,goal)===distance(held,goal)&&(t.y<held.y||(t.y===held.y&&t.x<held.x))))best.set(side,{x:t.x,y:t.y});}
+ }
+ const listed=[...best.entries()].sort(([,a],[,b])=>distance(a,goal)-distance(b,goal)||a.y-b.y||a.x-b.x);
+ const inside=`no route to ${at(goal)} lies inside the 15x15 local map navigate_to plans over`;
+ return listed.length===0?`${inside}, and navigate_to can reach no tile on that local map's edge from here; choose another target`:`${inside}, so any route leaves it; reachable tiles on its edge, nearest ${at(goal)} first: ${listed.map(([side,p])=>`${at(p)} on the ${SIDES[side]} edge`).join(", ")}; walk to one, then call navigate_to ${at(goal)} again`;
+}
+// navigation-truth-v1: who now stands on the route tile a blocked step would have entered.
+function blocker(state:GameStateSnapshot,mode:NavigationMode,tiles:readonly Point[]):string|null {
+ const geometry=mode==="full"?fullGeometry(state):localGeometry(state);
+ for(const p of tiles){
+  const same=(o:Point):boolean=>o.x===p.x&&o.y===p.y;
+  // Collision compares the player's and the object's elevations (DoesObjectCollideWithObjectAt): a listed object at
+  // another elevation is not the one in the way.
+  const listed=(state.interaction_targets??[]).filter(t=>t.kind==="object"&&same(t));
+  const elsewhere=new Set(geometry===null?[]:listed.filter(t=>!elevationsMatch(t.elevation,geometry.elevation)).map(t=>t.local_id));
+  const named=listed.find(t=>!elsewhere.has(t.local_id))?.name;
+  const here=(state.world_context?.objects??[]).filter(o=>same(o)&&o.map_id[0]===state.map_id?.[0]&&o.map_id[1]===state.map_id[1]);
+  const live=here.find(o=>!elsewhere.has(o.local_id));
+  const who=named!=null?`${named} (person or object)`:live?.sprite_kind!=null?`a person or object (sprite ${live.sprite_kind})`:live!==undefined||(here.length===0&&geometry?.objects.some(same)===true)?"a person or object":null;
+  if(who!==null)return `blocked: ${who} is now on ${at(p)}, the next tile of the route; wait for it to move or choose another approach`;
+ }
+ return null;
 }
 // A warp the planner cannot reach: someone stands on it, or (pokeemerald TryDoorWarp) a door is
 // entered only by walking north into it from the tile below, and that tile is not usable from here.
@@ -228,7 +369,9 @@ export function planNavigation(state:GameStateSnapshot,goal:Point,options:Naviga
     const landing={x:next.x+dx,y:next.y+dy},land=geometry.tile(landing);
     if(land===undefined||occupied.has(key(landing))||warps.has(key(landing))||land.collision!==0||land.behavior===0x69||!walkable.has(land.behavior))continue;
     if(mismatch(node.elevation,land.elevation))continue;
-    pending.push(node.cost+1+step(land)+distance(landing,goal),{p:landing,here:land.elevation,elevation:jumped(node.elevation,node.here,tile.elevation,land.elevation),cost:node.cost+1+step(land),parent:node,direction});continue;
+    const landed=jumped(node.elevation,node.here,tile.elevation,land.elevation);
+    if(distance(landing,goal)!==0&&triggerAt(options.triggers,landing,landed)!==undefined)continue;
+    pending.push(node.cost+1+step(land)+distance(landing,goal),{p:landing,here:land.elevation,elevation:landed,cost:node.cost+1+step(land),parent:node,direction});continue;
    }
    if(options.oneWay===true&&(walled(tile,OPPOSITE[direction])||walled(geometry.tile(node.p),direction)))continue;
    if(!(walkable.has(tile.behavior)||(options.oneWay===true&&EDGE_WALLS.has(tile.behavior))))continue;
@@ -236,7 +379,9 @@ export function planNavigation(state:GameStateSnapshot,goal:Point,options:Naviga
    if((tile.collision!==0&&!door)||(tile.behavior===0x69&&!door))continue;
    if(warps.has(key(next))&&distance(next,goal)!==0)continue;
    if(mismatch(node.elevation,tile.elevation))continue;
-   pending.push(node.cost+step(tile)+distance(next,goal),{p:next,here:tile.elevation,elevation:entered(node.elevation,tile.elevation),cost:node.cost+step(tile),parent:node,direction});
+   const arrived=entered(node.elevation,tile.elevation);
+   if(distance(next,goal)!==0&&triggerAt(options.triggers,next,arrived)!==undefined)continue;
+   pending.push(node.cost+step(tile)+distance(next,goal),{p:next,here:tile.elevation,elevation:arrived,cost:node.cost+step(tile),parent:node,direction});
   }
  }
  return !goalKnown&&best!==start ? route(best) : null;
@@ -248,6 +393,12 @@ export interface NavigationPorts {
  readonly refusalReasons?:boolean;
  // Name the map a nearest edge tile leads to (connection-edge-tiles-v1); needs refusalReasons.
  readonly connectionEdges?:boolean;
+ // navigation-truth-v1: talk offers only for scripted objects, named blockers, where a partial walk stopped.
+ readonly truth?:boolean;
+ // With truth: plan around coordinate triggers whose condition matches now (coordinate-script-conditions-v1).
+ readonly triggers?:boolean;
+ // navigation-refusal-reasons-v2: say when an in-window goal's route leaves the local window.
+ readonly windowReasons?:boolean;
  readonly read:(signal?:AbortSignal)=>Promise<GameStateSnapshot>;
  readonly press:(id:string,params:{buttons:Button[];walking?:boolean},signal?:AbortSignal,check?:BeforePressCheck)=>Promise<AgentToolResult<unknown>>;
  readonly observe:(id:string,signal?:AbortSignal)=>Promise<AgentToolResult<unknown>>;
@@ -284,7 +435,7 @@ const terrainRules=(ports:NavigationPorts):string=>{
  return rules.length===0?"avoids unsupported terrain":`avoids unsupported terrain, ${rules.join(", ")},`;
 };
 export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
- const mode:NavigationMode=ports.fullMap===true?"full":"local";
+ const mode:NavigationMode=ports.fullMap===true?"full":"local",truth=ports.truth===true;
  const limit=mode==="full"?MAX_FULL_ROUTE_COMMANDS:MAX_NAVIGATION_COMMANDS;
  const bound=ports.maxCommands??limit;
  if(!Number.isInteger(bound)||bound<1||bound>limit)throw new Error(`Navigation command bound must be 1..${String(limit)}`);
@@ -295,6 +446,7 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
   signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
   let state=await ports.read(signal),commands=0,status="command limit",last:AgentToolResult<unknown>|undefined;
   let shortest=Infinity,stalled=0,unready=false;
+  const origin=state.position;
   const sameMap=():boolean=>state.map_id?.[0]===goal.map_id[0]&&state.map_id[1]===goal.map_id[1];
   while(commands<bound){
    signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
@@ -304,9 +456,14 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
     if(state.map_id!==null){status=crossMapReason(state,state.map_id,goal);break;}
    }
    if(!ready(state,mode)){status=ports.refusalReasons===true?unreadyReason(state):"field input or navigation geometry unavailable";unready=true;break;}
-   const options:NavigationOptions={mode,ledges:ports.ledges===true,oneWay:ports.oneWay===true,grassCost:ports.grassCost===true,floor:ports.floor===true,elevation:ports.elevation??"game"};
+   const options:NavigationOptions={mode,ledges:ports.ledges===true,oneWay:ports.oneWay===true,grassCost:ports.grassCost===true,floor:ports.floor===true,elevation:ports.elevation??"game",...(truth&&ports.triggers===true?{triggers:matchingTriggers(state)}:{})};
    const path=planNavigation(state,goal,options);
-   if(path===null){status=(ports.counters===true?counterHint(state,goal,options):null)??(ports.refusalReasons===true?targetReason(state,goal,options,ports.connectionEdges===true):null)??(mode==="full"?"no supported path on the current map; choose a reachable waypoint":"no supported local path; choose a reachable local waypoint");break;}
+   if(path===null){
+    status=(ports.counters===true?counterHint(state,goal,options,truth):null)??(ports.refusalReasons===true?targetReason(state,goal,options,ports.connectionEdges===true,truth):null)??(truth?triggerReason(state,goal,options):null)??(ports.windowReasons===true?windowReason(state,goal,options):null)??(mode==="full"?"no supported path on the current map; choose a reachable waypoint":"no supported local path; choose a reachable local waypoint");
+    const here=state.position;
+    if(truth&&commands>0&&origin!==null&&here!==null&&distance(origin,here)!==0)status=`walked from ${at(origin)} to ${at(here)}, then stopped: ${status}`;
+    break;
+   }
    const direction=path[0];if(direction===undefined){status="arrived at requested coordinate";break;}
    if(mode==="full"){if(path.length<shortest){shortest=path.length;stalled=0;}else if(++stalled>=NO_PROGRESS_PRESSES){status="route not converging; inspect obstacles and choose another approach";break;}}
    const planned=state,previousFacing=state.facing; const before=state.position;if(before===null)throw new Error("Navigation position unavailable");
@@ -323,12 +480,14 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
    const span=ports.ledges===true&&hopAhead(planned,mode,before,direction,delta[1],delta[2])?2:1;
    if(distance(before,after)===0){
     if(state.facing===direction.toLowerCase()&&previousFacing!==state.facing){continue;}
-    status="blocked; inspect obstacle and choose another approach";break;
+    status=(truth?blocker(state,mode,Array.from({length:span},(_,k)=>({x:before.x+delta[1]*(k+1),y:before.y+delta[2]*(k+1)}))):null)??"blocked; inspect obstacle and choose another approach";break;
    }
    if(after.x!==before.x+delta[1]*span||after.y!==before.y+delta[2]*span){status="unexpected movement; inspect new state";break;}
    if(distance(after,goal)===0){status="arrived at requested coordinate";break;}
   }
   last=await ports.observe(id,signal);state=resultState(last);
+  // The cap text describes the observation returned with it: "call again" only when the walk can go on.
+  if(truth&&status==="command limit"){const here=state.position;status=here!==null&&sameMap()&&ready(state,mode)?`command limit: stopped at ${at(here)} after ${String(commands)} ordinary button attempts, the most one navigate_to call makes; call navigate_to again to continue to ${at(goal)}`:`command limit: stopped after ${String(commands)} ordinary button attempts, the most one navigate_to call makes; the field is no longer free to walk, so inspect the new state`;}
   return {content:[{type:"text",text:`Navigation: ${status}; ${String(commands)} ordinary button attempts.`},...last.content],details:{state,navigation:{status,commands,target:goal,unready}}};
  }};
 }
@@ -339,5 +498,5 @@ export function withNavigation(base:readonly AgentTool[],features:FeatureSet,sta
  const tools=[...base];if(!features["bounded-navigation-v1"])return tools;
  const press=base.find(tool=>tool.name==="press"),observe=base.find(tool=>tool.name==="observe");
  if(press===undefined||observe===undefined||!isCheckedPress(press))throw new Error("Navigation requires ordinary game tools");
- tools.push(navigationTool({ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],crossMapGoal:features["cross-map-goal-v1"],read:signal=>state.read(signal),press:(id,params,signal,check)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"]}));return tools;
+ tools.push(navigationTool({ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],truth:features["navigation-truth-v1"],triggers:features["coordinate-script-conditions-v1"],windowReasons:features["navigation-refusal-reasons-v2"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],crossMapGoal:features["cross-map-goal-v1"],read:signal=>state.read(signal),press:(id,params,signal,check)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"]}));return tools;
 }

@@ -96,6 +96,8 @@ Report branch, frozen head, packet sha256, verdicts, gates, switch ids and inten
 
 - 2026-10-16: operator (the operator, 3:54 PM New York time): "reword and land, no additional review"; reword committed by the thread owner as a41e058d. Merged main 49e18c58 (surf-gated-exits-v1): registry reapplied after surf-gated-exits-v1, position tests re-bumped (pushback slice -10,-8; readout-truth slices -6,-3). Gates run after the next main merge.
 
+- 2026-10-16: merged main 03e45115 (surf-gated exits joins bundle-v-control), clean. Gates (ROM set): build OK; test agent 1951, viewer 1003, pytest 2498 passed; lint, verify-vendor, experiments-check (80), pages-check OK; coverage agent 99.24/94.59/98.35, viewer 97.75/91.33/93.97, python 97.55/93.60/100 (lines/branches/functions). No review round (operator waived it at 3:54 PM).
+
 ## Principles Adherence (rounds 1-2; round 2 packet base main be428cdb)
 
 | ID | Score | Evidence |

@@ -66,7 +66,7 @@ No new inputs from outside the process: both modules read recorded run events. N
 - [x] Modules, registry, presets, DEFAULT_NEXT_RUN, events schema (`just schema`), recorder, decision probe, viewer labels
 - [x] Gates: test, lint, build, coverage ≥90
 - [x] Replay on the run snapshot: entries and precision, same-plan firings and false positives; before/after excerpts via the decision probe
-- [ ] COMMIT (GREEN)
+- [x] COMMIT: `feat: disproved-beliefs-v1 ledger of what the game contradicted and same-plan-breaker-v1 supervisor note (both default off)` (c33cb859)
 
 **M3 — explainers, pending experiments, review, merge**
 - [ ] Two explainers + FEATURE_EXPLAINERS + README; pending `experiments/disproved-beliefs.json`, `experiments/same-plan-breaker.json`; readiness rows
@@ -88,6 +88,8 @@ Report per switch: id, model-facing before/after excerpts from this run, precisi
   - Gates: `just coverage` exit 0: agent 1460 tests, 97.82 stmts / 94.48 branches / 98.17 funcs / 99.08 lines; viewer 822 tests, 95.19 / 90.63 / 93.55 / 97.65; Python 2132 passed, lines 97.14 branches 92.80 functions 100. New modules: disproved-beliefs.ts lines 100 branches 92.26; same-plan.ts lines 100 branches 91.81. `just lint`: tsc, eslint, ruff clean; mypy only the known worktree `mgba._pylib` import-not-found. `just build` green.
   - Full-run replay (snapshot, 1006 decisions, turns 1–1009): the ledger made 4 entries, all true contradictions (precision 4/4): Mom's push-back at Brendan's front door (T59, dropped T61 when intro_stage 4→5), PROF. BIRCH placed on lab tiles (T81–T89, T124–T125; dropped T214 when rival_stage 0→2), the twin's push-back (15 tries T142–T170; dropped T214), Birch's Route 101 push-back (47 tries T261–T307; dropped T335, birch_lab_stage 0→2). Delivered on 206 model calls. Rejected candidates: "a woman (MOM) at (8,7)" (parenthetical, T177–T178), "RIVAL_MAY_NORMAL has appeared at (2,5)" (sprite kind), "The scientist (Prof. Birch) is at (8,3)" (parenthetical, a true belief lost by the conservative rule). Missed: T225–T228's third lab trip (no tile claim; the entry had been dropped at T214).
   - Same-plan full-run replay: 28 notes (twin T144–T171 ×10, Route 101 T264–T306 ×15, Route 103 T780, T800, T803), all in windows where none of the 3 decisions reached a new state; 0 in walking, battles, truck or intro. Near-identical plan windows (≥0.80) number 398 of 1006 decisions; the state rule suppresses all but 79, and re-arming every 3 decisions leaves 28 notes. ON shifts the T171 drought briefing to T172 (the same-plan note occupied the stall slot); every other guard event is identical to OFF.
+
+- 2026-10-16 04:10 AM EDT: M3 RED: `panels.test.ts` asserts both cards link their explainers and the tracked pages carry the run's own ledger line and note; `server.test.ts` serves both through the allowlist. Both fail (no mapping, no files).
 
 ## Surprises
 

@@ -7,6 +7,7 @@ import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {pageLines,DialogueRecord,type AutoAdvanceRecorder} from "./dialogue-auto-advance.js";
 import {DialogueLog,speakerLabel} from "./dialogue-log.js";
 import {SupervisorBriefing} from "./loop-supervisor.js";
+import {InstructionLedger,instructionLedger} from "./instruction-ledger.js";
 import {dialogueUnits} from "./harness.js";
 import {observeTool,pressTool} from "./game-tools.js";
 import {playGameTools} from "./play-wiring.js";
@@ -240,3 +241,33 @@ describe("script-line-presence-v1: registry",()=>{
  });
 });
 
+
+describe("script-line-presence-v1: the instruction ledger re-shows the tag (review round 1)",()=>{
+ const LEDGER:FeatureSet={...ON,"instruction-ledger-v1":true};
+ it("ON: received instructions carry the tag in the text and in the recorded ledger_context",async()=>{
+  const recorded:string[]=[];let subscriber:((e:RunEvent)=>void)|undefined;
+  const ledger=instructionLedger(LEDGER,{subscribe:o=>{subscriber=o;},recordLedgerContext:b=>{recorded.push(b.text);return {seq:1,turn:1};}},m=>Promise.resolve(m));
+  for(const e of withPresence(EVENTS,true))subscriber?.(e);
+  const sent=await ledger?.transformContext([]);
+  const text=recorded[0]??"";
+  expect(text).toContain(`#5893 turn 261 · ROUTE101 (map 0/16) · (no speaker shown by the game; on screen: ${AT_BIRCH}): "Wh-Where are you going?!\nDon't leave me like this!"`);
+  expect(text).toContain(`#5845 turn 259 · ROUTE101 (map 0/16) · ${TAG23}: "In my BAG!\nThere's a POKé BALL!"`);
+  expect(sent?.at(-1)).toMatchObject({role:"user",content:text});
+ });
+ it("OFF: the ledger text is today's",()=>{
+  const ledger=new InstructionLedger({...OFF,"instruction-ledger-v1":true});
+  for(const e of EVENTS)ledger.observe(e);
+  expect(ledger.text()).toContain(`#5845 turn 259 · ROUTE101 (map 0/16): "In my BAG!\nThere's a POKé BALL!"`);
+  expect(ledger.text()).not.toContain("no speaker shown");
+ });
+});
+
+describe("script-line-presence-v1: pending experiment (review round 1)",()=>{
+ it("names every registry switch explicitly, in order, with only this switch flipped in the candidate",()=>{
+  const raw=JSON.parse(readFileSync(new URL("../../../experiments/script-line-presence.json",import.meta.url),"utf8")) as {changedFeature:string;incumbent:{features:Record<string,boolean>}};
+  expect(raw.changedFeature).toBe("script-line-presence-v1");
+  expect(Object.keys(raw.incumbent.features)).toEqual([...SWITCHABLE_FEATURES]);
+  expect(raw.incumbent.features["script-line-presence-v1"]).toBe(false);
+  expect(raw.incumbent.features["dialogue-auto-advance-v1"]).toBe(true);
+ });
+});

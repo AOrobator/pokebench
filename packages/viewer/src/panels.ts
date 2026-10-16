@@ -379,6 +379,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "pushback-loop-detection-v1":"pushback-loop-detection-v1.html",
  "pushback-press-result-v1":"pushback-press-result-v1.html",
  "battle-observation-loop-v1":"battle-observation-loop-v1.html",
+ "ineffective-loops-v1":"ineffective-loops-v1.html",
  "milestone-stall-stop-v1":"milestone-stall-stop-v1.html",
  "text-only-supervisor-v1":"text-only-supervisor-v1.html",
  "navigation-refusal-reasons-v1":"navigation-refusal-reasons-v1.html",

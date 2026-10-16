@@ -121,3 +121,7 @@ explainers/trainer-heal-guidance-v1.html served=60d85fbb59d4d32ba2a7b8a495cef431
 explainers/low-hp-trainer-warning-v1.html served=d12a3f37b37f64a8be8e13dd4290cc73c41d396a0e910376a7e9e845108394a6 tracked=d12a3f37b37f64a8be8e13dd4290cc73c41d396a0e910376a7e9e845108394a6
 events.jsonl eced4fda02843f528bdb75e976e86fa35717a239802d2b33270921412e1a715e
 ```
+
+**Round 6** (base 9e27986a, head 60f66178, diff sha256 32174dd1ab1bca963f055781146fb45a6c2ccfade62c0c7494a03e6f1d3d1434). Claude (subagent lane): VERDICT: LGTM. Grok (cursor-grok-4.5-high): VERDICT: LGTM. GPT (Codex gpt-5.6-sol xhigh; Cursor GPT at its usage limit): VERDICT: LGTM.
+
+**Landed** on local main by `git merge --ff-only 60f66178` (main was 9e27986a, unchanged since sealing; merge slot from the coordinator; operator standing approval, the operator 5:43 AM and 6:55 AM EDT). `just test` on main after landing: vitest agent 1728, viewer 927; pytest 2299, all pass. Next (not this branch): the readiness thread adds both switches to the bundle arm of bundle-v-control; repin both pending experiments to the merge SHA with `just experiment-pin`; restart viewer 8790 only via the coordinator.

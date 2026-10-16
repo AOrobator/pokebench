@@ -745,6 +745,20 @@ it("links the adjacent tiles card to its tracked explainer, which shows the real
  expect(html).toContain("adjacent-tiles-v1");
  expect(html).toContain("Next tiles: up (8,6) ledge (v), hops down only, cannot be entered from here; down (8,8) clear (.); left (7,7) clear (.); right (9,7) clear (.)");
 });
+it("links the disproved-beliefs and same-plan cards to their tracked explainers, which show the run's own ledger and note",()=>{
+ expect(FEATURE_EXPLAINERS["disproved-beliefs-v1"]).toBe("disproved-beliefs-v1.html");
+ expect(FEATURE_EXPLAINERS["same-plan-breaker-v1"]).toBe("same-plan-breaker-v1.html");
+ const log=new Log();log.add(0,{...START,harness_features:["disproved-beliefs-v1","deterministic-loop-guard-v1","same-plan-breaker-v1"]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector('[data-feature="disproved-beliefs-v1"] a')?.getAttribute("href")).toBe("/explainers/disproved-beliefs-v1.html");
+ expect(doc.querySelector('[data-feature="same-plan-breaker-v1"] a')?.getAttribute("href")).toBe("/explainers/same-plan-breaker-v1.html");
+ const ledger=readFileSync(fileURLToPath(new URL("../../../docs/explainers/disproved-beliefs-v1.html",import.meta.url)),"utf8");
+ expect(ledger).toContain("disproved-beliefs-v1");
+ expect(ledger).toContain("Moving UP from (11,1) in LITTLEROOT TOWN (map 0/9): you tried it 3 times, at turns 142, 144, 146 (latest: press UP).");
+ const plan=readFileSync(fileURLToPath(new URL("../../../docs/explainers/same-plan-breaker-v1.html",import.meta.url)),"utf8");
+ expect(plan).toContain("same-plan-breaker-v1");
+ expect(plan).toContain("SUPERVISOR: Your last 3 plans (turns 262, 263, 264) were the same and the game state did not change:");
+});
 it("links the three navigation-guidance cards to their tracked explainers",()=>{
  const cases:readonly(readonly[string,readonly string[]])[]=[
   ["offscreen-objects-v1",["MAY at 10,3 (out of view; where the map places this character, it may have moved)","546"]],

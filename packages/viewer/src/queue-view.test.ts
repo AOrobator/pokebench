@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { GateView } from "./experiment-gate-store.js";
 import type { ExperimentView, QueueSnapshot, TrialView } from "./experiment-store.js";
-import { QueuePanel, countsOf, queueSnapshotOf, renderQueue } from "./queue-view.js";
+import { QueuePanel, countsOf, queueSnapshotOf, renderQueue, type QueuePayload } from "./queue-view.js";
 
 const arm = (finished: number, reached: number, ms: number | null, turns: number | null) => ({ finished, reached, medianPrimaryMs: ms, medianTurns: turns, reachedPer1kTurns: turns === null ? null : (reached * 1000) / (turns * finished) });
 const trial = (index: number, state: TrialView["state"], reachedPrimary: boolean | null = null): TrialView => ({ index, arm: index % 4 === 0 || index % 4 === 3 ? "incumbent" : "candidate", state, run: state === "waiting" ? null : `r${String(index)}`, runs: [], reachedPrimary, primaryMs: reachedPrimary === true ? 2_460_000 : null, turns: state === "done" ? 600 : null });
@@ -243,6 +243,38 @@ describe("experiment queue view", () => {
     root.querySelector<HTMLElement>('[data-approve="elev"]')?.click();
     await new Promise((r) => setTimeout(r, 0));
     expect(root.querySelector('[data-eq="queue"]')?.textContent).toContain("elev is approved");
+  });
+
+  it("collapses withdrawn finals into a closed PAST entry and leads with an active fixed run", () => {
+    const finals = { runsPerArm: 8, maxWallMs: 2_700_000, target: null };
+    const trials = Array.from({ length: 32 }, (_, index) => ({ index, arm: index % 2 === 0 ? "incumbent" : "whole", state: index < 5 ? ("done" as const) : ("waiting" as const), run: index < 5 ? `r${String(index)}` : null }));
+    const withdrawn: GateView = { experiment: "full-map-navigation", title: "Whole-map navigation", state: "withdrawn", reason: "finals withdrawn after 5 of 32 runs; resume them, or discard the experiment to unblock the queue", source: "queue", finals, finalists: [{ arm: "whole", switches: { "full-map-navigation-v1": true } }], ranking: [], trials, decision: null, winner: null };
+    const stale: QueuePayload = { ...SNAPSHOT, queue: [], gate: [withdrawn], gateBlock: withdrawn.reason, autorun: { state: "idle", message: `Waiting: full-map-navigation: ${withdrawn.reason}` } };
+    const html = renderQueue(stale, "all", new Set(), true).queue;
+    expect(html).toContain('<details class="eq-gate eq-g-withdrawn eq-past" data-gate="full-map-navigation">');
+    expect(html).toContain("<summary");
+    expect(html).toContain("PAST · WHOLE-MAP NAVIGATION FINALS WITHDRAWN after 5 of 32 runs");
+    expect(html).not.toContain('<article class="eq-gate eq-g-withdrawn');
+    const inside = html.slice(html.indexOf("<details"), html.indexOf("</details>"));
+    expect(inside).toContain('data-finals-resume="full-map-navigation"');
+    expect(inside).toContain("1 · whole: <code>full-map-navigation-v1</code> ON");
+    expect(inside).toContain('<span class="pipset">');
+    expect(html).toContain("New experiments wait: finals withdrawn after 5 of 32 runs");
+    expect(html).toContain("QUEUE RUNNER · IDLE · Waiting: full-map-navigation");
+
+    const fixed = { kind: "fixed-run", version: 1, experiment: "bundle-v-control", title: "Bundle <V> vs control", definitionSha256: "d".repeat(64), pid: 1, updatedAt: "t", state: "running", total: 140, valid: 2, invalid: 0, invalidTrials: [], reserve: { usedMs: 0, totalMs: 1 }, lanes: [], lastError: null, runnerAlive: true } as const;
+    const current = renderQueue({ ...stale, fixedRuns: [{ ...fixed, experiment: "old", title: "Old", state: "finished" }, fixed] }, "all", new Set(), true).queue;
+    expect(current).toContain("New experiments wait: the queue is paused while the fixed-run experiment Bundle &lt;V&gt; vs control runs.");
+    expect(current).toContain("QUEUE RUNNER · IDLE · Paused while the fixed-run experiment Bundle &lt;V&gt; vs control runs.");
+    expect(current).not.toContain("resume them, or discard");
+    expect(current).not.toContain("Waiting: full-map-navigation");
+    expect(current).toContain('data-finals-resume="full-map-navigation"');
+    const busy = renderQueue({ ...stale, fixedRuns: [fixed], autorun: { state: "error", message: "gateway down" } }, "all", new Set()).queue;
+    expect(busy).toContain("QUEUE RUNNER · ERROR · gateway down");
+    const finished = renderQueue({ ...stale, fixedRuns: [{ ...fixed, state: "finished" }] }, "all", new Set()).queue;
+    expect(finished).toContain("New experiments wait: finals withdrawn after 5 of 32 runs");
+    expect(finished).toContain("QUEUE RUNNER · IDLE · Waiting: full-map-navigation");
+    expect(finished).not.toContain("data-finals-");
   });
 
   it("shows the winner gate: finalists, finals pips, verdicts, the promoted incumbent and why the queue waits", async () => {

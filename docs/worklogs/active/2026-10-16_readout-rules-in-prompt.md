@@ -18,6 +18,7 @@ Branch `claude/readout-rules-in-prompt` in `/private/tmp/pokebench-readout-rules
 - `Warp destinations are ...` block: depends only on warp-activation-guidance-v1 and named-warp-destinations-v1 (`destinations` is a dict, possibly empty, whenever named warps are on). Constant within a run.
 - `Trigger elevation must also match ...`: printed whenever coordinate-script-conditions-v1 is on, even with no triggers listed. Constant within a run.
 - Legend line: depends on warp-activation-guidance-v1, ledge-hops-v1, one-way-tiles-v1, full-map-navigation-v1 (the `? outside current map.` clause) and counter-talk-v1. **The counter clause is not constant**: it is printed only when the shown map actually draws a `=` (`counters and any("=" in row ...)` in live_map.py). It therefore stays in the readout, as its own line under the pointer, only on maps that draw a counter. The prompt legend never describes `=`. The `?` clause is also map-shape dependent in one corner: with full-map navigation on, a missing whole map falls back to the local map (with `?`); in that case the readout keeps its full legend (OFF form) for that observation, so the prompt is never wrong about `?`. (The evidence run had counter-talk off, so all 2,811 legend lines were one string.)
+- Known, out of scope: with objective-tracking-v1 on (off in the bundle), the objective record embeds the state JSON's `local_map`, which keeps its own legend (self-consistent text, just repeated there).
 - Out of scope, unchanged: script-trigger lists, interaction candidates, ordering, `Field-message text: unavailable; ...`, `Menu: unavailable (...)`, the state JSON `local_map` (measurement only).
 
 ## One owner: why a generated table, not a server endpoint
@@ -43,7 +44,7 @@ State-only decisions get no system-prompt section, so `state-only-decisions-v1` 
     COMMIT: `test(readout-rules): RED explainer link and serving` (3b767aa2)
   - [x] GREEN: explainer (real-ROM before/after, exact showcase section, wiring diagram, switch table, the two readout-kept cases, measured sizes, status), README line, FEATURE_EXPLAINERS mapping; `just pages-check` prints nothing; viewer 798 tests pass. Copy for operator viewing: runs/mockups/readout-rules-in-prompt-v1/readout-rules-in-prompt-v1.html (8791 returns 200; checked rendering in the browser pane).
 - [x] pending `experiments/readout-rules-in-prompt.json` (no queuePosition; activation PLAYER_NAME_CONFIRMED; provisional source.commit ecc487e9, repin at merge), readiness line, `just experiments-check`: ok, 51 experiments
-- [ ] principles self-review (docs/agent-principles.md, zero FAIL)
+- [x] principles self-review (docs/agent-principles.md PB1-PB13): 10 PASS / 3 N/A / 0 FAIL (artifact /private/tmp/rr-review/principles.md)
 - [ ] Claude CLI, Codex, Grok: VERDICT LGTM
 
 ## Session Log
@@ -52,5 +53,6 @@ State-only decisions get no system-prompt section, so `state-only-decisions-v1` 
 - 2026-10-16 02:41 AM EDT: real-ROM proof and measurement.
 - 2026-10-16 02:50 AM EDT: explainer and pending experiment.
   COMMIT: `docs(readout-rules): explainer, harness-config link and pending experiment entry` (1fe18aa6)
+- 2026-10-16 02:58 AM EDT: principles self-review clean; review round 1 frozen at this commit, base ef9244e2.
 - 2026-10-16 02:53 AM EDT: with $POKEBENCH_ROM set, the two ROM-gated rerender tests (recorded truck readout byte-for-byte) failed because their recorded run predates this switch; `env_with` now marks it off like warp-arrival-settle-v1, and the recorded readout reproduces byte-for-byte (real-ROM OFF identity). pytest with ROM: 2031 passed.
 - 2026-10-16 02:18 AM EDT: worklog drafted (the operator's proposal).

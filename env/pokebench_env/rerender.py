@@ -43,6 +43,7 @@ def read_state(
         displayed_names_enabled="displayed-place-names-v1" not in off,
         connection_edges_enabled="connection-edge-tiles-v1" not in off,
         in_game_naming_enabled="in-game-naming-readout-v1" not in off,
+        offscreen_objects_enabled="offscreen-objects-v1" not in off,
     )
 
 

@@ -4,6 +4,7 @@ import type {Button} from "./events.js";
 import {isCheckedPress,type BeforePressCheck} from "./game-tools.js";
 import type {FeatureSet} from "./features.js";
 import {parseGameState,type StateSource,type GameStateSnapshot} from "./game-state.js";
+import {COMMAND_LIMIT_HINT,NAVIGATE_FIRST_DESCRIPTION} from "./navigate-first.js";
 import {COUNTER,EDGE_WALLS,GAME_RULE,LEDGES,OPPOSITE,WATER,type Direction,type ElevationRule} from "./tile-rules.js";
 import {edgeNote} from "./connection-edges.js";
 
@@ -259,6 +260,8 @@ export interface NavigationPorts {
  readonly elevation?:ElevationMode;
  readonly grassCost?:boolean;
  readonly floor?:boolean;
+ // navigate-first-prompt-v1: the description leads with when to use the tool.
+ readonly navigateFirst?:boolean;
 }
 function resultState(result:AgentToolResult<unknown>):GameStateSnapshot {
  const details=result.details;
@@ -278,7 +281,9 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
  const limit=mode==="full"?MAX_FULL_ROUTE_COMMANDS:MAX_NAVIGATION_COMMANDS;
  const bound=ports.maxCommands??limit;
  if(!Number.isInteger(bound)||bound<1||bound>limit)throw new Error(`Navigation command bound must be 1..${String(limit)}`);
- return {name:"navigate_to",label:"Walk to a coordinate",description:(mode==="full"?FULL_DESCRIPTION:LOCAL_DESCRIPTION).replace("avoids unsupported terrain",terrainRules(ports)),parameters:Args,
+ const described=(mode==="full"?FULL_DESCRIPTION:LOCAL_DESCRIPTION).replace("avoids unsupported terrain",terrainRules(ports));
+ const description=ports.navigateFirst===true?`${NAVIGATE_FIRST_DESCRIPTION} ${described}${mode==="local"?COMMAND_LIMIT_HINT:""}`:described;
+ return {name:"navigate_to",label:"Walk to a coordinate",description,parameters:Args,
  execute:async(id,goal,signal)=>{
   signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
   let state=await ports.read(signal),commands=0,status="command limit",last:AgentToolResult<unknown>|undefined;
@@ -324,5 +329,5 @@ export function withNavigation(base:readonly AgentTool[],features:FeatureSet,sta
  const tools=[...base];if(!features["bounded-navigation-v1"])return tools;
  const press=base.find(tool=>tool.name==="press"),observe=base.find(tool=>tool.name==="observe");
  if(press===undefined||observe===undefined||!isCheckedPress(press))throw new Error("Navigation requires ordinary game tools");
- tools.push(navigationTool({ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",read:signal=>state.read(signal),press:(id,params,signal,check)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"]}));return tools;
+ tools.push(navigationTool({ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],read:signal=>state.read(signal),press:(id,params,signal,check)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"]}));return tools;
 }

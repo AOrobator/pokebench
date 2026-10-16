@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Presence Penalty</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --warn:#9a6a00; --warn-bg:#fbf1d9;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --warn:#f0c060; --warn-bg:#3a2f14; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --warn:#f0c060; --warn-bg:#3a2f14; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:760px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:68ch}
+ul{margin:0;padding-left:20px}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navb{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.4}
+.barb{fill:var(--soft)}
+.barp{fill:var(--nav)}
+.barf{fill:var(--prior)}
+.cut{fill:none;stroke:var(--prior);stroke-dasharray:4 3}
+.base{stroke:var(--rule);stroke-width:1}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.arr.g{stroke:var(--game);stroke-width:2.2}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre;overflow-x:auto;font:12.5px/1.45 var(--mono);margin:0}
+pre .add{background:var(--game-bg);color:var(--game);font-weight:600}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+tr.gap td{background:var(--prior-bg)}
+tr.aside td{color:var(--soft)}
+.tablewrap{overflow-x:auto}
+.note{background:var(--warn-bg);border-left:3px solid var(--warn);padding:10px 12px;border-radius:4px}
+</style>
+</head>
+<body>
+<main>
+<div>
+<div class="eyebrow">Harness switch · guidance · <code>presence-penalty-v1</code> · needs nothing · off by default</div>
+<h1>Presence penalty 1.5</h1>
+</div>
+<p class="lede">With the switch on, every chat request the agent sends the model carries <code>presence_penalty: 1.5</code>. That is the value the Qwen3.6-35B-A3B model card recommends for thinking mode. The serving lane's own default is 0. Nothing the model reads changes: the prompt, tools and observations are the same. Only how the server picks tokens changes.</p>
+
+<section>
+<h2>1. What a presence penalty does</h2>
+<p>Before picking each token, the server has a score (a logit) for every candidate. A presence penalty subtracts a flat amount from the score of any token that already appears in the generated text. It does not matter whether the token appeared once or ten times: the cut is the same.</p>
+<p>A frequency penalty is different. It subtracts an amount for every time the token appeared, so the cut grows with the count. This switch sets only the presence penalty. It does not set a frequency penalty.</p>
+<figure><div class="scroll">
+<svg viewBox="0 0 720 300" width="720" role="img" aria-label="Logit bars for three tokens: wait appeared 4 times, so appeared once, go never appeared. Presence penalty cuts wait and so by 1.5 each; go is unchanged.">
+<g transform="translate(60,20)">
+<text class="t" x="0" y="0">Illustrative scores for the next token</text>
+<text class="s" x="0" y="18">"wait" already appeared 4 times, "so" once, "go" never</text>
+<line class="base" x1="0" y1="240" x2="620" y2="240"/>
+<!-- scale: 1 logit = 50px, base y=240 -->
+<!-- wait: 3.2 -> presence 1.7 ; frequency 0.5x4 = 1.2 -->
+<text class="t" x="70" y="262">"wait" (×4)</text>
+<rect class="barb" x="20" y="80" width="40" height="160"/><text class="m" x="22" y="74">3.2</text>
+<rect class="barp" x="70" y="155" width="40" height="85"/><text class="m" x="72" y="149">1.7</text>
+<rect class="barf" x="120" y="180" width="40" height="60"/><text class="m" x="122" y="174">1.2</text>
+<!-- so: 2.6 -> presence 1.1 ; frequency 0.5x1 = 2.1 -->
+<text class="t" x="285" y="262">"so" (×1)</text>
+<rect class="barb" x="230" y="110" width="40" height="130"/><text class="m" x="232" y="104">2.6</text>
+<rect class="barp" x="280" y="185" width="40" height="55"/><text class="m" x="282" y="179">1.1</text>
+<rect class="barf" x="330" y="135" width="40" height="105"/><text class="m" x="332" y="129">2.1</text>
+<!-- go: 2.4 unchanged -->
+<text class="t" x="490" y="262">"go" (×0)</text>
+<rect class="barb" x="440" y="120" width="40" height="120"/><text class="m" x="442" y="114">2.4</text>
+<rect class="barp" x="490" y="120" width="40" height="120"/><text class="m" x="492" y="114">2.4</text>
+<rect class="barf" x="540" y="120" width="40" height="120"/><text class="m" x="542" y="114">2.4</text>
+<rect class="barb" x="0" y="30" width="10" height="10"/><text class="s" x="14" y="39">no penalty</text>
+<rect class="barp" x="100" y="30" width="10" height="10"/><text class="s" x="114" y="39">presence 1.5 (this switch): −1.5 if seen at all</text>
+<rect class="barf" x="380" y="30" width="10" height="10"/><text class="s" x="394" y="39">frequency 0.5 (contrast, not used): −0.5 × count</text>
+</g>
+</svg>
+</div>
+<figcaption>Illustrative numbers, not recorded scores. With presence 1.5, "wait" and "so" both lose exactly 1.5 even though "wait" appeared four times as often. "go" has not appeared, so it keeps its score and now ranks first. A frequency penalty would cut "wait" by 2.0 and "so" by only 0.5.</figcaption>
+</figure>
+<p>In llama.cpp, the "already appeared" check looks back over a recent window of tokens (its <code>penalty_last_n</code> setting), not necessarily the whole reply. This page did not record that window's value on the lane.</p>
+</section>
+
+<section>
+<h2>2. Why: the model card and the lane disagree</h2>
+<p>The Qwen3.6-35B-A3B model card lists recommended sampling for thinking mode on general tasks. The serving lane (llama-server, <code>/props</code> <code>default_generation_settings</code>) uses its own defaults. Every agent request today sends none of these fields, so the lane's defaults apply.</p>
+<div class="tablewrap">
+<table>
+<thead><tr><th>Setting</th><th>Model card (thinking, general)</th><th>Lane default</th><th>This switch ON</th></tr></thead>
+<tbody>
+<tr><td><code>temperature</code></td><td>1.0</td><td>1.0</td><td>unchanged</td></tr>
+<tr><td><code>top_p</code></td><td>0.95</td><td>0.95</td><td>unchanged</td></tr>
+<tr><td><code>top_k</code></td><td>20</td><td>20</td><td>unchanged</td></tr>
+<tr class="gap"><td><code>presence_penalty</code></td><td><b>1.5</b></td><td><b>0.0</b></td><td><b>1.5</b> on every chat request</td></tr>
+<tr class="aside"><td><code>min_p</code></td><td>0.0</td><td>0.05</td><td>unchanged (differs, out of scope here)</td></tr>
+<tr><td><code>repetition_penalty</code></td><td>1.0 (off)</td><td>not checked for this page</td><td>unchanged</td></tr>
+</tbody>
+</table>
+</div>
+<p>The highlighted row is the gap this switch closes. <code>min_p</code> also differs (0.0 on the card, 0.05 on the lane), but this switch does not touch it. That would be a separate switch.</p>
+<p><b>Observation, not proof.</b> Cook run #2 shows repetition in the model's thinking. The reasoning at turns 889 and 890 is identical. During turns 445 to 716 there were about 270 consecutive near-identical "wait" thoughts. These are the kind of loops a presence penalty is meant to discourage. Nobody has measured whether 1.5 reduces them here.</p>
+<p class="note">The model card also notes that high presence penalty values may cause language mixing (the model drifting into another language). Watch for that in ON runs.</p>
+</section>
+
+<section>
+<h2>3. Wiring</h2>
+<p>The switch takes two paths. One adds the field to the request body. The other records it in <code>run_start</code> so a run can be audited later.</p>
+<figure><div class="scroll">
+<svg viewBox="0 0 720 400" width="720" role="img" aria-label="Wiring: preset feature to samplingExtras to playLoopBase to gatewayLoopConfig onPayload to pi-ai request body to llama-server; and playSampling to run_start sampling.">
+<defs>
+<marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--soft)"/></marker>
+<marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--game)"/></marker>
+</defs>
+<rect class="navb" x="10" y="20" width="190" height="54" rx="6"/>
+<text class="t" x="22" y="42">Run preset / switchboard</text>
+<text class="m" x="22" y="60">presence-penalty-v1: true</text>
+
+<rect class="box" x="260" y="20" width="200" height="54" rx="6"/>
+<text class="t" x="272" y="42">samplingExtras(features)</text>
+<text class="m" x="272" y="60">{ presence_penalty: 1.5 }</text>
+<path class="arr" d="M200,47 L258,47" marker-end="url(#a)"/>
+
+<rect class="box" x="260" y="110" width="200" height="54" rx="6"/>
+<text class="t" x="272" y="132">playLoopBase(...)</text>
+<text class="s" x="272" y="150">live.ts: agent loop and state mode</text>
+<path class="arr" d="M360,74 L360,108" marker-end="url(#a)"/>
+
+<rect class="game hot" x="260" y="200" width="200" height="62" rx="6"/>
+<text class="t" x="272" y="222">gatewayLoopConfig</text>
+<text class="m" x="272" y="240">onPayload: {...payload,</text>
+<text class="m" x="272" y="254">            ...extras}</text>
+<path class="arr" d="M360,164 L360,198" marker-end="url(#a)"/>
+
+<rect class="box" x="260" y="300" width="200" height="62" rx="6"/>
+<text class="t" x="272" y="322">pi-ai openai-completions</text>
+<text class="m" x="272" y="340">body + presence_penalty</text>
+<text class="m" x="272" y="354">       1.5</text>
+<path class="arr g" d="M360,262 L360,298" marker-end="url(#ag)"/>
+
+<rect class="box" x="520" y="300" width="190" height="62" rx="6"/>
+<text class="t" x="532" y="322">llama-server lane</text>
+<text class="s" x="532" y="340">samples with presence</text>
+<text class="s" x="532" y="354">penalty 1.5</text>
+<path class="arr g" d="M460,331 L518,331" marker-end="url(#ag)"/>
+
+<rect class="box" x="10" y="200" width="200" height="54" rx="6"/>
+<text class="t" x="22" y="222">playSampling(...)</text>
+<text class="s" x="22" y="240">live.ts run_start</text>
+<path class="arr" d="M110,74 L110,198" marker-end="url(#a)"/>
+
+<rect class="navb" x="10" y="300" width="200" height="62" rx="6"/>
+<text class="t" x="22" y="322">run_start.sampling</text>
+<text class="m" x="22" y="340">{thinking_level, max_tokens,</text>
+<text class="m" x="22" y="354"> presence_penalty: 1.5}</text>
+<path class="arr" d="M110,254 L110,298" marker-end="url(#a)"/>
+<text class="s" x="480" y="226">the one box that</text>
+<text class="s" x="480" y="240">changes behavior</text>
+</svg>
+</div>
+<figcaption>ON path. The highlighted box is the only place the request changes: a payload hook merges <code>presence_penalty: 1.5</code> into the body pi-ai is about to send. The left path records the same value in <code>run_start</code>; the event schema gains an optional numeric <code>presence_penalty</code> under <code>sampling</code>.</figcaption>
+</figure>
+<div class="tablewrap">
+<table>
+<thead><tr><th></th><th>OFF (default)</th><th>ON</th></tr></thead>
+<tbody>
+<tr><td><code>samplingExtras</code></td><td><code>{}</code></td><td><code>{ presence_penalty: 1.5 }</code></td></tr>
+<tr><td>Payload hook</td><td>none: <code>gatewayLoopConfig</code> adds <code>onPayload</code> only when extras exist</td><td><code>onPayload</code> merges the extras</td></tr>
+<tr><td>Request body</td><td>unchanged, no <code>presence_penalty</code>; lane default (0.0) applies</td><td>same bytes plus <code>presence_penalty: 1.5</code></td></tr>
+<tr><td><code>run_start.sampling</code></td><td><code>{thinking_level, max_tokens}</code> as before</td><td><code>{thinking_level, max_tokens, presence_penalty: 1.5}</code></td></tr>
+<tr><td>What the model reads</td><td colspan="2">identical in both: prompt, tools and observations do not change</td></tr>
+</tbody>
+</table>
+</div>
+<p>Tests: <code>provider.test.ts</code> drives the real loop config through a fake gateway. OFF request bodies have no <code>presence_penalty</code> and the loop base has no hook. ON, every chat request carries 1.5 and is otherwise byte-equal to the OFF body. <code>presence-penalty.test.ts</code> covers the registry, presets, <code>samplingExtras</code>, <code>playSampling</code> and the <code>run_start</code> schema. Removing <code>samplingExtras(features)</code> from <code>playLoopBase</code> turns a test red.</p>
+</section>
+
+<section>
+<h2>4. Lane check</h2>
+<p>llama-server b10236 serving Qwen3.6-35B-A3B lists <code>presence_penalty</code> in <code>/props</code> <code>default_generation_settings</code>. A chat request with <code>presence_penalty: 1.5</code> returned HTTP 200. A <code>/completion</code> request with the same value echoed <code>generation_settings.presence_penalty = 1.5</code>. So the lane reads the field rather than ignoring it.</p>
+<p class="note"><b>Mistake.</b> Those two probe requests (about 04:08 AM New York time) reached the lane while the overnight control trial <code>runs/2026-10-16T03-50-01_qwen36-gpu1_687e</code> was live. Its turns 374 (7.6 s) and 382 (6.3 s) show outlier latencies. This was reported so the overnight thread can flag that trial. From now on, checks on this branch send no requests to either GPU lane while trials run.</p>
+</section>
+
+<section>
+<h2>5. Status</h2>
+<ul>
+<li>Branch <code>claude/nav-guidance</code>. Registered as <code>presence-penalty-v1</code> (guidance group, no dependencies). Default off in every preset.</li>
+<li>The operator wants it in the <code>bundle-v-control</code> bundle arm only. The readiness thread edits that bundle file; this branch does not.</li>
+<li>Gates green at the M3 commit: agent tests 1451 passed, coverage at or above 90 (<code>presence-penalty.ts</code> and <code>provider.ts</code> at 100%).</li>
+<li>Multi-model review: pending.</li>
+<li>Measured runs: none. There is no evidence yet that it helps or hurts.</li>
+</ul>
+</section>
+</main>
+</body>
+</html>

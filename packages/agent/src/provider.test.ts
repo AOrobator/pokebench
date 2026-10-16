@@ -6,7 +6,9 @@ import type { AssistantMessage } from "@mariozechner/pi-ai";
 import { Type } from "typebox";
 import { afterEach, describe, expect, it } from "vitest";
 import { discoverModels, selectModel } from "./gateway.js";
-import { gatewayLoopConfig } from "./provider.js";
+import { gatewayLoopConfig, playLoopBase } from "./provider.js";
+import { ALL_ON } from "./features.js";
+import { PRESENCE_PENALTY } from "./presence-penalty.js";
 
 // 1x1 transparent PNG.
 const PNG_B64 =
@@ -219,5 +221,41 @@ describe("gatewayLoopConfig", () => {
     const config = gatewayLoopConfig(selectModel(models, "think-swarm"), "off");
     expect(config).not.toHaveProperty("reasoning");
     expect(await config.getApiKey?.(config.model.provider)).toBeTruthy();
+  });
+});
+
+// presence-penalty-v1: the bundle sends the Qwen3.6 card's thinking-mode presence_penalty with every request.
+describe("presence-penalty-v1 on the wire", () => {
+  async function wire(features: typeof ALL_ON): Promise<{ requests: WireRequest[]; config: ReturnType<typeof playLoopBase>; model: ReturnType<typeof selectModel> }> {
+    const gateway = await startFakeGateway();
+    const models = await discoverModels({ gatewayUrl: gateway.url, visionModels: ["think-swarm"] });
+    const model = selectModel(models, "think-swarm");
+    const config = playLoopBase(model, "medium", "key", 4096, features);
+    const prompt: AgentMessage = { role: "user", content: "What is on screen?", timestamp: 0 };
+    await runAgentLoop([prompt], { systemPrompt: "Play.", messages: [], tools: [screenshotTool] }, config, () => undefined);
+    return { requests: gateway.requests, config, model };
+  }
+  it("OFF sends today's request body: no presence_penalty and no payload hook", async () => {
+    const { requests, config, model } = await wire({ ...ALL_ON, "presence-penalty-v1": false });
+    expect(requests).toHaveLength(2);
+    for (const request of requests) expect(request).not.toHaveProperty("presence_penalty");
+    expect(config).not.toHaveProperty("onPayload");
+    expect(config.maxTokens).toBe(4096);
+    expect(Object.keys(config).sort()).toEqual(Object.keys({ ...gatewayLoopConfig(model, "medium", "key"), maxTokens: 4096 }).sort());
+    expect(await config.getApiKey?.(config.model.provider)).toBe("key");
+    expect(playLoopBase(model, "off", undefined, 1, { ...ALL_ON, "presence-penalty-v1": false })).not.toHaveProperty("reasoning");
+  });
+  it("ON adds presence_penalty 1.5 to every chat request and leaves the rest of the body alone", async () => {
+    const off = await wire({ ...ALL_ON, "presence-penalty-v1": false });
+    const on = await wire({ ...ALL_ON, "presence-penalty-v1": true });
+    expect(PRESENCE_PENALTY).toBe(1.5);
+    expect(on.requests).toHaveLength(2);
+    on.requests.forEach((request, i) => {
+      expect(request.presence_penalty).toBe(1.5);
+      expect(Object.fromEntries(Object.entries(request).filter(([key]) => key !== "presence_penalty"))).toEqual(off.requests[i]);
+    });
+    // A payload that is not a request object passes through untouched.
+    expect(await on.config.onPayload?.("raw", on.model)).toBe("raw");
+    expect(await on.config.onPayload?.(null, on.model)).toBe(null);
   });
 });

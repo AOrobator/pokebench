@@ -1,0 +1,800 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Script Line Presence</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --wall:#9b968a; --ground:#eef0e6; --grass:#cfe6c0;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --wall:#55585e; --ground:#1f2420; --grass:#24361f; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --wall:#55585e; --ground:#1f2420; --grass:#24361f; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:760px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:68ch}
+ul{margin:0;padding-left:20px}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+svg .big{font-family:var(--mono);font-size:16px;font-weight:600}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navb{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.4}
+.wall{fill:var(--wall);stroke:var(--rule)}
+.ground{fill:var(--ground);stroke:var(--rule)}
+.grass{fill:var(--grass);stroke:var(--rule)}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.arr.p{stroke:var(--prior);stroke-width:2.2}
+.arr.g{stroke:var(--game);stroke-width:2.2}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre;overflow-x:auto;font:12.5px/1.45 var(--mono);margin:0}
+pre .add{background:var(--game-bg);color:var(--game);font-weight:600}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tablewrap{overflow-x:auto}
+</style>
+</head>
+<body>
+<main>
+<header style="display:flex;flex-direction:column;gap:10px">
+<div class="eyebrow">Harness switch · script-line-presence-v1 · observation · default off</div>
+<h1>Script line presence</h1>
+<p class="lede">When a dialogue page has no speaker, the harness now says who was on screen when it was shown. It never guesses who spoke.</p>
+</header>
+
+<section>
+<h2>The problem it answers</h2>
+<p>In live run <code>2026-10-16T02-23-17_qwen36-gpu1_sh02</code>, turn 259, the player stepped onto Route 101 and PROF. BIRCH's rescue script ran. These lines come from map scripts (pokeemerald <code>data/maps/Route101/scripts.inc</code>, <code>Route101_EventScript_StartBirchRescue</code> and the <code>PreventExit</code> scripts). The text has no <code>NAME:</code> prefix and the player faces no one, so dialogue auto-advance recorded <code>speaker: null</code> and the page list showed no speaker at all. The model never tied "my BAG" to PROF. BIRCH or to the bag object at (7,14), and walked toward Birch more than 30 times. The T307 stall briefing quoted the same pages again with no speaker.</p>
+</section>
+
+<section>
+<h2>Before and after, the T259 result</h2>
+<figure>
+<pre>Dialogue shown during this call (3 pages, in order, whole):
+1. turn 259 · ROUTE101 (map 0/16) · at 11,19: "H-help me!"
+2. turn 259 · ROUTE101 (map 0/16) · at 11,15: "Hello! You over there!
+Please! Help!"
+3. turn 259 · ROUTE101 (map 0/16) · at 11,15: "In my BAG!
+There's a POKé BALL!"</pre>
+<figcaption>Off: the block the model received (tool_result seq 5853), byte for byte. The test suite reproduces it from the recorded pages.</figcaption>
+</figure>
+<figure>
+<pre>Dialogue shown during this call (3 pages, in order, whole):
+1. turn 259 · ROUTE101 (map 0/16) · at 11,19 · <span class="add">(no speaker shown by the game; on screen: BIRCHS_BAG at 7,14)</span>: "H-help me!"
+2. turn 259 · ROUTE101 (map 0/16) · at 11,15 · <span class="add">(no speaker shown by the game; on screen: PROF. BIRCH (sprite PROF_BIRCH) at 4,13; ZIGZAGOON_1 at 5,13; BIRCHS_BAG at 7,14)</span>: "Hello! You over there!
+Please! Help!"
+3. turn 259 · ROUTE101 (map 0/16) · at 11,15 · <span class="add">(no speaker shown by the game; on screen: PROF. BIRCH (sprite PROF_BIRCH) at 4,13; ZIGZAGOON_1 at 5,13; BIRCHS_BAG at 7,14)</span>: "In my BAG!
+There's a POKé BALL!"</pre>
+<figcaption>On, with character-presence-v1 also on (as in that run): each page reads its own recorded state. Page 1 was shown before the player was walked up, when Birch was still off screen, so only the bag is listed. Exact output asserted in <code>script-line-presence.test.ts</code>.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>What "on screen" means</h2>
+<figure>
+<div class="scroll"><svg viewBox="0 0 428 350" width="428" role="img" aria-label="Page 1, state 5833: player at 11,19">
+<text x="8" y="16" class="t">Page 1, state 5833: player at 11,19</text>
+<text x="68.0" y="30" class="s" text-anchor="middle">3</text>
+<text x="108.0" y="30" class="s" text-anchor="middle">5</text>
+<text x="148.0" y="30" class="s" text-anchor="middle">7</text>
+<text x="188.0" y="30" class="s" text-anchor="middle">9</text>
+<text x="228.0" y="30" class="s" text-anchor="middle">11</text>
+<text x="268.0" y="30" class="s" text-anchor="middle">13</text>
+<text x="308.0" y="30" class="s" text-anchor="middle">15</text>
+<text x="348.0" y="30" class="s" text-anchor="middle">17</text>
+<text x="388.0" y="30" class="s" text-anchor="middle">19</text>
+<text x="32" y="48" class="s" text-anchor="end">12</text>
+<rect x="38" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="58" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="78" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="98" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="118" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="138" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="158" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="178" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="198" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="218" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="238" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="258" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="278" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="298" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="318" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="338" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="358" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="378" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="398" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<text x="32" y="68" class="s" text-anchor="end">13</text>
+<rect x="38" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="58" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="78" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="98" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="118" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="138" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="158" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="178" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="198" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="218" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="238" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="258" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="278" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="298" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="318" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="338" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="358" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="378" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="398" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<text x="32" y="88" class="s" text-anchor="end">14</text>
+<rect x="38" y="74" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="58" y="74" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="78" y="74" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="98" y="74" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="118" y="74" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="138" y="74" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="158" y="74" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="178" y="74" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="198" y="74" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="218" y="74" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="238" y="74" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="258" y="74" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="278" y="74" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="298" y="74" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="318" y="74" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="338" y="74" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="358" y="74" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="378" y="74" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="398" y="74" width="20" height="20" class="ground" stroke-width="0.5"/>
+<text x="32" y="108" class="s" text-anchor="end">15</text>
+<rect x="38" y="94" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="58" y="94" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="78" y="94" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="98" y="94" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="118" y="94" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="138" y="94" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="158" y="94" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="178" y="94" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="198" y="94" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="218" y="94" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="238" y="94" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="258" y="94" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="278" y="94" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="298" y="94" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="318" y="94" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="338" y="94" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="358" y="94" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="378" y="94" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="398" y="94" width="20" height="20" class="ground" stroke-width="0.5"/>
+<text x="32" y="128" class="s" text-anchor="end">16</text>
+<rect x="38" y="114" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="58" y="114" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="78" y="114" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="98" y="114" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="118" y="114" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="138" y="114" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="158" y="114" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="178" y="114" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="198" y="114" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="218" y="114" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="238" y="114" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="258" y="114" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="278" y="114" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="298" y="114" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="318" y="114" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="338" y="114" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="358" y="114" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="378" y="114" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="398" y="114" width="20" height="20" class="ground" stroke-width="0.5"/>
+<text x="32" y="148" class="s" text-anchor="end">17</text>
+<rect x="38" y="134" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="58" y="134" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="78" y="134" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="98" y="134" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="118" y="134" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="138" y="134" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="158" y="134" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="178" y="134" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="198" y="134" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="218" y="134" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="238" y="134" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="258" y="134" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="278" y="134" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="298" y="134" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="318" y="134" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="338" y="134" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="358" y="134" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="378" y="134" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="398" y="134" width="20" height="20" class="ground" stroke-width="0.5"/>
+<text x="32" y="168" class="s" text-anchor="end">18</text>
+<rect x="38" y="154" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="58" y="154" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="78" y="154" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="98" y="154" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="118" y="154" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="138" y="154" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="158" y="154" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="178" y="154" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="198" y="154" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="218" y="154" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="238" y="154" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="258" y="154" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="278" y="154" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="298" y="154" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="318" y="154" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="338" y="154" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="358" y="154" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="378" y="154" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="398" y="154" width="20" height="20" class="ground" stroke-width="0.5"/>
+<text x="32" y="188" class="s" text-anchor="end">19</text>
+<rect x="38" y="174" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="58" y="174" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="78" y="174" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="98" y="174" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="118" y="174" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="138" y="174" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="158" y="174" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="178" y="174" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="198" y="174" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="218" y="174" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="238" y="174" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="258" y="174" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="278" y="174" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="298" y="174" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="318" y="174" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="338" y="174" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="358" y="174" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="378" y="174" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="398" y="174" width="20" height="20" class="ground" stroke-width="0.5"/>
+<text x="32" y="208" class="s" text-anchor="end">20</text>
+<rect x="38" y="194" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="58" y="194" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="78" y="194" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="98" y="194" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="118" y="194" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="138" y="194" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="158" y="194" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="178" y="194" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="198" y="194" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="218" y="194" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="238" y="194" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="258" y="194" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="278" y="194" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="298" y="194" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="318" y="194" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="338" y="194" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="358" y="194" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="378" y="194" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="398" y="194" width="20" height="20" class="ground" stroke-width="0.5"/>
+<text x="32" y="228" class="s" text-anchor="end">21</text>
+<rect x="38" y="214" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="58" y="214" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="78" y="214" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="98" y="214" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="118" y="214" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="138" y="214" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="158" y="214" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="178" y="214" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="198" y="214" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="218" y="214" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="238" y="214" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="258" y="214" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="278" y="214" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="298" y="214" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="318" y="214" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="338" y="214" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="358" y="214" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="378" y="214" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="398" y="214" width="20" height="20" class="ground" stroke-width="0.5"/>
+<text x="32" y="248" class="s" text-anchor="end">22</text>
+<rect x="38" y="234" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="58" y="234" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="78" y="234" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="98" y="234" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="118" y="234" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="138" y="234" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="158" y="234" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="178" y="234" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="198" y="234" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="218" y="234" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="238" y="234" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="258" y="234" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="278" y="234" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="298" y="234" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="318" y="234" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="338" y="234" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="358" y="234" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="378" y="234" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="398" y="234" width="20" height="20" class="ground" stroke-width="0.5"/>
+<text x="32" y="268" class="s" text-anchor="end">23</text>
+<rect x="38" y="254" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="58" y="254" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="78" y="254" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="98" y="254" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="118" y="254" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="138" y="254" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="158" y="254" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="178" y="254" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="198" y="254" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="218" y="254" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="238" y="254" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="258" y="254" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="278" y="254" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="298" y="254" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="318" y="254" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="338" y="254" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="358" y="254" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="378" y="254" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="398" y="254" width="20" height="20" class="ground" stroke-width="0.5"/>
+<text x="32" y="288" class="s" text-anchor="end">24</text>
+<rect x="38" y="274" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="58" y="274" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="78" y="274" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="98" y="274" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="118" y="274" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="138" y="274" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="158" y="274" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="178" y="274" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="198" y="274" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="218" y="274" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="238" y="274" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="258" y="274" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="278" y="274" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="298" y="274" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="318" y="274" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="338" y="274" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="358" y="274" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="378" y="274" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="398" y="274" width="20" height="20" class="ground" stroke-width="0.5"/>
+<text x="32" y="308" class="s" text-anchor="end">25</text>
+<rect x="38" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="58" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="78" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="98" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="118" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="138" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="158" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="178" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="198" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="218" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="238" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="258" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="278" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="298" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="318" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="338" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="358" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="378" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="398" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<text x="32" y="328" class="s" text-anchor="end">26</text>
+<rect x="38" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="58" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="78" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="98" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="118" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="138" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="158" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="178" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="198" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="218" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="238" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="258" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="278" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="298" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="318" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="338" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="358" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="378" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="398" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="78" y="74" width="300" height="220" fill="none" class="hot"/>
+<text x="228.0" y="188" text-anchor="middle" class="big">@</text>
+<circle cx="188.0" cy="64.0" r="7" class="prior" stroke-width="1.5"/>
+<text x="188.0" y="68.0" text-anchor="middle" class="m">B</text>
+<circle cx="208.0" cy="64.0" r="7" class="prior" stroke-width="1.5"/>
+<text x="208.0" y="68.0" text-anchor="middle" class="m">Z</text>
+<circle cx="148.0" cy="84.0" r="7" class="navb" stroke-width="1.5"/>
+<text x="148.0" y="88.0" text-anchor="middle" class="m">b</text>
+</svg></div>
+<div class="scroll"><svg viewBox="0 0 428 350" width="428" role="img" aria-label="Pages 2 and 3, states 5839 and 5845: player at 11,15">
+<text x="8" y="16" class="t">Pages 2 and 3, states 5839 and 5845: player at 11,15</text>
+<text x="68.0" y="30" class="s" text-anchor="middle">3</text>
+<text x="108.0" y="30" class="s" text-anchor="middle">5</text>
+<text x="148.0" y="30" class="s" text-anchor="middle">7</text>
+<text x="188.0" y="30" class="s" text-anchor="middle">9</text>
+<text x="228.0" y="30" class="s" text-anchor="middle">11</text>
+<text x="268.0" y="30" class="s" text-anchor="middle">13</text>
+<text x="308.0" y="30" class="s" text-anchor="middle">15</text>
+<text x="348.0" y="30" class="s" text-anchor="middle">17</text>
+<text x="388.0" y="30" class="s" text-anchor="middle">19</text>
+<text x="32" y="48" class="s" text-anchor="end">8</text>
+<rect x="38" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="58" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="78" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="98" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="118" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="138" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="158" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="178" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="198" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="218" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="238" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="258" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="278" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="298" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="318" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="338" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="358" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="378" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="398" y="34" width="20" height="20" class="ground" stroke-width="0.5"/>
+<text x="32" y="68" class="s" text-anchor="end">9</text>
+<rect x="38" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="58" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="78" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="98" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="118" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="138" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="158" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="178" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="198" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="218" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="238" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="258" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="278" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="298" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="318" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="338" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="358" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="378" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="398" y="54" width="20" height="20" class="ground" stroke-width="0.5"/>
+<text x="32" y="88" class="s" text-anchor="end">10</text>
+<rect x="38" y="74" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="58" y="74" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="78" y="74" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="98" y="74" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="118" y="74" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="138" y="74" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="158" y="74" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="178" y="74" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="198" y="74" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="218" y="74" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="238" y="74" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="258" y="74" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="278" y="74" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="298" y="74" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="318" y="74" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="338" y="74" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="358" y="74" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="378" y="74" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="398" y="74" width="20" height="20" class="ground" stroke-width="0.5"/>
+<text x="32" y="108" class="s" text-anchor="end">11</text>
+<rect x="38" y="94" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="58" y="94" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="78" y="94" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="98" y="94" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="118" y="94" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="138" y="94" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="158" y="94" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="178" y="94" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="198" y="94" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="218" y="94" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="238" y="94" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="258" y="94" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="278" y="94" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="298" y="94" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="318" y="94" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="338" y="94" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="358" y="94" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="378" y="94" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="398" y="94" width="20" height="20" class="ground" stroke-width="0.5"/>
+<text x="32" y="128" class="s" text-anchor="end">12</text>
+<rect x="38" y="114" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="58" y="114" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="78" y="114" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="98" y="114" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="118" y="114" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="138" y="114" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="158" y="114" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="178" y="114" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="198" y="114" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="218" y="114" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="238" y="114" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="258" y="114" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="278" y="114" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="298" y="114" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="318" y="114" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="338" y="114" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="358" y="114" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="378" y="114" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="398" y="114" width="20" height="20" class="ground" stroke-width="0.5"/>
+<text x="32" y="148" class="s" text-anchor="end">13</text>
+<rect x="38" y="134" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="58" y="134" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="78" y="134" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="98" y="134" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="118" y="134" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="138" y="134" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="158" y="134" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="178" y="134" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="198" y="134" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="218" y="134" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="238" y="134" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="258" y="134" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="278" y="134" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="298" y="134" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="318" y="134" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="338" y="134" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="358" y="134" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="378" y="134" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="398" y="134" width="20" height="20" class="ground" stroke-width="0.5"/>
+<text x="32" y="168" class="s" text-anchor="end">14</text>
+<rect x="38" y="154" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="58" y="154" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="78" y="154" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="98" y="154" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="118" y="154" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="138" y="154" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="158" y="154" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="178" y="154" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="198" y="154" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="218" y="154" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="238" y="154" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="258" y="154" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="278" y="154" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="298" y="154" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="318" y="154" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="338" y="154" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="358" y="154" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="378" y="154" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="398" y="154" width="20" height="20" class="ground" stroke-width="0.5"/>
+<text x="32" y="188" class="s" text-anchor="end">15</text>
+<rect x="38" y="174" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="58" y="174" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="78" y="174" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="98" y="174" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="118" y="174" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="138" y="174" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="158" y="174" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="178" y="174" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="198" y="174" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="218" y="174" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="238" y="174" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="258" y="174" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="278" y="174" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="298" y="174" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="318" y="174" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="338" y="174" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="358" y="174" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="378" y="174" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="398" y="174" width="20" height="20" class="ground" stroke-width="0.5"/>
+<text x="32" y="208" class="s" text-anchor="end">16</text>
+<rect x="38" y="194" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="58" y="194" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="78" y="194" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="98" y="194" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="118" y="194" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="138" y="194" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="158" y="194" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="178" y="194" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="198" y="194" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="218" y="194" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="238" y="194" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="258" y="194" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="278" y="194" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="298" y="194" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="318" y="194" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="338" y="194" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="358" y="194" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="378" y="194" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="398" y="194" width="20" height="20" class="ground" stroke-width="0.5"/>
+<text x="32" y="228" class="s" text-anchor="end">17</text>
+<rect x="38" y="214" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="58" y="214" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="78" y="214" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="98" y="214" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="118" y="214" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="138" y="214" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="158" y="214" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="178" y="214" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="198" y="214" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="218" y="214" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="238" y="214" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="258" y="214" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="278" y="214" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="298" y="214" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="318" y="214" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="338" y="214" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="358" y="214" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="378" y="214" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="398" y="214" width="20" height="20" class="ground" stroke-width="0.5"/>
+<text x="32" y="248" class="s" text-anchor="end">18</text>
+<rect x="38" y="234" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="58" y="234" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="78" y="234" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="98" y="234" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="118" y="234" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="138" y="234" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="158" y="234" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="178" y="234" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="198" y="234" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="218" y="234" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="238" y="234" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="258" y="234" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="278" y="234" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="298" y="234" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="318" y="234" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="338" y="234" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="358" y="234" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="378" y="234" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="398" y="234" width="20" height="20" class="ground" stroke-width="0.5"/>
+<text x="32" y="268" class="s" text-anchor="end">19</text>
+<rect x="38" y="254" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="58" y="254" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="78" y="254" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="98" y="254" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="118" y="254" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="138" y="254" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="158" y="254" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="178" y="254" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="198" y="254" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="218" y="254" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="238" y="254" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="258" y="254" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="278" y="254" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="298" y="254" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="318" y="254" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="338" y="254" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="358" y="254" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="378" y="254" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="398" y="254" width="20" height="20" class="ground" stroke-width="0.5"/>
+<text x="32" y="288" class="s" text-anchor="end">20</text>
+<rect x="38" y="274" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="58" y="274" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="78" y="274" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="98" y="274" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="118" y="274" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="138" y="274" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="158" y="274" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="178" y="274" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="198" y="274" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="218" y="274" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="238" y="274" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="258" y="274" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="278" y="274" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="298" y="274" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="318" y="274" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="338" y="274" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="358" y="274" width="20" height="20" class="game" stroke-width="0.5"/>
+<rect x="378" y="274" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="398" y="274" width="20" height="20" class="ground" stroke-width="0.5"/>
+<text x="32" y="308" class="s" text-anchor="end">21</text>
+<rect x="38" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="58" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="78" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="98" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="118" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="138" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="158" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="178" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="198" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="218" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="238" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="258" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="278" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="298" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="318" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="338" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="358" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="378" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="398" y="294" width="20" height="20" class="ground" stroke-width="0.5"/>
+<text x="32" y="328" class="s" text-anchor="end">22</text>
+<rect x="38" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="58" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="78" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="98" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="118" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="138" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="158" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="178" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="198" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="218" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="238" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="258" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="278" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="298" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="318" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="338" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="358" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="378" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="398" y="314" width="20" height="20" class="ground" stroke-width="0.5"/>
+<rect x="78" y="74" width="300" height="220" fill="none" class="hot"/>
+<text x="228.0" y="188" text-anchor="middle" class="big">@</text>
+<circle cx="88.0" cy="144.0" r="7" class="navb" stroke-width="1.5"/>
+<text x="88.0" y="148.0" text-anchor="middle" class="m">B</text>
+<circle cx="108.0" cy="144.0" r="7" class="navb" stroke-width="1.5"/>
+<text x="108.0" y="148.0" text-anchor="middle" class="m">Z</text>
+<circle cx="148.0" cy="164.0" r="7" class="navb" stroke-width="1.5"/>
+<text x="148.0" y="168.0" text-anchor="middle" class="m">b</text>
+<circle cx="328.0" cy="44.0" r="7" class="prior" stroke-width="1.5"/>
+<text x="328.0" y="48.0" text-anchor="middle" class="m">Y</text>
+</svg></div>
+<figcaption>Recorded object positions. Green tiles and the red frame: the area counted as on screen, 7 columns and 5 rows each side of the player (@). Blue: listed. Red: live but not listed. B = PROF_BIRCH, Z = ZIGZAGOON_1, b = BIRCHS_BAG, Y = YOUNGSTER.</figcaption>
+</figure>
+<p>The GBA screen is 240 by 160 pixels, 15 by 10 tiles. The player's tile is drawn at column 7 and pixel rows 72 to 88, half a tile below centre (<code>SetSpritePosToMapCoords</code>, <code>src/event_object_movement.c</code>), so rows 5 above and 5 below are partly visible. This was checked on recorded frames: sh02 frame 5853 shows Birch on the left edge at 7 columns, and run 66d3 frames 2114 and 6160 show objects 5 rows above and 5 rows below. Objects come from the state's <code>world_context.objects</code>: live, not hidden, not the player, on the current map. They are listed top row first, then left to right.</p>
+</section>
+
+<section>
+<h2>Rules</h2>
+<div class="tablewrap"><table>
+<tr><th>Case</th><th>Tag</th></tr>
+<tr><td>Page has a speaker (<code>NAME:</code> prefix, faced sprite or faced object)</td><td>Unchanged; nothing extra recorded</td></tr>
+<tr><td>No speaker, objects on screen</td><td><code>(no speaker shown by the game; on screen: A at x,y; B at x,y)</code></td></tr>
+<tr><td>Story character on screen, character-presence-v1 on</td><td><code>PROF. BIRCH (sprite PROF_BIRCH) at 4,13</code>, named only by that switch's rule: its graphics id on a map where the story places that character (<code>env/pokebench_env/character_presence.py</code>)</td></tr>
+<tr><td>Same, character-presence-v1 off</td><td><code>PROF_BIRCH at 4,13</code></td></tr>
+<tr><td>Nothing else on screen</td><td><code>(no speaker shown by the game; on screen: nothing but you)</code></td></tr>
+<tr><td>State without position, map or object list</td><td><code>(no speaker shown by the game; who is on screen was not read)</code></td></tr>
+<tr><td>Unknown graphics</td><td><code>graphics 250 at 1,2</code></td></tr>
+</table></div>
+<p>The TypeScript copy of character-presence-v1's table is checked against one golden file, <code>packages/agent/test-support/story-characters.json</code>, by both the vitest and pytest suites, so the two cannot drift. A live object's graphics id is already resolved from <code>VAR_OBJ_GFX_ID_n</code> when it spawns, and its hide flag was clear when it spawned, so the template rule applies to it as is.</p>
+</section>
+
+<section>
+<h2>Where the tag travels</h2>
+<figure>
+<div class="scroll"><svg viewBox="0 0 700 250" width="700" role="img" aria-label="Recorded once, shown everywhere">
+<rect x="10" y="20" width="200" height="70" rx="8" class="game" stroke-width="1.5"/>
+<text x="110" y="45" text-anchor="middle" class="t">Pages.add (auto-advance)</text>
+<text x="110" y="64" text-anchor="middle" class="s">page state s, no speaker</text>
+<text x="110" y="80" text-anchor="middle" class="s">on_screen = onScreen(s)</text>
+<rect x="250" y="20" width="190" height="70" rx="8" class="box"/>
+<text x="345" y="45" text-anchor="middle" class="t">dialogue_auto_advance</text>
+<text x="345" y="64" text-anchor="middle" class="s">pages[i].on_screen</text>
+<text x="345" y="80" text-anchor="middle" class="s">(recorded, ON only)</text>
+<line x1="210" y1="55" x2="250" y2="55" class="arr g"/>
+<rect x="490" y="10" width="200" height="34" rx="6" class="navb"/><text x="590" y="32" text-anchor="middle">Dialogue shown during this call</text>
+<rect x="490" y="52" width="200" height="34" rx="6" class="navb"/><text x="590" y="74" text-anchor="middle">get_dialogue</text>
+<rect x="490" y="94" width="200" height="34" rx="6" class="navb"/><text x="590" y="116" text-anchor="middle">recall_dialogue, instruction ledger</text>
+<rect x="490" y="136" width="200" height="34" rx="6" class="navb"/><text x="590" y="158" text-anchor="middle">Supervisor "Recent dialogue"</text>
+<rect x="490" y="178" width="200" height="34" rx="6" class="navb"/><text x="590" y="200" text-anchor="middle">Stall briefing story-step pages</text>
+<path d="M440 55 L470 55 L470 27 L490 27 M470 55 L490 69 M470 55 L470 111 L490 111 M470 111 L470 153 L490 153 M470 153 L470 195 L490 195" class="arr"/>
+<rect x="250" y="160" width="190" height="56" rx="8" class="box"/>
+<text x="345" y="184" text-anchor="middle" class="t">dialogue-context-kept</text>
+<text x="345" y="202" text-anchor="middle" class="s">keeps the page list byte for byte</text>
+<line x1="490" y1="27" x2="440" y2="170" class="arr"/>
+<text x="20" y="240" class="s">The switch is read once, in withDialogueAutoAdvance, from the run's FeatureSet. Every renderer reads the recorded field.</text>
+</svg></div>
+<figcaption>Recorded once per page, then shown wherever that page is shown. Off, the field is never written, so every renderer prints today's bytes.</figcaption>
+</figure>
+<p>On in the T307 stall briefing replay (loop_guard seq 7272), the recent-dialogue line becomes: <code>turn 261, ROUTE101 (map 0/16), (no speaker shown by the game; on screen: PROF. BIRCH (sprite PROF_BIRCH) at 4,13; ZIGZAGOON_1 at 5,13; BIRCHS_BAG at 7,14): "Wh-Where are you going?! Don't leave me like this!" | …</code>. Off reproduces the recorded line exactly.</p>
+</section>
+
+<section>
+<h2>Status</h2>
+<ul>
+<li>Branch <code>claude/script-line-presence</code>. Needs <code>dialogue-auto-advance-v1</code>. Default off; not a game-server switch.</li>
+<li>Pending experiment <code>experiments/script-line-presence.json</code>: activation <code>ROUTE_101</code> (the first unattributed page in recorded runs is Birch's "H-help me!"), graded on <code>STARTER_CHOSEN</code>. Meant for the bundle arm of bundle-v-control, where character-presence-v1 and dialogue auto-advance are on.</li>
+<li>No measured runs. This page does not claim the switch helps.</li>
+</ul>
+</section>
+</main>
+</body>
+</html>

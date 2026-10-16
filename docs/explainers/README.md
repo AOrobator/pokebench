@@ -52,6 +52,7 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Battle triage guidance](battle-triage-guidance-v1.html)
 - [Battle text auto-advance](battle-text-auto-advance-v1.html)
 - [Battle message waiting](battle-message-waiting-v1.html)
+- [Script line presence](script-line-presence-v1.html)
 - [Push-back loop detection](pushback-loop-detection-v1.html)
 - [Push-back press results](pushback-press-result-v1.html)
 - [Battle observation loop](battle-observation-loop-v1.html)

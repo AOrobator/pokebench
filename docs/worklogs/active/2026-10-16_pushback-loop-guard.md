@@ -160,6 +160,8 @@ Merge locally after all lanes LGTM. No pending experiment entry (amendment 2). R
 
 - Merge commit 2b637515 (main parent 48d6b48f). Gates at 2b637515, all exit 0: build; test agent 1558, viewer 870, pytest 2234; lint incl. mypy (77 files); coverage agent lines 99.14 / branches 94.55 / functions 98.17 (loop-detection.ts 98.54 / 97.43 / 100; press-result.ts 100 / 99.22 / 100), viewer 97.7 / 90.98 / 93.57, python 97.29 / 93.10 / 100; verify-vendor OK.
 
+- Main moved again (script-line-presence-v1, bbbee47b). Merged with the same resolution (this branch's three after `script-line-presence-v1`; positional assertions recomputed from the built registry by `scratchpad/fixpos3.py`; switchboard rows 70). Agent 1581, viewer 871 passed.
+
 ## Surprises
 
 - `loop_guard` evidence is capped at 2 items by the event schema (`maxItems:2`); a 3-seq evidence list made the recorder throw in the factory test. Evidence is now [first push-back, completing call]. The replay tests validate every notice through `checkEvent`.

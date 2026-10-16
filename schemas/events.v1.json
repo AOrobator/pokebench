@@ -3017,6 +3017,66 @@
               "battle_message_id": {
                 "type": "integer",
                 "minimum": 1
+              },
+              "on_screen": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "local_id",
+                        "graphics_id",
+                        "sprite_kind",
+                        "x",
+                        "y",
+                        "character"
+                      ],
+                      "properties": {
+                        "local_id": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "graphics_id": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "sprite_kind": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "x": {
+                          "type": "integer"
+                        },
+                        "y": {
+                          "type": "integer"
+                        },
+                        "character": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "maxItems": 16
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             },
             "additionalProperties": false

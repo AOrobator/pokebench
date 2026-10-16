@@ -10,6 +10,7 @@ import {parseGameState,type GameStateSnapshot,type StateSource} from "./game-sta
 import {isCheckedPress,submittedButtons,type BeforePressCheck,type CheckedPressTool,type Clock} from "./game-tools.js";
 import {toolSwitches} from "./play-config.js";
 import {speakerLabel} from "./dialogue-log.js";
+import {onScreen,type OnScreenObject} from "./script-line-presence.js";
 import {MESSAGE_WAITING} from "./navigation.js";
 import {OPENED_LOCK_NOTE,STILL_LOCKED_NOTE,STILL_OPEN_NOTE,pressResult,pushbackPressResult} from "./press-result.js";
 import {BattleJournal,advanceBattle,battleEngaged,battlePage,type BattleTextEntry,type BattleTextSource} from "./battle-text-auto-advance.js";
@@ -96,7 +97,8 @@ interface OpenMessage {readonly text:string;readonly offset:number;readonly curs
 class Pages {
  readonly pages:DialoguePage[]=[];
  private opened=false;private id:string|null=null;private text="";private offset=0;private cursor=0;private speaker:Speaker|null=null;private last:GameStateSnapshot|null=null;
- constructor(private readonly record:(s:GameStateSnapshot)=>Recorded,private readonly open:OpenMessage|null=null){}
+ // script-line-presence-v1: who is on screen, recorded on a page with no speaker; null when the switch is off.
+ constructor(private readonly record:(s:GameStateSnapshot)=>Recorded,private readonly open:OpenMessage|null=null,private readonly present:((s:GameStateSnapshot)=>OnScreenObject[]|null)|null=null){}
  // A page already waiting when the call begins is recorded now unless an earlier call recorded it.
  prime(s:GameStateSnapshot):void {
   this.see(s);
@@ -145,7 +147,8 @@ class Pages {
  private add(raw:string,s:GameStateSnapshot):void {
   const text=raw.trim();
   if(text==="")return;
-  this.pages.push({state_seq:this.record(s).seq,map:s.location,...(s.location_display===undefined?{}:{map_display:s.location_display}),map_id:s.map_id,position:s.position,speaker:this.speaker?.name??null,speaker_source:this.speaker?.source??null,text});
+  const presence=this.speaker===null&&this.present!==null?{on_screen:this.present(s)}:{};
+  this.pages.push({state_seq:this.record(s).seq,map:s.location,...(s.location_display===undefined?{}:{map_display:s.location_display}),map_id:s.map_id,position:s.position,speaker:this.speaker?.name??null,speaker_source:this.speaker?.source??null,text,...presence});
  }
 }
 
@@ -261,6 +264,10 @@ function who(page:DialoguePage):string {
  const label=speakerLabel(page);
  return `${page.battle_turn===undefined?"":` · battle turn ${String(page.battle_turn)}`}${label===null?"":` · ${label}`}`;
 }
+// The numbered page lines of a "Dialogue shown during this call" block.
+export function pageLines(pages:readonly DialoguePage[],turn:number):string[] {
+ return pages.map((page,i)=>`${String(i+1)}. turn ${String(turn)} · ${place(page)}${who(page)}: "${page.text}"`);
+}
 function summary(outcome:Outcome,pages:readonly DialoguePage[],dropped:readonly Button[],turn:number):string {
  const battle=outcome.battlePresses;
  const field=outcome.presses-(battle??0);
@@ -270,8 +277,7 @@ function summary(outcome:Outcome,pages:readonly DialoguePage[],dropped:readonly 
  if(dropped.length>0)lines.push(`${battle!==undefined?"the harness took over the battle text":outcome.stop==="field_free"||outcome.stop==="locked_no_message"?"dialogue closed":"dialogue reached a decision point"}; ${plural(dropped.length,"remaining input")} not sent: ${dropped.join(", ")}.`);
  if(outcome.note!=null)lines.push(outcome.note);
  if(pages.length>0){
-  lines.push(`Dialogue shown during this call (${plural(pages.length,"page")}, in order, whole):`);
-  pages.forEach((page,i)=>{lines.push(`${String(i+1)}. turn ${String(turn)} · ${place(page)}${who(page)}: "${page.text}"`);});
+  lines.push(`Dialogue shown during this call (${plural(pages.length,"page")}, in order, whole):`,...pageLines(pages,turn));
  }else lines.push("No complete dialogue page was shown during this call.");
  return lines.join("\n");
 }
@@ -294,6 +300,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
  const full:Required<AutoAdvancePorts>={...ports,clock:ports.clock??realClock};
  const switches=toolSwitches(features);
  const record=(s:GameStateSnapshot):Recorded=>full.recorder.recordState(s);
+ const present=features["script-line-presence-v1"]?(s:GameStateSnapshot)=>onScreen(s,features["character-presence-v1"]):null;
  const autoPress=(id:string)=>(signal?:AbortSignal)=>press.execute(id,{buttons:["B"]},signal);
  // battle-text-auto-advance-v1: the server's battle wait and page journal; the journal cursor carries across calls.
  const battleSource=features["battle-text-auto-advance-v1"]?battleTextSource(full.state):null;
@@ -314,7 +321,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
   const plan=submittedButtons(params.buttons,before,switches);
   const walking=params.walking===undefined?{}:{walking:params.walking};
   const run=(buttons:Button[],first:boolean)=>first&&check!==undefined?press.executeChecked(id,{buttons,...walking},check,signal,update):press.execute(id,{buttons,...walking},signal,update);
-  const pages=new Pages(record,open);if(before!==undefined)pages.prime(before);
+  const pages=new Pages(record,open,present);if(before!==undefined)pages.prime(before);
   const shownBefore=pages.pages.length>0;
   // A batch that starts inside a conversation stops after its first input: the next inputs could land on a
   // YES/NO (B answers NO) or a locked script. Without a read, a message the last call left open counts.
@@ -365,7 +372,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
    const result=await tool.execute(id,params,signal,update);
    const state=stateOf(result);
    if(!dialogueEngaged(state)&&!(battle!==null&&battleEngaged(state)))return result;
-   const pages=new Pages(record,open);
+   const pages=new Pages(record,open,present);
    const outcome=await drive(state,pages,autoPress(id),full,battle,signal);
    open=pages.openAt(outcome.state);
    const done=await finish(id,"navigate_to",outcome,pages,[],[],[],began,signal);

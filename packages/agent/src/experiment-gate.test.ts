@@ -7,7 +7,7 @@ import {MILESTONE_HINTS} from "./milestone-hint.js";
 const order=MILESTONE_HINTS.map(h=>h.name);
 const upTo=(name:string,ms=60_000):RunOutcome=>{const reached=order.slice(order.indexOf("CLOCK_SET"),order.indexOf(name)+1);return {reached,milestoneMs:Object.fromEntries(reached.map((m,i)=>[m,ms*(i+1)]))};};
 const none:RunOutcome={reached:[],milestoneMs:{}};
-const features:FeatureSet={...ALL_ON,"character-presence-v1":false,"navigation-refusal-reasons-v1":false,"transition-press-result-v1":false,"stall-briefing-v1":false,"battle-details-v2":false,"dialogue-auto-advance-v1":false,"state-only-decisions-v1":false,"named-interactions-v1":false,"world-destinations-v1":false,"full-map-navigation-v1":false,"objective-tracking-v1":false,"repeat-attempt-guard-v1":false,"native-objective-completion-v1":false,"navigation-evidence-memory-v1":false};
+const features:FeatureSet={...ALL_ON,"blocked-batch-result-v1":false,"character-presence-v1":false,"navigation-refusal-reasons-v1":false,"transition-press-result-v1":false,"stall-briefing-v1":false,"battle-details-v2":false,"dialogue-auto-advance-v1":false,"state-only-decisions-v1":false,"named-interactions-v1":false,"world-destinations-v1":false,"full-map-navigation-v1":false,"objective-tracking-v1":false,"repeat-attempt-guard-v1":false,"native-objective-completion-v1":false,"navigation-evidence-memory-v1":false};
 const preset={version:2,id:"incumbent",target:null,limits:{maxTurns:1500,maxWallMs:1_800_000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},features} as const;
 
 it("orders finals so every arm runs the same number of times, balanced: ABBA for two arms",()=>{
@@ -54,6 +54,7 @@ it("reads an experiment's finals settings, defaulting to 8 runs of 45 minutes wi
  expect(finalsConfig(parseExperiment({...base,finals:{runsPerArm:4,maxWallMs:1_200_000,target:"RIVAL_MET"}}))).toEqual({runsPerArm:4,maxWallMs:1_200_000,target:"RIVAL_MET"});
  expect(finalsConfig(parseExperiment({...base,finals:{maxWallMs:1_200_000}}))).toEqual({...DEFAULT_FINALS,maxWallMs:1_200_000});
  expect(()=>parseExperiment({...base,finals:{target:"NOT_A_MILESTONE"}})).toThrow(/finals target NOT_A_MILESTONE is not a native milestone/);
+ expect(()=>parseExperiment({...base,finals:{target:"PLAYER_BEDROOM_EXITED_AFTER_CLOCK"}})).toThrow(/finals target PLAYER_BEDROOM_EXITED_AFTER_CLOCK is measurement-only/);
  expect(()=>parseExperiment({...base,finals:{runsPerArm:2}})).toThrow(/Invalid experiment/);
 });
 

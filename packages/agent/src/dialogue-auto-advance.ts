@@ -9,7 +9,9 @@ import type {FeatureSet} from "./features.js";
 import {parseGameState,type GameStateSnapshot,type StateSource} from "./game-state.js";
 import {isCheckedPress,submittedButtons,type BeforePressCheck,type CheckedPressTool,type Clock} from "./game-tools.js";
 import {toolSwitches} from "./play-config.js";
-import {pressResult} from "./press-result.js";
+import {speakerLabel} from "./dialogue-log.js";
+import {MESSAGE_WAITING} from "./navigation.js";
+import {OPENED_LOCK_NOTE,STILL_LOCKED_NOTE,STILL_OPEN_NOTE,pressResult} from "./press-result.js";
 
 export const AUTO_ADVANCE_LIMITS={presses:50,callMs:90_000,waitMs:10_000,pollMs:100} as const;
 
@@ -176,6 +178,28 @@ async function advance(start:GameStateSnapshot,pages:Pages,press:(signal?:AbortS
 }
 
 const frameOf=(s:GameStateSnapshot):number|null=>s.raw_ram?.frame??null;
+// The message's text can be in the game's buffer a frame before its phase reads (3f21 T95 seq 1634):
+// new or changed text is a message that has appeared, so no further queued input is sent.
+function textAppeared(previous:GameStateSnapshot|undefined,now:GameStateSnapshot):boolean {
+ const text=now.world_context?.dialogue;
+ return text!=null&&text!==""&&text!==(previous?.world_context?.dialogue??null);
+}
+// Notes on the box that were true right after the press but not after auto-advance moved on.
+const STALE_NOTES=[OPENED_LOCK_NOTE,STILL_OPEN_NOTE,STILL_LOCKED_NOTE];
+export function afterAdvance(line:string,detail:string):string {
+ const kept=STALE_NOTES.reduce((text,note)=>text.replaceAll(note,""),line);
+ return kept===line?line:`${kept}; after auto-advance: ${detail}`;
+}
+// navigate_to's status was read before auto-advance ran; restate why it stopped and what is true now.
+export function navigationAfter(raw:unknown,outcome:Pick<Outcome,"stop"|"detail">):string|null {
+ if(typeof raw!=="object"||raw===null||!("navigation" in raw))return null;
+ const nav=raw.navigation;
+ if(typeof nav!=="object"||nav===null||!("unready" in nav)||nav.unready!==true||!("status" in nav)||typeof nav.status!=="string"||!("commands" in nav)||typeof nav.commands!=="number")return null;
+ const interrupted=nav.status.startsWith("walk interrupted: ");
+ const message=nav.status===MESSAGE_WAITING||nav.status===`walk interrupted: ${MESSAGE_WAITING}`;
+ const why=interrupted?`walk interrupted: ${message?"a message opened":"field controls were locked"}`:`${message?"a message was open":"field controls were not free"}, so navigate_to did not walk`;
+ return `Navigation: ${why}; after auto-advance: ${outcome.detail}${outcome.stop==="field_free"?"; call navigate_to again":""}; ${String(nav.commands)} ordinary button attempts.`;
+}
 // The inner press's own Press result: computed on the shared observe/press tracker, so it keeps
 // carried-over warps and restarted conversations that a before/after rebuild cannot see.
 function pressLineOf(result:Result):string|null {
@@ -201,7 +225,8 @@ function place(page:DialoguePage):string {
  return `${page.map??"unknown location"}${page.map_id===null?"":` (map ${page.map_id.join("/")})`}${page.position===null?"":` · at ${String(page.position.x)},${String(page.position.y)}`}`;
 }
 function who(page:DialoguePage):string {
- return page.speaker===null?"":page.speaker_source==="faced_sprite"?` · ${page.speaker} (sprite kind, not a name)`:page.speaker_source==="faced_target"?` · ${page.speaker} (faced object)`:` · ${page.speaker}`;
+ const label=speakerLabel(page);
+ return label===null?"":` · ${label}`;
 }
 function summary(outcome:Outcome,pages:readonly DialoguePage[],dropped:readonly Button[],turn:number):string {
  const lines=[`Dialogue auto-advance: the harness pressed B ${plural(outcome.presses,"time")} to advance the dialogue; stopped: ${outcome.detail}.`];
@@ -248,25 +273,26 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
   const inDialogue=shownBefore||(before===undefined?open!==null:dialogueEngaged(before));
   const extras:TextContent[]=[];const sent:Button[]=[];const results:{buttons:readonly Button[];line:string|null}[]=[];
   const walk=before!==undefined&&freeField(before)&&plan.every(b=>DIRECTIONS.has(b));
-  let last:Result;
+  let last:Result,appeared=false;
   if(walk){last=await run([...plan],true);const went=pressedOf(last,plan);sent.push(...went);results.push({buttons:went,line:pressLineOf(last)});}
   else{
    let result:Result|undefined;
-   for(const button of plan){result=await run([button],sent.length===0);sent.push(button);results.push({buttons:[button],line:pressLineOf(result)});extras.push(...extraText(result));if(inDialogue||dialogueEngaged(stateOf(result)))break;}
+   let previous=before;
+   for(const button of plan){result=await run([button],sent.length===0);sent.push(button);results.push({buttons:[button],line:pressLineOf(result)});extras.push(...extraText(result));const now=stateOf(result);appeared=textAppeared(previous,now);previous=now;if(inDialogue||appeared||dialogueEngaged(now))break;}
    if(result===undefined)throw new Error("press requires at least one button");
    last=result;
   }
   // The carried position is spent once the model's press went through; this call's pages now own it.
   if(before!==undefined)open=null;
   const after=stateOf(last);
-  const engaged=dialogueEngaged(after)||inDialogue;
+  const engaged=dialogueEngaged(after)||inDialogue||appeared;
   if(!engaged&&before!==undefined)open=pages.openAt(after);
   if(!engaged&&(walk||plan.length===1)&&plan.length===params.buttons.length)return last as AgentToolResult<{state:GameStateSnapshot|undefined}>;
   // Every requested input that was not sent: cut by engaged dialogue or withheld by the safe-batch rule.
   const dropped=params.buttons.slice(sent.length);
-  let block:string|null=null,final:Result;
+  let block:string|null=null,final:Result,detail:string|null=null;
   if(engaged){
-   const outcome=await advance(after,pages,autoPress(id),full,signal);
+   const outcome=await advance(after,pages,autoPress(id),full,signal);detail=outcome.detail;
    open=pages.openAt(outcome.state);
    extras.push(...outcome.extras);
    const done=await finish(id,"press",outcome,pages,params.buttons,sent,dropped,began,signal);
@@ -276,7 +302,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
   const seen=observation(final);
   const head=[`pressed ${sent.join(", ")}`,
    ...(plan.length<params.buttons.length||(walk&&sent.length<plan.length)?[`Interface safety: submitted ${String(walk?sent.length:plan.length)} of ${String(params.buttons.length)} requested inputs; remaining inputs were not sent. Inspect the new state before another input.`]:[]),
-   ...(switches.pressResult?[`Press result: ${results.every(r=>r.line!==null)?results.length===1?results[0]?.line??"":results.map((r,i)=>`${i===0?"":"then "}${r.buttons.join(", ")}: ${r.line??""}`).join(" | "):pressResult(before,finalState,sent,switches)}`]:[]),
+   ...(switches.pressResult?[`Press result: ${results.every(r=>r.line!==null)?(line=>detail===null?line:afterAdvance(line,detail))(results.length===1?results[0]?.line??"":results.map((r,i)=>`${i===0?"":"then "}${r.buttons.join(", ")}: ${r.line??""}`).join(" | ")):pressResult(before,finalState,sent,switches)}`]:[]),
    ...(block===null?[]:[block])];
   return {content:[...seen.images,{type:"text",text:`${head.join("\n")}\n\n${seen.text}`},...extras],details:{state:finalState}};
  };
@@ -295,8 +321,9 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
    const done=await finish(id,"navigate_to",outcome,pages,[],[],[],began,signal);
    const seen=observation(done.seen);
    // navigate_to's own status line comes first; its last frame is replaced by the fresh observation.
-   const status=result.content.slice(0,1).filter((part):part is TextContent=>part.type==="text");
    const raw:unknown=result.details;
+   const restated=navigationAfter(raw,outcome);
+   const status=result.content.slice(0,1).filter((part):part is TextContent=>part.type==="text").map(part=>restated===null?part:{...part,text:restated});
    return {content:[...status,...seen.images,{type:"text",text:`${done.block}\n\n${seen.text}`},...outcome.extras],details:{...Object(raw) as object,state:done.state}};
   }} satisfies AgentTool;
  });

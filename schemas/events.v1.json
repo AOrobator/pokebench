@@ -3363,6 +3363,30 @@
           },
           "additionalProperties": false
         },
+        "settle": {
+          "type": "object",
+          "required": [
+            "frames",
+            "reason"
+          ],
+          "properties": {
+            "frames": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "reason": {
+              "enum": [
+                "immediate",
+                "paused",
+                "fade",
+                "warp",
+                "fade_bound",
+                "warp_bound"
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
         "screen": {
           "type": "string"
         },

@@ -18,6 +18,8 @@ from pokebench_env.rom import EMERALD_SHA1, RomError, resolve_rom
 
 FIXTURE = json.loads((Path(__file__).parent / "fixtures" / "rerender-dc0e-t212.json").read_text())
 ROM_START = 0x08000000
+# Run dc0e predates displayed-place-names-v1, so its recorded harness features leave it off.
+RECORDED_OFF = [*FIXTURE["recorded_off"], "displayed-place-names-v1"]
 
 
 def windows_reader(rom: bytes):
@@ -43,6 +45,8 @@ def operator_rom() -> bytes:
 
 
 def env_with(off: list[str]) -> dict[str, str]:
+    # The recorded run predates warp-arrival-settle-v1, so it ran with that switch off.
+    off = [*off, "warp-arrival-settle-v1"]
     return {"POKEBENCH_FEATURES_OFF": ",".join(off), "POKEBENCH_ACTIVE_UI": "1"}
 
 
@@ -53,7 +57,7 @@ def test_recorded_switches_reproduce_the_recorded_readout_byte_for_byte():
         [rerender.RawRef("raw-ram/x.json.gz", "s")],
         lambda _p, _s: read,
         MapNames.load(rerender.PORYMAP_MAPS),
-        env_with(FIXTURE["recorded_off"]),
+        env_with(RECORDED_OFF),
     )
     assert readouts == [FIXTURE["readout"]]
 
@@ -61,7 +65,7 @@ def test_recorded_switches_reproduce_the_recorded_readout_byte_for_byte():
 def test_a_flipped_server_switch_changes_only_what_it_owns():
     read = windows_reader(operator_rom())
     maps = MapNames.load(rerender.PORYMAP_MAPS)
-    on = [f for f in FIXTURE["recorded_off"] if f != "named-warp-destinations-v1"]
+    on = [f for f in RECORDED_OFF if f != "named-warp-destinations-v1"]
     flipped = rerender.rerender(
         Path("/run"), [rerender.RawRef("a", "s")], lambda _p, _s: read, maps, env_with(on)
     )[0]
@@ -97,15 +101,18 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "story_characters_enabled": False,
         "battle_details_enabled": False,
         "dynamic_warp_enabled": False,
+        "displayed_names_enabled": False,
         "fmt_named_interactions": False,
         "fmt_world_destinations": False,
         "fmt_bounded_navigation": False,
         "fmt_message_phase": False,
         "fmt_named_warps": False,
+        "fmt_warp_animation": False,
     }
     rerender.render(
         rerender.read_state(lambda a, n: b"", MapNames({}), active_ui=True, off=frozenset()),
         frozenset(),
+        warp_animation=True,
     )
     assert all(value is True for value in seen.values())
 
@@ -168,8 +175,12 @@ def test_main_reads_the_archive_with_the_operator_rom(monkeypatch, tmp_path):
         {"run_dir": str(tmp_path), "raw_ram": [{"path": "raw-ram/1.json.gz", "sha256": "abc"}]}
     )
     assert (
-        rerender.main({"POKEBENCH_FEATURES_OFF": "battle-details-v2"}, io.StringIO(request), out)
+        rerender.main(
+            {"POKEBENCH_FEATURES_OFF": "battle-details-v2,warp-arrival-settle-v1"},
+            io.StringIO(request),
+            out,
+        )
         == 0
     )
-    assert json.loads(out.getvalue()) == {"readouts": ["readout of S without 1"]}
+    assert json.loads(out.getvalue()) == {"readouts": ["readout of S without 2"]}
     assert calls == [(tmp_path / "raw-ram/1.json.gz", "abc", b"ROM")]

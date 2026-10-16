@@ -7,7 +7,7 @@ import { parseGameState, type GameStateSnapshot } from "./game-state.js";
 import { ShownStates, pressResult } from "./press-result.js";
 
 // Which model-visible parts of the observe/press results this run shows.
-export interface ToolSwitches { readonly readout: boolean; readonly pressResult: boolean; readonly position: boolean; readonly fieldLock: boolean; readonly safeInterfaces?: boolean; readonly automaticRunning?: boolean; readonly transitions?: boolean }
+export interface ToolSwitches { readonly readout: boolean; readonly pressResult: boolean; readonly position: boolean; readonly fieldLock: boolean; readonly safeInterfaces?: boolean; readonly automaticRunning?: boolean; readonly transitions?: boolean; readonly warpArrival?: boolean; readonly blockedBatch?: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean }
 export const ALL_TOOL_SWITCHES: ToolSwitches = { readout: true, pressResult: true, position: true, fieldLock: true, automaticRunning: false, transitions: false };
 import type { PressTiming } from "./recorder.js";
 

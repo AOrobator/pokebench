@@ -286,6 +286,8 @@ export const RawRamReferenceSchema = Type.Object({v:Type.Literal(1), sequence:No
 export const StateBodySchema = Type.Object(
   {
     raw_ram: Type.Optional(RawRamReferenceSchema),
+    // warp-arrival-settle-v1 ON only: emulated frames the observation waited and why the wait ended.
+    settle: Type.Optional(Type.Object({ frames: NonNegativeInt, reason: Type.Enum(["immediate", "paused", "fade", "warp", "fade_bound", "warp_bound"]) }, closed)),
     screen: Type.String(),
     active_ui: Type.Optional(Type.Union([Type.Object({
       phase: Type.String(), selected: Type.Union([Type.String(),Type.Null()]),

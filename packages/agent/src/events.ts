@@ -526,10 +526,43 @@ type EnvelopeKey = "v" | "run" | "seq" | "t";
 export type EventBody = RunEvent extends infer E ? (E extends RunEvent ? Omit<E, EnvelopeKey> : never) : never;
 export type BodyOf<T extends RunEvent["type"]> = Omit<Extract<RunEvent, { type: T }>, EnvelopeKey>;
 
+// The union members for each event type, so a problem is reported against the event's own schema.
+const MEMBERS = new Map<string, TSchema[]>();
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
+function addMembers(schema: unknown): void {
+  if (!isRecord(schema)) return;
+  if (Array.isArray(schema.anyOf)) { for (const member of schema.anyOf) addMembers(member); return; }
+  const type = isRecord(schema.properties) && isRecord(schema.properties.type) ? schema.properties.type.const : undefined;
+  if (typeof type === "string") MEMBERS.set(type, [...(MEMBERS.get(type) ?? []), schema]);
+}
+addMembers(RunEventSchema);
+
+const unescapePointer = (segment: string): string => segment.replace(/~1/g, "/").replace(/~0/g, "~");
+function describeError(error: { instancePath: string; schemaPath: string; message: string }): string {
+  if (error.schemaPath.endsWith("/additionalProperties")) {
+    const cut = error.instancePath.lastIndexOf("/");
+    return `${error.instancePath.slice(0, cut) || "/"}: unexpected property ${unescapePointer(error.instancePath.slice(cut + 1))}`;
+  }
+  return `${error.instancePath || "/"}: ${error.message}`;
+}
+
 export function eventProblem(value: unknown): string | null {
   if (Value.Check(RunEventSchema, value)) return null;
-  const [first] = Value.Errors(RunEventSchema, value);
-  return `invalid event at ${first?.instancePath ?? ""}: ${first?.message ?? "does not match the schema"}`;
+  if (!isRecord(value)) return "invalid event: not a JSON object";
+  if (typeof value.type !== "string") return "invalid event: no string type field";
+  const members = MEMBERS.get(value.type);
+  if (members === undefined) return `unknown event type ${JSON.stringify(value.type)}: this build of the schema does not know it`;
+  // A type with several members (state and legacy state, tool_call) is judged by the closest one.
+  const [first] = members.map(member => [...Value.Errors(member, value)]).reduce((best, errors) => (errors.length < best.length ? errors : best));
+  return `invalid ${value.type} event at ${first === undefined ? "/: does not match the schema" : describeError(first)}`;
+}
+
+const EnvelopeSchema = Type.Object({ ...Envelope, type: Type.String({ minLength: 1 }) });
+export interface EventEnvelope { run: string; seq: number; t: string; turn: number; type: string }
+// The envelope of a line, even when its body fails the schema: lets a reader keep order checks on events it skips.
+export function eventEnvelope(value: unknown): EventEnvelope | null {
+  if (!Value.Check(EnvelopeSchema, value)) return null;
+  return { run: value.run, seq: value.seq, t: value.t, turn: value.turn, type: value.type };
 }
 
 export function checkEvent(value: unknown): RunEvent {

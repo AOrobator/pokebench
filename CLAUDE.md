@@ -19,7 +19,7 @@ When adding or changing agent diagnostics, loop guards, recovery feedback or com
 
 Before registering, queueing or driving an experiment cohort, design it with `.claude/skills/pokebench-experiment-design/SKILL.md`. It sets the tier, a checkpoint start, a power-sized fixed N within the operator's GPU-hour budget, and writes an HTML overview at `docs/experiments/<id>.html`. To explain why recorded runs stalled or failed, use `.claude/skills/pokebench-trace-forensics/SKILL.md`, which is read-only.
 
-To launch, restart or stop a fixed-N experiment (`just fixed-run`), use `.claude/skills/fixed-run-launch/SKILL.md`. A launch is not done until its runs show live in the viewer's EXPERIMENT dropdown.
+To launch, restart or stop a fixed-N experiment (`just fixed-run`), use `.claude/skills/fixed-run-launch/SKILL.md`. A launch is not done until its runs show live in the viewer's EXPERIMENT dropdown. Any merge to main followed by a fixed-run launch from the newer pin needs `just viewer-main` before the launch check: a viewer built before the pin cannot read the new build's events, and a run it cannot read shows the problem "viewer build … is older than this run's build …: restart the viewer (just viewer-main)".
 
 For viewer navigation, playback or polling interaction changes, use `.claude/skills/viewer-e2e/SKILL.md` and verify the real click through to the selected run and visible frame before claiming it works.
 
@@ -62,6 +62,7 @@ just verify-rom     # SHA-1 check of $POKEBENCH_ROM (set it in the gitignored .e
 just verify-vendor  # submodule at pin, clean tree
 just serve          # isolated game server (runs/serve_<time>/) on 127.0.0.1:8000; watch at /stream
 just smoke          # boots the real game server on the real ROM and exercises it
+just viewer-main    # restart the 8790 viewer at main; after every merge, and before any fixed-run launch check from a newer pin
 ```
 
 ## Git

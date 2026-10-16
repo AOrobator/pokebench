@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
 import { closeSync, fstatSync, openSync, readSync } from "node:fs";
-import { parseEvent, type RunEvent } from "@pokebench/agent/events";
-export interface ReadLimits { maxBytes?: number; lineBytes?: number; chunkBytes?: number; allowAppend?: boolean }
+import { eventProblem, type RunEvent } from "@pokebench/agent/events";
+// skip receives a JSON line the schema rejects instead of failing the read (version skew); it may still throw.
+export interface ReadLimits { maxBytes?: number; lineBytes?: number; chunkBytes?: number; allowAppend?: boolean; skip?: (line: number, problem: string, value: unknown) => void }
 export function reduceWorkbenchLog(path: string, consume: (event: RunEvent) => void, limits: ReadLimits = {}): string {
   return readWorkbenchSnapshot(path, consume, limits).sha256;
 }
@@ -24,9 +25,12 @@ export function readWorkbenchSnapshot(path: string, consume: (event: RunEvent) =
         if (end - start > lineBytes) throw new Error("Run log line exceeds the streaming line bound");
         line += 1; const text = joined.subarray(start, end).toString("utf8"); start = end + 1;
         if (text.trim() !== "") {
-          let event: RunEvent;
-          try { event = parseEvent(text); } catch (error) { throw new Error(`line ${String(line)}: ${error instanceof Error ? error.message : String(error)}`, { cause: error }); }
-          consume(event);
+          let value: unknown;
+          try { value = JSON.parse(text); } catch (error) { throw new Error(`line ${String(line)}: event line is not JSON: ${String(error)}`, { cause: error }); }
+          const problem = eventProblem(value);
+          if (problem === null) consume(value as RunEvent);
+          else if (limits.skip !== undefined) limits.skip(line, problem, value);
+          else throw new Error(`line ${String(line)}: ${problem}`);
         }
       }
       pending = Buffer.from(joined.subarray(start));

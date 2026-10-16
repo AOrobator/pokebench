@@ -3,7 +3,8 @@ import {readFileSync} from "node:fs";
 import {gunzipSync} from "node:zlib";
 import {fileURLToPath} from "node:url";
 import {attachLoopGuard,Governor} from "./harness.js";
-import {ALL_ON,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures} from "./features.js";
+import {ALL_ON,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures} from "./features.js";
+import {experimentArms,parseExperiment} from "./experiments.js";
 import {flagFeatures} from "./play-preset.js";
 import {checkEvent,type RunEvent} from "./events.js";
 import {LOOP_POLICY,LoopDetector,REVISIT_MESSAGE,WAITING_MESSAGE,semanticState,type CompletedCall,type LoopNotice} from "./loop-detection.js";
@@ -246,6 +247,8 @@ describe("ineffective-loops-v1 unchanged observes while the game waits for input
    for(let i=0;i<6;i++)t.observe(MENU);
    expect(kinds(t.notices)).toEqual(on?[["observation","warning"]]:[]);
    if(on)expect(t.notices[0]?.message).toBe(WAITING());
+   // True with the RAM readout off too (screenshot only): the text points at what the game shows, not a readout.
+   expect(WAITING()).not.toMatch(/readout/i);
   }
  });
  it("ON: a ready naming screen, which today's fingerprint already counts, is named as the waiting interface; OFF keeps today's generic warning",()=>{
@@ -285,6 +288,16 @@ describe("ineffective-loops-v1 fixture loading",()=>{
  it("loads each recorded fixture once and shares it",()=>{
   expect(recorded("revisit-ledge-4caa.jsonl.gz")).toBe(recorded("revisit-ledge-4caa.jsonl.gz"));
   expect(fixtures.size).toBe(4);
+ });
+});
+
+describe("ineffective-loops-v1 pending experiment",()=>{
+ it("names every switch explicitly in registry order and flips only this switch",()=>{
+  const raw=JSON.parse(readFileSync(fileURLToPath(new URL("../../../experiments/ineffective-loops.json",import.meta.url)),"utf8")) as {incumbent:{features:Record<string,boolean>}};
+  expect(Object.keys(raw.incumbent.features)).toEqual([...SWITCHABLE_FEATURES]);
+  const {incumbent,candidate}=experimentArms(parseExperiment(raw));
+  expect(incumbent.features[ID]).toBe(false);
+  expect(SWITCHABLE_FEATURES.filter(id=>incumbent.features[id]!==candidate.features[id])).toEqual([ID]);
  });
 });
 

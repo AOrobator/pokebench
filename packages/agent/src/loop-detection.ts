@@ -202,7 +202,7 @@ export function waitingState(state: GameStateSnapshot): string | null {
   return stable({ screen: state.screen, started: state.started, map: state.map_id, position: state.position, facing: state.facing, locked: state.field_controls_locked, ui: ui ?? null, naming: state.naming ?? null, dialogue, message: message ?? null, name: state.name, party: state.party, money: state.money, badges: state.badges, story: state.story ?? null });
 }
 export const WAITING_MESSAGE =
-  "Repeated observations show the same open menu, prompt or message waiting for your input: observing again does not change it. Decide from the readout which input it needs, or choose a different approach using observed evidence.";
+  "Repeated observations show the same open menu, prompt or message waiting for your input: observing again does not change it. Decide from what the game shows which input it needs, or choose a different approach using observed evidence.";
 export const REVISIT_MESSAGE =
   "Your recent moves name different targets but keep ending on the same one or two tiles, with no new map, tile or story milestone in between: switching between these few targets is not getting anywhere. Reassess what stops you there using observed evidence, then choose a different route or destination.";
 const DIRECTIONS = new Set(["UP", "DOWN", "LEFT", "RIGHT"]);

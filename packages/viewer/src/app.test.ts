@@ -536,7 +536,7 @@ describe("boot", () => {
     const app = await boot(win);
     expect(win.fetch).toHaveBeenCalledWith("/api/runs");
     expect(streams[0]?.url).toBe("/api/runs/2026-10-11T23-00-00_live/events");
-    expect(intervals).toHaveLength(2);
+    expect(intervals).toHaveLength(3);
     intervals[0]?.();
     expect(app.mode).toBe("loading");
     await vi.waitFor(() => { expect(app.next.draft).not.toBeNull(); });
@@ -701,7 +701,7 @@ it("offers only eligible references and preserves none while comparisons are pen
   const pending: ((value:unknown)=>void)[] = [];
   const streams: FakeStream[] = [];
   const app = await mountApp(document, {
-    fetchJson:(url)=>nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : new Promise((resolve)=>pending.push(resolve))),
+    fetchJson:(url)=>nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : url.startsWith("/sprites/") ? Promise.reject(new Error("no card art")) : new Promise((resolve)=>pending.push(resolve))),
     sendJson: noWrites,
     openStream:(url)=>{const s=new FakeStream(url);streams.push(s);return s;},now:()=>BASE_MS,hash:"",
   });

@@ -13,6 +13,10 @@ import { NextRunPanel } from "./nextpanel.js";
 import { QueuePanel } from "./queue-view.js";
 import { headHtml, sheetHtml } from "./run-head.js";
 import type { Cohort } from "./runs.js";
+import { cardHtml, clockParts, parseCardArt, trainerFor, type CardArt, type CardInput } from "./trainer-card.js";
+import { paintGameText, parseGameFont, type GameFont, type GlyphPixels, type GlyphSheet } from "./game-font.js";
+import { WORKBENCH_POLL_MS, parseWorkbench, type WorkbenchData } from "./workbench-data.js";
+import { plateFacts } from "./workbench-view.js";
 
 export interface StreamLike {
   addEventListener(type: string, listener: (message: { data: string }) => void): void;
@@ -25,6 +29,9 @@ export interface AppDeps {
   openStream(url: string): StreamLike;
   now(): number;
   readonly hash: string;
+  // The trainer cards' game font: the glyph sheet's pixels, and putting painted text on a canvas.
+  loadGlyphSheet?(url: string): Promise<GlyphSheet | null>;
+  drawGlyphs?(canvas: HTMLCanvasElement, pixels: GlyphPixels): void;
 }
 
 export type Mode = "loading" | "live" | "replay" | "idle";
@@ -162,6 +169,13 @@ export class App {
   view = new RunView();
   private shown = new RunView();
   private runs: RunChoice[] = [];
+  // Trainer cards: the ROM art (null until `just trainer-card-art` has built it) and the latest workbench snapshot.
+  private art: CardArt | null = null;
+  private font: GameFont | null = null;
+  private glyphs: GlyphSheet | null = null;
+  private artLoad: Promise<void> | null = null;
+  private workbench: WorkbenchData | null = null;
+  private cardsBusy = false;
   // Set when the newest run is opened; a later refresh may list a newer one first.
   private following = false;
   private followThinking = true;
@@ -297,6 +311,10 @@ export class App {
     this.ui("run-sheet-close").addEventListener("click", () => { this.showSheet(false); });
     this.ui("run-sheet").addEventListener("keydown", (event) => { if (event.key === "Escape") this.showSheet(false); });
     this.picker("run").addEventListener("change", () => { this.showSheet(false, false); });
+    this.ui("run-cards").addEventListener("click", (event) => {
+      const id = (event.target as HTMLElement).closest<HTMLElement>("[data-watch]")?.dataset.watch;
+      if (id !== undefined) this.select(id);
+    });
     this.ui("run-sheet-body").addEventListener("click", (event) => {
       const id = (event.target as HTMLElement).closest<HTMLElement>("[data-watch]")?.dataset.watch;
       if (id === undefined) return;
@@ -320,6 +338,57 @@ export class App {
       return;
     }
     this.select(first.id);
+    void this.pollCards();
+  }
+
+  private loadArt(): Promise<void> {
+    this.artLoad ??= (async () => {
+      try { this.art = parseCardArt(await this.deps.fetchJson("/sprites/manifest.json")); } catch { this.art = null; }
+      if (this.art === null) return;
+      try {
+        this.font = parseGameFont(await this.deps.fetchJson("/sprites/font/glyphs.json"));
+        this.glyphs = this.font === null ? null : (await this.deps.loadGlyphSheet?.("/sprites/font/glyphs.png")) ?? null;
+      } catch { this.font = null; this.glyphs = null; }
+    })();
+    return this.artLoad;
+  }
+
+  // Without the art the old live-run buttons and sheet stay, and the workbench is never asked.
+  async pollCards(): Promise<void> {
+    await this.loadArt();
+    if (this.art === null || this.cardsBusy) return;
+    this.cardsBusy = true;
+    try { this.workbench = parseWorkbench(await this.deps.fetchJson("/api/workbench")); } catch { /* keep the last snapshot; the comparisons page reports workbench problems */ } finally { this.cardsBusy = false; }
+    this.render();
+  }
+
+  private cardInputs(): CardInput[] {
+    const { art, workbench } = this;
+    if (art === null || workbench === null) return [];
+    const now = this.deps.now();
+    return this.runs.filter(isLive).flatMap((run): CardInput[] => {
+      const recorded = workbench.runs.find((r) => r.id === run.id);
+      if (recorded === undefined || (recorded.status !== "live" && recorded.status !== "paused")) return [];
+      const cohort = run.cohort, title = cohort?.id ?? run.experiment ?? run.model ?? run.id;
+      const arms = cohort === undefined ? [] : this.runs.flatMap((other) => (other.cohort?.id === cohort.id ? [other.cohort.arm] : []));
+      return [{ runId: run.id, title, arm: cohort?.arm ?? null, trial: cohort === undefined ? null : `trial ${String(cohort.trial)}/${String(cohort.of)}`, card: recorded.card ?? null,
+        facts: plateFacts(recorded, workbench.at, now), status: run.id === this.runId ? "watching" : recorded.status === "paused" ? "paused" : "live", trainer: trainerFor(title, cohort?.arm ?? "", arms, art.trainers) }];
+    });
+  }
+
+  // Paints the game-font text of newly drawn cards and fills each card's clock in place.
+  private fillCards(cards: readonly CardInput[]): void {
+    for (const root of [this.ui("run-cards"), this.ui("run-sheet-body")]) {
+      if (this.font !== null && this.glyphs !== null) paintGameText(root, this.font, this.glyphs, (canvas, pixels) => { this.deps.drawGlyphs?.(canvas, pixels); });
+      for (const element of root.querySelectorAll<HTMLElement>(".tc[data-watch]")) {
+        const input = cards.find((c) => c.runId === element.dataset.watch);
+        if (input === undefined) continue;
+        const parts = clockParts(input.facts, element.classList.contains("wide") ? "wide" : "mini");
+        const clock = element.querySelector<HTMLElement>("[data-clock]"), bar = element.querySelector<HTMLElement>("[data-time-bar]");
+        if (clock !== null && clock.textContent !== parts.text) clock.textContent = parts.text;
+        if (bar !== null) bar.style.width = parts.width;
+      }
+    }
   }
 
   private listRuns(runs: RunChoice[]): void {
@@ -886,7 +955,13 @@ export class App {
     const head = { view, runId: this.runId, label, running: live && view.control.state === "running", time, others: this.runs.filter((run) => isLive(run) && run.id !== this.runId) };
     this.setHtml("run-head", headHtml(head));
     // The time ticks every render; rebuilding the sheet for it would remount the WATCH buttons under the pointer.
-    this.setHtml("run-sheet-body", sheetHtml({ ...head, time: "" }, startedAt));
+    const cards = this.cardInputs(), art = this.art;
+    const watched = cards.filter((c) => c.status === "watching"), mini = art === null || cards.length === 0 ? null : [...watched, ...cards.filter((c) => c.status !== "watching")].map((c) => cardHtml(c, art, "mini")).join("");
+    this.setHtml("run-sheet-body", sheetHtml({ ...head, time: "" }, startedAt, mini === null ? null : { html: mini, watched: watched.length > 0 }));
+    this.setHtml("run-cards", art === null ? "" : cards.map((c) => cardHtml(c, art, "wide")).join(""));
+    this.ui("run-cards").hidden = mini === null;
+    this.ui("live-runs").hidden = mini !== null || !this.runs.some(isLive);
+    this.fillCards(cards);
     for (const slot of this.ui("run-sheet-body").querySelectorAll(".rh-time")) slot.textContent = time;
     if (clock !== null) {
       scrub.value = String(Math.round(clock.fraction * 1000));
@@ -928,6 +1003,20 @@ export async function boot(win: BootWindow): Promise<App> {
     openStream: (url) => new win.EventSource(url),
     now: () => Date.now(),
     hash: win.location.hash,
+    loadGlyphSheet: (url) => new Promise((resolve) => {
+      const image = new Image();
+      image.onload = () => {
+        const canvas = win.document.createElement("canvas");
+        canvas.width = image.naturalWidth; canvas.height = image.naturalHeight;
+        const context = canvas.getContext("2d");
+        if (context === null) { resolve(null); return; }
+        context.drawImage(image, 0, 0);
+        resolve(context.getImageData(0, 0, canvas.width, canvas.height));
+      };
+      image.onerror = () => { resolve(null); };
+      image.src = url;
+    }),
+    drawGlyphs: (canvas, pixels) => { canvas.getContext("2d")?.putImageData(new ImageData(new Uint8ClampedArray(pixels.data), pixels.width, pixels.height), 0, 0); },
   });
   let last = win.performance.now();
   win.setInterval(() => {
@@ -940,5 +1029,6 @@ export async function boot(win: BootWindow): Promise<App> {
     void app.next.poll();
     void app.pollExperiments();
   }, RUN_LIST_MS);
+  win.setInterval(() => { void app.pollCards(); }, WORKBENCH_POLL_MS);
   return app;
 }

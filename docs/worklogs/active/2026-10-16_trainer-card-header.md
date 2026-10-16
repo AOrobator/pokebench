@@ -42,11 +42,10 @@ No harness behavior change, so no feature switch.
 
 **M3: cards in the viewer**
 - [x] RED 681d3ac3 / GREEN: `trainer-card.ts` (manifest, tier, trainer pick, wide/mini markup, clock parts) and `game-font.ts` (glyph pixels, painter); 35 tests green
-- [ ] RED/GREEN: trainer pick, tier, wide/mini HTML (badge in corner vs ribbon, WATCHING/LIVE/PAUSED, fresh glow), game font painter, desktop card row and click to watch, phone sheet cards, in-place clocks, fallback without art
-- [ ] Gates: build, lint, coverage ≥ 90
+- [x] RED dd609ade / GREEN: desktop card row and click to watch, phone sheet cards (watched first), in-place clocks, game-font painting, fallback without art (no workbench poll). Three existing tests updated for intended changes (third interval, CSS block order, art fetch in a parked fake fetch)
+- [x] Gates: build, lint (mGBA binding linked into this worktree's venv), coverage: viewer 1029 tests 95.44/91.19/93.83/97.57; agent 1951; Python lines 97.47 branches 93.46 functions 99.39
 - [ ] Browser proof at 1280/1440/375 on a scratch viewer with copied fixtures (close-the-loop, viewer-e2e)
 
 **M4: review and land**
 - [ ] Claude, Grok and GPT LGTM on one frozen packet; merge slot from the coordinator (not :40–:55); ff-only
 - [ ] `just trainer-card-art` into the main checkout's runs/; restart through the coordinator; live check
-- M3 app RED: trainer-card-app.test.ts 8 failing

@@ -24,7 +24,7 @@ const RUNS = [
 ];
 const milestone = must(FRONTIER_MILESTONES[3]);
 function wbRun(id: string, arm: string, splitMs: number, elapsedMs: number): WorkbenchRun {
-  return { id, cohort: EXP, arm, model: "qwen", started: null, status: "live", reason: null, problem: null, excluded: null, elapsedMs, turn: 5, config: null,
+  return { id, cohort: EXP, arm, model: "qwen", started: null, status: "live", reason: null, problem: null, excluded: null, elapsedMs, turn: 5, config: { source: "a".repeat(40), dirty: false, vendor: "v", pi: "p", preset: "bundle-v-control", target: null, thinking: "medium", maxTokens: 4096, maxTurns: null, maxWallMs: 3_600_000, failureLimit: 3, context: 65536, vision: true, start: "save_state", resume: null, tools: [], features: [] },
     splits: [{ name: milestone.id, elapsedMs: splitMs, segmentMs: splitMs, seq: 4, turn: 3, inputTokens: 1, outputTokens: 1 }],
     card: { name: arm === "bundle" ? "RED" : "MAY", location: "OLDALE TOWN", party: [{ speciesId: 280, level: 7, egg: false }] } };
 }
@@ -82,7 +82,7 @@ async function mount(width: number, options: { art?: boolean; fresh?: boolean; g
 }
 
 describe("trainer cards in the viewer", () => {
-  afterEach(() => { setWidth(1024); document.body.innerHTML = ""; });
+  afterEach(() => { setWidth(1024); });
 
   it("on desktop, shows a wide card per live run in the header in place of the live-run buttons", async () => {
     await mount(1280);

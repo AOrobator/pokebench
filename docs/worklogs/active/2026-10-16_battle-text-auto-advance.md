@@ -34,8 +34,12 @@ Branch `claude/battle-text-auto-advance` in `/private/tmp/pokebench-battle-text`
   - Tests: agent 1434, viewer 795, Python 2048 (2 ROM-gated skips). Coverage: agent L 99.11 / B 94.53 / F 98.03; viewer L 97.60 / B 90.50 / F 93.59; Python L 97.19 / B 92.81 / F 100. `battle-text-auto-advance.ts` 100% lines/functions. lint (incl. mypy) clean, build, verify-vendor green.
 
 **M3 — proof, explainer, review**
-- [ ] Real-ROM proof from a wild battle and from the Birch rescue battle
-- [ ] Explainer `docs/explainers/battle-text-auto-advance-v1.html`, FEATURE_EXPLAINERS mapping, pending `experiments/battle-text-auto-advance.json`
+- [x] Real-ROM proof from a wild battle and from the Birch rescue battle (session log 03:45 AM)
+- [x] Explainer `docs/explainers/battle-text-auto-advance-v1.html`, FEATURE_EXPLAINERS mapping, pending `experiments/battle-text-auto-advance.json`
+  - COMMIT: `test(RED): battle-text-auto-advance-v1 explainer link and allowlist; explainer, pending experiment and readiness` (7a65ecf2)
+  - COMMIT: `feat(viewer): link the battle-text-auto-advance-v1 card to its explainer` (see next entry)
+  - Tests: agent 1434, viewer 796, Python 2048. Coverage: agent L 99.11 / B 94.51 / F 98.03; viewer L 97.60 / B 90.50 / F 93.59; Python L 97.19 / B 92.81 / F 100 (`battle_text.py`, `battle_state.py`, `observation.py` 100%). lint, build, verify-vendor, `just experiments-check` (ok: 54) green.
+  - Pre-merge preview copy: `runs/mockups/battle-text-auto-advance-v1/battle-text-auto-advance-v1.html` in the main checkout, http://127.0.0.1:8791/battle-text-auto-advance-v1/battle-text-auto-advance-v1.html returned 200. The live viewer click (Harness Config → READ EXPLAINER) was not done: starting a second viewer from the worktree could start the queue runner; the card link and the allowlist route are covered by tests.
 - [ ] Review: Claude CLI, Codex (gpt-5.6-sol), Grok (cursor-grok-4.5-high) until LGTM
 - [ ] ASK USER: "merge it"
 

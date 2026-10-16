@@ -7,6 +7,7 @@ import { filesystemComparisonHost, prepareComparison, sha256 } from "@pokebench/
 import { RUN_END_REASONS, type RunEvent } from "@pokebench/agent/events";
 import { configOf } from "./history.js";
 import { readNativeRecording } from "./frontier-recording.js";
+import { defaultViewerBuild, skewOf, type BuildIdentity, type ViewerBuild } from "./build-stamp.js";
 import { applyHistoricalProvenance } from "./frontier-provenance.js";
 import { parseNavigationReceipt } from "./frontier-queue.js";
 import { dirname } from "node:path";
@@ -21,9 +22,10 @@ import { distinctLabels, experimentDefinitions, legacyCohort, taggedCohorts, typ
 const MAX_PLAN_BYTES = 1024 * 1024;
 // What the snapshot needs from a run's RunView, as plain data: it crosses worker threads and disk.
 export interface RunTiming { startMs: number | null; ended: boolean; lastMs: number | null; paused: boolean; pauses: { startMs: number; endMs: number | null }[] }
-export interface LoadedRun { run: WorkbenchRun; port: number | null; tag: { experiment: string; commit: string } | null; timing: RunTiming | null }
+// skew: the run's build and the events a tolerant read skipped (null when none were skipped).
+export interface LoadedRun { run: WorkbenchRun; port: number | null; tag: { experiment: string; commit: string } | null; timing: RunTiming | null; skew: { commit: string; dirty: boolean; count: number; first: string } | null }
 interface Loaded extends LoadedRun { signature: string }
-export type WorkbenchCompute = (root: string, id: string) => Promise<LoadedRun>;
+export type WorkbenchCompute = (root: string, id: string, viewer: BuildIdentity | null) => Promise<LoadedRun>;
 const record = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 function errorText(error: unknown): string { return (error instanceof Error ? error.message : String(error)).slice(0, 500); }
 function metadata(path: string): { value: unknown; digest: string } {
@@ -62,22 +64,35 @@ function runSignature(path: string): string {
 function invalidRun(id: string, problem: string | null): WorkbenchRun {
   return { id, cohort: null, model: null, started: null, status: "invalid", reason: null, problem, excluded: null, elapsedMs: null, turn: 0, config: null, splits: [] };
 }
-// Reduces one run's whole log. Pure and plain-valued, so it can run on a worker thread.
-export function loadRun(root: string, id: string): LoadedRun {
+// Reduces one run's whole log. Pure and plain-valued, so it can run on a worker thread. viewer is this
+// viewer's build stamp: when the run's build is not that exact clean build, schema-rejected events with
+// an in-order envelope are stepped over and reported in skew; the loader decides what they mean.
+export function loadRun(root: string, id: string, viewer: BuildIdentity | null = null): LoadedRun {
   const path = eventsPath(root, id);
-  let run = invalidRun(id, null), port: number | null, timing: RunTiming | null, tag: LoadedRun["tag"] = null;
+  let run = invalidRun(id, null), port: number | null, timing: RunTiming | null, tag: LoadedRun["tag"] = null, skew: LoadedRun["skew"] = null;
   try {
     const start = startOf(root, id);
     run = { ...run, model: start.controller?.kind === "human" ? `Human · ${start.controller.name}` : start.model.id, started: start.t, config: configuration(start), excluded: start.harness_features.includes("probe") ? "Excluded probe session" : null };
     port = start.isolation.port;
     const experiment = start.evaluation?.experiment; if (experiment !== undefined) tag = { experiment: experiment.id, commit: start.harness.commit };
-    const recording = readNativeRecording(path, id, qualifiedNativeMilestone), view = recording.view;
+    const tolerate = viewer !== null && !(viewer.commit === start.harness.commit && !viewer.dirty && !start.harness.dirty);
+    const recording = readNativeRecording(path, id, qualifiedNativeMilestone, undefined, tolerate), view = recording.view;
     run.splits = recording.splits; run.measurement = recording.measurement;
+    if (recording.skipped !== null) skew = { commit: start.harness.commit, dirty: start.harness.dirty, ...recording.skipped };
     run.status = view.end === null ? "unresponsive" : "ended"; run.reason = view.end?.reason ?? null; run.turn = view.turn;
     if (run.reason === "operator_abort") run.excluded ??= "Excluded operator-aborted run";
     timing = { startMs: view.startMs, ended: view.end !== null, lastMs: view.lastMs, paused: view.control.state === "paused", pauses: view.control.pauses.map(p => ({ ...p })) };
-  } catch (error) { run.problem = errorText(error); run.status = "invalid"; run.splits = []; delete run.measurement; timing = null; port = null; }
-  return { run, port, tag, timing };
+  } catch (error) { run.problem = errorText(error); run.status = "invalid"; run.splits = []; delete run.measurement; timing = null; port = null; skew = null; }
+  return { run, port, tag, timing, skew };
+}
+// A run with skipped events keeps its status and says to restart the viewer when the run's build is not
+// contained in the viewer's (skewOf); otherwise its first rejected event makes it invalid, as a strict read.
+export function settleSkew(loaded: LoadedRun, build: ViewerBuild | null): LoadedRun {
+  if (loaded.skew === null) return loaded;
+  const skew = skewOf(build, loaded.skew), run = structuredClone(loaded.run);
+  if (skew !== null) { run.problem = skew.describe(loaded.skew.count, loaded.skew.first); return { ...loaded, run }; }
+  const strict = { ...invalidRun(loaded.run.id, loaded.skew.first), model: run.model, started: run.started, config: run.config, excluded: run.excluded === "Excluded operator-aborted run" ? null : run.excluded };
+  return { run: strict, port: null, tag: loaded.tag, timing: null, skew: null };
 }
 // Run time without operator pauses, as runSeconds computes it from a RunView.
 export function timingSeconds(timing: RunTiming, nowMs: number): number {
@@ -91,10 +106,11 @@ const nullableFinite = (v: unknown): v is number | null => v === null || finite(
 // A LoadedRun from a worker or the disk cache, or null when it does not validate.
 export function parseLoadedRun(value: unknown): LoadedRun | null {
   if (!record(value)) return null;
-  const { run, port, tag, timing } = value;
+  const { run, port, tag, timing, skew } = value;
   try { parseWorkbench({ version: 1, at: 0, milestones: [], problems: [], runs: [run] }); } catch { return null; }
   if (!(port === null || (Number.isSafeInteger(port) && typeof port === "number" && port > 0 && port < 65536))) return null;
   if (!(tag === null || (record(tag) && typeof tag.experiment === "string" && typeof tag.commit === "string"))) return null;
+  if (!(skew === null || (record(skew) && typeof skew.commit === "string" && /^[0-9a-f]{40}$/.test(skew.commit) && typeof skew.dirty === "boolean" && Number.isSafeInteger(skew.count) && typeof skew.count === "number" && skew.count > 0 && typeof skew.first === "string"))) return null;
   if (!(timing === null || (record(timing) && nullableFinite(timing.startMs) && typeof timing.ended === "boolean" && nullableFinite(timing.lastMs) && typeof timing.paused === "boolean" && Array.isArray(timing.pauses) && timing.pauses.every(p => record(p) && finite(p.startMs) && nullableFinite(p.endMs))))) return null;
   return value as unknown as LoadedRun;
 }
@@ -104,15 +120,20 @@ export interface WorkbenchLoader {
 }
 // Caches each run by its log signature, shares a load already in flight, and persists ended
 // runs (their logs never change) for the next viewer of the same code.
-export function createWorkbenchLoader(options: { compute?: WorkbenchCompute; store?: RunStore<LoadedRun> } = {}): WorkbenchLoader {
-  const compute = options.compute ?? ((root: string, id: string): Promise<LoadedRun> => Promise.resolve().then(() => loadRun(root, id)));
+// build is this viewer's own build (default: dist/build-stamp.json; null when unknown). Workers get its
+// stamp as plain data; git ancestry (skewOf) runs here on the main thread, cached per run commit.
+export function createWorkbenchLoader(options: { compute?: WorkbenchCompute; store?: RunStore<LoadedRun>; build?: ViewerBuild | null } = {}): WorkbenchLoader {
+  const compute = options.compute ?? ((root: string, id: string, viewer: BuildIdentity | null): Promise<LoadedRun> => Promise.resolve().then(() => loadRun(root, id, viewer)));
+  const build = options.build === undefined ? defaultViewerBuild() : options.build;
+  const stamp: BuildIdentity | null = build === null ? null : { commit: build.commit, dirty: build.dirty };
+  const buildKey = `:viewer=${stamp === null ? "unknown" : `${stamp.commit}${stamp.dirty ? "+dirty" : ""}`}`;
   const cache = new Map<string, Loaded>(), inflight = new Map<string, Promise<Loaded>>();
   return {
     load: async (root, id) => {
       const path = eventsPath(root, id);
       let signature: string;
-      try { signature = runSignature(path); } catch (error) {
-        const entry: Loaded = { signature: "", run: invalidRun(id, errorText(error)), port: null, tag: null, timing: null };
+      try { signature = runSignature(path) + buildKey; } catch (error) {
+        const entry: Loaded = { signature: "", run: invalidRun(id, errorText(error)), port: null, tag: null, timing: null, skew: null };
         cache.set(path, entry); return entry;
       }
       const prior = cache.get(path);
@@ -122,9 +143,9 @@ export function createWorkbenchLoader(options: { compute?: WorkbenchCompute; sto
       if (pending === undefined) {
         pending = (async (): Promise<Loaded> => {
           const stored = options.store?.get(id, signature) ?? null;
-          const loaded = stored ?? await compute(root, id);
-          const entry: Loaded = { ...loaded, signature };
-          let after: string | null = null; try { after = runSignature(path); } catch { /* removed while loading */ }
+          const loaded = stored ?? await compute(root, id, stamp);
+          const entry: Loaded = { ...settleSkew(loaded, build), signature };
+          let after: string | null = null; try { after = runSignature(path) + buildKey; } catch { /* removed while loading */ }
           if (after === signature) {
             cache.set(path, entry);
             if (stored === null && loaded.run.status === "ended") options.store?.put(id, signature, loaded);
@@ -421,7 +442,7 @@ export async function workbenchSnapshot(root: string, healthy: HealthProbe, now:
   }));
   loader.forget(path => summaries.some(s => eventsPath(root, s.id) === path) || !path.startsWith(root + "/"));
   runs.sort((a, b) => Date.parse(b.started ?? "") - Date.parse(a.started ?? "") || b.id.localeCompare(a.id));
-  const problems = [...cohorts.problems], taggedValues = new Set(tagged.cohorts.map(c => c.id)), legacy = new Map<string, WorkbenchCohort>();
+  const problems = [...cohorts.problems, ...runs.flatMap(run => run.status !== "invalid" && run.problem !== null ? [`Run ${run.id}: ${run.problem}`] : [])], taggedValues = new Set(tagged.cohorts.map(c => c.id)), legacy = new Map<string, WorkbenchCohort>();
   for (const run of runs) {
     if (run.cohort === null || tagged.membership.has(run.id)) continue;
     if (taggedValues.has(run.cohort)) problems.push(`Legacy cohort ${run.cohort} has the value of a run-tagged cohort; run ${run.id} is not tagged`);

@@ -53,7 +53,8 @@ function plateHtml(run: WorkbenchRun, at: number, now: number, lanes: RunLanes |
   const cap = run.config?.maxWallMs ?? null, parts = laneParts(run, lanes), where = `${parts.where}${run.status === "paused" ? " · PAUSED" : ""}`;
   const when = reached === null ? "" : recovered ? `≤ ${clockText(reached.split.elapsedMs)} · ≤ turn ${String(reached.split.turn)} · recovered` : `${clockText(reached.split.elapsedMs)} · turn ${String(reached.split.turn)}`;
   const milestone = reached === null ? '<b class="none">No milestone yet</b><small>waiting for New game</small>' : `<b>${esc(reached.label)}</b>${fresh ? '<span class="wb-new-chip">NEW MILESTONE!</span>' : ""}<small>${when}</small>`;
-  const resumed = run.config?.resume === "CLOCK_SET" ? '<small class="wb-plate-note" data-current-field="note">NOT FROM ZERO · Clock set save</small>' : "";
+  const resumed = (run.config?.resume === "CLOCK_SET" ? '<small class="wb-plate-note" data-current-field="note">NOT FROM ZERO · Clock set save</small>' : "")
+    + (run.problem === null ? "" : `<small class="wb-plate-note wb-plate-problem" role="alert" data-current-field="problem">⚠ ${esc(run.problem)}</small>`);
   return `<a class="wb-plate${fresh ? " new" : ""}" href="${viewerUrl(run.id)}" aria-label="Watch run ${esc(run.id)}"><span class="wb-plate-l1"><span data-current-field="where">${where}</span><span data-current-field="level">Lv${String(level)}</span></span>`
     + `<span class="wb-ty" data-current-field="type"><i>TYPE/</i>${parts.type}</span>`
     + `<span class="wb-br"><span class="wb-lab"><span class="lf">MILESTONE</span><span class="ls">MI</span></span><span class="wb-hp"><span><i data-current-field="milestone-bar" style="width:${pct(level, total)}"></i></span></span><span class="wb-n" data-current-field="milestone-count">${String(level)}/ ${String(total)}</span></span>`

@@ -386,3 +386,15 @@ def test_clauses_follow_the_detector_phase() -> None:
         'battle message waiting: "Hi!" — press A or B to continue'
     )
     assert input_clause(replace(BASE, message=waiting, text_phase="screen")) is None
+
+
+def test_a_reader_diagnostic_is_shown_unless_another_owner_holds_the_battle() -> None:
+    """Review round 2: a diagnostic under phase screen or input keeps the OFF text; with the
+    detector itself failed (phase None) it stays loud, since ownership is then unknown."""
+    broken = bt.BattleMessage("idle", diagnostic="harness bug: battle text: x")
+    for phase in ("screen", "input"):
+        assert message_clause(replace(BASE, message=broken, text_phase=phase)) is None
+        assert input_clause(replace(BASE, message=broken, text_phase=phase)) is None
+    unread = "battle message unreadable (harness bug: battle text: x)"
+    assert input_clause(replace(BASE, message=broken, text_phase=None)) == unread
+    assert input_clause(replace(BASE, message=broken, text_phase="busy")) == unread

@@ -223,9 +223,9 @@ it("states which stall it is in the headline and keeps the existing loop briefin
  expect(loop).toMatch(/^SUPERVISOR: You are currently looping\. You keep repeating the same short cycle of actions, and the game is not moving forward \(loop guard, 4 calls into the run\)\. What you have been trying is not working, so do not try it again\.\nStop and get your bearings:\n- Where you are: no observation yet\n/);
  const facts=(text:string)=>text.slice(text.indexOf("\nStop and get your bearings:"));
  // The stall briefing adds three lines of its own (bundle 3f21 fix F5); every other line is the loop briefing's.
- const added=/^- (Dialogue shown with your last story step|Not tried yet on other maps|Exits to maps you have not entered)/;
+ const added=/^- (Dialogue shown with your latest story step that came with dialogue|Not tried yet on other maps|Exits to maps you have not entered)/;
  const stall=facts(b.stallText({kind:"milestone_drought",minutes:5},4)).split("\n");
- expect(stall.filter(line=>added.test(line))).toEqual(["- Dialogue shown with your last story step: none recorded","- Not tried yet on other maps you have been on since your last story progress: none","- Exits to maps you have not entered since your last story progress: none"]);
+ expect(stall.filter(line=>added.test(line))).toEqual(["- Dialogue shown with your latest story step that came with dialogue: none recorded","- Not tried yet on other maps you have been on since your last story progress: none","- Exits to maps you have not entered since your last story progress: none"]);
  expect(stall.filter(line=>!added.test(line)).join("\n")).toBe(facts(loop));
  expect(new StallBriefing(ON,()=>0,{stall:()=>false},()=>"")).toBeInstanceOf(StallBriefing);
 });

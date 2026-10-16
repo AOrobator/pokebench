@@ -126,7 +126,7 @@ describe("F5 stall-briefing-v1: the stall briefing cites the last story instruct
   const text=upTo(3310).stallText({kind:"milestone_drought",minutes:5},166);
   const lines=text.split("\n");
   let at=0;for(const line of note(3310).split("\n")){const i=lines.indexOf(line,at);expect(i,line).toBeGreaterThanOrEqual(at);at=i+1;}
-  expect(text).toContain(`- Dialogue shown with your last story step (mom rival instruction at turn 98), whole, in order: MOM: "MOM: Oh! RED, RED! Quick! Come quickly!" | MOM: "MOM: Look! It's PETALBURG GYM! Maybe DAD will be on!" | INTERVIEWER: "INTERVIEWER: …We brought you this report from in front of PETALBURG GYM." | MOM: "MOM: Oh… It's over." | MOM: "I think DAD was on, but we missed him. Too bad." | MOM (sprite kind, not a name): "Oh, yes. One of DAD's friends lives in town." | MOM (sprite kind, not a name): "PROF. BIRCH is his name." | MOM (sprite kind, not a name): "He lives right next door, so you should go over and introduce yourself."`);
+  expect(text).toContain(`- Dialogue shown with your latest story step that came with dialogue (mom rival instruction at turn 98), whole, in order: MOM: "MOM: Oh! RED, RED! Quick! Come quickly!" | MOM: "MOM: Look! It's PETALBURG GYM! Maybe DAD will be on!" | INTERVIEWER: "INTERVIEWER: …We brought you this report from in front of PETALBURG GYM." | MOM: "MOM: Oh… It's over." | MOM: "I think DAD was on, but we missed him. Too bad." | MOM (sprite kind, not a name): "Oh, yes. One of DAD's friends lives in town." | MOM (sprite kind, not a name): "PROF. BIRCH is his name." | MOM (sprite kind, not a name): "He lives right next door, so you should go over and introduce yourself."`);
   expect(text).toMatch(/\n- Exits to maps you have not entered since your last story progress: LITTLEROOT TOWN \(map 0\/9\): [^\n]*Warp to map 1\/2 at 14,8/);
   expect(text).not.toMatch(/Exits to maps[^\n]*Warp to map 1\/4/);
  });
@@ -181,20 +181,20 @@ describe("F5 stall briefing additions, every case",()=>{
   call({},false,{name:"GAME_RUNNING",kind:"legacy"});
   call({map_id:null,location:null,interaction_targets:[{kind:"warp",x:2,y:2,elevation:0,activation:"step",availability:"conditional",facing:null,local_id:null,destination:null,name:null}]});
   const text=b.stallText({kind:"milestone_drought",minutes:5},4);
-  expect(line(text,"- Dialogue shown with your last story step")).toBe(`- Dialogue shown with your last story step (mom rival instruction at turn 1), whole, in order: "Go next door."`);
+  expect(line(text,"- Dialogue shown with your latest story step that came with dialogue")).toBe(`- Dialogue shown with your latest story step that came with dialogue (mom rival instruction at turn 1), whole, in order: "Go next door."`);
   expect(line(text,"- Exits to maps")).toBe("- Exits to maps you have not entered since your last story progress: none");
  });
  it("takes a page's own state, else its event, and keeps the earlier instruction when a story milestone came with no pages",()=>{
   const {b,call}=run(ALL);
   call({},false,{name:"MOM_CLOCK_INSTRUCTION",kind:"story"},[{state_seq:null,map:"HOUSE",map_id:[1,0],position:null,speaker:"MOM",speaker_source:"name_prefix",text:"MOM: Set the clock."}]);
   call({},false,{name:"CLOCK_SET",kind:"story"});
-  expect(line(b.stallText({kind:"milestone_drought",minutes:5},2),"- Dialogue shown")).toBe(`- Dialogue shown with your last story step (mom clock instruction at turn 1), whole, in order: MOM: "MOM: Set the clock."`);
+  expect(line(b.stallText({kind:"milestone_drought",minutes:5},2),"- Dialogue shown")).toBe(`- Dialogue shown with your latest story step that came with dialogue (mom clock instruction at turn 1), whole, in order: MOM: "MOM: Set the clock."`);
  });
  it("says what is not available when the readout lacks dialogue text or targets",()=>{
   const {b,call}=run({...ALL,"active-field-message-buffer-v1":false,"world-targets-v1":false});
   call({});
   const text=b.stallText({kind:"milestone_drought",minutes:5},1);
-  expect(line(text,"- Dialogue shown")).toBe("- Dialogue shown with your last story step: not available (dialogue text is off)");
+  expect(line(text,"- Dialogue shown")).toBe("- Dialogue shown with your latest story step that came with dialogue: not available (dialogue text is off)");
   expect(line(text,"- Not tried yet on other maps")).toBe("- Not tried yet on other maps you have been on since your last story progress: not available (world targets are off)");
   expect(line(text,"- Exits to maps")).toBe("- Exits to maps you have not entered since your last story progress: not available (world targets are off)");
  });

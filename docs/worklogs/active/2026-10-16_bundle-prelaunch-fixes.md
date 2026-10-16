@@ -38,9 +38,13 @@ Forensics of bundle qualification run `2026-10-15T23-47-41_qwen36-gpu1_3f21` (`r
 
 ## Multi-Model Review Log
 
+- Codex gpt-5.6-sol round 1: BLOCKING. The F5 line called the pages of an earlier story milestone "your last story step" when a later story milestone (CLOCK_SET) came with no pages: misattributed evidence. Fix: the line says "your latest story step that came with dialogue" and names that milestone; RED then GREEN.
+
 ## Surprises
 
 ## Commits
+
+- COMMIT: `test(bundle): RED for review fix: name the story step the quoted dialogue came with`
 
 - COMMIT: `docs(explainers): F5–F8 before/after from run 3f21`
 

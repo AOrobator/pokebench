@@ -68,6 +68,17 @@ The 2026-10-14 worklog named both persistent caching and worker threads as non-g
 - [ ] ASK USER: merge approval (not a bundle-v-control fix)
 - [ ] After merge: `just viewer-main`, record time to first answer, cold and warm `/comparisons`, and that live runs survived
 
+**M4 — Workbench run loads off the request thread, persisted (the operator "yes", 4:34 AM)**
+
+Cause (live receipt below): `workbench-store.ts` `load()` reduces every run's full log (`readNativeRecording` → `parseEvent` per line) on the main thread for `/api/workbench`, in memory only, and re-reduces a live run's whole log whenever it grows.
+
+Design: `load()` splits into `runSignature` (main thread: stat + visual-evidence signature, unchanged) and a pure `loadRun(root, id)` returning a plain `LoadedRun` (`run`, `port`, `tag`, and `timing` replacing the `RunView`: startMs, ended, lastMs, paused, pauses). `runSeconds` on a view becomes `timingSeconds` on that record. A `createWorkbenchLoader({ compute, store })` keeps the in-memory cache by signature, shares in-flight loads, and persists ended runs at `runs/.viewer-cache/workbench/<codeId>/`. The worker pool becomes generic (`kind: "baseline" | "workbench"`); the worker validates nothing new, the main thread validates every workbench reply through `parseWorkbench`. Live runs are recomputed on the workers when their log grows (no main-thread parse); incremental live reads are deferred (needs a resumable `readNativeRecording`).
+
+- [x] Write tests: `loadRun`/`timingSeconds` parity with the in-process snapshot; a held compute leaves other routes answering; store reuse for ended runs only; signature change recomputes; corrupt store entries ignored; worker `kind` routing; in-flight sharing.
+- [x] COMMIT RED: `test(viewer): RED workbench runs load off the request thread and persist` (10 new tests fail: missing exports; pool posts gain `kind`)
+- [ ] Implement, gates, COMMIT GREEN, guard deletions
+- [ ] Review (Claude, Codex, Grok in a throwaway worktree), merge on the operator's word, live restart receipt
+
 ## Closing the Loop
 
 Done when a restart answers `/api/runs` within seconds, a restart without baseline-code changes serves comparisons from disk, and the live receipt is recorded.

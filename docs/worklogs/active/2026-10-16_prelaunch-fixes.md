@@ -77,6 +77,8 @@ Done when every milestone is merged, qualification shows none of F1–F8, the fo
 
 ## Session Log
 
+- 2026-10-16 03:50 AM EDT: The operator put walkable-floor-v1 (existing switch; cook #2 had navigate_to call rug tiles unwalkable 13 times) in the bundle; the "Cook run 2 rival house exit" thread builds more bundle fixes (pushback press result, briefings that stop listing used exits, room exploration, a loop-guard fix).
+- 2026-10-16 03:45 AM EDT: battle-triage-guidance-v1 merged on main (9f744e40, Claude/Codex/grok approved by its thread); added to bundle-v-control switches (off in base).
 - 2026-10-16 03:18 AM EDT: readout-rules-in-prompt-v1 (safe readout trim: fixed rules moved into the system prompt) joins the upcoming bundle switches; grass cost stays out (the operator).
 - 2026-10-16 03:10 AM EDT: Upcoming bundle switches also include people-ledger-v1 (claude/people-ledger) and explorer-guidance-v1 (claude/explorer-guidance), built by the showcase-analysis thread; the speaker check is dropped; readout trimming is undecided (likely a separate A/B).
 - 2026-10-16 03:04 AM EDT: The operator added adjacent-tiles-v1 (built by the showcase-analysis thread) to the upcoming bundle switches; grass-cost-navigation-v1 stays out pending a PokeBench review.

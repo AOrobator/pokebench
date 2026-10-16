@@ -106,27 +106,27 @@ Battle input: battle message waiting: &quot;Wild WINGULL fainted!&quot; — pres
    <text class="m" x="342" y="115">recorded playback   — unchanged</text>
    <path class="arrow" d="M135 124 V150" marker-end="url(#a)"/><text class="s" x="142" y="142">no</text>
 
-   <rect class="game" x="10" y="150" width="250" height="44" rx="6"/>
-   <text class="t" x="22" y="170">Printer 0 waits, autoScroll clear</text>
-   <text class="s" x="22" y="186">render state 1, 2 or 3</text>
-   <path class="arrow" d="M260 172 H330" marker-end="url(#a)"/>
-   <rect class="game" x="330" y="150" width="380" height="44" rx="6"/>
-   <text class="m" x="342" y="176">battle message waiting: "&lt;page&gt;" — press A or B to continue</text>
-
    <rect class="game" x="10" y="204" width="250" height="44" rx="6"/>
-   <text class="t" x="22" y="224">Printer 0 writing the page</text>
-   <text class="s" x="22" y="240">render state 0, 4, 5 or 6</text>
+   <text class="t" x="22" y="224">Printer 0 waits, autoScroll clear</text>
+   <text class="s" x="22" y="240">render state 1, 2 or 3</text>
    <path class="arrow" d="M260 226 H330" marker-end="url(#a)"/>
    <rect class="game" x="330" y="204" width="380" height="44" rx="6"/>
-   <text class="m" x="342" y="230">battle message printing: "&lt;page&gt;" — still being written; …</text>
+   <text class="m" x="342" y="230">battle message waiting: "&lt;page&gt;" — press A or B to continue</text>
 
-   <rect class="nav" x="10" y="258" width="250" height="44" rx="6"/>
-   <text class="t" x="22" y="278">Battle-script YES/NO box ready</text>
-   <text class="s" x="22" y="294">yesnobox, learn move, nickname</text>
+   <rect class="game" x="10" y="258" width="250" height="44" rx="6"/>
+   <text class="t" x="22" y="278">Printer 0 writing the page</text>
+   <text class="s" x="22" y="294">render state 0, 4, 5 or 6</text>
    <path class="arrow" d="M260 280 H330" marker-end="url(#a)"/>
-   <rect class="nav" x="330" y="258" width="380" height="44" rx="6"/>
-   <text class="m" x="342" y="276">battle YES/NO box open (…), cursor on YES — UP or DOWN</text>
-   <text class="m" x="342" y="292">moves the cursor, A answers it, B answers NO</text>
+   <rect class="game" x="330" y="258" width="380" height="44" rx="6"/>
+   <text class="m" x="342" y="284">battle message printing: "&lt;page&gt;" — still being written; …</text>
+
+   <rect class="nav" x="10" y="150" width="250" height="44" rx="6"/>
+   <text class="t" x="22" y="170">Battle-script YES/NO box ready</text>
+   <text class="s" x="22" y="186">yesnobox, learn move, nickname</text>
+   <path class="arrow" d="M260 172 H330" marker-end="url(#a)"/>
+   <rect class="nav" x="330" y="150" width="380" height="44" rx="6"/>
+   <text class="m" x="342" y="168">battle YES/NO box open (…), cursor on YES — UP or DOWN</text>
+   <text class="m" x="342" y="184">moves the cursor, A answers it, B answers NO</text>
 
    <rect class="box" x="10" y="312" width="250" height="44" rx="6"/>
    <text class="t" x="22" y="332">Printer idle, battle callback busy</text>
@@ -139,7 +139,7 @@ Battle input: battle message waiting: &quot;Wild WINGULL fainted!&quot; — pres
    <text class="s" x="10" y="380">Another screen over the battle (bag, party, evolution) keeps the OFF text. A reader error reads "battle message unreadable (…)".</text>
   </svg>
   </div>
-  <figcaption>The clause replaces only OFF's "resolving (no input until the game asks)". The YES/NO box is checked before the printer; a reader diagnostic before both.</figcaption>
+  <figcaption>Checked top to bottom; a reader diagnostic comes first. The clause replaces only OFF's "resolving (no input until the game asks)". Each case follows the detector's phase: a page printed while another screen owns the battle callback (evolution, bag, party) keeps the OFF text. Under auto-scroll (link and recorded battles) a held page reads "battle message shown: … it moves on by itself".</figcaption>
  </figure>
 </section>
 

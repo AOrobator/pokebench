@@ -9,6 +9,7 @@ window reader (battle_text.py, grounded in pokeemerald src/text.c and src/battle
   gTextFlags.autoScroll is clear, so TextPrinterWait(WithDownArrow) needs JOY_NEW(A_BUTTON |
   B_BUTTON);
 - printing: printer 0 is writing the page (or scrolling/pausing) on its own;
+- shown under gTextFlags.autoScroll (link/recorded battles): a timer, not A/B;
 - a battle-script YES/NO box (Cmd_yesnobox and the learn-move/nickname boxes) is in its
   input state: UP/DOWN move the cursor, A answers it, B answers NO;
 - otherwise, with the printer idle and the battle main callback running, the game is
@@ -31,20 +32,35 @@ PROMPTS = {
 }
 
 
+WAIT_RENDER_STATES = frozenset({"button_wait", "page_wait", "scroll_wait"})
+
+
 def message_clause(battle: BattleState) -> str | None:
-    """The message window or YES/NO box the battle is showing, when it shows one."""
-    message, prompt = battle.message, battle.prompt
+    """The message window or YES/NO box the battle is showing, when it shows one.
+
+    Each clause follows the detector's phase (battle_text.battle_text_phase), so a page
+    printed while another screen owns the callback (evolution, bag, party) says nothing.
+    """
+    message, prompt, phase = battle.message, battle.prompt, battle.text_phase
     if message is not None and message.diagnostic is not None:
         return f"battle message unreadable ({message.diagnostic})"
-    if prompt is not None and prompt.ready:
+    if phase == "prompt" and prompt is not None and prompt.ready:
         return (
             f"battle YES/NO box open ({PROMPTS[prompt.kind]}), cursor on {prompt.selected} — "
             "UP or DOWN moves the cursor, A answers the highlighted choice, B answers NO"
         )
     if message is None or message.page is None:
         return None
-    if message.state == "waiting_for_input":
+    if phase == "message_waiting" and message.state == "waiting_for_input":
         return f'battle message waiting: "{message.page}" — press A or B to continue'
+    if phase != "busy" or message.state != "printing":
+        return None
+    if message.render_state in WAIT_RENDER_STATES:
+        # gTextFlags.autoScroll (link and recorded battles): TextPrinterWaitAutoMode's timer.
+        return (
+            f'battle message shown: "{message.page}" — '
+            "it moves on by itself (auto-scroll); no input needed"
+        )
     return f'battle message printing: "{message.page}" — still being written; no input needed yet'
 
 

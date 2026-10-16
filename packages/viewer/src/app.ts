@@ -260,12 +260,23 @@ export class App {
   // sheet; each element keeps a marker at its header position to return to.
   private placeForWidth(): void {
     const phone = this.doc.defaultView?.matchMedia(PHONE).matches === true;
+    if (!phone) this.showSheet(false, false);
     for (const [element, home] of this.homes) {
       const slot = this.doc.querySelector(`[data-slot="${element.matches(".tb-ctl, .replay-controls") ? "phone-controls" : "phone-picker"}"]`);
       if (!phone || slot === null) home.after(element);
       else if (element.matches(".run-choice")) (slot.querySelector("h4") ?? slot).after(element);
       else slot.append(element);
     }
+  }
+
+  private showSheet(open: boolean, moveFocus = true): void {
+    const sheet = this.ui("run-sheet");
+    if (sheet.hidden === !open) return;
+    sheet.hidden = !open;
+    this.ui("run-sheet-shade").hidden = !open;
+    const head = this.ui("run-head");
+    head.setAttribute("aria-expanded", String(open));
+    if (moveFocus) (open ? this.ui("run-sheet-close") : head).focus();
   }
 
   private setupPhoneHeader(): void {
@@ -281,23 +292,16 @@ export class App {
     }
     this.placeForWidth();
     this.doc.defaultView?.addEventListener("resize", () => { this.placeForWidth(); });
-    const head = this.ui("run-head");
-    const sheet = this.ui("run-sheet");
-    const shade = this.ui("run-sheet-shade");
-    const show = (open: boolean): void => {
-      sheet.hidden = !open;
-      shade.hidden = !open;
-      head.setAttribute("aria-expanded", String(open));
-    };
-    head.addEventListener("click", () => { show(true); });
-    shade.addEventListener("click", () => { show(false); });
-    this.ui("run-sheet-close").addEventListener("click", () => { show(false); });
-    this.picker("run").addEventListener("change", () => { show(false); });
+    this.ui("run-head").addEventListener("click", () => { this.showSheet(true); });
+    this.ui("run-sheet-shade").addEventListener("click", () => { this.showSheet(false); });
+    this.ui("run-sheet-close").addEventListener("click", () => { this.showSheet(false); });
+    this.ui("run-sheet").addEventListener("keydown", (event) => { if (event.key === "Escape") this.showSheet(false); });
+    this.picker("run").addEventListener("change", () => { this.showSheet(false, false); });
     this.ui("run-sheet-body").addEventListener("click", (event) => {
-      const watch = (event.target as HTMLElement).closest<HTMLElement>("[data-watch]");
-      if (watch === null) return;
-      show(false);
-      this.select(watch.dataset.watch ?? "");
+      const id = (event.target as HTMLElement).closest<HTMLElement>("[data-watch]")?.dataset.watch;
+      if (id === undefined) return;
+      this.showSheet(false);
+      this.select(id);
     });
   }
 
@@ -881,7 +885,9 @@ export class App {
     const time = clock !== null ? `${hms((clock.positionMs - clock.startMs) / 1000)} / ${hms((clock.endMs - clock.startMs) / 1000)}` : view.startMs === null ? "" : `${hms(runSeconds(view, nowMs))}${cap === undefined ? "" : ` / ${hms(cap / 1000)}`}`;
     const head = { view, runId: this.runId, label, running: live && view.control.state === "running", time, others: this.runs.filter((run) => isLive(run) && run.id !== this.runId) };
     this.setHtml("run-head", headHtml(head));
-    this.setHtml("run-sheet-body", sheetHtml(head, startedAt));
+    // The time ticks every render; rebuilding the sheet for it would remount the WATCH buttons under the pointer.
+    this.setHtml("run-sheet-body", sheetHtml({ ...head, time: "" }, startedAt));
+    for (const slot of this.ui("run-sheet-body").querySelectorAll(".rh-time")) slot.textContent = time;
     if (clock !== null) {
       scrub.value = String(Math.round(clock.fraction * 1000));
       this.ui("clock").textContent = `${hms((clock.positionMs - clock.startMs) / 1000)} / ${hms((clock.endMs - clock.startMs) / 1000)}`;

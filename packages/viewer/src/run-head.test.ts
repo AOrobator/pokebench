@@ -116,7 +116,10 @@ const RUNS = [
   { id: ENDED_ID, model: "qwen", started: "2026-10-16T04:51:31.543-04:00", ended: true, reason: "budget", problem: null, live: false, experiment: `${EXP} · bundle · 2/4`, cohort: { id: EXP, arm: "bundle", trial: 2, of: 4 } },
 ];
 
+let nowMs = BASE_MS + 3_500;
+
 async function mount(width: number): Promise<{ app: App; streams: FakeStream[] }> {
+  nowMs = BASE_MS + 3_500;
   setWidth(width);
   document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
   const streams: FakeStream[] = [];
@@ -136,7 +139,7 @@ async function mount(width: number): Promise<{ app: App; streams: FakeStream[] }
       streams.push(stream);
       return stream;
     },
-    now: () => BASE_MS + 3_500,
+    now: () => nowMs,
     hash: `#run=${LIVE_ID}`,
   };
   const app = await mountApp(document, deps);
@@ -221,6 +224,57 @@ describe("phone header in the viewer", () => {
     const order = Array.from(bar.children, (el) => el.getAttribute("data-ui") ?? el.className);
     expect(order.indexOf("comparisons-link")).toBeLessThan(order.indexOf("run-choice"));
     expect(order.indexOf("replay-controls")).toBeLessThan(order.indexOf("run-controls"));
+  });
+});
+
+describe("phone header sheet behavior", () => {
+  beforeEach(() => {
+    document.body.innerHTML = "";
+  });
+  afterEach(() => {
+    setWidth(1024);
+  });
+
+  it("closes an open sheet when the window widens past the phone breakpoint", async () => {
+    await mount(375);
+    ui("run-head").click();
+    setWidth(1280);
+    window.dispatchEvent(new Event("resize"));
+    expect(ui("run-sheet").hidden).toBe(true);
+    expect(ui("run-sheet-shade").hidden).toBe(true);
+    expect(ui("run-head").getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("keeps the WATCH buttons in place while the clock ticks and updates the time in place", async () => {
+    const { app } = await mount(375);
+    ui("run-head").click();
+    const watch = must(ui("run-sheet").querySelector<HTMLButtonElement>("[data-watch]"));
+    const time = must(ui("run-sheet").querySelector(".rs-now .rh-time"));
+    expect(time.textContent).toBe("0:00:03 / 0:01:00");
+    nowMs += 2_000;
+    app.tick(500);
+    expect(ui("run-sheet").querySelector("[data-watch]")).toBe(watch);
+    expect(must(ui("run-sheet").querySelector(".rs-now .rh-time")).textContent).toBe("0:00:05 / 0:01:00");
+  });
+
+  it("moves focus into the sheet, closes on Escape and returns focus to the header", async () => {
+    await mount(375);
+    ui("run-head").click();
+    expect(document.activeElement).toBe(ui("run-sheet-close"));
+    ui("run-sheet").dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    expect(ui("run-sheet").hidden).toBe(true);
+    expect(document.activeElement).toBe(ui("run-head"));
+    ui("run-head").click();
+    ui("run-sheet").dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    expect(ui("run-sheet").hidden).toBe(false);
+  });
+
+  it("ignores clicks in the sheet body that are not on a WATCH button", async () => {
+    const { streams } = await mount(375);
+    ui("run-head").click();
+    must(ui("run-sheet").querySelector<HTMLElement>(".rs-now")).click();
+    expect(ui("run-sheet").hidden).toBe(false);
+    expect(streams).toHaveLength(1);
   });
 });
 

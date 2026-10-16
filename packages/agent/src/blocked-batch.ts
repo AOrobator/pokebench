@@ -1,10 +1,12 @@
 import type { Button } from "./events.js";
 import type { GameStateSnapshot } from "./game-state.js";
-import { COUNTER, EDGE_WALLS, GAME_RULE, LEDGES, OPPOSITE, WATER, type Direction } from "./tile-rules.js";
+import { COUNTER, EDGE_WALLS, LEDGES, OPPOSITE, type Direction } from "./tile-rules.js";
 
 // blocked-batch-result-v1: a batch of one repeated direction that left the player on its tile,
 // with field controls free in both snapshots, says so and names what the readout shows on the way.
-export interface BlockedBatchFacts { readonly position: boolean; readonly liveMap?: boolean }
+// Each map fact is named only when the run's switches draw it for the model: ledges (ledge-hops-v1),
+// edge walls (one-way-tiles-v1), counters (counter-talk-v1) and map connections (world-destinations-v1).
+export interface BlockedBatchFacts { readonly position: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean }
 
 type Point = { readonly x: number; readonly y: number };
 type Tile = { readonly collision: number; readonly behavior: number; readonly elevation: number };
@@ -21,8 +23,16 @@ export function repeatedDirection(buttons: readonly Button[]): Direction | null 
   return buttons.length >= 2 && isDirection(first) && buttons.every(button => button === first) ? first : null;
 }
 
-// "terrain" never lets this direction through from here; "occupied" is a warp or object
-// that can change; "unknown" names no cause.
+// "terrain" never lets this direction through from here. "occupied" is a warp or object on the
+// next tile: it is described, not claimed as the blocker (object elevation is not read, and a warp
+// is not an obstacle). "unknown" names no cause. Elevation is never named: the readout does not show it.
+// pokeemerald PLAYER_AVATAR_FLAG_ON_FOOT and PLAYER_AVATAR_FLAG_SURFING: water stops only a walker.
+const ON_FOOT = 1 << 0, SURFING = 1 << 3;
+const onFoot = (state: GameStateSnapshot): boolean => {
+  const flags = state.running?.avatar_flags ?? null;
+  return flags !== null && (flags & ON_FOOT) !== 0 && (flags & SURFING) === 0;
+};
+
 interface Blocker { readonly text: string; readonly kind: "terrain" | "occupied" | "unknown" }
 
 function blocker(state: GameStateSnapshot, here: Point, direction: Direction, show: BlockedBatchFacts): Blocker | null {
@@ -39,31 +49,28 @@ function blocker(state: GameStateSnapshot, here: Point, direction: Direction, sh
   if (grid.objects.some(same)) return { text: `${named} has a person or object on it.`, kind: "occupied" };
   if (grid.warps.some(same)) return { text: `${named} is a warp (W on the local map) that did not activate from this side.`, kind: "occupied" };
   const own = tileAt(here);
-  if (own !== undefined && own.collision === 0 && (EDGE_WALLS.get(own.behavior)?.includes(direction) ?? false)) {
+  if (show.edgeWalls === true && own !== undefined && own.collision === 0 && (EDGE_WALLS.get(own.behavior)?.includes(direction) ?? false)) {
     return { text: `Your tile${show.position ? `, ${at(here)},` : ""} has an edge wall on its ${SIDE[direction]} side`, kind: "terrain" };
   }
   const tile = tileAt(next);
   if (tile === undefined) {
     const topology = state.topology;
-    const outside = topology != null && (next.x < 0 || next.y < 0 || next.x >= topology.width || next.y >= topology.height);
+    const outside = show.topology === true && topology != null && (next.x < 0 || next.y < 0 || next.x >= topology.width || next.y >= topology.height);
     if (outside && !topology.connections.some(c => c.direction === COMPASS[direction])) {
       const compass = COMPASS[direction].toLowerCase();
       return { text: `You are at the ${compass} edge of this map and it has no connection to the ${compass}`, kind: "terrain" };
     }
     return { text: `${named} is outside the readout's map window; what stopped you is not known.`, kind: "unknown" };
   }
-  const ledge = LEDGES.get(tile.behavior);
+  const ledge = show.ledges === true ? LEDGES.get(tile.behavior) : undefined;
   if (ledge !== undefined) {
     return ledge === direction
       ? { text: `The readout shows nothing blocking ${plain}; what stopped you is not known.`, kind: "unknown" }
       : { text: `${named} is a ledge you can only hop over moving ${ledge}`, kind: "terrain" };
   }
-  if (tile.collision !== 0) return { text: tile.behavior === COUNTER ? `${named} is a counter (collision)` : `${named} is a collision tile (# on the local map)`, kind: "terrain" };
-  if (WATER.has(tile.behavior)) return { text: `${named} is water; you cannot walk onto it`, kind: "terrain" };
-  if (EDGE_WALLS.get(tile.behavior)?.includes(OPPOSITE[direction]) ?? false) return { text: `${named} has an edge wall on its ${SIDE[OPPOSITE[direction]]} side`, kind: "terrain" };
-  if (GAME_RULE.mismatch(grid.elevation, tile.elevation)) {
-    return { text: `${named} is at elevation ${String(tile.elevation)} and you are at elevation ${String(grid.elevation)}; the game does not let you step between them`, kind: "terrain" };
-  }
+  if (tile.collision !== 0) return { text: show.counters === true && tile.behavior === COUNTER ? `${named} is a counter (collision)` : `${named} is a collision tile (# on the local map)`, kind: "terrain" };
+  if (tile.behavior >= 0x10 && tile.behavior <= 0x15 && onFoot(state)) return { text: `${named} is water (~ on the local map); you cannot walk onto it`, kind: "terrain" };
+  if (show.edgeWalls === true && (EDGE_WALLS.get(tile.behavior)?.includes(OPPOSITE[direction]) ?? false)) return { text: `${named} has an edge wall on its ${SIDE[OPPOSITE[direction]]} side`, kind: "terrain" };
   return { text: `The readout shows nothing blocking ${plain}; what stopped you is not known.`, kind: "unknown" };
 }
 
@@ -84,7 +91,7 @@ export function blockedBatchResult(before: GameStateSnapshot, after: GameStateSn
   const found = show.liveMap === true ? blocker(before, here, direction, show) : null;
   const head = before.facing !== null && before.facing !== after.facing
     ? `${show.position ? `turned ${before.facing} -> ${after.facing}` : "turned"} but did not move: ${pressed} left you ${tile}${show.position ? `, now facing ${after.facing}` : ""}.`
-    : `${found === null || found.kind === "unknown" ? "no movement" : "blocked"}: ${pressed} did not move you; you are still ${tile}${show.position ? ` facing ${after.facing}` : ""}.`;
+    : `${found !== null && found.kind === "terrain" ? "blocked" : "no movement"}: ${pressed} did not move you; you are still ${tile}${show.position ? ` facing ${after.facing}` : ""}.`;
   if (found === null) return head;
   return `${head} ${found.kind === "terrain" ? `${found.text}, so ${direction} cannot move you from here.` : found.text}`;
 }

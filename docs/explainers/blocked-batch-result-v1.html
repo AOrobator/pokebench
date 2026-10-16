@@ -63,7 +63,7 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 
 <section>
 <h2>1. What happened in control run 2919</h2>
-<p>Recorded in <code>2026-10-15T23-47-41_qwen36-gpu0_2919</code> (forensics bug 5). The player stood at (10,16) in Littleroot Town, facing left. The lab door warp is at (7,16), and (9,16) and (8,16) are wall. The model pressed <code>LEFT, LEFT, LEFT</code> to "walk left to (7,16)". Nothing moved. It got the same unhelpful result, and sent the same batch again: nine LEFT batches from (10,16) in turns 163–183, plus three DOWN×3 batches into the house row at turns 146–151.</p>
+<p>Recorded in <code>2026-10-15T23-47-41_qwen36-gpu0_2919</code> (forensics bug 5). The player stood at (10,16) in Littleroot Town, facing left. The lab door warp is at (7,16), and (9,16) and (8,16) are wall. The model pressed <code>LEFT, LEFT, LEFT</code> to "walk left to (7,16)". Nothing moved. It got the same unhelpful result, and sent the same batch again: nine LEFT batches from (10,16) in turns 163–183 (eight LEFT×3, one LEFT×2), plus three DOWN×3 batches into the house row at turns 146–151.</p>
 <figure><div class="scroll">
 <svg viewBox="0 0 700 250" width="700" role="img" aria-label="Local map row 15 to 17, x 6 to 12, with the player at (10,16) pressing left into the wall at (9,16)">
 <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--prior)"/></marker></defs>
@@ -122,30 +122,28 @@ On:  blocked: LEFT ×3 did not move you; you are still at (10,16) facing left. T
 
 <section>
 <h2>4. What it names, and in what order</h2>
-<p>The blocker comes only from the before-state's <code>navigation_grid</code> (the tiles the local map is drawn from), its object and warp lists, <code>world_context.objects</code> on the same map, and <code>topology</code>. The first match wins. Terrain causes end with "so LEFT cannot move you from here". A person, object or warp can change, so those say only what is there. With nothing shown, the head word is <code>no movement</code>, not <code>blocked</code>.</p>
+<p>The blocker comes only from the before-state's <code>navigation_grid</code> (the tiles the local map is drawn from), its object and warp lists, <code>world_context.objects</code> on the same map, <code>topology</code> and the player's avatar flags. The first match wins. Only terrain the game never lets through from this tile reads <code>blocked</code> and ends "so LEFT cannot move you from here". A person, object or warp is described, but the head stays <code>no movement</code>: object height is not read, and a warp is not an obstacle. With nothing shown, the head is <code>no movement</code> and the cause is not known.</p>
 <div class="tablewrap"><table>
-<tr><th>#</th><th>Readout shows</th><th>Text after "you are still at (x,y) facing …."</th></tr>
-<tr><td>1</td><td>an object on the next tile (same map)</td><td><code>The tile to the left, (x,y), has a person or object on it (object id N).</code></td></tr>
-<tr><td>2</td><td>a warp on the next tile</td><td><code>… is a warp (W on the local map) that did not activate from this side.</code></td></tr>
-<tr><td>3</td><td>an edge wall on the player's own tile, on the pressed side</td><td><code>Your tile, (x,y), has an edge wall on its left side, so LEFT cannot move you from here.</code></td></tr>
-<tr><td>4</td><td>next tile past the map edge, no connection that way</td><td><code>You are at the west edge of this map and it has no connection to the west, so LEFT …</code></td></tr>
-<tr><td>5</td><td>a ledge that hops another way</td><td><code>… is a ledge you can only hop over moving DOWN, so UP …</code></td></tr>
-<tr><td>6</td><td>collision ≠ 0 (counter behavior 0x80 named as a counter)</td><td><code>… is a collision tile (# on the local map), so LEFT …</code></td></tr>
-<tr><td>7</td><td>water behavior, no collision</td><td><code>… is water; you cannot walk onto it, so LEFT …</code></td></tr>
-<tr><td>8</td><td>an edge wall on the next tile's facing side</td><td><code>… has an edge wall on its right side, so LEFT …</code></td></tr>
-<tr><td>9</td><td>a different elevation the game refuses</td><td><code>… is at elevation 4 and you are at elevation 3; the game does not let you step between them, so RIGHT …</code></td></tr>
-<tr><td>–</td><td>tile not in the window, ledge in the pressed direction, or nothing</td><td><code>no movement: …</code> then <code>… is outside the readout's map window</code> or <code>The readout shows nothing blocking …</code>, ending <code>what stopped you is not known.</code></td></tr>
+<tr><th>#</th><th>Readout shows</th><th>Shown only with</th><th>Head</th><th>Text after "you are still at (x,y) facing …."</th></tr>
+<tr><td>1</td><td>an object on the next tile (same map)</td><td>live map</td><td>no movement</td><td><code>The tile to the left, (x,y), has a person or object on it (object id N).</code></td></tr>
+<tr><td>2</td><td>a warp on the next tile</td><td>live map</td><td>no movement</td><td><code>… is a warp (W on the local map) that did not activate from this side.</code></td></tr>
+<tr><td>3</td><td>an edge wall on the player's own tile, pressed side</td><td>one-way tiles</td><td>blocked</td><td><code>Your tile, (x,y), has an edge wall on its left side, so LEFT cannot move you from here.</code></td></tr>
+<tr><td>4</td><td>next tile past the map edge, no connection that way</td><td>world destinations</td><td>blocked</td><td><code>You are at the west edge of this map and it has no connection to the west, so LEFT …</code></td></tr>
+<tr><td>5</td><td>a ledge that hops another way</td><td>ledge hops</td><td>blocked</td><td><code>… is a ledge you can only hop over moving DOWN, so UP …</code></td></tr>
+<tr><td>6</td><td>collision ≠ 0 (a counter, behavior 0x80, is named as one only with counter talk)</td><td>live map</td><td>blocked</td><td><code>… is a collision tile (# on the local map), so LEFT …</code></td></tr>
+<tr><td>7</td><td>water drawn as ~ (behaviors 0x10–0x15), player on foot and not surfing</td><td>live map</td><td>blocked</td><td><code>… is water (~ on the local map); you cannot walk onto it, so LEFT …</code></td></tr>
+<tr><td>8</td><td>an edge wall on the next tile's facing side</td><td>one-way tiles</td><td>blocked</td><td><code>… has an edge wall on its right side, so LEFT …</code></td></tr>
+<tr><td>–</td><td>tile not in the window, ledge in the pressed direction, a height difference, or nothing</td><td></td><td>no movement</td><td><code>… is outside the readout's map window</code> or <code>The readout shows nothing blocking …</code>, ending <code>what stopped you is not known.</code></td></tr>
 </table></div>
-<p>Facts the model is not shown stay out. With <code>live-map-v1</code> off no tile is named, and the result is just <code>no movement: LEFT ×3 did not move you; you are still at (10,16) facing left.</code> With <code>live-player-position-v1</code> off, coordinates and facing are dropped (<code>you are still on the same tile</code>, <code>The tile to the left is …</code>).</p>
+<p>A fact whose switch is off falls back to how the map draws that tile: with ledge hops off a ledge is <code>#</code>, so it reads as a collision tile; with one-way tiles off an edge-wall tile is <code>.</code>, so the cause is not known. With <code>live-map-v1</code> off no tile is named at all: <code>no movement: LEFT ×3 did not move you; you are still at (10,16) facing left.</code> With <code>live-player-position-v1</code> off, coordinates and facing are dropped (<code>you are still on the same tile</code>, <code>The tile to the left is …</code>).</p>
 </section>
 
 <section>
 <h2>5. Game grounding</h2>
 <ul>
-<li>Collision: pokeemerald <code>GetCollisionAtCoords</code> refuses a step onto a tile whose collision bits are set, onto an object (<code>CheckForObjectEventCollision</code>), or across an elevation mismatch.</li>
-<li>Elevation: <code>IsElevationMismatchAt</code>. Elevation 0 (stairs) and 15 (bridges) never mismatch; any other pair of different heights does. The player's height is <code>navigation_grid.elevation</code>. This is the same rule navigation uses (<code>GAME_RULE</code>, now in <code>tile-rules.ts</code>).</li>
-<li>Ledges: <code>MB_JUMP_EAST/WEST/NORTH/SOUTH</code> (0x38–0x3B) hop only in their own direction. Edge walls: <code>MetatileBehavior_Is*Blocked</code> (0x30–0x37, 0xBE, 0xC0, 0xC1). Water: the surfable behaviors navigation already treats as water.</li>
-<li>These tables moved unchanged from <code>navigation.ts</code> to <code>tile-rules.ts</code> so both features read one copy; navigation behavior is unchanged (all its tests pass unmodified).</li>
+<li>Collision: pokeemerald <code>GetCollisionAtCoords</code> refuses a step onto a tile whose collision bits are set, onto an object at a compatible height (<code>CheckForObjectEventCollision</code>), or across an elevation mismatch (<code>IsElevationMismatchAt</code>). The readout gives no object heights and does not print tile heights, so neither is claimed.</li>
+<li>Ledges: <code>MB_JUMP_EAST/WEST/NORTH/SOUTH</code> (0x38–0x3B) hop only in their own direction. Edge walls: <code>MetatileBehavior_Is*Blocked</code> (0x30–0x37, 0xBE, 0xC0, 0xC1). These tables moved unchanged from <code>navigation.ts</code> to <code>tile-rules.ts</code> so both features read one copy; navigation tests pass unmodified.</li>
+<li>Water: only the behaviors the map draws as <code>~</code> (0x10–0x15), and only when <code>running.avatar_flags</code> has <code>PLAYER_AVATAR_FLAG_ON_FOOT</code> (bit 0) set and <code>PLAYER_AVATAR_FLAG_SURFING</code> (bit 3) clear.</li>
 </ul>
 </section>
 
@@ -164,7 +162,7 @@ On:  blocked: LEFT ×3 did not move you; you are still at (10,16) facing left. T
 <path class="arr" d="M310,68 L338,30" marker-end="url(#c)"/><path class="arr" d="M310,68 L338,75" marker-end="url(#c)"/><path class="arr" d="M310,68 L338,120" marker-end="url(#c)"/>
 <path class="arr" d="M490,30 L518,60" marker-end="url(#c)"/><path class="arr" d="M490,75 L518,70" marker-end="url(#c)"/><path class="arr" d="M490,120 L518,80" marker-end="url(#c)"/>
 </svg></div>
-<figcaption>All three callers build their switches with <code>toolSwitches(features)</code>. The highlighted box is the only new behavior; it is reached only when <code>blockedBatch</code> is true. Removing the switch from <code>toolSwitches</code> turns the factory tests red (checked once, then restored).</figcaption></figure>
+<figcaption>All three callers build their switches with <code>toolSwitches(features)</code>, which also passes which map facts the model is shown (live map, ledge hops, one-way tiles, counter talk, world destinations). The highlighted box is the only new behavior; it is reached only when <code>blockedBatch</code> is true. Removing the switch from <code>toolSwitches</code> turns the factory tests red (checked once, then restored).</figcaption></figure>
 </section>
 
 <section id="status">

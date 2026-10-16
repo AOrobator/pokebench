@@ -13,8 +13,9 @@ function interfaceProjection(state: GameStateSnapshot): string | undefined {
 // Endpoint snapshots prove net changes. They cannot prove every frame accepted
 // input or that a temporary script lock did not occur between the snapshots.
 // Facts the run's observation switches hide from the model are left out here too.
-// blockedBatch (blocked-batch-result-v1) names blocked direction batches; liveMap says whether the model sees the local map.
-export interface PressFacts { readonly position: boolean; readonly fieldLock: boolean; readonly transitions?: boolean; readonly blockedBatch?: boolean; readonly liveMap?: boolean }
+// blockedBatch (blocked-batch-result-v1) names blocked direction batches; liveMap, ledges, edgeWalls, counters and
+// topology say which map facts the model is shown.
+export interface PressFacts { readonly position: boolean; readonly fieldLock: boolean; readonly transitions?: boolean; readonly blockedBatch?: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean }
 export const ALL_PRESS_FACTS: PressFacts = { position: true, fieldLock: true };
 
 const dialogueOf = (state: GameStateSnapshot | undefined): string | null => state?.world_context?.dialogue ?? null;

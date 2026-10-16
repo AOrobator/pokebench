@@ -649,6 +649,10 @@ it("links the named warp destinations card to its explainer",()=>{
  expect(FEATURE_EXPLAINERS["transition-loop-detection-v1"]).toBe("transition-loop-detection-v1.html");
 });
 
+it("links the connection edge tiles card to its explainer",()=>{
+ expect(FEATURE_EXPLAINERS["connection-edge-tiles-v1"]).toBe("connection-edge-tiles-v1.html");
+});
+
 it("links the stall briefing card to its explainer",()=>{
  expect(FEATURE_EXPLAINERS["stall-briefing-v1"]).toBe("stall-briefing-v1.html");
 });
@@ -681,6 +685,17 @@ it("shows the experiment, arm and trial strip, the preset, or just the model and
 it("links the transition press results card to its explainer",()=>{
  expect(FEATURE_EXPLAINERS["transition-press-result-v1"]).toBe("transition-press-result-v1.html");
  expect(FEATURE_EXPLAINERS["blocked-batch-result-v1"]).toBe("blocked-batch-result-v1.html");
+ expect(FEATURE_EXPLAINERS["explorer-guidance-v1"]).toBe("explorer-guidance-v1.html");
+});
+
+it("links the talk to people card to its tracked explainer, which quotes the exact model text",()=>{
+ const log=new Log();log.add(0,{...START,harness_features:["explorer-guidance-v1"]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector('[data-feature="explorer-guidance-v1"] a')?.getAttribute("href")).toBe("/explainers/explorer-guidance-v1.html");
+ const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/explorer-guidance-v1.html",import.meta.url)),"utf8");
+ expect(html).toContain("explorer-guidance-v1");
+ expect(html).toContain("Talk to people: in this game, people tell you where to go next. After each story event, and whenever you are unsure where to go, talk to everyone in the room you are in before you leave, including the families and neighbours of characters you have met. People often say something new once the story has moved on, so talk again to people you spoke to before. A short remark, such as where someone has gone, is a direction to follow, not small talk.");
+ expect(html).toContain("Talking is cheap: face the person and press A; the harness reads the conversation until your next decision.");
 });
 
 it("links the battle text auto-advance card to its explainer in Harness Config",()=>{

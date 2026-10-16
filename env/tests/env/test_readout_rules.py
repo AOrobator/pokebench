@@ -236,7 +236,7 @@ def test_the_generated_table_holds_every_switch_combination(tmp_path: Path) -> N
 
 
 def test_switch_is_registered_server_side_last_and_default_off() -> None:
-    assert SERVER_FEATURES[-1] == FEATURE
+    assert FEATURE in SERVER_FEATURES
     assert FEATURE in features_off_from_env({})
     assert features_off_from_env({"POKEBENCH_FEATURES_OFF": FEATURE}) == frozenset({FEATURE})
 

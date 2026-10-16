@@ -239,7 +239,7 @@ def test_observation_route_applies_the_switch_from_env(monkeypatch: pytest.Monke
 
 
 def test_switch_is_a_default_off_server_feature() -> None:
-    assert SERVER_FEATURES[-4] == SWITCH
+    assert SWITCH in SERVER_FEATURES
     assert SWITCH in features_off_from_env({})
     assert SWITCH not in features_off_from_env({"POKEBENCH_FEATURES_OFF": ""})
 

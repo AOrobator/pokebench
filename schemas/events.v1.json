@@ -6813,6 +6813,30 @@
                       },
                       "destination_name": {
                         "type": "string"
+                      },
+                      "edges": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "required": [
+                            "x",
+                            "y"
+                          ],
+                          "properties": {
+                            "x": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 255
+                            },
+                            "y": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 255
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "maxItems": 256
                       }
                     },
                     "additionalProperties": false

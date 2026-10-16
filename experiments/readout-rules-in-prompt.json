@@ -83,8 +83,7 @@
    "blocked-batch-result-v1": false,
    "battle-triage-guidance-v1": false,
    "adjacent-tiles-v1": false,
-   "readout-rules-in-prompt-v1": false,
-   "battle-text-auto-advance-v1": false
+   "readout-rules-in-prompt-v1": false
   }
  },
  "trialsPerArm": 8,

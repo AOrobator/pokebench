@@ -114,6 +114,7 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "connection_edges_enabled": False,
         "in_game_naming_enabled": False,
         "offscreen_objects_enabled": False,
+        "transition_coherence_enabled": False,
         "fmt_named_interactions": False,
         "fmt_world_destinations": False,
         "fmt_bounded_navigation": False,

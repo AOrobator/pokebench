@@ -792,6 +792,18 @@ it("links the three navigation-guidance cards to their tracked explainers",()=>{
   for(const quote of quotes)expect(html).toContain(quote);
  }
 });
+it("links the coherent transition readouts card to its tracked explainer, which quotes the cook runs' battle-start readouts before and after",()=>{
+ expect(FEATURE_EXPLAINERS["transition-coherence-v1"]).toBe("transition-coherence-v1.html");
+ const log=new Log();log.add(0,{...START,harness_features:["transition-coherence-v1"]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector('[data-feature="transition-coherence-v1"] a')?.getAttribute("href")).toBe("/explainers/transition-coherence-v1.html");
+ const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/transition-coherence-v1.html",import.meta.url)),"utf8");
+ expect(html).toContain("transition-coherence-v1");
+ expect(html).toContain("Battle details: TRAINER single · turn 3 · finishing (outcome won)");
+ expect(html).toContain("STATE COVERAGE ERROR: harness bug: invalid battle positions");
+ expect(html).toContain("Battle state: initializing; input False; turn None; outcome None");
+ expect(html).toContain("0x080008AC");
+});
 it("links the readout rules card to its tracked explainer, which shows the real-ROM readout and the prompt section",()=>{
  expect(FEATURE_EXPLAINERS["readout-rules-in-prompt-v1"]).toBe("readout-rules-in-prompt-v1.html");
  const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/readout-rules-in-prompt-v1.html",import.meta.url)),"utf8");

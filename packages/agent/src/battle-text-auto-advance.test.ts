@@ -372,7 +372,7 @@ describe("the battle pages beyond the result",()=>{
 });
 
 describe("battle-text-auto-advance-v1 registry and production wiring",()=>{
- it("is a default-off guidance switch, recorded last, that needs dialogue auto-advance and no server switch",()=>{
+ it("is a default-off guidance switch, recorded last before the three navigation-guidance switches, that needs dialogue auto-advance and no server switch",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:"dialogue-auto-advance-v1",switchable:true,title:"BATTLE TEXT AUTO-ADVANCE"});
   expect(featureInfo(ID).description).toContain(" Off: field auto-advance stops when a battle starts");
   expect(SWITCHABLE_FEATURES.at(-4)).toBe(ID);
@@ -388,19 +388,21 @@ describe("battle-text-auto-advance-v1 registry and production wiring",()=>{
   expect(normalizeFeatures({...rest,[ID]:true})[ID]).toBe(true);
  });
 
- it("normalized presets list every switch in registry order, so this switch comes last, even from a preset that already names it",()=>{
+ it("normalized presets list every switch in registry order, so this switch comes last before the navigation-guidance switches (all off), even from a preset that already names it",()=>{
   // Codex merge review round 5: a preset written before the newest switches, which already names this one.
-  const newer=new Set<string>(["explorer-guidance-v1","connection-edge-tiles-v1","in-game-naming-readout-v1","no-nickname-guidance-v1"]);
+  const newer=new Set<string>(["explorer-guidance-v1","connection-edge-tiles-v1","in-game-naming-readout-v1","no-nickname-guidance-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"]);
   const frozen=Object.fromEntries(Object.entries({...ALL_ON,[ID]:false}).filter(([id])=>!newer.has(id)));
   const preset=parsePlayPreset({version:2,id:"frozen-base",target:null,limits:{maxTurns:10,maxWallMs:60000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},features:{...frozen,"state-only-decisions-v1":false}});
   expect(Object.keys(presetFeatures(preset))).toEqual([...SWITCHABLE_FEATURES]);
-  expect(Object.keys(presetFeatures(preset)).at(-4)).toBe(ID);
+  expect(Object.keys(presetFeatures(preset)).slice(-4)).toEqual([ID,"offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"]);
+  for(const id of ["offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"] as const)expect(presetFeatures(preset)[id]).toBe(false);
  });
 
- it("is the last key wherever a preset or default lists switches, and last in the registry",()=>{
-  const later=new Set<string>(["battle-triage-guidance-v1","adjacent-tiles-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","connection-edge-tiles-v1","in-game-naming-readout-v1","no-nickname-guidance-v1",ID]);
-  const old=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>!later.has(id))) as Omit<FeatureSet,"battle-triage-guidance-v1"|"adjacent-tiles-v1"|"readout-rules-in-prompt-v1"|"explorer-guidance-v1"|"connection-edge-tiles-v1"|"in-game-naming-readout-v1"|"no-nickname-guidance-v1"|typeof ID>;
-  expect(Object.keys(normalizeFeatures(old)).at(-4)).toBe(ID);
+ it("is the last key before the navigation-guidance switches wherever a preset or default lists switches, and in the registry",()=>{
+  const later=new Set<string>(["battle-triage-guidance-v1","adjacent-tiles-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","connection-edge-tiles-v1","in-game-naming-readout-v1","no-nickname-guidance-v1",ID,"offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"]);
+  const old=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>!later.has(id))) as Omit<FeatureSet,"battle-triage-guidance-v1"|"adjacent-tiles-v1"|"readout-rules-in-prompt-v1"|"explorer-guidance-v1"|"connection-edge-tiles-v1"|"in-game-naming-readout-v1"|"no-nickname-guidance-v1"|typeof ID|"offscreen-objects-v1"|"navigate-first-prompt-v1"|"presence-penalty-v1">;
+  expect(Object.keys(normalizeFeatures(old)).slice(-4)).toEqual([ID,"offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"]);
+  for(const id of ["offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"] as const)expect(normalizeFeatures(old)[id]).toBe(false);
   expect(Object.keys(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})).at(-4)).toBe(ID);
   expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(SWITCHABLE_FEATURES.indexOf("no-nickname-guidance-v1")+1);
  });

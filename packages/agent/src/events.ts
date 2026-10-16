@@ -184,7 +184,7 @@ const Activity = event("activity", {
 });
 
 const LoopFields = {
-  kind: Type.Enum(["planning", "observation", "ineffective", "cycle", "rejection", "map_cycle", "milestone_drought"] as const),
+  kind: Type.Enum(["planning", "observation", "ineffective", "cycle", "rejection", "map_cycle", "milestone_drought", "interface_dwell"] as const),
   message: Type.String(), calls: NonNegativeInt,
   evidence: Type.Array(NonNegativeInt, {minItems:1,maxItems:2}),
 };
@@ -199,7 +199,8 @@ const Retry = event("retry", { reason: Type.String(), attempt: Type.Integer({ mi
 const TextOnlySupervisor = event("text_only_supervisor", { replies: Type.Integer({ minimum: 1 }), note: Type.Integer({ minimum: 1 }), limit: Type.Integer({ minimum: 1 }), text: Type.String({ minLength: 1 }) });
 
 // dialogue-auto-advance-v1: the harness advanced field dialogue to the next decision point within one tool call.
-export const DIALOGUE_AUTO_ADVANCE_STOPS = ["field_free", "menu", "naming", "battle", "screen_change", "locked_no_message", "interface_not_ready", "message_not_ready", "press_cap", "time_cap", "error"] as const;
+// battle-text-auto-advance-v1 adds the battle_* stops and paused; its pages carry battle_turn and battle_message_id.
+export const DIALOGUE_AUTO_ADVANCE_STOPS = ["field_free", "menu", "naming", "battle", "screen_change", "locked_no_message", "interface_not_ready", "message_not_ready", "press_cap", "time_cap", "error", "battle_input", "battle_prompt", "battle_busy", "battle_unreadable", "paused"] as const;
 const DialoguePageSchema = Type.Object({
   state_seq: Type.Union([NonNegativeInt, Type.Null()]),
   map: Type.Union([Type.String(), Type.Null()]),
@@ -209,6 +210,8 @@ const DialoguePageSchema = Type.Object({
   speaker: Type.Union([Type.String(), Type.Null()]),
   speaker_source: Type.Union([Type.Enum(["name_prefix", "faced_sprite", "faced_target"] as const), Type.Null()]),
   text: Type.String({ minLength: 1 }),
+  battle_turn: Type.Optional(Type.Integer({ minimum: 1, maximum: 256 })),
+  battle_message_id: Type.Optional(Type.Integer({ minimum: 1 })),
   // script-line-presence-v1 ON only, on a page with no speaker: the live objects on screen at state_seq
   // (null when that state did not say), with the story character character-presence-v1 names, if any.
   on_screen: Type.Optional(Type.Union([Type.Array(Type.Object({
@@ -223,6 +226,7 @@ const DialogueAutoAdvance = event("dialogue_auto_advance", {
   sent: Type.Array(ButtonSchema),
   dropped: Type.Array(ButtonSchema),
   auto_presses: NonNegativeInt,
+  battle_auto_presses: Type.Optional(NonNegativeInt),
   pages: Type.Array(DialoguePageSchema),
   stop: Type.Enum(DIALOGUE_AUTO_ADVANCE_STOPS),
   detail: Type.String(),
@@ -266,7 +270,11 @@ const ContinuousBattleBattlerSchema=Type.Object({battler:Type.Integer({minimum:0
 const BattleInputSchema=Type.Object({battler:Type.Integer({minimum:0,maximum:3}),controller:NonNegativeInt,phase:Type.String(),ready:Type.Boolean(),action_cursor:NullableInt,move_cursor:NullableInt,target_cursor:NullableInt,selected:NullableString,selected_move_id:NullableInt,displayed_pp:NullableInt,displayed_max_pp:NullableInt,communication:NullableInt},closed);
 const BattleSignalSchema=Type.Object({kind:Type.String(),battler:Type.Integer({minimum:0,maximum:3}),command:NonNegativeInt,request:NullableInt,party_mask:NullableInt,string_id:NullableInt,move_id:NullableInt,originally_used_move:NullableInt,hp:NullableInt,status:NullableInt,raw_hex:NullableString},closed);
 const BattleExecutionSchema=Type.Object({attacker:Type.Integer({minimum:0,maximum:3}),target:Type.Integer({minimum:0,maximum:3}),move_id:NonNegativeInt,phase:Type.String(),script_pc:NonNegativeInt,move_result_flags:NonNegativeInt,hit_marker:NonNegativeInt,damage:Type.Integer(),hp_dealt:Type.Integer(),current_action:NonNegativeInt,turn_action:NonNegativeInt},closed);
-export const BattleStateSchema=Type.Object({playback:Type.Optional(Type.Union([Type.Object({stoppable:Type.Boolean(),finished:Type.Boolean(),controls:Type.String()},closed),Type.Null()])),non_pokemon_battlers:Type.Optional(Type.Array(Type.Integer({minimum:0,maximum:3}),{maxItems:4})),active:Type.Boolean(),initialized:Type.Boolean(),phase:Type.String(),ready:Type.Union([Type.Boolean(),Type.Null()]),main_func:NullableInt,script_pc:NullableInt,battle_type:NullableInt,turn:NullableInt,outcome_code:NullableInt,outcome:NullableString,battlers:Type.Union([Type.Array(ContinuousBattleBattlerSchema,{maxItems:4}),Type.Null()]),player_inputs:Type.Union([Type.Array(BattleInputSchema,{maxItems:4}),Type.Null()]),controller_exec_flags:NullableInt,signals:Type.Array(BattleSignalSchema,{maxItems:4}),current_execution:Type.Union([BattleExecutionSchema,Type.Null()]),diagnostic:NullableString,raw_hex:NullableString},closed);
+// battle-text-auto-advance-v1 reads these; always recorded (env/pokebench_env/battle_text.py).
+export const BattleMessageSchema=Type.Object({state:Type.Enum(["printing","waiting_for_input","idle"] as const),render_state:NullableString,text:NullableString,cursor:Type.Union([NonNegativeInt,Type.Null()]),identity:NullableString,diagnostic:NullableString},closed);
+export const BattlePromptSchema=Type.Object({kind:Type.Enum(["learn_move","stop_learning_move","yes_no","nickname_caught"] as const),ready:Type.Boolean(),selected:Type.Union([Type.Enum(["YES","NO"] as const),Type.Null()])},closed);
+export const BATTLE_TEXT_PHASES=["message_waiting","input","prompt","busy","screen"] as const;
+export const BattleStateSchema=Type.Object({message:Type.Optional(Type.Union([BattleMessageSchema,Type.Null()])),prompt:Type.Optional(Type.Union([BattlePromptSchema,Type.Null()])),text_phase:Type.Optional(Type.Union([Type.Enum(BATTLE_TEXT_PHASES),Type.Null()])),playback:Type.Optional(Type.Union([Type.Object({stoppable:Type.Boolean(),finished:Type.Boolean(),controls:Type.String()},closed),Type.Null()])),non_pokemon_battlers:Type.Optional(Type.Array(Type.Integer({minimum:0,maximum:3}),{maxItems:4})),active:Type.Boolean(),initialized:Type.Boolean(),phase:Type.String(),ready:Type.Union([Type.Boolean(),Type.Null()]),main_func:NullableInt,script_pc:NullableInt,battle_type:NullableInt,turn:NullableInt,outcome_code:NullableInt,outcome:NullableString,battlers:Type.Union([Type.Array(ContinuousBattleBattlerSchema,{maxItems:4}),Type.Null()]),player_inputs:Type.Union([Type.Array(BattleInputSchema,{maxItems:4}),Type.Null()]),controller_exec_flags:NullableInt,signals:Type.Array(BattleSignalSchema,{maxItems:4}),current_execution:Type.Union([BattleExecutionSchema,Type.Null()]),diagnostic:NullableString,raw_hex:NullableString},closed);
 const NullableBool=Type.Union([Type.Boolean(),Type.Null()]);
 export const RunningPermissionSchema=Type.Object({permitted:NullableBool,controllable:NullableBool,reason:Type.String(),shoes:NullableBool,allow_running:NullableBool,avatar_flags:NullableInt,metatile:NullableInt,elevation:NullableInt,map_type:NullableInt,callback1:NullableInt,callback2:NullableInt,diagnostic:NullableString,raw_hex:NullableString},closed);
 const ResourceItemSchema=Type.Object({slot:NonNegativeInt,item_id:NonNegativeInt,quantity:NonNegativeInt,pocket:Type.Union([Type.String(),Type.Null()]),name:Type.Optional(Type.Union([Type.String(),Type.Null()]))},closed);
@@ -422,6 +430,12 @@ export const StateBodySchema = Type.Object(
 );
 
 const State = event("state", StateBodySchema.properties);
+
+// battle-text-auto-advance-v1: pages the battle message window showed, recorded per emulated frame,
+// and the state on the first frame the battle needs input or ends (bounded in frames).
+export const BattleTextEntrySchema=Type.Object({id:Type.Integer({minimum:1}),frame:NonNegativeInt,recorded_ms:NonNegativeInt,battle:Type.Integer({minimum:1}),battle_turn:Type.Integer({minimum:1,maximum:256}),text:Type.String({minLength:1}),waited_for_input:Type.Boolean()},closed);
+export const BattleTextJournalSchema=Type.Object({frame:NonNegativeInt,first_id:Type.Integer({minimum:1}),last_id:NonNegativeInt,errors:NonNegativeInt,last_error:Type.Union([Type.String(),Type.Null()]),entries:Type.Array(BattleTextEntrySchema,{maxItems:512})},closed);
+export const BattleWaitSchema=Type.Object({reason:Type.Enum(["message_waiting","input","prompt","screen","field","bound","paused"] as const),frames:NonNegativeInt,state:StateBodySchema},closed);
 
 // Read-only historical compatibility: old vendor-derived state stays identifiable
 // by its mode field and is never promoted to the authoritative RAM readout.

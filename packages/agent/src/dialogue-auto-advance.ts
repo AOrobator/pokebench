@@ -13,6 +13,7 @@ import {speakerLabel} from "./dialogue-log.js";
 import {onScreen,type OnScreenObject} from "./script-line-presence.js";
 import {MESSAGE_WAITING} from "./navigation.js";
 import {OPENED_LOCK_NOTE,STILL_LOCKED_NOTE,STILL_OPEN_NOTE,pressResult} from "./press-result.js";
+import {BattleJournal,advanceBattle,battleEngaged,battlePage,type BattleTextEntry,type BattleTextSource} from "./battle-text-auto-advance.js";
 
 export const AUTO_ADVANCE_LIMITS={presses:50,callMs:90_000,waitMs:10_000,pollMs:100} as const;
 
@@ -132,6 +133,12 @@ class Pages {
  flush(s:GameStateSnapshot):void {
   if(this.opened&&this.offset<this.text.length){this.add(this.text.slice(this.offset),s);this.offset=this.text.length;}
  }
+ // battle-text-auto-advance-v1: battle pages from the server's journal, in the order they were shown.
+ addBattle(entries:readonly BattleTextEntry[],s:GameStateSnapshot):void {
+  if(entries.length===0)return;
+  const seq=this.record(s).seq;
+  for(const entry of entries)this.pages.push(battlePage(entry,s,seq));
+ }
  private end(phase:string,cursor:number):number {
   if(phase==="dismiss_wait"||cursor>=this.text.length)return this.text.length;
   const newline=this.text.lastIndexOf("\n",cursor-1);
@@ -145,16 +152,19 @@ class Pages {
  }
 }
 
-interface Outcome {readonly state:GameStateSnapshot;readonly stop:Stop;readonly detail:string;readonly presses:number;readonly extras:readonly TextContent[]}
-async function advance(start:GameStateSnapshot,pages:Pages,press:(signal?:AbortSignal)=>Promise<Result>,ports:Required<AutoAdvancePorts>,signal?:AbortSignal):Promise<Outcome> {
- const {clock}=ports;const began=clock.now();
+interface Outcome {readonly state:GameStateSnapshot;readonly stop:Stop;readonly detail:string;readonly presses:number;readonly extras:readonly TextContent[];readonly battlePresses?:number;readonly note?:string|null}
+// A field advance inside a call that also advances battle text: the call's start, presses already used,
+// and when to hand back to the battle advance.
+interface Shared {readonly began:number;readonly used:number;readonly stopAt:(s:GameStateSnapshot)=>boolean}
+async function advance(start:GameStateSnapshot,pages:Pages,press:(signal?:AbortSignal)=>Promise<Result>,ports:Required<AutoAdvancePorts>,signal?:AbortSignal,shared?:Shared):Promise<Outcome> {
+ const {clock}=ports;const began=shared?.began??clock.now();const used=shared?.used??0;
  let s=start,presses=0,waiting:Wait|null=null,waitSince=began,free:number|null=null;
  const extras:TextContent[]=[];
  const done=(stop:Stop,detail:string):Outcome=>{if(!UNSHOWN.has(stop))pages.flush(s);return {state:s,stop,detail,presses,extras};};
  const failed=(error:unknown):Outcome=>{if(signal?.aborted===true)throw error;return done("error",`auto-advance stopped: ${error instanceof Error?error.message:String(error)}`);};
  for(;;){
   pages.see(s);
-  let decision=classify(s);
+  let decision=shared?.stopAt(s)===true?{kind:"stop" as const,stop:"battle" as const,detail:"a battle started"}:classify(s);
   // Free field is final only when a later frame still shows it: on the first field frame after a
   // release or warp fade, ProcessPlayerFieldInput runs trainer sight and ON_FRAME map scripts before input.
   if(decision.kind==="stop"&&decision.stop==="field_free"){
@@ -166,7 +176,7 @@ async function advance(start:GameStateSnapshot,pages:Pages,press:(signal?:AbortS
   if(clock.now()-began>=AUTO_ADVANCE_LIMITS.callMs)return done("time_cap",`AUTO-ADVANCE CAP: stopped after ${String(AUTO_ADVANCE_LIMITS.callMs/1000)} s of automatic advancing; the message is still open`);
   if(decision.kind==="press"){
    pages.capture(s,decision.message);
-   if(presses>=AUTO_ADVANCE_LIMITS.presses)return done("press_cap",`AUTO-ADVANCE CAP: stopped after ${String(AUTO_ADVANCE_LIMITS.presses)} automatic presses; the message is still open`);
+   if(used+presses>=AUTO_ADVANCE_LIMITS.presses)return done("press_cap",`AUTO-ADVANCE CAP: stopped after ${String(AUTO_ADVANCE_LIMITS.presses)} automatic presses; the message is still open`);
    signal?.throwIfAborted();
    try{const result=await press(signal);presses++;s=stateOf(result);extras.push(...extraText(result));}
    catch(error){return failed(error);}
@@ -177,6 +187,29 @@ async function advance(start:GameStateSnapshot,pages:Pages,press:(signal?:AbortS
   await clock.sleep(AUTO_ADVANCE_LIMITS.pollMs);
   signal?.throwIfAborted();
   try{s=await ports.state.read(signal);}catch(error){return failed(error);}
+ }
+}
+
+// battle-text-auto-advance-v1: one call may cross field dialogue, a battle and the field again (Birch's
+// rescue, a trainer's challenge, a blackout). The shared caps cover the whole call.
+interface BattleCall {readonly journal:BattleJournal;readonly source:BattleTextSource;readonly known:{last:number}}
+async function drive(start:GameStateSnapshot,pages:Pages,press:(signal?:AbortSignal)=>Promise<Result>,ports:Required<AutoAdvancePorts>,battle:BattleCall|null,signal?:AbortSignal):Promise<Outcome> {
+ if(battle===null)return advance(start,pages,press,ports,signal);
+ const began=ports.clock.now();
+ let s=start,presses=0,battlePresses:number|undefined;
+ const extras:TextContent[]=[];
+ for(;;){
+  if(battleEngaged(s)||s.in_battle){
+   const b=await advanceBattle(s,{source:battle.source,journal:battle.journal,known:battle.known,clock:ports.clock,limits:AUTO_ADVANCE_LIMITS,began,used:presses,press,stateOf,extraText,addPages:(entries,at)=>{pages.addBattle(entries,at);}},signal);
+   presses+=b.presses;battlePresses=(battlePresses??0)+b.presses;extras.push(...b.extras);s=b.state;
+   if(!b.over)return {state:s,stop:b.stop,detail:b.detail,presses,extras,battlePresses,note:battle.journal.note()};
+  }
+  const f=await advance(s,pages,press,ports,signal,{began,used:presses,stopAt:battleEngaged});
+  presses+=f.presses;extras.push(...f.extras);s=f.state;
+  if(f.stop==="battle")continue;
+  // Straight from the battle to a free field: no conversation closed.
+  const detail=battlePresses!==undefined&&f.presses===0&&f.detail===FIELD_FREE?"the battle ended and field controls are free":f.detail;
+  return {...f,detail,presses,extras,...(battlePresses===undefined?{}:{battlePresses}),note:battle.journal.note()};
  }
 }
 
@@ -229,15 +262,20 @@ function place(page:DialoguePage):string {
 }
 function who(page:DialoguePage):string {
  const label=speakerLabel(page);
- return label===null?"":` · ${label}`;
+ return `${page.battle_turn===undefined?"":` · battle turn ${String(page.battle_turn)}`}${label===null?"":` · ${label}`}`;
 }
 // The numbered page lines of a "Dialogue shown during this call" block.
 export function pageLines(pages:readonly DialoguePage[],turn:number):string[] {
  return pages.map((page,i)=>`${String(i+1)}. turn ${String(turn)} · ${place(page)}${who(page)}: "${page.text}"`);
 }
 function summary(outcome:Outcome,pages:readonly DialoguePage[],dropped:readonly Button[],turn:number):string {
- const lines=[`Dialogue auto-advance: the harness pressed B ${plural(outcome.presses,"time")} to advance the dialogue; stopped: ${outcome.detail}.`];
- if(dropped.length>0)lines.push(`${outcome.stop==="field_free"||outcome.stop==="locked_no_message"?"dialogue closed":"dialogue reached a decision point"}; ${plural(dropped.length,"remaining input")} not sent: ${dropped.join(", ")}.`);
+ const battle=outcome.battlePresses;
+ const field=outcome.presses-(battle??0);
+ const lines=[battle===undefined
+  ?`Dialogue auto-advance: the harness pressed B ${plural(outcome.presses,"time")} to advance the dialogue; stopped: ${outcome.detail}.`
+  :`Battle text auto-advance: the harness pressed B ${plural(battle,"time")} to advance battle messages${field>0?` and ${plural(field,"time")} to advance field dialogue`:""}; stopped: ${outcome.detail}.`];
+ if(dropped.length>0)lines.push(`${battle!==undefined?"the harness took over the battle text":outcome.stop==="field_free"||outcome.stop==="locked_no_message"?"dialogue closed":"dialogue reached a decision point"}; ${plural(dropped.length,"remaining input")} not sent: ${dropped.join(", ")}.`);
+ if(outcome.note!=null)lines.push(outcome.note);
  if(pages.length>0){
   lines.push(`Dialogue shown during this call (${plural(pages.length,"page")}, in order, whole):`,...pageLines(pages,turn));
  }else lines.push("No complete dialogue page was shown during this call.");
@@ -250,6 +288,11 @@ function observation(result:Result):{images:ImageContent[];text:string} {
 
 type PressParams=Parameters<CheckedPressTool["execute"]>[1];
 
+function battleTextSource(state:StateSource):BattleTextSource {
+ if(state.battleWait===undefined||state.battleMessages===undefined)throw new Error("Battle text auto-advance requires the game server's battle wait and battle message journal");
+ return {battleWait:signal=>state.battleWait?.(signal)??Promise.reject(new Error("battle wait unavailable")),battleMessages:(after,signal)=>state.battleMessages?.(after,signal)??Promise.reject(new Error("battle message journal unavailable"))};
+}
+
 export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:FeatureSet,ports:AutoAdvancePorts):AgentTool[] {
  if(!features["dialogue-auto-advance-v1"])return [...tools];
  const press=tools.find(t=>t.name==="press"),observe=tools.find(t=>t.name==="observe");
@@ -259,8 +302,12 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
  const record=(s:GameStateSnapshot):Recorded=>full.recorder.recordState(s);
  const present=features["script-line-presence-v1"]?(s:GameStateSnapshot)=>onScreen(s,features["character-presence-v1"]):null;
  const autoPress=(id:string)=>(signal?:AbortSignal)=>press.execute(id,{buttons:["B"]},signal);
+ // battle-text-auto-advance-v1: the server's battle wait and page journal; the journal cursor carries across calls.
+ const battleSource=features["battle-text-auto-advance-v1"]?battleTextSource(full.state):null;
+ const known={last:0};
+ const openBattle=async(signal?:AbortSignal):Promise<BattleCall|null>=>battleSource===null?null:{journal:await BattleJournal.open(battleSource,known,signal),source:battleSource,known};
  const finish=async(id:string,tool:"press"|"navigate_to",outcome:Outcome,pages:Pages,requested:readonly Button[],sent:readonly Button[],dropped:readonly Button[],began:number,signal?:AbortSignal)=>{
-  const event=full.recorder.recordDialogueAutoAdvance({tool_call_id:id,tool,requested:[...requested],sent:[...sent],dropped:[...dropped],auto_presses:outcome.presses,pages:pages.pages,stop:outcome.stop,detail:outcome.detail,duration_ms:Math.max(0,Math.round(full.clock.now()-began))});
+  const event=full.recorder.recordDialogueAutoAdvance({tool_call_id:id,tool,requested:[...requested],sent:[...sent],dropped:[...dropped],auto_presses:outcome.presses,...(outcome.battlePresses===undefined?{}:{battle_auto_presses:outcome.battlePresses}),pages:pages.pages,stop:outcome.stop,detail:outcome.detail,duration_ms:Math.max(0,Math.round(full.clock.now()-began))});
   const seen=await observe.execute(id,{},signal);
   return {seen,state:stateOf(seen),block:summary(outcome,pages.pages,dropped,event.turn)};
  };
@@ -270,6 +317,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
   const began=full.clock.now();
   let before:GameStateSnapshot|undefined;
   try{before=await full.state.read(signal);}catch{signal?.throwIfAborted();}
+  const battle=await openBattle(signal);
   const plan=submittedButtons(params.buttons,before,switches);
   const walking=params.walking===undefined?{}:{walking:params.walking};
   const run=(buttons:Button[],first:boolean)=>first&&check!==undefined?press.executeChecked(id,{buttons,...walking},check,signal,update):press.execute(id,{buttons,...walking},signal,update);
@@ -285,21 +333,22 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
   else{
    let result:Result|undefined;
    let previous=before;
-   for(const button of plan){result=await run([button],sent.length===0);sent.push(button);results.push({buttons:[button],line:pressLineOf(result)});extras.push(...extraText(result));const now=stateOf(result);appeared=textAppeared(previous,now);previous=now;if(inDialogue||appeared||dialogueEngaged(now))break;}
+   for(const button of plan){result=await run([button],sent.length===0);sent.push(button);results.push({buttons:[button],line:pressLineOf(result)});extras.push(...extraText(result));const now=stateOf(result);appeared=textAppeared(previous,now);previous=now;if(inDialogue||appeared||dialogueEngaged(now)||(battle!==null&&battleEngaged(now)))break;}
    if(result===undefined)throw new Error("press requires at least one button");
    last=result;
   }
   // The carried position is spent once the model's press went through; this call's pages now own it.
   if(before!==undefined)open=null;
   const after=stateOf(last);
-  const engaged=dialogueEngaged(after)||inDialogue||appeared;
+  // Battle text the harness owns: the battle runs its own text or animation, or is about to start.
+  const engaged=dialogueEngaged(after)||inDialogue||appeared||(battle!==null&&battleEngaged(after));
   if(!engaged&&before!==undefined)open=pages.openAt(after);
   if(!engaged&&(walk||plan.length===1)&&plan.length===params.buttons.length)return last as AgentToolResult<{state:GameStateSnapshot|undefined}>;
   // Every requested input that was not sent: cut by engaged dialogue or withheld by the safe-batch rule.
   const dropped=params.buttons.slice(sent.length);
   let block:string|null=null,final:Result,detail:string|null=null;
   if(engaged){
-   const outcome=await advance(after,pages,autoPress(id),full,signal);detail=outcome.detail;
+   const outcome=await drive(after,pages,autoPress(id),full,battle,signal);detail=outcome.detail;
    open=pages.openAt(outcome.state);
    extras.push(...outcome.extras);
    const done=await finish(id,"press",outcome,pages,params.buttons,sent,dropped,began,signal);
@@ -313,17 +362,18 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
    ...(block===null?[]:[block])];
   return {content:[...seen.images,{type:"text",text:`${head.join("\n")}\n\n${seen.text}`},...extras],details:{state:finalState}};
  };
- const wrappedPress:CheckedPressTool={...press,description:`${press.description} Field dialogue advances automatically: once a conversation opens, the harness presses B through every page until the next decision point and lists the pages; inputs left in your batch are not sent.`,execute:(id,params,signal,update)=>execute(id,params,signal,update),executeChecked:(id,params,check,signal,update)=>execute(id,params,signal,update,check)};
+ const wrappedPress:CheckedPressTool={...press,description:`${press.description} Field dialogue advances automatically: once a conversation opens, the harness presses B through every page until the next decision point and lists the pages; inputs left in your batch are not sent.${battleSource===null?"":" Battle text advances the same way: while a battle runs its own messages, the harness presses B through each waiting message until a battle menu, a YES/NO question, another screen or the battle's end, and lists every battle message shown."}`,execute:(id,params,signal,update)=>execute(id,params,signal,update),executeChecked:(id,params,check,signal,update)=>execute(id,params,signal,update,check)};
  const out=tools.map(tool=>{
   if(tool===press)return wrappedPress;
   if(tool.name!=="navigate_to")return tool;
-  return {...tool,description:`${tool.description} If it ends in dialogue, the dialogue advances automatically to the next decision point and its pages are listed.`,execute:async(id:string,params:unknown,signal?:AbortSignal,update?:Parameters<AgentTool["execute"]>[3])=>{
+  return {...tool,description:`${tool.description} If it ends in dialogue${battleSource===null?"":" or a battle"}, the ${battleSource===null?"dialogue advances":"text advances"} automatically to the next decision point and its pages are listed.`,execute:async(id:string,params:unknown,signal?:AbortSignal,update?:Parameters<AgentTool["execute"]>[3])=>{
    const began=full.clock.now();
+   const battle=await openBattle(signal);
    const result=await tool.execute(id,params,signal,update);
    const state=stateOf(result);
-   if(!dialogueEngaged(state))return result;
+   if(!dialogueEngaged(state)&&!(battle!==null&&battleEngaged(state)))return result;
    const pages=new Pages(record,open,present);
-   const outcome=await advance(state,pages,autoPress(id),full,signal);
+   const outcome=await drive(state,pages,autoPress(id),full,battle,signal);
    open=pages.openAt(outcome.state);
    const done=await finish(id,"navigate_to",outcome,pages,[],[],[],began,signal);
    const seen=observation(done.seen);

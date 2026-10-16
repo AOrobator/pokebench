@@ -576,9 +576,6 @@ export class LoopDetector {
     if (place !== null && place !== trip.place) trip.left = true;
   }
 
-  // A press or navigate_to whose settled result is where the player last stood settled, after the player left that
-  // tile and a script or message held the controls: the evidence seqs when the same input was pushed back
-  // `cycleRepeats` times among the last 12 push-backs.
   // Where the player stands with field controls free and no message: its fingerprint, else null.
   private settled(state: GameStateSnapshot | undefined): string | null {
     return state !== undefined && state.field_controls_locked === false && (state.world_context?.dialogue ?? "") === "" &&
@@ -591,6 +588,9 @@ export class LoopDetector {
     if (anchor !== null) this.trip = { anchor, place: placeOf(state), actions: [], left: false, scripted: false };
   }
 
+  // A press or navigate_to whose settled result is where the player last stood settled, after the player left that
+  // tile and a script or message held the controls: the evidence seqs when the same input was pushed back
+  // `cycleRepeats` times among the last 12 push-backs.
   private pushedBack(call: CompletedCall, seq: number): number[] | null {
     const state = call.state;
     const settled = this.settled(state);

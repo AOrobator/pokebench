@@ -112,6 +112,13 @@ Merge locally after all lanes LGTM. No pending experiment entry (amendment 2). R
   - Explainers `docs/explainers/pushback-loop-detection-v1.html`, `pushback-press-result-v1.html`, `battle-observation-loop-v1.html` (inline CSS/SVG, `just pages-check` prints nothing), README entries, `FEATURE_EXPLAINERS` mappings (panels.ts) with panels tests (mapped file exists, renders a body heading).
   - Observability trace: producer `LoopDetector` → `attachLoopGuard` → `RunRecorder.recordLoopGuard` (schema-validated; the factory tests run the real recorder and RunLog, and the replay tests `checkEvent` every notice) → model delivery through `piLoop`'s `transformContext`, which appends `loopDetector.context()` before every model call (unchanged seam, proven kind-agnostically by `loop-integration.test.ts`; the replay tests assert the SUPERVISOR text is what `context()` returns at the next turn_start) → viewer `RunView` timeline/Activity History label and replay cursor (new `model.test.ts` case with the sh02 receipts: "Short cycle warning · … · evidence #2973, #3062 · enforced", "Observation stall warning …", hidden before its time with `foldUntil`). No viewer code changed; the existing kinds `cycle` and `observation` carry the new hits. No live viewer session was started (brief: do not restart or launch the viewer).
 
+- Explainers commit bf04fe56.
+- 2026-10-16 04:20 AM EDT: gates on the branch (after a comment-only fix in loop-detection.ts: the `pushedBack` doc comment had landed above `settled`). The worktree had no vendor submodule checked out (10 pytest failures, FileNotFoundError on `map_groups.json`); `git submodule update --init` checked out the pin bbab97ad.
+  - `just build` OK; `just test`: agent 1459 passed, viewer 802 passed, pytest 2042 passed; `just verify-vendor` OK.
+  - `just coverage` OK: agent lines 99.1 / branches 94.73 / functions 98 (loop-detection.ts 98.49 / 97.57 / 100; press-result.ts 100 / 99.22 / 100); viewer lines 97.62 / branches 90.47 / functions 93.6; python lines 97.09 / branches 92.70 / functions 100.
+  - `just lint`: tsc, eslint, ruff and ruff format clean; mypy fails only on `pokebench_env/memory_reader.py:83` (`mgba._pylib` not found: this worktree has no native mGBA binding; the same known worktree gap as the transition-loop worklog). Re-run in the main checkout after the merge.
+  - Principles self-review: all 13 rows scored, zero FAIL (review packet artifact).
+
 ## Surprises
 
 - `loop_guard` evidence is capped at 2 items by the event schema (`maxItems:2`); a 3-seq evidence list made the recorder throw in the factory test. Evidence is now [first push-back, completing call]. The replay tests validate every notice through `checkEvent`.

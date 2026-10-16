@@ -81,10 +81,10 @@ export function lanesSvg(view: RunView, nowMs: number, visible: readonly (typeof
       parts.push(bar("m-tool",1,x(ms)-2,x(ms)+3,`Dialogue auto-advanced · B ×${String(event.auto_presses)} · ${String(event.pages.length)} pages · stopped: ${event.stop.replaceAll("_"," ")}${event.dropped.length===0?"":` · ${String(event.dropped.length)} inputs not sent`}`,0.5));
       continue;
     }
-    if(event.type!=="decision_input"&&event.type!=="wait_input"&&event.type!=="navigation_context"&&event.type!=="ledger_context"&&event.type!=="milestone_hint")continue;
+    if(event.type!=="decision_input"&&event.type!=="navigation_context"&&event.type!=="ledger_context"&&event.type!=="milestone_hint")continue;
     const ms=eventMs(event);if(ms<t0||ms>nowMs)continue;
-    const title=event.type==="navigation_context"?`Navigation memory delivered · ${String(event.evidence.length)} references`:event.type==="ledger_context"?`Instruction ledger delivered · ${String(event.evidence.length)} references`:event.type==="milestone_hint"?`Milestone hint sent · ${event.milestone}`:event.type==="decision_input"?`snapshot for decision ${String(event.decision_turn)} · state #${String(event.state_seq)}`:`WAIT ${String(event.duration_ms)} ms (host time)`;
-    parts.push(bar(event.type!=="wait_input"?"m-tool":"m-press",event.type!=="wait_input"?1:2,x(ms)-2,x(ms)+3,title,0.5));
+    const title=event.type==="navigation_context"?`Navigation memory delivered · ${String(event.evidence.length)} references`:event.type==="ledger_context"?`Instruction ledger delivered · ${String(event.evidence.length)} references`:event.type==="milestone_hint"?`Milestone hint sent · ${event.milestone}`:`snapshot for decision ${String(event.decision_turn)} · state #${String(event.state_seq)}`;
+    parts.push(bar("m-tool",1,x(ms)-2,x(ms)+3,title,0.5));
   }
   // Draw labels above every duration bar so later presses cannot paint over them.
   parts.push(...pressLabels);
@@ -97,12 +97,6 @@ export function lanesSvg(view: RunView, nowMs: number, visible: readonly (typeof
     parts.push(
       `<path class="m-milestone" d="M${f(cx)} ${f(cy - 9)}L${f(cx + 7)} ${f(cy)}L${f(cx)} ${f(cy + 9)}L${f(cx - 7)} ${f(cy)}Z"><title>${esc(milestone.name)}${milestone.derived === true ? ` · recovered · evidence ${milestone.evidence?.map(seq=>`#${String(seq)}`).join(", ") ?? `#${String(milestone.seq)}`} · first observation (upper bound)` : ""}</title></path>`,
     );
-  }
-  for(const choice of view.battleChoices){
-    const ms=choice.recorded_ms;const lane=visible.indexOf("presses");
-    if(ms<t0||ms>nowMs||lane<0)continue;
-    const title=`Battle ${String(choice.battle)} turn ${String(choice.battle_turn)} · ${"species" in choice.actor?choice.actor.species:"Trainer"} chose ${choice.move?.name??choice.action} (${choice.origin}) · frame ${String(choice.frame)} · execution unobserved`;
-    parts.push(draw("m-press",2,x(ms)-2,x(ms)+3,title,0.9));
   }
   for(const action of view.nativeActions.filter(entry=>entry.kind!=="native_input")) {
     const ms=action.server_timestamp*1000;const lane=visible.indexOf("milestones");

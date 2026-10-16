@@ -23,8 +23,8 @@ describe("readout-rules-in-prompt-v1 registry", () => {
     expect(featureInfo(ID)).toMatchObject({ group: "observation", needs: "ram-state-v1", switchable: true });
     expect(featureInfo(ID).description).toContain(" Off: ");
     expect(featureInfo(ID).description).toContain("Map symbols and rules: see the system prompt.");
-    expect(SWITCHABLE_FEATURES.at(-2)).toBe(ID);
-    expect(playHarnessFeatures(ALL_ON, null).at(-2)).toBe(ID);
+    expect(SWITCHABLE_FEATURES.at(-3)).toBe(ID);
+    expect(playHarnessFeatures(ALL_ON, null).at(-3)).toBe(ID);
     expect(playHarnessFeatures(set(ALL_ON, { [ID]: false }), null)).not.toContain(ID);
     expect(SERVER_FEATURES.at(-1)).toBe(ID);
     expect(serverFeatureEnv(set(ALL_ON, { [ID]: false })).POKEBENCH_FEATURES_OFF).toBe(ID);
@@ -92,7 +92,7 @@ describe("readout-rules-in-prompt-v1 pending experiment", () => {
   it("names every registry switch explicitly in its incumbent, with this switch off", () => {
     const entry = JSON.parse(readFileSync(new URL("../../../experiments/readout-rules-in-prompt.json", import.meta.url), "utf8")) as { changedFeature: string; incumbent: { features: Record<string, boolean> } };
     expect(entry.changedFeature).toBe(ID);
-    expect(Object.keys(entry.incumbent.features)).toEqual([...SWITCHABLE_FEATURES]);
+    expect(Object.keys(entry.incumbent.features)).toEqual(SWITCHABLE_FEATURES.slice(0, SWITCHABLE_FEATURES.indexOf(ID) + 1));
     expect(entry.incumbent.features[ID]).toBe(false);
   });
 });

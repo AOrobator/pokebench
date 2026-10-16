@@ -44,13 +44,18 @@ function laneParts(run: WorkbenchRun, lanes: RunLanes | LaneUnknown): { where: s
   const lane = lanes.get(run.id), arm = lane?.arm ?? null;
   return { where: lane === undefined ? "HAND RUN" : `LANE ${esc(lane.lane)} · ${esc(lane.gpu)}`, type: `<em style="--tyc:${armColor(arm)}">${arm === null ? "none" : esc(arm)}</em>` };
 }
-function plateHtml(run: WorkbenchRun, at: number, now: number, lanes: RunLanes | LaneUnknown): string {
+// What a run's name plate and trainer card both show: its clock, furthest milestone, and whether that milestone is new.
+export interface PlateFacts { readonly live: boolean; readonly elapsed: number; readonly reached: ReachedMilestone | null; readonly level: number; readonly total: number; readonly recovered: boolean; readonly fresh: boolean; readonly cap: number | null }
+export function plateFacts(run: WorkbenchRun, at: number, now: number): PlateFacts {
   const live = run.status === "live", elapsed = (run.elapsedMs ?? 0) + (live ? Math.max(0, now - at) : 0);
   const reached = furthestMilestone(run), level = reached === null ? 0 : reached.index + 1, total = FRONTIER_MILESTONES.length;
   const recovered = reached?.split.derived === true, age = reached === null ? -1 : elapsed - reached.split.elapsedMs;
   // A recovered split is a first-observation upper bound, not the moment it happened, so it never reads as new.
   const fresh = live && !recovered && age >= 0 && age < NEW_MILESTONE_MS;
-  const cap = run.config?.maxWallMs ?? null, parts = laneParts(run, lanes), where = `${parts.where}${run.status === "paused" ? " · PAUSED" : ""}`;
+  return { live, elapsed, reached, level, total, recovered, fresh, cap: run.config?.maxWallMs ?? null };
+}
+function plateHtml(run: WorkbenchRun, at: number, now: number, lanes: RunLanes | LaneUnknown): string {
+  const { elapsed, reached, level, total, recovered, fresh, cap } = plateFacts(run, at, now), parts = laneParts(run, lanes), where = `${parts.where}${run.status === "paused" ? " · PAUSED" : ""}`;
   const when = reached === null ? "" : recovered ? `≤ ${clockText(reached.split.elapsedMs)} · ≤ turn ${String(reached.split.turn)} · recovered` : `${clockText(reached.split.elapsedMs)} · turn ${String(reached.split.turn)}`;
   const milestone = reached === null ? '<b class="none">No milestone yet</b><small>waiting for New game</small>' : `<b>${esc(reached.label)}</b>${fresh ? '<span class="wb-new-chip">NEW MILESTONE!</span>' : ""}<small>${when}</small>`;
   const resumed = (run.config?.resume === "CLOCK_SET" ? '<small class="wb-plate-note" data-current-field="note">NOT FROM ZERO · Clock set save</small>' : "")

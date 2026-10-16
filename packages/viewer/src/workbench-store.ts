@@ -88,6 +88,7 @@ export function loadRun(root: string, id: string, viewer: BuildIdentity | null =
     const tolerate = viewer !== null && !(viewer.commit === start.harness.commit && !viewer.dirty && !start.harness.dirty);
     const recording = readNativeRecording(path, id, qualifiedNativeMilestone, undefined, tolerate), view = recording.view;
     run.splits = recording.splits; run.measurement = recording.measurement;
+    const last = recording.last; run.card = last === null ? null : { name: last.name, location: last.location, party: last.party.flatMap(m => m.level === null ? [] : [{ speciesId: m.species_id ?? null, level: m.level, egg: m.is_egg === true }]) };
     if (recording.skipped !== null) skew = { commit: start.harness.commit, dirty: start.harness.dirty, ...recording.skipped };
     run.status = view.end === null ? "unresponsive" : "ended"; run.reason = view.end?.reason ?? null; run.turn = view.turn;
     if (run.reason === "operator_abort") run.excluded ??= "Excluded operator-aborted run";

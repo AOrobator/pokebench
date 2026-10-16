@@ -38,7 +38,7 @@ No harness behavior change, so no feature switch.
 - [ ] RED/GREEN: `/sprites/` allowlist route (good paths 200, traversal and unknown paths 404)
 
 **M2: card data**
-- [ ] RED/GREEN: `WorkbenchRun.card` from the last state event; parse and validate; shared plate facts
+- [x] RED/GREEN: `WorkbenchRun.card` from the last state event (`readNativeRecording` returns it, since it drops `view.state`); parse and validate; shared `plateFacts`. workbench tests 77 + 34 green
 
 **M3: cards in the viewer**
 - [ ] RED/GREEN: trainer pick, tier, wide/mini HTML (badge in corner vs ribbon, WATCHING/LIVE/PAUSED, fresh glow), game font painter, desktop card row and click to watch, phone sheet cards, in-place clocks, fallback without art
@@ -48,4 +48,4 @@ No harness behavior change, so no feature switch.
 **M4: review and land**
 - [ ] Claude, Grok and GPT LGTM on one frozen packet; merge slot from the coordinator (not :40–:55); ff-only
 - [ ] `just trainer-card-art` into the main checkout's runs/; restart through the coordinator; live check
-- RED: card data tests (workbench-store.test.ts) fail: card undefined
+- M2 RED committed before GREEN

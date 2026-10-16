@@ -12,7 +12,8 @@ export interface RecordingMeasurement {
 type Milestone = Extract<RunEvent, { type: "milestone" }>;
 type State = Extract<RunEvent, { type: "state"; started: boolean }>;
 // skipped: events the schema rejected and a tolerant read stepped over (version skew), with the first problem.
-export interface NativeRecording { view: RunView; splits: RecordingSplit[]; measurement: RecordingMeasurement; skipped: { count: number; first: string } | null }
+// last: the trainer card fields of the last game state, kept because view.state is dropped from the result.
+export interface NativeRecording { view: RunView; splits: RecordingSplit[]; measurement: RecordingMeasurement; skipped: { count: number; first: string } | null; last: Pick<State, "name" | "location" | "party"> | null }
 function compact(state: State): State {
   return { v: state.v, run: state.run, seq: state.seq, t: state.t, turn: state.turn, type: "state", screen: state.screen,
     started: state.started, name: state.name, location: state.location, map_id: state.map_id, position: state.position, facing: state.facing,
@@ -83,6 +84,7 @@ export function readNativeRecording(path: string, id: string, qualified: (event:
   }
   splits.sort((a, b) => a.elapsedMs - b.elapsedMs || a.seq - b.seq);
   let previousSplit = 0; for (const split of splits) { split.segmentMs = split.elapsedMs - previousSplit; previousSplit = split.elapsedMs; }
+  const last = view.state === null || !("started" in view.state) ? null : { name: view.state.name, location: view.state.location, party: view.state.party };
   view.state = null;
-  return { view, splits, measurement: { controller: view.start.controller?.kind === "human" ? "human" : "agent", features: [...view.start.harness_features], logSha256: hash, logBytes: snapshot.bytes, pausedMs: view.control.pausedBefore(view.lastMs ?? view.startMs ?? 0), rawSplits }, skipped };
+  return { view, last, splits, measurement: { controller: view.start.controller?.kind === "human" ? "human" : "agent", features: [...view.start.harness_features], logSha256: hash, logBytes: snapshot.bytes, pausedMs: view.control.pausedBefore(view.lastMs ?? view.startMs ?? 0), rawSplits }, skipped };
 }

@@ -48,9 +48,9 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 </head>
 <body>
 <main>
-<div class="eyebrow">Harness switch · guidance · <code>pushback-press-result-v1</code> · no dependency (inert without dialogue auto-advance) · off by default · bug fix: ON in both arms</div>
+<div class="eyebrow">Harness switch · guidance · <code>pushback-press-result-v1</code> · no dependency · off by default · bug fix: ON in both arms</div>
 <h1>Push-back press results</h1>
-<p class="lede">When a press opens a script's message, dialogue auto-advance pages it, and the script may move the player while it does. The press result only described the model's own input, so a push-back read as "no net movement" or only as a restarted conversation. With this switch on, the result says the player moved and a script moved them back, with the tiles. Off: today's text.</p>
+<p class="lede">Scripts move the player while dialogue auto-advance pages their message, between two snapshots of one press, and between one call and the next. The results only described the model's own input, so a push-back read as "no net movement", "turned left -> right" or only as a restarted conversation, and navigate_to said to call it again. With this switch on, press and navigate_to results say that a script moved the player, with the tiles. Off: today's text.</p>
 
 <section>
 <h2>Three snapshots, not two</h2>
@@ -79,6 +79,22 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 <tr><td>Twin, message already open (sh02 T146)</td><td><code>locked (field controls locked in a snapshot; no net movement)</code></td><td><code>locked (field controls locked in a snapshot; no movement by the press); this call: your press did not move you, then a script moved you (11,1) -&gt; (11,2) while the dialogue advanced</code></td></tr>
 </table>
 <p>The OFF texts are the ones recorded in sh02, reproduced by the tests with a fake game. Tiles appear only when the player position is shown (<code>live-player-position-v1</code>); a script that moves the player to another map names both places. When the script did not move the player, the line is unchanged. Nothing is shortened.</p>
+</section>
+
+<section>
+<h2>Cook audit acceptance cases</h2>
+<p>Recorded snapshots from <code>runs/reports/2026-10-16-cook-harness-audit/</code>; the OFF column is the text the model was given, reproduced by the tests.</p>
+<table>
+<tr><th>Case</th><th>OFF</th><th>ON</th></tr>
+<tr><td>54a7 T82 seq 1790 (twin, auto-advance)</td><td><code>locked (field controls locked in a snapshot; no net movement)</code></td><td><code>locked (field controls locked in a snapshot; no movement by the press); this call: your press did not move you, then a script moved you (10,1) -&gt; (10,2) while the dialogue advanced</code></td></tr>
+<tr><td>54a7 T92 seq 2014 (navigate_to)</td><td><code>…; after auto-advance: the conversation closed and field controls are free; call navigate_to again; 0 ordinary button attempts.</code></td><td><code>…; after auto-advance: the conversation closed and field controls are free; a script moved you (10,1) -&gt; (10,2) while the dialogue advanced (navigate_to did not walk there; calling it again walks back into the same script); 0 ordinary button attempts.</code></td></tr>
+<tr><td>54a7 T247 seq 6039 (BlockedPath, one press, no message)</td><td><code>turned left -&gt; right; no net movement</code></td><td><code>a script took over during your press: you pressed LEFT and now face right on the same tile (1,10), with field controls held by a running script; your press cannot turn you right, so the script turned you or stepped you back between snapshots</code></td></tr>
+<tr><td>sh02 T1072 (Maniac trigger)</td><td><code>moved (1,10) -&gt; (0,10)</code></td><td><code>moved (1,10) -&gt; (0,10); then a script took over: field controls are held by a running script (no message yet), which may move you</code></td></tr>
+<tr><td>sh02 T1073 (walked back between calls)</td><td><code>locked (field controls locked in a snapshot; no net movement)</code></td><td><code>a script moved you (0,10) -&gt; (1,10) after your last result, before this press; this press: locked (field controls locked in a snapshot; no net movement)</code></td></tr>
+<tr><td>sh02 T1080 (no dialogue at all)</td><td><code>locked (field controls locked in a snapshot; no net movement)</code></td><td><code>a script took over during your press: you pressed LEFT and now face right on the same tile (1,10), …</code></td></tr>
+<tr><td>sh02 T264 (LEFT×3 UP×3 into Birch's message)</td><td>event: sent all six, dropped none</td><td>event: sent LEFT, dropped LEFT, LEFT, UP, UP, UP; the result says <code>5 inputs of your batch had no effect (counted as dropped): the message opened during the batch and held field controls while they were pressed: …</code></td></tr>
+</table>
+<p>"Took over" needs free controls when the press began, the same tile, a message or running script holding the controls after it, and the player facing away from the direction pressed. The walk-batch split counts the tiles the player actually moved (at least the first input) as sent.</p>
 </section>
 
 <section>

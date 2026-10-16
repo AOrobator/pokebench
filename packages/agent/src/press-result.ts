@@ -1,6 +1,7 @@
 import type { Button } from "./events.js";
 import type { GameStateSnapshot } from "./game-state.js";
 import { blockedBatchResult } from "./blocked-batch.js";
+import { scriptHeld } from "./loop-detection.js";
 
 
 function interfaceProjection(state: GameStateSnapshot): string | undefined {
@@ -15,7 +16,7 @@ function interfaceProjection(state: GameStateSnapshot): string | undefined {
 // Facts the run's observation switches hide from the model are left out here too.
 // blockedBatch (blocked-batch-result-v1) names blocked direction batches; liveMap, ledges, edgeWalls, counters and
 // topology say which map facts the model is shown.
-export interface PressFacts { readonly position: boolean; readonly fieldLock: boolean; readonly transitions?: boolean; readonly warpArrival?: boolean; readonly blockedBatch?: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean }
+export interface PressFacts { readonly position: boolean; readonly fieldLock: boolean; readonly transitions?: boolean; readonly warpArrival?: boolean; readonly blockedBatch?: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean; readonly pushback?: boolean }
 export const ALL_PRESS_FACTS: PressFacts = { position: true, fieldLock: true };
 
 const dialogueOf = (state: GameStateSnapshot | undefined): string | null => state?.world_context?.dialogue ?? null;
@@ -122,9 +123,8 @@ function dialogueChange(before: GameStateSnapshot, after: GameStateSnapshot, sho
 // while it advanced. `pressed` is the state when the model's own input ended, `after` the state after auto-advance.
 export function pushbackPressResult(line: string, before: GameStateSnapshot | undefined, pressed: GameStateSnapshot, after: GameStateSnapshot, show: PressFacts): string {
   if (!placed(before) || !placed(pressed) || !placed(after)) return line;
-  const sameTile = (a: Placed, b: Placed): boolean => sameMap(a, b) && a.position.x === b.position.x && a.position.y === b.position.y;
   if (sameTile(pressed, after)) return line;
-  const path = (from: Placed, to: Placed): string => !sameMap(from, to) ? ` ${place(from, show)} -> ${place(to, show)}` : show.position ? ` (${String(from.position.x)},${String(from.position.y)}) -> (${String(to.position.x)},${String(to.position.y)})` : "";
+  const path = (from: Placed, to: Placed): string => tilePath(from, to, show);
   const pressMoved = !sameTile(before, pressed);
   const back = pressMoved && sameTile(before, after);
   const press = pressMoved ? `your press moved you${path(before, pressed)}` : "your press did not move you";
@@ -133,7 +133,51 @@ export function pushbackPressResult(line: string, before: GameStateSnapshot | un
   return `${own}; this call: ${press}, ${script}${back ? "; you are back where this press began" : ""}`;
 }
 
+const tilePath = (from: Placed, to: Placed, show: PressFacts): string => !sameMap(from, to) ? ` ${place(from, show)} -> ${place(to, show)}` : show.position ? ` (${String(from.position.x)},${String(from.position.y)}) -> (${String(to.position.x)},${String(to.position.y)})` : "";
+const sameTile = (a: Placed, b: Placed): boolean => sameMap(a, b) && a.position.x === b.position.x && a.position.y === b.position.y;
+const OPPOSITE: Readonly<Record<string, string>> = { up: "down", down: "up", left: "right", right: "left" };
+
+// pushback-press-result-v1: a script moved the player between two snapshots of one call (navigate_to's auto-advance).
+export function scriptMove(from: GameStateSnapshot, to: GameStateSnapshot, show: PressFacts): string | null {
+  if (!placed(from) || !placed(to) || sameTile(from, to)) return null;
+  return `a script moved you${tilePath(from, to, show)} while the dialogue advanced (navigate_to did not walk there; calling it again walks back into the same script)`;
+}
+
+// pushback-press-result-v1: a walk batch is sent at once; the steps the player did not take after the step that
+// opened a message were pressed while the message held field controls. At least the first input took effect.
+export function ignoredSteps(before: GameStateSnapshot | undefined, after: GameStateSnapshot, sent: readonly Button[]): Button[] {
+  if (!placed(before) || !placed(after) || !sameMap(before, after)) return [];
+  const steps = Math.abs(after.position.x - before.position.x) + Math.abs(after.position.y - before.position.y);
+  return sent.slice(Math.max(1, Math.min(steps, sent.length)));
+}
+
+// pushback-press-result-v1: what a script did around this press, from the snapshots alone.
+function scriptTakeover(line: string, before: GameStateSnapshot | undefined, after: GameStateSnapshot, buttons: readonly Button[], show: PressFacts, shown: ShownStates): string {
+  if (!placed(before) || !placed(after) || !sameMap(before, after)) return line;
+  const where = show.position ? ` (${String(after.position.x)},${String(after.position.y)})` : "";
+  const holder = (after.world_context?.dialogue ?? "") !== "" || after.world_context?.message != null ? "the message box" : "a running script";
+  const dirs = buttons.filter(b => DIRECTIONS.includes(b));
+  const pressed = dirs[dirs.length - 1];
+  let out = line;
+  if (pressed !== undefined && before.field_controls_locked === false && sameTile(before, after) && scriptHeld(after) && after.facing === OPPOSITE[pressed.toLowerCase()]) {
+    // From free controls, no input faces the player away from the direction just pressed (54a7 T247: LEFT, then facing right).
+    out = `a script took over during your press: you pressed ${pressed} and now face ${after.facing} on the same tile${where}, with field controls held by ${holder}; your press cannot turn you ${after.facing}, so the script turned you or stepped you back between snapshots`;
+  } else if (!sameTile(before, after) && line.startsWith("moved") && scriptHeld(after) && holder === "a running script") {
+    out = `${line}; then a script took over: field controls are held by a running script (no message yet), which may move you`;
+  }
+  const last = shown.lastShown;
+  if (placed(last) && sameMap(last, before) && !sameTile(last, before) && (scriptHeld(before) || scriptHeld(last))) {
+    out = `a script moved you${tilePath(last, before, show)} after your last result, before this press; this press: ${out}`;
+  }
+  return out;
+}
+
 export function pressResult(before: GameStateSnapshot | undefined, after: GameStateSnapshot, buttons: readonly Button[], show: PressFacts = ALL_PRESS_FACTS, shown: ShownStates = new ShownStates()): string {
+  const line = pressResultLine(before, after, buttons, show, shown);
+  return show.pushback === true ? scriptTakeover(line, before, after, buttons, show, shown) : line;
+}
+
+function pressResultLine(before: GameStateSnapshot | undefined, after: GameStateSnapshot, buttons: readonly Button[], show: PressFacts, shown: ShownStates): string {
   if (show.transitions !== true || before === undefined || before.active_ui?.diagnostic != null || after.active_ui?.diagnostic != null) {
     return basePressResult(before, after, buttons, show);
   }

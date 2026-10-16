@@ -181,6 +181,19 @@ export function scriptHeld(state: GameStateSnapshot): boolean {
   return script != null && (script.script_mode === 1 || script.script_mode === 2) && (script.script_status === 0 || script.script_status === 1);
 }
 
+const OPPOSITE: Readonly<Record<string, string>> = { up: "down", down: "up", left: "right", right: "left" };
+const lastDirection = (buttons: unknown): string | null => {
+  if (!Array.isArray(buttons)) return null;
+  const dirs = buttons.filter((b): b is string => typeof b === "string" && b.toLowerCase() in OPPOSITE);
+  return dirs.length === 0 ? null : (dirs[dirs.length - 1] ?? "").toLowerCase();
+};
+const wayOut = (action: string | undefined): string => {
+  const parsed: unknown = action === undefined ? null : JSON.parse(action);
+  if (!Array.isArray(parsed) || parsed.length === 0) return action ?? "";
+  // A button batch leaves by its first button; navigate_to ([map, x, y]) by its target map, whichever tile it named.
+  return typeof parsed[0] === "string" ? JSON.stringify(parsed[0]) : `navigate_to ${JSON.stringify(parsed[0])}`;
+};
+
 export const PUSHBACK_MESSAGE =
   "A game script keeps returning the player to the same place after the same input: each attempt ends back where it started, so repeating it will not get past the script. Read what the script's dialogue says, then choose a different target or approach using observed evidence.";
 const placeOf = (state: GameStateSnapshot): string | null =>
@@ -247,8 +260,10 @@ export class LoopDetector {
   private readonly messageVisits: string[] = [];
   // pushback-loop-detection-v1: the last settled result, the model's inputs since it, whether the player left its
   // tile and whether a script or message held the controls since; and the recent push-backs.
-  private trip: { anchor: string; place: string | null; actions: string[]; calls: number; left: boolean; scripted: boolean } | null = null;
+  private trip: { anchor: string; place: string | null; actions: string[]; calls: number; left: boolean; scripted: boolean; dir: string | null } | null = null;
   private readonly pushbacks: { key: string; seq: number }[] = [];
+  // The places (map and tile) of recent game call results: a push-back episode recovers only somewhere new.
+  private readonly places: string[] = [];
   // battle-observation-loop-v1: the previous game call's battle readout and the recent ones.
   private previousBattle: string | null = null;
   private readonly battlesSeen: string[] = [];
@@ -265,6 +280,7 @@ export class LoopDetector {
     evidence: number[];
     window: number;
     briefing: string | null;
+    pushback: boolean;
   } | null = null;
   private stallNote: { text: string; exposed: boolean } | null = null;
   private run: string | null = null;
@@ -332,6 +348,7 @@ export class LoopDetector {
           pending.start = event.before_state_seq === this.latestSeq ? this.latest : undefined;
           if (this.pushback && this.trip === null && !pending.navigation && pending.start !== undefined) this.seed(pending.start);
         }
+        if (this.pushback && this.trip !== null) this.trip.dir = lastDirection(event.buttons) ?? this.trip.dir;
         pending.pressed = true;
         if (!pending.navigation && this.interactions) pending.args = {...pending.args, buttons: event.buttons};
         pending.before =
@@ -420,15 +437,24 @@ export class LoopDetector {
       game && fingerprint !== null && fingerprint !== this.previous;
     const battle = this.battles && game && call.state !== undefined ? battleState(call.state) : null;
     const novel = (changed && !this.visited.includes(fingerprint)) || (battle !== null && battle !== this.previousBattle && !this.battlesSeen.includes(battle));
+    // pushback-loop-detection-v1: a new state on a tile already seen (a menu, a turn, one other button) is not
+    // a way out of a push-back; only a new map or tile, or a story milestone, is.
+    const place = this.pushback && game && call.state !== undefined ? placeOf(call.state) : null;
+    const newPlace = place !== null && !this.places.includes(place);
+    if (place !== null) {
+      this.places.push(place);
+      if (this.places.length > 16) this.places.shift();
+    }
+    const held = this.pushback && this.episode?.pushback === true && !newPlace;
     if (novel) {
       this.messageVisits.length = 0;
-      this.pushbacks.length = 0;
+      if (!this.pushback || newPlace) this.pushbacks.length = 0;
     }
     if (
-      novel ||
+      (novel && !held) ||
       (game && (call.name === "press" || (call.name === "navigate_to" && call.acted===true)) && this.episode?.kind === "planning")
     )
-      this.recover(seq, novel);
+      this.recover(seq, novel && !held);
     let hit: LoopKind | null = null;
     let pingPong = false;
     let pushed: number[] | null = null;
@@ -543,6 +569,7 @@ export class LoopDetector {
         evidence: pushed === null ? [seq] : pushed.slice(0, 1),
         window: this.policy.recovery,
         briefing: null,
+        pushback: pushed !== null,
       };
       this.notice("warning", seq);
       // Speedrun: the supervisor briefs as soon as a loop is found, then again every window while it lasts.
@@ -598,6 +625,9 @@ export class LoopDetector {
     if (scriptHeld(state)) trip.scripted = true;
     const place = placeOf(state);
     if (place !== null && place !== trip.place) trip.left = true;
+    // No input faces the player away from the direction just pressed: with a script holding the controls, that
+    // is the script stepping the player back between snapshots (OldaleTown_EventScript_BlockedPath, 54a7 T247).
+    if (trip.dir !== null && scriptHeld(state) && state.facing === OPPOSITE[trip.dir]) trip.left = true;
   }
 
   // Where the player stands with field controls free and no message: its fingerprint, else null.
@@ -609,7 +639,7 @@ export class LoopDetector {
   // A settled state starts a trip (a call's settled result, or the state a call's first input started from).
   private seed(state: GameStateSnapshot): void {
     const anchor = this.settled(state);
-    if (anchor !== null) this.trip = { anchor, place: placeOf(state), actions: [], calls: 0, left: false, scripted: false };
+    if (anchor !== null) this.trip = { anchor, place: placeOf(state), actions: [], calls: 0, left: false, scripted: false, dir: null };
   }
 
   // A press or navigate_to whose settled result is where the player last stood settled, after the player left that
@@ -630,6 +660,7 @@ export class LoopDetector {
     if (trip !== null) {
       const asked = call.requested ?? call.args;
       trip.actions.push(JSON.stringify(call.name === "navigate_to" ? [asked["map_id"], asked["x"], asked["y"]] : asked["buttons"] ?? null));
+      trip.dir = lastDirection(asked["buttons"]) ?? trip.dir;
       trip.calls++;
       if (call.beforeState !== undefined) this.tripState(call.beforeState);
     }
@@ -639,7 +670,9 @@ export class LoopDetector {
     }
     this.seed(state);
     if (trip === null || trip.anchor !== settled || !trip.left || !trip.scripted) return null;
-    const key = `${settled}:${trip.actions.join(",")}`;
+    // The way out: the first button (or navigate_to target) of the trip. A loop's period can vary (LEFT then
+    // LEFT,LEFT; DOWN,A,A or DOWN,DOWN,A,A) while the player keeps leaving the same way.
+    const key = `${settled}:${wayOut(trip.actions[0])}`;
     this.pushbacks.push({ key, seq });
     if (this.pushbacks.length > 12) this.pushbacks.shift();
     const same = this.pushbacks.filter((p) => p.key === key);

@@ -10,7 +10,6 @@ import {ShownStates,ignoredSteps,pressResult,pushbackPressResult,scriptMove} fro
 import {navigationAfter} from "./dialogue-auto-advance.js";
 import {MESSAGE_WAITING} from "./navigation.js";
 import {toolSwitches} from "./play-config.js";
-import type {GameStateSnapshot} from "./game-state.js";
 
 // Acceptance cases from the cook harness audit (runs/reports/2026-10-16-cook-harness-audit/{live,sh02}.md), as
 // schema-valid recorded events: runs 2026-10-16T04-51-03_qwen36-gpu0_54a7 (bundle arm), 2026-10-16T04-51-03_qwen36-gpu1_1623
@@ -120,7 +119,7 @@ describe("audit 5: sh02 T264, LEFT×3 UP×3 logged as six sent while five ran in
  it("a batch whose position is unknown drops nothing it cannot prove",()=>{
   const c=call(recorded("pushback-birch-sh02.jsonl.gz"),264);
   expect(ignoredSteps(undefined,c.pressed,c.buttons)).toEqual([]);
-  expect(ignoredSteps(c.before,{...c.pressed,position:null} as GameStateSnapshot,c.buttons)).toEqual([]);
+  expect(ignoredSteps(c.before,{...c.pressed,position:null},c.buttons)).toEqual([]);
  });
 });
 

@@ -86,3 +86,15 @@ def test_every_selectable_character_round_trips_through_the_game_decoder() -> No
     for page in KEYBOARDS:
         for row in page:
             assert decode_text(text(row) + b"\xff") == row
+
+
+@pytest.mark.parametrize(
+    ("pointer", "phase", "open_"),
+    [(POINTER, 2, True), (POINTER, 6, False), (0, 2, False), (POINTER + 2, 2, False)],
+)
+def test_editor_open_until_ok_is_pressed(pointer: int, phase: int, open_: bool) -> None:
+    from pokebench_env.naming import editor_open
+
+    m = keyboard(phase=phase)
+    m.put(NAMING_POINTER, struct.pack("<I", pointer))
+    assert editor_open(m.read) is open_

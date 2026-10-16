@@ -638,6 +638,10 @@ it("links the named warp destinations card to its explainer",()=>{
  expect(FEATURE_EXPLAINERS["transition-loop-detection-v1"]).toBe("transition-loop-detection-v1.html");
 });
 
+it("links the connection edge tiles card to its explainer",()=>{
+ expect(FEATURE_EXPLAINERS["connection-edge-tiles-v1"]).toBe("connection-edge-tiles-v1.html");
+});
+
 it("links the stall briefing card to its explainer",()=>{
  expect(FEATURE_EXPLAINERS["stall-briefing-v1"]).toBe("stall-briefing-v1.html");
 });
@@ -670,6 +674,8 @@ it("shows the experiment, arm and trial strip, the preset, or just the model and
 it("links the transition press results card to its explainer",()=>{
  expect(FEATURE_EXPLAINERS["transition-press-result-v1"]).toBe("transition-press-result-v1.html");
  expect(FEATURE_EXPLAINERS["blocked-batch-result-v1"]).toBe("blocked-batch-result-v1.html");
+ expect(FEATURE_EXPLAINERS["in-game-naming-readout-v1"]).toBe("in-game-naming-readout-v1.html");
+ expect(FEATURE_EXPLAINERS["no-nickname-guidance-v1"]).toBe("no-nickname-guidance-v1.html");
  expect(FEATURE_EXPLAINERS["explorer-guidance-v1"]).toBe("explorer-guidance-v1.html");
 });
 

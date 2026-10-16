@@ -175,7 +175,7 @@ it("selects previous same-model baseline and deepest then fastest best, from val
   const corruptPath = writeRun(r, "corrupt", logged(47000, ["STONE_BADGE"]));
   appendFileSync(corruptPath, "invalid\n");
   writeRun(r, "unknown", logged(47000, ["SOME_UNVERIFIED_PROGRESS"]));
-  const result = comparisonsOf(r, "current");
+  const result = await comparisonsOf(r, "current");
   expect(result.baseline?.run).toBe("previous");
   expect(result.best?.run).toBe("deepest");
   expect(result.candidates.map((c) => c.run).sort()).toEqual(["deepest", "other-model", "previous", "slower-deep"]);
@@ -219,7 +219,7 @@ it("keeps nickname-resume progress out of the actual recorder split catalog", as
   expect(baselineOf(r,"nickname-resume")).toEqual({run:"nickname-resume",milestones:[{name:"GAME_RUNNING",offsetMs:0}]});
   const current=new Log();current.add(2000,{...START,harness_features:["ram-state-v1"],start_state:{kind:"save_state",path:"fixture",sha1:"0".repeat(40)}});
   writeRun(r,"current",current);
-  expect(comparisonsOf(r,"current")).toEqual({candidates:[],baseline:null,best:null});
+  expect((await comparisonsOf(r,"current"))).toEqual({candidates:[],baseline:null,best:null});
 });
 
 const HUMAN = { kind: "human", name: "Operator", rom_sha1: "c".repeat(40), input_policy: "frame-held-v1", sample_ms: 100, nominal_fps: 59.7275 } as const;
@@ -236,7 +236,7 @@ it("offers finished comparable humans explicitly, never as automatic model best 
   const r = root();
   writeRun(r, "current", humanLog(1000, false));
   writeRun(r, "human", humanLog());
-  const result = comparisonsOf(r, "current");
+  const result = await comparisonsOf(r, "current");
   expect(result.candidates).toHaveLength(1);
   expect(result.candidates[0]).toMatchObject({ run: "human", model: "Human · Operator", controller: { kind: "human", name: "Operator" } });
   expect(result.baseline).toBeNull();
@@ -262,7 +262,7 @@ it("matches human references by start and known ROM, rejects probes and invalid 
   writeRun(r, "probe", changeStart({ harness_features: ["ram-state-v1", "probe"] }));
   const path = writeRun(r, "invalid", humanLog());
   writeFileSync(path, readFileSync(path, "utf8").replace('\n', '\ninvalid\n'));
-  expect(comparisonsOf(r, "current")).toEqual({ candidates: [], baseline: null, best: null });
+  expect((await comparisonsOf(r, "current"))).toEqual({ candidates: [], baseline: null, best: null });
 });
 
 it("keeps a mixed model catalog automatic picks model-only, qualifying legacy ROM proof", async () => {
@@ -272,7 +272,7 @@ it("keeps a mixed model catalog automatic picks model-only, qualifying legacy RO
   writeRun(r, "current-model", model);
   writeRun(r, "model-reference", fullRun());
   writeRun(r, "human-fast", humanLog());
-  const result = comparisonsOf(r, "current-model");
+  const result = await comparisonsOf(r, "current-model");
   expect(result.candidates.map(c => c.run).sort()).toEqual(["human-fast", "model-reference"]);
   expect(result.candidates.find(c => c.run === "human-fast")).toMatchObject({ romIdentity: "unverified" });
   expect(result.baseline?.run).toBe("model-reference");
@@ -280,7 +280,7 @@ it("keeps a mixed model catalog automatic picks model-only, qualifying legacy RO
   const first = model.events[0]; if (first?.type !== "run_start") throw new Error("fixture");
   model.events[0] = { ...first, rom_sha1: "d".repeat(40) };
   writeRun(r, "current-model", model);
-  expect(comparisonsOf(r, "current-model").candidates.map(c => c.run)).toEqual(["model-reference"]);
+  expect((await comparisonsOf(r, "current-model")).candidates.map(c => c.run)).toEqual(["model-reference"]);
 });
 
 it("rejects matching-start human references with a different vendor pin", async () => {
@@ -289,7 +289,7 @@ it("rejects matching-start human references with a different vendor pin", async 
   const first = candidate.events[0]; if (first?.type !== "run_start") throw new Error("fixture");
   candidate.events[0] = { ...first, vendor_pin: "d".repeat(40) };
   writeRun(r, "different-vendor", candidate);
-  expect(comparisonsOf(r, "current").candidates).toEqual([]);
+  expect((await comparisonsOf(r, "current")).candidates).toEqual([]);
 });
 
 it("uses active pause-adjusted human splits and omits progress present at the start", () => {
@@ -338,7 +338,7 @@ it("catalogs isolated nested human recordings beside model runs and resolves the
   expect(readFileSync(join(runDir(r, "human-recording"), "frames", "000001_1.png"), "utf8")).toBe("human frame fixture");
   expect(readStart(r, "human-recording")).toMatchObject({ controller: { kind: "human", name: "Operator" } });
   expect(baselineOf(r, "human-recording").milestones).toEqual([{ name: "PLAYER_NAME_CONFIRMED", offsetMs: 100 }]);
-  expect(comparisonsOf(r, "current").candidates.map(c => c.run).sort()).toEqual(["human-recording", "model"]);
+  expect((await comparisonsOf(r, "current")).candidates.map(c => c.run).sort()).toEqual(["human-recording", "model"]);
 });
 
 it("surfaces malformed nested human logs and duplicate ids without selecting ambiguous storage", () => {

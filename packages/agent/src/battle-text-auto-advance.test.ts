@@ -389,11 +389,11 @@ describe("battle-text-auto-advance-v1 registry and production wiring",()=>{
  });
 
  it("is the last key wherever a preset or default lists switches, and last in the registry",()=>{
-  const later=new Set<string>(["battle-triage-guidance-v1","adjacent-tiles-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","connection-edge-tiles-v1",ID]);
-  const old=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>!later.has(id))) as Omit<FeatureSet,"battle-triage-guidance-v1"|"adjacent-tiles-v1"|"readout-rules-in-prompt-v1"|"explorer-guidance-v1"|"connection-edge-tiles-v1"|typeof ID>;
+  const later=new Set<string>(["battle-triage-guidance-v1","adjacent-tiles-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","connection-edge-tiles-v1","in-game-naming-readout-v1","no-nickname-guidance-v1",ID]);
+  const old=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>!later.has(id))) as Omit<FeatureSet,"battle-triage-guidance-v1"|"adjacent-tiles-v1"|"readout-rules-in-prompt-v1"|"explorer-guidance-v1"|"connection-edge-tiles-v1"|"in-game-naming-readout-v1"|"no-nickname-guidance-v1"|typeof ID>;
   expect(Object.keys(normalizeFeatures(old)).at(-1)).toBe(ID);
   expect(Object.keys(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})).at(-1)).toBe(ID);
-  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(SWITCHABLE_FEATURES.indexOf("connection-edge-tiles-v1")+1);
+  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(SWITCHABLE_FEATURES.indexOf("no-nickname-guidance-v1")+1);
  });
 
  it("tells the model only when ON",()=>{

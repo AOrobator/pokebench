@@ -66,6 +66,8 @@ export const EXPLORER_GUIDANCE_SECTION = "Talk to people: in this game, people t
 export const EXPLORER_TALK_IS_CHEAP = "Talking is cheap: face the person and press A; the harness reads the conversation until your next decision.";
 export const BATTLE_TEXT_AUTO_ADVANCE_SECTION = `Battle text auto-advance: in a battle the harness also advances the battle messages itself, pressing B on each message that waits, until the action or move menu is ready, a YES/NO question opens, another screen opens (bag, party, summary, naming) or the battle ends. The result lists every battle message shown, whole and in order, with its battle turn, including the ones that pass on their own. Buttons left in your batch once the battle text starts are not sent, so you never need A or B to read battle text; choose from the menu that is open.`;
 
+export const NO_NICKNAME_SECTION = "Nicknames: this is a speed run, and naming a Pokémon only costs time. When the game offers to give a Pokémon a nickname, answer NO. If you are already on the naming screen for a Pokémon's nickname, do not type or fix letters: press START to move the cursor to OK, then A. Any nickname is fine, and with nothing typed the Pokémon keeps its own name.";
+
 export const NAVIGATE_TO_USAGE = `Use navigate_to for any walk of two or more tiles on the current map, using coordinates from the readout. To go through a door or stairs, give the warp's own coordinates as the destination; at a directional exit, arrive on its tile, then press the direction its activation describes. When navigate_to stops early, read its reason and pick a reachable tile or a different listed exit instead of falling back to long runs of single presses. Use press for talking, menus, dialogue and short adjustments.`;
 
 // battle-triage-guidance-v1: game rules for leaving wild battles and healing; no destinations.
@@ -99,6 +101,7 @@ export function playSystemPrompt(features: FeatureSet, target: string | null): s
   if (features["dialogue-auto-advance-v1"]) prompt += `\n\n${DIALOGUE_AUTO_ADVANCE_SECTION}`;
   if (features["battle-text-auto-advance-v1"]) prompt += `\n\n${BATTLE_TEXT_AUTO_ADVANCE_SECTION}`;
   if (features["game-evidence-priority-v1"]) prompt += `\n\n${GAME_EVIDENCE_SECTION}${features["bounded-navigation-v1"] ? `\n\n${NAVIGATE_TO_USAGE}` : ""}`;
+  if (features["no-nickname-guidance-v1"]) prompt += `\n\n${NO_NICKNAME_SECTION}`;
   // readout-rules-in-prompt-v1: the fixed map rules the server no longer prints in each readout.
   const mapRules = features["readout-rules-in-prompt-v1"] ? mapRulesSection(features) : "";
   if (mapRules !== "") prompt += `\n\n${mapRules}`;

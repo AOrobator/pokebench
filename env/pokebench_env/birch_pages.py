@@ -3,7 +3,7 @@
 pret/pokeemerald 731ad5bf src/main_menu.c: after the name is accepted,
 Task_NewGameBirchSpeech_WaitForSpriteFadeInAndTextPrinter (0x0803133D) prints
 gText_Birch_YourePlayer and Task_NewGameBirchSpeech_ShrinkPlayer (0x080314C5) prints
-gText_Birch_AreYouReady, both through text printer 0 on window 0. At each `\\p` the
+gText_Birch_AreYouReady, both through text printer 0 on window 0 (two lines). At each `\\p` the
 printer enters RENDER_STATE_CLEAR (`\\l`: RENDER_STATE_SCROLL_START) and waits in
 TextPrinterWaitWithDownArrow for A or B with the red arrow shown (src/text.c), unless
 gTextFlags.autoScroll is set. Both tasks run the printer, and so take A or B, only once
@@ -38,21 +38,37 @@ CONTROLS = "A or B shows the next page (the value is the page on screen)"
 
 
 def page_text(buffer: bytes, cursor: int) -> str:
-    """The page written so far: bytes after the last page clear (0xFB) before `cursor`."""
-    start = 0
+    """The text on screen: up to the last two lines written since the last page clear.
+
+    The Birch window is 27x4 tiles, two text lines (sNewGameBirchSpeechTextWindows). `\\p`
+    (0xFB) clears it; `\\n` (0xFE) starts the second line; `\\l` (0xFA) waits, then scrolls
+    the window up one line (text.c RENDER_STATE_SCROLL_START, ScrollWindow), so after it only
+    the line before and the new line are on screen. A break at the cursor itself has not
+    taken effect yet: the printer is waiting on it.
+    """
+    lines = [0]
     i = 0
     while i < cursor:
         code = buffer[i]
         if code == 0xFC and i + 1 < cursor:
             i += 2 + CONTROL_ARGS.get(buffer[i + 1], 0)
             continue
-        if code == 0xFD:
+        if code in (0xF8, 0xF9, 0xFD):
             i += 2
             continue
         i += 1
-        if code == 0xFB and i < cursor:
-            start = i
-    return decode_message(buffer[start:cursor].rstrip(b"\xfb") + b"\xff")
+        if i >= cursor:
+            break
+        if code == 0xFB:
+            lines = [i]
+        elif code in (0xFA, 0xFE):
+            lines.append(i)
+    start = lines[-2] if len(lines) > 1 else lines[0]
+    try:
+        return decode_message(buffer[start:cursor].rstrip(b"\xfa\xfb\xfe") + b"\xff")
+    except ValueError:
+        # A glyph the decoder does not know: no page value, so the old not-ready line stays.
+        return ""
 
 
 def read_birch_page(read: ReadMemory, task: bytes) -> ActiveUi | None:

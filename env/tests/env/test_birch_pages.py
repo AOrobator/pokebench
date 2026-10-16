@@ -82,9 +82,14 @@ def test_page_text_is_what_the_two_line_window_shows_after_a_scroll() -> None:
     assert page_text(speech, len(speech)) == "hometown of LITTLEROOT. I get it now!"
     assert page_text(speech, scroll + 3) == "hometown of LITTLEROOT. I g"
     # A keypad-icon or extra-symbol argument byte is never read as a break.
-    for code in (0xF8, 0xF9):
-        coded = text("A") + bytes([code, 0xFB]) + text("B")
-        assert page_text(coded, len(coded)).startswith("A")
+    coded = text("A") + bytes([0xF9, 0xFB]) + text("B")
+    assert page_text(coded, len(coded)).startswith("A")
+    # 0xF8 (keypad icon) is not a glyph the decoder knows: no page value, never a crash.
+    keypad = text("A") + bytes([0xF8, 0xFB]) + text("B")
+    assert page_text(keypad, len(keypad)) == ""
+    m = page_memory(cursor=len(keypad))
+    m.put(STRING_VAR4, keypad + b"\xff")
+    assert read_birch_page(m.read, task_record()) is None
 
 
 def test_page_waiting_for_a_is_ready_with_the_page_as_value() -> None:

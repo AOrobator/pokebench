@@ -73,3 +73,7 @@ Text only. No subprocesses, network, files or new endpoints.
 - Round 4 verdicts on packet `git diff --binary 2c1befc7 ac035d7e` (SHA-256 `25821cac9924f02fbcbf2377e25a6c30a9a1ecb3cf3541faf770f710d3ce9989`): Claude (`claude -p --permission-mode plan`, default login) `VERDICT: LGTM`; Grok (Cursor `cursor-grok-4.5-high`) `VERDICT: LGTM`; GPT (isolated `codex exec` gpt-5.6-sol xhigh) `VERDICT: LGTM`. Artifacts `/tmp/review-cross-map-goal-r4`.
 - Re-merged main 16a9787b and 7810f080; `git diff --binary main HEAD` stayed `25821cac…9989`. Gates on the final tip (ROM set): agent 1975, viewer 1024, Python 2498 passed; build, lint, experiments-check (82) clean.
 - Landed 2026-10-16 4:25 PM New York time: `git merge --ff-only` → main `85a52e85` (operator standing approval, the operator 5:34 AM; merge slot from the coordinator). Experiment cross-map-goal pinned to 85a52e85. Switch cross-map-goal-v1: bundle arm only (the operator 2:53 PM), handed to the bundle owner.
+
+## Archive
+
+- Archived 2026-10-16 4:33 PM New York time on the operator's word ("archive the work log and resolve the thread", Harness bugs thread, 4:31 PM). Landed on main: navigation-truth e580f3ce, cross-map-goal 85a52e85, pinned at fe65ac57; no unmerged commits on either branch.

@@ -49,3 +49,5 @@ Branch `claude/blocked-batch-result` in `/private/tmp/pokebench-blocked-batch`. 
 - [x] Codex (gpt-5.6-sol): LGTM. Grok (cursor-grok-4.5-high): LGTM. Codex could not run vitest in its read-only sandbox; tests were run here.
 - [x] Explainer checked in a browser (served from the worktree on 127.0.0.1, light theme, figures and table render). Harness Config live click not verified: no viewer was started or restarted from this branch.
 - [ ] Before merge (operator): pending `experiments/blocked-batch-result.json` entry and readiness line, or adding the switch to the bundle-v-control bundle arm; `just viewer-main` after merge.
+
+- 2026-10-16 01:25 AM EDT (integrator): registered `experiments/blocked-batch-result.json` as pending (finals incumbent, activation PLAYER_NAME_CONFIRMED, provisional source = branch head) and the readiness line; `just experiments-check` ok (46 experiments).

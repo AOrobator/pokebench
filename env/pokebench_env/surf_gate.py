@@ -152,7 +152,7 @@ class SurfGate:
         return self.can_surf is False and direction in self.connections
 
     def reason(self) -> str:
-        badge, party = self.balance_badge is not True, self.party_surf is False
+        badge, party = self.balance_badge is False, self.party_surf is False
         missing = (
             "you have neither"
             if badge and party

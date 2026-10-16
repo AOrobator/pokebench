@@ -12,6 +12,7 @@ The real-RAM fixture is run 2026-10-16T12-42-29_qwen36-gpu0_4caa on ROUTE103: to
 145 times in that run; both are across the route's water from every tile the player could walk to.
 """
 
+import functools
 import gzip
 import json
 import os
@@ -65,14 +66,30 @@ ROM_START = 0x08000000
 PLAYER_AVATAR = 0x02037590
 
 
-def operator_rom() -> bytes:
+# Immutable owners, built once per module: the ROM bytes, the map names and each case's RAM.
+@functools.cache
+def _rom() -> bytes | None:
     try:
         return resolve_rom(os.environ, EMERALD_SHA1).read_bytes()
     except RomError:
+        return None
+
+
+def operator_rom() -> bytes:
+    rom = _rom()
+    if rom is None:
         pytest.skip("POKEBENCH_ROM is not set to the Emerald ROM")
+    return rom
 
 
-def reader(case: dict[str, Any], rom: bytes, *, surfing: bool = False):
+@functools.cache
+def maps() -> MapNames:
+    return MapNames.load(rerender.PORYMAP_MAPS)
+
+
+@functools.cache
+def cells_of(seq: int, surfing: bool) -> dict[int, int]:
+    case = next(c for c in CASES if c["tool_result_seq"] == seq)
     cells: dict[int, int] = {}
     for window in case["windows"]:
         start = int(window["address"], 16)
@@ -80,6 +97,11 @@ def reader(case: dict[str, Any], rom: bytes, *, surfing: bool = False):
             cells[start + offset] = value
     if surfing:
         cells[PLAYER_AVATAR] |= 1 << 3
+    return cells
+
+
+def reader(case: dict[str, Any], *, surfing: bool = False):
+    rom, cells = operator_rom(), cells_of(case["tool_result_seq"], surfing)
 
     def read(address: int, length: int) -> bytes:
         if address >= ROM_START:
@@ -90,24 +112,27 @@ def reader(case: dict[str, Any], rom: bytes, *, surfing: bool = False):
 
 
 def readout(case: dict[str, Any], off: list[str], *, surfing: bool = False) -> str:
-    read = reader(case, operator_rom(), surfing=surfing)
+    read = reader(case, surfing=surfing)
     env = {"POKEBENCH_FEATURES_OFF": ",".join(off), "POKEBENCH_ACTIVE_UI": "1"}
     return rerender.rerender(
-        Path("/run"),
-        [rerender.RawRef("a", "s")],
-        lambda _p, _s: read,
-        MapNames.load(rerender.PORYMAP_MAPS),
-        env,
+        Path("/run"), [rerender.RawRef("a", "s")], lambda _p, _s: read, maps(), env
     )[0]
 
 
 def state(case: dict[str, Any], off: list[str], *, surfing: bool = False):
     return rerender.read_state(
-        reader(case, operator_rom(), surfing=surfing),
-        MapNames.load(rerender.PORYMAP_MAPS),
-        active_ui=True,
-        off=frozenset(off),
+        reader(case, surfing=surfing), maps(), active_ui=True, off=frozenset(off)
     )
+
+
+def test_fixture_owners_are_built_once() -> None:
+    operator_rom()
+    for case in CASES:
+        readout(case, RECORDED_OFF)
+        state(case, RECORDED_OFF)
+    assert _rom.cache_info().currsize == 1
+    assert maps.cache_info().currsize == 1
+    assert cells_of.cache_info().misses <= 2 * len(CASES)
 
 
 def changed(before: str, after: str) -> list[tuple[str, str]]:
@@ -286,9 +311,10 @@ def test_gate_blocks_only_when_surf_cannot_be_used() -> None:
         (False, False, "(you have neither)"),
         (True, False, "(no Pokémon in your party knows SURF)"),
         (False, True, "(you do not have the Balance Badge)"),
+        (None, False, "(no Pokémon in your party knows SURF)"),
     ],
 )
-def test_note_says_what_is_missing(badge: bool, party: bool, says: str) -> None:
+def test_note_says_what_is_missing(badge: bool | None, party: bool, says: str) -> None:
     note = gate(balance_badge=badge, party_surf=party).reason()
     assert note == f"Surf needs the Balance Badge and a party Pokémon that knows SURF {says}"
 

@@ -32,12 +32,14 @@ it("keeps both reference lines across empty model/cohort filters and exposes rec
   wb.destroy();
 });
 
-it("keeps the healthy current run visible across filters and withdraws pulse on pause, end or failed polling", async () => {
+it("highlights the healthy current run inside the filter, drops it outside, and withdraws pulse on pause, end or failed polling", async () => {
   const measurement={controller:"agent" as const,features:["story-milestones-v2"],logSha256:"a".repeat(64),pausedMs:0,rawSplits:[]};
   const current=Object.assign(run({id:"current",model:"Active model",status:"live"}),{measurement});
   let value: unknown={version:1,at:1000,milestones:[],runs:[current],problems:[]}, fail=false;
   const wb=new Workbench(document,{fetchSnapshot:()=>fail?Promise.reject(Error("offline")):Promise.resolve(value),now:()=>1000,width:()=>900});
   await wb.refresh();change("overlay","none");change("model","missing");
+  expect(ui("frontier-full").querySelector('[data-live-run="current"]')).toBeNull();
+  change("model","all");
   expect(ui("frontier-full").querySelector('[data-live-run="current"]')).not.toBeNull();
   expect(ui("frontier-full").textContent).toContain("LIVE");
   expect(ui("frontier-full").querySelector('.wb-live-head')).not.toBeNull();

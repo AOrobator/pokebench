@@ -134,7 +134,11 @@ table.splits tr.next td { background: rgba(124, 200, 232, .25); }
 svg.lanes { width: 100%; height: 170px; display: block; }
 .lanes .lane { fill: rgba(255, 255, 255, .06); }
 .lanes .lane.alt { fill: rgba(255, 255, 255, .03); }
-.lanes .lab, .lanes .axis { fill: #a5a8b8; font: 11px Inter, sans-serif; }
+.lanes-wrap { position: relative; }
+.lanes-text { position: absolute; inset: 0; pointer-events: none; }
+.lanes-text span { position: absolute; transform: translateY(-50%); white-space: nowrap; line-height: 1; }
+.lanes-text .lab, .lanes-text .axis { color: #a5a8b8; font: 11px Inter, sans-serif; }
+.lanes-text .axis, .lanes-text .press-label { transform: translate(-50%, -50%); }
 .lanes .tick { fill: #a5a8b8; }
 .lanes .nowline { fill: #d23b3b; }
 .lanes .m-think { fill: #7cc8e8; }
@@ -150,7 +154,8 @@ svg.lanes { width: 100%; height: 170px; display: block; }
 .lanes .b-A { fill: #ff6b6b; }
 .lanes .b-B { fill: #f5a142; }
 .lanes .b-START, .lanes .b-SELECT, .lanes .b-L, .lanes .b-R { fill: #4cd27a; }
-.lanes .press-label { fill: #fff; font: 700 11px Inter, sans-serif; stroke: #1e2c44; stroke-width: 3px; paint-order: stroke; pointer-events: none; }
+.lanes-text .press-label { color: #fff; font: 700 11px Inter, sans-serif; text-shadow: -1px -1px 0 #1e2c44, 1px -1px 0 #1e2c44, -1px 1px 0 #1e2c44, 1px 1px 0 #1e2c44, 0 0 3px #1e2c44; }
+@media (max-width: 600px) { .lanes-text .lab, .lanes-text .axis, .lanes-text .press-label { font-size: 9px; } }
 
 /* action log + raw event */
 .logcols { display: grid; grid-template-columns: 1.4fr 1fr; gap: 12px; }

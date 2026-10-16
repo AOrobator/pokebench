@@ -7,5 +7,5 @@ Operator (2026-10-16 5:22 AM EDT): picking an experiment in the EXPERIMENT dropd
 ## Fix
 
 - [x] RED (d66494d1): a live run of another experiment is not drawn once an experiment is picked; the current-run plates still list every live run.
-- [x] GREEN: the LIVE set is the live/paused runs inside the current filter. The older test `keeps the healthy current run visible across filters` (205b3b1d) asserted the opposite; the operator now wants filtered-out runs gone, so it now asserts the run is dropped under a non-matching MODEL filter and highlighted again under All. Viewer 879 tests; coverage 95.32 / 90.99 / 93.61 / 97.63; tsc + eslint clean.
-- [ ] Reviews (Codex, grok), merge, viewer restart through the coordinator.
+- [x] GREEN (d509f465): the LIVE set is the live/paused runs inside the current filter. The older test `keeps the healthy current run visible across filters` (205b3b1d) asserted the opposite; the operator now wants filtered-out runs gone, so it now asserts the run is dropped under a non-matching MODEL filter and highlighted again under All. Viewer 879 tests; coverage 95.32 / 90.99 / 93.61 / 97.63; tsc + eslint clean.
+- [x] Reviews: Codex, grok and Claude `VERDICT: LGTM`. Merging to main 2026-10-16 (operator self-merge rule); viewer restart through the coordinator.

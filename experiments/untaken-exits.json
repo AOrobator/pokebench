@@ -8,7 +8,7 @@
  "primaryMilestone": "RIVAL_BEDROOM_REACHED",
  "source": {
   "checkout": "main",
-  "commit": "a92532c2c38ebfbc10a3919a30903cff5923713c"
+  "commit": "7f9721cfe290e4f1e83e33845a874759be20f69d"
  },
  "incumbent": {
   "version": 2,

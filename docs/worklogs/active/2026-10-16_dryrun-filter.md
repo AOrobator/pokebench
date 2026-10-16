@@ -12,4 +12,4 @@ The bundle-v-control card counted 4/4 (dry run) and 3/4 (cook), but the stats pa
 - [x] GREEN COMMIT: `fix(viewer): GREEN dry-run ledgers moved to runs/dryruns stay in the experiment filter` (e8fea392)
 - Review 1 (Codex gpt-5.6-sol, 2026-10-16 2:30 AM EDT): BLOCKING. P1 archives read in filesystem order, a run named by two archives silently went to the first; P2 the changed refusal text had no test. Fixed together (review-fix commit): archives sorted by name, a second claim is reported as a problem and the run stays in the first; test for the dry-run refusal and its guidance. grok run produced no output (rerun).
 - Gates after the fix: viewer 59 files / 784 tests; coverage 95.11 / 90.46 / 93.55 / 97.6; tsc + eslint clean.
-- [ ] Delta re-review (Codex, grok), then merge (operator OK 2026-10-16 2:28 AM EDT once reviews approve).
+- [x] Review-fix COMMIT (7a333dd3). Re-review 2026-10-16 ~2:50 AM EDT: Codex `VERDICT: LGTM`, grok `VERDICT: LGTM` (nits only: a live claim over an archive is silent; a non-JSON archive is skipped silently; archive folders should be uniquely named). Merging to main (operator OK 2026-10-16 2:28 AM EDT).

@@ -29,6 +29,7 @@ from pokebench_env.party_ownership import PartyOwnership, read_party_ownership
 from pokebench_env.pokemon import PartyMon, decode_party_mon, pokemon_cpu_context
 from pokebench_env.resources import Resources, read_resources
 from pokebench_env.storage_cache import StorageDecodeCache
+from pokebench_env.transition_coherence import BUSY_LIMIT, diagnostic_kind, main_loop_idle
 from pokebench_env.ui_state import ActiveUi, read_active_ui
 
 Scalar = str | int | float | bool | None
@@ -170,6 +171,9 @@ class NativeActionJournal:
         self.diagnostics: set[str] = set()
         self.last_buttons: tuple[str, ...] | None = None
         self.battle_signals: set[tuple[object, ...]] = set()
+        # A battle that became active but has not yet decoded as itself (battle_started waits).
+        self.battle_pending: Details | None = None
+        self.busy_frames = 0
 
     def _emit(self, kind: str, details: Details) -> None:
         if len(self.entries) >= self.capacity:
@@ -329,16 +333,24 @@ class NativeActionJournal:
         if after.diagnostic:
             self._diagnostic("battle", after.diagnostic, after.raw_hex)
         if after.active and (before is None or not before.active):
-            self._emit(
-                "battle_started",
-                {"present_at_start": before is None, "battle_type": after.battle_type},
-            )
+            self.battle_pending = {
+                "present_at_start": before is None,
+                "activated_frame": self.frame,
+            }
+        if after.active and after.initialized and self.battle_pending is not None:
+            # battle_type from the first frame decoded as this battle, not the activation frame.
+            self._emit("battle_started", {**self.battle_pending, "battle_type": after.battle_type})
+            self.battle_pending = None
         elif before is not None and before.active and not after.active:
+            if self.battle_pending is not None:
+                self._emit("battle_started", {**self.battle_pending, "battle_type": None})
+                self.battle_pending = None
             self._emit(
                 "battle_ended", {"outcome": before.outcome, "outcome_code": before.outcome_code}
             )
         if (
             after.active
+            and after.initialized
             and after.outcome_code not in (None, 0)
             and (before is None or before.outcome_code != after.outcome_code)
         ):
@@ -383,7 +395,12 @@ class NativeActionJournal:
                     },
                 )
         self.battle_signals = keys
-        old = {mon.identity: mon for mon in (() if before is None else before.battlers or ())}
+        # Diff battlers only between two frames of the same, initialized battle.
+        old = (
+            {mon.identity: mon for mon in before.battlers or ()}
+            if before is not None and before.active and before.initialized and after.initialized
+            else {}
+        )
         for mon in after.battlers or ():
             prior = old.get(mon.identity)
             if prior is None:
@@ -436,9 +453,14 @@ class NativeActionJournal:
                 )
 
     def _diagnostic(self, owner: str, message: str, raw_hex: str | None) -> None:
-        key = owner + ":" + message
+        # One row per owner and kind: slot numbers and raw values do not make a new bug.
+        kind = diagnostic_kind(message)
+        key = owner + ":" + kind
         if key not in self.diagnostics:
-            self._emit("harness_bug", {"owner": owner, "message": message, "raw_hex": raw_hex})
+            self._emit(
+                "harness_bug",
+                {"owner": owner, "kind": kind, "message": message, "raw_hex": raw_hex},
+            )
             self.diagnostics.add(key)
 
     def _resources(self, before: Resources, after: Resources) -> None:
@@ -547,6 +569,20 @@ class NativeActionJournal:
             if self.error is not None:
                 return
             try:
+                # Decode only frames that end with the main loop idle: mid-callback frames can
+                # hold half-moved save blocks or a Pokémon being re-encrypted. `previous` stays,
+                # so the next coherent frame is compared with the last coherent one.
+                if main_loop_idle(read) is False:
+                    self.busy_frames += 1
+                    if self.busy_frames == BUSY_LIMIT:
+                        self._diagnostic(
+                            "native_action",
+                            f"harness bug: no coherent frame for {BUSY_LIMIT} emulated frames "
+                            "(the main loop never reached its VBlank wait)",
+                            None,
+                        )
+                    return
+                self.busy_frames = 0
                 screen = read_screen(read)
                 ui = read_active_ui(read, screen)
                 phase = "" if ui is None else ui.phase

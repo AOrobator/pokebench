@@ -53,6 +53,7 @@ SERVER_FEATURES = (
     "in-game-naming-readout-v1",
     "battle-message-waiting-v1",
     "offscreen-objects-v1",
+    "transition-coherence-v1",
 )
 
 
@@ -64,7 +65,8 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "adjacent-tiles-v1,"
         "readout-rules-in-prompt-v1,connection-edge-tiles-v1,in-game-naming-readout-v1,"
         "battle-message-waiting-v1,"
-        "offscreen-objects-v1",
+        "offscreen-objects-v1,"
+        "transition-coherence-v1",
     )
     if raw == "":
         return frozenset()

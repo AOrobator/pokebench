@@ -76,6 +76,7 @@ export const SWITCHABLE_FEATURES = [
   "offscreen-objects-v1",
   "navigate-first-prompt-v1",
   "presence-penalty-v1",
+  "transition-coherence-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -230,6 +231,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("offscreen-objects-v1", "observation", "OFF-SCREEN PEOPLE AND OBJECTS", "live-object-sprites-v1", "Adds a block after Field objects listing every person and object the current map's own object list places on this map that the local map and Field objects list leave out because they are more than 7 tiles from the player, each with its sprite kind and tile: the tile it is on now when the game has it loaded, otherwise where the map places it (it may have moved). Objects the game hides with a story flag or makes invisible are left out. With story character presence on, an out-of-view story character gets the same tile, for example \"MAY at 10,3 (out of view; where the map places this character, it may have moved)\". Off: no such block, and out-of-view story characters read \"(on this map, out of view)\" with no tile."),
   on("navigate-first-prompt-v1", "guidance", "NAVIGATE_TO FIRST", "bounded-navigation-v1", "Steers walking to navigate_to in three places. The system prompt's tool list names navigate_to, before press, as how you move (it finds the route around walls, ledges, water and people), and says press is for A, B, menus, dialogue, battles and single-tile steps or turns, not for walking. A Moving around section, the prompt's last, replaces the one-line navigate_to usage rule: use navigate_to for any walk of two or more tiles, do not trace routes tile by tile or walk with runs of direction presses, how to reach a person, a door or a directional exit, what to do after a refusal, and (local navigation) to call again after \"command limit\" and that a destination outside the local map is fine. The navigate_to description starts \"The main way to move\". On every third direction-only press in a row that ends on the free field (any other tool call, navigate_to and observe included, any other press, or a press that errors resets the count), the press result adds: \"Reminder: to walk two or more tiles, call navigate_to with the destination; it finds the route for you.\" Names no destination or story step. Off: today's tool list, the one-line usage rule (with game evidence priority on), today's navigate_to description and no reminder."),
   on("presence-penalty-v1", "guidance", "PRESENCE PENALTY 1.5", null, "Adds presence_penalty 1.5 to every chat request the agent sends the model, the value the Qwen3.6-35B-A3B model card recommends for thinking mode on general tasks (the serving lane's own default is 0). A presence penalty lowers the odds of tokens that already appeared in the reply, which discourages repeating the same reasoning word for word. run_start records it under sampling. Nothing the model reads changes. Off: requests carry no presence_penalty, so the server default applies, and run_start sampling has no such field."),
+  on("transition-coherence-v1", "observation", "COHERENT TRANSITION READOUTS", null, "Battle starts and screen handoffs read as what they are, from game RAM. At a second or later battle start the game keeps the previous battle's outcome, turn and battlers until its battle intro has run (BeginBattleIntro, then BattleIntroDrawTrainersOrMonsSprites); while the battle main function is still one of those intro steps, or every battler position is still cleared to 0xFF, the battle reads initializing, so the readout no longer says Battle details: TRAINER single · turn 3 · finishing (outcome won) with the last battle's foe at HP 0, or STATE COVERAGE ERROR: harness bug: invalid battle positions. The battle start callback (CB2_HandleStartBattle) reads Screen: battle_transition instead of unknown (callback2 0x08036FAD). The game's 1-3 frame handoff callbacks (CB2_NewGame, the return-to-field callbacks, the wall clock opening and closing, the starter bag opening, saving a nickname) read as field_transition, clock_transition or starter_opening_transition, not input unavailable with a STATE COVERAGE ERROR; an unverified callback still reports the error. A poll on a frame that ends mid-callback (the CPU is not at the main loop's VBlank wait, for example while the game moves the save blocks at a warp or battle start) reads no save data, so it says Save-backed world state unavailable instead of a possibly torn Money: or Bag: line. A correctness fix, meant ON in both arms of bundle-v-control. Off: the previous readout byte for byte (the stale finishing battle, the coverage errors and unknown screen, save data read on every frame)."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",
@@ -287,6 +289,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "adjacent-tiles-v1", "readout-rules-in-prompt-v1", "connection-edge-tiles-v1", "in-game-naming-readout-v1",
   "battle-message-waiting-v1",
   "offscreen-objects-v1",
+  "transition-coherence-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -347,6 +350,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("offscreen-objects-v1"),
     ...when("navigate-first-prompt-v1"),
     ...when("presence-penalty-v1"),
+    ...when("transition-coherence-v1"),
   ];
 }
 

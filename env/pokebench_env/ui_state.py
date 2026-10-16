@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from pokebench_env.game_screen import ReadMemory, Screen
 from pokebench_env.gba_text import GBA_TEXT
 from pokebench_env.menus import MenuValue
+from pokebench_env.transition_coherence import HANDOFF_CALLBACKS
 
 STRING_VAR4 = 0x02021FC4
 STRING_VAR4_SIZE = 1000
@@ -324,7 +325,10 @@ BIRCH_PHASES = {
 }
 
 
-def read_active_ui(read: ReadMemory, screen: "Screen") -> ActiveUi | None:
+def read_active_ui(
+    read: ReadMemory, screen: "Screen", *, transition_coherence: bool = True
+) -> ActiveUi | None:
+    """transition_coherence: transition-coherence-v1's battle-start and handoff rules."""
     from pokebench_env.game_screen import TASKS
     from pokebench_env.menu_apprentice import read_apprentice_ui
     from pokebench_env.menu_aux import read_aux_ui
@@ -532,7 +536,7 @@ def read_active_ui(read: ReadMemory, screen: "Screen") -> ActiveUi | None:
     if len(battle_flag) != 1:
         raise ValueError("short active UI battle flag read")
     if battle_flag[0] & 2:
-        battle = read_battle_state(read)
+        battle = read_battle_state(read, current_battle_only=transition_coherence)
         inputs = battle.player_inputs or ()
         selected = (
             "; ".join(
@@ -614,6 +618,9 @@ def read_active_ui(read: ReadMemory, screen: "Screen") -> ActiveUi | None:
         )
     if screen.kind != "unknown" and not owners:
         return None
+    if transition_coherence and not owners and screen.callback2 in HANDOFF_CALLBACKS:
+        phase, controls = HANDOFF_CALLBACKS[screen.callback2]
+        return ActiveUi(phase, None, False, controls)
     return ActiveUi(
         "unsupported",
         None,

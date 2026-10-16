@@ -263,7 +263,7 @@ def test_after_the_intro_copies_battlers_the_battle_decodes() -> None:
     m = battle_fixture()
     m.put(MAIN_FUNC, struct.pack("<I", 0x0803AF81))
     state = read_battle_state(m.read)
-    assert state.initialized and state.battlers is not None and state.phase == "resolving"
+    assert state.initialized and state.battlers is not None and state.phase == "input"
 
 
 # --- fix 2: Activity History battle events (real RAM) ----------------------------------
@@ -418,10 +418,17 @@ def test_an_idle_frame_resets_the_busy_count() -> None:
     assert j.error is None
     for _ in range(BUSY_LIMIT - 1):
         j.advance(busy_reader(False))
-    assert [e for e in j.entries if e["kind"] == "harness_bug"] == []
+    assert blind(j) == []
     j.advance(busy_reader(False))
-    assert [e["details"]["owner"] for e in j.entries if e["kind"] == "harness_bug"] == [
-        "native_action"
+    assert len(blind(j)) == 1
+
+
+def blind(j: NativeActionJournal) -> list[object]:
+    # The all-zero idle frame itself is an unsupported menu owner; only the blind guard counts.
+    return [
+        e
+        for e in j.entries
+        if e["kind"] == "harness_bug" and e["details"]["owner"] == "native_action"
     ]
 
 
@@ -444,7 +451,11 @@ def test_harness_bug_dedupe_is_by_owner_and_kind_not_slot_numbers_or_hex() -> No
     j.observe(
         ActionFrame(
             None,
-            Resources(diagnostics=(ResourceDiagnostic("bag", "harness bug: invalid berry tree 2: 9", None),)),
+            Resources(
+                diagnostics=(
+                    ResourceDiagnostic("bag", "harness bug: invalid berry tree 2: 9", None),
+                )
+            ),
             None,
             None,
         )

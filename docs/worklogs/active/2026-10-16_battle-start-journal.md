@@ -83,9 +83,9 @@ No new inputs, endpoints, subprocesses or files outside the repo. RAM fixtures h
 - [x] COMMIT (RED)
 
 **M2 — GREEN**
-- [ ] Implement battle_state, frame coherence, action_history, ui_state, game_state, switch plumbing
-- [ ] Gates: `just test`, `just coverage` ≥90, `just lint`, `just build`, `just verify-vendor`
-- [ ] COMMIT (GREEN)
+- [x] Implement battle_state, frame coherence, action_history, ui_state, game_state, switch plumbing
+- [x] Gates: `just test`, `just coverage` ≥90, `just lint`, `just build`, `just verify-vendor` (34 Python failures are main's, see session log)
+- [x] COMMIT (GREEN)
 
 **M3 — proof, explainer, experiment entry**
 - [ ] Real-ROM re-render over every battle start and busy archive in the cook runs (OFF equals recorded, ON diffs only where expected); journal replay over archives
@@ -106,11 +106,24 @@ Report: branch, frozen head SHA, sha256 of `git diff --binary main HEAD`, three 
 
 - 2026-10-16 06:00 AM EDT: RED. Fixtures (gzip JSON, RAM windows only, built by a scratch recorder that wraps `load_raw_ram` and keeps every non-ROM read of the re-render and the journal, plus gMain, battle IWRAM and the battle globals): `env/tests/env/fixtures/transition-coherence-battle-start.json.gz` (show 6359/6362/6364/6600/6603/6605/7893/7894/7895/7896, sh02 6167/6168, e588 7361/7362/7363; recorded readouts for show T744, sh02 T922, e588 T1500), `…-torn-saves.json.gz` (e588 404-406, 687e 201-202, 2a25 393-394, sh02 4974-4975, storage reads included), `…-handoffs.json.gz` (show 7834 CB2_ReturnToField, sh02 3454 CB2_ChooseStarter). Probe with today's code on the fixtures reproduces the audit: OFF equals the three recorded readouts; show 6359→6362→6364 gives phantom `battle_pp_changed 31→35`, `battle_hp_changed 13→19`, `battle_status_changed`; 6600→6603→6605 a stale `battle_outcome won turn 3`; 7894 `invalid battle positions` (battle and menu) and `battle_type null`; e588 405 berry tree 1 `dc312c01dc312c01` + daycare checksum, 687e 202 daycare checksum, 2a25 394 bag empty-slot + planted berries.
   Tests: `env/tests/env/test_transition_coherence.py` (switch registry and rerender wiring; OFF byte-identical and ON readouts at the three battle starts, post-init frames unchanged, busy-poll save gate, idle overworld unchanged; current-battle guard per intro main func and cleared positions; journal battle events on real frames and synthetic start/end pairing; main-loop idle on archived CPUs; torn-save frames skipped with `previous` kept; blind guard at 600 and its reset; dedupe by owner+kind; the 12 handoff callbacks, an unlisted one, CB2_HandleStartBattle in and out of battle, real handoff frames, game-state screen label), `packages/agent/src/transition-coherence.test.ts` (registry, server list, Python lists, presets default off, pending experiment). Python: collection error (module missing); agent: 4 failing.
-  COMMIT: `test(RED): transition-coherence-v1 and journal fixes for stale battle starts, torn save reads and handoff callbacks`
+  COMMIT: `test(RED): transition-coherence-v1 and journal fixes for stale battle starts, torn save reads and handoff callbacks` (ec349a4e)
+
+- 2026-10-16 06:25 AM EDT: GREEN.
+  - `env/pokebench_env/transition_coherence.py`: switch id, `BATTLE_INTRO_MAIN_FUNCS`, `main_loop_idle` (WaitForVBlank 0x080008AC-0x080008D3, user/system Thumb; None without CPU registers), `HANDOFF_CALLBACKS` (12), `BUSY_LIMIT` 600, `diagnostic_kind`.
+  - `battle_state.read_battle_state(read, *, current_battle_only=True)`: initializing while main is an intro step or every position is 0xFF. `ui_state.read_active_ui(..., transition_coherence=True)`: passes it to the battle reader; handoff callbacks become not-ready transitions just before the `unsupported` fallback (only when no Birch owner matched). `game_state.read_game_state(..., transition_coherence_enabled=False)`: battle and UI readers get the flag; `Screen: battle_transition` for 0x08036FAD; no save-block reads when the main loop is not idle. `rerender.read_state` passes `"transition-coherence-v1" not in off`.
+  - Journal (`action_history.py`, always on): `advance` skips frames whose main loop is not idle (no observe, `previous` kept), one `native_action` harness_bug after 600 in a row; `battle_started` waits for the first initialized frame (`battle_type` from it, `activated_frame` recorded), or is emitted with null type before `battle_ended` if none came; `battle_outcome` only on initialized frames; battler diffs only between two initialized active frames; harness_bug dedupe by owner + `kind` (numbers and bare hex → `#`, 0x addresses kept), `kind` added to the event details.
+  - Registry: `SWITCHABLE_FEATURES`/`FEATURES` (observation, needs null, copy with Off and "both arms")/`SERVER_FEATURES`/`playHarnessFeatures` last; presets optional + default false (`normalizeFeatures`, `flagFeatures`); `DEFAULT_NEXT_RUN` false; Python `SERVER_FEATURES` and default-off list. Pending `experiments/transition-coherence.json` (finals incumbent, activation NEW_GAME_CREATED, primary ROUTE_103, provisional source.commit ec349a4e) and readiness row; `just experiments-check`: ok, 64 experiments. Schema regenerated: unchanged.
+  - RED test fixes in GREEN: fixtures regenerated with the ON render's reads too (ON reads the battle text window on the initializing path); two assertions corrected (the synthetic fixture's battle has input ready, so `input`; the all-zero idle frame is itself an unsupported menu owner, so the blind-guard count filters to `native_action`). Registry shifts: `.at(-N)` +1 for SWITCHABLE_FEATURES/SERVER_FEATURES/playHarnessFeatures/FEATURES-switchable across 15 agent test files; observation count 27; legacy off-lists; play-preset and next-run literals; switchboard rows 71; Python default-off set, `len(SERVER_FEATURES) == 34`, battle-message-waiting `SERVER_FEATURES[-3]`, rerender kwargs.
+  - Guard deletions (receipts in scratchpad `bsj/receipts/`): rerender wiring removed → 7 red; journal gate removed → 6 red; intro guard removed → 10 red; game-state save gate removed → 1 red; handoff branch removed → 15 red; TS SERVER_FEATURES entry removed → 1 red; each restored → green (58 passed).
+  - Gates (ROM via `.env`): agent 1559 passed, viewer 885 passed; Python 2294 passed, 34 failed. The 34 fail on main 1f4ac74e too (stash check: same list, `route103_rival` reads `OPPONENT_A` outside older real-ROM fixtures, from the `claude/rival-route103-splits` merge); `claude/route103-fixture-windows` (3c237922) adds those windows and is not on main yet. No new failure from this branch. Coverage agent 97.89/94.56/98.2/99.14, viewer 95.34/91.02/93.62/97.64, Python lines 97.39 branches 93.29 functions 100 (transition_coherence.py, battle_state.py, rerender.py 100%). lint green except the known mypy `mgba._pylib`; build green; verify-vendor OK.
+  COMMIT: `feat: transition-coherence-v1 reads battle starts, handoffs and mid-callback frames as transitions; journal skips torn frames (default off)`
 
 ## Surprises
 
 - The journal's `battle_started` fires on the activation frame, which is always before the battle decodes, so `battle_type` was null by construction.
+- main 1f4ac74e already fails 34 real-ROM Python tests (route103_rival reads outside older fixtures); a branch to fix it exists. Gates here record those separately.
+- ON at an initializing second battle shows the first battle's existing initializing rendering, including `Bag: ` (empty, no word) and `Menu state: input phases: ` from readout.py; not changed here (readout.py wording belongs to another branch).
+- Raw RAM: every busy archive is a short streak (at most 9 in a row in any run), so the busy-frame gate costs at most a few polls.
 
 ## Multi-Model Review Log
 

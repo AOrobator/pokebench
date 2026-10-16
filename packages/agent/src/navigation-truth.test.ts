@@ -69,6 +69,14 @@ describe("navigation-truth-v1: talk offers only for objects with a script (sh02 
   expect((await walk({...counter,interaction_targets:[]},{x:1,y:1},{...TRUTH,counters:true})).status).not.toContain("press A");
   expect((await walk({...counter,interaction_targets:[clerk]},{x:1,y:1},{...TRUTH,counters:true})).status).toBe(TALK);
  });
+ it("a scriptless object on a tile with another A target (a hidden item) keeps today's offer: A falls through to the background event",async()=>{
+  // pokeemerald GetInteractionScript: the object script first, then GetInteractedBackgroundEventScript when it is null.
+  const item=ascii(["...","@..","..."]);
+  const state:GameStateSnapshot={...item,navigation_grid:{...gridOf(item),objects:[{x:2,y:1}]},world_context:{...contextOf(item),objects:[{local_id:2,map_id:[0,9],graphics_id:7,sprite_kind:"BOY_1",x:2,y:1}]},interaction_targets:[{kind:"hidden_item",x:2,y:1,elevation:3,activation:"A",availability:"available",facing:null,local_id:null,destination:null,name:null}]};
+  const off=(await walk(state,{x:2,y:1},CONTROL)).status;
+  expect(off).toContain("(2,1) is a person or object, which navigate_to cannot stand on; to talk to it or use it, walk to one of these free tiles, face it and press A: ");
+  expect((await walk(state,{x:2,y:1},TRUTH)).status).toBe(off);
+ });
  it("an object with a script keeps the offer",async()=>{
   const bag=await walk(birch,{x:7,y:14},TRUTH);
   expect(bag.status).toContain("(7,14) is BIRCHS_BAG (person or object), which navigate_to cannot stand on; to talk to it or use it, walk to one of these free tiles, face it and press A: ");
@@ -243,6 +251,14 @@ describe("navigation-refusal-reasons-v2: a route that leaves the 15x15 local map
   expect((await walk({...edge,world_context:{...contextOf(edge),objects:[{local_id:1,map_id:[0,9],graphics_id:7,sprite_kind:"BOY_1",x:4,y:0}]}},{x:4,y:0},V2)).status).toBe(GENERIC);
   expect((await walk({...edge,interaction_targets:[{kind:"object",x:4,y:0,elevation:3,activation:"A",availability:"available",facing:null,local_id:1,destination:null,name:"BOY_1"}]},{x:4,y:0},V2)).status).toBe(GENERIC);
   expect((await walk(edge,{x:4,y:0},V2)).status).toContain("so any route leaves it");
+ });
+ it("a route inside the window that only the configured terrain switches miss (a ledge with ledge-hops-v1 off) keeps the generic text",async()=>{
+  // A corridor at x=6: player (6,5), a south ledge (6,6), the goal (6,7); walls at x=5 and x=7; map 20x20.
+  const tiles=[4,5,6,7].flatMap(y=>[5,6,7].map(x=>({x,y,collision:x===6?0:1,behavior:x===6&&y===6?0x3b:0,elevation:3})));
+  const state:GameStateSnapshot={...ascii(["@"],{width:20,height:20}),position:{x:6,y:5},navigation_grid:{elevation:3,tiles,objects:[],warps:[]}};
+  expect(planNavigation(state,{x:6,y:7},{ledges:true})).toEqual(["DOWN"]);
+  expect(planNavigation(state,{x:6,y:7},{})).toBeNull();
+  expect((await walk(state,{x:6,y:7},{windowReasons:true,elevation:"game"})).status).toBe("no supported local path; choose a reachable local waypoint");
  });
  it("off keeps the generic text; full-map mode and unknown map bounds keep it too",async()=>{
   const state=recorded("e588:21334");

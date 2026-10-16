@@ -166,11 +166,11 @@ describe("pushback-loop-detection-v1 synthetic push-backs",()=>{
   }
   expect(on.notices.map(n=>[n.kind,n.phase,n.message])).toEqual([["cycle","warning",PUSHBACK_MESSAGE]]);
  });
- it("ON: other inputs between push-backs do not hide them; the same input must recur three times",()=>{
+ it("ON: other inputs between push-backs do not hide them; the same way out (first input) must recur three times",()=>{
   const on=rig(true);
-  pushedBack(on);pushedBack(on,["LEFT"]);pushedBack(on);
+  pushedBack(on);pushedBack(on,["UP"]);pushedBack(on);
   expect(on.notices).toEqual([]);
-  pushedBack(on,["LEFT"]);
+  pushedBack(on,["UP"]);
   expect(on.notices).toEqual([]);
   pushedBack(on);
   expect(on.notices.map(n=>n.phase)).toEqual(["warning"]);

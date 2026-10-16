@@ -8,6 +8,8 @@ import {ALL_ON,dependencyProblems,featureInfo,playHarnessFeatures,type FeatureSe
 import type {Button,RunEvent} from "./events.js";
 import type {GameStateSnapshot} from "./game-state.js";
 import {pushbackPressResult} from "./press-result.js";
+import {MESSAGE_WAITING} from "./navigation.js";
+import {Type} from "typebox";
 import {IN_GAME} from "../test-support/events.js";
 
 const URL_BASE="http://127.0.0.1";
@@ -67,9 +69,12 @@ function wire(game:PushbackGame,features:FeatureSet){
  const push=(body:Record<string,unknown>)=>{const e={v:1,run:"r",seq:++seq,t:"2026-10-16T03:00:00.000-04:00",turn:7,...body} as RunEvent;events.push(e);return {seq:e.seq,turn:7};};
  const recorder:AutoAdvanceRecorder={recordState:s=>push({type:"state",...s}),recordDialogueAutoAdvance:b=>push({type:"dialogue_auto_advance",...b}),subscribe:()=>undefined};
  const base=gameTools(URL_BASE,{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},game.fetch,toolSwitches(features),clock);
- const tools=withDialogueAutoAdvance(base,features,{state:game.read,recorder,clock});
+ // navigate_to that finds a message already open and so does not walk (54a7 T92), as navigation reports it.
+ const nav:AgentTool={name:"navigate_to",label:"Navigate",description:"walk",parameters:Type.Object({}),execute:()=>{const s=game.state();return Promise.resolve({content:[{type:"text" as const,text:`Navigation: refused: ${MESSAGE_WAITING}; 0 ordinary button attempts.`}],details:{state:s,navigation:{unready:true,status:MESSAGE_WAITING,commands:0}}});}};
+ const tools=withDialogueAutoAdvance([...base,nav],features,{state:game.read,recorder,clock});
  const press=tools.find(t=>t.name==="press") as AgentTool;
- return (buttons:Button[],id="c1")=>press.execute(id,{buttons});
+ const navigate=tools.find(t=>t.name==="navigate_to") as AgentTool;
+ return Object.assign((buttons:Button[],id="c1")=>press.execute(id,{buttons}),{events,navigate:()=>navigate.execute("n1",{})});
 }
 const pressLine=(r:AgentToolResult<unknown>)=>/^Press result: (.*)$/m.exec(r.content.flatMap(p=>p.type==="text"?[p.text]:[]).join("\n"))?.[1];
 
@@ -78,6 +83,31 @@ const TWIN_PAGES=["Um, um, um!","If you go outside and go in the grass,\nwild PO
 const birch=()=>new PushbackGame({x:7,y:15},"right",{x:6,y:15},{x:7,y:15},BIRCH_PAGES);
 // The twin's message is already open at (11,1) when the model presses UP (sh02 T146); its script walks the player to (11,2).
 const twin=()=>{const g=new PushbackGame({x:11,y:1},"up",{x:11,y:1},{x:11,y:2},TWIN_PAGES,{location:"LITTLEROOT TOWN",map_id:[0,9]});g.openNow();return g;};
+
+describe("pushback-press-result-v1: navigate_to while the twin's message is open (54a7 T90-T114, audit 2)",()=>{
+ const status=(r:AgentToolResult<unknown>)=>r.content.flatMap(p=>p.type==="text"?[p.text]:[])[0];
+ it("OFF: today's advice to call navigate_to again",async()=>{
+  expect(status(await wire(twin(),OFF).navigate())).toBe("Navigation: a message was open, so navigate_to did not walk; after auto-advance: the conversation closed and field controls are free; call navigate_to again; 0 ordinary button attempts.");
+ });
+ it("ON: the script's move replaces the advice",async()=>{
+  expect(status(await wire(twin(),ON).navigate())).toBe("Navigation: a message was open, so navigate_to did not walk; after auto-advance: the conversation closed and field controls are free; a script moved you (11,1) -> (11,2) while the dialogue advanced (navigate_to did not walk there; calling it again walks back into the same script); 0 ordinary button attempts.");
+ });
+});
+
+describe("pushback-press-result-v1: a walk batch cut short by the message it opened (sh02 T264, audit 5)",()=>{
+ const batch:Button[]=["LEFT","LEFT","LEFT","UP","UP","UP"];
+ const advance=(press:ReturnType<typeof wire>)=>press.events.find((e):e is Extract<RunEvent,{type:"dialogue_auto_advance"}>=>e.type==="dialogue_auto_advance");
+ it("OFF: today's record says all six were sent and none dropped",async()=>{
+  const press=wire(birch(),OFF);const text=(await press(batch)).content.flatMap(p=>p.type==="text"?[p.text]:[]).join("\n");
+  expect(advance(press)).toMatchObject({sent:batch,dropped:[]});
+  expect(text).not.toContain("had no effect");
+ });
+ it("ON: the step that opened the message is sent; the five pressed under its lock count as dropped, and the result says so",async()=>{
+  const press=wire(birch(),ON);const text=(await press(batch)).content.flatMap(p=>p.type==="text"?[p.text]:[]).join("\n");
+  expect(advance(press)).toMatchObject({requested:batch,sent:["LEFT"],dropped:["LEFT","LEFT","UP","UP","UP"]});
+  expect(text).toContain("5 inputs of your batch had no effect (counted as dropped): the message opened during the batch and held field controls while they were pressed: LEFT, LEFT, UP, UP, UP.");
+ });
+});
 
 describe("pushback-press-result-v1: Birch stops the player leaving west (sh02 T263)",()=>{
  it("OFF: today's text never says the script moved the player back",async()=>{

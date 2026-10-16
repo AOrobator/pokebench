@@ -16,7 +16,7 @@ from pokebench_env.game_screen import TASKS, ReadMemory
 from pokebench_env.live_map import MAP_HEADER, MAP_OFFSET, OBJECT_EVENTS
 from pokebench_env.map_rules import TRIGGER_ELEVATION_RULE
 from pokebench_env.native_text import decode_native_text, native_text_payload
-from pokebench_env.ui_state import ActiveUi, _window_drawn
+from pokebench_env.ui_state import ActiveUi, _window_drawn, window_drawn_strict
 
 FIELD_MESSAGE_MODE = 0x020375BC
 STRING_VAR4 = 0x02021FC4
@@ -165,7 +165,7 @@ def read_no_message(read: ReadMemory) -> NoMessage | None:
     context = read(GLOBAL_SCRIPT, 12)
     if (len(mode), len(active), len(tasks), len(status), len(context)) != (1, 1, 0x280, 1, 12):
         return None
-    if mode[0] != 0 or active[0] != 0 or _window_drawn(read, 0):
+    if mode[0] != 0 or active[0] != 0 or window_drawn_strict(read, 0) is not False:
         return None
     if any(
         tasks[i + 4] == 1 and int.from_bytes(tasks[i : i + 4], "little") == DRAW_FIELD_MESSAGE

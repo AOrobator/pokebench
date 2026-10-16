@@ -158,7 +158,7 @@ Story characters here (from this map's own object list): MAY at 1,3. Not on this
    <path class="arrow" d="M230 170 L270 158"/><path class="arrow" d="M230 190 L270 202"/><path class="arrow" d="M230 215 L270 250"/>
   </svg>
   </div>
-  <figcaption>Each "none" claim rests on game state. Any read failure (a short read included) or unknown owner keeps the old hedged line. The sMenu window is checked directly: a drawn menu window with the controls locked and no recognised owner keeps the old text even when its cursor does not decode, and an interface that reports a coverage error keeps the old Menu line.</figcaption>
+  <figcaption>Each "none" claim rests on game state. Any read failure (a short read of a buffer, a window header or its pixels included) or unknown owner keeps the old hedged line. The sMenu window is checked directly: a drawn menu window with the controls locked and no recognised owner keeps the old text even when its cursor does not decode, and an interface that reports a coverage error keeps the old Menu line.</figcaption>
  </figure>
 </section>
 

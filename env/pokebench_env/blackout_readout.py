@@ -38,14 +38,19 @@ class Whiteout:
 
 
 def _money(read: ReadMemory) -> int | None:
-    save1, save2 = struct.unpack("<II", read(SAVE_BLOCK_PTRS, 8))
+    pointers = read(SAVE_BLOCK_PTRS, 8)
+    if len(pointers) != 8:
+        return None
+    save1, save2 = struct.unpack("<II", pointers)
     if not (
         0x02000000 <= save1 <= 0x02040000 - (MONEY + 4)
         and 0x02000000 <= save2 <= 0x02040000 - (ENCRYPTION_KEY + 4)
     ):
         return None
-    money = int.from_bytes(read(save1 + MONEY, 4), "little")
-    return money ^ int.from_bytes(read(save2 + ENCRYPTION_KEY, 4), "little")
+    money, key = read(save1 + MONEY, 4), read(save2 + ENCRYPTION_KEY, 4)
+    if len(money) != 4 or len(key) != 4:
+        return None
+    return int.from_bytes(money, "little") ^ int.from_bytes(key, "little")
 
 
 def whiteout_line(event: Whiteout, state: GameState) -> str:
@@ -67,7 +72,8 @@ class WhiteoutLatch:
         self._lock = threading.Lock()
         self._inside = False
         self._frames = 0
-        self._pending: Whiteout | None = None
+        # Oldest first: a second whiteout before the first is shown queues behind it.
+        self._pending: list[Whiteout] = []
 
     def on_frame(self) -> None:
         """After each emulated frame; the vendor holds its memory lock."""
@@ -75,7 +81,7 @@ class WhiteoutLatch:
         with self._lock:
             self._frames += 1
             if inside and not self._inside:
-                self._pending = Whiteout(_money(self.read), self._frames)
+                self._pending.append(Whiteout(_money(self.read), self._frames))
             self._inside = inside
 
     def mark(self) -> int:
@@ -92,19 +98,16 @@ class WhiteoutLatch:
         screen, so the line cannot be taken while the whiteout still runs.
         """
         with self._lock:
-            event = self._pending
-            if event is None or event.frame > seen or state.position is None:
+            if not self._pending or self._pending[0].frame > seen or state.position is None:
                 return None
             if state.screen != "overworld" or state.in_battle:
                 return None
-            self._pending = None
-            return event
+            return self._pending.pop(0)
 
     def put_back(self, event: Whiteout) -> None:
-        """An observation that took the event failed before delivery: keep it pending."""
+        """An observation that took the event failed before delivery: it is next again."""
         with self._lock:
-            if self._pending is None:
-                self._pending = event
+            self._pending.insert(0, event)
 
 
 def install_whiteout_latch(emulator: type[SteppedEmulator], latch: WhiteoutLatch) -> None:

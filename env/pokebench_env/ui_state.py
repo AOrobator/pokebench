@@ -181,10 +181,30 @@ def read_dialog(read: ReadMemory, screen_kind: str) -> str | None:
 WINDOWS_MAX = 32
 
 
-def menu_window_drawn(read: ReadMemory) -> bool:
-    """readout-truth-v1: whether sMenu's window is drawn, whatever its cursor says."""
-    window_id = read(MENU + 5, 1)[0]
-    return window_id < WINDOWS_MAX and _window_drawn(read, window_id)
+def window_drawn_strict(read: ReadMemory, window_id: int) -> bool | None:
+    """readout-truth-v1: `_window_drawn`, but a short read is unknown (None), never undrawn."""
+    header = read(WINDOWS + WINDOW_SIZE * window_id, WINDOW_SIZE)
+    if len(header) != WINDOW_SIZE:
+        return None
+    bg, _left, _top, width, height, _pal, _base, pixels = struct.unpack("<BBBBBBHI", header)
+    size = width * height * 32
+    if bg == WINDOW_REMOVED or size == 0 or pixels not in EWRAM or pixels + size > EWRAM.stop:
+        return False
+    body = read(pixels, size)
+    if len(body) != size:
+        return None
+    return len(set(body)) > 1
+
+
+def menu_window_drawn(read: ReadMemory) -> bool | None:
+    """readout-truth-v1: whether sMenu's window is drawn, whatever its cursor says.
+
+    None when a read is short: the readout then keeps its old menu text.
+    """
+    header = read(MENU + 5, 1)
+    if len(header) != 1:
+        return None
+    return header[0] < WINDOWS_MAX and window_drawn_strict(read, header[0])
 
 
 def read_menu(read: ReadMemory, *, allow_single: bool = False) -> Menu | None:

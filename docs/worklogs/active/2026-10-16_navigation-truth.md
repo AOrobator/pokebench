@@ -51,7 +51,7 @@ No new I/O, subprocesses, network, persistence or permissions. Strings are built
 - [x] COMMIT GREEN: `feat(agent): GREEN navigation-truth-v1 and navigation-refusal-reasons-v2 (default off)` (16baa877)
 - [x] Merge main (154d905e), rerun gates
 - [ ] Seal packet
-- [ ] Principles self-review (PB1–PB13)
+- [x] Principles self-review (PB1–PB13): zero FAIL (table below)
 - [ ] Review: Claude, Grok, GPT lanes LGTM on the frozen packet
 - [ ] STOP: report to thread owner (no self-merge)
 
@@ -70,6 +70,28 @@ Report branch, frozen head, packet sha256, verdicts, gates, switch ids and inten
   - Gates: agent 1588 passed, viewer 885 passed; pytest 2236 passed / 34 failed (all `KeyError: 33786826` in `pokebench_env/route103_rival.py:34`, inherited from main; env/ untouched); lint clean (mypy needed the main checkout's native mgba binding linked into the worktree venv); build OK; verify-vendor OK. Coverage: agent lines 99.16 / branches 94.35 / functions 98.08; viewer 97.64 / 91.02 / 93.62; python lines 97.31 / branches 93.11 / functions 100.
   - Evidence outputs (ON): show T800 lists (6,16) south then (14,9) east; e588 (11,3) lists (7,6) west first; 54a7 T213 (10,0) lists (14,9) east first.
 - 2026-10-16: merged main 154d905e (disproved-beliefs-v1, same-plan-breaker-v1, Route 103 fixture windows). Registry tails: main's two switches first, then navigation-truth-v1, navigation-refusal-reasons-v2; position tests re-bumped by 2 over main's (identical-edit hunks merged silently at main's value and were corrected from the failing assertions); switchboard row count 74. Gates on the merge: agent 1652, viewer 904, pytest 2270 passed (main's fixture-window fix cleared the 34 inherited failures); lint, build, verify-vendor OK; coverage agent 99.16/94.27/98.27, viewer 97.62/91.10/93.62, python 97.33/93.17/100 (lines/branches/functions).
+
+## Principles Adherence (round 1, packet base main 154d905e)
+
+| ID | Score | Evidence |
+|---|---|---|
+| PB1 game grades the run | N/A | No milestone, grading or split code touched; messages only. |
+| PB2 failed runs count | N/A | No run accounting touched. |
+| PB3 one run is an anecdote | PASS | No improvement is claimed; both switches default OFF and are registered as PENDING experiments (8 trials per arm). |
+| PB4 declare every advantage | PASS | Both behaviors are named switches recorded in `harness_features` (appended last to `playHarnessFeatures`), OFF reproduces today's bytes (OFF assertions on every fixture), vendor untouched (`just verify-vendor`). Trigger facts are only used with `coordinate-script-conditions-v1`, the switch that already tells the model about triggers. |
+| PB5 change one thing | PASS | Correctness fixes grouped under `navigation-truth-v1` (operator: one switch for the group, ON in both arms); the behavior change has its own switch `navigation-refusal-reasons-v2` (bundle arm only). Hypotheses in `experiments/navigation-truth.json` and `experiments/navigation-refusal-reasons-v2.json`. |
+| PB6 long runs | PASS | No new context growth; refusal text is bounded by the 15x15 window (at most 4 edge tiles listed). No truncation. |
+| PB7 event log | PASS | Page and speaker changes are recorded in the existing `dialogue_auto_advance` pages; navigation status stays in `details.navigation.status`; no new event types. |
+| PB8 model misbehavior | N/A | No tool schema or retry policy changed. |
+| PB9 rock-solid-or-ask | PASS | Ambiguities resolved from game source (coord trigger elevation/variable rules, render states) and recorded states, not defaults; unknown trigger values stay passable (today's behavior). |
+| PB10 no carve-outs | PASS | No skipped tests, excludes or threshold changes; coverage agent 99.16/94.27/98.27, viewer 97.62/91.10/93.62, python 97.33/93.17/100. |
+| PB11 pinned dependency | N/A | No new dependency or integration call. |
+| PB12 macOS privacy | PASS | ROM only via `POKEBENCH_ROM` (.env); no protected paths read. |
+| PB13 close the loop | PASS | RED 73a12a86, GREEN 16baa877, merge 5234e6b6, gates recorded; review loop below. |
+
+Zero FAIL rows.
+
+- 2026-10-16: explainer caption corrected (two synthetic rows named); explainers copied to `runs/mockups/<id>/` in the main checkout and checked 200 at 127.0.0.1:8791; figure rendering checked in the browser pane.
 
 ## Surprises
 

@@ -11,6 +11,8 @@ import { TRACE_CHIPS, TraceBuilder, moreButton, sideGroups, traceGroups, type Tr
 import { ABORT_HOLD_MS, availableActions, controlBar, overlay, overlayKind, runSeconds, sideStats, splitStrip, splitTimes, stateLabel, type ControlAction } from "./controls.js";
 import { NextRunPanel } from "./nextpanel.js";
 import { QueuePanel } from "./queue-view.js";
+import { headHtml, sheetHtml } from "./run-head.js";
+import type { Cohort } from "./runs.js";
 
 export interface StreamLike {
   addEventListener(type: string, listener: (message: { data: string }) => void): void;
@@ -34,6 +36,7 @@ interface RunChoice {
   readonly model?: string | null;
   readonly problem?: string | null;
   readonly experiment?: string;
+  readonly cohort?: Cohort;
   // The server's answer to "is its game server up?"; absent from older servers.
   readonly live?: boolean;
 }
@@ -107,6 +110,11 @@ function reconcile(box: HTMLElement, groups: readonly TraceGroup[], tail: string
   const moved = anchor?.find();
   if (anchor !== null && moved !== null && moved !== undefined) scrollTo(box.scrollTop + moved.getBoundingClientRect().top - box.getBoundingClientRect().top - anchor.offset);
 }
+
+// Unended runs whose game server no longer answers are not live.
+const isLive = (run: RunChoice): boolean => run.ended === false && run.problem === null && run.live !== false;
+const PHONE = "(max-width: 700px)";
+const startedAt = (iso: string): string => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
 const LIVE_RETRY_MS = 5_000;
 export const RUN_LIST_MS = 3_000;
@@ -188,6 +196,8 @@ export class App {
   readonly next: NextRunPanel;
   readonly experiments: QueuePanel | null;
 
+  private readonly homes = new Map<HTMLElement, HTMLElement>();
+
   constructor(
     private readonly doc: Document,
     private readonly deps: AppDeps,
@@ -246,7 +256,57 @@ export class App {
     element.innerHTML = html;
   }
 
+  // On a phone the controls sit under the screen and the run picker in the
+  // sheet; each element keeps a marker at its header position to return to.
+  private placeForWidth(): void {
+    const phone = this.doc.defaultView?.matchMedia(PHONE).matches === true;
+    if (!phone) this.showSheet(false, false);
+    for (const [element, home] of this.homes) {
+      const slot = this.doc.querySelector(`[data-slot="${element.matches(".tb-ctl, .replay-controls") ? "phone-controls" : "phone-picker"}"]`);
+      if (!phone || slot === null) home.after(element);
+      else if (element.matches(".run-choice")) (slot.querySelector("h4") ?? slot).after(element);
+      else slot.append(element);
+    }
+  }
+
+  private showSheet(open: boolean, moveFocus = true): void {
+    const sheet = this.ui("run-sheet");
+    if (sheet.hidden === !open) return;
+    sheet.hidden = !open;
+    this.ui("run-sheet-shade").hidden = !open;
+    const head = this.ui("run-head");
+    head.setAttribute("aria-expanded", String(open));
+    if (moveFocus) (open ? this.ui("run-sheet-close") : head).focus();
+  }
+
+  private setupPhoneHeader(): void {
+    const movable = [".bar > .replay-controls", ".bar > .tb-ctl", ".bar > [data-ui=\"comparisons-link\"]", ".bar > .run-choice"];
+    const elements = movable.map((selector) => this.doc.querySelector<HTMLElement>(selector)).filter((element): element is HTMLElement => element !== null);
+    elements.sort((a, b) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) === 0 ? 1 : -1);
+    for (const element of elements) {
+      const home = this.doc.createElement("span");
+      home.hidden = true;
+      home.dataset.home = "";
+      element.before(home);
+      this.homes.set(element, home);
+    }
+    this.placeForWidth();
+    this.doc.defaultView?.addEventListener("resize", () => { this.placeForWidth(); });
+    this.ui("run-head").addEventListener("click", () => { this.showSheet(true); });
+    this.ui("run-sheet-shade").addEventListener("click", () => { this.showSheet(false); });
+    this.ui("run-sheet-close").addEventListener("click", () => { this.showSheet(false); });
+    this.ui("run-sheet").addEventListener("keydown", (event) => { if (event.key === "Escape") this.showSheet(false); });
+    this.picker("run").addEventListener("change", () => { this.showSheet(false, false); });
+    this.ui("run-sheet-body").addEventListener("click", (event) => {
+      const id = (event.target as HTMLElement).closest<HTMLElement>("[data-watch]")?.dataset.watch;
+      if (id === undefined) return;
+      this.showSheet(false);
+      this.select(id);
+    });
+  }
+
   async init(): Promise<void> {
+    this.setupPhoneHeader();
     this.ui("gba").innerHTML = gbaSvg();
     this.wire();
     void this.next.load();
@@ -265,8 +325,6 @@ export class App {
   private listRuns(runs: RunChoice[]): void {
     this.runs = runs;
     const picker = this.picker("run");
-    // Unended runs whose game server no longer answers are not live.
-    const isLive = (run: RunChoice): boolean => run.ended === false && run.problem === null && run.live !== false;
     picker.replaceChildren(...runs.map((run) => option(this.doc, run.id, `${isLive(run) ? "LIVE · " : run.ended === false && run.problem === null ? "NOT RESPONDING · " : ""}${run.id}`)));
     if (this.runId !== null) picker.value = this.runId;
     const live = runs.filter(isLive);
@@ -823,11 +881,17 @@ export class App {
     play.disabled = clock === null;
     scrub.disabled = clock === null;
     play.textContent = clock?.playing === true ? "❚❚" : "▶";
+    const cap = view.start?.budgets.max_wall_ms;
+    const time = clock !== null ? `${hms((clock.positionMs - clock.startMs) / 1000)} / ${hms((clock.endMs - clock.startMs) / 1000)}` : view.startMs === null ? "" : `${hms(runSeconds(view, nowMs))}${cap === undefined ? "" : ` / ${hms(cap / 1000)}`}`;
+    const head = { view, runId: this.runId, label, running: live && view.control.state === "running", time, others: this.runs.filter((run) => isLive(run) && run.id !== this.runId) };
+    this.setHtml("run-head", headHtml(head));
+    // The time ticks every render; rebuilding the sheet for it would remount the WATCH buttons under the pointer.
+    this.setHtml("run-sheet-body", sheetHtml({ ...head, time: "" }, startedAt));
+    for (const slot of this.ui("run-sheet-body").querySelectorAll(".rh-time")) slot.textContent = time;
     if (clock !== null) {
       scrub.value = String(Math.round(clock.fraction * 1000));
       this.ui("clock").textContent = `${hms((clock.positionMs - clock.startMs) / 1000)} / ${hms((clock.endMs - clock.startMs) / 1000)}`;
     } else {
-      const cap = view.start?.budgets.max_wall_ms;
       this.ui("clock").textContent = view.startMs === null ? "" : `T${String(view.turn)} · ${hms(runSeconds(view, nowMs))}${cap === undefined ? "" : ` / ${hms(cap / 1000)}`}`;
     }
   }

@@ -88,11 +88,17 @@ describe("trainer cards in the viewer", () => {
     await mount(1280);
     const row = ui("run-cards");
     expect(row.hidden).toBe(false); expect(ui("live-runs").hidden).toBe(true);
-    expect(row.querySelectorAll(".tc.wide")).toHaveLength(2);
+    expect(row.querySelectorAll(".tc.tc-wide")).toHaveLength(2);
     const mine = card(row, LIVE_ID), other = card(row, OTHER_ID);
     expect(mine.getAttribute("aria-pressed")).toBe("true"); expect(mine.innerHTML).toContain('data-gt="WATCHING"'); expect(other.innerHTML).toContain('data-gt="LIVE"');
     expect(mine.innerHTML).toContain("/sprites/trainers/norman.png"); expect(other.innerHTML).toContain("/sprites/trainers/may.png");
     expect(mine.innerHTML).toContain(milestone.label); expect(mine.innerHTML).toContain("Oldale Town"); expect(mine.innerHTML).toContain("trial 2/4"); expect(mine.textContent).toContain("RED");
+  });
+
+  it("keeps the old live-run buttons hidden when the run list refreshes", async () => {
+    const { app } = await mount(1280);
+    await app.refreshRuns();
+    expect(ui("live-runs").hidden).toBe(true); expect(ui("run-cards").hidden).toBe(false);
   });
 
   it("clicking a card watches that run", async () => {
@@ -114,14 +120,14 @@ describe("trainer cards in the viewer", () => {
   it("marks a new milestone with the glow and the corner badge", async () => {
     await mount(1280, { fresh: true });
     const mine = card(ui("run-cards"), LIVE_ID);
-    expect(mine.classList.contains("new")).toBe(true); expect(mine.innerHTML).toContain("NEW MILESTONE!"); expect(mine.innerHTML).not.toContain('data-gt="WATCHING"');
+    expect(mine.classList.contains("tc-new")).toBe(true); expect(mine.innerHTML).toContain("NEW MILESTONE!"); expect(mine.innerHTML).not.toContain('data-gt="WATCHING"');
   });
 
   it("on a phone, the sheet holds mini cards, the watched run first; tapping one watches it and closes the sheet", async () => {
     const { streams } = await mount(375, { fresh: true });
-    const body = ui("run-sheet-body"), cards = body.querySelectorAll<HTMLElement>(".tc.mini");
+    const body = ui("run-sheet-body"), cards = body.querySelectorAll<HTMLElement>(".tc.tc-mini");
     expect(cards).toHaveLength(2); expect(cards[0]?.dataset.watch).toBe(LIVE_ID);
-    expect(cards[0]?.innerHTML).toContain('class="ribbon"'); expect(cards[0]?.innerHTML).toContain('data-gt="WATCHING"');
+    expect(cards[0]?.innerHTML).toContain('class="tc-ribbon"'); expect(cards[0]?.innerHTML).toContain('data-gt="WATCHING"');
     expect(body.querySelector(".rs-now")).toBeNull(); expect(body.textContent).toContain("RUN DETAILS");
     ui("run-head").click(); expect(ui("run-sheet").hidden).toBe(false);
     card(body, OTHER_ID).click();

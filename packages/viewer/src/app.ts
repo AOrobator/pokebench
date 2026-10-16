@@ -176,6 +176,8 @@ export class App {
   private artLoad: Promise<void> | null = null;
   private workbench: WorkbenchData | null = null;
   private cardsBusy = false;
+  // The cards replace the live-run buttons; the run list refreshes every few seconds and must not bring them back.
+  private cardsShown = false;
   // Set when the newest run is opened; a later refresh may list a newer one first.
   private following = false;
   private followThinking = true;
@@ -383,7 +385,7 @@ export class App {
       for (const element of root.querySelectorAll<HTMLElement>(".tc[data-watch]")) {
         const input = cards.find((c) => c.runId === element.dataset.watch);
         if (input === undefined) continue;
-        const parts = clockParts(input.facts, element.classList.contains("wide") ? "wide" : "mini");
+        const parts = clockParts(input.facts, element.classList.contains("tc-wide") ? "wide" : "mini");
         const clock = element.querySelector<HTMLElement>("[data-clock]"), bar = element.querySelector<HTMLElement>("[data-time-bar]");
         if (clock !== null && clock.textContent !== parts.text) clock.textContent = parts.text;
         if (bar !== null) bar.style.width = parts.width;
@@ -398,7 +400,7 @@ export class App {
     if (this.runId !== null) picker.value = this.runId;
     const live = runs.filter(isLive);
     const box = this.ui("live-runs");
-    box.hidden = live.length === 0;
+    box.hidden = live.length === 0 || this.cardsShown;
     box.replaceChildren();
     for (const run of live) {
       const button = this.doc.createElement("button");
@@ -959,8 +961,9 @@ export class App {
     const watched = cards.filter((c) => c.status === "watching"), mini = art === null || cards.length === 0 ? null : [...watched, ...cards.filter((c) => c.status !== "watching")].map((c) => cardHtml(c, art, "mini")).join("");
     this.setHtml("run-sheet-body", sheetHtml({ ...head, time: "" }, startedAt, mini === null ? null : { html: mini, watched: watched.length > 0 }));
     this.setHtml("run-cards", art === null ? "" : cards.map((c) => cardHtml(c, art, "wide")).join(""));
-    this.ui("run-cards").hidden = mini === null;
-    this.ui("live-runs").hidden = mini !== null || !this.runs.some(isLive);
+    this.cardsShown = mini !== null;
+    this.ui("run-cards").hidden = !this.cardsShown;
+    this.ui("live-runs").hidden = this.cardsShown || !this.runs.some(isLive);
     this.fillCards(cards);
     for (const slot of this.ui("run-sheet-body").querySelectorAll(".rh-time")) slot.textContent = time;
     if (clock !== null) {

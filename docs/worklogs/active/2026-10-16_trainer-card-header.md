@@ -44,7 +44,7 @@ No harness behavior change, so no feature switch.
 - [x] RED 681d3ac3 / GREEN: `trainer-card.ts` (manifest, tier, trainer pick, wide/mini markup, clock parts) and `game-font.ts` (glyph pixels, painter); 35 tests green
 - [x] RED dd609ade / GREEN: desktop card row and click to watch, phone sheet cards (watched first), in-place clocks, game-font painting, fallback without art (no workbench poll). Three existing tests updated for intended changes (third interval, CSS block order, art fetch in a parked fake fetch)
 - [x] Gates: build, lint (mGBA binding linked into this worktree's venv), coverage: viewer 1029 tests 95.44/91.19/93.83/97.57; agent 1951; Python lines 97.47 branches 93.46 functions 99.39
-- [ ] Browser proof at 1280/1440/375 on a scratch viewer with copied fixtures (close-the-loop, viewer-e2e)
+- [x] Browser proof at 1280/1440/375 on a scratch viewer with copied fixtures: `runs/reviews/2026-10-16-trainer-card-e2e/receipt.md`. Fixed four bugs it found: old buttons flashing back on run-list refresh (new test fails without the fix), card `.bar` class colliding with the header's `.bar` (all card classes now `tc-`), chip text at 12/14 scale dropping rows (now 1:1), desktop cards stacking at 1280 (flex-wrap 400 px)
 
 **M4: review and land**
 - [ ] Claude, Grok and GPT LGTM on one frozen packet; merge slot from the coordinator (not :40–:55); ff-only

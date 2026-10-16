@@ -50,25 +50,25 @@ describe("trainer card markup", () => {
     expect(html).toContain('data-gt="bundle-v-control-dryrun-cook" data-c="tab"'); expect(html).toContain(">RED<"); expect(html).toContain(">BUNDLE<"); expect(html).toContain("--tyc:#7a3fb8");
     expect(html).toContain("Rival waits in Oldale"); expect(html).toContain("Oldale Town"); expect(html).toContain("trial 2/4");
     expect(html).toContain(">27/45<"); expect(html).toContain('width:60.0%');
-    expect(html.match(/class="mon/g)).toHaveLength(2); expect(html).toContain("/sprites/icons/280.png"); expect(html).toContain("/sprites/icons/412.png"); expect(html).not.toContain("/sprites/icons/9.png");
+    expect(html.match(/class="tc-mon/g)).toHaveLength(2); expect(html).toContain("/sprites/icons/280.png"); expect(html).toContain("/sprites/icons/412.png"); expect(html).not.toContain("/sprites/icons/9.png");
     expect(html).toContain('title="Lv7"'); expect(html).toContain('title="Egg"');
     expect(html).toContain('data-gt="WATCHING"'); expect(html).not.toContain("NEW MILESTONE!"); expect(html).not.toContain(' new"');
     expect(html).toContain("data-clock"); expect(html).toContain("data-time-bar"); expect(html).not.toContain("46:40");
   });
   it("on a new milestone, the wide card glows and the badge takes the corner with the blinking dot", () => {
     const html = cardHtml(input({ facts: { ...FACTS, fresh: true } }), ART, "wide");
-    expect(html).toContain('class="tc wide new"'); expect(html).toContain('data-gt="NEW MILESTONE!" data-c="badge"'); expect(html).toContain('class="dot"'); expect(html).not.toContain('data-gt="WATCHING"');
+    expect(html).toContain('class="tc tc-wide tc-new"'); expect(html).toContain('data-gt="NEW MILESTONE!" data-c="badge"'); expect(html).toContain('class="tc-dot"'); expect(html).not.toContain('data-gt="WATCHING"');
   });
   it("the mini card keeps the state in the corner and puts the badge at the bottom; it shows the lead Pokémon", () => {
     const plain = cardHtml(input({ status: "live" }), ART, "mini");
-    expect(plain).toContain("/sprites/card/mini-silver.png"); expect(plain).toContain('data-gt="LIVE"'); expect(plain).toContain('aria-pressed="false"'); expect(plain.match(/class="mon/g)).toHaveLength(1);
+    expect(plain).toContain("/sprites/card/mini-silver.png"); expect(plain).toContain('data-gt="LIVE"'); expect(plain).toContain('aria-pressed="false"'); expect(plain.match(/class="tc-mon/g)).toHaveLength(1);
     const fresh = cardHtml(input({ status: "live", facts: { ...FACTS, fresh: true } }), ART, "mini");
-    expect(fresh).toContain("/sprites/card/mini-ribbon-silver.png"); expect(fresh).toContain('data-gt="LIVE"'); expect(fresh).toContain('class="ribbon"'); expect(fresh).toContain("NEW MILESTONE!");
+    expect(fresh).toContain("/sprites/card/mini-ribbon-silver.png"); expect(fresh).toContain('data-gt="LIVE"'); expect(fresh).toContain('class="tc-ribbon"'); expect(fresh).toContain("NEW MILESTONE!");
   });
   it("a paused run says PAUSED without the live dot; missing data never breaks the card", () => {
     const html = cardHtml(input({ status: "paused", card: null, arm: null, trial: null, facts: { ...FACTS, reached: null, level: 0 } }), ART, "wide");
-    expect(html).toContain('data-gt="PAUSED"'); expect(html).not.toContain('class="dot"'); expect(html).toContain("No milestone yet"); expect(html).toContain("/sprites/card/wide-green.png"); expect(html).not.toContain("TYPE/");
-    expect(html.match(/class="mon/g)).toBeNull();
+    expect(html).toContain('data-gt="PAUSED"'); expect(html).not.toContain('class="tc-dot"'); expect(html).toContain("No milestone yet"); expect(html).toContain("/sprites/card/wide-green.png"); expect(html).not.toContain("TYPE/");
+    expect(html.match(/class="tc-mon/g)).toBeNull();
   });
   it("escapes everything that comes from a run", () => {
     const html = cardHtml(input({ title: 'x"<script>', runId: 'r"1', card: { name: "<i>", location: "<s>", party: [] } }), ART, "wide");

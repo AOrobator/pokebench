@@ -35,6 +35,10 @@ build-mgba:
 verify-rom:
     cd env && uv run python -c 'import os; from pokebench_env.rom import resolve_rom; print("ROM OK:", resolve_rom(os.environ))'
 
+# Recover route103_rival for older runs from their raw-RAM archives into runs/<id>/derived/ (events.jsonl untouched).
+backfill-route103 +runs:
+    cd env && uv run python -m pokebench_env.backfill_route103 ../runs {{runs}}
+
 verify-vendor:
     cd env && uv run python -c 'from pokebench_env.launcher import VENDOR_DIR; from pokebench_env.vendor import check_vendor; check_vendor(VENDOR_DIR); print("vendor OK:", VENDOR_DIR)'
 

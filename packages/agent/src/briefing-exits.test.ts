@@ -221,7 +221,7 @@ describe("exit history",()=>{
 });
 
 describe("briefing-exits-v1 in a production-shaped run",()=>{
- const BASE:FeatureSet={...ALL_ON,"next-milestone-hint-v1":false,"untaken-exits-v1":false};
+ const BASE:FeatureSet={...ALL_ON,"next-milestone-hint-v1":false,"untaken-exits-v1":false,"people-ledger-v1":false};
  const DOOR=[{kind:"warp",x:2,y:8,elevation:0,activation:"movement",availability:"conditional",facing:null,local_id:null,destination:[0,9,0],name:"Warp to map 0/9"},{kind:"warp",x:2,y:2,elevation:0,activation:"movement",availability:"conditional",facing:null,local_id:null,destination:[1,3,0],name:"Warp to map 1/3"},{kind:"coordinate_trigger",x:2,y:8,elevation:0,activation:"step",availability:"conditional",facing:null,local_id:null,destination:null,name:null}];
  const OUTSIDE=[{kind:"warp",x:14,y:8,elevation:0,activation:"movement",availability:"conditional",facing:null,local_id:null,destination:[1,2,1],name:"Warp to map 1/2"}];
  function rig(features:FeatureSet){

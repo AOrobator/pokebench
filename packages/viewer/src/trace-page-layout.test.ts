@@ -22,4 +22,8 @@ describe("PokéNav agent trace page", () => {
     expect(css).toContain(".trace-content .logcols { flex:1; height:auto; min-height:350px; grid-template-rows:minmax(0,1fr); }");
     expect(css).toContain(".trace-content .log,.trace-content .inspector { height:auto; min-height:0; }");
   });
+
+  it("keeps the phone layout's stacked trace and inspector scrollable", () => {
+    expect(css).toContain(".trace-content { overflow-y:auto; } .trace-content .logcols { flex:none; grid-template-rows:none; } }");
+  });
 });

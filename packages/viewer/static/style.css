@@ -201,13 +201,17 @@ table.splits td.d, table.splits td.t { width: 18.66%; }
 .page-content pre { white-space:pre-wrap; overflow-wrap:anywhere; font:11px/1.6 'JetBrains Mono',monospace; }
 .page-content .logcols { height:430px; }
 .page-content .log,.page-content .inspector { height:100%; min-height:350px; }
+.trace-content { display:flex; flex-direction:column; overflow:hidden; }
+.trace-content .chips { flex-shrink:0; }
+.trace-content .logcols { flex:1; height:auto; min-height:350px; grid-template-rows:minmax(0,1fr); }
+.trace-content .log,.trace-content .inspector { height:auto; min-height:0; }
 .page-content .field-context pre { max-height:none; }
 .page-content .llmmix .row { grid-template-columns:90px minmax(0,1fr); }
 .page-content .llmmix .row .l { white-space:nowrap; }
 .page-content table.splits { min-width:0; }
 .page-content table.splits td,.page-content table.splits th { white-space:normal; overflow-wrap:anywhere; }
 @media(max-width:980px) { .game-stream { grid-template-columns:minmax(0,1.3fr) minmax(300px,1fr); } .page-content .logcols { grid-template-columns:1fr 1fr; } }
-@media(max-width:700px) { .watch-deck { height:auto; grid-template-rows:auto auto; min-height:0; } .game-stream { grid-template-columns:1fr; } .game-stream .gbaStage { height:280px; } .thinking-stream { height:340px; } .directory-pages { grid-template-columns:120px minmax(0,1fr); } .page-directory button { font-size:6px; } .inspection-nav { height:650px; } .page-content .logcols { grid-template-columns:1fr; height:auto; } .page-content .log,.page-content .inspector { height:360px; } }
+@media(max-width:700px) { .watch-deck { height:auto; grid-template-rows:auto auto; min-height:0; } .game-stream { grid-template-columns:1fr; } .game-stream .gbaStage { height:280px; } .thinking-stream { height:340px; } .directory-pages { grid-template-columns:120px minmax(0,1fr); } .page-directory button { font-size:6px; } .inspection-nav { height:650px; } .page-content .logcols { grid-template-columns:1fr; height:auto; } .page-content .log,.page-content .inspector { height:360px; } .trace-content { overflow-y:auto; } .trace-content .logcols { flex:none; grid-template-rows:none; } }
 /* Phones: the timeline follows the Game Boy; the live panel comes after it. */
 @media(max-width:700px) { .watch-deck { display:flex; flex-direction:column; } .game-stream { display:contents; } .game-stream .side { order:1; } }
 /* Clear the former two-column grid's named areas in the watch deck. */

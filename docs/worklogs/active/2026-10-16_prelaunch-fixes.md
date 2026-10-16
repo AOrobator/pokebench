@@ -77,6 +77,7 @@ Done when every milestone is merged, qualification shows none of F1–F8, the fo
 
 ## Session Log
 
+- 2026-10-16 02:40 AM EDT: Merged into main: blocked-batch-result-v1 (342a2d5), transition-loop-detection-v1 (cd2dafd), displayed-place-names-v1 (2514774), F5–F8 (0e645b7), dialogue-context-kept-v1 (36e7c73), warp-arrival-settle-v1 (ead1837); main gates green (agent 1400, viewer 794, pytest 2017, lint clean). The operator put both battle switches in the bundle (1:38 AM EDT). Definition wired on this branch: onInBoth = transition-loop-detection-v1, displayed-place-names-v1, dialogue-context-kept-v1 (on in base); switches += blocked-batch-result-v1, warp-arrival-settle-v1, expanded-menu-battle-information-v1, battle-details-v2 (off in base); offInBoth = milestone-stall-stop-v1. definitionProblems and controlBaseProblems empty; arms differ in exactly the 12 bundle switches. F9–F12 to be added when the Route 101 thread merges them.
 - 2026-10-16 01:16 AM EDT: Ownership change (the operator told the "Route 101 turnaround" thread to land its own fixes on main itself): F9–F12 are owned and landed by that thread; my F9 and F10/F11 agents stopped, F12 dropped from the M5 branch. I wire the merged switches into the bundle definition.
 - 2026-10-16 01:05 AM EDT: F12 added to the M5 branch: screen-aware stall briefing and an interface-dwell stall, inside stall-briefing-v1.
 - 2026-10-16 01:01 AM EDT: The operator put the nickname readout fix and the no-nickname line in the bundle (F10, F11); branch started.

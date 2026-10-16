@@ -32,7 +32,7 @@ Never call `chat-thread` tools from this skill or its subagents. Quote every tim
    - **Eligible for the top N:** `excluded` null, `problem` null, `measurement.controller` is `agent`, and no `measurement.features` matching `probe`, `synthetic` or `replay` (frontier.ts `recordedRun`). Any start kind and any status (ended, live, paused, unresponsive) qualifies, and each is labelled. This is deliberately wider than `frontierCandidate`, which only the agent-frontier bullet below uses.
    - **Rank:** the last index in that order of a split without `screenshotEvidence`.
    - **Tiebreak:** start-kind group first (fresh starts, meaning boot and `MAIN_MENU`, before `CLOCK_SET` resumes), then that split's `elapsedMs` ascending within the group, then `id`. Minutes are never compared across groups.
-   - Take the top N (default 10).
+   - Take the top N (default 10). Never rank from `run_end.furthest_milestone` or the fixed ledger: they use `MILESTONE_ORDER`, which places optional milestones such as `FIRST_POKECENTER_HEAL` late and mis-ranks runs. Where they disagree with the frontier order, report it as a grading blind spot.
    - Cross-check against `node .claude/skills/pokebench-review/frontier.mjs`. It uses the same order and tiebreak but different buckets: its best fresh-boot run must equal the agent frontier below, and its fresh-boot and checkpoint lists must agree with your top N for the runs they share. It needs a built viewer in `POKEBENCH_VIEWER_WORKTREE` (default `/private/tmp/pokebench-viewer`), and gives up on the workbench after 60 s, so run it after step 1 has warmed the viewer and retry once if it times out. Explain any disagreement before going on.
    - State each run's start kind: boot, `MAIN_MENU` save or `CLOCK_SET` save (`config.start`, `config.resume`). The frontier chart only plots boot and `MAIN_MENU` starts. `CLOCK_SET` resumes stay in the list but are flagged: their minutes count from the save, so they are not comparable with boot minutes. Never say one beat another on time across start kinds.
    - Lead the report with the furthest milestones reached.
@@ -56,6 +56,9 @@ Never call `chat-thread` tools from this skill or its subagents. Quote every tim
    - Subagents run at the same time, so they cannot share labels. The brief gives a starting list of mistake labels; step 7 normalizes the labels across runs before counting.
 
 6. **Compare arms.** Where the cohort has paired arms (e.g. bundle on gpu0 and control on gpu1, same round and pin), tabulate the furthest milestone per arm per round. N per round is usually 1 per arm: say so, and never call anything significant from it. Hand power questions to `pokebench-experiment-design`.
+   - Before reading anything into the top-N arm composition, count the pools: how many eligible runs each arm had at the same start kind and cap. A top-N that is mostly one arm can just mean that arm had more long runs.
+   - Check confounds and state each one: arm against GPU lane or port (did each lane run both arms?), pin drift between rounds (only pairs on one pin compare one harness), and switches added between rounds in response to earlier rounds' failures (tuning on the same start).
+   - Count milestones that fired inside harness-driven input (for example dialogue auto-advance) per arm, so credited progress is attributed honestly.
 
 7. **Synthesize.**
    - **(a) What went well**, and the switch or behavior behind it.

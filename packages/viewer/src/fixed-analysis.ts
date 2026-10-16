@@ -198,7 +198,7 @@ export function rescoreTrials(trials: readonly AnalysisTrial[], events: (run: st
   const unscored: string[] = [];
   const rescored = trials.map((t) => {
     const text = events(t.run);
-    if (text !== null && completeLog(text)) {
+    if (text !== null && completeLog(text, t.run)) {
       const o = classifyTrial(text, { maxWallMs: t.capMs, primary: "" }, undefined);
       return { ...t, furthest: o.furthest, furthestDepth: o.furthestDepth, furthestMs: o.furthestMs };
     }
@@ -210,12 +210,17 @@ export function rescoreTrials(trials: readonly AnalysisTrial[], events: (run: st
   return { trials: rescored, unscored };
 }
 
-function completeLog(text: string): boolean {
-  const lines = text.split("\n").filter((line) => line.trim() !== "");
-  const type = (line: string | undefined): unknown => {
-    try { const e: unknown = JSON.parse(line ?? ""); return typeof e === "object" && e !== null && "type" in e ? e.type : null; } catch { return null; }
-  };
-  return type(lines[0]) === "run_start" && type(lines.at(-1)) === "run_end";
+// Every line is one of this run's events, the first is run_start and the last is run_end.
+function completeLog(text: string, run: string): boolean {
+  const types: unknown[] = [];
+  for (const line of text.split("\n")) {
+    if (line.trim() === "") continue;
+    let e: unknown;
+    try { e = JSON.parse(line); } catch { return false; }
+    if (typeof e !== "object" || e === null || !("run" in e) || e.run !== run || !("type" in e)) return false;
+    types.push(e.type);
+  }
+  return types[0] === "run_start" && types.at(-1) === "run_end";
 }
 
 export function trialsFromLedger(def: FixedDefinition, entries: readonly FixedLedgerEntry[], phase: string): AnalysisTrial[] {

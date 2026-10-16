@@ -10,7 +10,9 @@ import {LoopDetector,LOOP_POLICY,type CompletedCall,type LoopNotice} from "./loo
 import {withDialogueAutoAdvance,type AutoAdvanceRecorder} from "./dialogue-auto-advance.js";
 import {observeTool,pressTool,type Clock} from "./game-tools.js";
 import {flagFeatures} from "./play-preset.js";
-import {featureInfo,type FeatureSet} from "./features.js";
+import {featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {decisionContext,parseRun} from "./decision-probe.js";
+import {RUN_START_META} from "../test-support/events.js";
 import type {Button,RunEvent} from "./events.js";
 
 const STATES=JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/navigation-truth-states.json.gz",import.meta.url))).toString("utf8")) as Record<string,unknown>;
@@ -50,6 +52,15 @@ describe("navigation-truth-v1: talk offers only for objects with a script (sh02 
  it("PROF_BIRCH on Route 101 has script 0x0 and is not an interaction target, so no 'press A' offer",async()=>{
   expect(birch.interaction_targets?.some(t=>t.x===4&&t.y===13)).toBe(false);
   expect((await walk(birch,{x:4,y:13},TRUTH)).status).toBe("(4,13) is a person or object (sprite PROF_BIRCH), which navigate_to cannot stand on; it has no script, so facing it and pressing A does not talk to it or use it");
+ });
+ it("counter-talk-v1 offers to talk across a counter only to someone with a script",async()=>{
+  const counter:GameStateSnapshot={...ascii(["...","...","@.."]),navigation_grid:{elevation:3,tiles:[0,1,2].flatMap(y=>[0,1,2].map(x=>({x,y,collision:y===1?1:0,behavior:y===1?0x80:0,elevation:3}))),objects:[{x:1,y:0}],warps:[]},position:{x:0,y:2}};
+  const clerk={kind:"object",x:1,y:0,elevation:3,activation:"A",availability:"available",facing:null,local_id:1,destination:null,name:"MART_EMPLOYEE"};
+  const TALK="target is behind a counter; walk to (1,2), face UP toward the counter at (1,1) and press A to talk across it";
+  expect((await walk({...counter,interaction_targets:[clerk]},{x:1,y:0},{...TRUTH,counters:true})).status).toBe(TALK);
+  expect((await walk({...counter,interaction_targets:[]},{x:1,y:0},{...CONTROL,counters:true})).status).toBe(TALK);
+  expect((await walk({...counter,interaction_targets:[]},{x:1,y:0},{...TRUTH,counters:true})).status).toBe("(1,0) is a person or object, which navigate_to cannot stand on; it has no script, so facing it and pressing A does not talk to it or use it");
+  expect((await walk({...counter,interaction_targets:null},{x:1,y:0},{...TRUTH,counters:true})).status).toBe(TALK);
  });
  it("an object with a script keeps the offer",async()=>{
   const bag=await walk(birch,{x:7,y:14},TRUTH);
@@ -178,7 +189,7 @@ describe("navigation-refusal-reasons-v2: a route that leaves the 15x15 local map
  it("e588 seq 21335: (11,3) beside MAY from (14,10)",async()=>{
   const state=recorded("e588:21334");
   const status=(await walk(state,{x:11,y:3},V2)).status;
-  expect(status).toMatch(/^no route to \(11,3\) lies inside the 15x15 local map navigate_to plans over, so any route leaves it; reachable tiles on its edge, nearest \(11,3\) first: .*\(7,\d+\) on the west edge/);
+  expect(status).toBe("no route to (11,3) lies inside the 15x15 local map navigate_to plans over, so any route leaves it; reachable tiles on its edge, nearest (11,3) first: (7,6) on the west edge, (11,17) on the south edge, (21,8) on the east edge; walk to one, then call navigate_to (11,3) again");
  });
  it("says when no edge tile can be reached, and keeps the generic text for a target outside the window",async()=>{
   const boxed=ascii(["#####","#@#.#","#####"],{width:20,height:20});
@@ -188,6 +199,22 @@ describe("navigation-refusal-reasons-v2: a route that leaves the 15x15 local map
   const edge=ascii(["@..#.","...#.","T..##"],{width:20,height:20});
   const occupied={...edge,navigation_grid:{...gridOf(edge),objects:[{x:2,y:2}]}};
   expect((await walk(occupied,{x:4,y:0},{...TRUTH,windowReasons:true})).status).toBe("no route to (4,0) lies inside the 15x15 local map navigate_to plans over, so any route leaves it; reachable tiles on its edge, nearest (4,0) first: (1,2) on the south edge; walk to one, then call navigate_to (4,0) again");
+ });
+ it("54a7 T213: (10,0) from (7,7) lists the east edge first",async()=>{
+  expect((await walk(recorded("54a7:5216"),{x:10,y:0},V2)).status).toBe("no route to (10,0) lies inside the 15x15 local map navigate_to plans over, so any route leaves it; reachable tiles on its edge, nearest (10,0) first: (14,9) on the east edge, (10,14) on the south edge; walk to one, then call navigate_to (10,0) again");
+ });
+ it("only a goal the player could stand on: a wall, a person or a warp keeps the generic text with v2 alone",async()=>{
+  const GENERIC="no supported local path; choose a reachable local waypoint";
+  // 3f21 T123: (7,0) is a wall; the pending experiment runs v2 with refusal reasons v1 off.
+  expect((await walk(recorded("3f21:2373"),{x:7,y:0},V2)).status).toBe(GENERIC);
+  const edge=ascii(["@..#.","...#.","T..##"],{width:20,height:20});
+  expect((await walk(edge,{x:3,y:0},V2)).status).toBe(GENERIC);
+  const grid=gridOf(edge);
+  expect((await walk({...edge,navigation_grid:{...grid,objects:[{x:4,y:0}]}},{x:4,y:0},V2)).status).toBe(GENERIC);
+  expect((await walk({...edge,navigation_grid:{...grid,warps:[{x:4,y:0}]}},{x:4,y:0},V2)).status).toBe(GENERIC);
+  expect((await walk({...edge,world_context:{...contextOf(edge),objects:[{local_id:1,map_id:[0,9],graphics_id:7,sprite_kind:"BOY_1",x:4,y:0}]}},{x:4,y:0},V2)).status).toBe(GENERIC);
+  expect((await walk({...edge,interaction_targets:[{kind:"object",x:4,y:0,elevation:3,activation:"A",availability:"available",facing:null,local_id:1,destination:null,name:"BOY_1"}]},{x:4,y:0},V2)).status).toBe(GENERIC);
+  expect((await walk(edge,{x:4,y:0},V2)).status).toContain("so any route leaves it");
  });
  it("off keeps the generic text; full-map mode and unknown map bounds keep it too",async()=>{
   const state=recorded("e588:21334");
@@ -208,6 +235,13 @@ describe("navigation-truth-v1: the loop guard mentions a reopened message only w
  it("54a7 T125 seq 2745: four A presses on an empty tile opened no message",()=>{
   expect(warn(true,field(false))).toBe("The same interaction or input pattern is repeating without new game information. Use a single input, inspect the resulting interface, and choose an evidence-supported different approach.");
   expect(warn(false,field(false))).toBe("The same interaction or input pattern is repeating without new game information. Use a single input, inspect the resulting interface, and choose an evidence-supported different approach. Reopening the same message is not story progress.");
+ });
+ it("a navigate_to cycle that ends on a waiting message keeps the sentence",()=>{
+  const nav=(state:GameStateSnapshot,x:number):CompletedCall=>({name:"navigate_to",args:{map_id:[0,0],x,y:8},isError:false,text:"ok",state,beforeState:state,acted:true});
+  const notices:LoopNotice[]=[];
+  const detector=new LoopDetector(n=>notices.push(n),{...LOOP_POLICY,ineffective:9,cycleRepeats:2},"enforced",true,undefined,false,true);
+  for(let i=0;i<4;i++)detector.complete(nav(field(true),i%2===0?9:11));
+  expect(notices.find(n=>n.phase==="warning")?.message).toContain("Reopening the same message is not story progress.");
  });
  it("an A press that reopens the same message keeps the sentence",()=>{
   expect(warn(true,field(true))).toBe("The same interaction or input pattern is repeating without new game information. Use a single input, inspect the resulting interface, and choose an evidence-supported different approach. Reopening the same message is not story progress.");
@@ -278,8 +312,9 @@ describe("navigation-truth-v1: speakers across a conversation",()=>{
   const ctx=(s:GameStateSnapshot)=>{if(s.world_context==null)throw new Error("no context");return s.world_context;};
   // Only the interaction target identifies MAY's tile.
   expect(await run(s=>({...s,world_context:{...ctx(s),objects:[]}}))).toEqual(["MAY","MAY","MAY","MAY","MAY"]);
-  // Nothing faced at all after the name: the name is kept as before.
-  expect(await run((s,n)=>n>=15716?{...s,facing:null}:s)).toEqual(["MAY","MAY","MAY","MAY","MAY"]);
+  // Nothing known to be faced after the name, or an empty tile: the name is not carried (off carried it).
+  expect(await run((s,n)=>n>=15716?{...s,facing:null}:s)).toEqual(["MAY",null,null,null,null]);
+  expect(await run((s,n)=>n>=15716?{...s,facing:"up"}:s)).toEqual(["MAY",null,null,null,null]);
   // Another object (id 9) stands on the faced tile for the second message: the name is not carried; the faced target is used.
   expect(await run((s,n)=>n>=15716?{...s,world_context:{...ctx(s),objects:[{local_id:9,map_id:[0,18],graphics_id:20,sprite_kind:"BOY_1",x:10,y:3}]}}:s)).toEqual(["MAY","RIVAL_MAY_NORMAL","RIVAL_MAY_NORMAL","RIVAL_MAY_NORMAL","RIVAL_MAY_NORMAL"]);
  });
@@ -323,5 +358,41 @@ describe("production wiring",()=>{
   state=recorded("show:19866");
   expect(await status({"navigation-refusal-reasons-v2":true},{x:6,y:4})).toContain("so any route leaves it");
   expect(await status({"navigation-refusal-reasons-v2":false},{x:6,y:4})).toBe("no supported local path; choose a reachable local waypoint");
+ });
+});
+
+describe("navigation-truth-v1 in the decision probe's replayed loop guard",()=>{
+ // Four turns of A, A on a free tile with no message, recorded as a run; the probe replays the guard.
+ const features=(truth:boolean):FeatureSet=>({...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"field-dialogue-phase-v1":true,"dialogue-safe-batches-v1":true,"interaction-loop-detection-v1":true,"navigation-truth-v1":truth});
+ const free:GameStateSnapshot={screen:"overworld",started:true,name:"RED",location:"LITTLEROOT TOWN",map_id:[0,9],position:{x:10,y:8},facing:"up",field_controls_locked:false,in_battle:false,party:[],money:0,badges:[],play_time_s:0,world_context:{objects:[],triggers:[],dialogue:null}};
+ const log=(truth:boolean):string=>{
+  let seq=0;const t="2026-10-16T05:00:00.000-04:00";
+  const e=(turn:number,body:Record<string,unknown>)=>JSON.stringify({v:1,run:"probe",seq:++seq,t,turn,...body});
+  const lines=[e(0,{type:"run_start",...RUN_START_META,tools:["observe","press"],harness_features:playHarnessFeatures(features(truth),null)})];
+  for(let turn=1;turn<=4;turn++){
+   const id=`call_${String(turn)}`;
+   lines.push(e(turn,{type:"turn_start",context:{messages:1,images:0,est_tokens:10}}));
+   lines.push(e(turn,{type:"assistant",thinking:"",text:"",tool_calls:[{id,name:"press",args:{buttons:["A","A"]}}],usage:{input:1,output:1,cache_read:0},latency_ms:1,ttft_ms:1,stop_reason:"toolUse"}));
+   lines.push(e(turn,{type:"tool_call",id,name:"press",args:{buttons:["A","A"]}}));
+   lines.push(e(turn,{type:"state",...free}));
+   const before=seq;
+   lines.push(e(turn,{type:"button_press",tool_call_id:id,buttons:["A","A"],before_state_seq:before}));
+   lines.push(e(turn,{type:"state",...free}));
+   lines.push(e(turn,{type:"tool_result",state_seq:seq,id,name:"press",is_error:false,duration_ms:1,text:"pressed A, A",frames:[]}));
+  }
+  lines.push(e(5,{type:"turn_start",context:{messages:1,images:0,est_tokens:10}}));
+  return lines.join("\n");
+ };
+ const ports={thinkingSignature:"reasoning_content",frame:()=>"",rerender:()=>Promise.reject(new Error("no rerender"))};
+ const warning=async(truth:boolean):Promise<string>=>{
+  const context=await decisionContext(parseRun(log(truth)),5,features(truth),ports);
+  const last=context.messages.at(-1);
+  if(last?.role!=="user"||typeof last.content!=="string")throw new Error("no guard text in the rebuilt context");
+  return last.content;
+ };
+ it("drops the reopened-message sentence only with the switch on",async()=>{
+  expect(await warning(true)).toContain("Use a single input");
+  expect(await warning(true)).not.toContain("Reopening the same message");
+  expect(await warning(false)).toContain("Reopening the same message is not story progress.");
  });
 });

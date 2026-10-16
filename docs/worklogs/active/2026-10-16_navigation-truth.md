@@ -102,6 +102,12 @@ Zero FAIL rows.
 
 ## Multi-Model Review Log
 
+- Round 1 (packet base 45db59c1, head 6dd2ab29, diff sha256 424ec9dd18c883d547f5b6cf3bba7ea875bec90f5b76f50a48040537a9142ffa). Claude (claude -p, default login; ~/.claude-review is logged out): BLOCKING. Grok (Cursor cursor-grok-4.5-high): BLOCKING. GPT: Cursor gpt-5.6-sol-xhigh failed (ActionRequiredError usage limit, resets 10/17); Codex default model gpt-6.1-sol rejected for ChatGPT accounts; switched (standing authorization) to isolated `codex exec -m gpt-5.6-sol -c model_reasoning_effort="xhigh" --ephemeral --sandbox read-only`: BLOCKING.
+  - All three: v2 refusal fired for non-standable goals when refusal-reasons-v1 is off (the pending experiment's arm). Accepted: windowReason now requires a walkable goal with no person, object or warp.
+  - Codex: counter talk bypassed the no-script rule (accepted: counterHint skips scriptless people when targets are known); a named speaker was carried with nothing faced (accepted: dropped, matches boundary item 7); the reopened sentence ignored navigate_to ending on a ready message (accepted: reopened = the call's state has a ready message or a conversation restarted); decision-probe wiring untested (accepted: synthetic recorded run through decisionContext, ON/OFF); Harness Config click-through unproven (done: isolated worktree viewer on 127.0.0.1:8797 with a synthetic run; both READ EXPLAINER links opened the right pages; viewer stopped).
+  - Hardening taken in the same batch: e588 assertion exact; 54a7 T213 pinned; explainer wiring caption corrected.
+  - Deletion receipts r1-v2-standable, r1-counter, r1-reopen-nav, r1-speaker-drop, r1-probe-wiring: each red once, green restored.
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

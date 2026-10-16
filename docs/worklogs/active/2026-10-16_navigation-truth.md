@@ -84,6 +84,8 @@ Report branch, frozen head, packet sha256, verdicts, gates, switch ids and inten
 
 - 2026-10-16: merged main 1138371b (viewer events stream chunks, phone sheet), clean. Gates: agent 1920, viewer 971, pytest 2372 passed; lint, build, verify-vendor, pages-check, experiments-check OK; coverage agent 99.16/94.53/98.32, viewer 97.67/91.17/93.79, python 97.42/93.35/100.
 
+- 2026-10-16: merged main b0a8cfed (runs-cli fixture), clean. Gates: agent 1922, viewer 971, pytest 2372 passed; lint, build, verify-vendor, experiments-check OK; coverage unchanged (agent 99.16/94.53/98.32, viewer 97.67/91.17/93.79, python 97.42/93.35/100).
+
 ## Principles Adherence (rounds 1-2; round 2 packet base main be428cdb)
 
 | ID | Score | Evidence |

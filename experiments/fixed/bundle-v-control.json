@@ -93,7 +93,8 @@
    "navigate-first-prompt-v1": false,
    "presence-penalty-v1": false,
    "disproved-beliefs-v1": false,
-   "same-plan-breaker-v1": false
+   "same-plan-breaker-v1": false,
+   "levelup-box-v1": true
   }
  },
  "switches": [
@@ -132,7 +133,8 @@
   "transition-loop-detection-v1",
   "displayed-place-names-v1",
   "dialogue-context-kept-v1",
-  "battle-message-waiting-v1"
+  "battle-message-waiting-v1",
+  "levelup-box-v1"
  ],
  "phases": [
   {

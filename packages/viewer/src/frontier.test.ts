@@ -210,8 +210,10 @@ describe("data-driven agent frontier", () => {
     const refs = frontierReferences([human(), best(), live]);
     expect(refs.best?.id).toBe("live-run");
     document.body.innerHTML = frontierPlot(refs, [live], 900, undefined, [live]);
-    expect(document.querySelectorAll('polyline[data-series="live-run"]')).toHaveLength(1);
-    expect(document.querySelector('polyline[data-series="live-run"]')?.getAttribute("stroke")).toBe("#af8915");
+    const lines = Array.from(document.querySelectorAll('polyline[data-series="live-run"]'));
+    expect(lines.length).toBeGreaterThan(0);
+    expect(lines.every(line => line.getAttribute("stroke") === "#af8915")).toBe(true);
+    expect(document.querySelectorAll('[data-run="live-run"][data-split="STARTER_CHOSEN"]')).toHaveLength(1);
     expect(document.querySelector('[data-live-run="live-run"]')).not.toBeNull();
     expect(document.querySelector('[data-live-run="live-run"] .wb-live-head')).not.toBeNull();
     expect(document.querySelector('[data-reference="best"]')?.textContent).toContain("LIVE");
@@ -254,7 +256,7 @@ describe("data-driven agent frontier", () => {
       { ...base, id: "problem", problem: "invalid" },
       { ...base, id: "human-run", measurement: { ...base.measurement, controller: "human" } },
       { ...base, id: "other-save", config: { ...base.config, resume: null } },
-      { ...base, id: "no-measurement", measurement: undefined },
+      Object.fromEntries(Object.entries({ ...base, id: "no-measurement" }).filter(([key]) => key !== "measurement")) as unknown as WorkbenchRun,
     ];
     expect(frontierReferences([best(), ...variants]).best?.id).toBe("dea1");
   });

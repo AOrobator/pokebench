@@ -51,6 +51,8 @@ export const FRONTIER_MILESTONES = [
 ] as const;
 const RECORD_ORDER: readonly string[] = FRONTIER_MILESTONES.map(m => m.id);
 export interface ReferencePair { human: WorkbenchRun | null; best: WorkbenchRun | null }
+// The agent frontier's live state as verified by the latest successful poll; null when it is finished or polling is unverified.
+export type FrontierStatus = "live" | "paused" | null;
 const MODEL_COLORS = ["#208b71", "#2583bd", "#8856b5", "#c25464", "#c16b27", "#238e9f", "#ae4c96", "#6a7e2f"];
 const modelName = (run: WorkbenchRun): string => run.model ?? "Model not recorded";
 // A main-menu save (options set, before NEW GAME) starts the game from New game: it plots with boot runs, tagged.
@@ -68,13 +70,15 @@ export function preciseTime(ms: number): string {
   const whole = Math.floor(ms / 1000), fraction = String(Math.round(ms % 1000)).padStart(3, "0");
   return `${String(Math.floor(whole / 60))}:${String(whole % 60).padStart(2, "0")}.${fraction}`;
 }
+const recordedRun = (r: WorkbenchRun): boolean => r.excluded === null && r.problem === null && r.measurement !== undefined && !r.measurement.features.some(f => /probe|synthetic|replay/.test(f));
+// The agent frontier is the best New Game start (power-on or the main-menu save), live or finished; a Clock set resume starts its clock mid-game, so it never competes.
+const frontierCandidate = (r: WorkbenchRun): boolean => recordedRun(r) && r.measurement?.controller === "agent" && (r.config?.start === "boot" || r.config?.resume === "MAIN_MENU") && (r.status === "ended" || r.status === "live" || r.status === "paused");
 export function frontierReferences(runs: readonly WorkbenchRun[]): ReferencePair {
-  const valid = (r: WorkbenchRun): boolean => r.excluded === null && r.problem === null && r.status === "ended" && r.config?.start === "boot" && r.measurement !== undefined && !r.measurement.features.some(f => /probe|synthetic|replay/.test(f));
   const rank = (r: WorkbenchRun): number => RECORD_ORDER.findLastIndex(name => r.splits.some(s => s.name === name && s.screenshotEvidence === undefined));
-  const time = (r: WorkbenchRun): number => r.splits.find(s => s.name === RECORD_ORDER[rank(r)])?.elapsedMs ?? Infinity;
-  const agents = runs.filter(r => valid(r) && r.measurement?.controller === "agent" && rank(r) >= 0);
+  const time = (r: WorkbenchRun): number => r.splits.find(s => s.name === RECORD_ORDER[rank(r)] && s.screenshotEvidence === undefined)?.elapsedMs ?? Infinity;
+  const agents = runs.filter(r => frontierCandidate(r) && rank(r) >= 0);
   agents.sort((a, b) => rank(b) - rank(a) || time(a) - time(b) || a.id.localeCompare(b.id));
-  return { human: runs.find(r => r.id === HUMAN_REFERENCE && valid(r) && r.measurement?.controller === "human") ?? null, best: agents[0] ?? null };
+  return { human: runs.find(r => r.id === HUMAN_REFERENCE && recordedRun(r) && r.status === "ended" && r.config?.start === "boot" && r.measurement?.controller === "human") ?? null, best: agents[0] ?? null };
 }
 export function milestoneStatus(run: WorkbenchRun, name: string): "reached" | "unsupported" | "pending" | "censored" | "not reached" | "excluded" {
   if (run.excluded !== null || run.problem !== null) return "excluded";
@@ -94,16 +98,21 @@ function mark(run: WorkbenchRun, name: string, x: number, y: number, color: stri
   const body = markerShape(shape, x, y, color);
   return `<g class="wb-mark" role="button" tabindex="0" data-run="${esc(run.id)}" data-split="${esc(name)}" aria-label="${esc(title)}" fill="${color}" stroke="${color}" stroke-width="${shape === "best" ? "2" : "1"}"><title>${esc(title)}</title>${body}</g>`;
 }
+function frontierLabel(run: WorkbenchRun, status: FrontierStatus): string {
+  const state = status === "live" ? " · LIVE" : status === "paused" ? " · PAUSED" : "";
+  const start = run.config?.resume === "MAIN_MENU" ? " · from main-menu save" : "";
+  return `Agent frontier${state} · ${esc(modelName(run))} · ${esc(run.id)}${start}`;
+}
 function zoomEnd(agents: readonly WorkbenchRun[], human: WorkbenchRun | null): number {
   const reached = (run: WorkbenchRun, i: number): boolean => run.splits.some(s => s.name === RECORD_ORDER[i]);
   const farthest = Math.max(-1, ...agents.map(run => RECORD_ORDER.findLastIndex((_, i) => reached(run, i))));
   const next = human === null ? -1 : RECORD_ORDER.findIndex((_, i) => i > farthest && reached(human, i));
   return Math.min(RECORD_ORDER.length - 1, Math.max(1, next === -1 ? farthest + 1 : next));
 }
-export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRun[], requestedWidth: number, colors = frontierModelColors([...overlays, ...(refs.best === null ? [] : [refs.best])]), currentRuns: readonly WorkbenchRun[] = [], zoom = false): string {
+export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRun[], requestedWidth: number, colors = frontierModelColors([...overlays, ...(refs.best === null ? [] : [refs.best])]), currentRuns: readonly WorkbenchRun[] = [], zoom = false, frontierStatus: FrontierStatus = null): string {
   const width = Number.isFinite(requestedWidth) ? Math.max(240, Math.round(requestedWidth)) : 640;
   const series: { run: WorkbenchRun; color: string; kind: "human" | "best" | "overlay" | "live" | "paused" | "resumed"; resumed: boolean }[] = [];
-  const current = currentRuns.filter(r => shownAgent(r) && (r.status === "live" || r.status === "paused"));
+  const current = currentRuns.filter(r => shownAgent(r) && (r.status === "live" || r.status === "paused") && r.id !== refs.best?.id);
   const currentIds = new Set(current.map(r => r.id));
   for (const run of overlays) if (!currentIds.has(run.id) && run.id !== refs.human?.id && run.id !== refs.best?.id && shownAgent(run)) series.push({ run, color: colors.get(modelName(run)) ?? "#536d85", kind: clockSetResume(run) ? "resumed" : "overlay", resumed: clockSetResume(run) });
   if (refs.human !== null) series.push({ run: refs.human, color: "#304f7a", kind: "human", resumed: false });
@@ -143,8 +152,8 @@ export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRu
     }
   }
   for (const { run, color, kind, resumed } of series) {
-    const active = kind === "live", isCurrent = active || kind === "paused", open = isCurrent || resumed;
-    if (open) body += `<g class="${[active ? "wb-live-run" : "", kind === "paused" ? "wb-paused-run" : "", resumed ? "wb-resumed-run" : ""].filter(c => c !== "").join(" ")}"${isCurrent ? ` data-current-run="${esc(run.id)}"` : ""}${active ? ` data-live-run="${esc(run.id)}"` : ""}${resumed ? ' data-resume="CLOCK_SET"' : ""} style="--wb-run-color:${color}">`;
+    const active = kind === "live" || (kind === "best" && frontierStatus === "live"), isCurrent = active || kind === "paused" || (kind === "best" && frontierStatus !== null), open = isCurrent || resumed;
+    if (open) body += `<g class="${[active ? "wb-live-run" : "", isCurrent && !active ? "wb-paused-run" : "", resumed ? "wb-resumed-run" : ""].filter(c => c !== "").join(" ")}"${isCurrent ? ` data-current-run="${esc(run.id)}"` : ""}${active ? ` data-live-run="${esc(run.id)}"` : ""}${resumed ? ' data-resume="CLOCK_SET"' : ""} style="--wb-run-color:${color}">`;
     let points: string[] = [];
     const flush = (): void => { if (points.length > 1) body += `<polyline data-series="${esc(run.id)}" fill="none" stroke="${color}" stroke-width="${kind === "overlay" || kind === "resumed" ? "1.5" : "2.5"}"${kind === "overlay" ? ' opacity=".45"' : ""}${resumed ? ' stroke-dasharray="8 5"' : ""} points="${points.join(" ")}"/>`; points = []; };
     milestones.forEach((m, i) => { if (!onChart(resumed, m.id)) { flush(); return; } const split = run.splits.find(s => s.name === m.id); if (split === undefined) { if (milestoneStatus(run, m.id) !== "unsupported") flush(); return; } const atX = x(i), atY = y(split.elapsedMs / 60000); points.push(`${String(atX)},${String(atY)}`); }); flush();
@@ -156,10 +165,10 @@ export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRu
     }
     if (open) body += "</g>";
   }
-  const unavailable = `${refs.human === null ? '<p class="wb-notice">Human reference unavailable: recorded baseline is missing or invalid.</p>' : ""}${refs.best === null ? '<p class="wb-notice">Agent frontier unavailable: no eligible finished fresh-boot agent run.</p>' : ""}`;
+  const unavailable = `${refs.human === null ? '<p class="wb-notice">Human reference unavailable: recorded baseline is missing or invalid.</p>' : ""}${refs.best === null ? '<p class="wb-notice">Agent frontier unavailable: no valid New Game-start agent run has reached a story checkpoint yet.</p>' : ""}`;
   const resumeNotice = series.some(s => s.resumed) ? '<p class="wb-notice" data-resume-notice="CLOCK_SET">Dashed runs loaded a Clock set save. They did not start from New game. Minutes on a dashed line start when that save loaded, so a low line is not a faster fresh start.</p>' : "";
   const models = Array.from(new Set(series.filter(s => s.kind === "overlay" || s.kind === "resumed").map(s => modelName(s.run))));
-  const references = series.filter(s => s.kind === "human" || s.kind === "best").map(s => `<span data-reference="${s.kind}"><svg aria-hidden="true" viewBox="0 0 40 18" fill="${s.color}" stroke="${s.color}" stroke-width="2"><line x1="0" x2="40" y1="9" y2="9"/>${markerShape(s.kind === "human" ? "human" : "best", 20, 9)}</svg>${s.kind === "human" ? "Human baseline" : `Agent frontier · ${esc(modelName(s.run))}`}</span>`).join("");
+  const references = series.filter(s => s.kind === "human" || s.kind === "best").map(s => `<span data-reference="${s.kind}"${s.kind === "best" ? ` title="${esc(s.run.id)}"` : ""}><svg aria-hidden="true" viewBox="0 0 40 18" fill="${s.color}" stroke="${s.color}" stroke-width="2"><line x1="0" x2="40" y1="9" y2="9"/>${markerShape(s.kind === "human" ? "human" : "best", 20, 9)}</svg>${s.kind === "human" ? "Human baseline" : frontierLabel(s.run, frontierStatus)}</span>`).join("");
   const resumeKey = series.some(s => s.resumed) ? '<span data-resume="CLOCK_SET"><svg aria-hidden="true" viewBox="0 0 40 18" fill="none" stroke="#b36b00" stroke-width="2"><line x1="0" x2="40" y1="9" y2="9" stroke-dasharray="4 3"/><circle cx="20" cy="9" r="4" fill="#fff"/></svg>Not from zero · Clock set save</span>' : "";
   const currentKeys = current.map(run => `<span class="wb-current-key ${run.status === "live" ? "wb-live-key" : ""}" style="--wb-run-color:${colors.get(modelName(run)) ?? "#536d85"}" title="${esc(run.id)}"><i style="background:${colors.get(modelName(run)) ?? "#536d85"}"></i>${run.status === "live" ? "LIVE" : "PAUSED"}${clockSetResume(run) ? " · NOT FROM ZERO" : ""} · ${esc(modelName(run))} · ${esc(run.id.slice(-4))}${run.splits.some(s => milestones.some(m => m.id === s.name)) ? "" : " · waiting for first story checkpoint"}</span>`).join("");
   const legend = `<div class="wb-model-legend" aria-label="Graph legend">${models.map(model => `<span data-model="${esc(model)}"><i style="background:${colors.get(model) ?? "#536d85"}"></i>${esc(model)}</span>`).join("")}${references}${resumeKey}${currentKeys}</div>`;

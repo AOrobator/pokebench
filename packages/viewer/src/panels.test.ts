@@ -846,12 +846,14 @@ it("links the blocked exit, battle loss recap, briefing battle outcomes and trai
   ["briefing-battle-outcomes-v1","briefing-battle-outcomes-v1.html",["- Latest battle against a story character: you lost to MAY (trainer 535) on ROUTE103 (map 0/18) at turn 371"]],
   ["trainer-opponent-v1","briefing-battle-outcomes-v1.html",["0x08310030","gTrainerBattleOpponent_A"]],
  ];
+ // Each tracked explainer is read once, before the rows (review round 3).
+ const pages=new Map([...new Set(cases.map(c=>c[1]))].map(file=>[file,readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url)),"utf8")]));
  for(const [id,file,quotes] of cases){
   expect(FEATURE_EXPLAINERS[id]).toBe(file);
   const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","coordinate-script-conditions-v1",id]});
   const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
   expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${file}`);
-  const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url)),"utf8");
+  const html=pages.get(file)??"";
   expect(html).toContain(id);
   for(const quote of quotes)expect(html).toContain(quote);
  }

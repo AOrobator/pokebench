@@ -112,8 +112,8 @@ describe("BlockedExits rules on synthetic states",()=>{
   const text=call(exits,"w","press",{buttons:["UP"]},base(near()),[base({...near(),world_context:{objects:[],triggers:[trig(5,8,true)],dialogue:"Wait!"}})],base(near()));
   expect(text).toBe("Blocked exit: (5,7) -> map 2/0. When you last tried it, at turn 10, the game ran a script at (5,8) and kept you on this map. This exit is blocked by a script that runs while a value the game saves still has the setting that script checks for; it has that setting now, so this exit stays blocked for now. Other exits from this map: none listed.");
  });
- it("starting on the trigger with free controls counts, whatever was pressed",()=>{
-  expect(call(new BlockedExits(F),"s","press",{buttons:["A"]},base({position:{x:0,y:10}}),[base({position:{x:0,y:10},field_controls_locked:true})],base({}))).toContain("at (0,10) and kept you on this map");
+ it("a call that starts on the trigger with free controls and presses A or B is no refusal, even if a script moves the player off (review round 3)",()=>{
+  for(const buttons of [["A"],["B"]])expect(call(new BlockedExits(F),"s","press",{buttons},base({position:{x:0,y:10}}),[base({position:{x:0,y:10},field_controls_locked:true})],base({}))).toBeNull();
  });
  it("a try that spans two calls is credited to the trigger stood on, even with an observe between them",()=>{
   const exits=new BlockedExits(F);

@@ -110,9 +110,9 @@ export class BlockedExits {
   if(known!==undefined)known.turn=this.turn;else this.refused.set(key,{map:mapOf(after),trigger:{x:t.x,y:t.y},id:identity(t),exit:exit.key,turn:this.turn});
  }
 
- // Standing on the trigger, a direction-only press whose first direction faces it, or navigate_to aimed at it or its exit tiles.
+ // A direction-only press whose first direction faces it, or navigate_to aimed at it or its exit tiles. A try that
+ // began on the trigger inside its script is the pending path in refusal(), never this one (review round 3).
  private aimed(call:Call,from:Tile,t:Tile,exit:Exit):boolean {
-  if(same(from,t))return true;
   if(call.name==="navigate_to"){
    const x=call.args["x"],y=call.args["y"];
    return typeof x==="number"&&typeof y==="number"&&(same({x,y},t)||exit.tiles.some(e=>same(e,{x,y})));

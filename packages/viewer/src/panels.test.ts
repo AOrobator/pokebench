@@ -690,6 +690,7 @@ it("links the transition press results card to its explainer",()=>{
  expect(FEATURE_EXPLAINERS["blocked-batch-result-v1"]).toBe("blocked-batch-result-v1.html");
  expect(FEATURE_EXPLAINERS["in-game-naming-readout-v1"]).toBe("in-game-naming-readout-v1.html");
  expect(FEATURE_EXPLAINERS["no-nickname-guidance-v1"]).toBe("no-nickname-guidance-v1.html");
+ expect(FEATURE_EXPLAINERS["people-ledger-v1"]).toBe("people-ledger-v1.html");
  expect(FEATURE_EXPLAINERS["explorer-guidance-v1"]).toBe("explorer-guidance-v1.html");
 });
 
@@ -725,6 +726,22 @@ it("links the battle triage guidance card to its tracked explainer, which quotes
  expect(html).toContain("Your TORCHIC has 5/20 HP (below half). This is a wild battle: RUN is allowed (bottom-right of the battle menu).");
  expect(html).toContain("Talking to the nurse at a POKéMON CENTER heals your whole party; so does talking to MOM at home.");
  expect(html).toContain("from FIGHT press RIGHT, then DOWN, then A");
+});
+
+it("links the briefing exit facts and untaken exits cards to their tracked explainers, which quote the sh02 text",()=>{
+ expect(FEATURE_EXPLAINERS["briefing-exits-v1"]).toBe("briefing-exits-v1.html");
+ expect(FEATURE_EXPLAINERS["untaken-exits-v1"]).toBe("untaken-exits-v1.html");
+ const brief=readFileSync(fileURLToPath(new URL("../../../docs/explainers/briefing-exits-v1.html",import.meta.url)),"utf8");
+ expect(brief).toContain("briefing-exits-v1");
+ expect(brief).toContain("Warp to PROF. BIRCH'S HOUSE 2F (map 1/3) at 2,2");
+ const rooms=readFileSync(fileURLToPath(new URL("../../../docs/explainers/untaken-exits-v1.html",import.meta.url)),"utf8");
+ expect(rooms).toContain("untaken-exits-v1");
+ expect(rooms).toContain("Exits here you have not taken: (2,2) -&gt; PROF. BIRCH'S HOUSE 2F (map 1/3)");
+ const log=new Log();log.add(0,{...START,harness_features:["briefing-exits-v1","untaken-exits-v1"]});
+ const registry=(["briefing-exits-v1","untaken-exits-v1"] as const).map(id=>({id,title:id,description:"d",group:"guard" as const,switchable:true,needs:null}));
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),registry);
+ expect(doc.querySelector('[data-feature="briefing-exits-v1"] a')?.getAttribute("href")).toBe("/explainers/briefing-exits-v1.html");
+ expect(doc.querySelector('[data-feature="untaken-exits-v1"] a')?.getAttribute("href")).toBe("/explainers/untaken-exits-v1.html");
 });
 
 it("links the displayed place names card to its tracked explainer, which shows the real-ROM before and after",()=>{

@@ -207,6 +207,7 @@ describe("viewer app", () => {
     expect(ui("mode").textContent).toBe("REPLAY");
     expect(ui("brand").textContent).toBe(`POKéNAV · ${M4_ID}`);
     expect(ui("play").textContent).toBe("❚❚");
+    expect(ui("replay-controls").hidden).toBe(false);
     expect(ui("counters").innerHTML).toContain("think-swarm");
     expect(ui("think-head").textContent).toBe("AGENT is waiting…");
 
@@ -281,6 +282,7 @@ describe("viewer app", () => {
     expect(app.mode).toBe("live");
     expect(ui("mode").textContent).toBe("RUNNING");
     expect((ui("play") as HTMLButtonElement).disabled).toBe(true);
+    expect(ui("replay-controls").hidden).toBe(true);
     setNow(BASE_MS + 3_500);
     app.tick(500);
     expect(ui("think-head").textContent).toBe("AGENT is thinking… 2.5s");
@@ -308,9 +310,11 @@ describe("viewer app", () => {
     const { app, streams } = await harness();
     feed(must(streams[0]), fullRun().events.slice(0, 4));
     feed(must(streams[0]), fullRun().events.slice(4), false);
+    expect(ui("replay-controls").hidden).toBe(true);
     must(streams[0]).send("done", {});
     expect(app.mode).toBe("replay");
     expect(app.clock?.atEnd).toBe(true);
+    expect(ui("replay-controls").hidden).toBe(false);
   });
 
   it("shows invalid events and server problems instead of dropping them", async () => {

@@ -8,7 +8,7 @@ Read-only over runs/<id>/events.jsonl (POKEBENCH_RUNS_ROOT overrides the runs ro
 counts can be reproduced while a run is still appending.
 
   python3 -I docs/experiments/open-goal-prompt/scan.py write   # (re)build manifest.json from runs/
-  python3 -I docs/experiments/open-goal-prompt/scan.py check   # rescan to each recorded cutoff; exit 1 on any drift
+  python3 -I docs/experiments/open-goal-prompt/scan.py check   # same population, each run rescanned to its cutoff; exit 1 on any drift
 """
 
 import glob
@@ -21,6 +21,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 RUNS = os.environ.get("POKEBENCH_RUNS_ROOT") or os.path.join(HERE, "..", "..", "..", "runs")
 MANIFEST = os.path.join(HERE, "manifest.json")
 DAYS = ("2026-10-15", "2026-10-16")
+# Dataset cutoff: runs started before 3:00 PM New York on 2026-10-16 (run ids begin with their start time).
+STARTED_BEFORE = "2026-10-16T15-00-00"
 LANES = ("qwen36-gpu0", "qwen36-gpu1", "think-fast")
 RUSTBORO = re.compile(r"rustboro", re.I)
 GYM = re.compile(r"\bgym", re.I)
@@ -106,7 +108,7 @@ def paths() -> list[str]:
     for day in DAYS:
         for lane in LANES:
             found += glob.glob(os.path.join(RUNS, f"{day}T*_{lane}_*", "events.jsonl"))
-    return sorted(found)
+    return sorted(p for p in found if os.path.basename(os.path.dirname(p)) < STARTED_BEFORE)
 
 
 def main() -> int:
@@ -120,12 +122,17 @@ def main() -> int:
         return 0
     rows = json.load(open(MANIFEST))
     drift = 0
+    eligible = {r["run"] for r in (scan(p, None) for p in paths()) if r is not None}
+    listed = {r["run"] for r in rows}
+    for run in sorted(eligible ^ listed):
+        drift += 1
+        print("population:", run, "eligible but not listed" if run in eligible else "listed but not eligible")
     for row in rows:
         again = scan(os.path.join(RUNS, row["run"], "events.jsonl"), row["cutoff_seq"])
         if again != row:
             drift += 1
             print("drift:", row["run"])
-    print(f"checked {len(rows)} runs, {drift} drifted")
+    print(f"checked {len(rows)} runs against {len(eligible)} eligible, {drift} drifted")
     return 1 if drift else 0
 
 

@@ -155,7 +155,7 @@ export class SupervisorBriefing {
    const where=call.before??after;
    this.remember(this.room(where),roomOf(where,this.features),label,this.outcome(call.before,after,auto?.pages??[]));
    if(call.before!==null&&this.room(call.before)===this.room(after)&&this.moved(call.before,after))this.touchSteppedTrigger(after);
-   if(this.exits!==null)this.scriptedTrigger(call,after,auto?.pages??[]);
+   if(this.exits!==null)this.scriptedTrigger(call,after,auto);
   }
   for(const page of auto?.pages??[])this.heard.add(this.pageOpening(page));
   const dialogue=after.world_context?.dialogue;
@@ -210,34 +210,32 @@ export class SupervisorBriefing {
   for(const trigger of state.world_context?.triggers??[])if(trigger.condition_met!==null)seen.set(at(trigger.x,trigger.y),trigger.condition_met);
   this.conditions.set(room,seen);this.stepFrom={room,x:p.x,y:p.y};
   if(from===null||from.room!==room||(from.x===p.x&&from.y===p.y)||!this.features["world-targets-v1"])return;
-  if((state.interaction_targets??[]).some(t=>t.activation==="step"&&t.x===p.x&&t.y===p.y))this.pendingTouches.push({room,tile:at(p.x,p.y)});
+  if((state.interaction_targets??[]).some(t=>t.activation==="step"&&t.x===p.x&&t.y===p.y)&&seen.get(at(p.x,p.y))!==false)this.pendingTouches.push({room,tile:at(p.x,p.y)});
  }
  // briefing-exits-v1: a step trigger whose script ran is tried even when the script walked the player back to where
  // the press began (a push-back: OldaleTown_EventScript_BlockedPath, the Littleroot twin, Route 101 PreventExit*).
- // Evidence: the press's first direction faces the trigger tile from the start tile, the trigger's condition is not
- // shown as unmet, and the call showed the script (dialogue pages, a dialogue, or field controls locked after it);
- // or a dialogue page was shown with the player on a trigger tile.
- private scriptedTrigger(call:Call,after:State,pages:readonly Page[]):void {
+ // Evidence, all of it: the buttons the game was sent were directions only, the first faced the trigger from the
+ // start tile, the trigger was not last shown with an unmet condition, the call showed the script (dialogue pages,
+ // a dialogue, or field controls locked after it), and the player ended on the start tile.
+ // A conversation counts for the person faced at its first page only when the press ended in A or the page record
+ // attributes the first page to that faced sprite (the people ledger's rule).
+ private scriptedTrigger(call:Call,after:State,auto:Advance|undefined):void {
   const before=call.before;
   if(!this.features["world-targets-v1"]||before===null||before.position===null)return;
-  const steps=(state:State)=>(state.interaction_targets??[]).filter(t=>t.activation==="step");
-  const room=this.room(before);
-  // A conversation in this call: the person the player faced at its first page's own state was talked to.
-  const opened=pages[0]?.state_seq==null?undefined:this.recent.get(pages[0].state_seq);
+  const pages=auto?.pages??[];
+  const requested=call.name==="press"&&Array.isArray(call.args["buttons"])?call.args["buttons"].map(String):[];
+  const sent=auto!==undefined?auto.sent.map(String):requested;
+  const first=pages[0];
+  const opened=first?.state_seq==null?undefined:this.recent.get(first.state_seq);
   const person=opened===undefined?null:this.faced(opened);
-  if(opened!==undefined&&person?.object!=null)this.touch(this.room(opened),objectKey(person.object));
-  for(const page of pages){
-   const p=page.position;
-   if(p!==null&&steps(before).some(t=>t.x===p.x&&t.y===p.y))this.touch(room,at(p.x,p.y));
-  }
-  const buttons=call.name==="press"&&Array.isArray(call.args["buttons"])?call.args["buttons"].map(String):[];
-  const first=buttons.find(b=>STEP[b.toLowerCase()]!==undefined);
-  const step=first===undefined?undefined:STEP[first.toLowerCase()];
-  if(step===undefined||before.field_controls_locked===true)return;
+  if(opened!==undefined&&person?.object!=null&&(sent.at(-1)==="A"||first?.speaker_source==="faced_sprite"))this.touch(this.room(opened),objectKey(person.object));
+  const step=sent[0]===undefined?undefined:STEP[sent[0].toLowerCase()];
+  if(step===undefined||!sent.every(b=>STEP[b.toLowerCase()]!==undefined)||before.field_controls_locked===true)return;
   const x=before.position.x+step[0],y=before.position.y+step[1];
-  if(!steps(before).some(t=>t.x===x&&t.y===y)||this.dead(before,x,y))return;
+  if(!(before.interaction_targets??[]).some(t=>t.activation==="step"&&t.x===x&&t.y===y)||this.dead(before,x,y))return;
   const scripted=pages.length>0||Boolean(after.world_context?.dialogue)||after.field_controls_locked===true;
-  if(scripted&&!(after.position?.x===x&&after.position.y===y))this.touch(room,at(x,y));
+  const back=after.position?.x===before.position.x&&after.position.y===before.position.y&&this.room(after)===this.room(before);
+  if(scripted&&back)this.touch(this.room(before),at(x,y));
  }
  // briefing-exits-v1: the readout's own coordinate-script condition for a trigger tile, the last time a recorded state
  // listed it (the readout lists only nearby triggers), says it could not run.
@@ -310,6 +308,8 @@ export class SupervisorBriefing {
  // Walking onto a step-activated target is how it is tried; standing on a tile for other reasons is not.
  private touchSteppedTrigger(after:State):void {
   const p=after.position;if(p===null||!this.features["world-targets-v1"])return;
+  // briefing-exits-v1: a trigger whose condition was last shown as unmet did not run, so it is not tried.
+  if(this.exits!==null&&this.dead(after,p.x,p.y))return;
   if((after.interaction_targets??[]).some(t=>t.activation==="step"&&t.x===p.x&&t.y===p.y))this.touch(this.room(after),at(p.x,p.y));
  }
  private remember(key:string,room:string,label:string,outcome:string):void {

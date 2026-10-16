@@ -96,6 +96,18 @@ describe("navigation-truth-v1: talk offers only for objects with a script (sh02 
   expect((await walk(solid(bg("background",3,"up")),{x:2,y:1},TRUTH)).status).toBe("(2,1) is a person or object (sprite BOY_1), which navigate_to cannot stand on; it has no script, but a background on its tile may answer A instead (the state does not show whether it is still there or usable): to try it, walk to one of these free tiles, face it and press A: (2,2) facing UP");
   expect((await walk(solid(bg("hidden_item",4,null)),{x:2,y:1},TRUTH)).status).toBe(NONE);
  });
+ it("a scriptless object on a background event with no reachable neighbour keeps the no-script text, and a north-facing metatile answers only from below",async()=>{
+  const live=[{local_id:2,map_id:[0,9] as [number,number],graphics_id:7,sprite_kind:"BOY_1",x:2,y:1}];
+  const NONE="(2,1) is a person or object (sprite BOY_1), which navigate_to cannot stand on; it has no script, so facing it and pressing A does not talk to it or use it";
+  const walled=ascii(["###","@#.","###"]);
+  const boxed:GameStateSnapshot={...walled,navigation_grid:{...gridOf(walled),objects:[{x:2,y:1}]},world_context:{...contextOf(walled),objects:live},interaction_targets:[{kind:"hidden_item",x:2,y:1,elevation:3,activation:"A",availability:"conditional",facing:null,local_id:null,destination:null,name:null}]};
+  expect((await walk(boxed,{x:2,y:1},CONTROL)).status).toBe("(2,1) is a person or object, which navigate_to cannot stand on, and none of its free neighbouring tiles can be reached from here; choose a reachable waypoint nearer to it");
+  expect((await walk(boxed,{x:2,y:1},TRUTH)).status).toBe(NONE);
+  // world.py marks a television "facing up" (MetatileBehavior_IsPlayerFacingTVScreen needs DIR_NORTH).
+  const room=ascii(["...","@..","..."]);
+  const tv:GameStateSnapshot={...room,navigation_grid:{...gridOf(room),objects:[{x:2,y:1}],tiles:gridOf(room).tiles.map(t=>t.x===2&&t.y===1?{...t,collision:1}:t)},world_context:{...contextOf(room),objects:live},interaction_targets:[{kind:"metatile_television",x:2,y:1,elevation:3,activation:"A",availability:"conditional",facing:"up",local_id:null,destination:null,name:"television"}]};
+  expect((await walk(tv,{x:2,y:1},TRUTH)).status).toBe("(2,1) is a person or object (sprite BOY_1), which navigate_to cannot stand on; it has no script, but television (metatile television) on its tile may answer A instead (the state does not show whether it is still there or usable): to try it, walk to one of these free tiles, face it and press A: (2,2) facing UP");
+ });
  it("stacked objects: A reaches only the object at the player's elevation (Route 120 Kecleon (12,16): scripted at 4, a scriptless shadow at 3)",async()=>{
   const base=ascii(["...","@..","..."]);
   const kecleon={kind:"object",x:2,y:1,elevation:4,activation:"A",availability:"available",facing:null,local_id:1,destination:null,name:"KECLEON"};
@@ -502,6 +514,10 @@ describe("navigation-truth-v1: speakers across a conversation",()=>{
   expect((await pages(states,["B"],true)).at(-1)).toEqual(["PROF. BIRCH","name_prefix","GMREEN is the type to rush in!"]);
   const unnamed=states.map(s=>({...s,name:null}));
   expect((await pages(unnamed,["B"],true)).at(-1)?.[0]).toBe("PROF. BIRCH");
+ });
+ it("a page in a character's voice that starts with the player's name and a narration verb keeps its speaker (apprentice.inc: '{PLAYER} turned me down…')",async()=>{
+  const states=[7733,7740,7741,7746,7747,7752,7753,7758,7759,7764,7765,7770,7776,7778].map(s=>recorded(`sh02:${String(s)}`)).map(s=>{const w=s.world_context;return w?.dialogue==null?s:{...s,world_context:{...w,dialogue:w.dialogue.replace("GMREEN received the TORCHIC!","GMREEN turned me down…")}};});
+  expect((await pages(states,["B"],true)).at(-1)).toEqual(["PROF. BIRCH","name_prefix","GMREEN turned me down…"]);
  });
  it("sh02 T334: the narration 'GMREEN received the TORCHIC!' has no speaker, and the scroll page is whole",async()=>{
   const states=[7733,7740,7741,7746,7747,7752,7753,7758,7759,7764,7765,7770,7776,7778].map(s=>recorded(`sh02:${String(s)}`));

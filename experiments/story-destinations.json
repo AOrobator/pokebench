@@ -74,7 +74,8 @@
    "navigation-refusal-reasons-v1": false,
    "transition-press-result-v1": false,
    "stall-briefing-v1": false,
-   "dialogue-auto-advance-v1": true
+   "dialogue-auto-advance-v1": true,
+   "displayed-place-names-v1": true
   }
  },
  "trialsPerArm": 8,
@@ -90,5 +91,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Uses the finals incumbent with dialogue-auto-advance-v1 ON, because story-destinations-v1 needs it (its page records are the story lines), and character-presence-v1 ON, because the block places people from that readout line (without it every person reads \"the readout does not say where\"); the bundle arm of bundle-v-control has both on, the finals incumbent neither. the candidate flips only story-destinations-v1. Activation: the first story line naming a place is MOM's \"Well, this is LITTLEROOT TOWN.\" right after the truck (T48-T72 in the 2026-10-16 bundle runs). Primary RIVAL_HOUSE_ENTERED targets \"He lives right next door\"; the LAB line follows the Route 103 rival battle, so a design that measures it should start from a post-battle checkpoint. Approved by the operator 2026-10-16 for the bundle arm; the bundle definition (experiments/fixed/bundle-v-control.json) is owned elsewhere and not edited here. Provisional source.commit is this branch's RED commit; repin to the merge SHA with `just experiment-pin` when it lands."
+ "notes": "Uses the finals incumbent with dialogue-auto-advance-v1 ON, because story-destinations-v1 needs it (its page records are the story lines), character-presence-v1 ON, because the block places people from that readout line (without it every person reads \"the readout does not say where\"), and displayed-place-names-v1 ON, because the map table then names Littleroot's buildings by their sign text (PROF. BIRCH'S HOUSE, PROF. BIRCH'S POKéMON LAB); without it \"He lives\" and \"POKéMON LAB\" find no map and are reported as not resolved. The bundle arm of bundle-v-control has all three on, the finals incumbent none. the candidate flips only story-destinations-v1. Activation: the first story line naming a place is MOM's \"Well, this is LITTLEROOT TOWN.\" right after the truck (T48-T72 in the 2026-10-16 bundle runs). Primary RIVAL_HOUSE_ENTERED targets \"He lives right next door\"; the LAB line follows the Route 103 rival battle, so a design that measures it should start from a post-battle checkpoint. Approved by the operator 2026-10-16 for the bundle arm; the bundle definition (experiments/fixed/bundle-v-control.json) is owned elsewhere and not edited here. Provisional source.commit is this branch's RED commit; repin to the merge SHA with `just experiment-pin` when it lands."
 }

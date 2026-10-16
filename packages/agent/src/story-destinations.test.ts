@@ -291,13 +291,13 @@ describe("the game server's map table reader",()=>{
 });
 
 describe("the pending experiment",()=>{
- it("flips only story-destinations-v1, in arms that record story lines and place people (round-1 Claude blocker)",()=>{
+ it("flips only story-destinations-v1, in arms that record story lines, place people and name buildings by their signs (round-1 Claude and Grok blockers)",()=>{
   const entry=parseExperiment(JSON.parse(readFileSync(new URL("../../../experiments/story-destinations.json",import.meta.url),"utf8")));
   expect(entry.queuePosition).toBeUndefined();
   const {incumbent,candidate}=experimentArms(entry);
   expect(Object.keys(candidate.features).filter(id=>candidate.features[id as keyof typeof candidate.features]!==incumbent.features[id as keyof typeof incumbent.features])).toEqual(["story-destinations-v1"]);
   expect(candidate.features["story-destinations-v1"]).toBe(true);
-  for(const arm of [incumbent,candidate]){expect(arm.features["dialogue-auto-advance-v1"]).toBe(true);expect(arm.features["character-presence-v1"]).toBe(true);}
+  for(const arm of [incumbent,candidate])for(const id of ["dialogue-auto-advance-v1","character-presence-v1","displayed-place-names-v1"] as const)expect(arm.features[id],id).toBe(true);
   expect(dependencyProblems(presetFeatures(parsePlayPreset(candidate)))).toEqual([]);
  });
 });

@@ -215,7 +215,7 @@ Position: X=9, Y=13, facing down</pre>
 <section>
 <h2>Status</h2>
 <ul>
-<li>Branch <code>claude/story-destination-targets</code>. Default off; registered as the pending experiment <code>experiments/story-destinations.json</code> (not queued), whose arms have <code>dialogue-auto-advance-v1</code> and <code>character-presence-v1</code> on, as the bundle arm does; without character presence every person reads "the readout does not say where".</li>
+<li>Branch <code>claude/story-destination-targets</code>. Default off; registered as the pending experiment <code>experiments/story-destinations.json</code> (not queued), whose arms have <code>dialogue-auto-advance-v1</code>, <code>character-presence-v1</code> and <code>displayed-place-names-v1</code> on, as the bundle arm does. Without character presence every person reads "the readout does not say where"; without displayed place names the table names the lab LITTLEROOT TOWN PROFESSOR BIRCHS LAB, so "LAB" still resolves but "POKéMON LAB" and "He lives" (PROF. BIRCH'S HOUSE) are reported as not resolved.</li>
 <li>Not done: measured runs. Whether the model uses the block is untested; only the operator approves runs.</li>
 <li>Decision probes (<code>just probe-decision</code>) have no game server, so a probe with this switch on says the map table could not be read.</li>
 </ul>

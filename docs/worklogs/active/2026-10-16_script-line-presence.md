@@ -48,10 +48,12 @@ M1: RED, GREEN, gates. M2: explainer, pending experiment, review (Claude, Codex,
 - [x] Pending `experiments/script-line-presence.json`: finals incumbent + dialogue-auto-advance-v1 ON (same incumbent as people-ledger), candidate flips only the switch; activation `ROUTE_101`, primary `STARTER_CHOSEN`; provisional `source.commit` = branch head, repin at merge. Parses with `parseExperiment`/`experimentArms` (candidate ON, incumbent OFF); `just experiments-check` ok: 54. Readiness line added. Not queued.
 - [ ] Principles self-review
 - [ ] Review: Claude, Codex, Grok
-- [ ] Merge latest main, re-run gates, merge into main
+- [x] Merge latest main (f46346a3: displayed-names-everywhere, readout-rules-in-prompt-v1, current-run plates) into the branch. Conflicts: page record and DialogueLog entry now carry both `map_display` (main) and `on_screen` (this switch); registry lists take main's `readout-rules-in-prompt-v1` first and this switch after it (never reordered); OFF lists, preset defaults, `DEFAULT_NEXT_RUN`, explainer tests and route list keep both. Identical count edits from both sides merged once, so counts were raised again: switchboard 22/22 and 61 rows, observation group 22, every positional registry assertion +1 more. `experiments/readout-rules-in-prompt.json` (pending, unapproved, not queued) gains `"script-line-presence-v1": false` at the end of its incumbent, because its own test requires the incumbent to name every registry switch in order. Gates after the merge: agent 1444 tests, viewer 821, pytest 2133 passed; coverage agent 97.75 / 94.62 / 98.01 / 99.09, viewer 95.19 / 90.64 / 93.55 / 97.65, Python lines 97.14 / branches 92.80 / functions 100; lint clean (mypy via the main venv: no issues in 75 files); build ok; schema regenerated; verify-vendor OK; pages-check silent; both experiment entries parse.
+- [ ] Merge into main
 
 ## Session Log
 - 2026-10-16 03:05 AM EDT: worklog drafted; fixture extracted from the live run (read-only).
 - 2026-10-16 03:06 AM EDT: main fast-forwarded to bebb98c3 (adjacent-tiles) before RED.
 - 2026-10-16 03:15 AM EDT: GREEN and gates.
-- 2026-10-16 03:30 AM EDT: explainer, pending experiment, readiness line.
+- 2026-10-16 03:18 AM EDT: explainer, pending experiment, readiness line.
+- 2026-10-16 03:27 AM EDT: merged main f46346a3 into the branch; gates green.

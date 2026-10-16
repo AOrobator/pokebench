@@ -35,6 +35,10 @@ describe("experiment queue view", () => {
     expect(renderQueue(payload, "all", new Set()).queue.startsWith('<section class="eq-fixed"')).toBe(true);
     expect(renderQueue(payload, "pending", new Set()).queue).toContain("2 / 140 done");
     expect(() => queueSnapshotOf({ ...SNAPSHOT, fixedRuns: [{ experiment: 1 }] })).toThrow("malformed /api/experiments fixedRuns");
+    // The current-run plates read lane id, GPU, arm and run, so each lane is checked too.
+    const lane = { id: "A", gpu: "GPU1", port: 8075, state: "running", reason: "", slot: 1, arm: "bundle", phase: "trial", run: "r1", since: "", retryAt: null, lastError: null, valid: 0, total: 2 };
+    expect(queueSnapshotOf({ ...SNAPSHOT, fixedRuns: [{ ...fixed, lanes: [lane, { ...lane, arm: null, run: null }] }] }).fixedRuns?.[0]?.lanes).toHaveLength(2);
+    for (const bad of [{ ...lane, id: 1 }, { ...lane, gpu: null }, { ...lane, arm: 3 }, { ...lane, run: {} }, "lane"]) expect(() => queueSnapshotOf({ ...SNAPSHOT, fixedRuns: [{ ...fixed, lanes: [bad] }] })).toThrow("malformed /api/experiments fixedRuns");
   });
 
   it("validates the /api/experiments payload", () => {
@@ -229,6 +233,33 @@ describe("experiment queue view", () => {
     await new Promise((r) => setTimeout(r, 0));
     expect(sent.at(-1)).toEqual(["POST", "/api/experiments/elev/revoke"]);
     expect(asked.at(-1)).toContain("The trial already running finishes");
+  });
+
+  it("hands every verified snapshot, and only verified ones, to a listener such as the current-run plates", async () => {
+    document.body.innerHTML = readFileSync(join(import.meta.dirname, "../static/index.html"), "utf8").replace(/<script[^>]*><\/script>|<link[^>]*>/g, "");
+    const root = document.querySelector<HTMLElement>('[data-ui="experiment-queue"]');
+    if (root === null) throw new Error("page is missing the queue");
+    const seen: unknown[] = []; let reply: unknown = SNAPSHOT;
+    const panel = new QueuePanel(root, { fetchJson: () => Promise.resolve(reply), problem: () => undefined, loaded: (s) => { seen.push(s); } });
+    await panel.load(); expect(seen).toEqual([SNAPSHOT]);
+    reply = { nonsense: true }; await panel.load(); expect(seen).toHaveLength(1);
+  });
+
+  it("tells the listener when a load fails, and hands it the snapshots that approve, revoke and finals actions return", async () => {
+    document.body.innerHTML = readFileSync(join(import.meta.dirname, "../static/index.html"), "utf8").replace(/<script[^>]*><\/script>|<link[^>]*>/g, "");
+    const root = document.querySelector<HTMLElement>('[data-ui="experiment-queue"]');
+    if (root === null) throw new Error("page is missing the queue");
+    const gate: GateView = { experiment: "full", title: "Gate", state: "held", reason: "", source: "cohort", finals: { runsPerArm: 1, maxWallMs: 1, target: null }, finalists: [], ranking: [], trials: [], winner: null, decision: null };
+    const withGate = { ...SNAPSHOT, gate: [gate] }, events: string[] = []; let fail = true;
+    const panel = new QueuePanel(root, {
+      fetchJson: () => fail ? Promise.reject(new Error("offline")) : Promise.resolve(withGate), problem: () => undefined,
+      sendJson: (_method, url) => Promise.resolve({ ...withGate, problems: [url] }), confirm: () => true,
+      loaded: (s) => { events.push(`loaded ${s.problems.join("")}`); }, unavailable: () => { events.push("unavailable"); },
+    });
+    await panel.load(); expect(events).toEqual(["unavailable"]);
+    fail = false; await panel.load(); expect(events.at(-1)).toBe("loaded bad.json: Invalid experiment");
+    await panel.act("elev", "approve"); expect(events.at(-1)).toBe("loaded /api/experiments/elev/approve");
+    await panel.finals("full", true); expect(events.at(-1)).toBe("loaded /api/experiments/full/finals-withdraw");
   });
 
   it("explains a failed load inside the queue instead of loading forever", async () => {

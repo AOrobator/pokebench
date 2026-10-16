@@ -134,6 +134,13 @@ Report per switch: id, model-facing before/after excerpts from this run, precisi
 - 2026-10-16 09:20 AM EDT: merged main 08fadf73 (script-line-presence-v1). Same resolution (scripted): main's side of 22 files, both switches re-appended after script-line-presence-v1, end-relative asserts +2, battle-text key-order asserts `.at(-5)`, explainer mapping and belief_ledger text re-added, experiment incumbents regenerated (ok, 61). `serial-comparison.test.ts` (real filesystem lock) failed once under the full run and passes alone 2/2; pre-existing, untouched. Gates: agent 1570 tests 97.95/94.36/98.34/99.13; viewer 870 tests 95.36/90.97/93.57/97.71; Python 2235 passed 97.29/93.10/100; lint clean (TS/eslint). COMMIT (1edb1aaa).
 - 2026-10-16 09:30 AM EDT: merged main 115c3bfc (viewer workbench off-thread loading; viewer-only, no conflicts). Viewer 880 tests pass.
 
+### Round 6 (cumulative main 115c3bfc..704d7258 excluding the fixture, SHA-256 6966b15d…50ce; fix delta 67799193..e2c3c589, SHA-256 7c901b55…620a)
+
+- Codex: BLOCKING: trailing qualifiers ("…at (7,7), I think." / ", apparently." / ", under the table in her house.") and a later retraction in the same reply ("Actually, the readout says he isn't here") still make claims. Non-blocking: the experiment notes say 206 deliveries (205 now).
+- Grok: BLOCKING: a comma before the place word ("May is at (14,8), in her house.") defeats the after-tile check.
+- Claude CLI: BLOCKING: same (comma, dash, bracket, "back in the lab"); non-blocking: "earlier, but he left".
+- Accepted: the claim must end at the tile (only "." or "!" may follow it), and a claim is dropped when the same reply names the character in any sentence with a negation or hedge. This also drops T124's "Professor Birch is at (9,8) and the scientist is at (9,9)." (the entry keeps T125). Experiment notes corrected. 2026-10-16 10:05 AM EDT round-6 RED: 1 failing test.
+
 ## Surprises
 
 - The twin's coordinate trigger leaves the player at (11,1) with field controls locked and no message; the push back to (11,2) happens on the next press. A state-equality rule over one decision never sees this loop; a two-state rule does.

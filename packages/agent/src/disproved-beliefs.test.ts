@@ -274,6 +274,13 @@ describe("leaving the ledger and never clipping",()=>{
   expect(locatingClaims("I moved. The Prof. Birch is at (7,7).","PROF. BIRCH")).toEqual(["The Prof. Birch is at (7,7)."]);
   expect(locatingClaims("Professor Birch is standing at (7,8).","PROF. BIRCH")).toEqual(["Professor Birch is standing at (7,8)."]);
  });
+ it("ends the claim at the tile, and drops it when the same reply names the character in a negated sentence (review round 6)",()=>{
+  for(const s of ["Professor Birch is at (7,7), I think.","Professor Birch is at (7,7), apparently.","Prof. Birch is at (7,7), in his lab.","Prof. Birch is at (7,7) (in his lab).","Prof. Birch is at (7,7) back in the lab.","Prof. Birch is at (7,7) earlier, but he left.","Professor Birch is at (9,8) and the scientist is at (9,9)."])expect(locatingClaims(s,"PROF. BIRCH")).toEqual([]);
+  for(const s of ["May is at (14,8), in her house.","May is at (14,8), under the table in her house."])expect(locatingClaims(s,"MAY")).toEqual([]);
+  for(const s of ["Mom is at (8,2), upstairs.","Mom is at (8,2) — downstairs."])expect(locatingClaims(s,"MOM")).toEqual([]);
+  expect(locatingClaims("Professor Birch is at (7,7). Actually, the readout says Professor Birch isn't here, so I will leave.","PROF. BIRCH")).toEqual([]);
+  expect(locatingClaims("Professor Birch is at (7,7). I will walk to (7,8) and face up.","PROF. BIRCH")).toEqual(["Professor Birch is at (7,7)."]);
+ });
  it("accepts only the present tense straight to the tile, with no place after it (review round 5)",()=>{
   for(const s of ["Professor Birch, I think, is at (7,7).","Professor Birch, the professor, is standing at (7,8).","Professor Birch is apparently at (7,7).","Prof. Birch was at (7,7) in his lab.","Professor Birch is standing next to the red carpet at (7,8)."])expect(locatingClaims(s,"PROF. BIRCH")).toEqual([]);
   for(const s of ["May is in her house at (14,8).","May is at (14,8) in her house."])expect(locatingClaims(s,"MAY")).toEqual([]);

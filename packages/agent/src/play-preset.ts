@@ -2,7 +2,7 @@ import {createHash} from "node:crypto";
 import {resolve} from "node:path";
 import {Type,type Static} from "typebox";
 import {Value} from "typebox/value";
-import {MILESTONES} from "./milestones.js";
+import {MEASUREMENT_ONLY_MILESTONES,MILESTONES} from "./milestones.js";
 import {ALL_ON,SWITCHABLE_FEATURES,dependencyProblems,stateOnlyProblems,type FeatureSet} from "./features.js";
 const closed={additionalProperties:false} as const;
 const positive=Type.Integer({minimum:1});
@@ -63,6 +63,7 @@ export function parsePlayPreset(value:unknown):PlayPreset{
  if(!Value.Check(schema,value)){const [first]=Value.Errors(schema,value);throw new Error(`Invalid play preset: ${first?.instancePath ?? ""} ${first?.message ?? "schema mismatch"}`);}
  const preset:PlayPreset=v2?{...value,features:normalizeFeatures(value.features)}:value;
  if(preset.target!==null&&!MILESTONES.some(item=>item.name===preset.target&&item.kind!=="legacy"))throw new Error(`Invalid play preset: target ${preset.target} is not a native milestone`);
+ if(preset.target!==null&&MEASUREMENT_ONLY_MILESTONES.has(preset.target))throw new Error(`Invalid play preset: target ${preset.target} is measurement-only; a target is written into the model's goal`);
  if(preset.version===2){const problems=[...dependencyProblems(preset.features),...stateOnlyProblems(preset.features)];if(problems.length>0)throw new Error(`Invalid play preset: ${problems.join("; ")}`);}
  return preset;
 }

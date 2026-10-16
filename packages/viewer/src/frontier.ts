@@ -10,6 +10,7 @@ export const FRONTIER_MILESTONES = [
   { id: "MOM_CLOCK_INSTRUCTION", label: "Clock instruction" },
   { id: "PLAYER_BEDROOM", label: "Your bedroom" },
   { id: "CLOCK_SET", label: "Clock set" },
+  { id: "PLAYER_BEDROOM_EXITED_AFTER_CLOCK", label: "Leave bedroom" },
   { id: "MOM_RIVAL_INSTRUCTION", label: "Rival instruction" },
   { id: "PLAYER_HOUSE_EXITED_AFTER_CLOCK", label: "Leave home" },
   { id: "RIVAL_HOUSE_ENTERED", label: "Rival house" },
@@ -73,7 +74,7 @@ export function milestoneStatus(run: WorkbenchRun, name: string): "reached" | "u
   if (run.excluded !== null || run.problem !== null) return "excluded";
   if (run.splits.some(s => s.name === name)) return "reached";
   const features = run.measurement?.features;
-  const required = name === "BIRCH_RESCUE_REQUESTED" ? "birch-rescue-requested-v1" : name === "RIVAL_HOUSE_EXITED" ? "rival-house-exit-v1" : name === "ROUTE_101_AFTER_HANDOFF" ? "route-101-after-handoff-v1" : name.startsWith("RUSTBORO_GYM_TRAINER_") ? "rustboro-gym-trainer-milestones-v1" : name === "NEW_GAME_CREATED" ? "new-game-created-v1" : name === "ROXANNE_DEFEATED" ? "native-progress-activity-v1" : ["PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_BEDROOM_REACHED"].includes(name) ? "post-clock-navigation-milestones-v1" : name === "CLOCK_SET" ? "clock-milestone-v1" : ["LITTLEROOT_TOWN", "PLAYER_HOUSE_ENTERED", "PLAYER_BEDROOM", "ROUTE_101", "OLDALE_TOWN", "ROUTE_103", "ROUTE_102", "PETALBURG_CITY", "ROUTE_104", "PETALBURG_WOODS", "RUSTBORO_CITY", "RUSTBORO_CITY_GYM", "STONE_BADGE"].includes(name) ? "ram-state-v1" : "story-milestones-v2";
+  const required = name === "BIRCH_RESCUE_REQUESTED" ? "birch-rescue-requested-v1" : name === "RIVAL_HOUSE_EXITED" ? "rival-house-exit-v1" : name === "ROUTE_101_AFTER_HANDOFF" ? "route-101-after-handoff-v1" : name === "PLAYER_BEDROOM_EXITED_AFTER_CLOCK" ? "bedroom-exit-v1" : name.startsWith("RUSTBORO_GYM_TRAINER_") ? "rustboro-gym-trainer-milestones-v1" : name === "NEW_GAME_CREATED" ? "new-game-created-v1" : name === "ROXANNE_DEFEATED" ? "native-progress-activity-v1" : ["PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_BEDROOM_REACHED"].includes(name) ? "post-clock-navigation-milestones-v1" : name === "CLOCK_SET" ? "clock-milestone-v1" : ["LITTLEROOT_TOWN", "PLAYER_HOUSE_ENTERED", "PLAYER_BEDROOM", "ROUTE_101", "OLDALE_TOWN", "ROUTE_103", "ROUTE_102", "PETALBURG_CITY", "ROUTE_104", "PETALBURG_WOODS", "RUSTBORO_CITY", "RUSTBORO_CITY_GYM", "STONE_BADGE"].includes(name) ? "ram-state-v1" : "story-milestones-v2";
   if (features === undefined || !features.includes(required)) return "unsupported";
   return run.status === "ended" ? "not reached" : run.status === "live" || run.status === "paused" ? "pending" : "censored";
 }

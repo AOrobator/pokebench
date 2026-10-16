@@ -272,7 +272,13 @@ describe("leaving the ledger and never clipping",()=>{
  it("accepts only a sentence that opens with the name as the subject of is/stands at a tile (review round 4)",()=>{
   for(const s of ["I doubt Professor Birch is at (7,7).","There is no evidence Professor Birch is at (7,7).","It is false that Professor Birch is at (7,7).","Suppose Professor Birch is at (7,7).","I will go to Professor Birch at (4,13)."])expect(locatingClaims(s,"PROF. BIRCH")).toEqual([]);
   expect(locatingClaims("I moved. The Prof. Birch is at (7,7).","PROF. BIRCH")).toEqual(["The Prof. Birch is at (7,7)."]);
-  expect(locatingClaims("Professor Birch, the professor, is standing at (7,8).","PROF. BIRCH")).toEqual(["Professor Birch, the professor, is standing at (7,8)."]);
+  expect(locatingClaims("Professor Birch is standing at (7,8).","PROF. BIRCH")).toEqual(["Professor Birch is standing at (7,8)."]);
+ });
+ it("accepts only the present tense straight to the tile, with no place after it (review round 5)",()=>{
+  for(const s of ["Professor Birch, I think, is at (7,7).","Professor Birch, the professor, is standing at (7,8).","Professor Birch is apparently at (7,7).","Prof. Birch was at (7,7) in his lab.","Professor Birch is standing next to the red carpet at (7,8)."])expect(locatingClaims(s,"PROF. BIRCH")).toEqual([]);
+  for(const s of ["May is in her house at (14,8).","May is at (14,8) in her house."])expect(locatingClaims(s,"MAY")).toEqual([]);
+  expect(locatingClaims("Mom is downstairs at (8,2).","MOM")).toEqual([]);
+  expect(locatingClaims("Prof. Birch is at (9,8) and the scientist is at (9,9).","PROF. BIRCH")).toEqual(["Prof. Birch is at (9,8) and the scientist is at (9,9)."]);
  });
  it("binds a navigate_to push-back to the last step the walk sent (review round 4)",()=>{
   const l=new DisprovedBeliefs(ALL_ON);

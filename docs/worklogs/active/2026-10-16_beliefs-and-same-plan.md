@@ -124,6 +124,13 @@ Report per switch: id, model-facing before/after excerpts from this run, precisi
 - 2026-10-16 08:00 AM EDT round-4 GREEN: a claim is a plain assertion: the sentence opens with the name (or "The" and the name) as its subject, then is/stands/sits/waits/was (an appositive between commas allowed), then at (x,y); a navigate_to push-back needs the walk's last sent direction to be the direction pushed back; an overworld state whose active_ui has a diagnostic or is not ready withholds the same-plan note. Description and explainer updated. Full-run replay unchanged: 4 entries (all true), 206 deliveries; 28 same-plan notes. Gates: agent 1541 tests 97.94/94.29/98.33/99.12; viewer 868 tests 95.36/90.97/93.57/97.71; Python 2209 passed 97.26/93.01/100; lint clean (TS/eslint); pages-check silent. COMMIT (ef0c6be9).
 - 2026-10-16 08:15 AM EDT: merged main 48d6b48f (battle-message-waiting-v1). Same resolution: main's side of 20 files; both switches re-appended after battle-message-waiting-v1 in the registry, presets (normalize and flag defaults), DEFAULT_NEXT_RUN and test lists; FEATURE_EXPLAINERS and the belief_ledger Activity History text re-added in panels.ts; end-relative asserts +2; battle-text's key-order asserts `.at(-4)`; experiment incumbents regenerated (`experiment-cli check`: ok, 60). Gates: agent 1546 tests 97.94/94.29/98.33/99.12; viewer 869 tests 95.36/90.97/93.57/97.71; Python 2234 passed 97.29/93.10/100; lint clean (TS/eslint).
 
+### Round 5 (cumulative main 48d6b48f..67799193 excluding the fixture, SHA-256 c7c0ea42…b07b; fix delta 4aa7c8d3..ef0c6be9, SHA-256 691c96ed…270d)
+
+- Grok: LGTM.
+- Codex: BLOCKING: "Professor Birch, I think, is at (7,7)." and "Professor Birch is apparently at (7,7)." pass (comma phrase and anything between the verb and "at"). Non-blocking: cite the button_press seqs behind a push-back's direction.
+- Claude CLI: BLOCKING: "Prof. Birch was at (7,7) in his lab.", "May is in her house at (14,8).", "Mom is downstairs at (8,2)." pass and would be false entries.
+- Accepted: the verb must be is/stands/sits/waits, optionally followed by standing/sitting/waiting, then directly "at (x,y)"; no comma phrase; nothing placing the character elsewhere right after the tile (in, inside, on, upstairs, downstairs, outside, behind, near, next, of). This drops T81's "standing next to the red carpet at (7,8)" (a true claim; the entry still forms from T82). Push-back evidence adds the button_press seqs. 2026-10-16 08:50 AM EDT round-5 RED: 1 failing test.
+
 ## Surprises
 
 - The twin's coordinate trigger leaves the player at (11,1) with field controls locked and no message; the push back to (11,2) happens on the next press. A state-equality rule over one decision never sees this loop; a two-state rule does.

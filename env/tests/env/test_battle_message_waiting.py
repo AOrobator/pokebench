@@ -168,23 +168,23 @@ def test_real_ram_pages_from_the_showcase_battle() -> None:
     assert page("00007765.json.gz") is None  # healthbox name in the buffer, printer idle
 
 
-def raw_page(raw: bytes, cursor: int) -> str:
-    return bt.page_text(raw + b"\xff", cursor)
+def raw_page(raw: bytes, cursor: int, *, waiting: bool = False) -> str:
+    return bt.page_text(raw + b"\xff", cursor, waiting=waiting)
 
 
 def test_a_page_is_the_text_since_the_window_was_last_cleared_up_to_its_wait() -> None:
     two = encode("One") + b"\xfb" + encode("Two") + b"\xfb"
-    assert raw_page(two, 4) == "One"  # waiting on the first \p
+    assert raw_page(two, 4, waiting=True) == "One"  # waiting on the first \p
     assert raw_page(two, 6) == "Two"  # printing the second page: the whole page
-    assert raw_page(two, 8) == "Two"  # waiting on the second \p
+    assert raw_page(two, 8, waiting=True) == "Two"  # waiting on the second \p
     scroll = encode("A") + b"\xfe" + encode("B") + b"\xfa" + encode("C") + b"\xfb"
-    assert raw_page(scroll, 4) == "A B"  # \l scrolls; the window is not cleared
+    assert raw_page(scroll, 4, waiting=True) == "A B"  # \l scrolls; the window is not cleared
     assert raw_page(scroll, 6) == "A B C"
     press = encode("X") + b"\xfc\x09" + encode("Y")
-    assert raw_page(press, 3) == "X"  # FC 09 waits for a press
+    assert raw_page(press, 3, waiting=True) == "X"  # FC 09 waits for a press
     assert raw_page(press, 4) == "XY"  # the text goes on after the press on the same line
     # A colour control whose argument byte is FB is not a page break.
-    assert raw_page(b"\xfc\x01\xfb" + encode("Hi") + b"\xfb", 6) == "Hi"
+    assert raw_page(b"\xfc\x01\xfb" + encode("Hi") + b"\xfb", 6, waiting=True) == "Hi"
     # A message that closes on its own: the page runs to the end.
     assert raw_page(encode("TORCH used") + b"\xfe" + encode("SCRATCH!"), 3) == "TORCH used SCRATCH!"
 
@@ -335,9 +335,9 @@ def test_page_text_needs_the_terminated_payload() -> None:
     with pytest.raises(ValueError, match="unknown text control"):
         bt.page_text(encode("Hi") + b"\xfc", 1)
     # F9 glyphs are two bytes.
-    assert bt.page_text(encode("A") + b"\xf9\x00" + b"\xfb\xff", 4) == "A" + bt.decode_battle_text(
-        b"\xf9\x00"
-    )
+    assert bt.page_text(
+        encode("A") + b"\xf9\x00" + b"\xfb\xff", 4, waiting=True
+    ) == "A" + bt.decode_battle_text(b"\xf9\x00")
     assert bt.page_text(encode("Hi") + b"\xff", 0) == "Hi"
     assert Memory  # the synthetic layout is shared with test_battle_text
 
@@ -401,3 +401,21 @@ def test_a_reader_diagnostic_is_shown_unless_another_owner_holds_the_battle() ->
     # A printing page while the detector reads a wait (or a prompt still drawing) says nothing.
     printing = bt.BattleMessage("printing", "printing", "x", 3, "i", None, "Hi!")
     assert message_clause(replace(BASE, message=printing, text_phase="message_waiting")) is None
+
+
+def test_a_wait_the_player_already_answered_is_not_the_page() -> None:
+    """Review round 3: after A/B on a page, text.c clears the window (RENDER_STATE_CLEAR) and
+    goes back to printing with the cursor still just past the wait byte for the per-character
+    delay (1-8 frames). The page is then the next one, not the cleared one."""
+    two = encode("One") + b"\xfb" + encode("Two") + b"\xfb"
+    assert raw_page(two, 4) == "Two"  # state 0, cursor just past the answered \p
+    assert raw_page(two, 4, waiting=True) == "One"  # state 2, still waiting on it
+    scroll = encode("A") + b"\xfe" + encode("B") + b"\xfa" + encode("C") + b"\xfb"
+    assert raw_page(scroll, 4) == "A B C"  # \l answered, scrolling (state 4)
+    press = encode("X") + b"\xfc\x09" + encode("Y")
+    assert raw_page(press, 3) == "XY"  # FC 09 answered
+    m = Memory()
+    m.message(two + b"\xff", 4, state=0)
+    assert bt.read_battle_message(m.read).page == "Two"
+    m.message(two + b"\xff", 4, state=2)
+    assert bt.read_battle_message(m.read).page == "One"

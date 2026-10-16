@@ -48,4 +48,3 @@ No harness behavior change, so no feature switch.
 **M4: review and land**
 - [ ] Claude, Grok and GPT LGTM on one frozen packet; merge slot from the coordinator (not :40–:55); ff-only
 - [ ] `just trainer-card-art` into the main checkout's runs/; restart through the coordinator; live check
-- M2 RED committed before GREEN

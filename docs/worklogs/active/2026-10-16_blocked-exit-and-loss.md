@@ -156,3 +156,6 @@ Report per item: switch id, before/after excerpts, measurements, tests and cover
 ## Archive Milestone (user-gated)
 
 - [ ] ASK USER: archive this worklog
+
+- 2026-10-16 08:22 AM EDT: Review round 7 (b9f09e12..79bcaae5, packet sha256 ba3bebed…9d5): Claude sub-agent LGTM, Grok cursor-grok-4.5-high LGTM, Codex gpt-5.6-sol LGTM.
+- 2026-10-16 08:22 AM EDT: LANDED: main fast-forwarded to 79bcaae56d6c66921bd058e6be0bcd1477e696e7. On main after `just build`: agent 1781 (runs-cli timeout flake passed on rerun), viewer 928, pytest green. Three experiments repinned.

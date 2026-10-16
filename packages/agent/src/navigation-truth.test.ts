@@ -77,6 +77,20 @@ describe("navigation-truth-v1: talk offers only for objects with a script (sh02 
   expect(off).toContain("(2,1) is a person or object, which navigate_to cannot stand on; to talk to it or use it, walk to one of these free tiles, face it and press A: ");
   expect((await walk(state,{x:2,y:1},TRUTH)).status).toBe(off);
  });
+ it("the background event under a scriptless object answers only at its elevation and facing (GetBackgroundEventAtPosition, GetInteractedBackgroundEventScript)",async()=>{
+  const item=ascii(["...","@..","..."]);
+  const bg=(kind:string,elevation:number,facing:string|null):GameStateSnapshot=>({...item,navigation_grid:{...gridOf(item),objects:[{x:2,y:1}]},world_context:{...contextOf(item),objects:[{local_id:2,map_id:[0,9],graphics_id:7,sprite_kind:"BOY_1",x:2,y:1}]},interaction_targets:[{kind,x:2,y:1,elevation,activation:"A",availability:"conditional",facing,local_id:null,destination:null,name:null}]});
+  const OFFER="(2,1) is a person or object, which navigate_to cannot stand on; to talk to it or use it, walk to one of these free tiles, face it and press A: (2,0) facing DOWN; (2,2) facing UP; (1,1) facing RIGHT";
+  const NONE="(2,1) is a person or object (sprite BOY_1), which navigate_to cannot stand on; it has no script, so facing it and pressing A does not talk to it or use it";
+  // A hidden item at elevation 4 while every stand is at 3: A finds nothing.
+  expect((await walk(bg("hidden_item",4,null),{x:2,y:1},CONTROL)).status).toBe(OFFER);
+  expect((await walk(bg("hidden_item",4,null),{x:2,y:1},TRUTH)).status).toBe(NONE);
+  // Elevation 0 answers any elevation.
+  expect((await walk(bg("hidden_item",0,null),{x:2,y:1},TRUTH)).status).toBe(OFFER);
+  // A sign read facing up: only the stand below it.
+  expect((await walk(bg("background",3,"up"),{x:2,y:1},CONTROL)).status).toBe(OFFER);
+  expect((await walk(bg("background",3,"up"),{x:2,y:1},TRUTH)).status).toBe("(2,1) is a person or object, which navigate_to cannot stand on; to talk to it or use it, walk to one of these free tiles, face it and press A: (2,2) facing UP");
+ });
  it("stacked objects: A reaches only the object at the player's elevation (Route 120 Kecleon (12,16): scripted at 4, a scriptless shadow at 3)",async()=>{
   const base=ascii(["...","@..","..."]);
   const kecleon={kind:"object",x:2,y:1,elevation:4,activation:"A",availability:"available",facing:null,local_id:1,destination:null,name:"KECLEON"};

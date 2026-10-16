@@ -41,6 +41,8 @@ code { font-size:13px; }
 <tr><td>Back in Littleroot<br><code>LITTLEROOT_AFTER_RIVAL_BATTLE</code></td><td>The same witness, then Route 101 and Littleroot at lab 4</td><td>Later trips</td></tr>
 </table></div>
 <p>Each split fires once per run, at its first qualifying state. Loading and unknown screens are never used as evidence.</p>
+<p><b>Rival battle starts</b> marks reaching the battle, so it also counts a battle the player then loses. A rematch after a loss gives no second credit. Winning is <b>Rival beaten</b>, which the game sets only on a win (<code>CB2_EndTrainerBattle</code>).</p>
+<p>A run's furthest milestone can now be one of these splits. They sit between <code>RIVAL_BATTLE_WON</code> and <code>RECEIVED_POKEDEX</code>, so compare furthest milestones against older runs with that in mind.</p>
 
 <h2>Where the data comes from</h2>
 <div class="card"><table>
@@ -55,5 +57,5 @@ code { font-size:13px; }
 <p>The viewer derives <b>Route 101, heading back</b> and <b>Back in Littleroot</b> from recorded Birch lab states for runs that predate the feature. The other three need the new reader field, so older runs show them as not recorded.</p>
 
 <h2>Status</h2>
-<p>Branch <code>claude/rival-route103-splits</code>. Python, agent and viewer tests pass. Reviews and the merge are still pending, and no measured run has recorded the new field yet.</p>
+<p>Landed on main at <code>3307db77</code> after Claude, Grok and Codex review, with the fixture fix at <code>2cb0e316</code>. No measured run had recorded the new field when this was written.</p>
 </main></body></html>

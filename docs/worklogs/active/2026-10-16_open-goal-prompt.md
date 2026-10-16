@@ -90,3 +90,4 @@ Zero FAIL rows.
   - Pin: source.commit moved to d2613ced (the GREEN fix commit: wiring plus this entry as reviewed). The pin is repinned to the merge SHA after landing with `just experiment-pin`.
 - [x] Main moved to 986cb496 (frontier legend); merged before round 2 (gates below).
   Gates on the merged tip (986cb496 merged): build ok; test agent 1893/1893, viewer 1006/1006, pytest 2465; coverage agent 97.99/94.7/98.4/99.14, viewer 95.57/91.33/93.97/97.75, python 97.52/93.55/100 (floor 90); lint clean after removing unused destructured names in the new viewer test (mutations of the start SHA-1 and of a bundle feature still turn it red); experiments-check ok (79); pages-check clean; scan.py check 0 drifted.
+- [x] Main moved to 85d0ef48 (docs-only: run-analysis worklog archive, 1 file); merged before sealing round 2. Gates above stand: the merge adds no code.

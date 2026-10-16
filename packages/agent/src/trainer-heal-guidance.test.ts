@@ -9,12 +9,12 @@ import {BATTLE_TRIAGE_SECTION,TRAINER_HEAL_SECTION,objectiveSwitches,playSystemP
 import {flagFeatures,normalizeFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 
 const ID="trainer-heal-guidance-v1";
-const PREVIOUS="same-plan-breaker-v1";
+const PREVIOUS="levelup-box-v1";
 const RUN54A7=JSON.parse(readFileSync(new URL("../test-support/trainer-heal-54a7.json",import.meta.url),"utf8")) as {harness_features:string[];system_prompt:string};
 const BUNDLE:FeatureSet=featuresOf(RUN54A7.harness_features);
 const with_=(features:FeatureSet,value:boolean):FeatureSet=>({...features,[ID]:value});
 
-it("is a default-off agent-side guidance switch recorded right after same-plan-breaker-v1",()=>{
+it("is a default-off agent-side guidance switch recorded right after levelup-box-v1",()=>{
  expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:null,switchable:true,title:"TRAINER HEAL GUIDANCE"});
  expect(featureInfo(ID).description).toContain(" Off: ");
  expect(featureInfo(ID).description).toContain(TRAINER_HEAL_SECTION);

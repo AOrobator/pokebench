@@ -4652,6 +4652,108 @@
                     }
                   ]
                 },
+                "levelup_box": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "state",
+                        "page",
+                        "waiting",
+                        "party_slot",
+                        "labels",
+                        "before",
+                        "after",
+                        "text",
+                        "diagnostic"
+                      ],
+                      "properties": {
+                        "state": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 255
+                        },
+                        "page": {
+                          "anyOf": [
+                            {
+                              "type": "number",
+                              "const": 1
+                            },
+                            {
+                              "type": "number",
+                              "const": 2
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "waiting": {
+                          "type": "boolean"
+                        },
+                        "party_slot": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 5
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "labels": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "maxItems": 6
+                        },
+                        "before": {
+                          "type": "array",
+                          "items": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "maxItems": 6
+                        },
+                        "after": {
+                          "type": "array",
+                          "items": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "maxItems": 6
+                        },
+                        "text": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "diagnostic": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
                 "playback": {
                   "anyOf": [
                     {

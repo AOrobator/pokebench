@@ -63,3 +63,5 @@ Game grounding (pret/pokeemerald 731ad5bf): Route 103 rival script `data/maps/Ro
 - Grok (cursor-grok-4.5-high): VERDICT: LGTM. Non-blocking: same re-arm test gap.
 - GPT (cursor gpt-5.6-sol-xhigh): no review, Cursor usage limit ("You've hit your usage limit", resets 10/17). Harness switch to isolated Codex for round 2.
 - Accepted and fixed in one batch: amount lost is m - floor(m/2); tests for odd money and re-arm after the rival battle is won. Gates re-run green (vitest 1643 + 907, pytest 2270, coverage ≥90). Round 2 re-reviews the cumulative packet on all three lanes.
+
+- Synced with main 411e097d (levelup-box-v1): registry re-applied after levelup-box-v1, legacy tests reset to main and re-bumped (guidance 34, guard 14, switchboard rows 75).

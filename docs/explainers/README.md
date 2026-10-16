@@ -59,5 +59,6 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Off-screen people and objects](offscreen-objects-v1.html)
 - [navigate_to first prompting](navigate-first-prompt-v1.html)
 - [Presence penalty 1.5](presence-penalty-v1.html)
+- [Level-up stats box](levelup-box-v1.html)
 - [Trainer heal guidance](trainer-heal-guidance-v1.html)
 - [Low-HP trainer warning](low-hp-trainer-warning-v1.html)

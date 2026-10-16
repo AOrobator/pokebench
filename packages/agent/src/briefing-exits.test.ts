@@ -132,7 +132,9 @@ describe("exit history",()=>{
   const near=[...Array.from({length:12},(_,i)=>warp(60+i,1,[0,9,0])),warp(45,3,[24,24,20]),warp(45,5,[24,24,12])];
   const h=new ExitHistory();
   h.observe(place([24,24],45,4,near));
-  expect(h.observe(place([24,24],45,3,near)).map(m=>m.tile)).toEqual(["45,5","45,3"]);
+  // Landing on warp 12 is not using it: warp 12 leads to warp 9, another exit (review round 3).
+  expect(h.observe(place([24,24],45,3,near)).map(m=>m.tile)).toEqual(["45,5"]);
+  expect(h.taken("24/24",45,3)).toBe(false);
   // One press batch is recorded as two states: DOWN×4 from beside a pad, ending beside another, uses neither.
   const b=new ExitHistory();
   b.observe(place([24,24],3,4,[warp(3,3,[24,24,1]),warp(3,9,[24,24,0])]));
@@ -141,6 +143,20 @@ describe("exit history",()=>{
   const d=new ExitHistory();
   d.observe(place([24,24],3,4,[warp(3,3,[127,127,0])]));
   expect(d.observe(place([24,24],3,8,[warp(3,3,[127,127,0])]))).toEqual([]);
+ });
+
+ it("between two stairs one tile apart, takes only the one whose destination the player arrived at (review round 3)",()=>{
+  // pokeemerald MtPyre_4F: stairs at (12,10) and (12,12) lead to different 5F warps; the player stands between them.
+  const F4=[warp(12,10,[24,5,0]),warp(12,12,[24,5,1])];
+  const F5=[warp(12,10,[24,4,0]),warp(20,20,[24,4,1])];
+  const h=new ExitHistory();
+  h.observe(place([24,4],12,11,F4));
+  expect(h.observe(place([24,5],12,10,F5)).map(m=>`${m.map} ${m.tile}`)).toEqual(["24/4 12,10","24/5 12,10"]);
+  expect(h.taken("24/4",12,12)).toBe(false);
+  // No arrival evidence and two different destinations next to the start: nothing is marked.
+  const g=new ExitHistory();
+  g.observe(place([24,4],12,11,F4));
+  expect(g.observe(place([24,5],5,5,F5))).toEqual([]);
  });
 
  it("counts a map connection crossed only when no warp explains the change, and ignores loads, battles and unstarted states",()=>{

@@ -42,7 +42,7 @@ it("says talking is cheap only when dialogue auto-advance reads conversations fo
  const auto={...PLAIN,"dialogue-auto-advance-v1":true};
  expect(playSystemPrompt({...auto,[ID]:true},null)).toBe(`${playSystemPrompt(auto,null)}\n\n${EXPLORER_GUIDANCE_SECTION} ${EXPLORER_TALK_IS_CHEAP}`);
  expect(playSystemPrompt({...PLAIN,[ID]:true},null)).not.toContain(EXPLORER_TALK_IS_CHEAP);
- expect(EXPLORER_TALK_IS_CHEAP).toBe("Talking is cheap: face the person and press A; the harness reads the conversation to its end.");
+ expect(EXPLORER_TALK_IS_CHEAP).toBe("Talking is cheap: face the person and press A; the harness reads the conversation until your next decision.");
 });
 
 it("tells the model to talk to people, again after the story moves, and to act on what they say",()=>{

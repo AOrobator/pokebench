@@ -98,12 +98,6 @@ export function lanesSvg(view: RunView, nowMs: number, visible: readonly (typeof
       `<path class="m-milestone" d="M${f(cx)} ${f(cy - 9)}L${f(cx + 7)} ${f(cy)}L${f(cx)} ${f(cy + 9)}L${f(cx - 7)} ${f(cy)}Z"><title>${esc(milestone.name)}${milestone.derived === true ? ` · recovered · evidence ${milestone.evidence?.map(seq=>`#${String(seq)}`).join(", ") ?? `#${String(milestone.seq)}`} · first observation (upper bound)` : ""}</title></path>`,
     );
   }
-  for(const choice of view.battleChoices){
-    const ms=choice.recorded_ms;const lane=visible.indexOf("presses");
-    if(ms<t0||ms>nowMs||lane<0)continue;
-    const title=`Battle ${String(choice.battle)} turn ${String(choice.battle_turn)} · ${"species" in choice.actor?choice.actor.species:"Trainer"} chose ${choice.move?.name??choice.action} (${choice.origin}) · frame ${String(choice.frame)} · execution unobserved`;
-    parts.push(draw("m-press",2,x(ms)-2,x(ms)+3,title,0.9));
-  }
   for(const action of view.nativeActions.filter(entry=>entry.kind!=="native_input")) {
     const ms=action.server_timestamp*1000;const lane=visible.indexOf("milestones");
     if(ms<t0||ms>nowMs||lane<0)continue;

@@ -6,7 +6,7 @@ Viewer-only removal plus docs; no feature switch (viewer-only). Battle choices s
 
 ## M1
 
-- [x] RED: `battle-choices.test.ts` asserts a recorded battle choice draws nothing on either timeline (full and human `presses,milestones`) while history still shows it. Fails: the SVG contains "WATER GUN".
-- [ ] GREEN: remove the `battleChoices` loop from `timeline.ts`.
-- [ ] Docs: CLAUDE.md, agent-observability and viewer-e2e skills say the timeline gets no new marks, lanes or labels without the operator's explicit permission; diagnostics default to Activity History.
+- [x] RED: `battle-choices.test.ts` asserts a recorded battle choice draws nothing on either timeline (full and human `presses,milestones`) while history still shows it. Fails: the SVG contains "WATER GUN". COMMIT: `test(viewer): RED battle choices stay off the timeline` (e5aa2669)
+- [x] GREEN: removed the `battleChoices` loop from `timeline.ts`. Viewer: 60 files, 821 tests pass; coverage 95.19 / 90.66 / 93.55; tsc and eslint clean.
+- [x] Docs: CLAUDE.md, agent-observability and viewer-e2e skills say the timeline gets no new marks, lanes or labels without the operator's explicit permission; diagnostics default to Activity History.
 - [ ] Review (Claude, Grok, Codex; no local reviewers), land, restart viewer, live check.

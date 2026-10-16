@@ -23,6 +23,8 @@ To launch, restart or stop a fixed-N experiment (`just fixed-run`), use `.claude
 
 For viewer navigation, playback or polling interaction changes, use `.claude/skills/viewer-e2e/SKILL.md` and verify the real click through to the selected run and visible frame before claiming it works.
 
+The viewer's timeline (the TIMELINE swimlanes) is closed to additions. Never add new marks, lanes, labels or colors for new kinds of events to it without the operator's explicit permission (operator decision 2026-10-16). New diagnostics go to Activity History and the raw-event inspector. Fixing how an existing mark is drawn is still fine.
+
 ## Project overrides of the global rules
 
 - **Coverage floor is 90%**, enforced independently for lines, branches and functions in TS (vitest thresholds) and Python (`pokebench_gates.coverage_gate`) app code. This is an operator decision (2026-10-11). The floor is 90, not 95; never lower it further or widen excludes to pass.

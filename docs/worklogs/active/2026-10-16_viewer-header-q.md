@@ -19,5 +19,10 @@ Viewer only, phone widths (`max-width: 700px`, the existing phone breakpoint); t
 - [x] RED: run-list cohort; head/sheet model; phone mount moves controls and picker; sheet opens from anywhere on the header and switches runs; desktop keeps everything in the header; CSS hides old pieces on phones
 - [x] GREEN, gates: `pnpm -r build`, `pnpm -r lint`, `pnpm -r coverage` pass (viewer 945 tests; 95.36 stmts / 91.11 branches / 93.76 funcs / 97.66 lines; agent 1867). `run-head` added to `BROWSER_MODULES` so the server serves it.
 - [x] Browser proof at phone width (viewer-e2e): `runs/reviews/2026-10-16-header-q-e2e/receipt.md`. Fixed four bugs it found: `.bar button` styles turned the header white, the sheet stayed open after a picker change, disabled controls under the screen looked enabled, picker came after the link. Gates rerun: viewer 946 tests, 95.36 / 91.1 / 93.76 / 97.66.
-- [ ] Review: Claude, Grok, GPT on one frozen packet; land ff-only
+- [x] Review: Claude, Grok, GPT on one frozen packet; land ff-only
   - Round 1 (packet 572467e6): Claude LGTM, Grok LGTM, Codex BLOCKING (open sheet survives widening past 700px). Fixes: the sheet closes when the window widens; the sheet body no longer rebuilds on clock ticks (time filled in place, so WATCH buttons stay put); Escape closes; focus moves into the sheet and back to the header; non-WATCH clicks in the body are ignored. 4 new tests; gates: viewer 951 tests, 95.38 / 91.14 / 93.77 / 97.66. Browser round 2 in the receipt.
+  - Round 2 (packet 9fea8103, base f125e4f4, head 53e17fbb): Claude (subagent) LGTM, Grok (Cursor cursor-grok-4.5-high) LGTM, GPT (Codex gpt-5.6-sol; Cursor GPT out of usage until 10/17) LGTM.
+- [x] Landed: `git merge --ff-only` -> main 53e17fbb. `just test` on main: first run timed out the unrelated `runs-cli.test.ts` repo-runs test again (5 s against the 20 GB runs/); rerun passed (TS 1872 + 951, Python 2372).
+- [ ] Live on 8790: restart through the coordinator, then check the phone header on live runs.
+
+Follow-ups (not in scope; from reviews): placement re-inserts elements on every resize (could blur a focused picker on iOS toolbar resizes); the sheet body still rebuilds once per turn (Turn N); no focus trap or aria-modal; focus after a picker pick and after widening lands on a hidden element.

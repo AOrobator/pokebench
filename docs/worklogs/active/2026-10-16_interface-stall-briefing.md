@@ -24,3 +24,4 @@ Re-land of the readiness thread's F12 (RED 51006938, GREEN 7261cdd6, reverted th
 - 2026-10-16 04:20 AM EDT: branch cut from main 3c51c547 in the freed edge-tiles worktree; RED 487d11d5 (cherry-picked test + trimmed showcase events).
 
 ## Multi-Model Review Log
+- 2026-10-16 04:38 AM EDT: merged main 65199ab2 (nickname switches landed; clean). Gates: agent 1455 (97.79/94.39/98.1), viewer 824, pytest 2180 (97.16/92.88/100), lint, schema, vendor clean.

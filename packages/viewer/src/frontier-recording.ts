@@ -1,4 +1,4 @@
-import type { RunEvent } from "@pokebench/agent/events";
+import { eventEnvelope, type EventEnvelope, type RunEvent } from "@pokebench/agent/events";
 import { readVisualPlan, verifiedVisuals, visualEvidenceSignature, type ScreenshotEvidence } from "./frontier-visual.js";
 import { RunView } from "./model.js";
 import { readWorkbenchSnapshot } from "./workbench-reader.js";
@@ -11,7 +11,8 @@ export interface RecordingMeasurement {
 }
 type Milestone = Extract<RunEvent, { type: "milestone" }>;
 type State = Extract<RunEvent, { type: "state"; started: boolean }>;
-export interface NativeRecording { view: RunView; splits: RecordingSplit[]; measurement: RecordingMeasurement }
+// skipped: events the schema rejected and a tolerant read stepped over (version skew), with the first problem.
+export interface NativeRecording { view: RunView; splits: RecordingSplit[]; measurement: RecordingMeasurement; skipped: { count: number; first: string } | null }
 function compact(state: State): State {
   return { v: state.v, run: state.run, seq: state.seq, t: state.t, turn: state.turn, type: "state", screen: state.screen,
     started: state.started, name: state.name, location: state.location, map_id: state.map_id, position: state.position, facing: state.facing,
@@ -22,18 +23,28 @@ function compact(state: State): State {
     ...(state.story !== undefined || state.world_context === undefined ? {} : { world_context: state.world_context }),
   };
 }
-export function readNativeRecording(path: string, id: string, qualified: (event: Milestone, states: readonly (RunEvent | undefined)[]) => boolean, evidenceLimit = 100000): NativeRecording {
+// tolerate: step over schema-rejected events whose envelope is in order (never run_start or run_end) instead of failing.
+export function readNativeRecording(path: string, id: string, qualified: (event: Milestone, states: readonly (RunEvent | undefined)[]) => boolean, evidenceLimit = 100000, tolerate = false): NativeRecording {
   if (!Number.isSafeInteger(evidenceLimit) || evidenceLimit < 1) throw new Error("Evidence bound must be positive");
   const view = new RunView(), states = new Map<number, RunEvent>(), splits: RecordingSplit[] = [], rawSplits: RecordingMeasurement["rawSplits"] = [];
   const visual = readVisualPlan(path), samples = new Map<number, Extract<RunEvent, {type:"human_sample"}>>();
   const wantedSamples = new Set(visual?.milestones.flatMap(m => m.screenshots.map(s => s.seq)) ?? []);
   visualEvidenceSignature(path);
-  let expected = 0, previousMs = -Infinity;
-  const snapshot = readWorkbenchSnapshot(path, event => {
+  let expected = 0, previousMs = -Infinity, skipped: NativeRecording["skipped"] = null;
+  const ordered = (event: EventEnvelope): number => {
     const ms = Date.parse(event.t);
     if (event.seq > 0 && event.type === "run_start") throw new Error("Run event order invalid: more than one run_start; no split graded");
     if (event.run !== id || event.seq !== expected || !Number.isFinite(ms) || ms < previousMs || (event.seq === 0 ? event.type !== "run_start" : event.type === "run_start") || view.end !== null) throw new Error("Run identity, event order or terminal sequence is invalid; no split graded");
-    expected++; previousMs = ms;
+    expected++; previousMs = ms; return ms;
+  };
+  const skip = (line: number, problem: string, value: unknown): void => {
+    const envelope = eventEnvelope(value);
+    if (envelope === null || envelope.type === "run_start" || envelope.type === "run_end") throw new Error(`line ${String(line)}: ${problem}`);
+    view.lastMs = ordered(envelope); view.turn = Math.max(view.turn, envelope.turn);
+    skipped = { count: (skipped?.count ?? 0) + 1, first: skipped?.first ?? `line ${String(line)}: ${problem}` };
+  };
+  const snapshot = readWorkbenchSnapshot(path, event => {
+    const ms = ordered(event);
     if (event.type === "human_sample" && wantedSamples.has(event.seq)) samples.set(event.seq, event);
     if (["run_start", "run_end", "operator_control", "assistant", "objective_update"].includes(event.type)) {
       view.apply(event); view.events.length = 0; view.latencies.length = 0; view.errors.length = 0; view.lastThought = null;
@@ -59,7 +70,7 @@ export function readNativeRecording(path: string, id: string, qualified: (event:
       view.apply(event); view.events.length = 0;
       rawSplits.push({ name: event.name, elapsedMs: raw, evidence: [...event.evidence] });
     }
-  }, { allowAppend: true });
+  }, { allowAppend: true, ...(tolerate ? { skip } : {}) });
   const hash = snapshot.sha256;
   if (view.start === null) throw new Error("No complete run_start yet");
   for (const mark of verifiedVisuals(visual, view.start, hash, samples)) {
@@ -73,5 +84,5 @@ export function readNativeRecording(path: string, id: string, qualified: (event:
   splits.sort((a, b) => a.elapsedMs - b.elapsedMs || a.seq - b.seq);
   let previousSplit = 0; for (const split of splits) { split.segmentMs = split.elapsedMs - previousSplit; previousSplit = split.elapsedMs; }
   view.state = null;
-  return { view, splits, measurement: { controller: view.start.controller?.kind === "human" ? "human" : "agent", features: [...view.start.harness_features], logSha256: hash, logBytes: snapshot.bytes, pausedMs: view.control.pausedBefore(view.lastMs ?? view.startMs ?? 0), rawSplits } };
+  return { view, splits, measurement: { controller: view.start.controller?.kind === "human" ? "human" : "agent", features: [...view.start.harness_features], logSha256: hash, logBytes: snapshot.bytes, pausedMs: view.control.pausedBefore(view.lastMs ?? view.startMs ?? 0), rawSplits }, skipped };
 }

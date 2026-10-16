@@ -44,7 +44,8 @@ import { harnessInfo, humanLeasePath, newRunId, withRun, type RunHost, type Serv
 const HEALTH_TIMEOUT_MS = 180_000;
 const LOOP_TIMEOUT_MS = 420_000;
 const REPO_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
-const RUNS_ROOT = join(REPO_ROOT, "runs");
+// A fixed-run trial runs from an experiment checkout and records into the main checkout's runs root.
+const RUNS_ROOT = process.env["POKEBENCH_RUNS_ROOT"] ?? join(REPO_ROOT, "runs");
 const VENDOR_DIR = join(REPO_ROOT, "env", "vendor", "continual-harness");
 const SYSTEM_PROMPT = "You play Pokémon Emerald and report what you observe precisely.";
 
@@ -379,7 +380,7 @@ async function playHuman(): Promise<void> {
   if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error("invalid human port");
   const rom = process.env["POKEBENCH_ROM"];
   if (rom === undefined) throw new Error("POKEBENCH_ROM is required");
-  const runsRoot = join(process.env["POKEBENCH_RUNS_ROOT"] ?? RUNS_ROOT,"human");
+  const runsRoot = join(RUNS_ROOT,"human");
   const runId = humanRunId(process.env["POKEBENCH_HUMAN_RUN_ID"], new Date(), () => randomBytes(2).toString("hex"));
   const release = humanLease(dirname(humanLeasePath(REPO_ROOT,git(REPO_ROOT)(["rev-parse","--git-common-dir"]).trim())), runId);
   const token = randomBytes(32).toString("hex");

@@ -3,7 +3,7 @@ import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { main, productionFixedHost, servingReceipt, type FixedCliDeps } from "./fixed-cli.js";
+import { fixedLaunchSpec, main, productionFixedHost, servingReceipt, type FixedCliDeps } from "./fixed-cli.js";
 import { parseFixedDefinition } from "./fixed-design.js";
 import type { FixedRunOptions } from "./fixed-runner.js";
 import { CONTROL_BASE_PATH, controlBaseText, draftDefinition, definition, MODEL_PATH, START_SHA1 } from "../test-support/fixed.js";
@@ -217,6 +217,16 @@ describe("production host pieces", () => {
     expect((await servingReceipt("http://127.0.0.1:8098", fetchFn)).fingerprint).toBe(receipt.fingerprint);
     await expect(servingReceipt("http://x", vi.fn<typeof fetch>().mockResolvedValue(new Response("loading", { status: 503 })))).rejects.toThrow("http://x/health answered HTTP 503");
     await expect(servingReceipt("http://x", vi.fn<typeof fetch>().mockResolvedValue(new Response("{}")))).rejects.toThrow("http://x/props is not a llama-server /props payload");
+  });
+
+  it("launches each trial from the pinned experiment checkout, writing to the main runs root", () => {
+    const commit = "f3f4b3b7".padEnd(40, "0");
+    const spec = fixedLaunchSpec({ root: "/repo", runsRoot: "/repo/runs", node: "/bin/node", env: { PATH: "/bin", POKEBENCH_ROM: "/rom.gba", POKEBENCH_RUNS_ROOT: "/elsewhere", POKEBENCH_RUN_ID: "stale" } }, commit, { POKEBENCH_RUN_ID: "r1" });
+    expect(spec.argv).toEqual([`/private/tmp/pokebench-fixed-${commit.slice(0, 12)}/packages/agent/dist/live.js`, "play"]);
+    expect(spec.command).toBe("/bin/node");
+    // Relative preset paths (the start save) resolve against the main checkout.
+    expect(spec.cwd).toBe("/repo");
+    expect(spec.env).toEqual({ PATH: "/bin", POKEBENCH_ROM: "/rom.gba", POKEBENCH_RUNS_ROOT: "/repo/runs", POKEBENCH_RUN_ID: "r1" });
   });
 
   it("knows a bound port, a live pid, and writes no file of its own", async () => {

@@ -382,6 +382,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "displayed-place-names-v1":"displayed-place-names-v1.html",
  "battle-triage-guidance-v1":"battle-triage-guidance-v1.html",
  "adjacent-tiles-v1":"adjacent-tiles-v1.html",
+ "script-line-presence-v1":"script-line-presence-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

@@ -44,8 +44,8 @@ M1: RED, GREEN, gates. M2: explainer, pending experiment, review (Claude, Codex,
 - [x] Gates: `just test` agent 90 files / 1428, viewer 60 / 803, pytest 2119 passed. `just coverage` agent 97.74 stmts / 94.61 branches / 98 functions / 99.09 lines, viewer 95.15 / 90.52 / 93.61 / 97.62, Python lines 97.12 / branches 92.77 / functions 100 (floor 90); `script-line-presence.ts` 25/25 statements, 27/27 branches, 10/10 functions. `just lint`: tsc + eslint clean both packages, ruff clean; mypy fails only on the known `mgba._pylib` import in this worktree's venv, and `mypy` run from this tree with the main checkout's venv (binding built) reports no issues in 74 files. `just build` ok; `just verify-vendor` OK.
 
 ### M2
-- [ ] Explainer `docs/explainers/script-line-presence-v1.html`, README, `FEATURE_EXPLAINERS`
-- [ ] Pending `experiments/script-line-presence.json`, readiness line
+- [x] Explainer `docs/explainers/script-line-presence-v1.html` (before/after T259 block, screen-window grids from the recorded states, rules table, data flow), README entry, `FEATURE_EXPLAINERS` mapping, panels test (card link + page content) and server route list. `just pages-check` silent; rendered in the browser pane via `http://127.0.0.1:8791/script-line-presence-v1/script-line-presence-v1.html` (copy in the main checkout's runs/mockups). Viewer 804 tests pass.
+- [x] Pending `experiments/script-line-presence.json`: finals incumbent + dialogue-auto-advance-v1 ON (same incumbent as people-ledger), candidate flips only the switch; activation `ROUTE_101`, primary `STARTER_CHOSEN`; provisional `source.commit` = branch head, repin at merge. Parses with `parseExperiment`/`experimentArms` (candidate ON, incumbent OFF); `just experiments-check` ok: 54. Readiness line added. Not queued.
 - [ ] Principles self-review
 - [ ] Review: Claude, Codex, Grok
 - [ ] Merge latest main, re-run gates, merge into main
@@ -54,3 +54,4 @@ M1: RED, GREEN, gates. M2: explainer, pending experiment, review (Claude, Codex,
 - 2026-10-16 03:05 AM EDT: worklog drafted; fixture extracted from the live run (read-only).
 - 2026-10-16 03:06 AM EDT: main fast-forwarded to bebb98c3 (adjacent-tiles) before RED.
 - 2026-10-16 03:15 AM EDT: GREEN and gates.
+- 2026-10-16 03:30 AM EDT: explainer, pending experiment, readiness line.

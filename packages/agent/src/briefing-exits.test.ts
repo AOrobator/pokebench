@@ -41,7 +41,7 @@ const MAYS_OFF="LITTLEROOT TOWN MAYS HOUSE 1F (map 1/2): Warp to map 0/9 at 1,8 
 const MAYS_ON="LITTLEROOT TOWN MAYS HOUSE 1F (map 1/2): Warp to PROF. BIRCH'S HOUSE 2F (map 1/3) at 2,2 (movement; activation depends on metatile (see local map)); NINJA_BOY at 9,5 (A); television at 6,4 (A); coordinate_trigger at 1,3 (step; its condition did not match when the readout last showed it, so stepping on it then did nothing); coordinate_trigger at 2,4 (step; its condition did not match when the readout last showed it, so stepping on it then did nothing); coordinate_trigger at 3,3 (step; its condition did not match when the readout last showed it, so stepping on it then did nothing)";
 // WOMAN_4 (the woman who walks up at T115 and says "Our daughter is upstairs") is gone: the first page of that
 // conversation (state 2340) shows the player facing her. The three triggers (variable 0x408D=0, needs 2) go last, labelled.
-const EXITS_ON="- Exits to maps you have not entered since your last story progress: LITTLEROOT TOWN (map 0/9): Warp to GMREEN's HOUSE 1F (map 1/0) at 5,8 | LITTLEROOT TOWN MAYS HOUSE 1F (map 1/2): Warp to PROF. BIRCH'S HOUSE 2F (map 1/3) at 2,2";
+const EXITS_ON="- Exits to maps you have not entered since your last story progress: LITTLEROOT TOWN (map 0/9): Warp to GMREEN's HOUSE 1F (map 1/0) at 5,8; NORTH edge -> ROUTE101 (map 0/16) | LITTLEROOT TOWN MAYS HOUSE 1F (map 1/2): Warp to PROF. BIRCH'S HOUSE 2F (map 1/3) at 2,2";
 
 describe("briefing-exits-v1 on cook #2 (sh02): the recorded stall briefings at seq 2783 (T134) and 3616 (T171)",()=>{
  it("OFF reproduces both recorded loop_guard messages byte for byte",()=>{

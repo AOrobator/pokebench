@@ -46,6 +46,7 @@ const PATTERN:Readonly<Record<LoopKind,string>>={cycle:"the same short cycle of 
 const at=(x:number,y:number)=>`${String(x)},${String(y)}`;
 const quote=(e:DialogueEntry)=>`turn ${String(e.turn)}, ${e.room}${e.facing===null?"":`, facing ${e.facing}`}${e.presence===undefined?"":`, ${e.presence}`}: "${e.text.replace(/\s+/g," ")}"`;
 type Target=NonNullable<State["interaction_targets"]>[number];
+const EDGES=new Set(["NORTH","SOUTH","EAST","WEST"]);
 const objectKey=(id:number):string=>`object:${String(id)}`;
 type Ui=NonNullable<State["active_ui"]>;
 const uiName=(ui:Ui):string=>`the ${ui.phase.replaceAll("_"," ")}`;
@@ -406,7 +407,10 @@ export class SupervisorBriefing {
   if(!this.features["world-targets-v1"])return "not available (world targets are off)";
   const rooms=[...this.path.values()].reverse().flatMap(s=>{
    const exits=(s.interaction_targets??[]).filter(t=>t.kind==="warp"&&t.destination!==null&&!this.entered.has(`${String(t.destination[0])}/${String(t.destination[1])}`));
-   return exits.length===0?[]:[`${roomOf(s,this.features)}: ${exits.map(t=>`${this.target(t)} at ${at(t.x,t.y)}`).join("; ")}`];
+   // briefing-exits-v1: the map's connections to maps not entered either, where the readout shows them (world destinations).
+   const edges=this.exits!==null&&this.features["world-destinations-v1"]?(s.topology?.connections??[]).filter(c=>!this.entered.has(mapKey(c.destination))):[];
+   const items=[...exits.map(t=>`${this.target(t)} at ${at(t.x,t.y)}`),...edges.map(c=>{const name=this.names.get(mapKey(c.destination));return `${c.direction}${EDGES.has(c.direction)?" edge":""} -> ${name===undefined?`map ${mapKey(c.destination)}`:`${name} (map ${mapKey(c.destination)})`}`;})];
+   return items.length===0?[]:[`${roomOf(s,this.features)}: ${items.join("; ")}`];
   });
   return rooms.length===0?"none":rooms.join(" | ");
  }

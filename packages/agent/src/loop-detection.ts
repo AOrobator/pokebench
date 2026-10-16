@@ -531,7 +531,8 @@ export class LoopDetector {
     // bounce: they restart the count instead of adding to it.
     if (!this.passable(state) || (call.beforeState !== undefined && !this.passable(call.beforeState))) {
       this.mapMoves.length = 0;
-      this.lastMap = to;
+      // Where a script left the player is not known until the next settled state; no bridge from here.
+      this.lastMap = null;
       return false;
     }
     // A result can still show the old map mid-door; the change then first appears in the next call's before state.

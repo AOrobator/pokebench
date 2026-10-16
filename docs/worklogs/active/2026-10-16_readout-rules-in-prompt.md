@@ -71,3 +71,4 @@ State-only decisions get no system-prompt section, so `state-only-decisions-v1` 
 - 2026-10-16 02:58 AM EDT: principles self-review clean; review round 1 frozen at this commit, base ef9244e2.
 - 2026-10-16 02:53 AM EDT: with $POKEBENCH_ROM set, the two ROM-gated rerender tests (recorded truck readout byte-for-byte) failed because their recorded run predates this switch; `env_with` now marks it off like warp-arrival-settle-v1, and the recorded readout reproduces byte-for-byte (real-ROM OFF identity). pytest with ROM: 2031 passed.
 - 2026-10-16 02:18 AM EDT: worklog drafted (the operator's proposal).
+- 2026-10-16 03:22 AM EDT (parent session): merged to main as 005b94f8 (clean on top of displayed-names-everywhere). Post-merge on main: build green, `just test` agent 1426, viewer 804, pytest 2132 passed. Repinned experiments/readout-rules-in-prompt.json source.commit to the merge SHA.

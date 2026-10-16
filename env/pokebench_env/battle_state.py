@@ -22,6 +22,13 @@ from pokebench_env.battle_choices import (
     exact,
     number,
 )
+from pokebench_env.battle_text import (
+    BattleMessage,
+    BattlePrompt,
+    battle_text_phase,
+    read_battle_message,
+    read_battle_prompt,
+)
 from pokebench_env.game_screen import GMAIN, ReadMemory
 from pokebench_env.gba_text import decode_text
 from pokebench_env.pokemon import BATTLE_MOVES, MOVE_NAMES, SPECIES_NAMES
@@ -176,9 +183,21 @@ class BattleState:
     playback: BattlePlayback | None = None
     diagnostic: str | None = None
     raw_hex: str | None = None
+    # The battle message window (battle_text.py); recorded, shown only by its switch.
+    message: BattleMessage | None = None
+    prompt: BattlePrompt | None = None
+    text_phase: str | None = None
 
     def json(self) -> dict[str, object]:
         return asdict(self)
+
+
+def _text_fields(read: ReadMemory) -> tuple[BattleMessage, BattlePrompt | None, str | None]:
+    """Message window, YES/NO prompt and advance phase; a failed read stays local."""
+    try:
+        return read_battle_message(read), read_battle_prompt(read), battle_text_phase(read)
+    except (ValueError, OSError, IndexError) as error:
+        return BattleMessage("idle", diagnostic=f"harness bug: battle text: {error}"), None, None
 
 
 def _move(read: ReadMemory, slot: int, move: int, pp: int, bonuses: int) -> BattleMove:
@@ -481,6 +500,9 @@ def read_battle_state(read: ReadMemory) -> BattleState:
             execution,
             trainer_banks,
             playback,
+            None,
+            None,
+            *_text_fields(read),
         )
     except (ValueError, OSError, struct.error) as error:
         return BattleState(

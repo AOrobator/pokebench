@@ -22,6 +22,7 @@ from pydantic import BaseModel
 from pokebench_env.action_history import install_action_history
 from pokebench_env.audio import EmulatorLike
 from pokebench_env.battle_choices import FrameEmulator, install_battle_journal
+from pokebench_env.battle_text import BattleWait, install_battle_text, install_battle_wait
 from pokebench_env.checkpoint import install_checkpoint
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import MapNames
@@ -65,6 +66,19 @@ def native_screenshot(emulator: FrameSource) -> NativeScreenshot:
     return NativeScreenshot(screenshot_base64=base64.b64encode(buffer.getvalue()).decode("ascii"))
 
 
+def _both(
+    first: Callable[[], None], wait: BattleWait | None, *, resume: bool = False
+) -> Callable[[], None]:
+    """Park or resume the fade settle and the battle wait together."""
+
+    def call() -> None:
+        first()
+        if wait is not None:
+            (wait.resume if resume else wait.park)()
+
+    return call
+
+
 class UvicornLike(Protocol):
     run: Callable[..., object]
 
@@ -97,15 +111,21 @@ def run(
     travel: tuple[FastAPI, type[FrameEmulator], TravelServer, ReadMemory] | None = None,
     agent_checkpoint: tuple[FastAPI, Callable[[], bytes | None]] | None = None,
     frames: type[SteppedEmulator] | None = None,
+    battle_text: tuple[FastAPI, type[SteppedEmulator], ReadMemory] | None = None,
 ) -> None:
     # Agent observations wait out screen fades on emulated frames (never wall
     # time). The human server records its snapshot observation under the
     # journal lock that the frame step also takes, so it captures at once.
     settle = None
+    battle_wait = None
     if observation is not None and frames is not None and human is None:
         off = features_off_from_env(os.environ)
         settle = FrameSettle(observation[2], warp=WARP_FEATURE not in off)
         install_frame_settle(frames, settle)
+        battle_wait = BattleWait(observation[2])
+        install_battle_wait(frames, battle_wait)
+    if battle_text is not None:
+        install_battle_text(*battle_text)
     if actions is not None:
         install_action_history(*actions)
     if travel is not None:
@@ -113,8 +133,8 @@ def run(
     if pause is not None:
         install_pause(
             *pause,
-            on_park=None if settle is None else settle.park,
-            on_resume=None if settle is None else settle.resume,
+            on_park=None if settle is None else _both(settle.park, battle_wait),
+            on_resume=None if settle is None else _both(settle.resume, battle_wait, resume=True),
         )
     if agent_checkpoint is not None:
         install_checkpoint(*agent_checkpoint)
@@ -123,7 +143,11 @@ def run(
     capture = None
     if observation is not None:
         capture = install_observation(
-            *observation, raw_archive=raw_archive, raw_capture=raw_capture, settle=settle
+            *observation,
+            raw_archive=raw_archive,
+            raw_capture=raw_capture,
+            settle=settle,
+            battle_wait=battle_wait,
         )
     if human is not None:
         api, server, token = human
@@ -195,6 +219,11 @@ def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
         agent_checkpoint=None if token else (app.app, checkpoint),
         human=(app.app, cast(HumanServer, app), token) if token else None,
         frames=cast(type[SteppedEmulator], EmeraldEmulator),
+        battle_text=(
+            app.app,
+            cast(type[SteppedEmulator], EmeraldEmulator),
+            lambda address, length: bytes(app.env.core.memory.u8[address : address + length]),
+        ),
     )
 
 

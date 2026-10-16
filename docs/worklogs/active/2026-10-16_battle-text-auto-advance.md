@@ -18,8 +18,12 @@ Branch `claude/battle-text-auto-advance` in `/private/tmp/pokebench-battle-text`
 ## Milestones
 
 **M1 — battle message readout (env)**
-- [ ] Ground the message window and printer state in pokeemerald; receipt on the real ROM from a save in battle
-- [ ] RED/GREEN: `battle.message` {text, printing, waiting_for_input} recorded; healthbox reuse of the buffer never read as a page; Python coverage ≥90
+- [x] Ground the message window and printer state in pokeemerald; receipt on the real ROM from a save in battle (docs/findings/2026-10-16_battle-text.md; `runs/battle-text-qualify/m1-receipt.txt`)
+- [x] RED/GREEN: `battle.message` {state printing/waiting_for_input/idle, render_state, text whole, cursor, identity}, `battle.prompt` (battle-script YES/NO), `battle.text_phase`; per-frame page journal `/pokebench/battle/messages`; frame-driven `/pokebench/battle/wait` (600-frame bound, released on pause); healthbox reuse of the buffer never read as a page; Python coverage ≥90
+  - COMMIT: `test(RED): battle message window, page journal and frame-driven battle wait` (91acc0d8)
+  - COMMIT: `feat(env): battle message window, page journal and frame-driven battle wait` (see next entry)
+  - Tests after GREEN: agent 1406, viewer 794, Python 2046 (2 ROM-gated skips). Gates: test, lint (tsc, eslint, ruff, ruff format, mypy all clean; the copied mGBA binding means no `mgba._pylib` mypy noise here), build, coverage (agent L 99.08 / B 94.56 / F 97.98; viewer L 97.60 / B 90.45 / F 93.59; Python L 97.19 / B 92.81 / F 100; `battle_text.py` 100/100), verify-vendor: all green.
+  - The state JSON gains the fields; the model-facing readout text is unchanged (readout.py reads named fields only), so no SERVER_FEATURES entry: the server records, only the agent switch shows.
 
 **M2 — battle-text-auto-advance-v1 (agent)**
 - [ ] Switch registered (guidance, needs `dialogue-auto-advance-v1`, default OFF), presets, DEFAULT_NEXT_RUN, toolSwitches
@@ -38,3 +42,4 @@ Branch `claude/battle-text-auto-advance` in `/private/tmp/pokebench-battle-text`
 - 2026-10-16 02:05 AM EDT: implementation dispatched by the parent session (the operator's go). `just setup`; mGBA binding copied from the main env venv; vendor submodule initialized at the pin.
 - 2026-10-16 02:30 AM EDT: M1 grounding done (docs/findings/2026-10-16_battle-text.md). Battle text is printer 0 (`sTextPrinters[B_WIN_MSG]`) on `gDisplayedStringBattle`; A and B both advance (`JOY_NEW(A_BUTTON | B_BUTTON)`), so B is used as in field auto-advance. Healthbox/move/PP/type text reuses the buffer at speed 0 and never leaves printer 0 active. Most battle messages advance on their own (`waitmessage`); only `\p`/`\l`/wait pages need input. Design consequence: a per-frame journal records every page (auto ones included) and a frame-driven `/pokebench/battle/wait` replaces any polling.
 - 2026-10-16 02:35 AM EDT: M1 RED: `env/tests/env/test_battle_text.py` (27 tests, real raw-RAM fixture from the showcase run) and the TS schema/StateWatcher tests in `game-state.test.ts`.
+- 2026-10-16 02:45 AM EDT: M1 GREEN. Real ROM: from the Birch rescue battle's first page the wait returned message_waiting, input (188 frames), one 600-frame bound in a long turn (619 frames busy), input, two waits for fainted/EXP, then field (124 frames) on CB2_Overworld with Birch's message open. A first cut that returned `field` on any non-battle callback stopped on the field-return callback 0x080861CD; `field` now means CB2_Overworld with no fade.

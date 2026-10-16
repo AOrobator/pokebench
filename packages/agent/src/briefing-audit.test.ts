@@ -141,6 +141,13 @@ describe("briefing-exits-v1 audit fixes on recorded runs",()=>{
   });
  });
 
+ it("lists unentered map connections next to unentered warps (7a95 T375 seq 8935: NORTH -> ROUTE103 never entered)",()=>{
+  const head="- Exits to maps you have not entered since your last story progress";
+  const off=line(replay("briefing-7a95.jsonl.gz",8935,false).text,head),on=line(replay("briefing-7a95.jsonl.gz",8935,true).text,head);
+  expect(off).toBe(`${head}: OLDALE TOWN (map 0/10): Warp to map 2/0 at 5,7; Warp to map 2/1 at 15,16; Warp to map 2/2 at 6,16; Warp to map 2/4 at 14,6`);
+  expect(on).toMatch(/^- Exits to maps you have not entered since your last story progress: OLDALE TOWN \(map 0\/10\): Warp to .*; NORTH edge -> ROUTE103 \(map 0\/18\)/);
+ });
+
  it("keeps the readout's caveat that sprite kinds are not names (live 54a7 T143 seq 3091)",()=>{
   const off=replay("briefing-live54a7.jsonl.gz",3091,false),on=replay("briefing-live54a7.jsonl.gz",3091,true);
   expect(line(off.text,"- Characters")).toBe("- Characters the readout names here: FAT_MAN at 12,13; BOY_2 at 14,17");

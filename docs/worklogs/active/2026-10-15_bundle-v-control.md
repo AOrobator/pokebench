@@ -212,6 +212,7 @@ Any valid trial that still ends before the wall cap is listed in a WARNING table
 - 2026-10-15 22:10 EDT: GREEN `b0d3960` (viewer workbench + fixed-ledger tests 57 pass). RED: `fixed-run run` and `dry-run` refuse, before any trial launches, when `POKEBENCH_ROM` is unset (the bare-node launch) or unreadable.
 - 2026-10-15 22:20 EDT: GREEN for `07861c8`: `requireRom` in `fixed-cli.ts` (run and dry-run). New skill `.claude/skills/fixed-run-launch/SKILL.md` (launch only through `just`, run_start checks, EXPERIMENT dropdown as a hard launch check, aborted-launch procedure), linked from CLAUDE.md.
 - 2026-10-15 22:45 EDT: Gates at `8d733b1`: `just coverage` agent 80 files / 1263 (97.61 / 94.19 / 97.85 / 99.02), viewer 58 / 764 (95.32 / 90.53 / 94.22 / 97.88), env 1960 passed 2 skipped (no native mGBA in this worktree); `just build` 0; `pnpm -r lint` and ruff clean; mypy fails only on the missing `mgba._pylib` binding in the worktree venv (main's venv: no issues in 69 files); `just verify-vendor` OK. Cloud review of `main..8d733b1`: Codex gpt-5.6-sol `VERDICT: LGTM`, grok (cursor-grok-4.5-high) `VERDICT: LGTM`. Merging into main on the operator's go-ahead.
+- 2026-10-15 22:50 EDT: Merged `claude/fixed-run-cohort` into main at `427f798` (`--no-ff`, no push). Relaunch follows `.claude/skills/fixed-run-launch/SKILL.md` with a fresh approval.
 
 ## Deferred
 

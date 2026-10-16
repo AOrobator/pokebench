@@ -47,13 +47,14 @@ The 2026-10-14 worklog named both persistent caching and worker threads as non-g
   - RED: baseline-offthread.test.ts fails to import (no baseline-pool, baseline-worker, computeBaseline); 3 baseline-cache tests fail (sync reader, positional limit). history, runs, server-cache pass with awaits.
 - [x] Implement pool, worker entry, async reader, await in comparisons/history/milestones, startup warm.
 - [x] Gates: viewer 836 tests, agent 1426, Python 2130 passed / 2 skipped (ROM). Coverage viewer 95.15 / 90.61 / 93.31 (lines/branches/functions), agent 97.73 / 94.58 / 97.98, Python 96%. `pnpm -r lint` clean; ruff clean; mypy clean with the main checkout's venv (this worktree's venv lacks the native mGBA binding, `mgba._pylib`, an environment gap, no env/ diff).
-- [x] COMMIT: `feat(viewer): GREEN baselines validate on worker threads and never block the viewer` (pending sha)
+- [x] COMMIT: `feat(viewer): GREEN baselines validate on worker threads and never block the viewer` (9a307fa7)
 - [x] Guard deletions: in-flight sharing removed → "shares one compute" fails; startup warm removed → "warms every ended run" fails. Restored, 14/14 pass.
 - Real catalog (235 runs, built dist, pool of 4): cold 78.8 s (was 253.7 s in process), max event-loop lag 27 ms during the scan, warm re-read 7 ms.
 
 **M2 — Persisted baselines keyed on log and code**
-- [ ] Write tests: disk hit across readers, fingerprint and `codeId` invalidation, corrupt entries ignored, mid-compute change not persisted, import-closure identity on a fixture tree, no 256 cap.
-- [ ] COMMIT: `test(viewer): RED ...`
+- [x] Write tests: disk hit across readers, fingerprint and `codeId` invalidation, corrupt entries ignored, mid-compute change not persisted, import-closure identity on a fixture tree, no 256 cap, unwritable cache, run-id guard, week-old pruning, restarted viewer served from disk. LRU eviction and limit tests removed with the cap.
+- [x] COMMIT: `test(viewer): RED baselines persist across restarts keyed on log and code` (pending sha)
+  - RED: baseline-store.test.ts fails to import (no baseline-store module); baseline-cache 7/7 pass.
 - [ ] Implement store, code identity, wiring.
 - [ ] Gates
 - [ ] COMMIT: `feat(viewer): GREEN ...`

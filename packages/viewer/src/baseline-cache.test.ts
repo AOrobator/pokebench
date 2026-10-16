@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 import { fullRun, tAt } from "../test-support/events.js";
-import { BASELINE_CACHE_LIMIT, baselineOf, createBaselineReader, comparisonsOf } from "./runs.js";
+import { baselineOf, createBaselineReader, comparisonsOf } from "./runs.js";
 
 vi.mock("node:fs", async (original) => ({ ...await original<typeof import("node:fs")>() }));
 
@@ -98,18 +98,6 @@ it("isolates roots and protects stored splits from caller mutation", async () =>
   expect((await readB("same")).milestones.at(-1)?.offsetMs).toBe(4100);
 });
 
-it("evicts the least recently used entry at the injected small bound", async () => {
-  const dir = root();
-  for (const id of ["a", "b", "c"]) write(dir, id);
-  const read = createBaselineReader(dir, { maxEntries: 2 });
-  await read("a"); (await read("b")); (await read("a")); (await read("c"));
-  const io = vi.spyOn(fs, "readSync");
-  await read("a");
-  expect(io).not.toHaveBeenCalled();
-  await read("b");
-  expect(io.mock.calls.length).toBeGreaterThan(0);
-});
-
 it("preserves exact comparisons while discovering new completions and changed candidates", async () => {
   const dir = root();
   write(dir, "selected"); const path = write(dir, "reference");
@@ -123,11 +111,6 @@ it("preserves exact comparisons while discovering new completions and changed ca
   fs.writeFileSync(path, fs.readFileSync(path, "utf8").replace('"name":"PLAYER_NAME_SET"', '"name":42'));
   expect((await comparisons()).candidates.map((c) => c.run)).toEqual(["new"]);
   expect((await comparisons())).toEqual((await comparisonsOf(dir, "selected")));
-});
-
-it("pins the production bound and rejects invalid limits", () => {
-  expect(BASELINE_CACHE_LIMIT).toBe(256);
-  for (const limit of [0, -1, 1.5, NaN]) expect(() => createBaselineReader(root(), { maxEntries: limit })).toThrow(RangeError);
 });
 
 it("does not retain a validation result when its file changes during the read", async () => {

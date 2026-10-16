@@ -6,7 +6,7 @@ import { Log, START, state } from "../test-support/events.js";
 import { rivalRam, writeArchive } from "../test-support/raw-ram.js";
 import { StateMilestones } from "../../agent/src/milestones.js";
 import { RunView } from "./model.js";
-import { loadRecoveredRival, withRecovered } from "./recovered-fields.js";
+import { loadRecoveredRival, recoveredAttacher, withRecovered } from "./recovered-fields.js";
 
 const runDir = (rows: readonly unknown[], name = "run-a"): string => {
   const dir = join(mkdtempSync(join(tmpdir(), "pokebench-recovered-")), name);
@@ -84,23 +84,30 @@ it("derives nothing for a run that records the splits natively, or without a fal
   expect(view.milestones.some((m) => m.name.startsWith("RIVAL_BATTLE_") || m.name === "RIVAL_OLDALE_SEND_OFF")).toBe(false);
 });
 
-const archive = writeArchive;
-const memory = (fight: boolean, won: boolean) => rivalRam(fight, won);
-it("re-decodes the snapshot behind every row that changes a value, and voids a file whose values the RAM does not support", () => {
+// One run on disk: states 1..n on Route 103 with their own archives, and a side file of claims.
+function forgedRun(ram: readonly { fight: boolean; won: boolean; inBattle: boolean }[], claims: readonly (readonly [seq: number, archive: number, battle_active: boolean, defeated: boolean])[]) {
   const dir = runDir([header()]);
-  const calm = archive(dir, 1, memory(false, false)), fight = archive(dir, 2, memory(true, false)), won = archive(dir, 3, memory(false, true));
-  const rows = (claims: readonly (readonly [number, { path: string; sha256: string }, boolean, boolean])[]) => [header(), ...claims.map(([seq, a, battle_active, defeated]) => ({ seq, raw_ram: a.path, sha256: a.sha256, route103_rival: { battle_active, defeated, oldale_stage: 0 } }))];
-  const write = (lines: readonly unknown[]) => { writeFileSync(join(dir, "derived", "route103_rival.jsonl"), lines.map((l) => JSON.stringify(l)).join("\n") + "\n"); return loadRecoveredRival(dir); };
-  expect(write(rows([[1, calm, false, false], [2, fight, true, false], [3, won, false, true]])).size).toBe(3);
-  expect(write(rows([[1, calm, false, false], [2, calm, true, false]])).size).toBe(0);
-  expect(write(rows([[1, calm, false, false], [3, calm, false, true]])).size).toBe(0);
-  expect(write(rows([[1, { ...calm, sha256: "b".repeat(64) }, false, false]])).size).toBe(0);
+  const archives = ram.map((m, i) => writeArchive(dir, i + 1, rivalRam(m.fight, m.won)));
   const log = new Log();
   log.add(0, START);
-  const notInBattle = log.add(1000, state({ location: "ROUTE103", in_battle: false, raw_ram: { v: 1, sequence: 2, frame: 2, path: fight.path, sha256: fight.sha256 } }));
-  const recovered = write(rows([[notInBattle.seq, fight, true, false]]));
-  expect(recovered.size).toBe(1);
-  expect(withRecovered(notInBattle, recovered)).toBe(notInBattle);
+  const states = ram.map((m, i) => log.add(1000 * (i + 1), state({ location: "ROUTE103", in_battle: m.inBattle, raw_ram: archives[i] })));
+  const lines = [header(), ...claims.map(([seq, n, battle_active, defeated]) => ({ seq, raw_ram: archives[n - 1]?.path, sha256: archives[n - 1]?.sha256, route103_rival: { battle_active, defeated, oldale_stage: 0 } }))];
+  writeFileSync(join(dir, "derived", "route103_rival.jsonl"), lines.map((l) => JSON.stringify(l)).join("\n") + "\n");
+  const attach = recoveredAttacher(dir);
+  return states.map((event) => { const out = attach(event); return out.type === "state" && "started" in out ? out.route103_rival ?? null : null; });
+}
+const calmRam = { fight: false, won: false, inBattle: false }, fightRam = { fight: true, won: false, inBattle: true }, wonRam = { fight: false, won: true, inBattle: false };
+it("attaches honest values, re-decoding the state's own snapshot whenever the attached value changes", () => {
+  expect(forgedRun([calmRam, fightRam, wonRam], [[1, 1, false, false], [2, 2, true, false], [3, 3, false, true]])).toEqual([r(false, false, 0), r(true, false, 0), r(false, true, 0)]);
+});
+it("stops attaching for the run once a changed value disagrees with the state's own snapshot", () => {
+  expect(forgedRun([calmRam, calmRam, wonRam], [[1, 1, false, false], [2, 2, true, false], [3, 3, false, true]])).toEqual([r(false, false, 0), null, null]);
+  expect(forgedRun([calmRam, { ...fightRam, inBattle: false }], [[1, 1, false, false], [2, 2, true, false]])).toEqual([r(false, false, 0), null]);
+});
+it("is not fooled by a decoy row that matches no state, or by rows out of order", () => {
+  // The decoy (seq 99) carries a genuine post-win receipt; the later claims would be unchecked repeats.
+  expect(forgedRun([calmRam, calmRam, calmRam, wonRam], [[1, 1, false, false], [99, 4, false, true], [2, 2, false, true], [3, 3, false, true]])).toEqual([r(false, false, 0), null, null, null]);
+  expect(forgedRun([calmRam, calmRam, wonRam], [[3, 3, false, true], [1, 1, false, true], [2, 2, false, true]])).toEqual([null, null, null]);
 });
 
 it("refuses a symlinked side file", () => {

@@ -47,3 +47,5 @@ Branch `claude/battle-message-waiting` in `/private/tmp/pokebench-battle-waiting
   - Wiring-removal: dropping `message_waiting=waiting` in readout → 4 Python red; dropping the `Battle input` line in the unprovided branch → 3 red; dropping the id from TS SERVER_FEATURES → 1 TS + Python list test red; restored → green.
   - Gates (ROM via `--dotenv-path`): agent 1420, viewer 803, Python 2165 passed, 0 skipped. Coverage agent 97.73/94.57/97.98/99.08, viewer 95.15/90.52/93.61/97.62, Python lines 97.27 branches 93.02 functions 100 (battle_text.py, battle_message_waiting.py, battle_details.py, readout.py 100%). lint green except the known mypy `mgba._pylib`; build green; verify-vendor OK.
   COMMIT: `feat: battle-message-waiting-v1 says when a battle message waits for A or B (default off)`
+- 2026-10-16 04:00 AM EDT: M2 RED: `panels.test.ts` (FEATURE_EXPLAINERS mapping, card link, explainer quotes the WINGULL OFF and ON lines) and `server.test.ts` (allowlist serves `battle-message-waiting-v1.html`): 2 failing.
+  COMMIT: `test(RED): battle-message-waiting-v1 explainer link and serving`

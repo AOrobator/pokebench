@@ -706,3 +706,14 @@ it("links the adjacent tiles card to its tracked explainer, which shows the real
  expect(html).toContain("adjacent-tiles-v1");
  expect(html).toContain("Next tiles: up (8,6) ledge (v), hops down only, cannot be entered from here; down (8,8) clear (.); left (7,7) clear (.); right (9,7) clear (.)");
 });
+
+it("links the battle message waiting card to its tracked explainer, which quotes the cook run's WINGULL readout before and after",()=>{
+ expect(FEATURE_EXPLAINERS["battle-message-waiting-v1"]).toBe("battle-message-waiting-v1.html");
+ const log=new Log();log.add(0,{...START,harness_features:["battle-message-waiting-v1"]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector('[data-feature="battle-message-waiting-v1"] a')?.getAttribute("href")).toBe("/explainers/battle-message-waiting-v1.html");
+ const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/battle-message-waiting-v1.html",import.meta.url)),"utf8");
+ expect(html).toContain("battle-message-waiting-v1");
+ expect(html).toContain("Battle details: WILD single · turn 3 · resolving (no input until the game asks)");
+ expect(html).toContain("Battle details: WILD single · turn 3 · battle message waiting: &quot;Wild WINGULL fainted!&quot; — press A or B to continue");
+});

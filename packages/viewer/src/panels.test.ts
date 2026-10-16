@@ -706,6 +706,15 @@ it("links the adjacent tiles card to its tracked explainer, which shows the real
  expect(html).toContain("adjacent-tiles-v1");
  expect(html).toContain("Next tiles: up (8,6) ledge (v), hops down only, cannot be entered from here; down (8,8) clear (.); left (7,7) clear (.); right (9,7) clear (.)");
 });
+it("links the readout rules card to its tracked explainer, which shows the real-ROM readout and the prompt section",()=>{
+ expect(FEATURE_EXPLAINERS["readout-rules-in-prompt-v1"]).toBe("readout-rules-in-prompt-v1.html");
+ const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/readout-rules-in-prompt-v1.html",import.meta.url)),"utf8");
+ expect(html).toContain("readout-rules-in-prompt-v1");
+ expect(html).toContain("Map symbols and rules: see the system prompt.");
+ expect(html).toContain("Map symbols and rules (the readout&#39;s map and lists use these every turn; the readout does not repeat them):");
+ expect(html).toContain("4,040");
+ expect(html).toContain("3,196");
+});
 
 it("links the battle message waiting card to its tracked explainer, which quotes the cook run's WINGULL readout before and after",()=>{
  expect(FEATURE_EXPLAINERS["battle-message-waiting-v1"]).toBe("battle-message-waiting-v1.html");

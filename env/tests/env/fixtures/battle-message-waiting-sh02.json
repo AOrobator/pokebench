@@ -8,7 +8,8 @@
   "battle-message-waiting-v1",
   "battle-triage-guidance-v1",
   "counter-talk-v1",
-  "full-map-navigation-v1"
+  "full-map-navigation-v1",
+  "readout-rules-in-prompt-v1"
  ],
  "frames": [
   {

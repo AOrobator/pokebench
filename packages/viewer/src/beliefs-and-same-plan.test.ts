@@ -12,7 +12,7 @@ function view(log: Log): RunView {
 }
 const LEDGER = "Things the game has contradicted (from this run's own readouts and dialogue; an entry is dropped when a story flag changes or the game shows otherwise):\n- Moving UP from (11,1) in LITTLEROOT TOWN (map 0/9): you tried it 2 times, at turns 142, 144 (latest: press UP). Each time a script moved you back to (11,2) while it showed (turn 144): TWIN (sprite kind, not a name): \"It's dangerous if you don't have\nyour own POKéMON.\" <b>";
 
-it("shows the disproved-beliefs ledger whole in history, raw inspection and the timeline, never as a press", () => {
+it("shows the disproved-beliefs ledger whole in Activity History and raw inspection, and adds nothing to the timeline", () => {
   const log = new Log();
   log.add(0, START);
   const event = log.add(100, { type: "belief_ledger", turn: 145, text: LEDGER, entries: 1, evidence: [2946, 3017] });
@@ -25,8 +25,9 @@ it("shows the disproved-beliefs ledger whole in history, raw inspection and the 
   expect(text).not.toContain("<b>");
   expect(inspector(event)).toContain("Things the game has contradicted");
   const svg = lanesSvg(result, BASE_MS + 1000);
-  expect(svg).toContain("Disproved beliefs delivered · 1 entry");
-  expect(svg).not.toContain('class="m-press');
+  // The timeline is closed to new marks (operator decision 2026-10-16).
+  expect(svg).not.toContain("Disproved beliefs");
+  expect(svg).not.toContain("Things the game has contradicted");
   expect(JSON.stringify(stepOf(event, result))).toContain("Disproved beliefs delivered");
 });
 

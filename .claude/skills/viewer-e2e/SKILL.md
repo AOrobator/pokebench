@@ -7,6 +7,10 @@ description: Verify PokeBench viewer navigation, playback and polling interactio
 
 Use the available browser-control tools against the actual candidate server. Take the happy/failure/recovery approach from local inference stack's playwright-e2e skill, but follow the tools and safety boundaries available in this session. Mounted DOM tests and HTTP 200s support browser proof; they do not replace it.
 
+## Timeline is closed to additions
+
+Never add new marks, lanes, labels or colors for new kinds of events to the TIMELINE swimlanes without the operator's explicit permission (operator decision 2026-10-16). Put new diagnostics in Activity History and the raw-event inspector instead. Fixing how an existing mark is drawn is allowed.
+
 ## Bind the check
 
 Identify the user's existing tab, URL, selected run and the server PID/source before editing or testing. Read the active worklog and preserve shared servers, original recordings and frozen benchmark checkouts. Use the owned preview for candidate changes. Confirm served HTML/modules/styles match completed build artifacts; avoid testing while a build is rewriting those files.

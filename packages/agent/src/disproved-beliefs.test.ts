@@ -188,19 +188,22 @@ describe("leaving the ledger and never clipping",()=>{
   l.observe(s);
   l.observe(ev({type:"tool_result",id,name:"observe",is_error:false,duration_ms:1,text,frames:[],state_seq:s.seq},turn));
  }
- // A reply and the tool call it made; by default it walks toward (3,3), next to the tiles these tests claim.
+ // A reply and the tool call it made; by default it walks to (3,3), the tile these tests claim.
  const say=(l:DisprovedBeliefs,thinking:string,turn:number,call:{name:string;args:Record<string,unknown>}={name:"navigate_to",args:{x:3,y:3,map_id:[1,4]}})=>{l.observe(ev({type:"assistant",thinking,text:"",tool_calls:[{id:`a${String(turn)}`,...call}],usage:{input:1,output:1,cache_read:0},latency_ms:1,ttft_ms:1,stop_reason:"toolUse"},turn));};
 
- it("keeps a claim only when the same reply walks to that tile or next to it (review round 8)",()=>{
+ it("keeps a claim only when the same reply walks to exactly that tile (review rounds 8 and 9)",()=>{
   const l=new DisprovedBeliefs(ALL_ON);
   observeResult(l,"o1",LINE("none","PROF. BIRCH"),{},1);
   // Retractions the vocabulary rule cannot see, and replies that act elsewhere: the model did not pursue the tile.
   say(l,"Professor Birch is at (7,7). Actually, he is elsewhere.",2,{name:"navigate_to",args:{x:1,y:12,map_id:[1,4]}});
   say(l,"Professor Birch is at (7,7). Scratch that, he is elsewhere.",3,{name:"press",args:{buttons:["DOWN"]}});
   say(l,"Professor Birch is at (7,7). Or so I thought.",4,{name:"observe",args:{}});
+  // A walk to a neighbouring tile for another purpose is not the pursuit either (review round 9).
+  say(l,"Professor Birch is at (8,7). Scratch that, he is elsewhere. The scientist is at (8,8), so I'll walk there.",5,{name:"navigate_to",args:{x:8,y:8,map_id:[1,4]}});
+  say(l,"Professor Birch is at (7,7).",6,{name:"navigate_to",args:{x:7,y:8,map_id:[1,4]}});
   expect(l.text()).toBeNull();
-  say(l,"Professor Birch is at (7,7).",5,{name:"navigate_to",args:{x:7,y:8,map_id:[1,4]}});
-  expect(l.text()).toContain(`you wrote at turn 5: "Professor Birch is at (7,7)." and called navigate_to (7,8).`);
+  say(l,"Professor Birch is at (7,7).",7,{name:"navigate_to",args:{x:7,y:7,map_id:[1,4]}});
+  expect(l.text()).toContain(`you wrote at turn 7: "Professor Birch is at (7,7)." and called navigate_to (7,7).`);
  });
  it("drops an absent-character entry when that map's readout lists the character as here, and when a story flag changes",()=>{
   const l=new DisprovedBeliefs(ALL_ON);

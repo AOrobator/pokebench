@@ -160,6 +160,12 @@ Report per switch: id, model-facing before/after excerpts from this run, precisi
 - Accepted with a structural fix instead of more vocabulary: a claim counts only when the same reply's tool call is navigate_to to the claimed tile or a tile next to it, so the pursuit side is the model's own action, not only its words; the entry quotes that call. On sh02 all of T82–T88 walk to the claimed tile. 2026-10-16 12:00 PM EDT round-8 RED: 1 failing test. COMMIT (d077e2b2).
 - 2026-10-16 12:15 PM EDT round-8 GREEN: `claims()` keeps a sentence only if the reply has a navigate_to within one tile of the claimed (x,y); the entry reads "…you wrote at turn 88: "Prof. Birch is at (7,1)." and called navigate_to (7,1)…". Full-run replay unchanged: 4 entries, all true; 205 deliveries. Explainer and description updated. Gates: agent 1606 tests 97.96/94.46/98.37/99.14; viewer 888 tests 95.34/91.01/93.62/97.64; Python (no ROM) 2236 passed 34 skipped, 97.31/93.08/100; lint clean (TS/eslint); pages-check silent.
 
+### Round 9 (cumulative main 1f4ac74e..835fa529 excluding the fixture, SHA-256 d15fa736…a4a1; fix delta 58ae84fb..835fa529, SHA-256 6313f579…050a)
+
+- Grok: LGTM. Claude CLI: LGTM.
+- Codex: BLOCKING: a retracted claim whose reply walks to a neighbouring tile for another reason ("Professor Birch is at (8,7). Scratch that… The scientist is at (8,8), so I'll walk there." + navigate_to (8,8)) still counts.
+- Accepted: the navigate_to target must equal the claimed tile. On sh02 every counted claim (T82–T88) names the exact tile it walks to. 2026-10-16 12:45 PM EDT round-9 RED: 1 failing test. If round 10 still blocks on this class, stop and ask the operator (the review skill's scope checkpoint is long past).
+
 ## Surprises
 
 - The twin's coordinate trigger leaves the player at (11,1) with field controls locked and no message; the push back to (11,2) happens on the next press. A state-equality rule over one decision never sees this loop; a two-state rule does.

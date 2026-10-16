@@ -21,5 +21,6 @@ Viewer-only layout change; no feature switch (feature-switch skill excludes view
   - Viewer: 60 files, 786 tests pass; coverage 95.08 lines / 90.39 branches / 93.55 functions; tsc + eslint clean.
   - Browser proof at 375px on live 8790 with the markup and CSS injected client-side (no second viewer, runs undisturbed): picker spans the panel width at y=392, AGENT TRACE selected, no horizontal page scroll (scrollWidth 375).
 - [x] Review round 2 on 5d2a8fde (diff sha256 16592fae…): Claude CLI LGTM, Grok (cursor-grok-4.5-high) LGTM. Taken: the picker is a `<nav aria-label="PokéNav page picker">` so phones keep a navigation landmark. Left as notes: iOS zooms on focusing a select under 16px (a 16px pixel font would not fit the panel); `??` fallbacks are unreachable but the 90 branch gate passes; the 700px `.inspection-nav { height:650px }` is pre-existing dead CSS. Codex CLI rejects its default model on this account; Codex lane rerun through Cursor.
-- [ ] Codex lane
+- [x] Codex lane: blocked. Codex CLI rejects gpt-6.1-sol and gpt-5.5 on this ChatGPT account, and Cursor Codex models hit the monthly usage limit (resets 2026-10-17). Merge rests on Claude CLI + Grok LGTM, as in earlier viewer worklogs; flagged to the operator.
+- [x] the operator approved merge ("merge it", 2026-10-16 00:17 New York). Fix COMMIT: `fix(viewer): phone page picker is a navigation landmark` (737a8131)
 - [ ] the operator approves merge; local merge into main; `just viewer-main` only with go-ahead if runs live in the 8790 process

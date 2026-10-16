@@ -167,11 +167,11 @@ it("loads workbench runs through the pool and validates their replies", async ()
   const workers: FakeWorker[] = [];
   const pool = createBaselinePool(() => { const w = new FakeWorker(); workers.push(w); return w; }, 1);
   const record: LoadedRun = loadRun(r, "done");
-  const good = pool.load(r, "done");
-  expect(workers[0]?.posted[0]).toEqual({ id: expect.any(Number) as unknown, kind: "workbench", runsRoot: r, runId: "done" });
+  const good = pool.load(r, "done", { commit: "a".repeat(40), dirty: false });
+  expect(workers[0]?.posted[0]).toEqual({ id: expect.any(Number) as unknown, kind: "workbench", runsRoot: r, runId: "done", viewer: { commit: "a".repeat(40), dirty: false } });
   workers[0]?.emit("message", { id: workers[0].posted[0]?.id, outcome: record });
   expect(await good).toEqual(record);
-  const bad = pool.load(r, "done");
+  const bad = pool.load(r, "done", null);
   workers[0]?.emit("message", { id: workers[0].posted[1]?.id, outcome: { run: 7 } });
   await expect(bad).rejects.toThrow(/invalid reply/);
   await pool.close();

@@ -20,7 +20,7 @@ export type LoopKind =
   | "cycle"
   | "rejection";
 // stall-briefing-v1: stalls the loop checks above do not see.
-export type StallKind = "map_cycle" | "milestone_drought" | "interface_dwell";
+export type StallKind = "map_cycle" | "milestone_drought" | "interface_dwell" | "same_plan";
 export type LoopMode = "enforced" | "diagnostic";
 export function readLoopMode(env: NodeJS.ProcessEnv = process.env): LoopMode {
   const flag = env["POKEBENCH_LOOP_GUARD"];

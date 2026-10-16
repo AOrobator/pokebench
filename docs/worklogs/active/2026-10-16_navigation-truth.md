@@ -48,8 +48,9 @@ No new I/O, subprocesses, network, persistence or permissions. Strings are built
 - [x] GREEN: implement, register switches, presets, next-run defaults, explainers, FEATURE_EXPLAINERS, pending experiments + readiness rows
 - [x] Wiring deletion check (red once, restored): 16 receipts, see Session Log
 - [x] Gates: `just test`, `just lint`, `just build`, `just coverage` (≥90), `just verify-vendor` (pytest: 34 failures inherited from main, see Surprises)
-- [ ] COMMIT GREEN
-- [ ] Merge main, rerun gates, seal packet
+- [x] COMMIT GREEN: `feat(agent): GREEN navigation-truth-v1 and navigation-refusal-reasons-v2 (default off)` (16baa877)
+- [x] Merge main (154d905e), rerun gates
+- [ ] Seal packet
 - [ ] Principles self-review (PB1–PB13)
 - [ ] Review: Claude, Grok, GPT lanes LGTM on the frozen packet
 - [ ] STOP: report to thread owner (no self-merge)
@@ -68,10 +69,11 @@ Report branch, frozen head, packet sha256, verdicts, gates, switch ids and inten
   - Wiring/guard deletion receipts (scratchpad nt/receipts, each red once then green): withNavigation truth, triggers, windowReasons; live.ts messageTruth arg; harness.ts pass-through; dialogue truth; scroll guard; narration guard; speaker keep; reopen guard; planner trigger step; blocker; partial walk; command limit; no-script offer; gated nearer.
   - Gates: agent 1588 passed, viewer 885 passed; pytest 2236 passed / 34 failed (all `KeyError: 33786826` in `pokebench_env/route103_rival.py:34`, inherited from main; env/ untouched); lint clean (mypy needed the main checkout's native mgba binding linked into the worktree venv); build OK; verify-vendor OK. Coverage: agent lines 99.16 / branches 94.35 / functions 98.08; viewer 97.64 / 91.02 / 93.62; python lines 97.31 / branches 93.11 / functions 100.
   - Evidence outputs (ON): show T800 lists (6,16) south then (14,9) east; e588 (11,3) lists (7,6) west first; 54a7 T213 (10,0) lists (14,9) east first.
+- 2026-10-16: merged main 154d905e (disproved-beliefs-v1, same-plan-breaker-v1, Route 103 fixture windows). Registry tails: main's two switches first, then navigation-truth-v1, navigation-refusal-reasons-v2; position tests re-bumped by 2 over main's (identical-edit hunks merged silently at main's value and were corrected from the failing assertions); switchboard row count 74. Gates on the merge: agent 1652, viewer 904, pytest 2270 passed (main's fixture-window fix cleared the 34 inherited failures); lint, build, verify-vendor OK; coverage agent 99.16/94.27/98.27, viewer 97.62/91.10/93.62, python 97.33/93.17/100 (lines/branches/functions).
 
 ## Surprises
 
-- pytest on main 1f4ac74e has 34 failures: `read_route103_rival` (route103-rival-splits merge) reads 0x0203A1CA, which older recorded raw-RAM fixtures do not contain. Not touched here (Python env belongs to other branches); reported to the thread owner.
+- pytest on main 1f4ac74e had 34 failures (fixed on main by 2cb0e316 before this branch's merge): `read_route103_rival` (route103-rival-splits merge) reads 0x0203A1CA, which older recorded raw-RAM fixtures do not contain. Not touched here (Python env belongs to other branches); reported to the thread owner.
 - The worktree needed `git submodule update --init` (from the main checkout's submodule) before pytest; vendor stays at the pin.
 
 ## Multi-Model Review Log

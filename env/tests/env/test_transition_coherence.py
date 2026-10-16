@@ -482,7 +482,7 @@ def test_handoff_callbacks_are_the_rom_verified_set() -> None:
         0x080861E9: "field_transition",
         0x0809E8B5: "field_transition",
         0x081349F5: "clock_transition",
-        0x08133F0D: "starter_opening_transition",
+        0x08133F0D: "starter_choice_transition",
         0x080EFE99: "field_transition",
         CB2_HANDLE_START_BATTLE: "battle_transition",
     }
@@ -527,7 +527,7 @@ def test_handle_start_battle_in_battle_is_the_battle_phase_not_the_handoff() -> 
 
 @pytest.mark.parametrize(
     ("run", "raw", "phase"),
-    [("show", 7834, "field_transition"), ("sh02", 3454, "starter_opening_transition")],
+    [("show", 7834, "field_transition"), ("sh02", 3454, "starter_choice_transition")],
 )
 def test_real_handoff_frames_journal_and_readout(run: str, raw: int, phase: str) -> None:
     frame = read_action_frame(memory(HANDOFF, run, raw), include_storage=False)

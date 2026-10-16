@@ -127,6 +127,9 @@ Report: branch, frozen head SHA, sha256 of `git diff --binary main HEAD`, three 
 - 2026-10-16 07:05 AM EDT: gates on the merged tip: coverage agent 97.96/94.48/98.38/99.15 (1623), viewer 95.32/91.10/93.62/97.62 (905), Python 2328 passed, lines 97.39 branches 93.29 functions 100; lint green except the known mypy `mgba._pylib`; verify-vendor OK; pages-check clean. Principles self-review below (zero FAIL). Sealing the review packet.
   COMMIT: `docs(worklog): battle-start-journal gates on merged tip, principles self-review`
 
+- 2026-10-16 07:40 AM EDT: review round 1 (see log). Fix B1: phase renamed to `starter_choice_transition`. transition-coherence tests 58 passed, registry tests green, panels green, pages-check clean.
+  COMMIT: `fix: review round 1: the starter bag handoff phase is starter_choice_transition, as the frozen table names it`
+
 ## Surprises
 
 - The journal's `battle_started` fires on the activation frame, which is always before the battle decodes, so `battle_type` was null by construction.
@@ -156,7 +159,11 @@ Zero FAIL.
 
 ## Multi-Model Review Log
 
-(none yet)
+**Round 1** — packet `git diff --binary 154d905e b6efc977`, SHA-256 `878559dd02d9865f2354e7e1c3a4cb71497c88b046f8a4e281153a377cd6508a`.
+- Grok (Cursor `cursor-grok-4.5-high`): `VERDICT: LGTM`. Hardening notes: new reader args default ON (journal-favouring); battle-event fixtures use observe() not advance(); worklog says `starter_choice_transition` while code says `starter_opening_transition`.
+- Claude CLI with `CLAUDE_CONFIG_DIR=~/.claude-review`: failed, "OAuth session expired and could not be refreshed". Retried with the default `claude -p` login (same harness, standing rule): `VERDICT: BLOCKING`. B1: the frozen Handoff table names 0x08133F0D `starter_choice_transition`, the code ships `starter_opening_transition` (model-visible with the switch on). Verified packet SHA, ROM addresses, OFF path, fixture SHAs. Hardening: required keyword args; blind guard dedup hides later streaks.
+- GPT: Cursor `gpt-5.6-sol-xhigh` failed, usage limit ("resets 10/17/2026"). Switched to isolated Codex: config default `gpt-6.1-sol` rejected for a ChatGPT account; `gpt-5.6-sol` probe works, used for round 2.
+- Synthesis: B1 accepted; fixed by renaming the phase to the frozen name `starter_choice_transition` in transition_coherence.py, the tests, the switch copy and the explainer (no new surface). Hardening notes deferred (non-blocking).
 
 ## Boy Scout Log
 

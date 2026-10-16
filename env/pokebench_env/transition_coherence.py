@@ -54,7 +54,7 @@ HANDOFF_CALLBACKS: dict[int, tuple[str, str]] = {
     0x080861E9: ("field_transition", FIELD_RETURN),  # CB2_ReturnToFieldFadeFromBlack
     0x0809E8B5: ("field_transition", FIELD_RETURN),  # ReturnFromStartWallClock
     0x081349F5: ("clock_transition", "Wall clock opening; input is not active yet"),
-    0x08133F0D: ("starter_opening_transition", "Starter bag opening; input is not active yet"),
+    0x08133F0D: ("starter_choice_transition", "Starter bag opening; input is not active yet"),
     0x080EFE99: ("field_transition", FIELD_RETURN),  # ChangePokemonNickname_CB
     CB2_HANDLE_START_BATTLE: ("battle_transition", "Battle start; the battle screen is loading"),
 }

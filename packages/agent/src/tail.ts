@@ -49,6 +49,7 @@ function body(event: RunEvent): [string, string] {
     case "navigation_context":return ["NAVIGATION MEMORY",`${String(event.evidence.length)} references · ${clip(event.text,80)}`];
     case "milestone_hint":return ["MILESTONE HINT",clip(event.text,100)];
     case "ledger_context":return ["INSTRUCTION LEDGER",`${String(event.evidence.length)} references · ${clip(event.text,80)}`];
+    case "belief_ledger":return ["DISPROVED BELIEFS",`${String(event.entries)} entr${event.entries===1?"y":"ies"} · ${clip(event.text,80)}`];
     case "decision_input":return ["DECISION INPUT",`decision ${String(event.decision_turn)} · state #${String(event.state_seq)} · ${clip(event.text,80)}`];
     case "wait_input":return ["WAIT",`${String(event.duration_ms)} ms (host time)`];
     case "human_input": return ["HUMAN", `${event.buttons.join(" ") || "idle"} · frames ${String(event.start_frame)}–${String(event.end_frame)}`];

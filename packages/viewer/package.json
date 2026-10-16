@@ -7,7 +7,7 @@
     "test": "vitest run",
     "coverage": "vitest run --coverage",
     "lint": "tsc --noEmit && eslint .",
-    "build": "tsc -p tsconfig.build.json"
+    "build": "tsc -p tsconfig.build.json && node dist/build-stamp.js"
   },
   "dependencies": {
     "@pokebench/agent": "workspace:*",

@@ -207,6 +207,7 @@ HARNESS BUG (battle): harness bug: invalid battle positions</pre>
  <h2>Proof and status</h2>
  <ul>
   <li>Tests re-render the recorded raw RAM of the three battle starts: OFF equals what the model received byte for byte; ON gives the lines above. Post-intro frames are unchanged ON.</li>
+  <li>Real ROM, the eight audited cook runs: every archive at a battle intro, a handoff callback or a busy frame, plus a 3% sample of the rest (1,329 readouts), re-rendered OFF and ON. OFF matched what the model received in all 231 recorded tool results among them. ON changed only battle intros (17), busy frames (50) and handoffs (2); none of the sampled ordinary frames changed. Replaying the journal over the archives gave no save-block harness bug and never more battle outcomes than battles.</li>
   <li>Branch <code>claude/battle-start-journal</code>; source pret/pokeemerald <code>731ad5bf</code>, US ROM SHA-1 <code>f3ae0881</code>.</li>
   <li>Not done: measured runs. The experiment entry <code>transition-coherence</code> is pending.</li>
  </ul>

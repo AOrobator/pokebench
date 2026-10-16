@@ -41,6 +41,8 @@ Tracked, local HTML documentation. Open an explainer directly; no server or exte
 - [Displayed place names v1](displayed-place-names-v1.html)
 - [Readout rules in prompt v1](readout-rules-in-prompt-v1.html)
 - [Adjacent tiles v1](adjacent-tiles-v1.html)
+- [Disproved beliefs ledger v1](disproved-beliefs-v1.html)
+- [Same-plan breaker v1](same-plan-breaker-v1.html)
 - [Experiment queue](experiment-queue.html)
 - [Runs survive viewer restarts](run-survives-viewer.html)
 

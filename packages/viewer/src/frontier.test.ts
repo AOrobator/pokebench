@@ -46,6 +46,8 @@ describe("persistent actual native frontier", () => {
     expect(axis.indexOf("PLAYER_BEDROOM_EXITED_AFTER_CLOCK")).toBe(axis.indexOf("CLOCK_SET") + 1);
     expect(axis.indexOf("MOM_RIVAL_INSTRUCTION")).toBe(axis.indexOf("PLAYER_BEDROOM_EXITED_AFTER_CLOCK") + 1);
     expect(FRONTIER_MILESTONES.find(m => m.id === "PLAYER_BEDROOM_EXITED_AFTER_CLOCK")?.label).toBe("Leave bedroom");
+    expect(axis.slice(axis.indexOf("ROUTE_103"), axis.indexOf("RECEIVED_POKEDEX") + 1)).toEqual(["ROUTE_103", "RIVAL_BATTLE_STARTED", "RIVAL_BATTLE_DEFEATED", "RIVAL_BATTLE_WON", "RIVAL_OLDALE_SEND_OFF", "ROUTE_101_AFTER_RIVAL_BATTLE", "LITTLEROOT_AFTER_RIVAL_BATTLE", "RECEIVED_POKEDEX"]);
+    expect(["RIVAL_BATTLE_STARTED", "RIVAL_BATTLE_DEFEATED", "RIVAL_BATTLE_WON", "RIVAL_OLDALE_SEND_OFF", "ROUTE_101_AFTER_RIVAL_BATTLE", "LITTLEROOT_AFTER_RIVAL_BATTLE"].map(id => FRONTIER_MILESTONES.find(m => m.id === id)?.label)).toEqual(["Rival battle starts", "Rival beaten", "Rival sends you back", "Rival waits in Oldale", "Route 101, heading back", "Back in Littleroot"]);
     expect(FRONTIER_MILESTONES.some(m => /LAB|AIDE/.test(m.id))).toBe(false);
     const optional = measured("optional", [1000]);
     optional.splits.push({ name: "LAB_ENTERED", elapsedMs: 2000, segmentMs: 1000, seq: 2, turn: 2, inputTokens: 0, outputTokens: 0 });
@@ -126,6 +128,13 @@ describe("persistent actual native frontier", () => {
     bedroom.measurement = { ...bedroom.measurement, features: [...bedroom.measurement.features, "bedroom-exit-v1"] };
     expect(milestoneStatus(older, "PLAYER_BEDROOM_EXITED_AFTER_CLOCK")).toBe("unsupported");
     expect(milestoneStatus(bedroom, "PLAYER_BEDROOM_EXITED_AFTER_CLOCK")).toBe("not reached");
+    const rival = measured("rival", []);
+    if (rival.measurement === undefined) throw new Error("measurement");
+    rival.measurement = { ...rival.measurement, features: [...rival.measurement.features, "route103-rival-splits-v1"] };
+    for (const id of ["RIVAL_BATTLE_STARTED", "RIVAL_BATTLE_DEFEATED", "RIVAL_OLDALE_SEND_OFF", "ROUTE_101_AFTER_RIVAL_BATTLE", "LITTLEROOT_AFTER_RIVAL_BATTLE"]) {
+      expect(milestoneStatus(older, id)).toBe("unsupported");
+      expect(milestoneStatus(rival, id)).toBe("not reached");
+    }
   });
   it("plots a main-menu-save start as a New Game run, tagged, and keeps it out of the fresh-boot record", () => {
     const menu = measured("menu", [60000, 90000, 120000]);
@@ -190,8 +199,8 @@ describe("zoom to frontier", () => {
     expect(axis()).toContain("Starter"); expect(axis()).not.toContain("Oldale"); expect(axis()).not.toContain("Badge");
     expect(axis()).toContain("30"); expect(axis()).not.toContain("120");
     expect(document.querySelector(".wb-frontier-chart")?.getAttribute("aria-label")).toBe("Story frontier zoomed to New game through Starter");
-    expect(document.body.textContent).toContain("Zoomed to the frontier: New game → Starter, 18 of 40 checkpoints");
-    expect(document.body.textContent).toContain("22 later checkpoints hidden");
+    expect(document.body.textContent).toContain("Zoomed to the frontier: New game → Starter, 18 of 45 checkpoints");
+    expect(document.body.textContent).toContain("27 later checkpoints hidden");
     document.body.innerHTML = frontierPlot(refs, [], 2000);
     expect(document.querySelectorAll(`[data-run="${HUMAN_REFERENCE}"]`)).toHaveLength(10);
     expect(axis()).toContain("120"); expect(document.body.textContent).not.toContain("Zoomed");
@@ -206,15 +215,15 @@ describe("zoom to frontier", () => {
     expect(document.body.textContent).not.toContain("Zoomed");
     document.body.innerHTML = frontierPlot({ human: human(), best: null }, [], 2000, undefined, [], true);
     expect(axis()).toContain("New game"); expect(axis()).toContain("Name"); expect(axis()).not.toContain("Truck exit");
-    expect(document.body.textContent).toContain("2 of 40 checkpoints");
+    expect(document.body.textContent).toContain("2 of 45 checkpoints");
   });
   it("ends at the next dense human checkpoint and widens for paused runs, keeping narrow labels honest", () => {
     const dense = human(); dense.splits = FRONTIER_MILESTONES.map((m, i) => ({ name: m.id, elapsedMs: (i + 1) * 1000, segmentMs: 1000, seq: i, turn: 0, inputTokens: 0, outputTokens: 0 }));
     document.body.innerHTML = frontierPlot({ human: dense, best: best() }, [], 2000, undefined, [], true);
-    expect(document.body.textContent).toContain("New game → Left rival house, 15 of 40 checkpoints");
+    expect(document.body.textContent).toContain("New game → Left rival house, 15 of 45 checkpoints");
     const paused = { ...measured("paused", [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000]), status: "paused" as const };
     document.body.innerHTML = frontierPlot({ human: dense, best: best() }, [], 300, undefined, [paused], true);
-    expect(document.body.textContent).toContain("New game → Birch rescue, 19 of 40 checkpoints");
+    expect(document.body.textContent).toContain("New game → Birch rescue, 19 of 45 checkpoints");
     expect(document.body.textContent).toContain("all visible points remain plotted");
   });
   it("labels the checkpoint where lines stop between rival instruction and rival house", () => {

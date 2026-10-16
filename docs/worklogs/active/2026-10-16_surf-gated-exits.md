@@ -59,11 +59,11 @@ Read-only RAM decoding and text. No subprocesses, no network, no new endpoints. 
 - [x] Guard deletion receipts
 
 **M3 — proof, explainer, pending experiment**
-- [ ] Measure on 4caa: readouts and briefings that change
-- [ ] False-drop check across other recent runs
-- [ ] Explainer `docs/explainers/surf-gated-exits-v1.html`, README, `just pages-check`
-- [ ] `experiments/surf-gated-exits.json` (pending), readiness row
-- [ ] COMMIT
+- [x] Measure on 4caa: 145 of 597 tool results change (all on ROUTE103 tiles where the gate holds; each had the untaken-exits line naming both exits; the readout's three map-fact lines change on the same 145); 12 of 19 supervisor briefings name the two exits (replayed exactly for 5271 and 6219 in the TS test)
+- [x] False-drop check: 108 runs `runs/2026-10-1*` with raw RAM, 132,319 overworld states, 11,767 distinct (map, tile) re-read with surf_gate.py: the only gated exits anywhere are ROUTE103 (45,6) and EAST; no run ever moved from a map straight into an exit the gate marked there: 0 false drops. Runs changed: 8b01 149, 230d 145, 4caa 145, 7ccf 47 (untaken-exits on); sh02 172, 54a7 123, e588 97, 7a95 47 readouts (untaken-exits off: only the readout notes). Other field moves: the most-repeated untaken exits across these runs are Oldale doors, Route 102/103 edges and Littleroot doors; none is behind Cut, Rock Smash or Strength, so only Surf is gated
+- [x] Explainer `docs/explainers/surf-gated-exits-v1.html` (grid from 4caa raw RAM), README, FEATURE_EXPLAINERS + panels test, `just pages-check` prints nothing
+- [x] `experiments/surf-gated-exits.json` (pending, no queuePosition; bundle arm only), readiness row; `just experiments-check` ok (79)
+- [x] COMMIT
 
 **M4 — review**
 - [ ] Merge main, gates

@@ -416,6 +416,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "readout-truth-v1":"readout-truth-v1.html",
  "birch-speech-pages-v1":"birch-speech-pages-v1.html",
  "blackout-readout-v1":"blackout-readout-v1.html",
+ "surf-gated-exits-v1":"surf-gated-exits-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

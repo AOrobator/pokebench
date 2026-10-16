@@ -45,7 +45,7 @@ it("defaults OFF for presets that omit it and for legacy flag presets", () => {
 it("accepts the recorded message page, and states recorded before the page existed", () => {
   const waiting = { state: "waiting_for_input", render_state: "page_wait", text: "Wild WINGULL\nfainted!\n", cursor: 22, identity: "773f", diagnostic: null, page: "Wild WINGULL fainted!" };
   expect(Value.Check(BattleMessageSchema, waiting)).toBe(true);
-  const { page: _page, ...older } = waiting;
+  const older = Object.fromEntries(Object.entries(waiting).filter(([key]) => key !== "page"));
   expect(Value.Check(BattleMessageSchema, older)).toBe(true);
   expect(Value.Check(BattleMessageSchema, { ...waiting, page: 3 })).toBe(false);
 });

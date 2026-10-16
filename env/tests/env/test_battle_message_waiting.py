@@ -162,7 +162,7 @@ def test_a_page_is_the_text_since_the_window_was_last_cleared_up_to_its_wait() -
     assert raw_page(scroll, 6) == "A B C"
     press = encode("X") + b"\xfc\x09" + encode("Y")
     assert raw_page(press, 3) == "X"  # FC 09 waits for a press
-    assert raw_page(press, 4) == "X Y"
+    assert raw_page(press, 4) == "XY"  # the text goes on after the press on the same line
     # A colour control whose argument byte is FB is not a page break.
     assert raw_page(b"\xfc\x01\xfb" + encode("Hi") + b"\xfb", 6) == "Hi"
     # A message that closes on its own: the page runs to the end.
@@ -216,8 +216,9 @@ def test_clause_for_a_battle_script_yes_no_box() -> None:
             f"battle YES/NO box open ({words}), cursor on NO — UP or DOWN moves the cursor, "
             "A answers the highlighted choice, B answers NO"
         )
+    # A box still being drawn (state 0) is the game's own work.
     unready = replace(BASE, prompt=bt.BattlePrompt("yes_no", False, None))
-    assert input_clause(unready) is None
+    assert input_clause(unready) == RESOLVING
 
 
 def test_details_line_keeps_ready_finishing_and_replay_text() -> None:
@@ -246,6 +247,22 @@ def test_details_line_keeps_ready_finishing_and_replay_text() -> None:
     assert details.lines(replay, message_waiting=True)[0].endswith("recorded playback")
 
 
+def test_control_arm_line_is_absent_when_input_is_ready_or_in_replay() -> None:
+    from test_battle_details_v2 import state, trainer
+
+    base = state(trainer())
+    assert base.battle is not None
+    waiting = bt.BattleMessage("waiting_for_input", "page_wait", "x", 3, "i", None, "Hi!")
+    off = CONTROL_OFF - {SWITCH}
+    ready = replace(base, battle_details=None, battle=replace(base.battle, message=waiting))
+    assert "Battle input:" not in format_readout(ready, off)
+    resolving = replace(ready.battle, player_inputs=(), phase="resolving")  # type: ignore[arg-type]
+    shown = format_readout(replace(ready, battle=resolving), off)
+    assert 'Battle input: battle message waiting: "Hi!" — press A or B to continue' in shown
+    replay = replace(resolving, phase="replay")
+    assert "Battle input:" not in format_readout(replace(ready, battle=replay), off)
+
+
 def test_format_readout_off_is_unchanged_without_a_battle() -> None:
     from test_readout import IN_GAME
 
@@ -271,7 +288,7 @@ def test_production_observation_route_honours_the_switch(monkeypatch: pytest.Mon
     read = reader("00004700", operator_rom())
     maps = MapNames.load(rerender.PORYMAP_MAPS)
     payloads = {}
-    for off in (RECORDED_OFF, RECORDED_OFF | {SWITCH}):
+    for off in (RECORDED_OFF - {SWITCH}, RECORDED_OFF | {SWITCH}):
         monkeypatch.setenv("POKEBENCH_FEATURES_OFF", ",".join(sorted(off)))
         monkeypatch.setenv("POKEBENCH_ACTIVE_UI", "1")
         app = FastAPI()
@@ -287,5 +304,11 @@ def test_production_observation_route_honours_the_switch(monkeypatch: pytest.Mon
 def test_page_text_needs_the_terminated_payload() -> None:
     with pytest.raises(ValueError):
         bt.page_text(encode("Hi"), 1)
+    with pytest.raises(ValueError, match="unknown text control"):
+        bt.page_text(encode("Hi") + b"\xfc", 1)
+    # F9 glyphs are two bytes.
+    assert bt.page_text(encode("A") + b"\xf9\x00" + b"\xfb\xff", 4) == "A" + bt.decode_battle_text(
+        b"\xf9\x00"
+    )
     assert bt.page_text(encode("Hi") + b"\xff", 0) == "Hi"
     assert Memory  # the synthetic layout is shared with test_battle_text

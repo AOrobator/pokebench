@@ -149,7 +149,8 @@ Report per switch: id, model-facing before/after excerpts from this run, precisi
 - Grok: LGTM.
 - Codex and Claude CLI: BLOCKING, same finding: a retraction by pronoun ("Actually, the readout says he isn't here") is not checked, because only sentences that repeat the name are.
 - Accepted Claude's simpler option: if any sentence of the reply negates or hedges, the reply yields no claims. 2026-10-16 11:15 AM EDT round-7 RED: 1 failing test. COMMIT (ebecf44a).
-- 2026-10-16 11:30 AM EDT round-7 GREEN: `locatingClaims` returns nothing for a reply whose text has any negation, hedge or question. Full-run replay: still 4 entries, all true; the Birch entry's claims are T82–T88 (T124 goes past the tile, T125 hedges "Or I can"); 205 deliveries. Explainer excerpt (T147) and rule text, and the description, updated. Gates: agent 1605 tests 97.96/94.47/98.37/99.14; viewer 887 tests 95.34/91.01/93.62/97.64; Python without the ROM 2236 passed, 34 skipped, 97.31/93.08/100 (with the ROM, main's 34 route103 re-render failures remain, unchanged); lint clean (TS/eslint); pages-check silent.
+- 2026-10-16 11:30 AM EDT round-7 GREEN: `locatingClaims` returns nothing for a reply whose text has any negation, hedge or question. Full-run replay: still 4 entries, all true; the Birch entry's claims are T82–T88 (T124 goes past the tile, T125 hedges "Or I can"); 205 deliveries. Explainer excerpt (T147) and rule text, and the description, updated. Gates: agent 1605 tests 97.96/94.47/98.37/99.14; viewer 887 tests 95.34/91.01/93.62/97.64; Python without the ROM 2236 passed, 34 skipped, 97.31/93.08/100 (with the ROM, main's 34 route103 re-render failures remain, unchanged); lint clean (TS/eslint); pages-check silent. COMMIT (93561787).
+- 2026-10-16 11:35 AM EDT: merged main 1f4ac74e (viewer frontier live filter; no conflicts). Viewer 888 tests pass.
 
 ## Surprises
 

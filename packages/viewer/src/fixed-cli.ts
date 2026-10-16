@@ -174,7 +174,7 @@ async function dryRun(argv: readonly string[], deps: FixedCliDeps, id: string): 
   const phase = flag(argv, "--phase") ?? def.phases[0]?.id ?? "";
   if (!def.phases.some((p) => p.id === phase)) throw new CliError(`no phase ${phase}; phases: ${def.phases.map((p) => p.id).join(", ")}`);
   const dry = dryRunDefinition(def, wallMs, phase);
-  if (existsSync(join(experimentDir(deps, dry.id), "trials.jsonl"))) throw new CliError(`${dry.id} already has a ledger; move runs/experiments/${dry.id} aside first`);
+  if (existsSync(join(experimentDir(deps, dry.id), "trials.jsonl"))) throw new CliError(`${dry.id} already has a ledger; move runs/experiments/${dry.id} to runs/dryruns/<name> first (the viewer still lists it there)`);
   const result = await deps.run({ def: dry, definitionSha256: sha256(JSON.stringify(dry)), runsRoot: deps.runsRoot, host: deps.host(), stopRequested: deps.stopRequested ?? (() => false), pid: process.pid, dryRun: true });
   deps.out(`${dry.id}: ${result}`);
 }

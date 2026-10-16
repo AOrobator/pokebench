@@ -2,7 +2,7 @@ import {createHash} from "node:crypto";
 import {readFileSync} from "node:fs";
 import {expect,it} from "vitest";
 import {ALL_ON,FEATURES,dependencyProblems,featureInfo,playHarnessFeatures,serverFeatureEnv,stateOnlyProblems,type FeatureSet,type SwitchableFeature} from "./features.js";
-import {EXPLORER_GUIDANCE_SECTION,EXPLORER_TALK_IS_CHEAP,GAME_EVIDENCE_SECTION,NAVIGATE_TO_USAGE,playSystemPrompt} from "./play-config.js";
+import {BATTLE_TRIAGE_SECTION,EXPLORER_GUIDANCE_SECTION,EXPLORER_TALK_IS_CHEAP,GAME_EVIDENCE_SECTION,NAVIGATE_TO_USAGE,playSystemPrompt} from "./play-config.js";
 import {objectivePrompt} from "./objective-tools.js";
 import {objectiveSwitches} from "./play-config.js";
 import {parsePlayPreset,presetFeatures} from "./play-preset.js";
@@ -36,6 +36,12 @@ it("ON appends the talk-to-people section after every other prompt section",()=>
  expect(playSystemPrompt({...evidence,[ID]:true},null)).toContain(`${GAME_EVIDENCE_SECTION}\n\n${NAVIGATE_TO_USAGE}\n\n${EXPLORER_GUIDANCE_SECTION}`);
  const objectives={...PLAIN,"objective-tracking-v1":true};
  expect(playSystemPrompt({...objectives,[ID]:true},"RIVAL_HOUSE_ENTERED")).toBe(`${playSystemPrompt({...PLAIN,[ID]:true},"RIVAL_HOUSE_ENTERED")}\n\n${objectivePrompt(objectiveSwitches(objectives))}`);
+});
+
+it("follows the battle and healing section when both guidance sections are on",()=>{
+ const both={...PLAIN,"battle-triage-guidance-v1":true,"dialogue-auto-advance-v1":true,[ID]:true};
+ expect(playSystemPrompt(both,null)).toBe(`${playSystemPrompt({...both,[ID]:false},null)}\n\n${EXPLORER_GUIDANCE_SECTION} ${EXPLORER_TALK_IS_CHEAP}`);
+ expect(playSystemPrompt(both,null).endsWith(`${BATTLE_TRIAGE_SECTION}\n\n${EXPLORER_GUIDANCE_SECTION} ${EXPLORER_TALK_IS_CHEAP}`)).toBe(true);
 });
 
 it("says talking is cheap only when dialogue auto-advance reads conversations for the model",()=>{

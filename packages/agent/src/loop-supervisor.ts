@@ -32,7 +32,7 @@ export function interfaceOf(s:Screen):OwnedInterface|null {
 }
 
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
-interface Call {readonly name:string;readonly args:Record<string,unknown>;before:State|null;pressed:boolean;readonly uiBefore:string|null}
+interface Call {readonly name:string;readonly args:Record<string,unknown>;before:State|null;pressed:boolean;readonly uiBefore:string|null;conditions?:ReadonlyMap<string,boolean>}
 type Advance=Extract<RunEvent,{type:"dialogue_auto_advance"}>;
 type Page=Advance["pages"][number];
 interface Tried {readonly key:string;readonly room:string;readonly label:string;count:number;outcome:string}
@@ -132,7 +132,7 @@ export class SupervisorBriefing {
   if(event.type==="button_press"){
    const call=this.calls.get(event.tool_call_id);
    const pre=this.measured;
-   if(call!==undefined&&!call.pressed&&pre!==null&&pre.seq===event.before_state_seq&&pre.started&&pre.screen==="overworld"){call.before=pre;call.pressed=true;}
+   if(call!==undefined&&!call.pressed&&pre!==null&&pre.seq===event.before_state_seq&&pre.started&&pre.screen==="overworld"){call.before=pre;call.pressed=true;if(this.exits!==null)call.conditions=new Map(this.conditions.get(this.room(pre))??[]);}
    return;
   }
   if(event.type==="tool_result"&&this.pendingStory!==null)this.storyPages(event.id,event.is_error);
@@ -207,10 +207,13 @@ export class SupervisorBriefing {
   if(!state.started||state.screen!=="overworld"||p===null)return;
   const room=this.room(state),from=this.stepFrom;
   const seen=this.conditions.get(room)??new Map<string,boolean>();
+  // The condition before this step decides whether stepping on the tile ran its script: a one-shot script may
+  // flip its own variable by the time this state is read. Never seen before: this state's value.
+  const prior=seen.get(at(p.x,p.y));
   for(const trigger of state.world_context?.triggers??[])if(trigger.condition_met!==null)seen.set(at(trigger.x,trigger.y),trigger.condition_met);
   this.conditions.set(room,seen);this.stepFrom={room,x:p.x,y:p.y};
   if(from===null||from.room!==room||(from.x===p.x&&from.y===p.y)||!this.features["world-targets-v1"])return;
-  if((state.interaction_targets??[]).some(t=>t.activation==="step"&&t.x===p.x&&t.y===p.y)&&seen.get(at(p.x,p.y))!==false)this.pendingTouches.push({room,tile:at(p.x,p.y)});
+  if((state.interaction_targets??[]).some(t=>t.activation==="step"&&t.x===p.x&&t.y===p.y)&&(prior??seen.get(at(p.x,p.y)))!==false)this.pendingTouches.push({room,tile:at(p.x,p.y)});
  }
  // briefing-exits-v1: a step trigger whose script ran is tried even when the script walked the player back to where
  // the press began (a push-back: OldaleTown_EventScript_BlockedPath, the Littleroot twin, Route 101 PreventExit*).
@@ -232,7 +235,9 @@ export class SupervisorBriefing {
   const step=sent[0]===undefined?undefined:STEP[sent[0].toLowerCase()];
   if(step===undefined||!sent.every(b=>STEP[b.toLowerCase()]!==undefined)||before.field_controls_locked===true)return;
   const x=before.position.x+step[0],y=before.position.y+step[1];
-  if(!(before.interaction_targets??[]).some(t=>t.activation==="step"&&t.x===x&&t.y===y)||this.dead(before,x,y))return;
+  // The condition as recorded when the press began, not after the script may have changed it.
+  const unmet=(call.conditions?.get(at(x,y))??this.conditions.get(this.room(before))?.get(at(x,y)))===false;
+  if(!(before.interaction_targets??[]).some(t=>t.activation==="step"&&t.x===x&&t.y===y)||unmet)return;
   const scripted=pages.length>0||Boolean(after.world_context?.dialogue)||after.field_controls_locked===true;
   const back=after.position?.x===before.position.x&&after.position.y===before.position.y&&this.room(after)===this.room(before);
   if(scripted&&back)this.touch(this.room(before),at(x,y));
@@ -308,8 +313,8 @@ export class SupervisorBriefing {
  // Walking onto a step-activated target is how it is tried; standing on a tile for other reasons is not.
  private touchSteppedTrigger(after:State):void {
   const p=after.position;if(p===null||!this.features["world-targets-v1"])return;
-  // briefing-exits-v1: a trigger whose condition was last shown as unmet did not run, so it is not tried.
-  if(this.exits!==null&&this.dead(after,p.x,p.y))return;
+  // briefing-exits-v1: every recorded step, this one included, is judged in exitFacts against the condition before it.
+  if(this.exits!==null)return;
   if((after.interaction_targets??[]).some(t=>t.activation==="step"&&t.x===p.x&&t.y===p.y))this.touch(this.room(after),at(p.x,p.y));
  }
  private remember(key:string,room:string,label:string,outcome:string):void {

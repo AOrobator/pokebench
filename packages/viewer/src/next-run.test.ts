@@ -28,7 +28,7 @@ describe("next-run draft", () => {
     expect(DEFAULT_NEXT_RUN.features["battle-triage-guidance-v1"]).toBe(false);
     expect(writeDraft(runsRoot, draft)).toEqual(draft);
     expect(readDraft(runsRoot)).toEqual(draft);
-    expect(() => writeDraft(runsRoot, { ...draft, features: { ...ALL_ON, "state-only-decisions-v1": false, "pushback-loop-detection-v1": false, "pushback-press-result-v1": false, "battle-observation-loop-v1": false, "pushback-loop-detection-v1": false, "pushback-press-result-v1": false, "battle-observation-loop-v1": false, "explorer-guidance-v1": false, "in-game-naming-readout-v1": false, "no-nickname-guidance-v1": false, "battle-text-auto-advance-v1": false, "battle-message-waiting-v1": false, "connection-edge-tiles-v1": false, "live-map-v1": false } })).toThrow(/world-coordinate-grid-v1 needs live-map-v1/);
+    expect(() => writeDraft(runsRoot, { ...draft, features: { ...ALL_ON, "state-only-decisions-v1": false, "pushback-loop-detection-v1": false, "pushback-press-result-v1": false, "battle-observation-loop-v1": false, "explorer-guidance-v1": false, "in-game-naming-readout-v1": false, "no-nickname-guidance-v1": false, "battle-text-auto-advance-v1": false, "battle-message-waiting-v1": false, "connection-edge-tiles-v1": false, "live-map-v1": false } })).toThrow(/world-coordinate-grid-v1 needs live-map-v1/);
     expect(() => writeDraft(runsRoot, { ...draft, extra: 1 })).toThrow(NextRunError);
     writeFileSync(join(runsRoot, ".viewer", "next-run.json"), "garbage");
     expect(readDraft(runsRoot)).toEqual(DEFAULT_NEXT_RUN);

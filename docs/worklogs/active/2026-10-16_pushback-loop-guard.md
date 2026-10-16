@@ -162,6 +162,8 @@ Merge locally after all lanes LGTM. No pending experiment entry (amendment 2). R
 
 - Main moved again (script-line-presence-v1, bbbee47b). Merged with the same resolution (this branch's three after `script-line-presence-v1`; positional assertions recomputed from the built registry by `scratchpad/fixpos3.py`; switchboard rows 70). Agent 1581, viewer 871 passed.
 
+- Merge commit 27f9ec28 (main parent bbbee47b). Gates: build, test (agent 1581, viewer 871, pytest 2235), coverage (agent 99.15 / 94.61 / 98.19, loop-detection.ts 98.54 / 97.43 / 100; viewer 97.7 / 90.98 / 93.57; python 97.29 / 93.10 / 100), verify-vendor all exit 0. Lint first failed: the resolver added this branch's keys a second time to one next-run.test.ts object literal that had not conflicted (TS1117 duplicate keys); removed the duplicate; `just lint` then exit 0 (mypy 77 files).
+
 ## Surprises
 
 - `loop_guard` evidence is capped at 2 items by the event schema (`maxItems:2`); a 3-seq evidence list made the recorder throw in the factory test. Evidence is now [first push-back, completing call]. The replay tests validate every notice through `checkEvent`.

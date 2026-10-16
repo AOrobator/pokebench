@@ -4,13 +4,13 @@ import { fixedTreeDir, fixedTreeLiveJs, prepareFixedTree, type FixedTreeDeps } f
 const COMMIT = "f3f4b3b7".padEnd(40, "0");
 const ROOT = "/repo";
 const TREE = fixedTreeDir(COMMIT);
-const STAMP = `${TREE}/.fixed-tree`;
+const STAMP = `${TREE}/packages/agent/dist/.fixed-tree`;
 const LIVE = fixedTreeLiveJs(TREE);
 const TREE_PY = `${TREE}/env/.venv/bin/python`;
 
 interface Fake { deps: FixedTreeDeps; calls: string[]; files: Map<string, string>; dirs: Set<string> }
 
-function fake(over: { head?: string; status?: string; exec?: (cmd: string, args: readonly string[]) => string | null; sources?: string | null; worktreeFails?: boolean; rootMgba?: string | null; treeSite?: string | null } = {}): Fake {
+function fake(over: { head?: string; status?: string; finalStatus?: string; exec?: (cmd: string, args: readonly string[]) => string | null; sources?: string | null; worktreeFails?: boolean; rootMgba?: string | null; treeSite?: string | null } = {}): Fake {
   const calls: string[] = [];
   const files = new Map<string, string>();
   const dirs = new Set<string>();
@@ -25,7 +25,7 @@ function fake(over: { head?: string; status?: string; exec?: (cmd: string, args:
         return "";
       }
       if (args[0] === "rev-parse") return `${over.head ?? COMMIT}\n`;
-      if (args[0] === "status") return over.status ?? "";
+      if (args[0] === "status") return args.includes("--untracked-files=no") ? over.status ?? "" : over.finalStatus ?? "";
       return "";
     },
     exec: (cmd, args, cwd) => {
@@ -64,6 +64,7 @@ describe("fixed-run experiment checkout", () => {
       `copy ${ROOT}/env/.venv/lib/python3.12/site-packages/mgba ${TREE}/env/.venv/lib/python3.12/site-packages/mgba`,
       `exec ${TREE}/env ${TREE_PY} -c import mgba.core`,
       `exec ${TREE}/packages/agent /bin/node ${TREE}/packages/agent/node_modules/typescript/bin/tsc -p tsconfig.build.json --noEmitOnError`,
+      `git ${TREE} status --porcelain`,
     ]);
     expect(f.files.get(STAMP)).toBe(`${COMMIT} src-hash\n`);
   });
@@ -103,6 +104,12 @@ describe("fixed-run experiment checkout", () => {
     expect(await prepareFixedTree(fake({ treeSite: null }).deps, COMMIT)).toBe("uv sync left the experiment checkout without env/.venv site-packages");
     expect(await prepareFixedTree(fake({ exec: (_cmd, args) => (args.includes("import mgba.core") ? "ModuleNotFoundError" : null) }).deps, COMMIT)).toBe("the experiment checkout cannot import mgba.core: ModuleNotFoundError");
     expect(await prepareFixedTree(fake({ exec: (_cmd, args) => (args.includes("tsconfig.build.json") ? "TS2345" : null) }).deps, COMMIT)).toBe("the agent build failed in the experiment checkout: TS2345");
+  });
+
+  it("refuses a prepared checkout that a trial would record as dirty, and never stamps it", async () => {
+    const f = fake({ finalStatus: "?? stray.log\n" });
+    expect(await prepareFixedTree(f.deps, COMMIT)).toBe(`the experiment checkout ${TREE} is not clean after preparing it (trials would record dirty: true): ?? stray.log`);
+    expect(f.files.has(STAMP)).toBe(false);
   });
 
   it("refuses a build that produced no live.js and never stamps it", async () => {

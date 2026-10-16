@@ -471,3 +471,25 @@ describe("run-tagged experiment cohorts", () => {
     expect(of(ids[5])?.excluded).toBeNull(); expect(of(untagged)).toMatchObject({ cohort: null, excluded: null });
   });
 });
+describe("trainer card data", () => {
+  it("carries the trainer name, place and party from the run's last state", async () => {
+    const r = root(), log = named();
+    log.add(5000, state({ name: "RED", location: "OLDALE TOWN", party: [{ species: "TORCHIC", level: 7, hp: 20, max_hp: 22, species_id: 280, is_egg: false }, { species: "TORCHIC", level: 1, hp: 0, max_hp: 0, species_id: 280, is_egg: true }] }));
+    write(r, "card", log);
+    const d = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(true), 2000000000000));
+    expect(d.runs[0]?.card).toEqual({ name: "RED", location: "OLDALE TOWN", party: [{ speciesId: 280, level: 7, egg: false }, { speciesId: 280, level: 1, egg: true }] });
+  });
+  it("has no card before the game reports a state, and a null species id when the readout lacks one", async () => {
+    const r = root(), bare = new Log(); bare.add(0, START); bare.add(1000, assistant()); write(r, "bare", bare); write(r, "old", named());
+    const d = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(true), 2000000000000));
+    expect(d.runs.find(x => x.id === "bare")?.card).toBeNull();
+    expect(d.runs.find(x => x.id === "old")?.card).toEqual({ name: "MAY", location: "LITTLEROOT TOWN", party: [{ speciesId: null, level: 5, egg: false }] });
+  });
+  it("rejects a malformed card at the browser boundary", async () => {
+    const r = root(); write(r, "card", named()); const d = await workbenchSnapshot(r, () => Promise.resolve(true), 42);
+    const run = d.runs[0]; if (run === undefined) throw new Error("missing fixture");
+    for (const card of [{ name: 1, location: null, party: [] }, { name: null, location: null, party: [{ speciesId: 999, level: 5, egg: false }] }, { name: null, location: null, party: [{ speciesId: 1, level: 0, egg: false }] }, { name: null, location: null, party: Array.from({ length: 7 }, () => ({ speciesId: 1, level: 5, egg: false })) }])
+      expect(() => parseWorkbench({ ...d, runs: [{ ...run, card }] })).toThrow("Invalid workbench");
+    expect(parseWorkbench({ ...d, runs: [{ ...run, card: undefined }] }).runs[0]?.card).toBeUndefined();
+  });
+});

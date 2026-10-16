@@ -148,6 +148,8 @@ Merge locally after all lanes LGTM. No pending experiment entry (amendment 2). R
 
 - 2026-10-16 06:40 AM EDT: review round 4 (packet 1e1feec9..031a0717, SHA-256 390e2133…36d3). Claude CLI LGTM, Grok LGTM. Codex BLOCKING: any non-transient lock counted as "a script or message held the controls", so an open start menu (pokeemerald locks field controls for it) or a lock of unknown origin could make a voluntary return look like a push-back. Fix: `scriptHeld()` requires a lock with no active UI or naming screen and either a dialogue/message or the game's script context running (mode 1 or 2, status not CONTEXT_SHUTDOWN, src/script.c). Tests: start-menu and unknown-lock round trips match OFF (both red with the old rule; restored). Replay receipts unchanged (sh02 twin/Birch states are message or script mode 2 status 0). Switch copy and explainer say menus and unknown locks do not count. Agent 1509, viewer 853 passed; lint clean.
 
+- Fix commit 165bed53. Merged main again (5fd00072: battle-text-auto-advance-v1 and others). dialogue-auto-advance.ts conflict was only the import line (main's battle-text import kept, `pushbackPressResult` kept; the press-result composition auto-merged unchanged). Registry, presets, README and FEATURE_EXPLAINERS resolved as before (this branch's three after `battle-text-auto-advance-v1`); positional assertions recomputed, including main's new "registry order" checks in battle-text-auto-advance.test.ts; switchboard rows 68. Agent 1547, viewer 869 passed.
+
 ## Surprises
 
 - `loop_guard` evidence is capped at 2 items by the event schema (`maxItems:2`); a 3-seq evidence list made the recorder throw in the factory test. Evidence is now [first push-back, completing call]. The replay tests validate every notice through `checkEvent`.

@@ -1,0 +1,454 @@
+"""The battle message window, its frame-owned page journal and the battle wait.
+
+Source: pret/pokeemerald 731ad5bf, US ROM f3ae0881. Findings and address
+receipts: docs/findings/2026-10-16_battle-text.md.
+
+Battle messages go to window B_WIN_MSG (0) through BattlePutTextOnWindow
+(src/battle_message.c), whose AddTextPrinter copies the printer into
+sTextPrinters[windowId]: printer 0 at 0x020201B0 (stride 0x24; currentChar +0,
+windowId +4, active +0x1B, state +0x1C). Its currentChar walks
+gDisplayedStringBattle (0x02022E2C, 300 bytes). That buffer is also reused by
+the healthbox name, move-name, PP and type windows, which print at speed 0 into
+other windows and leave no printer active, so buffer text counts as a shown
+page only while printer 0 is active on it inside BattleMainCB2.
+
+The printer waits for A or B (src/text.c TextPrinterWait and
+TextPrinterWaitWithDownArrow: JOY_NEW(A_BUTTON | B_BUTTON)) in
+RENDER_STATE_WAIT, _CLEAR and _SCROLL_START, unless gTextFlags.autoScroll
+(link and recorded battles). Other messages finish printing and the battle
+script's waitmessage advances them without input.
+
+Battle-script YES/NO boxes (Cmd_yesnoboxlearnmove, Cmd_yesnoboxstoplearningmove,
+Cmd_yesnobox, Cmd_trygivecaughtmonnick) wait for input in their state 1, with
+the cursor at gBattleCommunication[CURSOR_POSITION]; B answers NO.
+"""
+
+import threading
+import time
+from collections import deque
+from collections.abc import Callable
+from contextlib import AbstractContextManager
+from dataclasses import dataclass
+from hashlib import sha256
+from typing import Literal, Protocol, TypeVar, cast
+
+from fastapi import FastAPI, HTTPException, Query
+
+from pokebench_env.game_screen import GMAIN, ReadMemory
+from pokebench_env.native_text import decode_native_text, native_text_payload
+
+IN_BATTLE = 0x030026F9
+BATTLE_MAIN_CB2 = 0x08038421
+PRINTERS = 0x020201B0
+TEXT_FLAGS = 0x03003014
+AUTO_SCROLL = 0x04
+BATTLE_TEXT = 0x02022E2C
+BATTLE_TEXT_SIZE = 300
+PALETTE_FADE = 0x02037FD4
+MAIN_FUNC = 0x03005D04
+SCRIPT_PC = 0x02024214
+COMMUNICATION = 0x02024332
+LEARN_MOVE_STATE = 0x02024474 + 0x1F  # gBattleScripting.learnMoveState
+COUNT = 0x0202406C
+POSITIONS = 0x02024076
+EXEC_FLAGS = 0x02024068
+CONTROLLERS = 0x03005D60
+TURN = 0x03005D10 + 0x13
+SCRIPT_OWNERS = frozenset({0x0803E019, 0x0803E08D})
+INPUT_OWNERS = frozenset({0x08057589, 0x08057BFD, 0x08057825, 0x08058139, 0x081593D9, 0x080599D5})
+RENDER_STATES = {
+    0: "printing",
+    1: "button_wait",
+    2: "page_wait",
+    3: "scroll_wait",
+    4: "scrolling",
+    5: "audio_wait",
+    6: "printing_pause",
+}
+WAIT_STATES = frozenset({1, 2, 3})
+LINE_BREAKS = {0xFA: "\n", 0xFB: "\n", 0xFE: "\n"}
+# Opcode -> (kind, whether its state is gBattleScripting.learnMoveState).
+PROMPTS: dict[int, tuple[str, bool]] = {
+    0x5A: ("learn_move", True),
+    0x5B: ("stop_learning_move", True),
+    0x67: ("yes_no", False),
+    0xF3: ("nickname_caught", False),
+}
+# Callback-owned handoffs inside a battle: battle_main.c CB2_HandleStartBattle
+# and reshow_battle_screen.c CB2_ReshowBattleScreenAfterMenu.
+BATTLE_HANDOFFS = frozenset({0x08036FAD, 0x080A933D})
+# overworld.c CB2_Overworld: the field is back. Battle entry (the transition,
+# CB2_InitBattle) and exit (CB2_ReturnToField*, CB2_WhiteOut) run other callbacks.
+CB2_OVERWORLD = 0x08085E5D
+
+TextPhase = Literal["message_waiting", "input", "prompt", "busy", "screen"]
+WaitPhase = Literal["message_waiting", "input", "prompt", "busy", "screen", "field"]
+
+
+@dataclass(frozen=True)
+class BattleMessage:
+    """The battle message window: printing, waiting for A/B, or idle (no text)."""
+
+    state: Literal["printing", "waiting_for_input", "idle"]
+    render_state: str | None = None
+    text: str | None = None
+    cursor: int | None = None
+    identity: str | None = None
+    diagnostic: str | None = None
+
+
+@dataclass(frozen=True)
+class BattlePrompt:
+    kind: str
+    ready: bool
+    selected: Literal["YES", "NO"] | None
+
+
+def _u32(raw: bytes) -> int:
+    return int.from_bytes(raw[:4], "little")
+
+
+def _exact(read: ReadMemory, address: int, length: int) -> bytes:
+    value = read(address, length)
+    if len(value) != length:
+        raise ValueError("short battle text read")
+    return value
+
+
+def decode_battle_text(payload: bytes) -> str:
+    return decode_native_text(payload + b"\xff", require_terminator=True, line_breaks=LINE_BREAKS)
+
+
+def _printer_cursor(printer: bytes) -> int | None:
+    """Bytes of gDisplayedStringBattle consumed, when printer 0 is active on it."""
+    cursor = _u32(printer) - BATTLE_TEXT
+    if printer[0x1B] != 1 or printer[4] != 0 or not 0 <= cursor <= BATTLE_TEXT_SIZE:
+        return None
+    return cursor
+
+
+def _waits(read: ReadMemory, printer: bytes) -> bool:
+    return printer[0x1C] in WAIT_STATES and not _exact(read, TEXT_FLAGS, 1)[0] & AUTO_SCROLL
+
+
+def read_battle_message(read: ReadMemory) -> BattleMessage:
+    printer = _exact(read, PRINTERS, 0x24)
+    cursor = _printer_cursor(printer)
+    if cursor is None:
+        return BattleMessage("idle")
+    render = RENDER_STATES.get(printer[0x1C])
+    state: Literal["printing", "waiting_for_input"] = (
+        "waiting_for_input" if _waits(read, printer) else "printing"
+    )
+    try:
+        if render is None:
+            raise ValueError(f"unknown text printer state {printer[0x1C]}")
+        payload = native_text_payload(_exact(read, BATTLE_TEXT, BATTLE_TEXT_SIZE))
+        if cursor > len(payload) + 1:
+            raise ValueError("printer cursor is past the message's end")
+        return BattleMessage(
+            state, render, decode_battle_text(payload), cursor, sha256(payload).hexdigest()
+        )
+    except (ValueError, IndexError, KeyError) as error:
+        return BattleMessage(
+            state, render, None, cursor, None, f"harness bug: battle text: {error}"
+        )
+
+
+def read_battle_prompt(read: ReadMemory) -> BattlePrompt | None:
+    if _u32(_exact(read, MAIN_FUNC, 4)) not in SCRIPT_OWNERS:
+        return None
+    script = _u32(_exact(read, SCRIPT_PC, 4))
+    if not 0x08000000 <= script < 0x0A000000:
+        return None
+    prompt = PROMPTS.get(_exact(read, script, 1)[0])
+    if prompt is None:
+        return None
+    kind, learning = prompt
+    communication = _exact(read, COMMUNICATION, 2)
+    state = _exact(read, LEARN_MOVE_STATE, 1)[0] if learning else communication[0]
+    ready = state == 1 and communication[1] in (0, 1)
+    selected: Literal["YES", "NO"] | None = ("YES", "NO")[communication[1]] if ready else None
+    return BattlePrompt(kind, ready, selected)
+
+
+def battle_input_ready(read: ReadMemory) -> bool:
+    count = _exact(read, COUNT, 1)[0]
+    if count not in (2, 4):
+        return False
+    positions = _exact(read, POSITIONS, count)
+    flags = _u32(_exact(read, EXEC_FLAGS, 4))
+    controllers = _exact(read, CONTROLLERS, 16)
+    return any(
+        not position & 1 and flags & (1 << index) and _u32(controllers[index * 4 :]) in INPUT_OWNERS
+        for index, position in enumerate(positions)
+    )
+
+
+def battle_text_phase(read: ReadMemory) -> TextPhase:
+    """Inside a battle: what the battle text advance does next."""
+    callback = _u32(_exact(read, GMAIN + 4, 4))
+    if callback in BATTLE_HANDOFFS:
+        return "busy"
+    if callback != BATTLE_MAIN_CB2:
+        return "screen"
+    prompt = read_battle_prompt(read)
+    if prompt is not None and prompt.ready:
+        return "prompt"
+    if battle_input_ready(read):
+        return "input"
+    printer = _exact(read, PRINTERS, 0x24)
+    if _printer_cursor(printer) is not None and _waits(read, printer):
+        return "message_waiting"
+    return "busy"
+
+
+def wait_phase(read: ReadMemory) -> WaitPhase:
+    """Any screen: "busy" while a battle (or its entry or exit) runs on its own."""
+    if _exact(read, IN_BATTLE, 1)[0] & 2:
+        return battle_text_phase(read)
+    if _exact(read, PALETTE_FADE + 7, 1)[0] & 0x80:
+        return "busy"
+    return "field" if _u32(_exact(read, GMAIN + 4, 4)) == CB2_OVERWORLD else "busy"
+
+
+@dataclass
+class _Open:
+    payload: bytes
+    battle_turn: int
+    cut: int = 0
+    cursor: int = 0
+    waiting: bool = False
+
+
+class BattleTextJournal:
+    """Every page printed in the battle message window, recorded per emulated frame.
+
+    A page ends where the printer waits for A/B, or at the message's end when the
+    printer finishes on its own. Entries are a bounded ring: readers pass the last
+    id they saw and detect a gap from `first_id`.
+    """
+
+    def __init__(self, capacity: int = 512, clock: Callable[[], float] = time.time) -> None:
+        self.lock = threading.RLock()
+        self.capacity = capacity
+        self.clock = clock
+        self.frame = 0
+        self.battle = 0
+        self.in_battle = False
+        self.open: _Open | None = None
+        self.entries: deque[dict[str, object]] = deque()
+        self.last_id = 0
+        self.errors = 0
+        self.last_error: str | None = None
+
+    def advance(self, read: ReadMemory) -> None:
+        with self.lock:
+            self.frame += 1
+            try:
+                self._observe(read)
+            except (ValueError, IndexError, KeyError) as error:
+                self.open = None
+                self.errors += 1
+                self.last_error = f"harness bug: battle text journal: {error}"
+
+    def _observe(self, read: ReadMemory) -> None:
+        if not _exact(read, IN_BATTLE, 1)[0] & 2:
+            self._close()
+            self.in_battle = False
+            return
+        if not self.in_battle:
+            self.battle += 1
+            self.in_battle = True
+        printer = _exact(read, PRINTERS, 0x24)
+        cursor = _printer_cursor(printer)
+        if cursor is None or _u32(_exact(read, GMAIN + 4, 4)) != BATTLE_MAIN_CB2:
+            self._close()
+            return
+        # A new message: the printer restarted, or the buffer holds other text
+        # (back-to-back messages can replace it without an idle frame between).
+        if self.open is not None and (
+            cursor < self.open.cursor
+            or _exact(read, BATTLE_TEXT, len(self.open.payload) + 1) != self.open.payload + b"\xff"
+        ):
+            self._close()
+        if self.open is None:
+            payload = native_text_payload(_exact(read, BATTLE_TEXT, BATTLE_TEXT_SIZE))
+            self.open = _Open(payload, _exact(read, TURN, 1)[0] + 1)
+        message = self.open
+        if cursor > len(message.payload) + 1:
+            raise ValueError("printer cursor is past the message's end")
+        message.cursor = cursor
+        waits = _waits(read, printer)
+        if waits and not message.waiting and cursor > message.cut:
+            self._page(message, message.payload[message.cut : cursor], waited=True)
+            message.cut = cursor
+        message.waiting = waits
+
+    def _close(self) -> None:
+        message, self.open = self.open, None
+        if message is not None and message.cut < len(message.payload):
+            self._page(message, message.payload[message.cut :], waited=False)
+
+    def _page(self, message: _Open, payload: bytes, *, waited: bool) -> None:
+        text = decode_battle_text(payload).strip()
+        if not text:
+            return
+        self.last_id += 1
+        self.entries.append(
+            {
+                "id": self.last_id,
+                "frame": self.frame,
+                "recorded_ms": round(self.clock() * 1000),
+                "battle": self.battle,
+                "battle_turn": message.battle_turn,
+                "text": text,
+                "waited_for_input": waited,
+            }
+        )
+        while len(self.entries) > self.capacity:
+            self.entries.popleft()
+
+    def snapshot(self, after: int) -> dict[str, object]:
+        with self.lock:
+            if not 0 <= after <= self.last_id:
+                raise ValueError("battle text journal cursor out of range")
+            first = cast(int, self.entries[0]["id"]) if self.entries else self.last_id + 1
+            return {
+                "frame": self.frame,
+                "first_id": first,
+                "last_id": self.last_id,
+                "errors": self.errors,
+                "last_error": self.last_error,
+                "entries": [entry for entry in self.entries if cast(int, entry["id"]) > after],
+            }
+
+
+T = TypeVar("T")
+WaitReason = Literal["message_waiting", "input", "prompt", "screen", "field", "bound", "paused"]
+# About 10 s at 60 frames/s; the agent fetches with a longer timeout.
+WAIT_BOUND_FRAMES = 600
+
+
+class _Waiter:
+    def __init__(self, capture: Callable[[], object], bound: int) -> None:
+        self.capture = capture
+        self.bound = bound
+        self.frames = 0
+        self.reason: WaitReason = "bound"
+        self.done = threading.Event()
+        self.released = False
+        self.result: object = None
+        self.error: Exception | None = None
+
+
+class BattleWait:
+    """Hold a state capture until the first emulated frame where the battle needs
+    input (a waiting message, an input or YES/NO owner), leaves the battle screen,
+    or returns to the field; or until a frame bound."""
+
+    def __init__(self, read: ReadMemory) -> None:
+        self.read = read
+        self._lock = threading.Lock()
+        self._waiters: list[_Waiter] = []
+        self._parked = False
+
+    def on_frame(self) -> None:
+        """After each emulated frame; the vendor holds its memory lock."""
+        with self._lock:
+            self._parked = False
+            if not self._waiters:
+                return
+            try:
+                phase: WaitPhase = wait_phase(self.read)
+            except (ValueError, IndexError) as error:
+                for waiter in self._waiters:
+                    waiter.error = error
+                    waiter.done.set()
+                self._waiters = []
+                return
+            waiting = []
+            for waiter in self._waiters:
+                waiter.frames += 1
+                if phase == "busy" and waiter.frames < waiter.bound:
+                    waiting.append(waiter)
+                    continue
+                waiter.reason = "bound" if phase == "busy" else phase
+                try:
+                    waiter.result = waiter.capture()
+                except Exception as error:  # noqa: BLE001 - re-raised on the caller's thread
+                    waiter.error = error
+                waiter.done.set()
+            self._waiters = waiting
+
+    def park(self) -> None:
+        with self._lock:
+            self._parked = True
+            for waiter in self._waiters:
+                waiter.released = True
+                waiter.done.set()
+            self._waiters = []
+
+    def resume(self) -> None:
+        with self._lock:
+            self._parked = False
+
+    def wait(
+        self,
+        capture: Callable[[], T],
+        memory_lock: AbstractContextManager[object],
+        bound_frames: int = WAIT_BOUND_FRAMES,
+    ) -> tuple[T, WaitReason, int]:
+        with memory_lock:
+            with self._lock:
+                if self._parked:
+                    return capture(), "paused", 0
+                phase = wait_phase(self.read)
+                if phase != "busy":
+                    return capture(), phase, 0
+                waiter = _Waiter(capture, bound_frames)
+                self._waiters.append(waiter)
+        waiter.done.wait()
+        if waiter.released:
+            with memory_lock:
+                return capture(), "paused", waiter.frames
+        if waiter.error is not None:
+            raise waiter.error
+        return cast(T, waiter.result), waiter.reason, waiter.frames
+
+
+class SteppedEmulator(Protocol):
+    run_frame_with_buttons: Callable[..., None]
+
+
+def install_battle_text(
+    api: FastAPI, emulator: type[SteppedEmulator], read: ReadMemory
+) -> BattleTextJournal:
+    journal = BattleTextJournal()
+    step = emulator.run_frame_with_buttons
+
+    def step_recording(self: SteppedEmulator, buttons: list[str]) -> None:
+        # Vendor step_environment already owns memory_lock around this method.
+        step(self, buttons)
+        journal.advance(read)
+
+    emulator.run_frame_with_buttons = step_recording
+
+    @api.get("/pokebench/battle/messages")
+    def messages(after: int = Query(default=0, ge=0)) -> dict[str, object]:
+        try:
+            return journal.snapshot(after)
+        except ValueError as error:
+            raise HTTPException(409, str(error)) from error
+
+    return journal
+
+
+def install_battle_wait(emulator: type[SteppedEmulator], wait: BattleWait) -> None:
+    step = emulator.run_frame_with_buttons
+
+    def step_waiting(self: SteppedEmulator, buttons: list[str]) -> None:
+        step(self, buttons)
+        wait.on_frame()
+
+    emulator.run_frame_with_buttons = step_waiting

@@ -92,3 +92,5 @@ Branch `claude/battle-message-waiting` in `/private/tmp/pokebench-battle-waiting
   COMMIT: `fix: an answered battle text wait is not the quoted page; experiment activates at STARTER_CHOSEN (review round 3)`
 - 2026-10-16 08:10 AM EDT: merged main 6d2be8af (F12 stall briefing inside stall-briefing-v1, no new switch; clean). Gates re-run below before the round-4 delta review.
   COMMIT: `Merge branch 'main' into claude/battle-message-waiting` (main 6d2be8af)
+- 2026-10-16 08:20 AM EDT: gates after the merge (ROM): agent 1498, viewer 866, Python 2234 passed / 0 skipped; coverage agent 97.84/94.37/98.15/99.13, viewer 95.36/90.98/93.57/97.7, Python 97.29/93.10/100; lint known mypy only; build OK. Round 4 next: full packet main..HEAD with the round-3 fix delta named.
+  COMMIT: `docs(worklog): gates after merging main, round 4 next`

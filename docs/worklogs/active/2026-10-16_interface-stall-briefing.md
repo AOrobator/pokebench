@@ -17,7 +17,7 @@ Re-land of the readiness thread's F12 (RED 51006938, GREEN 7261cdd6, reverted th
 
 **M2 — GREEN, gates, review, land**
 - [x] Port 7261cdd6 onto current main (one features.ts copy conflict: merged the F5 wording with the dwell wording); gates: agent 1450 (97.79/94.36/98.1), viewer 824, pytest 2162 (97.15/92.87/100), lint, schema, vendor clean; delete-the-wiring: dropping the interface_dwell stall call turns the dwell test red; explainer section added to stall-briefing-v1.html
-- [ ] Claude + Codex + Grok LGTM on the sealed packet; fast-forward land
+- [x] Claude + Codex + Grok LGTM on the sealed packet; fast-forward land
 
 ## Session Log
 
@@ -29,3 +29,4 @@ Re-land of the readiness thread's F12 (RED 51006938, GREEN 7261cdd6, reverted th
 - GREEN: StallBriefing starts a dwell at 0 calls on the call that opens the interface; SupervisorBriefing lists only presses made while that interface was already open (Call.uiBefore). First showcase dwell now at turn 283 (30 calls inside); T302 list unchanged (B,RIGHT×4,A ×24).
 - 2026-10-16 05:00 AM EDT: merged main 1e1feec9 (viewer baseline cache; clean). Gates: agent 1455 (97.79/94.39/98.1), viewer 849 (95.16/90.69/93.41), pytest 2180 (97.16/92.88/100), lint, schema, vendor clean.
 - 2026-10-16 05:20 AM EDT: landing round 2 (final2.diff, sha 9d05299e…): Claude CLI, Codex, Grok all LGTM. main then advanced to 5fd00072 (battle-text-auto-advance-v1, run-tagged experiments); merged clean; the branch's own diff is identical apart from hunk offsets, but the packet hash changed, so round 3 reviews the new packet. Gates: agent 1493 (97.84/94.37/98.15), viewer 865 (95.36/90.98/93.57; experiment-cli timeout flake passed on rerun), pytest 2209 (97.26/93.01/100), lint, schema, vendor clean.
+- 2026-10-16 05:33 AM EDT: LANDED on main fast-forward at 586ab6d1 (packet runs/reviews/interface-stall-briefing/final3.diff, main 5fd00072 → 586ab6d1). Round 3: Claude CLI, Codex gpt-5.6-sol, Grok all LGTM. `just test` on main: agent 1493, viewer 865, pytest 2209 (one agent-test flake on the first run, green on rerun). Deferred: synthetic reset-on-leave/progress tests; field attempts still appended after interface presses; player/caught-mon editors do not count as dwells.

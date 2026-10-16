@@ -66,6 +66,7 @@ export const SWITCHABLE_FEATURES = [
   "battle-triage-guidance-v1",
   "pushback-loop-detection-v1",
   "pushback-press-result-v1",
+  "battle-observation-loop-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -209,6 +210,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("battle-triage-guidance-v1", "guidance", "BATTLE TRIAGE GUIDANCE", null, "Adds a system-prompt section: a wild battle can be left with RUN, the bottom-right option of the FIGHT BAG / POKéMON RUN menu (from FIGHT: RIGHT, DOWN, A); trainer and some story battles cannot be fled; run when your active Pokémon is below half its maximum HP or the fight is not needed for a story goal; heal before tall grass with a weak Pokémon (a POKéMON CENTER nurse heals the whole party, and so does MOM at home). With the RAM readout on, the game server adds one line from RAM: in a wild battle with the battle menu open (action or move select) when your active Pokémon is below half its max HP and battle-details-v2's RUN rule allows RUN (\"Your TORCHIC has 5/20 HP (below half). This is a wild battle: RUN is allowed (bottom-right of the battle menu).\"); nothing in trainer battles, the PROF. BIRCH rescue or when trapped. On the field, when the first party Pokémon able to battle is below half HP, one line names the POKéMON CENTER nurse and MOM at home. Tools are unchanged. Off: no prompt section and no lines; prompt and readouts are byte-for-byte today's."),
   on("pushback-loop-detection-v1", "guard", "PUSH-BACK LOOP DETECTION", null, "Lets the loop guard see a game script pushing the player back. A push-back is a press or navigate_to whose result is the same settled state (field controls free, no message) the player last stood in, after the player left that tile and a script or message held the controls in between, such as Route 101's \"Wh-Where are you going?!\" or the Littleroot twin walking the player back. The guard counts the model's own input since that state (never the B presses dialogue auto-advance adds), and when the same input is pushed back three times among the last 12 push-backs it raises a cycle warning, then the supervisor briefing, saying that a script keeps returning the player to the same place. Door and stairs animation locks, conversations read in place and ordinary back-and-forth walking are not push-backs. Off: the loop guard does not track push-backs, and a push-back loop goes unflagged because each auto-advanced call reads as a different B press from a message state."),
   on("pushback-press-result-v1", "guidance", "PUSH-BACK PRESS RESULTS", null, "When dialogue auto-advance ran and a script moved the player while it advanced, the press result says so with the tiles: what the press itself did (moved you (7,15) -> (6,15), or did not move you), then that a script moved you (back) (6,15) -> (7,15) while the dialogue advanced, and when the player is back where the press began. A \"no net movement\" note about the press reads \"no movement by the press\" instead. Tiles appear only when the player position is shown. It has no effect while dialogue auto-advance is off. Off: the press result describes only the model's own input, so a script push-back can read as \"locked … no net movement\" or only as a restarted conversation."),
+  on("battle-observation-loop-v1", "guard", "BATTLE OBSERVATION LOOP", null, "Lets the loop guard count repeated observes in battle. An observe whose decoded battle (phase, turn, every battler's HP, PP and status, input menus and cursors, controller flags, script pointer, signals, current move execution), menu, party and message are exactly the previous game call's counts as an unchanged observation, so the fourth identical observe in a row raises an observation warning and then the supervisor briefing. Any changed battle field is the battle moving on by itself and restarts the count; a battle decoder diagnostic or a missing battle readout never counts. A battle state not seen in the last 16 calls recovers the episode. Off: observes in battle never count, because the field fingerprint is unknown in battle."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",
@@ -312,6 +314,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("battle-triage-guidance-v1"),
     ...when("pushback-loop-detection-v1"),
     ...when("pushback-press-result-v1"),
+    ...when("battle-observation-loop-v1"),
   ];
 }
 

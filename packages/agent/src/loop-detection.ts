@@ -143,6 +143,15 @@ export function semanticState(state: GameStateSnapshot, interactions = false): s
   });
 }
 
+// battle-observation-loop-v1: the decoded battle as the model can observe it. Any changed field (script pointer,
+// controller flags, HP, turn, inputs, signals, execution, menu, message) means the battle moved on. Unknown when
+// the battle decoder reports a diagnostic or there is no battle readout.
+export function battleState(state: GameStateSnapshot): string | null {
+  const battle = state.battle;
+  if (!state.in_battle || battle == null || battle.diagnostic !== null) return null;
+  return stable({ battle, ui: state.active_ui ?? null, party: state.party, message: state.world_context?.message ?? null, dialogue: state.world_context?.dialogue ?? null });
+}
+
 // transition-loop-detection-v1: field controls locked by something other than a script or message,
 // such as the door, stairs or warp animation. The game's global script context is stopped
 // (SCRIPT_MODE_STOPPED, CONTEXT_SHUTDOWN in pokeemerald src/script.c); unknown script state is not transient.
@@ -223,6 +232,9 @@ export class LoopDetector {
   // tile and whether a script or message held the controls since; and the recent push-backs.
   private trip: { anchor: string; place: string | null; actions: string[]; left: boolean; scripted: boolean } | null = null;
   private readonly pushbacks: { key: string; seq: number }[] = [];
+  // battle-observation-loop-v1: the previous game call's battle readout and the recent ones.
+  private previousBattle: string | null = null;
+  private readonly battlesSeen: string[] = [];
   // The same conversation reopened in the same place: closed then shown again, or its print cursor jumping back.
   private readonly conversation = { text: "", place: "", cursor: null as number | null, open: false, restarts: 0 };
   private readonly visited: string[] = [];
@@ -266,6 +278,7 @@ export class LoopDetector {
     private readonly supervisor?: (kind: LoopKind, calls: number) => string,
     private readonly transitions = false,
     private readonly pushback = false,
+    private readonly battles = false,
   ) {}
 
   observe(event: RunEvent): void {
@@ -377,7 +390,8 @@ export class LoopDetector {
       !call.isError && (call.name === "press" || call.name === "navigate_to" || call.name === "observe");
     const changed =
       game && fingerprint !== null && fingerprint !== this.previous;
-    const novel = changed && !this.visited.includes(fingerprint);
+    const battle = this.battles && game && call.state !== undefined ? battleState(call.state) : null;
+    const novel = (changed && !this.visited.includes(fingerprint)) || (battle !== null && battle !== this.previousBattle && !this.battlesSeen.includes(battle));
     if (novel) {
       this.messageVisits.length = 0;
       this.pushbacks.length = 0;
@@ -398,7 +412,7 @@ export class LoopDetector {
       if (call.name === "press" || changed) this.planning = 0;
       if (call.name === "observe") {
         this.observations =
-          fingerprint !== null && fingerprint === this.previous
+          (fingerprint !== null && fingerprint === this.previous) || (battle !== null && battle === this.previousBattle)
             ? this.observations + 1
             : 0;
         if (this.observations >= this.policy.observation) hit ??= "observation";
@@ -453,6 +467,13 @@ export class LoopDetector {
         pingPong = true;
       }
       this.previous = fingerprint;
+      if (this.battles) {
+        this.previousBattle = battle;
+        if (battle !== null) {
+          this.battlesSeen.push(battle);
+          if (this.battlesSeen.length > 16) this.battlesSeen.shift();
+        }
+      }
       if (fingerprint !== null) {
         this.visited.push(fingerprint);
         if (this.visited.length > 16) this.visited.shift();

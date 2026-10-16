@@ -219,11 +219,11 @@ function firstText(result: ToolResultMessage | undefined): string {
   return part?.type === "text" ? part.text : "";
 }
 
-export function attachLoopGuard(recorder: Pick<RunRecorder, "subscribe" | "recordLoopGuard">, governor: Governor, policy?: LoopPolicy, mode:LoopMode="enforced", interactions=false, supervisor?: (kind: LoopKind, calls: number) => string, transitions=false, pushback=false): LoopDetector {
+export function attachLoopGuard(recorder: Pick<RunRecorder, "subscribe" | "recordLoopGuard">, governor: Governor, policy?: LoopPolicy, mode:LoopMode="enforced", interactions=false, supervisor?: (kind: LoopKind, calls: number) => string, transitions=false, pushback=false, battles=false): LoopDetector {
   const detector = new LoopDetector((notice) => {
     recorder.recordLoopGuard({...notice,evidence:[...notice.evidence]});
     if (notice.phase === "stop") governor.abort("stuck");
-  }, policy, mode, interactions, supervisor, transitions, pushback);
+  }, policy, mode, interactions, supervisor, transitions, pushback, battles);
   recorder.subscribe((event) => { detector.observe(event); });
   return detector;
 }

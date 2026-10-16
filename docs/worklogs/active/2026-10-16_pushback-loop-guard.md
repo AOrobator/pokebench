@@ -100,6 +100,13 @@ Merge locally after all lanes LGTM. No pending experiment entry (amendment 2). R
   - Design: own switch `battle-observation-loop-v1` (guard, needs null): it acts on a different surface (battle) and kind (observation) than the push-back tracker. ON, an observe whose battle readout (the whole decoded battle object, active UI, party, message) equals the previous game call's counts as an unchanged observation; any changed field (script pointer, controller flags, HP, turn, inputs, signals, execution) is the battle advancing and restarts the count. A decoder diagnostic or a missing battle readout never counts. A battle state not seen in the last 16 is novel and recovers the episode.
 - 2026-10-16 03:40 AM EDT: RED M2. `battle-observation-loop.test.ts` (5 of 13 fail: the replay warning and recovery, four unchanged observes, recovery, registry; OFF silence and every advancing-battle negative pass today), factory test both arms (preset does not know the switch).
 
+- RED M2 commit e86af861.
+- 2026-10-16 03:55 AM EDT: GREEN M2. `battleState()` in loop-detection.ts; `LoopDetector` 8th / `attachLoopGuard` 9th argument `battles`, wired from `features["battle-observation-loop-v1"]` in live.ts and decision-probe.ts. Registry: guard, needs null, recorded last; presets, flagFeatures and next-run default false.
+  - Receipt (replay, run's switches + supervisor): ON warning + supervisor T452 seq 10079 (fourth identical observe, T449–T452), supervisor every 6 calls to T716 (45 briefings), recovered T717 seq 11945 (the press moved the battle on); OFF none. No stop.
+  - Wiring/guard deletions (each red once, restored): live.ts argument dropped → factory test (true arm) red; the battle comparison in the observation counter dropped → 4 battle tests red.
+  - Sweep of the 60 most recent runs (OFF vs each switch ON, warnings/stops only): push-back adds sh02 T146/T265 and two others, both checked by hand and real: 939e T341 (the twin push-back without auto-advance, UP then A×3–4, (10,1)→(10,2)) and 9d86 T470 (Birch, LEFT,A,A ×3, (7,15)→(6,15)→(7,15)). Battle adds only sh02 T452. Limit: only sh02 (284) and show (1) have in-battle observes among those runs; sh02's battle changed between 15 consecutive in-battle observes outside the static stretch and none of those counted.
+  - Positions +1 again (now +3 overall), guard count 14, switchboard rows 61. Tests: agent 1459 passed, viewer 801 passed; lint clean.
+
 ## Surprises
 
 - `loop_guard` evidence is capped at 2 items by the event schema (`maxItems:2`); a 3-seq evidence list made the recorder throw in the factory test. Evidence is now [first push-back, completing call]. The replay tests validate every notice through `checkEvent`.

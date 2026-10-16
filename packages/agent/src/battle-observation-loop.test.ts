@@ -55,14 +55,16 @@ describe("battle-observation-loop-v1 on recorded run sh02: 270 observes in a wil
   const {seen,contexts}=replay(events,true);
   const warning=seen.find(n=>n.phase==="warning");
   expect(warning).toMatchObject({kind:"observation"});
-  expect(warning?.turn).toBeLessThanOrEqual(453);
+  // The receipt: the fourth identical observe (T449-T452), 264 turns before today's milestone_drought (T716).
+  expect(warning).toMatchObject({turn:452,seq:10079});
+  expect(seen.filter(n=>n.phase==="supervisor").length).toBe(45);
   expect(seen.find(n=>n.phase==="supervisor")).toMatchObject({kind:"observation",seq:warning?.seq});
   expect(contexts.find(c=>c.turn>(warning?.turn??Infinity))?.text).toMatch(/^SUPERVISOR: observation at \d+ calls$/);
   expect(seen.some(n=>n.phase==="stop")).toBe(false);
  });
  it("ON: the episode recovers when a press finally moves the battle on (T717)",()=>{
   const {seen}=replay(events,true);
-  expect(seen.find(n=>n.phase==="recovered")?.turn).toBe(717);
+  expect(seen.find(n=>n.phase==="recovered")).toMatchObject({turn:717,seq:11945});
  });
 });
 
@@ -88,7 +90,7 @@ describe("battle-observation-loop-v1 unchanged versus advancing battles",()=>{
  });
  it.each([
   ["the script advances",(b:NonNullable<State["battle"]>)=>({script_pc:(b.script_pc??0)+4})],
-  ["an HP bar drains",(b:NonNullable<State["battle"]>)=>({battlers:(b.battlers??[]).map((x,i)=>i===1?{...x,hp:Math.max(0,x.hp-1)}:x)})],
+  ["an HP bar drains",(b:NonNullable<State["battle"]>)=>({battlers:(b.battlers??[]).map((x,i)=>i===0?{...x,hp:x.hp-1}:x)})],
   ["the battle turn changes",(b:NonNullable<State["battle"]>)=>({turn:(b.turn??0)+1})],
   ["the controller flags change",(b:NonNullable<State["battle"]>)=>({controller_exec_flags:(b.controller_exec_flags??0)+1})],
  ] as const)("ON: a battle that advances on its own between observes never counts (%s)",(_label,step)=>{

@@ -132,10 +132,10 @@ describe("pushback-press-result-v1 wording rules",()=>{
 });
 
 describe("pushback-press-result-v1 registry and wiring",()=>{
- it("is a default-off guidance switch with no dependency (inert without dialogue auto-advance), recorded last",()=>{
+ it("is a default-off guidance switch with no dependency (inert without dialogue auto-advance), recorded second to last",()=>{
   expect(featureInfo("pushback-press-result-v1")).toMatchObject({group:"guidance",needs:null,switchable:true});
   expect(featureInfo("pushback-press-result-v1").description).toContain(" Off: ");
-  expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe("pushback-press-result-v1");
+  expect(playHarnessFeatures(ALL_ON,null).at(-2)).toBe("pushback-press-result-v1");
   expect(dependencyProblems({...ALL_ON,"dialogue-auto-advance-v1":false})).not.toContainEqual(expect.stringContaining("pushback-press-result-v1"));
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})["pushback-press-result-v1"]).toBe(false);
  });

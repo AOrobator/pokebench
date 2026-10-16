@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Birch Speech Pages</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:760px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.1rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+ul{margin:0;padding-left:20px}
+code{font-family:var(--mono);font-size:.88em}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.nav{fill:var(--nav-bg);stroke:var(--nav)}
+.arrow{stroke:var(--soft);fill:none;stroke-width:1.4}
+pre{margin:0;padding:12px 14px;background:var(--panel);border:1px solid var(--rule);border-radius:6px;overflow-x:auto;font:12px/1.5 var(--mono);white-space:pre}
+.off{border-left:4px solid var(--prior)}
+.on{border-left:4px solid var(--game)}
+table{border-collapse:collapse;font-size:.9rem;width:100%}
+th,td{border-bottom:1px solid var(--rule);padding:6px 8px;text-align:left;vertical-align:top}
+th{font-weight:600}
+.tw{overflow-x:auto}
+</style>
+</head>
+<body>
+<main>
+<header>
+ <p class="eyebrow">Feature switch · observation · <code>birch-speech-pages-v1</code> · default OFF · correctness fix, meant to be ON in both arms</p>
+ <h1>Birch speech pages</h1>
+ <p class="lede">During PROF. BIRCH's speech after the name is accepted, a page that waits for A or B now reads input-ready, and the interface value is the page on screen. Each page turn becomes an interface change, so the press result reports it.</p>
+</header>
+
+<section>
+ <h2>Why</h2>
+ <p>Cook run sh02, turns 34–44: the readout said <code>Interface: name_confirmed_transition; input not ready; Transition or text printing; selection input is not active</code> while frames 621, 645, 683 and 743 show a finished page with the red continue arrow. Each A turned a page ("Ah, okay!" → "You're GMREEN who's moving…" → "…I get it now!"), but the press result said <code>interface unchanged</code>, because nothing in the interface state changed. The <code>Dialog:</code> line quotes the whole multi-page buffer, so a page turn is invisible there too. About 8 extra A presses.</p>
+</section>
+
+<section>
+ <h2>Before and after, on recorded RAM</h2>
+ <figure>
+  <pre class="off">OFF  sh02 T35 (state 620; byte-identical to what the model received)
+Interface: name_confirmed_transition; input not ready; Transition or text printing; selection input is not active</pre>
+  <pre class="on">ON   the same RAM, re-rendered on the real ROM
+Interface: birch_speech_page; input ready; value Ah, okay!; A or B shows the next page (the value is the page on screen)</pre>
+  <figcaption>Only the Interface line changes. At T36 (state 632) the next page is still being written (printer state 0), and the line stays as it was.</figcaption>
+ </figure>
+</section>
+
+<section>
+ <h2>When a page is input-ready</h2>
+ <figure>
+  <div class="scroll">
+  <svg viewBox="0 0 720 200" role="img" aria-label="Page readiness decision">
+   <rect class="box" x="10" y="20" width="200" height="60" rx="6"/>
+   <text class="t" x="22" y="42">Birch task</text>
+   <text class="s" x="22" y="60">0x0803133D YourePlayer text</text>
+   <text class="s" x="22" y="74">0x080314C5 AreYouReady; data[5] set</text>
+   <rect class="box" x="250" y="20" width="200" height="60" rx="6"/>
+   <text class="t" x="262" y="42">Text printer 0</text>
+   <text class="s" x="262" y="60">active, state 1, 2 or 3</text>
+   <text class="s" x="262" y="74">gTextFlags.autoScroll off</text>
+   <rect class="box" x="490" y="20" width="220" height="60" rx="6"/>
+   <text class="t" x="502" y="42">Window 0 drawn, page text</text>
+   <text class="s" x="502" y="60">the two lines on screen since</text>
+   <text class="s" x="502" y="74">the last \p, to the cursor</text>
+   <path class="arrow" d="M210 50 L250 50"/><path class="arrow" d="M450 50 L490 50"/>
+   <rect class="game" x="250" y="120" width="460" height="40" rx="6"/>
+   <text x="262" y="144">birch_speech_page; input ready; value &lt;page&gt;; A or B shows the next page</text>
+   <rect class="prior" x="10" y="120" width="200" height="40" rx="6"/>
+   <text x="22" y="144">any check or read fails: today's line</text>
+   <path class="arrow" d="M600 80 L600 120"/><path class="arrow" d="M110 80 L110 120"/>
+  </svg>
+  </div>
+  <figcaption>Render states 1–3 are RENDER_STATE_WAIT, RENDER_STATE_CLEAR (<code>\p</code>) and RENDER_STATE_SCROLL_START (<code>\l</code>): TextPrinterWaitWithDownArrow waits for A or B with the arrow shown (src/text.c). Both tasks run the printer, and so take A or B, only once the task's <code>tIsDoneFadingSprites</code> (data[5]) is set (main_menu.c:1257, 1684, 1732); before that the page is not ready. A short read of the task, printer, text flags, window or page buffer keeps today's line. The window holds two lines (27x4 tiles): after a <code>\l</code> scroll the value is the line before it and the new line, as on screen.</figcaption>
+ </figure>
+</section>
+
+<section>
+ <h2>Game grounding (pret/pokeemerald 731ad5bf, US ROM f3ae0881)</h2>
+ <div class="tw"><table>
+  <tr><th>Task</th><th>Source</th><th>Text it prints</th></tr>
+  <tr><td>0x0803133D</td><td><code>Task_NewGameBirchSpeech_WaitForSpriteFadeInAndTextPrinter</code> (main_menu.c:1684)</td><td><code>gText_Birch_YourePlayer</code>: "Ah, okay!\p You're {PLAYER} who's moving to my\n hometown of LITTLEROOT.\l I get it now!\p"</td></tr>
+  <tr><td>0x080314C5</td><td><code>Task_NewGameBirchSpeech_ShrinkPlayer</code> (main_menu.c:1732)</td><td><code>gText_Birch_AreYouReady</code>: "All right, are you ready?\p …"</td></tr>
+ </table></div>
+ <p>Printer 0 is <code>sTextPrinters[0]</code> at 0x020201B0 (active at +0x1B, render state at +0x1C, current character pointer at +0x00 into <code>gStringVar4</code> 0x02021FC4). Task data[5] (<code>tIsDoneFadingSprites</code>) is the s16 at gTasks entry +0x12. Recorded: sh02 state 620 printer active, state 2, cursor +10 ("Ah, okay!\p"); state 682 state 2 on "All right, are you ready?".</p>
+</section>
+
+<section>
+ <h2>Wiring and arms</h2>
+ <p>Preset feature → <code>POKEBENCH_FEATURES_OFF</code> → <code>rerender.read_state(birch_pages_enabled)</code> → <code>read_active_ui(birch_pages=True)</code>. The new phase is listed with the Birch phases the readout always shows, so an arm with expanded menu text off sees it. Correctness fix (operator decision 2026-10-16): meant to be ON in both arms of bundle-v-control. OFF: the old not-ready line, and page turns read <code>interface unchanged</code>.</p>
+</section>
+
+<section>
+ <h2>Status</h2>
+ <p>Branch <code>claude/readout-truth</code>; gates in the worklog. Proof: in the seven cook runs, 2–5 page waits per run read ready; OFF is byte-identical for all 5,642 results. Not measured.</p>
+</section>
+</main>
+</body>
+</html>

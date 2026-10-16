@@ -81,13 +81,30 @@ describe("phone header model", () => {
     expect(now.textContent).toContain("0:27:22 / 1:00:00");
     const watch = Array.from(box.querySelectorAll<HTMLButtonElement>("[data-watch]"));
     expect(watch.map((b) => b.dataset.watch)).toEqual([OTHER_ID]);
-    expect(watch[0]?.textContent).toContain(EXP);
     expect(watch[0]?.textContent).toContain("CONTROL");
-    expect(watch[0]?.textContent).toContain("trial 1/4 · started 5:52 AM");
+    expect(watch[0]?.textContent).toContain("trial 1/4");
+    expect(watch[0]?.textContent).toContain("started 5:52 AM");
     expect(watch[0]?.textContent).toContain("WATCH ▸");
     expect(box.textContent).toContain("Modelthink-swarm");
     expect(box.textContent).toContain("Thinkingmedium");
     expect(box.textContent).toContain(`Run${LIVE_ID}`);
+  });
+
+  it("leads another live run's card with its arm when it shares the watched run's experiment", () => {
+    const box = document.createElement("div");
+    box.innerHTML = sheetHtml(input({ others: [{ id: OTHER_ID, started: "2026-10-16T05:52:27.171-04:00", cohort: { id: EXP, arm: "control", trial: 1, of: 4 } }] }), () => "5:52 AM");
+    const card = must(box.querySelector<HTMLElement>("[data-watch]"));
+    expect(card.textContent).not.toContain(EXP);
+    expect(must(card.querySelector(".rs-other-title")).textContent).toBe("CONTROLtrial 1/4");
+    expect(card.textContent).toContain("same experiment · started 5:52 AM");
+  });
+
+  it("keeps the experiment as the title when another live run belongs to a different experiment", () => {
+    const box = document.createElement("div");
+    box.innerHTML = sheetHtml(input({ others: [{ id: OTHER_ID, started: null, cohort: { id: "other-exp", arm: "bundle", trial: 3, of: 8 } }] }), () => "");
+    const card = must(box.querySelector<HTMLElement>("[data-watch]"));
+    expect(must(card.querySelector(".rs-other-title")).textContent).toBe("other-exp");
+    expect(card.textContent).toContain("trial 3/8");
   });
 
   it("says so when no other run is live", () => {
@@ -284,6 +301,9 @@ describe("phone header CSS", () => {
     const phone = CSS.slice(CSS.lastIndexOf("@media (max-width: 700px)"));
     expect(phone).toContain(".bar > .logo, .bar > .mode, .bar > .clock, .bar > .live-runs, .bar > .ident { display: none; }");
     expect(phone).toMatch(/\.run-head \{[^}]*display: flex;/);
+  });
+  it("drops the picker's 'Watching' label in the sheet, where it would repeat the run you are on", () => {
+    expect(CSS).toContain(".rs-all .run-choice { font-size: 0; }");
   });
   it("blinks the live dot and holds it still under reduced motion", () => {
     expect(CSS).toMatch(/\.rh-state\.dot \{[^}]*animation: rh-blink/);

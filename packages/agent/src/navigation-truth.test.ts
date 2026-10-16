@@ -119,6 +119,26 @@ describe("navigation-truth-v1: talk offers only for objects with a script (sh02 
   expect((await walk(low,{x:1,y:0},{...TRUTH,counters:true})).status).not.toContain("press A");
   expect((await walk(low,{x:1,y:1},{...TRUTH,counters:true})).status).not.toContain("press A");
  });
+ it("counter talk never names a stand tile with a matching trigger",async()=>{
+  const counter:GameStateSnapshot={...ascii(["...","...","@.."]),navigation_grid:{elevation:3,tiles:[0,1,2].flatMap(y=>[0,1,2].map(x=>({x,y,collision:y===1?1:0,behavior:y===1?0x80:0,elevation:3}))),objects:[{x:1,y:0}],warps:[]},position:{x:0,y:2}};
+  const clerk={kind:"object",x:1,y:0,elevation:3,activation:"A",availability:"available",facing:null,local_id:1,destination:null,name:"MART_EMPLOYEE"};
+  const trigger={x:1,y:2,elevation:3,variable:0x4002,required_value:0,current_value:0,condition_met:true,script_pointer:0x08100000};
+  const state:GameStateSnapshot={...counter,interaction_targets:[clerk],world_context:{...contextOf(counter),triggers:[trigger]}};
+  const TALK="target is behind a counter; walk to (1,2), face UP toward the counter at (1,1) and press A to talk across it";
+  expect((await walk(state,{x:1,y:0},{...CONTROL,counters:true})).status).toBe(TALK);
+  expect((await walk(state,{x:1,y:0},{...TRUTH,counters:true})).status).not.toContain("walk to (1,2)");
+  expect((await walk(state,{x:1,y:1},{...TRUTH,counters:true})).status).not.toContain("walk to (1,2)");
+ });
+ it("stacked scripted objects reached from different stand tiles are named per tile",async()=>{
+  // (0,0) 3, (1,0) 0, (2,0) 4: a route to (2,0) arrives at 4; (1,1) is reached at 3. HIGH (4) and LOW (3) share (2,1).
+  const elevation=(x:number,y:number):number=>y===0?[3,0,4][x]??3:3;
+  const tiles=[0,1,2].flatMap(y=>[0,1,2].map(x=>({x,y,collision:y===2?1:0,behavior:0,elevation:elevation(x,y)})));
+  const base=ascii(["@"]);
+  const high={kind:"object",x:2,y:1,elevation:4,activation:"A",availability:"available",facing:null,local_id:1,destination:null,name:"HIGH"};
+  const state:GameStateSnapshot={...base,position:{x:0,y:1},navigation_grid:{elevation:3,tiles,objects:[{x:2,y:1}],warps:[]},interaction_targets:[high,{...high,elevation:3,local_id:2,name:"LOW"}]};
+  expect((await walk(state,{x:2,y:1},CONTROL)).status).toBe("(2,1) is HIGH (person or object), which navigate_to cannot stand on; to talk to it or use it, walk to one of these free tiles, face it and press A: (2,0) facing DOWN; (1,1) facing RIGHT");
+  expect((await walk(state,{x:2,y:1},TRUTH)).status).toBe("(2,1) is HIGH or LOW (persons or objects stacked at different elevations), which navigate_to cannot stand on; to talk to one, walk to one of these free tiles, face it and press A: (2,0) facing DOWN (reaches HIGH); (1,1) facing RIGHT (reaches LOW)");
+ });
  it("an object with a script keeps the offer",async()=>{
   const bag=await walk(birch,{x:7,y:14},TRUTH);
   expect(bag.status).toContain("(7,14) is BIRCHS_BAG (person or object), which navigate_to cannot stand on; to talk to it or use it, walk to one of these free tiles, face it and press A: ");
@@ -233,6 +253,13 @@ describe("navigation-truth-v1: a blocked step names who now stands on the route 
   const plan=recorded("54a7:3784"),after=recorded("54a7:3788");
   expect((await walk(plan,{x:7,y:16},{...TERRAIN,truth:true},[after])).status).toBe("blocked: FAT_MAN (person or object) is now on (14,14), the next tile of the route; wait for it to move or choose another approach");
   expect((await walk(plan,{x:7,y:16},TERRAIN,[after])).status).toBe("blocked; inspect obstacle and choose another approach");
+ });
+ it("stacked objects on the next tile: the one at the player's elevation is named",async()=>{
+  const plan=recorded("54a7:3784"),after=recorded("54a7:3788");
+  const fat=(after.interaction_targets??[]).find(t=>t.name==="FAT_MAN");if(fat===undefined)throw new Error("no FAT_MAN");
+  const stacked={...after,interaction_targets:[{...fat,elevation:4,local_id:9,name:"LOW"},fat]};
+  expect((await walk(plan,{x:7,y:16},{...TERRAIN,truth:true},[stacked])).status).toBe("blocked: FAT_MAN (person or object) is now on (14,14), the next tile of the route; wait for it to move or choose another approach");
+  expect((await walk(plan,{x:7,y:16},TERRAIN,[stacked])).status).toBe("blocked; inspect obstacle and choose another approach");
  });
  it("an unlisted sprite is named by its sprite kind, and an empty tile keeps the generic text",async()=>{
   const plan=recorded("54a7:3784"),after=recorded("54a7:3788");
@@ -440,6 +467,16 @@ describe("navigation-truth-v1: speakers across a conversation",()=>{
   expect(await run((s,n)=>n>=15716?{...s,facing:"up"}:s)).toEqual(["MAY",null,null,null,null]);
   // Another object (id 9) stands on the faced tile for the second message: the name is not carried; the faced target is used.
   expect(await run((s,n)=>n>=15716?{...s,world_context:{...ctx(s),objects:[{local_id:9,map_id:[0,18],graphics_id:20,sprite_kind:"BOY_1",x:10,y:3}]}}:s)).toEqual(["MAY","RIVAL_MAY_NORMAL","RIVAL_MAY_NORMAL","RIVAL_MAY_NORMAL","RIVAL_MAY_NORMAL"]);
+ });
+ it("a named speaker is not carried to an object at another elevation on the faced tile",async()=>{
+  const free=recorded("sh02:15706");
+  const seqs=[15710,15711,15716,15717,15722,15723,15728,15729,15734,15735];
+  const ctx=(s:GameStateSnapshot)=>{if(s.world_context==null)throw new Error("no context");return s.world_context;};
+  // From the second message, only a shadow (local id 7, elevation 4) is on MAY's tile (10,3); the player is at elevation 3.
+  const shadow=(s:GameStateSnapshot):GameStateSnapshot=>{const t=(s.interaction_targets??[]).find(x=>x.kind==="object");if(t===undefined)throw new Error("no target");return {...s,world_context:{...ctx(s),objects:[{local_id:7,map_id:[0,18],graphics_id:105,sprite_kind:"RIVAL_MAY_NORMAL",x:10,y:3}]},interaction_targets:[{...t,local_id:7,elevation:4}]};};
+  const states=[free,...seqs.map(n=>n>=15716?shadow(recorded(`sh02:${String(n)}`)):recorded(`sh02:${String(n)}`)),later(free,400),later(free,401)];
+  expect((await pages(states,["A"],true)).map(p=>p[0])).toEqual(["MAY",null,null,null,null]);
+  expect((await pages(states,["A"],false)).slice(1).every(p=>p[0]==="RIVAL_MAY_NORMAL")).toBe(true);
  });
  it("a line that starts with the player's name but does not narrate an action keeps its speaker",async()=>{
   const states=[7733,7740,7741,7746,7747,7752,7753,7758,7759,7764,7765,7770,7776,7778].map(s=>recorded(`sh02:${String(s)}`)).map(s=>{const w=s.world_context;return w?.dialogue==null?s:{...s,world_context:{...w,dialogue:w.dialogue.replace("GMREEN received the TORCHIC!","GMREEN is the type to rush in!")}};});

@@ -230,29 +230,37 @@ function segments(rawUrl: string): string[] | null {
 function streamEvents(req: IncomingMessage, res: ServerResponse, path: string, pollMs: number, skew: Skew | null, chunkBytes: number): void {
   res.writeHead(200, { ...SECURITY_HEADERS, "content-type": "text/event-stream; charset=utf-8", connection: "keep-alive" });
   let closed = false, timer: NodeJS.Timeout | null = null;
-  const emit = (type: string, data: unknown): boolean => res.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`);
+  const emit = (type: string, data: unknown): void => { res.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`); };
   let offset = 0;
   let lineNo = 0;
-  let skewReported = false;
-  // One bounded read: whether it sent run_end, whether it reached the end of the file, and whether the socket wants a drain.
+  let skewReported = false, endRead = false, fileEnd = false;
+  const pending: string[] = [];
+  const message = (type: string, data: unknown): string => `event: ${type}\ndata: ${JSON.stringify(data)}\n\n`;
+  // One step: read a bounded chunk when nothing is waiting, then write until the socket is full.
+  // Returns whether run_end has been written, whether everything in the file has been written,
+  // and whether the socket asked to wait for drain.
   const step = (): { ended: boolean; atEnd: boolean; full: boolean } => {
-    const read = readFrom(path, offset, lineNo, chunkBytes);
-    const atEnd = read.offset === offset;
-    offset = read.offset;
-    lineNo = read.lineNo;
-    let ended = false, full = false;
-    for (const result of read.results) {
-      if (result.ok) {
-        full = !emit("ev", result.event) || full;
-        ended ||= result.event.type === "run_end";
-      } else if (skew === null) {
-        full = !emit("problem", { line: result.line, problem: result.problem }) || full;
-      } else if (!skewReported) {
-        skewReported = true;
-        full = !emit("problem", { line: result.line, problem: `${skew.head}. First event it cannot read: line ${String(result.line)}: ${result.problem}` }) || full;
+    if (pending.length === 0 && !endRead) {
+      const read = readFrom(path, offset, lineNo, chunkBytes);
+      fileEnd = read.offset === offset;
+      offset = read.offset;
+      lineNo = read.lineNo;
+      for (const result of read.results) {
+        if (result.ok) {
+          pending.push(message("ev", result.event));
+          endRead ||= result.event.type === "run_end";
+        } else if (skew === null) {
+          pending.push(message("problem", { line: result.line, problem: result.problem }));
+        } else if (!skewReported) {
+          skewReported = true;
+          pending.push(message("problem", { line: result.line, problem: `${skew.head}. First event it cannot read: line ${String(result.line)}: ${result.problem}` }));
+        }
       }
     }
-    return { ended, atEnd, full };
+    let full = false;
+    while (pending.length > 0 && !full) full = !res.write(pending.shift() ?? "");
+    const flushed = pending.length === 0;
+    return { ended: endRead && flushed, atEnd: fileEnd && flushed, full };
   };
   const finish = (): void => {
     emit("done", {});

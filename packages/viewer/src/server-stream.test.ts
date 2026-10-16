@@ -69,16 +69,66 @@ it("delivers a line longer than the chunk whole", async () => {
   expect(text).toContain("event: done");
 });
 
-it("keeps serving after a client abandons a long stream", async () => {
-  const viewer = await serve("long", longRun(3000), 512);
+it("stops reading once a client abandons a long stream, and keeps serving", async () => {
+  const viewer = await serve("long", longRun(30000), 65536);
+  const read = fs.readSync;
+  let reads = 0;
+  vi.spyOn(fs, "readSync").mockImplementation(((...args: Parameters<typeof fs.readSync>) => { reads += 1; return read(...args); }));
   const abort = new AbortController();
   const reply = await fetch(new URL("api/runs/long/events", viewer.url), { signal: abort.signal });
-  const reader = reply.body?.getReader();
-  await reader?.read();
+  await reply.body?.getReader().read();
   abort.abort();
-  await new Promise((resolve) => { setTimeout(resolve, 20); });
+  await new Promise((resolve) => { setTimeout(resolve, 50); });
+  const after = reads;
+  await new Promise((resolve) => { setTimeout(resolve, 100); });
+  expect(reads).toBe(after);
+  vi.restoreAllMocks();
   expect((await fetch(new URL("api/runs", viewer.url))).status).toBe(200);
   expect(await (await fetch(new URL("api/runs/long/events", viewer.url))).text()).toContain("event: done");
+});
+
+it("answers another request while a stream waits on a slow reader, and stops reading meanwhile", async () => {
+  const log = longRun(30000);
+  const viewer = await serve("long", log, 65536);
+  const read = fs.readSync;
+  let reads = 0;
+  vi.spyOn(fs, "readSync").mockImplementation(((...args: Parameters<typeof fs.readSync>) => { reads += 1; return read(...args); }));
+  const reply = await fetch(new URL("api/runs/long/events", viewer.url));
+  const reader = reply.body?.getReader();
+  await reader?.read();
+  const list = await fetch(new URL("api/runs", viewer.url));
+  expect(list.status).toBe(200);
+  await new Promise((resolve) => { setTimeout(resolve, 100); });
+  const paused = reads, size = fs.statSync(join(roots.at(-1) ?? "", "runs", "long", "events.jsonl")).size;
+  expect(paused).toBeLessThan(size / 65536 / 2);
+  let text = "";
+  const decoder = new TextDecoder();
+  for (;;) { const chunk = await reader?.read(); if (chunk === undefined || chunk.done) break; text += decoder.decode(chunk.value, { stream: true }); }
+  expect(text).toContain("event: done");
+  expect(reads).toBeGreaterThan(paused);
+});
+
+it("writes nothing more after a write reports a full socket, until drain", async () => {
+  const viewer = await serve("long", longRun(200), 1 << 20);
+  const original = Reflect.get(ServerResponse.prototype, "write") as (this: ServerResponse, ...args: Parameters<ServerResponse["write"]>) => boolean;
+  const streams: ServerResponse[] = [];
+  let writes = 0;
+  vi.spyOn(ServerResponse.prototype, "write").mockImplementation(function (this: ServerResponse, ...args: Parameters<ServerResponse["write"]>): boolean {
+    const ok = Reflect.apply<ServerResponse, Parameters<ServerResponse["write"]>, boolean>(original, this, args);
+    if (this.req.url?.endsWith("/events") !== true) return ok;
+    streams.push(this); writes += 1;
+    return false;
+  });
+  const reply = fetch(new URL("api/runs/long/events", viewer.url));
+  for (let i = 0; i < 20 && streams.length === 0; i++) await new Promise((resolve) => { setTimeout(resolve, 10); });
+  await new Promise((resolve) => { setTimeout(resolve, 30); });
+  expect(writes).toBe(1);
+  streams[0]?.emit("drain");
+  await new Promise((resolve) => { setTimeout(resolve, 30); });
+  expect(writes).toBe(2);
+  vi.restoreAllMocks();
+  for (let i = 0; i < 300; i++) streams[0]?.emit("drain");
+  expect(await (await reply).text()).toContain("event: done");
 });
 
 it("rejects a chunk size that is not a positive integer", async () => {

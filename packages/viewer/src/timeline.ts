@@ -31,9 +31,13 @@ export function lanesSvg(view: RunView, nowMs: number, visible: readonly (typeof
   const t0 = nowMs - WINDOW_MS;
   const x = (ms: number): number => LABEL + (W - LABEL - 8) * ((Math.max(ms, t0) - t0) / WINDOW_MS);
   const parts: string[] = [];
+  const texts: string[] = [];
+  const text = (cls: string, px: number, py: number, label: string, hidden = false): void => {
+    texts.push(`<span class="${cls}" style="left:${f((px / W) * 100)}%;top:${f((py / H) * 100)}%"${hidden ? ' aria-hidden="true"' : ""}>${label}</span>`);
+  };
   visible.forEach((name, i) => {
     parts.push(`<rect class="lane${i % 2 === 0 ? "" : " alt"}" x="0" y="${f(i * LANE)}" width="${String(W)}" height="${f(LANE)}"/>`);
-    parts.push(`<text class="lab" x="8" y="${f(i * LANE + LANE / 2 + 4)}">${name}</text>`);
+    text("lab", 8, i * LANE + LANE / 2, name);
   });
   for (const pause of view.control.pauses) {
     const end = pause.endMs ?? nowMs;
@@ -52,14 +56,13 @@ export function lanesSvg(view: RunView, nowMs: number, visible: readonly (typeof
     if (end < t0 || span.startMs > nowMs) continue;
     parts.push(draw(span.error ? "m-tool err" : "m-tool", 1, x(span.startMs), x(end), span.name));
   }
-  const pressLabels: string[] = [];
   const pressLane = visible.indexOf("presses");
   const labelPress = (buttons: readonly Button[], start: number, end: number): void => {
     if (pressLane < 0) return;
     const label = buttons.map(button => BUTTON_LABELS[button]).join("+");
     const halfWidth = label.length * 3.5 + 4;
     const cx = Math.min(W - 8 - halfWidth, Math.max(LABEL + halfWidth, (x(start) + x(end)) / 2));
-    pressLabels.push(`<text class="press-label" x="${f(cx)}" y="${f(pressLane * LANE + LANE / 2)}" text-anchor="middle" dominant-baseline="central" aria-hidden="true">${esc(label)}</text>`);
+    text("press-label", cx, pressLane * LANE + LANE / 2, esc(label), true);
   };
   for (const press of view.presses) {
     const step = (press.hold + press.release) * FRAME_MS;
@@ -86,8 +89,6 @@ export function lanesSvg(view: RunView, nowMs: number, visible: readonly (typeof
     const title=event.type==="navigation_context"?`Navigation memory delivered · ${String(event.evidence.length)} references`:event.type==="ledger_context"?`Instruction ledger delivered · ${String(event.evidence.length)} references`:event.type==="milestone_hint"?`Milestone hint sent · ${event.milestone}`:`snapshot for decision ${String(event.decision_turn)} · state #${String(event.state_seq)}`;
     parts.push(bar("m-tool",1,x(ms)-2,x(ms)+3,title,0.5));
   }
-  // Draw labels above every duration bar so later presses cannot paint over them.
-  parts.push(...pressLabels);
   for (const milestone of view.milestones) {
     if (milestone.ms < t0 || milestone.ms > nowMs) continue;
     const cx = x(milestone.ms);
@@ -123,8 +124,9 @@ export function lanesSvg(view: RunView, nowMs: number, visible: readonly (typeof
   for (let s = 0; s <= 60; s += 10) {
     const px = LABEL + (W - LABEL - 8) * (s / 60);
     parts.push(`<rect class="tick" x="${f(px)}" y="${String(H - 18)}" width="1" height="4"/>`);
-    parts.push(`<text class="axis" x="${f(px - 8)}" y="${String(H - 3)}">${s === 60 ? "now" : `−${String(60 - s)}s`}</text>`);
+    text("axis", px, H - 9, s === 60 ? "now" : `−${String(60 - s)}s`);
   }
   parts.push(`<rect class="nowline" x="${String(W - 9)}" y="0" width="2" height="${String(H - 20)}"/>`);
-  return `<svg class="lanes" viewBox="0 0 ${String(W)} ${String(H)}" preserveAspectRatio="none">${parts.join("")}</svg>`;
+  // The SVG stretches to the panel; text sits in an HTML overlay so glyphs keep their shape.
+  return `<div class="lanes-wrap"><svg class="lanes" viewBox="0 0 ${String(W)} ${String(H)}" preserveAspectRatio="none">${parts.join("")}</svg><div class="lanes-text">${texts.join("")}</div></div>`;
 }

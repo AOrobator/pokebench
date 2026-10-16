@@ -13,8 +13,18 @@ const HUMAN_COLOR = "#304f7a", FRONTIER_COLOR = "#af8915";
 const runs = (n: number): string => `${String(n)} run${n === 1 ? "" : "s"}`;
 // "qwen36 · bundle v1" → "bundle v1": versions compared within one model need no model prefix.
 const local = (name: string): string => name.split(" · ").slice(1).join(" · ") || name;
-function switchList(list: readonly SwitchRef[], columns = false): string {
-  return `<ul class="wb-sw-list${columns ? " wb-sw-cols" : ""}">${list.map(f => `<li><span>${esc(f.label)}</span> <code>${esc(f.id)}</code></li>`).join("")}</ul>`;
+// What each switch does, by id (the viewer's /api/features catalog); a switch it does not know shows no description.
+export type SwitchDescriptions = ReadonlyMap<string, string>;
+// A described switch row is focusable: its title is the hover tooltip, and focus (a tap on a phone, Tab on a
+// keyboard) shows the same text inline under the name, which is also the row's accessible description.
+function switchList(list: readonly SwitchRef[], key: string, descriptions: SwitchDescriptions, columns = false): string {
+  const row = (f: SwitchRef, i: number): string => {
+    const text = descriptions.get(f.id), name = `<span>${esc(f.label)}</span> <code>${esc(f.id)}</code>`;
+    if (text === undefined) return `<li>${name}</li>`;
+    const id = `wb-sd-${key}-${String(i)}`;
+    return `<li data-sw="${key}-${String(i)}" tabindex="0" title="${esc(text)}" aria-describedby="${id}">${name}<span class="wb-sw-desc" id="${id}">${esc(text)}</span></li>`;
+  };
+  return `<ul class="wb-sw-list${columns ? " wb-sw-cols" : ""}">${list.map(row).join("")}</ul>`;
 }
 function changeLine(v: HarnessVersion): string {
   if (v.number === null) return "no switch map recorded · not compared";
@@ -22,17 +32,17 @@ function changeLine(v: HarnessVersion): string {
   const counts = `<b class="wb-add">${String(v.added.length)} added</b>, <b class="wb-rem">${String(v.removed.length)} removed</b>`;
   return v.number === 1 ? `first ${esc(v.arm)} version · vs ${esc(local(v.previous))}: ${counts}` : `vs ${esc(local(v.previous))}: ${counts}`;
 }
-function details(v: HarnessVersion, state: LegendState): string {
+function details(v: HarnessVersion, state: LegendState, descriptions: SwitchDescriptions): string {
   const me = esc(local(v.name)), meta = `<p class="wb-ver-meta">Fingerprint <code>#${esc(v.fingerprint)}</code>${v.builds.length === 0 ? "" : ` · builds ${v.builds.map(b => `<code>${esc(b)}</code>`).join(", ")}`}</p>`;
   if (v.number === null) return `<p class="wb-none">These runs recorded no switch map, so their harness version is unknown. They are grouped by model and ${v.arm === "untagged" ? "have no arm or preset" : `arm or preset (${esc(v.arm)})`}.</p>${meta}`;
-  const all = `<details class="wb-ver-all" data-all="${v.id}"${state.all.has(v.id) ? " open" : ""}><summary>All ${String(v.on.length)} switches on in ${me}</summary>${switchList(v.on, true)}</details>`;
+  const all = `<details class="wb-ver-all" data-all="${v.id}"${state.all.has(v.id) ? " open" : ""}><summary>All ${String(v.on.length)} switches on in ${me}</summary>${switchList(v.on, `${v.id}-on`, descriptions, true)}</details>`;
   if (v.previous === null) return `<p class="wb-none">First ${esc(v.arm)} version, so there is nothing earlier to compare it with.</p>${all}${meta}`;
   const before = esc(local(v.previous));
-  const added = v.added.length === 0 ? '<p class="wb-none">None.</p>' : switchList(v.added);
-  const removed = v.removed.length === 0 ? `<p class="wb-none">None. Every switch that was on in ${before} is still on.</p>` : switchList(v.removed);
+  const added = v.added.length === 0 ? '<p class="wb-none">None.</p>' : switchList(v.added, `${v.id}-add`, descriptions);
+  const removed = v.removed.length === 0 ? `<p class="wb-none">None. Every switch that was on in ${before} is still on.</p>` : switchList(v.removed, `${v.id}-rem`, descriptions);
   return `<div class="wb-ver-sets"><div><h4 class="wb-add">Added since ${before} (${String(v.added.length)})<small>on in ${me}, off in ${before}</small></h4>${added}</div><div><h4 class="wb-rem">Removed since ${before} (${String(v.removed.length)})<small>on in ${before}, off in ${me}</small></h4>${removed}</div></div>${all}${meta}`;
 }
-function card(v: HarnessVersion, count: number, state: LegendState): string {
+function card(v: HarnessVersion, count: number, state: LegendState, descriptions: SwitchDescriptions): string {
   const selected = state.isolated === v.id, expanded = state.expanded.has(v.id);
   const switches = v.number === null ? "switches unknown" : `${String(v.on.length)} switch${v.on.length === 1 ? "" : "es"} on`;
   const tip = `${v.name} · fingerprint #${v.fingerprint}${v.builds.length === 0 ? "" : ` · builds ${v.builds.join(", ")}`}`;
@@ -40,7 +50,7 @@ function card(v: HarnessVersion, count: number, state: LegendState): string {
     + `<span class="wb-cursor" aria-hidden="true">▶</span><i class="wb-sw"></i><span class="wb-ver-name">${esc(v.name)}</span><small class="wb-ver-count">${runs(count)}</small>`
     + `<button type="button" class="wb-ver-more" data-ver-more="${v.id}" aria-expanded="${String(expanded)}" aria-label="Details for ${esc(v.name)}"><span class="wb-chev" aria-hidden="true"></span></button>`
     + `<div class="wb-ver-body"><span class="wb-ver-sub"><span class="wb-ver-runs">${runs(count)} · </span><b>${switches}</b></span><span class="wb-ver-change">${changeLine(v)}</span>`
-    + `<details class="wb-ver-what" data-what="${v.id}"${state.changed.has(v.id) ? " open" : ""}><summary>Show what changed</summary><div class="wb-ver-detail">${details(v, state)}</div></details></div></li>`;
+    + `<details class="wb-ver-what" data-what="${v.id}"${state.changed.has(v.id) ? " open" : ""}><summary>Show what changed</summary><div class="wb-ver-detail">${details(v, state, descriptions)}</div></details></div></li>`;
 }
 const SECTION: Readonly<Record<HarnessVersion["family"], string>> = { bundle: "Bundle arm versions", control: "Control arm versions", other: "Other versions", legacy: "Legacy runs · no switch map" };
 const keySvg = (inner: string): string => `<svg aria-hidden="true" viewBox="0 0 40 18" width="40" height="18">${inner}</svg>`;
@@ -66,7 +76,7 @@ const HOW = `<div class="wb-how-grid">
 <div><h4>Using the legend</h4><ul><li><b>Hover</b> or focus a version: its runs stand out and the rest fade.</li><li><b>Click</b> it, or press Enter: only that version stays bright, until you click it again or choose Show all.</li><li><b>Show what changed</b>: the switches added and removed since the previous version, then every switch on.</li></ul></div>
 <div><h4>Reading the chart</h4><p>Each line is one run; lower is faster. Minutes are active minutes from that run's start. The navy stars are the human baseline and the gold diamonds the agent frontier. A dashed line loaded a Clock set save, so its minutes start when that save loaded. Click any point for its recorded evidence and settings.</p></div>
 </div>`;
-export function frontierLegend(refs: ReferencePair, plotted: readonly WorkbenchRun[], versions: VersionIndex, state: LegendState, status: FrontierStatus = null): string {
+export function frontierLegend(refs: ReferencePair, plotted: readonly WorkbenchRun[], versions: VersionIndex, state: LegendState, status: FrontierStatus = null, descriptions: SwitchDescriptions = new Map()): string {
   const counts = new Map<string, number>(), seen = new Set<string>();
   for (const run of [...plotted, ...(refs.best === null ? [] : [refs.best])]) {
     const v = versions.byRun.get(run.id); if (v === undefined || seen.has(run.id) || !shownAgent(run) || run.id === refs.human?.id) continue;
@@ -75,7 +85,7 @@ export function frontierLegend(refs: ReferencePair, plotted: readonly WorkbenchR
   const shown = orderedVersions(versions.versions).filter(v => counts.has(v.id));
   const sections = (["bundle", "control", "other", "legacy"] as const).map(family => {
     const list = shown.filter(v => v.family === family);
-    return list.length === 0 ? "" : `<h3>${SECTION[family]}</h3><ul class="wb-ver-grid">${list.map(v => card(v, counts.get(v.id) ?? 0, state)).join("")}</ul>`;
+    return list.length === 0 ? "" : `<h3>${SECTION[family]}</h3><ul class="wb-ver-grid">${list.map(v => card(v, counts.get(v.id) ?? 0, state, descriptions)).join("")}</ul>`;
   }).join("");
   const isolated = state.isolated === HUMAN_VERSION ? { name: "Human baseline", color: HUMAN_COLOR } : state.isolated === FRONTIER_VERSION ? { name: "Agent frontier", color: FRONTIER_COLOR } : shown.find(v => v.id === state.isolated) ?? null;
   const swatches = shown.map(v => `<i style="background:${v.color}"></i>`).join("");

@@ -81,7 +81,8 @@
    "warp-arrival-settle-v1": false,
    "battle-triage-guidance-v1": false,
    "adjacent-tiles-v1": false,
-   "readout-rules-in-prompt-v1": false
+   "readout-rules-in-prompt-v1": false,
+   "explorer-guidance-v1": false
   }
  },
  "switches": [
@@ -100,7 +101,8 @@
   "battle-triage-guidance-v1",
   "walkable-floor-v1",
   "adjacent-tiles-v1",
-  "readout-rules-in-prompt-v1"
+  "readout-rules-in-prompt-v1",
+  "explorer-guidance-v1"
  ],
  "offInBoth": [
   "milestone-stall-stop-v1"

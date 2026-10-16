@@ -61,6 +61,16 @@ function runSignature(path: string): string {
   const stat = statSync(path);
   return `${String(stat.size)}:${String(stat.mtimeMs)}:${String(stat.ino)}` + visualEvidenceSignature(path);
 }
+// True when the log at `now` is the log at `then` with more bytes appended: same inode, larger, and the
+// same visual evidence and viewer build. A rewrite, truncation or replacement is not.
+function appendedSince(then: string, now: string): boolean {
+  const parse = (signature: string): { size: number; ino: string; rest: string } | null => {
+    const m = /^(\d+):[^:]*:(\d+)(.*)$/s.exec(signature);
+    return m === null ? null : { size: Number(m[1]), ino: m[2] ?? "", rest: m[3] ?? "" };
+  };
+  const a = parse(then), b = parse(now);
+  return a !== null && b !== null && a.ino === b.ino && a.rest === b.rest && b.size > a.size;
+}
 function invalidRun(id: string, problem: string | null): WorkbenchRun {
   return { id, cohort: null, model: null, started: null, status: "invalid", reason: null, problem, excluded: null, elapsedMs: null, turn: 0, config: null, splits: [] };
 }
@@ -116,6 +126,9 @@ export function parseLoadedRun(value: unknown): LoadedRun | null {
 }
 export interface WorkbenchLoader {
   load(root: string, id: string): Promise<Loaded>;
+  // Without waiting: the record for the log as it is now, else the previous record of a log that
+  // has since grown, else null. Either way a load of the current log is under way.
+  current(root: string, id: string): Loaded | null;
   forget(keep: (path: string) => boolean): void;
 }
 // Caches each run by its log signature, shares a load already in flight, and persists ended
@@ -128,36 +141,62 @@ export function createWorkbenchLoader(options: { compute?: WorkbenchCompute; sto
   const stamp: BuildIdentity | null = build === null ? null : { commit: build.commit, dirty: build.dirty };
   const buildKey = `:viewer=${stamp === null ? "unknown" : `${stamp.commit}${stamp.dirty ? "+dirty" : ""}`}`;
   const cache = new Map<string, Loaded>(), inflight = new Map<string, Promise<Loaded>>();
+  const signatureOf = (path: string, id: string): { signature: string } | { invalid: Loaded } => {
+    try { return { signature: runSignature(path) + buildKey }; } catch (error) {
+      const entry: Loaded = { signature: "", run: invalidRun(id, errorText(error)), port: null, tag: null, timing: null, skew: null };
+      cache.set(path, entry); return { invalid: entry };
+    }
+  };
+  // The newest finished record per log, kept even when the log grew while it loaded (a live run
+  // always does), and the one partial-mode reload in flight per log.
+  const latest = new Map<string, Loaded>(), reloading = new Map<string, Promise<Loaded>>();
+  const start = (root: string, id: string, path: string, signature: string): Promise<Loaded> => {
+    const key = `${path}\0${signature}`;
+    let pending = inflight.get(key);
+    if (pending === undefined) {
+      pending = (async (): Promise<Loaded> => {
+        const stored = options.store?.get(id, signature) ?? null;
+        const loaded = stored ?? await compute(root, id, stamp);
+        const entry: Loaded = { ...settleSkew(loaded, build), signature };
+        latest.set(path, entry);
+        let after: string | null = null; try { after = runSignature(path) + buildKey; } catch { /* removed while loading */ }
+        if (after === signature) {
+          cache.set(path, entry);
+          if (stored === null && loaded.run.status === "ended") options.store?.put(id, signature, loaded);
+        }
+        return entry;
+      })();
+      const settled = pending;
+      inflight.set(key, settled);
+      const clear = (): void => { if (inflight.get(key) === settled) inflight.delete(key); };
+      settled.then(clear, clear);
+    }
+    return pending;
+  };
   return {
     load: async (root, id) => {
-      const path = eventsPath(root, id);
-      let signature: string;
-      try { signature = runSignature(path) + buildKey; } catch (error) {
-        const entry: Loaded = { signature: "", run: invalidRun(id, errorText(error)), port: null, tag: null, timing: null, skew: null };
-        cache.set(path, entry); return entry;
-      }
+      const path = eventsPath(root, id), sig = signatureOf(path, id);
+      if ("invalid" in sig) return sig.invalid;
       const prior = cache.get(path);
-      if (prior?.signature === signature) return prior;
-      const key = `${path}\0${signature}`;
-      let pending = inflight.get(key);
-      if (pending === undefined) {
-        pending = (async (): Promise<Loaded> => {
-          const stored = options.store?.get(id, signature) ?? null;
-          const loaded = stored ?? await compute(root, id, stamp);
-          const entry: Loaded = { ...settleSkew(loaded, build), signature };
-          let after: string | null = null; try { after = runSignature(path) + buildKey; } catch { /* removed while loading */ }
-          if (after === signature) {
-            cache.set(path, entry);
-            if (stored === null && loaded.run.status === "ended") options.store?.put(id, signature, loaded);
-          }
-          return entry;
-        })();
-        const settled = pending;
-        inflight.set(key, settled);
-        const clear = (): void => { if (inflight.get(key) === settled) inflight.delete(key); };
-        settled.then(clear, clear);
+      if (prior?.signature === sig.signature) return prior;
+      return start(root, id, path, sig.signature);
+    },
+    current: (root, id) => {
+      const path = eventsPath(root, id), sig = signatureOf(path, id);
+      if ("invalid" in sig) return sig.invalid;
+      const fresh = (): Loaded | null => { const hit = cache.get(path); return hit?.signature === sig.signature ? hit : null; };
+      if (fresh() !== null) return fresh();
+      if (!reloading.has(path)) {
+        const run = start(root, id, path, sig.signature);
+        reloading.set(path, run);
+        const done = (): void => { if (reloading.get(path) === run) reloading.delete(path); };
+        run.then(done, done);
+        run.catch(() => undefined);
       }
-      return pending;
+      // A disk-cache hit lands synchronously; otherwise only an appended-to log may show its previous record.
+      const now = fresh(); if (now !== null) return now;
+      const prior = latest.get(path) ?? cache.get(path) ?? null;
+      return prior !== null && appendedSince(prior.signature, sig.signature) ? prior : null;
     },
     forget: (keep) => { for (const path of cache.keys()) if (!keep(path)) cache.delete(path); },
   };
@@ -413,9 +452,12 @@ export async function cohortIndex(root: string, experimentsDir: string = join(di
   return { runs: ids.map(id => ({ id, cohort: tagged.membership.get(id) ?? cohorts.membership.get(id) ?? null, problem: problems.get(id) ?? null })) };
 }
 // experimentsDir holds the definitions that label the EXPERIMENT dropdown (the repo's experiments/ next to runs/).
-export async function workbenchSnapshot(root: string, healthy: HealthProbe, now: number, experimentsDir: string = join(dirname(root), "experiments"), loader: WorkbenchLoader = defaultLoader): Promise<WorkbenchData> {
+// partial: serve what is loaded now (a grown log keeps its previous record until its reload lands)
+// and report the rest as still loading, instead of waiting for a cold cache.
+export async function workbenchSnapshot(root: string, healthy: HealthProbe, now: number, experimentsDir: string = join(dirname(root), "experiments"), loader: WorkbenchLoader = defaultLoader, mode: { partial?: boolean } = {}): Promise<WorkbenchData> {
   const cohorts = await cohortMembership(root); const summaries = listRuns(root);
-  const loadedRuns = await Promise.all(summaries.map(s => loader.load(root, s.id))), definitions = experimentDefinitions(experimentsDir, root);
+  const found = mode.partial === true ? summaries.map(s => loader.current(root, s.id)) : await Promise.all(summaries.map(s => loader.load(root, s.id)));
+  const loadedRuns = found.filter((l): l is Loaded => l !== null), waiting = found.length - loadedRuns.length, definitions = experimentDefinitions(experimentsDir, root);
   const tagged = taggedCohorts(loadedRuns.flatMap(l => l.tag === null ? [] : [{ run: l.run.id, experiment: l.tag.experiment, commit: l.tag.commit, started: l.run.started }]), definitions);
   const newest = new Map<number, { id: string; at: number }>();
   for (const loaded of loadedRuns) if (loaded.port !== null && loaded.run.status === "unresponsive") {
@@ -442,7 +484,7 @@ export async function workbenchSnapshot(root: string, healthy: HealthProbe, now:
   }));
   loader.forget(path => summaries.some(s => eventsPath(root, s.id) === path) || !path.startsWith(root + "/"));
   runs.sort((a, b) => Date.parse(b.started ?? "") - Date.parse(a.started ?? "") || b.id.localeCompare(a.id));
-  const problems = [...cohorts.problems, ...runs.flatMap(run => run.status !== "invalid" && run.problem !== null ? [`Run ${run.id}: ${run.problem}`] : [])], taggedValues = new Set(tagged.cohorts.map(c => c.id)), legacy = new Map<string, WorkbenchCohort>();
+  const problems = [...(waiting > 0 ? [`Still loading ${String(waiting)} of ${String(found.length)} recorded runs; this page fills in as they finish.`] : []), ...cohorts.problems, ...runs.flatMap(run => run.status !== "invalid" && run.problem !== null ? [`Run ${run.id}: ${run.problem}`] : [])], taggedValues = new Set(tagged.cohorts.map(c => c.id)), legacy = new Map<string, WorkbenchCohort>();
   for (const run of runs) {
     if (run.cohort === null || tagged.membership.has(run.id)) continue;
     if (taggedValues.has(run.cohort)) problems.push(`Legacy cohort ${run.cohort} has the value of a run-tagged cohort; run ${run.id} is not tagged`);

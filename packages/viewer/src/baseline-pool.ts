@@ -108,7 +108,9 @@ export function createBaselinePool(spawn: () => BaselineWorkerLike, size: number
       let idle = [...busy].find(([, job]) => job === null)?.[0];
       if (idle === undefined && busy.size < size) idle = hire();
       if (idle === undefined) return;
-      const job = queue.shift();
+      // The comparisons page waits on workbench loads; baseline warm-up can wait for them.
+      const urgent = queue.findIndex((j) => j.request.kind === "workbench");
+      const job = queue.splice(urgent < 0 ? 0 : urgent, 1)[0];
       if (job === undefined) return;
       busy.set(idle, job);
       idle.postMessage(job.request);

@@ -28,7 +28,7 @@ function run(root: string, id: string, spec: Spec): void {
 const sorted = (root: string, id: string, spec: Spec): void => { run(root, id, spec); };
 
 describe("strict per-feature history", () => {
-  it("reads a run's configuration from its run_start", () => {
+  it("reads a run's configuration from its run_start", async () => {
     const log = new Log();
     const start = log.add(0, { ...START, model: { ...START.model, id: "qwen" }, harness_features: playHarnessFeatures(off("story-state-v1"), "RIVAL_MET"), evaluation: { preset_id: "p", target: "RIVAL_MET", failure_limit: 3, flags: { loopGuard: true, activeUi: true, interfaceDocs: true, objectives: true } } });
     if (start.type !== "run_start") throw new Error("fixture");
@@ -44,7 +44,7 @@ describe("strict per-feature history", () => {
     expect(configOf({ ...start, harness_features: start.harness_features.filter((id) => id !== "native-target-stop-v1") })).toBeNull();
   });
 
-  it("pairs only runs identical except for the one feature, counting reach and median splits without paused time", () => {
+  it("pairs only runs identical except for the one feature, counting reach and median splits without paused time", async () => {
     const root = mkdtempSync(join(tmpdir(), "history-"));
     sorted(root, "on-1", { milestones: [["NEW_GAME_CREATED", 40_000], ["CLOCK_SET", 600_000]] });
     sorted(root, "on-2", { milestones: [["NEW_GAME_CREATED", 50_000]], pauses: [[10_000, 30_000]] });
@@ -59,7 +59,7 @@ describe("strict per-feature history", () => {
     sorted(root, "live", { features: off("story-state-v1"), ended: false, milestones: [["NEW_GAME_CREATED", 1]] });
     sorted(root, "saved-start", { features: off("story-state-v1"), boot: false, milestones: [["NEW_GAME_CREATED", 1]] });
     sorted(root, "other-failure-limit", { features: off("story-state-v1"), failureLimit: 10, milestones: [["NEW_GAME_CREATED", 1]] });
-    const history = featureHistory(root, DRAFT);
+    const history = (await featureHistory(root, DRAFT));
     expect(history["story-state-v1"]).toEqual({
       on: { runs: 3, reached: { NEW_GAME_CREATED: 3, CLOCK_SET: 2 }, medianMs: { NEW_GAME_CREATED: 40_000, CLOCK_SET: 500_000 } },
       off: { runs: 2, reached: { NEW_GAME_CREATED: 1 }, medianMs: { NEW_GAME_CREATED: 45_000 } },
@@ -68,35 +68,35 @@ describe("strict per-feature history", () => {
     expect(history["deterministic-loop-guard-v1"]).toBeNull();
   });
 
-  it("is empty when either arm has no strictly matching run", () => {
+  it("is empty when either arm has no strictly matching run", async () => {
     const root = mkdtempSync(join(tmpdir(), "history-"));
     sorted(root, "on-1", { milestones: [["NEW_GAME_CREATED", 40_000]] });
-    expect(Object.values(featureHistory(root, DRAFT)).every((h) => h === null)).toBe(true);
-    expect(Object.values(featureHistory(join(root, "missing"), DRAFT)).every((h) => h === null)).toBe(true);
+    expect(Object.values((await featureHistory(root, DRAFT))).every((h) => h === null)).toBe(true);
+    expect(Object.values((await featureHistory(join(root, "missing"), DRAFT))).every((h) => h === null)).toBe(true);
   });
 
-  it("uses the draft's value as one arm, whichever way it is switched", () => {
+  it("uses the draft's value as one arm, whichever way it is switched", async () => {
     const root = mkdtempSync(join(tmpdir(), "history-"));
     sorted(root, "on", { milestones: [["NEW_GAME_CREATED", 1_000]] });
     sorted(root, "off", { features: off("story-state-v1"), milestones: [] });
-    const flipped = featureHistory(root, { ...DRAFT, features: off("story-state-v1") });
+    const flipped = (await featureHistory(root, { ...DRAFT, features: off("story-state-v1") }));
     expect(flipped["story-state-v1"]?.on.runs).toBe(1);
     expect(flipped["story-state-v1"]?.off.runs).toBe(1);
   });
 });
 
 describe("history edge cases", () => {
-  it("takes the middle of an even number of splits and skips unreadable runs", () => {
+  it("takes the middle of an even number of splits and skips unreadable runs", async () => {
     const root = mkdtempSync(join(tmpdir(), "history-"));
     sorted(root, "on-1", { milestones: [["NEW_GAME_CREATED", 10_000]] });
     sorted(root, "on-2", { milestones: [["NEW_GAME_CREATED", 30_000]] });
     sorted(root, "off-1", { features: off("story-state-v1"), milestones: [] });
     mkdirSync(join(root, "broken"));
     writeFileSync(join(root, "broken", "events.jsonl"), `${JSON.stringify({ ...new Log().add(0, START), run: "broken", harness_features: playHarnessFeatures(ALL_ON, null) })}\nnot json\n${JSON.stringify({ v: 1, run: "broken", seq: 2, t: "2026-10-11T22:00:01.000-04:00", turn: 0, type: "run_end", reason: "budget", furthest_milestone: null, turns: 0, wall_ms: 1, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } })}\n`);
-    expect(featureHistory(root, DRAFT)["story-state-v1"]?.on).toEqual({ runs: 2, reached: { NEW_GAME_CREATED: 2 }, medianMs: { NEW_GAME_CREATED: 20_000 } });
+    expect((await featureHistory(root, DRAFT))["story-state-v1"]?.on).toEqual({ runs: 2, reached: { NEW_GAME_CREATED: 2 }, medianMs: { NEW_GAME_CREATED: 20_000 } });
   });
 
-  it("reads missing budgets as unbounded", () => {
+  it("reads missing budgets as unbounded", async () => {
     const log = new Log();
     const start = log.add(0, { ...START, budgets: {}, harness_features: playHarnessFeatures(ALL_ON, null) });
     if (start.type !== "run_start") throw new Error("fixture");
@@ -104,13 +104,13 @@ describe("history edge cases", () => {
   });
 });
 
-it("rejects human controller identity even when model and feature settings match a model arm", () => {
+it("rejects human controller identity even when model and feature settings match a model arm", async () => {
   const start = new Log().add(0, { ...START, harness_features: playHarnessFeatures(ALL_ON, null), controller: { kind: "human", name: "Operator", rom_sha1: "c".repeat(40), input_policy: "frame-held-v1", sample_ms: 100, nominal_fps: 59.7275 } });
   if (start.type !== "run_start") throw new Error("fixture");
   expect(configOf(start)).toBeNull();
 });
 
-it("keeps human runs out of aggregate feature-history arms even when their model name is spoofed", () => {
+it("keeps human runs out of aggregate feature-history arms even when their model name is spoofed", async () => {
   const root = mkdtempSync(join(tmpdir(), "history-human-"));
   run(root, "model-on", { milestones: [["CLOCK_SET", 100]] });
   run(root, "model-off", { features: off("story-state-v1"), milestones: [] });
@@ -121,5 +121,5 @@ it("keeps human runs out of aggregate feature-history arms even when their model
   const first = JSON.parse(lines[0] ?? "") as Record<string, unknown>;
   lines[0] = JSON.stringify({ ...first, controller: { kind: "human", name: "Operator", rom_sha1: "c".repeat(40), input_policy: "frame-held-v1", sample_ms: 100, nominal_fps: 59.7275 } });
   writeFileSync(path, lines.join("\n") + "\n");
-  expect(featureHistory(root, DRAFT)["story-state-v1"]).toEqual({ on: { runs: 1, reached: { CLOCK_SET: 1 }, medianMs: { CLOCK_SET: 100 } }, off: { runs: 1, reached: {}, medianMs: {} } });
+  expect((await featureHistory(root, DRAFT))["story-state-v1"]).toEqual({ on: { runs: 1, reached: { CLOCK_SET: 1 }, medianMs: { CLOCK_SET: 100 } }, off: { runs: 1, reached: {}, medianMs: {} } });
 });

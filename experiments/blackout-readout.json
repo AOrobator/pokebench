@@ -112,5 +112,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Uses the finals incumbent. Behavior change, bundle arm only. Activation: a whiteout needs a battle, the first of which follows the starter choice. Provisional source.commit is the branch's last implementation commit (after review rounds 1-3); repinned to the merge SHA with `just experiment-pin` when it lands."
+ "notes": "Uses the finals incumbent. Behavior change, bundle arm only. The whiteout watch covers game-loop frames advanced through run_frame_with_buttons (operator amendment 2026-10-16); frames the vendor advances directly (tick, load_state) are out of scope. Activation: a whiteout needs a battle, the first of which follows the starter choice. Provisional source.commit is the branch's last implementation commit (after review rounds 1-3); repinned to the merge SHA with `just experiment-pin` when it lands."
 }

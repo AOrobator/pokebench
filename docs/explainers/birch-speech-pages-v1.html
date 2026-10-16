@@ -51,7 +51,7 @@ th{font-weight:600}
 <body>
 <main>
 <header>
- <p class="eyebrow">Feature switch · observation · <code>birch-speech-pages-v1</code> · default OFF · bundle arm only</p>
+ <p class="eyebrow">Feature switch · observation · <code>birch-speech-pages-v1</code> · default OFF · correctness fix, meant to be ON in both arms</p>
  <h1>Birch speech pages</h1>
  <p class="lede">During PROF. BIRCH's speech after the name is accepted, a page that waits for A or B now reads input-ready, and the interface value is the page on screen. Each page turn becomes an interface change, so the press result reports it.</p>
 </header>
@@ -113,7 +113,7 @@ Interface: birch_speech_page; input ready; value Ah, okay!; A or B shows the nex
 
 <section>
  <h2>Wiring and arms</h2>
- <p>Preset feature → <code>POKEBENCH_FEATURES_OFF</code> → <code>rerender.read_state(birch_pages_enabled)</code> → <code>read_active_ui(birch_pages=True)</code>. The new phase is listed with the Birch phases the readout always shows, so an arm with expanded menu text off sees it. Behavior change: bundle arm only. OFF: the old not-ready line, and page turns read <code>interface unchanged</code>.</p>
+ <p>Preset feature → <code>POKEBENCH_FEATURES_OFF</code> → <code>rerender.read_state(birch_pages_enabled)</code> → <code>read_active_ui(birch_pages=True)</code>. The new phase is listed with the Birch phases the readout always shows, so an arm with expanded menu text off sees it. Correctness fix (operator decision 2026-10-16): meant to be ON in both arms of bundle-v-control. OFF: the old not-ready line, and page turns read <code>interface unchanged</code>.</p>
 </section>
 
 <section>

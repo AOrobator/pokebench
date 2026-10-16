@@ -112,5 +112,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Uses the finals incumbent. Behavior change, bundle arm only. Activation: the pages follow the accepted name. Provisional source.commit is the branch's last implementation commit (after review rounds 1-3); repinned to the merge SHA with `just experiment-pin` when it lands."
+ "notes": "Uses the finals incumbent. Correctness fix (operator decision 2026-10-16): meant to be ON in both arms of bundle-v-control (onInBoth, wired by the bundle owner); a standalone A/B needs operator approval. Activation: the pages follow the accepted name. Provisional source.commit is the branch's last implementation commit (after review rounds 1-3); repinned to the merge SHA with `just experiment-pin` when it lands."
 }

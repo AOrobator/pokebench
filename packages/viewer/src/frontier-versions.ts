@@ -20,7 +20,8 @@ export interface VersionIndex { readonly versions: readonly HarnessVersion[]; re
 const ACRONYMS = new Map(["RAM", "UI", "HP", "PP", "ID", "OCR", "NPC", "NPCS", "A*", "V1", "V2", "V3"].map(w => [w, w === "NPCS" ? "NPCs" : /^V\d$/.test(w) ? w.toLowerCase() : w]));
 // FEATURES titles are upper case ("RAM GAME-STATE READOUT"); the legend reads them in sentence case.
 export function switchLabel(title: string): string {
-  const words = title.trim().split(/\s+/).map(word => ACRONYMS.get(word.toUpperCase()) ?? (/[a-z]/.test(word) ? word : word.toLowerCase()));
+  const part = (word: string): string => ACRONYMS.get(word.toUpperCase()) ?? (/[a-z]/.test(word) ? word : word.toLowerCase());
+  const words = title.trim().split(/\s+/).map(word => word.split("-").map(part).join("-"));
   const text = words.join(" ");
   return text.charAt(0).toUpperCase() + text.slice(1);
 }

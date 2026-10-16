@@ -190,7 +190,7 @@ export class Workbench {
     const more = target.closest<HTMLElement>("[data-ver-more]");
     if (more !== null) { const id = more.dataset.verMore ?? ""; if (!this.expanded.delete(id)) this.expanded.add(id); this.renderCharts(); return; }
     const version = target.closest<HTMLElement>("[data-ver]");
-    if (version !== null) { if (target.closest("details, summary, a, button") === null) this.isolate(version.dataset.ver ?? null); return; }
+    if (version !== null) { const inner = target.closest("details, summary, a, button"); if (inner === null || !version.contains(inner)) this.isolate(version.dataset.ver ?? null); return; }
     const view = target.closest<HTMLElement>("[data-frontier-view]"); if (view !== null) { this.zoom = view.dataset.frontierView === "zoom"; if (this.initialized) this.renderCharts(); else this.pressed(); return; }
     const mark = target.closest<HTMLElement>("[data-run]"); if (mark !== null) { event.preventDefault(); this.detail(mark.dataset.run ?? "", mark.dataset.split ?? null); }
   };

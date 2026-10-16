@@ -138,8 +138,9 @@ function targetReason(state:GameStateSnapshot,goal:Point,options:NavigationOptio
  const occupied=geometry.objects.some(same)||person!==undefined||live!==undefined;
  const thing=person??(standable(tile)?undefined:targets.find(t=>t.activation==="A"&&t.kind!=="warp"));
  if(occupied||thing!==undefined){
-  // navigation-truth-v1: an object with no script (absent from the listed interaction targets) cannot be talked to.
-  if(truth&&thing===undefined&&state.interaction_targets!=null)return `${at(goal)} is a person or object${live?.sprite_kind!=null?` (sprite ${live.sprite_kind})`:""}, which navigate_to cannot stand on; it has no script, so facing it and pressing A does not talk to it or use it`;
+  // navigation-truth-v1: an object with no script (absent from the listed interaction targets) cannot be talked to,
+  // unless another A target shares its tile: GetInteractionScript falls through to the background event.
+  if(truth&&thing===undefined&&state.interaction_targets!=null&&!targets.some(t=>t.activation==="A"&&t.kind!=="warp"))return `${at(goal)} is a person or object${live?.sprite_kind!=null?` (sprite ${live.sprite_kind})`:""}, which navigate_to cannot stand on; it has no script, so facing it and pressing A does not talk to it or use it`;
   const kind=thing===undefined||thing.kind==="object"?"person or object":thing.kind.replaceAll("_"," ");
   const name=thing?.name;
   const label=name!=null?`${name} (${kind})`:`a ${kind}`;
@@ -214,6 +215,9 @@ function windowReason(state:GameStateSnapshot,goal:Point,options:NavigationOptio
  const bounds=geometry.bounds;
  const standable=standableTile(options);
  const same=(p:Point):boolean=>p.x===goal.x&&p.y===goal.y;
+ // Only when no route lies inside the window even with every terrain rule the game has (ledge hops, one-way tiles,
+ // walkable floor): a route the configured switches miss is not a route that leaves the window.
+ if(planNavigation(state,goal,{...options,ledges:true,oneWay:true,floor:true})!==null)return null;
  if(!standable(geometry.tile(goal))||geometry.objects.some(same)||geometry.warps.some(same)||(state.interaction_targets??[]).some(t=>t.kind==="object"&&same(t))||(state.world_context?.objects??[]).some(o=>same(o)&&o.map_id[0]===state.map_id?.[0]&&o.map_id[1]===state.map_id[1]))return null;
  const best=new Map<Direction,Point>();
  for(const t of grid.tiles){

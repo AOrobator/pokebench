@@ -202,6 +202,8 @@ Merge locally after all lanes LGTM. No pending experiment entry (amendment 2). R
 
 - Fix commit ed963e57. Merged main again (411e097d: levelup-box-v1 and others). dialogue-auto-advance.ts conflicts resolved by hand: main's battle-text import (adds `levelUpListedPage`) and `openBattle` (adds `levelupBox`), this branch's press-result import and `finish` (ignored inputs); registry/presets/tests as before (this branch's three after `levelup-box-v1`; battle-text tail slices `(-12,-6)`; switchboard rows 76). Agent 1715, viewer 910 passed.
 
+- Merge commit fb0a403e (main parent 71402ebd). Gates at fb0a403e, all exit 0 (main's pytest breakage is fixed there): build; test agent 1715, viewer 910, pytest 2297 passed; lint incl. mypy (80 files); coverage agent lines 99.17 / branches 94.59 / functions 98.41 (loop-detection.ts 98.62 / 96.91 / 100; press-result.ts 100 / 98.15 / 100), viewer 97.62 / 91.1 / 93.63, python 97.36 / 93.22 / 100; verify-vendor OK.
+
 ## Surprises
 
 - `loop_guard` evidence is capped at 2 items by the event schema (`maxItems:2`); a 3-seq evidence list made the recorder throw in the factory test. Evidence is now [first push-back, completing call]. The replay tests validate every notice through `checkEvent`.

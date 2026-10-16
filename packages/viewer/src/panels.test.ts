@@ -652,6 +652,10 @@ it("links the named warp destinations card to its explainer",()=>{
  expect(FEATURE_EXPLAINERS["battle-observation-loop-v1"]).toBe("battle-observation-loop-v1.html");
 });
 
+it("links the ineffective loops card to its explainer",()=>{
+ expect(FEATURE_EXPLAINERS["ineffective-loops-v1"]).toBe("ineffective-loops-v1.html");
+});
+
 it("links the connection edge tiles card to its explainer",()=>{
  expect(FEATURE_EXPLAINERS["connection-edge-tiles-v1"]).toBe("connection-edge-tiles-v1.html");
 });

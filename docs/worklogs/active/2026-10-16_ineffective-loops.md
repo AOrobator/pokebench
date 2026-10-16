@@ -44,13 +44,13 @@ No new inputs, files, processes or network. Fixtures are trimmed copies of local
 - [x] COMMIT RED: `test(loop-guard): RED ineffective loops (4caa Route 103 and ledge, 7ccf Maniac, waiting START menu)` (5ca8a178)
 - [x] GREEN: switch registered, detector, wiring (live, decision-probe), presets, next-run default
 - [x] Wiring-deletion checks
-- [ ] COMMIT GREEN
+- [x] COMMIT GREEN: `feat(loop-guard): ineffective-loops-v1 counts alternating few-target loops on one tile and unchanged waiting observes` (8c409b82)
 
 **M2 — Measurement, explainer, pending experiment**
-- [ ] Sweep of recent runs OFF vs ON (warnings added), hand-check for false positives during progress
-- [ ] Explainer + FEATURE_EXPLAINERS mapping
-- [ ] experiments/ineffective-loops.json pending + readiness row
-- [ ] Observability trace (agent-observability)
+- [x] Sweep of recent runs OFF vs ON (warnings added), hand-check for false positives during progress
+- [x] Explainer + FEATURE_EXPLAINERS mapping
+- [x] experiments/ineffective-loops.json pending + readiness row
+- [x] Observability trace (agent-observability)
 
 **M3 — Close**
 - [ ] Gates: test, lint, build, coverage (90), verify-vendor
@@ -69,3 +69,9 @@ No new inputs, files, processes or network. Fixtures are trimmed copies of local
   - Wiring/guard deletions (each red once, restored): live.ts argument dropped → factory test (true arm) red; the `revisit` call dropped → 7 red; `waited` forced false → 3 red; the conversation clear dropped → the heal test red; the alternation condition dropped → 5 red (both fixture receipts that depend on it, the one-target and the arrival/bump/sign negatives).
   - Registry churn (mechanical): every registry-relative `.at(-N)` +1 in 20 test files; slices in readout-truth (-4,-1), pushback (-8,-6), battle-text-auto-advance (-25,-19); guard count 19; `off(...)` lists and the play-preset/next-run expectations name the new switch; switchboard rows 89.
   - Tests: agent 1906 passed (vitest); viewer 972 passed (after `pnpm -r build`; server-human needs the built viewer). Lint (tsc + eslint, both packages) clean.
+- 2026-10-16 4:40 PM EDT: M2.
+  - Sweep (scratchpad `sweep.mjs`: every 2026-10-15/16 run except probes, human, smoke and serve runs; 67 runs; the built `attachLoopGuard` with each run's own switches, OFF vs the same plus this switch; warnings only): 231 warnings added (qwen gpu0 bundle arm 16 runs: 33 added vs 46 today; qwen gpu1 control and showcases 18 runs: 94 vs 187; think-fast 33 runs: 104 vs 185); 0 waiting-observe warnings; 86 of today's 418 warnings fall inside an episode this switch opened first. Supervisor briefings added: 310.
+  - Hand check of 33 added warnings in 12 runs (4caa T166/T212/T475/T488/T494/T555/T571, 7ccf T120/T138/T215, e588 T284/T1534, 7a95 T268/T417/T619, 230d T65/T72, a3c9 T170/T180/T190/T373/T530, 8b01 T182/T281/T328/T337/T389, 54a7 T284/T421, d32e T122, 687e T110/T222, 2a25 T9, show T173): 30 in stretches where the player stayed on one or two tiles for three or more moves with no new map or milestone (water edges, ledges, the Oldale Maniac, pacing between two tiles, refused navigate_to targets); 3 true but followed by progress within 1–2 turns (8b01 T337 fixed its door approach next turn; 2a25 T9 and show T173 had been looping for 4–5 turns, then reached a milestone). None during real progress after the two rule changes recorded at GREEN.
+  - Observability: producer `LoopDetector` → `attachLoopGuard` → `recordLoopGuard` (the replay tests `checkEvent` every notice; evidence stays within the schema's 2 items) → model delivery through the unchanged `context()` seam (the replay tests assert the SUPERVISOR text is what `context()` returns at the next turn_start) → viewer: new mounted `app.test.ts` case feeds the 4caa receipt (T212, evidence 5057/5121), its recovery and a waiting-observe warning through the stream: Activity History rows, inspector raw JSON, hidden before the replay cursor. No viewer code changed and nothing added to the timeline (existing kinds `cycle` and `observation`). No live or isolated viewer session (brief: do not touch the viewer).
+  - Explainer `docs/explainers/ineffective-loops-v1.html` (inline CSS/SVG; `just pages-check` prints nothing; opened at 1280, 1440 and 375 in the browser pane from the file; figures scroll on phones), README entry, `FEATURE_EXPLAINERS` mapping with panels/server/app tests (deleting the mapping turns 3 red; restored).
+  - Pending experiment `experiments/ineffective-loops.json` (finals incumbent as blackout-readout plus this switch off; activation NEW_GAME_CREATED; primary ROUTE_103; provisional source.commit 8c409b82), readiness row; `just experiments-check` ok (79), experiments.test.ts green on the branch's directory.

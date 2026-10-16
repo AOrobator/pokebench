@@ -204,8 +204,8 @@ export function renderQueue(s: QueuePayload, filter: QueueFilter, open: Readonly
   const showQueue = filter !== "pending" && filter !== "closed";
   const queued = s.queue.filter((v) => filter === "all" || v.state === filter).sort((a, b) => approvedFirst(a) - approvedFirst(b));
   const closed = filter === "all" || filter === "closed" ? s.closed : [];
-  // A live fixed-run runner (running, or waiting for the lease) holds the GPUs, so it is what the idle queue waits on.
-  const paused = (s.fixedRuns ?? []).find((f) => f.runnerAlive && (f.state === "running" || f.state === "waiting"))?.title ?? null;
+  // Only a live fixed-run runner in state running holds the gameplay lease, so only it is what the idle queue waits on.
+  const paused = (s.fixedRuns ?? []).find((f) => f.runnerAlive && f.state === "running")?.title ?? null;
   const runnerMessage = s.autorun?.state === "idle" && paused !== null ? `Paused while the fixed-run experiment ${esc(paused)} runs.` : esc(s.autorun?.message ?? "");
   const runner = s.autorun === undefined || s.autorun === null ? "" : `<p class="eq-runner eq-runner-${s.autorun.state}">QUEUE RUNNER · ${s.autorun.state.toUpperCase()} · ${runnerMessage}</p>`;
   const queue = fixedRunCards(s.fixedRuns ?? []) + runner + (notice === null ? "" : `<p class="eq-notice" role="alert">${esc(notice)}</p>`) + (showQueue ? gateCard(s, controls, paused, open) : "") + (showQueue ? (queued.length === 0 ? `<p class="eq-empty">${filter === "all" ? "Nothing is queued. Experiments join the queue once models reliably reach the milestone each one acts on." : "No experiments in this state."}</p>` : queued.map((v) => slot(v, open.has(v.id), controls)).join("")) : "") +

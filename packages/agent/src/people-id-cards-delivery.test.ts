@@ -6,6 +6,7 @@ import {Type} from "typebox";
 import {checkEvent,type RunEvent} from "./events.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {CARDS_HEADER,withPeopleIdCards,type IdCard} from "./people-id-cards.js";
+import {pageLines} from "./dialogue-auto-advance.js";
 import {PEOPLE_HEADER} from "./people-ledger.js";
 import {playGameTools} from "./play-wiring.js";
 import {PEOPLE_ID_CARDS_SECTION,UNTAKEN_EXITS_SECTION,playSystemPrompt} from "./play-config.js";
@@ -122,6 +123,34 @@ describe("people-id-cards-v1 rehearsal",()=>{
   }
   expect(rec.cards).toHaveLength(38);
   expect(rec.cards.filter(c=>c.card.key==="name:MAY").map(c=>c.card.reason)).toEqual(["first","changed","changed","changed"]);
+ });
+});
+
+describe("people-id-cards-v1 OFF over the whole recorded run",()=>{
+ it("every 4caa result passes through the production factory unchanged with the switch off, and nothing is recorded",async()=>{
+  const rec=recorder();
+  const states=new Map<number,GameStateSnapshot>();
+  let current:GameStateSnapshot|undefined;let text="";
+  const tool:AgentTool={name:"observe",label:"o",description:"d",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text",text}],details:{state:current}})};
+  const off=playGameTools([tool],{...OFF,"character-presence-v1":true},{read:()=>Promise.resolve(T211_STATE)},rec.api);
+  expect(off[0]).toBe(tool);
+  let results=0;
+  for(const e of RUN){
+   if(e.type==="state"&&"started" in e)states.set(e.seq,snapshot(e));
+   if(e.type==="tool_result"&&e.state_seq!==undefined&&states.has(e.state_seq)){
+    current=states.get(e.state_seq);text=`Location: ${current?.location??""}\nPosition: X=0, Y=0, facing up\n${e.text}`;
+    expect(textOf(await off[0]?.execute(e.id,{}) ?? {content:[]})).toBe(text);results++;
+   }
+   rec.feed([e]);
+  }
+  expect(results).toBeGreaterThan(500);
+  expect(rec.cards).toEqual([]);
+ });
+ it("pageLine keeps the dialogue list byte-identical to what the run recorded (4caa T107, 13 pages)",()=>{
+  const advance=RUN.find((e):e is Extract<RunEvent,{type:"dialogue_auto_advance"}>=>e.type==="dialogue_auto_advance"&&e.turn===107);
+  const recorded=RUN.find((e):e is Extract<RunEvent,{type:"tool_result"}>=>e.type==="tool_result"&&e.turn===107&&e.text!=="");
+  expect(advance?.pages).toHaveLength(13);
+  expect(recorded?.text).toContain(pageLines(advance?.pages??[],107).join("\n"));
  });
 });
 

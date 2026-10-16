@@ -338,5 +338,7 @@ describe("people-id-cards-v1 pending experiment",()=>{
   expect(incumbent.features["people-ledger-v1"]).toBe(true);expect(incumbent.features["character-presence-v1"]).toBe(true);
   expect(SWITCHABLE_FEATURES.filter(id=>incumbent.features[id]!==candidate.features[id])).toEqual(["people-id-cards-v1"]);
   expect(dependencyProblems(candidate.features)).toEqual([]);
+  // The prompt line differs from the first decision, so the switch can act from NEW_GAME_CREATED.
+  expect((raw as {activationMilestone?:string}).activationMilestone).toBe("NEW_GAME_CREATED");
  });
 });

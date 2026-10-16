@@ -61,6 +61,9 @@ export class PeopleIdCards {
  private readonly facing=new Map<number,Person|null>();
  private readonly pending=new Map<string,Shown[]>();
  private readonly delivered:Delivery[]=[];
+ // Every delivered page in order, and each summary with the delivery count it was computed at.
+ private readonly flat:Shown[]=[];
+ private readonly summaryCache=new Map<string,{readonly at:number;readonly text:string}>();
  private readonly labels=new Map<string,Set<string>>();
  private readonly history=new Map<string,History>();
  private visible=new Set<string>();
@@ -72,7 +75,7 @@ export class PeopleIdCards {
   if(event.type!=="tool_result")return;
   const pages=this.pending.get(event.id);this.pending.delete(event.id);
   if(pages===undefined||event.is_error)return;
-  this.delivered.push({pages,call:event.id});
+  this.delivered.push({pages,call:event.id});this.flat.push(...pages);
   // A battle intro right after a person's field lines is that person's battle; its "{CLASS} {NAME}" labels their battle text.
   let last:Person|null=null;
   for(const shown of pages){
@@ -99,7 +102,7 @@ export class PeopleIdCards {
    return {page,turn:event.turn,call:event.tool_call_id,person};
   });
  }
- private all():Shown[] {return this.delivered.flatMap(d=>d.pages);}
+ private all():readonly Shown[] {return this.flat;}
  private lastWords(key:string):Shown[] {
   for(let i=this.delivered.length-1;i>=0;i--){const mine=(this.delivered[i]?.pages??[]).filter(s=>s.person?.key===key);if(mine.length>0)return mine;}
   return [];
@@ -167,7 +170,12 @@ export class PeopleIdCards {
    if(reason!==null){cards.push({key:person.key,reason,text:c.text});h.fingerprint=c.fingerprint;}
   }
   this.visible=now;
-  for(const [key,h] of this.history)if(h.fingerprint!==null)summaries.set(key,this.summary(key));
+  for(const [key,h] of this.history)if(h.fingerprint!==null){
+   // A summary changes only when a result is delivered, so it is recomputed only then.
+   const cached=this.summaryCache.get(key);
+   const text=cached?.at===this.delivered.length?cached.text:this.summary(key);
+   this.summaryCache.set(key,{at:this.delivered.length,text});summaries.set(key,text);
+  }
   return {cards,summaries};
  }
  private summary(key:string):string {

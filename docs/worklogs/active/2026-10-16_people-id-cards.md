@@ -214,6 +214,12 @@ No new network surface: the server field rides the existing state endpoint on 12
 
 ## Multi-Model Review Log
 
+- Round 1, packet `git diff --binary 6db26e44 839f8a71` (SHA-256 `8e829a9d…d5a7a`), artifacts `/tmp/review-people-id-cards-r1`:
+  - Grok (`cursor-agent --mode ask --model cursor-grok-4.5-high`): `VERDICT: LGTM`. Hardening: provenance line longer than the design string; INV-2 word list differs from the worklog's; INV-7 double replay implied, not asserted. Speculation: story battle matching by name is broad. Scope: the worklog Architecture still describes the dropped RAM trainer reader (D1 supersedes it).
+  - Codex (`codex exec -m gpt-5.6-sol -s read-only`): `VERDICT: BLOCKING`: (1) `source.commit` cefacbf1 lacks the switch; (2) activation milestone ignores the prompt line, which acts from the first decision; (3) no whole-run OFF proof (the `pageLine` refactor sits outside the wrapper). Hardening: rescans of the growing delivered history on every result.
+  - Claude (`claude -p --permission-mode plan`, default login): session limit until 5:40 PM; rerun queued.
+  - Synthesis: all three Codex blockers accepted. (1) experiment pinned to the reviewed fix commit (pin commit follows); (2) activation `NEW_GAME_CREATED`, asserted in the experiment test, readiness line updated; (3) new tests: the whole recorded 4caa run passes through the production factory unchanged with the switch off (548+ results, no events), and `pageLines` reproduces the recorded T107 dialogue list byte for byte (fixture now keeps T107's text); guard deletion del4 (extra space in `pageLine`) turns it red. Hardening taken: delivered pages kept in one flat list, ledger-row summaries recomputed only after a new delivery.
+
 
 ## Boy Scout Log
 

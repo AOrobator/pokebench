@@ -762,3 +762,14 @@ it("links the battle message waiting card to its tracked explainer, which quotes
  expect(html).toContain("Battle details: WILD single · turn 3 · resolving (no input until the game asks)");
  expect(html).toContain("Battle details: WILD single · turn 3 · battle message waiting: &quot;Wild WINGULL fainted!&quot; — press A or B to continue");
 });
+
+it("links the script line presence card to its tracked explainer, which shows the T259 pages off and on",()=>{
+ expect(FEATURE_EXPLAINERS["script-line-presence-v1"]).toBe("script-line-presence-v1.html");
+ const log=new Log();log.add(0,{...START,harness_features:["dialogue-auto-advance-v1","script-line-presence-v1"]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector('[data-feature="script-line-presence-v1"] a')?.getAttribute("href")).toBe("/explainers/script-line-presence-v1.html");
+ const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/script-line-presence-v1.html",import.meta.url)),"utf8");
+ expect(html).toContain("script-line-presence-v1");
+ expect(html).toContain("1. turn 259 · ROUTE101 (map 0/16) · at 11,19: \"H-help me!\"");
+ expect(html).toContain("(no speaker shown by the game; on screen: PROF. BIRCH (sprite PROF_BIRCH) at 4,13; ZIGZAGOON_1 at 5,13; BIRCHS_BAG at 7,14)");
+});

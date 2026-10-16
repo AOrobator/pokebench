@@ -389,6 +389,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "battle-triage-guidance-v1":"battle-triage-guidance-v1.html",
  "adjacent-tiles-v1":"adjacent-tiles-v1.html",
  "battle-message-waiting-v1":"battle-message-waiting-v1.html",
+ "script-line-presence-v1":"script-line-presence-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

@@ -168,6 +168,6 @@ Lanes: the think_fast/think_swarm endpoint lanes are not used while overnight tr
 - Grok lane: VERDICT: LGTM (INV-4 and fixture I/O resolved; decision-probe.ts consistency as hardening only).
 - Claude lane (fresh read-only subagent): VERDICT: LGTM (checked sequential tool execution, OFF order/identity, cook #2's 2399 free-field states all have active_ui null; hardening: decision-probe.ts could pass context tools as extra).
 - Codex lane (gpt-5.6-sol): VERDICT: BLOCKING. A press that throws kept the streak, so UP, UP, (rejected UP), UP showed the reminder (INV-4).
-- Fix: the press wrapper zeroes the streak before executing and restores it only when the press returns, so a thrown press ends the run; test added. Agent 1478 passed; lint green except known mypy; agent coverage unchanged (navigate-first.ts 100%).
+- Fix: the press wrapper zeroes the streak before executing and restores it only when the press returns, so a thrown press ends the run; test added. Agent 1477 passed; lint green except known mypy; agent coverage unchanged (navigate-first.ts 100%).
   COMMIT: `fix: a press that throws ends the navigate_to reminder streak (review round 2)`
 - Round 3 needs the operator's scope confirmation (two complete rounds with new blockers).

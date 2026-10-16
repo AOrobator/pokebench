@@ -248,3 +248,6 @@ Merge locally after all lanes LGTM. No pending experiment entry (amendment 2). R
 ## Archive Milestone (user-gated)
 
 - [ ] ASK USER: archive
+
+- 2026-10-16 08:40 AM EDT: Review round 13 (29da5591..50f0add3, packet sha256 282e618c…c5c7): Claude CLI LGTM, Grok cursor-grok-4.5-high LGTM, Codex gpt-5.6-sol LGTM. Gates at 50f0add3: agent 1867, viewer 932, pytest 2313; coverage agent 99.14/94.69/98.4, viewer 97.63/91.09/93.68, python 97.37/93.23/100.
+- 2026-10-16 08:40 AM EDT: LANDED: main fast-forwarded to 50f0add3. On main after `just build`: agent 1867 (runs-cli timeout flake passed on rerun), viewer and pytest green. Switches pushback-loop-detection-v1, pushback-press-result-v1, battle-observation-loop-v1 are bug fixes for both arms of bundle-v-control (owner: readiness thread).

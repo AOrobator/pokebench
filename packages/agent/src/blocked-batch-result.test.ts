@@ -94,10 +94,13 @@ describe("blockers named only from the readout's own grid and objects", () => {
   });
   it("a ledge entered against its arrow; a ledge in the pressed direction is not a known cause", () => {
     expect(still(field("up", grid([{ x: 2, y: 1, collision: 1, behavior: 0x3b, elevation: 3 }])), ["UP", "UP"])).toBe("blocked: UP ×2 did not move you; you are still at (2,2) facing up. The tile above, (2,1), is a ledge you can only hop over moving DOWN, so UP cannot move you from here.");
-    expect(still(field("down", grid([{ x: 2, y: 3, collision: 1, behavior: 0x3b, elevation: 3 }])), ["DOWN", "DOWN"])).toBe("no movement: DOWN ×2 did not move you; you are still at (2,2) facing down. The readout shows nothing blocking the tile below, (2,3); what stopped you is not known.");
+    expect(still(field("down", grid([{ x: 2, y: 3, collision: 1, behavior: 0x3b, elevation: 3 }])), ["DOWN", "DOWN"])).toBe("no movement: DOWN ×2 did not move you; you are still at (2,2) facing down. The tile below, (2,3), is a ledge you can hop over moving DOWN; what stopped you is not known.");
   });
   it("with ledge hops off the map draws the ledge as #, and the result says the same", () => {
     expect(still(field("up", grid([{ x: 2, y: 1, collision: 1, behavior: 0x3b, elevation: 3 }])), ["UP", "UP"], { ...ON, ledges: false })).toBe("blocked: UP ×2 did not move you; you are still at (2,2) facing up. The tile above, (2,1), is a collision tile (# on the local map), so UP cannot move you from here.");
+  });
+  it("with ledge hops off a ledge pressed in its own direction is not claimed as a wall (the game hops it)", () => {
+    expect(still(field("down", grid([{ x: 2, y: 3, collision: 1, behavior: 0x3b, elevation: 3 }])), ["DOWN", "DOWN"], { ...ON, ledges: false })).toBe("no movement: DOWN ×2 did not move you; you are still at (2,2) facing down. The tile below, (2,3), is drawn as # on the local map; what stopped you is not known.");
   });
   it("with counter talk off a counter is the # it is drawn as", () => {
     expect(still(field("left", grid([wall(1, 2, 0x80)])), ["LEFT", "LEFT"], { ...ON, counters: false })).toBe("blocked: LEFT ×2 did not move you; you are still at (2,2) facing left. The tile to the left, (1,2), is a collision tile (# on the local map), so LEFT cannot move you from here.");
@@ -108,13 +111,13 @@ describe("blockers named only from the readout's own grid and objects", () => {
   it("water (~ on the map) only when the player is verified on foot", () => {
     const pond = grid([{ x: 1, y: 2, collision: 0, behavior: 0x10, elevation: 1 }]);
     expect(still(field("left", pond, avatar(1)), ["LEFT", "LEFT", "LEFT"])).toBe("blocked: LEFT ×3 did not move you; you are still at (2,2) facing left. The tile to the left, (1,2), is water (~ on the local map); you cannot walk onto it, so LEFT cannot move you from here.");
-    const unknown = "no movement: LEFT ×3 did not move you; you are still at (2,2) facing left. The readout shows nothing blocking the tile to the left, (1,2); what stopped you is not known.";
+    const unknown = "no movement: LEFT ×3 did not move you; you are still at (2,2) facing left. The tile to the left, (1,2), is water (~ on the local map); what stopped you is not known.";
     expect(still(field("left", pond, avatar(1 | 8)), ["LEFT", "LEFT", "LEFT"])).toBe(unknown);
     expect(still(field("left", pond, avatar(8)), ["LEFT", "LEFT", "LEFT"])).toBe(unknown);
     expect(still(field("left", pond, avatar(null)), ["LEFT", "LEFT", "LEFT"])).toBe(unknown);
     expect(still(field("left", pond), ["LEFT", "LEFT", "LEFT"])).toBe(unknown);
     // Surfable behaviors the map does not draw as ~ are not named water.
-    expect(still(field("left", grid([{ x: 1, y: 2, collision: 0, behavior: 0x19, elevation: 1 }]), avatar(1)), ["LEFT", "LEFT", "LEFT"])).toBe(unknown);
+    expect(still(field("left", grid([{ x: 1, y: 2, collision: 0, behavior: 0x19, elevation: 1 }]), avatar(1)), ["LEFT", "LEFT", "LEFT"])).toBe("no movement: LEFT ×3 did not move you; you are still at (2,2) facing left. The readout shows nothing blocking the tile to the left, (1,2); what stopped you is not known.");
   });
   it("edge walls on the player's own tile or on the next tile's facing side", () => {
     expect(still(field("left", grid([{ x: 2, y: 2, collision: 0, behavior: 0x31, elevation: 3 }])), ["LEFT", "LEFT"])).toBe("blocked: LEFT ×2 did not move you; you are still at (2,2) facing left. Your tile, (2,2), has an edge wall on its left side, so LEFT cannot move you from here.");

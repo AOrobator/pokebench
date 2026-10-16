@@ -33,3 +33,10 @@ Branch `claude/blocked-batch-result` in `/private/tmp/pokebench-blocked-batch`. 
 - [x] RED for round 1 fixes: 11 failing tests. COMMIT: `test: RED blocked-batch-result-v1 names only what the model's map shows and never claims an object, warp, surf water or height blocked` (865f2158)
 - [x] GREEN: `BlockedBatchFacts` gains `ledges`, `edgeWalls`, `counters`, `topology` (threaded by `toolSwitches` from ledge-hops-v1, one-way-tiles-v1, counter-talk-v1, world-destinations-v1); objects/warps head "no movement"; elevation branch removed; water = 0x10–0x15 with ON_FOOT set, SURFING clear. Feature copy and explainer updated; play-preset `Exclude` cast includes the id.
   - Gates: agent 82 files / 1317 tests, viewer 60 / 786, pytest 1960 passed 2 skipped; lint clean except the known mypy `mgba._pylib` worktree failure; build clean; coverage agent 97.63 / 94.27 / 97.89 / 99.04, viewer 95.08 / 90.39 / 93.55 / 97.6, Python lines 97.03 / branches 92.57 / functions 100; `blocked-batch.ts` 100 lines, 96.77 branches; verify-vendor OK.
+- [x] GREEN COMMIT: `fix: blocked-batch-result-v1 follows the map switches for ledges, edge walls, counters and connections, and claims only terrain as a blocker` (6c909440)
+
+## M2: review round 2 (delta 4d211bd7..6c909440)
+
+- [x] Grok: BLOCKING. A `~` tile while surfing, biking or with unknown avatar flags fell through to "The readout shows nothing blocking", which contradicts the map. Round 1 fixes confirmed.
+- [x] Codex: BLOCKING. With ledge-hops-v1 off, a ledge pressed in its own hop direction fell through to "collision tile … cannot move you", but the game hops it (`ShouldJumpLedge`).
+- [x] Taken both. RED: 3 tests (ledge own direction with ledges on and off; water not verified on foot).

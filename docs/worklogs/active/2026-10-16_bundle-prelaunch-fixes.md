@@ -25,8 +25,8 @@ Forensics of bundle qualification run `2026-10-15T23-47-41_qwen36-gpu1_3f21` (`r
 - [x] RED: tests from real 3f21 events (fixtures under `packages/agent/test-support/bundle-3f21/`): `packages/agent/src/bundle-3f21-fixes.test.ts`, 10 failing / 2 passing (the two passing pin the both-arm supervisor T65 note byte for byte and the recorded generic refusal with the switch OFF). Replays reproduce the recorded text exactly before the fix (T95 press line, T98 navigate line, T166 briefing lines, T56 pages).
 - [x] GREEN F5–F8: agent 82 files / 1278 tests pass; lint + build clean. Two existing ON-switch tests updated on purpose (door warp now has a specific reason; stall briefing adds three lines, all other lines still equal the loop briefing).
 - [x] F12 (naming-editor briefing + interface_dwell stall) was added at the coordinator's request (RED 51006938, GREEN 7261cdd6), then dropped on a scope change: another thread owns F12 and builds it on top of F5 after this branch merges. Reverted in one commit; findings for that thread: N=30 calls from 23 naming episodes in 133 runs (normal <=25; stuck 48/79/97/153); pokeemerald naming_screen.c START moves to OK, A on OK saves, SaveInputText keeps the preloaded nickname when the text is empty.
-- [ ] Gates: test, lint, build, coverage (90%), verify-vendor
-- [ ] Explainer updates (local)
+- [x] Gates: `just test` (agent 1288, viewer 786, env 1960 passed/2 skipped), `just lint` agent/viewer clean, `just build` ok, `just coverage` agent L99.0/B93.8/F97.8, viewer L97.6/B90.4/F93.6, env L97.0/B92.6/F100 (floor 90), `just verify-vendor` ok
+- [x] Explainer updates (local): fix sections in docs/explainers/{stall-briefing-v1,dialogue-auto-advance-v1,navigation-refusal-reasons-v1}.html (already linked from Harness Config cards); rendered and checked in the browser pane
 - [ ] Review: Codex + grok
 
 ## Session Log
@@ -41,6 +41,8 @@ Forensics of bundle qualification run `2026-10-15T23-47-41_qwen36-gpu1_3f21` (`r
 ## Surprises
 
 ## Commits
+
+- COMMIT: `docs(explainers): F5–F8 before/after from run 3f21`
 
 - COMMIT: `test(bundle): cover every F5–F7 branch; stall-briefing registry text` — agent 1288 tests
 

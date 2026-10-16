@@ -127,6 +127,26 @@ The run continues.</pre>
 </section>
 
 <section>
+<h2>Pre-launch fix F5 (bundle run 3f21)</h2>
+<p>The T166 drought briefing (seq 3310) of run <code>2026-10-15T23-47-41_qwen36-gpu1_3f21</code> was true but useless: its dialogue line held the three newest pages (a scientist's filler) and its untried list covered the lab only. MOM's instruction at T98 and the untried house warp at (14,8) were out of reach. The stall briefing now adds three lines. The loop briefing (both arms) is unchanged: the T65 loop note (seq 1010) is reproduced byte for byte in the tests.</p>
+<figure><svg viewBox="0 0 760 200" role="img" aria-label="Where the three new lines come from">
+<rect class="box" x="10" y="20" width="220" height="60" rx="8"/><text x="20" y="44">story milestone event</text><text x="20" y="64" class="s">kind story, e.g. MOM_RIVAL_INSTRUCTION</text>
+<rect class="game" x="270" y="20" width="220" height="60" rx="8"/><text x="280" y="44">pages of that same call</text><text x="280" y="64" class="s">up to the milestone's evidence state</text>
+<rect class="game hot" x="530" y="20" width="220" height="60" rx="8"/><text x="540" y="44">Dialogue shown with your</text><text x="540" y="64">last story step</text>
+<path class="arr g" d="M230 50 L270 50"/><path class="arr g" d="M490 50 L530 50"/>
+<rect class="box" x="10" y="110" width="220" height="60" rx="8"/><text x="20" y="134">overworld results since the</text><text x="20" y="154">last counted milestone</text>
+<rect class="game" x="270" y="110" width="220" height="60" rx="8"/><text x="280" y="134">latest targets per map,</text><text x="280" y="154" class="s">maps entered since</text>
+<rect class="game hot" x="530" y="110" width="220" height="60" rx="8"/><text x="540" y="134">Not tried on other maps;</text><text x="540" y="154">Exits to maps not entered</text>
+<path class="arr g" d="M230 140 L270 140"/><path class="arr g" d="M490 140 L530 140"/>
+</svg><figcaption>Every fact comes from recorded events the model was shown; pages are whole, with the auto-advance speaker label.</figcaption></figure>
+<p>The new lines in the T166 replay (other lines identical to the recorded note):</p>
+<pre>- Dialogue shown with your last story step (mom rival instruction at turn 98), whole, in order: MOM: &quot;MOM: Oh! RED, RED! Quick! Come quickly!&quot; | MOM: &quot;MOM: Look! It&#x27;s PETALBURG GYM! Maybe DAD will be on!&quot; | INTERVIEWER: &quot;INTERVIEWER: …We brought you this report from in front of PETALBURG GYM.&quot; | MOM: &quot;MOM: Oh… It&#x27;s over.&quot; | MOM: &quot;I think DAD was on, but we missed him. Too bad.&quot; | MOM (sprite kind, not a name): &quot;Oh, yes. One of DAD&#x27;s friends lives in town.&quot; | MOM (sprite kind, not a name): &quot;PROF. BIRCH is his name.&quot; | MOM (sprite kind, not a name): &quot;He lives right next door, so you should go over and introduce yourself.&quot;
+- Not tried yet on other maps you have been on since your last story progress: LITTLEROOT TOWN (map 0/9): Warp to map 1/2 at 14,8 (movement; activation depends on metatile (see local map)); Warp to map 1/0 at 5,8 (movement; activation depends on metatile (see local map)); FAT_MAN at 10,13 (A); BOY_2 at 12,17 (A); coordinate_trigger at 8,9 (step); coordinate_trigger at 9,9 (step); coordinate_trigger at 11,9 (step); Town Sign at 15,13 (A); Birchs Lab Sign at 6,17 (A); Brendans House Sign at 7,8 (A); Mays House Sign at 12,8 (A)
+- Exits to maps you have not entered since your last story progress: LITTLEROOT TOWN (map 0/9): Warp to map 1/2 at 14,8; Warp to map 1/0 at 5,8</pre>
+<p>A story milestone whose call showed no pages (CLOCK_SET) keeps the earlier instruction. These lines quote game text and readout names; they name no route or goal of their own.</p>
+</section>
+
+<section>
 <h2>Status</h2>
 <table>
 <tr><th>Item</th><th>State</th></tr>

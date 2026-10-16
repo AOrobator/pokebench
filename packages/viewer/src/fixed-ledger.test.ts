@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { appendLedger, classifyTrial, FixedLedgerError, nextFor, progress, queueState, readLedger, type FixedLedgerEntry, type FixedOutcome } from "./fixed-ledger.js";
-import { definition, MODEL_PATH, START_SHA1 } from "../test-support/fixed.js";
+import { definition, MODEL_PATH, ROM_SHA1, START_SHA1 } from "../test-support/fixed.js";
 import { Log, START } from "../test-support/events.js";
 
 const def = definition();
@@ -92,8 +92,8 @@ describe("readLedger and appendLedger", () => {
 });
 
 describe("classifyTrial", () => {
-  const expectation = { presetId: "bundle-v-control-confirmatory-bundle", maxWallMs: 900_000, startSha1: START_SHA1, port: 8071, model: MODEL_PATH, primary: "RIVAL_MET" };
-  const unlabelledStart = { ...START, model: { ...START.model, id: MODEL_PATH }, start_state: { kind: "save_state" as const, path: "x", sha1: START_SHA1 }, budgets: { max_turns: 20000, max_wall_ms: 900_000 }, isolation: { ...START.isolation, port: 8071 } };
+  const expectation = { presetId: "bundle-v-control-confirmatory-bundle", maxWallMs: 900_000, start: { kind: "save_state" as const, sha1: START_SHA1 }, romSha1: ROM_SHA1, port: 8071, model: MODEL_PATH, primary: "RIVAL_MET" };
+  const unlabelledStart = { ...START, rom_sha1: ROM_SHA1, model: { ...START.model, id: MODEL_PATH }, start_state: { kind: "save_state" as const, path: "x", sha1: START_SHA1 }, budgets: { max_turns: 20000, max_wall_ms: 900_000 }, isolation: { ...START.isolation, port: 8071 } };
   const goodStart = { ...unlabelledStart, evaluation: { preset_id: expectation.presetId, target: null, failure_limit: 3, reply_failures_end_run: false, flags: { loopGuard: true, activeUi: true, interfaceDocs: true, objectives: false } } };
   const end = { type: "run_end" as const, turn: 9, furthest_milestone: null, turns: 9, wall_ms: 900_000, tokens: { input: 1, output: 1 }, frames: { saved: 0, bytes: 0 } };
   function text(build: (log: Log) => void): string {
@@ -104,6 +104,20 @@ describe("classifyTrial", () => {
   function classify(build: (log: Log) => void, exit: number | null = 0): FixedOutcome {
     return classifyTrial(text(build), expectation, exit);
   }
+
+  it("checks a New Game phase's trials booted, and every trial's ROM, with no vacuous start check", () => {
+    const boot = { ...expectation, presetId: "bundle-v-control-cook-bundle", maxWallMs: 900_000, start: { kind: "boot" as const } };
+    const run = (startState: Record<string, unknown>, rom: string | undefined, planned = boot) => classifyTrial(text((log) => {
+      const { rom_sha1: _r, ...rest } = goodStart;
+      log.add(0, { ...rest, ...(rom === undefined ? {} : { rom_sha1: rom }), start_state: startState, evaluation: { ...goodStart.evaluation, preset_id: planned.presetId } });
+      log.add(900_000, { ...end, reason: "budget" });
+    }), planned, 0);
+    expect(run({ kind: "boot" }, ROM_SHA1)).toMatchObject({ valid: true });
+    expect(run({ kind: "save_state", path: "x", sha1: START_SHA1 }, ROM_SHA1)).toMatchObject({ valid: false, reason: `run_start does not match the plan: start save_state ${START_SHA1} (planned boot)` });
+    expect(run({ kind: "boot" }, "0".repeat(40))).toMatchObject({ valid: false, reason: `run_start does not match the plan: ROM ${"0".repeat(40)} (planned ${ROM_SHA1})` });
+    expect(run({ kind: "boot" }, undefined)).toMatchObject({ valid: false, reason: `run_start does not match the plan: ROM unrecorded (planned ${ROM_SHA1})` });
+    expect(run({ kind: "boot" }, ROM_SHA1, expectation)).toMatchObject({ valid: false, reason: `run_start does not match the plan: start boot (planned save_state ${START_SHA1})` });
+  });
 
   it("checks the recorded feature bits against the arm, so a wrong-arm or unrecorded trial is invalid", () => {
     const planned = { ...expectation, features: { "stall-briefing-v1": true, "milestone-stall-stop-v1": false } };

@@ -6,7 +6,7 @@ import { runFixed, type FixedHost, type FixedLaunch, type ServingReceipt } from 
 import { readLedger, type FixedLedgerEntry } from "./fixed-ledger.js";
 import { LEASE } from "./lease.js";
 import { parseFixedStatus, type FixedStatus } from "./fixed-status.js";
-import { definition, MODEL_PATH, START_SHA1 } from "../test-support/fixed.js";
+import { definition, MODEL_PATH, ROM_SHA1, START_SHA1 } from "../test-support/fixed.js";
 import { Log, START } from "../test-support/events.js";
 import { dryRunDefinition, type FixedDefinition, type FixedLane } from "./fixed-design.js";
 
@@ -80,10 +80,10 @@ class Fake implements FixedHost {
 }
 
 function writeEvents(runsRoot: string, l: FixedLaunch, ending: "budget" | "model_error"): void {
-  const preset = JSON.parse(readFileSync(l.presetPath, "utf8")) as { id: string; limits: { maxWallMs: number }; features: Record<string, boolean> };
+  const preset = JSON.parse(readFileSync(l.presetPath, "utf8")) as { id: string; limits: { maxWallMs: number }; features: Record<string, boolean>; start?: unknown };
   const port = Number(new URL(l.env["POKEBENCH_GAME_SERVER_URL"] ?? "").port);
   const log = new Log();
-  log.add(0, { ...START, model: { ...START.model, id: l.env["POKEBENCH_MODEL"] ?? "" }, start_state: { kind: "save_state", path: "x", sha1: START_SHA1 }, budgets: { max_wall_ms: preset.limits.maxWallMs }, isolation: { ...START.isolation, port }, evaluation: { preset_id: preset.id, target: null, failure_limit: 3, reply_failures_end_run: false, flags: { loopGuard: true, activeUi: true, interfaceDocs: true, objectives: false }, features: preset.features } });
+  log.add(0, { ...START, rom_sha1: ROM_SHA1, model: { ...START.model, id: l.env["POKEBENCH_MODEL"] ?? "" }, start_state: preset.start === undefined ? { kind: "boot" } : { kind: "save_state", path: "x", sha1: START_SHA1 }, budgets: { max_wall_ms: preset.limits.maxWallMs }, isolation: { ...START.isolation, port }, evaluation: { preset_id: preset.id, target: null, failure_limit: 3, reply_failures_end_run: false, flags: { loopGuard: true, activeUi: true, interfaceDocs: true, objectives: false }, features: preset.features } });
   if (ending === "model_error") log.add(10, { type: "retry", turn: 1, reason: "model error: HTTP 502", attempt: 3, limit: 3 });
   log.add(preset.limits.maxWallMs, { type: "run_end", turn: 5, reason: ending, furthest_milestone: null, turns: 5, wall_ms: ending === "budget" ? preset.limits.maxWallMs : 10, tokens: { input: 1, output: 1 }, frames: { saved: 0, bytes: 0 } });
   mkdirSync(join(runsRoot, l.runId), { recursive: true });

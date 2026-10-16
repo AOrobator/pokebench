@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from "vitest";
 import { fixedLaunchSpec, main, productionFixedHost, servingReceipt, type FixedCliDeps } from "./fixed-cli.js";
 import { parseFixedDefinition } from "./fixed-design.js";
 import type { FixedRunOptions } from "./fixed-runner.js";
-import { CONTROL_BASE_PATH, controlBaseText, draftDefinition, definition, MODEL_PATH, START_SHA1 } from "../test-support/fixed.js";
+import { CONTROL_BASE_PATH, controlBaseText, draftDefinition, definition, MODEL_PATH, ROM_SHA1, START_SHA1 } from "../test-support/fixed.js";
 import { Log, START } from "../test-support/events.js";
 
 function setup(over: Partial<FixedCliDeps> = {}) {
@@ -26,7 +26,7 @@ function setup(over: Partial<FixedCliDeps> = {}) {
     now: () => new Date("2026-10-16T01:00:00.000Z"),
     user: "operator",
     head: () => "0123456789abcdef0123456789abcdef01234567",
-    sha1File: () => START_SHA1,
+    sha1File: (path) => (path === "/roms/pokemon-emerald.gba" ? ROM_SHA1 : START_SHA1),
     rom: "/roms/pokemon-emerald.gba",
     run: (options) => { runs.push(options); return Promise.resolve("finished"); },
     host: () => ({}) as never,
@@ -127,6 +127,24 @@ describe("fixed-run check, approve, run, dry-run", () => {
       expect(missing.err.join("\n")).toContain("cannot read POKEBENCH_ROM /roms/pokemon-emerald.gba");
     }
   });
+  it("refuses to run or dry-run with a ROM whose bytes differ from the definition's", async () => {
+    for (const command of [["run", "bundle-v-control"], ["dry-run", "bundle-v-control"]]) {
+      const other = setup({ sha1File: (path) => (path === "/roms/pokemon-emerald.gba" ? "0".repeat(40) : START_SHA1) });
+      writeFileSync(other.path, JSON.stringify(definition()));
+      expect(await main(command, other.deps)).toBe(1);
+      expect(other.runs).toEqual([]);
+      expect(other.err.join("\n")).toContain(`POKEBENCH_ROM /roms/pokemon-emerald.gba has sha1 ${"0".repeat(40)}, the definition records ${ROM_SHA1}`);
+    }
+  });
+
+  it("dry-runs a chosen phase with that phase's start", async () => {
+    const { deps, runs, path } = setup();
+    writeFileSync(path, JSON.stringify(definition()));
+    expect(await main(["dry-run", "bundle-v-control", "--phase", "cook", "--wall-ms", "720000"], deps)).toBe(0);
+    expect(runs[0]?.def).toMatchObject({ id: "bundle-v-control-dryrun-cook", phases: [{ id: "dry-run", maxWallMs: 720_000, start: "boot" }] });
+    expect(await main(["dry-run", "bundle-v-control", "--phase", "nope"], deps)).toBe(1);
+  });
+
   it("dry-runs one trial per arm per lane under its own id, with no approval", async () => {
     const { deps, runs, path } = setup();
     writeFileSync(path, JSON.stringify(definition()));

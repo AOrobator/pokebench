@@ -195,3 +195,134 @@ it("never keeps or persists a load whose log changed while it was being read", a
   expect(calls).toContain("done");
   expect(fs.existsSync(join(dir, "done.json"))).toBe(true);
 });
+
+function heldCompute(): { compute: WorkbenchCompute; calls: string[]; release: () => void } {
+  const calls: string[] = [], waiting: (() => void)[] = [];
+  return {
+    calls,
+    compute: (root, id) => { calls.push(id); return new Promise<LoadedRun>((resolve) => { waiting.push(() => { resolve(loadRun(root, id)); }); }); },
+    release: () => { for (const go of waiting.splice(0)) go(); },
+  };
+}
+
+it("serves a partial snapshot at once while cold runs load in the background", async () => {
+  const r = catalog();
+  const h = heldCompute();
+  const loader = createWorkbenchLoader({ compute: h.compute });
+  const cold = await workbenchSnapshot(r, healthy, NOW, undefined, loader, { partial: true });
+  expect(cold.runs).toEqual([]);
+  expect(cold.problems).toContain("Still loading 4 of 4 recorded runs; this page fills in as they finish.");
+  expect([...h.calls].sort()).toEqual(["broken", "done", "held", "live"]);
+  h.release();
+  await new Promise((resolve) => { setImmediate(resolve); });
+  const warm = await workbenchSnapshot(r, healthy, NOW, undefined, loader, { partial: true });
+  expect(warm).toEqual(await workbenchSnapshot(r, healthy, NOW));
+  expect(h.calls).toHaveLength(4);
+});
+
+it("keeps showing a run's previous record while its grown log reloads", async () => {
+  const r = catalog();
+  const h = heldCompute();
+  const loader = createWorkbenchLoader({ compute: h.compute });
+  const first = workbenchSnapshot(r, healthy, NOW, undefined, loader);
+  await new Promise((resolve) => { setImmediate(resolve); });
+  h.release();
+  const before = (await first).runs.find((x) => x.id === "live");
+  fs.appendFileSync(join(r, "live", "events.jsonl"), JSON.stringify({ v: 1, run: "live", seq: 4, t: "2026-10-11T22:00:06.000-04:00", turn: 1, type: "run_end", reason: "milestone", furthest_milestone: "PLAYER_NAME_CONFIRMED", turns: 1, wall_ms: 6000, tokens: { input: 500, output: 100 }, frames: { saved: 0, bytes: 0 } }) + "\n");
+  const stale = await workbenchSnapshot(r, healthy, NOW, undefined, loader, { partial: true });
+  expect(stale.runs.find((x) => x.id === "live")).toEqual(before);
+  expect(stale.problems.some((p) => p.startsWith("Still loading"))).toBe(false);
+  expect(h.calls.filter((id) => id === "live")).toHaveLength(2);
+  h.release();
+  await new Promise((resolve) => { setImmediate(resolve); });
+  expect((await workbenchSnapshot(r, healthy, NOW, undefined, loader, { partial: true })).runs.find((x) => x.id === "live")?.status).toBe("ended");
+});
+
+it("retries a background load that failed instead of leaving the run pending forever", async () => {
+  const r = root();
+  write(r, "done", ended());
+  let calls = 0;
+  const loader = createWorkbenchLoader({ compute: (root, id) => { calls += 1; return calls === 1 ? Promise.reject(new Error("worker died")) : Promise.resolve(loadRun(root, id)); } });
+  const first = await workbenchSnapshot(r, healthy, NOW, undefined, loader, { partial: true });
+  expect(first.runs).toEqual([]);
+  await new Promise((resolve) => { setImmediate(resolve); });
+  await workbenchSnapshot(r, healthy, NOW, undefined, loader, { partial: true });
+  await new Promise((resolve) => { setImmediate(resolve); });
+  expect((await workbenchSnapshot(r, healthy, NOW, undefined, loader, { partial: true })).runs.map((x) => x.id)).toEqual(["done"]);
+  expect(calls).toBe(2);
+});
+
+it("runs workbench jobs before queued baseline jobs", async () => {
+  const workers: FakeWorker[] = [];
+  const pool = createBaselinePool(() => { const w = new FakeWorker(); workers.push(w); return w; }, 1);
+  const jobs = [pool.compute("/r", "a"), pool.compute("/r", "b"), pool.load("/r", "c", null)];
+  for (const job of jobs) job.catch(() => undefined);
+  expect(workers[0]?.posted.map((p) => p.runId)).toEqual(["a"]);
+  workers[0]?.emit("message", { id: workers[0].posted[0]?.id, outcome: { baseline: { run: "a", milestones: [] } } });
+  await jobs[0];
+  expect(workers[0]?.posted.map((p) => `${p.kind}:${p.runId}`)).toEqual(["baseline:a", "workbench:c"]);
+  await pool.close();
+});
+
+it("answers the comparisons data at once when the viewer serves partial snapshots", async () => {
+  const r = catalog();
+  const h = heldCompute();
+  const viewer = await startViewer({ runsRoot: r, staticDir: r, appDir: r, port: 0, workbench: { compute: h.compute, partial: true } });
+  viewers.push(viewer);
+  const reply = await fetch(new URL("api/workbench", viewer.url));
+  expect(reply.status).toBe(200);
+  expect(((await reply.json()) as { problems: string[] }).problems).toContain("Still loading 4 of 4 recorded runs; this page fills in as they finish.");
+  h.release();
+});
+
+const tick = (): Promise<void> => new Promise((resolve) => { setImmediate(resolve); });
+const endLine = (run: string): string => JSON.stringify({ v: 1, run, seq: 4, t: "2026-10-11T22:00:06.000-04:00", turn: 1, type: "run_end", reason: "milestone", furthest_milestone: "PLAYER_NAME_CONFIRMED", turns: 1, wall_ms: 6000, tokens: { input: 500, output: 100 }, frames: { saved: 0, bytes: 0 } }) + "\n";
+
+it("shows a live run whose log grows during every load, with at most one reload in flight", async () => {
+  const r = catalog();
+  const live = join(r, "live", "events.jsonl");
+  const h = heldCompute();
+  const loader = createWorkbenchLoader({ compute: (root, id, viewer) => { if (id === "live") fs.appendFileSync(live, "\n"); return h.compute(root, id, viewer); } });
+  for (let cycle = 0; cycle < 3; cycle++) {
+    const snap = await workbenchSnapshot(r, healthy, NOW, undefined, loader, { partial: true });
+    if (cycle > 0) {
+      expect(snap.runs.map((x) => x.id)).toContain("live");
+      expect(snap.problems.some((p) => p.startsWith("Still loading"))).toBe(false);
+    }
+    await workbenchSnapshot(r, healthy, NOW, undefined, loader, { partial: true });
+    h.release();
+    await tick();
+  }
+  expect(h.calls.filter((id) => id === "live")).toHaveLength(3);
+});
+
+it.each([
+  ["rewritten in place", (p: string): void => { const text = fs.readFileSync(p, "utf8"); fs.writeFileSync(p, text.replace('"turn":1', '"turn":0')); }],
+  ["truncated", (p: string): void => { fs.truncateSync(p, 10); }],
+  ["replaced", (p: string): void => { const text = fs.readFileSync(p, "utf8"); fs.rmSync(p); fs.writeFileSync(p, text + endLine("done")); }],
+])("never serves the previous record of a log that was %s rather than appended to", async (_label, mutate) => {
+  const r = catalog();
+  const h = heldCompute();
+  const loader = createWorkbenchLoader({ compute: h.compute });
+  const first = workbenchSnapshot(r, healthy, NOW, undefined, loader);
+  await tick(); h.release(); await first;
+  mutate(join(r, "done", "events.jsonl"));
+  const during = await workbenchSnapshot(r, healthy, NOW, undefined, loader, { partial: true });
+  expect(during.runs.map((x) => x.id)).not.toContain("done");
+  expect(during.problems).toContain("Still loading 1 of 4 recorded runs; this page fills in as they finish.");
+  h.release(); await tick();
+  const after = await workbenchSnapshot(r, healthy, NOW, undefined, loader, { partial: true });
+  expect(after.runs.find((x) => x.id === "done")).toEqual((await workbenchSnapshot(r, healthy, NOW)).runs.find((x) => x.id === "done"));
+});
+
+it("serves disk-cached runs in the very first partial snapshot without loading them", async () => {
+  const r = catalog();
+  const dir = workbenchCacheDir(r, CODE);
+  await workbenchSnapshot(r, healthy, NOW, undefined, createWorkbenchLoader({ store: createWorkbenchStore(dir) }));
+  const h = heldCompute();
+  const first = await workbenchSnapshot(r, healthy, NOW, undefined, createWorkbenchLoader({ compute: h.compute, store: createWorkbenchStore(dir) }), { partial: true });
+  expect(first.runs.map((x) => x.id)).toEqual(["done"]);
+  expect(first.problems).toContain("Still loading 3 of 4 recorded runs; this page fills in as they finish.");
+  expect(h.calls).not.toContain("done");
+  h.release();
+});

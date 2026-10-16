@@ -224,6 +224,14 @@ export const MILESTONES: readonly Milestone[] = [
   { name: "ROCK_TOMB_RECEIVED", kind: "story", reached: flag("rock_tomb_received") },
 ];
 export const MILESTONE_ORDER = MILESTONES.map((m) => m.name);
+// Optional activities can happen almost anywhere after their prerequisite (a heal in Oldale before
+// Route 103), so they never rank how far a run got.
+export const ACTIVITY_MILESTONES: ReadonlySet<string> = new Set(["FIRST_POKEMON_CAUGHT", "FIRST_EVOLUTION", "FIRST_POKECENTER_HEAL"]);
+export const DEPTH_ORDER: readonly string[] = MILESTONE_ORDER.filter((name) => !ACTIVITY_MILESTONES.has(name));
+export function deeperMilestone(current: string | null, candidate: string): string | null {
+  const depth = DEPTH_ORDER.indexOf(candidate);
+  return depth >= 0 && (current === null || depth >= DEPTH_ORDER.indexOf(current)) ? candidate : current;
+}
 
 export class StateMilestones implements MilestoneSource {
   private readonly seen = new Set<string>();

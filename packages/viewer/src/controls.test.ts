@@ -57,6 +57,11 @@ describe("run controls", () => {
     expect(overlay(overlayKind(view(), true, true, false), view(), now, 0.5)).toContain('width="78"');
     const ended = view((l) => l.add(1, { type: "run_end", turn: 1, reason: "operator_stop", furthest_milestone: null, turns: 1, wall_ms: 1, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } }));
     expect(overlay(overlayKind(ended, true, false, false), ended, now)).toContain("■ RUN ENDED");
+    const healed = view((l) => {
+      for (const name of ["ROUTE_103", "FIRST_POKECENTER_HEAL"]) l.add(1, { type: "milestone", turn: 1, name, kind: "story", origin: "observed", server_timestamp: 1, evidence: [1] });
+      l.add(2, { type: "run_end", turn: 1, reason: "budget", furthest_milestone: "ROUTE_103", turns: 1, wall_ms: 1, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } });
+    });
+    expect(overlay(overlayKind(healed, true, false, false), healed, now)).toContain("furthest: ROUTE 103 · 2 splits");
     expect(overlayKind(ended, true, false, true)).toBeNull();
     expect(overlayKind(ended, false, false, false)).toBeNull();
     const aborted = view((l) => l.add(1, { type: "run_end", turn: 1, reason: "operator_abort", furthest_milestone: null, turns: 1, wall_ms: 1, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } }));

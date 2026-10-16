@@ -35,12 +35,13 @@ No harness behavior change, so no feature switch.
 
 **M1: art build and serving**
 - [x] build_art.py and the just recipe; pixel-identical to the approved mockup art (0 diffs across 32 compared files); 387 icons, 14 trainers, 5 tiers x 3 cards, font; every asset verified against the ROM; nothing under runs/ tracked
-- [ ] RED/GREEN: `/sprites/` allowlist route (good paths 200, traversal and unknown paths 404)
+- [x] RED/GREEN: `/sprites/` allowlist route (good paths 200, traversal and unknown paths 404). RED 681d3ac3
 
 **M2: card data**
 - [x] RED/GREEN: `WorkbenchRun.card` from the last state event (`readNativeRecording` returns it, since it drops `view.state`); parse and validate; shared `plateFacts`. workbench tests 77 + 34 green
 
 **M3: cards in the viewer**
+- [x] RED 681d3ac3 / GREEN: `trainer-card.ts` (manifest, tier, trainer pick, wide/mini markup, clock parts) and `game-font.ts` (glyph pixels, painter); 35 tests green
 - [ ] RED/GREEN: trainer pick, tier, wide/mini HTML (badge in corner vs ribbon, WATCHING/LIVE/PAUSED, fresh glow), game font painter, desktop card row and click to watch, phone sheet cards, in-place clocks, fallback without art
 - [ ] Gates: build, lint, coverage ≥ 90
 - [ ] Browser proof at 1280/1440/375 on a scratch viewer with copied fixtures (close-the-loop, viewer-e2e)
@@ -48,4 +49,3 @@ No harness behavior change, so no feature switch.
 **M4: review and land**
 - [ ] Claude, Grok and GPT LGTM on one frozen packet; merge slot from the coordinator (not :40–:55); ff-only
 - [ ] `just trainer-card-art` into the main checkout's runs/; restart through the coordinator; live check
-- M3 RED: trainer-card, game-font and /sprites route tests fail (modules missing, route 404)

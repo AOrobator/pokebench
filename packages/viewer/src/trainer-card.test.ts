@@ -71,7 +71,7 @@ describe("trainer card markup", () => {
     expect(html.match(/class="mon/g)).toBeNull();
   });
   it("escapes everything that comes from a run", () => {
-    const html = cardHtml(input({ title: 'x"<b>', runId: 'r"1', card: { name: "<i>", location: "<s>", party: [] } }), ART, "wide");
-    expect(html).not.toContain("<b>"); expect(html).not.toContain("<i>"); expect(html).not.toContain("<s>"); expect(html).toContain("&quot;");
+    const html = cardHtml(input({ title: 'x"<script>', runId: 'r"1', card: { name: "<i>", location: "<s>", party: [] } }), ART, "wide");
+    expect(html).not.toContain("<script>"); expect(html).not.toContain("<i>"); expect(html).not.toContain("<s>"); expect(html).toContain("&quot;");
   });
 });

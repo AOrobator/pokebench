@@ -189,6 +189,20 @@ describe("viewer server", () => {
     expect(text.trimEnd().endsWith("event: done\ndata: {}")).toBe(true);
   });
 
+  it("streams rival values recovered from raw RAM onto the state events that lack them", async () => {
+    const { runsRoot, viewer } = await fixture();
+    const log = fullRun();
+    writeRun(runsRoot, "recovered", log);
+    const target = log.events.find((e) => e.type === "state" && "started" in e);
+    if (target === undefined) throw new Error("fixture");
+    mkdirSync(join(runsRoot, "recovered", "derived"), { recursive: true });
+    writeFileSync(join(runsRoot, "recovered", "derived", "route103_rival.jsonl"), [{ v: 1, run: "recovered", source: "raw-ram-route103-v1" }, { seq: target.seq, raw_ram: "raw-ram/00000001.json.gz", sha256: "a".repeat(64), route103_rival: { battle_active: true, defeated: false, oldale_stage: 0 } }].map((r) => JSON.stringify(r)).join("\n") + "\n");
+    const text = (await get(viewer, "/api/runs/recovered/events")).body.toString();
+    const streamed = text.split("\n").filter((l) => l.startsWith("data: {\"")).map((l) => JSON.parse(l.slice(6)) as { seq?: number; route103_rival?: unknown });
+    expect(streamed.find((e) => e.seq === target.seq)?.route103_rival).toEqual({ battle_active: true, defeated: false, oldale_stage: 0 });
+    expect(streamed.filter((e) => e.route103_rival !== undefined)).toHaveLength(1);
+  });
+
   it("tails a live run until run_end and reports invalid lines", async () => {
     const { runsRoot, viewer } = await fixture();
     const live = new Log();

@@ -1,6 +1,6 @@
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseEvent } from "@pokebench/agent/events";
 import { StateMilestones, qualifiedNativeMilestone } from "../../agent/src/milestones.js";
@@ -373,4 +373,20 @@ it("does not derive the return trip from a legacy Route 103 state, in or after t
     for (const event of log.events) view.apply(event);
     expect(view.milestones.some(m => m.name.endsWith("AFTER_RIVAL_BATTLE"))).toBe(false);
   }
+});
+it("grades rival splits recovered from raw RAM through the side file, without changing the log", () => {
+  const log = new Log();
+  log.add(0, { ...START, start_state: { kind: "save_state", path: "/saves/CLOCK_SET.state", sha1: "a".repeat(40) }, harness_features: ["post-clock-navigation-milestones-v1"] });
+  const calm = log.add(1000, state({ ...quiet, location: "ROUTE103", story: atLab(3) }));
+  const fight = log.add(2000, state({ ...quiet, location: "ROUTE103", in_battle: true, story: atLab(3) }));
+  const won = log.add(3000, state({ ...quiet, location: "ROUTE103", story: atLab(3) }));
+  const path = write(log.events.map(e => JSON.stringify(e)).join("\n") + "\n");
+  const before = readFileSync(path, "utf8");
+  const dir = join(path, "..");
+  mkdirSync(join(dir, "derived"));
+  const rows = [[calm.seq, false, false], [fight.seq, true, false], [won.seq, false, true]].map(([seq, battle_active, defeated]) => ({ seq, raw_ram: "raw-ram/00000001.json.gz", sha256: "a".repeat(64), route103_rival: { battle_active, defeated, oldale_stage: 0 } }));
+  writeFileSync(join(dir, "derived", "route103_rival.jsonl"), [{ v: 1, run: basename(dir), source: "raw-ram-route103-v1" }, ...rows].map(r => JSON.stringify(r)).join("\n") + "\n");
+  const result = readNativeRecording(path, calm.run, qualifiedNativeMilestone);
+  expect(result.splits.filter(s => s.name.startsWith("RIVAL_BATTLE_")).map(s => [s.name, s.derived, s.seq])).toEqual([["RIVAL_BATTLE_STARTED", true, fight.seq], ["RIVAL_BATTLE_DEFEATED", true, won.seq]]);
+  expect(readFileSync(path, "utf8")).toBe(before);
 });

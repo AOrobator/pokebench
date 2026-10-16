@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { tmpdir } from "node:os";
+import { join, sep } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { expect, it, vi } from "vitest";
 
 // The real runs/ holds tens of GB of frames, so the store is replaced and only its wiring is checked.
@@ -25,7 +26,10 @@ it("defaults the CLI to the repo runs/ directory and the 500 MB cap without scan
 });
 
 it("resolves the runs root as a filesystem path, so escaped characters such as spaces survive", () => {
-  expect(runsRootFor("file:///Users/a%20b/pokebench/packages/agent/src/runs-cli.js")).toBe("/Users/a b/pokebench/runs/");
+  const spaced = join(tmpdir(), "a b", "pokebench");
+  const moduleUrl = pathToFileURL(join(spaced, "packages", "agent", "src", "runs-cli.js")).href;
+  expect(moduleUrl).toContain("a%20b");
+  expect(runsRootFor(moduleUrl)).toBe(join(spaced, "runs") + sep);
   expect(RUNS_ROOT).toBe(fileURLToPath(new URL("../../../runs/", import.meta.url)));
   expect(RUNS_ROOT).not.toMatch(/%[0-9A-F]{2}/i);
   expect(existsSync(join(RUNS_ROOT, "..", "justfile"))).toBe(true);

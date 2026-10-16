@@ -72,8 +72,9 @@ Report branch, frozen head, packet sha256, verdicts, gates, switch ids and inten
 - 2026-10-16: merged main 154d905e (disproved-beliefs-v1, same-plan-breaker-v1, Route 103 fixture windows). Registry tails: main's two switches first, then navigation-truth-v1, navigation-refusal-reasons-v2; position tests re-bumped by 2 over main's (identical-edit hunks merged silently at main's value and were corrected from the failing assertions); switchboard row count 74. Gates on the merge: agent 1652, viewer 904, pytest 2270 passed (main's fixture-window fix cleared the 34 inherited failures); lint, build, verify-vendor OK; coverage agent 99.16/94.27/98.27, viewer 97.62/91.10/93.62, python 97.33/93.17/100 (lines/branches/functions).
 - 2026-10-16: merged main 36aad5b1 (levelup-box-v1, timeline text). Same resolution: main's switches first, then navigation-truth-v1 and navigation-refusal-reasons-v2; position tests re-bumped from failing assertions; switchboard rows 75; guidance count 35. Gates: agent 1662, viewer 906, pytest 2297 passed; lint, build, verify-vendor, pages-check OK; coverage agent 99.17/94.30/98.27, viewer 97.62/91.10/93.63, python 97.36/93.22/100.
 - 2026-10-16: merged main 8c98cb7c (viewer hide-live-replay-controls, worklog archive), clean merge. Gates: agent 1662, viewer 906, pytest 2297 passed; lint, build OK; coverage unchanged within 0.01.
+- 2026-10-16: merged main be428cdb (briefing-exits-v1, untaken-exits-v1, people-ledger-v1). Registry reapplied after main's last switch (scripted: take main's side, re-add the two ids, re-bump position tests from failing assertions). Gates: agent 1738, viewer 914, pytest 2299 passed; lint, build, verify-vendor, pages-check OK; coverage agent 99.13/94.40/98.39, viewer 97.62/91.12/93.63, python 97.36/93.22/100.
 
-## Principles Adherence (round 1, packet base main 8c98cb7c)
+## Principles Adherence (rounds 1-2; round 2 packet base main be428cdb)
 
 | ID | Score | Evidence |
 |---|---|---|

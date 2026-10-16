@@ -94,7 +94,10 @@
    "presence-penalty-v1": false,
    "disproved-beliefs-v1": false,
    "same-plan-breaker-v1": false,
-   "levelup-box-v1": true
+   "levelup-box-v1": true,
+   "briefing-exits-v1": true,
+   "untaken-exits-v1": false,
+   "people-ledger-v1": false
   }
  },
  "switches": [
@@ -124,7 +127,9 @@
   "navigate-first-prompt-v1",
   "presence-penalty-v1",
   "disproved-beliefs-v1",
-  "same-plan-breaker-v1"
+  "same-plan-breaker-v1",
+  "untaken-exits-v1",
+  "people-ledger-v1"
  ],
  "offInBoth": [
   "milestone-stall-stop-v1"
@@ -134,7 +139,8 @@
   "displayed-place-names-v1",
   "dialogue-context-kept-v1",
   "battle-message-waiting-v1",
-  "levelup-box-v1"
+  "levelup-box-v1",
+  "briefing-exits-v1"
  ],
  "phases": [
   {

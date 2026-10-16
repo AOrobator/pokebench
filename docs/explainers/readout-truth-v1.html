@@ -66,7 +66,7 @@ th{font-weight:600}
   <li><code>STATE COVERAGE ERROR: field-message owner unqualified …</code> while a field YES/NO box was open and read correctly (14 times in 5 runs).</li>
   <li><code>Bag: </code> with nothing after it on the field when the bag is empty (battle says <code>Bag: empty</code>).</li>
   <li><code>Mom rival instruction received</code> at story stage 7, before any rival exists. 687e cited it while hunting "the rival".</li>
-  <li>The START menu redrawn after the party or bag closes read as <code>Screen: overworld / Dialog: none</code> (show T526–541).</li>
+  <li>The START menu redrawn after the party or bag (or another screen opened from it) closes read as <code>Screen: overworld / Dialog: none</code> (show T526–541).</li>
   <li>The party menu's Cancel button (slot 7) raised a coverage error, and slot 6 was called CANCEL.</li>
   <li><code>Not on this map: … MAY</code> while RIVAL_MAY_NORMAL was live and on screen (54a7 T153–154).</li>
  </ul>
@@ -77,7 +77,7 @@ th{font-weight:600}
  <figure>
   <pre class="off">OFF  sh02 T143 (state 2984): a push-back script walks the player back
 Menu: unavailable (active owner not verified)
-Bag: 
+Bag: <span style="color:var(--soft)">(nothing after the colon)</span>
 Story: player name confirmed; Mom clock instruction received; clock set; Mom rival instruction received
 Field controls: locked (dialog, menu, or script; direction presses cannot move)
 Field-message text: unavailable; do not infer that the dialogue box is closed.
@@ -158,7 +158,7 @@ Story characters here (from this map's own object list): MAY at 1,3. Not on this
    <path class="arrow" d="M230 170 L270 158"/><path class="arrow" d="M230 190 L270 202"/><path class="arrow" d="M230 215 L270 250"/>
   </svg>
   </div>
-  <figcaption>Each "none" claim rests on game state. Any read failure or unknown owner keeps the old hedged line: an unsupported menu with the controls locked still reads as unverified.</figcaption>
+  <figcaption>Each "none" claim rests on game state. Any read failure (a short read included) or unknown owner keeps the old hedged line. The sMenu window is checked directly: a drawn menu window with the controls locked and no recognised owner keeps the old text even when its cursor does not decode, and an interface that reports a coverage error keeps the old Menu line.</figcaption>
  </figure>
 </section>
 
@@ -174,7 +174,7 @@ Story characters here (from this map's own object list): MAY at 1,3. Not on this
   <tr><td>Party buttons</td><td><code>PARTY_SIZE</code> Confirm, <code>PARTY_SIZE + 1</code> Cancel (party_menu.c:1141, 1401, 1525)</td><td>slot 6 CONFIRM, 7 CANCEL</td></tr>
   <tr><td>Story stage 7</td><td><code>PlayersHouse_1F_EventScript_SetWatchedBroadcast</code> after <code>PlayersHouse_1F_Text_GoIntroduceYourselfNextDoor</code> (players_house.inc:132–153)</td><td>VAR_LITTLEROOT_INTRO_STATE 0x4092 = 7</td></tr>
  </table></div>
- <p>The reopened START menu is drawn but its input task is not running yet, so it reads <code>start_menu</code>, the highlighted item, input not ready. The next observation (after the fade) reads the ordinary ready START menu. In an arm with expanded menu text off it shows as <code>Menu: detailed controls unprovided</code>, like every START menu there.</p>
+ <p>The START menu redrawn when a screen opened from it closes is drawn but its input task is not running yet, so it reads <code>start_menu</code>, the highlighted item, input not ready. The next observation (after the fade) reads the ordinary ready START menu. In an arm with expanded menu text off it shows as <code>Menu: detailed controls unprovided</code>, like every START menu there.</p>
 </section>
 
 <section>

@@ -15,10 +15,10 @@ re-rendering them with each new switch off and on, plus the tool result the mode
 """
 
 import functools
-from collections import Counter
 import json
 import os
 import struct
+from collections import Counter
 from dataclasses import replace
 from pathlib import Path
 

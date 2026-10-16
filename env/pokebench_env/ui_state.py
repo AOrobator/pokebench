@@ -178,6 +178,15 @@ def read_dialog(read: ReadMemory, screen_kind: str) -> str | None:
     return decode_message(read(STRING_VAR4, STRING_VAR4_SIZE)) or None
 
 
+WINDOWS_MAX = 32
+
+
+def menu_window_drawn(read: ReadMemory) -> bool:
+    """readout-truth-v1: whether sMenu's window is drawn, whatever its cursor says."""
+    window_id = read(MENU + 5, 1)[0]
+    return window_id < WINDOWS_MAX and _window_drawn(read, window_id)
+
+
 def read_menu(read: ReadMemory, *, allow_single: bool = False) -> Menu | None:
     cursor, _minimum, maximum, window_id = struct.unpack("<bbbB", read(MENU + 2, 4))
     if (

@@ -159,20 +159,21 @@ SCRIPT_PHASES = {
 
 
 def read_no_message(read: ReadMemory) -> NoMessage | None:
-    if read(FIELD_MESSAGE_MODE, 1)[0] != 0 or _window_drawn(read, 0):
+    # Every read must be whole: a short read is a failure, never an absence.
+    mode, active = read(FIELD_MESSAGE_MODE, 1), read(FIELD_PRINTER + 0x1B, 1)
+    tasks, status = read(TASKS, 16 * 0x28), read(GLOBAL_SCRIPT_STATUS, 1)
+    context = read(GLOBAL_SCRIPT, 12)
+    if (len(mode), len(active), len(tasks), len(status), len(context)) != (1, 1, 0x280, 1, 12):
         return None
-    if read(FIELD_PRINTER + 0x1B, 1)[0] != 0:
+    if mode[0] != 0 or active[0] != 0 or _window_drawn(read, 0):
         return None
-    tasks = read(TASKS, 16 * 0x28)
     if any(
         tasks[i + 4] == 1 and int.from_bytes(tasks[i : i + 4], "little") == DRAW_FIELD_MESSAGE
         for i in range(0, len(tasks), 0x28)
     ):
         return None
-    status = read(GLOBAL_SCRIPT_STATUS, 1)[0]
-    context = read(GLOBAL_SCRIPT, 12)
     # script.c: CONTEXT_SHUTDOWN (2) or SCRIPT_MODE_STOPPED (0) means no script runs.
-    if status == 2 or context[1] == 0:
+    if status[0] == 2 or context[1] == 0:
         return NoMessage(None)
     if context[1] == 2:
         return NoMessage(

@@ -277,7 +277,7 @@ def read_menu_family(read: ReadMemory, callback: int, *, truth: bool = False) ->
             and sum(t[1] == START_MENU_REOPEN_TASK for t in tasks) == 1
             and not any(t[1] == 0x0809FA35 for t in tasks)
         ):
-            # readout-truth-v1: the START menu redrawn after the party or bag closes.
+            # readout-truth-v1: the START menu redrawn when a screen opened from it closes.
             phase = "start_menu"
             cursor, count = read(START_CURSOR, 2)
             actions = list(read(START_ACTIONS, 9))[:count]
@@ -292,7 +292,7 @@ def read_menu_family(read: ReadMemory, callback: int, *, truth: bool = False) ->
                 phase,
                 options[cursor],
                 False,
-                "START menu reopening after the party or bag closed; input is not active "
+                "START menu redrawn after another screen closed; input is not active "
                 "until the screen finishes fading in",
                 details=details,
             )

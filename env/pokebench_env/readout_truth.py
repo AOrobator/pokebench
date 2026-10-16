@@ -5,8 +5,8 @@ Each "none open" claim rests on game state (pret/pokeemerald 731ad5bf, US ROM f3
 
 - Menu: no verified active interface (read_active_ui found no owner) and either free field
   controls (every field menu calls LockPlayerFieldControls, script.c) or no drawn sMenu
-  window. A drawn sMenu window with locked controls and no owner keeps the old
-  "Unverified menu buffer" text: an unsupported menu may really be open there.
+  window (read directly, not through the decoded cursor). A drawn sMenu window with locked
+  controls and no owner keeps the old text: an unsupported menu may really be open there.
 - Field controls locked with no message, sMenu window or owner: the global script context
   (sGlobalScriptContextStatus / sGlobalScriptContext.mode) says whether a script holds them.
 """
@@ -34,7 +34,8 @@ def menu_line(state: GameState) -> str | None:
     if state.active_ui is not None:
         # A coverage error is not a verified owner; keep the old text.
         return MENU_OTHER if state.active_ui.diagnostic is None else None
-    if state.field_controls_locked is False or state.menu is None:
+    # A drawn sMenu window may be a real menu even when its cursor does not decode.
+    if state.field_controls_locked is False or state.menu_window_drawn is False:
         return MENU_NONE
     return None
 
@@ -45,6 +46,6 @@ def lock_line(state: GameState) -> str | None:
     if context is None or context.no_message is None or state.active_ui is not None:
         return None
     # A drawn sMenu window with no verified owner may be an unsupported menu.
-    if not state.active_ui_read or state.menu is not None:
+    if not state.active_ui_read or state.menu_window_drawn is not False:
         return None
     return LOCK_TASK if context.no_message.script is None else LOCK_SCRIPT

@@ -91,7 +91,7 @@ Whited out: your party had no usable Pokémon left, so the game took you back to
    <text class="s" x="200" y="140">readouts taken here say "Whiting out: …" from their own state</text>
   </svg>
   </div>
-  <figcaption>The latch runs after every emulated frame in the vendor frame loop (under its memory lock), like the frame settle. Waits come from game frames; there is no polling or sleeping.</figcaption>
+  <figcaption>The latch runs after every emulated frame in the vendor frame loop (under its memory lock), like the frame settle, and numbers the frames. Each observation notes that number with the state it reads, and takes the whiteout only if it began on or before that frame: a field-poison whiteout starts from the field, and a field state read just before it must not carry the line. The line is taken only once the observation has its screenshot, and put back if the readout then fails. Waits come from game frames; there is no polling or sleeping.</figcaption>
  </figure>
 </section>
 

@@ -28,7 +28,14 @@ from pokebench_env.route103_rival import Route103Rival, read_route103_rival
 from pokebench_env.running import RunningPermission, read_running_permission
 from pokebench_env.story import StoryState, read_story
 from pokebench_env.topology import Topology, read_topology
-from pokebench_env.ui_state import ActiveUi, Menu, read_active_ui, read_dialog, read_menu
+from pokebench_env.ui_state import (
+    ActiveUi,
+    Menu,
+    menu_window_drawn,
+    read_active_ui,
+    read_dialog,
+    read_menu,
+)
 from pokebench_env.world_context import WorldContext, read_world_context
 
 __all__ = ["GBA_TEXT", "GameState", "MapNames", "PartyMon", "decode_text", "read_game_state"]
@@ -112,6 +119,8 @@ class GameState:
     offscreen_objects: tuple[MapObject, ...] | None = None
     # readout-truth-v1: the active interface was read (active-ui-ownership-v1 on); text only.
     active_ui_read: bool = False
+    # readout-truth-v1: sMenu's window is drawn (even with an invalid cursor); None when off.
+    menu_window_drawn: bool | None = None
 
 
 DYNAMIC_WARP = 0x14
@@ -197,6 +206,7 @@ def read_game_state(
     )
     active_ui = native_ui if active_ui_enabled else None
     truth_read = readout_truth_enabled and active_ui_enabled
+    window_drawn = menu_window_drawn(read) if readout_truth_enabled else None
     if native_ui and native_ui.details and isinstance(native_ui.details.get("message"), str):
         dialog = str(native_ui.details["message"])
     player_object = 0
@@ -245,6 +255,7 @@ def read_game_state(
             menu=menu,
             active_ui=active_ui,
             active_ui_read=truth_read,
+            menu_window_drawn=window_drawn,
         )
     _, _, group, number = struct.unpack("<hhBB", read(save1, 6))
     body = read(OBJECT_EVENTS + 0x24 * player_object, 0x24)
@@ -377,4 +388,5 @@ def read_game_state(
         if screen.kind == "overworld" and not in_battle
         else None,
         active_ui_read=truth_read,
+        menu_window_drawn=window_drawn,
     )

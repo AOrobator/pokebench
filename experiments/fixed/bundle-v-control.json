@@ -105,7 +105,8 @@
    "pushback-press-result-v1": true,
    "battle-observation-loop-v1": true,
    "blocked-exit-fact-v1": false,
-   "battle-loss-recap-v1": false
+   "battle-loss-recap-v1": false,
+   "transition-coherence-v1": true
   }
  },
  "switches": [
@@ -156,7 +157,8 @@
   "briefing-battle-outcomes-v1",
   "pushback-loop-detection-v1",
   "pushback-press-result-v1",
-  "battle-observation-loop-v1"
+  "battle-observation-loop-v1",
+  "transition-coherence-v1"
  ],
  "phases": [
   {

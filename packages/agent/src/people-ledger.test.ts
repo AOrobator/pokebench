@@ -157,6 +157,15 @@ describe("people-ledger-v1 ledger rules",()=>{
   ].join("\n"));
   expect(ledger.block(world([]),"Location: ROOM","b")).toBe(`${PEOPLE_HEADER} none`);
  });
+ it("coexists with adjacent-tiles-v1: the block goes after Position, the Next tiles line under the map is untouched",()=>{
+  const ledger=new PeopleLedger();
+  const s=world([{local_id:1,x:2,y:1,sprite_kind:"MAN"}]);
+  const readout=["Screen: overworld","Location: ROOM","Position: X=2, Y=2, facing up","Party (player): none","Local map from live memory; top-left (0,0), north is up:","   0   .   N   .","@ player; N live object","Next tiles: up (2,1) person or object (MAN); down (2,3) clear terrain; left (1,2) clear terrain; right (3,2) clear terrain","Live objects: id 1 at (2,1)"].join("\n");
+  const out=ledger.annotate(readout,s,"a").split("\n");
+  expect(out.slice(0,3)).toEqual(readout.split("\n").slice(0,3));
+  expect(out[3]).toBe(PEOPLE_HEADER);
+  expect(out.slice(5)).toEqual(readout.split("\n").slice(3));
+ });
  it("adds nothing outside a started overworld readout",()=>{
   const ledger=new PeopleLedger();
   const s=world([{local_id:1,x:2,y:1,sprite_kind:"MAN"}]);

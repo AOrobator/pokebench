@@ -1,4 +1,4 @@
-import { appendFileSync, mkdirSync, mkdtempSync, symlinkSync, truncateSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, truncateSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -201,6 +201,38 @@ describe("durable cohort membership and metadata boundaries", () => {
     }
     const d = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000));
     expect(["clockrun", "menurun", "otherrun"].map(id => d.runs.find(x => x.id === id)?.config?.resume)).toEqual(["CLOCK_SET", "MAIN_MENU", null]);
+  });
+  it("keeps dry-run trials in their experiment after the ledger is moved aside to runs/dryruns", async () => {
+    const r = root(), ids = ["2026-10-15T19-42-50_qwen36-gpu1_ab75", "2026-10-15T19-42-50_qwen36-gpu0_c205", "2026-10-15T22-32-40_qwen36-gpu1_ad45"];
+    for (const id of ids) write(r, id, named());
+    const launch = (slot: number, run: string): Record<string, unknown> => ({ kind: "launch", slot, lane: slot % 2 === 1 ? "A" : "B", phase: "dry-run", arm: "control", run, at: "t", commit: "c", sources: "s", presetSha256: "p", serving: "f" });
+    const outcome = (slot: number, run: string, valid: boolean): Record<string, unknown> => ({ kind: "outcome", slot, run, at: "t", valid, reason: valid ? "wall cap" : "no run_end: the play process died mid-run", endReason: valid ? "budget" : null, primaryReached: false, primaryMs: null, furthest: null, furthestDepth: -1, furthestMs: null, wallMs: null, turns: null });
+    const archive = (name: string, rows: Record<string, unknown>[]): void => { mkdirSync(join(r, "dryruns", name), { recursive: true }); writeFileSync(join(r, "dryruns", name, "trials.jsonl"), rows.map(e => JSON.stringify(e)).join("\n") + "\n"); };
+    archive("bundle-v-control-dryrun-20261015-3bab974", [launch(1, ids[0] ?? ""), outcome(1, ids[0] ?? "", true), launch(2, ids[1] ?? ""), outcome(2, ids[1] ?? "", false)]);
+    archive("bundle-v-control-dryrun-20261016-ca37a39", [launch(1, ids[2] ?? ""), outcome(1, ids[2] ?? "", true)]);
+    mkdirSync(join(r, "dryruns", "notes"), { recursive: true }); writeFileSync(join(r, "dryruns", "notes", "trials.jsonl"), JSON.stringify({ run: ids[0] }) + "\n");
+    writeFileSync(join(r, "dryruns", "README"), "loose file"); mkdirSync(join(r, "dryruns", "empty"));
+    const d = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000));
+    expect(ids.map(id => d.runs.find(x => x.id === id)?.cohort)).toEqual(["experiment:bundle-v-control-dryrun-20261015-3bab974", "experiment:bundle-v-control-dryrun-20261015-3bab974", "experiment:bundle-v-control-dryrun-20261016-ca37a39"]);
+    expect(d.runs.find(x => x.id === ids[0])?.excluded).toBeNull();
+    expect(d.runs.find(x => x.id === ids[1])?.excluded).toContain("died mid-run");
+    expect(d.problems).toEqual([]);
+    mkdirSync(join(r, "dryruns", "linked")); symlinkSync(join(r, "dryruns", "bundle-v-control-dryrun-20261016-ca37a39", "trials.jsonl"), join(r, "dryruns", "linked", "trials.jsonl"));
+    const linked = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000));
+    expect(linked.problems).toEqual(["Dry run linked: ledger exceeds metadata bounds"]);
+    rmSync(join(r, "dryruns", "linked"), { recursive: true });
+    mkdirSync(join(r, "dryruns", "aa-copy")); writeFileSync(join(r, "dryruns", "aa-copy", "trials.jsonl"), [launch(1, ids[2] ?? "")].map(e => JSON.stringify(e)).join("\n") + "\n");
+    const duplicate = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000));
+    expect(duplicate.runs.find(x => x.id === ids[2])?.cohort).toBe("experiment:aa-copy");
+    expect(duplicate.problems).toEqual([`Dry runs aa-copy and bundle-v-control-dryrun-20261016-ca37a39 both name run ${ids[2] ?? ""}; it stays in aa-copy`]);
+  });
+  it("lets a live experiment ledger keep a run that an archived dry run also names", async () => {
+    const r = root(), id = "2026-10-15T23-47-41_qwen36-gpu1_3f21";
+    write(r, id, named());
+    const rows = [{ kind: "launch", slot: 1, lane: "A", phase: "dry-run", arm: "bundle", run: id, at: "t", commit: "c", sources: "s", presetSha256: "p", serving: "f" }];
+    for (const dir of [join(r, "experiments", "bundle-v-control-dryrun-cook"), join(r, "dryruns", "copy")]) { mkdirSync(dir, { recursive: true }); writeFileSync(join(dir, "trials.jsonl"), rows.map(e => JSON.stringify(e)).join("\n") + "\n"); }
+    const d = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000));
+    expect(d.runs.find(x => x.id === id)?.cohort).toBe("experiment:bundle-v-control-dryrun-cook");
   });
   it("assigns fixed-run trials to their experiment and excludes the invalid ones", async () => {
     const r = root(), ids = ["2026-10-15T21-45-05_qwen36-gpu1_7b2a", "2026-10-15T21-45-05_qwen36-gpu0_a753", "2026-10-15T22-00-05_qwen36-gpu1_9999"];

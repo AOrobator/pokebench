@@ -1,0 +1,93 @@
+{
+ "version": 1,
+ "id": "battle-triage-guidance",
+ "title": "Battle triage guidance",
+ "changedFeature": "battle-triage-guidance-v1",
+ "hypothesis": "Telling the model that RUN is the bottom-right battle option, to run from wild battles when its own active Pokémon is below half HP, and that a POKéMON CENTER nurse or MOM heals the party, with one readout line when its own Pokémon is below half HP, cuts blackouts and wasted wild battles (showcase run 2026-10-16T00-34-26_qwen36-gpu1_show fought 7 wild battles, fled none, walked into grass at 3/23 HP and blacked out by turn 768), so more runs reach ROUTE 103 (graded there: wild battles start on Route 101 and the rival battle waits on Route 103) in fewer turns.",
+ "activationMilestone": "NEW_GAME_CREATED",
+ "primaryMilestone": "ROUTE_103",
+ "source": {
+  "checkout": "main",
+  "commit": "9f744e409394900ac43fcd867aff5f1d43774edd"
+ },
+ "incumbent": {
+  "version": 2,
+  "id": "finals-incumbent",
+  "target": null,
+  "limits": {
+   "maxTurns": 1500,
+   "maxWallMs": 1800000,
+   "failureLimit": 3
+  },
+  "sampling": {
+   "thinkingLevel": "medium",
+   "maxTokens": 4096
+  },
+  "features": {
+   "navigation-evidence-memory-v1": false,
+   "automatic-running-v1": false,
+   "expanded-menu-battle-information-v1": false,
+   "ram-state-v1": true,
+   "live-map-v1": true,
+   "live-player-position-v1": true,
+   "world-coordinate-grid-v1": true,
+   "live-object-sprites-v1": true,
+   "world-targets-v1": true,
+   "named-interactions-v1": true,
+   "world-destinations-v1": false,
+   "bounded-navigation-v1": true,
+   "grass-cost-navigation-v1": false,
+   "field-dialogue-phase-v1": true,
+   "dialogue-safe-batches-v1": false,
+   "interaction-loop-detection-v1": true,
+   "active-field-message-buffer-v1": true,
+   "naming-cursor-v1": true,
+   "story-state-v1": true,
+   "coordinate-script-conditions-v1": true,
+   "state-only-decisions-v1": false,
+   "contextual-interface-docs-v1": true,
+   "active-ui-ownership-v1": true,
+   "press-result-v1": true,
+   "field-control-lock": true,
+   "warp-activation-guidance-v1": true,
+   "ledge-hops-v1": true,
+   "one-way-tiles-v1": true,
+   "counter-talk-v1": false,
+   "walkable-floor-v1": false,
+   "deterministic-loop-guard-v1": true,
+   "objective-tracking-v1": false,
+   "repeat-attempt-guard-v1": false,
+   "native-objective-completion-v1": false,
+   "full-map-navigation-v1": false,
+   "elevation-transitions-v1": true,
+   "game-evidence-priority-v1": false,
+   "dialogue-log-v1": false,
+   "loop-guard-supervisor-v1": true,
+   "instruction-ledger-v1": false,
+   "next-milestone-hint-v1": false,
+   "double-context-window-v1": false,
+   "fresh-retry-v1": false,
+   "named-warp-destinations-v1": false,
+   "milestone-stall-stop-v1": false,
+   "text-only-supervisor-v1": true,
+   "character-presence-v1": false,
+   "navigation-refusal-reasons-v1": false,
+   "transition-press-result-v1": false,
+   "stall-briefing-v1": false
+  }
+ },
+ "trialsPerArm": 8,
+ "modelLane": "think-fast",
+ "budget": {
+  "maxWallMs": 30600000
+ },
+ "criteria": {
+  "completionTolerance": 0,
+  "speedMarginPercent": 10
+ },
+ "readiness": {
+  "window": 4,
+  "minReached": 3
+ },
+ "notes": "Uses the finals incumbent, as blocked-batch-result does (the switch is omitted there, so it reads OFF). Activation: the system-prompt section is in the model's prompt from the first turn, so the earliest point it can change what the model sees is NEW_GAME_CREATED; the readout lines first appear after the PROF. BIRCH rescue (own party below half HP; RUN is refused in the rescue and no line is shown there). Primary ROUTE_103, as counter-talk uses, because the shared RIVAL_HOUSE_ENTERED comes before any battle. Not yet designed: run pokebench-experiment-design (tier, start state, power-sized N within the operator's GPU-hour budget, overview at docs/experiments/battle-triage-guidance.html) before this entry is queued or driven. Meant for the bundle arm of bundle-v-control (owned by the Dual GPU experiment readiness thread). Provisional source.commit is the branch head before merge; repin to the merge SHA with `just experiment-pin` when it lands."
+}

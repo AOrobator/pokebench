@@ -180,7 +180,10 @@ def test_off_the_reader_is_not_called_on_the_observation_route(monkeypatch) -> N
 
     monkeypatch.setattr(game_state, "read_story_characters", spy)
     monkeypatch.setattr(game_state, "read_battle_details", battle_spy)
-    monkeypatch.setenv("POKEBENCH_FEATURES_OFF", "character-presence-v1,battle-details-v2")
+    monkeypatch.setenv(
+        "POKEBENCH_FEATURES_OFF",
+        "character-presence-v1,battle-details-v2,battle-triage-guidance-v1",
+    )
     app = FastAPI()
     install_observation(app, lambda: _Shot(), map_memory().read, MAPS)
     status, _, body = get(app, "/pokebench/observation")

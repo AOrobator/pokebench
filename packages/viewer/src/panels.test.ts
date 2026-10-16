@@ -5,6 +5,7 @@ import { RunView, foldUntil } from "./model.js";
 import { stepOf } from "../test-support/trace.js";
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { FEATURES } from "@pokebench/agent/features";
 import {
   FEATURE_EXPLAINERS,
   NO_DATA,
@@ -679,6 +680,15 @@ it("links the bedroom exit measurement card to its explainer in Harness Config",
  expect(doc.querySelector('[data-feature="bedroom-exit-v1"] a')?.getAttribute("href")).toBe("/explainers/bedroom-exit-v1.html");
 });
 
+it("links the battle triage guidance card to its tracked explainer, which quotes the exact model text",()=>{
+ expect(FEATURE_EXPLAINERS["battle-triage-guidance-v1"]).toBe("battle-triage-guidance-v1.html");
+ const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/battle-triage-guidance-v1.html",import.meta.url)),"utf8");
+ expect(html).toContain("battle-triage-guidance-v1");
+ expect(html).toContain("Your TORCHIC has 5/20 HP (below half). This is a wild battle: RUN is allowed (bottom-right of the battle menu).");
+ expect(html).toContain("Talking to the nurse at a POKéMON CENTER heals your whole party; so does talking to MOM at home.");
+ expect(html).toContain("from FIGHT press RIGHT, then DOWN, then A");
+});
+
 it("links the displayed place names card to its tracked explainer, which shows the real-ROM before and after",()=>{
  expect(FEATURE_EXPLAINERS["displayed-place-names-v1"]).toBe("displayed-place-names-v1.html");
  const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/displayed-place-names-v1.html",import.meta.url)),"utf8");
@@ -686,4 +696,14 @@ it("links the displayed place names card to its tracked explainer, which shows t
  expect(html).toContain("Mays House Sign at (12,8)");
  expect(html).toContain("Sign text \"PROF. BIRCH'S HOUSE\" at (12,8)");
  expect(html).toContain("Warp to PROF. BIRCH'S HOUSE 1F (map 1/2) at (14,8)");
+});
+
+it("links the adjacent tiles card to its tracked explainer, which shows the real-ROM line for the showcase ledge pocket",()=>{
+ expect(FEATURE_EXPLAINERS["adjacent-tiles-v1"]).toBe("adjacent-tiles-v1.html");
+ const log=new Log();log.add(0,{...START,harness_features:["live-map-v1","adjacent-tiles-v1"]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector('[data-feature="adjacent-tiles-v1"] a')?.getAttribute("href")).toBe("/explainers/adjacent-tiles-v1.html");
+ const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/adjacent-tiles-v1.html",import.meta.url)),"utf8");
+ expect(html).toContain("adjacent-tiles-v1");
+ expect(html).toContain("Next tiles: up (8,6) ledge (v), hops down only, cannot be entered from here; down (8,8) clear (.); left (7,7) clear (.); right (9,7) clear (.)");
 });

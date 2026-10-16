@@ -4,7 +4,7 @@
 import type { FeatureInfo, SwitchableFeature } from "@pokebench/agent/features";
 import { esc, hms, num } from "./format.js";
 import { FRONTIER_MILESTONES } from "./frontier.js";
-import { MILESTONE_ORDER, type RunView } from "./model.js";
+import { MILESTONE_ORDER, deeperMilestone, type RunView } from "./model.js";
 
 export type ControlAction = "pause" | "resume" | "stop" | "cancel_stop" | "abort";
 export type Overlay = "pausing" | "paused" | "stopping" | "ended" | "abort_hold" | "aborted" | null;
@@ -116,7 +116,7 @@ export function overlay(kind: Overlay, view: RunView, nowMs: number, holdFractio
   }
   const reached = view.milestones.filter((m) => m.origin !== "present_at_start");
   if (kind === "aborted") return box("#d03a3a", "#6a1818", "✖ ABORTED", "w", [["w", `turn ${turn} · model call cancelled`], ["w", "excluded from results"], ["w", "Use CLOSE above"]]);
-  return box("#f8f8f8", "#2f9e57", "■ RUN ENDED", "g", [["", `${esc(view.end?.reason ?? "")} · turn ${turn} · ${at}`], ["", `furthest: ${esc(reached.at(-1)?.name.replace(/_/g, " ") ?? "none")} · ${String(reached.length)} splits`], ["", "Use CLOSE above"]]);
+  return box("#f8f8f8", "#2f9e57", "■ RUN ENDED", "g", [["", `${esc(view.end?.reason ?? "")} · turn ${turn} · ${at}`], ["", `furthest: ${esc(reached.reduce<string | null>((deepest, m) => deeperMilestone(deepest, m.name), null)?.replace(/_/g, " ") ?? "none")} · ${String(reached.length)} splits`], ["", "Use CLOSE above"]]);
 
 }
 

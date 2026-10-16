@@ -203,6 +203,7 @@ export const DIALOGUE_AUTO_ADVANCE_STOPS = ["field_free", "menu", "naming", "bat
 const DialoguePageSchema = Type.Object({
   state_seq: Type.Union([NonNegativeInt, Type.Null()]),
   map: Type.Union([Type.String(), Type.Null()]),
+  map_display: Type.Optional(Type.String({ minLength: 1 })),
   map_id: Type.Union([Type.Tuple([Type.Integer(), Type.Integer()]), Type.Null()]),
   position: Type.Union([Type.Object({ x: Type.Integer(), y: Type.Integer() }, closed), Type.Null()]),
   speaker: Type.Union([Type.String(), Type.Null()]),
@@ -390,13 +391,17 @@ export const StateBodySchema = Type.Object(
       objects:Type.Array(Type.Object({x:Type.Integer(),y:Type.Integer()},closed),{maxItems:16}),warps:Type.Array(Type.Object({x:Type.Integer(),y:Type.Integer()},closed),{maxItems:255})},closed),Type.Null()])),
     topology: Type.Optional(Type.Union([Type.Object({
       width: Type.Integer({minimum:1}), height: Type.Integer({minimum:1}),
-      connections: Type.Array(Type.Object({direction:Type.Enum(["NORTH","SOUTH","EAST","WEST","DIVE","EMERGE"]), offset:Type.Integer(), destination:Type.Tuple([Type.Integer(),Type.Integer()]),destination_name:Type.String()},closed),{maxItems:16}),
+      // connection-edge-tiles-v1: the current-map edge tiles a player can walk off, present only with that switch.
+      connections: Type.Array(Type.Object({direction:Type.Enum(["NORTH","SOUTH","EAST","WEST","DIVE","EMERGE"]), offset:Type.Integer(), destination:Type.Tuple([Type.Integer(),Type.Integer()]),destination_name:Type.String(),
+        edges:Type.Optional(Type.Array(Type.Object({x:Type.Integer({minimum:0,maximum:255}),y:Type.Integer({minimum:0,maximum:255})},closed),{maxItems:256}))},closed),{maxItems:16}),
     },closed),Type.Null()])),
     local_map: Type.Optional(Type.Union([Type.String(), Type.Null()])),
     field_controls_locked: Type.Optional(Type.Union([Type.Boolean(), Type.Null()])),
     started: Type.Boolean(),
     name: Type.Union([Type.String(), Type.Null()]),
     location: Type.Union([Type.String(), Type.Null()]),
+    // displayed-place-names-v1: the name the readout shows for this map; absent when off. Identity stays on location.
+    location_display: Type.Optional(Type.String({ minLength: 1 })),
     map_id: Type.Union([Type.Tuple([Type.Integer(), Type.Integer()]), Type.Null()]),
     position: Type.Union([Type.Object({ x: Type.Integer(), y: Type.Integer() }, closed), Type.Null()]),
     facing: Type.Union([Type.String(), Type.Null()]),

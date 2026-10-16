@@ -224,6 +224,9 @@ describe("people-ledger-v1 switch",()=>{
   const base=[fakeObserve(state)];const reader={read:()=>Promise.resolve(state)};
   const on=playGameTools(base,{...OFF,"people-ledger-v1":true},reader,recorder);
   expect(textOf(await on[0]?.execute("o",{}) ?? {content:[],details:undefined})).toContain("People and objects here");
+  // Unchanged with the prompt-side switches it sits beside: the map legend moved into the prompt, and the "Talk to people" section.
+  const beside=playGameTools(base,{...OFF,"people-ledger-v1":true,"readout-rules-in-prompt-v1":true,"explorer-guidance-v1":true},reader,recorder);
+  expect(textOf(await beside[0]?.execute("o",{}) ?? {content:[],details:undefined})).toBe(textOf(await on[0]?.execute("o",{}) ?? {content:[],details:undefined}));
   const off=playGameTools(base,OFF,reader,recorder);
   expect(textOf(await off[0]?.execute("o",{}) ?? {content:[],details:undefined})).toBe(`|${READOUT}`);
  });

@@ -42,6 +42,17 @@ class NamingState:
         )
 
 
+# naming_screen.c STATE_FADE_IN .. STATE_WAIT_PAGE_SWAP; from STATE_PRESSED_OK the name is saved.
+LAST_EDITING_PHASE = 5
+
+
+def editor_open(read: ReadMemory) -> bool:
+    pointer = int.from_bytes(read(NAMING_POINTER, 4), "little")
+    if not 0x02000000 <= pointer <= 0x02040000 - 0x1E40 or pointer % 4:
+        return False
+    return read(pointer + 0x1E10, 1)[0] <= LAST_EDITING_PHASE
+
+
 def read_naming(read: ReadMemory, decode: Callable[[bytes], str]) -> NamingState | None:
     pointer = int.from_bytes(read(NAMING_POINTER, 4), "little")
     if not 0x02000000 <= pointer <= 0x02040000 - 0x1E40 or pointer % 4:

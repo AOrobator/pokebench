@@ -77,6 +77,13 @@ Done when every milestone is merged, qualification shows none of F1–F8, the fo
 
 ## Session Log
 
+- 2026-10-16 05:12 AM EDT: Repinned pending experiments to their merges (connection-edge-tiles → fb6fa7c7; in-game-naming-readout, no-nickname-guidance → 2124e9db) and listed each changed switch explicitly (false) in its incumbent.
+- 2026-10-16 05:08 AM EDT: in-game-naming-readout-v1 and no-nickname-guidance-v1 (F10/F11) merged on main (2124e9db) by the Route 101 thread; both added to the bundle switches (off in base).
+- 2026-10-16 04:57 AM EDT: connection-edge-tiles-v1 (F9) merged on main (fb6fa7c7) by the Route 101 thread; added to the bundle switches (off in base).
+- 2026-10-16 04:45 AM EDT: explorer-guidance-v1 merged on main (20478f28, pinned 735d307d); added to the bundle switches (off in base).
+- 2026-10-16 04:38 AM EDT: Operator (the operator, other thread): the RIVAL_MET confirmatory experiment will not run. M7 qualification/launch is dropped. The bundle definition stays maintained for the overnight cook rounds planned in the "Overnight GPU plan and fix report" thread. Cook #2 (`2026-10-16T02-23-17_qwen36-gpu1_sh02`, main 0ccf1bd) set a new frontier: FIRST_POKECENTER_HEAL at 53.9 min (OLDALE 30.6, ROUTE_103 32.2, RIVAL_BATTLE_WON 50.8).
+- 2026-10-16 04:14 AM EDT: readout-rules-in-prompt-v1 merged on main (005b94f8, pinned cfc67921); added to the bundle switches (off in base).
+- 2026-10-16 04:09 AM EDT: displayed names everywhere merged on main (4b8a37d1, Codex/grok approved by the "Long runs vs significance review" thread), under displayed-place-names-v1 (on in both arms; no definition change). Incoming on-in-both fixes: battle-message-waiting-v1, a loop-guard fix for observes in battle and pushbacks.
 - 2026-10-16 04:00 AM EDT: adjacent-tiles-v1 merged on main (a100eda5, Claude/Codex/grok approved by its thread); added to the bundle switches (off in base).
 - 2026-10-16 03:50 AM EDT: The operator put walkable-floor-v1 (existing switch; cook #2 had navigate_to call rug tiles unwalkable 13 times) in the bundle; the "Cook run 2 rival house exit" thread builds more bundle fixes (pushback press result, briefings that stop listing used exits, room exploration, a loop-guard fix).
 - 2026-10-16 03:45 AM EDT: battle-triage-guidance-v1 merged on main (9f744e40, Claude/Codex/grok approved by its thread); added to bundle-v-control switches (off in base).

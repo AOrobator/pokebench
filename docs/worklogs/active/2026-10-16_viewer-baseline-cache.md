@@ -80,7 +80,7 @@ Design: `load()` splits into `runSignature` (main thread: stat + visual-evidence
 - [x] Guard deletions: persist live runs too → 2 tests fail; no in-flight sharing → 1 fails; server ignores the loader → 1 fails; no after-load signature check → new race test fails. Restored, 10/10 pass.
 - [x] Gates: build, `pnpm -r lint`, ruff, ruff format, mypy (main venv), coverage (viewer 875 tests 95.32 / 90.99 / 93.61; agent 1489 tests 97.82 / 94.56 / 98.14; Python 96%), verify-vendor green.
 - [x] Real catalog (240 runs, built dist, pool of 4, scratch cache dir): cold workbench snapshot 86.0 s with max event-loop lag 84 ms (in process today: 277.0 s, all on the loop); restart from disk 8.96 s, only the 3 unended runs recomputed, max lag 216 ms. Parity against main 5fd00072 built in a throwaway worktree: 237 ended/invalid rows byte-identical, cohorts/problems envelope identical, 3 live rows skipped (their logs grow between snapshots).
-- [x] COMMIT: `feat(viewer): GREEN workbench runs load on worker threads and persist when finished` (pending sha)
+- [x] COMMIT: `feat(viewer): GREEN workbench runs load on worker threads and persist when finished` (327b20a8)
 - [ ] Review (Claude, Codex, Grok in a throwaway worktree), merge on the operator's word, live restart receipt
 
 ## Closing the Loop

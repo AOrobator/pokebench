@@ -46,8 +46,9 @@ Switch `dialogue-context-kept-v1` (guidance, needs nothing, default OFF).
 - [x] Pending experiment pinned provisionally to e513c4a6 (repin to the merge SHA on landing)
 - [x] Review round 1: Codex BLOCKING — story boundaries by turn misattribute same-turn pages (valid). Grok BLOCKING — the two-dot `git diff main..HEAD` showed main's newer bedroom-exit merge as reverted (diff artifact: main moved after branching; fixed by merging main in). Both said the dialogue feature otherwise looks correct.
 - [x] COMMIT: `test: RED supervisor story-instruction pages are bounded by event order, not turn (review round 1)` (da85a880): 2 red, 16 green; the 3f21 T166 line now also carries Mom's five turn-95 2F pages (shown after CLOCK_SET seq 1629, before MOM_RIVAL_INSTRUCTION seq 1775)
-- [x] GREEN: bound by milestone seq (explainer and switch copy updated); 18/18
-- [ ] Merge main (bedroom-exit landed after branching); gates; re-review the delta
+- [x] COMMIT: `fix: bound the supervisor's story-instruction pages by milestone seq, not turn (review round 1)` (df596e80): 18/18
+- [x] Merge main 50db95d0 (bedroom-exit); one conflict in features.test.ts legacy list resolved by adding this switch to main's list. Gates after merge: agent 1292, viewer 790, python 1960 passed; TS lint clean (mypy only mgba._pylib); coverage agent 97.63/94.28/97.88/99.04, viewer 95.09/90.42/93.56/97.6, python 97.03/92.57/100; verify-vendor ok; build ok
+- [ ] Re-review the round-1 delta
 
 ## Session Log
 

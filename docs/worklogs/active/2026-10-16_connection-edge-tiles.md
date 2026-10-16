@@ -42,3 +42,4 @@ Showcase bundle run `2026-10-16T00-34-26_qwen36-gpu1_show`, seq 3580–3745: aft
 ## Multi-Model Review Log
 
 - 2026-10-16 01:25 AM EDT: GREEN finished by the Route 101 thread: lint fixes in the TS test, server feature count 24→25, explainer, experiment entry, readiness row; gates green.
+- 2026-10-16 01:40 AM EDT: merged main 342a2d51 (blocked-batch-result-v1 landed first): registry, presets, defaults and test positions take both switches, blocked-batch-result-v1 then connection-edge-tiles-v1. Gates after merge: agent 1337 (97.67/94.28/98.01), viewer 791 (95.09/90.42/93.56), pytest 1992 (97.05/92.65/100), lint, build, schema clean.

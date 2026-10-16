@@ -200,7 +200,7 @@ function configProblems(start: Parsed, expect: TrialExpectation): string[] {
   if (budgets["max_wall_ms"] !== expect.maxWallMs) problems.push(`wall cap ${String(budgets["max_wall_ms"])} ms (planned ${String(expect.maxWallMs)})`);
   const planned = expect.start;
   const startMatches = planned === undefined || (planned.kind === "boot" ? startState["kind"] === "boot" : startState["kind"] === "save_state" && startState["sha1"] === planned.sha1);
-  if (!startMatches) problems.push(`start ${String(startState["kind"])}${typeof startState["sha1"] === "string" ? ` ${startState["sha1"]}` : ""} (planned ${planned?.kind === "save_state" ? `save_state ${planned.sha1}` : "boot"})`);
+  if (!startMatches) problems.push(`start ${String(startState["kind"])}${typeof startState["sha1"] === "string" ? ` ${startState["sha1"]}` : ""} (planned ${planned.kind === "save_state" ? `save_state ${planned.sha1}` : "boot"})`);
   if (expect.romSha1 !== undefined && start["rom_sha1"] !== expect.romSha1) problems.push(`ROM ${typeof start["rom_sha1"] === "string" ? start["rom_sha1"] : "unrecorded"} (planned ${expect.romSha1})`);
   if (expect.port !== undefined && isolation["port"] !== expect.port) problems.push(`port ${String(isolation["port"])} (planned ${String(expect.port)})`);
   if (expect.model !== undefined && model["id"] !== expect.model) problems.push(`model ${String(model["id"])} (planned ${expect.model})`);

@@ -1,5 +1,5 @@
 import {contextTools,loopSupervisor,playGameTools,stallBriefing,stallStop,textOnlySupervisor} from "./play-wiring.js";
-import { onOperatorSignals } from "./operator-signals.js";
+import { operatorSignalLatch } from "./operator-signals.js";
 import {CheckpointCapture,checkpointTarget} from "./checkpoint-capture.js";
 import {experimentFromEnv} from "./play-experiment.js";
 // Live entrypoint for real, recorded runs: pi-agent-core on the local stack
@@ -209,6 +209,7 @@ async function smoke(): Promise<void> {
 
 
 async function playAgent(): Promise<void> {
+  const signals = operatorSignalLatch(process);
   const presetPath=process.env["POKEBENCH_PLAY_PRESET"];
   const preset=presetPath===undefined?null:parsePlayPreset(JSON.parse(readFileSync(presetPath,"utf8")) as unknown);
   const assigned=process.env["POKEBENCH_RUN_ID"];
@@ -303,7 +304,7 @@ async function playAgent(): Promise<void> {
       });
       stallBriefing(features, recorder, loopDetector, runControl, () => elapsed() - (preset===null?startedAt:0));
       const stopWatching = watchControl(controlFile, runControl);
-      const stopListening = onOperatorSignals(process, (signal) => {
+      signals.onAbort((signal) => {
         console.log(`operator abort (${signal}): finishing the run record`);
         governor.abort("operator_abort");
       });
@@ -333,7 +334,7 @@ async function playAgent(): Promise<void> {
         wall.clear();
         stall?.clear();
         stopWatching();
-        stopListening();
+        signals.close();
       }
     },
   );

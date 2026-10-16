@@ -5,16 +5,33 @@ export interface SignalSource {
   off(event: "SIGINT" | "SIGTERM", listener: () => void): unknown;
 }
 
-export function onOperatorSignals(source: SignalSource, abort: (signal: "SIGINT" | "SIGTERM") => void): () => void {
-  let fired = false;
-  const handlers = (["SIGINT", "SIGTERM"] as const).map((signal) => {
-    const handler = (): void => {
-      if (fired) return;
-      fired = true;
-      abort(signal);
-    };
-    source.on(signal, handler);
-    return [signal, handler] as const;
-  });
-  return () => { for (const [signal, handler] of handlers) source.off(signal, handler); };
+type OperatorSignal = "SIGINT" | "SIGTERM";
+
+export interface OperatorSignalLatch {
+  // Called at once if a signal already arrived (during startup), otherwise on the first signal.
+  onAbort(abort: (signal: OperatorSignal) => void): void;
+  close(): void;
+}
+
+// Armed before the run starts, so a stop during startup still ends the run through its normal
+// abort and cleanup. Detached on the first signal, so a second one takes the default path.
+export function operatorSignalLatch(source: SignalSource): OperatorSignalLatch {
+  let received: OperatorSignal | null = null;
+  let subscriber: ((signal: OperatorSignal) => void) | null = null;
+  const handlers = (["SIGINT", "SIGTERM"] as const).map((signal) => [signal, (): void => {
+    close();
+    received = signal;
+    subscriber?.(signal);
+  }] as const);
+  function close(): void {
+    for (const [signal, handler] of handlers) source.off(signal, handler);
+  }
+  for (const [signal, handler] of handlers) source.on(signal, handler);
+  return {
+    onAbort: (abort) => {
+      subscriber = abort;
+      if (received !== null) abort(received);
+    },
+    close,
+  };
 }

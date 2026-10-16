@@ -109,8 +109,9 @@ describe("classifyTrial", () => {
     const boot: TrialExpectation = { ...expectation, presetId: "bundle-v-control-cook-bundle", maxWallMs: 900_000, start: { kind: "boot" } };
     type StartState = { kind: "boot" } | { kind: "save_state"; path: string; sha1: string };
     const run = (startState: StartState, rom: string | undefined, planned: TrialExpectation = boot) => classifyTrial(text((log) => {
-      const { rom_sha1: _r, ...rest } = goodStart;
-      log.add(0, { ...rest, ...(rom === undefined ? {} : { rom_sha1: rom }), start_state: startState, evaluation: { ...goodStart.evaluation, preset_id: planned.presetId ?? "" } });
+      const base: Omit<typeof goodStart, "rom_sha1"> & { rom_sha1?: string } = { ...goodStart };
+      if (rom === undefined) delete base.rom_sha1; else base.rom_sha1 = rom;
+      log.add(0, { ...base, start_state: startState, evaluation: { ...goodStart.evaluation, preset_id: planned.presetId ?? "" } });
       log.add(900_000, { ...end, reason: "budget" });
     }), planned, 0);
     expect(run({ kind: "boot" }, ROM_SHA1)).toMatchObject({ valid: true });

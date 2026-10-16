@@ -104,9 +104,9 @@ describe("parseFixedDefinition", () => {
 describe("phase starts", () => {
   it("needs every phase to name its start and the definition to pin the ROM", () => {
     const def = definition();
-    const { start: _drop, ...noStart } = def.phases[0] ?? { start: "save" };
-    expect(() => parseFixedDefinition(JSON.stringify({ ...def, phases: [noStart, ...def.phases.slice(1)] }))).toThrow(FixedDesignError);
-    const { romSha1: _rom, ...noRom } = def;
+    const noStart = def.phases.map((p) => Object.fromEntries(Object.entries(p).filter(([k]) => k !== "start")));
+    expect(() => parseFixedDefinition(JSON.stringify({ ...def, phases: noStart }))).toThrow(FixedDesignError);
+    const noRom = Object.fromEntries(Object.entries(def).filter(([k]) => k !== "romSha1"));
     expect(() => parseFixedDefinition(JSON.stringify(noRom))).toThrow(FixedDesignError);
   });
 });

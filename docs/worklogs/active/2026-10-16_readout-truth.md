@@ -151,6 +151,8 @@ Report branch, frozen head, packet SHA-256, verdict lines, gate counts and cover
   COMMIT: `Merge branch 'main' into claude/readout-truth`
 - 2026-10-16 02:40 PM EDT: Principles self-review re-scored for round 6 (`/tmp/review-readout-truth-r6.principles.md`): PB2, PB8 N/A; others PASS; zero FAIL (PB9 now cites the Birch fade gate and Birch short reads). Boundary `/tmp/review-readout-truth-r6.boundary.md` (amendments A1/A2 unchanged). Packet for round 6 sealed on this commit: `git diff --binary f125e4f4 <this commit>`.
   COMMIT: `docs(worklog): readout-truth round 6 packet sealed`
+- 2026-10-16 02:45 PM EDT: main moved to f125e4f4 while sealing (close-the-loop skill and CLAUDE.md line, docs only); merged without conflicts (b63a6284). Docs-only change, code gates from the 02:35 PM entry stand (rerun on the tip below). The round-6 packet is resealed on this commit: `git diff --binary f125e4f4 <this commit>`; the 5dbfa0d3 seal is superseded unused.
+  COMMIT: `docs(worklog): readout-truth round 6 packet resealed on main f125e4f4`
 
 ## Surprises
 

@@ -10,6 +10,7 @@ import struct
 from dataclasses import dataclass
 
 from pokebench_env.battle_choices import exact
+from pokebench_env.battle_message_waiting import input_clause, message_clause
 from pokebench_env.battle_state import BattleBattler, BattleInput, BattleState
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.pokemon import (
@@ -140,8 +141,8 @@ class BattleDetails:
     storage_full: bool | None
     diagnostic: str | None = None
 
-    def lines(self, battle: BattleState) -> list[str]:
-        return battle_details_lines(battle, self)
+    def lines(self, battle: BattleState, *, message_waiting: bool = False) -> list[str]:
+        return battle_details_lines(battle, self, message_waiting=message_waiting)
 
 
 def _move_facts(
@@ -321,15 +322,19 @@ def _kind(flags: int) -> str:
     return " · ".join(tags)
 
 
-def _input_text(battle: BattleState) -> str:
+def _input_text(battle: BattleState, message_waiting: bool) -> str:
     ready = [i for i in battle.player_inputs or () if i.ready]
     if ready:
         return "input ready (" + ", ".join(PHASES[i.phase] for i in ready) + ")"
     if battle.phase == "finishing":
-        return f"finishing (outcome {battle.outcome})"
+        clause = message_clause(battle) if message_waiting else None
+        finishing = f"finishing (outcome {battle.outcome})"
+        return finishing if clause is None else f"{finishing} · {clause}"
     if battle.phase == "replay":
         return "recorded playback"
-    return "resolving (no input until the game asks)"
+    # battle-message-waiting-v1: the message window or YES/NO box, or why nothing is needed.
+    clause = input_clause(battle) if message_waiting else None
+    return "resolving (no input until the game asks)" if clause is None else clause
 
 
 def _is_type(actor: BattleBattler, type_id: int) -> bool:
@@ -534,9 +539,14 @@ def _actor_text(label: str, actor: BattleBattler, held: HeldItem | None) -> str:
     )
 
 
-def battle_details_lines(battle: BattleState, details: BattleDetails) -> list[str]:
+def battle_details_lines(
+    battle: BattleState, details: BattleDetails, *, message_waiting: bool = False
+) -> list[str]:
     flags = battle.battle_type or 0
-    lines = [f"Battle details: {_kind(flags)} · turn {battle.turn} · {_input_text(battle)}"]
+    lines = [
+        f"Battle details: {_kind(flags)} · turn {battle.turn} · "
+        + _input_text(battle, message_waiting)
+    ]
     if details.diagnostic is not None:
         lines.append(f"HARNESS BUG (battle details): {details.diagnostic}")
     battlers = battle.battlers or ()

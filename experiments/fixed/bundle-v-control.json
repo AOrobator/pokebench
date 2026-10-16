@@ -86,7 +86,9 @@
    "connection-edge-tiles-v1": false,
    "in-game-naming-readout-v1": false,
    "no-nickname-guidance-v1": false,
-   "battle-text-auto-advance-v1": false
+   "battle-text-auto-advance-v1": false,
+   "battle-message-waiting-v1": true,
+   "script-line-presence-v1": false
   }
  },
  "switches": [
@@ -110,7 +112,8 @@
   "connection-edge-tiles-v1",
   "in-game-naming-readout-v1",
   "no-nickname-guidance-v1",
-  "battle-text-auto-advance-v1"
+  "battle-text-auto-advance-v1",
+  "script-line-presence-v1"
  ],
  "offInBoth": [
   "milestone-stall-stop-v1"
@@ -118,7 +121,8 @@
  "onInBoth": [
   "transition-loop-detection-v1",
   "displayed-place-names-v1",
-  "dialogue-context-kept-v1"
+  "dialogue-context-kept-v1",
+  "battle-message-waiting-v1"
  ],
  "phases": [
   {

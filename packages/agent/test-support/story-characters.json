@@ -1,0 +1,129 @@
+[
+ {
+  "name": "PROF. BIRCH",
+  "graphics": [
+   64
+  ],
+  "maps": [
+   "EVER GRANDE CITY CHAMPIONS ROOM",
+   "LITTLEROOT TOWN",
+   "LITTLEROOT TOWN PROFESSOR BIRCHS LAB",
+   "ROUTE101",
+   "ROUTE103",
+   "ROUTE110"
+  ]
+ },
+ {
+  "name": "MAY",
+  "graphics": [
+   105,
+   106,
+   107,
+   108,
+   109
+  ],
+  "maps": [
+   "EVER GRANDE CITY CHAMPIONS ROOM",
+   "LAVARIDGE TOWN",
+   "LILYCOVE CITY",
+   "LITTLEROOT TOWN",
+   "LITTLEROOT TOWN MAYS HOUSE 1F",
+   "LITTLEROOT TOWN MAYS HOUSE 2F",
+   "LITTLEROOT TOWN PROFESSOR BIRCHS LAB",
+   "OLDALE TOWN",
+   "ROUTE103",
+   "ROUTE104",
+   "ROUTE110",
+   "ROUTE119",
+   "RUSTBORO CITY"
+  ]
+ },
+ {
+  "name": "BRENDAN",
+  "graphics": [
+   100,
+   101,
+   102,
+   103,
+   104
+  ],
+  "maps": [
+   "EVER GRANDE CITY CHAMPIONS ROOM",
+   "LAVARIDGE TOWN",
+   "LILYCOVE CITY",
+   "LITTLEROOT TOWN",
+   "LITTLEROOT TOWN BRENDANS HOUSE 1F",
+   "LITTLEROOT TOWN BRENDANS HOUSE 2F",
+   "LITTLEROOT TOWN PROFESSOR BIRCHS LAB",
+   "OLDALE TOWN",
+   "ROUTE103",
+   "ROUTE104",
+   "ROUTE110",
+   "ROUTE119",
+   "RUSTBORO CITY"
+  ]
+ },
+ {
+  "name": "MOM",
+  "graphics": [
+   215
+  ],
+  "maps": [
+   "LITTLEROOT TOWN",
+   "LITTLEROOT TOWN BRENDANS HOUSE 1F",
+   "LITTLEROOT TOWN BRENDANS HOUSE 2F",
+   "LITTLEROOT TOWN MAYS HOUSE 1F",
+   "LITTLEROOT TOWN MAYS HOUSE 2F"
+  ]
+ },
+ {
+  "name": "NORMAN",
+  "graphics": [
+   129
+  ],
+  "maps": [
+   "LITTLEROOT TOWN BRENDANS HOUSE 1F",
+   "LITTLEROOT TOWN MAYS HOUSE 1F",
+   "PETALBURG CITY GYM"
+  ]
+ },
+ {
+  "name": "WALLY",
+  "graphics": [
+   135
+  ],
+  "maps": [
+   "MAUVILLE CITY",
+   "PETALBURG CITY",
+   "PETALBURG CITY GYM",
+   "VERDANTURF TOWN WANDAS HOUSE",
+   "VICTORY ROAD 1F"
+  ]
+ },
+ {
+  "name": "ROXANNE",
+  "graphics": [
+   125
+  ],
+  "maps": [
+   "RUSTBORO CITY GYM"
+  ]
+ },
+ {
+  "name": "STEVEN",
+  "graphics": [
+   134
+  ],
+  "maps": [
+   "GRANITE CAVE STEVENS ROOM",
+   "METEOR FALLS STEVENS CAVE",
+   "MOSSDEEP CITY SPACE CENTER 1F",
+   "MOSSDEEP CITY SPACE CENTER 2F",
+   "MOSSDEEP CITY STEVENS HOUSE",
+   "ROUTE118",
+   "ROUTE120",
+   "ROUTE128",
+   "SOOTOPOLIS CITY"
+  ]
+ }
+]

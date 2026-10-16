@@ -18,14 +18,16 @@ from pokebench_env.rom import EMERALD_SHA1, RomError, resolve_rom
 
 FIXTURE = json.loads((Path(__file__).parent / "fixtures" / "rerender-dc0e-t212.json").read_text())
 ROM_START = 0x08000000
-# Run dc0e predates displayed-place-names-v1, battle-triage-guidance-v1 and
-# adjacent-tiles-v1, so its recorded harness features leave them off.
+# Run dc0e predates displayed-place-names-v1, battle-triage-guidance-v1,
+# adjacent-tiles-v1 and battle-message-waiting-v1, so its recorded harness features leave them off.
 RECORDED_OFF = [
     *FIXTURE["recorded_off"],
     "displayed-place-names-v1",
     "battle-triage-guidance-v1",
     "adjacent-tiles-v1",
     "readout-rules-in-prompt-v1",
+    "battle-message-waiting-v1",
+    "offscreen-objects-v1",
 ]
 
 
@@ -111,6 +113,7 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "displayed_names_enabled": False,
         "connection_edges_enabled": False,
         "in_game_naming_enabled": False,
+        "offscreen_objects_enabled": False,
         "fmt_named_interactions": False,
         "fmt_world_destinations": False,
         "fmt_bounded_navigation": False,

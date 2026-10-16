@@ -57,13 +57,13 @@ export class InstructionLedger {
  }
  private instructions():DialogueEntry[]{return this.log.entries().slice(-INSTRUCTIONS).reverse();}
  text():string {
-  const entry=(e:DialogueEntry)=>`#${String(e.seq)} turn ${String(e.turn)} · ${e.room}${e.facing===null?"":` · facing ${e.facing}`}: "${e.text}"`;
+  const entry=(e:DialogueEntry)=>`#${String(e.seq)} turn ${String(e.turn)} · ${e.room}${e.facing===null?"":` · facing ${e.facing}`}${e.presence===undefined?"":` · ${e.presence}`}: "${e.text}"`;
   const told=this.instructions();
   const rooms=[...this.rooms.values()].slice(-ROOMS).reverse();
   const notes=[...this.contradictions].reverse();
   const text=`INSTRUCTION LEDGER: quoted dialogue you were shown, rooms you visited and contradictions you recorded. It is not a walkthrough; the harness does not know your next goal. The current screen overrides it.
 Received instructions${told.length===0?": none recorded":`, newest first:\n${told.map(entry).join("\n")}`}
-Rooms visited${rooms.length===0?": none recorded":`, newest first:\n${rooms.map(r=>`${r.name} (first turn ${String(r.firstTurn)}): ${r.heard===null?"nothing heard":`last heard "${r.heard.text}"`}`).join("\n")}`}
+Rooms visited${rooms.length===0?": none recorded":`, newest first:\n${rooms.map(r=>`${r.name} (first turn ${String(r.firstTurn)}): ${r.heard===null?"nothing heard":`last heard${r.heard.presence===undefined?"":` ${r.heard.presence}:`} "${r.heard.text}"`}`).join("\n")}`}
 Contradictions you recorded: ${notes.length===0?"none (use note_contradiction when the game differs from what you expected)":`\n${notes.map(c=>`expected: ${c.expected}; observed: ${c.observed}; evidence ${c.evidence.map(s=>`#${String(s)}`).join(",")}`).join("\n")}`}`;
   return text;
  }

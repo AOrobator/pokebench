@@ -53,7 +53,7 @@ const RunStart = event("run_start", {
     { id: Type.String({ minLength: 1 }), context_window: NonNegativeInt, max_tokens: NonNegativeInt, vision: Type.Boolean() },
     closed,
   ),
-  sampling: Type.Object({ thinking_level: Type.String(), max_tokens: NonNegativeInt }, closed),
+  sampling: Type.Object({ thinking_level: Type.String(), max_tokens: NonNegativeInt, presence_penalty: Type.Optional(Type.Number()) }, closed),
   system_prompt: Type.String(),
   tools: Type.Array(Type.String()),
   harness: Type.Object({ commit: Sha1, dirty: Type.Boolean() }, closed),
@@ -212,6 +212,12 @@ const DialoguePageSchema = Type.Object({
   text: Type.String({ minLength: 1 }),
   battle_turn: Type.Optional(Type.Integer({ minimum: 1, maximum: 256 })),
   battle_message_id: Type.Optional(Type.Integer({ minimum: 1 })),
+  // script-line-presence-v1 ON only, on a page with no speaker: the live objects on screen at state_seq
+  // (null when that state did not say), with the story character character-presence-v1 names, if any.
+  on_screen: Type.Optional(Type.Union([Type.Array(Type.Object({
+    local_id: NonNegativeInt, graphics_id: NonNegativeInt, sprite_kind: Type.Union([Type.String(), Type.Null()]),
+    x: Type.Integer(), y: Type.Integer(), character: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+  }, closed), { maxItems: 16 }), Type.Null()])),
 }, closed);
 const DialogueAutoAdvance = event("dialogue_auto_advance", {
   tool_call_id: Type.String(),
@@ -265,7 +271,7 @@ const BattleInputSchema=Type.Object({battler:Type.Integer({minimum:0,maximum:3})
 const BattleSignalSchema=Type.Object({kind:Type.String(),battler:Type.Integer({minimum:0,maximum:3}),command:NonNegativeInt,request:NullableInt,party_mask:NullableInt,string_id:NullableInt,move_id:NullableInt,originally_used_move:NullableInt,hp:NullableInt,status:NullableInt,raw_hex:NullableString},closed);
 const BattleExecutionSchema=Type.Object({attacker:Type.Integer({minimum:0,maximum:3}),target:Type.Integer({minimum:0,maximum:3}),move_id:NonNegativeInt,phase:Type.String(),script_pc:NonNegativeInt,move_result_flags:NonNegativeInt,hit_marker:NonNegativeInt,damage:Type.Integer(),hp_dealt:Type.Integer(),current_action:NonNegativeInt,turn_action:NonNegativeInt},closed);
 // battle-text-auto-advance-v1 reads these; always recorded (env/pokebench_env/battle_text.py).
-export const BattleMessageSchema=Type.Object({state:Type.Enum(["printing","waiting_for_input","idle"] as const),render_state:NullableString,text:NullableString,cursor:Type.Union([NonNegativeInt,Type.Null()]),identity:NullableString,diagnostic:NullableString},closed);
+export const BattleMessageSchema=Type.Object({state:Type.Enum(["printing","waiting_for_input","idle"] as const),render_state:NullableString,text:NullableString,cursor:Type.Union([NonNegativeInt,Type.Null()]),identity:NullableString,diagnostic:NullableString,page:Type.Optional(NullableString)},closed);
 export const BattlePromptSchema=Type.Object({kind:Type.Enum(["learn_move","stop_learning_move","yes_no","nickname_caught"] as const),ready:Type.Boolean(),selected:Type.Union([Type.Enum(["YES","NO"] as const),Type.Null()])},closed);
 export const BATTLE_TEXT_PHASES=["message_waiting","input","prompt","busy","screen"] as const;
 export const BattleStateSchema=Type.Object({message:Type.Optional(Type.Union([BattleMessageSchema,Type.Null()])),prompt:Type.Optional(Type.Union([BattlePromptSchema,Type.Null()])),text_phase:Type.Optional(Type.Union([Type.Enum(BATTLE_TEXT_PHASES),Type.Null()])),playback:Type.Optional(Type.Union([Type.Object({stoppable:Type.Boolean(),finished:Type.Boolean(),controls:Type.String()},closed),Type.Null()])),non_pokemon_battlers:Type.Optional(Type.Array(Type.Integer({minimum:0,maximum:3}),{maxItems:4})),active:Type.Boolean(),initialized:Type.Boolean(),phase:Type.String(),ready:Type.Union([Type.Boolean(),Type.Null()]),main_func:NullableInt,script_pc:NullableInt,battle_type:NullableInt,turn:NullableInt,outcome_code:NullableInt,outcome:NullableString,battlers:Type.Union([Type.Array(ContinuousBattleBattlerSchema,{maxItems:4}),Type.Null()]),player_inputs:Type.Union([Type.Array(BattleInputSchema,{maxItems:4}),Type.Null()]),controller_exec_flags:NullableInt,signals:Type.Array(BattleSignalSchema,{maxItems:4}),current_execution:Type.Union([BattleExecutionSchema,Type.Null()]),diagnostic:NullableString,raw_hex:NullableString},closed);

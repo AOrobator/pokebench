@@ -38,7 +38,8 @@ import { StateMilestones } from "./milestones.js";
 import { readLoopMode } from "./loop-detection.js";
 import { attachLoopGuard, Governor, piLoop, play } from "./harness.js";
 import { discoverLocal, readEndpoint } from "./local-endpoint.js";
-import { gatewayLoopConfig } from "./provider.js";
+import { gatewayLoopConfig, playLoopBase } from "./provider.js";
+import { playSampling } from "./presence-penalty.js";
 import type { RunRecorder } from "./recorder.js";
 import { harnessInfo, humanLeasePath, newRunId, withRun, type RunHost, type ServerHandle } from "./run.js";
 
@@ -241,7 +242,7 @@ async function playAgent(): Promise<void> {
       runId,
       port,
       model: { id: model.id, context_window: model.contextWindow, max_tokens: model.maxTokens, vision: true },
-      sampling: { thinking_level: thinking, max_tokens: maxTokens },
+      sampling: playSampling(features, thinking, maxTokens),
       ...(preset===null?{}:{evaluation:{preset_id:preset.id,target:preset.target,failure_limit:limits.failureLimit,...(limits.replyFailuresEndRun===undefined?{}:{reply_failures_end_run:limits.replyFailuresEndRun}),flags:presetFlags(preset),features:{...features},...(experiment===null?{}:{experiment})}}),
       systemPrompt,
       tools: stateMode?["act"]:playTools(features),
@@ -310,14 +311,13 @@ async function playAgent(): Promise<void> {
       });
       const objectives = features["objective-tracking-v1"] ? objectiveHarness(goal, recorder, gameServerUrl, fetch, { ...objectiveSwitches(features), ...toolSwitches(features) }) : null;
       const baseTools=objectives?.tools ?? gameTools(gameServerUrl, pressHooks(recorder), fetch, toolSwitches(features));
-      const tools=playGameTools(baseTools,features,new StateWatcher(gameServerUrl),recorder,signal=>runControl.gate(signal));
       const context=contextTools(features,recorder,objectives?.transformContext??recorder.transformContext);
-      tools.push(...context.tools);
+      const tools=playGameTools(baseTools,features,new StateWatcher(gameServerUrl),recorder,signal=>runControl.gate(signal),context.tools);
       const loop = piLoop({
         systemPrompt,
         loopDetector,
         tools,
-        base: { ...gatewayLoopConfig(model, thinking, apiKey), maxTokens },
+        base: playLoopBase(model, thinking, apiKey, maxTokens, features),
         governor,
         transformContext: context.transformContext,
         window: context.window,
@@ -326,7 +326,7 @@ async function playAgent(): Promise<void> {
         gate: (signal) => runControl.gate(signal),
       });
       try {
-        if(stateMode)return await runStateMode({features,target,serverUrl:gameServerUrl,recorder,governor,base:{...gatewayLoopConfig(model,thinking,apiKey),maxTokens},signal:controller.signal,gate:signal=>runControl.gate(signal),inputEpoch:()=>runControl.pausedMs()});
+        if(stateMode)return await runStateMode({features,target,serverUrl:gameServerUrl,recorder,governor,base:playLoopBase(model,thinking,apiKey,maxTokens,features),signal:controller.signal,gate:signal=>runControl.gate(signal),inputEpoch:()=>runControl.pausedMs()});
         const task: AgentMessage = { role: "user", content: target===null?PLAY_TASK:`The game has just booted. ${goal}`, timestamp: Date.now() };
         return await play(task, governor, loop);
       } finally {

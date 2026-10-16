@@ -77,6 +77,8 @@ Done when every milestone is merged, qualification shows none of F1–F8, the fo
 
 ## Session Log
 
+- 2026-10-16 06:06 AM EDT: script-line-presence-v1 (on-screen speakers on script lines) merged on main (bbbee47b); added to the bundle switches (off in base).
+- 2026-10-16 05:52 AM EDT: battle-message-waiting-v1 (bug fix: the readout names a waiting battle message and says to press A or B) merged on main (09d1a652, Claude/Codex/grok reviewed); added to onInBoth (on in base).
 - 2026-10-16 05:37 AM EDT: F12 (screen-aware stall briefing, inside stall-briefing-v1) merged on main (586ab6d1); no definition change. All four Route 101 fixes (F9–F12) are on main and in the bundle.
 - 2026-10-16 05:27 AM EDT: battle-text-auto-advance-v1 merged on main (61f6fac7, pinned fd4ad89c); added to the bundle switches (off in base). Its merge made normalizeFeatures return keys in registry order; experiments-check and fixed-run check re-run clean.
 - 2026-10-16 05:12 AM EDT: Repinned pending experiments to their merges (connection-edge-tiles → fb6fa7c7; in-game-naming-readout, no-nickname-guidance → 2124e9db) and listed each changed switch explicitly (false) in its incumbent.

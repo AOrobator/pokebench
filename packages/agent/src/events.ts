@@ -362,6 +362,8 @@ export const StateBodySchema = Type.Object(
     battle:Type.Optional(Type.Union([BattleStateSchema,Type.Null()])),
     resources:Type.Optional(Type.Union([ResourcesSchema,Type.Null()])),
     route103_rival:Type.Optional(Type.Union([Type.Object({battle_active:Type.Boolean(),defeated:Type.Boolean(),oldale_stage:Type.Union([Type.Integer({minimum:0,maximum:2}),Type.Null()])},closed),Type.Null()])),
+    // trainer-opponent-v1: gTrainerBattleOpponent_A, its ROM name and class, its defeated flag, and a trainer battle on now.
+    trainer_opponent:Type.Optional(Type.Union([Type.Object({trainer_id:Type.Integer({minimum:1,maximum:854}),trainer_class:Type.Integer({minimum:0,maximum:255}),name:Type.Union([Type.String({maxLength:40}),Type.Null()]),defeated:Type.Boolean(),battle_active:Type.Boolean()},closed),Type.Null()])),
     blackout_active:Type.Optional(Type.Union([Type.Boolean(),Type.Null()])),
     game_stats: Type.Optional(Type.Union([Type.Object({
       pokemon_captures:Type.Union([NonNegativeInt,Type.Null()]),

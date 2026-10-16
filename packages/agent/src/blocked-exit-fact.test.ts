@@ -31,7 +31,7 @@ describe("blocked-exit-fact-v1 on live run 54a7 at the Oldale west exit (OldaleT
  const results=replay(events,features);
  it("nothing before the first refusal: arriving next to the exit at T246 is not a refusal",()=>{
   expect(results.get(246)?.line).toBeNull();
-  for(const [turn,r] of results)if(turn<247)expect(r.line).toBeNull();
+  for(const [turn,r] of results)if(turn>=229&&turn<247)expect(r.line).toBeNull();
  });
  it("T247: LEFT from (1,10) ran the script and left the player at (1,10): the line names the exit and the other exits",()=>{
   expect(results.get(247)?.line).toBe(line(247));
@@ -44,7 +44,7 @@ describe("blocked-exit-fact-v1 on live run 54a7 at the Oldale west exit (OldaleT
   expect(results.get(249)?.line).toBe(line(249));
  });
  it("no line once the condition stops matching in that result's RAM",()=>{
-  const flipped=replay(events,features,s=>s.seq===6085?{...s,world_context:s.world_context==null?s.world_context:{...s.world_context,triggers:s.world_context.triggers.map(t=>({...t,current_value:1,condition_met:false}))}}:s);
+  const flipped=replay(events,features,s=>s.seq===6085&&s.world_context!=null?{...s,world_context:{...s.world_context,triggers:s.world_context.triggers.map(t=>({...t,current_value:1,condition_met:false}))}}:s);
   expect(flipped.get(249)?.line).toBeNull();
  });
  it("no line two tiles away from the trigger",()=>{
@@ -57,20 +57,19 @@ describe("blocked-exit-fact-v1 on live run 54a7 at the Oldale west exit (OldaleT
   exits.begin("probe","observe",{});
   expect(exits.settle("probe",stateAt(events,6085),"")).toContain("(5,7) -> map 2/0;");
  });
- it("without world destinations no map connection is named; without world targets no warp is",()=>{
-  const r1=replay(events,{...features,"world-destinations-v1":false});
-  expect(r1.get(249)?.line).toContain("Other exits from this map: (5,7) -> OLDALE TOWN HOUSE1 (map 2/0);");
+ it("without world destinations the connection exit cannot be named, so there is no line; without world targets no warp is listed",()=>{
+  expect(replay(events,{...features,"world-destinations-v1":false}).get(249)?.line).toBeNull();
   const r2=replay(events,{...features,"world-targets-v1":false});
   expect(r2.get(249)?.line?.endsWith("Other exits from this map: NORTH -> ROUTE103 (map 0/18); SOUTH -> ROUTE101 (map 0/16).")).toBe(true);
  });
- it("measured over the whole fixture: shown only on OLDALE TOWN results next to (0,10), from T247 on",()=>{
-  const shown=[...results.values()].filter(r=>r.line!==null);
-  expect(shown.length).toBeGreaterThan(100);
-  for(const r of shown){
-   const s=stateAt(events,r.result.state_seq??-1);
-   expect(s.location).toBe("OLDALE TOWN");
-   expect(Math.abs((s.position?.x??99)-0)+Math.abs((s.position?.y??99)-10)).toBeLessThanOrEqual(1);
-  }
+ it("measured over the whole fixture: the Littleroot north exit (TWIN, T82-T114) and the Oldale west exit (T247-T484), each only next to its trigger",()=>{
+  const shown=[...results.values()].filter(r=>r.line!==null).map(r=>({r,s:stateAt(events,r.result.state_seq??-1)}));
+  const littleroot=shown.filter(x=>x.s.location==="LITTLEROOT TOWN"),oldale=shown.filter(x=>x.s.location==="OLDALE TOWN");
+  expect(littleroot.length+oldale.length).toBe(shown.length);
+  expect([littleroot[0]?.r.result.turn,littleroot.at(-1)?.r.result.turn,oldale[0]?.r.result.turn,oldale.at(-1)?.r.result.turn]).toEqual([82,114,247,484]);
+  expect(littleroot[0]?.r.line).toBe("Blocked exit: NORTH -> ROUTE101 (map 0/16). When you last tried it, at turn 82, the game ran a script at (10,1) and kept you on this map. This exit is blocked by a script that runs while a value the game saves still has the setting that script checks for; it has that setting now, so this exit stays blocked for now. Other exits from this map: (14,8) -> PROF. BIRCH'S HOUSE 1F (map 1/2); (5,8) -> GREE's HOUSE 1F (map 1/0); (7,16) -> PROF. BIRCH'S POKéMON LAB (map 1/4).");
+  for(const {s} of littleroot)expect(Math.min(...[10,11].map(x=>Math.abs((s.position?.x??99)-x)+Math.abs((s.position?.y??99)-1)))).toBeLessThanOrEqual(1);
+  for(const {s} of oldale)expect(Math.abs((s.position?.x??99)-0)+Math.abs((s.position?.y??99)-10)).toBeLessThanOrEqual(1);
  });
 });
 
@@ -113,6 +112,12 @@ describe("BlockedExits rules on synthetic states",()=>{
   const text=call(exits,"w","press",{buttons:["UP"]},base(near()),[base({...near(),world_context:{objects:[],triggers:[trig(5,8,true)],dialogue:"Wait!"}})],base(near()));
   expect(text).toBe("Blocked exit: (5,7) -> map 2/0. When you last tried it, at turn 10, the game ran a script at (5,8) and kept you on this map. This exit is blocked by a script that runs while a value the game saves still has the setting that script checks for; it has that setting now, so this exit stays blocked for now. Other exits from this map: none listed.");
  });
+ it("starting on the trigger with free controls counts; only the latest 16 calls are kept",()=>{
+  const exits=new BlockedExits(F);
+  for(let i=0;i<20;i++)exits.begin(`old${String(i)}`,"press",{buttons:["A"]});
+  expect(call(exits,"s","press",{buttons:["A"]},base({position:{x:0,y:10}}),[base({position:{x:0,y:10},field_controls_locked:true})],base({}))).toContain("at (0,10) and kept you on this map");
+  expect(exits.settle("old0",base({}),"")).toContain("Blocked exit");
+ });
  it("a trigger that is not on or next to an exit is never a blocked exit",()=>{
   const exits=new BlockedExits(F);
   const inner=()=>({position:{x:9,y:9},world_context:{objects:[],triggers:[trig(9,8,true)],dialogue:null}});
@@ -135,7 +140,7 @@ describe("blocked-exit-fact-v1 through playGameTools",()=>{
   const recorder={subscribe:(o:(e:RunEvent)=>void)=>{observers.push(o);},recordState:()=>{throw new Error("unused");},recordDialogueAutoAdvance:()=>{throw new Error("unused");}};
   const emit=(e:RunEvent)=>{for(const o of observers)o(e);};
   const calls=events.filter((e):e is Extract<RunEvent,{type:"tool_call"}>=>e.type==="tool_call");
-  const press:AgentTool={name:"press",label:"Press",description:"d",parameters:{} as AgentTool["parameters"],execute:(id)=>{
+  const press:AgentTool={name:"press",label:"Press",description:"d",parameters:{},execute:(id)=>{
    const result=events.find((e):e is Result=>e.type==="tool_result"&&e.id===id);
    const call=calls.find(c=>c.id===id);
    if(result===undefined||call===undefined)throw new Error("unknown call");

@@ -6238,6 +6238,53 @@
             }
           ]
         },
+        "trainer_opponent": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "trainer_id",
+                "trainer_class",
+                "name",
+                "defeated",
+                "battle_active"
+              ],
+              "properties": {
+                "trainer_id": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 854
+                },
+                "trainer_class": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 255
+                },
+                "name": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "maxLength": 40
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "defeated": {
+                  "type": "boolean"
+                },
+                "battle_active": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "blackout_active": {
           "anyOf": [
             {

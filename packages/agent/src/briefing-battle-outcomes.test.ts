@@ -98,6 +98,10 @@ describe("BattleOutcomes rules",()=>{
   const o=fold([state(60,battle("ran",4)),state(61,{}),state(70,battle("lost",4)),state(71,{})]);
   expect(o.briefingLines()).toBe(`${NONE}\n`);
  });
+ it("a story battle that ended another way names the game's outcome; a draw says drew with",()=>{
+  expect(fold([state(90,{...battle("forfeited",8),...opponent(535,"MAY",false,true)}),state(91,{})]).briefingLines()).toContain("you battled MAY (trainer 535) on ROUTE101 (map 0/16) at turn 90; the game's outcome: forfeited");
+  expect(fold([state(92,{...battle("drew",8),...opponent(535,"MAY",false,true)}),state(93,{})]).briefingLines()).toContain("you drew with MAY (trainer 535) on ROUTE101 (map 0/16) at turn 92");
+ });
  it("a trainer battle without the opponent reading names the battle by its kind",()=>{
   const o=fold([state(80,battle("lost",8)),state(81,{location:"OLDALE TOWN POKEMON CENTER 1F",map_id:[2,2]})]);
   expect(o.briefingLines()).toContain("after losing to a trainer on ROUTE101 (map 0/16)");

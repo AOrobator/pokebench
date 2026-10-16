@@ -86,6 +86,14 @@ describe("battle-loss-recap-v1 rules",()=>{
   const p=fold([state(10,battle("lost",4)),home,state(50,{...battle("lost",8),...opponent(1,"SAWYER",false,true)}),state(51,{location:"OLDALE TOWN POKEMON CENTER 1F",map_id:[2,2],...opponent(1,"SAWYER",false,false)})]);
   expect(p.recap(null)).toBe("Battle recap: you lost to SAWYER (trainer 1) on ROUTE101 (map 0/16) at turn 50 and whited out; the game returned you to OLDALE TOWN POKEMON CENTER 1F (map 2/2).");
  });
+ it("a drawn trainer battle reads drew with; a blackout callback with no outcome sampled is a loss",()=>{
+  const o=fold([state(20,{...battle("drew",8),...opponent(1,"SAWYER",false,true)}),state(21,{location:"OLDALE TOWN POKEMON CENTER 1F",map_id:[2,2]})]);
+  expect(o.recap(null)).toBe("Battle recap: you drew with SAWYER (trainer 1) on ROUTE101 (map 0/16) at turn 20 and whited out; the game returned you to OLDALE TOWN POKEMON CENTER 1F (map 2/2).");
+  const p=fold([state(30,{...battle("ongoing",4),battle:{active:true,outcome:"ongoing",outcome_code:0,battle_type:4,battlers:null}}),state(30,{screen:"battle",in_battle:true,battle:null,blackout_active:true}),state(31,{location:"LITTLEROOT TOWN BRENDANS HOUSE 2F",map_id:[1,1]})]);
+  expect(p.recap(null)).toBe("Battle recap: you lost to a wild Pokémon on ROUTE101 (map 0/16) at turn 30 and whited out; the game returned you to LITTLEROOT TOWN BRENDANS HOUSE 2F (map 1/1).");
+  const q=fold([state(40,battle("ongoing",4)),state(41,{screen:"field_transition",blackout_active:true,map_id:null}),state(42,{location:"LITTLEROOT TOWN BRENDANS HOUSE 2F",map_id:[1,1]})]);
+  expect(q.recap(null)).toContain("you lost to a wild POOCHYENA on ROUTE101 (map 0/16) at turn 40 and whited out");
+ });
  it("the result that first leaves the battle is recapped from its own state before that state is recorded",()=>{
   const o=fold([state(10,battle("ongoing",4)),state(11,battle("lost",4))]);
   expect(o.recap(home)).toContain("and whited out; the game returned you to OLDALE TOWN POKEMON CENTER 1F (map 2/2).");
@@ -102,7 +110,7 @@ describe("battle-loss-recap-v1 through playGameTools",()=>{
   // The whiteout call (T371, result seq 8983): its after state 8982 is recorded only after the tool returns.
   const result=events.find((e):e is Result=>e.type==="tool_result"&&e.seq===8983);
   if(result===undefined)throw new Error("fixture has seq 8983");
-  const press:AgentTool={name:"press",label:"Press",description:"d",parameters:{} as AgentTool["parameters"],execute:()=>Promise.resolve({content:[{type:"text",text:result.text}],details:{state:stateAt(events,8982)}})};
+  const press:AgentTool={name:"press",label:"Press",description:"d",parameters:{},execute:()=>Promise.resolve({content:[{type:"text",text:result.text}],details:{state:stateAt(events,8982)}})};
   const features:FeatureSet={...recordedFeatures(events,{[ID]:on}),"dialogue-auto-advance-v1":false,"battle-text-auto-advance-v1":false,"navigate-first-prompt-v1":false,"bounded-navigation-v1":false};
   const tools=playGameTools([press],features,{read:()=>Promise.reject(new Error("unused"))},recorder);
   for(const e of events){if(e.seq>=8982)break;for(const o of observers)o(e);}

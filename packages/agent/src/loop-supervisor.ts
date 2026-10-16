@@ -2,6 +2,7 @@ import {DialogueLog,roomKey,roomOf,type DialogueEntry,speakerLabel} from "./dial
 import {NextMilestoneHint} from "./milestone-hint.js";
 import {edgeBearings} from "./connection-edges.js";
 import {MEASUREMENT_ONLY_MILESTONES} from "./milestones.js";
+import {BattleOutcomes} from "./battle-outcomes.js";
 import type {RunEvent} from "./events.js";
 import type {FeatureSet} from "./features.js";
 import type {LoopKind} from "./loop-detection.js";
@@ -73,10 +74,13 @@ export class SupervisorBriefing {
  // stall-briefing-v1: the owned interface the latest result showed, and the presses made in it.
  private screenNow:{readonly state:State;readonly ui:OwnedInterface}|null=null;
  private readonly uiTried:Tried[]=[];
- constructor(private readonly features:FeatureSet){this.dialogue=new DialogueLog(features);this.hint=features["next-milestone-hint-v1"]?new NextMilestoneHint():null;}
+ // briefing-battle-outcomes-v1: the latest battle against a story character and the latest whiteout.
+ private readonly battles:BattleOutcomes|null;
+ constructor(private readonly features:FeatureSet){this.dialogue=new DialogueLog(features);this.hint=features["next-milestone-hint-v1"]?new NextMilestoneHint():null;this.battles=features["briefing-battle-outcomes-v1"]?new BattleOutcomes(features):null;}
  observe(event:RunEvent):void {
   this.dialogue.observe(event);
   this.hint?.observe(event);
+  this.battles?.observe(event);
   this.turn=Math.max(this.turn,event.turn);
   if(event.type==="milestone"){
    if(!counted(event))return;
@@ -227,7 +231,8 @@ export class SupervisorBriefing {
   if(this.tried.length>MAX_TRIED)this.tried.shift();
  }
  private lastProgress():string {
-  return this.progress===null?"none earned in this run yet":`${this.progress.name.replaceAll("_"," ").toLowerCase()} at turn ${String(this.progress.turn)} (${String(this.turn-this.progress.turn)} turns ago)`;
+  const progress=this.progress===null?"none earned in this run yet":`${this.progress.name.replaceAll("_"," ").toLowerCase()} at turn ${String(this.progress.turn)} (${String(this.turn-this.progress.turn)} turns ago)`;
+  return this.battles===null?progress:`${progress}\n${this.battles.briefingLines().trimEnd()}`;
  }
  private characters():string {
   const s=this.latest;

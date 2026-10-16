@@ -86,6 +86,14 @@ def test_a_name_without_a_terminator_is_unknown() -> None:
     assert found is not None and found.name is None
 
 
+def test_a_name_with_an_unknown_glyph_is_unknown() -> None:
+    m = Memory()
+    trainer(m, 12, 2, bytes([0xBB, 0x0A, 0xFF]))
+    opponent(m, 12, 1 << 3)
+    found = read_trainer_opponent(m.read, SB1, True)
+    assert found is not None and found.name is None
+
+
 def test_short_reads_are_errors() -> None:
     with pytest.raises(ValueError, match="short trainer opponent read"):
         read_trainer_opponent(lambda _a, _n: b"", SB1, False)

@@ -60,7 +60,7 @@ Read-only RAM reads already used by character presence. No new network, file or 
 - [x] COMMIT: `feat: ...`
 
 **M3 — presence-penalty-v1**
-- [ ] RED: OFF request body unchanged; ON adds presence_penalty 1.5 to every chat request; value recorded in run_start; llama-server lane accepts it (probe); registry/presets/defaults
+- [x] RED: OFF request body unchanged; ON adds presence_penalty 1.5 to every chat request; value recorded in run_start; llama-server lane accepts it (probe); registry/presets/defaults
 - [ ] GREEN + gates
 
 **M4 — explainers, pending experiments, review**
@@ -91,6 +91,8 @@ Done when both switches are merged after review, explainers link from Harness Co
   - Wiring removal: dropping `withNavigateFirst` in playGameTools → 1 red; dropping `navigateFirst` in withNavigation → 1 red; restored → green.
   - Gates: agent 1445, viewer 821, Python 2147 passed; coverage agent 97.76/94.63/98/99.09 (navigate-first.ts 100%), viewer 95.19/90.64/93.55/97.65, Python 96%; lint green except known mypy `mgba._pylib`; build green.
   COMMIT: `feat: navigate-first-prompt-v1 names navigate_to as the way to move in the prompt, its description and a press reminder (default off)`
+- 2026-10-16 04:12 AM EDT: M3 RED. `packages/agent/src/presence-penalty.test.ts` (registry, presets, `samplingExtras`/`playSampling` ON/OFF, run_start schema accepts a numeric presence_penalty and records without it); `provider.test.ts` adds wire tests through the fake gateway: OFF request bodies have no presence_penalty and the loop base equals today's, ON every chat request carries presence_penalty 1.5 and is otherwise byte-equal. Fails: module missing.
+  COMMIT: `test(RED): presence-penalty-v1 sends and records presence_penalty 1.5 on every chat request`
 
 ## Surprises
 

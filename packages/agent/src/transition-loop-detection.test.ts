@@ -248,7 +248,7 @@ describe("transition-loop-detection-v1 registry",()=>{
  it("is a default-off guard with no dependency, recorded last",()=>{
   expect(featureInfo("transition-loop-detection-v1")).toMatchObject({group:"guard",needs:null,switchable:true});
   expect(featureInfo("transition-loop-detection-v1").description).toContain(" Off: any locked step clears the cycle history and map changes are not counted.");
-  expect(playHarnessFeatures(ALL_ON,null).at(-23)).toBe("transition-loop-detection-v1");
+  expect(playHarnessFeatures(ALL_ON,null).at(-24)).toBe("transition-loop-detection-v1");
   expect(playHarnessFeatures({...ALL_ON,"transition-loop-detection-v1":false},null)).not.toContain("transition-loop-detection-v1");
   expect(dependencyProblems({...ALL_ON,"deterministic-loop-guard-v1":false})).not.toContain(expect.stringContaining("transition-loop-detection-v1"));
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})["transition-loop-detection-v1"]).toBe(false);

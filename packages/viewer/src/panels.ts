@@ -401,6 +401,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "disproved-beliefs-v1":"disproved-beliefs-v1.html",
  "same-plan-breaker-v1":"same-plan-breaker-v1.html",
  "levelup-box-v1":"levelup-box-v1.html",
+ "people-ledger-v1":"people-ledger-v1.html",
  "briefing-battle-outcomes-v1":"briefing-battle-outcomes-v1.html",
  "trainer-opponent-v1":"briefing-battle-outcomes-v1.html",
  "blocked-exit-fact-v1":"blocked-exit-fact-v1.html",

@@ -183,8 +183,8 @@ describe("registry, presets and production wiring", () => {
   it("is a registered guidance switch that needs press results, last in the run record", () => {
     expect(featureInfo(ID)).toMatchObject({ group: "guidance", needs: "press-result-v1", switchable: true });
     expect(featureInfo(ID).description).toContain(" Off: ");
-    expect(FEATURES.filter(f => f.switchable).at(-6)?.id).toBe(ID);
-    expect(playHarnessFeatures(ALL_ON, null).at(-6)).toBe(ID);
+    expect(FEATURES.filter(f => f.switchable).at(-8)?.id).toBe(ID);
+    expect(playHarnessFeatures(ALL_ON, null).at(-8)).toBe(ID);
     expect(playHarnessFeatures({ ...ALL_ON, [ID]: false }, null)).not.toContain(ID);
     expect(dependencyProblems({ ...ALL_ON, "press-result-v1": false })).toContain(`${ID} needs press-result-v1`);
   });

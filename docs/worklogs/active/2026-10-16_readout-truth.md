@@ -64,10 +64,10 @@ Read-only RAM decoding and text. No subprocesses, no network, no new endpoints. 
 - [x] Guard deletion receipts
 
 **M2 — proof, explainers, pending experiments**
-- [ ] Real-ROM re-render over the cited states of sh02, show, 2919, 3f21, 54a7, 687e
-- [ ] Explainers (3), README, FEATURE_EXPLAINERS + panels/server tests, `just pages-check`
-- [ ] Pending experiments/<id>.json for the two bundle-only switches; readiness rows
-- [ ] COMMIT
+- [x] Real-ROM re-render over the cited states of sh02, show, 2919, 3f21, 54a7, 687e (and e588)
+- [x] Explainers (3), README, FEATURE_EXPLAINERS + panels/server tests, `just pages-check`
+- [x] Pending experiments/<id>.json for all three switches; readiness rows
+- [x] COMMIT
 
 **M3 — review**
 - [ ] Merge main, gates
@@ -98,7 +98,10 @@ Report branch, frozen head, packet SHA-256, verdict lines, gate counts and cover
   COMMIT: `feat: readout-truth-v1, birch-speech-pages-v1, blackout-readout-v1 (default off)` (2bce2f3a)
 - 2026-10-16 06:35 AM EDT: Real-ROM sweep (read-only, scratch `probe/sweep.py`): every tool result with raw RAM in 7 cook runs re-rendered with each run's recorded switches and the three new ones OFF: 5,642 of 5,642 contained in what the model received (sh02 1100, show 864, 2919 247, 3f21 198, 54a7 655, 687e 1036, e588 1542; 0 errors). With readout-truth-v1 ON (others off), added lines: `Menu: none open` (687e 1011, sh02 614, 54a7 584, …), `Field-message text: none (no message box is open).` (687e 830, sh02 591, …), `Field-message phase: no message is open and no script is running.` (687e 815), script lock lines (54a7 117, sh02 41, 3f21 12, 2919 8), task lock lines (2919 39, show 38, 687e 50), `Menu: no menu choice open …` (e588 961, sh02 429), `Bag: empty` (sh02 620, 54a7 573, e588 237), `Field activity: other_interface` replacing the coverage error (54a7 5, sh02 3, e588 3, show 2), story characters changed (sh02 5, e588 4, 54a7 3, show 2, 3f21 1), START reopen in show (5, shown as `detailed … unprovided` in that arm). Birch pages ready: 2–5 per run.
   - M2 RED: `panels.test.ts` (three cards link their explainers, which quote the real lines and grounding addresses), `server.test.ts` (allowlist serves the three files), `readout-truth.test.ts` (pending experiments and readiness rows). 3 failing.
-  COMMIT: `test(RED): readout-truth explainers, harness-config links and pending experiments`
+  COMMIT: `test(RED): readout-truth explainers, harness-config links and pending experiments` (639bc92a)
+- 2026-10-16 06:50 AM EDT: M2 GREEN. Explainers `docs/explainers/{readout-truth-v1,birch-speech-pages-v1,blackout-readout-v1}.html` (recorded before/after lines, decision diagrams, grounding tables with addresses, wiring, proof, limits, status), README entries, `FEATURE_EXPLAINERS` mappings; `just pages-check` prints nothing. Pending `experiments/{readout-truth,birch-speech-pages,blackout-readout}.json` (finals incumbent with the three switches named OFF; activation NEW_GAME_CREATED / PLAYER_NAME_CONFIRMED / STARTER_CHOSEN; provisional source.commit 639bc92a) parse with the worktree build's `parseExperiment`/`experimentArms` (incumbent OFF, candidate ON); readiness rows PENDING.
+  - Gates (ROM set): agent 1560, viewer 886, Python 2337 passed, 0 skipped; coverage agent 97.89/94.55/98.2/99.14, viewer 95.34/91.02/93.62/97.64, Python 97.41/93.38/100; lint, build, verify-vendor OK.
+  COMMIT: `docs(readout-truth): explainers, harness-config links and pending experiment entries`
 
 ## Surprises
 

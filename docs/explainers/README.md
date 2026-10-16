@@ -57,3 +57,6 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Off-screen people and objects](offscreen-objects-v1.html)
 - [navigate_to first prompting](navigate-first-prompt-v1.html)
 - [Presence penalty 1.5](presence-penalty-v1.html)
+- [Readout truth](readout-truth-v1.html)
+- [Birch speech pages](birch-speech-pages-v1.html)
+- [Whiteout notice](blackout-readout-v1.html)

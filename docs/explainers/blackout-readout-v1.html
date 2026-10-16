@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Whiteout Notice</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:760px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.1rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+ul{margin:0;padding-left:20px}
+code{font-family:var(--mono);font-size:.88em}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.nav{fill:var(--nav-bg);stroke:var(--nav)}
+.arrow{stroke:var(--soft);fill:none;stroke-width:1.4}
+pre{margin:0;padding:12px 14px;background:var(--panel);border:1px solid var(--rule);border-radius:6px;overflow-x:auto;font:12px/1.5 var(--mono);white-space:pre}
+.off{border-left:4px solid var(--prior)}
+.on{border-left:4px solid var(--game)}
+table{border-collapse:collapse;font-size:.9rem;width:100%}
+th,td{border-bottom:1px solid var(--rule);padding:6px 8px;text-align:left;vertical-align:top}
+th{font-weight:600}
+.tw{overflow-x:auto}
+</style>
+</head>
+<body>
+<main>
+<header>
+ <p class="eyebrow">Feature switch · observation · <code>blackout-readout-v1</code> · default OFF · bundle arm only</p>
+ <h1>Whiteout notice</h1>
+ <p class="lede">When the player whites out, the readout says so once: the party had no usable Pokémon left, the game took the player back to the last place they healed, healed the party and halved the money.</p>
+</header>
+
+<section>
+ <h2>Why</h2>
+ <p>Showcase run, turn 768: the player lost to a POOCHYENA, whited out and woke in BRENDANS HOUSE 2F with ₽1500 instead of ₽3000. The model was told only <code>Press result: interface changed (…)</code>. No tool result contained "black", "white" or "fainted". The model saw the frame, then said its next goal was "receive my starter Pokémon" and walked back to the lab (T780–786).</p>
+ <p>After the loss the game shows no field text at all (<code>FieldCB_WarpExitFadeFromBlack</code>), so the readout is the only place the model can learn what happened.</p>
+</section>
+
+<section>
+ <h2>What the model reads</h2>
+ <figure>
+  <pre class="on">ON, while CB2_WhiteOut runs (show T768, state 19097, re-rendered on the real ROM)
+Whiting out: your party has no usable Pokémon left; the game is taking you back to the last place you healed.</pre>
+  <pre class="on">ON, the first readout back on the field (synthetic test of the production server route)
+Play time: 1:02:03
+Whited out: your party had no usable Pokémon left, so the game took you back to LITTLEROOT TOWN (the last place you healed), healed your party and halved your money: ₽3000 → ₽1500.</pre>
+  <pre class="off">OFF
+(no such lines; the frame hook is not installed)</pre>
+  <figcaption>The field line follows the Play time line and appears once. A second observation does not repeat it.</figcaption>
+ </figure>
+</section>
+
+<section>
+ <h2>How it is detected</h2>
+ <figure>
+  <div class="scroll">
+  <svg viewBox="0 0 720 170" role="img" aria-label="Whiteout latch timeline">
+   <line class="arrow" x1="20" y1="80" x2="700" y2="80"/>
+   <rect class="prior" x="30" y="40" width="150" height="34" rx="6"/><text x="40" y="62">battle lost</text>
+   <rect class="nav" x="200" y="40" width="230" height="34" rx="6"/><text x="210" y="62">CB2_WhiteOut, 120 frames</text>
+   <rect class="game" x="450" y="40" width="250" height="34" rx="6"/><text x="460" y="62">back on the field (warp exit fade)</text>
+   <text class="s" x="200" y="104">first frame: latch set, money read (₽3000)</text>
+   <text class="s" x="200" y="120">last frame: DoWhiteOut halves money, heals, warps</text>
+   <text class="s" x="450" y="104">first field observation: line shown, latch cleared</text>
+   <text class="s" x="200" y="140">readouts taken here say "Whiting out: …" from their own state</text>
+  </svg>
+  </div>
+  <figcaption>The latch runs after every emulated frame in the vendor frame loop (under its memory lock), like the frame settle. Waits come from game frames; there is no polling or sleeping.</figcaption>
+ </figure>
+</section>
+
+<section>
+ <h2>Game grounding (pret/pokeemerald 731ad5bf, US ROM f3ae0881)</h2>
+ <div class="tw"><table>
+  <tr><th>Fact</th><th>Source</th><th>Value</th></tr>
+  <tr><td>Whiteout program</td><td><code>CB2_WhiteOut</code> (overworld.c:1550), set by the battle's loss path and <code>SetCB2WhiteOut</code></td><td><code>gMain.callback2</code> (0x030022C4) = 0x08085F59</td></tr>
+  <tr><td>What it does</td><td><code>DoWhiteOut</code> (overworld.c:358): <code>SetMoney(money / 2)</code>, <code>HealPlayerParty</code>, <code>SetWarpDestinationToLastHealLocation</code></td><td>show: ₽3000 → ₽1500, BRENDANS HOUSE 2F</td></tr>
+  <tr><td>Money</td><td><code>SaveBlock1.money</code> XOR <code>SaveBlock2.encryptionKey</code></td><td>save1 + 0x490, save2 + 0xAC</td></tr>
+ </table></div>
+</section>
+
+<section>
+ <h2>Limits</h2>
+ <ul>
+  <li>The field line needs the live server's frame latch; re-rendering a single raw-RAM archive offline shows only the "Whiting out" line, from that archive's own state.</li>
+  <li>If the save-block pointers cannot be read on the first whiteout frame, the line says "halved your money" without amounts.</li>
+ </ul>
+</section>
+
+<section>
+ <h2>Status</h2>
+ <p>Branch <code>claude/readout-truth</code>; gates in the worklog. Behavior change: bundle arm only. Not measured.</p>
+</section>
+</main>
+</body>
+</html>

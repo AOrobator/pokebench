@@ -55,7 +55,7 @@ No new inputs, files, processes or network. Fixtures are trimmed copies of local
 **M3 — Close**
 - [x] Gates: test, lint, build, coverage (90), verify-vendor
 - [x] Principles self-review (zero FAIL)
-- [ ] Sync with main; review: Claude, Grok, Codex — LGTM each
+- [x] Sync with main; review: Claude, Grok, Codex — LGTM each (round 6 on f7ee1bae)
 - [ ] Report reviewed head SHA to the coordinator for the --ff-only landing
 
 ## Session Log
@@ -126,3 +126,9 @@ No new inputs, files, processes or network. Fixtures are trimmed copies of local
 - Claude (CLI, plan mode): **VERDICT: LGTM**. Grok (cursor-grok-4.5-high): **VERDICT: LGTM**. Codex (gpt-5.6-sol xhigh, isolated, read-only): **VERDICT: LGTM** (hardening: say "no viewer event or timeline rendering code changed" rather than "no viewer code", since the explainer mapping is in panels.ts; grass pacing remains speculation). All three cloud lanes LGTM on ec67d688.
 - Main then moved to d9d82b3f (explorer-guidance-v2). Merged with the same mechanical resolution: this switch after `explorer-guidance-v2` in the registry, presets, next-run, readiness and `cross-map-goal.json`; this entry's incumbent regenerated to all 94 switches (arms unchanged); explorer-guidance-v2's tests treat this switch as the later one (`.at(-2)`, its frozen main-switch list excludes it); +1 position arithmetic in 22 tests; guard count 19; switchboard rows 94. Wording hardening applied. Agent 2022, viewer 1028 passed. Needs round 6 (the packet changed).
 - 5:00 PM EDT: merged main 53448a0d (bundle-v-control control change by its owner) clean (c6846884). Gates on this tip, all exit 0: build; test agent 2022, viewer 1028, pytest 2498; coverage agent lines 99.25 / branches 94.66 / functions 98.36 (loop-detection.ts 98.85 / 96.84 / 100), viewer 97.75 / 91.39 / 93.91, python 97.55 / 93.60 / 100; lint incl. mypy; verify-vendor OK; pages-check silent. Principles self-review re-scored: zero FAIL.
+
+### Round 6 — packet 53448a0d..f7ee1bae (diff SHA-256 25590d85…c7fa), 5:09 PM EDT
+
+- Claude (CLI, plan mode): **VERDICT: LGTM**. Grok (cursor-grok-4.5-high): **VERDICT: LGTM**. Codex (gpt-5.6-sol xhigh, isolated, read-only): **VERDICT: LGTM**. Packet bytes unchanged before and after; worktree clean; main 53448a0d is an ancestor of the reviewed head f7ee1bae.
+- Non-blocking follow-ups (not applied, to keep the reviewed packet): operator-facing copy could say "three unchanged comparisons" instead of "fourth observe" (after a press establishes the waiting fingerprint, the third observe reaches the threshold); dead `??` fallback in `revisit()`; a stale "main cefacbf1" comment in explorer-guidance-v2.test.ts; grass pacing for encounters could warn (speculation, no recorded case) — a question for the operator.
+- Landing: the coordinator lands f7ee1bae with `git merge --ff-only` (worktree sessions cannot run git in the main checkout). This entry is an evidence-only commit on top that touches only docs/worklogs.

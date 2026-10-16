@@ -130,7 +130,7 @@ Before your next action, …</pre>
 <tr><td>Off (recorded)</td><td><code>- Where you are: ROUTE103 (map 0/18) at 11,21 facing right</code></td></tr>
 <tr><td>On</td><td><code>- Where you are: ROUTE103 (map 0/18) in battle at 11,13</code> (state seq 11926)</td></tr>
 </table>
-<p>On, every briefing takes where you are from the latest state shown to the model (with a map id), whatever the screen; in a battle it says so and drops facing. Source: <code>runs/reports/cook2-navigation.html</code>.</p>
+<p>On, when the latest state shown to the model is a battle, every briefing places the player from that state and says so, without facing; otherwise where you are is the last overworld result, as before. Source: <code>runs/reports/cook2-navigation.html</code>.</p>
 </section>
 
 <section>

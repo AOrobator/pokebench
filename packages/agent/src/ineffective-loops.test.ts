@@ -13,9 +13,15 @@ import type {GameStateSnapshot} from "./game-state.js";
 // 2026-10-15T23-28-28_probe_b41f, as the recorder wrote them, trimmed only where the event schema leaves a field optional
 // (navigation grid, interaction targets, local map, raw RAM, topology, map grid, game stats, berry/storage resources,
 // map triggers; tool result text cut at its first blank line). Every row passes checkEvent.
+// Each fixture is read, gunzipped and validated once per test file; every test shares the parsed rows.
+const fixtures=new Map<string,RunEvent[]>();
 function recorded(name:string):RunEvent[]{
+ const cached=fixtures.get(name);
+ if(cached!==undefined)return cached;
  const path=fileURLToPath(new URL(`./fixtures/${name}`,import.meta.url));
- return gunzipSync(readFileSync(path)).toString("utf8").trim().split("\n").map(line=>checkEvent(JSON.parse(line)));
+ const events=gunzipSync(readFileSync(path)).toString("utf8").trim().split("\n").map(line=>checkEvent(JSON.parse(line)));
+ fixtures.set(name,events);
+ return events;
 }
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
 interface Seen {readonly turn:number;readonly seq:number;readonly kind:string;readonly phase:string;readonly message:string;readonly evidence:readonly number[]}
@@ -272,6 +278,13 @@ describe("ineffective-loops-v1 unchanged observes while the game waits for input
   for(let i=0;i<4;i++)t.observe(MENU);
   t.observe({...MENU,active_ui:{...MENU.active_ui,selected:"EXIT"}} as State);
   expect(kinds(t.notices)).toEqual([["observation","warning"],["observation","recovered"]]);
+ });
+});
+
+describe("ineffective-loops-v1 fixture loading",()=>{
+ it("loads each recorded fixture once and shares it",()=>{
+  expect(recorded("revisit-ledge-4caa.jsonl.gz")).toBe(recorded("revisit-ledge-4caa.jsonl.gz"));
+  expect(fixtures.size).toBe(4);
  });
 });
 

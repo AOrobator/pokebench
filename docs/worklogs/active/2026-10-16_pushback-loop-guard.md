@@ -144,6 +144,8 @@ Merge locally after all lanes LGTM. No pending experiment entry (amendment 2). R
 
 - Fix commit ec0a2ad3. Merged main again (1e1feec9: connection-edge-tiles-v1, in-game-naming-readout-v1, no-nickname-guidance-v1 and others). Same resolution: main's side, then this branch's three switches appended after `no-nickname-guidance-v1`; FEATURE_EXPLAINERS keeps both sides; positional registry assertions recomputed from the built registry; switchboard rows 67. Agent 1507 passed, viewer 853 passed.
 
+- Merge commit 2cc874d5 (main parent 1e1feec9). Gates at 2cc874d5, all exit 0: build; test agent 1507, viewer 853, pytest 2180 passed; lint incl. mypy "no issues found in 75 source files"; coverage agent lines 99.11 / branches 94.74 / functions 98.11 (loop-detection.ts 98.52 / 97.37 / 100), viewer 97.61 / 90.69 / 93.41, python 97.16 / 92.88 / 100; verify-vendor OK. Coordinator lane freeze until 10 AM EDT noted: nothing here touches 8091/8098/8075/8076.
+
 ## Surprises
 
 - `loop_guard` evidence is capped at 2 items by the event schema (`maxItems:2`); a 3-seq evidence list made the recorder throw in the factory test. Evidence is now [first push-back, completing call]. The replay tests validate every notice through `checkEvent`.

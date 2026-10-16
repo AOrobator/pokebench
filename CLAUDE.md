@@ -66,7 +66,16 @@ just smoke          # boots the real game server on the real ROM and exercises i
 
 The commit author for this repo is `aorobator <orobator.andrew@gmail.com>`, set in the local git config.
 
-The repo is local only (operator decision 2026-10-14). It has no remote. Never push, never open pull requests, never add a remote. Work on a branch in its own worktree; landing means a local merge into `main` after the operator approves it.
+The repo is local only (operator decision 2026-10-14). It has no remote. Never push, never open pull requests, never add a remote. Work on a branch in its own worktree; landing means a local merge into `main`.
+
+An agent may merge its own branch into local `main` once cloud code review approves it (operator decision 2026-10-16). The full gate is in `.claude/skills/execute-worklog/SKILL.md` under "Landing on main":
+
+- Gates pass, and the Claude, Grok and GPT/Codex lanes of the review loop (`~/dev/local-inference-stack/.claude/skills/multi-model-review/SKILL.md`) each return `VERDICT: LGTM` on the frozen packet that is merged.
+- Local inference reviewers (`think_fast`, `think_swarm`, anything on `inference.example`) never count toward merge approval.
+- A missing or blocked cloud lane means no self-merge; ask the operator.
+- Report each merge SHA in the thread.
+
+The rule never covers pushing, pull requests, approving or launching experiments, or merges the operator has said to hold.
 
 ## Feature switches
 

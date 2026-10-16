@@ -14,6 +14,7 @@ For each remaining milestone:
   3. SMOKE   real ROM / real gateway / browser evidence when the milestone touches them
   4. REVIEW  multi-model review loop until every lane returns LGTM
   5. advance; STOP at any milestone marked operator-in-the-loop or "STOP"
+  6. LAND    merge into local main once the cloud lanes approve (see "Landing on main")
 ```
 
 ## Gates
@@ -37,6 +38,24 @@ The contract is `~/dev/local-inference-stack/.claude/skills/multi-model-review/S
 7. Write the review synthesis. Fix accepted findings in one batch, then re-review the cumulative delta.
 
 Record every round in the worklog's Multi-Model Review Log. A broken lane is never a clean review.
+
+## Landing on main
+
+An agent may merge its own branch into local `main` without asking per merge (operator decision 2026-10-16) when all of these hold:
+
+1. Gates above pass on the branch tip.
+2. The cloud lanes of the review loop each end `VERDICT: LGTM` on the same frozen packet: Claude (Claude CLI or Cursor Claude), Grok (Cursor) and GPT (Cursor GPT or isolated Codex). Contract and commands: `~/dev/local-inference-stack/.claude/skills/multi-model-review/SKILL.md` and its `reference/reviewer-invocation.md`.
+3. Nothing was committed after the packet except worklog updates. A code change after review starts a new round.
+4. The worklog has no operator checkpoint or `STOP` before the merge.
+
+Rules:
+
+- Local inference reviewers (`think_fast`, `think_swarm`, any `inference.example` lane) may run, but they never count toward merge approval.
+- If a cloud lane is unavailable (usage limit, auth, model rejected), there is no self-merge. Record it in the worklog and ask the operator.
+- After merging, rerun `just test` on `main`. Record the merge SHA in the worklog and report it in the thread.
+- Never push, open pull requests or add a remote (see `CLAUDE.md`). This rule covers only the local merge. It does not cover approving or launching experiments, restarting live runs, or archiving the worklog.
+
+Claude Code's auto-mode safety check on the Mac stays as it is. It lets a merge into `main` through only when the operator's own approving words are visible to the merging session. This rule does not loosen that check. When the check blocks a merge, quote the operator's standing approval in the thread, or ask the coordinator to attach it. If it is still blocked, ask the operator. Never work around it with another command, `--no-verify` or a settings change.
 
 ## Do not
 

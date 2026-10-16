@@ -184,7 +184,9 @@ describe("dialogue-context-kept-v1: the supervisor cites the last story instruct
   const recorded = (seq: number): string => EVENTS.find((e): e is LoopGuardEvent => e.type === "loop_guard" && e.seq === seq)?.message ?? "";
   const pages = (advance: AdvanceEvent | undefined, room: string) => (advance?.pages ?? []).map((p) => `turn ${String(advance?.turn ?? 0)}, ${room}: "${p.text.replace(/\s+/g, " ")}"`).join(" | ");
   const HOUSE = "LITTLEROOT TOWN BRENDANS HOUSE 1F (map 1/0)";
-  const MOM_LINE = `- Dialogue you were shown leading up to the last story step the game confirmed (mom rival instruction at turn 98), oldest first: ${pages(MOM, HOUSE)}`;
+  // After CLOCK_SET (seq 1629, turn 95): Mom's five 2F pages (turn 95, seq 1669), then her eight 1F pages (turn 98) before MOM_RIVAL_INSTRUCTION (seq 1775).
+  const ROOM = EVENTS.find((e): e is AdvanceEvent => e.type === "dialogue_auto_advance" && e.seq === 1669);
+  const MOM_LINE = `- Dialogue you were shown leading up to the last story step the game confirmed (mom rival instruction at turn 98), oldest first: ${pages(ROOM, "LITTLEROOT TOWN BRENDANS HOUSE 2F (map 1/1)")} | ${pages(MOM, HOUSE)}`;
 
   it("OFF reproduces the recorded T65 loop supervisor (seq 1010) and T166 stall briefing (seq 3310) byte for byte", () => {
     expect(replay(OFF, 1010).text("ineffective", 65)).toBe(recorded(1010));
@@ -227,6 +229,23 @@ describe("dialogue-context-kept-v1: the supervisor cites the last story instruct
     b.observe(ev({ type: "tool_result", id: `r${String(seq)}`, name: "press", is_error: false, duration_ms: 1, text: "ok", frames: [], state_seq: seq }, seq + 1, turn));
   };
   const story = (b: SupervisorBriefing, seq: number, turn: number, name: string, kind = "story", origin = "observed") => { b.observe(ev({ type: "milestone", name, server_timestamp: 1, kind, origin }, seq, turn)); };
+
+  it("bounds the pages by event order, not turn: same-turn pages on either side of a milestone go to the right step", () => {
+    const b = new SupervisorBriefing({ ...ALL_ON, "dialogue-context-kept-v1": true });
+    shown(b, 10, 5, "Before the first step.");
+    story(b, 20, 5, "FIRST_STEP");
+    shown(b, 30, 5, "After the first step, same turn.");
+    story(b, 40, 5, "SECOND_STEP");
+    shown(b, 50, 5, "After the second step, same turn.");
+    const line = b.text("cycle", 9).split("\n").find((l) => l.startsWith("- Dialogue you were shown leading up to")) ?? "";
+    expect(line).toBe(`- Dialogue you were shown leading up to the last story step the game confirmed (second step at turn 5), oldest first: turn 5, HOUSE 1F (map 1/0): "After the first step, same turn."`);
+    const twin = new SupervisorBriefing({ ...ALL_ON, "dialogue-context-kept-v1": true });
+    shown(twin, 10, 7, "Told before both.");
+    story(twin, 20, 7, "STEP_A");
+    story(twin, 21, 7, "STEP_B");
+    const walked = twin.text("cycle", 9).split("\n").find((l) => l.startsWith("- Dialogue you were shown leading up to")) ?? "";
+    expect(walked).toBe(`- Dialogue you were shown leading up to the last story step the game confirmed (step a at turn 7), oldest first: turn 7, HOUSE 1F (map 1/0): "Told before both."`);
+  });
 
   it("control arm: the readout pages between the previous story step and the latest one, walking back past a step with none", () => {
     const b = new SupervisorBriefing({ ...ALL_ON, "dialogue-context-kept-v1": true });

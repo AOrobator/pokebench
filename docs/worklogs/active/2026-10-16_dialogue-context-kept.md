@@ -44,7 +44,9 @@ Switch `dialogue-context-kept-v1` (guidance, needs nothing, default OFF).
 - [x] Guard check: `contextWindow` reverted to ignore the switch → 5 tests red (incl. the play-wiring factory test); supervisor `kept()` stubbed to "" → 4 red; both restored → 17 green
 - [x] COMMIT: `feat: dialogue-context-kept-v1 keeps every dialogue page in collapsed results and cites the last story instruction in supervisor briefings` (e513c4a6)
 - [x] Pending experiment pinned provisionally to e513c4a6 (repin to the merge SHA on landing)
-- [ ] Review: Codex + grok
+- [x] Review round 1: Codex BLOCKING — story boundaries by turn misattribute same-turn pages (valid). Grok BLOCKING — the two-dot `git diff main..HEAD` showed main's newer bedroom-exit merge as reverted (diff artifact: main moved after branching; fixed by merging main in). Both said the dialogue feature otherwise looks correct.
+- [ ] RED (round-1 fix): same-turn boundary tests; the 3f21 T166 line now also carries Mom's five turn-95 2F pages (shown after CLOCK_SET seq 1629, before MOM_RIVAL_INSTRUCTION seq 1775)
+- [ ] GREEN: bound by milestone seq; merge main; re-review the delta
 
 ## Session Log
 

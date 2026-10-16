@@ -63,7 +63,7 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 <tr><td><code>4caa</code> Route 103</td><td>T199–T248: about 50 navigate_to calls to targets across the water ((79,9), (40,12), (45,6) …), ending on (23,12), (23,13) or (21,8)</td><td>warning T219 (one target, 4 times), recovered T221</td><td>warning T212 (seq 5121), held to T215; T219 as today</td></tr>
 <tr><td><code>4caa</code> Route 102 ledge</td><td>T550–T571: DOWN,LEFT / RIGHT,DOWN alternating between (34,9) and (35,9)</td><td>nothing (only the same-plan note at T571)</td><td>warnings T555 (seq 15059) and T571 (seq 15332)</td></tr>
 <tr><td><code>7ccf</code> Oldale west</td><td>T198–T244: the Maniac stops the player at (1,10); the model walks back to (2,10) and tries (0,10), (0,11), DOWN, LEFT again. Not a push-back: the model walks back itself.</td><td>warning T244</td><td>warning T215 (seq 5334), held until T245</td></tr>
-<tr><td>all 2026-10-15/16 runs</td><td>observes of a ready menu, prompt or message, unchanged 3+ times</td><td>never counted</td><td>none recorded (0 of 67 runs); tested on the one recorded START-menu observe (b41f seq 144)</td></tr>
+<tr><td>all 2026-10-15/16 runs</td><td>observes of a ready menu, prompt or message, unchanged 3+ times</td><td>never counted</td><td>none recorded (0 of 69 runs); tested on the one recorded START-menu observe (b41f seq 144)</td></tr>
 </table></div>
 </section>
 
@@ -105,7 +105,7 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
  <rect x="250" y="10" width="220" height="44" class="prior"/><text x="260" y="30">battle, open menu/naming, or a</text><text x="260" y="46">conversation not heard yet?</text>
  <rect x="520" y="10" width="190" height="44" class="game"/><text x="530" y="30" class="t">clear the moves</text><text x="530" y="46" class="s">new information</text>
  <path d="M200 32 L250 32" class="arr"/><path d="M470 32 L520 32" class="arr g"/><text x="482" y="26" class="s">yes</text>
- <rect x="250" y="84" width="220" height="58" class="box"/><text x="260" y="104">a move? navigate_to, or a press</text><text x="260" y="120">with a direction; field input; no</text><text x="260" y="136">message during or after the call</text>
+ <rect x="250" y="84" width="220" height="58" class="box"/><text x="260" y="104">a move? navigate_to, or a press</text><text x="260" y="120">with a direction from free controls; no</text><text x="260" y="136">message during or after the call</text>
  <path d="M360 54 L360 84" class="arr"/><text x="366" y="74" class="s">no</text>
  <rect x="520" y="90" width="190" height="44" class="box"/><text x="530" y="110">neutral: A, B, menu cursor,</text><text x="530" y="126">a conversation heard again</text>
  <path d="M470 112 L520 112" class="arr"/><text x="482" y="106" class="s">no</text>
@@ -122,7 +122,7 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 
 <section>
 <h2>Waiting observes</h2>
-<p>Today an observe counts as unchanged only when the field fingerprint (free field, or with interaction detection a ready message) equals the previous call's. A ready START menu, a YES/NO prompt or a naming screen has no fingerprint, so observing it forever never counts. With this switch an observe outside battle counts as unchanged when the game is waiting for input (a ready menu or prompt with no diagnostic, a ready naming screen, or a ready message on the locked field) and the player's place, facing, lock, interface, dialogue, message, story, party, money, badges and name equal the previous game call's. The fourth such observe in a row warns:</p>
+<p>Today an observe counts as unchanged only when the field fingerprint equals the previous call's: the free field, ready naming screens, the BOY/GIRL, name and clock prompts, and (with interaction detection) ready messages. A ready START menu or any other menu it cannot see has no fingerprint, so observing it forever never counts. With this switch an observe outside battle counts as unchanged when the game is waiting for input (a ready menu or prompt with no diagnostic, a ready naming screen, or a ready message on the locked field) and the player's place, facing, lock, interface, dialogue, message, story, party, money, badges and name equal the previous game call's. The fourth such observe in a row warns, and naming screens and prompts that already counted now get this message instead of the generic one:</p>
 <pre>Repeated observations show the same open menu, prompt or message waiting for your input: observing again does not change it. Decide from the readout which input it needs, or choose a different approach using observed evidence.</pre>
 <p>Never counted: the game acting (truck ride, scripts, door animations, text still printing), battles (battle-observation-loop-v1's job), a menu whose highlight moved. A waiting state not among the last 16 recovers the episode.</p>
 </section>
@@ -130,21 +130,21 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 <section>
 <h2>What the model sees</h2>
 <p>The warning text (kind <code>cycle</code>), then the supervisor briefing at the next model call and again every 6 calls while the loop lasts:</p>
-<pre>Your recent moves name different targets but keep ending on the same tile, with no new map, tile or story milestone in between: switching between these few targets is not getting anywhere. Reassess what stops you there using observed evidence, then choose a different route or destination.</pre>
+<pre>Your recent moves name different targets but keep ending on the same one or two tiles, with no new map, tile or story milestone in between: switching between these few targets is not getting anywhere. Reassess what stops you there using observed evidence, then choose a different route or destination.</pre>
 <p>Diagnostics go where loop-guard events already go: the run's <code>loop_guard</code> events, Activity History and the raw inspector. No new timeline marks, lanes or colors.</p>
 </section>
 
 <section>
 <h2>Measured on recorded runs</h2>
-<p>Every 2026-10-15/16 run (67, no probes or human runs), replayed OFF (the run's own switches) and ON (the same plus this switch).</p>
+<p>Every 2026-10-15/16 run (69, no probes or human runs; the two newest were still live), replayed OFF (the run's own switches) and ON (the same plus this switch).</p>
 <div class="wrap"><table>
 <tr><th>Runs</th><th>Count</th><th>Warnings today</th><th>Warnings added</th><th>Runs with one</th></tr>
-<tr><td>qwen gpu0 (bundle arm)</td><td>16</td><td>46</td><td>33</td><td>10</td></tr>
-<tr><td>qwen gpu1 (control, showcases)</td><td>18</td><td>187</td><td>94</td><td>13</td></tr>
-<tr><td>think-fast</td><td>33</td><td>185</td><td>104</td><td>24</td></tr>
-<tr><td>all</td><td>67</td><td>418</td><td>231 (0 waiting-observe)</td><td>47</td></tr>
+<tr><td>qwen gpu0 (bundle arm)</td><td>17</td><td>47</td><td>36</td><td>10</td></tr>
+<tr><td>qwen gpu1 (control, showcases)</td><td>19</td><td>200</td><td>92</td><td>13</td></tr>
+<tr><td>think-fast</td><td>33</td><td>185</td><td>92</td><td>21</td></tr>
+<tr><td>all</td><td>69</td><td>432</td><td>220 (0 waiting-observe)</td><td>44</td></tr>
 </table></div>
-<p>Hand check of 33 added warnings across 12 runs: 30 in stretches where the player stayed on one or two tiles for 3+ moves with no new map or milestone; 3 true but followed by progress within 1–2 turns (8b01 T337, 2a25 T9, show T173). False positives found and removed during the sweep: the Pokémon Center heal (4caa T456; a new conversation now clears the moves) and arrive-then-bump or turn-to-a-sign sequences (960a T7, 4caa T481, 8b01 T151, sh02 T412; the targets must alternate).</p>
+<p>Hand check of 36 added warnings across 13 runs: 33 in stretches where the player stayed on one or two tiles for 3+ moves with no new map or milestone; 3 true but followed by progress within 1–2 turns (8b01 T337, 2a25 T9, show T173). False positives found and removed during the sweep: the Pokémon Center heal (4caa T456; a new conversation now clears the moves) and arrive-then-bump or turn-to-a-sign sequences (960a T7, 4caa T481, 8b01 T151, sh02 T412; the targets must alternate), inputs while a script held the controls (now not moves) and stairs bounces (823c T18; any call ending on another map now restarts the moves).</p>
 </section>
 
 <section>

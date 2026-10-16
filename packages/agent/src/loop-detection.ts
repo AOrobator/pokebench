@@ -204,7 +204,7 @@ export function waitingState(state: GameStateSnapshot): string | null {
 export const WAITING_MESSAGE =
   "Repeated observations show the same open menu, prompt or message waiting for your input: observing again does not change it. Decide from the readout which input it needs, or choose a different approach using observed evidence.";
 export const REVISIT_MESSAGE =
-  "Your recent moves name different targets but keep ending on the same tile, with no new map, tile or story milestone in between: switching between these few targets is not getting anywhere. Reassess what stops you there using observed evidence, then choose a different route or destination.";
+  "Your recent moves name different targets but keep ending on the same one or two tiles, with no new map, tile or story milestone in between: switching between these few targets is not getting anywhere. Reassess what stops you there using observed evidence, then choose a different route or destination.";
 const DIRECTIONS = new Set(["UP", "DOWN", "LEFT", "RIGHT"]);
 const interfaceOpen = (state: GameStateSnapshot): boolean =>
   state.active_ui != null || state.naming != null || (state.world_context?.dialogue ?? "") !== "" || state.world_context?.message != null;
@@ -517,7 +517,9 @@ export class LoopDetector {
       if (call.name === "press" || changed) this.planning = 0;
       if (call.name === "observe") {
         const unchanged = (fingerprint !== null && fingerprint === this.previous) || (battle !== null && battle === this.previousBattle);
-        waited = !unchanged && waiting !== null && waiting === this.previousWaiting;
+        // A waiting interface the field fingerprint also sees (naming, YES/NO prompts) counts as before; it is named
+        // as the waiting interface it is.
+        waited = waiting !== null && waiting === this.previousWaiting;
         this.observations = unchanged || waited ? this.observations + 1 : 0;
         if (this.observations >= this.policy.observation) hit ??= "observation";
       } else {
@@ -747,8 +749,8 @@ export class LoopDetector {
     return same.length >= this.policy.cycleRepeats ? same.map((p) => p.seq) : null;
   }
 
-  // ineffective-loops-v1: records a move (a navigate_to, or a press with a direction button, whose input went to the
-  // field and during which no message or dialogue appeared) by the tile it ended on and its target. When the newest
+  // ineffective-loops-v1: records a move (a navigate_to, or a press with a direction button, that started from a known
+  // state with field controls free and nothing open, and during which no message or dialogue appeared) by the tile it ended on and its target. When the newest
   // move's tile has ended `cycleRepeats` moves, the loop is the moves from the first of those to now: if they ended on
   // at most two tiles and their targets alternate (one named again after a different one), returns the seqs of the
   // moves that ended on the newest tile. A battle, an open menu or naming screen, or a conversation not heard
@@ -771,13 +773,16 @@ export class LoopDetector {
         : null;
     const start = call.startState ?? call.beforeState;
     const place = placeOf(state);
-    if (target === null || place === null || state.screen !== "overworld" || said.length > 0 || interfaceOpen(state) || (start !== undefined && interfaceOpen(start)))
-      return null;
+    // Any game call that ends on another map (a door or stairs, even one taken while a script held the controls)
+    // starts the moves again.
     const map = JSON.stringify(state.map_id);
-    if (this.moves.length > 0 && this.moves[this.moves.length - 1]?.map !== map) {
+    if (place !== null && this.moves.length > 0 && this.moves[this.moves.length - 1]?.map !== map) {
       this.moves.length = 0;
       this.movesHeard.clear();
     }
+    // Input to the field: the call started from a known state with field controls free and nothing open.
+    if (target === null || place === null || state.screen !== "overworld" || said.length > 0 || interfaceOpen(state) || start === undefined || start.field_controls_locked !== false || interfaceOpen(start))
+      return null;
     this.moves.push({ place, map, target, seq });
     if (this.moves.length > 12) this.moves.shift();
     const ends = this.moves.filter((m) => m.place === place).slice(-this.policy.cycleRepeats);

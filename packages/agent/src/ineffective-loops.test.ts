@@ -24,9 +24,11 @@ const ID="ineffective-loops-v1" as const;
 const MESSAGE=():string=>REVISIT_MESSAGE;
 const WAITING=():string=>WAITING_MESSAGE;
 
+const events103=recorded("revisit-route103-4caa.jsonl.gz");
+
 // The production path: attachLoopGuard on a recorder fan-out with the run's own switches and a supervisor; only this
 // switch is set by the test.
-function replay(events:readonly RunEvent[],on:boolean):{seen:Seen[];contexts:{turn:number;text:string|null}[]}{
+function replay(events:readonly RunEvent[],on:boolean|"base"):{seen:Seen[];contexts:{turn:number;text:string|null}[]}{
  const observers:((e:RunEvent)=>void)[]=[];const seen:Seen[]=[];const contexts:{turn:number;text:string|null}[]=[];
  let current:RunEvent|undefined;
  const start=events.find(e=>e.type==="run_start");
@@ -34,7 +36,10 @@ function replay(events:readonly RunEvent[],on:boolean):{seen:Seen[];contexts:{tu
  const features=featuresOf(start.harness_features);
  const recorder={subscribe:(o:(e:RunEvent)=>void)=>{observers.push(o);},recordLoopGuard:(n:LoopNotice)=>{checkEvent({v:1,run:"replay",seq:current?.seq??0,t:"2026-10-16T15:00:00.000-04:00",turn:current?.turn??0,type:"loop_guard",...n,evidence:[...n.evidence]});seen.push({turn:current?.turn??-1,seq:current?.seq??-1,kind:n.kind,phase:n.phase,message:n.message,evidence:n.evidence});}};
  const governor=new Governor({limits:{maxTurns:5000,maxWallMs:6*3_600_000,failureLimit:3},retry:()=>undefined,abort:()=>undefined,now:()=>0});
- const detector=attachLoopGuard(recorder,governor,undefined,"enforced",features["interaction-loop-detection-v1"],(kind,calls)=>`SUPERVISOR: ${kind} at ${String(calls)} calls`,features["transition-loop-detection-v1"],features["pushback-loop-detection-v1"],features["battle-observation-loop-v1"],on);
+ const supervisor=(kind:string,calls:number)=>`SUPERVISOR: ${kind} at ${String(calls)} calls`;
+ const detector=on==="base"
+  ?attachLoopGuard(recorder,governor,undefined,"enforced",features["interaction-loop-detection-v1"],supervisor,features["transition-loop-detection-v1"],features["pushback-loop-detection-v1"],features["battle-observation-loop-v1"])
+  :attachLoopGuard(recorder,governor,undefined,"enforced",features["interaction-loop-detection-v1"],supervisor,features["transition-loop-detection-v1"],features["pushback-loop-detection-v1"],features["battle-observation-loop-v1"],on);
  for(const e of events){
   if(e.type==="loop_guard")continue;
   current=e;
@@ -47,7 +52,7 @@ const warnings=(seen:readonly Seen[])=>seen.filter(n=>n.phase==="warning").map(n
 const recordedWarnings=(events:readonly RunEvent[])=>events.filter(e=>e.type==="loop_guard"&&e.phase==="warning").map(e=>({turn:e.turn,kind:e.type==="loop_guard"?e.kind:""}));
 
 describe("ineffective-loops-v1 on recorded run 4caa: navigate_to targets across the Route 103 water, ending on (23,12)/(23,13)/(21,8) (T199-T248)",()=>{
- const events=recorded("revisit-route103-4caa.jsonl.gz");
+ const events=events103;
  it("the fixture is the loop: five different targets in a row (T202-T206) all end on (23,12) or (23,13)",()=>{
   const calls=events.filter(e=>e.type==="tool_call"&&e.name==="navigate_to"&&e.turn>=202&&e.turn<=206);
   expect(new Set(calls.map(c=>c.type==="tool_call"?JSON.stringify(c.args):"")).size).toBe(5);
@@ -74,6 +79,13 @@ describe("ineffective-loops-v1 on recorded run 4caa: navigate_to targets across 
  });
 });
 
+describe("ineffective-loops-v1 OFF is today's detector exactly",()=>{
+ it.each(["revisit-route103-4caa.jsonl.gz","revisit-ledge-4caa.jsonl.gz","revisit-maniac-7ccf.jsonl.gz"])("%s: every notice and every model context equal",(name)=>{
+  const events=recorded(name);
+  expect(replay(events,false)).toEqual(replay(events,"base"));
+ });
+});
+
 describe("ineffective-loops-v1 on recorded run 4caa: alternating presses at the Route 102 ledge (T550-T571)",()=>{
  const events=recorded("revisit-ledge-4caa.jsonl.gz");
  it("OFF: reproduces today's silence (no loop_guard event; only the same-plan note at T571)",()=>{
@@ -84,6 +96,9 @@ describe("ineffective-loops-v1 on recorded run 4caa: alternating presses at the 
   expect(warnings(seen)).toEqual([{turn:555,kind:"cycle"},{turn:571,kind:"cycle"}]);
   const second=seen.filter(n=>n.phase==="warning")[1];
   expect(second?.evidence).toEqual([15264,15332]);
+  // The loop ends on two tiles, and the delivered text says so.
+  expect(second?.message).toBe(MESSAGE());
+  expect(MESSAGE()).toContain("the same one or two tiles");
  });
 });
 
@@ -101,7 +116,7 @@ describe("ineffective-loops-v1 on recorded run 7ccf: the Oldale Maniac stops the
 });
 
 // Direct completions built from recorded states.
-const route103=recorded("revisit-route103-4caa.jsonl.gz");
+const route103=events103;
 const FREE=(()=>{const s=route103.find(e=>e.type==="state"&&e.seq===4954);if(s?.type!=="state"||!("started"in s))throw new Error("no state at seq 4954");return s;})();
 const at=(x:number,y:number,more:Partial<State>={}):State=>({...FREE,position:{x,y},...more});
 function detector(on:boolean,interactions=true){
@@ -135,6 +150,21 @@ describe("ineffective-loops-v1 few-target loops versus progress",()=>{
   t.nav(30,30,at(7,9));t.nav(7,8,at(7,9));t.press(["UP"],at(7,9,{facing:"UP"}));
   expect(t.notices.filter(n=>n.message===MESSAGE())).toEqual([]);
  });
+ it("ON: inputs while a script or animation holds the controls, or from an unknown start, are not moves",()=>{
+  const t=detector(true);
+  const locked=at(23,12,{field_controls_locked:true});
+  for(const b of ["UP","LEFT","UP","LEFT","UP"])t.press([b],at(23,12),{startState:locked,beforeState:locked});
+  for(const b of ["UP","LEFT","UP","LEFT","UP"])t.d.complete({name:"press",args:{buttons:[b]},isError:false,text:"ok",acted:true,state:at(23,12)});
+  expect(t.notices.filter(n=>n.message===MESSAGE())).toEqual([]);
+ });
+ it("ON: three different targets ending on one tile never repeat, so they are not a loop; A, B, A is",()=>{
+  const abc=detector(true);
+  abc.nav(1,1,at(23,12));abc.nav(2,2,at(23,12));abc.nav(3,3,at(23,12));
+  expect(abc.notices.filter(n=>n.message===MESSAGE())).toEqual([]);
+  const aba=detector(true);
+  aba.nav(1,1,at(23,12));aba.nav(2,2,at(23,12));aba.nav(1,1,at(23,12));
+  expect(kinds(aba.notices.filter(n=>n.message===MESSAGE()))).toEqual([["cycle","warning"]]);
+ });
  it("ON: exploring out of a hub tile (three or more end tiles) never counts",()=>{
   const t=detector(true);
   t.nav(10,10,at(20,10));t.nav(30,10,at(25,10));t.nav(10,10,at(20,10));t.nav(20,5,at(20,6));t.nav(10,10,at(20,10));t.nav(20,15,at(20,14));t.nav(10,10,at(20,10));
@@ -167,7 +197,15 @@ describe("ineffective-loops-v1 few-target loops versus progress",()=>{
   t.nav(0,10,at(1,10));t.press(["A"],at(1,10),{dialogue:line});t.nav(2,10,at(2,10));t.nav(0,10,at(1,10));t.press(["DOWN"],at(1,10));
   expect(kinds(t.notices.filter(n=>n.message===MESSAGE()))).toEqual([["cycle","warning"]]);
  });
- it("ON: a map change, a battle or an errored call breaks the count",()=>{
+ it("ON: a call that ends on another map starts the moves again even when it is not a move (stairs taken while the controls were locked, 823c T15-T18)",()=>{
+  const t=detector(true);
+  const locked=at(8,2,{field_controls_locked:true});
+  t.nav(8,2,at(8,2));t.press(["UP"],at(8,2));
+  t.press(["UP"],{...at(7,2),map_id:[1,1]},{startState:locked,beforeState:locked});
+  t.nav(8,2,at(8,2));
+  expect(t.notices.filter(n=>n.message===MESSAGE())).toEqual([]);
+ });
+ it("ON: a map change or a battle breaks the count, and an errored call is not a move",()=>{
   const t=detector(true);
   t.nav(79,9,at(23,12));t.nav(40,12,at(23,13));
   t.nav(5,5,{...at(23,12),map_id:[0,10]});
@@ -203,6 +241,15 @@ describe("ineffective-loops-v1 unchanged observes while the game waits for input
    expect(kinds(t.notices)).toEqual(on?[["observation","warning"]]:[]);
    if(on)expect(t.notices[0]?.message).toBe(WAITING());
   }
+ });
+ it("ON: a ready naming screen, which today's fingerprint already counts, is named as the waiting interface; OFF keeps today's generic warning",()=>{
+  const naming={...MENU,screen:"naming",active_ui:{phase:"naming_editor",selected:"A",ready:true,controls:"",diagnostic:null,value:"",details:{page:"uppercase",column:0,row:0}},naming:{text:"",page:"uppercase",column:0,row:0,key:"A",ready:true}} as State;
+  expect(semanticState(naming,true)).not.toBeNull();
+  const on=detector(true),off=detector(false);
+  for(let i=0;i<4;i++){on.observe(naming);off.observe(naming);}
+  expect(on.notices.map(n=>[n.kind,n.phase,n.message])).toEqual([["observation","warning",WAITING()]]);
+  expect(off.notices.map(n=>[n.kind,n.phase])).toEqual([["observation","warning"]]);
+  expect(off.notices[0]?.message).not.toBe(WAITING());
  });
  it("ON: a ready message counts with interaction detection off (today it has no fingerprint then)",()=>{
   const message={...FREE,field_controls_locked:true,world_context:{...FREE.world_context,dialogue:"MAY: Hi!",message:{phase:"dismiss_wait",cursor:9,ready:true}}} as State;

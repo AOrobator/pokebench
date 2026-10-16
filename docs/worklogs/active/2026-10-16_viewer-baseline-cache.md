@@ -43,12 +43,13 @@ The 2026-10-14 worklog named both persistent caching and worker threads as non-g
 
 **M1 — Baselines off the request thread**
 - [x] Write tests: async reader parity, in-flight sharing, unrelated routes answer during a pending scan, error classes preserved, worker pool protocol (queueing, crash → error + replacement, close), worker handler in-process.
-- [x] COMMIT: `test(viewer): RED baselines computed off the request thread` (pending sha)
+- [x] COMMIT: `test(viewer): RED baselines computed off the request thread` (1afe57bd)
   - RED: baseline-offthread.test.ts fails to import (no baseline-pool, baseline-worker, computeBaseline); 3 baseline-cache tests fail (sync reader, positional limit). history, runs, server-cache pass with awaits.
-- [ ] Implement pool, worker entry, async reader, await in comparisons/history/milestones, startup warm.
-- [ ] Gates: `just test`, `just lint`, `just build`, `just coverage` (≥90 both stacks)
-- [ ] COMMIT: `feat(viewer): GREEN ...`
-- [ ] Guard deletions recorded
+- [x] Implement pool, worker entry, async reader, await in comparisons/history/milestones, startup warm.
+- [x] Gates: viewer 836 tests, agent 1426, Python 2130 passed / 2 skipped (ROM). Coverage viewer 95.15 / 90.61 / 93.31 (lines/branches/functions), agent 97.73 / 94.58 / 97.98, Python 96%. `pnpm -r lint` clean; ruff clean; mypy clean with the main checkout's venv (this worktree's venv lacks the native mGBA binding, `mgba._pylib`, an environment gap, no env/ diff).
+- [x] COMMIT: `feat(viewer): GREEN baselines validate on worker threads and never block the viewer` (pending sha)
+- [x] Guard deletions: in-flight sharing removed → "shares one compute" fails; startup warm removed → "warms every ended run" fails. Restored, 14/14 pass.
+- Real catalog (235 runs, built dist, pool of 4): cold 78.8 s (was 253.7 s in process), max event-loop lag 27 ms during the scan, warm re-read 7 ms.
 
 **M2 — Persisted baselines keyed on log and code**
 - [ ] Write tests: disk hit across readers, fingerprint and `codeId` invalidation, corrupt entries ignored, mid-compute change not persisted, import-closure identity on a fixture tree, no 256 cap.

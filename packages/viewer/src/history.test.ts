@@ -28,7 +28,7 @@ function run(root: string, id: string, spec: Spec): void {
 const sorted = (root: string, id: string, spec: Spec): void => { run(root, id, spec); };
 
 describe("strict per-feature history", () => {
-  it("reads a run's configuration from its run_start", async () => {
+  it("reads a run's configuration from its run_start", () => {
     const log = new Log();
     const start = log.add(0, { ...START, model: { ...START.model, id: "qwen" }, harness_features: playHarnessFeatures(off("story-state-v1"), "RIVAL_MET"), evaluation: { preset_id: "p", target: "RIVAL_MET", failure_limit: 3, flags: { loopGuard: true, activeUi: true, interfaceDocs: true, objectives: true } } });
     if (start.type !== "run_start") throw new Error("fixture");
@@ -96,7 +96,7 @@ describe("history edge cases", () => {
     expect((await featureHistory(root, DRAFT))["story-state-v1"]?.on).toEqual({ runs: 2, reached: { NEW_GAME_CREATED: 2 }, medianMs: { NEW_GAME_CREATED: 20_000 } });
   });
 
-  it("reads missing budgets as unbounded", async () => {
+  it("reads missing budgets as unbounded", () => {
     const log = new Log();
     const start = log.add(0, { ...START, budgets: {}, harness_features: playHarnessFeatures(ALL_ON, null) });
     if (start.type !== "run_start") throw new Error("fixture");
@@ -104,7 +104,7 @@ describe("history edge cases", () => {
   });
 });
 
-it("rejects human controller identity even when model and feature settings match a model arm", async () => {
+it("rejects human controller identity even when model and feature settings match a model arm", () => {
   const start = new Log().add(0, { ...START, harness_features: playHarnessFeatures(ALL_ON, null), controller: { kind: "human", name: "Operator", rom_sha1: "c".repeat(40), input_policy: "frame-held-v1", sample_ms: 100, nominal_fps: 59.7275 } });
   if (start.type !== "run_start") throw new Error("fixture");
   expect(configOf(start)).toBeNull();

@@ -13,7 +13,7 @@ import { Value } from "typebox/value";
 import { FEATURES } from "@pokebench/agent/features";
 import { CONTROL_ACTIONS } from "@pokebench/agent/events";
 import { finalsRunLabels } from "./experiment-gate-store.js";
-import { BaselineError, RunsError, createBaselineReader, comparisonsOf, eventsPath, listRuns, liveScreenPort, readStart, readFrom, runDir, type BaselineReader } from "./runs.js";
+import { BaselineError, RunsError, createBaselineReader, comparisonsOf, type BaselineCompute, eventsPath, listRuns, liveScreenPort, readStart, readFrom, runDir, type BaselineReader } from "./runs.js";
 import { featureHistory } from "./history.js";
 import { localModels } from "./models.js";
 import { NextRunError, appendControl, healthProbe, liveRuns, readDraft, writeDraft, type RunQueue } from "./next-run.js";
@@ -59,6 +59,9 @@ export interface ViewerOptions {
   readonly experiments?: { readonly paths: QueuePaths; readonly source: RunSource; readonly head?: () => string };
   // Runs approved experiments by itself; its status is shown on the queue page.
   readonly autorun?: ExperimentAutoRun;
+  // Where baseline validation runs (default: in process), whether to warm every ended run
+  // at startup, and what to close with the viewer.
+  readonly baselines?: { readonly compute?: BaselineCompute; readonly warm?: boolean; readonly close?: () => Promise<void> };
 }
 
 const MAX_BODY = 64 * 1024;
@@ -311,7 +314,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     return;
   }
   if (parts.length === 3 && head === "api" && second === "features" && id === "history") {
-    sendJson(res, 200, featureHistory(options.runsRoot, (({ model, thinking, maxTokens, maxTurns, maxWallMs, failureLimit, target, features }) => ({ model, thinking, maxTokens, maxTurns, maxWallMs, failureLimit, target, features }))(readDraft(options.runsRoot)), readBaseline));
+    sendJson(res, 200, await featureHistory(options.runsRoot, (({ model, thinking, maxTokens, maxTurns, maxWallMs, failureLimit, target, features }) => ({ model, thinking, maxTokens, maxTurns, maxWallMs, failureLimit, target, features }))(readDraft(options.runsRoot)), readBaseline));
     return;
   }
   if (parts.length === 2 && head === "api" && second === "next-run") {
@@ -380,12 +383,12 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
       return;
     }
     if (parts.length === 4 && leaf === "comparisons") {
-      sendJson(res, 200, comparisonsOf(options.runsRoot, id, readBaseline));
+      sendJson(res, 200, await comparisonsOf(options.runsRoot, id, readBaseline));
       return;
     }
     if (parts.length === 4 && leaf === "milestones") {
       try {
-        sendJson(res, 200, readBaseline(id));
+        sendJson(res, 200, await readBaseline(id));
       } catch (error) {
         if (!(error instanceof BaselineError)) throw error;
         sendJson(res, 422, { error: error.message });
@@ -428,7 +431,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
 export async function startViewer(options: ViewerOptions): Promise<Viewer> {
   let port = 0;
   let origins: ReadonlyMap<string, string> = new Map();
-  const readBaseline = createBaselineReader(options.runsRoot);
+  const readBaseline = createBaselineReader(options.runsRoot, options.baselines?.compute === undefined ? {} : { compute: options.baselines.compute });
   let snapshot: { until: number; result: Promise<WorkbenchData> } | null = null;
   const readWorkbench = (): Promise<WorkbenchData> => {
     const now = (options.now?.() ?? new Date()).getTime();
@@ -482,6 +485,8 @@ export async function startViewer(options: ViewerOptions): Promise<Viewer> {
   const address = server.address() as AddressInfo;
   port = address.port;
   origins = allowedOrigins(port, options.publicOrigins ?? []);
+  // Validate the catalog in the background so the first page load finds it ready.
+  if (options.baselines?.warm === true) for (const run of listRuns(options.runsRoot)) if (run.ended && run.problem === null) readBaseline(run.id).catch(() => undefined);
   return {
     server,
     address: address.address,
@@ -494,7 +499,7 @@ export async function startViewer(options: ViewerOptions): Promise<Viewer> {
         autorun?.stop();
         server.closeAllConnections();
         server.close(() => {
-          resolve();
+          (options.baselines?.close?.() ?? Promise.resolve()).then(resolve, resolve);
         });
       }),
   };

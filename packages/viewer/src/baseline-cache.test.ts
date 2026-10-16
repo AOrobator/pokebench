@@ -125,7 +125,7 @@ it("preserves exact comparisons while discovering new completions and changed ca
   expect((await comparisons())).toEqual((await comparisonsOf(dir, "selected")));
 });
 
-it("pins the production bound and rejects invalid limits", async () => {
+it("pins the production bound and rejects invalid limits", () => {
   expect(BASELINE_CACHE_LIMIT).toBe(256);
   for (const limit of [0, -1, 1.5, NaN]) expect(() => createBaselineReader(root(), { maxEntries: limit })).toThrow(RangeError);
 });

@@ -130,7 +130,7 @@ describe("liveScreenPort", () => {
   });
 });
 
-it("rejects manual probes and legacy vendor states as benchmark baselines", async () => {
+it("rejects manual probes and legacy vendor states as benchmark baselines", () => {
   const runsRoot = root();
   const probe = new Log(); probe.add(0, { ...START, harness_features: ["probe"] });
   writeRun(runsRoot, "probe", probe);
@@ -182,7 +182,7 @@ it("selects previous same-model baseline and deepest then fastest best, from val
 });
 
 
-it("rejects progress-only historical logs with no RAM-state provenance", async () => {
+it("rejects progress-only historical logs with no RAM-state provenance", () => {
   const r = root();
   const log = fullRun();
   const statesRemoved = new Log();
@@ -191,7 +191,7 @@ it("rejects progress-only historical logs with no RAM-state provenance", async (
   expect(() => baselineOf(r, "unverified")).toThrow(/RAM-state provenance/);
 });
 
-it("excludes resumed baseline progress from split catalogs", async () => {
+it("excludes resumed baseline progress from split catalogs", () => {
   const runsRoot = root();
   const log = new Log();
   log.add(0,{...START,harness_features:["ram-state-v1","story-milestones-v2"],start_state:{kind:"save_state",path:"fixture",sha1:"0".repeat(40)}});
@@ -243,7 +243,7 @@ it("offers finished comparable humans explicitly, never as automatic model best 
   expect(result.best).toBeNull();
 });
 
-it("excludes incomplete and aborted human references, preserving crash DNF partial splits", async () => {
+it("excludes incomplete and aborted human references, preserving crash DNF partial splits", () => {
   const r = root();
   writeRun(r, "live-human", humanLog(0, false));
   writeRun(r, "abort-human", humanLog(0, true, "operator_abort"));
@@ -292,7 +292,7 @@ it("rejects matching-start human references with a different vendor pin", async 
   expect((await comparisonsOf(r, "current")).candidates).toEqual([]);
 });
 
-it("uses active pause-adjusted human splits and omits progress present at the start", async () => {
+it("uses active pause-adjusted human splits and omits progress present at the start", () => {
   const r = root(); const log = new Log();
   log.add(0, { ...START, controller: HUMAN, harness_features: ["ram-state-v1"] });
   log.add(0, { type: "milestone", turn: 0, name: "NEW_GAME_CREATED", server_timestamp: 0, kind: "story", origin: "present_at_start" });
@@ -304,7 +304,7 @@ it("uses active pause-adjusted human splits and omits progress present at the st
   expect(baselineOf(r, "paused").milestones).toEqual([{ name: "CLOCK_SET", offsetMs: 60 }]);
 });
 
-it("rejects human logs with duplicated starts, sequence gaps, or duplicated terminal receipts", async () => {
+it("rejects human logs with duplicated starts, sequence gaps, or duplicated terminal receipts", () => {
   const r = root();
   for (const mode of ["duplicate-start", "sequence-gap", "duplicate-end"] as const) {
     const log = humanLog();
@@ -318,7 +318,7 @@ it("rejects human logs with duplicated starts, sequence gaps, or duplicated term
   }
 });
 
-it("requires the human terminal receipt to be a durable complete line", async () => {
+it("requires the human terminal receipt to be a durable complete line", () => {
   const r = root(); const path = writeRun(r, "truncated", humanLog());
   writeFileSync(path, readFileSync(path, "utf8").trimEnd());
   expect(() => baselineOf(r, "truncated")).toThrow(/finished human/);
@@ -341,7 +341,7 @@ it("catalogs isolated nested human recordings beside model runs and resolves the
   expect((await comparisonsOf(r, "current")).candidates.map(c => c.run).sort()).toEqual(["human-recording", "model"]);
 });
 
-it("surfaces malformed nested human logs and duplicate ids without selecting ambiguous storage", async () => {
+it("surfaces malformed nested human logs and duplicate ids without selecting ambiguous storage", () => {
   const r = root(); writeRun(r, "duplicate", fullRun()); writeRun(join(r, "human"), "duplicate", humanLog());
   mkdirSync(join(r, "human", "malformed")); writeFileSync(join(r, "human", "malformed", "events.jsonl"), "not JSON\n");
   const catalog = listRuns(r);

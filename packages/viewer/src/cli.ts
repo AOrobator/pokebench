@@ -4,7 +4,9 @@ import { humanLeasePath } from "@pokebench/agent/run";
 import { fileURLToPath } from "node:url";
 import { RUN_ID_PATTERN } from "@pokebench/agent/events";
 import { existsSync } from "node:fs";
-import { homedir } from "node:os";
+import { availableParallelism, homedir } from "node:os";
+import { Worker } from "node:worker_threads";
+import { createBaselinePool, defaultPoolSize } from "./baseline-pool.js";
 import { dirname, join } from "node:path";
 import { ExperimentAutoRun } from "./experiment-autorun.js";
 import { winnerGateOn } from "./experiment-store.js";
@@ -101,6 +103,8 @@ export interface MainDeps {
   readonly humanLeasePath?: string;
   // Builds the experiment queue runner for this runs directory (absent in tests).
   readonly autorun?: (runsRoot: string) => ExperimentAutoRun;
+  // Where baseline validation runs for this runs directory (absent: in process).
+  readonly baselines?: (runsRoot: string) => NonNullable<ViewerOptions["baselines"]>;
 }
 
 export async function main(argv: readonly string[], deps: MainDeps): Promise<Viewer> {
@@ -108,7 +112,8 @@ export async function main(argv: readonly string[], deps: MainDeps): Promise<Vie
   const queue = new RunQueue({ runsRoot: args.runsRoot, liveJs: deps.liveJs, endpointFile: args.endpointFile, gamePort: QUEUE_GAME_PORT, healthy: healthProbe(), now: () => new Date(), random: randomSuffix, launch: (spec) => spawnLaunch(spec) });
   const restarts = new HumanRestarts({runsRoot:args.runsRoot,liveJs:deps.liveJs,healthy:healthProbe(),now:()=>new Date(),random:randomSuffix,launch:spec=>spawnLaunch(spec),...(deps.humanLeasePath===undefined?{}:{leasePath:deps.humanLeasePath})});
   const autorun = deps.autorun?.(args.runsRoot);
-  const viewer = await deps.start({ runsRoot: args.runsRoot, staticDir: deps.staticDir, appDir: deps.appDir, port: args.port, endpointFile: args.endpointFile, publicOrigins: args.publicOrigins, queue, restartHuman:id=>restarts.restart(id), ...(autorun === undefined ? {} : { autorun }) });
+  const baselines = deps.baselines?.(args.runsRoot);
+  const viewer = await deps.start({ runsRoot: args.runsRoot, staticDir: deps.staticDir, appDir: deps.appDir, port: args.port, endpointFile: args.endpointFile, publicOrigins: args.publicOrigins, queue, restartHuman:id=>restarts.restart(id), ...(autorun === undefined ? {} : { autorun }), ...(baselines === undefined ? {} : { baselines }) });
   deps.print(`PokeBench viewer: ${viewUrl(viewer.url, args.runId)}`);
   for (const origin of args.publicOrigins) deps.print(`also published at: ${viewUrl(`${origin}/`, args.runId)}`);
   deps.print(`runs: ${args.runsRoot} (Ctrl-C to stop)`);
@@ -147,6 +152,10 @@ if (import.meta.main) {
       const paths = { experimentsDir: join(root, "experiments"), runsRoot, readinessPath: join(root, "docs", "experiments", "readiness.md"), winnerGate: winnerGateOn(process.env) };
       const source = recordedRuns(runsRoot);
       return new ExperimentAutoRun({ paths, source, now: () => Date.now(), host: productionHost({ root, runsRoot, git, fetchFn: fetch, node: process.execPath, env: process.env, log: (line) => { console.log(`experiments: ${line}`); } }) });
+    },
+    baselines: () => {
+      const pool = createBaselinePool(() => new Worker(new URL("./baseline-worker.js", import.meta.url)), defaultPoolSize(availableParallelism()));
+      return { compute: pool.compute, warm: true, close: () => pool.close() };
     },
     print: (line) => {
       console.log(line);

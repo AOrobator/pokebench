@@ -207,13 +207,36 @@ export function baselineOf(runsRoot: string, runId: string): Baseline {
   return { run: runId, milestones: view.milestones.filter((m) => m.origin !== "present_at_start").map((m) => ({ name: m.name, offsetMs: m.ms - startMs - pausedBefore(m.ms), ...(m.derived === true ? { derived: true } : {}) })) };
 }
 
-export type BaselineReader = (runId: string) => Baseline;
+// A baseline as a plain value: expected errors cross worker threads and disk as data.
+export type BaselineOutcome =
+  | { readonly baseline: Baseline }
+  | { readonly error: { readonly kind: "baseline" | "runs"; readonly message: string } };
+export type BaselineCompute = (runsRoot: string, runId: string) => Promise<BaselineOutcome>;
+export type BaselineReader = (runId: string) => Promise<Baseline>;
 export const BASELINE_CACHE_LIMIT = 256;
 
-export function createBaselineReader(runsRoot: string, maxEntries = BASELINE_CACHE_LIMIT): BaselineReader {
+export function computeBaseline(runsRoot: string, runId: string): BaselineOutcome {
+  try {
+    return { baseline: baselineOf(runsRoot, runId) };
+  } catch (error) {
+    if (error instanceof BaselineError) return { error: { kind: "baseline", message: error.message } };
+    if (error instanceof RunsError) return { error: { kind: "runs", message: error.message } };
+    throw error;
+  }
+}
+
+export interface BaselineReaderOptions {
+  // Where validation runs; the viewer passes a worker pool so the event loop stays free.
+  readonly compute?: BaselineCompute;
+  readonly maxEntries?: number;
+}
+
+export function createBaselineReader(runsRoot: string, options: BaselineReaderOptions = {}): BaselineReader {
+  const maxEntries = options.maxEntries ?? BASELINE_CACHE_LIMIT;
   if (!Number.isSafeInteger(maxEntries) || maxEntries < 1) throw new RangeError("baseline cache limit must be a positive integer");
-  type Outcome = { readonly baseline: Baseline } | { readonly error: BaselineError | RunsError };
-  const cache = new Map<string, { readonly fingerprint: string; readonly outcome: Outcome }>();
+  const compute = options.compute ?? ((root: string, id: string): Promise<BaselineOutcome> => Promise.resolve().then(() => computeBaseline(root, id)));
+  const cache = new Map<string, { readonly fingerprint: string; readonly outcome: BaselineOutcome }>();
+  const inflight = new Map<string, { readonly fingerprint: string; readonly outcome: Promise<BaselineOutcome> }>();
   const fingerprint = (runId: string): string => {
     const path = eventsPath(runsRoot, runId);
     try {
@@ -224,23 +247,16 @@ export function createBaselineReader(runsRoot: string, maxEntries = BASELINE_CAC
       throw new RunsError(`run ${runId} has no readable events.jsonl`);
     }
   };
-  return (runId) => {
-    const before = fingerprint(runId);
-    const cached = cache.get(runId);
-    let outcome: Outcome;
-    if (cached?.fingerprint === before) {
-      outcome = cached.outcome;
-    } else {
-      cache.delete(runId);
-      try {
-        outcome = { baseline: baselineOf(runsRoot, runId) };
-      } catch (error) {
-        if (!(error instanceof BaselineError || error instanceof RunsError)) throw error;
-        outcome = { error };
-      }
-    }
+  const settle = (outcome: BaselineOutcome): Baseline => {
+    if ("baseline" in outcome) return structuredClone(outcome.baseline);
+    throw outcome.error.kind === "baseline" ? new BaselineError(outcome.error.message) : new RunsError(outcome.error.message);
+  };
+  const load = async (runId: string, before: string): Promise<BaselineOutcome> => {
+    const outcome = await compute(runsRoot, runId);
     // A changed file may finish validation, but its result cannot become a cache hit.
-    if (fingerprint(runId) === before) {
+    let after: string | null = null;
+    try { after = fingerprint(runId); } catch { /* deleted while computing: keep nothing */ }
+    if (after === before) {
       cache.delete(runId);
       cache.set(runId, { fingerprint: before, outcome });
       if (cache.size > maxEntries) {
@@ -248,8 +264,27 @@ export function createBaselineReader(runsRoot: string, maxEntries = BASELINE_CAC
         if (oldest !== undefined) cache.delete(oldest);
       }
     }
-    if ("error" in outcome) throw outcome.error;
-    return structuredClone(outcome.baseline);
+    return outcome;
+  };
+  return async (runId) => {
+    const before = fingerprint(runId);
+    const cached = cache.get(runId);
+    if (cached?.fingerprint === before) {
+      cache.delete(runId);
+      cache.set(runId, cached);
+      return settle(cached.outcome);
+    }
+    cache.delete(runId);
+    let pending = inflight.get(runId);
+    if (pending?.fingerprint !== before) {
+      const outcome = load(runId, before);
+      const entry = { fingerprint: before, outcome };
+      pending = entry;
+      inflight.set(runId, entry);
+      const clear = (): void => { if (inflight.get(runId) === entry) inflight.delete(runId); };
+      outcome.then(clear, clear);
+    }
+    return settle(await pending.outcome);
   };
 }
 
@@ -281,26 +316,28 @@ function sameStart(a: ReturnType<typeof readStart>, b: ReturnType<typeof readSta
 
 // Once per selection, not per animation tick: validate each candidate's log.
 // DNFs remain eligible for partial splits; probes and unverified logs do not.
-export function comparisonsOf(runsRoot: string, runId: string, readBaseline: BaselineReader = (id) => baselineOf(runsRoot, id)): Comparisons {
+export async function comparisonsOf(runsRoot: string, runId: string, readBaseline: BaselineReader = (id) => Promise.resolve().then(() => baselineOf(runsRoot, id))): Promise<Comparisons> {
   const current = readStart(runsRoot, runId);
-  const candidates: ComparisonRun[] = [];
-  if (current.harness_features.includes("probe")) return { candidates, baseline: null, best: null };
-  for (const summary of listRuns(runsRoot)) {
-    if (summary.id === runId || !summary.ended || summary.problem !== null) continue;
+  if (current.harness_features.includes("probe")) return { candidates: [], baseline: null, best: null };
+  // Every candidate is requested at once so a worker pool validates them in parallel.
+  const found = await Promise.all(listRuns(runsRoot).map(async (summary): Promise<ComparisonRun | null> => {
+    if (summary.id === runId || !summary.ended || summary.problem !== null) return null;
     try {
       const start = readStart(runsRoot, summary.id);
-      if (!sameStart(current, start)) continue;
+      if (!sameStart(current, start)) return null;
       const humanPair = current.controller?.kind === "human" || start.controller?.kind === "human";
       const currentRom = current.controller?.rom_sha1 ?? current.rom_sha1;
       const candidateRom = start.controller?.rom_sha1 ?? start.rom_sha1;
-      if (humanPair && (current.vendor_pin !== start.vendor_pin || (currentRom !== undefined && candidateRom !== undefined && currentRom !== candidateRom))) continue;
-      const baseline = readBaseline(summary.id);
-      if (!baseline.milestones.some((m) => MILESTONE_ORDER.indexOf(m.name as typeof MILESTONE_ORDER[number]) > 0)) continue;
-      candidates.push({ ...baseline, model: start.controller?.kind === "human" ? `Human · ${start.controller.name}` : start.model.id, started: start.t, harness: start.harness.commit, features: start.harness_features, ...(start.controller?.kind === "human" ? { controller: { kind: "human" as const, name: start.controller.name } } : {}), ...(humanPair ? { romIdentity: currentRom !== undefined && candidateRom !== undefined ? "verified" as const : "unverified" as const } : {}) });
+      if (humanPair && (current.vendor_pin !== start.vendor_pin || (currentRom !== undefined && candidateRom !== undefined && currentRom !== candidateRom))) return null;
+      const baseline = await readBaseline(summary.id);
+      if (!baseline.milestones.some((m) => MILESTONE_ORDER.indexOf(m.name as typeof MILESTONE_ORDER[number]) > 0)) return null;
+      return { ...baseline, model: start.controller?.kind === "human" ? `Human · ${start.controller.name}` : start.model.id, started: start.t, harness: start.harness.commit, features: start.harness_features, ...(start.controller?.kind === "human" ? { controller: { kind: "human" as const, name: start.controller.name } } : {}), ...(humanPair ? { romIdentity: currentRom !== undefined && candidateRom !== undefined ? "verified" as const : "unverified" as const } : {}) };
     } catch (error) {
       if (!(error instanceof BaselineError || error instanceof RunsError)) throw error;
+      return null;
     }
-  }
+  }));
+  const candidates = found.filter((c): c is ComparisonRun => c !== null);
   candidates.sort((a, b) => Date.parse(b.started) - Date.parse(a.started) || a.run.localeCompare(b.run));
   const models = candidates.filter((c) => c.controller?.kind !== "human");
   const previous = models.filter((c) => Date.parse(c.started) < Date.parse(current.t));

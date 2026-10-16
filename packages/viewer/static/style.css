@@ -334,7 +334,8 @@ select.p, .field input { font: 8px 'Press Start 2P', monospace; padding: 6px 8px
 .wb-plate-l1>span:last-child { flex:none; }
 .wb-ty { display:inline-flex; align-items:baseline; gap:5px; min-width:0; max-width:100%; font:7px/1.9 'Press Start 2P', monospace; }
 .wb-ty>i { font-style:normal; color:#3a6ea5; flex:none; }
-.wb-ty>em { font-style:normal; color:#fff; background:var(--tyc); padding:1px 5px; border-radius:3px; text-transform:uppercase; overflow-wrap:anywhere; min-width:0; }
+.wb-ty-unknown { font:11px 'JetBrains Mono', monospace; color:#7b8fa1; font-style:italic; min-width:0; overflow-wrap:anywhere; }
+.wb-ty>em {font-style:normal; color:#fff; background:var(--tyc); padding:1px 5px; border-radius:3px; text-transform:uppercase; overflow-wrap:anywhere; min-width:0; }
 .wb-br { display:grid; grid-template-columns:64px minmax(0,1fr) auto; gap:8px; align-items:center; min-width:0; }
 .wb-lab { font:7px 'Press Start 2P', monospace; color:#3a6ea5; }
 .wb-lab .ls { display:none; }

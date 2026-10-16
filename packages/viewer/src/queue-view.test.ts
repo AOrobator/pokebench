@@ -256,7 +256,7 @@ describe("experiment queue view", () => {
       loaded: (s) => { events.push(`loaded ${s.problems.join("")}`); }, unavailable: () => { events.push("unavailable"); },
     });
     await panel.load(); expect(events).toEqual(["unavailable"]);
-    fail = false; await panel.load(); expect(events.at(-1)).toBe("loaded ");
+    fail = false; await panel.load(); expect(events.at(-1)).toBe("loaded bad.json: Invalid experiment");
     await panel.act("elev", "approve"); expect(events.at(-1)).toBe("loaded /api/experiments/elev/approve");
     await panel.finals("full", true); expect(events.at(-1)).toBe("loaded /api/experiments/full/finals-withdraw");
   });

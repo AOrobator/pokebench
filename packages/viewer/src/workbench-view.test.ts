@@ -61,7 +61,7 @@ describe("workbench visual contract", () => {
     expect([...map.entries()]).toEqual([["r1", { lane: "A", gpu: "GPUA", arm: "bundle" }], ["r2", { lane: "C", gpu: "GPUC", arm: null }]]);
   });
   it("qualifies a recovered (derived) furthest milestone as an upper bound and never turns it gold", () => {
-    const base = run({ status: "live" }), splits = base.splits.map(s => s.name === "PLAYER_NAME_CONFIRMED" ? { ...s, derived: true } : s);
+    const base = run({ status: "live" }), splits = base.splits.map(s => s.name === "PLAYER_NAME_CONFIRMED" ? { ...s, derived: true as const } : s);
     const doc = parse(currentRunHtml([{ ...base, splits }], 1000, 2000, null));
     expect(doc.querySelector(".wb-ms small")?.textContent).toBe("≤ 2:00 · ≤ turn 20 · recovered");
     expect(doc.querySelector(".wb-plate")?.className).toBe("wb-plate"); expect(doc.body.innerHTML).not.toContain("NEW MILESTONE!");

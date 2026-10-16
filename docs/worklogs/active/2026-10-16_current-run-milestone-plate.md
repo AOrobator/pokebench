@@ -63,6 +63,15 @@ already polls it for the queue, so QueuePanel hands each parsed snapshot to the 
   3. derived (recovered) furthest split shows "≤ time · ≤ turn N · recovered" and never goes gold;
   nits: NEW only for 0 ≤ age < 30 s; hostile lane/GPU/arm strings test (passes already: escaping was in
   place, kept as a regression test); `&& Array.isArray` spacing.
-  - viewer: 6 failing (workbench-view 3, workbench 2, queue-view 1), 807 pass.
+  - viewer: 6 failing (workbench-view 3, workbench 2, queue-view 1), 807 pass. RED commit: 7350dbb7
+- [x] M3 GREEN: `clock()` reconciles `.wb-plates` by href (removes gone plates, inserts new ones before the cursor,
+  patches survivors; head fields patched) via `patchFields`; `LaneUnknown = "loading" | "unavailable"`, Workbench
+  starts "loading", `bootWorkbench` wires `unavailable` → `wb.lanes("unavailable")`; TYPE/ is one
+  `data-current-field="type"` wrapper; derived split → "≤ m:ss · ≤ turn N · recovered", never gold; NEW needs
+  0 ≤ age < 30 s; `queueSnapshotOf` spacing.
+  - Two RED test corrections in this commit: the queue listener test expected `loaded ` but SNAPSHOT carries a
+    problem string (`loaded bad.json: Invalid experiment`), and the derived fixture needed `true as const` for tsc.
+  - viewer tests 813/813; coverage 95.15 / 90.57 / 93.53 / 97.63 (stmts/branches/funcs/lines); lint clean.
+  - Rebuilt dist, rechecked on the scratch server: all four plates render with lanes joined, gold plate intact.
 
 ## Log

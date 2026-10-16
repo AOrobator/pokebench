@@ -75,7 +75,7 @@ export function queueSnapshotOf(value: unknown): QueuePayload {
   const autorun = value["autorun"];
   if (autorun !== undefined && autorun !== null && !(isRecord(autorun) && oneOf(autorun["state"], ["idle", "running", "error"]) && typeof autorun["message"] === "string")) throw new Error("malformed /api/experiments autorun");
   const fixedRuns = value["fixedRuns"];
-  if (fixedRuns !== undefined && !(Array.isArray(fixedRuns) && fixedRuns.every((f) => isRecord(f) && typeof f["experiment"] === "string" && typeof f["title"] === "string" && isNum(f["valid"]) && isNum(f["total"]) && Array.isArray(f["lanes"]) && f["lanes"].every(laneOk) &&Array.isArray(f["invalidTrials"]) && isRecord(f["reserve"])))) throw new Error("malformed /api/experiments fixedRuns");
+  if (fixedRuns !== undefined && !(Array.isArray(fixedRuns) && fixedRuns.every((f) => isRecord(f) && typeof f["experiment"] === "string" && typeof f["title"] === "string" && isNum(f["valid"]) && isNum(f["total"]) && Array.isArray(f["lanes"]) && f["lanes"].every(laneOk) && Array.isArray(f["invalidTrials"]) && isRecord(f["reserve"])))) throw new Error("malformed /api/experiments fixedRuns");
   const runner = value["runner"];
   if (runner !== null && !(isRecord(runner) && typeof runner["experiment"] === "string" && isNum(runner["trial"]))) throw new Error("malformed /api/experiments runner");
   return value as unknown as QueuePayload;
@@ -218,6 +218,8 @@ export interface QueueDeps {
   confirm?(text: string): boolean;
   // Present where another part of the page reads the same snapshot (the stats page's current-run plates).
   loaded?(snapshot: QueuePayload): void;
+  // Called when a load fails, so that reader stops trusting the last snapshot.
+  unavailable?(): void;
 }
 // Binds one rendering to a container holding [data-eq=chips], [data-eq=queue] and [data-eq=pending].
 export class QueuePanel {
@@ -270,6 +272,7 @@ export class QueuePanel {
     try {
       this.snapshot = queueSnapshotOf(await this.deps.sendJson("POST", `/api/experiments/${encodeURIComponent(id)}/${action}`, {}));
       this.notice = null;
+      this.deps.loaded?.(this.snapshot);
     } catch (error) {
       this.notice = error instanceof Error ? error.message : String(error);
     }
@@ -284,6 +287,7 @@ export class QueuePanel {
     try {
       this.snapshot = queueSnapshotOf(await this.deps.sendJson("POST", `/api/experiments/${encodeURIComponent(id)}/${withdraw ? "finals-withdraw" : "finals-resume"}`, {}));
       this.notice = null;
+      this.deps.loaded?.(this.snapshot);
     } catch (error) {
       this.notice = error instanceof Error ? error.message : String(error);
     }
@@ -301,6 +305,7 @@ export class QueuePanel {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.deps.problem(`experiment queue: ${message}`);
+      this.deps.unavailable?.();
       this.notice = `Could not load the experiment queue (${message}).${/\b404\b/.test(message) ? " This viewer was started before the queue existed: restart the viewer." : ""}`;
       if (this.snapshot === null) {
         const queue = this.part("queue");

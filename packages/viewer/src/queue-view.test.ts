@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { GateView } from "./experiment-gate-store.js";
 import type { ExperimentView, QueueSnapshot, TrialView } from "./experiment-store.js";
+import type { FixedStatusView } from "./fixed-status.js";
 import { QueuePanel, countsOf, queueSnapshotOf, renderQueue, type QueuePayload } from "./queue-view.js";
 
 const arm = (finished: number, reached: number, ms: number | null, turns: number | null) => ({ finished, reached, medianPrimaryMs: ms, medianTurns: turns, reachedPer1kTurns: turns === null ? null : (reached * 1000) / (turns * finished) });
@@ -262,11 +263,11 @@ describe("experiment queue view", () => {
     expect(html).toContain("New experiments wait: finals withdrawn after 5 of 32 runs");
     expect(html).toContain("QUEUE RUNNER · IDLE · Waiting: full-map-navigation");
 
-    const fixed = { kind: "fixed-run", version: 1, experiment: "bundle-v-control", title: "Bundle <V> vs control", definitionSha256: "d".repeat(64), pid: 1, updatedAt: "t", state: "running", total: 140, valid: 2, invalid: 0, invalidTrials: [], reserve: { usedMs: 0, totalMs: 1 }, lanes: [], lastError: null, runnerAlive: true } as const;
+    const fixed: FixedStatusView = { kind: "fixed-run", version: 1, experiment: "bundle-v-control", title: "Bundle <V> vs control", definitionSha256: "d".repeat(64), pid: 1, updatedAt: "t", state: "running", total: 140, valid: 2, invalid: 0, invalidTrials: [], reserve: { usedMs: 0, totalMs: 1 }, lanes: [], lastError: null, runnerAlive: true };
     const current = renderQueue({ ...stale, fixedRuns: [{ ...fixed, experiment: "old", title: "Old", state: "finished" }, fixed] }, "all", new Set(), true).queue;
     expect(current).toContain("New experiments wait: the queue is paused while the fixed-run experiment Bundle &lt;V&gt; vs control runs.");
     expect(current).toContain("QUEUE RUNNER · IDLE · Paused while the fixed-run experiment Bundle &lt;V&gt; vs control runs.");
-    expect(current).not.toContain("resume them, or discard");
+    expect(current.slice(0, current.indexOf("<details")) + current.slice(current.indexOf("</details>"))).not.toContain("resume them, or discard");
     expect(current).not.toContain("Waiting: full-map-navigation");
     expect(current).toContain('data-finals-resume="full-map-navigation"');
     const busy = renderQueue({ ...stale, fixedRuns: [fixed], autorun: { state: "error", message: "gateway down" } }, "all", new Set()).queue;

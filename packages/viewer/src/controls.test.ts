@@ -119,6 +119,11 @@ describe("live side panel", () => {
     const done = view((l) => { l.add(1_000, mark("ROCK_TOMB_RECEIVED")); });
     expect(splitStrip(done)).toBe('<div class="mspl"><span class="done">ROCK TOMB ✔</span></div>');
   });
+
+  it("points NEXT at the first unreached checkpoint after the deepest checkpoint, and escapes names", () => {
+    const v = view((l) => { l.add(1_000, mark("RUNNING_SHOES_RECEIVED")); l.add(2_000, mark("ROUTE_102_TRAINER_CALVIN_DEFEATED")); l.add(3_000, mark("A<B")); });
+    expect(splitStrip(v)).toBe('<div class="mspl"><span class="done">RUNNING SHOES ✔</span><span class="done">ROUTE 102 TRAINER CALVIN DEFEATED ✔</span><span class="done">A&lt;B ✔</span><span class="next">ROUTE 102</span></div>');
+  });
 });
 
 describe("switchboard", () => {

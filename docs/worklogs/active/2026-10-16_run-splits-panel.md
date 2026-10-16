@@ -18,4 +18,6 @@ The live side panel's SPLITS THIS RUN strip and SPLIT TIMES VS BEST rows render 
 - [x] GREEN: splitStrip/splitTimes use runSplits (recorded milestones in MILESTONE_ORDER + next frontier checkpoint). Read-only replay of the live showcase log renders 25 done chips through OLDALE, next ROUTE 103.
 - [x] Gates: viewer 792 tests pass, coverage 95.10/90.45/93.59 (lines/branches/functions), controls.ts 99.38/97.04/100; viewer lint clean; pnpm -r build ok
 - [ ] Review: Claude CLI, Codex, Cursor grok
+  - Round 1 (cf97c308): Claude CLI LGTM; cursor-grok-4.5-high LGTM with medium finding (NEXT skipped Route 102 when a later non-checkpoint milestone was deepest); Codex failed (default model gpt-6.1-sol unsupported on ChatGPT account).
+  - [x] RED for grok finding: NEXT after deepest checkpoint + name escaping (1 failing, 15 passing)
 - [ ] Operator approves local merge

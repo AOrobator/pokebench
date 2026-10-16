@@ -78,13 +78,11 @@ it("the pending experiment's incumbent is exactly the bundle-v-control bundle co
   const raw = JSON.parse(readFileSync(fileURLToPath(new URL("../../../experiments/open-goal-prompt.json", import.meta.url)), "utf8")) as { incumbent: { id: string; features: Record<string, boolean> } & Record<string, unknown> };
   const { definition } = parseFixedDefinition(readFileSync(fileURLToPath(new URL("../../../experiments/fixed/bundle-v-control.json", import.meta.url)), "utf8"));
   const arm = armPreset(definition, "cook", "bundle");
-  const { id: _armId, features: armFeatures, ...armRest } = arm;
-  const { id: _incumbentId, features: incumbentFeatures, ...incumbentRest } = raw.incumbent;
-  expect(incumbentRest).toEqual(armRest);
-  expect(armRest).toMatchObject({ start: { kind: "save_state" }, limits: { maxWallMs: 3_600_000 } });
-  expect(incumbentFeatures[ID]).toBe(false);
-  const { [ID]: _own, ...others } = incumbentFeatures;
-  expect(others).toEqual(armFeatures);
+  const without = (value: Record<string, unknown>, ...keys: string[]): Record<string, unknown> => Object.fromEntries(Object.entries(value).filter(([key]) => !keys.includes(key)));
+  expect(without(raw.incumbent, "id", "features")).toEqual(without(arm, "id", "features"));
+  expect(arm).toMatchObject({ start: { kind: "save_state" }, limits: { maxWallMs: 3_600_000 } });
+  expect(raw.incumbent.features[ID]).toBe(false);
+  expect(without(raw.incumbent.features, ID)).toEqual(arm.features);
 });
 
 it("every diagnostic number on the explainer comes from the tracked per-run manifest", () => {

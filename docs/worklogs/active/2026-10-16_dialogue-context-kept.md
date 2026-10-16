@@ -21,7 +21,7 @@ Switch `dialogue-context-kept-v1` (guidance, needs nothing, default OFF).
    - each readout `Dialog: "…"` line (the control arm's dialogue: every page of the open message, " | " between pages, speaker prefix as the game prints it);
    - a `get_dialogue`/`recall_dialogue` result, kept whole (it is all quoted dialogue).
    Frames drop as today. Results with no dialogue collapse byte-identically to today. The turn window (`turns: 20/10`) is unchanged.
-2. **Supervisor cites the last story instruction.** Under the switch, the loop supervisor, stall briefing and text-only supervisor add one line before "Recent dialogue": the dialogue pages the model was shown after the previous story milestone up to the turn of the latest story milestone the game confirmed (kind `story`, not present at start), oldest first, whole. Walks back to an earlier story milestone when the latest one had none. The three-newest line stays as it is. The helper is shared, so with the switch ON the bundle's stall briefing gets the line too; stall-briefing-v1's own F5 text change belongs to `claude/bundle-prelaunch-fixes` and is not touched here.
+2. **Supervisor cites the last story instruction.** Under the switch, the loop supervisor, stall briefing and text-only supervisor add one line before "Recent dialogue": the dialogue pages recorded after the previous story milestone and before the latest story milestone (bounded by event seq, review round 1) the game confirmed (kind `story`, not present at start), oldest first, whole. Walks back to an earlier story milestone when the latest one had none. The three-newest line stays as it is. The helper is shared, so with the switch ON the bundle's stall briefing gets the line too; stall-briefing-v1's own F5 text change belongs to `claude/bundle-prelaunch-fixes` and is not touched here.
 
 ## Invariants
 
@@ -45,8 +45,9 @@ Switch `dialogue-context-kept-v1` (guidance, needs nothing, default OFF).
 - [x] COMMIT: `feat: dialogue-context-kept-v1 keeps every dialogue page in collapsed results and cites the last story instruction in supervisor briefings` (e513c4a6)
 - [x] Pending experiment pinned provisionally to e513c4a6 (repin to the merge SHA on landing)
 - [x] Review round 1: Codex BLOCKING — story boundaries by turn misattribute same-turn pages (valid). Grok BLOCKING — the two-dot `git diff main..HEAD` showed main's newer bedroom-exit merge as reverted (diff artifact: main moved after branching; fixed by merging main in). Both said the dialogue feature otherwise looks correct.
-- [ ] RED (round-1 fix): same-turn boundary tests; the 3f21 T166 line now also carries Mom's five turn-95 2F pages (shown after CLOCK_SET seq 1629, before MOM_RIVAL_INSTRUCTION seq 1775)
-- [ ] GREEN: bound by milestone seq; merge main; re-review the delta
+- [x] COMMIT: `test: RED supervisor story-instruction pages are bounded by event order, not turn (review round 1)` (da85a880): 2 red, 16 green; the 3f21 T166 line now also carries Mom's five turn-95 2F pages (shown after CLOCK_SET seq 1629, before MOM_RIVAL_INSTRUCTION seq 1775)
+- [x] GREEN: bound by milestone seq (explainer and switch copy updated); 18/18
+- [ ] Merge main (bedroom-exit landed after branching); gates; re-review the delta
 
 ## Session Log
 

@@ -29,7 +29,7 @@ export class SupervisorBriefing {
  private latest:State|null=null;
  private progress:{turn:number;name:string}|null=null;
  // dialogue-context-kept-v1: story milestones the game confirmed during this run, in order.
- private readonly stories:{turn:number;name:string}[]=[];
+ private readonly stories:{seq:number;turn:number;name:string}[]=[];
  private turn=0;
  private readonly dialogue:DialogueLog;
  private readonly calls=new Map<string,Call>();
@@ -48,7 +48,7 @@ export class SupervisorBriefing {
   if(event.type==="milestone"){
    if(event.origin!=="present_at_start"&&event.name!=="GAME_RUNNING"&&!MEASUREMENT_ONLY_MILESTONES.has(event.name)){
     this.progress={turn:event.turn,name:event.name};
-    if(event.kind==="story")this.stories.push({turn:event.turn,name:event.name});
+    if(event.kind==="story")this.stories.push({seq:event.seq,turn:event.turn,name:event.name});
    }
    return;
   }
@@ -184,14 +184,15 @@ export class SupervisorBriefing {
   const recent=this.dialogue.entries().slice(-3).reverse();
   return recent.length===0?"none recorded":recent.map(quote).join(" | ");
  }
- // dialogue-context-kept-v1: the pages shown after the previous story milestone up to the latest one that has any.
+ // dialogue-context-kept-v1: the pages recorded between the previous story milestone and the latest one that has any,
+ // bounded by event order (seq), not turn: a turn can hold pages on both sides of a milestone.
  private instruction():string {
   const head="- Dialogue you were shown leading up to the last story step the game confirmed";
   if(!this.features["active-field-message-buffer-v1"])return `${head}: not available (dialogue text is off)\n`;
   const entries=this.dialogue.entries();
   for(const [i,step] of [...this.stories.entries()].reverse()){
-   const before=this.stories[i-1]?.turn??-Infinity;
-   const pages=entries.filter(e=>e.turn>before&&e.turn<=step.turn);
+   const before=this.stories[i-1]?.seq??-Infinity;
+   const pages=entries.filter(e=>e.seq>before&&e.seq<step.seq);
    if(pages.length>0)return `${head} (${step.name.replaceAll("_"," ").toLowerCase()} at turn ${String(step.turn)}), oldest first: ${pages.map(quote).join(" | ")}\n`;
   }
   return `${head}: none recorded\n`;

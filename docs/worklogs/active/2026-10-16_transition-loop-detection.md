@@ -26,7 +26,7 @@ OFF: no skip, no map moves; byte-identical to today.
 - [x] Replay receipts on 2919 and d6bb
 - [x] Explainer + FEATURE_EXPLAINERS mapping
 - [x] Gates: test, lint, build, coverage (90), verify-vendor
-- [ ] Review: Codex + grok
+- [x] Review: Codex + grok (round 3 LGTM from both)
 
 ## Progress Log
 
@@ -50,3 +50,7 @@ OFF: no skip, no map moves; byte-identical to today.
 - The ping-pong episode recovers once in 2919 (T215): the `A×5` step at the town door reaches a state outside the 16-state visited window, which counts as novel. The next bounce re-warns at T216. Recovery semantics are unchanged by design.
 
 ## Multi-Model Review Log
+
+- Round 1 (full diff): grok LGTM; Codex BLOCKING (map moves ignored genuine locks; stale receipt). Fixed RED 30b61440/e3e46059, GREEN e346916b/7b7462bf.
+- Round 2 (delta): grok LGTM; Codex BLOCKING (last-map bridge after a scripted crossing). Fixed RED + GREEN def964d5.
+- Round 3 (delta): Codex LGTM, grok LGTM.

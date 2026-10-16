@@ -89,3 +89,17 @@ Game grounding (pret/pokeemerald 731ad5bf): Route 103 rival script `data/maps/Ro
 - Synced main 9e27986a (viewer-only). Gates: build, lint, test (vitest 1726 + 927, pytest 2299), coverage (agent 99.08/94.54/98.37, viewer 97.63/91.09/93.68, Python 97.36/93.22/100), verify-vendor, experiments-check (70) green. Round 4 packet next.
 
 **Round 4** (base 9e27986a, head ddf3834f, sha c79a4960…acfc). Claude: LGTM. Grok: BLOCKING (live receipts not readable inside the worktree; digests not in the worklog). GPT (Codex): BLOCKING (after a won rival battle, the post-battle dialogue runs with the rival loaded and the flag clear, so a low-HP lead could get a false 'talking starts a battle' warning). Fixes: the warning requires field_controls_locked === false (new test with a post-victory locked state, null and missing lock; deletion receipt: dropping the check turns it red), registry copy corrected (wraps every tool, free field; A's placement wording), explainer updated; live proof redone on the fixed head with receipts in the worktree (ignored runs/reviews/) and digests below.
+
+Live proof on 19fd7bc0 (round 4 fix), isolated built viewer 127.0.0.1:8794 (startViewer only; stopped after). Receipts in this worktree at `runs/reviews/trainer-heal-warning/proof-r5/` (gitignored; copy at ~/dev/pokebench/runs/reviews/trainer-heal-warning/proof-r5): screenshots 1 (run loaded, timeline errors lane empty), 2 (Agent Trace SUP 'Low-HP trainer warning' row selected, paragraph and raw event JSON type low_hp_trainer_warning seq 5), 3 (Harness Config card with READ EXPLAINER); both READ EXPLAINER clicks opened /explainers/trainer-heal-guidance-v1.html and /explainers/low-hp-trainer-warning-v1.html with the expected text. Proof run made by make-run.mjs (real RunRecorder + pinned pi loop + playGameTools); its events.jsonl sha256 and the served-vs-built digests:
+```
+head 19fd7bc019a8e338363b15b2b4e9c494d5d05342 (proof taken on this commit; tree clean)
+app/app.js served=53dc71d4c91f61209965ef23571c4887d24653bba79ffae332319a4254b51dd1 built=53dc71d4c91f61209965ef23571c4887d24653bba79ffae332319a4254b51dd1
+app/model.js served=948c66b423a5c7738014beb56838d706464b3576d111b178c96c32b42d44c416 built=948c66b423a5c7738014beb56838d706464b3576d111b178c96c32b42d44c416
+app/trace.js served=c6a8fc971536913cd49fcd75d9f5a3609ca184bd2b9ec7e8916c728e0e3af83f built=c6a8fc971536913cd49fcd75d9f5a3609ca184bd2b9ec7e8916c728e0e3af83f
+app/panels.js served=49e0e8aa7b3221d14d166717e4eed9e6d56757a8d715974208d88e5d5ab7e3bb built=49e0e8aa7b3221d14d166717e4eed9e6d56757a8d715974208d88e5d5ab7e3bb
+app/timeline.js served=967784b1ff61f46b37399e356b52b797c2115670ed7e97907c1d27900ad1a854 built=967784b1ff61f46b37399e356b52b797c2115670ed7e97907c1d27900ad1a854
+app/main.js served=3f2f343764ef68a1ebc9daf52d611383203b8094e98245202f554ef487a34c9d built=3f2f343764ef68a1ebc9daf52d611383203b8094e98245202f554ef487a34c9d
+explainers/trainer-heal-guidance-v1.html served=60d85fbb59d4d32ba2a7b8a495cef4316d23da5d84004fb04a729e59ae74fe3c tracked=60d85fbb59d4d32ba2a7b8a495cef4316d23da5d84004fb04a729e59ae74fe3c
+explainers/low-hp-trainer-warning-v1.html served=d12a3f37b37f64a8be8e13dd4290cc73c41d396a0e910376a7e9e845108394a6 tracked=d12a3f37b37f64a8be8e13dd4290cc73c41d396a0e910376a7e9e845108394a6
+events.jsonl bec601fc54e18935bff93c48043e39364648682cd4f31f724d48b97bd85042d8
+```

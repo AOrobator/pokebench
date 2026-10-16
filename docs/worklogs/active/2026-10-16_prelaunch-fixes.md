@@ -77,6 +77,8 @@ Done when every milestone is merged, qualification shows none of F1–F8, the fo
 
 ## Session Log
 
+- 2026-10-16 05:12 PM EDT: ineffective-loops-v1 (landed f7ee1bae, repin cbdee575) joins the bundle-v-control bundle arm (base false, no dependency).
+- 2026-10-16 04:58 PM EDT: **Control changed at pin d9d82b3f.** explorer-guidance-v1 off and explorer-guidance-v2 on in both arms (the operator 4:18 PM EDT: no talk-to-particular-NPC guidance; generic talk-to-people text). Control base frontier-incumbent-4caa edited in place, sha256 now 5f22d1b9; definition base matches; `fixed-run check` clean. Runs from earlier pins had v1 in control and are not comparable on this flag.
 - 2026-10-16 04:27 PM EDT: cross-map-goal-v1 (merged 85a52e85, pin fe65ac57) joins the bundle-v-control bundle arm (base false; needs bounded-navigation-v1, on in base). `fixed-run check` clean; definition sha256 60bfe9dd.
 - 2026-10-16 04:04 PM EDT: navigation landed (e580f3ce, pins e707ab88): navigation-truth-v1 added to onInBoth (on in base); navigation-refusal-reasons-v2 added to the bundle switches (off in base; bounded-navigation-v1 is on in base).
 - 2026-10-16 03:57 PM EDT: surf-gated-exits-v1 landed (49e18c58, main 54a525b5); added to the bundle switches (off in base and in the frontier control base).

@@ -306,9 +306,18 @@ it("serves the tracked talk to people explainer byte for byte",async()=>{
  expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);
 });
 
-it("serves the tracked push-back and battle observation explainers byte for byte, with their headings",async()=>{
+it("serves the tracked talk to people v2 explainer byte for byte",async()=>{
+ const tracked=readFileSync(fileURLToPath(new URL("../../../docs/explainers/explorer-guidance-v2.html",import.meta.url)));
  const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
- const files={"pushback-loop-detection-v1":"Push-back loop detection","pushback-press-result-v1":"Push-back press results","battle-observation-loop-v1":"Battle observation loop"} as const;
+ writeFileSync(join(docs,"explorer-guidance-v2.html"),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,"/explainers/explorer-guidance-v2.html");
+ expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);
+});
+
+it("serves the tracked push-back, battle observation and ineffective loops explainers byte for byte, with their headings",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const files={"pushback-loop-detection-v1":"Push-back loop detection","pushback-press-result-v1":"Push-back press results","battle-observation-loop-v1":"Battle observation loop","ineffective-loops-v1":"Ineffective loops"} as const;
  const tracked=new Map(Object.keys(files).map(id=>[id,readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)))]));
  for(const [id,bytes] of tracked)writeFileSync(join(docs,`${id}.html`),bytes);
  const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);

@@ -6,6 +6,7 @@ Cause: `lanesSvg` draws everything in one SVG with `viewBox="0 0 1000 H"` and `p
 
 ## M1
 
-- [x] RED: `timeline.test.ts` asserts the SVG holds no `<text>`, lane labels, axis labels and press labels are HTML spans positioned in percent over a `lanes-wrap`, and the CSS positions them absolutely; existing label assertions now look for `</span>`.
-- [ ] GREEN: move the three text kinds out of the SVG into a `lanes-text` overlay; restyle with `color`/`text-shadow`.
-- [ ] Browser check at normal and very wide widths; review (Claude, Grok, Codex); land; restart via the coordinator.
+- [x] RED: `timeline.test.ts` asserts the SVG holds no `<text>`, lane labels, axis labels and press labels are HTML spans positioned in percent over a `lanes-wrap`, and the CSS positions them absolutely; existing label assertions now look for `</span>`. COMMIT: `test(viewer): RED timeline text stays out of the stretched SVG` (680f5b6c)
+- [x] GREEN: lane labels, axis labels and press labels render as percent-positioned spans in a `lanes-text` overlay over the SVG; restyled with `color` and a `text-shadow` outline; 9px under 600px wide. Viewer: 67 files, 905 tests pass; coverage 95.32 / 91.10 / 93.63; tsc and eslint clean.
+- [x] Browser check on real cook-run events (check page under `runs/mockups/timeline-text-check/`, deleted after): at 2400px wide the "presses" label measured 89.7×12.6px before (stretched) and 38.5×12.5px after (natural), centered on its lane (label mid 137.0 vs lane mid 137.0), SVG has 0 `<text>`, "now" stays inside the panel. At 375px: no sideways scroll; long labels such as "milestones" run up to 12px past the plot start, where before they were squeezed to fit.
+- [ ] Review (Claude, Grok, Codex); land; restart via the coordinator.

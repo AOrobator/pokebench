@@ -72,8 +72,8 @@ No new inputs, files, processes or network. Fixtures are trimmed copies of a loc
 - [x] Explainer(s) + FEATURE_EXPLAINERS mapping (bf04fe56)
 - [x] Gates: test, lint, build, coverage (90), verify-vendor (05142168; lint's mypy with the main checkout's mGBA venv)
 - [x] Principles self-review (zero FAIL)
-- [ ] Review: Claude, Codex, Grok — LGTM each (round 1: Grok LGTM, Codex BLOCKING, Claude unavailable via Cursor; fixes below)
-- [ ] Merge main, re-run gates, local merge into main
+- [x] Review: Claude, Codex, Grok — LGTM each (round 11 on 72ef2113)
+- [ ] Merge main, re-run gates, local merge into main — handed to the coordinator (worktree sessions cannot run git in the main checkout)
 
 ## Closing the Loop
 
@@ -205,6 +205,27 @@ Merge locally after all lanes LGTM. No pending experiment entry (amendment 2). R
 - Merge commit fb0a403e (main parent 71402ebd). Gates at fb0a403e, all exit 0 (main's pytest breakage is fixed there): build; test agent 1715, viewer 910, pytest 2297 passed; lint incl. mypy (80 files); coverage agent lines 99.17 / branches 94.59 / functions 98.41 (loop-detection.ts 98.62 / 96.91 / 100; press-result.ts 100 / 98.15 / 100), viewer 97.62 / 91.1 / 93.63, python 97.36 / 93.22 / 100; verify-vendor OK.
 
 - Receipts commit 268fff52. 2026-10-16 11:50 AM EDT: review round 10 (packet 71402ebd..268fff52, SHA-256 9391459d…6241). Claude CLI LGTM. Grok BLOCKING: an escape to a new place recovered the episode but kept the old push-backs, so one more push-back re-warned at once. Fix: an escape empties the push-back count; the place-window test now also needs three new push-backs for the next warning (red with the clear removed; restored). Codex BLOCKING: bundle-v-control's arms do not turn the three switches on. That manifest is the coordinator's and is edited after this branch lands (the brief forbids this branch to touch it; the switches must exist on main first); recorded as the hand-off, not changed here.
+
+- Fix commit 72ef2113. Gates at 72ef2113, all exit 0: build; test agent 1715, viewer 910, pytest 2297; lint incl. mypy (80 files); coverage agent lines 99.17 / branches 94.59 / functions 98.41 (loop-detection.ts 98.62 / 96.92 / 100; press-result.ts 100 / 98.15 / 100), viewer 97.62 / 91.1 / 93.63, python 97.36 / 93.22 / 100; verify-vendor OK.
+- 2026-10-16 12:30 PM EDT: review round 11 (packet 71402ebd..72ef2113, SHA-256 e69e2a88…c901): Claude CLI LGTM, Grok LGTM, Codex LGTM (its first process was ended by SIGTERM mid-review with no verdict; re-run on the same frozen head). HEAD and status unchanged across the round. **Reviewed head: 72ef2113.**
+- Landing: the coordinator lands it (worktree sessions cannot run git in the main checkout). Main had moved 80 commits past 71402ebd by then (worklog archiving, briefing-exits / people-ledger / untaken-exits switches), so the landing merge will meet the same mechanical registry/preset/position conflicts as before; the recipe is in this log (main's side first, this branch's three switches appended after main's last, positions recomputed from the built registry). After landing: turn `pushback-loop-detection-v1`, `pushback-press-result-v1` and `battle-observation-loop-v1` ON in both arms of experiments/fixed/bundle-v-control.json (coordinator-owned; not edited here), and restart the viewer with `just viewer-main` (not done here per the brief).
+- Explainers also copied to runs/mockups/<id>/<id>.html for the local pages server (200 on 127.0.0.1:8791).
+
+## Multi-Model Review Log (summary)
+
+| Round | Packet | Claude | Grok | Codex |
+|---|---|---|---|---|
+| 1 | 917fd9a1..05142168 | unavailable (Cursor usage limits) | LGTM | BLOCKING (4) |
+| 2 | 917fd9a1..d204eed7 | BLOCKING (gates receipt) | LGTM | BLOCKING (2) |
+| 3 | f46346a3..e38de393 | LGTM | BLOCKING (wrong base) | BLOCKING (act errors) |
+| 4 | 1e1feec9..031a0717 | LGTM | LGTM | BLOCKING (menu locks) |
+| 5 | 5fd00072..506b3661 | LGTM | LGTM | BLOCKING (status, fixtures) |
+| 6 | 6d2be8af..35d14d24 | LGTM | LGTM | LGTM |
+| 7 | 08fadf73..6615d169 | LGTM | LGTM (re-run) | LGTM (re-run) |
+| 8 | 9e84ba4d..70a1e53d (M4) | BLOCKING | LGTM | BLOCKING (2) |
+| 9 | 76784654..a89def37 | BLOCKING | LGTM | BLOCKING (2) |
+| 10 | 71402ebd..268fff52 | LGTM | BLOCKING | BLOCKING (manifest hand-off) |
+| 11 | 71402ebd..72ef2113 | LGTM | LGTM | LGTM (re-run after SIGTERM) |
 
 ## Surprises
 

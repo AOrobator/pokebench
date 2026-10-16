@@ -62,8 +62,14 @@ export function sheetHtml(input: HeadInput, startedAt: (iso: string) => string):
   const others = input.others.length === 0
     ? `<p class="rs-empty">No other run is live right now.</p>`
     : input.others.map((run) => {
-      const title = run.cohort?.id ?? run.model ?? run.id;
       const started = run.started == null ? "" : `started ${startedAt(run.started)}`;
+      // A run in the watched run's experiment would carry the same title, so it leads with what differs: its arm and trial.
+      if (run.cohort !== undefined && run.cohort.id === cohort?.id) {
+        const line = ["same experiment", started].filter((part) => part !== "").join(" · ");
+        return `<button type="button" class="rs-other" data-watch="${esc(run.id)}"><span class="rs-other-title rs-row">${armBadge(run.cohort.arm)}<span class="rh-trial">${trial(run.cohort)}</span></span>`
+          + `<span class="rs-row"><span class="rh-trial">${esc(line)}</span></span><span class="rs-go">WATCH ▸</span></button>`;
+      }
+      const title = run.cohort?.id ?? run.model ?? run.id;
       const line = [run.cohort === undefined ? "" : trial(run.cohort), started].filter((part) => part !== "").join(" · ");
       return `<button type="button" class="rs-other" data-watch="${esc(run.id)}"><span class="rs-other-title">${esc(title)}</span>`
         + `<span class="rs-row">${run.cohort === undefined ? "" : armBadge(run.cohort.arm)}<span class="rh-trial">${esc(line)}</span></span><span class="rs-go">WATCH ▸</span></button>`;

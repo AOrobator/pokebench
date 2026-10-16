@@ -95,7 +95,9 @@ runs-prune percent: build
 view run_id="": build
     node packages/viewer/dist/cli.js {{quote(run_id)}}
 
-# Restart the long-lived viewer on 8790 from a clean worktree at main. Run after every merge.
+# Restart the long-lived viewer on 8790 from a clean worktree at main. Run after every merge, and
+# always before a fixed-run launch check from a newer pin: a viewer built before the pin cannot read
+# the new build's events (dist/build-stamp.json names the viewer's build).
 viewer-main:
     scripts/viewer-main.sh
 
@@ -138,6 +140,7 @@ experiment-run *flags: build
 
 # Fixed-N two-arm, two-lane experiments (experiments/fixed/<id>.json): plan, check, approve
 # (operator only, interactive), run, dry-run, status, analyze, analyze-receipt.
+# After a merge to main, run `just viewer-main` before launching from the newer pin.
 fixed-run *args: build
     node packages/viewer/dist/fixed-cli.js {{args}}
 

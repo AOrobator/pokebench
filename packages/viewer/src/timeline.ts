@@ -32,8 +32,8 @@ export function lanesSvg(view: RunView, nowMs: number, visible: readonly (typeof
   const x = (ms: number): number => LABEL + (W - LABEL - 8) * ((Math.max(ms, t0) - t0) / WINDOW_MS);
   const parts: string[] = [];
   const texts: string[] = [];
-  const text = (cls: string, px: number, py: number, label: string): void => {
-    texts.push(`<span class="${cls}" style="left:${f((px / W) * 100)}%;top:${f((py / H) * 100)}%">${label}</span>`);
+  const text = (cls: string, px: number, py: number, label: string, hidden = false): void => {
+    texts.push(`<span class="${cls}" style="left:${f((px / W) * 100)}%;top:${f((py / H) * 100)}%"${hidden ? ' aria-hidden="true"' : ""}>${label}</span>`);
   };
   visible.forEach((name, i) => {
     parts.push(`<rect class="lane${i % 2 === 0 ? "" : " alt"}" x="0" y="${f(i * LANE)}" width="${String(W)}" height="${f(LANE)}"/>`);
@@ -62,7 +62,7 @@ export function lanesSvg(view: RunView, nowMs: number, visible: readonly (typeof
     const label = buttons.map(button => BUTTON_LABELS[button]).join("+");
     const halfWidth = label.length * 3.5 + 4;
     const cx = Math.min(W - 8 - halfWidth, Math.max(LABEL + halfWidth, (x(start) + x(end)) / 2));
-    text("press-label", cx, pressLane * LANE + LANE / 2, esc(label));
+    text("press-label", cx, pressLane * LANE + LANE / 2, esc(label), true);
   };
   for (const press of view.presses) {
     const step = (press.hold + press.release) * FRAME_MS;

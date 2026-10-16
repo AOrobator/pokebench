@@ -139,4 +139,6 @@ it('keeps timeline text out of the stretched SVG so it never distorts at wide wi
  const css=readFileSync(join(import.meta.dirname,'../static/style.css'),'utf8');
  expect(css).toMatch(/\.lanes-wrap \{[^}]*position: relative/);
  expect(css).toMatch(/\.lanes-text span \{[^}]*position: absolute/);
+ expect(html).toMatch(/<span class="press-label" [^>]*aria-hidden="true">/);
+ expect(css.indexOf('@media (max-width: 600px) { .lanes-text')).toBeGreaterThan(css.indexOf('.lanes-text .press-label { color'));
 });

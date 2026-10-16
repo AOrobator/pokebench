@@ -5,6 +5,7 @@ import { RunView, foldUntil } from "./model.js";
 import { stepOf } from "../test-support/trace.js";
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { FEATURES } from "@pokebench/agent/features";
 import {
   FEATURE_EXPLAINERS,
   NO_DATA,
@@ -685,4 +686,14 @@ it("links the displayed place names card to its tracked explainer, which shows t
  expect(html).toContain("Mays House Sign at (12,8)");
  expect(html).toContain("Sign text \"PROF. BIRCH'S HOUSE\" at (12,8)");
  expect(html).toContain("Warp to PROF. BIRCH'S HOUSE 1F (map 1/2) at (14,8)");
+});
+
+it("links the adjacent tiles card to its tracked explainer, which shows the real-ROM line for the showcase ledge pocket",()=>{
+ expect(FEATURE_EXPLAINERS["adjacent-tiles-v1"]).toBe("adjacent-tiles-v1.html");
+ const log=new Log();log.add(0,{...START,harness_features:["live-map-v1","adjacent-tiles-v1"]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector('[data-feature="adjacent-tiles-v1"] a')?.getAttribute("href")).toBe("/explainers/adjacent-tiles-v1.html");
+ const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/adjacent-tiles-v1.html",import.meta.url)),"utf8");
+ expect(html).toContain("adjacent-tiles-v1");
+ expect(html).toContain("Next tiles: up (8,6) ledge (v), hops down only, cannot be entered from here; down (8,8) clear (.); left (7,7) clear (.); right (9,7) clear (.)");
 });

@@ -192,6 +192,16 @@ describe("durable cohort membership and metadata boundaries", () => {
     expect(fixed.runs.find(x => x.id === "2026-10-14T20-00-00_think-fast_aaaa")?.cohort).toBe("experiment:full-map");
     expect(fixed.runs.find(x => x.id === "2026-10-14T20-30-00_think-fast_bbbb")?.cohort).toBeNull();
   });
+  it("names the start save of a run that loaded a Clock set or main-menu checkpoint", async () => {
+    const r = root();
+    for (const [id, file] of [["clockrun", "CLOCK_SET.state"], ["menurun", "MAIN_MENU.state"], ["otherrun", "OTHER.state"]] as const) {
+      const log = named(); const first = log.events[0]; if (first?.type !== "run_start") throw new Error("fixture");
+      log.events[0] = { ...first, start_state: { kind: "save_state", path: `/saves/fast-text/${file}`, sha1: "a".repeat(40) } };
+      write(r, id, log);
+    }
+    const d = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000));
+    expect(["clockrun", "menurun", "otherrun"].map(id => d.runs.find(x => x.id === id)?.config?.resume)).toEqual(["CLOCK_SET", "MAIN_MENU", null]);
+  });
   it("assigns fixed-run trials to their experiment and excludes the invalid ones", async () => {
     const r = root(), ids = ["2026-10-15T21-45-05_qwen36-gpu1_7b2a", "2026-10-15T21-45-05_qwen36-gpu0_a753", "2026-10-15T22-00-05_qwen36-gpu1_9999"];
     for (const id of ids) write(r, id, named());

@@ -119,6 +119,18 @@ describe("persistent actual native frontier", () => {
     expect(milestoneStatus(older, "ROUTE_101_AFTER_HANDOFF")).toBe("unsupported");
     expect(milestoneStatus(recorded, "ROUTE_101_AFTER_HANDOFF")).toBe("not reached");
   });
+  it("plots a main-menu-save start as a New Game run, tagged, and keeps it out of the fresh-boot record", () => {
+    const menu = measured("menu", [60000, 90000, 120000]);
+    if (menu.config === null) throw new Error("config");
+    menu.config = { ...menu.config, start: "save_state", resume: "MAIN_MENU" };
+    expect(frontierReferences([human(), best(), menu]).best?.id).toBe("dea1");
+    document.body.innerHTML = frontierPlot(frontierReferences([human(), best()]), [menu], 900);
+    const first = document.querySelector('[data-run="menu"]');
+    expect(first).not.toBeNull();
+    expect(first?.getAttribute("aria-label")).toContain("started from the main-menu save (text speed FAST), not power-on");
+    expect(document.querySelector('polyline[data-series="menu"]')?.getAttribute("stroke-dasharray")).toBeNull();
+    expect(document.querySelector('[data-resume="MAIN_MENU"]')).toBeNull();
+  });
   it("draws a Clock set resume as a dashed not-from-zero line and keeps it out of the fresh-boot record", () => {
     const resumed = measured("clock", [90000, null, 5000, 120000]);
     if (resumed.config === null) throw new Error("config");

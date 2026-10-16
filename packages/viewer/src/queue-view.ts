@@ -147,7 +147,7 @@ function gatePip(t: GateView["trials"][number], finalists: readonly string[]): s
 }
 // The winner gate (operator 2026-10-15): finalists run from boot before anything new starts.
 // Withdrawn finals are past work: they fold into a closed entry that still offers RESUME FINALS.
-function gateCard(s: QueueSnapshot, controls: boolean, paused: string | null): string {
+function gateCard(s: QueueSnapshot, controls: boolean, paused: string | null, open: ReadonlySet<string>): string {
   if (s.gate.length === 0 && s.incumbent === null) return "";
   const rows = s.gate.map((g) => {
     const arms = g.finalists.map((f) => f.arm);
@@ -159,7 +159,7 @@ function gateCard(s: QueueSnapshot, controls: boolean, paused: string | null): s
       `<dt>finals</dt><dd>${String(g.finals.runsPerArm)} runs each from boot, ${String(Math.round(g.finals.maxWallMs / 60_000))} min${g.finals.target === null ? "" : `, stop at ${esc(g.finals.target)}`}</dd>${verdicts}</dl>`;
     if (g.state === "withdrawn") {
       const done = g.trials.filter((t) => t.state === "done").length;
-      return `<details class="eq-gate eq-g-withdrawn eq-past" data-gate="${esc(g.experiment)}"><summary class="eq-gate-head"><span class="eq-name">PAST · ${esc(g.title.toUpperCase())} FINALS WITHDRAWN after ${String(done)} of ${String(g.trials.length)} runs</span></summary>${actionsHtml}${body}</details>`;
+      return `<details class="eq-gate eq-g-withdrawn eq-past" data-gate="${esc(g.experiment)}"${open.has(`gate:${g.experiment}`) ? " open" : ""}><summary class="eq-gate-head" data-toggle="gate:${esc(g.experiment)}"><span class="eq-name">PAST · ${esc(g.title.toUpperCase())} FINALS WITHDRAWN after ${String(done)} of ${String(g.trials.length)} runs</span></summary>${actionsHtml}${body}</details>`;
     }
     return `<article class="eq-gate eq-g-${esc(g.state)}" data-gate="${esc(g.experiment)}"><div class="eq-gate-head"><span class="eq-name">${esc(g.title.toUpperCase())} <span class="eq-st eq-${esc(g.state)}">${esc(GATE_LABEL[g.state] ?? g.state.toUpperCase())}</span></span>${actionsHtml}</div>${body}</article>`;
   }).join("");
@@ -204,11 +204,11 @@ export function renderQueue(s: QueuePayload, filter: QueueFilter, open: Readonly
   const showQueue = filter !== "pending" && filter !== "closed";
   const queued = s.queue.filter((v) => filter === "all" || v.state === filter).sort((a, b) => approvedFirst(a) - approvedFirst(b));
   const closed = filter === "all" || filter === "closed" ? s.closed : [];
-  // An unfinished fixed-run experiment holds the GPUs, so it is what the idle queue waits on.
-  const paused = (s.fixedRuns ?? []).find((f) => f.state !== "finished")?.title ?? null;
+  // A live fixed-run runner (running, or waiting for the lease) holds the GPUs, so it is what the idle queue waits on.
+  const paused = (s.fixedRuns ?? []).find((f) => f.runnerAlive && (f.state === "running" || f.state === "waiting"))?.title ?? null;
   const runnerMessage = s.autorun?.state === "idle" && paused !== null ? `Paused while the fixed-run experiment ${esc(paused)} runs.` : esc(s.autorun?.message ?? "");
   const runner = s.autorun === undefined || s.autorun === null ? "" : `<p class="eq-runner eq-runner-${s.autorun.state}">QUEUE RUNNER · ${s.autorun.state.toUpperCase()} · ${runnerMessage}</p>`;
-  const queue = fixedRunCards(s.fixedRuns ?? []) + runner + (notice === null ? "" : `<p class="eq-notice" role="alert">${esc(notice)}</p>`) + (showQueue ? gateCard(s, controls, paused) : "") + (showQueue ? (queued.length === 0 ? `<p class="eq-empty">${filter === "all" ? "Nothing is queued. Experiments join the queue once models reliably reach the milestone each one acts on." : "No experiments in this state."}</p>` : queued.map((v) => slot(v, open.has(v.id), controls)).join("")) : "") +
+  const queue = fixedRunCards(s.fixedRuns ?? []) + runner + (notice === null ? "" : `<p class="eq-notice" role="alert">${esc(notice)}</p>`) + (showQueue ? gateCard(s, controls, paused, open) : "") + (showQueue ? (queued.length === 0 ? `<p class="eq-empty">${filter === "all" ? "Nothing is queued. Experiments join the queue once models reliably reach the milestone each one acts on." : "No experiments in this state."}</p>` : queued.map((v) => slot(v, open.has(v.id), controls)).join("")) : "") +
     (closed.length === 0 ? "" : `<h4 class="eq-sub">DONE</h4>${closed.map((v) => slot(v, open.has(v.id))).join("")}`) +
     (s.problems.length === 0 ? "" : `<pre class="eq-problems">${s.problems.map(esc).join("\n")}</pre>`);
   const showPending = filter === "all" || filter === "pending" || (filter === "blocked" && s.pending.some((v) => v.state === "blocked"));
@@ -255,6 +255,8 @@ export class QueuePanel {
       }
       const toggle = target.closest<HTMLElement>("[data-toggle]")?.dataset["toggle"];
       if (toggle === undefined) return;
+      // A <summary> would also toggle its <details> natively; the re-render owns the open state.
+      if (target.closest("summary") !== null) event.preventDefault();
       if (this.open.has(toggle)) this.open.delete(toggle);
       else this.open.add(toggle);
       this.render();

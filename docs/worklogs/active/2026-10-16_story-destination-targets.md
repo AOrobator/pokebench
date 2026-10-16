@@ -48,11 +48,22 @@ Read-only GET on the loopback game server; reads ROM and the save block under th
 - [ ] Principles self-review; cloud review (Claude, Grok, Codex) until LGTM; sync with main before the final round
 
 ## Closing the Loop
+- Tests: recorded-event replays (4caa T138/T272/T273/T107, sh02 T74/T75), rules, OFF identity, factory, wiring-removal (red then green), registry, reader; Python reader on synthetic ROM and the operator's ROM (every warp of all 518 maps checked against the map data).
+- Live, real game server (worktree build, real ROM, copied save state `battle-text-qualify/states/town-before-rival-door.state`, scratch port 18931 and scratch run dir, stopped and deleted afterwards), 2026-10-16 ~3:20 PM EDT: `StateWatcher.places()` read 518 maps; `withStoryDestinations` on a real /pokebench/observation with a MAY LAB line printed, with the server's default switches, `- "LAB" = LITTLEROOT TOWN PROFESSOR BIRCHS LAB (map 1/4). Way in: door on this map at (7,16).` and `MAY (spoke the line): the readout does not say where.` (displayed names and character presence off, so the names and presence follow the readout); with the server switches on, `- "LAB" = PROF. BIRCH'S POKéMON LAB (map 1/4). Way in: door on this map at (7,16).` and `MAY (spoke the line): not on this map.` Script: `packages/agent/test-support/live-story-destinations.ts`.
+- Explainer: `just pages-check` silent; opened at 1280, 1440 and 375 in the browser pane; figures scroll on the phone instead of shrinking.
+- Not proven: a model run with the switch on (needs operator approval); the viewer surfaces (the block is tool-result text, shown where every tool result is shown; no new event type, nothing on the TIMELINE); `just viewer-main` not run (coordinator's instruction).
 
 ## Session Log
-- 2026-10-16 (New York): worklog drafted from the operator's go-ahead.
+- 2026-10-16 ~2:50 PM EDT: worklog drafted from the operator's go-ahead (relayed by the coordinator).
+- 2026-10-16 ~3:00 PM EDT: RED committed (8da6cd03).
+- 2026-10-16 ~3:15 PM EDT: GREEN, explainer, pending experiment, measurement, gates.
+  COMMIT: `feat: story-destinations-v1 resolves the latest story line's place from the game's map table into a door or edge, and places the people it names` (e1640dd0)
+- 2026-10-16 ~3:25 PM EDT: live game-server check; explainer figures scroll on phones.
 
 ## Surprises
+- The vendor's porymap copy of the map data disagrees with the ROM (and pret 731ad5b) on LavaridgeTown_Gym_1F/B1F warps; the ROM is the source, the test records the two exceptions.
+- "WALLY lives" resolves: PETALBURG CITY WALLYS HOUSE is a map of its own.
+- 6 of the 13 recent runs are control-arm runs without dialogue auto-advance, so they have no page records and the switch (which needs it) shows nothing there.
 
 ## Multi-Model Review Log
 

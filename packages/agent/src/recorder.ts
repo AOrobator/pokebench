@@ -76,6 +76,10 @@ function toolResultPayload(result: unknown): ToolResultPayload {
   return { content: result.content as (TextContent | ImageContent)[] };
 }
 
+export function requireRoute103Field(required:boolean,state:{readonly route103_rival?:unknown}):void {
+  if(required&&state.route103_rival===undefined)throw new RecorderError("Declared route103-rival-splits-v1 but the game server returned no route103_rival state; check the Python reader deployment.");
+}
+
 export class RunRecorder {
   private readonly log: RunLog;
   private readonly frames: FrameStore;
@@ -93,6 +97,7 @@ export class RunRecorder {
   private storyRequired = false;
   private rawRamRequired = false;
   private activityEnabled=false;
+  private route103Required=false;
   private nativeActionsEnabled=false;
   private nativeActionCursor=0;
   private nativeActionFrame=0;
@@ -146,6 +151,7 @@ export class RunRecorder {
   recordState(state: GameStateSnapshot): Extract<Extract<RunEvent, { type: "state" }>, { started: boolean }> {
     if (this.rawRamRequired && state.raw_ram === undefined) throw new RecorderError("Declared full-raw-ram-v1 but the server returned no raw RAM archive reference");
     if (this.storyRequired && state.story === undefined) throw new RecorderError("Declared story-state-v1 but the game server returned no story state; check the Python reader deployment.");
+    requireRoute103Field(this.route103Required,state);
     if(this.activityEnabled&&(state.game_stats===undefined||state.blackout_active===undefined||state.party.some(mon=>mon.identity===undefined)))throw new RecorderError("Declared native-progress-activity-v1 but the game server returned incomplete native activity state; check the Python reader deployment.");
     const event = this.append({ type: "state", turn: this.turn, ...state }) as Extract<Extract<RunEvent, { type: "state" }>, { started: boolean }>;
     if (this.milestones.observe !== undefined) this.recordMilestones(this.milestones.observe(state, event.seq));
@@ -163,6 +169,7 @@ export class RunRecorder {
     this.rawRamRequired = meta.harness_features.includes("full-raw-ram-v1");
     this.storyRequired = meta.harness_features.includes("story-state-v1");
     this.activityEnabled=meta.harness_features.includes("native-progress-activity-v1");
+    this.route103Required=meta.harness_features.includes("route103-rival-splits-v1");
     this.battleEnabled=meta.harness_features.includes("battle-choices-v1");
     this.nativeActionsEnabled=meta.harness_features.includes("native-action-history-v1");
     this.append({ type: "run_start", turn: 0, ...meta });

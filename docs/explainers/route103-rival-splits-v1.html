@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Route 103 Rival Splits</title>
+<style>
+:root { --bg:#f4f7fa; --card:#fff; --ink:#22303c; --muted:#5a6b7a; --line:#c9d4de; --yes:#2f7d4f; --no:#b0413e; --accent:#3a6ea5; --box:#e8eef4; }
+@media (prefers-color-scheme: dark) { :root { --bg:#141a20; --card:#1d252d; --ink:#e3e9ee; --muted:#9aabb9; --line:#3a4651; --yes:#6cc28f; --no:#e07a76; --accent:#7fb0e6; --box:#26303a; } }
+body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.6 system-ui, -apple-system, sans-serif; }
+main { max-width:900px; margin:0 auto; padding:24px 16px 60px; }
+h1 { font-size:24px; margin:0 0 6px; } h2 { font-size:18px; margin:32px 0 8px; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; overflow-x:auto; }
+figcaption { color:var(--muted); font-size:13px; margin-top:8px; }
+svg text { fill:var(--ink); font:12px system-ui, sans-serif; } svg .muted { fill:var(--muted); } svg .yes { fill:var(--yes); }
+table { border-collapse:collapse; width:100%; font-size:14px; } td, th { border-bottom:1px solid var(--line); padding:6px 8px; text-align:left; vertical-align:top; }
+code { font-size:13px; }
+</style></head><body><main>
+<h1>Route 103 rival splits</h1>
+<p>Feature <code>route103-rival-splits-v1</code> adds five frontier points between <b>Route 103</b> and <b>Pokédex</b>. Before it, the frontier jumped from reaching Route 103 straight to one point called "Rival battle", which in fact fires only after the rival's post-battle talk. All five are measurement only: the model is never told about them.</p>
+
+<h2>What the game records, in order</h2>
+<figure class="card"><svg viewBox="0 0 860 200" width="860" role="img" aria-label="Rival battle timeline from a recorded run">
+<g>
+<rect x="10" y="40" width="150" height="64" rx="8" fill="var(--box)" stroke="var(--accent)" stroke-width="2"/><text x="20" y="62">Battle starts</text><text x="20" y="80" class="muted">opponent 0 → 535</text><text x="20" y="96" class="muted">frame 148,843</text>
+<rect x="180" y="40" width="150" height="64" rx="8" fill="var(--box)" stroke="var(--accent)" stroke-width="2"/><text x="190" y="62">Rival beaten</text><text x="190" y="80" class="muted">flag 0x717 set</text><text x="190" y="96" class="muted">frame 151,983</text>
+<rect x="350" y="40" width="150" height="64" rx="8" fill="var(--box)" stroke="var(--line)"/><text x="360" y="62">Sends you back</text><text x="360" y="80" class="muted">flag 0x82, lab 4</text><text x="360" y="96" class="muted">frame 152,367</text>
+<rect x="520" y="40" width="100" height="64" rx="8" fill="var(--box)" stroke="var(--accent)" stroke-width="2"/><text x="530" y="62">Oldale</text><text x="530" y="80" class="muted">rival 1 → 2</text>
+<rect x="640" y="40" width="100" height="64" rx="8" fill="var(--box)" stroke="var(--accent)" stroke-width="2"/><text x="650" y="62">Route 101</text><text x="650" y="80" class="muted">lab 4</text>
+<rect x="760" y="40" width="90" height="64" rx="8" fill="var(--box)" stroke="var(--accent)" stroke-width="2"/><text x="770" y="62">Littleroot</text><text x="770" y="80" class="muted">lab 4</text>
+</g>
+<g fill="none" stroke="var(--ink)" stroke-width="1.5"><path d="M160 72 H176"/><path d="M330 72 H346"/><path d="M500 72 H516"/><path d="M620 72 H636"/><path d="M740 72 H756"/></g>
+<text x="10" y="140" class="yes">Blue boxes are the new splits. The grey box is the existing RIVAL_BATTLE_WON, now labelled "Rival sends you back".</text>
+<text x="10" y="162" class="muted">Frames from run 2026-10-16T02-23-17_qwen36-gpu1_sh02 (cook run, May with Torchic), read from its raw RAM archive.</text>
+</svg><figcaption>About 3,100 frames separate the start of the battle from the win, and about 380 more separate the win from the flag the old split used.</figcaption></figure>
+
+<h2>The rules</h2>
+<div class="card"><table>
+<tr><th>Split</th><th>Game state (pokeemerald 731ad5bf)</th><th>Does not count</th></tr>
+<tr><td>Rival battle starts<br><code>RIVAL_BATTLE_STARTED</code></td><td>In battle, <code>gBattleTypeFlags</code> has the trainer bit, and <code>gTrainerBattleOpponent_A</code> is one of the six Route 103 rival trainers (Brendan or May with each starter, IDs 520–535)</td><td>Wild battles, other trainers, the id left over after the battle</td></tr>
+<tr><td>Rival beaten<br><code>RIVAL_BATTLE_DEFEATED</code></td><td>That trainer's defeated flag (0x500 + id), set when the battle is won</td><td>The scene flag 0x82</td></tr>
+<tr><td>Rival sends you back<br><code>RIVAL_BATTLE_WON</code> (unchanged)</td><td><code>FLAG_DEFEATED_RIVAL_ROUTE103</code>, set by <code>Route103_EventScript_RivalEnd</code> after the talk</td><td></td></tr>
+<tr><td>Rival waits in Oldale<br><code>RIVAL_OLDALE_SEND_OFF</code></td><td><code>VAR_OLDALE_RIVAL_STATE</code> 1, then 2, on two settled Oldale states (<code>OldaleTown_EventScript_RivalFinish</code>)</td><td>Littleroot's own transition also sets 2; that never counts</td></tr>
+<tr><td>Route 101, heading back<br><code>ROUTE_101_AFTER_RIVAL_BATTLE</code></td><td>A settled state before the battle (lab 0–3), then Oldale and Route 101 at lab 4</td><td>A save that starts after the battle</td></tr>
+<tr><td>Back in Littleroot<br><code>LITTLEROOT_AFTER_RIVAL_BATTLE</code></td><td>The same witness, then Route 101 and Littleroot at lab 4</td><td>Later trips</td></tr>
+</table></div>
+<p>Each split fires once per run, at its first qualifying state. Loading and unknown screens are never used as evidence.</p>
+
+<h2>Where the data comes from</h2>
+<div class="card"><table>
+<tr><th>Path</th><th>Effect</th></tr>
+<tr><td>Python reader</td><td>New <code>route103_rival</code> field (<code>battle_active</code>, <code>defeated</code>, <code>oldale_stage</code>) next to <code>game_stats</code></td></tr>
+<tr><td>Readout text the model reads</td><td>Unchanged byte for byte</td></tr>
+<tr><td>Loop guard progress fingerprint</td><td>Unchanged: it reads <code>story</code>, and the new field is outside it</td></tr>
+<tr><td>Hints, stall clocks, objective record, STOP AT targets</td><td>The five splits are in the measurement-only set, so all of them ignore or refuse them</td></tr>
+</table></div>
+
+<h2>Older runs</h2>
+<p>The viewer derives <b>Route 101, heading back</b> and <b>Back in Littleroot</b> from recorded Birch lab states for runs that predate the feature. The other three need the new reader field, so older runs show them as not recorded.</p>
+
+<h2>Status</h2>
+<p>Branch <code>claude/rival-route103-splits</code>. Python, agent and viewer tests pass. Reviews and the merge are still pending, and no measured run has recorded the new field yet.</p>
+</main></body></html>

@@ -742,6 +742,22 @@ it("links the adjacent tiles card to its tracked explainer, which shows the real
  expect(html).toContain("adjacent-tiles-v1");
  expect(html).toContain("Next tiles: up (8,6) ledge (v), hops down only, cannot be entered from here; down (8,8) clear (.); left (7,7) clear (.); right (9,7) clear (.)");
 });
+it("links the three navigation-guidance cards to their tracked explainers",()=>{
+ const cases:readonly(readonly[string,readonly string[]])[]=[
+  ["offscreen-objects-v1",["MAY at 10,3 (out of view; where the map places this character, it may have moved)","546"]],
+  ["navigate-first-prompt-v1",["Reminder: to walk two or more tiles, call navigate_to with the destination; it finds the route for you.","# Tools"]],
+  ["presence-penalty-v1",["presence_penalty","1.5"]],
+ ];
+ for(const [id,quotes] of cases){
+  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+  const log=new Log();log.add(0,{...START,harness_features:["live-map-v1","live-object-sprites-v1","bounded-navigation-v1",id]});
+  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+  expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+  const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+  expect(html).toContain(id);
+  for(const quote of quotes)expect(html).toContain(quote);
+ }
+});
 it("links the readout rules card to its tracked explainer, which shows the real-ROM readout and the prompt section",()=>{
  expect(FEATURE_EXPLAINERS["readout-rules-in-prompt-v1"]).toBe("readout-rules-in-prompt-v1.html");
  const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/readout-rules-in-prompt-v1.html",import.meta.url)),"utf8");
@@ -750,6 +766,13 @@ it("links the readout rules card to its tracked explainer, which shows the real-
  expect(html).toContain("Map symbols and rules (the readout&#39;s map and lists use these every turn; the readout does not repeat them):");
  expect(html).toContain("4,040");
  expect(html).toContain("3,196");
+});
+
+it("links the Route 103 rival measurement card to its explainer in Harness Config",()=>{
+ const log=new Log();log.add(0,{...START,harness_features:["route103-rival-splits-v1"]});
+ const registry=(["route103-rival-splits-v1"] as const).map(id=>({id,title:"ROUTE 103 RIVAL",description:"d",group:"measurement" as const,switchable:false,needs:null}));
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),registry);
+ expect(doc.querySelector('[data-feature="route103-rival-splits-v1"] a')?.getAttribute("href")).toBe("/explainers/route103-rival-splits-v1.html");
 });
 
 it("links the battle message waiting card to its tracked explainer, which quotes the cook run's WINGULL readout before and after",()=>{

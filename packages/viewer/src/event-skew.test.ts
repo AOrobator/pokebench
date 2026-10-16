@@ -6,7 +6,9 @@ import { afterEach, describe, expect, it } from "vitest";
 import { Log, START, assistant, fullRun, state } from "../test-support/events.js";
 import { run as wbRun } from "../test-support/workbench.js";
 import { defaultViewerBuild, gitRelation, readBuildStamp, skewOf, viewerBuildAt, writeBuildStamp, type ViewerBuild } from "./build-stamp.js";
-import { workbenchSnapshot } from "./workbench-store.js";
+import { createWorkbenchLoader, loadRun, workbenchSnapshot, type LoadedRun } from "./workbench-store.js";
+import { createWorkbenchStore, type RunStore } from "./baseline-store.js";
+import { handleBaselineRequest } from "./baseline-worker.js";
 import { currentRunHtml } from "./workbench-view.js";
 import { startViewer, type Viewer } from "./server.js";
 
@@ -33,7 +35,7 @@ function write(r: string, id: string, lines: readonly string[]): string {
   mkdirSync(join(r, id)); const p = join(r, id, "events.jsonl");
   writeFileSync(p, lines.map(l => l.replace('"run":"newer"', `"run":"${id}"`)).join("\n") + "\n"); return p;
 }
-const snapshot = (r: string, build: ViewerBuild | null) => workbenchSnapshot(r, () => Promise.resolve(true), now, join(dirname(r), "experiments"), build);
+const snapshot = (r: string, build: ViewerBuild | null, store?: RunStore<LoadedRun>) => workbenchSnapshot(r, () => Promise.resolve(true), now, join(dirname(r), "experiments"), createWorkbenchLoader({ build, ...(store === undefined ? {} : { store }) }));
 
 describe("viewer build stamp", () => {
   it("writes the build's commit and cleanliness from git and reads it back", () => {
@@ -119,10 +121,26 @@ describe("a run from a newer build than the viewer", () => {
     expect(by("end")?.problem).toContain("invalid run_end event");
     expect(by("envelope")?.problem).toContain("line 4: invalid state event");
   });
-  it("re-reads the run when the viewer build changes", async () => {
+  it("keys persisted runs by the viewer build, so another build never reuses them", async () => {
+    const r = root(), lines = newerRun();
+    lines.push(JSON.stringify({ v: 1, run: "newer", seq: 5, t: "2026-10-11T22:00:06.000-04:00", turn: 1, type: "run_end", reason: "budget", furthest_milestone: "PLAYER_NAME_CONFIRMED", turns: 1, wall_ms: 6000, tokens: { input: 500, output: 100 }, frames: { saved: 0, bytes: 0 } }));
+    write(r, "newer", lines);
+    const store = createWorkbenchStore(join(dirname(r), "cache"));
+    expect((await snapshot(r, same, store)).runs[0]?.status).toBe("invalid");
+    expect((await snapshot(r, older, store)).runs[0]).toMatchObject({ status: "ended", problem: expect.stringContaining("restart the viewer") as unknown });
+    expect((await snapshot(r, older, store)).runs[0]?.status).toBe("ended");
+    expect((await snapshot(r, same, store)).runs[0]?.status).toBe("invalid");
+  });
+  it("gives a worker the build stamp as plain data and refuses a malformed one", () => {
     const r = root(); write(r, "newer", newerRun());
-    expect((await snapshot(r, same)).runs[0]?.status).toBe("invalid");
-    expect((await snapshot(r, older)).runs[0]?.status).toBe("live");
+    const stamp = { commit: OLDER, dirty: false };
+    expect(handleBaselineRequest({ id: 1, kind: "workbench", runsRoot: r, runId: "newer", viewer: stamp })).toEqual({ id: 1, outcome: loadRun(r, "newer", stamp) });
+    expect(loadRun(r, "newer", stamp).skew).toEqual({ commit: RUN_COMMIT, dirty: false, count: 1, first: "line 4: invalid state event at /position: unexpected property battler_0_ready" });
+    expect(loadRun(r, "newer", stamp).run.problem).toBeNull();
+    expect(loadRun(r, "newer").run.status).toBe("invalid");
+    expect(loadRun(r, "newer", { commit: RUN_COMMIT, dirty: false }).run.status).toBe("invalid");
+    expect(handleBaselineRequest({ id: 2, kind: "workbench", runsRoot: r, runId: "newer", viewer: { commit: "x", dirty: false } })).toEqual({ id: -1, failure: "invalid baseline request" });
+    expect(handleBaselineRequest({ id: 3, kind: "workbench", runsRoot: r, runId: "newer", viewer: 7 })).toEqual({ id: -1, failure: "invalid baseline request" });
   });
   it("shows the problem on the current-run plate", () => {
     const html = currentRunHtml([wbRun({ status: "live", problem: "viewer build 308ddd3 is older than this run's build 0123456: restart the viewer (just viewer-main) <x>" })], 1000, 2000, null);

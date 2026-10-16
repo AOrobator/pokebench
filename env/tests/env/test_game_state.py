@@ -17,6 +17,7 @@ from pokebench_env.game_state import (
 from pokebench_env.party_ownership import PartyOwnership
 from pokebench_env.pokemon import PokemonMove
 from pokebench_env.resources import BAG_POCKETS, BerryTree, PokemonStorage, Resources
+from pokebench_env.route103_rival import Route103Rival
 from pokebench_env.running import read_running_permission
 from pokebench_env.story import INITIAL_TRAINER_FLAGS, StoryState
 
@@ -176,6 +177,7 @@ def test_overworld_reports_every_field_from_the_save_blocks() -> None:
             "evolved_pokemon": 0,
             "used_pokecenter": 0,
         },
+        route103_rival=Route103Rival(battle_active=False, defeated=False, oldale_stage=0),
         story_characters=StoryCharacters(
             here=(),
             absent=("PROF. BIRCH", "MAY", "BRENDAN", "MOM", "NORMAN", "WALLY", "ROXANNE", "STEVEN"),

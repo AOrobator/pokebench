@@ -14,6 +14,8 @@ from pokebench_env.battle_triage import SWITCH as TRIAGE
 from pokebench_env.battle_triage import battle_triage_lines, field_triage_line
 from pokebench_env.game_state import GameState
 from pokebench_env.map_rules import FEATURE as RULES_FEATURE
+from pokebench_env.offscreen_objects import SWITCH as OFFSCREEN
+from pokebench_env.offscreen_objects import offscreen_text
 
 SERVER_FEATURES = (
     "expanded-menu-battle-information-v1",
@@ -45,6 +47,7 @@ SERVER_FEATURES = (
     "battle-triage-guidance-v1",
     "adjacent-tiles-v1",
     "readout-rules-in-prompt-v1",
+    "offscreen-objects-v1",
 )
 
 
@@ -54,7 +57,8 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "named-interactions-v1,world-destinations-v1,bounded-navigation-v1,expanded-menu-battle-information-v1,field-dialogue-phase-v1,full-map-navigation-v1,named-warp-destinations-v1,character-presence-v1,battle-details-v2,warp-arrival-settle-v1,displayed-place-names-v1,"
         "battle-triage-guidance-v1,"
         "adjacent-tiles-v1,"
-        "readout-rules-in-prompt-v1",
+        "readout-rules-in-prompt-v1,"
+        "offscreen-objects-v1",
     )
     if raw == "":
         return frozenset()
@@ -352,8 +356,20 @@ def format_readout(
         )
         if context != "":
             lines.append(context)
+    # offscreen-objects-v1: the map's objects the window above leaves out, and their tiles.
+    offscreen = (
+        state.offscreen_objects
+        if OFFSCREEN not in off and "live-object-sprites-v1" not in off
+        else None
+    )
+    if offscreen is not None and state.map_id is not None:
+        lines.append(offscreen_text(offscreen, state.map_id))
     if state.story_characters is not None and "character-presence-v1" not in off:
-        lines.append(state.story_characters.text())
+        lines.append(
+            state.story_characters.text(
+                None if offscreen is None else {o.local_id: o for o in offscreen}
+            )
+        )
     if state.interaction_targets is not None and "world-targets-v1" not in off:
         lines.append("Map interaction candidates (world coordinates; flags/scripts may gate use):")
         lines.extend(

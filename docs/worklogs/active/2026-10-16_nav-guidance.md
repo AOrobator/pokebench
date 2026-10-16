@@ -47,11 +47,11 @@ Read-only RAM reads already used by character presence. No new network, file or 
 ## Milestones
 
 **M1 — offscreen-objects-v1**
-- [ ] RED: Python readout tests on cook #2 raw RAM (T416 state 4588: OFF bytes equal recorded; ON lists MAY at (10,3) and the other unflagged templates; hidden templates absent; live objects not duplicated); story-characters line ON/OFF; registry/presets/SERVER_FEATURES/default-off both stacks; production route test
-- [ ] COMMIT: `test(RED): ...`
-- [ ] GREEN + gates (`just test` counts, lint, build, coverage ≥90, verify-vendor)
-- [ ] COMMIT: `feat: ...`
-- [ ] Real-ROM re-render over cook #2 Route 103 states, OFF equal to recorded
+- [x] RED: Python readout tests on cook #2 raw RAM (T416 state 4588: OFF bytes equal recorded; ON lists MAY at (10,3) and the other unflagged templates; hidden templates absent; live objects not duplicated); story-characters line ON/OFF; registry/presets/SERVER_FEATURES/default-off both stacks; production route test
+- [x] COMMIT: `test(RED): ...` (b2c91d88)
+- [x] GREEN + gates (`just test` counts, lint, build, coverage ≥90, verify-vendor)
+- [x] COMMIT: `feat: ...`
+- [x] Real-ROM re-render over cook #2 Route 103 states, OFF equal to recorded
 
 **M2 — navigate-first-prompt-v1**
 - [ ] RED: prompt OFF byte-identical, ON sections; navigate_to description ON/OFF; press reminder on the third direction-only press, not after navigate_to, not in battle/menus/dialogue; factory wiring; registry counts
@@ -80,6 +80,11 @@ Done when both switches are merged after review, explainers link from Harness Co
 
 - 2026-10-16 03:46 AM EDT: M1 RED. Fixture `env/tests/env/fixtures/offscreen-objects-sh02.json`: RAM windows read while re-rendering cook #2 raw RAM 4588 (T416) and 5144 (T754), plus the tool results the model got (seqs 9618, 12495); recorded OFF set from run_start harness_features. Tests: `env/tests/env/test_offscreen_objects.py` (OFF contained in received text; T416 ON lists MAY at (10,3) and changes only the story line and the new block; BIRCH's flagged template absent; T754 MAY on screen not repeated; synthetic loaded/invisible/flag/var-graphics/invalid cases; text; story line ON/OFF; switch default off), `packages/agent/src/offscreen-objects.test.ts` (registry, server list, presets). Python: collection error (module missing); agent: 3 failing.
   COMMIT: `test(RED): offscreen-objects-v1 lists people and objects the local map does not show (cook run #2 MAY at T416)`
+- 2026-10-16 03:58 AM EDT: M1 GREEN. `env/pokebench_env/offscreen_objects.py` (templates + loaded gObjectEvents, flag-hidden and invisible skipped, window ±7 matches the Field objects list); `StoryCharacters.out_of_view` + `text(placed)`; `GameState.offscreen_objects` read only when the switch is on (state JSON unchanged); `rerender.read_state` passes it; readout block after Field objects (needs live-object-sprites-v1), one line "…: none." when empty; SERVER_FEATURES + default-off both stacks; TS registry (observation, needs live-object-sprites-v1), presets default false, DEFAULT_NEXT_RUN false; `experiments/readout-rules-in-prompt.json` incumbent gains the key (off). Registry shifts: `.at(-N)` +1 in 8 agent tests, Python SERVER_FEATURES[-N] +1 in 4 tests, observation count 22, switchboard 22/22 and 61 rows, server count 30, recorded-off sets in rerender/readout-rules/displayed-names tests.
+  - Wiring removal: dropping `offscreen_objects_enabled` in rerender → 6 red; dropping the readout append → 5 red; restored → green.
+  - Proof over cook #2 T415–T960 (546 tool results with raw RAM): OFF re-render contained in what the model got 546/546; ON adds the block on 137 and gives MAY's tile while out of view on 105, first at T415.
+  - Gates: agent 1429, viewer 821, Python 2147 passed (ROM); coverage agent 97.73/94.58/97.98/99.08, viewer 95.19/90.64/93.55/97.65, Python total 96% (offscreen_objects, character_presence, readout 100%); lint green except the known mypy `mgba._pylib`; build green.
+  COMMIT: `feat: offscreen-objects-v1 lists the map's people and objects outside the local map, with their tiles (default off)`
 
 ## Surprises
 

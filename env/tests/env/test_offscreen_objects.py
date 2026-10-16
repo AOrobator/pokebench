@@ -232,13 +232,11 @@ def test_text_lists_every_object_whole_or_says_none() -> None:
             "not loaded; where the map places it, it may have moved",
         ]
     )
-    assert offscreen_text((), MAP) == HEADER + "\n- none"
+    assert offscreen_text((), MAP) == "Off-screen people and objects on this map: none."
 
 
 def test_story_line_on_names_the_tile_off_keeps_today() -> None:
-    story = StoryCharacters(
-        here=(MAY_OFF,), absent=("MOM",), out_of_view=(("MAY", 2),)
-    )
+    story = StoryCharacters(here=(MAY_OFF,), absent=("MOM",), out_of_view=(("MAY", 2),))
     placed = {2: MapObject(2, 105, "RIVAL_MAY_NORMAL", 10, 3, False)}
     assert story.text() == (
         f"Story characters here (from this map's own object list): {MAY_OFF}. "

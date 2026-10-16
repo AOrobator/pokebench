@@ -139,7 +139,7 @@ def test_off_is_todays_readout_byte_for_byte() -> None:
         for room, kw in (("town", {}), ("house", {"player_map": (1, 2), "warp_to": (0, 9)})):
             memory = littleroot(gender, **kw)
             golden = (FIXTURES / f"displayed-names-off-{room}-{gender}-fa09dbe6.txt").read_text()
-            off = frozenset({SWITCH, "character-presence-v1"})
+            off = frozenset({SWITCH, "character-presence-v1", "offscreen-objects-v1"})
             state = read_state(memory.read, MAPS, active_ui=True, off=off)
             assert readout(state, off) == golden
             json_golden = json.loads(
@@ -239,7 +239,7 @@ def test_observation_route_applies_the_switch_from_env(monkeypatch: pytest.Monke
 
 
 def test_switch_is_a_default_off_server_feature() -> None:
-    assert SERVER_FEATURES[-4] == SWITCH
+    assert SERVER_FEATURES[-5] == SWITCH
     assert SWITCH in features_off_from_env({})
     assert SWITCH not in features_off_from_env({"POKEBENCH_FEATURES_OFF": ""})
 

@@ -91,7 +91,7 @@ GENERATED = Path(__file__).resolve().parents[3] / "packages/agent/src/map-rules.
 LEGEND = "@ player; N live object; "
 # Switches registered after the goldens were rendered at ef9244e2; OFF is their previous behavior.
 ADJACENT = "adjacent-tiles-v1"
-LATER = frozenset({"battle-triage-guidance-v1", ADJACENT})
+LATER = frozenset({"battle-triage-guidance-v1", ADJACENT, "offscreen-objects-v1"})
 
 
 def golden() -> list[tuple[str, frozenset[str], str]]:
@@ -236,7 +236,7 @@ def test_the_generated_table_holds_every_switch_combination(tmp_path: Path) -> N
 
 
 def test_switch_is_registered_server_side_last_and_default_off() -> None:
-    assert SERVER_FEATURES[-1] == FEATURE
+    assert SERVER_FEATURES[-2] == FEATURE
     assert FEATURE in features_off_from_env({})
     assert features_off_from_env({"POKEBENCH_FEATURES_OFF": FEATURE}) == frozenset({FEATURE})
 

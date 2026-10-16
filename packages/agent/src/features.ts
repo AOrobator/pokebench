@@ -66,6 +66,7 @@ export const SWITCHABLE_FEATURES = [
   "battle-triage-guidance-v1",
   "adjacent-tiles-v1",
   "readout-rules-in-prompt-v1",
+  "offscreen-objects-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -209,6 +210,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("battle-triage-guidance-v1", "guidance", "BATTLE TRIAGE GUIDANCE", null, "Adds a system-prompt section: a wild battle can be left with RUN, the bottom-right option of the FIGHT BAG / POKéMON RUN menu (from FIGHT: RIGHT, DOWN, A); trainer and some story battles cannot be fled; run when your active Pokémon is below half its maximum HP or the fight is not needed for a story goal; heal before tall grass with a weak Pokémon (a POKéMON CENTER nurse heals the whole party, and so does MOM at home). With the RAM readout on, the game server adds one line from RAM: in a wild battle with the battle menu open (action or move select) when your active Pokémon is below half its max HP and battle-details-v2's RUN rule allows RUN (\"Your TORCHIC has 5/20 HP (below half). This is a wild battle: RUN is allowed (bottom-right of the battle menu).\"); nothing in trainer battles, the PROF. BIRCH rescue or when trapped. On the field, when the first party Pokémon able to battle is below half HP, one line names the POKéMON CENTER nurse and MOM at home. Tools are unchanged. Off: no prompt section and no lines; prompt and readouts are byte-for-byte today's."),
   on("adjacent-tiles-v1", "observation", "ADJACENT TILES", "live-map-v1", "Adds one line directly under the map grid that names the four tiles next to the player in words, in the order up, down, left, right, with each tile's coordinates (only when the position line is shown) and its map glyph in brackets: \"Next tiles: up (8,6) ledge (v), hops down only, cannot be entered from here; down (8,8) clear (.); left (7,7) clear (.); right (9,7) clear (.)\". Each tile is named by the glyph the map draws for it under the run's other switches (ledges with ledge hops, edge walls with one-way tiles, counters with counter talk; otherwise # or .), from the same live tiles. \"Cannot be entered from here\" is said only where the game always refuses the step: a collision tile, a ledge pressed from a side other than its hop direction, an edge wall on that side, or a map edge with no connection (named only when map topology is shown). A ledge pressed its own way is named as the hop. Water is called not walkable on foot only when the game says the player is on foot. People, objects and warps are described, never called blockers, and height is never named. Off: no Next tiles line; the map block is unchanged."),
   on("readout-rules-in-prompt-v1", "observation", "READOUT RULES IN PROMPT", RAM, "Removes the fixed map rules from every readout and states them once in the system prompt, in a \"Map symbols and rules\" section built from the same text the server prints: the map legend line (@ player; N live object; W warp location ...; # collision; g grass; ~ water; plus ledges, edge walls and the ? outside-map mark only when this run's switches draw them), \"Terrain rules, elevation and objects can still block movement.\", the \"Warp destinations are ...\" note (with warp activation guidance) and \"Trigger elevation must also match the player on entry (0 matches any elevation).\" (with coordinate script conditions). In the prompt the legend says each warp's activation is listed in the readout's Warps line, and edge-wall sides in its Edge walls line. Under the map the readout keeps one line, \"Map symbols and rules: see the system prompt.\" The counter legend (= ...) depends on the map, so a map that draws a counter keeps it as its own line under that pointer; the prompt never describes it. If the whole map is unavailable and the local map is shown instead, that readout keeps its own legend and rules. Nothing else in the readout changes or moves: the Edge walls, Live objects and Warps lines, script-trigger lists and interaction candidates stay. State-only decisions have no system prompt section, so they need this switch off. Off: every readout prints the legend and rules under its map as before, and the system prompt has no map rules section."),
+  on("offscreen-objects-v1", "observation", "OFF-SCREEN PEOPLE AND OBJECTS", "live-object-sprites-v1", "Adds a block after Field objects listing every person and object the current map's own object list places on this map that the local map and Field objects list leave out because they are more than 7 tiles from the player, each with its sprite kind and tile: the tile it is on now when the game has it loaded, otherwise where the map places it (it may have moved). Objects the game hides with a story flag or makes invisible are left out. With story character presence on, an out-of-view story character gets the same tile, for example \"MAY at 10,3 (out of view; where the map places this character, it may have moved)\". Off: no such block, and out-of-view story characters read \"(on this map, out of view)\" with no tile."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",
@@ -262,7 +264,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "coordinate-script-conditions-v1", "field-control-lock", "warp-activation-guidance-v1", "ledge-hops-v1", "one-way-tiles-v1",
   "full-map-navigation-v1", "counter-talk-v1", "named-warp-destinations-v1", "character-presence-v1",
   "battle-details-v2", "warp-arrival-settle-v1", "displayed-place-names-v1", "battle-triage-guidance-v1",
-  "adjacent-tiles-v1", "readout-rules-in-prompt-v1",
+  "adjacent-tiles-v1", "readout-rules-in-prompt-v1", "offscreen-objects-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -313,6 +315,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("battle-triage-guidance-v1"),
     ...when("adjacent-tiles-v1"),
     ...when("readout-rules-in-prompt-v1"),
+    ...when("offscreen-objects-v1"),
   ];
 }
 

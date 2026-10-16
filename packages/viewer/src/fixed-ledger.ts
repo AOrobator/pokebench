@@ -175,7 +175,8 @@ export interface TrialExpectation {
   readonly primary: string;
   // Absent for cohorts run before this driver: their configuration is not checked.
   readonly presetId?: string;
-  readonly startSha1?: string;
+  readonly start?: { readonly kind: "save_state"; readonly sha1: string } | { readonly kind: "boot" };
+  readonly romSha1?: string;
   readonly port?: number;
   readonly model?: string;
   // The arm's value of every switch and every off-in-both flag.
@@ -197,7 +198,10 @@ function configProblems(start: Parsed, expect: TrialExpectation): string[] {
   if (preset !== expect.presetId) problems.push(`preset ${preset} (planned ${expect.presetId})`);
   else if (evaluation["reply_failures_end_run"] !== false) problems.push("preset limits do not keep reply failures from ending the run");
   if (budgets["max_wall_ms"] !== expect.maxWallMs) problems.push(`wall cap ${String(budgets["max_wall_ms"])} ms (planned ${String(expect.maxWallMs)})`);
-  if (startState["sha1"] !== expect.startSha1) problems.push(`start ${String(startState["kind"])}${typeof startState["sha1"] === "string" ? ` ${startState["sha1"]}` : ""} (planned save_state ${expect.startSha1 ?? ""})`);
+  const planned = expect.start;
+  const startMatches = planned === undefined || (planned.kind === "boot" ? startState["kind"] === "boot" : startState["kind"] === "save_state" && startState["sha1"] === planned.sha1);
+  if (!startMatches) problems.push(`start ${String(startState["kind"])}${typeof startState["sha1"] === "string" ? ` ${startState["sha1"]}` : ""} (planned ${planned?.kind === "save_state" ? `save_state ${planned.sha1}` : "boot"})`);
+  if (expect.romSha1 !== undefined && start["rom_sha1"] !== expect.romSha1) problems.push(`ROM ${typeof start["rom_sha1"] === "string" ? start["rom_sha1"] : "unrecorded"} (planned ${expect.romSha1})`);
   if (expect.port !== undefined && isolation["port"] !== expect.port) problems.push(`port ${String(isolation["port"])} (planned ${String(expect.port)})`);
   if (expect.model !== undefined && model["id"] !== expect.model) problems.push(`model ${String(model["id"])} (planned ${expect.model})`);
   if (expect.features !== undefined) {

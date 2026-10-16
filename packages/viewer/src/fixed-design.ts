@@ -19,7 +19,9 @@ const positive = Type.Integer({ minimum: 1 });
 const Name = Type.String({ pattern: "^[a-z0-9][a-z0-9-]{0,79}$" });
 
 const LaneSchema = Type.Object({ id: Type.String({ pattern: "^[A-Z]$" }), gpu: Type.String({ pattern: "^GPU[0-9]$" }), gamePort: Type.Integer({ minimum: 1024, maximum: 65535 }), modelUrl: Type.String({ minLength: 1 }) }, closed);
-const PhaseSchema = Type.Object({ id: Name, perArm: positive, maxWallMs: Type.Integer({ minimum: 60_000 }), primary: Type.Boolean() }, closed);
+// `save` starts from the definition's start save; `boot` starts from New Game.
+const PhaseStart = Type.Union([Type.Literal("save"), Type.Literal("boot")]);
+const PhaseSchema = Type.Object({ id: Name, perArm: positive, maxWallMs: Type.Integer({ minimum: 60_000 }), primary: Type.Boolean(), start: PhaseStart }, closed);
 const SlotSchema = Type.Object({ slot: positive, phase: Name, block: positive, lane: Type.String(), arm: Type.Union([Type.Literal("control"), Type.Literal("bundle")]) }, closed);
 
 const draftShape = {
@@ -29,6 +31,8 @@ const draftShape = {
   worklog: Type.String({ minLength: 1 }),
   primaryMilestone: Type.String({ minLength: 1 }),
   start: Type.Object({ kind: Type.Literal("save_state"), path: Type.String({ minLength: 1 }), sha1: Type.String({ pattern: "^[0-9a-f]{40}$" }) }, closed),
+  // Every trial, save or New Game, must record this ROM.
+  romSha1: Type.String({ pattern: "^[0-9a-f]{40}$" }),
   // The preset the control arm reproduces outside the switches and off-in-both flags, pinned by bytes.
   controlBase: Type.Object({ path: Type.String({ minLength: 1 }), presetId: Name, sha256: Type.String({ pattern: "^[0-9a-f]{64}$" }) }, closed),
   base: Type.Object({
@@ -105,7 +109,7 @@ export function armPreset(def: FixedDefinition, phaseId: string, arm: FixedArm):
     limits: { maxTurns, maxWallMs: phase.maxWallMs, failureLimit, replyFailuresEndRun },
     sampling: def.base.sampling,
     features: armFeatures(def, arm) as PlayPresetV2["features"],
-    start: def.start,
+    ...(phase.start === "save" ? { start: def.start } : {}),
   };
 }
 
@@ -203,7 +207,8 @@ export function parseFixedDefinition(text: string): { definition: FixedDefinitio
   return { definition: value, sha256: createHash("sha256").update(text).digest("hex") };
 }
 
-export function dryRunDefinition(def: FixedDefinition, wallMs: number): FixedDefinition {
-  const draft = { ...def, id: `${def.id}-dryrun`, title: `${def.title} (dry run)`, phases: [{ id: "dry-run", perArm: def.lanes.length, maxWallMs: wallMs, primary: false }], replacementReserveMs: 0 };
+export function dryRunDefinition(def: FixedDefinition, wallMs: number, phaseId: string = def.phases[0]?.id ?? ""): FixedDefinition {
+  const phase = phaseOf(def, phaseId);
+  const draft = { ...def, id: `${def.id}-dryrun-${phase.id}`, title: `${def.title} (dry run, ${phase.id})`, phases: [{ id: "dry-run", perArm: def.lanes.length, maxWallMs: wallMs, primary: false, start: phase.start }], replacementReserveMs: 0 };
   return { ...draft, plan: generatePlan(draft) };
 }

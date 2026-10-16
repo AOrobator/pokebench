@@ -9,6 +9,7 @@
   "path": "runs/launch-receipts/rival-push-checkpoint/CLOCK_SET.state",
   "sha1": "51007c05068f4059f7d97c34541e29a93bedd80b"
  },
+ "romSha1": "f3ae088181bf583e55daf962a92bb46f4f1d07b7",
  "controlBase": {
   "path": "runs/experiments/full-map-navigation/presets/finals-incumbent.json",
   "presetId": "full-map-navigation-finals-incumbent",
@@ -100,13 +101,15 @@
    "id": "confirmatory",
    "perArm": 64,
    "maxWallMs": 900000,
-   "primary": true
+   "primary": true,
+   "start": "save"
   },
   {
    "id": "cook",
    "perArm": 6,
    "maxWallMs": 3600000,
-   "primary": false
+   "primary": false,
+   "start": "boot"
   }
  ],
  "lanes": [

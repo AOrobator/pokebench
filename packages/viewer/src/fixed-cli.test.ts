@@ -149,7 +149,7 @@ describe("fixed-run check, approve, run, dry-run", () => {
     const { deps, runs, path } = setup();
     writeFileSync(path, JSON.stringify(definition()));
     expect(await main(["dry-run", "bundle-v-control", "--wall-ms", "120000"], deps)).toBe(0);
-    expect(runs[0]?.def.id).toBe("bundle-v-control-dryrun");
+    expect(runs[0]?.def.id).toBe("bundle-v-control-dryrun-confirmatory");
     expect(runs[0]?.def.phases[0]?.maxWallMs).toBe(120_000);
     expect(runs[0]?.dryRun).toBe(true);
     expect(await main(["dry-run", "bundle-v-control", "--wall-ms", "x"], deps)).toBe(1);

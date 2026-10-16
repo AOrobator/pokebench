@@ -46,7 +46,7 @@ const USAGE = [
   "       fixed-run check <id>                     validate the definition and its start save",
   "       fixed-run approve <id>                   operator only, interactive",
   "       fixed-run run <id>                       run the approved experiment (both lanes)",
-  "       fixed-run dry-run <id> [--wall-ms <ms>]  one trial per arm per lane, as <id>-dryrun",
+  "       fixed-run dry-run <id> [--phase <phase>] [--wall-ms <ms>]  one trial per arm per lane with that phase's start, as <id>-dryrun-<phase>",
   "       fixed-run status <id>",
   "       fixed-run analyze <id> [--phase <id>]",
   "       fixed-run analyze-receipt <dir> <control-arm> <treatment-arm> --cap-ms <ms> [--primary <milestone>]",
@@ -141,14 +141,21 @@ async function approve(deps: FixedCliDeps, id: string): Promise<void> {
 }
 
 // Every trial inherits the runner's environment, so a runner without the ROM would only produce invalid trials.
-function requireRom(deps: FixedCliDeps): void {
+function requireRom(deps: FixedCliDeps): string {
   if (deps.rom === undefined || deps.rom === "") throw new CliError("POKEBENCH_ROM is not set; launch with `just fixed-run`, which loads .env");
-  if (deps.sha1File(deps.rom) === null) throw new CliError(`cannot read POKEBENCH_ROM ${deps.rom}`);
+  const sha1 = deps.sha1File(deps.rom);
+  if (sha1 === null) throw new CliError(`cannot read POKEBENCH_ROM ${deps.rom}`);
+  return sha1;
+}
+
+function requireDefinitionRom(deps: FixedCliDeps, romSha1: string, def: FixedDefinition): void {
+  if (romSha1 !== def.romSha1) throw new CliError(`POKEBENCH_ROM ${deps.rom ?? ""} has sha1 ${romSha1}, the definition records ${def.romSha1}`);
 }
 
 async function run(deps: FixedCliDeps, id: string): Promise<void> {
-  requireRom(deps);
+  const rom = requireRom(deps);
   const { definition: def, sha256: digest } = load(deps, id);
+  requireDefinitionRom(deps, rom, def);
   const approval = readApproval(deps, id);
   if (approval === null) throw new CliError(`${id} is not approved; run \`just fixed-run approve ${id}\` in a terminal`);
   if (approval.definitionSha256 !== digest) throw new CliError("the definition changed since it was approved; approve it again");
@@ -158,9 +165,12 @@ async function run(deps: FixedCliDeps, id: string): Promise<void> {
 
 async function dryRun(argv: readonly string[], deps: FixedCliDeps, id: string): Promise<void> {
   const wallMs = msInt(flag(argv, "--wall-ms"), 120_000, "--wall-ms");
-  requireRom(deps);
+  const rom = requireRom(deps);
   const { definition: def } = load(deps, id);
-  const dry = dryRunDefinition(def, wallMs);
+  requireDefinitionRom(deps, rom, def);
+  const phase = flag(argv, "--phase") ?? def.phases[0]?.id ?? "";
+  if (!def.phases.some((p) => p.id === phase)) throw new CliError(`no phase ${phase}; phases: ${def.phases.map((p) => p.id).join(", ")}`);
+  const dry = dryRunDefinition(def, wallMs, phase);
   if (existsSync(join(experimentDir(deps, dry.id), "trials.jsonl"))) throw new CliError(`${dry.id} already has a ledger; move runs/experiments/${dry.id} aside first`);
   const result = await deps.run({ def: dry, definitionSha256: sha256(JSON.stringify(dry)), runsRoot: deps.runsRoot, host: deps.host(), stopRequested: deps.stopRequested ?? (() => false), pid: process.pid, dryRun: true });
   deps.out(`${dry.id}: ${result}`);

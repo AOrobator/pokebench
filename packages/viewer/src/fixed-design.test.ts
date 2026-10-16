@@ -72,15 +72,15 @@ describe("definitionProblems", () => {
   it("names lanes that share a port, a model URL or an id, and a per-arm count that lanes cannot split", () => {
     const lane = draftDefinition().lanes[0];
     if (lane === undefined) throw new Error("fixture lane");
-    const problems = definitionProblems(definition({ lanes: [lane, { ...lane }], phases: [{ id: "confirmatory", perArm: 3, maxWallMs: 900_000, primary: true }] }));
+    const problems = definitionProblems(definition({ lanes: [lane, { ...lane }], phases: [{ id: "confirmatory", perArm: 3, maxWallMs: 900_000, primary: true, start: "save" }] }));
     expect(problems).toEqual(expect.arrayContaining([
       "lane ids must be unique",
       "lanes must use distinct game ports",
       "lanes must use distinct model URLs",
       "phase confirmatory: perArm 3 is not a multiple of 2 lanes",
     ]));
-    expect(definitionProblems(definition({ phases: [{ id: "a", perArm: 2, maxWallMs: 900_000, primary: true }, { id: "b", perArm: 2, maxWallMs: 900_000, primary: true }] }))).toContain("at most one phase may be primary");
-    expect(definitionProblems(definition({ phases: [{ id: "a", perArm: 2, maxWallMs: 900_000, primary: true }, { id: "a", perArm: 2, maxWallMs: 900_000, primary: false }] }))).toContain("phase ids must be unique");
+    expect(definitionProblems(definition({ phases: [{ id: "a", perArm: 2, maxWallMs: 900_000, primary: true, start: "save" }, { id: "b", perArm: 2, maxWallMs: 900_000, primary: true, start: "save" }] }))).toContain("at most one phase may be primary");
+    expect(definitionProblems(definition({ phases: [{ id: "a", perArm: 2, maxWallMs: 900_000, primary: true, start: "save" }, { id: "a", perArm: 2, maxWallMs: 900_000, primary: false, start: "save" }] }))).toContain("phase ids must be unique");
     expect(definitionProblems(definition({ primaryMilestone: "NOT_A_MILESTONE" }))).toContain("unknown primary milestone NOT_A_MILESTONE");
     expect(definitionProblems(definition({ lanes: [{ ...lane, modelUrl: "http://10.0.0.1:8091/" }] }))).toContain("lane A: modelUrl must be http://127.0.0.1:<port> with no path");
   });

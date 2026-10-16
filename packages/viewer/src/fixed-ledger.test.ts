@@ -2,7 +2,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { appendLedger, classifyTrial, FixedLedgerError, nextFor, progress, queueState, readLedger, type FixedLedgerEntry, type FixedOutcome } from "./fixed-ledger.js";
+import { appendLedger, classifyTrial, FixedLedgerError, nextFor, progress, queueState, readLedger, type FixedLedgerEntry, type FixedOutcome, type TrialExpectation } from "./fixed-ledger.js";
 import { definition, MODEL_PATH, ROM_SHA1, START_SHA1 } from "../test-support/fixed.js";
 import { Log, START } from "../test-support/events.js";
 
@@ -106,10 +106,11 @@ describe("classifyTrial", () => {
   }
 
   it("checks a New Game phase's trials booted, and every trial's ROM, with no vacuous start check", () => {
-    const boot = { ...expectation, presetId: "bundle-v-control-cook-bundle", maxWallMs: 900_000, start: { kind: "boot" as const } };
-    const run = (startState: Record<string, unknown>, rom: string | undefined, planned = boot) => classifyTrial(text((log) => {
+    const boot: TrialExpectation = { ...expectation, presetId: "bundle-v-control-cook-bundle", maxWallMs: 900_000, start: { kind: "boot" } };
+    type StartState = { kind: "boot" } | { kind: "save_state"; path: string; sha1: string };
+    const run = (startState: StartState, rom: string | undefined, planned: TrialExpectation = boot) => classifyTrial(text((log) => {
       const { rom_sha1: _r, ...rest } = goodStart;
-      log.add(0, { ...rest, ...(rom === undefined ? {} : { rom_sha1: rom }), start_state: startState, evaluation: { ...goodStart.evaluation, preset_id: planned.presetId } });
+      log.add(0, { ...rest, ...(rom === undefined ? {} : { rom_sha1: rom }), start_state: startState, evaluation: { ...goodStart.evaluation, preset_id: planned.presetId ?? "" } });
       log.add(900_000, { ...end, reason: "budget" });
     }), planned, 0);
     expect(run({ kind: "boot" }, ROM_SHA1)).toMatchObject({ valid: true });

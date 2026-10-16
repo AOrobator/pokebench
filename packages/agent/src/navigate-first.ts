@@ -59,7 +59,10 @@ export function withNavigateFirst(tools:readonly AgentTool[],features:FeatureSet
   // Any other tool call (navigate_to, observe, ...) ends the run of presses.
   if(tool.name!=="press")return {...tool,execute:(...args:Parameters<AgentTool["execute"]>)=>{streak=0;return tool.execute(...args);}};
   return {...tool,execute:async(...args:Parameters<AgentTool["execute"]>)=>{
+   // A press that throws never ends on the free field, so it ends the run too.
+   const before=streak;streak=0;
    const result=await tool.execute(...args);
+   streak=before;
    const buttons=buttonsOf(args[1]);
    if(buttons.length===0||!buttons.every(b=>DIRECTIONS.has(b))||!freeField(stateOf(result))){streak=0;return result;}
    streak++;

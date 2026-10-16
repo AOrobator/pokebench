@@ -152,6 +152,18 @@ describe("press reminder",()=>{
   const base=fakes(()=>FIELD);
   expect(withNavigateFirst(base,{...ON,[ID]:false})).toBe(base);
  });
+ it("treats a press that throws as breaking the streak",async()=>{
+  let fail=false;
+  const press:AgentTool={name:"press",label:"press",description:"press",parameters:{},execute:()=>fail?Promise.reject(new Error("POST /action failed")):Promise.resolve({content:[{type:"text",text:"pressed"}],details:{state:FIELD}})};
+  const [wrapped]=withNavigateFirst([press],ON);
+  if(wrapped===undefined)throw new Error("press");
+  await wrapped.execute("a",{buttons:["UP"]});await wrapped.execute("b",{buttons:["UP"]});
+  fail=true;await expect(wrapped.execute("c",{buttons:["UP"]})).rejects.toThrow("POST /action failed");
+  fail=false;
+  expect(textOf(await wrapped.execute("d",{buttons:["UP"]}))).not.toContain(REMINDER);
+  await wrapped.execute("e",{buttons:["UP"]});
+  expect(textOf(await wrapped.execute("f",{buttons:["UP"]}))).toContain(REMINDER);
+ });
  it("treats a result without a readable state, or a press without buttons, as breaking the streak",async()=>{
   let details:unknown={state:FIELD};
   const press:AgentTool={name:"press",label:"press",description:"press",parameters:{},execute:()=>Promise.resolve({content:[{type:"text",text:"pressed"}],details})};

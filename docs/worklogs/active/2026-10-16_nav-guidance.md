@@ -161,3 +161,13 @@ Lanes: the think_fast/think_swarm endpoint lanes are not used while overnight tr
   - Deferred (HARDENING FOLLOW-UP, not in this boundary): H2 probe-decision-cli resending presence_penalty from run_start; H3 state-only mode ignores navigate-first (state-only is incompatible with bounded navigation per stateOnlyProblems, so the combination is not run); H6 OFF byte identity also held by the existing goldens.
   - Gates: agent 1476, viewer 850, Python 2195; coverage agent 97.79/94.65/98.11/99.1, viewer 95.16/90.69/93.41/97.61, Python 96%; lint green except known mypy; pages-check clean.
   COMMIT: `fix: navigate_to reminder resets on any other tool call; off-screen header wording; cached test fixtures (review round 1)`
+
+### Round 2 (fix delta 497b39e4..d1440397, delta SHA-256 4c75840a…3342; cumulative from 1e1feec9)
+
+- Packet note: in the round-2 prompt the zsh array was indexed from 0, so the delta SHA printed blank and the cumulative SHA label was shifted; the shas file was correct and reviewers verified against git directly. The cumulative patch excludes the two one-line JSON fixtures, as stated in the boundary.
+- Grok lane: VERDICT: LGTM (INV-4 and fixture I/O resolved; decision-probe.ts consistency as hardening only).
+- Claude lane (fresh read-only subagent): VERDICT: LGTM (checked sequential tool execution, OFF order/identity, cook #2's 2399 free-field states all have active_ui null; hardening: decision-probe.ts could pass context tools as extra).
+- Codex lane (gpt-5.6-sol): VERDICT: BLOCKING. A press that throws kept the streak, so UP, UP, (rejected UP), UP showed the reminder (INV-4).
+- Fix: the press wrapper zeroes the streak before executing and restores it only when the press returns, so a thrown press ends the run; test added. Agent 1478 passed; lint green except known mypy; agent coverage unchanged (navigate-first.ts 100%).
+  COMMIT: `fix: a press that throws ends the navigate_to reminder streak (review round 2)`
+- Round 3 needs the operator's scope confirmation (two complete rounds with new blockers).

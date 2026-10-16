@@ -28,15 +28,29 @@ SWITCHES = {
 }
 
 
-def line(shown, position, **kw) -> str:  # type: ignore[no-untyped-def]
-    args = {
-        "coordinates": True,
-        **SWITCHES,
-        "topology": None,
-        "on_foot": True,
-        **kw,
-    }
-    return next_tiles(shown, position, **args)
+def line(
+    shown: LocalMap | FullMap,
+    position: tuple[int, int],
+    *,
+    coordinates: bool = True,
+    ledges: bool = True,
+    edge_walls: bool = True,
+    counters: bool = True,
+    warp_guidance: bool = True,
+    topology: Topology | None = None,
+    on_foot: bool = True,
+) -> str:
+    return next_tiles(
+        shown,
+        position,
+        coordinates=coordinates,
+        ledges=ledges,
+        edge_walls=edge_walls,
+        counters=counters,
+        warp_guidance=warp_guidance,
+        topology=topology,
+        on_foot=on_foot,
+    )
 
 
 def grid(
@@ -274,22 +288,35 @@ def test_map_edge_names_a_connection_only_when_topology_is_shown() -> None:
     north = Topology(20, 20, (Connection("NORTH", 0, (0, 10), "OLDALE TOWN"),))
     shown_topology = line(shown, (0, 0), topology=north)
     assert part(shown_topology, "up") == (
-        "up (0,-1) outside this map (?), this map's north connection is OLDALE TOWN (map 0/10)"
+        "up (0,-1) outside this map (?), see Map connections for where the north edge connects"
     )
     assert part(shown_topology, "left") == (
         "left (-1,0) outside this map (?), no connection west, cannot be entered from here"
     )
 
 
-def test_two_connections_on_one_side_are_both_named() -> None:
+def test_a_connection_is_never_claimed_for_the_tile_its_span_may_not_cover() -> None:
+    # Review round 1 (Codex): Ever Grande City's west connection to Route 128 has offset 40 and
+    # covers only y=40..79, so at (0,0) GetMapBorderIdAt refuses the step. Topology has no
+    # connected-map size, so the line names no connection for a single edge tile.
+    ever_grande = Topology(40, 80, (Connection("WEST", 40, (0, 39), "ROUTE128"),))
+    for y in (0, 39, 40):
+        text = line(grid({}, position=(0, y)), (0, y), topology=ever_grande)
+        assert part(text, "left") == (
+            f"left (-1,{y}) outside this map (?), see Map connections for where the west edge"
+            " connects"
+        )
+        assert "ROUTE128" not in text
+
+
+def test_two_connections_on_one_side_are_not_named_per_tile() -> None:
     both = Topology(
         20,
         20,
         (Connection("NORTH", 0, (0, 10), "A"), Connection("NORTH", 10, (0, 11), "B")),
     )
     assert part(line(grid({}, position=(0, 0)), (0, 0), topology=both), "up") == (
-        "up (0,-1) outside this map (?), this map's north connections are A (map 0/10)"
-        " and B (map 0/11)"
+        "up (0,-1) outside this map (?), see Map connections for where the north edge connects"
     )
 
 
@@ -305,11 +332,61 @@ def test_readout_passes_topology_only_with_world_destinations() -> None:
     )
 
 
-def test_pocket_up_edge_with_topology_names_oldale() -> None:
+def test_pocket_up_edge_with_topology_points_at_map_connections() -> None:
     shown = pocket_map((8, 0))
     assert part(line(shown, (8, 0), topology=pocket_topology()), "up") == (
-        "up (8,-1) outside this map (?), this map's north connection is OLDALE TOWN (map 0/10)"
+        "up (8,-1) outside this map (?), see Map connections for where the north edge connects"
     )
+
+
+# --- standing on a warp (review round 1, Claude CLI) ----------------------------------------
+
+
+SHUT_TEXT = "cannot be entered from here"
+
+
+def bottom_row_exit() -> LocalMap:
+    """Brendan's house 1F style: the exit warp (MB 0x65, press DOWN) is the player's own tile on
+    the map's bottom row, so the tile below is outside the map."""
+    shown = grid({(5, 5): (0, 0x65), (4, 5): (1, 0)}, warps=((5, 5, 1, 0),))
+    rows = (*shown.rows[:2], "???")
+    tiles = tuple(t for t in shown.tiles if t.y < 6)
+    return replace(shown, rows=rows, tiles=tiles)
+
+
+def test_a_directional_exit_under_the_player_is_never_called_unenterable() -> None:
+    no_south = Topology(11, 6, (Connection("NORTH", 0, (0, 9), "LITTLEROOT TOWN"),))
+    shown = bottom_row_exit()
+    text = line(shown, (5, 5), topology=no_south)
+    assert part(text, "down") == (
+        "down (5,6) outside this map (?), but you stand on a warp whose listed activation"
+        " is pressing down"
+    )
+    assert SHUT_TEXT not in part(text, "down")
+    assert part(text, "left") == "left (4,5) collision (#), cannot be entered from here"
+    hidden = line(shown, (5, 5), topology=no_south, warp_guidance=False)
+    assert part(hidden, "down") == "down (5,6) outside this map (?), but you stand on a warp"
+
+
+def test_a_directional_exit_into_a_collision_tile_is_not_called_unenterable() -> None:
+    shown = grid({(5, 5): (0, 0x64), (5, 4): (1, 0)}, warps=((5, 5, 1, 0),))
+    assert part(line(shown, (5, 5)), "up") == (
+        "up (5,4) collision (#), but you stand on a warp whose listed activation is pressing up"
+    )
+
+
+def test_a_step_on_warp_under_the_player_changes_nothing() -> None:
+    shown = grid({(5, 5): (0, 0x60), (5, 4): (1, 0)}, warps=((5, 5, 1, 0),))
+    assert part(line(shown, (5, 5)), "up") == "up (5,4) collision (#), cannot be entered from here"
+
+
+def test_own_edge_wall_is_not_claimed_against_a_ledge_hopped_that_way() -> None:
+    # ShouldJumpLedge runs whatever GetCollisionAtCoords says, so the hop beats the own-tile wall.
+    shown = grid({(5, 5): (0, 0x33), (5, 6): (1, 0x3B)})
+    assert part(line(shown, (5, 5)), "down") == (
+        "down (5,6) ledge (v), hop over it moving down, landing 2 tiles on"
+    )
+    assert part(line(shown, (5, 5), ledges=False), "down") == "down (5,6) collision (#)"
 
 
 # --- the whole-map view ----------------------------------------------------------------------
@@ -357,10 +434,21 @@ BEHAVIORS = (0x00, 0x02, 0x10, 0x3B, 0x3A, 0x38, 0x39, 0x80, 0x69, *EDGE_WALLS)
 def test_each_named_glyph_is_the_glyph_the_map_draws(behavior: int, collision: int) -> None:
     for flags in itertools.product([True, False], repeat=4):
         switches = dict(zip(SWITCHES, flags, strict=True))
-        shown = grid({(5, 4): (collision, behavior), (6, 5): (collision, behavior)})
+        shown = grid(
+            {
+                (5, 4): (collision, behavior),
+                (6, 5): (collision, behavior),
+                (4, 5): (collision, behavior),
+            }
+        )
         cells = [row.split() for row in shown.text(**switches).split("\n")[2:5]]
         text = line(shown, (5, 5), **switches)
-        for direction, (gx, gy) in (("up", (1, 0)), ("right", (2, 1)), ("down", (1, 2))):
+        for direction, (gx, gy) in (
+            ("up", (1, 0)),
+            ("right", (2, 1)),
+            ("down", (1, 2)),
+            ("left", (0, 1)),
+        ):
             glyph = re.search(r"\((.)[,)]", part(text, direction).split(") ", 1)[1])
             assert glyph is not None, text
             assert glyph.group(1) == cells[gy][gx + 1], (direction, text, cells)

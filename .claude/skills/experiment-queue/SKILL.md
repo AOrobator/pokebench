@@ -29,6 +29,8 @@ Before an entry is queued, or driven as a cohort, design it with `pokebench-expe
 
 The queue itself runs boot starts at 4–8 trials per arm. Checkpoint cohorts and larger confirmations therefore run as an external cohort driver: set `externalCohort` so the queue tracks the entry without running it again, as the navigation 2×2 did. Put the design's start state, cap source and `power.py` command in `notes`.
 
+How runs reach the viewer's EXPERIMENT dropdown: a run whose `run_start` carries `evaluation.experiment` joins the entry for that experiment id and its build (`harness.commit`), labelled with the definition's `title` (or the cohort manifest's `label`). A launcher tags its trials by setting `POKEBENCH_EXPERIMENT={"id","arm","trial","of"}` for `live.js play`; the fixed-run runner does, and every external cohort driver must (with the manifest `id` or `label` as the id). Ledgers then only add validity (invalid or launcher-error trials stay excluded wherever the ledger lives). Queue trials and finals are not tagged yet and still reach the dropdown through `runs/experiments/<id>/trials.jsonl` and `finals.jsonl`, so leave those ledgers in place. After any cohort starts, `just experiments-audit` must print nothing.
+
 ## When a switch merges: register it as pending (same merge)
 
 The feature-switch skill requires this. Add `experiments/<id>.json` with no `queuePosition`, containing:

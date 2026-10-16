@@ -359,3 +359,114 @@ describe("durable cohort membership and metadata boundaries", () => {
     expect(d.runs[0]).toMatchObject({ cohort: "experiment:full-map", excluded: null });
   });
 });
+describe("run-tagged experiment cohorts", () => {
+  const C1 = "3bab9746".padEnd(40, "1"), C2 = "ca37a392".padEnd(40, "2"), C3 = "014f1853".padEnd(40, "3");
+  function tagged(r: string, id: string, experiment: string, commit: string, at: string, arm = "control"): void {
+    const log = named(); const first = log.events[0]; if (first?.type !== "run_start") throw new Error("fixture");
+    log.events[0] = { ...first, t: at, harness: { commit, dirty: false }, evaluation: { preset_id: "p", target: null, failure_limit: 3, flags: { loopGuard: false, activeUi: false, interfaceDocs: false, objectives: false }, experiment: { id: experiment, arm, trial: 1, of: 4 } } };
+    write(r, id, log);
+  }
+  function definitions(r: string): void {
+    const repo = join(r, ".."); mkdirSync(join(repo, "experiments", "fixed"), { recursive: true });
+    writeFileSync(join(repo, "experiments", "fixed", "bundle-v-control.json"), JSON.stringify({ id: "bundle-v-control", title: "Bundle vs control" }));
+    writeFileSync(join(repo, "experiments", "full-map-navigation.json"), JSON.stringify({ id: "full-map-navigation", title: "Whole-map navigation" }));
+    writeFileSync(join(repo, "experiments", "broken.json"), "{not json");
+    writeFileSync(join(repo, "experiments", "untitled.json"), JSON.stringify({ id: "untitled" }));
+  }
+  const snap = async (r: string) => parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000));
+  it("groups tagged runs by experiment and build wherever their ledgers live, with readable labels", async () => {
+    const r = root(); definitions(r);
+    tagged(r, "2026-10-15T19-42-50_qwen36-gpu1_ab75", "bundle-v-control-dryrun", C1, "2026-10-15T19:42:50.000-04:00");
+    tagged(r, "2026-10-15T19-42-51_qwen36-gpu0_c205", "bundle-v-control-dryrun", C1, "2026-10-15T19:42:51.000-04:00", "bundle");
+    tagged(r, "2026-10-16T02-32-40_qwen36-gpu1_ad45", "bundle-v-control-dryrun", C2, "2026-10-16T02:32:40.000-04:00");
+    tagged(r, "2026-10-16T03-43-30_qwen36-gpu1_cook", "bundle-v-control-dryrun-cook", C2, "2026-10-16T03:43:30.000-04:00");
+    tagged(r, "2026-10-16T05-00-00_qwen36-gpu1_main", "bundle-v-control", C2, "2026-10-16T05:00:00.000-04:00");
+    tagged(r, "2026-10-16T06-00-00_qwen36-gpu1_loose", "checkpoint-start-check", C3, "2026-10-16T06:00:00.000-04:00");
+    const d = await snap(r), of = (id: string) => d.runs.find(x => x.id === id);
+    const v1 = `experiment:bundle-v-control-dryrun@${C1.slice(0, 12)}`, v2 = `experiment:bundle-v-control-dryrun@${C2.slice(0, 12)}`;
+    expect(["2026-10-15T19-42-50_qwen36-gpu1_ab75", "2026-10-15T19-42-51_qwen36-gpu0_c205"].map(id => of(id)?.cohort)).toEqual([v1, v1]);
+    expect(of("2026-10-16T02-32-40_qwen36-gpu1_ad45")?.cohort).toBe(v2);
+    expect(of("2026-10-16T03-43-30_qwen36-gpu1_cook")?.cohort).toBe(`experiment:bundle-v-control-dryrun-cook@${C2.slice(0, 12)}`);
+    expect(of("2026-10-16T05-00-00_qwen36-gpu1_main")?.cohort).toBe(`experiment:bundle-v-control@${C2.slice(0, 12)}`);
+    expect(of("2026-10-16T06-00-00_qwen36-gpu1_loose")?.cohort).toBe(`experiment:checkpoint-start-check@${C3.slice(0, 12)}`);
+    const label = (id: string) => d.cohorts?.find(c => c.id === id);
+    expect(label(v1)).toEqual({ id: v1, label: "Bundle vs control (dry run) · build 3bab974, first trial Oct 15, 7:42 PM ET", experiment: "bundle-v-control-dryrun", build: C1, dryRun: true });
+    expect(label(v2)?.label).toBe("Bundle vs control (dry run) · build ca37a39, first trial Oct 16, 2:32 AM ET");
+    expect(label(`experiment:bundle-v-control-dryrun-cook@${C2.slice(0, 12)}`)).toMatchObject({ label: "Bundle vs control (dry run, cook)", dryRun: true });
+    expect(label(`experiment:bundle-v-control@${C2.slice(0, 12)}`)).toMatchObject({ label: "Bundle vs control", experiment: "bundle-v-control", dryRun: false });
+    expect(label(`experiment:checkpoint-start-check@${C3.slice(0, 12)}`)).toMatchObject({ label: "checkpoint-start-check", experiment: "checkpoint-start-check" });
+    expect(d.problems).toEqual([]);
+  });
+  it("lets ledgers anywhere exclude a tagged run but never move it, and keeps legacy cohorts for untagged runs", async () => {
+    const r = root(); definitions(r);
+    const ok = "2026-10-15T19-42-50_qwen36-gpu1_ab75", died = "2026-10-15T19-42-51_qwen36-gpu0_c205", erred = "2026-10-15T20-00-00_think-fast_err1", exited = "2026-10-15T20-10-00_think-fast_exit", legacy = "2026-10-14T20-00-00_think-fast_aaaa", finals = "2026-10-14T21-00-00_think-fast_fin1";
+    tagged(r, ok, "bundle-v-control-dryrun", C1, "2026-10-15T19:42:50.000-04:00"); tagged(r, died, "bundle-v-control-dryrun", C1, "2026-10-15T19:42:51.000-04:00");
+    tagged(r, erred, "full-map-navigation", C3, "2026-10-15T20:00:00.000-04:00"); tagged(r, exited, "Whole-map × memory", C3, "2026-10-15T20:10:00.000-04:00");
+    write(r, legacy, named()); write(r, finals, named());
+    const launch = (slot: number, run: string): Record<string, unknown> => ({ kind: "launch", slot, lane: "A", phase: "dry-run", arm: "control", run, at: "t", commit: "c", sources: "s", presetSha256: "p", serving: "f" });
+    const outcome = (slot: number, run: string, valid: boolean): Record<string, unknown> => ({ kind: "outcome", slot, run, at: "t", valid, reason: valid ? "wall cap" : "no run_end: the play process died mid-run", endReason: valid ? "budget" : null, primaryReached: false, primaryMs: null, furthest: null, furthestDepth: -1, furthestMs: null, wallMs: null, turns: null });
+    for (const dir of [join(r, "dryruns", "renamed-archive"), join(r, "dryruns", "second-copy")]) { mkdirSync(dir, { recursive: true }); writeFileSync(join(dir, "trials.jsonl"), [launch(1, ok), outcome(1, ok, true), launch(2, died), outcome(2, died, false)].map(e => JSON.stringify(e)).join("\n") + "\n"); }
+    mkdirSync(join(r, "experiments", "full-map-navigation"), { recursive: true });
+    writeFileSync(join(r, "experiments", "full-map-navigation", "trials.jsonl"), [{ type: "launch", trial: 0, arm: "incumbent", run: erred, at: "t" }, { type: "launcher_error", trial: 0, arm: "incumbent", run: erred, at: "t", message: "play exited with 1" }, { type: "launch", trial: 1, arm: "incumbent", run: legacy, at: "t" }].map(e => JSON.stringify(e)).join("\n") + "\n");
+    writeFileSync(join(r, "experiments", "full-map-navigation", "finals.jsonl"), JSON.stringify({ type: "launch", trial: 0, arm: "incumbent", run: finals, at: "t", model: "think-fast", commit: "a".repeat(40) }) + "\n");
+    mkdirSync(join(r, "launch-receipts", "factorial"), { recursive: true });
+    writeFileSync(join(r, "launch-receipts", "factorial", "manifest.json"), JSON.stringify({ id: "factorial-2x2", label: "Whole-map × memory" }));
+    writeFileSync(join(r, "launch-receipts", "factorial", "trials.jsonl"), JSON.stringify({ type: "outcome", trial: "01", run: exited, exit: 1 }) + "\n");
+    const d = await snap(r), of = (id: string) => d.runs.find(x => x.id === id);
+    const dry = `experiment:bundle-v-control-dryrun@${C1.slice(0, 12)}`;
+    expect(of(ok)).toMatchObject({ cohort: dry, excluded: null });
+    expect(of(died)?.cohort).toBe(dry); expect(of(died)?.excluded).toContain("died mid-run");
+    expect(of(erred)?.cohort).toBe(`experiment:full-map-navigation@${C3.slice(0, 12)}`); expect(of(erred)?.excluded).toContain("play exited with 1");
+    expect(of(exited)?.cohort).toBe(`experiment:factorial-2x2@${C3.slice(0, 12)}`); expect(of(exited)?.excluded).toContain("exit 1");
+    expect(of(legacy)).toMatchObject({ cohort: "experiment:full-map-navigation", excluded: null });
+    expect(of(finals)?.cohort).toBe("experiment:full-map-navigation:finals");
+    const label = (id: string) => d.cohorts?.find(c => c.id === id)?.label;
+    expect(label(`experiment:factorial-2x2@${C3.slice(0, 12)}`)).toBe("Whole-map × memory");
+    expect(label(`experiment:full-map-navigation@${C3.slice(0, 12)}`)).toBe("Whole-map navigation");
+    expect(label("experiment:full-map-navigation")).toBe("Whole-map navigation (experiment:full-map-navigation)");
+    expect(label("experiment:full-map-navigation:finals")).toBe("Whole-map navigation — finals");
+    expect(d.cohorts?.find(c => c.id === "experiment:full-map-navigation")).toMatchObject({ experiment: "full-map-navigation", build: null, dryRun: false });
+  });
+  it("labels legacy cohorts it cannot resolve with their raw value and reports a legacy value a tagged cohort also uses", async () => {
+    const r = root(); definitions(r);
+    const t = "2026-10-15T19-42-50_qwen36-gpu1_ab75", u = "2026-10-14T20-00-00_think-fast_aaaa", h = "2026-10-14T20-30-00_think-fast_bbbb";
+    tagged(r, t, "solo", C1, "2026-10-15T19:42:50.000-04:00"); write(r, u, named()); write(r, h, named());
+    const clash = `experiment:solo@${C1.slice(0, 12)}`;
+    mkdirSync(join(r, "experiments", `solo@${C1.slice(0, 12)}`), { recursive: true });
+    writeFileSync(join(r, "experiments", `solo@${C1.slice(0, 12)}`, "trials.jsonl"), JSON.stringify({ type: "launch", trial: 0, arm: "incumbent", run: u, at: "t" }) + "\n");
+    mkdirSync(join(r, "launch-receipts", "hand-run"), { recursive: true });
+    writeFileSync(join(r, "launch-receipts", "hand-run", "trials.jsonl"), JSON.stringify({ type: "launch", run: h }) + "\n");
+    const d = await snap(r);
+    expect(d.cohorts?.find(c => c.id === "hand-run")).toEqual({ id: "hand-run", label: "hand-run", experiment: null, build: null, dryRun: false });
+    expect(d.runs.find(x => x.id === u)?.cohort).toBe(clash); expect(d.runs.find(x => x.id === t)?.cohort).toBe(clash);
+    expect(d.problems).toContain(`Legacy cohort ${clash} has the value of a run-tagged cohort; run ${u} is not tagged`);
+  });
+  it("takes a tagged run's failure from a plan-based or verified-name receipt that legacy membership skips", async () => {
+    const r = root(), planned = "2026-10-15T20-00-00_think-fast_plan", signalled = "2026-10-15T20-10-00_think-fast_sigs", errored = "2026-10-15T20-20-00_think-fast_lerr";
+    for (const id of [planned, signalled, errored]) tagged(r, id, "plan-cohort", C1, "2026-10-15T20:00:00.000-04:00");
+    const dir = (name: string): string => { mkdirSync(join(r, "launch-receipts", name), { recursive: true }); return join(r, "launch-receipts", name); };
+    writeFileSync(join(dir("planned"), "plan.json"), JSON.stringify({ order: ["off"], presets: {} }));
+    writeFileSync(join(dir("planned"), "trials.jsonl"), [{ type: "launch", trial: 1, run: planned }, { type: "outcome", trial: 1, run: planned, exit: 1 }, { type: "outcome", trial: 2, run: signalled, code: null, signal: "SIGKILL" }].map(e => JSON.stringify(e)).join("\n") + "\n");
+    writeFileSync(join(dir("impostor"), "manifest.json"), JSON.stringify({ id: "experiment:taken", attempts: [{ run_id: errored }] }));
+    writeFileSync(join(dir("impostor"), "trials.jsonl"), JSON.stringify({ type: "launcher_error", run: errored, error: "gateway down" }) + "\n");
+    const d = await snap(r), of = (id: string) => d.runs.find(x => x.id === id);
+    expect(of(planned)).toMatchObject({ cohort: `experiment:plan-cohort@${C1.slice(0, 12)}` }); expect(of(planned)?.excluded).toContain("exit 1");
+    expect(of(signalled)?.excluded).toContain("SIGKILL"); expect(of(errored)?.excluded).toContain("gateway down");
+  });
+  it("excludes a tagged run that an unreadable ledger names, since its validity cannot be checked", async () => {
+    const r = root(), ids = ["2026-10-15T20-00-00_think-fast_q001", "2026-10-15T20-01-00_think-fast_f001", "2026-10-15T20-02-00_think-fast_d001", "2026-10-15T20-03-00_think-fast_h001", "2026-10-15T20-04-00_think-fast_c001", "2026-10-15T20-05-00_think-fast_free"] as const;
+    for (const id of ids) tagged(r, id, "corrupt", C1, "2026-10-15T20:00:00.000-04:00");
+    const untagged = "2026-10-14T20-00-00_think-fast_untg"; write(r, untagged, named());
+    const at = (path: string, text: string): void => { mkdirSync(join(r, path, ".."), { recursive: true }); writeFileSync(join(r, path), text); };
+    at("experiments/queue/trials.jsonl", JSON.stringify({ type: "launch", trial: 0, arm: "a", run: ids[0], at: "t" }) + "\n" + JSON.stringify({ type: "launch", trial: 0, arm: "a", run: untagged, at: "t" }) + "\nnot json\n");
+    const launch = { kind: "launch", slot: 1, lane: "A", phase: "dry-run", arm: "control", run: ids[1], at: "t", commit: "c", sources: "s", presetSha256: "p", serving: "f" };
+    at("experiments/fixed-one/trials.jsonl", JSON.stringify(launch) + "\n" + JSON.stringify({ kind: "outcome", slot: 9 }) + "\n");
+    at("dryruns/archive/trials.jsonl", JSON.stringify({ ...launch, run: ids[2] }) + "\n" + `{"kind": "outcome", "run": "${ids[2]}", broken\n` + JSON.stringify({ kind: "outcome", slot: 9 }) + "\n");
+    at("launch-receipts/hand/trials.jsonl", `{bad "run_id": "${ids[3]}"\n` + JSON.stringify({ run: ids[3] }) + "\n");
+    cohort(r, [{ type: "outcome", runId: ids[4], run: ids[4], exitCode: 0, reason: "budget" }]);
+    const d = await snap(r), of = (id: string) => d.runs.find(x => x.id === id);
+    for (const id of ids.slice(0, 5)) { expect(of(id)?.cohort).toBe(`experiment:corrupt@${C1.slice(0, 12)}`); expect(of(id)?.excluded).toMatch(/^Unverified: ledger .+ is unreadable/); }
+    expect(of(ids[0])?.excluded).toContain("experiments/queue/trials.jsonl");
+    expect(of(ids[5])?.excluded).toBeNull(); expect(of(untagged)).toMatchObject({ cohort: null, excluded: null });
+  });
+});

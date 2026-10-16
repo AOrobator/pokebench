@@ -229,7 +229,7 @@ export function eventText(event: RunEvent, view?: RunView): string | null {
     }
     case "navigation_context":return `Navigation memory delivered · ${String(event.evidence.length)} retained references · ${esc(event.text.slice(0,200))}`;
     case "milestone_hint":return `Milestone hint sent to the model · ${esc(event.text)}`;
-    case "dialogue_auto_advance":return `Dialogue auto-advance (${event.tool}) · B ×${String(event.auto_presses)} · stopped: ${esc(event.stop.replaceAll("_"," "))} · ${esc(event.detail)}${event.dropped.length===0?"":` · ${String(event.dropped.length)} requested inputs not sent (${esc(event.dropped.join(", "))})`} · ${String(event.pages.length)} pages${event.pages.map((page,i)=>` · ${String(i+1)}. ${page.speaker===null?"":`${esc(page.speaker)}${page.speaker_source==="faced_sprite"?" (sprite kind)":page.speaker_source==="faced_target"?" (faced object)":""}: `}“${esc(page.text)}”`).join("")}`;
+    case "dialogue_auto_advance":return `Dialogue auto-advance (${event.tool}) · B ×${String(event.auto_presses)}${event.battle_auto_presses===undefined?"":` (${String(event.battle_auto_presses)} in battle)`} · stopped: ${esc(event.stop.replaceAll("_"," "))} · ${esc(event.detail)}${event.dropped.length===0?"":` · ${String(event.dropped.length)} requested inputs not sent (${esc(event.dropped.join(", "))})`} · ${String(event.pages.length)} pages${event.pages.map((page,i)=>` · ${String(i+1)}. ${page.battle_turn===undefined?"":`battle turn ${String(page.battle_turn)}: `}${page.speaker===null?"":`${esc(page.speaker)}${page.speaker_source==="faced_sprite"?" (sprite kind)":page.speaker_source==="faced_target"?" (faced object)":""}: `}“${esc(page.text)}”`).join("")}`;
     case "text_only_supervisor":return `Text-only supervisor note ${String(event.note)}/${String(event.limit)} sent after ${String(event.replies)} replies with no tool call · ${esc(event.text)}`;
     case "ledger_context":return `Instruction ledger delivered · ${String(event.evidence.length)} references · ${esc(event.text.slice(0,200))}`;
     case "decision_input":return `snapshot for decision ${String(event.decision_turn)} · state #${String(event.state_seq)} · ${esc(event.text.slice(0,200))}`;
@@ -381,6 +381,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "explorer-guidance-v1":"explorer-guidance-v1.html",
  "in-game-naming-readout-v1":"in-game-naming-readout-v1.html",
  "no-nickname-guidance-v1":"no-nickname-guidance-v1.html",
+ "battle-text-auto-advance-v1":"battle-text-auto-advance-v1.html",
  "stall-briefing-v1":"stall-briefing-v1.html",
  "bedroom-exit-v1":"bedroom-exit-v1.html",
  "route103-rival-splits-v1":"route103-rival-splits-v1.html",

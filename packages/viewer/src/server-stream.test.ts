@@ -188,6 +188,37 @@ it("still sends lines found after run_end in a later chunk, then done", async ()
   expect(text.indexOf("event: done")).toBeGreaterThan(text.lastIndexOf("event: problem"));
 });
 
+it("keeps the event loop responsive through a chunk of many tiny malformed lines", async () => {
+  const base = mkdtempSync(join(tmpdir(), "viewer-stream-"));
+  roots.push(base);
+  const runsRoot = join(base, "runs");
+  mkdirSync(join(runsRoot, "junk"), { recursive: true });
+  writeFileSync(join(runsRoot, "junk", "events.jsonl"), "x\n".repeat(100_000));
+  const viewer = await startViewer({ runsRoot, staticDir: base, appDir: base, port: 0, pollMs: 10, streamChunkBytes: 1 << 20 });
+  viewers.push(viewer);
+  let last = performance.now(), worst = 0, running = true;
+  const tick = (): void => { const now = performance.now(); worst = Math.max(worst, now - last); last = now; if (running) setImmediate(tick); };
+  setImmediate(tick);
+  const abort = new AbortController();
+  const reply = await fetch(new URL("api/runs/junk/events", viewer.url), { signal: abort.signal });
+  const reader = reply.body?.getReader();
+  let problems = 0, tail = "";
+  const decoder = new TextDecoder();
+  while (problems < 100_000) {
+    const chunk = await reader?.read();
+    if (chunk === undefined || chunk.done) break;
+    const text = tail + decoder.decode(chunk.value, { stream: true });
+    problems += (text.match(/^event: problem$/gm) ?? []).length;
+    const cut = text.lastIndexOf("\n\n");
+    tail = text.slice(cut + 2);
+    problems -= (tail.match(/^event: problem$/gm) ?? []).length;
+  }
+  running = false;
+  abort.abort();
+  expect(problems).toBe(100_000);
+  expect(worst).toBeLessThan(250);
+});
+
 it("rejects a chunk size that is not a positive integer", async () => {
   await expect(serve("bad", longRun(1), 0)).rejects.toThrow(RangeError);
 });

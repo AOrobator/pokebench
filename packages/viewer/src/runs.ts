@@ -86,22 +86,23 @@ function readBytes(path: string, offset: number, maxBytes: number): Buffer {
 // Complete lines only: a line the writer is still appending stays unread
 // until its newline lands. Splitting on the newline byte keeps multi-byte
 // characters whole.
-// maxBytes bounds one read; a line longer than it is still read whole.
-export function readFrom(path: string, offset: number, lineNo: number, maxBytes = Number.MAX_SAFE_INTEGER): ReadResult {
+// maxBytes bounds one read (a line longer than it is still read whole) and maxLines bounds how
+// many complete lines one call parses; the rest is left for the next call.
+export function readFrom(path: string, offset: number, lineNo: number, maxBytes = Number.MAX_SAFE_INTEGER, maxLines = Number.MAX_SAFE_INTEGER): ReadResult {
   let bytes = readBytes(path, offset, maxBytes);
   for (let limit = maxBytes; bytes.lastIndexOf(0x0a) < 0 && bytes.length === limit && limit < Number.MAX_SAFE_INTEGER; ) {
     limit = Math.min(Number.MAX_SAFE_INTEGER, limit * 4);
     bytes = readBytes(path, offset, limit);
   }
-  const end = bytes.lastIndexOf(0x0a);
-  if (end < 0) return { results: [], offset, lineNo };
   const results: LineResult[] = [];
-  let line = lineNo;
-  for (const text of bytes.subarray(0, end).toString("utf8").split("\n")) {
+  let line = lineNo, start = 0;
+  for (let end = bytes.indexOf(0x0a); end >= 0 && line - lineNo < maxLines; end = bytes.indexOf(0x0a, start)) {
     line += 1;
+    const text = bytes.subarray(start, end).toString("utf8");
     if (text.trim() !== "") results.push(parseLine(text, line));
+    start = end + 1;
   }
-  return { results, offset: offset + end + 1, lineNo: line };
+  return { results, offset: offset + start, lineNo: line };
 }
 
 function firstLine(path: string): string | null {

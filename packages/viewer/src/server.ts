@@ -74,6 +74,8 @@ export interface ViewerOptions {
 
 const MAX_BODY = 64 * 1024;
 export const STREAM_CHUNK_BYTES = 1024 * 1024;
+// Lines parsed per step, so a chunk of many tiny lines cannot hold the event loop either.
+const STREAM_STEP_LINES = 2000;
 const HumanAcceptedSchema=Type.Object({accepted:Type.Literal(true)},{additionalProperties:false});
 const HumanClaimSchema=Type.Object({session:Type.String({pattern:"^[A-Za-z0-9_-]{8,128}$"})},{additionalProperties:false});
 const HumanInputSchema=Type.Object({session:Type.String({pattern:"^[A-Za-z0-9_-]{8,128}$"}),seq:Type.Integer({minimum:1}),release:Type.Optional(Type.Boolean()),buttons:Type.Array(Type.Enum(["A","B","START","SELECT","UP","DOWN","LEFT","RIGHT","L","R"]),{maxItems:10,uniqueItems:true})},{additionalProperties:false});
@@ -233,12 +235,13 @@ function streamEvents(req: IncomingMessage, res: ServerResponse, path: string, p
   let offset = 0;
   let lineNo = 0;
   let skewReported = false, endRead = false, caughtUp = false, closing = false;
-  const pending: string[] = [];
-  const empty = (): boolean => pending.length === 0;
+  // A queue with a read cursor: shifting a large array on every write would be quadratic.
+  let pending: string[] = [], cursor = 0;
+  const empty = (): boolean => cursor >= pending.length;
   const message = (type: string, data: unknown): string => `event: ${type}\ndata: ${JSON.stringify(data)}\n\n`;
   // Reads one bounded chunk into the queue; true when there was nothing new to read.
   const fill = (): boolean => {
-    const read = readFrom(path, offset, lineNo, chunkBytes);
+    const read = readFrom(path, offset, lineNo, chunkBytes, STREAM_STEP_LINES);
     const atEnd = read.offset === offset;
     offset = read.offset;
     lineNo = read.lineNo;
@@ -267,7 +270,8 @@ function streamEvents(req: IncomingMessage, res: ServerResponse, path: string, p
       }
     }
     let full = false;
-    while (pending.length > 0 && !full) full = !res.write(pending.shift() ?? "");
+    while (!empty() && !full) { full = !res.write(pending[cursor] ?? ""); cursor += 1; }
+    if (empty()) { pending = []; cursor = 0; }
     return full ? "drain" : "more";
   };
   // One step per turn of the event loop; a failing read closes this stream, never the viewer.

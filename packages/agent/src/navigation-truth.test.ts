@@ -256,7 +256,7 @@ describe("navigation-truth-v1: the loop guard mentions a reopened message only w
  const press=(state:GameStateSnapshot):CompletedCall=>({name:"press",args:{buttons:["A"]},isError:false,text:"ok",state,beforeState:state});
  const warn=(truth:boolean,state:GameStateSnapshot):string|undefined=>{
   const notices:LoopNotice[]=[];
-  const detector=new LoopDetector(n=>notices.push(n),{...LOOP_POLICY,ineffective:2,cycleRepeats:2},"enforced",true,undefined,false,truth);
+  const detector=new LoopDetector(n=>notices.push(n),{...LOOP_POLICY,ineffective:2,cycleRepeats:2},"enforced",true,undefined,false,false,false,truth);
   for(let i=0;i<4;i++)detector.complete(press(state));
   return notices.find(n=>n.phase==="warning")?.message;
  };
@@ -267,7 +267,7 @@ describe("navigation-truth-v1: the loop guard mentions a reopened message only w
  it("a navigate_to cycle that ends on a waiting message keeps the sentence",()=>{
   const nav=(state:GameStateSnapshot,x:number):CompletedCall=>({name:"navigate_to",args:{map_id:[0,0],x,y:8},isError:false,text:"ok",state,beforeState:state,acted:true});
   const notices:LoopNotice[]=[];
-  const detector=new LoopDetector(n=>notices.push(n),{...LOOP_POLICY,ineffective:9,cycleRepeats:2},"enforced",true,undefined,false,true);
+  const detector=new LoopDetector(n=>notices.push(n),{...LOOP_POLICY,ineffective:9,cycleRepeats:2},"enforced",true,undefined,false,false,false,true);
   for(let i=0;i<4;i++)detector.complete(nav(field(true),i%2===0?9:11));
   expect(notices.find(n=>n.phase==="warning")?.message).toContain("Reopening the same message is not story progress.");
  });

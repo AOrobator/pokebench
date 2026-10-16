@@ -1,0 +1,21 @@
+attempt del3-recap-append
+file src/result-facts.ts sha256 before cedc6e67ed6e7427e3c1575bbf88ea8b6fed06d5861c31758cce2003c5684d6d
+mutation: replace
+  losses===null||after===undefined?null:losses.recap(after)
+with
+  null
+33c33
+<   const lines=[exits?.settle(id,after,textOf(result))??null,losses===null||after===undefined?null:losses.recap(after)].filter((l):l is string=>l!==null);
+---
+>   const lines=[exits?.settle(id,after,textOf(result))??null,null].filter((l):l is string=>l!==null);
+--- broken run
+     × the appended line reaches the model: the pinned pi loop sends it in the tool message of the next chat request 75ms
+     × appends the recap after a whiteout as its own text part; the readout is kept as it was 2ms
+     × ON appends the recap to the whiteout result; OFF leaves the tool untouched 5ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected false to be true // Object.is equality
+AssertionError: expected '[{"role":"tool","content":"readout","…' to contain 'Battle recap: you lost to a wild POOC…'
+AssertionError: expected [ { type: 'text', text: 'readout' } ] to deeply equal [ …(2) ]
+      Tests  3 failed | 12 passed (15)
+--- restored sha256 cedc6e67ed6e7427e3c1575bbf88ea8b6fed06d5861c31758cce2003c5684d6d (equal: yes)
+restored run:       Tests  15 passed (15)

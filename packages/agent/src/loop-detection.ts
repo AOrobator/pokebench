@@ -54,6 +54,11 @@ export interface CompletedCall {
   readonly beforeState?: GameStateSnapshot | undefined;
   readonly acted?: boolean | undefined;
   readonly seq?: number;
+  // The tool call's own arguments, before any recorded press replaced its buttons (auto-advance's B presses).
+  readonly requested?: Record<string, unknown> | undefined;
+  // The state the call's first input started from (later presses of the same call, such as auto-advance's B,
+  // replace beforeState but not this).
+  readonly startState?: GameStateSnapshot | undefined;
 }
 export type LoopPolicy = { readonly [K in keyof typeof LOOP_POLICY]: number };
 const PLANNING = new Set([
@@ -144,6 +149,15 @@ export function semanticState(state: GameStateSnapshot, interactions = false): s
   });
 }
 
+// battle-observation-loop-v1: the decoded battle as the model can observe it. Any changed field (script pointer,
+// controller flags, HP, turn, inputs, signals, execution, menu, message) means the battle moved on. Unknown when
+// the battle decoder reports a diagnostic or there is no battle readout.
+export function battleState(state: GameStateSnapshot): string | null {
+  const battle = state.battle;
+  if (!state.in_battle || battle == null || battle.diagnostic !== null) return null;
+  return stable({ battle, ui: state.active_ui ?? null, party: state.party, message: state.world_context?.message ?? null, dialogue: state.world_context?.dialogue ?? null });
+}
+
 // transition-loop-detection-v1: field controls locked by something other than a script or message,
 // such as the door, stairs or warp animation. The game's global script context is stopped
 // (SCRIPT_MODE_STOPPED, CONTEXT_SHUTDOWN in pokeemerald src/script.c); unknown script state is not transient.
@@ -154,6 +168,36 @@ export function transientLock(state: GameStateSnapshot): boolean {
     state.active_ui == null && (state.world_context?.dialogue ?? "") === "" && state.world_context?.message == null &&
     script != null && script.script_mode === 0 && script.script_status === 2;
 }
+
+// pushback-loop-detection-v1: field controls held by a message or by a running script, with no menu or other
+// interface owning the lock. The game's global script context is running when its mode is bytecode or native
+// (1 or 2) and its status is CONTEXT_RUNNING (0) or CONTEXT_WAITING (1), as in pokeemerald src/script.c; any other
+// or missing value is unknown. A start menu, a door
+// animation or an unknown lock is not a script.
+export function scriptHeld(state: GameStateSnapshot): boolean {
+  if (state.field_controls_locked !== true || state.active_ui != null || state.naming != null) return false;
+  if ((state.world_context?.dialogue ?? "") !== "" || state.world_context?.message != null) return true;
+  const script = state.resources;
+  return script != null && (script.script_mode === 1 || script.script_mode === 2) && (script.script_status === 0 || script.script_status === 1);
+}
+
+const OPPOSITE: Readonly<Record<string, string>> = { up: "down", down: "up", left: "right", right: "left" };
+const lastDirection = (buttons: unknown): string | null => {
+  if (!Array.isArray(buttons)) return null;
+  const dirs = buttons.filter((b): b is string => typeof b === "string" && b.toLowerCase() in OPPOSITE);
+  return dirs.length === 0 ? null : (dirs[dirs.length - 1] ?? "").toLowerCase();
+};
+const wayOut = (action: string | undefined): string => {
+  const parsed: unknown = action === undefined ? null : JSON.parse(action);
+  if (!Array.isArray(parsed) || parsed.length === 0) return action ?? "";
+  // A button batch leaves by its first button; navigate_to ([map, x, y]) by its target map, whichever tile it named.
+  return typeof parsed[0] === "string" ? JSON.stringify(parsed[0]) : `navigate_to ${JSON.stringify(parsed[0])}`;
+};
+
+export const PUSHBACK_MESSAGE =
+  "A game script keeps returning the player to the same place after the same input: each attempt ends back where it started, so repeating it will not get past the script. Read what the script's dialogue says, then choose a different target or approach using observed evidence.";
+const placeOf = (state: GameStateSnapshot): string | null =>
+  state.started && state.map_id !== null && state.position !== null ? JSON.stringify([state.map_id, state.position.x, state.position.y]) : null;
 
 const TRANSITION_MESSAGE =
   "Moving back and forth between the same maps is repeating with no new story, party, money, badge or item change. Reassess the objective and choose a different exit or target using observed evidence.";
@@ -214,6 +258,15 @@ export class LoopDetector {
   private lastMap: string | null = null;
   private progress: string | null = null;
   private readonly messageVisits: string[] = [];
+  // pushback-loop-detection-v1: the last settled result, the model's inputs since it, whether the player left its
+  // tile and whether a script or message held the controls since; and the recent push-backs.
+  private trip: { anchor: string; place: string | null; actions: string[]; calls: number; left: boolean; scripted: boolean; dir: string | null } | null = null;
+  private readonly pushbacks: { key: string; seq: number }[] = [];
+  // The places (map and tile) of recent game call results: a push-back episode recovers only somewhere new.
+  private readonly places: string[] = [];
+  // battle-observation-loop-v1: the previous game call's battle readout and the recent ones.
+  private previousBattle: string | null = null;
+  private readonly battlesSeen: string[] = [];
   // The same conversation reopened in the same place: closed then shown again, or its print cursor jumping back.
   private readonly conversation = { text: "", place: "", cursor: null as number | null, open: false, restarts: 0 };
   private readonly visited: string[] = [];
@@ -227,6 +280,7 @@ export class LoopDetector {
     evidence: number[];
     window: number;
     briefing: string | null;
+    pushback: boolean;
   } | null = null;
   private stallNote: { text: string; exposed: boolean } | null = null;
   private run: string | null = null;
@@ -240,6 +294,8 @@ export class LoopDetector {
     string,
     {
       args: Record<string, unknown>;
+      requested: Record<string, unknown>;
+      start?: GameStateSnapshot | undefined;
       seq: number;
       before?: GameStateSnapshot | undefined;
       beforeSeq?: number | undefined;
@@ -255,6 +311,8 @@ export class LoopDetector {
     private readonly interactions = false,
     private readonly supervisor?: (kind: LoopKind, calls: number) => string,
     private readonly transitions = false,
+    private readonly pushback = false,
+    private readonly battles = false,
     // navigation-truth-v1: the interaction warning mentions a reopened message only when one reopened.
     private readonly messageTruth = false,
   ) {}
@@ -270,6 +328,7 @@ export class LoopDetector {
     if (event.type === "state") {
       this.latestSeq = event.seq;
       if ("started" in event) {
+        if (this.pushback) this.tripState(event);
         this.nativeProgress(event, event.seq);
         this.latest = event;
       } else {
@@ -279,11 +338,19 @@ export class LoopDetector {
       }
     } else if (event.type === "telemetry_error" && event.source === "state")
       this.latest = undefined;
-    else if (event.type === "tool_call")
-      this.calls.set(event.id, { args: typeof event.args==="object"&&event.args!==null&&!Array.isArray(event.args)?event.args as Record<string,unknown>:{}, seq: event.seq, ...(event.name === "navigate_to" ? {navigation:true,before:this.latest,beforeSeq:this.latestSeq} : {}) });
-    else if (event.type === "button_press") {
+    else if (event.type === "tool_call") {
+      const args = typeof event.args==="object"&&event.args!==null&&!Array.isArray(event.args)?event.args as Record<string,unknown>:{};
+      this.calls.set(event.id, { args, requested: args, seq: event.seq, ...(event.name === "navigate_to" ? {navigation:true,before:this.latest,beforeSeq:this.latestSeq} : {}) });
+      // pushback-loop-detection-v1: with no trip under way, the state a call starts from can start one.
+      if (this.pushback && this.trip === null && event.name === "navigate_to" && this.latest !== undefined) this.seed(this.latest);
+    } else if (event.type === "button_press") {
       const pending = this.calls.get(event.tool_call_id);
       if (pending !== undefined && (!pending.navigation || !pending.pressed)) {
+        if (pending.pressed !== true) {
+          pending.start = event.before_state_seq === this.latestSeq ? this.latest : undefined;
+          if (this.pushback && this.trip === null && !pending.navigation && pending.start !== undefined) this.seed(pending.start);
+        }
+        if (this.pushback && this.trip !== null) this.trip.dir = lastDirection(event.buttons) ?? this.trip.dir;
         pending.pressed = true;
         if (!pending.navigation && this.interactions) pending.args = {...pending.args, buttons: event.buttons};
         pending.before =
@@ -297,6 +364,8 @@ export class LoopDetector {
       this.complete({
         name,
         args: pending?.args ?? {},
+        requested: pending?.requested,
+        startState: pending?.navigation === true ? pending.before : pending?.start,
         isError: event.is_error,
         text: event.text,
         seq: event.seq,
@@ -357,6 +426,9 @@ export class LoopDetector {
     if (this.stallNote?.exposed === true) this.stallNote = null;
     const seq = call.seq ?? this.completed;
     const rejection = rejectionKey(call);
+    // pushback-loop-detection-v1: what an errored press or navigate_to did is unknown, so the trip ends.
+    // State-only mode's `act` tool presses too; an errored result keeps its outer name.
+    if (this.pushback && call.isError && (call.name === "press" || call.name === "navigate_to" || (call.name === "act" && call.args["kind"] === "press"))) this.trip = null;
     if (call.isError && rejection === null) return;
     if (this.episode?.exposed) this.episode.recovery++;
     const fingerprint =
@@ -365,16 +437,34 @@ export class LoopDetector {
       !call.isError && (call.name === "press" || call.name === "navigate_to" || call.name === "observe");
     const changed =
       game && fingerprint !== null && fingerprint !== this.previous;
-    const novel = changed && !this.visited.includes(fingerprint);
-    if (novel) this.messageVisits.length = 0;
+    const battle = this.battles && game && call.state !== undefined ? battleState(call.state) : null;
+    const novel = (changed && !this.visited.includes(fingerprint)) || (battle !== null && battle !== this.previousBattle && !this.battlesSeen.includes(battle));
+    // pushback-loop-detection-v1: a new state on a tile already seen (a menu, a turn, one other button) is not
+    // a way out of a push-back; only a new map or tile, or a story milestone, is.
+    const place = this.pushback && game && call.state !== undefined ? placeOf(call.state) : null;
+    const newPlace = place !== null && !this.places.includes(place);
+    if (place !== null) {
+      this.places.push(place);
+      if (this.places.length > 16) this.places.shift();
+    }
+    const held = this.pushback && this.episode?.pushback === true && !newPlace;
+    if (novel) {
+      this.messageVisits.length = 0;
+      if (!this.pushback || newPlace) this.pushbacks.length = 0;
+    }
+    // A push-back episode ends on a new map or tile even when that place's state was seen before.
+    const escaped = this.pushback && this.episode?.pushback === true && newPlace;
+    // Out of the loop: its push-backs no longer count toward the next warning.
+    if (escaped) this.pushbacks.length = 0;
     if (
-      novel ||
+      (novel && !held) || escaped ||
       (game && (call.name === "press" || (call.name === "navigate_to" && call.acted===true)) && this.episode?.kind === "planning")
     )
-      this.recover(seq, novel);
+      this.recover(seq, (novel && !held) || escaped);
     let hit: LoopKind | null = null;
     let pingPong = false;
     let reopened = false;
+    let pushed: number[] | null = null;
     if (!call.isError && PLANNING.has(call.name)) {
       this.planning++;
       if (this.planning >= this.policy.planning) hit = "planning";
@@ -383,7 +473,7 @@ export class LoopDetector {
       if (call.name === "press" || changed) this.planning = 0;
       if (call.name === "observe") {
         this.observations =
-          fingerprint !== null && fingerprint === this.previous
+          (fingerprint !== null && fingerprint === this.previous) || (battle !== null && battle === this.previousBattle)
             ? this.observations + 1
             : 0;
         if (this.observations >= this.policy.observation) hit ??= "observation";
@@ -428,11 +518,25 @@ export class LoopDetector {
         } else if (!(this.transitions && eligible && this.passable(call.state) && this.passable(call.beforeState)))
           this.history.length = 0;
       }
+      if (this.pushback) {
+        const back = this.pushedBack(call, seq);
+        if (back !== null && hit === null) {
+          hit = "cycle";
+          pushed = back;
+        }
+      }
       if (this.transitions && this.mapMove(call) && hit === null) {
         hit = "cycle";
         pingPong = true;
       }
       this.previous = fingerprint;
+      if (this.battles) {
+        this.previousBattle = battle;
+        if (battle !== null) {
+          this.battlesSeen.push(battle);
+          if (this.battlesSeen.length > 16) this.battlesSeen.shift();
+        }
+      }
       if (fingerprint !== null) {
         this.visited.push(fingerprint);
         if (this.visited.length > 16) this.visited.shift();
@@ -466,13 +570,15 @@ export class LoopDetector {
     if (this.episode === null) {
       this.episode = {
         kind: hit,
-        message: pingPong ? TRANSITION_MESSAGE : hit === "ineffective" && call.name === "navigate_to" ? "Repeated navigation attempts to the same target produced equivalent states. Inspect the destination and obstacle before trying again." : this.interactions && (hit === "ineffective" || hit === "cycle") ? `The same interaction or input pattern is repeating without new game information. Use a single input, inspect the resulting interface, and choose an evidence-supported different approach.${this.messageTruth && !reopened ? "" : " Reopening the same message is not story progress."}` : MESSAGES[hit],
+        message: pushed !== null ? PUSHBACK_MESSAGE : pingPong ? TRANSITION_MESSAGE : hit === "ineffective" && call.name === "navigate_to" ? "Repeated navigation attempts to the same target produced equivalent states. Inspect the destination and obstacle before trying again." : this.interactions && (hit === "ineffective" || hit === "cycle") ? `The same interaction or input pattern is repeating without new game information. Use a single input, inspect the resulting interface, and choose an evidence-supported different approach.${this.messageTruth && !reopened ? "" : " Reopening the same message is not story progress."}` : MESSAGES[hit],
         exposed: false,
         recovery: 0,
         threshold: false,
-        evidence: [seq],
+        // The first push-back of the repeated input; the notice adds the call that completed the count.
+        evidence: pushed === null ? [seq] : pushed.slice(0, 1),
         window: this.policy.recovery,
         briefing: null,
+        pushback: pushed !== null,
       };
       this.notice("warning", seq);
       // Speedrun: the supervisor briefs as soon as a loop is found, then again every window while it lasts.
@@ -517,6 +623,69 @@ export class LoopDetector {
     this.history.length = 0;
     this.messageVisits.length = 0;
     this.visited.length = 0;
+    this.trip = null;
+    this.pushbacks.length = 0;
+  }
+
+  // pushback-loop-detection-v1: what a state since the last settled result says about the trip away from it.
+  private tripState(state: GameStateSnapshot): void {
+    const trip = this.trip;
+    if (trip === null) return;
+    if (scriptHeld(state)) trip.scripted = true;
+    const place = placeOf(state);
+    if (place !== null && place !== trip.place) trip.left = true;
+    // No input faces the player away from the direction just pressed: with a script holding the controls, that
+    // is the script stepping the player back between snapshots (OldaleTown_EventScript_BlockedPath, 54a7 T247).
+    if (trip.dir !== null && scriptHeld(state) && state.facing === OPPOSITE[trip.dir]) trip.left = true;
+  }
+
+  // Where the player stands with field controls free and no message: its fingerprint, else null.
+  private settled(state: GameStateSnapshot | undefined): string | null {
+    return state !== undefined && state.field_controls_locked === false && (state.world_context?.dialogue ?? "") === "" &&
+      state.world_context?.message == null ? semanticState(state, this.interactions) : null;
+  }
+
+  // A settled state starts a trip (a call's settled result, or the state a call's first input started from).
+  private seed(state: GameStateSnapshot): void {
+    const anchor = this.settled(state);
+    if (anchor !== null) this.trip = { anchor, place: placeOf(state), actions: [], calls: 0, left: false, scripted: false, dir: null };
+  }
+
+  // A press or navigate_to whose settled result is where the player last stood settled, after the player left that
+  // tile and a script or message held the controls: the evidence seqs when the same input was pushed back
+  // `cycleRepeats` times among the last 12 push-backs.
+  private pushedBack(call: CompletedCall, seq: number): number[] | null {
+    const state = call.state;
+    const settled = this.settled(state);
+    if (call.name === "observe") {
+      if (state !== undefined && settled !== null && settled !== this.trip?.anchor) this.seed(state);
+      // Every completed game call counts toward the bound, observes included.
+      else if (this.trip !== null && ++this.trip.calls > 8) this.trip = null;
+      return null;
+    }
+    const start = call.startState ?? call.beforeState;
+    if (this.trip === null && start !== undefined) this.seed(start);
+    const trip = this.trip;
+    if (trip !== null) {
+      const asked = call.requested ?? call.args;
+      trip.actions.push(JSON.stringify(call.name === "navigate_to" ? [asked["map_id"], asked["x"], asked["y"]] : asked["buttons"] ?? null));
+      trip.dir = lastDirection(asked["buttons"]) ?? trip.dir;
+      trip.calls++;
+      if (call.beforeState !== undefined) this.tripState(call.beforeState);
+    }
+    if (state === undefined || settled === null) {
+      if (trip !== null && trip.calls > 8) this.trip = null;
+      return null;
+    }
+    this.seed(state);
+    if (trip === null || trip.anchor !== settled || !trip.left || !trip.scripted) return null;
+    // The way out: the first button (or navigate_to target) of the trip. A loop's period can vary (LEFT then
+    // LEFT,LEFT; DOWN,A,A or DOWN,DOWN,A,A) while the player keeps leaving the same way.
+    const key = `${settled}:${wayOut(trip.actions[0])}`;
+    this.pushbacks.push({ key, seq });
+    if (this.pushbacks.length > 12) this.pushbacks.shift();
+    const same = this.pushbacks.filter((p) => p.key === key);
+    return same.length >= this.policy.cycleRepeats ? same.map((p) => p.seq) : null;
   }
 
   // A state that either has a fingerprint or is only a transient lock; skipped instead of clearing the history.

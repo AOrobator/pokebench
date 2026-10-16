@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Push-back Loop Detection</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:740px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navb{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.arr.g{stroke:var(--game)} .arr.p{stroke:var(--prior);stroke-dasharray:5 4}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tag{display:inline-block;font:500 .72rem var(--mono);border-radius:99px;padding:1px 8px;border:1px solid var(--rule);color:var(--soft)}
+</style>
+</head>
+<body>
+<main>
+<div class="eyebrow">Harness switch · guard · <code>pushback-loop-detection-v1</code> · no dependency · off by default · bug fix: ON in both arms</div>
+<h1>Push-back loop detection</h1>
+<p class="lede">Some game scripts stop the player and walk them back: the Littleroot twin before the player has a POKéMON, and PROF. BIRCH on Route 101 ("Wh-Where are you going?!"). The loop guard never saw a model walking into the same script again and again. With this switch on, a press or <code>navigate_to</code> that a script returns to the place it left counts as a push-back, and the third push-back by the same input raises a cycle warning and the supervisor briefing. Off: push-backs are not tracked.</p>
+
+<section>
+<h2>Why</h2>
+<table>
+<tr><th>Run</th><th>Window</th><th>What happened</th><th>Loop guard (today)</th></tr>
+<tr><td><code>sh02</code> (2026-10-16)</td><td>T141–T171, seq 2934–3615</td><td>UP at Littleroot (11,2) walks to (11,1); the twin's message opens, auto-advance pages it, the script walks the player back to (11,2). 15 round trips.</td><td>silent; only <code>milestone_drought</code> at T171</td></tr>
+<tr><td><code>sh02</code></td><td>T263–T307, seq 5927–7271</td><td>The same batch <code>LEFT,LEFT,LEFT,UP,UP,UP</code> 45 times on Route 101: LEFT steps onto (6,15), BIRCH's script returns the player to (7,15).</td><td>silent; only <code>milestone_drought</code> at T307</td></tr>
+</table>
+</section>
+
+<section>
+<h2>Why the guard missed it</h2>
+<p>Confirmed by replaying the recorded events through the production <code>LoopDetector</code> with the run's own switches.</p>
+<table>
+<tr><th>Cause</th><th>Evidence</th></tr>
+<tr><td>Auto-advance's B presses are recorded as presses of the same tool call. Each one replaced the call's before state and, with interaction loop detection on, its action. A push-back call read as <i>B pressed in a message at (6,15), ended free at (7,15)</i>.</td><td>Birch seq 5945: <code>button_press ["B"]</code>, before state 5944 at (6,15), message open. Every push-back call has a different before and after, so the "same input, same state" check never counts.</td></tr>
+<tr><td>A script-locked result with no message has no fingerprint, and a missing fingerprint clears the cycle history.</td><td>Twin T143: result at (11,1), field locked, script running (mode 2, status 0), no message yet. The history is cleared every other call.</td></tr>
+<tr><td>The restarted-conversation check needs the message open in the result; auto-advance has already closed it.</td><td>Every push-back result is free with no dialogue.</td></tr>
+</table>
+</section>
+
+<section>
+<h2>What counts as a push-back</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 250" width="700" role="img" aria-label="A push-back on Route 101 and one at the Littleroot twin">
+<text x="10" y="18" class="t">Birch, one call (T263)</text>
+<rect x="10" y="30" width="60" height="60" rx="4" class="prior"/><text x="40" y="56" text-anchor="middle">(6,15)</text><text x="40" y="74" text-anchor="middle" class="s">script</text>
+<rect x="74" y="30" width="60" height="60" rx="4" class="game"/><text x="104" y="56" text-anchor="middle">(7,15)</text><text x="104" y="74" text-anchor="middle" class="s">anchor</text>
+<path d="M98 34 C 90 10, 54 10, 46 30" class="arr p"/><text x="72" y="12" text-anchor="middle" class="s">LEFT</text>
+<path d="M46 90 C 54 112, 90 112, 98 90" class="arr g"/><text x="72" y="122" text-anchor="middle" class="s">script walks back</text>
+<text x="160" y="50">press LEFT,LEFT,LEFT,UP,UP,UP from settled (7,15)</text>
+<text x="160" y="68">→ left the tile, a message held the controls</text>
+<text x="160" y="86">→ result settled at (7,15) again = push-back of that input</text>
+<text x="10" y="150" class="t">Twin, two calls (T143 + T144)</text>
+<rect x="10" y="162" width="60" height="60" rx="4" class="prior"/><text x="40" y="188" text-anchor="middle">(11,1)</text><text x="40" y="206" text-anchor="middle" class="s">script</text>
+<rect x="74" y="162" width="60" height="60" rx="4" class="game"/><text x="104" y="188" text-anchor="middle">(11,2)</text><text x="104" y="206" text-anchor="middle" class="s">anchor</text>
+<text x="160" y="182">UP → (11,1), result locked (script running): not settled, keep going</text>
+<text x="160" y="200">UP → message, auto-advance, script walks back → settled (11,2)</text>
+<text x="160" y="218">= push-back of the inputs [UP],[UP]</text>
+</svg>
+</div>
+<figcaption>Coordinates and calls are from the recorded sh02 events. The anchor is the last settled result (field controls free, no message).</figcaption>
+</figure>
+<table>
+<tr><th>Rule</th><th>Value</th></tr>
+<tr><td>Settled state</td><td>fingerprint known, <code>field_controls_locked</code> false, no dialogue, no message</td></tr>
+<tr><td>Push-back</td><td>a press or <code>navigate_to</code> result settled and equal to the anchor, after the player left the anchor tile <b>and</b> an open message or the game's script context running held the controls (a door or stairs animation, a menu or a lock of unknown origin does not count). Left means seen on another tile, or, while a script holds the controls, facing away from the direction just pressed: no input does that, so the script stepped the player back between snapshots (54a7 T247, OldaleTown_EventScript_BlockedPath)</td></tr>
+<tr><td>Way out</td><td>the trip's first button, or the map a <code>navigate_to</code> targeted; never auto-advance's B. Loops with irregular periods (LEFT then LEFT,LEFT; DOWN,A,A then DOWN,DOWN,A,A; navigate_to to (10,0) then (11,0)) still count as one</td></tr>
+<tr><td>Warning</td><td>the same way out 3 times (<code>cycleRepeats</code>) among the last 12 push-backs → <code>cycle</code> warning, then the supervisor briefing</td></tr>
+<tr><td>Reset and recovery</td><td>a settled result elsewhere moves the anchor; more than 8 game calls (observes included) with no settled result, or an errored press, drop it. A push-back episode recovers only on a map or tile not among the last 16 results, or a story milestone; a new state on a known tile (one START opening the menu) does not end it or clear the count</td></tr>
+<tr><td>Not push-backs</td><td>reading the same conversation in place, walking back and forth with free controls, bumping a wall, a door bounce, attempts between which money, party, story or items changed</td></tr>
+</table>
+</section>
+
+<section>
+<h2>What the model reads</h2>
+<p>The recorded warning, and the note the model gets when the supervisor is off:</p>
+<pre>LOOP GUARD (cycle): A game script keeps returning the player to the same place after the same input: each attempt ends back where it started, so repeating it will not get past the script. Read what the script's dialogue says, then choose a different target or approach using observed evidence. Recovery is bounded; objective wording and new evidence IDs alone do not establish progress.</pre>
+<p>With <code>loop-guard-supervisor-v1</code> on, as in both arms, the next model call gets the supervisor briefing for a cycle ("You keep repeating the same short cycle of actions…"), re-posted every 6 calls while the loop lasts. The briefing text is unchanged by this switch.</p>
+</section>
+
+<section>
+<h2>Replay receipts</h2>
+<table>
+<tr><th>Window</th><th>OFF</th><th>ON</th></tr>
+<tr><td>sh02 twin</td><td>no notice</td><td>warning + supervisor T146 seq 3062 (evidence 2973, 3062: the push-backs at T142 and T146); re-brief T152, T158, T164, T170; recovered T173 seq 3693 when <code>navigate_to</code> reached (12,9)</td></tr>
+<tr><td>sh02 Birch</td><td>no notice</td><td>warning + supervisor T265 seq 6011 (evidence 5951, 6011); re-brief every 6 calls to T307; recovered T308 seq 7300 at a new tile ((6,13), the starter scene)</td></tr>
+</table>
+<p>A replay sweep of the 60 most recent runs adds a push-back warning in two more: <code>939e</code> T341 (the twin, without auto-advance: UP then A three or four times) and <code>9d86</code> T470 (BIRCH: LEFT, A, A three times). Both were checked by hand and are real push-back loops. This is a replay of recorded events; it does not say what the model would have done next.</p>
+</section>
+
+<section>
+<h2>Cook audit acceptance cases</h2>
+<p>From <code>runs/reports/2026-10-16-cook-harness-audit/</code>, replayed from schema-valid recorded events through <code>attachLoopGuard</code>.</p>
+<table>
+<tr><th>Case</th><th>Before</th><th>With the switch</th></tr>
+<tr><td>54a7 T80–T114, Littleroot twin; navigate_to targets vary</td><td>no loop guard</td><td>warning T88 seq 1927; recovered T115</td></tr>
+<tr><td>54a7 T247–T343, Oldale BlockedPath; step-back never in a snapshot</td><td>no loop guard</td><td>warning T254 seq 6212</td></tr>
+<tr><td>1623 T85–T304, Mom in the 1F hall (DOWN,A,A / DOWN,DOWN,A,A)</td><td>warning T142, START "recovered" it at T145, then 147 turns unguarded</td><td>warning T96; START does not recover; supervisor briefings at most 12 turns apart; recovered T304 on the new map upstairs</td></tr>
+<tr><td>sh02 T1068–T1086, Oldale Maniac</td><td>no loop guard</td><td>warning T1075 seq 18360</td></tr>
+</table>
+<p>A sweep of the 70 most recent runs: every added warning that was checked by hand (12 runs, among them 1623 T934, 54a7 T402, e588 T498, show T115, 3f21 T146, 939e T276, d116 T617, ab34 T358, 4fe9 T102/T377, 26e0 T146) is the twin, Birch, Maniac or BlockedPath push-back.</p>
+</section>
+
+<section>
+<h2>Wiring</h2>
+<p>Preset or switchboard → <code>FeatureSet["pushback-loop-detection-v1"]</code> → <code>attachLoopGuard(…, pushback)</code> in <code>live.ts</code> and <code>decision-probe.ts</code> → <code>LoopDetector</code>'s push-back tracker. The <code>loop_guard</code> event, timeline row and replay are the existing ones (kind <code>cycle</code>).</p>
+</section>
+
+<section>
+<h2>Status</h2>
+<p>Branch <code>claude/pushback-loop-guard</code>. Tests in <code>packages/agent/src/pushback-loop-detection.test.ts</code> (both recorded windows ON and OFF, synthetic push-backs and negatives) and a <code>live.ts</code> factory test. Ships with <a href="pushback-press-result-v1.html">push-back press results</a> and <a href="battle-observation-loop-v1.html">battle observation loop</a>. No measured runs.</p>
+</section>
+</main>
+</body>
+</html>

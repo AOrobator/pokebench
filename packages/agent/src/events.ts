@@ -200,6 +200,15 @@ const Retry = event("retry", { reason: Type.String(), attempt: Type.Integer({ mi
 // text-only-supervisor-v1: the note sent to the model instead of ending the run at the failure limit.
 const TextOnlySupervisor = event("text_only_supervisor", { replies: Type.Integer({ minimum: 1 }), note: Type.Integer({ minimum: 1 }), limit: Type.Integer({ minimum: 1 }), text: Type.String({ minLength: 1 }) });
 
+// low-hp-trainer-warning-v1: the SUPERVISOR paragraph a game-tool result gained, with the state facts it states.
+const LowHpTrainerWarning = event("low_hp_trainer_warning", {
+  tool: Type.String({ minLength: 1 }), species: Type.String({ minLength: 1 }), hp: Type.Integer({ minimum: 1 }), max_hp: Type.Integer({ minimum: 2 }),
+  rival: Type.Enum(["MAY", "BRENDAN"]), x: Type.Integer(), y: Type.Integer(), map_id: Type.Tuple([Type.Integer(), Type.Integer()]),
+  money: Type.Union([NonNegativeInt, Type.Null()]),
+  items: Type.Array(Type.Object({ name: Type.String({ minLength: 1 }), quantity: Type.Integer({ minimum: 1 }) }, closed), { maxItems: 186 }),
+  text: Type.String({ minLength: 1 }),
+});
+
 // dialogue-auto-advance-v1: the harness advanced field dialogue to the next decision point within one tool call.
 // battle-text-auto-advance-v1 adds the battle_* stops and paused; its pages carry battle_turn and battle_message_id.
 export const DIALOGUE_AUTO_ADVANCE_STOPS = ["field_free", "menu", "naming", "battle", "screen_change", "locked_no_message", "interface_not_ready", "message_not_ready", "press_cap", "time_cap", "error", "battle_input", "battle_prompt", "battle_busy", "battle_unreadable", "paused"] as const;
@@ -366,6 +375,8 @@ export const StateBodySchema = Type.Object(
     battle:Type.Optional(Type.Union([BattleStateSchema,Type.Null()])),
     resources:Type.Optional(Type.Union([ResourcesSchema,Type.Null()])),
     route103_rival:Type.Optional(Type.Union([Type.Object({battle_active:Type.Boolean(),defeated:Type.Boolean(),oldale_stage:Type.Union([Type.Integer({minimum:0,maximum:2}),Type.Null()])},closed),Type.Null()])),
+    // trainer-opponent-v1: gTrainerBattleOpponent_A, its ROM name and class, its defeated flag, and a trainer battle on now.
+    trainer_opponent:Type.Optional(Type.Union([Type.Object({trainer_id:Type.Integer({minimum:1,maximum:854}),trainer_class:Type.Integer({minimum:0,maximum:255}),name:Type.Union([Type.String({maxLength:40}),Type.Null()]),defeated:Type.Boolean(),battle_active:Type.Boolean()},closed),Type.Null()])),
     blackout_active:Type.Optional(Type.Union([Type.Boolean(),Type.Null()])),
     game_stats: Type.Optional(Type.Union([Type.Object({
       pokemon_captures:Type.Union([NonNegativeInt,Type.Null()]),
@@ -513,6 +524,7 @@ export const RunEventSchema = Type.Union([
   BattleChoice,
   Retry,
   TextOnlySupervisor,
+  LowHpTrainerWarning,
   DialogueAutoAdvance,
   DiskUsage,
   FramesEvicted,

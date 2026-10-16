@@ -230,6 +230,7 @@ export function eventText(event: RunEvent, view?: RunView): string | null {
     case "navigation_context":return `Navigation memory delivered · ${String(event.evidence.length)} retained references · ${esc(event.text.slice(0,200))}`;
     case "milestone_hint":return `Milestone hint sent to the model · ${esc(event.text)}`;
     case "dialogue_auto_advance":return `Dialogue auto-advance (${event.tool}) · B ×${String(event.auto_presses)}${event.battle_auto_presses===undefined?"":` (${String(event.battle_auto_presses)} in battle)`} · stopped: ${esc(event.stop.replaceAll("_"," "))} · ${esc(event.detail)}${event.dropped.length===0?"":` · ${String(event.dropped.length)} requested inputs not sent (${esc(event.dropped.join(", "))})`} · ${String(event.pages.length)} pages${event.pages.map((page,i)=>` · ${String(i+1)}. ${page.battle_turn===undefined?"":`battle turn ${String(page.battle_turn)}: `}${page.speaker===null?"":`${esc(page.speaker)}${page.speaker_source==="faced_sprite"?" (sprite kind)":page.speaker_source==="faced_target"?" (faced object)":""}: `}“${esc(page.text)}”`).join("")}`;
+    case "low_hp_trainer_warning":return `Low-HP trainer warning added to the ${esc(event.tool)} result · ${esc(event.species)} ${String(event.hp)}/${String(event.max_hp)} HP · rival ${esc(event.rival)} at (${String(event.x)},${String(event.y)}) · ${esc(event.text)}`;
     case "text_only_supervisor":return `Text-only supervisor note ${String(event.note)}/${String(event.limit)} sent after ${String(event.replies)} replies with no tool call · ${esc(event.text)}`;
     case "ledger_context":return `Instruction ledger delivered · ${String(event.evidence.length)} references · ${esc(event.text.slice(0,200))}`;
     case "belief_ledger":return `Disproved beliefs ledger delivered · ${String(event.entries)} entr${event.entries===1?"y":"ies"} · ${String(event.evidence.length)} references · ${esc(event.text)}`;
@@ -374,6 +375,11 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "dialogue-context-kept-v1":"dialogue-context-kept-v1.html",
  "transition-loop-detection-v1":"transition-loop-detection-v1.html",
  "connection-edge-tiles-v1":"connection-edge-tiles-v1.html",
+ "pushback-loop-detection-v1":"pushback-loop-detection-v1.html",
+ "pushback-press-result-v1":"pushback-press-result-v1.html",
+ "battle-observation-loop-v1":"battle-observation-loop-v1.html",
+ "navigation-truth-v1":"navigation-truth-v1.html",
+ "navigation-refusal-reasons-v2":"navigation-refusal-reasons-v2.html",
  "milestone-stall-stop-v1":"milestone-stall-stop-v1.html",
  "text-only-supervisor-v1":"text-only-supervisor-v1.html",
  "navigation-refusal-reasons-v1":"navigation-refusal-reasons-v1.html",
@@ -402,8 +408,12 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "same-plan-breaker-v1":"same-plan-breaker-v1.html",
  "levelup-box-v1":"levelup-box-v1.html",
  "people-ledger-v1":"people-ledger-v1.html",
- "navigation-truth-v1":"navigation-truth-v1.html",
- "navigation-refusal-reasons-v2":"navigation-refusal-reasons-v2.html",
+ "trainer-heal-guidance-v1":"trainer-heal-guidance-v1.html",
+ "low-hp-trainer-warning-v1":"low-hp-trainer-warning-v1.html",
+ "briefing-battle-outcomes-v1":"briefing-battle-outcomes-v1.html",
+ "trainer-opponent-v1":"briefing-battle-outcomes-v1.html",
+ "blocked-exit-fact-v1":"blocked-exit-fact-v1.html",
+ "battle-loss-recap-v1":"battle-loss-recap-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

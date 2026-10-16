@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Battle loss recap</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --wall:#9b968a; --ground:#eef0e6; --grass:#cfe6c0;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --wall:#55585e; --ground:#1f2420; --grass:#24361f; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --wall:#55585e; --ground:#1f2420; --grass:#24361f; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:760px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:68ch}
+ul{margin:0;padding-left:20px}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+svg .big{font-family:var(--mono);font-size:16px;font-weight:600}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navb{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.4}
+.wall{fill:var(--wall);stroke:var(--rule)}
+.ground{fill:var(--ground);stroke:var(--rule)}
+.grass{fill:var(--grass);stroke:var(--rule)}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.arr.p{stroke:var(--prior);stroke-width:2.2}
+.arr.g{stroke:var(--game);stroke-width:2.2}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre;overflow-x:auto;font:12.5px/1.45 var(--mono);margin:0}
+pre .add{background:var(--game-bg);color:var(--game);font-weight:600}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tablewrap{overflow-x:auto}
+</style>
+</head>
+<body>
+<main>
+<header style="display:flex;flex-direction:column;gap:10px">
+<div class="eyebrow">Harness switch · battle-loss-recap-v1 · observation · needs ram-state-v1 · default off</div>
+<h1>Battle loss recap</h1>
+<p class="lede">After a whiteout or a lost trainer battle, every game result carries a short factual recap until the next story milestone.</p>
+</header>
+<section><h2>What it does</h2>
+<p>After a whiteout, or a lost or drawn trainer battle, every observe, press and navigate_to result ends with one factual recap until the next story milestone: who, where, when, where the game returned the player, and the trainer's defeated flag as that result's own state reads it.</p></section>
+<figure><div class="scroll"><svg viewBox="0 0 720 120" role="img" aria-label="Recap pinned from T371 to T610">
+<line x1="30" y1="60" x2="700" y2="60" class="arr"/>
+<rect x="250" y="48" width="380" height="24" class="game"/><text x="440" y="64" text-anchor="middle" class="t">recap on every game result (238)</text>
+<text x="250" y="96" text-anchor="middle" class="s">T371 whiteout</text><text x="705" y="96" text-anchor="end" class="s">T611 FIRST_POKECENTER_HEAL</text>
+<text x="160" y="40" text-anchor="middle" class="s">T347 ROUTE_103 (navigation: does not end it)</text>
+</svg></div><figcaption>Run 54a7. The recap starts on the result of the call that ended in the whiteout and stops at the next story milestone. Navigation milestones and measurement-only ones (RIVAL_BATTLE_STARTED) do not end it.</figcaption></figure>
+<section><h2>Before and after (54a7, T371, tool result seq 8983)</h2>
+<p>OFF (the recorded result, selected lines): the model saw "GREE whited out!" once, and nothing after it.</p><pre>pressed A
+4. turn 371 · ROUTE103 (map 0/18) · battle turn 1: &quot;GREE is out of
+5. turn 371 · ROUTE103 (map 0/18) · battle turn 1: &quot;GREE whited out!&quot;
+Location: GREE&#x27;s HOUSE 2F
+Party (player): TORCHIC Lv6 HP 21/21 · moves SCRATCH PP 35, GROWL PP 40 · nickname TORCHIC</pre>
+<p>ON (added after the readout, and on every later game result until T611):</p><pre><span class="add">Battle recap: you lost to MAY (trainer 535) on ROUTE103 (map 0/18) at turn 371 and whited out; the game returned you to GREE&#x27;s HOUSE 2F (map 1/1). The game shows MAY (trainer 535) has not been defeated.</span></pre></section>
+<section><h2>Facts used</h2>
+<ul>
+<li>Outcome: <code>battle.outcome</code> "lost" (code 2, gBattleOutcome) in states 8967–8980, then the overworld on LITTLEROOT TOWN BRENDANS HOUSE 2F (map 1/1) at state 8982: a whiteout (pokeemerald <code>CB2_EndTrainerBattle</code> → <code>CB2_WhiteOut</code> when <code>IsPlayerDefeated</code>).</li>
+<li>Trainer: <code>trainer_opponent</code> 535 (TRAINER_MAY_ROUTE_103_TORCHIC), ROM name MAY, class 50 (TRAINER_CLASS_RIVAL), from the raw RAM of each state.</li>
+<li>Not defeated: flag 0x500 + 535 unset in the same state. If another trainer becomes the game's last opponent the sentence is left out; once the flag reads set it says "The game now shows MAY (trainer 535) defeated."</li>
+<li>A wild whiteout names the wild Pokémon and has no flag sentence. A won battle, or a run from a wild one, pins nothing. A later loss replaces an earlier one.</li>
+<li>The result that ends the battle is recapped from its own state before the recorder writes it (the recorder records a result's state after the tool returns).</li>
+</ul></section>
+<section><h2>Measured on recorded runs</h2>
+<div class="tablewrap"><table><tr><th>run</th><th>results with the recap</th><th>turns</th><th>false positives</th></tr>
+<tr><td>54a7</td><td>238 of 655</td><td>T371–T610</td><td>none: one loss (MAY, T371), recap ends at FIRST_POKECENTER_HEAL (T611)</td></tr>
+<tr><td>sh02</td><td>0 of 1100</td><td>–</td><td>none: sh02 beat MAY at T954 and never whited out</td></tr>
+</table></div></section>
+<section><h2>Status</h2>
+<p>Branch <code>claude/blocked-exit-and-loss</code>. Gates: <code>just test</code>, <code>just lint</code>, <code>just build</code>, <code>just coverage</code> (90% floor). Replays on recorded runs 54a7 and sh02 only; no measured runs, no live probe (lane freeze until 10 AM). The pending experiment entry is registered, not queued; only the operator approves runs.</p></section>
+</main>
+</body>
+</html>

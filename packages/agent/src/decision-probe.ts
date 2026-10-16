@@ -67,7 +67,7 @@ export interface DecisionContext {
 // The model-facing text of every recorded tool result, re-derived under `features`.
 interface ResultParts { readonly event: ToolResultEvent; readonly before: StateEvent | undefined; readonly after: StateEvent | undefined; readonly buttons: readonly Button[] | null; readonly auto: boolean }
 // Switches that shape an auto-advanced result's text; such a result is composed from many inner presses and is kept as recorded.
-const AUTO_TEXT: readonly SwitchableFeature[] = ["dialogue-auto-advance-v1", "press-result-v1", "transition-press-result-v1", "live-player-position-v1", "field-control-lock", "dialogue-safe-batches-v1"];
+const AUTO_TEXT: readonly SwitchableFeature[] = ["dialogue-auto-advance-v1", "press-result-v1", "transition-press-result-v1", "live-player-position-v1", "field-control-lock", "dialogue-safe-batches-v1", "pushback-press-result-v1"];
 
 const PRESS_LINE = /^Press result: .*\n/m;
 function pressLine(text: string, line: string | null): string {
@@ -136,6 +136,7 @@ export class Replay {
   // Tool construction ports; a probe never executes a tool.
   readonly recordState = (): never => { throw new Error("probe tools never execute"); };
   readonly recordDialogueAutoAdvance = (): never => { throw new Error("probe tools never execute"); };
+  readonly lowHpTrainerWarning = (): never => { throw new Error("probe tools never execute"); };
 }
 // What the wiring itself records; the replay regenerates these instead of reading them.
 const DERIVED: readonly RunEvent["type"][] = ["loop_guard", "navigation_context", "ledger_context", "milestone_hint", "text_only_supervisor", "belief_ledger"];
@@ -235,7 +236,7 @@ export async function decisionContext(run: RecordedRun, turn: number, features: 
   // The wiring, replayed over the recorded stream under the probe's switches.
   const replay = new Replay(start);
   const governor = new Governor({ limits: PLAY_LIMITS, retry: () => undefined, abort: () => undefined, now: () => 0 });
-  const detector = attachLoopGuard(replay, governor, undefined, features["deterministic-loop-guard-v1"] ? "enforced" : "diagnostic", features["interaction-loop-detection-v1"], loopSupervisor(features, replay), features["transition-loop-detection-v1"], features["navigation-truth-v1"]);
+  const detector = attachLoopGuard(replay, governor, undefined, features["deterministic-loop-guard-v1"] ? "enforced" : "diagnostic", features["interaction-loop-detection-v1"], loopSupervisor(features, replay), features["transition-loop-detection-v1"], features["pushback-loop-detection-v1"], features["battle-observation-loop-v1"], features["navigation-truth-v1"]);
   const t0 = Date.parse(start.t);
   stallBriefing(features, replay, detector, { pausedMs: () => 0 }, () => Date.parse(replay.current.t) - t0);
   const wiring = probeTools(features, replay);

@@ -286,7 +286,7 @@ async function playAgent(): Promise<void> {
       if(preset!==null&&recorder.elapsedMs()>=limits.maxWallMs){governor.abort("budget");return "budget";}
       const capture = captureAt === null ? null : new CheckpointCapture(captureAt, { serverUrl: gameServerUrl, dir: join(RUNS_ROOT, runId, "checkpoints"), fetch, write: (path, data) => { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, data); }, rename: renameSync });
       if (capture !== null) recorder.subscribe(event => { capture.observe(event); });
-      const loopDetector = attachLoopGuard(recorder, governor, undefined, loopMode, features["interaction-loop-detection-v1"], loopSupervisor(features, recorder), features["transition-loop-detection-v1"], features["navigation-truth-v1"]);
+      const loopDetector = attachLoopGuard(recorder, governor, undefined, loopMode, features["interaction-loop-detection-v1"], loopSupervisor(features, recorder), features["transition-loop-detection-v1"], features["pushback-loop-detection-v1"], features["battle-observation-loop-v1"], features["navigation-truth-v1"]);
       if(target!==null){
         const stop=new NativeTargetStop(runId,target,proof=>{
           if(governor.stopReason!==null)return;

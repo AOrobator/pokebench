@@ -1,0 +1,17 @@
+attempt del4-exit-append
+file src/result-facts.ts sha256 before cedc6e67ed6e7427e3c1575bbf88ea8b6fed06d5861c31758cce2003c5684d6d
+mutation: replace
+  exits?.settle(id,after,textOf(result))??null
+with
+  null
+33c33
+<   const lines=[exits?.settle(id,after,textOf(result))??null,losses===null||after===undefined?null:losses.recap(after)].filter((l):l is string=>l!==null);
+---
+>   const lines=[null,losses===null||after===undefined?null:losses.recap(after)].filter((l):l is string=>l!==null);
+--- broken run
+     × ON appends the line as its own text part at T247; OFF leaves the press tool untouched 5ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected false to be true // Object.is equality
+      Tests  1 failed | 19 passed (20)
+--- restored sha256 cedc6e67ed6e7427e3c1575bbf88ea8b6fed06d5861c31758cce2003c5684d6d (equal: yes)
+restored run:       Tests  20 passed (20)

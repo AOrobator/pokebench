@@ -77,6 +77,8 @@ Done when every milestone is merged, qualification shows none of F1–F8, the fo
 
 ## Session Log
 
+- 2026-10-16 08:41 AM EDT: From the cook-2 rival-house-exit thread (79bcaae5) and pushback-loop-guard (50f0add3): onInBoth += briefing-battle-outcomes-v1, pushback-loop-detection-v1, pushback-press-result-v1, battle-observation-loop-v1 (bug fixes, on in base); bundle switches += blocked-exit-fact-v1, battle-loss-recap-v1 (off in base). trainer-opponent-v1 is a recorded reading, not a switch.
+- 2026-10-16 07:56 AM EDT: trainer-heal-guidance-v1 and low-hp-trainer-warning-v1 merged on main (60f66178, three reviews approved); added to the bundle switches (off in base); their pending experiments repinned to 60f66178.
 - 2026-10-16 07:54 AM EDT: people-ledger-v1 merged on main (9a1ea32d); added to the bundle switches (off in base).
 - 2026-10-16 07:40 AM EDT: briefing-exits-v1 (bug fix) and untaken-exits-v1 merged on main (780f40a5); briefing-exits-v1 added to onInBoth (on in base), untaken-exits-v1 to the bundle switches (off in base).
 - 2026-10-16 07:30 AM EDT: levelup-box-v1 (bug fix for the level-up stats box stall in run 54a7) merged on main (36aad5b1); added to onInBoth (on in base).

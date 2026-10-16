@@ -83,7 +83,7 @@ The three switches share the trainer reading, the fixtures and the registry file
 - [x] Gates on the merge: agent 1728, viewer 915, pytest 2311 passed (main fixed its route103_rival KeyError tests); coverage agent 97.97 st / 94.52 br / 98.46 fn / 99.11 ln, viewer 95.32 / 91.12 / 93.63 / 97.62, Python lines 97.37 / branches 93.23 / functions 100 (gate passes through `just coverage`); lint clean; build ok; verify-vendor OK; pages-check silent; experiment-cli check ok 70. Measurement replays unchanged (54a7: 11/11 notes OFF-identical, 220 blocked-exit lines).
 - [x] COMMIT: `Merge main into claude/blocked-exit-and-loss` (62d029c6)
 - [x] Merged main be428cdb (people-ledger-v1 and its bundle membership). Same procedure: conflicted files from main, insertions re-applied after `people-ledger-v1` (scratchpad `reg2.py`, `preset2.py`, `viewerwire3.py`, `fixtests3.py`, `shift.py`; play-wiring wraps withResultFacts outside main's withUntakenExits(withPeopleLedger(...)) chain); observation 29→31, guard 14→15, switchboard rows 76→79; people-ledger.test positional assert +3; experiments regenerated (people-ledger-v1 false in the incumbents). Gates: agent 1746, viewer 915, pytest 2313 passed; coverage agent 98.00 / 94.54 / 98.49 / 99.12, viewer 95.32 / 91.12 / 93.63 / 97.62, Python 97.37 / 93.23 / 100; lint clean; verify-vendor OK; experiment-cli check ok 70.
-- [ ] Principles self-review (PB1–PB13)
+- [x] Principles self-review (PB1–PB13): 13 rows, 0 FAIL (table below)
 - [ ] Merge latest main; gates
 - [ ] Claude, Grok, Codex LGTM on one frozen packet; report reviewed head SHA
 
@@ -95,6 +95,24 @@ Report per item: switch id, before/after excerpts, measurements, tests and cover
 
 - 2026-10-16 05:54 AM EDT: branch from main 9e84ba4d; `just setup`, `just build`.
 - 2026-10-16 06:05 AM EDT: offline reparse of 54a7 raw RAM (842 states): `gTrainerBattleOpponent_A` 535 during the T369–371 battle; ROM `gTrainers[535].trainerName` "MAY", class 50 (TRAINER_CLASS_RIVAL); `gTrainers` at 0x08310030 verified on ids 1 SAWYER, 520 BRENDAN, 529/535 MAY, 265 ROXANNE (opponents.h). sh02 (1434 states): MAY 535 battle T922–954 won, then RIVAL_BATTLE_WON.
+
+## Principles self-review (PB1–PB13), head before sealing
+
+| ID | Score | Evidence |
+|---|---|---|
+| PB1 | PASS | No milestone or grading code changed. The briefing and recap read game-owned state (battle.outcome, gTrainerBattleOpponent_A, the trainer flag, map ids); RIVAL_BATTLE_STARTED stays measurement-only and is reused, not duplicated. The recap ends on a counted story milestone (kind story, not measurement-only), from recorded milestone events. |
+| PB2 | N/A | No run accounting or stop reasons touched. Measurements report every result of both runs, including the ones without a line. |
+| PB3 | PASS | No improvement is claimed. Measurements are replays of two recorded runs; the pending experiments carry the hypotheses; only the operator approves runs. |
+| PB4 | PASS | Every model-visible change is behind its own registered switch, recorded in harness_features when on. The new RAM reading is declared as measurement `trainer-opponent-v1` (recorded on every new run). Vendor untouched (`just verify-vendor` OK). No game memory writes. |
+| PB5 | PASS | One switch per item, each with its own pending experiment whose candidate flips only that switch; blocked-exit-fact's incumbent adds world-destinations-v1 with the reason in notes. |
+| PB6 | PASS | Each line is one bounded sentence set per result; the exits list is bounded by the map's exits; nothing is truncated (operator rule). The recap repeats on every result of its span (238 in 54a7, about 250 chars each): stated in the explainer. |
+| PB7 | PASS | The lines are part of the tool_result text the recorder writes (content parts joined); briefing lines are inside the recorded loop_guard message. Measurements read only events.jsonl and raw-ram archives. |
+| PB8 | N/A | No tool schema, retry or model-output handling changed. |
+| PB9 | PASS | Design calls made from evidence and recorded in Architecture: refusal learnt by trying (not a static script table); story character by ROM trainer name in the character-presence list; recap ends at the next counted story milestone. Open questions are listed for the operator in the hand-off, not silently defaulted. |
+| PB10 | PASS | No test skipped or weakened; floor 90 unchanged; no exclude widened; pre-commit hook on every commit. Positional registry asserts were moved by exactly the three appended ids; two tests that assert today's identity (briefing-exits BASE, untaken-exits OFF) pin the new default-off switches off, as earlier switches did. |
+| PB11 | PASS | Delivery proven through the pinned pi `runAgentLoop` against a local fake gateway; gTrainers/opponent/flag addresses checked on the real ROM via raw RAM archives (SAWYER, ROXANNE, BRENDAN, MAY); the (0,10) script bytes decoded with pokeemerald's script_cmd_table opcodes. |
+| PB12 | PASS | The ROM was read only from `~/.roms/pokemon-emerald.gba` (the POKEBENCH_ROM path, outside TCC folders) by offline scratchpad scripts; never copied or staged. |
+| PB13 | PASS | RED and GREEN commits with worklog updates, gates recorded, explainers and pending experiments in the change, review loop below. |
 
 ## Surprises
 

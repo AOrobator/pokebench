@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 import { Log, START, assistant } from "../test-support/events.js";
+import { LogReader } from "./runs.js";
 import { startViewer, type Viewer } from "./server.js";
 
 vi.mock("node:fs", async (original) => ({ ...await original<typeof import("node:fs")>() }));
@@ -210,13 +211,37 @@ it("keeps the event loop responsive through a chunk of many tiny malformed lines
     const text = tail + decoder.decode(chunk.value, { stream: true });
     problems += (text.match(/^event: problem$/gm) ?? []).length;
     const cut = text.lastIndexOf("\n\n");
-    tail = text.slice(cut + 2);
+    tail = cut < 0 ? text : text.slice(cut + 2);
     problems -= (tail.match(/^event: problem$/gm) ?? []).length;
   }
   running = false;
   abort.abort();
   expect(problems).toBe(100_000);
   expect(worst).toBeLessThan(250);
+});
+
+it.each([
+  ["many tiny lines", "x\n".repeat(100_000), 1 << 20, 2000],
+  ["one line far longer than the chunk", `${"y".repeat(2_000_000)}\n{not json\n`, 65536, 2000],
+  ["valid events in small pieces", longRun(300).events.map((e) => JSON.stringify(e)).join("\n") + "\n", 512, 3],
+])("reads each byte of the log once for %s", (_label, body, chunk, perStep) => {
+  const base = mkdtempSync(join(tmpdir(), "viewer-stream-"));
+  roots.push(base);
+  const path = join(base, "events.jsonl");
+  writeFileSync(path, body.slice(0, Math.floor(body.length / 2)));
+  const read = fs.readSync;
+  let bytes = 0;
+  vi.spyOn(fs, "readSync").mockImplementation(((...args: Parameters<typeof fs.readSync>) => { const n = read(...args); bytes += n; return n; }));
+  const reader = new LogReader(path, chunk);
+  let results = 0, consumed = 0;
+  const drain = (): void => { for (;;) { const step = reader.next(perStep); if (step.lines === 0) return; expect(step.lines).toBeLessThanOrEqual(perStep); results += step.results.length; consumed += step.lines; } };
+  drain();
+  fs.appendFileSync(path, body.slice(Math.floor(body.length / 2)));
+  drain();
+  expect(bytes).toBe(Buffer.byteLength(body));
+  const all = body.split("\n").slice(0, -1);
+  expect(consumed).toBe(all.length);
+  expect(results).toBe(all.filter((line) => line.trim() !== "").length);
 });
 
 it("rejects a chunk size that is not a positive integer", async () => {

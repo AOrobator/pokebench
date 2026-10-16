@@ -14,7 +14,7 @@ import { FEATURES } from "@pokebench/agent/features";
 import { CONTROL_ACTIONS } from "@pokebench/agent/events";
 import { finalsRunLabels } from "./experiment-gate-store.js";
 import type { BaselineStore, RunStore } from "./baseline-store.js";
-import { BaselineError, RunsError, createBaselineReader, comparisonsOf, type BaselineCompute, eventsPath, listRuns, liveScreenPort, readStart, readFrom, runDir, type BaselineReader } from "./runs.js";
+import { BaselineError, RunsError, createBaselineReader, comparisonsOf, type BaselineCompute, eventsPath, listRuns, liveScreenPort, LogReader, readStart, runDir, type BaselineReader } from "./runs.js";
 import { featureHistory } from "./history.js";
 import { localModels } from "./models.js";
 import { NextRunError, appendControl, healthProbe, liveRuns, readDraft, writeDraft, type RunQueue } from "./next-run.js";
@@ -232,20 +232,16 @@ function segments(rawUrl: string): string[] | null {
 function streamEvents(req: IncomingMessage, res: ServerResponse, path: string, pollMs: number, skew: Skew | null, chunkBytes: number): void {
   res.writeHead(200, { ...SECURITY_HEADERS, "content-type": "text/event-stream; charset=utf-8", connection: "keep-alive" });
   let closed = false, timer: NodeJS.Timeout | null = null;
-  let offset = 0;
-  let lineNo = 0;
+  const reader = new LogReader(path, chunkBytes);
   let skewReported = false, endRead = false, caughtUp = false, closing = false;
   // A queue with a read cursor: shifting a large array on every write would be quadratic.
   let pending: string[] = [], cursor = 0;
   const empty = (): boolean => cursor >= pending.length;
   const message = (type: string, data: unknown): string => `event: ${type}\ndata: ${JSON.stringify(data)}\n\n`;
-  // Reads one bounded chunk into the queue; true when there was nothing new to read.
+  // Parses the next bounded piece of the log into the queue; true when there was nothing new.
   const fill = (): boolean => {
-    const read = readFrom(path, offset, lineNo, chunkBytes, STREAM_STEP_LINES);
-    const atEnd = read.offset === offset;
-    offset = read.offset;
-    lineNo = read.lineNo;
-    for (const result of read.results) {
+    const { results, lines } = reader.next(STREAM_STEP_LINES);
+    for (const result of results) {
       if (result.ok) {
         pending.push(message("ev", result.event));
         endRead ||= result.event.type === "run_end";
@@ -256,7 +252,7 @@ function streamEvents(req: IncomingMessage, res: ServerResponse, path: string, p
         pending.push(message("problem", { line: result.line, problem: `${skew.head}. First event it cannot read: line ${String(result.line)}: ${result.problem}` }));
       }
     }
-    return atEnd;
+    return lines === 0;
   };
   // One step: refill an empty queue (adding caught_up once the file is read, and done after run_end),
   // then write until the socket is full. Every message, control ones included, waits its turn.

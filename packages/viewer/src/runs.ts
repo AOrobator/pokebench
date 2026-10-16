@@ -86,23 +86,51 @@ function readBytes(path: string, offset: number, maxBytes: number): Buffer {
 // Complete lines only: a line the writer is still appending stays unread
 // until its newline lands. Splitting on the newline byte keeps multi-byte
 // characters whole.
-// maxBytes bounds one read (a line longer than it is still read whole) and maxLines bounds how
-// many complete lines one call parses; the rest is left for the next call.
-export function readFrom(path: string, offset: number, lineNo: number, maxBytes = Number.MAX_SAFE_INTEGER, maxLines = Number.MAX_SAFE_INTEGER): ReadResult {
-  let bytes = readBytes(path, offset, maxBytes);
-  for (let limit = maxBytes; bytes.lastIndexOf(0x0a) < 0 && bytes.length === limit && limit < Number.MAX_SAFE_INTEGER; ) {
-    limit = Math.min(Number.MAX_SAFE_INTEGER, limit * 4);
-    bytes = readBytes(path, offset, limit);
-  }
+export function readFrom(path: string, offset: number, lineNo: number): ReadResult {
+  const bytes = readBytes(path, offset, Number.MAX_SAFE_INTEGER);
+  const end = bytes.lastIndexOf(0x0a);
+  if (end < 0) return { results: [], offset, lineNo };
   const results: LineResult[] = [];
-  let line = lineNo, start = 0;
-  for (let end = bytes.indexOf(0x0a); end >= 0 && line - lineNo < maxLines; end = bytes.indexOf(0x0a, start)) {
+  let line = lineNo;
+  for (const text of bytes.subarray(0, end).toString("utf8").split("\n")) {
     line += 1;
-    const text = bytes.subarray(start, end).toString("utf8");
     if (text.trim() !== "") results.push(parseLine(text, line));
-    start = end + 1;
   }
-  return { results, offset: offset + start, lineNo: line };
+  return { results, offset: offset + end + 1, lineNo: line };
+}
+
+// Reads a log forward in bounded pieces: each file byte is read once, at most chunkBytes per read
+// (more only to finish a line longer than that), and next() parses at most maxLines complete
+// lines, keeping the unparsed rest in memory. A line still being written stays unread until its
+// newline lands.
+export class LogReader {
+  private buffer: Buffer = Buffer.alloc(0);
+  private fileEnd = 0;
+  private lineNo = 0;
+
+  constructor(private readonly path: string, private readonly chunkBytes: number) {}
+
+  // The parsed lines (blank ones skipped) and how many lines were consumed: 0 means nothing new.
+  next(maxLines: number): { readonly results: LineResult[]; readonly lines: number } {
+    while (this.buffer.indexOf(0x0a) < 0) {
+      const more = readBytes(this.path, this.fileEnd, this.chunkBytes);
+      if (more.length === 0) return { results: [], lines: 0 };
+      this.fileEnd += more.length;
+      this.buffer = this.buffer.length === 0 ? more : Buffer.concat([this.buffer, more]);
+      if (more.length < this.chunkBytes && this.buffer.indexOf(0x0a) < 0) return { results: [], lines: 0 };
+    }
+    const results: LineResult[] = [];
+    let start = 0, parsed = 0;
+    for (let end = this.buffer.indexOf(0x0a); end >= 0 && parsed < maxLines; end = this.buffer.indexOf(0x0a, start)) {
+      parsed += 1;
+      this.lineNo += 1;
+      const text = this.buffer.subarray(start, end).toString("utf8");
+      if (text.trim() !== "") results.push(parseLine(text, this.lineNo));
+      start = end + 1;
+    }
+    this.buffer = start >= this.buffer.length ? Buffer.alloc(0) : this.buffer.subarray(start);
+    return { results, lines: parsed };
+  }
 }
 
 function firstLine(path: string): string | null {

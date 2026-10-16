@@ -131,8 +131,8 @@ export class SupervisorBriefing {
   this.story=line;
  }
  private room(state:State):string {return roomKey(state);}
- // briefing-exits-v1: every recorded overworld state can take an exit (a map change) or step onto a step trigger,
- // mid-batch too. Arriving on a trigger through a warp, or standing on it, is still not trying it.
+ // briefing-exits-v1: every recorded overworld state can take an exit (a map change) or step onto a step trigger
+ // (any two consecutive recorded states, not only a result's). Arriving on a trigger through a warp, or standing on it, is still not trying it.
  private exitFacts(state:State):void {
   if(this.exits===null)return;
   for(const mark of this.exits.observe(state))this.pendingTouches.push(mark);

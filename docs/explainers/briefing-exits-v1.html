@@ -90,9 +90,9 @@ del{color:var(--prior)} ins{color:var(--game);text-decoration:none;font-weight:6
 </div>
 <figcaption>Recorded states 2304 (town, 14,8) and 2305 (house, 2,8). Taking the door marks town (14,8) and both door-mat tiles (1,8),(2,8); the trigger at (2,8) shares that tile, so it leaves the list too. The stairs stay untried.</figcaption>
 </figure>
-<p>A warp can lead to its own map (the teleporter pads in pokeemerald <code>AquaHideout_B1F</code>, the Trick House puzzles). Two states on the same map more than two tiles apart (a ledge hop is two) with a warp to this map next to the start count as using that warp and the one next to the arrival.</p>
+<p>A warp can lead to its own map (the teleporter pads in pokeemerald <code>AquaHideout_B1F</code>, the Trick House puzzles). It counts as used only when the player, from on or next to it, lands exactly on the warp it leads to: a destination warp id indexes the map's own warp events in order. Distance alone cannot tell a teleport from a walk, because a press batch is recorded only at its start and end, and AquaHideout_B1F's pad at (45,5) leads to (45,3), one tile away.</p>
 <p>Warp destinations are read from the game's own warp events (<code>env/pokebench_env/world.py</code> <code>read_targets</code>: group, number and destination warp id). A door arrival captured one step out of the door (a door exit walks the player down a tile) still finds the door within one tile.</p>
-<p>Step triggers: one now counts as tried when the recorded states show the player walking onto it at any step of a batch, not only where the batch ends. Arriving on a trigger through a warp, or standing on one, still does not count (the 2026-10-15 finals rule: a coordinate event runs when the player steps onto its tile, not on a warp arrival). Tried lists still start over when the readout's Story line changes; the exits of the call that changed it stay tried.</p>
+<p>Step triggers: one now counts as tried when two consecutive recorded states on the map show the player moving onto it. Each navigate_to step is recorded; a press batch is recorded at its start and end, so a trigger crossed inside one batch is not seen. Arriving on a trigger through a warp, or standing on one, still does not count (the 2026-10-15 finals rule: a coordinate event runs when the player steps onto its tile, not on a warp arrival). Tried lists still start over when the readout's Story line changes; the exits of the call that changed it stay tried.</p>
 </section>
 
 <section>
@@ -115,7 +115,7 @@ Before your next action, …</pre>
 <ins>- Dialogue shown with your latest story step that came with dialogue (mom rival instruction at turn 74), whole, in order: … MOM (sprite kind, not a name): "He lives right next door, so you should go over and introduce yourself."</ins>
 - Last story progress: rival house entered at turn 113 (21 turns ago)
 …
-- Listed here that you have not tried yet: FAT_MAN at 12,13 (A); BOY_2 at 14,17 (A); coordinate_trigger at 10,1 (step); … (the triggers at 8,9 to 11,9, walked over mid-batch, are gone)
+- Listed here that you have not tried yet: FAT_MAN at 12,13 (A); BOY_2 at 14,17 (A); coordinate_trigger at 10,1 (step); … (the triggers at 8,9 to 11,9, which recorded steps show the player walking onto, are gone)
 - Not tried yet on other maps …: LITTLEROOT TOWN PROFESSOR BIRCHS LAB (map 1/4): Machine at 10,7 (A); … | LITTLEROOT TOWN MAYS HOUSE 1F (map 1/2): Warp to PROF. BIRCH'S HOUSE 2F (map 1/3) at 2,2 (…); WOMAN_4 at 3,8 (A); NINJA_BOY at 9,5 (A); coordinate_trigger at 1,3 (step); coordinate_trigger at 2,4 (step); coordinate_trigger at 3,3 (step); television at 6,4 (A)
 Before your next action, …</pre>
 <p>Same lines, same count. Only the order of the stall briefing and the three exit/untried lists change. The loop-guard briefing and the text-only supervisor get the same list fixes and names, in their usual order.</p>

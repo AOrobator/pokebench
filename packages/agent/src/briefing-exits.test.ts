@@ -191,7 +191,7 @@ describe("briefing-exits-v1 in a production-shaped run",()=>{
   r.press([{...TOWN,position:{x:14,y:8},interaction_targets:OUTSIDE},{...HOUSE,position:{x:2,y:8},interaction_targets:DOOR}]);
  };
 
- it("counts a trigger walked over mid-batch as tried; arriving on one or standing on one still is not (finals rule)",()=>{
+ it("counts a trigger the recorded states show the player moving onto as tried, not only where a result ends; arriving on one or standing on one still is not (finals rule)",()=>{
   const HALL=[{kind:"coordinate_trigger",x:5,y:4,elevation:0,activation:"step",availability:"conditional",facing:null,local_id:null,destination:null,name:null},{kind:"coordinate_trigger",x:5,y:9,elevation:0,activation:"step",availability:"conditional",facing:null,local_id:null,destination:null,name:null},{kind:"warp",x:5,y:9,elevation:0,activation:"movement",availability:"conditional",facing:null,local_id:null,destination:[0,9,0],name:"Warp to map 0/9"},{kind:"coordinate_trigger",x:6,y:6,elevation:0,activation:"step",availability:"conditional",facing:null,local_id:null,destination:null,name:null}];
   const ROOM={location:"HALL",map_id:[2,2],interaction_targets:HALL};
   const run=(id:boolean)=>{

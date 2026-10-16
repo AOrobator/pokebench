@@ -24,11 +24,11 @@ export function warpsOf(state:Pick<GameStateSnapshot,"interaction_targets">):War
 }
 
 // The warps on a map that lead to `to` and were used from (x,y), with their same-destination siblings.
-export function usedWarps(warps:readonly Warp[],x:number,y:number,to:string,fallback=true):Warp[] {
+export function usedWarps(warps:readonly Warp[],x:number,y:number,to:string):Warp[] {
  const toward=warps.filter(w=>mapKey(w.destination)===to||mapKey(w.destination)===DYNAMIC);
  const near=toward.filter(w=>Math.abs(w.x-x)+Math.abs(w.y-y)<=1);
  const exact=toward.filter(w=>mapKey(w.destination)===to);
- const chosen=near.length>0?near:fallback&&new Set(exact.map(destinationOf)).size===1?exact:[];
+ const chosen=near.length>0?near:new Set(exact.map(destinationOf)).size===1?exact:[];
  const destinations=new Set(chosen.map(destinationOf));
  return toward.filter(w=>destinations.has(destinationOf(w)));
 }
@@ -55,13 +55,14 @@ export class ExitHistory {
   }
   return marks;
  }
- // A warp can lead to its own map (teleporter pads): a jump of more than two tiles (a ledge hop is two) between two
- // states takes the warps next to both ends that lead here; without a warp next to the start, nothing.
+ // A warp can lead to its own map (teleporter pads). It counts as used only when the player, from on or next to it,
+ // lands exactly on the warp it leads to: destination warp ids index this map's warp events in order (pokeemerald
+ // warp_events). One press batch is recorded as two states, so distance alone cannot tell a walk from a teleport.
  private sameMap(from:Seen,seen:Seen):ExitMark[] {
-  if(Math.abs(from.x-seen.x)+Math.abs(from.y-seen.y)<=2)return [];
-  const left=usedWarps(from.warps,from.x,from.y,seen.map,false);
-  if(left.length===0)return [];
-  const marks=[...left,...usedWarps(seen.warps,seen.x,seen.y,seen.map,false)].map(w=>({room:seen.room,map:seen.map,tile:tileKey(w.x,w.y)}));
+  if(from.x===seen.x&&from.y===seen.y)return [];
+  const used=from.warps.filter(w=>mapKey(w.destination)===seen.map&&Math.abs(w.x-from.x)+Math.abs(w.y-from.y)<=1)
+   .flatMap(w=>{const end=from.warps[w.destination[2]];return end!==undefined&&end.x===seen.x&&end.y===seen.y?[w,end]:[];});
+  const marks=used.map(w=>({room:seen.room,map:seen.map,tile:tileKey(w.x,w.y)}));
   for(const mark of marks)this.warps.add(`${mark.map}|${mark.tile}`);
   return marks;
  }

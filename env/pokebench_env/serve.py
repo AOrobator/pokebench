@@ -30,8 +30,14 @@ from pokebench_env.memory_reader import Core, NativeCore, SnapshotMemoryReader, 
 from pokebench_env.observation import ScreenshotFn, install_observation
 from pokebench_env.pause import SteppingServer, install_pause
 from pokebench_env.raw_ram import RawRamArchive
+from pokebench_env.readout import features_off_from_env
 from pokebench_env.rom import resolve_rom
-from pokebench_env.screen_settle import FrameSettle, SteppedEmulator, install_frame_settle
+from pokebench_env.screen_settle import (
+    WARP_FEATURE,
+    FrameSettle,
+    SteppedEmulator,
+    install_frame_settle,
+)
 from pokebench_env.travel import TravelServer, install_travel
 from pokebench_env.view import install_spectator
 
@@ -97,7 +103,8 @@ def run(
     # journal lock that the frame step also takes, so it captures at once.
     settle = None
     if observation is not None and frames is not None and human is None:
-        settle = FrameSettle(observation[2])
+        off = features_off_from_env(os.environ)
+        settle = FrameSettle(observation[2], warp=WARP_FEATURE not in off)
         install_frame_settle(frames, settle)
     if actions is not None:
         install_action_history(*actions)

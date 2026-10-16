@@ -18,7 +18,7 @@ from pokebench_env.displayed_names import place_name, player_gender, sign_labele
 from pokebench_env.game_screen import ReadMemory, read_screen
 from pokebench_env.gba_text import GBA_TEXT, decode_text
 from pokebench_env.live_map import MAP_OFFSET, FullMap, LocalMap, read_full_map, read_local_map
-from pokebench_env.naming import NamingState, read_naming
+from pokebench_env.naming import NamingState, editor_open, read_naming
 from pokebench_env.offscreen_objects import MapObject, read_offscreen_objects
 from pokebench_env.party_ownership import PartyOwnership, read_party_ownership
 from pokebench_env.pokemon import SPECIES_NAMES as SPECIES_NAMES
@@ -178,6 +178,8 @@ def read_game_state(
     battle_details_enabled: bool = True,
     dynamic_warp_enabled: bool = True,
     displayed_names_enabled: bool = False,
+    connection_edges_enabled: bool = False,
+    in_game_naming_enabled: bool = False,
     offscreen_objects_enabled: bool = False,
 ) -> GameState:
     screen = read_screen(read)
@@ -305,13 +307,19 @@ def read_game_state(
         dialog=dialog,
         menu=menu,
         active_ui=active_ui,
+        # in-game-naming-readout-v1: nickname, box, caught-mon and Walda naming in the field.
+        naming=read_naming(read, decode_text)
+        if in_game_naming_enabled and screen.callback2 == 0x080E4F59 and editor_open(read)
+        else None,
         local_map=None if nearby is None else nearby.text(),
         nearby=nearby,
         full_map=read_full_map(read, (x, y), map_id)
         if full_map_enabled and nearby is not None
         else None,
         player_elevation=body[0x0B] & 15,
-        topology=read_topology(read, maps) if nearby is not None else None,
+        topology=read_topology(read, maps, edges=connection_edges_enabled)
+        if nearby is not None
+        else None,
         destination_names=tuple(
             (
                 t.destination[0],

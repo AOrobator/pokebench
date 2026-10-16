@@ -3,7 +3,8 @@ import { ALL_ON, SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featu
 import { flagFeatures, normalizeFeatures, parsePlayPreset, presetFeatures } from "./play-preset.js";
 
 const ID = "offscreen-objects-v1";
-const PREVIOUS = "readout-rules-in-prompt-v1";
+const PREVIOUS = "no-nickname-guidance-v1";
+const PREVIOUS_SERVER = "in-game-naming-readout-v1";
 const off = (...ids: (typeof SWITCHABLE_FEATURES)[number][]): FeatureSet => ({ ...ALL_ON, ...Object.fromEntries(ids.map((id) => [id, false])) });
 
 it("registers off-screen objects as a default-off observation switch that needs live object sprites", () => {
@@ -19,7 +20,7 @@ it("registers off-screen objects as a default-off observation switch that needs 
 });
 
 it("hands the switch to the game server, which writes the readout", () => {
-  expect(SERVER_FEATURES.indexOf(ID)).toBe(SERVER_FEATURES.indexOf(PREVIOUS) + 1);
+  expect(SERVER_FEATURES.indexOf(ID)).toBe(SERVER_FEATURES.indexOf(PREVIOUS_SERVER) + 1);
   expect(serverFeatureEnv(off(ID)).POKEBENCH_FEATURES_OFF).toBe(ID);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("");
 });

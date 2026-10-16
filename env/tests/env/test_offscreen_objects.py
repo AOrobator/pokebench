@@ -30,7 +30,11 @@ from pokebench_env.rom import EMERALD_SHA1, RomError, resolve_rom
 
 FIXTURE = json.loads((Path(__file__).parent / "fixtures/offscreen-objects-sh02.json").read_text())
 ROM_START = 0x08000000
-RECORDED_OFF = frozenset(FIXTURE["recorded_off"])
+# Server switches registered after cook run #2 were off for it.
+RECORDED_OFF = frozenset(FIXTURE["recorded_off"]) | {
+    "connection-edge-tiles-v1",
+    "in-game-naming-readout-v1",
+}
 T416 = "raw-ram/00004588.json.gz"
 T754 = "raw-ram/00005144.json.gz"
 MAY_OFF = "MAY (on this map, out of view)"

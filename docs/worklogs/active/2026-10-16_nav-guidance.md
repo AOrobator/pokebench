@@ -114,6 +114,8 @@ Done when both switches are merged after review, explainers link from Harness Co
 ## Surprises (M4)
 
 - Helper agents were told not to touch GPU lanes; the offscreen explainer agent re-rendered locally from the fixture and ROM only.
+- 2026-10-16 04:30 AM EDT: merged main (1e1feec9: explorer-guidance-v1, connection-edge-tiles-v1, in-game-naming-readout-v1, no-nickname-guidance-v1). Code conflicts resolved by hand (game_state, readout, rerender, navigation, play-config: both sides kept; Moving around still last after explorer guidance). Mechanical test/registry files taken from main and re-applied: the three switches now follow no-nickname-guidance-v1 (offscreen-objects-v1 follows in-game-naming-readout-v1 in SERVER_FEATURES); `.at(-N)` +3 (+1 for SERVER_FEATURES); counts observation 24, guidance 31, switchboard 67 rows, server 32; my experiment incumbents list switches up to their own (main's convention); readout-rules incumbent left as main's; offscreen OFF test adds the two server switches registered after cook #2. Gates: agent 1476, viewer 850, Python 2195; coverage agent 97.79/94.65/98.11/99.1, viewer 95.16/90.69/93.41/97.61, Python 96%; lint green except known mypy `mgba._pylib`; build, pages-check, verify-vendor OK.
+  COMMIT: `Merge branch 'main' into claude/nav-guidance`
 
 ## Multi-Model Review Log
 

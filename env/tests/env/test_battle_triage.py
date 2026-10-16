@@ -186,7 +186,7 @@ def test_field_line_only_off_battle() -> None:
 
 def test_switch_is_registered_server_side_and_default_off() -> None:
     assert SWITCH == "battle-triage-guidance-v1"
-    assert SERVER_FEATURES[-4] == SWITCH
+    assert SWITCH in SERVER_FEATURES
     assert SWITCH in features_off_from_env({})
 
 

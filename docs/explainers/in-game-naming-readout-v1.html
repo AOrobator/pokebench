@@ -1,0 +1,83 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>In-Game Naming Readout</title><style>
+:root{--bg:#f6f4ee;--fg:#1f2421;--muted:#6b6f68;--card:#ffffff;--line:#e3dfd3;--accent:#2f6fde;--accent2:#e0802a;--bad:#d2493a;--good:#2e9d63;
+--floor:#f3ead6;--wall:#7d776d;--water:#8cc3ea;--npc:#8c8f86;--obj:#b08a5a;--shadow:rgba(30,30,20,.10)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#121512;--fg:#e9ece6;--muted:#9ba196;--card:#1b1f1b;--line:#2d332d;--accent:#78a8ff;--accent2:#f0a050;--bad:#ff7a6a;--good:#58cf8d;
+--floor:#3a362c;--wall:#5b5750;--water:#3f78a8;--npc:#6d7068;--obj:#8a6a3a;--shadow:rgba(0,0,0,.35)}}
+:root[data-theme=dark]{--bg:#121512;--fg:#e9ece6;--muted:#9ba196;--card:#1b1f1b;--line:#2d332d;--accent:#78a8ff;--accent2:#f0a050;--bad:#ff7a6a;--good:#58cf8d;
+--floor:#3a362c;--wall:#5b5750;--water:#3f78a8;--npc:#6d7068;--obj:#8a6a3a;--shadow:rgba(0,0,0,.35)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Helvetica,Arial,sans-serif}
+main{max-width:960px;margin:0 auto;padding:32px 16px 72px}
+.eyebrow{font:600 12px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;color:var(--accent2);text-transform:uppercase}
+h1{font-size:34px;line-height:1.15;margin:10px 0 8px;letter-spacing:-.02em}h2{font-size:21px;margin:44px 0 6px}h3{margin:0 0 6px;font-size:16px}
+.lead{font-size:18px;color:var(--muted);max-width:720px}.cap{color:var(--muted);font-size:14px;margin:10px 2px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 1px 2px var(--shadow),0 8px 24px var(--shadow)}
+.scroll{overflow-x:auto}svg{display:block;max-width:100%;height:auto}
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media (max-width:760px){.vs{grid-template-columns:1fr}}.vs>*{min-width:0}
+.tag{display:inline-block;font:600 11px/1 ui-monospace,Menlo,monospace;padding:4px 8px;border-radius:6px;margin-right:6px;vertical-align:2px}.tag.off{background:var(--line);color:var(--muted)}.tag.on{background:var(--accent);color:#fff}
+table{border-collapse:collapse;width:100%;font-size:14.5px}td,th{padding:9px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}tr:last-child td{border-bottom:0}
+code{font:13px ui-monospace,Menlo,monospace;overflow-wrap:anywhere}
+.floor{fill:var(--floor);stroke:var(--line)}.wall{fill:var(--wall);stroke:var(--line)}.water{fill:var(--water);stroke:var(--line)}.obj{fill:var(--obj);stroke:var(--line)}
+.npc{fill:var(--npc);stroke:#fff;stroke-width:2.5}.player{fill:var(--accent);stroke:#fff;stroke-width:3}
+.goal{fill:none;stroke:var(--bad);stroke-width:3;stroke-dasharray:5 4}.stand{fill:none;stroke:var(--good);stroke-width:3}
+.t{font:12px -apple-system,Helvetica,sans-serif;fill:var(--fg)}.tm{font:11px ui-monospace,Menlo,monospace;fill:var(--muted)}.tg{font:700 12px -apple-system,Helvetica,sans-serif;fill:var(--good)}
+.node rect{fill:var(--card);stroke:var(--line);stroke-width:1.5}.node.hot rect{fill:color-mix(in srgb,var(--accent2) 22%,var(--card));stroke:var(--accent2);stroke-width:2}
+.nt{font:600 13px -apple-system,Helvetica,sans-serif;fill:var(--fg);text-anchor:middle}.ns{font:11.5px -apple-system,Helvetica,sans-serif;fill:var(--muted);text-anchor:middle}
+.flow{fill:none;stroke:var(--muted);stroke-width:2}.fl{font:11px -apple-system,Helvetica,sans-serif;fill:var(--muted)}
+.kb rect{fill:var(--card);stroke:var(--line)}.kb .sel{fill:color-mix(in srgb,var(--accent) 30%,var(--card));stroke:var(--accent);stroke-width:2.5}
+.kt{font:600 14px ui-monospace,Menlo,monospace;fill:var(--fg);text-anchor:middle}
+pre{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;overflow-x:auto;font:13px/1.5 ui-monospace,Menlo,monospace;margin:0;white-space:pre-wrap}
+.add{background:color-mix(in srgb,var(--good) 18%,transparent);display:block}
+</style></head><body><main>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker>
+</defs></svg>
+
+<div class="eyebrow">Harness switch · in-game-naming-readout-v1 · bundle · default OFF</div>
+<h1>Nickname screens get the naming readout</h1>
+<p class="lead">The player-name screen at the start of the game has always come with a readout of what has been typed and where the cursor is. Naming screens opened during play, like a Pokémon's nickname, had none: the model saw only the screenshot. With this switch on, they get the same readout, read from the game's own naming memory.</p>
+
+<h2>What went wrong</h2>
+<p>Showcase bundle run <code>2026-10-16T00-34-26_qwen36-gpu1_show</code>. PROF. BIRCH offered a nickname for TORCHIC at turn 252 and the model said YES. It wanted "MOM", and 78 turns later (turn 330) the name read " ,VQ". Its reasoning kept misreading the tiny letters in the screenshot ("I have typed MP"), while the game knew exactly what was typed and which key was selected. That information was in the recorded state but never in the text the model got.</p>
+<div class="card scroll"><svg viewBox="0 0 560 230" role="img" aria-label="The uppercase naming keyboard with the cursor on B"><text x="20" y="22" class="t">Name being edited: ' ,VQ' (turn 330)</text><g class="kb"><rect x="20" y="40" width="42" height="38" rx="6"/></g><text x="41" y="65" class="kt">A</text><g class="kb"><rect x="68" y="40" width="42" height="38" rx="6" class="sel"/></g><text x="89" y="65" class="kt">B</text><g class="kb"><rect x="116" y="40" width="42" height="38" rx="6"/></g><text x="137" y="65" class="kt">C</text><g class="kb"><rect x="164" y="40" width="42" height="38" rx="6"/></g><text x="185" y="65" class="kt">D</text><g class="kb"><rect x="212" y="40" width="42" height="38" rx="6"/></g><text x="233" y="65" class="kt">E</text><g class="kb"><rect x="260" y="40" width="42" height="38" rx="6"/></g><text x="281" y="65" class="kt">F</text><g class="kb"><rect x="308" y="40" width="42" height="38" rx="6"/></g><text x="329" y="65" class="kt">␣</text><g class="kb"><rect x="356" y="40" width="42" height="38" rx="6"/></g><text x="377" y="65" class="kt">.</text><text x="12" y="65" class="tm" text-anchor="end">0</text><g class="kb"><rect x="20" y="84" width="42" height="38" rx="6"/></g><text x="41" y="109" class="kt">G</text><g class="kb"><rect x="68" y="84" width="42" height="38" rx="6"/></g><text x="89" y="109" class="kt">H</text><g class="kb"><rect x="116" y="84" width="42" height="38" rx="6"/></g><text x="137" y="109" class="kt">I</text><g class="kb"><rect x="164" y="84" width="42" height="38" rx="6"/></g><text x="185" y="109" class="kt">J</text><g class="kb"><rect x="212" y="84" width="42" height="38" rx="6"/></g><text x="233" y="109" class="kt">K</text><g class="kb"><rect x="260" y="84" width="42" height="38" rx="6"/></g><text x="281" y="109" class="kt">L</text><g class="kb"><rect x="308" y="84" width="42" height="38" rx="6"/></g><text x="329" y="109" class="kt">␣</text><g class="kb"><rect x="356" y="84" width="42" height="38" rx="6"/></g><text x="377" y="109" class="kt">,</text><text x="12" y="109" class="tm" text-anchor="end">1</text><g class="kb"><rect x="20" y="128" width="42" height="38" rx="6"/></g><text x="41" y="153" class="kt">M</text><g class="kb"><rect x="68" y="128" width="42" height="38" rx="6"/></g><text x="89" y="153" class="kt">N</text><g class="kb"><rect x="116" y="128" width="42" height="38" rx="6"/></g><text x="137" y="153" class="kt">O</text><g class="kb"><rect x="164" y="128" width="42" height="38" rx="6"/></g><text x="185" y="153" class="kt">P</text><g class="kb"><rect x="212" y="128" width="42" height="38" rx="6"/></g><text x="233" y="153" class="kt">Q</text><g class="kb"><rect x="260" y="128" width="42" height="38" rx="6"/></g><text x="281" y="153" class="kt">R</text><g class="kb"><rect x="308" y="128" width="42" height="38" rx="6"/></g><text x="329" y="153" class="kt">S</text><g class="kb"><rect x="356" y="128" width="42" height="38" rx="6"/></g><text x="377" y="153" class="kt">␣</text><text x="12" y="153" class="tm" text-anchor="end">2</text><g class="kb"><rect x="20" y="172" width="42" height="38" rx="6"/></g><text x="41" y="197" class="kt">T</text><text x="41" y="224" class="tm" text-anchor="middle">0</text><g class="kb"><rect x="68" y="172" width="42" height="38" rx="6"/></g><text x="89" y="197" class="kt">U</text><text x="89" y="224" class="tm" text-anchor="middle">1</text><g class="kb"><rect x="116" y="172" width="42" height="38" rx="6"/></g><text x="137" y="197" class="kt">V</text><text x="137" y="224" class="tm" text-anchor="middle">2</text><g class="kb"><rect x="164" y="172" width="42" height="38" rx="6"/></g><text x="185" y="197" class="kt">W</text><text x="185" y="224" class="tm" text-anchor="middle">3</text><g class="kb"><rect x="212" y="172" width="42" height="38" rx="6"/></g><text x="233" y="197" class="kt">X</text><text x="233" y="224" class="tm" text-anchor="middle">4</text><g class="kb"><rect x="260" y="172" width="42" height="38" rx="6"/></g><text x="281" y="197" class="kt">Y</text><text x="281" y="224" class="tm" text-anchor="middle">5</text><g class="kb"><rect x="308" y="172" width="42" height="38" rx="6"/></g><text x="329" y="197" class="kt">Z</text><text x="329" y="224" class="tm" text-anchor="middle">6</text><g class="kb"><rect x="356" y="172" width="42" height="38" rx="6"/></g><text x="377" y="197" class="kt">␣</text><text x="377" y="224" class="tm" text-anchor="middle">7</text><text x="12" y="197" class="tm" text-anchor="end">3</text><g class="kb"><rect x="414" y="40" width="80" height="38" rx="6"/></g><text x="454" y="65" class="kt">PAGE</text><g class="kb"><rect x="414" y="84" width="80" height="38" rx="6"/></g><text x="454" y="109" class="kt">BACK</text><g class="kb"><rect x="414" y="128" width="80" height="38" rx="6"/></g><text x="454" y="153" class="kt">OK</text></svg></div>
+<p class="cap">The uppercase keyboard as the game lays it out (zero-based columns 0 to 7, the side buttons at column 8). At turn 330 the cursor was on B, column 1 row 0, and the name was " ,VQ". The ON readout states both; OFF the model had to guess them from pixels.</p>
+
+<h2>Before and after</h2>
+<div class="vs">
+<div class="card"><span class="tag off">OFF</span><pre>Screen: naming
+Dialog: detailed menu text unprovided
+Menu: detailed controls unprovided
+Story: … Birch rescue complete
+Player: ASH
+Location: LITTLEROOT TOWN PROFESSOR BIRCHS LAB</pre></div>
+<div class="card"><span class="tag on">ON</span><pre>Screen: naming
+Dialog: detailed menu text unprovided
+Menu: detailed controls unprovided
+Story: … Birch rescue complete
+<span class="add">Name being edited: ' ,VQ'
+Naming keyboard: uppercase; cursor column 1, row 0 (zero-based); selected key 'B'
+Naming input: ready
+A selects the current key; B deletes; SELECT changes page; START moves to OK.</span>Player: ASH
+Location: LITTLEROOT TOWN PROFESSOR BIRCHS LAB</pre></div>
+</div>
+<p class="cap">The recorded readout at turn 330 (state seq 8548), rendered again from the run's raw RAM with the switch off and on. The OFF text is byte-for-byte what the model saw. The four added lines are the same ones the player-name screen already prints.</p>
+
+<h2>Where the values come from</h2>
+<div class="card"><table>
+<tr><th>Line</th><th>Game memory (pret/pokeemerald <code>naming_screen.c</code>)</th></tr>
+<tr><td>Name being edited</td><td><code>sNamingScreen-&gt;textBuffer</code> (pointer at 0x02039F94, buffer at +0x1800)</td></tr>
+<tr><td>Keyboard page</td><td><code>currentPage</code> at +0x1E22</td></tr>
+<tr><td>Cursor column, row and selected key</td><td>The cursor sprite's position in <code>gSprites</code></td></tr>
+<tr><td>Input ready</td><td>The naming screen's state at +0x1E10</td></tr>
+</table></div>
+<p class="cap">Same reader as the player-name readout (<code>env/pokebench_env/naming.py</code>). The switch only lets it run when the naming screen opens during play (callback 0x080E4F59 with the field loaded). It needs <code>naming-cursor-v1</code>, which prints the lines.</p>
+
+<h2>Checked on the real game</h2>
+<p>A live game server loaded at Birch's nickname question: YES opens the editor, and with the switch on the readout shows <code>Name being edited: ''</code>, the uppercase page, column 0, row 0, key 'A', input ready. With it off there are no naming lines. Tests replay three recorded moments of the showcase run (turns 253, 254 and 330) and check the OFF text byte for byte.</p>
+
+<h2>Status</h2>
+<div class="card"><table>
+<tr><td style="white-space:nowrap">Branch</td><td><code>claude/nickname-naming</code>, pre-launch fix F10, a bundle switch (operator decision 2026-10-16)</td></tr>
+<tr><td style="white-space:nowrap">Not done</td><td>No measured runs. The experiment entry is pending, not queued.</td></tr>
+</table></div>
+</main></body></html>

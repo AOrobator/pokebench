@@ -6,6 +6,7 @@ import type {FeatureSet} from "./features.js";
 import {parseGameState,type StateSource,type GameStateSnapshot} from "./game-state.js";
 import {COMMAND_LIMIT_HINT,NAVIGATE_FIRST_DESCRIPTION} from "./navigate-first.js";
 import {COUNTER,EDGE_WALLS,GAME_RULE,LEDGES,OPPOSITE,WATER,type Direction,type ElevationRule} from "./tile-rules.js";
+import {edgeNote} from "./connection-edges.js";
 
 type Point={readonly x:number;readonly y:number};
 type Tile={readonly collision:number;readonly behavior:number;readonly elevation:number};
@@ -104,7 +105,7 @@ function unreadyReason(state:GameStateSnapshot):string {
  if(state.field_controls_locked!==false)return "field control state is unavailable; inspect the new state before calling navigate_to again";
  return "this map's navigation geometry is unavailable; inspect the new state before calling navigate_to again";
 }
-function targetReason(state:GameStateSnapshot,goal:Point,options:NavigationOptions):string|null {
+function targetReason(state:GameStateSnapshot,goal:Point,options:NavigationOptions,edges=false):string|null {
  const geometry=options.mode==="full"?fullGeometry(state):localGeometry(state);if(geometry===null)return null;
  const bounds=geometry.bounds;
  if(bounds!==null&&(goal.x>=bounds.width||goal.y>=bounds.height))return `${at(goal)} is outside this map; its tiles run from (0,0) to (${String(bounds.width-1)},${String(bounds.height-1)}); to reach another map, use a listed warp or a map connection`;
@@ -131,7 +132,9 @@ function targetReason(state:GameStateSnapshot,goal:Point,options:NavigationOptio
  for(let d=1;d<=NEAREST_RADIUS;d++)for(let dy=-d;dy<=d;dy++)for(const dx of new Set([-(d-Math.abs(dy)),d-Math.abs(dy)]))candidates.push({x:goal.x+dx,y:goal.y+dy});
  const sorted=candidates.sort((a,b)=>distance(a,goal)-distance(b,goal)||a.y-b.y||a.x-b.x);
  const nearest=sorted.find(free);
- return `${at(goal)} is ${what}, not a walkable tile; ${nearest===undefined?`no walkable tile navigate_to can reach lies within ${String(NEAREST_RADIUS)} steps of it`:`the nearest walkable tile navigate_to can reach is ${at(nearest)}`}`;
+ // connection-edge-tiles-v1: an edge tile also says which map it leads to and how to cross.
+ const edge=nearest!==undefined&&edges?edgeNote(state.topology,nearest)??"":"";
+ return `${at(goal)} is ${what}, not a walkable tile; ${nearest===undefined?`no walkable tile navigate_to can reach lies within ${String(NEAREST_RADIUS)} steps of it`:`the nearest walkable tile navigate_to can reach is ${at(nearest)}${edge}`}`;
 }
 // A warp the planner cannot reach: someone stands on it, or (pokeemerald TryDoorWarp) a door is
 // entered only by walking north into it from the tile below, and that tile is not usable from here.
@@ -243,6 +246,8 @@ export interface NavigationPorts {
  readonly counters?:boolean;
  // Explain refusals (navigation-refusal-reasons-v1); off keeps the generic text.
  readonly refusalReasons?:boolean;
+ // Name the map a nearest edge tile leads to (connection-edge-tiles-v1); needs refusalReasons.
+ readonly connectionEdges?:boolean;
  readonly read:(signal?:AbortSignal)=>Promise<GameStateSnapshot>;
  readonly press:(id:string,params:{buttons:Button[];walking?:boolean},signal?:AbortSignal,check?:BeforePressCheck)=>Promise<AgentToolResult<unknown>>;
  readonly observe:(id:string,signal?:AbortSignal)=>Promise<AgentToolResult<unknown>>;
@@ -291,7 +296,7 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
    if(!ready(state,mode)){status=ports.refusalReasons===true?unreadyReason(state):"field input or navigation geometry unavailable";unready=true;break;}
    const options:NavigationOptions={mode,ledges:ports.ledges===true,oneWay:ports.oneWay===true,grassCost:ports.grassCost===true,floor:ports.floor===true,elevation:ports.elevation??"game"};
    const path=planNavigation(state,goal,options);
-   if(path===null){status=(ports.counters===true?counterHint(state,goal,options):null)??(ports.refusalReasons===true?targetReason(state,goal,options):null)??(mode==="full"?"no supported path on the current map; choose a reachable waypoint":"no supported local path; choose a reachable local waypoint");break;}
+   if(path===null){status=(ports.counters===true?counterHint(state,goal,options):null)??(ports.refusalReasons===true?targetReason(state,goal,options,ports.connectionEdges===true):null)??(mode==="full"?"no supported path on the current map; choose a reachable waypoint":"no supported local path; choose a reachable local waypoint");break;}
    const direction=path[0];if(direction===undefined){status="arrived at requested coordinate";break;}
    if(mode==="full"){if(path.length<shortest){shortest=path.length;stalled=0;}else if(++stalled>=NO_PROGRESS_PRESSES){status="route not converging; inspect obstacles and choose another approach";break;}}
    const planned=state,previousFacing=state.facing; const before=state.position;if(before===null)throw new Error("Navigation position unavailable");
@@ -324,5 +329,5 @@ export function withNavigation(base:readonly AgentTool[],features:FeatureSet,sta
  const tools=[...base];if(!features["bounded-navigation-v1"])return tools;
  const press=base.find(tool=>tool.name==="press"),observe=base.find(tool=>tool.name==="observe");
  if(press===undefined||observe===undefined||!isCheckedPress(press))throw new Error("Navigation requires ordinary game tools");
- tools.push(navigationTool({ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],read:signal=>state.read(signal),press:(id,params,signal,check)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"]}));return tools;
+ tools.push(navigationTool({ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],read:signal=>state.read(signal),press:(id,params,signal,check)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"]}));return tools;
 }

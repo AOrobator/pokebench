@@ -84,6 +84,10 @@
    "battle-triage-guidance-v1": false,
    "adjacent-tiles-v1": false,
    "readout-rules-in-prompt-v1": false,
+   "explorer-guidance-v1": false,
+   "connection-edge-tiles-v1": false,
+   "in-game-naming-readout-v1": false,
+   "no-nickname-guidance-v1": false,
    "offscreen-objects-v1": false,
    "navigate-first-prompt-v1": false,
    "presence-penalty-v1": false

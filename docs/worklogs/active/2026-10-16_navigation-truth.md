@@ -115,3 +115,9 @@ Zero FAIL rows.
 ## Archive Milestone (user-gated)
 
 - [ ] ASK USER: archive this worklog
+- Round 2 (packet base be428cdb, head 7dffe327, diff sha256 8704a938...; same harnesses: claude -p default login, Cursor cursor-grok-4.5-high, isolated Codex gpt-5.6-sol xhigh because Cursor GPT is over its usage limit). All three BLOCKING, new findings:
+  - Claude: "every route crosses (x,y)" named one tile though sibling trigger tiles also block (true: blocking only (6,15) leaves a route via (6,16)). Accepted: the text says every route crosses a matching trigger and names the first one on the unavoided route; a test proves the all-triggers plan is null and the single-tile plan is not.
+  - Grok: a counter as the target still offered talk to a scriptless person behind it. Accepted: with targets known, only a scripted person behind a counter counts.
+  - Codex: (1) speaker identity used the tile when only interaction targets identify the object; accepted: keyed by map-local id and map. (2) the cap text said "call again" before the final observation; accepted: built from the returned observation, and says the field is no longer free otherwise. (3) the v2 explainer claimed trigger exclusion unconditionally; accepted: wording is conditional on navigation-truth-v1 + coordinate-script-conditions-v1. (4) experiments pinned the RED commit; accepted: provisional pin 4a582a5f (contains both switches and entries). (5) the navigation-truth hypothesis named dialogue effects its arms cannot show (auto-advance off); accepted: hypothesis narrowed, notes say where the dialogue parts are tested and act.
+  - Deletion receipts r2-counter-goal, r2-target-id, r2-cap-final: each red once, green restored.
+  - Per the multi-model-review contract, two complete rounds produced new blockers, so round 3 needs the operator's scope confirmation; stopped here and reported to the thread owner.

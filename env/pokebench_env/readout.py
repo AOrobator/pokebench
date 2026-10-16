@@ -16,6 +16,8 @@ from pokebench_env.battle_triage import SWITCH as TRIAGE
 from pokebench_env.battle_triage import battle_triage_lines, field_triage_line
 from pokebench_env.game_state import GameState
 from pokebench_env.map_rules import FEATURE as RULES_FEATURE
+from pokebench_env.offscreen_objects import SWITCH as OFFSCREEN
+from pokebench_env.offscreen_objects import offscreen_text
 
 SERVER_FEATURES = (
     "expanded-menu-battle-information-v1",
@@ -50,6 +52,7 @@ SERVER_FEATURES = (
     "connection-edge-tiles-v1",
     "in-game-naming-readout-v1",
     "battle-message-waiting-v1",
+    "offscreen-objects-v1",
 )
 
 
@@ -60,7 +63,8 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "battle-triage-guidance-v1,"
         "adjacent-tiles-v1,"
         "readout-rules-in-prompt-v1,connection-edge-tiles-v1,in-game-naming-readout-v1,"
-        "battle-message-waiting-v1",
+        "battle-message-waiting-v1,"
+        "offscreen-objects-v1",
     )
     if raw == "":
         return frozenset()
@@ -372,8 +376,20 @@ def format_readout(
         )
         if context != "":
             lines.append(context)
+    # offscreen-objects-v1: the map's objects the window above leaves out, and their tiles.
+    offscreen = (
+        state.offscreen_objects
+        if OFFSCREEN not in off and "live-object-sprites-v1" not in off
+        else None
+    )
+    if offscreen is not None and state.map_id is not None:
+        lines.append(offscreen_text(offscreen, state.map_id))
     if state.story_characters is not None and "character-presence-v1" not in off:
-        lines.append(state.story_characters.text())
+        lines.append(
+            state.story_characters.text(
+                None if offscreen is None else {o.local_id: o for o in offscreen}
+            )
+        )
     if state.interaction_targets is not None and "world-targets-v1" not in off:
         lines.append("Map interaction candidates (world coordinates; flags/scripts may gate use):")
         lines.extend(
@@ -459,6 +475,7 @@ def state_json(state: GameState) -> dict[str, object]:
         "party_ownership": None if state.party_ownership is None else state.party_ownership.json(),
         "party": [asdict(mon) for mon in state.party or ()],
         "game_stats": state.game_stats,
+        "route103_rival": None if state.route103_rival is None else state.route103_rival.json(),
         "resources": None if state.resources is None else state.resources.json(),
         "battle": None if state.battle is None else state.battle.json(),
         "running": None if state.running is None else state.running.json(),

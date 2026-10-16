@@ -17,6 +17,7 @@ function compact(state: State): State {
     started: state.started, name: state.name, location: state.location, map_id: state.map_id, position: state.position, facing: state.facing,
     in_battle: state.in_battle, party: state.party, money: state.money, badges: state.badges, play_time_s: state.play_time_s,
     ...(state.story === undefined ? {} : { story: state.story }), ...(state.game_stats === undefined ? {} : { game_stats: state.game_stats }),
+    ...(state.route103_rival === undefined ? {} : { route103_rival: state.route103_rival }),
     ...(state.active_ui === undefined ? {} : { active_ui: state.active_ui }), ...(state.field_controls_locked === undefined ? {} : { field_controls_locked: state.field_controls_locked }),
     ...(state.story !== undefined || state.world_context === undefined ? {} : { world_context: state.world_context }),
   };
@@ -41,7 +42,7 @@ export function readNativeRecording(path: string, id: string, qualified: (event:
       if (states.size >= evidenceLimit) throw new Error("Native evidence state bound exceeded; no split graded");
       const nativeState = compact(event); states.set(event.seq, nativeState);
       view.apply(nativeState); view.events.length = 0;
-      const resumedSplit = (name: string): boolean => name === "PLAYER_HOUSE_EXITED_AFTER_CLOCK" || name === "RIVAL_HOUSE_ENTERED" || name === "RIVAL_HOUSE_EXITED" || name === "ROUTE_101_AFTER_HANDOFF" || name === "PLAYER_BEDROOM_EXITED_AFTER_CLOCK" || name === "CLOCK_SET" || name === "PLAYER_BEDROOM";
+      const resumedSplit = (name: string): boolean => name === "PLAYER_HOUSE_EXITED_AFTER_CLOCK" || name === "RIVAL_HOUSE_ENTERED" || name === "RIVAL_HOUSE_EXITED" || name === "ROUTE_101_AFTER_HANDOFF" || name === "PLAYER_BEDROOM_EXITED_AFTER_CLOCK" || name === "ROUTE_101_AFTER_RIVAL_BATTLE" || name === "LITTLEROOT_AFTER_RIVAL_BATTLE" || name === "CLOCK_SET" || name === "PLAYER_BEDROOM";
       if (view.start !== null && !view.start.harness_features.includes("probe") && (view.start.start_state.kind === "boot" || view.milestones.some(mark => mark.derived === true && resumedSplit(mark.name)))) for (const recovered of view.milestones) {
         if (view.start.start_state.kind !== "boot" && !resumedSplit(recovered.name)) continue;
         if (recovered.derived !== true || recovered.origin !== "observed" || recovered.evidence === undefined || splits.some(s => s.name === recovered.name)) continue;

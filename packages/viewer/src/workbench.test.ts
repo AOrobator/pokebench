@@ -112,7 +112,7 @@ it("keeps the plate link and keyboard focus stable through clock ticks, lane joi
   const splits = [...run().splits, { name: "RIVAL_MET", elapsedMs: 160000, segmentMs: 1, seq: 30, turn: 109, inputTokens: 1, outputTokens: 1 }];
   fetch.mockResolvedValue({ ...data(), at: 39000, runs: [run({ status: "live", elapsedMs: 160000, splits })] }); await wb.refresh();
   expect(ui("current").querySelector(".wb-plate")).toBe(link); expect(document.activeElement).toBe(link); expect(link.className).toBe("wb-plate new");
-  expect(link.querySelector(".wb-ms b")?.textContent).toBe("Rival met"); expect(link.textContent).toContain("14/ 40"); expect(link.querySelector(".wb-plate-l1")?.textContent).toBe("LANE A · GPU1Lv14"); expect(link.querySelector(".wb-br i")?.getAttribute("style")).toBe("width:35.0%");
+  expect(link.querySelector(".wb-ms b")?.textContent).toBe("Rival met"); expect(link.textContent).toContain("14/ 45"); expect(link.querySelector(".wb-plate-l1")?.textContent).toBe("LANE A · GPU1Lv14"); expect(link.querySelector(".wb-br i")?.getAttribute("style")).toBe("width:31.1%");
   fetch.mockResolvedValue({ ...data(), at: 39001, runs: [run({ status: "live", elapsedMs: 160000, splits }), run({ id: "second", status: "live" })] }); await wb.refresh();
   expect(ui("current").querySelectorAll(".wb-plate")).toHaveLength(2); expect(ui("current").querySelector(".wb-party .wb-kicker")?.textContent).toContain("2 CURRENT RUNS"); wb.destroy();
 });

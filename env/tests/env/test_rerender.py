@@ -27,6 +27,7 @@ RECORDED_OFF = [
     "adjacent-tiles-v1",
     "readout-rules-in-prompt-v1",
     "battle-message-waiting-v1",
+    "offscreen-objects-v1",
 ]
 
 
@@ -112,6 +113,7 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "displayed_names_enabled": False,
         "connection_edges_enabled": False,
         "in_game_naming_enabled": False,
+        "offscreen_objects_enabled": False,
         "fmt_named_interactions": False,
         "fmt_world_destinations": False,
         "fmt_bounded_navigation": False,

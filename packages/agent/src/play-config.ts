@@ -7,6 +7,7 @@ import type { FeatureSet } from "./features.js";
 import type { ToolSwitches } from "./game-tools.js";
 import { NAVIGATE_RULES } from "./navigation.js";
 import { mapRulesSection } from "./map-rules.js";
+import { MOVING_AROUND_FULL, MOVING_AROUND_LOCAL, navigateFirstToolList } from "./navigate-first.js";
 
 export const PLAY_LIMITS: Limits = { maxTurns: 300, maxWallMs: 30 * 60_000, failureLimit: 3 };
 export const PLAY_MAX_TOKENS = 4096;
@@ -100,13 +101,16 @@ export function playSystemPrompt(features: FeatureSet, target: string | null): s
   if (features["loop-guard-supervisor-v1"]) prompt += "\n\nLoop supervisor: if you repeat a pattern without new game information, a SUPERVISOR note summarizes where you are, the last dialogue you were shown, what you tried and what is listed here that you have not tried. The run continues; use the note to change strategy.";
   if (features["dialogue-auto-advance-v1"]) prompt += `\n\n${DIALOGUE_AUTO_ADVANCE_SECTION}`;
   if (features["battle-text-auto-advance-v1"]) prompt += `\n\n${BATTLE_TEXT_AUTO_ADVANCE_SECTION}`;
-  if (features["game-evidence-priority-v1"]) prompt += `\n\n${GAME_EVIDENCE_SECTION}${features["bounded-navigation-v1"] ? `\n\n${NAVIGATE_TO_USAGE}` : ""}`;
+  // navigate-first-prompt-v1: its Moving around section replaces the one-line usage rule.
+  const navigateFirst = features["navigate-first-prompt-v1"] && features["bounded-navigation-v1"];
+  if (features["game-evidence-priority-v1"]) prompt += `\n\n${GAME_EVIDENCE_SECTION}${features["bounded-navigation-v1"] && !navigateFirst ? `\n\n${NAVIGATE_TO_USAGE}` : ""}`;
   if (features["no-nickname-guidance-v1"]) prompt += `\n\n${NO_NICKNAME_SECTION}`;
   // readout-rules-in-prompt-v1: the fixed map rules the server no longer prints in each readout.
   const mapRules = features["readout-rules-in-prompt-v1"] ? mapRulesSection(features) : "";
   if (mapRules !== "") prompt += `\n\n${mapRules}`;
   if (features["battle-triage-guidance-v1"]) prompt += `\n\n${BATTLE_TRIAGE_SECTION}`;
   if (features["explorer-guidance-v1"]) prompt += `\n\n${EXPLORER_GUIDANCE_SECTION}${features["dialogue-auto-advance-v1"] ? ` ${EXPLORER_TALK_IS_CHEAP}` : ""}`;
+  if (navigateFirst) prompt = `${navigateFirstToolList(prompt)}\n\n${features["full-map-navigation-v1"] ? MOVING_AROUND_FULL : MOVING_AROUND_LOCAL}`;
   return features["objective-tracking-v1"]
     ? `${prompt}\n\n${objectivePrompt(objectiveSwitches(features))}`
     : prompt;

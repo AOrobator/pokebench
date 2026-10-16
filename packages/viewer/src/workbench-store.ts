@@ -6,8 +6,6 @@ import { MILESTONES, qualifiedNativeMilestone } from "@pokebench/agent/milestone
 import { filesystemComparisonHost, prepareComparison, sha256 } from "@pokebench/agent/serial-comparison";
 import { RUN_END_REASONS, type RunEvent } from "@pokebench/agent/events";
 import { configOf } from "./history.js";
-import { runSeconds } from "./controls.js";
-import { RunView } from "./model.js";
 import { readNativeRecording } from "./frontier-recording.js";
 import { applyHistoricalProvenance } from "./frontier-provenance.js";
 import { parseNavigationReceipt } from "./frontier-queue.js";
@@ -17,11 +15,15 @@ import { parseLedger } from "@pokebench/agent/experiments";
 import { parseFinalsLedger } from "@pokebench/agent/experiment-gate";
 import { isFixedLedgerText, parseFixedLedger } from "./fixed-ledger.js";
 import type { HealthProbe } from "./next-run.js";
-import type { WorkbenchCohort, WorkbenchConfig, WorkbenchData, WorkbenchRun } from "./workbench-data.js";
+import { parseWorkbench, type WorkbenchCohort, type WorkbenchConfig, type WorkbenchData, type WorkbenchRun } from "./workbench-data.js";
+import type { RunStore } from "./baseline-store.js";
 import { distinctLabels, experimentDefinitions, legacyCohort, taggedCohorts, type TaggedRun } from "./experiment-cohorts.js";
 const MAX_PLAN_BYTES = 1024 * 1024;
-interface Loaded { signature: string; run: WorkbenchRun; port: number | null; view: RunView | null; tag: { experiment: string; commit: string } | null }
-const cache = new Map<string, Loaded>();
+// What the snapshot needs from a run's RunView, as plain data: it crosses worker threads and disk.
+export interface RunTiming { startMs: number | null; ended: boolean; lastMs: number | null; paused: boolean; pauses: { startMs: number; endMs: number | null }[] }
+export interface LoadedRun { run: WorkbenchRun; port: number | null; tag: { experiment: string; commit: string } | null; timing: RunTiming | null }
+interface Loaded extends LoadedRun { signature: string }
+export type WorkbenchCompute = (root: string, id: string) => Promise<LoadedRun>;
 const record = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 function errorText(error: unknown): string { return (error instanceof Error ? error.message : String(error)).slice(0, 500); }
 function metadata(path: string): { value: unknown; digest: string } {
@@ -52,26 +54,94 @@ function startOf(root: string, id: string): Extract<RunEvent, { type: "run_start
   if (start.run !== id) throw new Error("Run identity is invalid; no split graded");
   return start;
 }
-function load(root: string, id: string): Loaded {
-  const path = eventsPath(root, id), stat = statSync(path); let signature = `${String(stat.size)}:${String(stat.mtimeMs)}:${String(stat.ino)}`;
-  const prior = cache.get(path);
-  let run: WorkbenchRun = { id, cohort: null, model: null, started: null, status: "invalid", reason: null, problem: null, excluded: null, elapsedMs: null, turn: 0, config: null, splits: [] };
-  let port: number | null, view: RunView | null, tag: Loaded["tag"] = null;
+// The log's identity for caching: size, mtime, inode and any verified visual evidence.
+function runSignature(path: string): string {
+  const stat = statSync(path);
+  return `${String(stat.size)}:${String(stat.mtimeMs)}:${String(stat.ino)}` + visualEvidenceSignature(path);
+}
+function invalidRun(id: string, problem: string | null): WorkbenchRun {
+  return { id, cohort: null, model: null, started: null, status: "invalid", reason: null, problem, excluded: null, elapsedMs: null, turn: 0, config: null, splits: [] };
+}
+// Reduces one run's whole log. Pure and plain-valued, so it can run on a worker thread.
+export function loadRun(root: string, id: string): LoadedRun {
+  const path = eventsPath(root, id);
+  let run = invalidRun(id, null), port: number | null, timing: RunTiming | null, tag: LoadedRun["tag"] = null;
   try {
-    signature += visualEvidenceSignature(path);
-    if (prior?.signature === signature) return prior;
     const start = startOf(root, id);
     run = { ...run, model: start.controller?.kind === "human" ? `Human · ${start.controller.name}` : start.model.id, started: start.t, config: configuration(start), excluded: start.harness_features.includes("probe") ? "Excluded probe session" : null };
     port = start.isolation.port;
     const experiment = start.evaluation?.experiment; if (experiment !== undefined) tag = { experiment: experiment.id, commit: start.harness.commit };
-    const recording = readNativeRecording(path, id, qualifiedNativeMilestone); view = recording.view;
+    const recording = readNativeRecording(path, id, qualifiedNativeMilestone), view = recording.view;
     run.splits = recording.splits; run.measurement = recording.measurement;
     run.status = view.end === null ? "unresponsive" : "ended"; run.reason = view.end?.reason ?? null; run.turn = view.turn;
     if (run.reason === "operator_abort") run.excluded ??= "Excluded operator-aborted run";
-  } catch (error) { run.problem = errorText(error); run.status = "invalid"; run.splits = []; view = null; port = null; }
-  if (view !== null) view.events.length = 0;
-  const entry = { signature, run, port, view, tag }; cache.set(path, entry); return entry;
+    timing = { startMs: view.startMs, ended: view.end !== null, lastMs: view.lastMs, paused: view.control.state === "paused", pauses: view.control.pauses.map(p => ({ ...p })) };
+  } catch (error) { run.problem = errorText(error); run.status = "invalid"; run.splits = []; delete run.measurement; timing = null; port = null; }
+  return { run, port, tag, timing };
 }
+// Run time without operator pauses, as runSeconds computes it from a RunView.
+export function timingSeconds(timing: RunTiming, nowMs: number): number {
+  if (timing.startMs === null) return 0;
+  const end = timing.ended ? (timing.lastMs ?? nowMs) : nowMs;
+  const paused = timing.pauses.reduce((sum, pause) => sum + Math.max(0, Math.min(end, pause.endMs ?? end) - pause.startMs), 0);
+  return Math.max(0, (end - timing.startMs - paused) / 1000);
+}
+const finite = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
+const nullableFinite = (v: unknown): v is number | null => v === null || finite(v);
+// A LoadedRun from a worker or the disk cache, or null when it does not validate.
+export function parseLoadedRun(value: unknown): LoadedRun | null {
+  if (!record(value)) return null;
+  const { run, port, tag, timing } = value;
+  try { parseWorkbench({ version: 1, at: 0, milestones: [], problems: [], runs: [run] }); } catch { return null; }
+  if (!(port === null || (Number.isSafeInteger(port) && typeof port === "number" && port > 0 && port < 65536))) return null;
+  if (!(tag === null || (record(tag) && typeof tag.experiment === "string" && typeof tag.commit === "string"))) return null;
+  if (!(timing === null || (record(timing) && nullableFinite(timing.startMs) && typeof timing.ended === "boolean" && nullableFinite(timing.lastMs) && typeof timing.paused === "boolean" && Array.isArray(timing.pauses) && timing.pauses.every(p => record(p) && finite(p.startMs) && nullableFinite(p.endMs))))) return null;
+  return value as unknown as LoadedRun;
+}
+export interface WorkbenchLoader {
+  load(root: string, id: string): Promise<Loaded>;
+  forget(keep: (path: string) => boolean): void;
+}
+// Caches each run by its log signature, shares a load already in flight, and persists ended
+// runs (their logs never change) for the next viewer of the same code.
+export function createWorkbenchLoader(options: { compute?: WorkbenchCompute; store?: RunStore<LoadedRun> } = {}): WorkbenchLoader {
+  const compute = options.compute ?? ((root: string, id: string): Promise<LoadedRun> => Promise.resolve().then(() => loadRun(root, id)));
+  const cache = new Map<string, Loaded>(), inflight = new Map<string, Promise<Loaded>>();
+  return {
+    load: async (root, id) => {
+      const path = eventsPath(root, id);
+      let signature: string;
+      try { signature = runSignature(path); } catch (error) {
+        const entry: Loaded = { signature: "", run: invalidRun(id, errorText(error)), port: null, tag: null, timing: null };
+        cache.set(path, entry); return entry;
+      }
+      const prior = cache.get(path);
+      if (prior?.signature === signature) return prior;
+      const key = `${path}\0${signature}`;
+      let pending = inflight.get(key);
+      if (pending === undefined) {
+        pending = (async (): Promise<Loaded> => {
+          const stored = options.store?.get(id, signature) ?? null;
+          const loaded = stored ?? await compute(root, id);
+          const entry: Loaded = { ...loaded, signature };
+          let after: string | null = null; try { after = runSignature(path); } catch { /* removed while loading */ }
+          if (after === signature) {
+            cache.set(path, entry);
+            if (stored === null && loaded.run.status === "ended") options.store?.put(id, signature, loaded);
+          }
+          return entry;
+        })();
+        const settled = pending;
+        inflight.set(key, settled);
+        const clear = (): void => { if (inflight.get(key) === settled) inflight.delete(key); };
+        settled.then(clear, clear);
+      }
+      return pending;
+    },
+    forget: (keep) => { for (const path of cache.keys()) if (!keep(path)) cache.delete(path); },
+  };
+}
+const defaultLoader = createWorkbenchLoader();
 function boundedLedger(path: string): unknown[] {
   if (lstatSync(path).isSymbolicLink() || statSync(path).size > MAX_PLAN_BYTES) throw new Error("Cohort ledger exceeds metadata bounds");
   return readFileSync(path, "utf8").split("\n").filter(line => line.trim() !== "").map((line): unknown => JSON.parse(line));
@@ -322,9 +392,9 @@ export async function cohortIndex(root: string, experimentsDir: string = join(di
   return { runs: ids.map(id => ({ id, cohort: tagged.membership.get(id) ?? cohorts.membership.get(id) ?? null, problem: problems.get(id) ?? null })) };
 }
 // experimentsDir holds the definitions that label the EXPERIMENT dropdown (the repo's experiments/ next to runs/).
-export async function workbenchSnapshot(root: string, healthy: HealthProbe, now: number, experimentsDir: string = join(dirname(root), "experiments")): Promise<WorkbenchData> {
+export async function workbenchSnapshot(root: string, healthy: HealthProbe, now: number, experimentsDir: string = join(dirname(root), "experiments"), loader: WorkbenchLoader = defaultLoader): Promise<WorkbenchData> {
   const cohorts = await cohortMembership(root); const summaries = listRuns(root);
-  const loadedRuns = summaries.map(s => load(root, s.id)), definitions = experimentDefinitions(experimentsDir, root);
+  const loadedRuns = await Promise.all(summaries.map(s => loader.load(root, s.id))), definitions = experimentDefinitions(experimentsDir, root);
   const tagged = taggedCohorts(loadedRuns.flatMap(l => l.tag === null ? [] : [{ run: l.run.id, experiment: l.tag.experiment, commit: l.tag.commit, started: l.run.started }]), definitions);
   const newest = new Map<number, { id: string; at: number }>();
   for (const loaded of loadedRuns) if (loaded.port !== null && loaded.run.status === "unresponsive") {
@@ -334,13 +404,13 @@ export async function workbenchSnapshot(root: string, healthy: HealthProbe, now:
   const health = new Map<number, Promise<boolean>>();
   const runs = await Promise.all(loadedRuns.map(async loaded => {
     const run = structuredClone(loaded.run);
-    if (loaded.view !== null) {
+    if (loaded.timing !== null) {
       if (run.status !== "ended" && loaded.port !== null && newest.get(loaded.port)?.id === run.id) {
         let probe = health.get(loaded.port); if (probe === undefined) { probe = healthy(loaded.port); health.set(loaded.port, probe); }
-        if (await probe) run.status = loaded.view.control.state === "paused" ? "paused" : "live";
+        if (await probe) run.status = loaded.timing.paused ? "paused" : "live";
       }
-      const clock = run.status === "live" || run.status === "paused" ? now : loaded.view.lastMs ?? now;
-      run.elapsedMs = Math.round(runSeconds(loaded.view, clock) * 1000);
+      const clock = run.status === "live" || run.status === "paused" ? now : loaded.timing.lastMs ?? now;
+      run.elapsedMs = Math.round(timingSeconds(loaded.timing, clock) * 1000);
     }
     // Provenance reads the legacy cohort, so a run-tagged run keeps its receipts; then the run's own tag decides its cohort.
     run.cohort = cohorts.membership.get(run.id) ?? null;
@@ -349,7 +419,7 @@ export async function workbenchSnapshot(root: string, healthy: HealthProbe, now:
     const failure = cohorts.failures.get(run.id) ?? (own === undefined ? undefined : cohorts.named.get(run.id) ?? cohorts.unverified.get(run.id)); if (failure !== undefined) run.excluded = failure;
     return run;
   }));
-  for (const path of cache.keys()) if (!summaries.some(s => eventsPath(root, s.id) === path) && path.startsWith(root + "/")) cache.delete(path);
+  loader.forget(path => summaries.some(s => eventsPath(root, s.id) === path) || !path.startsWith(root + "/"));
   runs.sort((a, b) => Date.parse(b.started ?? "") - Date.parse(a.started ?? "") || b.id.localeCompare(a.id));
   const problems = [...cohorts.problems], taggedValues = new Set(tagged.cohorts.map(c => c.id)), legacy = new Map<string, WorkbenchCohort>();
   for (const run of runs) {

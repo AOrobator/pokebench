@@ -15,8 +15,9 @@ maps whose scripts call Common_EventScript_SetupRivalGfxId / SetupRivalOnBikeGfx
 """
 
 import struct
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from typing import Protocol
 
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.world_context import SAVE_VARIABLES, LiveObject
@@ -40,6 +41,33 @@ _HOUSES = frozenset(
         "LITTLEROOT TOWN MAYS HOUSE 1F", "LITTLEROOT TOWN MAYS HOUSE 2F",
     }
 )  # fmt: skip
+OUT_OF_VIEW = " (on this map, out of view)"
+
+
+class MapObjectTile(Protocol):
+    @property
+    def x(self) -> int: ...
+
+    @property
+    def y(self) -> int: ...
+
+    @property
+    def loaded(self) -> bool: ...
+
+
+def _placed(entry: str, tiles: Mapping[str, MapObjectTile | None]) -> str:
+    name = entry.removesuffix(OUT_OF_VIEW)
+    tile = tiles.get(name) if entry.endswith(OUT_OF_VIEW) else None
+    if tile is None:
+        return entry
+    if tile.loaded:
+        return f"{name} at {tile.x},{tile.y} (out of view)"
+    return (
+        f"{name} at {tile.x},{tile.y} "
+        "(out of view; where the map places this character, it may have moved)"
+    )
+
+
 # Each story character's graphics and the maps (MapNames form) where pret places that character.
 CHARACTERS: tuple[tuple[str, frozenset[int], frozenset[str]], ...] = (
     (
@@ -105,9 +133,16 @@ CHARACTERS: tuple[tuple[str, frozenset[int], frozenset[str]], ...] = (
 class StoryCharacters:
     here: tuple[str, ...]
     absent: tuple[str, ...]
+    # Characters on this map but out of view, with their template's local id.
+    out_of_view: tuple[tuple[str, int], ...] = ()
 
-    def text(self) -> str:
-        here = ", ".join(self.here) if self.here else "none"
+    def text(self, placed: "Mapping[int, MapObjectTile] | None" = None) -> str:
+        # offscreen-objects-v1: an out-of-view character gets its tile; None keeps today's line.
+        shown = self.here
+        if placed is not None:
+            tiles = {name: placed.get(local_id) for name, local_id in self.out_of_view}
+            shown = tuple(_placed(entry, tiles) for entry in self.here)
+        here = ", ".join(shown) if shown else "none"
         absent = ", ".join(self.absent) if self.absent else "none"
         return (
             f"Story characters here (from this map's own object list): {here}. "
@@ -142,8 +177,13 @@ def read_story_characters(
     except (ValueError, OSError, struct.error, IndexError):
         return None
     return StoryCharacters(
-        here=tuple(present[name] for name, _, _ in CHARACTERS if name in present),
+        here=tuple(present[name][0] for name, _, _ in CHARACTERS if name in present),
         absent=tuple(name for name, _, _ in CHARACTERS if name not in present),
+        out_of_view=tuple(
+            (name, present[name][1])
+            for name, _, _ in CHARACTERS
+            if name in present and present[name][0].endswith(OUT_OF_VIEW)
+        ),
     )
 
 
@@ -153,11 +193,11 @@ def _present(
     map_id: tuple[int, int],
     live: Sequence[LiveObject],
     location: str | None,
-) -> dict[str, str]:
+) -> dict[str, tuple[str, int]]:
     raw = read(save1 + TEMPLATES, TEMPLATE_COUNT * 24)
     if len(raw) != TEMPLATE_COUNT * 24:
         raise ValueError("short object template read")
-    present: dict[str, str] = {}
+    present: dict[str, tuple[str, int]] = {}
     for slot in range(TEMPLATE_COUNT):
         local_id, graphics = raw[slot * 24], raw[slot * 24 + 1]
         if local_id == 0 and graphics == 0:
@@ -172,8 +212,7 @@ def _present(
                     (o for o in live if o.local_id == local_id and o.map_id == map_id), None
                 )
                 present[name] = (
-                    f"{name} at {seen.x},{seen.y}"
-                    if seen is not None
-                    else f"{name} (on this map, out of view)"
+                    f"{name} at {seen.x},{seen.y}" if seen is not None else name + OUT_OF_VIEW,
+                    local_id,
                 )
     return present

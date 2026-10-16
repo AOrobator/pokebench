@@ -108,6 +108,8 @@ afterEach(() => {
 // Recorded snapshots from finals run 6684 turn 600: waiting at the end of the Littleroot PC conversation,
 // and, after A×8, the same conversation printing again from the top.
 const PC = JSON.parse(readFileSync(new URL("../test-support/littleroot-pc-restart.json", import.meta.url), "utf8")) as { before: Record<string, unknown>; after: Record<string, unknown> };
+// Recorded before route103_rival existed; today's reader always sends it.
+PC.before = { ...PC.before, route103_rival: null }; PC.after = { ...PC.after, route103_rival: null };
 
 // The same place once the box is closed: no message, field controls free.
 const FREE = { ...PC.before, field_controls_locked: false, world_context: { ...(PC.before.world_context as Record<string, unknown>), dialogue: null, message: null } };

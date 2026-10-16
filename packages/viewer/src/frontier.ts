@@ -46,7 +46,8 @@ const RECORD_ORDER: readonly string[] = FRONTIER_MILESTONES.map(m => m.id);
 export interface ReferencePair { human: WorkbenchRun | null; best: WorkbenchRun | null }
 const MODEL_COLORS = ["#208b71", "#2583bd", "#8856b5", "#c25464", "#c16b27", "#238e9f", "#ae4c96", "#6a7e2f"];
 const modelName = (run: WorkbenchRun): string => run.model ?? "Model not recorded";
-const plottedAgent = (run: WorkbenchRun): boolean => run.excluded === null && run.problem === null && run.measurement?.controller === "agent" && run.config?.start === "boot";
+// A main-menu save (options set, before NEW GAME) starts the game from New game: it plots with boot runs, tagged.
+const plottedAgent = (run: WorkbenchRun): boolean => run.excluded === null && run.problem === null && run.measurement?.controller === "agent" && (run.config?.start === "boot" || run.config?.resume === "MAIN_MENU");
 const clockSetResume = (run: WorkbenchRun): boolean => run.excluded === null && run.problem === null && run.measurement?.controller === "agent" && run.config?.resume === "CLOCK_SET";
 const shownAgent = (run: WorkbenchRun): boolean => plottedAgent(run) || clockSetResume(run);
 export function frontierModelColors(runs: readonly WorkbenchRun[], previous: ReadonlyMap<string, string> = new Map()): ReadonlyMap<string, string> {
@@ -81,7 +82,7 @@ function markerShape(shape: "human" | "best" | "overlay" | "resumed", x: number,
 }
 function mark(run: WorkbenchRun, name: string, x: number, y: number, color: string, shape: "human" | "best" | "overlay" | "resumed"): string {
   const split = run.splits.find(s => s.name === name); if (split === undefined) return "";
-  const sinceSave = run.config?.resume === "CLOCK_SET" ? " · resumed at Clock set, not from New game; minutes since the save loaded" : "";
+  const sinceSave = run.config?.resume === "CLOCK_SET" ? " · resumed at Clock set, not from New game; minutes since the save loaded" : run.config?.resume === "MAIN_MENU" ? " · started from the main-menu save (text speed FAST), not power-on; minutes since the save loaded" : "";
   const title = `${run.id} · ${name} · active ${split.derived === true ? "≤ " : ""}${preciseTime(split.elapsedMs)} · ${split.derived === true ? (split.screenshotEvidence === undefined ? "recovered native state (first observation upper bound)" : "reviewed screenshot (observation upper bound)") : "native milestone"} #${String(split.seq)}${sinceSave}`;
   const body = markerShape(shape, x, y, color);
   return `<g class="wb-mark" role="button" tabindex="0" data-run="${esc(run.id)}" data-split="${esc(name)}" aria-label="${esc(title)}" fill="${color}" stroke="${color}" stroke-width="${shape === "best" ? "2" : "1"}"><title>${esc(title)}</title>${body}</g>`;

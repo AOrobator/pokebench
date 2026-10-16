@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from "vitest";
 import { fixedLaunchSpec, main, productionFixedHost, servingReceipt, type FixedCliDeps } from "./fixed-cli.js";
 import { parseFixedDefinition } from "./fixed-design.js";
 import type { FixedRunOptions } from "./fixed-runner.js";
-import { CONTROL_BASE_PATH, controlBaseText, draftDefinition, definition, MODEL_PATH, ROM_SHA1, START_SHA1 } from "../test-support/fixed.js";
+import { CONTROL_BASE_PATH, controlBaseText, draftDefinition, definition, MODEL_PATH, ROM_SHA1, START_SHA1, MENU_SHA1, MENU_START } from "../test-support/fixed.js";
 import { Log, START } from "../test-support/events.js";
 
 function setup(over: Partial<FixedCliDeps> = {}) {
@@ -26,7 +26,7 @@ function setup(over: Partial<FixedCliDeps> = {}) {
     now: () => new Date("2026-10-16T01:00:00.000Z"),
     user: "operator",
     head: () => "0123456789abcdef0123456789abcdef01234567",
-    sha1File: (path) => (path === "/roms/pokemon-emerald.gba" ? ROM_SHA1 : START_SHA1),
+    sha1File: (path) => (path === "/roms/pokemon-emerald.gba" ? ROM_SHA1 : path.endsWith("MAIN_MENU.state") ? MENU_SHA1 : START_SHA1),
     rom: "/roms/pokemon-emerald.gba",
     run: (options) => { runs.push(options); return Promise.resolve("finished"); },
     host: () => ({}) as never,
@@ -93,6 +93,18 @@ describe("fixed-run check, approve, run, dry-run", () => {
     expect(err.at(-1)).toBe("the definition changed since it was approved; approve it again");
   });
 
+  it("checks every phase's start save and lists each phase's start", async () => {
+    const { deps, err, path } = setup({ sha1File: (p) => (p === "/roms/pokemon-emerald.gba" ? ROM_SHA1 : p.endsWith("MAIN_MENU.state") ? "e".repeat(40) : START_SHA1) });
+    writeFileSync(path, JSON.stringify(definition()));
+    expect(await main(["check", "bundle-v-control"], deps)).toBe(1);
+    expect(err.at(-1)).toBe(`start save runs/launch-receipts/fast-text/MAIN_MENU.state has sha1 ${"e".repeat(40)}, the definition records ${MENU_SHA1}`);
+    const ok = setup();
+    writeFileSync(ok.path, JSON.stringify(definition()));
+    expect(await main(["check", "bundle-v-control"], ok.deps)).toBe(0);
+    expect(ok.out.join("\n")).toContain(`confirmatory: 4 control + 4 bundle, 900000 ms cap, primary, start runs/launch-receipts/fast-text/CLOCK_SET.state (sha1 ${START_SHA1.slice(0, 12)})`);
+    expect(ok.out.join("\n")).toContain(`cook: 2 control + 2 bundle, 3600000 ms cap, exploratory, start runs/launch-receipts/fast-text/MAIN_MENU.state (sha1 ${MENU_SHA1.slice(0, 12)})`);
+  });
+
   it("refuses a start save whose bytes differ from the recorded sha1", async () => {
     const { deps, err, path } = setup({ sha1File: () => "f".repeat(40) });
     writeFileSync(path, JSON.stringify(definition()));
@@ -129,7 +141,7 @@ describe("fixed-run check, approve, run, dry-run", () => {
   });
   it("refuses to run or dry-run with a ROM whose bytes differ from the definition's", async () => {
     for (const command of [["run", "bundle-v-control"], ["dry-run", "bundle-v-control"]]) {
-      const other = setup({ sha1File: (path) => (path === "/roms/pokemon-emerald.gba" ? "0".repeat(40) : START_SHA1) });
+      const other = setup({ sha1File: (path) => (path === "/roms/pokemon-emerald.gba" ? "0".repeat(40) : path.endsWith("MAIN_MENU.state") ? MENU_SHA1 : START_SHA1) });
       writeFileSync(other.path, JSON.stringify(definition()));
       expect(await main(command, other.deps)).toBe(1);
       expect(other.runs).toEqual([]);
@@ -141,7 +153,7 @@ describe("fixed-run check, approve, run, dry-run", () => {
     const { deps, runs, path } = setup();
     writeFileSync(path, JSON.stringify(definition()));
     expect(await main(["dry-run", "bundle-v-control", "--phase", "cook", "--wall-ms", "720000"], deps)).toBe(0);
-    expect(runs[0]?.def).toMatchObject({ id: "bundle-v-control-dryrun-cook", phases: [{ id: "dry-run", maxWallMs: 720_000, start: "boot" }] });
+    expect(runs[0]?.def).toMatchObject({ id: "bundle-v-control-dryrun-cook", phases: [{ id: "dry-run", maxWallMs: 720_000, start: MENU_START }] });
     expect(await main(["dry-run", "bundle-v-control", "--phase", "nope"], deps)).toBe(1);
   });
 

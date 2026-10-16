@@ -43,7 +43,7 @@ export interface FixedCliDeps {
 
 const USAGE = [
   "usage: fixed-run plan <id> [--seed <16 hex>]   freeze the seeded plan into experiments/fixed/<id>.json",
-  "       fixed-run check <id>                     validate the definition and its start save",
+  "       fixed-run check <id>                     validate the definition and every phase's start save",
   "       fixed-run approve <id>                   operator only, interactive",
   "       fixed-run run <id>                       run the approved experiment (both lanes)",
   "       fixed-run dry-run <id> [--phase <phase>] [--wall-ms <ms>]  one trial per arm per lane with that phase's start, as <id>-dryrun-<phase>",
@@ -76,10 +76,12 @@ function loadText(deps: FixedCliDeps, id: string): string {
 
 function load(deps: FixedCliDeps, id: string): { definition: FixedDefinition; sha256: string } {
   const loaded = parseFixedDefinition(loadText(deps, id));
-  const start = loaded.definition.start;
-  const actual = deps.sha1File(join(deps.root, start.path));
-  if (actual === null) throw new CliError(`start save ${start.path} is missing`);
-  if (actual !== start.sha1) throw new CliError(`start save ${start.path} has sha1 ${actual}, the definition records ${start.sha1}`);
+  for (const { start } of loaded.definition.phases) {
+    if (start.kind !== "save_state") continue;
+    const actual = deps.sha1File(join(deps.root, start.path));
+    if (actual === null) throw new CliError(`start save ${start.path} is missing`);
+    if (actual !== start.sha1) throw new CliError(`start save ${start.path} has sha1 ${actual}, the definition records ${start.sha1}`);
+  }
   const base = loaded.definition.controlBase;
   const basePath = join(deps.root, base.path);
   if (!existsSync(basePath)) throw new CliError(`control base ${base.path} is missing`);
@@ -120,7 +122,8 @@ function check(deps: FixedCliDeps, id: string): void {
   deps.out(`seed ${def.seed}, ${String(def.plan.length)} planned trials, definition sha256 ${digest}`);
   for (const phase of def.phases) {
     const n = (arm: string): number => def.plan.filter((s) => s.phase === phase.id && s.arm === arm).length;
-    deps.out(`${phase.id}: ${String(n("control"))} control + ${String(n("bundle"))} bundle, ${String(phase.maxWallMs)} ms cap${phase.primary ? ", primary" : ", exploratory"}`);
+    const start = phase.start.kind === "save_state" ? `start ${phase.start.path} (sha1 ${phase.start.sha1.slice(0, 12)})` : "start boot";
+    deps.out(`${phase.id}: ${String(n("control"))} control + ${String(n("bundle"))} bundle, ${String(phase.maxWallMs)} ms cap${phase.primary ? ", primary" : ", exploratory"}, ${start}`);
   }
   for (const lane of def.lanes) deps.out(`lane ${lane.id}: ${lane.gpu}, game port ${String(lane.gamePort)}, model ${lane.modelUrl}`);
   deps.out(`bundle switches: ${def.switches.join(", ")}; off in both: ${def.offInBoth.join(", ")}`);

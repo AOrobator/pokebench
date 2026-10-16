@@ -30,7 +30,7 @@ function metadata(path: string): { value: unknown; digest: string } {
 function resumeCheckpoint(start: Extract<RunEvent, { type: "run_start" }>): string | null {
   if (start.start_state.kind !== "save_state") return null;
   const file = start.start_state.path.split(/[/\\]/).pop() ?? "";
-  return file === "CLOCK_SET.state" ? "CLOCK_SET" : null;
+  return file === "CLOCK_SET.state" ? "CLOCK_SET" : file === "MAIN_MENU.state" ? "MAIN_MENU" : null;
 }
 function configuration(start: Extract<RunEvent, { type: "run_start" }>): WorkbenchConfig {
   const known = configOf(start);

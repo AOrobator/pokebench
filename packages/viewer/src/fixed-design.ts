@@ -19,8 +19,9 @@ const positive = Type.Integer({ minimum: 1 });
 const Name = Type.String({ pattern: "^[a-z0-9][a-z0-9-]{0,79}$" });
 
 const LaneSchema = Type.Object({ id: Type.String({ pattern: "^[A-Z]$" }), gpu: Type.String({ pattern: "^GPU[0-9]$" }), gamePort: Type.Integer({ minimum: 1024, maximum: 65535 }), modelUrl: Type.String({ minLength: 1 }) }, closed);
-// `save` starts from the definition's start save; `boot` starts from New Game.
-const PhaseStart = Type.Union([Type.Literal("save"), Type.Literal("boot")]);
+// A phase loads its own pinned save, or powers on.
+const SaveStart = Type.Object({ kind: Type.Literal("save_state"), path: Type.String({ minLength: 1 }), sha1: Type.String({ pattern: "^[0-9a-f]{40}$" }) }, closed);
+const PhaseStart = Type.Union([SaveStart, Type.Object({ kind: Type.Literal("boot") }, closed)]);
 const PhaseSchema = Type.Object({ id: Name, perArm: positive, maxWallMs: Type.Integer({ minimum: 60_000 }), primary: Type.Boolean(), start: PhaseStart }, closed);
 const SlotSchema = Type.Object({ slot: positive, phase: Name, block: positive, lane: Type.String(), arm: Type.Union([Type.Literal("control"), Type.Literal("bundle")]) }, closed);
 
@@ -30,7 +31,6 @@ const draftShape = {
   title: Type.String({ minLength: 1, maxLength: 120 }),
   worklog: Type.String({ minLength: 1 }),
   primaryMilestone: Type.String({ minLength: 1 }),
-  start: Type.Object({ kind: Type.Literal("save_state"), path: Type.String({ minLength: 1 }), sha1: Type.String({ pattern: "^[0-9a-f]{40}$" }) }, closed),
   // Every trial, save or New Game, must record this ROM.
   romSha1: Type.String({ pattern: "^[0-9a-f]{40}$" }),
   // The preset the control arm reproduces outside the switches and off-in-both flags, pinned by bytes.
@@ -54,6 +54,7 @@ export const FixedDefinitionSchema = Type.Object({ ...draftShape, seed: Type.Str
 export type FixedDefinition = Static<typeof FixedDefinitionSchema>;
 export type FixedLane = Static<typeof LaneSchema>;
 export type FixedPhase = Static<typeof PhaseSchema>;
+export type FixedStart = Static<typeof PhaseStart>;
 export type PlannedSlot = Static<typeof SlotSchema>;
 
 // Fisher-Yates over sha256(seed:phase:block:i), so the plan can be rebuilt from the seed by anyone.
@@ -109,7 +110,7 @@ export function armPreset(def: FixedDefinition, phaseId: string, arm: FixedArm):
     limits: { maxTurns, maxWallMs: phase.maxWallMs, failureLimit, replyFailuresEndRun },
     sampling: def.base.sampling,
     features: armFeatures(def, arm) as PlayPresetV2["features"],
-    ...(phase.start === "save" ? { start: def.start } : {}),
+    ...(phase.start.kind === "save_state" ? { start: phase.start } : {}),
   };
 }
 

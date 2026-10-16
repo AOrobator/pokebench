@@ -30,7 +30,16 @@ already polls it for the queue, so QueuePanel hands each parsed snapshot to the 
 - [x] M1 RED: failing tests for plates, lane join, NEW window, in-place clock patch, CSS contract
   - viewer: 14 failing (workbench-view 8, workbench 2, queue-view 1, mobile-layout 3), 56 files pass; baseline was 797/797.
   - COMMIT: `test(viewer): current-run name plates, variant 36 (RED)` (see log)
-- [ ] M1 GREEN: implementation, viewer tests + coverage ≥ 90 + lint
+  - RED commit: d971c0ec
+- [x] M1 GREEN: implementation, viewer tests + coverage ≥ 90 + lint
+  - `workbench-view.ts`: `runLanes`, `armColor`, `furthestMilestone`, `clockText`, `NEW_MILESTONE_MS`, plate markup;
+    `workbench.ts`: `lanes()` setter, field-wise in-place patch (innerHTML, style, plate class) so focus and the
+    chip's blink phase survive ticks; `queue-view.ts`: optional `loaded(snapshot)` hook wired in `bootWorkbench`;
+    `style.css`: `.wb-party/.wb-plate…` rules, old `.wb-current` card rules removed.
+  - Denominator is `FRONTIER_MILESTONES.length` = 40 on main (bedroom-exit split landed after the mockup's 39);
+    tests pin `N/ 40`.
+  - viewer tests 806/806; coverage all files 95.13 stmts / 90.47 branches / 93.58 funcs / 97.62 lines
+    (workbench-view 96.96/92.7/91.3/100); lint (tsc --noEmit + eslint) clean.
 - [ ] Browser check against a scratch runs copy (desktop + 375 px)
 
 ## Log

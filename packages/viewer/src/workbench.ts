@@ -2,7 +2,7 @@ import { frontierReferences, frontierPlot, frontierModelColors } from "./frontie
 import { esc } from "./format.js";
 import { QUEUE_POLL_MS, QueuePanel } from "./queue-view.js";
 import { WORKBENCH_POLL_MS, parseWorkbench, type WorkbenchData, type WorkbenchRun } from "./workbench-data.js";
-import { currentRunHtml, runDetails } from "./workbench-view.js";
+import { currentRunHtml, runDetails, runLanes, type RunLanes } from "./workbench-view.js";
 export interface WorkbenchDeps { fetchSnapshot(): Promise<unknown>; now(): number; width(): number }
 export class Workbench {
   private data: WorkbenchData = { version: 1, at: 0, milestones: [], runs: [], problems: [] };
@@ -19,6 +19,7 @@ export class Workbench {
   private model = "all";
   private preset = "all";
   private zoom = true;
+  private runLanes: RunLanes = new Map();
   constructor(private readonly doc: Document, private readonly deps: WorkbenchDeps, private readonly back: string | null = null) {
     doc.addEventListener("change", this.onChange); doc.addEventListener("click", this.onClick); doc.addEventListener("keydown", this.onKey);
   }
@@ -52,17 +53,24 @@ export class Workbench {
   clock(): void {
     if (!this.active()) return;
     const host = this.ui("current"), template = this.doc.createElement("template");
-    template.innerHTML = (this.verified ? "" : '<p class="wb-notice">Live status unavailable; charts retain the last verified snapshot.</p>') + currentRunHtml(this.verified ? this.data.runs : [], this.data.at, this.deps.now(), this.back);
-    const before = [...host.querySelectorAll<HTMLAnchorElement>(".wb-current")], after = [...template.content.querySelectorAll<HTMLAnchorElement>(".wb-current")];
-    if (before.length > 0 && before.length === after.length && before.every((link, i) => link.getAttribute("href") === after[i]?.getAttribute("href"))) {
-      before.forEach((link, i) => {
-        for (const field of after[i]?.querySelectorAll<HTMLElement>("[data-current-field]") ?? []) {
-          const target = link.querySelector<HTMLElement>(`[data-current-field="${field.dataset.currentField ?? ""}"]`);
-          if (target !== null && target.textContent !== field.textContent) target.textContent = field.textContent;
-        }
+    template.innerHTML = (this.verified ? "" : '<p class="wb-notice">Live status unavailable; charts retain the last verified snapshot.</p>') + currentRunHtml(this.verified ? this.data.runs : [], this.data.at, this.deps.now(), this.back, this.runLanes);
+    // Same plates and fields: patch only what changed, so the focused plate link stays put and
+    // the blinking NEW MILESTONE! chip is not re-created (restarting its animation) every tick.
+    const before = [...host.querySelectorAll<HTMLAnchorElement>(".wb-plate")], after = [...template.content.querySelectorAll<HTMLAnchorElement>(".wb-plate")];
+    const was = [...host.querySelectorAll<HTMLElement>("[data-current-field]")], next = [...template.content.querySelectorAll<HTMLElement>("[data-current-field]")];
+    const same = before.length > 0 && before.length === after.length && before.every((link, i) => link.getAttribute("href") === after[i]?.getAttribute("href"))
+      && was.length === next.length && was.every((field, i) => field.dataset.currentField === next[i]?.dataset.currentField);
+    if (same) {
+      before.forEach((link, i) => { const name = after[i]?.className ?? link.className; if (link.className !== name) link.className = name; });
+      was.forEach((field, i) => {
+        const fresh = next[i] ?? field, style = fresh.getAttribute("style");
+        if (field.innerHTML !== fresh.innerHTML) field.innerHTML = fresh.innerHTML;
+        if (style !== null && field.getAttribute("style") !== style) field.setAttribute("style", style);
       });
     } else if (host.innerHTML !== template.innerHTML) host.replaceChildren(template.content);
   }
+  // Lane, GPU and arm per run, from the experiment queue's /api/experiments poll.
+  lanes(lanes: RunLanes): void { this.runLanes = lanes; this.clock(); }
   resize(): void { if (this.active()) this.renderCharts(); }
   destroy(): void { this.disposed = true; this.doc.removeEventListener("change", this.onChange); this.doc.removeEventListener("click", this.onClick); this.doc.removeEventListener("keydown", this.onKey); }
   private filtered(): WorkbenchRun[] {
@@ -139,7 +147,7 @@ export function bootWorkbench(win: Window): Workbench {
     now: () => Date.now(), width: () => win.document.querySelector('[data-wb="frontier-full"]')?.getBoundingClientRect().width || win.document.documentElement.clientWidth || 640,
   }, from);
   const queueRoot = win.document.querySelector<HTMLElement>('[data-ui="experiment-queue"]');
-  const experiments = queueRoot === null ? null : new QueuePanel(queueRoot, { fetchJson: async (url) => { const response = await win.fetch(url); if (!response.ok) throw new Error(`GET ${url} returned HTTP ${String(response.status)}`); return response.json() as Promise<unknown>; }, sendJson: async (method, url, body) => { const response = await win.fetch(url, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) }); const reply: unknown = await response.json(); if (!response.ok) throw new Error(typeof reply === "object" && reply !== null && "error" in reply ? String(reply.error) : `${method} ${url} returned HTTP ${String(response.status)}`); return reply; }, confirm: (text) => win.confirm(text), problem: (text) => { const el = queueRoot.querySelector('[data-eq="queue"]'); if (el !== null) el.innerHTML = `<pre class="eq-problems">${esc(text)}</pre>`; } });
+  const experiments = queueRoot === null ? null : new QueuePanel(queueRoot, { fetchJson: async (url) => { const response = await win.fetch(url); if (!response.ok) throw new Error(`GET ${url} returned HTTP ${String(response.status)}`); return response.json() as Promise<unknown>; }, sendJson: async (method, url, body) => { const response = await win.fetch(url, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) }); const reply: unknown = await response.json(); if (!response.ok) throw new Error(typeof reply === "object" && reply !== null && "error" in reply ? String(reply.error) : `${method} ${url} returned HTTP ${String(response.status)}`); return reply; }, confirm: (text) => win.confirm(text), loaded: (snapshot) => { wb.lanes(runLanes(snapshot.fixedRuns ?? [])); }, problem: (text) => { const el = queueRoot.querySelector('[data-eq="queue"]'); if (el !== null) el.innerHTML = `<pre class="eq-problems">${esc(text)}</pre>`; } });
   void experiments?.load();
   const queuePoll = win.setInterval(() => { void experiments?.load(); }, QUEUE_POLL_MS);
   void wb.refresh(); const poll = win.setInterval(() => { void wb.refresh(); }, WORKBENCH_POLL_MS), clock = win.setInterval(() => { wb.clock(); }, 1000);

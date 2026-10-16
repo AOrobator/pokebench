@@ -214,6 +214,8 @@ export interface QueueDeps {
   // Present on pages that may approve: POST and a confirmation prompt.
   sendJson?(method: "POST", url: string, body: unknown): Promise<unknown>;
   confirm?(text: string): boolean;
+  // Present where another part of the page reads the same snapshot (the stats page's current-run plates).
+  loaded?(snapshot: QueuePayload): void;
 }
 // Binds one rendering to a container holding [data-eq=chips], [data-eq=queue] and [data-eq=pending].
 export class QueuePanel {
@@ -292,6 +294,7 @@ export class QueuePanel {
     try {
       this.snapshot = queueSnapshotOf(await this.deps.fetchJson("/api/experiments"));
       this.notice = null;
+      this.deps.loaded?.(this.snapshot);
       this.render();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

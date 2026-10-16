@@ -23,8 +23,12 @@ Viewer-only change: no harness behavior, so no feature switch.
 
 ## Milestones
 
-- [ ] M1 RED: unit tests for version grouping, numbering, diffs, colors, short model names, `arm` in the snapshot, legend/isolate rendering.
-- [ ] M1 GREEN: `frontier-versions.ts`, `arm` on `WorkbenchRun`, frontier plot colored by version, legend cards / phone bars, hover / isolate / show all.
+- [x] M1 RED (f21a7bef): unit tests for version grouping, numbering, diffs, colors, short model names, `arm` in the snapshot, legend/isolate rendering. The new test files import `frontier-versions.js` and `frontier-legend.js`, which do not exist at this commit.
+- [x] M1 GREEN (see next entry): `frontier-versions.ts`, `arm` on `WorkbenchRun`, frontier plot colored by version, legend cards / phone bars, hover / isolate / show all.
 - [ ] Real-data read-only version table.
 - [ ] Browser check on a scratch server + screenshots `runs/mockups/frontier-grouping/shots/impl-*.png`.
 - [ ] Gates: viewer tests, coverage ≥ 90, lint.
+
+## Log
+
+- GREEN: viewer 952 tests pass; coverage all files 95.46 / 91.22 / 93.78 / 97.7 (stmts/branches/funcs/lines); `frontier-versions.ts` 100/91.4/100, `frontier-legend.ts` 100/95.3/100; `pnpm lint` (tsc + eslint) clean.

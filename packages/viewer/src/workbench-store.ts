@@ -72,7 +72,7 @@ function appendedSince(then: string, now: string): boolean {
   return a !== null && b !== null && a.ino === b.ino && a.rest === b.rest && b.size > a.size;
 }
 function invalidRun(id: string, problem: string | null): WorkbenchRun {
-  return { id, cohort: null, model: null, started: null, status: "invalid", reason: null, problem, excluded: null, elapsedMs: null, turn: 0, config: null, splits: [] };
+  return { id, cohort: null, arm: null, model: null, started: null, status: "invalid", reason: null, problem, excluded: null, elapsedMs: null, turn: 0, config: null, splits: [] };
 }
 // Reduces one run's whole log. Pure and plain-valued, so it can run on a worker thread. viewer is this
 // viewer's build stamp: when the run's build is not that exact clean build, schema-rejected events with
@@ -82,7 +82,7 @@ export function loadRun(root: string, id: string, viewer: BuildIdentity | null =
   let run = invalidRun(id, null), port: number | null, timing: RunTiming | null, tag: LoadedRun["tag"] = null, skew: LoadedRun["skew"] = null;
   try {
     const start = startOf(root, id);
-    run = { ...run, model: start.controller?.kind === "human" ? `Human · ${start.controller.name}` : start.model.id, started: start.t, config: configuration(start), excluded: start.harness_features.includes("probe") ? "Excluded probe session" : null };
+    run = { ...run, arm: start.evaluation?.experiment?.arm ?? null, model: start.controller?.kind === "human" ? `Human · ${start.controller.name}` : start.model.id, started: start.t, config: configuration(start), excluded: start.harness_features.includes("probe") ? "Excluded probe session" : null };
     port = start.isolation.port;
     const experiment = start.evaluation?.experiment; if (experiment !== undefined) tag = { experiment: experiment.id, commit: start.harness.commit };
     const tolerate = viewer !== null && !(viewer.commit === start.harness.commit && !viewer.dirty && !start.harness.dirty);
@@ -101,7 +101,7 @@ export function settleSkew(loaded: LoadedRun, build: ViewerBuild | null): Loaded
   if (loaded.skew === null) return loaded;
   const skew = skewOf(build, loaded.skew), run = structuredClone(loaded.run);
   if (skew !== null) { run.problem = skew.describe(loaded.skew.count, loaded.skew.first); return { ...loaded, run }; }
-  const strict = { ...invalidRun(loaded.run.id, loaded.skew.first), model: run.model, started: run.started, config: run.config, excluded: run.excluded === "Excluded operator-aborted run" ? null : run.excluded };
+  const strict = { ...invalidRun(loaded.run.id, loaded.skew.first), arm: run.arm, model: run.model, started: run.started, config: run.config, excluded: run.excluded === "Excluded operator-aborted run" ? null : run.excluded };
   return { run: strict, port: null, tag: loaded.tag, timing: null, skew: null };
 }
 // Run time without operator pauses, as runSeconds computes it from a RunView.

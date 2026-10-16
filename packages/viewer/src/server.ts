@@ -27,7 +27,7 @@ import { FEATURE_EXPLAINERS } from "./panels.js";
 export const HOST = "127.0.0.1";
 const EXPERIMENTS_CACHE_MS = 5_000;
 // Browser code the page may load; everything else in dist/ stays private.
-export const BROWSER_MODULES = ["main", "app", "model", "format", "inspectformat", "timeline", "panels", "gba", "replay", "controls", "nextpanel", "human-input", "human-play", "human-main", "workbench-main", "workbench", "workbench-view", "workbench-data", "frontier", "queue-view", "trace"] as const;
+export const BROWSER_MODULES = ["main", "app", "model", "format", "inspectformat", "timeline", "panels", "gba", "replay", "controls", "nextpanel", "human-input", "human-play", "human-main", "workbench-main", "workbench", "workbench-view", "workbench-data", "frontier", "frontier-versions", "frontier-legend", "queue-view", "trace"] as const;
 
 const MODULE_NAME = new RegExp(`^(${BROWSER_MODULES.join("|")})\\.js$`);
 const FRAME_NAME = /^\d{6}_\d+\.png$/;

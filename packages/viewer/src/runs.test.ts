@@ -363,3 +363,14 @@ it("names a run's experiment, arm and trial, or its preset, in the run list",()=
  expect(listed.find(r=>r.id.endsWith("_e"))?.experiment).toBe("factorial-2x2-think-fast · both · 5/32");
  expect(listed.find(r=>r.id.endsWith("_p"))?.experiment).toBe("preset checkpoint-clock-set");
 });
+
+it("carries the experiment, arm and trial as structured fields so the phone header can lead with them",()=>{
+ const runsRoot=root();
+ const flags={loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false};
+ const write=(id:string,evaluation:NonNullable<typeof START["evaluation"]>)=>{const log=new Log();log.add(0,{...START,evaluation});writeRun(runsRoot,id,log);};
+ write("2026-10-14T18-00-00_e",{preset_id:"p",target:null,failure_limit:3,flags,experiment:{id:"bundle-v-control-dryrun-cook",arm:"bundle",trial:2,of:4}});
+ write("2026-10-14T17-00-00_p",{preset_id:"checkpoint-clock-set",target:"CLOCK_SET",failure_limit:3,flags});
+ const listed=listRuns(runsRoot);
+ expect(listed.find(r=>r.id.endsWith("_e"))?.cohort).toEqual({id:"bundle-v-control-dryrun-cook",arm:"bundle",trial:2,of:4});
+ expect(listed.find(r=>r.id.endsWith("_p"))?.cohort).toBeUndefined();
+});

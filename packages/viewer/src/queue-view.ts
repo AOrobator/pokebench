@@ -58,6 +58,8 @@ function gateOk(g: unknown): boolean {
     (g["winner"] === null || typeof g["winner"] === "string") &&
     (decision === null || (isRecord(decision) && Array.isArray(decision["verdicts"]) && decision["verdicts"].every((v) => isRecord(v) && typeof v["arm"] === "string" && typeof v["pass"] === "boolean" && isStrings(v["reasons"]) && isNum(v["wins"]) && isNum(v["ties"]) && isNum(v["pairs"]))));
 }
+const strOrNull = (v: unknown): boolean => v === null || typeof v === "string";
+const laneOk = (l: unknown): boolean => isRecord(l) && typeof l["id"] === "string" && typeof l["gpu"] === "string" && strOrNull(l["arm"]) && strOrNull(l["run"]);
 // JSON from /api/experiments into a typed snapshot.
 export function queueSnapshotOf(value: unknown): QueuePayload {
   if (!isRecord(value)) throw new Error("malformed /api/experiments payload");
@@ -73,7 +75,7 @@ export function queueSnapshotOf(value: unknown): QueuePayload {
   const autorun = value["autorun"];
   if (autorun !== undefined && autorun !== null && !(isRecord(autorun) && oneOf(autorun["state"], ["idle", "running", "error"]) && typeof autorun["message"] === "string")) throw new Error("malformed /api/experiments autorun");
   const fixedRuns = value["fixedRuns"];
-  if (fixedRuns !== undefined && !(Array.isArray(fixedRuns) && fixedRuns.every((f) => isRecord(f) && typeof f["experiment"] === "string" && typeof f["title"] === "string" && isNum(f["valid"]) && isNum(f["total"]) && Array.isArray(f["lanes"]) && Array.isArray(f["invalidTrials"]) && isRecord(f["reserve"])))) throw new Error("malformed /api/experiments fixedRuns");
+  if (fixedRuns !== undefined && !(Array.isArray(fixedRuns) && fixedRuns.every((f) => isRecord(f) && typeof f["experiment"] === "string" && typeof f["title"] === "string" && isNum(f["valid"]) && isNum(f["total"]) && Array.isArray(f["lanes"]) && f["lanes"].every(laneOk) &&Array.isArray(f["invalidTrials"]) && isRecord(f["reserve"])))) throw new Error("malformed /api/experiments fixedRuns");
   const runner = value["runner"];
   if (runner !== null && !(isRecord(runner) && typeof runner["experiment"] === "string" && isNum(runner["trial"]))) throw new Error("malformed /api/experiments runner");
   return value as unknown as QueuePayload;

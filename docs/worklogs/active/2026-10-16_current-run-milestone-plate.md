@@ -41,9 +41,10 @@ already polls it for the queue, so QueuePanel hands each parsed snapshot to the 
   - viewer tests 806/806; coverage all files 95.13 stmts / 90.47 branches / 93.58 funcs / 97.62 lines
     (workbench-view 96.96/92.7/91.3/100); lint (tsc --noEmit + eslint) clean.
   - GREEN commit: 207cc3f0
-- [ ] M2 RED: `/api/experiments` lanes are validated (id, gpu strings; arm, run string|null) before the plates read them
-  - queue-view: 1 failing ("puts fixed-run status cards above the queue and validates them"), 12 pass.
-- [ ] M2 GREEN
+- [x] M2 RED: `/api/experiments` lanes are validated (id, gpu strings; arm, run string|null) before the plates read them
+  - queue-view: 1 failing ("puts fixed-run status cards above the queue and validates them"), 12 pass. RED commit: af7af947
+- [x] M2 GREEN: `laneOk` in `queueSnapshotOf`
+  - viewer tests 806/806; coverage 95.14 / 90.48 / 93.59 / 97.62 (stmts/branches/funcs/lines); lint clean.
 - [ ] Browser check against a scratch runs copy (desktop + 375 px)
 
 ## Log

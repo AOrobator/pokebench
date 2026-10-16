@@ -140,6 +140,8 @@ Merge locally after all lanes LGTM. No pending experiment entry (amendment 2). R
 
 - Fix commit a2cce071. Gates at a2cce071 (after the main merge), all exit 0: `just build`; `just test` agent 1490 passed, viewer 827 passed, pytest 2132 passed; `just lint` (tsc, eslint, ruff, ruff format, mypy "no issues found in 75 source files"); `just coverage` agent lines 99.1 / branches 94.73 / functions 98.01 (loop-detection.ts 98.52 / 97.19 / 100; press-result.ts 100 / 99.22 / 100), viewer 97.64 / 90.65 / 93.55, python 97.14 / 92.80 / 100 (floor 90); `just verify-vendor` OK.
 
+- 2026-10-16 05:55 AM EDT: review round 3 (packet f46346a3..e38de393). Claude CLI LGTM. Grok BLOCKING on experiments/*.json, timeline.ts and style.css changes: all of them main-side changes, because the packet base was wrong: merge 448738a1's main parent is da8993aa, not f46346a3 (main had moved between my log check and the merge). Codex BLOCKING: an errored state-only `act` press (outer tool name `act`, normalised to `press` only on success) did not end the trip. Fix: the trip reset also matches `act` with `kind: "press"`; test "a return across an errored state-only act press" (red with the match removed; restored). Next round's packet uses the merged main parent as base.
+
 ## Surprises
 
 - `loop_guard` evidence is capped at 2 items by the event schema (`maxItems:2`); a 3-seq evidence list made the recorder throw in the factory test. Evidence is now [first push-back, completing call]. The replay tests validate every notice through `checkEvent`.

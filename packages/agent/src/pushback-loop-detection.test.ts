@@ -252,6 +252,18 @@ describe("pushback-loop-detection-v1 adds nothing where nothing pushed the playe
    }
   });
  });
+ it("a return across an errored state-only act press",()=>{
+  same(r=>{
+   for(let i=0;i<3;i++){
+    r.state(HOME);
+    r.emit({type:"tool_call",id:`act${String(i)}`,name:"act",args:{kind:"press",buttons:["LEFT"]}});
+    r.emit({type:"button_press",tool_call_id:`act${String(i)}`,buttons:["LEFT"],before_state_seq:r.state(HOME).seq});
+    r.state({...WEST,...SCRIPT});
+    r.emit({type:"tool_result",id:`act${String(i)}`,name:"act",is_error:true,duration_ms:1,text:"HTTP 500",frames:[]});
+    r.press(["B"],{...WEST,...BIRCH},[],HOME);
+   }
+  });
+ });
  it("errors and planning calls in between change nothing",()=>{
   const on=rig(true);
   pushedBack(on);

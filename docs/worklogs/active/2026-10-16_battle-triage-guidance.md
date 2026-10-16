@@ -34,7 +34,7 @@ Branch `claude/battle-triage-guidance` in `/private/tmp/pokebench-battle-triage`
 **M2 — explainer and review**
 - [x] Explainer `docs/explainers/battle-triage-guidance-v1.html`, FEATURE_EXPLAINERS mapping, pending `experiments/battle-triage-guidance.json`
   COMMIT: `test(battle-triage): RED explainer link and serving` (a5bd9d83)
-- [ ] Review: Claude CLI, Codex (gpt-5.6-sol), Grok (cursor-grok-4.5-high) until LGTM
+- [x] Review: Claude CLI, Codex (gpt-5.6-sol), Grok (cursor-grok-4.5-high) until LGTM (round 2: all three LGTM)
 - [ ] ASK USER: "merge it"
 
 ## Session Log
@@ -59,3 +59,5 @@ Branch `claude/battle-triage-guidance` in `/private/tmp/pokebench-battle-triage`
   - Non-blocking, taken: worklog Design section wording (resting at home → MOM, 5/23 → as built), lint described as "green except the known mypy `mgba._pylib` error", explainer "Why" paragraph corrected (T744 3/23 was already in battle; the field line would have shown on 51 field readouts T637–T743, including 3/23 on T739–T743 just before that battle).
   COMMIT: `test(battle-triage): RED pending experiment activates at NEW_GAME_CREATED` (654bb020)
 - 2026-10-16 03:35 AM EDT: Round-1 fixes GREEN: entry activation `NEW_GAME_CREATED` (notes say why, and that it must be designed before queueing), readiness row updated, explainer "Why"/threshold/status corrected and the live click recorded, worklog Design wording as built. Tests: agent 1407, viewer 795, Python 2040 passed / 2 skipped (ROM). Gates: test/build/verify-vendor green; lint fails only on the known mypy `mgba._pylib`; coverage unchanged (agent 97.73/94.56/97.98/99.08, viewer 95.10/90.45/93.59/97.60, Python 97.09/92.70/100). `just pages-check` clean.
+  COMMIT: `fix(battle-triage): pending experiment activates at NEW_GAME_CREATED; explainer evidence and live click` (37d5a91e)
+- 2026-10-16 03:55 AM EDT: Review round 2 on the fix delta `git diff --binary 4d84c1e2 37d5a91e` (SHA-256 cfed3671…bc37; cumulative from ead18377 a79c7dd3…6457), with the round-1 findings and dispositions in the prompt. Claude CLI: VERDICT: LGTM (exit 0, empty stderr). Codex gpt-5.6-sol: VERDICT: LGTM (B1 resolved, B2 reclassified HARDENING FOLLOW-UP as pre-existing, B3 reclassified SCOPE EXPANSION, B4 resolved by evidence). Grok cursor-grok-4.5-high: VERDICT: LGTM (exit 0, empty stderr). Non-blocking follow-ups recorded, not taken: the experiment test could assert the section's presence rather than prompt inequality; `features.test.ts:28` loop shape (pre-existing); the feature-switch and experiment-design skills disagree on whether design precedes pending registration (operator to settle); principles table was scored at 4d84c1e2 (the delta is docs, entry and one test; no row changes). Review loop closed; next: ASK USER "merge it" (parent session).

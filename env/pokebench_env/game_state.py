@@ -14,6 +14,7 @@ from pathlib import Path
 from pokebench_env.battle_details import BattleDetails, read_battle_details
 from pokebench_env.battle_state import BattleState, read_battle_state
 from pokebench_env.character_presence import StoryCharacters, read_story_characters
+from pokebench_env.displayed_names import place_name, player_gender, sign_labeler
 from pokebench_env.game_screen import ReadMemory, read_screen
 from pokebench_env.gba_text import GBA_TEXT, decode_text
 from pokebench_env.live_map import MAP_OFFSET, FullMap, LocalMap, read_full_map, read_local_map
@@ -102,6 +103,8 @@ class GameState:
     battle_details: BattleDetails | None = None
     # SaveBlock1.dynamicWarp (group, number, map name) when this map has a MAP_DYNAMIC warp.
     dynamic_warp: tuple[int, int, str] | None = None
+    # displayed-place-names-v1: (group, number, name the game's own sign gives it for this save).
+    displayed_places: tuple[tuple[int, int, str], ...] = ()
 
 
 DYNAMIC_WARP = 0x14
@@ -171,6 +174,7 @@ def read_game_state(
     story_characters_enabled: bool = True,
     battle_details_enabled: bool = True,
     dynamic_warp_enabled: bool = True,
+    displayed_names_enabled: bool = False,
 ) -> GameState:
     screen = read_screen(read)
     in_battle = bool(read(IN_BATTLE, 1)[0] & 0x02)
@@ -239,7 +243,17 @@ def read_game_state(
         if screen.kind == "overworld" and not in_battle
         else None
     )
-    targets = read_targets(read, map_id) if nearby is not None else None
+    player = decode_text(read(save2, 8))
+    gender = player_gender(read, save2) if displayed_names_enabled else None
+    targets = (
+        read_targets(
+            read,
+            map_id,
+            sign_label=sign_labeler(read, gender, player) if displayed_names_enabled else None,
+        )
+        if nearby is not None
+        else None
+    )
     party = _party(read)
     resources = read_resources(read, save1, save2)
     ownership = read_party_ownership(read, party)
@@ -268,7 +282,7 @@ def read_game_state(
         screen=screen.label,
         started=True,
         story=read_story(read, screen, save1),
-        name=decode_text(read(save2, 8)),
+        name=player,
         location=maps.name(map_id) or f"unknown map {map_id}",
         map_id=map_id,
         position=(x, y),
@@ -322,6 +336,15 @@ def read_game_state(
         )
         else None,
         interaction_targets=targets,
+        displayed_places=tuple(
+            (g, n, shown)
+            for g, n in dict.fromkeys(
+                [map_id, *(t.destination[:2] for t in targets or () if t.destination is not None)]
+            )
+            if (shown := place_name(maps.name((g, n)), gender, player)) is not None
+        )
+        if displayed_names_enabled
+        else (),
         field_controls_locked=bool(read(FIELD_CONTROLS_LOCK, 1)[0])
         if screen.kind == "overworld" and not in_battle
         else None,

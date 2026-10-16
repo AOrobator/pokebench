@@ -676,3 +676,12 @@ it("links the bedroom exit measurement card to its explainer in Harness Config",
  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),registry);
  expect(doc.querySelector('[data-feature="bedroom-exit-v1"] a')?.getAttribute("href")).toBe("/explainers/bedroom-exit-v1.html");
 });
+
+it("links the displayed place names card to its tracked explainer, which shows the real-ROM before and after",()=>{
+ expect(FEATURE_EXPLAINERS["displayed-place-names-v1"]).toBe("displayed-place-names-v1.html");
+ const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/displayed-place-names-v1.html",import.meta.url)),"utf8");
+ expect(html).toContain("displayed-place-names-v1");
+ expect(html).toContain("Mays House Sign at (12,8)");
+ expect(html).toContain("Sign text \"PROF. BIRCH'S HOUSE\" at (12,8)");
+ expect(html).toContain("Warp to PROF. BIRCH'S HOUSE 1F (map 1/2) at (14,8)");
+});

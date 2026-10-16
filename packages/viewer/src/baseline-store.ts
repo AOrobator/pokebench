@@ -10,24 +10,33 @@ import { Value } from "typebox/value";
 import { RUN_ID_PATTERN } from "@pokebench/agent/events";
 import { parseBaselineOutcome } from "./baseline-pool.js";
 import type { BaselineOutcome } from "./runs.js";
+import { parseLoadedRun, type LoadedRun } from "./workbench-store.js";
 
-export interface BaselineStore {
-  get(runId: string, fingerprint: string): BaselineOutcome | null;
-  put(runId: string, fingerprint: string, outcome: BaselineOutcome): void;
+export interface RunStore<T> {
+  get(runId: string, fingerprint: string): T | null;
+  put(runId: string, fingerprint: string, value: T): void;
 }
+export type BaselineStore = RunStore<BaselineOutcome>;
 
 const RUN_ID = new RegExp(RUN_ID_PATTERN);
 const CODE_ID = /^[0-9a-f]{64}$/;
 const PRUNE_AFTER_MS = 7 * 86_400_000;
+const KINDS = ["baselines", "workbench"] as const;
 const EntrySchema = Type.Object({ fingerprint: Type.String(), outcome: Type.Unknown() }, { additionalProperties: false });
 
-export function baselineCacheDir(runsRoot: string, codeId: string): string {
+function cacheDir(runsRoot: string, kind: (typeof KINDS)[number], codeId: string): string {
   if (!CODE_ID.test(codeId)) throw new RangeError(`not a code identity: ${codeId}`);
-  return join(runsRoot, ".viewer-cache", "baselines", codeId);
+  return join(runsRoot, ".viewer-cache", kind, codeId);
+}
+export function baselineCacheDir(runsRoot: string, codeId: string): string {
+  return cacheDir(runsRoot, "baselines", codeId);
+}
+export function workbenchCacheDir(runsRoot: string, codeId: string): string {
+  return cacheDir(runsRoot, "workbench", codeId);
 }
 
 // The cache is an optimization: an unreadable or unwritable entry is a miss, never an error.
-export function createBaselineStore(dir: string): BaselineStore {
+function createRunStore<T>(dir: string, parse: (value: unknown, runId: string) => T | null): RunStore<T> {
   try {
     mkdirSync(dir, { recursive: true });
     const now = new Date();
@@ -45,15 +54,14 @@ export function createBaselineStore(dir: string): BaselineStore {
         return null;
       }
       if (!Value.Check(EntrySchema, value) || value.fingerprint !== fingerprint) return null;
-      const outcome = parseBaselineOutcome(value.outcome);
-      return outcome === null || ("baseline" in outcome && outcome.baseline.run !== runId) ? null : outcome;
+      return parse(value.outcome, runId);
     },
-    put: (runId, fingerprint, outcome) => {
+    put: (runId, fingerprint, value) => {
       const path = pathOf(runId);
       if (path === null) return;
       const temp = `${path}.${String(process.pid)}.${String(Date.now())}.tmp`;
       try {
-        writeFileSync(temp, JSON.stringify({ fingerprint, outcome }));
+        writeFileSync(temp, JSON.stringify({ fingerprint, outcome: value }));
         renameSync(temp, path);
       } catch {
         try { rmSync(temp, { force: true }); } catch { /* the directory itself is unusable */ }
@@ -62,21 +70,37 @@ export function createBaselineStore(dir: string): BaselineStore {
   };
 }
 
+export function createBaselineStore(dir: string): BaselineStore {
+  return createRunStore(dir, (value, runId) => {
+    const outcome = parseBaselineOutcome(value);
+    return outcome === null || ("baseline" in outcome && outcome.baseline.run !== runId) ? null : outcome;
+  });
+}
+
+export function createWorkbenchStore(dir: string): RunStore<LoadedRun> {
+  return createRunStore(dir, (value, runId) => {
+    const loaded = parseLoadedRun(value);
+    return loaded === null || loaded.run.id !== runId ? null : loaded;
+  });
+}
+
 // Caches of other code that no viewer has opened for a week; the current one always stays.
 export function pruneBaselineCaches(runsRoot: string, keep: string, nowMs: number): void {
-  const parent = dirname(baselineCacheDir(runsRoot, keep));
-  let names: string[];
-  try {
-    names = readdirSync(parent);
-  } catch {
-    return;
-  }
-  for (const name of names) {
-    if (name === keep || !CODE_ID.test(name)) continue;
-    const path = join(parent, name);
+  for (const kind of KINDS) {
+    const parent = dirname(cacheDir(runsRoot, kind, keep));
+    let names: string[];
     try {
-      if (nowMs - statSync(path).mtimeMs > PRUNE_AFTER_MS) rmSync(path, { recursive: true, force: true });
-    } catch { /* gone, unreadable or busy: pruning must never stop the viewer starting */ }
+      names = readdirSync(parent);
+    } catch {
+      continue;
+    }
+    for (const name of names) {
+      if (name === keep || !CODE_ID.test(name)) continue;
+      const path = join(parent, name);
+      try {
+        if (nowMs - statSync(path).mtimeMs > PRUNE_AFTER_MS) rmSync(path, { recursive: true, force: true });
+      } catch { /* gone, unreadable or busy: pruning must never stop the viewer starting */ }
+    }
   }
 }
 

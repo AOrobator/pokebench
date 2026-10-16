@@ -527,6 +527,13 @@ export class LoopDetector {
       this.mapMoves.length = 0;
       this.progress = progress;
     }
+    // Map changes made by a script, inside a message or menu, or with unknown lock state are not the player's
+    // bounce: they restart the count instead of adding to it.
+    if (!this.passable(state) || (call.beforeState !== undefined && !this.passable(call.beforeState))) {
+      this.mapMoves.length = 0;
+      this.lastMap = to;
+      return false;
+    }
     // A result can still show the old map mid-door; the change then first appears in the next call's before state.
     const before = mapOf(call.beforeState);
     const stops = [this.lastMap, before, to].filter((map): map is string => map !== null);

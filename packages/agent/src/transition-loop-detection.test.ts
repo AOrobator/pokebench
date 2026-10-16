@@ -39,7 +39,7 @@ function replay(events:readonly RunEvent[],transitions:boolean):{seen:Seen[];con
 
 describe("transition-loop-detection-v1 on recorded run 2919 (Birch's lab door bounce, seq 2860-4239)",()=>{
  const events=recorded("bounce-2919.jsonl.gz");
- const labEntries=(upTo:number)=>{let n=0,last:string|null=null;for(const e of events){if(e.seq>upTo)break;if(e.type==="state"&&"started"in e&&e.map_id!==null){const m=JSON.stringify(e.map_id);if(last!==null&&m!==last&&m==="[1,4]")n++;last=m;}}return n;};
+ const labEntries=(upTo:number)=>{let n=0,last:string|null=null;for(const e of events){if(e.seq>upTo)break;if(e.seq<3097&&e.type==="state"&&"started"in e&&e.map_id!==null){last=JSON.stringify(e.map_id);continue;}if(e.type==="state"&&"started"in e&&e.map_id!==null){const m=JSON.stringify(e.map_id);if(last!==null&&m!==last&&m==="[1,4]")n++;last=m;}}return n;};
 
  it("OFF: reproduces today's silence through the whole bounce window",()=>{
   expect(replay(events,false).seen).toEqual([]);
@@ -51,8 +51,9 @@ describe("transition-loop-detection-v1 on recorded run 2919 (Birch's lab door bo
   expect(warning).toMatchObject({kind:"cycle"});
   expect(seen.find(n=>n.phase==="supervisor")).toMatchObject({kind:"cycle",seq:warning?.seq});
   expect(labEntries(warning?.seq??Infinity)).toBeLessThanOrEqual(3);
-  // The receipt reported for 2919: six door crossings, the T185 entry (seen late) and T200-T204.
-  expect(warning).toMatchObject({turn:204,seq:3219});
+  // The receipt reported for 2919: the sixth door crossing of the bounce (T200-T205). The T185 entry does not
+  // count: the conversation with the scientist (results T191-T199) restarted the count.
+  expect(warning).toMatchObject({turn:205,seq:3244});
   // Delivered to the model as the supervisor briefing at the next model call.
   expect(contexts.some(c=>c!==null&&/^SUPERVISOR: cycle at \d+ calls$/.test(c))).toBe(true);
   // The guard keeps briefing while the bounce lasts; nothing stops the run.

@@ -207,9 +207,10 @@ Dialog: "PROF. BIRCH'S HOUSE"</pre>
 <li>press results and transition press results (<code>warped during this press: LITTLEROOT TOWN [map 0/9] (14,9) -&gt; PROF. BIRCH'S HOUSE 1F [map 1/2] (2,8)</code>);</li>
 <li>dialogue auto-advance page headers, which record it as <code>map_display</code>, and <code>get_dialogue</code>'s map filter;</li>
 <li>dialogue log rooms and the <code>recall_dialogue</code> room filter, and through them the loop supervisor, stall briefing and instruction ledger;</li>
-<li>navigation memory rooms.</li>
+<li>navigation memory rooms;</li>
+<li>objective evidence, where a location condition matches either name.</li>
 </ul>
-<p>The JSON <code>location</code> is still the source name, so milestones, room identity and dedupe keys are unchanged. With the switch off, <code>location_display</code> and <code>map_display</code> are absent and every text is byte-identical to before. Objective records keep the source name, because objective location conditions match it.</p>
+<p>The JSON <code>location</code> is still the source name, so milestones, room identity and dedupe keys are unchanged. With the switch off, <code>location_display</code> and <code>map_display</code> are absent and every text is byte-identical to before.</p>
 </section>
 
 <section>
@@ -225,7 +226,7 @@ Dialog: "PROF. BIRCH'S HOUSE"</pre>
 
 <section>
 <h2>Status</h2>
-<p>Branch <code>claude/displayed-place-names</code>, unmerged. Python and TypeScript tests, OFF goldens rendered by the previous commit, and the real-ROM probes above. Oldale, Route 102 and Route 103 signs use the same single-text shape but no recorded run has reached them, so they are shape-checked, not seen on the real ROM. No measured runs; the experiment entry is pending.</p>
+<p>Merged to main; completed by <code>claude/displayed-names-everywhere</code> (2026-10-16), which carries the name into every model-facing place name. Python and TypeScript tests, OFF goldens rendered by the previous commit, and the real-ROM probes above. Oldale, Route 102 and Route 103 signs use the same single-text shape but no recorded run has reached them, so they are shape-checked, not seen on the real ROM. No measured runs; the experiment entry is pending.</p>
 </section>
 </main>
 </body>

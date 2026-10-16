@@ -5,6 +5,7 @@ import {ALL_ON} from "./features.js";
 import type {GameStateSnapshot} from "./game-state.js";
 import {DialogueLog,roomKey,roomOf} from "./dialogue-log.js";
 import {NavigationMemory} from "./navigation-memory.js";
+import {ObjectiveTracker} from "./objectives.js";
 import {ALL_PRESS_FACTS,pressResult} from "./press-result.js";
 
 // displayed-place-names-v1, cook #2 (2026-10-16T02-23-17_qwen36-gpu1_sh02): the readout named the house by its sign
@@ -41,4 +42,28 @@ it("remembers navigation rooms by the displayed name",()=>{
  if(state.type!=="state"||!("started" in state))throw Error("fixture");
  memory.delivered(state);
  expect(memory.text()).toContain(SHOWN);expect(memory.text()).not.toContain("MAYS HOUSE");
+});
+
+it("keeps navigation memory's room identity on the source name and map id",()=>{
+ const memory=new NavigationMemory(ALL_ON);
+ const at=(seq:number,extra:Record<string,unknown>)=>{const e=event({type:"state",...house,started:true,world_context:{objects:[],triggers:[],dialogue:"Our daughter is upstairs, I think."},...extra},seq);if(e.type!=="state"||!("started" in e))throw Error("fixture");return e;};
+ memory.delivered(at(1,{}));memory.delivered(at(2,{location_display:"SOMEWHERE ELSE"}));
+ expect(memory.text().match(/: observed at/g)).toHaveLength(1);
+ expect(memory.text().match(/Our daughter is upstairs/g)).toHaveLength(1);
+});
+
+it("shows objective evidence by the displayed name and accepts either name in a location condition",()=>{
+ const tracker=new ObjectiveTracker("Reach the first gym",()=>undefined);
+ const at=(seq:number)=>{const e=event({type:"state",...house,started:true},seq);if(e.type!=="state"||!("started" in e))throw Error("fixture");return e;};
+ tracker.observe(at(1));
+ const content=tracker.context([]).at(-1)?.content;
+ expect(typeof content==="string"?content:"").toContain(`"location":"${SHOWN}"`);
+ expect(typeof content==="string"?content:"").not.toContain("MAYS HOUSE");
+ const base={supports_goal:"Progress",evidence:[1],next_decision:"Talk to her",obstacle:""};
+ for(const value of [SHOWN,RAW]){
+  tracker.set({...base,title:`In ${value}`,completion:{kind:"state",field:"location",value}});
+  expect(tracker.update({status:"reported_complete",evidence:[1],obstacle:"",next_decision:"Move on",retry_reason:""}).status).toBe("reported_complete");
+ }
+ tracker.set({...base,title:"Elsewhere",completion:{kind:"state",field:"location",value:"LAB"}});
+ expect(()=>tracker.update({status:"reported_complete",evidence:[1],obstacle:"",next_decision:"Move on",retry_reason:""})).toThrow(`observed "${SHOWN}"`);
 });

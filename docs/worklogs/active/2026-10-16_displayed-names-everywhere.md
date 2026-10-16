@@ -32,10 +32,6 @@ and LITTLEROOT TOWN PROFESSOR BIRCHS LAB (map 1/4)", dialogue quotes "turn 68, L
 - [ ] Review: Codex + grok
 - [ ] Merge main into branch, re-run suites
 
-## Deferred
-
-- Objective record facts keep the JSON `location`: `objective-tracking-v1` conditions match that raw value, so showing the displayed name there would let the model set a location condition that never matches. Off in bundle-v-control.
-
 ## Log
 
 - 2026-10-16 02:55 EDT RED: `test_state_json_carries_the_displayed_location_only_when_the_switch_names_this_map` fails (KeyError); TS `displayed-names-everywhere.test.ts` 4 fail, `dialogue-auto-advance.test.ts` 1 fails.
@@ -59,3 +55,9 @@ and LITTLEROOT TOWN PROFESSOR BIRCHS LAB (map 1/4)", dialogue quotes "turn 68, L
 | PB11 | PASS | Vendor verified at pin. |
 | PB12 | N/A | |
 | PB13 | PASS | Explainer and feature card text updated. |
+
+## Multi-Model Review Log
+
+- Round 1 on `d83e9a40` (`runs/reviews/displayed-names-everywhere/`): grok `cursor-grok-4.5-high` VERDICT: LGTM (nits: nav-memory identity on label, objectives raw, viewer MAP raw, explainer status line, FakeGame readout). Codex `gpt-5.6-sol` VERDICT: BLOCKING: (1) navigation memory dedupe and room-change identity used the displayed label; (2) objective evidence still showed the raw name and a displayed-name location condition could never match. Nit: readout.py module docstring.
+- Fix (03:25 EDT): navigation memory keeps `room()` for display and adds `roomKey()` on the raw name (same shape as before, so OFF is byte-identical) for fact dedupe and room-change detection; objective evidence shows `location_display ?? location`, a location condition matches either name, and the mismatch error reports the displayed name. Tests added in `displayed-names-everywhere.test.ts`; docstring, explainer status and feature text updated. Viewer MAP (operator-facing) left on the raw name.
+- Gates after fix: agent 1408, viewer 797, Python 2018 pass; coverage agent 99.08/94.54/97.98, viewer 97.61/90.43/93.59, Python 97.08/92.67/100; lint clean (mypy via main venv).

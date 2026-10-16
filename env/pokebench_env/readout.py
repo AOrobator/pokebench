@@ -2,7 +2,8 @@
 
 Observation switches (harness feature ids, set per run) remove their own text
 from the readout only; the typed JSON state used for measurement is unchanged.
-The one addition is full-map-navigation-v1, which adds `map_grid` when on.
+The additions are full-map-navigation-v1's `map_grid` and displayed-place-names-v1's
+`location_display`, each present only when its switch is on.
 """
 
 from collections.abc import Mapping

@@ -6,7 +6,7 @@ import type {GameStateSnapshot} from "./game-state.js";
 import type {RunRecorder} from "./recorder.js";
 
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
-interface Fact {seq:number;room:string;text:string;evidence?:number[]}
+interface Fact {seq:number;room:string;text:string;evidence?:number[];key?:string}
 interface Attempt {seq:number;before:State|null;callRoom:string;callObservation:State;target:string;buttons:string[];inputSeq:number|null}
 const point=(state:GameStateSnapshot)=>state.position===null?"unavailable":`${String(state.position.x)},${String(state.position.y)}`;
 const Args=Type.Object({destination:Type.String({minLength:1,maxLength:300,description:"Your current destination hypothesis; use an empty-looking value only to explicitly state uncertainty."}),evidence:Type.Array(Type.Integer({minimum:0}),{minItems:1,maxItems:4,uniqueItems:true})},{additionalProperties:false});
@@ -22,15 +22,18 @@ export class NavigationMemory {
  private hypothesisExpired=false;
  private hypothesis:{text:string;evidence:number[]}|null=null;
  constructor(private readonly features:FeatureSet){}
- private room(state:GameStateSnapshot):string {return `${state.location_display??state.location??"unknown room"}${this.features["bounded-navigation-v1"]?` · map ${state.map_id?.join("/")??"unavailable"}`:""}`;}
+ // What the model reads (displayed-place-names-v1's name when present); identity stays on the source name.
+ private room(state:GameStateSnapshot):string {return this.label(state.location_display??state.location,state);}
+ private roomKey(state:GameStateSnapshot):string {return this.label(state.location,state);}
+ private label(name:string|null,state:GameStateSnapshot):string {return `${name??"unknown room"}${this.features["bounded-navigation-v1"]?` · map ${state.map_id?.join("/")??"unavailable"}`:""}`;}
  // Accept only an explicitly model-delivered state; raw recorder samples use observe().
  delivered(event:State):void {
    this.latest=event;
    if(!event.started||event.screen!=="overworld"||event.map_id===null){this.pruneEvidence();return;}
-   const place=this.room(event);this.rememberFact(this.rooms,{seq:event.seq,room:place,text:`observed${this.features["live-player-position-v1"]?` at ${point(event)}`:""}`},6,f=>f.room===place);
+   const place=this.room(event),key=this.roomKey(event);this.rememberFact(this.rooms,{seq:event.seq,room:place,key,text:`observed${this.features["live-player-position-v1"]?` at ${point(event)}`:""}`},6,f=>f.key===key);
    if(this.features["active-field-message-buffer-v1"]){
     const text=event.world_context?.dialogue;
-    if(text){this.rememberFact(this.dialogue,{seq:event.seq,room:place,text},5,f=>f.room===place&&f.text===text,true);}
+    if(text){this.rememberFact(this.dialogue,{seq:event.seq,room:place,key,text},5,f=>f.key===key&&f.text===text,true);}
    }
    this.pruneEvidence();return;
  }
@@ -60,7 +63,7 @@ export class NavigationMemory {
    else if(pending.inputSeq===null)result="no button input recorded; outcome ungraded";
    else if(after!==null){
     const before=pending.before??pending.callObservation;
-    if(this.room(after)!==this.room(before))result=`room changed to ${this.room(after)}`;
+    if(this.roomKey(after)!==this.roomKey(before))result=`room changed to ${this.room(after)}`;
     else if(this.features["live-player-position-v1"]&&point(after)!==point(before))result=`position changed to ${point(after)}`;
     else if(this.features["active-field-message-buffer-v1"]&&after.world_context?.dialogue!==before.world_context?.dialogue)result="dialogue changed (not completion)";
     else if(after.screen!==before.screen)result=`screen changed to ${after.screen}`;

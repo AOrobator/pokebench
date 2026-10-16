@@ -51,8 +51,8 @@ describe("briefing-exits-v1 audit fixes on recorded runs",()=>{
 
  it("dead triggers: one whose condition the readout shows does not match is labelled so and listed last (live 54a7 T143 seq 3091)",()=>{
   const on=line(replay("briefing-live54a7.jsonl.gz",3091,true).text,UNTRIED);
-  expect(on).toContain("coordinate_trigger at 11,2 (step; its condition does not match now, so stepping on it does nothing)");
-  expect(on.endsWith("coordinate_trigger at 11,2 (step; its condition does not match now, so stepping on it does nothing)")).toBe(true);
+  expect(on).toContain("coordinate_trigger at 11,2 (step; its condition did not match when the readout last showed it, so stepping on it then did nothing)");
+  expect(on.endsWith("coordinate_trigger at 11,2 (step; its condition did not match when the readout last showed it, so stepping on it then did nothing)")).toBe(true);
   expect(on.indexOf("Sign text")).toBeLessThan(on.indexOf("coordinate_trigger at 8,9"));
  });
 

@@ -45,6 +45,24 @@ const STEP:Readonly<Record<string,readonly[number,number]>>={up:[0,-1],down:[0,1
 const PATTERN:Readonly<Record<LoopKind,string>>={cycle:"the same short cycle of actions",ineffective:"the same input with no effect",planning:"planning without acting",observation:"observing without acting",rejection:"the same rejected tool call"};
 const at=(x:number,y:number)=>`${String(x)},${String(y)}`;
 const quote=(e:DialogueEntry)=>`turn ${String(e.turn)}, ${e.room}${e.facing===null?"":`, facing ${e.facing}`}${e.presence===undefined?"":`, ${e.presence}`}: "${e.text.replace(/\s+/g," ")}"`;
+type Target=NonNullable<State["interaction_targets"]>[number];
+const objectKey=(id:number):string=>`object:${String(id)}`;
+type Ui=NonNullable<State["active_ui"]>;
+const uiName=(ui:Ui):string=>`the ${ui.phase.replaceAll("_"," ")}`;
+// briefing-exits-v1: what a press did to an open menu or prompt, from the state's own active_ui.
+function interfaceChange(before:State,after:State):string|null {
+ const a=before.active_ui??null,b=after.active_ui??null;
+ if(a===null&&b===null)return null;
+ if(a===null&&b!==null)return `opened ${uiName(b)}${b.selected===null?"":` (highlighted ${b.selected})`}`;
+ if(a!==null&&b===null)return `closed ${uiName(a)}`;
+ if(a===null||b===null)return null;
+ if(a.phase!==b.phase)return `${uiName(a)} -> ${uiName(b)}`;
+ if(a.selected!==b.selected)return `moved the highlight in ${uiName(b)}: ${a.selected??"none"} -> ${b.selected??"none"}`;
+ return null;
+}
+function turned(before:State,after:State):string|null {
+ return before.facing!==null&&after.facing!==null&&before.facing!==after.facing?`turned ${before.facing.toLowerCase()} -> ${after.facing.toLowerCase()}`:null;
+}
 const mapOf=(state:{map_id:readonly number[]|null}):string|null=>state.map_id===null?null:state.map_id.join("/");
 const counted=(event:Extract<RunEvent,{type:"milestone"}>):boolean=>event.origin!=="present_at_start"&&event.name!=="GAME_RUNNING"&&!MEASUREMENT_ONLY_MILESTONES.has(event.name);
 
@@ -79,6 +97,9 @@ export class SupervisorBriefing {
  private readonly exits:ExitHistory|null;
  private readonly pendingTouches:{readonly room:string;readonly tile:string}[]=[];
  private shown:State|null=null;
+ private readonly conditions=new Map<string,Map<string,boolean>>();
+ // briefing-exits-v1: recent recorded states by seq, so a dialogue page's own state shows whom the player faced.
+ private readonly recent=new Map<number,State>();
  private stepFrom:{readonly room:string;readonly x:number;readonly y:number}|null=null;
  private readonly names=new Map<string,string>();
  constructor(private readonly features:FeatureSet){this.dialogue=new DialogueLog(features);this.hint=features["next-milestone-hint-v1"]?new NextMilestoneHint():null;this.exits=features["briefing-exits-v1"]?new ExitHistory():null;}
@@ -134,6 +155,7 @@ export class SupervisorBriefing {
    const where=call.before??after;
    this.remember(this.room(where),roomOf(where,this.features),label,this.outcome(call.before,after,auto?.pages??[]));
    if(call.before!==null&&this.room(call.before)===this.room(after)&&this.moved(call.before,after))this.touchSteppedTrigger(after);
+   if(this.exits!==null)this.scriptedTrigger(call,after,auto?.pages??[]);
   }
   for(const page of auto?.pages??[])this.heard.add(this.pageOpening(page));
   const dialogue=after.world_context?.dialogue;
@@ -169,7 +191,8 @@ export class SupervisorBriefing {
  private readStory(text:string):void {
   const line=/^Story: (.*)$/m.exec(text)?.[1];
   if(line===undefined||line.startsWith("unavailable"))return;
-  if(this.story!==null&&line!==this.story)this.touched.clear();
+  // briefing-exits-v1: things tried stay tried across a story step; only people, who may say something new, are listed again.
+  if(this.story!==null&&line!==this.story){if(this.exits===null)this.touched.clear();else for(const keys of this.touched.values())for(const key of keys)if(key.startsWith("object:"))keys.delete(key);}
   this.story=line;
  }
  private room(state:State):string {return roomKey(state);}
@@ -177,12 +200,49 @@ export class SupervisorBriefing {
  // (any two consecutive recorded states, not only a result's). Arriving on a trigger through a warp, or standing on it, is still not trying it.
  private exitFacts(state:State):void {
   if(this.exits===null)return;
+  this.recent.set(state.seq,state);
+  if(this.recent.size>64)this.recent.delete(this.recent.keys().next().value??-1);
   for(const mark of this.exits.observe(state))this.pendingTouches.push(mark);
   const p=state.position;
   if(!state.started||state.screen!=="overworld"||p===null)return;
-  const room=this.room(state),from=this.stepFrom;this.stepFrom={room,x:p.x,y:p.y};
+  const room=this.room(state),from=this.stepFrom;
+  const seen=this.conditions.get(room)??new Map<string,boolean>();
+  for(const trigger of state.world_context?.triggers??[])if(trigger.condition_met!==null)seen.set(at(trigger.x,trigger.y),trigger.condition_met);
+  this.conditions.set(room,seen);this.stepFrom={room,x:p.x,y:p.y};
   if(from===null||from.room!==room||(from.x===p.x&&from.y===p.y)||!this.features["world-targets-v1"])return;
   if((state.interaction_targets??[]).some(t=>t.activation==="step"&&t.x===p.x&&t.y===p.y))this.pendingTouches.push({room,tile:at(p.x,p.y)});
+ }
+ // briefing-exits-v1: a step trigger whose script ran is tried even when the script walked the player back to where
+ // the press began (a push-back: OldaleTown_EventScript_BlockedPath, the Littleroot twin, Route 101 PreventExit*).
+ // Evidence: the press's first direction faces the trigger tile from the start tile, the trigger's condition is not
+ // shown as unmet, and the call showed the script (dialogue pages, a dialogue, or field controls locked after it);
+ // or a dialogue page was shown with the player on a trigger tile.
+ private scriptedTrigger(call:Call,after:State,pages:readonly Page[]):void {
+  const before=call.before;
+  if(!this.features["world-targets-v1"]||before===null||before.position===null)return;
+  const steps=(state:State)=>(state.interaction_targets??[]).filter(t=>t.activation==="step");
+  const room=this.room(before);
+  // A conversation in this call: the person the player faced at its first page's own state was talked to.
+  const opened=pages[0]?.state_seq==null?undefined:this.recent.get(pages[0].state_seq);
+  const person=opened===undefined?null:this.faced(opened);
+  if(opened!==undefined&&person?.object!=null)this.touch(this.room(opened),objectKey(person.object));
+  for(const page of pages){
+   const p=page.position;
+   if(p!==null&&steps(before).some(t=>t.x===p.x&&t.y===p.y))this.touch(room,at(p.x,p.y));
+  }
+  const buttons=call.name==="press"&&Array.isArray(call.args["buttons"])?call.args["buttons"].map(String):[];
+  const first=buttons.find(b=>STEP[b.toLowerCase()]!==undefined);
+  const step=first===undefined?undefined:STEP[first.toLowerCase()];
+  if(step===undefined||before.field_controls_locked===true)return;
+  const x=before.position.x+step[0],y=before.position.y+step[1];
+  if(!steps(before).some(t=>t.x===x&&t.y===y)||this.dead(before,x,y))return;
+  const scripted=pages.length>0||Boolean(after.world_context?.dialogue)||after.field_controls_locked===true;
+  if(scripted&&!(after.position?.x===x&&after.position.y===y))this.touch(room,at(x,y));
+ }
+ // briefing-exits-v1: the readout's own coordinate-script condition for a trigger tile, the last time a recorded state
+ // listed it (the readout lists only nearby triggers), says it could not run.
+ private dead(s:State,x:number,y:number):boolean {
+  return this.conditions.get(this.room(s))?.get(at(x,y))===false;
  }
  private flushTouches():void {
   for(const {room,tile} of this.pendingTouches.splice(0))this.touch(room,tile);
@@ -205,17 +265,22 @@ export class SupervisorBriefing {
   const names=buttons.map(String);
   if(names.length===1&&names[0]==="A"&&call.before!==null){
    const faced=this.faced(call.before);
-   if(faced!==null){this.touch(this.room(call.before),faced.tile);return `A facing ${faced.name}`;}
+   if(faced!==null){
+    this.touch(this.room(call.before),faced.tile);
+    // briefing-exits-v1: a person is the same person on any tile; the map-local object id names them.
+    if(this.exits!==null&&faced.object!==null)this.touch(this.room(call.before),objectKey(faced.object));
+    return `A facing ${faced.name}`;
+   }
   }
   return `press ${names.join(",")}`;
  }
- private faced(state:State):{tile:string;name:string}|null {
+ private faced(state:State):{tile:string;name:string;object:number|null}|null {
   if(!this.features["live-player-position-v1"]||state.position===null||state.facing===null)return null;
   const step=STEP[state.facing.toLowerCase()];if(step===undefined)return null;
   const x=state.position.x+step[0],y=state.position.y+step[1];
   const target=this.features["world-targets-v1"]?(state.interaction_targets??[]).find(t=>t.x===x&&t.y===y):undefined;
   const name=this.features["named-interactions-v1"]&&target?.name!=null?target.name:target?.kind??"tile";
-  return {tile:at(x,y),name:`${name} at ${at(x,y)}`};
+  return {tile:at(x,y),name:`${name} at ${at(x,y)}`,object:target?.kind==="object"?target.local_id:null};
  }
  private outcome(before:State|null,after:State,pages:readonly Page[]):string {
   if(before===null)return "result unverified";
@@ -236,6 +301,7 @@ export class SupervisorBriefing {
    const a=before.world_context?.message??null,b=after.world_context?.message??null;
    if(now!==null&&(a?.cursor!==b?.cursor||a?.phase!==b?.phase))return "dialogue advanced";
   }
+  if(this.exits!==null)return interfaceChange(before,after)??turned(before,after)??"no change";
   return "no change";
  }
  private moved(before:State,after:State):boolean {
@@ -307,6 +373,14 @@ export class SupervisorBriefing {
  private open(s:State):string[] {
   const done=this.touched.get(this.room(s))??new Set<string>();
   // Exits first: ordering only, so a briefing never buries the way out under room furniture.
+  if(this.exits!==null){
+   // briefing-exits-v1: people by object id, not tile; a trigger the readout shows cannot run now is labelled and last.
+   const tried=(t:Target)=>t.kind==="object"&&t.local_id!==null?done.has(objectKey(t.local_id)):done.has(at(t.x,t.y));
+   const dead=(t:Target)=>t.kind==="coordinate_trigger"&&this.dead(s,t.x,t.y);
+   const rank=(t:Target)=>t.kind==="warp"?0:dead(t)?2:1;
+   return (s.interaction_targets??[]).filter(t=>!tried(t)).sort((a,b)=>rank(a)-rank(b))
+    .map(t=>`${this.target(t)} at ${at(t.x,t.y)} (${t.activation}${dead(t)?"; its condition did not match when the readout last showed it, so stepping on it then did nothing":""})`);
+  }
   const open=(s.interaction_targets??[]).filter(t=>!done.has(at(t.x,t.y))).sort((a,b)=>Number(b.kind==="warp")-Number(a.kind==="warp"));
   return open.map(t=>`${this.target(t)} at ${at(t.x,t.y)} (${t.activation})`);
  }
@@ -370,7 +444,7 @@ export class SupervisorBriefing {
 Stop and get your bearings:
 - Where you are: ${this.where()}
 ${first?`${exits}${instruction}`:""}- Last story progress: ${this.lastProgress()}
-${this.hint===null?"":`- Next milestone (hint): ${this.hint.describe()}\n`}- Characters the readout names here: ${this.characters()}
+${this.hint===null?"":`- Next milestone (hint): ${this.hint.describe()}\n`}- Characters the readout names here${this.exits===null?"":", by sprite kind (a sprite kind is a graphic, not a personal name)"}: ${this.characters()}
 - Story steps the game confirms are done: ${this.done()}
 ${this.kept()}- Recent dialogue you were shown, newest first: ${this.told()}
 ${stall&&!first?instruction:""}- What you tried recently, newest first: ${tried}

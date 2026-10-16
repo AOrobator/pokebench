@@ -38,7 +38,9 @@ function replay(features:FeatureSet):{seq:number;recorded:string;text:string}[]{
 }
 const line=(text:string,head:string):string=>text.split("\n").find(l=>l.startsWith(head))??"";
 const MAYS_OFF="LITTLEROOT TOWN MAYS HOUSE 1F (map 1/2): Warp to map 0/9 at 1,8 (movement; activation depends on metatile (see local map)); Warp to map 0/9 at 2,8 (movement; activation depends on metatile (see local map)); Warp to map 1/3 at 2,2 (movement; activation depends on metatile (see local map)); WOMAN_4 at 3,8 (A); NINJA_BOY at 9,5 (A); coordinate_trigger at 2,8 (step); coordinate_trigger at 1,3 (step); coordinate_trigger at 2,4 (step); coordinate_trigger at 3,3 (step); television at 6,4 (A)";
-const MAYS_ON="LITTLEROOT TOWN MAYS HOUSE 1F (map 1/2): Warp to PROF. BIRCH'S HOUSE 2F (map 1/3) at 2,2 (movement; activation depends on metatile (see local map)); WOMAN_4 at 3,8 (A); NINJA_BOY at 9,5 (A); coordinate_trigger at 1,3 (step); coordinate_trigger at 2,4 (step); coordinate_trigger at 3,3 (step); television at 6,4 (A)";
+const MAYS_ON="LITTLEROOT TOWN MAYS HOUSE 1F (map 1/2): Warp to PROF. BIRCH'S HOUSE 2F (map 1/3) at 2,2 (movement; activation depends on metatile (see local map)); NINJA_BOY at 9,5 (A); television at 6,4 (A); coordinate_trigger at 1,3 (step; its condition did not match when the readout last showed it, so stepping on it then did nothing); coordinate_trigger at 2,4 (step; its condition did not match when the readout last showed it, so stepping on it then did nothing); coordinate_trigger at 3,3 (step; its condition did not match when the readout last showed it, so stepping on it then did nothing)";
+// WOMAN_4 (the woman who walks up at T115 and says "Our daughter is upstairs") is gone: the first page of that
+// conversation (state 2340) shows the player facing her. The three triggers (variable 0x408D=0, needs 2) go last, labelled.
 const EXITS_ON="- Exits to maps you have not entered since your last story progress: LITTLEROOT TOWN (map 0/9): Warp to GMREEN's HOUSE 1F (map 1/0) at 5,8 | LITTLEROOT TOWN MAYS HOUSE 1F (map 1/2): Warp to PROF. BIRCH'S HOUSE 2F (map 1/3) at 2,2";
 
 describe("briefing-exits-v1 on cook #2 (sh02): the recorded stall briefings at seq 2783 (T134) and 3616 (T171)",()=>{
@@ -76,7 +78,7 @@ describe("briefing-exits-v1 on cook #2 (sh02): the recorded stall briefings at s
    const before=off[i]?.text.split("\n")??[];
    const after=r.text.split("\n");
    expect(after).toHaveLength(before.length);
-   const changed=(l:string)=>/^- (Not tried yet on other maps|Exits to maps you have not entered|Listed here that you have not tried yet)/.test(l);
+   const changed=(l:string)=>/^- (Not tried yet on other maps|Exits to maps you have not entered|Listed here that you have not tried yet|Characters the readout names here)/.test(l);
    expect(after.filter(l=>!changed(l)).sort()).toEqual(before.filter(l=>!changed(l)).sort());
    expect(after[0]).toBe(before[0]);
    expect(after.at(-1)).toBe(before.at(-1));
@@ -267,13 +269,13 @@ describe("briefing-exits-v1 in a production-shaped run",()=>{
   expect(line(off.loop?.("cycle",9)??"","- Listed here that you have not tried yet")).toBe("- Listed here that you have not tried yet: Warp to map 0/9 at 2,8 (movement); Warp to map 1/3 at 2,2 (movement); coordinate_trigger at 2,8 (step)");
  });
 
- it("keeps the existing rule that a new Story line starts the tried lists over, after this call's own exits",()=>{
+ it("keeps what was tried across a new Story line (cook audit 687e F6); the exits of the call that changed it stay tried too",()=>{
   const on=rig({...BASE,[ID]:true});
   on.press([{...TOWN,position:{x:14,y:9},interaction_targets:OUTSIDE}]);
   on.press([{...TOWN,position:{x:14,y:8},interaction_targets:OUTSIDE},{...HOUSE,position:{x:2,y:8},interaction_targets:DOOR}]);
   on.press([{...HOUSE,position:{x:2,y:7},interaction_targets:DOOR}],"player name confirmed; clock set");
-  // Moving off the door mat came with a new Story line: the door taken before it is untried again; nothing else changed.
-  expect(line(on.loop?.("cycle",9)??"","- Listed here that you have not tried yet")).toBe("- Listed here that you have not tried yet: Warp to map 0/9 at 2,8 (movement); Warp to map 1/3 at 2,2 (movement); coordinate_trigger at 2,8 (step)");
+  // Moving off the door mat came with a new Story line: the door taken before it stays tried.
+  expect(line(on.loop?.("cycle",9)??"","- Listed here that you have not tried yet")).toBe("- Listed here that you have not tried yet: Warp to map 1/3 at 2,2 (movement)");
   const same=rig({...BASE,[ID]:true});
   same.press([{...TOWN,position:{x:14,y:9},interaction_targets:OUTSIDE}]);
   same.press([{...TOWN,position:{x:14,y:8},interaction_targets:OUTSIDE},{...HOUSE,position:{x:2,y:8},interaction_targets:DOOR}],"player name confirmed; clock set");

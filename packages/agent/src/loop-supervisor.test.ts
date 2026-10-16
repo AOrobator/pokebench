@@ -143,7 +143,8 @@ it("labels odd calls and outcomes truthfully",()=>{
  unnamed.observe(ev({type:"tool_call",id:"b",name:"press",args:{buttons:["A"]}},3));delivered(unnamed,4,{position:{x:9,y:9}},"b");
  expect(unnamed.text("cycle",5)).toContain("A facing bg at 4,1");
  expect(unnamed.text("cycle",5)).toContain("warp at 5,1");
- const done=new SupervisorBriefing(ALL_ON);delivered(done,1,{interaction_targets:[{...MOM,x:3,y:3}]});
+ // Today's tile rule: walking to a person's tile hides them; briefing-exits-v1 tracks people by object id instead.
+ const done=new SupervisorBriefing({...ALL_ON,"briefing-exits-v1":false});delivered(done,1,{interaction_targets:[{...MOM,x:3,y:3}]});
  expect(done.text("cycle",2)).toContain("MOM at 3,3");
  done.observe(ev({type:"tool_call",id:"go",name:"navigate_to",args:{x:3,y:3,map_id:[1,0]}},3));delivered(done,4,{interaction_targets:[{...MOM,x:3,y:3}]},"go");
  expect(done.text("cycle",2)).toContain("every listed target here has been tried");
@@ -184,7 +185,8 @@ it("catches a two-button walk-and-talk loop like trial 1 of the first 2×2 and k
 });
 
 it("gives only deterministic facts: recent dialogue, last story progress, named characters and story steps done, never the model's own words",()=>{
- const b=new SupervisorBriefing(ALL_ON);
+ // Today's Characters heading; briefing-exits-v1 adds the sprite-kind caveat (briefing-audit.test.ts).
+ const b=new SupervisorBriefing({...ALL_ON,"briefing-exits-v1":false});
  b.observe(ev({type:"assistant",thinking:"I need to face Professor Birch to talk.",text:"",tool_calls:[],usage:{input:1,output:1,cache_read:0},latency_ms:1,ttft_ms:1,stop_reason:"toolUse"},1,7));
  b.observe(ev({type:"milestone",name:"CLOCK_SET",server_timestamp:1,kind:"story",origin:"present_at_start",evidence:[1]},2,0));
  b.observe(ev({type:"milestone",name:"MOM_RIVAL_INSTRUCTION",server_timestamp:1,kind:"story",origin:"observed",evidence:[1]},3,5));

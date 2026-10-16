@@ -165,7 +165,7 @@ Checks before you report it:
 - Render the page in a headless browser and look at the screenshot. Check that no text clips or overlaps and that both color schemes render.
 - Every number on the page matches the `power.py` output or a recorded cohort.
 
-Report the page with a clickable link, as `CLAUDE.md` requires for HTML deliverables.
+Run `just pages-check docs/experiments/<id>.html`, then report the page as `http://127.0.0.1:8791/experiments/<id>.html` (served by `just pages`), as `CLAUDE.md` requires for HTML deliverables. Never send it as a cloud copy (`SendUserFile`, `/mnt/project-files`).
 
 ## 10. Get the design reviewed
 

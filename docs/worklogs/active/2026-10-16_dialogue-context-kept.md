@@ -35,13 +35,14 @@ Switch `dialogue-context-kept-v1` (guidance, needs nothing, default OFF).
 - [x] Fixture `packages/agent/test-support/dialogue-context-3f21.json` (1.1 MB) from the real 3f21 events (seq 0–3310) plus the 2919 control readout (seq 1862); extraction trims to what the window, dialogue log and supervisor read (described in its `source`)
 - [x] Tests (`dialogue-context-kept.test.ts`, 16): T107 context ON contains MOM's 8 pages verbatim; OFF equals today; non-dialogue collapse identical; control `Dialog:` line kept; recall results kept; registry/preset/viewer/explainer; supervisor OFF equals recorded seq 1010/3310, ON cites MOM's pages; control-arm walk-back. Existing position/count/default-list tests shifted by one for the new last switch.
 - [x] RED: 14 fail, 2 pass (the OFF reconstruction of the recorded T107 shape, and OFF supervisor = recorded seq 1010 and 3310 byte for byte)
-- [ ] COMMIT RED
+- [x] COMMIT: `test: RED dialogue-context-kept-v1 keeps story dialogue in collapsed results and the supervisor (3f21 T98→T107)` (76f452d2)
 
 **M2 — GREEN**
-- [ ] Registry, presets, viewer default, harness collapse, supervisor line, pending experiment entry, readiness row, explainer
-- [ ] Gates: test, lint, build, coverage (90% floor), verify-vendor
-- [ ] Token growth over the 200-turn 3f21 run and the 2919 control run, ON vs OFF
-- [ ] Guard check: delete the wiring once, watch the factory test go red
+- [x] Registry (guidance, needs null, recorded last), presets default false, viewer default false, `FEATURE_EXPLAINERS`, harness `dialogueUnits` + `collapsed`, supervisor `instruction()` line in `bearings` and `textOnly`, pending `experiments/dialogue-context-kept.json`, readiness row, explainer `docs/explainers/dialogue-context-kept-v1.html`
+- [x] Gates: `just test` agent 1283, viewer 786, python 1960 passed (2 ROM skips); `just lint` TS clean, mypy fails only on the missing `mgba._pylib` binding in this worktree; `just build` ok; `just coverage` agent 97.63 stmts / 94.25 branches / 97.88 funcs / 99.03 lines (harness.ts 100/98.3/100/100), viewer 95.08/90.39/93.55/97.6, python lines 97.03 branches 92.57 functions 100; `just verify-vendor` ok
+- [x] Token growth (window rebuilt per turn from recorded events, chars/4): 3f21 199 turns OFF max 11,544 / ON max 11,685, mean 6,199 → 6,408, largest added 985; 2919 248 turns OFF max 11,266 / ON max 11,315, mean 5,268 → 5,445, largest added 1,224. Rebuilt OFF = recorded turn_start within 10 tokens on 195/198 and 242/247 turns (the rest carry an appended loop-guard note). All dialogue in the whole run: ~4,150 (3f21) and ~4,010 (2919) tokens. Mom's next-door pages are in the ON context on 3f21 turns 99–111 (OFF: 99–103), 2919 turns 135–151.
+- [x] Guard check: `contextWindow` reverted to ignore the switch → 5 tests red (incl. the play-wiring factory test); supervisor `kept()` stubbed to "" → 4 red; both restored → 17 green
+- [x] COMMIT GREEN (sha recorded in the next commit)
 - [ ] Review: Codex + grok
 
 ## Session Log
@@ -49,3 +50,6 @@ Switch `dialogue-context-kept-v1` (guidance, needs nothing, default OFF).
 - 2026-10-16 01:00 AM EDT: Worktree `/private/tmp/pokebench-m3-dialogue` on `claude/dialogue-context-kept` from main `fa09dbe6`. Evidence read: 3f21 seq 1773–1789, 2919 readouts (Dialog line equals the field-message buffer pages joined by " | "; over 130 runs from 2026-10-13 to 2026-10-16, 12,342 results with a buffer block, 23 with `Dialog: none` — a closed box's leftover buffer — and no unterminated `Dialog: "` line).
 
 ## Surprises
+
+- The turn window (20/10) still drops whole turns, so the harness half keeps Mom's pages only until about turn 111 in 3f21; the T166 stall is covered only by the supervisor line. Keeping all dialogue for the whole run would cost about 4k tokens at 200 turns; that is a separate decision (not done: it changes the turn window, which the brief did not ask for).
+- The supervisor quotes pages without their " (sprite kind, not a name)" speaker labels (the dialogue log stores text only, as the three-newest line always did); speaker prefixes the game prints (MOM:, INTERVIEWER:) are in the text.

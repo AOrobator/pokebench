@@ -42,7 +42,7 @@ function history(turn: number): AgentMessage[] {
     for (const c of reply.tool_calls) {
       const r = results.get(c.id);
       if (r === undefined) continue;
-      const result: ToolResultMessage = { role: "toolResult", toolCallId: c.id, toolName: r.name, content: [...(r.frames ?? []).map((_, i) => frame(i)), { type: "text", text: r.text }], isError: r.is_error, timestamp: 0 };
+      const result: ToolResultMessage = { role: "toolResult", toolCallId: c.id, toolName: r.name, content: [...r.frames.map((_, i) => frame(i)), { type: "text", text: r.text }], isError: r.is_error, timestamp: 0 };
       messages.push(result);
     }
   }
@@ -125,6 +125,13 @@ describe("dialogueUnits: what a collapsed result keeps", () => {
     expect(dialogueUnits(text)).toEqual([`Dialogue shown during this call (2 pages, in order, whole):\n1. turn 7 · ROOM (map 1/0) · at 1,2 · MOM: "MOM: Hi!\nAre you ready?"\n2. turn 7 · ROOM (map 1/0) · at 1,2 · MOM: "Shall we go?"`, `Dialog: "Shall we go?"`]);
   });
 
+  it("never shortens a page list it cannot bound: at the end of the text, or with fewer pages than its header says", () => {
+    const tail = `Navigation: x\nDialogue shown during this call (1 page, in order, whole):\n1. turn 3 · ROOM · MOM: "Hi."`;
+    expect(dialogueUnits(tail)).toEqual([tail.slice(tail.indexOf("Dialogue shown"))]);
+    const short = `Dialogue shown during this call (3 pages, in order, whole):\n1. turn 3 · ROOM · MOM: "Hi."\n2. turn 3 · ROOM · MOM: "Bye."\n\nScreen: overworld`;
+    expect(dialogueUnits(short)).toEqual([short]);
+  });
+
   it("keeps a get_dialogue or recall_dialogue result whole when it collapses", () => {
     for (const name of ["get_dialogue", "recall_dialogue"]) {
       const text = `DIALOGUE RECORD: pages the harness advanced through this run, newest first, whole. Past text; the current screen overrides it. 1 of 1 page match.\n#1773 turn 98 · ROOM · MOM: "He lives right next door, so you should\ngo over and introduce yourself."`;
@@ -146,7 +153,8 @@ describe("dialogue-context-kept-v1 registry and production wiring", () => {
     expect(playHarnessFeatures(ALL_ON, null).at(-1)).toBe("dialogue-context-kept-v1");
     expect(playHarnessFeatures({ ...ALL_ON, "dialogue-context-kept-v1": false }, null)).not.toContain("dialogue-context-kept-v1");
     expect(dependencyProblems({ ...ALL_ON, "dialogue-context-kept-v1": true })).toEqual([]);
-    const { "dialogue-context-kept-v1": _dropped, ...older } = ALL_ON;
+    const older = Object.fromEntries(Object.entries(ALL_ON).filter(([id]) => id !== "dialogue-context-kept-v1")) as Parameters<typeof normalizeFeatures>[0];
+    expect("dialogue-context-kept-v1" in older).toBe(false);
     expect(normalizeFeatures(older)["dialogue-context-kept-v1"]).toBe(false);
     expect(flagFeatures({ loopGuard: true, activeUi: true, interfaceDocs: true, objectives: false })["dialogue-context-kept-v1"]).toBe(false);
   });
@@ -160,7 +168,7 @@ describe("dialogue-context-kept-v1 registry and production wiring", () => {
 
   it("the play wiring hands the loop the switch's window", () => {
     const recorder = { subscribe: () => () => undefined, recordNavigationContext: () => undefined, recordLedgerContext: () => undefined, recordMilestoneHint: () => undefined };
-    const wiring = (features: FeatureSet) => contextTools(features, recorder as unknown as Parameters<typeof contextTools>[1], (m) => Promise.resolve(m)).window;
+    const wiring = (features: FeatureSet) => contextTools(features, recorder, (m) => Promise.resolve(m)).window;
     expect(wiring(ON).keepDialogue).toBe(true);
     expect(wiring(OFF)).toBe(contextWindow(OFF));
     expect(wiring(OFF).keepDialogue).toBeUndefined();

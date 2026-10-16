@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dialogue Kept in Context</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --lost:#c2432f; --lost-bg:#fbe7e2; --full:#2a62c9; --full-bg:#e4edfb;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --lost:#ff7a63; --lost-bg:#3a1f1a; --full:#7aa7ff; --full-bg:#1a2740; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --lost:#ff7a63; --lost-bg:#3a1f1a; --full:#7aa7ff; --full-bg:#1a2740; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:760px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.1rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p,li{max-width:68ch}
+p{margin:0}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.full{fill:var(--full-bg);stroke:var(--full)}
+.col{fill:var(--panel);stroke:var(--rule)}
+.lost{fill:var(--lost-bg);stroke:var(--lost)}
+.kept{fill:var(--game-bg);stroke:var(--game)}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+pre{margin:0;padding:12px 14px;background:var(--panel);border:1px solid var(--rule);border-radius:6px;font:12.5px/1.5 var(--mono);white-space:pre-wrap;word-break:break-word}
+pre .add{background:var(--game-bg);color:var(--fg);display:block}
+.pair{display:grid;grid-template-columns:1fr;gap:10px}
+.tag{font:600 .72rem var(--mono);letter-spacing:.06em;text-transform:uppercase}
+.tag.off{color:var(--lost)} .tag.on{color:var(--game)}
+table{border-collapse:collapse;font-size:.9rem;width:100%}
+th,td{border-bottom:1px solid var(--rule);padding:6px 8px;text-align:left;vertical-align:top}
+th{font-weight:600}
+td.n{font-family:var(--mono);text-align:right}
+code{font-family:var(--mono);font-size:.9em}
+</style>
+</head>
+<body>
+<main>
+<header>
+<div class="eyebrow">Feature switch · dialogue-context-kept-v1 · guidance · default off</div>
+<h1>Dialogue kept in context</h1>
+<p class="lede">Older tool results still shrink to one line, but the dialogue they showed stays, whole. The supervisors also quote the dialogue that came with the last story step, not only the three newest pages.</p>
+</header>
+
+<section>
+<h2>What went wrong in run 3f21</h2>
+<p>In bundle run <code>2026-10-15T23-47-41_qwen36-gpu1_3f21</code>, Mom's instruction arrived at turn 98 (tool_result seq 1776): "He lives right next door, so you should go over and introduce yourself." The context window keeps only the newest 4 to 6 tool results whole and collapses older ones to one line. Mom's pages were shown whole only on turns 99 to 103. At the turn 107 decision the result read only its stale first line, and the model went to the lab. The context then held about 6,750 of 65,536 tokens.</p>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 720 170" width="720" role="img" aria-label="Which tool results are whole and which are collapsed in the context built for turn 107">
+<text x="0" y="16" class="t">Context built for turn 107: results from turns 91 to 106</text>
+<g transform="translate(0,30)">
+<rect class="col" x="0" y="0" width="38" height="34" rx="3"/><text x="19" y="21" text-anchor="middle">91</text>
+<rect class="col" x="42" y="0" width="38" height="34" rx="3"/><text x="61" y="21" text-anchor="middle">92</text>
+<rect class="col" x="84" y="0" width="38" height="34" rx="3"/><text x="103" y="21" text-anchor="middle">93</text>
+<rect class="col" x="126" y="0" width="38" height="34" rx="3"/><text x="145" y="21" text-anchor="middle">94</text>
+<rect class="col" x="168" y="0" width="38" height="34" rx="3"/><text x="187" y="21" text-anchor="middle">95</text>
+<rect class="col" x="210" y="0" width="38" height="34" rx="3"/><text x="229" y="21" text-anchor="middle">96</text>
+<rect class="col" x="252" y="0" width="38" height="34" rx="3"/><text x="271" y="21" text-anchor="middle">97</text>
+<rect class="lost" x="294" y="0" width="38" height="34" rx="3" stroke-width="2"/><text x="313" y="21" text-anchor="middle">98</text>
+<rect class="col" x="336" y="0" width="38" height="34" rx="3"/><text x="355" y="21" text-anchor="middle">99</text>
+<rect class="col" x="378" y="0" width="38" height="34" rx="3"/><text x="397" y="21" text-anchor="middle">100</text>
+<rect class="col" x="420" y="0" width="38" height="34" rx="3"/><text x="439" y="21" text-anchor="middle">101</text>
+<rect class="col" x="462" y="0" width="38" height="34" rx="3"/><text x="481" y="21" text-anchor="middle">102</text>
+<rect class="full" x="504" y="0" width="38" height="34" rx="3"/><text x="523" y="21" text-anchor="middle">103</text>
+<rect class="full" x="546" y="0" width="38" height="34" rx="3"/><text x="565" y="21" text-anchor="middle">104</text>
+<rect class="full" x="588" y="0" width="38" height="34" rx="3"/><text x="607" y="21" text-anchor="middle">105</text>
+<rect class="full" x="630" y="0" width="38" height="34" rx="3"/><text x="649" y="21" text-anchor="middle">106</text>
+</g>
+<path class="arr" d="M313 68 V96"/>
+<text x="313" y="112" text-anchor="middle" class="s">turn 98: Mom's 8 pages</text>
+<text x="313" y="128" text-anchor="middle" class="s">OFF: one line, pages gone · ON: one line + the 8 pages</text>
+<rect class="full" x="440" y="146" width="14" height="12"/><text x="460" y="156" class="s">whole, with frame (newest 4)</text>
+<rect class="col" x="0" y="146" width="14" height="12"/><text x="20" y="156" class="s">collapsed to one line (frame dropped)</text>
+</svg>
+</div>
+<figcaption>Rebuilt from the recorded events with <code>slideWindow</code>: 33 messages and 4 frames, the same counts the run recorded at seq 1949 (turn_start 107). The window and its chunk boundaries do not change with the switch.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>The collapsed turn 98 result, off and on</h2>
+<div class="pair">
+<figure>
+<span class="tag off">Off (today)</span>
+<pre>Navigation: a message is waiting for A or B; dismiss it with B, then call navigate_to again; 0 ordinary button attempts. · LITTLEROOT TOWN BRENDANS HOUSE 1F (X=4, Y=5, facing left) [older screenshot omitted]</pre>
+</figure>
+<figure>
+<span class="tag on">On</span>
+<pre>Navigation: a message is waiting for A or B; dismiss it with B, then call navigate_to again; 0 ordinary button attempts. · LITTLEROOT TOWN BRENDANS HOUSE 1F (X=4, Y=5, facing left) [older screenshot omitted]
+<span class="add">Dialogue shown during this call (8 pages, in order, whole):
+1. turn 98 · LITTLEROOT TOWN BRENDANS HOUSE 1F (map 1/0) · at 8,3 · MOM: "MOM: Oh! RED, RED!
+Quick! Come quickly!"
+2. turn 98 · LITTLEROOT TOWN BRENDANS HOUSE 1F (map 1/0) · at 5,5 · MOM: "MOM: Look! It's PETALBURG GYM!
+Maybe DAD will be on!"
+3. turn 98 · LITTLEROOT TOWN BRENDANS HOUSE 1F (map 1/0) · at 4,5 · INTERVIEWER: "INTERVIEWER: …We brought you this
+report from in front of PETALBURG GYM."
+4. turn 98 · LITTLEROOT TOWN BRENDANS HOUSE 1F (map 1/0) · at 4,5 · MOM: "MOM: Oh… It's over."
+5. turn 98 · LITTLEROOT TOWN BRENDANS HOUSE 1F (map 1/0) · at 4,5 · MOM: "I think DAD was on, but we missed him.
+Too bad."
+6. turn 98 · LITTLEROOT TOWN BRENDANS HOUSE 1F (map 1/0) · at 4,5 · MOM (sprite kind, not a name): "Oh, yes.
+One of DAD's friends lives in town."
+7. turn 98 · LITTLEROOT TOWN BRENDANS HOUSE 1F (map 1/0) · at 4,5 · MOM (sprite kind, not a name): "PROF. BIRCH is his name."
+8. turn 98 · LITTLEROOT TOWN BRENDANS HOUSE 1F (map 1/0) · at 4,5 · MOM (sprite kind, not a name): "He lives right next door, so you should
+go over and introduce yourself."</span></pre>
+</figure>
+</div>
+<p>Recorded text, copied byte for byte from the full result; the highlighted part is what the switch adds. The first line is today's summary unchanged (its "a message is waiting" wording is a separate bundle fix, F6).</p>
+</section>
+
+<section>
+<h2>What counts as dialogue</h2>
+<table>
+<tr><th>Kept unit</th><th>Where it comes from</th><th>Arm</th></tr>
+<tr><td><code>Dialogue shown during this call (N pages, in order, whole):</code> and its N numbered pages</td><td>dialogue auto-advance result block, each page with turn, map, position and speaker</td><td>bundle</td></tr>
+<tr><td><code>Dialog: "…"</code> line</td><td>readout: every page of the open message, " | " between pages, the speaker prefix as the game prints it</td><td>both</td></tr>
+<tr><td>a whole <code>get_dialogue</code> or <code>recall_dialogue</code> result</td><td>the dialogue record tools: all of it is quoted dialogue</td><td>where those tools are on</td></tr>
+</table>
+<p>Not kept: <code>Dialog: none</code>, <code>Dialog: detailed menu text unprovided</code>, and the "Active field-message buffer" block. Whenever the box is open the buffer block holds the same pages as the Dialog line (checked on 2919). In 130 runs from 2026-10-13 to 2026-10-16, 23 of 12,342 results with a buffer block had <code>Dialog: none</code>: leftover buffer text of a box that had already closed.</p>
+<figure>
+<span class="tag on">On, control arm (run 2919 seq 1862, turn 134, collapsed)</span>
+<pre>pressed A · LITTLEROOT TOWN BRENDANS HOUSE 1F (X=4, Y=5, facing left) [older screenshot omitted]
+<span class="add">Dialog: "Oh, yes. One of DAD's friends lives in town. | PROF. BIRCH is his name. | He lives right next door, so you should go over and introduce yourself."</span></pre>
+</figure>
+</section>
+
+<section>
+<h2>Supervisor briefings cite the last story instruction</h2>
+<p>The loop supervisor, the stall briefing and the text-only supervisor share one helper. With the switch on they add one line before "Recent dialogue": the pages shown after the previous story milestone, up to the latest story milestone the game confirmed (kind <code>story</code>, not present at start). If the latest one came with no dialogue, it walks back to the one before. The three-newest line is unchanged.</p>
+<figure>
+<span class="tag on">On: stall briefing at turn 166 (3f21 seq 3310), the added line</span>
+<pre><span class="add">- Dialogue you were shown leading up to the last story step the game confirmed (mom rival instruction at turn 98), oldest first: turn 98, LITTLEROOT TOWN BRENDANS HOUSE 1F (map 1/0): "MOM: Oh! RED, RED! Quick! Come quickly!" | turn 98, LITTLEROOT TOWN BRENDANS HOUSE 1F (map 1/0): "MOM: Look! It's PETALBURG GYM! Maybe DAD will be on!" | turn 98, LITTLEROOT TOWN BRENDANS HOUSE 1F (map 1/0): "INTERVIEWER: …We brought you this report from in front of PETALBURG GYM." | turn 98, LITTLEROOT TOWN BRENDANS HOUSE 1F (map 1/0): "MOM: Oh… It's over." | turn 98, LITTLEROOT TOWN BRENDANS HOUSE 1F (map 1/0): "I think DAD was on, but we missed him. Too bad." | turn 98, LITTLEROOT TOWN BRENDANS HOUSE 1F (map 1/0): "Oh, yes. One of DAD's friends lives in town." | turn 98, LITTLEROOT TOWN BRENDANS HOUSE 1F (map 1/0): "PROF. BIRCH is his name." | turn 98, LITTLEROOT TOWN BRENDANS HOUSE 1F (map 1/0): "He lives right next door, so you should go over and introduce yourself."</span>- Recent dialogue you were shown, newest first: turn 164, LITTLEROOT TOWN PROFESSOR BIRCHS LAB (map 1/4): "things than read about them here." | turn 164, LITTLEROOT TOWN PROFESSOR BIRCHS LAB (map 1/4): "rather go outside and experience" | turn 164, LITTLEROOT TOWN PROFESSOR BIRCHS LAB (map 1/4): "The PROF isn't one for doing desk work. He's the type of person who would"</pre>
+<figcaption>Off, the briefing is the recorded seq 3310 text byte for byte (a test replays the recorded events and compares). The stall briefing is bundle-only; its own F5 change (untried warps on other maps) is on another branch.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>Wiring</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 720 150" width="720" role="img" aria-label="How the switch reaches the context window and the supervisors">
+<rect class="box" x="0" y="50" width="130" height="46" rx="5"/><text x="65" y="70" text-anchor="middle" class="t">FeatureSet</text><text x="65" y="86" text-anchor="middle" class="s">preset / switchboard</text>
+<rect class="kept" x="180" y="10" width="190" height="46" rx="5"/><text x="275" y="30" text-anchor="middle" class="t">contextWindow()</text><text x="275" y="46" text-anchor="middle" class="s">adds keepDialogue: true</text>
+<rect class="kept" x="420" y="10" width="300" height="46" rx="5"/><text x="570" y="30" text-anchor="middle" class="t">slideWindow → collapsed()</text><text x="570" y="46" text-anchor="middle" class="s">summary line + dialogueUnits(full text)</text>
+<rect class="kept" x="180" y="94" width="190" height="46" rx="5"/><text x="275" y="114" text-anchor="middle" class="t">SupervisorBriefing</text><text x="275" y="130" text-anchor="middle" class="s">story milestones + dialogue log</text>
+<rect class="box" x="420" y="94" width="300" height="46" rx="5"/><text x="570" y="114" text-anchor="middle" class="t">loop / stall / text-only briefings</text><text x="570" y="130" text-anchor="middle" class="s">one added line before "Recent dialogue"</text>
+<path class="arr" d="M130 66 L180 36"/><path class="arr" d="M370 33 H420"/>
+<path class="arr" d="M130 82 L180 116"/><path class="arr" d="M370 117 H420"/>
+</svg>
+</div>
+<figcaption>Both paths read only the FeatureSet. The play wiring passes <code>contextWindow(features)</code> to the loop, and the decision probe rebuilds contexts with the same window.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>Token cost</h2>
+<p>Measured by rebuilding every turn's window from the recorded events (chars ÷ 4, the recorder's estimate; frames counted separately). The rebuilt OFF context matches the recorded <code>turn_start</code> estimate within 10 tokens on 195 of 198 turns (3f21) and 242 of 247 (2919); the other turns carried an appended loop-guard note (up to about 720 tokens), which this rebuild leaves out and which the switch does not change.</p>
+<table>
+<tr><th>Run</th><th>Turns</th><th>Max OFF</th><th>Max ON</th><th>Mean OFF → ON</th><th>Largest added</th></tr>
+<tr><td>3f21 (bundle)</td><td class="n">199</td><td class="n">11,544</td><td class="n">11,685</td><td class="n">6,199 → 6,408</td><td class="n">985</td></tr>
+<tr><td>2919 (control)</td><td class="n">248</td><td class="n">11,266</td><td class="n">11,315</td><td class="n">5,268 → 5,445</td><td class="n">1,224</td></tr>
+</table>
+<p>Both stay under 18% of the 65,536-token window. Growth is bounded because the turn window (20 turns, chunk 10) still drops whole turns. All dialogue shown in the whole run adds up to about 4,150 tokens (3f21) and 4,010 tokens (2919).</p>
+</section>
+
+<section>
+<h2>Limits and status</h2>
+<ul>
+<li>The turn window is unchanged: a turn older than 11 to 20 turns leaves the context with its dialogue. In 3f21, Mom's pages are in the context on turns 99 to 111 with the switch on (99 to 103 off); in 2919 on turns 135 to 151. The supervisor line covers later stalls such as turn 166. Keeping all dialogue for the whole run would add about 4,000 tokens at 200 turns; that would be a separate switch.</li>
+<li>Readout pages from a box that already closed (the 23 leftover-buffer cases) are not kept.</li>
+<li>Branch <code>claude/dialogue-context-kept</code>, unmerged. ON in both arms of bundle-v-control by operator decision (2026-10-16 12:46 AM EDT); wired into the definition by M6. No measured runs.</li>
+</ul>
+</section>
+</main>
+</body>
+</html>

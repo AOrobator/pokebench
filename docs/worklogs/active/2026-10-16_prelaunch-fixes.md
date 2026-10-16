@@ -77,6 +77,7 @@ Done when every milestone is merged, qualification shows none of F1–F8, the fo
 
 ## Session Log
 
+- 2026-10-16 01:16 AM EDT: Ownership change (the operator told the "Route 101 turnaround" thread to land its own fixes on main itself): F9–F12 are owned and landed by that thread; my F9 and F10/F11 agents stopped, F12 dropped from the M5 branch. I wire the merged switches into the bundle definition.
 - 2026-10-16 01:05 AM EDT: F12 added to the M5 branch: screen-aware stall briefing and an interface-dwell stall, inside stall-briefing-v1.
 - 2026-10-16 01:01 AM EDT: The operator put the nickname readout fix and the no-nickname line in the bundle (F10, F11); branch started.
 - 2026-10-16 12:54 AM EDT: Showcase bundle run reached BIRCH_RESCUE_COMPLETE at 15.4 min from the main-menu save (RIVAL_MET 10.3, ROUTE_101 13.9). The operator added F9 `connection-edge-tiles-v1` to the bundle; branch started.

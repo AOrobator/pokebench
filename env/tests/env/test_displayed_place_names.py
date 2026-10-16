@@ -247,8 +247,8 @@ def test_switch_is_a_default_off_server_feature() -> None:
 @pytest.mark.parametrize(
     ("catalog", "shown"),
     [
-        ("Mays House Sign", "Sign text \"PROF. BIRCH'S HOUSE\""),
-        ("Route Sign Oldale", "Sign text \"PROF. BIRCH'S HOUSE\""),
+        ("Mays House Sign", 'Sign text "PROF. BIRCH\'S HOUSE"'),
+        ("Route Sign Oldale", 'Sign text "PROF. BIRCH\'S HOUSE"'),
         ("Notebook", "Notebook"),
         ("GameCube", "GameCube"),
     ],

@@ -39,3 +39,4 @@ For a male player the sign at Littleroot (12,8) prints "PROF. BIRCH'S HOUSE" (po
   (observation route, passthrough); dropping `places.get` in destinations → 3 red. Restored. Lint: ruff/eslint/tsc clean; mypy only the missing mgba._pylib binding (worktree).
 - First real-ROM look (probe 2026-10-16T01-05-17_probe_aa70, CLOCK_SET, bedroom 2F): Location "AAA's HOUSE 2F", warp (7,1) -> "AAA's HOUSE 1F (map 1/0)", but the
   Notebook and GameCube (MSGBOX_SIGN furniture) were relabelled "Sign text ...". RED: verified non-sign catalog names (Notebook, GameCube) keep their name; 2 red.
+- GREEN: `world._background_name`: a verified catalog name without the word "Sign" keeps its name; signs (and unidentified events) take their text. python 1984 passed.

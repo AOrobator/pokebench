@@ -138,6 +138,8 @@ Merge locally after all lanes LGTM. No pending experiment entry (amendment 2). R
   - Codex 2 (explainer delivery): server test serves the three tracked explainers byte for byte with their headings (and keeps the host 403 / method 405 rejections); mounted app test asserts each Harness Config card links to `/explainers/<id>.html` with READ EXPLAINER. Deleting the battle mapping turns both red; restored. Isolated built viewer (127.0.0.1:8798, labelled sh02 copy, the three tracked explainers copied beside its runs root): each new card's READ EXPLAINER click opened `/explainers/<id>.html` with heading "Push-back loop detection", "Push-back press results", "Battle observation loop"; curl 200 for all three. Viewer stopped.
   - Codex 1 / Claude (post-fix gates): full gates re-run at the new head below.
 
+- Fix commit a2cce071. Gates at a2cce071 (after the main merge), all exit 0: `just build`; `just test` agent 1490 passed, viewer 827 passed, pytest 2132 passed; `just lint` (tsc, eslint, ruff, ruff format, mypy "no issues found in 75 source files"); `just coverage` agent lines 99.1 / branches 94.73 / functions 98.01 (loop-detection.ts 98.52 / 97.19 / 100; press-result.ts 100 / 99.22 / 100), viewer 97.64 / 90.65 / 93.55, python 97.14 / 92.80 / 100 (floor 90); `just verify-vendor` OK.
+
 ## Surprises
 
 - `loop_guard` evidence is capped at 2 items by the event schema (`maxItems:2`); a 3-seq evidence list made the recorder throw in the factory test. Evidence is now [first push-back, completing call]. The replay tests validate every notice through `checkEvent`.

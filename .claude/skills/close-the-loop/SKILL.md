@@ -31,7 +31,7 @@ A subagent's report is a claim, not proof. Check its evidence yourself (open the
 
 ## Rehearse runners and schedules on fake data
 
-Anything that launches, chains or schedules runs is proven on a fake-data rehearsal before it touches the GPU lanes. `just fixed-run …` and the default `just experiments-audit` read and write the main checkout's real `runs/`, so they are never the rehearsal.
+Anything that launches, chains or schedules runs is proven on a fake-data rehearsal before it touches the GPU lanes. `just fixed-run …` writes to the main checkout's real `runs/`, and the default `just experiments-audit` reads that real root, so neither is the rehearsal.
 
 1. Drive the real code through its injected seams: `runFixed` takes a `runsRoot` (where the ledger, status and run dirs go) and a `FixedHost` (clock and sleep, build and serving checks, port checks, run ids, launches, liveness), as `packages/viewer/src/fixed-runner.test.ts` does. Use a test, or a scratch script that passes a scratch runs root in a gitignored folder and a stub host with a fake clock, stub serving receipts and stub launches that write fake run events. Never send traffic to a lane a running experiment owns. The lanes and ports are in `experiments/fixed/<id>.json`. `runs/experiments/runner.json` and `lsof -iTCP -sTCP:LISTEN` show what is live.
 2. Show that the trials chain. Trial N+1 launches when trial N ends, with the expected arm, lane, phase and start, and nothing overlaps on a lane. For fixed runs, also show that an invalid trial is replaced at the end of its phase and that a paused lane resumes. The experiment queue does not replace trials: it holds on a launcher failure and resumes, so prove that instead.
@@ -42,7 +42,7 @@ Anything that launches, chains or schedules runs is proven on a fake-data rehear
 ## After a merge: prove it live
 
 1. Restart the viewer with `just viewer-main` after every merge, as CLAUDE.md says. Restarting keeps live runs running (`viewer-restart.sh` checks this). The real dangers are two restarts at once and a restart in the middle of someone's launch check. So ask whoever owns 8790 restarts first, and restart only once: a viewer busy with its first scan delays SIGTERM, and a second restart collides with it.
-2. Confirm the restart: `just viewer-main` prints `viewer at <sha>` naming the merged commit, and the running viewer's own stamp at `/private/tmp/pokebench-viewer/packages/viewer/dist/build-stamp.json` (or `$POKEBENCH_VIEWER_WORKTREE`) names it too. A worktree's own `dist/build-stamp.json` proves nothing about 8790. Confirm also that one viewer is listening on 8790, and that every gameplay process that was alive before is still alive.
+2. Confirm the restart: `just viewer-main` prints `viewer at <sha>` naming the merged commit, and the running viewer's own stamp at `/private/tmp/pokebench-viewer/packages/viewer/dist/build-stamp.json` (or `$POKEBENCH_VIEWER_WORKTREE/packages/viewer/dist/build-stamp.json` when that is set) names it too. A worktree's own `dist/build-stamp.json` proves nothing about 8790. Confirm also that one viewer is listening on 8790, and that every gameplay process that was alive before is still alive.
 3. On the real page, show the change working: the same click or check as before, now on live data. Confirm that live runs still show and that `/api/workbench` lists no "viewer build … is older than this run's build" problem.
 4. Report the merge SHA, the restart time in New York time, and what you saw.
 

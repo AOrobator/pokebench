@@ -139,7 +139,11 @@ RECEIVED = [f["state_seq"] for f in FIXTURE["frames"] if f["received"] is not No
 
 @pytest.mark.parametrize("seq", RECEIVED)
 def test_off_reproduces_what_the_model_received(seq: int) -> None:
-    assert render(seq) in str(frame(seq)["received"])
+    # The readout is the whole tail of the tool result, after the press lines or a frame note.
+    text, received = render(seq), str(frame(seq)["received"])
+    assert received.endswith(text)
+    head = received[: -len(text)]
+    assert head == "" or head.endswith("\n")
 
 
 def test_push_back_script_lock_reads_as_a_script_with_no_message() -> None:
@@ -251,8 +255,8 @@ def test_whiteout_running_is_said_from_the_observations_own_state() -> None:
 
 def test_each_switch_changes_only_its_own_lines() -> None:
     assert changed(620, TRUTH)[1] == [MENU_OTHER]
+    # 19097's Interface line is a coverage error, not a verified owner: the Menu line stays.
     assert changed(19097, TRUTH)[1] == [
-        MENU_OTHER,
         "Story: player name confirmed; Mom clock instruction received; clock set; "
         f"{STORY_7}; rival met; sent to save Birch; Birch rescue complete; "
         "Birch starter handoff complete",
@@ -390,6 +394,8 @@ def test_menu_line_says_none_open_only_when_the_game_state_proves_it() -> None:
     ui = ActiveUi("battle_resolving", None, False, "x")
     assert menu_line(field(active_ui_read=False)) is None
     assert menu_line(field(active_ui_read=True, active_ui=ui)) == MENU_OTHER
+    unknown = ActiveUi("unsupported", None, None, "x", "callback2 0x08085F59; active tasks")
+    assert menu_line(field(active_ui_read=True, active_ui=unknown)) is None
     assert menu_line(field(active_ui_read=True, field_controls_locked=False, menu=menu)) == (
         MENU_NONE
     )

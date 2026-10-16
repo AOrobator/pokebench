@@ -144,6 +144,85 @@ def test_production_run_reports_the_whiteout_once(
     assert LINE not in texts[1]
 
 
+def test_an_observation_that_fails_keeps_the_whiteout_pending(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from pokebench_env.observation import install_observation
+
+    monkeypatch.setenv("POKEBENCH_FEATURES_OFF", "")
+    m = game(OVERWORLD)
+    set_money(m, 1500)
+    latch = WhiteoutLatch(m.read)
+    callback(m, CB2_WHITE_OUT)
+    m.put(SB1 + 0x490, struct.pack("<I", 3000 ^ 0x1234))
+    latch.on_frame()
+    set_money(m, 1500)
+    callback(m, OVERWORLD[1])
+    latch.on_frame()
+    shots = iter(["", "iVBORw0KGgo="])
+
+    class Shot:
+        def model_dump(self) -> dict[str, object]:
+            return {"screenshot_base64": next(shots)}
+
+    app = FastAPI()
+    install_observation(app, lambda: Shot(), m.read, MAPS, whiteout=latch)
+    status, _, _ = get(app, "/pokebench/observation")
+    assert status == 503
+    status, _, body = get(app, "/pokebench/observation")
+    assert status == 200 and LINE in json.loads(body)["state_text"].split("\n")
+
+
+def test_the_latch_sees_a_frame_before_a_settle_capture_on_that_frame(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import threading
+
+    from pokebench_env.serve import run
+
+    monkeypatch.setenv("POKEBENCH_FEATURES_OFF", "")
+    m = game(OVERWORLD)  # palette black: an observation waits for the screen to settle
+    lock = threading.Lock()
+
+    def whiteout() -> None:
+        callback(m, CB2_WHITE_OUT)
+
+    def back_on_the_field() -> None:
+        callback(m, OVERWORLD[1])
+        set_money(m, 1500)
+        m.put(0x05000000, b"\x1f\x00")
+
+    frames = iter([whiteout, back_on_the_field])
+
+    class Emulator:
+        def run_frame_with_buttons(self, buttons: list[str]) -> None:
+            next(frames)()
+
+    app = FastAPI()
+    run(
+        [],
+        uvicorn=types.SimpleNamespace(run=lambda *a, **k: None),
+        vendor_main=lambda: None,
+        observation=(app, lambda: _Shot(), m.read, MAPS, lock),
+        frames=Emulator,
+    )
+    with lock:
+        Emulator().run_frame_with_buttons([])
+    result: dict[str, object] = {}
+    thread = threading.Thread(
+        target=lambda: result.update(r=get(app, "/pokebench/observation")), daemon=True
+    )
+    thread.start()
+    thread.join(0.2)
+    assert thread.is_alive(), "waiting for the screen to settle"
+    with lock:
+        Emulator().run_frame_with_buttons([])
+    thread.join(5)
+    status, _, body = result["r"]  # type: ignore[misc]
+    assert status == 200
+    assert LINE in json.loads(body)["state_text"].split("\n")
+
+
 def test_switch_is_a_default_off_server_feature() -> None:
     assert SWITCH in SERVER_FEATURES
     assert SWITCH in features_off_from_env({})

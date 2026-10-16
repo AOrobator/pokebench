@@ -8,7 +8,7 @@ import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {ALL_ON,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {flagFeatures,normalizeFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {NAVIGATE_TO_USAGE,playSystemPrompt,toolSwitches} from "./play-config.js";
-import {MOVING_AROUND_FULL,MOVING_AROUND_LOCAL,NAVIGATE_FIRST_DESCRIPTION,NAVIGATE_FIRST_TOOL_LINE,PRESS_NOT_WALKING,REMINDER,REMINDER_EVERY,withNavigateFirst} from "./navigate-first.js";
+import {MOVING_AROUND_FULL,MOVING_AROUND_LOCAL,NAVIGATE_FIRST_DESCRIPTION,NAVIGATE_FIRST_TOOL_LINE,PRESS_NOT_WALKING,REMINDER,REMINDER_EVERY,navigateFirstToolList,withNavigateFirst} from "./navigate-first.js";
 import {navigationTool,type NavigationPorts} from "./navigation.js";
 import {gameTools} from "./game-tools.js";
 import {playGameTools} from "./play-wiring.js";
@@ -91,6 +91,13 @@ describe("system prompt",()=>{
  });
 });
 
+describe("tool list edit",()=>{
+ it("refuses a prompt without the observe and press lines rather than guessing",()=>{
+  expect(()=>navigateFirstToolList("no tools here")).toThrow("navigate-first-prompt-v1 needs the observe and press tool lines");
+  expect(navigateFirstToolList("- observe: x\n- press: presses up to 8 buttons in order")).toBe(`- observe: x\n${NAVIGATE_FIRST_TOOL_LINE}\n- press: presses up to 8 buttons in order${PRESS_NOT_WALKING}`);
+ });
+});
+
 describe("navigate_to description",()=>{
  const ports=(navigateFirst:boolean|undefined,fullMap=false):NavigationPorts=>({read:()=>Promise.resolve(FIELD),press:()=>Promise.reject(new Error("unused")),observe:()=>Promise.reject(new Error("unused")),fullMap,...(navigateFirst===undefined?{}:{navigateFirst})});
  it("OFF is today's description; ON leads with when to use it and, locally, how to continue after the command limit",()=>{
@@ -106,7 +113,7 @@ describe("navigate_to description",()=>{
 // Fake press/navigate_to/observe returning a fixed state, counting calls.
 function fakes(state:()=>GameStateSnapshot){
  const result=(text:string):AgentToolResult<{state:GameStateSnapshot}>=>({content:[{type:"text",text}],details:{state:state()}});
- const tool=(name:string):AgentTool=>({name,label:name,description:name,parameters:{} as AgentTool["parameters"],execute:(_id,params)=>Promise.resolve(result(`${name} ${JSON.stringify(params)}`))});
+ const tool=(name:string):AgentTool=>({name,label:name,description:name,parameters:{},execute:(_id,params)=>Promise.resolve(result(`${name} ${JSON.stringify(params)}`))});
  return [tool("observe"),tool("press"),tool("navigate_to")];
 }
 const press=(tools:readonly AgentTool[],buttons:Button[])=>{const t=tools.find(x=>x.name==="press");if(t===undefined)throw new Error("press");return t.execute("id",{buttons});};
@@ -139,16 +146,31 @@ describe("press reminder",()=>{
    state=FIELD;expect(textOf(await press(tools,["UP"]))).not.toContain(REMINDER);
   }
  });
- it("OFF returns the tools untouched",async()=>{
+ it("OFF returns the tools untouched",()=>{
   const base=fakes(()=>FIELD);
   expect(withNavigateFirst(base,{...ON,[ID]:false})).toBe(base);
+ });
+ it("treats a result without a readable state, or a press without buttons, as breaking the streak",async()=>{
+  let details:unknown={state:FIELD};
+  const press:AgentTool={name:"press",label:"press",description:"press",parameters:{},execute:()=>Promise.resolve({content:[{type:"text",text:"pressed"}],details})};
+  const tools=withNavigateFirst([press],ON);
+  const run=(params:unknown)=>{const t=tools[0];if(t===undefined)throw new Error("press");return t.execute("id",params);};
+  for(const broken of [undefined,null,{},{state:null},{state:{screen:7}}]){
+   details={state:FIELD};await run({buttons:["UP"]});await run({buttons:["UP"]});
+   details=broken;expect(textOf(await run({buttons:["UP"]}))).not.toContain(REMINDER);
+  }
+  details={state:FIELD};await run({buttons:["UP"]});await run({buttons:["UP"]});
+  expect(textOf(await run({}))).not.toContain(REMINDER);
+  expect(textOf(await run(null))).not.toContain(REMINDER);
+  expect(textOf(await run({buttons:"UP"}))).not.toContain(REMINDER);
  });
 });
 
 describe("production wiring",()=>{
+ const png=(()=>{const b=Buffer.alloc(33);Buffer.from([137,80,78,71,13,10,26,10]).copy(b);b.writeUInt32BE(13,8);b.write("IHDR",12);b.writeUInt32BE(240,16);b.writeUInt32BE(160,20);return b.toString("base64");})();
  const fetchFn:typeof fetch=(input)=>{
   const url=typeof input==="string"?input:input instanceof URL?input.href:input.url;
-  const body=url.endsWith("/action")?{status:"success"}:url.endsWith("/queue_status")?{queue_empty:true}:url.endsWith("/pokebench/observation")?{state_text:"field",state:FIELD}:FIELD;
+  const body=url.endsWith("/action")?{status:"success"}:url.endsWith("/queue_status")?{queue_empty:true}:url.endsWith("/pokebench/observation")?{state_text:"field",screenshot_base64:png,state:FIELD}:FIELD;
   return Promise.resolve(new Response(JSON.stringify(body)));
  };
  const build=(features:FeatureSet)=>{

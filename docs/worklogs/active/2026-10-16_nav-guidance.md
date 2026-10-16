@@ -55,9 +55,9 @@ Read-only RAM reads already used by character presence. No new network, file or 
 
 **M2 — navigate-first-prompt-v1**
 - [x] RED: prompt OFF byte-identical, ON sections; navigate_to description ON/OFF; press reminder on the third direction-only press, not after navigate_to, not in battle/menus/dialogue; factory wiring; registry counts
-- [ ] COMMIT: `test(RED): ...`
-- [ ] GREEN + gates
-- [ ] COMMIT: `feat: ...`
+- [x] COMMIT: `test(RED): ...` (67117ff6)
+- [x] GREEN + gates
+- [x] COMMIT: `feat: ...`
 
 **M3 — presence-penalty-v1**
 - [ ] RED: OFF request body unchanged; ON adds presence_penalty 1.5 to every chat request; value recorded in run_start; llama-server lane accepts it (probe); registry/presets/defaults
@@ -87,6 +87,10 @@ Done when both switches are merged after review, explainers link from Harness Co
   COMMIT: `feat: offscreen-objects-v1 lists the map's people and objects outside the local map, with their tiles (default off)`
 - 2026-10-16 04:00 AM EDT: M2 RED. `packages/agent/src/navigate-first.test.ts` + `test-support/navigate-first-sh02.json` (cook #2 run_start: harness_features and system_prompt; `playSystemPrompt(featuresOf(...))` reproduces it byte for byte today). Cases: registry/presets; OFF prompt equals cook #2's; ON tool list order and press suffix; Moving around replaces NAVIGATE_TO_USAGE and is the last section; full-map wording; screen-only press line; objective text still last; no story names; navigate_to description OFF unchanged / ON prefix and local suffix; reminder every 3rd direction-only free-field press, reset by navigate_to and non-direction presses, not by observe, not counted off the free field; OFF returns tools untouched; playGameTools wiring. Fails: module missing.
   COMMIT: `test(RED): navigate-first-prompt-v1 steers walking to navigate_to (cook run #2 prompt)`
+- 2026-10-16 04:08 AM EDT: M2 GREEN. `packages/agent/src/navigate-first.ts` (tool-list edit, Moving around local/full, description prefix + local command-limit hint, `withNavigateFirst` press reminder every 3rd direction-only free-field press, reset by navigate_to and other presses); `playSystemPrompt` drops NAVIGATE_TO_USAGE and appends Moving around last when on; `navigationTool` port `navigateFirst`; `playGameTools` wraps last. Registry (guidance, needs bounded-navigation-v1), presets/defaults false, readout-rules incumbent key. Test fixes in GREEN: the production-wiring fake observation needed a PNG frame; added tool-list refusal and unreadable-state/no-buttons cases for coverage. Shifts: `.at(-N)` +1 in 8 agent tests, guidance count 28, switchboard 62 rows, ALL_ON-based prompt tests turn the switch off (battle-triage, experiment-gate, play-config, state-runtime, features dependency).
+  - Wiring removal: dropping `withNavigateFirst` in playGameTools → 1 red; dropping `navigateFirst` in withNavigation → 1 red; restored → green.
+  - Gates: agent 1445, viewer 821, Python 2147 passed; coverage agent 97.76/94.63/98/99.09 (navigate-first.ts 100%), viewer 95.19/90.64/93.55/97.65, Python 96%; lint green except known mypy `mgba._pylib`; build green.
+  COMMIT: `feat: navigate-first-prompt-v1 names navigate_to as the way to move in the prompt, its description and a press reminder (default off)`
 
 ## Surprises
 

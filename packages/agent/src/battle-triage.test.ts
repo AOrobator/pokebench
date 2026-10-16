@@ -21,8 +21,8 @@ it("registers a default-off guidance switch the game server applies, recorded la
   expect(description).toContain(" Off: ");
   expect(description).toContain("below half");
   expect(description).toContain("RUN");
-  expect(SWITCHABLE_FEATURES.at(-4)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON, null).at(-4)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-5)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON, null).at(-5)).toBe(ID);
   expect(playHarnessFeatures(with_(ALL_ON, false), null)).not.toContain(ID);
   expect(SERVER_FEATURES.at(-4)).toBe(ID);
   expect(serverFeatureEnv(with_(ALL_ON, false)).POKEBENCH_FEATURES_OFF).toBe(ID);
@@ -53,7 +53,7 @@ it("ON appends exactly the battle and healing section; tools and results are unc
     expect(toolSwitches(with_(base, true))).toEqual(toolSwitches(base));
     expect(objectiveSwitches(with_(base, true))).toEqual(objectiveSwitches(base));
   }
-  const plain = { ...ALL_ON, "objective-tracking-v1": false, "repeat-attempt-guard-v1": false, "native-objective-completion-v1": false };
+  const plain = { ...ALL_ON, "navigate-first-prompt-v1": false, "objective-tracking-v1": false, "repeat-attempt-guard-v1": false, "native-objective-completion-v1": false };
   expect(playSystemPrompt(plain, null)).toBe(`${playSystemPrompt(with_(plain, false), null)}\n\n${BATTLE_TRIAGE_SECTION}`);
   expect(playSystemPrompt(ALL_ON, "RIVAL_MET")).toContain(BATTLE_TRIAGE_SECTION);
 });

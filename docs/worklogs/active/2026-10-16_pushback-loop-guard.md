@@ -150,6 +150,8 @@ Merge locally after all lanes LGTM. No pending experiment entry (amendment 2). R
 
 - Fix commit 165bed53. Merged main again (5fd00072: battle-text-auto-advance-v1 and others). dialogue-auto-advance.ts conflict was only the import line (main's battle-text import kept, `pushbackPressResult` kept; the press-result composition auto-merged unchanged). Registry, presets, README and FEATURE_EXPLAINERS resolved as before (this branch's three after `battle-text-auto-advance-v1`); positional assertions recomputed, including main's new "registry order" checks in battle-text-auto-advance.test.ts; switchboard rows 68. Agent 1547, viewer 869 passed.
 
+- Merge commit 9f7dd74b (main parent 5fd00072). Gates at 9f7dd74b, all exit 0: build; test agent 1547, viewer 869, pytest 2209 passed; lint incl. mypy (76 files, no issues); coverage agent lines 99.13 / branches 94.73 / functions 98.16 (loop-detection.ts 98.54 / 97.42 / 100; press-result.ts 100 / 99.22 / 100), viewer 97.7 / 90.98 / 93.57, python 97.26 / 93.01 / 100; verify-vendor OK.
+
 ## Surprises
 
 - `loop_guard` evidence is capped at 2 items by the event schema (`maxItems:2`); a 3-seq evidence list made the recorder throw in the factory test. Evidence is now [first push-back, completing call]. The replay tests validate every notice through `checkEvent`.

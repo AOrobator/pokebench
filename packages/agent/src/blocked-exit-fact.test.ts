@@ -194,6 +194,9 @@ describe("blocked-exit-fact-v1 registry",()=>{
   expect(SWITCHABLE_FEATURES).toContain(ID);
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:"coordinate-script-conditions-v1",switchable:true});
   expect(featureInfo(ID).description).toContain(" Off: ");
+  // The catalog states the reviewed refusal rule (review round 6).
+  expect(featureInfo(ID).description).toContain("a press of directions only whose first direction faces it, or navigate_to targeting it or that exit), or it finished a try the previous call began by stepping onto the trigger");
+  expect(featureInfo(ID).description).not.toContain("standing on it");
   expect(playHarnessFeatures(ALL_ON,null)).toContain(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
   const older=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;

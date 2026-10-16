@@ -143,6 +143,8 @@ describe("briefing-battle-outcomes-v1 registry",()=>{
   expect(SWITCHABLE_FEATURES).toContain(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:null,switchable:true});
   expect(featureInfo(ID).description).toContain(" Off: ");
+  // The catalog states the reviewed win rule (review round 6).
+  expect(featureInfo(ID).description).toContain("a win when the trainer's defeated flag, unset during the battle, reads set once it is over with no blackout seen");
   expect(playHarnessFeatures(ALL_ON,null)).toContain(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
   const older=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;

@@ -76,7 +76,8 @@ export function stallStop(features:FeatureSet,recorder:Pick<RunRecorder,"subscri
 // The game tools a play run hands the model: ordinary tools, navigate_to, dialogue auto-advance, the people ledger and untaken exits per switch.
 // The ledger is inside untaken exits, so a readout with both reads Position, the Untaken exits line, then the people block.
 // extra: the run's other model tools (context tools), wrapped too so any call between presses is seen.
-// low-hp-trainer-warning-v1 is outermost, so its paragraph follows any other text the result gained.
+// low-hp-trainer-warning-v1 wraps everything else, so its paragraph follows any other text the result gained; only
+// withResultFacts (blocked-exit-fact-v1, battle-loss-recap-v1) is outside it, adding its lines after that paragraph.
 export function playGameTools(base:readonly AgentTool[],features:FeatureSet,state:StateSource,recorder:AutoAdvanceRecorder&WarningRecorder,gate?:NavigationPorts["gate"],extra:readonly AgentTool[]=[]):AgentTool[]{
  return [...withResultFacts(withLowHpTrainerWarning(withNavigateFirst([...withUntakenExits(withPeopleLedger(withDialogueAutoAdvance(withNavigation(base,features,state,gate),features,{state,recorder}),features,recorder),features,recorder),...extra],features),features,recorder),features,recorder)];
 }

@@ -109,6 +109,8 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "battle_details_enabled": False,
         "dynamic_warp_enabled": False,
         "displayed_names_enabled": False,
+        "connection_edges_enabled": False,
+        "in_game_naming_enabled": False,
         "fmt_named_interactions": False,
         "fmt_world_destinations": False,
         "fmt_bounded_navigation": False,

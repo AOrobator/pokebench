@@ -40,7 +40,7 @@ it("builds a finals preset: boot start, the finals wall limit and stop milestone
  // Text-only replies get a supervisor note instead of ending a finals run (operator 2026-10-15 14:41 UTC).
  expect(finalsPreset(preset,"exp","whole",{"text-only-supervisor-v1":false},DEFAULT_FINALS).features["text-only-supervisor-v1"]).toBe(true);
  // State-only decisions deliver no follow-up message, so their finals keep it off.
- const stateOnly=Object.fromEntries(Object.entries(features).map(([k,v])=>[k,["objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","grass-cost-navigation-v1","loop-guard-supervisor-v1"].includes(k)?false:v]));
+ const stateOnly=Object.fromEntries(Object.entries(features).map(([k,v])=>[k,["objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","grass-cost-navigation-v1","cross-map-goal-v1","loop-guard-supervisor-v1"].includes(k)?false:v]));
  expect(finalsPreset({...preset,features:{...stateOnly,"state-only-decisions-v1":true} as typeof features},"exp","state",{},DEFAULT_FINALS).features["text-only-supervisor-v1"]).toBe(false);
  expect(finalsPreset(preset,"exp","whole",{"milestone-stall-stop-v1":true},DEFAULT_FINALS).features["milestone-stall-stop-v1"]).toBe(false);
  // An experiment can stop its finals early, at a milestone or a shorter wall limit.

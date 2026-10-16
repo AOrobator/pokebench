@@ -79,3 +79,4 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Surf-gated exits](surf-gated-exits-v1.html)
 - [Navigation truth](navigation-truth-v1.html)
 - [Off-window route reasons](navigation-refusal-reasons-v2.html)
+- [Cross-map goal refusal](cross-map-goal-v1.html)

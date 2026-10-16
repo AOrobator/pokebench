@@ -332,6 +332,17 @@ it("serves the tracked Surf-gated exits explainer byte for byte through the allo
  expect((await get(viewer,"/explainers/surf-gated-exits-v1.html",{method:"PUT"})).status).toBe(405);
 });
 
+it("serves the tracked cross-map goal explainer byte for byte",async()=>{
+ const tracked=readFileSync(fileURLToPath(new URL("../../../docs/explainers/cross-map-goal-v1.html",import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ writeFileSync(join(docs,"cross-map-goal-v1.html"),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,"/explainers/cross-map-goal-v1.html");
+ expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);
+ expect((await get(viewer,"/explainers/cross-map-goal-v1.html",{host:"elsewhere.invalid"})).status).toBe(403);
+ expect((await get(viewer,"/explainers/cross-map-goal-v1.html",{method:"PUT"})).status).toBe(405);
+});
+
 it("serves the tracked story battle heal warning explainer byte for byte",async()=>{
  const tracked=readFileSync(fileURLToPath(new URL("../../../docs/explainers/low-hp-trainer-warning-v2.html",import.meta.url)));
  const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});

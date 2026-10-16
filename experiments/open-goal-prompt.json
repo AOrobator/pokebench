@@ -126,6 +126,9 @@
    "readout-truth-v1": true,
    "birch-speech-pages-v1": true,
    "blackout-readout-v1": true,
+   "surf-gated-exits-v1": true,
+   "navigation-truth-v1": true,
+   "navigation-refusal-reasons-v2": true,
    "open-goal-prompt-v1": false
   },
   "start": {

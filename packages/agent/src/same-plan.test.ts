@@ -112,6 +112,11 @@ describe("states that qualify",()=>{
  let seq=0;
  const ev=(body:Record<string,unknown>,turn=1):RunEvent=>checkEvent({v:1,run:"r",t:"2026-10-16T03:00:00.000-04:00",seq:++seq,turn,...body});
  const state=(extra:Record<string,unknown>)=>ev({type:"state",...IN_GAME,location:"TOWN",map_id:[0,9],position:{x:3,y:3},facing:"up",field_controls_locked:false,world_context:{objects:[],triggers:[],dialogue:null},...extra}) as Extract<RunEvent,{type:"state";started:boolean}>;
+ it("withholds an overworld interface the readout cannot qualify (review round 4)",()=>{
+  expect(planState(state({active_ui:{phase:"unknown_menu",selected:null,ready:null,controls:"x",diagnostic:"unsupported owner"}}),ALL_ON)).toBeNull();
+  expect(planState(state({active_ui:{phase:"start_menu",selected:"BAG",ready:false,controls:"x",diagnostic:null}}),ALL_ON)).toBeNull();
+  expect(planState(state({active_ui:{phase:"start_menu",selected:"BAG",ready:true,controls:"x",diagnostic:null}}),ALL_ON)).not.toBeNull();
+ });
  it("withholds unknown screens and transitions and labels battle and locked states",()=>{
   expect(planState(state({screen:"naming"}),ALL_ON)).toBeNull();
   expect(planState(state({started:false}),ALL_ON)).toBeNull();

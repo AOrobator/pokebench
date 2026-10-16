@@ -116,6 +116,12 @@ Report per switch: id, model-facing before/after excerpts from this run, precisi
 - 2026-10-16 07:05 AM EDT round-3 GREEN: the press push-back binds to the first direction in the auto-advance event's `sent` list; push-back evidence adds the tool_call seq; NEGATION adds `can` and a sentence-initial is/are/was/were/where/does/do/did/will; same-plan names only the states the 3 decisions ended in (twin note now reads "(11,2) facing up and … (11,1) facing up, field controls locked"); `recordedNotes` returns guard, belief ledger, hint, instruction ledger, memory. Explainers updated. Full-run replay unchanged: 4 entries, 206 deliveries; 28 same-plan notes; ON vs OFF guard events differ only by the T171→T172 drought briefing. Gates: agent 1534 tests 97.91/94.42/98.32/99.11; viewer 868 tests 95.36/90.97/93.57/97.71; Python 2209 passed 97.26/93.01/100; lint clean (TS/eslint); pages-check silent. COMMIT (e8a1a631).
 - 2026-10-16 07:15 AM EDT: merged main 6d2be8af (F12: stall briefing knows the naming editor, new stall kind `interface_dwell`). Conflicts only in the stall-kind unions (events.ts, loop-detection.ts StallKind, viewer model/trace labels): both kinds kept; schema regenerated. Full-run same-plan replay unchanged (28 notes, same turns). Gates: agent 1538 tests 97.93/94.25/98.32/99.12; viewer 868 tests 95.36/90.97/93.57/97.71; Python 2209 passed 97.26/93.01/100; lint clean (TS/eslint).
 
+### Round 4 (cumulative main 6d2be8af..4aa7c8d3 excluding the fixture, SHA-256 35e011bb…01fa9; fix delta 6ca00330..e8a1a631, SHA-256 e6ee65db…f569)
+
+- Claude CLI: LGTM. Grok: LGTM.
+- Codex: BLOCKING. (1) denials and hypotheticals outside the hedge list ("I doubt …", "There is no evidence …", "It is false that …", "Suppose …") still make claims: needs a positive assertion grammar; (2) a navigate_to push-back's direction is inferred from the script's move, not bound to the step the walk sent; (3) an overworld `active_ui` with a diagnostic or not ready still qualifies as a same-plan state.
+- Accepted all three. 2026-10-16 07:45 AM EDT round-4 RED: 3 failing tests.
+
 ## Surprises
 
 - The twin's coordinate trigger leaves the player at (11,1) with field controls locked and no message; the push back to (11,2) happens on the next press. A state-equality rule over one decision never sees this loop; a two-state rule does.

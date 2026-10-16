@@ -267,6 +267,26 @@ describe("leaving the ledger and never clipping",()=>{
   l.observe(ev({type:"tool_result",id:"s1",name:"press",is_error:false,duration_ms:1,text:"ok",frames:[],state_seq:after.seq}));
   expect(l.text()).toBeNull();
  });
+ it("accepts only a sentence that opens with the name as the subject of is/stands at a tile (review round 4)",()=>{
+  for(const s of ["I doubt Professor Birch is at (7,7).","There is no evidence Professor Birch is at (7,7).","It is false that Professor Birch is at (7,7).","Suppose Professor Birch is at (7,7).","I will go to Professor Birch at (4,13)."])expect(locatingClaims(s,"PROF. BIRCH")).toEqual([]);
+  expect(locatingClaims("I moved. The Prof. Birch is at (7,7).","PROF. BIRCH")).toEqual(["The Prof. Birch is at (7,7)."]);
+  expect(locatingClaims("Professor Birch, the professor, is standing at (7,8).","PROF. BIRCH")).toEqual(["Professor Birch, the professor, is standing at (7,8)."]);
+ });
+ it("binds a navigate_to push-back to the last step the walk sent (review round 4)",()=>{
+  const l=new DisprovedBeliefs(ALL_ON);
+  const base={type:"state",...IN_GAME,...LAB,facing:"up",field_controls_locked:false,story:story(0),world_context:{objects:[],triggers:[],dialogue:null}};
+  const before=ev({...base,position:{x:1,y:4}});l.observe(before);
+  l.observe(ev({type:"tool_call",id:"n1",name:"navigate_to",args:{x:2,y:0}}));
+  l.observe(ev({type:"button_press",tool_call_id:"n1",buttons:["RIGHT"],before_state_seq:before.seq}));
+  l.observe(ev({type:"button_press",tool_call_id:"n1",buttons:["UP"]}));
+  l.observe(ev({type:"button_press",tool_call_id:"n1",buttons:["UP"]}));
+  // The walk's last step was UP onto (2,2); the script moved the player LEFT to (1,2), which is closer to the start,
+  // but the walk was not moving RIGHT when it met the script: no entry.
+  l.observe(ev({type:"dialogue_auto_advance",tool_call_id:"n1",tool:"navigate_to",requested:[],sent:[],dropped:[],auto_presses:1,pages:[{state_seq:null,map:"LAB",map_id:[1,4],position:{x:2,y:2},speaker:null,speaker_source:null,text:"Wait!"}],stop:"field_free",detail:"closed",duration_ms:1}));
+  const after=ev({...base,position:{x:1,y:2}});l.observe(after);
+  l.observe(ev({type:"tool_result",id:"n1",name:"navigate_to",is_error:false,duration_ms:1,text:"ok",frames:[],state_seq:after.seq}));
+  expect(l.text()).toBeNull();
+ });
  it("skips modal questions without a question mark (review round 3)",()=>{
   expect(locatingClaims("Can Professor Birch be at (7,7).","PROF. BIRCH")).toEqual([]);
   expect(locatingClaims("Is Professor Birch at (7,7).","PROF. BIRCH")).toEqual([]);

@@ -48,13 +48,13 @@ Never call `chat-thread` tools from this skill or its subagents. Quote every tim
    - Run `git log --oneline A..B` between consecutive pins, so behavior changes outside switches are visible.
 
 4. **Segment table per run.** Use the workbench splits, whose `elapsedMs` excludes operator pauses.
-   - Keep only splits named in `FRONTIER_MILESTONES` and without `screenshotEvidence` (the ranking's splits). Compute each segment as the difference of consecutive kept `elapsedMs` values, and the final segment as the run's `elapsedMs` minus the last kept split. Never use `segmentMs`: it is measured from the previous split of any kind, including optional milestones, so it understates frontier segments.
+   - Keep only splits named in `FRONTIER_MILESTONES` and without `screenshotEvidence` (the ranking's splits). Compute the opening segment as the first kept split's `elapsedMs` (from 0, the run's or save's start), each later segment as the difference of consecutive kept `elapsedMs` values, and the final segment as the run's `elapsedMs` minus the last kept split. If the run's `elapsedMs` is null, leave the final segment unknown. A negative difference (possible next to a derived ≤ split) is shown as 0 and marked approximate. Never use `segmentMs`: it is measured from the previous split of any kind, including optional milestones, so it understates frontier segments.
    - Each split carries its own `turn` and `seq`: cite those.
    - Label provenance three ways: a native milestone (no `derived`); a `derived` split without `screenshotEvidence`, recovered from state events, with no `milestone` event at that seq, whose time is a first-observation upper bound (≤); and a reviewed-screenshot split (`screenshotEvidence` present), which is reported but never ranked or timed. The longest segments are the costliest stalls. Never time segments from raw `t` stamps: they include pauses.
 
 5. **Fan out forensics in parallel.**
    - Write one shared brief at `<scratch>/brief.md`: the snapshot time, the run list, the segment tables and the exact output schema below.
-   - Launch one subagent per 2 runs. Each follows `pokebench-trace-forensics` on its runs' 3 longest segments, plus what went well (fast segments, good recoveries).
+   - Launch one subagent per 2 runs. Each follows `pokebench-trace-forensics` on exactly its assigned runs (this skill already chose them, so the forensics run-selection step is skipped) and their 3 longest segments, plus what went well (fast segments, good recoveries).
    - Launch one more subagent to reconstruct harness history (step 3).
    - Tell every subagent: read-only, stream events, never call `chat-thread` tools, cite run id and seq or turn for every claim.
    - Output schema per run: a markdown card (run id, arm, start kind, furthest milestone, end reason, segment table, forensics classes) and a JSON block with `wins`, `stalls` (segment, minutes, turns, primary class, evidence seqs), `mistakes` (label, occurrences, minutes lost, seqs), `loop_guard` (fires, hits that ended a loop, false fires), `false_messages`, and `hypotheses`.
@@ -79,7 +79,7 @@ Never call `chat-thread` tools from this skill or its subagents. Quote every tim
    - Report grading blind spots to `pokebench-story-milestones`, and harness bugs as **harness bug** with trigger and evidence.
 
 8. **PokeBench review.** Every run analysis gets one. Follow `.claude/skills/pokebench-review/SKILL.md`: four personas as parallel subagents on one shared evidence packet.
-   - Build the packet from this analysis: the ranking with start kinds, the arm table, the switch and pin diffs, the stall cards and the hypotheses. Put it where that skill says (`runs/reviews/<YYYY-MM-DD>-run-analysis-<slug>/evidence.md`). The review's write-up is the report's PokeBench review section, not a separate `runs/reviews/*.html` page, so the operator gets one link.
+   - Use that skill's steps 1–4 and 6. Its step 5 page is replaced by the report section below. The packet holds what that skill's step 2 requires (verbatim `frontier.mjs` output, `/api/experiments` state, readiness) plus, from this analysis: the ranking with start kinds, the arm table, the switch and pin diffs, the stall cards and the hypotheses. Put it where that skill says (`runs/reviews/<YYYY-MM-DD>-run-analysis-<slug>/evidence.md`). The review's write-up is the report's PokeBench review section, not a separate `runs/reviews/*.html` page, so the operator gets one link.
    - The review must answer two questions explicitly:
      1. **Are our harness changes helping or hurting?** Per arm, and per switch where the data allows.
      2. **How much confidence does the top-N arm composition give?** For example, 9 of the top 10 from one arm. Weigh selection effects (top-N picks winners from unequal pools), paired rounds, N per arm, start kinds and pin drift between rounds.
@@ -113,7 +113,8 @@ Operator feedback on a run-analysis report is folded back into this skill. When 
 - Workbench fetched read-only; 8790 never restarted; snapshot time in New York time.
 - Agent frontier named, its movement stated, and its own report section covers configuration, wins and misses.
 - Pool fixed first (cohort id or New York window), with included and excluded counts.
-- Ranking used `FRONTIER_MILESTONES` from the viewer's `frontier.ts`, `recordedRun` eligibility with an agent controller, the start-kind group, then `elapsedMs`, then `id`, from the workbench only.
+- Ranking used `FRONTIER_MILESTONES` from the viewer's `frontier.ts`: furthest milestone first, then the start-kind group, then `elapsedMs`, then `id`, with `recordedRun` eligibility and an agent controller, from the workbench only.
+- Segment tables include the opening segment from 0.
 - Segments recomputed from kept frontier splits, not `segmentMs`; split provenance labelled native, derived (≤) or screenshot.
 - Every run's start kind stated; CLOCK_SET runs flagged and never compared on minutes with boot runs.
 - LIVE runs marked and their tails re-read before reporting.

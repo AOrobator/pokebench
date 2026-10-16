@@ -71,6 +71,7 @@ export const SWITCHABLE_FEATURES = [
   "in-game-naming-readout-v1",
   "no-nickname-guidance-v1",
   "battle-text-auto-advance-v1",
+  "battle-message-waiting-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -219,6 +220,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("in-game-naming-readout-v1", "observation", "IN-GAME NAMING READOUT", "naming-cursor-v1", "Naming screens opened during play (a Pokémon nickname, a box name, a caught Pokémon's name) get the same readout the player-name screen has, read from game RAM: the name being edited, the keyboard page, the cursor column and row with the selected key, and whether input is ready. Off: only the player-name screen before the game starts has it; during play the readout shows no naming lines."),
   on("no-nickname-guidance-v1", "guidance", "NO NICKNAMES", null, "Adds one system-prompt paragraph for a speed run: when the game offers to nickname a Pokémon, answer NO; if already on a Pokémon's nickname screen, do not edit it but press START (cursor to OK) then A, since any nickname is fine and an empty one keeps the Pokémon's own name. Off: no nickname guidance."),
   on("battle-text-auto-advance-v1", "guidance", "BATTLE TEXT AUTO-ADVANCE", "dialogue-auto-advance-v1", "Battle messages advance the way field dialogue does. When a press or navigate_to (or the field auto-advance) leaves the game in a battle that is running its own text or animation, or about to start one, the harness presses B on each battle message that waits for A or B, and the game server holds every other wait until the first emulated frame the battle needs input again (at most 600 frames per wait). It stops at the next decision point: the action menu (FIGHT/BAG/POKéMON/RUN) or move menu, a battle YES/NO question (use the next POKéMON or switch, forget a move for a new one, stop learning a move, nickname a catch) with its highlighted answer, the bag, party, summary or naming screen, or the battle's end, after which field auto-advance takes over (Birch's thanks, a blackout) and its pages are listed too. Buttons left in the model's batch once the battle text starts are not sent and are listed. It shares the 50-press and 90 s caps, and hands back after 3 waits in a row with the battle still busy. The result lists every battle message shown, whole and in order, including the ones that advance on their own, with turn, map and battle turn; get_dialogue finds them too. Each advance is recorded on the dialogue_auto_advance event (battle pages, B presses in battle, the stop). Needs dialogue-auto-advance-v1. Off: field auto-advance stops when a battle starts, and in battle every requested button is sent and the model advances each battle message itself."),
+  on("battle-message-waiting-v1", "observation", "BATTLE MESSAGE WAITING", null, "In a battle with no battle menu open, says what the battle is waiting for, from the battle message window's text printer in RAM. When a message page waits for A or B it says so with the page's whole text: battle message waiting: \"Wild WINGULL fainted!\" — press A or B to continue. While a page is still being written it says battle message printing with the page; while a battle YES/NO box (learn a move, nickname, use next POKéMON) waits it names the box, the cursor and that B answers NO; with the printer idle it says the game is playing animations or a message that closes on its own. With BATTLE DETAILS V2 this replaces the details line's input text; without it, a Battle input: line follows the battle block when a message or YES/NO box is shown. Input-ready and recorded-playback text is unchanged; a finishing battle keeps its text and gains the message clause, e.g. finishing (outcome won) · battle message waiting: \"Got away safely!\" — press A or B to continue. Pages printed while another screen owns the battle (evolution, bag, party) keep the old text. Off: the readout says resolving (no input until the game asks) as before."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",
@@ -273,6 +275,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "full-map-navigation-v1", "counter-talk-v1", "named-warp-destinations-v1", "character-presence-v1",
   "battle-details-v2", "warp-arrival-settle-v1", "displayed-place-names-v1", "battle-triage-guidance-v1",
   "adjacent-tiles-v1", "readout-rules-in-prompt-v1", "connection-edge-tiles-v1", "in-game-naming-readout-v1",
+  "battle-message-waiting-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -328,6 +331,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("in-game-naming-readout-v1"),
     ...when("no-nickname-guidance-v1"),
     ...when("battle-text-auto-advance-v1"),
+    ...when("battle-message-waiting-v1"),
   ];
 }
 

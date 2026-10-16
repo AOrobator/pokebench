@@ -25,12 +25,12 @@ const belowHalf=(hp:number,max:number):boolean=>hp>0&&2*hp<max;
 
 export function lowHpTrainerWarning(state:GameStateSnapshot):LowHpTrainerWarningFacts|null {
  if(!state.started||state.screen!=="overworld"||state.in_battle)return null;
- if(state.party_owner!==undefined&&state.party_owner!=="player")return null;
+ if(state.party_owner!=="player")return null;
  if(state.map_id?.[0]!==ROUTE103[0]||state.map_id[1]!==ROUTE103[1])return null;
  if(state.story?.rival_battle_won!==false)return null;
  const lead=state.party.find(m=>m.is_egg!==true&&m.hp!==0);
  if(lead?.hp==null||lead.max_hp==null||lead.species===null||!belowHalf(lead.hp,lead.max_hp))return null;
- const rival=(state.world_context?.objects??[]).find(o=>o.sprite_kind?.startsWith("RIVAL_MAY_")===true||o.sprite_kind?.startsWith("RIVAL_BRENDAN_")===true);
+ const rival=(state.world_context?.objects??[]).find(o=>o.map_id[0]===ROUTE103[0]&&o.map_id[1]===ROUTE103[1]&&(o.sprite_kind?.startsWith("RIVAL_MAY_")===true||o.sprite_kind?.startsWith("RIVAL_BRENDAN_")===true));
  if(rival===undefined)return null;
  const items=(state.resources?.bag??[]).flatMap(i=>i.name!=null&&HEALING_ITEMS.has(i.name)&&i.quantity>0?[{name:i.name,quantity:i.quantity}]:[]);
  return {species:lead.species,hp:lead.hp,max_hp:lead.max_hp,rival:rival.sprite_kind?.startsWith("RIVAL_MAY_")===true?"MAY":"BRENDAN",x:rival.x,y:rival.y,map_id:ROUTE103,money:state.money,items};

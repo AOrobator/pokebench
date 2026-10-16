@@ -67,3 +67,15 @@ Game grounding (pret/pokeemerald 731ad5bf): Route 103 rival script `data/maps/Ro
 - Synced with main 411e097d (levelup-box-v1): registry re-applied after levelup-box-v1, legacy tests reset to main and re-bumped (guidance 34, guard 14, switchboard rows 75).
 - Fixed the levelup sync merge, which had brought back the 98 worklogs main archived (b0310914): docs/worklogs now matches main except this worklog.
 - Gates on main 8c98cb7c-merged tip: build, lint, test (vitest agent 1653, viewer 909; pytest 2297), coverage (agent 99.09/94.53/98.18, viewer 97.62/91.1/93.63, Python 97.36/93.22/100), verify-vendor, experiments-check (67) all green. Round 2 packet sealed next.
+
+**Round 2** (packet base 45db59c1, head 2e6c11b9, diff sha256 d9a181e8…c3c0).
+- Claude (subagent): VERDICT: LGTM. Non-blocking: B could declare needs story-state-v1; A's description says "last when triage is off" (explorer guidance follows); duplicate stateOf helper; wrapper also wraps context tools; experiments pinned pre-merge.
+- Grok (cursor-grok-4.5-high): VERDICT: LGTM. Non-blocking: same description wording; bag list unbounded by text budget (schema max 186).
+- GPT: Cursor gpt-5.6-sol-xhigh at its usage limit; Codex default model rejected for a ChatGPT account; Codex `-m gpt-5.6-sol` (xhigh): VERDICT: BLOCKING, 5 findings, all accepted:
+  1. predicate allowed a missing party_owner and a rival object whose own map_id is not Route 103 → now requires party_owner === "player" and the object on [0,18]; negative tests added.
+  2. A's activation milestone → NEW_GAME_CREATED (prompt differs from the first request); readiness row updated.
+  3. both incumbents now list every registered switch explicitly, in registry order.
+  4. server explainer loop no longer gains two rows (mapping + file are proven in panels.test).
+  5. new `low-hp-trainer-warning-wire.test.ts`: production playGameTools + real RunRecorder + pinned pi loop against a gateway fixture; the second model request carries the warning, the log holds the event before the augmented tool_result; OFF carries neither. Deletion receipt: dropping the wrapper from playGameTools turns it red; restored green.
+- Gates after the batch: build, lint, test (vitest agent 1654, viewer 909; pytest 2297), coverage (Python 97.36/93.22/100; TS ≥90), experiments-check ok.
+- Holding: coordinator assigned the next merge slot to people-ledger-v1 (10:42 UTC). Next: sync main once (briefing-exits-v1, untaken-exits-v1 and people-ledger-v1 added since), round 3 on all three lanes, land.

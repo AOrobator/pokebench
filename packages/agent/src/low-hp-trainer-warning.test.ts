@@ -88,6 +88,11 @@ describe("condition, from the state alone",()=>{
   expect(lowHpTrainerWarning({...T363,story:null})).toBeNull();
   expect(lowHpTrainerWarning({...T363,map_id:[0,10],location:"OLDALE TOWN"})).toBeNull();
   expect(lowHpTrainerWarning({...T363,party_owner:"tutorial"})).toBeNull();
+  const unowned=parseGameState(Object.fromEntries(Object.entries(T363).filter(([key])=>key!=="party_owner")));
+  expect(unowned.party_owner).toBeUndefined();
+  expect(lowHpTrainerWarning(unowned)).toBeNull();
+  const elsewhere=[{...must(must(T363.world_context).objects[0]),map_id:[0,10] as [number,number]}];
+  expect(lowHpTrainerWarning({...T363,world_context:{...must(T363.world_context),objects:elsewhere}})).toBeNull();
   expect(lowHpTrainerWarning({...T363,screen:"battle"})).toBeNull();
   expect(lowHpTrainerWarning({...T363,started:false})).toBeNull();
  });

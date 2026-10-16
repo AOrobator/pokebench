@@ -4,7 +4,7 @@
  "title": "Trainer heal guidance",
  "changedFeature": "trainer-heal-guidance-v1",
  "hypothesis": "Telling the model that trainer and rival battles cannot be fled, what a blackout costs and to heal first below half HP stops it talking to the rival with a weak lead (run 2026-10-16T04-51-03_qwen36-gpu0_54a7 talked to MAY at 3/21 HP, blacked out and lost the rival goal), so fewer runs black out before RIVAL_BATTLE_WON and more reach it.",
- "activationMilestone": "ROUTE_103",
+ "activationMilestone": "NEW_GAME_CREATED",
  "primaryMilestone": "RIVAL_BATTLE_WON",
  "source": {
   "checkout": "main",
@@ -94,6 +94,9 @@
    "offscreen-objects-v1": false,
    "navigate-first-prompt-v1": false,
    "presence-penalty-v1": false,
+   "disproved-beliefs-v1": false,
+   "same-plan-breaker-v1": false,
+   "levelup-box-v1": false,
    "trainer-heal-guidance-v1": false,
    "low-hp-trainer-warning-v1": false
   }
@@ -111,5 +114,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Prompt-only change, present from the first request; it can only matter once a trainer or the rival is reachable. Uses the finals incumbent, like presence-penalty. Acts on Route 103 (the rival's map) with a weak lead, so it can only change runs that reach ROUTE_103; a checkpoint start on Route 103 at low HP would test it far more cheaply (design with pokebench-experiment-design before queueing). Joins the bundle arm only of bundle-v-control (operator decision 2026-10-16 5:43 AM EDT; the bundle file is edited by the readiness thread). Provisional source.commit is the branch head before merge; repinned to the merge SHA with `just experiment-pin` when it lands."
+ "notes": "Prompt-only change, present from the first request (activation NEW_GAME_CREATED, like battle-triage-guidance); its rule can only change behavior once a trainer or the rival is reachable. Uses the finals incumbent, like presence-penalty. Acts on Route 103 (the rival's map) with a weak lead, so it can only change runs that reach ROUTE_103; a checkpoint start on Route 103 at low HP would test it far more cheaply (design with pokebench-experiment-design before queueing). Joins the bundle arm only of bundle-v-control (operator decision 2026-10-16 5:43 AM EDT; the bundle file is edited by the readiness thread). Provisional source.commit is the branch head before merge; repinned to the merge SHA with `just experiment-pin` when it lands."
 }

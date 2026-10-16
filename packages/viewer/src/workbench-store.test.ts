@@ -211,12 +211,15 @@ describe("durable cohort membership and metadata boundaries", () => {
     archive("bundle-v-control-dryrun-20261015-3bab974", [launch(1, ids[0] ?? ""), outcome(1, ids[0] ?? "", true), launch(2, ids[1] ?? ""), outcome(2, ids[1] ?? "", false)]);
     archive("bundle-v-control-dryrun-20261016-ca37a39", [launch(1, ids[2] ?? ""), outcome(1, ids[2] ?? "", true)]);
     mkdirSync(join(r, "dryruns", "notes"), { recursive: true }); writeFileSync(join(r, "dryruns", "notes", "trials.jsonl"), JSON.stringify({ run: ids[0] }) + "\n");
-    writeFileSync(join(r, "dryruns", "README"), "loose file");
+    writeFileSync(join(r, "dryruns", "README"), "loose file"); mkdirSync(join(r, "dryruns", "empty"));
     const d = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000));
     expect(ids.map(id => d.runs.find(x => x.id === id)?.cohort)).toEqual(["experiment:bundle-v-control-dryrun-20261015-3bab974", "experiment:bundle-v-control-dryrun-20261015-3bab974", "experiment:bundle-v-control-dryrun-20261016-ca37a39"]);
     expect(d.runs.find(x => x.id === ids[0])?.excluded).toBeNull();
     expect(d.runs.find(x => x.id === ids[1])?.excluded).toContain("died mid-run");
     expect(d.problems).toEqual([]);
+    mkdirSync(join(r, "dryruns", "linked")); symlinkSync(join(r, "dryruns", "bundle-v-control-dryrun-20261016-ca37a39", "trials.jsonl"), join(r, "dryruns", "linked", "trials.jsonl"));
+    const linked = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000));
+    expect(linked.problems).toEqual(["Dry run linked: ledger exceeds metadata bounds"]);
   });
   it("lets a live experiment ledger keep a run that an archived dry run also names", async () => {
     const r = root(), id = "2026-10-15T23-47-41_qwen36-gpu1_3f21";

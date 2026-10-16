@@ -134,6 +134,7 @@ async function cohortMembership(root: string): Promise<{ failures: Map<string, s
     } catch (error) { problems.push(`Comparison receipt: ${errorText(error)}`); }
   }
   experimentCohorts(root, failures, membership, problems);
+  archivedDryRuns(root, failures, membership, problems);
   handRunCohorts(root, claimed, reserved, failures, membership, problems);
   return { failures, membership, problems };
 }
@@ -180,6 +181,25 @@ function fixedCohort(text: string, cohort: string, name: string, failures: Map<s
   }
   for (const run of launched) membership.set(run, cohort);
   for (const [run, message] of invalid) failures.set(run, message);
+}
+// A finished dry run's ledger is moved aside to runs/dryruns/<dir>/ before the next dry run of the
+// same id (fixed-cli refuses otherwise). Its trials stay filterable as experiment:<dir>; a run a
+// live ledger already claims keeps that cohort.
+function archivedDryRuns(root: string, failures: Map<string, string>, membership: Map<string, string>, problems: string[]): void {
+  const base = join(root, "dryruns");
+  if (!existsSync(base)) return;
+  for (const entry of readdirSync(base, { withFileTypes: true })) {
+    const path = join(base, entry.name, "trials.jsonl");
+    if (!entry.isDirectory() || !existsSync(path)) continue;
+    try {
+      if (lstatSync(path).isSymbolicLink() || statSync(path).size > MAX_PLAN_BYTES) throw new Error("ledger exceeds metadata bounds");
+      const text = untorn(readFileSync(path, "utf8"));
+      if (!isFixedLedgerText(text)) continue;
+      const found = new Map<string, string>(), invalid = new Map<string, string>();
+      fixedCohort(text, `experiment:${entry.name}`, `dry run ${entry.name}`, invalid, found, problems);
+      for (const [run, cohort] of found) if (!membership.has(run)) { membership.set(run, cohort); const why = invalid.get(run); if (why !== undefined) failures.set(run, why); }
+    } catch (error) { problems.push(`Dry run ${entry.name}: ${errorText(error)}`); }
+  }
 }
 function runOf(row: Record<string, unknown>): string | null {
   const run = row.run ?? row.run_id;

@@ -15,6 +15,7 @@ from pokebench_env.battle_text import WAIT_BOUND_FRAMES, BattleWait
 from pokebench_env.blackout_readout import Whiteout, WhiteoutLatch
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import GameState, MapNames
+from pokebench_env.places import PlaceDirectory
 from pokebench_env.raw_ram import RawRamArchive, raw_reference
 from pokebench_env.readout import features_off_from_env, state_json
 from pokebench_env.rerender import read_state, render
@@ -117,6 +118,16 @@ def install_observation(
     @app.get("/pokebench/state")
     def state() -> dict[str, object]:
         return snapshot()
+
+    # story-destinations-v1 (agent side) reads the game's map table here; it changes nothing the
+    # model sees. Names follow the readout: displayed-place-names-v1 decides which names it shows.
+    directory = PlaceDirectory(read_memory, maps)
+    displayed = "displayed-place-names-v1" not in off
+
+    @app.get("/pokebench/places")
+    def places() -> dict[str, object]:
+        with memory_lock if memory_lock is not None else nullcontext():
+            return {"places": [place.json() for place in directory.places(displayed=displayed)]}
 
     if battle_wait is not None:
         wait = battle_wait

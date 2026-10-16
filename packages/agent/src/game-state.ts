@@ -14,6 +14,8 @@ export interface StateSource {
   battleChoices?(after:number):Promise<Static<typeof BattleJournalSchema>>;
   battleMessages?(after:number,signal?:AbortSignal):Promise<Static<typeof BattleTextJournalSchema>>;
   battleWait?(signal?:AbortSignal):Promise<Static<typeof BattleWaitSchema>>;
+  // story-destinations-v1: the game's map table (GET /pokebench/places), validated by its reader.
+  places?(signal?:AbortSignal):Promise<unknown>;
 }
 
 export function parseGameState(body: unknown): GameStateSnapshot {
@@ -63,6 +65,12 @@ export class StateWatcher implements StateSource {
     const payload:unknown=await response.json();
     if(!Value.Check(BattleWaitSchema,payload))throw new GameStateError("Malformed battle wait");
     return payload;
+  }
+
+  async places(signal?:AbortSignal):Promise<unknown> {
+    const response=await this.fetchFn(`${this.gameServerUrl}/pokebench/places`,{signal:signal===undefined?AbortSignal.timeout(15_000):AbortSignal.any([signal,AbortSignal.timeout(15_000)])});
+    if(!response.ok)throw new GameStateError(`Map table returned HTTP ${String(response.status)}`);
+    return response.json() as Promise<unknown>;
   }
 
   async read(signal?:AbortSignal): Promise<GameStateSnapshot> {

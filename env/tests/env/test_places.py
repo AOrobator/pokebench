@@ -146,7 +146,12 @@ def test_directory_names_maps_as_the_readout_does_and_reads_the_rom_once() -> No
     directory = PlaceDirectory(memory, names)
     shown = directory.places(displayed=True)
     assert shown == (
-        Place((0, 0), "LITTLEROOT TOWN BRENDANS HOUSE 1F", "RAED's HOUSE 1F", Links(((7, 16, (1, 4)),), ())),
+        Place(
+            (0, 0),
+            "LITTLEROOT TOWN BRENDANS HOUSE 1F",
+            "RAED's HOUSE 1F",
+            Links(((7, 16, (1, 4)),), ()),
+        ),
     )
     assert directory.places(displayed=False)[0].display == "LITTLEROOT TOWN BRENDANS HOUSE 1F"
     assert names.asked == 1
@@ -159,9 +164,14 @@ def test_directory_names_maps_as_the_readout_does_and_reads_the_rom_once() -> No
     }
 
 
+class Unnamed(Names):
+    def ids(self) -> tuple[tuple[int, int], ...]:
+        return ((0, 0),)
+
+
 def test_a_map_the_table_cannot_name_is_left_out() -> None:
     memory = one_map(warps=[], connections=[])
-    assert PlaceDirectory(memory, Names({})).places(displayed=False) == ()
+    assert PlaceDirectory(memory, Unnamed({})).places(displayed=False) == ()
 
 
 def test_the_places_route_serves_the_directory() -> None:
@@ -214,7 +224,10 @@ def test_the_real_map_table_has_littleroots_doors_and_birchs_lab() -> None:
     assert places[(1, 4)].links.warps == ((6, 12, (0, 9)), (7, 12, (0, 9)))
 
 
-def test_every_rom_warp_matches_pokeemerald_map_data() -> None:
+VENDOR_DIFFERS = frozenset({"LavaridgeTown_Gym_1F", "LavaridgeTown_Gym_B1F"})
+
+
+def test_every_rom_warp_matches_the_map_data_except_where_the_vendor_copy_differs() -> None:
     maps = MapNames.load(rerender.PORYMAP_MAPS)
     groups = json.loads((rerender.PORYMAP_MAPS / "map_groups.json").read_text())
     ids = {}
@@ -226,7 +239,15 @@ def test_every_rom_warp_matches_pokeemerald_map_data() -> None:
         for folder, map_id in ids.items()
     }
     places = {p.map_id: p for p in PlaceDirectory(rom_reader, maps).places(displayed=False)}
+    # The vendor's copy of the map data moves the Lavaridge gym's warps one row; the ROM agrees
+    # with pret/pokeemerald 731ad5b (LavaridgeTown_Gym_1F warps at (13,18) and (14,18)).
+    assert places[ids["LavaridgeTown_Gym_1F"]].links.warps[:2] == (
+        (13, 18, ids["LavaridgeTown"]),
+        (14, 18, ids["LavaridgeTown"]),
+    )
     for folder, map_id in ids.items():
+        if folder in VENDOR_DIFFERS:
+            continue
         data = json.loads((rerender.PORYMAP_MAPS / folder / "map.json").read_text())
         expected = tuple(
             (w["x"], w["y"], constants[w["dest_map"]])

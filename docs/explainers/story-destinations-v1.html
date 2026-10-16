@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Story Destinations</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --wall:#9b968a; --ground:#eef0e6;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --wall:#55585e; --ground:#1f2420; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --wall:#55585e; --ground:#1f2420; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:760px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+ul{margin:0;padding-left:20px}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navf{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.wall{fill:var(--wall);stroke:var(--rule)}
+.ground{fill:var(--ground);stroke:var(--rule)}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tablewrap{overflow-x:auto}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:640px){.pair{grid-template-columns:1fr}}
+.tag{font:600 .72rem var(--mono);letter-spacing:.06em;text-transform:uppercase}
+.off{color:var(--prior)} .on{color:var(--game)}
+</style>
+</head>
+<body>
+<main>
+<div>
+<div class="eyebrow">Harness switch · observation · <code>story-destinations-v1</code> · needs <code>dialogue-auto-advance-v1</code> · off by default · bundle arm</div>
+<h1>Story destinations</h1>
+</div>
+<p class="lede">When a story character's latest line names a place ("head back to the LAB", "come by my POKéMON LAB later", "He lives right next door"), the readout says which map that is and where its door or edge is, using the game's own map table. It also says where each story character the line names stands: on this map at x,y, out of view, or not on this map. A name the map table does not pin to one map is reported as not resolved, never guessed.</p>
+
+<section>
+<h2>The miss it targets</h2>
+<p>Run <code>2026-10-16T12-42-29_qwen36-gpu0_4caa</code>, turn 272: after the Route 103 battle MAY says "Well, it's time to head back to the LAB." At turn 273 the model thinks "head back to the LAB (Rustboro City)" and walks south toward Oldale. Back in Littleroot it took its own house door for the lab (T469–T504). In <code>2026-10-16T02-23-17_qwen36-gpu1_sh02</code> turn 74, MOM says PROF. BIRCH "lives right next door"; at turn 75 the model sets off for "Professor Birch's Lab". The overnight run analysis counted this misreading of story destinations as the most common mistake (7 runs).</p>
+</section>
+
+<section>
+<h2>Before and after, recorded T273</h2>
+<div class="pair">
+<figure>
+<div class="tag off">Off (what the model got)</div>
+<pre>Story: player name confirmed; … Route 103 rival battle won
+Player: RAED
+Location: ROUTE103
+Position: X=9, Y=13, facing down</pre>
+</figure>
+<figure>
+<div class="tag on">On (same result, replayed)</div>
+<pre>Story: player name confirmed; … Route 103 rival battle won
+Latest story line naming a place or person (turn 272, MAY): "Well, it's time to head back to the LAB."
+- "LAB" = PROF. BIRCH'S POKéMON LAB (map 1/4). Way in: door in LITTLEROOT TOWN (map 0/9) at (7,16).
+- MAY (spoke the line): not on this map.
+Player: RAED
+Location: ROUTE103
+Position: X=9, Y=13, facing down</pre>
+</figure>
+</div>
+<p>Actual output: the T273 test replays the recorded events of 4caa through the switch and asserts these exact lines. Nothing else in the readout changes, and the story line is shown whole.</p>
+</section>
+
+<section>
+<h2>How a line becomes a target</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 740 330" width="740" role="img" aria-label="Pipeline from dialogue pages to the resolved block">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="var(--soft)"/></marker></defs>
+<rect class="box" x="10" y="20" width="170" height="88" rx="8"/>
+<text class="t" x="22" y="42">dialogue pages</text>
+<text class="s" x="22" y="60">recorded by dialogue</text>
+<text class="s" x="22" y="74">auto-advance, each with</text>
+<text class="s" x="22" y="88">speaker and its state</text>
+<rect class="box" x="210" y="20" width="200" height="88" rx="8"/>
+<text class="t" x="222" y="42">story line?</text>
+<text class="s" x="222" y="60">speaker is a story character:</text>
+<text class="s" x="222" y="74">"MAY:" prefix, or a faced sprite</text>
+<text class="s" x="222" y="88">whose graphics is MAY here</text>
+<rect class="box" x="440" y="20" width="290" height="88" rx="8"/>
+<text class="t" x="452" y="42">names something?</text>
+<text class="s" x="452" y="60">a capitalised run ending in a map-name word</text>
+<text class="s" x="452" y="74">(LAB, ROUTE 103, PETALBURG GYM), "He lives",</text>
+<text class="s" x="452" y="88">or a story character. Latest such line wins.</text>
+<path class="arr" d="M180,64H206" marker-end="url(#a)"/>
+<path class="arr" d="M410,64H436" marker-end="url(#a)"/>
+<rect class="game" x="10" y="160" width="250" height="110" rx="8"/>
+<text class="t" x="22" y="182">game's map table (ROM)</text>
+<text class="s" x="22" y="200">GET /pokebench/places: every map's</text>
+<text class="s" x="22" y="214">name as the readout shows it, its warps</text>
+<text class="s" x="22" y="228">and connections, from gMapGroups →</text>
+<text class="s" x="22" y="242">MapHeader → events / connections</text>
+<rect class="navf" x="290" y="160" width="220" height="110" rx="8"/>
+<text class="t" x="302" y="182">exactly one map?</text>
+<text class="s" x="302" y="200">same last word, every word in</text>
+<text class="s" x="302" y="214">the name; keep maps entered from</text>
+<text class="s" x="302" y="228">outside the matches (drops 2F)</text>
+<text class="s" x="302" y="246">0 or 2+ → "not resolved"</text>
+<rect class="game" x="540" y="160" width="190" height="110" rx="8"/>
+<text class="t" x="552" y="182">the block</text>
+<text class="s" x="552" y="200">map, then its way in:</text>
+<text class="s" x="552" y="214">door in MAP at (x,y),</text>
+<text class="s" x="552" y="228">MAP's NORTH edge, or</text>
+<text class="s" x="552" y="242">"You are in it now"</text>
+<path class="arr" d="M585,108V130H385V156" marker-end="url(#a)"/>
+<path class="arr" d="M260,215H286" marker-end="url(#a)"/>
+<path class="arr" d="M510,215H536" marker-end="url(#a)"/>
+<text class="s" x="22" y="300">People: each story character the line names, and its speaker, is placed from the readout's own character-presence line.</text>
+<text class="s" x="22" y="316">Inserted under the Story line of observe, press and navigate_to readouts, in the overworld only.</text>
+</svg>
+</div>
+<figcaption>One claim: every fact in the block comes from recorded dialogue, the ROM's map table or the readout's presence line. The only words the harness knows by heart are the story characters' names (character-presence-v1's table) and "lives".</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>Game grounding: Littleroot's doors</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 520 300" width="520" role="img" aria-label="Littleroot Town with its three doors">
+<rect class="ground" x="20" y="20" width="400" height="260" rx="4"/>
+<text class="s" x="28" y="36">LITTLEROOT TOWN (map 0/9), 20×20 tiles; ROUTE101 off the NORTH edge</text>
+<rect class="wall" x="80" y="80" width="90" height="60"/><text x="86" y="100">RAED's HOUSE</text>
+<rect class="wall" x="300" y="80" width="90" height="60"/><text x="306" y="100">PROF. BIRCH'S</text><text x="306" y="114">HOUSE</text>
+<rect class="wall" x="150" y="200" width="110" height="60"/><text x="156" y="222">PROF. BIRCH'S</text><text x="156" y="236">POKéMON LAB</text>
+<circle class="hot" cx="125" cy="140" r="7" fill="none"/><text class="m" x="104" y="160">(5,8)</text>
+<circle class="hot" cx="345" cy="140" r="7" fill="none"/><text class="m" x="324" y="160">(14,8)</text>
+<circle class="hot" cx="195" cy="200" r="7" fill="none"/><text class="m" x="166" y="194">(7,16)</text>
+<text class="s" x="430" y="104">→ map 1/0</text>
+<text class="s" x="430" y="124">→ map 1/2</text>
+<text class="s" x="430" y="214">→ map 1/4</text>
+</svg>
+</div>
+<figcaption>Sketch, not to scale. The coordinates are the ROM's WarpEvents for map 0/9 (pret/pokeemerald 731ad5b <code>data/maps/LittlerootTown/map.json</code>: (14,8) MAYS_HOUSE_1F, (5,8) BRENDANS_HOUSE_1F, (7,16) PROFESSOR_BIRCHS_LAB), checked by <code>env/tests/env/test_places.py</code> against the operator's ROM. Names are the readout's: with displayed-place-names-v1 the houses take their sign text, so for a male player MAYS_HOUSE is "PROF. BIRCH'S HOUSE". The ROM table is read rather than the vendor's map files because those disagree with the ROM on the Lavaridge gym's warps.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>Rules, from the tests</h2>
+<div class="tablewrap"><table>
+<tr><th>Line</th><th>Block says</th></tr>
+<tr><td>MAY: "Well, it's time to head back to the LAB."</td><td>"LAB" = PROF. BIRCH'S POKéMON LAB (map 1/4). Way in: door in LITTLEROOT TOWN (map 0/9) at (7,16).</td></tr>
+<tr><td>PROF. BIRCH: "…come by my POKéMON LAB later, okay?" (the cutscene then moves the player into the lab)</td><td>"POKéMON LAB" = PROF. BIRCH'S POKéMON LAB (map 1/4). You are in it now.</td></tr>
+<tr><td>MOM: "PROF. BIRCH is his name." / "He lives right next door…"</td><td>"He lives" (He = PROF. BIRCH, the one story character named before it in this conversation) = PROF. BIRCH'S HOUSE 1F (map 1/2). Way in: door in LITTLEROOT TOWN (map 0/9) at (14,8).</td></tr>
+<tr><td>MAY: "The POKéMON found on ROUTE 103 include…" (read in Oldale)</td><td>"ROUTE 103" = ROUTE103 (map 0/18). Way in: this map's NORTH edge; ROUTE110 (map 0/25) WEST edge; door in ALTERING CAVE (map 24/106) at (…).</td></tr>
+<tr><td>"Go to the POKéMON CENTER, then to the GYM."</td><td>"POKéMON CENTER": not resolved: N maps in the game's map table match this name, and the line does not say which. (same for "GYM")</td></tr>
+<tr><td>"WALLY and STEVEN came by." / "He lives right next door."</td><td>"He lives": not resolved: "He" could be WALLY or STEVEN.</td></tr>
+<tr><td>"ROXANNE lives far away."</td><td>"ROXANNE lives": not resolved: no map in the game's map table is named ROXANNE'S HOUSE.</td></tr>
+<tr><td>the map table cannot be read</td><td>"LAB": not resolved: the game's map table could not be read (HTTP 503). People are still placed.</td></tr>
+</table></div>
+<p>A line spoken by someone who is not a story character (May's mother, the nurse), a sign, battle text, or a newer story line that names nothing never replaces the latest one. A call's own line counts in that call's result; a call whose result failed was never shown and does not count.</p>
+</section>
+
+<section>
+<h2>Where people are</h2>
+<div class="tablewrap"><table>
+<tr><th>Presence line entry</th><th>Block says</th></tr>
+<tr><td>MAY at 10,3</td><td>on this map at (10,3)</td></tr>
+<tr><td>MAY at 10,3 (out of view)</td><td>on this map at (10,3), out of view</td></tr>
+<tr><td>MAY at 10,3 (out of view; where the map places this character, it may have moved)</td><td>on this map, out of view; the map places this character at (10,3), it may have moved</td></tr>
+<tr><td>MAY (on this map, out of view)</td><td>on this map, out of view (its tile was not read)</td></tr>
+<tr><td>in "Not on this map"</td><td>not on this map</td></tr>
+<tr><td>no presence line, or not listed</td><td>the readout does not say where</td></tr>
+</table></div>
+</section>
+
+<section>
+<h2>Measured on recorded runs (replay, no model in the loop)</h2>
+<p>Replayed with <code>packages/agent/test-support/measure-story-destinations.ts</code> over 13 runs of 2026-10-16 (02:23 AM to 2:44 PM New York time) against the map table read from the ROM. Six runs had dialogue auto-advance off (control arm), so they record no dialogue pages and the block never shows; the switch needs that switch.</p>
+<div class="tablewrap"><table>
+<tr><th>Measure</th><th>Value</th></tr>
+<tr><td>Bundle runs with dialogue pages</td><td>7 (sh02, 230d, 7ccf, a3c9, 4caa, 8b01, d32e)</td></tr>
+<tr><td>Overworld results with the block, those runs</td><td>3,052 of 3,142 (97%); it first appears at T48–T72, MOM's "Well, this is LITTLEROOT TOWN."</td></tr>
+<tr><td>Distinct story lines shown</td><td>56</td></tr>
+<tr><td>Place resolutions printed (distinct lines)</td><td>26: LITTLEROOT TOWN 7, "He lives" → PROF. BIRCH'S HOUSE 1F 7, "POKéMON LAB" 7, "LAB" 4, "ROUTE 103" 1</td></tr>
+<tr><td>Wrong resolutions</td><td>0 of 26, each checked against pokeemerald's map data</td></tr>
+<tr><td>Not resolved (ambiguous / no match)</td><td>0 in these runs</td></tr>
+<tr><td>People lines</td><td>5,164: not on this map 4,190; on this map at x,y 338; out of view at x,y 234; template tile 250; out of view, tile not read 152</td></tr>
+</table></div>
+</section>
+
+<section>
+<h2>Status</h2>
+<ul>
+<li>Branch <code>claude/story-destination-targets</code>. Default off; registered as the pending experiment <code>experiments/story-destinations.json</code> (not queued).</li>
+<li>Not done: measured runs. Whether the model uses the block is untested; only the operator approves runs.</li>
+<li>Decision probes (<code>just probe-decision</code>) have no game server, so a probe with this switch on says the map table could not be read.</li>
+</ul>
+</section>
+</main>
+</body>
+</html>

@@ -899,3 +899,14 @@ it("links the blocked exit, battle loss recap, briefing battle outcomes and trai
   for(const quote of quotes)expect(html).toContain(quote);
  }
 });
+
+it("links the story destinations card to its tracked explainer, which quotes the recorded T273 block",()=>{
+ const id="story-destinations-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","dialogue-auto-advance-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain(id);
+ expect(html).toContain("- \"LAB\" = PROF. BIRCH'S POKéMON LAB (map 1/4). Way in: door in LITTLEROOT TOWN (map 0/9) at (7,16).");
+});

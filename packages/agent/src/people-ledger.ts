@@ -45,7 +45,7 @@ export function facedObject(s:Snapshot):MapObject|null {
  return counter?at(x+step[0],y+step[1]):null;
 }
 
-interface Presence {readonly here:readonly string[];readonly absent:string;readonly placed:ReadonlyMap<string,string>}
+export interface Presence {readonly here:readonly string[];readonly absent:string;readonly placed:ReadonlyMap<string,string>}
 // character-presence-v1's own line: who it places here (with live positions) and who is not on this map.
 // ", "-separated entries, keeping commas inside parentheses with their entry.
 function entries(text:string):string[] {
@@ -58,7 +58,7 @@ function entries(text:string):string[] {
  out.push(text.slice(start));
  return out;
 }
-function presence(readout:string):Presence|null {
+export function presence(readout:string):Presence|null {
  const match=PRESENCE.exec(readout);
  if(match===null)return null;
  const [,hereText="",absent=""]=match;

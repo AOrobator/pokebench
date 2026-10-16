@@ -2,10 +2,10 @@ import {describe,expect,it} from "vitest";
 import {readFileSync} from "node:fs";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {Type} from "typebox";
-import {PlacesBodySchema,STORY_HEADER,StoryDestinations,placePhrases,withStoryDestinations,type PlacesBody} from "./story-destinations.js";
+import {PlacesBodySchema,STORY_HEADER,StoryDestinations,headsOf,placePhrases,withStoryDestinations,type PlacesBody} from "./story-destinations.js";
 import {playGameTools} from "./play-wiring.js";
 import {checkEvent,type RunEvent} from "./events.js";
-import {parseGameState,type GameStateSnapshot} from "./game-state.js";
+import {StateWatcher,parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {ALL_ON,dependencyProblems,featureInfo,playHarnessFeatures,SWITCHABLE_FEATURES,type FeatureSet} from "./features.js";
 import {parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
@@ -88,7 +88,7 @@ describe("story-destinations-v1 on recorded runs",()=>{
   const daa=CAAA.find(e=>e.type==="dialogue_auto_advance"&&e.turn===107);
   if(daa===undefined)throw Error("no T107 talk");
   replay(story,CAAA,daa.seq);
-  const line=story.latest(daa.type==="dialogue_auto_advance"?daa.tool_call_id:"");
+  const line=story.latest(daa.type==="dialogue_auto_advance"?daa.tool_call_id:"",headsOf(PLACES.places),"RAED");
   expect(line?.speaker).toBe("MAY");
   expect(line?.text).toBe("I… I heard about you, RAED, from my dad, PROF. BIRCH.");
   expect(line?.named).toEqual(["PROF. BIRCH"]);
@@ -102,17 +102,17 @@ function field(map:[number,number],location:string):GameStateSnapshot {
 }
 const page=(text:string,speaker:string|null,source:"name_prefix"|"faced_sprite"|"faced_target"|null="name_prefix",state_seq:number|null=null)=>({state_seq,map:"X",map_id:[0,0] as [number,number],position:null,speaker,speaker_source:source,text});
 let seq=100000;
-function talk(id:string,turn:number,pages:ReturnType<typeof page>[]):RunEvent {
+function talk(id:string,turn:number,pages:readonly object[]):RunEvent {
  return checkEvent({v:1,run:"2026-10-16T12-42-29_qwen36-gpu0_4caa",seq:seq++,t:"2026-10-16T13:07:12.905-04:00",type:"dialogue_auto_advance",turn,tool_call_id:id,tool:"press",requested:["A"],sent:["A"],dropped:[],auto_presses:1,pages,stop:"field_free",detail:"d",duration_ms:1});
 }
 function delivered(id:string,turn:number,is_error=false):RunEvent {
- return checkEvent({v:1,run:"2026-10-16T12-42-29_qwen36-gpu0_4caa",seq:seq++,t:"2026-10-16T13:07:12.905-04:00",type:"tool_result",turn,id,name:"press",is_error,duration_ms:1,text:"pressed A"});
+ return checkEvent({v:1,run:"2026-10-16T12-42-29_qwen36-gpu0_4caa",seq:seq++,t:"2026-10-16T13:07:12.905-04:00",type:"tool_result",turn,id,name:"press",is_error,duration_ms:1,text:"pressed A",frames:[]});
 }
 const READOUT="Screen: overworld\nStory: rival met\nLocation: OLDALE TOWN\nPosition: X=5, Y=5, facing up\nStory characters here (from this map's own object list): MAY at 10,3 (out of view), BRENDAN (on this map, out of view), WALLY at 1,2 (out of view; where the map places this character, it may have moved). Not on this map: PROF. BIRCH, MOM. Sprite kinds such as SCIENTIST_1 or FAT_MAN are not these characters.\nParty (player): none";
 
 describe("story-destinations-v1 rules",()=>{
  const oldale=field([0,10],"OLDALE TOWN");
- function after(pages:ReturnType<typeof page>[]):string|null {
+ function after(pages:readonly object[]):string|null {
   const story=new StoryDestinations();story.observe(talk("c",5,pages));story.observe(delivered("c",5));
   return story.block(oldale,READOUT,"later",PLACES.places);
  }
@@ -128,7 +128,9 @@ describe("story-destinations-v1 rules",()=>{
  it("He lives resolves only when exactly one story character was named before it",()=>{
   expect(after([page("WALLY and STEVEN came by.","MOM"),page("He lives right next door.","MOM")])).toContain("- \"He lives\": not resolved: \"He\" could be WALLY or STEVEN.");
   expect(after([page("He lives right next door.","MOM")])).toContain("- \"He lives\": not resolved: no story character is named before it in this conversation.");
-  expect(after([page("WALLY lives far away.","MOM")])).toContain("- \"WALLY lives\": not resolved: no map in the game's map table is named WALLY'S HOUSE.");
+  expect(after([page("ROXANNE lives far away.","MOM")])).toContain("- \"ROXANNE lives\": not resolved: no map in the game's map table is named ROXANNE'S HOUSE.");
+  // A named owner needs no pronoun: WALLY's house is a map of its own in PETALBURG CITY.
+  expect(after([page("WALLY lives far away.","MOM")])).toContain("- \"WALLY lives\" = PETALBURG CITY WALLYS HOUSE (map 8/0). Way in: door in PETALBURG CITY (map 0/0) at (7,5).");
  });
  it("lists every story character the line names with where the readout places them",()=>{
   const block=after([page("Go see MAY. BRENDAN, WALLY, PROF. BIRCH and STEVEN too.","MOM")]);
@@ -264,5 +266,23 @@ describe("story-destinations-v1 switch",()=>{
   const features=Object.fromEntries(Object.entries({...ALL_ON,"state-only-decisions-v1":false}).filter(([id])=>id!=="story-destinations-v1"));
   const preset=parsePlayPreset({version:2,id:"old",target:null,limits:{maxTurns:1500,maxWallMs:1800000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},features});
   expect(presetFeatures(preset)["story-destinations-v1"]).toBe(false);
+ });
+});
+
+describe("the game server's map table reader",()=>{
+ it("GETs /pokebench/places and refuses a failed response",async()=>{
+  const seen:string[]=[];
+  const ok=new StateWatcher("http://127.0.0.1:9",(input)=>{seen.push(input instanceof Request?input.url:String(input));return Promise.resolve(new Response(JSON.stringify(PLACES)));});
+  expect(await ok.places()).toEqual(PLACES);
+  expect(seen).toEqual(["http://127.0.0.1:9/pokebench/places"]);
+  const down=new StateWatcher("http://127.0.0.1:9",()=>Promise.resolve(new Response("no",{status:503})));
+  await expect(down.places(AbortSignal.timeout(1000))).rejects.toThrow("Map table returned HTTP 503");
+ });
+ it("a malformed map table is said plainly, not used",async()=>{
+  const subs:((e:RunEvent)=>void)[]=[];
+  const result=resultAt(CAAA,272);const state=stateAt(CAAA,result.state_seq ?? -1);
+  const [o]=withStoryDestinations([fakeObserve(state,result.text)],ON,{subscribe:fn=>{subs.push(fn);}},{places:()=>Promise.resolve({places:[{map_id:[0,0]}]})});
+  subs[0]?.(talk("m",272,[page("Head back to the LAB.","MAY")]));subs[0]?.(delivered("m",272));
+  expect(textOf(await o?.execute("o",{}) ?? {content:[],details:undefined})).toContain("- \"LAB\": not resolved: the game's map table could not be read (malformed /pokebench/places).");
  });
 });

@@ -8,7 +8,7 @@ const off = (...ids: (typeof SWITCHABLE_FEATURES)[number][]): FeatureSet => ({ .
 it("describes every switchable and measurement feature exactly once", () => {
   expect(FEATURES.map((f) => f.id).sort()).toEqual([...SWITCHABLE_FEATURES, ...MEASUREMENT_FEATURES].sort());
   expect(FEATURES.filter((f) => f.switchable).map((f) => f.id)).toEqual([...SWITCHABLE_FEATURES]);
-  expect(FEATURES.filter((f) => f.group === "observation")).toHaveLength(35);
+  expect(FEATURES.filter((f) => f.group === "observation")).toHaveLength(36);
   expect(FEATURES.filter((f) => f.group === "guidance")).toHaveLength(35);
   expect(FEATURES.filter((f) => f.group === "guard")).toHaveLength(18);
   for (const f of FEATURES) {
@@ -21,8 +21,8 @@ it("describes every switchable and measurement feature exactly once", () => {
 
 it("retains the legacy information list while adding mandatory raw recording", () => {
   const recorded = [...LEGACY_DEFAULT.slice(0,25), "full-raw-ram-v1", ...LEGACY_DEFAULT.slice(25,26), "birch-rescue-requested-v1", "rival-house-exit-v1", "route-101-after-handoff-v1", "bedroom-exit-v1", "route103-rival-splits-v1", "trainer-opponent-v1", ...LEGACY_DEFAULT.slice(26)];
-  expect(playHarnessFeatures(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","transition-coherence-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","briefing-battle-outcomes-v1","blocked-exit-fact-v1","battle-loss-recap-v1","people-ledger-v1","trainer-heal-guidance-v1","low-hp-trainer-warning-v1","briefing-exits-v1","untaken-exits-v1","levelup-box-v1","disproved-beliefs-v1","same-plan-breaker-v1","script-line-presence-v1","battle-message-waiting-v1","battle-text-auto-advance-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1","in-game-naming-readout-v1","no-nickname-guidance-v1","connection-edge-tiles-v1","explorer-guidance-v1","readout-rules-in-prompt-v1","adjacent-tiles-v1","battle-triage-guidance-v1","warp-arrival-settle-v1","dialogue-context-kept-v1","displayed-place-names-v1","transition-loop-detection-v1","blocked-batch-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1","instruction-ledger-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","named-warp-destinations-v1","milestone-stall-stop-v1","text-only-supervisor-v1","character-presence-v1","navigation-refusal-reasons-v1","transition-press-result-v1","stall-briefing-v1","battle-details-v2","dialogue-auto-advance-v1","dialogue-context-kept-v1","field-dialogue-phase-v1","dialogue-safe-batches-v1","interaction-loop-detection-v1","automatic-running-v1","expanded-menu-battle-information-v1","state-only-decisions-v1","named-interactions-v1","world-destinations-v1","bounded-navigation-v1","ledge-hops-v1","one-way-tiles-v1","counter-talk-v1","walkable-floor-v1","full-map-navigation-v1","grass-cost-navigation-v1","elevation-transitions-v1"), null)).toEqual(recorded);
-  expect(playHarnessFeatures(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","transition-coherence-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","briefing-battle-outcomes-v1","blocked-exit-fact-v1","battle-loss-recap-v1","people-ledger-v1","trainer-heal-guidance-v1","low-hp-trainer-warning-v1","briefing-exits-v1","untaken-exits-v1","levelup-box-v1","disproved-beliefs-v1","same-plan-breaker-v1","script-line-presence-v1","battle-message-waiting-v1","battle-text-auto-advance-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1","in-game-naming-readout-v1","no-nickname-guidance-v1","connection-edge-tiles-v1","explorer-guidance-v1","readout-rules-in-prompt-v1","adjacent-tiles-v1","battle-triage-guidance-v1","warp-arrival-settle-v1","dialogue-context-kept-v1","displayed-place-names-v1","transition-loop-detection-v1","blocked-batch-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1","instruction-ledger-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","named-warp-destinations-v1","milestone-stall-stop-v1","text-only-supervisor-v1","character-presence-v1","navigation-refusal-reasons-v1","transition-press-result-v1","stall-briefing-v1","battle-details-v2","dialogue-auto-advance-v1","dialogue-context-kept-v1","field-dialogue-phase-v1","dialogue-safe-batches-v1","interaction-loop-detection-v1","automatic-running-v1","expanded-menu-battle-information-v1","state-only-decisions-v1","named-interactions-v1","world-destinations-v1","bounded-navigation-v1","ledge-hops-v1","one-way-tiles-v1","counter-talk-v1","walkable-floor-v1","full-map-navigation-v1","grass-cost-navigation-v1","elevation-transitions-v1"), "PLAYER_NAME_CONFIRMED")).toEqual([...recorded.slice(0, 33), "native-target-stop-v1", ...recorded.slice(33)]);
+  expect(playHarnessFeatures(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","transition-coherence-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","briefing-battle-outcomes-v1","blocked-exit-fact-v1","battle-loss-recap-v1","people-ledger-v1","trainer-heal-guidance-v1","low-hp-trainer-warning-v1","briefing-exits-v1","untaken-exits-v1","levelup-box-v1","disproved-beliefs-v1","same-plan-breaker-v1","script-line-presence-v1","battle-message-waiting-v1","battle-text-auto-advance-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1","in-game-naming-readout-v1","no-nickname-guidance-v1","connection-edge-tiles-v1","explorer-guidance-v1","readout-rules-in-prompt-v1","adjacent-tiles-v1","battle-triage-guidance-v1","warp-arrival-settle-v1","dialogue-context-kept-v1","displayed-place-names-v1","transition-loop-detection-v1","blocked-batch-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1","instruction-ledger-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","named-warp-destinations-v1","milestone-stall-stop-v1","text-only-supervisor-v1","character-presence-v1","navigation-refusal-reasons-v1","transition-press-result-v1","stall-briefing-v1","battle-details-v2","dialogue-auto-advance-v1","dialogue-context-kept-v1","field-dialogue-phase-v1","dialogue-safe-batches-v1","interaction-loop-detection-v1","automatic-running-v1","expanded-menu-battle-information-v1","state-only-decisions-v1","named-interactions-v1","world-destinations-v1","bounded-navigation-v1","ledge-hops-v1","one-way-tiles-v1","counter-talk-v1","walkable-floor-v1","full-map-navigation-v1","grass-cost-navigation-v1","elevation-transitions-v1"), null)).toEqual(recorded);
+  expect(playHarnessFeatures(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","transition-coherence-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","briefing-battle-outcomes-v1","blocked-exit-fact-v1","battle-loss-recap-v1","people-ledger-v1","trainer-heal-guidance-v1","low-hp-trainer-warning-v1","briefing-exits-v1","untaken-exits-v1","levelup-box-v1","disproved-beliefs-v1","same-plan-breaker-v1","script-line-presence-v1","battle-message-waiting-v1","battle-text-auto-advance-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1","in-game-naming-readout-v1","no-nickname-guidance-v1","connection-edge-tiles-v1","explorer-guidance-v1","readout-rules-in-prompt-v1","adjacent-tiles-v1","battle-triage-guidance-v1","warp-arrival-settle-v1","dialogue-context-kept-v1","displayed-place-names-v1","transition-loop-detection-v1","blocked-batch-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1","instruction-ledger-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","named-warp-destinations-v1","milestone-stall-stop-v1","text-only-supervisor-v1","character-presence-v1","navigation-refusal-reasons-v1","transition-press-result-v1","stall-briefing-v1","battle-details-v2","dialogue-auto-advance-v1","dialogue-context-kept-v1","field-dialogue-phase-v1","dialogue-safe-batches-v1","interaction-loop-detection-v1","automatic-running-v1","expanded-menu-battle-information-v1","state-only-decisions-v1","named-interactions-v1","world-destinations-v1","bounded-navigation-v1","ledge-hops-v1","one-way-tiles-v1","counter-talk-v1","walkable-floor-v1","full-map-navigation-v1","grass-cost-navigation-v1","elevation-transitions-v1"), "PLAYER_NAME_CONFIRMED")).toEqual([...recorded.slice(0, 33), "native-target-stop-v1", ...recorded.slice(33)]);
 });
 
 it("drops exactly the switched-off id and round-trips through recorded features", () => {
@@ -35,9 +35,9 @@ it("drops exactly the switched-off id and round-trips through recorded features"
 
 it("reports every unmet dependency", () => {
   expect(dependencyProblems(ALL_ON)).toEqual([]);
-  expect(dependencyProblems(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","live-map-v1"))).toEqual(["world-coordinate-grid-v1 needs live-map-v1", "bounded-navigation-v1 needs live-map-v1", "warp-activation-guidance-v1 needs live-map-v1", "ledge-hops-v1 needs live-map-v1", "one-way-tiles-v1 needs live-map-v1", "counter-talk-v1 needs live-map-v1", "named-warp-destinations-v1 needs live-map-v1", "adjacent-tiles-v1 needs live-map-v1"]);
-  expect(dependencyProblems(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","objective-tracking-v1"))).toEqual(["repeat-attempt-guard-v1 needs objective-tracking-v1", "native-objective-completion-v1 needs objective-tracking-v1"]);
-  expect(dependencyProblems(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","objective-tracking-v1", "repeat-attempt-guard-v1", "native-objective-completion-v1"))).toEqual([]);
+  expect(dependencyProblems(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","live-map-v1"))).toEqual(["world-coordinate-grid-v1 needs live-map-v1", "bounded-navigation-v1 needs live-map-v1", "warp-activation-guidance-v1 needs live-map-v1", "ledge-hops-v1 needs live-map-v1", "one-way-tiles-v1 needs live-map-v1", "counter-talk-v1 needs live-map-v1", "named-warp-destinations-v1 needs live-map-v1", "adjacent-tiles-v1 needs live-map-v1"]);
+  expect(dependencyProblems(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","objective-tracking-v1"))).toEqual(["repeat-attempt-guard-v1 needs objective-tracking-v1", "native-objective-completion-v1 needs objective-tracking-v1"]);
+  expect(dependencyProblems(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","objective-tracking-v1", "repeat-attempt-guard-v1", "native-objective-completion-v1"))).toEqual([]);
 });
 
 it("hands the game server only its own observation switches", () => {
@@ -47,21 +47,21 @@ it("hands the game server only its own observation switches", () => {
 });
 
 it("keeps the objective record from outliving the RAM readout", () => {
-  expect(dependencyProblems(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","transition-coherence-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","briefing-battle-outcomes-v1","blocked-exit-fact-v1","battle-loss-recap-v1","people-ledger-v1","trainer-heal-guidance-v1","low-hp-trainer-warning-v1","briefing-exits-v1","untaken-exits-v1","levelup-box-v1","disproved-beliefs-v1","same-plan-breaker-v1","script-line-presence-v1","battle-message-waiting-v1","battle-text-auto-advance-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1","in-game-naming-readout-v1","no-nickname-guidance-v1","connection-edge-tiles-v1","explorer-guidance-v1","readout-rules-in-prompt-v1","adjacent-tiles-v1","battle-triage-guidance-v1","warp-arrival-settle-v1","dialogue-context-kept-v1","displayed-place-names-v1","transition-loop-detection-v1","blocked-batch-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1","instruction-ledger-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","named-warp-destinations-v1","milestone-stall-stop-v1","text-only-supervisor-v1","character-presence-v1","navigation-refusal-reasons-v1","transition-press-result-v1","stall-briefing-v1","battle-details-v2","dialogue-auto-advance-v1","warp-arrival-settle-v1","dialogue-context-kept-v1","displayed-place-names-v1","field-dialogue-phase-v1","dialogue-safe-batches-v1","interaction-loop-detection-v1","automatic-running-v1","expanded-menu-battle-information-v1", "state-only-decisions-v1", "named-interactions-v1", "world-destinations-v1", "bounded-navigation-v1", "ledge-hops-v1", "one-way-tiles-v1","counter-talk-v1","walkable-floor-v1","full-map-navigation-v1","grass-cost-navigation-v1", "ram-state-v1", "live-map-v1", "live-player-position-v1", "world-coordinate-grid-v1", "live-object-sprites-v1", "world-targets-v1", "active-field-message-buffer-v1", "naming-cursor-v1", "story-state-v1", "coordinate-script-conditions-v1", "active-ui-ownership-v1", "press-result-v1", "field-control-lock", "warp-activation-guidance-v1"))).toEqual(["objective-tracking-v1 needs ram-state-v1"]);
+  expect(dependencyProblems(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","transition-coherence-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","briefing-battle-outcomes-v1","blocked-exit-fact-v1","battle-loss-recap-v1","people-ledger-v1","trainer-heal-guidance-v1","low-hp-trainer-warning-v1","briefing-exits-v1","untaken-exits-v1","levelup-box-v1","disproved-beliefs-v1","same-plan-breaker-v1","script-line-presence-v1","battle-message-waiting-v1","battle-text-auto-advance-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1","in-game-naming-readout-v1","no-nickname-guidance-v1","connection-edge-tiles-v1","explorer-guidance-v1","readout-rules-in-prompt-v1","adjacent-tiles-v1","battle-triage-guidance-v1","warp-arrival-settle-v1","dialogue-context-kept-v1","displayed-place-names-v1","transition-loop-detection-v1","blocked-batch-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1","instruction-ledger-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","named-warp-destinations-v1","milestone-stall-stop-v1","text-only-supervisor-v1","character-presence-v1","navigation-refusal-reasons-v1","transition-press-result-v1","stall-briefing-v1","battle-details-v2","dialogue-auto-advance-v1","warp-arrival-settle-v1","dialogue-context-kept-v1","displayed-place-names-v1","field-dialogue-phase-v1","dialogue-safe-batches-v1","interaction-loop-detection-v1","automatic-running-v1","expanded-menu-battle-information-v1", "state-only-decisions-v1", "named-interactions-v1", "world-destinations-v1", "bounded-navigation-v1", "ledge-hops-v1", "one-way-tiles-v1","counter-talk-v1","walkable-floor-v1","full-map-navigation-v1","grass-cost-navigation-v1", "ram-state-v1", "live-map-v1", "live-player-position-v1", "world-coordinate-grid-v1", "live-object-sprites-v1", "world-targets-v1", "active-field-message-buffer-v1", "naming-cursor-v1", "story-state-v1", "coordinate-script-conditions-v1", "active-ui-ownership-v1", "press-result-v1", "field-control-lock", "warp-activation-guidance-v1"))).toEqual(["objective-tracking-v1 needs ram-state-v1"]);
 });
 
 it("records and delivers the independently switchable interaction-name treatment",()=>{
  expect(playHarnessFeatures(ALL_ON,null)).toContain("named-interactions-v1");
- expect(playHarnessFeatures(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","named-interactions-v1"),null)).not.toContain("named-interactions-v1");
+ expect(playHarnessFeatures(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","named-interactions-v1"),null)).not.toContain("named-interactions-v1");
  expect(serverFeatureEnv(off("named-interactions-v1")).POKEBENCH_FEATURES_OFF).toBe("named-interactions-v1");
- expect(dependencyProblems(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","world-targets-v1"))).toContain("named-interactions-v1 needs world-targets-v1");
+ expect(dependencyProblems(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","world-targets-v1"))).toContain("named-interactions-v1 needs world-targets-v1");
 });
 
 it("registers whole-map navigation as a navigation-dependent server treatment recorded last",()=>{
  expect(featureInfo("full-map-navigation-v1")).toMatchObject({group:"guidance",needs:"bounded-navigation-v1",switchable:true});
- expect(playHarnessFeatures(ALL_ON,null).at(-55)).toBe("full-map-navigation-v1");
+ expect(playHarnessFeatures(ALL_ON,null).at(-56)).toBe("full-map-navigation-v1");
  expect(serverFeatureEnv(off("full-map-navigation-v1")).POKEBENCH_FEATURES_OFF).toBe("full-map-navigation-v1");
- expect(dependencyProblems(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","bounded-navigation-v1"))).toContain("full-map-navigation-v1 needs bounded-navigation-v1");
+ expect(dependencyProblems(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","bounded-navigation-v1"))).toContain("full-map-navigation-v1 needs bounded-navigation-v1");
 });
 
 it("records ledge hops as a server-side map treatment that needs the live map",()=>{
@@ -81,9 +81,9 @@ it("records one-way tiles as a server-side map treatment that needs the live map
 it("registers the elevation transitions switch as a planner-only guidance feature",()=>{
  expect(featureInfo("elevation-transitions-v1")).toMatchObject({group:"guidance",needs:null,switchable:true});
  expect(featureInfo("elevation-transitions-v1").description).toMatch(/stairs/);
- expect(playHarnessFeatures(ALL_ON,null).at(-53)).toBe("elevation-transitions-v1");
+ expect(playHarnessFeatures(ALL_ON,null).at(-54)).toBe("elevation-transitions-v1");
  expect(serverFeatureEnv(off("elevation-transitions-v1")).POKEBENCH_FEATURES_OFF).toBe("");
- expect(dependencyProblems(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","bounded-navigation-v1","full-map-navigation-v1","grass-cost-navigation-v1","navigation-refusal-reasons-v1","navigate-first-prompt-v1"))).toEqual([]);
+ expect(dependencyProblems(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","bounded-navigation-v1","full-map-navigation-v1","grass-cost-navigation-v1","navigation-refusal-reasons-v1","navigate-first-prompt-v1"))).toEqual([]);
 });
 
 it("records counter talk as a server-side map treatment that needs the live map",()=>{
@@ -99,26 +99,26 @@ it("records walkable floor as an agent-side navigate_to treatment that drafts ca
  expect(playHarnessFeatures(ALL_ON,null)).toContain("walkable-floor-v1");
  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("");
  expect(serverFeatureEnv(off("walkable-floor-v1")).POKEBENCH_FEATURES_OFF).toBe("");
- expect(dependencyProblems(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","bounded-navigation-v1")).join()).not.toContain("walkable-floor-v1");
+ expect(dependencyProblems(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","bounded-navigation-v1")).join()).not.toContain("walkable-floor-v1");
 });
 
 it("records grass cost as an agent-side planner treatment that needs bounded navigation",()=>{
  expect(featureInfo("grass-cost-navigation-v1")).toMatchObject({group:"guidance",needs:"bounded-navigation-v1",switchable:true});
- expect(dependencyProblems(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","bounded-navigation-v1"))).toContain("grass-cost-navigation-v1 needs bounded-navigation-v1");
- expect(playHarnessFeatures(ALL_ON,null).at(-54)).toBe("grass-cost-navigation-v1");
+ expect(dependencyProblems(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","bounded-navigation-v1"))).toContain("grass-cost-navigation-v1 needs bounded-navigation-v1");
+ expect(playHarnessFeatures(ALL_ON,null).at(-55)).toBe("grass-cost-navigation-v1");
  expect(serverFeatureEnv(off("grass-cost-navigation-v1")).POKEBENCH_FEATURES_OFF).toBe("");
 });
 
 it("registers game evidence priority as standalone prompt guidance",()=>{
   expect(featureInfo("game-evidence-priority-v1")).toMatchObject({group:"guidance",needs:null,switchable:true});
-  expect(playHarnessFeatures(ALL_ON,null).at(-52)).toBe("game-evidence-priority-v1");
+  expect(playHarnessFeatures(ALL_ON,null).at(-53)).toBe("game-evidence-priority-v1");
   expect(serverFeatureEnv(off("game-evidence-priority-v1")).POKEBENCH_FEATURES_OFF).toBe("");
 });
 
 it("registers fresh retry as an agent-side guard recorded fourth to last",()=>{
  expect(featureInfo("fresh-retry-v1")).toMatchObject({group:"guard",needs:null,switchable:true});
  expect(featureInfo("fresh-retry-v1").description).toContain(" Off: ");
- expect(playHarnessFeatures(ALL_ON,null).at(-46)).toBe("fresh-retry-v1");
+ expect(playHarnessFeatures(ALL_ON,null).at(-47)).toBe("fresh-retry-v1");
  expect(serverFeatureEnv(off("fresh-retry-v1")).POKEBENCH_FEATURES_OFF).toBe("");
 });
 
@@ -128,18 +128,18 @@ it("registers named warp destinations as a default-off server readout treatment 
  expect(featureInfo("named-warp-destinations-v1").description).toMatch(/map 1\/2/);
  expect(featureInfo("named-warp-destinations-v1").description).toContain("LITTLEROOT TOWN (dynamic warp; map 0/9)");
  expect(featureInfo("named-warp-destinations-v1").description).not.toContain("Unknown and dynamic destinations keep their ID");
- expect(playHarnessFeatures(ALL_ON,null).at(-45)).toBe("named-warp-destinations-v1");
+ expect(playHarnessFeatures(ALL_ON,null).at(-46)).toBe("named-warp-destinations-v1");
  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("");
  expect(serverFeatureEnv(off("named-warp-destinations-v1")).POKEBENCH_FEATURES_OFF).toBe("named-warp-destinations-v1");
- expect(dependencyProblems(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","live-map-v1"))).toContain("named-warp-destinations-v1 needs live-map-v1");
+ expect(dependencyProblems(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","live-map-v1"))).toContain("named-warp-destinations-v1 needs live-map-v1");
 });
 
 it("registers the milestone stall stop as a default-off agent-side guard recorded second to last",()=>{
  expect(featureInfo("milestone-stall-stop-v1")).toMatchObject({group:"guard",needs:null,switchable:true});
  expect(featureInfo("milestone-stall-stop-v1").description).toContain(" Off: ");
  expect(featureInfo("milestone-stall-stop-v1").description).toMatch(/10 minutes/);
- expect(playHarnessFeatures(ALL_ON,null).at(-44)).toBe("milestone-stall-stop-v1");
- expect(playHarnessFeatures(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","milestone-stall-stop-v1"),null)).not.toContain("milestone-stall-stop-v1");
+ expect(playHarnessFeatures(ALL_ON,null).at(-45)).toBe("milestone-stall-stop-v1");
+ expect(playHarnessFeatures(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","milestone-stall-stop-v1"),null)).not.toContain("milestone-stall-stop-v1");
  expect(serverFeatureEnv(off("milestone-stall-stop-v1")).POKEBENCH_FEATURES_OFF).toBe("");
 });
 
@@ -167,7 +167,7 @@ it("registers the rival-house exit split as a measured feature recorded with the
 it("registers the text-only supervisor as a default-off guard recorded last",()=>{
  expect(featureInfo("text-only-supervisor-v1")).toMatchObject({group:"guard",needs:null,switchable:true});
  expect(featureInfo("text-only-supervisor-v1").description).toContain(" Off: ");
- expect(playHarnessFeatures(ALL_ON,null).at(-43)).toBe("text-only-supervisor-v1");
+ expect(playHarnessFeatures(ALL_ON,null).at(-44)).toBe("text-only-supervisor-v1");
  expect(playHarnessFeatures({...ALL_ON,"text-only-supervisor-v1":false},null)).not.toContain("text-only-supervisor-v1");
 });
 
@@ -182,20 +182,20 @@ it("registers battle details v2 as a default-off server readout treatment that n
  // The RUN odds formula was dropped (runTries unread, u8 wrap): the card promises only the speed check.
  expect(featureInfo("battle-details-v2").description).not.toMatch(/formula/);
  expect(featureInfo("battle-details-v2").description).toContain("RUN also says whether escape is guaranteed by speed (the odds are not computed).");
- expect(playHarnessFeatures(ALL_ON,null).at(-38)).toBe("battle-details-v2");
- expect(playHarnessFeatures(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","battle-details-v2"),null)).not.toContain("battle-details-v2");
+ expect(playHarnessFeatures(ALL_ON,null).at(-39)).toBe("battle-details-v2");
+ expect(playHarnessFeatures(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","battle-details-v2"),null)).not.toContain("battle-details-v2");
  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("");
  expect(serverFeatureEnv(off("battle-details-v2")).POKEBENCH_FEATURES_OFF).toBe("battle-details-v2");
  expect(SERVER_FEATURES.at(-15)).toBe("battle-details-v2");
- expect(dependencyProblems(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","expanded-menu-battle-information-v1"))).toContain("battle-details-v2 needs expanded-menu-battle-information-v1");
+ expect(dependencyProblems(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","expanded-menu-battle-information-v1"))).toContain("battle-details-v2 needs expanded-menu-battle-information-v1");
 });
 
 it("registers warp arrival settle as a default-off server observation treatment recorded last", () => {
  expect(featureInfo("warp-arrival-settle-v1")).toMatchObject({group:"observation",needs:null,switchable:true});
  expect(featureInfo("warp-arrival-settle-v1").description).toContain(" Off: ");
  expect(featureInfo("warp-arrival-settle-v1").description).toContain("Field controls: locked (door/stairs/warp animation still running; observe again)");
- expect(playHarnessFeatures(ALL_ON,null).at(-36)).toBe("warp-arrival-settle-v1");
- expect(playHarnessFeatures(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","warp-arrival-settle-v1"),null)).not.toContain("warp-arrival-settle-v1");
+ expect(playHarnessFeatures(ALL_ON,null).at(-37)).toBe("warp-arrival-settle-v1");
+ expect(playHarnessFeatures(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","warp-arrival-settle-v1"),null)).not.toContain("warp-arrival-settle-v1");
  expect(SERVER_FEATURES.at(-14)).toBe("warp-arrival-settle-v1");
  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("");
  expect(serverFeatureEnv(off("battle-text-auto-advance-v1","warp-arrival-settle-v1")).POKEBENCH_FEATURES_OFF).toBe("warp-arrival-settle-v1");
@@ -206,10 +206,10 @@ it("registers displayed place names as a default-off server readout treatment, r
  expect(featureInfo("displayed-place-names-v1").description).toContain(" Off: ");
  expect(featureInfo("displayed-place-names-v1").description).toContain("PROF. BIRCH'S HOUSE");
  expect(featureInfo("displayed-place-names-v1").description).toContain("Mays House Sign");
- expect(SWITCHABLE_FEATURES.at(-34)).toBe("displayed-place-names-v1");
- expect(playHarnessFeatures(ALL_ON,null).at(-34)).toBe("displayed-place-names-v1");
- expect(playHarnessFeatures(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","displayed-place-names-v1"),null)).not.toContain("displayed-place-names-v1");
+ expect(SWITCHABLE_FEATURES.at(-35)).toBe("displayed-place-names-v1");
+ expect(playHarnessFeatures(ALL_ON,null).at(-35)).toBe("displayed-place-names-v1");
+ expect(playHarnessFeatures(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","displayed-place-names-v1"),null)).not.toContain("displayed-place-names-v1");
  expect(serverFeatureEnv(off("displayed-place-names-v1")).POKEBENCH_FEATURES_OFF).toBe("displayed-place-names-v1");
  expect(SERVER_FEATURES.at(-13)).toBe("displayed-place-names-v1");
- expect(dependencyProblems(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","ram-state-v1"))).toContain("displayed-place-names-v1 needs ram-state-v1");
+ expect(dependencyProblems(off("readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","ram-state-v1"))).toContain("displayed-place-names-v1 needs ram-state-v1");
 });

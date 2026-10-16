@@ -74,6 +74,9 @@ class MapNames:
     def name(self, map_id: tuple[int, int]) -> str | None:
         return self._names.get(map_id)
 
+    def ids(self) -> tuple[tuple[int, int], ...]:
+        return tuple(self._names)
+
 
 @dataclass(frozen=True)
 class GameState:

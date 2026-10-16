@@ -334,6 +334,22 @@ export class App {
     for (const button of this.doc.querySelectorAll<HTMLButtonElement>("[data-page]")) {
       button.addEventListener("click", () => { this.showPage(button.dataset.page ?? "trainer"); });
     }
+    const pages = [...this.doc.querySelectorAll<HTMLButtonElement>("[data-page]")];
+    const picker = this.ui("page-select") as HTMLSelectElement;
+    for (const button of pages) {
+      const option = this.doc.createElement("option");
+      option.value = button.dataset.page ?? "";
+      option.textContent = button.textContent;
+      option.selected = button.getAttribute("aria-pressed") === "true";
+      picker.append(option);
+    }
+    picker.addEventListener("change", () => { this.showPage(picker.value); });
+    for (const step of this.doc.querySelectorAll<HTMLButtonElement>("[data-page-step]")) {
+      step.addEventListener("click", () => {
+        const at = pages.findIndex((button) => button.dataset.page === picker.value);
+        this.showPage(pages[(at + Number(step.dataset.pageStep) + pages.length) % pages.length]?.dataset.page ?? "trace");
+      });
+    }
     this.ui("feature-search").addEventListener("input", () => { this.filterFeatures(); });
     this.ui("think-body").addEventListener("scroll", () => {
       const body = this.ui("think-body");
@@ -452,6 +468,7 @@ export class App {
     if (name === "queue") void this.experiments?.load();
     for (const panel of this.doc.querySelectorAll<HTMLElement>("[data-nav-page]")) panel.hidden = panel.dataset.navPage !== name;
     for (const button of this.doc.querySelectorAll<HTMLButtonElement>("[data-page]")) button.setAttribute("aria-pressed", String(button.dataset.page === name));
+    (this.ui("page-select") as HTMLSelectElement).value = name;
   }
 
   private async pickBaseline(runId: string): Promise<void> {

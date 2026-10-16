@@ -26,6 +26,7 @@ Tracked, local HTML documentation. Open an explainer directly; no server or exte
 - [Dialogue kept in context v1](dialogue-context-kept-v1.html)
 - [Milestone stall stop v1](milestone-stall-stop-v1.html)
 - [Text-only supervisor v1](text-only-supervisor-v1.html)
+- [Connection edge tiles v1](connection-edge-tiles-v1.html)
 - [Navigation refusal reasons v1](navigation-refusal-reasons-v1.html)
 - [Transition press results v1](transition-press-result-v1.html)
 - [Blocked batch results v1](blocked-batch-result-v1.html)

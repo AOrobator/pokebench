@@ -94,6 +94,7 @@ Never call `chat-thread` tools from this skill or its subagents. Quote every tim
      - Diagrams, all inline SVG: a milestone-vs-minutes frontier chart of the top runs (CLOCK_SET runs drawn distinct and labelled), a stall bar chart of the longest segments, and a switch timeline across rounds per arm.
      - Sections: snapshot and run table, frontier, **agent frontier** (its own section: which run it is and whether it moved; its full configuration: model, pin, arm, preset, sampling and every switch that is on; its segment table; what went well and what did not, with turn evidence), wins, what went wrong, mistakes (common and costly), arm comparison, hypotheses, promotion recommendation (promote all, some or hold, and why), PokeBench review (each persona's verdict, the agreed helping or hurting verdict, the top-N confidence answer, disagreements), what the evidence cannot show.
      - `just pages-check <file>` must print nothing. Run `just pages`, then check `http://127.0.0.1:8791/reports/run-analysis/<YYYY-MM-DD>_<slug>/index.html` returns 200 before linking.
+       - Then follow `.claude/skills/close-the-loop/SKILL.md` for reports: screenshot the page at 1280×900, 1440×900 and 375×812, with `<details>` closed and again opened, open every image, and check for clipped labels, overflowing tables or charts, squeezed columns and horizontal page scroll. Fix and re-check before linking.
      - Never `SendUserFile`, `/mnt/project-files`, `attached_outputs` or claude.ai artifacts for the HTML.
    - **Chat summary**, in this order:
      1. Furthest milestones reached and which runs reached them (start kind, LIVE if so), and the agent frontier: which run, whether it moved, and its configuration in one line.
@@ -125,5 +126,5 @@ Operator feedback on a run-analysis report is folded back into this skill. When 
 - N per arm per round stated; nothing called significant.
 - Promotion recommendation given (all, some or hold), with the switches named and what would change it; nothing promoted.
 - PokeBench review ran with four parallel personas on one packet, and answered helping or hurting and top-N confidence.
-- Report passes `just pages-check`, returns 200 from 8791, and is linked once.
+- Report passes `just pages-check`, returns 200 from 8791, was screenshotted and inspected at 1280, 1440 and 375 with details closed and open, and is linked once.
 - No runs launched, nothing edited outside the report, the review packet and scratch, no `chat-thread` calls.

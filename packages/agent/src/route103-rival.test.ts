@@ -105,3 +105,11 @@ it("keeps every measurement-only split out of the loop guard's native progress",
  expect(names).toContain("RIVAL_BATTLE_WON");
  expect(names).toEqual(MILESTONES.filter(m=>m.kind==="story"&&!MEASUREMENT_ONLY_MILESTONES.has(m.name)).map(m=>m.name));
 });
+
+it("never takes the pre-battle witness from a battle, or from Route 103 when the reader field is missing",()=>{
+ for(const witness of [state("OLDALE TOWN",3,{},{in_battle:true,screen:"battle"}),{...state("ROUTE103",3),route103_rival:undefined}]){
+  const tracker=new StateMilestones({read:()=>Promise.resolve(state("ROUTE103",3))});tracker.initialize("save_state");
+  const seq=[witness,state("OLDALE TOWN",4,{defeated:true,oldale_stage:2}),state("ROUTE101",4,{defeated:true,oldale_stage:2})];
+  expect(seq.flatMap((s,i)=>tracker.observe(s,i+1)).map(m=>m.name)).not.toContain("ROUTE_101_AFTER_RIVAL_BATTLE");
+ }
+});

@@ -306,7 +306,7 @@ it("does not recover leave-home for a save inside home after the rival bedroom v
 it("recovers the return trip after the Route 103 rival from a log that predates the splits, matching the tracker", () => {
   const log = new Log();
   log.add(0, { ...START, start_state: { kind: "save_state", path: "/saves/CLOCK_SET.state", sha1: "a".repeat(40) }, harness_features: ["post-clock-navigation-milestones-v1"] });
-  const witness = log.add(1000, state({ ...quiet, location: "ROUTE103", map_id: [0, 18], story: atLab(3) }));
+  const witness = log.add(1000, state({ ...quiet, location: "OLDALE TOWN", map_id: [0, 10], story: atLab(3) }));
   log.add(2000, state({ ...quiet, location: "ROUTE103", map_id: [0, 18], story: atLab(4) }));
   const oldale = log.add(3000, state({ ...quiet, location: "OLDALE TOWN", map_id: [0, 10], story: atLab(4) }));
   log.add(3500, state({ ...quiet, location: "ROUTE101", map_id: [0, 16], screen: "field_transition", story: atLab(4) }));
@@ -362,4 +362,15 @@ it("does not derive the return trip from a witness that already shows the rival 
   const view = new RunView();
   for (const event of log.events) view.apply(event);
   expect(view.milestones.some(m => m.name.endsWith("AFTER_RIVAL_BATTLE"))).toBe(false);
+});
+it("does not derive the return trip from a legacy Route 103 state, in or after the battle, with no reader field", () => {
+  for (const extra of [{ in_battle: true }, {}]) {
+    const log = new Log();
+    log.add(0, { ...START, start_state: { kind: "save_state", path: "/saves/LATER.state", sha1: "a".repeat(40) }, harness_features: [] });
+    log.add(500, state({ ...quiet, location: "ROUTE103", story: atLab(3), ...extra }));
+    for (const [i, location] of ["OLDALE TOWN", "ROUTE101", "LITTLEROOT TOWN"].entries()) log.add(1000 * (i + 1), state({ ...quiet, location, story: atLab(4) }));
+    const view = new RunView();
+    for (const event of log.events) view.apply(event);
+    expect(view.milestones.some(m => m.name.endsWith("AFTER_RIVAL_BATTLE"))).toBe(false);
+  }
 });

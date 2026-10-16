@@ -31,7 +31,7 @@ export function interfaceOf(s:Screen):OwnedInterface|null {
 }
 
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
-interface Call {readonly name:string;readonly args:Record<string,unknown>;before:State|null;pressed:boolean}
+interface Call {readonly name:string;readonly args:Record<string,unknown>;before:State|null;pressed:boolean;readonly uiBefore:string|null}
 type Advance=Extract<RunEvent,{type:"dialogue_auto_advance"}>;
 type Page=Advance["pages"][number];
 interface Tried {readonly key:string;readonly room:string;readonly label:string;count:number;outcome:string}
@@ -94,7 +94,7 @@ export class SupervisorBriefing {
    return;
   }
   if(event.type==="tool_call"&&(event.name==="press"||event.name==="navigate_to")){
-   this.calls.set(event.id,{name:event.name,args:event.args,before:this.latest,pressed:false});
+   this.calls.set(event.id,{name:event.name,args:event.args,before:this.latest,pressed:false,uiBefore:this.screenNow?.ui.key??null});
    if(this.calls.size>16)this.calls.delete(this.calls.keys().next().value??"");
    return;
   }
@@ -131,7 +131,8 @@ export class SupervisorBriefing {
   if(ui===null){this.screenNow=null;this.uiTried.length=0;return;}
   if(this.screenNow?.ui.key!==ui.key)this.uiTried.length=0;
   this.screenNow={state:after,ui};
-  const buttons=call?.name==="press"?call.args["buttons"]:undefined;
+  // Only presses made inside this interface: the press that opened it belongs to what was open before.
+  const buttons=call?.name==="press"&&call.uiBefore===ui.key?call.args["buttons"]:undefined;
   if(!Array.isArray(buttons)||buttons.length===0)return;
   const label=`press ${buttons.map(String).join(",")}`;
   const outcome=[...(ui.naming&&ui.text!==null?[`text "${ui.text}"`]:[]),...(ui.selected===null?[]:[`highlighted ${ui.selected}`])].join(", ")||`phase ${ui.phase}`;

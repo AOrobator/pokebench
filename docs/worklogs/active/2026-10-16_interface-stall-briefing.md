@@ -26,3 +26,4 @@ Re-land of the readiness thread's F12 (RED 51006938, GREEN 7261cdd6, reverted th
 ## Multi-Model Review Log
 - 2026-10-16 04:38 AM EDT: merged main 65199ab2 (nickname switches landed; clean). Gates: agent 1455 (97.79/94.39/98.1), viewer 824, pytest 2180 (97.16/92.88/100), lint, schema, vendor clean.
 - 2026-10-16 04:50 AM EDT: landing review round 1 (packet runs/reviews/interface-stall-briefing/final.diff): Claude CLI LGTM, Grok LGTM, Codex BLOCKING — the call that answered YES and opened the editor counted as dwell call 1 (first dwell at turn 282 after 29 calls made inside) and its press was listed as an editor press. Accepted; RED: first dwell must come at turn 283.
+- GREEN: StallBriefing starts a dwell at 0 calls on the call that opens the interface; SupervisorBriefing lists only presses made while that interface was already open (Call.uiBefore). First showcase dwell now at turn 283 (30 calls inside); T302 list unchanged (B,RIGHT×4,A ×24).

@@ -24,14 +24,14 @@ it("loads recovered route103_rival rows only from a well-formed side file for th
 });
 
 it("attaches a recovered value only to a state event that lacks the field", () => {
-  const recovered = new Map([[2, { battle_active: true, defeated: false, oldale_stage: 0 }]]);
   const log = new Log();
-  log.add(0, START);
+  const start = log.add(0, START);
   const plain = log.add(1, state({ location: "ROUTE103" }));
   const native = log.add(2, state({ location: "ROUTE103", route103_rival: { battle_active: false, defeated: false, oldale_stage: 0 } }));
-  expect(withRecovered({ ...plain, seq: 2 }, recovered)).toMatchObject({ route103_rival: { battle_active: true } });
+  const recovered = new Map([[plain.seq, { battle_active: true, defeated: false, oldale_stage: 0 }], [native.seq, { battle_active: true, defeated: true, oldale_stage: 2 }]]);
+  expect(withRecovered(plain, recovered)).toMatchObject({ route103_rival: { battle_active: true } });
   expect(withRecovered(native, recovered)).toBe(native);
-  expect(withRecovered(log.events[0] ?? START, recovered)).toBe(log.events[0]);
+  expect(withRecovered(start, recovered)).toBe(start);
 });
 
 const atLab = (lab: number) => ({ name_confirmed: true, intro_stage: 7 as const, rival_stage: 4 as const, birch_lab_stage: lab as 0, petalburg_gym_stage: 0 as const, woods_stage: 0 as const, clock_set: true, rival_battle_won: lab >= 4, pokedex_received: false, running_shoes_received: false, starter_tutorial_complete: false, rustboro_gym_complete: false, stone_badge: false, rock_tomb_received: false });

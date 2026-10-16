@@ -29,9 +29,9 @@ def backfill(run_dir: Path) -> list[dict[str, object]]:
     events = [json.loads(line) for line in lines if line.strip() != ""]
     start = events[0] if events else None
     if not isinstance(start, dict) or start.get("type") != "run_start":
-        raise BackfillError(f"{run_dir.name}: no run_start")
+        raise BackfillError("no run_start")
     if FEATURE in (start.get("harness_features") or []):
-        raise BackfillError(f"{run_dir.name}: records route103_rival natively")
+        raise BackfillError("records route103_rival natively")
     rows: list[dict[str, object]] = []
     for event in events:
         ref = event.get("raw_ram")
@@ -44,7 +44,7 @@ def backfill(run_dir: Path) -> list[dict[str, object]]:
             continue
         path, sha256 = str(ref["path"]), str(ref["sha256"])
         if not re.fullmatch(r"raw-ram/[0-9]{8,}\.json\.gz", path):
-            raise BackfillError(f"{run_dir.name}: unexpected raw RAM path {path}")
+            raise BackfillError(f"unexpected raw RAM path {path}")
         read = load_raw_ram(run_dir / path, sha256)
         save1 = int.from_bytes(read(SAVE_BLOCK_1_POINTER, 4), "little")
         if not 0x02000000 <= save1 <= 0x02040000 - 0x159C:

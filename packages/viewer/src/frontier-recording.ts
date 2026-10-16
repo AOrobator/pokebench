@@ -2,6 +2,8 @@ import { eventEnvelope, type EventEnvelope, type RunEvent } from "@pokebench/age
 import { readVisualPlan, verifiedVisuals, visualEvidenceSignature, type ScreenshotEvidence } from "./frontier-visual.js";
 import { RunView } from "./model.js";
 import { readWorkbenchSnapshot } from "./workbench-reader.js";
+import { loadRecoveredRival, withRecovered } from "./recovered-fields.js";
+import { dirname } from "node:path";
 export interface RecordingSplit { name: string; elapsedMs: number; segmentMs: number; seq: number; turn: number; inputTokens: number; outputTokens: number; derived?: true; screenshotEvidence?: ScreenshotEvidence[] }
 export interface RecordingMeasurement {
   controller: "agent" | "human"; features: string[]; logSha256: string; logBytes?: number; pausedMs: number;
@@ -43,7 +45,9 @@ export function readNativeRecording(path: string, id: string, qualified: (event:
     view.lastMs = ordered(envelope); view.turn = Math.max(view.turn, envelope.turn);
     skipped = { count: (skipped?.count ?? 0) + 1, first: skipped?.first ?? `line ${String(line)}: ${problem}` };
   };
-  const snapshot = readWorkbenchSnapshot(path, event => {
+  const recovered = loadRecoveredRival(dirname(path));
+  const snapshot = readWorkbenchSnapshot(path, logged => {
+    const event = withRecovered(logged, recovered);
     const ms = ordered(event);
     if (event.type === "human_sample" && wantedSamples.has(event.seq)) samples.set(event.seq, event);
     if (["run_start", "run_end", "operator_control", "assistant", "objective_update"].includes(event.type)) {
@@ -53,7 +57,7 @@ export function readNativeRecording(path: string, id: string, qualified: (event:
       if (states.size >= evidenceLimit) throw new Error("Native evidence state bound exceeded; no split graded");
       const nativeState = compact(event); states.set(event.seq, nativeState);
       view.apply(nativeState); view.events.length = 0;
-      const resumedSplit = (name: string): boolean => name === "PLAYER_HOUSE_EXITED_AFTER_CLOCK" || name === "RIVAL_HOUSE_ENTERED" || name === "RIVAL_HOUSE_EXITED" || name === "ROUTE_101_AFTER_HANDOFF" || name === "PLAYER_BEDROOM_EXITED_AFTER_CLOCK" || name === "ROUTE_101_AFTER_RIVAL_BATTLE" || name === "LITTLEROOT_AFTER_RIVAL_BATTLE" || name === "CLOCK_SET" || name === "PLAYER_BEDROOM";
+      const resumedSplit = (name: string): boolean => name === "PLAYER_HOUSE_EXITED_AFTER_CLOCK" || name === "RIVAL_HOUSE_ENTERED" || name === "RIVAL_HOUSE_EXITED" || name === "ROUTE_101_AFTER_HANDOFF" || name === "PLAYER_BEDROOM_EXITED_AFTER_CLOCK" || name === "ROUTE_101_AFTER_RIVAL_BATTLE" || name === "LITTLEROOT_AFTER_RIVAL_BATTLE" || name === "RIVAL_BATTLE_STARTED" || name === "RIVAL_BATTLE_DEFEATED" || name === "RIVAL_OLDALE_SEND_OFF" || name === "CLOCK_SET" || name === "PLAYER_BEDROOM";
       if (view.start !== null && !view.start.harness_features.includes("probe") && (view.start.start_state.kind === "boot" || view.milestones.some(mark => mark.derived === true && resumedSplit(mark.name)))) for (const recovered of view.milestones) {
         if (view.start.start_state.kind !== "boot" && !resumedSplit(recovered.name)) continue;
         if (recovered.derived !== true || recovered.origin !== "observed" || recovered.evidence === undefined || splits.some(s => s.name === recovered.name)) continue;

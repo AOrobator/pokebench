@@ -14,9 +14,9 @@ Affected lists on main: the untaken-exits-v1 readout line; the briefing exit lis
 
 feature-worklog, execute-worklog (Landing on main), feature-switch, feature-explainer, pokebench-game-state, agent-observability, close-the-loop, multi-model-review.
 
-## Decision: bug fix behind a switch
+## Decision: bundle-arm switch (operator change, 2:53 PM New York)
 
-Listing an exit the player cannot use is a false message, so this is a bug fix. It still ships behind a registered switch, `surf-gated-exits-v1`, whose OFF state is today's text byte for byte, and it is meant to be ON in both arms of bundle-v-control (`onInBoth`), like transition-loop-detection-v1 and readout-truth-v1. This branch does not edit `experiments/fixed/bundle-v-control.json`; the bundle owner wires `onInBoth`. Default OFF in presets so recorded presets and the OFF arm keep today's bytes.
+First plan: a bug fix ON in both arms (`onInBoth`), like transition-loop-detection-v1. Changed by the operator at 2:53 PM New York ("we need to make sure that the bundle includes the surf exit fix", relayed by the coordinator): the fix goes in the **bundle arm only**, behind its own default-off switch `surf-gated-exits-v1`, and is registered as a **pending** experiment (not queued). OFF is today's text byte for byte. This branch does not edit `experiments/fixed/bundle-v-control.json`; the bundle owner adds the switch to its `switches` list.
 
 Where the exit goes:
 - Exit lists (untaken exits, briefing unentered / untried / untried elsewhere, supervisor edge bearings): the Surf-gated exit is dropped, as the operator said. When dropping it would make a "none" line false (every exit taken), the line says "every exit you can walk to".
@@ -52,11 +52,11 @@ Read-only RAM decoding and text. No subprocesses, no network, no new endpoints. 
 - [x] COMMIT RED
 
 **M2 — GREEN**
-- [ ] surf_gate.py, readout notes, state JSON, rerender/observation threading
-- [ ] TS schema (`just schema`), surf-gate.ts, consumers, features registry, presets, next-run default, panels explainer map
-- [ ] Gates: `just test`, `just coverage` ≥90, `just lint`, `just build`
-- [ ] COMMIT GREEN
-- [ ] Guard deletion receipts
+- [x] surf_gate.py, readout notes, state JSON, rerender/observation threading
+- [x] TS schema (`just schema`), surf-gate.ts, consumers, features registry, presets, next-run default (panels explainer map lands with the explainer in M3)
+- [x] Gates: `just test` (TS agent 1894, viewer 972, Python 2496 passed, ROM set), `just coverage` (Python lines 97.52 / branches 93.49 / functions 100; agent 98.05 / 94.8 / 98.41; viewer 95.41 / 91.17 / 93.79; surf_gate.py 100%), `just lint` clean (after `just build-mgba` in this worktree; before it mypy failed only on the missing mgba binding), `just build`
+- [x] COMMIT GREEN
+- [x] Guard deletion receipts
 
 **M3 — proof, explainer, pending experiment**
 - [ ] Measure on 4caa: readouts and briefings that change
@@ -75,3 +75,6 @@ Read-only RAM decoding and text. No subprocesses, no network, no new endpoints. 
 
 - 2026-10-16 (New York): worklog created after read-only discovery of the 4caa events, its raw RAM at seq 4767, and pokeemerald 731ad5bf.
 - 2026-10-16 2:48 PM New York: RED. Python: 29 tests fail at import (no `pokebench_env.surf_gate`); TS: suite fails at import (no `./surf-gate.js`). The TS fixture's surf_gate values were produced by the uncommitted GREEN server code from each state's raw RAM (1441 overworld states; ROUTE103 350 states all `warps [(45,6)]`, `connections [EAST]`, `can_surf false`; every other map empty).
+- 2026-10-16 3:05 PM New York: coordinator relayed the operator's change (bundle arm only, default-off switch, pending experiment). Decision section and the registry copy updated; the TS registry test asserts "bundle arm only" and no "both arms".
+- 2026-10-16 3:10 PM New York: GREEN. Existing tests updated only where they count positions or list later switches (`.at(-N)` +1 for the new last switch, later-switch off-lists gain surf-gated-exits-v1, observation count 35 -> 36, server list 38 -> 39, the all-on measurement JSON pops surf_gate like map_grid).
+  Guard receipts: (g1) `surf-gate.ts` without the `features["surf-gated-exits-v1"]` check: 7 of 14 TS tests fail (OFF byte-equality on 4caa readouts and briefings, factory wiring); restored, 14 pass. (g2) `rerender.read_state` with `surf_gate_enabled=False`: 6 of 31 Python tests fail (ON notes, state JSON, surfing); restored, 31 pass.

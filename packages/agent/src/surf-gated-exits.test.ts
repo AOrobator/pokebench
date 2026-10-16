@@ -12,6 +12,7 @@ import {surfBlock} from "./surf-gate.js";
 import {edgeBearings} from "./connection-edges.js";
 import type {GameStateSnapshot} from "./game-state.js";
 import {checkEvent,type RunEvent} from "./events.js";
+import type {LoopKind} from "./loop-detection.js";
 import {IN_GAME} from "../test-support/events.js";
 
 const ID="surf-gated-exits-v1";
@@ -50,10 +51,10 @@ function annotated(features:FeatureSet):Map<number,{recorded:string;text:string}
 
 describe("surf-gated-exits-v1 on run 4caa: ROUTE103 at T198-T248",()=>{
  const off=annotated(RECORDED),on=annotated({...RECORDED,[ID]:true});
- it("OFF reproduces every recorded readout byte for byte, the 49 ROUTE103 lures included",()=>{
+ it("OFF reproduces every recorded readout byte for byte, the 42 ROUTE103 lures included",()=>{
   let lures=0;
   for(const [seq,{recorded,text}] of off){expect(text,String(seq)).toBe(recorded);if(exitLine(text)===RECORDED_LINE)lures++;}
-  expect(lures).toBe(49);
+  expect(lures).toBe(42);
   expect(exitLine(off.get(4770)?.text??"")).toBe(RECORDED_LINE);
  });
  it("ON (no Balance Badge, TORCHIC knows no SURF) drops ALTERING CAVE and the EAST edge: every exit left was walked",()=>{
@@ -80,7 +81,7 @@ function replay(features:FeatureSet):Map<number,{recorded:string;text:string}>{
   if(e.type==="loop_guard"){
    if(e.phase!=="supervisor")continue;
    const stall=STALLS[e.seq];
-   out.set(e.seq,{recorded:e.message,text:stall===undefined?briefing.text(e.kind,e.calls):briefing.stallText(stall,e.calls)});
+   out.set(e.seq,{recorded:e.message,text:stall===undefined?briefing.text(e.kind as LoopKind,e.calls):briefing.stallText(stall,e.calls)});
    continue;
   }
   briefing.observe(e);
@@ -114,9 +115,11 @@ describe("surf-gated-exits-v1 on run 4caa: the recorded supervisor briefings at 
 const warp=(x:number,y:number,destination:[number,number,number])=>({kind:"warp",x,y,elevation:0,activation:"movement",availability:"conditional",facing:null,local_id:null,destination,name:`Warp to map ${String(destination[0])}/${String(destination[1])}`});
 type Gate=NonNullable<GameStateSnapshot["surf_gate"]>;
 const GATED:Gate={can_surf:false,balance_badge:false,party_surf:false,surfing:false,warps:[{x:45,y:6}],connections:["EAST"]};
+const SOUTH={direction:"SOUTH" as const,offset:0,destination:[0,10] as [number,number],destination_name:"OLDALE TOWN",edges:[{x:8,y:21}]};
+const EAST={direction:"EAST" as const,offset:-60,destination:[0,25] as [number,number],destination_name:"ROUTE110",edges:[{x:79,y:7}]};
 const ROUTE={...IN_GAME,started:true,screen:"overworld",location:"ROUTE103",map_id:[0,18],position:{x:10,y:21},facing:"up",
  interaction_targets:[warp(45,6,[24,106,0]),warp(3,3,[2,2,0])],
- topology:{width:80,height:22,connections:[{direction:"SOUTH",offset:0,destination:[0,10],destination_name:"OLDALE TOWN",edges:[{x:8,y:21}]},{direction:"EAST",offset:-60,destination:[0,25],destination_name:"ROUTE110",edges:[{x:79,y:7}]}]}} satisfies GameStateSnapshot;
+ topology:{width:80,height:22,connections:[SOUTH,EAST]}} satisfies GameStateSnapshot;
 
 // One recorded state and the observe result that showed it.
 const shown=(s:GameStateSnapshot):RunEvent[]=>[
@@ -146,7 +149,7 @@ describe("surf-gated-exits-v1 rules",()=>{
  });
  it("says how many it left out only when no other exit is left: none to walk to at all, or every walkable one taken",()=>{
   const features={...ALL_ON,[ID]:true};
-  const island={...ROUTE,interaction_targets:[warp(45,6,[24,106,0])],topology:{...ROUTE.topology,connections:[ROUTE.topology.connections[1]]},surf_gate:GATED} satisfies GameStateSnapshot;
+  const island={...ROUTE,interaction_targets:[warp(45,6,[24,106,0])],topology:{...ROUTE.topology,connections:[EAST]},surf_gate:GATED} satisfies GameStateSnapshot;
   expect(new UntakenExits(features).line(island,"")).toBe("Exits here you have not taken: none you can walk to (every exit listed on this map is across water, and you cannot use Surf yet)");
   expect(new UntakenExits({...features,[ID]:false}).line(island,"")).toBe("Exits here you have not taken: (45,6) -> map 24/106; EAST edge -> map 0/25");
   const nothing={...island,interaction_targets:[],topology:{...ROUTE.topology,connections:[]}} satisfies GameStateSnapshot;
@@ -191,11 +194,12 @@ describe("surf-gated-exits-v1 production wiring",()=>{
 });
 
 describe("surf-gated-exits-v1 registry and presets",()=>{
- it("is a default-off server observation switch recorded last, named a correctness fix for both arms",()=>{
+ it("is a default-off server observation switch recorded last, described as bundle arm only",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:null,switchable:true,title:"SURF-GATED EXITS"});
   const description=featureInfo(ID).description;
   expect(description).toContain(" Off: ");
-  expect(description).toContain("meant to be ON in both arms");
+  expect(description).toContain("bundle arm only");
+  expect(description).not.toContain("both arms");
   const ids=FEATURES.filter(f=>f.switchable).map(f=>f.id);
   expect(ids.at(-1)).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe(ID);

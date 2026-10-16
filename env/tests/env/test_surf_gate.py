@@ -39,9 +39,7 @@ FIXTURE: dict[str, Any] = json.loads(
 )
 CASES = FIXTURE["cases"]
 RECORDED_OFF = [f for f in SERVER_FEATURES if f not in FIXTURE["harness_features"] and f != ID]
-NEITHER = (
-    "Surf needs the Balance Badge and a party Pokémon that knows SURF (you have neither)"
-)
+NEITHER = "Surf needs the Balance Badge and a party Pokémon that knows SURF (you have neither)"
 OFF_EAST = (
     "- EAST -> ROUTE110 (map 0/25), offset -60; walk off the map from any tile from (79,7)"
     " to (79,11): stand on one of these edge tiles and press RIGHT"
@@ -59,7 +57,10 @@ ON_WARP = (
     f" water, and {NEITHER}"
 )
 OFF_DEST = "Warp destination at (45,6): ALTERING CAVE"
-ON_DEST = "Warp destination at (45,6): ALTERING CAVE (not an exit you can use now: across water, needs Surf)"
+ON_DEST = (
+    "Warp destination at (45,6): ALTERING CAVE"
+    " (not an exit you can use now: across water, needs Surf)"
+)
 ROM_START = 0x08000000
 PLAYER_AVATAR = 0x02037590
 
@@ -290,3 +291,25 @@ def test_gate_blocks_only_when_surf_cannot_be_used() -> None:
 def test_note_says_what_is_missing(badge: bool, party: bool, says: str) -> None:
     note = gate(balance_badge=badge, party_surf=party).reason()
     assert note == f"Surf needs the Balance Badge and a party Pokémon that knows SURF {says}"
+
+
+def test_a_ledge_landing_outside_the_map_goes_nowhere() -> None:
+    assert reachable(grid([".J"]), (0, 0), water=False) == frozenset({(0, 0)})
+
+
+def test_reader_skips_dive_and_unreadable_connections_and_needs_a_map() -> None:
+    from test_connection_edges import MAP_GROUPS, connected, open_north_row
+    from test_live_map import Memory, loaded
+
+    from pokebench_env.surf_gate import read_surf_gate
+    from pokebench_env.topology import Connection, Topology
+
+    assert read_surf_gate(Memory().read, (0, 0), (0, 0), None, None, (), ()) is None
+    m = connected(open_north_row(loaded()), 2, 0, (5, 5))
+    m.put(MAP_GROUPS, (0).to_bytes(4, "little"))  # the destination's size cannot be read
+    topology = Topology(
+        5, 5, (Connection("NORTH", 0, (0, 16), "R"), Connection("DIVE", 0, (0, 16), "D"))
+    )
+    gate = read_surf_gate(m.read, (0, 0), (0, 1), None, topology, ("BALANCE",), (mon(57),))
+    assert gate is not None
+    assert (gate.can_surf, gate.warps, gate.connections) == (True, (), ())

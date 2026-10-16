@@ -47,3 +47,18 @@ Condition: free field (overworld, not in battle, field controls unlocked), playe
 ## Multi-Model Review Log
 
 (none yet)
+
+- [x] Gates on b9998d70 (main 4070e250): build, lint, test (vitest agent 1895, viewer 974; pytest 2465), coverage (agent 99.13/94.61/98.29, viewer 97.68/91.17/93.79, Python 97.52/93.55/100; low-hp-trainer-warning.ts 98.67 stmts / 92.04 branches / 100 funcs), verify-vendor, experiments-check (79).
+- [x] Live proof on clean b9998d70, isolated built viewer 127.0.0.1:8794 (startViewer only; stopped after). Two runs made by make-run.mjs (real RunRecorder + pinned pi loop + playGameTools, v1+v2 ON): rival (T363) and woods (T363 moved to PETALBURG WOODS, grunt unbeaten). Woods run in the viewer: timeline errors lane empty (1), Agent Trace SUP 'Story battle warning' row with the paragraph and raw event story_battle_warning seq 5, kind aqua_grunt (2), Harness Config card (3), READ EXPLAINER opened /explainers/low-hp-trainer-warning-v2.html (4 desktop, 5 phone). Receipts in this worktree at `runs/reviews/story-battle-heal/proof/` (gitignored). Digests:
+```
+head b9998d7062ae55e1472b24bf117c8526b1ff9ffd clean=yes
+rival run_start.harness {"commit":"b9998d7062ae55e1472b24bf117c8526b1ff9ffd","dirty":false} events.jsonl 0b3df9f8b5c882d7a8d844b912477b4321f7eb7e85529841fb7ab004eea65186
+woods run_start.harness {"commit":"b9998d7062ae55e1472b24bf117c8526b1ff9ffd","dirty":false} events.jsonl 805af6a1100be392246416e16ab951ad6de2881777a626069448404d7c92ad69
+app/app.js served=7f3ba73f8e01f22bb868636c818470039d52582ba05bcdf1debec5c8f3a00e2c built=7f3ba73f8e01f22bb868636c818470039d52582ba05bcdf1debec5c8f3a00e2c
+app/model.js served=0f4f3e3f7cd6e25c70064534c95b75c5dc58f6dfaa83069657f2b5ac4a9f7ee3 built=0f4f3e3f7cd6e25c70064534c95b75c5dc58f6dfaa83069657f2b5ac4a9f7ee3
+app/trace.js served=5a80bc1689f19dc79daf4db6896fa368ecb0f377d757ea5fc7cde29ffce2b067 built=5a80bc1689f19dc79daf4db6896fa368ecb0f377d757ea5fc7cde29ffce2b067
+app/panels.js served=a0b0f80cb7569bf10ff11b1c30ff46c5e2e16d6360905066092e421d8b9c134c built=a0b0f80cb7569bf10ff11b1c30ff46c5e2e16d6360905066092e421d8b9c134c
+app/timeline.js served=967784b1ff61f46b37399e356b52b797c2115670ed7e97907c1d27900ad1a854 built=967784b1ff61f46b37399e356b52b797c2115670ed7e97907c1d27900ad1a854
+app/main.js served=3f2f343764ef68a1ebc9daf52d611383203b8094e98245202f554ef487a34c9d built=3f2f343764ef68a1ebc9daf52d611383203b8094e98245202f554ef487a34c9d
+explainers/low-hp-trainer-warning-v2.html served=3f1a80a72241d9b8dd21279e4597609ec451e55e7a26119aa0fb52114717858b tracked=3f1a80a72241d9b8dd21279e4597609ec451e55e7a26119aa0fb52114717858b
+```

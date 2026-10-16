@@ -49,3 +49,7 @@ No harness behavior change, so no feature switch.
 **M4: review and land**
 - [ ] Claude, Grok and GPT LGTM on one frozen packet; merge slot from the coordinator (not :40–:55); ff-only
 - [ ] `just trainer-card-art` into the main checkout's runs/; restart through the coordinator; live check
+- Review round 1 (packet cfc48c9f, base cefacbf1, head 518228f8): Claude LGTM, Grok LGTM, GPT (Codex gpt-5.6-sol; Cursor GPT out of usage until 10/17) BLOCKING:
+  - (1) The art swap was not atomic. Fixed: `trainer-card-v1` is now a symlink switched with one `os.replace`; the old build is removed only afterwards, and a failed switch leaves the old art served. Publish tests are in env/tests/tooling/test_trainer_card_publish.py.
+  - (2) The click-through proof was incomplete. Done: round 2 of the receipt covers ready state and frame source, keyboard, the polling cycle, the comparisons round trip, console and phone. It found and fixed two more issues, each with a test that fails on the old code: the whole row redrawing on one card's change (now per card), and focus lost after Enter.
+  - Hardening taken: party slots with level 0 are dropped (Claude H1); the recipe runs in the pinned env via `uv run --project env` (Grok H1); a failed workbench poll keeps the cards (test).

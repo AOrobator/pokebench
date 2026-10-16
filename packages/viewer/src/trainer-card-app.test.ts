@@ -47,8 +47,9 @@ function cohortRun(): RunEvent[] {
   return fullRun().events.slice(0, 10).map((event) => (event.type === "run_start" ? { ...event, evaluation: { preset_id: "bundle-v-control", target: null, failure_limit: 3, flags: FLAGS, experiment: { id: EXP, arm: "bundle", trial: 2, of: 4 } } } : event));
 }
 
+let workbenchDown = false;
 async function mount(width: number, options: { art?: boolean; fresh?: boolean; glyphs?: boolean } = {}): Promise<{ app: App; streams: FakeStream[]; drawn: number[] }> {
-  nowMs = BASE_MS + 3_500; setWidth(width); fetched.length = 0;
+  nowMs = BASE_MS + 3_500; setWidth(width); fetched.length = 0; workbenchDown = false;
   document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
   const streams: FakeStream[] = [], drawn: number[] = [];
   const workbench = { version: 1, at: nowMs, milestones: [], problems: [], runs: [wbRun(LIVE_ID, "bundle", options.fresh === true ? 2_790_000 : 1_000_000, 2_800_000), wbRun(OTHER_ID, "control", 500_000, 2_700_000)] };
@@ -58,7 +59,7 @@ async function mount(width: number, options: { art?: boolean; fresh?: boolean; g
       if (url === "/api/runs") return Promise.resolve(RUNS);
       if (url === "/sprites/manifest.json") return options.art === false ? Promise.reject(new Error("GET /sprites/manifest.json returned HTTP 404")) : Promise.resolve(MANIFEST);
       if (url === "/sprites/font/glyphs.json") return Promise.resolve(FONT);
-      if (url === "/api/workbench") return Promise.resolve(workbench);
+      if (url === "/api/workbench") return workbenchDown ? Promise.reject(new Error("GET /api/workbench returned HTTP 500")) : Promise.resolve(workbench);
       if (url === "/api/features") return Promise.resolve({ features: [], milestones: [] });
       if (url === "/api/next-run") return Promise.resolve({ draft: { model: "", thinking: "medium", maxTurns: 300, maxWallMs: 1_800_000, failureLimit: 3, maxTokens: 4096, target: null, features: {} }, queue: { state: "idle" } });
       if (url === "/api/models") return Promise.resolve({ models: [] });
@@ -99,6 +100,36 @@ describe("trainer cards in the viewer", () => {
     const { app } = await mount(1280);
     await app.refreshRuns();
     expect(ui("live-runs").hidden).toBe(true); expect(ui("run-cards").hidden).toBe(false);
+  });
+
+  it("keeps the last cards, unchanged, when a workbench poll fails, and carries on with the next one", async () => {
+    const { app } = await mount(1280);
+    const before = card(ui("run-cards"), LIVE_ID);
+    workbenchDown = true; await app.pollCards(); app.tick(0);
+    expect(card(ui("run-cards"), LIVE_ID)).toBe(before); expect(ui("run-cards").hidden).toBe(false);
+    workbenchDown = false; await app.pollCards(); app.tick(0);
+    expect(card(ui("run-cards"), LIVE_ID)).toBe(before);
+  });
+
+  it("redraws only the card that changed when a poll brings new data", async () => {
+    const { app } = await mount(1280, { fresh: true });
+    const mine = card(ui("run-cards"), LIVE_ID), other = card(ui("run-cards"), OTHER_ID);
+    expect(mine.classList.contains("tc-new")).toBe(true);
+    await app.pollCards(); app.tick(0);
+    expect(card(ui("run-cards"), LIVE_ID)).toBe(mine); expect(card(ui("run-cards"), OTHER_ID)).toBe(other);
+    nowMs += 40_000; app.tick(0);
+    expect(card(ui("run-cards"), LIVE_ID)).not.toBe(mine); expect(card(ui("run-cards"), LIVE_ID).classList.contains("tc-new")).toBe(false);
+    expect(card(ui("run-cards"), OTHER_ID)).toBe(other);
+    expect(ui("run-cards").querySelectorAll(".tc")).toHaveLength(2);
+  });
+
+  it("keeps keyboard focus on a card that is redrawn after Enter watches it", async () => {
+    await mount(1280);
+    const other = card(ui("run-cards"), OTHER_ID);
+    other.focus(); other.click();
+    const redrawn = card(ui("run-cards"), OTHER_ID);
+    expect(redrawn).not.toBe(other); expect(redrawn.getAttribute("aria-pressed")).toBe("true");
+    expect(document.activeElement).toBe(redrawn);
   });
 
   it("clicking a card watches that run", async () => {

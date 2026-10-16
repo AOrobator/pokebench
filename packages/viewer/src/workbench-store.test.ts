@@ -485,6 +485,13 @@ describe("trainer card data", () => {
     expect(d.runs.find(x => x.id === "bare")?.card).toBeNull();
     expect(d.runs.find(x => x.id === "old")?.card).toEqual({ name: "MAY", location: "LITTLEROOT TOWN", party: [{ speciesId: null, level: 5, egg: false }] });
   });
+  it("leaves out a party slot the readout gives level 0, so one odd state cannot fail the whole snapshot", async () => {
+    const r = root(), log = named();
+    log.add(5000, state({ party: [{ species: "TORCHIC", level: 0, hp: 0, max_hp: 0, species_id: 280, is_egg: false }, { species: "TORCHIC", level: 6, hp: 20, max_hp: 20, species_id: 280, is_egg: false }] }));
+    write(r, "zero", log);
+    const d = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(true), 2000000000000));
+    expect(d.runs[0]?.card?.party).toEqual([{ speciesId: 280, level: 6, egg: false }]);
+  });
   it("rejects a malformed card at the browser boundary", async () => {
     const r = root(); write(r, "card", named()); const d = await workbenchSnapshot(r, () => Promise.resolve(true), 42);
     const run = d.runs[0]; if (run === undefined) throw new Error("missing fixture");

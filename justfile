@@ -39,7 +39,7 @@ verify-rom:
 # ($POKEEMERALD), every asset verified against $POKEBENCH_ROM. ROM-derived: output stays under runs/.
 [positional-arguments]
 trainer-card-art out="runs/sprites/trainer-card-v1":
-    python3 scripts/trainer-card/build_art.py "$1"
+    uv run --project env python scripts/trainer-card/build_art.py "$1"
 
 verify-vendor:
     cd env && uv run python -c 'from pokebench_env.launcher import VENDOR_DIR; from pokebench_env.vendor import check_vendor; check_vendor(VENDOR_DIR); print("vendor OK:", VENDOR_DIR)'

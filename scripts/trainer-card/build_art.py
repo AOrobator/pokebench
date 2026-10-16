@@ -615,6 +615,28 @@ def build(out: Path, root: Path, rom_path: Path) -> int:
     return len(icons)
 
 
+def publish(out: Path, built: Path) -> None:
+    """Serve `built` at `out` in one atomic step.
+
+    `out` is a symlink to the current build directory beside it. A new build is switched in
+    with a single rename of a fresh link over `out`, so readers see the old art or the new
+    art, never a missing or half-built directory; the previous build is deleted only after
+    the switch."""
+    if out.exists() and not out.is_symlink():
+        raise OSError(f"{out} is a directory, not a link to a build; remove it once and rerun")
+    previous = out.resolve() if out.is_symlink() else None
+    link = out.with_name(f".{out.name}.link-{os.getpid()}")
+    link.unlink(missing_ok=True)
+    link.symlink_to(built.name)
+    try:
+        os.replace(link, out)
+    except BaseException:
+        link.unlink(missing_ok=True)
+        raise
+    if previous is not None and previous != built.resolve() and previous.parent == built.parent:
+        shutil.rmtree(previous, ignore_errors=True)
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -632,7 +654,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     out: Path = args.out.expanduser().absolute()
     out.parent.mkdir(parents=True, exist_ok=True)
-    tmp = Path(tempfile.mkdtemp(prefix=f".{out.name}.tmp-", dir=out.parent))
+    tmp = Path(tempfile.mkdtemp(prefix=f".{out.name}.build-", dir=out.parent))
     try:
         n_icons = build(tmp, args.pokeemerald.expanduser(), args.rom.expanduser())
     except (VerifyError, OSError) as e:
@@ -642,11 +664,12 @@ def main(argv: list[str] | None = None) -> int:
     except BaseException:
         shutil.rmtree(tmp, ignore_errors=True)
         raise
-    old = out.with_name(f".{out.name}.old-{os.getpid()}")
-    if out.exists():
-        out.rename(old)
-    tmp.rename(out)
-    shutil.rmtree(old, ignore_errors=True)
+    try:
+        publish(out, tmp)
+    except OSError as e:
+        shutil.rmtree(tmp, ignore_errors=True)
+        print(f"build_art: FAILED, previous art left as it was: {e}", file=sys.stderr)
+        return 1
     print(
         f"trainer-card art -> {out}: {len(TIERS)} tiers x 3 cards, {len(TRAINERS)} trainers, "
         f"{n_icons} icons, font; all verified against ROM"

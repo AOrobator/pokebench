@@ -178,6 +178,7 @@ export class App {
   private cardsBusy = false;
   // The cards replace the live-run buttons; the run list refreshes every few seconds and must not bring them back.
   private cardsShown = false;
+  private readonly cardHtml = new WeakMap<Element, string>();
   // Set when the newest run is opened; a later refresh may list a newer one first.
   private following = false;
   private followThinking = true;
@@ -376,6 +377,25 @@ export class App {
       return [{ runId: run.id, title, arm: cohort?.arm ?? null, trial: cohort === undefined ? null : `trial ${String(cohort.trial)}/${String(cohort.of)}`, card: recorded.card ?? null,
         facts: plateFacts(recorded, workbench.at, now), status: run.id === this.runId ? "watching" : recorded.status === "paused" ? "paused" : "live", trainer: trainerFor(title, cohort?.arm ?? "", arms, art.trainers) }];
     });
+  }
+
+  // One card per live run; a card is replaced only when its own markup changes, so the others keep
+  // their animations and stay put under the pointer.
+  private setCards(htmls: readonly string[]): void {
+    const row = this.ui("run-cards"), kept = Array.from(row.children);
+    htmls.forEach((html, i) => {
+      const current = kept[i];
+      if (current !== undefined && this.cardHtml.get(current) === html) return;
+      const holder = this.doc.createElement("div");
+      holder.innerHTML = html;
+      const next = holder.firstElementChild;
+      if (next === null) return;
+      this.cardHtml.set(next, html);
+      const focused = current !== undefined && current === this.doc.activeElement;
+      if (current === undefined) row.append(next); else current.replaceWith(next);
+      if (focused && next instanceof HTMLElement) next.focus();
+    });
+    for (const extra of kept.slice(htmls.length)) extra.remove();
   }
 
   // Paints the game-font text of newly drawn cards and fills each card's clock in place.
@@ -960,7 +980,7 @@ export class App {
     const cards = this.cardInputs(), art = this.art;
     const watched = cards.filter((c) => c.status === "watching"), mini = art === null || cards.length === 0 ? null : [...watched, ...cards.filter((c) => c.status !== "watching")].map((c) => cardHtml(c, art, "mini")).join("");
     this.setHtml("run-sheet-body", sheetHtml({ ...head, time: "" }, startedAt, mini === null ? null : { html: mini, watched: watched.length > 0 }));
-    this.setHtml("run-cards", art === null ? "" : cards.map((c) => cardHtml(c, art, "wide")).join(""));
+    this.setCards(art === null ? [] : cards.map((c) => cardHtml(c, art, "wide")));
     this.cardsShown = mini !== null;
     this.ui("run-cards").hidden = !this.cardsShown;
     this.ui("live-runs").hidden = this.cardsShown || !this.runs.some(isLive);

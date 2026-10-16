@@ -1,6 +1,6 @@
 # Run splits panel shows every recorded milestone
 
-Status: in progress. Viewer-only measurement display, no harness behavior change, so no feature switch.
+Status: merged (40917ddf) and live on the 8790 viewer. Viewer-only measurement display, no harness behavior change, so no feature switch.
 
 ## Problem
 
@@ -22,4 +22,4 @@ The live side panel's SPLITS THIS RUN strip and SPLIT TIMES VS BEST rows render 
   - [x] RED for grok finding: NEXT after deepest checkpoint + name escaping (1 failing, 15 passing)
   - [x] GREEN: NEXT = first frontier checkpoint after the deepest recorded checkpoint. Viewer 793 pass, coverage 95.10/90.45/93.59, lint clean; live log replay still ends OLDALE ✔, next ROUTE 103.
   - Round 2 (5daaef9d): Codex -m gpt-5.6-sol LGTM, no findings; grok LGTM. Accepted: plan line said deepest milestone (fixed to checkpoint); unused `next` return dropped. Deferred lows: no-start-event and present-at-start-only end-of-story strips untested (spec-consistent).
-- [ ] Operator approves local merge
+- [x] Operator approved; merged 40917ddf; `just viewer-main` restarted 8790 at 40917ddf. Browser check: showcase run scrubbed to end shows 25 split chips through OLDALE ✔ and NEXT ROUTE 103. The run ended on its own 1h wall budget at 01:34 (furthest OLDALE_TOWN), after the restart kept it running.

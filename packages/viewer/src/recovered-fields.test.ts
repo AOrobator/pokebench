@@ -104,6 +104,11 @@ it("stops attaching for the run once a changed value disagrees with the state's 
   expect(forgedRun([calmRam, calmRam, wonRam], [[1, 1, false, false], [2, 2, true, false], [3, 3, false, true]])).toEqual([r(false, false, 0), null, null]);
   expect(forgedRun([calmRam, { ...fightRam, inBattle: false }], [[1, 1, false, false], [2, 2, true, false]])).toEqual([r(false, false, 0), null]);
 });
+it("checks every attached value against its own state's snapshot, so a repeated value cannot stand in for a change", () => {
+  // Real won at state 3, but the file repeats "not won" there before claiming the (real) win at 4.
+  expect(forgedRun([calmRam, calmRam, wonRam, wonRam], [[1, 1, false, false], [3, 3, false, false], [4, 4, false, true]])).toEqual([r(false, false, 0), null, null, null]);
+});
+
 it("is not fooled by a decoy row that matches no state, or by rows out of order", () => {
   // The decoy (seq 99) carries a genuine post-win receipt; the later claims would be unchecked repeats.
   expect(forgedRun([calmRam, calmRam, calmRam, wonRam], [[1, 1, false, false], [99, 4, false, true], [2, 2, false, true], [3, 3, false, true]])).toEqual([r(false, false, 0), null, null, null]);
@@ -126,4 +131,19 @@ it("derives exactly what the agent's tracker records for the same states", () =>
   const view = new RunView();
   for (const event of trip().events) view.apply(event);
   expect(view.milestones.filter((m) => m.derived === true && m.name.startsWith("RIVAL_")).map((m) => [m.name, m.evidence])).toEqual(native);
+});
+
+it("checks a recovered value even when a native value sits between attachments", () => {
+  const dir = runDir([header()]);
+  const fight = writeArchive(dir, 1, rivalRam(true, false)), calm = writeArchive(dir, 2, rivalRam(false, false));
+  const log = new Log();
+  log.add(0, START);
+  const first = log.add(1000, state({ location: "ROUTE103", in_battle: true, raw_ram: fight }));
+  const native = log.add(2000, state({ location: "ROUTE103", route103_rival: { battle_active: false, defeated: false, oldale_stage: 0 } }));
+  const forged = log.add(3000, state({ location: "ROUTE103", in_battle: true, raw_ram: calm }));
+  writeFileSync(join(dir, "derived", "route103_rival.jsonl"), [header(), { seq: first.seq, raw_ram: fight.path, sha256: fight.sha256, route103_rival: r(true, false, 0) }, { seq: forged.seq, raw_ram: calm.path, sha256: calm.sha256, route103_rival: r(true, false, 0) }].map((l) => JSON.stringify(l)).join("\n") + "\n");
+  const attach = recoveredAttacher(dir);
+  expect(attach(first)).toMatchObject({ route103_rival: r(true, false, 0) });
+  expect(attach(native)).toBe(native);
+  expect(attach(forged)).toBe(forged);
 });

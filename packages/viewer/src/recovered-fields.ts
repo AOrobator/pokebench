@@ -28,7 +28,6 @@ export function recoveredSignature(runDir: string): string {
   return stat.size > MAX_BYTES ? `:recovered=oversize:${String(stat.size)}:${String(stat.mtimeMs)}` : `:recovered=${createHash("sha256").update(readFileSync(path)).digest("hex")}`;
 }
 
-// An empty map when the file is missing, too large, for another run, or has any malformed row.
 // The values route103_rival.py reads, decoded from one archive in the recorder's format; null when the
 // archive is missing, a symlink, oversized, fails its file or region SHA-256, or has no valid save block.
 const RIVAL_TRAINERS = [520, 523, 526, 529, 532, 535];
@@ -66,6 +65,7 @@ export function decodeArchive(runDir: string, rawRam: string, sha256: string): D
   }
 }
 
+// An empty map when the file is missing, a symlink, too large, for another run, or has any malformed row.
 export function loadRecoveredRival(runDir: string): ReadonlyMap<number, RecoveredEntry> {
   const path = sidePath(runDir);
   const none = new Map<number, RecoveredEntry>();
@@ -90,23 +90,29 @@ export function withRecovered(event: RunEvent, recovered: ReadonlyMap<number, Re
   return { ...event, route103_rival: entry.rival };
 }
 
-// Attaches recovered values in log order. Only a change in the attached value can start a split, so
-// each change is checked against the snapshot of the very state it lands on; the first disagreement
-// stops attaching for the rest of the run. Unchanged values repeat one already checked on an earlier
-// state, so a row that matches no state, or the order of rows in the file, cannot open a gap.
+// Every attached value is checked against the snapshot of the very state it lands on, so no
+// file order, decoy row, repeated value or neighbouring native value can stand in for a check. The
+// first disagreement stops attaching for the rest of the run. Decodes are memoized by archive SHA-256.
+const DECODED = new Map<string, Decoded | null>();
+const DECODED_LIMIT = 50_000;
+function decodedFor(runDir: string, path: string, sha256: string): Decoded | null {
+  const key = `${runDir}\0${path}\0${sha256}`;
+  if (DECODED.has(key)) return DECODED.get(key) ?? null;
+  const decoded = decodeArchive(runDir, path, sha256);
+  if (DECODED.size >= DECODED_LIMIT) DECODED.clear();
+  DECODED.set(key, decoded);
+  return decoded;
+}
 export function recoveredAttacher(runDir: string): (event: RunEvent) => RunEvent {
   const recovered = loadRecoveredRival(runDir);
-  let last: RecoveredRival | null = null, stopped = recovered.size === 0;
+  let stopped = recovered.size === 0;
   return (event) => {
     if (stopped) return event;
     const attached = withRecovered(event, recovered);
-    if (attached === event || attached.type !== "state" || !("started" in attached) || attached.route103_rival == null) return event;
+    if (attached === event || attached.type !== "state" || !("started" in attached) || attached.route103_rival == null || attached.raw_ram === undefined) return event;
     const value = attached.route103_rival;
-    if (last === null || value.battle_active !== last.battle_active || value.defeated !== last.defeated || value.oldale_stage !== last.oldale_stage) {
-      const decoded = attached.raw_ram === undefined ? null : decodeArchive(runDir, attached.raw_ram.path, attached.raw_ram.sha256);
-      if (decoded === null || decoded.defeated !== value.defeated || decoded.oldale_stage !== value.oldale_stage || value.battle_active !== (attached.in_battle && decoded.trainerRival)) { stopped = true; return event; }
-      last = value;
-    }
+    const decoded = decodedFor(runDir, attached.raw_ram.path, attached.raw_ram.sha256);
+    if (decoded === null || decoded.defeated !== value.defeated || decoded.oldale_stage !== value.oldale_stage || value.battle_active !== (attached.in_battle && decoded.trainerRival)) { stopped = true; return event; }
     return attached;
   };
 }

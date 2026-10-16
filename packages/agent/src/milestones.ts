@@ -80,7 +80,7 @@ const onRoute101 = (s: GameStateSnapshot): boolean => settled(s) && at("ROUTE 10
 const sentBack = stage("birch_lab_stage", [4]);
 // A lab state 3 that is in a battle or already shows the rival beaten is not before the battle. Without the
 // reader field the post-battle talk on Route 103 cannot be told apart, so Route 103 never witnesses then.
-const beforeRivalBattle = (s: GameStateSnapshot): boolean => settled(s) && !s.in_battle && stage("birch_lab_stage", [0, 1, 2, 3])(s) === true
+const beforeRivalBattle = (s: GameStateSnapshot): boolean => settled(s) && s.location !== null && !s.in_battle && stage("birch_lab_stage", [0, 1, 2, 3])(s) === true
   && (s.route103_rival == null ? at("ROUTE 103")(s) === false : !s.route103_rival.battle_active && !s.route103_rival.defeated);
 const rivalField = (field: "battle_active" | "defeated") => (s: GameStateSnapshot): boolean | null =>
   savedWorld(s) && s.route103_rival != null ? s.route103_rival[field] : null;

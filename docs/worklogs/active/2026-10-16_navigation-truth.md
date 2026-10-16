@@ -78,6 +78,8 @@ Report branch, frozen head, packet sha256, verdicts, gates, switch ids and inten
 
 - 2026-10-16: merged main 66866eb8 (transition-coherence-v1, battle-start journal). Registry reapplied after transition-coherence-v1; position tests re-bumped (pushback slice to -6,-4 by hand). Removed a duplicate FEATURE_EXPLAINERS pair for the two switches in panels.ts left by the 6603d64f merge (the auto-merged tail entries plus the reapplied ones; same values, so behavior was unchanged). No overlap with navigation.ts, dialogue-auto-advance.ts or loop-detection.ts. Gates (ROM set): agent 1913, viewer 933, pytest 2372 passed; lint, build, verify-vendor, pages-check, experiments-check OK; coverage agent 99.15/94.57/98.31, viewer 97.63/91.09/93.68, python 97.42/93.35/100 (lines/branches/functions).
 
+- 2026-10-16: merged main 53461a49 (Route 103 review notes: milestones.ts order, route103 feature copy), clean. Gates: agent 1914, viewer 933, pytest 2372 passed (one run had a timing failure in env/tests/env/test_warp_arrival_settle.py, env untouched by this branch; passed 5/5 reruns and the full coverage rerun); lint, build, verify-vendor, experiments-check OK; coverage agent 99.15/94.57/98.31, viewer 97.63/91.09/93.68, python 97.42/93.35/100.
+
 ## Principles Adherence (rounds 1-2; round 2 packet base main be428cdb)
 
 | ID | Score | Evidence |

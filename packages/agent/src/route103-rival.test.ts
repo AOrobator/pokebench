@@ -114,3 +114,10 @@ it("never takes the pre-battle witness from a battle, or from Route 103 when the
   expect(seq.flatMap((s,i)=>tracker.observe(s,i+1)).map(m=>m.name)).not.toContain("ROUTE_101_AFTER_RIVAL_BATTLE");
  }
 });
+
+it("never takes the pre-battle witness from a state with no location, like the viewer",()=>{
+ const tracker=new StateMilestones({read:()=>Promise.resolve(state("ROUTE103",3))});tracker.initialize("save_state");
+ const nowhere={...state("OLDALE TOWN",3),location:null};
+ const seq=[nowhere,state("OLDALE TOWN",4,{defeated:true,oldale_stage:2}),state("ROUTE101",4,{defeated:true,oldale_stage:2})];
+ expect(seq.flatMap((s,i)=>tracker.observe(s,i+1)).map(m=>m.name)).not.toContain("ROUTE_101_AFTER_RIVAL_BATTLE");
+});

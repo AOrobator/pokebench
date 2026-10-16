@@ -146,6 +146,19 @@ describe("transition-loop-detection-v1 stairs bounce",()=>{
  });
 });
 
+describe("transition-loop-detection-v1 unsettled arrivals",()=>{
+ it("ON: a map change first seen in the next press's before state still counts",()=>{
+  const on=rig(true);
+  // The press result still shows the old map mid-door (locked); the new map appears only before the next press.
+  const stillDown={...DOWNSTAIRS,...ANIMATION},stillUp={...UPSTAIRS,...ANIMATION};
+  // The first press's own move is only seen at the second press, so six moves need seven presses.
+  for(let i=0;i<3;i++){on.press("UP",DOWNSTAIRS,stillDown);on.press("DOWN",UPSTAIRS,stillUp);}
+  expect(on.notices).toEqual([]);
+  on.press("UP",DOWNSTAIRS,stillDown);
+  expect(on.notices).toEqual([expect.objectContaining({kind:"cycle",phase:"warning"})]);
+ });
+});
+
 describe("transition-loop-detection-v1 lock handling",()=>{
  const Y={position:{x:4,y:3},facing:"right"};
  const Xl={position:{x:3,y:3},facing:"left"};

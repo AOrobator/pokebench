@@ -38,6 +38,7 @@ OFF: no skip, no map moves; byte-identical to today.
   - Replay (dp-replay with the switch): 2919 OFF last notice T179 seq 2751; ON warning+supervisor T205 seq 3244 (third lab entry), recovered T215, warning T216 seq 3516, supervisor every 6 calls to T246, no stop; pre-T200 notices identical. d6bb OFF none; ON warning T230 seq 2566, stop T236 seq 2626 (run had no supervisor). 60-run sweep: 13 runs gain a ping-pong warning; ad45/817d/2f46 checked by hand, all real bounces.
   - Gates: agent 1281 passed, viewer 786 passed, pytest 1960 passed/2 skipped; build OK; verify-vendor OK; lint OK except mypy mgba._pylib (worktree has no native binding). Coverage: agent lines 99.03 / branches 94.28 / functions 97.87; viewer 97.6 / 90.39 / 93.55; python lines 97.03 / branches 92.57 / functions 100.
   - Not done here by brief: experiments/<id>.json pending entry and bundle-v-control wiring belong to the M6 integrator.
+- 2026-10-16: RED (self-review): a press result that still shows the old map mid-door (2919 T185) loses the map change, because the next call's before state is already on the new map. Test: unsettled arrivals.
 
 ## Surprises
 

@@ -76,3 +76,6 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Readout truth](readout-truth-v1.html)
 - [Birch speech pages](birch-speech-pages-v1.html)
 - [Whiteout notice](blackout-readout-v1.html)
+- [Surf-gated exits](surf-gated-exits-v1.html)
+- [Navigation truth](navigation-truth-v1.html)
+- [Off-window route reasons](navigation-refusal-reasons-v2.html)

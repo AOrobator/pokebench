@@ -2,6 +2,7 @@ import {DialogueLog,roomKey,roomOf,type DialogueEntry,speakerLabel} from "./dial
 import {ExitHistory,mapKey,readoutNames} from "./exit-history.js";
 import {NextMilestoneHint} from "./milestone-hint.js";
 import {edgeBearings} from "./connection-edges.js";
+import {surfBlock} from "./surf-gate.js";
 import {MEASUREMENT_ONLY_MILESTONES} from "./milestones.js";
 import {BattleOutcomes} from "./battle-outcomes.js";
 import type {RunEvent} from "./events.js";
@@ -373,6 +374,11 @@ export class SupervisorBriefing {
  }
  private kept():string {return this.features["dialogue-context-kept-v1"]?this.storyContext():"";}
 
+ // surf-gated-exits-v1: the state's targets less the warps reachable only across water while Surf cannot be used.
+ private reachable(s:State):Target[] {
+  const block=surfBlock(this.features,s);
+  return (s.interaction_targets??[]).filter(t=>t.kind!=="warp"||!block.warp(t.x,t.y));
+ }
  private untried():string {
   const s=this.latest;
   if(!this.features["world-targets-v1"])return "not available (world targets are off)";
@@ -384,15 +390,17 @@ export class SupervisorBriefing {
  private open(s:State):string[] {
   const done=this.touched.get(this.room(s))??new Set<string>();
   // Exits first: ordering only, so a briefing never buries the way out under room furniture.
+  // surf-gated-exits-v1: a warp reachable only across water is not listed while Surf cannot be used.
+  const targets=this.reachable(s);
   if(this.exits!==null){
    // briefing-exits-v1: people by object id, not tile; a trigger the readout shows cannot run now is labelled and last.
    const tried=(t:Target)=>t.kind==="object"&&t.local_id!==null?done.has(objectKey(t.local_id)):done.has(at(t.x,t.y));
    const dead=(t:Target)=>t.kind==="coordinate_trigger"&&this.dead(s,t.x,t.y);
    const rank=(t:Target)=>t.kind==="warp"?0:dead(t)?2:1;
-   return (s.interaction_targets??[]).filter(t=>!tried(t)).sort((a,b)=>rank(a)-rank(b))
+   return targets.filter(t=>!tried(t)).sort((a,b)=>rank(a)-rank(b))
     .map(t=>`${this.target(t)} at ${at(t.x,t.y)} (${t.activation}${dead(t)?"; its condition did not match when the readout last showed it, so stepping on it then did nothing":""})`);
   }
-  const open=(s.interaction_targets??[]).filter(t=>!done.has(at(t.x,t.y))).sort((a,b)=>Number(b.kind==="warp")-Number(a.kind==="warp"));
+  const open=targets.filter(t=>!done.has(at(t.x,t.y))).sort((a,b)=>Number(b.kind==="warp")-Number(a.kind==="warp"));
   return open.map(t=>`${this.target(t)} at ${at(t.x,t.y)} (${t.activation})`);
  }
  private target(t:{readonly kind:string;readonly name?:string|null;readonly destination?:readonly number[]|null}):string {
@@ -411,9 +419,10 @@ export class SupervisorBriefing {
  private unentered():string {
   if(!this.features["world-targets-v1"])return "not available (world targets are off)";
   const rooms=[...this.path.values()].reverse().flatMap(s=>{
-   const exits=(s.interaction_targets??[]).filter(t=>t.kind==="warp"&&t.destination!==null&&!this.entered.has(`${String(t.destination[0])}/${String(t.destination[1])}`));
+   const exits=this.reachable(s).filter(t=>t.kind==="warp"&&t.destination!==null&&!this.entered.has(`${String(t.destination[0])}/${String(t.destination[1])}`));
    // briefing-exits-v1: the map's connections to maps not entered either, where the readout shows them (world destinations).
-   const edges=this.exits!==null&&this.features["world-destinations-v1"]?(s.topology?.connections??[]).filter(c=>!this.entered.has(mapKey(c.destination))):[];
+   const block=surfBlock(this.features,s);
+   const edges=this.exits!==null&&this.features["world-destinations-v1"]?(s.topology?.connections??[]).filter(c=>!this.entered.has(mapKey(c.destination))&&!block.connection(c.direction)):[];
    const items=[...exits.map(t=>`${this.target(t)} at ${at(t.x,t.y)}`),...edges.map(c=>{const name=this.names.get(mapKey(c.destination));return `${c.direction}${EDGES.has(c.direction)?" edge":""} -> ${name===undefined?`map ${mapKey(c.destination)}`:`${name} (map ${mapKey(c.destination)})`}`;})];
    return items.length===0?[]:[`${roomOf(s,this.features)}: ${items.join("; ")}`];
   });
@@ -432,7 +441,10 @@ export class SupervisorBriefing {
  }
  // connection-edge-tiles-v1: the current map's walk-off edge tiles, as the server read them; off, nothing.
  private edges():string {
-  const line=this.features["connection-edge-tiles-v1"]?edgeBearings(this.latest?.topology):null;
+  const latest=this.latest,topology=latest?.topology;
+  // surf-gated-exits-v1: an edge reachable only across water is not a way off while Surf cannot be used.
+  const block=latest==null?null:surfBlock(this.features,latest);
+  const line=this.features["connection-edge-tiles-v1"]?edgeBearings(topology==null||block===null?topology:{...topology,connections:topology.connections.filter(c=>!block.connection(c.direction))}):null;
   return line===null?"":`- Ways off this map across its edge (the game's map connections): ${line}\n`;
  }
  text(kind:LoopKind,calls:number):string {

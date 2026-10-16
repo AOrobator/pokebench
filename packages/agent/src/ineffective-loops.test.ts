@@ -44,8 +44,8 @@ function replay(events:readonly RunEvent[],on:boolean|"base"):{seen:Seen[];conte
  const governor=new Governor({limits:{maxTurns:5000,maxWallMs:6*3_600_000,failureLimit:3},retry:()=>undefined,abort:()=>undefined,now:()=>0});
  const supervisor=(kind:string,calls:number)=>`SUPERVISOR: ${kind} at ${String(calls)} calls`;
  const detector=on==="base"
-  ?attachLoopGuard(recorder,governor,undefined,"enforced",features["interaction-loop-detection-v1"],supervisor,features["transition-loop-detection-v1"],features["pushback-loop-detection-v1"],features["battle-observation-loop-v1"])
-  :attachLoopGuard(recorder,governor,undefined,"enforced",features["interaction-loop-detection-v1"],supervisor,features["transition-loop-detection-v1"],features["pushback-loop-detection-v1"],features["battle-observation-loop-v1"],on);
+  ?attachLoopGuard(recorder,governor,undefined,"enforced",features["interaction-loop-detection-v1"],supervisor,features["transition-loop-detection-v1"],features["pushback-loop-detection-v1"],features["battle-observation-loop-v1"],features["navigation-truth-v1"])
+  :attachLoopGuard(recorder,governor,undefined,"enforced",features["interaction-loop-detection-v1"],supervisor,features["transition-loop-detection-v1"],features["pushback-loop-detection-v1"],features["battle-observation-loop-v1"],features["navigation-truth-v1"],on);
  for(const e of events){
   if(e.type==="loop_guard")continue;
   current=e;
@@ -127,7 +127,7 @@ const FREE=(()=>{const s=route103.find(e=>e.type==="state"&&e.seq===4954);if(s?.
 const at=(x:number,y:number,more:Partial<State>={}):State=>({...FREE,position:{x,y},...more});
 function detector(on:boolean,interactions=true){
  const notices:LoopNotice[]=[];
- const d=new LoopDetector(n=>notices.push(n),LOOP_POLICY,"enforced",interactions,undefined,true,true,true,on);
+ const d=new LoopDetector(n=>notices.push(n),LOOP_POLICY,"enforced",interactions,undefined,true,true,true,false,on);
  let seq=0;
  const nav=(x:number,y:number,end:GameStateSnapshot,extra:Partial<CompletedCall>={})=>{d.complete({name:"navigate_to",args:{map_id:[0,18],x,y},isError:false,text:"ok",acted:true,beforeState:end,startState:FREE,state:end,seq:++seq,...extra});};
  const press=(buttons:string[],end:GameStateSnapshot,extra:Partial<CompletedCall>={})=>{d.complete({name:"press",args:{buttons},isError:false,text:"ok",acted:true,beforeState:FREE,startState:FREE,state:end,seq:++seq,...extra});};

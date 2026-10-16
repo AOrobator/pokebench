@@ -349,6 +349,8 @@ export class LoopDetector {
     private readonly transitions = false,
     private readonly pushback = false,
     private readonly battles = false,
+    // navigation-truth-v1: the interaction warning mentions a reopened message only when one reopened.
+    private readonly messageTruth = false,
     private readonly ineffectiveLoops = false,
   ) {}
 
@@ -506,6 +508,7 @@ export class LoopDetector {
       this.recover(seq, (novel && !held) || escaped);
     let hit: LoopKind | null = null;
     let pingPong = false;
+    let reopened = false;
     let pushed: number[] | null = null;
     let revisited: number[] | null = null;
     let waited = false;
@@ -551,7 +554,9 @@ export class LoopDetector {
           if (this.messageVisits.length > 12) this.messageVisits.shift();
         }
         if(messageKey !== "" && this.messageVisits.filter(item=>item===messageKey).length >= this.policy.ineffective) hit ??= "cycle";
-        if (this.interactions && this.restartedConversation(call.state, call.beforeState)) hit ??= "cycle";
+        const restarted = this.interactions && this.restartedConversation(call.state, call.beforeState);
+        if (restarted) hit ??= "cycle";
+        reopened = call.state?.world_context?.message?.ready === true || restarted;
         if (this.ineffective.count >= this.policy.ineffective)
           hit ??= "ineffective";
         if (eligible && fingerprint !== null && before !== null) {
@@ -627,7 +632,7 @@ export class LoopDetector {
     if (this.episode === null) {
       this.episode = {
         kind: hit,
-        message: pushed !== null ? PUSHBACK_MESSAGE : revisited !== null ? REVISIT_MESSAGE : hit === "observation" && waited ? WAITING_MESSAGE : pingPong ? TRANSITION_MESSAGE : hit === "ineffective" && call.name === "navigate_to" ? "Repeated navigation attempts to the same target produced equivalent states. Inspect the destination and obstacle before trying again." : this.interactions && (hit === "ineffective" || hit === "cycle") ? "The same interaction or input pattern is repeating without new game information. Use a single input, inspect the resulting interface, and choose an evidence-supported different approach. Reopening the same message is not story progress." : MESSAGES[hit],
+        message: pushed !== null ? PUSHBACK_MESSAGE : revisited !== null ? REVISIT_MESSAGE : hit === "observation" && waited ? WAITING_MESSAGE : pingPong ? TRANSITION_MESSAGE : hit === "ineffective" && call.name === "navigate_to" ? "Repeated navigation attempts to the same target produced equivalent states. Inspect the destination and obstacle before trying again." : this.interactions && (hit === "ineffective" || hit === "cycle") ? `The same interaction or input pattern is repeating without new game information. Use a single input, inspect the resulting interface, and choose an evidence-supported different approach.${this.messageTruth && !reopened ? "" : " Reopening the same message is not story progress."}` : MESSAGES[hit],
         exposed: false,
         recovery: 0,
         threshold: false,

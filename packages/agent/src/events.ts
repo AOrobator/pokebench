@@ -441,6 +441,16 @@ export const StateBodySchema = Type.Object(
     money: Type.Union([NonNegativeInt, Type.Null()]),
     badges: Type.Array(Type.String()),
     play_time_s: Type.Union([NonNegativeInt, Type.Null()]),
+    // surf-gated-exits-v1: exits reachable from the player only across water, and whether field Surf works now
+    // (Balance Badge and a party Pokémon that knows SURF, or already surfing); null where unread. Present only with the switch.
+    surf_gate: Type.Optional(Type.Object({
+      can_surf: Type.Union([Type.Boolean(), Type.Null()]),
+      balance_badge: Type.Union([Type.Boolean(), Type.Null()]),
+      party_surf: Type.Union([Type.Boolean(), Type.Null()]),
+      surfing: Type.Union([Type.Boolean(), Type.Null()]),
+      warps: Type.Array(Type.Object({x:Type.Integer({minimum:0,maximum:255}),y:Type.Integer({minimum:0,maximum:255})},closed),{maxItems:255}),
+      connections: Type.Array(Type.Enum(["NORTH","SOUTH","EAST","WEST"]),{maxItems:16}),
+    },closed)),
   },
   closed,
 );

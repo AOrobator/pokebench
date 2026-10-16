@@ -147,6 +147,7 @@ def test_off_is_todays_readout_byte_for_byte() -> None:
                     "readout-truth-v1",
                     "birch-speech-pages-v1",
                     "blackout-readout-v1",
+                    "surf-gated-exits-v1",
                 }
             )
             state = read_state(memory.read, MAPS, active_ui=True, off=off)

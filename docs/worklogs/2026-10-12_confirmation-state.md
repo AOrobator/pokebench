@@ -1,0 +1,84 @@
+# Confirmation state coverage repair
+
+## Problem Statement
+Operator authorizes source-grounded active UI phase, selection and readiness readouts, actionable diagnostics for unsupported state, and a repository repair workflow. Model must distinguish naming editor from name confirmation and gender selection rather than canceling confirmed names. Unknown state remains an explicit coverage error until qualified; never invent a default.
+
+## Skills Loaded
+feature-worklog; repository pokebench-game-state and its game-source reference. Multi-model-review required before landing. User approval supplied directly in parent conversation.
+
+## Architecture
+Read active callback/task ownership from coherent emulator memory; emit typed UI phase/selection/readiness through Python, model observation, event validation and viewer. Preserve historical schema compatibility. Existing source reference is read-only pokeemerald731ad5bfd6e6f265508d0efcca0ba42f9dcf5881.
+
+## Invariants
+- INV-1: phase requires validated active owner, not stale menu RAM; test stale owner and unsupported task.
+- INV-2: input readiness and transitions distinct; no guessed selection or zero defaults.
+- INV-3: exact ROM symbols source-grounded and live-probed before qualification.
+- INV-4: typed state propagates to model and viewer; unsupported diagnostics remain visible.
+- INV-5: fresh isolated probes only after measured cohort release; never modify measured servers, vendor or source reference.
+
+## Security Review
+Read-only RAM through existing frame lock; no save manipulation/RAM writes. ROM external symlink only. No navigation helper or benchmark self-editing.
+
+## Milestones
+**M1 — State ownership and propagation**
+- [x] RED tests and commit a46216e
+- [x] Implement known confirmation/gender/clock/transition ownership and diagnostics
+- [x] GREEN gates: tests, lint, build, coverage all metrics >=90
+- [x] Live coherent RAM/frame/model-text proof; mutations
+- [ ] Multi-model review until LGTM; reviewed landing coordinated by parent
+**M2 — Repair skill**
+- [x] Extend existing skill with diagnostic capture and repair workflow
+
+## Closing the Loop
+Parent coordinates integration and archived worktree. Canonical source frozen40262a0 during cohort; no measured endpoint changes.
+
+## Session Log
+2026-10-12: isolated branch codex/confirmation-state created at40262a0. Read rules, approved principles, current experiment worklog and existing game-state skill. Reference clean731ad5. Existing Birch callback task whitelist omits name-confirmation/gender phases; existing menu has numeric cursor only with no active owner. Investigation begins.
+
+## Surprises
+Principles document draft header stale versus CLAUDE explicit operator approval; preserve rather than editing operator-owned principles.
+
+## Multi-Model Review Log
+Frozen source4c9f48cabe0269833bd34da7500294c060adb76a; base40262a0d86bd5430e10db1df5e8ae502f41d6a06, exact binary diff SHA2565a8d780e6502d2b1bcb4c7e5ad683b1ac2b7ed25e9661d542cde266e09f70565. Fast (Qwen3.6-35B-A3B-UD-Q4_K_M) and Think Swarm independently emit literal VERDICT: LGTM; exact pre/post identity receipts retained. Initial duplicated-source packet rejected at98k tokens>65k; adjusted transport retains entire immutable all-files diff and complete decoder/consumer files. No source edits or findings evasion.
+
+Dedicated Claude auth loggedInfalse; current Cursor discovery failed twice with [unavailable]Error. Actual read-only Cursor Claude/Grok/GPT requests using retained same-day discovered IDs each timed out after120seconds, no authored verdict, status INCOMPLETE. Supervisor receipts retain truncated exceptions; original wrapper failed to capture separate timeout channels, explicitly recorded rather than inventing output. Parent allocates fresh independent Sol/Astra fallback on final cumulative integration. Component has two available external LGTMs; full independent roster and landing still PENDING. Reduced vendor diversity must be reported.
+
+## Boy Scout Log
+None.
+
+## Archive Milestone
+- [ ] ASK USER: archive after closeout.
+
+RED: six active-owner/selection/printing/diagnostic tests fail at absent production read_active_ui;22 existing tests pass. ROM read-only disassembly confirms ChooseGender0x08030E39→Menu_GetCursorPos0x08198560, CreateNameYesNo0x08031145→ProcessNameYesNo0x08031189, return textbox0x0803261D→SoItsPlayerName0x08031105, NO/B→BoyOrGirl0x08030DC9.
+
+2026-10-12 implementation checkpoint: active_ui carries phase, selected option, readiness, contextual controls, value and coverage diagnostic through Python JSON/model text, TypeBox and viewer. Live metadata declares active-ui-ownership-v1. Explicit map-load transitions qualify all three observed map callbacks using source/ROM call targets and stored literals. ClockCB2 0x08134C9D invokes RunTasks/AnimateSprites/BuildOam/ScheduledBG/PaletteFade matching wallclock.c; task pointers0x08134CE9/4DC5/4E31/4EA5/4EE9 match adjustment/ask/confirm/confirmed/exit and typed clock task data[2]/[3]/[5]. A is not ready between minute-angle ticks. Generic unknown callback/task families produce state coverage errors; no claim of full-game UI exhaustiveness.
+
+Native isolated prototype afd5 at8044 (feature tagged) proves BOY/GIRL, editor text/cursor, nameYES/NO and NO/B return to gender without native name milestone; YES eventually emits native PLAYER_NAME_CONFIRMED. Candidate continued evolving during this prototype; final frozen source/clock probe and original-event compatibility must still bind proof before review. Initial7acc completed with no new readout feature and retained as setup diagnostic; a3a1 refused8044ownedcollision before run_start, not a benchmark trial. Cold nativeOpenCV imports took roughly90seconds then completed; no privacy/runtime workaround. Native mGBA binding only symlinked from stable main runtime. Vendorouterpin clean; recursiveinit encountered upstream nested gitmodule withouturl, outervendor data available and unchanged.
+
+Four assertion-killing mutations qualified: reverseYESNO mapping, omitconfirmation owner, allow stale printing menu, remove two-optionvalidation. All restore original reader. Readout consistency addition: press-result summarizes qualified naming/UI netchanges rather than worldposition unavailable; explicitly avoids per-frame acceptance claims, and coverageerror cannot establishchangedUI.
+
+GREEN pre-freeze gates: agent374 +viewer148 +Python405 tests pass; build/lint/format/mypy clean. Coverage run404Python tests (one additional readout assertion added after coverage import, no source change) passesall90floors: agent98.68/93.17/98.29/99.16;viewer97.47/90.93/98.42/98.36;Python99.38lines/97.06branches/100functions. Native clock-source hashes captured before9020 probe, owntruck snapshot declared save_state SHA1 in native run_start; no measured-run gameplay. Commit freezes candidate source; review/live qualification remain unchecked until evidence completed.
+
+2026-10-12 COMMIT implementation8b9ac3f. Diagnostic audit of all prototype states caught6 unsupported snapshots, rootowners0x08030C91/0x08030CD5/0x08030D85. Source main_menu.c SlidePlatformAway/StartPlayerFadeIn/WaitForPlayerFadeIn and prior read-only disassembly qualify these transitionowners. Missing finitephase mapping is a real in-contract coverage defect, not suppressed diagnostic; add preciseowner regressions and rerun ownfreshboot validation before reviews. Clockproof9020 complete: defaultNO,Adecline,Aquestion,UPYES,DOWNNO,Bcancel,Aquestion,UPYES,Aaccept→nativeCLOCK_SETseq197/storyclocktrue196. Normal model tooltext now reports interfacechange, matchedclockframes confirm10:00AM/YES/NO.
+
+COMMIT5739b94 source freeze: gates374agent/148viewer/409Python; cleannativefreshbootb367 confirmsname and reachestruck, clock3fc6 confirmsclock withno diagnostics. Fresh replay exposed2 moreunsupportedstates root0x08030C19(StartBirchLotadPlatformFade, originalROMdisassembly30C18→RunTextPrinters→fade+nextroot30C91). Repair adds this exacttransitionowner, not blanketunknownrelabeling. New finalnativefreshboot rerun required; clockfunction/table remainsbyteidentical. No externalreview round dispatched before diagnostic closure.
+
+COMMITc039f43 frozenproof: cleanfreshboot2e33/ownsave4280 have0 unsupported diagnostics, nameconfirmed/truck andclockset respectively. Fullgates374/148/410; allfloors unchanged. Additionalclean5907 explicitlyprovedNO→gender andB→gender (no prematuremilestone) plusGIRLselection, then validationdriverincorrectlysubscripted naming=None duringknownloadcallback. SourceNamingScreen.c CB2_LoadNamingScreen initializesBG/palettes/tasks/sprites before CB2_NamingScreen. Classify knownloadcallback0x080E2E05 explicitlynotready andwithhold stalecursor, stablemaincallback0x080E4F59 missingcursor emitscoverageerror. Drivernullpredicate repaired; this is operatorqualificationcode only, notbenchmarkbehavior. Ownprivatevenv imports verified runtime-imports.json; anotherowner's temporary canonicaleditablemappingneveraffects this privatevenv.
+
+COMMIT5996e47 naminginitialization/missingcursor repair. First focusedrun116pass/1existingfixturefailure: old absentNamingData fixture expectednoactive_ui; production nowcorrectly emitsstablemainmissingcursor diagnostic. Update expectedcoverageerror while retaining allno-savefieldassertions, thenrerunfocused andfullgates. No greenclaim for5996 until fixture/gates reconciled.
+
+Finalclean f75bf53 native9805 provesNO→genderseq314/GIRL320, B→gender386, YES→nativeconfirmed435 withoutprematureflags; finalclock8f78 qualifies clock. Validationdriver nowhandles nullabletransitionalnamingdata; nativeprobes0 unsupporteddiagnostics. Parentself-reviewPB4 caught missingoffcontrol: implementPOKEBENCH_ACTIVE_UI=0 (default1), sharedstrict0/1configuration, actualplay/probefeaturemetadata conditional, inheritedserverenv and bothownedobservation/state routes withholdactive_ui consistently. Basicqualifiedscreen bugfixes and preexisting namingcursor stayavailable. Thisisapprovedablationcontract, notnewgameplay. Gate reruns pending; sourcechangedonly exposureguardfromalreadyqualifieddecoder.
+
+AblationGREEN precursor947tests381agent/148viewer/418Python. Viewerrender regressionstrengthened for escapeddiagnostic, readinessunknown/notready and clockvalue. Clockoperand mutationaudit foundhours/minutes/period invalid tests couldpassdownstreammissingmenurejection; those3mutants correctlyrecordedexit0/unqualified (notclaimedproof). Tightenfailure-arm assertions and addownedwrongoptioncountcase so eachguard is independentlyfalsified. Unsupportedclocktask diagnostic nowincludesactualboundedtaskaddresses forrepair, notjustgenericowner unavailable. No externalreview begun before closing these proof gaps.
+
+Ablation+diagnostic proofGREEN:381agent +148viewer +420Python=949tests, build/lint/format/mypyallclean; all90floors preserved. Agent98.69statements/93.24branches/98.30functions/99.16lines;viewer97.47/91.59/98.42/98.36;Python99.39lines/97.14branches/100functions. Mutations killreaderablation, routepropagation, actualplay/probemetadata gate. Clockoperand repairedmutants nowkillhours/minutes/period individuallyandonlyclockoptioncount, owneruniquenessseparate; earlierexit0receiptsretainedasproofgapdiscovery. Ownnative9805 NO/B/YES and8f78clock were onf75 decoder; upcomingcleanon/offnativeproof validates exposureguard/source binding. User/parent stillownslanding andarchive after selectedreviewrosterLGTM.
+
+2026-10-12 Final ON ablation replay b13d exposed a real clock-exit coverage gap: callback2 0x080860F5 at state196/197/201/203 before CLOCK_SET208. Parent requests precise repair before final review. Source overworld.c1638 CB2_ReturnToFieldLocal calls ReturnToFieldLocal(&gMain.state), then SetFieldVBlankCallback/CB2_Overworld; exact US ROM0x080860F4 calls0x08086638, success0x08086380 and SetMainCallback2 with literal0x08085E5D; caller CB2_ReturnToField0x080860C8 stores0x080860F5 on local branch. Add only qualified callback to field_transition; native normal-input replay and final gates required. Intro/title/main-menu task-level selection and zero bootstrap remain explicitly unqualified, no all-UI claim.
+
+Ablation limitation: ACTIVE_UI=0 skips active decoder, suppressing rich task/pointer diagnostics in durable state events (legacy unknown callback screen remains). Proposed upcoming protocol: passive bounded diagnostics decoded/logged/viewable regardless UI-context switch, isolated from model context at actual provider/tool-result seam, separate declared feature. No broader flag/event implementation in this frozen scope.
+
+Final source4c9f48c fullGREEN:381agent+148viewer+422Python=951, all coverage90floors, build/lint/format/mypy. Native ON final cleanbde9:72states/24UI, zero diagnostics, CLOCK_SET202, completed. Actual state161/tool162 and pairedframe000162 show YES/10AM. OFF cleanfbc32f4:activefeaturetagabsent, allUI null, no Interface/coverageerror text, CLOCK_SET197; exposuregate function bytes unchanged atfinal4c9. NO/B/YES/GIRL native9805 exactdecoderfunction byte-identical throughfinalSHA, semantic-binding.json retains hash. All known observed confirmation/clock paths qualified, not wholeEmerald. Remaining intro/title/main-menu task-level context and bootstrap0 explicit; off passive diagnostics proposal recorded separately. Parentowns cumulative final reviews, main landing and worktree cleanup after receipt preservation.
+
+## Archived
+
+2026-10-16, about 6:20 AM EDT, on the operator's request to archive worklogs that are no longer active or are merged into main. Its work is merged into main (last touched 2026-10-12). Unchecked items left here are bookkeeping (merge or archive asks, viewer restarts) that later work already covered.

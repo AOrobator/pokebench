@@ -10,7 +10,7 @@ import {checkEvent,parseEvent,type RunEvent} from "./events.js";
 import {LoopDetector,type LoopNotice} from "./loop-detection.js";
 import {IN_GAME} from "../test-support/events.js";
 
-const BASE:FeatureSet={...ALL_ON,"next-milestone-hint-v1":false};
+const BASE:FeatureSet={...ALL_ON,"next-milestone-hint-v1":false,"same-plan-breaker-v1":false,"briefing-exits-v1":false};
 const ON:FeatureSet={...BASE,"loop-guard-supervisor-v1":true,"stall-briefing-v1":true};
 const OFF:FeatureSet={...BASE,"loop-guard-supervisor-v1":true,"stall-briefing-v1":false};
 const FORBIDDEN=/\b(rival|birch|professor|may|brendan|neighbou?r|next door|lab|littleroot|oldale|petalburg|rustboro|route|starter|gym|badge)\b/i;

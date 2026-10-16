@@ -232,6 +232,7 @@ export function eventText(event: RunEvent, view?: RunView): string | null {
     case "dialogue_auto_advance":return `Dialogue auto-advance (${event.tool}) · B ×${String(event.auto_presses)}${event.battle_auto_presses===undefined?"":` (${String(event.battle_auto_presses)} in battle)`} · stopped: ${esc(event.stop.replaceAll("_"," "))} · ${esc(event.detail)}${event.dropped.length===0?"":` · ${String(event.dropped.length)} requested inputs not sent (${esc(event.dropped.join(", "))})`} · ${String(event.pages.length)} pages${event.pages.map((page,i)=>` · ${String(i+1)}. ${page.battle_turn===undefined?"":`battle turn ${String(page.battle_turn)}: `}${page.speaker===null?"":`${esc(page.speaker)}${page.speaker_source==="faced_sprite"?" (sprite kind)":page.speaker_source==="faced_target"?" (faced object)":""}: `}“${esc(page.text)}”`).join("")}`;
     case "text_only_supervisor":return `Text-only supervisor note ${String(event.note)}/${String(event.limit)} sent after ${String(event.replies)} replies with no tool call · ${esc(event.text)}`;
     case "ledger_context":return `Instruction ledger delivered · ${String(event.evidence.length)} references · ${esc(event.text.slice(0,200))}`;
+    case "belief_ledger":return `Disproved beliefs ledger delivered · ${String(event.entries)} entr${event.entries===1?"y":"ies"} · ${String(event.evidence.length)} references · ${esc(event.text)}`;
     case "decision_input":return `snapshot for decision ${String(event.decision_turn)} · state #${String(event.state_seq)} · ${esc(event.text.slice(0,200))}`;
     case "wait_input":return `WAIT ${String(event.duration_ms)} ms (host time) · action ${esc(event.tool_call_id)}`;
     case "button_press": {
@@ -388,6 +389,8 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "battle-details-v2":"battle-details-v2.html",
  "displayed-place-names-v1":"displayed-place-names-v1.html",
  "readout-rules-in-prompt-v1":"readout-rules-in-prompt-v1.html",
+ "briefing-exits-v1":"briefing-exits-v1.html",
+ "untaken-exits-v1":"untaken-exits-v1.html",
  "battle-triage-guidance-v1":"battle-triage-guidance-v1.html",
  "adjacent-tiles-v1":"adjacent-tiles-v1.html",
  "battle-message-waiting-v1":"battle-message-waiting-v1.html",
@@ -395,6 +398,9 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "offscreen-objects-v1":"offscreen-objects-v1.html",
  "navigate-first-prompt-v1":"navigate-first-prompt-v1.html",
  "presence-penalty-v1":"presence-penalty-v1.html",
+ "disproved-beliefs-v1":"disproved-beliefs-v1.html",
+ "same-plan-breaker-v1":"same-plan-breaker-v1.html",
+ "levelup-box-v1":"levelup-box-v1.html",
  "briefing-battle-outcomes-v1":"briefing-battle-outcomes-v1.html",
  "trainer-opponent-v1":"briefing-battle-outcomes-v1.html",
  "blocked-exit-fact-v1":"blocked-exit-fact-v1.html",

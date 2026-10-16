@@ -94,6 +94,11 @@
    "offscreen-objects-v1": false,
    "navigate-first-prompt-v1": false,
    "presence-penalty-v1": false,
+   "disproved-beliefs-v1": false,
+   "same-plan-breaker-v1": false,
+   "levelup-box-v1": false,
+   "briefing-exits-v1": false,
+   "untaken-exits-v1": false,
    "briefing-battle-outcomes-v1": false,
    "blocked-exit-fact-v1": false,
    "battle-loss-recap-v1": false

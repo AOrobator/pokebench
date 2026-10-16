@@ -724,6 +724,22 @@ it("links the battle triage guidance card to its tracked explainer, which quotes
  expect(html).toContain("from FIGHT press RIGHT, then DOWN, then A");
 });
 
+it("links the briefing exit facts and untaken exits cards to their tracked explainers, which quote the sh02 text",()=>{
+ expect(FEATURE_EXPLAINERS["briefing-exits-v1"]).toBe("briefing-exits-v1.html");
+ expect(FEATURE_EXPLAINERS["untaken-exits-v1"]).toBe("untaken-exits-v1.html");
+ const brief=readFileSync(fileURLToPath(new URL("../../../docs/explainers/briefing-exits-v1.html",import.meta.url)),"utf8");
+ expect(brief).toContain("briefing-exits-v1");
+ expect(brief).toContain("Warp to PROF. BIRCH'S HOUSE 2F (map 1/3) at 2,2");
+ const rooms=readFileSync(fileURLToPath(new URL("../../../docs/explainers/untaken-exits-v1.html",import.meta.url)),"utf8");
+ expect(rooms).toContain("untaken-exits-v1");
+ expect(rooms).toContain("Exits here you have not taken: (2,2) -&gt; PROF. BIRCH'S HOUSE 2F (map 1/3)");
+ const log=new Log();log.add(0,{...START,harness_features:["briefing-exits-v1","untaken-exits-v1"]});
+ const registry=(["briefing-exits-v1","untaken-exits-v1"] as const).map(id=>({id,title:id,description:"d",group:"guard" as const,switchable:true,needs:null}));
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),registry);
+ expect(doc.querySelector('[data-feature="briefing-exits-v1"] a')?.getAttribute("href")).toBe("/explainers/briefing-exits-v1.html");
+ expect(doc.querySelector('[data-feature="untaken-exits-v1"] a')?.getAttribute("href")).toBe("/explainers/untaken-exits-v1.html");
+});
+
 it("links the displayed place names card to its tracked explainer, which shows the real-ROM before and after",()=>{
  expect(FEATURE_EXPLAINERS["displayed-place-names-v1"]).toBe("displayed-place-names-v1.html");
  const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/displayed-place-names-v1.html",import.meta.url)),"utf8");
@@ -741,6 +757,20 @@ it("links the adjacent tiles card to its tracked explainer, which shows the real
  const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/adjacent-tiles-v1.html",import.meta.url)),"utf8");
  expect(html).toContain("adjacent-tiles-v1");
  expect(html).toContain("Next tiles: up (8,6) ledge (v), hops down only, cannot be entered from here; down (8,8) clear (.); left (7,7) clear (.); right (9,7) clear (.)");
+});
+it("links the disproved-beliefs and same-plan cards to their tracked explainers, which show the run's own ledger and note",()=>{
+ expect(FEATURE_EXPLAINERS["disproved-beliefs-v1"]).toBe("disproved-beliefs-v1.html");
+ expect(FEATURE_EXPLAINERS["same-plan-breaker-v1"]).toBe("same-plan-breaker-v1.html");
+ const log=new Log();log.add(0,{...START,harness_features:["disproved-beliefs-v1","deterministic-loop-guard-v1","same-plan-breaker-v1"]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector('[data-feature="disproved-beliefs-v1"] a')?.getAttribute("href")).toBe("/explainers/disproved-beliefs-v1.html");
+ expect(doc.querySelector('[data-feature="same-plan-breaker-v1"] a')?.getAttribute("href")).toBe("/explainers/same-plan-breaker-v1.html");
+ const ledger=readFileSync(fileURLToPath(new URL("../../../docs/explainers/disproved-beliefs-v1.html",import.meta.url)),"utf8");
+ expect(ledger).toContain("disproved-beliefs-v1");
+ expect(ledger).toContain("Moving UP from (11,1) in LITTLEROOT TOWN (map 0/9): you tried it 3 times, at turns 142, 144, 146 (latest: press UP).");
+ const plan=readFileSync(fileURLToPath(new URL("../../../docs/explainers/same-plan-breaker-v1.html",import.meta.url)),"utf8");
+ expect(plan).toContain("same-plan-breaker-v1");
+ expect(plan).toContain("SUPERVISOR: Your last 3 plans (turns 262, 263, 264) were the same and the game state did not change:");
 });
 it("links the three navigation-guidance cards to their tracked explainers",()=>{
  const cases:readonly(readonly[string,readonly string[]])[]=[
@@ -784,6 +814,17 @@ it("links the battle message waiting card to its tracked explainer, which quotes
  expect(html).toContain("battle-message-waiting-v1");
  expect(html).toContain("Battle details: WILD single · turn 3 · resolving (no input until the game asks)");
  expect(html).toContain("Battle details: WILD single · turn 3 · battle message waiting: &quot;Wild WINGULL fainted!&quot; — press A or B to continue");
+});
+
+it("links the level-up stats box card to its tracked explainer, which quotes the T357 readout before and after",()=>{
+ expect(FEATURE_EXPLAINERS["levelup-box-v1"]).toBe("levelup-box-v1.html");
+ const log=new Log();log.add(0,{...START,harness_features:["levelup-box-v1"]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector('[data-feature="levelup-box-v1"] a')?.getAttribute("href")).toBe("/explainers/levelup-box-v1.html");
+ const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/levelup-box-v1.html",import.meta.url)),"utf8");
+ expect(html).toContain("levelup-box-v1");
+ expect(html).toContain("Battle details: WILD single · turn 6 · resolving (no input until the game asks)");
+ expect(html).toContain("Battle details: WILD single · turn 6 · level-up stats box open, page 1 of 2 (stat increases): MAX. HP +2, ATTACK +2, DEFENSE +1, SP. ATK +1, SP. DEF +1, SPEED +1 — waiting for a button: press A or B to continue (the game takes any new button press)");
 });
 
 it("links the script line presence card to its tracked explainer, which shows the T259 pages off and on",()=>{

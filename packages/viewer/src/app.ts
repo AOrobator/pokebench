@@ -819,6 +819,7 @@ export class App {
     }
     const play = (this.ui("play") as HTMLButtonElement);
     const scrub = (this.ui("scrub") as HTMLInputElement);
+    this.ui("replay-controls").hidden = clock === null;
     play.disabled = clock === null;
     scrub.disabled = clock === null;
     play.textContent = clock?.playing === true ? "❚❚" : "▶";

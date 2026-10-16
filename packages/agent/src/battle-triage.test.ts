@@ -21,10 +21,10 @@ it("registers a default-off guidance switch the game server applies, recorded la
   expect(description).toContain(" Off: ");
   expect(description).toContain("below half");
   expect(description).toContain("RUN");
-  expect(SWITCHABLE_FEATURES.at(-16)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-16)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-21)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-21)).toBe(ID);
   expect(playHarnessFeatures(with_(ALL_ON, false), null)).not.toContain(ID);
-  expect(SERVER_FEATURES.at(-7)).toBe(ID);
+  expect(SERVER_FEATURES.at(-8)).toBe(ID);
   expect(serverFeatureEnv(with_(ALL_ON, false)).POKEBENCH_FEATURES_OFF).toBe(ID);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("");
   expect(dependencyProblems(with_(ALL_ON, true))).toEqual([]);
@@ -53,7 +53,7 @@ it("ON appends exactly the battle and healing section; tools and results are unc
     expect(toolSwitches(with_(base, true))).toEqual(toolSwitches(base));
     expect(objectiveSwitches(with_(base, true))).toEqual(objectiveSwitches(base));
   }
-  const plain = { ...ALL_ON, "explorer-guidance-v1": false, "navigate-first-prompt-v1": false, "objective-tracking-v1": false, "repeat-attempt-guard-v1": false, "native-objective-completion-v1": false };
+  const plain = { ...ALL_ON, "explorer-guidance-v1": false, "untaken-exits-v1": false, "navigate-first-prompt-v1": false, "objective-tracking-v1": false, "repeat-attempt-guard-v1": false, "native-objective-completion-v1": false };
   expect(playSystemPrompt(plain, null)).toBe(`${playSystemPrompt(with_(plain, false), null)}\n\n${BATTLE_TRIAGE_SECTION}`);
   expect(playSystemPrompt(ALL_ON, "RIVAL_MET")).toContain(BATTLE_TRIAGE_SECTION);
 });

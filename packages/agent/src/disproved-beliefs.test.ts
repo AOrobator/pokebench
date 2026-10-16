@@ -62,7 +62,7 @@ describe("registry and presets",()=>{
 describe("locating claims: the readout's own names only, conservatively",()=>{
  it("finds sentences that place a story character on a tile, whole",()=>{
   expect(locatingClaims("I moved to (7,8). Prof. Birch is at (7,7). I'll move to (7,7) to talk to him.","PROF. BIRCH")).toEqual(["Prof. Birch is at (7,7)."]);
-  expect(locatingClaims("I am at (7,9). Professor Birch is standing next to the red carpet at (7,8). I need to face him.","PROF. BIRCH")).toEqual(["Professor Birch is standing next to the red carpet at (7,8)."]);
+  expect(locatingClaims("I am at (7,9). Professor Birch is standing at (7,8). I need to face him.","PROF. BIRCH")).toEqual(["Professor Birch is standing at (7,8)."]);
   expect(locatingClaims("PROF. BIRCH is at ( 4 , 13 )\nthen talk","PROF. BIRCH")).toEqual(["PROF. BIRCH is at ( 4 , 13 )"]);
   // No verb: a target, not a claim about where he is (review round 4).
   expect(locatingClaims("PROF. BIRCH at ( 4 , 13 )\nthen talk","PROF. BIRCH")).toEqual([]);
@@ -110,15 +110,15 @@ describe("disproved-beliefs-v1 on run sh02",()=>{
   const {byTurn}=await replay(ON);
   const t117=byTurn.get(117)??"";
   expect(t117).toBe(`Things the game has contradicted (from this run's own readouts and dialogue; an entry is dropped when a story flag changes or the game shows otherwise):
-- PROF. BIRCH on LITTLEROOT TOWN PROFESSOR BIRCHS LAB (map 1/4): you wrote at turn 88: "Prof. Birch is at (7,1)." (you placed PROF. BIRCH on this map at turns 81, 82, 83, 84, 85, 86, 87, 88). The readout on that map said at turn 87: "Story characters here (from this map's own object list): none. Not on this map: PROF. BIRCH, MAY, BRENDAN, MOM, NORMAN, WALLY, ROXANNE, STEVEN. Sprite kinds such as SCIENTIST_1 or FAT_MAN are not these characters." On that map at turn 98 you were shown: SCIENTIST_1 (sprite kind, not a name): "Hunh? PROF. BIRCH?" | SCIENTIST_1 (sprite kind, not a name): "The PROF's away on fieldwork.
+- PROF. BIRCH on LITTLEROOT TOWN PROFESSOR BIRCHS LAB (map 1/4): you wrote at turn 88: "Prof. Birch is at (7,1)." (you placed PROF. BIRCH on this map at turns 82, 83, 84, 85, 86, 87, 88). The readout on that map said at turn 87: "Story characters here (from this map's own object list): none. Not on this map: PROF. BIRCH, MAY, BRENDAN, MOM, NORMAN, WALLY, ROXANNE, STEVEN. Sprite kinds such as SCIENTIST_1 or FAT_MAN are not these characters." On that map at turn 98 you were shown: SCIENTIST_1 (sprite kind, not a name): "Hunh? PROF. BIRCH?" | SCIENTIST_1 (sprite kind, not a name): "The PROF's away on fieldwork.
 Ergo, he isn't here." | SCIENTIST_1 (sprite kind, not a name): "Oh, let me explain what fieldwork is." | SCIENTIST_1 (sprite kind, not a name): "It is to study things in the natural
 environment, like fields and mountains," | SCIENTIST_1 (sprite kind, not a name): "instead of a laboratory." | SCIENTIST_1 (sprite kind, not a name): "The PROF isn't one for doing desk work.
 He's the type of person who would" | SCIENTIST_1 (sprite kind, not a name): "rather go outside and experience" | SCIENTIST_1 (sprite kind, not a name): "things than read about them here."`);
   // It stays pinned through the second lab trip (T117-T126) and adds the new claims there.
   for(let turn=99;turn<=124;turn++)expect(byTurn.get(turn)).toBe(t117);
-  expect(byTurn.get(126)).toContain(`you wrote at turn 125: "Professor Birch is at (9,7)." (you placed PROF. BIRCH on this map at turns 81, 82, 83, 84, 85, 86, 87, 88, 124, 125)`);
+  expect(byTurn.get(126)).toContain(`you wrote at turn 125: "Professor Birch is at (9,7)." (you placed PROF. BIRCH on this map at turns 82, 83, 84, 85, 86, 87, 88, 124, 125)`);
   // Not before the first claim: the readout alone is not a belief.
-  expect(byTurn.has(81)).toBe(false);
+  expect(byTurn.has(82)).toBe(false);
  });
 
  it("keeps the twin's push-back with every turn it was tried, and the pages whole",async()=>{
@@ -165,8 +165,8 @@ He's the type of person who would" | SCIENTIST_1 (sprite kind, not a name): "rat
   expect(last).toBeDefined();
   expect(()=>checkEvent({v:1,run:"r",t:"2026-10-16T03:00:00.000-04:00",seq:1,turn:1,type:"belief_ledger",...last})).not.toThrow();
   const t117=bodies.find(b=>b.text===byTurn.get(117));
-  // The eight claims (assistant events), the readout result the latest claim answered and the scientist's conversation.
-  const claims=FIXTURE.events.filter(e=>e.type==="assistant"&&e.turn>=81&&e.turn<=88).map(e=>e.seq);
+  // The seven claims (assistant events), the readout result the latest claim answered and the scientist's conversation.
+  const claims=FIXTURE.events.filter(e=>e.type==="assistant"&&e.turn>=82&&e.turn<=88).map(e=>e.seq);
   const readout=FIXTURE.events.find(e=>e.type==="tool_result"&&e.turn===87)?.seq;
   const scientist=FIXTURE.events.find(e=>e.type==="dialogue_auto_advance"&&e.turn===98)?.seq;
   expect(t117?.entries).toBe(1);

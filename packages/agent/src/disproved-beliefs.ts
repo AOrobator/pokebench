@@ -46,9 +46,10 @@ export function nameMatcher(name:string):RegExp {
  return new RegExp(`(?<![A-Za-z0-9_])${words.join(" ")}(?![A-Za-z0-9_'’])`,"g");
 }
 
-// The model's sentences that place `name` on a tile, as a plain assertion: the sentence opens with the name (or "The"
-// and the name) as its subject, the verb is is/stands/sits/waits/was (an appositive between commas may come first),
-// then "at (x,y)", and nothing in the sentence negates, hedges or asks. Returns each whole sentence.
+// The model's sentences that place `name` on a tile, as a plain present-tense assertion: the sentence opens with the
+// name (or "The" and the name) as its subject, then is/stands/sits/waits (optionally "standing", "sitting" or
+// "waiting"), then directly "at (x,y)", nothing right after the tile places the character elsewhere, and nothing in the
+// sentence negates, hedges or asks. Returns each whole sentence.
 export function locatingClaims(text:string,name:string):string[] {
  const claims:string[]=[];
  // Where each sentence ends: after . ! or ? followed by a space (not the "." of "Prof."), or before a line break.
@@ -63,7 +64,8 @@ export function locatingClaims(text:string,name:string):string[] {
   const coordinate=/\bat \(\s*-?\d+\s*,\s*-?\d+\s*\)/.exec(rest);
   const sentence=text.slice(sentenceStart,sentenceEnd).trim();
   if(!/^(?:the)?$/i.test(text.slice(sentenceStart,start).trim()))continue;
-  if(coordinate===null||!/^(?:,[^,]*,)?\s*(?:is|stands|sits|waits|was)\b/.test(rest.slice(0,coordinate.index)))continue;
+  if(coordinate===null||!/^\s+(?:is|stands|sits|waits)(?:\s+(?:standing|sitting|waiting))?\s+$/.test(rest.slice(0,coordinate.index)))continue;
+  if(/^\s*(?:in|inside|on|upstairs|downstairs|outside|behind|near|next|of)\b/i.test(rest.slice(coordinate.index+coordinate[0].length)))continue;
   if(NEGATION.test(sentence)||MODAL.test(sentence))continue;
   if(!claims.includes(sentence))claims.push(sentence);
  }
@@ -72,7 +74,7 @@ export function locatingClaims(text:string,name:string):string[] {
 
 export class DisprovedBeliefs {
  private readonly states=new Map<number,State>();
- private readonly calls=new Map<string,{name:string;args:Record<string,unknown>;before:State|null;pressed:boolean;seq:number;last:string|null}>();
+ private readonly calls=new Map<string,{name:string;args:Record<string,unknown>;before:State|null;pressed:boolean;seq:number;last:string|null;presses:number[]}>();
  private readonly pages=new Map<string,Advance>();
  private readonly entries=new Map<string,Entry>();
  // The latest conversation shown on each map, by map key, for evidence that names a character.
@@ -89,7 +91,7 @@ export class DisprovedBeliefs {
    return;
   }
   if(event.type==="tool_call"&&(event.name==="press"||event.name==="navigate_to")){
-   this.calls.set(event.id,{name:event.name,args:event.args,before:null,pressed:false,seq:event.seq,last:null});
+   this.calls.set(event.id,{name:event.name,args:event.args,before:null,pressed:false,seq:event.seq,last:null,presses:[]});
    if(this.calls.size>16)this.calls.delete(this.calls.keys().next().value??"");
    return;
   }
@@ -98,7 +100,7 @@ export class DisprovedBeliefs {
    if(call!==undefined&&!call.pressed){call.pressed=true;call.before=event.before_state_seq===undefined?null:this.states.get(event.before_state_seq)??null;}
    // The latest direction the harness sent for this call (auto-advance presses are A or B).
    const step=[...event.buttons].reverse().find(b=>STEP[b]!==undefined);
-   if(call!==undefined&&step!==undefined)call.last=step;
+   if(call!==undefined&&step!==undefined){call.last=step;call.presses.push(event.seq);}
    return;
   }
   if(event.type==="dialogue_auto_advance"){
@@ -161,7 +163,7 @@ export class DisprovedBeliefs {
  // A script showed dialogue that began with the player on tile Q, and the call ended one tile away on the same map,
  // back against the way the model was going. While a message is open the harness presses only A or B, so the move
  // is the game's.
- private pushBack(event:Extract<RunEvent,{type:"tool_result"}>,call:{name:string;args:Record<string,unknown>;before:State|null;seq:number;last:string|null},advance:Advance,state:State):void {
+ private pushBack(event:Extract<RunEvent,{type:"tool_result"}>,call:{name:string;args:Record<string,unknown>;before:State|null;seq:number;last:string|null;presses:number[]},advance:Advance,state:State):void {
   const first=advance.pages[0];
   if(first===undefined||first.position===null||first.map_id===null||state.position===null||state.map_id===null)return;
   if(first.map_id.join("/")!==state.map_id.join("/"))return;
@@ -189,8 +191,8 @@ export class DisprovedBeliefs {
   const map=roomKey(state),key=`push|${map}|${at(from)}|${direction}`;
   const conversation={turn:advance.turn,seq:advance.seq,pages:advance.pages};
   const existing=this.entries.get(key);
-  if(existing?.kind==="push_back"){existing.turns.push(event.turn);existing.seqs.push(call.seq,event.seq);existing.action=action;existing.conversation=conversation;return;}
-  this.entries.set(key,{kind:"push_back",key,map,room:roomOf(state,this.features),story:storyKey(state),order:this.order++,turns:[event.turn],seqs:[call.seq,event.seq],from,to,direction,action,conversation});
+  if(existing?.kind==="push_back"){existing.turns.push(event.turn);existing.seqs.push(call.seq,...call.presses,event.seq);existing.action=action;existing.conversation=conversation;return;}
+  this.entries.set(key,{kind:"push_back",key,map,room:roomOf(state,this.features),story:storyKey(state),order:this.order++,turns:[event.turn],seqs:[call.seq,...call.presses,event.seq],from,to,direction,action,conversation});
  }
 
  private claims(turn:number,seq:number,text:string):void {

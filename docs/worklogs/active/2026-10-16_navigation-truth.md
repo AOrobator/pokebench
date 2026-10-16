@@ -94,6 +94,8 @@ Report branch, frozen head, packet sha256, verdicts, gates, switch ids and inten
 
 - 2026-10-16: merged main 986cb496 (story-depth ranking in summary.ts, viewer legend), clean. Gates: agent 1938, viewer 1001, pytest 2465 passed; lint, build, verify-vendor, experiments-check OK; coverage agent 99.16/94.47/98.33, viewer 97.75/91.33/93.97, python 97.52/93.55/100. Two `just coverage` runs each had one timing failure in packages/viewer/src/server-stream.test.ts (main's stream tests, untouched here; a different test each time); 3/3 isolated reruns and the next viewer coverage run passed.
 
+- 2026-10-16: operator (the operator, 3:54 PM New York time): "reword and land, no additional review"; reword committed by the thread owner as a41e058d. Merged main 49e18c58 (surf-gated-exits-v1): registry reapplied after surf-gated-exits-v1, position tests re-bumped (pushback slice -10,-8; readout-truth slices -6,-3). Gates run after the next main merge.
+
 ## Principles Adherence (rounds 1-2; round 2 packet base main be428cdb)
 
 | ID | Score | Evidence |

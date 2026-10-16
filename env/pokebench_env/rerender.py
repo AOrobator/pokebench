@@ -23,6 +23,7 @@ from pokebench_env.raw_ram import load_raw_ram
 from pokebench_env.readout import features_off_from_env, format_readout
 from pokebench_env.rom import resolve_rom
 from pokebench_env.screen_settle import WARP_FEATURE, warp_animating
+from pokebench_env.surf_gate import SWITCH as SURF_GATE
 from pokebench_env.ui_state import active_ui_enabled_from_env
 
 PORYMAP_MAPS = (
@@ -50,6 +51,7 @@ def read_state(
         transition_coherence_enabled="transition-coherence-v1" not in off,
         readout_truth_enabled="readout-truth-v1" not in off,
         birch_pages_enabled="birch-speech-pages-v1" not in off,
+        surf_gate_enabled=SURF_GATE not in off,
     )
 
 

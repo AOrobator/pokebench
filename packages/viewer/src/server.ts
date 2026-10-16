@@ -21,6 +21,7 @@ import { NextRunError, appendControl, healthProbe, liveRuns, readDraft, writeDra
 import { WORKBENCH_POLL_MS, type WorkbenchData } from "./workbench-data.js";
 import { workbenchSnapshot } from "./workbench-store.js";
 import { MILESTONE_ORDER } from "./model.js";
+import { defaultViewerBuild, skewOf, type Skew, type ViewerBuild } from "./build-stamp.js";
 import { FEATURE_EXPLAINERS } from "./panels.js";
 
 export const HOST = "127.0.0.1";
@@ -63,6 +64,8 @@ export interface ViewerOptions {
   // Where baseline validation runs (default: in process), whether to warm every ended run
   // at startup, and what to close with the viewer.
   readonly baselines?: { readonly compute?: BaselineCompute; readonly store?: BaselineStore; readonly warm?: boolean; readonly close?: () => Promise<void> };
+  // This viewer's own build (default: dist/build-stamp.json); null when unknown.
+  readonly build?: ViewerBuild | null;
 }
 
 const MAX_BODY = 64 * 1024;
@@ -214,13 +217,16 @@ function segments(rawUrl: string): string[] | null {
   }
 }
 
-function streamEvents(req: IncomingMessage, res: ServerResponse, path: string, pollMs: number): void {
+// Under version skew the first rejected line is reported once, as a stale viewer, instead of a
+// misleading problem per line; the same build reports every rejected line.
+function streamEvents(req: IncomingMessage, res: ServerResponse, path: string, pollMs: number, skew: Skew | null): void {
   res.writeHead(200, { ...SECURITY_HEADERS, "content-type": "text/event-stream; charset=utf-8", connection: "keep-alive" });
   const emit = (type: string, data: unknown): void => {
     res.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`);
   };
   let offset = 0;
   let lineNo = 0;
+  let skewReported = false;
   // Returns true once run_end has been sent.
   const pump = (): boolean => {
     const read = readFrom(path, offset, lineNo);
@@ -231,8 +237,11 @@ function streamEvents(req: IncomingMessage, res: ServerResponse, path: string, p
       if (result.ok) {
         emit("ev", result.event);
         ended ||= result.event.type === "run_end";
-      } else {
+      } else if (skew === null) {
         emit("problem", { line: result.line, problem: result.problem });
+      } else if (!skewReported) {
+        skewReported = true;
+        emit("problem", { line: result.line, problem: `${skew.head}. First event it cannot read: line ${String(result.line)}: ${result.problem}` });
       }
     }
     return ended;
@@ -380,7 +389,9 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     if (parts.length === 4 && leaf === "events") {
       const path = eventsPath(options.runsRoot, id);
       if (!existsSync(path)) throw new RunsError(`run ${id} has no events.jsonl`);
-      streamEvents(req, res, path, options.pollMs ?? 250);
+      let skew: Skew | null = null;
+      try { skew = skewOf(options.build ?? null, readStart(options.runsRoot, id).harness); } catch { /* No readable run_start: every problem is reported as is. */ }
+      streamEvents(req, res, path, options.pollMs ?? 250, skew);
       return;
     }
     if (parts.length === 4 && leaf === "comparisons") {
@@ -429,7 +440,8 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
   sendJson(res, 404, { error: "not found" });
 }
 
-export async function startViewer(options: ViewerOptions): Promise<Viewer> {
+export async function startViewer(given: ViewerOptions): Promise<Viewer> {
+  const options: ViewerOptions = { ...given, build: given.build === undefined ? defaultViewerBuild() : given.build };
   let port = 0;
   let origins: ReadonlyMap<string, string> = new Map();
   const readBaseline = createBaselineReader(options.runsRoot, { ...(options.baselines?.compute === undefined ? {} : { compute: options.baselines.compute }), ...(options.baselines?.store === undefined ? {} : { store: options.baselines.store }) });
@@ -437,7 +449,7 @@ export async function startViewer(options: ViewerOptions): Promise<Viewer> {
   const readWorkbench = (): Promise<WorkbenchData> => {
     const now = (options.now?.() ?? new Date()).getTime();
     if (snapshot !== null && now < snapshot.until) return snapshot.result;
-    const next = { until: Infinity, result: Promise.resolve().then(() => workbenchSnapshot(options.runsRoot, healthProbe(options.fetchFn ?? fetch), now)) };
+    const next = { until: Infinity, result: Promise.resolve().then(() => workbenchSnapshot(options.runsRoot, healthProbe(options.fetchFn ?? fetch), now, undefined, options.build ?? null)) };
     snapshot = next;
     next.result = next.result.then(data => { next.until = (options.now?.() ?? new Date()).getTime() + WORKBENCH_POLL_MS; return data; }, (error: unknown) => { if (snapshot === next) snapshot = null; throw error; });
     return next.result;

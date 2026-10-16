@@ -9,6 +9,7 @@ import { configOf } from "./history.js";
 import { runSeconds } from "./controls.js";
 import { RunView } from "./model.js";
 import { readNativeRecording } from "./frontier-recording.js";
+import { defaultViewerBuild, skewOf, type ViewerBuild } from "./build-stamp.js";
 import { applyHistoricalProvenance } from "./frontier-provenance.js";
 import { parseNavigationReceipt } from "./frontier-queue.js";
 import { dirname } from "node:path";
@@ -52,8 +53,10 @@ function startOf(root: string, id: string): Extract<RunEvent, { type: "run_start
   if (start.run !== id) throw new Error("Run identity is invalid; no split graded");
   return start;
 }
-function load(root: string, id: string): Loaded {
-  const path = eventsPath(root, id), stat = statSync(path); let signature = `${String(stat.size)}:${String(stat.mtimeMs)}:${String(stat.ino)}`;
+// A run from another build than this viewer keeps its last valid status when only the schema rejects
+// some of its events: the problem says to restart the viewer instead of the run turning invalid.
+function load(root: string, id: string, build: ViewerBuild | null): Loaded {
+  const path = eventsPath(root, id), stat = statSync(path); let signature = `${String(stat.size)}:${String(stat.mtimeMs)}:${String(stat.ino)}:${build === null ? "unknown" : `${build.commit}${build.dirty ? "+" : ""}`}`;
   const prior = cache.get(path);
   let run: WorkbenchRun = { id, cohort: null, model: null, started: null, status: "invalid", reason: null, problem: null, excluded: null, elapsedMs: null, turn: 0, config: null, splits: [] };
   let port: number | null, view: RunView | null, tag: Loaded["tag"] = null;
@@ -64,8 +67,10 @@ function load(root: string, id: string): Loaded {
     run = { ...run, model: start.controller?.kind === "human" ? `Human · ${start.controller.name}` : start.model.id, started: start.t, config: configuration(start), excluded: start.harness_features.includes("probe") ? "Excluded probe session" : null };
     port = start.isolation.port;
     const experiment = start.evaluation?.experiment; if (experiment !== undefined) tag = { experiment: experiment.id, commit: start.harness.commit };
-    const recording = readNativeRecording(path, id, qualifiedNativeMilestone); view = recording.view;
+    const skew = skewOf(build, start.harness);
+    const recording = readNativeRecording(path, id, qualifiedNativeMilestone, undefined, skew !== null); view = recording.view;
     run.splits = recording.splits; run.measurement = recording.measurement;
+    if (skew !== null && recording.skipped !== null) run.problem = skew.describe(recording.skipped.count, recording.skipped.first);
     run.status = view.end === null ? "unresponsive" : "ended"; run.reason = view.end?.reason ?? null; run.turn = view.turn;
     if (run.reason === "operator_abort") run.excluded ??= "Excluded operator-aborted run";
   } catch (error) { run.problem = errorText(error); run.status = "invalid"; run.splits = []; view = null; port = null; }
@@ -322,9 +327,10 @@ export async function cohortIndex(root: string, experimentsDir: string = join(di
   return { runs: ids.map(id => ({ id, cohort: tagged.membership.get(id) ?? cohorts.membership.get(id) ?? null, problem: problems.get(id) ?? null })) };
 }
 // experimentsDir holds the definitions that label the EXPERIMENT dropdown (the repo's experiments/ next to runs/).
-export async function workbenchSnapshot(root: string, healthy: HealthProbe, now: number, experimentsDir: string = join(dirname(root), "experiments")): Promise<WorkbenchData> {
+// build is this viewer's own build (dist/build-stamp.json); null when unknown.
+export async function workbenchSnapshot(root: string, healthy: HealthProbe, now: number, experimentsDir: string = join(dirname(root), "experiments"), build: ViewerBuild | null = defaultViewerBuild()): Promise<WorkbenchData> {
   const cohorts = await cohortMembership(root); const summaries = listRuns(root);
-  const loadedRuns = summaries.map(s => load(root, s.id)), definitions = experimentDefinitions(experimentsDir, root);
+  const loadedRuns = summaries.map(s => load(root, s.id, build)), definitions = experimentDefinitions(experimentsDir, root);
   const tagged = taggedCohorts(loadedRuns.flatMap(l => l.tag === null ? [] : [{ run: l.run.id, experiment: l.tag.experiment, commit: l.tag.commit, started: l.run.started }]), definitions);
   const newest = new Map<number, { id: string; at: number }>();
   for (const loaded of loadedRuns) if (loaded.port !== null && loaded.run.status === "unresponsive") {
@@ -351,7 +357,7 @@ export async function workbenchSnapshot(root: string, healthy: HealthProbe, now:
   }));
   for (const path of cache.keys()) if (!summaries.some(s => eventsPath(root, s.id) === path) && path.startsWith(root + "/")) cache.delete(path);
   runs.sort((a, b) => Date.parse(b.started ?? "") - Date.parse(a.started ?? "") || b.id.localeCompare(a.id));
-  const problems = [...cohorts.problems], taggedValues = new Set(tagged.cohorts.map(c => c.id)), legacy = new Map<string, WorkbenchCohort>();
+  const problems = [...cohorts.problems, ...runs.flatMap(run => run.status !== "invalid" && run.problem !== null ? [`Run ${run.id}: ${run.problem}`] : [])], taggedValues = new Set(tagged.cohorts.map(c => c.id)), legacy = new Map<string, WorkbenchCohort>();
   for (const run of runs) {
     if (run.cohort === null || tagged.membership.has(run.id)) continue;
     if (taggedValues.has(run.cohort)) problems.push(`Legacy cohort ${run.cohort} has the value of a run-tagged cohort; run ${run.id} is not tagged`);

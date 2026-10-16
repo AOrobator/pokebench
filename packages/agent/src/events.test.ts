@@ -114,7 +114,7 @@ describe("event problems name the event's own type", () => {
     expect(eventProblem({ ...sample("compaction"), surprise: 1 })).toBe("invalid compaction event at /: unexpected property surprise");
   });
   it("reports a missing field of the event's own type, not another member's", () => {
-    const { to_tokens: _gone, ...rest } = sample("compaction");
+    const rest = sample("compaction"); delete rest.to_tokens;
     const problem = eventProblem(rest);
     expect(problem).toMatch(/^invalid compaction event at \/: .*to_tokens/);
     expect(problem).not.toContain("action, status, request");

@@ -13,7 +13,7 @@ A launch is not done until every check below passes. A check that fails means st
 - No other gameplay holds a GPU: `runs/experiments/runner.json` is absent, `ps` shows no `live.js play`, `fixed-cli.js run` or `pokebench_env.serve`, and the lane game ports from the definition are free (`lsof -nP -iTCP:<port> -sTCP:LISTEN`).
 - Each lane's `modelUrl` answers `/health` 200 and `/props` reports the definition's `serving` model, build, n_ctx and slots. `ssh gpu-host nvidia-smi` shows only the experiment's llama-servers.
 - `just fixed-run check <id>` passes (start save sha1, control base sha256, plan).
-- The :8790 viewer runs main: `just viewer-main`, then confirm it prints main's short SHA.
+- The :8790 viewer runs main: `just viewer-main`, then confirm it prints main's short SHA. This is required after **any** merge to main when the launch pins a newer commit than the viewer was built at: a trial's events carry whatever fields its pinned harness writes, and a viewer built before them cannot read those events. Restart before the launch check, never after. `cat /private/tmp/pokebench-viewer/packages/viewer/dist/build-stamp.json` names the running viewer's build; its `commit` must be the pinned launch commit or a descendant of it (`git merge-base --is-ancestor <pin> <viewer commit>`).
 
 ## 2. Launch
 
@@ -34,6 +34,7 @@ A launch is not done until every check below passes. A check that fails means st
 - `runs/experiments/<id>/logs/<run>.err` has no `FAILED`.
 - The runner log says `preparing the experiment checkout for <commit7>`, and each run_start's `harness.commit` equals the ledger's pinned launch commit.
 - **EXPERIMENT dropdown (hard requirement):** `GET http://127.0.0.1:8790/api/workbench` lists each launched run with `cohort: "experiment:<id>@<commit12>"` (the pinned launch commit) and that value in `cohorts` with the definition's title as its `label`, and `problems` mentions no `Experiment <id>` line. Then open `http://127.0.0.1:8790/comparisons` in the browser, wait for the dropdown to fill (the workbench can take minutes), and confirm the experiment is an option and selecting it shows the live runs. Finally `just experiments-audit` must print nothing and exit 0 (it reads only run_start lines and ledgers, so it takes about a second). If any of these fails, the launch is not done.
+- **No version skew:** no run in `/api/workbench` has a `problem` (and `problems` has no `Run <id>:` line) saying `viewer build … is older than this run's build …: restart the viewer (just viewer-main)`. That message means the viewer cannot read some of the pinned build's events; the run stays listed with its last valid status, but its splits may be incomplete. Run `just viewer-main` and recheck. Do not wait for a battle to find out: a viewer built before the pin passes this check until the first event with a new field arrives, so the build-stamp precondition in step 1 is what actually prevents it.
 
 ### How runs reach the dropdown
 

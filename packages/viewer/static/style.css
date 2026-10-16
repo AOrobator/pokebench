@@ -352,6 +352,7 @@ select.p, .field input { font: 8px 'Press Start 2P', monospace; padding: 6px 8px
 .wb-ms b.none { color:#7b8fa1; font-weight:500; font-style:italic; }
 .wb-ms small, .wb-plate-note { font:11px 'JetBrains Mono', monospace; color:#63788e; }
 .wb-plate-note { color:#8a4b08; }
+.wb-plate-problem { display:block; color:#b42318; font-weight:700; overflow-wrap:anywhere; }
 .wb-new-chip { display:inline-block; font:6px/1 'Press Start 2P', monospace; background:#283038; color:#ffd447; border-radius:4px; padding:4px 6px; white-space:nowrap; animation:wb-new-blink 3.6s steps(2) infinite; }
 @keyframes wb-new-blink { 50% { opacity:.35; } }
 @media(prefers-reduced-motion:reduce) { .wb-new-chip { animation:none; } }

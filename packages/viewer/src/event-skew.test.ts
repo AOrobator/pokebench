@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { Log, START, assistant, fullRun, state } from "../test-support/events.js";
 import { run as wbRun } from "../test-support/workbench.js";
-import { defaultViewerBuild, gitRelation, readBuildStamp, skewOf, writeBuildStamp, type ViewerBuild } from "./build-stamp.js";
+import { defaultViewerBuild, gitRelation, readBuildStamp, skewOf, viewerBuildAt, writeBuildStamp, type ViewerBuild } from "./build-stamp.js";
 import { workbenchSnapshot } from "./workbench-store.js";
 import { currentRunHtml } from "./workbench-view.js";
 import { startViewer, type Viewer } from "./server.js";
@@ -64,12 +64,17 @@ describe("viewer build stamp", () => {
     const relation = gitRelation(repo, a);
     expect(relation("f".repeat(40))).toBe("unknown");
     expect(relation("f".repeat(40))).toBe("unknown");
+    writeBuildStamp(repo, args => git(...args));
+    const built = viewerBuildAt(join(repo, "build-stamp.json"));
+    expect(built).toMatchObject({ commit: b, dirty: false });
+    expect(built?.relation(a)).toBe("newer");
+    expect(viewerBuildAt(join(repo, "absent.json"))).toBeNull();
   });
   it("calls a run skewed only when the viewer build is known and differs", () => {
     expect(skewOf(null, START.harness)).toBeNull();
     expect(skewOf(same, START.harness)).toBeNull();
     expect(skewOf(older, START.harness)?.describe(2, "line 4: invalid state event at /position: unexpected property battler_0_ready")).toBe("viewer build 308ddd3 is older than this run's build 0123456: restart the viewer (just viewer-main). It skipped 2 events it cannot read; first: line 4: invalid state event at /position: unexpected property battler_0_ready");
-    expect(skewOf({ ...older, relation: () => "newer" }, START.harness)?.describe(1, "x")).toBe("viewer build 308ddd3 is newer than this run's build 0123456: its schema no longer reads what this build wrote. It skipped 1 event it cannot read; first: x");
+    expect(skewOf({ ...older, relation: () => "newer" }, START.harness)).toBeNull();
     expect(skewOf({ ...older, relation: () => "unknown" }, { commit: RUN_COMMIT, dirty: true })?.describe(1, "x")).toMatch(/^viewer build 308ddd3 differs from this run's build 0123456 \(dirty\): restart the viewer/);
     expect(skewOf({ ...same, dirty: true }, START.harness)?.describe(1, "x")).toMatch(/^viewer build 0123456 \(dirty\) is not the same build as this run's build 0123456: restart the viewer/);
     expect(skewOf(same, { commit: RUN_COMMIT, dirty: true })).not.toBeNull();
@@ -91,6 +96,11 @@ describe("a run from a newer build than the viewer", () => {
     const run = (await snapshot(r, same)).runs[0];
     expect(run?.status).toBe("invalid"); expect(run?.splits).toEqual([]);
     expect(run?.problem).toBe("line 4: invalid state event at /position: unexpected property battler_0_ready");
+  });
+  it("marks the run invalid when the viewer's build already contains the run's build", async () => {
+    const r = root(); write(r, "newer", newerRun());
+    const run = (await snapshot(r, { ...older, relation: () => "newer" })).runs[0];
+    expect(run?.status).toBe("invalid"); expect(run?.problem).toBe("line 4: invalid state event at /position: unexpected property battler_0_ready");
   });
   it("marks the run invalid when the viewer cannot tell its own build", async () => {
     const r = root(); write(r, "newer", newerRun());
@@ -138,7 +148,7 @@ describe("the single-run stream under version skew", () => {
     const problems = text.split("\n").filter(l => l === "event: problem");
     expect(problems).toHaveLength(1);
     expect(text).toContain("viewer build 308ddd3 is older than this run's build 0123456: restart the viewer (just viewer-main)");
-    expect(text).toContain("invalid state event at /position: unexpected property battler_0_ready");
+    expect(text).toContain("viewer build 308ddd3 is older than this run's build 0123456: restart the viewer (just viewer-main). First event it cannot read: line 3: invalid state event at /position: unexpected property surprise");
     expect(text).toContain("event: done");
   });
   it("reports each bad line with its type and path for the same build", async () => {

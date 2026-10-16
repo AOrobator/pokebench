@@ -161,6 +161,19 @@ describe("briefing-exits-v1 in a production-shaped run",()=>{
   r.press([{...TOWN,position:{x:14,y:8},interaction_targets:OUTSIDE},{...HOUSE,position:{x:2,y:8},interaction_targets:DOOR}]);
  };
 
+ it("counts a trigger walked over mid-batch as tried; arriving on one or standing on one still is not (finals rule)",()=>{
+  const HALL=[{kind:"coordinate_trigger",x:5,y:4,elevation:0,activation:"step",availability:"conditional",facing:null,local_id:null,destination:null,name:null},{kind:"coordinate_trigger",x:5,y:9,elevation:0,activation:"step",availability:"conditional",facing:null,local_id:null,destination:null,name:null},{kind:"warp",x:5,y:9,elevation:0,activation:"movement",availability:"conditional",facing:null,local_id:null,destination:[0,9,0],name:"Warp to map 0/9"},{kind:"coordinate_trigger",x:6,y:6,elevation:0,activation:"step",availability:"conditional",facing:null,local_id:null,destination:null,name:null}];
+  const ROOM={location:"HALL",map_id:[2,2],interaction_targets:HALL};
+  const run=(id:boolean)=>{
+   const r=rig({...BASE,[ID]:id});
+   r.press([{...ROOM,position:{x:6,y:6}}]);
+   r.press([{...ROOM,position:{x:6,y:6}},{...ROOM,position:{x:5,y:5}},{...ROOM,position:{x:5,y:4}},{...ROOM,position:{x:5,y:3}}]);
+   return line(r.loop?.("cycle",9)??"","- Listed here that you have not tried yet");
+  };
+  expect(run(true)).toBe("- Listed here that you have not tried yet: Warp to map 0/9 at 5,9 (movement); coordinate_trigger at 5,9 (step); coordinate_trigger at 6,6 (step)");
+  expect(run(false)).toBe("- Listed here that you have not tried yet: Warp to map 0/9 at 5,9 (movement); coordinate_trigger at 5,4 (step); coordinate_trigger at 5,9 (step); coordinate_trigger at 6,6 (step)");
+ });
+
  it("the loop supervisor and text-only supervisor drop the used door and the arrival trigger, and name the stairs",()=>{
   const on=rig({...BASE,[ID]:true});walk(on);
   const text=on.loop?.("cycle",9)??"";
@@ -210,7 +223,7 @@ describe("briefing-exits-v1 registry and presets",()=>{
   expect(dependencyProblems({...ALL_ON,"loop-guard-supervisor-v1":false})).not.toContain(`${ID} needs loop-guard-supervisor-v1`);
  });
  it("defaults off in presets that omit it and in legacy flag presets",()=>{
-  const {[ID]:_omitted,...rest}=ALL_ON;
+  const {[ID]:omitted,...rest}=ALL_ON;expect(omitted).toBe(true);
   expect(normalizeFeatures(rest as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);
  });

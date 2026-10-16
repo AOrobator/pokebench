@@ -31,7 +31,7 @@ function annotated(features:FeatureSet):Map<number,{turn:number;text:string}> {
   if(e.type==="state"&&"started"in e)states.set(e.seq,e);
   if(e.type==="tool_result"&&e.state_seq!==undefined&&!e.is_error){
    const state=states.get(e.state_seq);
-   if(state!==undefined)out.set(e.seq,{turn:e.turn,text:exits.annotate(e.text,state as GameStateSnapshot)});
+   if(state!==undefined)out.set(e.seq,{turn:e.turn,text:exits.annotate(e.text,state)});
   }
  }
  return out;
@@ -101,7 +101,7 @@ describe("untaken-exits-v1 prompt",()=>{
 describe("untaken-exits-v1 production wiring",()=>{
  const readout="Screen: overworld\nLocation: HALL\nPosition: X=1, Y=1, facing up\nMoney: 1";
  const snapshot:GameStateSnapshot={...IN_GAME,started:true,screen:"overworld",location:"HALL",map_id:[3,3],position:{x:1,y:1},facing:"up",interaction_targets:[{kind:"warp",x:1,y:0,elevation:0,activation:"movement",availability:"conditional",facing:null,local_id:null,destination:[4,4,0],name:"w"}],topology:null};
- const tool=(name:string):AgentTool=>({name,label:name,description:name,parameters:{} as AgentTool["parameters"],execute:()=>Promise.resolve({content:[{type:"text",text:readout}],details:{state:snapshot}})});
+ const tool=(name:string):AgentTool=>({name,label:name,description:name,parameters:{},execute:()=>Promise.resolve({content:[{type:"text",text:readout}],details:{state:snapshot}})});
  const checked=():AgentTool=>({...tool("press"),executeChecked:()=>Promise.resolve({content:[{type:"text",text:readout}],details:{state:snapshot}})} as AgentTool);
  const recorder=()=>{const observers:((e:RunEvent)=>void)[]=[];return {observers,recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1}),subscribe:(fn:(e:RunEvent)=>void)=>{observers.push(fn);}};};
  const text=async(tools:readonly AgentTool[],name:string)=>{const r=await tools.find(t=>t.name===name)?.execute("id",{});const part=r?.content[0];return part?.type==="text"?part.text:"";};
@@ -141,7 +141,7 @@ describe("untaken-exits-v1 registry and presets",()=>{
   expect(stateOnlyProblems({...ALL_ON,"state-only-decisions-v1":true})).toContain(`state-only-decisions-v1 requires ${ID} OFF`);
  });
  it("defaults off in presets that omit it and in legacy flag presets",()=>{
-  const {[ID]:_omitted,...rest}=ALL_ON;
+  const {[ID]:omitted,...rest}=ALL_ON;expect(omitted).toBe(true);
   expect(normalizeFeatures(rest as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);
  });

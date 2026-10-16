@@ -1,4 +1,5 @@
 import {DialogueLog,roomKey,roomOf,type DialogueEntry,speakerLabel} from "./dialogue-log.js";
+import {ExitHistory,mapKey,readoutNames} from "./exit-history.js";
 import {NextMilestoneHint} from "./milestone-hint.js";
 import {MEASUREMENT_ONLY_MILESTONES} from "./milestones.js";
 import type {RunEvent} from "./events.js";
@@ -49,7 +50,13 @@ export class SupervisorBriefing {
  private instruction:Instruction|null=null;
  private readonly path=new Map<string,State>();
  private readonly entered=new Set<string>();
- constructor(private readonly features:FeatureSet){this.dialogue=new DialogueLog(features);this.hint=features["next-milestone-hint-v1"]?new NextMilestoneHint():null;}
+ // briefing-exits-v1: exits taken and step triggers stood on, applied at the next tool result after its Story line;
+ // the map names the readout itself showed.
+ private readonly exits:ExitHistory|null;
+ private readonly pendingTouches:{readonly room:string;readonly tile:string}[]=[];
+ private stepFrom:{readonly room:string;readonly x:number;readonly y:number}|null=null;
+ private readonly names=new Map<string,string>();
+ constructor(private readonly features:FeatureSet){this.dialogue=new DialogueLog(features);this.hint=features["next-milestone-hint-v1"]?new NextMilestoneHint():null;this.exits=features["briefing-exits-v1"]?new ExitHistory():null;}
  observe(event:RunEvent):void {
   this.dialogue.observe(event);
   this.hint?.observe(event);
@@ -63,7 +70,7 @@ export class SupervisorBriefing {
    }
    return;
   }
-  if(event.type==="state"&&"started"in event){this.measured=event;return;}
+  if(event.type==="state"&&"started"in event){this.measured=event;this.exitFacts(event);return;}
   if(event.type==="dialogue_auto_advance"){
    this.advanced.set(event.tool_call_id,event);
    if(this.advanced.size>16)this.advanced.delete(this.advanced.keys().next().value??"");
@@ -82,10 +89,12 @@ export class SupervisorBriefing {
    return;
   }
   if(event.type==="tool_result"&&this.pendingStory!==null)this.storyPages(event.id,event.is_error);
-  if(event.type!=="tool_result"||event.state_seq===undefined||this.measured?.seq!==event.state_seq)return;
+  if(event.type!=="tool_result")return;
+  if(event.state_seq===undefined||this.measured?.seq!==event.state_seq){this.flushTouches();return;}
   const after=this.measured;this.measured=null;
   const auto=this.advanced.get(event.id);this.advanced.delete(event.id);
-  if(!event.is_error&&GAME_TOOLS.has(event.name))this.readStory(event.text);
+  if(!event.is_error&&GAME_TOOLS.has(event.name)){this.readStory(event.text);if(this.exits!==null)readoutNames(event.text,after.map_id,this.names);}
+  this.flushTouches();
   if(!after.started||after.screen!=="overworld")return;
   this.latest=after;
   const key=this.room(after);this.path.delete(key);this.path.set(key,after);
@@ -119,6 +128,20 @@ export class SupervisorBriefing {
   this.story=line;
  }
  private room(state:State):string {return roomKey(state);}
+ // briefing-exits-v1: every recorded overworld state can take an exit (a map change) or step onto a step trigger,
+ // mid-batch too. Arriving on a trigger through a warp, or standing on it, is still not trying it.
+ private exitFacts(state:State):void {
+  if(this.exits===null)return;
+  for(const mark of this.exits.observe(state))this.pendingTouches.push(mark);
+  const p=state.position;
+  if(!state.started||state.screen!=="overworld"||p===null)return;
+  const room=this.room(state),from=this.stepFrom;this.stepFrom={room,x:p.x,y:p.y};
+  if(from===null||from.room!==room||(from.x===p.x&&from.y===p.y)||!this.features["world-targets-v1"])return;
+  if((state.interaction_targets??[]).some(t=>t.activation==="step"&&t.x===p.x&&t.y===p.y))this.pendingTouches.push({room,tile:at(p.x,p.y)});
+ }
+ private flushTouches():void {
+  for(const {room,tile} of this.pendingTouches.splice(0))this.touch(room,tile);
+ }
  // The same text at another map or tile is a different conversation (another sign, another person).
  private opening(state:State,text:string):string {return JSON.stringify([this.room(state),state.position===null?null:at(state.position.x,state.position.y),text]);}
  private pageOpening(page:Page):string {return JSON.stringify([roomKey({location:page.map,map_id:page.map_id}),page.position===null?null:at(page.position.x,page.position.y),page.text]);}
@@ -237,7 +260,12 @@ export class SupervisorBriefing {
   const open=(s.interaction_targets??[]).filter(t=>!done.has(at(t.x,t.y))).sort((a,b)=>Number(b.kind==="warp")-Number(a.kind==="warp"));
   return open.map(t=>`${this.target(t)} at ${at(t.x,t.y)} (${t.activation})`);
  }
- private target(t:{readonly kind:string;readonly name?:string|null}):string {return this.features["named-interactions-v1"]&&t.name!=null?t.name:t.kind;}
+ private target(t:{readonly kind:string;readonly name?:string|null;readonly destination?:readonly number[]|null}):string {
+  if(!this.features["named-interactions-v1"]||t.name==null)return t.kind;
+  // briefing-exits-v1: a warp's destination as the readout named it, else the bare id as before.
+  const name=this.exits!==null&&t.kind==="warp"&&t.destination!=null?this.names.get(mapKey(t.destination)):undefined;
+  return name===undefined||t.destination==null?t.name:`Warp to ${name} (map ${mapKey(t.destination)})`;
+ }
  private instructionText():string {
   if(!this.features["active-field-message-buffer-v1"])return ": not available (dialogue text is off)";
   const story=this.instruction;
@@ -278,16 +306,20 @@ export class SupervisorBriefing {
  private bearings(headline:string,stall=false):string {
   const tried=this.tried.length===0?"nothing recorded":this.tried.slice().reverse().map(t=>`${t.label}${t.count>1?` ×${String(t.count)}`:""} in ${t.room} → ${t.outcome}`).join("; ");
   const recall=this.features["dialogue-log-v1"]?" (use recall_dialogue to check exactly what characters said)":"";
+  const instruction=`- Dialogue shown with your latest story step that came with dialogue${this.instructionText()}\n`;
+  const exits=`- Exits to maps you have not entered since your last story progress: ${this.unentered()}\n`;
+  // briefing-exits-v1: the stall briefing leads with the unentered exits and the latest story step's dialogue.
+  const first=stall&&this.exits!==null;
   return `${headline} What you have been trying is not working, so do not try it again.
 Stop and get your bearings:
 - Where you are: ${this.where()}
-- Last story progress: ${this.lastProgress()}
+${first?`${exits}${instruction}`:""}- Last story progress: ${this.lastProgress()}
 ${this.hint===null?"":`- Next milestone (hint): ${this.hint.describe()}\n`}- Characters the readout names here: ${this.characters()}
 - Story steps the game confirms are done: ${this.done()}
 ${this.kept()}- Recent dialogue you were shown, newest first: ${this.told()}
-${stall?`- Dialogue shown with your latest story step that came with dialogue${this.instructionText()}\n`:""}- What you tried recently, newest first: ${tried}
+${stall&&!first?instruction:""}- What you tried recently, newest first: ${tried}
 - Listed here that you have not tried yet: ${this.untried()}
-${stall?`- Not tried yet on other maps you have been on since your last story progress: ${this.untriedElsewhere()}\n- Exits to maps you have not entered since your last story progress: ${this.unentered()}\n`:""}Before your next action, look back at your goal and at what the game has told you${recall}. If anything you believe disagrees with the dialogue or the readout above, believe the game. Make a new plan that is different from what you have been trying, and say which untried option you will try first. The run continues.`;
+${stall?`- Not tried yet on other maps you have been on since your last story progress: ${this.untriedElsewhere()}\n${first?"":exits}`:""}Before your next action, look back at your goal and at what the game has told you${recall}. If anything you believe disagrees with the dialogue or the readout above, believe the game. Make a new plan that is different from what you have been trying, and say which untried option you will try first. The run continues.`;
  }
 
  textOnly(replies:number,note:number,limit:number):string {

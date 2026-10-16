@@ -143,6 +143,13 @@ describe("states that qualify",()=>{
   // Replies that state no plan are not "the same plan" (review round 1).
   expect(run(Array.from({length:5},()=>({})),["","","","",""])).toEqual([]);
  });
+ it("names only the states the 3 decisions ended in (review round 3)",()=>{
+  // A, B, A, A, A: the three decisions all ended in A, so nothing went back and forth.
+  const a={},b={position:{x:3,y:4}};
+  expect(run([a,b,a,a,a],same)).toEqual(["SUPERVISOR: Your last 3 plans (turns 3, 4, 5) were the same and the game state did not change: I will press UP to go north."]);
+  // B, A, B, A, B: they did.
+  expect(run([b,a,b,a,b],same)).toEqual(["SUPERVISOR: Your last 3 plans (turns 3, 4, 5) were the same and the game state did not change beyond going back and forth between TOWN (map 0/9) at (3,4) facing up and TOWN (map 0/9) at (3,3) facing up: I will press UP to go north."]);
+ });
  it("never clips the plan",()=>{
   const long=`I will press UP. ${"The path north is open and I keep going. ".repeat(500)}`.trim();
   const [note]=run(Array.from({length:5},()=>({})),Array<string>(5).fill(long));

@@ -253,6 +253,23 @@ describe("leaving the ledger and never clipping",()=>{
   call(l,"m","navigate_to",{x:2,y:0},at(2,4),[{}],at(2,2));
   expect(l.text()).toContain("- Moving UP from (2,1) in LAB (map 1/4): you tried it 1 time, at turn 1 (latest: navigate_to (2,0)).");
  });
+ it("binds a push-back to the inputs actually sent, not the ones requested (review round 3)",()=>{
+  const l=new DisprovedBeliefs(ALL_ON);
+  const base={type:"state",...IN_GAME,...LAB,facing:"up",field_controls_locked:false,story:story(0),world_context:{objects:[],triggers:[],dialogue:null}};
+  const before=ev({...base,position:{x:2,y:2}});l.observe(before);
+  l.observe(ev({type:"tool_call",id:"s1",name:"press",args:{buttons:["A","UP"]}}));
+  l.observe(ev({type:"button_press",tool_call_id:"s1",buttons:["A"],before_state_seq:before.seq}));
+  // A started a script at (2,2); UP was dropped; the script then moved the player down.
+  l.observe(ev({type:"dialogue_auto_advance",tool_call_id:"s1",tool:"press",requested:["A","UP"],sent:["A"],dropped:["UP"],auto_presses:1,pages:[{state_seq:null,map:"LAB",map_id:[1,4],position:{x:2,y:2},speaker:null,speaker_source:null,text:"Wait!"}],stop:"field_free",detail:"closed",duration_ms:1}));
+  const after=ev({...base,position:{x:2,y:3}});l.observe(after);
+  l.observe(ev({type:"tool_result",id:"s1",name:"press",is_error:false,duration_ms:1,text:"ok",frames:[],state_seq:after.seq}));
+  expect(l.text()).toBeNull();
+ });
+ it("skips modal questions without a question mark (review round 3)",()=>{
+  expect(locatingClaims("Can Professor Birch be at (7,7).","PROF. BIRCH")).toEqual([]);
+  expect(locatingClaims("Is Professor Birch at (7,7).","PROF. BIRCH")).toEqual([]);
+  expect(locatingClaims("Where is Prof. Birch, at (7,7).","PROF. BIRCH")).toEqual([]);
+ });
  it("binds a push-back to the first direction of the call (review round 2)",()=>{
   const l=new DisprovedBeliefs(ALL_ON);
   const at=(x:number,y:number)=>({position:{x,y}});
@@ -308,5 +325,28 @@ describe("replay: the decision probe rebuilds what the model saw",()=>{
   const recorded=[checkEvent({v:1,run:"r",t:"2026-10-16T03:00:00.000-04:00",seq:5,turn:3,type:"belief_ledger",text:"Things the game has contradicted: x",entries:1,evidence:[1]})];
   expect(recordedNotes(recorded,3)).toEqual(["Things the game has contradicted: x"]);
   expect(recordedNotes(recorded,4)).toEqual([]);
+ });
+ it("rebuilds the recorded notes in the order the production chain delivers them: guard, ledger, hint, instruction ledger, memory (review round 3)",()=>{
+  const ev2=(body:Record<string,unknown>,seq:number,turn:number)=>checkEvent({v:1,run:"r",t:"2026-10-16T03:00:00.000-04:00",seq,turn,...body});
+  const prior=[
+   ev2({type:"milestone_hint",text:"HINT",milestone:"CLOCK_SET"},1,1),
+   ev2({type:"loop_guard",kind:"same_plan",message:"SUPERVISOR: same",calls:3,evidence:[1],mode:"enforced",phase:"supervisor"},2,2),
+   ev2({type:"belief_ledger",text:"BELIEFS",entries:1,evidence:[1]},3,3),
+   ev2({type:"ledger_context",text:"LEDGER",evidence:[]},4,3),
+   ev2({type:"navigation_context",text:"NAV",evidence:[]},5,3),
+  ];
+  expect(recordedNotes(prior,3)).toEqual(["SUPERVISOR: same","BELIEFS","HINT","LEDGER","NAV"]);
+ });
+ it("the production chain puts the ledger before the pinned hint, as recordedNotes does",async()=>{
+  const subscribers:((e:RunEvent)=>void)[]=[];
+  const recorder={subscribe:(fn:(e:RunEvent)=>void)=>{subscribers.push(fn);},recordNavigationContext:()=>undefined,recordLedgerContext:()=>undefined,recordMilestoneHint:()=>undefined,recordBeliefLedger:()=>undefined};
+  const context=contextTools({...ON,"next-milestone-hint-v1":true},recorder,m=>Promise.resolve(m));
+  for(const e of FIXTURE.events){if(DERIVED.has(e.type))continue;if(e.type==="turn_start"&&e.turn===117)break;for(const s of subscribers)s(e);}
+  const out=await context.transformContext([]);
+  const texts=out.map(textOf);
+  const ledger=texts.findIndex(t=>t.startsWith("Things the game has contradicted"));
+  const hint=texts.findIndex(t=>t.startsWith("MILESTONE REACHED"));
+  expect(ledger).toBeGreaterThanOrEqual(0);
+  expect(hint).toBeGreaterThan(ledger);
  });
 });

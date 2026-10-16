@@ -108,6 +108,12 @@ Report per switch: id, model-facing before/after excerpts from this run, precisi
 - 2026-10-16 06:15 AM EDT round-2 GREEN: NEGATION is case-insensitive and adds cannot, could, would, should and "?"; MODAL is lower-case "may" only; a press push-back is bound to the call's first direction, with the pages beginning on the starting tile or one step from it in that direction; a story change also clears retained conversations; comment, description and explainer updated. Full-run replay unchanged (4 entries, all true). Gates: agent 1491 tests 97.85/94.45/98.27/99.09; viewer 852 tests 95.16/90.68/93.41/97.61; Python 2180 passed 97.16/92.88/100; lint clean (TS/eslint); pages-check silent. COMMIT (77d89c69).
 - 2026-10-16 06:25 AM EDT: merged main 5fd00072 (battle-text-auto-advance-v1; normalized presets in registry order; run-tagged experiments). Same resolution: main's side of 19 files, both switches re-appended after battle-text-auto-advance-v1 (registry, presets, defaults, test lists), end-relative asserts +2, battle-text's key-order asserts now `.at(-3)`, counts +1, rows +2, server arrays extended, experiment incumbents regenerated. Gates: agent 1529 tests 97.89/94.43/98.31/99.11; viewer 868 tests 95.36/90.97/93.57/97.71; Python 2209 passed 97.26/93.01/100; lint clean (TS/eslint).
 
+### Round 3 (cumulative main 5fd00072..6ca00330 excluding the fixture, SHA-256 c751e694…d9c9; fix delta dcb45ee2..77d89c69, SHA-256 eb10788b…7252)
+
+- Claude CLI: LGTM. Grok: LGTM.
+- Codex: BLOCKING. (1) push-back uses requested buttons, not sent ones (requested A,UP, sent A: an A-started script that moves the player down was "Moving UP"); (2) "Can Professor Birch be at (7,7)." is accepted; (3) same-plan labels include a state outside the window (A,B,A,A,A said "back and forth"); (4) the decision probe's recorded derivation puts the pinned hint before the ledger, while the production chain delivers the ledger first. Non-blocking: push-back evidence omits the tool_call/button_press seqs.
+- Accepted all four and the non-blocking evidence item. 2026-10-16 06:55 AM EDT round-3 RED: 4 failing tests (sent inputs; modal questions; window-only labels; recorded note order), plus a passing test that pins the production order (ledger before hint).
+
 ## Surprises
 
 - The twin's coordinate trigger leaves the player at (11,1) with field controls locked and no message; the push back to (11,2) happens on the next press. A state-equality rule over one decision never sees this loop; a two-state rule does.

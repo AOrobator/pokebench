@@ -120,7 +120,7 @@ experiments-check: build
     node packages/viewer/dist/experiment-cli.js check
 
 # List runs whose run_start names an experiment (evaluation.experiment) but that no EXPERIMENT
-# dropdown entry holds. Read-only; prints nothing and exits 0 when complete. Takes a few minutes.
+# dropdown entry holds. Read-only on the main checkout's runs/; prints nothing and exits 0 when complete.
 experiments-audit: build
     node packages/viewer/dist/experiments-audit.js
 

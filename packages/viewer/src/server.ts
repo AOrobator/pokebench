@@ -230,62 +230,60 @@ function segments(rawUrl: string): string[] | null {
 function streamEvents(req: IncomingMessage, res: ServerResponse, path: string, pollMs: number, skew: Skew | null, chunkBytes: number): void {
   res.writeHead(200, { ...SECURITY_HEADERS, "content-type": "text/event-stream; charset=utf-8", connection: "keep-alive" });
   let closed = false, timer: NodeJS.Timeout | null = null;
-  const emit = (type: string, data: unknown): void => { res.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`); };
   let offset = 0;
   let lineNo = 0;
-  let skewReported = false, endRead = false, fileEnd = false;
+  let skewReported = false, endRead = false, caughtUp = false, closing = false;
   const pending: string[] = [];
+  const empty = (): boolean => pending.length === 0;
   const message = (type: string, data: unknown): string => `event: ${type}\ndata: ${JSON.stringify(data)}\n\n`;
-  // One step: read a bounded chunk when nothing is waiting, then write until the socket is full.
-  // Returns whether run_end has been written, whether everything in the file has been written,
-  // and whether the socket asked to wait for drain.
-  const step = (): { ended: boolean; atEnd: boolean; full: boolean } => {
-    if (pending.length === 0 && !endRead) {
-      const read = readFrom(path, offset, lineNo, chunkBytes);
-      fileEnd = read.offset === offset;
-      offset = read.offset;
-      lineNo = read.lineNo;
-      for (const result of read.results) {
-        if (result.ok) {
-          pending.push(message("ev", result.event));
-          endRead ||= result.event.type === "run_end";
-        } else if (skew === null) {
-          pending.push(message("problem", { line: result.line, problem: result.problem }));
-        } else if (!skewReported) {
-          skewReported = true;
-          pending.push(message("problem", { line: result.line, problem: `${skew.head}. First event it cannot read: line ${String(result.line)}: ${result.problem}` }));
-        }
+  // Reads one bounded chunk into the queue; true when there was nothing new to read.
+  const fill = (): boolean => {
+    const read = readFrom(path, offset, lineNo, chunkBytes);
+    const atEnd = read.offset === offset;
+    offset = read.offset;
+    lineNo = read.lineNo;
+    for (const result of read.results) {
+      if (result.ok) {
+        pending.push(message("ev", result.event));
+        endRead ||= result.event.type === "run_end";
+      } else if (skew === null) {
+        pending.push(message("problem", { line: result.line, problem: result.problem }));
+      } else if (!skewReported) {
+        skewReported = true;
+        pending.push(message("problem", { line: result.line, problem: `${skew.head}. First event it cannot read: line ${String(result.line)}: ${result.problem}` }));
+      }
+    }
+    return atEnd;
+  };
+  // One step: refill an empty queue (adding caught_up once the file is read, and done after run_end),
+  // then write until the socket is full. Every message, control ones included, waits its turn.
+  const step = (): "more" | "drain" | "wait" | "end" => {
+    if (empty()) {
+      if (closing) { res.end(); return "end"; }
+      if (fill() && empty()) {
+        if (!caughtUp) { caughtUp = true; pending.push(message("caught_up", {})); }
+        if (endRead) { closing = true; pending.push(message("done", {})); }
+        if (empty()) return "wait";
       }
     }
     let full = false;
     while (pending.length > 0 && !full) full = !res.write(pending.shift() ?? "");
-    const flushed = pending.length === 0;
-    return { ended: endRead && flushed, atEnd: fileEnd && flushed, full };
+    return full ? "drain" : "more";
   };
-  const finish = (): void => {
-    emit("done", {});
-    res.end();
-  };
-  // Reads until the end of the file or run_end, one chunk per turn of the event loop.
-  const drainLog = (then: (ended: boolean) => void): void => {
+  // One step per turn of the event loop; a failing read closes this stream, never the viewer.
+  const run = (): void => {
     if (closed) return;
-    const { ended, atEnd, full } = step();
-    if (ended || atEnd) { then(ended); return; }
-    if (full) res.once("drain", () => { setImmediate(() => { drainLog(then); }); });
-    else setImmediate(() => { drainLog(then); });
+    let next: ReturnType<typeof step>;
+    try { next = step(); } catch (error) { res.destroy(error instanceof Error ? error : new Error(String(error))); return; }
+    if (next === "more") setImmediate(run);
+    else if (next === "drain") res.once("drain", () => { setImmediate(run); });
+    else if (next === "wait") timer = setTimeout(() => { timer = null; run(); }, pollMs);
   };
-  const tail = (): void => {
-    timer = setTimeout(() => { timer = null; drainLog((ended) => { if (ended) finish(); else tail(); }); }, pollMs);
-  };
-  drainLog((ended) => {
-    emit("caught_up", {});
-    if (ended) finish();
-    else tail();
-  });
   req.on("close", () => {
     closed = true;
     if (timer !== null) clearTimeout(timer);
   });
+  run();
 }
 
 async function liveScreen(res: ServerResponse, port: number, fetchFn: typeof fetch): Promise<void> {

@@ -131,6 +131,63 @@ it("writes nothing more after a write reports a full socket, until drain", async
   expect(await (await reply).text()).toContain("event: done");
 });
 
+it("closes only the stream, not the viewer, when a read fails part way through", async () => {
+  const viewer = await serve("long", longRun(3000), 4096);
+  const read = fs.readSync;
+  let reads = 0;
+  vi.spyOn(fs, "readSync").mockImplementation(((...args: Parameters<typeof fs.readSync>) => {
+    reads += 1;
+    if (reads === 5) throw Object.assign(new Error("EIO: i/o error, read"), { code: "EIO" });
+    return read(...args);
+  }));
+  const text = await fetch(new URL("api/runs/long/events", viewer.url)).then(async (r) => r.text()).catch(() => "aborted");
+  expect(text).not.toContain("event: done");
+  vi.restoreAllMocks();
+  expect((await fetch(new URL("api/runs", viewer.url))).status).toBe(200);
+  expect(await (await fetch(new URL("api/runs/long/events", viewer.url))).text()).toContain("event: done");
+});
+
+it.each(["run_end", "caught_up"])("waits for drain after the %s write reports a full socket", async (marker) => {
+  const viewer = await serve("short", longRun(2), 1 << 20);
+  const original = Reflect.get(ServerResponse.prototype, "write") as (this: ServerResponse, ...args: Parameters<ServerResponse["write"]>) => boolean;
+  const streams: ServerResponse[] = [], written: string[] = [];
+  vi.spyOn(ServerResponse.prototype, "write").mockImplementation(function (this: ServerResponse, ...args: Parameters<ServerResponse["write"]>): boolean {
+    const ok = Reflect.apply<ServerResponse, Parameters<ServerResponse["write"]>, boolean>(original, this, args);
+    if (this.req.url?.endsWith("/events") !== true) return ok;
+    streams.push(this);
+    const text = String(args[0]);
+    written.push(text);
+    return !text.includes(marker === "run_end" ? '"type":"run_end"' : "event: caught_up");
+  });
+  const reply = fetch(new URL("api/runs/short/events", viewer.url));
+  for (let i = 0; i < 20 && !written.some((w) => w.includes(marker === "run_end" ? '"type":"run_end"' : "event: caught_up")); i++) await new Promise((resolve) => { setTimeout(resolve, 10); });
+  await new Promise((resolve) => { setTimeout(resolve, 30); });
+  const before = written.length;
+  expect(written.at(-1)).toContain(marker === "run_end" ? '"type":"run_end"' : "event: caught_up");
+  streams[0]?.emit("drain");
+  await new Promise((resolve) => { setTimeout(resolve, 30); });
+  expect(written.length).toBeGreaterThan(before);
+  vi.restoreAllMocks();
+  for (let i = 0; i < 5; i++) streams[0]?.emit("drain");
+  expect(await (await reply).text()).toContain("event: done");
+});
+
+it("still sends lines found after run_end in a later chunk, then done", async () => {
+  const log = longRun(5);
+  const base = mkdtempSync(join(tmpdir(), "viewer-stream-"));
+  roots.push(base);
+  const runsRoot = join(base, "runs");
+  mkdirSync(join(runsRoot, "after"), { recursive: true });
+  const lines = log.events.map((e) => JSON.stringify({ ...e, run: "after" }));
+  writeFileSync(join(runsRoot, "after", "events.jsonl"), [...lines, "x".repeat(600), "{not json"].join("\n") + "\n");
+  const viewer = await startViewer({ runsRoot, staticDir: base, appDir: base, port: 0, pollMs: 10, streamChunkBytes: 256 });
+  viewers.push(viewer);
+  const text = await (await fetch(new URL("api/runs/after/events", viewer.url))).text();
+  expect(events(text)).toHaveLength(log.events.length);
+  expect(text.match(/^event: problem$/gm)).toHaveLength(2);
+  expect(text.indexOf("event: done")).toBeGreaterThan(text.lastIndexOf("event: problem"));
+});
+
 it("rejects a chunk size that is not a positive integer", async () => {
   await expect(serve("bad", longRun(1), 0)).rejects.toThrow(RangeError);
 });

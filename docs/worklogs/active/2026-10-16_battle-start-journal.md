@@ -139,6 +139,9 @@ Report: branch, frozen head SHA, sha256 of `git diff --binary main HEAD`, three 
 - 2026-10-16 08:45 AM EDT: merged main be428cdb (people-ledger-v1, agent-side, after untaken-exits-v1). Conflicts in registry/preset/default lines and readiness; resolved as before. Lines where both sides had shifted an index identically merged silently, so 17 agent test files got +1 on SWITCHABLE/playHarness/FEATURES indices (features.test.ts kept its earlier shift), auto-advance `slice(-13,-7)`/`at(-13)`, observation 30, switchboard 77, preset literals. Gates: agent 1704, viewer 915, Python 2358 passed; coverage agent 97.98/94.53/98.49/99.12, viewer 95.32/91.12/93.63/97.62, Python 97.41/93.34/100; experiments-check ok 70; lint known mypy only.
   COMMIT: `Merge branch 'main' into claude/battle-start-journal (people-ledger)`
 
+- 2026-10-16 01:20 PM EDT: merged main 6603d64f (trainer-heal-guidance-v1, low-hp-trainer-warning-v1, briefing-battle-outcomes-v1, blocked-exit-fact-v1, battle-loss-recap-v1, pushback-loop-detection-v1, pushback-press-result-v1, battle-observation-loop-v1 switchable after people-ledger-v1; trainer-opponent-v1 measured; no new server switch). Resolution: source conflicts (features.ts, readiness.md, game_state.py imports) kept main's lines then this switch's; play-preset.ts, next-run.ts, panels.ts took main's side and re-added this switch (filter chain and Record type after battle-loss-recap-v1, optional schema entry after battle-observation-loop-v1, normalize default after people-ledger-v1, flagFeatures and DEFAULT_NEXT_RUN false, explainer map). Conflicted test files took main's side, end-relative indices +1 (also main-only battle-observation-loop and pushback-press-result tests), auto-advance `slice(-21,-15)`/flagFeatures `at(-21)`, pushback `slice(-4,-2)`, observation 32, switchboard 85, Python list literals, preset literals. main's trainer_opponent is read only past the save-block gate, so a busy frame under this switch skips it like the other save-derived reads. Gates (ROM via `.env`): agent 1871, viewer 933, Python 2372 passed, 0 failed; coverage agent 97.99/94.69/98.4/99.14, viewer 95.33/91.09/93.68/97.63, Python lines 97.42 branches 93.35 functions 100; lint green except the known mypy `mgba._pylib`; verify-vendor OK; pages-check clean; experiments-check ok 75. `git diff --binary main HEAD` changed (main moved), so a delta round runs on the new packet.
+  COMMIT: `Merge branch 'main' into claude/battle-start-journal (trainer heal, low-HP warning, briefing outcomes, blocked exit, loss recap, push-back, battle observation loop)`
+
 ## Surprises
 
 - The journal's `battle_started` fires on the activation frame, which is always before the battle decodes, so `battle_type` was null by construction.
@@ -179,6 +182,12 @@ Zero FAIL.
 - Claude (Claude CLI, default login): `VERDICT: LGTM`.
 - GPT (isolated Codex `gpt-5.6-sol`, read-only, standing harness switch from the usage-limited Cursor GPT lane): `VERDICT: BLOCKING`. B1: the blind-journal diagnostic went through the run-wide dedupe, so a second 600-frame busy episode after a recovery emitted nothing (INV-4, PB7); reproducer 600 busy, 1 idle, 600 busy → 1 event.
 - Synthesis: accepted. The blind diagnostic is emitted per episode (an idle frame re-arms it), not through the decoder dedupe; new test `test_each_blind_episode_after_a_recovery_is_reported`; deleting the re-arm (routing through `_diagnostic` again) turns it red, restored green.
+
+**Round 3** — packet `git diff --binary be428cdb 596d1691`, SHA-256 `374d733d5310566dd31ff16caa0950241d3484b5e6b0fb79a5f75110ace81315` (artifacts `/tmp/review-bsj-r3/`).
+- Grok (Cursor `cursor-grok-4.5-high`): `VERDICT: LGTM`.
+- Claude (Claude CLI, default login): `VERDICT: LGTM`. Speculation only: a one-frame battle signal that lands only on busy frames would go unrecorded; none in the archives (99.5% idle, longest busy streak 9).
+- GPT (isolated Codex `gpt-5.6-sol`, read-only; first attempt exited rc 1 with no verdict, rerun): `VERDICT: LGTM`. No blocker, scope expansion or hardening; speculation only (a blind interval spanning a whole battle; archives show at most 9 busy frames).
+- Synthesis: all three LGTM on the same packet. Main then moved to 6603d64f; see the delta round.
 
 ## Boy Scout Log
 

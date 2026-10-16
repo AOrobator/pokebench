@@ -284,8 +284,8 @@ describe("people-ledger-v1 switch",()=>{
   expect(featureInfo("people-ledger-v1")).toMatchObject({group:"observation",needs:"dialogue-auto-advance-v1",switchable:true});
   expect(featureInfo("people-ledger-v1").description).toContain(" Off: ");
   expect(dependencyProblems({...OFF,"people-ledger-v1":true})).toContain("people-ledger-v1 needs dialogue-auto-advance-v1");
-  expect(playHarnessFeatures(ON,null).at(-2)).toBe("people-ledger-v1");
-  expect(playHarnessFeatures({...ON,"people-ledger-v1":false},null)).not.toContain("people-ledger-v1");
+  expect(playHarnessFeatures(ON,null).at(-10)).toBe("people-ledger-v1");
+  expect(playHarnessFeatures({...ON,"people-ledger-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false},null)).not.toContain("people-ledger-v1");
   const features=Object.fromEntries(Object.entries({...ALL_ON,"state-only-decisions-v1":false}).filter(([id])=>id!=="people-ledger-v1"));
   const preset=parsePlayPreset({version:2,id:"old",target:null,limits:{maxTurns:1500,maxWallMs:1800000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},features});
   expect(presetFeatures(preset)["people-ledger-v1"]).toBe(false);

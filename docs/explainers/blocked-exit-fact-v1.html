@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blocked exit fact</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --wall:#9b968a; --ground:#eef0e6; --grass:#cfe6c0;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --wall:#55585e; --ground:#1f2420; --grass:#24361f; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --wall:#55585e; --ground:#1f2420; --grass:#24361f; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:760px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:68ch}
+ul{margin:0;padding-left:20px}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+svg .big{font-family:var(--mono);font-size:16px;font-weight:600}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navb{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.4}
+.wall{fill:var(--wall);stroke:var(--rule)}
+.ground{fill:var(--ground);stroke:var(--rule)}
+.grass{fill:var(--grass);stroke:var(--rule)}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.arr.p{stroke:var(--prior);stroke-width:2.2}
+.arr.g{stroke:var(--game);stroke-width:2.2}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre;overflow-x:auto;font:12.5px/1.45 var(--mono);margin:0}
+pre .add{background:var(--game-bg);color:var(--game);font-weight:600}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tablewrap{overflow-x:auto}
+</style>
+</head>
+<body>
+<main>
+<header style="display:flex;flex-direction:column;gap:10px">
+<div class="eyebrow">Harness switch · blocked-exit-fact-v1 · observation · needs coordinate-script-conditions-v1 · default off</div>
+<h1>Blocked exit fact</h1>
+<p class="lede">When a script on an exit has turned the player back and its condition still holds in RAM, the result says so plainly and lists the map's other exits.</p>
+</header>
+<section><h2>What it does</h2>
+<p>When this run has seen a coordinate trigger on (or next to) an exit turn the player back, and that trigger's condition still matches in the result's own RAM, observe, press and navigate_to results end with one plain line: which exit, when it last turned the player back, that the script runs while a saved value keeps the setting it checks for, that it has that setting now, and the map's other exits by the readout's own names. It names no flag, story step or destination advice.</p></section>
+<figure><div class="scroll"><svg viewBox="0 0 720 280" role="img" aria-label="Oldale west exit tiles">
+<text x="100" y="14" class="s">OLDALE TOWN (map 0/10), x 0..4, y 7..14</text>
+<rect x="100" y="20" width="36" height="30" class="wall"/><rect x="136" y="20" width="36" height="30" class="wall"/><rect x="172" y="20" width="36" height="30" class="ground"/><rect x="208" y="20" width="36" height="30" class="ground"/><rect x="244" y="20" width="36" height="30" class="ground"/><rect x="100" y="50" width="36" height="30" class="wall"/><rect x="136" y="50" width="36" height="30" class="wall"/><rect x="172" y="50" width="36" height="30" class="ground"/><rect x="208" y="50" width="36" height="30" class="ground"/><rect x="244" y="50" width="36" height="30" class="ground"/><rect x="100" y="80" width="36" height="30" class="wall"/><rect x="136" y="80" width="36" height="30" class="wall"/><rect x="172" y="80" width="36" height="30" class="ground"/><rect x="208" y="80" width="36" height="30" class="ground"/><rect x="244" y="80" width="36" height="30" class="ground"/><rect x="100" y="110" width="36" height="30" class="prior"/><text x="118" y="130" text-anchor="middle" class="t">T</text><rect x="136" y="110" width="36" height="30" class="navb"/><text x="154" y="130" text-anchor="middle" class="t">@</text><rect x="172" y="110" width="36" height="30" class="ground"/><rect x="208" y="110" width="36" height="30" class="ground"/><rect x="244" y="110" width="36" height="30" class="ground"/><rect x="100" y="140" width="36" height="30" class="ground"/><rect x="136" y="140" width="36" height="30" class="box"/><text x="154" y="160" text-anchor="middle" class="t">N</text><rect x="172" y="140" width="36" height="30" class="ground"/><rect x="208" y="140" width="36" height="30" class="ground"/><rect x="244" y="140" width="36" height="30" class="ground"/><rect x="100" y="170" width="36" height="30" class="wall"/><rect x="136" y="170" width="36" height="30" class="wall"/><rect x="172" y="170" width="36" height="30" class="ground"/><rect x="208" y="170" width="36" height="30" class="ground"/><rect x="244" y="170" width="36" height="30" class="ground"/><rect x="100" y="200" width="36" height="30" class="wall"/><rect x="136" y="200" width="36" height="30" class="wall"/><rect x="172" y="200" width="36" height="30" class="ground"/><rect x="208" y="200" width="36" height="30" class="ground"/><rect x="244" y="200" width="36" height="30" class="ground"/><rect x="100" y="230" width="36" height="30" class="wall"/><rect x="136" y="230" width="36" height="30" class="wall"/><rect x="172" y="230" width="36" height="30" class="ground"/><rect x="208" y="230" width="36" height="30" class="ground"/><rect x="244" y="230" width="36" height="30" class="ground"/>
+<text x="94" y="130" class="s" text-anchor="end">y 10</text><text x="94" y="160" class="s" text-anchor="end">y 11</text>
+<line x1="116" y1="125" x2="66" y2="125" class="arr p"/><text x="40" y="112" class="s" text-anchor="middle">to ROUTE102</text>
+<g transform="translate(300,30)"><rect width="410" height="200" rx="8" class="box"/>
+<text x="16" y="26" class="t">At T247 (press LEFT from (1,10), facing left)</text>
+<text x="16" y="50">1. the step onto (0,10) runs the coordinate event there</text>
+<text x="16" y="70" class="m">   var 0x4051 = 0, needs 0: condition matches</text>
+<text x="16" y="92">2. OldaleTown_EventScript_BlockedPath: lockall,</text>
+<text x="16" y="110" class="m">   applymovement PLAYER, PlayerStepBack (delay_8, walk_right)</text>
+<text x="16" y="132">3. the player ends on (1,10), same map, controls locked</text>
+<text x="16" y="154">4. the harness records a refusal at (0,10)</text>
+<text x="16" y="180" class="s">T = trigger on the WEST edge tile; N = the MANIAC (object 3); @ = player</text></g>
+</svg></div><figcaption>No recorded state ever stands on (0,10): the step back happens inside one call. The refusal is read from the call (aimed at the trigger, a script ran, ended off it on the same map).</figcaption></figure>
+<section><h2>Before and after (54a7, T248, tool result seq 6071)</h2>
+<p>OFF (the recorded result, the lines that matter):</p><pre>pressed LEFT
+Press result: locked (field controls locked in a snapshot; no net movement)
+1. turn 248 · OLDALE TOWN (map 0/10) · at 1,10 · MANIAC (sprite kind, not a name): &quot;Aaaaah! Wait!
+Location: OLDALE TOWN
+Position: X=1, Y=10, facing right
+Next tiles: up (1,9) collision (#), cannot be entered from here; down (1,11) person or object (N, object id 3); left (0,10) clear (.); right (2,10) clear (.)
+Nearby script-trigger tiles (a clear terrain tile can still run a script):
+- (0,10), elevation 3: variable 0x4051=0, needs 0; condition matches; script 0x081E903F
+- WEST -&gt; ROUTE102 (map 0/17), offset 0; walk off the map from (0,10) or (0,11): stand on one of these edge tiles and press LEFT
+Warp destination at (5,7): OLDALE TOWN HOUSE1
+Warp destination at (15,16): OLDALE TOWN HOUSE2
+Warp destination at (6,16): OLDALE TOWN POKEMON CENTER 1F
+Warp destination at (14,6): OLDALE TOWN MART</pre>
+<p>ON (the line added after the readout):</p><pre><span class="add">Blocked exit: WEST -&gt; ROUTE102 (map 0/17). When you last tried it, at turn 247, the game ran a script at (0,10) and kept you on this map. This exit is blocked by a script that runs while a value the game saves still has the setting that script checks for; it has that setting now, so this exit stays blocked for now. Other exits from this map: NORTH -&gt; ROUTE103 (map 0/18); SOUTH -&gt; ROUTE101 (map 0/16); (5,7) -&gt; OLDALE TOWN HOUSE1 (map 2/0); (15,16) -&gt; OLDALE TOWN HOUSE2 (map 2/1); (6,16) -&gt; OLDALE TOWN POKEMON CENTER 1F (map 2/2); (14,6) -&gt; OLDALE TOWN MART (map 2/4).</span></pre></section>
+<section><h2>The condition, checked against pokeemerald and the ROM</h2>
+<ul>
+<li><code>data/maps/OldaleTown/map.json</code> coord event (0,10), elevation 3, <code>VAR_OLDALE_TOWN_STATE</code> (0x4051, vars.h) value 0, script <code>OldaleTown_EventScript_BlockedPath</code>.</li>
+<li>ROM, through gMapHeader of 54a7 state seq 6070: the same table, <code>(0,10) elevation 3 var 0x4051 value 0 script 0x081E903F</code>, then three <code>var 0x40C7 value 1</code> rival triggers on the south edge.</li>
+<li>ROM bytes at 0x081E903F: <code>69 4f ff 00 82 91 1e 08 4f 03 00 … 51 00 00</code> = lockall (0x69), applymovement LOCALID_PLAYER (0x4f, 0xff) PlayerStepBack, applymovement 3 (the MANIAC), waitmovement 0 (0x51): <code>OldaleTown_EventScript_BlockedPath</code> (data/script_cmd_table.inc opcodes).</li>
+<li>Saved value in that state: 0x4051 = 0; FLAG_ADVENTURE_STARTED (0x74) unset. <code>OldaleTown_OnTransition</code> sets 0x4051 to 1 only when that flag is set, which Birch does when he gives the Pokédex (<code>LittlerootTown_ProfessorBirchsLab/scripts.inc:510</code>). The line never says this; it says only that the value still has the setting the script checks for.</li>
+<li>A trigger variable below 0x4000 is a constant (VarGet returns the id itself), so it is never treated as saved state.</li>
+</ul></section>
+<figure><div class="scroll"><svg viewBox="0 0 720 230" role="img" aria-label="Refusal rule">
+<rect x="10" y="10" width="220" height="200" rx="8" class="game"/><text x="120" y="32" text-anchor="middle" class="t">a call counts as a refusal</text>
+<text x="22" y="56">trigger on an exit tile or next to one</text><text x="22" y="76">variable ≥ 0x4000 (saved), read, matching</text><text x="22" y="96">call began on free controls, same map</text><text x="22" y="116">aimed at it: a press of directions only</text><text x="22" y="132">  facing it, or navigate_to it</text><text x="22" y="152">a script ran (lock, dialogue, pages)</text><text x="22" y="172">ended off it, on the same map</text><text x="22" y="196" class="s">or: the previous call ended on it, in its script</text>
+<line x1="230" y1="110" x2="270" y2="110" class="arr g"/>
+<rect x="270" y="60" width="200" height="100" rx="8" class="box"/><text x="370" y="84" text-anchor="middle" class="t">remembered per trigger</text><text x="370" y="104" text-anchor="middle" class="s">tile + variable + value + script</text><text x="370" y="124" text-anchor="middle" class="s">latest refusal turn</text>
+<line x1="470" y1="110" x2="510" y2="110" class="arr g"/>
+<rect x="510" y="40" width="200" height="140" rx="8" class="navb"/><text x="610" y="64" text-anchor="middle" class="t">line on a result when</text><text x="522" y="88">player on or next to it</text><text x="522" y="108">its condition still matches</text><text x="522" y="124">  in this result's RAM</text><text x="522" y="148">and the exit can be named</text>
+</svg></div><figcaption>Keyed by the coordinate event, not the tile: Littleroot (11,1) holds one event for town state 0 (the TWIN who stops you) and one for state 1 (sent to save Birch). Once the state is 1 the first no longer matches and the line stops.</figcaption></figure>
+<section><h2>Measured on recorded runs</h2>
+<div class="tablewrap"><table><tr><th>run</th><th>place</th><th>results with the line</th><th>turns</th><th>refusals recorded</th><th>true block?</th></tr>
+<tr><td>54a7</td><td>LITTLEROOT TOWN, NORTH -&gt; ROUTE101</td><td>33</td><td>T82–T114</td><td>17</td><td>yes: LittlerootTown_EventScript_NeedPokemonTrigger (TWIN, town state 0) until the rival meeting (T155)</td></tr>
+<tr><td>54a7</td><td>OLDALE TOWN, WEST -&gt; ROUTE102</td><td>187</td><td>T247–T484</td><td>94</td><td>yes: BlockedPath (the MANIAC); none in T344–T394 (Route 103, the MAY battle, Littleroot)</td></tr>
+<tr><td>sh02</td><td>BRENDAN'S HOUSE 1F, door (8,8)</td><td>1</td><td>T59</td><td>1</td><td>yes: GoSeeRoom (intro state 4, Mom moves the player from the door)</td></tr>
+</table></div>
+<p>54a7: 220 of 655 game results carry the line; sh02: 1 of 1100. Every one was checked against the trigger's script in pokeemerald: no false positives. The first Oldale line is at T247, the result of the first push-back; T246 (arriving at (1,10)) has none.</p>
+<p>Limits: a refusal is learnt only by trying; with world-destinations-v1 off a connection exit cannot be named, so there is no line; a sibling door tile with the same destination is listed as another exit (it is another warp in the game's table); a map connection is called blocked when one of its edge tiles holds the refusing trigger, even if another edge tile has none (Oldale's (0,11) can only be reached through (0,10)). A press counts as a try only when it is directions only, so a conversation started with A is never taken for the trigger's script.</p></section>
+<section><h2>Status</h2>
+<p>Branch <code>claude/blocked-exit-and-loss</code>. Gates: <code>just test</code>, <code>just lint</code>, <code>just build</code>, <code>just coverage</code> (90% floor). Replays on recorded runs 54a7 and sh02 only; no measured runs, no live probe (lane freeze until 10 AM). The pending experiment entry is registered, not queued; only the operator approves runs.</p></section>
+</main>
+</body>
+</html>

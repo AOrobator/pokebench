@@ -1,0 +1,12 @@
+attempt del8-fingerprint-ignores-field
+file src/loop-detection.ts sha256 before ca6baae06393e795bc4c4d4daffea2137d1383533e82ef945067d1cae653f8ad
+mutation: semanticState also fingerprints trainer_opponent
+139a140
+>     trainer_opponent: state.trainer_opponent,
+--- broken run
+     × the loop guard's fingerprint is the same with and without the field 3ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected '{"badges":["STONE"],"dialogue":null,"…' to be '{"badges":["STONE"],"dialogue":null,"…' // Object.is equality
+      Tests  1 failed | 16 passed (17)
+--- restored sha256 ca6baae06393e795bc4c4d4daffea2137d1383533e82ef945067d1cae653f8ad (equal: yes)
+restored run:       Tests  17 passed (17)

@@ -12,7 +12,7 @@ import {toolSwitches} from "./play-config.js";
 import {speakerLabel} from "./dialogue-log.js";
 import {onScreen,type OnScreenObject} from "./script-line-presence.js";
 import {MESSAGE_WAITING} from "./navigation.js";
-import {OPENED_LOCK_NOTE,STILL_LOCKED_NOTE,STILL_OPEN_NOTE,pressResult} from "./press-result.js";
+import {OPENED_LOCK_NOTE,STILL_LOCKED_NOTE,STILL_OPEN_NOTE,ignoredSteps,pressResult,pushbackPressResult,scriptMove} from "./press-result.js";
 import {BattleJournal,advanceBattle,battleEngaged,battlePage,levelUpListedPage,type BattleTextEntry,type BattleTextSource} from "./battle-text-auto-advance.js";
 
 export const AUTO_ADVANCE_LIMITS={presses:50,callMs:90_000,waitMs:10_000,pollMs:100} as const;
@@ -229,13 +229,16 @@ export function afterAdvance(line:string,detail:string):string {
  return kept===line?line:`${kept}; after auto-advance: ${detail}`;
 }
 // navigate_to's status was read before auto-advance ran; restate why it stopped and what is true now.
-export function navigationAfter(raw:unknown,outcome:Pick<Outcome,"stop"|"detail">):string|null {
+export function navigationAfter(raw:unknown,outcome:Pick<Outcome,"stop"|"detail">,moved:string|null=null):string|null {
  if(typeof raw!=="object"||raw===null||!("navigation" in raw))return null;
  const nav=raw.navigation;
  if(typeof nav!=="object"||nav===null||!("unready" in nav)||nav.unready!==true||!("status" in nav)||typeof nav.status!=="string"||!("commands" in nav)||typeof nav.commands!=="number")return null;
  const interrupted=nav.status.startsWith("walk interrupted: ");
  const message=nav.status===MESSAGE_WAITING||nav.status===`walk interrupted: ${MESSAGE_WAITING}`;
  const why=interrupted?`walk interrupted: ${message?"a message opened":"field controls were locked"}`:`${message?"a message was open":"field controls were not free"}, so navigate_to did not walk`;
+ // pushback-press-result-v1: a script moved the player while the dialogue advanced, so the old advice to call again
+ // (from the state before the advance) no longer describes what happened.
+ if(moved!==null)return `Navigation: ${why}; after auto-advance: ${outcome.detail}; ${moved}; ${String(nav.commands)} ordinary button attempts.`;
  return `Navigation: ${why}; after auto-advance: ${outcome.detail}${outcome.stop==="field_free"?"; call navigate_to again":""}; ${String(nav.commands)} ordinary button attempts.`;
 }
 // The inner press's own Press result: computed on the shared observe/press tracker, so it keeps
@@ -270,13 +273,14 @@ function who(page:DialoguePage):string {
 export function pageLines(pages:readonly DialoguePage[],turn:number):string[] {
  return pages.map((page,i)=>`${String(i+1)}. turn ${String(turn)} · ${place(page)}${who(page)}: "${page.text}"`);
 }
-function summary(outcome:Outcome,pages:readonly DialoguePage[],dropped:readonly Button[],turn:number):string {
+function summary(outcome:Outcome,pages:readonly DialoguePage[],dropped:readonly Button[],turn:number,ignored:readonly Button[]=[]):string {
  const battle=outcome.battlePresses;
  const field=outcome.presses-(battle??0);
  const lines=[battle===undefined
   ?`Dialogue auto-advance: the harness pressed B ${plural(outcome.presses,"time")} to advance the dialogue; stopped: ${outcome.detail}.`
   :`Battle text auto-advance: the harness pressed B ${plural(battle,"time")} to advance battle messages${field>0?` and ${plural(field,"time")} to advance field dialogue`:""}; stopped: ${outcome.detail}.`];
  if(dropped.length>0)lines.push(`${battle!==undefined?"the harness took over the battle text":outcome.stop==="field_free"||outcome.stop==="locked_no_message"?"dialogue closed":"dialogue reached a decision point"}; ${plural(dropped.length,"remaining input")} not sent: ${dropped.join(", ")}.`);
+ if(ignored.length>0)lines.push(`${plural(ignored.length,"input")} of your batch had no effect (counted as dropped): the message opened during the batch and held field controls while ${ignored.length===1?"it was":"they were"} pressed: ${ignored.join(", ")}.`);
  if(outcome.note!=null)lines.push(outcome.note);
  if(pages.length>0){
   lines.push(`Dialogue shown during this call (${plural(pages.length,"page")}, in order, whole):`,...pageLines(pages,turn));
@@ -308,10 +312,11 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
  const battleSource=features["battle-text-auto-advance-v1"]?battleTextSource(full.state):null;
  const known={last:0};
  const openBattle=async(signal?:AbortSignal):Promise<BattleCall|null>=>battleSource===null?null:{journal:await BattleJournal.open(battleSource,known,signal),source:battleSource,known,levelupBox:features["levelup-box-v1"]};
- const finish=async(id:string,tool:"press"|"navigate_to",outcome:Outcome,pages:Pages,requested:readonly Button[],sent:readonly Button[],dropped:readonly Button[],began:number,signal?:AbortSignal)=>{
-  const event=full.recorder.recordDialogueAutoAdvance({tool_call_id:id,tool,requested:[...requested],sent:[...sent],dropped:[...dropped],auto_presses:outcome.presses,...(outcome.battlePresses===undefined?{}:{battle_auto_presses:outcome.battlePresses}),pages:pages.pages,stop:outcome.stop,detail:outcome.detail,duration_ms:Math.max(0,Math.round(full.clock.now()-began))});
+ const finish=async(id:string,tool:"press"|"navigate_to",outcome:Outcome,pages:Pages,requested:readonly Button[],sent:readonly Button[],dropped:readonly Button[],began:number,signal?:AbortSignal,ignored:readonly Button[]=[])=>{
+  // pushback-press-result-v1: inputs the game ignored under the message's lock count as dropped, not sent.
+  const event=full.recorder.recordDialogueAutoAdvance({tool_call_id:id,tool,requested:[...requested],sent:sent.slice(0,sent.length-ignored.length),dropped:[...ignored,...dropped],auto_presses:outcome.presses,...(outcome.battlePresses===undefined?{}:{battle_auto_presses:outcome.battlePresses}),pages:pages.pages,stop:outcome.stop,detail:outcome.detail,duration_ms:Math.max(0,Math.round(full.clock.now()-began))});
   const seen=await observe.execute(id,{},signal);
-  return {seen,state:stateOf(seen),block:summary(outcome,pages.pages,dropped,event.turn)};
+  return {seen,state:stateOf(seen),block:summary(outcome,pages.pages,dropped,event.turn,ignored)};
  };
  let open:OpenMessage|null=null;
  const execute=async(id:string,params:PressParams,signal?:AbortSignal,update?:Parameters<CheckedPressTool["execute"]>[3],check?:BeforePressCheck):Promise<AgentToolResult<{state:GameStateSnapshot|undefined}>>=>{
@@ -353,14 +358,17 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
    const outcome=await drive(after,pages,autoPress(id),full,battle,signal);detail=outcome.detail;
    open=pages.openAt(outcome.state);
    extras.push(...outcome.extras);
-   const done=await finish(id,"press",outcome,pages,params.buttons,sent,dropped,began,signal);
+   // pushback-press-result-v1: a walk batch is one submission; once its first step opened a message, the steps
+   // the player did not take were pressed under the message's lock.
+   const ignored=switches.pushback===true&&walk?ignoredSteps(before,after,sent):[];
+   const done=await finish(id,"press",outcome,pages,params.buttons,sent,dropped,began,signal,ignored);
    final=done.seen;block=done.block;
   }else final=await observe.execute(id,{},signal);
   const finalState=stateOf(final);
   const seen=observation(final);
   const head=[`pressed ${sent.join(", ")}`,
    ...(plan.length<params.buttons.length||(walk&&sent.length<plan.length)?[`Interface safety: submitted ${String(walk?sent.length:plan.length)} of ${String(params.buttons.length)} requested inputs; remaining inputs were not sent. Inspect the new state before another input.`]:[]),
-   ...(switches.pressResult?[`Press result: ${results.every(r=>r.line!==null)?(line=>detail===null?line:afterAdvance(line,detail))(results.length===1?results[0]?.line??"":results.map((r,i)=>`${i===0?"":"then "}${r.buttons.join(", ")}: ${r.line??""}`).join(" | ")):pressResult(before,finalState,sent,switches)}`]:[]),
+   ...(switches.pressResult?[`Press result: ${(line=>switches.pushback===true&&engaged?pushbackPressResult(line,before,after,finalState,switches):line)(results.every(r=>r.line!==null)?(line=>detail===null?line:afterAdvance(line,detail))(results.length===1?results[0]?.line??"":results.map((r,i)=>`${i===0?"":"then "}${r.buttons.join(", ")}: ${r.line??""}`).join(" | ")):pressResult(before,finalState,sent,switches))}`]:[]),
    ...(block===null?[]:[block])];
   return {content:[...seen.images,{type:"text",text:`${head.join("\n")}\n\n${seen.text}`},...extras],details:{state:finalState}};
  };
@@ -381,7 +389,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
    const seen=observation(done.seen);
    // navigate_to's own status line comes first; its last frame is replaced by the fresh observation.
    const raw:unknown=result.details;
-   const restated=navigationAfter(raw,outcome);
+   const restated=navigationAfter(raw,outcome,switches.pushback===true?scriptMove(state,done.state,switches):null);
    const status=result.content.slice(0,1).filter((part):part is TextContent=>part.type==="text").map(part=>restated===null?part:{...part,text:restated});
    return {content:[...status,...seen.images,{type:"text",text:`${done.block}\n\n${seen.text}`},...outcome.extras],details:{...Object(raw) as object,state:done.state}};
   }} satisfies AgentTool;

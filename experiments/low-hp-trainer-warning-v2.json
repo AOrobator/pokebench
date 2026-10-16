@@ -131,5 +131,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Incumbent: the finals incumbent with low-hp-trainer-warning-v1 ON, since v2 needs v1 and only widens it; the candidate flips v2 alone. Earliest activation is ROUTE_103 (the rival is the first story battle it covers). Meant for the bundle arm (operator 2026-10-16 2:43 PM EDT; the readiness thread edits the bundle file). Provisional source.commit is the branch head before merge; repin with `just experiment-pin` when it lands."
+ "notes": "Incumbent: the finals incumbent with low-hp-trainer-warning-v1 ON, since v2 needs v1 and only widens it; the candidate flips v2 alone. Earliest activation is ROUTE_103 (the rival is the first story battle it covers). Meant for the bundle arm (operator 2026-10-16 2:43 PM EDT; the readiness thread edits the bundle file). Provisional source.commit is the branch head before merge; repin with `just experiment-pin` when it lands. Not designed (pokebench-experiment-design) and not queued: design it, with the operator's GPU-hour budget and a checkpoint start, before it is queued or driven as a cohort (experiment-queue skill, Design before queueing)."
 }

@@ -49,7 +49,7 @@ describe("briefing-exits-v1 on cook #2 (sh02): the recorded stall briefings at s
   expect(off[0]?.text).toContain(MAYS_OFF);
  });
 
- it("ON never lists the door the player arrived on and left through (T113-T116), or the trigger it stood on, as untried",()=>{
+ it("ON never lists the door the player arrived on and left through (T113-T116), or the trigger on that door tile, as untried",()=>{
   for(const r of replay({...RECORDED,[ID]:true})){
    const elsewhere=line(r.text,"- Not tried yet on other maps");
    expect(elsewhere).toContain(MAYS_ON);
@@ -110,6 +110,21 @@ describe("exit history",()=>{
   expect(usedWarps(two,9,8,"0/9").map(w=>[w.x,w.y])).toEqual([[9,9]]);
   expect(usedWarps([warp(3,3,[127,127,0])],3,4,"5/5").map(w=>[w.x,w.y])).toEqual([[3,3]]);
   expect(usedWarps([warp(3,3,[127,127,0])],9,9,"5/5")).toEqual([]);
+ });
+
+ it("takes a warp that leads to the same map (teleporter pads) when the player jumps between two of them; a walk or a ledge hop takes none",()=>{
+  // Shape of pokeemerald AquaHideout_B1F: pads whose warp events lead back to the same map at another pad.
+  const PADS=[warp(3,3,[24,24,1]),warp(20,10,[24,24,0]),warp(9,9,[0,9,0])];
+  const h=new ExitHistory();
+  h.observe(place([24,24],3,4,PADS));
+  expect(h.observe(place([24,24],3,5,PADS))).toEqual([]);
+  expect(h.observe(place([24,24],3,7,PADS))).toEqual([]);
+  h.observe(place([24,24],3,4,PADS));
+  expect(h.observe(place([24,24],20,10,PADS)).map(m=>m.tile)).toEqual(["3,3","20,10"]);
+  expect([h.taken("24/24",3,3),h.taken("24/24",20,10),h.taken("24/24",9,9)]).toEqual([true,true,false]);
+  // A same-map jump with no pad next to either tile (a whiteout, a scripted move) takes nothing.
+  const g=new ExitHistory();g.observe(place([24,24],12,1,PADS));
+  expect(g.observe(place([24,24],12,15,PADS))).toEqual([]);
  });
 
  it("counts a map connection crossed only when no warp explains the change, and ignores loads, battles and unstarted states",()=>{

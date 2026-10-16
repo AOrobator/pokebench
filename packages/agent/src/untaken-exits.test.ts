@@ -114,6 +114,17 @@ describe("untaken-exits-v1 production wiring",()=>{
   expect(await text(tools,"observe")).toBe(readout);
   expect(withUntakenExits(base,OFF,r)).toEqual(base);
  });
+ it("learns the map change from the result's own state when the recorder has not delivered it yet (live order)",()=>{
+  const exits=new UntakenExits(ALL_ON);
+  const hall:GameStateSnapshot={...snapshot,interaction_targets:[{kind:"warp",x:1,y:0,elevation:0,activation:"movement",availability:"conditional",facing:null,local_id:null,destination:[4,4,0],name:"w"}]};
+  const room:GameStateSnapshot={...snapshot,location:"ROOM",map_id:[4,4],position:{x:3,y:3},interaction_targets:[{kind:"warp",x:3,y:3,elevation:0,activation:"movement",availability:"conditional",facing:null,local_id:null,destination:[3,3,0],name:"w"}]};
+  const e=(seq:number,s:GameStateSnapshot)=>checkEvent({v:1,run:"u",t:"2026-10-16T03:00:00.000-04:00",turn:1,seq,type:"state",...s});
+  exits.observe(e(1,{...hall,position:{x:1,y:1}}));
+  // The press result's state reaches the wrapper before the recorder records it.
+  expect(exits.annotate("Location: ROOM\nPosition: X=3, Y=3, facing up",room)).toBe("Location: ROOM\nPosition: X=3, Y=3, facing up\nExits here you have not taken: none (you have taken every exit on this map this run)");
+  exits.observe(e(2,room));
+  expect(exits.line(room,"")).toBe("Exits here you have not taken: none (you have taken every exit on this map this run)");
+ });
  it("ON leaves other tools, results without a state and results without a Location line alone; annotates navigate_to",async()=>{
   const r=recorder();
   const other=tool("get_dialogue");

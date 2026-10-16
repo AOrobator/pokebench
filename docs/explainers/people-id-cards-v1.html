@@ -1,0 +1,139 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>People ID Cards</title><style>
+:root{--bg:#f6f4ee;--fg:#1f2421;--muted:#6b6f68;--card:#ffffff;--line:#e3dfd3;--accent:#2f6fde;--accent2:#e0802a;--bad:#d2493a;--good:#2e9d63;
+--floor:#f3ead6;--wall:#7d776d;--water:#8cc3ea;--npc:#8c8f86;--obj:#b08a5a;--shadow:rgba(30,30,20,.10)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#121512;--fg:#e9ece6;--muted:#9ba196;--card:#1b1f1b;--line:#2d332d;--accent:#78a8ff;--accent2:#f0a050;--bad:#ff7a6a;--good:#58cf8d;
+--floor:#3a362c;--wall:#5b5750;--water:#3f78a8;--npc:#6d7068;--obj:#8a6a3a;--shadow:rgba(0,0,0,.35)}}
+:root[data-theme=dark]{--bg:#121512;--fg:#e9ece6;--muted:#9ba196;--card:#1b1f1b;--line:#2d332d;--accent:#78a8ff;--accent2:#f0a050;--bad:#ff7a6a;--good:#58cf8d;
+--floor:#3a362c;--wall:#5b5750;--water:#3f78a8;--npc:#6d7068;--obj:#8a6a3a;--shadow:rgba(0,0,0,.35)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Helvetica,Arial,sans-serif}
+main{max-width:960px;margin:0 auto;padding:32px 16px 72px}
+.eyebrow{font:600 12px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;color:var(--accent2);text-transform:uppercase}
+h1{font-size:34px;line-height:1.15;margin:10px 0 8px;letter-spacing:-.02em}h2{font-size:21px;margin:44px 0 6px}h3{margin:0 0 6px;font-size:16px}
+.lead{font-size:18px;color:var(--muted);max-width:720px}.cap{color:var(--muted);font-size:14px;margin:10px 2px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 1px 2px var(--shadow),0 8px 24px var(--shadow)}
+.scroll{overflow-x:auto}svg{display:block;max-width:100%;height:auto}
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media (max-width:760px){.vs{grid-template-columns:1fr}}.vs>*{min-width:0}
+.tag{display:inline-block;font:600 11px/1 ui-monospace,Menlo,monospace;padding:4px 8px;border-radius:6px;margin-right:6px;vertical-align:2px}.tag.off{background:var(--line);color:var(--muted)}.tag.on{background:var(--accent);color:#fff}
+table{border-collapse:collapse;width:100%;font-size:14.5px}td,th{padding:9px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}tr:last-child td{border-bottom:0}
+code{font:13px ui-monospace,Menlo,monospace;overflow-wrap:anywhere}
+.floor{fill:var(--floor);stroke:var(--line)}.wall{fill:var(--wall);stroke:var(--line)}.water{fill:var(--water);stroke:var(--line)}.obj{fill:var(--obj);stroke:var(--line)}
+.npc{fill:var(--npc);stroke:#fff;stroke-width:2.5}.player{fill:var(--accent);stroke:#fff;stroke-width:3}
+.goal{fill:none;stroke:var(--bad);stroke-width:3;stroke-dasharray:5 4}.stand{fill:none;stroke:var(--good);stroke-width:3}
+.t{font:12px -apple-system,Helvetica,sans-serif;fill:var(--fg)}.tm{font:11px ui-monospace,Menlo,monospace;fill:var(--muted)}.tg{font:700 12px -apple-system,Helvetica,sans-serif;fill:var(--good)}
+.node rect{fill:var(--card);stroke:var(--line);stroke-width:1.5}.node.hot rect{fill:color-mix(in srgb,var(--accent2) 22%,var(--card));stroke:var(--accent2);stroke-width:2}
+.nt{font:600 13px -apple-system,Helvetica,sans-serif;fill:var(--fg);text-anchor:middle}.ns{font:11.5px -apple-system,Helvetica,sans-serif;fill:var(--muted);text-anchor:middle}
+.flow{fill:none;stroke:var(--muted);stroke-width:2}.fl{font:11px -apple-system,Helvetica,sans-serif;fill:var(--muted)}
+</style><style>pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12.5px/1.5 ui-monospace,Menlo,monospace;margin:0;background:color-mix(in srgb,var(--line) 35%,var(--card));padding:12px;border-radius:10px}
+.st rect{fill:var(--card);stroke:var(--line);stroke-width:1.5}.st.hot rect{fill:color-mix(in srgb,var(--accent) 18%,var(--card));stroke:var(--accent);stroke-width:2}</style></head><body><main>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker>
+</defs></svg>
+<div class="eyebrow">Harness switch · people-id-cards-v1 · default OFF · needs people-ledger-v1</div>
+<h1>An ID card for each person who comes into view</h1>
+<p class="lead">When a person comes into view, the result shows their ID card: only what the game itself has shown or stored about them in this run. The harness writes no relation, role, trainer fact or goal of its own; the game's words are quoted whole, directions included. One prompt line asks the model to consider who this person is to it and where they fit in the story. Approved by the operator 2026-10-16, 4:47 PM New York time.</p>
+
+<h2>Why</h2>
+<div class="card"><p>Run <code>4caa</code>: after PROF. BIRCH said at turn 143 <code>"My kid, MAY, is also studying POKéMON while helping me out."</code>, the model reached Route 103 and spent turns 199–266 walking toward the water-gated east side. MAY was on screen in 8 of those results (turns 211, 239, 246, 262–266); the other readouts named her only as an out-of-view entry. It talked to her at turn 267. The operator asked for an ID card, not a supervisor telling the model what to do.</p></div>
+
+<h2>When a card is shown</h2>
+<div class="card scroll">
+<svg viewBox="0 0 900 250" style="min-width:640px" role="img" aria-label="Card trigger states: never seen, in view, out of view; a card on first sight and on re-entry after the card changed">
+<g class="st"><rect x="20" y="95" width="160" height="60" rx="10"/><text class="nt" x="100" y="121">never seen</text><text class="ns" x="100" y="139">this run</text></g>
+<g class="st hot"><rect x="330" y="20" width="220" height="64" rx="10"/><text class="nt" x="440" y="46">in view</text><text class="ns" x="440" y="66">compact summary on the ledger row</text></g>
+<g class="st"><rect x="330" y="166" width="220" height="64" rx="10"/><text class="nt" x="440" y="192">out of view</text><text class="ns" x="440" y="212">facts keep updating</text></g>
+<g class="st"><rect x="690" y="95" width="190" height="60" rx="10"/><text class="nt" x="785" y="121">no card</text><text class="ns" x="785" y="139">back in view, unchanged</text></g>
+<path class="flow" d="M180 115 L328 60" marker-end="url(#a)"/><text class="fl" x="190" y="70">first sight: CARD</text>
+<path class="flow" d="M420 84 V164" marker-end="url(#a)"/><text class="fl" x="300" y="128">leaves view</text>
+<path class="flow" d="M470 164 V86" marker-end="url(#a)"/><text class="fl" x="478" y="128">back, card changed: CARD</text>
+<path class="flow" d="M550 198 L688 135" marker-end="url(#a)"/><text class="fl" x="600" y="186">back, same card</text>
+<path class="flow" d="M688 115 L552 60" marker-end="url(#a)"/>
+</svg>
+<p class="cap">In view = the live, visible objects on the current map within 7 columns and 5 rows of the player (the same window script-line presence uses), people only: no Pokémon, items, trees, boxes or vehicles. While a person stays in view no card repeats; the ledger row's summary changes at once. On run 4caa this shows 38 cards in 598 turns.</p></div>
+
+<h2>What a card holds, and where each part comes from</h2>
+<div class="card scroll"><table style="min-width:620px">
+<tr><th>Part</th><th>Source</th><th>Never</th></tr>
+<tr><td>Sprite kind, map object, tile</td><td>the result's own state (<code>world_context.objects</code>)</td><td>a name from the sprite</td></tr>
+<tr><td>Name</td><td>character presence's rule (only with <code>character-presence-v1</code> on), with provenance: the turn the game first showed it, or "from the harness's story-character table" until then</td><td>names for anyone else</td></tr>
+<tr><td>Seen on</td><td>the results where the person was in view</td><td>where they are when out of view</td></tr>
+<tr><td>Last spoke to you</td><td>every page of the last conversation that is theirs, whole: their NAME: label, the faced sprite, or a speakerless page after an A press facing them</td><td>pages of this same call (the result's dialogue list already has them), errored results, level-up pages</td></tr>
+<tr><td>Other pages that name them</td><td>delivered field pages containing the name, each once</td><td>pages the model was not shown</td></tr>
+<tr><td>Battles with you</td><td>the game's own battle text: the "{CLASS} {NAME} would like to battle!" page right after their lines labels the rest</td><td>trainer type, sight range, beaten flag, a trainer's name before the battle</td></tr>
+</table><p class="cap">Nothing is clipped. Identity: a story character by name across maps, everyone else by map and local object id.</p></div>
+
+<h2>Recorded example: run 4caa, turn 211 (MAY on Route 103)</h2>
+<div class="vs">
+<div class="card"><span class="tag off">OFF</span><p>The readout lists <code>- object 2, MAY (sprite RIVAL_MAY_NORMAL), at (10,3): not talked to this run</code> in the people block, and nothing else about her.</p></div>
+<div class="card"><span class="tag on">ON</span><p>The row ends <code>; ID card: name shown by the game on turn 107; last spoke to you on turn 107; battles: none</code>, and right after the people block:</p></div>
+</div>
+<div class="card" style="margin-top:16px"><pre>ID cards for people who just came into view (only what the game has shown or stored in this run):
+ID card: MAY (sprite RIVAL_MAY_NORMAL), map object 2, at 10,3 on ROUTE103 (map 0/18)
+- Name: MAY. The game first showed this name on turn 107.
+- Seen on: PROF. BIRCH&#x27;S HOUSE 1F (map 1/2) from turn 105; ROUTE103 (map 0/18) from turn 211.
+- Last spoke to you: turn 107, 13 pages, whole:
+  turn 107 · PROF. BIRCH&#x27;S HOUSE 1F (map 1/2) · at 2,4 · RIVAL_MAY_NORMAL (sprite kind, not a name): &quot;Huh?
+Who… Who are you?&quot;
+  turn 107 · PROF. BIRCH&#x27;S HOUSE 1F (map 1/2) · at 2,4 · RIVAL_MAY_NORMAL (sprite kind, not a name): &quot;… … … … … … … …
+… … … … … … … …&quot;
+  turn 107 · PROF. BIRCH&#x27;S HOUSE 1F (map 1/2) · at 2,4 · RIVAL_MAY_NORMAL (sprite kind, not a name): &quot;Oh, you&#x27;re RAED.
+So your move was today.&quot;
+  turn 107 · PROF. BIRCH&#x27;S HOUSE 1F (map 1/2) · at 2,4 · RIVAL_MAY_NORMAL (sprite kind, not a name): &quot;Um… I&#x27;m MAY.
+Glad to meet you!&quot;
+  turn 107 · PROF. BIRCH&#x27;S HOUSE 1F (map 1/2) · at 2,4 · RIVAL_MAY_NORMAL (sprite kind, not a name): &quot;I…
+I have this dream of becoming friends&quot;
+  turn 107 · PROF. BIRCH&#x27;S HOUSE 1F (map 1/2) · at 2,4 · RIVAL_MAY_NORMAL (sprite kind, not a name): &quot;with POKéMON all over the world.&quot;
+  turn 107 · PROF. BIRCH&#x27;S HOUSE 1F (map 1/2) · at 2,4 · RIVAL_MAY_NORMAL (sprite kind, not a name): &quot;I… I heard about you, RAED, from
+my dad, PROF. BIRCH.&quot;
+  turn 107 · PROF. BIRCH&#x27;S HOUSE 1F (map 1/2) · at 2,4 · RIVAL_MAY_NORMAL (sprite kind, not a name): &quot;I was hoping that you would be nice,
+RAED, and that we could be friends.&quot;
+  turn 107 · PROF. BIRCH&#x27;S HOUSE 1F (map 1/2) · at 2,4 · RIVAL_MAY_NORMAL (sprite kind, not a name): &quot;Oh, this is silly, isn&#x27;t it?
+I… I&#x27;ve just met you, RAED.&quot;
+  turn 107 · PROF. BIRCH&#x27;S HOUSE 1F (map 1/2) · at 2,4 · RIVAL_MAY_NORMAL (sprite kind, not a name): &quot;Eheheh…&quot;
+  turn 107 · PROF. BIRCH&#x27;S HOUSE 1F (map 1/2) · at 2,4 · RIVAL_MAY_NORMAL (sprite kind, not a name): &quot;Oh, no! I forgot!&quot;
+  turn 107 · PROF. BIRCH&#x27;S HOUSE 1F (map 1/2) · at 2,4 · RIVAL_MAY_NORMAL (sprite kind, not a name): &quot;I was supposed to go help Dad catch
+some wild POKéMON!&quot;
+  turn 107 · PROF. BIRCH&#x27;S HOUSE 1F (map 1/2) · at 2,4 · RIVAL_MAY_NORMAL (sprite kind, not a name): &quot;RAED, I&#x27;ll catch you later!&quot;
+- Other pages that name them (each once, in order, whole):
+  turn 143 · PROF. BIRCH&#x27;S POKéMON LAB (map 1/4) · at 6,5 · PROF. BIRCH: &quot;My kid, MAY, is also studying
+POKéMON while helping me out.&quot;
+  turn 143 · PROF. BIRCH&#x27;S POKéMON LAB (map 1/4) · at 6,5 · PROF. BIRCH: &quot;RAED, don&#x27;t you think it might be
+a good idea to go see MAY?&quot;
+  turn 144 · PROF. BIRCH&#x27;S POKéMON LAB (map 1/4) · at 6,5 · PROF. BIRCH: &quot;PROF. BIRCH: Great!
+MAY should be happy, too.&quot;
+  turn 144 · PROF. BIRCH&#x27;S POKéMON LAB (map 1/4) · at 6,5 · PROF. BIRCH: &quot;Get MAY to teach you what it
+means to be a TRAINER.&quot;
+- Battles with you: none recorded in this run.</pre><p class="cap">Exactly what the card model produces from the recorded run (test <code>people-id-cards.test.ts</code>). Birch's direction is the game's own text, quoted verbatim.</p></div>
+
+<h2>More recorded cards</h2>
+<div class="vs">
+<div class="card"><pre>ID card: sprite NURSE, map object 1, at 7,2 on OLDALE TOWN POKEMON CENTER 1F (map 2/2)
+- Name: none shown by the game (a sprite kind is a graphic, not a name).
+- First seen: turn 184, here.
+- Has not spoken to you in this run.
+- Battles with you: none recorded in this run.</pre><p class="cap">4caa turn 184, the nurse at first sight. After she talks (turns 185–186), her card at turn 297 quotes her four pages.</p></div>
+<div class="card"><pre>ID card: sprite YOUNGSTER, map object 2, at 33,14 on ROUTE102 (map 0/17)
+- Name: none shown by the game (a sprite kind is a graphic, not a name).
+- First seen: turn 551, here.
+- Has not spoken to you in this run.
+- Battles with you: none recorded in this run.</pre><p class="cap">4caa turn 551: an unbeaten trainer shows no trainer facts. In run f551, after the battle at turns 529–534, Calvin's card quotes "YOUNGSTER CALVIN would like to battle!" and "Player defeated YOUNGSTER CALVIN!".</p></div>
+</div>
+
+<h2>Prompt line (ON only)</h2>
+<div class="card"><p><code>ID cards: when a person comes into view for the first time, or comes back into view after something about them has changed, the result shows their ID card. A card holds only what the game itself has shown or stored about that person in this run: the name the game used, where you have seen them, their last words to you, other lines that name them, and any battles with you. When you read a card, consider who this person is to you and where they fit in the story so far.</code></p></div>
+
+<h2>Wiring and records</h2>
+<div class="card scroll">
+<svg viewBox="0 0 900 150" style="min-width:640px" role="img" aria-label="Wiring from the switch to the tool result and Activity History">
+<g class="node"><rect x="10" y="45" width="150" height="56" rx="10"/><text class="nt" x="85" y="69">FeatureSet</text><text class="ns" x="85" y="87">people-id-cards-v1</text></g>
+<g class="node hot"><rect x="200" y="45" width="190" height="56" rx="10"/><text class="nt" x="295" y="69">withPeopleIdCards</text><text class="ns" x="295" y="87">wraps untaken exits + ledger</text></g>
+<g class="node"><rect x="430" y="10" width="200" height="56" rx="10"/><text class="nt" x="530" y="34">tool result text</text><text class="ns" x="530" y="52">after the people block</text></g>
+<g class="node"><rect x="430" y="84" width="200" height="56" rx="10"/><text class="nt" x="530" y="108">people_id_card event</text><text class="ns" x="530" y="126">per card</text></g>
+<g class="node"><rect x="680" y="84" width="200" height="56" rx="10"/><text class="nt" x="780" y="108">Activity History</text><text class="ns" x="780" y="126">no timeline mark</text></g>
+<path class="flow" d="M160 73 H198" marker-end="url(#a)"/><path class="flow" d="M390 64 L428 40" marker-end="url(#a)"/><path class="flow" d="M390 82 L428 108" marker-end="url(#a)"/><path class="flow" d="M630 112 H678" marker-end="url(#a)"/>
+</svg>
+<p class="cap"><code>playGameTools</code>: navigate-first ⟶ people ID cards ⟶ untaken exits ⟶ people ledger ⟶ dialogue auto-advance ⟶ navigation. The card model reads the recorder's own events (states, dialogue_auto_advance, tool_result). Off: no cards, no row summaries, no prompt line, no event; results and prompt are byte-for-byte today's.</p></div>
+
+<h2>Status</h2>
+<div class="card"><p>Branch <code>claude/people-id-cards</code>. Tests replay recorded runs 4caa (whole run) and f551 (turns 480–560): the exact cards above, 38 cards over 4caa, battle text only after a battle, no harness relation words, OFF byte-identity, production wiring. Default OFF; pending experiment <code>experiments/people-id-cards.json</code>. Not done: measured runs, landing.</p></div>
+</main></body></html>

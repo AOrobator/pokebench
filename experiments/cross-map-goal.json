@@ -117,7 +117,8 @@
    "navigation-refusal-reasons-v2": false,
    "cross-map-goal-v1": false,
    "explorer-guidance-v2": false,
-   "ineffective-loops-v1": false
+   "ineffective-loops-v1": false,
+   "people-id-cards-v1": false
   }
  },
  "trialsPerArm": 8,

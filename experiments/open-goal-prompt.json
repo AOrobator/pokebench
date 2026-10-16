@@ -133,6 +133,7 @@
    "cross-map-goal-v1": true,
    "explorer-guidance-v2": true,
    "ineffective-loops-v1": true,
+   "people-id-cards-v1": true,
    "open-goal-prompt-v1": false
   },
   "start": {

@@ -209,6 +209,13 @@ const LowHpTrainerWarning = event("low_hp_trainer_warning", {
   text: Type.String({ minLength: 1 }),
 });
 
+// people-id-cards-v1: one ID card added to a game-tool result, with the person's identity and why it was shown.
+const PeopleIdCard = event("people_id_card", {
+  tool: Type.String({ minLength: 1 }), tool_call_id: Type.String({ minLength: 1 }),
+  key: Type.String({ pattern: "^(name:.+|obj:-?\\d+/-?\\d+#\\d+)$" }), reason: Type.Enum(["first", "changed"] as const),
+  text: Type.String({ minLength: 1 }),
+});
+
 // dialogue-auto-advance-v1: the harness advanced field dialogue to the next decision point within one tool call.
 // battle-text-auto-advance-v1 adds the battle_* stops and paused; its pages carry battle_turn and battle_message_id.
 export const DIALOGUE_AUTO_ADVANCE_STOPS = ["field_free", "menu", "naming", "battle", "screen_change", "locked_no_message", "interface_not_ready", "message_not_ready", "press_cap", "time_cap", "error", "battle_input", "battle_prompt", "battle_busy", "battle_unreadable", "paused"] as const;
@@ -535,6 +542,7 @@ export const RunEventSchema = Type.Union([
   Retry,
   TextOnlySupervisor,
   LowHpTrainerWarning,
+  PeopleIdCard,
   DialogueAutoAdvance,
   DiskUsage,
   FramesEvicted,

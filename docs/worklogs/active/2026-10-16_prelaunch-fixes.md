@@ -77,6 +77,7 @@ Done when every milestone is merged, qualification shows none of F1–F8, the fo
 
 ## Session Log
 
+- 2026-10-16 05:56 PM EDT: people-id-cards-v1 landed fast-forward at 04a4c165 (Claude, Codex, Grok LGTM; The operator approved the design 4:47 PM EDT) and joins the bundle-v-control bundle arm (base false; needs people-ledger-v1, on in both).
 - 2026-10-16 05:12 PM EDT: ineffective-loops-v1 (landed f7ee1bae, repin cbdee575) joins the bundle-v-control bundle arm (base false, no dependency).
 - 2026-10-16 04:58 PM EDT: **Control changed at pin d9d82b3f.** explorer-guidance-v1 off and explorer-guidance-v2 on in both arms (the operator 4:18 PM EDT: no talk-to-particular-NPC guidance; generic talk-to-people text). Control base frontier-incumbent-4caa edited in place, sha256 now 5f22d1b9; definition base matches; `fixed-run check` clean. Runs from earlier pins had v1 in control and are not comparable on this flag.
 - 2026-10-16 04:27 PM EDT: cross-map-goal-v1 (merged 85a52e85, pin fe65ac57) joins the bundle-v-control bundle arm (base false; needs bounded-navigation-v1, on in base). `fixed-run check` clean; definition sha256 60bfe9dd.

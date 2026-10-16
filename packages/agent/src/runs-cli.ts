@@ -62,8 +62,8 @@ export function runsCli(argv: readonly string[], runsRoot: string, capBytes: num
 
 export const RUNS_ROOT = new URL("../../../runs/", import.meta.url).pathname;
 
-export function main(argv: readonly string[], print: (line: string) => void): number {
-  return runsCli(argv, RUNS_ROOT, FRAME_CAP_BYTES, print);
+export function main(argv: readonly string[], print: (line: string) => void, runsRoot: string = RUNS_ROOT): number {
+  return runsCli(argv, runsRoot, FRAME_CAP_BYTES, print);
 }
 
 if (import.meta.main) {

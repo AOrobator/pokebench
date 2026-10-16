@@ -61,4 +61,4 @@ Branch claude/route103-review-notes. Claude-lane low/info notes from final round
 ## runs-cli disk test follow-up (coordinator handoff, 2026-10-16 13:40 EDT)
 
 `runs-cli.test.ts` "uses the repo runs/ directory and the 500 MB cap" called `main(["disk"])`, which scans the real 26 GB runs/ and timed out at 5 s under load (seen at 2cb0e316, b80c4481 and in the harness-bugs thread). Fix: `main` takes an optional runs root (default `RUNS_ROOT`); the test passes a fixture root and still checks the 500 MB cap wiring (exact output) and that `RUNS_ROOT` is the repo's runs/. No timeout change.
-- [ ] RED: the test asserts the fixture's 400 B against the 500 MB cap; main ignores the root (1 failing).
+- [x] RED: the test asserts the fixture's 400 B against the 500 MB cap; main ignores the root (1 failing). GREEN: runs-cli 16/16; agent, viewer 933, pytest 2372 pass (ROM set); coverage agent 97.99/94.69/98.4, viewer 95.33/91.09/93.68, Python 97.42/93.35/100; lint clean.

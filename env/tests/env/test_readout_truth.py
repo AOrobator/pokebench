@@ -177,6 +177,10 @@ def test_off_reproduces_what_the_model_received(seq: int) -> None:
     assert received.endswith(text)
     head = received[: -len(text)]
     assert head == "" or head.endswith("\n")
+    # The tail starts at the readout's first line: no "Screen:" line is left in the head
+    # (only press lines or a frame note come before it), so a dropped first line fails.
+    assert text.startswith("Screen: ")
+    assert not any(line.startswith("Screen: ") for line in head.split("\n"))
 
 
 def test_push_back_script_lock_reads_as_a_script_with_no_message() -> None:

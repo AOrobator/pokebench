@@ -310,6 +310,64 @@ def test_a_render_failure_puts_the_whiteout_back(monkeypatch: pytest.MonkeyPatch
     assert status == 200 and LINE in json.loads(body)["state_text"].split("\n")
 
 
+def test_concurrent_observations_deliver_whiteouts_one_at_a_time_oldest_first(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import threading
+
+    from pokebench_env import observation as observation_module
+    from pokebench_env.observation import install_observation
+
+    monkeypatch.setenv("POKEBENCH_FEATURES_OFF", "")
+    m = game(OVERWORLD)
+    latch = WhiteoutLatch(m.read)
+    latch.put_back(Whiteout(2000, 0))
+    latch.put_back(Whiteout(3000, 0))  # oldest first: 3000, then 2000
+    real = observation_module.render
+    entered, release = threading.Event(), threading.Event()
+    first = [True]
+
+    def slow_then_fail(*args, **kwargs):  # type: ignore[no-untyped-def]
+        if first[0]:
+            first[0] = False
+            entered.set()
+            release.wait(5)
+            raise RuntimeError("render failed")
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(observation_module, "render", slow_then_fail)
+    app = FastAPI()
+    install_observation(app, lambda: _Shot(), m.read, MAPS, whiteout=latch)
+    errors: list[BaseException] = []
+
+    def failing() -> None:
+        try:
+            get(app, "/pokebench/observation")
+        except RuntimeError as error:
+            errors.append(error)
+
+    a = threading.Thread(target=failing, daemon=True)
+    a.start()
+    assert entered.wait(5)
+    texts: list[str] = []
+    b = threading.Thread(
+        target=lambda: texts.append(
+            json.loads(get(app, "/pokebench/observation")[2])["state_text"]
+        ),
+        daemon=True,
+    )
+    b.start()
+    b.join(0.2)
+    assert b.is_alive(), "the second observation waits for the first delivery"
+    release.set()
+    a.join(5)
+    b.join(5)
+    assert len(errors) == 1
+    assert "₽3000 → ₽3000" in texts[0], "the oldest whiteout is delivered first"
+    third = json.loads(get(app, "/pokebench/observation")[2])["state_text"]
+    assert "₽2000 → ₽3000" in third
+
+
 def test_switch_is_a_default_off_server_feature() -> None:
     assert SWITCH in SERVER_FEATURES
     assert SWITCH in features_off_from_env({})

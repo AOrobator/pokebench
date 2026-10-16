@@ -288,6 +288,19 @@ describe("ineffective-loops-v1 fixture loading",()=>{
  });
 });
 
+describe("ineffective-loops-v1 explainer wiring",()=>{
+ it("names the argument position attachLoopGuard and LoopDetector actually give the switch",()=>{
+  const position=(source:string):number=>{
+   const params=/\(([^)]*)\)/.exec(source.replace(/\s+/g," "))?.[1]??"";
+   return params.split(",").map(p=>p.trim()).findIndex(p=>p.includes("ineffectiveLoops"))+1;
+  };
+  expect(position(attachLoopGuard.toString())).toBe(11);
+  expect(position(LoopDetector.toString().slice(LoopDetector.toString().indexOf("constructor")))).toBe(10);
+  const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/ineffective-loops-v1.html",import.meta.url)),"utf8");
+  expect(html).toContain(">11th argument (live, probe)<");
+ });
+});
+
 describe("ineffective-loops-v1 registry",()=>{
  it("is a default-off guard with no dependency, recorded last",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:null,switchable:true});

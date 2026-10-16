@@ -107,6 +107,11 @@ Merge locally after all lanes LGTM. No pending experiment entry (amendment 2). R
   - Sweep of the 60 most recent runs (OFF vs each switch ON, warnings/stops only): push-back adds sh02 T146/T265 and two others, both checked by hand and real: 939e T341 (the twin push-back without auto-advance, UP then A×3–4, (10,1)→(10,2)) and 9d86 T470 (Birch, LEFT,A,A ×3, (7,15)→(6,15)→(7,15)). Battle adds only sh02 T452. Limit: only sh02 (284) and show (1) have in-battle observes among those runs; sh02's battle changed between 15 consecutive in-battle observes outside the static stretch and none of those counted.
   - Positions +1 again (now +3 overall), guard count 14, switchboard rows 61. Tests: agent 1459 passed, viewer 801 passed; lint clean.
 
+- GREEN M2 commit a0cb78b5.
+- 2026-10-16 04:05 AM EDT: M3 explainers and observability.
+  - Explainers `docs/explainers/pushback-loop-detection-v1.html`, `pushback-press-result-v1.html`, `battle-observation-loop-v1.html` (inline CSS/SVG, `just pages-check` prints nothing), README entries, `FEATURE_EXPLAINERS` mappings (panels.ts) with panels tests (mapped file exists, renders a body heading).
+  - Observability trace: producer `LoopDetector` → `attachLoopGuard` → `RunRecorder.recordLoopGuard` (schema-validated; the factory tests run the real recorder and RunLog, and the replay tests `checkEvent` every notice) → model delivery through `piLoop`'s `transformContext`, which appends `loopDetector.context()` before every model call (unchanged seam, proven kind-agnostically by `loop-integration.test.ts`; the replay tests assert the SUPERVISOR text is what `context()` returns at the next turn_start) → viewer `RunView` timeline/Activity History label and replay cursor (new `model.test.ts` case with the sh02 receipts: "Short cycle warning · … · evidence #2973, #3062 · enforced", "Observation stall warning …", hidden before its time with `foldUntil`). No viewer code changed; the existing kinds `cycle` and `observation` carry the new hits. No live viewer session was started (brief: do not restart or launch the viewer).
+
 ## Surprises
 
 - `loop_guard` evidence is capped at 2 items by the event schema (`maxItems:2`); a 3-seq evidence list made the recorder throw in the factory test. Evidence is now [first push-back, completing call]. The replay tests validate every notice through `checkEvent`.

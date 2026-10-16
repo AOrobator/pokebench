@@ -635,6 +635,9 @@ it("links the named warp destinations card to its explainer",()=>{
  expect(FEATURE_EXPLAINERS["dialogue-auto-advance-v1"]).toBe("dialogue-auto-advance-v1.html");
  expect(FEATURE_EXPLAINERS["dialogue-context-kept-v1"]).toBe("dialogue-context-kept-v1.html");
  expect(FEATURE_EXPLAINERS["transition-loop-detection-v1"]).toBe("transition-loop-detection-v1.html");
+ expect(FEATURE_EXPLAINERS["pushback-loop-detection-v1"]).toBe("pushback-loop-detection-v1.html");
+ expect(FEATURE_EXPLAINERS["pushback-press-result-v1"]).toBe("pushback-press-result-v1.html");
+ expect(FEATURE_EXPLAINERS["battle-observation-loop-v1"]).toBe("battle-observation-loop-v1.html");
 });
 
 it("links the stall briefing card to its explainer",()=>{

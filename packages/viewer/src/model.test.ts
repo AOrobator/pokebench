@@ -289,6 +289,25 @@ it("replays loop warnings, recovery and stuck termination without conflating ret
   expect(view.errors.map(e=>[e.kind,e.label])).toEqual(["warning","recovered","stop"].map((phase,index)=>["loop",`Planning stall ${phase} · #${String(index+1)} · turn 1 · 0:00:00 · 6 completed calls · preceding tool not recorded: No action <yet> · evidence #1, #2 · historical mode unrecorded`]));expect(view.retry).toBe(null);
 });
 
+it("shows the push-back and battle observation warnings in the timeline and at the replay cursor (pushback-loop-detection-v1, battle-observation-loop-v1)",async()=>{
+ const {PUSHBACK_MESSAGE}=await import("../../agent/src/loop-detection.js");
+ const log=new Log();log.add(0,START);
+ log.add(1000,{type:"tool_call",turn:146,id:"c146",name:"press",args:{buttons:["UP"]}});
+ // The sh02 receipts: the warning at the third push-back, then the supervisor note at the same call.
+ log.add(2000,{type:"loop_guard",turn:146,kind:"cycle",mode:"enforced",phase:"warning",message:PUSHBACK_MESSAGE,calls:11,evidence:[2973,3062]});
+ log.add(2000,{type:"loop_guard",turn:146,kind:"cycle",mode:"enforced",phase:"supervisor",message:"SUPERVISOR: You are currently looping.",calls:11,evidence:[2973,3062]});
+ log.add(3000,{type:"tool_call",turn:452,id:"c452",name:"observe",args:{}});
+ log.add(4000,{type:"loop_guard",turn:452,kind:"observation",mode:"enforced",phase:"warning",message:"Repeated observations contain no new reliable game information.",calls:24,evidence:[10079]});
+ const view=fold(log);
+ expect(view.errors.map(e=>e.label)).toEqual([
+  `Short cycle warning · #2 · turn 146 · 0:00:02 · 11 completed calls · preceding tool press: ${PUSHBACK_MESSAGE} · evidence #2973, #3062 · enforced`,
+  "Short cycle supervisor message sent to the model · #3 · turn 146 · 0:00:02 · 11 completed calls · preceding tool press: SUPERVISOR: You are currently looping. · evidence #2973, #3062 · enforced",
+  "Observation stall warning · #5 · turn 452 · 0:00:04 · 24 completed calls · preceding tool observe: Repeated observations contain no new reliable game information. · evidence #10079 · enforced",
+ ]);
+ expect(foldUntil(log.events,BASE_MS+1999).errors).toEqual([]);
+ expect(foldUntil(log.events,BASE_MS+2000).errors.map(e=>e.kind)).toEqual(["loop","loop"]);
+});
+
 it("labels passive thresholds without inventing run termination",()=>{
  const log=new Log();log.add(0,START);const event=log.add(100,{type:"loop_guard",turn:1,kind:"planning",mode:"diagnostic",phase:"would_stop",message:"threshold",calls:12,evidence:[1]});const view=fold(log);
  expect(view.loopLabel(event as Extract<typeof event,{type:"loop_guard"}>)).toContain("diagnostic: would stop");expect(view.end).toBe(null);expect(view.retry).toBe(null);

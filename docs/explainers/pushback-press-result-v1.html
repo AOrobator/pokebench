@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Push-back Press Results</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:740px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navb{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.arr.g{stroke:var(--game)} .arr.p{stroke:var(--prior);stroke-dasharray:5 4}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tag{display:inline-block;font:500 .72rem var(--mono);border-radius:99px;padding:1px 8px;border:1px solid var(--rule);color:var(--soft)}
+</style>
+</head>
+<body>
+<main>
+<div class="eyebrow">Harness switch · guidance · <code>pushback-press-result-v1</code> · no dependency (inert without dialogue auto-advance) · off by default · bug fix: ON in both arms</div>
+<h1>Push-back press results</h1>
+<p class="lede">When a press opens a script's message, dialogue auto-advance pages it, and the script may move the player while it does. The press result only described the model's own input, so a push-back read as "no net movement" or only as a restarted conversation. With this switch on, the result says the player moved and a script moved them back, with the tiles. Off: today's text.</p>
+
+<section>
+<h2>Three snapshots, not two</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 170" width="700" role="img" aria-label="Before, pressed and after auto-advance snapshots">
+<rect x="10" y="30" width="190" height="64" rx="6" class="box"/><text x="105" y="52" text-anchor="middle" class="t">before the call</text><text x="105" y="72" text-anchor="middle">(7,15), free</text>
+<rect x="255" y="30" width="190" height="64" rx="6" class="navb"/><text x="350" y="52" text-anchor="middle" class="t">your input ended</text><text x="350" y="72" text-anchor="middle">(6,15), message open</text>
+<rect x="500" y="30" width="190" height="64" rx="6" class="game"/><text x="595" y="52" text-anchor="middle" class="t">after auto-advance</text><text x="595" y="72" text-anchor="middle">(7,15), free</text>
+<path d="M200 62 H253" class="arr"/><path d="M445 62 H498" class="arr g"/>
+<text x="226" y="20" text-anchor="middle" class="s">your press</text><text x="472" y="20" text-anchor="middle" class="s">script, while B pages</text>
+<text x="10" y="124" class="s">OFF compares the first two only. ON also compares the second and third: a tile change there is the script's.</text>
+<text x="10" y="142" class="s">If the third equals the first, the result says the player is back where the press began.</text>
+</svg>
+</div>
+<figcaption>Birch on Route 101, sh02 T263. Tiles from the recorded states 5928, 5942 and 5950.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>Before and after</h2>
+<table>
+<tr><th>Case</th><th>OFF (today)</th><th>ON</th></tr>
+<tr><td>Birch, first time</td><td><code>moved (7,15) -&gt; (6,15)</code></td><td><code>moved (7,15) -&gt; (6,15); this call: your press moved you (7,15) -&gt; (6,15), then a script moved you back (6,15) -&gt; (7,15) while the dialogue advanced; you are back where this press began</code></td></tr>
+<tr><td>Birch, again (sh02 T263+)</td><td><code>conversation restarted: this text was already shown (2nd time)</code></td><td><code>conversation restarted: this text was already shown (2nd time); this call: your press moved you (7,15) -&gt; (6,15), then a script moved you back (6,15) -&gt; (7,15) while the dialogue advanced; you are back where this press began</code></td></tr>
+<tr><td>Twin, message already open (sh02 T146)</td><td><code>locked (field controls locked in a snapshot; no net movement)</code></td><td><code>locked (field controls locked in a snapshot; no movement by the press); this call: your press did not move you, then a script moved you (11,1) -&gt; (11,2) while the dialogue advanced</code></td></tr>
+</table>
+<p>The OFF texts are the ones recorded in sh02, reproduced by the tests with a fake game. Tiles appear only when the player position is shown (<code>live-player-position-v1</code>); a script that moves the player to another map names both places. When the script did not move the player, the line is unchanged. Nothing is shortened.</p>
+</section>
+
+<section>
+<h2>Wiring</h2>
+<p><code>FeatureSet["pushback-press-result-v1"]</code> → <code>toolSwitches().pushback</code> → <code>withDialogueAutoAdvance</code>, which applies <code>pushbackPressResult</code> (press-result.ts) to the press result when auto-advance ran. <code>decision-probe</code> keeps auto-advanced results as recorded and refuses to flip this switch on them, as for the other switches that shape that text.</p>
+</section>
+
+<section>
+<h2>Status</h2>
+<p>Branch <code>claude/pushback-loop-guard</code>. Tests in <code>packages/agent/src/pushback-press-result.test.ts</code> (fake game for both scripts, wording rules, registry and tool-switch wiring). Ships with <a href="pushback-loop-detection-v1.html">push-back loop detection</a>. No measured runs.</p>
+</section>
+</main>
+</body>
+</html>

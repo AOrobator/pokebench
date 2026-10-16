@@ -89,6 +89,12 @@ describe("locating claims: the readout's own names only, conservatively",()=>{
   expect(locatingClaims("Professor Birch is probably at (7,7).","PROF. BIRCH")).toEqual([]);
   expect(locatingClaims("Perhaps Prof. Birch is at (7,7).","PROF. BIRCH")).toEqual([]);
  });
+ it("skips capitalized hedges and questions (review round 2)",()=>{
+  expect(locatingClaims("Could Professor Birch be at (7,7).","PROF. BIRCH")).toEqual([]);
+  expect(locatingClaims("Professor Birch Could be at (7,7).","PROF. BIRCH")).toEqual([]);
+  expect(locatingClaims("Is Professor Birch at (7,7)? I will check.","PROF. BIRCH")).toEqual([]);
+  expect(locatingClaims("Professor Birch cannot be at (7,7).","PROF. BIRCH")).toEqual([]);
+ });
 });
 
 describe("disproved-beliefs-v1 on run sh02",()=>{
@@ -246,6 +252,24 @@ describe("leaving the ledger and never clipping",()=>{
   expect(l.text()).toBeNull();
   call(l,"m","navigate_to",{x:2,y:0},at(2,4),[{}],at(2,2));
   expect(l.text()).toContain("- Moving UP from (2,1) in LAB (map 1/4): you tried it 1 time, at turn 1 (latest: navigate_to (2,0)).");
+ });
+ it("binds a push-back to the first direction of the call (review round 2)",()=>{
+  const l=new DisprovedBeliefs(ALL_ON);
+  const at=(x:number,y:number)=>({position:{x,y}});
+  // UP appears in the batch, but the call first went LEFT and the pages began one tile left: not "moving UP".
+  call(l,"a","press",{buttons:["LEFT","UP"]},at(2,2),[{position:{x:1,y:2}}],at(1,3));
+  expect(l.text()).toBeNull();
+  // The first step went LEFT onto the trigger tile and the script put the player back: "moving LEFT".
+  call(l,"b","press",{buttons:["LEFT","LEFT","UP"]},at(2,2),[{position:{x:1,y:2}}],at(2,2));
+  expect(l.text()).toContain("- Moving LEFT from (1,2) in LAB (map 1/4): you tried it 1 time");
+ });
+ it("drops conversations shown under an earlier story, so a later entry never quotes them (review round 2)",()=>{
+  const l=new DisprovedBeliefs(ALL_ON);
+  call(l,"a","press",{buttons:["A"]},{position:{x:5,y:5}},[{text:"Hunh? PROF. BIRCH?",position:{x:5,y:5}}],{position:{x:5,y:5}});
+  observeResult(l,"o1",LINE("none","PROF. BIRCH"),{story:story(1)},2);
+  say(l,"Prof. Birch is at (3,3).",3);
+  expect(l.text()).toContain("- PROF. BIRCH on LAB (map 1/4)");
+  expect(l.text()).not.toContain("you were shown");
  });
  it("keeps going with no story readout, forgets unanswered calls, and drops a stale readout on another map",()=>{
   const l=new DisprovedBeliefs(ALL_ON);

@@ -99,6 +99,13 @@ Report per switch: id, model-facing before/after excerpts from this run, precisi
 
 - 2026-10-16 04:50 AM EDT: merged main again (3c51c547: connection-edge-tiles-v1). Same resolution: main's registry files, both switches re-appended after connection-edge-tiles-v1, end-relative asserts +2, counts +1, server explainer list resolved to main's plus both ids, `dialogue-context-kept.test.ts` stub keeps `recordBeliefLedger`. Experiment incumbents regenerated in registry order (connection-edge-tiles-v1 explicit off); `experiment-cli check`: ok, 56. Gates: agent 1480 tests 97.85/94.46/98.27/99.09; viewer 827 tests 95.19/90.64/93.55/97.64; Python 2162 passed 97.15/92.87/100; lint clean except the known mypy `mgba._pylib`.
 
+### Round 2 (cumulative packet main 1e1feec9..dcb45ee2 excluding the fixture, SHA-256 4305e88a…10ac; fix delta e29510e3..fa456f63, SHA-256 e48b63ea…e915; principles unchanged, 0 FAIL)
+
+- Claude CLI: LGTM.
+- Codex (gpt-5.6-sol): BLOCKING. (1) capitalized hedges ("Could Professor Birch be at (7,7)") and questions ("Is Professor Birch at (7,7)?") still make claims; (2) a push-back direction is accepted when it appears anywhere in a batch, not bound to the input that met the script. Non-blocking: experiments still name c33cb859 (repin at landing); retained conversations survive a story change.
+- Grok: BLOCKING, same as Codex (1) for "Could". Non-blocking: stale comment ("no negation between"); "Cannot" missed by `\bnot\b`; soft dependencies.
+- Accepted: all; plus the conversation clearing and the comment. 2026-10-16 06:05 AM EDT round-2 RED: 3 failing tests (capitalized hedges/questions/cannot; first-direction binding; conversations dropped on story change).
+
 ## Surprises
 
 - The twin's coordinate trigger leaves the player at (11,1) with field controls locked and no message; the push back to (11,2) happens on the next press. A state-equality rule over one decision never sees this loop; a two-state rule does.

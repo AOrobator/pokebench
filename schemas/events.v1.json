@@ -124,6 +124,7 @@
                 "rejection",
                 "map_cycle",
                 "milestone_drought",
+                "interface_dwell",
                 "same_plan"
               ]
             },
@@ -203,6 +204,7 @@
                 "rejection",
                 "map_cycle",
                 "milestone_drought",
+                "interface_dwell",
                 "same_plan"
               ]
             },
@@ -287,6 +289,7 @@
                 "rejection",
                 "map_cycle",
                 "milestone_drought",
+                "interface_dwell",
                 "same_plan"
               ]
             },

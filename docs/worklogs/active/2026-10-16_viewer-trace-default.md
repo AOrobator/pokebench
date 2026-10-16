@@ -10,10 +10,11 @@ Viewer-only layout change; no feature switch (feature-switch skill excludes view
 - [x] Cause: `.page-content .logcols { height:430px }` was fixed while `.inspection-nav` grows to `100svh` minus the bar, so at 1440x1300 the log ended at y=685 inside a page-content ending at y=1258.
 - [x] GREEN: index.html presses AGENT TRACE and hides NEXT RUN; `.trace-content` is a flex column with `.logcols { flex:1 }` and the log and inspector `height:auto`. Phone width keeps the stacked 360px log and inspector and scrolls the page content.
   - Browser proof against live 8790 with the rule injected client-side (no second viewer, runs undisturbed): log and inspector now span y=255 to 1258, matching the page content.
-- [ ] Gates, review
+- [x] Review round 1 on 60cd6509 (diff sha256 b3be292b…): Claude CLI BLOCKING, asking to confirm no JS default page (confirmed: `showPage` runs only on clicks; queue polling is gated on its own button), that `.page-content` has a definite height (confirmed in the browser numbers above), and that short windows could clip with `overflow:hidden` (fixed: `.trace-content` scrolls at every width). Grok and Codex lanes failed to start (Cursor workspace trust; Codex read stdin); rerun with the M2 diff.
 
 ## M2: phone top nav
 
-- [ ] HTML variants sent to the operator; wait for the pick
-- [ ] RED / GREEN / review
+- [x] HTML variants sent (`runs/mockups/mobile-topnav/mobile-topnav.html`); The operator picked C, the page picker, 2026-10-16 00:08 New York ("feels more Pokemon-like").
+- [x] RED: app.test drives the picker select, directory buttons and ◀ ▶ (wrapping) as one control; trace-page-layout asserts the markup and that only phone width hides the directory and shows the picker.
+- [ ] GREEN / review
 - [ ] the operator approves merge; local merge into main; `just viewer-main` only with go-ahead if runs live in the 8790 process

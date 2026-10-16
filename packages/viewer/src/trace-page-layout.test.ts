@@ -18,12 +18,20 @@ describe("PokéNav agent trace page", () => {
 
   it("lets the trace and inspector grow to the bottom of the PokéNav panel instead of a fixed height", () => {
     expect(page().querySelector("#page-trace .page-content")?.classList.contains("trace-content")).toBe(true);
-    expect(css).toContain(".trace-content { display:flex; flex-direction:column; overflow:hidden; }");
+    expect(css).toContain(".trace-content { display:flex; flex-direction:column; overflow-y:auto; }");
     expect(css).toContain(".trace-content .logcols { flex:1; height:auto; min-height:350px; grid-template-rows:minmax(0,1fr); }");
     expect(css).toContain(".trace-content .log,.trace-content .inspector { height:auto; min-height:0; }");
   });
 
   it("keeps the phone layout's stacked trace and inspector scrollable", () => {
-    expect(css).toContain(".trace-content { overflow-y:auto; } .trace-content .logcols { flex:none; grid-template-rows:none; } }");
+    expect(css).toContain(".trace-content .logcols { flex:none; grid-template-rows:none; } }");
+  });
+
+  it("swaps the side directory for the page picker at phone width only", () => {
+    const picker = page().querySelector(".directory-pages > .page-picker");
+    expect(picker?.querySelector('select[data-ui="page-select"][aria-label]')).not.toBeNull();
+    expect([...(picker?.querySelectorAll<HTMLButtonElement>("button[data-page-step]") ?? [])].map((button) => button.dataset.pageStep)).toEqual(["-1", "1"]);
+    expect(css).toContain(".page-picker { display:none; }");
+    expect(css).toContain(".directory-pages { grid-template-columns:minmax(0,1fr); grid-template-rows:auto minmax(0,1fr); } .page-directory { display:none; } .page-picker { display:flex; }");
   });
 });

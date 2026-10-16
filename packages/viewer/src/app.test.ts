@@ -134,6 +134,30 @@ describe("viewer app", () => {
     expect(document.querySelector('[data-nav-page="objectives"]')).toBeNull();
   });
 
+  it("drives the phone page picker and the page directory as one control", async () => {
+    await harness(`#run=${M4_ID}`);
+    const select = must(document.querySelector<HTMLSelectElement>('[data-ui="page-select"]'));
+    const buttons = [...document.querySelectorAll<HTMLButtonElement>("[data-page]")];
+    expect([...select.options].map((option) => [option.value, option.textContent])).toEqual(buttons.map((button) => [button.dataset.page, button.textContent]));
+    expect(select.value).toBe("trace");
+    const shown = (): string[] => [...document.querySelectorAll<HTMLElement>("[data-nav-page]")].filter((panel) => !panel.hidden).map((panel) => panel.dataset.navPage ?? "");
+    select.value = "stats";
+    select.dispatchEvent(new Event("change"));
+    expect(shown()).toEqual(["stats"]);
+    expect(must(document.querySelector('[data-page="stats"]')).getAttribute("aria-pressed")).toBe("true");
+    must(document.querySelector<HTMLButtonElement>('[data-page="party"]')).click();
+    expect(select.value).toBe("party");
+    const step = (by: string): void => { must(document.querySelector<HTMLButtonElement>(`[data-page-step="${by}"]`)).click(); };
+    step("1");
+    expect(shown()).toEqual(["stats"]);
+    must(document.querySelector<HTMLButtonElement>('[data-page="trace"]')).click();
+    step("-1");
+    expect(shown()).toEqual(["run"]);
+    expect(select.value).toBe("run");
+    step("1");
+    expect(shown()).toEqual(["trace"]);
+  });
+
   it("lets the reader pause follow while streaming and explicitly resume", async () => {
     const { app, streams } = await harness();
     const stream = must(streams[0]);

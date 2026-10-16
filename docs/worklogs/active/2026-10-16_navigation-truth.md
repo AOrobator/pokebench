@@ -71,8 +71,9 @@ Report branch, frozen head, packet sha256, verdicts, gates, switch ids and inten
   - Evidence outputs (ON): show T800 lists (6,16) south then (14,9) east; e588 (11,3) lists (7,6) west first; 54a7 T213 (10,0) lists (14,9) east first.
 - 2026-10-16: merged main 154d905e (disproved-beliefs-v1, same-plan-breaker-v1, Route 103 fixture windows). Registry tails: main's two switches first, then navigation-truth-v1, navigation-refusal-reasons-v2; position tests re-bumped by 2 over main's (identical-edit hunks merged silently at main's value and were corrected from the failing assertions); switchboard row count 74. Gates on the merge: agent 1652, viewer 904, pytest 2270 passed (main's fixture-window fix cleared the 34 inherited failures); lint, build, verify-vendor OK; coverage agent 99.16/94.27/98.27, viewer 97.62/91.10/93.62, python 97.33/93.17/100 (lines/branches/functions).
 - 2026-10-16: merged main 36aad5b1 (levelup-box-v1, timeline text). Same resolution: main's switches first, then navigation-truth-v1 and navigation-refusal-reasons-v2; position tests re-bumped from failing assertions; switchboard rows 75; guidance count 35. Gates: agent 1662, viewer 906, pytest 2297 passed; lint, build, verify-vendor, pages-check OK; coverage agent 99.17/94.30/98.27, viewer 97.62/91.10/93.63, python 97.36/93.22/100.
+- 2026-10-16: merged main 8c98cb7c (viewer hide-live-replay-controls, worklog archive), clean merge. Gates: agent 1662, viewer 906, pytest 2297 passed; lint, build OK; coverage unchanged within 0.01.
 
-## Principles Adherence (round 1, packet base main 36aad5b1)
+## Principles Adherence (round 1, packet base main 8c98cb7c)
 
 | ID | Score | Evidence |
 |---|---|---|

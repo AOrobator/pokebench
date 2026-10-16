@@ -29,7 +29,8 @@ FIXTURE = json.loads(
     (Path(__file__).parent / "fixtures/battle-message-waiting-sh02.json").read_text()
 )
 ROM_START = 0x08000000
-RECORDED_OFF = frozenset(FIXTURE["recorded_off"])
+# Switches registered after cook run #2 were off for it.
+RECORDED_OFF = frozenset(FIXTURE["recorded_off"]) | {"readout-truth-v1", "birch-speech-pages-v1", "blackout-readout-v1"}
 OFF_TEXT = "Battle details: WILD single · turn 3 · resolving (no input until the game asks)"
 WAITING = 'battle message waiting: "Wild WINGULL fainted!" — press A or B to continue'
 RESOLVING = (
@@ -303,7 +304,7 @@ def test_format_readout_off_is_unchanged_without_a_battle() -> None:
 
 
 def test_switch_is_registered_server_side_last_and_default_off() -> None:
-    assert SERVER_FEATURES[-2] == SWITCH
+    assert SERVER_FEATURES[-5] == SWITCH
     assert SWITCH in features_off_from_env({})
     assert features_off_from_env({"POKEBENCH_FEATURES_OFF": SWITCH}) == frozenset({SWITCH})
 

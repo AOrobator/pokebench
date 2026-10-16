@@ -56,8 +56,8 @@ Read-only RAM decoding and text. No subprocesses, no network, no new endpoints. 
 ## Milestones
 
 **M1 — readout-truth-v1 (items 1–8), birch-speech-pages-v1, blackout-readout-v1**
-- [ ] RED: real-ROM fixture from cook runs (OFF equals received; ON lines), synthetic cases, registry/preset/server-list tests both stacks, factory wiring
-- [ ] COMMIT RED
+- [x] RED: real-ROM fixture from cook runs (OFF equals received; ON lines), synthetic cases, registry/preset/server-list tests both stacks, factory wiring
+- [x] COMMIT RED
 - [ ] GREEN implementation
 - [ ] Gates: `just test` (ROM set), `just coverage` ≥90, `just lint`, `just build`, `just verify-vendor`
 - [ ] COMMIT GREEN
@@ -84,7 +84,9 @@ Report branch, frozen head, packet SHA-256, verdict lines, gate counts and cover
 - 2026-10-16 05:48 AM EDT: worklog created after read-only discovery (audit reports, recorded raw RAM probes of the seqs above, pokeemerald 731ad5bf, ROM disassembly at 0x080AF660). Approval: The operator 5:34 AM (relayed by the thread owner).
 
 - 2026-10-16 06:10 AM EDT: Boy scout before RED. Main `1f4ac74e` has 34 Python failures with POKEBENCH_ROM set (they skip without it): `read_route103_rival` (route103-rival-splits, bf86cd9b) reads gTrainerBattleOpponent_A 0x02038BCA, gBattleTypeFlags and the rival trainer flags / VAR_OLDALE_RIVAL_STATE, which the real-ROM fixtures of battle-message-waiting, connection-edges, in-game-naming, offscreen-objects and rerender never recorded (KeyError 0x02038BCA). Added exactly those RAM windows, read from each fixture's own raw-RAM archive (scratch script, RAM only, never ROM bytes; JSON formatting preserved). Main + repaired fixtures: 2270 passed, 0 failed.
-  COMMIT: `test(fixtures): add the Route 103 rival RAM windows the real-ROM fixtures were missing`
+  COMMIT: `test(fixtures): add the Route 103 rival RAM windows the real-ROM fixtures were missing` (a2622a53)
+- 2026-10-16 06:55 AM EDT: RED. New `env/tests/env/test_readout_truth.py` (real-ROM fixture `readout-truth-cook.json`: 10 recorded states from sh02/2919/54a7/show, RAM windows recorded while re-rendering each with every new switch off and on, never ROM bytes; OFF contained in what the model received for all 9 states with a tool result; ON lines per item; state JSON unchanged where no owner changes; synthetic no-message/script-phase/YES-NO-owner/menu-line/lock-line/bag/story/START-reopen/party-slot/live-object cases), `test_birch_pages.py`, `test_blackout_readout.py` (frame latch, once-only take, production `serve.run` route ON/OFF), `packages/agent/src/readout-truth.test.ts` (registry, server list, presets default OFF). Registry shifts: every end-relative `.at(-N)` +3 in 13 agent test files, observation count 29, legacy off-lists, battle-text slice(-9), switchboard rows 73, next-run literals, play-preset flag literal; Python default-off set and count 36, rerender pass-through kwargs, and the three ids added to the recorded-off sets of tests whose goldens predate them (battle-details-v2, battle-message-waiting, battle-triage, displayed-place-names, named-warps, offscreen-objects, readout-rules, rerender). Without the implementation: Python 4 collection errors (modules missing), agent 33 failed, viewer 2 failed.
+  COMMIT: `test(RED): readout-truth-v1, birch-speech-pages-v1, blackout-readout-v1 (cook harness audit)`
 
 ## Surprises
 

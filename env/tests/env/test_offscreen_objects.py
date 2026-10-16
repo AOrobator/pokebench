@@ -35,6 +35,9 @@ ROM_START = 0x08000000
 RECORDED_OFF = frozenset(FIXTURE["recorded_off"]) | {
     "connection-edge-tiles-v1",
     "in-game-naming-readout-v1",
+    "readout-truth-v1",
+    "birch-speech-pages-v1",
+    "blackout-readout-v1",
 }
 T416 = "raw-ram/00004588.json.gz"
 T754 = "raw-ram/00005144.json.gz"

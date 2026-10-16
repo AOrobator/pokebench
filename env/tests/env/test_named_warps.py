@@ -42,14 +42,18 @@ ON_GUIDANCE = (
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 
 
+# Switches registered after 224ee68; OFF is their previous behavior.
+LATER = ("readout-truth-v1", "birch-speech-pages-v1", "blackout-readout-v1")
+
+
 def test_off_equals_the_readout_rendered_by_the_previous_commit() -> None:
     # Goldens were rendered by env/pokebench_env at 224ee68 from this same memory fixture.
     for kw, golden in (({}, "local"), ({"full_map_enabled": True}, "whole")):
         state = read_game_state(map_memory().read, MAPS, **kw)
         expected = (FIXTURES / f"named-warps-off-{golden}-224ee68.txt").read_text()
         for off, named in (
-            (frozenset({"character-presence-v1"}), False),
-            (frozenset({"named-warp-destinations-v1", "character-presence-v1"}), True),
+            (frozenset({"character-presence-v1", *LATER}), False),
+            (frozenset({"named-warp-destinations-v1", "character-presence-v1", *LATER}), True),
         ):
             text = format_readout(state, off, named_interactions=True, named_warps=named)
             assert text == expected

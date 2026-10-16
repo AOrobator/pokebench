@@ -139,7 +139,9 @@ def test_off_is_todays_readout_byte_for_byte() -> None:
         for room, kw in (("town", {}), ("house", {"player_map": (1, 2), "warp_to": (0, 9)})):
             memory = littleroot(gender, **kw)
             golden = (FIXTURES / f"displayed-names-off-{room}-{gender}-fa09dbe6.txt").read_text()
-            off = frozenset({SWITCH, "character-presence-v1", "offscreen-objects-v1"})
+            off = frozenset(
+                {SWITCH, "character-presence-v1", "offscreen-objects-v1", "readout-truth-v1", "birch-speech-pages-v1", "blackout-readout-v1"}
+            )
             state = read_state(memory.read, MAPS, active_ui=True, off=off)
             assert readout(state, off) == golden
             json_golden = json.loads(

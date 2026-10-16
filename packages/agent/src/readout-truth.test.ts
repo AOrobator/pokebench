@@ -1,0 +1,57 @@
+import { readFileSync } from "node:fs";
+import { expect, it } from "vitest";
+import { ALL_ON, SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, featuresOf, playHarnessFeatures, serverFeatureEnv, type FeatureSet } from "./features.js";
+import { flagFeatures, normalizeFeatures, parsePlayPreset, presetFeatures } from "./play-preset.js";
+
+// readout-truth-v1 (correctness fixes, ON in both arms), birch-speech-pages-v1 and
+// blackout-readout-v1 (bundle arm only): game-server readout switches, recorded last.
+const IDS = ["readout-truth-v1", "birch-speech-pages-v1", "blackout-readout-v1"] as const;
+const off = (...ids: (typeof SWITCHABLE_FEATURES)[number][]): FeatureSet => ({ ...ALL_ON, ...Object.fromEntries(ids.map((id) => [id, false])) });
+
+it("registers three default-off observation switches with no dependency, recorded last in this order", () => {
+  expect(SWITCHABLE_FEATURES.slice(-3)).toEqual([...IDS]);
+  expect(playHarnessFeatures(ALL_ON, null).slice(-3)).toEqual([...IDS]);
+  for (const id of IDS) {
+    expect(featureInfo(id)).toMatchObject({ group: "observation", needs: null, switchable: true });
+    expect(featureInfo(id).description).toContain(" Off: ");
+    expect(playHarnessFeatures(off(id), null)).not.toContain(id);
+    expect(featuresOf(playHarnessFeatures(off(id), null))[id]).toBe(false);
+  }
+  // No dependency: the control arm of bundle-v-control has expanded menu text off.
+  expect(dependencyProblems(off("expanded-menu-battle-information-v1", "battle-details-v2", "battle-triage-guidance-v1"))).toEqual([]);
+});
+
+it("describes each switch with the exact lines the game server writes", () => {
+  const truth = featureInfo("readout-truth-v1").description;
+  expect(truth).toContain("ON in both arms");
+  expect(truth).toContain('"Field-message text: none (no message box is open)."');
+  expect(truth).toContain('"Field-message phase: no message is open and no script is running."');
+  expect(truth).toContain('"Menu: none open"');
+  expect(truth).toContain('"Bag: empty"');
+  expect(truth).toContain('"Mom told you PROF. BIRCH lives next door (after the Petalburg Gym TV report)"');
+  expect(truth).toContain('"Field-message text: unavailable; do not infer that the dialogue box is closed."');
+  expect(featureInfo("birch-speech-pages-v1").description).toContain("Interface: birch_speech_page; input ready; value <the page on screen>; A or B shows the next page");
+  expect(featureInfo("blackout-readout-v1").description).toContain('"Whited out: your party had no usable Pokémon left, so the game took you back to <location> (the last place you healed), healed your party and halved your money: ₽3000 → ₽1500."');
+  expect(featureInfo("blackout-readout-v1").description).toContain('"Whiting out: your party has no usable Pokémon left; the game is taking you back to the last place you healed."');
+});
+
+it("hands all three to the game server, whose list and default-off set name them", () => {
+  expect(SERVER_FEATURES.slice(-3)).toEqual([...IDS]);
+  for (const id of IDS) expect(serverFeatureEnv(off(id)).POKEBENCH_FEATURES_OFF).toBe(id);
+  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("");
+  const readout = readFileSync(new URL("../../../env/pokebench_env/readout.py", import.meta.url), "utf8");
+  expect(readout).toContain('    "offscreen-objects-v1",\n    "readout-truth-v1",\n    "birch-speech-pages-v1",\n    "blackout-readout-v1",\n)');
+  expect(readout).toContain('"readout-truth-v1,birch-speech-pages-v1,blackout-readout-v1"');
+});
+
+it("defaults OFF for presets that omit them and for legacy flag presets, so recorded presets keep today's readout", () => {
+  const legacy = flagFeatures({ loopGuard: true, activeUi: true, interfaceDocs: true, objectives: true });
+  const without = Object.fromEntries(Object.entries(legacy).filter(([id]) => !(IDS as readonly string[]).includes(id))) as Omit<FeatureSet, (typeof IDS)[number]>;
+  const preset = parsePlayPreset({ version: 2, id: "p", target: null, limits: { maxTurns: 1, maxWallMs: 1, failureLimit: 1 }, sampling: { thinkingLevel: "medium", maxTokens: 1 }, features: without });
+  for (const id of IDS) {
+    expect(normalizeFeatures(without)[id]).toBe(false);
+    expect(normalizeFeatures({ ...without, [id]: true })[id]).toBe(true);
+    expect(legacy[id]).toBe(false);
+    expect(presetFeatures(preset)[id]).toBe(false);
+  }
+});

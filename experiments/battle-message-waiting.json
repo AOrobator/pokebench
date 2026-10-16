@@ -4,7 +4,7 @@
  "title": "Battle message waiting named in the readout",
  "changedFeature": "battle-message-waiting-v1",
  "hypothesis": "Saying in the battle readout when a battle message page waits for A or B, with the page's whole text, instead of 'resolving (no input until the game asks)', stops observe loops on waiting battle text (cook run #2 2026-10-16T02-23-17_qwen36-gpu1_sh02 called observe 272 times, T445-T716, on 'Wild WINGULL fainted!'), so more runs reach ROUTE 103 in fewer turns.",
- "activationMilestone": "BIRCH_RESCUE_REQUESTED",
+ "activationMilestone": "STARTER_CHOSEN",
  "primaryMilestone": "ROUTE_103",
  "source": {
   "checkout": "main",
@@ -89,5 +89,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Uses the finals incumbent, as blocked-batch-result does (the switch is omitted there, so it reads OFF). Activation: the text appears only in battles; the first is the PROF. BIRCH rescue, which follows BIRCH_RESCUE_REQUESTED. Primary ROUTE_103, as battle-triage-guidance and counter-talk use, because the shared RIVAL_HOUSE_ENTERED comes before any battle. Meant ON in both arms of bundle-v-control (onInBoth; the bundle file is edited by the readiness thread), so this standalone entry stays pending. Not yet designed: run pokebench-experiment-design before this entry is queued or driven. Provisional source.commit; repin to the merge SHA with `just experiment-pin` when it lands."
+ "notes": "Uses the finals incumbent, as blocked-batch-result does (the switch is omitted there, so it reads OFF). Activation: the text appears only in battles; the first is the PROF. BIRCH rescue, which starts once the starter is chosen (STARTER_CHOSEN), as for battle-text-auto-advance. Primary ROUTE_103, as battle-triage-guidance and counter-talk use, because the shared RIVAL_HOUSE_ENTERED comes before any battle. Meant ON in both arms of bundle-v-control (onInBoth; the bundle file is edited by the readiness thread), so this standalone entry stays pending. Not yet designed: run pokebench-experiment-design before this entry is queued or driven. Provisional source.commit; repin to the merge SHA with `just experiment-pin` when it lands."
 }

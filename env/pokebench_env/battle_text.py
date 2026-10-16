@@ -132,9 +132,13 @@ PROMPT_SCROLL = 0xFA
 PAUSE_UNTIL_PRESS = 0x09
 
 
-def page_text(raw: bytes, cursor: int) -> str:
+def page_text(raw: bytes, cursor: int, *, waiting: bool = False) -> str:
     """The page the printer is on: the text written since the window was last cleared,
-    up to the first wait at or after `cursor` (or the message's end), whole.
+    up to the next wait not yet answered (or the message's end), whole.
+
+    The printer's cursor sits just past a wait byte both while it waits (`waiting`, render
+    state 1-3) and for the per-character delay after A/B answered it (state 0, the window
+    already cleared for a page break): only the first is the current page's end.
 
     `raw` is the expanded message with its EOS; control arguments are skipped so an
     argument byte is never taken for a page break.
@@ -154,7 +158,7 @@ def page_text(raw: bytes, cursor: int) -> str:
             wait = raw[index + 1] == PAUSE_UNTIL_PRESS
         elif byte == 0xF9:
             size = 2
-        if wait and index + size >= cursor:
+        if wait and (index + size > cursor or (index + size == cursor and waiting)):
             break
         index += size
         if wait and byte == PROMPT_CLEAR:
@@ -195,7 +199,8 @@ def read_battle_message(read: ReadMemory) -> BattleMessage:
             decode_battle_text(payload),
             cursor,
             sha256(payload).hexdigest(),
-            page=page_text(payload + b"\xff", cursor),
+            # An answered final page leaves nothing on the window: no page.
+            page=page_text(payload + b"\xff", cursor, waiting=printer[0x1C] in WAIT_STATES) or None,
         )
     except (ValueError, IndexError, KeyError) as error:
         return BattleMessage(

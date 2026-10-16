@@ -179,7 +179,8 @@ def test_a_page_is_the_text_since_the_window_was_last_cleared_up_to_its_wait() -
     assert raw_page(two, 8, waiting=True) == "Two"  # waiting on the second \p
     scroll = encode("A") + b"\xfe" + encode("B") + b"\xfa" + encode("C") + b"\xfb"
     assert raw_page(scroll, 4, waiting=True) == "A B"  # \l scrolls; the window is not cleared
-    assert raw_page(scroll, 6) == "A B C"
+    assert raw_page(scroll, 6, waiting=True) == "A B C"
+    assert raw_page(scroll, 6) == ""  # the last page answered: nothing left on the window
     press = encode("X") + b"\xfc\x09" + encode("Y")
     assert raw_page(press, 3, waiting=True) == "X"  # FC 09 waits for a press
     assert raw_page(press, 4) == "XY"  # the text goes on after the press on the same line
@@ -419,3 +420,5 @@ def test_a_wait_the_player_already_answered_is_not_the_page() -> None:
     assert bt.read_battle_message(m.read).page == "Two"
     m.message(two + b"\xff", 4, state=2)
     assert bt.read_battle_message(m.read).page == "One"
+    m.message(two + b"\xff", 8, state=0)  # the last page answered, printer not yet idle
+    assert bt.read_battle_message(m.read).page is None

@@ -1,0 +1,9 @@
+# Switch descriptions in the story frontier legend
+
+Operator (2026-10-16): on the stats page story frontier legend, inside a harness version's "Show what changed" (Added since / Removed since / All N switches on), hovering a switch name shows what that switch does. Phones get a tap/focus way to read it.
+
+Design: the descriptions come from the viewer's own `/api/features` (the @pokebench/agent FEATURES catalog it already serves to the NEXT RUN page), fetched once when the stats page boots, not per poll and not per run; `/api/workbench` is unchanged. `parseFeatureDescriptions` (workbench-data.ts, a browser module) validates it into a `ReadonlyMap<id, description>`. A failed or malformed fetch leaves the legend as it is today (names and ids, no descriptions). Each switch row with a known description is focusable (tabindex 0), carries the description as its native `title`, and has `aria-describedby` pointing at a small inline description under the name that CSS shows while the row is focused (tap on a phone, Tab on a keyboard). Focus on a switch row survives a poll re-render. Everything is escaped. Switch ids the catalog does not know (an older or newer build) show no description.
+
+- [x] RED (3 failing: legend rows, workbench catalog fetch, parseFeatureDescriptions): legend rows carry title, tabindex, aria-describedby and an inline description (escaped, unique ids, none for unknown ids); `parseFeatureDescriptions` validates; the workbench fetches the catalog once and keeps a focused switch focused across a re-render; CSS hides the inline description until the row is focused.
+- [ ] GREEN, viewer tests, coverage, lint; browser at 1280 (hover) and 375 (tap), screenshots `runs/mockups/frontier-grouping/shots/switch-desc-*.png`.
+- [ ] Reviews (Claude, grok, Codex), ff merge; 8790 restart via the coordinator.

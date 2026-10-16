@@ -16,5 +16,9 @@ Viewer-only layout change; no feature switch (feature-switch skill excludes view
 
 - [x] HTML variants sent (`runs/mockups/mobile-topnav/mobile-topnav.html`); The operator picked C, the page picker, 2026-10-16 00:08 New York ("feels more Pokemon-like").
 - [x] RED: app.test drives the picker select, directory buttons and ◀ ▶ (wrapping) as one control; trace-page-layout asserts the markup and that only phone width hides the directory and shows the picker.
-- [ ] GREEN / review
+- [x] RED COMMIT: `test(viewer): RED phone page picker replaces the PokéNav side directory; trace content scrolls at every width` (06445b64)
+- [x] GREEN: `.page-picker` (◀, a select built from the directory buttons, ▶) sits above the pages; below 700px the directory hides and the picker shows. `showPage` keeps the select, the buttons and the pages in step; ◀ ▶ wrap.
+  - Viewer: 60 files, 786 tests pass; coverage 95.08 lines / 90.39 branches / 93.55 functions; tsc + eslint clean.
+  - Browser proof at 375px on live 8790 with the markup and CSS injected client-side (no second viewer, runs undisturbed): picker spans the panel width at y=392, AGENT TRACE selected, no horizontal page scroll (scrollWidth 375).
+- [ ] Review
 - [ ] the operator approves merge; local merge into main; `just viewer-main` only with go-ahead if runs live in the 8790 process

@@ -31,7 +31,7 @@ describe("PokéNav agent trace page", () => {
     const picker = page().querySelector(".directory-pages > .page-picker");
     expect(picker?.querySelector('select[data-ui="page-select"][aria-label]')).not.toBeNull();
     expect([...(picker?.querySelectorAll<HTMLButtonElement>("button[data-page-step]") ?? [])].map((button) => button.dataset.pageStep)).toEqual(["-1", "1"]);
-    expect(css).toContain(".page-picker { display:none; }");
+    expect(css).toContain(".page-picker { display:none; gap:6px; }");
     expect(css).toContain(".directory-pages { grid-template-columns:minmax(0,1fr); grid-template-rows:auto minmax(0,1fr); } .page-directory { display:none; } .page-picker { display:flex; }");
   });
 });

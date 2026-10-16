@@ -195,6 +195,10 @@ table.splits td.d, table.splits td.t { width: 18.66%; }
 .page-directory { display:flex; flex-direction:column; gap:9px; }
 .page-directory button { text-align:left; border-color:#8a2020; padding:10px 8px; }
 .page-directory button[aria-pressed=true] { background:#ffd447; border-color:#fff0a0; }
+.page-picker { display:none; gap:6px; }
+.page-picker button,.page-picker select { font:8px/1.6 'Press Start 2P',monospace; border:3px solid #8a2020; background:#fff; color:#283038; border-radius:7px; cursor:pointer; }
+.page-picker button { padding:6px 10px; }
+.page-picker select { flex:1; min-width:0; padding:9px 6px; background:#ffd447; border-color:#fff0a0; }
 .nav-page { display:flex; flex-direction:column; min-height:0; }
 .page-content { flex:1; min-height:350px; overflow-y:auto; overflow-x:hidden; overflow-wrap:anywhere; padding-right:6px; }
 .page-content h3 { margin:18px 0 12px; }
@@ -211,7 +215,7 @@ table.splits td.d, table.splits td.t { width: 18.66%; }
 .page-content table.splits { min-width:0; }
 .page-content table.splits td,.page-content table.splits th { white-space:normal; overflow-wrap:anywhere; }
 @media(max-width:980px) { .game-stream { grid-template-columns:minmax(0,1.3fr) minmax(300px,1fr); } .page-content .logcols { grid-template-columns:1fr 1fr; } }
-@media(max-width:700px) { .watch-deck { height:auto; grid-template-rows:auto auto; min-height:0; } .game-stream { grid-template-columns:1fr; } .game-stream .gbaStage { height:280px; } .thinking-stream { height:340px; } .directory-pages { grid-template-columns:120px minmax(0,1fr); } .page-directory button { font-size:6px; } .inspection-nav { height:650px; } .page-content .logcols { grid-template-columns:1fr; height:auto; } .page-content .log,.page-content .inspector { height:360px; } .trace-content .logcols { flex:none; grid-template-rows:none; } }
+@media(max-width:700px) { .watch-deck { height:auto; grid-template-rows:auto auto; min-height:0; } .game-stream { grid-template-columns:1fr; } .game-stream .gbaStage { height:280px; } .thinking-stream { height:340px; } .directory-pages { grid-template-columns:minmax(0,1fr); grid-template-rows:auto minmax(0,1fr); } .page-directory { display:none; } .page-picker { display:flex; } .inspection-nav { height:650px; } .page-content .logcols { grid-template-columns:1fr; height:auto; } .page-content .log,.page-content .inspector { height:360px; } .trace-content .logcols { flex:none; grid-template-rows:none; } }
 /* Phones: the timeline follows the Game Boy; the live panel comes after it. */
 @media(max-width:700px) { .watch-deck { display:flex; flex-direction:column; } .game-stream { display:contents; } .game-stream .side { order:1; } }
 /* Clear the former two-column grid's named areas in the watch deck. */

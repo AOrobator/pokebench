@@ -15,7 +15,7 @@ import {observeTool,pressTool} from "./game-tools.js";
 interface Fixture {readonly features:Record<string,boolean>;readonly state:Record<string,unknown>;readonly refusal:string;readonly supervisor:string;readonly events:readonly Record<string,unknown>[]}
 const FIXTURE=JSON.parse(readFileSync(new URL("../test-support/connection-edges-show.json",import.meta.url),"utf8")) as Fixture;
 const ID="connection-edge-tiles-v1";
-const RUN:FeatureSet={...ALL_ON,...FIXTURE.features,[ID]:false} as FeatureSet;
+const RUN:FeatureSet={...ALL_ON,...FIXTURE.features,[ID]:false};
 const EDGES=[{x:10,y:0},{x:11,y:0}];
 // What the server sends with the switch on: the same topology plus the crossable edge tiles.
 const withEdges=(state:Record<string,unknown>):Record<string,unknown>=>{
@@ -94,16 +94,16 @@ describe("connection-edge-tiles-v1 supervisor bearings (showcase turn 187, seq 3
   expect(off.stallText({kind:"milestone_drought",minutes:5},187).split("\n")).not.toContain(EDGE_LINE);
   expect(on.textOnly(2,1,3)).toBe(off.textOnly(2,1,3));
  });
- it("a blocked edge and a water-only direction say so; DIVE and unknown edges are left out",()=>{
+ it("a blocked edge says so; DIVE and directions without edge data are left out",()=>{
   const b=new SupervisorBriefing({...RUN,[ID]:true});
-  const state=FIXTURE.events.find(e=>e["type"]==="state"&&e["seq"]===3682) as Record<string,unknown>;
+  const state=FIXTURE.events.filter(e=>e["type"]==="state").at(-1) as Record<string,unknown>;
   const topology={width:20,height:20,connections:[
    {direction:"NORTH",offset:0,destination:[0,16],destination_name:"ROUTE101",edges:[]},
    {direction:"WEST",offset:0,destination:[0,17],destination_name:"ROUTE102"},
    {direction:"DIVE",offset:0,destination:[0,18],destination_name:"UNDERWATER",edges:[{x:1,y:1}]},
    {direction:"EAST",offset:-2,destination:[0,19],destination_name:"ROUTE103",edges:[{x:19,y:3},{x:19,y:4},{x:19,y:5},{x:19,y:9}]},
   ]};
-  for(const raw of FIXTURE.events){b.observe(parseEvent(JSON.stringify(raw["seq"]===3682?{...state,topology}:raw)));}
+  for(const raw of FIXTURE.events){b.observe(parseEvent(JSON.stringify(raw===state?{...state,topology}:raw)));}
   expect(b.text("ineffective",187).split("\n")).toContain("- Ways off this map across its edge (the game's map connections): NORTH -> ROUTE101 (map 0/16): no tile on this edge can be walked across; EAST -> ROUTE103 (map 0/19): stand on any tile from (19,3) to (19,5) or (19,9) and press RIGHT");
  });
 });
@@ -121,7 +121,7 @@ describe("connection-edge-tiles-v1 registry, presets and state schema",()=>{
  it("presets that omit it run with it off",()=>{
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);
   const base={version:2,id:"edges",target:null,limits:{maxTurns:10,maxWallMs:60000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096}};
-  const {[ID]:_omitted,...rest}=RUN;
+  const rest=Object.fromEntries(Object.entries(RUN).filter(([k])=>k!==ID));
   expect(presetFeatures(parsePlayPreset({...base,features:rest}))[ID]).toBe(false);
   expect(presetFeatures(parsePlayPreset({...base,features:{...rest,[ID]:true}}))[ID]).toBe(true);
  });

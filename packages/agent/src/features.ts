@@ -58,6 +58,7 @@ export const SWITCHABLE_FEATURES = [
   "stall-briefing-v1",
   "battle-details-v2",
   "dialogue-auto-advance-v1",
+  "connection-edge-tiles-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -192,6 +193,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("stall-briefing-v1", "guard", "STALL BRIEFING", "loop-guard-supervisor-v1", "Posts the loop supervisor's briefing for stalls the loop guard does not detect: walking between the same two maps again and again (on the second round trip; it says whether the trips were out and back or had other maps in between), and every 5 minutes of play without a new milestone. The run continues. Off: briefings only when the loop guard detects a loop."),
   on("battle-details-v2", "observation", "BATTLE DETAILS V2", "expanded-menu-battle-information-v1", "In battle, replaces the raw battler lines with what each action allows, from game RAM and ROM tables: the battle kind (wild or trainer, PROF. BIRCH rescue), the 2x2 FIGHT/BAG/POKéMON/RUN menu with the highlighted option, and an allowed/REFUSED verdict with the game's own message only for actions the game can refuse (RUN in trainer battles, the Birch rescue, trapping abilities, MEAN LOOK/wrap/INGRAIN; BAG in link and Frontier battles; switching while trapped). RUN also says whether escape is guaranteed by speed (the odds are not computed). The foe gets everything a talented player would remember: types, exact HP, status, ability, held item, stats, non-neutral stat stages, volatile conditions and every move with type, physical/special/status, power, accuracy and PP. Your active Pokémon gets the same plus its moves in menu order with the highlighted move and 0-PP refusals; every party member gets types, ability, item, HP, status, whether it can switch in, and its full moveset. Usable, unusable and ball items are separated (balls are blocked and lost in trainer battles). An empty bag reads \"Bag: empty\". Disable, Taunt, Torment, Imprison, Encore, Choice Band locks, the escape-try counter and battle text are not read. Off: today's expanded battle lines (Battle state, Battler, Battle input) and a bare \"Bag: \" for an empty bag."),
   on("dialogue-auto-advance-v1", "guidance", "DIALOGUE AUTO-ADVANCE", "active-field-message-buffer-v1", "As soon as a press or navigate_to opens or continues a field message, the harness itself advances it with B, waiting for each page to finish printing, until the next decision point: free field control, a YES/NO or other menu (named with its options and highlighted choice), the naming screen, a battle, a screen change, or a cutscene that keeps controls locked with no message (waited out for up to 10 s). Buttons left in the model's batch once the conversation opens are not sent, so extra A presses cannot restart it. At most 50 automatic presses and 90 s per call, and a stop at either cap says so. The result lists every page shown, whole and in order, with speaker (the game's NAME: prefix, else the faced sprite kind, labelled as such), map, position and turn; get_dialogue searches every recorded page by speaker, words, map or recency. Each advance is recorded as a dialogue_auto_advance event. Needs the dialogue phase readout. Off: every requested button is sent and the model advances dialogue itself, one batch per turn; no get_dialogue."),
+  on("connection-edge-tiles-v1", "observation", "CONNECTION EDGE TILES", null, "Each walking map connection in the Map connections readout lists the exact edge tiles you can walk off, read from the game's live map (the connected map's blocks in the padding, the connection offset and the connected map's size): for example \"NORTH -> ROUTE101 (map 0/16), offset 0; walk off the map from (10,0) or (11,0): stand on one of these edge tiles and press UP\". A tile is listed only when it and the tile one step out are both passable on foot (no collision, water, wall on that side or height mismatch); an edge with none says so. People standing there are not checked. The loop supervisor and stall briefing add the same tiles as a line, and a navigate_to refusal whose nearest reachable tile is one of them names the map it leads to and the button that crosses. Off: \"boundary continuation: walk across the matching edge in this direction\", no supervisor line and the plain refusal."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",
@@ -243,7 +245,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "world-targets-v1", "named-interactions-v1", "world-destinations-v1", "bounded-navigation-v1", "field-dialogue-phase-v1", "active-field-message-buffer-v1", "naming-cursor-v1", "story-state-v1",
   "coordinate-script-conditions-v1", "field-control-lock", "warp-activation-guidance-v1", "ledge-hops-v1", "one-way-tiles-v1",
   "full-map-navigation-v1", "counter-talk-v1", "named-warp-destinations-v1", "character-presence-v1",
-  "battle-details-v2",
+  "battle-details-v2", "connection-edge-tiles-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -286,6 +288,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("stall-briefing-v1"),
     ...when("battle-details-v2"),
     ...when("dialogue-auto-advance-v1"),
+    ...when("connection-edge-tiles-v1"),
   ];
 }
 

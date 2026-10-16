@@ -368,6 +368,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "named-warp-destinations-v1":"named-warp-destinations-v1.html",
  "character-presence-v1":"character-presence-v1.html",
  "dialogue-auto-advance-v1":"dialogue-auto-advance-v1.html",
+ "connection-edge-tiles-v1":"connection-edge-tiles-v1.html",
  "milestone-stall-stop-v1":"milestone-stall-stop-v1.html",
  "text-only-supervisor-v1":"text-only-supervisor-v1.html",
  "navigation-refusal-reasons-v1":"navigation-refusal-reasons-v1.html",

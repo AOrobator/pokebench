@@ -35,13 +35,14 @@ SERVER_FEATURES = (
     "named-warp-destinations-v1",
     "character-presence-v1",
     "battle-details-v2",
+    "connection-edge-tiles-v1",
 )
 
 
 def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
     raw = env.get(
         "POKEBENCH_FEATURES_OFF",
-        "named-interactions-v1,world-destinations-v1,bounded-navigation-v1,expanded-menu-battle-information-v1,field-dialogue-phase-v1,full-map-navigation-v1,named-warp-destinations-v1,character-presence-v1,battle-details-v2",
+        "named-interactions-v1,world-destinations-v1,bounded-navigation-v1,expanded-menu-battle-information-v1,field-dialogue-phase-v1,full-map-navigation-v1,named-warp-destinations-v1,character-presence-v1,battle-details-v2,connection-edge-tiles-v1",
     )
     if raw == "":
         return frozenset()

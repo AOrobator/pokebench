@@ -184,24 +184,24 @@ def test_on_text_and_json_off_unchanged() -> None:
     assert off.json() == {
         "width": 5,
         "height": 5,
-        "connections": [
+        "connections": (
             {
                 "direction": "NORTH",
                 "offset": 1,
                 "destination": (0, 16),
                 "destination_name": "ROUTE 101",
-            }
-        ],
+            },
+        ),
     }
-    assert on.json()["connections"] == [
+    assert on.json()["connections"] == (
         {
             "direction": "NORTH",
             "offset": 1,
             "destination": (0, 16),
             "destination_name": "ROUTE 101",
             "edges": [{"x": 1, "y": 0}, {"x": 2, "y": 0}, {"x": 3, "y": 0}],
-        }
-    ]
+        },
+    )
 
 
 def test_blocked_edge_says_no_tile_can_be_walked_across() -> None:

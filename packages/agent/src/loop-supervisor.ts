@@ -1,5 +1,6 @@
 import {DialogueLog,roomKey,roomOf} from "./dialogue-log.js";
 import {NextMilestoneHint} from "./milestone-hint.js";
+import {edgeBearings} from "./connection-edges.js";
 import {MEASUREMENT_ONLY_MILESTONES} from "./milestones.js";
 import type {RunEvent} from "./events.js";
 import type {FeatureSet} from "./features.js";
@@ -186,6 +187,11 @@ export class SupervisorBriefing {
   if(open.length===0)return "none: every listed target here has been tried";
   return open.map(t=>`${this.features["named-interactions-v1"]&&t.name!=null?t.name:t.kind} at ${at(t.x,t.y)} (${t.activation})`).join("; ");
  }
+ // connection-edge-tiles-v1: the current map's walk-off edge tiles, as the server read them; off, nothing.
+ private edges():string {
+  const line=this.features["connection-edge-tiles-v1"]?edgeBearings(this.latest?.topology):null;
+  return line===null?"":`- Ways off this map across its edge (the game's map connections): ${line}\n`;
+ }
  text(kind:LoopKind,calls:number):string {
   return this.bearings(`SUPERVISOR: You are currently looping. You keep repeating ${PATTERN[kind]}, and the game is not moving forward (loop guard, ${String(calls)} calls into the run).`);
  }
@@ -208,7 +214,7 @@ ${this.hint===null?"":`- Next milestone (hint): ${this.hint.describe()}\n`}- Cha
 - Recent dialogue you were shown, newest first: ${this.told()}
 - What you tried recently, newest first: ${tried}
 - Listed here that you have not tried yet: ${this.untried()}
-Before your next action, look back at your goal and at what the game has told you${recall}. If anything you believe disagrees with the dialogue or the readout above, believe the game. Make a new plan that is different from what you have been trying, and say which untried option you will try first. The run continues.`;
+${this.edges()}Before your next action, look back at your goal and at what the game has told you${recall}. If anything you believe disagrees with the dialogue or the readout above, believe the game. Make a new plan that is different from what you have been trying, and say which untried option you will try first. The run continues.`;
  }
 
  textOnly(replies:number,note:number,limit:number):string {

@@ -1,6 +1,6 @@
 # connection-edge-tiles-v1 (pre-launch fix F9, bundle switch)
 
-Parent: `/private/tmp/pokebench-prelaunch/docs/worklogs/active/2026-10-16_prelaunch-fixes.md` (F9). Operator decision (the operator) 2026-10-16 12:54 AM EDT: a new bundle switch, default off, OFF reproduces today. Branch `claude/connection-edge-tiles`, worktree `/private/tmp/pokebench-m5b-edges`. Leave unmerged; the integrator wires it into bundle-v-control.
+Parent: `/private/tmp/pokebench-prelaunch/docs/worklogs/active/2026-10-16_prelaunch-fixes.md` (F9). Operator decision (the operator) 2026-10-16 12:54 AM EDT: a new bundle switch, default off, OFF reproduces today. Branch `claude/connection-edge-tiles`, worktree `/private/tmp/pokebench-m5b-edges`. Ownership moved 2026-10-16 01:15 AM EDT to the Route 101 thread, which lands it on main itself (the operator); the readiness thread wires it into bundle-v-control after the merge.
 
 ## Problem
 
@@ -25,11 +25,11 @@ Showcase bundle run `2026-10-16T00-34-26_qwen36-gpu1_show`, seq 3580–3745: aft
 - [x] TS: refusal from the recorded seq 3606 state; supervisor replay of seq ≤3684 OFF = recorded, ON adds the line; registry/preset/defaults/explainer mapping
 
 **M2 — GREEN, gates, review**
-- [ ] Implement; `just test`, `just lint`, `just build`, `just coverage`, `just verify-vendor`
-- [ ] Delete-the-wiring check
-- [ ] Real-ROM probe from CLOCK_SET.state walking to Littleroot; quote readout ON/OFF
-- [ ] Codex + grok review
-- [ ] Explainer `docs/explainers/connection-edge-tiles-v1.html`, FEATURE_EXPLAINERS mapping
+- [x] Implement; `just test` (agent 1277, viewer 787, env 1992 passed), `just lint`, `just build`, `just coverage` (Python lines 97.05 / branches 92.65 / functions 100; agent 97.65/94.19/97.98; viewer 95.08/90.39/93.55), `just verify-vendor` all green
+- [x] Delete-the-wiring check: removing `connectionEdges` from `withNavigation` turns "the production factory threads the switch" red; removing `connection_edges_enabled` from `rerender.read_state` turns the showcase ON test red; both restored
+- [x] Real-ROM probe (live servers on 8461/8462 from `runs/auto-advance-qualify/states/twin.state`, LITTLEROOT (10,2)): ON `- NORTH -> ROUTE101 (map 0/16), offset 0; walk off the map from (10,0) or (11,0): stand on one of these edge tiles and press UP`, state JSON edges [(10,0),(11,0)]; OFF `... boundary continuation: walk across the matching edge in this direction`, no `edges` key
+- [ ] Multi-model review (principles, Claude CLI, think_fast, think_swarm, Cursor lanes)
+- [x] Explainer `docs/explainers/connection-edge-tiles-v1.html`, FEATURE_EXPLAINERS mapping, README entry; pending experiment `experiments/connection-edge-tiles.json` and readiness row
 
 ## Session Log
 
@@ -40,3 +40,5 @@ Showcase bundle run `2026-10-16T00-34-26_qwen36-gpu1_show`, seq 3580–3745: aft
 ## Surprises
 
 ## Multi-Model Review Log
+
+- 2026-10-16 01:25 AM EDT: GREEN finished by the Route 101 thread: lint fixes in the TS test, server feature count 24→25, explainer, experiment entry, readiness row; gates green.

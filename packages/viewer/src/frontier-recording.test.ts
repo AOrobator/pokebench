@@ -290,3 +290,16 @@ it("does not recover a bedroom exit after Mom's rival instruction, from the riva
     expect(view.milestones.some(m => m.name === "PLAYER_BEDROOM_EXITED_AFTER_CLOCK")).toBe(false);
   }
 });
+it("does not recover leave-home for a save inside home after the rival bedroom visit", () => {
+  for (const rival_stage of [2, 3, 4] as const) {
+    const later = { ...clocked, rival_stage: rival_stage as 0 };
+    const log = new Log();
+    log.add(0, { ...START, start_state: { kind: "save_state", path: "/saves/LATER.state", sha1: "a".repeat(40) }, harness_features: ["post-clock-navigation-milestones-v1"] });
+    log.add(1000, state({ ...quiet, location: "LITTLEROOT TOWN BRENDANS HOUSE 2F", story: later }));
+    log.add(2000, state({ ...quiet, location: "LITTLEROOT TOWN BRENDANS HOUSE 1F", story: later }));
+    log.add(3000, state({ ...quiet, location: "LITTLEROOT TOWN", story: later }));
+    const view = new RunView();
+    for (const event of log.events) view.apply(event);
+    expect(view.milestones.some(m => m.name === "PLAYER_HOUSE_EXITED_AFTER_CLOCK")).toBe(false);
+  }
+});

@@ -14,6 +14,8 @@ Operator ask (the operator, 2026-10-16 00:17 EDT): a milestone for leaving your 
 ## Milestones
 
 - [x] M1 RED: tracker, qualification, viewer derivation, frontier axis, feature registry, objective record. RED: agent 7 failing (bedroom-exit 5 incl. ROUTE_101_AFTER_HANDOFF objective-record leak, features 1, milestones order 1); viewer 6 failing (frontier-recording 1, frontier 5).
-- [ ] M2 GREEN + gates (vitest, coverage ≥90, lint)
+- [x] M2 GREEN + gates. agent 1273/1273 (cov 97.62 st / 94.19 br / 97.87 fn / 99.03 ln), viewer 789/789 (95.09 / 90.42 / 93.56 / 97.6), tsc+eslint clean both. Python untouched.
+  - Mutations, each turned a test red then restored: intro [6]→[6,7] (agent), drop agent rival-state guard, drop viewer rival-state guard; objective-record filter proven by RED.
+  - Replay of 52 recorded runs (2026-10-15/16) through the new tracker: all 19 recorded PLAYER_HOUSE_EXITED_AFTER_CLOCK evidence tuples reproduce unchanged; every run that left home also gets PLAYER_BEDROOM_EXITED_AFTER_CLOCK before it (43 runs); boot runs e.g. 504f bedroom [2391,2399] before house [1707,3396,3416].
 - [ ] M3 Review: Codex + grok
 - [ ] M4 Coordinate with the bundle-v-control thread, operator approval, local merge

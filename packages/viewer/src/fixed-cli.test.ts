@@ -94,7 +94,7 @@ describe("fixed-run check, approve, run, dry-run", () => {
   });
 
   it("checks every phase's start save and lists each phase's start", async () => {
-    const { deps, out, err, path } = setup({ sha1File: (p) => (p === "/roms/pokemon-emerald.gba" ? ROM_SHA1 : p.endsWith("MAIN_MENU.state") ? "e".repeat(40) : START_SHA1) });
+    const { deps, err, path } = setup({ sha1File: (p) => (p === "/roms/pokemon-emerald.gba" ? ROM_SHA1 : p.endsWith("MAIN_MENU.state") ? "e".repeat(40) : START_SHA1) });
     writeFileSync(path, JSON.stringify(definition()));
     expect(await main(["check", "bundle-v-control"], deps)).toBe(1);
     expect(err.at(-1)).toBe(`start save runs/launch-receipts/fast-text/MAIN_MENU.state has sha1 ${"e".repeat(40)}, the definition records ${MENU_SHA1}`);

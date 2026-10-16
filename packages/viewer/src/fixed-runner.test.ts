@@ -6,7 +6,7 @@ import { runFixed, type FixedHost, type FixedLaunch, type ServingReceipt } from 
 import { readLedger, type FixedLedgerEntry } from "./fixed-ledger.js";
 import { LEASE } from "./lease.js";
 import { parseFixedStatus, type FixedStatus } from "./fixed-status.js";
-import { definition, MODEL_PATH, ROM_SHA1, START_SHA1 } from "../test-support/fixed.js";
+import { definition, MODEL_PATH, ROM_SHA1 } from "../test-support/fixed.js";
 import { Log, START } from "../test-support/events.js";
 import { dryRunDefinition, type FixedDefinition, type FixedLane } from "./fixed-design.js";
 

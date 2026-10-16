@@ -244,7 +244,7 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 <text class="t" x="20" y="286" style="fill:var(--prior)">Reset to 0:</text>
 <text x="100" y="286">any other tool call (navigate_to, observe ...) · a press with any non-direction button · a press that ends off the free field</text>
 </svg></div>
-<figcaption>The counter in <code>withNavigateFirst</code>, with <code>REMINDER_EVERY=3</code>. Green: a direction-only press ending on the free field. Red: resets. A result without a readable state, or a press without buttons, also resets. Any other tool call between presses, <code>observe</code> included, resets it too, so the reminder appears only after three presses in a row with nothing else between.</figcaption></figure>
+<figcaption>The counter in <code>withNavigateFirst</code>, with <code>REMINDER_EVERY=3</code>. Green: a direction-only press ending on the free field. Red: resets. A result without a readable state, a press without buttons, or a press that errors also resets. Any other tool call between presses, <code>observe</code> included, resets it too, so the reminder appears only after three presses in a row with nothing else between.</figcaption></figure>
 <p>The line appended to the press result:</p>
 <pre>Reminder: to walk two or more tiles, call navigate_to with the destination; it finds the route for you.</pre>
 <p>None of the new text names a destination, a character or a story step. A test checks this for MAY, BRENDAN, BIRCH, ROUTE, Rustboro, Oldale and Littleroot.</p>

@@ -171,3 +171,10 @@ Lanes: the think_fast/think_swarm endpoint lanes are not used while overnight tr
 - Fix: the press wrapper zeroes the streak before executing and restores it only when the press returns, so a thrown press ends the run; test added. Agent 1477 passed; lint green except known mypy; agent coverage unchanged (navigate-first.ts 100%).
   COMMIT: `fix: a press that throws ends the navigate_to reminder streak (review round 2)`
 - Round 3 needs the operator's scope confirmation (two complete rounds with new blockers).
+
+### Round 3 (operator OK 04:44 AM EDT; fix delta d1440397..a8514328, SHA-256 3fffeaed…de24)
+
+- Claude lane (fresh read-only subagent): VERDICT: LGTM.
+- Codex lane (gpt-5.6-sol): VERDICT: LGTM.
+- Grok lane (cursor-grok-4.5-high): VERDICT: LGTM; hardening: registry copy and explainer did not yet name "a press that errors" among the resets. Synced after review (doc/copy only, no code).
+  COMMIT: `docs: navigate-first copy names an erroring press among the resets (review round 3)`

@@ -58,4 +58,8 @@ Game grounding (pret/pokeemerald 731ad5bf): Route 103 rival script `data/maps/Ro
 
 ## Multi-Model Review Log
 
-(none yet)
+**Round 1** (packet base 154d905e, head 9072cec6, diff sha256 e094432d…0747). Principles self-review: 13 rows, zero FAIL (/private/tmp/review-thw/principles.md).
+- Claude (Claude subagent lane): VERDICT: LGTM. Non-blocking: blackout amount said floor(m/2) lost, but DoWhiteOut keeps floor(m/2), so odd money loses ceil(m/2) (₽1 off); no direct test of re-arm on rival battle won.
+- Grok (cursor-grok-4.5-high): VERDICT: LGTM. Non-blocking: same re-arm test gap.
+- GPT (cursor gpt-5.6-sol-xhigh): no review, Cursor usage limit ("You've hit your usage limit", resets 10/17). Harness switch to isolated Codex for round 2.
+- Accepted and fixed in one batch: amount lost is m - floor(m/2); tests for odd money and re-arm after the rival battle is won. Gates re-run green (vitest 1643 + 907, pytest 2270, coverage ≥90). Round 2 re-reviews the cumulative packet on all three lanes.

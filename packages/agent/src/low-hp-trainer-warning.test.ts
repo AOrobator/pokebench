@@ -91,6 +91,10 @@ describe("condition, from the state alone",()=>{
   expect(lowHpTrainerWarning({...T363,screen:"battle"})).toBeNull();
   expect(lowHpTrainerWarning({...T363,started:false})).toBeNull();
  });
+ it("states the amount a blackout takes: what DoWhiteOut does not keep (floor of half), so odd money loses the larger half",()=>{
+  expect(warningText({...must(lowHpTrainerWarning(T363)),money:3001})).toContain("you lose half your money (₽1501 of ₽3001)");
+  expect(warningText({...must(lowHpTrainerWarning(T363)),money:1})).toContain("(₽1 of ₽1)");
+ });
  it("names BRENDAN for a female player, with him",()=>{
   const objects=[{...must(must(T363.world_context).objects[0]),sprite_kind:"RIVAL_BRENDAN_NORMAL"}];
   const warning=must(lowHpTrainerWarning({...T363,world_context:{...must(T363.world_context),objects}}));
@@ -127,6 +131,13 @@ describe("delivery on game-tool results",()=>{
   const texts=await run(must(nav),6);
   expect(texts.map(t=>t.includes("SUPERVISOR:"))).toEqual([true,false,true,false,true,false]);
   expect(rec.calls).toHaveLength(3);
+ });
+ it("re-arms once the rival battle is won, without firing on that state",async()=>{
+  const rec=recorder();
+  const won={...T363,story:{...must(T363.story),rival_battle_won:true}};
+  const [press]=withLowHpTrainerWarning([replay("press",[T363,won,T363])],{...BUNDLE,[ID]:true},rec);
+  const texts=await run(must(press),3);
+  expect(texts.map(t=>t.includes("SUPERVISOR:"))).toEqual([true,false,true]);
  });
  it("shares one arm across every game tool, and leaves results without a state alone",async()=>{
   const rec=recorder();

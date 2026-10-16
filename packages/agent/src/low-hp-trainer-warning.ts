@@ -38,7 +38,8 @@ export function lowHpTrainerWarning(state:GameStateSnapshot):LowHpTrainerWarning
 
 export function warningText(f:LowHpTrainerWarningFacts):string {
  const them=f.rival==="MAY"?"her":"him";
- const money=f.money===null?"":` (₽${String(Math.floor(f.money/2))} of ₽${String(f.money)})`;
+ // DoWhiteOut keeps floor(money/2), so the amount lost is the rest.
+ const money=f.money===null?"":` (₽${String(f.money-Math.floor(f.money/2))} of ₽${String(f.money)})`;
  const bag=f.items.length===0?"":` Your BAG has ${f.items.map(i=>`${i.name} ×${String(i.quantity)}`).join(" and ")}; using one on ${f.species} restores HP.`;
  return `SUPERVISOR: Your ${f.species} has ${String(f.hp)}/${String(f.max_hp)} HP (below half), and your rival ${f.rival} is on this map at (${String(f.x)},${String(f.y)}). Talking to ${them} starts a trainer battle you cannot run from. If your party faints, you black out: you lose half your money${money} and wake up back at the last POKéMON CENTER you entered, or at home. Heal before you talk to ${them}: the nurse at a POKéMON CENTER heals your whole party, and so does MOM at home.${bag}`;
 }

@@ -80,6 +80,8 @@ Report branch, frozen head, packet sha256, verdicts, gates, switch ids and inten
 
 - 2026-10-16: merged main 53461a49 (Route 103 review notes: milestones.ts order, route103 feature copy), clean. Gates: agent 1914, viewer 933, pytest 2372 passed (one run had a timing failure in env/tests/env/test_warp_arrival_settle.py, env untouched by this branch; passed 5/5 reruns and the full coverage rerun); lint, build, verify-vendor, experiments-check OK; coverage agent 99.15/94.57/98.31, viewer 97.63/91.09/93.68, python 97.42/93.35/100.
 
+- 2026-10-16: merged main 259aeb08 (viewer phone header Q, close-the-loop skill), clean. Gates: agent 1918, viewer 951, pytest 2372 passed; lint, build, verify-vendor, pages-check, experiments-check OK; coverage agent 99.16/94.51/98.32, viewer 97.66/91.14/93.77, python 97.42/93.35/100.
+
 ## Principles Adherence (rounds 1-2; round 2 packet base main be428cdb)
 
 | ID | Score | Evidence |

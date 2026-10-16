@@ -127,6 +127,22 @@ describe("exit history",()=>{
   expect(g.observe(place([24,24],12,15,PADS))).toEqual([]);
  });
 
+ it("takes a same-map pad only when the player lands on the very warp it leads to (review round 2)",()=>{
+  // pokeemerald AquaHideout_B1F: the warp at (45,5) leads to this map's warp 12 at (45,3), one walkable tile apart.
+  const near=[...Array.from({length:12},(_,i)=>warp(60+i,1,[0,9,0])),warp(45,3,[24,24,20]),warp(45,5,[24,24,12])];
+  const h=new ExitHistory();
+  h.observe(place([24,24],45,4,near));
+  expect(h.observe(place([24,24],45,3,near)).map(m=>m.tile)).toEqual(["45,5","45,3"]);
+  // One press batch is recorded as two states: DOWN×4 from beside a pad, ending beside another, uses neither.
+  const b=new ExitHistory();
+  b.observe(place([24,24],3,4,[warp(3,3,[24,24,1]),warp(3,9,[24,24,0])]));
+  expect(b.observe(place([24,24],3,8,[warp(3,3,[24,24,1]),warp(3,9,[24,24,0])]))).toEqual([]);
+  // A dynamic warp beside the start of a batch is not a same-map use either.
+  const d=new ExitHistory();
+  d.observe(place([24,24],3,4,[warp(3,3,[127,127,0])]));
+  expect(d.observe(place([24,24],3,8,[warp(3,3,[127,127,0])]))).toEqual([]);
+ });
+
  it("counts a map connection crossed only when no warp explains the change, and ignores loads, battles and unstarted states",()=>{
   const h=new ExitHistory();
   const north={direction:"NORTH" as const,offset:0,destination:[0,16] as [number,number],destination_name:"ROUTE101"};

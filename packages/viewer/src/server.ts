@@ -13,13 +13,13 @@ import { Value } from "typebox/value";
 import { FEATURES } from "@pokebench/agent/features";
 import { CONTROL_ACTIONS } from "@pokebench/agent/events";
 import { finalsRunLabels } from "./experiment-gate-store.js";
-import type { BaselineStore } from "./baseline-store.js";
+import type { BaselineStore, RunStore } from "./baseline-store.js";
 import { BaselineError, RunsError, createBaselineReader, comparisonsOf, type BaselineCompute, eventsPath, listRuns, liveScreenPort, readStart, readFrom, runDir, type BaselineReader } from "./runs.js";
 import { featureHistory } from "./history.js";
 import { localModels } from "./models.js";
 import { NextRunError, appendControl, healthProbe, liveRuns, readDraft, writeDraft, type RunQueue } from "./next-run.js";
 import { WORKBENCH_POLL_MS, type WorkbenchData } from "./workbench-data.js";
-import { workbenchSnapshot } from "./workbench-store.js";
+import { createWorkbenchLoader, workbenchSnapshot, type LoadedRun, type WorkbenchCompute } from "./workbench-store.js";
 import { MILESTONE_ORDER } from "./model.js";
 import { FEATURE_EXPLAINERS } from "./panels.js";
 
@@ -63,6 +63,8 @@ export interface ViewerOptions {
   // Where baseline validation runs (default: in process), whether to warm every ended run
   // at startup, and what to close with the viewer.
   readonly baselines?: { readonly compute?: BaselineCompute; readonly store?: BaselineStore; readonly warm?: boolean; readonly close?: () => Promise<void> };
+  // Where workbench run logs are reduced (default: in process) and where finished runs persist.
+  readonly workbench?: { readonly compute?: WorkbenchCompute; readonly store?: RunStore<LoadedRun> };
 }
 
 const MAX_BODY = 64 * 1024;
@@ -433,11 +435,12 @@ export async function startViewer(options: ViewerOptions): Promise<Viewer> {
   let port = 0;
   let origins: ReadonlyMap<string, string> = new Map();
   const readBaseline = createBaselineReader(options.runsRoot, { ...(options.baselines?.compute === undefined ? {} : { compute: options.baselines.compute }), ...(options.baselines?.store === undefined ? {} : { store: options.baselines.store }) });
+  const workbenchLoader = options.workbench === undefined ? undefined : createWorkbenchLoader({ ...(options.workbench.compute === undefined ? {} : { compute: options.workbench.compute }), ...(options.workbench.store === undefined ? {} : { store: options.workbench.store }) });
   let snapshot: { until: number; result: Promise<WorkbenchData> } | null = null;
   const readWorkbench = (): Promise<WorkbenchData> => {
     const now = (options.now?.() ?? new Date()).getTime();
     if (snapshot !== null && now < snapshot.until) return snapshot.result;
-    const next = { until: Infinity, result: Promise.resolve().then(() => workbenchSnapshot(options.runsRoot, healthProbe(options.fetchFn ?? fetch), now)) };
+    const next = { until: Infinity, result: Promise.resolve().then(() => workbenchSnapshot(options.runsRoot, healthProbe(options.fetchFn ?? fetch), now, undefined, workbenchLoader)) };
     snapshot = next;
     next.result = next.result.then(data => { next.until = (options.now?.() ?? new Date()).getTime() + WORKBENCH_POLL_MS; return data; }, (error: unknown) => { if (snapshot === next) snapshot = null; throw error; });
     return next.result;

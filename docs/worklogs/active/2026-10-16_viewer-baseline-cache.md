@@ -76,7 +76,11 @@ Design: `load()` splits into `runSignature` (main thread: stat + visual-evidence
 
 - [x] Write tests: `loadRun`/`timingSeconds` parity with the in-process snapshot; a held compute leaves other routes answering; store reuse for ended runs only; signature change recomputes; corrupt store entries ignored; worker `kind` routing; in-flight sharing.
 - [x] COMMIT RED: `test(viewer): RED workbench runs load off the request thread and persist` (10 new tests fail: missing exports; pool posts gain `kind`)
-- [ ] Implement, gates, COMMIT GREEN, guard deletions
+- [x] Implement: `loadRun`/`timingSeconds`/`parseLoadedRun`/`createWorkbenchLoader` in `workbench-store.ts`; generic `RunStore` with `createWorkbenchStore`/`workbenchCacheDir` and pruning of both cache kinds; pool requests carry `kind`, `pool.load` validates workbench replies; worker routes by kind; server `workbench` option; CLI `offload` builds one pool for both. Fixture note: the paused run needs its own port, since only the newest run per port is probed.
+- [x] Guard deletions: persist live runs too → 2 tests fail; no in-flight sharing → 1 fails; server ignores the loader → 1 fails; no after-load signature check → new race test fails. Restored, 10/10 pass.
+- [x] Gates: build, `pnpm -r lint`, ruff, ruff format, mypy (main venv), coverage (viewer 875 tests 95.32 / 90.99 / 93.61; agent 1489 tests 97.82 / 94.56 / 98.14; Python 96%), verify-vendor green.
+- [x] Real catalog (240 runs, built dist, pool of 4, scratch cache dir): cold workbench snapshot 86.0 s with max event-loop lag 84 ms (in process today: 277.0 s, all on the loop); restart from disk 8.96 s, only the 3 unended runs recomputed, max lag 216 ms. Parity against main 5fd00072 built in a throwaway worktree: 237 ended/invalid rows byte-identical, cohorts/problems envelope identical, 3 live rows skipped (their logs grow between snapshots).
+- [x] COMMIT: `feat(viewer): GREEN workbench runs load on worker threads and persist when finished` (pending sha)
 - [ ] Review (Claude, Codex, Grok in a throwaway worktree), merge on the operator's word, live restart receipt
 
 ## Closing the Loop

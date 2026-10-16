@@ -43,6 +43,9 @@ function ended(): Log {
 }
 function paused(): Log {
   const l = named();
+  const start = l.events[0];
+  if (start?.type !== "run_start") throw new Error("fixture start");
+  l.events[0] = { ...start, isolation: { ...start.isolation, port: 8012 } };
   l.add(4500, { type: "operator_control", turn: 1, action: "pause", status: "applied", request: 1 });
   return l;
 }
@@ -172,4 +175,23 @@ it("loads workbench runs through the pool and validates their replies", async ()
   workers[0]?.emit("message", { id: workers[0].posted[1]?.id, outcome: { run: 7 } });
   await expect(bad).rejects.toThrow(/invalid reply/);
   await pool.close();
+});
+
+it("never keeps or persists a load whose log changed while it was being read", async () => {
+  const r = catalog();
+  const dir = workbenchCacheDir(r, CODE), path = join(r, "done", "events.jsonl");
+  const calls: string[] = [];
+  let touched = false;
+  const loader = createWorkbenchLoader({ store: createWorkbenchStore(dir), compute: (root, id) => {
+    calls.push(id);
+    const loaded = loadRun(root, id);
+    if (id === "done" && !touched) { touched = true; fs.appendFileSync(path, "\n"); }
+    return Promise.resolve(loaded);
+  } });
+  await workbenchSnapshot(r, healthy, NOW, undefined, loader);
+  expect(fs.existsSync(join(dir, "done.json"))).toBe(false);
+  calls.length = 0;
+  await workbenchSnapshot(r, healthy, NOW, undefined, loader);
+  expect(calls).toContain("done");
+  expect(fs.existsSync(join(dir, "done.json"))).toBe(true);
 });

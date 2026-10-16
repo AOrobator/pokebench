@@ -70,12 +70,12 @@
       "named-warp-destinations-v1": false,
       "milestone-stall-stop-v1": false,
       "text-only-supervisor-v1": true,
-      "character-presence-v1": false,
+      "character-presence-v1": true,
       "navigation-refusal-reasons-v1": false,
       "transition-press-result-v1": false,
       "stall-briefing-v1": false,
       "battle-details-v2": false,
-      "dialogue-auto-advance-v1": false,
+      "dialogue-auto-advance-v1": true,
       "warp-arrival-settle-v1": false,
       "dialogue-context-kept-v1": false,
       "displayed-place-names-v1": false,
@@ -103,5 +103,5 @@
     "window": 4,
     "minReached": 3
   },
-  "notes": "Uses the incumbent of readout-rules-in-prompt with explorer-guidance-v1, connection-edge-tiles-v1 and both new switches explicitly off (every registry switch explicit, in registry order). Activation: entries need an overworld readout or a script push-back, first possible in the truck after the name is confirmed; on sh02 the first entry was Mom's push-back at T59. Measured on sh02 (snapshot to turn 1009): 4 entries, 4 true contradictions; delivered on 206 model calls. Joins the bundle arm of bundle-v-control (operator decision 2026-10-16; the bundle file is edited by its own thread). Provisional source.commit is the branch head; repinned to the merge SHA when it lands."
+  "notes": "Uses the incumbent of readout-rules-in-prompt with explorer-guidance-v1, connection-edge-tiles-v1 and both new switches explicitly off (every registry switch explicit, in registry order). Activation: entries need an overworld readout or a script push-back, first possible in the truck after the name is confirmed; on sh02 the first entry was Mom's push-back at T59. Measured on sh02 (snapshot to turn 1009): 4 entries, 4 true contradictions; delivered on 206 model calls. Joins the bundle arm of bundle-v-control (operator decision 2026-10-16; the bundle file is edited by its own thread). Provisional source.commit is the branch head; repinned to the merge SHA when it lands. Review round 1: the incumbent turns on character-presence-v1 and dialogue-auto-advance-v1 (both on in sh02 and in the bundle arms), the ledger's two entry sources, so the treatment is not inert; it therefore differs from the shared incumbent in those two switches."
 }

@@ -23,18 +23,26 @@ interface Readout {readonly turn:number;readonly seq:number;readonly map:string;
 const GAME_TOOLS=new Set(["observe","press","navigate_to"]);
 const STEP:Readonly<Record<string,Point>>={UP:{x:0,y:-1},DOWN:{x:0,y:1},LEFT:{x:-1,y:0},RIGHT:{x:1,y:0}};
 const CHARACTERS=/^Story characters here \(from this map's own object list\): .*\. Not on this map: (.*?)\. Sprite kinds .*$/m;
-const NEGATION=/\b(?:not|never|no longer|away)\b|n't/i;
+// A sentence that negates or hedges anywhere is not a claim the model is acting on.
+const NEGATION=/\b(?:not|never|no longer|away|might|maybe|perhaps|probably|possibly|likely|if|whether|unsure|unclear)\b|n't/i;
+const MODAL=/\b(?:may|could)\b/;
 const at=(p:Point):string=>`(${String(p.x)},${String(p.y)})`;
 const same=(a:Point,b:Point):boolean=>a.x===b.x&&a.y===b.y;
 const distance=(a:Point,b:Point):number=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
 const storyKey=(state:State):string|null=>state.story==null?null:JSON.stringify(state.story);
 const quotePages=(c:Conversation):string=>c.pages.map(p=>{const s=speakerLabel(p);return `${s===null?"":`${s}: `}"${p.text}"`;}).join(" | ");
 
-// A story character's readout name as the model may write it: case-insensitive, the game's "PROF." also as "Prof." or
-// "Professor"; never inside a longer word or symbol (RIVAL_MAY_NORMAL), never possessive (Birch's lab).
+// A story character's readout name as the model may write it: each word in the readout's spelling or in title case
+// (MAY or May, never the word "may"), the game's "PROF." also as "Prof." or "Professor"; never inside a longer word or
+// symbol (RIVAL_MAY_NORMAL), never possessive (Birch's lab).
+const title=(word:string):string=>`${word.charAt(0)}${word.slice(1).toLowerCase()}`;
 export function nameMatcher(name:string):RegExp {
- const escaped=name.replace(/[.*+?^${}()|[\]\\]/g,"\\$&").replace(/PROF\\\./g,"(?:PROF\\.?|PROFESSOR)");
- return new RegExp(`(?<![A-Za-z0-9_])${escaped}(?![A-Za-z0-9_'’])`,"gi");
+ const words=name.split(" ").map(word=>{
+  if(word==="PROF.")return "(?:PROF\\.?|Prof\\.?|PROFESSOR|Professor)";
+  const escape=(w:string)=>w.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+  return title(word)===word?escape(word):`(?:${escape(word)}|${escape(title(word))})`;
+ });
+ return new RegExp(`(?<![A-Za-z0-9_])${words.join(" ")}(?![A-Za-z0-9_'’])`,"g");
 }
 
 // The model's sentences that place `name` on a tile: the name, not in parentheses, then "at (x,y)" in the same
@@ -51,8 +59,8 @@ export function locatingClaims(text:string,name:string):string[] {
   const sentenceEnd=ends.find(e=>e>after)??text.length;
   const rest=text.slice(after,sentenceEnd);
   const coordinate=/\bat \(\s*-?\d+\s*,\s*-?\d+\s*\)/.exec(rest);
-  if(coordinate===null||NEGATION.test(rest.slice(0,coordinate.index)))continue;
   const sentence=text.slice(sentenceStart,sentenceEnd).trim();
+  if(coordinate===null||NEGATION.test(sentence)||MODAL.test(sentence))continue;
   if(!claims.includes(sentence))claims.push(sentence);
  }
  return claims;
@@ -198,7 +206,7 @@ export class DisprovedBeliefs {
   if(this.entries.size===0)return null;
   const lines=[...this.entries.values()].sort((a,b)=>a.order-b.order).map(entry=>{
    const turns=entry.turns.map(String).join(", ");
-   if(entry.kind==="push_back")return `- Moving ${entry.direction} from ${at(entry.from)} in ${entry.room}: you tried it ${String(entry.turns.length)} time${entry.turns.length===1?"":"s"}, at turn${entry.turns.length===1?"":"s"} ${turns} (latest: ${entry.action}). Each time a script moved you back to ${at(entry.to)} while it showed (turn ${String(entry.conversation.turn)}): ${quotePages(entry.conversation)}`;
+   if(entry.kind==="push_back")return `- Moving ${entry.direction} from ${at(entry.from)} in ${entry.room}: you tried it ${String(entry.turns.length)} time${entry.turns.length===1?"":"s"}, at turn${entry.turns.length===1?"":"s"} ${turns} (latest: ${entry.action}). Each time a script moved you back to ${at(entry.to)}; the latest time (turn ${String(entry.conversation.turn)}) it showed: ${quotePages(entry.conversation)}`;
    const said=entry.conversation===null?"":` On that map at turn ${String(entry.conversation.turn)} you were shown: ${quotePages(entry.conversation)}`;
    return `- ${entry.name} on ${entry.room}: you wrote at turn ${String(entry.claim.turn)}: "${entry.claim.text}"${entry.turns.length>1?` (you placed ${entry.name} on this map at turns ${turns})`:""}. The readout on that map said at turn ${String(entry.readout.turn)}: "${entry.readout.line}"${said}`;
   });

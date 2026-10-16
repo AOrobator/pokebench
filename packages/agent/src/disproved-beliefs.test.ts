@@ -102,13 +102,13 @@ describe("disproved-beliefs-v1 on run sh02",()=>{
   const {byTurn}=await replay(ON);
   const t117=byTurn.get(117)??"";
   expect(t117).toBe(`Things the game has contradicted (from this run's own readouts and dialogue; an entry is dropped when a story flag changes or the game shows otherwise):
-- PROF. BIRCH on LITTLEROOT TOWN PROFESSOR BIRCHS LAB (map 1/4): you wrote at turn 89: "Prof. Birch is at (7,1) which is a 'Book' tile (background object, not walkable)." (you placed PROF. BIRCH on this map at turns 81, 82, 83, 84, 85, 86, 87, 88, 89). The readout on that map said at turn 88: "Story characters here (from this map's own object list): none. Not on this map: PROF. BIRCH, MAY, BRENDAN, MOM, NORMAN, WALLY, ROXANNE, STEVEN. Sprite kinds such as SCIENTIST_1 or FAT_MAN are not these characters." On that map at turn 98 you were shown: SCIENTIST_1 (sprite kind, not a name): "Hunh? PROF. BIRCH?" | SCIENTIST_1 (sprite kind, not a name): "The PROF's away on fieldwork.
+- PROF. BIRCH on LITTLEROOT TOWN PROFESSOR BIRCHS LAB (map 1/4): you wrote at turn 88: "Prof. Birch is at (7,1)." (you placed PROF. BIRCH on this map at turns 81, 82, 83, 84, 85, 86, 87, 88). The readout on that map said at turn 87: "Story characters here (from this map's own object list): none. Not on this map: PROF. BIRCH, MAY, BRENDAN, MOM, NORMAN, WALLY, ROXANNE, STEVEN. Sprite kinds such as SCIENTIST_1 or FAT_MAN are not these characters." On that map at turn 98 you were shown: SCIENTIST_1 (sprite kind, not a name): "Hunh? PROF. BIRCH?" | SCIENTIST_1 (sprite kind, not a name): "The PROF's away on fieldwork.
 Ergo, he isn't here." | SCIENTIST_1 (sprite kind, not a name): "Oh, let me explain what fieldwork is." | SCIENTIST_1 (sprite kind, not a name): "It is to study things in the natural
 environment, like fields and mountains," | SCIENTIST_1 (sprite kind, not a name): "instead of a laboratory." | SCIENTIST_1 (sprite kind, not a name): "The PROF isn't one for doing desk work.
 He's the type of person who would" | SCIENTIST_1 (sprite kind, not a name): "rather go outside and experience" | SCIENTIST_1 (sprite kind, not a name): "things than read about them here."`);
   // It stays pinned through the second lab trip (T117-T126) and adds the new claims there.
   for(let turn=99;turn<=124;turn++)expect(byTurn.get(turn)).toBe(t117);
-  expect(byTurn.get(126)).toContain(`you wrote at turn 125: "Professor Birch is at (9,7)." (you placed PROF. BIRCH on this map at turns 81, 82, 83, 84, 85, 86, 87, 88, 89, 124, 125)`);
+  expect(byTurn.get(126)).toContain(`you wrote at turn 125: "Professor Birch is at (9,7)." (you placed PROF. BIRCH on this map at turns 81, 82, 83, 84, 85, 86, 87, 88, 124, 125)`);
   // Not before the first claim: the readout alone is not a belief.
   expect(byTurn.has(81)).toBe(false);
  });
@@ -116,7 +116,7 @@ He's the type of person who would" | SCIENTIST_1 (sprite kind, not a name): "rat
  it("keeps the twin's push-back with every turn it was tried, and the pages whole",async()=>{
   const {byTurn}=await replay(ON);
   const t148=byTurn.get(148)??"";
-  expect(t148).toContain(`- Moving UP from (11,1) in LITTLEROOT TOWN (map 0/9): you tried it 3 times, at turns 142, 144, 146 (latest: press UP). Each time a script moved you back to (11,2) while it showed (turn 146): TWIN (sprite kind, not a name): "Um, um, um!" | TWIN (sprite kind, not a name): "If you go outside and go in the grass,\nwild POKéMON will jump out!" | TWIN (sprite kind, not a name): "It's dangerous if you don't have\nyour own POKéMON."`);
+  expect(t148).toContain(`- Moving UP from (11,1) in LITTLEROOT TOWN (map 0/9): you tried it 3 times, at turns 142, 144, 146 (latest: press UP). Each time a script moved you back to (11,2); the latest time (turn 146) it showed: TWIN (sprite kind, not a name): "Um, um, um!" | TWIN (sprite kind, not a name): "If you go outside and go in the grass,\nwild POKéMON will jump out!" | TWIN (sprite kind, not a name): "It's dangerous if you don't have\nyour own POKéMON."`);
   // Birch's lab entry still holds: the story has not changed since turn 98.
   expect(t148).toContain("- PROF. BIRCH on LITTLEROOT TOWN PROFESSOR BIRCHS LAB (map 1/4)");
   expect(t148.indexOf("PROF. BIRCH on")).toBeLessThan(t148.indexOf("Moving UP"));
@@ -132,7 +132,7 @@ He's the type of person who would" | SCIENTIST_1 (sprite kind, not a name): "rat
  it("records Mom's push-back at the front door (T59) and drops it when the story changes",async()=>{
   const {byTurn}=await replay(ON);
   expect(byTurn.get(60)).toBe(`Things the game has contradicted (from this run's own readouts and dialogue; an entry is dropped when a story flag changes or the game shows otherwise):
-- Moving DOWN from (8,8) in LITTLEROOT TOWN BRENDANS HOUSE 1F (map 1/0): you tried it 1 time, at turn 59 (latest: press DOWN). Each time a script moved you back to (8,7) while it showed (turn 59): MOM: "MOM: Well, GMREEN?" | MOM: "Aren't you interested in seeing your\nvery own room?"`);
+- Moving DOWN from (8,8) in LITTLEROOT TOWN BRENDANS HOUSE 1F (map 1/0): you tried it 1 time, at turn 59 (latest: press DOWN). Each time a script moved you back to (8,7); the latest time (turn 59) it showed: MOM: "MOM: Well, GMREEN?" | MOM: "Aren't you interested in seeing your\nvery own room?"`);
   // intro_stage 4 -> 5 at T60: a story flag changed, so the entry may no longer hold.
   expect(byTurn.has(61)).toBe(false);
  });
@@ -146,7 +146,7 @@ He's the type of person who would" | SCIENTIST_1 (sprite kind, not a name): "rat
 
  it("records Birch's Route 101 push-back from navigate_to and from presses",async()=>{
   const {byTurn}=await replay(ON);
-  expect(byTurn.get(262)).toContain(`- Moving LEFT from (6,15) in ROUTE101 (map 0/16): you tried it 1 time, at turn 261 (latest: navigate_to (4,12)). Each time a script moved you back to (7,15) while it showed (turn 261): "Wh-Where are you going?!\nDon't leave me like this!"`);
+  expect(byTurn.get(262)).toContain(`- Moving LEFT from (6,15) in ROUTE101 (map 0/16): you tried it 1 time, at turn 261 (latest: navigate_to (4,12)). Each time a script moved you back to (7,15); the latest time (turn 261) it showed: "Wh-Where are you going?!\nDon't leave me like this!"`);
   expect(byTurn.get(266)).toContain("you tried it 5 times, at turns 261, 262, 263, 264, 265 (latest: press LEFT,LEFT,LEFT,UP,UP,UP)");
  });
 
@@ -157,9 +157,9 @@ He's the type of person who would" | SCIENTIST_1 (sprite kind, not a name): "rat
   expect(last).toBeDefined();
   expect(()=>checkEvent({v:1,run:"r",t:"2026-10-16T03:00:00.000-04:00",seq:1,turn:1,type:"belief_ledger",...last})).not.toThrow();
   const t117=bodies.find(b=>b.text===byTurn.get(117));
-  // The nine claims (assistant events), the readout result the latest claim answered and the scientist's conversation.
-  const claims=FIXTURE.events.filter(e=>e.type==="assistant"&&e.turn>=81&&e.turn<=89).map(e=>e.seq);
-  const readout=FIXTURE.events.find(e=>e.type==="tool_result"&&e.turn===88)?.seq;
+  // The eight claims (assistant events), the readout result the latest claim answered and the scientist's conversation.
+  const claims=FIXTURE.events.filter(e=>e.type==="assistant"&&e.turn>=81&&e.turn<=88).map(e=>e.seq);
+  const readout=FIXTURE.events.find(e=>e.type==="tool_result"&&e.turn===87)?.seq;
   const scientist=FIXTURE.events.find(e=>e.type==="dialogue_auto_advance"&&e.turn===98)?.seq;
   expect(t117?.entries).toBe(1);
   expect(t117?.evidence).toEqual([...claims,readout,scientist].sort((a,b)=>(a??0)-(b??0)));
@@ -213,7 +213,7 @@ describe("leaving the ledger and never clipping",()=>{
   const after=ev({type:"state",...IN_GAME,...LAB,position:{x:2,y:2},facing:"up",field_controls_locked:false,story:story(0),world_context:{objects:[],triggers:[],dialogue:null}});
   l.observe(after);
   l.observe(ev({type:"tool_result",id:"p1",name:"press",is_error:false,duration_ms:1,text:"pressed UP",frames:[],state_seq:after.seq}));
-  expect(l.text()).toContain(`- Moving UP from (2,1) in LAB (map 1/4): you tried it 1 time, at turn 1 (latest: press UP). Each time a script moved you back to (2,2) while it showed (turn 1): "Wait!"`);
+  expect(l.text()).toContain(`- Moving UP from (2,1) in LAB (map 1/4): you tried it 1 time, at turn 1 (latest: press UP). Each time a script moved you back to (2,2); the latest time (turn 1) it showed: "Wait!"`);
   observeResult(l,"o1","Screen: overworld",{position:{x:2,y:0}},2);
   expect(l.text()).toBeNull();
  });
@@ -276,7 +276,7 @@ describe("replay: the decision probe rebuilds what the model saw",()=>{
   const off=await decisionContext(run,117,OFF,ports,"replayed");
   const last=on.messages.at(-1);
   expect(last?.role).toBe("user");
-  expect(last?.role==="user"&&typeof last.content==="string"?last.content:"").toMatch(/^Things the game has contradicted .*\n- PROF\. BIRCH on LITTLEROOT TOWN PROFESSOR BIRCHS LAB \(map 1\/4\): you wrote at turn 89:/s);
+  expect(last?.role==="user"&&typeof last.content==="string"?last.content:"").toMatch(/^Things the game has contradicted .*\n- PROF\. BIRCH on LITTLEROOT TOWN PROFESSOR BIRCHS LAB \(map 1\/4\): you wrote at turn 88:/s);
   expect(on.messages.length).toBe(off.messages.length+1);
   expect(on.messages.slice(0,-1)).toEqual(off.messages);
  });

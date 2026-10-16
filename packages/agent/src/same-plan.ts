@@ -83,6 +83,8 @@ export class SamePlanBreaker {
   if(all.length<SAME_PLAN_DECISIONS+2||this.completed-this.armedAfter<SAME_PLAN_DECISIONS)return;
   const window=all.slice(-SAME_PLAN_DECISIONS);
   if(!window.every(d=>d.done))return;
+  // A reply that states no plan is not the same plan as another.
+  if(window.some(d=>d.tokens.length===0))return;
   if(!window.every((d,i)=>window.slice(i+1).every(e=>planSimilarity(d.tokens,e.tokens)>=SAME_PLAN_SIMILARITY)))return;
   const states=all.map(d=>d.state);
   if(states.some(s=>s===null))return;

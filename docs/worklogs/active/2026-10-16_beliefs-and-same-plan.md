@@ -13,7 +13,9 @@ feature-worklog, feature-switch, feature-explainer, experiment-queue, agent-obse
 
 ## Architecture
 
-### Switch 1: `disproved-beliefs-v1` (guidance, default off)
+### Switch 1: `disproved-beliefs-v1` (guidance, default off, needs story-state-v1 since review round 1)
+
+Review round 1 changes to the rules below: names match the readout's spelling or title case only (MAY or May, never "may"); a negation or hedge anywhere in the sentence (not, n't, never, no longer, away, might, maybe, perhaps, probably, possibly, likely, if, whether, unsure, unclear, may, could) rejects it; the push-back wording is "Each time a script moved you back to R; the latest time (turn N) it showed: …".
 
 A new module `packages/agent/src/disproved-beliefs.ts` watches the recorded event stream and keeps a ledger. Before each model call, when the ledger has entries, it appends one user message, recorded as a new `belief_ledger` event (text, entry count, evidence seqs):
 
@@ -109,7 +111,8 @@ Report per switch: id, model-facing before/after excerpts from this run, precisi
 - Grok (`cursor-agent --mode ask --model cursor-grok-4.5-high`): LGTM. Non-blocking: soft dependencies / inert standalone experiment; explainer head; "back and forth" can name one move; provisional source.commit.
 - Claude (Claude CLI, default profile, `--permission-mode plan`): BLOCKING. B1 = Codex 1; B2 case-insensitive names make the word "may" match MAY. Non-blocking: empty plans; claims are tied to the current map; "Each time … while it showed" quotes only the latest pages; back-and-forth wording; same-plan wiring placement.
 - Accepted: all four Codex blockers, Claude B2, the "Each time" wording, the explainer head. Deferred (non-blocking, recorded): a claim naming another map (no place parsing added); back-and-forth wording for a single return.
-- 2026-10-16 05:15 AM EDT: round-1 RED: 5 failing tests (needs story-state-v1; 'may' and lowercase names; hedge anywhere in the sentence; experiment incumbent has both sources on; empty plans).
+- 2026-10-16 05:15 AM EDT: round-1 RED: 5 failing tests (needs story-state-v1; 'may' and lowercase names; hedge anywhere in the sentence; experiment incumbent has both sources on; empty plans). COMMIT: `test: RED review round 1: …` (80f273a9)
+- 2026-10-16 05:35 AM EDT: round-1 GREEN. `nameMatcher` per word: readout spelling or title case, PROF. as PROF/Prof/Professor, no `i` flag; NEGATION/MODAL tested on the whole sentence; push-back text "the latest time (turn N) it showed"; same-plan returns when any plan in the window is empty; `disproved-beliefs-v1` needs `story-state-v1` (description says why); `experiments/disproved-beliefs.json` incumbent turns on character-presence-v1 and dialogue-auto-advance-v1 (notes say so; readiness row updated); explainers: `</head>` no longer inside `<style>`, rule text, T89 and "may" rows, eyebrow. Preset fixtures with story-state off now also set the ledger off (play-preset.test, server-controls.test). Full-run replay unchanged: 4 entries (T89's "not walkable" sentence is now rejected, so the Birch entry's latest claim at T117 is T88), 206 deliveries; same-plan 28 notes. Gates: agent 1483 tests 97.86/94.47/98.27/99.09; viewer 827 tests 95.19/90.64/93.55/97.64; Python 2162 passed 97.15/92.87/100; lint clean (TS/eslint); pages-check silent.
 
 - `tests/env/test_warp_arrival_settle.py::test_the_default_warp_bound_is_used_in_frames` failed once under full-suite load (301 vs 300 frames) and passes alone 3/3; pre-existing, Python untouched here. Left for its owner.
 

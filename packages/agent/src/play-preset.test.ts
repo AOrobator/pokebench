@@ -6,7 +6,7 @@ it.each([{...preset,extra:true},{...preset,limits:{...preset.limits,maxWallMs:"6
 
 import {ALL_ON} from "./features.js";
 import {presetFeatures,presetFlags} from "./play-preset.js";
-const v2={version:2,id:"viewer-next",target:null,limits:{maxTurns:300,maxWallMs:1800000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},features:{...ALL_ON,"dialogue-auto-advance-v1":false,"warp-arrival-settle-v1":false,"field-dialogue-phase-v1":false,"dialogue-safe-batches-v1":false,"interaction-loop-detection-v1":false,"state-only-decisions-v1":false,"story-state-v1":false}};
+const v2={version:2,id:"viewer-next",target:null,limits:{maxTurns:300,maxWallMs:1800000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},features:{...ALL_ON,"dialogue-auto-advance-v1":false,"warp-arrival-settle-v1":false,"field-dialogue-phase-v1":false,"dialogue-safe-batches-v1":false,"interaction-loop-detection-v1":false,"state-only-decisions-v1":false,"story-state-v1":false,"disproved-beliefs-v1":false}};
 it("accepts a v2 preset with every switch explicit and exposes its feature set",()=>{
   const parsed=parsePlayPreset(v2);
   expect(presetFeatures(parsed)).toEqual(v2.features);

@@ -34,6 +34,7 @@ from pokebench_env.battle_text import (
 from pokebench_env.game_screen import GMAIN, ReadMemory
 from pokebench_env.gba_text import decode_text
 from pokebench_env.pokemon import BATTLE_MOVES, MOVE_NAMES, SPECIES_NAMES
+from pokebench_env.transition_coherence import BATTLE_INTRO_MAIN_FUNCS, CLEARED_POSITION
 
 CONTROLLERS = 0x03005D60
 EXEC_FLAGS = 0x02024068
@@ -301,7 +302,8 @@ def _initializing(read: ReadMemory, main: int) -> BattleState:
     )
 
 
-def read_battle_state(read: ReadMemory) -> BattleState:
+def read_battle_state(read: ReadMemory, *, current_battle_only: bool = True) -> BattleState:
+    """current_battle_only (transition-coherence-v1): the intro is initializing, not stale data."""
     active = bool(number(read, IN_BATTLE, 1) & 2)
     if not active:
         return BattleState(False)
@@ -313,6 +315,10 @@ def read_battle_state(read: ReadMemory) -> BattleState:
         # genuine initialization phase, not a decoded Pokémon with species0.
         if count == 0 or main == 0:
             return _initializing(read, main)
+        # Until BattleIntroDrawTrainersOrMonsSprites has run, outcome, turn and battlers may
+        # still be the previous battle's (battle_main.c BeginBattleIntro, line 3017).
+        if current_battle_only and main in BATTLE_INTRO_MAIN_FUNCS:
+            return _initializing(read, main)
         if count not in (2, 4) or not 0x08000001 <= main < 0x0A000000 or not main & 1:
             raise ValueError("invalid battle count or main owner")
         battle_type = number(read, TYPE_FLAGS)
@@ -320,6 +326,10 @@ def read_battle_state(read: ReadMemory) -> BattleState:
         if safari and count != 2:
             raise ValueError("invalid Safari battler count")
         positions = tuple(exact(read, POSITIONS, count))
+        # SetUpBattleVarsAndBirchZigzagoon clears every position to 0xFF before the controllers
+        # are set up; gBattlersCount is not reset, so it can still say 2.
+        if current_battle_only and all(p == CLEARED_POSITION for p in positions):
+            return _initializing(read, main)
         if len(set(positions)) != count or any(position > 3 for position in positions):
             raise ValueError("invalid battle positions")
         raw = exact(read, MONS, count * 0x58)

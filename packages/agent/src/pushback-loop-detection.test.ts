@@ -338,7 +338,7 @@ describe("pushback-loop-detection-v1 registry",()=>{
  it("is a default-off guard with no dependency, recorded third to last (before the press-result and battle switches)",()=>{
   expect(featureInfo("pushback-loop-detection-v1")).toMatchObject({group:"guard",needs:null,switchable:true});
   expect(featureInfo("pushback-loop-detection-v1").description).toContain(" Off: ");
-  expect(playHarnessFeatures(ALL_ON,null).slice(-3,-1)).toEqual(["pushback-loop-detection-v1","pushback-press-result-v1"]);
+  expect(playHarnessFeatures(ALL_ON,null).slice(-4,-2)).toEqual(["pushback-loop-detection-v1","pushback-press-result-v1"]);
   expect(playHarnessFeatures({...ALL_ON,"pushback-loop-detection-v1":false},null)).not.toContain("pushback-loop-detection-v1");
   expect(dependencyProblems({...ALL_ON,"deterministic-loop-guard-v1":false})).not.toContainEqual(expect.stringContaining("pushback-loop-detection-v1"));
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})["pushback-loop-detection-v1"]).toBe(false);

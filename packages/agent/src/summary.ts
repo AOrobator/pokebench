@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseEvent, type RunEndReason, type RunEvent } from "./events.js";
+import { deeperMilestone } from "./milestones.js";
 
 export interface MilestoneReach {
   readonly name: string;
@@ -73,7 +74,7 @@ export function summarize(events: readonly RunEvent[]): RunSummary {
   return {
     ...counts,
     reason: "incomplete",
-    furthest: milestones.at(-1)?.name ?? null,
+    furthest: milestones.reduce<string | null>((deepest, m) => deeperMilestone(deepest, m.name), null),
     turns: events.reduce((most, event) => Math.max(most, event.turn), 0),
     wallMs: since(last),
     tokens,

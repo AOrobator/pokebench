@@ -4,7 +4,7 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { Type, type Static } from "typebox";
 import { Value } from "typebox/value";
-import { MILESTONE_ORDER } from "@pokebench/agent/milestones";
+import { DEPTH_ORDER, deeperMilestone } from "@pokebench/agent/milestones";
 import { phaseOf, type FixedArm, type FixedDefinition } from "./fixed-design.js";
 
 export class FixedLedgerError extends Error {
@@ -242,11 +242,11 @@ export function classifyTrial(text: string | null, expect: TrialExpectation, exi
     const ms = Date.parse(String(e.t)) - t0 - pausedMs;
     if (ms <= expect.maxWallMs) reached.set(e["name"], ms);
   }
-  const furthest = [...reached.keys()].filter((n) => MILESTONE_ORDER.includes(n)).sort((a, b) => MILESTONE_ORDER.indexOf(b) - MILESTONE_ORDER.indexOf(a))[0] ?? null;
+  const furthest = [...reached.keys()].reduce<string | null>(deeperMilestone, null);
   const primaryMs = reached.get(expect.primary) ?? null;
   const end = events.at(-1);
   const metrics = {
-    primaryReached: primaryMs !== null, primaryMs, furthest, furthestDepth: furthest === null ? -1 : MILESTONE_ORDER.indexOf(furthest), furthestMs: furthest === null ? null : (reached.get(furthest) ?? null),
+    primaryReached: primaryMs !== null, primaryMs, furthest, furthestDepth: furthest === null ? -1 : DEPTH_ORDER.indexOf(furthest), furthestMs: furthest === null ? null : (reached.get(furthest) ?? null),
     wallMs: end?.type === "run_end" && typeof end["wall_ms"] === "number" ? end["wall_ms"] : null,
     turns: end?.type === "run_end" && typeof end["turns"] === "number" ? end["turns"] : null,
   };

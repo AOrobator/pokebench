@@ -11,6 +11,6 @@ Viewer-only removal plus docs; no feature switch (viewer-only). Battle choices s
 - [x] Docs: CLAUDE.md, agent-observability and viewer-e2e skills say the timeline gets no new marks, lanes or labels without the operator's explicit permission; diagnostics default to Activity History.
 - [x] COMMIT: `fix(viewer): GREEN battle choices leave the timeline; ...` (2d658934)
 - [x] the operator, 03:34 New York: "In general, just seeing the button presses should be sufficient." The only other non-button mark on the presses lane is the host WAIT (`wait_input`), so it leaves too; WAITs stay in Activity History and the inspector.
-- [x] RED: `state-decision-events.test.ts` asserts no WAIT mark and no bare `m-press` on the timeline; fails (1 WAIT mark).
-- [ ] GREEN: drop `wait_input` from the timeline's event marks.
+- [x] RED: `state-decision-events.test.ts` asserts no WAIT mark and no bare `m-press` on the timeline; fails (1 WAIT mark). COMMIT: `test(viewer): RED the presses lane shows only button presses, no WAIT marks` (dbcf3db8)
+- [x] GREEN: `wait_input` no longer draws on the timeline; `app.test.ts` mount test updated to expect no WAIT lane mark while the trace row keeps it. Viewer: 60 files, 821 tests pass; coverage 95.19 / 90.65 / 93.55; tsc and eslint clean.
 - [ ] Review (Claude, Grok, Codex; no local reviewers), land, restart viewer, live check.

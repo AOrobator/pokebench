@@ -197,3 +197,11 @@ Zero FAIL rows.
 ## Operator decision: reword and land (2026-10-16 3:54 PM New York time)
 
 The operator: "reword and land, no additional review". Round 11's GPT finding (Trainer Hill trainers get runtime scripts via GetTrainerHillTrainerScript, so "it has no script" can be false) is resolved by rewording item 1: a live object that is not a listed interaction target reads "...; it is not listed as something you can talk to or use, so navigate_to offers no tile to talk to it from" (and the "also lists" variant "it is not listed as something you can talk to, so navigate_to offers no tile to talk to it from; ..."). Feature copy, tests, viewer panel test and explainer updated. Per the operator, this lands on gates alone without a further review round (round 11: Claude LGTM, Grok LGTM, GPT BLOCKING on this wording only).
+
+## Landed
+
+2026-10-16 4:01 PM New York time: `git merge --ff-only e580f3ce` on main 03e45115 → main `e580f3ce` (operator: "reword and land, no additional review", the operator 3:54 PM; merge slot from the coordinator). Experiments navigation-truth and navigation-refusal-reasons-v2 pinned to e580f3ce. Arms for bundle-v-control (handed to its owner): navigation-truth-v1 ON in both arms; navigation-refusal-reasons-v2 bundle arm only.
+
+## Archive
+
+- Archived 2026-10-16 4:33 PM New York time on the operator's word ("archive the work log and resolve the thread", Harness bugs thread, 4:31 PM). Landed on main: navigation-truth e580f3ce, cross-map-goal 85a52e85, pinned at fe65ac57; no unmerged commits on either branch.

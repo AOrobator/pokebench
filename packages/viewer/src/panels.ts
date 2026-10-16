@@ -419,6 +419,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "surf-gated-exits-v1":"surf-gated-exits-v1.html",
  "navigation-truth-v1":"navigation-truth-v1.html",
  "navigation-refusal-reasons-v2":"navigation-refusal-reasons-v2.html",
+ "cross-map-goal-v1":"cross-map-goal-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

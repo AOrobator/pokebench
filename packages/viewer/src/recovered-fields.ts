@@ -15,8 +15,7 @@ const HeaderSchema = Type.Object({ v: Type.Literal(1), run: Type.String(), sourc
 const RowSchema = Type.Object({ seq: Type.Integer({ minimum: 0 }), raw_ram: Type.String({ pattern: "^raw-ram/[0-9]{8,}\\.json\\.gz$" }), sha256: Type.String({ pattern: "^[0-9a-f]{64}$" }), route103_rival: RivalSchema }, closed);
 export type RecoveredRival = Static<typeof RivalSchema>;
 // The value plus the raw-RAM receipt it was decoded from; it attaches only to the state with that receipt.
-// `trainerRival` is set on rows re-decoded from their snapshot: a trainer battle against a Route 103 rival.
-export interface RecoveredEntry { readonly rival: RecoveredRival; readonly raw_ram: string; readonly sha256: string; readonly trainerRival?: boolean }
+export interface RecoveredEntry { readonly rival: RecoveredRival; readonly raw_ram: string; readonly sha256: string }
 const PLACES = new Set(["ROUTE103", "ROUTE 103", "OLDALE TOWN"]);
 const sidePath = (runDir: string): string => join(runDir, "derived", "route103_rival.jsonl");
 const MAX_BYTES = 64 * 1024 * 1024;
@@ -75,23 +74,11 @@ export function loadRecoveredRival(runDir: string): ReadonlyMap<number, Recovere
   const parse = (line: string): unknown => { try { return JSON.parse(line); } catch { return null; } };
   const header = parse(lines[0] ?? "");
   if (!Value.Check(HeaderSchema, header) || header.run !== basename(runDir)) return none;
-  // Only a row that changes a value can start a split, so each one is re-decoded from its own
-  // snapshot; any disagreement voids the file. Repeated rows carry an already-checked value.
   const recovered = new Map<number, RecoveredEntry>();
-  let previous: RecoveredRival | null = null;
   for (const line of lines.slice(1)) {
     const row = parse(line);
     if (!Value.Check(RowSchema, row) || recovered.has(row.seq)) return none;
-    const rival = row.route103_rival;
-    const changed = previous === null || rival.battle_active !== previous.battle_active || rival.defeated !== previous.defeated || rival.oldale_stage !== previous.oldale_stage;
-    let trainerRival: boolean | undefined;
-    if (changed) {
-      const decoded = decodeArchive(runDir, row.raw_ram, row.sha256);
-      if (decoded === null || decoded.defeated !== rival.defeated || decoded.oldale_stage !== rival.oldale_stage || (rival.battle_active && !decoded.trainerRival)) return none;
-      trainerRival = decoded.trainerRival;
-    }
-    recovered.set(row.seq, { rival, raw_ram: row.raw_ram, sha256: row.sha256, ...(trainerRival === undefined ? {} : { trainerRival }) });
-    previous = rival;
+    recovered.set(row.seq, { rival: row.route103_rival, raw_ram: row.raw_ram, sha256: row.sha256 });
   }
   return recovered;
 }
@@ -100,6 +87,26 @@ export function withRecovered(event: RunEvent, recovered: ReadonlyMap<number, Re
   if (event.type !== "state" || !("started" in event) || event.route103_rival !== undefined) return event;
   const entry = recovered.get(event.seq);
   if (entry === undefined || event.raw_ram?.path !== entry.raw_ram || event.raw_ram.sha256 !== entry.sha256 || !PLACES.has(event.location ?? "")) return event;
-  if (entry.trainerRival !== undefined && entry.rival.battle_active !== (event.in_battle && entry.trainerRival)) return event;
   return { ...event, route103_rival: entry.rival };
+}
+
+// Attaches recovered values in log order. Only a change in the attached value can start a split, so
+// each change is checked against the snapshot of the very state it lands on; the first disagreement
+// stops attaching for the rest of the run. Unchanged values repeat one already checked on an earlier
+// state, so a row that matches no state, or the order of rows in the file, cannot open a gap.
+export function recoveredAttacher(runDir: string): (event: RunEvent) => RunEvent {
+  const recovered = loadRecoveredRival(runDir);
+  let last: RecoveredRival | null = null, stopped = recovered.size === 0;
+  return (event) => {
+    if (stopped) return event;
+    const attached = withRecovered(event, recovered);
+    if (attached === event || attached.type !== "state" || !("started" in attached) || attached.route103_rival == null) return event;
+    const value = attached.route103_rival;
+    if (last === null || value.battle_active !== last.battle_active || value.defeated !== last.defeated || value.oldale_stage !== last.oldale_stage) {
+      const decoded = attached.raw_ram === undefined ? null : decodeArchive(runDir, attached.raw_ram.path, attached.raw_ram.sha256);
+      if (decoded === null || decoded.defeated !== value.defeated || decoded.oldale_stage !== value.oldale_stage || value.battle_active !== (attached.in_battle && decoded.trainerRival)) { stopped = true; return event; }
+      last = value;
+    }
+    return attached;
+  };
 }

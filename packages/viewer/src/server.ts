@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { dirname, join } from "node:path";
-import { loadRecoveredRival, withRecovered } from "./recovered-fields.js";
+import { recoveredAttacher } from "./recovered-fields.js";
 import { ApprovalError, approveExperiment, revokeApproval, setFinalsWithdrawn } from "./experiment-approval.js";
 import { AUTORUN_TICK_MS, type AutoRunStatus, type ExperimentAutoRun } from "./experiment-autorun.js";
 import { execFileSync } from "node:child_process";
@@ -234,7 +234,7 @@ function streamEvents(req: IncomingMessage, res: ServerResponse, path: string, p
   res.writeHead(200, { ...SECURITY_HEADERS, "content-type": "text/event-stream; charset=utf-8", connection: "keep-alive" });
   let closed = false, timer: NodeJS.Timeout | null = null;
   const reader = new LogReader(path, chunkBytes);
-  const recovered = loadRecoveredRival(dirname(path));
+  const recovered = recoveredAttacher(dirname(path));
   let skewReported = false, endRead = false, caughtUp = false, closing = false;
   // A queue with a read cursor: shifting a large array on every write would be quadratic.
   let pending: string[] = [], cursor = 0;
@@ -245,7 +245,7 @@ function streamEvents(req: IncomingMessage, res: ServerResponse, path: string, p
     const { results, lines } = reader.next(STREAM_STEP_LINES);
     for (const result of results) {
       if (result.ok) {
-        pending.push(message("ev", withRecovered(result.event, recovered)));
+        pending.push(message("ev", recovered(result.event)));
         endRead ||= result.event.type === "run_end";
       } else if (skew === null) {
         pending.push(message("problem", { line: result.line, problem: result.problem }));

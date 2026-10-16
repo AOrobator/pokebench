@@ -21,7 +21,7 @@ it("loads recovered route103_rival rows only from a well-formed side file for th
   const dir = runDir([header()]);
   const fight = writeArchive(dir, 1, rivalRam(true, false));
   writeFileSync(join(dir, "derived", "route103_rival.jsonl"), [header(), { seq: 3, raw_ram: fight.path, sha256: fight.sha256, route103_rival: { battle_active: true, defeated: false, oldale_stage: 0 } }].map((l) => JSON.stringify(l)).join("\n") + "\n");
-  expect([...loadRecoveredRival(dir)]).toEqual([[3, { rival: { battle_active: true, defeated: false, oldale_stage: 0 }, raw_ram: fight.path, sha256: fight.sha256, trainerRival: true }]]);
+  expect([...loadRecoveredRival(dir)]).toEqual([[3, { rival: { battle_active: true, defeated: false, oldale_stage: 0 }, raw_ram: fight.path, sha256: fight.sha256 }]]);
   expect(loadRecoveredRival(join(tmpdir(), "no-such-run")).size).toBe(0);
   expect(loadRecoveredRival(runDir([header("other-run"), row(3, true, false, 0)])).size).toBe(0);
   expect(loadRecoveredRival(runDir([header(), { ...row(3, true, false, 0), route103_rival: { battle_active: "yes" } }])).size).toBe(0);

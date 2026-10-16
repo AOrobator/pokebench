@@ -2,7 +2,7 @@ import { eventEnvelope, type EventEnvelope, type RunEvent } from "@pokebench/age
 import { readVisualPlan, verifiedVisuals, visualEvidenceSignature, type ScreenshotEvidence } from "./frontier-visual.js";
 import { RunView } from "./model.js";
 import { readWorkbenchSnapshot } from "./workbench-reader.js";
-import { loadRecoveredRival, withRecovered } from "./recovered-fields.js";
+import { recoveredAttacher } from "./recovered-fields.js";
 import { dirname } from "node:path";
 export interface RecordingSplit { name: string; elapsedMs: number; segmentMs: number; seq: number; turn: number; inputTokens: number; outputTokens: number; derived?: true; screenshotEvidence?: ScreenshotEvidence[] }
 export interface RecordingMeasurement {
@@ -45,9 +45,9 @@ export function readNativeRecording(path: string, id: string, qualified: (event:
     view.lastMs = ordered(envelope); view.turn = Math.max(view.turn, envelope.turn);
     skipped = { count: (skipped?.count ?? 0) + 1, first: skipped?.first ?? `line ${String(line)}: ${problem}` };
   };
-  const recovered = loadRecoveredRival(dirname(path));
+  const recovered = recoveredAttacher(dirname(path));
   const snapshot = readWorkbenchSnapshot(path, logged => {
-    const event = withRecovered(logged, recovered);
+    const event = recovered(logged);
     const ms = ordered(event);
     if (event.type === "human_sample" && wantedSamples.has(event.seq)) samples.set(event.seq, event);
     if (["run_start", "run_end", "operator_control", "assistant", "objective_update"].includes(event.type)) {

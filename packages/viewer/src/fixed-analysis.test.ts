@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { analyze, depthThenTime, fisherExact, logRank, mannWhitney, renderAnalysis, trialsFromLedger, type AnalysisTrial } from "./fixed-analysis.js";
+import { DEPTH_ORDER } from "@pokebench/agent/milestones";
+import { analyze, depthThenTime, fisherExact, logRank, mannWhitney, renderAnalysis, rescoreTrials, trialsFromLedger, type AnalysisTrial } from "./fixed-analysis.js";
 import { definition } from "../test-support/fixed.js";
 import type { FixedLedgerEntry } from "./fixed-ledger.js";
 
@@ -116,5 +117,20 @@ describe("trialsFromLedger", () => {
     ];
     expect(trialsFromLedger(def, entries, "confirmatory")).toEqual([{ slot: slot.slot, lane: slot.lane, arm: slot.arm, run: "r1", valid: true, reason: "wall cap", primaryReached: true, primaryMs: 5, capMs: 900_000, furthestDepth: 9, furthestMs: 5 }]);
     expect(trialsFromLedger(def, entries, "cook")).toHaveLength(1);
+  });
+});
+
+describe("rescoreTrials", () => {
+  const trial = (run: string): AnalysisTrial => ({ slot: 1, lane: "A", arm: "bundle", run, valid: true, reason: "wall cap", primaryReached: false, primaryMs: null, capMs: 900_000, furthestDepth: 999, furthestMs: 7 });
+  const t0 = "2026-10-16T10:00:00.000-04:00";
+  const at = (ms: number) => new Date(Date.parse(t0) + ms).toISOString();
+  const events = [
+    { v: 1, run: "old", seq: 1, turn: 0, t: t0, type: "run_start" },
+    ...[[1000, "ROUTE_103"], [2000, "FIRST_POKECENTER_HEAL"], [3000, "RIVAL_MET"]].map(([ms, name], i) => ({ v: 1, run: "old", seq: i + 2, turn: 1, t: at(Number(ms)), type: "milestone", name, kind: "story", origin: "observed", server_timestamp: 1, evidence: [1] })),
+  ].map((e) => JSON.stringify(e)).join("\n") + "\n";
+  it("re-scores a ledger trial from its own events with the story-depth order, and keeps ledger values without them", () => {
+    const [rescored, kept] = rescoreTrials([trial("old"), trial("missing")], (run) => (run === "old" ? events : null), "RIVAL_MET");
+    expect(rescored).toMatchObject({ run: "old", valid: true, reason: "wall cap", furthestDepth: DEPTH_ORDER.indexOf("ROUTE_103"), furthestMs: 1000, primaryReached: true, primaryMs: 3000 });
+    expect(kept).toEqual(trial("missing"));
   });
 });

@@ -175,10 +175,12 @@ it("selects previous same-model baseline and deepest then fastest best, from val
   const corruptPath = writeRun(r, "corrupt", logged(47000, ["STONE_BADGE"]));
   appendFileSync(corruptPath, "invalid\n");
   writeRun(r, "unknown", logged(47000, ["SOME_UNVERIFIED_PROGRESS"]));
+  // An early heal is an optional activity, not depth: it must not outrank the bedroom.
+  writeRun(r, "healer", logged(5000, ["PLAYER_NAME_SET", "FIRST_POKECENTER_HEAL"]));
   const result = await comparisonsOf(r, "current");
   expect(result.baseline?.run).toBe("previous");
   expect(result.best?.run).toBe("deepest");
-  expect(result.candidates.map((c) => c.run).sort()).toEqual(["deepest", "other-model", "previous", "slower-deep"]);
+  expect(result.candidates.map((c) => c.run).sort()).toEqual(["deepest", "healer", "other-model", "previous", "slower-deep"]);
 });
 
 

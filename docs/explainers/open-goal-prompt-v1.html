@@ -111,25 +111,25 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 
 <section>
 <h2>How often models named Rustboro before the game did</h2>
-<p>Every model run on 2026-10-15 and 2026-10-16 (lanes qwen36-gpu0, qwen36-gpu1, think-fast): 67 runs, 32,174 turns. All had the Rustboro goal sentence. No tool result or dialogue page in any of them named Rustboro, so every mention below came before the game named it. Model reasoning named Rustboro in <strong>25 of 67 runs</strong> (847 turns).</p>
+<p>Every model run on 2026-10-15 and 2026-10-16 (lanes qwen36-gpu0, qwen36-gpu1, think-fast): 67 runs, 33,307 turns, each scanned up to a recorded cutoff event. All had the Rustboro goal sentence. No tool result or dialogue page in any of them named Rustboro, so every mention below came before the game named it. Model reasoning named Rustboro in <strong>26 of 67 runs</strong> (900 turns).</p>
 <figure><div class="scroll"><svg viewBox="0 0 700 200" width="700" role="img" aria-label="Runs whose reasoning named Rustboro, by cohort">
 <text x="20" y="20" class="t">Runs whose reasoning named Rustboro (bar = share of runs)</text>
 <g transform="translate(0,40)">
-<text x="20" y="14">cook bundle (60 min)</text><rect x="210" y="2" width="320" height="16" class="barg"/><rect x="210" y="2" width="293" height="16" class="barp"/><text x="540" y="14" class="m">11/12 · 693 turns</text>
-<text x="20" y="44">cook control (60 min)</text><rect x="210" y="32" width="320" height="16" class="barg"/><rect x="210" y="32" width="64" height="16" class="barp"/><text x="540" y="44" class="m">2/10 · 5 turns</text>
-<text x="20" y="74">factorial (CLOCK_SET)</text><rect x="210" y="62" width="320" height="16" class="barg"/><rect x="210" y="62" width="107" height="16" class="barp"/><text x="540" y="74" class="m">8/24 · 144 turns</text>
-<text x="20" y="104">finals (boot)</text><rect x="210" y="92" width="320" height="16" class="barg"/><rect x="210" y="92" width="142" height="16" class="barp"/><text x="540" y="104" class="m">4/9 · 5 turns</text>
-<text x="20" y="134">dry runs (short)</text><rect x="210" y="122" width="320" height="16" class="barg"/><text x="540" y="134" class="m">0/12 · 0 turns</text>
+<text x="20" y="14">cook bundle (12–60 min)</text><rect x="210" y="2" width="320" height="16" class="barg"/><rect x="210" y="2" width="293" height="16" class="barp"/><text x="540" y="14" class="m">11/12 · 736 turns</text>
+<text x="20" y="44">cook control (12–60 min)</text><rect x="210" y="32" width="320" height="16" class="barg"/><rect x="210" y="32" width="96" height="16" class="barp"/><text x="540" y="44" class="m">3/10 · 15 turns</text>
+<text x="20" y="74">factorial (30 min)</text><rect x="210" y="62" width="320" height="16" class="barg"/><rect x="210" y="62" width="107" height="16" class="barp"/><text x="540" y="74" class="m">8/24 · 144 turns</text>
+<text x="20" y="104">finals (45 min)</text><rect x="210" y="92" width="320" height="16" class="barg"/><rect x="210" y="92" width="142" height="16" class="barp"/><text x="540" y="104" class="m">4/9 · 5 turns</text>
+<text x="20" y="134">dry runs (2 min)</text><rect x="210" y="122" width="320" height="16" class="barg"/><text x="540" y="134" class="m">0/12 · 0 turns</text>
 </g>
 </svg></div>
-<figcaption>Counts from the runs' own events (assistant thinking and text versus tool results and dialogue pages). "Lab in Rustboro" outright: 2 runs, 113 turns (think-fast <code>0875</code>: "Professor Birch's lab in Rustboro City?", and 4caa T273). A gym was named before the game's TV line in 8 of 67 runs, 4 of them at turn 1. The cohorts differ in many switches, so the bundle/control gap is descriptive only.</figcaption></figure>
+<figcaption>Counts from the runs' own events (assistant thinking and text versus tool results and dialogue pages), per run in <code>docs/experiments/open-goal-prompt/manifest.json</code>; <code>scan.py check</code> rescans each run to its recorded cutoff. Wall caps in brackets: cook runs 2919 and 3f21 had 12 minutes, the other cook runs 60. Cook runs start from the MAIN_MENU save, factorial and dry runs from CLOCK_SET, finals from boot. "Lab in Rustboro" outright: 2 runs, 113 turns (think-fast <code>0875</code>: "Professor Birch's lab in Rustboro City?", and 4caa T273). A gym was named before the game's TV line in 8 of 67 runs; 4 runs named the goal's gym or Rustboro at turn 1. The cohorts differ in many switches, so the bundle/control gap is descriptive only.</figcaption></figure>
 </section>
 
 <section>
 <h2>What to watch in the bundle arm (pre-registered)</h2>
 <p>This switch joins the bundle arm of bundle-v-control (the operator, 2026-10-16). The diagnostic below was fixed before any run with the switch on. It checks the mechanism; it is not causal evidence and it grades nothing.</p>
 <ul>
-<li><strong>Rustboro before the game:</strong> per run, the number of turns whose reasoning names Rustboro before any tool result or dialogue page did. Baseline: bundle cook runs, 11 of 12 runs, 693 turns. Expected with the switch: near zero; any left come from the model's own memory of the series.</li>
+<li><strong>Rustboro before the game:</strong> per run, the number of turns whose reasoning names Rustboro before any tool result or dialogue page did. Baseline: bundle cook runs, 11 of 12 runs, 736 turns. Expected with the switch: near zero; any left come from the model's own memory of the series.</li>
 <li><strong>Gym before the game:</strong> runs whose reasoning names a gym before Mom's TV line. Baseline 8 of 67 runs.</li>
 <li><strong>After the rival battle:</strong> what the reasoning names as the next destination once MAY is beaten (Birch's lab in Littleroot is the game's next step).</li>
 </ul>
@@ -166,7 +166,7 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 <h2>Status</h2>
 <ul>
 <li>Branch <code>claude/open-goal-prompt</code>. Tests: registry and presets default OFF, OFF equals run 4caa's recorded prompt byte for byte, ON replaces only the goal sentence, target runs unchanged, objective and state-only goals, factory path, the pending entry's incumbent equals the bundle arm.</li>
-<li>Pending experiment <code>experiments/open-goal-prompt.json</code> (incumbent: the bundle-v-control bundle arm). Not measured. Adding it to the bundle arm is an edit to <code>experiments/fixed/bundle-v-control.json</code> that this branch does not make.</li>
+<li>Pending experiment <code>experiments/open-goal-prompt.json</code> (incumbent: the bundle-v-control bundle cook arm, MAIN_MENU save, 60-minute cap). Not measured. Adding it to the bundle arm is an edit to <code>experiments/fixed/bundle-v-control.json</code> that this branch does not make.</li>
 </ul>
 </section>
 </main>

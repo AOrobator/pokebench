@@ -16,17 +16,17 @@ feature-worklog, execute-worklog (incl. Landing on main), feature-switch, featur
 
 ## Evidence (pre-registered diagnostic, not causal)
 
-Scripts (read-only, scratchpad): `goal_mentions.py`, `agg.py`, `rustboro_dialogue.py`, `lab_strict.py`.
+Scanner and per-run manifest (tracked): `docs/experiments/open-goal-prompt/scan.py` writes `manifest.json` (run, cutoff seq, cohort, start, wall cap, counts); `scan.py check` rescans every run to its cutoff and exits 1 on drift (`POKEBENCH_RUNS_ROOT=~/dev/pokebench/runs` from a worktree). Round 1 numbers came from scratch scripts while runs d32e/1f7b were still appending; the manifest (written 2026-10-16 ~3:50 PM New York) replaces them.
 
-Scope: every model run on 2026-10-15/16 on lanes qwen36-gpu0, qwen36-gpu1, think-fast with a run_start and at least one turn: 67 runs, 32,174 turns. Every one had the Rustboro goal sentence in its system prompt. Game sources = tool-result text and dialogue_auto_advance pages; model = assistant thinking + text.
+Scope: every model run on 2026-10-15/16 on lanes qwen36-gpu0, qwen36-gpu1, think-fast with a run_start and at least one turn: 67 runs, 33,307 turns. Every one had the Rustboro goal sentence in its system prompt. Game sources = tool-result text and dialogue_auto_advance pages; model = assistant thinking + text.
 
-- Rustboro: no game source named Rustboro in any of the 67 runs. Model reasoning named it in 25/67 runs (847 turns), all before any game source.
-  - cook bundle (MAIN_MENU start, 60 min): 11/12 runs, 693 turns. cook control: 2/10, 5 turns. factorial (CLOCK_SET): 8/24, 144. finals (boot): 4/9, 5. dry runs (CLOCK_SET, short): 0/12.
+- Rustboro: no game source named Rustboro in any of the 67 runs. Model reasoning named it in 26/67 runs (900 turns), all before any game source.
+  - cook bundle (MAIN_MENU start; 60-min cap, 12 min for 3f21): 11/12 runs, 736 turns. cook control (60 min, 12 min for 2919): 3/10, 15. factorial (CLOCK_SET, 30 min): 8/24, 144. finals (boot, 45 min): 4/9, 5. dry runs (CLOCK_SET, 2 min): 0/12.
   - Explicit "lab in/(Rustboro)" misplacement: 2 runs, 113 turns (think-fast 0875: "Professor Birch's lab in Rustboro City?", 112 turns; 4caa T273).
-- Gym: the game first names a gym in Mom's TV line "Look! It's PETALBURG GYM!" in the player's house. Model reasoning named a gym before that in 8/67 runs (8 turns), 4 of them at turn 1 ("head towards the first Gym Leader in Rustboro City").
+- Gym: the game first names a gym in Mom's TV line "Look! It's PETALBURG GYM!" in the player's house. Model reasoning named a gym before that in 8/67 runs (8 turns); 4 runs named Rustboro or a gym at turn 1 ("head towards the first Gym Leader in Rustboro City").
 - When the game first names Rustboro: no recorded model run got there. The human run `human/2026-10-13T23-50-13_human_1848` first sees RUSTBORO CITY as Route 104's north map connection (00:20 AM, after WALLY_TUTORIAL_COMPLETE) and first hears it in Petalburg Woods dialogue ("…they were after something in RUSTBORO, too?", 00:32 AM). Older objective-tracking runs (10-12) only echo PLAY_GOAL through get_objectives.
 
-Pre-registered: the diagnostic for the bundle arm is "turns whose reasoning names Rustboro before any game source did", per run, with the scan above; expected near zero with the switch on. It does not grade anything.
+Pre-registered: the diagnostic for the bundle arm is "turns whose reasoning names Rustboro before any game source did", per run, with `scan.py`'s rule; expected near zero with the switch on. It does not grade anything.
 
 ## Other Rustboro / Gym mentions the model can see
 
@@ -83,4 +83,4 @@ Zero FAIL rows.
 
 ## Multi-Model Review Log
 
-(none yet)
+- 2026-10-16 3:27 PM New York: Round 1, packet `git diff --binary e349269c 7f524333` (SHA-256 0d35d2ae…1061), boundary and prompt in scratchpad `ogp-review/`. Claude (`claude -p --permission-mode plan`, default login): VERDICT: LGTM (hardening: no whole-prompt check for a bare "gym"; provisional source.commit). Grok (Cursor `cursor-grok-4.5-high`, `--mode ask`): VERDICT: LGTM (hardening: GOAL_SENTENCE literal duplicated in PLAY_SYSTEM_PROMPT; FeatureSetSchema Exclude cast; counts in scratch scripts). GPT (isolated `codex exec -m gpt-5.6-sol`, xhigh, read-only): VERDICT: BLOCKING. B1 the incumbent omits the cook arm's MAIN_MENU start and the test compares features only; B2 source.commit is the RED commit (no entry, no wiring); B3 diagnostic counts not reproducible (logs still appending, scratch scripts) and the "60 min" cook label is wrong for 2919/3f21 (12 min); B4 no viewer-route test for the explainer and no Harness Config click. All accepted (in contract: the boundary says the incumbent is the bundle arm and the evidence backs the explainer). Fixes: full-preset equality with `armPreset(bundle-v-control, "cook", "bundle")`, start and limits copied from it; source.commit pinned to the GREEN implementation commit 302b8c07 (contains the entry and the wiring; repinned to the merge SHA after landing per the experiment-queue skill); tracked `scan.py` + per-run `manifest.json` with cutoffs, explainer numbers recomputed (26/67 runs, 900 turns; bundle cook 11/12, 736) and a test deriving every explainer number from the manifest; viewer-route test (200, text/html, byte-identical, 403 host, 405 PUT, 404 near-miss); Harness Config click on a scratch viewer. Hardening taken: an ON-prompt test that no bare gym, leader or Rustboro remains.

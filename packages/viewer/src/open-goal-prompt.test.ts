@@ -1,14 +1,19 @@
 // open-goal-prompt-v1 in the viewer: default OFF for the next run, and its card links a tracked
 // explainer that carries the pre-registered Rustboro-before-mention diagnostic.
-import { readFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { request } from "node:http";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Window } from "happy-dom";
-import { expect, it } from "vitest";
+import { afterEach, expect, it } from "vitest";
 import { FEATURES } from "@pokebench/agent/features";
 import { Log, START } from "../test-support/events.js";
 import { RunView } from "./model.js";
 import { DEFAULT_NEXT_RUN } from "./next-run.js";
+import { armPreset, parseFixedDefinition } from "./fixed-design.js";
 import { FEATURE_EXPLAINERS, harnessConfig } from "./panels.js";
+import { HOST, startViewer, type Viewer } from "./server.js";
 
 const ID = "open-goal-prompt-v1";
 
@@ -28,6 +33,77 @@ it("links the open goal card to its tracked explainer with the diagnostic to wat
   const html = readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${ID}.html`, import.meta.url)), "utf8");
   expect(html).toContain(ID);
   expect(html).toContain("LAB (Rustboro City)");
-  expect(html).toContain("25 of 67 runs");
+  expect(html).toContain("26 of 67 runs");
   expect(html).toContain("Your goal is to play the game and make as much story progress as you can; the people in the game will tell you what to do next.");
+});
+
+const open: Viewer[] = [];
+afterEach(async () => {
+  while (open.length > 0) await open.pop()?.close();
+});
+
+function get(viewer: Viewer, path: string, options: { host?: string; method?: string } = {}): Promise<{ status: number; type: string; body: Buffer }> {
+  return new Promise((resolve, reject) => {
+    const req = request({ host: HOST, port: viewer.port, path, method: options.method ?? "GET", headers: { host: options.host ?? `${HOST}:${String(viewer.port)}` } }, (res) => {
+      const chunks: Buffer[] = [];
+      res.on("data", (chunk: Buffer) => chunks.push(chunk));
+      res.on("end", () => {
+        resolve({ status: res.statusCode ?? 0, type: res.headers["content-type"] ?? "", body: Buffer.concat(chunks) });
+      });
+    });
+    req.on("error", reject);
+    req.end();
+  });
+}
+
+it("the viewer serves the tracked explainer byte for byte through the explainer route", async () => {
+  const tracked = readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${ID}.html`, import.meta.url)));
+  const root = mkdtempSync(join(tmpdir(), "pokebench-explainers-"));
+  const staticDir = join(root, "packages/viewer/static"), docs = join(root, "docs/explainers");
+  mkdirSync(staticDir, { recursive: true });
+  mkdirSync(docs, { recursive: true });
+  writeFileSync(join(docs, `${ID}.html`), tracked);
+  const viewer = await startViewer({ runsRoot: join(root, "runs"), staticDir, appDir: join(root, "app"), port: 0 });
+  open.push(viewer);
+  const reply = await get(viewer, `/explainers/${ID}.html`);
+  expect(reply.status).toBe(200);
+  expect(reply.type).toContain("text/html");
+  expect(reply.body.equals(tracked)).toBe(true);
+  expect((await get(viewer, `/explainers/${ID}.html`, { host: "elsewhere.invalid" })).status).toBe(403);
+  expect((await get(viewer, `/explainers/${ID}.html`, { method: "PUT" })).status).toBe(405);
+  expect((await get(viewer, "/explainers/open-goal-prompt.html")).status).toBe(404);
+});
+
+it("the pending experiment's incumbent is exactly the bundle-v-control bundle cook arm, with only this switch off", () => {
+  const raw = JSON.parse(readFileSync(fileURLToPath(new URL("../../../experiments/open-goal-prompt.json", import.meta.url)), "utf8")) as { incumbent: { id: string; features: Record<string, boolean> } & Record<string, unknown> };
+  const { definition } = parseFixedDefinition(readFileSync(fileURLToPath(new URL("../../../experiments/fixed/bundle-v-control.json", import.meta.url)), "utf8"));
+  const arm = armPreset(definition, "cook", "bundle");
+  const { id: _armId, features: armFeatures, ...armRest } = arm;
+  const { id: _incumbentId, features: incumbentFeatures, ...incumbentRest } = raw.incumbent;
+  expect(incumbentRest).toEqual(armRest);
+  expect(armRest).toMatchObject({ start: { kind: "save_state" }, limits: { maxWallMs: 3_600_000 } });
+  expect(incumbentFeatures[ID]).toBe(false);
+  const { [ID]: _own, ...others } = incumbentFeatures;
+  expect(others).toEqual(armFeatures);
+});
+
+it("every diagnostic number on the explainer comes from the tracked per-run manifest", () => {
+  interface Row { cohort: string; turns: number; game_first_rustboro_turn: number | null; rustboro_turns_before_game: number; gym_turns_before_game: number; goal_named_at_turn_1: boolean; lab_in_rustboro_turns: number; prompt_names_rustboro: boolean }
+  const rows = JSON.parse(readFileSync(fileURLToPath(new URL("../../../docs/experiments/open-goal-prompt/manifest.json", import.meta.url)), "utf8")) as Row[];
+  const html = readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${ID}.html`, import.meta.url)), "utf8");
+  const sum = (rs: Row[], f: (r: Row) => number): number => rs.reduce((n, r) => n + f(r), 0);
+  const named = (rs: Row[]): Row[] => rs.filter((r) => r.rustboro_turns_before_game > 0);
+  expect(rows.every((r) => r.prompt_names_rustboro && r.game_first_rustboro_turn === null)).toBe(true);
+  expect(html).toContain(`${String(rows.length)} runs, ${sum(rows, (r) => r.turns).toLocaleString("en-US")} turns`);
+  expect(html).toContain(`<strong>${String(named(rows).length)} of ${String(rows.length)} runs</strong> (${String(sum(rows, (r) => r.rustboro_turns_before_game))} turns)`);
+  for (const cohort of ["cook-bundle", "cook-control", "factorial-clockset", "finals-boot", "dryrun-clockset"]) {
+    const rs = rows.filter((r) => r.cohort === cohort);
+    expect(html, cohort).toContain(`${String(named(rs).length)}/${String(rs.length)} · ${String(sum(rs, (r) => r.rustboro_turns_before_game))} turns`);
+  }
+  const labRuns = rows.filter((r) => r.lab_in_rustboro_turns > 0);
+  expect(html).toContain(`${String(labRuns.length)} runs, ${String(sum(labRuns, (r) => r.lab_in_rustboro_turns))} turns`);
+  const gymRuns = rows.filter((r) => r.gym_turns_before_game > 0);
+  expect(html).toContain(`${String(gymRuns.length)} of ${String(rows.length)} runs; ${String(rows.filter((r) => r.goal_named_at_turn_1).length)} runs named the goal's gym or Rustboro at turn 1`);
+  const bundle = rows.filter((r) => r.cohort === "cook-bundle");
+  expect(html).toContain(`Baseline: bundle cook runs, ${String(named(bundle).length)} of ${String(bundle.length)} runs, ${String(sum(bundle, (r) => r.rustboro_turns_before_game))} turns.`);
 });

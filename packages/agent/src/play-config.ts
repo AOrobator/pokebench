@@ -74,6 +74,9 @@ export const NAVIGATE_TO_USAGE = `Use navigate_to for any walk of two or more ti
 // battle-triage-guidance-v1: game rules for leaving wild battles and healing; no destinations.
 export const BATTLE_TRIAGE_SECTION = "Battles and healing: you can leave a wild battle with RUN, the bottom-right option of the battle menu (FIGHT BAG / POKéMON RUN); from FIGHT press RIGHT, then DOWN, then A. An escape can fail when the foe is faster; try again. Trainer battles and some story battles cannot be fled. Run from a wild battle when your active Pokémon is below half its maximum HP, or when you are travelling to a story goal and the fight is not needed. Heal before walking into tall grass with a weak Pokémon: talking to the nurse at a POKéMON CENTER heals your whole party, and so does talking to MOM at home.";
 
+// untaken-exits-v1: one sentence pointing at the readout's untaken-exits line; no character, place or story step.
+export const UNTAKEN_EXITS_SECTION = "Exits you have not taken: before you leave a building or area, consider the exits there you have not taken yet (the readout lists them), especially any exit someone mentioned.";
+
 // trainer-heal-guidance-v1: trainer and rival battles cannot be fled; a blackout's cost; heal first. Game rules, no destinations.
 export const TRAINER_HEAL_SECTION = "Trainer battles and your rival: a battle against a trainer, including your rival, cannot be run from. If every Pokémon in your party faints, you black out: you lose half your money and wake up back at the last POKéMON CENTER you entered, or at home, far from where you were. Your rival usually battles you when you talk to them. Before you talk to a trainer or your rival, check your party HP in the readout, and if your Pokémon is below half its maximum HP, heal first: talking to the nurse at a POKéMON CENTER heals your whole party, and so does talking to MOM at home; a POTION or an ORAN BERRY from your BAG restores some HP.";
 
@@ -114,6 +117,7 @@ export function playSystemPrompt(features: FeatureSet, target: string | null): s
   if (features["battle-triage-guidance-v1"]) prompt += `\n\n${BATTLE_TRIAGE_SECTION}`;
   if (features["trainer-heal-guidance-v1"]) prompt += `\n\n${TRAINER_HEAL_SECTION}`;
   if (features["explorer-guidance-v1"]) prompt += `\n\n${EXPLORER_GUIDANCE_SECTION}${features["dialogue-auto-advance-v1"] ? ` ${EXPLORER_TALK_IS_CHEAP}` : ""}`;
+  if (features["untaken-exits-v1"]) prompt += `\n\n${UNTAKEN_EXITS_SECTION}`;
   if (navigateFirst) prompt = `${navigateFirstToolList(prompt)}\n\n${features["full-map-navigation-v1"] ? MOVING_AROUND_FULL : MOVING_AROUND_LOCAL}`;
   return features["objective-tracking-v1"]
     ? `${prompt}\n\n${objectivePrompt(objectiveSwitches(features))}`

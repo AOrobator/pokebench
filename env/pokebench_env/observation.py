@@ -8,9 +8,10 @@ import os
 from collections.abc import Callable
 from contextlib import AbstractContextManager, nullcontext
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 
+from pokebench_env.battle_text import WAIT_BOUND_FRAMES, BattleWait
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import GameState, MapNames
 from pokebench_env.raw_ram import RawRamArchive, raw_reference
@@ -40,21 +41,26 @@ def install_observation(
     raw_capture: Callable[[], dict[str, object]] | None = None,
     raw_archive: RawRamArchive | None = None,
     settle: FrameSettle | None = None,
+    battle_wait: BattleWait | None = None,
 ) -> Callable[[], dict[str, object]]:
     enabled = active_ui_enabled_from_env(os.environ)
     off = features_off_from_env(os.environ)
     warp = WARP_FEATURE not in off
 
+    def serialize() -> dict[str, object]:
+        """The typed state; the caller holds the memory lock."""
+        receipt = None if raw_capture is None else raw_capture()
+        decoded = read_state(read_memory, maps, active_ui=enabled, off=off)
+        serialized = state_json(decoded)
+        if receipt is not None:
+            serialized["raw_ram"] = raw_reference(receipt)
+        if raw_archive is not None and receipt is not None:
+            raw_archive.pair(receipt, serialized, None)
+        return serialized
+
     def snapshot() -> dict[str, object]:
         with memory_lock if memory_lock is not None else nullcontext():
-            receipt = None if raw_capture is None else raw_capture()
-            decoded = read_state(read_memory, maps, active_ui=enabled, off=off)
-            serialized = state_json(decoded)
-            if receipt is not None:
-                serialized["raw_ram"] = raw_reference(receipt)
-            if raw_archive is not None and receipt is not None:
-                raw_archive.pair(receipt, serialized, None)
-            return serialized
+            return serialize()
 
     def capture() -> tuple[
         dict[str, object] | None, GameState, dict[str, object], dict[str, object], bool, bool
@@ -98,5 +104,18 @@ def install_observation(
     @app.get("/pokebench/state")
     def state() -> dict[str, object]:
         return snapshot()
+
+    if battle_wait is not None:
+        wait = battle_wait
+
+        # The state on the first emulated frame where the battle needs input, leaves
+        # the battle screen or returns to the field; bounded in frames, never wall time.
+        @app.get("/pokebench/battle/wait")
+        def battle_wait_state(
+            max_frames: int = Query(default=WAIT_BOUND_FRAMES, ge=1, le=3600),
+        ) -> dict[str, object]:
+            lock = memory_lock if memory_lock is not None else nullcontext()
+            captured, reason, frames = wait.wait(serialize, lock, max_frames)
+            return {"reason": reason, "frames": frames, "state": captured}
 
     return observation

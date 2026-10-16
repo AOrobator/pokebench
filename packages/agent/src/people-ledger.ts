@@ -71,7 +71,8 @@ export class PeopleLedger {
   if(event.type==="state"&&"started" in event){const object=facedObject(event);if(object!==null)this.faced.set(event.seq,object.key);return;}
   if(event.type==="milestone"){if(event.kind==="story")this.story.push(event.seq);return;}
   if(event.type==="dialogue_auto_advance"){
-   const first=event.pages[0];
+   // battle-text-auto-advance-v1 battle pages are no one's conversation; the first field page is.
+   const first=event.pages.find(page=>page.battle_message_id===undefined);
    const key=first?.state_seq==null?undefined:this.faced.get(first.state_seq);
    const pressed=event.tool==="press"&&event.sent.at(-1)==="A";
    if(key!==undefined&&(pressed||first?.speaker_source==="faced_sprite"))this.pending.set(event.tool_call_id,{key,talk:{turn:event.turn,seq:event.seq}});

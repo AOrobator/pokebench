@@ -131,6 +131,24 @@ describe("people-ledger-v1 ledger rules",()=>{
   // A plain wall tile in between is not a counter.
   expect(facedObject(world([{local_id:3,x:2,y:0,sprite_kind:"CLERK"}],{navigation_grid:{elevation:3,tiles:[{x:2,y:1,collision:1,behavior:0,elevation:3}],objects:[],warps:[]}}))).toBeNull();
  });
+ it("composes with battle-text-auto-advance-v1: battle pages are no one's talk, and a battle readout gets no block",()=>{
+  const ledger=new PeopleLedger();
+  const room=world([{local_id:1,x:2,y:1,sprite_kind:"MAN"}]);
+  const battle={...room,in_battle:true,screen:"battle"} as GameStateSnapshot;
+  const s1=stateEvent(battle,1);ledger.observe(s1);
+  const battlePage={state_seq:s1.seq,map:"ROOM",map_id:[1,2],position:null,speaker:null,speaker_source:null,text:"Wild ZIGZAGOON appeared!",battle_turn:1,battle_message_id:3};
+  ledger.observe(ev({type:"dialogue_auto_advance",turn:1,tool_call_id:"b",tool:"press",requested:["A"],sent:["A"],dropped:[],auto_presses:2,pages:[battlePage],stop:"menu",detail:"battle menu",duration_ms:1}));ledger.observe(delivered("b",1));
+  expect(ledger.block(room,"Location: ROOM","c")).toContain("- object 1, sprite MAN, at (2,1): not talked to this run");
+  // A trainer's field line before the battle in the same call still counts for the trainer faced.
+  const s2=stateEvent(room,2);ledger.observe(s2);
+  ledger.observe(ev({type:"dialogue_auto_advance",turn:2,tool_call_id:"d",tool:"press",requested:["A"],sent:["A"],dropped:[],auto_presses:3,pages:[battlePage,{state_seq:s2.seq,map:"ROOM",map_id:[1,2],position:{x:2,y:2},speaker:"MAN",speaker_source:"faced_sprite",text:"Let's battle!"}],stop:"menu",detail:"battle menu",duration_ms:1}));ledger.observe(delivered("d",2));
+  expect(ledger.block(room,"Location: ROOM","e")).toContain("- object 1, sprite MAN, at (2,1): last talked to on turn 2");
+  const head="pressed A\nBattle text auto-advance: the harness pressed B 2 times to advance battle messages; stopped: battle menu.\nDialogue shown during this call (1 page, in order, whole):\n1. turn 2 · ROOM (map 1/2): \"Wild ZIGZAGOON appeared!\"";
+  const inBattle=`${head}\n\nScreen: battle\nLocation: ROOM\nPosition: X=2, Y=2, facing up\nIn battle: yes`;
+  expect(ledger.annotate(inBattle,battle,"f")).toBe(inBattle);
+  const after=`${head}\n\nScreen: overworld\nLocation: ROOM\nPosition: X=2, Y=2, facing up\nIn battle: no`;
+  expect(ledger.annotate(after,room,"f")).toBe(`${head}\n\nScreen: overworld\nLocation: ROOM\nPosition: X=2, Y=2, facing up\n${ledger.block(room,"","f") ?? ""}\nIn battle: no`);
+ });
  it("drops a talk whose result failed, and keys people by their own map and local id",()=>{
   const ledger=new PeopleLedger();
   const room=world([{local_id:1,x:2,y:1,sprite_kind:"MAN"}]);

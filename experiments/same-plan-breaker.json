@@ -89,6 +89,7 @@
       "in-game-naming-readout-v1": false,
       "no-nickname-guidance-v1": false,
       "battle-text-auto-advance-v1": false,
+      "battle-message-waiting-v1": false,
       "disproved-beliefs-v1": false,
       "same-plan-breaker-v1": false
     }
@@ -106,5 +107,5 @@
     "window": 4,
     "minReached": 3
   },
-  "notes": "Uses the incumbent of readout-rules-in-prompt with explorer-guidance-v1, connection-edge-tiles-v1, in-game-naming-readout-v1, no-nickname-guidance-v1, battle-text-auto-advance-v1 and both new switches explicitly off, which has deterministic-loop-guard-v1 on (this switch needs it). Activation: the first overworld states arrive in the truck after the name is confirmed. Measured on sh02 (snapshot to turn 1009, 1006 decisions): 28 notes, all in windows where no decision reached a new state; none while walking, in battle, in the truck or the intro. Joins the bundle arm of bundle-v-control (operator decision 2026-10-16; the bundle file is edited by its own thread). Provisional source.commit is the branch head; repinned to the merge SHA when it lands."
+  "notes": "Uses the incumbent of readout-rules-in-prompt with explorer-guidance-v1, connection-edge-tiles-v1, in-game-naming-readout-v1, no-nickname-guidance-v1, battle-text-auto-advance-v1, battle-message-waiting-v1 and both new switches explicitly off, which has deterministic-loop-guard-v1 on (this switch needs it). Activation: the first overworld states arrive in the truck after the name is confirmed. Measured on sh02 (snapshot to turn 1009, 1006 decisions): 28 notes, all in windows where no decision reached a new state; none while walking, in battle, in the truck or the intro. Joins the bundle arm of bundle-v-control (operator decision 2026-10-16; the bundle file is edited by its own thread). Provisional source.commit is the branch head; repinned to the merge SHA when it lands."
 }

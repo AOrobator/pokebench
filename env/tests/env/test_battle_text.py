@@ -529,3 +529,50 @@ def test_struct_layout_receipts() -> None:
     """The synthetic Memory writes the same offsets the reader names."""
     assert bt.LEARN_MOVE_STATE == 0x02024493
     assert struct.calcsize("<I") == 4
+
+
+def test_an_initializing_battle_still_reports_its_text_phase() -> None:
+    memory = Memory()
+    memory.set(0x030022C4, 0x08036FAD)  # CB2_HandleStartBattle
+    state = read_battle_state(memory.read)
+    assert (state.phase, state.text_phase) == ("initializing", "busy")
+    assert state.message == bt.BattleMessage("idle")
+
+
+def test_production_run_records_battle_pages_and_releases_the_wait() -> None:
+    from test_observation import Shot
+
+    from pokebench_env.game_state import MapNames
+    from pokebench_env.serve import run
+
+    memory = Memory()
+    lock = threading.Lock()
+    app = FastAPI()
+    order: list[str] = []
+
+    class Emulator:
+        def run_frame_with_buttons(self, buttons: list[str]) -> None:
+            order.append("frame")
+
+    run(
+        [],
+        uvicorn=types.SimpleNamespace(run=lambda *a, **k: None),
+        vendor_main=lambda: None,
+        observation=(app, Shot, memory.read, MapNames({}), lock),
+        frames=Emulator,
+        battle_text=(app, Emulator, memory.read),
+    )
+    result: dict[str, object] = {}
+    thread = threading.Thread(
+        target=lambda: result.update(r=get(app, "/pokebench/battle/wait")), daemon=True
+    )
+    thread.start()
+    thread.join(0.2)
+    memory.message(encode("Hi") + b"\xfa\xff", 3, state=2)
+    with lock:
+        Emulator().run_frame_with_buttons([])
+    thread.join(5)
+    assert json.loads(result["r"][2])["reason"] == "message_waiting"  # type: ignore[index]
+    status, _, body = get(app, "/pokebench/battle/messages")
+    assert [e["text"] for e in json.loads(body)["entries"]] == ["Hi"]
+    assert json.loads(body)["frame"] == 1

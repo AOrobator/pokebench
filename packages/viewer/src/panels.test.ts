@@ -289,6 +289,17 @@ describe("eventText", () => {
   const events = fullRun().events;
   const row = (seq: number): string => eventText(must(events[seq])) ?? "";
 
+  it("labels battle-text-auto-advance-v1 pages with their battle turn and counts the B presses in battle", () => {
+    const log = new Log(); log.add(0, START);
+    const base = { type: "dialogue_auto_advance" as const, turn: 722, tool_call_id: "c", tool: "press" as const, requested: ["A" as const, "A" as const], sent: ["A" as const], dropped: ["A" as const], auto_presses: 2, stop: "battle_input" as const, detail: "the battle action menu is ready (FIGHT, BAG, POKEMON, RUN); highlighted FIGHT", duration_ms: 900 };
+    log.add(100, { ...base, battle_auto_presses: 1, pages: [{ state_seq: 3, map: "ROUTE101", map_id: [0, 16] as [number, number], position: null, speaker: null, speaker_source: null, text: "Wild WURMPLE appeared!", battle_turn: 1, battle_message_id: 1 }, { state_seq: 4, map: "ROUTE101", map_id: [0, 16] as [number, number], position: null, speaker: "PROF. BIRCH", speaker_source: "name_prefix" as const, text: "PROF. BIRCH: Whew…" }] });
+    log.add(200, { ...base, pages: [] });
+    const [battle, field] = log.events.slice(1).map((event) => eventText(event) ?? "");
+    expect(battle).toContain("Dialogue auto-advance (press) · B ×2 (1 in battle) · stopped: battle input · the battle action menu is ready");
+    expect(battle).toContain("· 1. battle turn 1: “Wild WURMPLE appeared!” · 2. PROF. BIRCH: “PROF. BIRCH: Whew…”");
+    expect(field).toContain("Dialogue auto-advance (press) · B ×2 · stopped:");
+  });
+
   it("formats tool calls, results, presses, milestones, retries and the run end", () => {
     expect(row(5)).toBe("press({&quot;buttons&quot;:[&quot;A&quot;]})");
     expect(row(6)).toContain('<span class="chipb">A</span><span class="chipb">↑UP</span> hold 10f · release 8f');

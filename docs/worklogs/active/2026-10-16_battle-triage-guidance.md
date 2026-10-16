@@ -32,7 +32,8 @@ Branch `claude/battle-triage-guidance` in `/private/tmp/pokebench-battle-triage`
   COMMIT: `feat(battle-triage): own-HP run and heal guidance from the shared RUN verdict (switch battle-triage-guidance-v1, default off)` (9496dc96)
 
 **M2 — explainer and review**
-- [ ] Explainer `docs/explainers/battle-triage-guidance-v1.html`, FEATURE_EXPLAINERS mapping, pending `experiments/battle-triage-guidance.json`
+- [x] Explainer `docs/explainers/battle-triage-guidance-v1.html`, FEATURE_EXPLAINERS mapping, pending `experiments/battle-triage-guidance.json`
+  COMMIT: `test(battle-triage): RED explainer link and serving` (a5bd9d83)
 - [ ] Review: Claude CLI, Codex (gpt-5.6-sol), Grok (cursor-grok-4.5-high) until LGTM
 - [ ] ASK USER: "merge it"
 
@@ -45,3 +46,6 @@ Branch `claude/battle-triage-guidance` in `/private/tmp/pokebench-battle-triage`
   - Tests: agent 1406 passed (88 files), viewer 794 passed (60 files), Python 2040 passed / 2 skipped (test_rerender needs POKEBENCH_ROM; the worktree has no `.env`, and running it with the ROM path was refused by the permission system: unverified here).
   - Gates: `just test` green; `just lint` green except mypy `mgba._pylib` import-not-found in the worktree venv (known); `just build` green; `just coverage` agent stmts 97.73 / branches 94.56 / funcs 97.98 / lines 99.08, viewer 95.10 / 90.45 / 93.59 / 97.60, Python lines 97.09 / branches 92.70 / functions 100 (battle_triage.py and battle_details.py 100%); `just verify-vendor` OK (submodule initialised from the local main checkout's copy, pin bbab97ad).
 - 2026-10-16 02:40 AM EDT: M2 RED: `panels.test.ts` (FEATURE_EXPLAINERS mapping and the explainer quoting the exact battle line, field line and menu presses) and `server.test.ts` (allowlist serves `battle-triage-guidance-v1.html`): 2 failing.
+- 2026-10-16 02:55 AM EDT: M2 GREEN. Explainer `docs/explainers/battle-triage-guidance-v1.html` (menu layout figure, battle-line decision chain, threshold table with showcase-run HP values, wiring, OFF proof, status), README entry, `FEATURE_EXPLAINERS["battle-triage-guidance-v1"]`. `just pages-check` prints nothing. Pending `experiments/battle-triage-guidance.json` (no queuePosition; finals incumbent copied from blocked-batch-result, switch omitted there so it reads OFF; activation `BIRCH_RESCUE_COMPLETE`; primary `ROUTE_103` because `parseExperiment` refuses an activation after the shared `RIVAL_HOUSE_ENTERED`; provisional `source.commit` = branch head, repin on merge). `just experiments-check` reads the main checkout (ok: 51), so the entry was validated with `parseExperiment` + `experimentArms` from the worktree build (incumbent OFF, candidate ON). Readiness row added (PENDING until `just experiments` after landing).
+  - Tests: agent 1406, viewer 795, Python 2040 passed / 2 skipped (ROM). Gates: test/build/verify-vendor green; lint green except the known mypy `mgba._pylib`; coverage agent 97.73/94.56/97.98/99.08, viewer 95.10/90.45/93.59/97.60, Python lines 97.09 branches 92.70 functions 100.
+  - Not verified: the live READ EXPLAINER click in a running viewer (the long-lived viewer serves main; route and mapping covered by `server.test.ts`/`panels.test.ts`); explainer not copied to the main checkout's `runs/mockups` (this session works only in the worktree).

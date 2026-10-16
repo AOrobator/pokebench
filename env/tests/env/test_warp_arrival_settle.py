@@ -484,7 +484,7 @@ def test_rerender_labels_an_archived_mid_animation_frame_only_when_on() -> None:
 
 def test_switch_is_registered_server_side_and_default_off() -> None:
     assert WARP_FEATURE == "warp-arrival-settle-v1"
-    assert SERVER_FEATURES[-4] == WARP_FEATURE
+    assert SERVER_FEATURES[-5] == WARP_FEATURE
     assert WARP_FEATURE in features_off_from_env({})
     assert features_off_from_env({"POKEBENCH_FEATURES_OFF": WARP_FEATURE}) == {WARP_FEATURE}
 

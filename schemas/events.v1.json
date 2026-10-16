@@ -7915,6 +7915,96 @@
               "type": "null"
             }
           ]
+        },
+        "surf_gate": {
+          "type": "object",
+          "required": [
+            "can_surf",
+            "balance_badge",
+            "party_surf",
+            "surfing",
+            "warps",
+            "connections"
+          ],
+          "properties": {
+            "can_surf": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "balance_badge": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "party_surf": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "surfing": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "warps": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "x",
+                  "y"
+                ],
+                "properties": {
+                  "x": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255
+                  },
+                  "y": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255
+                  }
+                },
+                "additionalProperties": false
+              },
+              "maxItems": 255
+            },
+            "connections": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "NORTH",
+                  "SOUTH",
+                  "EAST",
+                  "WEST"
+                ]
+              },
+              "maxItems": 16
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false

@@ -26,6 +26,8 @@ from pokebench_env.offscreen_objects import SWITCH as OFFSCREEN
 from pokebench_env.offscreen_objects import offscreen_text
 from pokebench_env.readout_truth import SWITCH as TRUTH
 from pokebench_env.readout_truth import lock_line, menu_line
+from pokebench_env.surf_gate import SWITCH as SURF_GATE
+from pokebench_env.world import InteractionTarget
 
 SERVER_FEATURES = (
     "expanded-menu-battle-information-v1",
@@ -66,6 +68,7 @@ SERVER_FEATURES = (
     "readout-truth-v1",
     "birch-speech-pages-v1",
     "blackout-readout-v1",
+    "surf-gated-exits-v1",
 )
 
 
@@ -80,7 +83,8 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "offscreen-objects-v1,"
         "levelup-box-v1,"
         "transition-coherence-v1,"
-        "readout-truth-v1,birch-speech-pages-v1,blackout-readout-v1",
+        "readout-truth-v1,birch-speech-pages-v1,blackout-readout-v1,"
+        "surf-gated-exits-v1",
     )
     if raw == "":
         return frozenset()
@@ -431,6 +435,12 @@ def format_readout(
                 None if offscreen is None else {o.local_id: o for o in offscreen}
             )
         )
+    # surf-gated-exits-v1: exits reachable only across water while Surf cannot be used.
+    gate = state.surf_gate if SURF_GATE not in off else None
+
+    def across(t: InteractionTarget) -> bool:
+        return gate is not None and t.kind == "warp" and gate.blocks_warp(t.x, t.y)
+
     if state.interaction_targets is not None and "world-targets-v1" not in off:
         lines.append("Map interaction candidates (world coordinates; flags/scripts may gate use):")
         lines.extend(
@@ -439,13 +449,25 @@ def format_readout(
                 destinations=destinations,
                 dynamic=dynamic,
             )
+            + ("" if gate is None or not across(t) else gate.warp_note())
             for t in state.interaction_targets
         )
     if bounded_navigation and "bounded-navigation-v1" not in off and state.map_id is not None:
         lines.append(f"Navigation map_id: [{state.map_id[0]},{state.map_id[1]}] (current map only)")
     if world_destinations and "world-destinations-v1" not in off:
+        notes = (
+            None
+            if gate is None or state.topology is None
+            else {
+                c.direction: gate.connection_note()
+                for c in state.topology.connections
+                if gate.blocks_connection(c.direction)
+            }
+        )
         lines.append(
-            "Map topology: unavailable" if state.topology is None else state.topology.text()
+            "Map topology: unavailable"
+            if state.topology is None
+            else state.topology.text(notes or None)
         )
         if state.interaction_targets is not None:
             names = {(g, n): places.get((g, n), name) for g, n, name in state.destination_names}
@@ -457,7 +479,10 @@ def format_readout(
                         if (g, n) == (127, 127)
                         else names.get((g, n), f"unknown map {g}/{n}")
                     )
-                    lines.append(f"Warp destination at ({target.x},{target.y}): {name}")
+                    lines.append(
+                        f"Warp destination at ({target.x},{target.y}): {name}"
+                        + ("" if gate is None or not across(target) else gate.destination_note())
+                    )
     return "\n".join(lines)
 
 
@@ -527,4 +552,6 @@ def state_json(state: GameState) -> dict[str, object]:
         "money": state.money,
         "badges": list(state.badges or ()),
         "play_time_s": _play_seconds(state),
+        # surf-gated-exits-v1: present only with the switch, so switch-off state is unchanged.
+        **({} if state.surf_gate is None else {"surf_gate": state.surf_gate.json()}),
     }

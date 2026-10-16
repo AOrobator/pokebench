@@ -23,17 +23,17 @@ Never call `chat-thread` tools from this skill or its subagents. Quote every tim
    curl -s -m 200 http://127.0.0.1:8790/api/workbench -o <scratch>/wb.json
    ```
 
-   - It can take minutes. Never restart 8790 to make it answer. If it is down, say so and fall back to `runs/*/events.jsonl` (first line for `run_start`, `milestone` lines for splits).
+   - It can take minutes. Never restart 8790 to make it answer. If it is down, stop and tell the operator. Never rank from raw `events.jsonl` milestones: the workbench re-grades splits and drops invalid ones, so a raw scan can credit milestones the frontier does not, and step 8's `frontier.mjs` needs the viewer anyway.
    - Record the snapshot time in New York time.
    - Live runs count. Mark each LIVE with the snapshot time, and re-read its `events.jsonl` tail just before reporting, since it moves.
 
-2. **Rank by the story frontier**, exactly as `packages/viewer/src/frontier.ts` does.
+2. **Rank by the story frontier's order and tiebreak** from `packages/viewer/src/frontier.ts`, over a wider pool than the frontier itself.
    - **Order:** `FRONTIER_MILESTONES` parsed from that file. Never the workbench `milestones` list: it also holds optional milestones such as `FIRST_POKECENTER_HEAL` that would mis-rank.
-   - **Eligible:** `excluded` null, `problem` null, `measurement.controller` is `agent`, and no `measurement.features` matching `probe`, `synthetic` or `replay`.
+   - **Eligible for the top N:** `excluded` null, `problem` null, `measurement.controller` is `agent`, and no `measurement.features` matching `probe`, `synthetic` or `replay` (frontier.ts `recordedRun`). Any start kind and any status (ended, live, paused, unresponsive) qualifies, and each is labelled. This is deliberately wider than `frontierCandidate`, which only the agent-frontier bullet below uses.
    - **Rank:** the last index in that order of a split without `screenshotEvidence`.
    - **Tiebreak:** that split's `elapsedMs` ascending, then `id`.
    - Take the top N (default 10).
-   - Cross-check against `node .claude/skills/pokebench-review/frontier.mjs`, which applies the same rule. Explain any difference before going on.
+   - Cross-check against `node .claude/skills/pokebench-review/frontier.mjs`. It uses the same order and tiebreak but different buckets: its best fresh-boot run must equal the agent frontier below, and its fresh-boot and checkpoint lists must agree with your top N for the runs they share. It needs a built viewer in `POKEBENCH_VIEWER_WORKTREE` (default `/private/tmp/pokebench-viewer`). Explain any disagreement before going on.
    - State each run's start kind: boot, `MAIN_MENU` save or `CLOCK_SET` save (`config.start`, `config.resume`). The frontier chart only plots boot and `MAIN_MENU` starts. `CLOCK_SET` resumes stay in the list but are flagged: their minutes count from the save, so they are not comparable with boot minutes. Never say one beat another on time across start kinds.
    - Lead the report with the furthest milestones reached.
    - **Agent frontier.** Identify the current frontier run exactly as `frontierReferences` in `frontier.ts` picks `best` (boot or `MAIN_MENU` start, ended, live or paused). Say whether it moved since the previous run-analysis report (`runs/reports/run-analysis/`) or since the night began, which run it replaced, and when it moved, in New York time.
@@ -53,7 +53,7 @@ Never call `chat-thread` tools from this skill or its subagents. Quote every tim
    - Launch one more subagent to reconstruct harness history (step 3).
    - Tell every subagent: read-only, stream events, never call `chat-thread` tools, cite run id and seq or turn for every claim.
    - Output schema per run: a markdown card (run id, arm, start kind, furthest milestone, end reason, segment table, forensics classes) and a JSON block with `wins`, `stalls` (segment, minutes, turns, primary class, evidence seqs), `mistakes` (label, occurrences, minutes lost, seqs), `loop_guard` (fires, hits that ended a loop, false fires), `false_messages`, and `hypotheses`.
-   - Reuse mistake labels across runs, so step 7 can count them. The brief lists the labels seen so far.
+   - Subagents run at the same time, so they cannot share labels. The brief gives a starting list of mistake labels; step 7 normalizes the labels across runs before counting.
 
 6. **Compare arms.** Where the cohort has paired arms (e.g. bundle on gpu0 and control on gpu1, same round and pin), tabulate the furthest milestone per arm per round. N per round is usually 1 per arm: say so, and never call anything significant from it. Hand power questions to `pokebench-experiment-design`.
 
@@ -104,7 +104,7 @@ Operator feedback on a run-analysis report is folded back into this skill. When 
 
 - Workbench fetched read-only; 8790 never restarted; snapshot time in New York time.
 - Agent frontier named, its movement stated, and its own report section covers configuration, wins and misses.
-- Ranking used `FRONTIER_MILESTONES` from `frontier.ts`, its eligibility rule and its tiebreak.
+- Ranking used `FRONTIER_MILESTONES` from `frontier.ts`, the `recordedRun` eligibility and its tiebreak, from the workbench only.
 - Every run's start kind stated; CLOCK_SET runs flagged and never compared on minutes with boot runs.
 - LIVE runs marked and their tails re-read before reporting.
 - Every run's switches, experiment arm and pinned commit recorded; pin-to-pin `git log` read.

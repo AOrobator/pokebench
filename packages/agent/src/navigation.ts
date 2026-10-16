@@ -58,6 +58,8 @@ export function matchingTriggers(state:GameStateSnapshot):MatchingTrigger[] {
  return (state.world_context?.triggers??[]).filter(t=>t.condition_met===true&&t.variable!==0).map(t=>({x:t.x,y:t.y,elevation:t.elevation,variable:t.variable,required:t.required_value,current:t.current_value}));
 }
 // pokeemerald ObjectEventDoesElevationMatch: elevation 0 (transition) matches any; otherwise they must be equal.
+// world.py's labels for background events (signs, hidden items, secret bases).
+const BACKGROUND=new Set(["background","hidden_item","secret_base","background_unknown"]);
 export const elevationsMatch=(a:number,b:number):boolean=>a===0||b===0||a===b;
 const triggerAt=(triggers:readonly MatchingTrigger[]|undefined,p:Point,elevation:number):MatchingTrigger|undefined=>triggers?.find(t=>t.x===p.x&&t.y===p.y&&(t.elevation===0||t.elevation===elevation));
 const condition=(t:MatchingTrigger):string=>`variable 0x${t.variable.toString(16).toUpperCase().padStart(4,"0")}=${t.current===null?"unknown":String(t.current)}, needs ${String(t.required)}`;
@@ -155,14 +157,22 @@ function targetReason(state:GameStateSnapshot,goal:Point,options:NavigationOptio
  const occupied=geometry.objects.some(same)||person!==undefined||live!==undefined;
  const thing=person??(standable(tile)?undefined:targets.find(t=>t.activation==="A"&&t.kind!=="warp"));
  if(occupied||thing!==undefined){
+  const reachable=DIRECTIONS.flatMap(([side,dx,dy])=>{const stand={x:goal.x+dx,y:goal.y+dy};return free(stand)?[{stand,side}]:[];});
   // navigation-truth-v1: an object with no script (absent from the listed interaction targets) cannot be talked to,
-  // unless another A target shares its tile: GetInteractionScript falls through to the background event.
-  if(truth&&thing===undefined&&state.interaction_targets!=null&&!targets.some(t=>t.activation==="A"&&t.kind!=="warp"))return `${at(goal)} is a person or object${live?.sprite_kind!=null?` (sprite ${live.sprite_kind})`:""}, which navigate_to cannot stand on; it has no script, so facing it and pressing A does not talk to it or use it`;
+  // unless another A target on its tile answers instead: GetInteractionScript falls through to the background event,
+  // which GetBackgroundEventAtPosition finds only at the player's elevation (or its own elevation 0) and
+  // GetInteractedBackgroundEventScript runs for a facing-bound kind only when the player faces that way.
+  const fallthrough=truth&&thing===undefined&&state.interaction_targets!=null?targets.filter(t=>t.activation==="A"&&t.kind!=="warp"):null;
+  const answers=({stand,side}:{readonly stand:Point;readonly side:Direction}):boolean=>(fallthrough??[]).some(t=>{
+   if(!BACKGROUND.has(t.kind))return true;
+   const elevation=arrival(stand);
+   return elevation!==null&&(t.elevation===0||t.elevation===elevation)&&(t.facing==null||t.facing.toUpperCase()===OPPOSITE[side]);
+  });
+  if(fallthrough!==null&&(fallthrough.length===0||(reachable.length>0&&!reachable.some(answers))))return `${at(goal)} is a person or object${live?.sprite_kind!=null?` (sprite ${live.sprite_kind})`:""}, which navigate_to cannot stand on; it has no script, so facing it and pressing A does not talk to it or use it`;
   const kind=thing===undefined||thing.kind==="object"?"person or object":thing.kind.replaceAll("_"," ");
   const name=thing?.name;
   const label=name!=null?`${name} (${kind})`:`a ${kind}`;
-  const reachable=DIRECTIONS.flatMap(([side,dx,dy])=>{const stand={x:goal.x+dx,y:goal.y+dy};return free(stand)?[{stand,side}]:[];});
-  const usable=scripted===null||scripted.length===0||thing?.kind!=="object"?reachable:reachable.filter(({stand})=>talker(stand)!==undefined);
+  const usable=fallthrough!==null?reachable.filter(answers):scripted===null||scripted.length===0||thing?.kind!=="object"?reachable:reachable.filter(({stand})=>talker(stand)!==undefined);
   if(scripted!==null&&scripted.length>0&&reachable.length>0&&usable.length===0)return `${at(goal)} is ${label}, which navigate_to cannot stand on; it is at elevation ${[...new Set(scripted.map(t=>String(t.elevation)))].join(" or ")}, and every free neighbouring tile navigate_to can reach puts you at another elevation, where facing it and pressing A does not reach it; choose a waypoint at its elevation`;
   // Each usable stand reaches the scripted object at its arrival elevation; stacked objects can differ per stand.
   const reached=scripted!==null&&scripted.length>0&&thing?.kind==="object"?usable.map(({stand})=>talker(stand)):[];

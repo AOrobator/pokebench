@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { BASE_MS, Log, START, fullRun } from "../test-support/events.js";
 import { RunView } from "./model.js";
@@ -109,4 +111,20 @@ it("marks each dialogue auto-advance on the timeline with its presses, pages, st
  expect(svg).toContain("Dialogue auto-advanced · B ×2 · 1 pages · stopped: field free · 2 inputs not sent");
  expect(svg).toContain("Dialogue auto-advanced · B ×1 · 0 pages · stopped: menu<");
  expect(lanesSvg(view(log),BASE_MS+50)).not.toContain("Dialogue auto-advanced");
+});
+it('draws loop errors red on the errors lane and gives every presses-lane mark a fill',()=>{
+ const log=new Log();log.add(0,START);
+ log.add(1000,{type:'loop_guard',turn:1,kind:'milestone_drought',phase:'warning',message:'stalling',calls:9,evidence:[1]});
+ log.add(1000,{type:'text_only_supervisor',turn:2,replies:3,note:1,limit:3,text:'no tool'});
+ const svg=lanesSvg(view(log),BASE_MS+2000);
+ const errors=[...svg.matchAll(/class="m-error k-loop"[^>]* y="([^"]+)" [^>]*height="([^"]+)"/g)];
+ expect(errors).toHaveLength(2);
+ const lane=150/LANES.length;
+ for(const [,y,h] of errors)expect(Number(y)+Number(h)/2).toBeCloseTo(LANES.indexOf('errors')*lane+lane/2,1);
+ const css=readFileSync(join(import.meta.dirname,'../static/style.css'),'utf8');
+ const fill=(selector:string):string|undefined=>new RegExp(`${selector.replace(/[.]/g,'\\.')}\\s*\\{\\s*fill:\\s*([^;]+);`).exec(css)?.[1];
+ expect(fill('.lanes .m-error')).toBe('#ff4d4d');
+ expect(fill('.lanes .m-press')).toBeDefined();
+ expect(css.indexOf('.lanes .m-press {')).toBeLessThan(css.indexOf('.lanes .b-UP'));
+ expect(css.indexOf('.lanes .m-error {')).toBeLessThan(css.indexOf('.lanes .k-compaction'));
 });

@@ -23,12 +23,19 @@ export function warpsOf(state:Pick<GameStateSnapshot,"interaction_targets">):War
  return (state.interaction_targets??[]).filter((t):t is Warp=>t.kind==="warp"&&t.destination!==null);
 }
 
-// The warps on a map that lead to `to` and were used from (x,y), with their same-destination siblings.
-export function usedWarps(warps:readonly Warp[],x:number,y:number,to:string):Warp[] {
+interface End {readonly warps:readonly Warp[];readonly x:number;readonly y:number}
+const near=(a:{x:number;y:number},x:number,y:number):boolean=>Math.abs(a.x-x)+Math.abs(a.y-y)<=1;
+const single=(ws:readonly Warp[]):boolean=>new Set(ws.map(destinationOf)).size===1;
+// The warps on a map that lead to `to` and were used from (x,y), with their same-destination siblings. When the warps
+// next to (x,y) lead to different destinations, the other end decides: the one whose destination warp (an index into
+// the other map's warp events) lies next to where the player was on the other map. Still ambiguous: none.
+export function usedWarps(warps:readonly Warp[],x:number,y:number,to:string,other?:End):Warp[] {
  const toward=warps.filter(w=>mapKey(w.destination)===to||mapKey(w.destination)===DYNAMIC);
- const near=toward.filter(w=>Math.abs(w.x-x)+Math.abs(w.y-y)<=1);
+ const close=toward.filter(w=>near(w,x,y));
  const exact=toward.filter(w=>mapKey(w.destination)===to);
- const chosen=near.length>0?near:new Set(exact.map(destinationOf)).size===1?exact:[];
+ const matched=close.filter(w=>{const end=other?.warps[w.destination[2]];return end!==undefined&&mapKey(w.destination)===to&&other!==undefined&&near(end,other.x,other.y);});
+ const pool=matched.length>0?matched:close;
+ const chosen=pool.length>0?(single(pool)?pool:[]):single(exact)?exact:[];
  const destinations=new Set(chosen.map(destinationOf));
  return toward.filter(w=>destinations.has(destinationOf(w)));
 }
@@ -45,8 +52,8 @@ export class ExitHistory {
   if(from===null)return [];
   if(from.map===seen.map)return this.sameMap(from,seen);
   const marks=[
-   ...usedWarps(from.warps,from.x,from.y,seen.map).map(w=>({room:from.room,map:from.map,tile:tileKey(w.x,w.y)})),
-   ...usedWarps(seen.warps,seen.x,seen.y,from.map).map(w=>({room:seen.room,map:seen.map,tile:tileKey(w.x,w.y)})),
+   ...usedWarps(from.warps,from.x,from.y,seen.map,seen).map(w=>({room:from.room,map:from.map,tile:tileKey(w.x,w.y)})),
+   ...usedWarps(seen.warps,seen.x,seen.y,from.map,from).map(w=>({room:seen.room,map:seen.map,tile:tileKey(w.x,w.y)})),
   ];
   for(const mark of marks)this.warps.add(`${mark.map}|${mark.tile}`);
   if(marks.length===0){
@@ -58,10 +65,11 @@ export class ExitHistory {
  // A warp can lead to its own map (teleporter pads). It counts as used only when the player, from on or next to it,
  // lands exactly on the warp it leads to: destination warp ids index this map's warp events in order (pokeemerald
  // warp_events). One press batch is recorded as two states, so distance alone cannot tell a walk from a teleport.
+ // The landing pad is not used by arriving on it: it is its own exit (AquaHideout_B1F warp 12 leads to warp 9).
  private sameMap(from:Seen,seen:Seen):ExitMark[] {
   if(from.x===seen.x&&from.y===seen.y)return [];
   const used=from.warps.filter(w=>mapKey(w.destination)===seen.map&&Math.abs(w.x-from.x)+Math.abs(w.y-from.y)<=1)
-   .flatMap(w=>{const end=from.warps[w.destination[2]];return end!==undefined&&end.x===seen.x&&end.y===seen.y?[w,end]:[];});
+   .flatMap(w=>{const end=from.warps[w.destination[2]];return end!==undefined&&end.x===seen.x&&end.y===seen.y?[w]:[];});
   const marks=used.map(w=>({room:seen.room,map:seen.map,tile:tileKey(w.x,w.y)}));
   for(const mark of marks)this.warps.add(`${mark.map}|${mark.tile}`);
   return marks;

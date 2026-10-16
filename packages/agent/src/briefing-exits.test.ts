@@ -120,8 +120,8 @@ describe("exit history",()=>{
   expect(h.observe(place([24,24],3,5,PADS))).toEqual([]);
   expect(h.observe(place([24,24],3,7,PADS))).toEqual([]);
   h.observe(place([24,24],3,4,PADS));
-  expect(h.observe(place([24,24],20,10,PADS)).map(m=>m.tile)).toEqual(["3,3","20,10"]);
-  expect([h.taken("24/24",3,3),h.taken("24/24",20,10),h.taken("24/24",9,9)]).toEqual([true,true,false]);
+  expect(h.observe(place([24,24],20,10,PADS)).map(m=>m.tile)).toEqual(["3,3"]);
+  expect([h.taken("24/24",3,3),h.taken("24/24",20,10),h.taken("24/24",9,9)]).toEqual([true,false,false]);
   // A same-map jump with no pad next to either tile (a whiteout, a scripted move) takes nothing.
   const g=new ExitHistory();g.observe(place([24,24],12,1,PADS));
   expect(g.observe(place([24,24],12,15,PADS))).toEqual([]);

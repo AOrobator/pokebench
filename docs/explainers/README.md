@@ -63,6 +63,8 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Level-up stats box](levelup-box-v1.html)
 - [Briefing exit facts](briefing-exits-v1.html)
 - [Untaken exits](untaken-exits-v1.html)
+- [Trainer heal guidance](trainer-heal-guidance-v1.html)
+- [Low-HP trainer warning](low-hp-trainer-warning-v1.html)
 - [Briefing battle outcomes and the trainer opponent reading](briefing-battle-outcomes-v1.html)
 - [Blocked exit fact](blocked-exit-fact-v1.html)
 - [Battle loss recap](battle-loss-recap-v1.html)

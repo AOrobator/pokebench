@@ -160,7 +160,7 @@ describe("blocked-exit-fact-v1 through playGameTools",()=>{
  // result carries the recorded readout and after state (recorded only after the tool returns).
  async function run(on:boolean,turn:number):Promise<{texts:string[];same:boolean}>{
   const observers:((e:RunEvent)=>void)[]=[];
-  const recorder={subscribe:(o:(e:RunEvent)=>void)=>{observers.push(o);},recordState:()=>{throw new Error("unused");},recordDialogueAutoAdvance:()=>{throw new Error("unused");}};
+  const recorder={subscribe:(o:(e:RunEvent)=>void)=>{observers.push(o);},recordState:()=>{throw new Error("unused");},recordDialogueAutoAdvance:()=>{throw new Error("unused");},lowHpTrainerWarning:()=>undefined};
   const emit=(e:RunEvent)=>{for(const o of observers)o(e);};
   const press:AgentTool={name:"press",label:"Press",description:"d",parameters:{},execute:(id)=>{
    const call=CALLS.get(id),result=RESULTS.get(id);

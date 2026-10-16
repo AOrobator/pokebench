@@ -100,6 +100,8 @@
    "briefing-exits-v1": false,
    "untaken-exits-v1": false,
    "people-ledger-v1": false,
+   "trainer-heal-guidance-v1": false,
+   "low-hp-trainer-warning-v1": false,
    "briefing-battle-outcomes-v1": false,
    "blocked-exit-fact-v1": false,
    "battle-loss-recap-v1": false

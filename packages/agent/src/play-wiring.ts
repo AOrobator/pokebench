@@ -4,6 +4,7 @@ import {dialogueLog} from "./dialogue-log.js";
 import type {StateSource} from "./game-state.js";
 import {withNavigation,type NavigationPorts} from "./navigation.js";
 import {withNavigateFirst} from "./navigate-first.js";
+import {withLowHpTrainerWarning,type WarningRecorder} from "./low-hp-trainer-warning.js";
 import type {FeatureSet} from "./features.js";
 import {instructionLedger} from "./instruction-ledger.js";
 import {disprovedBeliefs} from "./disproved-beliefs.js";
@@ -75,6 +76,7 @@ export function stallStop(features:FeatureSet,recorder:Pick<RunRecorder,"subscri
 // The game tools a play run hands the model: ordinary tools, navigate_to, dialogue auto-advance, the people ledger and untaken exits per switch.
 // The ledger is inside untaken exits, so a readout with both reads Position, the Untaken exits line, then the people block.
 // extra: the run's other model tools (context tools), wrapped too so any call between presses is seen.
-export function playGameTools(base:readonly AgentTool[],features:FeatureSet,state:StateSource,recorder:AutoAdvanceRecorder,gate?:NavigationPorts["gate"],extra:readonly AgentTool[]=[]):AgentTool[]{
- return [...withResultFacts(withNavigateFirst([...withUntakenExits(withPeopleLedger(withDialogueAutoAdvance(withNavigation(base,features,state,gate),features,{state,recorder}),features,recorder),features,recorder),...extra],features),features,recorder)];
+// low-hp-trainer-warning-v1 is outermost, so its paragraph follows any other text the result gained.
+export function playGameTools(base:readonly AgentTool[],features:FeatureSet,state:StateSource,recorder:AutoAdvanceRecorder&WarningRecorder,gate?:NavigationPorts["gate"],extra:readonly AgentTool[]=[]):AgentTool[]{
+ return [...withResultFacts(withLowHpTrainerWarning(withNavigateFirst([...withUntakenExits(withPeopleLedger(withDialogueAutoAdvance(withNavigation(base,features,state,gate),features,{state,recorder}),features,recorder),features,recorder),...extra],features),features,recorder),features,recorder)];
 }

@@ -81,12 +81,47 @@ def test_a_whiteout_that_began_after_the_snapshot_waits_for_a_later_observation(
     assert latch.take(after, latch.mark()) == Whiteout(3000, 2)
 
 
-def test_put_back_keeps_one_pending_event() -> None:
-    latch = WhiteoutLatch(game(OVERWORLD).read)
-    latch.put_back(Whiteout(10, 1))
-    latch.put_back(Whiteout(20, 2))
-    field = read_game_state(game(OVERWORLD).read, MAPS)
-    assert latch.take(field, 5) == Whiteout(10, 1)
+def test_whiteouts_queue_oldest_first_and_put_back_goes_first() -> None:
+    m = game(OVERWORLD)
+    latch = WhiteoutLatch(m.read)
+    field = read_game_state(m.read, MAPS)
+    for _ in range(2):  # two whiteouts before any field observation is delivered
+        callback(m, CB2_WHITE_OUT)
+        latch.on_frame()
+        callback(m, OVERWORLD[1])
+        latch.on_frame()
+    first = latch.take(field, latch.mark())
+    assert first == Whiteout(3000, 1)
+    latch.put_back(first)
+    assert latch.take(field, latch.mark()) == first
+    assert latch.take(field, latch.mark()) == Whiteout(3000, 3)
+    assert latch.take(field, latch.mark()) is None
+
+
+def test_a_whiteout_between_snapshot_and_take_does_not_replace_the_first() -> None:
+    m = game(OVERWORLD)
+    latch = WhiteoutLatch(m.read)
+    callback(m, CB2_WHITE_OUT)
+    latch.on_frame()
+    callback(m, OVERWORLD[1])
+    latch.on_frame()
+    snapshot, seen = read_game_state(m.read, MAPS), latch.mark()
+    callback(m, CB2_WHITE_OUT)  # a second whiteout runs before the first is taken
+    latch.on_frame()
+    callback(m, OVERWORLD[1])
+    latch.on_frame()
+    assert latch.take(snapshot, seen) == Whiteout(3000, 1)
+    assert latch.take(snapshot, seen) is None, "the second began after this snapshot"
+    assert latch.take(snapshot, latch.mark()) == Whiteout(3000, 3)
+
+
+def test_short_money_reads_keep_the_amounts_unknown() -> None:
+    from pokebench_env.blackout_readout import _money
+
+    m = game(OVERWORLD)
+    assert _money(m.read) == 3000
+    assert _money(lambda a, n: b"" if a == 0x03005D8C else m.read(a, n)) is None
+    assert _money(lambda a, n: b"" if a == SB1 + 0x490 else m.read(a, n)) is None
 
 
 def test_unreadable_save_pointers_keep_the_money_unknown() -> None:

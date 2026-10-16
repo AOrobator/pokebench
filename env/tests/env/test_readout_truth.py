@@ -654,3 +654,26 @@ def test_a_short_read_is_a_failure_not_an_absence(short: int) -> None:
         return b"" if address == short else m.read(address, length)
 
     assert read_no_message(read) is None
+
+
+def test_a_short_window_read_is_unknown_never_undrawn() -> None:
+    from pokebench_env.ui_state import menu_window_drawn, window_drawn_strict
+
+    m = quiet()
+    m.put(0x02020004, struct.pack("<BBBBBBHI", 0, 0, 0, 1, 1, 0, 0, 0x02010000))
+    m.put(0x02010000, bytes(range(32)))
+    assert window_drawn_strict(m.read, 0) is True
+
+    def short_at(address: int):  # type: ignore[no-untyped-def]
+        return lambda a, n: b"" if a == address else m.read(a, n)
+
+    for address in (0x02010000, 0x02020004):
+        assert window_drawn_strict(short_at(address), 0) is None
+        assert read_no_message(short_at(address)) is None
+    # sMenu's window id (MENU + 5 = 0x0203CD95), its header and its pixels.
+    m.put(0x0203CD95, b"\x00")
+    assert menu_window_drawn(m.read) is True
+    for address in (0x0203CD95, 0x02020004, 0x02010000):
+        assert menu_window_drawn(short_at(address)) is None
+    unknown = field(active_ui_read=True, field_controls_locked=True, menu_window_drawn=None)
+    assert menu_line(unknown) is None

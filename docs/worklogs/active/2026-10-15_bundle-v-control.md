@@ -223,6 +223,7 @@ Any valid trial that still ends before the wall cap is listed in a WARNING table
 - 2026-10-16 00:00 EDT: GREEN `4162695` (for RED `465489d`): both status checks in `prepareFixedTree` use full `git status --porcelain`.
 - 2026-10-16 00:10 EDT: Codex re-review of `1601a5d..4162695`: functional fix confirmed; its only finding was that this log named the RED sha for the GREEN (docs, not an operator-rule blocker; corrected above). Viewer 81 targeted tests pass, coverage 95.07 / 90.42 / 93.52 / 97.58, `fixed-tree.ts` 100 / 96.77 / 100 / 100. Merging into main.
 - 2026-10-16 00:35 EDT: Merged `claude/fixed-run-isolated-tree` at `ca37a39`; isolated dry run 4/4 valid (commit `ca37a39`, dirty false, PLAYER_HOUSE_EXITED_AFTER_CLOCK in all four). Operator (the operator, 02:52Z): keep the CLOCK_SET confirmatory, run the cook phase from New Game at 60 min, keep control's old press-result text (measured through `transition-press-result-v1`), fix the operator-stop-as-crash bug, one boot qualification trial per arm per lane. Branch `claude/fixed-run-boot-cook`. RED: `onOperatorSignals` ends a play run as `operator_abort` on SIGINT and SIGTERM (play handled only SIGINT, `live.ts:309`, so a SIGTERM left no run_end).
+- 2026-10-16 00:45 EDT: GREEN for `04ed6cb`: `operator-signals.ts` (SIGINT and SIGTERM, once, detachable) wired into play in `live.ts`; skill's abort procedure signals `live.js`, never the server.
 
 ## Deferred
 

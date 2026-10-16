@@ -1,4 +1,5 @@
 import {contextTools,loopSupervisor,playGameTools,stallBriefing,stallStop,textOnlySupervisor} from "./play-wiring.js";
+import { onOperatorSignals } from "./operator-signals.js";
 import {CheckpointCapture,checkpointTarget} from "./checkpoint-capture.js";
 import {experimentFromEnv} from "./play-experiment.js";
 // Live entrypoint for real, recorded runs: pi-agent-core on the local stack
@@ -302,11 +303,10 @@ async function playAgent(): Promise<void> {
       });
       stallBriefing(features, recorder, loopDetector, runControl, () => elapsed() - (preset===null?startedAt:0));
       const stopWatching = watchControl(controlFile, runControl);
-      const interrupt = (): void => {
-        console.log("operator abort: finishing the run record");
+      const stopListening = onOperatorSignals(process, (signal) => {
+        console.log(`operator abort (${signal}): finishing the run record`);
         governor.abort("operator_abort");
-      };
-      process.once("SIGINT", interrupt);
+      });
       const objectives = features["objective-tracking-v1"] ? objectiveHarness(goal, recorder, gameServerUrl, fetch, { ...objectiveSwitches(features), ...toolSwitches(features) }) : null;
       const baseTools=objectives?.tools ?? gameTools(gameServerUrl, pressHooks(recorder), fetch, toolSwitches(features));
       const tools=playGameTools(baseTools,features,new StateWatcher(gameServerUrl),recorder,signal=>runControl.gate(signal));
@@ -333,7 +333,7 @@ async function playAgent(): Promise<void> {
         wall.clear();
         stall?.clear();
         stopWatching();
-        process.off("SIGINT", interrupt);
+        stopListening();
       }
     },
   );

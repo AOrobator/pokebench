@@ -2,7 +2,7 @@ import {describe,expect,it} from "vitest";
 import {readFileSync} from "node:fs";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {Type} from "typebox";
-import {PeopleLedger,facedObject,withPeopleLedger} from "./people-ledger.js";
+import {PEOPLE_HEADER,PeopleLedger,facedObject,mapObjects,withPeopleLedger} from "./people-ledger.js";
 import {playGameTools} from "./play-wiring.js";
 import {checkEvent,type RunEvent} from "./events.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
@@ -26,7 +26,7 @@ const OFF:FeatureSet=Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false]))
 const ON:FeatureSet={...ALL_ON,"state-only-decisions-v1":false,"people-ledger-v1":true};
 
 const T418_BLOCK=[
- "People and objects here (this map's live objects; a sprite kind is a graphic, not a name):",
+ "People and objects here (every object the game has loaded on this map; a sprite kind is a graphic, not a name):",
  "- object 4, sprite WOMAN_4, at (8,7): last talked to on turn 145 (273 turns ago; 5 story milestones since)",
  "- object 6, sprite NINJA_BOY, at (8,5): not talked to this run",
  "Story characters here: none. Not on this map: PROF. BIRCH, MAY, BRENDAN, MOM, NORMAN, WALLY, ROXANNE, STEVEN.",
@@ -62,20 +62,28 @@ describe("people-ledger-v1 on the 2026-10-16T00-34-26_qwen36-gpu1_show recording
   const result=resultAt(406);
   replay(ledger,result.seq-1);
   expect(ledger.block(stateAt(12258),result.text,result.id)).toBe([
-   "People and objects here (this map's live objects; a sprite kind is a graphic, not a name):",
+   "People and objects here (every object the game has loaded on this map; a sprite kind is a graphic, not a name):",
    "- object 1, sprite SCIENTIST_1, at (9,8): last talked to on turn 204 (202 turns ago; 2 story milestones since)",
    "- object 2, PROF. BIRCH (sprite PROF_BIRCH), at (6,4): not talked to this run",
    "Story characters here: PROF. BIRCH at 6,4. Not on this map: MAY, BRENDAN, MOM, NORMAN, WALLY, ROXANNE, STEVEN.",
   ].join("\n"));
  });
+ it("lists objects the game has loaded beyond the 7-tile field-object list (state 889: BOY_2 far off in Littleroot) and leaves out objects with no script (the truck)",()=>{
+  const s=stateAt(889);
+  expect(s.world_context?.objects.map(o=>o.local_id)).toEqual([5,4]);
+  expect(mapObjects(s)?.map(o=>`${String(o.local_id)} ${o.sprite ?? ""}`)).toEqual(["3 BOY_2","4 MOM"]);
+  expect(new PeopleLedger().block(s,"Location: LITTLEROOT TOWN","x")).toBe(`${PEOPLE_HEADER}\n- object 3, sprite BOY_2, at (14,17): not talked to this run\n- object 4, sprite MOM, at (5,9): not talked to this run`);
+ });
  it("resolves the faced object the game itself would talk to",()=>{
-  expect(facedObject(stateAt(2842))).toMatchObject({local_id:4,sprite_kind:"WOMAN_4",map_id:[1,2]});
-  expect(facedObject(stateAt(12680))).toMatchObject({local_id:6,sprite_kind:"NINJA_BOY"});
+  expect(facedObject(stateAt(2842))).toMatchObject({key:"1/2#4",local_id:4,sprite:"WOMAN_4"});
+  expect(facedObject(stateAt(12680))).toMatchObject({key:"1/2#6",local_id:6,sprite:"NINJA_BOY"});
   expect(facedObject(stateAt(12555))).toBeNull();
  });
 });
 
-const world=(objects:{local_id:number;x:number;y:number;sprite_kind:string|null;map_id?:[number,number]}[],extra:Partial<GameStateSnapshot>={}):GameStateSnapshot=>parseGameState({...IN_GAME,screen:"overworld",location:"ROOM",map_id:[1,2],position:{x:2,y:2},facing:"up",world_context:{objects:objects.map(o=>({graphics_id:1,map_id:[1,2],...o})),triggers:[],dialogue:null},...extra});
+// Object targets as the game server reports them (world.py read_targets), plus a sign that is not an object.
+const world=(objects:{local_id:number;x:number;y:number;sprite_kind:string|null;elevation?:number}[],extra:Partial<GameStateSnapshot>={}):GameStateSnapshot=>parseGameState({...IN_GAME,screen:"overworld",location:"ROOM",map_id:[1,2],position:{x:2,y:2},facing:"up",
+ interaction_targets:[...objects.map(o=>({name:o.sprite_kind,kind:"object",x:o.x,y:o.y,elevation:o.elevation??3,activation:"A",availability:"conditional",facing:null,local_id:o.local_id,destination:null})),{name:"Sign",kind:"background",x:2,y:3,elevation:0,activation:"A",availability:"conditional",facing:null,local_id:null,destination:null}],...extra});
 let seq=0;
 const ev=(body:Record<string,unknown>):RunEvent=>checkEvent({v:1,run:"r",t:"2026-10-16T02:00:00.000-04:00",turn:1,seq:++seq,...body});
 const stateEvent=(s:GameStateSnapshot,turn:number):RunEvent=>ev({type:"state",turn,...s});
@@ -107,6 +115,14 @@ describe("people-ledger-v1 ledger rules",()=>{
   expect(facedObject(counter)).toMatchObject({local_id:3});
   const s5=stateEvent(counter,7);ledger.observe(s5);ledger.observe(talk(s5,7,"g"));ledger.observe(delivered("g",7));
   expect(ledger.block(counter,"Location: ROOM","h")).toContain("- object 3, sprite CLERK, at (2,0): last talked to on turn 7 (this turn; 0 story milestones since)");
+  // Elevation: of two objects on one tile, the game talks to the one at the player's elevation;
+  // elevation 0 (ELEVATION_TRANSITION) on the player's tile or the object matches any.
+  const grid=(standing:number)=>({navigation_grid:{elevation:4,tiles:[{x:2,y:2,collision:0,behavior:0,elevation:standing}],objects:[],warps:[]}});
+  const bridge=[{local_id:5,x:2,y:1,sprite_kind:"SHADOW",elevation:3},{local_id:6,x:2,y:1,sprite_kind:"KECLEON",elevation:4}];
+  expect(facedObject(world(bridge,grid(4)))?.local_id).toBe(6);
+  expect(facedObject(world([{local_id:5,x:2,y:1,sprite_kind:"SHADOW",elevation:3}],grid(4)))).toBeNull();
+  expect(facedObject(world([{local_id:5,x:2,y:1,sprite_kind:"SHADOW",elevation:3}],grid(0)))?.local_id).toBe(5);
+  expect(facedObject(world([{local_id:7,x:2,y:1,sprite_kind:"ANY",elevation:0}],grid(4)))?.local_id).toBe(7);
   // A plain wall tile in between is not a counter.
   expect(facedObject(world([{local_id:3,x:2,y:0,sprite_kind:"CLERK"}],{navigation_grid:{elevation:3,tiles:[{x:2,y:1,collision:1,behavior:0,elevation:3}],objects:[],warps:[]}}))).toBeNull();
  });
@@ -118,8 +134,8 @@ describe("people-ledger-v1 ledger rules",()=>{
   ledger.observe(story("ONE",1));
   const s2=stateEvent(room,2);ledger.observe(s2);ledger.observe(talk(s2,2,"c"));ledger.observe(delivered("c",2));
   // The same local id on another map is another person.
-  const other=world([{local_id:1,x:2,y:1,sprite_kind:"MAN",map_id:[1,3]}]);
-  expect(ledger.block(other,"Location: ROOM","d")).toBe("People and objects here (this map's live objects; a sprite kind is a graphic, not a name):\n- object 1 of map 1/3, sprite MAN, at (2,1): not talked to this run");
+  const other={...world([{local_id:1,x:2,y:1,sprite_kind:"MAN"}]),map_id:[1,3] as [number,number]};
+  expect(ledger.block(other,"Location: ROOM","d")).toBe(`${PEOPLE_HEADER}\n- object 1, sprite MAN, at (2,1): not talked to this run`);
   // A talk whose page cites a state the ledger never saw counts for no one.
   ledger.observe(talk(ev({type:"turn_start",turn:3,context:{messages:1,images:0,est_tokens:1}}),3,"e"));ledger.observe(delivered("e",3));
   expect(ledger.block(world([{local_id:9,x:2,y:1,sprite_kind:null}]),"Location: ROOM","f")).toContain("- object 9, sprite unknown, at (2,1): not talked to this run");
@@ -129,17 +145,17 @@ describe("people-ledger-v1 ledger rules",()=>{
   const s=world([{local_id:7,x:2,y:5,sprite_kind:"RIVAL_MAY_NORMAL"},{local_id:4,x:8,y:7,sprite_kind:"WOMAN_4"}]);
   const readout="Location: ROOM\nStory characters here (from this map's own object list): MAY at 2,5, PROF. BIRCH (on this map, out of view). Not on this map: BRENDAN, MOM. Sprite kinds such as SCIENTIST_1 or FAT_MAN are not these characters.";
   expect(ledger.block(s,readout,"a")).toBe([
-   "People and objects here (this map's live objects; a sprite kind is a graphic, not a name):",
+   "People and objects here (every object the game has loaded on this map; a sprite kind is a graphic, not a name):",
    "- object 7, MAY (sprite RIVAL_MAY_NORMAL), at (2,5): not talked to this run",
    "- object 4, sprite WOMAN_4, at (8,7): not talked to this run",
    "Story characters here: MAY at 2,5, PROF. BIRCH (on this map, out of view). Not on this map: BRENDAN, MOM.",
   ].join("\n"));
-  expect(ledger.block(world([]),"Location: ROOM","b")).toBe("People and objects here (this map's live objects; a sprite kind is a graphic, not a name): none");
+  expect(ledger.block(world([]),"Location: ROOM","b")).toBe(`${PEOPLE_HEADER} none`);
  });
  it("adds nothing outside a started overworld readout",()=>{
   const ledger=new PeopleLedger();
   const s=world([{local_id:1,x:2,y:1,sprite_kind:"MAN"}]);
-  for(const state of [{...s,screen:"battle"},{...s,in_battle:true},{...s,started:false},{...s,map_id:null},{...s,world_context:null}])expect(ledger.block(state,"Location: ROOM","a")).toBeNull();
+  for(const state of [{...s,screen:"battle"},{...s,in_battle:true},{...s,started:false},{...s,map_id:null},{...s,interaction_targets:null}])expect(ledger.block(state,"Location: ROOM","a")).toBeNull();
   expect(ledger.annotate("Screen: battle",s,"a")).toBe("Screen: battle");
   expect(ledger.annotate("Location: ROOM\nIn battle: yes",{...s,in_battle:true},"a")).toBe("Location: ROOM\nIn battle: yes");
   expect(ledger.annotate("Location: ROOM\nParty: x",s,"a")).toBe(`Location: ROOM\n${ledger.block(s,"","a") ?? ""}\nParty: x`);
@@ -173,7 +189,7 @@ describe("people-ledger-v1 switch",()=>{
   const out=withPeopleLedger([fakeObserve(state),fakePress(state),other],ON,{subscribe:fn=>{subs.push(fn);}});
   expect(subs).toHaveLength(1);
   const observed=textOf(await out[0]?.execute("o",{}) ?? {content:[],details:undefined});
-  expect(observed).toContain("Position: X=2, Y=2, facing up\nPeople and objects here (this map's live objects; a sprite kind is a graphic, not a name):\n- object 1, sprite MAN, at (2,1): not talked to this run\nParty (player): none");
+  expect(observed).toContain("Position: X=2, Y=2, facing up\nPeople and objects here (every object the game has loaded on this map; a sprite kind is a graphic, not a name):\n- object 1, sprite MAN, at (2,1): not talked to this run\nParty (player): none");
   const press=out[1];
   if(press===undefined||!isCheckedPress(press))throw Error("press lost executeChecked");
   expect(textOf(await press.execute("p",{buttons:["A"]}))).toContain("- object 1, sprite MAN");

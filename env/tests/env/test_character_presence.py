@@ -2,6 +2,7 @@ import struct
 
 from pokebench_env.character_presence import (
     TEMPLATES,
+    StoryCharacters,
     read_story_characters,
 )
 from pokebench_env.world_context import SAVE_VARIABLES, LiveObject
@@ -209,3 +210,22 @@ def test_the_pending_experiment_activates_where_the_line_first_appears() -> None
         (Path(__file__).parents[3] / "experiments" / "character-presence.json").read_text()
     )
     assert entry["activationMilestone"] == "PLAYER_NAME_CONFIRMED"
+
+
+def test_the_line_people_ledger_reads_keeps_its_exact_shape() -> None:
+    # packages/agent/src/people-ledger.ts (people-ledger-v1) parses this line; keep both in step.
+    line = StoryCharacters(
+        here=("MAY at 2,5", "PROF. BIRCH (on this map, out of view)"), absent=("MOM", "NORMAN")
+    ).text()
+    assert line == (
+        "Story characters here (from this map's own object list): "
+        "MAY at 2,5, PROF. BIRCH (on this map, out of view). Not on this map: MOM, NORMAN. "
+        "Sprite kinds such as SCIENTIST_1 or FAT_MAN are not these characters."
+    )
+    assert (
+        StoryCharacters(here=(), absent=())
+        .text()
+        .startswith(
+            "Story characters here (from this map's own object list): none. Not on this map: none. "
+        )
+    )

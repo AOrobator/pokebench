@@ -1,35 +1,47 @@
-// people-ledger-v1: right under the readout's Location/Position lines, every live object on the
-// current map with when the model last talked to it (turns and story milestones since), and the
-// story characters character-presence-v1 names. Facts only, derived from recorded events.
+// people-ledger-v1: right under the readout's Location/Position lines, every object the game has
+// loaded on the current map with when the model last talked to it (turns and story milestones
+// since), and the story characters character-presence-v1 names. Facts only, from recorded events.
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import type {RunEvent} from "./events.js";
 import type {FeatureSet} from "./features.js";
 import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import type {RunRecorder} from "./recorder.js";
+import {COUNTER} from "./tile-rules.js";
 
-type Facing=Pick<GameStateSnapshot,"position"|"facing"|"world_context"|"navigation_grid">;
-type LiveObject=NonNullable<GameStateSnapshot["world_context"]>["objects"][number];
+type Snapshot=Pick<GameStateSnapshot,"map_id"|"position"|"facing"|"interaction_targets"|"navigation_grid">;
+export interface MapObject {readonly key:string;readonly local_id:number;readonly sprite:string|null;readonly x:number;readonly y:number;readonly elevation:number}
 interface Talk {readonly turn:number;readonly seq:number}
 
-export const PEOPLE_HEADER="People and objects here (this map's live objects; a sprite kind is a graphic, not a name):";
+export const PEOPLE_HEADER="People and objects here (every object the game has loaded on this map; a sprite kind is a graphic, not a name):";
 const STEP:Readonly<Record<string,readonly[number,number]>>={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
-// pokeemerald 731ad5bf MB_COUNTER: GetInteractedObjectEventScript talks to the object beyond a counter.
-const COUNTER=0x80;
 const PRESENCE=/^Story characters here \(from this map's own object list\): (.+?)\. Not on this map: (.+?)\. Sprite kinds such as /m;
 
-const keyOf=(o:Pick<LiveObject,"map_id"|"local_id">)=>`${o.map_id.join("/")}#${String(o.local_id)}`;
+// The map's object targets: the game server reads all 16 object event slots of this map that have a
+// script (env/pokebench_env/world.py read_targets), with live position and current elevation.
+export function mapObjects(s:Snapshot):MapObject[]|null {
+ if(s.map_id===null||s.interaction_targets==null)return null;
+ const map=s.map_id.join("/");
+ return s.interaction_targets.flatMap(t=>t.kind==="object"&&t.local_id!==null?[{key:`${map}#${String(t.local_id)}`,local_id:t.local_id,sprite:t.name??null,x:t.x,y:t.y,elevation:t.elevation}]:[]);
+}
 
-// The object an A press talks to: the one on the faced tile, else the one beyond a faced counter tile.
-export function facedObject(s:Facing):LiveObject|null {
+// The object an A press talks to, as pokeemerald 731ad5bf GetInteractedObjectEventScript picks it:
+// the object on the faced tile, else, when that tile is a counter, the one beyond it; an object
+// matches only at the player's elevation, unless either elevation is 0 (ELEVATION_TRANSITION).
+export function facedObject(s:Snapshot):MapObject|null {
  const step=s.facing===null?undefined:STEP[s.facing.toLowerCase()];
- if(s.position===null||step===undefined)return null;
- const objects=s.world_context?.objects??[];
- const at=(x:number,y:number)=>objects.find(o=>o.x===x&&o.y===y)??null;
- const x=s.position.x+step[0],y=s.position.y+step[1];
+ const objects=mapObjects(s);
+ if(s.position===null||step===undefined||objects===null)return null;
+ const {x:px,y:py}=s.position;
+ const grid=s.navigation_grid;
+ const standing=grid?.tiles.find(t=>t.x===px&&t.y===py)?.elevation;
+ const elevation=grid==null?null:standing===0?0:grid.elevation;
+ const level=(o:MapObject)=>elevation===null||elevation===0||o.elevation===0||o.elevation===elevation;
+ const at=(x:number,y:number)=>objects.find(o=>o.x===x&&o.y===y&&level(o))??null;
+ const x=px+step[0],y=py+step[1];
  const adjacent=at(x,y);
  if(adjacent!==null)return adjacent;
- const counter=s.navigation_grid?.tiles.some(t=>t.x===x&&t.y===y&&t.behavior===COUNTER)===true;
+ const counter=grid?.tiles.some(t=>t.x===x&&t.y===y&&t.behavior===COUNTER)===true;
  return counter?at(x+step[0],y+step[1]):null;
 }
 
@@ -49,20 +61,20 @@ const plural=(n:number,word:string)=>`${String(n)} ${word}${n===1?"":"s"}`;
 
 export class PeopleLedger {
  private turn=0;
- // The object each recorded state shows the player facing; pages cite their state by seq.
- private readonly faced=new Map<number,LiveObject>();
+ // The key of the object each recorded state shows the player facing; pages cite their state by seq.
+ private readonly faced=new Map<number,string>();
  private readonly talks=new Map<string,Talk>();
  private readonly pending=new Map<string,{readonly key:string;readonly talk:Talk}>();
  private readonly story:number[]=[];
  observe(event:RunEvent):void {
   this.turn=Math.max(this.turn,event.turn);
-  if(event.type==="state"&&"started" in event){const object=facedObject(event);if(object!==null)this.faced.set(event.seq,object);return;}
+  if(event.type==="state"&&"started" in event){const object=facedObject(event);if(object!==null)this.faced.set(event.seq,object.key);return;}
   if(event.type==="milestone"){if(event.kind==="story")this.story.push(event.seq);return;}
   if(event.type==="dialogue_auto_advance"){
    const first=event.pages[0];
-   const object=first?.state_seq==null?undefined:this.faced.get(first.state_seq);
+   const key=first?.state_seq==null?undefined:this.faced.get(first.state_seq);
    const pressed=event.tool==="press"&&event.sent.at(-1)==="A";
-   if(object!==undefined&&(pressed||first?.speaker_source==="faced_sprite"))this.pending.set(event.tool_call_id,{key:keyOf(object),talk:{turn:event.turn,seq:event.seq}});
+   if(key!==undefined&&(pressed||first?.speaker_source==="faced_sprite"))this.pending.set(event.tool_call_id,{key,talk:{turn:event.turn,seq:event.seq}});
    return;
   }
   if(event.type!=="tool_result")return;
@@ -79,16 +91,14 @@ export class PeopleLedger {
  }
  // The block for this observation, or null outside a started overworld readout with live objects.
  block(state:GameStateSnapshot,readout:string,callId:string):string|null {
-  const objects=state.world_context?.objects;
-  if(!state.started||state.screen!=="overworld"||state.in_battle||state.map_id===null||objects==null)return null;
-  const here=state.map_id.join("/");
+  const objects=mapObjects(state);
+  if(!state.started||state.screen!=="overworld"||state.in_battle||objects===null)return null;
   const characters=presence(readout);
   const lines=objects.map(o=>{
-   const map=o.map_id.join("/")===here?"":` of map ${o.map_id.join("/")}`;
-   const sprite=o.sprite_kind??"unknown";
+   const sprite=o.sprite??"unknown";
    const name=characters?.placed.get(`${String(o.x)},${String(o.y)}`);
-   const talk=this.last(keyOf(o),callId);
-   return `- object ${String(o.local_id)}${map}, ${name===undefined?`sprite ${sprite}`:`${name} (sprite ${sprite})`}, at (${String(o.x)},${String(o.y)}): ${talk===undefined?"not talked to this run":this.since(talk)}`;
+   const talk=this.last(o.key,callId);
+   return `- object ${String(o.local_id)}, ${name===undefined?`sprite ${sprite}`:`${name} (sprite ${sprite})`}, at (${String(o.x)},${String(o.y)}): ${talk===undefined?"not talked to this run":this.since(talk)}`;
   });
   const out=lines.length===0?[`${PEOPLE_HEADER} none`]:[PEOPLE_HEADER,...lines];
   if(characters!==null)out.push(`Story characters here: ${characters.here.length===0?"none":characters.here.join(", ")}. Not on this map: ${characters.absent}.`);

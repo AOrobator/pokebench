@@ -58,7 +58,7 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 <div class="eyebrow">Harness switch · observation · <code>people-ledger-v1</code> · needs <code>dialogue-auto-advance-v1</code> · off by default</div>
 <h1>People ledger</h1>
 </div>
-<p class="lede">Right under the readout's Location and Position lines, the model sees every live object on the current map, by its map-local object id, sprite kind and position, and when it last talked to that object: the turn, how many turns ago, and how many story milestones the game has confirmed since. Story characters are named where character presence places them. Facts only, nothing clipped.</p>
+<p class="lede">Right under the readout's Location and Position lines, the model sees every object the game has loaded on the current map, by its map-local object id, sprite kind and position, and when it last talked to that object: the turn, how many turns ago, and how many story milestones the game has confirmed since. Story characters are named where character presence places them. Facts only, nothing clipped.</p>
 
 <section>
 <h2>Why</h2>
@@ -108,12 +108,12 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 <section>
 <h2>What the model sees at T418</h2>
 <p>This is the exact block for the recorded turn 418 state, produced by the production code from the recorded events (it is the fixture assertion in <code>people-ledger.test.ts</code>):</p>
-<pre>People and objects here (this map's live objects; a sprite kind is a graphic, not a name):
+<pre>People and objects here (every object the game has loaded on this map; a sprite kind is a graphic, not a name):
 - object 4, sprite WOMAN_4, at (8,7): last talked to on turn 145 (273 turns ago; 5 story milestones since)
 - object 6, sprite NINJA_BOY, at (8,5): not talked to this run
 Story characters here: none. Not on this map: PROF. BIRCH, MAY, BRENDAN, MOM, NORMAN, WALLY, ROXANNE, STEVEN.</pre>
 <p>With a story character on the map, from the same run at turn 406 in Birch's lab (character presence placed "PROF. BIRCH at 6,4"):</p>
-<pre>People and objects here (this map's live objects; a sprite kind is a graphic, not a name):
+<pre>People and objects here (every object the game has loaded on this map; a sprite kind is a graphic, not a name):
 - object 1, sprite SCIENTIST_1, at (9,8): last talked to on turn 204 (202 turns ago; 2 story milestones since)
 - object 2, PROF. BIRCH (sprite PROF_BIRCH), at (6,4): not talked to this run
 Story characters here: PROF. BIRCH at 6,4. Not on this map: MAY, BRENDAN, MOM, NORMAN, WALLY, ROXANNE, STEVEN.</pre>
@@ -140,10 +140,11 @@ Story characters here: PROF. BIRCH at 6,4. Not on this map: MAY, BRENDAN, MOM, N
 </figure>
 <div class="tablewrap"><table>
 <tr><th>Rule</th><th>What the code does</th></tr>
-<tr><td>Who was talked to</td><td>The object the player faces in the state recorded with the conversation's first page: the next tile in the facing direction, or, when that tile is empty and is a counter (<code>MB_COUNTER</code> 0x80), the tile beyond it. This is how pokeemerald 731ad5bf <code>GetInteractedObjectEventScript</code> (<code>src/field_control_avatar.c</code>) picks whom A talks to.</td></tr>
+<tr><td>Who was talked to</td><td>The object the player faces in the state recorded with the conversation's first page: the next tile in the facing direction, or, when that tile is empty and is a counter (<code>MB_COUNTER</code> 0x80), the tile beyond it. Only an object at the player's elevation counts, unless the player's tile or the object has elevation 0 (<code>ELEVATION_TRANSITION</code>), as in <code>GetObjectEventIdByPosition</code>; so on a bridge the ledger picks the bridge object, not the one underneath. This is how pokeemerald 731ad5bf <code>GetInteractedObjectEventScript</code> (<code>src/field_control_avatar.c</code>) picks whom A talks to. The player's elevation is the current one the server reads; the game uses the previous one, which only differs mid-step.</td></tr>
 <tr><td>What counts as a talk</td><td>A <code>dialogue_auto_advance</code> event with a faced object, where the model's press ended in A, or the page record already attributes the first page to that faced sprite (<code>speaker_source: faced_sprite</code>, e.g. the rival walking up to the player). A navigate_to that ends in a message from someone the player does not face counts for no one.</td></tr>
 <tr><td>When it counts</td><td>Once its tool result reaches the model; an error result drops it. The call that shows the conversation already lists it as "this turn".</td></tr>
-<tr><td>Identity</td><td>The object's own map id plus its map-local object id, from the typed <code>world_context.objects</code>. Several people share a sprite kind; the same local id on another map is someone else, and an object from a connected map is labelled <code>object N of map G/N</code>.</td></tr>
+<tr><td>Who is listed</td><td>The map's object targets in the typed state (<code>interaction_targets</code> of kind object): every one of the game's 16 object event slots that is active, visible, on this map and has a script, with live position and current elevation (<code>world.py read_targets</code>). That is not limited to 7 tiles like the Field objects list: at state 889 in Littleroot it lists object 3 (BOY_2, at 14,17) while the player stands at 4,10. Objects without a script, such as the moving truck, are not listed. The game itself loads only objects near the camera, so a far corner of a big map can still be missing.</td></tr>
+<tr><td>Identity</td><td>The current map id plus the map-local object id. Several people share a sprite kind; the same local id on another map is someone else.</td></tr>
 <tr><td>Story characters</td><td>Only from character-presence-v1's own line: a character it places at <code>x,y</code> names the object on that tile (<code>MAY (sprite RIVAL_MAY_NORMAL)</code>), and its here and not-on-this-map lists are repeated under the block. With character presence off, nobody is named and the line is absent.</td></tr>
 <tr><td>Scope</td><td>Started overworld readouts only (no battle, menu-only or pre-game screens). All live objects, never clipped. "Not talked to this run" means since this run started, including a checkpoint start.</td></tr>
 </table></div>

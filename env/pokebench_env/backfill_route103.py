@@ -11,7 +11,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from pokebench_env.raw_ram import load_raw_ram
+from pokebench_env.raw_ram import MAX_ARCHIVE_BYTES, load_raw_ram
 from pokebench_env.route103_rival import read_route103_rival
 
 SOURCE = "raw-ram-route103-v1"
@@ -51,12 +51,19 @@ def backfill(run_dir: Path) -> list[dict[str, object]]:
             raise BackfillError(f"malformed state at seq {seq}")
         if not re.fullmatch(r"raw-ram/[0-9]{8,}\.json\.gz", path):
             raise BackfillError(f"unexpected raw RAM path {path}")
-        read = load_raw_ram(run_dir / path, sha256)
+        archive = run_dir / path
+        if (run_dir / "raw-ram").is_symlink() or archive.is_symlink():
+            raise BackfillError(f"refusing symlinked raw RAM at seq {seq}")
+        if archive.stat().st_size > MAX_ARCHIVE_BYTES:
+            raise BackfillError(f"raw RAM archive too large at seq {seq}")
+        read = load_raw_ram(archive, sha256)
         save1 = int.from_bytes(read(SAVE_BLOCK_1_POINTER, 4), "little")
-        if not 0x02000000 <= save1 <= 0x02040000 - 0x159C:
-            continue
-        rival = read_route103_rival(read, save1, event.get("in_battle") is True)
-        rows.append({"seq": seq, "raw_ram": path, "sha256": sha256, "route103_rival": rival.json()})
+        # Every eligible state gets a row, so the viewer can refuse a file that leaves one out;
+        # a snapshot without a valid save block is recorded as null.
+        value = None
+        if 0x02000000 <= save1 <= 0x02040000 - 0x159C:
+            value = read_route103_rival(read, save1, event.get("in_battle") is True).json()
+        rows.append({"seq": seq, "raw_ram": path, "sha256": sha256, "route103_rival": value})
     derived = run_dir / "derived"
     if derived.is_symlink() or (derived.exists() and not derived.is_dir()):
         raise BackfillError("derived must be a plain directory inside the run")

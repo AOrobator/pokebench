@@ -12,10 +12,11 @@ import type { RunEvent } from "@pokebench/agent/events";
 const closed = { additionalProperties: false };
 const RivalSchema = Type.Object({ battle_active: Type.Boolean(), defeated: Type.Boolean(), oldale_stage: Type.Union([Type.Integer({ minimum: 0, maximum: 2 }), Type.Null()]) }, closed);
 const HeaderSchema = Type.Object({ v: Type.Literal(1), run: Type.String(), source: Type.Literal("raw-ram-route103-v1") }, closed);
-const RowSchema = Type.Object({ seq: Type.Integer({ minimum: 0 }), raw_ram: Type.String({ pattern: "^raw-ram/[0-9]{8,}\\.json\\.gz$" }), sha256: Type.String({ pattern: "^[0-9a-f]{64}$" }), route103_rival: RivalSchema }, closed);
+const RowSchema = Type.Object({ seq: Type.Integer({ minimum: 0 }), raw_ram: Type.String({ pattern: "^raw-ram/[0-9]{8,}\\.json\\.gz$" }), sha256: Type.String({ pattern: "^[0-9a-f]{64}$" }), route103_rival: Type.Union([RivalSchema, Type.Null()]) }, closed);
 export type RecoveredRival = Static<typeof RivalSchema>;
 // The value plus the raw-RAM receipt it was decoded from; it attaches only to the state with that receipt.
-export interface RecoveredEntry { readonly rival: RecoveredRival; readonly raw_ram: string; readonly sha256: string }
+// rival is null for a snapshot the backfill found without a valid save block.
+export interface RecoveredEntry { readonly rival: RecoveredRival | null; readonly raw_ram: string; readonly sha256: string }
 const PLACES = new Set(["ROUTE103", "ROUTE 103", "OLDALE TOWN"]);
 const sidePath = (runDir: string): string => join(runDir, "derived", "route103_rival.jsonl");
 const MAX_BYTES = 64 * 1024 * 1024;
@@ -24,6 +25,7 @@ const MAX_BYTES = 64 * 1024 * 1024;
 export function recoveredSignature(runDir: string): string {
   const path = sidePath(runDir);
   if (!existsSync(path)) return "";
+  if (lstatSync(join(runDir, "derived")).isSymbolicLink() || !lstatSync(path).isFile()) return ":recovered=refused";
   const stat = statSync(path);
   return stat.size > MAX_BYTES ? `:recovered=oversize:${String(stat.size)}:${String(stat.mtimeMs)}` : `:recovered=${createHash("sha256").update(readFileSync(path)).digest("hex")}`;
 }
@@ -86,7 +88,7 @@ export function loadRecoveredRival(runDir: string): ReadonlyMap<number, Recovere
 export function withRecovered(event: RunEvent, recovered: ReadonlyMap<number, RecoveredEntry>): RunEvent {
   if (event.type !== "state" || !("started" in event) || event.route103_rival !== undefined) return event;
   const entry = recovered.get(event.seq);
-  if (entry === undefined || event.raw_ram?.path !== entry.raw_ram || event.raw_ram.sha256 !== entry.sha256 || !PLACES.has(event.location ?? "")) return event;
+  if (entry === undefined || entry.rival === null || event.raw_ram?.path !== entry.raw_ram || event.raw_ram.sha256 !== entry.sha256 || !PLACES.has(event.location ?? "")) return event;
   return { ...event, route103_rival: entry.rival };
 }
 
@@ -107,12 +109,13 @@ export function recoveredAttacher(runDir: string): (event: RunEvent) => RunEvent
   const recovered = loadRecoveredRival(runDir);
   let stopped = recovered.size === 0;
   return (event) => {
-    if (stopped) return event;
-    const attached = withRecovered(event, recovered);
-    if (attached === event || attached.type !== "state" || !("started" in attached) || attached.route103_rival == null || attached.raw_ram === undefined) return event;
-    const value = attached.route103_rival;
-    const decoded = decodedFor(runDir, attached.raw_ram.path, attached.raw_ram.sha256);
-    if (decoded === null || decoded.defeated !== value.defeated || decoded.oldale_stage !== value.oldale_stage || value.battle_active !== (attached.in_battle && decoded.trainerRival)) { stopped = true; return event; }
-    return attached;
+    if (stopped || event.type !== "state" || !("started" in event) || !event.started || event.route103_rival !== undefined || event.raw_ram === undefined || !PLACES.has(event.location ?? "")) return event;
+    // Every state the backfill decodes must have its row: leaving one out could move a split later.
+    const entry = recovered.get(event.seq);
+    if (entry === undefined || entry.raw_ram !== event.raw_ram.path || entry.sha256 !== event.raw_ram.sha256) { stopped = true; return event; }
+    const decoded = decodedFor(runDir, event.raw_ram.path, event.raw_ram.sha256);
+    const value = entry.rival;
+    if (value === null ? decoded !== null : decoded === null || decoded.defeated !== value.defeated || decoded.oldale_stage !== value.oldale_stage || value.battle_active !== (event.in_battle && decoded.trainerRival)) { stopped = true; return event; }
+    return withRecovered(event, recovered);
   };
 }

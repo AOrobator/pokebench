@@ -209,6 +209,33 @@ describe("battle-text-auto-advance-v1 hand-offs",()=>{
   expect(textOf(result)).toContain("pressed B 2 times to advance battle messages and 1 time to advance field dialogue");
  });
 
+ it("with script-line-presence-v1 on: unattributed field pages on each side of the battle name their own on-screen objects; battle pages carry none",async()=>{
+  const obj=(local_id:number,graphics_id:number,sprite_kind:string,x:number,y:number)=>({local_id,map_id:[0,16] as [number,number],graphics_id,sprite_kind,x,y});
+  const withObjects=(s:GameStateSnapshot,objects:ReturnType<typeof obj>[]):GameStateSnapshot=>({...s,world_context:{...(s.world_context??{triggers:[],dialogue:null,message:null}),objects}});
+  const before=[obj(2,64,"PROF_BIRCH",9,8)],after=[obj(3,97,"BIRCHS_BAG",13,12)];
+  const states=[withObjects(fieldMessage("H-help me!",true),before),TRANSITION,BUSY,page("YOUNGSTER sent out POOCHYENA!",1),BUSY,page("POOCHYENA fainted!",2),BUSY,show(7835),withObjects(fieldMessage("Thanks!",false,0),after),withObjects(fieldMessage("Thanks!",true),after),FIELD,FIELD];
+  const entries=[entry(1,4,"YOUNGSTER sent out POOCHYENA!"),entry(2,6,"POOCHYENA fainted!",2)];
+  const both:FeatureSet={...ON,"script-line-presence-v1":true,"character-presence-v1":true};
+  const server=new ScriptServer(states,entries);
+  const {tool,rec}=wire(server,both);
+  const text=textOf(await tool("press").execute("p",{buttons:["B"]}));
+  const [event]=rec.advances();
+  expect(event?.pages.map(p=>[p.text,p.battle_turn??null,"on_screen" in p?p.on_screen:"absent"])).toEqual([
+   ["H-help me!",null,[{local_id:2,graphics_id:64,sprite_kind:"PROF_BIRCH",x:9,y:8,character:"PROF. BIRCH"}]],
+   ["YOUNGSTER sent out POOCHYENA!",1,"absent"],
+   ["POOCHYENA fainted!",2,"absent"],
+   ["Thanks!",null,[{local_id:3,graphics_id:97,sprite_kind:"BIRCHS_BAG",x:13,y:12,character:null}]],
+  ]);
+  expect(()=>checkEvent(event)).not.toThrow();
+  expect(text).toContain(`(no speaker shown by the game; on screen: PROF. BIRCH (sprite PROF_BIRCH) at 9,8): "H-help me!"`);
+  expect(text).toContain(`(no speaker shown by the game; on screen: BIRCHS_BAG at 13,12): "Thanks!"`);
+  expect(text.split("\n").filter(l=>l.includes("battle turn")).every(l=>!l.includes("no speaker shown"))).toBe(true);
+  const off=new ScriptServer(states,entries);
+  const plain=wire(off,{...both,"script-line-presence-v1":false});
+  await plain.tool("press").execute("p",{buttons:["B"]});
+  expect(plain.rec.advances()[0]?.pages.every(p=>!("on_screen" in p))).toBe(true);
+ });
+
  it.each([
   ["a YES/NO question",battleWith(BUSY,{text_phase:"prompt",prompt:{kind:"learn_move",ready:true,selected:"NO"}}),"battle_prompt","a battle YES/NO question is open (forget a move to make room for the new one); highlighted NO; B answers NO"],
   ["the naming screen",battleWith(BUSY,{text_phase:"screen"},{screen:"naming",naming:{text:"",page:"uppercase",column:0,row:0,key:"A",ready:true}}),"naming","the naming screen is open"],

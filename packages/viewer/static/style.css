@@ -634,6 +634,11 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 .wb-sw-list { list-style:none; margin:0 0 6px; padding:0; }
 .wb-sw-list li { padding:2px 0; line-height:1.4; overflow-wrap:anywhere; break-inside:avoid; }
 .wb-sw-list code { font:10.5px 'JetBrains Mono', monospace; color:#657c90; }
+.wb-sw-list li[data-sw] { cursor:help; border-radius:4px; }
+.wb-sw-list li[data-sw]>span:first-child { text-decoration:underline dotted #9db0c0; text-underline-offset:3px; }
+.wb-sw-list li[data-sw]:focus { outline:2px solid #3a6ea5; outline-offset:1px; background:#eef4fa; }
+.wb-sw-desc { display:none; }
+.wb-sw-list li:focus .wb-sw-desc { display:block; margin:2px 0 4px; font-size:11.5px; line-height:1.45; color:#3d4a56; }
 .wb-sw-cols { columns:3 230px; column-gap:24px; }
 .wb-ver-all { margin-top:8px; }
 .wb-ver-meta { margin:8px 0 0; font-size:11px; color:#657c90; }

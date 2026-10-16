@@ -122,3 +122,10 @@ it("accepts limits.replyFailuresEndRun as an optional boolean only",()=>{
   expect(parsePlayPreset(lenient)).toEqual(lenient);
   expect(()=>parsePlayPreset({...preset,limits:{...preset.limits,replyFailuresEndRun:"false"}})).toThrow();
 });
+
+it("reads presets written before displayed place names as OFF and keeps an explicit ON",()=>{
+  const older:Record<string,boolean>={...v2.features};delete older["displayed-place-names-v1"];
+  expect(presetFeatures(parsePlayPreset({...v2,features:older}))["displayed-place-names-v1"]).toBe(false);
+  expect(presetFeatures(parsePlayPreset({...v2,features:{...older,"displayed-place-names-v1":true}}))["displayed-place-names-v1"]).toBe(true);
+  expect(presetFeatures(parsePlayPreset(preset))["displayed-place-names-v1"]).toBe(false);
+});

@@ -182,3 +182,16 @@ it("registers battle details v2 as a default-off server readout treatment that n
  expect(SERVER_FEATURES.at(-1)).toBe("battle-details-v2");
  expect(dependencyProblems(off("expanded-menu-battle-information-v1"))).toContain("battle-details-v2 needs expanded-menu-battle-information-v1");
 });
+
+it("registers displayed place names as a default-off server readout treatment, recorded last",()=>{
+ expect(featureInfo("displayed-place-names-v1")).toMatchObject({group:"observation",needs:"ram-state-v1",switchable:true});
+ expect(featureInfo("displayed-place-names-v1").description).toContain(" Off: ");
+ expect(featureInfo("displayed-place-names-v1").description).toContain("PROF. BIRCH'S HOUSE");
+ expect(featureInfo("displayed-place-names-v1").description).toContain("Mays House Sign");
+ expect(SWITCHABLE_FEATURES.at(-1)).toBe("displayed-place-names-v1");
+ expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe("displayed-place-names-v1");
+ expect(playHarnessFeatures(off("displayed-place-names-v1"),null)).not.toContain("displayed-place-names-v1");
+ expect(serverFeatureEnv(off("displayed-place-names-v1")).POKEBENCH_FEATURES_OFF).toBe("displayed-place-names-v1");
+ expect(SERVER_FEATURES.at(-1)).toBe("displayed-place-names-v1");
+ expect(dependencyProblems(off("ram-state-v1"))).toContain("displayed-place-names-v1 needs ram-state-v1");
+});

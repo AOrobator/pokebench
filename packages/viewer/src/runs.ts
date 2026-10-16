@@ -1,13 +1,14 @@
 // Read-only access to runs/<id>/events.jsonl (PB7: the viewer's record of truth).
 import { closeSync, existsSync, fstatSync, openSync, readSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { RUN_ID_PATTERN, parseEvent, type RunEvent } from "@pokebench/agent/events";
+import { RUN_ID_PATTERN, eventEnvelope, parseEvent, startIdentity, type RunEvent, type StartIdentity } from "@pokebench/agent/events";
 import { DEPTH_ORDER } from "@pokebench/agent/milestones";
 import { locateRunDir } from "@pokebench/agent/run";
 import type { Baseline } from "./panels.js";
 import { RunView, MILESTONE_ORDER } from "./model.js";
 import type { BaselineStore } from "./baseline-store.js";
 import { recoveredAttacher, recoveredSignature } from "./recovered-fields.js";
+import { skewOf, type ViewerBuild } from "./build-stamp.js";
 
 export class RunsError extends Error {
   override readonly name = "RunsError";
@@ -177,13 +178,36 @@ function sizeOf(path: string): number {
   }
 }
 
-function summarize(runsRoot: string, id: string): RunSummary {
+// run_start's identity read loosely (startIdentity) when it names this run: lets a viewer that cannot
+// validate a newer harness's run_start still tell which build wrote it.
+export function readStartIdentity(runsRoot: string, runId: string): StartIdentity | null {
+  const first = firstLine(eventsPath(runsRoot, runId));
+  if (first === null) return null;
+  let value: unknown;
+  try { value = JSON.parse(first); } catch { return null; }
+  const identity = startIdentity(value);
+  return identity?.run === runId ? identity : null;
+}
+
+// A run_start the schema rejects, written by a build the viewer's does not contain: listed with the
+// restart-the-viewer problem instead of the schema error. Null where strict reporting applies.
+function newerStart(runsRoot: string, id: string, path: string, problem: string, build: ViewerBuild | null): RunSummary | null {
+  const identity = build === null ? null : readStartIdentity(runsRoot, id);
+  const skew = identity === null ? null : skewOf(build, identity);
+  if (identity === null || skew === null) return null;
+  const last = lastLine(path);
+  let ended = false;
+  try { ended = last !== null && eventEnvelope(JSON.parse(last))?.type === "run_end"; } catch { /* a torn last line: still running */ }
+  return { id, model: identity.model, started: identity.t, ended, reason: null, problem: `${skew.head}. It cannot read this run's run_start: line 1: ${problem}` };
+}
+
+function summarize(runsRoot: string, id: string, build: ViewerBuild | null = null): RunSummary {
   const path = eventsPath(runsRoot, id);
   const first = firstLine(path);
   const empty = { id, model: null, started: null, ended: false, reason: null };
   if (first === null) return { ...empty, problem: "no run_start yet" };
   const start = parseLine(first, 1);
-  if (!start.ok) return { ...empty, problem: start.problem };
+  if (!start.ok) return newerStart(runsRoot, id, path, start.problem, build) ?? { ...empty, problem: start.problem };
   if (start.event.type !== "run_start") return { ...empty, problem: "the first event is not run_start" };
   const last = lastLine(path);
   const end = last === null ? null : parseLine(last, 0);
@@ -202,7 +226,8 @@ function summarize(runsRoot: string, id: string): RunSummary {
   };
 }
 
-export function listRuns(runsRoot: string): RunSummary[] {
+// build: this viewer's own build; a run whose run_start only a newer build can read says to restart the viewer.
+export function listRuns(runsRoot: string, build: ViewerBuild | null = null): RunSummary[] {
   const entriesAt = (root: string): string[] => {
     try {
       return readdirSync(root).filter((id) => RUN_ID.test(id) && existsSync(join(root, id, "events.jsonl")));
@@ -213,7 +238,7 @@ export function listRuns(runsRoot: string): RunSummary[] {
   const entries = new Set([...entriesAt(runsRoot), ...entriesAt(join(runsRoot, "human"))]);
   return [...entries].sort().reverse().map((id) => {
     try {
-      return summarize(runsRoot, id);
+      return summarize(runsRoot, id, build);
     } catch (error) {
       if (!(error instanceof RunsError)) throw error;
       return { id, model: null, started: null, ended: false, reason: null, problem: error.message };

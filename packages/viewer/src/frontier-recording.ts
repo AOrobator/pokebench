@@ -25,6 +25,31 @@ function compact(state: State): State {
     ...(state.story !== undefined || state.world_context === undefined ? {} : { world_context: state.world_context }),
   };
 }
+// A log whose run_start this viewer's schema rejects (a newer harness): its status, turn and timing
+// only, never splits, since the run's configuration is unknown. Every schema-rejected event, the
+// run_start included, is stepped over with its envelope order-checked; a rejected run_end still fails.
+export function readStartlessLog(path: string, id: string): { view: RunView; skipped: { count: number; first: string } } {
+  const view = new RunView();
+  let expected = 0, previousMs = -Infinity; const skipped = { count: 0, first: "" };
+  const ordered = (event: EventEnvelope): number => {
+    const ms = Date.parse(event.t);
+    if (event.run !== id || event.seq !== expected || !Number.isFinite(ms) || ms < previousMs || (event.seq === 0) !== (event.type === "run_start") || view.end !== null) throw new Error("Run identity, event order or terminal sequence is invalid; no split graded");
+    expected++; previousMs = ms; view.lastMs = ms; view.turn = Math.max(view.turn, event.turn);
+    if (event.seq === 0) view.startMs = ms;
+    return ms;
+  };
+  readWorkbenchSnapshot(path, event => {
+    ordered(event);
+    if (event.type === "run_end" || event.type === "operator_control") { view.apply(event); view.events.length = 0; }
+  }, { allowAppend: true, skip: (line, problem, value) => {
+    const envelope = eventEnvelope(value);
+    if (envelope === null || envelope.type === "run_end") throw new Error(`line ${String(line)}: ${problem}`);
+    ordered(envelope);
+    if (skipped.count++ === 0) skipped.first = `line ${String(line)}: ${problem}`;
+  } });
+  if (skipped.count === 0) throw new Error("No unreadable run_start to step over");
+  return { view, skipped };
+}
 // tolerate: step over schema-rejected events whose envelope is in order (never run_start or run_end) instead of failing.
 export function readNativeRecording(path: string, id: string, qualified: (event: Milestone, states: readonly (RunEvent | undefined)[]) => boolean, evidenceLimit = 100000, tolerate = false): NativeRecording {
   if (!Number.isSafeInteger(evidenceLimit) || evidenceLimit < 1) throw new Error("Evidence bound must be positive");

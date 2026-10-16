@@ -590,6 +590,23 @@ export function eventEnvelope(value: unknown): EventEnvelope | null {
   return { run: value.run, seq: value.seq, t: value.t, turn: value.turn, type: value.type };
 }
 
+export interface StartIdentity { run: string; t: string; commit: string; dirty: boolean; model: string | null; port: number | null }
+const fields = (value: unknown): Record<string, unknown> | null => typeof value === "object" && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : null;
+// A run_start's identity read without the closed schema, so a viewer can tell which build wrote a
+// run_start it cannot validate. Null unless the envelope, harness.commit and harness.dirty all read.
+export function startIdentity(value: unknown): StartIdentity | null {
+  const envelope = eventEnvelope(value), body = fields(value);
+  if (envelope === null || body === null || envelope.type !== "run_start" || envelope.seq !== 0) return null;
+  const harness = fields(body.harness);
+  if (harness === null || !Value.Check(Sha1, harness.commit) || typeof harness.dirty !== "boolean") return null;
+  const model = fields(body.model)?.id, port = fields(body.isolation)?.port;
+  return {
+    run: envelope.run, t: envelope.t, commit: harness.commit, dirty: harness.dirty,
+    model: typeof model === "string" ? model : null,
+    port: typeof port === "number" && Number.isSafeInteger(port) && port > 0 && port < 65536 ? port : null,
+  };
+}
+
 export function checkEvent(value: unknown): RunEvent {
   const problem = eventProblem(value);
   if (problem !== null) throw new EventError(problem);

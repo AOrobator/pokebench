@@ -15,7 +15,7 @@ import { FEATURES } from "@pokebench/agent/features";
 import { CONTROL_ACTIONS } from "@pokebench/agent/events";
 import { finalsRunLabels } from "./experiment-gate-store.js";
 import type { BaselineStore, RunStore } from "./baseline-store.js";
-import { BaselineError, RunsError, createBaselineReader, comparisonsOf, type BaselineCompute, eventsPath, listRuns, liveScreenPort, LogReader, readStart, runDir, type BaselineReader } from "./runs.js";
+import { BaselineError, RunsError, createBaselineReader, comparisonsOf, type BaselineCompute, eventsPath, listRuns, liveScreenPort, LogReader, readStart, readStartIdentity, runDir, type BaselineReader } from "./runs.js";
 import { featureHistory } from "./history.js";
 import { localModels } from "./models.js";
 import { NextRunError, appendControl, healthProbe, liveRuns, readDraft, writeDraft, type RunQueue } from "./next-run.js";
@@ -400,7 +400,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
   if (parts.length === 2) {
     const live = new Set(await liveRuns(options.runsRoot, healthProbe(options.fetchFn ?? fetch)));
     const finals = finalsRunLabels(options.runsRoot);
-    sendJson(res, 200, listRuns(options.runsRoot).map((run) => ({ ...run, ...(finals.has(run.id) ? { experiment: finals.get(run.id) } : {}), live: live.has(run.id) })));
+    sendJson(res, 200, listRuns(options.runsRoot, options.build ?? null).map((run) => ({ ...run, ...(finals.has(run.id) ? { experiment: finals.get(run.id) } : {}), live: live.has(run.id) })));
     return;
   }
   try {
@@ -410,8 +410,9 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     if (parts.length === 4 && leaf === "events") {
       const path = eventsPath(options.runsRoot, id);
       if (!existsSync(path)) throw new RunsError(`run ${id} has no events.jsonl`);
-      let skew: Skew | null = null;
-      try { skew = skewOf(options.build ?? null, readStart(options.runsRoot, id).harness); } catch { /* No readable run_start: every problem is reported as is. */ }
+      // run_start read loosely, so a newer harness's run_start the schema rejects still names its build.
+      const identity = readStartIdentity(options.runsRoot, id);
+      const skew: Skew | null = identity === null ? null : skewOf(options.build ?? null, identity);
       streamEvents(req, res, path, options.pollMs ?? 250, skew, options.streamChunkBytes ?? STREAM_CHUNK_BYTES);
       return;
     }

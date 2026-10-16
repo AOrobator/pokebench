@@ -44,6 +44,16 @@ it("follows the battle and healing section when both guidance sections are on",(
  expect(playSystemPrompt(both,null).endsWith(`${BATTLE_TRIAGE_SECTION}\n\n${EXPLORER_GUIDANCE_SECTION} ${EXPLORER_TALK_IS_CHEAP}`)).toBe(true);
 });
 
+it("comes last, after the map rules and the battle and healing section, when all three are on",()=>{
+ // Explorer stays last: the map rules are readout reference kept next to the navigation text, the two
+ // strategy sections close the prompt together, and no section main already places moves when ON.
+ const all={...PLAIN,"readout-rules-in-prompt-v1":true,"battle-triage-guidance-v1":true,"dialogue-auto-advance-v1":true,[ID]:true};
+ const prompt=playSystemPrompt(all,null);
+ expect(prompt).toBe(`${playSystemPrompt({...all,[ID]:false},null)}\n\n${EXPLORER_GUIDANCE_SECTION} ${EXPLORER_TALK_IS_CHEAP}`);
+ const rules=prompt.indexOf("\n\nMap symbols and rules"),battle=prompt.indexOf(`\n\n${BATTLE_TRIAGE_SECTION}`),explorer=prompt.indexOf(`\n\n${EXPLORER_GUIDANCE_SECTION}`);
+ expect(rules).toBeGreaterThan(0);expect(battle).toBeGreaterThan(rules);expect(explorer).toBeGreaterThan(battle);
+});
+
 it("says talking is cheap only when dialogue auto-advance reads conversations for the model",()=>{
  const auto={...PLAIN,"dialogue-auto-advance-v1":true};
  expect(playSystemPrompt({...auto,[ID]:true},null)).toBe(`${playSystemPrompt(auto,null)}\n\n${EXPLORER_GUIDANCE_SECTION} ${EXPLORER_TALK_IS_CHEAP}`);

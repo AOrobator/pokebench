@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Readout Rules In Prompt</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:760px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p,li{max-width:66ch} p{margin:0} ul{margin:0;padding-left:1.2em}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navb{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre;overflow-x:auto;font:12px/1.45 var(--mono);margin:0}
+pre.wrap{white-space:pre-wrap}
+del{background:var(--prior-bg);color:var(--prior);text-decoration:line-through}
+ins{background:var(--game-bg);color:var(--game);text-decoration:none;font-weight:600}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+td.n{font-family:var(--mono);text-align:right}
+</style>
+</head>
+<body>
+<main>
+<div>
+<div class="eyebrow">Harness switch · observation · <code>readout-rules-in-prompt-v1</code> · off by default</div>
+<h1>Readout rules in the prompt</h1>
+</div>
+<p class="lede">Every overworld readout repeated the same four blocks of text under its map: the symbol legend, the terrain rule, the warp-destination note and the trigger-elevation rule. They never change during a run. With this switch on, the server stops printing them, the system prompt states them once, and a single line under the map points there. Nothing else in the readout changes or moves.</p>
+
+<section>
+<h2>Why it exists</h2>
+<p>In the showcase arm of bundle-v-control (run <code>2026-10-16T00-34-26_qwen36-gpu1_show</code>), all 451 overworld tool results carried the four blocks, about 890 characters each, 16% of a median 5,509-character result. The legend line was the same string in all 2,811 places it appeared. The operator proposed moving only this fixed text, leaving script-trigger lists, interaction candidates and the readout's order alone.</p>
+</section>
+
+<section>
+<h2>The real readout, off and on</h2>
+<figure>
+<pre>Local map from live memory; top-left (-2,-5), north is up:
+      -2  -1   0   1   2   3   4   5   6   7   8   9  10  11  12
+  -5   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?
+  -4   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?
+  -3   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?
+  -2   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?
+  -1   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?
+   0   ?   ?   #   #   #   #   #   #   #   #   #   ?   ?   ?   ?
+   1   ?   ?   #   #   #   #   #   #   #   W   #   ?   ?   ?   ?
+   2   ?   ?   .   .   .   .   .   @   .   N   .   ?   ?   ?   ?
+   3   ?   ?   .   .   .   .   .   .   .   .   .   ?   ?   ?   ?
+   4   ?   ?   .   +   .   .   .   .   .   .   .   ?   ?   ?   ?
+   5   ?   ?   .   #   .   .   .   .   .   .   .   ?   ?   ?   ?
+   6   ?   ?   .   .   .   .   .   .   .   .   .   ?   ?   ?   ?
+   7   ?   ?   .   .   .   .   .   .   .   .   .   ?   ?   ?   ?
+   8   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?
+   9   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?
+<del>@ player; N live object; W warp location (see activation below); # collision; g grass; ~ water; v ^ &lt; &gt; ledge: a one-way hop in the arrow&#39;s direction (move into it that way to jump over it, landing 2 tiles on); impassable from any other side; + edge walls: walkable, but movement across a walled side is refused in both directions (sides listed under Edge walls); . clear terrain (may have script triggers); ? outside current map.</del>
+<del>Terrain rules, elevation and objects can still block movement.</del>
+Edge walls: (1,4) north+south
+Live objects: id 14 at (7,2)
+Warps: (7,1) -&gt; LITTLEROOT TOWN BRENDANS HOUSE 1F (map 1/0) [step onto tile]
+<del>Warp destinations are the map you arrive on: its name when the game&#39;s map table has one, then its group/number ID in parentheses; not warp indexes. Activation also requires matching elevation and available field controls; W alone does not guarantee a transition. After a transition, check the new map and position.</del>
+Metatile behaviors present: 0x00, 0x60, 0x85, 0x86, 0xB5, 0xC0, 0xC3
+Field objects (ids are map-local, not globally unique; sprite kinds are not personal names):
+- map 1/1 object 14: sprite MOM (graphics 215) at (7,2)
+Nearby script-trigger tiles (a clear terrain tile can still run a script):
+<del>Trigger elevation must also match the player on entry (0 matches any elevation).</del>
+Field-message text: unavailable; do not infer that the dialogue box is closed.
+Field-message phase: unavailable; do not infer a cutscene or an input-ready dialogue.</pre>
+<figcaption>OFF, real ROM: <code>pokebench_env.serve</code> from <code>rival-push-checkpoint/CLOCK_SET.state</code> (Brendan's house 2F), switches of the showcase arm. Struck lines are the ones the switch removes. Whole readout: 4,040 characters.</figcaption>
+</figure>
+<figure>
+<pre>Local map from live memory; top-left (-2,-5), north is up:
+      -2  -1   0   1   2   3   4   5   6   7   8   9  10  11  12
+  -5   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?
+  -4   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?
+  -3   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?
+  -2   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?
+  -1   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?
+   0   ?   ?   #   #   #   #   #   #   #   #   #   ?   ?   ?   ?
+   1   ?   ?   #   #   #   #   #   #   #   W   #   ?   ?   ?   ?
+   2   ?   ?   .   .   .   .   .   @   .   N   .   ?   ?   ?   ?
+   3   ?   ?   .   .   .   .   .   .   .   .   .   ?   ?   ?   ?
+   4   ?   ?   .   +   .   .   .   .   .   .   .   ?   ?   ?   ?
+   5   ?   ?   .   #   .   .   .   .   .   .   .   ?   ?   ?   ?
+   6   ?   ?   .   .   .   .   .   .   .   .   .   ?   ?   ?   ?
+   7   ?   ?   .   .   .   .   .   .   .   .   .   ?   ?   ?   ?
+   8   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?
+   9   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?
+<ins>Map symbols and rules: see the system prompt.</ins>
+Edge walls: (1,4) north+south
+Live objects: id 14 at (7,2)
+Warps: (7,1) -&gt; LITTLEROOT TOWN BRENDANS HOUSE 1F (map 1/0) [step onto tile]
+Metatile behaviors present: 0x00, 0x60, 0x85, 0x86, 0xB5, 0xC0, 0xC3
+Field objects (ids are map-local, not globally unique; sprite kinds are not personal names):
+- map 1/1 object 14: sprite MOM (graphics 215) at (7,2)
+Nearby script-trigger tiles (a clear terrain tile can still run a script):
+Field-message text: unavailable; do not infer that the dialogue box is closed.
+Field-message phase: unavailable; do not infer a cutscene or an input-ready dialogue.</pre>
+<figcaption>ON, same save and switches: 3,196 characters (−844, −20.9%). The legend and terrain lines became the pointer; the warp note and trigger-elevation lines are gone. Edge walls, Live objects, Warps (with each warp's activation), the trigger list header and the field-message lines are unchanged.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>What the system prompt says instead</h2>
+<figure>
+<pre class="wrap">Map symbols and rules (the readout&#39;s map and lists use these every turn; the readout does not repeat them):
+@ player; N live object; W warp location (each warp&#39;s activation is listed in the readout&#39;s Warps line); # collision; g grass; ~ water; v ^ &lt; &gt; ledge: a one-way hop in the arrow&#39;s direction (move into it that way to jump over it, landing 2 tiles on); impassable from any other side; + edge walls: walkable, but movement across a walled side is refused in both directions (sides listed in the readout&#39;s Edge walls line); . clear terrain (may have script triggers); ? outside current map.
+Terrain rules, elevation and objects can still block movement.
+Warp destinations are the map you arrive on: its name when the game&#39;s map table has one, then its group/number ID in parentheses; not warp indexes. Activation also requires matching elevation and available field controls; W alone does not guarantee a transition. After a transition, check the new map and position.
+Trigger elevation must also match the player on entry (0 matches any elevation).</pre>
+<figcaption>The section for the showcase arm's switches, added once at the end of the play system prompt (OFF 7,886 characters, ON 8,941). Two parentheticals differ from the readout's legend so the prompt stays true: nothing is "below" in a system prompt, so the legend names the readout's Warps and Edge walls lines instead.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>One owner for both sides</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 740 300" width="740" role="img" aria-label="Wiring: the run preset's switches reach both the server readout and the system prompt; map_rules.py owns the text on both paths">
+<rect x="10" y="125" width="130" height="50" rx="6" class="box"/>
+<text x="20" y="146" class="t">FeatureSet</text><text x="20" y="163" class="s">run preset / switchboard</text>
+<rect x="200" y="40" width="160" height="50" rx="6" class="box"/>
+<text x="210" y="61" class="t">serverFeatureEnv</text><text x="210" y="78" class="s m">POKEBENCH_FEATURES_OFF</text>
+<rect x="200" y="210" width="160" height="50" rx="6" class="box"/>
+<text x="210" y="231" class="t">playSystemPrompt</text><text x="210" y="248" class="s">mapRulesSection(features)</text>
+<rect x="420" y="40" width="160" height="50" rx="6" class="navb"/>
+<text x="430" y="61" class="t">server readout</text><text x="430" y="78" class="s">live_map / world_context</text>
+<rect x="420" y="210" width="172" height="50" rx="6" class="navb"/>
+<text x="430" y="231" class="t">map-rules.generated.ts</text><text x="430" y="248" class="s">128 off sets → section</text>
+<rect x="600" y="115" width="130" height="70" rx="6" class="game hot"/>
+<text x="610" y="138" class="t">map_rules.py</text><text x="610" y="155" class="s">legend, rules,</text><text x="610" y="170" class="s">prompt_section(off)</text>
+<path d="M140 140 L200 70" class="arr"/><path d="M140 160 L200 230" class="arr"/>
+<path d="M360 65 L420 65" class="arr"/><path d="M360 235 L420 235" class="arr"/>
+<path d="M665 115 L580 70" class="arr"/><text x="618" y="92" class="s">imports</text>
+<path d="M665 185 L592 230" class="arr"/><text x="622" y="214" class="s">just map-rules</text>
+<text x="366" y="58" class="s">off set</text><text x="366" y="228" class="s">off set</text>
+</svg>
+</div>
+<figcaption>Both paths start from the same FeatureSet and the same off set. The highlighted module is the only place the text and the choice of variant live. The agent cannot import Python, so <code>just map-rules</code> writes every switch combination into a generated table; a pytest fails when that file is stale. A server endpoint was rejected: the prompt is built and recorded before the game server boots, and <code>probe-decision</code> rebuilds prompts offline.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>What each switch changes in the section</h2>
+<table>
+<tr><th>Switch</th><th>When off, the section…</th></tr>
+<tr><td><code>live-map-v1</code></td><td>has no legend, terrain rule or warp note (only the trigger rule, if that switch is on)</td></tr>
+<tr><td><code>warp-activation-guidance-v1</code></td><td>says <code>W warp;</code> and has no warp note</td></tr>
+<tr><td><code>ledge-hops-v1</code></td><td>does not describe <code>v ^ &lt; &gt;</code></td></tr>
+<tr><td><code>one-way-tiles-v1</code></td><td>does not describe <code>+</code></td></tr>
+<tr><td><code>full-map-navigation-v1</code></td><td>describes <code>? outside current map</code> (the local map draws it; the whole map never does)</td></tr>
+<tr><td><code>named-warp-destinations-v1</code></td><td>uses the plain note: map group/number IDs, not warp indexes</td></tr>
+<tr><td><code>coordinate-script-conditions-v1</code></td><td>has no trigger-elevation rule</td></tr>
+</table>
+<p>With both the live map and script conditions off there is nothing to state, and the prompt is unchanged.</p>
+</section>
+
+<section>
+<h2>Two cases that stay in the readout</h2>
+<ul>
+<li><b>Counters.</b> The <code>=</code> legend is printed only on a map that draws a counter (with <code>counter-talk-v1</code>), so it is not constant within a run. ON, such a map keeps it as its own line right under the pointer: <code>= counter: you cannot walk onto it, but you can talk to someone standing behind it by facing the counter and pressing A.</code> The prompt never describes <code>=</code>.</li>
+<li><b>Whole-map fallback.</b> With whole-map navigation on, a readout that falls back to the local map (whole map unreadable) draws <code>?</code>, which the prompt does not describe. That readout keeps its full legend and rules.</li>
+</ul>
+<p>State-only decisions have no play system prompt to carry the section, so <code>state-only-decisions-v1</code> refuses this switch.</p>
+</section>
+
+<section>
+<h2>Measured size</h2>
+<table>
+<tr><th>Measure</th><th>Off</th><th>On</th><th>Change</th></tr>
+<tr><td>Real ROM readout, CLOCK_SET save</td><td class="n">4,040</td><td class="n">3,196</td><td class="n">−844 (−20.9%)</td></tr>
+<tr><td>Showcase run, 451 overworld results, median (projected by removing the same lines)</td><td class="n">5,509</td><td class="n">4,665</td><td class="n">−844 (15.2% of those results)</td></tr>
+<tr><td>Play system prompt, showcase switches</td><td class="n">7,886</td><td class="n">8,941</td><td class="n">+1,055 once</td></tr>
+</table>
+<p>Characters, not tokens. The prompt grows once per run; each overworld result shrinks every turn.</p>
+</section>
+
+<section>
+<h2>Status</h2>
+<ul>
+<li>Branch <code>claude/readout-rules-in-prompt</code>. OFF is byte-identical to 35 readouts rendered before the change (5 test memories × 7 switch sets) and the OFF prompt is unchanged.</li>
+<li>Gates: tests, lint (known worktree mGBA stub only), build, coverage ≥ 90% both stacks, vendor check.</li>
+<li>Pending experiment <code>experiments/readout-rules-in-prompt.json</code>. No measured runs yet: whether the model reads the map as well with the rules in the prompt is the open question.</li>
+</ul>
+</section>
+</main>
+</body>
+</html>

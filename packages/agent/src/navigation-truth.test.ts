@@ -88,6 +88,8 @@ describe("navigation-truth-v1: talk offers only for objects with a script (sh02 
   // At the player's elevation, or at elevation 0 (matches any), the offer stays.
   expect((await walk({...state,interaction_targets:[{...kecleon,elevation:3}]},{x:2,y:1},TRUTH)).status).toBe(OFFER);
   expect((await walk({...state,interaction_targets:[{...kecleon,elevation:0}]},{x:2,y:1},TRUTH)).status).toBe(OFFER);
+  // Two scripted objects stacked: the offer names the one at the stand tiles' elevation.
+  expect((await walk({...state,interaction_targets:[kecleon,{...kecleon,elevation:3,local_id:2,name:"BOY_1"}]},{x:2,y:1},TRUTH)).status).toBe(OFFER.replace("KECLEON","BOY_1"));
  });
  it("stacked objects behind a counter: no talk offer to a scripted person at another elevation",async()=>{
   const counter:GameStateSnapshot={...ascii(["...","...","@.."]),navigation_grid:{elevation:3,tiles:[0,1,2].flatMap(y=>[0,1,2].map(x=>({x,y,collision:y===1?1:0,behavior:y===1?0x80:0,elevation:3}))),objects:[{x:1,y:0}],warps:[]},position:{x:0,y:2}};
@@ -203,8 +205,7 @@ describe("navigation-truth-v1: a trigger on a multi-level tile matches the eleva
   const state:GameStateSnapshot={...base,position:{x:0,y:2},navigation_grid:{elevation:3,tiles,objects:[],warps:[]},world_context:{...contextOf(base),triggers:[trigger]}};
   expect((await walk(state,{x:4,y:2},CONTROL)).status).toBe("(4,2) is a wall or other solid tile, not a walkable tile; the nearest walkable tile navigate_to can reach is (3,2)");
   const on=(await walk(state,{x:4,y:2},TRUTH)).status;
-  expect(on).toContain("the nearest walkable tile navigate_to can reach is (2,2)");
-  expect(on).toContain("(3,2) is closer, but it is (3,2), a script-trigger tile whose condition matches now");
+  expect(on).toBe("(4,2) is a wall or other solid tile, not a walkable tile; the nearest walkable tile navigate_to can reach is (2,2); (3,2) is closer, but it is (3,2), a script-trigger tile whose condition matches now (variable 0x4002=0, needs 0)");
  });
 });
 

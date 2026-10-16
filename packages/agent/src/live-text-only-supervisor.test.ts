@@ -213,7 +213,7 @@ it.each([true, false] as const)("live play honours text-only-supervisor-v1=%s", 
   vi.stubGlobal("process", Object.assign(Object.create(process) as NodeJS.Process, { argv: [...process.argv.slice(0, 2), "play"] }));
   vi.spyOn(console, "log").mockImplementation(() => undefined);
   vi.spyOn(console, "error").mockImplementation(() => undefined);
-  const named = { ...NAME_CONFIRMED, game_stats: null, blackout_active: false, raw_ram: { v: 1 as const, sequence: 0, frame: 0, path: "raw-ram/00000000.json.gz", sha256: "a".repeat(64) } };
+  const named = { ...NAME_CONFIRMED, game_stats: null, blackout_active: false, route103_rival: null, raw_ram: { v: 1 as const, sequence: 0, frame: 0, path: "raw-ram/00000000.json.gz", sha256: "a".repeat(64) } };
   vi.stubGlobal("fetch", vi.fn<typeof fetch>().mockImplementation((input, init) => {
     const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
     const route = new URL(url).pathname;

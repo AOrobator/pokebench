@@ -87,7 +87,11 @@
    "in-game-naming-readout-v1": false,
    "no-nickname-guidance-v1": false,
    "battle-text-auto-advance-v1": false,
-   "battle-message-waiting-v1": true
+   "battle-message-waiting-v1": true,
+   "script-line-presence-v1": false,
+   "offscreen-objects-v1": false,
+   "navigate-first-prompt-v1": false,
+   "presence-penalty-v1": false
   }
  },
  "switches": [
@@ -111,7 +115,11 @@
   "connection-edge-tiles-v1",
   "in-game-naming-readout-v1",
   "no-nickname-guidance-v1",
-  "battle-text-auto-advance-v1"
+  "battle-text-auto-advance-v1",
+  "script-line-presence-v1",
+  "offscreen-objects-v1",
+  "navigate-first-prompt-v1",
+  "presence-penalty-v1"
  ],
  "offInBoth": [
   "milestone-stall-stop-v1"

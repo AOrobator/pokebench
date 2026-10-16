@@ -938,6 +938,9 @@
             "max_tokens": {
               "type": "integer",
               "minimum": 0
+            },
+            "presence_penalty": {
+              "type": "number"
             }
           },
           "additionalProperties": false
@@ -3017,6 +3020,66 @@
               "battle_message_id": {
                 "type": "integer",
                 "minimum": 1
+              },
+              "on_screen": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "local_id",
+                        "graphics_id",
+                        "sprite_kind",
+                        "x",
+                        "y",
+                        "character"
+                      ],
+                      "properties": {
+                        "local_id": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "graphics_id": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "sprite_kind": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "x": {
+                          "type": "integer"
+                        },
+                        "y": {
+                          "type": "integer"
+                        },
+                        "character": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "maxItems": 16
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             },
             "additionalProperties": false
@@ -6125,6 +6188,42 @@
                         "water",
                         "plant"
                       ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "route103_rival": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "battle_active",
+                "defeated",
+                "oldale_stage"
+              ],
+              "properties": {
+                "battle_active": {
+                  "type": "boolean"
+                },
+                "defeated": {
+                  "type": "boolean"
+                },
+                "oldale_stage": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2
                     },
                     {
                       "type": "null"

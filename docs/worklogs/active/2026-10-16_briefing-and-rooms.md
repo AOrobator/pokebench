@@ -111,3 +111,16 @@ Design (ON):
 - Round 8 (merge-resolution delta, frozen 48d6b48f..0f1b650f, packet SHA-256 4d58bb93…): Codex VERDICT: LGTM (behavior and wiring files blob-identical to round 7). Grok VERDICT: LGTM. Claude sub-agent VERDICT: LGTM (own-change lines identical to round 7; agent 1536, viewer 867). A reviewer left an untracked `.tmp_compare_packets.py` in the worktree; deleted.
 - Correction: the clock times written in this log after the 03:05 AM EDT RED entry were estimates and are wrong; the actual New York time at round 8's end was 05:16 AM EDT.
 - NOT LANDED. (1) This session's worktree isolation refuses any git command run in the main checkout, so `git merge --ff-only` into main cannot be run from here. (2) main moved again to 115c3bfc (script-line-presence-v1 landed) right after round 8, which needs one more mechanical registry merge (the same resolution as every round since 05:15) and a resolution-delta review before a fast-forward. Handed back to the coordinator.
+
+## Round 2 of work: audit fixes for briefing-exits-v1 (coordinator, the operator-approved)
+
+Scope from the cook harness audit (`runs/reports/2026-10-16-cook-harness-audit/{live,sh02}.md`, plus show.md F3, 687e.md F6, qualification.md N5), all inside briefing-exits-v1 (ON in both arms):
+1. Push-back triggers never marked tried (the player ends on the start tile): live 54a7 T277 seq 6785 (Oldale (0,10)), sh02 T307 seq 7272 ((6,15)).
+2. Dead triggers whose condition does not match listed as options: live T114/T143 ((11,2), (8..11,9): `variable 0x4050=0, needs 3`).
+3. People keyed by tile: sh02 T1086/T1091 MANIAC listed after being talked to at another tile.
+4. Menu inputs judged "no change": show T527 seq 15203.
+5. The untried list resets on every story change: 687e t113 seq 1494.
+6. The sprite-kind caveat dropped: qualification N5.
+Not here: loop-detection.ts and press-result text (claude/pushback-loop-guard).
+
+- 2026-10-16 05:41 AM EDT: merged main 1f4ac74e (script-line-presence-v1, offscreen-objects-v1, navigate-first-prompt-v1, presence-penalty-v1). Conflicts resolved as before; play-wiring wraps untaken exits inside navigate-first; play-config keeps the untaken sentence before the navigate-first rewrite; untaken-exits tests pin navigate-first-prompt-v1 OFF in their OFF/prompt cases; battle-text-auto-advance slice asserts shifted. people-ledger-v1 is not on main yet. Agent 1593/1593, viewer 886/886, lint clean.

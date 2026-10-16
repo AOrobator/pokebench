@@ -76,10 +76,28 @@ const settled = (s: GameStateSnapshot): boolean => savedWorld(s) && !s.screen.st
 const beforeHandoff = (s: GameStateSnapshot): boolean => settled(s) && stage("birch_lab_stage", [0, 1, 2])(s) === true;
 const route101Neighbor = (s: GameStateSnapshot): boolean => settled(s) && (s.location === "LITTLEROOT TOWN" || s.location === "OLDALE TOWN") && handedOff(s) === true;
 const onRoute101 = (s: GameStateSnapshot): boolean => settled(s) && at("ROUTE 101")(s) === true && handedOff(s) === true;
+// VAR_BIRCH_LAB_STATE 4 is set by Route103_EventScript_RivalEnd; 5 is the Pokédex in the lab.
+const sentBack = stage("birch_lab_stage", [4]);
+// A lab state 3 that is in a battle or already shows the rival beaten is not before the battle. Without the
+// reader field the post-battle talk on Route 103 cannot be told apart, so Route 103 never witnesses then.
+const beforeRivalBattle = (s: GameStateSnapshot): boolean => settled(s) && !s.in_battle && stage("birch_lab_stage", [0, 1, 2, 3])(s) === true
+  && (s.route103_rival == null ? at("ROUTE 103")(s) === false : !s.route103_rival.battle_active && !s.route103_rival.defeated);
+const rivalField = (field: "battle_active" | "defeated") => (s: GameStateSnapshot): boolean | null =>
+  savedWorld(s) && s.route103_rival != null ? s.route103_rival[field] : null;
 const routeProof = (name: string, states: readonly GameStateSnapshot[]): boolean => {
   const first = states[0];
   const last = states.at(-1);
   if (first === undefined || last === undefined) return false;
+  if (name === "RIVAL_OLDALE_SEND_OFF") {
+    return states.length === 2 && settled(first) && first.location === "OLDALE TOWN" && first.route103_rival?.oldale_stage === 1
+      && settled(last) && last.location === "OLDALE TOWN" && last.route103_rival?.oldale_stage === 2;
+  }
+  if (name === "ROUTE_101_AFTER_RIVAL_BATTLE" || name === "LITTLEROOT_AFTER_RIVAL_BATTLE") {
+    const previous = states[1];
+    const [from, to] = name === "ROUTE_101_AFTER_RIVAL_BATTLE" ? ["OLDALE TOWN", "ROUTE 101"] : ["ROUTE 101", "LITTLEROOT TOWN"];
+    return states.length === 3 && beforeRivalBattle(first) && previous !== undefined && settled(previous) && at(from)(previous) === true && sentBack(previous) === true
+      && settled(last) && at(to)(last) === true && sentBack(last) === true;
+  }
   if (name === "ROUTE_101_AFTER_HANDOFF") {
     const previous = states[1];
     return states.length === 3 && previous !== undefined && beforeHandoff(first) && route101Neighbor(previous) && onRoute101(last);
@@ -106,9 +124,9 @@ const routeProof = (name: string, states: readonly GameStateSnapshot[]): boolean
   return states.length === 2 && home !== null && stableRoute(last) && clockSet(last) === true
     && house(last.location, "1F") !== null && house(last.location, "1F") !== home;
 };
-const routeNames = new Set(["PLAYER_BEDROOM_EXITED_AFTER_CLOCK", "PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_HOUSE_EXITED", "ROUTE_101_AFTER_HANDOFF"]);
+const routeNames = new Set(["RIVAL_OLDALE_SEND_OFF", "ROUTE_101_AFTER_RIVAL_BATTLE", "LITTLEROOT_AFTER_RIVAL_BATTLE", "PLAYER_BEDROOM_EXITED_AFTER_CLOCK", "PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_HOUSE_EXITED", "ROUTE_101_AFTER_HANDOFF"]);
 // Recorded and graded, but never reported to the model or used to reset its stall clocks.
-export const MEASUREMENT_ONLY_MILESTONES: ReadonlySet<string> = new Set(["PLAYER_BEDROOM_EXITED_AFTER_CLOCK", "ROUTE_101_AFTER_HANDOFF"]);
+export const MEASUREMENT_ONLY_MILESTONES: ReadonlySet<string> = new Set(["PLAYER_BEDROOM_EXITED_AFTER_CLOCK", "ROUTE_101_AFTER_HANDOFF", "RIVAL_BATTLE_STARTED", "RIVAL_BATTLE_DEFEATED", "RIVAL_OLDALE_SEND_OFF", "ROUTE_101_AFTER_RIVAL_BATTLE", "LITTLEROOT_AFTER_RIVAL_BATTLE"]);
 
 // Legacy names retain their old meaning; exact confirmation/exit have new IDs.
 // Flags and stage meanings are traced in docs/findings/story-milestones.md.
@@ -146,7 +164,15 @@ export const MILESTONES: readonly Milestone[] = [
   { name: "ROUTE_101_AFTER_HANDOFF", kind: "navigation", reached: (s) => handedOff(s) === true ? at("ROUTE 101")(s) : null },
   { name: "OLDALE_TOWN", kind: "navigation", reached: at("OLDALE TOWN") },
   { name: "ROUTE_103", kind: "navigation", reached: at("ROUTE 103") },
+  // Measurement only (route103-rival-splits-v1): the reader's opponent id and trainer flags, beside story state.
+  { name: "RIVAL_BATTLE_STARTED", kind: "story", reached: rivalField("battle_active") },
+  { name: "RIVAL_BATTLE_DEFEATED", kind: "story", reached: rivalField("defeated") },
+  // FLAG_DEFEATED_RIVAL_ROUTE103 is set by Route103_EventScript_RivalEnd, after the post-battle talk.
   { name: "RIVAL_BATTLE_WON", kind: "story", reached: flag("rival_battle_won") },
+  // routeProof: Oldale rival state 1 then 2 inside Oldale; Littleroot's own transition also sets 2.
+  { name: "RIVAL_OLDALE_SEND_OFF", kind: "story", reached: (s) => savedWorld(s) && s.route103_rival != null ? s.route103_rival.oldale_stage === 2 : null },
+  { name: "ROUTE_101_AFTER_RIVAL_BATTLE", kind: "navigation", reached: (s) => sentBack(s) === true ? at("ROUTE 101")(s) : null },
+  { name: "LITTLEROOT_AFTER_RIVAL_BATTLE", kind: "navigation", reached: (s) => sentBack(s) === true ? at("LITTLEROOT TOWN")(s) : null },
   { name: "RECEIVED_POKEDEX", kind: "story", reached: flag("pokedex_received") },
   { name: "STARTER_TUTORIAL_COMPLETE", kind: "story", reached: flag("starter_tutorial_complete") },
   { name: "RUNNING_SHOES_RECEIVED", kind: "story", reached: flag("running_shoes_received") },
@@ -209,6 +235,7 @@ export class StateMilestones implements MilestoneSource {
   private resumed = false;
   private readonly negativeBaseline = new Set<string>();
   private labWitness: { readonly state: GameStateSnapshot; readonly seq: number } | null = null;
+  private rivalWitness: { readonly state: GameStateSnapshot; readonly seq: number } | null = null;
   private lastStable: { readonly state: GameStateSnapshot; readonly seq: number } | null = null;
 
   constructor(private readonly state: StateSource, private readonly now: () => number = () => Date.now()) {}
@@ -232,6 +259,8 @@ export class StateMilestones implements MilestoneSource {
       if (this.previous !== null && routeProof("RIVAL_HOUSE_EXITED", [this.home.state, this.previous.state, state])) routeEvidence.set("RIVAL_HOUSE_EXITED", [this.home.seq, this.previous.seq, seq]);
     }
     if (seq !== undefined && this.lastStable !== null && routeProof("PLAYER_BEDROOM_EXITED_AFTER_CLOCK", [this.lastStable.state, state])) routeEvidence.set("PLAYER_BEDROOM_EXITED_AFTER_CLOCK", [this.lastStable.seq, seq]);
+    if (seq !== undefined && this.lastStable !== null && routeProof("RIVAL_OLDALE_SEND_OFF", [this.lastStable.state, state])) routeEvidence.set("RIVAL_OLDALE_SEND_OFF", [this.lastStable.seq, seq]);
+    for (const name of ["ROUTE_101_AFTER_RIVAL_BATTLE", "LITTLEROOT_AFTER_RIVAL_BATTLE"]) if (seq !== undefined && this.rivalWitness !== null && this.lastStable !== null && routeProof(name, [this.rivalWitness.state, this.lastStable.state, state])) routeEvidence.set(name, [this.rivalWitness.seq, this.lastStable.seq, seq]);
     if (seq !== undefined && this.labWitness !== null && this.lastStable !== null && routeProof("ROUTE_101_AFTER_HANDOFF", [this.labWitness.state, this.lastStable.state, state])) routeEvidence.set("ROUTE_101_AFTER_HANDOFF", [this.labWitness.seq, this.lastStable.seq, seq]);
     const fresh = MILESTONES.filter((m) => {
       if (this.seen.has(m.name)) return false;
@@ -242,6 +271,7 @@ export class StateMilestones implements MilestoneSource {
     if (seq !== undefined && savedWorld(state) && state.location !== null) this.previous = { state, seq };
     if (seq !== undefined && settled(state) && state.location !== null) this.lastStable = { state, seq };
     if (seq !== undefined && beforeHandoff(state)) this.labWitness = { state, seq };
+    if (seq !== undefined && beforeRivalBattle(state)) this.rivalWitness = { state, seq };
     for (const m of fresh) this.seen.add(m.name);
     return fresh.map((m) => ({
       name: m.name, serverTimestamp, kind: m.kind,

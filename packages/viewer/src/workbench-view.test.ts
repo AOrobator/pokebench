@@ -14,7 +14,7 @@ describe("workbench visual contract", () => {
     expect(plate?.querySelector(".wb-plate-l1")?.textContent).toBe("LANE A · GPU1Lv2");
     expect(plate?.querySelector(".wb-ty")?.textContent).toBe("TYPE/bundle"); expect(plate?.querySelector(".wb-ty em")?.getAttribute("style")).toBe("--tyc:#7a3fb8");
     const [ms, time] = Array.from(plate?.querySelectorAll(".wb-br") ?? []);
-    expect(ms?.textContent).toBe("MILESTONEMI2/ 40"); expect(ms?.querySelector("i")?.getAttribute("style")).toBe("width:5.0%");
+    expect(ms?.textContent).toBe("MILESTONEMI2/ 45"); expect(ms?.querySelector("i")?.getAttribute("style")).toBe("width:4.4%");
     expect(plate?.querySelector(".wb-ms b")?.textContent).toBe("Name"); expect(plate?.querySelector(".wb-ms small")?.textContent).toBe("2:00 · turn 20");
     expect(time?.textContent).toBe("TIME3:05/ 10:00"); expect(time?.querySelector("i")?.getAttribute("style")).toBe("width:30.8%");
     expect(plate?.classList.contains("new")).toBe(false); expect(html).not.toContain("NEW MILESTONE!"); expect(html).not.toContain("NOT FROM ZERO"); expect(html).not.toContain("PAUSED");
@@ -29,11 +29,11 @@ describe("workbench visual contract", () => {
     // A paused run's clock is frozen, so it never claims a fresh milestone.
     expect(currentRunHtml([run({ status: "paused" })], at, at + 1000, null)).not.toContain("NEW MILESTONE!");
   });
-  it("shows a hand run with no lane and no milestone as HAND RUN, TYPE/ none, Lv0 and 0/ 40", () => {
+  it("shows a hand run with no lane and no milestone as HAND RUN, TYPE/ none, Lv0 and 0/ 45", () => {
     const doc = parse(currentRunHtml([run({ id: "hand", status: "live", elapsedMs: 7000, splits: [] })], 0, 0, null));
     expect(doc.querySelector(".wb-plate-l1")?.textContent).toBe("HAND RUNLv0"); expect(doc.querySelector(".wb-ty")?.textContent).toBe("TYPE/none");
     expect(doc.querySelector(".wb-ty em")?.getAttribute("style")).toBe("--tyc:#a08020");
-    expect(doc.querySelector(".wb-br")?.textContent).toBe("MILESTONEMI0/ 40"); expect(doc.querySelector(".wb-ms b.none")?.textContent).toBe("No milestone yet"); expect(doc.querySelector(".wb-ms small")?.textContent).toBe("waiting for New game");
+    expect(doc.querySelector(".wb-br")?.textContent).toBe("MILESTONEMI0/ 45"); expect(doc.querySelector(".wb-ms b.none")?.textContent).toBe("No milestone yet"); expect(doc.querySelector(".wb-ms small")?.textContent).toBe("waiting for New game");
     expect(doc.querySelectorAll(".wb-br")[1]?.textContent).toBe("TIME0:07/ 10:00");
   });
   it("names several runs and models in one party card, keeps unknown and long arms as wrapping text with a stable colour", () => {

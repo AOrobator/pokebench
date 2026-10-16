@@ -53,7 +53,7 @@ const RunStart = event("run_start", {
     { id: Type.String({ minLength: 1 }), context_window: NonNegativeInt, max_tokens: NonNegativeInt, vision: Type.Boolean() },
     closed,
   ),
-  sampling: Type.Object({ thinking_level: Type.String(), max_tokens: NonNegativeInt }, closed),
+  sampling: Type.Object({ thinking_level: Type.String(), max_tokens: NonNegativeInt, presence_penalty: Type.Optional(Type.Number()) }, closed),
   system_prompt: Type.String(),
   tools: Type.Array(Type.String()),
   harness: Type.Object({ commit: Sha1, dirty: Type.Boolean() }, closed),
@@ -212,6 +212,12 @@ const DialoguePageSchema = Type.Object({
   text: Type.String({ minLength: 1 }),
   battle_turn: Type.Optional(Type.Integer({ minimum: 1, maximum: 256 })),
   battle_message_id: Type.Optional(Type.Integer({ minimum: 1 })),
+  // script-line-presence-v1 ON only, on a page with no speaker: the live objects on screen at state_seq
+  // (null when that state did not say), with the story character character-presence-v1 names, if any.
+  on_screen: Type.Optional(Type.Union([Type.Array(Type.Object({
+    local_id: NonNegativeInt, graphics_id: NonNegativeInt, sprite_kind: Type.Union([Type.String(), Type.Null()]),
+    x: Type.Integer(), y: Type.Integer(), character: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+  }, closed), { maxItems: 16 }), Type.Null()])),
 }, closed);
 const DialogueAutoAdvance = event("dialogue_auto_advance", {
   tool_call_id: Type.String(),
@@ -355,6 +361,7 @@ export const StateBodySchema = Type.Object(
     party_ownership:Type.Optional(Type.Union([Type.Object({owner:NullableString,source:Type.String(),original_identities:Type.Array(Type.String(),{maxItems:6}),rental_personalities:Type.Array(NonNegativeInt,{maxItems:3}),diagnostic:NullableString,raw_hex:Type.Union([Type.String({maxLength:4096}),Type.Null()])},closed),Type.Null()])),
     battle:Type.Optional(Type.Union([BattleStateSchema,Type.Null()])),
     resources:Type.Optional(Type.Union([ResourcesSchema,Type.Null()])),
+    route103_rival:Type.Optional(Type.Union([Type.Object({battle_active:Type.Boolean(),defeated:Type.Boolean(),oldale_stage:Type.Union([Type.Integer({minimum:0,maximum:2}),Type.Null()])},closed),Type.Null()])),
     blackout_active:Type.Optional(Type.Union([Type.Boolean(),Type.Null()])),
     game_stats: Type.Optional(Type.Union([Type.Object({
       pokemon_captures:Type.Union([NonNegativeInt,Type.Null()]),

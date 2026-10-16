@@ -25,19 +25,39 @@ export function warpsOf(state:Pick<GameStateSnapshot,"interaction_targets">):War
 
 interface End {readonly warps:readonly Warp[];readonly x:number;readonly y:number}
 const near=(a:{x:number;y:number},x:number,y:number):boolean=>Math.abs(a.x-x)+Math.abs(a.y-y)<=1;
-const single=(ws:readonly Warp[]):boolean=>new Set(ws.map(destinationOf)).size===1;
-// The warps on a map that lead to `to` and were used from (x,y), with their same-destination siblings. When the warps
-// next to (x,y) lead to different destinations, the other end decides: the one whose destination warp (an index into
-// the other map's warp events) lies next to where the player was on the other map. Still ambiguous: none.
+// One doorway: warps sharing an exact destination (a two-tile door into one warp), or side-by-side warps to the same map
+// whose destination warps are side by side there too (a two-tile gate whose tiles name different warp ids, as at
+// Route104 (10,30)/(11,30) -> PetalburgWoods warps 0/1). MtPyre_4F's stairs (12,10)/(12,12) stay apart.
+function doorway(toward:readonly Warp[],seed:Warp,other?:End):Warp[] {
+ const linked=(a:Warp,b:Warp):boolean=>{
+  if(destinationOf(a)===destinationOf(b))return true;
+  if(mapKey(a.destination)!==mapKey(b.destination)||!near(a,b.x,b.y))return false;
+  const ea=other?.warps[a.destination[2]],eb=other?.warps[b.destination[2]];
+  return ea!==undefined&&eb!==undefined&&near(ea,eb.x,eb.y);
+ };
+ const group=[seed];
+ for(let i=0;i<group.length;i++){const g=group[i];if(g!==undefined)for(const w of toward)if(!group.includes(w)&&linked(g,w))group.push(w);}
+ return group;
+}
+// The warps on a map that lead to `to` and were used from (x,y), as whole doorways. Candidates are the warps next to
+// (x,y), else every warp to that map. When they form more than one doorway, the other end decides: the doorway whose
+// destination warp (an index into the other map's warp events) lies next to where the player was there. Still
+// ambiguous: none.
 export function usedWarps(warps:readonly Warp[],x:number,y:number,to:string,other?:End):Warp[] {
  const toward=warps.filter(w=>mapKey(w.destination)===to||mapKey(w.destination)===DYNAMIC);
- const close=toward.filter(w=>near(w,x,y));
- const exact=toward.filter(w=>mapKey(w.destination)===to);
- const matched=close.filter(w=>{const end=other?.warps[w.destination[2]];return end!==undefined&&mapKey(w.destination)===to&&other!==undefined&&near(end,other.x,other.y);});
- const pool=matched.length>0?matched:close;
- const chosen=pool.length>0?(single(pool)?pool:[]):single(exact)?exact:[];
- const destinations=new Set(chosen.map(destinationOf));
- return toward.filter(w=>destinations.has(destinationOf(w)));
+ const lands=(w:Warp):boolean=>{const end=other?.warps[w.destination[2]];return end!==undefined&&other!==undefined&&mapKey(w.destination)===to&&near(end,other.x,other.y);};
+ const pick=(candidates:readonly Warp[]):Warp[]|null=>{
+  const first=candidates[0];
+  if(first===undefined)return null;
+  const group=doorway(toward,first,other);
+  if(candidates.every(w=>group.includes(w)))return group;
+  const matched=candidates.filter(lands);
+  const m=matched[0];
+  if(m===undefined)return [];
+  const chosen=doorway(toward,m,other);
+  return matched.every(w=>chosen.includes(w))?chosen:[];
+ };
+ return pick(toward.filter(w=>near(w,x,y)))??pick(toward.filter(w=>mapKey(w.destination)===to))??[];
 }
 
 export class ExitHistory {

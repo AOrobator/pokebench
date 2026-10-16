@@ -37,3 +37,30 @@ Branch `claude/explorer-guidance-v2` in `/private/tmp/pokebench-explorer-v2`, cu
 - Sync: merged main cefacbf1 (cross-map-goal-v1 landed, worklog archives). Conflicts in the registry, presets, next-run defaults and their tests: took main's side, then appended `explorer-guidance-v2` after `cross-map-goal-v1` everywhere (registry, FEATURES, playHarnessFeatures, schema filter and Exclude list, normalizeFeatures, flagFeatures, DEFAULT_NEXT_RUN, test sets); readiness rows keep both. Registry positions shifted once more (53 assertions), guidance count 39, switchboard rows 93. `experiments/cross-map-goal.json` names every switch (its test checks that), so its incumbent gains `"explorer-guidance-v2": false` (omitted already read OFF; no behavior change). OFF golden recomputed on main cefacbf1's own source (git archive of packages/agent at cefacbf1, built with tsc in the scratchpad): incumbent `3ebfcf0b…7e90f`, ALL_ON `9bca870b…c1207`, 92 main switches; the v2-OFF test reproduces both.
 - Gates after the sync: agent 1986 passed, viewer 1026 passed, pytest 2394 passed / 104 skipped; coverage agent 98.04 / 94.63 / 98.35 / 99.24 (statements/branches/functions/lines), viewer 95.55 / 91.39 / 93.91 / 97.75, Python lines 97.47 / branches 93.46 / functions 99.39; lint clean except the worktree-only mypy `mgba._pylib`; pages-check silent; verify-vendor OK.
 - Explainer: highlights narrowed to exactly the two phrases the operator quoted; rendered in the browser pane from http://127.0.0.1:8791/explorer-guidance-v2/explorer-guidance-v2.html (copy in the main checkout's runs/mockups, 200); pages-check silent; viewer explainer tests 116 passed.
+
+## Principles self-review (PB1–PB13), packet d9d82b3f
+| ID | Score | Note |
+|---|---|---|
+| PB1 | PASS | No grading or milestone change; hypothesis is stated in game milestones. |
+| PB2 | PASS | No run filtering touched. |
+| PB3 | PASS | No benefit claimed; experiment pending, 8 per arm by the queue. |
+| PB4 | PASS | The section is declared as a registered switch, recorded in harness_features, described in the switchboard. |
+| PB5 | PASS | One switch; the candidate differs from the incumbent only by explorer-guidance-v2; hypothesis recorded. |
+| PB6 | PASS | Static prompt text; no long-run state. |
+| PB7 | PASS | Recorded in run_start harness_features (last). |
+| PB8 | N/A | No model-misbehavior handling. |
+| PB9 | PASS | Both-on behavior chosen from the codebase's precedent and documented; no guessing at operator intent beyond the brief. |
+| PB10 | PASS | No skipped tests, thresholds or excludes changed; shifted assertions keep their meaning. |
+| PB11 | PASS | OFF golden computed from main cefacbf1's own source, not from memory. |
+| PB12 | PASS | No new file access outside the repo; ROM untouched. |
+| PB13 | PASS (partial) | Tests prove prompt, preset path, card link and serving; explainer rendered in the browser pane. A live viewer click is not possible before merge (the 8790 viewer must not be restarted). |
+
+## Review round 1 (final packet)
+Packet: prompt + `git diff main..HEAD`, main cefacbf1, HEAD d9d82b3f, sha256 4723b4da32a18ec4258492f1f9c8f61b75e16fba1b1c01b7c71d1e90fa9674cf. Branch synced with main (fast-forward possible).
+- Claude CLI (`claude -p`, default login): `VERDICT: LGTM`. Independently rebuilt main cefacbf1 and HEAD and matched both golden digests; v1 on/off x auto-advance x targets: 0 differences with v2 off. Non-blocking: the "cut from main 16a9787b" line is the pre-sync base; source.commit 378afce2 is provisional (repin at landing).
+- Codex (`codex exec -m gpt-5.6-sol -s read-only`): `VERDICT: LGTM`. No blocking findings (its sandbox could not run vitest; read-only checks passed).
+- Grok (`cursor-agent --model cursor-grok-4.5-high --mode ask`): `VERDICT: LGTM`.
+- No local inference reviewers used. Not merged (parent session lands).
+- These worklog notes are left uncommitted so HEAD stays the reviewed tree.
+
+- 2026-10-16 04:56 PM EDT: Landed on main fast-forward at d9d82b3f (reviewed tree; Claude, Codex, Grok LGTM). experiments/explorer-guidance-v2.json repinned to d9d82b3f.

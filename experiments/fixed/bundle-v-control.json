@@ -8,7 +8,7 @@
  "controlBase": {
   "path": "experiments/fixed/control-bases/frontier-incumbent-4caa.json",
   "presetId": "frontier-incumbent-4caa",
-  "sha256": "9d6f9e986b80fe4cc35dc1e1dd46b94074c382b1428bceb35e11aa8952811550"
+  "sha256": "5f22d1b9f119618a1527e1012bc6bab737d2e735a11ec8f7d66dfa1509c2356e"
  },
  "base": {
   "target": null,
@@ -54,7 +54,7 @@
    "double-context-window-v1": false,
    "elevation-transitions-v1": true,
    "expanded-menu-battle-information-v1": true,
-   "explorer-guidance-v1": true,
+   "explorer-guidance-v1": false,
    "field-control-lock": true,
    "field-dialogue-phase-v1": true,
    "fresh-retry-v1": false,
@@ -113,7 +113,8 @@
    "surf-gated-exits-v1": false,
    "navigation-truth-v1": true,
    "navigation-refusal-reasons-v2": false,
-   "cross-map-goal-v1": false
+   "cross-map-goal-v1": false,
+   "explorer-guidance-v2": true
   }
  },
  "switches": [

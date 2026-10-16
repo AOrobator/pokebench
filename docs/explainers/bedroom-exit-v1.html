@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Leave Bedroom Split</title>
+<style>
+:root { --bg:#f4f7fa; --card:#fff; --ink:#22303c; --muted:#5a6b7a; --line:#c9d4de; --yes:#2f7d4f; --no:#b0413e; --accent:#3a6ea5; --room:#e8eef4; }
+@media (prefers-color-scheme: dark) { :root { --bg:#141a20; --card:#1d252d; --ink:#e3e9ee; --muted:#9aabb9; --line:#3a4651; --yes:#6cc28f; --no:#e07a76; --accent:#7fb0e6; --room:#26303a; } }
+body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.6 system-ui, -apple-system, sans-serif; }
+main { max-width:900px; margin:0 auto; padding:24px 16px 60px; }
+h1 { font-size:24px; margin:0 0 6px; } h2 { font-size:18px; margin:32px 0 8px; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; overflow-x:auto; }
+figcaption { color:var(--muted); font-size:13px; margin-top:8px; }
+svg text { fill:var(--ink); font:12px system-ui, sans-serif; } svg .muted { fill:var(--muted); } svg .yes { fill:var(--yes); } svg .no { fill:var(--no); }
+table { border-collapse:collapse; width:100%; font-size:14px; } td, th { border-bottom:1px solid var(--line); padding:6px 8px; text-align:left; vertical-align:top; }
+code { font-size:13px; }
+</style></head><body><main>
+<h1>Leave bedroom after the clock</h1>
+<p>Feature <code>bedroom-exit-v1</code> records a new split, <b>Leave bedroom</b> (<code>PLAYER_BEDROOM_EXITED_AFTER_CLOCK</code>). It fires the first time the player walks down from their bedroom after setting the clock. It sits on the frontier between <b>Clock set</b> and <b>Rival instruction</b>. It is measurement only: the model is never told about it.</p>
+
+<h2>What the game records</h2>
+<figure class="card"><svg viewBox="0 0 820 190" width="820" role="img" aria-label="Intro state timeline">
+<g>
+<rect x="10" y="50" width="180" height="56" rx="8" fill="var(--room)" stroke="var(--line)"/><text x="20" y="72">2F, intro state 5</text><text x="20" y="92" class="muted">clock not set</text>
+<rect x="240" y="50" width="180" height="56" rx="8" fill="var(--room)" stroke="var(--accent)" stroke-width="2"/><text x="250" y="72">2F, intro state 6</text><text x="250" y="92" class="muted">clock flag set</text>
+<rect x="470" y="50" width="150" height="56" rx="8" fill="var(--room)" stroke="var(--accent)" stroke-width="2"/><text x="480" y="72">1F, state 6</text><text x="480" y="92" class="muted">just arrived</text>
+<rect x="660" y="50" width="150" height="56" rx="8" fill="var(--room)" stroke="var(--line)"/><text x="670" y="72">1F, state 7</text><text x="670" y="92" class="muted">Mom's TV talk done</text>
+</g>
+<g fill="none" stroke="var(--ink)" stroke-width="1.5">
+<path d="M190 78 H236"/><path d="M420 78 H466"/><path d="M620 78 H656"/>
+</g>
+<text x="196" y="40" class="muted">set the clock</text><text x="426" y="40" class="muted">take stairs</text><text x="624" y="40" class="muted">1F script</text>
+<path d="M330 120 V150 H545 V120" fill="none" stroke="var(--yes)" stroke-width="2"/><text x="350" y="172" class="yes">Leave bedroom fires here: evidence [last settled 2F state, first settled 1F state]</text>
+</svg><figcaption>pret/pokeemerald 731ad5bf. <code>PlayersHouse_2F_EventScript_WallClock</code> sets <code>VAR_LITTLEROOT_INTRO_STATE</code> to 6 and <code>FLAG_SET_WALL_CLOCK</code>. The 1F <code>map_script_2 VAR_LITTLEROOT_INTRO_STATE, 6</code> runs <code>PetalburgGymReport</code>, which sets 7. So state 6 on the 2F means the player has not left the room since the clock. The stairs are the only way off the 2F.</figcaption></figure>
+
+<h2>Why repeat trips do not count</h2>
+<figure class="card"><svg viewBox="0 0 820 130" width="820" role="img" aria-label="Recorded run with repeat trips">
+<g>
+<rect x="10" y="30" width="110" height="40" rx="6" fill="var(--room)" stroke="var(--accent)"/><text x="18" y="55">2F · 6 · seq 2</text>
+<rect x="150" y="30" width="120" height="40" rx="6" fill="var(--room)" stroke="var(--accent)"/><text x="158" y="55">1F · 6 · seq 116</text>
+<rect x="300" y="30" width="110" height="40" rx="6" fill="var(--room)" stroke="var(--line)"/><text x="308" y="55">1F · 7 · seq 271</text>
+<rect x="440" y="30" width="110" height="40" rx="6" fill="var(--room)" stroke="var(--line)"/><text x="448" y="55">2F · 7 · seq 477</text>
+<rect x="580" y="30" width="110" height="40" rx="6" fill="var(--room)" stroke="var(--line)"/><text x="588" y="55">1F · 7 · seq 513</text>
+<rect x="710" y="30" width="100" height="40" rx="6" fill="var(--room)" stroke="var(--line)"/><text x="716" y="55">town · seq 593</text>
+</g>
+<text x="150" y="95" class="yes">✓ Leave bedroom (once)</text><text x="440" y="95" class="no">✗ state 7: room already left</text><text x="700" y="95" class="muted">Leave home</text>
+</svg><figcaption>Recorded run 2026-10-16T00-15-59_qwen36-gpu0_6972, which loaded the Clock set save. The split fires at seq 116. Later trips up and down at 477–560 happen at intro state 7, so they never qualify. A run records each split at most once anyway.</figcaption></figure>
+
+<h2>The rules</h2>
+<div class="card"><table>
+<tr><th>Situation</th><th>Leave bedroom</th></tr>
+<tr><td>Fresh boot: set the clock, take the stairs</td><td>Recorded at the first settled 1F state</td></tr>
+<tr><td>Clock set save that starts on the 2F at state 6</td><td>Recorded when the player goes down</td></tr>
+<tr><td>Save at intro state 7 (room already left)</td><td>Never</td></tr>
+<tr><td>Stairs before the clock is set</td><td>Never</td></tr>
+<tr><td>Rival's 2F to the player's 1F, or 2F straight to town</td><td>Never (same family's 1F only)</td></tr>
+<tr><td>Loading or unknown screens</td><td>Skipped; they never count as the 2F or 1F state</td></tr>
+</table></div>
+
+<h2>Leave home, tightened</h2>
+<p><b>Leave home</b> (<code>PLAYER_HOUSE_EXITED_AFTER_CLOCK</code>) already fired once per run. It now also refuses a save that starts inside home when the 1F state shows <code>VAR_LITTLEROOT_RIVAL_STATE</code> 2, 3 or 4. State 2 is set on entering the rival's bedroom, which needs leaving home first, so that save has already left once. A save that left and came back without reaching the rival's bedroom is still credited, because no game state records that trip.</p>
+
+<h2>Never shown to the model</h2>
+<div class="card"><table>
+<tr><th>Path</th><th>Leave bedroom</th></tr>
+<tr><td>Prompts, next-milestone hint</td><td>Not listed</td></tr>
+<tr><td>Stall stop, stall briefing, loop supervisor progress</td><td>Ignored (measurement-only set)</td></tr>
+<tr><td>Objective record <code>recorded_native_milestones</code></td><td>Filtered out (this also removes Back on Route 101)</td></tr>
+<tr><td>STOP AT target, finals target</td><td>Refused, because the target is written into the model's goal</td></tr>
+</table></div>
+
+<h2>Older runs</h2>
+<p>The viewer derives Leave bedroom from recorded states for runs that predate <code>bedroom-exit-v1</code>, using the same rule. A run whose recorder declares the feature is never derived: a missing native event stays missing. A replay of 52 recorded runs from 2026-10-15/16 found the split in every run that left home, always before Leave home.</p>
+
+<h2>Status</h2>
+<p>Branch <code>claude/bedroom-exit-split</code>. Tests, coverage and lint are green. Reviews: GPT (Codex) found the STOP AT target leak, which is fixed; grok LGTM. It is not merged and no measured runs have used it yet.</p>
+</main></body></html>

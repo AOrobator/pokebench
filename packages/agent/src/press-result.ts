@@ -118,6 +118,21 @@ function dialogueChange(before: GameStateSnapshot, after: GameStateSnapshot, sho
   return null;
 }
 
+// pushback-press-result-v1: dialogue auto-advance ran after the model's input; a script may have moved the player
+// while it advanced. `pressed` is the state when the model's own input ended, `after` the state after auto-advance.
+export function pushbackPressResult(line: string, before: GameStateSnapshot | undefined, pressed: GameStateSnapshot, after: GameStateSnapshot, show: PressFacts): string {
+  if (!placed(before) || !placed(pressed) || !placed(after)) return line;
+  const sameTile = (a: Placed, b: Placed): boolean => sameMap(a, b) && a.position.x === b.position.x && a.position.y === b.position.y;
+  if (sameTile(pressed, after)) return line;
+  const path = (from: Placed, to: Placed): string => !sameMap(from, to) ? ` ${place(from, show)} -> ${place(to, show)}` : show.position ? ` (${String(from.position.x)},${String(from.position.y)}) -> (${String(to.position.x)},${String(to.position.y)})` : "";
+  const pressMoved = !sameTile(before, pressed);
+  const back = pressMoved && sameTile(before, after);
+  const press = pressMoved ? `your press moved you${path(before, pressed)}` : "your press did not move you";
+  const script = `then a script moved you${back ? " back" : ""}${path(pressed, after)} while the dialogue advanced`;
+  const own = pressMoved ? line : line.replaceAll("no net movement", "no movement by the press");
+  return `${own}; this call: ${press}, ${script}${back ? "; you are back where this press began" : ""}`;
+}
+
 export function pressResult(before: GameStateSnapshot | undefined, after: GameStateSnapshot, buttons: readonly Button[], show: PressFacts = ALL_PRESS_FACTS, shown: ShownStates = new ShownStates()): string {
   if (show.transitions !== true || before === undefined || before.active_ui?.diagnostic != null || after.active_ui?.diagnostic != null) {
     return basePressResult(before, after, buttons, show);

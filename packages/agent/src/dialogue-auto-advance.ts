@@ -11,7 +11,7 @@ import {isCheckedPress,submittedButtons,type BeforePressCheck,type CheckedPressT
 import {toolSwitches} from "./play-config.js";
 import {speakerLabel} from "./dialogue-log.js";
 import {MESSAGE_WAITING} from "./navigation.js";
-import {OPENED_LOCK_NOTE,STILL_LOCKED_NOTE,STILL_OPEN_NOTE,pressResult} from "./press-result.js";
+import {OPENED_LOCK_NOTE,STILL_LOCKED_NOTE,STILL_OPEN_NOTE,pressResult,pushbackPressResult} from "./press-result.js";
 
 export const AUTO_ADVANCE_LIMITS={presses:50,callMs:90_000,waitMs:10_000,pollMs:100} as const;
 
@@ -302,7 +302,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
   const seen=observation(final);
   const head=[`pressed ${sent.join(", ")}`,
    ...(plan.length<params.buttons.length||(walk&&sent.length<plan.length)?[`Interface safety: submitted ${String(walk?sent.length:plan.length)} of ${String(params.buttons.length)} requested inputs; remaining inputs were not sent. Inspect the new state before another input.`]:[]),
-   ...(switches.pressResult?[`Press result: ${results.every(r=>r.line!==null)?(line=>detail===null?line:afterAdvance(line,detail))(results.length===1?results[0]?.line??"":results.map((r,i)=>`${i===0?"":"then "}${r.buttons.join(", ")}: ${r.line??""}`).join(" | ")):pressResult(before,finalState,sent,switches)}`]:[]),
+   ...(switches.pressResult?[`Press result: ${(line=>switches.pushback===true&&engaged?pushbackPressResult(line,before,after,finalState,switches):line)(results.every(r=>r.line!==null)?(line=>detail===null?line:afterAdvance(line,detail))(results.length===1?results[0]?.line??"":results.map((r,i)=>`${i===0?"":"then "}${r.buttons.join(", ")}: ${r.line??""}`).join(" | ")):pressResult(before,finalState,sent,switches))}`]:[]),
    ...(block===null?[]:[block])];
   return {content:[...seen.images,{type:"text",text:`${head.join("\n")}\n\n${seen.text}`},...extras],details:{state:finalState}};
  };

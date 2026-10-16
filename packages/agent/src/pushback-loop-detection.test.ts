@@ -26,7 +26,7 @@ function replay(events:readonly RunEvent[],pushback:boolean):{seen:Seen[];contex
  const start=events.find(e=>e.type==="run_start");
  if(start?.type!=="run_start")throw new Error("fixture has no run_start");
  const features=featuresOf(start.harness_features);
- const recorder={subscribe:(o:(e:RunEvent)=>void)=>{observers.push(o);},recordLoopGuard:(n:LoopNotice)=>{seen.push({turn:current?.turn??-1,seq:current?.seq??-1,kind:n.kind,phase:n.phase,message:n.message,evidence:n.evidence});}};
+ const recorder={subscribe:(o:(e:RunEvent)=>void)=>{observers.push(o);},recordLoopGuard:(n:LoopNotice)=>{checkEvent({v:1,run:"replay",seq:current?.seq??0,t:"2026-10-16T03:00:00.000-04:00",turn:current?.turn??0,type:"loop_guard",...n,evidence:[...n.evidence]});seen.push({turn:current?.turn??-1,seq:current?.seq??-1,kind:n.kind,phase:n.phase,message:n.message,evidence:n.evidence});}};
  const governor=new Governor({limits:{maxTurns:5000,maxWallMs:6*3_600_000,failureLimit:3},retry:()=>undefined,abort:()=>undefined,now:()=>0});
  const detector=attachLoopGuard(recorder,governor,undefined,"enforced",features["interaction-loop-detection-v1"],(kind,calls)=>`SUPERVISOR: ${kind} at ${String(calls)} calls`,features["transition-loop-detection-v1"],pushback);
  for(const e of events){
@@ -53,8 +53,8 @@ describe("pushback-loop-detection-v1 on recorded run sh02: the Route 101 twin pu
   const {seen,contexts}=replay(events,true);
   const warning=seen.find(n=>n.phase==="warning");
   expect(warning).toMatchObject({kind:"cycle",message:PUSHBACK_MESSAGE});
-  expect(warning?.turn).toBeLessThanOrEqual(148);
-  expect(warning?.evidence.length).toBe(3);
+  // The receipt: the third push-back (T142, T144, T146), each an auto-advanced UP that ended back at (11,2).
+  expect(warning).toMatchObject({turn:146,seq:3062,evidence:[2973,3062]});
   expect(seen.find(n=>n.phase==="supervisor")).toMatchObject({kind:"cycle",seq:warning?.seq});
   const next=contexts.find(c=>c.turn>(warning?.turn??Infinity));
   expect(next?.text).toMatch(/^SUPERVISOR: cycle at \d+ calls$/);
@@ -63,7 +63,8 @@ describe("pushback-loop-detection-v1 on recorded run sh02: the Route 101 twin pu
  it("ON: the episode recovers when navigate_to reaches a new place (T173), not before",()=>{
   const {seen}=replay(events,true);
   const recovered=seen.find(n=>n.phase==="recovered");
-  expect(recovered?.turn).toBeGreaterThanOrEqual(172);
+  expect(recovered).toMatchObject({turn:173,seq:3693});
+  expect(seen.filter(n=>n.phase==="supervisor").map(n=>n.turn)).toEqual([146,152,158,164,170]);
   expect(seen.filter(n=>n.phase==="recovered"&&n.turn<172)).toEqual([]);
  });
 });
@@ -77,16 +78,18 @@ describe("pushback-loop-detection-v1 on recorded run sh02: Birch's script stops 
   const {seen,contexts}=replay(events,true);
   const warning=seen.find(n=>n.phase==="warning");
   expect(warning).toMatchObject({kind:"cycle",message:PUSHBACK_MESSAGE});
-  expect(warning?.turn).toBeLessThanOrEqual(265);
-  expect(seen.filter(n=>n.phase==="supervisor").length).toBeGreaterThan(3);
+  // The receipt: the third identical batch (T263, T264, T265); the supervisor re-briefs every six calls to T307.
+  expect(warning).toMatchObject({turn:265,seq:6011,evidence:[5951,6011]});
+  expect(seen.filter(n=>n.phase==="supervisor").map(n=>n.turn)).toEqual([265,271,277,283,289,295,301,307]);
   expect(contexts.some(c=>c.text!==null&&/^SUPERVISOR: cycle at \d+ calls$/.test(c.text))).toBe(true);
   expect(seen.some(n=>n.phase==="stop")).toBe(false);
  });
- it("ON: the episode recovers on the first new state (T308, the model turns to the bag)",()=>{
+ it("ON: the episode recovers when the game confirms the next story milestone (T310, STARTER_CHOSEN), not before",()=>{
   const {seen}=replay(events,true);
   const warning=seen.find(n=>n.phase==="warning");
   const recovered=seen.find(n=>n.phase==="recovered"&&n.seq>(warning?.seq??Infinity));
-  expect(recovered?.turn).toBe(308);
+  expect(recovered).toMatchObject({turn:310,seq:7333});
+  expect(events.find(e=>e.type==="milestone"&&e.name==="STARTER_CHOSEN")?.turn).toBe(310);
  });
 });
 
@@ -105,7 +108,7 @@ function rig(pushback:boolean,interactions=true){
  const observers:((e:RunEvent)=>void)[]=[];const notices:LoopNotice[]=[];
  let seq=0,turn=0,call=0,stateSeq=0;
  const emit=(body:Record<string,unknown>):RunEvent=>{const e=checkEvent({v:1,run:"pushback",t:"2026-10-16T03:00:00.000-04:00",turn,seq:++seq,...body});for(const o of observers)o(e);return e;};
- const recorder={subscribe:(o:(e:RunEvent)=>void)=>{observers.push(o);},recordLoopGuard:(n:LoopNotice)=>{notices.push(n);}};
+ const recorder={subscribe:(o:(e:RunEvent)=>void)=>{observers.push(o);},recordLoopGuard:(n:LoopNotice)=>{checkEvent({v:1,run:"pushback",seq:seq,t:"2026-10-16T03:00:00.000-04:00",turn,type:"loop_guard",...n,evidence:[...n.evidence]});notices.push(n);}};
  const governor=new Governor({limits:{maxTurns:5000,maxWallMs:6*3_600_000,failureLimit:3},retry:()=>undefined,abort:()=>undefined,now:()=>0});
  const detector=attachLoopGuard(recorder,governor,undefined,"enforced",interactions,undefined,true,pushback);
  const state=(body:Record<string,unknown>):RunEvent=>{const e=emit({type:"state",...IN_GAME,started:true,screen:"overworld",...FREE,...body});stateSeq=e.seq;return e;};
@@ -129,13 +132,13 @@ const BATCH=["LEFT","LEFT","LEFT","UP","UP","UP"];
 const pushedBack=(r:ReturnType<typeof rig>,buttons:readonly string[]=BATCH)=>{r.press(buttons,HOME,[{...WEST,...BIRCH}],HOME);};
 
 describe("pushback-loop-detection-v1 synthetic push-backs",()=>{
- it("ON: the third push-back by the same input warns with the push-back message and the three results as evidence; OFF never",()=>{
+ it("ON: the third push-back by the same input warns with the push-back message, citing the first and the third push-back; OFF never",()=>{
   const on=rig(true);
   pushedBack(on);pushedBack(on);
   expect(on.notices).toEqual([]);
   pushedBack(on);
   expect(on.notices).toEqual([expect.objectContaining({kind:"cycle",phase:"warning",mode:"enforced",message:PUSHBACK_MESSAGE})]);
-  expect(on.notices[0]?.evidence).toHaveLength(3);
+  expect(on.notices[0]?.evidence).toEqual([expect.any(Number),expect.any(Number)]);
   expect(on.detector.context()).toBe(`LOOP GUARD (cycle): ${PUSHBACK_MESSAGE} Recovery is bounded; objective wording and new evidence IDs alone do not establish progress.`);
   const off=rig(false);
   for(let i=0;i<8;i++)pushedBack(off);
@@ -170,7 +173,11 @@ describe("pushback-loop-detection-v1 synthetic push-backs",()=>{
  });
  it("ON: a navigate_to target the script keeps refusing counts by its target",()=>{
   const on=rig(true);
-  for(let i=0;i<3;i++)on.turnOf("navigate_to",{map_id:[0,16],x:4,y:14},HOME,[{...WEST,...BIRCH}],HOME);
+  // A press push-back between the navigate_to calls keeps the existing same-target navigation check from firing first.
+  const nav=()=>{on.turnOf("navigate_to",{map_id:[0,16],x:4,y:14},HOME,[{...WEST,...BIRCH}],HOME);};
+  nav();pushedBack(on);nav();pushedBack(on);
+  expect(on.notices).toEqual([]);
+  nav();
   expect(on.notices.map(n=>[n.kind,n.phase,n.message])).toEqual([["cycle","warning",PUSHBACK_MESSAGE]]);
  });
 });
@@ -191,7 +198,7 @@ describe("pushback-loop-detection-v1 adds nothing where nothing pushed the playe
   same(r=>{for(let i=0;i<5;i++)r.press(["UP"],HOME,[],HOME);},false);
  });
  it("a door or stairs animation lock (not a script) between the steps",()=>{
-  same(r=>{for(let i=0;i<5;i++)r.press(["LEFT","RIGHT"],HOME,[{...WEST,...ANIMATION}],HOME);});
+  same(r=>{for(let i=0;i<5;i++){r.press(["LEFT"],HOME,[],{...WEST,...ANIMATION});r.press(["RIGHT"],{...WEST,...ANIMATION},[],HOME);}});
  });
  it("story, party, money, badge or item progress between attempts (the state differs, so it is not a return)",()=>{
   same(r=>{for(let i=0;i<5;i++)r.press(BATCH,{...HOME,money:3000+i},[{...WEST,...BIRCH,money:3000+i}],{...HOME,money:3001+i});});
@@ -249,7 +256,7 @@ describe("pushback-loop-detection-v1 registry",()=>{
   expect(featureInfo("pushback-loop-detection-v1").description).toContain(" Off: ");
   expect(playHarnessFeatures(ALL_ON,null).slice(-2)).toEqual(["pushback-loop-detection-v1","pushback-press-result-v1"]);
   expect(playHarnessFeatures({...ALL_ON,"pushback-loop-detection-v1":false},null)).not.toContain("pushback-loop-detection-v1");
-  expect(dependencyProblems({...ALL_ON,"deterministic-loop-guard-v1":false})).not.toContain(expect.stringContaining("pushback-loop-detection-v1"));
+  expect(dependencyProblems({...ALL_ON,"deterministic-loop-guard-v1":false})).not.toContainEqual(expect.stringContaining("pushback-loop-detection-v1"));
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})["pushback-loop-detection-v1"]).toBe(false);
  });
 });

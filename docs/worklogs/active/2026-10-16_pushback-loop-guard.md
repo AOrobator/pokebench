@@ -57,12 +57,20 @@ No new inputs, files, processes or network. Fixtures are trimmed copies of a loc
 **M1 — Push-back loop guard + press result**
 - [x] RED: replay tests for both fixtures (ON fires; OFF silent), synthetic negative cases, press-result tests, registry/factory tests
 - [x] COMMIT RED (SHA in the session log)
-- [ ] GREEN: switches registered, LoopDetector tracker, auto-advance press result, wiring (live, decision-probe, play-config)
-- [ ] Wiring-deletion checks
+- [x] GREEN: switches registered, LoopDetector tracker, auto-advance press result, wiring (live, decision-probe, play-config)
+- [x] Wiring-deletion checks
+- [x] COMMIT GREEN (SHA in the session log)
+
+**M2 — Battle observation loop (scope addition 3, own switch `battle-observation-loop-v1`)**
+- [ ] RED: replay of sh02 seq 9850–11960 (270 observes in a static wild battle) fires an observation warning ON, silent OFF; a battle that advances on its own between observes never counts; registry/factory
+- [ ] COMMIT RED
+- [ ] GREEN
+- [ ] COMMIT GREEN
+
+**M3 — Close**
 - [ ] Observability: loop_guard recorded, delivered via context(), visible in timeline/replay
 - [ ] Explainer(s) + FEATURE_EXPLAINERS mapping
 - [ ] Gates: test, lint, build, coverage (90), verify-vendor
-- [ ] COMMIT GREEN
 - [ ] Principles self-review
 - [ ] Review: Claude, Codex, Grok — LGTM each
 - [ ] Merge main, re-run gates, local merge into main
@@ -77,8 +85,20 @@ Merge locally after all lanes LGTM. No pending experiment entry (amendment 2). R
 
 - 2026-10-16 03:10 AM EDT: RED. `pushback-loop-detection.test.ts` (12 of 22 fail: every ON push-back case and the registry; OFF silence on both fixtures and the add-nothing negatives pass today), `pushback-press-result.test.ts` (10 of 13 fail; the three OFF cases reproduce the recorded text exactly: Birch `moved (7,15) -> (6,15)` then `conversation restarted … (2nd time)`, twin `locked (field controls locked in a snapshot; no net movement)`), `live-world-features.test.ts` factory test (both arms fail: the preset does not know the switch), `decision-probe-live.test.ts` AUTO_TEXT line.
 
+- RED commit d89716cc.
+- 2026-10-16 03:25 AM EDT: GREEN M1.
+  - `LoopDetector` gets `pushback` (constructor 7th, `attachLoopGuard` 8th argument), wired from `features["pushback-loop-detection-v1"]` in live.ts and decision-probe.ts. The tool call's own args are kept as `requested` so auto-advance's B never becomes the action. A settled state event or a settled before state seeds the anchor when no trip is under way.
+  - `pushbackPressResult` in press-result.ts, applied in `withDialogueAutoAdvance` when auto-advance ran and `toolSwitches(features).pushback`. decision-probe's AUTO_TEXT lists the switch (an auto-advanced result is kept as recorded, and flipping the switch is refused).
+  - Design change from the plan: `pushback-press-result-v1` has `needs: null` (inert without auto-advance). With `needs: dialogue-auto-advance-v1`, every ALL_ON-derived preset that turns auto-advance off failed validation (experiment-gate, state-runtime tests).
+  - Receipts (replay through attachLoopGuard with the run's own switches and a supervisor): twin ON warning + supervisor T146 seq 3062 (evidence 2973, 3062: the push-backs of T142 and T146), re-brief T152/T158/T164/T170, recovered T173 seq 3693 (navigate_to reached (12,9)); OFF none. Birch ON warning + supervisor T265 seq 6011 (evidence 5951, 6011), re-brief every 6 calls T271–T307, recovered T310 seq 7333 (STARTER_CHOSEN); OFF none. No stop in either.
+  - Wiring/guard deletions (each red once, restored): live.ts argument dropped → factory test (true arm) red; `switches.pushback===true&&engaged` → `false` → 3 ON press tests red; play-config `pushback` dropped → 4 red; `!trip.left` dropped → "conversation read in place" red; `!trip.scripted` dropped → passed at first (the one-call door case was masked by the existing ineffective hit), so the door negative became a two-call LEFT/RIGHT bounce through animation locks, which then went red; restored.
+  - Registry churn: `.at(-N)` positions +2 (features, battle-triage, blocked-batch, dialogue-auto-advance, dialogue-context-kept, transition-loop tests), group counts guidance 28 / guard 13, switchboard rows 60, presets/next-run expectations.
+  - Tests: agent 1444 passed; viewer 801 passed. Lint (tsc + eslint, both packages) clean.
+
 ## Surprises
 
+- `loop_guard` evidence is capped at 2 items by the event schema (`maxItems:2`); a 3-seq evidence list made the recorder throw in the factory test. Evidence is now [first push-back, completing call]. The replay tests validate every notice through `checkEvent`.
+- An existing registry assertion pattern, `expect(array).not.toContain(expect.stringContaining(...))`, is vacuous (`toContain` does not use asymmetric matchers). The new tests use `toContainEqual`. Not changed in older tests (Boy Scout candidate).
 - The auto-advance B presses overwrite the call's before state and its action in `LoopDetector.observe` (root cause b). Every loop kind that reads before/action is blind to auto-advanced calls, not only push-backs.
 
 ## Multi-Model Review Log

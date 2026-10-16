@@ -66,6 +66,10 @@ run-comparison manifest: build
 schema: build
     node packages/agent/dist/schema.js > schemas/events.v1.json
 
+# Regenerate the agent's readout-rules-in-prompt-v1 table from env/pokebench_env/map_rules.py (a test fails when it is stale).
+map-rules:
+    cd env && uv run python -m pokebench_env.map_rules ../packages/agent/src/map-rules.generated.ts
+
 # Follow a run's events.jsonl live in the terminal.
 tail-run run_id: build
     node packages/agent/dist/tail.js {{run_id}}

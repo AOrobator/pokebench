@@ -25,6 +25,7 @@ RECORDED_OFF = [
     "displayed-place-names-v1",
     "battle-triage-guidance-v1",
     "adjacent-tiles-v1",
+    "readout-rules-in-prompt-v1",
 ]
 
 
@@ -114,6 +115,7 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "fmt_message_phase": False,
         "fmt_named_warps": False,
         "fmt_warp_animation": False,
+        "fmt_rules_in_prompt": False,
         "fmt_adjacent_tiles": False,
     }
     rerender.render(

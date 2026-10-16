@@ -1,8 +1,7 @@
 // Which exits the player has taken, from the recorded overworld states alone (briefing-exits-v1, untaken-exits-v1).
-// A map change A -> B takes, on A, the warps to B next to A's last recorded tile and, on B, the warps back to A next
-// to B's first recorded tile (a door arrival can already be one step out), each with the warps sharing its exact
-// destination (a two-tile door). When no warp is that close, the warps to the other map count only if they all share
-// one destination. With no warp either way, the map connections between A and B count as crossed.
+// A map change A -> B takes, on A, the doorway to B next to A's last recorded tile and, on B, the doorway back to A
+// next to B's first recorded tile (a door arrival can already be one step out); see usedWarps for doorways and for
+// how the other end settles a choice. With no warp either way, the map connections between A and B count as crossed.
 import type {GameStateSnapshot} from "./game-state.js";
 import {roomKey} from "./dialogue-log.js";
 
@@ -85,12 +84,23 @@ export class ExitHistory {
  // A warp can lead to its own map (teleporter pads). It counts as used only when the player, from on or next to it,
  // lands exactly on the warp it leads to: destination warp ids index this map's warp events in order (pokeemerald
  // warp_events). One press batch is recorded as two states, so distance alone cannot tell a walk from a teleport.
- // The landing pad is not used by arriving on it: it is its own exit (AquaHideout_B1F warp 12 leads to warp 9).
+ // The whole doorway left from counts (PetalburgCity_Gym (7,85)/(6,85) both lead to warp 2). The landing warp counts
+ // only when it leads back into that doorway, like a door back; otherwise it is an exit of its own (AquaHideout_B1F
+ // warp 12, landed on from warp 14, leads to warp 9).
  private sameMap(from:Seen,seen:Seen):ExitMark[] {
   if(from.x===seen.x&&from.y===seen.y)return [];
-  const used=from.warps.filter(w=>mapKey(w.destination)===seen.map&&Math.abs(w.x-from.x)+Math.abs(w.y-from.y)<=1)
-   .flatMap(w=>{const end=from.warps[w.destination[2]];return end!==undefined&&end.x===seen.x&&end.y===seen.y?[w]:[];});
-  const marks=used.map(w=>({room:seen.room,map:seen.map,tile:tileKey(w.x,w.y)}));
+  const toward=from.warps.filter(w=>mapKey(w.destination)===seen.map);
+  const here={warps:from.warps,x:seen.x,y:seen.y};
+  const used=new Set<Warp>();
+  for(const w of toward.filter(v=>near(v,from.x,from.y))){
+   const end=from.warps[w.destination[2]];
+   if(end===undefined||end.x!==seen.x||end.y!==seen.y)continue;
+   const left=doorway(toward,w,here);
+   for(const v of left)used.add(v);
+   const back=mapKey(end.destination)===seen.map?from.warps[end.destination[2]]:undefined;
+   if(back!==undefined&&left.includes(back))for(const v of doorway(toward,end,here))used.add(v);
+  }
+  const marks=[...used].map(w=>({room:seen.room,map:seen.map,tile:tileKey(w.x,w.y)}));
   for(const mark of marks)this.warps.add(`${mark.map}|${mark.tile}`);
   return marks;
  }

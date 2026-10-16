@@ -4,11 +4,6 @@
  "title": "Harness-fixes bundle vs fixed control (CLOCK_SET → RIVAL_MET)",
  "worklog": "docs/worklogs/active/2026-10-15_bundle-v-control.md",
  "primaryMilestone": "RIVAL_MET",
- "start": {
-  "kind": "save_state",
-  "path": "runs/launch-receipts/rival-push-checkpoint/CLOCK_SET.state",
-  "sha1": "51007c05068f4059f7d97c34541e29a93bedd80b"
- },
  "romSha1": "f3ae088181bf583e55daf962a92bb46f4f1d07b7",
  "controlBase": {
   "path": "runs/experiments/full-map-navigation/presets/finals-incumbent.json",
@@ -102,14 +97,22 @@
    "perArm": 64,
    "maxWallMs": 900000,
    "primary": true,
-   "start": "save"
+   "start": {
+    "kind": "save_state",
+    "path": "runs/launch-receipts/fast-text/CLOCK_SET.state",
+    "sha1": "342de3a1a1e00239c54a3cd6619c5dc80292c217"
+   }
   },
   {
    "id": "cook",
    "perArm": 6,
    "maxWallMs": 3600000,
    "primary": false,
-   "start": "boot"
+   "start": {
+    "kind": "save_state",
+    "path": "runs/launch-receipts/fast-text/MAIN_MENU.state",
+    "sha1": "b3a6cc1c19836600a15febf41b8f8b19661ce5d4"
+   }
   }
  ],
  "lanes": [

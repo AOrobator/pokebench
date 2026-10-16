@@ -11,7 +11,7 @@ import {DialogueLog} from "./dialogue-log.js";
 import {observeTool,pressTool,type Clock} from "./game-tools.js";
 import {StateWatcher,parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {playGameTools} from "./play-wiring.js";
-import {flagFeatures,normalizeFeatures} from "./play-preset.js";
+import {flagFeatures,normalizeFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {playSystemPrompt} from "./play-config.js";
 import {ALL_ON,FEATURES,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {checkEvent,type Button,type RunEvent} from "./events.js";
@@ -386,6 +386,15 @@ describe("battle-text-auto-advance-v1 registry and production wiring",()=>{
   const rest=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
   expect(normalizeFeatures(rest)[ID]).toBe(false);
   expect(normalizeFeatures({...rest,[ID]:true})[ID]).toBe(true);
+ });
+
+ it("normalized presets list every switch in registry order, so this switch comes last, even from a preset that already names it",()=>{
+  // Codex merge review round 5: a preset written before the newest switches, which already names this one.
+  const newer=new Set<string>(["explorer-guidance-v1","connection-edge-tiles-v1","in-game-naming-readout-v1","no-nickname-guidance-v1"]);
+  const frozen=Object.fromEntries(Object.entries({...ALL_ON,[ID]:false}).filter(([id])=>!newer.has(id)));
+  const preset=parsePlayPreset({version:2,id:"frozen-base",target:null,limits:{maxTurns:10,maxWallMs:60000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},features:{...frozen,"state-only-decisions-v1":false}});
+  expect(Object.keys(presetFeatures(preset))).toEqual([...SWITCHABLE_FEATURES]);
+  expect(Object.keys(presetFeatures(preset)).at(-1)).toBe(ID);
  });
 
  it("is the last key wherever a preset or default lists switches, and last in the registry",()=>{

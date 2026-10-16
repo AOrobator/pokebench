@@ -150,6 +150,8 @@ No new network surface: the server field rides the existing state endpoint on 12
 - [x] Explainer `docs/explainers/people-id-cards-v1.html` (trigger states, provenance table, recorded T211/T184/T551 cards, wiring), README index, `FEATURE_EXPLAINERS` mapping, panels + server tests; `just pages-check` silent
 - [x] `experiments/people-id-cards.json` pending (no `queuePosition`; finals incumbent + dialogue auto-advance, people ledger, character presence ON; activation PLAYER_NAME_CONFIRMED, primary RIVAL_BATTLE_WON; provisional source.commit = main cefacbf1), readiness line; validated by a test with parseExperiment + experimentArms (`just experiments-check` reads the main checkout's directory)
 - [x] Fake-data rehearsal (test): the production wrapper over the whole recorded 4caa run records 38 `people_id_card` events, MAY first/changed×3
+- [x] Browser proof (candidate viewer from this worktree's dist, `node packages/viewer/dist/cli.js --port 8796 --runs <scratchpad>/idc-viewer-runs`, probe run `2026-10-16T17-30-00_idcards-probe_1dc0` = 4caa run_start with people-id-cards-v1 added, turns 209–212, one recorded people_id_card for T211): Harness Config lists PEOPLE ID CARDS; a real click on READ EXPLAINER opened `/explainers/people-id-cards-v1.html` (heading "An ID card for each person who comes into view"), no console errors; at 375×812 scrollWidth 375 and every card block wraps inside its width. Agent Trace at the end of the replay shows the row "ID card shown · ID card added to the press result (back in view, card changed) · name:MAY …" and selecting it shows the whole card in the raw-event panel; the timeline lanes show no new mark. Viewer stopped; 8790 untouched.
+- [x] Principles self-review PB1–PB13: 0 FAIL (below)
 - [ ] `git merge main`, gates, frozen packet; Claude, Codex, Grok `VERDICT: LGTM`
 - [ ] Report to the coordinator; no merge
 
@@ -192,9 +194,26 @@ No new network surface: the server field rides the existing state endpoint on 12
 - `TRAINER_TYPE_SEE_ALL_DIRECTIONS` is never used in Emerald maps and the game never checks it (`trainer_see.c:204`).
 - Nurse pages have no speaker (counter talk); the ledger's faced-object rule across the counter is what attributes them.
 
+## Principles self-review (PB1–PB13)
+
+| ID | Verdict | Evidence |
+|---|---|---|
+| PB1 | PASS | Cards change model input only; grading untouched. Battles are quoted from the game's own battle text, never from the model. |
+| PB2 | N/A | No runs launched or reported. |
+| PB3 | PASS | No improvement claimed; a pending experiment (8 per arm) is registered, not run. |
+| PB4 | PASS | Declared as `people-id-cards-v1` in harness_features, switchable, default off; no RAM writes; vendor untouched (`just verify-vendor`). The dropped trainer RAM reader means no new privileged read. |
+| PB5 | PASS | One switch; the experiment arms differ only at it (test). |
+| PB6 | PASS | Cards never clip; growth is bounded by trigger (first sight, re-entry after change: 38 cards / 598 turns on 4caa, median 6 lines, longest 38) and by the delivered pages that name a person, each once. |
+| PB7 | PASS | Each card is a `people_id_card` event (schema regenerated), shown in Activity History and the raw inspector; replay proven in the candidate viewer. |
+| PB8 | N/A | No model tool-call handling changed. |
+| PB9 | PASS | Every open question went to the operator; decisions D1–D8 recorded before implementation. |
+| PB10 | PASS | No skipped tests, floor 90 kept, no excludes added, no `--no-verify`. |
+| PB11 | PASS | Uses pinned pi-agent-core tool types already used by the people ledger; production factory tests through `playGameTools`. |
+| PB12 | PASS | ROM untouched except via `POKEBENCH_ROM` in the gates (`--dotenv-path ~/dev/pokebench/.env`). |
+| PB13 | PASS | RED/GREEN commits per milestone, gates, worklog per commit; review loop in progress. |
+
 ## Multi-Model Review Log
 
-(empty)
 
 ## Boy Scout Log
 

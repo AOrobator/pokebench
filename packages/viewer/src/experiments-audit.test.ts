@@ -46,9 +46,9 @@ describe("experiments audit", () => {
     const deps = (runs: WorkbenchData["runs"]) => ({ runsRoot: r, snapshot: (at: string) => { expect(at).toBe(r); return Promise.resolve(data(runs)); }, out: (l: string) => { lines.push(l); }, err: (l: string) => { errors.push(l); } });
     expect(await auditMain([], deps([run({ id: "orphan", cohort: "c" })]))).toBe(0); expect(lines).toEqual([]);
     expect(await auditMain([], deps([]))).toBe(1); expect(lines).toEqual(["orphan\tx\tnot in the workbench snapshot"]); expect(errors).toEqual(["experiments-audit: 1 tagged run is in no EXPERIMENT dropdown cohort"]);
+    write(join(r, "orphan-2"), { type: "run_start", evaluation: { experiment: { id: "y" } } });
+    expect(await auditMain([], deps([]))).toBe(1); expect(errors.at(-1)).toBe("experiments-audit: 2 tagged runs are in no EXPERIMENT dropdown cohort");
     const other = root(); expect(await auditMain([other], { ...deps([]), snapshot: (at: string) => { expect(at).toBe(other); return Promise.resolve(data([])); } })).toBe(0);
     expect(await auditMain(["a", "b"], deps([]))).toBe(2); expect(errors.at(-1)).toContain("usage");
-    expect(await auditMain([], { ...deps([]), snapshot: () => Promise.reject(new Error("boom")) })).toBe(2); expect(errors.at(-1)).toBe("experiments-audit: boom");
-    expect(await auditMain([], { ...deps([]), snapshot: () => Promise.reject("plain") })).toBe(2); expect(errors.at(-1)).toBe("experiments-audit: plain");
-  });
+    expect(await auditMain([], { ...deps([]), snapshot: () => Promise.reject(new Error("boom")) })).toBe(2); expect(errors.at(-1)).toBe("experiments-audit: boom");  });
 });

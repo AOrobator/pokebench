@@ -103,7 +103,8 @@ export class Workbench {
   private pressed(): void { for (const button of this.ui("frontier-view").querySelectorAll("button")) button.setAttribute("aria-pressed", String((button.dataset.frontierView === "zoom") === this.zoom)); }
   private render(): void {
     const cohorts = Array.from(new Set(this.data.runs.flatMap(r => r.cohort === null ? [] : [r.cohort])));
-    this.options("cohort", [{ id: "all", label: "All recorded runs" }, ...cohorts.map(id => ({ id, label: id }))], this.scope);
+    const labels = new Map((this.data.cohorts ?? []).map(c => [c.id, c.label]));
+    this.options("cohort", [{ id: "all", label: "All recorded runs" }, ...cohorts.map(id => ({ id, label: labels.get(id) ?? id }))], this.scope);
     this.options("model", [{ id: "all", label: "All models" }, ...Array.from(new Set(this.data.runs.flatMap(r => r.model === null ? [] : [r.model]))).map(id => ({ id, label: id }))], this.model);
     this.options("preset", [{ id: "all", label: "All configurations" }, ...Array.from(new Set(this.data.runs.flatMap(r => r.config?.preset == null ? [] : [r.config.preset]))).map(id => ({ id, label: id }))], this.preset);
     this.options("overlay", [{ id: "all", label: "All filtered runs" }, { id: "none", label: "References only" }, ...this.filtered().map(r => ({ id: r.id, label: `${r.model ?? "Unknown"} · ${r.id}` }))], this.overlay);

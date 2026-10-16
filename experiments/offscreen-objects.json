@@ -90,6 +90,7 @@
    "no-nickname-guidance-v1": false,
    "battle-text-auto-advance-v1": false,
    "battle-message-waiting-v1": false,
+   "script-line-presence-v1": false,
    "offscreen-objects-v1": false
   }
  },

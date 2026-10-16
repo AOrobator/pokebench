@@ -194,3 +194,9 @@ Lanes: the think_fast/think_swarm endpoint lanes are not used while overnight tr
 - Gates: agent 1524, viewer 867, Python 2249; coverage agent 97.87/94.44/98.17/99.13, viewer 95.36/90.98/93.57/97.7, Python 96%; lint green except known mypy; pages-check clean.
   COMMIT: `Merge branch 'main' into claude/nav-guidance (battle-message-waiting-v1)`
 - Merge-resolution review of 670a6e7f: Codex LGTM, Grok LGTM (hardening: test names saying "last"; FeatureSetSchema Exclude cast — runtime correct).
+
+### Merge of main bbbee47b (script-line-presence-v1)
+
+- Registry/preset/default/panels/README/readiness: main's lines then mine (the three follow script-line-presence-v1; offscreen still follows battle-message-waiting-v1 in SERVER_FEATURES). Mechanical tests from main re-applied: `.at(-N)` +3 (+1 SERVER_FEATURES); battle-text historical-preset tests omit the three and assert the six-key tail with the three off; battle-message-waiting readout.py tail check; counts observation 26, guidance 32, switchboard 70. A mistaken second `checkout --theirs` pass dropped my registry lines once; tests caught it and they were re-applied before commit.
+- Gates: agent 1547, viewer 868, Python 2250; lint green except known mypy; pages-check clean.
+  COMMIT: `Merge branch 'main' into claude/nav-guidance (script-line-presence-v1)`

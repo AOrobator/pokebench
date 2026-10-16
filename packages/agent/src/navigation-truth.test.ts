@@ -100,6 +100,24 @@ describe("navigation-truth-v1: talk offers only for objects with a script (sh02 
   expect((await walk({...counter,interaction_targets:[clerk]},{x:1,y:1},{...TRUTH,counters:true})).status).not.toContain("press A");
   expect((await walk({...counter,interaction_targets:[{...clerk,elevation:3}]},{x:1,y:0},{...TRUTH,counters:true})).status).toBe(TALK);
  });
+ it("counter talk uses the elevation the route brings to the stand tile (3 -> 0 -> 4), not the start elevation",async()=>{
+  // y=0 the clerk's row (elevation 4), y=1 counters, y=2 (0,2) elevation 0 and the stand (1,2) elevation 4, y=3 the player at (0,3) elevation 3.
+  const elevation=(x:number,y:number):number=>y===0?4:y===2?(x===0?0:4):3;
+  const solid=(x:number,y:number):boolean=>y===1||(y===2&&x===2)||(y===3&&x>0);
+  const tiles=[0,1,2,3].flatMap(y=>[0,1,2].map(x=>({x,y,collision:solid(x,y)?1:0,behavior:y===1?0x80:0,elevation:elevation(x,y)})));
+  const base=ascii(["@"]);
+  const counter:GameStateSnapshot={...base,position:{x:0,y:3},navigation_grid:{elevation:3,tiles,objects:[{x:1,y:0}],warps:[]}};
+  const clerk={kind:"object",x:1,y:0,elevation:4,activation:"A",availability:"available",facing:null,local_id:1,destination:null,name:"MART_EMPLOYEE"};
+  const TALK="target is behind a counter; walk to (1,2), face UP toward the counter at (1,1) and press A to talk across it";
+  expect((await walk({...counter,interaction_targets:[clerk]},{x:1,y:0},{...CONTROL,counters:true})).status).toBe(TALK);
+  expect((await walk({...counter,interaction_targets:[clerk]},{x:1,y:0},{...TRUTH,counters:true})).status).toBe(TALK);
+  expect((await walk({...counter,interaction_targets:[clerk]},{x:1,y:1},{...TRUTH,counters:true})).status).toBe(TALK);
+  // A clerk at the start elevation (3) is not reached from the elevation-4 stand.
+  const low={...counter,interaction_targets:[{...clerk,elevation:3}]};
+  expect((await walk(low,{x:1,y:0},{...CONTROL,counters:true})).status).toBe(TALK);
+  expect((await walk(low,{x:1,y:0},{...TRUTH,counters:true})).status).not.toContain("press A");
+  expect((await walk(low,{x:1,y:1},{...TRUTH,counters:true})).status).not.toContain("press A");
+ });
  it("an object with a script keeps the offer",async()=>{
   const bag=await walk(birch,{x:7,y:14},TRUTH);
   expect(bag.status).toContain("(7,14) is BIRCHS_BAG (person or object), which navigate_to cannot stand on; to talk to it or use it, walk to one of these free tiles, face it and press A: ");
@@ -305,6 +323,15 @@ describe("navigation-refusal-reasons-v2: a route that leaves the 15x15 local map
   expect(planNavigation(state,{x:3,y:0},{elevation:"game"})).toEqual(["RIGHT","RIGHT","RIGHT"]);
   expect(planNavigation(state,{x:3,y:0},{elevation:"legacy"})).toBeNull();
   expect((await walk(state,{x:3,y:0},{windowReasons:true,elevation:"legacy"})).status).toBe("no supported local path; choose a reachable local waypoint");
+ });
+ it("a route inside the window across a matching trigger that only walkable floor finds keeps the generic text",async()=>{
+  // (0,0) player, (1,0) sand-like behavior 0x21 (walkable only with walkable-floor-v1), (2,0) a matching trigger, (3,0) the goal; map 20x20.
+  const base=ascii(["@.T.","####"],{width:20,height:20});
+  const state:GameStateSnapshot={...base,navigation_grid:{...gridOf(base),tiles:gridOf(base).tiles.map(t=>t.x===1&&t.y===0?{...t,behavior:0x21}:t)}};
+  expect(planNavigation(state,{x:3,y:0},{floor:true})).toEqual(["RIGHT","RIGHT","RIGHT"]);
+  expect((await walk(state,{x:3,y:0},{...TRUTH,windowReasons:true})).status).toBe("no supported local path; choose a reachable local waypoint");
+  expect((await walk(state,{x:3,y:0},{...TERRAIN,windowReasons:true})).status).toBe("no supported local path; choose a reachable local waypoint");
+  expect((await walk(state,{x:3,y:0},{...TRUTH,windowReasons:true,floor:true})).status).toBe("every route navigate_to sees to (3,0) crosses a script-trigger tile whose condition matches now; the first one on the route it would take without avoiding them is (2,0) (variable 0x4002=0, needs 0); stepping on such a tile runs a script that can stop you or send you back, so navigate_to does not walk across one; target (2,0) itself to step on it on purpose");
  });
  it("off keeps the generic text; full-map mode and unknown map bounds keep it too",async()=>{
   const state=recorded("e588:21334");

@@ -15,6 +15,7 @@ import { dirname } from "node:path";
 import { eventsPath, listRuns, readStart } from "./runs.js";
 import { parseLedger } from "@pokebench/agent/experiments";
 import { parseFinalsLedger } from "@pokebench/agent/experiment-gate";
+import { isFixedLedgerText, parseFixedLedger } from "./fixed-ledger.js";
 import type { HealthProbe } from "./next-run.js";
 import type { WorkbenchConfig, WorkbenchData, WorkbenchRun } from "./workbench-data.js";
 const MAX_PLAN_BYTES = 1024 * 1024;
@@ -150,6 +151,7 @@ function experimentCohorts(root: string, failures: Map<string, string>, membersh
       try {
         if (lstatSync(path).isSymbolicLink() || statSync(path).size > MAX_PLAN_BYTES) throw new Error("Experiment ledger exceeds metadata bounds");
         const text = untorn(readFileSync(path, "utf8"));
+        if (file === "trials.jsonl" && isFixedLedgerText(text)) { fixedCohort(text, cohort, entry.name, failures, membership, problems); continue; }
         const { entries, problems: bad } = file === "trials.jsonl" ? parseLedger(text) : parseFinalsLedger(text);
         // All or nothing: a ledger with any unreadable row contributes no cohort annotations.
         if (bad.length > 0) { problems.push(...bad.map(p => `Experiment ${entry.name} ${label} ${p}`)); continue; }
@@ -164,6 +166,20 @@ function experimentCohorts(root: string, failures: Map<string, string>, membersh
       } catch (error) { problems.push(`Experiment ${entry.name} ${label}: ${errorText(error)}`); }
     }
   }
+}
+// A fixed-run ledger (the fixed-N two-arm driver) joins experiment:<id> the same way: all or nothing,
+// every launched run is a member, and a trial the driver judged invalid is excluded with its reason.
+function fixedCohort(text: string, cohort: string, name: string, failures: Map<string, string>, membership: Map<string, string>, problems: string[]): void {
+  const { entries, problems: bad } = parseFixedLedger(text);
+  if (bad.length > 0) { problems.push(...bad.map(p => `Experiment ${name} ledger line ${p}`)); return; }
+  const launched = new Set<string>(), invalid = new Map<string, string>();
+  for (const e of entries) {
+    if (e.kind === "launch") launched.add(e.run);
+    else if (!launched.has(e.run)) { problems.push(`Experiment ${name} ledger: run ${e.run} has a ${e.kind} without a launch`); return; }
+    else if (e.kind === "outcome" && !e.valid) invalid.set(e.run, `Invalid fixed-run trial: ${e.reason}`);
+  }
+  for (const run of launched) membership.set(run, cohort);
+  for (const [run, message] of invalid) failures.set(run, message);
 }
 function runOf(row: Record<string, unknown>): string | null {
   const run = row.run ?? row.run_id;

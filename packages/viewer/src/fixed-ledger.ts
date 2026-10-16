@@ -31,17 +31,39 @@ export type FixedOutcome = Static<ReturnType<typeof Type.Object<typeof outcomeSh
 
 export function readLedger(path: string): FixedLedgerEntry[] {
   if (!existsSync(path)) return [];
-  return readFileSync(path, "utf8").split("\n").flatMap((line, i) => {
-    if (line.trim() === "") return [];
+  const { entries, problems } = parseFixedLedger(readFileSync(path, "utf8"));
+  if (problems.length > 0) throw new FixedLedgerError(`${path}:${problems[0] ?? ""}`);
+  return entries;
+}
+
+// Each unreadable line is reported as `<line>: not a fixed-run ledger entry`.
+export function parseFixedLedger(text: string): { entries: FixedLedgerEntry[]; problems: string[] } {
+  const entries: FixedLedgerEntry[] = [], problems: string[] = [];
+  text.split("\n").forEach((line, i) => {
+    if (line.trim() === "") return;
     let value: unknown;
     try {
       value = JSON.parse(line);
     } catch {
       value = null;
     }
-    if (!Value.Check(EntrySchema, value)) throw new FixedLedgerError(`${path}:${String(i + 1)} is not a fixed-run ledger entry`);
-    return [value];
+    if (Value.Check(EntrySchema, value)) entries.push(value);
+    else problems.push(`${String(i + 1)} is not a fixed-run ledger entry`);
   });
+  return { entries, problems };
+}
+
+// The fixed-run driver and the experiment queue both write runs/experiments/<id>/trials.jsonl;
+// fixed-run rows carry `kind`, queue rows carry `type`.
+export function isFixedLedgerText(text: string): boolean {
+  const first = text.split("\n").find(line => line.trim() !== "");
+  if (first === undefined) return false;
+  try {
+    const value: unknown = JSON.parse(first);
+    return typeof value === "object" && value !== null && "kind" in value;
+  } catch {
+    return false;
+  }
 }
 
 export function appendLedger(path: string, entry: FixedLedgerEntry): void {

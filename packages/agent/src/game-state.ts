@@ -1,6 +1,6 @@
 import type { Static } from "typebox";
 import { Value } from "typebox/value";
-import { BattleJournalSchema, NativeActionJournalSchema, StateBodySchema } from "./events.js";
+import { BattleJournalSchema, BattleTextJournalSchema, BattleWaitSchema, NativeActionJournalSchema, StateBodySchema } from "./events.js";
 
 export class GameStateError extends Error {
   override readonly name = "GameStateError";
@@ -12,6 +12,8 @@ export interface StateSource {
   read(signal?:AbortSignal): Promise<GameStateSnapshot>;
   nativeActions?(after:number):Promise<Static<typeof NativeActionJournalSchema>>;
   battleChoices?(after:number):Promise<Static<typeof BattleJournalSchema>>;
+  battleMessages?(after:number,signal?:AbortSignal):Promise<Static<typeof BattleTextJournalSchema>>;
+  battleWait?(signal?:AbortSignal):Promise<Static<typeof BattleWaitSchema>>;
 }
 
 export function parseGameState(body: unknown): GameStateSnapshot {
@@ -43,6 +45,23 @@ export class StateWatcher implements StateSource {
     if(!response.ok)throw new GameStateError(`Battle choices journal returned HTTP ${String(response.status)}`);
     const payload:unknown=await response.json();
     if(!Value.Check(BattleJournalSchema,payload))throw new GameStateError("Malformed battle choices journal");
+    return payload;
+  }
+
+  async battleMessages(after:number,signal?:AbortSignal):Promise<Static<typeof BattleTextJournalSchema>> {
+    const response=await this.fetchFn(`${this.gameServerUrl}/pokebench/battle/messages?after=${String(after)}`,{signal:signal===undefined?AbortSignal.timeout(5000):AbortSignal.any([signal,AbortSignal.timeout(5000)])});
+    if(!response.ok)throw new GameStateError(`Battle text journal returned HTTP ${String(response.status)}`);
+    const payload:unknown=await response.json();
+    if(!Value.Check(BattleTextJournalSchema,payload))throw new GameStateError("Malformed battle text journal");
+    return payload;
+  }
+
+  // Held by the server until the battle needs input or ends, at most 600 emulated frames (about 10 s).
+  async battleWait(signal?:AbortSignal):Promise<Static<typeof BattleWaitSchema>> {
+    const response=await this.fetchFn(`${this.gameServerUrl}/pokebench/battle/wait`,{signal:signal===undefined?AbortSignal.timeout(30_000):AbortSignal.any([signal,AbortSignal.timeout(30_000)])});
+    if(!response.ok)throw new GameStateError(`Battle wait returned HTTP ${String(response.status)}`);
+    const payload:unknown=await response.json();
+    if(!Value.Check(BattleWaitSchema,payload))throw new GameStateError("Malformed battle wait");
     return payload;
   }
 

@@ -86,3 +86,4 @@ Design (ON):
 - 2026-10-16 05:00 AM EDT RED: same-map pad jump test (exit history) and live-order test (untaken exits); both fail.
 - 2026-10-16 05:10 AM EDT GREEN (round 1 fixes): ExitHistory marks same-map warps on a jump of more than two tiles that starts next to a warp to this map (no fallback for same-map jumps); UntakenExits.annotate observes the result's own state before writing the line. Feature text and both explainers updated. Agent 1459/1459, tsc and eslint clean.
 - 2026-10-16 05:15 AM EDT: merged main 755da34e (15 commits: docs, self-merge landing rule in CLAUDE.md and execute-worklog, timeline error lane CSS/test). No conflicts. Landing follows the new rule: gates on this tip, packet `git diff --binary main HEAD`, all three cloud lanes on that packet, `git merge --ff-only`.
+- 2026-10-16 05:30 AM EDT: merged main 9f859b79 (viewer timeline changes only), no conflicts.

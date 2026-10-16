@@ -61,6 +61,16 @@ function runSignature(path: string): string {
   const stat = statSync(path);
   return `${String(stat.size)}:${String(stat.mtimeMs)}:${String(stat.ino)}` + visualEvidenceSignature(path);
 }
+// True when the log at `now` is the log at `then` with more bytes appended: same inode, larger, and the
+// same visual evidence and viewer build. A rewrite, truncation or replacement is not.
+function appendedSince(then: string, now: string): boolean {
+  const parse = (signature: string): { size: number; ino: string; rest: string } | null => {
+    const m = /^(\d+):[^:]*:(\d+)(.*)$/s.exec(signature);
+    return m === null ? null : { size: Number(m[1]), ino: m[2] ?? "", rest: m[3] ?? "" };
+  };
+  const a = parse(then), b = parse(now);
+  return a !== null && b !== null && a.ino === b.ino && a.rest === b.rest && b.size > a.size;
+}
 function invalidRun(id: string, problem: string | null): WorkbenchRun {
   return { id, cohort: null, model: null, started: null, status: "invalid", reason: null, problem, excluded: null, elapsedMs: null, turn: 0, config: null, splits: [] };
 }
@@ -137,6 +147,9 @@ export function createWorkbenchLoader(options: { compute?: WorkbenchCompute; sto
       cache.set(path, entry); return { invalid: entry };
     }
   };
+  // The newest finished record per log, kept even when the log grew while it loaded (a live run
+  // always does), and the one partial-mode reload in flight per log.
+  const latest = new Map<string, Loaded>(), reloading = new Map<string, Promise<Loaded>>();
   const start = (root: string, id: string, path: string, signature: string): Promise<Loaded> => {
     const key = `${path}\0${signature}`;
     let pending = inflight.get(key);
@@ -145,6 +158,7 @@ export function createWorkbenchLoader(options: { compute?: WorkbenchCompute; sto
         const stored = options.store?.get(id, signature) ?? null;
         const loaded = stored ?? await compute(root, id, stamp);
         const entry: Loaded = { ...settleSkew(loaded, build), signature };
+        latest.set(path, entry);
         let after: string | null = null; try { after = runSignature(path) + buildKey; } catch { /* removed while loading */ }
         if (after === signature) {
           cache.set(path, entry);
@@ -170,9 +184,19 @@ export function createWorkbenchLoader(options: { compute?: WorkbenchCompute; sto
     current: (root, id) => {
       const path = eventsPath(root, id), sig = signatureOf(path, id);
       if ("invalid" in sig) return sig.invalid;
-      const prior = cache.get(path) ?? null;
-      if (prior?.signature !== sig.signature) start(root, id, path, sig.signature).catch(() => undefined);
-      return prior;
+      const fresh = (): Loaded | null => { const hit = cache.get(path); return hit?.signature === sig.signature ? hit : null; };
+      if (fresh() !== null) return fresh();
+      if (!reloading.has(path)) {
+        const run = start(root, id, path, sig.signature);
+        reloading.set(path, run);
+        const done = (): void => { if (reloading.get(path) === run) reloading.delete(path); };
+        run.then(done, done);
+        run.catch(() => undefined);
+      }
+      // A disk-cache hit lands synchronously; otherwise only an appended-to log may show its previous record.
+      const now = fresh(); if (now !== null) return now;
+      const prior = latest.get(path) ?? cache.get(path) ?? null;
+      return prior !== null && appendedSince(prior.signature, sig.signature) ? prior : null;
     },
     forget: (keep) => { for (const path of cache.keys()) if (!keep(path)) cache.delete(path); },
   };

@@ -296,13 +296,13 @@ describe("briefing-exits-v1 in a production-shaped run",()=>{
 });
 
 describe("briefing-exits-v1 registry and presets",()=>{
- it("is a default-off guard switch with no dependency, recorded after no-nickname-guidance-v1",()=>{
+ it("is a default-off guard switch with no dependency, recorded after battle-text-auto-advance-v1",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:null,switchable:true,title:"BRIEFING EXIT FACTS"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   const ids=FEATURES.filter(f=>f.switchable).map(f=>f.id);
-  expect(ids.indexOf(ID)).toBe(ids.indexOf("no-nickname-guidance-v1")+1);
+  expect(ids.indexOf(ID)).toBe(ids.indexOf("battle-text-auto-advance-v1")+1);
   const order=playHarnessFeatures(ALL_ON,null);
-  expect(order.indexOf(ID)).toBe(order.indexOf("no-nickname-guidance-v1")+1);
+  expect(order.indexOf(ID)).toBe(order.indexOf("battle-text-auto-advance-v1")+1);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
   expect(dependencyProblems({...ALL_ON,"loop-guard-supervisor-v1":false})).not.toContain(`${ID} needs loop-guard-supervisor-v1`);
  });

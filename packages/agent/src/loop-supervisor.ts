@@ -74,7 +74,8 @@ export class SupervisorBriefing {
   }
   if(event.type==="state"&&"started"in event){this.measured=event;this.exitFacts(event);return;}
   if(event.type==="dialogue_auto_advance"){
-   this.advanced.set(event.tool_call_id,event);
+   // battle-text-auto-advance-v1's battle messages are not field dialogue for the briefings.
+   this.advanced.set(event.tool_call_id,{...event,pages:event.pages.filter(page=>page.battle_turn===undefined)});
    if(this.advanced.size>16)this.advanced.delete(this.advanced.keys().next().value??"");
    return;
   }

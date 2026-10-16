@@ -681,3 +681,67 @@ def test_a_short_window_read_is_unknown_never_undrawn() -> None:
         assert menu_window_drawn(short_at(address)) is None
     unknown = field(active_ui_read=True, field_controls_locked=True, menu_window_drawn=None)
     assert menu_line(unknown) is None
+
+
+MESSAGE_CLAIMS = (NONE_TEXT, IDLE_PHASE, SCRIPT_PHASE, LOCK_SCRIPT, LOCK_TASK)
+MENU_CLAIMS = (MENU_NONE, LOCK_SCRIPT, LOCK_TASK)
+
+
+def _header(window: int) -> int:
+    return 0x02020004 + 12 * window
+
+
+def _pixels(seq: int, window: int) -> int:
+    ram = cells(seq)
+    return int.from_bytes(bytes(ram.get(_header(window) + 8 + i, 0) for i in range(4)), "little")
+
+
+@pytest.mark.parametrize("seq", [2984, 1492, 941])
+def test_a_short_read_through_read_state_never_becomes_a_none_claim(seq: int) -> None:
+    # Every read the new "none" and lock lines rest on, one byte short, through the production
+    # rerender seam. With the switch on the readout either fails exactly as the switch-off
+    # readout does on that read (an incumbent reader's own loud failure), or it drops every
+    # claim that rests on that read and adds none.
+    full = reader(seq)
+    locked = state(seq).field_controls_locked
+    message = [FIELD_MESSAGE_MODE, FIELD_PRINTER + 0x1B, 0x03005E00, GLOBAL_SCRIPT_STATUS]
+    message += [GLOBAL_SCRIPT, _header(0), _pixels(seq, 0)]
+    menu_window = cells(seq).get(0x0203CD95, 0xFF)
+    menu = [0x0203CD95] + (
+        [_header(menu_window), _pixels(seq, menu_window)] if menu_window < 32 else []
+    )
+
+    def claims(text: str, wanted: tuple[str, ...]) -> list[str]:
+        return [line for line in text.split("\n") if line in wanted]
+
+    whole = render(seq, TRUTH)
+    # A removed window has no pixel buffer (pointer 0), so nothing reads it.
+    for short in [address for address in message + menu if address]:
+
+        def read(address: int, length: int, short: int = short) -> bytes:
+            data = full(address, length)
+            return data[: length - 1] if address == short else data
+
+        def text(on: frozenset[str]) -> str | BaseException:
+            off = recorded_off(seq) - on
+            try:
+                got = rerender.read_state(
+                    read, map_names(), active_ui=bool(frame(seq)["active_ui"]), off=off
+                )
+                return rerender.render(got, off)
+            except Exception as error:  # noqa: BLE001
+                return error
+
+        old, new = text(frozenset()), text(TRUTH)
+        if isinstance(old, BaseException):
+            assert type(new) is type(old), (hex(short), old, new)
+            continue
+        assert isinstance(new, str), (hex(short), new)
+        every = MESSAGE_CLAIMS + MENU_CLAIMS
+        assert set(claims(new, every)) <= set(claims(whole, every)), hex(short)
+        gone: tuple[str, ...] = ()
+        if short in message:
+            gone += MESSAGE_CLAIMS
+        if short in menu and locked:
+            gone += MENU_CLAIMS
+        assert claims(new, gone) == [], (hex(short), claims(new, gone))

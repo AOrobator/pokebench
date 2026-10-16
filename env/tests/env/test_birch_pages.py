@@ -62,6 +62,31 @@ def test_page_text_is_the_page_written_up_to_the_cursor() -> None:
     assert page_text(coded, 5) == "AB"
 
 
+def test_page_text_is_what_the_two_line_window_shows_after_a_scroll() -> None:
+    # gText_Birch_YourePlayer (data/text/birch_speech.inc): "\\l" (0xFA) waits in
+    # RENDER_STATE_SCROLL_START, then scrolls the 27x4-tile (two-line) window up one line.
+    speech = (
+        text("Ah, okay!")
+        + b"\xfb"
+        + text("You're MAY who's moving to my")
+        + b"\xfe"
+        + text("hometown of LITTLEROOT.")
+        + b"\xfa"
+        + text("I get it now!")
+        + b"\xfb"
+    )
+    scroll = speech.index(b"\xfa") + 1
+    # Waiting at the scroll prompt: both lines still on screen.
+    assert page_text(speech, scroll) == "You're MAY who's moving to my hometown of LITTLEROOT."
+    # After the scroll the first line is gone; the page ends with "I get it now!".
+    assert page_text(speech, len(speech)) == "hometown of LITTLEROOT. I get it now!"
+    assert page_text(speech, scroll + 3) == "hometown of LITTLEROOT. I g"
+    # A keypad-icon or extra-symbol argument byte is never read as a break.
+    for code in (0xF8, 0xF9):
+        coded = text("A") + bytes([code, 0xFB]) + text("B")
+        assert page_text(coded, len(coded)).startswith("A")
+
+
 def test_page_waiting_for_a_is_ready_with_the_page_as_value() -> None:
     ui = read_birch_page(page_memory().read, task_record())
     assert ui is not None

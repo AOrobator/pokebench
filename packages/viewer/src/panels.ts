@@ -378,8 +378,6 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "pushback-loop-detection-v1":"pushback-loop-detection-v1.html",
  "pushback-press-result-v1":"pushback-press-result-v1.html",
  "battle-observation-loop-v1":"battle-observation-loop-v1.html",
- "navigation-truth-v1":"navigation-truth-v1.html",
- "navigation-refusal-reasons-v2":"navigation-refusal-reasons-v2.html",
  "milestone-stall-stop-v1":"milestone-stall-stop-v1.html",
  "text-only-supervisor-v1":"text-only-supervisor-v1.html",
  "navigation-refusal-reasons-v1":"navigation-refusal-reasons-v1.html",
@@ -414,6 +412,9 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "trainer-opponent-v1":"briefing-battle-outcomes-v1.html",
  "blocked-exit-fact-v1":"blocked-exit-fact-v1.html",
  "battle-loss-recap-v1":"battle-loss-recap-v1.html",
+ "transition-coherence-v1":"transition-coherence-v1.html",
+ "navigation-truth-v1":"navigation-truth-v1.html",
+ "navigation-refusal-reasons-v2":"navigation-refusal-reasons-v2.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

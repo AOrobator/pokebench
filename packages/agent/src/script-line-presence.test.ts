@@ -225,13 +225,13 @@ describe("script-line-presence-v1: the production factory honors the switch",()=
 
 describe("script-line-presence-v1: registry",()=>{
  it("is the last switchable feature, an observation that needs dialogue auto-advance, default off",()=>{
-  expect(SWITCHABLE_FEATURES.at(-20)).toBe("script-line-presence-v1");
+  expect(SWITCHABLE_FEATURES.at(-21)).toBe("script-line-presence-v1");
   const info=featureInfo("script-line-presence-v1");
   expect(info.group).toBe("observation");
   expect(info.needs).toBe("dialogue-auto-advance-v1");
   expect(info.description).toContain(" Off: ");
   expect(FEATURES.filter(f=>f.id==="script-line-presence-v1")).toHaveLength(1);
-  expect(playHarnessFeatures(ALL_ON,null).at(-20)).toBe("script-line-presence-v1");
+  expect(playHarnessFeatures(ALL_ON,null).at(-21)).toBe("script-line-presence-v1");
   expect(playHarnessFeatures({...ALL_ON,"script-line-presence-v1":false},null)).not.toContain("script-line-presence-v1");
   const older=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!=="script-line-presence-v1")) as Omit<FeatureSet,"script-line-presence-v1">;
   expect(normalizeFeatures(older)["script-line-presence-v1"]).toBe(false);

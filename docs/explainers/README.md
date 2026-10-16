@@ -56,6 +56,7 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Battle triage guidance](battle-triage-guidance-v1.html)
 - [Battle text auto-advance](battle-text-auto-advance-v1.html)
 - [Battle message waiting](battle-message-waiting-v1.html)
+- [Coherent transition readouts](transition-coherence-v1.html)
 - [Script line presence](script-line-presence-v1.html)
 - [Off-screen people and objects](offscreen-objects-v1.html)
 - [navigate_to first prompting](navigate-first-prompt-v1.html)

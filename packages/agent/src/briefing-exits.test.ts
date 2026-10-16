@@ -164,6 +164,15 @@ describe("exit history",()=>{
   expect(taken(back)).toEqual([true,true,false,true,true,false]);
  });
 
+ it("takes a same-map two-tile door whole, and the door back it lands on (review round 5: PetalburgCity_Gym)",()=>{
+  // Warp events 0-5 of pokeemerald PetalburgCity_Gym: (7,85) and (6,85) both lead to warp 2 at (1,105), which leads back to warp 3.
+  const GYM=[warp(4,111,[0,7,2]),warp(5,111,[0,7,2]),warp(1,105,[3,1,3]),warp(7,85,[3,1,2]),warp(6,85,[3,1,2]),warp(7,105,[3,1,6])];
+  const h=new ExitHistory();
+  h.observe(place([3,1],7,86,GYM));
+  h.observe(place([3,1],1,105,GYM));
+  expect([h.taken("3/1",7,85),h.taken("3/1",6,85),h.taken("3/1",1,105),h.taken("3/1",7,105)]).toEqual([true,true,true,false]);
+ });
+
  it("keeps MtPyre_4F's two stairs apart with their real destination ids",()=>{
   const F4=[warp(10,1,[24,5,1]),warp(2,5,[24,3,1]),warp(12,10,[24,5,3]),warp(12,12,[24,5,4]),warp(9,10,[24,3,2]),warp(2,12,[24,3,3])];
   const F5=[warp(2,1,[24,6,0]),warp(10,5,[24,4,0]),warp(1,10,[24,6,1]),warp(12,10,[24,4,2]),warp(12,12,[24,4,3])];

@@ -10,5 +10,6 @@ New skill `.claude/skills/close-the-loop/SKILL.md` (docs only, no behavior chang
 
 ## Checklist
 
-- [x] Skill and CLAUDE.md pointer.
+- [x] Skill and CLAUDE.md pointer. COMMIT: `docs(skills): close-the-loop: prove each change at the surface the operator uses` (3e70f267)
+- [x] Review 1: Codex, grok and Claude BLOCKING. Fixed: the rehearsal goes through `runFixed`'s injected `FixedHost` and a scratch root (`just fixed-run` and the default audit touch the real runs/); harness proof uses Activity History and the raw inspector (timeline closed); lanes come from `experiments/fixed/<id>.json` + `runner.json` + `lsof`; trial replacement is fixed-run only; the live build stamp path is the 8790 tree's; restarts follow CLAUDE.md (after every merge, coordinated, once); viewer-e2e and fixed-run-launch named; scratch viewers start the queue runner on their root.
 - [ ] Reviews: Claude, grok, Codex `VERDICT: LGTM`; fast-forward merge.

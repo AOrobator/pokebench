@@ -186,3 +186,4 @@ Lanes: the think_fast/think_swarm endpoint lanes are not used while overnight tr
   COMMIT: `Merge branch 'main' into claude/nav-guidance (battle-text-auto-advance-v1)`
 - Merge-resolution review (remerge diff of 8b15f1e5): Grok LGTM (hardening: battle-text test names still say "last"). Codex BLOCKING: battle-text's historical-preset normalization test inherited the three new switches from ALL_ON, so it no longer proved a pre-merge preset gets them OFF and ordered after battle-text. Fix: both battle-text historical fixtures omit the three switches too and assert the last four keys are battle-text then the three, all three false; test names updated. Agent 1519 passed.
   COMMIT: `test: battle-text historical-preset tests also omit the three navigation-guidance switches (merge review)`
+- Merge-resolution re-review: Codex LGTM (a3badf7c). All lanes clean; landing.

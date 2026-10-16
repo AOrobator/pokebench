@@ -17,8 +17,8 @@ Operator, 2026-10-16: the stats page's EXPERIMENT dropdown keeps losing runs. `c
 
 ## Milestones
 
-- [x] M1 RED: store, client and audit tests (5 failing + audit module missing; 63 existing pass in the touched files).
-- [x] M1 GREEN: tagged membership, labels, validity, audit CLI and recipe (`experiment-cohorts.ts`, `experiments-audit.ts`, `just experiments-audit`). Viewer 830 tests (62 files); coverage 95.30 / 90.79 / 93.67 / 97.69; tsc + eslint clean.
-- [ ] M2 skills: fixed-run-launch, experiment-design, experiment-queue.
+- [x] M1 RED (010bdcee): store, client and audit tests (5 failing + audit module missing; 63 existing pass in the touched files).
+- [x] M1 GREEN (e7e3d601): tagged membership, labels, validity, audit CLI and recipe (`experiment-cohorts.ts`, `experiments-audit.ts`, `just experiments-audit`). Viewer 830 tests (62 files); coverage 95.30 / 90.79 / 93.67 / 97.69; tsc + eslint clean.
+- [x] M2 skills: fixed-run-launch (dropdown check names `experiment:<id>@<commit12>`, adds `just experiments-audit`, explains tag membership and that dry-run ledgers can be archived anywhere), experiment-design and experiment-queue (drivers must set `POKEBENCH_EXPERIMENT`). Follow-up, not in this branch: the queue runner and finals do not tag their trials yet; they still reach the dropdown through their ledgers.
 - [ ] Real-data before/after check (read-only on `~/dev/pokebench/runs`).
 - [ ] Gates: viewer tests, coverage ≥ 90, tsc + eslint.

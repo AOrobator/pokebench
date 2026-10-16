@@ -35,7 +35,7 @@ from typing import Literal, Protocol, TypeVar, cast
 from fastapi import FastAPI, HTTPException, Query
 
 from pokebench_env.game_screen import GMAIN, ReadMemory
-from pokebench_env.native_text import decode_native_text, native_text_payload
+from pokebench_env.native_text import CONTROL_ARGS, decode_native_text, native_text_payload
 
 IN_BATTLE = 0x030026F9
 BATTLE_MAIN_CB2 = 0x08038421
@@ -87,7 +87,11 @@ WaitPhase = Literal["message_waiting", "input", "prompt", "busy", "screen", "fie
 
 @dataclass(frozen=True)
 class BattleMessage:
-    """The battle message window: printing, waiting for A/B, or idle (no text)."""
+    """The battle message window: printing, waiting for A/B, or idle (no text).
+
+    `text` is the whole message; `page` is what the window holds for the printer's
+    current page (see page_text), line breaks as spaces.
+    """
 
     state: Literal["printing", "waiting_for_input", "idle"]
     render_state: str | None = None
@@ -95,6 +99,7 @@ class BattleMessage:
     cursor: int | None = None
     identity: str | None = None
     diagnostic: str | None = None
+    page: str | None = None
 
 
 @dataclass(frozen=True)
@@ -117,6 +122,48 @@ def _exact(read: ReadMemory, address: int, length: int) -> bytes:
 
 def decode_battle_text(payload: bytes) -> str:
     return decode_native_text(payload + b"\xff", require_terminator=True, line_breaks=LINE_BREAKS)
+
+
+# src/text.c RenderText: CHAR_PROMPT_CLEAR (\p) waits then clears the window,
+# CHAR_PROMPT_SCROLL (\l) waits then scrolls a line, EXT_CTRL_CODE_PAUSE_UNTIL_PRESS
+# (FC 09) waits and printing goes on in place.
+PROMPT_CLEAR = 0xFB
+PROMPT_SCROLL = 0xFA
+PAUSE_UNTIL_PRESS = 0x09
+
+
+def page_text(raw: bytes, cursor: int, *, waiting: bool = False) -> str:
+    """The page the printer is on: the text written since the window was last cleared,
+    up to the next wait not yet answered (or the message's end), whole.
+
+    The printer's cursor sits just past a wait byte both while it waits (`waiting`, render
+    state 1-3) and for the per-character delay after A/B answered it (state 0, the window
+    already cleared for a page break): only the first is the current page's end.
+
+    `raw` is the expanded message with its EOS; control arguments are skipped so an
+    argument byte is never taken for a page break.
+    """
+    start = index = 0
+    while True:
+        if index >= len(raw):
+            raise ValueError("battle message has no terminator")
+        byte = raw[index]
+        if byte == 0xFF:
+            break
+        size, wait = 1, byte in (PROMPT_CLEAR, PROMPT_SCROLL)
+        if byte == 0xFC:
+            if index + 1 >= len(raw) or raw[index + 1] not in CONTROL_ARGS:
+                raise ValueError(f"unknown text control at byte {index}")
+            size = 2 + CONTROL_ARGS[raw[index + 1]]
+            wait = raw[index + 1] == PAUSE_UNTIL_PRESS
+        elif byte == 0xF9:
+            size = 2
+        if wait and (index + size > cursor or (index + size == cursor and waiting)):
+            break
+        index += size
+        if wait and byte == PROMPT_CLEAR:
+            start = index
+    return decode_battle_text(raw[start:index]).replace("\n", " ").strip()
 
 
 def _printer_cursor(printer: bytes) -> int | None:
@@ -147,7 +194,13 @@ def read_battle_message(read: ReadMemory) -> BattleMessage:
         if cursor > len(payload) + 1:
             raise ValueError("printer cursor is past the message's end")
         return BattleMessage(
-            state, render, decode_battle_text(payload), cursor, sha256(payload).hexdigest()
+            state,
+            render,
+            decode_battle_text(payload),
+            cursor,
+            sha256(payload).hexdigest(),
+            # An answered final page leaves nothing on the window: no page.
+            page=page_text(payload + b"\xff", cursor, waiting=printer[0x1C] in WAIT_STATES) or None,
         )
     except (ValueError, IndexError, KeyError) as error:
         return BattleMessage(

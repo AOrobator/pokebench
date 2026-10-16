@@ -51,4 +51,5 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Transition loop detection](transition-loop-detection-v1.html)
 - [Battle triage guidance](battle-triage-guidance-v1.html)
 - [Battle text auto-advance](battle-text-auto-advance-v1.html)
+- [Battle message waiting](battle-message-waiting-v1.html)
 - [Script line presence](script-line-presence-v1.html)

@@ -84,8 +84,8 @@ The three switches share the trainer reading, the fixtures and the registry file
 - [x] COMMIT: `Merge main into claude/blocked-exit-and-loss` (62d029c6)
 - [x] Merged main be428cdb (people-ledger-v1 and its bundle membership). Same procedure: conflicted files from main, insertions re-applied after `people-ledger-v1` (scratchpad `reg2.py`, `preset2.py`, `viewerwire3.py`, `fixtests3.py`, `shift.py`; play-wiring wraps withResultFacts outside main's withUntakenExits(withPeopleLedger(...)) chain); observation 29→31, guard 14→15, switchboard rows 76→79; people-ledger.test positional assert +3; experiments regenerated (people-ledger-v1 false in the incumbents). Gates: agent 1746, viewer 915, pytest 2313 passed; coverage agent 98.00 / 94.54 / 98.49 / 99.12, viewer 95.32 / 91.12 / 93.63 / 97.62, Python 97.37 / 93.23 / 100; lint clean; verify-vendor OK; experiment-cli check ok 70.
 - [x] Principles self-review (PB1–PB13): 13 rows, 0 FAIL (table below)
-- [ ] Merge latest main; gates
-- [ ] Claude, Grok, Codex LGTM on one frozen packet; report reviewed head SHA
+- [x] Merge latest main; gates
+- [x] Claude, Grok, Codex LGTM on one frozen packet (round 5, d20accba); reviewed head reported
 
 ## Closing the Loop
 
@@ -140,6 +140,10 @@ Report per item: switch id, before/after excerpts, measurements, tests and cover
   - Round 4 (frozen 9e27986a..b014b118, packet sha256 0b0ad5a5…5d99, readable 44628050…8f00, delta 3d1f13e0…ee2b): Grok **VERDICT: LGTM**; Claude sub-agent **VERDICT: LGTM** (both round-3 items fixed; the removed branch never fires on either fixture); Codex **VERDICT: BLOCKING**: BattleOutcomes fixed `trainerBattle` from the first in-battle state, so a trainer battle first seen initializing (battle_type null) lost its trainer classification and a same-map trainer loss pinned no recap. Taken: any in-battle state with the trainer bit or an active trainer opponent marks the battle a trainer battle; test with an initializing first state (with and without the opponent reading); receipt `del10-trainer-battle-promotion.log` (removing the promotion turns 2 tests red; hash equal; green). Measurements unchanged (54a7 recap 238; sh02 0; sh02 briefings 11/11 OFF-identical).
   - Gates: agent 1753, viewer 925, pytest 2313 passed; coverage agent 98.00 / 94.58 / 98.49 / 99.12, viewer 95.32 / 91.09 / 93.68 / 97.63, Python 97.37 / 93.23 / 100; lint clean.
 - Round 5: full packet and the round-4 fix delta, to all three lanes.
+  - COMMIT: `fix: review round 4 …` (d20accba).
+  - Round 5 (frozen 9e27986a..d20accba, packet sha256 7311bc25…620d, readable 088bc01d…3926, delta a12dd79f…ba54): Claude sub-agent **VERDICT: LGTM**, Grok (cursor-grok-4.5-high) **VERDICT: LGTM** (stderr empty), Codex (gpt-5.6-sol) **VERDICT: LGTM**. Packet digest and clean status verified after every lane.
+  - **Reviewed head: d20accba257e8d26da15d0e8d8c3e496757c7934**, main 9e27986a is its ancestor. Not merged here (the coordinator fast-forwards main in its merge slot). This worklog-only commit after it records the verdicts.
+  - Open follow-ups for the operator (non-blocking, outside the frozen boundary): a connection with one triggered edge tile is called blocked even if another edge tile has none; no recorder guard for a server that returns no `trainer_opponent`; overworld-poison whiteouts are not detected; a stale pending try after an evicted before state; the trainer bit is promoted and never cleared within one battle.
 
 ## Boy Scout Log
 

@@ -25,7 +25,7 @@ function fake(over: { head?: string; status?: string; finalStatus?: string; exec
         return "";
       }
       if (args[0] === "rev-parse") return `${over.head ?? COMMIT}\n`;
-      if (args[0] === "status") return args.includes("--untracked-files=no") ? over.status ?? "" : over.finalStatus ?? "";
+      if (args[0] === "status") return files.has(LIVE) && over.finalStatus !== undefined ? over.finalStatus : over.status ?? "";
       return "";
     },
     exec: (cmd, args, cwd) => {
@@ -57,7 +57,7 @@ describe("fixed-run experiment checkout", () => {
     expect(f.calls).toEqual([
       `git ${ROOT} worktree add --detach ${TREE} ${COMMIT}`,
       `git ${TREE} rev-parse HEAD`,
-      `git ${TREE} status --porcelain --untracked-files=no`,
+      `git ${TREE} status --porcelain`,
       `git ${TREE} submodule update --init`,
       `exec ${TREE} pnpm install --frozen-lockfile`,
       `exec ${TREE}/env uv sync --frozen`,
@@ -73,7 +73,13 @@ describe("fixed-run experiment checkout", () => {
     const f = fake();
     f.dirs.add(TREE); f.dirs.add(`${TREE}/env/.venv`); f.files.set(LIVE, "built"); f.files.set(STAMP, `${COMMIT} src-hash\n`);
     expect(await prepareFixedTree(f.deps, COMMIT)).toBeNull();
-    expect(f.calls).toEqual([`git ${TREE} rev-parse HEAD`, `git ${TREE} status --porcelain --untracked-files=no`]);
+    expect(f.calls).toEqual([`git ${TREE} rev-parse HEAD`, `git ${TREE} status --porcelain`]);
+  });
+
+  it("refuses a stamped checkout that gained an untracked file, since the trial would record it as dirty", async () => {
+    const f = fake({ status: "?? stray.log\n" });
+    f.dirs.add(TREE); f.dirs.add(`${TREE}/env/.venv`); f.files.set(LIVE, "built"); f.files.set(STAMP, `${COMMIT} src-hash\n`);
+    expect(await prepareFixedTree(f.deps, COMMIT)).toBe(`the experiment checkout ${TREE} has changes (trials would record dirty: true): ?? stray.log`);
   });
 
   it("rebuilds when the stamp names other sources or the build output is gone", async () => {
@@ -92,7 +98,7 @@ describe("fixed-run experiment checkout", () => {
     expect(await prepareFixedTree(moved.deps, COMMIT)).toBe(`the experiment checkout ${TREE} is at aaaaaaa, not the pinned ${COMMIT.slice(0, 7)}`);
     const dirty = fake({ status: " M packages/agent/src/live.ts\n" });
     dirty.dirs.add(TREE);
-    expect(await prepareFixedTree(dirty.deps, COMMIT)).toBe(`the experiment checkout ${TREE} has uncommitted changes`);
+    expect(await prepareFixedTree(dirty.deps, COMMIT)).toBe(`the experiment checkout ${TREE} has changes (trials would record dirty: true): M packages/agent/src/live.ts`);
   });
 
   it("names the failing step", async () => {

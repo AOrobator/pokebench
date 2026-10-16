@@ -76,6 +76,7 @@ export const SWITCHABLE_FEATURES = [
   "offscreen-objects-v1",
   "navigate-first-prompt-v1",
   "presence-penalty-v1",
+  "trainer-heal-guidance-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -230,6 +231,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("offscreen-objects-v1", "observation", "OFF-SCREEN PEOPLE AND OBJECTS", "live-object-sprites-v1", "Adds a block after Field objects listing every person and object the current map's own object list places on this map that the local map and Field objects list leave out because they are more than 7 tiles from the player, each with its sprite kind and tile: the tile it is on now when the game has it loaded, otherwise where the map places it (it may have moved). Objects the game hides with a story flag or makes invisible are left out. With story character presence on, an out-of-view story character gets the same tile, for example \"MAY at 10,3 (out of view; where the map places this character, it may have moved)\". Off: no such block, and out-of-view story characters read \"(on this map, out of view)\" with no tile."),
   on("navigate-first-prompt-v1", "guidance", "NAVIGATE_TO FIRST", "bounded-navigation-v1", "Steers walking to navigate_to in three places. The system prompt's tool list names navigate_to, before press, as how you move (it finds the route around walls, ledges, water and people), and says press is for A, B, menus, dialogue, battles and single-tile steps or turns, not for walking. A Moving around section, the prompt's last, replaces the one-line navigate_to usage rule: use navigate_to for any walk of two or more tiles, do not trace routes tile by tile or walk with runs of direction presses, how to reach a person, a door or a directional exit, what to do after a refusal, and (local navigation) to call again after \"command limit\" and that a destination outside the local map is fine. The navigate_to description starts \"The main way to move\". On every third direction-only press in a row that ends on the free field (any other tool call, navigate_to and observe included, any other press, or a press that errors resets the count), the press result adds: \"Reminder: to walk two or more tiles, call navigate_to with the destination; it finds the route for you.\" Names no destination or story step. Off: today's tool list, the one-line usage rule (with game evidence priority on), today's navigate_to description and no reminder."),
   on("presence-penalty-v1", "guidance", "PRESENCE PENALTY 1.5", null, "Adds presence_penalty 1.5 to every chat request the agent sends the model, the value the Qwen3.6-35B-A3B model card recommends for thinking mode on general tasks (the serving lane's own default is 0). A presence penalty lowers the odds of tokens that already appeared in the reply, which discourages repeating the same reasoning word for word. run_start records it under sampling. Nothing the model reads changes. Off: requests carry no presence_penalty, so the server default applies, and run_start sampling has no such field."),
+  on("trainer-heal-guidance-v1", "guidance", "TRAINER HEAL GUIDANCE", null, "Adds one system-prompt section after battle triage (or last in the guidance sections when triage is off): \"Trainer battles and your rival: a battle against a trainer, including your rival, cannot be run from. If every Pokémon in your party faints, you black out: you lose half your money and wake up back at the last POKéMON CENTER you entered, or at home, far from where you were. Your rival usually battles you when you talk to them. Before you talk to a trainer or your rival, check your party HP in the readout, and if your Pokémon is below half its maximum HP, heal first: talking to the nurse at a POKéMON CENTER heals your whole party, and so does talking to MOM at home; a POTION or an ORAN BERRY from your BAG restores some HP.\" Game rules only (pret/pokeemerald Route103 trainerbattle_no_intro, DoWhiteOut halves money and warps to the last heal location set by a POKéMON CENTER's setrespawn); no places or story steps. Tools and readouts are unchanged. Off: no section; the prompt is byte-for-byte today's."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",
@@ -347,6 +349,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("offscreen-objects-v1"),
     ...when("navigate-first-prompt-v1"),
     ...when("presence-penalty-v1"),
+    ...when("trainer-heal-guidance-v1"),
   ];
 }
 

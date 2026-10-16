@@ -103,6 +103,14 @@ Report per switch: id, model-facing before/after excerpts from this run, precisi
 
 ## Multi-Model Review Log
 
+### Round 1 (packet: diff --binary 3c51c547..e29510e3 excluding the 1.6 MB fixture, SHA-256 f4562284…6948ffe; principles self-review 11 PASS / 2 N/A / 0 FAIL)
+
+- Codex (`codex exec -m gpt-5.6-sol --sandbox read-only`; the CLI default `gpt-6.1-sol` is refused for ChatGPT accounts): BLOCKING. (1) the pending experiment is inert: its incumbent has character-presence-v1 and dialogue-auto-advance-v1 off; (2) three empty plans compare as identical; (3) negation/hedges outside the name-to-tile span ("I don't know if Professor Birch is at (7,7)"); (4) retirement needs story state but no dependency is declared. Non-blocking: explainer `</head>` inside `<style>`.
+- Grok (`cursor-agent --mode ask --model cursor-grok-4.5-high`): LGTM. Non-blocking: soft dependencies / inert standalone experiment; explainer head; "back and forth" can name one move; provisional source.commit.
+- Claude (Claude CLI, default profile, `--permission-mode plan`): BLOCKING. B1 = Codex 1; B2 case-insensitive names make the word "may" match MAY. Non-blocking: empty plans; claims are tied to the current map; "Each time … while it showed" quotes only the latest pages; back-and-forth wording; same-plan wiring placement.
+- Accepted: all four Codex blockers, Claude B2, the "Each time" wording, the explainer head. Deferred (non-blocking, recorded): a claim naming another map (no place parsing added); back-and-forth wording for a single return.
+- 2026-10-16 05:15 AM EDT: round-1 RED: 5 failing tests (needs story-state-v1; 'may' and lowercase names; hedge anywhere in the sentence; experiment incumbent has both sources on; empty plans).
+
 - `tests/env/test_warp_arrival_settle.py::test_the_default_warp_bound_is_used_in_frames` failed once under full-suite load (301 vs 300 frames) and passes alone 3/3; pre-existing, Python untouched here. Left for its owner.
 
 ## Boy Scout Log

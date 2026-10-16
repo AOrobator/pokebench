@@ -140,6 +140,8 @@ describe("states that qualify",()=>{
   expect(run(Array.from({length:5},()=>({field_controls_locked:true})),same)).toEqual([]);
   expect(run(Array.from({length:8},()=>({})),same)).toHaveLength(2);
   expect(run(Array.from({length:5},()=>({})),["a b c d","e f g h","i j k l","m n o p","q r s t"])).toEqual([]);
+  // Replies that state no plan are not "the same plan" (review round 1).
+  expect(run(Array.from({length:5},()=>({})),["","","","",""])).toEqual([]);
  });
  it("never clips the plan",()=>{
   const long=`I will press UP. ${"The path north is open and I keep going. ".repeat(500)}`.trim();

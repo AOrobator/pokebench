@@ -41,14 +41,15 @@ async function replay(features:FeatureSet,events:readonly RunEvent[]=FIXTURE.eve
 
 describe("registry and presets",()=>{
  it("registers a default-off guidance switch recorded last but one",()=>{
-  expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:null,switchable:true,title:"DISPROVED BELIEFS LEDGER"});
+  expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:"story-state-v1",switchable:true,title:"DISPROVED BELIEFS LEDGER"});
   expect(featureInfo(ID).description).toContain(" Off: no ledger.");
   expect(featureInfo(ID).description).toContain("Things the game has contradicted");
   expect(SWITCHABLE_FEATURES.at(-2)).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null).at(-2)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
   expect(featuresOf(playHarnessFeatures({...ALL_ON,[ID]:false},null))[ID]).toBe(false);
-  expect(dependencyProblems({...ALL_ON,[ID]:true})).toEqual([]);
+  // Entries leave on a story-flag change, which needs the story state (review round 1).
+  expect(dependencyProblems({...ALL_ON,"story-state-v1":false})).toContain(`${ID} needs story-state-v1`);
  });
  it("defaults off for presets that omit it and for legacy flag presets",()=>{
   const older=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
@@ -73,6 +74,20 @@ describe("locating claims: the readout's own names only, conservatively",()=>{
   expect(locatingClaims("Birch is at (7,7).","PROF. BIRCH")).toEqual([]);
   expect(locatingClaims("I need to find Professor Birch. I am at (6,12).","PROF. BIRCH")).toEqual([]);
   expect(locatingClaims("Mayor MAYBE at (1,1).","MAY")).toEqual([]);
+ });
+ it("matches the readout's spelling or its title case only, so the word 'may' is never MAY (review round 1)",()=>{
+  expect(locatingClaims("Professor Birch may be at (7,7), so I will walk there.","MAY")).toEqual([]);
+  expect(locatingClaims("I think mom is at (2,6).","MOM")).toEqual([]);
+  expect(locatingClaims("May is at (3,4).","MAY")).toEqual(["May is at (3,4)."]);
+  expect(locatingClaims("MAY is at (3,4).","MAY")).toEqual(["MAY is at (3,4)."]);
+  expect(locatingClaims("prof. birch is at (3,4).","PROF. BIRCH")).toEqual([]);
+ });
+ it("skips sentences with a negation or hedge anywhere in them (review round 1)",()=>{
+  expect(locatingClaims("I don't know if Professor Birch is at (7,7).","PROF. BIRCH")).toEqual([]);
+  expect(locatingClaims("Professor Birch might be at (7,7), or maybe not.","PROF. BIRCH")).toEqual([]);
+  expect(locatingClaims("Prof. Birch is at (7,1) which is a 'Book' tile (background object, not walkable).","PROF. BIRCH")).toEqual([]);
+  expect(locatingClaims("Professor Birch is probably at (7,7).","PROF. BIRCH")).toEqual([]);
+  expect(locatingClaims("Perhaps Prof. Birch is at (7,7).","PROF. BIRCH")).toEqual([]);
  });
 });
 
@@ -105,6 +120,13 @@ He's the type of person who would" | SCIENTIST_1 (sprite kind, not a name): "rat
   // Birch's lab entry still holds: the story has not changed since turn 98.
   expect(t148).toContain("- PROF. BIRCH on LITTLEROOT TOWN PROFESSOR BIRCHS LAB (map 1/4)");
   expect(t148.indexOf("PROF. BIRCH on")).toBeLessThan(t148.indexOf("Moving UP"));
+ });
+
+ it("its pending experiment's incumbent has both entry sources on, so the treatment is not inert (review round 1)",()=>{
+  const entry=JSON.parse(readFileSync(new URL("../../../experiments/disproved-beliefs.json",import.meta.url),"utf8")) as {changedFeature:string;incumbent:{features:Record<string,boolean>}};
+  expect(entry.changedFeature).toBe(ID);
+  for(const source of ["character-presence-v1","dialogue-auto-advance-v1","story-state-v1"])expect(entry.incumbent.features[source]).toBe(true);
+  expect(entry.incumbent.features[ID]).toBe(false);
  });
 
  it("records Mom's push-back at the front door (T59) and drops it when the story changes",async()=>{

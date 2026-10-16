@@ -1,9 +1,9 @@
-import { frontierLegend } from "./frontier-legend.js";
+import { frontierLegend, type SwitchDescriptions } from "./frontier-legend.js";
 import type { VersionIndex } from "./frontier-versions.js";
 import { frontierReferences, frontierPlot, frontierVersions } from "./frontier.js";
 import { esc } from "./format.js";
 import { QUEUE_POLL_MS, QueuePanel } from "./queue-view.js";
-import { WORKBENCH_POLL_MS, parseWorkbench, type WorkbenchData, type WorkbenchRun } from "./workbench-data.js";
+import { WORKBENCH_POLL_MS, parseFeatureDescriptions, parseWorkbench, type WorkbenchData, type WorkbenchRun } from "./workbench-data.js";
 import { currentRunHtml, runDetails, runLanes, type LaneUnknown, type RunLanes } from "./workbench-view.js";
 // Copies changed [data-current-field] content and styles from `next` onto `root`; false when their fields differ.
 function patchFields(root: Element, next: Element): boolean {
@@ -19,7 +19,7 @@ function patchFields(root: Element, next: Element): boolean {
 // Replaces root's HTML only when it changed; a focused control inside it keeps focus by its data attributes.
 function replaceKeepingFocus(root: HTMLElement, html: string): void {
   if (root.dataset.html === html) return;
-  const active = root.ownerDocument.activeElement, keys = ["ver", "verMore", "what", "all", "bar", "legendToggle", "showAll"] as const;
+  const active = root.ownerDocument.activeElement, keys = ["sw", "ver", "verMore", "what", "all", "bar", "legendToggle", "showAll"] as const;
   const found = active instanceof HTMLElement && root.contains(active) ? (active.tagName === "SUMMARY" ? active.parentElement : active) : null;
   const key = found === null ? undefined : keys.find(k => found.dataset[k] !== undefined);
   const selector = found === null || key === undefined ? null : `[data-${key.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`)}${found.dataset[key] === "" ? "" : `="${found.dataset[key] ?? ""}"`}]`;
@@ -28,7 +28,8 @@ function replaceKeepingFocus(root: HTMLElement, html: string): void {
   const next = root.querySelector<HTMLElement>(selector);
   (next?.tagName === "DETAILS" ? next.querySelector<HTMLElement>("summary") : next)?.focus({ preventScroll: true });
 }
-export interface WorkbenchDeps { fetchSnapshot(): Promise<unknown>; now(): number; width(): number }
+// fetchFeatures: the switch catalog (/api/features), read once for the legend's switch descriptions.
+export interface WorkbenchDeps { fetchSnapshot(): Promise<unknown>; fetchFeatures?(): Promise<unknown>; now(): number; width(): number }
 const HOVER_EVENTS = ["mouseover", "mouseout", "focusin", "focusout"] as const;
 export class Workbench {
   private data: WorkbenchData = { version: 1, at: 0, milestones: [], runs: [], problems: [] };
@@ -39,6 +40,8 @@ export class Workbench {
   private restoreFocus: HTMLElement | null = null;
   private detailHtml: string | null = null;
   private versions: VersionIndex = { versions: [], byRun: new Map() };
+  private descriptions: SwitchDescriptions = new Map();
+  private catalog: Promise<void> | null = null;
   private readonly versionColors = new Map<string, string>();
   // Legend state: the isolated version, what the operator opened or closed (null = the width's default) and the hovered version.
   private isolated: string | null = null;
@@ -87,6 +90,15 @@ export class Workbench {
       if (this.active()) { this.verified = false; this.clock(); this.renderCharts(); const box = this.ui("problem"); box.hidden = false; box.textContent = error instanceof Error ? error.message : String(error); }
     } finally { this.busy = false; }
   }
+  // Loads the switch descriptions once. Without them (no catalog, a failed or malformed fetch) the legend shows names and ids only.
+  features(): Promise<void> {
+    const deps = this.deps;
+    this.catalog ??= deps.fetchFeatures === undefined ? Promise.resolve() : deps.fetchFeatures().then(value => {
+      if (!this.active()) return;
+      this.descriptions = parseFeatureDescriptions(value); if (this.initialized) this.renderCharts();
+    }).catch(() => undefined);
+    return this.catalog;
+  }
   clock(): void {
     if (!this.active()) return;
     const host = this.ui("current"), template = this.doc.createElement("template");
@@ -129,7 +141,7 @@ export class Workbench {
     const current = this.verified ? runs.filter(r => r.status === "live" || r.status === "paused") : [], status = this.verified && (refs.best?.status === "live" || refs.best?.status === "paused") ? refs.best.status : null;
     const state = { isolated: this.isolated, legendOpen: this.legendOpen ?? false, marksOpen: this.marksOpen ?? false, howOpen: this.howOpen, changed: this.changed, all: this.allOn, expanded: this.expanded };
     const host = this.ui("frontier-legend");
-    replaceKeepingFocus(host, frontierLegend(refs, [...overlays, ...current], this.versions, state, status));
+    replaceKeepingFocus(host, frontierLegend(refs, [...overlays, ...current], this.versions, state, status, this.descriptions));
     if (this.hovered !== null && host.querySelector(`[data-ver="${this.hovered}"]`) === null) this.hovered = null;
     if (this.isolated !== null && host.querySelector(`[data-ver="${this.isolated}"]`) === null) { this.isolated = null; this.renderCharts(); return; }
     this.ui("frontier-full").innerHTML = frontierPlot(refs, overlays, width, this.versions, current, this.zoom, status, this.isolated ?? this.hovered);
@@ -235,13 +247,14 @@ export function bootWorkbench(win: Window): Workbench {
   const from = new URL(win.location.href).searchParams.get("from");
   const wb = new Workbench(win.document, {
     fetchSnapshot: async () => { const response = await win.fetch("/api/workbench", { signal: AbortSignal.timeout(180000) }); if (!response.ok) throw new Error(`Workbench request failed (${String(response.status)})`); return response.json() as Promise<unknown>; },
+    fetchFeatures: async () => { const response = await win.fetch("/api/features"); if (!response.ok) throw new Error(`Feature catalog request failed (${String(response.status)})`); return response.json() as Promise<unknown>; },
     now: () => Date.now(), width: () => win.document.querySelector('[data-wb="frontier-full"]')?.getBoundingClientRect().width || win.document.documentElement.clientWidth || 640,
   }, from);
   const queueRoot = win.document.querySelector<HTMLElement>('[data-ui="experiment-queue"]');
   const experiments = queueRoot === null ? null : new QueuePanel(queueRoot, { fetchJson: async (url) => { const response = await win.fetch(url); if (!response.ok) throw new Error(`GET ${url} returned HTTP ${String(response.status)}`); return response.json() as Promise<unknown>; }, sendJson: async (method, url, body) => { const response = await win.fetch(url, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) }); const reply: unknown = await response.json(); if (!response.ok) throw new Error(typeof reply === "object" && reply !== null && "error" in reply ? String(reply.error) : `${method} ${url} returned HTTP ${String(response.status)}`); return reply; }, confirm: (text) => win.confirm(text), loaded: (snapshot) => { wb.lanes(runLanes(snapshot.fixedRuns ?? [])); }, unavailable: () => { wb.lanes("unavailable"); }, problem: (text) => { const el = queueRoot.querySelector('[data-eq="queue"]'); if (el !== null) el.innerHTML = `<pre class="eq-problems">${esc(text)}</pre>`; } });
   void experiments?.load();
   const queuePoll = win.setInterval(() => { void experiments?.load(); }, QUEUE_POLL_MS);
-  void wb.refresh(); const poll = win.setInterval(() => { void wb.refresh(); }, WORKBENCH_POLL_MS), clock = win.setInterval(() => { wb.clock(); }, 1000);
+  void wb.features(); void wb.refresh(); const poll = win.setInterval(() => { void wb.refresh(); }, WORKBENCH_POLL_MS), clock = win.setInterval(() => { wb.clock(); }, 1000);
   win.addEventListener("resize", () => { wb.resize(); }); win.addEventListener("pagehide", () => { wb.destroy(); win.clearInterval(poll); win.clearInterval(clock); win.clearInterval(queuePoll); }, { once: true });
   return wb;
 }

@@ -48,7 +48,8 @@ Switch `dialogue-context-kept-v1` (guidance, needs nothing, default OFF).
 - [x] COMMIT: `test: RED supervisor story-instruction pages are bounded by event order, not turn (review round 1)` (da85a880): 2 red, 16 green; the 3f21 T166 line now also carries Mom's five turn-95 2F pages (shown after CLOCK_SET seq 1629, before MOM_RIVAL_INSTRUCTION seq 1775)
 - [x] COMMIT: `fix: bound the supervisor's story-instruction pages by milestone seq, not turn (review round 1)` (df596e80): 18/18
 - [x] Merge main 50db95d0 (bedroom-exit); one conflict in features.test.ts legacy list resolved by adding this switch to main's list. Gates after merge: agent 1292, viewer 790, python 1960 passed; TS lint clean (mypy only mgba._pylib); coverage agent 97.63/94.28/97.88/99.04, viewer 95.09/90.42/93.56/97.6, python 97.03/92.57/100; verify-vendor ok; build ok
-- [ ] Re-review the round-1 delta
+- [x] Review round 2 (delta only): Codex LGTM, grok LGTM. Codex non-blocking integration note: `claude/bundle-prelaunch-fixes` (`bundle-3f21-fixes.test.ts:136`) asserts on the phrase "last story step" in non-stall briefings; with this switch ON every supervisor briefing carries "…the last story step the game confirmed…", so M6 must reconcile that assertion and the wording.
+- [x] Branch left unmerged for M6
 
 ## Session Log
 

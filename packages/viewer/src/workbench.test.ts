@@ -76,6 +76,17 @@ describe("mounted runs and comparisons workbench", () => {
   it("coalesces polling and ignores late responses after disposal", async () => {
     let resolve: (value: unknown) => void = () => { throw new Error("not captured"); }; const fetch = vi.fn(() => new Promise<unknown>(r => { resolve = r; })); const wb = new Workbench(document, { fetchSnapshot: fetch, now: () => 6000, width: () => 340 }); const first = wb.refresh(); await wb.refresh(); expect(fetch).toHaveBeenCalledTimes(1); wb.destroy(); resolve(data()); await first; expect(ui("frontier-full").textContent).toBe("Loading recorded runs…"); await wb.refresh(); wb.clock(); wb.resize(); expect(fetch).toHaveBeenCalledTimes(1);
   });
+  it("labels EXPERIMENT options from the snapshot's cohort list while values stay machine-readable", async () => {
+    const tagged = "experiment:bundle-v-control@ca37a3922222";
+    const { wb } = mount({ ...data(), runs: [run({ id: "a", cohort: tagged }), run({ id: "b", cohort: "legacy-cohort" }), run({ id: "c", cohort: null })], cohorts: [{ id: tagged, label: "Bundle vs control (dry run, cook)", experiment: "bundle-v-control-dryrun-cook", build: "ca37a392".padEnd(40, "2"), dryRun: true }] });
+    await wb.refresh();
+    const options = [...(ui("cohort") as HTMLSelectElement).options].map(o => [o.value, o.textContent]);
+    expect(options).toEqual([["all", "All recorded runs"], [tagged, "Bundle vs control (dry run, cook)"], ["legacy-cohort", "legacy-cohort"]]);
+    change("cohort", tagged); expect([...(ui("overlay") as HTMLSelectElement).options].map(o => o.value)).toEqual(["all", "none", "a"]); wb.destroy();
+  });
+  it("rejects a malformed cohort list at the browser boundary", async () => {
+    const { wb } = mount({ ...data(), cohorts: [{ id: "x", label: 3 }] }); await wb.refresh(); expect(ui("problem").hidden).toBe(false); wb.destroy();
+  });
   it("handles empty records, no current run and missing selected run on refresh", async () => {
     const { wb, fetch } = mount(); await wb.refresh(); open(); fetch.mockResolvedValue({ ...data(), at: 2000, runs: [], problems: ["Unreadable receipt"] }); await wb.refresh(); expect(ui("detail-body").textContent).toContain("no longer available"); expect(ui("data-problems").textContent).toContain("Unreadable"); ui("detail").dispatchEvent(new MouseEvent("click", { bubbles: true })); expect(ui("detail").hidden).toBe(true); wb.destroy();
   });

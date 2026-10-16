@@ -103,3 +103,5 @@ explainers/trainer-heal-guidance-v1.html served=60d85fbb59d4d32ba2a7b8a495cef431
 explainers/low-hp-trainer-warning-v1.html served=d12a3f37b37f64a8be8e13dd4290cc73c41d396a0e910376a7e9e845108394a6 tracked=d12a3f37b37f64a8be8e13dd4290cc73c41d396a0e910376a7e9e845108394a6
 events.jsonl bec601fc54e18935bff93c48043e39364648682cd4f31f724d48b97bd85042d8
 ```
+
+**Round 5** (base 9e27986a, head bc6010f1, sha 852aafdf…f056). Claude: LGTM. Grok: LGTM. GPT (Codex): BLOCKING — (1) proof script wrote a short commit and dirty:true, so the receipt was not source-bound, and the explainer clicks had no page captures; (2) wire test ran ON and OFF through disk and HTTP, explainer test re-read files the mapped-explainer test reads; (3) tail line untested. Fixes: wire test is one ON real-adapter run (OFF/matrix proven in memory); explainer card test checks links only; new tail test asserts the exact SUPERVISOR line (deletion receipt: removing the tail case turns it red); proof script now records the full HEAD and the real dirty state; proof redone below on the committed, clean head with both explainer pages captured.

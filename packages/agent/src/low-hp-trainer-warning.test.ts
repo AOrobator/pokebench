@@ -8,7 +8,8 @@ import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {ALL_ON,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {flagFeatures,normalizeFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
-import {eventProblem} from "./events.js";
+import {eventProblem,type RunEvent} from "./events.js";
+import {formatEvent} from "./tail.js";
 import {LowHpTrainerWarning,lowHpTrainerWarning,warningText,withLowHpTrainerWarning,type WarningRecorder} from "./low-hp-trainer-warning.js";
 import {playGameTools} from "./play-wiring.js";
 import {playSystemPrompt,playTools,toolSwitches} from "./play-config.js";
@@ -167,6 +168,11 @@ describe("delivery on game-tool results",()=>{
   expect(watch.observe(undefined)).toBeNull();
   expect(watch.observe(T363)?.rival).toBe("MAY");
   expect(watch.observe(T363)).toBeNull();
+ });
+ it("renders as one SUPERVISOR line in the terminal tail",()=>{
+  const event={v:1,run:"r",seq:5,t:"2026-10-16T05:27:04.000-04:00",type:"low_hp_trainer_warning",turn:363,tool:"navigate_to",...must(lowHpTrainerWarning(T363)),map_id:[0,18],items:[],text:T363_TEXT} as RunEvent;
+  expect(eventProblem(event)).toBeNull();
+  expect(formatEvent(event)).toBe("05:27:04 t363 SUPERVISOR low-HP trainer warning · TORCHIC 3/21 · MAY at (10,3)");
  });
  it("records an event the run log accepts",()=>{
   const warning=must(lowHpTrainerWarning(T363));

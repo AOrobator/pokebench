@@ -61,7 +61,7 @@ Read-only RAM reads already used by character presence. No new network, file or 
 
 **M3 — presence-penalty-v1**
 - [x] RED: OFF request body unchanged; ON adds presence_penalty 1.5 to every chat request; value recorded in run_start; llama-server lane accepts it (probe); registry/presets/defaults
-- [ ] GREEN + gates
+- [x] GREEN + gates
 
 **M4 — explainers, pending experiments, review**
 - [ ] Explainers (`docs/explainers/offscreen-objects-v1.html`, `navigate-first-prompt-v1.html`), README, FEATURE_EXPLAINERS, pages-check
@@ -93,6 +93,11 @@ Done when both switches are merged after review, explainers link from Harness Co
   COMMIT: `feat: navigate-first-prompt-v1 names navigate_to as the way to move in the prompt, its description and a press reminder (default off)`
 - 2026-10-16 04:12 AM EDT: M3 RED. `packages/agent/src/presence-penalty.test.ts` (registry, presets, `samplingExtras`/`playSampling` ON/OFF, run_start schema accepts a numeric presence_penalty and records without it); `provider.test.ts` adds wire tests through the fake gateway: OFF request bodies have no presence_penalty and the loop base equals today's, ON every chat request carries presence_penalty 1.5 and is otherwise byte-equal. Fails: module missing.
   COMMIT: `test(RED): presence-penalty-v1 sends and records presence_penalty 1.5 on every chat request`
+- 2026-10-16 04:20 AM EDT: M3 GREEN. `packages/agent/src/presence-penalty.ts` (PRESENCE_PENALTY 1.5, `samplingExtras`, `playSampling`); `gatewayLoopConfig(..., extras)` adds an `onPayload` hook only when extras exist (OFF config has no hook, so the body is unchanged); `playLoopBase` used by live.ts for both the agent loop and state mode; run_start `sampling` via `playSampling` and an optional numeric `presence_penalty` in the event schema (`schemas/events.v1.json` regenerated). Registry (guidance, needs null), presets/defaults false. Test fixes in GREEN: the OFF config check compares keys (functions differ by identity); the run_start test uses cook #2's full recorded run_start (`test-support/run-start-sh02.json`); payload pass-through case for coverage.
+  - Lane check (llama-server b10236, Qwen3.6-35B-A3B on [local inference port]): `/props` lists presence_penalty in default_generation_settings.params; a chat request with presence_penalty 1.5 returned 200, and `/completion` echoed `generation_settings.presence_penalty = 1.5`. MISTAKE: these two requests (~04:08 AM EDT) reached the lane while overnight control trial `runs/2026-10-16T03-50-01_qwen36-gpu1_687e` was live (slot looked idle between turns). Outlier latencies at its turns 374 (7.6 s) and 382 (6.3 s); reported to the coordinator for the overnight thread to flag. Rule for this branch: no requests to either GPU lane while trials run.
+  - Wiring removal: dropping `samplingExtras(features)` in playLoopBase → 1 red; restored → green.
+  - Gates: agent 1453, viewer 821, Python 2147 passed; coverage agent 97.76/94.65/98.01/99.09 (presence-penalty.ts, provider.ts 100%), viewer 95.19/90.64/93.55/97.65, Python 96%; lint green except known mypy `mgba._pylib`; build green.
+  COMMIT: `feat: presence-penalty-v1 sends presence_penalty 1.5 with every chat request and records it in run_start (default off)`
 
 ## Surprises
 

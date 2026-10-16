@@ -85,7 +85,8 @@
    "adjacent-tiles-v1": false,
    "readout-rules-in-prompt-v1": false,
    "offscreen-objects-v1": false,
-   "navigate-first-prompt-v1": false
+   "navigate-first-prompt-v1": false,
+   "presence-penalty-v1": false
   }
  },
  "trialsPerArm": 8,

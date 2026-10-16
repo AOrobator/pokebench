@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import { ALL_ON, SERVER_FEATURES, SWITCHABLE_FEATURES, featureInfo, featuresOf, playHarnessFeatures, type FeatureSet } from "./features.js";
 import { flagFeatures, normalizeFeatures, parsePlayPreset, presetFeatures } from "./play-preset.js";
 import { PRESENCE_PENALTY, playSampling, samplingExtras } from "./presence-penalty.js";
+import { readFileSync } from "node:fs";
 import { checkEvent } from "./events.js";
 
 const ID = "presence-penalty-v1";
@@ -38,7 +39,11 @@ it("sends and records the Qwen3.6 card's thinking-mode value only when on", () =
 });
 
 it("run_start records the value it sent; records without it stay valid", () => {
-  const start = (sampling: Record<string, unknown>) => ({ v: 1, run: "r", seq: 0, t: "2026-10-16T04:00:00.000-04:00", type: "run_start", turn: 0, rom_sha1: "f3ae088181bf583e55daf962a92bb46f4f1d07b7", model: { id: "m", context_window: 1, max_tokens: 1, vision: true }, sampling, system_prompt: "s", tools: [], harness: { commit: "f3ae088181bf583e55daf962a92bb46f4f1d07b7", dirty: false }, vendor_pin: "f3ae088181bf583e55daf962a92bb46f4f1d07b7", pi_version: "0", harness_features: [] });
+  // Cook run #2's recorded run_start (2026-10-16T02-23-17_qwen36-gpu1_sh02, seq 0) with its sampling replaced.
+  const recorded = checkEvent(JSON.parse(readFileSync(new URL("../test-support/run-start-sh02.json", import.meta.url), "utf8")));
+  if (recorded.type !== "run_start") throw new Error("not a run_start");
+  expect(recorded.sampling).toEqual({ thinking_level: "medium", max_tokens: 4096 });
+  const start = (sampling: Record<string, unknown>) => ({ ...recorded, sampling });
   expect(() => checkEvent(start({ thinking_level: "medium", max_tokens: 4096 }))).not.toThrow();
   expect(() => checkEvent(start({ thinking_level: "medium", max_tokens: 4096, presence_penalty: 1.5 }))).not.toThrow();
   expect(() => checkEvent(start({ thinking_level: "medium", max_tokens: 4096, presence_penalty: "high" }))).toThrow();

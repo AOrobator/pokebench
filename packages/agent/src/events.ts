@@ -53,7 +53,7 @@ const RunStart = event("run_start", {
     { id: Type.String({ minLength: 1 }), context_window: NonNegativeInt, max_tokens: NonNegativeInt, vision: Type.Boolean() },
     closed,
   ),
-  sampling: Type.Object({ thinking_level: Type.String(), max_tokens: NonNegativeInt }, closed),
+  sampling: Type.Object({ thinking_level: Type.String(), max_tokens: NonNegativeInt, presence_penalty: Type.Optional(Type.Number()) }, closed),
   system_prompt: Type.String(),
   tools: Type.Array(Type.String()),
   harness: Type.Object({ commit: Sha1, dirty: Type.Boolean() }, closed),

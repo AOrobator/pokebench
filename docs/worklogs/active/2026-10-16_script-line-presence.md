@@ -66,7 +66,11 @@ M1: RED, GREEN, gates. M2: explainer, pending experiment, review (Claude, Codex,
   - Docs-only main update 6d2be8af merged (6da4e26a); `just test` green.
   - Round 7 (6d2be8af..6da4e26a, `/tmp/slp-review/r7-full.diff` sha256 108b3445…d755): Claude CLI LGTM, Grok LGTM, Codex BLOCKING (evidence gap): no test runs battle text auto-advance and this switch together. Taken: a combined test in `battle-text-auto-advance.test.ts` (field page before the battle, two battle pages, field page after, each field page with its own objects): field pages carry exactly their own state's `on_screen` (Birch named before, the bag after), battle pages have no `on_screen` key, the event validates, battle lines carry no tag, and with this switch off no page has the key. The production code already behaved this way, so the test passed on first run (no RED commit possible); adversarial checks: battle pages given presence → red; field pages given the first state's presence (stale) → red; restored → 54/54 green. Not taken (non-blocking): renaming other suites' "recorded last" test titles. Gates: agent 1516, viewer 866, pytest 2210; coverage agent 97.86 / 94.44 / 98.17 / 99.13, viewer 95.36 / 90.98 / 93.57 / 97.7, Python 97.26 / 93.01 / 100; lint clean.
   - Main moved to 09d1a652 (battle-message-waiting-v1, an observation switch). Merged main; registry files taken from main and this switch re-appended after `battle-message-waiting-v1`; battle-text-auto-advance.test keeps main's relative wording, gains this id in its `later` set, and its positional assertions (registry and preset key order) +1; battle-message-waiting.test's "recorded last" assertions now -2; other positional assertions +1; switchboard rows 67; explainer mapping, README and panels test keep both; experiment incumbent gains `battle-message-waiting-v1: false`. Gates: agent 1521, viewer 867, pytest 2235; coverage agent 97.86 / 94.44 / 98.17 / 99.13, viewer 95.36 / 90.98 / 93.57 / 97.7, Python 97.29 / 93.10 / 100; lint clean (mypy via main venv, 77 files); build ok; verify-vendor OK; pages-check silent.
-- [ ] Round 8 review (round-7 fix plus this merge), then land ff-only
+- [x] Round 8 review (round-7 fix plus this merge), then land ff-only
+  - Round 8 (48d6b48f..bbbee47b, packet sha256 6e6cc2d6…96da): Claude CLI LGTM, Grok (cursor-grok-4.5-high) LGTM, Codex (gpt-5.6-sol) LGTM.
+  - LANDED: main fast-forwarded to bbbee47b3e8ecd46d20fe30a967ce15211fc093a.
+  - Gates on main after `just build`: agent 1521, viewer 867, pytest 2235 passing. Coverage at the tip: agent 97.86/94.44/98.17/99.13 (stmts/branches/funcs/lines), viewer 95.36/90.98/93.57/97.70, python branches 93.10, funcs 100, lines 97.29.
+  - Pending experiment `script-line-presence` repinned to bbbee47b.
 
 ## Session Log
 - 2026-10-16 03:05 AM EDT: worklog drafted; fixture extracted from the live run (read-only).
@@ -81,3 +85,5 @@ M1: RED, GREEN, gates. M2: explainer, pending experiment, review (Claude, Codex,
 - 2026-10-16 04:41 AM EDT: rounds 5 and 6 LGTM; merged main 586ab6d1 (battle text auto-advance); gates green.
 - 2026-10-16 04:51 AM EDT: round 7 Codex evidence gap closed with a combined battle/field test.
 - 2026-10-16 04:55 AM EDT: merged main 09d1a652 (battle message waiting); gates green.
+- 2026-10-16 05:02 AM EDT: round 8 LGTM from all three cloud lanes on bbbee47b.
+- 2026-10-16 05:06 AM EDT: main fast-forwarded to bbbee47b; `just test` green on main; experiment repinned. Bundle-arm membership is for the bundle-v-control owner.

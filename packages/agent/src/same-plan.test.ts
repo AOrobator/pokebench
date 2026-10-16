@@ -6,6 +6,7 @@ import {checkEvent,parseEvent,type RunEvent} from "./events.js";
 import type {LoopNotice} from "./loop-detection.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {loopSupervisor,stallBriefing} from "./play-wiring.js";
+import {decisionContext} from "./decision-probe.js";
 import {SAME_PLAN_SIMILARITY,SamePlanBreaker,planSimilarity,planState,planTokens} from "./same-plan.js";
 import {IN_GAME} from "../test-support/events.js";
 
@@ -59,6 +60,8 @@ describe("plan similarity",()=>{
   expect(planSimilarity(planTokens("press up"),planTokens("PRESS UP"))).toBe(1);
   expect(planSimilarity(planTokens("a b"),planTokens("c d"))).toBe(0);
   expect(planSimilarity([],[])).toBe(1);
+  expect(planTokens("")).toEqual([]);
+  expect(planSimilarity(planTokens(""),planTokens("press"))).toBe(0);
   expect(planSimilarity(planTokens("a b c d"),planTokens("a x c d"))).toBe(0.75);
   // The twin turns differ only in the tile they start from.
   const t145="I am at (11,2). I need to go to Route 101. The map connection says \"- NORTH -> ROUTE101 (map 0/16)\". I will press UP to go to Route 101.";
@@ -154,6 +157,44 @@ describe("states that qualify",()=>{
   // Refused at turn 5 (another note was open), posted at turn 6.
   expect(notes).toEqual(["SUPERVISOR: Your last 3 plans (turns 4, 5, 6) were the same and the game state did not change: same"]);
  });
+ it("waits for every tool call of a reply, ignores other results, and withholds after an error",()=>{
+  const notes:string[]=[];
+  const breaker=new SamePlanBreaker(ALL_ON,{stall:(_k,text)=>{notes.push(text(0));return true;}});
+  for(let i=0;i<40;i++)breaker.observe(state({}));
+  for(let turn=1;turn<=5;turn++){
+   breaker.observe(ev({type:"tool_result",id:"stray",name:"press",is_error:false,duration_ms:1,text:"ok",frames:[]},turn));
+   breaker.observe(ev({type:"assistant",thinking:"same",text:"",tool_calls:[{id:`e${String(turn)}`,name:"press",args:{buttons:["UP"]}},{id:`f${String(turn)}`,name:"observe",args:{}}],usage:{input:1,output:1,cache_read:0},latency_ms:1,ttft_ms:1,stop_reason:"toolUse"},turn));
+   const s=state({});breaker.observe(s);
+   breaker.observe(ev({type:"tool_result",id:`e${String(turn)}`,name:"press",is_error:false,duration_ms:1,text:"ok",frames:[],state_seq:s.seq},turn));
+   expect(notes).toEqual([]);
+   breaker.observe(ev({type:"tool_result",id:`f${String(turn)}`,name:"observe",is_error:turn===4,duration_ms:1,text:"ok",frames:[],state_seq:s.seq},turn));
+  }
+  // Turn 4's last result was an error, so no window holding it qualifies.
+  expect(notes).toEqual([]);
+ });
+ it("needs every decision of the window answered",()=>{
+  const notes:string[]=[];
+  const breaker=new SamePlanBreaker(ALL_ON,{stall:(_k,text)=>{notes.push(text(0));return true;}});
+  for(let turn=1;turn<=6;turn++){
+   breaker.observe(ev({type:"assistant",thinking:"same",text:"",tool_calls:[{id:`g${String(turn)}`,name:"press",args:{buttons:["UP"]}}],usage:{input:1,output:1,cache_read:0},latency_ms:1,ttft_ms:1,stop_reason:"toolUse"},turn));
+   if(turn===5)continue;
+   const s=state({});breaker.observe(s);
+   breaker.observe(ev({type:"tool_result",id:`g${String(turn)}`,name:"press",is_error:false,duration_ms:1,text:"ok",frames:[],state_seq:s.seq},turn));
+  }
+  expect(notes).toEqual([]);
+ });
+});
+
+it("the decision probe replays the note into the T145 context with the switch on, and not with it off",async()=>{
+ const start=FIXTURE.events.find((e):e is Extract<RunEvent,{type:"run_start"}>=>e.type==="run_start");
+ if(start===undefined)throw new Error("fixture has no run_start");
+ const ports={frame:()=>"",rerender:()=>Promise.reject(new Error("no rerender")),thinkingSignature:"reasoning_content"};
+ const notes=(messages:readonly {role:string;content:unknown}[])=>messages.flatMap(m=>m.role==="user"&&typeof m.content==="string"&&m.content.startsWith("SUPERVISOR: Your last 3 plans")?[m.content]:[]);
+ const on=await decisionContext({start,events:FIXTURE.events},145,ON,ports,"replayed");
+ const off=await decisionContext({start,events:FIXTURE.events},145,OFF,ports,"replayed");
+ expect(notes(on.messages)).toHaveLength(1);
+ expect(notes(on.messages)[0]).toMatch(/^SUPERVISOR: Your last 3 plans \(turns 142, 143, 144\) were the same/);
+ expect(notes(off.messages)).toEqual([]);
 });
 
 it("parses as a loop_guard event with the same_plan kind",()=>{

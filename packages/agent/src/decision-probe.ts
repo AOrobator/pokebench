@@ -132,12 +132,13 @@ export class Replay {
   readonly recordNavigationContext = (body: Omit<Extract<EventBody, { type: "navigation_context" }>, "type">): void => { this.own({ type: "navigation_context", ...body }, this.upcoming); };
   readonly recordLedgerContext = (body: Omit<Extract<EventBody, { type: "ledger_context" }>, "type">): void => { this.own({ type: "ledger_context", ...body }, this.upcoming); };
   readonly recordMilestoneHint = (body: Omit<Extract<EventBody, { type: "milestone_hint" }>, "type">): void => { this.own({ type: "milestone_hint", ...body }, this.upcoming); };
+  readonly recordBeliefLedger = (body: Omit<Extract<EventBody, { type: "belief_ledger" }>, "type">): void => { this.own({ type: "belief_ledger", ...body }, this.upcoming); };
   // Tool construction ports; a probe never executes a tool.
   readonly recordState = (): never => { throw new Error("probe tools never execute"); };
   readonly recordDialogueAutoAdvance = (): never => { throw new Error("probe tools never execute"); };
 }
 // What the wiring itself records; the replay regenerates these instead of reading them.
-const DERIVED: readonly RunEvent["type"][] = ["loop_guard", "navigation_context", "ledger_context", "milestone_hint", "text_only_supervisor"];
+const DERIVED: readonly RunEvent["type"][] = ["loop_guard", "navigation_context", "ledger_context", "milestone_hint", "text_only_supervisor", "belief_ledger"];
 
 const inert = (): Promise<never> => Promise.reject(new Error("probe tools never execute"));
 
@@ -261,7 +262,7 @@ export function recordedNotes(prior: readonly RunEvent[], turn: number): string[
     else if (e.phase === "supervisor") guard = e.message;
     else guard = null;
   }
-  const own = prior.filter((e) => e.turn === turn && (e.type === "ledger_context" || e.type === "navigation_context")).flatMap((e) => (e.type === "ledger_context" || e.type === "navigation_context" ? [e.text] : []));
+  const own = prior.filter((e) => e.turn === turn && (e.type === "ledger_context" || e.type === "navigation_context" || e.type === "belief_ledger")).flatMap((e) => (e.type === "ledger_context" || e.type === "navigation_context" || e.type === "belief_ledger" ? [e.text] : []));
   return [...(guard === null ? [] : [guard]), ...(hint === null ? [] : [hint]), ...own];
 }
 const sameSwitches = (a: FeatureSet, b: FeatureSet): boolean => SWITCHABLE_FEATURES.every((id) => a[id] === b[id]);

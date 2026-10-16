@@ -133,6 +133,8 @@ const HumanSample = event("human_sample", {
 const NavigationContext = event("navigation_context", {text:Type.String(),evidence:Type.Array(NonNegativeInt,{maxItems:36,uniqueItems:true})});
 const MilestoneHintContext = event("milestone_hint", {text:Type.String({maxLength:1000}),milestone:Type.String({minLength:1})});
 const LedgerContext = event("ledger_context", {text:Type.String(),evidence:Type.Array(NonNegativeInt,{maxItems:64,uniqueItems:true})});
+// disproved-beliefs-v1: the ledger delivered before a model call, whole, with its entry count and cited events.
+const BeliefLedger = event("belief_ledger", {text:Type.String({minLength:1}),entries:Type.Integer({minimum:1}),evidence:Type.Array(NonNegativeInt,{uniqueItems:true})});
 
 const ToolResult = event("tool_result", {
   state_seq: Type.Optional(NonNegativeInt),
@@ -184,7 +186,7 @@ const Activity = event("activity", {
 });
 
 const LoopFields = {
-  kind: Type.Enum(["planning", "observation", "ineffective", "cycle", "rejection", "map_cycle", "milestone_drought"] as const),
+  kind: Type.Enum(["planning", "observation", "ineffective", "cycle", "rejection", "map_cycle", "milestone_drought", "same_plan"] as const),
   message: Type.String(), calls: NonNegativeInt,
   evidence: Type.Array(NonNegativeInt, {minItems:1,maxItems:2}),
 };
@@ -473,6 +475,7 @@ export const RunEventSchema = Type.Union([
   ButtonPress,
   NavigationContext,
   LedgerContext,
+  BeliefLedger,
   MilestoneHintContext,
   DecisionInput,
   WaitInput,

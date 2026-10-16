@@ -107,6 +107,47 @@ export function readFrom(path: string, offset: number, lineNo: number): ReadResu
   return { results, offset: offset + end + 1, lineNo: line };
 }
 
+// Reads a log forward in bounded pieces: each file byte is read once, at most chunkBytes per read
+// (more only to finish a line longer than that), and next() parses at most maxLines complete
+// lines, keeping the unparsed rest in memory. A line still being written stays unread until its
+// newline lands.
+export class LogReader {
+  private buffer: Buffer = Buffer.alloc(0);
+  private pieces: Buffer[] = [];
+  private fileEnd = 0;
+  private lineNo = 0;
+
+  constructor(private readonly path: string, private readonly chunkBytes: number) {}
+
+  // The parsed lines (blank ones skipped) and how many lines were consumed: 0 means nothing new.
+  next(maxLines: number): { readonly results: LineResult[]; readonly lines: number } {
+    // Pieces of a line longer than a chunk are kept apart and joined once, when its newline arrives.
+    if (this.buffer.indexOf(0x0a) < 0) {
+      for (;;) {
+        const more = readBytes(this.path, this.fileEnd, this.chunkBytes);
+        if (more.length === 0) return { results: [], lines: 0 };
+        this.fileEnd += more.length;
+        this.pieces.push(more);
+        if (more.indexOf(0x0a) >= 0) break;
+        if (more.length < this.chunkBytes) return { results: [], lines: 0 };
+      }
+      this.buffer = Buffer.concat([this.buffer, ...this.pieces]);
+      this.pieces = [];
+    }
+    const results: LineResult[] = [];
+    let start = 0, parsed = 0;
+    for (let end = this.buffer.indexOf(0x0a); end >= 0 && parsed < maxLines; end = this.buffer.indexOf(0x0a, start)) {
+      parsed += 1;
+      this.lineNo += 1;
+      const text = this.buffer.subarray(start, end).toString("utf8");
+      if (text.trim() !== "") results.push(parseLine(text, this.lineNo));
+      start = end + 1;
+    }
+    this.buffer = start >= this.buffer.length ? Buffer.alloc(0) : this.buffer.subarray(start);
+    return { results, lines: parsed };
+  }
+}
+
 function firstLine(path: string): string | null {
   let size = CHUNK;
   for (;;) {

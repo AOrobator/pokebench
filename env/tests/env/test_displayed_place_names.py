@@ -242,3 +242,28 @@ def test_switch_is_a_default_off_server_feature() -> None:
     assert SERVER_FEATURES[-1] == SWITCH
     assert SWITCH in features_off_from_env({})
     assert SWITCH not in features_off_from_env({"POKEBENCH_FEATURES_OFF": ""})
+
+
+@pytest.mark.parametrize(
+    ("catalog", "shown"),
+    [
+        ("Mays House Sign", "Sign text \"PROF. BIRCH'S HOUSE\""),
+        ("Route Sign Oldale", "Sign text \"PROF. BIRCH'S HOUSE\""),
+        ("Notebook", "Notebook"),
+        ("GameCube", "GameCube"),
+    ],
+)
+def test_verified_furniture_keeps_its_name_and_signs_take_their_text(
+    monkeypatch: pytest.MonkeyPatch, catalog: str, shown: str
+) -> None:
+    import hashlib
+
+    from pokebench_env.interaction_names import SCRIPT_NAMES, ScriptName
+
+    memory = littleroot(0)
+    digest = hashlib.sha256(memory.read(SIGN, 16)).hexdigest()
+    monkeypatch.setitem(SCRIPT_NAMES, SIGN, ScriptName(catalog, digest))
+    on = read_game_state(memory.read, MAPS, displayed_names_enabled=True)
+    off = read_game_state(memory.read, MAPS)
+    assert [t.name for t in on.interaction_targets or () if t.kind == "background"] == [shown]
+    assert [t.name for t in off.interaction_targets or () if t.kind == "background"] == [catalog]

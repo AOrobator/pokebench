@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Disproved Beliefs Ledger</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:740px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+ul{margin:0;padding-left:20px}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+svg .big{font-family:var(--mono);font-size:15px;font-weight:600}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.nav{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.arr.g{stroke:var(--game);stroke-width:2.4}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tablewrap{overflow-x:auto}
+.yes{color:var(--game);font-weight:600}
+.no{color:var(--prior);font-weight:600}
+
+</head>
+</style>
+</head>
+<body>
+<main>
+<div>
+<div class="eyebrow">Harness switch · guidance · <code>disproved-beliefs-v1</code> · needs nothing · off by default</div>
+<h1>Disproved beliefs ledger</h1>
+</div>
+<p class="lede">In run sh02 the model kept acting on beliefs the game had already contradicted: it looked for Professor Birch on the lab's tiles while every lab readout said he was not on the map and the scientist said he was away, and it pressed UP into the twin's script 15 times and LEFT into Birch's "Don't leave me" script 47 times. This switch keeps a short, factual ledger of such contradictions and shows it before every decision until the game state changes.</p>
+
+<section>
+<h2>What the model sees</h2>
+<p>Off, the model's context at turn 147 ends with its last tool result. On, one more message follows it. This is the exact text the switch adds at turn 147 of sh02, replayed from the recorded events:</p>
+<pre>Things the game has contradicted (from this run's own readouts and dialogue; an entry is dropped when a story flag changes or the game shows otherwise):
+- PROF. BIRCH on LITTLEROOT TOWN PROFESSOR BIRCHS LAB (map 1/4): you wrote at turn 125: "Professor Birch is at (9,7)." (you placed PROF. BIRCH on this map at turns 81, 82, 83, 84, 85, 86, 87, 88, 89, 124, 125). The readout on that map said at turn 124: "Story characters here (from this map's own object list): none. Not on this map: PROF. BIRCH, MAY, BRENDAN, MOM, NORMAN, WALLY, ROXANNE, STEVEN. Sprite kinds such as SCIENTIST_1 or FAT_MAN are not these characters." On that map at turn 98 you were shown: SCIENTIST_1 (sprite kind, not a name): "Hunh? PROF. BIRCH?" | SCIENTIST_1 (sprite kind, not a name): "The PROF's away on fieldwork.
+Ergo, he isn't here." | SCIENTIST_1 (sprite kind, not a name): "Oh, let me explain what fieldwork is." | SCIENTIST_1 (sprite kind, not a name): "It is to study things in the natural
+environment, like fields and mountains," | SCIENTIST_1 (sprite kind, not a name): "instead of a laboratory." | SCIENTIST_1 (sprite kind, not a name): "The PROF isn't one for doing desk work.
+He's the type of person who would" | SCIENTIST_1 (sprite kind, not a name): "rather go outside and experience" | SCIENTIST_1 (sprite kind, not a name): "things than read about them here."
+- Moving UP from (11,1) in LITTLEROOT TOWN (map 0/9): you tried it 3 times, at turns 142, 144, 146 (latest: press UP). Each time a script moved you back to (11,2) while it showed (turn 146): TWIN (sprite kind, not a name): "Um, um, um!" | TWIN (sprite kind, not a name): "If you go outside and go in the grass,
+wild POKéMON will jump out!" | TWIN (sprite kind, not a name): "It's dangerous if you don't have
+your own POKéMON."</pre>
+<p>Nothing in an entry is shortened: every quote, every page and every turn is whole. The ledger names no goal and no route; it only pairs what the model went for with what the game showed.</p>
+</section>
+
+<section>
+<h2>Where entries come from</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 300" width="700" role="img" aria-label="Two sources feed the ledger">
+<rect x="10" y="20" width="200" height="110" rx="8" class="box"/><text x="22" y="44" class="t">Scripted push-back</text><text x="22" y="64" class="s">press or navigate_to call</text><text x="22" y="80" class="s">auto-advance pages begin at Q</text><text x="22" y="96" class="s">call ends one tile back at R</text><text x="22" y="112" class="s">against the way it was going</text>
+<rect x="10" y="170" width="200" height="110" rx="8" class="box"/><text x="22" y="194" class="t">Absent story character</text><text x="22" y="214" class="s">model sentence: NAME … at (x,y)</text><text x="22" y="230" class="s">NAME from the readout's own</text><text x="22" y="246" class="s">"Not on this map" list</text><text x="22" y="262" class="s">just shown on that map</text>
+<rect x="260" y="20" width="190" height="110" rx="8" class="prior"/><text x="272" y="44" class="t">Pursuit (model side)</text><text x="272" y="64" class="s">tool args: press UP, navigate_to</text><text x="272" y="80" class="s">or the model's whole sentence</text><text x="272" y="96" class="s">with every turn it recurred</text>
+<rect x="260" y="170" width="190" height="110" rx="8" class="game"/><text x="272" y="194" class="t">Evidence (game side)</text><text x="272" y="214" class="s">pages the script showed, whole</text><text x="272" y="230" class="s">the readout's presence line</text><text x="272" y="246" class="s">conversation on that map that</text><text x="272" y="262" class="s">names the character</text>
+<rect x="500" y="95" width="190" height="110" rx="8" class="nav"/><text x="512" y="119" class="t">Ledger entry</text><text x="512" y="139" class="s">shown before every decision</text><text x="512" y="155" class="s">recorded as belief_ledger</text><text x="512" y="171" class="s">with the events it cites</text>
+<path d="M210 75 H258" class="arr" marker-end="url(#ah)"/><path d="M210 225 H258" class="arr" marker-end="url(#ah)"/>
+<path d="M210 75 L258 220" class="arr" marker-end="url(#ah)"/><path d="M210 225 L258 80" class="arr" marker-end="url(#ah)"/>
+<path d="M450 75 L498 140" class="arr g" marker-end="url(#ah)"/><path d="M450 225 L498 160" class="arr g" marker-end="url(#ah)"/>
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="context-stroke"/></marker></defs>
+</svg>
+</div>
+<figcaption>Each source gives both sides of an entry from recorded data. While a field message is open the harness presses only A or B, so a move from Q to R during the pages is the game's own, not the model's.</figcaption>
+</figure>
+<p>The push-back rule, on the twin's tile: the model pressed UP at (11,1); the pages began with the player at Q = (11,1); the call ended at R = (11,2). The step Q→R is DOWN, the opposite of a direction the model pressed, so the entry is "Moving UP from (11,1)". For navigate_to the rule is that R is closer than Q to where the walk began (Birch's Route 101 script: the walk began at (11,15), pages at (6,15), the call ended at (7,15)). Mom's TV cutscene, which moves the player while it talks but after a press of A only, is not a push-back.</p>
+<p>The text rule is deliberately narrow. Names are only the readout's own story-character names, case-insensitive, where the game's <code>PROF.</code> also matches <code>Prof.</code> and <code>Professor</code>. The name must be followed in the same sentence by <code>at (x,y)</code> with no <code>not</code>, <code>n't</code>, <code>never</code>, <code>no longer</code> or <code>away</code> between. It must not be possessive, part of a sprite kind or inside parentheses.</p>
+<div class="tablewrap"><table>
+<tr><th>Sentence in sh02</th><th>Entry?</th><th>Why</th></tr>
+<tr><td>"Prof. Birch is at (7,7)." (T82)</td><td class="yes">yes</td><td>the lab readout says Not on this map: PROF. BIRCH</td></tr>
+<tr><td>"Professor Birch is standing next to the red carpet at (7,8)." (T81)</td><td class="yes">yes</td><td>same map, same line</td></tr>
+<tr><td>"The scientist (Prof. Birch) is at (8,3)." (T91)</td><td class="no">no</td><td>in parentheses (a true belief this rule gives up)</td></tr>
+<tr><td>"I see a woman (MOM) at (8,7)." (T177)</td><td class="no">no</td><td>in parentheses: a label for May's mother, not the readout's MOM</td></tr>
+<tr><td>"A RIVAL_MAY_NORMAL has appeared at (2,5)." (T221)</td><td class="no">no</td><td>part of a sprite kind</td></tr>
+<tr><td>"I will go to Professor Birch's lab …"</td><td class="no">no</td><td>possessive, and no tile</td></tr>
+</table></div>
+</section>
+
+<section>
+<h2>Leaving the ledger</h2>
+<p>An entry is dropped as soon as it may no longer hold: any story flag in the recorded state changes (the game's own flags and variables, not the model's words), that map's readout lists the character as here, or the player is seen on the tile the push-back refused.</p>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 210" width="700" role="img" aria-label="Lifespan of each sh02 entry by turn">
+<text x="10" y="20" class="s">turn →</text>
+<line x1="150" y1="180" x2="690" y2="180" class="arr"/>
+<text x="150" y="198" class="s">0</text><text x="285" y="198" class="s">100</text><text x="420" y="198" class="s">200</text><text x="555" y="198" class="s">300</text><text x="660" y="198" class="s">380</text>
+<text x="10" y="44" class="m">Mom, front door</text><rect x="230" y="34" width="3" height="14" class="prior"/><text x="240" y="46" class="s">T59 → dropped T61 (intro_stage 4→5)</text>
+<text x="10" y="80" class="m">Birch in the lab</text><rect x="260" y="70" width="179" height="14" class="prior"/><text x="445" y="82" class="s">T81 → T214 (rival_stage 0→2)</text>
+<text x="10" y="116" class="m">Twin at (11,1)</text><rect x="342" y="106" width="97" height="14" class="prior"/><text x="445" y="118" class="s">T142 → T214</text>
+<text x="10" y="152" class="m">Birch, Route 101</text><rect x="503" y="142" width="99" height="14" class="prior"/><text x="608" y="154" class="s">T261 → T335</text>
+<line x1="308" y1="28" x2="308" y2="176" class="arr g"/><text x="312" y="172" class="s">T117: 2nd lab trip, entry shown</text>
+<line x1="453" y1="28" x2="453" y2="62" class="arr"/><text x="458" y="40" class="s">T225: 3rd trip, story changed, none shown</text>
+</svg>
+</div>
+<figcaption>The four entries the ledger would have made on sh02 (snapshot to turn 1009), and when each left. The x axis is turn number (1.35 px per turn from x = 150).</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>Measured on sh02</h2>
+<ul>
+<li>Entries: 4, all true contradictions (precision 4/4). Delivered on 206 model calls.</li>
+<li>Would have been shown before the second lab trip (T117–T122) and through both push-back stalls.</li>
+<li>Missed: the third lab trip (T225–T228). The story had changed at T213, so the Birch entry was gone, and the model then wrote no tile for Birch.</li>
+<li>Rejected candidates: the parenthetical "(MOM)" and "(Prof. Birch)" sentences and the sprite kind above.</li>
+</ul>
+</section>
+
+<section>
+<h2>Wiring</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 120" width="700" role="img" aria-label="Wiring from preset to the model">
+<rect x="10" y="35" width="120" height="50" rx="8" class="box"/><text x="20" y="57" class="t">preset</text><text x="20" y="73" class="s">disproved-beliefs-v1</text>
+<rect x="170" y="35" width="140" height="50" rx="8" class="box"/><text x="180" y="57" class="t">contextTools</text><text x="180" y="73" class="s">play-wiring.ts</text>
+<rect x="350" y="35" width="160" height="50" rx="8" class="game"/><text x="360" y="57" class="t">DisprovedBeliefs</text><text x="360" y="73" class="s">last in the context chain</text>
+<rect x="550" y="35" width="140" height="50" rx="8" class="nav"/><text x="560" y="57" class="t">model call</text><text x="560" y="73" class="s">+ belief_ledger event</text>
+<path d="M130 60 H168" class="arr" marker-end="url(#ah2)"/><path d="M310 60 H348" class="arr" marker-end="url(#ah2)"/><path d="M510 60 H548" class="arr g" marker-end="url(#ah2)"/>
+<defs><marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="context-stroke"/></marker></defs>
+</svg>
+</div>
+<figcaption>The green box is the only one that changes behavior. The decision probe replays the same chain, so a recorded run can be re-read with the switch on.</figcaption>
+</figure>
+<p>The viewer shows each delivery in Activity History ("Disproved beliefs ledger delivered", whole text), in the agent trace as memory and as a marker on the timeline.</p>
+</section>
+
+<section>
+<h2>Off</h2>
+<p>No message, no event, no tool. Tests replay the sh02 fixture through the production context chain with the switch off and get the chain's own messages back byte for byte; the decision probe's T117 context with the switch on equals the off context plus exactly the ledger message.</p>
+</section>
+
+<section>
+<h2>Status</h2>
+<ul>
+<li>Branch <code>claude/beliefs-and-same-plan</code>. Default off; meant for the bundle arm of bundle-v-control (that file is edited elsewhere).</li>
+<li>Gates: test, lint (mypy's known <code>mgba._pylib</code> worktree error only), build, coverage ≥ 90 in both stacks.</li>
+<li>Not done: no measured runs. Pending experiment entry <code>experiments/disproved-beliefs.json</code>.</li>
+</ul>
+</section>
+</main>
+</body>
+</html>

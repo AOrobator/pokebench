@@ -384,6 +384,8 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "readout-rules-in-prompt-v1":"readout-rules-in-prompt-v1.html",
  "battle-triage-guidance-v1":"battle-triage-guidance-v1.html",
  "adjacent-tiles-v1":"adjacent-tiles-v1.html",
+ "disproved-beliefs-v1":"disproved-beliefs-v1.html",
+ "same-plan-breaker-v1":"same-plan-breaker-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

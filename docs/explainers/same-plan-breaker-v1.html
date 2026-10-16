@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Same-Plan Breaker</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:740px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+ul{margin:0;padding-left:20px}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+svg .big{font-family:var(--mono);font-size:15px;font-weight:600}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.nav{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.arr.g{stroke:var(--game);stroke-width:2.4}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tablewrap{overflow-x:auto}
+.yes{color:var(--game);font-weight:600}
+.no{color:var(--prior);font-weight:600}
+
+</head>
+</style>
+</head>
+<body>
+<main>
+<div>
+<div class="eyebrow">Harness switch · guard · <code>same-plan-breaker-v1</code> · needs deterministic-loop-guard-v1 · off by default</div>
+<h1>Same-plan breaker</h1>
+</div>
+<p class="lede">In both 30-turn stalls of run sh02 (the twin at Littleroot (11,1), T142–T171, and Birch's "Don't leave me" on Route 101, T263–T307) the model wrote the same plan, nearly word for word, every turn, while the game only repeated itself. The loop guard said nothing. This switch posts a factual supervisor note when the last 3 plans are near-identical and none of those decisions moved the game on.</p>
+
+<section>
+<h2>What the model sees</h2>
+<p>Off, nothing. On, at the next model call after turn 264 of sh02, the loop guard's note slot carries this, replayed from the recorded events:</p>
+<pre>SUPERVISOR: Your last 3 plans (turns 262, 263, 264) were the same and the game state did not change: I am at (7,15). I am facing right. I need to go to Professor Birch at (4,13). I will go north to (4,14) and then face up to talk to him. I will go north to (4,14) first.</pre>
+<p>When the state went back and forth instead of standing still, the note names the two states (turn 144):</p>
+<pre>SUPERVISOR: Your last 3 plans (turns 142, 143, 144) were the same and the game state did not change beyond going back and forth between LITTLEROOT TOWN (map 0/9) at (11,1) facing up, field controls locked and LITTLEROOT TOWN (map 0/9) at (11,2) facing up: I am at (11,1) in Littleroot Town. I need to go to Route 101. The map connection says "- NORTH -> ROUTE101 (map 0/16)". I will press UP to go to Route 101.</pre>
+<p>The plan is quoted whole, never shortened. The note is shown once, at the next model call, the way stall briefings are; it re-arms after 3 more decisions. The run continues.</p>
+</section>
+
+<section>
+<h2>Same plan: a fixed similarity</h2>
+<p>A plan is a reply's thinking and text. Both are lowercased and split into tokens: runs of letters and digits, and every other non-space character on its own. Similarity is 2·LCS / (|a| + |b|), the longest common token subsequence over the total length: 1 for identical plans, 0 for plans that share nothing. The 3 latest plans are "the same" when every pair is at least <b>0.80</b>.</p>
+<div class="tablewrap"><table>
+<tr><th>Pair in sh02</th><th>Similarity</th></tr>
+<tr><td>T145 "I am at (11,2). I need to go to Route 101. …" vs T146 "I am at (11,1). …"</td><td class="yes">above 0.95</td></tr>
+<tr><td>Twin stall, worst pair in any firing window</td><td class="yes">0.91</td></tr>
+<tr><td>Route 101 stall, worst pair</td><td class="yes">0.84</td></tr>
+</table></div>
+<p>At 0.85 the Route 101 notes start at T264 but skip T265–T267, where the model added "I am stuck in a loop"; at 0.90 they start only at T270. The state rule below, not the threshold, is what keeps notes out of ordinary play.</p>
+</section>
+
+<section>
+<h2>The game state did not move on</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 220" width="700" role="img" aria-label="Five states, window of three decisions">
+<text x="10" y="22" class="s">states after each decision (twin, T140–T144)</text>
+<rect x="10" y="40" width="120" height="58" rx="8" class="box"/><text x="20" y="62" class="m">S-1 after T140</text><text x="20" y="82" class="s">(11,2) free</text>
+<rect x="145" y="40" width="120" height="58" rx="8" class="box"/><text x="155" y="62" class="m">S0 after T141</text><text x="155" y="82" class="s">(11,1) locked</text>
+<rect x="300" y="40" width="120" height="58" rx="8" class="prior"/><text x="310" y="62" class="m">S1 after T142</text><text x="310" y="82" class="s">(11,2) free</text>
+<rect x="435" y="40" width="120" height="58" rx="8" class="prior"/><text x="445" y="62" class="m">S2 after T143</text><text x="445" y="82" class="s">(11,1) locked</text>
+<rect x="570" y="40" width="120" height="58" rx="8" class="prior"/><text x="580" y="62" class="m">S3 after T144</text><text x="580" y="82" class="s">(11,2) free</text>
+<text x="300" y="122" class="t">window: the 3 near-identical plans</text>
+<text x="10" y="150" class="s">Fires when every one of S1, S2, S3 equals S-1 or S0 (nothing new), and at least one of the five has field controls free.</text>
+<text x="10" y="172" class="s">The twin's trigger leaves the player at (11,1) locked; the next press shows the pages and puts it back at (11,2).</text>
+<text x="10" y="194" class="s">Walking reaches new tiles, so it never fires; the truck ride is locked throughout, so it never fires.</text>
+</svg>
+</div>
+<figcaption>The window of 3 decisions and the two states before it. Only the states reached in the window are named in the note.</figcaption>
+</figure>
+<p>A state is: screen, map, position, facing, field-control lock, the story flags, the party (species, level, HP, status), the battle (phase, turn, outcome, each battler's species, HP and status), the menu's phase, selection and value, and the dialogue text. Only a started overworld state with map, position and facing, or a battle whose input is ready, counts. Intro screens, naming, transitions and unknown readouts withhold the note.</p>
+</section>
+
+<section>
+<h2>Measured on sh02</h2>
+<p>1006 decisions (snapshot to turn 1009). 398 three-plan windows are near-identical; only 79 of them also leave the game where it was. With re-arming every 3 decisions the switch would have posted 28 notes:</p>
+<div class="tablewrap"><table>
+<tr><th>Where</th><th>Notes</th><th>Turns</th></tr>
+<tr><td>Twin push-back, Littleroot (11,1)</td><td>10</td><td>144, 147, … 171</td></tr>
+<tr><td>Birch's "Don't leave me", Route 101 (7,15)</td><td>15</td><td>264, 267, … 306</td></tr>
+<tr><td>Route 103: UP into water at (23,12); navigate_to refused at (19,7)</td><td>3</td><td>780, 800, 803</td></tr>
+</table></div>
+<p>False positives: none. No note in any window where a decision reached a new state; none while walking, in the Route 101 battle, in the truck or in the intro. With the switch on, the T171 milestone-drought briefing moves to T172, because the same-plan note held the loop guard's note slot that call; every other guard event is unchanged.</p>
+</section>
+
+<section>
+<h2>Wiring</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 120" width="700" role="img" aria-label="Wiring">
+<rect x="10" y="35" width="120" height="50" rx="8" class="box"/><text x="20" y="57" class="t">preset</text><text x="20" y="73" class="s">same-plan-breaker-v1</text>
+<rect x="170" y="35" width="140" height="50" rx="8" class="box"/><text x="180" y="57" class="t">stallBriefing()</text><text x="180" y="73" class="s">play-wiring.ts</text>
+<rect x="350" y="35" width="160" height="50" rx="8" class="game"/><text x="360" y="57" class="t">SamePlanBreaker</text><text x="360" y="73" class="s">same-plan.ts</text>
+<rect x="550" y="35" width="140" height="50" rx="8" class="nav"/><text x="560" y="57" class="t">LoopDetector.stall</text><text x="560" y="73" class="s">loop_guard same_plan</text>
+<path d="M130 60 H168" class="arr" marker-end="url(#ah2)"/><path d="M310 60 H348" class="arr" marker-end="url(#ah2)"/><path d="M510 60 H548" class="arr g" marker-end="url(#ah2)"/>
+<defs><marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="context-stroke"/></marker></defs>
+</svg>
+</div>
+<figcaption>It uses the stall-briefing note path the loop guard already has: the note is refused while a loop episode or another note is open, in diagnostic mode and after a stop, and then tried again at the next decision. Recorded as a <code>loop_guard</code> event with kind <code>same_plan</code>; the viewer labels it "Same plan repeated".</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>Off</h2>
+<p>No subscriber, no note. Tests replay the sh02 fixture through the real loop guard with the switch off and on: off posts no same_plan note, and every other guard event matches.</p>
+</section>
+
+<section>
+<h2>Status</h2>
+<ul>
+<li>Branch <code>claude/beliefs-and-same-plan</code>. Default off; meant for the bundle arm of bundle-v-control (that file is edited elsewhere). A separate branch fixes the loop guard's own blind spot for push-back cycles; the two are complementary.</li>
+<li>Gates: test, lint (mypy's known <code>mgba._pylib</code> worktree error only), build, coverage ≥ 90 in both stacks.</li>
+<li>Not done: no measured runs. Pending experiment entry <code>experiments/same-plan-breaker.json</code>.</li>
+</ul>
+</section>
+</main>
+</body>
+</html>

@@ -69,7 +69,7 @@ No new inputs from outside the process: both modules read recorded run events. N
 - [x] COMMIT: `feat: disproved-beliefs-v1 ledger of what the game contradicted and same-plan-breaker-v1 supervisor note (both default off)` (c33cb859)
 
 **M3 — explainers, pending experiments, review, merge**
-- [ ] Two explainers + FEATURE_EXPLAINERS + README; pending `experiments/disproved-beliefs.json`, `experiments/same-plan-breaker.json`; readiness rows
+- [x] Two explainers + FEATURE_EXPLAINERS + README; pending `experiments/disproved-beliefs.json`, `experiments/same-plan-breaker.json`; readiness rows
 - [ ] Principles self-review; Codex, Grok, Claude until LGTM
 - [ ] Merge latest main, re-run gates, merge to main (standing OK), repin source.commit
 
@@ -90,6 +90,8 @@ Report per switch: id, model-facing before/after excerpts from this run, precisi
   - Same-plan full-run replay: 28 notes (twin T144–T171 ×10, Route 101 T264–T306 ×15, Route 103 T780, T800, T803), all in windows where none of the 3 decisions reached a new state; 0 in walking, battles, truck or intro. Near-identical plan windows (≥0.80) number 398 of 1006 decisions; the state rule suppresses all but 79, and re-arming every 3 decisions leaves 28 notes. ON shifts the T171 drought briefing to T172 (the same-plan note occupied the stall slot); every other guard event is identical to OFF.
 
 - 2026-10-16 04:10 AM EDT: M3 RED: `panels.test.ts` asserts both cards link their explainers and the tracked pages carry the run's own ledger line and note; `server.test.ts` serves both through the allowlist. Both fail (no mapping, no files).
+
+- 2026-10-16 04:25 AM EDT: M3 GREEN. `docs/explainers/disproved-beliefs-v1.html` and `same-plan-breaker-v1.html` (inline CSS/SVG; replayed T147 ledger and T144/T264 notes from sh02, sources/retirement/wiring diagrams, entry lifespans, measurements, status); `just pages-check` prints nothing. FEATURE_EXPLAINERS and README entries. Pending `experiments/disproved-beliefs.json` and `same-plan-breaker.json` (incumbent = readout-rules-in-prompt's with both new ids false; activation PLAYER_NAME_CONFIRMED; provisional source.commit c33cb859), `experiment-cli check`: ok, 55 experiments. Readiness rows PENDING. Viewer 823 tests.
 
 ## Surprises
 

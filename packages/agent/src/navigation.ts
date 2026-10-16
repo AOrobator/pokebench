@@ -4,8 +4,8 @@ import type {Button} from "./events.js";
 import {isCheckedPress,type BeforePressCheck} from "./game-tools.js";
 import type {FeatureSet} from "./features.js";
 import {parseGameState,type StateSource,type GameStateSnapshot} from "./game-state.js";
+import {COUNTER,EDGE_WALLS,GAME_RULE,LEDGES,OPPOSITE,WATER,type Direction,type ElevationRule} from "./tile-rules.js";
 
-type Direction="UP"|"DOWN"|"LEFT"|"RIGHT";
 type Point={readonly x:number;readonly y:number};
 type Tile={readonly collision:number;readonly behavior:number;readonly elevation:number};
 export type NavigationMode="local"|"full";
@@ -25,29 +25,9 @@ const UNWALKABLE=new Set([
 const FLOOR=new Set(Array.from({length:0xf0},(_,behavior)=>behavior).filter(behavior=>!UNWALKABLE.has(behavior)));
 // Before walkable-floor-v1: plain ground, grass and doors/warps only.
 const LEGACY_WALKING=new Set([0,2,3,0x60,0x61,0x62,0x63,0x64,0x65,0x67,0x68,0x69,0x6a,0x6b,0x6c,0x6d,0x6e]);
-// pokeemerald 731ad5b MB_JUMP_EAST/WEST/NORTH/SOUTH: collision tiles that one press
-// in their direction jumps over, landing two tiles on (GetLedgeJumpDirection).
-const LEDGES:ReadonlyMap<number,Direction>=new Map([[0x38,"RIGHT"],[0x39,"LEFT"],[0x3a,"UP"],[0x3b,"DOWN"]]);
-// pokeemerald 731ad5b MetatileBehavior_Is*Blocked: collision-free tiles whose listed sides
-// IsMetatileDirectionallyImpassable refuses to cross, leaving the current tile or entering the next.
-const EDGE_WALLS:ReadonlyMap<number,readonly Direction[]>=new Map([[0x30,["RIGHT"]],[0x31,["LEFT"]],[0x32,["UP"]],[0x33,["DOWN"]],[0x34,["UP","RIGHT"]],[0x35,["UP","LEFT"]],[0x36,["DOWN","RIGHT"]],[0x37,["DOWN","LEFT"]],[0xbe,["LEFT","RIGHT"]],[0xc0,["UP","DOWN"]],[0xc1,["LEFT","RIGHT"]]]);
-const COUNTER=0x80;
-const OPPOSITE:Readonly<Record<Direction,Direction>>={UP:"DOWN",DOWN:"UP",LEFT:"RIGHT",RIGHT:"LEFT"};
 const walled=(tile:Tile|undefined,side:Direction):boolean=>tile!==undefined&&(EDGE_WALLS.get(tile.behavior)?.includes(side)??false);
 const key=(p:Point):string=>`${String(p.x)},${String(p.y)}`;
 const distance=(a:Point,b:Point):number=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
-// pokeemerald IsElevationMismatchAt / ObjectEventUpdateElevation: 0 is a
-// transition (stairs) and 15 is multi-level (bridges); neither ever mismatches.
-// A finished step or jump re-reads only its final tile, which sets the walker's
-// height unless that tile is 15. A jump also updates mid-air on the ledge tile
-// (InitJump, then JUMP_HALFWAY), and a 15 landing keeps that update.
-const MULTI_LEVEL=15;
-interface ElevationRule {readonly mismatch:(walker:number,tile:number)=>boolean;readonly entered:(walker:number,tile:number)=>number;readonly jumped:(walker:number,takeoff:number,ledge:number,landing:number)=>number}
-const GAME_RULE:ElevationRule={
- mismatch:(walker,tile)=>walker!==0&&tile!==0&&tile!==MULTI_LEVEL&&tile!==walker,
- entered:(walker,tile)=>tile===MULTI_LEVEL?walker:tile,
- jumped:(walker,takeoff,ledge,landing)=>landing!==MULTI_LEVEL?landing:takeoff===MULTI_LEVEL?walker:GAME_RULE.entered(walker,ledge),
-};
 // The rule before elevation-transitions-v1: 0 keeps the walker's layer, 15 is an ordinary layer.
 const LEGACY_RULE:ElevationRule={
  mismatch:(walker,tile)=>walker!==0&&tile!==0&&tile!==walker,
@@ -108,7 +88,6 @@ function counterHint(state:GameStateSnapshot,goal:Point,options:NavigationOption
  return involved?"target is a counter or behind one; you cannot stand on a counter, but you can face it from a reachable adjacent tile and press A to talk to someone behind it":null;
 }
 // navigation-refusal-reasons-v1: say why navigate_to cannot walk, from the same state and grid the planner uses.
-const WATER=new Set([0x10,0x11,0x12,0x13,0x14,0x15,0x19,0x22,0x2a,0x50,0x51,0x52,0x53,0x6c,0x6d,0x6f]);
 const NEAREST_RADIUS=3;
 const at=(p:Point):string=>`(${String(p.x)},${String(p.y)})`;
 function unreadyReason(state:GameStateSnapshot):string {

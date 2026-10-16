@@ -52,3 +52,5 @@ For a male player the sign at Littleroot (12,8) prints "PROF. BIRCH'S HOUSE" (po
 - Review (delta: whole branch): Codex gpt-5.6-sol LGTM (no blocking; notes: provisional experiment pin, worklog boxes); grok cursor-grok-4.5-high LGTM
   (notes: PLACES table is hardcoded for the pinned ROM, catalog gate is the word "Sign", explainer SVG clipped). Widened the OFF/ON SVG panels; boxes ticked.
   An earlier review attempt wrote to a shared scratchpad file that another session overwrote (its verdict concerned loop-supervisor.ts in another worktree); re-run in a private dir.
+
+- 2026-10-16 01:55 AM EDT (integrator): merged main (blocked-batch-result-v1, transition-loop-detection-v1, bedroom-exit split) into the branch; registries keep all three switches (order: displayed-place-names, transition-loop-detection, blocked-batch-result); `.at(-N)` registry tests bumped, observation group 18, switchboard rows 55. Agent 1350, viewer 794, pytest 1986 passed (2 skipped); lint clean apart from the worktree mypy binding.

@@ -633,6 +633,7 @@ it("links the named warp destinations card to its explainer",()=>{
  expect(FEATURE_EXPLAINERS["named-warp-destinations-v1"]).toBe("named-warp-destinations-v1.html");
  expect(FEATURE_EXPLAINERS["character-presence-v1"]).toBe("character-presence-v1.html");
  expect(FEATURE_EXPLAINERS["dialogue-auto-advance-v1"]).toBe("dialogue-auto-advance-v1.html");
+ expect(FEATURE_EXPLAINERS["transition-loop-detection-v1"]).toBe("transition-loop-detection-v1.html");
 });
 
 it("links the stall briefing card to its explainer",()=>{
@@ -666,6 +667,14 @@ it("shows the experiment, arm and trial strip, the preset, or just the model and
 
 it("links the transition press results card to its explainer",()=>{
  expect(FEATURE_EXPLAINERS["transition-press-result-v1"]).toBe("transition-press-result-v1.html");
+ expect(FEATURE_EXPLAINERS["blocked-batch-result-v1"]).toBe("blocked-batch-result-v1.html");
+});
+
+it("links the bedroom exit measurement card to its explainer in Harness Config",()=>{
+ const log=new Log();log.add(0,{...START,harness_features:["bedroom-exit-v1"]});
+ const registry=(["bedroom-exit-v1"] as const).map(id=>({id,title:"LEFT BEDROOM",description:"d",group:"measurement" as const,switchable:false,needs:null}));
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),registry);
+ expect(doc.querySelector('[data-feature="bedroom-exit-v1"] a')?.getAttribute("href")).toBe("/explainers/bedroom-exit-v1.html");
 });
 
 it("links the displayed place names card to its tracked explainer, which shows the real-ROM before and after",()=>{

@@ -77,6 +77,8 @@ Done when every milestone is merged, qualification shows none of F1–F8, the fo
 
 ## Session Log
 
+- 2026-10-16 07:30 AM EDT: levelup-box-v1 (bug fix for the level-up stats box stall in run 54a7) merged on main (36aad5b1); added to onInBoth (on in base).
+- 2026-10-16 07:10 AM EDT: disproved-beliefs-v1 and same-plan-breaker-v1 merged on main (3d218b98, repin a21c24db); added to the bundle switches (off in base).
 - 2026-10-16 06:18 AM EDT: offscreen-objects-v1, navigate-first-prompt-v1 and presence-penalty-v1 (the operator approved 3:41 AM EDT) merged on main (164d7a79); added to the bundle switches (off in base; their dependencies live-object-sprites-v1 and bounded-navigation-v1 are on in base).
 - 2026-10-16 06:06 AM EDT: script-line-presence-v1 (on-screen speakers on script lines) merged on main (bbbee47b); added to the bundle switches (off in base).
 - 2026-10-16 05:52 AM EDT: battle-message-waiting-v1 (bug fix: the readout names a waiting battle message and says to press A or B) merged on main (09d1a652, Claude/Codex/grok reviewed); added to onInBoth (on in base).

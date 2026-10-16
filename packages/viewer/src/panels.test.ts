@@ -742,6 +742,20 @@ it("links the adjacent tiles card to its tracked explainer, which shows the real
  expect(html).toContain("adjacent-tiles-v1");
  expect(html).toContain("Next tiles: up (8,6) ledge (v), hops down only, cannot be entered from here; down (8,8) clear (.); left (7,7) clear (.); right (9,7) clear (.)");
 });
+it("links the disproved-beliefs and same-plan cards to their tracked explainers, which show the run's own ledger and note",()=>{
+ expect(FEATURE_EXPLAINERS["disproved-beliefs-v1"]).toBe("disproved-beliefs-v1.html");
+ expect(FEATURE_EXPLAINERS["same-plan-breaker-v1"]).toBe("same-plan-breaker-v1.html");
+ const log=new Log();log.add(0,{...START,harness_features:["disproved-beliefs-v1","deterministic-loop-guard-v1","same-plan-breaker-v1"]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector('[data-feature="disproved-beliefs-v1"] a')?.getAttribute("href")).toBe("/explainers/disproved-beliefs-v1.html");
+ expect(doc.querySelector('[data-feature="same-plan-breaker-v1"] a')?.getAttribute("href")).toBe("/explainers/same-plan-breaker-v1.html");
+ const ledger=readFileSync(fileURLToPath(new URL("../../../docs/explainers/disproved-beliefs-v1.html",import.meta.url)),"utf8");
+ expect(ledger).toContain("disproved-beliefs-v1");
+ expect(ledger).toContain("Moving UP from (11,1) in LITTLEROOT TOWN (map 0/9): you tried it 3 times, at turns 142, 144, 146 (latest: press UP).");
+ const plan=readFileSync(fileURLToPath(new URL("../../../docs/explainers/same-plan-breaker-v1.html",import.meta.url)),"utf8");
+ expect(plan).toContain("same-plan-breaker-v1");
+ expect(plan).toContain("SUPERVISOR: Your last 3 plans (turns 262, 263, 264) were the same and the game state did not change:");
+});
 it("links the three navigation-guidance cards to their tracked explainers",()=>{
  const cases:readonly(readonly[string,readonly string[]])[]=[
   ["offscreen-objects-v1",["MAY at 10,3 (out of view; where the map places this character, it may have moved)","546"]],
@@ -800,6 +814,17 @@ it("links the battle message waiting card to its tracked explainer, which quotes
  expect(html).toContain("battle-message-waiting-v1");
  expect(html).toContain("Battle details: WILD single · turn 3 · resolving (no input until the game asks)");
  expect(html).toContain("Battle details: WILD single · turn 3 · battle message waiting: &quot;Wild WINGULL fainted!&quot; — press A or B to continue");
+});
+
+it("links the level-up stats box card to its tracked explainer, which quotes the T357 readout before and after",()=>{
+ expect(FEATURE_EXPLAINERS["levelup-box-v1"]).toBe("levelup-box-v1.html");
+ const log=new Log();log.add(0,{...START,harness_features:["levelup-box-v1"]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector('[data-feature="levelup-box-v1"] a')?.getAttribute("href")).toBe("/explainers/levelup-box-v1.html");
+ const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/levelup-box-v1.html",import.meta.url)),"utf8");
+ expect(html).toContain("levelup-box-v1");
+ expect(html).toContain("Battle details: WILD single · turn 6 · resolving (no input until the game asks)");
+ expect(html).toContain("Battle details: WILD single · turn 6 · level-up stats box open, page 1 of 2 (stat increases): MAX. HP +2, ATTACK +2, DEFENSE +1, SP. ATK +1, SP. DEF +1, SPEED +1 — waiting for a button: press A or B to continue (the game takes any new button press)");
 });
 
 it("links the script line presence card to its tracked explainer, which shows the T259 pages off and on",()=>{

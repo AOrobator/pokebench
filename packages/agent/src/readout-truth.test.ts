@@ -40,7 +40,7 @@ it("hands all three to the game server, whose list and default-off set name them
   for (const id of IDS) expect(serverFeatureEnv(off(id)).POKEBENCH_FEATURES_OFF).toBe(id);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("");
   const readout = readFileSync(new URL("../../../env/pokebench_env/readout.py", import.meta.url), "utf8");
-  expect(readout).toContain('    "offscreen-objects-v1",\n    "readout-truth-v1",\n    "birch-speech-pages-v1",\n    "blackout-readout-v1",\n)');
+  expect(readout).toContain('    "levelup-box-v1",\n    "readout-truth-v1",\n    "birch-speech-pages-v1",\n    "blackout-readout-v1",\n)');
   expect(readout).toContain('"readout-truth-v1,birch-speech-pages-v1,blackout-readout-v1"');
 });
 

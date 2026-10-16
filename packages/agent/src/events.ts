@@ -133,6 +133,8 @@ const HumanSample = event("human_sample", {
 const NavigationContext = event("navigation_context", {text:Type.String(),evidence:Type.Array(NonNegativeInt,{maxItems:36,uniqueItems:true})});
 const MilestoneHintContext = event("milestone_hint", {text:Type.String({maxLength:1000}),milestone:Type.String({minLength:1})});
 const LedgerContext = event("ledger_context", {text:Type.String(),evidence:Type.Array(NonNegativeInt,{maxItems:64,uniqueItems:true})});
+// disproved-beliefs-v1: the ledger delivered before a model call, whole, with its entry count and cited events.
+const BeliefLedger = event("belief_ledger", {text:Type.String({minLength:1}),entries:Type.Integer({minimum:1}),evidence:Type.Array(NonNegativeInt,{uniqueItems:true})});
 
 const ToolResult = event("tool_result", {
   state_seq: Type.Optional(NonNegativeInt),
@@ -184,7 +186,7 @@ const Activity = event("activity", {
 });
 
 const LoopFields = {
-  kind: Type.Enum(["planning", "observation", "ineffective", "cycle", "rejection", "map_cycle", "milestone_drought", "interface_dwell"] as const),
+  kind: Type.Enum(["planning", "observation", "ineffective", "cycle", "rejection", "map_cycle", "milestone_drought", "interface_dwell", "same_plan"] as const),
   message: Type.String(), calls: NonNegativeInt,
   evidence: Type.Array(NonNegativeInt, {minItems:1,maxItems:2}),
 };
@@ -273,8 +275,10 @@ const BattleExecutionSchema=Type.Object({attacker:Type.Integer({minimum:0,maximu
 // battle-text-auto-advance-v1 reads these; always recorded (env/pokebench_env/battle_text.py).
 export const BattleMessageSchema=Type.Object({state:Type.Enum(["printing","waiting_for_input","idle"] as const),render_state:NullableString,text:NullableString,cursor:Type.Union([NonNegativeInt,Type.Null()]),identity:NullableString,diagnostic:NullableString,page:Type.Optional(NullableString)},closed);
 export const BattlePromptSchema=Type.Object({kind:Type.Enum(["learn_move","stop_learning_move","yes_no","nickname_caught"] as const),ready:Type.Boolean(),selected:Type.Union([Type.Enum(["YES","NO"] as const),Type.Null()])},closed);
+// levelup-box-v1 reads this; always recorded (env/pokebench_env/battle_text.py read_levelup_box).
+export const LevelUpBoxSchema=Type.Object({state:Type.Integer({minimum:0,maximum:255}),page:Type.Union([Type.Literal(1),Type.Literal(2),Type.Null()]),waiting:Type.Boolean(),party_slot:Type.Union([Type.Integer({minimum:0,maximum:5}),Type.Null()]),labels:Type.Array(Type.String(),{maxItems:6}),before:Type.Array(NonNegativeInt,{maxItems:6}),after:Type.Array(NonNegativeInt,{maxItems:6}),text:NullableString,diagnostic:NullableString},closed);
 export const BATTLE_TEXT_PHASES=["message_waiting","input","prompt","busy","screen"] as const;
-export const BattleStateSchema=Type.Object({message:Type.Optional(Type.Union([BattleMessageSchema,Type.Null()])),prompt:Type.Optional(Type.Union([BattlePromptSchema,Type.Null()])),text_phase:Type.Optional(Type.Union([Type.Enum(BATTLE_TEXT_PHASES),Type.Null()])),playback:Type.Optional(Type.Union([Type.Object({stoppable:Type.Boolean(),finished:Type.Boolean(),controls:Type.String()},closed),Type.Null()])),non_pokemon_battlers:Type.Optional(Type.Array(Type.Integer({minimum:0,maximum:3}),{maxItems:4})),active:Type.Boolean(),initialized:Type.Boolean(),phase:Type.String(),ready:Type.Union([Type.Boolean(),Type.Null()]),main_func:NullableInt,script_pc:NullableInt,battle_type:NullableInt,turn:NullableInt,outcome_code:NullableInt,outcome:NullableString,battlers:Type.Union([Type.Array(ContinuousBattleBattlerSchema,{maxItems:4}),Type.Null()]),player_inputs:Type.Union([Type.Array(BattleInputSchema,{maxItems:4}),Type.Null()]),controller_exec_flags:NullableInt,signals:Type.Array(BattleSignalSchema,{maxItems:4}),current_execution:Type.Union([BattleExecutionSchema,Type.Null()]),diagnostic:NullableString,raw_hex:NullableString},closed);
+export const BattleStateSchema=Type.Object({message:Type.Optional(Type.Union([BattleMessageSchema,Type.Null()])),prompt:Type.Optional(Type.Union([BattlePromptSchema,Type.Null()])),text_phase:Type.Optional(Type.Union([Type.Enum(BATTLE_TEXT_PHASES),Type.Null()])),levelup_box:Type.Optional(Type.Union([LevelUpBoxSchema,Type.Null()])),playback:Type.Optional(Type.Union([Type.Object({stoppable:Type.Boolean(),finished:Type.Boolean(),controls:Type.String()},closed),Type.Null()])),non_pokemon_battlers:Type.Optional(Type.Array(Type.Integer({minimum:0,maximum:3}),{maxItems:4})),active:Type.Boolean(),initialized:Type.Boolean(),phase:Type.String(),ready:Type.Union([Type.Boolean(),Type.Null()]),main_func:NullableInt,script_pc:NullableInt,battle_type:NullableInt,turn:NullableInt,outcome_code:NullableInt,outcome:NullableString,battlers:Type.Union([Type.Array(ContinuousBattleBattlerSchema,{maxItems:4}),Type.Null()]),player_inputs:Type.Union([Type.Array(BattleInputSchema,{maxItems:4}),Type.Null()]),controller_exec_flags:NullableInt,signals:Type.Array(BattleSignalSchema,{maxItems:4}),current_execution:Type.Union([BattleExecutionSchema,Type.Null()]),diagnostic:NullableString,raw_hex:NullableString},closed);
 const NullableBool=Type.Union([Type.Boolean(),Type.Null()]);
 export const RunningPermissionSchema=Type.Object({permitted:NullableBool,controllable:NullableBool,reason:Type.String(),shoes:NullableBool,allow_running:NullableBool,avatar_flags:NullableInt,metatile:NullableInt,elevation:NullableInt,map_type:NullableInt,callback1:NullableInt,callback2:NullableInt,diagnostic:NullableString,raw_hex:NullableString},closed);
 const ResourceItemSchema=Type.Object({slot:NonNegativeInt,item_id:NonNegativeInt,quantity:NonNegativeInt,pocket:Type.Union([Type.String(),Type.Null()]),name:Type.Optional(Type.Union([Type.String(),Type.Null()]))},closed);
@@ -436,7 +440,7 @@ const State = event("state", StateBodySchema.properties);
 // and the state on the first frame the battle needs input or ends (bounded in frames).
 export const BattleTextEntrySchema=Type.Object({id:Type.Integer({minimum:1}),frame:NonNegativeInt,recorded_ms:NonNegativeInt,battle:Type.Integer({minimum:1}),battle_turn:Type.Integer({minimum:1,maximum:256}),text:Type.String({minLength:1}),waited_for_input:Type.Boolean()},closed);
 export const BattleTextJournalSchema=Type.Object({frame:NonNegativeInt,first_id:Type.Integer({minimum:1}),last_id:NonNegativeInt,errors:NonNegativeInt,last_error:Type.Union([Type.String(),Type.Null()]),entries:Type.Array(BattleTextEntrySchema,{maxItems:512})},closed);
-export const BattleWaitSchema=Type.Object({reason:Type.Enum(["message_waiting","input","prompt","screen","field","bound","paused"] as const),frames:NonNegativeInt,state:StateBodySchema},closed);
+export const BattleWaitSchema=Type.Object({reason:Type.Enum(["message_waiting","input","prompt","screen","field","levelup_box","bound","paused"] as const),frames:NonNegativeInt,state:StateBodySchema},closed);
 
 // Read-only historical compatibility: old vendor-derived state stays identifiable
 // by its mode field and is never promoted to the authoritative RAM readout.
@@ -496,6 +500,7 @@ export const RunEventSchema = Type.Union([
   ButtonPress,
   NavigationContext,
   LedgerContext,
+  BeliefLedger,
   MilestoneHintContext,
   DecisionInput,
   WaitInput,
@@ -524,10 +529,43 @@ type EnvelopeKey = "v" | "run" | "seq" | "t";
 export type EventBody = RunEvent extends infer E ? (E extends RunEvent ? Omit<E, EnvelopeKey> : never) : never;
 export type BodyOf<T extends RunEvent["type"]> = Omit<Extract<RunEvent, { type: T }>, EnvelopeKey>;
 
+// The union members for each event type, so a problem is reported against the event's own schema.
+const MEMBERS = new Map<string, TSchema[]>();
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
+function addMembers(schema: unknown): void {
+  if (!isRecord(schema)) return;
+  if (Array.isArray(schema.anyOf)) { for (const member of schema.anyOf) addMembers(member); return; }
+  const type = isRecord(schema.properties) && isRecord(schema.properties.type) ? schema.properties.type.const : undefined;
+  if (typeof type === "string") MEMBERS.set(type, [...(MEMBERS.get(type) ?? []), schema]);
+}
+addMembers(RunEventSchema);
+
+const unescapePointer = (segment: string): string => segment.replace(/~1/g, "/").replace(/~0/g, "~");
+function describeError(error: { instancePath: string; schemaPath: string; message: string }): string {
+  if (error.schemaPath.endsWith("/additionalProperties")) {
+    const cut = error.instancePath.lastIndexOf("/");
+    return `${error.instancePath.slice(0, cut) || "/"}: unexpected property ${unescapePointer(error.instancePath.slice(cut + 1))}`;
+  }
+  return `${error.instancePath || "/"}: ${error.message}`;
+}
+
 export function eventProblem(value: unknown): string | null {
   if (Value.Check(RunEventSchema, value)) return null;
-  const [first] = Value.Errors(RunEventSchema, value);
-  return `invalid event at ${first?.instancePath ?? ""}: ${first?.message ?? "does not match the schema"}`;
+  if (!isRecord(value)) return "invalid event: not a JSON object";
+  if (typeof value.type !== "string") return "invalid event: no string type field";
+  const members = MEMBERS.get(value.type);
+  if (members === undefined) return `unknown event type ${JSON.stringify(value.type)}: this build of the schema does not know it`;
+  // A type with several members (state and legacy state, tool_call) is judged by the closest one.
+  const [first] = members.map(member => [...Value.Errors(member, value)]).reduce((best, errors) => (errors.length < best.length ? errors : best));
+  return `invalid ${value.type} event at ${first === undefined ? "/: does not match the schema" : describeError(first)}`;
+}
+
+const EnvelopeSchema = Type.Object({ ...Envelope, type: Type.String({ minLength: 1 }) });
+export interface EventEnvelope { run: string; seq: number; t: string; turn: number; type: string }
+// The envelope of a line, even when its body fails the schema: lets a reader keep order checks on events it skips.
+export function eventEnvelope(value: unknown): EventEnvelope | null {
+  if (!Value.Check(EnvelopeSchema, value)) return null;
+  return { run: value.run, seq: value.seq, t: value.t, turn: value.turn, type: value.type };
 }
 
 export function checkEvent(value: unknown): RunEvent {

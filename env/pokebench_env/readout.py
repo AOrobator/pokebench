@@ -19,6 +19,8 @@ from pokebench_env.birch_pages import SWITCH as BIRCH_PAGES
 from pokebench_env.blackout_readout import SWITCH as BLACKOUT
 from pokebench_env.blackout_readout import WHITING_OUT, Whiteout, whiteout_line
 from pokebench_env.game_state import GameState
+from pokebench_env.levelup_box import SWITCH as LEVELUP_BOX
+from pokebench_env.levelup_box import levelup_clause
 from pokebench_env.map_rules import FEATURE as RULES_FEATURE
 from pokebench_env.offscreen_objects import SWITCH as OFFSCREEN
 from pokebench_env.offscreen_objects import offscreen_text
@@ -59,6 +61,7 @@ SERVER_FEATURES = (
     "in-game-naming-readout-v1",
     "battle-message-waiting-v1",
     "offscreen-objects-v1",
+    "levelup-box-v1",
     "readout-truth-v1",
     "birch-speech-pages-v1",
     "blackout-readout-v1",
@@ -74,6 +77,7 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "readout-rules-in-prompt-v1,connection-edge-tiles-v1,in-game-naming-readout-v1,"
         "battle-message-waiting-v1,"
         "offscreen-objects-v1,"
+        "levelup-box-v1,"
         "readout-truth-v1,birch-speech-pages-v1,blackout-readout-v1",
     )
     if raw == "":
@@ -235,19 +239,25 @@ def format_readout(
             ]
         )
         waiting = MESSAGE_WAITING not in off
-        # battle-message-waiting-v1 without battle-details-v2: its own line, only when no
-        # player input is ready and the battle shows a message or YES/NO box.
-        clause = (
-            message_clause(battle)
-            if waiting
-            and details is None
+        levelup = LEVELUP_BOX not in off
+        # battle-message-waiting-v1 (and levelup-box-v1) without battle-details-v2: its own
+        # line, only when no player input is ready and the battle shows a message, a YES/NO
+        # box or the level-up stats box.
+        own = (
+            details is None
             and battle.phase != "replay"
             and not any(i.ready for i in battle.player_inputs or ())
-            else None
         )
+        clause = levelup_clause(battle) if own and levelup else None
+        if clause is None and own and waiting:
+            clause = message_clause(battle)
         own_line = [] if clause is None else [f"Battle input: {clause}"]
         if details is not None:
-            lines += [*details.lines(battle, message_waiting=waiting), *playback, *execution]
+            lines += [
+                *details.lines(battle, message_waiting=waiting, levelup_box=levelup),
+                *playback,
+                *execution,
+            ]
         elif expanded:
             lines.append(
                 f"Battle state: {battle.phase}; input {battle.ready}; "

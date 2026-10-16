@@ -29,6 +29,7 @@ from pokebench_env.checkpoint import install_checkpoint
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import MapNames
 from pokebench_env.human import HumanServer, install_human
+from pokebench_env.levelup_box import SWITCH as LEVELUP_BOX
 from pokebench_env.memory_reader import Core, NativeCore, SnapshotMemoryReader, copy_native_region
 from pokebench_env.observation import ScreenshotFn, install_observation
 from pokebench_env.pause import SteppingServer, install_pause
@@ -129,7 +130,7 @@ def run(
         off = features_off_from_env(os.environ)
         settle = FrameSettle(observation[2], warp=WARP_FEATURE not in off)
         install_frame_settle(frames, settle)
-        battle_wait = BattleWait(observation[2])
+        battle_wait = BattleWait(observation[2], levelup_box=LEVELUP_BOX not in off)
         install_battle_wait(frames, battle_wait)
         # blackout-readout-v1: OFF installs no frame hook at all.
         if BLACKOUT not in off:

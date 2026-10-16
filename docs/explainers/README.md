@@ -41,6 +41,8 @@ Tracked, local HTML documentation. Open an explainer directly; no server or exte
 - [Displayed place names v1](displayed-place-names-v1.html)
 - [Readout rules in prompt v1](readout-rules-in-prompt-v1.html)
 - [Adjacent tiles v1](adjacent-tiles-v1.html)
+- [Disproved beliefs ledger v1](disproved-beliefs-v1.html)
+- [Same-plan breaker v1](same-plan-breaker-v1.html)
 - [Experiment queue](experiment-queue.html)
 - [Runs survive viewer restarts](run-survives-viewer.html)
 
@@ -57,6 +59,7 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Off-screen people and objects](offscreen-objects-v1.html)
 - [navigate_to first prompting](navigate-first-prompt-v1.html)
 - [Presence penalty 1.5](presence-penalty-v1.html)
+- [Level-up stats box](levelup-box-v1.html)
 - [Readout truth](readout-truth-v1.html)
 - [Birch speech pages](birch-speech-pages-v1.html)
 - [Whiteout notice](blackout-readout-v1.html)

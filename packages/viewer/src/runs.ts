@@ -27,6 +27,14 @@ export interface RunSummary {
   readonly problem: string | null;
   // The experiment, arm and trial (or preset) the run belongs to, when its header records one.
   readonly experiment?: string;
+  readonly cohort?: Cohort;
+}
+
+export interface Cohort {
+  readonly id: string;
+  readonly arm: string;
+  readonly trial: number;
+  readonly of: number;
 }
 
 export type LineResult =
@@ -188,6 +196,7 @@ function summarize(runsRoot: string, id: string): RunSummary {
     reason: ended?.reason ?? null,
     problem: null,
     ...(experiment === undefined ? {} : { experiment }),
+    ...(evaluation?.experiment === undefined ? {} : { cohort: { ...evaluation.experiment } }),
   };
 }
 

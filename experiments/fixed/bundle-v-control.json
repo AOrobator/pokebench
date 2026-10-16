@@ -99,7 +99,13 @@
    "untaken-exits-v1": false,
    "people-ledger-v1": false,
    "trainer-heal-guidance-v1": false,
-   "low-hp-trainer-warning-v1": false
+   "low-hp-trainer-warning-v1": false,
+   "briefing-battle-outcomes-v1": true,
+   "pushback-loop-detection-v1": true,
+   "pushback-press-result-v1": true,
+   "battle-observation-loop-v1": true,
+   "blocked-exit-fact-v1": false,
+   "battle-loss-recap-v1": false
   }
  },
  "switches": [
@@ -133,7 +139,9 @@
   "untaken-exits-v1",
   "people-ledger-v1",
   "trainer-heal-guidance-v1",
-  "low-hp-trainer-warning-v1"
+  "low-hp-trainer-warning-v1",
+  "blocked-exit-fact-v1",
+  "battle-loss-recap-v1"
  ],
  "offInBoth": [
   "milestone-stall-stop-v1"
@@ -144,7 +152,11 @@
   "dialogue-context-kept-v1",
   "battle-message-waiting-v1",
   "levelup-box-v1",
-  "briefing-exits-v1"
+  "briefing-exits-v1",
+  "briefing-battle-outcomes-v1",
+  "pushback-loop-detection-v1",
+  "pushback-press-result-v1",
+  "battle-observation-loop-v1"
  ],
  "phases": [
   {

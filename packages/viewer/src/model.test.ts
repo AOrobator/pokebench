@@ -281,6 +281,12 @@ it("the split ordering matches the production milestone owner", async () => {
   const {MILESTONE_ORDER: displayed} = await import("./model.js");
   expect([...displayed]).toEqual(recorded);
 });
+it("the viewer's depth order and deeper-milestone choice match the agent's", async () => {
+  const agent = await import("../../agent/src/milestones.js");
+  const viewer = await import("./model.js");
+  expect(viewer.DEPTH_ORDER).toEqual(agent.DEPTH_ORDER);
+  for (const [current, candidate] of [[null, "FIRST_POKECENTER_HEAL"], ["ROUTE_103", "FIRST_EVOLUTION"], ["ROUTE_103", "RIVAL_MET"], [null, "UNKNOWN"], ["RIVAL_MET", "ROUTE_103"]] as const) expect(viewer.deeperMilestone(current, candidate)).toBe(agent.deeperMilestone(current, candidate));
+});
 
 it("replays loop warnings, recovery and stuck termination without conflating retries",()=>{
   const log=new Log();log.add(0,START);

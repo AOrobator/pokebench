@@ -117,6 +117,15 @@ describe("summarize", () => {
     });
   });
 
+  it("ranks an incomplete run's furthest milestone by story depth, not by the last one logged", () => {
+    const partial = events("run-c", [
+      [0, 0, START],
+      [10, 1, { type: "milestone", name: "ROUTE_103", server_timestamp: 1, kind: "navigation", origin: "observed", evidence: [1] }],
+      [20, 2, { type: "milestone", name: "FIRST_POKECENTER_HEAL", server_timestamp: 2, kind: "story", origin: "observed", evidence: [1, 2, 3] }],
+    ]);
+    expect(summarize(partial)).toMatchObject({ reason: "incomplete", furthest: "ROUTE_103" });
+  });
+
   it("rejects a log that does not start with run_start", () => {
     expect(() => summarize(events("run-c", [[0, 1, assistant(1, 1)]]))).toThrow(/run_start/);
     expect(() => summarize([])).toThrow(/run_start/);

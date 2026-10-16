@@ -51,6 +51,7 @@ Game grounding (pret/pokeemerald 731ad5bf): Route 103 rival script `data/maps/Ro
 - [x] RED: panels/server explainer-link tests for both ids (2 fail: no mapping, no file). COMMIT RED.
 - [x] Explainers `docs/explainers/<id>.html` + FEATURE_EXPLAINERS + README; `just pages-check` prints nothing; viewer 888 passed.
 - [x] `experiments/<id>.json` pending entries (activation ROUTE_103, primary RIVAL_BATTLE_WON, finals incumbent) + readiness.md; `just experiments-check`: ok, 64 experiments. COMMIT GREEN.
+- [x] Merged main twice (9e84ba4d, then a21c24db with disproved-beliefs-v1 and same-plan-breaker-v1): registry re-applied after same-plan-breaker-v1; legacy tests reset to main and re-bumped by script (+2 positions, lists, guidance 34, guard 14, switchboard rows 74).
 - [ ] Gates on main-merged tip: test, lint, build, coverage ≥90, verify-vendor
 - [ ] Cloud review lanes: Claude (subagent), Grok (Cursor), GPT (Cursor/Codex) all LGTM on one frozen packet
 - [ ] Merge slot from coordinator, `git merge --ff-only`, `just test` on main, report SHA

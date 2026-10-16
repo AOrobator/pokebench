@@ -144,7 +144,7 @@ const chip = (button: string): string => `<span class="chipb">${ARROW[button] ??
 // One-line summaries are clipped by CSS anyway; the full text stays in the body and the inspector.
 const firstLine = (text: string): string => (text.trim().split("\n")[0] ?? "").slice(0, 300);
 const secs = (ms: number): string => `${(ms / 1000).toFixed(1)}s`;
-const LOOP_KIND = { planning: "planning", observation: "observation", ineffective: "ineffective", cycle: "cycle", rejection: "rejection", map_cycle: "map back-and-forth", milestone_drought: "milestone drought", interface_dwell: "interface dwell" } as const;
+const LOOP_KIND = { planning: "planning", observation: "observation", ineffective: "ineffective", cycle: "cycle", rejection: "rejection", map_cycle: "map back-and-forth", milestone_drought: "milestone drought", interface_dwell: "interface dwell", same_plan: "same plan repeated" } as const;
 const NATIVE_ICON: Readonly<Record<string, readonly [string, string]>> = {
   native_input: ["IN", "engine"], menu_changed: ["MNU", "engine"], harness_bug: ["BUG", "error"],
   battle_signal: ["VS", "battle"], battle_started: ["VS", "battle"], battle_ended: ["VS", "battle"], battle_outcome: ["VS", "battle"],
@@ -153,12 +153,12 @@ const NATIVE_ICON: Readonly<Record<string, readonly [string, string]>> = {
 const RUN_LABEL: Readonly<Partial<Record<RunEvent["type"], readonly [string, string]>>> = {
   operator_control: ["CTL", "Operator control"], objective_update: ["OBJ", "Objective updated"], objective_attempt: ["OBJ", "Objective attempt"],
   disk_usage: ["HDD", "Disk usage"], frames_evicted: ["HDD", "Frames evicted"], run_end: ["END", "Run ended"],
-  compaction: ["CMP", "Context compacted"], navigation_context: ["MEM", "Navigation memory delivered"], ledger_context: ["MEM", "Instruction ledger delivered"],
+  compaction: ["CMP", "Context compacted"], navigation_context: ["MEM", "Navigation memory delivered"], ledger_context: ["MEM", "Instruction ledger delivered"], belief_ledger: ["MEM", "Disproved beliefs delivered"],
   milestone_hint: ["MEM", "Milestone hint sent"], decision_input: ["SNP", "Decision snapshot"], battle_choice: ["VS", "Battle choice"],
   activity: ["ACT", "Activity"], retry: ["↻", "Retry"], text_only_supervisor: ["SUP", "Text-only supervisor"], low_hp_trainer_warning: ["SUP", "Low-HP trainer warning"], dialogue_auto_advance: ["DLG", "Dialogue auto-advanced"], telemetry_error: ["!", "Telemetry error"],
   button_press: ["BTN", "Press"], tool_result: ["RES", "Tool result"], wait_input: ["WAIT", "Wait"],
 };
-const MEMORY = new Set<RunEvent["type"]>(["navigation_context", "ledger_context", "milestone_hint", "decision_input", "compaction"]);
+const MEMORY = new Set<RunEvent["type"]>(["navigation_context", "ledger_context", "belief_ledger", "milestone_hint", "decision_input", "compaction"]);
 const ACTION = new Set<RunEvent["type"]>(["battle_choice", "objective_attempt", "button_press", "tool_result", "wait_input", "dialogue_auto_advance"]);
 
 function categoryOf(event: RunEvent): TraceCategory {

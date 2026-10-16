@@ -233,6 +233,7 @@ export function eventText(event: RunEvent, view?: RunView): string | null {
     case "low_hp_trainer_warning":return `Low-HP trainer warning added to the ${esc(event.tool)} result · ${esc(event.species)} ${String(event.hp)}/${String(event.max_hp)} HP · rival ${esc(event.rival)} at (${String(event.x)},${String(event.y)}) · ${esc(event.text)}`;
     case "text_only_supervisor":return `Text-only supervisor note ${String(event.note)}/${String(event.limit)} sent after ${String(event.replies)} replies with no tool call · ${esc(event.text)}`;
     case "ledger_context":return `Instruction ledger delivered · ${String(event.evidence.length)} references · ${esc(event.text.slice(0,200))}`;
+    case "belief_ledger":return `Disproved beliefs ledger delivered · ${String(event.entries)} entr${event.entries===1?"y":"ies"} · ${String(event.evidence.length)} references · ${esc(event.text)}`;
     case "decision_input":return `snapshot for decision ${String(event.decision_turn)} · state #${String(event.state_seq)} · ${esc(event.text.slice(0,200))}`;
     case "wait_input":return `WAIT ${String(event.duration_ms)} ms (host time) · action ${esc(event.tool_call_id)}`;
     case "button_press": {
@@ -396,6 +397,8 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "offscreen-objects-v1":"offscreen-objects-v1.html",
  "navigate-first-prompt-v1":"navigate-first-prompt-v1.html",
  "presence-penalty-v1":"presence-penalty-v1.html",
+ "disproved-beliefs-v1":"disproved-beliefs-v1.html",
+ "same-plan-breaker-v1":"same-plan-breaker-v1.html",
  "trainer-heal-guidance-v1":"trainer-heal-guidance-v1.html",
  "low-hp-trainer-warning-v1":"low-hp-trainer-warning-v1.html",
 });

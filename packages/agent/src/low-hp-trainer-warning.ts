@@ -24,7 +24,7 @@ const HEALING_ITEMS=new Set(["POTION","SUPER POTION","HYPER POTION","MAX POTION"
 const belowHalf=(hp:number,max:number):boolean=>hp>0&&2*hp<max;
 
 export function lowHpTrainerWarning(state:GameStateSnapshot):LowHpTrainerWarningFacts|null {
- if(!state.started||state.screen!=="overworld"||state.in_battle!==false)return null;
+ if(!state.started||state.screen!=="overworld"||state.in_battle)return null;
  if(state.party_owner!==undefined&&state.party_owner!=="player")return null;
  if(state.map_id?.[0]!==ROUTE103[0]||state.map_id[1]!==ROUTE103[1])return null;
  if(state.story?.rival_battle_won!==false)return null;
@@ -59,7 +59,7 @@ export class LowHpTrainerWarning {
   return null;
  }
  private rearms(state:GameStateSnapshot):boolean {
-  if(!state.started||state.in_battle===true||state.screen==="battle")return false;
+  if(!state.started||state.in_battle||state.screen==="battle")return false;
   if(state.map_id!==null&&(state.map_id[0]!==ROUTE103[0]||state.map_id[1]!==ROUTE103[1]))return true;
   if(state.story?.rival_battle_won===true)return true;
   const lead=state.party.find(m=>m.is_egg!==true&&m.hp!==0);

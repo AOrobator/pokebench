@@ -10,11 +10,11 @@ import {checkEvent,type RunEvent} from "./events.js";
 import {DOUBLE_WINDOW,WINDOW} from "./harness.js";
 import {featureInfo,stateOnlyProblems} from "./features.js";
 
-const NEW=["game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1","instruction-ledger-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","milestone-stall-stop-v1","character-presence-v1","navigation-refusal-reasons-v1","transition-press-result-v1","stall-briefing-v1","battle-details-v2","dialogue-context-kept-v1"] as const;
+const NEW=["game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1","instruction-ledger-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","milestone-stall-stop-v1","character-presence-v1","navigation-refusal-reasons-v1","transition-press-result-v1","stall-briefing-v1","battle-details-v2","dialogue-context-kept-v1","disproved-beliefs-v1","same-plan-breaker-v1","trainer-heal-guidance-v1","low-hp-trainer-warning-v1"] as const;
 const OFF:FeatureSet={...ALL_ON,"navigation-evidence-memory-v1":false,...Object.fromEntries(NEW.map(id=>[id,false]))};
 function recorder(){
  const subscribers:((e:RunEvent)=>void)[]=[];const delivered:string[]=[];
- return {subscribers,delivered,api:{subscribe:(fn:(e:RunEvent)=>void)=>{subscribers.push(fn);},recordNavigationContext:()=>{delivered.push("navigation");},recordLedgerContext:()=>{delivered.push("ledger");},recordMilestoneHint:()=>{delivered.push("hint");}}};
+ return {subscribers,delivered,api:{subscribe:(fn:(e:RunEvent)=>void)=>{subscribers.push(fn);},recordNavigationContext:()=>{delivered.push("navigation");},recordLedgerContext:()=>{delivered.push("ledger");},recordMilestoneHint:()=>{delivered.push("hint");},recordBeliefLedger:()=>{delivered.push("beliefs");}}};
 }
 const base=(messages:AgentMessage[])=>Promise.resolve(messages);
 

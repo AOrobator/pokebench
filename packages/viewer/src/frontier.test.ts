@@ -3,7 +3,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { run } from "../test-support/frontier-run.js";
-import { HUMAN_REFERENCE, FRONTIER_MILESTONES, frontierReferences, frontierPlot, frontierModelColors, milestoneStatus } from "./frontier.js";
+import { frontierLegend } from "./frontier-legend.js";
+import { HUMAN_REFERENCE, FRONTIER_MILESTONES, frontierReferences, frontierPlot, frontierVersions, milestoneStatus } from "./frontier.js";
 import type { WorkbenchRun } from "./workbench-data.js";
 const referenceNames = ["PLAYER_NAME_CONFIRMED", "FIRST_TRUCK_EXIT", "CLOCK_SET", "PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_BEDROOM_REACHED", "RIVAL_MET", "STARTER_CHOSEN", "RUSTBORO_CITY_GYM", "STONE_BADGE"];
 function measured(id: string, times: readonly (number | null)[], controller: "agent" | "human" = "agent"): WorkbenchRun {
@@ -68,33 +69,34 @@ describe("persistent actual native frontier", () => {
     expect(document.querySelector('[data-split="PLAYER_HOUSE_EXITED_AFTER_CLOCK"]')).not.toBeNull();
     expect(document.querySelector('[data-split="STONE_BADGE"]')).not.toBeNull();
   });
-  it("colors models distinctly, shares color within a model and identifies each color in a legend", () => {
+  it("colors harness versions distinctly, shares color within a version and identifies each color in a legend", () => {
     const a = { ...best(), id: "model-a-1", model: "Alpha" }, a2 = { ...best(), id: "model-a-2", model: "Alpha" };
-    const b = { ...best(), id: "model-b", model: "Beta" }, refs = { human: human(), best: a };
-    document.body.innerHTML = frontierPlot(refs, [a, a2, b], 640);
+    const b = { ...best(), id: "model-b", model: "Beta" }, refs = { human: human(), best: a }, versions = frontierVersions([a, a2, b]);
+    document.body.innerHTML = frontierPlot(refs, [a, a2, b], 640, versions) + frontierLegend(refs, [a, a2, b], versions, { isolated: null, legendOpen: true, marksOpen: true, howOpen: false, changed: new Set(), all: new Set(), expanded: new Set() });
     const first = document.querySelector('[data-run="model-a-1"]')?.getAttribute("fill"), second = document.querySelector('[data-run="model-a-2"]')?.getAttribute("fill"), other = document.querySelector('[data-run="model-b"]')?.getAttribute("fill");
     expect(first).toBe("#af8915"); expect(second).not.toBe(other);
     expect(document.querySelector('[data-run="model-a-1"]')?.getAttribute("stroke")).toBe("#af8915");
-    expect(document.querySelector('[data-model="Alpha"]')?.textContent).toContain("Alpha");
-    expect(document.querySelector('[data-model="Beta"]')?.textContent).toContain("Beta");
-    expect(document.querySelector('[data-model="Alpha"] i')?.getAttribute("style")).toContain(second);
+    const alpha = versions.byRun.get("model-a-2"), beta = versions.byRun.get("model-b");
+    expect(document.querySelector(`[data-ver="${alpha?.id ?? ""}"]`)?.textContent).toContain("alpha · objectives-on v1");
+    expect(document.querySelector(`[data-ver="${beta?.id ?? ""}"]`)?.textContent).toContain("beta · objectives-on v1");
+    expect(document.querySelector(`[data-ver="${alpha?.id ?? ""}"]`)?.getAttribute("style")).toContain(second);
     for (const id of ["model-a-1", "model-a-2", "model-b", HUMAN_REFERENCE]) {
       expect(document.querySelector(`[data-series="${id}"]`)?.getAttribute("stroke")).toBe(document.querySelector(`[data-run="${id}"]`)?.getAttribute("fill"));
     }
     expect(document.querySelector('[data-reference="human"]')?.textContent).toContain("Human baseline");
     expect(document.querySelector('[data-reference="best"]')?.textContent).toContain("Agent frontier");
-    expect(document.querySelector('[data-reference="best"] svg')?.getAttribute("fill")).toBe("#af8915");
-    expect(document.querySelector('[data-reference="human"] svg')?.getAttribute("fill")).toBe("#304f7a");
+    expect(document.querySelector('[data-reference="best"] svg g')?.getAttribute("fill")).toBe("#af8915");
+    expect(document.querySelector('[data-reference="human"] svg g')?.getAttribute("fill")).toBe("#304f7a");
   });
-  it("keeps colors stable across filtering, reordered snapshots and newly recorded models", () => {
-    const a = { ...best(), model: "Zulu" }, b = { ...best(), model: "Alpha" }, unknown = { ...best(), model: null };
-    const colors = frontierModelColors([a, b, unknown]);
-    const updated = frontierModelColors([{ ...best(), model: "A newly recorded model" }, b, a, unknown], colors);
-    expect(updated.get("Zulu")).toBe(colors.get("Zulu")); expect(updated.get("Alpha")).toBe(colors.get("Alpha"));
-    document.body.innerHTML = frontierPlot({ human: null, best: a }, [{ ...a, id: "filtered-overlay" }], 640, updated);
-    expect(document.querySelector('[data-run="filtered-overlay"]')?.getAttribute("fill")).toBe(colors.get("Zulu"));
-    const many = frontierModelColors(Array.from({ length: 12 }, (_, i) => ({ ...best(), model: `Model ${String(i)}` })));
-    expect(new Set(many.values()).size).toBe(12); expect(colors.has("Model not recorded")).toBe(true);
+  it("keeps version colors stable across filtering, reordered snapshots and newly recorded versions", () => {
+    const a = { ...best(), model: "Zulu" }, b = { ...best(), id: "alpha", model: "Alpha" }, unknown = { ...best(), id: "nobody", model: null };
+    const first = frontierVersions([a, b, unknown]), kept = new Map(first.versions.map(v => [v.key, v.color]));
+    const updated = frontierVersions([{ ...best(), id: "newer", model: "A newly recorded model", started: "2026-10-12T00:00:00.000-04:00" }, b, a, unknown], kept);
+    expect(updated.byRun.get("dea1")?.color).toBe(first.byRun.get("dea1")?.color); expect(updated.byRun.get("alpha")?.color).toBe(first.byRun.get("alpha")?.color);
+    document.body.innerHTML = frontierPlot({ human: null, best: a }, [{ ...a, id: "filtered-overlay" }], 640, frontierVersions([a, { ...a, id: "filtered-overlay" }], kept));
+    expect(document.querySelector('[data-run="filtered-overlay"]')?.getAttribute("fill")).toBe(first.byRun.get("dea1")?.color);
+    const many = frontierVersions(Array.from({ length: 12 }, (_, i) => ({ ...best(), id: `m${String(i)}`, model: `Model ${String(i)}` })));
+    expect(new Set(many.versions.map(v => v.color)).size).toBe(12); expect(first.byRun.get("nobody")?.model).toBe("Model not recorded");
   });
   it("includes the full required progression instead of skipping the human run's middle and finish", () => {
     const names = FRONTIER_MILESTONES.map(m => m.id);
@@ -172,7 +174,7 @@ describe("persistent actual native frontier", () => {
     resumed.status = "ended";
     resumed.splits.push({ name: "PLAYER_BEDROOM", elapsedMs: 50 * 60000, segmentMs: 0, seq: 10, turn: 1, inputTokens: 0, outputTokens: 0, derived: true });
     document.body.innerHTML = frontierPlot({ human: null, best: null }, [resumed], 900);
-    expect(document.querySelector(`[data-model="${resumed.model ?? ""}"]`)).not.toBeNull();
+    expect(document.querySelector('[data-series="clock"]')?.closest(".wb-series")?.getAttribute("data-version")).toMatch(/^hv-/);
     expect(document.querySelector('[data-run="clock"][data-split="PLAYER_BEDROOM"]')).toBeNull();
     expect(Math.max(...Array.from(document.querySelectorAll("text.wb-axis")).map(t => Number(t.textContent)).filter(Number.isFinite))).toBeLessThan(10);
     const other = measured("other-save", [1000, 2000, 3000]);
@@ -188,6 +190,8 @@ describe("persistent actual native frontier", () => {
     expect(document.body.textContent).toContain("Agent frontier unavailable");
   });
 });
+const legendState = { isolated: null, legendOpen: false, marksOpen: true, howOpen: false, changed: new Set<string>(), all: new Set<string>(), expanded: new Set<string>() };
+const legendOf = (refs: ReturnType<typeof frontierReferences>, status: "live" | "paused" | null = null): string => frontierLegend(refs, [], frontierVersions(refs.best === null ? [] : [refs.best]), legendState, status);
 describe("data-driven agent frontier", () => {
   const menuStart = (r: WorkbenchRun): WorkbenchRun => { if (r.config === null) throw new Error("config"); r.config = { ...r.config, start: "save_state", resume: "MAIN_MENU" }; return r; };
   const clockStart = (r: WorkbenchRun): WorkbenchRun => { if (r.config === null) throw new Error("config"); r.config = { ...r.config, start: "save_state", resume: "CLOCK_SET" }; return r; };
@@ -196,7 +200,7 @@ describe("data-driven agent frontier", () => {
     const menu = menuStart(further("2026-10-16T01-00-00_cook_ab12"));
     const refs = frontierReferences([human(), best(), menu]);
     expect(refs.best?.id).toBe(menu.id);
-    document.body.innerHTML = frontierPlot(refs, [], 900);
+    document.body.innerHTML = frontierPlot(refs, [], 900) + legendOf(refs);
     const label = document.querySelector('[data-reference="best"]')?.textContent ?? "";
     expect(label).toContain("Agent frontier");
     expect(label).toContain(menu.id);
@@ -209,7 +213,7 @@ describe("data-driven agent frontier", () => {
     const live = Object.assign(menuStart(further("live-run")), { status: "live" as const });
     const refs = frontierReferences([human(), best(), live]);
     expect(refs.best?.id).toBe("live-run");
-    document.body.innerHTML = frontierPlot(refs, [live], 900, undefined, [], false, "live");
+    document.body.innerHTML = frontierPlot(refs, [live], 900, undefined, [], false, "live") + legendOf(refs, "live");
     const lines = Array.from(document.querySelectorAll('polyline[data-series="live-run"]'));
     expect(lines.length).toBeGreaterThan(0);
     expect(lines.every(line => line.getAttribute("stroke") === "#af8915")).toBe(true);
@@ -219,14 +223,14 @@ describe("data-driven agent frontier", () => {
     expect(document.querySelector('[data-reference="best"]')?.textContent).toContain("LIVE");
     expect(document.querySelectorAll(".wb-current-key")).toHaveLength(0);
     // Live state comes only from the verified status passed in, never from the run's stored status or the filtered current set.
-    document.body.innerHTML = frontierPlot(refs, [live], 900, undefined, [live], false, null);
+    document.body.innerHTML = frontierPlot(refs, [live], 900, undefined, [live], false, null) + legendOf(refs);
     expect(document.querySelector('[data-reference="best"]')?.textContent).not.toMatch(/LIVE|PAUSED/);
     expect(document.querySelector("[data-live-run], [data-current-run], .wb-live-head, .wb-current-key")).toBeNull();
     expect(document.querySelector('[data-reference="best"]')?.textContent).toContain("live-run");
     const paused = Object.assign(further("paused-run"), { status: "paused" as const });
     const pausedRefs = frontierReferences([best(), paused]);
     expect(pausedRefs.best?.id).toBe("paused-run");
-    document.body.innerHTML = frontierPlot(pausedRefs, [], 900, undefined, [], false, "paused");
+    document.body.innerHTML = frontierPlot(pausedRefs, [], 900, undefined, [], false, "paused") + legendOf(pausedRefs, "paused");
     expect(document.querySelector('[data-reference="best"]')?.textContent).toContain("PAUSED");
     expect(document.querySelector('[data-current-run="paused-run"]')).not.toBeNull();
     expect(document.querySelector('[data-live-run="paused-run"]')).toBeNull();
@@ -272,7 +276,9 @@ describe("data-driven agent frontier", () => {
     expect(document.body.textContent).not.toMatch(/fresh[- ]boot/i);
     const page = readFileSync(join(process.cwd(), "static/workbench.html"), "utf8");
     expect(page).not.toMatch(/fresh[- ]boot/i);
-    expect(page).toContain("New Game start");
+    document.body.innerHTML = legendOf(frontierReferences([best()]));
+    expect(document.querySelector('[data-reference="best"]')?.textContent).toContain("New Game start");
+    expect(document.body.textContent).not.toMatch(/fresh[- ]boot/i);
   });
 });
 describe("zoom to frontier", () => {

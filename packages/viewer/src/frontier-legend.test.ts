@@ -1,0 +1,167 @@
+// @vitest-environment happy-dom
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+import { run } from "../test-support/frontier-run.js";
+import { FRONTIER_VERSION, HUMAN_VERSION, frontierLegend, type LegendState } from "./frontier-legend.js";
+import { HUMAN_REFERENCE, frontierPlot, frontierVersions } from "./frontier.js";
+import type { WorkbenchRun } from "./workbench-data.js";
+const SWITCHES = ["live-map-v1", "loop-guard-v1", "ram-state-v1"] as const;
+const TITLES: Readonly<Record<string, string>> = { "live-map-v1": "LIVE MAP", "loop-guard-v1": "LOOP GUARD", "ram-state-v1": "RAM GAME-STATE READOUT" };
+function agent(id: string, hour: number, on: readonly string[], arm: string | null, extra: Partial<WorkbenchRun> = {}): WorkbenchRun {
+  const base = run({ id, arm, model: "Qwen3.6-35B-A3B", started: `2026-10-16T${String(hour).padStart(2, "0")}:00:00.000-04:00`, ...extra });
+  const config = base.config; if (config === null) throw new Error("fixture config");
+  return { ...base, measurement: { controller: "agent", features: ["story-milestones-v2"], logSha256: "a".repeat(64), pausedMs: 0, rawSplits: [] }, config: { ...config, ...(extra.config ?? {}), features: SWITCHES.map(f => ({ id: f, label: TITLES[f] ?? f, on: on.includes(f) })) } };
+}
+const human = (): WorkbenchRun => ({ ...run({ id: HUMAN_REFERENCE, model: "Human · Operator" }), measurement: { controller: "human", features: ["story-milestones-v2"], logSha256: "a".repeat(64), pausedMs: 0, rawSplits: [] } });
+const closed: LegendState = { isolated: null, legendOpen: false, marksOpen: false, howOpen: false, changed: new Set(), all: new Set(), expanded: new Set() };
+function fixture(): { runs: WorkbenchRun[]; best: WorkbenchRun } {
+  const runs = [agent("c1", 1, ["ram-state-v1"], "control"), agent("b1", 2, ["ram-state-v1", "live-map-v1"], "bundle"), agent("b1b", 3, ["ram-state-v1", "live-map-v1"], "bundle"), agent("b2", 4, ["ram-state-v1", "live-map-v1", "loop-guard-v1"], "bundle"), { ...agent("old", 0, [], null), config: null }];
+  return { runs, best: runs[3] as WorkbenchRun };
+}
+const card = (name: string): HTMLElement | null => Array.from(document.querySelectorAll<HTMLElement>(".wb-ver")).find(li => li.dataset.verName === name) ?? null;
+describe("story frontier version legend", () => {
+  it("lists versions by arm with run counts, switches on and the change against the previous version", () => {
+    const { runs, best } = fixture(), versions = frontierVersions(runs);
+    document.body.innerHTML = frontierLegend({ human: human(), best }, runs, versions, { ...closed, legendOpen: true });
+    expect(Array.from(document.querySelectorAll(".wb-vpanel h3")).map(h => h.textContent)).toEqual(["Bundle arm versions", "Control arm versions"]);
+    expect(Array.from(document.querySelectorAll(".wb-ver-name")).map(n => n.textContent)).toEqual(["qwen36 · bundle v1", "qwen36 · bundle v2", "qwen36 · control v1"]);
+    expect(document.querySelector(".wb-vtoggle")?.textContent).toContain("versions · 3");
+    expect(document.querySelector(".wb-vlegend")?.classList.contains("wb-open")).toBe(true);
+    expect(card("qwen36 · bundle v1")?.querySelector(".wb-ver-sub")?.textContent).toBe("2 runs · 2 switches on");
+    expect(card("qwen36 · bundle v1")?.querySelector(".wb-ver-count")?.textContent).toBe("2 runs");
+    expect(card("qwen36 · bundle v1")?.querySelector(".wb-ver-change")?.textContent).toBe("first bundle version · vs control v1: 1 added, 0 removed");
+    expect(card("qwen36 · bundle v2")?.querySelector(".wb-ver-change")?.textContent).toBe("vs bundle v1: 1 added, 0 removed");
+    expect(card("qwen36 · bundle v2")?.querySelector(".wb-ver-sub")?.textContent).toBe("1 run · 3 switches on");
+    expect(card("qwen36 · control v1")?.querySelector(".wb-ver-change")?.textContent).toBe("first version · the baseline every other control version is compared with");
+    expect(card("qwen36 · control v1")?.querySelector(".wb-ver-sub")?.textContent).toBe("1 run · 1 switch on");
+    expect(card("qwen36 · bundle v1")?.getAttribute("style")).toContain(versions.byRun.get("b1")?.color ?? "missing");
+    expect(card("qwen36 · bundle v1")?.getAttribute("title")).toMatch(/fingerprint #[0-9a-f]{4} · builds aaaaaaa/);
+    expect(document.querySelectorAll(".wb-sws i")).toHaveLength(3);
+    expect(document.querySelector(".wb-ver")?.getAttribute("tabindex")).toBe("0");
+  });
+  it("says in words what changed: added, removed and every switch on, with readable labels and ids", () => {
+    const control = agent("c1", 1, ["ram-state-v1", "loop-guard-v1"], "control"), bundle = agent("b1", 2, ["ram-state-v1", "live-map-v1"], "bundle");
+    const versions = frontierVersions([control, bundle]), id = versions.byRun.get("b1")?.id ?? "";
+    document.body.innerHTML = frontierLegend({ human: null, best: null }, [control, bundle], versions, { ...closed, legendOpen: true, changed: new Set([id]) });
+    const what = card("qwen36 · bundle v1")?.querySelector<HTMLDetailsElement>("details.wb-ver-what");
+    expect(what?.open).toBe(true); expect(what?.querySelector("summary")?.textContent).toBe("Show what changed");
+    const heads = Array.from(what?.querySelectorAll("h4") ?? []).map(h => h.textContent);
+    expect(heads).toEqual(["Added since control v1 (1)on in bundle v1, off in control v1", "Removed since control v1 (1)on in control v1, off in bundle v1"]);
+    expect(what?.querySelector(".wb-ver-sets li")?.textContent).toBe("Live map live-map-v1");
+    expect(what?.querySelector(".wb-ver-sets li code")?.textContent).toBe("live-map-v1");
+    expect(what?.querySelectorAll(".wb-ver-sets ul")[1]?.textContent).toContain("Loop guard");
+    const all = what?.querySelector<HTMLDetailsElement>("details.wb-ver-all");
+    expect(all?.open).toBe(false); expect(all?.querySelector("summary")?.textContent).toBe("All 2 switches on in bundle v1");
+    expect(Array.from(all?.querySelectorAll("li span") ?? []).map(s => s.textContent)).toEqual(["Live map", "RAM game-state readout"]);
+    expect(what?.querySelector(".wb-ver-meta")?.textContent).toMatch(/^Fingerprint #[0-9a-f]{4} · builds aaaaaaa$/);
+    document.body.innerHTML = frontierLegend({ human: null, best: null }, [control, bundle], versions, { ...closed, all: new Set([id]), changed: new Set([versions.byRun.get("c1")?.id ?? ""]) });
+    expect(card("qwen36 · bundle v1")?.querySelector<HTMLDetailsElement>("details.wb-ver-all")?.open).toBe(true);
+    expect(card("qwen36 · control v1")?.querySelector(".wb-ver-detail")?.textContent).toContain("First control version, so there is nothing earlier to compare it with.");
+  });
+  it("says none when nothing was added or removed, and explains legacy groups", () => {
+    const unknown = (r: WorkbenchRun): WorkbenchRun => r.config === null ? r : { ...r, config: { ...r.config, features: r.config.features.map(f => ({ ...f, on: null })) } };
+    const control = agent("c1", 1, ["ram-state-v1"], "control"), bundle = agent("b1", 2, ["ram-state-v1", "live-map-v1"], "bundle"), old = unknown(agent("old", 0, [], "control")), bare = unknown(agent("bare", 0, [], null, { config: { ...(run().config as NonNullable<WorkbenchRun["config"]>), preset: null } }));
+    const versions = frontierVersions([control, bundle, old, bare]), ids = [...versions.byRun.values()].map(v => v.id);
+    document.body.innerHTML = frontierLegend({ human: null, best: null }, [control, bundle, old, bare], versions, { ...closed, legendOpen: true, changed: new Set(ids) });
+    expect(card("qwen36 · bundle v1")?.querySelector(".wb-ver-detail")?.textContent).toContain("None. Every switch that was on in control v1 is still on.");
+    expect(Array.from(document.querySelectorAll(".wb-vpanel h3")).map(h => h.textContent)).toContain("Legacy runs · no switch map");
+    expect(card("qwen36 · legacy control")?.querySelector(".wb-ver-sub")?.textContent).toBe("1 run · switches unknown");
+    expect(card("qwen36 · legacy control")?.querySelector(".wb-ver-change")?.textContent).toBe("no switch map recorded · not compared");
+    expect(card("qwen36 · legacy control")?.querySelector(".wb-ver-detail")?.textContent).toContain("arm or preset (control)");
+    expect(card("qwen36 · legacy untagged")?.querySelector(".wb-ver-detail")?.textContent).toContain("have no arm or preset");
+    const removed = agent("b2", 3, ["live-map-v1"], "bundle"), next = frontierVersions([control, bundle, removed]);
+    document.body.innerHTML = frontierLegend({ human: null, best: null }, [removed], next, { ...closed, changed: new Set([next.byRun.get("b2")?.id ?? ""]) });
+    expect(card("qwen36 · bundle v2")?.querySelector(".wb-ver-detail")?.textContent).toContain("Added since bundle v1 (0)");
+    expect(card("qwen36 · bundle v2")?.querySelector(".wb-ver-detail p.wb-none")?.textContent).toBe("None.");
+    const lonely = agent("x1", 1, ["loop-guard-v1"], null), solo = frontierVersions([lonely]);
+    document.body.innerHTML = frontierLegend({ human: null, best: null }, [lonely], solo, closed);
+    expect(card("qwen36 · objectives-on v1")?.querySelector(".wb-ver-change")?.textContent).toBe("first objectives-on version");
+    document.body.innerHTML = frontierLegend({ human: null, best: null }, [], solo, closed);
+    expect(document.querySelector(".wb-vpanel")?.textContent).toBe("No agent runs in this selection.");
+  });
+  it("counts only the runs drawn, plus the frontier, and skips the human and unplotted runs", () => {
+    const { runs, best } = fixture(), versions = frontierVersions(runs);
+    const skipped = { ...agent("probe", 5, ["ram-state-v1"], "control"), excluded: "Excluded probe session" };
+    document.body.innerHTML = frontierLegend({ human: human(), best }, [runs[0] as WorkbenchRun, runs[0] as WorkbenchRun, human(), skipped], versions, closed);
+    expect(Array.from(document.querySelectorAll(".wb-ver-name")).map(n => n.textContent)).toEqual(["qwen36 · bundle v2", "qwen36 · control v1"]);
+    expect(card("qwen36 · control v1")?.querySelector(".wb-ver-count")?.textContent).toBe("1 run");
+  });
+  it("marks the isolated version with the menu cursor and a full selection border, and shows it in the closed bar with Show all", () => {
+    const { runs, best } = fixture(), versions = frontierVersions(runs), id = versions.byRun.get("b2")?.id ?? "";
+    document.body.innerHTML = frontierLegend({ human: human(), best }, runs, versions, { ...closed, isolated: id, expanded: new Set([id]) });
+    const selected = document.querySelector(".wb-ver.wb-sel");
+    expect(selected?.getAttribute("data-ver")).toBe(id); expect(selected?.getAttribute("aria-current")).toBe("true");
+    expect(selected?.classList.contains("wb-xp")).toBe(true); expect(selected?.querySelector(".wb-ver-more")?.getAttribute("aria-expanded")).toBe("true");
+    expect(selected?.querySelector(".wb-cursor")?.textContent).toBe("▶");
+    expect(selected?.getAttribute("aria-label")).toContain("Isolated");
+    expect(document.querySelectorAll(".wb-sel")).toHaveLength(1);
+    expect(document.querySelector(".wb-vlegend")?.classList.contains("wb-isolating")).toBe(true);
+    expect(document.querySelector(".wb-iso b")?.textContent).toBe("qwen36 · bundle v2");
+    expect(document.querySelector(".wb-iso [data-show-all]")?.textContent).toBe("Show all");
+    document.body.innerHTML = frontierLegend({ human: human(), best }, runs, versions, { ...closed, isolated: HUMAN_VERSION });
+    expect(document.querySelector('[data-reference="human"]')?.classList.contains("wb-sel")).toBe(true);
+    expect(document.querySelector(".wb-iso b")?.textContent).toBe("Human baseline");
+    document.body.innerHTML = frontierLegend({ human: human(), best }, runs, versions, { ...closed, isolated: FRONTIER_VERSION });
+    expect(document.querySelector(".wb-iso b")?.textContent).toBe("Agent frontier");
+    document.body.innerHTML = frontierLegend({ human: human(), best }, runs, versions, { ...closed, isolated: "hv-gone" });
+    expect(document.querySelector(".wb-iso")).toBeNull();
+    const css = readFileSync(join(process.cwd(), "static/style.css"), "utf8"), feature = css.slice(css.indexOf("/* Story frontier: harness-version legend"));
+    expect(feature).toContain(".wb-ver.wb-sel, .wb-marks li.wb-sel { background:#f8f8d8; border-color:#283038;");
+    expect(feature).not.toMatch(/border-left|inset\s+\d+px\s+0\s/);
+  });
+  it("keys every mark, with the human and frontier isolatable, and folds the marks and how-to bars by state", () => {
+    const { runs, best } = fixture(), versions = frontierVersions(runs);
+    const resumed = agent("clock", 6, ["ram-state-v1"], "control", { config: { ...(runs[0]?.config ?? run().config), resume: "CLOCK_SET", start: "save_state" } as WorkbenchRun["config"] });
+    document.body.innerHTML = frontierLegend({ human: human(), best }, [...runs, resumed], versions, { ...closed, marksOpen: true }, "live");
+    const marks = document.querySelector<HTMLDetailsElement>("details.wb-marks"), how = document.querySelector<HTMLDetailsElement>("details.wb-how");
+    expect(marks?.open).toBe(true); expect(how?.open).toBe(false);
+    expect(marks?.querySelector("summary")?.textContent).toBe("What the marks mean"); expect(how?.querySelector("summary")?.textContent).toBe("How to read this chart");
+    expect(document.querySelector('[data-reference="human"]')?.getAttribute("data-ver")).toBe(HUMAN_VERSION);
+    expect(document.querySelector('[data-reference="best"]')?.getAttribute("data-ver")).toBe(FRONTIER_VERSION);
+    expect(document.querySelector('[data-reference="best"]')?.textContent).toContain("LIVE · qwen36 · bundle v2 · b2");
+    expect(document.querySelector('[data-reference="best"] svg g')?.getAttribute("fill")).toBe("#af8915");
+    expect(document.querySelector('[data-reference="human"] svg g')?.getAttribute("fill")).toBe("#304f7a");
+    expect(Array.from(document.querySelectorAll(".wb-marks li b")).map(b => b.textContent)).toEqual(["Human baseline", "Agent frontier", "Any other run", "Dashed line, hollow dots", "Orange dotted rule", "Gap in a line", "Glow and pulse", "Faded", "Full color"]);
+    expect(document.querySelector(".wb-marks li")?.getAttribute("title")).toContain("Human baseline: one recorded human playthrough");
+    expect(document.querySelector(".wb-legend-note")?.textContent).toContain("Clock set resumes");
+    document.body.innerHTML = frontierLegend({ human: null, best: null }, runs, versions, { ...closed, howOpen: true });
+    expect(document.querySelector("[data-reference]")).toBeNull();
+    expect(document.querySelector<HTMLDetailsElement>("details.wb-how")?.open).toBe(true);
+    expect(document.querySelector(".wb-how-grid")?.textContent).toContain("bundle v1 is compared with control v1");
+  });
+});
+describe("story frontier chart by version", () => {
+  it("colors each run by its version, groups series for highlighting and lights the frontier with its version", () => {
+    const { runs, best } = fixture(), versions = frontierVersions(runs), b1 = versions.byRun.get("b1");
+    document.body.innerHTML = frontierPlot({ human: human(), best }, runs, 900, versions, [], false, null, b1?.id ?? null);
+    expect(document.querySelector('[data-run="b1"]')?.getAttribute("fill")).toBe(b1?.color);
+    expect(document.querySelector('[data-run="b1b"]')?.getAttribute("fill")).toBe(b1?.color);
+    expect(document.querySelector('[data-run="c1"]')?.getAttribute("fill")).toBe(versions.byRun.get("c1")?.color);
+    expect(document.querySelector('[data-run="b1"]')?.closest(".wb-series")?.getAttribute("data-version")).toBe(b1?.id);
+    expect(document.querySelector('[data-run="b1"]')?.closest(".wb-series")?.classList.contains("wb-on")).toBe(true);
+    expect(document.querySelector('[data-run="c1"]')?.closest(".wb-series")?.classList.contains("wb-on")).toBe(false);
+    expect(document.querySelector(".wb-frontier-chart")?.classList.contains("wb-dim")).toBe(true);
+    const front = document.querySelector('[data-run="b2"]')?.closest(".wb-series");
+    expect(front?.getAttribute("data-version")).toBe(FRONTIER_VERSION); expect(front?.getAttribute("data-member")).toBe(versions.byRun.get("b2")?.id);
+    expect(document.querySelector(`[data-run="${HUMAN_REFERENCE}"]`)?.closest(".wb-series")?.getAttribute("data-version")).toBe(HUMAN_VERSION);
+    document.body.innerHTML = frontierPlot({ human: human(), best }, runs, 900, versions, [], false, null, versions.byRun.get("b2")?.id ?? null);
+    expect(document.querySelector('[data-run="b2"]')?.closest(".wb-series")?.classList.contains("wb-on")).toBe(true);
+    document.body.innerHTML = frontierPlot({ human: human(), best }, runs, 900);
+    expect(document.querySelector(".wb-frontier-chart")?.classList.contains("wb-dim")).toBe(false);
+    expect(document.querySelector('[data-run="b1"]')?.getAttribute("fill")).toBe(b1?.color);
+    document.body.innerHTML = frontierPlot({ human: null, best: null }, [{ ...agent("lost", 1, [], null), model: null }], 900, { versions: [], byRun: new Map() });
+    expect(document.querySelector('[data-run="lost"]')?.getAttribute("fill")).toBe("#536d85");
+    expect(document.querySelector('[data-run="lost"]')?.closest(".wb-series")?.getAttribute("data-version")).toBe("__other");
+  });
+  it("names and colors live runs by version in the LIVE tags above the chart", () => {
+    const { runs, best } = fixture(), live = { ...agent("now1", 7, ["ram-state-v1"], "control"), status: "live" as const }, versions = frontierVersions([...runs, live]);
+    document.body.innerHTML = frontierPlot({ human: human(), best }, runs, 900, versions, [live]);
+    const key = document.querySelector(".wb-current-key");
+    expect(key?.textContent).toContain("LIVE · qwen36 · control v1 · now1");
+    expect(key?.getAttribute("style")).toContain(versions.byRun.get("now1")?.color ?? "missing");
+    expect(document.querySelector('[data-live-run="now1"]')?.classList.contains("wb-series")).toBe(true);
+    document.body.innerHTML = frontierPlot({ human: human(), best }, runs, 900, null, [{ ...live, model: null }]);
+    expect(document.querySelector(".wb-current-key")?.textContent).toContain("LIVE · Model not recorded · control v1 · now1");
+  });
+});

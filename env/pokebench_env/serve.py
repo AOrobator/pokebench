@@ -116,6 +116,10 @@ def run(
     # Agent observations wait out screen fades on emulated frames (never wall
     # time). The human server records its snapshot observation under the
     # journal lock that the frame step also takes, so it captures at once.
+    # The battle text journal steps first, so a battle wait released on a frame
+    # finds that frame's page already recorded.
+    if battle_text is not None:
+        install_battle_text(*battle_text)
     settle = None
     battle_wait = None
     if observation is not None and frames is not None and human is None:
@@ -124,8 +128,6 @@ def run(
         install_frame_settle(frames, settle)
         battle_wait = BattleWait(observation[2])
         install_battle_wait(frames, battle_wait)
-    if battle_text is not None:
-        install_battle_text(*battle_text)
     if actions is not None:
         install_action_history(*actions)
     if travel is not None:

@@ -1,0 +1,14 @@
+Screen: battle
+Dialog: detailed menu text unprovided
+Menu: detailed controls unprovided
+Battle details: unprovided
+Your TORCHIC has 7/23 HP (below half). This is a wild battle: RUN is allowed (bottom-right of the battle menu).
+Story: player name confirmed; Mom clock instruction received; clock set; Mom rival instruction received; rival met; sent to save Birch; Birch rescue complete; Birch starter handoff complete
+Player: ASH
+Location: ROUTE101
+Position: X=12, Y=10, facing right
+Party (player): TORCHIC Lv7 HP 5/23
+Money: ₽3000
+Badges: none
+In battle: yes
+Play time: 0:39:49

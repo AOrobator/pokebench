@@ -47,6 +47,8 @@ SERVER_FEATURES = (
     "battle-triage-guidance-v1",
     "adjacent-tiles-v1",
     "readout-rules-in-prompt-v1",
+    "connection-edge-tiles-v1",
+    "in-game-naming-readout-v1",
     "battle-message-waiting-v1",
 )
 
@@ -57,7 +59,7 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "named-interactions-v1,world-destinations-v1,bounded-navigation-v1,expanded-menu-battle-information-v1,field-dialogue-phase-v1,full-map-navigation-v1,named-warp-destinations-v1,character-presence-v1,battle-details-v2,warp-arrival-settle-v1,displayed-place-names-v1,"
         "battle-triage-guidance-v1,"
         "adjacent-tiles-v1,"
-        "readout-rules-in-prompt-v1,"
+        "readout-rules-in-prompt-v1,connection-edge-tiles-v1,in-game-naming-readout-v1,"
         "battle-message-waiting-v1",
     )
     if raw == "":

@@ -199,7 +199,8 @@ const Retry = event("retry", { reason: Type.String(), attempt: Type.Integer({ mi
 const TextOnlySupervisor = event("text_only_supervisor", { replies: Type.Integer({ minimum: 1 }), note: Type.Integer({ minimum: 1 }), limit: Type.Integer({ minimum: 1 }), text: Type.String({ minLength: 1 }) });
 
 // dialogue-auto-advance-v1: the harness advanced field dialogue to the next decision point within one tool call.
-export const DIALOGUE_AUTO_ADVANCE_STOPS = ["field_free", "menu", "naming", "battle", "screen_change", "locked_no_message", "interface_not_ready", "message_not_ready", "press_cap", "time_cap", "error"] as const;
+// battle-text-auto-advance-v1 adds the battle_* stops and paused; its pages carry battle_turn and battle_message_id.
+export const DIALOGUE_AUTO_ADVANCE_STOPS = ["field_free", "menu", "naming", "battle", "screen_change", "locked_no_message", "interface_not_ready", "message_not_ready", "press_cap", "time_cap", "error", "battle_input", "battle_prompt", "battle_busy", "battle_unreadable", "paused"] as const;
 const DialoguePageSchema = Type.Object({
   state_seq: Type.Union([NonNegativeInt, Type.Null()]),
   map: Type.Union([Type.String(), Type.Null()]),
@@ -209,6 +210,8 @@ const DialoguePageSchema = Type.Object({
   speaker: Type.Union([Type.String(), Type.Null()]),
   speaker_source: Type.Union([Type.Enum(["name_prefix", "faced_sprite", "faced_target"] as const), Type.Null()]),
   text: Type.String({ minLength: 1 }),
+  battle_turn: Type.Optional(Type.Integer({ minimum: 1, maximum: 256 })),
+  battle_message_id: Type.Optional(Type.Integer({ minimum: 1 })),
 }, closed);
 const DialogueAutoAdvance = event("dialogue_auto_advance", {
   tool_call_id: Type.String(),
@@ -217,6 +220,7 @@ const DialogueAutoAdvance = event("dialogue_auto_advance", {
   sent: Type.Array(ButtonSchema),
   dropped: Type.Array(ButtonSchema),
   auto_presses: NonNegativeInt,
+  battle_auto_presses: Type.Optional(NonNegativeInt),
   pages: Type.Array(DialoguePageSchema),
   stop: Type.Enum(DIALOGUE_AUTO_ADVANCE_STOPS),
   detail: Type.String(),
@@ -260,8 +264,7 @@ const ContinuousBattleBattlerSchema=Type.Object({battler:Type.Integer({minimum:0
 const BattleInputSchema=Type.Object({battler:Type.Integer({minimum:0,maximum:3}),controller:NonNegativeInt,phase:Type.String(),ready:Type.Boolean(),action_cursor:NullableInt,move_cursor:NullableInt,target_cursor:NullableInt,selected:NullableString,selected_move_id:NullableInt,displayed_pp:NullableInt,displayed_max_pp:NullableInt,communication:NullableInt},closed);
 const BattleSignalSchema=Type.Object({kind:Type.String(),battler:Type.Integer({minimum:0,maximum:3}),command:NonNegativeInt,request:NullableInt,party_mask:NullableInt,string_id:NullableInt,move_id:NullableInt,originally_used_move:NullableInt,hp:NullableInt,status:NullableInt,raw_hex:NullableString},closed);
 const BattleExecutionSchema=Type.Object({attacker:Type.Integer({minimum:0,maximum:3}),target:Type.Integer({minimum:0,maximum:3}),move_id:NonNegativeInt,phase:Type.String(),script_pc:NonNegativeInt,move_result_flags:NonNegativeInt,hit_marker:NonNegativeInt,damage:Type.Integer(),hp_dealt:Type.Integer(),current_action:NonNegativeInt,turn_action:NonNegativeInt},closed);
-// battle-text-auto-advance-v1 and battle-message-waiting-v1 read these; always recorded (env/pokebench_env/battle_text.py).
-// page: the window's current page (absent in states recorded before it existed).
+// battle-text-auto-advance-v1 reads these; always recorded (env/pokebench_env/battle_text.py).
 export const BattleMessageSchema=Type.Object({state:Type.Enum(["printing","waiting_for_input","idle"] as const),render_state:NullableString,text:NullableString,cursor:Type.Union([NonNegativeInt,Type.Null()]),identity:NullableString,diagnostic:NullableString,page:Type.Optional(NullableString)},closed);
 export const BattlePromptSchema=Type.Object({kind:Type.Enum(["learn_move","stop_learning_move","yes_no","nickname_caught"] as const),ready:Type.Boolean(),selected:Type.Union([Type.Enum(["YES","NO"] as const),Type.Null()])},closed);
 export const BATTLE_TEXT_PHASES=["message_waiting","input","prompt","busy","screen"] as const;
@@ -396,7 +399,9 @@ export const StateBodySchema = Type.Object(
       objects:Type.Array(Type.Object({x:Type.Integer(),y:Type.Integer()},closed),{maxItems:16}),warps:Type.Array(Type.Object({x:Type.Integer(),y:Type.Integer()},closed),{maxItems:255})},closed),Type.Null()])),
     topology: Type.Optional(Type.Union([Type.Object({
       width: Type.Integer({minimum:1}), height: Type.Integer({minimum:1}),
-      connections: Type.Array(Type.Object({direction:Type.Enum(["NORTH","SOUTH","EAST","WEST","DIVE","EMERGE"]), offset:Type.Integer(), destination:Type.Tuple([Type.Integer(),Type.Integer()]),destination_name:Type.String()},closed),{maxItems:16}),
+      // connection-edge-tiles-v1: the current-map edge tiles a player can walk off, present only with that switch.
+      connections: Type.Array(Type.Object({direction:Type.Enum(["NORTH","SOUTH","EAST","WEST","DIVE","EMERGE"]), offset:Type.Integer(), destination:Type.Tuple([Type.Integer(),Type.Integer()]),destination_name:Type.String(),
+        edges:Type.Optional(Type.Array(Type.Object({x:Type.Integer({minimum:0,maximum:255}),y:Type.Integer({minimum:0,maximum:255})},closed),{maxItems:256}))},closed),{maxItems:16}),
     },closed),Type.Null()])),
     local_map: Type.Optional(Type.Union([Type.String(), Type.Null()])),
     field_controls_locked: Type.Optional(Type.Union([Type.Boolean(), Type.Null()])),

@@ -267,6 +267,21 @@ it("lets the dialogue log and the instruction ledger cite auto-advanced pages",(
  expect(ledger.text()).toContain(`#4 turn 1 · LAB (map 1/4): "Go see your father at the GYM."`);
 });
 
+it("battle-text-auto-advance-v1: battle pages stay out of the supervisor's dialogue, the dialogue log and the ledger",()=>{
+ const b=new SupervisorBriefing(ALL_ON);const log=new DialogueLog(ALL_ON);
+ const both={observe:(e:RunEvent)=>{b.observe(e);log.observe(e);}};
+ result(both,1,msg(null,null));
+ both.observe(ev({type:"tool_call",id:"w1",name:"press",args:{buttons:["A"]}},3));
+ both.observe(st(4,msg(AIDE,"page_wait",9)));
+ both.observe(ev({type:"dialogue_auto_advance",tool_call_id:"w1",tool:"press",requested:["A"],sent:["A"],dropped:[],auto_presses:2,battle_auto_presses:1,pages:[{state_seq:4,map:"LAB",map_id:[1,4],position:null,speaker:null,speaker_source:null,text:"Wild ZIGZAGOON appeared!",battle_turn:1,battle_message_id:1},{state_seq:4,map:"LAB",map_id:[1,4],position:{x:9,y:8},speaker:"PROF. BIRCH",speaker_source:"name_prefix",text:"PROF. BIRCH: You saved me!"}],stop:"field_free",detail:"the conversation closed and field controls are free",duration_ms:5},5));
+ result(both,6,msg(null,null),"w1");
+ expect(log.entries().map(e=>e.text)).toEqual(["PROF. BIRCH: You saved me!"]);
+ const text=b.text("cycle",20);
+ expect(text).toContain("PROF. BIRCH: You saved me!");
+ expect(text).not.toContain("ZIGZAGOON");
+ expect(text).toContain("1 page, advanced automatically");
+});
+
 it("counts auto-advanced pages as shown only when their result reached the model",()=>{
  const b=new SupervisorBriefing(ALL_ON);const log=new DialogueLog(ALL_ON);const ledger=new InstructionLedger(ALL_ON);
  const all={observe:(e:RunEvent)=>{b.observe(e);log.observe(e);ledger.observe(e);}};

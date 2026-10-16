@@ -56,8 +56,8 @@ it("hides objective-record facts whose observation switch is off", () => {
 });
 
 it("maps observation switches onto the observe/press results", () => {
-  expect(toolSwitches(ALL_ON)).toEqual({ safeInterfaces:true, automaticRunning:true, readout: true, pressResult: true, position: true, fieldLock: true, transitions: true });
-  expect(toolSwitches(off("ram-state-v1", "press-result-v1", "live-player-position-v1", "field-control-lock"))).toEqual({ safeInterfaces:true, automaticRunning:true, readout: false, pressResult: false, position: false, fieldLock: false, transitions: true });
+  expect(toolSwitches(ALL_ON)).toEqual({ safeInterfaces:true, automaticRunning:true, readout: true, pressResult: true, position: true, fieldLock: true, transitions: true, blockedBatch: true, liveMap: true });
+  expect(toolSwitches(off("ram-state-v1", "press-result-v1", "live-player-position-v1", "field-control-lock"))).toEqual({ safeInterfaces:true, automaticRunning:true, readout: false, pressResult: false, position: false, fieldLock: false, transitions: true, blockedBatch: true, liveMap: true });
 });
 
 it("describes whole-map navigation only when that treatment is on", () => {

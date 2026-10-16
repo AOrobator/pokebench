@@ -34,7 +34,7 @@ Branch `claude/viewer-event-skew` in `.claude/worktrees/agent-ac78386488eab5966`
 - [ ] After merge: `just viewer-main`, then `cat /private/tmp/pokebench-viewer/packages/viewer/dist/build-stamp.json` shows main.
 - [x] Review of main..9d44a789: Codex, grok and Claude `VERDICT: LGTM` (follow-ups: a newer run_start still goes invalid without the restart hint; unknown git relation cached forever). Merging to main 2026-10-16 (operator self-merge rule).
 
-## M2: merge main (workbench loader refactor) and port skew
+## M2: merge main (workbench loader refactor) and port skew — MERGE COMMIT 60b698b2
 
 main moved under the branch (workbench runs reduce in `loadRun` on worker threads, `createWorkbenchLoader`, `RunStore<LoadedRun>`, `runSignature`, `invalidRun`); `git merge main` conflicted in `workbench-store.ts` and `server.ts`.
 

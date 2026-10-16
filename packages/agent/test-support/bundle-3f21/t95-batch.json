@@ -1,0 +1,3656 @@
+{
+"source": "2026-10-15T23-47-41_qwen36-gpu1_3f21 T95 press RIGHT,RIGHT,DOWN,DOWN (tool_call 1627, result 1671); states copied from the recorded state events (seq given), trimmed of map grids and stats the wrapper does not read",
+"features": {
+"active-field-message-buffer-v1": true,
+"active-ui-ownership-v1": true,
+"automatic-running-v1": false,
+"battle-details-v2": false,
+"bounded-navigation-v1": true,
+"character-presence-v1": true,
+"contextual-interface-docs-v1": true,
+"coordinate-script-conditions-v1": true,
+"counter-talk-v1": false,
+"deterministic-loop-guard-v1": true,
+"dialogue-auto-advance-v1": true,
+"dialogue-log-v1": false,
+"dialogue-safe-batches-v1": false,
+"double-context-window-v1": false,
+"elevation-transitions-v1": true,
+"expanded-menu-battle-information-v1": false,
+"field-control-lock": true,
+"field-dialogue-phase-v1": true,
+"fresh-retry-v1": false,
+"full-map-navigation-v1": false,
+"game-evidence-priority-v1": true,
+"grass-cost-navigation-v1": false,
+"instruction-ledger-v1": false,
+"interaction-loop-detection-v1": true,
+"ledge-hops-v1": true,
+"live-map-v1": true,
+"live-object-sprites-v1": true,
+"live-player-position-v1": true,
+"loop-guard-supervisor-v1": true,
+"milestone-stall-stop-v1": false,
+"named-interactions-v1": true,
+"named-warp-destinations-v1": true,
+"naming-cursor-v1": true,
+"native-objective-completion-v1": false,
+"navigation-evidence-memory-v1": false,
+"navigation-refusal-reasons-v1": true,
+"next-milestone-hint-v1": false,
+"objective-tracking-v1": false,
+"one-way-tiles-v1": true,
+"press-result-v1": true,
+"ram-state-v1": true,
+"repeat-attempt-guard-v1": false,
+"stall-briefing-v1": true,
+"state-only-decisions-v1": false,
+"story-state-v1": true,
+"text-only-supervisor-v1": true,
+"transition-press-result-v1": true,
+"walkable-floor-v1": false,
+"warp-activation-guidance-v1": true,
+"world-coordinate-grid-v1": true,
+"world-destinations-v1": true,
+"world-targets-v1": true
+},
+"buttons": [
+"RIGHT",
+"RIGHT",
+"DOWN",
+"DOWN"
+],
+"state_seqs": [
+1628,
+1628,
+1634,
+1638,
+1639,
+1640,
+1644,
+1645,
+1646,
+1650,
+1651,
+1652,
+1656,
+1658,
+1662,
+1663,
+1664,
+1668,
+1670,
+1678,
+1678
+],
+"states": [
+{
+"screen": "overworld",
+"active_ui": null,
+"naming": null,
+"world_context": {
+"objects": [
+{
+"local_id": 14,
+"map_id": [
+1,
+1
+],
+"graphics_id": 215,
+"sprite_kind": "MOM",
+"x": 7,
+"y": 2
+}
+],
+"triggers": [],
+"dialogue": null
+},
+"field_controls_locked": true,
+"interaction_targets": [
+{
+"kind": "warp",
+"x": 7,
+"y": 1,
+"elevation": 0,
+"activation": "movement; activation depends on metatile (see local map)",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": [
+1,
+0,
+2
+],
+"name": "Warp to map 1/0"
+},
+{
+"kind": "background",
+"x": 0,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "PC"
+},
+{
+"kind": "background",
+"x": 1,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Notebook"
+},
+{
+"kind": "background",
+"x": 5,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Wall clock"
+},
+{
+"kind": "background",
+"x": 3,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "GameCube"
+},
+{
+"kind": "metatile_region_map",
+"x": 2,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "region map"
+},
+{
+"kind": "metatile_television",
+"x": 4,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "television"
+}
+],
+"started": true,
+"name": "RED",
+"location": "LITTLEROOT TOWN BRENDANS HOUSE 2F",
+"map_id": [
+1,
+1
+],
+"position": {
+"x": 5,
+"y": 2
+},
+"facing": "up",
+"in_battle": false,
+"party_owner": "player",
+"party_ownership": {
+"owner": "player",
+"source": "ordinary_player_party",
+"original_identities": [],
+"rental_personalities": [],
+"diagnostic": null,
+"raw_hex": null
+},
+"party": [],
+"battle": null,
+"running": {
+"permitted": false,
+"controllable": false,
+"reason": "field_controls_locked",
+"shoes": null,
+"allow_running": null,
+"avatar_flags": null,
+"metatile": null,
+"elevation": null,
+"map_type": null,
+"callback1": 134766085,
+"callback2": 134766173,
+"diagnostic": null,
+"raw_hex": null
+},
+"blackout_active": false,
+"money": 3000,
+"badges": [],
+"play_time_s": 141,
+"raw_ram": {
+"v": 1,
+"sequence": 658,
+"frame": 21546,
+"sha256": "052c084da941e9a38e98f4cbef8f40c9f51a5e17a631f8efe75b33521c65bcdb",
+"path": "raw-ram/00000658.json.gz"
+}
+},
+{
+"screen": "overworld",
+"active_ui": null,
+"naming": null,
+"world_context": {
+"objects": [
+{
+"local_id": 14,
+"map_id": [
+1,
+1
+],
+"graphics_id": 215,
+"sprite_kind": "MOM",
+"x": 7,
+"y": 2
+}
+],
+"triggers": [],
+"dialogue": null
+},
+"field_controls_locked": true,
+"interaction_targets": [
+{
+"kind": "warp",
+"x": 7,
+"y": 1,
+"elevation": 0,
+"activation": "movement; activation depends on metatile (see local map)",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": [
+1,
+0,
+2
+],
+"name": "Warp to map 1/0"
+},
+{
+"kind": "background",
+"x": 0,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "PC"
+},
+{
+"kind": "background",
+"x": 1,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Notebook"
+},
+{
+"kind": "background",
+"x": 5,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Wall clock"
+},
+{
+"kind": "background",
+"x": 3,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "GameCube"
+},
+{
+"kind": "metatile_region_map",
+"x": 2,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "region map"
+},
+{
+"kind": "metatile_television",
+"x": 4,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "television"
+}
+],
+"started": true,
+"name": "RED",
+"location": "LITTLEROOT TOWN BRENDANS HOUSE 2F",
+"map_id": [
+1,
+1
+],
+"position": {
+"x": 5,
+"y": 2
+},
+"facing": "up",
+"in_battle": false,
+"party_owner": "player",
+"party_ownership": {
+"owner": "player",
+"source": "ordinary_player_party",
+"original_identities": [],
+"rental_personalities": [],
+"diagnostic": null,
+"raw_hex": null
+},
+"party": [],
+"battle": null,
+"running": {
+"permitted": false,
+"controllable": false,
+"reason": "field_controls_locked",
+"shoes": null,
+"allow_running": null,
+"avatar_flags": null,
+"metatile": null,
+"elevation": null,
+"map_type": null,
+"callback1": 134766085,
+"callback2": 134766173,
+"diagnostic": null,
+"raw_hex": null
+},
+"blackout_active": false,
+"money": 3000,
+"badges": [],
+"play_time_s": 141,
+"raw_ram": {
+"v": 1,
+"sequence": 658,
+"frame": 21546,
+"sha256": "052c084da941e9a38e98f4cbef8f40c9f51a5e17a631f8efe75b33521c65bcdb",
+"path": "raw-ram/00000658.json.gz"
+}
+},
+{
+"screen": "overworld",
+"active_ui": null,
+"naming": null,
+"world_context": {
+"objects": [
+{
+"local_id": 14,
+"map_id": [
+1,
+1
+],
+"graphics_id": 215,
+"sprite_kind": "MOM",
+"x": 6,
+"y": 2
+}
+],
+"triggers": [],
+"dialogue": "MOM: RED, how do you like your\nnew room?\nGood! Everything's put away neatly!\nThey finished moving everything in\ndownstairs, too.\nPOKéMON movers are so convenient!\nOh, you should make sure that\neverything's all there on your desk."
+},
+"field_controls_locked": true,
+"interaction_targets": [
+{
+"kind": "warp",
+"x": 7,
+"y": 1,
+"elevation": 0,
+"activation": "movement; activation depends on metatile (see local map)",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": [
+1,
+0,
+2
+],
+"name": "Warp to map 1/0"
+},
+{
+"kind": "background",
+"x": 0,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "PC"
+},
+{
+"kind": "background",
+"x": 1,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Notebook"
+},
+{
+"kind": "background",
+"x": 5,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Wall clock"
+},
+{
+"kind": "background",
+"x": 3,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "GameCube"
+},
+{
+"kind": "metatile_region_map",
+"x": 2,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "region map"
+},
+{
+"kind": "metatile_television",
+"x": 4,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "television"
+}
+],
+"started": true,
+"name": "RED",
+"location": "LITTLEROOT TOWN BRENDANS HOUSE 2F",
+"map_id": [
+1,
+1
+],
+"position": {
+"x": 5,
+"y": 2
+},
+"facing": "right",
+"in_battle": false,
+"party_owner": "player",
+"party_ownership": {
+"owner": "player",
+"source": "ordinary_player_party",
+"original_identities": [],
+"rental_personalities": [],
+"diagnostic": null,
+"raw_hex": null
+},
+"party": [],
+"battle": null,
+"running": {
+"permitted": false,
+"controllable": false,
+"reason": "field_controls_locked",
+"shoes": null,
+"allow_running": null,
+"avatar_flags": null,
+"metatile": null,
+"elevation": null,
+"map_type": null,
+"callback1": 134766085,
+"callback2": 134766173,
+"diagnostic": null,
+"raw_hex": null
+},
+"blackout_active": false,
+"money": 3000,
+"badges": [],
+"play_time_s": 141,
+"raw_ram": {
+"v": 1,
+"sequence": 661,
+"frame": 21587,
+"sha256": "33a6114f3c6e85b06403773c348d5640b2193db36dd0e08d0599b02997a7b4c6",
+"path": "raw-ram/00000661.json.gz"
+}
+},
+{
+"screen": "overworld",
+"active_ui": null,
+"naming": null,
+"world_context": {
+"objects": [
+{
+"local_id": 14,
+"map_id": [
+1,
+1
+],
+"graphics_id": 215,
+"sprite_kind": "MOM",
+"x": 6,
+"y": 2
+}
+],
+"triggers": [],
+"dialogue": "MOM: RED, how do you like your\nnew room?\nGood! Everything's put away neatly!\nThey finished moving everything in\ndownstairs, too.\nPOKéMON movers are so convenient!\nOh, you should make sure that\neverything's all there on your desk.",
+"message": {
+"phase": "printing",
+"cursor": 30,
+"ready": false,
+"identity": "3c8209642d4d4ccbb58df2967c0bd11fe159c1f4096be6cb1c5797b92e6e9ef5"
+}
+},
+"field_controls_locked": true,
+"interaction_targets": [
+{
+"kind": "warp",
+"x": 7,
+"y": 1,
+"elevation": 0,
+"activation": "movement; activation depends on metatile (see local map)",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": [
+1,
+0,
+2
+],
+"name": "Warp to map 1/0"
+},
+{
+"kind": "background",
+"x": 0,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "PC"
+},
+{
+"kind": "background",
+"x": 1,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Notebook"
+},
+{
+"kind": "background",
+"x": 5,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Wall clock"
+},
+{
+"kind": "background",
+"x": 3,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "GameCube"
+},
+{
+"kind": "metatile_region_map",
+"x": 2,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "region map"
+},
+{
+"kind": "metatile_television",
+"x": 4,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "television"
+}
+],
+"started": true,
+"name": "RED",
+"location": "LITTLEROOT TOWN BRENDANS HOUSE 2F",
+"map_id": [
+1,
+1
+],
+"position": {
+"x": 5,
+"y": 2
+},
+"facing": "right",
+"in_battle": false,
+"party_owner": "player",
+"party_ownership": {
+"owner": "player",
+"source": "ordinary_player_party",
+"original_identities": [],
+"rental_personalities": [],
+"diagnostic": null,
+"raw_hex": null
+},
+"party": [],
+"battle": null,
+"running": {
+"permitted": false,
+"controllable": false,
+"reason": "field_controls_locked",
+"shoes": null,
+"allow_running": null,
+"avatar_flags": null,
+"metatile": null,
+"elevation": null,
+"map_type": null,
+"callback1": 134766085,
+"callback2": 134766173,
+"diagnostic": null,
+"raw_hex": null
+},
+"blackout_active": false,
+"money": 3000,
+"badges": [],
+"play_time_s": 142,
+"raw_ram": {
+"v": 1,
+"sequence": 662,
+"frame": 21617,
+"sha256": "cba0a1a2ec3a1a1adb19566f090b2d9b208d622cc3889631df85072c40f87511",
+"path": "raw-ram/00000662.json.gz"
+}
+},
+{
+"screen": "overworld",
+"active_ui": null,
+"naming": null,
+"world_context": {
+"objects": [
+{
+"local_id": 14,
+"map_id": [
+1,
+1
+],
+"graphics_id": 215,
+"sprite_kind": "MOM",
+"x": 6,
+"y": 2
+}
+],
+"triggers": [],
+"dialogue": "MOM: RED, how do you like your\nnew room?\nGood! Everything's put away neatly!\nThey finished moving everything in\ndownstairs, too.\nPOKéMON movers are so convenient!\nOh, you should make sure that\neverything's all there on your desk.",
+"message": {
+"phase": "page_wait",
+"cursor": 41,
+"ready": true,
+"identity": "3c8209642d4d4ccbb58df2967c0bd11fe159c1f4096be6cb1c5797b92e6e9ef5"
+}
+},
+"field_controls_locked": true,
+"interaction_targets": [
+{
+"kind": "warp",
+"x": 7,
+"y": 1,
+"elevation": 0,
+"activation": "movement; activation depends on metatile (see local map)",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": [
+1,
+0,
+2
+],
+"name": "Warp to map 1/0"
+},
+{
+"kind": "background",
+"x": 0,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "PC"
+},
+{
+"kind": "background",
+"x": 1,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Notebook"
+},
+{
+"kind": "background",
+"x": 5,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Wall clock"
+},
+{
+"kind": "background",
+"x": 3,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "GameCube"
+},
+{
+"kind": "metatile_region_map",
+"x": 2,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "region map"
+},
+{
+"kind": "metatile_television",
+"x": 4,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "television"
+}
+],
+"started": true,
+"name": "RED",
+"location": "LITTLEROOT TOWN BRENDANS HOUSE 2F",
+"map_id": [
+1,
+1
+],
+"position": {
+"x": 5,
+"y": 2
+},
+"facing": "right",
+"in_battle": false,
+"party_owner": "player",
+"party_ownership": {
+"owner": "player",
+"source": "ordinary_player_party",
+"original_identities": [],
+"rental_personalities": [],
+"diagnostic": null,
+"raw_hex": null
+},
+"party": [],
+"battle": null,
+"running": {
+"permitted": false,
+"controllable": false,
+"reason": "field_controls_locked",
+"shoes": null,
+"allow_running": null,
+"avatar_flags": null,
+"metatile": null,
+"elevation": null,
+"map_type": null,
+"callback1": 134766085,
+"callback2": 134766173,
+"diagnostic": null,
+"raw_hex": null
+},
+"blackout_active": false,
+"money": 3000,
+"badges": [],
+"play_time_s": 142,
+"raw_ram": {
+"v": 1,
+"sequence": 665,
+"frame": 21636,
+"sha256": "d6afc44865233c6dab35d8447f021a7c6ce6ccf0e412713a316719dad7645b8c",
+"path": "raw-ram/00000665.json.gz"
+}
+},
+{
+"screen": "overworld",
+"active_ui": null,
+"naming": null,
+"world_context": {
+"objects": [
+{
+"local_id": 14,
+"map_id": [
+1,
+1
+],
+"graphics_id": 215,
+"sprite_kind": "MOM",
+"x": 6,
+"y": 2
+}
+],
+"triggers": [],
+"dialogue": "MOM: RED, how do you like your\nnew room?\nGood! Everything's put away neatly!\nThey finished moving everything in\ndownstairs, too.\nPOKéMON movers are so convenient!\nOh, you should make sure that\neverything's all there on your desk.",
+"message": {
+"phase": "page_wait",
+"cursor": 41,
+"ready": true,
+"identity": "3c8209642d4d4ccbb58df2967c0bd11fe159c1f4096be6cb1c5797b92e6e9ef5"
+}
+},
+"field_controls_locked": true,
+"interaction_targets": [
+{
+"kind": "warp",
+"x": 7,
+"y": 1,
+"elevation": 0,
+"activation": "movement; activation depends on metatile (see local map)",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": [
+1,
+0,
+2
+],
+"name": "Warp to map 1/0"
+},
+{
+"kind": "background",
+"x": 0,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "PC"
+},
+{
+"kind": "background",
+"x": 1,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Notebook"
+},
+{
+"kind": "background",
+"x": 5,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Wall clock"
+},
+{
+"kind": "background",
+"x": 3,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "GameCube"
+},
+{
+"kind": "metatile_region_map",
+"x": 2,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "region map"
+},
+{
+"kind": "metatile_television",
+"x": 4,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "television"
+}
+],
+"started": true,
+"name": "RED",
+"location": "LITTLEROOT TOWN BRENDANS HOUSE 2F",
+"map_id": [
+1,
+1
+],
+"position": {
+"x": 5,
+"y": 2
+},
+"facing": "right",
+"in_battle": false,
+"party_owner": "player",
+"party_ownership": {
+"owner": "player",
+"source": "ordinary_player_party",
+"original_identities": [],
+"rental_personalities": [],
+"diagnostic": null,
+"raw_hex": null
+},
+"party": [],
+"battle": null,
+"running": {
+"permitted": false,
+"controllable": false,
+"reason": "field_controls_locked",
+"shoes": null,
+"allow_running": null,
+"avatar_flags": null,
+"metatile": null,
+"elevation": null,
+"map_type": null,
+"callback1": 134766085,
+"callback2": 134766173,
+"diagnostic": null,
+"raw_hex": null
+},
+"blackout_active": false,
+"money": 3000,
+"badges": [],
+"play_time_s": 142,
+"raw_ram": {
+"v": 1,
+"sequence": 666,
+"frame": 21637,
+"sha256": "939a5745dd37a87c3e89c3340bf49a532ab2ee7add4ff95ee2070fa5f5d4830f",
+"path": "raw-ram/00000666.json.gz"
+}
+},
+{
+"screen": "overworld",
+"active_ui": null,
+"naming": null,
+"world_context": {
+"objects": [
+{
+"local_id": 14,
+"map_id": [
+1,
+1
+],
+"graphics_id": 215,
+"sprite_kind": "MOM",
+"x": 6,
+"y": 2
+}
+],
+"triggers": [],
+"dialogue": "MOM: RED, how do you like your\nnew room?\nGood! Everything's put away neatly!\nThey finished moving everything in\ndownstairs, too.\nPOKéMON movers are so convenient!\nOh, you should make sure that\neverything's all there on your desk.",
+"message": {
+"phase": "printing",
+"cursor": 74,
+"ready": false,
+"identity": "3c8209642d4d4ccbb58df2967c0bd11fe159c1f4096be6cb1c5797b92e6e9ef5"
+}
+},
+"field_controls_locked": true,
+"interaction_targets": [
+{
+"kind": "warp",
+"x": 7,
+"y": 1,
+"elevation": 0,
+"activation": "movement; activation depends on metatile (see local map)",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": [
+1,
+0,
+2
+],
+"name": "Warp to map 1/0"
+},
+{
+"kind": "background",
+"x": 0,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "PC"
+},
+{
+"kind": "background",
+"x": 1,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Notebook"
+},
+{
+"kind": "background",
+"x": 5,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Wall clock"
+},
+{
+"kind": "background",
+"x": 3,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "GameCube"
+},
+{
+"kind": "metatile_region_map",
+"x": 2,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "region map"
+},
+{
+"kind": "metatile_television",
+"x": 4,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "television"
+}
+],
+"started": true,
+"name": "RED",
+"location": "LITTLEROOT TOWN BRENDANS HOUSE 2F",
+"map_id": [
+1,
+1
+],
+"position": {
+"x": 5,
+"y": 2
+},
+"facing": "right",
+"in_battle": false,
+"party_owner": "player",
+"party_ownership": {
+"owner": "player",
+"source": "ordinary_player_party",
+"original_identities": [],
+"rental_personalities": [],
+"diagnostic": null,
+"raw_hex": null
+},
+"party": [],
+"battle": null,
+"running": {
+"permitted": false,
+"controllable": false,
+"reason": "field_controls_locked",
+"shoes": null,
+"allow_running": null,
+"avatar_flags": null,
+"metatile": null,
+"elevation": null,
+"map_type": null,
+"callback1": 134766085,
+"callback2": 134766173,
+"diagnostic": null,
+"raw_hex": null
+},
+"blackout_active": false,
+"money": 3000,
+"badges": [],
+"play_time_s": 143,
+"raw_ram": {
+"v": 1,
+"sequence": 667,
+"frame": 21672,
+"sha256": "2e1b907ce8894f43bbc8703e614fe33e819867853007472b7f36db61394dbbd7",
+"path": "raw-ram/00000667.json.gz"
+}
+},
+{
+"screen": "overworld",
+"active_ui": null,
+"naming": null,
+"world_context": {
+"objects": [
+{
+"local_id": 14,
+"map_id": [
+1,
+1
+],
+"graphics_id": 215,
+"sprite_kind": "MOM",
+"x": 6,
+"y": 2
+}
+],
+"triggers": [],
+"dialogue": "MOM: RED, how do you like your\nnew room?\nGood! Everything's put away neatly!\nThey finished moving everything in\ndownstairs, too.\nPOKéMON movers are so convenient!\nOh, you should make sure that\neverything's all there on your desk.",
+"message": {
+"phase": "page_wait",
+"cursor": 77,
+"ready": true,
+"identity": "3c8209642d4d4ccbb58df2967c0bd11fe159c1f4096be6cb1c5797b92e6e9ef5"
+}
+},
+"field_controls_locked": true,
+"interaction_targets": [
+{
+"kind": "warp",
+"x": 7,
+"y": 1,
+"elevation": 0,
+"activation": "movement; activation depends on metatile (see local map)",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": [
+1,
+0,
+2
+],
+"name": "Warp to map 1/0"
+},
+{
+"kind": "background",
+"x": 0,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "PC"
+},
+{
+"kind": "background",
+"x": 1,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Notebook"
+},
+{
+"kind": "background",
+"x": 5,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Wall clock"
+},
+{
+"kind": "background",
+"x": 3,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "GameCube"
+},
+{
+"kind": "metatile_region_map",
+"x": 2,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "region map"
+},
+{
+"kind": "metatile_television",
+"x": 4,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "television"
+}
+],
+"started": true,
+"name": "RED",
+"location": "LITTLEROOT TOWN BRENDANS HOUSE 2F",
+"map_id": [
+1,
+1
+],
+"position": {
+"x": 5,
+"y": 2
+},
+"facing": "right",
+"in_battle": false,
+"party_owner": "player",
+"party_ownership": {
+"owner": "player",
+"source": "ordinary_player_party",
+"original_identities": [],
+"rental_personalities": [],
+"diagnostic": null,
+"raw_hex": null
+},
+"party": [],
+"battle": null,
+"running": {
+"permitted": false,
+"controllable": false,
+"reason": "field_controls_locked",
+"shoes": null,
+"allow_running": null,
+"avatar_flags": null,
+"metatile": null,
+"elevation": null,
+"map_type": null,
+"callback1": 134766085,
+"callback2": 134766173,
+"diagnostic": null,
+"raw_hex": null
+},
+"blackout_active": false,
+"money": 3000,
+"badges": [],
+"play_time_s": 143,
+"raw_ram": {
+"v": 1,
+"sequence": 669,
+"frame": 21683,
+"sha256": "6247030d4a63175e0ed1e0456f9f9279839dfd5b68234dbe972dc71c687f2d2e",
+"path": "raw-ram/00000669.json.gz"
+}
+},
+{
+"screen": "overworld",
+"active_ui": null,
+"naming": null,
+"world_context": {
+"objects": [
+{
+"local_id": 14,
+"map_id": [
+1,
+1
+],
+"graphics_id": 215,
+"sprite_kind": "MOM",
+"x": 6,
+"y": 2
+}
+],
+"triggers": [],
+"dialogue": "MOM: RED, how do you like your\nnew room?\nGood! Everything's put away neatly!\nThey finished moving everything in\ndownstairs, too.\nPOKéMON movers are so convenient!\nOh, you should make sure that\neverything's all there on your desk.",
+"message": {
+"phase": "page_wait",
+"cursor": 77,
+"ready": true,
+"identity": "3c8209642d4d4ccbb58df2967c0bd11fe159c1f4096be6cb1c5797b92e6e9ef5"
+}
+},
+"field_controls_locked": true,
+"interaction_targets": [
+{
+"kind": "warp",
+"x": 7,
+"y": 1,
+"elevation": 0,
+"activation": "movement; activation depends on metatile (see local map)",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": [
+1,
+0,
+2
+],
+"name": "Warp to map 1/0"
+},
+{
+"kind": "background",
+"x": 0,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "PC"
+},
+{
+"kind": "background",
+"x": 1,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Notebook"
+},
+{
+"kind": "background",
+"x": 5,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Wall clock"
+},
+{
+"kind": "background",
+"x": 3,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "GameCube"
+},
+{
+"kind": "metatile_region_map",
+"x": 2,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "region map"
+},
+{
+"kind": "metatile_television",
+"x": 4,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "television"
+}
+],
+"started": true,
+"name": "RED",
+"location": "LITTLEROOT TOWN BRENDANS HOUSE 2F",
+"map_id": [
+1,
+1
+],
+"position": {
+"x": 5,
+"y": 2
+},
+"facing": "right",
+"in_battle": false,
+"party_owner": "player",
+"party_ownership": {
+"owner": "player",
+"source": "ordinary_player_party",
+"original_identities": [],
+"rental_personalities": [],
+"diagnostic": null,
+"raw_hex": null
+},
+"party": [],
+"battle": null,
+"running": {
+"permitted": false,
+"controllable": false,
+"reason": "field_controls_locked",
+"shoes": null,
+"allow_running": null,
+"avatar_flags": null,
+"metatile": null,
+"elevation": null,
+"map_type": null,
+"callback1": 134766085,
+"callback2": 134766173,
+"diagnostic": null,
+"raw_hex": null
+},
+"blackout_active": false,
+"money": 3000,
+"badges": [],
+"play_time_s": 143,
+"raw_ram": {
+"v": 1,
+"sequence": 670,
+"frame": 21684,
+"sha256": "30ae2487c54b5985afbc6149e48dcd33a61fb3b070dfad678d0ef82ba2fc2226",
+"path": "raw-ram/00000670.json.gz"
+}
+},
+{
+"screen": "overworld",
+"active_ui": null,
+"naming": null,
+"world_context": {
+"objects": [
+{
+"local_id": 14,
+"map_id": [
+1,
+1
+],
+"graphics_id": 215,
+"sprite_kind": "MOM",
+"x": 6,
+"y": 2
+}
+],
+"triggers": [],
+"dialogue": "MOM: RED, how do you like your\nnew room?\nGood! Everything's put away neatly!\nThey finished moving everything in\ndownstairs, too.\nPOKéMON movers are so convenient!\nOh, you should make sure that\neverything's all there on your desk.",
+"message": {
+"phase": "printing",
+"cursor": 105,
+"ready": false,
+"identity": "3c8209642d4d4ccbb58df2967c0bd11fe159c1f4096be6cb1c5797b92e6e9ef5"
+}
+},
+"field_controls_locked": true,
+"interaction_targets": [
+{
+"kind": "warp",
+"x": 7,
+"y": 1,
+"elevation": 0,
+"activation": "movement; activation depends on metatile (see local map)",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": [
+1,
+0,
+2
+],
+"name": "Warp to map 1/0"
+},
+{
+"kind": "background",
+"x": 0,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "PC"
+},
+{
+"kind": "background",
+"x": 1,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Notebook"
+},
+{
+"kind": "background",
+"x": 5,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Wall clock"
+},
+{
+"kind": "background",
+"x": 3,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "GameCube"
+},
+{
+"kind": "metatile_region_map",
+"x": 2,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "region map"
+},
+{
+"kind": "metatile_television",
+"x": 4,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "television"
+}
+],
+"started": true,
+"name": "RED",
+"location": "LITTLEROOT TOWN BRENDANS HOUSE 2F",
+"map_id": [
+1,
+1
+],
+"position": {
+"x": 5,
+"y": 2
+},
+"facing": "right",
+"in_battle": false,
+"party_owner": "player",
+"party_ownership": {
+"owner": "player",
+"source": "ordinary_player_party",
+"original_identities": [],
+"rental_personalities": [],
+"diagnostic": null,
+"raw_hex": null
+},
+"party": [],
+"battle": null,
+"running": {
+"permitted": false,
+"controllable": false,
+"reason": "field_controls_locked",
+"shoes": null,
+"allow_running": null,
+"avatar_flags": null,
+"metatile": null,
+"elevation": null,
+"map_type": null,
+"callback1": 134766085,
+"callback2": 134766173,
+"diagnostic": null,
+"raw_hex": null
+},
+"blackout_active": false,
+"money": 3000,
+"badges": [],
+"play_time_s": 143,
+"raw_ram": {
+"v": 1,
+"sequence": 671,
+"frame": 21714,
+"sha256": "728724ce7800b654baa8ff09ffe9f8efaadd1cf2d7eb995a8e0a398e21619f09",
+"path": "raw-ram/00000671.json.gz"
+}
+},
+{
+"screen": "overworld",
+"active_ui": null,
+"naming": null,
+"world_context": {
+"objects": [
+{
+"local_id": 14,
+"map_id": [
+1,
+1
+],
+"graphics_id": 215,
+"sprite_kind": "MOM",
+"x": 6,
+"y": 2
+}
+],
+"triggers": [],
+"dialogue": "MOM: RED, how do you like your\nnew room?\nGood! Everything's put away neatly!\nThey finished moving everything in\ndownstairs, too.\nPOKéMON movers are so convenient!\nOh, you should make sure that\neverything's all there on your desk.",
+"message": {
+"phase": "page_wait",
+"cursor": 129,
+"ready": true,
+"identity": "3c8209642d4d4ccbb58df2967c0bd11fe159c1f4096be6cb1c5797b92e6e9ef5"
+}
+},
+"field_controls_locked": true,
+"interaction_targets": [
+{
+"kind": "warp",
+"x": 7,
+"y": 1,
+"elevation": 0,
+"activation": "movement; activation depends on metatile (see local map)",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": [
+1,
+0,
+2
+],
+"name": "Warp to map 1/0"
+},
+{
+"kind": "background",
+"x": 0,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "PC"
+},
+{
+"kind": "background",
+"x": 1,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Notebook"
+},
+{
+"kind": "background",
+"x": 5,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Wall clock"
+},
+{
+"kind": "background",
+"x": 3,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "GameCube"
+},
+{
+"kind": "metatile_region_map",
+"x": 2,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "region map"
+},
+{
+"kind": "metatile_television",
+"x": 4,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "television"
+}
+],
+"started": true,
+"name": "RED",
+"location": "LITTLEROOT TOWN BRENDANS HOUSE 2F",
+"map_id": [
+1,
+1
+],
+"position": {
+"x": 5,
+"y": 2
+},
+"facing": "right",
+"in_battle": false,
+"party_owner": "player",
+"party_ownership": {
+"owner": "player",
+"source": "ordinary_player_party",
+"original_identities": [],
+"rental_personalities": [],
+"diagnostic": null,
+"raw_hex": null
+},
+"party": [],
+"battle": null,
+"running": {
+"permitted": false,
+"controllable": false,
+"reason": "field_controls_locked",
+"shoes": null,
+"allow_running": null,
+"avatar_flags": null,
+"metatile": null,
+"elevation": null,
+"map_type": null,
+"callback1": 134766085,
+"callback2": 134766173,
+"diagnostic": null,
+"raw_hex": null
+},
+"blackout_active": false,
+"money": 3000,
+"badges": [],
+"play_time_s": 144,
+"raw_ram": {
+"v": 1,
+"sequence": 675,
+"frame": 21747,
+"sha256": "b2fdbb3fdb7effde432189628d9cbe0cec61b4aa7701ac3d44afdfc94a438b69",
+"path": "raw-ram/00000675.json.gz"
+}
+},
+{
+"screen": "overworld",
+"active_ui": null,
+"naming": null,
+"world_context": {
+"objects": [
+{
+"local_id": 14,
+"map_id": [
+1,
+1
+],
+"graphics_id": 215,
+"sprite_kind": "MOM",
+"x": 6,
+"y": 2
+}
+],
+"triggers": [],
+"dialogue": "MOM: RED, how do you like your\nnew room?\nGood! Everything's put away neatly!\nThey finished moving everything in\ndownstairs, too.\nPOKéMON movers are so convenient!\nOh, you should make sure that\neverything's all there on your desk.",
+"message": {
+"phase": "page_wait",
+"cursor": 129,
+"ready": true,
+"identity": "3c8209642d4d4ccbb58df2967c0bd11fe159c1f4096be6cb1c5797b92e6e9ef5"
+}
+},
+"field_controls_locked": true,
+"interaction_targets": [
+{
+"kind": "warp",
+"x": 7,
+"y": 1,
+"elevation": 0,
+"activation": "movement; activation depends on metatile (see local map)",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": [
+1,
+0,
+2
+],
+"name": "Warp to map 1/0"
+},
+{
+"kind": "background",
+"x": 0,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "PC"
+},
+{
+"kind": "background",
+"x": 1,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Notebook"
+},
+{
+"kind": "background",
+"x": 5,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Wall clock"
+},
+{
+"kind": "background",
+"x": 3,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "GameCube"
+},
+{
+"kind": "metatile_region_map",
+"x": 2,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "region map"
+},
+{
+"kind": "metatile_television",
+"x": 4,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "television"
+}
+],
+"started": true,
+"name": "RED",
+"location": "LITTLEROOT TOWN BRENDANS HOUSE 2F",
+"map_id": [
+1,
+1
+],
+"position": {
+"x": 5,
+"y": 2
+},
+"facing": "right",
+"in_battle": false,
+"party_owner": "player",
+"party_ownership": {
+"owner": "player",
+"source": "ordinary_player_party",
+"original_identities": [],
+"rental_personalities": [],
+"diagnostic": null,
+"raw_hex": null
+},
+"party": [],
+"battle": null,
+"running": {
+"permitted": false,
+"controllable": false,
+"reason": "field_controls_locked",
+"shoes": null,
+"allow_running": null,
+"avatar_flags": null,
+"metatile": null,
+"elevation": null,
+"map_type": null,
+"callback1": 134766085,
+"callback2": 134766173,
+"diagnostic": null,
+"raw_hex": null
+},
+"blackout_active": false,
+"money": 3000,
+"badges": [],
+"play_time_s": 144,
+"raw_ram": {
+"v": 1,
+"sequence": 676,
+"frame": 21748,
+"sha256": "9b02d48613d786a2f471c93f8399765bc601826567f01ca5d81fa1afdc1b4bdb",
+"path": "raw-ram/00000676.json.gz"
+}
+},
+{
+"screen": "overworld",
+"active_ui": null,
+"naming": null,
+"world_context": {
+"objects": [
+{
+"local_id": 14,
+"map_id": [
+1,
+1
+],
+"graphics_id": 215,
+"sprite_kind": "MOM",
+"x": 6,
+"y": 2
+}
+],
+"triggers": [],
+"dialogue": "MOM: RED, how do you like your\nnew room?\nGood! Everything's put away neatly!\nThey finished moving everything in\ndownstairs, too.\nPOKéMON movers are so convenient!\nOh, you should make sure that\neverything's all there on your desk.",
+"message": {
+"phase": "page_wait",
+"cursor": 163,
+"ready": true,
+"identity": "3c8209642d4d4ccbb58df2967c0bd11fe159c1f4096be6cb1c5797b92e6e9ef5"
+}
+},
+"field_controls_locked": true,
+"interaction_targets": [
+{
+"kind": "warp",
+"x": 7,
+"y": 1,
+"elevation": 0,
+"activation": "movement; activation depends on metatile (see local map)",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": [
+1,
+0,
+2
+],
+"name": "Warp to map 1/0"
+},
+{
+"kind": "background",
+"x": 0,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "PC"
+},
+{
+"kind": "background",
+"x": 1,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Notebook"
+},
+{
+"kind": "background",
+"x": 5,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Wall clock"
+},
+{
+"kind": "background",
+"x": 3,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "GameCube"
+},
+{
+"kind": "metatile_region_map",
+"x": 2,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "region map"
+},
+{
+"kind": "metatile_television",
+"x": 4,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "television"
+}
+],
+"started": true,
+"name": "RED",
+"location": "LITTLEROOT TOWN BRENDANS HOUSE 2F",
+"map_id": [
+1,
+1
+],
+"position": {
+"x": 5,
+"y": 2
+},
+"facing": "right",
+"in_battle": false,
+"party_owner": "player",
+"party_ownership": {
+"owner": "player",
+"source": "ordinary_player_party",
+"original_identities": [],
+"rental_personalities": [],
+"diagnostic": null,
+"raw_hex": null
+},
+"party": [],
+"battle": null,
+"running": {
+"permitted": false,
+"controllable": false,
+"reason": "field_controls_locked",
+"shoes": null,
+"allow_running": null,
+"avatar_flags": null,
+"metatile": null,
+"elevation": null,
+"map_type": null,
+"callback1": 134766085,
+"callback2": 134766173,
+"diagnostic": null,
+"raw_hex": null
+},
+"blackout_active": false,
+"money": 3000,
+"badges": [],
+"play_time_s": 145,
+"raw_ram": {
+"v": 1,
+"sequence": 677,
+"frame": 21787,
+"sha256": "38f2ee5b470faeca92f75323f358a0f6298fe2e8b0d1aa1f84dc5c3059686612",
+"path": "raw-ram/00000677.json.gz"
+}
+},
+{
+"screen": "overworld",
+"active_ui": null,
+"naming": null,
+"world_context": {
+"objects": [
+{
+"local_id": 14,
+"map_id": [
+1,
+1
+],
+"graphics_id": 215,
+"sprite_kind": "MOM",
+"x": 6,
+"y": 2
+}
+],
+"triggers": [],
+"dialogue": "MOM: RED, how do you like your\nnew room?\nGood! Everything's put away neatly!\nThey finished moving everything in\ndownstairs, too.\nPOKéMON movers are so convenient!\nOh, you should make sure that\neverything's all there on your desk.",
+"message": {
+"phase": "page_wait",
+"cursor": 163,
+"ready": true,
+"identity": "3c8209642d4d4ccbb58df2967c0bd11fe159c1f4096be6cb1c5797b92e6e9ef5"
+}
+},
+"field_controls_locked": true,
+"interaction_targets": [
+{
+"kind": "warp",
+"x": 7,
+"y": 1,
+"elevation": 0,
+"activation": "movement; activation depends on metatile (see local map)",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": [
+1,
+0,
+2
+],
+"name": "Warp to map 1/0"
+},
+{
+"kind": "background",
+"x": 0,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "PC"
+},
+{
+"kind": "background",
+"x": 1,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Notebook"
+},
+{
+"kind": "background",
+"x": 5,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Wall clock"
+},
+{
+"kind": "background",
+"x": 3,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "GameCube"
+},
+{
+"kind": "metatile_region_map",
+"x": 2,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "region map"
+},
+{
+"kind": "metatile_television",
+"x": 4,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "television"
+}
+],
+"started": true,
+"name": "RED",
+"location": "LITTLEROOT TOWN BRENDANS HOUSE 2F",
+"map_id": [
+1,
+1
+],
+"position": {
+"x": 5,
+"y": 2
+},
+"facing": "right",
+"in_battle": false,
+"party_owner": "player",
+"party_ownership": {
+"owner": "player",
+"source": "ordinary_player_party",
+"original_identities": [],
+"rental_personalities": [],
+"diagnostic": null,
+"raw_hex": null
+},
+"party": [],
+"battle": null,
+"running": {
+"permitted": false,
+"controllable": false,
+"reason": "field_controls_locked",
+"shoes": null,
+"allow_running": null,
+"avatar_flags": null,
+"metatile": null,
+"elevation": null,
+"map_type": null,
+"callback1": 134766085,
+"callback2": 134766173,
+"diagnostic": null,
+"raw_hex": null
+},
+"blackout_active": false,
+"money": 3000,
+"badges": [],
+"play_time_s": 145,
+"raw_ram": {
+"v": 1,
+"sequence": 679,
+"frame": 21789,
+"sha256": "5ef116ca6b5a2c88312caf69dd874d065e8e52ec1b1762f78c95af1a7e10df55",
+"path": "raw-ram/00000679.json.gz"
+}
+},
+{
+"screen": "overworld",
+"active_ui": null,
+"naming": null,
+"world_context": {
+"objects": [
+{
+"local_id": 14,
+"map_id": [
+1,
+1
+],
+"graphics_id": 215,
+"sprite_kind": "MOM",
+"x": 6,
+"y": 2
+}
+],
+"triggers": [],
+"dialogue": "MOM: RED, how do you like your\nnew room?\nGood! Everything's put away neatly!\nThey finished moving everything in\ndownstairs, too.\nPOKéMON movers are so convenient!\nOh, you should make sure that\neverything's all there on your desk.",
+"message": {
+"phase": "printing",
+"cursor": 190,
+"ready": false,
+"identity": "3c8209642d4d4ccbb58df2967c0bd11fe159c1f4096be6cb1c5797b92e6e9ef5"
+}
+},
+"field_controls_locked": true,
+"interaction_targets": [
+{
+"kind": "warp",
+"x": 7,
+"y": 1,
+"elevation": 0,
+"activation": "movement; activation depends on metatile (see local map)",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": [
+1,
+0,
+2
+],
+"name": "Warp to map 1/0"
+},
+{
+"kind": "background",
+"x": 0,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "PC"
+},
+{
+"kind": "background",
+"x": 1,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Notebook"
+},
+{
+"kind": "background",
+"x": 5,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Wall clock"
+},
+{
+"kind": "background",
+"x": 3,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "GameCube"
+},
+{
+"kind": "metatile_region_map",
+"x": 2,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "region map"
+},
+{
+"kind": "metatile_television",
+"x": 4,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "television"
+}
+],
+"started": true,
+"name": "RED",
+"location": "LITTLEROOT TOWN BRENDANS HOUSE 2F",
+"map_id": [
+1,
+1
+],
+"position": {
+"x": 5,
+"y": 2
+},
+"facing": "right",
+"in_battle": false,
+"party_owner": "player",
+"party_ownership": {
+"owner": "player",
+"source": "ordinary_player_party",
+"original_identities": [],
+"rental_personalities": [],
+"diagnostic": null,
+"raw_hex": null
+},
+"party": [],
+"battle": null,
+"running": {
+"permitted": false,
+"controllable": false,
+"reason": "field_controls_locked",
+"shoes": null,
+"allow_running": null,
+"avatar_flags": null,
+"metatile": null,
+"elevation": null,
+"map_type": null,
+"callback1": 134766085,
+"callback2": 134766173,
+"diagnostic": null,
+"raw_hex": null
+},
+"blackout_active": false,
+"money": 3000,
+"badges": [],
+"play_time_s": 145,
+"raw_ram": {
+"v": 1,
+"sequence": 680,
+"frame": 21818,
+"sha256": "b336ca15a5490992ade474b40b0d071a7272972d5d119c4d71ec6ca8c26e0d37",
+"path": "raw-ram/00000680.json.gz"
+}
+},
+{
+"screen": "overworld",
+"active_ui": null,
+"naming": null,
+"world_context": {
+"objects": [
+{
+"local_id": 14,
+"map_id": [
+1,
+1
+],
+"graphics_id": 215,
+"sprite_kind": "MOM",
+"x": 6,
+"y": 2
+}
+],
+"triggers": [],
+"dialogue": "MOM: RED, how do you like your\nnew room?\nGood! Everything's put away neatly!\nThey finished moving everything in\ndownstairs, too.\nPOKéMON movers are so convenient!\nOh, you should make sure that\neverything's all there on your desk.",
+"message": {
+"phase": "dismiss_wait",
+"cursor": 230,
+"ready": true,
+"identity": "3c8209642d4d4ccbb58df2967c0bd11fe159c1f4096be6cb1c5797b92e6e9ef5"
+}
+},
+"field_controls_locked": true,
+"interaction_targets": [
+{
+"kind": "warp",
+"x": 7,
+"y": 1,
+"elevation": 0,
+"activation": "movement; activation depends on metatile (see local map)",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": [
+1,
+0,
+2
+],
+"name": "Warp to map 1/0"
+},
+{
+"kind": "background",
+"x": 0,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "PC"
+},
+{
+"kind": "background",
+"x": 1,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Notebook"
+},
+{
+"kind": "background",
+"x": 5,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Wall clock"
+},
+{
+"kind": "background",
+"x": 3,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "GameCube"
+},
+{
+"kind": "metatile_region_map",
+"x": 2,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "region map"
+},
+{
+"kind": "metatile_television",
+"x": 4,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "television"
+}
+],
+"started": true,
+"name": "RED",
+"location": "LITTLEROOT TOWN BRENDANS HOUSE 2F",
+"map_id": [
+1,
+1
+],
+"position": {
+"x": 5,
+"y": 2
+},
+"facing": "right",
+"in_battle": false,
+"party_owner": "player",
+"party_ownership": {
+"owner": "player",
+"source": "ordinary_player_party",
+"original_identities": [],
+"rental_personalities": [],
+"diagnostic": null,
+"raw_hex": null
+},
+"party": [],
+"battle": null,
+"running": {
+"permitted": false,
+"controllable": false,
+"reason": "field_controls_locked",
+"shoes": null,
+"allow_running": null,
+"avatar_flags": null,
+"metatile": null,
+"elevation": null,
+"map_type": null,
+"callback1": 134766085,
+"callback2": 134766173,
+"diagnostic": null,
+"raw_hex": null
+},
+"blackout_active": false,
+"money": 3000,
+"badges": [],
+"play_time_s": 146,
+"raw_ram": {
+"v": 1,
+"sequence": 686,
+"frame": 21871,
+"sha256": "e7cd6c7453cee9fcfbcdf2880e79cf2708aa48cfef420df713c0dbfb24571562",
+"path": "raw-ram/00000686.json.gz"
+}
+},
+{
+"screen": "overworld",
+"active_ui": null,
+"naming": null,
+"world_context": {
+"objects": [
+{
+"local_id": 14,
+"map_id": [
+1,
+1
+],
+"graphics_id": 215,
+"sprite_kind": "MOM",
+"x": 6,
+"y": 2
+}
+],
+"triggers": [],
+"dialogue": "MOM: RED, how do you like your\nnew room?\nGood! Everything's put away neatly!\nThey finished moving everything in\ndownstairs, too.\nPOKéMON movers are so convenient!\nOh, you should make sure that\neverything's all there on your desk.",
+"message": {
+"phase": "dismiss_wait",
+"cursor": 230,
+"ready": true,
+"identity": "3c8209642d4d4ccbb58df2967c0bd11fe159c1f4096be6cb1c5797b92e6e9ef5"
+}
+},
+"field_controls_locked": true,
+"interaction_targets": [
+{
+"kind": "warp",
+"x": 7,
+"y": 1,
+"elevation": 0,
+"activation": "movement; activation depends on metatile (see local map)",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": [
+1,
+0,
+2
+],
+"name": "Warp to map 1/0"
+},
+{
+"kind": "background",
+"x": 0,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "PC"
+},
+{
+"kind": "background",
+"x": 1,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Notebook"
+},
+{
+"kind": "background",
+"x": 5,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Wall clock"
+},
+{
+"kind": "background",
+"x": 3,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "GameCube"
+},
+{
+"kind": "metatile_region_map",
+"x": 2,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "region map"
+},
+{
+"kind": "metatile_television",
+"x": 4,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "television"
+}
+],
+"started": true,
+"name": "RED",
+"location": "LITTLEROOT TOWN BRENDANS HOUSE 2F",
+"map_id": [
+1,
+1
+],
+"position": {
+"x": 5,
+"y": 2
+},
+"facing": "right",
+"in_battle": false,
+"party_owner": "player",
+"party_ownership": {
+"owner": "player",
+"source": "ordinary_player_party",
+"original_identities": [],
+"rental_personalities": [],
+"diagnostic": null,
+"raw_hex": null
+},
+"party": [],
+"battle": null,
+"running": {
+"permitted": false,
+"controllable": false,
+"reason": "field_controls_locked",
+"shoes": null,
+"allow_running": null,
+"avatar_flags": null,
+"metatile": null,
+"elevation": null,
+"map_type": null,
+"callback1": 134766085,
+"callback2": 134766173,
+"diagnostic": null,
+"raw_hex": null
+},
+"blackout_active": false,
+"money": 3000,
+"badges": [],
+"play_time_s": 146,
+"raw_ram": {
+"v": 1,
+"sequence": 687,
+"frame": 21872,
+"sha256": "856841b8e1b57132457863c5d28725cf908ddbcc279b71f81a8f359e0ac3676a",
+"path": "raw-ram/00000687.json.gz"
+}
+},
+{
+"screen": "overworld",
+"active_ui": null,
+"naming": null,
+"world_context": {
+"objects": [
+{
+"local_id": 14,
+"map_id": [
+1,
+1
+],
+"graphics_id": 215,
+"sprite_kind": "MOM",
+"x": 7,
+"y": 1
+}
+],
+"triggers": [],
+"dialogue": null
+},
+"field_controls_locked": true,
+"interaction_targets": [
+{
+"kind": "warp",
+"x": 7,
+"y": 1,
+"elevation": 0,
+"activation": "movement; activation depends on metatile (see local map)",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": [
+1,
+0,
+2
+],
+"name": "Warp to map 1/0"
+},
+{
+"kind": "background",
+"x": 0,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "PC"
+},
+{
+"kind": "background",
+"x": 1,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Notebook"
+},
+{
+"kind": "background",
+"x": 5,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Wall clock"
+},
+{
+"kind": "background",
+"x": 3,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "GameCube"
+},
+{
+"kind": "metatile_region_map",
+"x": 2,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "region map"
+},
+{
+"kind": "metatile_television",
+"x": 4,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "television"
+}
+],
+"started": true,
+"name": "RED",
+"location": "LITTLEROOT TOWN BRENDANS HOUSE 2F",
+"map_id": [
+1,
+1
+],
+"position": {
+"x": 5,
+"y": 2
+},
+"facing": "right",
+"in_battle": false,
+"party_owner": "player",
+"party_ownership": {
+"owner": "player",
+"source": "ordinary_player_party",
+"original_identities": [],
+"rental_personalities": [],
+"diagnostic": null,
+"raw_hex": null
+},
+"party": [],
+"battle": null,
+"running": {
+"permitted": false,
+"controllable": false,
+"reason": "field_controls_locked",
+"shoes": null,
+"allow_running": null,
+"avatar_flags": null,
+"metatile": null,
+"elevation": null,
+"map_type": null,
+"callback1": 134766085,
+"callback2": 134766173,
+"diagnostic": null,
+"raw_hex": null
+},
+"blackout_active": false,
+"money": 3000,
+"badges": [],
+"play_time_s": 146,
+"raw_ram": {
+"v": 1,
+"sequence": 688,
+"frame": 21902,
+"sha256": "85eb96aea377972a3ede5c39fba1b1bb463d72b33cf6969d86f3cce93fc25eb3",
+"path": "raw-ram/00000688.json.gz"
+}
+},
+{
+"screen": "overworld",
+"active_ui": null,
+"naming": null,
+"world_context": {
+"objects": [],
+"triggers": [],
+"dialogue": null
+},
+"field_controls_locked": false,
+"interaction_targets": [
+{
+"kind": "warp",
+"x": 7,
+"y": 1,
+"elevation": 0,
+"activation": "movement; activation depends on metatile (see local map)",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": [
+1,
+0,
+2
+],
+"name": "Warp to map 1/0"
+},
+{
+"kind": "background",
+"x": 0,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "PC"
+},
+{
+"kind": "background",
+"x": 1,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Notebook"
+},
+{
+"kind": "background",
+"x": 5,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Wall clock"
+},
+{
+"kind": "background",
+"x": 3,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "GameCube"
+},
+{
+"kind": "metatile_region_map",
+"x": 2,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "region map"
+},
+{
+"kind": "metatile_television",
+"x": 4,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "television"
+}
+],
+"started": true,
+"name": "RED",
+"location": "LITTLEROOT TOWN BRENDANS HOUSE 2F",
+"map_id": [
+1,
+1
+],
+"position": {
+"x": 5,
+"y": 2
+},
+"facing": "right",
+"in_battle": false,
+"party_owner": "player",
+"party_ownership": {
+"owner": "player",
+"source": "ordinary_player_party",
+"original_identities": [],
+"rental_personalities": [],
+"diagnostic": null,
+"raw_hex": null
+},
+"party": [],
+"battle": null,
+"running": {
+"permitted": false,
+"controllable": true,
+"reason": "no_running_shoes",
+"shoes": false,
+"allow_running": false,
+"avatar_flags": 33,
+"metatile": 0,
+"elevation": 3,
+"map_type": 8,
+"callback1": 134766085,
+"callback2": 134766173,
+"diagnostic": null,
+"raw_hex": null
+},
+"blackout_active": false,
+"money": 3000,
+"badges": [],
+"play_time_s": 147,
+"raw_ram": {
+"v": 1,
+"sequence": 693,
+"frame": 21938,
+"sha256": "15b0676005dc4aa2b4bf755010ece355cf57c5bfb35270940a15d3fb95e66606",
+"path": "raw-ram/00000693.json.gz"
+}
+},
+{
+"screen": "overworld",
+"active_ui": null,
+"naming": null,
+"world_context": {
+"objects": [],
+"triggers": [],
+"dialogue": null
+},
+"field_controls_locked": false,
+"interaction_targets": [
+{
+"kind": "warp",
+"x": 7,
+"y": 1,
+"elevation": 0,
+"activation": "movement; activation depends on metatile (see local map)",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": [
+1,
+0,
+2
+],
+"name": "Warp to map 1/0"
+},
+{
+"kind": "background",
+"x": 0,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "PC"
+},
+{
+"kind": "background",
+"x": 1,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Notebook"
+},
+{
+"kind": "background",
+"x": 5,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Wall clock"
+},
+{
+"kind": "background",
+"x": 3,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "GameCube"
+},
+{
+"kind": "metatile_region_map",
+"x": 2,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "region map"
+},
+{
+"kind": "metatile_television",
+"x": 4,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "television"
+}
+],
+"started": true,
+"name": "RED",
+"location": "LITTLEROOT TOWN BRENDANS HOUSE 2F",
+"map_id": [
+1,
+1
+],
+"position": {
+"x": 5,
+"y": 2
+},
+"facing": "right",
+"in_battle": false,
+"party_owner": "player",
+"party_ownership": {
+"owner": "player",
+"source": "ordinary_player_party",
+"original_identities": [],
+"rental_personalities": [],
+"diagnostic": null,
+"raw_hex": null
+},
+"party": [],
+"battle": null,
+"running": {
+"permitted": false,
+"controllable": true,
+"reason": "no_running_shoes",
+"shoes": false,
+"allow_running": false,
+"avatar_flags": 33,
+"metatile": 0,
+"elevation": 3,
+"map_type": 8,
+"callback1": 134766085,
+"callback2": 134766173,
+"diagnostic": null,
+"raw_hex": null
+},
+"blackout_active": false,
+"money": 3000,
+"badges": [],
+"play_time_s": 148,
+"raw_ram": {
+"v": 1,
+"sequence": 695,
+"frame": 21984,
+"sha256": "c3c861d25f80d139856813ea19271d9dbcb123b8f19b7eacbb3bbdcf87568700",
+"path": "raw-ram/00000695.json.gz"
+}
+},
+{
+"screen": "overworld",
+"active_ui": null,
+"naming": null,
+"world_context": {
+"objects": [],
+"triggers": [],
+"dialogue": null
+},
+"field_controls_locked": false,
+"interaction_targets": [
+{
+"kind": "warp",
+"x": 7,
+"y": 1,
+"elevation": 0,
+"activation": "movement; activation depends on metatile (see local map)",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": [
+1,
+0,
+2
+],
+"name": "Warp to map 1/0"
+},
+{
+"kind": "background",
+"x": 0,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "PC"
+},
+{
+"kind": "background",
+"x": 1,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Notebook"
+},
+{
+"kind": "background",
+"x": 5,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "Wall clock"
+},
+{
+"kind": "background",
+"x": 3,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "GameCube"
+},
+{
+"kind": "metatile_region_map",
+"x": 2,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": null,
+"local_id": null,
+"destination": null,
+"name": "region map"
+},
+{
+"kind": "metatile_television",
+"x": 4,
+"y": 1,
+"elevation": 0,
+"activation": "A",
+"availability": "conditional",
+"facing": "up",
+"local_id": null,
+"destination": null,
+"name": "television"
+}
+],
+"started": true,
+"name": "RED",
+"location": "LITTLEROOT TOWN BRENDANS HOUSE 2F",
+"map_id": [
+1,
+1
+],
+"position": {
+"x": 5,
+"y": 2
+},
+"facing": "right",
+"in_battle": false,
+"party_owner": "player",
+"party_ownership": {
+"owner": "player",
+"source": "ordinary_player_party",
+"original_identities": [],
+"rental_personalities": [],
+"diagnostic": null,
+"raw_hex": null
+},
+"party": [],
+"battle": null,
+"running": {
+"permitted": false,
+"controllable": true,
+"reason": "no_running_shoes",
+"shoes": false,
+"allow_running": false,
+"avatar_flags": 33,
+"metatile": 0,
+"elevation": 3,
+"map_type": 8,
+"callback1": 134766085,
+"callback2": 134766173,
+"diagnostic": null,
+"raw_hex": null
+},
+"blackout_active": false,
+"money": 3000,
+"badges": [],
+"play_time_s": 148,
+"raw_ram": {
+"v": 1,
+"sequence": 695,
+"frame": 21984,
+"sha256": "c3c861d25f80d139856813ea19271d9dbcb123b8f19b7eacbb3bbdcf87568700",
+"path": "raw-ram/00000695.json.gz"
+}
+}
+],
+"recorded": {
+"advance": {
+"requested": [
+"RIGHT",
+"RIGHT",
+"DOWN",
+"DOWN"
+],
+"sent": [
+"RIGHT",
+"RIGHT"
+],
+"dropped": [
+"DOWN",
+"DOWN"
+],
+"stop": "field_free",
+"pages": [
+{
+"state_seq": 1639,
+"map": "LITTLEROOT TOWN BRENDANS HOUSE 2F",
+"map_id": [
+1,
+1
+],
+"position": {
+"x": 5,
+"y": 2
+},
+"speaker": "MOM",
+"speaker_source": "name_prefix",
+"text": "MOM: RED, how do you like your\nnew room?"
+},
+{
+"state_seq": 1645,
+"map": "LITTLEROOT TOWN BRENDANS HOUSE 2F",
+"map_id": [
+1,
+1
+],
+"position": {
+"x": 5,
+"y": 2
+},
+"speaker": "MOM",
+"speaker_source": "name_prefix",
+"text": "Good! Everything's put away neatly!"
+},
+{
+"state_seq": 1651,
+"map": "LITTLEROOT TOWN BRENDANS HOUSE 2F",
+"map_id": [
+1,
+1
+],
+"position": {
+"x": 5,
+"y": 2
+},
+"speaker": "MOM",
+"speaker_source": "name_prefix",
+"text": "They finished moving everything in\ndownstairs, too."
+},
+{
+"state_seq": 1657,
+"map": "LITTLEROOT TOWN BRENDANS HOUSE 2F",
+"map_id": [
+1,
+1
+],
+"position": {
+"x": 5,
+"y": 2
+},
+"speaker": "MOM",
+"speaker_source": "name_prefix",
+"text": "POKéMON movers are so convenient!"
+},
+{
+"state_seq": 1663,
+"map": "LITTLEROOT TOWN BRENDANS HOUSE 2F",
+"map_id": [
+1,
+1
+],
+"position": {
+"x": 5,
+"y": 2
+},
+"speaker": "MOM",
+"speaker_source": "name_prefix",
+"text": "Oh, you should make sure that\neverything's all there on your desk."
+}
+]
+},
+"result_head": "pressed RIGHT, RIGHT\nPress result: RIGHT: dialogue opened (the message box locks field controls until it closes) | then RIGHT: dialogue advanced (message box still open; it locks field controls until it closes)\nDialogue auto-advance: the harness pressed B 5 times to advance the dialogue; stopped: the conversation closed and field controls are free.\ndialogue closed; 2 remaining inputs not sent: DOWN, DOWN.\nDialogue shown during this call (5 pages, in order, whole):\n1. turn 95 · LITTLEROOT TOWN BRENDANS HOUSE 2F (map 1/1) · at 5,2 · MOM: \"MOM: RED, how do you like your\nnew room?\"\n2. turn 95 · LITTLEROOT TOWN BRENDANS HOUSE 2F (map 1/1) · at 5,2 · MOM: \"Good! Everything's put away neatly!\"\n3. turn 95 · LITTLEROOT TOWN BRENDANS HOUSE 2F (map 1/1) · at 5,2 · MOM: \"They finished moving everything in\ndownstairs, too.\"\n4. turn 95 · LITTLEROOT TOWN BRENDANS HOUSE 2F (map 1/1) · at 5,2 · MOM: \"POKéMON movers are so convenient!\"\n5. turn 95 · LITTLEROOT TOWN BRENDANS HOUSE 2F (map 1/1) · at 5,2 · MOM: \"Oh, you should make sure that\neverything's all there on your desk.\""
+}
+}

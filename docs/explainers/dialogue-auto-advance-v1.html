@@ -121,6 +121,25 @@ Record your progress with SAVE."
 <li>A free-field walking batch is sent whole as before; any other batch is sent one input at a time so the harness can stop the moment a conversation opens.</li>
 </ul>
 
+<h2>Pre-launch fixes F6 and F8 (bundle run 3f21)</h2>
+<figure class="fig"><svg viewBox="0 0 760 220" role="img" aria-label="T95 batch RIGHT,RIGHT,DOWN,DOWN: before the fix the second RIGHT was sent after MOM's text was already in the buffer; after the fix the batch stops there">
+<text x="10" y="20">State seq</text><text x="110" y="20" class="m">1628</text><text x="260" y="20" class="m">1634</text><text x="420" y="20" class="m">1638…1668</text><text x="640" y="20" class="m">1670</text>
+<text x="10" y="45" class="m">dialogue text</text><text x="110" y="45">none</text><text x="260" y="45" class="b">MOM: RED, how do…</text><text x="420" y="45">pages 1–5</text><text x="640" y="45">none</text>
+<text x="10" y="65" class="m">message phase</text><text x="110" y="65">none</text><text x="260" y="65" class="b">none (not yet)</text><text x="420" y="65">printing / waits</text><text x="640" y="65">none, free</text>
+<text x="10" y="110">Before</text><rect class="box" x="100" y="92" width="80" height="26"/><text x="112" y="110">RIGHT</text>
+<rect x="250" y="92" width="80" height="26" fill="none" stroke="var(--bad)" stroke-width="2"/><text x="262" y="110" class="b">RIGHT sent</text><text x="345" y="110" class="m">then B×5; result: "then RIGHT: dialogue advanced"</text>
+<text x="10" y="160">After</text><rect class="box" x="100" y="142" width="80" height="26"/><text x="112" y="160">RIGHT</text>
+<rect class="hl" x="250" y="142" width="160" height="26"/><text x="258" y="160">text appeared: stop</text><text x="420" y="160" class="g">B×5; "3 remaining inputs not sent: RIGHT, DOWN, DOWN"</text>
+<text x="10" y="192" class="m">State 1634 (frame 21587) already holds MOM's text but no message phase; the phase first reads at 1638 (frame 21617).</text><text x="10" y="208" class="m">The batch now stops on new or changed text as well as on the phase.</text>
+</svg><figcaption>F8, from the recorded states of run <code>3f21</code> T95. Replayed in <code>bundle-3f21-fixes.test.ts</code>; the same five pages are recorded.</figcaption></figure>
+<p>F6: the status line of <code>navigate_to</code> and the box notes in <code>Press result</code> were computed before the harness advanced the dialogue. They now describe the state after it.</p>
+<table>
+<tr><th>Case (3f21)</th><th>Before</th><th>After</th></tr>
+<tr><td>navigate_to, T98 seq 1776 (also T132 seq 2609, T146 seq 2902)</td><td><code>Navigation: a message is waiting for A or B; dismiss it with B, then call navigate_to again; 0 ordinary button attempts.</code></td><td><code>Navigation: a message was open, so navigate_to did not walk; after auto-advance: the conversation closed and field controls are free; call navigate_to again; 0 ordinary button attempts.</code></td></tr>
+<tr><td>press A, T56 seq 901</td><td><code>Press result: dialogue advanced (message box still open; it locks field controls until it closes)</code></td><td><code>Press result: dialogue advanced; after auto-advance: the conversation closed and field controls are free</code></td></tr>
+<tr><td>press RIGHT,RIGHT,DOWN,DOWN, T95 seq 1671</td><td><code>Press result: RIGHT: dialogue opened (the message box locks field controls until it closes) | then RIGHT: dialogue advanced (message box still open; it locks field controls until it closes)</code></td><td><code>Press result: dialogue opened; after auto-advance: the conversation closed and field controls are free</code></td></tr>
+</table>
+<p class="muted">Only the stale box notes are replaced ("locks field controls until it closes", "still open", "field controls are still locked"); other press-result wording, which the control arm shares, is unchanged. When the advance stops at a menu the status names it and does not say "call navigate_to again". Off: no wrapper, so nothing changes.</p>
 <h2>Status</h2>
 <p>Branch <code>claude/dialogue-auto-advance</code>. Agent and viewer tests, lint, build and both coverage gates pass; one live smoke against the real game server (above). Not done: the multi-model review, and any measured runs. Pending experiment <code>experiments/dialogue-auto-advance.json</code> (activation NEW_GAME_CREATED) joins the strong-bundle cohort only with the operator's approval. The Birch intro speech and battle text are separate screens and are not advanced.</p>
 </main></body></html>

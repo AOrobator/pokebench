@@ -8,6 +8,11 @@ type State=Extract<RunEvent,{type:"state";started:boolean}>;
 export interface DialogueEntry {readonly seq:number;readonly turn:number;readonly key:string;readonly room:string;readonly position:string|null;readonly facing:string|null;readonly text:string}
 
 const DEFAULT_LAST=8;
+type Page=Extract<RunEvent,{type:"dialogue_auto_advance"}>["pages"][number];
+// dialogue-auto-advance-v1's speaker label: the game's NAME: prefix, else the faced sprite kind or object, labelled as such.
+export function speakerLabel(page:Pick<Page,"speaker"|"speaker_source">):string|null {
+ return page.speaker===null?null:page.speaker_source==="faced_sprite"?`${page.speaker} (sprite kind, not a name)`:page.speaker_source==="faced_target"?`${page.speaker} (faced object)`:page.speaker;
+}
 type Place={location:string|null;map_id:readonly number[]|null};
 // Location labels can repeat or be missing across maps, so identity always includes the map id.
 export function roomKey(state:Place):string {return `${state.location??"unknown room"}|${state.map_id?.join("/")??"none"}`;}

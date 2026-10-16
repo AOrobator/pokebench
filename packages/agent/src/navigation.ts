@@ -162,7 +162,7 @@ function targetReason(state:GameStateSnapshot,goal:Point,options:NavigationOptio
   if(truth&&state.interaction_targets!=null&&person===undefined&&(live!==undefined||geometry.objects.some(same))){
    const others=targets.filter(t=>t.activation==="A"&&t.kind!=="warp"&&t.kind!=="object").map(t=>{const kind=t.kind.replaceAll("_"," ");return t.name!=null?`${t.name} (${kind})`:`a ${kind}`;});
    const sprite=live?.sprite_kind!=null?` (sprite ${live.sprite_kind})`:"";
-   return others.length===0?`${at(goal)} is a person or object${sprite}, which navigate_to cannot stand on; it has no script, so facing it and pressing A does not talk to it or use it`:`${at(goal)} is a person or object${sprite}, which navigate_to cannot stand on; it has no script, so facing it and pressing A does not talk to it; the state also lists ${others.join(" and ")} on that tile, which pressing A may use if the game's own conditions for it are met`;
+   return others.length===0?`${at(goal)} is a person or object${sprite}, which navigate_to cannot stand on; it is not listed as something you can talk to or use, so navigate_to offers no tile to talk to it from`:`${at(goal)} is a person or object${sprite}, which navigate_to cannot stand on; it is not listed as something you can talk to, so navigate_to offers no tile to talk to it from; the state also lists ${others.join(" and ")} on that tile, which pressing A may use if the game's own conditions for it are met`;
   }
   const kind=thing===undefined||thing.kind==="object"?"person or object":thing.kind.replaceAll("_"," ");
   const name=thing?.name;

@@ -51,7 +51,7 @@ describe("navigation-truth-v1: talk offers only for objects with a script (sh02 
  const birch=recorded("sh02:5860");
  it("PROF_BIRCH on Route 101 has script 0x0 and is not an interaction target, so no 'press A' offer",async()=>{
   expect(birch.interaction_targets?.some(t=>t.x===4&&t.y===13)).toBe(false);
-  expect((await walk(birch,{x:4,y:13},TRUTH)).status).toBe("(4,13) is a person or object (sprite PROF_BIRCH), which navigate_to cannot stand on; it has no script, so facing it and pressing A does not talk to it or use it");
+  expect((await walk(birch,{x:4,y:13},TRUTH)).status).toBe("(4,13) is a person or object (sprite PROF_BIRCH), which navigate_to cannot stand on; it is not listed as something you can talk to or use, so navigate_to offers no tile to talk to it from");
  });
  it("counter-talk-v1 offers to talk across a counter only to someone with a script",async()=>{
   const counter:GameStateSnapshot={...ascii(["...","...","@.."]),navigation_grid:{elevation:3,tiles:[0,1,2].flatMap(y=>[0,1,2].map(x=>({x,y,collision:y===1?1:0,behavior:y===1?0x80:0,elevation:3}))),objects:[{x:1,y:0}],warps:[]},position:{x:0,y:2}};
@@ -59,7 +59,7 @@ describe("navigation-truth-v1: talk offers only for objects with a script (sh02 
   const TALK="target is behind a counter; walk to (1,2), face UP toward the counter at (1,1) and press A to talk across it";
   expect((await walk({...counter,interaction_targets:[clerk]},{x:1,y:0},{...TRUTH,counters:true})).status).toBe(TALK);
   expect((await walk({...counter,interaction_targets:[]},{x:1,y:0},{...CONTROL,counters:true})).status).toBe(TALK);
-  expect((await walk({...counter,interaction_targets:[]},{x:1,y:0},{...TRUTH,counters:true})).status).toBe("(1,0) is a person or object, which navigate_to cannot stand on; it has no script, so facing it and pressing A does not talk to it or use it");
+  expect((await walk({...counter,interaction_targets:[]},{x:1,y:0},{...TRUTH,counters:true})).status).toBe("(1,0) is a person or object, which navigate_to cannot stand on; it is not listed as something you can talk to or use, so navigate_to offers no tile to talk to it from");
   expect((await walk({...counter,interaction_targets:null},{x:1,y:0},{...TRUTH,counters:true})).status).toBe(TALK);
   // The counter itself as the target: talk is offered only when someone with a script stands behind it.
   const BEHIND="target is a counter or behind one; you cannot stand on a counter, but you can face it from a reachable adjacent tile and press A to talk to someone behind it";
@@ -76,8 +76,8 @@ describe("navigation-truth-v1: talk offers only for objects with a script (sh02 
   const item=ascii(["...","@..","..."]);
   const on=(kind:string,elevation:number,facing:string|null,name:string|null=null,base:GameStateSnapshot=item):GameStateSnapshot=>({...base,navigation_grid:{...gridOf(base),objects:[{x:2,y:1}]},world_context:{...contextOf(base),objects:live},interaction_targets:[{kind,x:2,y:1,elevation,activation:"A",availability:"conditional",facing,local_id:null,destination:null,name}]});
   const solid=(state:GameStateSnapshot):GameStateSnapshot=>({...state,navigation_grid:{...gridOf(state),tiles:gridOf(state).tiles.map(t=>t.x===2&&t.y===1?{...t,collision:1}:t)}});
-  const NONE="(2,1) is a person or object (sprite BOY_1), which navigate_to cannot stand on; it has no script, so facing it and pressing A does not talk to it or use it";
-  const ALSO=(what:string)=>`(2,1) is a person or object (sprite BOY_1), which navigate_to cannot stand on; it has no script, so facing it and pressing A does not talk to it; the state also lists ${what} on that tile, which pressing A may use if the game's own conditions for it are met`;
+  const NONE="(2,1) is a person or object (sprite BOY_1), which navigate_to cannot stand on; it is not listed as something you can talk to or use, so navigate_to offers no tile to talk to it from";
+  const ALSO=(what:string)=>`(2,1) is a person or object (sprite BOY_1), which navigate_to cannot stand on; it is not listed as something you can talk to, so navigate_to offers no tile to talk to it from; the state also lists ${what} on that tile, which pressing A may use if the game's own conditions for it are met`;
   const OFFER="(2,1) is a person or object, which navigate_to cannot stand on; to talk to it or use it, walk to one of these free tiles, face it and press A: (2,0) facing DOWN; (2,2) facing UP; (1,1) facing RIGHT";
   expect((await walk(on("hidden_item",3,null),{x:2,y:1},CONTROL)).status).toBe(OFFER);
   expect((await walk(on("hidden_item",3,null),{x:2,y:1},TRUTH)).status).toBe(ALSO("a hidden item"));
@@ -537,7 +537,7 @@ describe("production wiring",()=>{
    const nav=tools.find(t=>t.name==="navigate_to");if(nav===undefined)throw new Error("no navigation");
    return ((await nav.execute("n",{...goal,map_id:[state.map_id?.[0]??0,state.map_id?.[1]??0]})).details as {navigation:{status:string}}).navigation.status;
   };
-  expect(await status({"navigation-truth-v1":true,"coordinate-script-conditions-v1":true},{x:4,y:13})).toContain("it has no script");
+  expect(await status({"navigation-truth-v1":true,"coordinate-script-conditions-v1":true},{x:4,y:13})).toContain("it is not listed as something you can talk to or use");
   expect(await status({"navigation-truth-v1":false,"coordinate-script-conditions-v1":true},{x:4,y:13})).toContain("to talk to it or use it");
   expect(await status({"navigation-truth-v1":true,"coordinate-script-conditions-v1":true},{x:4,y:12})).toContain("the first one on the route it would take without avoiding them is (6,15)");
   expect(await status({"navigation-truth-v1":true,"coordinate-script-conditions-v1":false},{x:4,y:12})).not.toContain("crosses");

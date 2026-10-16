@@ -125,10 +125,10 @@ describe("levelup-box-v1 on the recorded T357 level-up (run 54a7)",()=>{
   expect(advance()?.pages.map(p=>p.text).slice(3)).toEqual([PAGE1,PAGE2]);
  });
 
- it("ON with the server's wait not ending on the box (a mixed build): the next decision still presses through it",async()=>{
+ it("ON with a server wait that never ends on the box (bound 40): the press results land on the box and it is still pressed through",async()=>{
   const server=new Replay(at(5076),false,40);const {advance,press}=wire(server,ON);
   await press.execute("t357",{buttons:["A","A"]});
-  // A bound wait that lands on the box: the agent classifies the state it was handed.
+  // The press after "grew to LV. 6!" lands straight on the box, so every box press comes from a press result.
   expect(advance()?.pages.map(p=>p.text).slice(3,5)).toEqual([PAGE1,PAGE2]);
  });
 

@@ -3,7 +3,7 @@
  "id": "levelup-box",
  "title": "Level-up stats box named and pressed through",
  "changedFeature": "levelup-box-v1",
- "hypothesis": "Naming the level-up stats box (Cmd_drawlvlupbox) and its stats in the battle readout while it waits for a button, and pressing through both pages in battle text auto-advance, instead of 'resolving (no input until the game asks)' and a battle_busy stop, removes the turns lost after a level-up (bundle run 2026-10-16T04-51-03_qwen36-gpu0_54a7 lost T357-T361 on 'TORCHIC grew to LV. 6!'), so more runs reach ROUTE 103 in fewer turns.",
+ "hypothesis": "Naming the level-up stats box (Cmd_drawlvlupbox) and its stats in the battle readout while it waits for a button, instead of 'resolving (no input until the game asks)', removes the turns lost after a level-up (bundle run 2026-10-16T04-51-03_qwen36-gpu0_54a7 lost T357-T361 on 'TORCHIC grew to LV. 6!'), so more runs reach ROUTE 103 in fewer turns.",
  "activationMilestone": "STARTER_CHOSEN",
  "primaryMilestone": "ROUTE_103",
  "source": {
@@ -89,5 +89,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Uses the finals incumbent, as battle-message-waiting does (the switch is omitted there, so it reads OFF). Activation: the box follows a level-up in battle; the first battle is the PROF. BIRCH rescue, which starts once the starter is chosen (STARTER_CHOSEN). Primary ROUTE_103, as battle-message-waiting uses, because the shared RIVAL_HOUSE_ENTERED comes before any battle. Meant ON in both arms of bundle-v-control (onInBoth; the bundle file is edited by the readiness thread), so this standalone entry stays pending. Not yet designed: run pokebench-experiment-design before this entry is queued or driven. Provisional source.commit (the branch base); repin to the merge SHA with `just experiment-pin` when it lands."
+ "notes": "Uses the finals incumbent, as battle-message-waiting does (the switch is omitted there, so it reads OFF). Activation: the box follows a level-up in battle; the first battle is the PROF. BIRCH rescue, which starts once the starter is chosen (STARTER_CHOSEN). Primary ROUTE_103, as battle-message-waiting uses, because the shared RIVAL_HOUSE_ENTERED comes before any battle. Meant ON in both arms of bundle-v-control (onInBoth; the bundle file is edited by the readiness thread), so this standalone entry stays pending. Not yet designed: run pokebench-experiment-design before this entry is queued or driven. Provisional source.commit (the branch base); repin to the merge SHA with `just experiment-pin` when it lands. The finals incumbent has battle-text-auto-advance-v1 off, so these standalone arms test the readout clause only (the Battle input: line); the auto-advance press-through is measured where both switches are on (bundle-v-control's arms). Revisit the arms at pokebench-experiment-design."
 }

@@ -59,11 +59,14 @@ it("defaults OFF for presets that omit them and for legacy flag presets, so reco
 it("registers each switch as a pending experiment with a readiness row", () => {
   const readiness = readFileSync(new URL("../../../docs/experiments/readiness.md", import.meta.url), "utf8");
   for (const [file, id, activation] of [["readout-truth", "readout-truth-v1", "NEW_GAME_CREATED"], ["birch-speech-pages", "birch-speech-pages-v1", "PLAYER_NAME_CONFIRMED"], ["blackout-readout", "blackout-readout-v1", "STARTER_CHOSEN"]] as const) {
-    const entry = JSON.parse(readFileSync(new URL(`../../../experiments/${file}.json`, import.meta.url), "utf8")) as { changedFeature: string; activationMilestone: string; queuePosition?: number; incumbent: { features: Record<string, boolean> } };
+    const entry = JSON.parse(readFileSync(new URL(`../../../experiments/${file}.json`, import.meta.url), "utf8")) as { changedFeature: string; activationMilestone: string; queuePosition?: number; incumbent: { features: Record<string, boolean> }; source: { commit: string } };
     expect(entry.changedFeature).toBe(id);
     expect(entry.activationMilestone).toBe(activation);
     expect(entry.queuePosition).toBeUndefined();
     expect(entry.incumbent.features[id]).toBe(false);
+    // Pinned past the review fixes (not 639bc92a, the pre-review head); repinned at landing.
+    expect(entry.source.commit).toMatch(/^[0-9a-f]{40}$/);
+    expect(entry.source.commit.startsWith("639bc92a")).toBe(false);
     expect(readiness).toContain(`| \`${id}\` | \`${activation}\``);
   }
 });

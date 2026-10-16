@@ -8,7 +8,7 @@
  "primaryMilestone": "FIRST_TRUCK_EXIT",
  "source": {
   "checkout": "main",
-  "commit": "639bc92a12cc1e2e4d17fb3de2f7547184c431e3"
+  "commit": "f096ae0a8d2926ba03ddb68665e47f56d0461a9a"
  },
  "incumbent": {
   "version": 2,
@@ -112,5 +112,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Uses the finals incumbent. Behavior change, bundle arm only. Activation: the pages follow the accepted name. Provisional source.commit is the branch head before merge; repinned to the merge SHA with `just experiment-pin` when it lands."
+ "notes": "Uses the finals incumbent. Behavior change, bundle arm only. Activation: the pages follow the accepted name. Provisional source.commit is the branch's last implementation commit (after review rounds 1-3); repinned to the merge SHA with `just experiment-pin` when it lands."
 }

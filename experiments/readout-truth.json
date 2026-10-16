@@ -8,7 +8,7 @@
  "primaryMilestone": "RIVAL_BATTLE_WON",
  "source": {
   "checkout": "main",
-  "commit": "639bc92a12cc1e2e4d17fb3de2f7547184c431e3"
+  "commit": "f096ae0a8d2926ba03ddb68665e47f56d0461a9a"
  },
  "incumbent": {
   "version": 2,
@@ -112,5 +112,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Uses the finals incumbent. Correctness fixes from the 2026-10-16 cook harness audit: meant to be ON in both arms of bundle-v-control (onInBoth, wired by the bundle owner); a standalone A/B needs operator approval. Activation: the Menu line changes from the Birch speech on. Provisional source.commit is the branch head before merge; repinned to the merge SHA with `just experiment-pin` when it lands."
+ "notes": "Uses the finals incumbent. Correctness fixes from the 2026-10-16 cook harness audit: meant to be ON in both arms of bundle-v-control (onInBoth, wired by the bundle owner); a standalone A/B needs operator approval. Activation: the Menu line changes from the Birch speech on. Provisional source.commit is the branch's last implementation commit (after review rounds 1-3); repinned to the merge SHA with `just experiment-pin` when it lands."
 }

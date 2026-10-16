@@ -125,7 +125,9 @@ Report branch, frozen head, packet SHA-256, verdict lines, gate counts and cover
   - RED: short window header/pixels/sMenu id → unknown (None) and no "none" claim; whiteouts queue oldest first, `put_back` goes first, an event between snapshot and take does not replace the first; short money reads keep amounts unknown. Without the fixes: 4 failing.
   COMMIT: `test(RED): review round 3 — short window reads are unknown, whiteouts queue` (00046eb7)
 - 2026-10-16 07:37 AM EDT: Round-3 GREEN. `ui_state.window_drawn_strict` (None on a short header or pixel read) used by `read_no_message` (must be False to claim no message) and `menu_window_drawn` (now `bool | None`; None on a short sMenu id read); `WhiteoutLatch` keeps a FIFO queue, `take` pops the oldest event not newer than the snapshot, `put_back` reinserts it first; `_money` length-checks its reads. Explainers note the queue and window-read rule. Receipts: receipt-18 lenient window probe → 1 failed; receipt-19 newest first → 2; receipt-20 money length check removed → 1; restored green. Gates (ROM set): agent 1705, viewer 925, Python 2381 passed, 0 skipped; coverage agent 97.98/94.54/98.49/99.12, viewer 95.32/91.09/93.68/97.63, Python 97.45/93.43/100; lint, build, pages-check clean. Experiment pins follow in the next commit (B3).
-  COMMIT: `fix: review round 3 — short window reads are unknown; whiteouts queue oldest first`
+  COMMIT: `fix: review round 3 — short window reads are unknown; whiteouts queue oldest first` (f096ae0a)
+- Round-3 B3: the three pending experiments' provisional `source.commit` now pins f096ae0a (the last implementation commit, after all review fixes); `readout-truth.test.ts` refuses the pre-review pin. Repinned to the merge SHA with `just experiment-pin` when the thread owner lands it.
+  COMMIT: `experiments: pin readout-truth switches past the review fixes`
 
 ## Surprises
 

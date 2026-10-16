@@ -34,6 +34,10 @@ describe("experiment queue view", () => {
     expect(renderQueue(payload, "all", new Set()).queue.startsWith('<section class="eq-fixed"')).toBe(true);
     expect(renderQueue(payload, "pending", new Set()).queue).toContain("2 / 140 done");
     expect(() => queueSnapshotOf({ ...SNAPSHOT, fixedRuns: [{ experiment: 1 }] })).toThrow("malformed /api/experiments fixedRuns");
+    // The current-run plates read lane id, GPU, arm and run, so each lane is checked too.
+    const lane = { id: "A", gpu: "GPU1", port: 8075, state: "running", reason: "", slot: 1, arm: "bundle", phase: "trial", run: "r1", since: "", retryAt: null, lastError: null, valid: 0, total: 2 };
+    expect(queueSnapshotOf({ ...SNAPSHOT, fixedRuns: [{ ...fixed, lanes: [lane, { ...lane, arm: null, run: null }] }] }).fixedRuns?.[0]?.lanes).toHaveLength(2);
+    for (const bad of [{ ...lane, id: 1 }, { ...lane, gpu: null }, { ...lane, arm: 3 }, { ...lane, run: {} }, "lane"]) expect(() => queueSnapshotOf({ ...SNAPSHOT, fixedRuns: [{ ...fixed, lanes: [bad] }] })).toThrow("malformed /api/experiments fixedRuns");
   });
 
   it("validates the /api/experiments payload", () => {

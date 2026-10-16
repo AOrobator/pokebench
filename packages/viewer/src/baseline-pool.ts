@@ -5,6 +5,7 @@ import { Type } from "typebox";
 import { Value } from "typebox/value";
 import type { BaselineCompute, BaselineOutcome } from "./runs.js";
 import { parseLoadedRun, type WorkbenchCompute } from "./workbench-store.js";
+import type { BuildIdentity } from "./build-stamp.js";
 
 // What a worker computes for one run: its comparison baseline, or its workbench record.
 export type WorkerKind = "baseline" | "workbench";
@@ -14,6 +15,8 @@ export interface BaselineRequest {
   readonly kind: WorkerKind;
   readonly runsRoot: string;
   readonly runId: string;
+  // A workbench load's viewer build stamp, as plain data (git ancestry is decided on the main thread).
+  readonly viewer?: BuildIdentity | null;
 }
 
 export type BaselineReply = { readonly id: number; readonly outcome: unknown } | { readonly id: number; readonly failure: string };
@@ -112,17 +115,17 @@ export function createBaselinePool(spawn: () => BaselineWorkerLike, size: number
     }
   };
 
-  const call = (kind: WorkerKind, runsRoot: string, runId: string): Promise<unknown> => new Promise<unknown>((resolve, reject) => {
+  const call = (kind: WorkerKind, runsRoot: string, runId: string, viewer?: BuildIdentity | null): Promise<unknown> => new Promise<unknown>((resolve, reject) => {
     if (closed) { reject(new Error("baseline pool closed")); return; }
     nextId += 1;
-    queue.push({ request: { id: nextId, kind, runsRoot, runId }, resolve, reject });
+    queue.push({ request: { id: nextId, kind, runsRoot, runId, ...(viewer === undefined ? {} : { viewer }) }, resolve, reject });
     pump();
   });
   const invalid = (runId: string): Error => new Error(`baseline worker sent an invalid reply for ${runId}`);
 
   return {
     compute: async (runsRoot, runId) => parseBaselineOutcome(await call("baseline", runsRoot, runId)) ?? Promise.reject(invalid(runId)),
-    load: async (runsRoot, runId) => parseLoadedRun(await call("workbench", runsRoot, runId)) ?? Promise.reject(invalid(runId)),
+    load: async (runsRoot, runId, viewer) => parseLoadedRun(await call("workbench", runsRoot, runId, viewer)) ?? Promise.reject(invalid(runId)),
     close: async () => {
       closed = true;
       const workers = [...busy];

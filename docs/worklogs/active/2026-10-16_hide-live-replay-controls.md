@@ -12,5 +12,5 @@ Viewer only, no harness behavior change, so no feature switch. `static/index.htm
 
 **M1 — hide the controls while a run is in progress**
 - [x] RED: live run hides the group; it shows once the run ends and replays; a recorded replay shows it
-- [ ] GREEN, gates
+- [x] GREEN, gates: `pnpm -r build`, `pnpm -r lint`, `pnpm -r coverage` pass (viewer 904 tests; 95.32 stmts / 91.1 branches / 93.62 funcs / 97.62 lines; agent 1619 tests). Python untouched.
 - [ ] Review: Claude, Codex, Grok on one frozen packet; land ff-only

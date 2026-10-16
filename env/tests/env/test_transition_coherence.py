@@ -432,6 +432,19 @@ def blind(j: NativeActionJournal) -> list[object]:
     ]
 
 
+def test_each_blind_episode_after_a_recovery_is_reported() -> None:
+    # Codex review round 2: a second 600-frame busy episode after an idle frame is loud too.
+    j = NativeActionJournal()
+    for episode in (1, 2):
+        for _ in range(BUSY_LIMIT):
+            j.advance(busy_reader(False))
+        assert len(blind(j)) == episode
+        j.advance(busy_reader(True))
+    for _ in range(BUSY_LIMIT * 2):
+        j.advance(busy_reader(False))
+    assert len(blind(j)) == 3  # a long streak reports once, at its 600th frame
+
+
 def test_harness_bug_dedupe_is_by_owner_and_kind_not_slot_numbers_or_hex() -> None:
     assert diagnostic_kind("harness bug: invalid berry tree 1: dc312c01dc312c01") == (
         "harness bug: invalid berry tree #: #"

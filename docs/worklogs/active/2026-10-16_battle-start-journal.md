@@ -134,6 +134,9 @@ Report: branch, frozen head SHA, sha256 of `git diff --binary main HEAD`, three 
 - 2026-10-16 08:00 AM EDT: merged main 5b93cda4 (dynamic frontier record, viewer only, clean merge); viewer and agent tests green. Sealing round 2.
   COMMIT: `Merge branch 'main' into claude/battle-start-journal (dynamic frontier record, viewer only)` + this worklog line
 
+- 2026-10-16 08:30 AM EDT: review round 2 (see log). Fix: per-episode blind diagnostic. transition-coherence tests 59 passed; Python full suite and coverage gate green.
+  COMMIT: `fix: review round 2: each blind journal episode after a recovery is reported`
+
 ## Surprises
 
 - The journal's `battle_started` fires on the activation frame, which is always before the battle decodes, so `battle_type` was null by construction.
@@ -168,6 +171,12 @@ Zero FAIL.
 - Claude CLI with `CLAUDE_CONFIG_DIR=~/.claude-review`: failed, "OAuth session expired and could not be refreshed". Retried with the default `claude -p` login (same harness, standing rule): `VERDICT: BLOCKING`. B1: the frozen Handoff table names 0x08133F0D `starter_choice_transition`, the code ships `starter_opening_transition` (model-visible with the switch on). Verified packet SHA, ROM addresses, OFF path, fixture SHAs. Hardening: required keyword args; blind guard dedup hides later streaks.
 - GPT: Cursor `gpt-5.6-sol-xhigh` failed, usage limit ("resets 10/17/2026"). Switched to isolated Codex: config default `gpt-6.1-sol` rejected for a ChatGPT account; `gpt-5.6-sol` probe works, used for round 2.
 - Synthesis: B1 accepted; fixed by renaming the phase to the frozen name `starter_choice_transition` in transition_coherence.py, the tests, the switch copy and the explainer (no new surface). Hardening notes deferred (non-blocking).
+
+**Round 2** — packet `git diff --binary 5b93cda4 6b132d4f`, SHA-256 `538154fd00fe6aad1b9e9cdc14620336e64d3895c9c691953bf796c2c4449483`.
+- Grok (Cursor `cursor-grok-4.5-high`): `VERDICT: LGTM`.
+- Claude (Claude CLI, default login): `VERDICT: LGTM`.
+- GPT (isolated Codex `gpt-5.6-sol`, read-only, standing harness switch from the usage-limited Cursor GPT lane): `VERDICT: BLOCKING`. B1: the blind-journal diagnostic went through the run-wide dedupe, so a second 600-frame busy episode after a recovery emitted nothing (INV-4, PB7); reproducer 600 busy, 1 idle, 600 busy → 1 event.
+- Synthesis: accepted. The blind diagnostic is emitted per episode (an idle frame re-arms it), not through the decoder dedupe; new test `test_each_blind_episode_after_a_recovery_is_reported`; deleting the re-arm (routing through `_diagnostic` again) turns it red, restored green.
 
 ## Boy Scout Log
 

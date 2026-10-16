@@ -575,11 +575,20 @@ class NativeActionJournal:
                 if main_loop_idle(read) is False:
                     self.busy_frames += 1
                     if self.busy_frames == BUSY_LIMIT:
-                        self._diagnostic(
-                            "native_action",
+                        # One row per blind episode: an idle frame re-arms it, so it is not
+                        # folded into the run-wide dedupe of decoder diagnostics.
+                        message = (
                             f"harness bug: no coherent frame for {BUSY_LIMIT} emulated frames "
-                            "(the main loop never reached its VBlank wait)",
-                            None,
+                            "(the main loop never reached its VBlank wait)"
+                        )
+                        self._emit(
+                            "harness_bug",
+                            {
+                                "owner": "native_action",
+                                "kind": diagnostic_kind(message),
+                                "message": message,
+                                "raw_hex": None,
+                            },
                         )
                     return
                 self.busy_frames = 0

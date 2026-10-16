@@ -12,8 +12,8 @@ from pathlib import Path
 import pytest
 
 from pokebench_env import rerender
-from pokebench_env.game_state import MapNames
 from pokebench_env.blackout_readout import Whiteout
+from pokebench_env.game_state import MapNames
 from pokebench_env.readout import SERVER_FEATURES
 from pokebench_env.rom import EMERALD_SHA1, RomError, resolve_rom
 

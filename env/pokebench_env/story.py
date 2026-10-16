@@ -143,7 +143,7 @@ class StoryState:
     def json(self) -> dict[str, object]:
         return asdict(self)
 
-    def text(self) -> str:
+    def text(self, *, truth: bool = False) -> str:
         if all(value is None for value in asdict(self).values()):
             return "Story: unavailable (story state not readable right now)"
         completed = []
@@ -154,7 +154,13 @@ class StoryState:
         if self.clock_set is True:
             completed.append("clock set")
         if self.intro_stage == 7:
-            completed.append("Mom rival instruction received")
+            # readout-truth-v1: PlayersHouse_1F_EventScript_SetWatchedBroadcast sets stage 7
+            # after Mom's PlayersHouse_1F_Text_GoIntroduceYourselfNextDoor (players_house.inc).
+            completed.append(
+                "Mom told you PROF. BIRCH lives next door (after the Petalburg Gym TV report)"
+                if truth
+                else "Mom rival instruction received"
+            )
         if self.rival_stage in (3, 4):
             completed.append("rival met")
         if self.town_stage in (2, 3, 4):

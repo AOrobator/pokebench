@@ -30,7 +30,11 @@ FIXTURE = json.loads(
 )
 ROM_START = 0x08000000
 # Switches registered after cook run #2 were off for it.
-RECORDED_OFF = frozenset(FIXTURE["recorded_off"]) | {"readout-truth-v1", "birch-speech-pages-v1", "blackout-readout-v1"}
+RECORDED_OFF = frozenset(FIXTURE["recorded_off"]) | {
+    "readout-truth-v1",
+    "birch-speech-pages-v1",
+    "blackout-readout-v1",
+}
 OFF_TEXT = "Battle details: WILD single · turn 3 · resolving (no input until the game asks)"
 WAITING = 'battle message waiting: "Wild WINGULL fainted!" — press A or B to continue'
 RESOLVING = (

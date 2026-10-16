@@ -324,7 +324,9 @@ BIRCH_PHASES = {
 }
 
 
-def read_active_ui(read: ReadMemory, screen: "Screen") -> ActiveUi | None:
+def read_active_ui(
+    read: ReadMemory, screen: "Screen", *, truth: bool = False, birch_pages: bool = False
+) -> ActiveUi | None:
     from pokebench_env.game_screen import TASKS
     from pokebench_env.menu_apprentice import read_apprentice_ui
     from pokebench_env.menu_aux import read_aux_ui
@@ -451,7 +453,7 @@ def read_active_ui(read: ReadMemory, screen: "Screen") -> ActiveUi | None:
     corner_ui = read_corner_ui(read, screen.callback2)
     if corner_ui is not None:
         return corner_ui
-    menu_family = read_menu_family(read, screen.callback2)
+    menu_family = read_menu_family(read, screen.callback2, truth=truth)
     if menu_family is not None:
         return menu_family
     field_widget_ui = read_field_widget_ui(read, screen.callback2)
@@ -603,6 +605,12 @@ def read_active_ui(read: ReadMemory, screen: "Screen") -> ActiveUi | None:
                 "B declines and returns to gender selection"
             )
             return ActiveUi(phase, labels[menu.selected - 1], True, controls)
+        if birch_pages:
+            from pokebench_env.birch_pages import read_birch_page
+
+            page = read_birch_page(read, owners[0])
+            if page is not None:
+                return page
         ready = phase == "name_entry_prompt"
         return ActiveUi(
             phase,

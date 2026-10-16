@@ -23,6 +23,8 @@ from pokebench_env.action_history import install_action_history
 from pokebench_env.audio import EmulatorLike
 from pokebench_env.battle_choices import FrameEmulator, install_battle_journal
 from pokebench_env.battle_text import BattleWait, install_battle_text, install_battle_wait
+from pokebench_env.blackout_readout import SWITCH as BLACKOUT
+from pokebench_env.blackout_readout import WhiteoutLatch, install_whiteout_latch
 from pokebench_env.checkpoint import install_checkpoint
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import MapNames
@@ -122,12 +124,17 @@ def run(
         install_battle_text(*battle_text)
     settle = None
     battle_wait = None
+    whiteout = None
     if observation is not None and frames is not None and human is None:
         off = features_off_from_env(os.environ)
         settle = FrameSettle(observation[2], warp=WARP_FEATURE not in off)
         install_frame_settle(frames, settle)
         battle_wait = BattleWait(observation[2])
         install_battle_wait(frames, battle_wait)
+        # blackout-readout-v1: OFF installs no frame hook at all.
+        if BLACKOUT not in off:
+            whiteout = WhiteoutLatch(observation[2])
+            install_whiteout_latch(frames, whiteout)
     if actions is not None:
         install_action_history(*actions)
     if travel is not None:
@@ -150,6 +157,7 @@ def run(
             raw_capture=raw_capture,
             settle=settle,
             battle_wait=battle_wait,
+            whiteout=whiteout,
         )
     if human is not None:
         api, server, token = human

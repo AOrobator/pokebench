@@ -4,6 +4,8 @@ The live server decodes RAM with `read_state` and formats it with `render`; this
 both, so a probe that re-renders a recorded turn under other switches runs the server's code.
 Input (stdin JSON): {"run_dir": str, "raw_ram": [{"path": str, "sha256": str}, ...]}.
 Switches come from the environment the server reads (POKEBENCH_FEATURES_OFF, POKEBENCH_ACTIVE_UI).
+blackout-readout-v1's once-only field line comes from the live server's frame latch, which a
+single archive cannot carry; a re-render shows only the line read from its own state.
 Output (stdout JSON): {"readouts": [str, ...]} in input order.
 """
 
@@ -14,6 +16,7 @@ from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import TextIO
 
+from pokebench_env.blackout_readout import Whiteout
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import GameState, MapNames, read_game_state
 from pokebench_env.raw_ram import load_raw_ram
@@ -44,10 +47,18 @@ def read_state(
         connection_edges_enabled="connection-edge-tiles-v1" not in off,
         in_game_naming_enabled="in-game-naming-readout-v1" not in off,
         offscreen_objects_enabled="offscreen-objects-v1" not in off,
+        readout_truth_enabled="readout-truth-v1" not in off,
+        birch_pages_enabled="birch-speech-pages-v1" not in off,
     )
 
 
-def render(state: GameState, off: frozenset[str], *, warp_animation: bool = False) -> str:
+def render(
+    state: GameState,
+    off: frozenset[str],
+    *,
+    warp_animation: bool = False,
+    whiteout: Whiteout | None = None,
+) -> str:
     return format_readout(
         state,
         off,
@@ -59,6 +70,7 @@ def render(state: GameState, off: frozenset[str], *, warp_animation: bool = Fals
         warp_animation=warp_animation,
         adjacent_tiles="adjacent-tiles-v1" not in off,
         rules_in_prompt="readout-rules-in-prompt-v1" not in off,
+        whiteout=whiteout,
     )
 
 

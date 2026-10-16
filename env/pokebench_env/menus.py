@@ -185,7 +185,31 @@ def _list_selection(read: ReadMemory, task_id: int) -> tuple[str, int, int]:
     return _text_pointer(read, name_pointer), item_id, scroll + row
 
 
-def read_menu_family(read: ReadMemory, callback: int) -> "ActiveUi | None":
+# field_screen_effect.c Task_WaitForFadeShowStartMenu: ReturnToFieldOpenStartMenu draws the
+# START menu, waits for the weather fade, then creates Task_ShowStartMenu (0x0809FA35).
+# ROM 0x080AF660: bl WaitForWeatherFadeIn; cmp r0,#1; bl DestroyTask; ldr r0,=0x0809FA35;
+# movs r1,#0x50; bl CreateTask.
+START_MENU_REOPEN_TASK = 0x080AF661
+START_LABELS = (
+    "POKEDEX",
+    "POKEMON",
+    "BAG",
+    "POKENAV",
+    "PLAYER",
+    "SAVE",
+    "OPTIONS",
+    "EXIT",
+    "RETIRE SAFARI",
+    "PLAYER LINK",
+    "REST FRONTIER",
+    "RETIRE FRONTIER",
+    "PYRAMID BAG",
+)
+# party_menu.c: PARTY_SIZE is the Confirm button, PARTY_SIZE + 1 the Cancel button.
+PARTY_CONFIRM, PARTY_CANCEL = 6, 7
+
+
+def read_menu_family(read: ReadMemory, callback: int, *, truth: bool = False) -> "ActiveUi | None":
     from pokebench_env.ui_state import ActiveUi, _window_drawn, read_menu
 
     if callback not in (
@@ -229,21 +253,7 @@ def read_menu_family(read: ReadMemory, callback: int) -> "ActiveUi | None":
             phase = "start_menu"
             cursor, count = read(START_CURSOR, 2)
             actions = list(read(START_ACTIONS, 9))[:count]
-            labels = (
-                "POKEDEX",
-                "POKEMON",
-                "BAG",
-                "POKENAV",
-                "PLAYER",
-                "SAVE",
-                "OPTIONS",
-                "EXIT",
-                "RETIRE SAFARI",
-                "PLAYER LINK",
-                "REST FRONTIER",
-                "RETIRE FRONTIER",
-                "PYRAMID BAG",
-            )
+            labels = START_LABELS
             if (
                 count not in range(1, 10)
                 or cursor >= count
@@ -259,6 +269,31 @@ def read_menu_family(read: ReadMemory, callback: int) -> "ActiveUi | None":
                 labels[actions[cursor]],
                 not fading,
                 "UP/DOWN selects; A accepts; B or START closes",
+                details=details,
+            )
+        if (
+            truth
+            and callback == 0x08085E5D
+            and sum(t[1] == START_MENU_REOPEN_TASK for t in tasks) == 1
+            and not any(t[1] == 0x0809FA35 for t in tasks)
+        ):
+            # readout-truth-v1: the START menu redrawn after the party or bag closes.
+            phase = "start_menu"
+            cursor, count = read(START_CURSOR, 2)
+            actions = list(read(START_ACTIONS, 9))[:count]
+            if count not in range(1, 10) or cursor >= count or any(a >= 13 for a in actions):
+                raise ValueError("invalid reopened Start menu actions/cursor")
+            menu = read_menu(read)
+            if menu is None or menu.selected != cursor + 1 or menu.options != count:
+                raise ValueError("reopened Start menu cursor is stale or window undrawn")
+            options = [START_LABELS[a] for a in actions]
+            details.update({"selected_index": cursor, "options": options})
+            return ActiveUi(
+                phase,
+                options[cursor],
+                False,
+                "START menu reopening after the party or bag closed; input is not active "
+                "until the screen finishes fading in",
                 details=details,
             )
         if callback == PARTY_CALLBACK:
@@ -278,9 +313,11 @@ def read_menu_family(read: ReadMemory, callback: int) -> "ActiveUi | None":
                 0x081B72C9: "party_stop_learning_confirmation",
                 0x081B82D5: "party_switch_item_from_bag_confirmation",
             }
+            # readout-truth-v1: slot 7 is the Cancel button (B or Cancel sets it before closing).
+            party_slots = range(8) if truth else range(7)
             confirmations = [task for task in tasks if task[1] in confirmation_phases]
             if confirmations:
-                if len(confirmations) != 1 or slot not in range(7):
+                if len(confirmations) != 1 or slot not in party_slots:
                     raise ValueError("invalid Party confirmation owner")
                 menu = read_menu(read)
                 if menu is None or menu.options != 2:
@@ -315,7 +352,7 @@ def read_menu_family(read: ReadMemory, callback: int) -> "ActiveUi | None":
             }
             passive = [task for task in tasks if task[1] in passive_phases]
             if passive:
-                if len(passive) != 1 or slot not in range(7):
+                if len(passive) != 1 or slot not in party_slots:
                     raise ValueError("invalid Party item/close transition owner")
                 owner_task, function, _data = passive[0]
                 details.update(
@@ -350,7 +387,7 @@ def read_menu_family(read: ReadMemory, callback: int) -> "ActiveUi | None":
                     "owner_task": function_owners[0][0],
                 }
             )
-            if slot not in range(7) or second not in range(-1, 7):
+            if slot not in party_slots or second not in range(-1, party_slots.stop):
                 raise ValueError("invalid party slot")
             if function_owners[0][1] == 0x081B3731:
                 phase = "party_action_menu"
@@ -407,7 +444,15 @@ def read_menu_family(read: ReadMemory, callback: int) -> "ActiveUi | None":
                 # PARTY_ACTION_SWITCH=8, SOFTBOILED=10 own the second cursor.
                 selected_slot = second if action in (8, 10) else slot
                 details["selected_index"] = selected_slot
-                selected = "CANCEL" if selected_slot == 6 else f"PARTY SLOT {selected_slot + 1}"
+                selected = (
+                    {PARTY_CONFIRM: "CONFIRM", PARTY_CANCEL: "CANCEL"}.get(
+                        selected_slot, f"PARTY SLOT {selected_slot + 1}"
+                    )
+                    if truth
+                    else "CANCEL"
+                    if selected_slot == 6
+                    else f"PARTY SLOT {selected_slot + 1}"
+                )
             return ActiveUi(
                 phase,
                 selected,

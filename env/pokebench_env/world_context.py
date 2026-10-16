@@ -130,6 +130,58 @@ def read_field_message(read: ReadMemory) -> FieldMessage | None:
 
 
 @dataclass(frozen=True)
+class NoMessage:
+    """readout-truth-v1: the game shows no field message (never in the state JSON).
+
+    sFieldMessageBoxMode is FIELD_MESSAGE_BOX_HIDDEN, window 0 is not drawn, no
+    Task_DrawFieldMessage is live and text printer 0 is idle. `script` names what the
+    global script context is doing (None: no script is running).
+    """
+
+    script: str | None
+
+
+# readout-truth-v1: field menus that own the window while the message printer is idle
+# (menu_pc.py owners: Task_HandleYesNoInput, Task_HandleMultichoiceInput,
+# Task_HandleScrollingMultichoiceInput's grid, the callback YES/NO task).
+TRUTH_MENU_OWNERS = {
+    "field_yes_no": 0x080E215D,
+    "field_multichoice": 0x080E2059,
+    "pc_access": 0x080E2059,
+    "field_multichoice_grid": 0x080E2309,
+    "field_confirmation": 0x08121FDD,
+}
+SCRIPT_PHASES = {
+    0x08099D95: "script_pause",
+    0x0809A671: "movement_wait",
+    0x0809833D: "message_close_wait",
+}
+
+
+def read_no_message(read: ReadMemory) -> NoMessage | None:
+    if read(FIELD_MESSAGE_MODE, 1)[0] != 0 or _window_drawn(read, 0):
+        return None
+    if read(FIELD_PRINTER + 0x1B, 1)[0] != 0:
+        return None
+    tasks = read(TASKS, 16 * 0x28)
+    if any(
+        tasks[i + 4] == 1 and int.from_bytes(tasks[i : i + 4], "little") == DRAW_FIELD_MESSAGE
+        for i in range(0, len(tasks), 0x28)
+    ):
+        return None
+    status = read(GLOBAL_SCRIPT_STATUS, 1)[0]
+    context = read(GLOBAL_SCRIPT, 12)
+    # script.c: CONTEXT_SHUTDOWN (2) or SCRIPT_MODE_STOPPED (0) means no script runs.
+    if status == 2 or context[1] == 0:
+        return NoMessage(None)
+    if context[1] == 2:
+        return NoMessage(
+            SCRIPT_PHASES.get(int.from_bytes(context[4:8], "little"), "script_running")
+        )
+    return NoMessage("script_running")
+
+
+@dataclass(frozen=True)
 class FieldActivity:
     """Qualified non-message owner; never establishes advance-button readiness."""
 
@@ -137,7 +189,9 @@ class FieldActivity:
     owner: int
 
 
-def read_field_activity(read: ReadMemory, native_ui: ActiveUi | None) -> FieldActivity | None:
+def read_field_activity(
+    read: ReadMemory, native_ui: ActiveUi | None, *, truth: bool = False
+) -> FieldActivity | None:
     mode = read(FIELD_MESSAGE_MODE, 1)[0]
     tasks = read(TASKS, 16 * 0x28)
     owners = [
@@ -154,22 +208,17 @@ def read_field_activity(read: ReadMemory, native_ui: ActiveUi | None) -> FieldAc
     context = read(GLOBAL_SCRIPT, 12)
     if read(GLOBAL_SCRIPT_STATUS, 1)[0] == 0 and read(FIELD_PRINTER + 0x1B, 1)[0] == 0:
         owner = int.from_bytes(context[4:8], "little")
-        phases = {
-            0x08099D95: "script_pause",
-            0x0809A671: "movement_wait",
-            0x0809833D: "message_close_wait",
-        }
-        if context[1] == 2 and owner in phases:
-            return FieldActivity(phases[owner], owner)
+        if context[1] == 2 and owner in SCRIPT_PHASES:
+            return FieldActivity(SCRIPT_PHASES[owner], owner)
         script = int.from_bytes(context[8:12], "little")
         if context[1] == 1 and 0x08000000 <= script < 0x0A000000:
             return FieldActivity("script_running", script)
     # Reuse the stricter interface decoder; a task pointer alone is insufficient.
     # Only generic ownership is exposed, never the ablated menu's contents.
     if native_ui is not None and native_ui.diagnostic is None:
-        expected = {"pc_player_menu": 0x0816AF99, "menu_message_printing": 0x08121F3D}.get(
-            native_ui.phase
-        )
+        known = {"pc_player_menu": 0x0816AF99, "menu_message_printing": 0x08121F3D}
+        # readout-truth-v1: a known field YES/NO or multichoice box is a valid owner too.
+        expected = (known | TRUTH_MENU_OWNERS if truth else known).get(native_ui.phase)
         matches = sum(
             tasks[i + 4] == 1 and int.from_bytes(tasks[i : i + 4], "little") == expected
             for i in range(0, len(tasks), 0x28)
@@ -187,9 +236,12 @@ class WorldContext:
     message: FieldMessage | None = None
     message_diagnostic: str | None = None
     field_activity: FieldActivity | None = None
+    # readout-truth-v1 only; text facts, never in the state JSON.
+    no_message: NoMessage | None = None
 
     def json(self) -> dict[str, object]:
         value = asdict(self)
+        value.pop("no_message")
         if self.message is None:
             value.pop("message")
         if self.message_diagnostic is None:
@@ -243,6 +295,8 @@ class WorldContext:
                 "Active field-message buffer (can include pages not yet displayed):\n"
                 + self.dialogue
             )
+        elif dialogue and self.no_message is not None:
+            lines.append("Field-message text: none (no message box is open).")
         elif dialogue:
             lines.append(
                 "Field-message text: unavailable; do not infer that the dialogue box is closed."
@@ -254,7 +308,14 @@ class WorldContext:
                     "not an input-ready field message. Inspect the active interface "
                     "and control lock before acting."
                 )
-            if self.message is None and self.field_activity is None:
+            if self.message is None and self.field_activity is None and self.no_message:
+                lines.append(
+                    "Field-message phase: no message is open and no script is running."
+                    if self.no_message.script is None
+                    else "Field-message phase: no message is open; a script is running "
+                    f"({self.no_message.script})."
+                )
+            elif self.message is None and self.field_activity is None:
                 lines.append(
                     "Field-message phase: unavailable; do not infer a cutscene "
                     "or an input-ready dialogue."
@@ -286,6 +347,7 @@ def read_world_context(
     *,
     message_phase: bool = False,
     native_ui: ActiveUi | None = None,
+    truth: bool = False,
 ) -> WorldContext | None:
     events = int.from_bytes(read(MAP_HEADER + 4, 4), "little")
     if not rom_pointer(events):
@@ -346,7 +408,7 @@ def read_world_context(
                 # Preserve the full bounded native buffer identity instead.
                 message = replace(message, identity=sha256(raw).hexdigest())
     activity = (
-        read_field_activity(read, native_ui)
+        read_field_activity(read, native_ui, truth=truth)
         if message_phase and message is None and _window_drawn(read, 0)
         else None
     )
@@ -369,4 +431,14 @@ def read_world_context(
         diagnostic = (
             owner_diagnostic if diagnostic is None else diagnostic + "; " + owner_diagnostic
         )
-    return WorldContext(tuple(objects), tuple(triggers), dialogue, message, diagnostic, activity)
+    # readout-truth-v1: "none open" only when nothing above found a message or a failure.
+    quiet = truth and dialogue is None and message is None and diagnostic is None
+    return WorldContext(
+        tuple(objects),
+        tuple(triggers),
+        dialogue,
+        message,
+        diagnostic,
+        activity,
+        read_no_message(read) if quiet else None,
+    )

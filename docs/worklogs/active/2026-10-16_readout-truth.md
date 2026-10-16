@@ -58,10 +58,10 @@ Read-only RAM decoding and text. No subprocesses, no network, no new endpoints. 
 **M1 — readout-truth-v1 (items 1–8), birch-speech-pages-v1, blackout-readout-v1**
 - [x] RED: real-ROM fixture from cook runs (OFF equals received; ON lines), synthetic cases, registry/preset/server-list tests both stacks, factory wiring
 - [x] COMMIT RED
-- [ ] GREEN implementation
-- [ ] Gates: `just test` (ROM set), `just coverage` ≥90, `just lint`, `just build`, `just verify-vendor`
-- [ ] COMMIT GREEN
-- [ ] Guard deletion receipts
+- [x] GREEN implementation
+- [x] Gates: `just test` (ROM set), `just coverage` ≥90, `just lint`, `just build`, `just verify-vendor`
+- [x] COMMIT GREEN
+- [x] Guard deletion receipts
 
 **M2 — proof, explainers, pending experiments**
 - [ ] Real-ROM re-render over the cited states of sh02, show, 2919, 3f21, 54a7, 687e
@@ -86,7 +86,16 @@ Report branch, frozen head, packet SHA-256, verdict lines, gate counts and cover
 - 2026-10-16 06:10 AM EDT: Boy scout before RED. Main `1f4ac74e` has 34 Python failures with POKEBENCH_ROM set (they skip without it): `read_route103_rival` (route103-rival-splits, bf86cd9b) reads gTrainerBattleOpponent_A 0x02038BCA, gBattleTypeFlags and the rival trainer flags / VAR_OLDALE_RIVAL_STATE, which the real-ROM fixtures of battle-message-waiting, connection-edges, in-game-naming, offscreen-objects and rerender never recorded (KeyError 0x02038BCA). Added exactly those RAM windows, read from each fixture's own raw-RAM archive (scratch script, RAM only, never ROM bytes; JSON formatting preserved). Main + repaired fixtures: 2270 passed, 0 failed.
   COMMIT: `test(fixtures): add the Route 103 rival RAM windows the real-ROM fixtures were missing` (a2622a53)
 - 2026-10-16 06:55 AM EDT: RED. New `env/tests/env/test_readout_truth.py` (real-ROM fixture `readout-truth-cook.json`: 10 recorded states from sh02/2919/54a7/show, RAM windows recorded while re-rendering each with every new switch off and on, never ROM bytes; OFF contained in what the model received for all 9 states with a tool result; ON lines per item; state JSON unchanged where no owner changes; synthetic no-message/script-phase/YES-NO-owner/menu-line/lock-line/bag/story/START-reopen/party-slot/live-object cases), `test_birch_pages.py`, `test_blackout_readout.py` (frame latch, once-only take, production `serve.run` route ON/OFF), `packages/agent/src/readout-truth.test.ts` (registry, server list, presets default OFF). Registry shifts: every end-relative `.at(-N)` +3 in 13 agent test files, observation count 29, legacy off-lists, battle-text slice(-9), switchboard rows 73, next-run literals, play-preset flag literal; Python default-off set and count 36, rerender pass-through kwargs, and the three ids added to the recorded-off sets of tests whose goldens predate them (battle-details-v2, battle-message-waiting, battle-triage, displayed-place-names, named-warps, offscreen-objects, readout-rules, rerender). Without the implementation: Python 4 collection errors (modules missing), agent 33 failed, viewer 2 failed.
-  COMMIT: `test(RED): readout-truth-v1, birch-speech-pages-v1, blackout-readout-v1 (cook harness audit)`
+  COMMIT: `test(RED): readout-truth-v1, birch-speech-pages-v1, blackout-readout-v1 (cook harness audit)` (cd6439b6)
+- 2026-10-16 07:20 AM EDT: GREEN.
+  - `world_context.read_no_message` (`NoMessage`, never in the JSON) and the two "none" lines; `read_field_activity(truth=)` accepts the field YES/NO / multichoice / grid / callback-YES/NO tasks as an `other_interface` owner; `read_world_context(truth=)` computes NoMessage only when no message, text or diagnostic was found.
+  - `readout_truth.py`: `menu_line` (none open / no menu choice open; keeps the old unverified-buffer text when a drawn sMenu window has no owner and controls are locked), `lock_line` (script vs task; needs no owner and no drawn sMenu window). Readout: Menu line, Bag `empty`, story stage-7 label (`StoryState.text(truth=)`), lock line after the warp-animation line.
+  - `menus.read_menu_family(truth=)`: `START_MENU_REOPEN_TASK` 0x080AF661 reads `start_menu` (selected item, input not ready) when Task_ShowStartMenu is absent; party slots range(8), 6 CONFIRM / 7 CANCEL. menu_save.py unchanged (its parent 0x0809FA35 is Task_ShowStartMenu on both paths).
+  - `character_presence(live_wins=)`; `birch_pages.py` (`read_birch_page`, `page_text`; phase `birch_speech_page` joins the incumbent phases while the switch is on, so the arm without expanded menu text shows it); `blackout_readout.py` (`WhiteoutLatch` per emulated frame, `take` once on the field, `WHITING_OUT` from `blackout_active`), installed by `serve.run` only when ON and taken in `observation.capture` under the memory lock; `rerender.render(whiteout=)`.
+  - TS: registry (3 observation switches, needs null, appended to SWITCHABLE/FEATURES/SERVER_FEATURES/playHarnessFeatures), presets optional + default false, flagFeatures false, DEFAULT_NEXT_RUN false.
+  - Guard receipts (each deleted once, tests red, restored green; log `scratchpad/gates/guards.log`): receipt-1 rerender drops readout_truth_enabled → 9 failed; receipt-2 drops birch_pages_enabled → 2; receipt-3 readout ignores the switch → 7; receipt-4 serve installs no latch → 1; receipt-5 observation drops the whiteout → 1; receipt-6 ui_state ignores birch pages → 3; receipt-7 world-context truth not threaded → 4; receipt-8 live_wins not threaded → 1; receipt-9 menu-family truth not threaded → 2; receipt-10 TS SERVER_FEATURES drops readout-truth-v1 → 1. Restored: 79 + 30 passed.
+  - Gates (ROM set): agent 1559, viewer 885, Python 2337 passed, 0 skipped. Coverage agent 97.89/94.55/98.2/99.14 (stmts/branches/funcs/lines), viewer 95.34/91.02/93.62/97.64, Python lines 97.41 branches 93.38 functions 100 (readout_truth, birch_pages, blackout_readout, readout, observation, rerender, character_presence 100%). lint green; build green; verify-vendor OK.
+  COMMIT: `feat: readout-truth-v1, birch-speech-pages-v1, blackout-readout-v1 (default off)`
 
 ## Surprises
 

@@ -140,7 +140,14 @@ def test_off_is_todays_readout_byte_for_byte() -> None:
             memory = littleroot(gender, **kw)
             golden = (FIXTURES / f"displayed-names-off-{room}-{gender}-fa09dbe6.txt").read_text()
             off = frozenset(
-                {SWITCH, "character-presence-v1", "offscreen-objects-v1", "readout-truth-v1", "birch-speech-pages-v1", "blackout-readout-v1"}
+                {
+                    SWITCH,
+                    "character-presence-v1",
+                    "offscreen-objects-v1",
+                    "readout-truth-v1",
+                    "birch-speech-pages-v1",
+                    "blackout-readout-v1",
+                }
             )
             state = read_state(memory.read, MAPS, active_ui=True, off=off)
             assert readout(state, off) == golden

@@ -231,7 +231,11 @@ def test_birch_page_waiting_for_a_is_input_ready_with_the_page_as_its_value() ->
         "A or B shows the next page (the value is the page on screen)"
     ]
     ui = state(620, BIRCH).active_ui
-    assert ui is not None and (ui.phase, ui.ready, ui.value) == ("birch_speech_page", True, "Ah, okay!")
+    assert ui is not None and (ui.phase, ui.ready, ui.value) == (
+        "birch_speech_page",
+        True,
+        "Ah, okay!",
+    )
     # A page still being written keeps the old not-ready line.
     assert changed(632, BIRCH) == ([], [])
 
@@ -264,7 +268,11 @@ def test_state_json_is_unchanged_where_no_interface_owner_changes() -> None:
 def test_switch_is_a_default_off_server_feature() -> None:
     assert SWITCH in SERVER_FEATURES
     assert SWITCH in features_off_from_env({})
-    assert SERVER_FEATURES[-3:] == ("readout-truth-v1", "birch-speech-pages-v1", "blackout-readout-v1")
+    assert SERVER_FEATURES[-3:] == (
+        "readout-truth-v1",
+        "birch-speech-pages-v1",
+        "blackout-readout-v1",
+    )
 
 
 # --- synthetic RAM ---------------------------------------------------------------------------
@@ -475,7 +483,10 @@ def test_reopened_start_menu_from_the_wait_for_fade_task() -> None:
     assert "input is not active" in ui.controls
     memory.put(START_CURSOR, bytes([2, 3]))
     stale = read_menu_family(memory.read, 0x08085E5D, truth=True)
-    assert stale is not None and stale.diagnostic == "reopened Start menu cursor is stale or window undrawn"
+    assert (
+        stale is not None
+        and stale.diagnostic == "reopened Start menu cursor is stale or window undrawn"
+    )
     memory.put(START_CURSOR, bytes([3, 3]))
     bad = read_menu_family(memory.read, 0x08085E5D, truth=True)
     assert bad is not None and bad.diagnostic == "invalid reopened Start menu actions/cursor"

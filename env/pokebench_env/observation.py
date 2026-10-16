@@ -12,6 +12,7 @@ from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 
 from pokebench_env.battle_text import WAIT_BOUND_FRAMES, BattleWait
+from pokebench_env.blackout_readout import Whiteout, WhiteoutLatch
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import GameState, MapNames
 from pokebench_env.raw_ram import RawRamArchive, raw_reference
@@ -42,6 +43,7 @@ def install_observation(
     raw_archive: RawRamArchive | None = None,
     settle: FrameSettle | None = None,
     battle_wait: BattleWait | None = None,
+    whiteout: WhiteoutLatch | None = None,
 ) -> Callable[[], dict[str, object]]:
     enabled = active_ui_enabled_from_env(os.environ)
     off = features_off_from_env(os.environ)
@@ -63,7 +65,13 @@ def install_observation(
             return serialize()
 
     def capture() -> tuple[
-        dict[str, object] | None, GameState, dict[str, object], dict[str, object], bool, bool
+        dict[str, object] | None,
+        GameState,
+        dict[str, object],
+        dict[str, object],
+        bool,
+        bool,
+        Whiteout | None,
     ]:
         receipt = None if raw_capture is None else raw_capture()
         state = read_state(read_memory, maps, active_ui=enabled, off=off)
@@ -75,7 +83,9 @@ def install_observation(
         animation = warp and warp_animating(read_memory)
         if raw_archive is not None and receipt is not None:
             raw_archive.pair(receipt, serialized, str(shot.get("screenshot_base64", "")))
-        return receipt, state, serialized, shot, fading, animation
+        # blackout-readout-v1: taken under the same lock as the state it is shown with.
+        event = None if whiteout is None else whiteout.take(state)
+        return receipt, state, serialized, shot, fading, animation, event
 
     @app.get("/pokebench/observation")
     def observation() -> dict[str, object]:
@@ -83,10 +93,10 @@ def install_observation(
         settled: Settled | None = None
         if settle is not None:
             captured, settled = settle.settle_traced(capture, lock)
-            receipt, state, serialized, shot, fading, animation = captured
+            receipt, state, serialized, shot, fading, animation, event = captured
         else:
             with lock:
-                receipt, state, serialized, shot, fading, animation = capture()
+                receipt, state, serialized, shot, fading, animation, event = capture()
         screenshot = shot.get("screenshot_base64")
         if not isinstance(screenshot, str) or screenshot == "":
             raise HTTPException(status_code=503, detail="no screenshot available")
@@ -96,7 +106,7 @@ def install_observation(
         return {
             **({"raw_ram": receipt} if receipt is not None else {}),
             "state_text": (f"{note}\n" if note else "")
-            + render(state, off, warp_animation=animation),
+            + render(state, off, warp_animation=animation, whiteout=event),
             "screenshot_base64": screenshot,
             "state": serialized,
         }

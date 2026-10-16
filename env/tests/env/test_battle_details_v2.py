@@ -441,7 +441,7 @@ def test_move_facts_render_every_category() -> None:
 
 
 def test_switch_is_registered_server_side_and_default_off() -> None:
-    assert SERVER_FEATURES[-1] == "battle-details-v2"
+    assert SERVER_FEATURES[-2] == "battle-details-v2"
     assert "battle-details-v2" in features_off_from_env({})
     assert features_off_from_env({"POKEBENCH_FEATURES_OFF": "battle-details-v2"}) == OFF
 

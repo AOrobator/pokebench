@@ -32,3 +32,8 @@ For a male player the sign at Littleroot (12,8) prints "PROF. BIRCH'S HOUSE" (po
 ## Session Log
 - RED: `env/tests/env/test_displayed_place_names.py` (collection fails: no `pokebench_env.displayed_names`), OFF goldens rendered by fa09dbe6
   (`env/tests/env/fixtures/displayed-names-off-*-fa09dbe6.{txt,json}`); TS: features.test (registry, last), play-preset.test (omitted → OFF), next-run.test (default OFF). 2 TS failures + Python collection error.
+- GREEN: `env/pokebench_env/displayed_names.py` (ROM sign-script shapes, gender from SaveBlock2+8, {PLAYER} from the save, Littleroot PLACES), `world.read_targets(sign_label=)`,
+  `read_game_state(displayed_names_enabled=)` + `GameState.displayed_places`, readout Location / warp destinations / world destinations, server feature last + default off;
+  TS registry (last in SWITCHABLE/FEATURES/SERVER/playHarnessFeatures), preset optional default OFF, DEFAULT_NEXT_RUN OFF; index/count updates in older tests.
+  Tests: agent 1268, viewer 786, python 1980 passed (2 ROM skips). Wiring deletion checks: dropping `displayed_names_enabled` from rerender.read_state → 2 red
+  (observation route, passthrough); dropping `places.get` in destinations → 3 red. Restored. Lint: ruff/eslint/tsc clean; mypy only the missing mgba._pylib binding (worktree).

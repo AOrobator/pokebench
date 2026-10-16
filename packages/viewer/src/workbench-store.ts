@@ -4,14 +4,14 @@ import { join, relative } from "node:path";
 import { FEATURES } from "@pokebench/agent/features";
 import { MILESTONES, qualifiedNativeMilestone } from "@pokebench/agent/milestones";
 import { filesystemComparisonHost, prepareComparison, sha256 } from "@pokebench/agent/serial-comparison";
-import { RUN_END_REASONS, type RunEvent } from "@pokebench/agent/events";
+import { RUN_END_REASONS, type RunEvent, type StartIdentity } from "@pokebench/agent/events";
 import { configOf } from "./history.js";
-import { readNativeRecording } from "./frontier-recording.js";
+import { readNativeRecording, readStartlessLog } from "./frontier-recording.js";
 import { defaultViewerBuild, skewOf, type BuildIdentity, type ViewerBuild } from "./build-stamp.js";
 import { applyHistoricalProvenance } from "./frontier-provenance.js";
 import { parseNavigationReceipt } from "./frontier-queue.js";
 import { dirname } from "node:path";
-import { eventsPath, listRuns, readStart } from "./runs.js";
+import { eventsPath, listRuns, readStart, readStartIdentity } from "./runs.js";
 import { parseLedger } from "@pokebench/agent/experiments";
 import { parseFinalsLedger } from "@pokebench/agent/experiment-gate";
 import { isFixedLedgerText, parseFixedLedger } from "./fixed-ledger.js";
@@ -22,8 +22,8 @@ import { distinctLabels, experimentDefinitions, legacyCohort, taggedCohorts, typ
 const MAX_PLAN_BYTES = 1024 * 1024;
 // What the snapshot needs from a run's RunView, as plain data: it crosses worker threads and disk.
 export interface RunTiming { startMs: number | null; ended: boolean; lastMs: number | null; paused: boolean; pauses: { startMs: number; endMs: number | null }[] }
-// skew: the run's build and the events a tolerant read skipped (null when none were skipped).
-export interface LoadedRun { run: WorkbenchRun; port: number | null; tag: { experiment: string; commit: string } | null; timing: RunTiming | null; skew: { commit: string; dirty: boolean; count: number; first: string } | null }
+// skew: the run's build and the events a tolerant read skipped (null when none were skipped); startless when run_start was one.
+export interface LoadedRun { run: WorkbenchRun; port: number | null; tag: { experiment: string; commit: string } | null; timing: RunTiming | null; skew: { commit: string; dirty: boolean; count: number; first: string; startless?: true } | null }
 interface Loaded extends LoadedRun { signature: string }
 export type WorkbenchCompute = (root: string, id: string, viewer: BuildIdentity | null) => Promise<LoadedRun>;
 const record = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -80,9 +80,10 @@ function invalidRun(id: string, problem: string | null): WorkbenchRun {
 export function loadRun(root: string, id: string, viewer: BuildIdentity | null = null): LoadedRun {
   const path = eventsPath(root, id);
   let run = invalidRun(id, null), port: number | null, timing: RunTiming | null, tag: LoadedRun["tag"] = null, skew: LoadedRun["skew"] = null;
+  let start: Extract<RunEvent, { type: "run_start" }>;
+  try { start = startOf(root, id); } catch (error) { return startlessRun(root, id, viewer, errorText(error)); }
   try {
-    const start = startOf(root, id);
-    run = { ...run, arm: start.evaluation?.experiment?.arm ?? null, model: start.controller?.kind === "human" ? `Human · ${start.controller.name}` : start.model.id, started: start.t, config: configuration(start), excluded: start.harness_features.includes("probe") ? "Excluded probe session" : null };
+    run ={ ...run, arm: start.evaluation?.experiment?.arm ?? null, model: start.controller?.kind === "human" ? `Human · ${start.controller.name}` : start.model.id, started: start.t, config: configuration(start), excluded: start.harness_features.includes("probe") ? "Excluded probe session" : null };
     port = start.isolation.port;
     const experiment = start.evaluation?.experiment; if (experiment !== undefined) tag = { experiment: experiment.id, commit: start.harness.commit };
     const tolerate = viewer !== null && !(viewer.commit === start.harness.commit && !viewer.dirty && !start.harness.dirty);
@@ -95,12 +96,30 @@ export function loadRun(root: string, id: string, viewer: BuildIdentity | null =
   } catch (error) { run.problem = errorText(error); run.status = "invalid"; run.splits = []; delete run.measurement; timing = null; port = null; skew = null; }
   return { run, port, tag, timing, skew };
 }
+// A run whose run_start the strict read refused (problem). When the viewer knows its build and run_start's
+// loose identity names this run and another build, the rest of the log gives status, turn, timing and
+// port, with no splits: the run cannot be graded. skew.startless marks it; the loader decides what it means.
+function startlessRun(root: string, id: string, viewer: BuildIdentity | null, problem: string): LoadedRun {
+  const strict: LoadedRun = { run: invalidRun(id, problem), port: null, tag: null, timing: null, skew: null };
+  const path = eventsPath(root, id);
+  let identity: StartIdentity | null = null;
+  try { identity = viewer === null || lstatSync(path).isSymbolicLink() ? null : readStartIdentity(root, id); } catch { /* no log to read loosely */ }
+  if (viewer === null || identity === null || (identity.commit === viewer.commit && !viewer.dirty && !identity.dirty)) return strict;
+  try {
+    const { view, skipped } = readStartlessLog(path, id), reason = view.end?.reason ?? null;
+    const run: WorkbenchRun = { ...invalidRun(id, null), model: identity.model, started: identity.t, status: view.end === null ? "unresponsive" : "ended", reason, turn: view.turn, excluded: reason === "operator_abort" ? "Excluded operator-aborted run" : null };
+    const timing: RunTiming = { startMs: view.startMs, ended: view.end !== null, lastMs: view.lastMs, paused: view.control.state === "paused", pauses: view.control.pauses.map(p => ({ ...p })) };
+    return { run, port: identity.port, tag: null, timing, skew: { commit: identity.commit, dirty: identity.dirty, ...skipped, startless: true } };
+  } catch (error) { return { ...strict, run: invalidRun(id, errorText(error)) }; }
+}
 // A run with skipped events keeps its status and says to restart the viewer when the run's build is not
-// contained in the viewer's (skewOf); otherwise its first rejected event makes it invalid, as a strict read.
+// contained in the viewer's (skewOf); otherwise its first rejected event makes it invalid, as a strict read
+// (a run whose run_start was unreadable gets the strict read's own message).
 export function settleSkew(loaded: LoadedRun, build: ViewerBuild | null): LoadedRun {
   if (loaded.skew === null) return loaded;
-  const skew = skewOf(build, loaded.skew), run = structuredClone(loaded.run);
-  if (skew !== null) { run.problem = skew.describe(loaded.skew.count, loaded.skew.first); return { ...loaded, run }; }
+  const skew = skewOf(build, loaded.skew), run = structuredClone(loaded.run), startless = loaded.skew.startless === true;
+  if (skew !== null) { run.problem = skew.describe(loaded.skew.count, loaded.skew.first, startless); return { ...loaded, run }; }
+  if (startless) return { run: invalidRun(run.id, `run ${run.id} has no readable run_start`), port: null, tag: null, timing: null, skew: null };
   const strict = { ...invalidRun(loaded.run.id, loaded.skew.first), arm: run.arm, model: run.model, started: run.started, config: run.config, excluded: run.excluded === "Excluded operator-aborted run" ? null : run.excluded };
   return { run: strict, port: null, tag: loaded.tag, timing: null, skew: null };
 }
@@ -120,7 +139,7 @@ export function parseLoadedRun(value: unknown): LoadedRun | null {
   try { parseWorkbench({ version: 1, at: 0, milestones: [], problems: [], runs: [run] }); } catch { return null; }
   if (!(port === null || (Number.isSafeInteger(port) && typeof port === "number" && port > 0 && port < 65536))) return null;
   if (!(tag === null || (record(tag) && typeof tag.experiment === "string" && typeof tag.commit === "string"))) return null;
-  if (!(skew === null || (record(skew) && typeof skew.commit === "string" && /^[0-9a-f]{40}$/.test(skew.commit) && typeof skew.dirty === "boolean" && Number.isSafeInteger(skew.count) && typeof skew.count === "number" && skew.count > 0 && typeof skew.first === "string"))) return null;
+  if (!(skew === null || (record(skew) && typeof skew.commit === "string" && /^[0-9a-f]{40}$/.test(skew.commit) && typeof skew.dirty === "boolean" && Number.isSafeInteger(skew.count) && typeof skew.count === "number" && skew.count > 0 && typeof skew.first === "string" && (skew.startless === undefined || skew.startless === true)))) return null;
   if (!(timing === null || (record(timing) && nullableFinite(timing.startMs) && typeof timing.ended === "boolean" && nullableFinite(timing.lastMs) && typeof timing.paused === "boolean" && Array.isArray(timing.pauses) && timing.pauses.every(p => record(p) && finite(p.startMs) && nullableFinite(p.endMs))))) return null;
   return value as unknown as LoadedRun;
 }

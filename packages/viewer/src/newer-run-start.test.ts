@@ -8,6 +8,7 @@ import { createWorkbenchLoader, loadRun, parseLoadedRun, workbenchSnapshot, type
 import { createWorkbenchStore, type RunStore } from "./baseline-store.js";
 import { listRuns } from "./runs.js";
 import { milestoneStatus } from "./frontier.js";
+import { readStartlessLog } from "./frontier-recording.js";
 import { startViewer, type Viewer } from "./server.js";
 
 const RUN_COMMIT = START.harness.commit;
@@ -88,6 +89,12 @@ describe("a run whose run_start is from a newer harness build", () => {
     expect(by("end")?.problem).toContain("invalid run_end event");
     expect(by("second")?.problem).toContain("event order");
   });
+  it("reads a startless log only when it has a run_start to step over", () => {
+    const r = root(); write(r, "valid", lines("valid", () => undefined)); write(r, "newer", lines("newer"));
+    expect(() => readStartlessLog(join(r, "valid", "events.jsonl"), "valid")).toThrow("No unreadable run_start to step over");
+    const { view, skipped } = readStartlessLog(join(r, "newer", "events.jsonl"), "newer");
+    expect(skipped).toEqual({ count: 1, first: START_PROBLEM }); expect(view.startMs).toBe(Date.parse(tAt(0))); expect(view.turn).toBe(2);
+  });
   it("keeps a symlinked log invalid", async () => {
     const r = root(); write(r, "real", lines("link"));
     const { symlinkSync } = await import("node:fs"); mkdirSync(join(r, "link")); symlinkSync(join(r, "real", "events.jsonl"), join(r, "link", "events.jsonl"));
@@ -114,6 +121,8 @@ describe("a run whose run_start is from a newer harness build", () => {
     expect(by(older).get("done")).toMatchObject({ ended: true, reason: null, problem: expect.stringContaining(HEAD) as unknown });
     expect(by(older).get("json")?.problem).toContain("invalid run_start event");
     expect(by(older).get("json")?.problem).not.toContain("restart the viewer");
+    const torn = lines("torn"); torn.push('{"v":1,"run":"torn","seq":5,"t"'); write(r, "torn", torn);
+    expect(by(older).get("torn")).toMatchObject({ ended: false, problem: expect.stringContaining(HEAD) as unknown });
     for (const build of [undefined, null, same, viewerNewer]) {
       expect(by(build).get("newer")).toEqual({ id: "newer", model: null, started: null, ended: false, reason: null, problem: "invalid run_start event at /: unexpected property surprise" });
     }

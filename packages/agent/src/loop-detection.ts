@@ -452,6 +452,8 @@ export class LoopDetector {
     }
     // A push-back episode ends on a new map or tile even when that place's state was seen before.
     const escaped = this.pushback && this.episode?.pushback === true && newPlace;
+    // Out of the loop: its push-backs no longer count toward the next warning.
+    if (escaped) this.pushbacks.length = 0;
     if (
       (novel && !held) || escaped ||
       (game && (call.name === "press" || (call.name === "navigate_to" && call.acted===true)) && this.episode?.kind === "planning")

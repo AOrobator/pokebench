@@ -204,6 +204,8 @@ Merge locally after all lanes LGTM. No pending experiment entry (amendment 2). R
 
 - Merge commit fb0a403e (main parent 71402ebd). Gates at fb0a403e, all exit 0 (main's pytest breakage is fixed there): build; test agent 1715, viewer 910, pytest 2297 passed; lint incl. mypy (80 files); coverage agent lines 99.17 / branches 94.59 / functions 98.41 (loop-detection.ts 98.62 / 96.91 / 100; press-result.ts 100 / 98.15 / 100), viewer 97.62 / 91.1 / 93.63, python 97.36 / 93.22 / 100; verify-vendor OK.
 
+- Receipts commit 268fff52. 2026-10-16 11:50 AM EDT: review round 10 (packet 71402ebd..268fff52, SHA-256 9391459d…6241). Claude CLI LGTM. Grok BLOCKING: an escape to a new place recovered the episode but kept the old push-backs, so one more push-back re-warned at once. Fix: an escape empties the push-back count; the place-window test now also needs three new push-backs for the next warning (red with the clear removed; restored). Codex BLOCKING: bundle-v-control's arms do not turn the three switches on. That manifest is the coordinator's and is edited after this branch lands (the brief forbids this branch to touch it; the switches must exist on main first); recorded as the hand-off, not changed here.
+
 ## Surprises
 
 - `loop_guard` evidence is capped at 2 items by the event schema (`maxItems:2`); a 3-seq evidence list made the recorder throw in the factory test. Evidence is now [first push-back, completing call]. The replay tests validate every notice through `checkEvent`.

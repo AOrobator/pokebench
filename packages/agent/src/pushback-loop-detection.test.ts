@@ -201,6 +201,13 @@ describe("pushback-loop-detection-v1 synthetic push-backs",()=>{
   expect(notices.some(n=>n.phase==="recovered")).toBe(false);
   press(["UP"],home,north);
   expect(notices.at(-1)).toMatchObject({phase:"recovered",kind:"cycle"});
+  // The escape also empties the push-back count: a new warning needs three new push-backs.
+  press(["DOWN"],north,home);
+  const before=notices.length;
+  press(BATCH,west,home);press(BATCH,west,home);
+  expect(notices.length).toBe(before);
+  press(BATCH,west,home);
+  expect(notices.slice(before).map(n=>n.phase)).toEqual(["warning","supervisor"]);
  });
  it("ON: reaching a new state recovers the episode",()=>{
   const on=rig(true);

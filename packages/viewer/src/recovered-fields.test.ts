@@ -16,22 +16,30 @@ const header = (run = "run-a") => ({ v: 1, run, source: "raw-ram-route103-v1" })
 const row = (seq: number, battle_active: boolean, defeated: boolean, oldale_stage: number) => ({ seq, raw_ram: "raw-ram/00000001.json.gz", sha256: "a".repeat(64), route103_rival: { battle_active, defeated, oldale_stage } });
 
 it("loads recovered route103_rival rows only from a well-formed side file for this run", () => {
-  expect([...loadRecoveredRival(runDir([header(), row(3, true, false, 0)]))]).toEqual([[3, { battle_active: true, defeated: false, oldale_stage: 0 }]]);
+  expect([...loadRecoveredRival(runDir([header(), row(3, true, false, 0)]))]).toEqual([[3, { rival: { battle_active: true, defeated: false, oldale_stage: 0 }, raw_ram: "raw-ram/00000001.json.gz", sha256: "a".repeat(64) }]]);
   expect(loadRecoveredRival(join(tmpdir(), "no-such-run")).size).toBe(0);
   expect(loadRecoveredRival(runDir([header("other-run"), row(3, true, false, 0)])).size).toBe(0);
   expect(loadRecoveredRival(runDir([header(), { ...row(3, true, false, 0), route103_rival: { battle_active: "yes" } }])).size).toBe(0);
   expect(loadRecoveredRival(runDir([{ ...header(), source: "guess" }, row(3, true, false, 0)])).size).toBe(0);
 });
 
-it("attaches a recovered value only to a state event that lacks the field", () => {
+const ram = (n: number) => ({ v: 1 as const, sequence: n, frame: n, path: `raw-ram/${String(n).padStart(8, "0")}.json.gz`, sha256: "a".repeat(64) });
+const entry = (n: number, rival = { battle_active: true, defeated: false, oldale_stage: 0 }) => ({ rival, raw_ram: ram(n).path, sha256: ram(n).sha256 });
+it("attaches a recovered value only to the state it was decoded from, on Route 103 or in Oldale, when the field is missing", () => {
   const log = new Log();
   const start = log.add(0, START);
-  const plain = log.add(1, state({ location: "ROUTE103" }));
-  const native = log.add(2, state({ location: "ROUTE103", route103_rival: { battle_active: false, defeated: false, oldale_stage: 0 } }));
-  const recovered = new Map([[plain.seq, { battle_active: true, defeated: false, oldale_stage: 0 }], [native.seq, { battle_active: true, defeated: true, oldale_stage: 2 }]]);
+  const plain = log.add(1, state({ location: "ROUTE103", raw_ram: ram(1) }));
+  const native = log.add(2, state({ location: "ROUTE103", raw_ram: ram(2), route103_rival: { battle_active: false, defeated: false, oldale_stage: 0 } }));
+  const otherArchive = log.add(3, state({ location: "ROUTE103", raw_ram: { ...ram(3), sha256: "b".repeat(64) } }));
+  const elsewhere = log.add(4, state({ location: "LITTLEROOT TOWN", raw_ram: ram(4) }));
+  const unarchived = log.add(5, state({ location: "OLDALE TOWN" }));
+  const recovered = new Map([plain, native, otherArchive, elsewhere, unarchived].map((e, i) => [e.seq, entry(i + 1)]));
   expect(withRecovered(plain, recovered)).toMatchObject({ route103_rival: { battle_active: true } });
-  expect(withRecovered(native, recovered)).toBe(native);
-  expect(withRecovered(start, recovered)).toBe(start);
+  for (const kept of [native, otherArchive, elsewhere, unarchived, start]) expect(withRecovered(kept, recovered)).toBe(kept);
+});
+
+it("voids the whole side file on a duplicate row", () => {
+  expect(loadRecoveredRival(runDir([header(), row(3, true, false, 0), row(3, false, false, 0)])).size).toBe(0);
 });
 
 const atLab = (lab: number) => ({ name_confirmed: true, intro_stage: 7 as const, rival_stage: 4 as const, birch_lab_stage: lab as 0, petalburg_gym_stage: 0 as const, woods_stage: 0 as const, clock_set: true, rival_battle_won: lab >= 4, pokedex_received: false, running_shoes_received: false, starter_tutorial_complete: false, rustboro_gym_complete: false, stone_badge: false, rock_tomb_received: false });

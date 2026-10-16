@@ -471,3 +471,27 @@ describe("run-tagged experiment cohorts", () => {
     expect(of(ids[5])?.excluded).toBeNull(); expect(of(untagged)).toMatchObject({ cohort: null, excluded: null });
   });
 });
+
+describe("recovered route103_rival side file", () => {
+  const ram = (n: number) => ({ v: 1 as const, sequence: n, frame: n, path: `raw-ram/${String(n).padStart(8, "0")}.json.gz`, sha256: "a".repeat(64) });
+  const battle = (): Log => {
+    const l = new Log();
+    l.add(0, { ...START, harness_features: ["ram-state-v1"] });
+    l.add(1000, state({ location: "ROUTE103", raw_ram: ram(1) }));
+    l.add(2000, state({ location: "ROUTE103", in_battle: true, raw_ram: ram(2) }));
+    l.add(3000, { type: "run_end", turn: 1, reason: "budget", furthest_milestone: null, turns: 1, wall_ms: 3000, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } });
+    return l;
+  };
+  it("re-grades a cached run when the side file is written or removed", async () => {
+    const r = root(), p = write(r, "rv", battle());
+    const names = async () => (await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000)).runs[0]?.splits.map((s) => s.name) ?? [];
+    expect(await names()).not.toContain("RIVAL_BATTLE_STARTED");
+    mkdirSync(join(r, "rv", "derived"));
+    const side = join(r, "rv", "derived", "route103_rival.jsonl");
+    writeFileSync(side, [{ v: 1, run: "rv", source: "raw-ram-route103-v1" }, ...[[1, false], [2, true]].map(([n, active]) => ({ seq: Number(n), raw_ram: ram(Number(n)).path, sha256: ram(Number(n)).sha256, route103_rival: { battle_active: active, defeated: false, oldale_stage: 0 } }))].map((row) => JSON.stringify(row)).join("\n") + "\n");
+    expect(await names()).toContain("RIVAL_BATTLE_STARTED");
+    rmSync(side);
+    expect(await names()).not.toContain("RIVAL_BATTLE_STARTED");
+    expect(p.endsWith("events.jsonl")).toBe(true);
+  });
+});

@@ -165,3 +165,26 @@ def test_skips_states_whose_save_block_pointer_is_not_set_and_rejects_bad_logs(
     (run / "events.jsonl").write_text(events)
     with pytest.raises(BackfillError, match="unexpected raw RAM path"):
         backfill(run)
+
+
+def test_reports_malformed_state_lines_and_refuses_a_symlinked_derived_dir(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    run = write_run(tmp_path, [("ROUTE103", False, memory())])
+    lines = (run / "events.jsonl").read_text().splitlines()
+    state = json.loads(lines[1])
+    del state["raw_ram"]["sha256"]
+    (run / "events.jsonl").write_text(
+        "\n".join([lines[0], json.dumps(state), "[1]", *lines[2:]]) + "\n"
+    )
+    with pytest.raises(BackfillError, match="malformed state"):
+        backfill(run)
+    assert main([str(tmp_path), RUN]) == 1
+    assert "malformed state" in capsys.readouterr().err
+    other = write_run(tmp_path / "o", [("ROUTE103", False, memory())])
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (other / "derived").symlink_to(outside)
+    with pytest.raises(BackfillError, match="derived must be a plain directory"):
+        backfill(other)
+    assert list(outside.iterdir()) == []

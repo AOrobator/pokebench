@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
-import { Log, START, fullRun } from "../test-support/events.js";
+import { Log, START, fullRun, state } from "../test-support/events.js";
 import { QUEUE_FEATURES } from "../test-support/experiments.js";
 import { BROWSER_MODULES, HOST, startViewer, type Viewer } from "./server.js";
 import { parseWorkbench } from "./workbench-data.js";
@@ -191,10 +191,12 @@ describe("viewer server", () => {
 
   it("streams rival values recovered from raw RAM onto the state events that lack them", async () => {
     const { runsRoot, viewer } = await fixture();
-    const log = fullRun();
+    const log = new Log();
+    log.add(0, START);
+    const target = log.add(1000, state({ location: "ROUTE103", raw_ram: { v: 1, sequence: 1, frame: 1, path: "raw-ram/00000001.json.gz", sha256: "a".repeat(64) } }));
+    log.add(2000, state({ location: "ROUTE103" }));
+    log.add(3000, { type: "run_end", turn: 1, reason: "budget", furthest_milestone: null, turns: 1, wall_ms: 3000, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } });
     writeRun(runsRoot, "recovered", log);
-    const target = log.events.find((e) => e.type === "state" && "started" in e);
-    if (target === undefined) throw new Error("fixture");
     mkdirSync(join(runsRoot, "recovered", "derived"), { recursive: true });
     writeFileSync(join(runsRoot, "recovered", "derived", "route103_rival.jsonl"), [{ v: 1, run: "recovered", source: "raw-ram-route103-v1" }, { seq: target.seq, raw_ram: "raw-ram/00000001.json.gz", sha256: "a".repeat(64), route103_rival: { battle_active: true, defeated: false, oldale_stage: 0 } }].map((r) => JSON.stringify(r)).join("\n") + "\n");
     const text = (await get(viewer, "/api/runs/recovered/events")).body.toString();

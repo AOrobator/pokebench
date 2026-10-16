@@ -23,6 +23,7 @@ Tracked, local HTML documentation. Open an explainer directly; no server or exte
 - [Named warp destinations v1](named-warp-destinations-v1.html)
 - [Story character presence v1](character-presence-v1.html)
 - [Dialogue auto-advance v1](dialogue-auto-advance-v1.html)
+- [Dialogue kept in context v1](dialogue-context-kept-v1.html)
 - [Milestone stall stop v1](milestone-stall-stop-v1.html)
 - [Text-only supervisor v1](text-only-supervisor-v1.html)
 - [In-game naming readout v1](in-game-naming-readout-v1.html)
@@ -33,6 +34,8 @@ Tracked, local HTML documentation. Open an explainer directly; no server or exte
 - [Stall briefing v1](stall-briefing-v1.html)
 - [Leave bedroom split v1](bedroom-exit-v1.html)
 - [Battle details v2](battle-details-v2.html)
+- [Warp arrival settle v1](warp-arrival-settle-v1.html)
+- [Displayed place names v1](displayed-place-names-v1.html)
 - [Experiment queue](experiment-queue.html)
 - [Runs survive viewer restarts](run-survives-viewer.html)
 
@@ -41,3 +44,4 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Current-run harness configuration](current-run-harness-config.html)
 - [Story frontier zoom](frontier-zoom.html)
 - [Winner gate](winner-gate.html)
+- [Transition loop detection](transition-loop-detection-v1.html)

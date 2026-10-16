@@ -26,6 +26,9 @@ RECORDED_OFF = [
     "counter-talk-v1",
     "expanded-menu-battle-information-v1",
     "full-map-navigation-v1",
+    # Registered after the run was recorded, so not in it.
+    "displayed-place-names-v1",
+    "warp-arrival-settle-v1",
 ]
 ROM_START = 0x08000000
 HINT = "A selects the current key; B deletes; SELECT changes page; START moves to OK."

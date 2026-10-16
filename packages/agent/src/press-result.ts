@@ -15,7 +15,7 @@ function interfaceProjection(state: GameStateSnapshot): string | undefined {
 // Facts the run's observation switches hide from the model are left out here too.
 // blockedBatch (blocked-batch-result-v1) names blocked direction batches; liveMap, ledges, edgeWalls, counters and
 // topology say which map facts the model is shown.
-export interface PressFacts { readonly position: boolean; readonly fieldLock: boolean; readonly transitions?: boolean; readonly blockedBatch?: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean }
+export interface PressFacts { readonly position: boolean; readonly fieldLock: boolean; readonly transitions?: boolean; readonly warpArrival?: boolean; readonly blockedBatch?: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean }
 export const ALL_PRESS_FACTS: PressFacts = { position: true, fieldLock: true };
 
 const dialogueOf = (state: GameStateSnapshot | undefined): string | null => state?.world_context?.dialogue ?? null;
@@ -64,10 +64,22 @@ const tile = (state: Placed, show: PressFacts): string => show.position ? ` (${S
 const place = (state: Placed, show: PressFacts): string => `${state.location ?? "unknown location"} [map ${String(state.map_id[0])}/${String(state.map_id[1])}]${tile(state, show)}`;
 const DIRECTIONS: readonly Button[] = ["UP", "DOWN", "LEFT", "RIGHT"];
 
+// warp-arrival-settle-v1: a map change is reported whatever interface owner a snapshot had. A before
+// snapshot taken mid map load (field_transition) is not placed, so the warp starts from the last state shown.
+function arrivalWarp(before: GameStateSnapshot, after: GameStateSnapshot, show: PressFacts, shown: ShownStates): string | null {
+  if (show.warpArrival !== true || !placed(after)) return null;
+  if (placed(before)) return sameMap(before, after) ? null : `warped during this press: ${place(before, show)} -> ${place(after, show)}`;
+  const last = shown.lastShown;
+  if (before.screen !== "field_transition" || !placed(last) || sameMap(last, after)) return null;
+  return `warped during this press (the map change was already under way when it began): ${place(last, show)} -> ${place(after, show)}`;
+}
+
 function duringPress(before: GameStateSnapshot, after: GameStateSnapshot, buttons: readonly Button[], show: PressFacts, shown: ShownStates): string {
   if ((dialogueOf(before) === null || reprinted(before, after)) && shown.timesShown(after) > 0) {
     return `conversation restarted: this text was already shown (${ordinal(shown.timesShown(after) + 1)} time)`;
   }
+  const warped = arrivalWarp(before, after, show, shown);
+  if (warped !== null) return warped;
   if (placed(before) && placed(after) && before.active_ui == null && after.active_ui == null && before.naming == null && after.naming == null) {
     if (!sameMap(before, after)) return `warped during this press: ${place(before, show)} -> ${place(after, show)}`;
     const moved = before.position.x !== after.position.x || before.position.y !== after.position.y;
@@ -86,6 +98,11 @@ function duringPress(before: GameStateSnapshot, after: GameStateSnapshot, button
   return dialogueChange(before, after, show) ?? basePressResult(before, after, buttons, show);
 }
 
+// Box-state notes that describe the state right after this press; dialogue-auto-advance-v1 replaces them with the state after it advanced.
+export const OPENED_LOCK_NOTE = " (the message box locks field controls until it closes)";
+export const STILL_OPEN_NOTE = " (message box still open; it locks field controls until it closes)";
+export const STILL_LOCKED_NOTE = "; field controls are still locked";
+
 // A message box opening, moving on or closing in place is what the press did; the field lock it
 // causes is a consequence, so it is named as the box's and never as the press being locked out.
 function dialogueChange(before: GameStateSnapshot, after: GameStateSnapshot, show: PressFacts): string | null {
@@ -93,10 +110,10 @@ function dialogueChange(before: GameStateSnapshot, after: GameStateSnapshot, sho
   if (before.position.x !== after.position.x || before.position.y !== after.position.y) return null;
   const was = dialogueOf(before), now = dialogueOf(after);
   const lock = (state: GameStateSnapshot): boolean | null => show.fieldLock ? state.field_controls_locked ?? null : null;
-  if (was === null && now !== null) return `dialogue opened${lock(after) === true ? " (the message box locks field controls until it closes)" : ""}`;
-  if (was !== null && now === null) return `dialogue closed${lock(after) === false ? "; field controls are free now" : lock(after) === true ? "; field controls are still locked" : ""}`;
+  if (was === null && now !== null) return `dialogue opened${lock(after) === true ? OPENED_LOCK_NOTE : ""}`;
+  if (was !== null && now === null) return `dialogue closed${lock(after) === false ? "; field controls are free now" : lock(after) === true ? STILL_LOCKED_NOTE : ""}`;
   if (was !== null && now !== null && (was !== now || cursorOf(before) !== cursorOf(after) || before.world_context?.message?.phase !== after.world_context?.message?.phase)) {
-    return `dialogue advanced${lock(after) === true ? " (message box still open; it locks field controls until it closes)" : ""}`;
+    return `dialogue advanced${lock(after) === true ? STILL_OPEN_NOTE : ""}`;
   }
   return null;
 }

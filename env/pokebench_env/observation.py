@@ -17,10 +17,13 @@ from pokebench_env.raw_ram import RawRamArchive, raw_reference
 from pokebench_env.readout import features_off_from_env, state_json
 from pokebench_env.rerender import read_state, render
 from pokebench_env.screen_settle import (
+    WARP_FEATURE,
     FrameSettle,
+    Settled,
     frame_is_black,
     palette_fade_active,
     screen_note,
+    warp_animating,
 )
 from pokebench_env.ui_state import active_ui_enabled_from_env
 
@@ -40,6 +43,7 @@ def install_observation(
 ) -> Callable[[], dict[str, object]]:
     enabled = active_ui_enabled_from_env(os.environ)
     off = features_off_from_env(os.environ)
+    warp = WARP_FEATURE not in off
 
     def snapshot() -> dict[str, object]:
         with memory_lock if memory_lock is not None else nullcontext():
@@ -53,7 +57,7 @@ def install_observation(
             return serialized
 
     def capture() -> tuple[
-        dict[str, object] | None, GameState, dict[str, object], dict[str, object], bool
+        dict[str, object] | None, GameState, dict[str, object], dict[str, object], bool, bool
     ]:
         receipt = None if raw_capture is None else raw_capture()
         state = read_state(read_memory, maps, active_ui=enabled, off=off)
@@ -62,25 +66,31 @@ def install_observation(
             serialized["raw_ram"] = raw_reference(receipt)
         shot = get_screenshot().model_dump()
         fading = palette_fade_active(read_memory)
+        animation = warp and warp_animating(read_memory)
         if raw_archive is not None and receipt is not None:
             raw_archive.pair(receipt, serialized, str(shot.get("screenshot_base64", "")))
-        return receipt, state, serialized, shot, fading
+        return receipt, state, serialized, shot, fading, animation
 
     @app.get("/pokebench/observation")
     def observation() -> dict[str, object]:
         lock = memory_lock if memory_lock is not None else nullcontext()
+        settled: Settled | None = None
         if settle is not None:
-            receipt, state, serialized, shot, fading = settle.settle(capture, lock)
+            captured, settled = settle.settle_traced(capture, lock)
+            receipt, state, serialized, shot, fading, animation = captured
         else:
             with lock:
-                receipt, state, serialized, shot, fading = capture()
+                receipt, state, serialized, shot, fading, animation = capture()
         screenshot = shot.get("screenshot_base64")
         if not isinstance(screenshot, str) or screenshot == "":
             raise HTTPException(status_code=503, detail="no screenshot available")
+        if warp and settled is not None:
+            serialized["settle"] = {"frames": settled.frames, "reason": settled.reason}
         note = screen_note(fading=fading, black=frame_is_black(screenshot))
         return {
             **({"raw_ram": receipt} if receipt is not None else {}),
-            "state_text": (f"{note}\n" if note else "") + render(state, off),
+            "state_text": (f"{note}\n" if note else "")
+            + render(state, off, warp_animation=animation),
             "screenshot_base64": screenshot,
             "state": serialized,
         }

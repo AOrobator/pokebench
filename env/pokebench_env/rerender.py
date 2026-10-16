@@ -19,6 +19,7 @@ from pokebench_env.game_state import GameState, MapNames, read_game_state
 from pokebench_env.raw_ram import load_raw_ram
 from pokebench_env.readout import features_off_from_env, format_readout
 from pokebench_env.rom import resolve_rom
+from pokebench_env.screen_settle import WARP_FEATURE, warp_animating
 from pokebench_env.ui_state import active_ui_enabled_from_env
 
 PORYMAP_MAPS = (
@@ -38,11 +39,12 @@ def read_state(
         story_characters_enabled="character-presence-v1" not in off,
         battle_details_enabled="battle-details-v2" not in off,
         dynamic_warp_enabled="named-warp-destinations-v1" not in off,
+        displayed_names_enabled="displayed-place-names-v1" not in off,
         in_game_naming_enabled="in-game-naming-readout-v1" not in off,
     )
 
 
-def render(state: GameState, off: frozenset[str]) -> str:
+def render(state: GameState, off: frozenset[str], *, warp_animation: bool = False) -> str:
     return format_readout(
         state,
         off,
@@ -51,6 +53,7 @@ def render(state: GameState, off: frozenset[str]) -> str:
         bounded_navigation="bounded-navigation-v1" not in off,
         message_phase="field-dialogue-phase-v1" not in off,
         named_warps="named-warp-destinations-v1" not in off,
+        warp_animation=warp_animation,
     )
 
 
@@ -91,13 +94,14 @@ def rerender(
 ) -> list[str]:
     off = features_off_from_env(env)
     active_ui = active_ui_enabled_from_env(env)
-    return [
-        render(
-            read_state(load(run_dir / ref.path, ref.sha256), maps, active_ui=active_ui, off=off),
-            off,
+
+    def one(read: ReadMemory) -> str:
+        animation = WARP_FEATURE not in off and warp_animating(read)
+        return render(
+            read_state(read, maps, active_ui=active_ui, off=off), off, warp_animation=animation
         )
-        for ref in refs
-    ]
+
+    return [one(load(run_dir / ref.path, ref.sha256)) for ref in refs]
 
 
 def main(env: Mapping[str, str], stdin: TextIO, stdout: TextIO) -> int:

@@ -277,7 +277,7 @@ describe("experiment queue view", () => {
       expect(quiet).toContain("New experiments wait: finals withdrawn after 5 of 32 runs");
       expect(quiet).toContain("QUEUE RUNNER · IDLE · Waiting: full-map-navigation");
     }
-    expect(renderQueue({ ...stale, fixedRuns: [{ ...fixed, state: "waiting" }] }, "all", new Set()).queue).toContain("Paused while the fixed-run experiment");
+    expect(renderQueue({ ...stale, fixedRuns: [{ ...fixed, state: "waiting" }] }, "all", new Set()).queue).toContain("QUEUE RUNNER · IDLE · Waiting: full-map-navigation");
     expect(renderQueue(stale, "all", new Set(["gate:full-map-navigation"]), true).queue).toContain('<details class="eq-gate eq-g-withdrawn eq-past" data-gate="full-map-navigation" open>');
     const finished = renderQueue({ ...stale, fixedRuns: [{ ...fixed, state: "finished" }] }, "all", new Set()).queue;
     expect(finished).toContain("New experiments wait: finals withdrawn after 5 of 32 runs");

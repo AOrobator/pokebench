@@ -45,7 +45,7 @@ it("states the objective rules the guards actually enforce", () => {
 });
 
 it("names the goal and the tools for the selected switches", () => {
-  expect(playGoal("RIVAL_MET")).toBe("Reach the native game milestone RIVAL MET.");
+  expect(playGoal("RIVAL_MET", ALL_ON)).toBe("Reach the native game milestone RIVAL MET.");
   expect(playTools(ALL_ON)).toEqual(["observe", "press", "get_objectives", "set_objective", "update_objective"]);
   expect(playTools(off("objective-tracking-v1"))).toEqual(["observe", "press"]);
 });

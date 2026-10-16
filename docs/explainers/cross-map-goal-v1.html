@@ -39,7 +39,7 @@ code{font:13px ui-monospace,Menlo,monospace;overflow-wrap:anywhere}
 <tr><th>Run</th><th>Call</th><th>Where the player was</th><th>What it was told (OFF)</th></tr>
 <tr><td><code>4caa</code> seq 12480, 12503, 12526, 12549</td><td><code>navigate_to(8,0, map_id [0,9])</code> (12480: (0,6))</td><td>ROUTE101, map 0/16, at (10,19)</td><td rowspan="3"><code>Navigation: map changed; inspect destination; 0 ordinary button attempts.</code></td></tr>
 <tr><td><code>4caa</code> seq 14588, 14597, 14607</td><td><code>navigate_to(6,4, map_id [0,10])</code></td><td>ROUTE101, map 0/16, at (11,0)</td></tr>
-<tr><td><code>8b01</code>, 17 results</td><td>12 in a row: <code>navigate_to(9,8, map_id [0,18])</code></td><td>map 0/10</td></tr>
+<tr><td><code>8b01</code>, 17 results</td><td>12 calls with <code>map_id [0,18]</code> (seqs 10180–10558): 11 to <code>(9,8)</code>, one to (9,0); the longest unbroken run is six</td><td>map 0/10</td></tr>
 </table>
 <p class="cap">Every one of these says 0 ordinary button attempts. A loop-guard "ineffective" warning followed at 4caa seq 12550 and 14608. Results where the map really changed during a walk (4caa seq 981, 1326) all have presses, and keep their wording.</p></div>
 

@@ -3,7 +3,7 @@
  "id": "cross-map-goal",
  "title": "Cross-map goal refusal",
  "changedFeature": "cross-map-goal-v1",
- "hypothesis": "Saying that a navigate_to target is on another map, instead of a false \"map changed; inspect destination\" with 0 presses (run 4caa: 7 on ROUTE101 with goals on maps 0/9 and 0/10; run 8b01: 17, 12 in a row for map 0/18), cuts the repeated zero-press calls and lets runs leave Route 101 and Oldale in fewer turns.",
+ "hypothesis": "Saying that a navigate_to target is on another map, instead of a false \"map changed; inspect destination\" with 0 presses (run 4caa: 7 on ROUTE101 with goals on maps 0/9 and 0/10; run 8b01: 17, 12 of them with map_id [0,18] while on map 0/10), cuts the repeated zero-press calls and lets runs leave Route 101 and Oldale in fewer turns.",
  "activationMilestone": "PLAYER_NAME_CONFIRMED",
  "primaryMilestone": "ROUTE_103",
  "source": {

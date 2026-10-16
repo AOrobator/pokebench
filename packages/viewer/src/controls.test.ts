@@ -91,10 +91,33 @@ describe("live side panel", () => {
     const best = { run: "best", milestones: [{ name: "NEW_GAME_CREATED", offsetMs: 7_000 }] };
     const html = splitStrip(v);
     expect(html).toContain('<span class="done">NEW GAME ✔</span>');
-    expect(html).toContain('<span class="next">NAMED</span>');
+    expect(html).toContain('<span class="next">NAME</span>');
     expect(html).not.toContain("splitrows");
     expect(splitTimes(v, best)).toContain('<span class="t">0:00:05</span><span class="d g">−0:00:02</span>');
     expect(splitTimes(v, null)).toContain("no comparable best run yet");
+  });
+
+  const mark = (name: string, origin: "observed" | "present_at_start" = "observed") => ({ type: "milestone" as const, turn: 1, name, server_timestamp: 1, kind: "story" as const, origin });
+
+  it("shows every milestone the run recorded in story order, past the starter", () => {
+    const v = view((l) => {
+      for (const [at, name] of [[1_000, "GAME_RUNNING"], [2_000, "STARTER_CHOSEN"], [4_000, "OLDALE_TOWN"], [3_000, "ROUTE_101_AFTER_HANDOFF"], [2_500, "BIRCH_RESCUE_COMPLETE"], [3_500, "PLAYER_BEDROOM_EXITED_AFTER_CLOCK"], [5_000, "SOME_FUTURE_SPLIT"]] as const) l.add(at, mark(name));
+    });
+    const html = splitStrip(v);
+    const chips = [...html.matchAll(/<span class="(\w*)">([^<]*)<\/span>/g)].map((m) => `${m[1] ?? ""}:${m[2] ?? ""}`);
+    expect(chips).toEqual(["done:GAME RUNNING ✔", "done:LEAVE BEDROOM ✔", "done:STARTER ✔", "done:BIRCH RESCUE ✔", "done:BACK ON ROUTE 101 ✔", "done:OLDALE ✔", "done:SOME FUTURE SPLIT ✔", "next:ROUTE 103"]);
+    const times = splitTimes(v, { run: "best", milestones: [{ name: "OLDALE_TOWN", offsetMs: 5_000 }] });
+    expect(times).toContain('<span>OLDALE</span><span class="t">0:00:04</span><span class="d g">−0:00:01</span>');
+    expect(times).toContain('<span>BIRCH RESCUE</span><span class="t">0:00:02</span>');
+    expect(times).toContain('<span>ROUTE 103</span><span class="t na">—</span><span class="d na">next</span>');
+    expect(times).not.toContain("RT 101");
+  });
+
+  it("skips present-at-start splits but starts NEXT after them", () => {
+    const v = view((l) => { l.add(1_000, mark("CLOCK_SET", "present_at_start")); });
+    expect(splitStrip(v)).toBe('<div class="mspl"><span class="next">LEAVE BEDROOM</span></div>');
+    const done = view((l) => { l.add(1_000, mark("ROCK_TOMB_RECEIVED")); });
+    expect(splitStrip(done)).toBe('<div class="mspl"><span class="done">ROCK TOMB ✔</span></div>');
   });
 });
 

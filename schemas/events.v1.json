@@ -2895,6 +2895,10 @@
           "type": "integer",
           "minimum": 0
         },
+        "battle_auto_presses": {
+          "type": "integer",
+          "minimum": 0
+        },
         "pages": {
           "type": "array",
           "items": {
@@ -3004,6 +3008,15 @@
               "text": {
                 "type": "string",
                 "minLength": 1
+              },
+              "battle_turn": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 256
+              },
+              "battle_message_id": {
+                "type": "integer",
+                "minimum": 1
               }
             },
             "additionalProperties": false
@@ -3021,7 +3034,12 @@
             "message_not_ready",
             "press_cap",
             "time_cap",
-            "error"
+            "error",
+            "battle_input",
+            "battle_prompt",
+            "battle_busy",
+            "battle_unreadable",
+            "paused"
           ]
         },
         "detail": {
@@ -4237,6 +4255,143 @@
                 "raw_hex"
               ],
               "properties": {
+                "message": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "state",
+                        "render_state",
+                        "text",
+                        "cursor",
+                        "identity",
+                        "diagnostic"
+                      ],
+                      "properties": {
+                        "state": {
+                          "enum": [
+                            "printing",
+                            "waiting_for_input",
+                            "idle"
+                          ]
+                        },
+                        "render_state": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "text": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "cursor": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "identity": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "diagnostic": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "prompt": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "kind",
+                        "ready",
+                        "selected"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "enum": [
+                            "learn_move",
+                            "stop_learning_move",
+                            "yes_no",
+                            "nickname_caught"
+                          ]
+                        },
+                        "ready": {
+                          "type": "boolean"
+                        },
+                        "selected": {
+                          "anyOf": [
+                            {
+                              "enum": [
+                                "YES",
+                                "NO"
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "text_phase": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "message_waiting",
+                        "input",
+                        "prompt",
+                        "busy",
+                        "screen"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
                 "playback": {
                   "anyOf": [
                     {

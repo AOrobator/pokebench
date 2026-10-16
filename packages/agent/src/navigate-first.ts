@@ -2,7 +2,7 @@
 // the tool JSON first and the system prompt after it, so the system prompt's tool list is the model's
 // summary of what it can do; it names navigate_to as the way to move. The Moving around section is
 // the prompt's last section, nearest the conversation. A press result adds one reminder line on every
-// REMINDER_EVERY-th direction-only press in a row on the free field.
+// REMINDER_EVERY-th direction-only press in a row (no other tool call between) that ends on the free field.
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import type {FeatureSet} from "./features.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
@@ -40,7 +40,7 @@ export function navigateFirstToolList(prompt:string):string {
 
 const DIRECTIONS=new Set(["UP","DOWN","LEFT","RIGHT"]);
 function freeField(state:GameStateSnapshot|undefined):boolean {
- return state!==undefined&&state.started&&state.screen==="overworld"&&!state.in_battle&&state.field_controls_locked===false&&state.world_context?.dialogue==null&&state.world_context?.message==null;
+ return state!==undefined&&state.started&&state.screen==="overworld"&&!state.in_battle&&state.field_controls_locked===false&&state.active_ui==null&&state.world_context?.dialogue==null&&state.world_context?.message==null;
 }
 function stateOf(result:AgentToolResult<unknown>):GameStateSnapshot|undefined {
  const details:unknown=result.details;
@@ -56,8 +56,8 @@ export function withNavigateFirst(tools:readonly AgentTool[],features:FeatureSet
  if(!features["navigate-first-prompt-v1"])return tools;
  let streak=0;
  return tools.map(tool=>{
-  if(tool.name==="navigate_to")return {...tool,execute:(...args:Parameters<AgentTool["execute"]>)=>{streak=0;return tool.execute(...args);}};
-  if(tool.name!=="press")return tool;
+  // Any other tool call (navigate_to, observe, ...) ends the run of presses.
+  if(tool.name!=="press")return {...tool,execute:(...args:Parameters<AgentTool["execute"]>)=>{streak=0;return tool.execute(...args);}};
   return {...tool,execute:async(...args:Parameters<AgentTool["execute"]>)=>{
    const result=await tool.execute(...args);
    const buttons=buttonsOf(args[1]);

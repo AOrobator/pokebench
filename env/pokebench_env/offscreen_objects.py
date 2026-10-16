@@ -23,7 +23,7 @@ SWITCH = "offscreen-objects-v1"
 WINDOW = 7
 HEADER = (
     "Off-screen people and objects on this map (from the map's own object list; "
-    "the local map above does not show them):"
+    "more than 7 tiles from you, so the Field objects list leaves them out):"
 )
 
 NONE = "Off-screen people and objects on this map: none."

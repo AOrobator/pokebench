@@ -65,6 +65,7 @@ export function stallStop(features:FeatureSet,recorder:Pick<RunRecorder,"subscri
 }
 
 // The game tools a play run hands the model: ordinary tools, navigate_to and dialogue auto-advance per switch.
-export function playGameTools(base:readonly AgentTool[],features:FeatureSet,state:StateSource,recorder:AutoAdvanceRecorder,gate?:NavigationPorts["gate"]):AgentTool[]{
- return [...withNavigateFirst(withDialogueAutoAdvance(withNavigation(base,features,state,gate),features,{state,recorder}),features)];
+// extra: the run's other model tools (context tools), wrapped too so any call between presses is seen.
+export function playGameTools(base:readonly AgentTool[],features:FeatureSet,state:StateSource,recorder:AutoAdvanceRecorder,gate?:NavigationPorts["gate"],extra:readonly AgentTool[]=[]):AgentTool[]{
+ return [...withNavigateFirst([...withDialogueAutoAdvance(withNavigation(base,features,state,gate),features,{state,recorder}),...extra],features)];
 }

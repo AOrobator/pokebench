@@ -128,19 +128,21 @@ describe("press reminder",()=>{
   expect(shown).toEqual([false,false,true,false,false,true]);
   expect(textOf(await press(tools,["LEFT","UP"]))).not.toContain(REMINDER);
  });
- it("is reset by navigate_to and by any non-direction press; observe does not reset it",async()=>{
+ it("is reset by any other tool call (navigate_to, observe) and by any non-direction press",async()=>{
   const tools=withNavigateFirst(fakes(()=>FIELD),ON);
   await press(tools,["UP"]);await press(tools,["UP"]);await call(tools,"navigate_to");
   expect(textOf(await press(tools,["UP"]))).not.toContain(REMINDER);
   await press(tools,["UP"]);await press(tools,["A"]);
   expect(textOf(await press(tools,["UP"]))).not.toContain(REMINDER);
   await press(tools,["UP"]);await call(tools,"observe");
+  expect(textOf(await press(tools,["UP"]))).not.toContain(REMINDER);
+  await press(tools,["UP"]);
   expect(textOf(await press(tools,["UP"]))).toContain(REMINDER);
  });
  it("never counts a press that ends off the free field (battle, locked controls, message)",async()=>{
   let state:GameStateSnapshot=FIELD;
   const tools=withNavigateFirst(fakes(()=>state),ON);
-  for(const blocked of [{...FIELD,in_battle:true},{...FIELD,screen:"battle"},{...FIELD,field_controls_locked:true},{...FIELD,field_controls_locked:null}] satisfies GameStateSnapshot[]){
+  for(const blocked of [{...FIELD,in_battle:true},{...FIELD,screen:"battle"},{...FIELD,field_controls_locked:true},{...FIELD,field_controls_locked:null},{...FIELD,active_ui:{phase:"start_menu",selected:"BAG",ready:true,diagnostic:null,controls:"menu"}}] satisfies GameStateSnapshot[]){
    state=FIELD;await press(tools,["UP"]);await press(tools,["UP"]);
    state=blocked;expect(textOf(await press(tools,["UP"]))).not.toContain(REMINDER);
    state=FIELD;expect(textOf(await press(tools,["UP"]))).not.toContain(REMINDER);
@@ -184,6 +186,15 @@ describe("production wiring",()=>{
   expect(results.at(-1)).toContain(REMINDER);
   for(let i=0;i<REMINDER_EVERY;i++)expect(textOf(await press(offTools,["UP"]))).not.toContain(REMINDER);
   expect(on.find(t=>t.name==="navigate_to")?.description.startsWith(NAVIGATE_FIRST_DESCRIPTION)).toBe(true);
+  // The run's context tools (recall/get_dialogue) come last, unchanged in order when off, and reset the count when on.
+  const recall:AgentTool={name:"get_dialogue",label:"get_dialogue",description:"d",parameters:{},execute:()=>Promise.resolve({content:[{type:"text",text:"pages"}],details:undefined})};
+  const withExtra=(features:FeatureSet)=>{const base=gameTools("http://127.0.0.1",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},fetchFn,toolSwitches(features),{now:()=>0,sleep:()=>Promise.resolve()});return playGameTools(base,features,{read:()=>Promise.resolve(FIELD)},{recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1}),subscribe:()=>undefined},undefined,[recall]);};
+  const offExtra=withExtra({...ON,[ID]:false});
+  expect(offExtra.map(t=>t.name)).toEqual([...offTools.map(t=>t.name),"get_dialogue"]);
+  expect(offExtra.at(-1)).toBe(recall);
+  const onExtra=withExtra(ON);
+  await press(onExtra,["UP"]);await press(onExtra,["UP"]);await call(onExtra,"get_dialogue");
+  expect(textOf(await press(onExtra,["UP"]))).not.toContain(REMINDER);
   expect(offTools.find(t=>t.name==="navigate_to")?.description.startsWith(NAVIGATE_FIRST_DESCRIPTION)).toBe(false);
  });
 });

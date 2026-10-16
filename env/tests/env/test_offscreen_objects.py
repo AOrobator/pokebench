@@ -7,6 +7,7 @@ T416 (raw-ram 4588): the player has just entered Route 103 at (11,21); the reado
 the 15x15 window for the first time.
 """
 
+import functools
 import json
 import os
 import struct
@@ -45,6 +46,7 @@ MAY_ENTRY = (
 )
 
 
+@functools.cache
 def operator_rom() -> bytes:
     try:
         return resolve_rom(os.environ, EMERALD_SHA1).read_bytes()
@@ -54,6 +56,11 @@ def operator_rom() -> bytes:
 
 def frame(raw: str) -> dict[str, object]:
     return next(f for f in FIXTURE["frames"] if f["raw_ram"] == raw)
+
+
+@functools.cache
+def map_names() -> MapNames:
+    return MapNames.load(rerender.PORYMAP_MAPS)
 
 
 def reader(raw: str, rom: bytes):  # type: ignore[no-untyped-def]
@@ -73,7 +80,7 @@ def reader(raw: str, rom: bytes):  # type: ignore[no-untyped-def]
 
 def render(raw: str, off: frozenset[str]) -> str:
     read = reader(raw, operator_rom())
-    maps = MapNames.load(rerender.PORYMAP_MAPS)
+    maps = map_names()
     return rerender.render(rerender.read_state(read, maps, active_ui=True, off=off), off)
 
 
@@ -255,7 +262,7 @@ def test_story_line_on_names_the_tile_off_keeps_today() -> None:
 
 def test_format_readout_needs_the_switch_and_live_object_sprites() -> None:
     read = reader(T416, operator_rom())
-    maps = MapNames.load(rerender.PORYMAP_MAPS)
+    maps = map_names()
     state = rerender.read_state(read, maps, active_ui=True, off=RECORDED_OFF)
     assert HEADER in format_readout(state, RECORDED_OFF)
     assert HEADER not in format_readout(state, RECORDED_OFF | {SWITCH})

@@ -23,7 +23,7 @@ feature-switch, feature-worklog, execute-worklog, feature-explainer, pokebench-g
 
 ## Architecture
 
-Two new default-OFF switches. OFF reproduces today byte for byte.
+Three default-OFF switches (presence-penalty-v1 added by operator decision 03:41 AM EDT; see M3). OFF reproduces today byte for byte.
 
 | Switch | Group | Side | Needs | ON |
 |---|---|---|---|---|
@@ -34,10 +34,10 @@ Coordinates: `SaveBlock1.objectEventTemplates` (offset 0xC70, 64 x 24 bytes; x,y
 
 ## Invariants
 
-- INV-1 OFF is byte-identical for both switches (readout bytes on recorded raw RAM; system prompt, tool description and press-result text).
+- INV-1 OFF is byte-identical for every switch (readout bytes on recorded raw RAM; system prompt, tool description and press-result text; chat request body for presence-penalty-v1).
 - INV-2 Off-screen entries come only from game RAM (templates, flags, graphics vars); hidden templates (flag set) are never listed; an object loaded on screen is listed once, with its live position.
 - INV-3 No model-facing text is truncated; every off-screen object is listed.
-- INV-4 The press reminder is true when shown: field controls available, the last three tool calls were direction-only presses on the overworld, no navigate_to since.
+- INV-4 The press reminder is true when shown: the last three tool calls were direction-only presses that each ended on the free field (overworld, not in battle, field controls unlocked, no message), with no other tool call between them.
 - INV-5 The prompt names no destination or story step.
 
 ## Security Review
@@ -145,3 +145,19 @@ Lanes: the think_fast/think_swarm endpoint lanes are not used while overnight tr
 
 - [ ] ASK USER: archive
 
+
+### Round 1 (packet base 1e1feec9, head 497b39e4, diff SHA-256 4719290e…77adf; boundary and principles in the session scratchpad)
+
+- Claude lane: Claude CLI failed (`Failed to authenticate: OAuth session expired`); used a fresh read-only Claude subagent (operator rule 2026-10-16 03:45 AM: a Claude sub-agent review counts as the Claude lane). VERDICT: BLOCKING. B1 reminder streak survives non-press tool calls (INV-4). Hardening: H1 off-screen header untrue under full-map navigation; H2 decision probes do not resend presence_penalty; H3 navigate-first is inert in state-only mode; H4 free field ignores active_ui; H5 fixture rereads ROM/map catalog; H6 OFF test is containment.
+- Codex lane: default `gpt-6.1-sol` rejected for this account (HTTP 400); reran with `-m gpt-5.6-sol`. VERDICT: BLOCKING. Same INV-4 blocker; blocker 2 repeated ROM reads and map-catalog loads per render in test_offscreen_objects.py.
+- Grok lane (cursor-agent, cursor-grok-4.5-high, ask mode): VERDICT: BLOCKING. Same INV-4 blocker; asks to sync the boundary text with presence-penalty-v1; PB9/PB11 caveats.
+- Synthesis and fixes (one batch):
+  - INV-4: every non-press tool call now resets the streak (`withNavigateFirst` wraps all other tools); `playGameTools` takes the run's context tools as `extra` so get_dialogue/recall calls reset it too (live.ts passes them instead of pushing after); tests flip the observe case and add a get_dialogue case; registry copy and explainer updated.
+  - Fixture I/O: `operator_rom()` and the map catalog are cached once per module (`functools.cache`).
+  - H1: header now reads "more than 7 tiles from you, so the Field objects list leaves them out", true with or without full-map navigation.
+  - H4: free field also requires `active_ui` empty; test added.
+  - Boundary text: three switches; INV-1 covers the request body; INV-4 restated.
+  - PB9 caveat: REMINDER_EVERY=3 and the block placement were agent defaults within the approved wording (the operator approved "after a third direction-only press in a row"). PB11 caveat: the fake-gateway wire test is the proof; the live probe was contaminated by overlapping a trial.
+  - Deferred (HARDENING FOLLOW-UP, not in this boundary): H2 probe-decision-cli resending presence_penalty from run_start; H3 state-only mode ignores navigate-first (state-only is incompatible with bounded navigation per stateOnlyProblems, so the combination is not run); H6 OFF byte identity also held by the existing goldens.
+  - Gates: agent 1476, viewer 850, Python 2195; coverage agent 97.79/94.65/98.11/99.1, viewer 95.16/90.69/93.41/97.61, Python 96%; lint green except known mypy; pages-check clean.
+  COMMIT: `fix: navigate_to reminder resets on any other tool call; off-screen header wording; cached test fixtures (review round 1)`

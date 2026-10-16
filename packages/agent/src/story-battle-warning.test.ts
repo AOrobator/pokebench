@@ -162,6 +162,12 @@ describe("delivery",()=>{
   expect(watch.observe(FULL)).toBeNull();
   expect(watch.observe(T363)).not.toBeNull();
  });
+ it("re-arms on a party read at full HP even when a species name cannot be read: full HP needs only every HP read and at max",()=>{
+  const watch=new StoryBattleWarning();
+  expect(watch.observe(T363)).not.toBeNull();
+  expect(watch.observe(parseGameState({...FULL,party:FULL.party.map(m=>({...m,species:null}))}))).toBeNull();
+  expect(watch.observe(T363)).not.toBeNull();
+ });
  it("re-arms when the player leaves the map and fires again on return while still hurt",()=>{
   const watch=new StoryBattleWarning();
   expect(watch.observe(T363)).not.toBeNull();

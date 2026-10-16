@@ -14,6 +14,7 @@ from pathlib import Path
 
 from pokebench_env.game_screen import TASKS, ReadMemory
 from pokebench_env.live_map import MAP_HEADER, MAP_OFFSET, OBJECT_EVENTS
+from pokebench_env.map_rules import TRIGGER_ELEVATION_RULE
 from pokebench_env.native_text import decode_native_text, native_text_payload
 from pokebench_env.ui_state import ActiveUi, _window_drawn
 
@@ -204,6 +205,7 @@ class WorldContext:
         triggers: bool = True,
         dialogue: bool = True,
         message: bool = False,
+        rules_in_prompt: bool = False,
     ) -> str:
         lines = []
         if objects:
@@ -234,9 +236,8 @@ class WorldContext:
                     f"0x{t.variable:04X}={t.current_value}, needs {t.required_value}; "
                     f"condition {status}; script 0x{t.script_pointer:08X}"
                 )
-            lines.append(
-                "Trigger elevation must also match the player on entry (0 matches any elevation)."
-            )
+            if not rules_in_prompt:
+                lines.append(TRIGGER_ELEVATION_RULE)
         if dialogue and self.dialogue is not None:
             lines.append(
                 "Active field-message buffer (can include pages not yet displayed):\n"

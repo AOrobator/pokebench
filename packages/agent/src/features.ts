@@ -63,6 +63,7 @@ export const SWITCHABLE_FEATURES = [
   "displayed-place-names-v1",
   "transition-loop-detection-v1",
   "blocked-batch-result-v1",
+  "readout-rules-in-prompt-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -203,6 +204,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("displayed-place-names-v1", "observation", "DISPLAYED PLACE NAMES", RAM, "Names signs, and the Littleroot buildings the game names on its signs, by the text the game prints for this save instead of by source symbols. A sign reads as Sign text \"...\" with every line of the text its script shows, read from the ROM at the sign's own script; the script's player-gender branch is followed using the saved gender, and {PLAYER} is the saved name. Furniture with a verified name of its own (Notebook, GameCube) keeps it. For a boy, the sign at Littleroot (12,8) reads Sign text \"PROF. BIRCH'S HOUSE\" (not Mays House Sign) and (7,8) reads Sign text \"RED's HOUSE\" for a player named RED. Sign labels show where named interactions are on, and they also reach the loop supervisor's lists. The two houses (1F and 2F) and the lab take the same names in the Location line and, with the warp and world destination switches, in warp destinations: (14,8) -> PROF. BIRCH'S HOUSE 1F (map 1/2). A girl's save gets the swapped names. Any other script shape, placeholder or an unknown gender keeps today's name; the JSON location is unchanged. Off: signs keep their script-symbol names (Mays House Sign) and buildings their map-constant names (LITTLEROOT TOWN MAYS HOUSE 1F)."),
   on("transition-loop-detection-v1", "guard", "TRANSITION LOOP DETECTION", null, "Lets the loop guard see door, stairs and warp bounces. A press that lands mid-animation (field controls locked, no message, the game's script context stopped) no longer wipes the guard's cycle history; that step is skipped. Walking back and forth between the same maps with no new story, party, money, badge or item change and no new milestone counts as a cycle on the third repeat of the same 2-4 map changes, through the usual warning and supervisor briefing; the warning says the map moves are repeating. Locks with a message or a running script still reset the history as before. Off: any locked step clears the cycle history and map changes are not counted."),
   on("blocked-batch-result-v1", "guidance", "BLOCKED BATCH RESULTS", "press-result-v1", "When a press batch of one repeated direction (two or more presses) leaves the player on the same tile with field controls free before and after, and the player ends facing that direction, the press result says so: \"blocked: LEFT ×3 did not move you; you are still at (10,16) facing left\" (or \"turned down -> left but did not move\"), then names what the model's own local map shows on the next tile. Terrain that cannot be entered from here (a collision tile, a counter, a ledge that only hops another way, ~ water while on foot, an edge wall, the map edge with no connection that way) reads \"blocked\" and says the direction cannot move the player from here. A person, object or warp on the next tile is described, but the result reads \"no movement\", because object height is not read and a warp is not an obstacle. Anything else reads \"no movement\" with the cause not known; height differences are never named. Each fact follows the switch that draws it: tiles only with the live map, ledges with ledge hops, edge walls with one-way tiles, counters with counter talk, map connections with world destinations, coordinates and facing with player position. Single presses, mixed or non-direction batches and locked or unverified states keep their usual text. Off: the batch reads \"unchanged world position/facing (batch or non-direction input; intermediate effects unknown)\", and a batch that only turned reads \"turned <from> -> <to>; no net movement\"."),
+  on("readout-rules-in-prompt-v1", "observation", "READOUT RULES IN PROMPT", RAM, "Removes the fixed map rules from every readout and states them once in the system prompt, in a \"Map symbols and rules\" section built from the same text the server prints: the map legend line (@ player; N live object; W warp location ...; # collision; g grass; ~ water; plus ledges, edge walls and the ? outside-map mark only when this run's switches draw them), \"Terrain rules, elevation and objects can still block movement.\", the \"Warp destinations are ...\" note (with warp activation guidance) and \"Trigger elevation must also match the player on entry (0 matches any elevation).\" (with coordinate script conditions). In the prompt the legend says each warp's activation is listed in the readout's Warps line, and edge-wall sides in its Edge walls line. Under the map the readout keeps one line, \"Map symbols and rules: see the system prompt.\" The counter legend (= ...) depends on the map, so a map that draws a counter keeps it as its own line under that pointer; the prompt never describes it. If the whole map is unavailable and the local map is shown instead, that readout keeps its own legend and rules. Nothing else in the readout changes or moves: the Edge walls, Live objects and Warps lines, script-trigger lists and interaction candidates stay. State-only decisions have no system prompt section, so they need this switch off. Off: every readout prints the legend and rules under its map as before, and the system prompt has no map rules section."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",
@@ -255,7 +257,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "world-targets-v1", "named-interactions-v1", "world-destinations-v1", "bounded-navigation-v1", "field-dialogue-phase-v1", "active-field-message-buffer-v1", "naming-cursor-v1", "story-state-v1",
   "coordinate-script-conditions-v1", "field-control-lock", "warp-activation-guidance-v1", "ledge-hops-v1", "one-way-tiles-v1",
   "full-map-navigation-v1", "counter-talk-v1", "named-warp-destinations-v1", "character-presence-v1",
-  "battle-details-v2", "warp-arrival-settle-v1", "displayed-place-names-v1",
+  "battle-details-v2", "warp-arrival-settle-v1", "displayed-place-names-v1", "readout-rules-in-prompt-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -303,6 +305,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("displayed-place-names-v1"),
     ...when("transition-loop-detection-v1"),
     ...when("blocked-batch-result-v1"),
+    ...when("readout-rules-in-prompt-v1"),
   ];
 }
 
@@ -313,5 +316,5 @@ export function featuresOf(harnessFeatures: readonly string[]): FeatureSet {
 
 export function stateOnlyProblems(features:FeatureSet):string[]{
  if(!features["state-only-decisions-v1"])return [];
- return (["objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
+ return (["objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1","readout-rules-in-prompt-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
 }

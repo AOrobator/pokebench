@@ -10,6 +10,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 
 from pokebench_env.game_screen import ReadMemory
+from pokebench_env.map_rules import COUNTER_LINE, POINTER, TERRAIN_RULE, legend, warp_note
 
 MAP_HEADER = 0x02037318
 BACKUP_LAYOUT = 0x03005DC0
@@ -99,6 +100,7 @@ class LocalMap:
         counters: bool = True,
         destinations: Mapping[tuple[int, int], str] | None = None,
         dynamic: str | None = None,
+        rules_in_prompt: bool = False,
     ) -> str:
         x, y = self.origin
         cells = _cells(
@@ -133,6 +135,7 @@ class LocalMap:
                 counters=counters and any("=" in row for row in cells),
                 destinations=destinations,
                 dynamic=dynamic,
+                rules_in_prompt=rules_in_prompt,
             )
         )
 
@@ -158,6 +161,7 @@ class FullMap:
         counters: bool = True,
         destinations: Mapping[tuple[int, int], str] | None = None,
         dynamic: str | None = None,
+        rules_in_prompt: bool = False,
     ) -> str:
         cells = _cells(
             self.rows,
@@ -196,6 +200,7 @@ class FullMap:
                 counters=counters and any("=" in row for row in cells),
                 destinations=destinations,
                 dynamic=dynamic,
+                rules_in_prompt=rules_in_prompt,
             )
         )
 
@@ -250,6 +255,7 @@ def _details(
     counters: bool,
     destinations: Mapping[tuple[int, int], str] | None = None,
     dynamic: str | None = None,
+    rules_in_prompt: bool = False,
 ) -> str:
     walled = "; ".join(
         f"({tile.x},{tile.y}) " + "+".join(EDGE_WALLS[tile.behavior])
@@ -274,50 +280,27 @@ def _details(
         or empty
     )
     behaviors = sorted({tile.behavior for tile in tiles})
+    # readout-rules-in-prompt-v1: the system prompt states the fixed rules (map_rules owns both).
+    rules = (
+        f"\n{POINTER}" + (f"\n{COUNTER_LINE}" if counters else "")
+        if rules_in_prompt
+        else "\n"
+        + legend(
+            warp_guidance=warp_guidance,
+            counters=counters,
+            ledges=ledges,
+            edge_walls=edge_walls,
+            outside=outside,
+        )
+        + f"\n{TERRAIN_RULE}"
+    )
     return (
-        (
-            "\n@ player; N live object; W warp location (see activation below);"
-            if warp_guidance
-            else "\n@ player; N live object; W warp;"
-        )
-        + " # collision; g grass; ~ water;"
-        + (
-            " = counter: you cannot walk onto it, but you can talk to someone standing"
-            " behind it by facing the counter and pressing A;"
-            if counters
-            else ""
-        )
-        + (
-            " v ^ < > ledge: a one-way hop in the arrow's direction (move into it that way to"
-            " jump over it, landing 2 tiles on); impassable from any other side;"
-            if ledges
-            else ""
-        )
-        + (
-            " + edge walls: walkable, but movement across a walled side is refused in both"
-            " directions (sides listed under Edge walls);"
-            if edge_walls
-            else ""
-        )
-        + (
-            " . clear terrain (may have script triggers); ? outside current map."
-            if outside
-            else " . clear terrain (may have script triggers)."
-        )
-        + "\nTerrain rules, elevation and objects can still block movement."
+        rules
         + (f"\nEdge walls: {walled}" if edge_walls and walled else "")
         + f"\nLive objects: {listed_objects}\nWarps: {listed_warps}"
         + (
-            (
-                "\nWarp destinations are the map you arrive on: its name when the game's map"
-                " table has one, then its group/number ID in parentheses; not warp indexes."
-                if destinations is not None
-                else "\nWarp destinations are map group/number IDs, not warp indexes."
-            )
-            + " Activation also"
-            " requires matching elevation and available field controls; W alone does not"
-            " guarantee a transition. After a transition, check the new map and position."
-            if warp_guidance
+            f"\n{warp_note(named=destinations is not None)}"
+            if warp_guidance and not rules_in_prompt
             else ""
         )
         + "\nMetatile behaviors present: "

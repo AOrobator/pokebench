@@ -7,6 +7,11 @@ from collections.abc import Callable
 from dataclasses import replace
 from pathlib import Path
 
+import pytest
+from fastapi import FastAPI
+from test_view import get
+
+from pokebench_env.game_state import GameState
 from pokebench_env.map_rules import (
     COUNTER_LINE,
     FEATURE,
@@ -19,11 +24,10 @@ from pokebench_env.map_rules import (
     render_ts,
 )
 from pokebench_env.map_rules import main as map_rules_main
-
-from pokebench_env.game_state import GameState
+from pokebench_env.observation import install_observation
 from pokebench_env.readout import SERVER_FEATURES, features_off_from_env
 from pokebench_env.rerender import read_state, render
-from tests.env.test_feature_switches import map_memory
+from tests.env.test_feature_switches import _Shot, map_memory
 from tests.env.test_game_state import MAPS, OVERWORLD, SB1, Memory, game
 from tests.env.test_live_map import tile
 from tests.env.test_world_context import COORDS, world
@@ -215,7 +219,7 @@ def test_the_generated_table_holds_every_switch_combination(tmp_path: Path) -> N
     assert map_rules_main([str(out)]) == 0
     text = out.read_text()
     assert text == render_ts()
-    keys = re.findall(r'^  "([a-z0-9,-]*)": (\d+),$', text, re.M)
+    keys = re.findall(r'^  "([a-z0-9,-]*)": (\d+),?$', text, re.M)
     assert len(keys) == 2 ** len(MAP_RULE_SWITCHES)
     sections = json.loads(text.split("MAP_RULE_TEXTS: readonly string[] = ")[1].split(";\n")[0])
     for key, index in keys:
@@ -228,3 +232,16 @@ def test_switch_is_registered_server_side_last_and_default_off() -> None:
     assert SERVER_FEATURES[-1] == FEATURE
     assert FEATURE in features_off_from_env({})
     assert features_off_from_env({"POKEBENCH_FEATURES_OFF": FEATURE}) == frozenset({FEATURE})
+
+
+def test_the_observation_route_follows_the_env_switch(monkeypatch: pytest.MonkeyPatch) -> None:
+    texts = {}
+    for raw in ("", FEATURE):
+        monkeypatch.setenv("POKEBENCH_FEATURES_OFF", raw)
+        app = FastAPI()
+        install_observation(app, lambda: _Shot(), map_memory().read, MAPS)
+        status, _, body = get(app, "/pokebench/observation")
+        assert status == 200, body
+        texts[raw] = json.loads(body)["state_text"]
+    assert POINTER in texts[""] and TERRAIN_RULE not in texts[""]
+    assert POINTER not in texts[FEATURE] and TERRAIN_RULE in texts[FEATURE]

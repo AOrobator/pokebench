@@ -32,8 +32,8 @@ describe("readout-rules-in-prompt-v1 registry", () => {
   });
 
   it("reads presets written before the switch as OFF and keeps an explicit ON", () => {
-    const v2 = { version: 2, id: "viewer-next", target: null, limits: { maxTurns: 300, maxWallMs: 1800000, failureLimit: 3 }, sampling: { thinkingLevel: "medium", maxTokens: 4096 }, features: { ...OFF } };
-    const older: Record<string, boolean> = { ...v2.features }; delete older[ID];
+    const v2 = { version: 2, id: "viewer-next", target: null, limits: { maxTurns: 300, maxWallMs: 1800000, failureLimit: 3 }, sampling: { thinkingLevel: "medium", maxTokens: 4096 }, features: { ...OFF, "state-only-decisions-v1": false } };
+    const older = Object.fromEntries(Object.entries(v2.features).filter(([id]) => id !== ID));
     expect(presetFeatures(parsePlayPreset({ ...v2, features: older }))[ID]).toBe(false);
     expect(presetFeatures(parsePlayPreset({ ...v2, features: { ...older, [ID]: true } }))[ID]).toBe(true);
     const v1 = { version: 1, id: "legacy", target: null, limits: v2.limits, sampling: v2.sampling, flags: { loopGuard: true, activeUi: true, interfaceDocs: true, objectives: false } };

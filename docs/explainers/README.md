@@ -53,3 +53,6 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Battle text auto-advance](battle-text-auto-advance-v1.html)
 - [Battle message waiting](battle-message-waiting-v1.html)
 - [Script line presence](script-line-presence-v1.html)
+- [Off-screen people and objects](offscreen-objects-v1.html)
+- [navigate_to first prompting](navigate-first-prompt-v1.html)
+- [Presence penalty 1.5](presence-penalty-v1.html)

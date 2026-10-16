@@ -390,6 +390,9 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "adjacent-tiles-v1":"adjacent-tiles-v1.html",
  "battle-message-waiting-v1":"battle-message-waiting-v1.html",
  "script-line-presence-v1":"script-line-presence-v1.html",
+ "offscreen-objects-v1":"offscreen-objects-v1.html",
+ "navigate-first-prompt-v1":"navigate-first-prompt-v1.html",
+ "presence-penalty-v1":"presence-penalty-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

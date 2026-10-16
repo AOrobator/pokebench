@@ -172,6 +172,14 @@ Report per switch: id, model-facing before/after excerpts from this run, precisi
 - Codex: BLOCKING: the walk check ignores navigate_to's map_id.
 - Accepted: the walk's map_id must equal the readout's map. 2026-10-16 1:30 PM EDT round-10 RED: 1 failing test. COMMIT (60b34c50). 1:40 PM EDT GREEN: map_id checked; full-run replay unchanged (4 entries, all true; 205 deliveries); agent 1619 tests 97.96/94.47/98.38/99.15, viewer 904 tests 95.32/91.10/93.62/97.62; lint clean; pages-check silent; Python unchanged (no Python edits).
 
+### Round 11 (cumulative main 9e84ba4d..b4519be6 excluding the fixture, SHA-256 736141f7…6162; fix delta 93641c9b..b4519be6, SHA-256 6eb02e43…0e87)
+
+- Codex (gpt-5.6-sol): **LGTM**. Grok (cursor-grok-4.5-high): **LGTM**. Claude CLI: **LGTM**. All three cloud lanes approve the reviewed head b4519be6; main was 9e84ba4d (the packet base) when the verdicts came back.
+- Landing: this isolated worktree session cannot touch the main checkout, so the fast-forward is handed to the parent session: `git merge --ff-only b4519be6` (or this docs-only follow-up commit, which touches only this worklog) in `~/dev/pokebench`, then repin `experiments/disproved-beliefs.json` and `experiments/same-plan-breaker.json` `source.commit` to the merge SHA, then `just viewer-main` when the operator allows a viewer restart.
+- Pre-merge explainer copies answer 200: http://127.0.0.1:8791/disproved-beliefs-v1/disproved-beliefs-v1.html and http://127.0.0.1:8791/same-plan-breaker-v1/same-plan-breaker-v1.html.
+- Open: with the operator ROM, main's 34 ROM-gated Python re-render tests fail (`pokebench_env/route103_rival.py` KeyError); this branch changes no Python file.
+- Follow-ups (non-blocking, recorded): claims naming another map are only excluded by the end-at-tile and walk rules; a "back and forth" note names the two window states even when the second came first; the live READ EXPLAINER click in the viewer is unverified until main's viewer is rebuilt.
+
 ## Surprises
 
 - The twin's coordinate trigger leaves the player at (11,1) with field controls locked and no message; the push back to (11,2) happens on the next press. A state-equality rule over one decision never sees this loop; a two-state rule does.

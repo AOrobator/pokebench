@@ -498,7 +498,8 @@ export class RunView {
       const legs = [["ROUTE_101_AFTER_RIVAL_BATTLE", previous.state.location === "OLDALE TOWN" && route(event)], ["LITTLEROOT_AFTER_RIVAL_BATTLE", route(previous.state) && event.location === "LITTLEROOT TOWN"]] as const;
       for (const [name, matched] of legs) if (matched && !this.milestones.some(mark => mark.name === name)) this.milestones.push({ name, ms: eventMs(event), seq: event.seq, derived: true, kind: "navigation", origin: "observed", evidence: [this.rivalWitness, previous.seq, event.seq] });
     }
-    if ([0, 1, 2, 3].includes(lab) && event.route103_rival?.battle_active !== true && event.route103_rival?.defeated !== true) this.rivalWitness = event.seq;
+    const unbeaten = event.route103_rival == null ? !/^ROUTE ?103$/.test(event.location ?? "") : !event.route103_rival.battle_active && !event.route103_rival.defeated;
+    if ([0, 1, 2, 3].includes(lab) && !event.in_battle && unbeaten) this.rivalWitness = event.seq;
     this.rivalPrevious = { state: event, seq: event.seq };
   }
 }

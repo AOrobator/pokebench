@@ -12,6 +12,7 @@ const NEW=["RIVAL_BATTLE_STARTED","RIVAL_BATTLE_DEFEATED","RIVAL_OLDALE_SEND_OFF
 type Rival={battle_active:boolean;defeated:boolean;oldale_stage:number|null};
 const rival=(r:Partial<Rival>={}):Rival=>({battle_active:false,defeated:false,oldale_stage:0,...r});
 const state=(location:string,lab:number,r:Partial<Rival>={},extra:Partial<GameStateSnapshot>={}):GameStateSnapshot=>({screen:"overworld",started:true,name:"X",location,map_id:null,position:{x:1,y:1},facing:"DOWN",in_battle:false,party:[],money:3000,badges:[],play_time_s:1,story:{...story,birch_lab_stage:lab,rival_battle_won:lab>=4},route103_rival:rival(r),...extra});
+const legacy=(s:GameStateSnapshot):GameStateSnapshot=>{const copy={...s};delete copy.route103_rival;return copy;};
 const events=(states:readonly GameStateSnapshot[]):(Extract<RunEvent,{type:"state"}>&GameStateSnapshot)[]=>states.map((s,i)=>({...s,type:"state",run:"r",seq:i+1,turn:1,v:1,t:"2026-10-16T03:00:00.000-04:00"}));
 const mark=(name:string,evidence:number[]):Extract<RunEvent,{type:"milestone"}>=>({type:"milestone",run:"r",seq:90,turn:1,v:1,t:"2026-10-16T03:00:00.000-04:00",name,kind:["RIVAL_BATTLE_STARTED","RIVAL_BATTLE_DEFEATED","RIVAL_BATTLE_WON","RIVAL_OLDALE_SEND_OFF"].includes(name)?"story":"navigation",origin:"observed",evidence,server_timestamp:1});
 // The real return trip from the Route 103 rival, sampled like 2026-10-16T02-23-17_qwen36-gpu1_sh02.
@@ -107,7 +108,7 @@ it("keeps every measurement-only split out of the loop guard's native progress",
 });
 
 it("never takes the pre-battle witness from a battle, or from Route 103 when the reader field is missing",()=>{
- for(const witness of [state("OLDALE TOWN",3,{},{in_battle:true,screen:"battle"}),{...state("ROUTE103",3),route103_rival:undefined}]){
+ for(const witness of [state("OLDALE TOWN",3,{},{in_battle:true,screen:"battle"}),legacy(state("ROUTE103",3))]){
   const tracker=new StateMilestones({read:()=>Promise.resolve(state("ROUTE103",3))});tracker.initialize("save_state");
   const seq=[witness,state("OLDALE TOWN",4,{defeated:true,oldale_stage:2}),state("ROUTE101",4,{defeated:true,oldale_stage:2})];
   expect(seq.flatMap((s,i)=>tracker.observe(s,i+1)).map(m=>m.name)).not.toContain("ROUTE_101_AFTER_RIVAL_BATTLE");

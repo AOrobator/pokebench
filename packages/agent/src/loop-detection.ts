@@ -1,9 +1,9 @@
 import type { RunEvent } from "./events.js";
 import { MEASUREMENT_ONLY_MILESTONES, MILESTONES } from "./milestones.js";
+import type { GameStateSnapshot } from "./game-state.js";
 
 // Story progress that resets the guard; measurement-only splits never change guard behavior.
 export const NATIVE_PROGRESS_MILESTONES = MILESTONES.filter((m) => m.kind === "story" && !MEASUREMENT_ONLY_MILESTONES.has(m.name));
-import type { GameStateSnapshot } from "./game-state.js";
 
 export const LOOP_POLICY = {
   planning: 6,

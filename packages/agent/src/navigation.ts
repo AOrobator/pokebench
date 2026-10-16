@@ -99,10 +99,12 @@ function counterHint(state:GameStateSnapshot,goal:Point,options:NavigationOption
   const across=occupied(goal)?{counter:{x:goal.x-dx,y:goal.y-dy},person:goal}:{counter:goal,person:{x:goal.x+dx,y:goal.y+dy}};
   if(!counter(across.counter)||!occupied(across.person))continue;
   // navigation-truth-v1: someone behind a counter is talked to only if it has a script (a listed interaction target).
-  // The game finds that person at the player's elevation (GetObjectEventIdByPosition), so its elevation must match.
+  // The game finds that person at the player's elevation on the stand tile (GetObjectEventIdByPosition), so with the
+  // targets known only a scripted person whose elevation matches the arrival elevation there counts, and the counter
+  // fallback text (which also says to press A) is used only without targets.
   const scripted=truth&&state.interaction_targets!=null?state.interaction_targets.filter(t=>t.kind==="object"&&at(across.person)(t)):null;
-  if(scripted!==null&&!scripted.some(t=>elevationsMatch(t.elevation,geometry.elevation)))continue;
-  involved=true;
+  if(scripted!==null&&scripted.length===0)continue;
+  if(scripted===null)involved=true;
   const stand={x:across.counter.x-dx,y:across.counter.y-dy};
   const path=geometry.tile(stand)===undefined?null:planNavigation(state,stand,options);
   if(path===null)continue;
@@ -158,7 +160,7 @@ function targetReason(state:GameStateSnapshot,goal:Point,options:NavigationOptio
   const label=name!=null?`${name} (${kind})`:`a ${kind}`;
   const reachable=DIRECTIONS.flatMap(([side,dx,dy])=>{const stand={x:goal.x+dx,y:goal.y+dy};return free(stand)?[{stand,side}]:[];});
   const usable=scripted===null||scripted.length===0||thing?.kind!=="object"?reachable:reachable.filter(({stand})=>talker(stand)!==undefined);
-  if(scripted!==null&&scripted.length>0&&reachable.length>0&&usable.length===0)return `${at(goal)} is ${label}, which navigate_to cannot stand on; it is at elevation ${String(scripted[0]?.elevation)}, and every free neighbouring tile navigate_to can reach puts you at another elevation, where facing it and pressing A does not reach it; choose a waypoint at its elevation`;
+  if(scripted!==null&&scripted.length>0&&reachable.length>0&&usable.length===0)return `${at(goal)} is ${label}, which navigate_to cannot stand on; it is at elevation ${[...new Set(scripted.map(t=>String(t.elevation)))].join(" or ")}, and every free neighbouring tile navigate_to can reach puts you at another elevation, where facing it and pressing A does not reach it; choose a waypoint at its elevation`;
   const first=usable[0];
   const spoken=scripted!==null&&scripted.length>0&&thing?.kind==="object"&&first!==undefined?talker(first.stand):undefined;
   const named=spoken===undefined?label:spoken.name!=null?`${spoken.name} (person or object)`:"a person or object";
@@ -199,7 +201,6 @@ function walked(state:GameStateSnapshot,path:readonly Direction[],options:Naviga
  }
  return {crossed:first,elevation};
 }
-const routeTrigger=(state:GameStateSnapshot,path:readonly Direction[],options:NavigationOptions):MatchingTrigger|null=>walked(state,path,options)?.crossed??null;
 // navigation-truth-v1: a nearer walkable tile the planner could reach only by crossing a matching trigger.
 function gatedNearer(state:GameStateSnapshot,geometry:Geometry,goal:Point,sorted:readonly Point[],nearest:Point|undefined,loose:(p:Point,plan:NavigationOptions)=>boolean,options:NavigationOptions):string {
  if(options.triggers===undefined||options.triggers.length===0)return "";
@@ -217,7 +218,7 @@ function gatedNearer(state:GameStateSnapshot,geometry:Geometry,goal:Point,sorted
 function triggerReason(state:GameStateSnapshot,goal:Point,options:NavigationOptions):string|null {
  if(options.triggers===undefined||options.triggers.length===0)return null;
  const open=planNavigation(state,goal,{...options,triggers:[]});
- const crossed=open===null?null:routeTrigger(state,open,options);
+ const crossed=open===null?null:walked(state,open,options)?.crossed??null;
  if(crossed===null)return null;
  return `every route navigate_to sees to ${at(goal)} crosses ${crossingText(crossed)}; stepping on such a tile runs a script that can stop you or send you back, so navigate_to does not walk across one; target ${at(crossed)} itself to step on it on purpose`;
 }
@@ -233,8 +234,8 @@ function windowReason(state:GameStateSnapshot,goal:Point,options:NavigationOptio
  const standable=standableTile(options);
  const same=(p:Point):boolean=>p.x===goal.x&&p.y===goal.y;
  // Only when no route lies inside the window even with every terrain rule the game has (ledge hops, one-way tiles,
- // walkable floor, the game's elevation rule): a route the configured switches miss is not a route that leaves the window.
- if(planNavigation(state,goal,{...options,ledges:true,oneWay:true,floor:true,elevation:"game"})!==null)return null;
+ // walkable floor, the game's elevation rule, matching triggers ignored): a route the configured switches miss is not a route that leaves the window.
+ if(planNavigation(state,goal,{...options,ledges:true,oneWay:true,floor:true,elevation:"game",triggers:[]})!==null)return null;
  if(!standable(geometry.tile(goal))||geometry.objects.some(same)||geometry.warps.some(same)||(state.interaction_targets??[]).some(t=>t.kind==="object"&&same(t))||(state.world_context?.objects??[]).some(o=>same(o)&&o.map_id[0]===state.map_id?.[0]&&o.map_id[1]===state.map_id[1]))return null;
  const best=new Map<Direction,Point>();
  for(const t of grid.tiles){

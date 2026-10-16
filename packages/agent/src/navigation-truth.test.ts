@@ -88,6 +88,7 @@ describe("navigation-truth-v1: talk offers only for objects with a script (sh02 
   // At the player's elevation, or at elevation 0 (matches any), the offer stays.
   expect((await walk({...state,interaction_targets:[{...kecleon,elevation:3}]},{x:2,y:1},TRUTH)).status).toBe(OFFER);
   expect((await walk({...state,interaction_targets:[{...kecleon,elevation:0}]},{x:2,y:1},TRUTH)).status).toBe(OFFER);
+  expect((await walk({...state,interaction_targets:[kecleon,{...kecleon,elevation:5,local_id:2}]},{x:2,y:1},TRUTH)).status).toContain("it is at elevation 4 or 5, and every free neighbouring tile");
   // Two scripted objects stacked: the offer names the one at the stand tiles' elevation.
   expect((await walk({...state,interaction_targets:[kecleon,{...kecleon,elevation:3,local_id:2,name:"BOY_1"}]},{x:2,y:1},TRUTH)).status).toBe(OFFER.replace("KECLEON","BOY_1"));
  });

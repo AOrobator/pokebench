@@ -55,3 +55,15 @@ it("defaults OFF for presets that omit them and for legacy flag presets, so reco
     expect(presetFeatures(preset)[id]).toBe(false);
   }
 });
+
+it("registers each switch as a pending experiment with a readiness row", () => {
+  const readiness = readFileSync(new URL("../../../docs/experiments/readiness.md", import.meta.url), "utf8");
+  for (const [file, id, activation] of [["readout-truth", "readout-truth-v1", "NEW_GAME_CREATED"], ["birch-speech-pages", "birch-speech-pages-v1", "PLAYER_NAME_CONFIRMED"], ["blackout-readout", "blackout-readout-v1", "STARTER_CHOSEN"]] as const) {
+    const entry = JSON.parse(readFileSync(new URL(`../../../experiments/${file}.json`, import.meta.url), "utf8")) as { changedFeature: string; activationMilestone: string; queuePosition?: number; incumbent: { features: Record<string, boolean> } };
+    expect(entry.changedFeature).toBe(id);
+    expect(entry.activationMilestone).toBe(activation);
+    expect(entry.queuePosition).toBeUndefined();
+    expect(entry.incumbent.features[id]).toBe(false);
+    expect(readiness).toContain(`| \`${id}\` | \`${activation}\``);
+  }
+});

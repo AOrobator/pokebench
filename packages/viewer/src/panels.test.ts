@@ -758,6 +758,22 @@ it("links the three navigation-guidance cards to their tracked explainers",()=>{
   for(const quote of quotes)expect(html).toContain(quote);
  }
 });
+it("links the three readout-truth cards to their tracked explainers, which quote the real-ROM lines",()=>{
+ const cases:readonly(readonly[string,readonly string[]])[]=[
+  ["readout-truth-v1",["Field-message text: none (no message box is open).","Field-message phase: no message is open; a script is running (movement_wait).","Menu: none open","0x080AF661","ON in both arms"]],
+  ["birch-speech-pages-v1",["Interface: birch_speech_page; input ready; value Ah, okay!; A or B shows the next page (the value is the page on screen)","0x0803133D"]],
+  ["blackout-readout-v1",["Whiting out: your party has no usable Pokémon left; the game is taking you back to the last place you healed.","CB2_WhiteOut","0x08085F59"]],
+ ];
+ for(const [id,quotes] of cases){
+  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+  const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+  expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+  const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+  expect(html).toContain(id);
+  for(const quote of quotes)expect(html).toContain(quote);
+ }
+});
 it("links the readout rules card to its tracked explainer, which shows the real-ROM readout and the prompt section",()=>{
  expect(FEATURE_EXPLAINERS["readout-rules-in-prompt-v1"]).toBe("readout-rules-in-prompt-v1.html");
  const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/readout-rules-in-prompt-v1.html",import.meta.url)),"utf8");

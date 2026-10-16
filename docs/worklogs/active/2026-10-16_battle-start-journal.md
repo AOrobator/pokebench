@@ -88,12 +88,12 @@ No new inputs, endpoints, subprocesses or files outside the repo. RAM fixtures h
 - [x] COMMIT (GREEN)
 
 **M3 — proof, explainer, experiment entry**
-- [ ] Real-ROM re-render over every battle start and busy archive in the cook runs (OFF equals recorded, ON diffs only where expected); journal replay over archives
+- [x] Real-ROM re-render over every battle start and busy archive in the cook runs (OFF equals recorded, ON diffs only where expected); journal replay over archives
 - [x] Explainer `docs/explainers/transition-coherence-v1.html`, FEATURE_EXPLAINERS, pending `experiments/transition-coherence.json`, readiness row, pages-check
-- [ ] COMMIT
+- [x] COMMIT
 
 **M4 — review**
-- [ ] Merge main, gates, principles self-review, seal packet
+- [x] Merge main, gates, principles self-review, seal packet
 - [ ] Claude, Grok, GPT lanes LGTM on the same packet; report to the thread owner (no self-merge)
 
 ## Closing the Loop
@@ -123,7 +123,9 @@ Report: branch, frozen head SHA, sha256 of `git diff --binary main HEAD`, three 
   COMMIT: `docs(transition-coherence): explainer and Harness Config link` (0012efbb)
 - 2026-10-16 06:55 AM EDT: real-ROM proof (scratch `bsj/proof.py`, read-only on runs): eight cook runs (show, sh02, e588, 687e, 54a7, 1623, 2919, 2a25); every archive at a battle intro main func / cleared positions, a handoff callback or a busy CPU, plus a 3% sample of the rest, re-rendered with each run's recorded switches, this switch off vs on. 1,329 readouts; OFF is contained in the model's tool result for all 231 recorded ones. ON differs only for battle_init 17 (show 9, sh02 6, e588 2), busy 50, handoff 2; 0 sampled ordinary frames changed; 0 render errors. Journal replayed over each run's archives: no journal error, harness_bug only 1 `menu` (show, an unlisted owner) and none from save blocks, `battle_outcome` ≤ `battle_ended` in every run (show 7/7, was 13 outcome rows recorded for 7 battles). Explainer proof bullet added.
 - 2026-10-16 07:00 AM EDT: merged main 3d218b98 (disproved-beliefs-v1, same-plan-breaker-v1 added after presence-penalty-v1, and the route103 fixture windows 3c237922). Conflicts only in registry lines and end-relative test indices: took main's side, re-appended this switch after same-plan-breaker-v1 (SWITCHABLE_FEATURES, FEATURES, playHarnessFeatures; SERVER_FEATURES after offscreen-objects-v1), presets, DEFAULT_NEXT_RUN, FEATURE_EXPLAINERS, and shifted indices +1 again (also in the disproved-beliefs and same-plan tests); auto-advance `slice(-9,-3)`/`at(-9)`, switchboard rows 73, features off-lists, server explainer list. Gates: agent 1623, viewer 905, Python 2328 passed, 0 failed (main's 34 real-ROM failures are fixed by 3c237922); experiments-check ok, 66.
-  COMMIT: `Merge branch 'main' into claude/battle-start-journal`
+  COMMIT: `Merge branch 'main' into claude/battle-start-journal` (ab7d783a)
+- 2026-10-16 07:05 AM EDT: gates on the merged tip: coverage agent 97.96/94.48/98.38/99.15 (1623), viewer 95.32/91.10/93.62/97.62 (905), Python 2328 passed, lines 97.39 branches 93.29 functions 100; lint green except the known mypy `mgba._pylib`; verify-vendor OK; pages-check clean. Principles self-review below (zero FAIL). Sealing the review packet.
+  COMMIT: `docs(worklog): battle-start-journal gates on merged tip, principles self-review`
 
 ## Surprises
 
@@ -131,6 +133,26 @@ Report: branch, frozen head SHA, sha256 of `git diff --binary main HEAD`, three 
 - main 1f4ac74e already fails 34 real-ROM Python tests (route103_rival reads outside older fixtures); a branch to fix it exists. Gates here record those separately.
 - ON at an initializing second battle shows the first battle's existing initializing rendering, including `Bag: ` (empty, no word) and `Menu state: input phases: ` from readout.py; not changed here (readout.py wording belongs to another branch).
 - Raw RAM: every busy archive is a short streak (at most 9 in a row in any run), so the busy-frame gate costs at most a few polls.
+
+## Principles Adherence (docs/agent-principles.md, PB1-PB13)
+
+| ID | Score | Evidence |
+|---|---|---|
+| PB1 | PASS | Battle outcome/start events come only from game RAM (gBattleMainFunc, gBattleOutcome, positions); no model claims used. Milestones untouched. |
+| PB2 | N/A | No run accounting changed. |
+| PB3 | PASS | No improvement claimed; the experiment entry stays pending; explainer says measured runs are not done. |
+| PB4 | PASS | New readout behavior is a declared server switch (`transition-coherence-v1`, in harness_features when on), OFF byte-identical (INV-1 tests on three recorded readouts); vendor untouched (verify-vendor OK); no RAM writes. |
+| PB5 | PASS | One switch for one family of model-visible correctness fixes, hypothesis in `experiments/transition-coherence.json`; journal fixes are recording-only. |
+| PB6 | N/A | No context/payload change; nothing truncated. |
+| PB7 | PASS | Journal events still written before use; harness_bug gains `kind`; battle_started gains `activated_frame`; busy-blind guard makes a silent journal loud (INV-4). |
+| PB8 | N/A | No model tool-call handling changed. |
+| PB9 | PASS | Unverified callbacks (party/bag init) left unsupported, not guessed; readout.py wording artifacts (`Bag: `) recorded as a surprise for the owning branch instead of changed. |
+| PB10 | PASS | No skips/xfails; coverage floor unchanged (Python 97.39/93.29/100); no exclude changes; hook used on every commit. |
+| PB11 | PASS | Every address checked in the US ROM (literal pools, call targets, first instructions) and in archived raw RAM; pret 731ad5bf. |
+| PB12 | PASS | ROM read only via POKEBENCH_ROM (`~/.roms`); fixtures hold RAM windows only; no .state/.sav. |
+| PB13 | PASS | RED/GREEN commits, gates, worklog per commit, proof, explainer, pending experiment; review below. |
+
+Zero FAIL.
 
 ## Multi-Model Review Log
 

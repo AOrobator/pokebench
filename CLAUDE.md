@@ -19,6 +19,8 @@ When adding or changing agent diagnostics, loop guards, recovery feedback or com
 
 Before registering, queueing or driving an experiment cohort, design it with `.claude/skills/pokebench-experiment-design/SKILL.md`. It sets the tier, a checkpoint start, a power-sized fixed N within the operator's GPU-hour budget, and writes an HTML overview at `docs/experiments/<id>.html`. To explain why recorded runs stalled or failed, use `.claude/skills/pokebench-trace-forensics/SKILL.md`, which is read-only.
 
+To launch, restart or stop a fixed-N experiment (`just fixed-run`), use `.claude/skills/fixed-run-launch/SKILL.md`. A launch is not done until its runs show live in the viewer's EXPERIMENT dropdown.
+
 For viewer navigation, playback or polling interaction changes, use `.claude/skills/viewer-e2e/SKILL.md` and verify the real click through to the selected run and visible frame before claiming it works.
 
 ## Project overrides of the global rules

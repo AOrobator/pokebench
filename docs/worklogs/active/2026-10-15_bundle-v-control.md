@@ -210,6 +210,7 @@ Any valid trial that still ends before the wall cap is listed in a WARNING table
 - 2026-10-15 21:56 EDT: Operator decision (the operator): the launch is tainted by the launch mistake; restart the experiment from zero, do not keep slots 1–2, and the runs must appear in the EXPERIMENT dropdown (hard requirement). Runner and both trials stopped; the ledger, approval and four run dirs moved to `runs/aborted/bundle-v-control-20261016T015615Z/` (outside `runs/experiments/` and the run list).
 - 2026-10-15 22:00 EDT: Branch `claude/fixed-run-cohort`. RED `1f17d44`: a fixed-run ledger joins cohort `experiment:<id>`, invalid trials are excluded with their reason, all or nothing. GREEN: `parseFixedLedger`/`isFixedLedgerText` in `fixed-ledger.ts`, `fixedCohort` in `workbench-store.ts`.
 - 2026-10-15 22:10 EDT: GREEN `b0d3960` (viewer workbench + fixed-ledger tests 57 pass). RED: `fixed-run run` and `dry-run` refuse, before any trial launches, when `POKEBENCH_ROM` is unset (the bare-node launch) or unreadable.
+- 2026-10-15 22:20 EDT: GREEN for `07861c8`: `requireRom` in `fixed-cli.ts` (run and dry-run). New skill `.claude/skills/fixed-run-launch/SKILL.md` (launch only through `just`, run_start checks, EXPERIMENT dropdown as a hard launch check, aborted-launch procedure), linked from CLAUDE.md.
 
 ## Deferred
 

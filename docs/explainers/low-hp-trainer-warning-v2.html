@@ -74,7 +74,7 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 <tr><th>Battle</th><th>Map</th><th>Unbeaten when</th><th>Present when</th><th>Starts by</th></tr>
 <tr><td>Rival MAY / BRENDAN</td><td>ROUTE 103 (0/18)</td><td><code>FLAG_DEFEATED_RIVAL_ROUTE103</code> clear</td><td>rival object loaded (gfx 105 / 100)</td><td>talking: <code>trainerbattle_no_intro</code></td></tr>
 <tr><td>Gym Leader ROXANNE</td><td>RUSTBORO CITY GYM (11/3)</td><td>trainer flag 0x609 clear</td><td>her object loaded (gfx 125)</td><td>talking: <code>trainerbattle_single TRAINER_ROXANNE_1</code></td></tr>
-<tr><td>TEAM AQUA grunt</td><td>PETALBURG WOODS (24/11)</td><td>trainer flag 0x50A clear</td><td>on the map (his object is hidden by <code>FLAG_HIDE_PETALBURG_WOODS_AQUA_GRUNT</code> until his scene)</td><td>walking into the Devon researcher scene (coord events, <code>trainerbattle_no_intro</code>)</td></tr>
+<tr><td>TEAM AQUA grunt</td><td>PETALBURG WOODS (24/11)</td><td>trainer flag 0x50A clear</td><td>on the map (his object, gfx 117 at 26,17, is loaded but has no talk script; the battle starts only from the coord events at 26,23 and 27,23)</td><td>walking into the Devon researcher scene (coord events, <code>trainerbattle_no_intro</code>)</td></tr>
 </table></div>
 <p>Ordinary route trainers are not story battles and are left out. Story battles after the first gym need their flags read before they can be added.</p>
 </section>

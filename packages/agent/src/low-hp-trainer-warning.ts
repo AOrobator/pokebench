@@ -86,7 +86,8 @@ export class LowHpTrainerWarning {
 // Rustboro Gym: RustboroCity_Gym_EventScript_Roxanne, trainerbattle_single TRAINER_ROXANNE_1 (flag 0x609,
 // story.roxanne_defeated); object OBJ_EVENT_GFX_ROXANNE 125. Petalburg Woods: the Devon researcher coord events
 // run trainerbattle_no_intro TRAINER_GRUNT_PETALBURG_WOODS (flag 0x50A, story.petalburg_woods_aqua_grunt_defeated);
-// the grunt's object stays hidden (FLAG_HIDE_PETALBURG_WOODS_AQUA_GRUNT) until that scene, so the map and flag stand alone.
+// the grunt's object (OBJ_EVENT_GFX_AQUA_MEMBER_M at 26,17) is loaded from the start but has no talk script; only the coord
+// events at (26,23)/(27,23) start his battle, so the map and flag stand alone (removeobject runs after the battle).
 interface StoryBattle {readonly kind:StoryBattleWarningFacts["kind"];readonly map:readonly [number,number];readonly won:(s:GameStateSnapshot)=>boolean|null|undefined;readonly object:((sprite:string)=>string|null)|null}
 const STORY_BATTLES:readonly StoryBattle[]=[
  {kind:"rival",map:ROUTE103,won:s=>s.story?.rival_battle_won,object:k=>k.startsWith("RIVAL_MAY_")?"MAY":k.startsWith("RIVAL_BRENDAN_")?"BRENDAN":null},
@@ -95,6 +96,8 @@ const STORY_BATTLES:readonly StoryBattle[]=[
 ];
 const onMap=(id:readonly number[]|null|undefined,map:readonly [number,number]):boolean=>id?.[0]===map[0]&&id[1]===map[1];
 const hurt=(s:GameStateSnapshot):StoryBattleWarningFacts["party"]=>s.party.flatMap(m=>m.is_egg!==true&&m.species!==null&&m.hp!=null&&m.max_hp!=null&&m.hp<m.max_hp?[{species:m.species,hp:m.hp,max_hp:m.max_hp}]:[]);
+// Positive evidence only: every Pokémon (not an egg) reads its HP and max HP, and each is at max.
+const fullParty=(s:GameStateSnapshot):boolean=>{const mons=s.party.filter(m=>m.is_egg!==true);return mons.length>0&&mons.every(m=>m.hp!=null&&m.max_hp!=null&&m.hp>=m.max_hp);};
 const bagItems=(s:GameStateSnapshot):StoryBattleWarningFacts["items"]=>(s.resources?.bag??[]).flatMap(i=>i.name!=null&&HEALING_ITEMS.has(i.name)&&i.quantity>0?[{name:i.name,quantity:i.quantity}]:[]);
 
 // The unbeaten story battle on this map, if the state shows one (its won flag explicitly false and, where the game
@@ -133,8 +136,8 @@ export function storyBattleText(f:StoryBattleWarningFacts):string {
  return `SUPERVISOR: A story battle is on this map: ${who} Your party is not at full HP: ${f.party.map(p=>`${p.species} ${String(p.hp)}/${String(p.max_hp)}`).join(", ")}. If your party faints, you black out: you lose half your money${money} and wake up back at the last POKéMON CENTER you entered, or at home. Heal to full before this battle: the nurse at a POKéMON CENTER heals your whole party, and so does MOM at home.${bag}`;
 }
 
-// v2's arm: fires once for a battle, then stays quiet until a state shows the whole party at full HP, another map
-// or that battle won. A different story battle (another map) fires on its own.
+// v2's arm: fires once for a battle, then stays quiet until a state shows the whole party at full HP (every HP read
+// and at max), another map or that battle won. A different story battle (another map) fires on its own.
 export class StoryBattleWarning {
  private fired:string|null=null;
  observe(state:GameStateSnapshot|undefined):StoryBattleWarningFacts|null {
@@ -154,7 +157,7 @@ export class StoryBattleWarning {
   const battle=STORY_BATTLES.find(b=>`${b.kind}:${b.map.join("/")}`===this.fired);
   if(battle===undefined||state.map_id!==null&&!onMap(state.map_id,battle.map))return true;
   if(battle.won(state)===true)return true;
-  return state.party.length>0&&hurt(state).length===0;
+  return fullParty(state);
  }
 }
 

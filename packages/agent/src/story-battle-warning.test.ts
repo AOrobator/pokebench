@@ -86,7 +86,7 @@ describe("condition, from the state alone",()=>{
   expect(storyBattleWarning({...GYM,story:story({roxanne_defeated:null})})).toBeNull();
   expect(storyBattleWarning({...GYM,world_context:{...must(GYM.world_context),objects:[]}})).toBeNull();
  });
- it("covers the Petalburg Woods TEAM AQUA grunt from the map and flag alone (his object is hidden until his scene)",()=>{
+ it("covers the Petalburg Woods TEAM AQUA grunt from the map and flag alone (his object has no talk script; coord events start the battle)",()=>{
   const facts=must(storyBattleWarning(WOODS));
   expect(facts).toMatchObject({kind:"aqua_grunt",opponent:"TEAM AQUA grunt",x:null,y:null,map_id:[24,11]});
   expect(storyBattleText(facts)).toBe(`SUPERVISOR: A story battle is on this map: a TEAM AQUA grunt. He stops you on the forest path when you reach the DEVON researcher, and that trainer battle cannot be run from. Your party is not at full HP: TORCHIC 3/21. ${TAIL}`);
@@ -124,6 +124,18 @@ describe("delivery",()=>{
   expect(texts[0]).toBe(`press ok\n${T363_TEXT}`);
   expect(rec.calls.v1).toHaveLength(0);
   expect(rec.calls.v2.map(c=>c[0])).toEqual(["press","press","press"]);
+ });
+ it("does not re-arm on a party whose HP cannot be read: full HP needs every HP read and at max",()=>{
+  const unreadable=parseGameState({...T363,party:T363.party.map(m=>({...m,hp:null,max_hp:null}))});
+  const watch=new StoryBattleWarning();
+  expect(watch.observe(T363)).not.toBeNull();
+  expect(watch.observe(unreadable)).toBeNull();
+  expect(watch.observe(T363)).toBeNull();
+  const lead=must(T363.party[0]);
+  expect(watch.observe({...T363,party:[{...lead,hp:21},{...lead,species:"WURMPLE",hp:null,max_hp:15}]})).toBeNull();
+  expect(watch.observe(T363)).toBeNull();
+  expect(watch.observe(FULL)).toBeNull();
+  expect(watch.observe(T363)).not.toBeNull();
  });
  it("needs a recorder that can record the v2 event",()=>{
   expect(()=>withLowHpTrainerWarning([replay("press",[])],ON,{lowHpTrainerWarning:()=>undefined})).toThrow("story_battle_warning");

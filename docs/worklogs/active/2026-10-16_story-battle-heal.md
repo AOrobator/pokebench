@@ -18,9 +18,9 @@ Story battles the game state can see today (pret/pokeemerald 731ad5bf):
 |---|---|---|---|---|
 | Rival MAY/BRENDAN | ROUTE103 [0,18] | FLAG_DEFEATED_RIVAL_ROUTE103 0x82 (`rival_battle_won`) | rival object loaded (OBJ_EVENT_GFX_RIVAL_MAY_NORMAL 105 / RIVAL_BRENDAN_NORMAL 100) | talking (Route103_EventScript_Rival, trainerbattle_no_intro) |
 | Gym Leader ROXANNE | RUSTBORO CITY GYM [11,3] | TRAINER_ROXANNE_1 flag 0x609 (`roxanne_defeated`) | Roxanne object loaded (OBJ_EVENT_GFX_ROXANNE 125) | talking (RustboroCity_Gym_EventScript_Roxanne, trainerbattle_single) |
-| TEAM AQUA grunt | PETALBURG WOODS [24,11] | TRAINER_GRUNT_PETALBURG_WOODS flag 0x50A (`petalburg_woods_aqua_grunt_defeated`) | on the map (his object stays hidden by FLAG_HIDE_PETALBURG_WOODS_AQUA_GRUNT until the scene) | walking into the Devon researcher scene (coord events PetalburgWoods_EventScript_DevonResearcherLeft/Right, trainerbattle_no_intro) |
+| TEAM AQUA grunt | PETALBURG WOODS [24,11] | TRAINER_GRUNT_PETALBURG_WOODS flag 0x50A (`petalburg_woods_aqua_grunt_defeated`) | on the map (his object, gfx 117 at 26,17, is loaded but has no talk script; removeobject runs after the battle) | walking into the Devon researcher scene (coord events PetalburgWoods_EventScript_DevonResearcherLeft/Right, trainerbattle_no_intro) |
 
-Condition: free field (overworld, not in battle, field controls unlocked), player party, one of the rows above unbeaten (flag explicitly false), and any party Pokémon (not an egg) below its max HP. Re-arm: whole party at full HP, another map, or that battle won.
+Condition: free field (overworld, not in battle, field controls unlocked), player party, one of the rows above unbeaten (flag explicitly false), and any party Pokémon (not an egg) below its max HP. Re-arm: whole party at full HP (every HP read and at max), another map, or that battle won.
 
 ## Invariants
 
@@ -62,3 +62,5 @@ app/timeline.js served=967784b1ff61f46b37399e356b52b797c2115670ed7e97907c1d27900
 app/main.js served=3f2f343764ef68a1ebc9daf52d611383203b8094e98245202f554ef487a34c9d built=3f2f343764ef68a1ebc9daf52d611383203b8094e98245202f554ef487a34c9d
 explainers/low-hp-trainer-warning-v2.html served=3f1a80a72241d9b8dd21279e4597609ec451e55e7a26119aa0fb52114717858b tracked=3f1a80a72241d9b8dd21279e4597609ec451e55e7a26119aa0fb52114717858b
 ```
+
+**Round 1** (base 4070e250, head a4afae39, sha 817dfcc3…4208). Grok: LGTM (non-blocking: PB11 mis-tagged; duplicate v2 ids in features.test off() calls). Claude: BLOCKING (the grunt is not hidden before his scene: FLAG_HIDE_PETALBURG_WOODS_AQUA_GRUNT is never set before the battle; his object is loaded with no talk script and coord events at (26,23)/(27,23) start it; wording only). GPT (Codex): BLOCKING (an unreadable party, hp/max_hp null, counted as full and re-armed the warning). Fixes: fullParty() requires every non-egg HP read and at max (new test: unreadable and partly unreadable parties do not re-arm; deletion receipt: the old expression turns it red); grunt wording fixed in the code comment, registry copy, explainer, test name and worklog; PB11 re-scored N/A (grounding under PB1); stray blank line and duplicate test ids removed.

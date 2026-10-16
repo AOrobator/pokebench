@@ -452,7 +452,6 @@ export class RunRecorder {
     this.append({ type: "story_battle_warning", turn: this.turn, tool, ...facts, map_id: [facts.map_id[0], facts.map_id[1]], party: facts.party.map((p) => ({ ...p })), items: facts.items.map((i) => ({ ...i })), text });
   }
 
-
   end(reason: RunEndReason): void {
     this.append({
       type: "run_end",

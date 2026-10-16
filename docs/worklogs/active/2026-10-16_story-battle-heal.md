@@ -79,3 +79,4 @@ app/timeline.js served=967784b1ff61f46b37399e356b52b797c2115670ed7e97907c1d27900
 app/main.js served=3f2f343764ef68a1ebc9daf52d611383203b8094e98245202f554ef487a34c9d built=3f2f343764ef68a1ebc9daf52d611383203b8094e98245202f554ef487a34c9d
 explainers/low-hp-trainer-warning-v2.html served=ad3ca69d4c46cc46c368f6ec3c32f0f369f315b40eb5a11061d1ba79b3202f7d tracked=ad3ca69d4c46cc46c368f6ec3c32f0f369f315b40eb5a11061d1ba79b3202f7d
 ```
+- Synced main b0179665 (ledger re-score, viewer; no registry change). Gates green again: vitest agent+viewer pass (viewer 1002), pytest 2465, coverage ≥90 (Python 97.52/93.55/100), lint, experiments-check. Agent code from main merged cleanly; the live receipts above were taken on 944c04f2 and the warning's code is unchanged since.
